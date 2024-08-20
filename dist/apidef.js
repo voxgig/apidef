@@ -60,38 +60,52 @@ function resolveTranform(spec, opts) {
 }
 function makeOpenAPITransform(spec, opts) {
     return function OpenAPITransform(def, model) {
-        console.log('DEF', def);
+        // console.log('DEF', def)
         model.main.api.name = spec.meta.name;
         (0, jostraca_1.each)(spec.entity, (entity) => {
-            console.log('ENTITY', entity);
+            // console.log('ENTITY', entity)
+            const entityModel = model.main.api.entity[entity.key$] = {
+                field: {},
+                cmd: {},
+            };
+            const firstPath = Object.keys(entity.path)[0];
+            const firstParts = firstPath.split('/');
+            const entityPathPrefix = firstParts[0];
             (0, jostraca_1.each)(entity.path, (path) => {
-                console.log('PATH', path.key$);
+                console.log('PATH', entity.key$, entityPathPrefix, path.key$);
                 // console.dir(def.paths[path.key$], { depth: null })
                 const pathdef = def.paths[path.key$];
-                const getdef = pathdef.get;
-                if (getdef) {
-                    const params = getdef.parameters;
-                    if (params && 1 === params.length) {
-                        const responses = getdef.responses;
-                        if (responses) {
-                            const res200 = responses['200'];
-                            if (res200) {
-                                const content = res200.content;
-                                if (content) {
-                                    const json = content['application/json'];
-                                    if (json) {
-                                        const schema = json.schema;
-                                        if (schema) {
-                                            const properties = schema.properties;
-                                            const field = (0, jostraca_1.each)(properties)
-                                                .reduce((a, p) => (a[p.key$] =
-                                                { kind: (0, jostraca_1.camelify)(p.type) }, a), {});
-                                            model.main.api.entity[entity.key$] = { field };
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                const parts = path.key$.split('/');
+                // TODO: use method prop in model!!!
+                // Entity Fields
+                if (pathdef.get) {
+                    // GET foo/{id} -> single item
+                    let properties = (0, jostraca_1.getx)(pathdef.get, 'parameters=1 ^1 responses 200 content ' +
+                        'application/json schema properties');
+                    // GET foo -> item list
+                    if (null == properties) {
+                        properties = (0, jostraca_1.getx)(pathdef.get, 'parameters=null ^1 responses 200 content ' +
+                            'application/json schema items properties');
+                    }
+                    // console.log('properties', properties)
+                    // TODO: refactor to util function
+                    const field = (0, jostraca_1.each)(properties)
+                        .reduce((a, p) => (a[p.key$] =
+                        { kind: (0, jostraca_1.camelify)(p.type) }, a), {});
+                    Object.assign(entityModel.field, field);
+                }
+                // Entity Commands
+                else if (pathdef.post) {
+                    console.log('CMD', parts, pathdef.post);
+                    if (2 < parts.length && parts[0] === entityPathPrefix) {
+                        const suffix = parts[parts.length - 1];
+                        let params = (0, jostraca_1.getx)(pathdef.post, 'parameters');
+                        let response = (0, jostraca_1.getx)(pathdef.post, 'responses 200 content ' +
+                            'application/json schema properties');
+                        entityModel.cmd[suffix] = {
+                            params,
+                            response
+                        };
                     }
                 }
             });

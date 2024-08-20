@@ -48,7 +48,10 @@ describe('apidef', () => {
           }
         },
         Order: {
-          '/orders': { method: 'GET:list,POST:create' },
+          path: {
+            '/orders': { method: 'GET:list,POST:create' },
+            '/orders/{orderId}/cancel': { method: 'POST:cmd' },
+          }
         },
       }
       // prepare, modify, etc
@@ -231,6 +234,23 @@ paths:
               schema:
                 $ref: '#/components/schemas/Order'
 
+  /orders/{orderId}/cancel:
+    post:
+      summary: Cancel an order
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Order canceled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+
 components:
   schemas:
     Pet:
@@ -275,7 +295,7 @@ components:
           type: integer
         status:
           type: string
-          enum: [placed, approved, delivered]
+          enum: [placed, approved, delivered, cancelled]
 
     NewOrder:
       type: object
