@@ -48,6 +48,7 @@ const __1 = require("../");
         (0, code_1.expect)(res).exist();
         // console.log(JSON.stringify(res.model, null, 2))
         const finalfs = vol.toJSON();
+        (0, code_1.expect)(finalfs['/openapi-3.vxg'].substring(0, 111)).equal(FILE.openapi_3_vxg.substring(0, 111));
         (0, code_1.expect)(finalfs['/openapi-3.yml'].length).equal(FILE.openapi_3_yml.length);
         (0, code_1.expect)(finalfs['/openapi-3.vxg'].length).equal(FILE.openapi_3_vxg.length);
         (0, code_1.expect)(vol.toJSON()).equal({
@@ -293,7 +294,7 @@ components:
           type: integer
 
 `,
-    openapi_3_vxg: `{
+    openapi_3_vxg: `
   "main": {
     "api": {
       "entity": {
@@ -386,6 +387,6 @@ components:
       "name": "foo"
     }
   }
-}`
+`
 };
 //# sourceMappingURL=apidef.test.js.map

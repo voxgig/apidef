@@ -63,6 +63,8 @@ describe('apidef', () => {
     // console.log(JSON.stringify(res.model, null, 2))
     const finalfs: any = vol.toJSON()
 
+    expect(finalfs['/openapi-3.vxg'].substring(0, 111)).equal(FILE.openapi_3_vxg.substring(0, 111))
+
     expect(finalfs['/openapi-3.yml'].length).equal(FILE.openapi_3_yml.length)
     expect(finalfs['/openapi-3.vxg'].length).equal(FILE.openapi_3_vxg.length)
 
@@ -314,7 +316,7 @@ components:
 
 `,
 
-  openapi_3_vxg: `{
+  openapi_3_vxg: `
   "main": {
     "api": {
       "entity": {
@@ -407,6 +409,6 @@ components:
       "name": "foo"
     }
   }
-}`
+`
 
 }
