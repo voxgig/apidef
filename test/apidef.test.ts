@@ -58,15 +58,19 @@ describe('apidef', () => {
     }
 
     const res: any = await apidef.generate(spec)
+    expect(res).exist()
 
-    console.log(JSON.stringify(res.model, null, 2))
+    // console.log(JSON.stringify(res.model, null, 2))
+    const finalfs: any = vol.toJSON()
 
-    /*
+    expect(finalfs['/openapi-3.yml'].length).equal(FILE.openapi_3_yml.length)
+    expect(finalfs['/openapi-3.vxg'].length).equal(FILE.openapi_3_vxg.length)
+
     expect(vol.toJSON()).equal({
-      '/openapi-3.vxg': FILE.openapi_3_vxg,
       '/openapi-3.yml': FILE.openapi_3_yml,
-      })
-      */
+      '/openapi-3.vxg': FILE.openapi_3_vxg,
+    })
+
   })
 
 })
@@ -308,12 +312,98 @@ components:
         quantity:
           type: integer
 
-
 `,
 
   openapi_3_vxg: `{
   "main": {
     "api": {
+      "entity": {
+        "Category": {
+          "field": {
+            "id": {
+              "name": "id",
+              "kind": "Integer"
+            },
+            "name": {
+              "name": "name",
+              "kind": "String"
+            }
+          },
+          "cmd": {}
+        },
+        "Order": {
+          "field": {
+            "id": {
+              "name": "id",
+              "kind": "Integer"
+            },
+            "petId": {
+              "name": "petId",
+              "kind": "Integer"
+            },
+            "quantity": {
+              "name": "quantity",
+              "kind": "Integer"
+            },
+            "status": {
+              "name": "status",
+              "kind": "String"
+            }
+          },
+          "cmd": {
+            "cancel": {
+              "query": [],
+              "param": {
+                "orderId": {
+                  "name": "orderId",
+                  "kind": "Integer"
+                }
+              },
+              "response": {
+                "field": {
+                  "id": {
+                    "name": "id",
+                    "kind": "Integer"
+                  },
+                  "petId": {
+                    "name": "petId",
+                    "kind": "Integer"
+                  },
+                  "quantity": {
+                    "name": "quantity",
+                    "kind": "Integer"
+                  },
+                  "status": {
+                    "name": "status",
+                    "kind": "String"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "Pet": {
+          "field": {
+            "category": {
+              "name": "category",
+              "kind": "Object"
+            },
+            "id": {
+              "name": "id",
+              "kind": "Integer"
+            },
+            "name": {
+              "name": "name",
+              "kind": "String"
+            },
+            "status": {
+              "name": "status",
+              "kind": "String"
+            }
+          },
+          "cmd": {}
+        }
+      },
       "name": "foo"
     }
   }

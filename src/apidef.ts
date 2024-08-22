@@ -4,20 +4,36 @@ import * as Fs from 'node:fs'
 
 import { bundleFromString, createConfig } from '@redocly/openapi-core'
 
+import { FSWatcher } from 'chokidar'
 
 import { getx, each, camelify } from 'jostraca'
 
 
 type ApiDefOptions = {
-  fs: any
+  fs?: any
 }
 
 
 
 
-function ApiDef(opts: ApiDefOptions) {
+function ApiDef(opts: ApiDefOptions = {}) {
   const fs = opts.fs || Fs
-  // const jostraca = Jostraca()
+
+
+  async function watch(spec: any) {
+    console.log('APIDEF START', spec.def)
+    await generate(spec)
+    console.log('APIDEF START GEN', spec.def)
+
+    const fsw = new FSWatcher()
+
+    fsw.on('change', (...args: any[]) => {
+      console.log('APIDEF CHANGE', args)
+      generate(spec)
+    })
+
+    fsw.add(spec.def)
+  }
 
 
   async function generate(spec: any) {
@@ -36,12 +52,14 @@ function ApiDef(opts: ApiDefOptions) {
       main: { api: { entity: {} } }
     }
 
-    // console.log('BUNDLE', bundle.bundle)
     transform(bundle.bundle.parsed, model)
+
+    let vxgsrc = JSON.stringify(model, null, 2)
+    vxgsrc = vxgsrc.substring(1, vxgsrc.length - 1)
 
     fs.writeFileSync(
       spec.model,
-      JSON.stringify(model, null, 2)
+      vxgsrc
     )
 
     return {
@@ -52,7 +70,8 @@ function ApiDef(opts: ApiDefOptions) {
 
 
   return {
-    generate
+    watch,
+    generate,
   }
 }
 
@@ -64,6 +83,16 @@ function resolveTranform(spec: any, opts: any) {
 }
 
 function makeOpenAPITransform(spec: any, opts: any) {
+
+
+  function extractFields(properties: any) {
+    const fieldMap = each(properties)
+      .reduce((a: any, p: any) => (a[p.key$] =
+        { name: p.key$, kind: camelify(p.type) }, a), {})
+    return fieldMap
+  }
+
+
   return function OpenAPITransform(def: any, model: any) {
     // console.log('DEF', def)
 
@@ -82,7 +111,7 @@ function makeOpenAPITransform(spec: any, opts: any) {
       const entityPathPrefix = firstParts[0]
 
       each(entity.path, (path: any) => {
-        console.log('PATH', entity.key$, entityPathPrefix, path.key$)
+        // console.log('PATH', entity.key$, entityPathPrefix, path.key$)
 
         // console.dir(def.paths[path.key$], { depth: null })
         const pathdef = def.paths[path.key$]
@@ -105,27 +134,32 @@ function makeOpenAPITransform(spec: any, opts: any) {
           // console.log('properties', properties)
 
           // TODO: refactor to util function
-          const field = each(properties)
-            .reduce((a: any, p: any) => (a[p.key$] =
-              { kind: camelify(p.type) }, a), {})
+          // const field = each(properties)
+          //  .reduce((a: any, p: any) => (a[p.key$] =
+          //    { kind: camelify(p.type) }, a), {})
+          const field = extractFields(properties)
           Object.assign(entityModel.field, field)
         }
 
         // Entity Commands
         else if (pathdef.post) {
-          console.log('CMD', parts, pathdef.post)
+          // console.log('CMD', parts, pathdef.post)
 
           if (2 < parts.length && parts[0] === entityPathPrefix) {
             const suffix = parts[parts.length - 1]
 
-            let params = getx(pathdef.post, 'parameters')
+            let param = getx(pathdef.post, 'parameters?in=path') || []
+
+            let query = getx(pathdef.post, 'parameters?in!=path') || []
 
             let response = getx(pathdef.post, 'responses 200 content ' +
               'application/json schema properties')
 
             entityModel.cmd[suffix] = {
-              params,
-              response
+              query,
+              param: param.reduce((a: any, p: any) =>
+                (a[p.name] = { name: p.name, kind: camelify(p.schema.type) }, a), {}),
+              response: { field: extractFields(response) }
             }
           }
         }

@@ -27,10 +27,21 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ApiDef = ApiDef;
 const Fs = __importStar(require("node:fs"));
 const openapi_core_1 = require("@redocly/openapi-core");
+const chokidar_1 = require("chokidar");
 const jostraca_1 = require("jostraca");
-function ApiDef(opts) {
+function ApiDef(opts = {}) {
     const fs = opts.fs || Fs;
-    // const jostraca = Jostraca()
+    async function watch(spec) {
+        console.log('APIDEF START', spec.def);
+        await generate(spec);
+        console.log('APIDEF START GEN', spec.def);
+        const fsw = new chokidar_1.FSWatcher();
+        fsw.on('change', (...args) => {
+            console.log('APIDEF CHANGE', args);
+            generate(spec);
+        });
+        fsw.add(spec.def);
+    }
     async function generate(spec) {
         const transform = resolveTranform(spec, opts);
         const source = fs.readFileSync(spec.def, 'utf8');
@@ -43,22 +54,30 @@ function ApiDef(opts) {
         const model = {
             main: { api: { entity: {} } }
         };
-        // console.log('BUNDLE', bundle.bundle)
         transform(bundle.bundle.parsed, model);
-        fs.writeFileSync(spec.model, JSON.stringify(model, null, 2));
+        let vxgsrc = JSON.stringify(model, null, 2);
+        vxgsrc = vxgsrc.substring(1, vxgsrc.length - 1);
+        fs.writeFileSync(spec.model, vxgsrc);
         return {
             ok: true,
             model,
         };
     }
     return {
-        generate
+        watch,
+        generate,
     };
 }
 function resolveTranform(spec, opts) {
     return makeOpenAPITransform(spec, opts);
 }
 function makeOpenAPITransform(spec, opts) {
+    function extractFields(properties) {
+        const fieldMap = (0, jostraca_1.each)(properties)
+            .reduce((a, p) => (a[p.key$] =
+            { name: p.key$, kind: (0, jostraca_1.camelify)(p.type) }, a), {});
+        return fieldMap;
+    }
     return function OpenAPITransform(def, model) {
         // console.log('DEF', def)
         model.main.api.name = spec.meta.name;
@@ -72,7 +91,7 @@ function makeOpenAPITransform(spec, opts) {
             const firstParts = firstPath.split('/');
             const entityPathPrefix = firstParts[0];
             (0, jostraca_1.each)(entity.path, (path) => {
-                console.log('PATH', entity.key$, entityPathPrefix, path.key$);
+                // console.log('PATH', entity.key$, entityPathPrefix, path.key$)
                 // console.dir(def.paths[path.key$], { depth: null })
                 const pathdef = def.paths[path.key$];
                 const parts = path.key$.split('/');
@@ -89,22 +108,25 @@ function makeOpenAPITransform(spec, opts) {
                     }
                     // console.log('properties', properties)
                     // TODO: refactor to util function
-                    const field = (0, jostraca_1.each)(properties)
-                        .reduce((a, p) => (a[p.key$] =
-                        { kind: (0, jostraca_1.camelify)(p.type) }, a), {});
+                    // const field = each(properties)
+                    //  .reduce((a: any, p: any) => (a[p.key$] =
+                    //    { kind: camelify(p.type) }, a), {})
+                    const field = extractFields(properties);
                     Object.assign(entityModel.field, field);
                 }
                 // Entity Commands
                 else if (pathdef.post) {
-                    console.log('CMD', parts, pathdef.post);
+                    // console.log('CMD', parts, pathdef.post)
                     if (2 < parts.length && parts[0] === entityPathPrefix) {
                         const suffix = parts[parts.length - 1];
-                        let params = (0, jostraca_1.getx)(pathdef.post, 'parameters');
+                        let param = (0, jostraca_1.getx)(pathdef.post, 'parameters?in=path') || [];
+                        let query = (0, jostraca_1.getx)(pathdef.post, 'parameters?in!=path') || [];
                         let response = (0, jostraca_1.getx)(pathdef.post, 'responses 200 content ' +
                             'application/json schema properties');
                         entityModel.cmd[suffix] = {
-                            params,
-                            response
+                            query,
+                            param: param.reduce((a, p) => (a[p.name] = { name: p.name, kind: (0, jostraca_1.camelify)(p.schema.type) }, a), {}),
+                            response: { field: extractFields(response) }
                         };
                     }
                 }

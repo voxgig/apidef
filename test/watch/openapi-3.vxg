@@ -1,0 +1,26 @@
+{
+  "main": {
+    "api": {
+      "entity": {
+        "Pet": {
+          "field": {
+            "id": {
+              "name": "id",
+              "kind": "Integer"
+            },
+            "name": {
+              "name": "name",
+              "kind": "String"
+            },
+            "status": {
+              "name": "status",
+              "kind": "String"
+            }
+          },
+          "cmd": {}
+        }
+      },
+      "name": "foo"
+    }
+  }
+}

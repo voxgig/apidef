@@ -1,7 +1,8 @@
 type ApiDefOptions = {
-    fs: any;
+    fs?: any;
 };
-declare function ApiDef(opts: ApiDefOptions): {
+declare function ApiDef(opts?: ApiDefOptions): {
+    watch: (spec: any) => Promise<void>;
     generate: (spec: any) => Promise<{
         ok: boolean;
         model: {
