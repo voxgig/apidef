@@ -21,14 +21,11 @@ function ApiDef(opts: ApiDefOptions = {}) {
 
 
   async function watch(spec: any) {
-    console.log('APIDEF START', spec.def)
     await generate(spec)
-    console.log('APIDEF START GEN', spec.def)
 
     const fsw = new FSWatcher()
 
     fsw.on('change', (...args: any[]) => {
-      console.log('APIDEF CHANGE', args)
       generate(spec)
     })
 
@@ -94,13 +91,9 @@ function makeOpenAPITransform(spec: any, opts: any) {
 
 
   return function OpenAPITransform(def: any, model: any) {
-    // console.log('DEF', def)
-
     model.main.api.name = spec.meta.name
 
     each(spec.entity, (entity: any) => {
-      // console.log('ENTITY', entity)
-
       const entityModel: any = model.main.api.entity[entity.key$] = {
         field: {},
         cmd: {},
@@ -111,9 +104,6 @@ function makeOpenAPITransform(spec: any, opts: any) {
       const entityPathPrefix = firstParts[0]
 
       each(entity.path, (path: any) => {
-        // console.log('PATH', entity.key$, entityPathPrefix, path.key$)
-
-        // console.dir(def.paths[path.key$], { depth: null })
         const pathdef = def.paths[path.key$]
 
         const parts = path.key$.split('/')
@@ -131,19 +121,13 @@ function makeOpenAPITransform(spec: any, opts: any) {
             properties = getx(pathdef.get, 'parameters=null ^1 responses 200 content ' +
               'application/json schema items properties')
           }
-          // console.log('properties', properties)
 
-          // TODO: refactor to util function
-          // const field = each(properties)
-          //  .reduce((a: any, p: any) => (a[p.key$] =
-          //    { kind: camelify(p.type) }, a), {})
           const field = extractFields(properties)
           Object.assign(entityModel.field, field)
         }
 
         // Entity Commands
         else if (pathdef.post) {
-          // console.log('CMD', parts, pathdef.post)
 
           if (2 < parts.length && parts[0] === entityPathPrefix) {
             const suffix = parts[parts.length - 1]

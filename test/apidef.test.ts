@@ -34,6 +34,7 @@ describe('apidef', () => {
       meta: {
         name: 'foo'
       },
+
       entity: {
         Pet: {
           path: {

@@ -32,12 +32,9 @@ const jostraca_1 = require("jostraca");
 function ApiDef(opts = {}) {
     const fs = opts.fs || Fs;
     async function watch(spec) {
-        console.log('APIDEF START', spec.def);
         await generate(spec);
-        console.log('APIDEF START GEN', spec.def);
         const fsw = new chokidar_1.FSWatcher();
         fsw.on('change', (...args) => {
-            console.log('APIDEF CHANGE', args);
             generate(spec);
         });
         fsw.add(spec.def);
@@ -79,10 +76,8 @@ function makeOpenAPITransform(spec, opts) {
         return fieldMap;
     }
     return function OpenAPITransform(def, model) {
-        // console.log('DEF', def)
         model.main.api.name = spec.meta.name;
         (0, jostraca_1.each)(spec.entity, (entity) => {
-            // console.log('ENTITY', entity)
             const entityModel = model.main.api.entity[entity.key$] = {
                 field: {},
                 cmd: {},
@@ -91,8 +86,6 @@ function makeOpenAPITransform(spec, opts) {
             const firstParts = firstPath.split('/');
             const entityPathPrefix = firstParts[0];
             (0, jostraca_1.each)(entity.path, (path) => {
-                // console.log('PATH', entity.key$, entityPathPrefix, path.key$)
-                // console.dir(def.paths[path.key$], { depth: null })
                 const pathdef = def.paths[path.key$];
                 const parts = path.key$.split('/');
                 // TODO: use method prop in model!!!
@@ -106,17 +99,11 @@ function makeOpenAPITransform(spec, opts) {
                         properties = (0, jostraca_1.getx)(pathdef.get, 'parameters=null ^1 responses 200 content ' +
                             'application/json schema items properties');
                     }
-                    // console.log('properties', properties)
-                    // TODO: refactor to util function
-                    // const field = each(properties)
-                    //  .reduce((a: any, p: any) => (a[p.key$] =
-                    //    { kind: camelify(p.type) }, a), {})
                     const field = extractFields(properties);
                     Object.assign(entityModel.field, field);
                 }
                 // Entity Commands
                 else if (pathdef.post) {
-                    // console.log('CMD', parts, pathdef.post)
                     if (2 < parts.length && parts[0] === entityPathPrefix) {
                         const suffix = parts[parts.length - 1];
                         let param = (0, jostraca_1.getx)(pathdef.post, 'parameters?in=path') || [];
