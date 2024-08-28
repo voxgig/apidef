@@ -51,7 +51,13 @@ function ApiDef(opts = {}) {
         const model = {
             main: { api: { entity: {} } }
         };
-        transform(bundle.bundle.parsed, model);
+        try {
+            transform(bundle.bundle.parsed, model);
+        }
+        catch (err) {
+            console.log('APIDEF ERROR', err);
+            throw err;
+        }
         let vxgsrc = JSON.stringify(model, null, 2);
         vxgsrc = vxgsrc.substring(1, vxgsrc.length - 1);
         fs.writeFileSync(spec.model, vxgsrc);
@@ -68,55 +74,100 @@ function ApiDef(opts = {}) {
 function resolveTranform(spec, opts) {
     return makeOpenAPITransform(spec, opts);
 }
+function extractFields(properties) {
+    const fieldMap = (0, jostraca_1.each)(properties)
+        .reduce((a, p) => (a[p.key$] =
+        { name: p.key$, kind: (0, jostraca_1.camelify)(p.type) }, a), {});
+    return fieldMap;
+}
+function fixName(base, name, prop = 'name') {
+    base[prop.toLowerCase()] = name.toLowerCase();
+    base[(0, jostraca_1.camelify)(prop)] = (0, jostraca_1.camelify)(name);
+    base[prop.toUpperCase()] = name.toUpperCase();
+}
 function makeOpenAPITransform(spec, opts) {
-    function extractFields(properties) {
-        const fieldMap = (0, jostraca_1.each)(properties)
-            .reduce((a, p) => (a[p.key$] =
-            { name: p.key$, kind: (0, jostraca_1.camelify)(p.type) }, a), {});
-        return fieldMap;
-    }
+    const paramBuilder = (paramMap, paramDef, entityModel, pathdef, op, path, entity, model) => {
+        paramMap[paramDef.name] = {
+            required: paramDef.required
+        };
+        fixName(paramMap[paramDef.name], paramDef.name);
+        fixName(paramMap[paramDef.name], paramDef.schema.type, 'type');
+    };
+    const queryBuilder = (queryMap, queryDef, entityModel, pathdef, op, path, entity, model) => {
+        queryMap[queryDef.name] = {
+            required: queryDef.required
+        };
+        fixName(queryMap[queryDef.name], queryDef.name);
+        fixName(queryMap[queryDef.name], queryDef.schema.type, 'type');
+    };
+    const opBuilder = {
+        any: (entityModel, pathdef, op, path, entity, model) => {
+            const em = entityModel.op[op.key$] = {
+                path: path.key$,
+                method: op.val$,
+                param: {},
+                query: {},
+            };
+            fixName(em, op.key$);
+            // Params are in the path
+            if (0 < path.params.length) {
+                let params = (0, jostraca_1.getx)(pathdef[op.val$], 'parameters?in=path') || [];
+                if (Array.isArray(params)) {
+                    params.reduce((a, p) => (paramBuilder(a, p, entityModel, pathdef, op, path, entity, model), a), em.param);
+                }
+            }
+            // Queries are after the ?
+            let queries = (0, jostraca_1.getx)(pathdef[op.val$], 'parameters?in!=path') || [];
+            if (Array.isArray(queries)) {
+                queries.reduce((a, p) => (queryBuilder(a, p, entityModel, pathdef, op, path, entity, model), a), em.query);
+            }
+            return em;
+        },
+        list: (entityModel, pathdef, op, path, entity, model) => {
+            return opBuilder.any(entityModel, pathdef, op, path, entity, model);
+        },
+        load: (entityModel, pathdef, op, path, entity, model) => {
+            return opBuilder.any(entityModel, pathdef, op, path, entity, model);
+        },
+        create: (entityModel, pathdef, op, path, entity, model) => {
+            return opBuilder.any(entityModel, pathdef, op, path, entity, model);
+        },
+        save: (entityModel, pathdef, op, path, entity, model) => {
+            return opBuilder.any(entityModel, pathdef, op, path, entity, model);
+        },
+        remove: (entityModel, pathdef, op, path, entity, model) => {
+            return opBuilder.any(entityModel, pathdef, op, path, entity, model);
+        },
+    };
     return function OpenAPITransform(def, model) {
-        model.main.api.name = spec.meta.name;
+        fixName(model.main.api, spec.meta.name);
         (0, jostraca_1.each)(spec.entity, (entity) => {
             const entityModel = model.main.api.entity[entity.key$] = {
+                op: {},
                 field: {},
                 cmd: {},
             };
-            const firstPath = Object.keys(entity.path)[0];
-            const firstParts = firstPath.split('/');
-            const entityPathPrefix = firstParts[0];
+            fixName(entityModel, entity.key$);
+            // const firstPath: any = Object.keys(entity.path)[0]
+            // const firstParts = firstPath.split('/')
+            // const entityPathPrefix = firstParts[0]
             (0, jostraca_1.each)(entity.path, (path) => {
                 const pathdef = def.paths[path.key$];
-                const parts = path.key$.split('/');
-                // TODO: use method prop in model!!!
-                // Entity Fields
-                if (pathdef.get) {
-                    // GET foo/{id} -> single item
-                    let properties = (0, jostraca_1.getx)(pathdef.get, 'parameters=1 ^1 responses 200 content ' +
-                        'application/json schema properties');
-                    // GET foo -> item list
-                    if (null == properties) {
-                        properties = (0, jostraca_1.getx)(pathdef.get, 'parameters=null ^1 responses 200 content ' +
-                            'application/json schema items properties');
-                    }
-                    const field = extractFields(properties);
-                    Object.assign(entityModel.field, field);
+                if (null == pathdef) {
+                    throw new Error('APIDEF: path not found in OpenAPI: ' + path.key$ +
+                        ' (entity: ' + entity.name + ')');
                 }
-                // Entity Commands
-                else if (pathdef.post) {
-                    if (2 < parts.length && parts[0] === entityPathPrefix) {
-                        const suffix = parts[parts.length - 1];
-                        let param = (0, jostraca_1.getx)(pathdef.post, 'parameters?in=path') || [];
-                        let query = (0, jostraca_1.getx)(pathdef.post, 'parameters?in!=path') || [];
-                        let response = (0, jostraca_1.getx)(pathdef.post, 'responses 200 content ' +
-                            'application/json schema properties');
-                        entityModel.cmd[suffix] = {
-                            query,
-                            param: param.reduce((a, p) => (a[p.name] = { name: p.name, kind: (0, jostraca_1.camelify)(p.schema.type) }, a), {}),
-                            response: { field: extractFields(response) }
-                        };
+                path.parts = path.key$.split('/');
+                path.params = path.parts
+                    .filter((p) => p.startsWith('{'))
+                    .map((p) => p.substring(1, p.length - 1));
+                // console.log('ENTITY-PATH', entity, path)
+                (0, jostraca_1.each)(path.op, (op) => {
+                    const opbuild = opBuilder[op.key$];
+                    if (opbuild) {
+                        opbuild(entityModel, pathdef, op, path, entity, model);
                     }
-                }
+                });
             });
         });
     };

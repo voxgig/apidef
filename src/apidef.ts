@@ -49,7 +49,13 @@ function ApiDef(opts: ApiDefOptions = {}) {
       main: { api: { entity: {} } }
     }
 
-    transform(bundle.bundle.parsed, model)
+    try {
+      transform(bundle.bundle.parsed, model)
+    }
+    catch (err: any) {
+      console.log('APIDEF ERROR', err)
+      throw err
+    }
 
     let vxgsrc = JSON.stringify(model, null, 2)
     vxgsrc = vxgsrc.substring(1, vxgsrc.length - 1)
@@ -79,74 +85,136 @@ function resolveTranform(spec: any, opts: any) {
   return makeOpenAPITransform(spec, opts)
 }
 
+
+function extractFields(properties: any) {
+  const fieldMap = each(properties)
+    .reduce((a: any, p: any) => (a[p.key$] =
+      { name: p.key$, kind: camelify(p.type) }, a), {})
+  return fieldMap
+}
+
+
+function fixName(base: any, name: string, prop = 'name') {
+  base[prop.toLowerCase()] = name.toLowerCase()
+  base[camelify(prop)] = camelify(name)
+  base[prop.toUpperCase()] = name.toUpperCase()
+}
+
+
 function makeOpenAPITransform(spec: any, opts: any) {
 
-
-  function extractFields(properties: any) {
-    const fieldMap = each(properties)
-      .reduce((a: any, p: any) => (a[p.key$] =
-        { name: p.key$, kind: camelify(p.type) }, a), {})
-    return fieldMap
+  const paramBuilder = (paramMap: any, paramDef: any,
+    entityModel: any, pathdef: any,
+    op: any, path: any, entity: any, model: any) => {
+    paramMap[paramDef.name] = {
+      required: paramDef.required
+    }
+    fixName(paramMap[paramDef.name], paramDef.name)
+    fixName(paramMap[paramDef.name], paramDef.schema.type, 'type')
   }
 
 
+  const queryBuilder = (queryMap: any, queryDef: any,
+    entityModel: any, pathdef: any,
+    op: any, path: any, entity: any, model: any) => {
+    queryMap[queryDef.name] = {
+      required: queryDef.required
+    }
+    fixName(queryMap[queryDef.name], queryDef.name)
+    fixName(queryMap[queryDef.name], queryDef.schema.type, 'type')
+  }
+
+
+  const opBuilder: any = {
+    any: (entityModel: any, pathdef: any, op: any, path: any, entity: any, model: any) => {
+      const em = entityModel.op[op.key$] = {
+        path: path.key$,
+        method: op.val$,
+        param: {},
+        query: {},
+      }
+      fixName(em, op.key$)
+
+      // Params are in the path
+      if (0 < path.params.length) {
+        let params = getx(pathdef[op.val$], 'parameters?in=path') || []
+        if (Array.isArray(params)) {
+          params.reduce((a: any, p: any) =>
+            (paramBuilder(a, p, entityModel, pathdef, op, path, entity, model), a), em.param)
+        }
+      }
+
+      // Queries are after the ?
+      let queries = getx(pathdef[op.val$], 'parameters?in!=path') || []
+      if (Array.isArray(queries)) {
+        queries.reduce((a: any, p: any) =>
+          (queryBuilder(a, p, entityModel, pathdef, op, path, entity, model), a), em.query)
+      }
+
+      return em
+    },
+
+
+    list: (entityModel: any, pathdef: any, op: any, path: any, entity: any, model: any) => {
+      return opBuilder.any(entityModel, pathdef, op, path, entity, model)
+    },
+
+    load: (entityModel: any, pathdef: any, op: any, path: any, entity: any, model: any) => {
+      return opBuilder.any(entityModel, pathdef, op, path, entity, model)
+    },
+
+    create: (entityModel: any, pathdef: any, op: any, path: any, entity: any, model: any) => {
+      return opBuilder.any(entityModel, pathdef, op, path, entity, model)
+    },
+
+    save: (entityModel: any, pathdef: any, op: any, path: any, entity: any, model: any) => {
+      return opBuilder.any(entityModel, pathdef, op, path, entity, model)
+    },
+
+    remove: (entityModel: any, pathdef: any, op: any, path: any, entity: any, model: any) => {
+      return opBuilder.any(entityModel, pathdef, op, path, entity, model)
+    },
+
+  }
+
   return function OpenAPITransform(def: any, model: any) {
-    model.main.api.name = spec.meta.name
+    fixName(model.main.api, spec.meta.name)
 
     each(spec.entity, (entity: any) => {
       const entityModel: any = model.main.api.entity[entity.key$] = {
+        op: {},
         field: {},
         cmd: {},
       }
 
-      const firstPath: any = Object.keys(entity.path)[0]
-      const firstParts = firstPath.split('/')
-      const entityPathPrefix = firstParts[0]
+      fixName(entityModel, entity.key$)
+
+      // const firstPath: any = Object.keys(entity.path)[0]
+      // const firstParts = firstPath.split('/')
+      // const entityPathPrefix = firstParts[0]
 
       each(entity.path, (path: any) => {
         const pathdef = def.paths[path.key$]
 
-        const parts = path.key$.split('/')
-
-        // TODO: use method prop in model!!!
-
-        // Entity Fields
-        if (pathdef.get) {
-          // GET foo/{id} -> single item
-          let properties = getx(pathdef.get, 'parameters=1 ^1 responses 200 content ' +
-            'application/json schema properties')
-
-          // GET foo -> item list
-          if (null == properties) {
-            properties = getx(pathdef.get, 'parameters=null ^1 responses 200 content ' +
-              'application/json schema items properties')
-          }
-
-          const field = extractFields(properties)
-          Object.assign(entityModel.field, field)
+        if (null == pathdef) {
+          throw new Error('APIDEF: path not found in OpenAPI: ' + path.key$ +
+            ' (entity: ' + entity.name + ')')
         }
 
-        // Entity Commands
-        else if (pathdef.post) {
+        path.parts = path.key$.split('/')
+        path.params = path.parts
+          .filter((p: string) => p.startsWith('{'))
+          .map((p: string) => p.substring(1, p.length - 1))
 
-          if (2 < parts.length && parts[0] === entityPathPrefix) {
-            const suffix = parts[parts.length - 1]
+        // console.log('ENTITY-PATH', entity, path)
 
-            let param = getx(pathdef.post, 'parameters?in=path') || []
+        each(path.op, (op: any) => {
+          const opbuild = opBuilder[op.key$]
 
-            let query = getx(pathdef.post, 'parameters?in!=path') || []
-
-            let response = getx(pathdef.post, 'responses 200 content ' +
-              'application/json schema properties')
-
-            entityModel.cmd[suffix] = {
-              query,
-              param: param.reduce((a: any, p: any) =>
-                (a[p.name] = { name: p.name, kind: camelify(p.schema.type) }, a), {}),
-              response: { field: extractFields(response) }
-            }
+          if (opbuild) {
+            opbuild(entityModel, pathdef, op, path, entity, model)
           }
-        }
+        })
       })
     })
   }

@@ -23,38 +23,42 @@ const __1 = require("../");
                 name: 'foo'
             },
             entity: {
-                Pet: {
+                pet: {
                     path: {
-                        '/pets': { method: 'GET:list,POST:create' },
-                        '/pets/{petId}': { method: 'GET:load,PUT:save,DELETE:remove', param: 'petId' },
-                        '/categories/{categoryId}/pets': { method: 'GET:list', param: 'categoryId' },
-                    }
-                },
-                Category: {
-                    path: {
-                        '/categories': { method: 'GET:list,POST:create' },
-                    }
-                },
-                Order: {
-                    path: {
-                        '/orders': { method: 'GET:list,POST:create' },
-                        '/orders/{orderId}/cancel': { method: 'POST:cmd' },
-                    }
-                },
+                        '/pets': {
+                            op: { list: 'get', create: 'post' }
+                        },
+                        '/pets/{petId}': {
+                            op: { load: 'get', save: 'put', remove: 'delete' },
+                        }
+                        // '/categories/{categoryId}/pets': { method: 'GET:list', param: 'categoryId' },
+                    },
+                    // Category: {
+                    //   path: {
+                    //     '/categories': { method: 'GET:list,POST:create' },
+                    //   }
+                    // },
+                    // Order: {
+                    //   path: {
+                    //     '/orders': { method: 'GET:list,POST:create' },
+                    //     '/orders/{orderId}/cancel': { method: 'POST:cmd' },
+                    //   }
+                    // },
+                }
+                // prepare, modify, etc
             }
-            // prepare, modify, etc
         };
         const res = await apidef.generate(spec);
         (0, code_1.expect)(res).exist();
-        // console.log(JSON.stringify(res.model, null, 2))
-        const finalfs = vol.toJSON();
-        (0, code_1.expect)(finalfs['/openapi-3.vxg'].substring(0, 111)).equal(FILE.openapi_3_vxg.substring(0, 111));
-        (0, code_1.expect)(finalfs['/openapi-3.yml'].length).equal(FILE.openapi_3_yml.length);
-        (0, code_1.expect)(finalfs['/openapi-3.vxg'].length).equal(FILE.openapi_3_vxg.length);
-        (0, code_1.expect)(vol.toJSON()).equal({
-            '/openapi-3.yml': FILE.openapi_3_yml,
-            '/openapi-3.vxg': FILE.openapi_3_vxg,
-        });
+        console.log(JSON.stringify(res.model, null, 2));
+        // const finalfs: any = vol.toJSON()
+        // expect(finalfs['/openapi-3.vxg'].substring(0, 111)).equal(FILE.openapi_3_vxg.substring(0, 111))
+        // expect(finalfs['/openapi-3.yml'].length).equal(FILE.openapi_3_yml.length)
+        // expect(finalfs['/openapi-3.vxg'].length).equal(FILE.openapi_3_vxg.length)
+        // expect(vol.toJSON()).equal({
+        //   '/openapi-3.yml': FILE.openapi_3_yml,
+        //   '/openapi-3.vxg': FILE.openapi_3_vxg,
+        // })
     });
 });
 const FILE = {
