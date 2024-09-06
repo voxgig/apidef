@@ -52,7 +52,9 @@ function ApiDef(opts = {}) {
             main: { api: { entity: {} } }
         };
         try {
-            transform(bundle.bundle.parsed, model);
+            const def = bundle.bundle.parsed;
+            // console.dir(def, { depth: null })
+            transform(def, model);
         }
         catch (err) {
             console.log('APIDEF ERROR', err);
@@ -139,6 +141,27 @@ function makeOpenAPITransform(spec, opts) {
             return opBuilder.any(entityModel, pathdef, op, path, entity, model);
         },
     };
+    function fieldbuild(entityModel, pathdef, op, path, entity, model) {
+        // console.log(pathdef)
+        let fieldSets = (0, jostraca_1.getx)(pathdef.get, 'responses 200 content application/json schema allOf');
+        // console.log(fieldSets)
+        // return;
+        if (fieldSets) {
+            // console.log('=====', entityModel.NAME)
+            // console.log(fieldSets)
+            (0, jostraca_1.each)(fieldSets, (fieldSet) => {
+                (0, jostraca_1.each)(fieldSet.properties, (property) => {
+                    // console.log(property)
+                    const field = (entityModel.field[property.key$] = entityModel.field[property.key$] || {});
+                    field.name = property.key$;
+                    fixName(field, field.name);
+                    field.type = property.type;
+                    fixName(field, field.type, 'type');
+                    field.short = property.description;
+                });
+            });
+        }
+    }
     return function OpenAPITransform(def, model) {
         fixName(model.main.api, spec.meta.name);
         (0, jostraca_1.each)(spec.entity, (entity) => {
@@ -166,6 +189,9 @@ function makeOpenAPITransform(spec, opts) {
                     const opbuild = opBuilder[op.key$];
                     if (opbuild) {
                         opbuild(entityModel, pathdef, op, path, entity, model);
+                    }
+                    if ('load' === op.key$) {
+                        fieldbuild(entityModel, pathdef, op, path, entity, model);
                     }
                 });
             });

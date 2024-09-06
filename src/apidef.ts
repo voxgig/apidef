@@ -50,7 +50,9 @@ function ApiDef(opts: ApiDefOptions = {}) {
     }
 
     try {
-      transform(bundle.bundle.parsed, model)
+      const def = bundle.bundle.parsed
+      // console.dir(def, { depth: null })
+      transform(def, model)
     }
     catch (err: any) {
       console.log('APIDEF ERROR', err)
@@ -177,6 +179,39 @@ function makeOpenAPITransform(spec: any, opts: any) {
 
   }
 
+
+  function fieldbuild(
+    entityModel: any, pathdef: any, op: any, path: any, entity: any, model: any
+  ) {
+    // console.log(pathdef)
+    let fieldSets = getx(pathdef.get, 'responses 200 content application/json schema allOf')
+    // console.log(fieldSets)
+    // return;
+
+    if (fieldSets) {
+      // console.log('=====', entityModel.NAME)
+      // console.log(fieldSets)
+
+      each(fieldSets, (fieldSet: any) => {
+        each(fieldSet.properties, (property: any) => {
+          // console.log(property)
+
+          const field =
+            (entityModel.field[property.key$] = entityModel.field[property.key$] || {})
+
+          field.name = property.key$
+          fixName(field, field.name)
+
+          field.type = property.type
+          fixName(field, field.type, 'type')
+
+          field.short = property.description
+        })
+      })
+    }
+  }
+
+
   return function OpenAPITransform(def: any, model: any) {
     fixName(model.main.api, spec.meta.name)
 
@@ -213,6 +248,10 @@ function makeOpenAPITransform(spec: any, opts: any) {
 
           if (opbuild) {
             opbuild(entityModel, pathdef, op, path, entity, model)
+          }
+
+          if ('load' === op.key$) {
+            fieldbuild(entityModel, pathdef, op, path, entity, model)
           }
         })
       })
