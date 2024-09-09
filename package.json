@@ -1,6 +1,6 @@
 {
   "name": "@voxgig/apidef",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "main": "dist/apidef.js",
   "type": "commonjs",
   "types": "dist/apidef.d.ts",
@@ -43,7 +43,7 @@
     "typescript": "^5.5.4"
   },
   "dependencies": {
-    "@redocly/openapi-core": "^1.23.0",
+    "@redocly/openapi-core": "^1.23.1",
     "chokidar": "^3.6.0",
     "jostraca": "^0.4.0"
   }
