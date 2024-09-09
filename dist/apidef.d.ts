@@ -10,6 +10,7 @@ declare function ApiDef(opts?: ApiDefOptions): {
                 api: {
                     entity: {};
                 };
+                def: {};
             };
         };
     }>;

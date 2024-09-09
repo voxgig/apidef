@@ -23,9 +23,13 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ApiDef = ApiDef;
 const Fs = __importStar(require("node:fs"));
+const node_path_1 = __importDefault(require("node:path"));
 const openapi_core_1 = require("@redocly/openapi-core");
 const chokidar_1 = require("chokidar");
 const jostraca_1 = require("jostraca");
@@ -42,6 +46,7 @@ function ApiDef(opts = {}) {
     async function generate(spec) {
         const transform = resolveTranform(spec, opts);
         const source = fs.readFileSync(spec.def, 'utf8');
+        const modelBasePath = node_path_1.default.dirname(spec.model);
         const config = await (0, openapi_core_1.createConfig)({});
         const bundle = await (0, openapi_core_1.bundleFromString)({
             source,
@@ -49,7 +54,12 @@ function ApiDef(opts = {}) {
             dereference: true,
         });
         const model = {
-            main: { api: { entity: {} } }
+            main: {
+                api: {
+                    entity: {}
+                },
+                def: {},
+            },
         };
         try {
             const def = bundle.bundle.parsed;
@@ -60,9 +70,15 @@ function ApiDef(opts = {}) {
             console.log('APIDEF ERROR', err);
             throw err;
         }
-        let vxgsrc = JSON.stringify(model, null, 2);
-        vxgsrc = vxgsrc.substring(1, vxgsrc.length - 1);
-        fs.writeFileSync(spec.model, vxgsrc);
+        const modelapi = { main: { api: model.main.api } };
+        let modelSrc = JSON.stringify(modelapi, null, 2);
+        modelSrc = modelSrc.substring(1, modelSrc.length - 1);
+        fs.writeFileSync(spec.model, modelSrc);
+        const defFilePath = node_path_1.default.join(modelBasePath, 'def.jsonic');
+        const modelDef = { main: { def: model.main.def } };
+        let modelDefSrc = JSON.stringify(modelDef, null, 2);
+        modelDefSrc = modelDefSrc.substring(1, modelDefSrc.length - 1);
+        fs.writeFileSync(defFilePath, modelDefSrc);
         return {
             ok: true,
             model,
@@ -164,6 +180,7 @@ function makeOpenAPITransform(spec, opts) {
     }
     return function OpenAPITransform(def, model) {
         fixName(model.main.api, spec.meta.name);
+        model.main.def.desc = def.info.description;
         (0, jostraca_1.each)(spec.entity, (entity) => {
             const entityModel = model.main.api.entity[entity.key$] = {
                 op: {},
@@ -171,9 +188,6 @@ function makeOpenAPITransform(spec, opts) {
                 cmd: {},
             };
             fixName(entityModel, entity.key$);
-            // const firstPath: any = Object.keys(entity.path)[0]
-            // const firstParts = firstPath.split('/')
-            // const entityPathPrefix = firstParts[0]
             (0, jostraca_1.each)(entity.path, (path) => {
                 const pathdef = def.paths[path.key$];
                 if (null == pathdef) {

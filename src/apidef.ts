@@ -2,6 +2,9 @@
 
 import * as Fs from 'node:fs'
 
+import Path from 'node:path'
+
+
 import { bundleFromString, createConfig } from '@redocly/openapi-core'
 
 import { FSWatcher } from 'chokidar'
@@ -38,6 +41,8 @@ function ApiDef(opts: ApiDefOptions = {}) {
 
     const source = fs.readFileSync(spec.def, 'utf8')
 
+    const modelBasePath = Path.dirname(spec.model)
+
     const config = await createConfig({})
     const bundle = await bundleFromString({
       source,
@@ -46,7 +51,12 @@ function ApiDef(opts: ApiDefOptions = {}) {
     })
 
     const model = {
-      main: { api: { entity: {} } }
+      main: {
+        api: {
+          entity: {}
+        },
+        def: {},
+      },
     }
 
     try {
@@ -59,13 +69,27 @@ function ApiDef(opts: ApiDefOptions = {}) {
       throw err
     }
 
-    let vxgsrc = JSON.stringify(model, null, 2)
-    vxgsrc = vxgsrc.substring(1, vxgsrc.length - 1)
+    const modelapi = { main: { api: model.main.api } }
+    let modelSrc = JSON.stringify(modelapi, null, 2)
+    modelSrc = modelSrc.substring(1, modelSrc.length - 1)
 
     fs.writeFileSync(
       spec.model,
-      vxgsrc
+      modelSrc
     )
+
+
+    const defFilePath = Path.join(modelBasePath, 'def.jsonic')
+
+    const modelDef = { main: { def: model.main.def } }
+    let modelDefSrc = JSON.stringify(modelDef, null, 2)
+    modelDefSrc = modelDefSrc.substring(1, modelDefSrc.length - 1)
+
+    fs.writeFileSync(
+      defFilePath,
+      modelDefSrc
+    )
+
 
     return {
       ok: true,
@@ -215,6 +239,10 @@ function makeOpenAPITransform(spec: any, opts: any) {
   return function OpenAPITransform(def: any, model: any) {
     fixName(model.main.api, spec.meta.name)
 
+
+    model.main.def.desc = def.info.description
+
+
     each(spec.entity, (entity: any) => {
       const entityModel: any = model.main.api.entity[entity.key$] = {
         op: {},
@@ -223,10 +251,6 @@ function makeOpenAPITransform(spec: any, opts: any) {
       }
 
       fixName(entityModel, entity.key$)
-
-      // const firstPath: any = Object.keys(entity.path)[0]
-      // const firstParts = firstPath.split('/')
-      // const entityPathPrefix = firstParts[0]
 
       each(entity.path, (path: any) => {
         const pathdef = def.paths[path.key$]
