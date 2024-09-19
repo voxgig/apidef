@@ -109,14 +109,16 @@ function makeOpenAPITransform(spec, opts) {
             required: paramDef.required
         };
         fixName(paramMap[paramDef.name], paramDef.name);
-        fixName(paramMap[paramDef.name], paramDef.schema.type, 'type');
+        const type = paramDef.schema ? paramDef.schema.type : paramDef.type;
+        fixName(paramMap[paramDef.name], type, 'type');
     };
     const queryBuilder = (queryMap, queryDef, entityModel, pathdef, op, path, entity, model) => {
         queryMap[queryDef.name] = {
             required: queryDef.required
         };
         fixName(queryMap[queryDef.name], queryDef.name);
-        fixName(queryMap[queryDef.name], queryDef.schema.type, 'type');
+        const type = queryDef.schema ? queryDef.schema.type : queryDef.type;
+        fixName(queryMap[queryDef.name], type, 'type');
     };
     const opBuilder = {
         any: (entityModel, pathdef, op, path, entity, model) => {

@@ -132,11 +132,14 @@ function makeOpenAPITransform(spec: any, opts: any) {
   const paramBuilder = (paramMap: any, paramDef: any,
     entityModel: any, pathdef: any,
     op: any, path: any, entity: any, model: any) => {
+
     paramMap[paramDef.name] = {
       required: paramDef.required
     }
     fixName(paramMap[paramDef.name], paramDef.name)
-    fixName(paramMap[paramDef.name], paramDef.schema.type, 'type')
+
+    const type = paramDef.schema ? paramDef.schema.type : paramDef.type
+    fixName(paramMap[paramDef.name], type, 'type')
   }
 
 
@@ -147,7 +150,9 @@ function makeOpenAPITransform(spec: any, opts: any) {
       required: queryDef.required
     }
     fixName(queryMap[queryDef.name], queryDef.name)
-    fixName(queryMap[queryDef.name], queryDef.schema.type, 'type')
+
+    const type = queryDef.schema ? queryDef.schema.type : queryDef.type
+    fixName(queryMap[queryDef.name], type, 'type')
   }
 
 
