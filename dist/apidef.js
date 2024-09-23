@@ -32,6 +32,7 @@ const Fs = __importStar(require("node:fs"));
 const node_path_1 = __importDefault(require("node:path"));
 const openapi_core_1 = require("@redocly/openapi-core");
 const chokidar_1 = require("chokidar");
+const aontu_1 = require("aontu");
 const jostraca_1 = require("jostraca");
 function ApiDef(opts = {}) {
     const fs = opts.fs || Fs;
@@ -44,7 +45,8 @@ function ApiDef(opts = {}) {
         fsw.add(spec.def);
     }
     async function generate(spec) {
-        const transform = resolveTranform(spec, opts);
+        const guide = await resolveGuide(spec, opts);
+        const transform = resolveTranform(spec, guide, opts);
         const source = fs.readFileSync(spec.def, 'utf8');
         const modelBasePath = node_path_1.default.dirname(spec.model);
         const config = await (0, openapi_core_1.createConfig)({});
@@ -84,13 +86,52 @@ function ApiDef(opts = {}) {
             model,
         };
     }
+    async function resolveGuide(spec, _opts) {
+        if (null == spec.guide) {
+            spec.guide = spec.def + '-guide.jsonic';
+        }
+        const path = node_path_1.default.normalize(spec.guide);
+        let src;
+        // console.log('APIDEF resolveGuide', path)
+        if (fs.existsSync(path)) {
+            src = fs.readFileSync(path, 'utf8');
+        }
+        else {
+            src = `
+# API Specification Transform Guide
+
+guide: entity: {}
+
+`;
+            fs.writeFileSync(path, src);
+        }
+        const aopts = {};
+        const root = (0, aontu_1.Aontu)(src, aopts);
+        const hasErr = root.err && 0 < root.err.length;
+        // TODO: collect all errors
+        if (hasErr) {
+            throw new Error(root.err[0]);
+        }
+        let genctx = new aontu_1.Context({ root });
+        const guide = spec.guideModel = root.gen(genctx);
+        // TODO: collect all errors
+        if (genctx.err && 0 < genctx.err.length) {
+            throw new Error(JSON.stringify(genctx.err[0]));
+        }
+        // console.log('GUIDE')
+        // console.dir(guide, { depth: null })
+        const pathParts = node_path_1.default.parse(path);
+        spec.guideModelPath = node_path_1.default.join(pathParts.dir, pathParts.name + '.json');
+        fs.writeFileSync(spec.guideModelPath, JSON.stringify(guide, null, 2));
+        return guide;
+    }
     return {
         watch,
         generate,
     };
 }
-function resolveTranform(spec, opts) {
-    return makeOpenAPITransform(spec, opts);
+function resolveTranform(spec, guide, opts) {
+    return makeOpenAPITransform(spec, guide, opts);
 }
 function extractFields(properties) {
     const fieldMap = (0, jostraca_1.each)(properties)
@@ -103,7 +144,7 @@ function fixName(base, name, prop = 'name') {
     base[(0, jostraca_1.camelify)(prop)] = (0, jostraca_1.camelify)(name);
     base[prop.toUpperCase()] = name.toUpperCase();
 }
-function makeOpenAPITransform(spec, opts) {
+function makeOpenAPITransform(spec, guideModel, opts) {
     const paramBuilder = (paramMap, paramDef, entityModel, pathdef, op, path, entity, model) => {
         paramMap[paramDef.name] = {
             required: paramDef.required
@@ -182,8 +223,10 @@ function makeOpenAPITransform(spec, opts) {
     }
     return function OpenAPITransform(def, model) {
         fixName(model.main.api, spec.meta.name);
+        // console.log('OpenAPITransform', guideModel)
         model.main.def.desc = def.info.description;
-        (0, jostraca_1.each)(spec.entity, (entity) => {
+        (0, jostraca_1.each)(guideModel.guide.entity, (entity) => {
+            // console.log('ENTITY', entity)
             const entityModel = model.main.api.entity[entity.key$] = {
                 op: {},
                 field: {},

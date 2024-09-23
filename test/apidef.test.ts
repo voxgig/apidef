@@ -19,7 +19,8 @@ describe('apidef', () => {
     expect(ApiDef).exist()
 
     const { fs, vol } = memfs({
-      '/openapi-3.yml': FILE.openapi_3_yml
+      '/openapi-3.yml': FILE.openapi_3_yml,
+      '/openapi-3.yml-guide.jsonic': FILE.openapi_3_yml_guide_jsonic,
     })
 
     const apidef = ApiDef({
@@ -30,46 +31,22 @@ describe('apidef', () => {
     const spec = {
       def: '/openapi-3.yml',
       kind: 'openapi-3',
-      model: '/openapi-3.vxg',
+      model: '/openapi-3.api.jsonic',
       meta: {
         name: 'foo'
       },
-
-      entity: {
-        pet: {
-          path: {
-            '/pets': {
-              op: { list: 'get', create: 'post' }
-            },
-            '/pets/{petId}': {
-              op: { load: 'get', save: 'put', remove: 'delete' },
-            }
-            // '/categories/{categoryId}/pets': { method: 'GET:list', param: 'categoryId' },
-          },
-          // Category: {
-          //   path: {
-          //     '/categories': { method: 'GET:list,POST:create' },
-          //   }
-          // },
-          // Order: {
-          //   path: {
-          //     '/orders': { method: 'GET:list,POST:create' },
-          //     '/orders/{orderId}/cancel': { method: 'POST:cmd' },
-          //   }
-          // },
-        }
-        // prepare, modify, etc
-      }
     }
 
     const res: any = await apidef.generate(spec)
     expect(res).exist()
 
-    console.log(JSON.stringify(res.model, null, 2))
+    // console.log(JSON.stringify(res.model, null, 2))
 
     // const finalfs: any = vol.toJSON()
+    // console.dir(finalfs, { depth: null })
 
-    // expect(finalfs['/openapi-3.vxg'].substring(0, 111)).equal(FILE.openapi_3_vxg.substring(0, 111))
+    // expect(finalfs['/openapi-3.api.jsonic'].substring(0, 111))
+    //  .equal(FILE['/openapi-3.api.jsonic'].substring(0, 111))
 
     // expect(finalfs['/openapi-3.yml'].length).equal(FILE.openapi_3_yml.length)
     // expect(finalfs['/openapi-3.vxg'].length).equal(FILE.openapi_3_vxg.length)
@@ -85,11 +62,44 @@ describe('apidef', () => {
 
 
 const FILE = {
+  openapi_3_yml_guide_jsonic: `
+guide: entity: {
+  pet: path: {
+
+    '/pets': {
+      op: { list: 'get', create: 'post' }
+    },
+
+    '/pets/{petId}': {
+      op: { load: 'get', save: 'put', remove: 'delete' },
+    }
+  }
+}
+
+# '/categories/{categoryId}/pets': { method: 'GET:list', param: 'categoryId' },
+#          },
+# Category: {
+#   path: {
+#     '/categories': { method: 'GET:list,POST:create' },
+#   }
+# },
+# Order: {
+#   path: {
+#     '/orders': { method: 'GET:list,POST:create' },
+#     '/orders/{orderId}/cancel': { method: 'POST:cmd' },
+#   }
+# },
+#        }
+# prepare, modify, etc
+
+`,
   openapi_3_yml: `
 openapi: 3.0.0
 info:
   title: Pet Store API
   version: 1.0.0
+  description:
+    Pet Store API Description.
 
 paths:
   /pets:
@@ -322,7 +332,7 @@ components:
 
 `,
 
-  openapi_3_vxg: `
+  '/openapi-3.api.jsonic': `
   "main": {
     "api": {
       "entity": {

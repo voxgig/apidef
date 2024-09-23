@@ -9,6 +9,8 @@ import { bundleFromString, createConfig } from '@redocly/openapi-core'
 
 import { FSWatcher } from 'chokidar'
 
+import { Aontu, Context } from 'aontu'
+
 import { getx, each, camelify } from 'jostraca'
 
 
@@ -37,7 +39,8 @@ function ApiDef(opts: ApiDefOptions = {}) {
 
 
   async function generate(spec: any) {
-    const transform = resolveTranform(spec, opts)
+    const guide = await resolveGuide(spec, opts)
+    const transform = resolveTranform(spec, guide, opts)
 
     const source = fs.readFileSync(spec.def, 'utf8')
 
@@ -98,6 +101,57 @@ function ApiDef(opts: ApiDefOptions = {}) {
   }
 
 
+  async function resolveGuide(spec: any, _opts: any) {
+    if (null == spec.guide) {
+      spec.guide = spec.def + '-guide.jsonic'
+    }
+
+    const path = Path.normalize(spec.guide)
+    let src: string
+
+    // console.log('APIDEF resolveGuide', path)
+
+    if (fs.existsSync(path)) {
+      src = fs.readFileSync(path, 'utf8')
+    }
+    else {
+      src = `
+# API Specification Transform Guide
+
+guide: entity: {}
+
+`
+      fs.writeFileSync(path, src)
+    }
+
+    const aopts = {}
+    const root = Aontu(src, aopts)
+    const hasErr = root.err && 0 < root.err.length
+
+    // TODO: collect all errors
+    if (hasErr) {
+      throw new Error(root.err[0])
+    }
+
+    let genctx = new Context({ root })
+    const guide = spec.guideModel = root.gen(genctx)
+
+    // TODO: collect all errors
+    if (genctx.err && 0 < genctx.err.length) {
+      throw new Error(JSON.stringify(genctx.err[0]))
+    }
+
+    // console.log('GUIDE')
+    // console.dir(guide, { depth: null })
+
+    const pathParts = Path.parse(path)
+    spec.guideModelPath = Path.join(pathParts.dir, pathParts.name + '.json')
+    fs.writeFileSync(spec.guideModelPath, JSON.stringify(guide, null, 2))
+
+    return guide
+  }
+
+
   return {
     watch,
     generate,
@@ -107,8 +161,9 @@ function ApiDef(opts: ApiDefOptions = {}) {
 
 
 
-function resolveTranform(spec: any, opts: any) {
-  return makeOpenAPITransform(spec, opts)
+
+function resolveTranform(spec: any, guide: any, opts: any) {
+  return makeOpenAPITransform(spec, guide, opts)
 }
 
 
@@ -127,7 +182,7 @@ function fixName(base: any, name: string, prop = 'name') {
 }
 
 
-function makeOpenAPITransform(spec: any, opts: any) {
+function makeOpenAPITransform(spec: any, guideModel: any, opts: any) {
 
   const paramBuilder = (paramMap: any, paramDef: any,
     entityModel: any, pathdef: any,
@@ -244,11 +299,14 @@ function makeOpenAPITransform(spec: any, opts: any) {
   return function OpenAPITransform(def: any, model: any) {
     fixName(model.main.api, spec.meta.name)
 
+    // console.log('OpenAPITransform', guideModel)
 
     model.main.def.desc = def.info.description
 
 
-    each(spec.entity, (entity: any) => {
+    each(guideModel.guide.entity, (entity: any) => {
+      // console.log('ENTITY', entity)
+
       const entityModel: any = model.main.api.entity[entity.key$] = {
         op: {},
         field: {},
