@@ -1,6 +1,6 @@
 {
   "name": "@voxgig/apidef",
-  "version": "0.0.9",
+  "version": "0.1.0",
   "main": "dist/apidef.js",
   "type": "commonjs",
   "types": "dist/apidef.d.ts",
@@ -28,6 +28,7 @@
   },
   "license": "MIT",
   "files": [
+    "model",
     "src",
     "dist",
     "LICENSE"
@@ -35,7 +36,7 @@
   "devDependencies": {
     "@hapi/code": "^9.0.3",
     "@types/js-yaml": "^4.0.9",
-    "@types/node": "22.5.5",
+    "@types/node": "22.6.1",
     "aontu": "^0.22.0",
     "esbuild": "^0.24.0",
     "json-schema-to-ts": "^3.1.1",
@@ -45,6 +46,6 @@
   "dependencies": {
     "@redocly/openapi-core": "^1.25.3",
     "chokidar": "^4.0.1",
-    "jostraca": "^0.7.0"
+    "jostraca": "^0.7.2"
   }
 }

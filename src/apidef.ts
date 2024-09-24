@@ -118,7 +118,11 @@ function ApiDef(opts: ApiDefOptions = {}) {
       src = `
 # API Specification Transform Guide
 
-guide: entity: {}
+@"node_modules/@voxgig/apidef/model/guide.jsonic"
+
+guide: entity: {
+
+}
 
 `
       fs.writeFileSync(path, src)
@@ -130,7 +134,9 @@ guide: entity: {}
 
     // TODO: collect all errors
     if (hasErr) {
-      throw new Error(root.err[0])
+      // console.log(root.err)
+      // throw new Error(root.err[0])
+      throw root.err[0].err
     }
 
     let genctx = new Context({ root })
@@ -138,6 +144,7 @@ guide: entity: {}
 
     // TODO: collect all errors
     if (genctx.err && 0 < genctx.err.length) {
+      // console.log(genctx.err)
       throw new Error(JSON.stringify(genctx.err[0]))
     }
 

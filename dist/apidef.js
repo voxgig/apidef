@@ -100,7 +100,11 @@ function ApiDef(opts = {}) {
             src = `
 # API Specification Transform Guide
 
-guide: entity: {}
+@"node_modules/@voxgig/apidef/model/guide.jsonic"
+
+guide: entity: {
+
+}
 
 `;
             fs.writeFileSync(path, src);
@@ -110,12 +114,15 @@ guide: entity: {}
         const hasErr = root.err && 0 < root.err.length;
         // TODO: collect all errors
         if (hasErr) {
-            throw new Error(root.err[0]);
+            // console.log(root.err)
+            // throw new Error(root.err[0])
+            throw root.err[0].err;
         }
         let genctx = new aontu_1.Context({ root });
         const guide = spec.guideModel = root.gen(genctx);
         // TODO: collect all errors
         if (genctx.err && 0 < genctx.err.length) {
+            // console.log(genctx.err)
             throw new Error(JSON.stringify(genctx.err[0]));
         }
         // console.log('GUIDE')

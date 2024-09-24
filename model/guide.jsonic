@@ -1,0 +1,9 @@
+
+guide: entity: &: {
+  name: .$KEY
+  path: &: {
+    op: {}
+  }
+}
+
+
