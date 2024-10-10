@@ -209,9 +209,19 @@ function makeOpenAPITransform(spec, guideModel, opts) {
     };
     function fieldbuild(entityModel, pathdef, op, path, entity, model) {
         // console.log(pathdef)
-        let fieldSets = (0, jostraca_1.getx)(pathdef.get, 'responses 200 content application/json schema allOf');
+        let fieldSets = (0, jostraca_1.getx)(pathdef.get, 'responses 200 content application/json schema');
         // console.log(fieldSets)
         // return;
+        if (Array.isArray(fieldSets.allOf)) {
+            fieldSets = fieldSets.allOf;
+        }
+        else if (fieldSets.properties) {
+            fieldSets = [fieldSets];
+        }
+        else {
+            console.warn('APIDEF', 'Unexpected schema structure');
+            fieldSets = [];
+        }
         if (fieldSets) {
             // console.log('=====', entityModel.NAME)
             // console.log(fieldSets)
