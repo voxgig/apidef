@@ -275,17 +275,17 @@ function makeOpenAPITransform(spec: any, guideModel: any, opts: any) {
     entityModel: any, pathdef: any, op: any, path: any, entity: any, model: any
   ) {
     // console.log(pathdef)
-    let fieldSets = getx(pathdef.get, 'responses 200 content application/json schema')
-    // console.log(fieldSets)
-    // return;
+
+    let fieldSets = getx(pathdef.get, 'responses 200 content "application/json" schema')
 
     if (Array.isArray(fieldSets.allOf)) {
-      fieldSets = fieldSets.allOf;
-    } else if (fieldSets.properties) {
-      fieldSets = [fieldSets];
-    } else {
-      console.warn('APIDEF', 'Unexpected schema structure')
-      fieldSets = []
+      fieldSets = fieldSets.allOf
+    }
+    else if (fieldSets.properties) {
+      fieldSets = [fieldSets]
+    }
+    else {
+      throw new Error('Unexpected schema structure')
     }
 
     if (fieldSets) {
