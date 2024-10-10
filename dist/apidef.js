@@ -210,6 +210,9 @@ function makeOpenAPITransform(spec, guideModel, opts) {
     function fieldbuild(entityModel, pathdef, op, path, entity, model) {
         // console.log(pathdef)
         let fieldSets = (0, jostraca_1.getx)(pathdef.get, 'responses 200 content "application/json" schema');
+        if (!fieldSets) {
+            return;
+        }
         if (Array.isArray(fieldSets.allOf)) {
             fieldSets = fieldSets.allOf;
         }
@@ -219,21 +222,17 @@ function makeOpenAPITransform(spec, guideModel, opts) {
         else {
             throw new Error('Unexpected schema structure');
         }
-        if (fieldSets) {
-            // console.log('=====', entityModel.NAME)
-            // console.log(fieldSets)
-            (0, jostraca_1.each)(fieldSets, (fieldSet) => {
-                (0, jostraca_1.each)(fieldSet.properties, (property) => {
-                    // console.log(property)
-                    const field = (entityModel.field[property.key$] = entityModel.field[property.key$] || {});
-                    field.name = property.key$;
-                    fixName(field, field.name);
-                    field.type = property.type;
-                    fixName(field, field.type, 'type');
-                    field.short = property.description;
-                });
+        (0, jostraca_1.each)(fieldSets, (fieldSet) => {
+            (0, jostraca_1.each)(fieldSet.properties, (property) => {
+                // console.log(property)
+                const field = (entityModel.field[property.key$] = entityModel.field[property.key$] || {});
+                field.name = property.key$;
+                fixName(field, field.name);
+                field.type = property.type;
+                fixName(field, field.type, 'type');
+                field.short = property.description;
             });
-        }
+        });
     }
     return function OpenAPITransform(def, model) {
         fixName(model.main.api, spec.meta.name);

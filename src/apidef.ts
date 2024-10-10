@@ -278,6 +278,10 @@ function makeOpenAPITransform(spec: any, guideModel: any, opts: any) {
 
     let fieldSets = getx(pathdef.get, 'responses 200 content "application/json" schema')
 
+    if (!fieldSets) {
+      return
+    }
+
     if (Array.isArray(fieldSets.allOf)) {
       fieldSets = fieldSets.allOf
     }
@@ -288,27 +292,22 @@ function makeOpenAPITransform(spec: any, guideModel: any, opts: any) {
       throw new Error('Unexpected schema structure')
     }
 
-    if (fieldSets) {
-      // console.log('=====', entityModel.NAME)
-      // console.log(fieldSets)
+    each(fieldSets, (fieldSet: any) => {
+      each(fieldSet.properties, (property: any) => {
+        // console.log(property)
 
-      each(fieldSets, (fieldSet: any) => {
-        each(fieldSet.properties, (property: any) => {
-          // console.log(property)
+        const field =
+          (entityModel.field[property.key$] = entityModel.field[property.key$] || {})
 
-          const field =
-            (entityModel.field[property.key$] = entityModel.field[property.key$] || {})
+        field.name = property.key$
+        fixName(field, field.name)
 
-          field.name = property.key$
-          fixName(field, field.name)
+        field.type = property.type
+        fixName(field, field.type, 'type')
 
-          field.type = property.type
-          fixName(field, field.type, 'type')
-
-          field.short = property.description
-        })
+        field.short = property.description
       })
-    }
+    })
   }
 
 
