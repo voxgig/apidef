@@ -1,6 +1,6 @@
 {
   "name": "@voxgig/apidef",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "main": "dist/apidef.js",
   "type": "commonjs",
   "types": "dist/apidef.d.ts",
@@ -37,16 +37,16 @@
   "devDependencies": {
     "@hapi/code": "^9.0.3",
     "@types/js-yaml": "^4.0.9",
-    "@types/node": "22.7.5",
+    "@types/node": "22.7.6",
     "aontu": "^0.22.0",
     "esbuild": "^0.24.0",
     "json-schema-to-ts": "^3.1.1",
-    "memfs": "^4.13.0",
+    "memfs": "^4.14.0",
     "typescript": "^5.6.3"
   },
   "dependencies": {
-    "@redocly/openapi-core": "^1.25.5",
+    "@redocly/openapi-core": "^1.25.7",
     "chokidar": "^4.0.1",
-    "jostraca": "^0.7.5"
+    "jostraca": "^0.7.6"
   }
 }

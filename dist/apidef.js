@@ -40,11 +40,16 @@ function ApiDef(opts = {}) {
         await generate(spec);
         const fsw = new chokidar_1.FSWatcher();
         fsw.on('change', (...args) => {
+            // console.log('APIDEF CHANGE', args)
             generate(spec);
         });
+        // console.log('APIDEF-WATCH', spec.def)
         fsw.add(spec.def);
+        // console.log('APIDEF-WATCH', spec.guide)
+        fsw.add(spec.guide);
     }
     async function generate(spec) {
+        // console.log('APIDEF.generate')
         const guide = await resolveGuide(spec, opts);
         const transform = resolveTranform(spec, guide, opts);
         const source = fs.readFileSync(spec.def, 'utf8');
@@ -80,7 +85,16 @@ function ApiDef(opts = {}) {
         const modelDef = { main: { def: model.main.def } };
         let modelDefSrc = JSON.stringify(modelDef, null, 2);
         modelDefSrc = modelDefSrc.substring(1, modelDefSrc.length - 1);
-        fs.writeFileSync(defFilePath, modelDefSrc);
+        let existingSrc = '';
+        if (fs.existsSync(defFilePath)) {
+            existingSrc = fs.readFileSync(defFilePath, 'utf8');
+        }
+        let writeModelDef = existingSrc !== modelDefSrc;
+        // console.log('APIDEF', writeModelDef)
+        // Only write the model def if it has changed
+        if (writeModelDef) {
+            fs.writeFileSync(defFilePath, modelDefSrc);
+        }
         return {
             ok: true,
             model,
@@ -129,7 +143,15 @@ guide: entity: {
         // console.dir(guide, { depth: null })
         const pathParts = node_path_1.default.parse(path);
         spec.guideModelPath = node_path_1.default.join(pathParts.dir, pathParts.name + '.json');
-        fs.writeFileSync(spec.guideModelPath, JSON.stringify(guide, null, 2));
+        const updatedSrc = JSON.stringify(guide, null, 2);
+        // console.log('APIDEF resolveGuide write', spec.guideModelPath, src !== updatedSrc)
+        let existingSrc = '';
+        if (fs.existsSync(spec.guideModelPath)) {
+            existingSrc = fs.readFileSync(spec.guideModelPath, 'utf8');
+        }
+        if (existingSrc !== updatedSrc) {
+            fs.writeFileSync(spec.guideModelPath, updatedSrc);
+        }
         return guide;
     }
     return {

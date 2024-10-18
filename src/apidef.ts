@@ -31,14 +31,21 @@ function ApiDef(opts: ApiDefOptions = {}) {
     const fsw = new FSWatcher()
 
     fsw.on('change', (...args: any[]) => {
+      // console.log('APIDEF CHANGE', args)
       generate(spec)
     })
 
+    // console.log('APIDEF-WATCH', spec.def)
     fsw.add(spec.def)
+
+    // console.log('APIDEF-WATCH', spec.guide)
+    fsw.add(spec.guide)
   }
 
 
   async function generate(spec: any) {
+    // console.log('APIDEF.generate')
+
     const guide = await resolveGuide(spec, opts)
     const transform = resolveTranform(spec, guide, opts)
 
@@ -88,10 +95,21 @@ function ApiDef(opts: ApiDefOptions = {}) {
     let modelDefSrc = JSON.stringify(modelDef, null, 2)
     modelDefSrc = modelDefSrc.substring(1, modelDefSrc.length - 1)
 
-    fs.writeFileSync(
-      defFilePath,
-      modelDefSrc
-    )
+    let existingSrc: string = ''
+    if (fs.existsSync(defFilePath)) {
+      existingSrc = fs.readFileSync(defFilePath, 'utf8')
+    }
+
+    let writeModelDef = existingSrc !== modelDefSrc
+    // console.log('APIDEF', writeModelDef)
+
+    // Only write the model def if it has changed
+    if (writeModelDef) {
+      fs.writeFileSync(
+        defFilePath,
+        modelDefSrc
+      )
+    }
 
 
     return {
@@ -153,7 +171,18 @@ guide: entity: {
 
     const pathParts = Path.parse(path)
     spec.guideModelPath = Path.join(pathParts.dir, pathParts.name + '.json')
-    fs.writeFileSync(spec.guideModelPath, JSON.stringify(guide, null, 2))
+
+    const updatedSrc = JSON.stringify(guide, null, 2)
+
+    // console.log('APIDEF resolveGuide write', spec.guideModelPath, src !== updatedSrc)
+    let existingSrc = ''
+    if (fs.existsSync(spec.guideModelPath)) {
+      existingSrc = fs.readFileSync(spec.guideModelPath, 'utf8')
+    }
+
+    if (existingSrc !== updatedSrc) {
+      fs.writeFileSync(spec.guideModelPath, updatedSrc)
+    }
 
     return guide
   }
