@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 Voxgig Ltd, MIT License */
+
 
 import { test, describe } from 'node:test'
 import { expect } from '@hapi/code'
