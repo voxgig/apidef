@@ -33,9 +33,23 @@ const node_path_1 = __importDefault(require("node:path"));
 const openapi_core_1 = require("@redocly/openapi-core");
 const chokidar_1 = require("chokidar");
 const aontu_1 = require("aontu");
+const pino_1 = __importDefault(require("pino"));
+const pino_pretty_1 = __importDefault(require("pino-pretty"));
 const transform_1 = require("./transform");
 function ApiDef(opts = {}) {
     const fs = opts.fs || Fs;
+    let pino = opts.pino;
+    if (null == pino) {
+        let pretty = (0, pino_pretty_1.default)({ sync: true });
+        pino = (0, pino_1.default)({
+            name: 'apidef',
+            level: null == opts.debug ? 'info' :
+                true === opts.debug ? 'debug' :
+                    'string' == typeof opts.debug ? opts.debug :
+                        'info'
+        }, pretty);
+    }
+    const log = pino.child({ cmp: 'apidef' });
     async function watch(spec) {
         await generate(spec);
         const fsw = new chokidar_1.FSWatcher();
@@ -50,6 +64,8 @@ function ApiDef(opts = {}) {
     }
     async function generate(spec) {
         const start = Date.now();
+        log.info({ point: 'generate-start' });
+        log.debug({ point: 'generate-spec', spec });
         // TODO: Validate spec
         const ctx = {
             spec,
@@ -59,15 +75,15 @@ function ApiDef(opts = {}) {
             defpath: node_path_1.default.dirname(spec.def)
         };
         if (opts.debug) {
-            console.log('@voxgig/apidef =============', start, new Date(start));
-            console.dir(spec, { depth: null });
+            // console.log('@voxgig/apidef =============', start, new Date(start))
+            // console.dir(spec, { depth: null })
         }
         const guide = await resolveGuide(spec, opts);
         console.log('APIDEF.guide');
-        console.dir(guide, { depth: null });
+        // console.dir(guide, { depth: null })
         ctx.guide = guide;
         const transformSpec = await (0, transform_1.resolveTransforms)(ctx);
-        console.log('APIDEF.transformSpec', transformSpec);
+        // console.log('APIDEF.transformSpec', transformSpec)
         const source = fs.readFileSync(spec.def, 'utf8');
         const modelBasePath = node_path_1.default.dirname(spec.model);
         const config = await (0, openapi_core_1.createConfig)({});
@@ -88,19 +104,19 @@ function ApiDef(opts = {}) {
             const def = bundle.bundle.parsed;
             // console.dir(def, { depth: null })
             const processResult = await (0, transform_1.processTransforms)(ctx, transformSpec, model, def);
-            console.log('APIDEF.processResult', processResult);
-            console.log('APIDEF.model');
-            console.dir(model, { depth: null });
+            // console.log('APIDEF.processResult', processResult)
+            // console.log('APIDEF.model')
+            // console.dir(model, { depth: null })
         }
         catch (err) {
-            console.log('APIDEF ERROR', err);
+            // console.log('APIDEF ERROR', err)
             throw err;
         }
         const modelapi = { main: { api: model.main.api } };
         let modelSrc = JSON.stringify(modelapi, null, 2);
         modelSrc = modelSrc.substring(1, modelSrc.length - 1);
         /*
-        console.log('WRITE', spec.model)
+        // console.log('WRITE', spec.model)
         fs.writeFileSync(
           spec.model,
           modelSrc
@@ -133,11 +149,11 @@ function ApiDef(opts = {}) {
         }
         let writeFile = existingContent !== content;
         if (writeFile) {
-            console.log('WRITE-CHANGE: YES', path);
+            // console.log('WRITE-CHANGE: YES', path)
             fs.writeFileSync(path, content);
         }
         else {
-            console.log('WRITE-CHANGE: NO', path);
+            // console.log('WRITE-CHANGE: NO', path)
         }
     }
     async function resolveGuide(spec, _opts) {
@@ -169,14 +185,14 @@ guide: entity: {
         const hasErr = root.err && 0 < root.err.length;
         // TODO: collect all errors
         if (hasErr) {
-            console.log('RESOLVE-GUIDE PARSE', root.err);
+            // console.log('RESOLVE-GUIDE PARSE', root.err)
             throw root.err[0].err;
         }
         let genctx = new aontu_1.Context({ root });
         const guide = spec.guideModel = root.gen(genctx);
         // TODO: collect all errors
         if (genctx.err && 0 < genctx.err.length) {
-            console.log('RESOLVE-GUIDE GEN', genctx.err);
+            // console.log('RESOLVE-GUIDE GEN', genctx.err)
             throw new Error(JSON.stringify(genctx.err[0]));
         }
         // console.log('GUIDE')

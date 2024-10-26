@@ -1,6 +1,8 @@
+import Pino from 'pino';
 type ApiDefOptions = {
     fs?: any;
-    debug?: boolean;
+    pino?: ReturnType<typeof Pino>;
+    debug?: boolean | string;
 };
 type ApiDefSpec = {
     def: string;

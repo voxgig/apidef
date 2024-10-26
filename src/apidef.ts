@@ -1,17 +1,16 @@
 /* Copyright (c) 2024 Voxgig, MIT License */
 
 import * as Fs from 'node:fs'
-
 import Path from 'node:path'
 
 
 import { bundleFromString, createConfig } from '@redocly/openapi-core'
-
 import { FSWatcher } from 'chokidar'
-
 import { Aontu, Context } from 'aontu'
+import Pino from 'pino'
+import PinoPretty from 'pino-pretty'
 
-import { getx, each, camelify } from 'jostraca'
+
 
 
 import {
@@ -23,7 +22,8 @@ import {
 
 type ApiDefOptions = {
   fs?: any
-  debug?: boolean
+  pino?: ReturnType<typeof Pino>
+  debug?: boolean | string
 }
 
 
@@ -37,7 +37,23 @@ type ApiDefSpec = {
 
 function ApiDef(opts: ApiDefOptions = {}) {
   const fs = opts.fs || Fs
+  let pino = opts.pino
 
+  if (null == pino) {
+    let pretty = PinoPretty({ sync: true })
+    pino = Pino({
+      name: 'apidef',
+      level: null == opts.debug ? 'info' :
+        true === opts.debug ? 'debug' :
+          'string' == typeof opts.debug ? opts.debug :
+            'info'
+    },
+      pretty
+    )
+  }
+
+
+  const log = pino.child({ cmp: 'apidef' })
 
   async function watch(spec: any) {
     await generate(spec)
@@ -60,6 +76,9 @@ function ApiDef(opts: ApiDefOptions = {}) {
   async function generate(spec: ApiDefSpec) {
     const start = Date.now()
 
+    log.info({ point: 'generate-start' })
+    log.debug({ point: 'generate-spec', spec })
+
     // TODO: Validate spec
     const ctx = {
       spec,
@@ -70,19 +89,19 @@ function ApiDef(opts: ApiDefOptions = {}) {
     }
 
     if (opts.debug) {
-      console.log('@voxgig/apidef =============', start, new Date(start))
-      console.dir(spec, { depth: null })
+      // console.log('@voxgig/apidef =============', start, new Date(start))
+      // console.dir(spec, { depth: null })
     }
 
     const guide = await resolveGuide(spec, opts)
     console.log('APIDEF.guide')
-    console.dir(guide, { depth: null })
+    // console.dir(guide, { depth: null })
 
 
 
     ctx.guide = guide
     const transformSpec = await resolveTransforms(ctx)
-    console.log('APIDEF.transformSpec', transformSpec)
+    // console.log('APIDEF.transformSpec', transformSpec)
 
 
     const source = fs.readFileSync(spec.def, 'utf8')
@@ -110,13 +129,13 @@ function ApiDef(opts: ApiDefOptions = {}) {
       // console.dir(def, { depth: null })
 
       const processResult = await processTransforms(ctx, transformSpec, model, def)
-      console.log('APIDEF.processResult', processResult)
+      // console.log('APIDEF.processResult', processResult)
 
-      console.log('APIDEF.model')
-      console.dir(model, { depth: null })
+      // console.log('APIDEF.model')
+      // console.dir(model, { depth: null })
     }
     catch (err: any) {
-      console.log('APIDEF ERROR', err)
+      // console.log('APIDEF ERROR', err)
       throw err
     }
 
@@ -125,7 +144,7 @@ function ApiDef(opts: ApiDefOptions = {}) {
     modelSrc = modelSrc.substring(1, modelSrc.length - 1)
 
     /*
-    console.log('WRITE', spec.model)
+    // console.log('WRITE', spec.model)
     fs.writeFileSync(
       spec.model,
       modelSrc
@@ -175,11 +194,11 @@ function ApiDef(opts: ApiDefOptions = {}) {
     let writeFile = existingContent !== content
 
     if (writeFile) {
-      console.log('WRITE-CHANGE: YES', path)
+      // console.log('WRITE-CHANGE: YES', path)
       fs.writeFileSync(path, content)
     }
     else {
-      console.log('WRITE-CHANGE: NO', path)
+      // console.log('WRITE-CHANGE: NO', path)
     }
   }
 
@@ -221,7 +240,7 @@ guide: entity: {
 
     // TODO: collect all errors
     if (hasErr) {
-      console.log('RESOLVE-GUIDE PARSE', root.err)
+      // console.log('RESOLVE-GUIDE PARSE', root.err)
       throw root.err[0].err
     }
 
@@ -230,7 +249,7 @@ guide: entity: {
 
     // TODO: collect all errors
     if (genctx.err && 0 < genctx.err.length) {
-      console.log('RESOLVE-GUIDE GEN', genctx.err)
+      // console.log('RESOLVE-GUIDE GEN', genctx.err)
       throw new Error(JSON.stringify(genctx.err[0]))
     }
 
