@@ -15,6 +15,7 @@ import { manualTransform } from './transform/manual'
 
 
 type TransformCtx = {
+  log: any,
   spec: any,
   guide: any,
   opts: any,
@@ -28,6 +29,7 @@ type TransformSpec = {
 
 type TransformResult = {
   ok: boolean
+  msg: string
 }
 
 type Transform = (
@@ -44,7 +46,6 @@ type ProcessResult = {
 }
 
 
-
 const TRANSFORM: Record<string, Transform> = {
   top: topTransform,
   entity: entityTransform,
@@ -57,7 +58,7 @@ const TRANSFORM: Record<string, Transform> = {
 
 
 async function resolveTransforms(ctx: TransformCtx): Promise<TransformSpec> {
-  const { guide: { guide } } = ctx
+  const { log, guide: { guide } } = ctx
 
   const tspec: TransformSpec = {
     transform: []
@@ -70,25 +71,20 @@ async function resolveTransforms(ctx: TransformCtx): Promise<TransformSpec> {
     .map((t: string) => t.trim())
     .filter((t: string) => '' != t)
 
-  console.log('TRANSFORM-RESOLVE-NAMES', transformNames)
+  log.info({ what: 'transform', order: transformNames })
 
   for (const tn of transformNames) {
-    console.log('TRANSFORM-RESOLVE', tn)
+    log.debug({ what: 'transform', transform: tn })
     const transform = await resolveTransform(tn, ctx)
     tspec.transform.push(transform)
   }
-
-  //tspec.transform = await Promise.all(transformNames.map(async (tn: string) =>
-  //  await resolveTransform(tn, ctx)))
-
-  console.log(tspec)
 
   return tspec
 }
 
 
 async function resolveTransform(tn: string, ctx: TransformCtx) {
-  const { defpath, guide: { guide } } = ctx
+  const { log, defpath, guide: { guide } } = ctx
 
   let transform = TRANSFORM[tn]
   if (transform) {
@@ -97,11 +93,16 @@ async function resolveTransform(tn: string, ctx: TransformCtx) {
 
   const tdef = guide.transform[tn]
   if (null == tdef) {
-    throw new Error('APIDEF-TRANSFORM: unknown transform: ' + tn)
+    const err = new Error('Unknown transform: ' + tn)
+    log.error({ what: 'transform', transform: tn, fail: 'unknown', err })
+    throw err
   }
 
   if (!tn.startsWith('custom')) {
-    throw new Error('APIDEF-TRANSFORM: custom transform name must start with "custom": ' + tn)
+    const err =
+      new Error('Custom transform name must start with "custom": ' + tn)
+    log.error({ what: 'transform', transform: tn, fail: 'prefix', err })
+    throw err
   }
 
   const customtpath = Path.join(defpath, tdef.load)
@@ -110,8 +111,10 @@ async function resolveTransform(tn: string, ctx: TransformCtx) {
     transform = transformModule[tn]
   }
   catch (e: any) {
-    throw new Error('APIDEF-TRANSFORM: custom transform not found: ' +
+    const err = new Error('Custom transform not found: ' +
       customtpath + ': ' + e.message)
+    log.error({ what: 'transform', transform: tn, fail: 'require', err })
+    throw err
   }
 
   return transform
@@ -133,10 +136,21 @@ async function processTransforms(
 
   for (let tI = 0; tI < spec.transform.length; tI++) {
     const transform = spec.transform[tI]
-    const tres = await transform(ctx, spec, model, def)
-    pres.ok = pres.ok && tres.ok
-    pres.msg += pres.msg + '\n'
-    pres.results.push(tres)
+
+    try {
+      const tres = await transform(ctx, spec, model, def)
+      pres.ok = pres.ok && tres.ok
+      pres.msg += tres.msg + '\n'
+      pres.results.push(tres)
+    }
+    catch (err: any) {
+      pres.ok = false
+      pres.msg += err.message + '\n'
+      pres.results.push({
+        ok: false,
+        msg: err.message
+      })
+    }
   }
 
   return pres

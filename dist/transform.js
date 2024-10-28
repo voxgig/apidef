@@ -22,7 +22,7 @@ const TRANSFORM = {
     manual: manual_1.manualTransform,
 };
 async function resolveTransforms(ctx) {
-    const { guide: { guide } } = ctx;
+    const { log, guide: { guide } } = ctx;
     const tspec = {
         transform: []
     };
@@ -32,29 +32,30 @@ async function resolveTransforms(ctx) {
         .split(/\s*,\s*/)
         .map((t) => t.trim())
         .filter((t) => '' != t);
-    console.log('TRANSFORM-RESOLVE-NAMES', transformNames);
+    log.info({ what: 'transform', order: transformNames });
     for (const tn of transformNames) {
-        console.log('TRANSFORM-RESOLVE', tn);
+        log.debug({ what: 'transform', transform: tn });
         const transform = await resolveTransform(tn, ctx);
         tspec.transform.push(transform);
     }
-    //tspec.transform = await Promise.all(transformNames.map(async (tn: string) =>
-    //  await resolveTransform(tn, ctx)))
-    console.log(tspec);
     return tspec;
 }
 async function resolveTransform(tn, ctx) {
-    const { defpath, guide: { guide } } = ctx;
+    const { log, defpath, guide: { guide } } = ctx;
     let transform = TRANSFORM[tn];
     if (transform) {
         return transform;
     }
     const tdef = guide.transform[tn];
     if (null == tdef) {
-        throw new Error('APIDEF-TRANSFORM: unknown transform: ' + tn);
+        const err = new Error('Unknown transform: ' + tn);
+        log.error({ what: 'transform', transform: tn, fail: 'unknown', err });
+        throw err;
     }
     if (!tn.startsWith('custom')) {
-        throw new Error('APIDEF-TRANSFORM: custom transform name must start with "custom": ' + tn);
+        const err = new Error('Custom transform name must start with "custom": ' + tn);
+        log.error({ what: 'transform', transform: tn, fail: 'prefix', err });
+        throw err;
     }
     const customtpath = node_path_1.default.join(defpath, tdef.load);
     try {
@@ -62,8 +63,10 @@ async function resolveTransform(tn, ctx) {
         transform = transformModule[tn];
     }
     catch (e) {
-        throw new Error('APIDEF-TRANSFORM: custom transform not found: ' +
+        const err = new Error('Custom transform not found: ' +
             customtpath + ': ' + e.message);
+        log.error({ what: 'transform', transform: tn, fail: 'require', err });
+        throw err;
     }
     return transform;
 }
@@ -75,10 +78,20 @@ async function processTransforms(ctx, spec, model, def) {
     };
     for (let tI = 0; tI < spec.transform.length; tI++) {
         const transform = spec.transform[tI];
-        const tres = await transform(ctx, spec, model, def);
-        pres.ok = pres.ok && tres.ok;
-        pres.msg += pres.msg + '\n';
-        pres.results.push(tres);
+        try {
+            const tres = await transform(ctx, spec, model, def);
+            pres.ok = pres.ok && tres.ok;
+            pres.msg += tres.msg + '\n';
+            pres.results.push(tres);
+        }
+        catch (err) {
+            pres.ok = false;
+            pres.msg += err.message + '\n';
+            pres.results.push({
+                ok: false,
+                msg: err.message
+            });
+        }
     }
     return pres;
 }

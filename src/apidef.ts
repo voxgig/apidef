@@ -82,11 +82,12 @@ function ApiDef(opts: ApiDefOptions = {}) {
   async function generate(spec: ApiDefSpec) {
     const start = Date.now()
 
-    log.info({ point: 'generate-start' })
+    log.info({ point: 'generate-start', start })
     log.debug({ point: 'generate-spec', spec })
 
     // TODO: Validate spec
     const ctx = {
+      log,
       spec,
       guide: {},
       opts,
@@ -145,6 +146,9 @@ function ApiDef(opts: ApiDefOptions = {}) {
         log.error({ process: 'fail', what: 'transform', result: processResult })
         throw new Error('Transform failed: ' + processResult.msg)
       }
+      else {
+        log.debug({ process: 'result', what: 'transform', result: processResult })
+      }
     }
     catch (err: any) {
       log.error({ process: 'fail', what: 'transform', err })
@@ -155,7 +159,8 @@ function ApiDef(opts: ApiDefOptions = {}) {
     let modelSrc = JSON.stringify(modelapi, null, 2)
     modelSrc = modelSrc.substring(1, modelSrc.length - 1)
 
-    writeChanged(spec.model, modelSrc)
+    writeChanged('api-model', spec.model, modelSrc)
+
 
     const modelBasePath = Path.dirname(spec.model)
     const defFilePath = Path.join(modelBasePath, 'def.jsonic')
@@ -164,6 +169,9 @@ function ApiDef(opts: ApiDefOptions = {}) {
     let modelDefSrc = JSON.stringify(modelDef, null, 2)
     modelDefSrc = modelDefSrc.substring(1, modelDefSrc.length - 1)
 
+    writeChanged('def-model', defFilePath, modelDefSrc)
+
+    /*
     let existingSrc: string = ''
     if (fs.existsSync(defFilePath)) {
       existingSrc = fs.readFileSync(defFilePath, 'utf8')
@@ -179,7 +187,7 @@ function ApiDef(opts: ApiDefOptions = {}) {
         modelDefSrc
       )
     }
-
+    */
 
     return {
       ok: true,
@@ -189,31 +197,34 @@ function ApiDef(opts: ApiDefOptions = {}) {
 
 
 
-  function writeChanged(path: string, content: string) {
+  function writeChanged(what: string, path: string, content: string) {
     let exists = false
     let changed = false
+    let action = ''
     try {
       let existingContent: string = ''
       exists = fs.existsSync(path)
 
       if (exists) {
+        action = 'read'
         existingContent = fs.readFileSync(path, 'utf8')
       }
 
       changed = existingContent !== content
 
       log.info({
-        write: 'file', skip: !changed, exists, changed,
+        write: 'file', what, skip: !changed, exists, changed,
         contentLength: content.length, file: path
       })
 
       if (changed) {
+        action = 'write'
         fs.writeFileSync(path, content)
       }
     }
     catch (err: any) {
       log.error({
-        fail: 'write', file: path, exists, changed,
+        fail: action, what, file: path, exists, changed,
         contentLength: content.length, err
       })
       throw err
@@ -230,13 +241,21 @@ function ApiDef(opts: ApiDefOptions = {}) {
     const path = Path.normalize(spec.guide)
     let src: string
 
-    // console.log('APIDEF resolveGuide', path)
+    let action = ''
+    let exists = false
+    try {
 
-    if (fs.existsSync(path)) {
-      src = fs.readFileSync(path, 'utf8')
-    }
-    else {
-      src = `
+      action = 'exists'
+      let exists = fs.existsSync(path)
+
+      log.debug({ read: 'file', what: 'guide', file: path, exists })
+
+      if (exists) {
+        action = 'read'
+        src = fs.readFileSync(path, 'utf8')
+      }
+      else {
+        src = `
 # API Specification Transform Guide
 
 @"@voxgig/apidef/model/guide.jsonic"
@@ -245,21 +264,35 @@ guide: entity: {
 
 }
 
+guide: control: transform: openapi: order: \`
+  top,
+  entity,
+  operation,
+  field,
+  manual,
+  \`
+
 `
-      fs.writeFileSync(path, src)
+        action = 'write'
+        fs.writeFileSync(path, src)
+      }
+    }
+    catch (err: any) {
+      log.error({ fail: action, what: 'guide', file: path, exists, err })
+      throw err
     }
 
 
-    // console.log('GUIDE SRC', src)
-
-    const aopts = {}
+    const aopts = { path }
     const root = Aontu(src, aopts)
     const hasErr = root.err && 0 < root.err.length
 
-    // TODO: collect all errors
     if (hasErr) {
-      // console.log('RESOLVE-GUIDE PARSE', root.err)
-      throw root.err[0].err
+      const err: any = new Error('Guide parse error:\n' +
+        (root.err.map((pe: any) => pe.msg)).join('\n'))
+      log.error({ fail: 'parse', what: 'guide', file: path, err })
+      err.errs = () => root.err
+      throw err
     }
 
     let genctx = new Context({ root })
@@ -267,27 +300,29 @@ guide: entity: {
 
     // TODO: collect all errors
     if (genctx.err && 0 < genctx.err.length) {
-      // console.log('RESOLVE-GUIDE GEN', genctx.err)
-      throw new Error(JSON.stringify(genctx.err[0]))
+      const err: any = new Error('Guide build error:\n' +
+        (genctx.err.map((pe: any) => pe.msg)).join('\n'))
+      log.error({ fail: 'build', what: 'guide', file: path, err })
+      err.errs = () => genctx.err
+      throw err
     }
-
-    // console.log('GUIDE')
-    // console.dir(guide, { depth: null })
 
     const pathParts = Path.parse(path)
     spec.guideModelPath = Path.join(pathParts.dir, pathParts.name + '.json')
 
     const updatedSrc = JSON.stringify(guide, null, 2)
 
-    // console.log('APIDEF resolveGuide write', spec.guideModelPath, src !== updatedSrc)
-    let existingSrc = ''
-    if (fs.existsSync(spec.guideModelPath)) {
-      existingSrc = fs.readFileSync(spec.guideModelPath, 'utf8')
-    }
+    writeChanged('guide-model', spec.guideModelPath, updatedSrc)
 
-    if (existingSrc !== updatedSrc) {
-      fs.writeFileSync(spec.guideModelPath, updatedSrc)
-    }
+    // console.log('APIDEF resolveGuide write', spec.guideModelPath, src !== updatedSrc)
+    // let existingSrc = ''
+    // if (fs.existsSync(spec.guideModelPath)) {
+    //   existingSrc = fs.readFileSync(spec.guideModelPath, 'utf8')
+    // }
+
+    // if (existingSrc !== updatedSrc) {
+    //   fs.writeFileSync(spec.guideModelPath, updatedSrc)
+    // }
 
     return guide
   }

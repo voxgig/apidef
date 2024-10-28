@@ -13,7 +13,7 @@ async function manualTransform(ctx: TransformCtx, tspec: TransformSpec, model: a
 
   deep(model, manual)
 
-  return { ok: true }
+  return { ok: true, msg: 'manual' }
 }
 
 

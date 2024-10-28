@@ -6,6 +6,6 @@ const { deep } = jsonic_next_1.Jsonic.util;
 async function manualTransform(ctx, tspec, model, def) {
     const { guide: { guide: { manual } } } = ctx;
     deep(model, manual);
-    return { ok: true };
+    return { ok: true, msg: 'manual' };
 }
 //# sourceMappingURL=manual.js.map

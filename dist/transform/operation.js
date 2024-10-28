@@ -5,6 +5,7 @@ const jostraca_1 = require("jostraca");
 const transform_1 = require("../transform");
 async function operationTransform(ctx, tspec, model, def) {
     const { guide: { guide } } = ctx;
+    let msg = 'operations: ';
     const paramBuilder = (paramMap, paramDef, entityModel, pathdef, op, path, entity, model) => {
         paramMap[paramDef.name] = {
             required: paramDef.required
@@ -61,6 +62,7 @@ async function operationTransform(ctx, tspec, model, def) {
         },
     };
     (0, jostraca_1.each)(guide.entity, (guideEntity) => {
+        let opcount = 0;
         const entityModel = model.main.api.entity[guideEntity.key$];
         (0, jostraca_1.each)(guideEntity.path, (guidePath) => {
             const pathdef = def.paths[guidePath.key$];
@@ -68,10 +70,12 @@ async function operationTransform(ctx, tspec, model, def) {
                 const opbuild = opBuilder[op.key$];
                 if (opbuild) {
                     opbuild(entityModel, pathdef, op, guidePath, guideEntity, model);
+                    opcount++;
                 }
             });
         });
+        msg += guideEntity.name + '=' + opcount + ' ';
     });
-    return { ok: true };
+    return { ok: true, msg };
 }
 //# sourceMappingURL=operation.js.map

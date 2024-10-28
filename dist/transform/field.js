@@ -5,21 +5,25 @@ const jostraca_1 = require("jostraca");
 const transform_1 = require("../transform");
 async function fieldTransform(ctx, tspec, model, def) {
     const { guide: { guide } } = ctx;
+    let msg = 'fields: ';
     (0, jostraca_1.each)(guide.entity, (guideEntity) => {
         const entityModel = model.main.api.entity[guideEntity.key$];
+        let fieldCount = 0;
         (0, jostraca_1.each)(guideEntity.path, (guidePath) => {
             const pathdef = def.paths[guidePath.key$];
             (0, jostraca_1.each)(guidePath.op, (op) => {
                 if ('load' === op.key$) {
-                    fieldbuild(entityModel, pathdef, op, guidePath, guideEntity, model);
+                    fieldCount = fieldbuild(entityModel, pathdef, op, guidePath, guideEntity, model);
                 }
             });
         });
+        msg += guideEntity.name + '=' + fieldCount + ' ';
     });
-    return { ok: true };
+    return { ok: true, msg };
 }
 function fieldbuild(entityModel, pathdef, op, path, entity, model) {
     // console.log('FB-A', op, pathdef)
+    let fieldCount = 0;
     let fieldSets = (0, jostraca_1.getx)(pathdef.get, 'responses 200 content "application/json" schema');
     if (fieldSets) {
         if (Array.isArray(fieldSets.allOf)) {
@@ -39,6 +43,7 @@ function fieldbuild(entityModel, pathdef, op, path, entity, model) {
             field.type = property.type;
             (0, transform_1.fixName)(field, field.type, 'type');
             field.short = property.description;
+            fieldCount++;
             // console.log('FB-ID', field.name, entityModel.param)
         });
     });
@@ -52,6 +57,7 @@ function fieldbuild(entityModel, pathdef, op, path, entity, model) {
             }
         }
     }
+    return fieldCount;
 }
 /*
 

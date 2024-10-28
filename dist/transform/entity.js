@@ -5,6 +5,7 @@ const jostraca_1 = require("jostraca");
 const transform_1 = require("../transform");
 async function entityTransform(ctx, tspec, model, def) {
     const { guide: { guide } } = ctx;
+    let msg = '';
     (0, jostraca_1.each)(guide.entity, (guideEntity) => {
         const entityModel = model.main.api.entity[guideEntity.key$] = {
             op: {},
@@ -27,7 +28,8 @@ async function entityTransform(ctx, tspec, model, def) {
                 .filter((p) => p.startsWith('{'))
                 .map((p) => p.substring(1, p.length - 1));
         });
+        msg += guideEntity.name + ' ';
     });
-    return { ok: true };
+    return { ok: true, msg };
 }
 //# sourceMappingURL=entity.js.map

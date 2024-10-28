@@ -12,7 +12,7 @@ async function topTransform(ctx: TransformCtx, tspec: TransformSpec, model: any,
   fixName(model.main.api, spec.meta.name)
   model.main.def.desc = def.info.description
 
-  return { ok: true }
+  return { ok: true, msg: spec.meta.name }
 }
 
 

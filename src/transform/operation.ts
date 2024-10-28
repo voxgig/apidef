@@ -15,6 +15,7 @@ async function operationTransform(
   def: any
 ) {
   const { guide: { guide } } = ctx
+  let msg = 'operations: '
 
   const paramBuilder = (paramMap: any, paramDef: any,
     entityModel: any, pathdef: any,
@@ -95,8 +96,9 @@ async function operationTransform(
   }
 
 
-  each(guide.entity, (guideEntity: any) => {
 
+  each(guide.entity, (guideEntity: any) => {
+    let opcount = 0
     const entityModel = model.main.api.entity[guideEntity.key$]
     each(guideEntity.path, (guidePath: any) => {
       const pathdef = def.paths[guidePath.key$]
@@ -106,12 +108,15 @@ async function operationTransform(
 
         if (opbuild) {
           opbuild(entityModel, pathdef, op, guidePath, guideEntity, model)
+          opcount++
         }
       })
     })
+
+    msg += guideEntity.name + '=' + opcount + ' '
   })
 
-  return { ok: true }
+  return { ok: true, msg }
 }
 
 

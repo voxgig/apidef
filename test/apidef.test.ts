@@ -27,6 +27,7 @@ describe('apidef', () => {
 
     const apidef = ApiDef({
       fs,
+      debug: 'warn'
     })
     expect(apidef).exist()
 
@@ -93,6 +94,16 @@ guide: entity: {
 # },
 #        }
 # prepare, modify, etc
+
+
+guide: control: transform: openapi: order: \`
+  top,
+  entity,
+  operation,
+  field,
+  manual,
+  \`
+
 
 `,
   openapi_3_yml: `

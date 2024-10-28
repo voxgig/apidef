@@ -67,10 +67,11 @@ function ApiDef(opts = {}) {
     }
     async function generate(spec) {
         const start = Date.now();
-        log.info({ point: 'generate-start' });
+        log.info({ point: 'generate-start', start });
         log.debug({ point: 'generate-spec', spec });
         // TODO: Validate spec
         const ctx = {
+            log,
             spec,
             guide: {},
             opts,
@@ -118,6 +119,9 @@ function ApiDef(opts = {}) {
                 log.error({ process: 'fail', what: 'transform', result: processResult });
                 throw new Error('Transform failed: ' + processResult.msg);
             }
+            else {
+                log.debug({ process: 'result', what: 'transform', result: processResult });
+            }
         }
         catch (err) {
             log.error({ process: 'fail', what: 'transform', err });
@@ -126,48 +130,59 @@ function ApiDef(opts = {}) {
         const modelapi = { main: { api: model.main.api } };
         let modelSrc = JSON.stringify(modelapi, null, 2);
         modelSrc = modelSrc.substring(1, modelSrc.length - 1);
-        writeChanged(spec.model, modelSrc);
+        writeChanged('api-model', spec.model, modelSrc);
         const modelBasePath = node_path_1.default.dirname(spec.model);
         const defFilePath = node_path_1.default.join(modelBasePath, 'def.jsonic');
         const modelDef = { main: { def: model.main.def } };
         let modelDefSrc = JSON.stringify(modelDef, null, 2);
         modelDefSrc = modelDefSrc.substring(1, modelDefSrc.length - 1);
-        let existingSrc = '';
+        writeChanged('def-model', defFilePath, modelDefSrc);
+        /*
+        let existingSrc: string = ''
         if (fs.existsSync(defFilePath)) {
-            existingSrc = fs.readFileSync(defFilePath, 'utf8');
+          existingSrc = fs.readFileSync(defFilePath, 'utf8')
         }
-        let writeModelDef = existingSrc !== modelDefSrc;
+    
+        let writeModelDef = existingSrc !== modelDefSrc
         // console.log('APIDEF', writeModelDef)
+    
         // Only write the model def if it has changed
         if (writeModelDef) {
-            fs.writeFileSync(defFilePath, modelDefSrc);
+          fs.writeFileSync(
+            defFilePath,
+            modelDefSrc
+          )
         }
+        */
         return {
             ok: true,
             model,
         };
     }
-    function writeChanged(path, content) {
+    function writeChanged(what, path, content) {
         let exists = false;
         let changed = false;
+        let action = '';
         try {
             let existingContent = '';
             exists = fs.existsSync(path);
             if (exists) {
+                action = 'read';
                 existingContent = fs.readFileSync(path, 'utf8');
             }
             changed = existingContent !== content;
             log.info({
-                write: 'file', skip: !changed, exists, changed,
+                write: 'file', what, skip: !changed, exists, changed,
                 contentLength: content.length, file: path
             });
             if (changed) {
+                action = 'write';
                 fs.writeFileSync(path, content);
             }
         }
         catch (err) {
             log.error({
-                fail: 'write', file: path, exists, changed,
+                fail: action, what, file: path, exists, changed,
                 contentLength: content.length, err
             });
             throw err;
@@ -179,12 +194,18 @@ function ApiDef(opts = {}) {
         }
         const path = node_path_1.default.normalize(spec.guide);
         let src;
-        // console.log('APIDEF resolveGuide', path)
-        if (fs.existsSync(path)) {
-            src = fs.readFileSync(path, 'utf8');
-        }
-        else {
-            src = `
+        let action = '';
+        let exists = false;
+        try {
+            action = 'exists';
+            let exists = fs.existsSync(path);
+            log.debug({ read: 'file', what: 'guide', file: path, exists });
+            if (exists) {
+                action = 'read';
+                src = fs.readFileSync(path, 'utf8');
+            }
+            else {
+                src = `
 # API Specification Transform Guide
 
 @"@voxgig/apidef/model/guide.jsonic"
@@ -193,38 +214,55 @@ guide: entity: {
 
 }
 
+guide: control: transform: openapi: order: \`
+  top,
+  entity,
+  operation,
+  field,
+  manual,
+  \`
+
 `;
-            fs.writeFileSync(path, src);
+                action = 'write';
+                fs.writeFileSync(path, src);
+            }
         }
-        // console.log('GUIDE SRC', src)
-        const aopts = {};
+        catch (err) {
+            log.error({ fail: action, what: 'guide', file: path, exists, err });
+            throw err;
+        }
+        const aopts = { path };
         const root = (0, aontu_1.Aontu)(src, aopts);
         const hasErr = root.err && 0 < root.err.length;
-        // TODO: collect all errors
         if (hasErr) {
-            // console.log('RESOLVE-GUIDE PARSE', root.err)
-            throw root.err[0].err;
+            const err = new Error('Guide parse error:\n' +
+                (root.err.map((pe) => pe.msg)).join('\n'));
+            log.error({ fail: 'parse', what: 'guide', file: path, err });
+            err.errs = () => root.err;
+            throw err;
         }
         let genctx = new aontu_1.Context({ root });
         const guide = spec.guideModel = root.gen(genctx);
         // TODO: collect all errors
         if (genctx.err && 0 < genctx.err.length) {
-            // console.log('RESOLVE-GUIDE GEN', genctx.err)
-            throw new Error(JSON.stringify(genctx.err[0]));
+            const err = new Error('Guide build error:\n' +
+                (genctx.err.map((pe) => pe.msg)).join('\n'));
+            log.error({ fail: 'build', what: 'guide', file: path, err });
+            err.errs = () => genctx.err;
+            throw err;
         }
-        // console.log('GUIDE')
-        // console.dir(guide, { depth: null })
         const pathParts = node_path_1.default.parse(path);
         spec.guideModelPath = node_path_1.default.join(pathParts.dir, pathParts.name + '.json');
         const updatedSrc = JSON.stringify(guide, null, 2);
+        writeChanged('guide-model', spec.guideModelPath, updatedSrc);
         // console.log('APIDEF resolveGuide write', spec.guideModelPath, src !== updatedSrc)
-        let existingSrc = '';
-        if (fs.existsSync(spec.guideModelPath)) {
-            existingSrc = fs.readFileSync(spec.guideModelPath, 'utf8');
-        }
-        if (existingSrc !== updatedSrc) {
-            fs.writeFileSync(spec.guideModelPath, updatedSrc);
-        }
+        // let existingSrc = ''
+        // if (fs.existsSync(spec.guideModelPath)) {
+        //   existingSrc = fs.readFileSync(spec.guideModelPath, 'utf8')
+        // }
+        // if (existingSrc !== updatedSrc) {
+        //   fs.writeFileSync(spec.guideModelPath, updatedSrc)
+        // }
         return guide;
     }
     return {

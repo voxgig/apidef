@@ -15,24 +15,28 @@ async function fieldTransform(
   def: any
 ) {
   const { guide: { guide } } = ctx
+  let msg = 'fields: '
 
   each(guide.entity, (guideEntity: any) => {
 
     const entityModel = model.main.api.entity[guideEntity.key$]
+    let fieldCount = 0
     each(guideEntity.path, (guidePath: any) => {
       const pathdef = def.paths[guidePath.key$]
 
       each(guidePath.op, (op: any) => {
 
         if ('load' === op.key$) {
-          fieldbuild(entityModel, pathdef, op, guidePath, guideEntity, model)
+          fieldCount = fieldbuild(entityModel, pathdef, op, guidePath, guideEntity, model)
         }
 
       })
     })
+
+    msg += guideEntity.name + '=' + fieldCount + ' '
   })
 
-  return { ok: true }
+  return { ok: true, msg }
 }
 
 
@@ -40,7 +44,7 @@ function fieldbuild(
   entityModel: any, pathdef: any, op: any, path: any, entity: any, model: any
 ) {
   // console.log('FB-A', op, pathdef)
-
+  let fieldCount = 0
   let fieldSets = getx(pathdef.get, 'responses 200 content "application/json" schema')
 
   if (fieldSets) {
@@ -69,6 +73,7 @@ function fieldbuild(
 
       field.short = property.description
 
+      fieldCount++
       // console.log('FB-ID', field.name, entityModel.param)
     })
   })
@@ -84,6 +89,7 @@ function fieldbuild(
     }
   }
 
+  return fieldCount
 }
 
 

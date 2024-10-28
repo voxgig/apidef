@@ -1,4 +1,5 @@
 type TransformCtx = {
+    log: any;
     spec: any;
     guide: any;
     opts: any;
@@ -10,6 +11,7 @@ type TransformSpec = {
 };
 type TransformResult = {
     ok: boolean;
+    msg: string;
 };
 type Transform = (ctx: TransformCtx, tspec: TransformSpec, model: any, def: any) => Promise<TransformResult>;
 type ProcessResult = {

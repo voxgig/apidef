@@ -10,6 +10,7 @@ import { fixName } from '../transform'
 
 async function entityTransform(ctx: TransformCtx, tspec: TransformSpec, model: any, def: any) {
   const { guide: { guide } } = ctx
+  let msg = ''
 
   each(guide.entity, (guideEntity: any) => {
 
@@ -37,10 +38,14 @@ async function entityTransform(ctx: TransformCtx, tspec: TransformSpec, model: a
       guidePath.params$ = guidePath.parts$
         .filter((p: string) => p.startsWith('{'))
         .map((p: string) => p.substring(1, p.length - 1))
+
     })
+
+    msg += guideEntity.name + ' '
+
   })
 
-  return { ok: true }
+  return { ok: true, msg }
 }
 
 

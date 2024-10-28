@@ -15,6 +15,7 @@ const __1 = require("../");
         });
         const apidef = (0, __1.ApiDef)({
             fs,
+            debug: 'warn'
         });
         (0, code_1.expect)(apidef).exist();
         const spec = {
@@ -70,6 +71,16 @@ guide: entity: {
 # },
 #        }
 # prepare, modify, etc
+
+
+guide: control: transform: openapi: order: \`
+  top,
+  entity,
+  operation,
+  field,
+  manual,
+  \`
+
 
 `,
     openapi_3_yml: `
