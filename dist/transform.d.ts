@@ -14,6 +14,7 @@ type TransformResult = {
 type Transform = (ctx: TransformCtx, tspec: TransformSpec, model: any, def: any) => Promise<TransformResult>;
 type ProcessResult = {
     ok: boolean;
+    msg: string;
     results: TransformResult[];
 };
 declare function resolveTransforms(ctx: TransformCtx): Promise<TransformSpec>;

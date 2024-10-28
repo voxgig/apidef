@@ -4,7 +4,7 @@ const Path = require('node:path')
 const { statSync } = require('node:fs')
 const { parseArgs } = require('node:util')
 
-const { Gubu, Fault } = require('gubu')
+const { Gubu, Fault, One } = require('gubu')
 const { Aontu, Context } = require('aontu')
 
 
@@ -13,16 +13,11 @@ const Pkg = require('../package.json')
 const { ApiDef } = require('../dist/apidef.js') 
 
 
-let DEBUG = false
 let CONSOLE = console
 
 
 try {
   let options = resolveOptions()
-
-  if(options.debug) {
-    DEBUG = true
-  }
 
   if(options.version) {
     version()
@@ -102,8 +97,9 @@ function resolveOptions() {
       },
       
       debug: {
-        type: 'boolean',
+        type: 'string',
         short: 'g',
+        default: 'info'
       },
       
       help: {
@@ -124,7 +120,7 @@ function resolveOptions() {
     folder: '' === args.values.folder ? args.positionals[0] : args.values.folder,
     def: args.values.def,
     watch: !!args.values.watch,
-    debug: !!args.values.debug,
+    debug: args.values.debug,
     help: !!args.values.help,
     version: !!args.values.version,
   }
@@ -139,7 +135,7 @@ function validateOptions(rawOptions) {
     folder: String,
     def: '',
     watch: Boolean,
-    debug: Boolean,
+    debug: One(String,Boolean),
     help: Boolean,
     version: Boolean,
   })
@@ -164,14 +160,8 @@ function validateOptions(rawOptions) {
 
 
 function handleError(err) {
-  CONSOLE.log('Voxgig SDK Generator Error:')
-
-  if(DEBUG) {
-    CONSOLE.log(err)
-  }
-  else {
-    CONSOLE.log(err.message)
-  }
+  CONSOLE.log('Voxgig API Definition Error:')
+  CONSOLE.log(err)
   
   exit(err)
 }

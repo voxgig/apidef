@@ -39,6 +39,7 @@ type Transform = (
 
 type ProcessResult = {
   ok: boolean
+  msg: string,
   results: TransformResult[]
 }
 
@@ -126,6 +127,7 @@ async function processTransforms(
 ): Promise<ProcessResult> {
   const pres: ProcessResult = {
     ok: true,
+    msg: '',
     results: []
   }
 
@@ -133,6 +135,7 @@ async function processTransforms(
     const transform = spec.transform[tI]
     const tres = await transform(ctx, spec, model, def)
     pres.ok = pres.ok && tres.ok
+    pres.msg += pres.msg + '\n'
     pres.results.push(tres)
   }
 

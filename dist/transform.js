@@ -70,12 +70,14 @@ async function resolveTransform(tn, ctx) {
 async function processTransforms(ctx, spec, model, def) {
     const pres = {
         ok: true,
+        msg: '',
         results: []
     };
     for (let tI = 0; tI < spec.transform.length; tI++) {
         const transform = spec.transform[tI];
         const tres = await transform(ctx, spec, model, def);
         pres.ok = pres.ok && tres.ok;
+        pres.msg += pres.msg + '\n';
         pres.results.push(tres);
     }
     return pres;

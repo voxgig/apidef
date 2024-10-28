@@ -41,12 +41,14 @@ function ApiDef(opts: ApiDefOptions = {}) {
 
   if (null == pino) {
     let pretty = PinoPretty({ sync: true })
+    const level = null == opts.debug ? 'info' :
+      true === opts.debug ? 'debug' :
+        'string' == typeof opts.debug ? opts.debug :
+          'info'
+
     pino = Pino({
       name: 'apidef',
-      level: null == opts.debug ? 'info' :
-        true === opts.debug ? 'debug' :
-          'string' == typeof opts.debug ? opts.debug :
-            'info'
+      level,
     },
       pretty
     )
@@ -55,20 +57,24 @@ function ApiDef(opts: ApiDefOptions = {}) {
 
   const log = pino.child({ cmp: 'apidef' })
 
+
   async function watch(spec: any) {
+    log.info({ point: 'watch-start' })
+    log.debug({ point: 'watch-spec', spec })
+
     await generate(spec)
 
     const fsw = new FSWatcher()
 
     fsw.on('change', (...args: any[]) => {
-      // console.log('APIDEF CHANGE', args)
+      log.trace({ watch: 'change', file: args[0] })
       generate(spec)
     })
 
-    // console.log('APIDEF-WATCH', spec.def)
+    log.trace({ watch: 'add', what: 'def', file: spec.def })
     fsw.add(spec.def)
 
-    // console.log('APIDEF-WATCH', spec.guide)
+    log.trace({ watch: 'add', what: 'guide', file: spec.guilde })
     fsw.add(spec.guide)
   }
 
@@ -88,32 +94,39 @@ function ApiDef(opts: ApiDefOptions = {}) {
       defpath: Path.dirname(spec.def)
     }
 
-    if (opts.debug) {
-      // console.log('@voxgig/apidef =============', start, new Date(start))
-      // console.dir(spec, { depth: null })
-    }
-
     const guide = await resolveGuide(spec, opts)
-    console.log('APIDEF.guide')
-    // console.dir(guide, { depth: null })
-
-
+    log.debug({ point: 'guide', guide })
 
     ctx.guide = guide
     const transformSpec = await resolveTransforms(ctx)
-    // console.log('APIDEF.transformSpec', transformSpec)
+    log.debug({ point: 'transform', spec: transformSpec })
 
 
-    const source = fs.readFileSync(spec.def, 'utf8')
+    let source
+    try {
+      source = fs.readFileSync(spec.def, 'utf8')
+    }
+    catch (err: any) {
+      log.error({ read: 'fail', what: 'def', file: spec.def, err })
+      throw err
+    }
 
-    const modelBasePath = Path.dirname(spec.model)
 
     const config = await createConfig({})
-    const bundle = await bundleFromString({
-      source,
-      config,
-      dereference: true,
-    })
+    let bundle
+
+    try {
+      bundle = await bundleFromString({
+        source,
+        config,
+        dereference: true,
+      })
+    }
+    catch (err: any) {
+      log.error({ parse: 'fail', what: 'openapi', file: spec.def, err })
+      throw err
+    }
+
 
     const model = {
       main: {
@@ -126,16 +139,15 @@ function ApiDef(opts: ApiDefOptions = {}) {
 
     try {
       const def = bundle.bundle.parsed
-      // console.dir(def, { depth: null })
-
       const processResult = await processTransforms(ctx, transformSpec, model, def)
-      // console.log('APIDEF.processResult', processResult)
 
-      // console.log('APIDEF.model')
-      // console.dir(model, { depth: null })
+      if (!processResult.ok) {
+        log.error({ process: 'fail', what: 'transform', result: processResult })
+        throw new Error('Transform failed: ' + processResult.msg)
+      }
     }
     catch (err: any) {
-      // console.log('APIDEF ERROR', err)
+      log.error({ process: 'fail', what: 'transform', err })
       throw err
     }
 
@@ -143,16 +155,9 @@ function ApiDef(opts: ApiDefOptions = {}) {
     let modelSrc = JSON.stringify(modelapi, null, 2)
     modelSrc = modelSrc.substring(1, modelSrc.length - 1)
 
-    /*
-    // console.log('WRITE', spec.model)
-    fs.writeFileSync(
-      spec.model,
-      modelSrc
-    )
-    */
-
     writeChanged(spec.model, modelSrc)
 
+    const modelBasePath = Path.dirname(spec.model)
     const defFilePath = Path.join(modelBasePath, 'def.jsonic')
 
     const modelDef = { main: { def: model.main.def } }
@@ -185,20 +190,33 @@ function ApiDef(opts: ApiDefOptions = {}) {
 
 
   function writeChanged(path: string, content: string) {
-    let existingContent: string = ''
+    let exists = false
+    let changed = false
+    try {
+      let existingContent: string = ''
+      exists = fs.existsSync(path)
 
-    if (fs.existsSync(path)) {
-      existingContent = fs.readFileSync(path, 'utf8')
+      if (exists) {
+        existingContent = fs.readFileSync(path, 'utf8')
+      }
+
+      changed = existingContent !== content
+
+      log.info({
+        write: 'file', skip: !changed, exists, changed,
+        contentLength: content.length, file: path
+      })
+
+      if (changed) {
+        fs.writeFileSync(path, content)
+      }
     }
-
-    let writeFile = existingContent !== content
-
-    if (writeFile) {
-      // console.log('WRITE-CHANGE: YES', path)
-      fs.writeFileSync(path, content)
-    }
-    else {
-      // console.log('WRITE-CHANGE: NO', path)
+    catch (err: any) {
+      log.error({
+        fail: 'write', file: path, exists, changed,
+        contentLength: content.length, err
+      })
+      throw err
     }
   }
 
