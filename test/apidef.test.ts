@@ -27,7 +27,7 @@ describe('apidef', () => {
 
     const apidef = ApiDef({
       fs,
-      debug: 'warn'
+      // debug: 'warn'
     })
     expect(apidef).exist()
 

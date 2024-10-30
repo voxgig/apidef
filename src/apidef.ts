@@ -7,10 +7,11 @@ import Path from 'node:path'
 import { bundleFromString, createConfig } from '@redocly/openapi-core'
 import { FSWatcher } from 'chokidar'
 import { Aontu, Context } from 'aontu'
-import Pino from 'pino'
-import PinoPretty from 'pino-pretty'
+// import Pino from 'pino'
+// import PinoPretty from 'pino-pretty'
 
 
+import { prettyPino, Pino } from '@voxgig/util'
 
 
 import {
@@ -37,23 +38,7 @@ type ApiDefSpec = {
 
 function ApiDef(opts: ApiDefOptions = {}) {
   const fs = opts.fs || Fs
-  let pino = opts.pino
-
-  if (null == pino) {
-    let pretty = PinoPretty({ sync: true })
-    const level = null == opts.debug ? 'info' :
-      true === opts.debug ? 'debug' :
-        'string' == typeof opts.debug ? opts.debug :
-          'info'
-
-    pino = Pino({
-      name: 'apidef',
-      level,
-    },
-      pretty
-    )
-  }
-
+  const pino = prettyPino('apidef', opts)
 
   const log = pino.child({ cmp: 'apidef' })
 
@@ -82,7 +67,11 @@ function ApiDef(opts: ApiDefOptions = {}) {
   async function generate(spec: ApiDefSpec) {
     const start = Date.now()
 
-    log.info({ point: 'generate-start', start })
+    // TODO: validate spec
+
+    const defpath = Path.normalize(spec.def)
+
+    log.info({ point: 'generate-start', note: 'defpath', defpath, start })
     log.debug({ point: 'generate-spec', spec })
 
     // TODO: Validate spec
@@ -92,10 +81,15 @@ function ApiDef(opts: ApiDefOptions = {}) {
       guide: {},
       opts,
       util: { fixName },
-      defpath: Path.dirname(spec.def)
+      defpath: Path.dirname(defpath)
     }
 
+
+
     const guide = await resolveGuide(spec, opts)
+    return;
+
+
     log.debug({ point: 'guide', guide })
 
     ctx.guide = guide
@@ -108,7 +102,7 @@ function ApiDef(opts: ApiDefOptions = {}) {
       source = fs.readFileSync(spec.def, 'utf8')
     }
     catch (err: any) {
-      log.error({ read: 'fail', what: 'def', file: spec.def, err })
+      log.error({ read: 'fail', what: 'def', file: defpath, err })
       throw err
     }
 
@@ -124,7 +118,7 @@ function ApiDef(opts: ApiDefOptions = {}) {
       })
     }
     catch (err: any) {
-      log.error({ parse: 'fail', what: 'openapi', file: spec.def, err })
+      log.error({ parse: 'fail', what: 'openapi', file: defpath, err })
       throw err
     }
 
@@ -171,24 +165,6 @@ function ApiDef(opts: ApiDefOptions = {}) {
 
     writeChanged('def-model', defFilePath, modelDefSrc)
 
-    /*
-    let existingSrc: string = ''
-    if (fs.existsSync(defFilePath)) {
-      existingSrc = fs.readFileSync(defFilePath, 'utf8')
-    }
-
-    let writeModelDef = existingSrc !== modelDefSrc
-    // console.log('APIDEF', writeModelDef)
-
-    // Only write the model def if it has changed
-    if (writeModelDef) {
-      fs.writeFileSync(
-        defFilePath,
-        modelDefSrc
-      )
-    }
-    */
-
     return {
       ok: true,
       model,
@@ -203,6 +179,8 @@ function ApiDef(opts: ApiDefOptions = {}) {
     let action = ''
     try {
       let existingContent: string = ''
+      path = Path.normalize(path)
+
       exists = fs.existsSync(path)
 
       if (exists) {
@@ -213,6 +191,8 @@ function ApiDef(opts: ApiDefOptions = {}) {
       changed = existingContent !== content
 
       log.info({
+        point: 'write-' + what,
+        note: 'changed,file',
         write: 'file', what, skip: !changed, exists, changed,
         contentLength: content.length, file: path
       })
@@ -282,7 +262,6 @@ guide: control: transform: openapi: order: \`
       throw err
     }
 
-
     const aopts = { path }
     const root = Aontu(src, aopts)
     const hasErr = root.err && 0 < root.err.length
@@ -290,7 +269,9 @@ guide: control: transform: openapi: order: \`
     if (hasErr) {
       const err: any = new Error('Guide parse error:\n' +
         (root.err.map((pe: any) => pe.msg)).join('\n'))
+
       log.error({ fail: 'parse', what: 'guide', file: path, err })
+
       err.errs = () => root.err
       throw err
     }
@@ -313,16 +294,6 @@ guide: control: transform: openapi: order: \`
     const updatedSrc = JSON.stringify(guide, null, 2)
 
     writeChanged('guide-model', spec.guideModelPath, updatedSrc)
-
-    // console.log('APIDEF resolveGuide write', spec.guideModelPath, src !== updatedSrc)
-    // let existingSrc = ''
-    // if (fs.existsSync(spec.guideModelPath)) {
-    //   existingSrc = fs.readFileSync(spec.guideModelPath, 'utf8')
-    // }
-
-    // if (existingSrc !== updatedSrc) {
-    //   fs.writeFileSync(spec.guideModelPath, updatedSrc)
-    // }
 
     return guide
   }

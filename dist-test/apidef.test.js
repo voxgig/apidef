@@ -15,7 +15,7 @@ const __1 = require("../");
         });
         const apidef = (0, __1.ApiDef)({
             fs,
-            debug: 'warn'
+            // debug: 'warn'
         });
         (0, code_1.expect)(apidef).exist();
         const spec = {

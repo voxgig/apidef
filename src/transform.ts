@@ -71,7 +71,7 @@ async function resolveTransforms(ctx: TransformCtx): Promise<TransformSpec> {
     .map((t: string) => t.trim())
     .filter((t: string) => '' != t)
 
-  log.info({ what: 'transform', order: transformNames })
+  log.info({ point: 'transform', note: 'order', order: transformNames })
 
   for (const tn of transformNames) {
     log.debug({ what: 'transform', transform: tn })

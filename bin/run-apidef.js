@@ -15,31 +15,33 @@ const { ApiDef } = require('../dist/apidef.js')
 
 let CONSOLE = console
 
+run()
 
-try {
-  let options = resolveOptions()
 
-  if(options.version) {
-    version()
+async function run() {
+  try {
+    let options = resolveOptions()
+
+    if(options.version) {
+      version()
+    }
+
+    if(options.help) {
+      help()
+    }
+
+    if(options.version || options.help) {
+      exit()
+    }
+
+    options = validateOptions(options)
+
+    await generate(options)
   }
-
-  if(options.help) {
-    help()
+  catch(err) {
+    handleError(err)
   }
-
-  if(options.version || options.help) {
-    exit()
-  }
-
-  options = validateOptions(options)
-
-  generate(options)
-  
 }
-catch(err) {
-  handleError(err)
-}
-
 
 
 function exit(err) {
@@ -51,7 +53,7 @@ function exit(err) {
 }
 
 
-function generate(options) {
+async function generate(options) {
   const apidef = new ApiDef({
     debug: options.debug
   })
@@ -64,12 +66,11 @@ function generate(options) {
   }
 
   if(options.watch) {
-    apidef.watch(spec)
+    await apidef.watch(spec)
   }
   else {
-    apidef.generate(spec)
+    await apidef.generate(spec)
   }
-
 }
 
 
@@ -159,10 +160,9 @@ function validateOptions(rawOptions) {
 }
 
 
-function handleError(err) {
+async function handleError(err) {
   CONSOLE.log('Voxgig API Definition Error:')
   CONSOLE.log(err)
-  
   exit(err)
 }
 

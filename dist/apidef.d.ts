@@ -1,4 +1,4 @@
-import Pino from 'pino';
+import { Pino } from '@voxgig/util';
 type ApiDefOptions = {
     fs?: any;
     pino?: ReturnType<typeof Pino>;
@@ -22,7 +22,7 @@ declare function ApiDef(opts?: ApiDefOptions): {
                 def: {};
             };
         };
-    }>;
+    } | undefined>;
 };
 export type { ApiDefOptions, };
 export { ApiDef, };

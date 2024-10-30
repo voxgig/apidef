@@ -32,7 +32,7 @@ async function resolveTransforms(ctx) {
         .split(/\s*,\s*/)
         .map((t) => t.trim())
         .filter((t) => '' != t);
-    log.info({ what: 'transform', order: transformNames });
+    log.info({ point: 'transform', note: 'order', order: transformNames });
     for (const tn of transformNames) {
         log.debug({ what: 'transform', transform: tn });
         const transform = await resolveTransform(tn, ctx);
