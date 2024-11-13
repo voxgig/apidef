@@ -33,8 +33,6 @@ const node_path_1 = __importDefault(require("node:path"));
 const openapi_core_1 = require("@redocly/openapi-core");
 const chokidar_1 = require("chokidar");
 const aontu_1 = require("aontu");
-// import Pino from 'pino'
-// import PinoPretty from 'pino-pretty'
 const util_1 = require("@voxgig/util");
 const transform_1 = require("./transform");
 function ApiDef(opts = {}) {
@@ -71,7 +69,9 @@ function ApiDef(opts = {}) {
             defpath: node_path_1.default.dirname(defpath)
         };
         const guide = await resolveGuide(spec, opts);
-        return;
+        if (null == guide) {
+            return;
+        }
         log.debug({ point: 'guide', guide });
         ctx.guide = guide;
         const transformSpec = await (0, transform_1.resolveTransforms)(ctx);
@@ -130,6 +130,7 @@ function ApiDef(opts = {}) {
         let modelDefSrc = JSON.stringify(modelDef, null, 2);
         modelDefSrc = modelDefSrc.substring(1, modelDefSrc.length - 1);
         writeChanged('def-model', defFilePath, modelDefSrc);
+        log.info({ point: 'generate-end', note: 'success', break: true });
         return {
             ok: true,
             model,
@@ -214,11 +215,21 @@ guide: control: transform: openapi: order: \`
         const root = (0, aontu_1.Aontu)(src, aopts);
         const hasErr = root.err && 0 < root.err.length;
         if (hasErr) {
-            const err = new Error('Guide parse error:\n' +
-                (root.err.map((pe) => pe.msg)).join('\n'));
-            log.error({ fail: 'parse', what: 'guide', file: path, err });
-            err.errs = () => root.err;
-            throw err;
+            for (let serr of root.err) {
+                let err = new Error('Guide model: ' + serr.msg);
+                err.cause$ = [serr];
+                if ('syntax' === serr.why) {
+                    err.uxmsg$ = true;
+                }
+                log.error({ fail: 'parse', point: 'guide-parse', file: path, err });
+                if (err.uxmsg$) {
+                    return;
+                }
+                else {
+                    err.rooterrs$ = root.err;
+                    throw err;
+                }
+            }
         }
         let genctx = new aontu_1.Context({ root });
         const guide = spec.guideModel = root.gen(genctx);

@@ -7,9 +7,6 @@ import Path from 'node:path'
 import { bundleFromString, createConfig } from '@redocly/openapi-core'
 import { FSWatcher } from 'chokidar'
 import { Aontu, Context } from 'aontu'
-// import Pino from 'pino'
-// import PinoPretty from 'pino-pretty'
-
 
 import { prettyPino, Pino } from '@voxgig/util'
 
@@ -87,7 +84,10 @@ function ApiDef(opts: ApiDefOptions = {}) {
 
 
     const guide = await resolveGuide(spec, opts)
-    return;
+
+    if (null == guide) {
+      return
+    }
 
 
     log.debug({ point: 'guide', guide })
@@ -164,6 +164,8 @@ function ApiDef(opts: ApiDefOptions = {}) {
     modelDefSrc = modelDefSrc.substring(1, modelDefSrc.length - 1)
 
     writeChanged('def-model', defFilePath, modelDefSrc)
+
+    log.info({ point: 'generate-end', note: 'success', break: true })
 
     return {
       ok: true,
@@ -267,13 +269,24 @@ guide: control: transform: openapi: order: \`
     const hasErr = root.err && 0 < root.err.length
 
     if (hasErr) {
-      const err: any = new Error('Guide parse error:\n' +
-        (root.err.map((pe: any) => pe.msg)).join('\n'))
+      for (let serr of root.err) {
+        let err: any = new Error('Guide model: ' + serr.msg)
+        err.cause$ = [serr]
 
-      log.error({ fail: 'parse', what: 'guide', file: path, err })
+        if ('syntax' === serr.why) {
+          err.uxmsg$ = true
+        }
 
-      err.errs = () => root.err
-      throw err
+        log.error({ fail: 'parse', point: 'guide-parse', file: path, err })
+
+        if (err.uxmsg$) {
+          return
+        }
+        else {
+          err.rooterrs$ = root.err
+          throw err
+        }
+      }
     }
 
     let genctx = new Context({ root })

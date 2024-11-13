@@ -16,7 +16,7 @@
     "url": "git://github.com/voxgig/apidef.git"
   },
   "bin": {
-    "apidef": "bin/run-apidef.js"
+    "voxgig-apidef": "bin/voxgig-apidef"
   },
   "scripts": {
     "test": "node --enable-source-maps --test dist-test",
@@ -41,21 +41,21 @@
   "devDependencies": {
     "@hapi/code": "^9.0.3",
     "@types/js-yaml": "^4.0.9",
-    "@types/node": "22.8.2",
-    "aontu": "^0.23.0",
+    "@types/node": "22.9.0",
+    "aontu": "^0.25.0",
     "esbuild": "^0.24.0",
     "json-schema-to-ts": "^3.1.1",
     "memfs": "^4.14.0",
     "typescript": "^5.6.3"
   },
   "dependencies": {
-    "@redocly/openapi-core": "^1.25.9",
-    "@voxgig/util": "^0.0.3",
+    "@redocly/openapi-core": "^1.25.11",
+    "@voxgig/util": "^0.0.4",
     "chokidar": "^4.0.1",
     "gubu": "^8.3.0",
     "jostraca": "^0.7.7",
     "pino": "^9.5.0",
-    "pino-pretty": "^11.3.0",
+    "pino-pretty": "^13.0.0",
     "sonic-boom": "^4.2.0"
   }
 }
