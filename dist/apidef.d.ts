@@ -9,7 +9,7 @@ type ApiDefSpec = {
     model: string;
     kind: string;
     meta: Record<string, any>;
-    guide: any;
+    guide?: any;
 };
 declare function ApiDef(opts?: ApiDefOptions): {
     watch: (spec: ApiDefSpec) => Promise<void>;
