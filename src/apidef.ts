@@ -30,6 +30,7 @@ type ApiDefSpec = {
   model: string,
   kind: string,
   meta: Record<string, any>,
+  guide: any
 }
 
 
@@ -40,7 +41,7 @@ function ApiDef(opts: ApiDefOptions = {}) {
   const log = pino.child({ cmp: 'apidef' })
 
 
-  async function watch(spec: any) {
+  async function watch(spec: ApiDefSpec) {
     log.info({ point: 'watch-start' })
     log.debug({ point: 'watch-spec', spec })
 
@@ -56,7 +57,7 @@ function ApiDef(opts: ApiDefOptions = {}) {
     log.trace({ watch: 'add', what: 'def', file: spec.def })
     fsw.add(spec.def)
 
-    log.trace({ watch: 'add', what: 'guide', file: spec.guilde })
+    log.trace({ watch: 'add', what: 'guide', file: spec.guide })
     fsw.add(spec.guide)
   }
 
@@ -323,6 +324,7 @@ guide: control: transform: openapi: order: \`
 
 export type {
   ApiDefOptions,
+  ApiDefSpec,
 }
 
 

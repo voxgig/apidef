@@ -50,7 +50,7 @@ function ApiDef(opts = {}) {
         });
         log.trace({ watch: 'add', what: 'def', file: spec.def });
         fsw.add(spec.def);
-        log.trace({ watch: 'add', what: 'guide', file: spec.guilde });
+        log.trace({ watch: 'add', what: 'guide', file: spec.guide });
         fsw.add(spec.guide);
     }
     async function generate(spec) {

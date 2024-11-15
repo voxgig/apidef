@@ -9,9 +9,10 @@ type ApiDefSpec = {
     model: string;
     kind: string;
     meta: Record<string, any>;
+    guide: any;
 };
 declare function ApiDef(opts?: ApiDefOptions): {
-    watch: (spec: any) => Promise<void>;
+    watch: (spec: ApiDefSpec) => Promise<void>;
     generate: (spec: ApiDefSpec) => Promise<{
         ok: boolean;
         model: {
@@ -24,5 +25,5 @@ declare function ApiDef(opts?: ApiDefOptions): {
         };
     } | undefined>;
 };
-export type { ApiDefOptions, };
+export type { ApiDefOptions, ApiDefSpec, };
 export { ApiDef, };
