@@ -22,7 +22,8 @@ const TRANSFORM = {
     manual: manual_1.manualTransform,
 };
 async function resolveTransforms(ctx) {
-    const { log, guide: { guide } } = ctx;
+    const { log, model: { main: { guide } } } = ctx;
+    // console.dir(api, { depth: null })
     const tspec = {
         transform: []
     };
@@ -32,18 +33,23 @@ async function resolveTransforms(ctx) {
         .split(/\s*,\s*/)
         .map((t) => t.trim())
         .filter((t) => '' != t);
-    log.info({ point: 'transform', note: 'order', order: transformNames });
+    log.info({
+        point: 'transform', note: 'order: ' + transformNames.join(';'),
+        order: transformNames
+    });
     for (const tn of transformNames) {
-        log.debug({ what: 'transform', transform: tn });
+        log.debug({ what: 'transform', transform: tn, note: tn });
         const transform = await resolveTransform(tn, ctx);
         tspec.transform.push(transform);
     }
+    // console.log('TSPEC', tspec)
     return tspec;
 }
 async function resolveTransform(tn, ctx) {
-    const { log, defpath, guide: { guide } } = ctx;
+    const { log, defpath, model: { guide } } = ctx;
     let transform = TRANSFORM[tn];
     if (transform) {
+        // console.log('resolveTransform', tn, transform)
         return transform;
     }
     const tdef = guide.transform[tn];
@@ -70,7 +76,7 @@ async function resolveTransform(tn, ctx) {
     }
     return transform;
 }
-async function processTransforms(ctx, spec, model, def) {
+async function processTransforms(ctx, spec, apimodel, def) {
     const pres = {
         ok: true,
         msg: '',
@@ -79,17 +85,18 @@ async function processTransforms(ctx, spec, model, def) {
     for (let tI = 0; tI < spec.transform.length; tI++) {
         const transform = spec.transform[tI];
         try {
-            const tres = await transform(ctx, spec, model, def);
+            const tres = await transform(ctx, spec, apimodel, def);
             pres.ok = pres.ok && tres.ok;
-            pres.msg += tres.msg + '\n';
             pres.results.push(tres);
         }
         catch (err) {
             pres.ok = false;
-            pres.msg += err.message + '\n';
+            pres.msg += transform.name + ': ' + err.message + '\n';
             pres.results.push({
                 ok: false,
-                msg: err.message
+                msg: err.message,
+                err,
+                transform
             });
         }
     }

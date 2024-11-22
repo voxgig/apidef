@@ -4,7 +4,7 @@ exports.operationTransform = operationTransform;
 const jostraca_1 = require("jostraca");
 const transform_1 = require("../transform");
 async function operationTransform(ctx, tspec, model, def) {
-    const { guide: { guide } } = ctx;
+    const { model: { main: { guide } } } = ctx;
     let msg = 'operations: ';
     const paramBuilder = (paramMap, paramDef, entityModel, pathdef, op, path, entity, model) => {
         paramMap[paramDef.name] = {

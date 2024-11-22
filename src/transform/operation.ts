@@ -14,7 +14,7 @@ async function operationTransform(
   model: any,
   def: any
 ) {
-  const { guide: { guide } } = ctx
+  const { model: { main: { guide } } } = ctx
   let msg = 'operations: '
 
   const paramBuilder = (paramMap: any, paramDef: any,
@@ -94,7 +94,6 @@ async function operationTransform(
     },
 
   }
-
 
 
   each(guide.entity, (guideEntity: any) => {

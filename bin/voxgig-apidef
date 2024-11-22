@@ -5,8 +5,6 @@ const { statSync } = require('node:fs')
 const { parseArgs } = require('node:util')
 
 const { Gubu, Fault, One } = require('gubu')
-const { Aontu, Context } = require('aontu')
-
 
 const Pkg = require('../package.json')
 

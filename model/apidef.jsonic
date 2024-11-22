@@ -1,0 +1,41 @@
+
+main: guide: control: transform: &: {
+  order: string
+}
+
+main: guide: control: transform: openapi: {
+  order: *`
+
+  top,
+  entity,
+  operation,
+  field,
+  manual,
+  
+  ` | string
+}
+
+
+main: guide: transform: &: {
+  name: .$KEY
+  load: string
+}
+
+main: guide: transform: {
+  top: {}
+  entity: {}
+  operation: {}
+  field: {}
+  manual: {}
+}
+
+
+main: guide: entity: &: {
+  name: .$KEY
+  path: &: {
+    op: {}
+  }
+}
+
+
+

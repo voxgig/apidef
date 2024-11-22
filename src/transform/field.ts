@@ -14,7 +14,7 @@ async function fieldTransform(
   model: any,
   def: any
 ) {
-  const { guide: { guide } } = ctx
+  const { model: { main: { guide } } } = ctx
   let msg = 'fields: '
 
   each(guide.entity, (guideEntity: any) => {

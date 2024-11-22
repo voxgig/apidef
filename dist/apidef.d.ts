@@ -1,21 +1,29 @@
 import { Pino } from '@voxgig/util';
 type ApiDefOptions = {
+    def: string;
     fs?: any;
     pino?: ReturnType<typeof Pino>;
     debug?: boolean | string;
+    folder?: string;
+    meta?: Record<string, any>;
 };
-type ApiDefSpec = {
-    def: string;
-    model: string;
-    kind: string;
-    meta: Record<string, any>;
-    guide?: any;
-};
-declare function ApiDef(opts?: ApiDefOptions): {
-    watch: (spec: ApiDefSpec) => Promise<void>;
-    generate: (spec: ApiDefSpec) => Promise<{
+declare function ApiDef(opts: ApiDefOptions): {
+    generate: (spec: any) => Promise<{
         ok: boolean;
-        model: {
+        processResult: {
+            ok: boolean;
+            msg: string;
+            results: {
+                ok: boolean;
+                msg: string;
+                err?: any;
+                transform?: any;
+            }[];
+        };
+        apimodel?: undefined;
+    } | {
+        ok: boolean;
+        apimodel: {
             main: {
                 api: {
                     entity: {};
@@ -23,7 +31,14 @@ declare function ApiDef(opts?: ApiDefOptions): {
                 def: {};
             };
         };
-    } | undefined>;
+        processResult?: undefined;
+    }>;
 };
-export type { ApiDefOptions, ApiDefSpec, };
+declare namespace ApiDef {
+    var makeBuild: (opts: ApiDefOptions) => Promise<{
+        (model: any, build: any, ctx: any): Promise<void>;
+        step: string;
+    }>;
+}
+export type { ApiDefOptions, };
 export { ApiDef, };

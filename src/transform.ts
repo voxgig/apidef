@@ -17,7 +17,7 @@ import { manualTransform } from './transform/manual'
 type TransformCtx = {
   log: any,
   spec: any,
-  guide: any,
+  model: any,
   opts: any,
   util: any,
   defpath: string,
@@ -30,12 +30,14 @@ type TransformSpec = {
 type TransformResult = {
   ok: boolean
   msg: string
+  err?: any
+  transform?: any
 }
 
 type Transform = (
   ctx: TransformCtx,
   tspec: TransformSpec,
-  model: any,
+  apimodel: any,
   def: any,
 ) => Promise<TransformResult>
 
@@ -58,7 +60,9 @@ const TRANSFORM: Record<string, Transform> = {
 
 
 async function resolveTransforms(ctx: TransformCtx): Promise<TransformSpec> {
-  const { log, guide: { guide } } = ctx
+  const { log, model: { main: { guide } } } = ctx
+
+  // console.dir(api, { depth: null })
 
   const tspec: TransformSpec = {
     transform: []
@@ -71,23 +75,28 @@ async function resolveTransforms(ctx: TransformCtx): Promise<TransformSpec> {
     .map((t: string) => t.trim())
     .filter((t: string) => '' != t)
 
-  log.info({ point: 'transform', note: 'order', order: transformNames })
+  log.info({
+    point: 'transform', note: 'order: ' + transformNames.join(';'),
+    order: transformNames
+  })
 
   for (const tn of transformNames) {
-    log.debug({ what: 'transform', transform: tn })
+    log.debug({ what: 'transform', transform: tn, note: tn })
     const transform = await resolveTransform(tn, ctx)
     tspec.transform.push(transform)
   }
 
+  // console.log('TSPEC', tspec)
   return tspec
 }
 
 
 async function resolveTransform(tn: string, ctx: TransformCtx) {
-  const { log, defpath, guide: { guide } } = ctx
+  const { log, defpath, model: { guide } } = ctx
 
   let transform = TRANSFORM[tn]
   if (transform) {
+    // console.log('resolveTransform', tn, transform)
     return transform
   }
 
@@ -125,7 +134,7 @@ async function resolveTransform(tn: string, ctx: TransformCtx) {
 async function processTransforms(
   ctx: TransformCtx,
   spec: TransformSpec,
-  model: any,
+  apimodel: any,
   def: any
 ): Promise<ProcessResult> {
   const pres: ProcessResult = {
@@ -138,17 +147,18 @@ async function processTransforms(
     const transform = spec.transform[tI]
 
     try {
-      const tres = await transform(ctx, spec, model, def)
+      const tres = await transform(ctx, spec, apimodel, def)
       pres.ok = pres.ok && tres.ok
-      pres.msg += tres.msg + '\n'
       pres.results.push(tres)
     }
     catch (err: any) {
       pres.ok = false
-      pres.msg += err.message + '\n'
+      pres.msg += transform.name + ': ' + err.message + '\n'
       pres.results.push({
         ok: false,
-        msg: err.message
+        msg: err.message,
+        err,
+        transform
       })
     }
   }

@@ -4,7 +4,7 @@ exports.entityTransform = entityTransform;
 const jostraca_1 = require("jostraca");
 const transform_1 = require("../transform");
 async function entityTransform(ctx, tspec, model, def) {
-    const { guide: { guide } } = ctx;
+    const { model: { main: { guide } } } = ctx;
     let msg = '';
     (0, jostraca_1.each)(guide.entity, (guideEntity) => {
         const entityModel = model.main.api.entity[guideEntity.key$] = {

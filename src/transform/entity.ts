@@ -9,7 +9,7 @@ import { fixName } from '../transform'
 
 
 async function entityTransform(ctx: TransformCtx, tspec: TransformSpec, model: any, def: any) {
-  const { guide: { guide } } = ctx
+  const { model: { main: { guide } } } = ctx
   let msg = ''
 
   each(guide.entity, (guideEntity: any) => {
