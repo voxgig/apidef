@@ -19,7 +19,7 @@ import {
 
 
 type ApiDefOptions = {
-  def: string
+  def?: string
   fs?: any
   pino?: ReturnType<typeof Pino>
   debug?: boolean | string
@@ -36,34 +36,10 @@ function ApiDef(opts: ApiDefOptions) {
 
   const log = pino.child({ cmp: 'apidef' })
 
-  /*
-  async function watch(spec: ApiDefSpec) {
-    log.info({ point: 'watch-start' })
-    log.debug({ point: 'watch-spec', spec })
-
-    await generate(spec)
-
-    const fsw = new FSWatcher()
-
-    fsw.on('change', (...args: any[]) => {
-      log.trace({ watch: 'change', file: args[0] })
-      generate(spec)
-    })
-
-    log.trace({ watch: 'add', what: 'def', file: spec.def })
-    fsw.add(spec.def)
-
-    log.trace({ watch: 'add', what: 'guide', file: spec.guide })
-    fsw.add(spec.guide)
-  }
-  */
-
 
   async function generate(spec: any) {
     const start = Date.now()
 
-    // console.log('APIDEF generate', spec)
-    // TODO: validate spec
     const buildspec = spec.build.spec
 
     let defpath = spec.model.def
@@ -75,7 +51,6 @@ function ApiDef(opts: ApiDefOptions) {
       point: 'generate-start',
       note: defpath.replace(process.cwd(), '.'), defpath, start
     })
-    // log.debug({ point: 'generate-spec', spec })
 
     // TODO: Validate spec
     const ctx = {
@@ -87,18 +62,6 @@ function ApiDef(opts: ApiDefOptions) {
       model: spec.model
     }
 
-
-
-    // const guide = await resolveGuide(spec, opts)
-
-    // if (null == guide) {
-    //   return
-    // }
-
-
-    // log.debug({ point: 'guide', guide })
-
-    // ctx.guide = guide
     const transformSpec = await resolveTransforms(ctx)
 
     log.debug({

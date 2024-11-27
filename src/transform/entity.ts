@@ -12,6 +12,8 @@ async function entityTransform(ctx: TransformCtx, tspec: TransformSpec, model: a
   const { model: { main: { guide } } } = ctx
   let msg = ''
 
+  // console.log('DEF', def)
+
   each(guide.entity, (guideEntity: any) => {
 
     const entityModel: any = model.main.api.entity[guideEntity.key$] = {

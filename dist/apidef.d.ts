@@ -1,6 +1,6 @@
 import { Pino } from '@voxgig/util';
 type ApiDefOptions = {
-    def: string;
+    def?: string;
     fs?: any;
     pino?: ReturnType<typeof Pino>;
     debug?: boolean | string;

@@ -16,13 +16,23 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -38,31 +48,8 @@ function ApiDef(opts) {
     const fs = opts.fs || Fs;
     const pino = (0, util_1.prettyPino)('apidef', opts);
     const log = pino.child({ cmp: 'apidef' });
-    /*
-    async function watch(spec: ApiDefSpec) {
-      log.info({ point: 'watch-start' })
-      log.debug({ point: 'watch-spec', spec })
-  
-      await generate(spec)
-  
-      const fsw = new FSWatcher()
-  
-      fsw.on('change', (...args: any[]) => {
-        log.trace({ watch: 'change', file: args[0] })
-        generate(spec)
-      })
-  
-      log.trace({ watch: 'add', what: 'def', file: spec.def })
-      fsw.add(spec.def)
-  
-      log.trace({ watch: 'add', what: 'guide', file: spec.guide })
-      fsw.add(spec.guide)
-    }
-    */
     async function generate(spec) {
         const start = Date.now();
-        // console.log('APIDEF generate', spec)
-        // TODO: validate spec
         const buildspec = spec.build.spec;
         let defpath = spec.model.def;
         // TOOD: defpath should be independently defined
@@ -71,7 +58,6 @@ function ApiDef(opts) {
             point: 'generate-start',
             note: defpath.replace(process.cwd(), '.'), defpath, start
         });
-        // log.debug({ point: 'generate-spec', spec })
         // TODO: Validate spec
         const ctx = {
             log,
@@ -81,12 +67,6 @@ function ApiDef(opts) {
             defpath: node_path_1.default.dirname(defpath),
             model: spec.model
         };
-        // const guide = await resolveGuide(spec, opts)
-        // if (null == guide) {
-        //   return
-        // }
-        // log.debug({ point: 'guide', guide })
-        // ctx.guide = guide
         const transformSpec = await (0, transform_1.resolveTransforms)(ctx);
         log.debug({
             point: 'transform', spec: transformSpec,
