@@ -85,7 +85,7 @@ async function operationTransform(
       return opBuilder.any(entityModel, pathdef, op, path, entity, model)
     },
 
-    save: (entityModel: any, pathdef: any, op: any, path: any, entity: any, model: any) => {
+    update: (entityModel: any, pathdef: any, op: any, path: any, entity: any, model: any) => {
       return opBuilder.any(entityModel, pathdef, op, path, entity, model)
     },
 

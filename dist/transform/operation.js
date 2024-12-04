@@ -54,7 +54,7 @@ async function operationTransform(ctx, tspec, model, def) {
         create: (entityModel, pathdef, op, path, entity, model) => {
             return opBuilder.any(entityModel, pathdef, op, path, entity, model);
         },
-        save: (entityModel, pathdef, op, path, entity, model) => {
+        update: (entityModel, pathdef, op, path, entity, model) => {
             return opBuilder.any(entityModel, pathdef, op, path, entity, model);
         },
         remove: (entityModel, pathdef, op, path, entity, model) => {

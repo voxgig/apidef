@@ -127,7 +127,7 @@ guide: transform: customField: {
 guide: entity: {
   pet: path: {
     '/pet/{petId}': {
-      op:{ load: 'get', create: 'post', save: 'put' }
+      op:{ load: 'get', create: 'post', update: 'put' }
     }
   }
   pet: test: {
