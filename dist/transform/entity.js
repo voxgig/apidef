@@ -20,8 +20,10 @@ async function entityTransform(ctx, tspec, model, def) {
         (0, transform_1.fixName)(entityModel, guideEntity.key$);
         (0, jostraca_1.each)(guideEntity.path, (guidePath) => {
             const pathdef = def.paths[guidePath.key$];
+            // console.log('APIDEF FIND PATH', guidePath.key$, Object.keys(def.paths),
+            //  Object.keys(def.paths).includes(guidePath.key$))
             if (null == pathdef) {
-                throw new Error('APIDEF: path not found in OpenAPI: ' + guidePath.key$ +
+                throw new Error('path not found in OpenAPI: ' + guidePath.key$ +
                     ' (entity: ' + guideEntity.name + ')');
             }
             guidePath.parts$ = guidePath.key$.split('/');

@@ -31,8 +31,11 @@ async function entityTransform(ctx: TransformCtx, tspec: TransformSpec, model: a
     each(guideEntity.path, (guidePath: any) => {
       const pathdef = def.paths[guidePath.key$]
 
+      // console.log('APIDEF FIND PATH', guidePath.key$, Object.keys(def.paths),
+      //  Object.keys(def.paths).includes(guidePath.key$))
+
       if (null == pathdef) {
-        throw new Error('APIDEF: path not found in OpenAPI: ' + guidePath.key$ +
+        throw new Error('path not found in OpenAPI: ' + guidePath.key$ +
           ' (entity: ' + guideEntity.name + ')')
       }
 

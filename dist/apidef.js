@@ -167,105 +167,7 @@ function ApiDef(opts) {
             throw err;
         }
     }
-    /*
-      async function resolveGuide(spec: any, _opts: any) {
-        if (null == spec.guide) {
-          spec.guide = spec.def + '-guide.jsonic'
-        }
-    
-        const path = Path.normalize(spec.guide)
-        let src: string
-    
-        let action = ''
-        let exists = false
-        try {
-    
-          action = 'exists'
-          let exists = fs.existsSync(path)
-    
-          log.debug({ read: 'file', what: 'guide', file: path, exists })
-    
-          if (exists) {
-            action = 'read'
-            src = fs.readFileSync(path, 'utf8')
-          }
-          else {
-            src = `
-    # API Specification Transform Guide
-    
-    @"@voxgig/apidef/model/guide.jsonic"
-    
-    guide: entity: {
-    
-    }
-    
-    guide: control: transform: openapi: order: \`
-      top,
-      entity,
-      operation,
-      field,
-      manual,
-      \`
-    
-    `
-            action = 'write'
-            fs.writeFileSync(path, src)
-          }
-        }
-        catch (err: any) {
-          log.error({ fail: action, what: 'guide', file: path, exists, err })
-          throw err
-        }
-    
-        const aopts = { path }
-        const root = Aontu(src, aopts)
-        const hasErr = root.err && 0 < root.err.length
-    
-        if (hasErr) {
-          for (let serr of root.err) {
-            let err: any = new Error('Guide model: ' + serr.msg)
-            err.cause$ = [serr]
-    
-            if ('syntax' === serr.why) {
-              err.uxmsg$ = true
-            }
-    
-            log.error({ fail: 'parse', point: 'guide-parse', file: path, err })
-    
-            if (err.uxmsg$) {
-              return
-            }
-            else {
-              err.rooterrs$ = root.err
-              throw err
-            }
-          }
-        }
-    
-        let genctx = new Context({ root })
-        const guide = spec.guideModel = root.gen(genctx)
-    
-        // TODO: collect all errors
-        if (genctx.err && 0 < genctx.err.length) {
-          const err: any = new Error('Guide build error:\n' +
-            (genctx.err.map((pe: any) => pe.msg)).join('\n'))
-          log.error({ fail: 'build', what: 'guide', file: path, err })
-          err.errs = () => genctx.err
-          throw err
-        }
-    
-        const pathParts = Path.parse(path)
-        spec.guideModelPath = Path.join(pathParts.dir, pathParts.name + '.json')
-    
-        const updatedSrc = JSON.stringify(guide, null, 2)
-    
-        writeChanged('guide-model', spec.guideModelPath, updatedSrc)
-    
-        return guide
-      }
-    */
     return {
-        // watch,
         generate,
     };
 }
@@ -278,16 +180,13 @@ ApiDef.makeBuild = async function (opts) {
         meta: opts.meta || {},
     };
     const build = async function (model, build, ctx) {
-        // console.log('APIDEF build')
-        // console.dir(ctx, { depth: null })
-        // console.dir(build, { depth: null })
         if (null == apidef) {
             apidef = ApiDef({
                 ...opts,
                 pino: build.log,
             });
         }
-        await apidef.generate({ model, build, config });
+        return await apidef.generate({ model, build, config });
     };
     build.step = 'pre';
     return build;
