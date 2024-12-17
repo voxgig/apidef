@@ -109,7 +109,7 @@ function ApiDef(opts) {
                 result: processResult, note: processResult.msg,
                 err: processResult.results[0]?.err
             });
-            return { ok: false, processResult };
+            return { ok: false, name: 'apidef', processResult };
         }
         const modelapi = { main: { api: apimodel.main.api } };
         let modelSrc = JSON.stringify(modelapi, null, 2);
@@ -130,6 +130,7 @@ function ApiDef(opts) {
         log.info({ point: 'generate-end', note: 'success', break: true });
         return {
             ok: true,
+            name: 'apidef',
             apimodel,
         };
     }

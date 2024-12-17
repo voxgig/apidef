@@ -115,7 +115,7 @@ function ApiDef(opts: ApiDefOptions) {
         err: processResult.results[0]?.err
       })
 
-      return { ok: false, processResult }
+      return { ok: false, name: 'apidef', processResult }
     }
 
     const modelapi = { main: { api: apimodel.main.api } }
@@ -145,6 +145,7 @@ function ApiDef(opts: ApiDefOptions) {
 
     return {
       ok: true,
+      name: 'apidef',
       apimodel,
     }
   }

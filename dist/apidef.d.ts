@@ -10,6 +10,7 @@ type ApiDefOptions = {
 declare function ApiDef(opts: ApiDefOptions): {
     generate: (spec: any) => Promise<{
         ok: boolean;
+        name: string;
         processResult: {
             ok: boolean;
             msg: string;
@@ -23,6 +24,7 @@ declare function ApiDef(opts: ApiDefOptions): {
         apimodel?: undefined;
     } | {
         ok: boolean;
+        name: string;
         apimodel: {
             main: {
                 api: {
