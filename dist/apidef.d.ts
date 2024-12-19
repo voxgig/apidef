@@ -14,12 +14,7 @@ declare function ApiDef(opts: ApiDefOptions): {
         processResult: {
             ok: boolean;
             msg: string;
-            results: {
-                ok: boolean;
-                msg: string;
-                err?: any;
-                transform?: any;
-            }[];
+            results: import("./transform").TransformResult[];
         };
         apimodel?: undefined;
     } | {

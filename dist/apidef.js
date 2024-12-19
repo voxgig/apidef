@@ -42,16 +42,42 @@ const Fs = __importStar(require("node:fs"));
 const node_path_1 = __importDefault(require("node:path"));
 const node_util_1 = require("node:util");
 const openapi_core_1 = require("@redocly/openapi-core");
+const gubu_1 = require("gubu");
 const util_1 = require("@voxgig/util");
 const transform_1 = require("./transform");
+const ModelShape = (0, gubu_1.Gubu)({
+    def: String,
+    main: {
+        guide: {},
+        sdk: {},
+        def: {},
+        api: {},
+    }
+});
+const OpenModelShape = (0, gubu_1.Gubu)((0, gubu_1.Open)(ModelShape));
+const BuildShape = (0, gubu_1.Gubu)({
+    spec: {
+        base: '',
+        path: '',
+        debug: '',
+        use: {},
+        res: [],
+        require: '',
+        log: {},
+        fs: (0, gubu_1.Any)()
+    }
+});
+const OpenBuildShape = (0, gubu_1.Gubu)((0, gubu_1.Open)(BuildShape));
 function ApiDef(opts) {
     const fs = opts.fs || Fs;
     const pino = (0, util_1.prettyPino)('apidef', opts);
     const log = pino.child({ cmp: 'apidef' });
     async function generate(spec) {
         const start = Date.now();
-        const buildspec = spec.build.spec;
-        let defpath = spec.model.def;
+        const model = OpenModelShape(spec.model);
+        const build = OpenBuildShape(spec.build);
+        const buildspec = build.spec;
+        let defpath = model.def;
         // TOOD: defpath should be independently defined
         defpath = node_path_1.default.join(buildspec.base, '..', 'def', defpath);
         log.info({
@@ -65,7 +91,7 @@ function ApiDef(opts) {
             opts,
             util: { fixName: transform_1.fixName },
             defpath: node_path_1.default.dirname(defpath),
-            model: spec.model
+            model,
         };
         const transformSpec = await (0, transform_1.resolveTransforms)(ctx);
         log.debug({

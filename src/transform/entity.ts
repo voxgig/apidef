@@ -2,21 +2,28 @@
 
 import { each } from 'jostraca'
 
-import type { TransformCtx, TransformSpec } from '../transform'
+import type { TransformCtx, TransformSpec, TransformResult, Transform, Guide } from '../transform'
 
 import { fixName } from '../transform'
 
 
-
-async function entityTransform(ctx: TransformCtx, tspec: TransformSpec, model: any, def: any) {
-  const { model: { main: { guide } } } = ctx
+const entityTransform: Transform = async function(
+  ctx: TransformCtx,
+  guide: Guide,
+  tspec: TransformSpec,
+  model: any,
+  def: any
+): Promise<TransformResult> {
   let msg = ''
 
   // console.log('DEF', def)
+  // console.log('GUIDE', guide)
 
   each(guide.entity, (guideEntity: any) => {
+    const entityName = guideEntity.key$
+    ctx.log.debug({ point: 'guide-entity', note: entityName })
 
-    const entityModel: any = model.main.api.entity[guideEntity.key$] = {
+    const entityModel: any = model.main.api.entity[entityName] = {
       op: {},
       field: {},
       cmd: {},
@@ -29,17 +36,19 @@ async function entityTransform(ctx: TransformCtx, tspec: TransformSpec, model: a
     fixName(entityModel, guideEntity.key$)
 
     each(guideEntity.path, (guidePath: any) => {
-      const pathdef = def.paths[guidePath.key$]
+      const path = guidePath.key$
+      const pathdef = def.paths[path]
 
       // console.log('APIDEF FIND PATH', guidePath.key$, Object.keys(def.paths),
       //  Object.keys(def.paths).includes(guidePath.key$))
 
       if (null == pathdef) {
-        throw new Error('path not found in OpenAPI: ' + guidePath.key$ +
+        throw new Error('path not found in OpenAPI: ' + path +
           ' (entity: ' + guideEntity.name + ')')
       }
 
-      guidePath.parts$ = guidePath.key$.split('/')
+      // TODO: is this needed?
+      guidePath.parts$ = path.split('/')
       guidePath.params$ = guidePath.parts$
         .filter((p: string) => p.startsWith('{'))
         .map((p: string) => p.substring(1, p.length - 1))
@@ -47,7 +56,6 @@ async function entityTransform(ctx: TransformCtx, tspec: TransformSpec, model: a
     })
 
     msg += guideEntity.name + ' '
-
   })
 
   return { ok: true, msg }

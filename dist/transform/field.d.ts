@@ -1,6 +1,3 @@
-import type { TransformCtx, TransformSpec } from '../transform';
-declare function fieldTransform(ctx: TransformCtx, tspec: TransformSpec, model: any, def: any): Promise<{
-    ok: boolean;
-    msg: string;
-}>;
+import type { Transform } from '../transform';
+declare const fieldTransform: Transform;
 export { fieldTransform };

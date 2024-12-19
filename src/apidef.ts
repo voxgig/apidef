@@ -7,7 +7,7 @@ import { inspect } from 'node:util'
 import { bundleFromString, createConfig } from '@redocly/openapi-core'
 import { FSWatcher } from 'chokidar'
 import { Aontu, Context } from 'aontu'
-
+import { Gubu, Open, Any } from 'gubu'
 import { prettyPino, Pino } from '@voxgig/util'
 
 
@@ -28,6 +28,36 @@ type ApiDefOptions = {
 }
 
 
+const ModelShape = Gubu({
+  def: String,
+  main: {
+    guide: {},
+    sdk: {},
+    def: {},
+    api: {},
+  }
+})
+const OpenModelShape = Gubu(Open(ModelShape))
+
+type Model = ReturnType<typeof ModelShape>
+
+
+const BuildShape = Gubu({
+  spec: {
+    base: '',
+    path: '',
+    debug: '',
+    use: {},
+    res: [],
+    require: '',
+    log: {},
+    fs: Any()
+  }
+})
+const OpenBuildShape = Gubu(Open(BuildShape))
+
+type Build = ReturnType<typeof BuildShape>
+
 
 
 function ApiDef(opts: ApiDefOptions) {
@@ -40,9 +70,12 @@ function ApiDef(opts: ApiDefOptions) {
   async function generate(spec: any) {
     const start = Date.now()
 
-    const buildspec = spec.build.spec
+    const model: Model = OpenModelShape(spec.model)
+    const build: Build = OpenBuildShape(spec.build)
 
-    let defpath = spec.model.def
+    const buildspec = build.spec
+
+    let defpath = model.def
 
     // TOOD: defpath should be independently defined
     defpath = Path.join(buildspec.base, '..', 'def', defpath)
@@ -59,7 +92,7 @@ function ApiDef(opts: ApiDefOptions) {
       opts,
       util: { fixName },
       defpath: Path.dirname(defpath),
-      model: spec.model
+      model,
     }
 
     const transformSpec = await resolveTransforms(ctx)

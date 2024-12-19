@@ -49,9 +49,9 @@
     "typescript": "^5.7.2"
   },
   "dependencies": {
-    "@redocly/openapi-core": "^1.26.0",
+    "@redocly/openapi-core": "^1.26.1",
     "@voxgig/util": "^0.0.8",
-    "chokidar": "^4.0.1",
+    "chokidar": "^4.0.2",
     "gubu": "^9.0.0",
     "jostraca": "^0.15.0",
     "pino": "^9.5.0",

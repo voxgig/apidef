@@ -2,31 +2,35 @@
 
 import { each, getx } from 'jostraca'
 
-import type { TransformCtx, TransformSpec } from '../transform'
+import type { TransformCtx, TransformSpec, TransformResult, Transform, Guide } from '../transform'
 
 import { fixName } from '../transform'
 
 
 
-async function fieldTransform(
+const fieldTransform: Transform = async function(
   ctx: TransformCtx,
+  guide: Guide,
   tspec: TransformSpec,
   model: any,
   def: any
-) {
-  const { model: { main: { guide } } } = ctx
+): Promise<TransformResult> {
+
   let msg = 'fields: '
 
   each(guide.entity, (guideEntity: any) => {
+    const entityName = guideEntity.key$
+    const entityModel = model.main.api.entity[entityName]
 
-    const entityModel = model.main.api.entity[guideEntity.key$]
     let fieldCount = 0
     each(guideEntity.path, (guidePath: any) => {
-      const pathdef = def.paths[guidePath.key$]
+      const path = guidePath.key$
+      const pathdef = def.paths[path]
 
       each(guidePath.op, (op: any) => {
+        const opname = op.key$
 
-        if ('load' === op.key$) {
+        if ('load' === opname) {
           fieldCount = fieldbuild(entityModel, pathdef, op, guidePath, guideEntity, model)
         }
 

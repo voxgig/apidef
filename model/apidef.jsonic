@@ -33,7 +33,10 @@ main: guide: transform: {
 main: guide: entity: &: {
   name: .$KEY
   path: &: {
-    op: {}
+    op: &: {
+      method: *'get' | string
+      place: *'' | string
+    }
   }
 }
 

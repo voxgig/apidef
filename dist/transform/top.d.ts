@@ -1,6 +1,3 @@
-import type { TransformCtx, TransformSpec } from '../transform';
-declare function topTransform(ctx: TransformCtx, tspec: TransformSpec, model: any, def: any): Promise<{
-    ok: boolean;
-    msg: string;
-}>;
+import type { TransformCtx, TransformSpec, TransformResult, Guide } from '../transform';
+declare const topTransform: (ctx: TransformCtx, guide: Guide, tspec: TransformSpec, model: any, def: any) => Promise<TransformResult>;
 export { topTransform };

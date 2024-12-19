@@ -1,14 +1,16 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.entityTransform = entityTransform;
+exports.entityTransform = void 0;
 const jostraca_1 = require("jostraca");
 const transform_1 = require("../transform");
-async function entityTransform(ctx, tspec, model, def) {
-    const { model: { main: { guide } } } = ctx;
+const entityTransform = async function (ctx, guide, tspec, model, def) {
     let msg = '';
     // console.log('DEF', def)
+    // console.log('GUIDE', guide)
     (0, jostraca_1.each)(guide.entity, (guideEntity) => {
-        const entityModel = model.main.api.entity[guideEntity.key$] = {
+        const entityName = guideEntity.key$;
+        ctx.log.debug({ point: 'guide-entity', note: entityName });
+        const entityModel = model.main.api.entity[entityName] = {
             op: {},
             field: {},
             cmd: {},
@@ -19,14 +21,16 @@ async function entityTransform(ctx, tspec, model, def) {
         };
         (0, transform_1.fixName)(entityModel, guideEntity.key$);
         (0, jostraca_1.each)(guideEntity.path, (guidePath) => {
-            const pathdef = def.paths[guidePath.key$];
+            const path = guidePath.key$;
+            const pathdef = def.paths[path];
             // console.log('APIDEF FIND PATH', guidePath.key$, Object.keys(def.paths),
             //  Object.keys(def.paths).includes(guidePath.key$))
             if (null == pathdef) {
-                throw new Error('path not found in OpenAPI: ' + guidePath.key$ +
+                throw new Error('path not found in OpenAPI: ' + path +
                     ' (entity: ' + guideEntity.name + ')');
             }
-            guidePath.parts$ = guidePath.key$.split('/');
+            // TODO: is this needed?
+            guidePath.parts$ = path.split('/');
             guidePath.params$ = guidePath.parts$
                 .filter((p) => p.startsWith('{'))
                 .map((p) => p.substring(1, p.length - 1));
@@ -34,5 +38,6 @@ async function entityTransform(ctx, tspec, model, def) {
         msg += guideEntity.name + ' ';
     });
     return { ok: true, msg };
-}
+};
+exports.entityTransform = entityTransform;
 //# sourceMappingURL=entity.js.map

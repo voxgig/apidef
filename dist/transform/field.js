@@ -1,18 +1,20 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fieldTransform = fieldTransform;
+exports.fieldTransform = void 0;
 const jostraca_1 = require("jostraca");
 const transform_1 = require("../transform");
-async function fieldTransform(ctx, tspec, model, def) {
-    const { model: { main: { guide } } } = ctx;
+const fieldTransform = async function (ctx, guide, tspec, model, def) {
     let msg = 'fields: ';
     (0, jostraca_1.each)(guide.entity, (guideEntity) => {
-        const entityModel = model.main.api.entity[guideEntity.key$];
+        const entityName = guideEntity.key$;
+        const entityModel = model.main.api.entity[entityName];
         let fieldCount = 0;
         (0, jostraca_1.each)(guideEntity.path, (guidePath) => {
-            const pathdef = def.paths[guidePath.key$];
+            const path = guidePath.key$;
+            const pathdef = def.paths[path];
             (0, jostraca_1.each)(guidePath.op, (op) => {
-                if ('load' === op.key$) {
+                const opname = op.key$;
+                if ('load' === opname) {
                     fieldCount = fieldbuild(entityModel, pathdef, op, guidePath, guideEntity, model);
                 }
             });
@@ -20,7 +22,8 @@ async function fieldTransform(ctx, tspec, model, def) {
         msg += guideEntity.name + '=' + fieldCount + ' ';
     });
     return { ok: true, msg };
-}
+};
+exports.fieldTransform = fieldTransform;
 function fieldbuild(entityModel, pathdef, op, path, entity, model) {
     // console.log('FB-A', op, pathdef)
     let fieldCount = 0;

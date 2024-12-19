@@ -4,11 +4,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.GuideShape = exports.OPKIND = void 0;
 exports.fixName = fixName;
 exports.resolveTransforms = resolveTransforms;
 exports.processTransforms = processTransforms;
 const node_path_1 = __importDefault(require("node:path"));
 const jostraca_1 = require("jostraca");
+const gubu_1 = require("gubu");
 const top_1 = require("./transform/top");
 const entity_1 = require("./transform/entity");
 const operation_1 = require("./transform/operation");
@@ -21,6 +23,32 @@ const TRANSFORM = {
     field: field_1.fieldTransform,
     manual: manual_1.manualTransform,
 };
+const OPKIND = {
+    list: 'res',
+    load: 'res',
+    remove: 'res',
+    create: 'req',
+    update: 'req',
+};
+exports.OPKIND = OPKIND;
+const GuideShape = (0, gubu_1.Gubu)({
+    /*
+    entity: Child({
+      key$: '',
+      name: String,
+      path: Child({
+        op: Child({
+          method: Exact('get', 'post', 'put', 'patch', 'delete'),
+          place: ''
+        })
+      })
+      }),
+    */
+    entity: {},
+    control: {},
+    transform: {},
+});
+exports.GuideShape = GuideShape;
 async function resolveTransforms(ctx) {
     const { log, model: { main: { guide } } } = ctx;
     // console.dir(api, { depth: null })
@@ -82,10 +110,11 @@ async function processTransforms(ctx, spec, apimodel, def) {
         msg: '',
         results: []
     };
+    const guide = GuideShape(ctx.model.main.guide);
     for (let tI = 0; tI < spec.transform.length; tI++) {
         const transform = spec.transform[tI];
         try {
-            const tres = await transform(ctx, spec, apimodel, def);
+            const tres = await transform(ctx, guide, spec, apimodel, def);
             pres.ok = pres.ok && tres.ok;
             pres.results.push(tres);
         }

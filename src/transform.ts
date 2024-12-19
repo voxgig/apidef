@@ -5,6 +5,7 @@ import Path from 'node:path'
 
 import { getx, each, camelify } from 'jostraca'
 
+import { Gubu, Child, Exact } from 'gubu'
 
 import { topTransform } from './transform/top'
 import { entityTransform } from './transform/entity'
@@ -36,6 +37,7 @@ type TransformResult = {
 
 type Transform = (
   ctx: TransformCtx,
+  guide: Guide,
   tspec: TransformSpec,
   apimodel: any,
   def: any,
@@ -57,6 +59,35 @@ const TRANSFORM: Record<string, Transform> = {
 }
 
 
+
+const OPKIND: any = {
+  list: 'res',
+  load: 'res',
+  remove: 'res',
+  create: 'req',
+  update: 'req',
+}
+
+
+const GuideShape = Gubu({
+  /*
+  entity: Child({
+    key$: '',
+    name: String,
+    path: Child({
+      op: Child({
+        method: Exact('get', 'post', 'put', 'patch', 'delete'),
+        place: ''
+      })
+    })
+    }),
+  */
+  entity: {},
+  control: {},
+  transform: {},
+})
+
+type Guide = ReturnType<typeof GuideShape>
 
 
 async function resolveTransforms(ctx: TransformCtx): Promise<TransformSpec> {
@@ -143,11 +174,14 @@ async function processTransforms(
     results: []
   }
 
+  const guide: Guide = GuideShape(ctx.model.main.guide)
+
+
   for (let tI = 0; tI < spec.transform.length; tI++) {
     const transform = spec.transform[tI]
 
     try {
-      const tres = await transform(ctx, spec, apimodel, def)
+      const tres = await transform(ctx, guide, spec, apimodel, def)
       pres.ok = pres.ok && tres.ok
       pres.results.push(tres)
     }
@@ -193,11 +227,16 @@ function fixName(base: any, name: string, prop = 'name') {
 export type {
   TransformCtx,
   TransformSpec,
+  Transform,
+  TransformResult,
+  Guide,
 }
 
 
 export {
   fixName,
+  OPKIND,
+  GuideShape,
   resolveTransforms,
   processTransforms,
 }

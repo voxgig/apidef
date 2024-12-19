@@ -1,6 +1,3 @@
-import type { TransformCtx, TransformSpec } from '../transform';
-declare function entityTransform(ctx: TransformCtx, tspec: TransformSpec, model: any, def: any): Promise<{
-    ok: boolean;
-    msg: string;
-}>;
+import type { Transform } from '../transform';
+declare const entityTransform: Transform;
 export { entityTransform };
