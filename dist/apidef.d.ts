@@ -6,6 +6,7 @@ type ApiDefOptions = {
     debug?: boolean | string;
     folder?: string;
     meta?: Record<string, any>;
+    outprefix?: string;
 };
 declare function ApiDef(opts: ApiDefOptions): {
     generate: (spec: any) => Promise<{

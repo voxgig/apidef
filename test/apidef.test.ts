@@ -25,7 +25,8 @@ describe('apidef', () => {
   test('api-statuspage', async () => {
     const build = await ApiDef.makeBuild({
       folder: __dirname + '/../test/api',
-      debug: 'debug'
+      debug: 'debug',
+      outprefix: 'statuspage-1.0.0-20241218-'
     })
 
     const model = Aontu(`
@@ -47,8 +48,8 @@ entity: page: {
 entity: incident: {
   path: {
     '/pages/{page_id}/incidents': op: {
-      create: method: post,
-      list: method: get,      
+      create: method: post
+      list: method: get    
     }
     '/pages/{page_id}/incidents/{incident_id}': op: {
       remove: method: delete

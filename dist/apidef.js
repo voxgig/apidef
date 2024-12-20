@@ -146,7 +146,7 @@ function ApiDef(opts) {
         // console.log('modelPath', modelPath)
         writeChanged('api-model', modelPath, modelSrc);
         const modelBasePath = node_path_1.default.dirname(modelPath);
-        const defFilePath = node_path_1.default.join(modelBasePath, 'def-generated.jsonic');
+        const defFilePath = node_path_1.default.join(modelBasePath, (null == opts.outprefix ? '' : opts.outprefix) + 'def-generated.jsonic');
         const modelDef = { main: { def: apimodel.main.def } };
         let modelDefSrc = JSON.stringify(modelDef, null, 2);
         modelDefSrc =
@@ -200,10 +200,12 @@ function ApiDef(opts) {
 }
 ApiDef.makeBuild = async function (opts) {
     let apidef = undefined;
+    const outprefix = null == opts.outprefix ? '' : opts.outprefix;
     const config = {
         def: opts.def || 'no-def',
         kind: 'openapi3',
-        model: opts.folder ? (opts.folder + '/api-generated.jsonic') : 'no-model',
+        model: opts.folder ?
+            (opts.folder + '/' + outprefix + 'api-generated.jsonic') : 'no-model',
         meta: opts.meta || {},
     };
     const build = async function (model, build, ctx) {

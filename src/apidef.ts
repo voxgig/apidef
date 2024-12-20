@@ -25,6 +25,7 @@ type ApiDefOptions = {
   debug?: boolean | string
   folder?: string
   meta?: Record<string, any>
+  outprefix?: string
 }
 
 
@@ -163,7 +164,9 @@ function ApiDef(opts: ApiDefOptions) {
     writeChanged('api-model', modelPath, modelSrc)
 
     const modelBasePath = Path.dirname(modelPath)
-    const defFilePath = Path.join(modelBasePath, 'def-generated.jsonic')
+    const defFilePath =
+      Path.join(modelBasePath,
+        (null == opts.outprefix ? '' : opts.outprefix) + 'def-generated.jsonic')
 
     const modelDef = { main: { def: apimodel.main.def } }
     let modelDefSrc = JSON.stringify(modelDef, null, 2)
@@ -235,10 +238,13 @@ function ApiDef(opts: ApiDefOptions) {
 ApiDef.makeBuild = async function(opts: ApiDefOptions) {
   let apidef: any = undefined
 
+  const outprefix = null == opts.outprefix ? '' : opts.outprefix
+
   const config = {
     def: opts.def || 'no-def',
     kind: 'openapi3',
-    model: opts.folder ? (opts.folder + '/api-generated.jsonic') : 'no-model',
+    model: opts.folder ?
+      (opts.folder + '/' + outprefix + 'api-generated.jsonic') : 'no-model',
     meta: opts.meta || {},
   }
 

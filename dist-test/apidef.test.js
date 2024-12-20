@@ -13,7 +13,8 @@ const __1 = require("../");
     (0, node_test_1.test)('api-statuspage', async () => {
         const build = await __1.ApiDef.makeBuild({
             folder: __dirname + '/../test/api',
-            debug: 'debug'
+            debug: 'debug',
+            outprefix: 'statuspage-1.0.0-20241218-'
         });
         const model = (0, aontu_1.Aontu)(`
 @"@voxgig/apidef/model/apidef.jsonic"
@@ -34,8 +35,8 @@ entity: page: {
 entity: incident: {
   path: {
     '/pages/{page_id}/incidents': op: {
-      create: method: post,
-      list: method: get,      
+      create: method: post
+      list: method: get    
     }
     '/pages/{page_id}/incidents/{incident_id}': op: {
       remove: method: delete
