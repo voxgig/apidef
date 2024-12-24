@@ -8,6 +8,14 @@ type ApiDefOptions = {
     meta?: Record<string, any>;
     outprefix?: string;
 };
+type ApiModel = {
+    main: {
+        api: {
+            entity: Record<string, any>;
+        };
+        def: Record<string, any>;
+    };
+};
 declare function ApiDef(opts: ApiDefOptions): {
     generate: (spec: any) => Promise<{
         ok: boolean;
@@ -21,14 +29,7 @@ declare function ApiDef(opts: ApiDefOptions): {
     } | {
         ok: boolean;
         name: string;
-        apimodel: {
-            main: {
-                api: {
-                    entity: {};
-                };
-                def: {};
-            };
-        };
+        apimodel: ApiModel;
         processResult?: undefined;
     }>;
 };

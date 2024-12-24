@@ -132,16 +132,13 @@ const operationTransform = async function(
 
   const opBuilder: any = {
     any: (entityModel: any, pathdef: any, op: any, path: any, entity: any, model: any) => {
-      // console.log('OP', op, pathdef, path, entity)
       const opname = op.key$
-      const method = op.val$
+      const method = op.method
       const kind = OPKIND[opname]
-
-      // console.log('EM', entityModel.name)
 
       const em = entityModel.op[opname] = {
         path: path.key$,
-        method: op.val$,
+        method,
         kind,
         param: {},
         query: {},

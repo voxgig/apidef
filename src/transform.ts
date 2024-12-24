@@ -202,18 +202,6 @@ async function processTransforms(
 
 
 
-
-
-/*
-function extractFields(properties: any) {
-  const fieldMap = each(properties)
-    .reduce((a: any, p: any) => (a[p.key$] =
-      { name: p.key$, kind: camelify(p.type) }, a), {})
-  return fieldMap
-}
-*/
-
-
 function fixName(base: any, name: string, prop = 'name') {
   base[prop.toLowerCase()] = name.toLowerCase()
   base[camelify(prop)] = camelify(name)

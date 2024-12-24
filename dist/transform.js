@@ -131,14 +131,6 @@ async function processTransforms(ctx, spec, apimodel, def) {
     }
     return pres;
 }
-/*
-function extractFields(properties: any) {
-  const fieldMap = each(properties)
-    .reduce((a: any, p: any) => (a[p.key$] =
-      { name: p.key$, kind: camelify(p.type) }, a), {})
-  return fieldMap
-}
-*/
 function fixName(base, name, prop = 'name') {
     base[prop.toLowerCase()] = name.toLowerCase();
     base[(0, jostraca_1.camelify)(prop)] = (0, jostraca_1.camelify)(name);

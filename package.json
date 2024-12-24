@@ -43,9 +43,9 @@
     "@types/js-yaml": "^4.0.9",
     "@types/node": "22.10.2",
     "aontu": "^0.25.3",
-    "esbuild": "^0.24.1",
+    "esbuild": "^0.24.2",
     "json-schema-to-ts": "^3.1.1",
-    "memfs": "^4.15.0",
+    "memfs": "^4.15.1",
     "typescript": "^5.7.2"
   },
   "dependencies": {
@@ -54,7 +54,7 @@
     "chokidar": "^4.0.3",
     "gubu": "^9.0.0",
     "jostraca": "^0.15.1",
-    "pino": "^9.5.0",
+    "pino": "^9.6.0",
     "pino-pretty": "^13.0.0",
     "sonic-boom": "^4.2.0"
   }

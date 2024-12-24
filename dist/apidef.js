@@ -43,6 +43,7 @@ const node_path_1 = __importDefault(require("node:path"));
 const node_util_1 = require("node:util");
 const openapi_core_1 = require("@redocly/openapi-core");
 const gubu_1 = require("gubu");
+const jostraca_1 = require("jostraca");
 const util_1 = require("@voxgig/util");
 const transform_1 = require("./transform");
 const ModelShape = (0, gubu_1.Gubu)({
@@ -137,14 +138,28 @@ function ApiDef(opts) {
             });
             return { ok: false, name: 'apidef', processResult };
         }
+        const modelPath = node_path_1.default.normalize(spec.config.model);
+        buildModel_api(apimodel, modelPath);
+        buildModel_def(apimodel, modelPath);
+        buildModel_entity(apimodel, modelPath);
+        log.info({ point: 'generate-end', note: 'success', break: true });
+        return {
+            ok: true,
+            name: 'apidef',
+            apimodel,
+        };
+    }
+    function buildModel_api(apimodel, modelPath) {
         const modelapi = { main: { api: apimodel.main.api } };
         let modelSrc = JSON.stringify(modelapi, null, 2);
         modelSrc =
             '# GENERATED FILE - DO NOT EDIT\n\n' +
                 modelSrc.substring(1, modelSrc.length - 1).replace(/\n  /g, '\n');
-        const modelPath = node_path_1.default.normalize(spec.config.model);
         // console.log('modelPath', modelPath)
         writeChanged('api-model', modelPath, modelSrc);
+        return modelPath;
+    }
+    function buildModel_def(apimodel, modelPath) {
         const modelBasePath = node_path_1.default.dirname(modelPath);
         const defFilePath = node_path_1.default.join(modelBasePath, (null == opts.outprefix ? '' : opts.outprefix) + 'def-generated.jsonic');
         const modelDef = { main: { def: apimodel.main.def } };
@@ -153,16 +168,42 @@ function ApiDef(opts) {
             '# GENERATED FILE - DO NOT EDIT\n\n' +
                 modelDefSrc.substring(1, modelDefSrc.length - 1).replace(/\n  /g, '\n');
         writeChanged('def-model', defFilePath, modelDefSrc);
-        log.info({ point: 'generate-end', note: 'success', break: true });
-        return {
-            ok: true,
-            name: 'apidef',
-            apimodel,
-        };
     }
-    function writeChanged(point, path, content) {
+    function buildModel_entity(apimodel, modelPath) {
+        const modelBasePath = node_path_1.default.dirname(modelPath);
+        const entityIncludes = [];
+        (0, jostraca_1.each)(apimodel.main.api.entity, ((entity) => {
+            entityIncludes.push(entity.name);
+            // HEURISTIC: id may be name_id or nameId
+            const fieldAliases = (0, jostraca_1.each)(entity.op, (op) => (0, jostraca_1.each)(op.param))
+                .flat()
+                .reduce((a, p) => (entity.field[p.keys] ? null :
+                (p.key$.toLowerCase().includes(entity.name) ?
+                    (a[p.key$] = 'id', a.id = p.key$) :
+                    null)
+                , a), {});
+            const fieldAliasesSrc = JSON.stringify(fieldAliases, null, 2)
+                .replace(/\n/g, '\n  ');
+            const entityFileSrc = `
+# Entity ${entity.name}
+
+main: sdk: entity: ${entity.name}: {
+  alias: field: ${fieldAliasesSrc}
+}
+
+`;
+            const entityFilePath = node_path_1.default.join(modelBasePath, 'entity', (null == opts.outprefix ? '' : opts.outprefix) + entity.name + '.jsonic');
+            fs.mkdirSync(node_path_1.default.dirname(entityFilePath), { recursive: true });
+            // TODO: diff merge
+            writeChanged('entity-model', entityFilePath, entityFileSrc, { update: false });
+        }));
+        modifyModel(fs, node_path_1.default.join(modelBasePath, (null == opts.outprefix ? '' : opts.outprefix) + 'sdk.jsonic'), entityIncludes);
+    }
+    function writeChanged(point, path, content, flags) {
         let exists = false;
         let changed = false;
+        flags = flags || {};
+        flags.update = null == flags.update ? true : !!flags.update;
         let action = '';
         try {
             let existingContent = '';
@@ -174,14 +215,14 @@ function ApiDef(opts) {
             }
             changed = existingContent !== content;
             // console.log('WC', changed, path, existingContent, content)
+            action = flags.update ? 'write' : 'skip';
             log.info({
                 point: 'write-' + point,
                 note: (changed ? '' : 'not-') + 'changed ' + path,
                 write: 'file', skip: !changed, exists, changed,
                 contentLength: content.length, file: path
             });
-            if (changed) {
-                action = 'write';
+            if (!exists || (changed && flags.update)) {
                 fs.writeFileSync(path, content);
             }
         }
@@ -220,4 +261,23 @@ ApiDef.makeBuild = async function (opts) {
     build.step = 'pre';
     return build;
 };
+async function modifyModel(fs, path, entityIncludes) {
+    // TODO: This is a kludge.
+    // Aontu should provide option for as-is AST so that can be used
+    // to find injection point more reliably
+    let src = fs.existsSync(path) ? fs.readFileSync(path, 'utf8') :
+        'main: sdk: entity: {}\n';
+    let newsrc = '' + src;
+    // Inject target file references into model
+    entityIncludes.sort().map((entname) => {
+        const lineRE = new RegExp(`@"entity/${entname}.jsonic"`);
+        if (!src.match(lineRE)) {
+            newsrc = newsrc.replace(/(main:\s+sdk:\s+entity:\s+\{\s*\}\n)/, '$1' +
+                `@"entity/${entname}.jsonic"\n`);
+        }
+    });
+    if (newsrc.length !== src.length) {
+        fs.writeFileSync(path, newsrc);
+    }
+}
 //# sourceMappingURL=apidef.js.map

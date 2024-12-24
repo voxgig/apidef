@@ -8,8 +8,19 @@
         "op": {
           "load": {
             "path": "/pages/{page_id}",
+            "method": "get",
             "kind": "res",
-            "param": {},
+            "param": {
+              "page_id": {
+                "required": true,
+                "name": "page_id",
+                "Name": "Page_id",
+                "NAME": "PAGE_ID",
+                "type": "string",
+                "Type": "String",
+                "TYPE": "STRING"
+              }
+            },
             "query": {},
             "place": "foo",
             "name": "load",
@@ -18,8 +29,19 @@
           },
           "update": {
             "path": "/pages/{page_id}",
+            "method": "put",
             "kind": "req",
-            "param": {},
+            "param": {
+              "page_id": {
+                "required": true,
+                "name": "page_id",
+                "Name": "Page_id",
+                "NAME": "PAGE_ID",
+                "type": "string",
+                "Type": "String",
+                "TYPE": "STRING"
+              }
+            },
             "query": {},
             "place": "page",
             "name": "update",
@@ -432,8 +454,19 @@
         "op": {
           "create": {
             "path": "/pages/{page_id}/incidents",
+            "method": "post",
             "kind": "req",
-            "param": {},
+            "param": {
+              "page_id": {
+                "required": true,
+                "name": "page_id",
+                "Name": "Page_id",
+                "NAME": "PAGE_ID",
+                "type": "string",
+                "Type": "String",
+                "TYPE": "STRING"
+              }
+            },
             "query": {},
             "place": "incident",
             "name": "create",
@@ -442,8 +475,19 @@
           },
           "list": {
             "path": "/pages/{page_id}/incidents",
+            "method": "get",
             "kind": "res",
-            "param": {},
+            "param": {
+              "page_id": {
+                "required": true,
+                "name": "page_id",
+                "Name": "Page_id",
+                "NAME": "PAGE_ID",
+                "type": "string",
+                "Type": "String",
+                "TYPE": "STRING"
+              }
+            },
             "query": {},
             "place": "",
             "name": "list",
@@ -452,8 +496,28 @@
           },
           "remove": {
             "path": "/pages/{page_id}/incidents/{incident_id}",
+            "method": "delete",
             "kind": "res",
-            "param": {},
+            "param": {
+              "page_id": {
+                "required": true,
+                "name": "page_id",
+                "Name": "Page_id",
+                "NAME": "PAGE_ID",
+                "type": "string",
+                "Type": "String",
+                "TYPE": "STRING"
+              },
+              "incident_id": {
+                "required": true,
+                "name": "incident_id",
+                "Name": "Incident_id",
+                "NAME": "INCIDENT_ID",
+                "type": "string",
+                "Type": "String",
+                "TYPE": "STRING"
+              }
+            },
             "query": {},
             "place": "",
             "name": "remove",
@@ -462,8 +526,28 @@
           },
           "update": {
             "path": "/pages/{page_id}/incidents/{incident_id}",
+            "method": "put",
             "kind": "req",
-            "param": {},
+            "param": {
+              "page_id": {
+                "required": true,
+                "name": "page_id",
+                "Name": "Page_id",
+                "NAME": "PAGE_ID",
+                "type": "string",
+                "Type": "String",
+                "TYPE": "STRING"
+              },
+              "incident_id": {
+                "required": true,
+                "name": "incident_id",
+                "Name": "Incident_id",
+                "NAME": "INCIDENT_ID",
+                "type": "string",
+                "Type": "String",
+                "TYPE": "STRING"
+              }
+            },
             "query": {},
             "place": "incident",
             "name": "update",
@@ -472,8 +556,28 @@
           },
           "load": {
             "path": "/pages/{page_id}/incidents/{incident_id}",
+            "method": "get",
             "kind": "res",
-            "param": {},
+            "param": {
+              "page_id": {
+                "required": true,
+                "name": "page_id",
+                "Name": "Page_id",
+                "NAME": "PAGE_ID",
+                "type": "string",
+                "Type": "String",
+                "TYPE": "STRING"
+              },
+              "incident_id": {
+                "required": true,
+                "name": "incident_id",
+                "Name": "Incident_id",
+                "NAME": "INCIDENT_ID",
+                "type": "string",
+                "Type": "String",
+                "TYPE": "STRING"
+              }
+            },
             "query": {},
             "place": "",
             "name": "load",

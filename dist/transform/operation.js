@@ -92,14 +92,12 @@ const operationTransform = async function (ctx, guide, tspec, model, def) {
     };
     const opBuilder = {
         any: (entityModel, pathdef, op, path, entity, model) => {
-            // console.log('OP', op, pathdef, path, entity)
             const opname = op.key$;
-            const method = op.val$;
+            const method = op.method;
             const kind = transform_1.OPKIND[opname];
-            // console.log('EM', entityModel.name)
             const em = entityModel.op[opname] = {
                 path: path.key$,
-                method: op.val$,
+                method,
                 kind,
                 param: {},
                 query: {},

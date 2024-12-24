@@ -5,9 +5,8 @@ import Path from 'node:path'
 import { inspect } from 'node:util'
 
 import { bundleFromString, createConfig } from '@redocly/openapi-core'
-import { FSWatcher } from 'chokidar'
-import { Aontu, Context } from 'aontu'
 import { Gubu, Open, Any } from 'gubu'
+import { each } from 'jostraca'
 import { prettyPino, Pino } from '@voxgig/util'
 
 
@@ -26,6 +25,16 @@ type ApiDefOptions = {
   folder?: string
   meta?: Record<string, any>
   outprefix?: string
+}
+
+
+type ApiModel = {
+  main: {
+    api: {
+      entity: Record<string, any>
+    }
+    def: Record<string, any>
+  }
 }
 
 
@@ -130,7 +139,7 @@ function ApiDef(opts: ApiDefOptions) {
     }
 
 
-    const apimodel = {
+    const apimodel: ApiModel = {
       main: {
         api: {
           entity: {}
@@ -152,30 +161,12 @@ function ApiDef(opts: ApiDefOptions) {
       return { ok: false, name: 'apidef', processResult }
     }
 
-    const modelapi = { main: { api: apimodel.main.api } }
-    let modelSrc = JSON.stringify(modelapi, null, 2)
-
-    modelSrc =
-      '# GENERATED FILE - DO NOT EDIT\n\n' +
-      modelSrc.substring(1, modelSrc.length - 1).replace(/\n  /g, '\n')
 
     const modelPath = Path.normalize(spec.config.model)
-    // console.log('modelPath', modelPath)
-    writeChanged('api-model', modelPath, modelSrc)
 
-    const modelBasePath = Path.dirname(modelPath)
-    const defFilePath =
-      Path.join(modelBasePath,
-        (null == opts.outprefix ? '' : opts.outprefix) + 'def-generated.jsonic')
-
-    const modelDef = { main: { def: apimodel.main.def } }
-    let modelDefSrc = JSON.stringify(modelDef, null, 2)
-
-    modelDefSrc =
-      '# GENERATED FILE - DO NOT EDIT\n\n' +
-      modelDefSrc.substring(1, modelDefSrc.length - 1).replace(/\n  /g, '\n')
-
-    writeChanged('def-model', defFilePath, modelDefSrc)
+    buildModel_api(apimodel, modelPath)
+    buildModel_def(apimodel, modelPath)
+    buildModel_entity(apimodel, modelPath)
 
     log.info({ point: 'generate-end', note: 'success', break: true })
 
@@ -187,9 +178,101 @@ function ApiDef(opts: ApiDefOptions) {
   }
 
 
-  function writeChanged(point: string, path: string, content: string) {
+  function buildModel_api(apimodel: ApiModel, modelPath: string) {
+    const modelapi = { main: { api: apimodel.main.api } }
+    let modelSrc = JSON.stringify(modelapi, null, 2)
+
+    modelSrc =
+      '# GENERATED FILE - DO NOT EDIT\n\n' +
+      modelSrc.substring(1, modelSrc.length - 1).replace(/\n  /g, '\n')
+
+
+    // console.log('modelPath', modelPath)
+    writeChanged('api-model', modelPath, modelSrc)
+    return modelPath
+  }
+
+
+  function buildModel_def(apimodel: ApiModel, modelPath: string) {
+    const modelBasePath = Path.dirname(modelPath)
+    const defFilePath = Path.join(modelBasePath,
+      (null == opts.outprefix ? '' : opts.outprefix) + 'def-generated.jsonic')
+
+    const modelDef = { main: { def: apimodel.main.def } }
+    let modelDefSrc = JSON.stringify(modelDef, null, 2)
+
+    modelDefSrc =
+      '# GENERATED FILE - DO NOT EDIT\n\n' +
+      modelDefSrc.substring(1, modelDefSrc.length - 1).replace(/\n  /g, '\n')
+
+    writeChanged('def-model', defFilePath, modelDefSrc)
+  }
+
+
+  function buildModel_entity(apimodel: ApiModel, modelPath: string) {
+    const modelBasePath = Path.dirname(modelPath)
+
+    const entityIncludes: string[] = []
+
+    each(apimodel.main.api.entity, ((entity: any) => {
+      entityIncludes.push(entity.name)
+
+      // HEURISTIC: id may be name_id or nameId
+      const fieldAliases =
+        each(entity.op, (op: any) =>
+          each(op.param))
+          .flat()
+          .reduce((a: any, p: any) =>
+
+          (entity.field[p.keys] ? null :
+            (p.key$.toLowerCase().includes(entity.name) ?
+              (a[p.key$] = 'id', a.id = p.key$) :
+              null)
+
+            , a), {})
+
+      const fieldAliasesSrc =
+        JSON.stringify(fieldAliases, null, 2)
+          .replace(/\n/g, '\n  ')
+
+      const entityFileSrc = `
+# Entity ${entity.name}
+
+main: sdk: entity: ${entity.name}: {
+  alias: field: ${fieldAliasesSrc}
+}
+
+`
+      const entityFilePath = Path.join(modelBasePath, 'entity',
+        (null == opts.outprefix ? '' : opts.outprefix) + entity.name + '.jsonic')
+
+      fs.mkdirSync(Path.dirname(entityFilePath), { recursive: true })
+
+      // TODO: diff merge
+      writeChanged('entity-model', entityFilePath, entityFileSrc, { update: false })
+    }))
+
+
+    modifyModel(
+      fs,
+      Path.join(
+        modelBasePath,
+        (null == opts.outprefix ? '' : opts.outprefix) + 'sdk.jsonic'),
+      entityIncludes
+    )
+  }
+
+
+  function writeChanged(
+    point: string, path: string, content: string,
+    flags?: { update?: boolean }
+  ) {
     let exists = false
     let changed = false
+
+    flags = flags || {}
+    flags.update = null == flags.update ? true : !!flags.update
+
     let action = ''
     try {
       let existingContent: string = ''
@@ -205,6 +288,7 @@ function ApiDef(opts: ApiDefOptions) {
       changed = existingContent !== content
 
       // console.log('WC', changed, path, existingContent, content)
+      action = flags.update ? 'write' : 'skip'
 
       log.info({
         point: 'write-' + point,
@@ -213,8 +297,7 @@ function ApiDef(opts: ApiDefOptions) {
         contentLength: content.length, file: path
       })
 
-      if (changed) {
-        action = 'write'
+      if (!exists || (changed && flags.update)) {
         fs.writeFileSync(path, content)
       }
     }
@@ -265,6 +348,34 @@ ApiDef.makeBuild = async function(opts: ApiDefOptions) {
   return build
 }
 
+
+
+async function modifyModel(fs: any, path: string, entityIncludes: string[]) {
+  // TODO: This is a kludge.
+  // Aontu should provide option for as-is AST so that can be used
+  // to find injection point more reliably
+
+
+  let src = fs.existsSync(path) ? fs.readFileSync(path, 'utf8') :
+    'main: sdk: entity: {}\n'
+
+  let newsrc = '' + src
+
+  // Inject target file references into model
+  entityIncludes.sort().map((entname: string) => {
+    const lineRE =
+      new RegExp(`@"entity/${entname}.jsonic"`)
+
+    if (!src.match(lineRE)) {
+      newsrc = newsrc.replace(/(main:\s+sdk:\s+entity:\s+\{\s*\}\n)/, '$1' +
+        `@"entity/${entname}.jsonic"\n`)
+    }
+  })
+
+  if (newsrc.length !== src.length) {
+    fs.writeFileSync(path, newsrc)
+  }
+}
 
 
 
