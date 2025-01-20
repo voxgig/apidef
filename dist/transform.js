@@ -32,18 +32,6 @@ const OPKIND = {
 };
 exports.OPKIND = OPKIND;
 const GuideShape = (0, gubu_1.Gubu)({
-    /*
-    entity: Child({
-      key$: '',
-      name: String,
-      path: Child({
-        op: Child({
-          method: Exact('get', 'post', 'put', 'patch', 'delete'),
-          place: ''
-        })
-      })
-      }),
-    */
     entity: {},
     control: {},
     transform: {},

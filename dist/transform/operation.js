@@ -21,13 +21,11 @@ const operationTransform = async function (ctx, guide, tspec, model, def) {
         const type = queryDef.schema ? queryDef.schema.type : queryDef.type;
         (0, transform_1.fixName)(queryMap[queryDef.name], type, 'type');
     };
-    // Resolve the JSON path to the data (the "place").
-    const resolvePlace = (op, kind, pathdef) => {
-        const opname = op.key$;
-        // console.log('RP', kind, op)
-        let place = null == op.place ? '' : op.place;
-        if (null != place && '' !== place) {
-            return place;
+    // Resolve the JSON structure of the request or response.
+    // NOTE: uses heuristics.
+    const resolveTransform = (op, kind, direction, pathdef) => {
+        if (null != op.transform?.[direction]) {
+            return op.transform[direction];
         }
         const method = op.method;
         const mdef = pathdef[method];
@@ -36,30 +34,28 @@ const operationTransform = async function (ctx, guide, tspec, model, def) {
             ((0, jostraca_1.getx)(mdef, 'responses.200.content') ||
                 (0, jostraca_1.getx)(mdef, 'responses.201.content')) :
             (0, jostraca_1.getx)(mdef, 'requestBody.content');
-        // console.log('RP', kind, op, 'content', null == content)
-        if (null == content) {
-            return place;
-        }
         const schema = content['application/json']?.schema;
-        // console.log('RP', kind, op, 'schema', null == schema)
-        if (null == schema) {
-            return place;
+        const propkeys = null == schema?.properties ? [] : Object.keys(schema.properties);
+        const resolveDirectionTransform = 'inward' === direction ? resolveInwardTransform : resolveOutwardTransform;
+        const transform = resolveDirectionTransform(op, kind, method, mdef, content, schema, propkeys);
+        return JSON.stringify(transform);
+    };
+    const resolveInwardTransform = (op, kind, method, mdef, content, schema, propkeys) => {
+        let transform = '`body`';
+        if (null == content || null == schema || null == propkeys) {
+            return transform;
         }
-        const propkeys = null == schema.properties ? [] : Object.keys(schema.properties);
-        // HEURISTIC: guess place
+        const opname = op.key$;
         if ('list' === opname) {
-            if ('array' === schema.type) {
-                place = '';
-            }
-            else {
+            if ('array' !== schema.type) {
                 if (1 === propkeys.length) {
-                    place = propkeys[0];
+                    transform = '`body.' + propkeys[0] + '`';
                 }
                 else {
                     // Use sub property that is an array
                     for (let pk of propkeys) {
                         if ('array' === schema.properties[pk]?.type) {
-                            place = pk;
+                            transform = '`body.' + pk + '`';
                             break;
                         }
                     }
@@ -68,18 +64,14 @@ const operationTransform = async function (ctx, guide, tspec, model, def) {
         }
         else {
             if ('object' === schema.type) {
-                if (schema.properties.id) {
-                    place = ''; // top level
-                }
-                else {
+                if (null == schema.properties.id) {
                     if (1 === propkeys.length) {
-                        place = propkeys[0];
+                        transform = '`body.' + propkeys[0] + '`';
                     }
                     else {
-                        // Use sub property with an id
                         for (let pk of propkeys) {
                             if (schema.properties[pk].properties?.id) {
-                                place = pk;
+                                transform = '`body.' + pk + '`';
                                 break;
                             }
                         }
@@ -87,8 +79,48 @@ const operationTransform = async function (ctx, guide, tspec, model, def) {
                 }
             }
         }
-        // console.log('PLACE', op, kind, schema.type, 'P=', place)
-        return place;
+        return transform;
+    };
+    const resolveOutwardTransform = (op, kind, method, mdef, content, schema, propkeys) => {
+        let transform = '`data`';
+        if (null == content || null == schema || null == propkeys) {
+            return transform;
+        }
+        const opname = op.key$;
+        if ('list' === opname) {
+            if ('array' !== schema.type) {
+                if (1 === propkeys.length) {
+                    transform = { [propkeys[0]]: '`data`' };
+                }
+                else {
+                    // Use sub property that is an array
+                    for (let pk of propkeys) {
+                        if ('array' === schema.properties[pk]?.type) {
+                            transform = { [pk]: '`data`' };
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        else {
+            if ('object' === schema.type) {
+                if (null == schema.properties.id) {
+                    if (1 === propkeys.length) {
+                        transform = { [propkeys[0]]: '`data`' };
+                    }
+                    else {
+                        for (let pk of propkeys) {
+                            if (schema.properties[pk].properties?.id) {
+                                transform = { [pk]: '`data`' };
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return transform;
     };
     const opBuilder = {
         any: (entityModel, pathdef, op, path, entity, model) => {
@@ -101,7 +133,10 @@ const operationTransform = async function (ctx, guide, tspec, model, def) {
                 kind,
                 param: {},
                 query: {},
-                place: resolvePlace(op, kind, pathdef)
+                transform: {
+                    inward: resolveTransform(op, kind, 'inward', pathdef),
+                    outward: resolveTransform(op, kind, 'outward', pathdef),
+                }
             };
             (0, transform_1.fixName)(em, op.key$);
             // Params are in the path

@@ -45,15 +45,16 @@ const operationTransform = async function(
   }
 
 
-  // Resolve the JSON path to the data (the "place").
-  const resolvePlace = (op: any, kind: 'res' | 'req', pathdef: any) => {
-    const opname = op.key$
-    // console.log('RP', kind, op)
-
-    let place = null == op.place ? '' : op.place
-
-    if (null != place && '' !== place) {
-      return place
+  // Resolve the JSON structure of the request or response.
+  // NOTE: uses heuristics.
+  const resolveTransform = (
+    op: any,
+    kind: 'res' | 'req',
+    direction: 'inward' | 'outward',
+    pathdef: any
+  ) => {
+    if (null != op.transform?.[direction]) {
+      return op.transform[direction]
     }
 
     const method = op.method
@@ -66,37 +67,54 @@ const operationTransform = async function(
       getx(mdef, 'requestBody.content')
 
 
-    // console.log('RP', kind, op, 'content', null == content)
-
-    if (null == content) {
-      return place
-    }
-
     const schema = content['application/json']?.schema
 
-    // console.log('RP', kind, op, 'schema', null == schema)
+    const propkeys = null == schema?.properties ? [] : Object.keys(schema.properties)
 
-    if (null == schema) {
-      return place
+    const resolveDirectionTransform =
+      'inward' === direction ? resolveInwardTransform : resolveOutwardTransform
+
+    const transform = resolveDirectionTransform(
+      op,
+      kind,
+      method,
+      mdef,
+      content,
+      schema,
+      propkeys
+    )
+
+    return JSON.stringify(transform)
+  }
+
+
+  const resolveInwardTransform = (
+    op: any,
+    kind: 'res' | 'req',
+    method: string,
+    mdef: any,
+    content: any,
+    schema: any,
+    propkeys: any
+  ) => {
+    let transform: any = '`body`'
+
+    if (null == content || null == schema || null == propkeys) {
+      return transform
     }
 
+    const opname = op.key$
 
-    const propkeys = null == schema.properties ? [] : Object.keys(schema.properties)
-
-    // HEURISTIC: guess place
     if ('list' === opname) {
-      if ('array' === schema.type) {
-        place = ''
-      }
-      else {
+      if ('array' !== schema.type) {
         if (1 === propkeys.length) {
-          place = propkeys[0]
+          transform = '`body.' + propkeys[0] + '`'
         }
         else {
           // Use sub property that is an array
           for (let pk of propkeys) {
             if ('array' === schema.properties[pk]?.type) {
-              place = pk
+              transform = '`body.' + pk + '`'
               break
             }
           }
@@ -105,18 +123,14 @@ const operationTransform = async function(
     }
     else {
       if ('object' === schema.type) {
-        if (schema.properties.id) {
-          place = '' // top level
-        }
-        else {
+        if (null == schema.properties.id) {
           if (1 === propkeys.length) {
-            place = propkeys[0]
+            transform = '`body.' + propkeys[0] + '`'
           }
           else {
-            // Use sub property with an id
             for (let pk of propkeys) {
               if (schema.properties[pk].properties?.id) {
-                place = pk
+                transform = '`body.' + pk + '`'
                 break
               }
             }
@@ -125,8 +139,62 @@ const operationTransform = async function(
       }
     }
 
-    // console.log('PLACE', op, kind, schema.type, 'P=', place)
-    return place
+    return transform
+  }
+
+
+  const resolveOutwardTransform = (
+    op: any,
+    kind: 'res' | 'req',
+    method: string,
+    mdef: any,
+    content: any,
+    schema: any,
+    propkeys: any
+  ) => {
+    let transform: any = '`data`'
+
+    if (null == content || null == schema || null == propkeys) {
+      return transform
+    }
+
+    const opname = op.key$
+
+    if ('list' === opname) {
+      if ('array' !== schema.type) {
+        if (1 === propkeys.length) {
+          transform = { [propkeys[0]]: '`data`' }
+        }
+        else {
+          // Use sub property that is an array
+          for (let pk of propkeys) {
+            if ('array' === schema.properties[pk]?.type) {
+              transform = { [pk]: '`data`' }
+              break
+            }
+          }
+        }
+      }
+    }
+    else {
+      if ('object' === schema.type) {
+        if (null == schema.properties.id) {
+          if (1 === propkeys.length) {
+            transform = { [propkeys[0]]: '`data`' }
+          }
+          else {
+            for (let pk of propkeys) {
+              if (schema.properties[pk].properties?.id) {
+                transform = { [pk]: '`data`' }
+                break
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return transform
   }
 
 
@@ -142,7 +210,10 @@ const operationTransform = async function(
         kind,
         param: {},
         query: {},
-        place: resolvePlace(op, kind, pathdef)
+        transform: {
+          inward: resolveTransform(op, kind, 'inward', pathdef),
+          outward: resolveTransform(op, kind, 'outward', pathdef),
+        }
       }
 
       fixName(em, op.key$)

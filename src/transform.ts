@@ -70,18 +70,6 @@ const OPKIND: any = {
 
 
 const GuideShape = Gubu({
-  /*
-  entity: Child({
-    key$: '',
-    name: String,
-    path: Child({
-      op: Child({
-        method: Exact('get', 'post', 'put', 'patch', 'delete'),
-        place: ''
-      })
-    })
-    }),
-  */
   entity: {},
   control: {},
   transform: {},
