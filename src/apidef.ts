@@ -41,7 +41,6 @@ type ApiModel = {
 const ModelShape = Gubu({
   def: String,
   main: {
-    guide: {},
     sdk: {},
     def: {},
     api: {},
@@ -186,8 +185,6 @@ function ApiDef(opts: ApiDefOptions) {
       '# GENERATED FILE - DO NOT EDIT\n\n' +
       modelSrc.substring(1, modelSrc.length - 1).replace(/\n  /g, '\n')
 
-
-    // console.log('modelPath', modelPath)
     writeChanged('api-model', modelPath, modelSrc)
     return modelPath
   }
@@ -287,7 +284,6 @@ main: sdk: entity: ${entity.name}: {
 
       changed = existingContent !== content
 
-      // console.log('WC', changed, path, existingContent, content)
       action = flags.update ? 'write' : 'skip'
 
       log.info({

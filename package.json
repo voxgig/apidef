@@ -1,6 +1,6 @@
 {
   "name": "@voxgig/apidef",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "main": "dist/apidef.js",
   "type": "commonjs",
   "types": "dist/apidef.d.ts",
@@ -24,7 +24,7 @@
     "test-some": "node --enable-source-maps --test-name-pattern=\"$npm_config_pattern\" --test dist-test",
     "watch": "tsc --build src test -w",
     "build": "tsc --build src test",
-    "clean": "rm -rf node_modules yarn.lock package-lock.json",
+    "clean": "rm -rf dist dist-test node_modules yarn.lock package-lock.json",
     "reset": "npm run clean && npm i && npm run build && npm test",
     "repo-tag": "REPO_VERSION=`node -e \"console.log(require('./package').version)\"` && echo TAG: v$REPO_VERSION && git commit -a -m v$REPO_VERSION && git push && git tag v$REPO_VERSION && git push --tags;",
     "repo-publish": "npm run clean && npm i && npm run repo-publish-quick",
@@ -41,15 +41,15 @@
   "devDependencies": {
     "@hapi/code": "^9.0.3",
     "@types/js-yaml": "^4.0.9",
-    "@types/node": "22.10.2",
-    "aontu": "^0.25.3",
-    "esbuild": "^0.24.2",
+    "@types/node": "22.13.4",
+    "aontu": "^0.28.0",
+    "esbuild": "^0.25.0",
     "json-schema-to-ts": "^3.1.1",
-    "memfs": "^4.15.1",
-    "typescript": "^5.7.2"
+    "memfs": "^4.17.0",
+    "typescript": "^5.7.3"
   },
   "dependencies": {
-    "@redocly/openapi-core": "^1.26.1",
+    "@redocly/openapi-core": "^1.30.0",
     "@voxgig/util": "^0.0.9",
     "chokidar": "^4.0.3",
     "gubu": "^9.0.0",

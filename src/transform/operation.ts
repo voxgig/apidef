@@ -53,38 +53,45 @@ const operationTransform = async function(
     direction: 'inward' | 'outward',
     pathdef: any
   ) => {
+    let out
+
     if (null != op.transform?.[direction]) {
-      return op.transform[direction]
+      out = op.transform[direction]
     }
 
-    const method = op.method
-    const mdef = pathdef[method]
+    else {
+      const method = op.method
+      const mdef = pathdef[method]
 
-    // TODO: fix getx
-    const content = 'res' === kind ?
-      (getx(mdef, 'responses.200.content') ||
-        getx(mdef, 'responses.201.content')) :
-      getx(mdef, 'requestBody.content')
+      // TODO: fix getx
+      const content = 'res' === kind ?
+        (getx(mdef, 'responses.200.content') ||
+          getx(mdef, 'responses.201.content')) :
+        getx(mdef, 'requestBody.content')
 
 
-    const schema = content['application/json']?.schema
+      const schema = content['application/json']?.schema
 
-    const propkeys = null == schema?.properties ? [] : Object.keys(schema.properties)
+      const propkeys = null == schema?.properties ? [] : Object.keys(schema.properties)
 
-    const resolveDirectionTransform =
-      'inward' === direction ? resolveInwardTransform : resolveOutwardTransform
+      const resolveDirectionTransform =
+        'inward' === direction ? resolveInwardTransform : resolveOutwardTransform
 
-    const transform = resolveDirectionTransform(
-      op,
-      kind,
-      method,
-      mdef,
-      content,
-      schema,
-      propkeys
-    )
+      const transform = resolveDirectionTransform(
+        op,
+        kind,
+        method,
+        mdef,
+        content,
+        schema,
+        propkeys
+      )
 
-    return JSON.stringify(transform)
+      // out = JSON.stringify(transform)
+      out = transform
+    }
+
+    return out
   }
 
 

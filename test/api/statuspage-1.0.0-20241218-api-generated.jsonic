@@ -22,7 +22,10 @@
               }
             },
             "query": {},
-            "place": "foo",
+            "transform": {
+              "inward": "`body`",
+              "outward": "`data`"
+            },
             "name": "load",
             "Name": "Load",
             "NAME": "LOAD"
@@ -43,7 +46,12 @@
               }
             },
             "query": {},
-            "place": "page",
+            "transform": {
+              "inward": "`body.page`",
+              "outward": {
+                "page": "`data`"
+              }
+            },
             "name": "update",
             "Name": "Update",
             "NAME": "UPDATE"
@@ -468,7 +476,12 @@
               }
             },
             "query": {},
-            "place": "incident",
+            "transform": {
+              "inward": "`body.incident`",
+              "outward": {
+                "incident": "`data`"
+              }
+            },
             "name": "create",
             "Name": "Create",
             "NAME": "CREATE"
@@ -489,7 +502,10 @@
               }
             },
             "query": {},
-            "place": "",
+            "transform": {
+              "inward": "`body`",
+              "outward": "`data`"
+            },
             "name": "list",
             "Name": "List",
             "NAME": "LIST"
@@ -519,7 +535,10 @@
               }
             },
             "query": {},
-            "place": "",
+            "transform": {
+              "inward": "`body`",
+              "outward": "`data`"
+            },
             "name": "remove",
             "Name": "Remove",
             "NAME": "REMOVE"
@@ -549,7 +568,12 @@
               }
             },
             "query": {},
-            "place": "incident",
+            "transform": {
+              "inward": "`body.incident`",
+              "outward": {
+                "incident": "`data`"
+              }
+            },
             "name": "update",
             "Name": "Update",
             "NAME": "UPDATE"
@@ -579,7 +603,10 @@
               }
             },
             "query": {},
-            "place": "",
+            "transform": {
+              "inward": "`body`",
+              "outward": "`data`"
+            },
             "name": "load",
             "Name": "Load",
             "NAME": "LOAD"

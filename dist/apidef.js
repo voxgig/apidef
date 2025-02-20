@@ -49,7 +49,6 @@ const transform_1 = require("./transform");
 const ModelShape = (0, gubu_1.Gubu)({
     def: String,
     main: {
-        guide: {},
         sdk: {},
         def: {},
         api: {},
@@ -155,7 +154,6 @@ function ApiDef(opts) {
         modelSrc =
             '# GENERATED FILE - DO NOT EDIT\n\n' +
                 modelSrc.substring(1, modelSrc.length - 1).replace(/\n  /g, '\n');
-        // console.log('modelPath', modelPath)
         writeChanged('api-model', modelPath, modelSrc);
         return modelPath;
     }
@@ -214,7 +212,6 @@ main: sdk: entity: ${entity.name}: {
                 existingContent = fs.readFileSync(path, 'utf8');
             }
             changed = existingContent !== content;
-            // console.log('WC', changed, path, existingContent, content)
             action = flags.update ? 'write' : 'skip';
             log.info({
                 point: 'write-' + point,

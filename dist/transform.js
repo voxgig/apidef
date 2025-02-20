@@ -35,11 +35,11 @@ const GuideShape = (0, gubu_1.Gubu)({
     entity: {},
     control: {},
     transform: {},
+    manual: {},
 });
 exports.GuideShape = GuideShape;
 async function resolveTransforms(ctx) {
-    const { log, model: { main: { guide } } } = ctx;
-    // console.dir(api, { depth: null })
+    const { log, model: { main: { api: { guide } } } } = ctx;
     const tspec = {
         transform: []
     };
@@ -58,14 +58,12 @@ async function resolveTransforms(ctx) {
         const transform = await resolveTransform(tn, ctx);
         tspec.transform.push(transform);
     }
-    // console.log('TSPEC', tspec)
     return tspec;
 }
 async function resolveTransform(tn, ctx) {
-    const { log, defpath, model: { guide } } = ctx;
+    const { log, defpath, model: { main: { api: { guide } } } } = ctx;
     let transform = TRANSFORM[tn];
     if (transform) {
-        // console.log('resolveTransform', tn, transform)
         return transform;
     }
     const tdef = guide.transform[tn];
@@ -98,7 +96,7 @@ async function processTransforms(ctx, spec, apimodel, def) {
         msg: '',
         results: []
     };
-    const guide = GuideShape(ctx.model.main.guide);
+    const guide = GuideShape(ctx.model.main.api.guide);
     for (let tI = 0; tI < spec.transform.length; tI++) {
         const transform = spec.transform[tI];
         try {

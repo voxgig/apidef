@@ -5,8 +5,6 @@ const jostraca_1 = require("jostraca");
 const transform_1 = require("../transform");
 const entityTransform = async function (ctx, guide, tspec, model, def) {
     let msg = '';
-    // console.log('DEF', def)
-    // console.log('GUIDE', guide)
     (0, jostraca_1.each)(guide.entity, (guideEntity) => {
         const entityName = guideEntity.key$;
         ctx.log.debug({ point: 'guide-entity', note: entityName });
@@ -23,8 +21,6 @@ const entityTransform = async function (ctx, guide, tspec, model, def) {
         (0, jostraca_1.each)(guideEntity.path, (guidePath) => {
             const path = guidePath.key$;
             const pathdef = def.paths[path];
-            // console.log('APIDEF FIND PATH', guidePath.key$, Object.keys(def.paths),
-            //  Object.keys(def.paths).includes(guidePath.key$))
             if (null == pathdef) {
                 throw new Error('path not found in OpenAPI: ' + path +
                     ' (entity: ' + guideEntity.name + ')');

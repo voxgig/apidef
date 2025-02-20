@@ -16,9 +16,6 @@ const entityTransform: Transform = async function(
 ): Promise<TransformResult> {
   let msg = ''
 
-  // console.log('DEF', def)
-  // console.log('GUIDE', guide)
-
   each(guide.entity, (guideEntity: any) => {
     const entityName = guideEntity.key$
     ctx.log.debug({ point: 'guide-entity', note: entityName })
@@ -38,9 +35,6 @@ const entityTransform: Transform = async function(
     each(guideEntity.path, (guidePath: any) => {
       const path = guidePath.key$
       const pathdef = def.paths[path]
-
-      // console.log('APIDEF FIND PATH', guidePath.key$, Object.keys(def.paths),
-      //  Object.keys(def.paths).includes(guidePath.key$))
 
       if (null == pathdef) {
         throw new Error('path not found in OpenAPI: ' + path +

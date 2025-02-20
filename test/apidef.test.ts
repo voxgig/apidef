@@ -34,7 +34,7 @@ describe('apidef', () => {
 
 def: 'statuspage-1.0.0-20241218-def.json'
 
-main: guide:{
+main: api: guide: {
 
 entity: page: {
   path: {

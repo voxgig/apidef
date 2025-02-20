@@ -24,21 +24,26 @@ const operationTransform = async function (ctx, guide, tspec, model, def) {
     // Resolve the JSON structure of the request or response.
     // NOTE: uses heuristics.
     const resolveTransform = (op, kind, direction, pathdef) => {
+        let out;
         if (null != op.transform?.[direction]) {
-            return op.transform[direction];
+            out = op.transform[direction];
         }
-        const method = op.method;
-        const mdef = pathdef[method];
-        // TODO: fix getx
-        const content = 'res' === kind ?
-            ((0, jostraca_1.getx)(mdef, 'responses.200.content') ||
-                (0, jostraca_1.getx)(mdef, 'responses.201.content')) :
-            (0, jostraca_1.getx)(mdef, 'requestBody.content');
-        const schema = content['application/json']?.schema;
-        const propkeys = null == schema?.properties ? [] : Object.keys(schema.properties);
-        const resolveDirectionTransform = 'inward' === direction ? resolveInwardTransform : resolveOutwardTransform;
-        const transform = resolveDirectionTransform(op, kind, method, mdef, content, schema, propkeys);
-        return JSON.stringify(transform);
+        else {
+            const method = op.method;
+            const mdef = pathdef[method];
+            // TODO: fix getx
+            const content = 'res' === kind ?
+                ((0, jostraca_1.getx)(mdef, 'responses.200.content') ||
+                    (0, jostraca_1.getx)(mdef, 'responses.201.content')) :
+                (0, jostraca_1.getx)(mdef, 'requestBody.content');
+            const schema = content['application/json']?.schema;
+            const propkeys = null == schema?.properties ? [] : Object.keys(schema.properties);
+            const resolveDirectionTransform = 'inward' === direction ? resolveInwardTransform : resolveOutwardTransform;
+            const transform = resolveDirectionTransform(op, kind, method, mdef, content, schema, propkeys);
+            // out = JSON.stringify(transform)
+            out = transform;
+        }
+        return out;
     };
     const resolveInwardTransform = (op, kind, method, mdef, content, schema, propkeys) => {
         let transform = '`body`';

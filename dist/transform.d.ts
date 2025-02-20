@@ -27,11 +27,13 @@ declare const GuideShape: {
         entity: {};
         control: {};
         transform: {};
+        manual: {};
     };
     valid: <V>(root?: V | undefined, ctx?: import("gubu").Context) => root is V & {
         entity: {};
         control: {};
         transform: {};
+        manual: {};
     };
     match(root?: any, ctx?: import("gubu").Context): boolean;
     error(root?: any, ctx?: import("gubu").Context): {
@@ -75,6 +77,7 @@ declare const GuideShape: {
         entity: {};
         control: {};
         transform: {};
+        manual: {};
     }>;
     stringify(...rest: any[]): string;
     jsonify(): any;

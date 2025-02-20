@@ -19,7 +19,6 @@ async function parseOpenAPI(source) {
         config,
         dereference: true,
     });
-    // console.dir(bundle.bundle, { depth: 1 })
     const def = bundle.bundle.parsed;
     return def;
 }

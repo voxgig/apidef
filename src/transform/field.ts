@@ -47,7 +47,6 @@ const fieldTransform: Transform = async function(
 function fieldbuild(
   entityModel: any, pathdef: any, op: any, path: any, entity: any, model: any
 ) {
-  // console.log('FB-A', op, pathdef)
   let fieldCount = 0
   let fieldSets = getx(pathdef.get, 'responses 200 content "application/json" schema')
 
@@ -60,12 +59,8 @@ function fieldbuild(
     }
   }
 
-  // console.log('TRANSFORM-FIELDSETS', fieldSets)
-
   each(fieldSets, (fieldSet: any) => {
     each(fieldSet.properties, (property: any) => {
-      // console.log(property)
-
       const field =
         (entityModel.field[property.key$] = entityModel.field[property.key$] || {})
 
@@ -78,7 +73,6 @@ function fieldbuild(
       field.short = property.description
 
       fieldCount++
-      // console.log('FB-ID', field.name, entityModel.param)
     })
   })
 

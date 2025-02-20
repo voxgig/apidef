@@ -1,5 +1,5 @@
 
-import { Jsonic } from '@jsonic/jsonic-next'
+import { Jsonic } from 'jsonic'
 
 import { each, getx } from 'jostraca'
 
@@ -16,7 +16,7 @@ const manualTransform = async function(
   def: any
 ): Promise<TransformResult> {
 
-  const { model: { main: { guide: { manual } } } } = ctx
+  const { manual } = guide
 
   deep(model, manual)
 

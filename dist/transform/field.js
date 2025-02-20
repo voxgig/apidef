@@ -25,7 +25,6 @@ const fieldTransform = async function (ctx, guide, tspec, model, def) {
 };
 exports.fieldTransform = fieldTransform;
 function fieldbuild(entityModel, pathdef, op, path, entity, model) {
-    // console.log('FB-A', op, pathdef)
     let fieldCount = 0;
     let fieldSets = (0, jostraca_1.getx)(pathdef.get, 'responses 200 content "application/json" schema');
     if (fieldSets) {
@@ -36,10 +35,8 @@ function fieldbuild(entityModel, pathdef, op, path, entity, model) {
             fieldSets = [fieldSets];
         }
     }
-    // console.log('TRANSFORM-FIELDSETS', fieldSets)
     (0, jostraca_1.each)(fieldSets, (fieldSet) => {
         (0, jostraca_1.each)(fieldSet.properties, (property) => {
-            // console.log(property)
             const field = (entityModel.field[property.key$] = entityModel.field[property.key$] || {});
             field.name = property.key$;
             (0, transform_1.fixName)(field, field.name);
@@ -47,7 +44,6 @@ function fieldbuild(entityModel, pathdef, op, path, entity, model) {
             (0, transform_1.fixName)(field, field.type, 'type');
             field.short = property.description;
             fieldCount++;
-            // console.log('FB-ID', field.name, entityModel.param)
         });
     });
     // Guess id field name using GET path param

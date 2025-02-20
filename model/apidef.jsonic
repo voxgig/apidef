@@ -1,9 +1,9 @@
 
-main: guide: control: transform: &: {
+main: api: guide: control: transform: &: {
   order: string
 }
 
-main: guide: control: transform: openapi: {
+main: api: guide: control: transform: openapi: {
   order: *`
 
   top,
@@ -16,12 +16,12 @@ main: guide: control: transform: openapi: {
 }
 
 
-main: guide: transform: &: {
+main: api: guide: transform: &: {
   name: .$KEY
   load: string
 }
 
-main: guide: transform: {
+main: api: guide: transform: {
   top: {}
   entity: {}
   operation: {}
@@ -30,12 +30,16 @@ main: guide: transform: {
 }
 
 
-main: guide: entity: &: {
+main: api: guide: entity: &: {
   name: .$KEY
   path: &: {
     op: &: {
       method: *'get' | string
-      place: *'' | string
+      transform: {
+        # TODO: make these work
+        # inward: *null | string | object
+        # outward: *null | string | object
+      }
     }
   }
 }

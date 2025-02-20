@@ -73,15 +73,14 @@ const GuideShape = Gubu({
   entity: {},
   control: {},
   transform: {},
+  manual: {},
 })
 
 type Guide = ReturnType<typeof GuideShape>
 
 
 async function resolveTransforms(ctx: TransformCtx): Promise<TransformSpec> {
-  const { log, model: { main: { guide } } } = ctx
-
-  // console.dir(api, { depth: null })
+  const { log, model: { main: { api: { guide } } } } = ctx
 
   const tspec: TransformSpec = {
     transform: []
@@ -105,17 +104,15 @@ async function resolveTransforms(ctx: TransformCtx): Promise<TransformSpec> {
     tspec.transform.push(transform)
   }
 
-  // console.log('TSPEC', tspec)
   return tspec
 }
 
 
 async function resolveTransform(tn: string, ctx: TransformCtx) {
-  const { log, defpath, model: { guide } } = ctx
+  const { log, defpath, model: { main: { api: { guide } } } } = ctx
 
   let transform = TRANSFORM[tn]
   if (transform) {
-    // console.log('resolveTransform', tn, transform)
     return transform
   }
 
@@ -162,7 +159,7 @@ async function processTransforms(
     results: []
   }
 
-  const guide: Guide = GuideShape(ctx.model.main.guide)
+  const guide: Guide = GuideShape(ctx.model.main.api.guide)
 
 
   for (let tI = 0; tI < spec.transform.length; tI++) {
