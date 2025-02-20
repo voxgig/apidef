@@ -38,14 +38,14 @@ const operationTransform = async function (ctx, guide, tspec, model, def) {
                 (0, jostraca_1.getx)(mdef, 'requestBody.content');
             const schema = content['application/json']?.schema;
             const propkeys = null == schema?.properties ? [] : Object.keys(schema.properties);
-            const resolveDirectionTransform = 'inward' === direction ? resolveInwardTransform : resolveOutwardTransform;
+            const resolveDirectionTransform = 'resform' === direction ? resolveResponseTransform : resolveRequestTransform;
             const transform = resolveDirectionTransform(op, kind, method, mdef, content, schema, propkeys);
             // out = JSON.stringify(transform)
             out = transform;
         }
         return out;
     };
-    const resolveInwardTransform = (op, kind, method, mdef, content, schema, propkeys) => {
+    const resolveResponseTransform = (op, kind, method, mdef, content, schema, propkeys) => {
         let transform = '`body`';
         if (null == content || null == schema || null == propkeys) {
             return transform;
@@ -86,7 +86,7 @@ const operationTransform = async function (ctx, guide, tspec, model, def) {
         }
         return transform;
     };
-    const resolveOutwardTransform = (op, kind, method, mdef, content, schema, propkeys) => {
+    const resolveRequestTransform = (op, kind, method, mdef, content, schema, propkeys) => {
         let transform = '`data`';
         if (null == content || null == schema || null == propkeys) {
             return transform;
@@ -138,10 +138,10 @@ const operationTransform = async function (ctx, guide, tspec, model, def) {
                 kind,
                 param: {},
                 query: {},
-                transform: {
-                    inward: resolveTransform(op, kind, 'inward', pathdef),
-                    outward: resolveTransform(op, kind, 'outward', pathdef),
-                }
+                // transform: {
+                resform: resolveTransform(op, kind, 'resform', pathdef),
+                reqform: resolveTransform(op, kind, 'reqform', pathdef),
+                // }
             };
             (0, transform_1.fixName)(em, op.key$);
             // Params are in the path

@@ -50,7 +50,7 @@ const operationTransform = async function(
   const resolveTransform = (
     op: any,
     kind: 'res' | 'req',
-    direction: 'inward' | 'outward',
+    direction: 'resform' | 'reqform',
     pathdef: any
   ) => {
     let out
@@ -75,7 +75,7 @@ const operationTransform = async function(
       const propkeys = null == schema?.properties ? [] : Object.keys(schema.properties)
 
       const resolveDirectionTransform =
-        'inward' === direction ? resolveInwardTransform : resolveOutwardTransform
+        'resform' === direction ? resolveResponseTransform : resolveRequestTransform
 
       const transform = resolveDirectionTransform(
         op,
@@ -95,7 +95,7 @@ const operationTransform = async function(
   }
 
 
-  const resolveInwardTransform = (
+  const resolveResponseTransform = (
     op: any,
     kind: 'res' | 'req',
     method: string,
@@ -150,7 +150,7 @@ const operationTransform = async function(
   }
 
 
-  const resolveOutwardTransform = (
+  const resolveRequestTransform = (
     op: any,
     kind: 'res' | 'req',
     method: string,
@@ -217,10 +217,10 @@ const operationTransform = async function(
         kind,
         param: {},
         query: {},
-        transform: {
-          inward: resolveTransform(op, kind, 'inward', pathdef),
-          outward: resolveTransform(op, kind, 'outward', pathdef),
-        }
+        // transform: {
+        resform: resolveTransform(op, kind, 'resform', pathdef),
+        reqform: resolveTransform(op, kind, 'reqform', pathdef),
+        // }
       }
 
       fixName(em, op.key$)

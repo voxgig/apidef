@@ -22,10 +22,8 @@
               }
             },
             "query": {},
-            "transform": {
-              "inward": "`body`",
-              "outward": "`data`"
-            },
+            "resform": "`body`",
+            "reqform": "`data`",
             "name": "load",
             "Name": "Load",
             "NAME": "LOAD"
@@ -46,11 +44,9 @@
               }
             },
             "query": {},
-            "transform": {
-              "inward": "`body.page`",
-              "outward": {
-                "page": "`data`"
-              }
+            "resform": "`body.page`",
+            "reqform": {
+              "page": "`data`"
             },
             "name": "update",
             "Name": "Update",
@@ -476,11 +472,9 @@
               }
             },
             "query": {},
-            "transform": {
-              "inward": "`body.incident`",
-              "outward": {
-                "incident": "`data`"
-              }
+            "resform": "`body.incident`",
+            "reqform": {
+              "incident": "`data`"
             },
             "name": "create",
             "Name": "Create",
@@ -502,10 +496,8 @@
               }
             },
             "query": {},
-            "transform": {
-              "inward": "`body`",
-              "outward": "`data`"
-            },
+            "resform": "`body`",
+            "reqform": "`data`",
             "name": "list",
             "Name": "List",
             "NAME": "LIST"
@@ -535,10 +527,8 @@
               }
             },
             "query": {},
-            "transform": {
-              "inward": "`body`",
-              "outward": "`data`"
-            },
+            "resform": "`body`",
+            "reqform": "`data`",
             "name": "remove",
             "Name": "Remove",
             "NAME": "REMOVE"
@@ -568,11 +558,9 @@
               }
             },
             "query": {},
-            "transform": {
-              "inward": "`body.incident`",
-              "outward": {
-                "incident": "`data`"
-              }
+            "resform": "`body.incident`",
+            "reqform": {
+              "incident": "`data`"
             },
             "name": "update",
             "Name": "Update",
@@ -603,10 +591,8 @@
               }
             },
             "query": {},
-            "transform": {
-              "inward": "`body`",
-              "outward": "`data`"
-            },
+            "resform": "`body`",
+            "reqform": "`data`",
             "name": "load",
             "Name": "Load",
             "NAME": "LOAD"
