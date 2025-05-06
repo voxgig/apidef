@@ -60,7 +60,12 @@ const BuildShape = Gubu({
     res: [],
     require: '',
     log: {},
-    fs: Any()
+    fs: Any(),
+    watch: {
+      mod: true,
+      add: true,
+      rem: true,
+    }
   }
 })
 const OpenBuildShape = Gubu(Open(BuildShape))

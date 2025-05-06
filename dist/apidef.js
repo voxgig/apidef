@@ -64,7 +64,12 @@ const BuildShape = (0, gubu_1.Gubu)({
         res: [],
         require: '',
         log: {},
-        fs: (0, gubu_1.Any)()
+        fs: (0, gubu_1.Any)(),
+        watch: {
+            mod: true,
+            add: true,
+            rem: true,
+        }
     }
 });
 const OpenBuildShape = (0, gubu_1.Gubu)((0, gubu_1.Open)(BuildShape));
