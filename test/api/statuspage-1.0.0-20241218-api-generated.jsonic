@@ -14,7 +14,7 @@
               "page_id": {
                 "required": true,
                 "name": "page_id",
-                "Name": "Page_id",
+                "Name": "PageId",
                 "NAME": "PAGE_ID",
                 "type": "string",
                 "Type": "String",
@@ -36,7 +36,7 @@
               "page_id": {
                 "required": true,
                 "name": "page_id",
-                "Name": "Page_id",
+                "Name": "PageId",
                 "NAME": "PAGE_ID",
                 "type": "string",
                 "Type": "String",
@@ -65,7 +65,7 @@
           },
           "created_at": {
             "name": "created_at",
-            "Name": "Created_at",
+            "Name": "CreatedAt",
             "NAME": "CREATED_AT",
             "type": "string",
             "Type": "String",
@@ -74,7 +74,7 @@
           },
           "updated_at": {
             "name": "updated_at",
-            "Name": "Updated_at",
+            "Name": "UpdatedAt",
             "NAME": "UPDATED_AT",
             "type": "string",
             "Type": "String",
@@ -92,7 +92,7 @@
           },
           "page_description": {
             "name": "page_description",
-            "Name": "Page_description",
+            "Name": "PageDescription",
             "NAME": "PAGE_DESCRIPTION",
             "type": "string",
             "Type": "String",
@@ -144,7 +144,7 @@
           },
           "support_url": {
             "name": "support_url",
-            "Name": "Support_url",
+            "Name": "SupportUrl",
             "NAME": "SUPPORT_URL",
             "type": "string",
             "Type": "String",
@@ -152,7 +152,7 @@
           },
           "hidden_from_search": {
             "name": "hidden_from_search",
-            "Name": "Hidden_from_search",
+            "Name": "HiddenFromSearch",
             "NAME": "HIDDEN_FROM_SEARCH",
             "type": "boolean",
             "Type": "Boolean",
@@ -161,7 +161,7 @@
           },
           "allow_page_subscribers": {
             "name": "allow_page_subscribers",
-            "Name": "Allow_page_subscribers",
+            "Name": "AllowPageSubscribers",
             "NAME": "ALLOW_PAGE_SUBSCRIBERS",
             "type": "boolean",
             "Type": "Boolean",
@@ -170,7 +170,7 @@
           },
           "allow_incident_subscribers": {
             "name": "allow_incident_subscribers",
-            "Name": "Allow_incident_subscribers",
+            "Name": "AllowIncidentSubscribers",
             "NAME": "ALLOW_INCIDENT_SUBSCRIBERS",
             "type": "boolean",
             "Type": "Boolean",
@@ -179,7 +179,7 @@
           },
           "allow_email_subscribers": {
             "name": "allow_email_subscribers",
-            "Name": "Allow_email_subscribers",
+            "Name": "AllowEmailSubscribers",
             "NAME": "ALLOW_EMAIL_SUBSCRIBERS",
             "type": "boolean",
             "Type": "Boolean",
@@ -188,7 +188,7 @@
           },
           "allow_sms_subscribers": {
             "name": "allow_sms_subscribers",
-            "Name": "Allow_sms_subscribers",
+            "Name": "AllowSmsSubscribers",
             "NAME": "ALLOW_SMS_SUBSCRIBERS",
             "type": "boolean",
             "Type": "Boolean",
@@ -197,7 +197,7 @@
           },
           "allow_rss_atom_feeds": {
             "name": "allow_rss_atom_feeds",
-            "Name": "Allow_rss_atom_feeds",
+            "Name": "AllowRssAtomFeeds",
             "NAME": "ALLOW_RSS_ATOM_FEEDS",
             "type": "boolean",
             "Type": "Boolean",
@@ -206,7 +206,7 @@
           },
           "allow_webhook_subscribers": {
             "name": "allow_webhook_subscribers",
-            "Name": "Allow_webhook_subscribers",
+            "Name": "AllowWebhookSubscribers",
             "NAME": "ALLOW_WEBHOOK_SUBSCRIBERS",
             "type": "boolean",
             "Type": "Boolean",
@@ -215,7 +215,7 @@
           },
           "notifications_from_email": {
             "name": "notifications_from_email",
-            "Name": "Notifications_from_email",
+            "Name": "NotificationsFromEmail",
             "NAME": "NOTIFICATIONS_FROM_EMAIL",
             "type": "string",
             "Type": "String",
@@ -224,7 +224,7 @@
           },
           "notifications_email_footer": {
             "name": "notifications_email_footer",
-            "Name": "Notifications_email_footer",
+            "Name": "NotificationsEmailFooter",
             "NAME": "NOTIFICATIONS_EMAIL_FOOTER",
             "type": "string",
             "Type": "String",
@@ -233,7 +233,7 @@
           },
           "activity_score": {
             "name": "activity_score",
-            "Name": "Activity_score",
+            "Name": "ActivityScore",
             "NAME": "ACTIVITY_SCORE",
             "type": "number",
             "Type": "Number",
@@ -241,7 +241,7 @@
           },
           "twitter_username": {
             "name": "twitter_username",
-            "Name": "Twitter_username",
+            "Name": "TwitterUsername",
             "NAME": "TWITTER_USERNAME",
             "type": "string",
             "Type": "String",
@@ -249,7 +249,7 @@
           },
           "viewers_must_be_team_members": {
             "name": "viewers_must_be_team_members",
-            "Name": "Viewers_must_be_team_members",
+            "Name": "ViewersMustBeTeamMembers",
             "NAME": "VIEWERS_MUST_BE_TEAM_MEMBERS",
             "type": "boolean",
             "Type": "Boolean",
@@ -257,7 +257,7 @@
           },
           "ip_restrictions": {
             "name": "ip_restrictions",
-            "Name": "Ip_restrictions",
+            "Name": "IpRestrictions",
             "NAME": "IP_RESTRICTIONS",
             "type": "string",
             "Type": "String",
@@ -289,7 +289,7 @@
           },
           "time_zone": {
             "name": "time_zone",
-            "Name": "Time_zone",
+            "Name": "TimeZone",
             "NAME": "TIME_ZONE",
             "type": "string",
             "Type": "String",
@@ -298,7 +298,7 @@
           },
           "css_body_background_color": {
             "name": "css_body_background_color",
-            "Name": "Css_body_background_color",
+            "Name": "CssBodyBackgroundColor",
             "NAME": "CSS_BODY_BACKGROUND_COLOR",
             "type": "string",
             "Type": "String",
@@ -307,7 +307,7 @@
           },
           "css_font_color": {
             "name": "css_font_color",
-            "Name": "Css_font_color",
+            "Name": "CssFontColor",
             "NAME": "CSS_FONT_COLOR",
             "type": "string",
             "Type": "String",
@@ -316,7 +316,7 @@
           },
           "css_light_font_color": {
             "name": "css_light_font_color",
-            "Name": "Css_light_font_color",
+            "Name": "CssLightFontColor",
             "NAME": "CSS_LIGHT_FONT_COLOR",
             "type": "string",
             "Type": "String",
@@ -325,7 +325,7 @@
           },
           "css_greens": {
             "name": "css_greens",
-            "Name": "Css_greens",
+            "Name": "CssGreens",
             "NAME": "CSS_GREENS",
             "type": "string",
             "Type": "String",
@@ -334,7 +334,7 @@
           },
           "css_yellows": {
             "name": "css_yellows",
-            "Name": "Css_yellows",
+            "Name": "CssYellows",
             "NAME": "CSS_YELLOWS",
             "type": "string",
             "Type": "String",
@@ -343,7 +343,7 @@
           },
           "css_oranges": {
             "name": "css_oranges",
-            "Name": "Css_oranges",
+            "Name": "CssOranges",
             "NAME": "CSS_ORANGES",
             "type": "string",
             "Type": "String",
@@ -352,7 +352,7 @@
           },
           "css_blues": {
             "name": "css_blues",
-            "Name": "Css_blues",
+            "Name": "CssBlues",
             "NAME": "CSS_BLUES",
             "type": "string",
             "Type": "String",
@@ -361,7 +361,7 @@
           },
           "css_reds": {
             "name": "css_reds",
-            "Name": "Css_reds",
+            "Name": "CssReds",
             "NAME": "CSS_REDS",
             "type": "string",
             "Type": "String",
@@ -370,7 +370,7 @@
           },
           "css_border_color": {
             "name": "css_border_color",
-            "Name": "Css_border_color",
+            "Name": "CssBorderColor",
             "NAME": "CSS_BORDER_COLOR",
             "type": "string",
             "Type": "String",
@@ -379,7 +379,7 @@
           },
           "css_graph_color": {
             "name": "css_graph_color",
-            "Name": "Css_graph_color",
+            "Name": "CssGraphColor",
             "NAME": "CSS_GRAPH_COLOR",
             "type": "string",
             "Type": "String",
@@ -388,7 +388,7 @@
           },
           "css_link_color": {
             "name": "css_link_color",
-            "Name": "Css_link_color",
+            "Name": "CssLinkColor",
             "NAME": "CSS_LINK_COLOR",
             "type": "string",
             "Type": "String",
@@ -397,7 +397,7 @@
           },
           "css_no_data": {
             "name": "css_no_data",
-            "Name": "Css_no_data",
+            "Name": "CssNoData",
             "NAME": "CSS_NO_DATA",
             "type": "string",
             "Type": "String",
@@ -406,7 +406,7 @@
           },
           "favicon_logo": {
             "name": "favicon_logo",
-            "Name": "Favicon_logo",
+            "Name": "FaviconLogo",
             "NAME": "FAVICON_LOGO",
             "type": "string",
             "Type": "String",
@@ -414,7 +414,7 @@
           },
           "transactional_logo": {
             "name": "transactional_logo",
-            "Name": "Transactional_logo",
+            "Name": "TransactionalLogo",
             "NAME": "TRANSACTIONAL_LOGO",
             "type": "string",
             "Type": "String",
@@ -422,7 +422,7 @@
           },
           "hero_cover": {
             "name": "hero_cover",
-            "Name": "Hero_cover",
+            "Name": "HeroCover",
             "NAME": "HERO_COVER",
             "type": "string",
             "Type": "String",
@@ -430,7 +430,7 @@
           },
           "email_logo": {
             "name": "email_logo",
-            "Name": "Email_logo",
+            "Name": "EmailLogo",
             "NAME": "EMAIL_LOGO",
             "type": "string",
             "Type": "String",
@@ -438,7 +438,7 @@
           },
           "twitter_logo": {
             "name": "twitter_logo",
-            "Name": "Twitter_logo",
+            "Name": "TwitterLogo",
             "NAME": "TWITTER_LOGO",
             "type": "string",
             "Type": "String",
@@ -464,7 +464,7 @@
               "page_id": {
                 "required": true,
                 "name": "page_id",
-                "Name": "Page_id",
+                "Name": "PageId",
                 "NAME": "PAGE_ID",
                 "type": "string",
                 "Type": "String",
@@ -488,7 +488,7 @@
               "page_id": {
                 "required": true,
                 "name": "page_id",
-                "Name": "Page_id",
+                "Name": "PageId",
                 "NAME": "PAGE_ID",
                 "type": "string",
                 "Type": "String",
@@ -510,7 +510,7 @@
               "page_id": {
                 "required": true,
                 "name": "page_id",
-                "Name": "Page_id",
+                "Name": "PageId",
                 "NAME": "PAGE_ID",
                 "type": "string",
                 "Type": "String",
@@ -519,7 +519,7 @@
               "incident_id": {
                 "required": true,
                 "name": "incident_id",
-                "Name": "Incident_id",
+                "Name": "IncidentId",
                 "NAME": "INCIDENT_ID",
                 "type": "string",
                 "Type": "String",
@@ -541,7 +541,7 @@
               "page_id": {
                 "required": true,
                 "name": "page_id",
-                "Name": "Page_id",
+                "Name": "PageId",
                 "NAME": "PAGE_ID",
                 "type": "string",
                 "Type": "String",
@@ -550,7 +550,7 @@
               "incident_id": {
                 "required": true,
                 "name": "incident_id",
-                "Name": "Incident_id",
+                "Name": "IncidentId",
                 "NAME": "INCIDENT_ID",
                 "type": "string",
                 "Type": "String",
@@ -574,7 +574,7 @@
               "page_id": {
                 "required": true,
                 "name": "page_id",
-                "Name": "Page_id",
+                "Name": "PageId",
                 "NAME": "PAGE_ID",
                 "type": "string",
                 "Type": "String",
@@ -583,7 +583,7 @@
               "incident_id": {
                 "required": true,
                 "name": "incident_id",
-                "Name": "Incident_id",
+                "Name": "IncidentId",
                 "NAME": "INCIDENT_ID",
                 "type": "string",
                 "Type": "String",
@@ -619,7 +619,7 @@
           },
           "created_at": {
             "name": "created_at",
-            "Name": "Created_at",
+            "Name": "CreatedAt",
             "NAME": "CREATED_AT",
             "type": "string",
             "Type": "String",
@@ -637,7 +637,7 @@
           },
           "impact_override": {
             "name": "impact_override",
-            "Name": "Impact_override",
+            "Name": "ImpactOverride",
             "NAME": "IMPACT_OVERRIDE",
             "type": "string",
             "Type": "String",
@@ -646,7 +646,7 @@
           },
           "incident_updates": {
             "name": "incident_updates",
-            "Name": "Incident_updates",
+            "Name": "IncidentUpdates",
             "NAME": "INCIDENT_UPDATES",
             "type": "array",
             "Type": "Array",
@@ -664,7 +664,7 @@
           },
           "monitoring_at": {
             "name": "monitoring_at",
-            "Name": "Monitoring_at",
+            "Name": "MonitoringAt",
             "NAME": "MONITORING_AT",
             "type": "string",
             "Type": "String",
@@ -682,7 +682,7 @@
           },
           "page_id": {
             "name": "page_id",
-            "Name": "Page_id",
+            "Name": "PageId",
             "NAME": "PAGE_ID",
             "type": "string",
             "Type": "String",
@@ -691,7 +691,7 @@
           },
           "postmortem_body": {
             "name": "postmortem_body",
-            "Name": "Postmortem_body",
+            "Name": "PostmortemBody",
             "NAME": "POSTMORTEM_BODY",
             "type": "string",
             "Type": "String",
@@ -700,7 +700,7 @@
           },
           "postmortem_body_last_updated_at": {
             "name": "postmortem_body_last_updated_at",
-            "Name": "Postmortem_body_last_updated_at",
+            "Name": "PostmortemBodyLastUpdatedAt",
             "NAME": "POSTMORTEM_BODY_LAST_UPDATED_AT",
             "type": "string",
             "Type": "String",
@@ -709,7 +709,7 @@
           },
           "postmortem_ignored": {
             "name": "postmortem_ignored",
-            "Name": "Postmortem_ignored",
+            "Name": "PostmortemIgnored",
             "NAME": "POSTMORTEM_IGNORED",
             "type": "boolean",
             "Type": "Boolean",
@@ -718,7 +718,7 @@
           },
           "postmortem_notified_subscribers": {
             "name": "postmortem_notified_subscribers",
-            "Name": "Postmortem_notified_subscribers",
+            "Name": "PostmortemNotifiedSubscribers",
             "NAME": "POSTMORTEM_NOTIFIED_SUBSCRIBERS",
             "type": "boolean",
             "Type": "Boolean",
@@ -727,7 +727,7 @@
           },
           "postmortem_notified_twitter": {
             "name": "postmortem_notified_twitter",
-            "Name": "Postmortem_notified_twitter",
+            "Name": "PostmortemNotifiedTwitter",
             "NAME": "POSTMORTEM_NOTIFIED_TWITTER",
             "type": "boolean",
             "Type": "Boolean",
@@ -736,7 +736,7 @@
           },
           "postmortem_published_at": {
             "name": "postmortem_published_at",
-            "Name": "Postmortem_published_at",
+            "Name": "PostmortemPublishedAt",
             "NAME": "POSTMORTEM_PUBLISHED_AT",
             "type": "boolean",
             "Type": "Boolean",
@@ -745,7 +745,7 @@
           },
           "resolved_at": {
             "name": "resolved_at",
-            "Name": "Resolved_at",
+            "Name": "ResolvedAt",
             "NAME": "RESOLVED_AT",
             "type": "string",
             "Type": "String",
@@ -754,7 +754,7 @@
           },
           "scheduled_auto_completed": {
             "name": "scheduled_auto_completed",
-            "Name": "Scheduled_auto_completed",
+            "Name": "ScheduledAutoCompleted",
             "NAME": "SCHEDULED_AUTO_COMPLETED",
             "type": "boolean",
             "Type": "Boolean",
@@ -763,7 +763,7 @@
           },
           "scheduled_auto_in_progress": {
             "name": "scheduled_auto_in_progress",
-            "Name": "Scheduled_auto_in_progress",
+            "Name": "ScheduledAutoInProgress",
             "NAME": "SCHEDULED_AUTO_IN_PROGRESS",
             "type": "boolean",
             "Type": "Boolean",
@@ -772,7 +772,7 @@
           },
           "scheduled_for": {
             "name": "scheduled_for",
-            "Name": "Scheduled_for",
+            "Name": "ScheduledFor",
             "NAME": "SCHEDULED_FOR",
             "type": "string",
             "Type": "String",
@@ -781,7 +781,7 @@
           },
           "auto_transition_deliver_notifications_at_end": {
             "name": "auto_transition_deliver_notifications_at_end",
-            "Name": "Auto_transition_deliver_notifications_at_end",
+            "Name": "AutoTransitionDeliverNotificationsAtEnd",
             "NAME": "AUTO_TRANSITION_DELIVER_NOTIFICATIONS_AT_END",
             "type": "boolean",
             "Type": "Boolean",
@@ -790,7 +790,7 @@
           },
           "auto_transition_deliver_notifications_at_start": {
             "name": "auto_transition_deliver_notifications_at_start",
-            "Name": "Auto_transition_deliver_notifications_at_start",
+            "Name": "AutoTransitionDeliverNotificationsAtStart",
             "NAME": "AUTO_TRANSITION_DELIVER_NOTIFICATIONS_AT_START",
             "type": "boolean",
             "Type": "Boolean",
@@ -799,7 +799,7 @@
           },
           "auto_transition_to_maintenance_state": {
             "name": "auto_transition_to_maintenance_state",
-            "Name": "Auto_transition_to_maintenance_state",
+            "Name": "AutoTransitionToMaintenanceState",
             "NAME": "AUTO_TRANSITION_TO_MAINTENANCE_STATE",
             "type": "boolean",
             "Type": "Boolean",
@@ -808,7 +808,7 @@
           },
           "auto_transition_to_operational_state": {
             "name": "auto_transition_to_operational_state",
-            "Name": "Auto_transition_to_operational_state",
+            "Name": "AutoTransitionToOperationalState",
             "NAME": "AUTO_TRANSITION_TO_OPERATIONAL_STATE",
             "type": "boolean",
             "Type": "Boolean",
@@ -817,7 +817,7 @@
           },
           "scheduled_remind_prior": {
             "name": "scheduled_remind_prior",
-            "Name": "Scheduled_remind_prior",
+            "Name": "ScheduledRemindPrior",
             "NAME": "SCHEDULED_REMIND_PRIOR",
             "type": "boolean",
             "Type": "Boolean",
@@ -826,7 +826,7 @@
           },
           "scheduled_reminded_at": {
             "name": "scheduled_reminded_at",
-            "Name": "Scheduled_reminded_at",
+            "Name": "ScheduledRemindedAt",
             "NAME": "SCHEDULED_REMINDED_AT",
             "type": "string",
             "Type": "String",
@@ -835,7 +835,7 @@
           },
           "scheduled_until": {
             "name": "scheduled_until",
-            "Name": "Scheduled_until",
+            "Name": "ScheduledUntil",
             "NAME": "SCHEDULED_UNTIL",
             "type": "string",
             "Type": "String",
@@ -862,7 +862,7 @@
           },
           "updated_at": {
             "name": "updated_at",
-            "Name": "Updated_at",
+            "Name": "UpdatedAt",
             "NAME": "UPDATED_AT",
             "type": "string",
             "Type": "String",
@@ -871,7 +871,7 @@
           },
           "reminder_intervals": {
             "name": "reminder_intervals",
-            "Name": "Reminder_intervals",
+            "Name": "ReminderIntervals",
             "NAME": "REMINDER_INTERVALS",
             "type": "string",
             "Type": "String",
