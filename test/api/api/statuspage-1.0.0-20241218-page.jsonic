@@ -1,7 +1,5 @@
 # GENERATED FILE - DO NOT EDIT
 
-# Entity API
-
 main.api.entity.page:
 
 "op": {
@@ -453,4 +451,3 @@ main.api.entity.page:
 "Name": "Page",
 "NAME": "PAGE",
 "key$": "page"
-}

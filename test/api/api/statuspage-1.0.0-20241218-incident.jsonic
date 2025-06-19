@@ -1,7 +1,5 @@
 # GENERATED FILE - DO NOT EDIT
 
-# Entity API
-
 main.api.entity.incident:
 
 "op": {
@@ -437,4 +435,3 @@ main.api.entity.incident:
 "Name": "Incident",
 "NAME": "INCIDENT",
 "key$": "incident"
-}

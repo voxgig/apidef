@@ -16,8 +16,20 @@ import {
   writeChanged
 } from './utility'
 
+import {
+  generateApiEntity
+} from './generate/apiEntity'
 
-async function generateModel(
+import {
+  generateDef
+} from './generate/def'
+
+import {
+  generateSdkEntity
+} from './generate/sdkEntity'
+
+
+function generateModel(
   apimodel: any,
   spec: any,
   opts: ApiDefOptions,
@@ -25,6 +37,8 @@ async function generateModel(
 ) {
   const { fs, log } = res
 
+
+  // TODO: remove << 
   const modelPath = Path.normalize(spec.config.model)
 
   const modelapi = { main: { api: apimodel.main.api } }
@@ -35,29 +49,15 @@ async function generateModel(
     modelSrc.substring(1, modelSrc.length - 1).replace(/\n  /g, '\n')
 
   writeChanged('api-model', modelPath, modelSrc, fs, log)
+  // TODO: remove >> 
 
+  generateApiEntity(apimodel, spec, opts, res)
 
-  const apiFolder = Path.join(opts.folder as string, 'api')
-  fs.mkdirSync(apiFolder, { recursive: true })
-
-  each(apimodel.main.api.entity, ((entity: any, entityName: string) => {
-    const entityFile = Path.join(
-      apiFolder, (null == opts.outprefix ? '' : opts.outprefix) + entityName + '.jsonic')
-
-    const entityJSON =
-      JSON.stringify(entity, null, 2)
-
-    const entitySrc =
-      '# GENERATED FILE - DO NOT EDIT\n\n' +
-      '# Entity API\n\n' +
-      `main.api.entity.${entity.name}:\n` +
-      entityJSON.substring(1, modelSrc.length - 1).replace(/\n  /g, '\n')
-
-    writeChanged('api-entity-model:' + entityName, entityFile, entitySrc, fs, log)
-  }))
-
-  return modelPath
+  generateDef(apimodel, modelPath, opts, res)
+  generateSdkEntity(apimodel, modelPath, opts, res)
 }
+
+
 
 
 
