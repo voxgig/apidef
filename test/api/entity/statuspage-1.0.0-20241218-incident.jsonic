@@ -1,0 +1,10 @@
+
+# Entity incident
+
+main: sdk: entity: incident: {
+  alias: field: {
+    "incident_id": "id",
+    "id": "incident_id"
+  }
+}
+

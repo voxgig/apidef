@@ -1,0 +1,10 @@
+
+# Entity page
+
+main: sdk: entity: page: {
+  alias: field: {
+    "page_id": "id",
+    "id": "page_id"
+  }
+}
+

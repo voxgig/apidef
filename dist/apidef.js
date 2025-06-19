@@ -1,5 +1,5 @@
 "use strict";
-/* Copyright (c) 2024 Voxgig, MIT License */
+/* Copyright (c) 2024-2025 Voxgig, MIT License */
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -37,50 +37,29 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.parse = void 0;
 exports.ApiDef = ApiDef;
 const Fs = __importStar(require("node:fs"));
 const node_path_1 = __importDefault(require("node:path"));
 const node_util_1 = require("node:util");
-const openapi_core_1 = require("@redocly/openapi-core");
-const gubu_1 = require("gubu");
+// import { bundleFromString, createConfig } from '@redocly/openapi-core'
+// import { Gubu, Open, Any } from 'gubu'
 const jostraca_1 = require("jostraca");
 const util_1 = require("@voxgig/util");
+const types_1 = require("./types");
+const parse_1 = require("./parse");
+Object.defineProperty(exports, "parse", { enumerable: true, get: function () { return parse_1.parse; } });
 const transform_1 = require("./transform");
-const ModelShape = (0, gubu_1.Gubu)({
-    def: String,
-    main: {
-        sdk: {},
-        def: {},
-        api: {},
-    }
-});
-const OpenModelShape = (0, gubu_1.Gubu)((0, gubu_1.Open)(ModelShape));
-const BuildShape = (0, gubu_1.Gubu)({
-    spec: {
-        base: '',
-        path: '',
-        debug: '',
-        use: {},
-        res: [],
-        require: '',
-        log: {},
-        fs: (0, gubu_1.Any)(),
-        watch: {
-            mod: true,
-            add: true,
-            rem: true,
-        }
-    }
-});
-const OpenBuildShape = (0, gubu_1.Gubu)((0, gubu_1.Open)(BuildShape));
+const generate_1 = require("./generate");
+const utility_1 = require("./utility");
 function ApiDef(opts) {
     const fs = opts.fs || Fs;
     const pino = (0, util_1.prettyPino)('apidef', opts);
     const log = pino.child({ cmp: 'apidef' });
     async function generate(spec) {
         const start = Date.now();
-        const model = OpenModelShape(spec.model);
-        const build = OpenBuildShape(spec.build);
+        const model = (0, types_1.OpenModelShape)(spec.model);
+        const build = (0, types_1.OpenBuildShape)(spec.build);
         const buildspec = build.spec;
         let defpath = model.def;
         // TOOD: defpath should be independently defined
@@ -111,19 +90,7 @@ function ApiDef(opts) {
             log.error({ read: 'fail', what: 'def', file: defpath, err });
             throw err;
         }
-        const config = await (0, openapi_core_1.createConfig)({});
-        let bundle;
-        try {
-            bundle = await (0, openapi_core_1.bundleFromString)({
-                source,
-                config,
-                dereference: true,
-            });
-        }
-        catch (err) {
-            log.error({ parse: 'fail', what: 'openapi', file: defpath, err });
-            throw err;
-        }
+        const def = await (0, parse_1.parse)('OpenAPI', source, { file: defpath });
         const apimodel = {
             main: {
                 api: {
@@ -132,7 +99,6 @@ function ApiDef(opts) {
                 def: {},
             },
         };
-        const def = bundle.bundle.parsed;
         const processResult = await (0, transform_1.processTransforms)(ctx, transformSpec, apimodel, def);
         if (!processResult.ok) {
             log.error({
@@ -143,7 +109,8 @@ function ApiDef(opts) {
             return { ok: false, name: 'apidef', processResult };
         }
         const modelPath = node_path_1.default.normalize(spec.config.model);
-        buildModel_api(apimodel, modelPath);
+        // buildModel_api(apimodel, modelPath)
+        (0, generate_1.generateModel)(apimodel, spec, opts, { fs, log });
         buildModel_def(apimodel, modelPath);
         buildModel_entity(apimodel, modelPath);
         log.info({ point: 'generate-end', note: 'success', break: true });
@@ -153,15 +120,19 @@ function ApiDef(opts) {
             apimodel,
         };
     }
-    function buildModel_api(apimodel, modelPath) {
-        const modelapi = { main: { api: apimodel.main.api } };
-        let modelSrc = JSON.stringify(modelapi, null, 2);
-        modelSrc =
-            '# GENERATED FILE - DO NOT EDIT\n\n' +
-                modelSrc.substring(1, modelSrc.length - 1).replace(/\n  /g, '\n');
-        writeChanged('api-model', modelPath, modelSrc);
-        return modelPath;
+    /*
+    function buildModel_api(apimodel: ApiModel, modelPath: string) {
+      const modelapi = { main: { api: apimodel.main.api } }
+      let modelSrc = JSON.stringify(modelapi, null, 2)
+  
+      modelSrc =
+        '# GENERATED FILE - DO NOT EDIT\n\n' +
+        modelSrc.substring(1, modelSrc.length - 1).replace(/\n  /g, '\n')
+  
+      writeChanged('api-model', modelPath, modelSrc)
+      return modelPath
     }
+    */
     function buildModel_def(apimodel, modelPath) {
         const modelBasePath = node_path_1.default.dirname(modelPath);
         const defFilePath = node_path_1.default.join(modelBasePath, (null == opts.outprefix ? '' : opts.outprefix) + 'def-generated.jsonic');
@@ -170,7 +141,7 @@ function ApiDef(opts) {
         modelDefSrc =
             '# GENERATED FILE - DO NOT EDIT\n\n' +
                 modelDefSrc.substring(1, modelDefSrc.length - 1).replace(/\n  /g, '\n');
-        writeChanged('def-model', defFilePath, modelDefSrc);
+        (0, utility_1.writeChanged)('def-model', defFilePath, modelDefSrc, fs, log);
     }
     function buildModel_entity(apimodel, modelPath) {
         const modelBasePath = node_path_1.default.dirname(modelPath);
@@ -198,44 +169,9 @@ main: sdk: entity: ${entity.name}: {
             const entityFilePath = node_path_1.default.join(modelBasePath, 'entity', (null == opts.outprefix ? '' : opts.outprefix) + entity.name + '.jsonic');
             fs.mkdirSync(node_path_1.default.dirname(entityFilePath), { recursive: true });
             // TODO: diff merge
-            writeChanged('entity-model', entityFilePath, entityFileSrc, { update: false });
+            (0, utility_1.writeChanged)('entity-model', entityFilePath, entityFileSrc, fs, log, { update: false });
         }));
         modifyModel(fs, node_path_1.default.join(modelBasePath, (null == opts.outprefix ? '' : opts.outprefix) + 'sdk.jsonic'), entityIncludes);
-    }
-    function writeChanged(point, path, content, flags) {
-        let exists = false;
-        let changed = false;
-        flags = flags || {};
-        flags.update = null == flags.update ? true : !!flags.update;
-        let action = '';
-        try {
-            let existingContent = '';
-            path = node_path_1.default.normalize(path);
-            exists = fs.existsSync(path);
-            if (exists) {
-                action = 'read';
-                existingContent = fs.readFileSync(path, 'utf8');
-            }
-            changed = existingContent !== content;
-            action = flags.update ? 'write' : 'skip';
-            log.info({
-                point: 'write-' + point,
-                note: (changed ? '' : 'not-') + 'changed ' + path,
-                write: 'file', skip: !changed, exists, changed,
-                contentLength: content.length, file: path
-            });
-            if (!exists || (changed && flags.update)) {
-                fs.writeFileSync(path, content);
-            }
-        }
-        catch (err) {
-            log.error({
-                fail: action, point, file: path, exists, changed,
-                contentLength: content.length, err
-            });
-            err.__logged__ = true;
-            throw err;
-        }
     }
     return {
         generate,

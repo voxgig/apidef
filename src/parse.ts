@@ -3,9 +3,11 @@
 import { bundleFromString, createConfig } from '@redocly/openapi-core'
 
 
-async function parse(kind: string, source: any) {
+
+// Parse an API definition source into a JSON sructure.
+async function parse(kind: string, source: any, meta?: any) {
   if ('OpenAPI' === kind) {
-    return parseOpenAPI(source)
+    return parseOpenAPI(source, meta)
   }
   else {
     throw new Error('@voxgig/apidef-parse: unknown kind: ' + kind)
@@ -13,8 +15,8 @@ async function parse(kind: string, source: any) {
 }
 
 
-async function parseOpenAPI(source: any) {
-  const config = await createConfig({})
+async function parseOpenAPI(source: any, meta?: any) {
+  const config = await createConfig(meta?.config || {})
   let bundle
 
   bundle = await bundleFromString({

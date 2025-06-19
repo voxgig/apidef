@@ -1,21 +1,5 @@
-import { Pino } from '@voxgig/util';
-type ApiDefOptions = {
-    def?: string;
-    fs?: any;
-    pino?: ReturnType<typeof Pino>;
-    debug?: boolean | string;
-    folder?: string;
-    meta?: Record<string, any>;
-    outprefix?: string;
-};
-type ApiModel = {
-    main: {
-        api: {
-            entity: Record<string, any>;
-        };
-        def: Record<string, any>;
-    };
-};
+import type { ApiDefOptions, ApiModel } from './types';
+import { parse } from './parse';
 declare function ApiDef(opts: ApiDefOptions): {
     generate: (spec: any) => Promise<{
         ok: boolean;
@@ -40,4 +24,4 @@ declare namespace ApiDef {
     }>;
 }
 export type { ApiDefOptions, };
-export { ApiDef, };
+export { ApiDef, parse, };

@@ -1,13 +1,31 @@
-/* Copyright (c) 2024 Voxgig, MIT License */
+/* Copyright (c) 2024-2025 Voxgig, MIT License */
 
 import * as Fs from 'node:fs'
 import Path from 'node:path'
 import { inspect } from 'node:util'
 
-import { bundleFromString, createConfig } from '@redocly/openapi-core'
-import { Gubu, Open, Any } from 'gubu'
+// import { bundleFromString, createConfig } from '@redocly/openapi-core'
+// import { Gubu, Open, Any } from 'gubu'
 import { each } from 'jostraca'
-import { prettyPino, Pino } from '@voxgig/util'
+import { prettyPino } from '@voxgig/util'
+
+
+import type {
+  ApiDefOptions,
+  Model,
+  Build,
+  ApiModel,
+} from './types'
+
+import {
+  OpenModelShape,
+  OpenBuildShape,
+} from './types'
+
+
+import {
+  parse
+} from './parse'
 
 
 import {
@@ -17,67 +35,20 @@ import {
 } from './transform'
 
 
-type ApiDefOptions = {
-  def?: string
-  fs?: any
-  pino?: ReturnType<typeof Pino>
-  debug?: boolean | string
-  folder?: string
-  meta?: Record<string, any>
-  outprefix?: string
-}
+import {
+  generateModel,
+} from './generate'
 
 
-type ApiModel = {
-  main: {
-    api: {
-      entity: Record<string, any>
-    }
-    def: Record<string, any>
-  }
-}
-
-
-const ModelShape = Gubu({
-  def: String,
-  main: {
-    sdk: {},
-    def: {},
-    api: {},
-  }
-})
-const OpenModelShape = Gubu(Open(ModelShape))
-
-type Model = ReturnType<typeof ModelShape>
-
-
-const BuildShape = Gubu({
-  spec: {
-    base: '',
-    path: '',
-    debug: '',
-    use: {},
-    res: [],
-    require: '',
-    log: {},
-    fs: Any(),
-    watch: {
-      mod: true,
-      add: true,
-      rem: true,
-    }
-  }
-})
-const OpenBuildShape = Gubu(Open(BuildShape))
-
-type Build = ReturnType<typeof BuildShape>
+import {
+  writeChanged
+} from './utility'
 
 
 
 function ApiDef(opts: ApiDefOptions) {
   const fs = opts.fs || Fs
   const pino = prettyPino('apidef', opts)
-
   const log = pino.child({ cmp: 'apidef' })
 
 
@@ -126,22 +97,7 @@ function ApiDef(opts: ApiDefOptions) {
       throw err
     }
 
-
-    const config = await createConfig({})
-    let bundle
-
-    try {
-      bundle = await bundleFromString({
-        source,
-        config,
-        dereference: true,
-      })
-    }
-    catch (err: any) {
-      log.error({ parse: 'fail', what: 'openapi', file: defpath, err })
-      throw err
-    }
-
+    const def = await parse('OpenAPI', source, { file: defpath })
 
     const apimodel: ApiModel = {
       main: {
@@ -152,7 +108,6 @@ function ApiDef(opts: ApiDefOptions) {
       },
     }
 
-    const def = bundle.bundle.parsed
     const processResult = await processTransforms(ctx, transformSpec, apimodel, def)
 
     if (!processResult.ok) {
@@ -168,7 +123,9 @@ function ApiDef(opts: ApiDefOptions) {
 
     const modelPath = Path.normalize(spec.config.model)
 
-    buildModel_api(apimodel, modelPath)
+    // buildModel_api(apimodel, modelPath)
+    generateModel(apimodel, spec, opts, { fs, log })
+
     buildModel_def(apimodel, modelPath)
     buildModel_entity(apimodel, modelPath)
 
@@ -182,6 +139,7 @@ function ApiDef(opts: ApiDefOptions) {
   }
 
 
+  /*
   function buildModel_api(apimodel: ApiModel, modelPath: string) {
     const modelapi = { main: { api: apimodel.main.api } }
     let modelSrc = JSON.stringify(modelapi, null, 2)
@@ -193,6 +151,7 @@ function ApiDef(opts: ApiDefOptions) {
     writeChanged('api-model', modelPath, modelSrc)
     return modelPath
   }
+  */
 
 
   function buildModel_def(apimodel: ApiModel, modelPath: string) {
@@ -207,7 +166,7 @@ function ApiDef(opts: ApiDefOptions) {
       '# GENERATED FILE - DO NOT EDIT\n\n' +
       modelDefSrc.substring(1, modelDefSrc.length - 1).replace(/\n  /g, '\n')
 
-    writeChanged('def-model', defFilePath, modelDefSrc)
+    writeChanged('def-model', defFilePath, modelDefSrc, fs, log)
   }
 
 
@@ -251,7 +210,7 @@ main: sdk: entity: ${entity.name}: {
       fs.mkdirSync(Path.dirname(entityFilePath), { recursive: true })
 
       // TODO: diff merge
-      writeChanged('entity-model', entityFilePath, entityFileSrc, { update: false })
+      writeChanged('entity-model', entityFilePath, entityFileSrc, fs, log, { update: false })
     }))
 
 
@@ -262,54 +221,6 @@ main: sdk: entity: ${entity.name}: {
         (null == opts.outprefix ? '' : opts.outprefix) + 'sdk.jsonic'),
       entityIncludes
     )
-  }
-
-
-  function writeChanged(
-    point: string, path: string, content: string,
-    flags?: { update?: boolean }
-  ) {
-    let exists = false
-    let changed = false
-
-    flags = flags || {}
-    flags.update = null == flags.update ? true : !!flags.update
-
-    let action = ''
-    try {
-      let existingContent: string = ''
-      path = Path.normalize(path)
-
-      exists = fs.existsSync(path)
-
-      if (exists) {
-        action = 'read'
-        existingContent = fs.readFileSync(path, 'utf8')
-      }
-
-      changed = existingContent !== content
-
-      action = flags.update ? 'write' : 'skip'
-
-      log.info({
-        point: 'write-' + point,
-        note: (changed ? '' : 'not-') + 'changed ' + path,
-        write: 'file', skip: !changed, exists, changed,
-        contentLength: content.length, file: path
-      })
-
-      if (!exists || (changed && flags.update)) {
-        fs.writeFileSync(path, content)
-      }
-    }
-    catch (err: any) {
-      log.error({
-        fail: action, point, file: path, exists, changed,
-        contentLength: content.length, err
-      })
-      err.__logged__ = true
-      throw err
-    }
   }
 
   return {
@@ -382,10 +293,10 @@ async function modifyModel(fs: any, path: string, entityIncludes: string[]) {
 
 export type {
   ApiDefOptions,
-  // ApiDefSpec,
 }
 
 
 export {
   ApiDef,
+  parse,
 }
