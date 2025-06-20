@@ -23,7 +23,7 @@ const operationTransform = async function (ctx, guide, tspec, model, def) {
     };
     // Resolve the JSON structure of the request or response.
     // NOTE: uses heuristics.
-    const resolveTransform = (op, kind, direction, pathdef) => {
+    const resolveTransform = (entityModel, op, kind, direction, pathdef) => {
         let out;
         if (null != op.transform?.[direction]) {
             out = op.transform[direction];
@@ -36,12 +36,21 @@ const operationTransform = async function (ctx, guide, tspec, model, def) {
                 ((0, jostraca_1.getx)(mdef, 'responses.200.content') ||
                     (0, jostraca_1.getx)(mdef, 'responses.201.content')) :
                 (0, jostraca_1.getx)(mdef, 'requestBody.content');
-            const schema = content['application/json']?.schema;
-            const propkeys = null == schema?.properties ? [] : Object.keys(schema.properties);
-            const resolveDirectionTransform = 'resform' === direction ? resolveResponseTransform : resolveRequestTransform;
-            const transform = resolveDirectionTransform(op, kind, method, mdef, content, schema, propkeys);
-            // out = JSON.stringify(transform)
-            out = transform;
+            // console.log(entityModel)
+            // console.log(mdef)
+            // console.log(getx(mdef, 'responses.200.content'))
+            // console.log(kind, method, pathdef, content)
+            if (content) {
+                const schema = content['application/json']?.schema;
+                const propkeys = null == schema?.properties ? [] : Object.keys(schema.properties);
+                const resolveDirectionTransform = 'resform' === direction ? resolveResponseTransform : resolveRequestTransform;
+                const transform = resolveDirectionTransform(op, kind, method, mdef, content, schema, propkeys);
+                // out = JSON.stringify(transform)
+                out = transform;
+            }
+            else {
+                out = 'res' === kind ? '`body`' : '`reqdata`';
+            }
         }
         return out;
     };
@@ -139,8 +148,8 @@ const operationTransform = async function (ctx, guide, tspec, model, def) {
                 param: {},
                 query: {},
                 // transform: {
-                resform: resolveTransform(op, kind, 'resform', pathdef),
-                reqform: resolveTransform(op, kind, 'reqform', pathdef),
+                resform: resolveTransform(entityModel, op, kind, 'resform', pathdef),
+                reqform: resolveTransform(entityModel, op, kind, 'reqform', pathdef),
                 // }
             };
             (0, transform_1.fixName)(em, op.key$);

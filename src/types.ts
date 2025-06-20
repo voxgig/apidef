@@ -18,6 +18,7 @@ type ApiDefOptions = {
   folder?: string
   meta?: Record<string, any>
   outprefix?: string
+  strategy?: string
 }
 
 
@@ -26,7 +27,9 @@ const ModelShape = Gubu({
   main: {
     sdk: {},
     def: {},
-    api: {},
+    api: {
+      guide: {}
+    },
   }
 })
 const OpenModelShape = Gubu(Open(ModelShape))

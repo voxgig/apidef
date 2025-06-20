@@ -48,6 +48,7 @@ const operationTransform = async function(
   // Resolve the JSON structure of the request or response.
   // NOTE: uses heuristics.
   const resolveTransform = (
+    entityModel: any,
     op: any,
     kind: 'res' | 'req',
     direction: 'resform' | 'reqform',
@@ -69,27 +70,38 @@ const operationTransform = async function(
           getx(mdef, 'responses.201.content')) :
         getx(mdef, 'requestBody.content')
 
+      // console.log(entityModel)
+      // console.log(mdef)
+      // console.log(getx(mdef, 'responses.200.content'))
+      // console.log(kind, method, pathdef, content)
 
-      const schema = content['application/json']?.schema
+      if (content) {
 
-      const propkeys = null == schema?.properties ? [] : Object.keys(schema.properties)
+        const schema = content['application/json']?.schema
 
-      const resolveDirectionTransform =
-        'resform' === direction ? resolveResponseTransform : resolveRequestTransform
+        const propkeys = null == schema?.properties ? [] : Object.keys(schema.properties)
 
-      const transform = resolveDirectionTransform(
-        op,
-        kind,
-        method,
-        mdef,
-        content,
-        schema,
-        propkeys
-      )
+        const resolveDirectionTransform =
+          'resform' === direction ? resolveResponseTransform : resolveRequestTransform
 
-      // out = JSON.stringify(transform)
-      out = transform
+        const transform = resolveDirectionTransform(
+          op,
+          kind,
+          method,
+          mdef,
+          content,
+          schema,
+          propkeys
+        )
+
+        // out = JSON.stringify(transform)
+        out = transform
+      }
+      else {
+        out = 'res' === kind ? '`body`' : '`reqdata`'
+      }
     }
+
 
     return out
   }
@@ -218,8 +230,8 @@ const operationTransform = async function(
         param: {},
         query: {},
         // transform: {
-        resform: resolveTransform(op, kind, 'resform', pathdef),
-        reqform: resolveTransform(op, kind, 'reqform', pathdef),
+        resform: resolveTransform(entityModel, op, kind, 'resform', pathdef),
+        reqform: resolveTransform(entityModel, op, kind, 'reqform', pathdef),
         // }
       }
 

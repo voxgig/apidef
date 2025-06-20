@@ -23,57 +23,39 @@ describe('apidef', () => {
 
 
   test('api-statuspage', async () => {
-    const build = await ApiDef.makeBuild({
-      folder: __dirname + '/../test/api',
-      debug: 'debug',
-      outprefix: 'statuspage-1.0.0-20241218-'
-    })
+    try {
+      let outprefix = 'statuspage-1.0.0-20241218-'
 
-    const model = Aontu(`
+      const build = await ApiDef.makeBuild({
+        folder: __dirname + '/../test/api',
+        debug: 'debug',
+        outprefix,
+      })
+
+      const modelSrc = `
 @"@voxgig/apidef/model/apidef.jsonic"
 
-def: 'statuspage-1.0.0-20241218-def.json'
+def: '${outprefix}def.json'
+`
 
-main: api: guide: {
+      console.log('MODELSRC', modelSrc)
 
-entity: page: {
-  path: {
-    '/pages/{page_id}': op: {
-      load: { method: get, place: foo }
-      update: method: put
-    }
-  }
-}
+      const model = Aontu(modelSrc).gen()
 
-entity: incident: {
-  path: {
-    '/pages/{page_id}/incidents': op: {
-      create: method: post
-      list: method: get    
-    }
-    '/pages/{page_id}/incidents/{incident_id}': op: {
-      remove: method: delete
-      update: method: put
-      load: method: get
-    }
-  }
-}
+      // console.dir(model, { depth: null })
 
-
-}
-
-`).gen()
-
-    // console.dir(model, { depth: null })
-
-    const buildspec = {
-      spec: {
-        base: __dirname + '/../test/api'
+      const buildspec = {
+        spec: {
+          base: __dirname + '/../test/api'
+        }
       }
+
+      await build(model, buildspec, {})
     }
-
-    await build(model, buildspec, {})
+    catch (err: any) {
+      console.log(err)
+      throw err
+    }
   })
-
 
 })

@@ -6,7 +6,9 @@ import { inspect } from 'node:util'
 
 // import { bundleFromString, createConfig } from '@redocly/openapi-core'
 // import { Gubu, Open, Any } from 'gubu'
-import { each } from 'jostraca'
+
+import { Jostraca, Project } from 'jostraca'
+
 import { prettyPino } from '@voxgig/util'
 
 
@@ -21,6 +23,16 @@ import {
   OpenModelShape,
   OpenBuildShape,
 } from './types'
+
+
+import {
+  resolveGuide,
+} from './guide'
+
+
+import {
+  resolveFlows,
+} from './flow'
 
 
 import {
@@ -47,16 +59,33 @@ import {
 
 
 function ApiDef(opts: ApiDefOptions) {
+
+  // TODO: gubu opts!
   const fs = opts.fs || Fs
   const pino = prettyPino('apidef', opts)
   const log = pino.child({ cmp: 'apidef' })
+
+  opts.strategy = opts.strategy || 'heuristic01'
 
 
   async function generate(spec: any) {
     const start = Date.now()
 
+    console.log('APIDEF GENERATE')
+    console.dir(spec, { depth: null })
+
     const model: Model = OpenModelShape(spec.model)
     const build: Build = OpenBuildShape(spec.build)
+
+    const apimodel: ApiModel = {
+      main: {
+        api: {
+          entity: {}
+        },
+        def: {},
+      },
+    }
+
 
     const buildspec = build.spec
 
@@ -72,25 +101,16 @@ function ApiDef(opts: ApiDefOptions) {
 
     // TODO: Validate spec
     const ctx = {
+      fs,
       log,
       spec,
       opts,
       util: { fixName },
       defpath: Path.dirname(defpath),
       model,
+      apimodel,
+      def: undefined
     }
-
-
-    // resolve guide here
-
-
-    const transformSpec = await resolveTransforms(ctx)
-
-    log.debug({
-      point: 'transform', spec: transformSpec,
-      note: log.levelVal <= 20 ? inspect(transformSpec) : ''
-    })
-
 
     let source
     try {
@@ -102,15 +122,16 @@ function ApiDef(opts: ApiDefOptions) {
     }
 
     const def = await parse('OpenAPI', source, { file: defpath })
+    ctx.def = def
 
-    const apimodel: ApiModel = {
-      main: {
-        api: {
-          entity: {}
-        },
-        def: {},
-      },
-    }
+    const guideBuilder = await resolveGuide(ctx)
+
+    const transformSpec = await resolveTransforms(ctx)
+
+    log.debug({
+      point: 'transform', spec: transformSpec,
+      note: log.levelVal <= 20 ? inspect(transformSpec) : ''
+    })
 
     const processResult = await processTransforms(ctx, transformSpec, apimodel, def)
 
@@ -125,11 +146,32 @@ function ApiDef(opts: ApiDefOptions) {
     }
 
 
-
-    // const modelPath = Path.normalize(spec.config.model)
-
     generateModel(apimodel, spec, opts, { fs, log })
 
+    const flowBuilder = await resolveFlows(ctx)
+
+
+    const jostraca = Jostraca({
+      now: spec.now,
+      fs: () => fs,
+      log,
+    })
+
+    const jmodel = {}
+
+    const root = () => Project({ folder: '.' }, async () => {
+      guideBuilder()
+      flowBuilder()
+    })
+
+    const jres = await jostraca.generate({
+      // folder: Path.dirname(opts.folder as string),
+      folder: opts.folder,
+      model: jmodel,
+      existing: { txt: { merge: true } }
+    }, root)
+
+    console.log('JRES', jres)
 
     log.info({ point: 'generate-end', note: 'success', break: true })
 

@@ -10,6 +10,7 @@ type ApiDefOptions = {
     folder?: string;
     meta?: Record<string, any>;
     outprefix?: string;
+    strategy?: string;
 };
 declare const ModelShape: {
     <V>(root?: V | undefined, ctx?: import("gubu").Context): V & {
@@ -17,7 +18,9 @@ declare const ModelShape: {
         main: {
             sdk: {};
             def: {};
-            api: {};
+            api: {
+                guide: {};
+            };
         };
     };
     valid: <V>(root?: V | undefined, ctx?: import("gubu").Context) => root is V & {
@@ -25,7 +28,9 @@ declare const ModelShape: {
         main: {
             sdk: {};
             def: {};
-            api: {};
+            api: {
+                guide: {};
+            };
         };
     };
     match(root?: any, ctx?: import("gubu").Context): boolean;
@@ -71,7 +76,9 @@ declare const ModelShape: {
         main: {
             sdk: {};
             def: {};
-            api: {};
+            api: {
+                guide: {};
+            };
         };
     }>;
     stringify(...rest: any[]): string;
@@ -103,7 +110,9 @@ declare const OpenModelShape: {
             main: {
                 sdk: {};
                 def: {};
-                api: {};
+                api: {
+                    guide: {};
+                };
             };
         };
         valid: <V_1>(root?: V_1 | undefined, ctx?: import("gubu").Context) => root is V_1 & {
@@ -111,7 +120,9 @@ declare const OpenModelShape: {
             main: {
                 sdk: {};
                 def: {};
-                api: {};
+                api: {
+                    guide: {};
+                };
             };
         };
         match(root?: any, ctx?: import("gubu").Context): boolean;
@@ -157,7 +168,9 @@ declare const OpenModelShape: {
             main: {
                 sdk: {};
                 def: {};
-                api: {};
+                api: {
+                    guide: {};
+                };
             };
         }>;
         stringify(...rest: any[]): string;
@@ -212,7 +225,9 @@ declare const OpenModelShape: {
             main: {
                 sdk: {};
                 def: {};
-                api: {};
+                api: {
+                    guide: {};
+                };
             };
         };
         valid: <V>(root?: V | undefined, ctx?: import("gubu").Context) => root is V & {
@@ -220,7 +235,9 @@ declare const OpenModelShape: {
             main: {
                 sdk: {};
                 def: {};
-                api: {};
+                api: {
+                    guide: {};
+                };
             };
         };
         match(root?: any, ctx?: import("gubu").Context): boolean;
@@ -266,7 +283,9 @@ declare const OpenModelShape: {
             main: {
                 sdk: {};
                 def: {};
-                api: {};
+                api: {
+                    guide: {};
+                };
             };
         }>;
         stringify(...rest: any[]): string;

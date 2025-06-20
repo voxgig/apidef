@@ -42,20 +42,37 @@ exports.ApiDef = ApiDef;
 const Fs = __importStar(require("node:fs"));
 const node_path_1 = __importDefault(require("node:path"));
 const node_util_1 = require("node:util");
+// import { bundleFromString, createConfig } from '@redocly/openapi-core'
+// import { Gubu, Open, Any } from 'gubu'
+const jostraca_1 = require("jostraca");
 const util_1 = require("@voxgig/util");
 const types_1 = require("./types");
+const guide_1 = require("./guide");
+const flow_1 = require("./flow");
 const parse_1 = require("./parse");
 Object.defineProperty(exports, "parse", { enumerable: true, get: function () { return parse_1.parse; } });
 const transform_1 = require("./transform");
 const generate_1 = require("./generate");
 function ApiDef(opts) {
+    // TODO: gubu opts!
     const fs = opts.fs || Fs;
     const pino = (0, util_1.prettyPino)('apidef', opts);
     const log = pino.child({ cmp: 'apidef' });
+    opts.strategy = opts.strategy || 'heuristic01';
     async function generate(spec) {
         const start = Date.now();
+        console.log('APIDEF GENERATE');
+        console.dir(spec, { depth: null });
         const model = (0, types_1.OpenModelShape)(spec.model);
         const build = (0, types_1.OpenBuildShape)(spec.build);
+        const apimodel = {
+            main: {
+                api: {
+                    entity: {}
+                },
+                def: {},
+            },
+        };
         const buildspec = build.spec;
         let defpath = model.def;
         // TOOD: defpath should be independently defined
@@ -66,19 +83,16 @@ function ApiDef(opts) {
         });
         // TODO: Validate spec
         const ctx = {
+            fs,
             log,
             spec,
             opts,
             util: { fixName: transform_1.fixName },
             defpath: node_path_1.default.dirname(defpath),
             model,
+            apimodel,
+            def: undefined
         };
-        // resolve guide here
-        const transformSpec = await (0, transform_1.resolveTransforms)(ctx);
-        log.debug({
-            point: 'transform', spec: transformSpec,
-            note: log.levelVal <= 20 ? (0, node_util_1.inspect)(transformSpec) : ''
-        });
         let source;
         try {
             source = fs.readFileSync(defpath, 'utf8');
@@ -88,14 +102,13 @@ function ApiDef(opts) {
             throw err;
         }
         const def = await (0, parse_1.parse)('OpenAPI', source, { file: defpath });
-        const apimodel = {
-            main: {
-                api: {
-                    entity: {}
-                },
-                def: {},
-            },
-        };
+        ctx.def = def;
+        const guideBuilder = await (0, guide_1.resolveGuide)(ctx);
+        const transformSpec = await (0, transform_1.resolveTransforms)(ctx);
+        log.debug({
+            point: 'transform', spec: transformSpec,
+            note: log.levelVal <= 20 ? (0, node_util_1.inspect)(transformSpec) : ''
+        });
         const processResult = await (0, transform_1.processTransforms)(ctx, transformSpec, apimodel, def);
         if (!processResult.ok) {
             log.error({
@@ -105,8 +118,25 @@ function ApiDef(opts) {
             });
             return { ok: false, name: 'apidef', processResult };
         }
-        // const modelPath = Path.normalize(spec.config.model)
         (0, generate_1.generateModel)(apimodel, spec, opts, { fs, log });
+        const flowBuilder = await (0, flow_1.resolveFlows)(ctx);
+        const jostraca = (0, jostraca_1.Jostraca)({
+            now: spec.now,
+            fs: () => fs,
+            log,
+        });
+        const jmodel = {};
+        const root = () => (0, jostraca_1.Project)({ folder: '.' }, async () => {
+            guideBuilder();
+            flowBuilder();
+        });
+        const jres = await jostraca.generate({
+            // folder: Path.dirname(opts.folder as string),
+            folder: opts.folder,
+            model: jmodel,
+            existing: { txt: { merge: true } }
+        }, root);
+        console.log('JRES', jres);
         log.info({ point: 'generate-end', note: 'success', break: true });
         return {
             ok: true,

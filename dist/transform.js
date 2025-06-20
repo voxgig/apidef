@@ -53,10 +53,16 @@ async function resolveTransforms(ctx) {
         point: 'transform', note: 'order: ' + transformNames.join(';'),
         order: transformNames
     });
-    for (const tn of transformNames) {
-        log.debug({ what: 'transform', transform: tn, note: tn });
-        const transform = await resolveTransform(tn, ctx);
-        tspec.transform.push(transform);
+    try {
+        for (const tn of transformNames) {
+            log.debug({ what: 'transform', transform: tn, note: tn });
+            const transform = await resolveTransform(tn, ctx);
+            tspec.transform.push(transform);
+        }
+    }
+    catch (err) {
+        console.log(err);
+        throw err;
     }
     return tspec;
 }
@@ -105,6 +111,8 @@ async function processTransforms(ctx, spec, apimodel, def) {
             pres.results.push(tres);
         }
         catch (err) {
+            // TODO: fix: this error does not get printed
+            console.log(err);
             pres.ok = false;
             pres.msg += transform.name + ': ' + err.message + '\n';
             pres.results.push({

@@ -11,52 +11,32 @@ const __1 = require("../");
         (0, code_1.expect)(__1.ApiDef).exist();
     });
     (0, node_test_1.test)('api-statuspage', async () => {
-        const build = await __1.ApiDef.makeBuild({
-            folder: __dirname + '/../test/api',
-            debug: 'debug',
-            outprefix: 'statuspage-1.0.0-20241218-'
-        });
-        const model = (0, aontu_1.Aontu)(`
+        try {
+            let outprefix = 'statuspage-1.0.0-20241218-';
+            const build = await __1.ApiDef.makeBuild({
+                folder: __dirname + '/../test/api',
+                debug: 'debug',
+                outprefix,
+            });
+            const modelSrc = `
 @"@voxgig/apidef/model/apidef.jsonic"
 
-def: 'statuspage-1.0.0-20241218-def.json'
-
-main: api: guide: {
-
-entity: page: {
-  path: {
-    '/pages/{page_id}': op: {
-      load: { method: get, place: foo }
-      update: method: put
-    }
-  }
-}
-
-entity: incident: {
-  path: {
-    '/pages/{page_id}/incidents': op: {
-      create: method: post
-      list: method: get    
-    }
-    '/pages/{page_id}/incidents/{incident_id}': op: {
-      remove: method: delete
-      update: method: put
-      load: method: get
-    }
-  }
-}
-
-
-}
-
-`).gen();
-        // console.dir(model, { depth: null })
-        const buildspec = {
-            spec: {
-                base: __dirname + '/../test/api'
-            }
-        };
-        await build(model, buildspec, {});
+def: '${outprefix}def.json'
+`;
+            console.log('MODELSRC', modelSrc);
+            const model = (0, aontu_1.Aontu)(modelSrc).gen();
+            // console.dir(model, { depth: null })
+            const buildspec = {
+                spec: {
+                    base: __dirname + '/../test/api'
+                }
+            };
+            await build(model, buildspec, {});
+        }
+        catch (err) {
+            console.log(err);
+            throw err;
+        }
     });
 });
 //# sourceMappingURL=apidef.test.js.map

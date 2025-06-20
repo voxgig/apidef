@@ -98,10 +98,16 @@ async function resolveTransforms(ctx: TransformCtx): Promise<TransformSpec> {
     order: transformNames
   })
 
-  for (const tn of transformNames) {
-    log.debug({ what: 'transform', transform: tn, note: tn })
-    const transform = await resolveTransform(tn, ctx)
-    tspec.transform.push(transform)
+  try {
+    for (const tn of transformNames) {
+      log.debug({ what: 'transform', transform: tn, note: tn })
+      const transform = await resolveTransform(tn, ctx)
+      tspec.transform.push(transform)
+    }
+  }
+  catch (err: any) {
+    console.log(err)
+    throw err
   }
 
   return tspec
@@ -171,6 +177,9 @@ async function processTransforms(
       pres.results.push(tres)
     }
     catch (err: any) {
+      // TODO: fix: this error does not get printed
+      console.log(err)
+
       pres.ok = false
       pres.msg += transform.name + ': ' + err.message + '\n'
       pres.results.push({

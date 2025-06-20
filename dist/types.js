@@ -8,7 +8,9 @@ const ModelShape = (0, gubu_1.Gubu)({
     main: {
         sdk: {},
         def: {},
-        api: {},
+        api: {
+            guide: {}
+        },
     }
 });
 const OpenModelShape = (0, gubu_1.Gubu)((0, gubu_1.Open)(ModelShape));
