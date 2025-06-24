@@ -1,0 +1,12 @@
+# BasicPageAccessGroupFlow
+
+main.sdk.flow.BasicPageAccessGroupFlow:
+{
+  "param": {},
+  "test": {
+    "entity": {
+      "PageAccessGroup": {}
+    }
+  },
+  "step": []
+}

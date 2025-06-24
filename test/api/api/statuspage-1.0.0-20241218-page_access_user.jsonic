@@ -1,0 +1,198 @@
+# GENERATED FILE - DO NOT EDIT
+
+main.api.entity.page_access_user:
+
+"op": {
+  "update": {
+    "path": "/pages/{page_id}/page_access_users/{page_access_user_id}",
+    "method": "put",
+    "kind": "req",
+    "param": {
+      "page_id": {
+        "required": true,
+        "name": "page_id",
+        "Name": "PageId",
+        "NAME": "PAGE_ID",
+        "type": "string",
+        "Type": "String",
+        "TYPE": "STRING"
+      },
+      "page_access_user_id": {
+        "required": true,
+        "name": "page_access_user_id",
+        "Name": "PageAccessUserId",
+        "NAME": "PAGE_ACCESS_USER_ID",
+        "type": "string",
+        "Type": "String",
+        "TYPE": "STRING"
+      }
+    },
+    "query": {},
+    "resform": "`reqdata`",
+    "reqform": "`reqdata`",
+    "name": "update",
+    "Name": "Update",
+    "NAME": "UPDATE"
+  },
+  "remove": {
+    "path": "/pages/{page_id}/page_access_users/{page_access_user_id}",
+    "method": "delete",
+    "kind": "res",
+    "param": {
+      "page_id": {
+        "required": true,
+        "name": "page_id",
+        "Name": "PageId",
+        "NAME": "PAGE_ID",
+        "type": "string",
+        "Type": "String",
+        "TYPE": "STRING"
+      },
+      "page_access_user_id": {
+        "required": true,
+        "name": "page_access_user_id",
+        "Name": "PageAccessUserId",
+        "NAME": "PAGE_ACCESS_USER_ID",
+        "type": "string",
+        "Type": "String",
+        "TYPE": "STRING"
+      }
+    },
+    "query": {},
+    "resform": "`body`",
+    "reqform": "`body`",
+    "name": "remove",
+    "Name": "Remove",
+    "NAME": "REMOVE"
+  },
+  "load": {
+    "path": "/pages/{page_id}/page_access_users/{page_access_user_id}",
+    "method": "get",
+    "kind": "res",
+    "param": {
+      "page_id": {
+        "required": true,
+        "name": "page_id",
+        "Name": "PageId",
+        "NAME": "PAGE_ID",
+        "type": "string",
+        "Type": "String",
+        "TYPE": "STRING"
+      },
+      "page_access_user_id": {
+        "required": true,
+        "name": "page_access_user_id",
+        "Name": "PageAccessUserId",
+        "NAME": "PAGE_ACCESS_USER_ID",
+        "type": "string",
+        "Type": "String",
+        "TYPE": "STRING"
+      }
+    },
+    "query": {},
+    "resform": "`body`",
+    "reqform": "`data`",
+    "name": "load",
+    "Name": "Load",
+    "NAME": "LOAD"
+  },
+  "list": {
+    "path": "/pages/{page_id}/page_access_users",
+    "method": "get",
+    "kind": "res",
+    "param": {
+      "page_id": {
+        "required": true,
+        "name": "page_id",
+        "Name": "PageId",
+        "NAME": "PAGE_ID",
+        "type": "string",
+        "Type": "String",
+        "TYPE": "STRING"
+      }
+    },
+    "query": {},
+    "resform": "`body`",
+    "reqform": "`data`",
+    "name": "list",
+    "Name": "List",
+    "NAME": "LIST"
+  }
+},
+"field": {
+  "id": {
+    "name": "id",
+    "Name": "Id",
+    "NAME": "ID",
+    "type": "string",
+    "Type": "String",
+    "TYPE": "STRING",
+    "short": "Page Access User Identifier"
+  },
+  "page_id": {
+    "name": "page_id",
+    "Name": "PageId",
+    "NAME": "PAGE_ID",
+    "type": "string",
+    "Type": "String",
+    "TYPE": "STRING"
+  },
+  "email": {
+    "name": "email",
+    "Name": "Email",
+    "NAME": "EMAIL",
+    "type": "string",
+    "Type": "String",
+    "TYPE": "STRING"
+  },
+  "external_login": {
+    "name": "external_login",
+    "Name": "ExternalLogin",
+    "NAME": "EXTERNAL_LOGIN",
+    "type": "string",
+    "Type": "String",
+    "TYPE": "STRING",
+    "short": "IDP login user id. Key is typically \"uid\"."
+  },
+  "page_access_group_id": {
+    "name": "page_access_group_id",
+    "Name": "PageAccessGroupId",
+    "NAME": "PAGE_ACCESS_GROUP_ID",
+    "type": "string",
+    "Type": "String",
+    "TYPE": "STRING"
+  },
+  "page_access_group_ids": {
+    "name": "page_access_group_ids",
+    "Name": "PageAccessGroupIds",
+    "NAME": "PAGE_ACCESS_GROUP_IDS",
+    "type": "string",
+    "Type": "String",
+    "TYPE": "STRING"
+  },
+  "created_at": {
+    "name": "created_at",
+    "Name": "CreatedAt",
+    "NAME": "CREATED_AT",
+    "type": "string",
+    "Type": "String",
+    "TYPE": "STRING"
+  },
+  "updated_at": {
+    "name": "updated_at",
+    "Name": "UpdatedAt",
+    "NAME": "UPDATED_AT",
+    "type": "string",
+    "Type": "String",
+    "TYPE": "STRING"
+  }
+},
+"cmd": {},
+"id": {
+  "name": "id",
+  "field": "id"
+},
+"name": "page_access_user",
+"Name": "PageAccessUser",
+"NAME": "PAGE_ACCESS_USER",
+"key$": "page_access_user"

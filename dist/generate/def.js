@@ -7,10 +7,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateDef = generateDef;
 const node_path_1 = __importDefault(require("node:path"));
 const utility_1 = require("../utility");
-function generateDef(apimodel, modelPath, opts, res) {
+function generateDef(apimodel, opts, res) {
     const { fs, log } = res;
-    const modelBasePath = node_path_1.default.dirname(modelPath);
-    const defFilePath = node_path_1.default.join(modelBasePath, (null == opts.outprefix ? '' : opts.outprefix) + 'def-generated.jsonic');
+    const folder = opts.folder;
+    const defFilePath = node_path_1.default.join(folder, (null == opts.outprefix ? '' : opts.outprefix) + 'def-generated.jsonic');
     const modelDef = { main: { def: apimodel.main.def } };
     let modelDefSrc = JSON.stringify(modelDef, null, 2);
     modelDefSrc =

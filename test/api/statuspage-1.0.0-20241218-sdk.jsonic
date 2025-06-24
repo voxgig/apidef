@@ -1,0 +1,18 @@
+
+@"api/statuspage-1.0.0-20241218-entity-index.jsonic"
+
+main: sdk: entity: {}
+@"entity/user.jsonic"
+@"entity/subscriber.jsonic"
+@"entity/permission.jsonic"
+@"entity/page_access_user.jsonic"
+@"entity/page_access_group.jsonic"
+@"entity/page.jsonic"
+@"entity/metrics_provider.jsonic"
+@"entity/metric.jsonic"
+@"entity/incident_update.jsonic"
+@"entity/incident.jsonic"
+@"entity/component_group.jsonic"
+@"entity/component.jsonic"
+
+

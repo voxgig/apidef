@@ -126,6 +126,7 @@ function ApiDef(opts: ApiDefOptions) {
 
     const guideBuilder = await resolveGuide(ctx)
 
+
     const transformSpec = await resolveTransforms(ctx)
 
     log.debug({
@@ -144,6 +145,7 @@ function ApiDef(opts: ApiDefOptions) {
 
       return { ok: false, name: 'apidef', processResult }
     }
+
 
 
     generateModel(apimodel, spec, opts, { fs, log })
@@ -182,10 +184,6 @@ function ApiDef(opts: ApiDefOptions) {
     }
   }
 
-
-
-
-
   return {
     generate,
   }
@@ -201,8 +199,8 @@ ApiDef.makeBuild = async function(opts: ApiDefOptions) {
   const config = {
     def: opts.def || 'no-def',
     kind: 'openapi3',
-    model: opts.folder ?
-      (opts.folder + '/' + outprefix + 'api-generated.jsonic') : 'no-model',
+    // model: opts.folder ?
+    //  (opts.folder + '/' + outprefix + 'api-generated.jsonic') : 'no-model',
     meta: opts.meta || {},
   }
 

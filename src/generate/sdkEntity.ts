@@ -20,12 +20,11 @@ import {
 
 function generateSdkEntity(
   apimodel: ApiModel,
-  modelPath: string,
   opts: ApiDefOptions,
   res: { fs: FsUtil, log: Log }
 ) {
   const { fs, log } = res
-  const modelBasePath = Path.dirname(modelPath)
+  const folder = opts.folder as string
 
   const entityIncludes: string[] = []
 
@@ -58,7 +57,7 @@ main: sdk: entity: ${entity.name}: {
 }
 
 `
-    const entityFilePath = Path.join(modelBasePath, 'entity',
+    const entityFilePath = Path.join(folder, 'entity',
       (null == opts.outprefix ? '' : opts.outprefix) + entity.name + '.jsonic')
 
     fs.mkdirSync(Path.dirname(entityFilePath), { recursive: true })
@@ -72,7 +71,7 @@ main: sdk: entity: ${entity.name}: {
     fs,
     opts,
     Path.join(
-      modelBasePath,
+      folder,
       (null == opts.outprefix ? '' : opts.outprefix) + 'sdk.jsonic'),
     entityIncludes
   )
@@ -84,6 +83,8 @@ async function modifyModel(fs: any, opts: any, path: string, entityIncludes: str
   // Aontu should provide option for as-is AST so that can be used
   // to find injection point more reliably
 
+
+  // USE A BARREL FILE INSTEAD
 
   let src = fs.existsSync(path) ? fs.readFileSync(path, 'utf8') :
     `

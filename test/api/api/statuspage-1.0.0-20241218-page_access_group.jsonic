@@ -1,0 +1,210 @@
+# GENERATED FILE - DO NOT EDIT
+
+main.api.entity.page_access_group:
+
+"op": {
+  "load": {
+    "path": "/pages/{page_id}/page_access_groups/{page_access_group_id}",
+    "method": "get",
+    "kind": "res",
+    "param": {
+      "page_id": {
+        "required": true,
+        "name": "page_id",
+        "Name": "PageId",
+        "NAME": "PAGE_ID",
+        "type": "string",
+        "Type": "String",
+        "TYPE": "STRING"
+      },
+      "page_access_group_id": {
+        "required": true,
+        "name": "page_access_group_id",
+        "Name": "PageAccessGroupId",
+        "NAME": "PAGE_ACCESS_GROUP_ID",
+        "type": "string",
+        "Type": "String",
+        "TYPE": "STRING"
+      }
+    },
+    "query": {},
+    "resform": "`body`",
+    "reqform": "`data`",
+    "name": "load",
+    "Name": "Load",
+    "NAME": "LOAD"
+  },
+  "update": {
+    "path": "/pages/{page_id}/page_access_groups/{page_access_group_id}",
+    "method": "put",
+    "kind": "req",
+    "param": {
+      "page_id": {
+        "required": true,
+        "name": "page_id",
+        "Name": "PageId",
+        "NAME": "PAGE_ID",
+        "type": "string",
+        "Type": "String",
+        "TYPE": "STRING"
+      },
+      "page_access_group_id": {
+        "required": true,
+        "name": "page_access_group_id",
+        "Name": "PageAccessGroupId",
+        "NAME": "PAGE_ACCESS_GROUP_ID",
+        "type": "string",
+        "Type": "String",
+        "TYPE": "STRING"
+      }
+    },
+    "query": {},
+    "resform": "`body.page_access_group`",
+    "reqform": {
+      "page_access_group": "`reqdata`"
+    },
+    "name": "update",
+    "Name": "Update",
+    "NAME": "UPDATE"
+  },
+  "remove": {
+    "path": "/pages/{page_id}/page_access_groups/{page_access_group_id}",
+    "method": "delete",
+    "kind": "res",
+    "param": {
+      "page_id": {
+        "required": true,
+        "name": "page_id",
+        "Name": "PageId",
+        "NAME": "PAGE_ID",
+        "type": "string",
+        "Type": "String",
+        "TYPE": "STRING"
+      },
+      "page_access_group_id": {
+        "required": true,
+        "name": "page_access_group_id",
+        "Name": "PageAccessGroupId",
+        "NAME": "PAGE_ACCESS_GROUP_ID",
+        "type": "string",
+        "Type": "String",
+        "TYPE": "STRING"
+      }
+    },
+    "query": {},
+    "resform": "`body`",
+    "reqform": "`data`",
+    "name": "remove",
+    "Name": "Remove",
+    "NAME": "REMOVE"
+  },
+  "list": {
+    "path": "/pages/{page_id}/page_access_groups",
+    "method": "get",
+    "kind": "res",
+    "param": {
+      "page_id": {
+        "required": true,
+        "name": "page_id",
+        "Name": "PageId",
+        "NAME": "PAGE_ID",
+        "type": "string",
+        "Type": "String",
+        "TYPE": "STRING"
+      }
+    },
+    "query": {},
+    "resform": "`body`",
+    "reqform": "`data`",
+    "name": "list",
+    "Name": "List",
+    "NAME": "LIST"
+  }
+},
+"field": {
+  "id": {
+    "name": "id",
+    "Name": "Id",
+    "NAME": "ID",
+    "type": "string",
+    "Type": "String",
+    "TYPE": "STRING",
+    "short": "Page Access Group Identifier"
+  },
+  "page_id": {
+    "name": "page_id",
+    "Name": "PageId",
+    "NAME": "PAGE_ID",
+    "type": "string",
+    "Type": "String",
+    "TYPE": "STRING",
+    "short": "Page Identifier."
+  },
+  "name": {
+    "name": "name",
+    "Name": "Name",
+    "NAME": "NAME",
+    "type": "string",
+    "Type": "String",
+    "TYPE": "STRING",
+    "short": "Name for this Group."
+  },
+  "page_access_user_ids": {
+    "name": "page_access_user_ids",
+    "Name": "PageAccessUserIds",
+    "NAME": "PAGE_ACCESS_USER_IDS",
+    "type": "array",
+    "Type": "Array",
+    "TYPE": "ARRAY"
+  },
+  "external_identifier": {
+    "name": "external_identifier",
+    "Name": "ExternalIdentifier",
+    "NAME": "EXTERNAL_IDENTIFIER",
+    "type": "string",
+    "Type": "String",
+    "TYPE": "STRING",
+    "short": "Associates group with external group."
+  },
+  "metric_ids": {
+    "name": "metric_ids",
+    "Name": "MetricIds",
+    "NAME": "METRIC_IDS",
+    "type": "array",
+    "Type": "Array",
+    "TYPE": "ARRAY"
+  },
+  "component_ids": {
+    "name": "component_ids",
+    "Name": "ComponentIds",
+    "NAME": "COMPONENT_IDS",
+    "type": "array",
+    "Type": "Array",
+    "TYPE": "ARRAY"
+  },
+  "created_at": {
+    "name": "created_at",
+    "Name": "CreatedAt",
+    "NAME": "CREATED_AT",
+    "type": "string",
+    "Type": "String",
+    "TYPE": "STRING"
+  },
+  "updated_at": {
+    "name": "updated_at",
+    "Name": "UpdatedAt",
+    "NAME": "UPDATED_AT",
+    "type": "string",
+    "Type": "String",
+    "TYPE": "STRING"
+  }
+},
+"cmd": {},
+"id": {
+  "name": "id",
+  "field": "id"
+},
+"name": "page_access_group",
+"Name": "PageAccessGroup",
+"NAME": "PAGE_ACCESS_GROUP",
+"key$": "page_access_group"

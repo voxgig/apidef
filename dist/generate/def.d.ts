@@ -1,5 +1,5 @@
 import type { ApiDefOptions, ApiModel, Log, FsUtil } from '../types';
-declare function generateDef(apimodel: ApiModel, modelPath: string, opts: ApiDefOptions, res: {
+declare function generateDef(apimodel: ApiModel, opts: ApiDefOptions, res: {
     fs: FsUtil;
     log: Log;
 }): void;

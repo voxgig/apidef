@@ -29,32 +29,16 @@ import {
 } from './generate/sdkEntity'
 
 
+
 function generateModel(
   apimodel: any,
   spec: any,
   opts: ApiDefOptions,
   res: { fs: FsUtil, log: Log }
 ) {
-  const { fs, log } = res
-
-
-  // TODO: remove << 
-  const modelPath = Path.normalize(spec.config.model)
-
-  const modelapi = { main: { api: apimodel.main.api } }
-  let modelSrc = JSON.stringify(modelapi, null, 2)
-
-  modelSrc =
-    '# GENERATED FILE - DO NOT EDIT\n\n' +
-    modelSrc.substring(1, modelSrc.length - 1).replace(/\n  /g, '\n')
-
-  writeChanged('api-model', modelPath, modelSrc, fs, log)
-  // TODO: remove >> 
-
   generateApiEntity(apimodel, spec, opts, res)
-
-  generateDef(apimodel, modelPath, opts, res)
-  generateSdkEntity(apimodel, modelPath, opts, res)
+  generateDef(apimodel, opts, res)
+  generateSdkEntity(apimodel, opts, res)
 }
 
 

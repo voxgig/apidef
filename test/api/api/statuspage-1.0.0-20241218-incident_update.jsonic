@@ -1,0 +1,58 @@
+# GENERATED FILE - DO NOT EDIT
+
+main.api.entity.incident_update:
+
+"op": {
+  "update": {
+    "path": "/pages/{page_id}/incidents/{incident_id}/incident_updates/{incident_update_id}",
+    "method": "put",
+    "kind": "req",
+    "param": {
+      "page_id": {
+        "required": true,
+        "name": "page_id",
+        "Name": "PageId",
+        "NAME": "PAGE_ID",
+        "type": "string",
+        "Type": "String",
+        "TYPE": "STRING"
+      },
+      "incident_id": {
+        "required": true,
+        "name": "incident_id",
+        "Name": "IncidentId",
+        "NAME": "INCIDENT_ID",
+        "type": "string",
+        "Type": "String",
+        "TYPE": "STRING"
+      },
+      "incident_update_id": {
+        "required": true,
+        "name": "incident_update_id",
+        "Name": "IncidentUpdateId",
+        "NAME": "INCIDENT_UPDATE_ID",
+        "type": "string",
+        "Type": "String",
+        "TYPE": "STRING"
+      }
+    },
+    "query": {},
+    "resform": "`body.incident_update`",
+    "reqform": {
+      "incident_update": "`reqdata`"
+    },
+    "name": "update",
+    "Name": "Update",
+    "NAME": "UPDATE"
+  }
+},
+"field": {},
+"cmd": {},
+"id": {
+  "name": "id",
+  "field": "id"
+},
+"name": "incident_update",
+"Name": "IncidentUpdate",
+"NAME": "INCIDENT_UPDATE",
+"key$": "incident_update"

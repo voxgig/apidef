@@ -1,0 +1,12 @@
+# BasicComponentFlow
+
+main.sdk.flow.BasicComponentFlow:
+{
+  "param": {},
+  "test": {
+    "entity": {
+      "Component": {}
+    }
+  },
+  "step": []
+}

@@ -154,8 +154,8 @@ ApiDef.makeBuild = async function (opts) {
     const config = {
         def: opts.def || 'no-def',
         kind: 'openapi3',
-        model: opts.folder ?
-            (opts.folder + '/' + outprefix + 'api-generated.jsonic') : 'no-model',
+        // model: opts.folder ?
+        //  (opts.folder + '/' + outprefix + 'api-generated.jsonic') : 'no-model',
         meta: opts.meta || {},
     };
     const build = async function (model, build, ctx) {

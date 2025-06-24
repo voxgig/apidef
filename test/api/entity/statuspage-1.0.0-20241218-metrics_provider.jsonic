@@ -1,0 +1,10 @@
+
+# Entity metrics_provider
+
+main: sdk: entity: metrics_provider: {
+  alias: field: {
+    "metrics_provider_id": "id",
+    "id": "metrics_provider_id"
+  }
+}
+

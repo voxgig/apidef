@@ -1,0 +1,12 @@
+# BasicSubscriberFlow
+
+main.sdk.flow.BasicSubscriberFlow:
+{
+  "param": {},
+  "test": {
+    "entity": {
+      "Subscriber": {}
+    }
+  },
+  "step": []
+}

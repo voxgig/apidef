@@ -1,0 +1,199 @@
+# GENERATED FILE - DO NOT EDIT
+
+main.api.entity.component_group:
+
+"op": {
+  "update": {
+    "path": "/pages/{page_id}/component-groups/{id}",
+    "method": "put",
+    "kind": "req",
+    "param": {
+      "page_id": {
+        "required": true,
+        "name": "page_id",
+        "Name": "PageId",
+        "NAME": "PAGE_ID",
+        "type": "string",
+        "Type": "String",
+        "TYPE": "STRING"
+      },
+      "id": {
+        "required": true,
+        "name": "id",
+        "Name": "Id",
+        "NAME": "ID",
+        "type": "string",
+        "Type": "String",
+        "TYPE": "STRING"
+      }
+    },
+    "query": {},
+    "resform": "`body`",
+    "reqform": {
+      "component_group": "`reqdata`"
+    },
+    "name": "update",
+    "Name": "Update",
+    "NAME": "UPDATE"
+  },
+  "remove": {
+    "path": "/pages/{page_id}/component-groups/{id}",
+    "method": "delete",
+    "kind": "res",
+    "param": {
+      "page_id": {
+        "required": true,
+        "name": "page_id",
+        "Name": "PageId",
+        "NAME": "PAGE_ID",
+        "type": "string",
+        "Type": "String",
+        "TYPE": "STRING"
+      },
+      "id": {
+        "required": true,
+        "name": "id",
+        "Name": "Id",
+        "NAME": "ID",
+        "type": "string",
+        "Type": "String",
+        "TYPE": "STRING"
+      }
+    },
+    "query": {},
+    "resform": "`body`",
+    "reqform": "`data`",
+    "name": "remove",
+    "Name": "Remove",
+    "NAME": "REMOVE"
+  },
+  "load": {
+    "path": "/pages/{page_id}/component-groups/{id}",
+    "method": "get",
+    "kind": "res",
+    "param": {
+      "page_id": {
+        "required": true,
+        "name": "page_id",
+        "Name": "PageId",
+        "NAME": "PAGE_ID",
+        "type": "string",
+        "Type": "String",
+        "TYPE": "STRING"
+      },
+      "id": {
+        "required": true,
+        "name": "id",
+        "Name": "Id",
+        "NAME": "ID",
+        "type": "string",
+        "Type": "String",
+        "TYPE": "STRING"
+      }
+    },
+    "query": {},
+    "resform": "`body`",
+    "reqform": "`data`",
+    "name": "load",
+    "Name": "Load",
+    "NAME": "LOAD"
+  },
+  "list": {
+    "path": "/pages/{page_id}/component-groups",
+    "method": "get",
+    "kind": "res",
+    "param": {
+      "page_id": {
+        "required": true,
+        "name": "page_id",
+        "Name": "PageId",
+        "NAME": "PAGE_ID",
+        "type": "string",
+        "Type": "String",
+        "TYPE": "STRING"
+      }
+    },
+    "query": {},
+    "resform": "`body`",
+    "reqform": "`data`",
+    "name": "list",
+    "Name": "List",
+    "NAME": "LIST"
+  }
+},
+"field": {
+  "id": {
+    "name": "id",
+    "Name": "Id",
+    "NAME": "ID",
+    "type": "string",
+    "Type": "String",
+    "TYPE": "STRING",
+    "short": "Component Group Identifier"
+  },
+  "page_id": {
+    "name": "page_id",
+    "Name": "PageId",
+    "NAME": "PAGE_ID",
+    "type": "string",
+    "Type": "String",
+    "TYPE": "STRING"
+  },
+  "name": {
+    "name": "name",
+    "Name": "Name",
+    "NAME": "NAME",
+    "type": "string",
+    "Type": "String",
+    "TYPE": "STRING"
+  },
+  "description": {
+    "name": "description",
+    "Name": "Description",
+    "NAME": "DESCRIPTION",
+    "type": "string",
+    "Type": "String",
+    "TYPE": "STRING"
+  },
+  "components": {
+    "name": "components",
+    "Name": "Components",
+    "NAME": "COMPONENTS",
+    "type": "string",
+    "Type": "String",
+    "TYPE": "STRING"
+  },
+  "position": {
+    "name": "position",
+    "Name": "Position",
+    "NAME": "POSITION",
+    "type": "string",
+    "Type": "String",
+    "TYPE": "STRING"
+  },
+  "created_at": {
+    "name": "created_at",
+    "Name": "CreatedAt",
+    "NAME": "CREATED_AT",
+    "type": "string",
+    "Type": "String",
+    "TYPE": "STRING"
+  },
+  "updated_at": {
+    "name": "updated_at",
+    "Name": "UpdatedAt",
+    "NAME": "UPDATED_AT",
+    "type": "string",
+    "Type": "String",
+    "TYPE": "STRING"
+  }
+},
+"cmd": {},
+"id": {
+  "name": "id",
+  "field": "id"
+},
+"name": "component_group",
+"Name": "ComponentGroup",
+"NAME": "COMPONENT_GROUP",
+"key$": "component_group"

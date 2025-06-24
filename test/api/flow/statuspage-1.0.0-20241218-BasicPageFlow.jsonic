@@ -1,0 +1,12 @@
+# BasicPageFlow
+
+main.sdk.flow.BasicPageFlow:
+{
+  "param": {},
+  "test": {
+    "entity": {
+      "Page": {}
+    }
+  },
+  "step": []
+}

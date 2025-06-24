@@ -8,9 +8,9 @@ exports.generateSdkEntity = generateSdkEntity;
 const node_path_1 = __importDefault(require("node:path"));
 const jostraca_1 = require("jostraca");
 const utility_1 = require("../utility");
-function generateSdkEntity(apimodel, modelPath, opts, res) {
+function generateSdkEntity(apimodel, opts, res) {
     const { fs, log } = res;
-    const modelBasePath = node_path_1.default.dirname(modelPath);
+    const folder = opts.folder;
     const entityIncludes = [];
     (0, jostraca_1.each)(apimodel.main.api.entity, ((entity) => {
         entityIncludes.push(entity.name);
@@ -32,12 +32,12 @@ main: sdk: entity: ${entity.name}: {
 }
 
 `;
-        const entityFilePath = node_path_1.default.join(modelBasePath, 'entity', (null == opts.outprefix ? '' : opts.outprefix) + entity.name + '.jsonic');
+        const entityFilePath = node_path_1.default.join(folder, 'entity', (null == opts.outprefix ? '' : opts.outprefix) + entity.name + '.jsonic');
         fs.mkdirSync(node_path_1.default.dirname(entityFilePath), { recursive: true });
         // TODO: diff merge
         (0, utility_1.writeChanged)('entity-model', entityFilePath, entityFileSrc, fs, log, { update: false });
     }));
-    modifyModel(fs, opts, node_path_1.default.join(modelBasePath, (null == opts.outprefix ? '' : opts.outprefix) + 'sdk.jsonic'), entityIncludes);
+    modifyModel(fs, opts, node_path_1.default.join(folder, (null == opts.outprefix ? '' : opts.outprefix) + 'sdk.jsonic'), entityIncludes);
 }
 async function modifyModel(fs, opts, path, entityIncludes) {
     // TODO: This is a kludge.

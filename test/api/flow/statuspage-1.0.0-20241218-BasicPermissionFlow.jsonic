@@ -1,0 +1,12 @@
+# BasicPermissionFlow
+
+main.sdk.flow.BasicPermissionFlow:
+{
+  "param": {},
+  "test": {
+    "entity": {
+      "Permission": {}
+    }
+  },
+  "step": []
+}

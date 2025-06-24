@@ -1,0 +1,10 @@
+
+# Entity component
+
+main: sdk: entity: component: {
+  alias: field: {
+    "component_id": "id",
+    "id": "component_id"
+  }
+}
+

@@ -1,0 +1,12 @@
+# BasicMetricFlow
+
+main.sdk.flow.BasicMetricFlow:
+{
+  "param": {},
+  "test": {
+    "entity": {
+      "Metric": {}
+    }
+  },
+  "step": []
+}

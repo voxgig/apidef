@@ -18,13 +18,12 @@ import {
 
 function generateDef(
   apimodel: ApiModel,
-  modelPath: string,
   opts: ApiDefOptions,
   res: { fs: FsUtil, log: Log }
 ) {
   const { fs, log } = res
-  const modelBasePath = Path.dirname(modelPath)
-  const defFilePath = Path.join(modelBasePath,
+  const folder = opts.folder as string
+  const defFilePath = Path.join(folder,
     (null == opts.outprefix ? '' : opts.outprefix) + 'def-generated.jsonic')
 
   const modelDef = { main: { def: apimodel.main.def } }

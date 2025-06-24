@@ -1,0 +1,12 @@
+# BasicUserFlow
+
+main.sdk.flow.BasicUserFlow:
+{
+  "param": {},
+  "test": {
+    "entity": {
+      "User": {}
+    }
+  },
+  "step": []
+}

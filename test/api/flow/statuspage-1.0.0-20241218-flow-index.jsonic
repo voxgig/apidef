@@ -1,0 +1,14 @@
+# Flows
+
+@"statuspage-1.0.0-20241218-BasicPageFlow.jsonic"
+@"statuspage-1.0.0-20241218-BasicPageAccessUserFlow.jsonic"
+@"statuspage-1.0.0-20241218-BasicComponentFlow.jsonic"
+@"statuspage-1.0.0-20241218-BasicMetricFlow.jsonic"
+@"statuspage-1.0.0-20241218-BasicPageAccessGroupFlow.jsonic"
+@"statuspage-1.0.0-20241218-BasicSubscriberFlow.jsonic"
+@"statuspage-1.0.0-20241218-BasicIncidentFlow.jsonic"
+@"statuspage-1.0.0-20241218-BasicIncidentUpdateFlow.jsonic"
+@"statuspage-1.0.0-20241218-BasicComponentGroupFlow.jsonic"
+@"statuspage-1.0.0-20241218-BasicMetricsProviderFlow.jsonic"
+@"statuspage-1.0.0-20241218-BasicPermissionFlow.jsonic"
+@"statuspage-1.0.0-20241218-BasicUserFlow.jsonic"

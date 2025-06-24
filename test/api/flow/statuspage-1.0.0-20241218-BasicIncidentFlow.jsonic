@@ -1,0 +1,12 @@
+# BasicIncidentFlow
+
+main.sdk.flow.BasicIncidentFlow:
+{
+  "param": {},
+  "test": {
+    "entity": {
+      "Incident": {}
+    }
+  },
+  "step": []
+}

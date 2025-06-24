@@ -1,0 +1,12 @@
+# BasicComponentGroupFlow
+
+main.sdk.flow.BasicComponentGroupFlow:
+{
+  "param": {},
+  "test": {
+    "entity": {
+      "ComponentGroup": {}
+    }
+  },
+  "step": []
+}

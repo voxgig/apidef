@@ -1,0 +1,12 @@
+# BasicPageAccessUserFlow
+
+main.sdk.flow.BasicPageAccessUserFlow:
+{
+  "param": {},
+  "test": {
+    "entity": {
+      "PageAccessUser": {}
+    }
+  },
+  "step": []
+}

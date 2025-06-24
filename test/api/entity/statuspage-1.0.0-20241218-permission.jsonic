@@ -1,0 +1,7 @@
+
+# Entity permission
+
+main: sdk: entity: permission: {
+  alias: field: {}
+}
+

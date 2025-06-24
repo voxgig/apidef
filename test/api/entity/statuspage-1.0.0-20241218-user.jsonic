@@ -1,0 +1,10 @@
+
+# Entity user
+
+main: sdk: entity: user: {
+  alias: field: {
+    "user_id": "id",
+    "id": "user_id"
+  }
+}
+
