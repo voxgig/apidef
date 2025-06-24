@@ -43,6 +43,7 @@ async function modifyModel(fs, opts, path, entityIncludes) {
     // TODO: This is a kludge.
     // Aontu should provide option for as-is AST so that can be used
     // to find injection point more reliably
+    // USE A BARREL FILE INSTEAD
     let src = fs.existsSync(path) ? fs.readFileSync(path, 'utf8') :
         `
 @"api/${null == opts.outprefix ? '' : opts.outprefix}entity-index.jsonic"

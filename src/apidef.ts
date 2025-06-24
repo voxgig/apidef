@@ -4,9 +4,6 @@ import * as Fs from 'node:fs'
 import Path from 'node:path'
 import { inspect } from 'node:util'
 
-// import { bundleFromString, createConfig } from '@redocly/openapi-core'
-// import { Gubu, Open, Any } from 'gubu'
-
 import { Jostraca, Project } from 'jostraca'
 
 import { prettyPino } from '@voxgig/util'
@@ -53,7 +50,7 @@ import {
 
 
 import {
-  writeChanged
+  loadFile,
 } from './utility'
 
 
@@ -112,16 +109,9 @@ function ApiDef(opts: ApiDefOptions) {
       def: undefined
     }
 
-    let source
-    try {
-      source = fs.readFileSync(defpath, 'utf8')
-    }
-    catch (err: any) {
-      log.error({ read: 'fail', what: 'def', file: defpath, err })
-      throw err
-    }
+    const defsrc = loadFile(defpath, 'def', fs, log)
 
-    const def = await parse('OpenAPI', source, { file: defpath })
+    const def = await parse('OpenAPI', defsrc, { file: defpath })
     ctx.def = def
 
     const guideBuilder = await resolveGuide(ctx)

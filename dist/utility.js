@@ -3,8 +3,19 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.loadFile = loadFile;
 exports.writeChanged = writeChanged;
 const node_path_1 = __importDefault(require("node:path"));
+function loadFile(path, what, fs, log) {
+    try {
+        const source = fs.readFileSync(path, 'utf8');
+        return source;
+    }
+    catch (err) {
+        log.error({ load: 'fail', what, path, err });
+        throw err;
+    }
+}
 function writeChanged(point, path, content, fs, log, flags) {
     let exists = false;
     let changed = false;

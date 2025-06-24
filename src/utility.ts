@@ -8,6 +8,19 @@ import type {
 } from './types'
 
 
+function loadFile(path: string, what: string, fs: FsUtil, log: Log) {
+  try {
+    const source = fs.readFileSync(path, 'utf8')
+    return source
+  }
+  catch (err: any) {
+    log.error({ load: 'fail', what, path, err })
+    throw err
+  }
+}
+
+
+
 function writeChanged(
   point: string, path: string, content: string,
   fs: FsUtil, log: Log,
@@ -58,5 +71,6 @@ function writeChanged(
 
 
 export {
-  writeChanged
+  loadFile,
+  writeChanged,
 }

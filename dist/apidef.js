@@ -42,8 +42,6 @@ exports.ApiDef = ApiDef;
 const Fs = __importStar(require("node:fs"));
 const node_path_1 = __importDefault(require("node:path"));
 const node_util_1 = require("node:util");
-// import { bundleFromString, createConfig } from '@redocly/openapi-core'
-// import { Gubu, Open, Any } from 'gubu'
 const jostraca_1 = require("jostraca");
 const util_1 = require("@voxgig/util");
 const types_1 = require("./types");
@@ -53,6 +51,7 @@ const parse_1 = require("./parse");
 Object.defineProperty(exports, "parse", { enumerable: true, get: function () { return parse_1.parse; } });
 const transform_1 = require("./transform");
 const generate_1 = require("./generate");
+const utility_1 = require("./utility");
 function ApiDef(opts) {
     // TODO: gubu opts!
     const fs = opts.fs || Fs;
@@ -93,15 +92,8 @@ function ApiDef(opts) {
             apimodel,
             def: undefined
         };
-        let source;
-        try {
-            source = fs.readFileSync(defpath, 'utf8');
-        }
-        catch (err) {
-            log.error({ read: 'fail', what: 'def', file: defpath, err });
-            throw err;
-        }
-        const def = await (0, parse_1.parse)('OpenAPI', source, { file: defpath });
+        const defsrc = (0, utility_1.loadFile)(defpath, 'def', fs, log);
+        const def = await (0, parse_1.parse)('OpenAPI', defsrc, { file: defpath });
         ctx.def = def;
         const guideBuilder = await (0, guide_1.resolveGuide)(ctx);
         const transformSpec = await (0, transform_1.resolveTransforms)(ctx);
