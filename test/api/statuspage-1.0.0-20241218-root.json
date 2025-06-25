@@ -1,0 +1,3291 @@
+{
+  "main": {
+    "api": {
+      "guide": {
+        "control": {
+          "transform": {
+            "openapi": {
+              "order": "\n\n  top,\n  entity,\n  operation,\n  field,\n  manual,\n  \n  "
+            }
+          }
+        },
+        "transform": {
+          "top": {
+            "name": "top"
+          },
+          "entity": {
+            "name": "entity"
+          },
+          "operation": {
+            "name": "operation"
+          },
+          "field": {
+            "name": "field"
+          },
+          "manual": {
+            "name": "manual"
+          }
+        },
+        "entity": {
+          "page": {
+            "path": {
+              "/pages/{page_id}": {
+                "op": {
+                  "update": {
+                    "method": "put",
+                    "transform": {
+                      "reqform": {
+                        "page": "`reqdata`"
+                      }
+                    }
+                  },
+                  "load": {
+                    "method": "get",
+                    "transform": {}
+                  }
+                }
+              },
+              "/pages": {
+                "op": {
+                  "list": {
+                    "method": "get",
+                    "transform": {}
+                  }
+                }
+              }
+            },
+            "name": "page"
+          },
+          "page_access_user": {
+            "path": {
+              "/pages/{page_id}/page_access_users/{page_access_user_id}": {
+                "op": {
+                  "update": {
+                    "method": "put",
+                    "transform": {}
+                  },
+                  "remove": {
+                    "method": "delete",
+                    "transform": {}
+                  },
+                  "load": {
+                    "method": "get",
+                    "transform": {}
+                  }
+                }
+              },
+              "/pages/{page_id}/page_access_users": {
+                "op": {
+                  "list": {
+                    "method": "get",
+                    "transform": {}
+                  }
+                }
+              }
+            },
+            "name": "page_access_user"
+          },
+          "component": {
+            "path": {
+              "/pages/{page_id}/page_access_users/{page_access_user_id}/components/{component_id}": {
+                "op": {
+                  "remove": {
+                    "method": "delete",
+                    "transform": {}
+                  }
+                }
+              },
+              "/pages/{page_id}/page_access_groups/{page_access_group_id}/components/{component_id}": {
+                "op": {
+                  "remove": {
+                    "method": "delete",
+                    "transform": {}
+                  }
+                }
+              },
+              "/pages/{page_id}/components/{component_id}": {
+                "op": {
+                  "update": {
+                    "method": "put",
+                    "transform": {
+                      "reqform": {
+                        "component": "`reqdata`"
+                      }
+                    }
+                  },
+                  "remove": {
+                    "method": "delete",
+                    "transform": {}
+                  },
+                  "load": {
+                    "method": "get",
+                    "transform": {}
+                  }
+                }
+              },
+              "/pages/{page_id}/page_access_users/{page_access_user_id}/components": {
+                "op": {
+                  "list": {
+                    "method": "get",
+                    "transform": {}
+                  }
+                }
+              },
+              "/pages/{page_id}/page_access_groups/{page_access_group_id}/components": {
+                "op": {
+                  "list": {
+                    "method": "get",
+                    "transform": {}
+                  }
+                }
+              },
+              "/pages/{page_id}/components": {
+                "op": {
+                  "list": {
+                    "method": "get",
+                    "transform": {}
+                  }
+                }
+              }
+            },
+            "name": "component"
+          },
+          "metric": {
+            "path": {
+              "/pages/{page_id}/page_access_users/{page_access_user_id}/metrics/{metric_id}": {
+                "op": {
+                  "remove": {
+                    "method": "delete",
+                    "transform": {}
+                  }
+                }
+              },
+              "/pages/{page_id}/metrics/{metric_id}": {
+                "op": {
+                  "update": {
+                    "method": "put",
+                    "transform": {
+                      "reqform": {
+                        "metric": "`reqdata`"
+                      }
+                    }
+                  },
+                  "remove": {
+                    "method": "delete",
+                    "transform": {}
+                  },
+                  "load": {
+                    "method": "get",
+                    "transform": {}
+                  }
+                }
+              },
+              "/pages/{page_id}/page_access_users/{page_access_user_id}/metrics": {
+                "op": {
+                  "list": {
+                    "method": "get",
+                    "transform": {}
+                  }
+                }
+              },
+              "/pages/{page_id}/metrics": {
+                "op": {
+                  "list": {
+                    "method": "get",
+                    "transform": {}
+                  }
+                }
+              },
+              "/pages/{page_id}/metrics_providers/{metrics_provider_id}/metrics": {
+                "op": {
+                  "list": {
+                    "method": "get",
+                    "transform": {}
+                  }
+                }
+              }
+            },
+            "name": "metric"
+          },
+          "page_access_group": {
+            "path": {
+              "/pages/{page_id}/page_access_groups/{page_access_group_id}": {
+                "op": {
+                  "load": {
+                    "method": "get",
+                    "transform": {}
+                  },
+                  "update": {
+                    "method": "put",
+                    "transform": {
+                      "reqform": {
+                        "page_access_group": "`reqdata`"
+                      }
+                    }
+                  },
+                  "remove": {
+                    "method": "delete",
+                    "transform": {}
+                  }
+                }
+              },
+              "/pages/{page_id}/page_access_groups": {
+                "op": {
+                  "list": {
+                    "method": "get",
+                    "transform": {}
+                  }
+                }
+              }
+            },
+            "name": "page_access_group"
+          },
+          "subscriber": {
+            "path": {
+              "/pages/{page_id}/subscribers/{subscriber_id}": {
+                "op": {
+                  "remove": {
+                    "method": "delete",
+                    "transform": {}
+                  },
+                  "update": {
+                    "method": "patch",
+                    "transform": {}
+                  },
+                  "load": {
+                    "method": "get",
+                    "transform": {}
+                  }
+                }
+              },
+              "/pages/{page_id}/incidents/{incident_id}/subscribers/{subscriber_id}": {
+                "op": {
+                  "remove": {
+                    "method": "delete",
+                    "transform": {}
+                  },
+                  "load": {
+                    "method": "get",
+                    "transform": {}
+                  }
+                }
+              },
+              "/pages/{page_id}/subscribers": {
+                "op": {
+                  "list": {
+                    "method": "get",
+                    "transform": {}
+                  }
+                }
+              },
+              "/pages/{page_id}/incidents/{incident_id}/subscribers": {
+                "op": {
+                  "list": {
+                    "method": "get",
+                    "transform": {}
+                  }
+                }
+              }
+            },
+            "name": "subscriber"
+          },
+          "incident": {
+            "path": {
+              "/pages/{page_id}/incidents/{incident_id}": {
+                "op": {
+                  "remove": {
+                    "method": "delete",
+                    "transform": {}
+                  },
+                  "update": {
+                    "method": "put",
+                    "transform": {
+                      "reqform": {
+                        "incident": "`reqdata`"
+                      }
+                    }
+                  },
+                  "load": {
+                    "method": "get",
+                    "transform": {}
+                  }
+                }
+              },
+              "/pages/{page_id}/incidents": {
+                "op": {
+                  "list": {
+                    "method": "get",
+                    "transform": {}
+                  }
+                }
+              }
+            },
+            "name": "incident"
+          },
+          "incident_update": {
+            "path": {
+              "/pages/{page_id}/incidents/{incident_id}/incident_updates/{incident_update_id}": {
+                "op": {
+                  "update": {
+                    "method": "put",
+                    "transform": {
+                      "reqform": {
+                        "incident_update": "`reqdata`"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "name": "incident_update"
+          },
+          "component_group": {
+            "path": {
+              "/pages/{page_id}/component-groups/{id}": {
+                "op": {
+                  "update": {
+                    "method": "put",
+                    "transform": {
+                      "reqform": {
+                        "component_group": "`reqdata`"
+                      }
+                    }
+                  },
+                  "remove": {
+                    "method": "delete",
+                    "transform": {}
+                  },
+                  "load": {
+                    "method": "get",
+                    "transform": {}
+                  }
+                }
+              },
+              "/pages/{page_id}/component-groups": {
+                "op": {
+                  "list": {
+                    "method": "get",
+                    "transform": {}
+                  }
+                }
+              }
+            },
+            "name": "component_group"
+          },
+          "metrics_provider": {
+            "path": {
+              "/pages/{page_id}/metrics_providers/{metrics_provider_id}": {
+                "op": {
+                  "load": {
+                    "method": "get",
+                    "transform": {}
+                  },
+                  "update": {
+                    "method": "put",
+                    "transform": {
+                      "reqform": {
+                        "metrics_provider": "`reqdata`"
+                      }
+                    }
+                  },
+                  "remove": {
+                    "method": "delete",
+                    "transform": {}
+                  }
+                }
+              },
+              "/pages/{page_id}/metrics_providers": {
+                "op": {
+                  "list": {
+                    "method": "get",
+                    "transform": {}
+                  }
+                }
+              }
+            },
+            "name": "metrics_provider"
+          },
+          "permission": {
+            "path": {
+              "/organizations/{organization_id}/permissions/{user_id}": {
+                "op": {
+                  "update": {
+                    "method": "put",
+                    "transform": {}
+                  },
+                  "load": {
+                    "method": "get",
+                    "transform": {}
+                  }
+                }
+              }
+            },
+            "name": "permission"
+          },
+          "user": {
+            "path": {
+              "/organizations/{organization_id}/users/{user_id}": {
+                "op": {
+                  "remove": {
+                    "method": "delete",
+                    "transform": {}
+                  }
+                }
+              },
+              "/organizations/{organization_id}/users": {
+                "op": {
+                  "list": {
+                    "method": "get",
+                    "transform": {}
+                  }
+                }
+              }
+            },
+            "name": "user"
+          }
+        }
+      },
+      "entity": {
+        "page": {
+          "op": {
+            "update": {
+              "path": "/pages/{page_id}",
+              "method": "put",
+              "kind": "req",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body.page`",
+              "reqform": {
+                "page": "`reqdata`"
+              },
+              "name": "update",
+              "Name": "Update",
+              "NAME": "UPDATE"
+            },
+            "load": {
+              "path": "/pages/{page_id}",
+              "method": "get",
+              "kind": "res",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`data`",
+              "name": "load",
+              "Name": "Load",
+              "NAME": "LOAD"
+            },
+            "list": {
+              "path": "/pages",
+              "method": "get",
+              "kind": "res",
+              "param": {},
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`data`",
+              "name": "list",
+              "Name": "List",
+              "NAME": "LIST"
+            }
+          },
+          "field": {
+            "id": {
+              "name": "id",
+              "Name": "Id",
+              "NAME": "ID",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Page identifier"
+            },
+            "created_at": {
+              "name": "created_at",
+              "Name": "CreatedAt",
+              "NAME": "CREATED_AT",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Timestamp the record was created"
+            },
+            "updated_at": {
+              "name": "updated_at",
+              "Name": "UpdatedAt",
+              "NAME": "UPDATED_AT",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Timestamp the record was last updated"
+            },
+            "name": {
+              "name": "name",
+              "Name": "Name",
+              "NAME": "NAME",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Name of your page to be displayed"
+            },
+            "page_description": {
+              "name": "page_description",
+              "Name": "PageDescription",
+              "NAME": "PAGE_DESCRIPTION",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "headline": {
+              "name": "headline",
+              "Name": "Headline",
+              "NAME": "HEADLINE",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "branding": {
+              "name": "branding",
+              "Name": "Branding",
+              "NAME": "BRANDING",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "The main template your statuspage will use"
+            },
+            "subdomain": {
+              "name": "subdomain",
+              "Name": "Subdomain",
+              "NAME": "SUBDOMAIN",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Subdomain at which to access your status page"
+            },
+            "domain": {
+              "name": "domain",
+              "Name": "Domain",
+              "NAME": "DOMAIN",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "CNAME alias for your status page"
+            },
+            "url": {
+              "name": "url",
+              "Name": "Url",
+              "NAME": "URL",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Website of your page.  Clicking on your statuspage image will link here."
+            },
+            "support_url": {
+              "name": "support_url",
+              "Name": "SupportUrl",
+              "NAME": "SUPPORT_URL",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "hidden_from_search": {
+              "name": "hidden_from_search",
+              "Name": "HiddenFromSearch",
+              "NAME": "HIDDEN_FROM_SEARCH",
+              "type": "boolean",
+              "Type": "Boolean",
+              "TYPE": "BOOLEAN",
+              "short": "Should your page hide itself from search engines"
+            },
+            "allow_page_subscribers": {
+              "name": "allow_page_subscribers",
+              "Name": "AllowPageSubscribers",
+              "NAME": "ALLOW_PAGE_SUBSCRIBERS",
+              "type": "boolean",
+              "Type": "Boolean",
+              "TYPE": "BOOLEAN",
+              "short": "Can your users subscribe to all notifications on the page"
+            },
+            "allow_incident_subscribers": {
+              "name": "allow_incident_subscribers",
+              "Name": "AllowIncidentSubscribers",
+              "NAME": "ALLOW_INCIDENT_SUBSCRIBERS",
+              "type": "boolean",
+              "Type": "Boolean",
+              "TYPE": "BOOLEAN",
+              "short": "Can your users subscribe to notifications for a single incident"
+            },
+            "allow_email_subscribers": {
+              "name": "allow_email_subscribers",
+              "Name": "AllowEmailSubscribers",
+              "NAME": "ALLOW_EMAIL_SUBSCRIBERS",
+              "type": "boolean",
+              "Type": "Boolean",
+              "TYPE": "BOOLEAN",
+              "short": "Can your users choose to receive notifications via email"
+            },
+            "allow_sms_subscribers": {
+              "name": "allow_sms_subscribers",
+              "Name": "AllowSmsSubscribers",
+              "NAME": "ALLOW_SMS_SUBSCRIBERS",
+              "type": "boolean",
+              "Type": "Boolean",
+              "TYPE": "BOOLEAN",
+              "short": "Can your users choose to receive notifications via SMS"
+            },
+            "allow_rss_atom_feeds": {
+              "name": "allow_rss_atom_feeds",
+              "Name": "AllowRssAtomFeeds",
+              "NAME": "ALLOW_RSS_ATOM_FEEDS",
+              "type": "boolean",
+              "Type": "Boolean",
+              "TYPE": "BOOLEAN",
+              "short": "Can your users choose to access incident feeds via RSS/Atom (not functional on Audience-Specific pages)"
+            },
+            "allow_webhook_subscribers": {
+              "name": "allow_webhook_subscribers",
+              "Name": "AllowWebhookSubscribers",
+              "NAME": "ALLOW_WEBHOOK_SUBSCRIBERS",
+              "type": "boolean",
+              "Type": "Boolean",
+              "TYPE": "BOOLEAN",
+              "short": "Can your users choose to receive notifications via Webhooks"
+            },
+            "notifications_from_email": {
+              "name": "notifications_from_email",
+              "Name": "NotificationsFromEmail",
+              "NAME": "NOTIFICATIONS_FROM_EMAIL",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Allows you to customize the email address your page notifications come from"
+            },
+            "notifications_email_footer": {
+              "name": "notifications_email_footer",
+              "Name": "NotificationsEmailFooter",
+              "NAME": "NOTIFICATIONS_EMAIL_FOOTER",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Allows you to customize the footer appearing on your notification emails.  Accepts Markdown for formatting"
+            },
+            "activity_score": {
+              "name": "activity_score",
+              "Name": "ActivityScore",
+              "NAME": "ACTIVITY_SCORE",
+              "type": "number",
+              "Type": "Number",
+              "TYPE": "NUMBER"
+            },
+            "twitter_username": {
+              "name": "twitter_username",
+              "Name": "TwitterUsername",
+              "NAME": "TWITTER_USERNAME",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "viewers_must_be_team_members": {
+              "name": "viewers_must_be_team_members",
+              "Name": "ViewersMustBeTeamMembers",
+              "NAME": "VIEWERS_MUST_BE_TEAM_MEMBERS",
+              "type": "boolean",
+              "Type": "Boolean",
+              "TYPE": "BOOLEAN"
+            },
+            "ip_restrictions": {
+              "name": "ip_restrictions",
+              "Name": "IpRestrictions",
+              "NAME": "IP_RESTRICTIONS",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "city": {
+              "name": "city",
+              "Name": "City",
+              "NAME": "CITY",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "state": {
+              "name": "state",
+              "Name": "State",
+              "NAME": "STATE",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "country": {
+              "name": "country",
+              "Name": "Country",
+              "NAME": "COUNTRY",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "time_zone": {
+              "name": "time_zone",
+              "Name": "TimeZone",
+              "NAME": "TIME_ZONE",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Timezone configured for your page"
+            },
+            "css_body_background_color": {
+              "name": "css_body_background_color",
+              "Name": "CssBodyBackgroundColor",
+              "NAME": "CSS_BODY_BACKGROUND_COLOR",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "CSS Color"
+            },
+            "css_font_color": {
+              "name": "css_font_color",
+              "Name": "CssFontColor",
+              "NAME": "CSS_FONT_COLOR",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "CSS Color"
+            },
+            "css_light_font_color": {
+              "name": "css_light_font_color",
+              "Name": "CssLightFontColor",
+              "NAME": "CSS_LIGHT_FONT_COLOR",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "CSS Color"
+            },
+            "css_greens": {
+              "name": "css_greens",
+              "Name": "CssGreens",
+              "NAME": "CSS_GREENS",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "CSS Color"
+            },
+            "css_yellows": {
+              "name": "css_yellows",
+              "Name": "CssYellows",
+              "NAME": "CSS_YELLOWS",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "CSS Color"
+            },
+            "css_oranges": {
+              "name": "css_oranges",
+              "Name": "CssOranges",
+              "NAME": "CSS_ORANGES",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "CSS Color"
+            },
+            "css_blues": {
+              "name": "css_blues",
+              "Name": "CssBlues",
+              "NAME": "CSS_BLUES",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "CSS Color"
+            },
+            "css_reds": {
+              "name": "css_reds",
+              "Name": "CssReds",
+              "NAME": "CSS_REDS",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "CSS Color"
+            },
+            "css_border_color": {
+              "name": "css_border_color",
+              "Name": "CssBorderColor",
+              "NAME": "CSS_BORDER_COLOR",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "CSS Color"
+            },
+            "css_graph_color": {
+              "name": "css_graph_color",
+              "Name": "CssGraphColor",
+              "NAME": "CSS_GRAPH_COLOR",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "CSS Color"
+            },
+            "css_link_color": {
+              "name": "css_link_color",
+              "Name": "CssLinkColor",
+              "NAME": "CSS_LINK_COLOR",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "CSS Color"
+            },
+            "css_no_data": {
+              "name": "css_no_data",
+              "Name": "CssNoData",
+              "NAME": "CSS_NO_DATA",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "CSS Color"
+            },
+            "favicon_logo": {
+              "name": "favicon_logo",
+              "Name": "FaviconLogo",
+              "NAME": "FAVICON_LOGO",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "transactional_logo": {
+              "name": "transactional_logo",
+              "Name": "TransactionalLogo",
+              "NAME": "TRANSACTIONAL_LOGO",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "hero_cover": {
+              "name": "hero_cover",
+              "Name": "HeroCover",
+              "NAME": "HERO_COVER",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "email_logo": {
+              "name": "email_logo",
+              "Name": "EmailLogo",
+              "NAME": "EMAIL_LOGO",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "twitter_logo": {
+              "name": "twitter_logo",
+              "Name": "TwitterLogo",
+              "NAME": "TWITTER_LOGO",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            }
+          },
+          "cmd": {},
+          "id": {
+            "name": "id",
+            "field": "page_id"
+          },
+          "name": "page",
+          "Name": "Page",
+          "NAME": "PAGE",
+          "key$": "page"
+        },
+        "page_access_user": {
+          "op": {
+            "update": {
+              "path": "/pages/{page_id}/page_access_users/{page_access_user_id}",
+              "method": "put",
+              "kind": "req",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "page_access_user_id": {
+                  "required": true,
+                  "name": "page_access_user_id",
+                  "Name": "PageAccessUserId",
+                  "NAME": "PAGE_ACCESS_USER_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`reqdata`",
+              "reqform": "`reqdata`",
+              "name": "update",
+              "Name": "Update",
+              "NAME": "UPDATE"
+            },
+            "remove": {
+              "path": "/pages/{page_id}/page_access_users/{page_access_user_id}",
+              "method": "delete",
+              "kind": "res",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "page_access_user_id": {
+                  "required": true,
+                  "name": "page_access_user_id",
+                  "Name": "PageAccessUserId",
+                  "NAME": "PAGE_ACCESS_USER_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`body`",
+              "name": "remove",
+              "Name": "Remove",
+              "NAME": "REMOVE"
+            },
+            "load": {
+              "path": "/pages/{page_id}/page_access_users/{page_access_user_id}",
+              "method": "get",
+              "kind": "res",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "page_access_user_id": {
+                  "required": true,
+                  "name": "page_access_user_id",
+                  "Name": "PageAccessUserId",
+                  "NAME": "PAGE_ACCESS_USER_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`data`",
+              "name": "load",
+              "Name": "Load",
+              "NAME": "LOAD"
+            },
+            "list": {
+              "path": "/pages/{page_id}/page_access_users",
+              "method": "get",
+              "kind": "res",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`data`",
+              "name": "list",
+              "Name": "List",
+              "NAME": "LIST"
+            }
+          },
+          "field": {
+            "id": {
+              "name": "id",
+              "Name": "Id",
+              "NAME": "ID",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Page Access User Identifier"
+            },
+            "page_id": {
+              "name": "page_id",
+              "Name": "PageId",
+              "NAME": "PAGE_ID",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "email": {
+              "name": "email",
+              "Name": "Email",
+              "NAME": "EMAIL",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "external_login": {
+              "name": "external_login",
+              "Name": "ExternalLogin",
+              "NAME": "EXTERNAL_LOGIN",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "IDP login user id. Key is typically \"uid\"."
+            },
+            "page_access_group_id": {
+              "name": "page_access_group_id",
+              "Name": "PageAccessGroupId",
+              "NAME": "PAGE_ACCESS_GROUP_ID",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "page_access_group_ids": {
+              "name": "page_access_group_ids",
+              "Name": "PageAccessGroupIds",
+              "NAME": "PAGE_ACCESS_GROUP_IDS",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "created_at": {
+              "name": "created_at",
+              "Name": "CreatedAt",
+              "NAME": "CREATED_AT",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "updated_at": {
+              "name": "updated_at",
+              "Name": "UpdatedAt",
+              "NAME": "UPDATED_AT",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            }
+          },
+          "cmd": {},
+          "id": {
+            "name": "id",
+            "field": "id"
+          },
+          "name": "page_access_user",
+          "Name": "PageAccessUser",
+          "NAME": "PAGE_ACCESS_USER",
+          "key$": "page_access_user"
+        },
+        "component": {
+          "op": {
+            "remove": {
+              "path": "/pages/{page_id}/components/{component_id}",
+              "method": "delete",
+              "kind": "res",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "component_id": {
+                  "required": true,
+                  "name": "component_id",
+                  "Name": "ComponentId",
+                  "NAME": "COMPONENT_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`body`",
+              "name": "remove",
+              "Name": "Remove",
+              "NAME": "REMOVE"
+            },
+            "update": {
+              "path": "/pages/{page_id}/components/{component_id}",
+              "method": "put",
+              "kind": "req",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "component_id": {
+                  "required": true,
+                  "name": "component_id",
+                  "Name": "ComponentId",
+                  "NAME": "COMPONENT_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body.component`",
+              "reqform": {
+                "component": "`reqdata`"
+              },
+              "name": "update",
+              "Name": "Update",
+              "NAME": "UPDATE"
+            },
+            "load": {
+              "path": "/pages/{page_id}/components/{component_id}",
+              "method": "get",
+              "kind": "res",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "component_id": {
+                  "required": true,
+                  "name": "component_id",
+                  "Name": "ComponentId",
+                  "NAME": "COMPONENT_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`data`",
+              "name": "load",
+              "Name": "Load",
+              "NAME": "LOAD"
+            },
+            "list": {
+              "path": "/pages/{page_id}/components",
+              "method": "get",
+              "kind": "res",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`data`",
+              "name": "list",
+              "Name": "List",
+              "NAME": "LIST"
+            }
+          },
+          "field": {
+            "id": {
+              "name": "id",
+              "Name": "Id",
+              "NAME": "ID",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Identifier for component"
+            },
+            "page_id": {
+              "name": "page_id",
+              "Name": "PageId",
+              "NAME": "PAGE_ID",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Page identifier"
+            },
+            "group_id": {
+              "name": "group_id",
+              "Name": "GroupId",
+              "NAME": "GROUP_ID",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Component Group identifier"
+            },
+            "created_at": {
+              "name": "created_at",
+              "Name": "CreatedAt",
+              "NAME": "CREATED_AT",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "updated_at": {
+              "name": "updated_at",
+              "Name": "UpdatedAt",
+              "NAME": "UPDATED_AT",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "group": {
+              "name": "group",
+              "Name": "Group",
+              "NAME": "GROUP",
+              "type": "boolean",
+              "Type": "Boolean",
+              "TYPE": "BOOLEAN",
+              "short": "Is this component a group"
+            },
+            "name": {
+              "name": "name",
+              "Name": "Name",
+              "NAME": "NAME",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Display name for component"
+            },
+            "description": {
+              "name": "description",
+              "Name": "Description",
+              "NAME": "DESCRIPTION",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "More detailed description for component"
+            },
+            "position": {
+              "name": "position",
+              "Name": "Position",
+              "NAME": "POSITION",
+              "type": "integer",
+              "Type": "Integer",
+              "TYPE": "INTEGER",
+              "short": "Order the component will appear on the page"
+            },
+            "status": {
+              "name": "status",
+              "Name": "Status",
+              "NAME": "STATUS",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Status of component"
+            },
+            "showcase": {
+              "name": "showcase",
+              "Name": "Showcase",
+              "NAME": "SHOWCASE",
+              "type": "boolean",
+              "Type": "Boolean",
+              "TYPE": "BOOLEAN",
+              "short": "Should this component be showcased"
+            },
+            "only_show_if_degraded": {
+              "name": "only_show_if_degraded",
+              "Name": "OnlyShowIfDegraded",
+              "NAME": "ONLY_SHOW_IF_DEGRADED",
+              "type": "boolean",
+              "Type": "Boolean",
+              "TYPE": "BOOLEAN",
+              "short": "Requires a special feature flag to be enabled"
+            },
+            "automation_email": {
+              "name": "automation_email",
+              "Name": "AutomationEmail",
+              "NAME": "AUTOMATION_EMAIL",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Requires a special feature flag to be enabled"
+            },
+            "start_date": {
+              "name": "start_date",
+              "Name": "StartDate",
+              "NAME": "START_DATE",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "The date this component started being used"
+            }
+          },
+          "cmd": {},
+          "id": {
+            "name": "id",
+            "field": "id"
+          },
+          "name": "component",
+          "Name": "Component",
+          "NAME": "COMPONENT",
+          "key$": "component"
+        },
+        "metric": {
+          "op": {
+            "remove": {
+              "path": "/pages/{page_id}/metrics/{metric_id}",
+              "method": "delete",
+              "kind": "res",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "metric_id": {
+                  "required": true,
+                  "name": "metric_id",
+                  "Name": "MetricId",
+                  "NAME": "METRIC_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`data`",
+              "name": "remove",
+              "Name": "Remove",
+              "NAME": "REMOVE"
+            },
+            "update": {
+              "path": "/pages/{page_id}/metrics/{metric_id}",
+              "method": "put",
+              "kind": "req",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "metric_id": {
+                  "required": true,
+                  "name": "metric_id",
+                  "Name": "MetricId",
+                  "NAME": "METRIC_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body.metric`",
+              "reqform": {
+                "metric": "`reqdata`"
+              },
+              "name": "update",
+              "Name": "Update",
+              "NAME": "UPDATE"
+            },
+            "load": {
+              "path": "/pages/{page_id}/metrics/{metric_id}",
+              "method": "get",
+              "kind": "res",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "metric_id": {
+                  "required": true,
+                  "name": "metric_id",
+                  "Name": "MetricId",
+                  "NAME": "METRIC_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`data`",
+              "name": "load",
+              "Name": "Load",
+              "NAME": "LOAD"
+            },
+            "list": {
+              "path": "/pages/{page_id}/metrics_providers/{metrics_provider_id}/metrics",
+              "method": "get",
+              "kind": "res",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "metrics_provider_id": {
+                  "required": true,
+                  "name": "metrics_provider_id",
+                  "Name": "MetricsProviderId",
+                  "NAME": "METRICS_PROVIDER_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`data`",
+              "name": "list",
+              "Name": "List",
+              "NAME": "LIST"
+            }
+          },
+          "field": {
+            "id": {
+              "name": "id",
+              "Name": "Id",
+              "NAME": "ID",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Metric identifier"
+            },
+            "metrics_provider_id": {
+              "name": "metrics_provider_id",
+              "Name": "MetricsProviderId",
+              "NAME": "METRICS_PROVIDER_ID",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Metric Provider identifier"
+            },
+            "metric_identifier": {
+              "name": "metric_identifier",
+              "Name": "MetricIdentifier",
+              "NAME": "METRIC_IDENTIFIER",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Metric Display identifier used to look up the metric data from the provider"
+            },
+            "name": {
+              "name": "name",
+              "Name": "Name",
+              "NAME": "NAME",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Name of metric"
+            },
+            "display": {
+              "name": "display",
+              "Name": "Display",
+              "NAME": "DISPLAY",
+              "type": "boolean",
+              "Type": "Boolean",
+              "TYPE": "BOOLEAN",
+              "short": "Should the metric be displayed"
+            },
+            "tooltip_description": {
+              "name": "tooltip_description",
+              "Name": "TooltipDescription",
+              "NAME": "TOOLTIP_DESCRIPTION",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "backfilled": {
+              "name": "backfilled",
+              "Name": "Backfilled",
+              "NAME": "BACKFILLED",
+              "type": "boolean",
+              "Type": "Boolean",
+              "TYPE": "BOOLEAN"
+            },
+            "y_axis_min": {
+              "name": "y_axis_min",
+              "Name": "YaxisMin",
+              "NAME": "Y_AXIS_MIN",
+              "type": "number",
+              "Type": "Number",
+              "TYPE": "NUMBER"
+            },
+            "y_axis_max": {
+              "name": "y_axis_max",
+              "Name": "YaxisMax",
+              "NAME": "Y_AXIS_MAX",
+              "type": "number",
+              "Type": "Number",
+              "TYPE": "NUMBER"
+            },
+            "y_axis_hidden": {
+              "name": "y_axis_hidden",
+              "Name": "YaxisHidden",
+              "NAME": "Y_AXIS_HIDDEN",
+              "type": "boolean",
+              "Type": "Boolean",
+              "TYPE": "BOOLEAN",
+              "short": "Should the values on the y axis be hidden on render"
+            },
+            "suffix": {
+              "name": "suffix",
+              "Name": "Suffix",
+              "NAME": "SUFFIX",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Suffix to describe the units on the graph"
+            },
+            "decimal_places": {
+              "name": "decimal_places",
+              "Name": "DecimalPlaces",
+              "NAME": "DECIMAL_PLACES",
+              "type": "integer",
+              "Type": "Integer",
+              "TYPE": "INTEGER"
+            },
+            "most_recent_data_at": {
+              "name": "most_recent_data_at",
+              "Name": "MostRecentDataAt",
+              "NAME": "MOST_RECENT_DATA_AT",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "created_at": {
+              "name": "created_at",
+              "Name": "CreatedAt",
+              "NAME": "CREATED_AT",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "updated_at": {
+              "name": "updated_at",
+              "Name": "UpdatedAt",
+              "NAME": "UPDATED_AT",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "last_fetched_at": {
+              "name": "last_fetched_at",
+              "Name": "LastFetchedAt",
+              "NAME": "LAST_FETCHED_AT",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "backfill_percentage": {
+              "name": "backfill_percentage",
+              "Name": "BackfillPercentage",
+              "NAME": "BACKFILL_PERCENTAGE",
+              "type": "integer",
+              "Type": "Integer",
+              "TYPE": "INTEGER"
+            },
+            "reference_name": {
+              "name": "reference_name",
+              "Name": "ReferenceName",
+              "NAME": "REFERENCE_NAME",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            }
+          },
+          "cmd": {},
+          "id": {
+            "name": "id",
+            "field": "id"
+          },
+          "name": "metric",
+          "Name": "Metric",
+          "NAME": "METRIC",
+          "key$": "metric"
+        },
+        "page_access_group": {
+          "op": {
+            "load": {
+              "path": "/pages/{page_id}/page_access_groups/{page_access_group_id}",
+              "method": "get",
+              "kind": "res",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "page_access_group_id": {
+                  "required": true,
+                  "name": "page_access_group_id",
+                  "Name": "PageAccessGroupId",
+                  "NAME": "PAGE_ACCESS_GROUP_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`data`",
+              "name": "load",
+              "Name": "Load",
+              "NAME": "LOAD"
+            },
+            "update": {
+              "path": "/pages/{page_id}/page_access_groups/{page_access_group_id}",
+              "method": "put",
+              "kind": "req",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "page_access_group_id": {
+                  "required": true,
+                  "name": "page_access_group_id",
+                  "Name": "PageAccessGroupId",
+                  "NAME": "PAGE_ACCESS_GROUP_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body.page_access_group`",
+              "reqform": {
+                "page_access_group": "`reqdata`"
+              },
+              "name": "update",
+              "Name": "Update",
+              "NAME": "UPDATE"
+            },
+            "remove": {
+              "path": "/pages/{page_id}/page_access_groups/{page_access_group_id}",
+              "method": "delete",
+              "kind": "res",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "page_access_group_id": {
+                  "required": true,
+                  "name": "page_access_group_id",
+                  "Name": "PageAccessGroupId",
+                  "NAME": "PAGE_ACCESS_GROUP_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`data`",
+              "name": "remove",
+              "Name": "Remove",
+              "NAME": "REMOVE"
+            },
+            "list": {
+              "path": "/pages/{page_id}/page_access_groups",
+              "method": "get",
+              "kind": "res",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`data`",
+              "name": "list",
+              "Name": "List",
+              "NAME": "LIST"
+            }
+          },
+          "field": {
+            "id": {
+              "name": "id",
+              "Name": "Id",
+              "NAME": "ID",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Page Access Group Identifier"
+            },
+            "page_id": {
+              "name": "page_id",
+              "Name": "PageId",
+              "NAME": "PAGE_ID",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Page Identifier."
+            },
+            "name": {
+              "name": "name",
+              "Name": "Name",
+              "NAME": "NAME",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Name for this Group."
+            },
+            "page_access_user_ids": {
+              "name": "page_access_user_ids",
+              "Name": "PageAccessUserIds",
+              "NAME": "PAGE_ACCESS_USER_IDS",
+              "type": "array",
+              "Type": "Array",
+              "TYPE": "ARRAY"
+            },
+            "external_identifier": {
+              "name": "external_identifier",
+              "Name": "ExternalIdentifier",
+              "NAME": "EXTERNAL_IDENTIFIER",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Associates group with external group."
+            },
+            "metric_ids": {
+              "name": "metric_ids",
+              "Name": "MetricIds",
+              "NAME": "METRIC_IDS",
+              "type": "array",
+              "Type": "Array",
+              "TYPE": "ARRAY"
+            },
+            "component_ids": {
+              "name": "component_ids",
+              "Name": "ComponentIds",
+              "NAME": "COMPONENT_IDS",
+              "type": "array",
+              "Type": "Array",
+              "TYPE": "ARRAY"
+            },
+            "created_at": {
+              "name": "created_at",
+              "Name": "CreatedAt",
+              "NAME": "CREATED_AT",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "updated_at": {
+              "name": "updated_at",
+              "Name": "UpdatedAt",
+              "NAME": "UPDATED_AT",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            }
+          },
+          "cmd": {},
+          "id": {
+            "name": "id",
+            "field": "id"
+          },
+          "name": "page_access_group",
+          "Name": "PageAccessGroup",
+          "NAME": "PAGE_ACCESS_GROUP",
+          "key$": "page_access_group"
+        },
+        "subscriber": {
+          "op": {
+            "remove": {
+              "path": "/pages/{page_id}/incidents/{incident_id}/subscribers/{subscriber_id}",
+              "method": "delete",
+              "kind": "res",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "incident_id": {
+                  "required": true,
+                  "name": "incident_id",
+                  "Name": "IncidentId",
+                  "NAME": "INCIDENT_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "subscriber_id": {
+                  "required": true,
+                  "name": "subscriber_id",
+                  "Name": "SubscriberId",
+                  "NAME": "SUBSCRIBER_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`data`",
+              "name": "remove",
+              "Name": "Remove",
+              "NAME": "REMOVE"
+            },
+            "update": {
+              "path": "/pages/{page_id}/subscribers/{subscriber_id}",
+              "method": "patch",
+              "kind": "req",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "subscriber_id": {
+                  "required": true,
+                  "name": "subscriber_id",
+                  "Name": "SubscriberId",
+                  "NAME": "SUBSCRIBER_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body.component_ids`",
+              "reqform": {
+                "component_ids": "`data`"
+              },
+              "name": "update",
+              "Name": "Update",
+              "NAME": "UPDATE"
+            },
+            "load": {
+              "path": "/pages/{page_id}/incidents/{incident_id}/subscribers/{subscriber_id}",
+              "method": "get",
+              "kind": "res",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "incident_id": {
+                  "required": true,
+                  "name": "incident_id",
+                  "Name": "IncidentId",
+                  "NAME": "INCIDENT_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "subscriber_id": {
+                  "required": true,
+                  "name": "subscriber_id",
+                  "Name": "SubscriberId",
+                  "NAME": "SUBSCRIBER_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`data`",
+              "name": "load",
+              "Name": "Load",
+              "NAME": "LOAD"
+            },
+            "list": {
+              "path": "/pages/{page_id}/incidents/{incident_id}/subscribers",
+              "method": "get",
+              "kind": "res",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "incident_id": {
+                  "required": true,
+                  "name": "incident_id",
+                  "Name": "IncidentId",
+                  "NAME": "INCIDENT_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`data`",
+              "name": "list",
+              "Name": "List",
+              "NAME": "LIST"
+            }
+          },
+          "field": {
+            "id": {
+              "name": "id",
+              "Name": "Id",
+              "NAME": "ID",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Subscriber Identifier"
+            },
+            "skip_confirmation_notification": {
+              "name": "skip_confirmation_notification",
+              "Name": "SkipConfirmationNotification",
+              "NAME": "SKIP_CONFIRMATION_NOTIFICATION",
+              "type": "boolean",
+              "Type": "Boolean",
+              "TYPE": "BOOLEAN",
+              "short": "If this is true, do not notify the user with changes to their subscription."
+            },
+            "mode": {
+              "name": "mode",
+              "Name": "Mode",
+              "NAME": "MODE",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "The communication mode of the subscriber."
+            },
+            "email": {
+              "name": "email",
+              "Name": "Email",
+              "NAME": "EMAIL",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "The email address to use to contact the subscriber. Used for Email and Webhook subscribers."
+            },
+            "endpoint": {
+              "name": "endpoint",
+              "Name": "Endpoint",
+              "NAME": "ENDPOINT",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "The URL where a webhook subscriber elects to receive updates."
+            },
+            "phone_number": {
+              "name": "phone_number",
+              "Name": "PhoneNumber",
+              "NAME": "PHONE_NUMBER",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "The phone number used to contact an SMS subscriber"
+            },
+            "phone_country": {
+              "name": "phone_country",
+              "Name": "PhoneCountry",
+              "NAME": "PHONE_COUNTRY",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "The two-character country code representing the country of which the phone_number is a part."
+            },
+            "display_phone_number": {
+              "name": "display_phone_number",
+              "Name": "DisplayPhoneNumber",
+              "NAME": "DISPLAY_PHONE_NUMBER",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "A formatted version of the phone_number and phone_country pair, nicely formatted for display."
+            },
+            "obfuscated_channel_name": {
+              "name": "obfuscated_channel_name",
+              "Name": "ObfuscatedChannelName",
+              "NAME": "OBFUSCATED_CHANNEL_NAME",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Obfuscated slack channel name"
+            },
+            "workspace_name": {
+              "name": "workspace_name",
+              "Name": "WorkspaceName",
+              "NAME": "WORKSPACE_NAME",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "The workspace name of the slack subscriber."
+            },
+            "quarantined_at": {
+              "name": "quarantined_at",
+              "Name": "QuarantinedAt",
+              "NAME": "QUARANTINED_AT",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "The timestamp when the subscriber was quarantined due to an issue reaching them."
+            },
+            "purge_at": {
+              "name": "purge_at",
+              "Name": "PurgeAt",
+              "NAME": "PURGE_AT",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "The timestamp when a quarantined subscriber will be purged (unsubscribed)."
+            },
+            "components": {
+              "name": "components",
+              "Name": "Components",
+              "NAME": "COMPONENTS",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "The components for which the subscriber has elected to receive updates."
+            },
+            "page_access_user_id": {
+              "name": "page_access_user_id",
+              "Name": "PageAccessUserId",
+              "NAME": "PAGE_ACCESS_USER_ID",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "The Page Access user this subscriber belongs to (only for audience-specific pages)."
+            },
+            "created_at": {
+              "name": "created_at",
+              "Name": "CreatedAt",
+              "NAME": "CREATED_AT",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            }
+          },
+          "cmd": {},
+          "id": {
+            "name": "id",
+            "field": "id"
+          },
+          "name": "subscriber",
+          "Name": "Subscriber",
+          "NAME": "SUBSCRIBER",
+          "key$": "subscriber"
+        },
+        "incident": {
+          "op": {
+            "remove": {
+              "path": "/pages/{page_id}/incidents/{incident_id}",
+              "method": "delete",
+              "kind": "res",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "incident_id": {
+                  "required": true,
+                  "name": "incident_id",
+                  "Name": "IncidentId",
+                  "NAME": "INCIDENT_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`data`",
+              "name": "remove",
+              "Name": "Remove",
+              "NAME": "REMOVE"
+            },
+            "update": {
+              "path": "/pages/{page_id}/incidents/{incident_id}",
+              "method": "put",
+              "kind": "req",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "incident_id": {
+                  "required": true,
+                  "name": "incident_id",
+                  "Name": "IncidentId",
+                  "NAME": "INCIDENT_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body.incident`",
+              "reqform": {
+                "incident": "`reqdata`"
+              },
+              "name": "update",
+              "Name": "Update",
+              "NAME": "UPDATE"
+            },
+            "load": {
+              "path": "/pages/{page_id}/incidents/{incident_id}",
+              "method": "get",
+              "kind": "res",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "incident_id": {
+                  "required": true,
+                  "name": "incident_id",
+                  "Name": "IncidentId",
+                  "NAME": "INCIDENT_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`data`",
+              "name": "load",
+              "Name": "Load",
+              "NAME": "LOAD"
+            },
+            "list": {
+              "path": "/pages/{page_id}/incidents",
+              "method": "get",
+              "kind": "res",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`data`",
+              "name": "list",
+              "Name": "List",
+              "NAME": "LIST"
+            }
+          },
+          "field": {
+            "id": {
+              "name": "id",
+              "Name": "Id",
+              "NAME": "ID",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Incident Identifier"
+            },
+            "components": {
+              "name": "components",
+              "Name": "Components",
+              "NAME": "COMPONENTS",
+              "type": "array",
+              "Type": "Array",
+              "TYPE": "ARRAY",
+              "short": "Incident components"
+            },
+            "created_at": {
+              "name": "created_at",
+              "Name": "CreatedAt",
+              "NAME": "CREATED_AT",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "The timestamp when the incident was created at."
+            },
+            "impact": {
+              "name": "impact",
+              "Name": "Impact",
+              "NAME": "IMPACT",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "The impact of the incident."
+            },
+            "impact_override": {
+              "name": "impact_override",
+              "Name": "ImpactOverride",
+              "NAME": "IMPACT_OVERRIDE",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "value to override calculated impact value"
+            },
+            "incident_updates": {
+              "name": "incident_updates",
+              "Name": "IncidentUpdates",
+              "NAME": "INCIDENT_UPDATES",
+              "type": "array",
+              "Type": "Array",
+              "TYPE": "ARRAY",
+              "short": "The incident updates for incident."
+            },
+            "metadata": {
+              "name": "metadata",
+              "Name": "Metadata",
+              "NAME": "METADATA",
+              "type": "object",
+              "Type": "Object",
+              "TYPE": "OBJECT",
+              "short": "Metadata attached to the incident. Top level values must be objects."
+            },
+            "monitoring_at": {
+              "name": "monitoring_at",
+              "Name": "MonitoringAt",
+              "NAME": "MONITORING_AT",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "The timestamp when incident entered monitoring state."
+            },
+            "name": {
+              "name": "name",
+              "Name": "Name",
+              "NAME": "NAME",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Incident Name. There is a maximum limit of 255 characters."
+            },
+            "page_id": {
+              "name": "page_id",
+              "Name": "PageId",
+              "NAME": "PAGE_ID",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Incident Page Identifier"
+            },
+            "postmortem_body": {
+              "name": "postmortem_body",
+              "Name": "PostmortemBody",
+              "NAME": "POSTMORTEM_BODY",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Body of the Postmortem."
+            },
+            "postmortem_body_last_updated_at": {
+              "name": "postmortem_body_last_updated_at",
+              "Name": "PostmortemBodyLastUpdatedAt",
+              "NAME": "POSTMORTEM_BODY_LAST_UPDATED_AT",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "The timestamp when the incident postmortem body was last updated at."
+            },
+            "postmortem_ignored": {
+              "name": "postmortem_ignored",
+              "Name": "PostmortemIgnored",
+              "NAME": "POSTMORTEM_IGNORED",
+              "type": "boolean",
+              "Type": "Boolean",
+              "TYPE": "BOOLEAN",
+              "short": "Controls whether the incident will have postmortem."
+            },
+            "postmortem_notified_subscribers": {
+              "name": "postmortem_notified_subscribers",
+              "Name": "PostmortemNotifiedSubscribers",
+              "NAME": "POSTMORTEM_NOTIFIED_SUBSCRIBERS",
+              "type": "boolean",
+              "Type": "Boolean",
+              "TYPE": "BOOLEAN",
+              "short": "Indicates whether subscribers are already notificed about postmortem."
+            },
+            "postmortem_notified_twitter": {
+              "name": "postmortem_notified_twitter",
+              "Name": "PostmortemNotifiedTwitter",
+              "NAME": "POSTMORTEM_NOTIFIED_TWITTER",
+              "type": "boolean",
+              "Type": "Boolean",
+              "TYPE": "BOOLEAN",
+              "short": "Controls whether to decide if notify postmortem on twitter."
+            },
+            "postmortem_published_at": {
+              "name": "postmortem_published_at",
+              "Name": "PostmortemPublishedAt",
+              "NAME": "POSTMORTEM_PUBLISHED_AT",
+              "type": "boolean",
+              "Type": "Boolean",
+              "TYPE": "BOOLEAN",
+              "short": "The timestamp when the postmortem was published."
+            },
+            "resolved_at": {
+              "name": "resolved_at",
+              "Name": "ResolvedAt",
+              "NAME": "RESOLVED_AT",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "The timestamp when incident was resolved."
+            },
+            "scheduled_auto_completed": {
+              "name": "scheduled_auto_completed",
+              "Name": "ScheduledAutoCompleted",
+              "NAME": "SCHEDULED_AUTO_COMPLETED",
+              "type": "boolean",
+              "Type": "Boolean",
+              "TYPE": "BOOLEAN",
+              "short": "Controls whether the incident is scheduled to automatically change to complete."
+            },
+            "scheduled_auto_in_progress": {
+              "name": "scheduled_auto_in_progress",
+              "Name": "ScheduledAutoInProgress",
+              "NAME": "SCHEDULED_AUTO_IN_PROGRESS",
+              "type": "boolean",
+              "Type": "Boolean",
+              "TYPE": "BOOLEAN",
+              "short": "Controls whether the incident is scheduled to automatically change to in progress."
+            },
+            "scheduled_for": {
+              "name": "scheduled_for",
+              "Name": "ScheduledFor",
+              "NAME": "SCHEDULED_FOR",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "The timestamp the incident is scheduled for."
+            },
+            "auto_transition_deliver_notifications_at_end": {
+              "name": "auto_transition_deliver_notifications_at_end",
+              "Name": "AutoTransitionDeliverNotificationsAtEnd",
+              "NAME": "AUTO_TRANSITION_DELIVER_NOTIFICATIONS_AT_END",
+              "type": "boolean",
+              "Type": "Boolean",
+              "TYPE": "BOOLEAN",
+              "short": "Controls whether send notification when scheduled maintenances auto transition to completed."
+            },
+            "auto_transition_deliver_notifications_at_start": {
+              "name": "auto_transition_deliver_notifications_at_start",
+              "Name": "AutoTransitionDeliverNotificationsAtStart",
+              "NAME": "AUTO_TRANSITION_DELIVER_NOTIFICATIONS_AT_START",
+              "type": "boolean",
+              "Type": "Boolean",
+              "TYPE": "BOOLEAN",
+              "short": "Controls whether send notification when scheduled maintenances auto transition to started."
+            },
+            "auto_transition_to_maintenance_state": {
+              "name": "auto_transition_to_maintenance_state",
+              "Name": "AutoTransitionToMaintenanceState",
+              "NAME": "AUTO_TRANSITION_TO_MAINTENANCE_STATE",
+              "type": "boolean",
+              "Type": "Boolean",
+              "TYPE": "BOOLEAN",
+              "short": "Controls whether change components status to under_maintenance once scheduled maintenance is in progress."
+            },
+            "auto_transition_to_operational_state": {
+              "name": "auto_transition_to_operational_state",
+              "Name": "AutoTransitionToOperationalState",
+              "NAME": "AUTO_TRANSITION_TO_OPERATIONAL_STATE",
+              "type": "boolean",
+              "Type": "Boolean",
+              "TYPE": "BOOLEAN",
+              "short": "Controls whether change components status to operational once scheduled maintenance completes."
+            },
+            "scheduled_remind_prior": {
+              "name": "scheduled_remind_prior",
+              "Name": "ScheduledRemindPrior",
+              "NAME": "SCHEDULED_REMIND_PRIOR",
+              "type": "boolean",
+              "Type": "Boolean",
+              "TYPE": "BOOLEAN",
+              "short": "Controls whether to remind subscribers prior to scheduled incidents."
+            },
+            "scheduled_reminded_at": {
+              "name": "scheduled_reminded_at",
+              "Name": "ScheduledRemindedAt",
+              "NAME": "SCHEDULED_REMINDED_AT",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "The timestamp when the scheduled incident reminder was sent at."
+            },
+            "scheduled_until": {
+              "name": "scheduled_until",
+              "Name": "ScheduledUntil",
+              "NAME": "SCHEDULED_UNTIL",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "The timestamp the incident is scheduled until."
+            },
+            "shortlink": {
+              "name": "shortlink",
+              "Name": "Shortlink",
+              "NAME": "SHORTLINK",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Incident Shortlink."
+            },
+            "status": {
+              "name": "status",
+              "Name": "Status",
+              "NAME": "STATUS",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "The incident status. For realtime incidents, valid values are investigating, identified, monitoring, and resolved. For scheduled incidents, valid values are scheduled, in_progress, verifying, and completed."
+            },
+            "updated_at": {
+              "name": "updated_at",
+              "Name": "UpdatedAt",
+              "NAME": "UPDATED_AT",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "The timestamp when the incident was updated at."
+            },
+            "reminder_intervals": {
+              "name": "reminder_intervals",
+              "Name": "ReminderIntervals",
+              "NAME": "REMINDER_INTERVALS",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Custom reminder intervals for unresolved/open incidents. Not applicable for <strong>Scheduled maintenance</strong><br>There are 4 possible states for reminder_intervals:<br><strong>DEFAULT:</strong> NULL, representing a default behavior with intervals [3, 6, 12, 24].<br><strong>AFTER:</strong> A serialized array of strictly increasing intervals, each integer ranges from [1-24] (inclusive). Ex \"[1, 5, 7, 10]\"<br><strong>EVERY:</strong> An integer in the range [1-24] as a string, representing equal intervals. Ex \"4\" for [4, 8, 12, 16, 20, 24]<br><strong>OFF:</strong> A serialized empty array, for example, \"[]\", meaning no reminder notifications will be sent."
+            }
+          },
+          "cmd": {},
+          "id": {
+            "name": "id",
+            "field": "id"
+          },
+          "name": "incident",
+          "Name": "Incident",
+          "NAME": "INCIDENT",
+          "key$": "incident"
+        },
+        "incident_update": {
+          "op": {
+            "update": {
+              "path": "/pages/{page_id}/incidents/{incident_id}/incident_updates/{incident_update_id}",
+              "method": "put",
+              "kind": "req",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "incident_id": {
+                  "required": true,
+                  "name": "incident_id",
+                  "Name": "IncidentId",
+                  "NAME": "INCIDENT_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "incident_update_id": {
+                  "required": true,
+                  "name": "incident_update_id",
+                  "Name": "IncidentUpdateId",
+                  "NAME": "INCIDENT_UPDATE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body.incident_update`",
+              "reqform": {
+                "incident_update": "`reqdata`"
+              },
+              "name": "update",
+              "Name": "Update",
+              "NAME": "UPDATE"
+            }
+          },
+          "field": {},
+          "cmd": {},
+          "id": {
+            "name": "id",
+            "field": "id"
+          },
+          "name": "incident_update",
+          "Name": "IncidentUpdate",
+          "NAME": "INCIDENT_UPDATE",
+          "key$": "incident_update"
+        },
+        "component_group": {
+          "op": {
+            "update": {
+              "path": "/pages/{page_id}/component-groups/{id}",
+              "method": "put",
+              "kind": "req",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "id": {
+                  "required": true,
+                  "name": "id",
+                  "Name": "Id",
+                  "NAME": "ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body`",
+              "reqform": {
+                "component_group": "`reqdata`"
+              },
+              "name": "update",
+              "Name": "Update",
+              "NAME": "UPDATE"
+            },
+            "remove": {
+              "path": "/pages/{page_id}/component-groups/{id}",
+              "method": "delete",
+              "kind": "res",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "id": {
+                  "required": true,
+                  "name": "id",
+                  "Name": "Id",
+                  "NAME": "ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`data`",
+              "name": "remove",
+              "Name": "Remove",
+              "NAME": "REMOVE"
+            },
+            "load": {
+              "path": "/pages/{page_id}/component-groups/{id}",
+              "method": "get",
+              "kind": "res",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "id": {
+                  "required": true,
+                  "name": "id",
+                  "Name": "Id",
+                  "NAME": "ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`data`",
+              "name": "load",
+              "Name": "Load",
+              "NAME": "LOAD"
+            },
+            "list": {
+              "path": "/pages/{page_id}/component-groups",
+              "method": "get",
+              "kind": "res",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`data`",
+              "name": "list",
+              "Name": "List",
+              "NAME": "LIST"
+            }
+          },
+          "field": {
+            "id": {
+              "name": "id",
+              "Name": "Id",
+              "NAME": "ID",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Component Group Identifier"
+            },
+            "page_id": {
+              "name": "page_id",
+              "Name": "PageId",
+              "NAME": "PAGE_ID",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "name": {
+              "name": "name",
+              "Name": "Name",
+              "NAME": "NAME",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "description": {
+              "name": "description",
+              "Name": "Description",
+              "NAME": "DESCRIPTION",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "components": {
+              "name": "components",
+              "Name": "Components",
+              "NAME": "COMPONENTS",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "position": {
+              "name": "position",
+              "Name": "Position",
+              "NAME": "POSITION",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "created_at": {
+              "name": "created_at",
+              "Name": "CreatedAt",
+              "NAME": "CREATED_AT",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "updated_at": {
+              "name": "updated_at",
+              "Name": "UpdatedAt",
+              "NAME": "UPDATED_AT",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            }
+          },
+          "cmd": {},
+          "id": {
+            "name": "id",
+            "field": "id"
+          },
+          "name": "component_group",
+          "Name": "ComponentGroup",
+          "NAME": "COMPONENT_GROUP",
+          "key$": "component_group"
+        },
+        "metrics_provider": {
+          "op": {
+            "load": {
+              "path": "/pages/{page_id}/metrics_providers/{metrics_provider_id}",
+              "method": "get",
+              "kind": "res",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "metrics_provider_id": {
+                  "required": true,
+                  "name": "metrics_provider_id",
+                  "Name": "MetricsProviderId",
+                  "NAME": "METRICS_PROVIDER_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`data`",
+              "name": "load",
+              "Name": "Load",
+              "NAME": "LOAD"
+            },
+            "update": {
+              "path": "/pages/{page_id}/metrics_providers/{metrics_provider_id}",
+              "method": "put",
+              "kind": "req",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "metrics_provider_id": {
+                  "required": true,
+                  "name": "metrics_provider_id",
+                  "Name": "MetricsProviderId",
+                  "NAME": "METRICS_PROVIDER_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body.metrics_provider`",
+              "reqform": {
+                "metrics_provider": "`reqdata`"
+              },
+              "name": "update",
+              "Name": "Update",
+              "NAME": "UPDATE"
+            },
+            "remove": {
+              "path": "/pages/{page_id}/metrics_providers/{metrics_provider_id}",
+              "method": "delete",
+              "kind": "res",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "metrics_provider_id": {
+                  "required": true,
+                  "name": "metrics_provider_id",
+                  "Name": "MetricsProviderId",
+                  "NAME": "METRICS_PROVIDER_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`data`",
+              "name": "remove",
+              "Name": "Remove",
+              "NAME": "REMOVE"
+            },
+            "list": {
+              "path": "/pages/{page_id}/metrics_providers",
+              "method": "get",
+              "kind": "res",
+              "param": {
+                "page_id": {
+                  "required": true,
+                  "name": "page_id",
+                  "Name": "PageId",
+                  "NAME": "PAGE_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`data`",
+              "name": "list",
+              "Name": "List",
+              "NAME": "LIST"
+            }
+          },
+          "field": {
+            "id": {
+              "name": "id",
+              "Name": "Id",
+              "NAME": "ID",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING",
+              "short": "Identifier for Metrics Provider"
+            },
+            "type": {
+              "name": "type",
+              "Name": "Type",
+              "NAME": "TYPE",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "disabled": {
+              "name": "disabled",
+              "Name": "Disabled",
+              "NAME": "DISABLED",
+              "type": "boolean",
+              "Type": "Boolean",
+              "TYPE": "BOOLEAN"
+            },
+            "metric_base_uri": {
+              "name": "metric_base_uri",
+              "Name": "MetricBaseUri",
+              "NAME": "METRIC_BASE_URI",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "last_revalidated_at": {
+              "name": "last_revalidated_at",
+              "Name": "LastRevalidatedAt",
+              "NAME": "LAST_REVALIDATED_AT",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "created_at": {
+              "name": "created_at",
+              "Name": "CreatedAt",
+              "NAME": "CREATED_AT",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "updated_at": {
+              "name": "updated_at",
+              "Name": "UpdatedAt",
+              "NAME": "UPDATED_AT",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "page_id": {
+              "name": "page_id",
+              "Name": "PageId",
+              "NAME": "PAGE_ID",
+              "type": "integer",
+              "Type": "Integer",
+              "TYPE": "INTEGER"
+            }
+          },
+          "cmd": {},
+          "id": {
+            "name": "id",
+            "field": "id"
+          },
+          "name": "metrics_provider",
+          "Name": "MetricsProvider",
+          "NAME": "METRICS_PROVIDER",
+          "key$": "metrics_provider"
+        },
+        "permission": {
+          "op": {
+            "update": {
+              "path": "/organizations/{organization_id}/permissions/{user_id}",
+              "method": "put",
+              "kind": "req",
+              "param": {
+                "organization_id": {
+                  "required": true,
+                  "name": "organization_id",
+                  "Name": "OrganizationId",
+                  "NAME": "ORGANIZATION_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "user_id": {
+                  "required": true,
+                  "name": "user_id",
+                  "Name": "UserId",
+                  "NAME": "USER_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body.pages`",
+              "reqform": {
+                "pages": "`data`"
+              },
+              "name": "update",
+              "Name": "Update",
+              "NAME": "UPDATE"
+            },
+            "load": {
+              "path": "/organizations/{organization_id}/permissions/{user_id}",
+              "method": "get",
+              "kind": "res",
+              "param": {
+                "organization_id": {
+                  "required": true,
+                  "name": "organization_id",
+                  "Name": "OrganizationId",
+                  "NAME": "ORGANIZATION_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "user_id": {
+                  "required": true,
+                  "name": "user_id",
+                  "Name": "UserId",
+                  "NAME": "USER_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body.data`",
+              "reqform": {
+                "data": "`data`"
+              },
+              "name": "load",
+              "Name": "Load",
+              "NAME": "LOAD"
+            }
+          },
+          "field": {
+            "data": {
+              "name": "data",
+              "Name": "Data",
+              "NAME": "DATA",
+              "type": "object",
+              "Type": "Object",
+              "TYPE": "OBJECT"
+            }
+          },
+          "cmd": {},
+          "id": {
+            "name": "id",
+            "field": "id"
+          },
+          "name": "permission",
+          "Name": "Permission",
+          "NAME": "PERMISSION",
+          "key$": "permission"
+        },
+        "user": {
+          "op": {
+            "remove": {
+              "path": "/organizations/{organization_id}/users/{user_id}",
+              "method": "delete",
+              "kind": "res",
+              "param": {
+                "organization_id": {
+                  "required": true,
+                  "name": "organization_id",
+                  "Name": "OrganizationId",
+                  "NAME": "ORGANIZATION_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "user_id": {
+                  "required": true,
+                  "name": "user_id",
+                  "Name": "UserId",
+                  "NAME": "USER_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`data`",
+              "name": "remove",
+              "Name": "Remove",
+              "NAME": "REMOVE"
+            },
+            "list": {
+              "path": "/organizations/{organization_id}/users",
+              "method": "get",
+              "kind": "res",
+              "param": {
+                "organization_id": {
+                  "required": true,
+                  "name": "organization_id",
+                  "Name": "OrganizationId",
+                  "NAME": "ORGANIZATION_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`data`",
+              "name": "list",
+              "Name": "List",
+              "NAME": "LIST"
+            }
+          },
+          "field": {},
+          "cmd": {},
+          "id": {
+            "name": "id",
+            "field": "id"
+          },
+          "name": "user",
+          "Name": "User",
+          "NAME": "USER",
+          "key$": "user"
+        }
+      }
+    },
+    "def": {
+      "info": {
+        "title": "Statuspage API",
+        "description": "# Code of Conduct\nPlease don't abuse the API, and please report all feature requests and issues to\nhttps://support.atlassian.com/contact\n\n# Rate Limiting\nEach API token is limited to 1 request / second as measured on a 60 second rolling window.\nTo get this limit increased, please contact us at https://support.atlassian.com/contact\n\nError codes 420 or 429 indicate that you have exceeded the rate limit and the request has been rejected.\n\n# Basics\n\n## HTTPS\nIt's required\n\n## URL Prefix\nIn order to maintain version integrity into the future, the API is versioned. All calls\ncurrently begin with the following prefix:\n\n  https://api.statuspage.io/v1/\n\n## RESTful Interface\nWherever possible, the API seeks to implement repeatable patterns with logical,\nrepresentative URLs and descriptive HTTP verbs. Below are some examples and conventions\nyou will see throughout the documentation.\n\n* Collections are buckets: https://api.statuspage.io/v1/pages/asdf123/incidents.json\n* Elements have unique IDs: https://api.statuspage.io/v1/pages/asdf123/incidents/jklm456.json\n* GET will retrieve information about a collection/element\n* POST will create an element in a collection\n* PATCH will update a single element\n* PUT will replace a single element in a collection (rarely used)\n* DELETE will destroy a single element\n\n## Sending Data\nInformation can be sent in the body as form urlencoded or JSON, but make sure the\nContent-Type header matches the body structure or the server gremlins will be angry.\n\nAll examples are provided in JSON format, however they can easily be converted to form encoding\nif required.  Some examples of how to convert things are below:\n\n    // JSON\n    {\n      \"incident\": {\n        \"name\": \"test incident\",\n        \"components\": [\"8kbf7d35c070\", \"vtnh60py4yd7\"]\n      }\n    }\n\n    // Form Encoded (using curl as an example):\n    curl -X POST https://api.statuspage.io/v1/example \\\n      -d \"incident[name]=test incident\" \\\n      -d \"incident[components][]=8kbf7d35c070\" \\\n      -d \"incident[components][]=vtnh60py4yd7\"\n\n# Authentication\n\n<!-- ReDoc-Inject: <security-definitions> -->",
+        "contact": {
+          "name": "Statuspage Support",
+          "url": "https://support.atlassian.com/contact"
+        },
+        "version": "1.0.0",
+        "x-logo": {
+          "url": "https://d1ykxpo828xni0.cloudfront.net/Statuspage-logo-padding.svg"
+        }
+      },
+      "servers": [
+        {
+          "url": "https://api.statuspage.io/v1"
+        }
+      ]
+    },
+    "sdk": {
+      "entity": {
+        "page": {
+          "alias": {
+            "field": {
+              "page_id": "id",
+              "id": "page_id"
+            }
+          }
+        },
+        "page_access_user": {
+          "alias": {
+            "field": {
+              "page_access_user_id": "id",
+              "id": "page_access_user_id"
+            }
+          }
+        },
+        "component": {
+          "alias": {
+            "field": {
+              "component_id": "id",
+              "id": "component_id"
+            }
+          }
+        },
+        "metric": {
+          "alias": {
+            "field": {
+              "metric_id": "id",
+              "id": "metrics_provider_id",
+              "metrics_provider_id": "id"
+            }
+          }
+        },
+        "page_access_group": {
+          "alias": {
+            "field": {
+              "page_access_group_id": "id",
+              "id": "page_access_group_id"
+            }
+          }
+        },
+        "subscriber": {
+          "alias": {
+            "field": {
+              "subscriber_id": "id",
+              "id": "subscriber_id"
+            }
+          }
+        },
+        "incident": {
+          "alias": {
+            "field": {
+              "incident_id": "id",
+              "id": "incident_id"
+            }
+          }
+        },
+        "incident_update": {
+          "alias": {
+            "field": {
+              "incident_update_id": "id",
+              "id": "incident_update_id"
+            }
+          }
+        },
+        "component_group": {
+          "alias": {
+            "field": {}
+          }
+        },
+        "metrics_provider": {
+          "alias": {
+            "field": {
+              "metrics_provider_id": "id",
+              "id": "metrics_provider_id"
+            }
+          }
+        },
+        "permission": {
+          "alias": {
+            "field": {}
+          }
+        },
+        "user": {
+          "alias": {
+            "field": {
+              "user_id": "id",
+              "id": "user_id"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -28,7 +28,10 @@ async function resolveGuide(ctx: any) {
       (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'guide.jsonic')
 
   const guideBlocks = [
-    '# Guide'
+    '# Guide',
+    '',
+    'main: api: guide: { ',
+    '',
   ]
 
 
@@ -51,6 +54,8 @@ async function resolveGuide(ctx: any) {
 
     guideBlocks.push(`}`)
   }))
+
+  guideBlocks.push('}')
 
   const guideSrc = guideBlocks.join('\n')
 

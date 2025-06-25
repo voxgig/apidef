@@ -1,6 +1,6 @@
 # GENERATED FILE - DO NOT EDIT
 
-main.api.entity.permission:
+main: api: entity: permission: {
 
 "op": {
   "update": {
@@ -89,3 +89,6 @@ main.api.entity.permission:
 "Name": "Permission",
 "NAME": "PERMISSION",
 "key$": "permission"
+
+
+}

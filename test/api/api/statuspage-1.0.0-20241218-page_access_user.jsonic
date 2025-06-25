@@ -1,6 +1,6 @@
 # GENERATED FILE - DO NOT EDIT
 
-main.api.entity.page_access_user:
+main: api: entity: page_access_user: {
 
 "op": {
   "update": {
@@ -196,3 +196,6 @@ main.api.entity.page_access_user:
 "Name": "PageAccessUser",
 "NAME": "PAGE_ACCESS_USER",
 "key$": "page_access_user"
+
+
+}

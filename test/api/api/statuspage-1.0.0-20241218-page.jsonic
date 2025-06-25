@@ -1,6 +1,6 @@
 # GENERATED FILE - DO NOT EDIT
 
-main.api.entity.page:
+main: api: entity: page: {
 
 "op": {
   "update": {
@@ -463,3 +463,6 @@ main.api.entity.page:
 "Name": "Page",
 "NAME": "PAGE",
 "key$": "page"
+
+
+}

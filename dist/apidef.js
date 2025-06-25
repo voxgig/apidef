@@ -50,7 +50,7 @@ const flow_1 = require("./flow");
 const parse_1 = require("./parse");
 Object.defineProperty(exports, "parse", { enumerable: true, get: function () { return parse_1.parse; } });
 const transform_1 = require("./transform");
-const generate_1 = require("./generate");
+const entity_1 = require("./entity");
 const utility_1 = require("./utility");
 function ApiDef(opts) {
     // TODO: gubu opts!
@@ -60,8 +60,8 @@ function ApiDef(opts) {
     opts.strategy = opts.strategy || 'heuristic01';
     async function generate(spec) {
         const start = Date.now();
-        console.log('APIDEF GENERATE');
-        console.dir(spec, { depth: null });
+        // console.log('APIDEF GENERATE')
+        // console.dir(spec, { depth: null })
         const model = (0, types_1.OpenModelShape)(spec.model);
         const build = (0, types_1.OpenBuildShape)(spec.build);
         const apimodel = {
@@ -110,7 +110,7 @@ function ApiDef(opts) {
             });
             return { ok: false, name: 'apidef', processResult };
         }
-        (0, generate_1.generateModel)(apimodel, spec, opts, { fs, log });
+        const entityBuilder = (0, entity_1.resolveEntity)(apimodel, spec, opts);
         const flowBuilder = await (0, flow_1.resolveFlows)(ctx);
         const jostraca = (0, jostraca_1.Jostraca)({
             now: spec.now,
@@ -120,6 +120,7 @@ function ApiDef(opts) {
         const jmodel = {};
         const root = () => (0, jostraca_1.Project)({ folder: '.' }, async () => {
             guideBuilder();
+            entityBuilder();
             flowBuilder();
         });
         const jres = await jostraca.generate({
@@ -142,7 +143,7 @@ function ApiDef(opts) {
 }
 ApiDef.makeBuild = async function (opts) {
     let apidef = undefined;
-    const outprefix = null == opts.outprefix ? '' : opts.outprefix;
+    // const outprefix = null == opts.outprefix ? '' : opts.outprefix
     const config = {
         def: opts.def || 'no-def',
         kind: 'openapi3',

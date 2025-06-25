@@ -1,6 +1,6 @@
 # GENERATED FILE - DO NOT EDIT
 
-main.api.entity.user:
+main: api: entity: user: {
 
 "op": {
   "remove": {
@@ -67,3 +67,6 @@ main.api.entity.user:
 "Name": "User",
 "NAME": "USER",
 "key$": "user"
+
+
+}

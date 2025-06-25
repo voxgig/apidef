@@ -10,6 +10,7 @@ const jostraca_1 = require("jostraca");
 // import {
 //   writeChanged
 // } from '../utility'
+// TODO: merge into apiEntity
 function resolveSdkEntity(apimodel, opts) {
     // const { fs, log } = res
     // const folder = opts.folder as string

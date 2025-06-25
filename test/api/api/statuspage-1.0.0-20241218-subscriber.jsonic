@@ -1,6 +1,6 @@
 # GENERATED FILE - DO NOT EDIT
 
-main.api.entity.subscriber:
+main: api: entity: subscriber: {
 
 "op": {
   "remove": {
@@ -293,3 +293,6 @@ main.api.entity.subscriber:
 "Name": "Subscriber",
 "NAME": "SUBSCRIBER",
 "key$": "subscriber"
+
+
+}

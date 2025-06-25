@@ -1,5 +1,8 @@
 # Guide
 
+main: api: guide: { 
+
+
 entity: page: path: {
   '/pages/{page_id}': op: {
     'update': method: put
@@ -166,3 +169,5 @@ entity: user: path: {
 
 
 
+
+}

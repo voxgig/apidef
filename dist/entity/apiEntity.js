@@ -26,8 +26,9 @@ opts) {
         const entityFile = (null == opts.outprefix ? '' : opts.outprefix) + entityName + '.jsonic';
         const entityJSON = JSON.stringify(entity, null, 2);
         const entitySrc = '# GENERATED FILE - DO NOT EDIT\n\n' +
-            `main.api.entity.${entity.name}:\n` +
-            entityJSON.substring(1, entityJSON.length - 1).replace(/\n  /g, '\n');
+            `main: api: entity: ${entity.name}: {\n` +
+            entityJSON.substring(1, entityJSON.length - 1).replace(/\n  /g, '\n') +
+            '\n\n}\n';
         // writeChanged('api-entity-model:' + entityName, entityFile, entitySrc, fs, log)
         entityFiles.push({ name: entityFile, src: entitySrc });
         barrel.push(`@"${node_path_1.default.basename(entityFile)}"`);

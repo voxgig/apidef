@@ -1,0 +1,14 @@
+
+@"@voxgig/apidef/model/apidef.jsonic"
+
+@"statuspage-1.0.0-20241218-guide.jsonic"
+
+# TODO: move to def folder
+@"statuspage-1.0.0-20241218-def-generated.jsonic"
+
+# TODO: merge these into entity folder, same files
+@"api/statuspage-1.0.0-20241218-api-entity-index.jsonic"
+@"entity/statuspage-1.0.0-20241218-entity-index.jsonic"
+
+# @"flow/statuspage-1.0.0-20241218-flow-index.jsonic"
+

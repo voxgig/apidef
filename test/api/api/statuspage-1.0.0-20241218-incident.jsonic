@@ -1,6 +1,6 @@
 # GENERATED FILE - DO NOT EDIT
 
-main.api.entity.incident:
+main: api: entity: incident: {
 
 "op": {
   "remove": {
@@ -411,3 +411,6 @@ main.api.entity.incident:
 "Name": "Incident",
 "NAME": "INCIDENT",
 "key$": "incident"
+
+
+}

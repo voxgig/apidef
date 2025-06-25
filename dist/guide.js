@@ -20,7 +20,10 @@ async function resolveGuide(ctx) {
     ctx.model.main.api.guide = guide;
     const guideFile = node_path_1.default.join(ctx.opts.folder, (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'guide.jsonic');
     const guideBlocks = [
-        '# Guide'
+        '# Guide',
+        '',
+        'main: api: guide: { ',
+        '',
     ];
     guideBlocks.push(...(0, jostraca_1.each)(guide.entity, (entity, entityname) => {
         guideBlocks.push(`\nentity: ${entityname}: path: {`);
@@ -36,6 +39,7 @@ async function resolveGuide(ctx) {
         });
         guideBlocks.push(`}`);
     }));
+    guideBlocks.push('}');
     const guideSrc = guideBlocks.join('\n');
     // console.log(guideSrc)
     return () => {

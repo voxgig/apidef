@@ -1,6 +1,6 @@
 # GENERATED FILE - DO NOT EDIT
 
-main.api.entity.component_group:
+main: api: entity: component_group: {
 
 "op": {
   "update": {
@@ -197,3 +197,6 @@ main.api.entity.component_group:
 "Name": "ComponentGroup",
 "NAME": "COMPONENT_GROUP",
 "key$": "component_group"
+
+
+}

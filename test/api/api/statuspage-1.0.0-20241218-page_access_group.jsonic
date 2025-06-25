@@ -1,6 +1,6 @@
 # GENERATED FILE - DO NOT EDIT
 
-main.api.entity.page_access_group:
+main: api: entity: page_access_group: {
 
 "op": {
   "load": {
@@ -208,3 +208,6 @@ main.api.entity.page_access_group:
 "Name": "PageAccessGroup",
 "NAME": "PAGE_ACCESS_GROUP",
 "key$": "page_access_group"
+
+
+}

@@ -1,0 +1,14 @@
+# Entity Models
+
+@"statuspage-1.0.0-20241218-page.jsonic"
+@"statuspage-1.0.0-20241218-page_access_user.jsonic"
+@"statuspage-1.0.0-20241218-component.jsonic"
+@"statuspage-1.0.0-20241218-metric.jsonic"
+@"statuspage-1.0.0-20241218-page_access_group.jsonic"
+@"statuspage-1.0.0-20241218-subscriber.jsonic"
+@"statuspage-1.0.0-20241218-incident.jsonic"
+@"statuspage-1.0.0-20241218-incident_update.jsonic"
+@"statuspage-1.0.0-20241218-component_group.jsonic"
+@"statuspage-1.0.0-20241218-metrics_provider.jsonic"
+@"statuspage-1.0.0-20241218-permission.jsonic"
+@"statuspage-1.0.0-20241218-user.jsonic"

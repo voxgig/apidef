@@ -1,6 +1,6 @@
 # GENERATED FILE - DO NOT EDIT
 
-main.api.entity.metrics_provider:
+main: api: entity: metrics_provider: {
 
 "op": {
   "load": {
@@ -197,3 +197,6 @@ main.api.entity.metrics_provider:
 "Name": "MetricsProvider",
 "NAME": "METRICS_PROVIDER",
 "key$": "metrics_provider"
+
+
+}

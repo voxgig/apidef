@@ -1,6 +1,6 @@
 # GENERATED FILE - DO NOT EDIT
 
-main.api.entity.metric:
+main: api: entity: metric: {
 
 "op": {
   "remove": {
@@ -292,3 +292,6 @@ main.api.entity.metric:
 "Name": "Metric",
 "NAME": "METRIC",
 "key$": "metric"
+
+
+}

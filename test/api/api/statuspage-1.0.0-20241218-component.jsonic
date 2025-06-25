@@ -1,6 +1,6 @@
 # GENERATED FILE - DO NOT EDIT
 
-main.api.entity.component:
+main: api: entity: component: {
 
 "op": {
   "remove": {
@@ -256,3 +256,6 @@ main.api.entity.component:
 "Name": "Component",
 "NAME": "COMPONENT",
 "key$": "component"
+
+
+}

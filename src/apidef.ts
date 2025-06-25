@@ -4,7 +4,7 @@ import * as Fs from 'node:fs'
 import Path from 'node:path'
 import { inspect } from 'node:util'
 
-import { Jostraca, Project } from 'jostraca'
+import { Jostraca, Project, File, Content } from 'jostraca'
 
 import { prettyPino } from '@voxgig/util'
 
@@ -45,8 +45,8 @@ import {
 
 
 import {
-  generateModel,
-} from './generate'
+  resolveEntity,
+} from './entity'
 
 
 import {
@@ -68,8 +68,8 @@ function ApiDef(opts: ApiDefOptions) {
   async function generate(spec: any) {
     const start = Date.now()
 
-    console.log('APIDEF GENERATE')
-    console.dir(spec, { depth: null })
+    // console.log('APIDEF GENERATE')
+    // console.dir(spec, { depth: null })
 
     const model: Model = OpenModelShape(spec.model)
     const build: Build = OpenBuildShape(spec.build)
@@ -82,7 +82,6 @@ function ApiDef(opts: ApiDefOptions) {
         def: {},
       },
     }
-
 
     const buildspec = build.spec
 
@@ -137,8 +136,7 @@ function ApiDef(opts: ApiDefOptions) {
     }
 
 
-
-    generateModel(apimodel, spec, opts, { fs, log })
+    const entityBuilder = resolveEntity(apimodel, spec, opts)
 
     const flowBuilder = await resolveFlows(ctx)
 
@@ -153,6 +151,7 @@ function ApiDef(opts: ApiDefOptions) {
 
     const root = () => Project({ folder: '.' }, async () => {
       guideBuilder()
+      entityBuilder()
       flowBuilder()
     })
 
@@ -180,11 +179,10 @@ function ApiDef(opts: ApiDefOptions) {
 }
 
 
-
 ApiDef.makeBuild = async function(opts: ApiDefOptions) {
   let apidef: any = undefined
 
-  const outprefix = null == opts.outprefix ? '' : opts.outprefix
+  // const outprefix = null == opts.outprefix ? '' : opts.outprefix
 
   const config = {
     def: opts.def || 'no-def',

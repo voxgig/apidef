@@ -1,6 +1,3 @@
-import type { ApiDefOptions, Log, FsUtil } from './types';
-declare function generateModel(apimodel: any, spec: any, opts: ApiDefOptions, res: {
-    fs: FsUtil;
-    log: Log;
-}): void;
-export { generateModel };
+import type { ApiDefOptions } from './types';
+declare function resolveModel(apimodel: any, spec: any, opts: ApiDefOptions): () => void;
+export { resolveModel };

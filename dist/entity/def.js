@@ -16,7 +16,7 @@ function resolveDef(apimodel, opts) {
             modelDefSrc.substring(1, modelDefSrc.length - 1).replace(/\n  /g, '\n');
     // writeChanged('def-model', defFilePath, modelDefSrc, fs, log)
     return function defBuilder() {
-        (0, jostraca_1.File)({ name: defFile }, modelDefSrc);
+        (0, jostraca_1.File)({ name: defFile }, () => (0, jostraca_1.Content)(modelDefSrc));
     };
 }
 //# sourceMappingURL=def.js.map

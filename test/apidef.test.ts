@@ -1,5 +1,6 @@
 /* Copyright (c) 2024 Voxgig Ltd, MIT License */
 
+import * as Fs from 'node:fs'
 
 import { test, describe } from 'node:test'
 import { expect } from '@hapi/code'
@@ -7,12 +8,13 @@ import { expect } from '@hapi/code'
 import { Aontu } from 'aontu'
 
 
-// import { cmp, each, Project, Folder, File, Code } from 'jostraca'
 
 import {
   ApiDef
 } from '../'
 
+
+// TODO: remove all sdk refs or rename to api
 
 
 describe('apidef', () => {
@@ -24,10 +26,11 @@ describe('apidef', () => {
 
   test('api-statuspage', async () => {
     try {
-      let outprefix = 'statuspage-1.0.0-20241218-'
+      const outprefix = 'statuspage-1.0.0-20241218-'
+      const folder = __dirname + '/../test/api'
 
       const build = await ApiDef.makeBuild({
-        folder: __dirname + '/../test/api',
+        folder,
         debug: 'debug',
         outprefix,
       })
@@ -53,6 +56,33 @@ def: '${outprefix}def.json'
       }
 
       await build(model, buildspec, {})
+
+
+      const rootSrc = `
+@"@voxgig/apidef/model/apidef.jsonic"
+
+@"${outprefix}guide.jsonic"
+
+# TODO: move to def folder
+@"${outprefix}def-generated.jsonic"
+
+# TODO: merge these into entity folder, same files
+@"api/${outprefix}api-entity-index.jsonic"
+@"entity/${outprefix}entity-index.jsonic"
+
+@"flow/${outprefix}flow-index.jsonic"
+
+`
+
+      const rootFile = folder + `/${outprefix}root.jsonic`
+      Fs.writeFileSync(rootFile, rootSrc)
+
+      const result = Aontu(rootSrc, {
+        path: rootFile,
+        // base: folder
+      }).gen()
+
+      Fs.writeFileSync(folder + `/${outprefix}root.json`, JSON.stringify(result, null, 2))
     }
     catch (err: any) {
       console.log(err)
