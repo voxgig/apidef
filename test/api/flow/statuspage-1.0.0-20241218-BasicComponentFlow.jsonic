@@ -1,6 +1,6 @@
 # BasicComponentFlow
 
-main.sdk.flow.BasicComponentFlow:
+main: sdk: flow: BasicComponentFlow:
 {
   "param": {},
   "test": {

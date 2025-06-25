@@ -1,6 +1,6 @@
 # BasicSubscriberFlow
 
-main.sdk.flow.BasicSubscriberFlow:
+main: sdk: flow: BasicSubscriberFlow:
 {
   "param": {},
   "test": {

@@ -1,6 +1,6 @@
 # BasicPageAccessUserFlow
 
-main.sdk.flow.BasicPageAccessUserFlow:
+main: sdk: flow: BasicPageAccessUserFlow:
 {
   "param": {},
   "test": {

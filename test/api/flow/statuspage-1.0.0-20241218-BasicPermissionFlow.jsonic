@@ -1,6 +1,6 @@
 # BasicPermissionFlow
 
-main.sdk.flow.BasicPermissionFlow:
+main: sdk: flow: BasicPermissionFlow:
 {
   "param": {},
   "test": {

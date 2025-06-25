@@ -1,6 +1,6 @@
 # BasicUserFlow
 
-main.sdk.flow.BasicUserFlow:
+main: sdk: flow: BasicUserFlow:
 {
   "param": {},
   "test": {

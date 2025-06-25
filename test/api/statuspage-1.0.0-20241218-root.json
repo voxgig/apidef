@@ -3285,6 +3285,116 @@
             }
           }
         }
+      },
+      "flow": {
+        "BasicPageFlow": {
+          "param": {},
+          "test": {
+            "entity": {
+              "Page": {}
+            }
+          },
+          "step": []
+        },
+        "BasicPageAccessUserFlow": {
+          "param": {},
+          "test": {
+            "entity": {
+              "PageAccessUser": {}
+            }
+          },
+          "step": []
+        },
+        "BasicComponentFlow": {
+          "param": {},
+          "test": {
+            "entity": {
+              "Component": {}
+            }
+          },
+          "step": []
+        },
+        "BasicMetricFlow": {
+          "param": {},
+          "test": {
+            "entity": {
+              "Metric": {}
+            }
+          },
+          "step": []
+        },
+        "BasicPageAccessGroupFlow": {
+          "param": {},
+          "test": {
+            "entity": {
+              "PageAccessGroup": {}
+            }
+          },
+          "step": []
+        },
+        "BasicSubscriberFlow": {
+          "param": {},
+          "test": {
+            "entity": {
+              "Subscriber": {}
+            }
+          },
+          "step": []
+        },
+        "BasicIncidentFlow": {
+          "param": {},
+          "test": {
+            "entity": {
+              "Incident": {}
+            }
+          },
+          "step": []
+        },
+        "BasicIncidentUpdateFlow": {
+          "param": {},
+          "test": {
+            "entity": {
+              "IncidentUpdate": {}
+            }
+          },
+          "step": []
+        },
+        "BasicComponentGroupFlow": {
+          "param": {},
+          "test": {
+            "entity": {
+              "ComponentGroup": {}
+            }
+          },
+          "step": []
+        },
+        "BasicMetricsProviderFlow": {
+          "param": {},
+          "test": {
+            "entity": {
+              "MetricsProvider": {}
+            }
+          },
+          "step": []
+        },
+        "BasicPermissionFlow": {
+          "param": {},
+          "test": {
+            "entity": {
+              "Permission": {}
+            }
+          },
+          "step": []
+        },
+        "BasicUserFlow": {
+          "param": {},
+          "test": {
+            "entity": {
+              "User": {}
+            }
+          },
+          "step": []
+        }
       }
     }
   }

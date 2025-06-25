@@ -1,6 +1,6 @@
 # BasicIncidentUpdateFlow
 
-main.sdk.flow.BasicIncidentUpdateFlow:
+main: sdk: flow: BasicIncidentUpdateFlow:
 {
   "param": {},
   "test": {

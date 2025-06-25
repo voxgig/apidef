@@ -27,7 +27,7 @@ async function resolveFlows(ctx) {
                 let flowModelSrc = JSON.stringify(flow.model, null, 2);
                 let flowsrc = `# ${flow.Name}Flow
 
-main.sdk.flow.${flow.Name}Flow:
+main: sdk: flow: ${flow.Name}Flow:
 ` + flowModelSrc;
                 barrel.push(`@"${node_path_1.default.basename(flowfile)}"`);
                 (0, jostraca_1.File)({ name: node_path_1.default.basename(flowfile) }, () => (0, jostraca_1.Content)(flowsrc));

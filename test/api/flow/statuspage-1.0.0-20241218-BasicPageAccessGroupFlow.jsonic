@@ -1,6 +1,6 @@
 # BasicPageAccessGroupFlow
 
-main.sdk.flow.BasicPageAccessGroupFlow:
+main: sdk: flow: BasicPageAccessGroupFlow:
 {
   "param": {},
   "test": {

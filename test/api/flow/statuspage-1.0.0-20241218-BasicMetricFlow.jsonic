@@ -1,6 +1,6 @@
 # BasicMetricFlow
 
-main.sdk.flow.BasicMetricFlow:
+main: sdk: flow: BasicMetricFlow:
 {
   "param": {},
   "test": {

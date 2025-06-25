@@ -36,7 +36,7 @@ async function resolveFlows(ctx: any) {
 
         let flowsrc = `# ${flow.Name}Flow
 
-main.sdk.flow.${flow.Name}Flow:
+main: sdk: flow: ${flow.Name}Flow:
 ` + flowModelSrc
 
         barrel.push(`@"${Path.basename(flowfile)}"`)

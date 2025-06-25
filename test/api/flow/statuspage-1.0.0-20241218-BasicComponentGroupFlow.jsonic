@@ -1,6 +1,6 @@
 # BasicComponentGroupFlow
 
-main.sdk.flow.BasicComponentGroupFlow:
+main: sdk: flow: BasicComponentGroupFlow:
 {
   "param": {},
   "test": {

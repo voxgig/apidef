@@ -1,6 +1,6 @@
 # BasicPageFlow
 
-main.sdk.flow.BasicPageFlow:
+main: sdk: flow: BasicPageFlow:
 {
   "param": {},
   "test": {

@@ -1,6 +1,6 @@
 # BasicMetricsProviderFlow
 
-main.sdk.flow.BasicMetricsProviderFlow:
+main: sdk: flow: BasicMetricsProviderFlow:
 {
   "param": {},
   "test": {
