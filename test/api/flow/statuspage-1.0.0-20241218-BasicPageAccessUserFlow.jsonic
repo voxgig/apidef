@@ -2,10 +2,26 @@
 
 main: sdk: flow: BasicPageAccessUserFlow:
 {
-  "param": {},
+  "param": {
+    "undefined_TEST_PAGE_ACCESS_USER_ENTID": {
+      "page_access_user01": "PAGE_ACCESS_USER01",
+      "page_access_user02": "PAGE_ACCESS_USER02",
+      "page_access_user03": "PAGE_ACCESS_USER03"
+    }
+  },
   "test": {
     "entity": {
-      "PageAccessUser": {}
+      "PageAccessUser": {
+        "PAGE_ACCESS_USER01": {
+          "id": "PAGE_ACCESS_USER01"
+        },
+        "PAGE_ACCESS_USER02": {
+          "id": "PAGE_ACCESS_USER02"
+        },
+        "PAGE_ACCESS_USER03": {
+          "id": "PAGE_ACCESS_USER03"
+        }
+      }
     }
   },
   "step": []

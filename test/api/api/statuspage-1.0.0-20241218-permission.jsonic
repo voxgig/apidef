@@ -1,94 +1,109 @@
-# GENERATED FILE - DO NOT EDIT
+# Entity: permission
 
 main: api: entity: permission: {
 
-"op": {
-  "update": {
-    "path": "/organizations/{organization_id}/permissions/{user_id}",
-    "method": "put",
-    "kind": "req",
-    "param": {
-      "organization_id": {
-        "required": true,
-        "name": "organization_id",
-        "Name": "OrganizationId",
-        "NAME": "ORGANIZATION_ID",
-        "type": "string",
-        "Type": "String",
-        "TYPE": "STRING"
-      },
-      "user_id": {
-        "required": true,
-        "name": "user_id",
-        "Name": "UserId",
-        "NAME": "USER_ID",
-        "type": "string",
-        "Type": "String",
-        "TYPE": "STRING"
+  alias: field: {}
+
+  op: {
+    update: {
+      path: "/organizations/{organization_id}/permissions/{user_id}",
+      method: "put",
+      kind: "req",
+      param: {
+        organization_id: {
+          required: true,
+          name: "organization_id",
+          Name: "OrganizationId",
+          NAME: "ORGANIZATION_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        user_id: {
+          required: true,
+          name: "user_id",
+          Name: "UserId",
+          NAME: "USER_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
       }
-    },
-    "query": {},
-    "resform": "`body.pages`",
-    "reqform": {
-      "pages": "`data`"
-    },
-    "name": "update",
-    "Name": "Update",
-    "NAME": "UPDATE"
-  },
-  "load": {
-    "path": "/organizations/{organization_id}/permissions/{user_id}",
-    "method": "get",
-    "kind": "res",
-    "param": {
-      "organization_id": {
-        "required": true,
-        "name": "organization_id",
-        "Name": "OrganizationId",
-        "NAME": "ORGANIZATION_ID",
-        "type": "string",
-        "Type": "String",
-        "TYPE": "STRING"
-      },
-      "user_id": {
-        "required": true,
-        "name": "user_id",
-        "Name": "UserId",
-        "NAME": "USER_ID",
-        "type": "string",
-        "Type": "String",
-        "TYPE": "STRING"
+
+      query: {}
+
+      resform: "`body.pages`",
+      reqform: {
+        pages: "`data`"
       }
-    },
-    "query": {},
-    "resform": "`body.data`",
-    "reqform": {
-      "data": "`data`"
-    },
-    "name": "load",
-    "Name": "Load",
-    "NAME": "LOAD"
+
+      name: "update",
+      Name: "Update",
+      NAME: "UPDATE"
+    }
+
+    load: {
+      path: "/organizations/{organization_id}/permissions/{user_id}",
+      method: "get",
+      kind: "res",
+      param: {
+        organization_id: {
+          required: true,
+          name: "organization_id",
+          Name: "OrganizationId",
+          NAME: "ORGANIZATION_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        user_id: {
+          required: true,
+          name: "user_id",
+          Name: "UserId",
+          NAME: "USER_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+      resform: "`body.data`",
+      reqform: {
+        data: "`data`"
+      }
+
+      name: "load",
+      Name: "Load",
+      NAME: "LOAD"
+    }
   }
-},
-"field": {
-  "data": {
-    "name": "data",
-    "Name": "Data",
-    "NAME": "DATA",
-    "type": "object",
-    "Type": "Object",
-    "TYPE": "OBJECT"
+
+  field: {
+    data: {
+      name: "data",
+      Name: "Data",
+      NAME: "DATA",
+      type: "object",
+      Type: "Object",
+      TYPE: "OBJECT"
+    }
   }
-},
-"cmd": {},
-"id": {
-  "name": "id",
-  "field": "id"
-},
-"name": "permission",
-"Name": "Permission",
-"NAME": "PERMISSION",
-"key$": "permission"
+
+  cmd: {}
+
+  id: {
+    name: "id",
+    field: "id"
+  }
+
+  name: "permission",
+  Name: "Permission",
+  NAME: "PERMISSION",
+  "key$": "permission"
 
 
 }

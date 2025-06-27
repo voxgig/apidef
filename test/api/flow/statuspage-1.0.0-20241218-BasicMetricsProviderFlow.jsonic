@@ -2,10 +2,26 @@
 
 main: sdk: flow: BasicMetricsProviderFlow:
 {
-  "param": {},
+  "param": {
+    "undefined_TEST_METRICS_PROVIDER_ENTID": {
+      "metrics_provider01": "METRICS_PROVIDER01",
+      "metrics_provider02": "METRICS_PROVIDER02",
+      "metrics_provider03": "METRICS_PROVIDER03"
+    }
+  },
   "test": {
     "entity": {
-      "MetricsProvider": {}
+      "MetricsProvider": {
+        "METRICS_PROVIDER01": {
+          "id": "METRICS_PROVIDER01"
+        },
+        "METRICS_PROVIDER02": {
+          "id": "METRICS_PROVIDER02"
+        },
+        "METRICS_PROVIDER03": {
+          "id": "METRICS_PROVIDER03"
+        }
+      }
     }
   },
   "step": []

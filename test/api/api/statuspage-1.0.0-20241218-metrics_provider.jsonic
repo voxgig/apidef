@@ -1,202 +1,233 @@
-# GENERATED FILE - DO NOT EDIT
+# Entity: metrics_provider
 
 main: api: entity: metrics_provider: {
 
-"op": {
-  "load": {
-    "path": "/pages/{page_id}/metrics_providers/{metrics_provider_id}",
-    "method": "get",
-    "kind": "res",
-    "param": {
-      "page_id": {
-        "required": true,
-        "name": "page_id",
-        "Name": "PageId",
-        "NAME": "PAGE_ID",
-        "type": "string",
-        "Type": "String",
-        "TYPE": "STRING"
-      },
-      "metrics_provider_id": {
-        "required": true,
-        "name": "metrics_provider_id",
-        "Name": "MetricsProviderId",
-        "NAME": "METRICS_PROVIDER_ID",
-        "type": "string",
-        "Type": "String",
-        "TYPE": "STRING"
-      }
-    },
-    "query": {},
-    "resform": "`body`",
-    "reqform": "`data`",
-    "name": "load",
-    "Name": "Load",
-    "NAME": "LOAD"
-  },
-  "update": {
-    "path": "/pages/{page_id}/metrics_providers/{metrics_provider_id}",
-    "method": "put",
-    "kind": "req",
-    "param": {
-      "page_id": {
-        "required": true,
-        "name": "page_id",
-        "Name": "PageId",
-        "NAME": "PAGE_ID",
-        "type": "string",
-        "Type": "String",
-        "TYPE": "STRING"
-      },
-      "metrics_provider_id": {
-        "required": true,
-        "name": "metrics_provider_id",
-        "Name": "MetricsProviderId",
-        "NAME": "METRICS_PROVIDER_ID",
-        "type": "string",
-        "Type": "String",
-        "TYPE": "STRING"
-      }
-    },
-    "query": {},
-    "resform": "`body.metrics_provider`",
-    "reqform": {
-      "metrics_provider": "`reqdata`"
-    },
-    "name": "update",
-    "Name": "Update",
-    "NAME": "UPDATE"
-  },
-  "remove": {
-    "path": "/pages/{page_id}/metrics_providers/{metrics_provider_id}",
-    "method": "delete",
-    "kind": "res",
-    "param": {
-      "page_id": {
-        "required": true,
-        "name": "page_id",
-        "Name": "PageId",
-        "NAME": "PAGE_ID",
-        "type": "string",
-        "Type": "String",
-        "TYPE": "STRING"
-      },
-      "metrics_provider_id": {
-        "required": true,
-        "name": "metrics_provider_id",
-        "Name": "MetricsProviderId",
-        "NAME": "METRICS_PROVIDER_ID",
-        "type": "string",
-        "Type": "String",
-        "TYPE": "STRING"
-      }
-    },
-    "query": {},
-    "resform": "`body`",
-    "reqform": "`data`",
-    "name": "remove",
-    "Name": "Remove",
-    "NAME": "REMOVE"
-  },
-  "list": {
-    "path": "/pages/{page_id}/metrics_providers",
-    "method": "get",
-    "kind": "res",
-    "param": {
-      "page_id": {
-        "required": true,
-        "name": "page_id",
-        "Name": "PageId",
-        "NAME": "PAGE_ID",
-        "type": "string",
-        "Type": "String",
-        "TYPE": "STRING"
-      }
-    },
-    "query": {},
-    "resform": "`body`",
-    "reqform": "`data`",
-    "name": "list",
-    "Name": "List",
-    "NAME": "LIST"
+  alias: field: {
+    "metrics_provider_id": "id",
+    "id": "metrics_provider_id"
   }
-},
-"field": {
-  "id": {
-    "name": "id",
-    "Name": "Id",
-    "NAME": "ID",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "Identifier for Metrics Provider"
-  },
-  "type": {
-    "name": "type",
-    "Name": "Type",
-    "NAME": "TYPE",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING"
-  },
-  "disabled": {
-    "name": "disabled",
-    "Name": "Disabled",
-    "NAME": "DISABLED",
-    "type": "boolean",
-    "Type": "Boolean",
-    "TYPE": "BOOLEAN"
-  },
-  "metric_base_uri": {
-    "name": "metric_base_uri",
-    "Name": "MetricBaseUri",
-    "NAME": "METRIC_BASE_URI",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING"
-  },
-  "last_revalidated_at": {
-    "name": "last_revalidated_at",
-    "Name": "LastRevalidatedAt",
-    "NAME": "LAST_REVALIDATED_AT",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING"
-  },
-  "created_at": {
-    "name": "created_at",
-    "Name": "CreatedAt",
-    "NAME": "CREATED_AT",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING"
-  },
-  "updated_at": {
-    "name": "updated_at",
-    "Name": "UpdatedAt",
-    "NAME": "UPDATED_AT",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING"
-  },
-  "page_id": {
-    "name": "page_id",
-    "Name": "PageId",
-    "NAME": "PAGE_ID",
-    "type": "integer",
-    "Type": "Integer",
-    "TYPE": "INTEGER"
+
+  op: {
+    load: {
+      path: "/pages/{page_id}/metrics_providers/{metrics_provider_id}",
+      method: "get",
+      kind: "res",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        metrics_provider_id: {
+          required: true,
+          name: "metrics_provider_id",
+          Name: "MetricsProviderId",
+          NAME: "METRICS_PROVIDER_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+      resform: "`body`",
+      reqform: "`data`",
+      name: "load",
+      Name: "Load",
+      NAME: "LOAD"
+    }
+
+    update: {
+      path: "/pages/{page_id}/metrics_providers/{metrics_provider_id}",
+      method: "put",
+      kind: "req",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        metrics_provider_id: {
+          required: true,
+          name: "metrics_provider_id",
+          Name: "MetricsProviderId",
+          NAME: "METRICS_PROVIDER_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+      resform: "`body.metrics_provider`",
+      reqform: {
+        metrics_provider: "`reqdata`"
+      }
+
+      name: "update",
+      Name: "Update",
+      NAME: "UPDATE"
+    }
+
+    remove: {
+      path: "/pages/{page_id}/metrics_providers/{metrics_provider_id}",
+      method: "delete",
+      kind: "res",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        metrics_provider_id: {
+          required: true,
+          name: "metrics_provider_id",
+          Name: "MetricsProviderId",
+          NAME: "METRICS_PROVIDER_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+      resform: "`body`",
+      reqform: "`data`",
+      name: "remove",
+      Name: "Remove",
+      NAME: "REMOVE"
+    }
+
+    list: {
+      path: "/pages/{page_id}/metrics_providers",
+      method: "get",
+      kind: "res",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+      resform: "`body`",
+      reqform: "`data`",
+      name: "list",
+      Name: "List",
+      NAME: "LIST"
+    }
   }
-},
-"cmd": {},
-"id": {
-  "name": "id",
-  "field": "id"
-},
-"name": "metrics_provider",
-"Name": "MetricsProvider",
-"NAME": "METRICS_PROVIDER",
-"key$": "metrics_provider"
+
+  field: {
+    id: {
+      name: "id",
+      Name: "Id",
+      NAME: "ID",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Identifier for Metrics Provider"
+    }
+
+    type: {
+      name: "type",
+      Name: "Type",
+      NAME: "TYPE",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING"
+    }
+
+    disabled: {
+      name: "disabled",
+      Name: "Disabled",
+      NAME: "DISABLED",
+      type: "boolean",
+      Type: "Boolean",
+      TYPE: "BOOLEAN"
+    }
+
+    metric_base_uri: {
+      name: "metric_base_uri",
+      Name: "MetricBaseUri",
+      NAME: "METRIC_BASE_URI",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING"
+    }
+
+    last_revalidated_at: {
+      name: "last_revalidated_at",
+      Name: "LastRevalidatedAt",
+      NAME: "LAST_REVALIDATED_AT",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING"
+    }
+
+    created_at: {
+      name: "created_at",
+      Name: "CreatedAt",
+      NAME: "CREATED_AT",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING"
+    }
+
+    updated_at: {
+      name: "updated_at",
+      Name: "UpdatedAt",
+      NAME: "UPDATED_AT",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING"
+    }
+
+    page_id: {
+      name: "page_id",
+      Name: "PageId",
+      NAME: "PAGE_ID",
+      type: "integer",
+      Type: "Integer",
+      TYPE: "INTEGER"
+    }
+  }
+
+  cmd: {}
+
+  id: {
+    name: "id",
+    field: "id"
+  }
+
+  name: "metrics_provider",
+  Name: "MetricsProvider",
+  NAME: "METRICS_PROVIDER",
+  "key$": "metrics_provider"
 
 
 }

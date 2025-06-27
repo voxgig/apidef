@@ -15,13 +15,12 @@ const top_1 = require("./transform/top");
 const entity_1 = require("./transform/entity");
 const operation_1 = require("./transform/operation");
 const field_1 = require("./transform/field");
-const manual_1 = require("./transform/manual");
 const TRANSFORM = {
     top: top_1.topTransform,
     entity: entity_1.entityTransform,
     operation: operation_1.operationTransform,
     field: field_1.fieldTransform,
-    manual: manual_1.manualTransform,
+    // manual: manualTransform,
 };
 const OPKIND = {
     list: 'res',
@@ -96,17 +95,21 @@ async function resolveTransform(tn, ctx) {
     }
     return transform;
 }
-async function processTransforms(ctx, spec, apimodel, def) {
+async function processTransforms(ctx, 
+// spec: TransformSpec,
+transforms, apimodel, def) {
     const pres = {
         ok: true,
         msg: '',
         results: []
     };
     const guide = GuideShape(ctx.model.main.api.guide);
-    for (let tI = 0; tI < spec.transform.length; tI++) {
-        const transform = spec.transform[tI];
+    // for (let tI = 0; tI < spec.transform.length; tI++) {
+    //  const transform = spec.transform[tI]
+    for (let tI = 0; tI < transforms.length; tI++) {
+        const transform = transforms[tI];
         try {
-            const tres = await transform(ctx, guide, spec, apimodel, def);
+            const tres = await transform(ctx, guide, apimodel, def);
             pres.ok = pres.ok && tres.ok;
             pres.results.push(tres);
         }

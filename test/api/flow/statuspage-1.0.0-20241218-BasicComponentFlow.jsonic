@@ -2,10 +2,26 @@
 
 main: sdk: flow: BasicComponentFlow:
 {
-  "param": {},
+  "param": {
+    "undefined_TEST_COMPONENT_ENTID": {
+      "component01": "COMPONENT01",
+      "component02": "COMPONENT02",
+      "component03": "COMPONENT03"
+    }
+  },
   "test": {
     "entity": {
-      "Component": {}
+      "Component": {
+        "COMPONENT01": {
+          "id": "COMPONENT01"
+        },
+        "COMPONENT02": {
+          "id": "COMPONENT02"
+        },
+        "COMPONENT03": {
+          "id": "COMPONENT03"
+        }
+      }
     }
   },
   "step": []

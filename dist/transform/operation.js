@@ -3,7 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.operationTransform = void 0;
 const jostraca_1 = require("jostraca");
 const transform_1 = require("../transform");
-const operationTransform = async function (ctx, guide, tspec, model, def) {
+const operationTransform = async function (ctx) {
+    const { apimodel, model, def } = ctx;
+    const guide = model.main.api.guide;
     let msg = 'operations: ';
     const paramBuilder = (paramMap, paramDef, entityModel, pathdef, op, path, entity, model) => {
         paramMap[paramDef.name] = {
@@ -185,7 +187,7 @@ const operationTransform = async function (ctx, guide, tspec, model, def) {
     };
     (0, jostraca_1.each)(guide.entity, (guideEntity) => {
         let opcount = 0;
-        const entityModel = model.main.api.entity[guideEntity.key$];
+        const entityModel = apimodel.main.api.entity[guideEntity.key$];
         (0, jostraca_1.each)(guideEntity.path, (guidePath) => {
             const pathdef = def.paths[guidePath.key$];
             (0, jostraca_1.each)(guidePath.op, (op) => {

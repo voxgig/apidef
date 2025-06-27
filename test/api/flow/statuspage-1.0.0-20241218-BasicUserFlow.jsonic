@@ -2,10 +2,26 @@
 
 main: sdk: flow: BasicUserFlow:
 {
-  "param": {},
+  "param": {
+    "undefined_TEST_USER_ENTID": {
+      "user01": "USER01",
+      "user02": "USER02",
+      "user03": "USER03"
+    }
+  },
   "test": {
     "entity": {
-      "User": {}
+      "User": {
+        "USER01": {
+          "id": "USER01"
+        },
+        "USER02": {
+          "id": "USER02"
+        },
+        "USER03": {
+          "id": "USER03"
+        }
+      }
     }
   },
   "step": []

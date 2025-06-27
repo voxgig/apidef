@@ -1,3 +1,2 @@
-import type { ApiDefOptions } from './types';
-declare function resolveEntity(apimodel: any, spec: any, opts: ApiDefOptions): () => void;
+declare function resolveEntity(ctx: any): Promise<() => void>;
 export { resolveEntity };

@@ -2,10 +2,26 @@
 
 main: sdk: flow: BasicPageFlow:
 {
-  "param": {},
+  "param": {
+    "undefined_TEST_PAGE_ENTID": {
+      "page01": "PAGE01",
+      "page02": "PAGE02",
+      "page03": "PAGE03"
+    }
+  },
   "test": {
     "entity": {
-      "Page": {}
+      "Page": {
+        "PAGE01": {
+          "id": "PAGE01"
+        },
+        "PAGE02": {
+          "id": "PAGE02"
+        },
+        "PAGE03": {
+          "id": "PAGE03"
+        }
+      }
     }
   },
   "step": []

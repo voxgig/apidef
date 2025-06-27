@@ -5,25 +5,23 @@
         "control": {
           "transform": {
             "openapi": {
-              "order": "\n\n  top,\n  entity,\n  operation,\n  field,\n  manual,\n  \n  "
+              "order": "\n      top,\n      entity,\n      operation,\n      field,\n      ",
+              "element": {
+                "top": {},
+                "entity": {},
+                "operation": {},
+                "field": {}
+              }
             }
-          }
-        },
-        "transform": {
-          "top": {
-            "name": "top"
           },
-          "entity": {
-            "name": "entity"
-          },
-          "operation": {
-            "name": "operation"
-          },
-          "field": {
-            "name": "field"
-          },
-          "manual": {
-            "name": "manual"
+          "builder": {
+            "standard": {
+              "order": "\n      entity,\n      flow,\n      ",
+              "element": {
+                "entity": {},
+                "flow": {}
+              }
+            }
           }
         },
         "entity": {
@@ -447,6 +445,12 @@
       },
       "entity": {
         "page": {
+          "alias": {
+            "field": {
+              "page_id": "id",
+              "id": "page_id"
+            }
+          },
           "op": {
             "update": {
               "path": "/pages/{page_id}",
@@ -910,6 +914,12 @@
           "key$": "page"
         },
         "page_access_user": {
+          "alias": {
+            "field": {
+              "page_access_user_id": "id",
+              "id": "page_access_user_id"
+            }
+          },
           "op": {
             "update": {
               "path": "/pages/{page_id}/page_access_users/{page_access_user_id}",
@@ -1106,6 +1116,12 @@
           "key$": "page_access_user"
         },
         "component": {
+          "alias": {
+            "field": {
+              "component_id": "id",
+              "id": "component_id"
+            }
+          },
           "op": {
             "remove": {
               "path": "/pages/{page_id}/components/{component_id}",
@@ -1362,6 +1378,13 @@
           "key$": "component"
         },
         "metric": {
+          "alias": {
+            "field": {
+              "metric_id": "id",
+              "id": "metrics_provider_id",
+              "metrics_provider_id": "id"
+            }
+          },
           "op": {
             "remove": {
               "path": "/pages/{page_id}/metrics/{metric_id}",
@@ -1654,6 +1677,12 @@
           "key$": "metric"
         },
         "page_access_group": {
+          "alias": {
+            "field": {
+              "page_access_group_id": "id",
+              "id": "page_access_group_id"
+            }
+          },
           "op": {
             "load": {
               "path": "/pages/{page_id}/page_access_groups/{page_access_group_id}",
@@ -1862,6 +1891,12 @@
           "key$": "page_access_group"
         },
         "subscriber": {
+          "alias": {
+            "field": {
+              "subscriber_id": "id",
+              "id": "subscriber_id"
+            }
+          },
           "op": {
             "remove": {
               "path": "/pages/{page_id}/incidents/{incident_id}/subscribers/{subscriber_id}",
@@ -2155,6 +2190,12 @@
           "key$": "subscriber"
         },
         "incident": {
+          "alias": {
+            "field": {
+              "incident_id": "id",
+              "id": "incident_id"
+            }
+          },
           "op": {
             "remove": {
               "path": "/pages/{page_id}/incidents/{incident_id}",
@@ -2566,6 +2607,12 @@
           "key$": "incident"
         },
         "incident_update": {
+          "alias": {
+            "field": {
+              "incident_update_id": "id",
+              "id": "incident_update_id"
+            }
+          },
           "op": {
             "update": {
               "path": "/pages/{page_id}/incidents/{incident_id}/incident_updates/{incident_update_id}",
@@ -2622,6 +2669,9 @@
           "key$": "incident_update"
         },
         "component_group": {
+          "alias": {
+            "field": {}
+          },
           "op": {
             "update": {
               "path": "/pages/{page_id}/component-groups/{id}",
@@ -2819,6 +2869,12 @@
           "key$": "component_group"
         },
         "metrics_provider": {
+          "alias": {
+            "field": {
+              "metrics_provider_id": "id",
+              "id": "metrics_provider_id"
+            }
+          },
           "op": {
             "load": {
               "path": "/pages/{page_id}/metrics_providers/{metrics_provider_id}",
@@ -3016,6 +3072,9 @@
           "key$": "metrics_provider"
         },
         "permission": {
+          "alias": {
+            "field": {}
+          },
           "op": {
             "update": {
               "path": "/organizations/{organization_id}/permissions/{user_id}",
@@ -3105,6 +3164,12 @@
           "key$": "permission"
         },
         "user": {
+          "alias": {
+            "field": {
+              "user_id": "id",
+              "id": "user_id"
+            }
+          },
           "op": {
             "remove": {
               "path": "/organizations/{organization_id}/users/{user_id}",
@@ -3193,204 +3258,303 @@
       ]
     },
     "sdk": {
-      "entity": {
-        "page": {
-          "alias": {
-            "field": {
-              "page_id": "id",
-              "id": "page_id"
-            }
-          }
-        },
-        "page_access_user": {
-          "alias": {
-            "field": {
-              "page_access_user_id": "id",
-              "id": "page_access_user_id"
-            }
-          }
-        },
-        "component": {
-          "alias": {
-            "field": {
-              "component_id": "id",
-              "id": "component_id"
-            }
-          }
-        },
-        "metric": {
-          "alias": {
-            "field": {
-              "metric_id": "id",
-              "id": "metrics_provider_id",
-              "metrics_provider_id": "id"
-            }
-          }
-        },
-        "page_access_group": {
-          "alias": {
-            "field": {
-              "page_access_group_id": "id",
-              "id": "page_access_group_id"
-            }
-          }
-        },
-        "subscriber": {
-          "alias": {
-            "field": {
-              "subscriber_id": "id",
-              "id": "subscriber_id"
-            }
-          }
-        },
-        "incident": {
-          "alias": {
-            "field": {
-              "incident_id": "id",
-              "id": "incident_id"
-            }
-          }
-        },
-        "incident_update": {
-          "alias": {
-            "field": {
-              "incident_update_id": "id",
-              "id": "incident_update_id"
-            }
-          }
-        },
-        "component_group": {
-          "alias": {
-            "field": {}
-          }
-        },
-        "metrics_provider": {
-          "alias": {
-            "field": {
-              "metrics_provider_id": "id",
-              "id": "metrics_provider_id"
-            }
-          }
-        },
-        "permission": {
-          "alias": {
-            "field": {}
-          }
-        },
-        "user": {
-          "alias": {
-            "field": {
-              "user_id": "id",
-              "id": "user_id"
-            }
-          }
-        }
-      },
       "flow": {
         "BasicPageFlow": {
-          "param": {},
+          "param": {
+            "undefined_TEST_PAGE_ENTID": {
+              "page01": "PAGE01",
+              "page02": "PAGE02",
+              "page03": "PAGE03"
+            }
+          },
           "test": {
             "entity": {
-              "Page": {}
+              "Page": {
+                "PAGE01": {
+                  "id": "PAGE01"
+                },
+                "PAGE02": {
+                  "id": "PAGE02"
+                },
+                "PAGE03": {
+                  "id": "PAGE03"
+                }
+              }
             }
           },
           "step": []
         },
         "BasicPageAccessUserFlow": {
-          "param": {},
+          "param": {
+            "undefined_TEST_PAGE_ACCESS_USER_ENTID": {
+              "page_access_user01": "PAGE_ACCESS_USER01",
+              "page_access_user02": "PAGE_ACCESS_USER02",
+              "page_access_user03": "PAGE_ACCESS_USER03"
+            }
+          },
           "test": {
             "entity": {
-              "PageAccessUser": {}
+              "PageAccessUser": {
+                "PAGE_ACCESS_USER01": {
+                  "id": "PAGE_ACCESS_USER01"
+                },
+                "PAGE_ACCESS_USER02": {
+                  "id": "PAGE_ACCESS_USER02"
+                },
+                "PAGE_ACCESS_USER03": {
+                  "id": "PAGE_ACCESS_USER03"
+                }
+              }
             }
           },
           "step": []
         },
         "BasicComponentFlow": {
-          "param": {},
+          "param": {
+            "undefined_TEST_COMPONENT_ENTID": {
+              "component01": "COMPONENT01",
+              "component02": "COMPONENT02",
+              "component03": "COMPONENT03"
+            }
+          },
           "test": {
             "entity": {
-              "Component": {}
+              "Component": {
+                "COMPONENT01": {
+                  "id": "COMPONENT01"
+                },
+                "COMPONENT02": {
+                  "id": "COMPONENT02"
+                },
+                "COMPONENT03": {
+                  "id": "COMPONENT03"
+                }
+              }
             }
           },
           "step": []
         },
         "BasicMetricFlow": {
-          "param": {},
+          "param": {
+            "undefined_TEST_METRIC_ENTID": {
+              "metric01": "METRIC01",
+              "metric02": "METRIC02",
+              "metric03": "METRIC03"
+            }
+          },
           "test": {
             "entity": {
-              "Metric": {}
+              "Metric": {
+                "METRIC01": {
+                  "id": "METRIC01"
+                },
+                "METRIC02": {
+                  "id": "METRIC02"
+                },
+                "METRIC03": {
+                  "id": "METRIC03"
+                }
+              }
             }
           },
           "step": []
         },
         "BasicPageAccessGroupFlow": {
-          "param": {},
+          "param": {
+            "undefined_TEST_PAGE_ACCESS_GROUP_ENTID": {
+              "page_access_group01": "PAGE_ACCESS_GROUP01",
+              "page_access_group02": "PAGE_ACCESS_GROUP02",
+              "page_access_group03": "PAGE_ACCESS_GROUP03"
+            }
+          },
           "test": {
             "entity": {
-              "PageAccessGroup": {}
+              "PageAccessGroup": {
+                "PAGE_ACCESS_GROUP01": {
+                  "id": "PAGE_ACCESS_GROUP01"
+                },
+                "PAGE_ACCESS_GROUP02": {
+                  "id": "PAGE_ACCESS_GROUP02"
+                },
+                "PAGE_ACCESS_GROUP03": {
+                  "id": "PAGE_ACCESS_GROUP03"
+                }
+              }
             }
           },
           "step": []
         },
         "BasicSubscriberFlow": {
-          "param": {},
+          "param": {
+            "undefined_TEST_SUBSCRIBER_ENTID": {
+              "subscriber01": "SUBSCRIBER01",
+              "subscriber02": "SUBSCRIBER02",
+              "subscriber03": "SUBSCRIBER03"
+            }
+          },
           "test": {
             "entity": {
-              "Subscriber": {}
+              "Subscriber": {
+                "SUBSCRIBER01": {
+                  "id": "SUBSCRIBER01"
+                },
+                "SUBSCRIBER02": {
+                  "id": "SUBSCRIBER02"
+                },
+                "SUBSCRIBER03": {
+                  "id": "SUBSCRIBER03"
+                }
+              }
             }
           },
           "step": []
         },
         "BasicIncidentFlow": {
-          "param": {},
+          "param": {
+            "undefined_TEST_INCIDENT_ENTID": {
+              "incident01": "INCIDENT01",
+              "incident02": "INCIDENT02",
+              "incident03": "INCIDENT03"
+            }
+          },
           "test": {
             "entity": {
-              "Incident": {}
+              "Incident": {
+                "INCIDENT01": {
+                  "id": "INCIDENT01"
+                },
+                "INCIDENT02": {
+                  "id": "INCIDENT02"
+                },
+                "INCIDENT03": {
+                  "id": "INCIDENT03"
+                }
+              }
             }
           },
           "step": []
         },
         "BasicIncidentUpdateFlow": {
-          "param": {},
+          "param": {
+            "undefined_TEST_INCIDENT_UPDATE_ENTID": {
+              "incident_update01": "INCIDENT_UPDATE01",
+              "incident_update02": "INCIDENT_UPDATE02",
+              "incident_update03": "INCIDENT_UPDATE03"
+            }
+          },
           "test": {
             "entity": {
-              "IncidentUpdate": {}
+              "IncidentUpdate": {
+                "INCIDENT_UPDATE01": {
+                  "id": "INCIDENT_UPDATE01"
+                },
+                "INCIDENT_UPDATE02": {
+                  "id": "INCIDENT_UPDATE02"
+                },
+                "INCIDENT_UPDATE03": {
+                  "id": "INCIDENT_UPDATE03"
+                }
+              }
             }
           },
           "step": []
         },
         "BasicComponentGroupFlow": {
-          "param": {},
+          "param": {
+            "undefined_TEST_COMPONENT_GROUP_ENTID": {
+              "component_group01": "COMPONENT_GROUP01",
+              "component_group02": "COMPONENT_GROUP02",
+              "component_group03": "COMPONENT_GROUP03"
+            }
+          },
           "test": {
             "entity": {
-              "ComponentGroup": {}
+              "ComponentGroup": {
+                "COMPONENT_GROUP01": {
+                  "id": "COMPONENT_GROUP01"
+                },
+                "COMPONENT_GROUP02": {
+                  "id": "COMPONENT_GROUP02"
+                },
+                "COMPONENT_GROUP03": {
+                  "id": "COMPONENT_GROUP03"
+                }
+              }
             }
           },
           "step": []
         },
         "BasicMetricsProviderFlow": {
-          "param": {},
+          "param": {
+            "undefined_TEST_METRICS_PROVIDER_ENTID": {
+              "metrics_provider01": "METRICS_PROVIDER01",
+              "metrics_provider02": "METRICS_PROVIDER02",
+              "metrics_provider03": "METRICS_PROVIDER03"
+            }
+          },
           "test": {
             "entity": {
-              "MetricsProvider": {}
+              "MetricsProvider": {
+                "METRICS_PROVIDER01": {
+                  "id": "METRICS_PROVIDER01"
+                },
+                "METRICS_PROVIDER02": {
+                  "id": "METRICS_PROVIDER02"
+                },
+                "METRICS_PROVIDER03": {
+                  "id": "METRICS_PROVIDER03"
+                }
+              }
             }
           },
           "step": []
         },
         "BasicPermissionFlow": {
-          "param": {},
+          "param": {
+            "undefined_TEST_PERMISSION_ENTID": {
+              "permission01": "PERMISSION01",
+              "permission02": "PERMISSION02",
+              "permission03": "PERMISSION03"
+            }
+          },
           "test": {
             "entity": {
-              "Permission": {}
+              "Permission": {
+                "PERMISSION01": {
+                  "id": "PERMISSION01"
+                },
+                "PERMISSION02": {
+                  "id": "PERMISSION02"
+                },
+                "PERMISSION03": {
+                  "id": "PERMISSION03"
+                }
+              }
             }
           },
           "step": []
         },
         "BasicUserFlow": {
-          "param": {},
+          "param": {
+            "undefined_TEST_USER_ENTID": {
+              "user01": "USER01",
+              "user02": "USER02",
+              "user03": "USER03"
+            }
+          },
           "test": {
             "entity": {
-              "User": {}
+              "User": {
+                "USER01": {
+                  "id": "USER01"
+                },
+                "USER02": {
+                  "id": "USER02"
+                },
+                "USER03": {
+                  "id": "USER03"
+                }
+              }
             }
           },
           "step": []

@@ -1,468 +1,530 @@
-# GENERATED FILE - DO NOT EDIT
+# Entity: page
 
 main: api: entity: page: {
 
-"op": {
-  "update": {
-    "path": "/pages/{page_id}",
-    "method": "put",
-    "kind": "req",
-    "param": {
-      "page_id": {
-        "required": true,
-        "name": "page_id",
-        "Name": "PageId",
-        "NAME": "PAGE_ID",
-        "type": "string",
-        "Type": "String",
-        "TYPE": "STRING"
-      }
-    },
-    "query": {},
-    "resform": "`body.page`",
-    "reqform": {
-      "page": "`reqdata`"
-    },
-    "name": "update",
-    "Name": "Update",
-    "NAME": "UPDATE"
-  },
-  "load": {
-    "path": "/pages/{page_id}",
-    "method": "get",
-    "kind": "res",
-    "param": {
-      "page_id": {
-        "required": true,
-        "name": "page_id",
-        "Name": "PageId",
-        "NAME": "PAGE_ID",
-        "type": "string",
-        "Type": "String",
-        "TYPE": "STRING"
-      }
-    },
-    "query": {},
-    "resform": "`body`",
-    "reqform": "`data`",
-    "name": "load",
-    "Name": "Load",
-    "NAME": "LOAD"
-  },
-  "list": {
-    "path": "/pages",
-    "method": "get",
-    "kind": "res",
-    "param": {},
-    "query": {},
-    "resform": "`body`",
-    "reqform": "`data`",
-    "name": "list",
-    "Name": "List",
-    "NAME": "LIST"
+  alias: field: {
+    "page_id": "id",
+    "id": "page_id"
   }
-},
-"field": {
-  "id": {
-    "name": "id",
-    "Name": "Id",
-    "NAME": "ID",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "Page identifier"
-  },
-  "created_at": {
-    "name": "created_at",
-    "Name": "CreatedAt",
-    "NAME": "CREATED_AT",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "Timestamp the record was created"
-  },
-  "updated_at": {
-    "name": "updated_at",
-    "Name": "UpdatedAt",
-    "NAME": "UPDATED_AT",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "Timestamp the record was last updated"
-  },
-  "name": {
-    "name": "name",
-    "Name": "Name",
-    "NAME": "NAME",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "Name of your page to be displayed"
-  },
-  "page_description": {
-    "name": "page_description",
-    "Name": "PageDescription",
-    "NAME": "PAGE_DESCRIPTION",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING"
-  },
-  "headline": {
-    "name": "headline",
-    "Name": "Headline",
-    "NAME": "HEADLINE",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING"
-  },
-  "branding": {
-    "name": "branding",
-    "Name": "Branding",
-    "NAME": "BRANDING",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "The main template your statuspage will use"
-  },
-  "subdomain": {
-    "name": "subdomain",
-    "Name": "Subdomain",
-    "NAME": "SUBDOMAIN",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "Subdomain at which to access your status page"
-  },
-  "domain": {
-    "name": "domain",
-    "Name": "Domain",
-    "NAME": "DOMAIN",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "CNAME alias for your status page"
-  },
-  "url": {
-    "name": "url",
-    "Name": "Url",
-    "NAME": "URL",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "Website of your page.  Clicking on your statuspage image will link here."
-  },
-  "support_url": {
-    "name": "support_url",
-    "Name": "SupportUrl",
-    "NAME": "SUPPORT_URL",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING"
-  },
-  "hidden_from_search": {
-    "name": "hidden_from_search",
-    "Name": "HiddenFromSearch",
-    "NAME": "HIDDEN_FROM_SEARCH",
-    "type": "boolean",
-    "Type": "Boolean",
-    "TYPE": "BOOLEAN",
-    "short": "Should your page hide itself from search engines"
-  },
-  "allow_page_subscribers": {
-    "name": "allow_page_subscribers",
-    "Name": "AllowPageSubscribers",
-    "NAME": "ALLOW_PAGE_SUBSCRIBERS",
-    "type": "boolean",
-    "Type": "Boolean",
-    "TYPE": "BOOLEAN",
-    "short": "Can your users subscribe to all notifications on the page"
-  },
-  "allow_incident_subscribers": {
-    "name": "allow_incident_subscribers",
-    "Name": "AllowIncidentSubscribers",
-    "NAME": "ALLOW_INCIDENT_SUBSCRIBERS",
-    "type": "boolean",
-    "Type": "Boolean",
-    "TYPE": "BOOLEAN",
-    "short": "Can your users subscribe to notifications for a single incident"
-  },
-  "allow_email_subscribers": {
-    "name": "allow_email_subscribers",
-    "Name": "AllowEmailSubscribers",
-    "NAME": "ALLOW_EMAIL_SUBSCRIBERS",
-    "type": "boolean",
-    "Type": "Boolean",
-    "TYPE": "BOOLEAN",
-    "short": "Can your users choose to receive notifications via email"
-  },
-  "allow_sms_subscribers": {
-    "name": "allow_sms_subscribers",
-    "Name": "AllowSmsSubscribers",
-    "NAME": "ALLOW_SMS_SUBSCRIBERS",
-    "type": "boolean",
-    "Type": "Boolean",
-    "TYPE": "BOOLEAN",
-    "short": "Can your users choose to receive notifications via SMS"
-  },
-  "allow_rss_atom_feeds": {
-    "name": "allow_rss_atom_feeds",
-    "Name": "AllowRssAtomFeeds",
-    "NAME": "ALLOW_RSS_ATOM_FEEDS",
-    "type": "boolean",
-    "Type": "Boolean",
-    "TYPE": "BOOLEAN",
-    "short": "Can your users choose to access incident feeds via RSS/Atom (not functional on Audience-Specific pages)"
-  },
-  "allow_webhook_subscribers": {
-    "name": "allow_webhook_subscribers",
-    "Name": "AllowWebhookSubscribers",
-    "NAME": "ALLOW_WEBHOOK_SUBSCRIBERS",
-    "type": "boolean",
-    "Type": "Boolean",
-    "TYPE": "BOOLEAN",
-    "short": "Can your users choose to receive notifications via Webhooks"
-  },
-  "notifications_from_email": {
-    "name": "notifications_from_email",
-    "Name": "NotificationsFromEmail",
-    "NAME": "NOTIFICATIONS_FROM_EMAIL",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "Allows you to customize the email address your page notifications come from"
-  },
-  "notifications_email_footer": {
-    "name": "notifications_email_footer",
-    "Name": "NotificationsEmailFooter",
-    "NAME": "NOTIFICATIONS_EMAIL_FOOTER",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "Allows you to customize the footer appearing on your notification emails.  Accepts Markdown for formatting"
-  },
-  "activity_score": {
-    "name": "activity_score",
-    "Name": "ActivityScore",
-    "NAME": "ACTIVITY_SCORE",
-    "type": "number",
-    "Type": "Number",
-    "TYPE": "NUMBER"
-  },
-  "twitter_username": {
-    "name": "twitter_username",
-    "Name": "TwitterUsername",
-    "NAME": "TWITTER_USERNAME",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING"
-  },
-  "viewers_must_be_team_members": {
-    "name": "viewers_must_be_team_members",
-    "Name": "ViewersMustBeTeamMembers",
-    "NAME": "VIEWERS_MUST_BE_TEAM_MEMBERS",
-    "type": "boolean",
-    "Type": "Boolean",
-    "TYPE": "BOOLEAN"
-  },
-  "ip_restrictions": {
-    "name": "ip_restrictions",
-    "Name": "IpRestrictions",
-    "NAME": "IP_RESTRICTIONS",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING"
-  },
-  "city": {
-    "name": "city",
-    "Name": "City",
-    "NAME": "CITY",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING"
-  },
-  "state": {
-    "name": "state",
-    "Name": "State",
-    "NAME": "STATE",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING"
-  },
-  "country": {
-    "name": "country",
-    "Name": "Country",
-    "NAME": "COUNTRY",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING"
-  },
-  "time_zone": {
-    "name": "time_zone",
-    "Name": "TimeZone",
-    "NAME": "TIME_ZONE",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "Timezone configured for your page"
-  },
-  "css_body_background_color": {
-    "name": "css_body_background_color",
-    "Name": "CssBodyBackgroundColor",
-    "NAME": "CSS_BODY_BACKGROUND_COLOR",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "CSS Color"
-  },
-  "css_font_color": {
-    "name": "css_font_color",
-    "Name": "CssFontColor",
-    "NAME": "CSS_FONT_COLOR",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "CSS Color"
-  },
-  "css_light_font_color": {
-    "name": "css_light_font_color",
-    "Name": "CssLightFontColor",
-    "NAME": "CSS_LIGHT_FONT_COLOR",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "CSS Color"
-  },
-  "css_greens": {
-    "name": "css_greens",
-    "Name": "CssGreens",
-    "NAME": "CSS_GREENS",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "CSS Color"
-  },
-  "css_yellows": {
-    "name": "css_yellows",
-    "Name": "CssYellows",
-    "NAME": "CSS_YELLOWS",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "CSS Color"
-  },
-  "css_oranges": {
-    "name": "css_oranges",
-    "Name": "CssOranges",
-    "NAME": "CSS_ORANGES",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "CSS Color"
-  },
-  "css_blues": {
-    "name": "css_blues",
-    "Name": "CssBlues",
-    "NAME": "CSS_BLUES",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "CSS Color"
-  },
-  "css_reds": {
-    "name": "css_reds",
-    "Name": "CssReds",
-    "NAME": "CSS_REDS",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "CSS Color"
-  },
-  "css_border_color": {
-    "name": "css_border_color",
-    "Name": "CssBorderColor",
-    "NAME": "CSS_BORDER_COLOR",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "CSS Color"
-  },
-  "css_graph_color": {
-    "name": "css_graph_color",
-    "Name": "CssGraphColor",
-    "NAME": "CSS_GRAPH_COLOR",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "CSS Color"
-  },
-  "css_link_color": {
-    "name": "css_link_color",
-    "Name": "CssLinkColor",
-    "NAME": "CSS_LINK_COLOR",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "CSS Color"
-  },
-  "css_no_data": {
-    "name": "css_no_data",
-    "Name": "CssNoData",
-    "NAME": "CSS_NO_DATA",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "CSS Color"
-  },
-  "favicon_logo": {
-    "name": "favicon_logo",
-    "Name": "FaviconLogo",
-    "NAME": "FAVICON_LOGO",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING"
-  },
-  "transactional_logo": {
-    "name": "transactional_logo",
-    "Name": "TransactionalLogo",
-    "NAME": "TRANSACTIONAL_LOGO",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING"
-  },
-  "hero_cover": {
-    "name": "hero_cover",
-    "Name": "HeroCover",
-    "NAME": "HERO_COVER",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING"
-  },
-  "email_logo": {
-    "name": "email_logo",
-    "Name": "EmailLogo",
-    "NAME": "EMAIL_LOGO",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING"
-  },
-  "twitter_logo": {
-    "name": "twitter_logo",
-    "Name": "TwitterLogo",
-    "NAME": "TWITTER_LOGO",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING"
+
+  op: {
+    update: {
+      path: "/pages/{page_id}",
+      method: "put",
+      kind: "req",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+      resform: "`body.page`",
+      reqform: {
+        page: "`reqdata`"
+      }
+
+      name: "update",
+      Name: "Update",
+      NAME: "UPDATE"
+    }
+
+    load: {
+      path: "/pages/{page_id}",
+      method: "get",
+      kind: "res",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+      resform: "`body`",
+      reqform: "`data`",
+      name: "load",
+      Name: "Load",
+      NAME: "LOAD"
+    }
+
+    list: {
+      path: "/pages",
+      method: "get",
+      kind: "res",
+      param: {}
+
+      query: {}
+
+      resform: "`body`",
+      reqform: "`data`",
+      name: "list",
+      Name: "List",
+      NAME: "LIST"
+    }
   }
-},
-"cmd": {},
-"id": {
-  "name": "id",
-  "field": "page_id"
-},
-"name": "page",
-"Name": "Page",
-"NAME": "PAGE",
-"key$": "page"
+
+  field: {
+    id: {
+      name: "id",
+      Name: "Id",
+      NAME: "ID",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Page identifier"
+    }
+
+    created_at: {
+      name: "created_at",
+      Name: "CreatedAt",
+      NAME: "CREATED_AT",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Timestamp the record was created"
+    }
+
+    updated_at: {
+      name: "updated_at",
+      Name: "UpdatedAt",
+      NAME: "UPDATED_AT",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Timestamp the record was last updated"
+    }
+
+    name: {
+      name: "name",
+      Name: "Name",
+      NAME: "NAME",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Name of your page to be displayed"
+    }
+
+    page_description: {
+      name: "page_description",
+      Name: "PageDescription",
+      NAME: "PAGE_DESCRIPTION",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING"
+    }
+
+    headline: {
+      name: "headline",
+      Name: "Headline",
+      NAME: "HEADLINE",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING"
+    }
+
+    branding: {
+      name: "branding",
+      Name: "Branding",
+      NAME: "BRANDING",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "The main template your statuspage will use"
+    }
+
+    subdomain: {
+      name: "subdomain",
+      Name: "Subdomain",
+      NAME: "SUBDOMAIN",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Subdomain at which to access your status page"
+    }
+
+    domain: {
+      name: "domain",
+      Name: "Domain",
+      NAME: "DOMAIN",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "CNAME alias for your status page"
+    }
+
+    url: {
+      name: "url",
+      Name: "Url",
+      NAME: "URL",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Website of your page.  Clicking on your statuspage image will link here."
+    }
+
+    support_url: {
+      name: "support_url",
+      Name: "SupportUrl",
+      NAME: "SUPPORT_URL",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING"
+    }
+
+    hidden_from_search: {
+      name: "hidden_from_search",
+      Name: "HiddenFromSearch",
+      NAME: "HIDDEN_FROM_SEARCH",
+      type: "boolean",
+      Type: "Boolean",
+      TYPE: "BOOLEAN",
+      short: "Should your page hide itself from search engines"
+    }
+
+    allow_page_subscribers: {
+      name: "allow_page_subscribers",
+      Name: "AllowPageSubscribers",
+      NAME: "ALLOW_PAGE_SUBSCRIBERS",
+      type: "boolean",
+      Type: "Boolean",
+      TYPE: "BOOLEAN",
+      short: "Can your users subscribe to all notifications on the page"
+    }
+
+    allow_incident_subscribers: {
+      name: "allow_incident_subscribers",
+      Name: "AllowIncidentSubscribers",
+      NAME: "ALLOW_INCIDENT_SUBSCRIBERS",
+      type: "boolean",
+      Type: "Boolean",
+      TYPE: "BOOLEAN",
+      short: "Can your users subscribe to notifications for a single incident"
+    }
+
+    allow_email_subscribers: {
+      name: "allow_email_subscribers",
+      Name: "AllowEmailSubscribers",
+      NAME: "ALLOW_EMAIL_SUBSCRIBERS",
+      type: "boolean",
+      Type: "Boolean",
+      TYPE: "BOOLEAN",
+      short: "Can your users choose to receive notifications via email"
+    }
+
+    allow_sms_subscribers: {
+      name: "allow_sms_subscribers",
+      Name: "AllowSmsSubscribers",
+      NAME: "ALLOW_SMS_SUBSCRIBERS",
+      type: "boolean",
+      Type: "Boolean",
+      TYPE: "BOOLEAN",
+      short: "Can your users choose to receive notifications via SMS"
+    }
+
+    allow_rss_atom_feeds: {
+      name: "allow_rss_atom_feeds",
+      Name: "AllowRssAtomFeeds",
+      NAME: "ALLOW_RSS_ATOM_FEEDS",
+      type: "boolean",
+      Type: "Boolean",
+      TYPE: "BOOLEAN",
+      short: "Can your users choose to access incident feeds via RSS/Atom (not functional on Audience-Specific pages)"
+    }
+
+    allow_webhook_subscribers: {
+      name: "allow_webhook_subscribers",
+      Name: "AllowWebhookSubscribers",
+      NAME: "ALLOW_WEBHOOK_SUBSCRIBERS",
+      type: "boolean",
+      Type: "Boolean",
+      TYPE: "BOOLEAN",
+      short: "Can your users choose to receive notifications via Webhooks"
+    }
+
+    notifications_from_email: {
+      name: "notifications_from_email",
+      Name: "NotificationsFromEmail",
+      NAME: "NOTIFICATIONS_FROM_EMAIL",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Allows you to customize the email address your page notifications come from"
+    }
+
+    notifications_email_footer: {
+      name: "notifications_email_footer",
+      Name: "NotificationsEmailFooter",
+      NAME: "NOTIFICATIONS_EMAIL_FOOTER",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Allows you to customize the footer appearing on your notification emails.  Accepts Markdown for formatting"
+    }
+
+    activity_score: {
+      name: "activity_score",
+      Name: "ActivityScore",
+      NAME: "ACTIVITY_SCORE",
+      type: "number",
+      Type: "Number",
+      TYPE: "NUMBER"
+    }
+
+    twitter_username: {
+      name: "twitter_username",
+      Name: "TwitterUsername",
+      NAME: "TWITTER_USERNAME",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING"
+    }
+
+    viewers_must_be_team_members: {
+      name: "viewers_must_be_team_members",
+      Name: "ViewersMustBeTeamMembers",
+      NAME: "VIEWERS_MUST_BE_TEAM_MEMBERS",
+      type: "boolean",
+      Type: "Boolean",
+      TYPE: "BOOLEAN"
+    }
+
+    ip_restrictions: {
+      name: "ip_restrictions",
+      Name: "IpRestrictions",
+      NAME: "IP_RESTRICTIONS",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING"
+    }
+
+    city: {
+      name: "city",
+      Name: "City",
+      NAME: "CITY",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING"
+    }
+
+    state: {
+      name: "state",
+      Name: "State",
+      NAME: "STATE",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING"
+    }
+
+    country: {
+      name: "country",
+      Name: "Country",
+      NAME: "COUNTRY",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING"
+    }
+
+    time_zone: {
+      name: "time_zone",
+      Name: "TimeZone",
+      NAME: "TIME_ZONE",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Timezone configured for your page"
+    }
+
+    css_body_background_color: {
+      name: "css_body_background_color",
+      Name: "CssBodyBackgroundColor",
+      NAME: "CSS_BODY_BACKGROUND_COLOR",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "CSS Color"
+    }
+
+    css_font_color: {
+      name: "css_font_color",
+      Name: "CssFontColor",
+      NAME: "CSS_FONT_COLOR",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "CSS Color"
+    }
+
+    css_light_font_color: {
+      name: "css_light_font_color",
+      Name: "CssLightFontColor",
+      NAME: "CSS_LIGHT_FONT_COLOR",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "CSS Color"
+    }
+
+    css_greens: {
+      name: "css_greens",
+      Name: "CssGreens",
+      NAME: "CSS_GREENS",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "CSS Color"
+    }
+
+    css_yellows: {
+      name: "css_yellows",
+      Name: "CssYellows",
+      NAME: "CSS_YELLOWS",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "CSS Color"
+    }
+
+    css_oranges: {
+      name: "css_oranges",
+      Name: "CssOranges",
+      NAME: "CSS_ORANGES",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "CSS Color"
+    }
+
+    css_blues: {
+      name: "css_blues",
+      Name: "CssBlues",
+      NAME: "CSS_BLUES",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "CSS Color"
+    }
+
+    css_reds: {
+      name: "css_reds",
+      Name: "CssReds",
+      NAME: "CSS_REDS",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "CSS Color"
+    }
+
+    css_border_color: {
+      name: "css_border_color",
+      Name: "CssBorderColor",
+      NAME: "CSS_BORDER_COLOR",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "CSS Color"
+    }
+
+    css_graph_color: {
+      name: "css_graph_color",
+      Name: "CssGraphColor",
+      NAME: "CSS_GRAPH_COLOR",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "CSS Color"
+    }
+
+    css_link_color: {
+      name: "css_link_color",
+      Name: "CssLinkColor",
+      NAME: "CSS_LINK_COLOR",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "CSS Color"
+    }
+
+    css_no_data: {
+      name: "css_no_data",
+      Name: "CssNoData",
+      NAME: "CSS_NO_DATA",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "CSS Color"
+    }
+
+    favicon_logo: {
+      name: "favicon_logo",
+      Name: "FaviconLogo",
+      NAME: "FAVICON_LOGO",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING"
+    }
+
+    transactional_logo: {
+      name: "transactional_logo",
+      Name: "TransactionalLogo",
+      NAME: "TRANSACTIONAL_LOGO",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING"
+    }
+
+    hero_cover: {
+      name: "hero_cover",
+      Name: "HeroCover",
+      NAME: "HERO_COVER",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING"
+    }
+
+    email_logo: {
+      name: "email_logo",
+      Name: "EmailLogo",
+      NAME: "EMAIL_LOGO",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING"
+    }
+
+    twitter_logo: {
+      name: "twitter_logo",
+      Name: "TwitterLogo",
+      NAME: "TWITTER_LOGO",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING"
+    }
+  }
+
+  cmd: {}
+
+  id: {
+    name: "id",
+    field: "page_id"
+  }
+
+  name: "page",
+  Name: "Page",
+  NAME: "PAGE",
+  "key$": "page"
 
 
 }

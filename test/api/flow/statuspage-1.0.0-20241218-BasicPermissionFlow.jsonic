@@ -2,10 +2,26 @@
 
 main: sdk: flow: BasicPermissionFlow:
 {
-  "param": {},
+  "param": {
+    "undefined_TEST_PERMISSION_ENTID": {
+      "permission01": "PERMISSION01",
+      "permission02": "PERMISSION02",
+      "permission03": "PERMISSION03"
+    }
+  },
   "test": {
     "entity": {
-      "Permission": {}
+      "Permission": {
+        "PERMISSION01": {
+          "id": "PERMISSION01"
+        },
+        "PERMISSION02": {
+          "id": "PERMISSION02"
+        },
+        "PERMISSION03": {
+          "id": "PERMISSION03"
+        }
+      }
     }
   },
   "step": []

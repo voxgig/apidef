@@ -4,17 +4,7 @@ declare function ApiDef(opts: ApiDefOptions): {
     generate: (spec: any) => Promise<{
         ok: boolean;
         name: string;
-        processResult: {
-            ok: boolean;
-            msg: string;
-            results: import("./transform").TransformResult[];
-        };
-        apimodel?: undefined;
-    } | {
-        ok: boolean;
-        name: string;
         apimodel: ApiModel;
-        processResult?: undefined;
     }>;
 };
 declare namespace ApiDef {

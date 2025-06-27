@@ -2,25 +2,27 @@
 
 import { each, getx } from 'jostraca'
 
-import type { TransformCtx, TransformSpec, TransformResult, Transform, Guide } from '../transform'
+import type { TransformResult, Transform } from '../transform'
 
 import { fixName } from '../transform'
 
 
 
 const fieldTransform: Transform = async function(
-  ctx: TransformCtx,
-  guide: Guide,
-  tspec: TransformSpec,
-  model: any,
-  def: any
+  ctx: any,
+  // guide: Guide,
+  // // tspec: TransformSpec,
+  // model: any,
+  // def: any
 ): Promise<TransformResult> {
+  const { apimodel, model, def } = ctx
+  const guide = model.main.api.guide
 
   let msg = 'fields: '
 
   each(guide.entity, (guideEntity: any) => {
     const entityName = guideEntity.key$
-    const entityModel = model.main.api.entity[entityName]
+    const entityModel = apimodel.main.api.entity[entityName]
 
     let fieldCount = 0
     each(guideEntity.path, (guidePath: any) => {

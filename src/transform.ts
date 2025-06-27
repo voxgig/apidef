@@ -11,7 +11,7 @@ import { topTransform } from './transform/top'
 import { entityTransform } from './transform/entity'
 import { operationTransform } from './transform/operation'
 import { fieldTransform } from './transform/field'
-import { manualTransform } from './transform/manual'
+// import { manualTransform } from './transform/manual'
 
 
 
@@ -55,7 +55,7 @@ const TRANSFORM: Record<string, Transform> = {
   entity: entityTransform,
   operation: operationTransform,
   field: fieldTransform,
-  manual: manualTransform,
+  // manual: manualTransform,
 }
 
 
@@ -152,10 +152,10 @@ async function resolveTransform(tn: string, ctx: TransformCtx) {
 }
 
 
-
 async function processTransforms(
   ctx: TransformCtx,
-  spec: TransformSpec,
+  // spec: TransformSpec,
+  transforms: any[],
   apimodel: any,
   def: any
 ): Promise<ProcessResult> {
@@ -168,11 +168,14 @@ async function processTransforms(
   const guide: Guide = GuideShape(ctx.model.main.api.guide)
 
 
-  for (let tI = 0; tI < spec.transform.length; tI++) {
-    const transform = spec.transform[tI]
+  // for (let tI = 0; tI < spec.transform.length; tI++) {
+  //  const transform = spec.transform[tI]
+
+  for (let tI = 0; tI < transforms.length; tI++) {
+    const transform = transforms[tI]
 
     try {
-      const tres = await transform(ctx, guide, spec, apimodel, def)
+      const tres = await transform(ctx, guide, apimodel, def)
       pres.ok = pres.ok && tres.ok
       pres.results.push(tres)
     }

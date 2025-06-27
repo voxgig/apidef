@@ -2,10 +2,26 @@
 
 main: sdk: flow: BasicComponentGroupFlow:
 {
-  "param": {},
+  "param": {
+    "undefined_TEST_COMPONENT_GROUP_ENTID": {
+      "component_group01": "COMPONENT_GROUP01",
+      "component_group02": "COMPONENT_GROUP02",
+      "component_group03": "COMPONENT_GROUP03"
+    }
+  },
   "test": {
     "entity": {
-      "ComponentGroup": {}
+      "ComponentGroup": {
+        "COMPONENT_GROUP01": {
+          "id": "COMPONENT_GROUP01"
+        },
+        "COMPONENT_GROUP02": {
+          "id": "COMPONENT_GROUP02"
+        },
+        "COMPONENT_GROUP03": {
+          "id": "COMPONENT_GROUP03"
+        }
+      }
     }
   },
   "step": []

@@ -2,25 +2,28 @@
 
 import { each } from 'jostraca'
 
-import type { TransformCtx, TransformSpec, TransformResult, Transform, Guide } from '../transform'
+import type { TransformResult, Transform } from '../transform'
 
 import { fixName } from '../transform'
 
 
 const entityTransform: Transform = async function(
-  ctx: TransformCtx,
-  guide: Guide,
-  tspec: TransformSpec,
-  model: any,
-  def: any
+  ctx: any,
+  // guide: Guide,
+  // // tspec: TransformSpec,
+  // model: any,
+  // def: any
 ): Promise<TransformResult> {
+  const { apimodel, model, def } = ctx
+  const guide = model.main.api.guide
+
   let msg = ''
 
   each(guide.entity, (guideEntity: any) => {
     const entityName = guideEntity.key$
     ctx.log.debug({ point: 'guide-entity', note: entityName })
 
-    const entityModel: any = model.main.api.entity[entityName] = {
+    const entityModel: any = apimodel.main.api.entity[entityName] = {
       op: {},
       field: {},
       cmd: {},

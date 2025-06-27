@@ -3,11 +3,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.fieldTransform = void 0;
 const jostraca_1 = require("jostraca");
 const transform_1 = require("../transform");
-const fieldTransform = async function (ctx, guide, tspec, model, def) {
+const fieldTransform = async function (ctx) {
+    const { apimodel, model, def } = ctx;
+    const guide = model.main.api.guide;
     let msg = 'fields: ';
     (0, jostraca_1.each)(guide.entity, (guideEntity) => {
         const entityName = guideEntity.key$;
-        const entityModel = model.main.api.entity[entityName];
+        const entityModel = apimodel.main.api.entity[entityName];
         let fieldCount = 0;
         (0, jostraca_1.each)(guideEntity.path, (guidePath) => {
             const path = guidePath.key$;

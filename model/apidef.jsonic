@@ -1,33 +1,36 @@
 
-main: api: guide: control: transform: &: {
-  order: string
+main: api: guide: control: {
+
+  transform: openapi: {
+    order: *`
+      top,
+      entity,
+      operation,
+      field,
+      ` | string,
+
+    element: {
+      top: {}
+      entity: {}
+      operation: {}
+      field: {}
+    }
+  }
+
+  builder: standard: {
+    order: *`
+      entity,
+      flow,
+      ` | string,
+
+    element: {
+      entity: {}
+      flow: {}
+    }
+  }
+
 }
 
-main: api: guide: control: transform: openapi: {
-  order: *`
-
-  top,
-  entity,
-  operation,
-  field,
-  manual,
-  
-  ` | string
-}
-
-
-main: api: guide: transform: &: {
-  name: .$KEY
-  load: string
-}
-
-main: api: guide: transform: {
-  top: {}
-  entity: {}
-  operation: {}
-  field: {}
-  manual: {}
-}
 
 
 main: api: guide: entity: &: {
@@ -43,6 +46,7 @@ main: api: guide: entity: &: {
     }
   }
 }
+
 
 
 

@@ -1,72 +1,87 @@
-# GENERATED FILE - DO NOT EDIT
+# Entity: user
 
 main: api: entity: user: {
 
-"op": {
-  "remove": {
-    "path": "/organizations/{organization_id}/users/{user_id}",
-    "method": "delete",
-    "kind": "res",
-    "param": {
-      "organization_id": {
-        "required": true,
-        "name": "organization_id",
-        "Name": "OrganizationId",
-        "NAME": "ORGANIZATION_ID",
-        "type": "string",
-        "Type": "String",
-        "TYPE": "STRING"
-      },
-      "user_id": {
-        "required": true,
-        "name": "user_id",
-        "Name": "UserId",
-        "NAME": "USER_ID",
-        "type": "string",
-        "Type": "String",
-        "TYPE": "STRING"
-      }
-    },
-    "query": {},
-    "resform": "`body`",
-    "reqform": "`data`",
-    "name": "remove",
-    "Name": "Remove",
-    "NAME": "REMOVE"
-  },
-  "list": {
-    "path": "/organizations/{organization_id}/users",
-    "method": "get",
-    "kind": "res",
-    "param": {
-      "organization_id": {
-        "required": true,
-        "name": "organization_id",
-        "Name": "OrganizationId",
-        "NAME": "ORGANIZATION_ID",
-        "type": "string",
-        "Type": "String",
-        "TYPE": "STRING"
-      }
-    },
-    "query": {},
-    "resform": "`body`",
-    "reqform": "`data`",
-    "name": "list",
-    "Name": "List",
-    "NAME": "LIST"
+  alias: field: {
+    "user_id": "id",
+    "id": "user_id"
   }
-},
-"field": {},
-"cmd": {},
-"id": {
-  "name": "id",
-  "field": "id"
-},
-"name": "user",
-"Name": "User",
-"NAME": "USER",
-"key$": "user"
+
+  op: {
+    remove: {
+      path: "/organizations/{organization_id}/users/{user_id}",
+      method: "delete",
+      kind: "res",
+      param: {
+        organization_id: {
+          required: true,
+          name: "organization_id",
+          Name: "OrganizationId",
+          NAME: "ORGANIZATION_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        user_id: {
+          required: true,
+          name: "user_id",
+          Name: "UserId",
+          NAME: "USER_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+      resform: "`body`",
+      reqform: "`data`",
+      name: "remove",
+      Name: "Remove",
+      NAME: "REMOVE"
+    }
+
+    list: {
+      path: "/organizations/{organization_id}/users",
+      method: "get",
+      kind: "res",
+      param: {
+        organization_id: {
+          required: true,
+          name: "organization_id",
+          Name: "OrganizationId",
+          NAME: "ORGANIZATION_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+      resform: "`body`",
+      reqform: "`data`",
+      name: "list",
+      Name: "List",
+      NAME: "LIST"
+    }
+  }
+
+  field: {}
+
+  cmd: {}
+
+  id: {
+    name: "id",
+    field: "id"
+  }
+
+  name: "user",
+  Name: "User",
+  NAME: "USER",
+  "key$": "user"
 
 
 }

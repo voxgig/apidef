@@ -1,7 +1,0 @@
-
-# Entity component_group
-
-main: sdk: entity: component_group: {
-  alias: field: {}
-}
-

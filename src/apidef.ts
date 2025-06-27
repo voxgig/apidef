@@ -28,11 +28,6 @@ import {
 
 
 import {
-  resolveFlows,
-} from './flow'
-
-
-import {
   parse
 } from './parse'
 
@@ -44,15 +39,23 @@ import {
 } from './transform'
 
 
-import {
-  resolveEntity,
-} from './entity'
 
+import {
+  resolveElements
+} from './resolver'
 
 import {
   loadFile,
 } from './utility'
 
+
+import { topTransform } from './transform/top'
+import { entityTransform } from './transform/entity'
+import { operationTransform } from './transform/operation'
+import { fieldTransform } from './transform/field'
+
+import { makeEntityBuilder } from './builder/entity'
+import { makeFlowBuilder } from './builder/flow'
 
 
 function ApiDef(opts: ApiDefOptions) {
@@ -116,30 +119,43 @@ function ApiDef(opts: ApiDefOptions) {
     const guideBuilder = await resolveGuide(ctx)
 
 
-    const transformSpec = await resolveTransforms(ctx)
-
-    log.debug({
-      point: 'transform', spec: transformSpec,
-      note: log.levelVal <= 20 ? inspect(transformSpec) : ''
+    // const transformSpec = await resolveTransforms(ctx)
+    const transforms = await resolveElements(ctx, 'transform', 'openapi', {
+      top: topTransform,
+      entity: entityTransform,
+      operation: operationTransform,
+      field: fieldTransform,
     })
 
-    const processResult = await processTransforms(ctx, transformSpec, apimodel, def)
+    // log.debug({
+    //   point: 'transform', spec: transformSpec,
+    //   note: log.levelVal <= 20 ? inspect(transformSpec) : ''
+    // })
 
-    if (!processResult.ok) {
-      log.error({
-        fail: 'process', point: 'transform-result',
-        result: processResult, note: processResult.msg,
-        err: processResult.results[0]?.err
-      })
+    // const processResult = await processTransforms(ctx, transforms, apimodel, def)
 
-      return { ok: false, name: 'apidef', processResult }
-    }
+    // if (!processResult.ok) {
+    //   log.error({
+    //     fail: 'process', point: 'transform-result',
+    //     result: processResult, note: processResult.msg,
+    //     err: processResult.results[0]?.err
+    //   })
+
+    //   return { ok: false, name: 'apidef', processResult }
+    // }
 
 
-    const entityBuilder = resolveEntity(apimodel, spec, opts)
+    const builders = await resolveElements(ctx, 'builder', 'standard', {
+      entity: makeEntityBuilder,
+      flow: makeFlowBuilder,
+    })
 
-    const flowBuilder = await resolveFlows(ctx)
 
+
+    // const entityBuilder = resolveEntity(apimodel, spec, opts)
+
+    // const entityBuilder = await resolveEntity(ctx)
+    // const flowBuilder = await resolveFlows(ctx)
 
     const jostraca = Jostraca({
       now: spec.now,
@@ -151,8 +167,12 @@ function ApiDef(opts: ApiDefOptions) {
 
     const root = () => Project({ folder: '.' }, async () => {
       guideBuilder()
-      entityBuilder()
-      flowBuilder()
+      // entityBuilder()
+      // flowBuilder()
+
+      for (let builder of builders) {
+        builder()
+      }
     })
 
     const jres = await jostraca.generate({
@@ -162,7 +182,7 @@ function ApiDef(opts: ApiDefOptions) {
       existing: { txt: { merge: true } }
     }, root)
 
-    console.log('JRES', jres)
+    // console.log('JRES', jres)
 
     log.info({ point: 'generate-end', note: 'success', break: true })
 
@@ -187,8 +207,6 @@ ApiDef.makeBuild = async function(opts: ApiDefOptions) {
   const config = {
     def: opts.def || 'no-def',
     kind: 'openapi3',
-    // model: opts.folder ?
-    //  (opts.folder + '/' + outprefix + 'api-generated.jsonic') : 'no-model',
     meta: opts.meta || {},
   }
 

@@ -2,10 +2,26 @@
 
 main: sdk: flow: BasicPageAccessGroupFlow:
 {
-  "param": {},
+  "param": {
+    "undefined_TEST_PAGE_ACCESS_GROUP_ENTID": {
+      "page_access_group01": "PAGE_ACCESS_GROUP01",
+      "page_access_group02": "PAGE_ACCESS_GROUP02",
+      "page_access_group03": "PAGE_ACCESS_GROUP03"
+    }
+  },
   "test": {
     "entity": {
-      "PageAccessGroup": {}
+      "PageAccessGroup": {
+        "PAGE_ACCESS_GROUP01": {
+          "id": "PAGE_ACCESS_GROUP01"
+        },
+        "PAGE_ACCESS_GROUP02": {
+          "id": "PAGE_ACCESS_GROUP02"
+        },
+        "PAGE_ACCESS_GROUP03": {
+          "id": "PAGE_ACCESS_GROUP03"
+        }
+      }
     }
   },
   "step": []

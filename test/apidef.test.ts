@@ -43,11 +43,7 @@ describe('apidef', () => {
 def: '${outprefix}def.json'
 `
 
-      console.log('MODELSRC', modelSrc)
-
       const model = Aontu(modelSrc).gen()
-
-      // console.dir(model, { depth: null })
 
       const buildspec = {
         spec: {
@@ -63,13 +59,8 @@ def: '${outprefix}def.json'
 
 @"${outprefix}guide.jsonic"
 
-# TODO: move to def folder
-@"${outprefix}def-generated.jsonic"
-
-# TODO: merge these into entity folder, same files
+@"api/${outprefix}api-def.jsonic"
 @"api/${outprefix}api-entity-index.jsonic"
-@"entity/${outprefix}entity-index.jsonic"
-
 @"flow/${outprefix}flow-index.jsonic"
 
 `

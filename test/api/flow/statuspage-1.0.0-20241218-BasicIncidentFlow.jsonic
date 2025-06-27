@@ -2,10 +2,26 @@
 
 main: sdk: flow: BasicIncidentFlow:
 {
-  "param": {},
+  "param": {
+    "undefined_TEST_INCIDENT_ENTID": {
+      "incident01": "INCIDENT01",
+      "incident02": "INCIDENT02",
+      "incident03": "INCIDENT03"
+    }
+  },
   "test": {
     "entity": {
-      "Incident": {}
+      "Incident": {
+        "INCIDENT01": {
+          "id": "INCIDENT01"
+        },
+        "INCIDENT02": {
+          "id": "INCIDENT02"
+        },
+        "INCIDENT03": {
+          "id": "INCIDENT03"
+        }
+      }
     }
   },
   "step": []

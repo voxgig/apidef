@@ -3,12 +3,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.entityTransform = void 0;
 const jostraca_1 = require("jostraca");
 const transform_1 = require("../transform");
-const entityTransform = async function (ctx, guide, tspec, model, def) {
+const entityTransform = async function (ctx) {
+    const { apimodel, model, def } = ctx;
+    const guide = model.main.api.guide;
     let msg = '';
     (0, jostraca_1.each)(guide.entity, (guideEntity) => {
         const entityName = guideEntity.key$;
         ctx.log.debug({ point: 'guide-entity', note: entityName });
-        const entityModel = model.main.api.entity[entityName] = {
+        const entityModel = apimodel.main.api.entity[entityName] = {
             op: {},
             field: {},
             cmd: {},

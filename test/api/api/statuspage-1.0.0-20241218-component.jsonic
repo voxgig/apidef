@@ -1,261 +1,298 @@
-# GENERATED FILE - DO NOT EDIT
+# Entity: component
 
 main: api: entity: component: {
 
-"op": {
-  "remove": {
-    "path": "/pages/{page_id}/components/{component_id}",
-    "method": "delete",
-    "kind": "res",
-    "param": {
-      "page_id": {
-        "required": true,
-        "name": "page_id",
-        "Name": "PageId",
-        "NAME": "PAGE_ID",
-        "type": "string",
-        "Type": "String",
-        "TYPE": "STRING"
-      },
-      "component_id": {
-        "required": true,
-        "name": "component_id",
-        "Name": "ComponentId",
-        "NAME": "COMPONENT_ID",
-        "type": "string",
-        "Type": "String",
-        "TYPE": "STRING"
-      }
-    },
-    "query": {},
-    "resform": "`body`",
-    "reqform": "`body`",
-    "name": "remove",
-    "Name": "Remove",
-    "NAME": "REMOVE"
-  },
-  "update": {
-    "path": "/pages/{page_id}/components/{component_id}",
-    "method": "put",
-    "kind": "req",
-    "param": {
-      "page_id": {
-        "required": true,
-        "name": "page_id",
-        "Name": "PageId",
-        "NAME": "PAGE_ID",
-        "type": "string",
-        "Type": "String",
-        "TYPE": "STRING"
-      },
-      "component_id": {
-        "required": true,
-        "name": "component_id",
-        "Name": "ComponentId",
-        "NAME": "COMPONENT_ID",
-        "type": "string",
-        "Type": "String",
-        "TYPE": "STRING"
-      }
-    },
-    "query": {},
-    "resform": "`body.component`",
-    "reqform": {
-      "component": "`reqdata`"
-    },
-    "name": "update",
-    "Name": "Update",
-    "NAME": "UPDATE"
-  },
-  "load": {
-    "path": "/pages/{page_id}/components/{component_id}",
-    "method": "get",
-    "kind": "res",
-    "param": {
-      "page_id": {
-        "required": true,
-        "name": "page_id",
-        "Name": "PageId",
-        "NAME": "PAGE_ID",
-        "type": "string",
-        "Type": "String",
-        "TYPE": "STRING"
-      },
-      "component_id": {
-        "required": true,
-        "name": "component_id",
-        "Name": "ComponentId",
-        "NAME": "COMPONENT_ID",
-        "type": "string",
-        "Type": "String",
-        "TYPE": "STRING"
-      }
-    },
-    "query": {},
-    "resform": "`body`",
-    "reqform": "`data`",
-    "name": "load",
-    "Name": "Load",
-    "NAME": "LOAD"
-  },
-  "list": {
-    "path": "/pages/{page_id}/components",
-    "method": "get",
-    "kind": "res",
-    "param": {
-      "page_id": {
-        "required": true,
-        "name": "page_id",
-        "Name": "PageId",
-        "NAME": "PAGE_ID",
-        "type": "string",
-        "Type": "String",
-        "TYPE": "STRING"
-      }
-    },
-    "query": {},
-    "resform": "`body`",
-    "reqform": "`data`",
-    "name": "list",
-    "Name": "List",
-    "NAME": "LIST"
+  alias: field: {
+    "component_id": "id",
+    "id": "component_id"
   }
-},
-"field": {
-  "id": {
-    "name": "id",
-    "Name": "Id",
-    "NAME": "ID",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "Identifier for component"
-  },
-  "page_id": {
-    "name": "page_id",
-    "Name": "PageId",
-    "NAME": "PAGE_ID",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "Page identifier"
-  },
-  "group_id": {
-    "name": "group_id",
-    "Name": "GroupId",
-    "NAME": "GROUP_ID",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "Component Group identifier"
-  },
-  "created_at": {
-    "name": "created_at",
-    "Name": "CreatedAt",
-    "NAME": "CREATED_AT",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING"
-  },
-  "updated_at": {
-    "name": "updated_at",
-    "Name": "UpdatedAt",
-    "NAME": "UPDATED_AT",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING"
-  },
-  "group": {
-    "name": "group",
-    "Name": "Group",
-    "NAME": "GROUP",
-    "type": "boolean",
-    "Type": "Boolean",
-    "TYPE": "BOOLEAN",
-    "short": "Is this component a group"
-  },
-  "name": {
-    "name": "name",
-    "Name": "Name",
-    "NAME": "NAME",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "Display name for component"
-  },
-  "description": {
-    "name": "description",
-    "Name": "Description",
-    "NAME": "DESCRIPTION",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "More detailed description for component"
-  },
-  "position": {
-    "name": "position",
-    "Name": "Position",
-    "NAME": "POSITION",
-    "type": "integer",
-    "Type": "Integer",
-    "TYPE": "INTEGER",
-    "short": "Order the component will appear on the page"
-  },
-  "status": {
-    "name": "status",
-    "Name": "Status",
-    "NAME": "STATUS",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "Status of component"
-  },
-  "showcase": {
-    "name": "showcase",
-    "Name": "Showcase",
-    "NAME": "SHOWCASE",
-    "type": "boolean",
-    "Type": "Boolean",
-    "TYPE": "BOOLEAN",
-    "short": "Should this component be showcased"
-  },
-  "only_show_if_degraded": {
-    "name": "only_show_if_degraded",
-    "Name": "OnlyShowIfDegraded",
-    "NAME": "ONLY_SHOW_IF_DEGRADED",
-    "type": "boolean",
-    "Type": "Boolean",
-    "TYPE": "BOOLEAN",
-    "short": "Requires a special feature flag to be enabled"
-  },
-  "automation_email": {
-    "name": "automation_email",
-    "Name": "AutomationEmail",
-    "NAME": "AUTOMATION_EMAIL",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "Requires a special feature flag to be enabled"
-  },
-  "start_date": {
-    "name": "start_date",
-    "Name": "StartDate",
-    "NAME": "START_DATE",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "The date this component started being used"
+
+  op: {
+    remove: {
+      path: "/pages/{page_id}/components/{component_id}",
+      method: "delete",
+      kind: "res",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        component_id: {
+          required: true,
+          name: "component_id",
+          Name: "ComponentId",
+          NAME: "COMPONENT_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+      resform: "`body`",
+      reqform: "`body`",
+      name: "remove",
+      Name: "Remove",
+      NAME: "REMOVE"
+    }
+
+    update: {
+      path: "/pages/{page_id}/components/{component_id}",
+      method: "put",
+      kind: "req",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        component_id: {
+          required: true,
+          name: "component_id",
+          Name: "ComponentId",
+          NAME: "COMPONENT_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+      resform: "`body.component`",
+      reqform: {
+        component: "`reqdata`"
+      }
+
+      name: "update",
+      Name: "Update",
+      NAME: "UPDATE"
+    }
+
+    load: {
+      path: "/pages/{page_id}/components/{component_id}",
+      method: "get",
+      kind: "res",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        component_id: {
+          required: true,
+          name: "component_id",
+          Name: "ComponentId",
+          NAME: "COMPONENT_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+      resform: "`body`",
+      reqform: "`data`",
+      name: "load",
+      Name: "Load",
+      NAME: "LOAD"
+    }
+
+    list: {
+      path: "/pages/{page_id}/components",
+      method: "get",
+      kind: "res",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+      resform: "`body`",
+      reqform: "`data`",
+      name: "list",
+      Name: "List",
+      NAME: "LIST"
+    }
   }
-},
-"cmd": {},
-"id": {
-  "name": "id",
-  "field": "id"
-},
-"name": "component",
-"Name": "Component",
-"NAME": "COMPONENT",
-"key$": "component"
+
+  field: {
+    id: {
+      name: "id",
+      Name: "Id",
+      NAME: "ID",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Identifier for component"
+    }
+
+    page_id: {
+      name: "page_id",
+      Name: "PageId",
+      NAME: "PAGE_ID",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Page identifier"
+    }
+
+    group_id: {
+      name: "group_id",
+      Name: "GroupId",
+      NAME: "GROUP_ID",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Component Group identifier"
+    }
+
+    created_at: {
+      name: "created_at",
+      Name: "CreatedAt",
+      NAME: "CREATED_AT",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING"
+    }
+
+    updated_at: {
+      name: "updated_at",
+      Name: "UpdatedAt",
+      NAME: "UPDATED_AT",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING"
+    }
+
+    group: {
+      name: "group",
+      Name: "Group",
+      NAME: "GROUP",
+      type: "boolean",
+      Type: "Boolean",
+      TYPE: "BOOLEAN",
+      short: "Is this component a group"
+    }
+
+    name: {
+      name: "name",
+      Name: "Name",
+      NAME: "NAME",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Display name for component"
+    }
+
+    description: {
+      name: "description",
+      Name: "Description",
+      NAME: "DESCRIPTION",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "More detailed description for component"
+    }
+
+    position: {
+      name: "position",
+      Name: "Position",
+      NAME: "POSITION",
+      type: "integer",
+      Type: "Integer",
+      TYPE: "INTEGER",
+      short: "Order the component will appear on the page"
+    }
+
+    status: {
+      name: "status",
+      Name: "Status",
+      NAME: "STATUS",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Status of component"
+    }
+
+    showcase: {
+      name: "showcase",
+      Name: "Showcase",
+      NAME: "SHOWCASE",
+      type: "boolean",
+      Type: "Boolean",
+      TYPE: "BOOLEAN",
+      short: "Should this component be showcased"
+    }
+
+    only_show_if_degraded: {
+      name: "only_show_if_degraded",
+      Name: "OnlyShowIfDegraded",
+      NAME: "ONLY_SHOW_IF_DEGRADED",
+      type: "boolean",
+      Type: "Boolean",
+      TYPE: "BOOLEAN",
+      short: "Requires a special feature flag to be enabled"
+    }
+
+    automation_email: {
+      name: "automation_email",
+      Name: "AutomationEmail",
+      NAME: "AUTOMATION_EMAIL",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Requires a special feature flag to be enabled"
+    }
+
+    start_date: {
+      name: "start_date",
+      Name: "StartDate",
+      NAME: "START_DATE",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "The date this component started being used"
+    }
+  }
+
+  cmd: {}
+
+  id: {
+    name: "id",
+    field: "id"
+  }
+
+  name: "component",
+  Name: "Component",
+  NAME: "COMPONENT",
+  "key$": "component"
 
 
 }

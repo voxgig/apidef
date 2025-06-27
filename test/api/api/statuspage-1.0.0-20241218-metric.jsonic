@@ -1,297 +1,340 @@
-# GENERATED FILE - DO NOT EDIT
+# Entity: metric
 
 main: api: entity: metric: {
 
-"op": {
-  "remove": {
-    "path": "/pages/{page_id}/metrics/{metric_id}",
-    "method": "delete",
-    "kind": "res",
-    "param": {
-      "page_id": {
-        "required": true,
-        "name": "page_id",
-        "Name": "PageId",
-        "NAME": "PAGE_ID",
-        "type": "string",
-        "Type": "String",
-        "TYPE": "STRING"
-      },
-      "metric_id": {
-        "required": true,
-        "name": "metric_id",
-        "Name": "MetricId",
-        "NAME": "METRIC_ID",
-        "type": "string",
-        "Type": "String",
-        "TYPE": "STRING"
-      }
-    },
-    "query": {},
-    "resform": "`body`",
-    "reqform": "`data`",
-    "name": "remove",
-    "Name": "Remove",
-    "NAME": "REMOVE"
-  },
-  "update": {
-    "path": "/pages/{page_id}/metrics/{metric_id}",
-    "method": "put",
-    "kind": "req",
-    "param": {
-      "page_id": {
-        "required": true,
-        "name": "page_id",
-        "Name": "PageId",
-        "NAME": "PAGE_ID",
-        "type": "string",
-        "Type": "String",
-        "TYPE": "STRING"
-      },
-      "metric_id": {
-        "required": true,
-        "name": "metric_id",
-        "Name": "MetricId",
-        "NAME": "METRIC_ID",
-        "type": "string",
-        "Type": "String",
-        "TYPE": "STRING"
-      }
-    },
-    "query": {},
-    "resform": "`body.metric`",
-    "reqform": {
-      "metric": "`reqdata`"
-    },
-    "name": "update",
-    "Name": "Update",
-    "NAME": "UPDATE"
-  },
-  "load": {
-    "path": "/pages/{page_id}/metrics/{metric_id}",
-    "method": "get",
-    "kind": "res",
-    "param": {
-      "page_id": {
-        "required": true,
-        "name": "page_id",
-        "Name": "PageId",
-        "NAME": "PAGE_ID",
-        "type": "string",
-        "Type": "String",
-        "TYPE": "STRING"
-      },
-      "metric_id": {
-        "required": true,
-        "name": "metric_id",
-        "Name": "MetricId",
-        "NAME": "METRIC_ID",
-        "type": "string",
-        "Type": "String",
-        "TYPE": "STRING"
-      }
-    },
-    "query": {},
-    "resform": "`body`",
-    "reqform": "`data`",
-    "name": "load",
-    "Name": "Load",
-    "NAME": "LOAD"
-  },
-  "list": {
-    "path": "/pages/{page_id}/metrics_providers/{metrics_provider_id}/metrics",
-    "method": "get",
-    "kind": "res",
-    "param": {
-      "page_id": {
-        "required": true,
-        "name": "page_id",
-        "Name": "PageId",
-        "NAME": "PAGE_ID",
-        "type": "string",
-        "Type": "String",
-        "TYPE": "STRING"
-      },
-      "metrics_provider_id": {
-        "required": true,
-        "name": "metrics_provider_id",
-        "Name": "MetricsProviderId",
-        "NAME": "METRICS_PROVIDER_ID",
-        "type": "string",
-        "Type": "String",
-        "TYPE": "STRING"
-      }
-    },
-    "query": {},
-    "resform": "`body`",
-    "reqform": "`data`",
-    "name": "list",
-    "Name": "List",
-    "NAME": "LIST"
+  alias: field: {
+    "metric_id": "id",
+    "id": "metrics_provider_id",
+    "metrics_provider_id": "id"
   }
-},
-"field": {
-  "id": {
-    "name": "id",
-    "Name": "Id",
-    "NAME": "ID",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "Metric identifier"
-  },
-  "metrics_provider_id": {
-    "name": "metrics_provider_id",
-    "Name": "MetricsProviderId",
-    "NAME": "METRICS_PROVIDER_ID",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "Metric Provider identifier"
-  },
-  "metric_identifier": {
-    "name": "metric_identifier",
-    "Name": "MetricIdentifier",
-    "NAME": "METRIC_IDENTIFIER",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "Metric Display identifier used to look up the metric data from the provider"
-  },
-  "name": {
-    "name": "name",
-    "Name": "Name",
-    "NAME": "NAME",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "Name of metric"
-  },
-  "display": {
-    "name": "display",
-    "Name": "Display",
-    "NAME": "DISPLAY",
-    "type": "boolean",
-    "Type": "Boolean",
-    "TYPE": "BOOLEAN",
-    "short": "Should the metric be displayed"
-  },
-  "tooltip_description": {
-    "name": "tooltip_description",
-    "Name": "TooltipDescription",
-    "NAME": "TOOLTIP_DESCRIPTION",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING"
-  },
-  "backfilled": {
-    "name": "backfilled",
-    "Name": "Backfilled",
-    "NAME": "BACKFILLED",
-    "type": "boolean",
-    "Type": "Boolean",
-    "TYPE": "BOOLEAN"
-  },
-  "y_axis_min": {
-    "name": "y_axis_min",
-    "Name": "YaxisMin",
-    "NAME": "Y_AXIS_MIN",
-    "type": "number",
-    "Type": "Number",
-    "TYPE": "NUMBER"
-  },
-  "y_axis_max": {
-    "name": "y_axis_max",
-    "Name": "YaxisMax",
-    "NAME": "Y_AXIS_MAX",
-    "type": "number",
-    "Type": "Number",
-    "TYPE": "NUMBER"
-  },
-  "y_axis_hidden": {
-    "name": "y_axis_hidden",
-    "Name": "YaxisHidden",
-    "NAME": "Y_AXIS_HIDDEN",
-    "type": "boolean",
-    "Type": "Boolean",
-    "TYPE": "BOOLEAN",
-    "short": "Should the values on the y axis be hidden on render"
-  },
-  "suffix": {
-    "name": "suffix",
-    "Name": "Suffix",
-    "NAME": "SUFFIX",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING",
-    "short": "Suffix to describe the units on the graph"
-  },
-  "decimal_places": {
-    "name": "decimal_places",
-    "Name": "DecimalPlaces",
-    "NAME": "DECIMAL_PLACES",
-    "type": "integer",
-    "Type": "Integer",
-    "TYPE": "INTEGER"
-  },
-  "most_recent_data_at": {
-    "name": "most_recent_data_at",
-    "Name": "MostRecentDataAt",
-    "NAME": "MOST_RECENT_DATA_AT",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING"
-  },
-  "created_at": {
-    "name": "created_at",
-    "Name": "CreatedAt",
-    "NAME": "CREATED_AT",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING"
-  },
-  "updated_at": {
-    "name": "updated_at",
-    "Name": "UpdatedAt",
-    "NAME": "UPDATED_AT",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING"
-  },
-  "last_fetched_at": {
-    "name": "last_fetched_at",
-    "Name": "LastFetchedAt",
-    "NAME": "LAST_FETCHED_AT",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING"
-  },
-  "backfill_percentage": {
-    "name": "backfill_percentage",
-    "Name": "BackfillPercentage",
-    "NAME": "BACKFILL_PERCENTAGE",
-    "type": "integer",
-    "Type": "Integer",
-    "TYPE": "INTEGER"
-  },
-  "reference_name": {
-    "name": "reference_name",
-    "Name": "ReferenceName",
-    "NAME": "REFERENCE_NAME",
-    "type": "string",
-    "Type": "String",
-    "TYPE": "STRING"
+
+  op: {
+    remove: {
+      path: "/pages/{page_id}/metrics/{metric_id}",
+      method: "delete",
+      kind: "res",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        metric_id: {
+          required: true,
+          name: "metric_id",
+          Name: "MetricId",
+          NAME: "METRIC_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+      resform: "`body`",
+      reqform: "`data`",
+      name: "remove",
+      Name: "Remove",
+      NAME: "REMOVE"
+    }
+
+    update: {
+      path: "/pages/{page_id}/metrics/{metric_id}",
+      method: "put",
+      kind: "req",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        metric_id: {
+          required: true,
+          name: "metric_id",
+          Name: "MetricId",
+          NAME: "METRIC_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+      resform: "`body.metric`",
+      reqform: {
+        metric: "`reqdata`"
+      }
+
+      name: "update",
+      Name: "Update",
+      NAME: "UPDATE"
+    }
+
+    load: {
+      path: "/pages/{page_id}/metrics/{metric_id}",
+      method: "get",
+      kind: "res",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        metric_id: {
+          required: true,
+          name: "metric_id",
+          Name: "MetricId",
+          NAME: "METRIC_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+      resform: "`body`",
+      reqform: "`data`",
+      name: "load",
+      Name: "Load",
+      NAME: "LOAD"
+    }
+
+    list: {
+      path: "/pages/{page_id}/metrics_providers/{metrics_provider_id}/metrics",
+      method: "get",
+      kind: "res",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        metrics_provider_id: {
+          required: true,
+          name: "metrics_provider_id",
+          Name: "MetricsProviderId",
+          NAME: "METRICS_PROVIDER_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+      resform: "`body`",
+      reqform: "`data`",
+      name: "list",
+      Name: "List",
+      NAME: "LIST"
+    }
   }
-},
-"cmd": {},
-"id": {
-  "name": "id",
-  "field": "id"
-},
-"name": "metric",
-"Name": "Metric",
-"NAME": "METRIC",
-"key$": "metric"
+
+  field: {
+    id: {
+      name: "id",
+      Name: "Id",
+      NAME: "ID",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Metric identifier"
+    }
+
+    metrics_provider_id: {
+      name: "metrics_provider_id",
+      Name: "MetricsProviderId",
+      NAME: "METRICS_PROVIDER_ID",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Metric Provider identifier"
+    }
+
+    metric_identifier: {
+      name: "metric_identifier",
+      Name: "MetricIdentifier",
+      NAME: "METRIC_IDENTIFIER",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Metric Display identifier used to look up the metric data from the provider"
+    }
+
+    name: {
+      name: "name",
+      Name: "Name",
+      NAME: "NAME",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Name of metric"
+    }
+
+    display: {
+      name: "display",
+      Name: "Display",
+      NAME: "DISPLAY",
+      type: "boolean",
+      Type: "Boolean",
+      TYPE: "BOOLEAN",
+      short: "Should the metric be displayed"
+    }
+
+    tooltip_description: {
+      name: "tooltip_description",
+      Name: "TooltipDescription",
+      NAME: "TOOLTIP_DESCRIPTION",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING"
+    }
+
+    backfilled: {
+      name: "backfilled",
+      Name: "Backfilled",
+      NAME: "BACKFILLED",
+      type: "boolean",
+      Type: "Boolean",
+      TYPE: "BOOLEAN"
+    }
+
+    y_axis_min: {
+      name: "y_axis_min",
+      Name: "YaxisMin",
+      NAME: "Y_AXIS_MIN",
+      type: "number",
+      Type: "Number",
+      TYPE: "NUMBER"
+    }
+
+    y_axis_max: {
+      name: "y_axis_max",
+      Name: "YaxisMax",
+      NAME: "Y_AXIS_MAX",
+      type: "number",
+      Type: "Number",
+      TYPE: "NUMBER"
+    }
+
+    y_axis_hidden: {
+      name: "y_axis_hidden",
+      Name: "YaxisHidden",
+      NAME: "Y_AXIS_HIDDEN",
+      type: "boolean",
+      Type: "Boolean",
+      TYPE: "BOOLEAN",
+      short: "Should the values on the y axis be hidden on render"
+    }
+
+    suffix: {
+      name: "suffix",
+      Name: "Suffix",
+      NAME: "SUFFIX",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Suffix to describe the units on the graph"
+    }
+
+    decimal_places: {
+      name: "decimal_places",
+      Name: "DecimalPlaces",
+      NAME: "DECIMAL_PLACES",
+      type: "integer",
+      Type: "Integer",
+      TYPE: "INTEGER"
+    }
+
+    most_recent_data_at: {
+      name: "most_recent_data_at",
+      Name: "MostRecentDataAt",
+      NAME: "MOST_RECENT_DATA_AT",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING"
+    }
+
+    created_at: {
+      name: "created_at",
+      Name: "CreatedAt",
+      NAME: "CREATED_AT",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING"
+    }
+
+    updated_at: {
+      name: "updated_at",
+      Name: "UpdatedAt",
+      NAME: "UPDATED_AT",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING"
+    }
+
+    last_fetched_at: {
+      name: "last_fetched_at",
+      Name: "LastFetchedAt",
+      NAME: "LAST_FETCHED_AT",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING"
+    }
+
+    backfill_percentage: {
+      name: "backfill_percentage",
+      Name: "BackfillPercentage",
+      NAME: "BACKFILL_PERCENTAGE",
+      type: "integer",
+      Type: "Integer",
+      TYPE: "INTEGER"
+    }
+
+    reference_name: {
+      name: "reference_name",
+      Name: "ReferenceName",
+      NAME: "REFERENCE_NAME",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING"
+    }
+  }
+
+  cmd: {}
+
+  id: {
+    name: "id",
+    field: "id"
+  }
+
+  name: "metric",
+  Name: "Metric",
+  NAME: "METRIC",
+  "key$": "metric"
 
 
 }

@@ -2,10 +2,26 @@
 
 main: sdk: flow: BasicSubscriberFlow:
 {
-  "param": {},
+  "param": {
+    "undefined_TEST_SUBSCRIBER_ENTID": {
+      "subscriber01": "SUBSCRIBER01",
+      "subscriber02": "SUBSCRIBER02",
+      "subscriber03": "SUBSCRIBER03"
+    }
+  },
   "test": {
     "entity": {
-      "Subscriber": {}
+      "Subscriber": {
+        "SUBSCRIBER01": {
+          "id": "SUBSCRIBER01"
+        },
+        "SUBSCRIBER02": {
+          "id": "SUBSCRIBER02"
+        },
+        "SUBSCRIBER03": {
+          "id": "SUBSCRIBER03"
+        }
+      }
     }
   },
   "step": []

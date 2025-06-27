@@ -2,10 +2,26 @@
 
 main: sdk: flow: BasicMetricFlow:
 {
-  "param": {},
+  "param": {
+    "undefined_TEST_METRIC_ENTID": {
+      "metric01": "METRIC01",
+      "metric02": "METRIC02",
+      "metric03": "METRIC03"
+    }
+  },
   "test": {
     "entity": {
-      "Metric": {}
+      "Metric": {
+        "METRIC01": {
+          "id": "METRIC01"
+        },
+        "METRIC02": {
+          "id": "METRIC02"
+        },
+        "METRIC03": {
+          "id": "METRIC03"
+        }
+      }
     }
   },
   "step": []
