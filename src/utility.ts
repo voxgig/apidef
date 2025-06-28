@@ -20,6 +20,12 @@ function loadFile(path: string, what: string, fs: FsUtil, log: Log) {
 }
 
 
+function formatJsonSrc(jsonsrc: string) {
+  return jsonsrc
+    .replace(/"([a-zA-Z_][a-zA-Z_0-9]*)": /g, '$1: ')
+    .replace(/},/g, '}\n')
+}
+
 
 function writeChanged(
   point: string, path: string, content: string,
@@ -72,5 +78,6 @@ function writeChanged(
 
 export {
   loadFile,
-  writeChanged,
+  formatJsonSrc
+  // writeChanged,
 }

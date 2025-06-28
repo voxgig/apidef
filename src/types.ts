@@ -23,6 +23,7 @@ type ApiDefOptions = {
 
 
 const ModelShape = Gubu({
+  name: String,
   def: String,
   main: {
     sdk: {},

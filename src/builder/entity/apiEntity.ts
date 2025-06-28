@@ -9,6 +9,11 @@ import type {
   ApiDefOptions,
 } from '../../types'
 
+import {
+  formatJsonSrc,
+} from '../../utility'
+
+
 
 function resolveApiEntity(
   apimodel: any,
@@ -32,7 +37,7 @@ function resolveApiEntity(
       `# Entity: ${entity.name}\n\n` +
       `main: api: entity: ${entity.name}: {\n\n` +
       `  alias: field: ${fieldAliasesSrc}\n` +
-      prettyJSON(entityJSON.substring(1, entityJSON.length - 1)) +
+      formatJsonSrc(entityJSON.substring(1, entityJSON.length - 1)) +
       '\n\n}\n'
 
     entityFiles.push({ name: entityFile, src: entitySrc })
@@ -53,13 +58,6 @@ function resolveApiEntity(
   }
 
 }
-
-function prettyJSON(jsonsrc: string) {
-  return jsonsrc
-    .replace(/"([a-zA-Z_][a-zA-Z_0-9]*)": /g, '$1: ')
-    .replace(/},/g, '}\n')
-}
-
 
 function fieldAliases(entity: any) {
   // HEURISTIC: id may be name_id or nameId

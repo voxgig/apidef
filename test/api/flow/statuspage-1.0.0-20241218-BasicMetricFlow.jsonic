@@ -2,27 +2,128 @@
 
 main: sdk: flow: BasicMetricFlow:
 {
-  "param": {
-    "undefined_TEST_METRIC_ENTID": {
-      "metric01": "METRIC01",
-      "metric02": "METRIC02",
-      "metric03": "METRIC03"
+  param: {
+    STATUSPAGE_TEST_METRIC_ENTID: {
+      metric01: "METRIC01",
+      metric02: "METRIC02",
+      metric03: "METRIC03"
     }
-  },
-  "test": {
-    "entity": {
-      "Metric": {
-        "METRIC01": {
-          "id": "METRIC01"
-        },
-        "METRIC02": {
-          "id": "METRIC02"
-        },
-        "METRIC03": {
-          "id": "METRIC03"
+  }
+
+  test: {
+    entity: {
+      Metric: {
+        METRIC01: {
+          id: "METRIC01",
+          metrics_provider_id: "s1",
+          metric_identifier: "s2",
+          name: "s3",
+          display: true,
+          tooltip_description: "s5",
+          backfilled: true,
+          y_axis_min: 7,
+          y_axis_max: 8,
+          y_axis_hidden: false,
+          suffix: "sa",
+          decimal_places: "sb",
+          most_recent_data_at: "sc",
+          created_at: "sd",
+          updated_at: "se",
+          last_fetched_at: "sf",
+          backfill_percentage: "s10",
+          reference_name: "s11"
+        }
+
+        METRIC02: {
+          id: "METRIC02",
+          metrics_provider_id: "sb5",
+          metric_identifier: "sb6",
+          name: "sb7",
+          display: true,
+          tooltip_description: "sb9",
+          backfilled: true,
+          y_axis_min: 187,
+          y_axis_max: 188,
+          y_axis_hidden: false,
+          suffix: "sbe",
+          decimal_places: "sbf",
+          most_recent_data_at: "sc0",
+          created_at: "sc1",
+          updated_at: "sc2",
+          last_fetched_at: "sc3",
+          backfill_percentage: "sc4",
+          reference_name: "sc5"
+        }
+
+        METRIC03: {
+          id: "METRIC03",
+          metrics_provider_id: "s169",
+          metric_identifier: "s16a",
+          name: "s16b",
+          display: true,
+          tooltip_description: "s16d",
+          backfilled: true,
+          y_axis_min: 367,
+          y_axis_max: 368,
+          y_axis_hidden: false,
+          suffix: "s172",
+          decimal_places: "s173",
+          most_recent_data_at: "s174",
+          created_at: "s175",
+          updated_at: "s176",
+          last_fetched_at: "s177",
+          backfill_percentage: "s178",
+          reference_name: "s179"
         }
       }
     }
-  },
-  "step": []
+  }
+
+  step: [
+    {
+      name: "load_metric0",
+      kind: "entity",
+      entity: "metric",
+      action: "load",
+      match: {
+        id: "`dm$=p.STATUSPAGE_TEST_METRIC_ENTID.metric01`"
+      }
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_metric0.match.id`"
+      }
+    }
+
+    {
+      name: "update_metric1",
+      ref: "load_metric0",
+      action: "update",
+      reqdata: {
+        name: "s3-`$WHEN`"
+      }
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_metric0.match.id`",
+        name: "`dm$=s.update_metric1.reqdata.name`"
+      }
+    }
+
+    {
+      name: "load_metric2",
+      kind: "entity",
+      entity: "metric",
+      action: "load",
+      match: {
+        id: "`dm$=p.STATUSPAGE_TEST_METRIC_ENTID.metric01`"
+      }
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_metric0.match.id`",
+        name: "`dm$=s.update_metric1.reqdata.name`"
+      }
+    }
+  ]
 }

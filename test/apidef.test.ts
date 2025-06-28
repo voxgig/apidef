@@ -38,6 +38,8 @@ describe('apidef', () => {
       const modelSrc = `
 # apidef test: ${outprefix}
 
+name: statuspage
+
 @"@voxgig/apidef/model/apidef.jsonic"
 
 def: '${outprefix}def.json'

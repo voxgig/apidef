@@ -56,6 +56,8 @@ const __1 = require("../");
             const modelSrc = `
 # apidef test: ${outprefix}
 
+name: statuspage
+
 @"@voxgig/apidef/model/apidef.jsonic"
 
 def: '${outprefix}def.json'

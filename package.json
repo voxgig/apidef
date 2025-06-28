@@ -49,6 +49,7 @@
   },
   "dependencies": {
     "@redocly/openapi-core": "^1.34.3",
+    "@voxgig/struct": "^0.0.2",
     "@voxgig/util": "^0.0.10",
     "chokidar": "^4.0.3",
     "gubu": "^9.0.0",

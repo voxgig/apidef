@@ -68,6 +68,7 @@ function ApiDef(opts) {
         // console.dir(spec, { depth: null })
         const model = (0, types_1.OpenModelShape)(spec.model);
         const build = (0, types_1.OpenBuildShape)(spec.build);
+        (0, jostraca_1.names)(model, model.name);
         const apimodel = {
             main: {
                 api: {

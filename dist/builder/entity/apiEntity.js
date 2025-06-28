@@ -7,6 +7,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.resolveApiEntity = resolveApiEntity;
 const node_path_1 = __importDefault(require("node:path"));
 const jostraca_1 = require("jostraca");
+const utility_1 = require("../../utility");
 function resolveApiEntity(apimodel, opts) {
     const barrel = [
         '# Entity Models\n'
@@ -19,7 +20,7 @@ function resolveApiEntity(apimodel, opts) {
         const entitySrc = `# Entity: ${entity.name}\n\n` +
             `main: api: entity: ${entity.name}: {\n\n` +
             `  alias: field: ${fieldAliasesSrc}\n` +
-            prettyJSON(entityJSON.substring(1, entityJSON.length - 1)) +
+            (0, utility_1.formatJsonSrc)(entityJSON.substring(1, entityJSON.length - 1)) +
             '\n\n}\n';
         entityFiles.push({ name: entityFile, src: entitySrc });
         barrel.push(`@"${node_path_1.default.basename(entityFile)}"`);
@@ -33,11 +34,6 @@ function resolveApiEntity(apimodel, opts) {
             (0, jostraca_1.File)({ name: indexFile }, () => (0, jostraca_1.Content)(barrel.join('\n')));
         });
     };
-}
-function prettyJSON(jsonsrc) {
-    return jsonsrc
-        .replace(/"([a-zA-Z_][a-zA-Z_0-9]*)": /g, '$1: ')
-        .replace(/},/g, '}\n');
 }
 function fieldAliases(entity) {
     // HEURISTIC: id may be name_id or nameId

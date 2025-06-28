@@ -2,27 +2,101 @@
 
 main: sdk: flow: BasicPageAccessGroupFlow:
 {
-  "param": {
-    "undefined_TEST_PAGE_ACCESS_GROUP_ENTID": {
-      "page_access_group01": "PAGE_ACCESS_GROUP01",
-      "page_access_group02": "PAGE_ACCESS_GROUP02",
-      "page_access_group03": "PAGE_ACCESS_GROUP03"
+  param: {
+    STATUSPAGE_TEST_PAGE_ACCESS_GROUP_ENTID: {
+      page_access_group01: "PAGE_ACCESS_GROUP01",
+      page_access_group02: "PAGE_ACCESS_GROUP02",
+      page_access_group03: "PAGE_ACCESS_GROUP03"
     }
-  },
-  "test": {
-    "entity": {
-      "PageAccessGroup": {
-        "PAGE_ACCESS_GROUP01": {
-          "id": "PAGE_ACCESS_GROUP01"
-        },
-        "PAGE_ACCESS_GROUP02": {
-          "id": "PAGE_ACCESS_GROUP02"
-        },
-        "PAGE_ACCESS_GROUP03": {
-          "id": "PAGE_ACCESS_GROUP03"
+  }
+
+  test: {
+    entity: {
+      PageAccessGroup: {
+        PAGE_ACCESS_GROUP01: {
+          id: "PAGE_ACCESS_GROUP01",
+          page_id: "s1",
+          name: "s2",
+          page_access_user_ids: [],
+          external_identifier: "s4",
+          metric_ids: [],
+          component_ids: [],
+          created_at: "s7",
+          updated_at: "s8"
+        }
+
+        PAGE_ACCESS_GROUP02: {
+          id: "PAGE_ACCESS_GROUP02",
+          page_id: "s5b",
+          name: "s5c",
+          page_access_user_ids: [],
+          external_identifier: "s5e",
+          metric_ids: [],
+          component_ids: [],
+          created_at: "s61",
+          updated_at: "s62"
+        }
+
+        PAGE_ACCESS_GROUP03: {
+          id: "PAGE_ACCESS_GROUP03",
+          page_id: "sb5",
+          name: "sb6",
+          page_access_user_ids: [],
+          external_identifier: "sb8",
+          metric_ids: [],
+          component_ids: [],
+          created_at: "sbb",
+          updated_at: "sbc"
         }
       }
     }
-  },
-  "step": []
+  }
+
+  step: [
+    {
+      name: "load_page_access_group0",
+      kind: "entity",
+      entity: "page_access_group",
+      action: "load",
+      match: {
+        id: "`dm$=p.STATUSPAGE_TEST_PAGE_ACCESS_GROUP_ENTID.page_access_group01`"
+      }
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_page_access_group0.match.id`"
+      }
+    }
+
+    {
+      name: "update_page_access_group1",
+      ref: "load_page_access_group0",
+      action: "update",
+      reqdata: {
+        name: "s2-`$WHEN`"
+      }
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_page_access_group0.match.id`",
+        name: "`dm$=s.update_page_access_group1.reqdata.name`"
+      }
+    }
+
+    {
+      name: "load_page_access_group2",
+      kind: "entity",
+      entity: "page_access_group",
+      action: "load",
+      match: {
+        id: "`dm$=p.STATUSPAGE_TEST_PAGE_ACCESS_GROUP_ENTID.page_access_group01`"
+      }
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_page_access_group0.match.id`",
+        name: "`dm$=s.update_page_access_group1.reqdata.name`"
+      }
+    }
+  ]
 }

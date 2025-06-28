@@ -4,7 +4,7 @@ import * as Fs from 'node:fs'
 import Path from 'node:path'
 import { inspect } from 'node:util'
 
-import { Jostraca, Project, File, Content } from 'jostraca'
+import { Jostraca, Project, names } from 'jostraca'
 
 import { prettyPino } from '@voxgig/util'
 
@@ -76,6 +76,8 @@ function ApiDef(opts: ApiDefOptions) {
 
     const model: Model = OpenModelShape(spec.model)
     const build: Build = OpenBuildShape(spec.build)
+
+    names(model, model.name)
 
     const apimodel: ApiModel = {
       main: {

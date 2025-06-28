@@ -4,6 +4,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.OpenBuildShape = exports.OpenModelShape = void 0;
 const gubu_1 = require("gubu");
 const ModelShape = (0, gubu_1.Gubu)({
+    name: String,
     def: String,
     main: {
         sdk: {},

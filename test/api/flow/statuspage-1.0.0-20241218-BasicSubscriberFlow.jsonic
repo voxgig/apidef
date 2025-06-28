@@ -2,27 +2,119 @@
 
 main: sdk: flow: BasicSubscriberFlow:
 {
-  "param": {
-    "undefined_TEST_SUBSCRIBER_ENTID": {
-      "subscriber01": "SUBSCRIBER01",
-      "subscriber02": "SUBSCRIBER02",
-      "subscriber03": "SUBSCRIBER03"
+  param: {
+    STATUSPAGE_TEST_SUBSCRIBER_ENTID: {
+      subscriber01: "SUBSCRIBER01",
+      subscriber02: "SUBSCRIBER02",
+      subscriber03: "SUBSCRIBER03"
     }
-  },
-  "test": {
-    "entity": {
-      "Subscriber": {
-        "SUBSCRIBER01": {
-          "id": "SUBSCRIBER01"
-        },
-        "SUBSCRIBER02": {
-          "id": "SUBSCRIBER02"
-        },
-        "SUBSCRIBER03": {
-          "id": "SUBSCRIBER03"
+  }
+
+  test: {
+    entity: {
+      Subscriber: {
+        SUBSCRIBER01: {
+          id: "SUBSCRIBER01",
+          skip_confirmation_notification: false,
+          mode: "s2",
+          email: "s3",
+          endpoint: "s4",
+          phone_number: "s5",
+          phone_country: "s6",
+          display_phone_number: "s7",
+          obfuscated_channel_name: "s8",
+          workspace_name: "s9",
+          quarantined_at: "sa",
+          purge_at: "sb",
+          components: "sc",
+          page_access_user_id: "sd",
+          created_at: "se"
+        }
+
+        SUBSCRIBER02: {
+          id: "SUBSCRIBER02",
+          skip_confirmation_notification: false,
+          mode: "s98",
+          email: "s99",
+          endpoint: "s9a",
+          phone_number: "s9b",
+          phone_country: "s9c",
+          display_phone_number: "s9d",
+          obfuscated_channel_name: "s9e",
+          workspace_name: "s9f",
+          quarantined_at: "sa0",
+          purge_at: "sa1",
+          components: "sa2",
+          page_access_user_id: "sa3",
+          created_at: "sa4"
+        }
+
+        SUBSCRIBER03: {
+          id: "SUBSCRIBER03",
+          skip_confirmation_notification: false,
+          mode: "s12e",
+          email: "s12f",
+          endpoint: "s130",
+          phone_number: "s131",
+          phone_country: "s132",
+          display_phone_number: "s133",
+          obfuscated_channel_name: "s134",
+          workspace_name: "s135",
+          quarantined_at: "s136",
+          purge_at: "s137",
+          components: "s138",
+          page_access_user_id: "s139",
+          created_at: "s13a"
         }
       }
     }
-  },
-  "step": []
+  }
+
+  step: [
+    {
+      name: "load_subscriber0",
+      kind: "entity",
+      entity: "subscriber",
+      action: "load",
+      match: {
+        id: "`dm$=p.STATUSPAGE_TEST_SUBSCRIBER_ENTID.subscriber01`"
+      }
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_subscriber0.match.id`"
+      }
+    }
+
+    {
+      name: "update_subscriber1",
+      ref: "load_subscriber0",
+      action: "update",
+      reqdata: {
+        mode: "s2-`$WHEN`"
+      }
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_subscriber0.match.id`",
+        mode: "`dm$=s.update_subscriber1.reqdata.mode`"
+      }
+    }
+
+    {
+      name: "load_subscriber2",
+      kind: "entity",
+      entity: "subscriber",
+      action: "load",
+      match: {
+        id: "`dm$=p.STATUSPAGE_TEST_SUBSCRIBER_ENTID.subscriber01`"
+      }
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_subscriber0.match.id`",
+        mode: "`dm$=s.update_subscriber1.reqdata.mode`"
+      }
+    }
+  ]
 }

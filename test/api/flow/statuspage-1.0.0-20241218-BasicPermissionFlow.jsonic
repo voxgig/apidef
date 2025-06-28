@@ -2,27 +2,79 @@
 
 main: sdk: flow: BasicPermissionFlow:
 {
-  "param": {
-    "undefined_TEST_PERMISSION_ENTID": {
-      "permission01": "PERMISSION01",
-      "permission02": "PERMISSION02",
-      "permission03": "PERMISSION03"
+  param: {
+    STATUSPAGE_TEST_PERMISSION_ENTID: {
+      permission01: "PERMISSION01",
+      permission02: "PERMISSION02",
+      permission03: "PERMISSION03"
     }
-  },
-  "test": {
-    "entity": {
-      "Permission": {
-        "PERMISSION01": {
-          "id": "PERMISSION01"
-        },
-        "PERMISSION02": {
-          "id": "PERMISSION02"
-        },
-        "PERMISSION03": {
-          "id": "PERMISSION03"
+  }
+
+  test: {
+    entity: {
+      Permission: {
+        PERMISSION01: {
+          data: {}
+
+          id: "PERMISSION01"
+        }
+
+        PERMISSION02: {
+          data: {}
+
+          id: "PERMISSION02"
+        }
+
+        PERMISSION03: {
+          data: {}
+
+          id: "PERMISSION03"
         }
       }
     }
-  },
-  "step": []
+  }
+
+  step: [
+    {
+      name: "load_permission0",
+      kind: "entity",
+      entity: "permission",
+      action: "load",
+      match: {
+        id: "`dm$=p.STATUSPAGE_TEST_PERMISSION_ENTID.permission01`"
+      }
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_permission0.match.id`"
+      }
+    }
+
+    {
+      name: "update_permission1",
+      ref: "load_permission0",
+      action: "update",
+      reqdata: {}
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_permission0.match.id`"
+      }
+    }
+
+    {
+      name: "load_permission2",
+      kind: "entity",
+      entity: "permission",
+      action: "load",
+      match: {
+        id: "`dm$=p.STATUSPAGE_TEST_PERMISSION_ENTID.permission01`"
+      }
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_permission0.match.id`"
+      }
+    }
+  ]
 }

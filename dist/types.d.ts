@@ -14,6 +14,7 @@ type ApiDefOptions = {
 };
 declare const ModelShape: {
     <V>(root?: V | undefined, ctx?: import("gubu").Context): V & {
+        name: string;
         def: string;
         main: {
             sdk: {};
@@ -24,6 +25,7 @@ declare const ModelShape: {
         };
     };
     valid: <V>(root?: V | undefined, ctx?: import("gubu").Context) => root is V & {
+        name: StringConstructor;
         def: StringConstructor;
         main: {
             sdk: {};
@@ -72,6 +74,7 @@ declare const ModelShape: {
     }[];
     spec(): any;
     node(): import("gubu").Node<{
+        name: StringConstructor;
         def: StringConstructor;
         main: {
             sdk: {};
@@ -106,6 +109,7 @@ declare const OpenModelShape: {
     };
     valid: <V>(root?: V | undefined, ctx?: import("gubu").Context) => root is V & {
         <V_1>(root?: V_1 | undefined, ctx?: import("gubu").Context): V_1 & {
+            name: string;
             def: string;
             main: {
                 sdk: {};
@@ -116,6 +120,7 @@ declare const OpenModelShape: {
             };
         };
         valid: <V_1>(root?: V_1 | undefined, ctx?: import("gubu").Context) => root is V_1 & {
+            name: StringConstructor;
             def: StringConstructor;
             main: {
                 sdk: {};
@@ -164,6 +169,7 @@ declare const OpenModelShape: {
         }[];
         spec(): any;
         node(): import("gubu").Node<{
+            name: StringConstructor;
             def: StringConstructor;
             main: {
                 sdk: {};
@@ -221,6 +227,7 @@ declare const OpenModelShape: {
     spec(): any;
     node(): import("gubu").Node<{
         <V>(root?: V | undefined, ctx?: import("gubu").Context): V & {
+            name: string;
             def: string;
             main: {
                 sdk: {};
@@ -231,6 +238,7 @@ declare const OpenModelShape: {
             };
         };
         valid: <V>(root?: V | undefined, ctx?: import("gubu").Context) => root is V & {
+            name: StringConstructor;
             def: StringConstructor;
             main: {
                 sdk: {};
@@ -279,6 +287,7 @@ declare const OpenModelShape: {
         }[];
         spec(): any;
         node(): import("gubu").Node<{
+            name: StringConstructor;
             def: StringConstructor;
             main: {
                 sdk: {};

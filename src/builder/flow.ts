@@ -3,6 +3,10 @@ import Path from 'node:path'
 
 import { File, Content, Folder, each } from 'jostraca'
 
+import {
+  formatJsonSrc,
+} from '../utility'
+
 
 import { flowHeuristic01 } from './flow/flowHeuristic01'
 
@@ -30,7 +34,7 @@ async function makeFlowBuilder(ctx: any) {
             (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) +
             flow.Name + 'Flow.jsonic')
 
-        let flowModelSrc = JSON.stringify(flow.model, null, 2)
+        let flowModelSrc = formatJsonSrc(JSON.stringify(flow.model, null, 2))
 
         let flowsrc = `# ${flow.Name}Flow
 
