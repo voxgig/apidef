@@ -25,6 +25,7 @@
     "build": "tsc --build src test",
     "clean": "rm -rf dist dist-test node_modules yarn.lock package-lock.json",
     "reset": "npm run clean && npm i && npm run build && npm test",
+    "postinstall": "patch-package",
     "repo-tag": "REPO_VERSION=`node -e \"console.log(require('./package').version)\"` && echo TAG: v$REPO_VERSION && git commit -a -m v$REPO_VERSION && git push && git tag v$REPO_VERSION && git push --tags;",
     "repo-publish": "npm run clean && npm i && npm run repo-publish-quick",
     "repo-publish-quick": "npm run build && npm run test && npm run repo-tag && npm publish --registry https://registry.npmjs.org --access=public"
@@ -40,11 +41,12 @@
   "devDependencies": {
     "@hapi/code": "^9.0.3",
     "@types/js-yaml": "^4.0.9",
-    "@types/node": "24.0.3",
+    "@types/node": "24.0.7",
     "aontu": "^0.28.0",
     "esbuild": "^0.25.5",
     "json-schema-to-ts": "^3.1.1",
     "memfs": "^4.17.2",
+    "patch-package": "^8.0.0",
     "typescript": "^5.8.3"
   },
   "dependencies": {
