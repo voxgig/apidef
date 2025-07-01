@@ -27,6 +27,7 @@ const operationTransform = async function (ctx) {
     // NOTE: uses heuristics.
     const resolveTransform = (entityModel, op, kind, direction, pathdef) => {
         let out;
+        let why = 'none';
         if (null != op.transform?.[direction]) {
             out = op.transform[direction];
         }
@@ -34,7 +35,8 @@ const operationTransform = async function (ctx) {
             const method = op.method;
             const mdef = pathdef[method];
             // TODO: fix getx
-            const content = 'res' === kind ?
+            // const content = 'res' === kind ?
+            const content = 'resform' === direction ?
                 ((0, jostraca_1.getx)(mdef, 'responses.200.content') ||
                     (0, jostraca_1.getx)(mdef, 'responses.201.content')) :
                 (0, jostraca_1.getx)(mdef, 'requestBody.content');
@@ -46,17 +48,19 @@ const operationTransform = async function (ctx) {
                 const schema = content['application/json']?.schema;
                 const propkeys = null == schema?.properties ? [] : Object.keys(schema.properties);
                 const resolveDirectionTransform = 'resform' === direction ? resolveResponseTransform : resolveRequestTransform;
-                const transform = resolveDirectionTransform(op, kind, method, mdef, content, schema, propkeys);
+                [out, why]
+                    = resolveDirectionTransform(entityModel, op, kind, direction, method, mdef, content, schema, propkeys);
                 // out = JSON.stringify(transform)
-                out = transform;
+                // out = transform
             }
             else {
                 out = 'res' === kind ? '`body`' : '`reqdata`';
             }
         }
-        return out;
+        return [out, why];
     };
-    const resolveResponseTransform = (op, kind, method, mdef, content, schema, propkeys) => {
+    const resolveResponseTransform = (entityModel, op, kind, direction, method, mdef, content, schema, propkeys) => {
+        let why = 'default';
         let transform = '`body`';
         if (null == content || null == schema || null == propkeys) {
             return transform;
@@ -65,12 +69,14 @@ const operationTransform = async function (ctx) {
         if ('list' === opname) {
             if ('array' !== schema.type) {
                 if (1 === propkeys.length) {
+                    why = 'list-single-prop:' + propkeys[0];
                     transform = '`body.' + propkeys[0] + '`';
                 }
                 else {
                     // Use sub property that is an array
                     for (let pk of propkeys) {
                         if ('array' === schema.properties[pk]?.type) {
+                            why = 'list-single-array:' + pk;
                             transform = '`body.' + pk + '`';
                             break;
                         }
@@ -82,11 +88,13 @@ const operationTransform = async function (ctx) {
             if ('object' === schema.type) {
                 if (null == schema.properties.id) {
                     if (1 === propkeys.length) {
+                        why = 'map-single-prop:' + propkeys[0];
                         transform = '`body.' + propkeys[0] + '`';
                     }
                     else {
                         for (let pk of propkeys) {
                             if (schema.properties[pk].properties?.id) {
+                                why = 'map-sub-prop:' + pk;
                                 transform = '`body.' + pk + '`';
                                 break;
                             }
@@ -95,10 +103,14 @@ const operationTransform = async function (ctx) {
                 }
             }
         }
-        return transform;
+        // if ('page' === entityModel.name) {
+        //   console.log('RESOLVE-TRANSFORM-RESPONSE', entityModel.name, op.method, kind, direction, transform, why, schema)
+        // }
+        return [transform, why];
     };
-    const resolveRequestTransform = (op, kind, method, mdef, content, schema, propkeys) => {
+    const resolveRequestTransform = (entityModel, op, kind, direction, method, mdef, content, schema, propkeys) => {
         let transform = '`data`';
+        let why = 'default';
         if (null == content || null == schema || null == propkeys) {
             return transform;
         }
@@ -106,12 +118,14 @@ const operationTransform = async function (ctx) {
         if ('list' === opname) {
             if ('array' !== schema.type) {
                 if (1 === propkeys.length) {
+                    why = 'list-single-prop:' + propkeys[0];
                     transform = { [propkeys[0]]: '`data`' };
                 }
                 else {
                     // Use sub property that is an array
                     for (let pk of propkeys) {
                         if ('array' === schema.properties[pk]?.type) {
+                            why = 'list-single-array:' + pk;
                             transform = { [pk]: '`data`' };
                             break;
                         }
@@ -123,11 +137,13 @@ const operationTransform = async function (ctx) {
             if ('object' === schema.type) {
                 if (null == schema.properties.id) {
                     if (1 === propkeys.length) {
+                        why = 'map-single-prop:' + propkeys[0];
                         transform = { [propkeys[0]]: '`data`' };
                     }
                     else {
                         for (let pk of propkeys) {
                             if (schema.properties[pk].properties?.id) {
+                                why = 'map-sub-prop:' + pk;
                                 transform = { [pk]: '`data`' };
                                 break;
                             }
@@ -136,23 +152,25 @@ const operationTransform = async function (ctx) {
                 }
             }
         }
-        return transform;
+        return [transform, why];
     };
     const opBuilder = {
         any: (entityModel, pathdef, op, path, entity, model) => {
             const opname = op.key$;
             const method = op.method;
             const kind = transform_1.OPKIND[opname];
+            const [resform, resform_COMMENT] = resolveTransform(entityModel, op, kind, 'resform', pathdef);
+            const [reqform, reqform_COMMENT] = resolveTransform(entityModel, op, kind, 'reqform', pathdef);
             const em = entityModel.op[opname] = {
                 path: path.key$,
                 method,
                 kind,
                 param: {},
                 query: {},
-                // transform: {
-                resform: resolveTransform(entityModel, op, kind, 'resform', pathdef),
-                reqform: resolveTransform(entityModel, op, kind, 'reqform', pathdef),
-                // }
+                resform_COMMENT: 'derivation: ' + resform_COMMENT,
+                resform,
+                reqform_COMMENT: 'derivation: ' + reqform_COMMENT,
+                reqform,
             };
             (0, transform_1.fixName)(em, op.key$);
             // Params are in the path

@@ -108,26 +108,10 @@ function ApiDef(opts) {
             operation: operation_1.operationTransform,
             field: field_1.fieldTransform,
         });
-        // log.debug({
-        //   point: 'transform', spec: transformSpec,
-        //   note: log.levelVal <= 20 ? inspect(transformSpec) : ''
-        // })
-        // const processResult = await processTransforms(ctx, transforms, apimodel, def)
-        // if (!processResult.ok) {
-        //   log.error({
-        //     fail: 'process', point: 'transform-result',
-        //     result: processResult, note: processResult.msg,
-        //     err: processResult.results[0]?.err
-        //   })
-        //   return { ok: false, name: 'apidef', processResult }
-        // }
         const builders = await (0, resolver_1.resolveElements)(ctx, 'builder', 'standard', {
             entity: entity_2.makeEntityBuilder,
             flow: flow_1.makeFlowBuilder,
         });
-        // const entityBuilder = resolveEntity(apimodel, spec, opts)
-        // const entityBuilder = await resolveEntity(ctx)
-        // const flowBuilder = await resolveFlows(ctx)
         const jostraca = (0, jostraca_1.Jostraca)({
             now: spec.now,
             fs: () => fs,

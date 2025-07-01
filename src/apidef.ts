@@ -33,8 +33,6 @@ import {
 
 
 import {
-  resolveTransforms,
-  processTransforms,
   fixName,
 } from './transform'
 
@@ -129,35 +127,11 @@ function ApiDef(opts: ApiDefOptions) {
       field: fieldTransform,
     })
 
-    // log.debug({
-    //   point: 'transform', spec: transformSpec,
-    //   note: log.levelVal <= 20 ? inspect(transformSpec) : ''
-    // })
-
-    // const processResult = await processTransforms(ctx, transforms, apimodel, def)
-
-    // if (!processResult.ok) {
-    //   log.error({
-    //     fail: 'process', point: 'transform-result',
-    //     result: processResult, note: processResult.msg,
-    //     err: processResult.results[0]?.err
-    //   })
-
-    //   return { ok: false, name: 'apidef', processResult }
-    // }
-
-
     const builders = await resolveElements(ctx, 'builder', 'standard', {
       entity: makeEntityBuilder,
       flow: makeFlowBuilder,
     })
 
-
-
-    // const entityBuilder = resolveEntity(apimodel, spec, opts)
-
-    // const entityBuilder = await resolveEntity(ctx)
-    // const flowBuilder = await resolveFlows(ctx)
 
     const jostraca = Jostraca({
       now: spec.now,

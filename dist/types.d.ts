@@ -21,6 +21,7 @@ declare const ModelShape: {
             def: {};
             api: {
                 guide: {};
+                entity: {};
             };
         };
     };
@@ -32,6 +33,7 @@ declare const ModelShape: {
             def: {};
             api: {
                 guide: {};
+                entity: {};
             };
         };
     };
@@ -81,6 +83,7 @@ declare const ModelShape: {
             def: {};
             api: {
                 guide: {};
+                entity: {};
             };
         };
     }>;
@@ -116,6 +119,7 @@ declare const OpenModelShape: {
                 def: {};
                 api: {
                     guide: {};
+                    entity: {};
                 };
             };
         };
@@ -127,6 +131,7 @@ declare const OpenModelShape: {
                 def: {};
                 api: {
                     guide: {};
+                    entity: {};
                 };
             };
         };
@@ -176,6 +181,7 @@ declare const OpenModelShape: {
                 def: {};
                 api: {
                     guide: {};
+                    entity: {};
                 };
             };
         }>;
@@ -234,6 +240,7 @@ declare const OpenModelShape: {
                 def: {};
                 api: {
                     guide: {};
+                    entity: {};
                 };
             };
         };
@@ -245,6 +252,7 @@ declare const OpenModelShape: {
                 def: {};
                 api: {
                     guide: {};
+                    entity: {};
                 };
             };
         };
@@ -294,6 +302,7 @@ declare const OpenModelShape: {
                 def: {};
                 api: {
                     guide: {};
+                    entity: {};
                 };
             };
         }>;

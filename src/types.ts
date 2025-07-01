@@ -29,11 +29,12 @@ const ModelShape = Gubu({
     sdk: {},
     def: {},
     api: {
-      guide: {}
+      guide: {},
+      entity: {},
     },
   }
 })
-const OpenModelShape = Gubu(Open(ModelShape))
+const OpenModelShape = Gubu(Open(ModelShape), { name: 'Model' })
 
 type Model = ReturnType<typeof ModelShape>
 

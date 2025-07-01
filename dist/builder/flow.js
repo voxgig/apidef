@@ -23,11 +23,11 @@ async function makeFlowBuilder(ctx) {
             ];
             (0, jostraca_1.each)(flows, (flow) => {
                 let flowfile = node_path_1.default.join(ctx.opts.folder, 'flow', (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) +
-                    flow.Name + 'Flow.jsonic');
+                    flow.Name + '.jsonic');
                 let flowModelSrc = (0, utility_1.formatJsonSrc)(JSON.stringify(flow.model, null, 2));
-                let flowsrc = `# ${flow.Name}Flow
+                let flowsrc = `# ${flow.Name}
 
-main: sdk: flow: ${flow.Name}Flow:
+main: sdk: flow: ${flow.Name}:
 ` + flowModelSrc;
                 barrel.push(`@"${node_path_1.default.basename(flowfile)}"`);
                 (0, jostraca_1.File)({ name: node_path_1.default.basename(flowfile) }, () => (0, jostraca_1.Content)(flowsrc));

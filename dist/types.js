@@ -10,11 +10,12 @@ const ModelShape = (0, gubu_1.Gubu)({
         sdk: {},
         def: {},
         api: {
-            guide: {}
+            guide: {},
+            entity: {},
         },
     }
 });
-const OpenModelShape = (0, gubu_1.Gubu)((0, gubu_1.Open)(ModelShape));
+const OpenModelShape = (0, gubu_1.Gubu)((0, gubu_1.Open)(ModelShape), { name: 'Model' });
 exports.OpenModelShape = OpenModelShape;
 const BuildShape = (0, gubu_1.Gubu)({
     spec: {

@@ -24,7 +24,7 @@ function resolveBasicEntityFlow(ctx: any, entity: any) {
   const apiEntity = apimodel.main.api.entity[entity.name]
 
   const flow: any = {
-    name: 'Basic' + apiEntity.Name
+    name: 'Basic' + apiEntity.Name + 'Flow'
   }
 
   const refs = [
@@ -36,18 +36,21 @@ function resolveBasicEntityFlow(ctx: any, entity: any) {
   const idmap = refs.reduce((a: any, ref) => (a[ref] = ref.toUpperCase(), a), {})
 
   flow.model = ({
-    name: flow.Name,
+    name: flow.name,
+    active: true,
     param: {
-      [`${model.NAME}_TEST_${apiEntity.NAME}_ENTID`]: idmap
+      [`${model.NAME}_TEST_${apiEntity.NAME}_ENTID`]: idmap,
+      [`${model.NAME}_TEST_LIVE`]: "FALSE",
+      [`${model.NAME}_TEST_EXPLAIN`]: "FALSE",
     },
-    test: { entity: { [apiEntity.Name]: {} } },
+    test: { entity: { [apiEntity.name]: {} } },
     step: []
   } as any)
 
   names(flow, flow.name)
 
 
-  const data = flow.model.test.entity[apiEntity.Name]
+  const data = flow.model.test.entity[apiEntity.name]
 
   refs.map((ref, i) => {
     const id = idmap[ref]
@@ -136,7 +139,7 @@ function resolveBasicEntityFlow(ctx: any, entity: any) {
 
 function makeUpdateData(name: string, apiEntity: any, flow: any, id: string) {
   const ud: any = {}
-  const data = flow.model.test.entity[apiEntity.Name]
+  const data = flow.model.test.entity[apiEntity.name]
 
   const dataFields = each(apiEntity.field).filter(f => 'id' !== f.name && !f.name.includes('_id'))
   const stringFields = each(dataFields).filter(f => 'string' === f.type)

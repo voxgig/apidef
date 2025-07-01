@@ -32,13 +32,13 @@ async function makeFlowBuilder(ctx: any) {
         let flowfile =
           Path.join(ctx.opts.folder, 'flow',
             (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) +
-            flow.Name + 'Flow.jsonic')
+            flow.Name + '.jsonic')
 
         let flowModelSrc = formatJsonSrc(JSON.stringify(flow.model, null, 2))
 
-        let flowsrc = `# ${flow.Name}Flow
+        let flowsrc = `# ${flow.Name}
 
-main: sdk: flow: ${flow.Name}Flow:
+main: sdk: flow: ${flow.Name}:
 ` + flowModelSrc
 
         barrel.push(`@"${Path.basename(flowfile)}"`)

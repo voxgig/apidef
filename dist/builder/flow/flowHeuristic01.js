@@ -15,7 +15,7 @@ function resolveBasicEntityFlow(ctx, entity) {
     const { apimodel, model } = ctx;
     const apiEntity = apimodel.main.api.entity[entity.name];
     const flow = {
-        name: 'Basic' + apiEntity.Name
+        name: 'Basic' + apiEntity.Name + 'Flow'
     };
     const refs = [
         `${apiEntity.name}01`,
@@ -24,15 +24,18 @@ function resolveBasicEntityFlow(ctx, entity) {
     ];
     const idmap = refs.reduce((a, ref) => (a[ref] = ref.toUpperCase(), a), {});
     flow.model = {
-        name: flow.Name,
+        name: flow.name,
+        active: true,
         param: {
-            [`${model.NAME}_TEST_${apiEntity.NAME}_ENTID`]: idmap
+            [`${model.NAME}_TEST_${apiEntity.NAME}_ENTID`]: idmap,
+            [`${model.NAME}_TEST_LIVE`]: "FALSE",
+            [`${model.NAME}_TEST_EXPLAIN`]: "FALSE",
         },
-        test: { entity: { [apiEntity.Name]: {} } },
+        test: { entity: { [apiEntity.name]: {} } },
         step: []
     };
     (0, jostraca_1.names)(flow, flow.name);
-    const data = flow.model.test.entity[apiEntity.Name];
+    const data = flow.model.test.entity[apiEntity.name];
     refs.map((ref, i) => {
         const id = idmap[ref];
         const ent = data[id] = {};
@@ -106,7 +109,7 @@ function resolveBasicEntityFlow(ctx, entity) {
 }
 function makeUpdateData(name, apiEntity, flow, id) {
     const ud = {};
-    const data = flow.model.test.entity[apiEntity.Name];
+    const data = flow.model.test.entity[apiEntity.name];
     const dataFields = (0, jostraca_1.each)(apiEntity.field).filter(f => 'id' !== f.name && !f.name.includes('_id'));
     const stringFields = (0, jostraca_1.each)(dataFields).filter(f => 'string' === f.type);
     if (0 < (0, struct_1.size)(stringFields)) {
