@@ -7,13 +7,14 @@ const operationTransform = async function (ctx) {
     const { apimodel, model, def } = ctx;
     const guide = model.main.api.guide;
     let msg = 'operations: ';
-    const paramBuilder = (paramMap, paramDef, entityModel, pathdef, op, path, entity, model) => {
-        paramMap[paramDef.name] = {
+    const paramBuilder = (paramMap, paramDef, opModel, entityModel, pathdef, op, path, entity, model) => {
+        const paramSpec = paramMap[paramDef.name] = {
             required: paramDef.required
         };
-        (0, transform_1.fixName)(paramMap[paramDef.name], paramDef.name);
+        (0, transform_1.fixName)(paramSpec, paramDef.name);
         const type = paramDef.schema ? paramDef.schema.type : paramDef.type;
-        (0, transform_1.fixName)(paramMap[paramDef.name], type, 'type');
+        (0, transform_1.fixName)(paramSpec, type, 'type');
+        opModel.validate.params[paramDef.name] = `\`$${paramSpec.TYPE}\``;
     };
     const queryBuilder = (queryMap, queryDef, entityModel, pathdef, op, path, entity, model) => {
         queryMap[queryDef.name] = {
@@ -171,13 +172,16 @@ const operationTransform = async function (ctx) {
                 resform,
                 reqform_COMMENT: 'derivation: ' + reqform_COMMENT,
                 reqform,
+                validate: {
+                    params: { '`$OPEN`': true }
+                }
             };
             (0, transform_1.fixName)(em, op.key$);
             // Params are in the path
             if (0 < path.params$.length) {
                 let params = (0, jostraca_1.getx)(pathdef[method], 'parameters?in=path') || [];
                 if (Array.isArray(params)) {
-                    params.reduce((a, p) => (paramBuilder(a, p, entityModel, pathdef, op, path, entity, model), a), em.param);
+                    params.reduce((a, p) => (paramBuilder(a, p, em, entityModel, pathdef, op, path, entity, model), a), em.param);
                 }
             }
             // Queries are after the ?

@@ -20,17 +20,27 @@ const operationTransform = async function(
 
   let msg = 'operations: '
 
-  const paramBuilder = (paramMap: any, paramDef: any,
-    entityModel: any, pathdef: any,
-    op: any, path: any, entity: any, model: any) => {
+  const paramBuilder = (
+    paramMap: any,
+    paramDef: any,
+    opModel: any,
+    entityModel: any,
+    pathdef: any,
+    op: any,
+    path: any,
+    entity: any,
+    model: any
+  ) => {
 
-    paramMap[paramDef.name] = {
+    const paramSpec: any = paramMap[paramDef.name] = {
       required: paramDef.required
     }
-    fixName(paramMap[paramDef.name], paramDef.name)
+    fixName(paramSpec, paramDef.name)
 
     const type = paramDef.schema ? paramDef.schema.type : paramDef.type
-    fixName(paramMap[paramDef.name], type, 'type')
+    fixName(paramSpec, type, 'type')
+
+    opModel.validate.params[paramDef.name] = `\`$${paramSpec.TYPE}\``
   }
 
 
@@ -267,6 +277,10 @@ const operationTransform = async function(
 
         reqform_COMMENT: 'derivation: ' + reqform_COMMENT,
         reqform,
+
+        validate: {
+          params: { '`$OPEN`': true }
+        }
       }
 
       fixName(em, op.key$)
@@ -276,7 +290,7 @@ const operationTransform = async function(
         let params = getx(pathdef[method], 'parameters?in=path') || []
         if (Array.isArray(params)) {
           params.reduce((a: any, p: any) =>
-            (paramBuilder(a, p, entityModel, pathdef, op, path, entity, model), a), em.param)
+            (paramBuilder(a, p, em, entityModel, pathdef, op, path, entity, model), a), em.param)
         }
       }
 
