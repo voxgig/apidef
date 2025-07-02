@@ -54,7 +54,26 @@ function resolveBasicEntityFlow(ctx, entity) {
     const steps = flow.model.step;
     let num = 0;
     let name;
+    const am = {};
     if (apiEntity.op.load) {
+        // Get additional required match properties
+        (0, jostraca_1.each)(apiEntity.op.load.param, (param) => {
+            if (param.required) {
+                let ancestorName = param.name;
+                let ancestorEntity = apimodel.main.api.entity[ancestorName];
+                if (null == ancestorEntity) {
+                    ancestorName = ancestorName.replace('_id', '');
+                    ancestorEntity = apimodel.main.api.entity[ancestorName];
+                }
+                if (ancestorEntity && ancestorName !== apiEntity.name) {
+                    flow.model.param[`${model.NAME}_TEST_${ancestorEntity.NAME}_ENTID`] = {
+                        [ancestorEntity.name + '01']: ancestorEntity.NAME + '01'
+                    };
+                    am[param.name] =
+                        `\`dm$=p.${model.NAME}_TEST_${ancestorEntity.NAME}_ENTID.${ancestorEntity.name}01\``;
+                }
+            }
+        });
         name = `load_${apiEntity.name}${num}`;
         steps.push({
             name,
@@ -62,11 +81,13 @@ function resolveBasicEntityFlow(ctx, entity) {
             entity: `${apiEntity.name}`,
             action: 'load',
             match: {
-                id: `\`dm$=p.${model.NAME}_TEST_${apiEntity.NAME}_ENTID.${apiEntity.name}01\``
+                id: `\`dm$=p.${model.NAME}_TEST_${apiEntity.NAME}_ENTID.${apiEntity.name}01\``,
+                ...am,
             },
             valid: {
                 '`$OPEN`': true,
-                id: `\`dm$=s.${name}.match.id\``
+                id: `\`dm$=s.${name}.match.id\``,
+                ...am,
             }
         });
     }
@@ -85,6 +106,7 @@ function resolveBasicEntityFlow(ctx, entity) {
             valid: {
                 '`$OPEN`': true,
                 id: `\`dm$=s.${loadref}.match.id\``,
+                ...am,
                 ...valid
             }
         });
@@ -96,11 +118,13 @@ function resolveBasicEntityFlow(ctx, entity) {
             entity: `${apiEntity.name}`,
             action: 'load',
             match: {
-                id: `\`dm$=p.${model.NAME}_TEST_${apiEntity.NAME}_ENTID.${apiEntity.name}01\``
+                id: `\`dm$=p.${model.NAME}_TEST_${apiEntity.NAME}_ENTID.${apiEntity.name}01\``,
+                ...am,
             },
             valid: {
                 '`$OPEN`': true,
                 id: `\`dm$=s.${loadref}.match.id\``,
+                ...am,
                 ...valid
             }
         });

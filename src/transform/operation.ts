@@ -40,20 +40,33 @@ const operationTransform = async function(
     const type = paramDef.schema ? paramDef.schema.type : paramDef.type
     fixName(paramSpec, type, 'type')
 
+    // Path params are always required.
     opModel.validate.params[paramDef.name] = `\`$${paramSpec.TYPE}\``
   }
 
 
-  const queryBuilder = (queryMap: any, queryDef: any,
-    entityModel: any, pathdef: any,
-    op: any, path: any, entity: any, model: any) => {
-    queryMap[queryDef.name] = {
+  const queryBuilder = (
+    queryMap: any,
+    queryDef: any,
+    opModel: any,
+    entityModel: any,
+    pathdef: any,
+    op: any,
+    path: any,
+    entity: any,
+    model: any
+  ) => {
+    const querySpec: any = queryMap[queryDef.name] = {
       required: queryDef.required
     }
     fixName(queryMap[queryDef.name], queryDef.name)
 
     const type = queryDef.schema ? queryDef.schema.type : queryDef.type
     fixName(queryMap[queryDef.name], type, 'type')
+
+    if (queryDef.required) {
+      opModel.validate.params[queryDef.name] = `\`$${querySpec.TYPE}\``
+    }
   }
 
 
@@ -265,7 +278,7 @@ const operationTransform = async function(
       const [reqform, reqform_COMMENT] =
         resolveTransform(entityModel, op, kind, 'reqform', pathdef)
 
-      const em = entityModel.op[opname] = {
+      const opModel = entityModel.op[opname] = {
         path: path.key$,
         method,
         kind,
@@ -283,14 +296,15 @@ const operationTransform = async function(
         }
       }
 
-      fixName(em, op.key$)
+      fixName(opModel, op.key$)
 
       // Params are in the path
       if (0 < path.params$.length) {
         let params = getx(pathdef[method], 'parameters?in=path') || []
         if (Array.isArray(params)) {
           params.reduce((a: any, p: any) =>
-            (paramBuilder(a, p, em, entityModel, pathdef, op, path, entity, model), a), em.param)
+          (paramBuilder(a, p, opModel, entityModel,
+            pathdef, op, path, entity, model), a), opModel.param)
         }
       }
 
@@ -298,10 +312,11 @@ const operationTransform = async function(
       let queries = getx(pathdef[op.val$], 'parameters?in!=path') || []
       if (Array.isArray(queries)) {
         queries.reduce((a: any, p: any) =>
-          (queryBuilder(a, p, entityModel, pathdef, op, path, entity, model), a), em.query)
+        (queryBuilder(a, p, opModel, entityModel,
+          pathdef, op, path, entity, model), a), opModel.query)
       }
 
-      return em
+      return opModel
     },
 
 

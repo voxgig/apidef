@@ -76,7 +76,32 @@ function resolveBasicEntityFlow(ctx: any, entity: any) {
   let num = 0
   let name
 
+  const am: any = {}
+
   if (apiEntity.op.load) {
+
+    // Get additional required match properties
+    each(apiEntity.op.load.param, (param: any) => {
+      if (param.required) {
+        let ancestorName = param.name
+        let ancestorEntity = apimodel.main.api.entity[ancestorName]
+
+        if (null == ancestorEntity) {
+          ancestorName = ancestorName.replace('_id', '')
+          ancestorEntity = apimodel.main.api.entity[ancestorName]
+        }
+
+        if (ancestorEntity && ancestorName !== apiEntity.name) {
+          flow.model.param[`${model.NAME}_TEST_${ancestorEntity.NAME}_ENTID`] = {
+            [ancestorEntity.name + '01']: ancestorEntity.NAME + '01'
+          }
+          am[param.name] =
+            `\`dm$=p.${model.NAME}_TEST_${ancestorEntity.NAME}_ENTID.${ancestorEntity.name}01\``
+        }
+      }
+    })
+
+
     name = `load_${apiEntity.name}${num}`
     steps.push({
       name,
@@ -84,11 +109,13 @@ function resolveBasicEntityFlow(ctx: any, entity: any) {
       entity: `${apiEntity.name}`,
       action: 'load',
       match: {
-        id: `\`dm$=p.${model.NAME}_TEST_${apiEntity.NAME}_ENTID.${apiEntity.name}01\``
+        id: `\`dm$=p.${model.NAME}_TEST_${apiEntity.NAME}_ENTID.${apiEntity.name}01\``,
+        ...am,
       },
       valid: {
         '`$OPEN`': true,
-        id: `\`dm$=s.${name}.match.id\``
+        id: `\`dm$=s.${name}.match.id\``,
+        ...am,
       }
     })
   }
@@ -108,6 +135,7 @@ function resolveBasicEntityFlow(ctx: any, entity: any) {
       valid: {
         '`$OPEN`': true,
         id: `\`dm$=s.${loadref}.match.id\``,
+        ...am,
         ...valid
       }
     })
@@ -121,11 +149,13 @@ function resolveBasicEntityFlow(ctx: any, entity: any) {
       entity: `${apiEntity.name}`,
       action: 'load',
       match: {
-        id: `\`dm$=p.${model.NAME}_TEST_${apiEntity.NAME}_ENTID.${apiEntity.name}01\``
+        id: `\`dm$=p.${model.NAME}_TEST_${apiEntity.NAME}_ENTID.${apiEntity.name}01\``,
+        ...am,
       },
       valid: {
         '`$OPEN`': true,
         id: `\`dm$=s.${loadref}.match.id\``,
+        ...am,
         ...valid
       }
     })

@@ -36,10 +36,10 @@ async function resolveGuide(ctx: any) {
 
 
   guideBlocks.push(...each(guide.entity, (entity, entityname) => {
-    guideBlocks.push(`\nentity: ${entityname}: path: {`)
+    guideBlocks.push(`\nentity: ${entityname}: {`)
 
     each(entity.path, (path, pathname) => {
-      guideBlocks.push(`  '${pathname}': op: {`)
+      guideBlocks.push(`  path: '${pathname}': op: {`)
 
       each(path.op, (op, opname) => {
         guideBlocks.push(`    '${opname}': method: ${op.method}`)

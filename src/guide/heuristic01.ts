@@ -3,6 +3,21 @@
 import { each, snakify, names } from 'jostraca'
 
 
+import { depluralize } from '../utility'
+
+
+type EntityDesc = {
+  name: string
+  origname: string
+  plural: string
+  path: Record<string, EntityPathDesc>
+  alias: Record<string, string>
+}
+
+
+type EntityPathDesc = {
+  op: Record<string, any>
+}
 
 async function heuristic01(ctx: any): Promise<Record<string, any>> {
   let guide = ctx.model.main.api.guide
@@ -35,29 +50,14 @@ function resolveEntityDescs(ctx: any) {
   const entityDescs: Record<string, any> = {}
   const paths = ctx.def.paths
 
-  each(paths, (pathdef, pathname) => {
-    // look for rightmmost /entname/{entid}
-    const m = pathname.match(/\/([a-zA-Z0-1_-]+)\/\{([a-zA-Z0-1_-]+)\}$/)
+  // Analyze paths ending in .../foo/{foo}
+  each(paths, (pathdef, pathstr) => {
+
+    // Look for rightmmost /entname/{entid}.
+    const m = pathstr.match(/\/([a-zA-Z0-1_-]+)\/\{([a-zA-Z0-1_-]+)\}$/)
     if (m) {
-      let origentname = snakify(m[1])
-      let entname = depluralize(origentname)
+      const entdesc = resolveEntity(entityDescs, pathstr, m[1], m[2])
 
-      let entdesc = (entityDescs[entname] = entityDescs[entname] || { name: entname })
-      entdesc.plural = origentname
-
-      names(entdesc, entname)
-
-      entdesc.alias = entdesc.alias || {}
-
-      if ('id' != m[2]) {
-        entdesc.alias.id = m[2]
-        entdesc.alias[m[2]] = 'id'
-      }
-
-      entdesc.path = (entdesc.path || {})
-
-      const op: Record<string, any> = {}
-      entdesc.path[pathname] = { op }
 
       each(pathdef, (mdef, method) => {
         const opname = METHOD_IDOP[method]
@@ -71,26 +71,26 @@ function resolveEntityDescs(ctx: any) {
         const resokdef = mdef.responses[200] || mdef.responses[201]
         const resbody = resokdef?.content?.['application/json']?.schema
         if (resbody) {
-          if (resbody[origentname]) {
-            // TODO: use quotes when @voxgig/struct updated to support them
-            // transform.resform = '`body."'+origentname+'"`'
-            transform.resform = '`body.' + origentname + '`'
+          if (resbody[entdesc.origname]) {
+            transform.resform = '`body.' + entdesc.origname + '`'
           }
-          else if (resbody[entname]) {
-            transform.resform = '`body.' + entname + '`'
+          else if (resbody[entdesc.name]) {
+            transform.resform = '`body.' + entdesc.name + '`'
           }
         }
 
         const reqdef = mdef.requestBody?.content?.['application/json']?.schema?.properties
         if (reqdef) {
-          if (reqdef[origentname]) {
-            transform.reqform = { [origentname]: '`reqdata`' }
+          if (reqdef[entdesc.origname]) {
+            transform.reqform = { [entdesc.origname]: '`reqdata`' }
           }
-          else if (reqdef[entname]) {
-            transform.reqform = { [entname]: '`reqdata`' }
+          else if (reqdef[entdesc.origname]) {
+            transform.reqform = { [entdesc.origname]: '`reqdata`' }
           }
 
         }
+
+        const op = entdesc.path[pathstr].op
 
         op[opname] = {
           // TODO: in actual guide, remove "standard" method ops since redundant
@@ -104,41 +104,33 @@ function resolveEntityDescs(ctx: any) {
     }
   })
 
+  // Analyze paths ending in .../foo
+  each(paths, (pathdef, pathstr) => {
 
-  each(paths, (pathdef, pathname) => {
-    // look for rightmmost /entname/{entid}
-    const m = pathname.match(/\/([a-zA-Z0-1_-]+)$/)
+    // Look for rightmmost /entname.
+    const m = pathstr.match(/\/([a-zA-Z0-1_-]+)$/)
     if (m) {
-      let origentname = snakify(m[1])
-      let entname = depluralize(origentname)
+      const entdesc = resolveEntity(entityDescs, pathstr, m[1])
 
-      let entdesc = entityDescs[entname]
+      if (pathdef.get) {
+        const op: Record<string, any> = { list: { method: 'get' } }
+        entdesc.path[pathstr] = { op }
 
-      if (entdesc) {
-        entdesc.path = (entdesc.path || {})
-
-        if (pathdef.get) {
-          const op: Record<string, any> = { list: { method: 'get' } }
-          entdesc.path[pathname] = { op }
-
-          const transform: Record<string, any> = {}
-          const mdef = pathdef.get
-          const resokdef = mdef.responses[200] || mdef.responses[201]
-          const resbody = resokdef?.content?.['application/json']?.schema
-          if (resbody) {
-            if (resbody[origentname]) {
-              // TODO: use quotes when @voxgig/struct updated to support them
-              // transform.resform = '`body."'+origentname+'"`'
-              transform.resform = '`body.' + origentname + '`'
-            }
-            else if (resbody[entname]) {
-              transform.resform = '`body.' + entname + '`'
-            }
+        const transform: Record<string, any> = {}
+        const mdef = pathdef.get
+        const resokdef = mdef.responses[200] || mdef.responses[201]
+        const resbody = resokdef?.content?.['application/json']?.schema
+        if (resbody) {
+          if (resbody[entdesc.origname]) {
+            transform.resform = '`body.' + entdesc.origname + '`'
           }
-
-          if (0 < Object.entries(transform).length) {
-            op.transform = transform
+          else if (resbody[entdesc.name]) {
+            transform.resform = '`body.' + entdesc.name + '`'
           }
+        }
+
+        if (0 < Object.entries(transform).length) {
+          op.transform = transform
         }
       }
     }
@@ -148,75 +140,36 @@ function resolveEntityDescs(ctx: any) {
 }
 
 
-function depluralize(word: string): string {
-  if (!word || word.length === 0) {
-    return word
-  }
+function resolveEntity(
+  entityDescs: Record<string, EntityDesc>,
+  pathStr: string,
+  pathName: string,
+  pathParam?: string
+)
+  : EntityDesc {
+  let origentname = snakify(pathName)
+  let entname = depluralize(origentname)
 
-  // Common irregular plurals
-  const irregulars: Record<string, string> = {
-    'children': 'child',
-    'men': 'man',
-    'women': 'woman',
-    'teeth': 'tooth',
-    'feet': 'foot',
-    'geese': 'goose',
-    'mice': 'mouse',
-    'people': 'person',
-    'data': 'datum',
-    'criteria': 'criterion',
-    'phenomena': 'phenomenon',
-    'indices': 'index',
-    'matrices': 'matrix',
-    'vertices': 'vertex',
-    'analyses': 'analysis',
-    'axes': 'axis',
-    'crises': 'crisis',
-    'diagnoses': 'diagnosis',
-    'oases': 'oasis',
-    'theses': 'thesis',
-    'appendices': 'appendix'
-  }
+  let entdesc = (entityDescs[entname] = entityDescs[entname] || { name: entname })
+  entdesc.plural = origentname
+  entdesc.origname = origentname
 
-  if (irregulars[word]) {
-    return irregulars[word]
-  }
+  names(entdesc, entname)
 
-  // Rules for regular plurals (applied in order)
+  entdesc.alias = entdesc.alias || {}
 
-  // -ies -> -y (cities -> city)
-  if (word.endsWith('ies') && word.length > 3) {
-    return word.slice(0, -3) + 'y'
-  }
-
-  // -ves -> -f or -fe (wolves -> wolf, knives -> knife)
-  if (word.endsWith('ves')) {
-    const stem = word.slice(0, -3)
-    // Check if it should be -fe (like knife, wife, life)
-    if (['kni', 'wi', 'li'].includes(stem)) {
-      return stem + 'fe'
+  if (null != pathParam) {
+    const pathParamCanon = snakify(pathParam)
+    if ('id' != pathParamCanon) {
+      entdesc.alias.id = pathParamCanon
+      entdesc.alias[pathParamCanon] = 'id'
     }
-    return stem + 'f'
   }
 
-  // -oes -> -o (potatoes -> potato)
-  if (word.endsWith('oes')) {
-    return word.slice(0, -2)
-  }
+  entdesc.path = (entdesc.path || {})
+  entdesc.path[pathStr] = { op: {} }
 
-  // -ses, -xes, -zes, -shes, -ches -> remove -es (boxes -> box)
-  if (word.endsWith('ses') || word.endsWith('xes') || word.endsWith('zes') ||
-    word.endsWith('shes') || word.endsWith('ches')) {
-    return word.slice(0, -2)
-  }
-
-  // -s -> remove -s (cats -> cat)
-  if (word.endsWith('s') && !word.endsWith('ss')) {
-    return word.slice(0, -1)
-  }
-
-  // If none of the rules apply, return as is
-  return word
+  return entdesc
 }
 
 

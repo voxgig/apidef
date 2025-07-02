@@ -14,15 +14,19 @@ const operationTransform = async function (ctx) {
         (0, transform_1.fixName)(paramSpec, paramDef.name);
         const type = paramDef.schema ? paramDef.schema.type : paramDef.type;
         (0, transform_1.fixName)(paramSpec, type, 'type');
+        // Path params are always required.
         opModel.validate.params[paramDef.name] = `\`$${paramSpec.TYPE}\``;
     };
-    const queryBuilder = (queryMap, queryDef, entityModel, pathdef, op, path, entity, model) => {
-        queryMap[queryDef.name] = {
+    const queryBuilder = (queryMap, queryDef, opModel, entityModel, pathdef, op, path, entity, model) => {
+        const querySpec = queryMap[queryDef.name] = {
             required: queryDef.required
         };
         (0, transform_1.fixName)(queryMap[queryDef.name], queryDef.name);
         const type = queryDef.schema ? queryDef.schema.type : queryDef.type;
         (0, transform_1.fixName)(queryMap[queryDef.name], type, 'type');
+        if (queryDef.required) {
+            opModel.validate.params[queryDef.name] = `\`$${querySpec.TYPE}\``;
+        }
     };
     // Resolve the JSON structure of the request or response.
     // NOTE: uses heuristics.
@@ -162,7 +166,7 @@ const operationTransform = async function (ctx) {
             const kind = transform_1.OPKIND[opname];
             const [resform, resform_COMMENT] = resolveTransform(entityModel, op, kind, 'resform', pathdef);
             const [reqform, reqform_COMMENT] = resolveTransform(entityModel, op, kind, 'reqform', pathdef);
-            const em = entityModel.op[opname] = {
+            const opModel = entityModel.op[opname] = {
                 path: path.key$,
                 method,
                 kind,
@@ -176,20 +180,20 @@ const operationTransform = async function (ctx) {
                     params: { '`$OPEN`': true }
                 }
             };
-            (0, transform_1.fixName)(em, op.key$);
+            (0, transform_1.fixName)(opModel, op.key$);
             // Params are in the path
             if (0 < path.params$.length) {
                 let params = (0, jostraca_1.getx)(pathdef[method], 'parameters?in=path') || [];
                 if (Array.isArray(params)) {
-                    params.reduce((a, p) => (paramBuilder(a, p, em, entityModel, pathdef, op, path, entity, model), a), em.param);
+                    params.reduce((a, p) => (paramBuilder(a, p, opModel, entityModel, pathdef, op, path, entity, model), a), opModel.param);
                 }
             }
             // Queries are after the ?
             let queries = (0, jostraca_1.getx)(pathdef[op.val$], 'parameters?in!=path') || [];
             if (Array.isArray(queries)) {
-                queries.reduce((a, p) => (queryBuilder(a, p, entityModel, pathdef, op, path, entity, model), a), em.query);
+                queries.reduce((a, p) => (queryBuilder(a, p, opModel, entityModel, pathdef, op, path, entity, model), a), opModel.query);
             }
-            return em;
+            return opModel;
         },
         list: (entityModel, pathdef, op, path, entity, model) => {
             return opBuilder.any(entityModel, pathdef, op, path, entity, model);

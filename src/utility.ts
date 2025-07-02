@@ -29,6 +29,78 @@ function formatJsonSrc(jsonsrc: string) {
 }
 
 
+function depluralize(word: string): string {
+  if (!word || word.length === 0) {
+    return word
+  }
+
+  // Common irregular plurals
+  const irregulars: Record<string, string> = {
+    'children': 'child',
+    'men': 'man',
+    'women': 'woman',
+    'teeth': 'tooth',
+    'feet': 'foot',
+    'geese': 'goose',
+    'mice': 'mouse',
+    'people': 'person',
+    'data': 'datum',
+    'criteria': 'criterion',
+    'phenomena': 'phenomenon',
+    'indices': 'index',
+    'matrices': 'matrix',
+    'vertices': 'vertex',
+    'analyses': 'analysis',
+    'axes': 'axis',
+    'crises': 'crisis',
+    'diagnoses': 'diagnosis',
+    'oases': 'oasis',
+    'theses': 'thesis',
+    'appendices': 'appendix'
+  }
+
+  if (irregulars[word]) {
+    return irregulars[word]
+  }
+
+  // Rules for regular plurals (applied in order)
+
+  // -ies -> -y (cities -> city)
+  if (word.endsWith('ies') && word.length > 3) {
+    return word.slice(0, -3) + 'y'
+  }
+
+  // -ves -> -f or -fe (wolves -> wolf, knives -> knife)
+  if (word.endsWith('ves')) {
+    const stem = word.slice(0, -3)
+    // Check if it should be -fe (like knife, wife, life)
+    if (['kni', 'wi', 'li'].includes(stem)) {
+      return stem + 'fe'
+    }
+    return stem + 'f'
+  }
+
+  // -oes -> -o (potatoes -> potato)
+  if (word.endsWith('oes')) {
+    return word.slice(0, -2)
+  }
+
+  // -ses, -xes, -zes, -shes, -ches -> remove -es (boxes -> box)
+  if (word.endsWith('ses') || word.endsWith('xes') || word.endsWith('zes') ||
+    word.endsWith('shes') || word.endsWith('ches')) {
+    return word.slice(0, -2)
+  }
+
+  // -s -> remove -s (cats -> cat)
+  if (word.endsWith('s') && !word.endsWith('ss')) {
+    return word.slice(0, -1)
+  }
+
+  // If none of the rules apply, return as is
+  return word
+}
+
+
 /*
 function writeChanged(
   point: string, path: string, content: string,
@@ -82,6 +154,8 @@ function writeChanged(
 
 export {
   loadFile,
-  formatJsonSrc
+  formatJsonSrc,
+  depluralize,
+
   // writeChanged,
 }

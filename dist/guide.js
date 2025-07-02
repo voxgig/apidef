@@ -26,9 +26,9 @@ async function resolveGuide(ctx) {
         '',
     ];
     guideBlocks.push(...(0, jostraca_1.each)(guide.entity, (entity, entityname) => {
-        guideBlocks.push(`\nentity: ${entityname}: path: {`);
+        guideBlocks.push(`\nentity: ${entityname}: {`);
         (0, jostraca_1.each)(entity.path, (path, pathname) => {
-            guideBlocks.push(`  '${pathname}': op: {`);
+            guideBlocks.push(`  path: '${pathname}': op: {`);
             (0, jostraca_1.each)(path.op, (op, opname) => {
                 guideBlocks.push(`    '${opname}': method: ${op.method}`);
                 if (op.transform?.reqform) {

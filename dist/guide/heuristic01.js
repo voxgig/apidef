@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.heuristic01 = heuristic01;
 const jostraca_1 = require("jostraca");
+const utility_1 = require("../utility");
 async function heuristic01(ctx) {
     let guide = ctx.model.main.api.guide;
     const entityDescs = resolveEntityDescs(ctx);
@@ -23,23 +24,12 @@ const METHOD_IDOP = {
 function resolveEntityDescs(ctx) {
     const entityDescs = {};
     const paths = ctx.def.paths;
-    (0, jostraca_1.each)(paths, (pathdef, pathname) => {
-        // look for rightmmost /entname/{entid}
-        const m = pathname.match(/\/([a-zA-Z0-1_-]+)\/\{([a-zA-Z0-1_-]+)\}$/);
+    // Analyze paths ending in .../foo/{foo}
+    (0, jostraca_1.each)(paths, (pathdef, pathstr) => {
+        // Look for rightmmost /entname/{entid}.
+        const m = pathstr.match(/\/([a-zA-Z0-1_-]+)\/\{([a-zA-Z0-1_-]+)\}$/);
         if (m) {
-            let origentname = (0, jostraca_1.snakify)(m[1]);
-            let entname = depluralize(origentname);
-            let entdesc = (entityDescs[entname] = entityDescs[entname] || { name: entname });
-            entdesc.plural = origentname;
-            (0, jostraca_1.names)(entdesc, entname);
-            entdesc.alias = entdesc.alias || {};
-            if ('id' != m[2]) {
-                entdesc.alias.id = m[2];
-                entdesc.alias[m[2]] = 'id';
-            }
-            entdesc.path = (entdesc.path || {});
-            const op = {};
-            entdesc.path[pathname] = { op };
+            const entdesc = resolveEntity(entityDescs, pathstr, m[1], m[2]);
             (0, jostraca_1.each)(pathdef, (mdef, method) => {
                 const opname = METHOD_IDOP[method];
                 if (null == opname)
@@ -51,24 +41,23 @@ function resolveEntityDescs(ctx) {
                 const resokdef = mdef.responses[200] || mdef.responses[201];
                 const resbody = resokdef?.content?.['application/json']?.schema;
                 if (resbody) {
-                    if (resbody[origentname]) {
-                        // TODO: use quotes when @voxgig/struct updated to support them
-                        // transform.resform = '`body."'+origentname+'"`'
-                        transform.resform = '`body.' + origentname + '`';
+                    if (resbody[entdesc.origname]) {
+                        transform.resform = '`body.' + entdesc.origname + '`';
                     }
-                    else if (resbody[entname]) {
-                        transform.resform = '`body.' + entname + '`';
+                    else if (resbody[entdesc.name]) {
+                        transform.resform = '`body.' + entdesc.name + '`';
                     }
                 }
                 const reqdef = mdef.requestBody?.content?.['application/json']?.schema?.properties;
                 if (reqdef) {
-                    if (reqdef[origentname]) {
-                        transform.reqform = { [origentname]: '`reqdata`' };
+                    if (reqdef[entdesc.origname]) {
+                        transform.reqform = { [entdesc.origname]: '`reqdata`' };
                     }
-                    else if (reqdef[entname]) {
-                        transform.reqform = { [entname]: '`reqdata`' };
+                    else if (reqdef[entdesc.origname]) {
+                        transform.reqform = { [entdesc.origname]: '`reqdata`' };
                     }
                 }
+                const op = entdesc.path[pathstr].op;
                 op[opname] = {
                     // TODO: in actual guide, remove "standard" method ops since redundant
                     method,
@@ -79,100 +68,52 @@ function resolveEntityDescs(ctx) {
             });
         }
     });
-    (0, jostraca_1.each)(paths, (pathdef, pathname) => {
-        // look for rightmmost /entname/{entid}
-        const m = pathname.match(/\/([a-zA-Z0-1_-]+)$/);
+    // Analyze paths ending in .../foo
+    (0, jostraca_1.each)(paths, (pathdef, pathstr) => {
+        // Look for rightmmost /entname.
+        const m = pathstr.match(/\/([a-zA-Z0-1_-]+)$/);
         if (m) {
-            let origentname = (0, jostraca_1.snakify)(m[1]);
-            let entname = depluralize(origentname);
-            let entdesc = entityDescs[entname];
-            if (entdesc) {
-                entdesc.path = (entdesc.path || {});
-                if (pathdef.get) {
-                    const op = { list: { method: 'get' } };
-                    entdesc.path[pathname] = { op };
-                    const transform = {};
-                    const mdef = pathdef.get;
-                    const resokdef = mdef.responses[200] || mdef.responses[201];
-                    const resbody = resokdef?.content?.['application/json']?.schema;
-                    if (resbody) {
-                        if (resbody[origentname]) {
-                            // TODO: use quotes when @voxgig/struct updated to support them
-                            // transform.resform = '`body."'+origentname+'"`'
-                            transform.resform = '`body.' + origentname + '`';
-                        }
-                        else if (resbody[entname]) {
-                            transform.resform = '`body.' + entname + '`';
-                        }
+            const entdesc = resolveEntity(entityDescs, pathstr, m[1]);
+            if (pathdef.get) {
+                const op = { list: { method: 'get' } };
+                entdesc.path[pathstr] = { op };
+                const transform = {};
+                const mdef = pathdef.get;
+                const resokdef = mdef.responses[200] || mdef.responses[201];
+                const resbody = resokdef?.content?.['application/json']?.schema;
+                if (resbody) {
+                    if (resbody[entdesc.origname]) {
+                        transform.resform = '`body.' + entdesc.origname + '`';
                     }
-                    if (0 < Object.entries(transform).length) {
-                        op.transform = transform;
+                    else if (resbody[entdesc.name]) {
+                        transform.resform = '`body.' + entdesc.name + '`';
                     }
+                }
+                if (0 < Object.entries(transform).length) {
+                    op.transform = transform;
                 }
             }
         }
     });
     return entityDescs;
 }
-function depluralize(word) {
-    if (!word || word.length === 0) {
-        return word;
-    }
-    // Common irregular plurals
-    const irregulars = {
-        'children': 'child',
-        'men': 'man',
-        'women': 'woman',
-        'teeth': 'tooth',
-        'feet': 'foot',
-        'geese': 'goose',
-        'mice': 'mouse',
-        'people': 'person',
-        'data': 'datum',
-        'criteria': 'criterion',
-        'phenomena': 'phenomenon',
-        'indices': 'index',
-        'matrices': 'matrix',
-        'vertices': 'vertex',
-        'analyses': 'analysis',
-        'axes': 'axis',
-        'crises': 'crisis',
-        'diagnoses': 'diagnosis',
-        'oases': 'oasis',
-        'theses': 'thesis',
-        'appendices': 'appendix'
-    };
-    if (irregulars[word]) {
-        return irregulars[word];
-    }
-    // Rules for regular plurals (applied in order)
-    // -ies -> -y (cities -> city)
-    if (word.endsWith('ies') && word.length > 3) {
-        return word.slice(0, -3) + 'y';
-    }
-    // -ves -> -f or -fe (wolves -> wolf, knives -> knife)
-    if (word.endsWith('ves')) {
-        const stem = word.slice(0, -3);
-        // Check if it should be -fe (like knife, wife, life)
-        if (['kni', 'wi', 'li'].includes(stem)) {
-            return stem + 'fe';
+function resolveEntity(entityDescs, pathStr, pathName, pathParam) {
+    let origentname = (0, jostraca_1.snakify)(pathName);
+    let entname = (0, utility_1.depluralize)(origentname);
+    let entdesc = (entityDescs[entname] = entityDescs[entname] || { name: entname });
+    entdesc.plural = origentname;
+    entdesc.origname = origentname;
+    (0, jostraca_1.names)(entdesc, entname);
+    entdesc.alias = entdesc.alias || {};
+    if (null != pathParam) {
+        const pathParamCanon = (0, jostraca_1.snakify)(pathParam);
+        if ('id' != pathParamCanon) {
+            entdesc.alias.id = pathParamCanon;
+            entdesc.alias[pathParamCanon] = 'id';
         }
-        return stem + 'f';
     }
-    // -oes -> -o (potatoes -> potato)
-    if (word.endsWith('oes')) {
-        return word.slice(0, -2);
-    }
-    // -ses, -xes, -zes, -shes, -ches -> remove -es (boxes -> box)
-    if (word.endsWith('ses') || word.endsWith('xes') || word.endsWith('zes') ||
-        word.endsWith('shes') || word.endsWith('ches')) {
-        return word.slice(0, -2);
-    }
-    // -s -> remove -s (cats -> cat)
-    if (word.endsWith('s') && !word.endsWith('ss')) {
-        return word.slice(0, -1);
-    }
-    // If none of the rules apply, return as is
-    return word;
+    entdesc.path = (entdesc.path || {});
+    entdesc.path[pathStr] = { op: {} };
+    return entdesc;
 }
 //# sourceMappingURL=heuristic01.js.map
