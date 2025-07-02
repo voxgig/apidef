@@ -97,11 +97,6 @@ const operationTransform = async function(
           getx(mdef, 'responses.201.content')) :
         getx(mdef, 'requestBody.content')
 
-      // console.log(entityModel)
-      // console.log(mdef)
-      // console.log(getx(mdef, 'responses.200.content'))
-      // console.log(kind, method, pathdef, content)
-
       if (content) {
 
         const schema = content['application/json']?.schema
@@ -195,10 +190,6 @@ const operationTransform = async function(
         }
       }
     }
-
-    // if ('page' === entityModel.name) {
-    //   console.log('RESOLVE-TRANSFORM-RESPONSE', entityModel.name, op.method, kind, direction, transform, why, schema)
-    // }
 
     return [transform, why]
   }

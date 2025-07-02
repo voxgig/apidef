@@ -8,7 +8,6 @@ const node_path_1 = __importDefault(require("node:path"));
 const jostraca_1 = require("jostraca");
 const heuristic01_1 = require("./guide/heuristic01");
 async function resolveGuide(ctx) {
-    // console.log('GUIDE CTX', ctx)
     let guide = ctx.model.main.api.guide;
     if ('heuristic01' === ctx.opts.strategy) {
         guide = await (0, heuristic01_1.heuristic01)(ctx);
@@ -41,7 +40,6 @@ async function resolveGuide(ctx) {
     }));
     guideBlocks.push('}');
     const guideSrc = guideBlocks.join('\n');
-    // console.log(guideSrc)
     return () => {
         (0, jostraca_1.File)({ name: node_path_1.default.basename(guideFile) }, () => (0, jostraca_1.Content)(guideSrc));
     };

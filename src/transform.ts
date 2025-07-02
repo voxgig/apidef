@@ -106,7 +106,6 @@ async function resolveTransforms(ctx: TransformCtx): Promise<TransformSpec> {
     }
   }
   catch (err: any) {
-    console.log(err)
     throw err
   }
 
@@ -181,7 +180,7 @@ async function processTransforms(
     }
     catch (err: any) {
       // TODO: fix: this error does not get printed
-      console.log(err)
+      console.error(err)
 
       pres.ok = false
       pres.msg += transform.name + ': ' + err.message + '\n'

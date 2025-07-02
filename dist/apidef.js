@@ -64,8 +64,6 @@ function ApiDef(opts) {
     opts.strategy = opts.strategy || 'heuristic01';
     async function generate(spec) {
         const start = Date.now();
-        // console.log('APIDEF GENERATE')
-        // console.dir(spec, { depth: null })
         const model = (0, types_1.OpenModelShape)(spec.model);
         const build = (0, types_1.OpenBuildShape)(spec.build);
         (0, jostraca_1.names)(model, model.name);
@@ -132,7 +130,6 @@ function ApiDef(opts) {
             model: jmodel,
             existing: { txt: { merge: true } }
         }, root);
-        // console.log('JRES', jres)
         log.info({ point: 'generate-end', note: 'success', break: true });
         return {
             ok: true,

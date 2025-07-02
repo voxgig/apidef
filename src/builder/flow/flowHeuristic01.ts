@@ -97,6 +97,8 @@ function resolveBasicEntityFlow(ctx: any, entity: any) {
           }
           am[param.name] =
             `\`dm$=p.${model.NAME}_TEST_${ancestorEntity.NAME}_ENTID.${ancestorEntity.name}01\``
+
+          data[`${apiEntity.NAME}01`][param.name] = ancestorEntity.NAME + '01'
         }
       }
     })

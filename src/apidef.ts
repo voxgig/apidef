@@ -69,9 +69,6 @@ function ApiDef(opts: ApiDefOptions) {
   async function generate(spec: any) {
     const start = Date.now()
 
-    // console.log('APIDEF GENERATE')
-    // console.dir(spec, { depth: null })
-
     const model: Model = OpenModelShape(spec.model)
     const build: Build = OpenBuildShape(spec.build)
 
@@ -157,8 +154,6 @@ function ApiDef(opts: ApiDefOptions) {
       model: jmodel,
       existing: { txt: { merge: true } }
     }, root)
-
-    // console.log('JRES', jres)
 
     log.info({ point: 'generate-end', note: 'success', break: true })
 

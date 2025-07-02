@@ -8,8 +8,6 @@ import { heuristic01 } from './guide/heuristic01'
 
 
 async function resolveGuide(ctx: any) {
-  // console.log('GUIDE CTX', ctx)
-
   let guide: Record<string, any> = ctx.model.main.api.guide
 
   if ('heuristic01' === ctx.opts.strategy) {
@@ -58,8 +56,6 @@ async function resolveGuide(ctx: any) {
   guideBlocks.push('}')
 
   const guideSrc = guideBlocks.join('\n')
-
-  // console.log(guideSrc)
 
   return () => {
     File({ name: Path.basename(guideFile) }, () => Content(guideSrc))

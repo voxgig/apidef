@@ -60,7 +60,6 @@ async function resolveTransforms(ctx) {
         }
     }
     catch (err) {
-        console.log(err);
         throw err;
     }
     return tspec;
@@ -115,7 +114,7 @@ transforms, apimodel, def) {
         }
         catch (err) {
             // TODO: fix: this error does not get printed
-            console.log(err);
+            console.error(err);
             pres.ok = false;
             pres.msg += transform.name + ': ' + err.message + '\n';
             pres.results.push({

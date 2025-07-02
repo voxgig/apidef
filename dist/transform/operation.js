@@ -45,10 +45,6 @@ const operationTransform = async function (ctx) {
                 ((0, jostraca_1.getx)(mdef, 'responses.200.content') ||
                     (0, jostraca_1.getx)(mdef, 'responses.201.content')) :
                 (0, jostraca_1.getx)(mdef, 'requestBody.content');
-            // console.log(entityModel)
-            // console.log(mdef)
-            // console.log(getx(mdef, 'responses.200.content'))
-            // console.log(kind, method, pathdef, content)
             if (content) {
                 const schema = content['application/json']?.schema;
                 const propkeys = null == schema?.properties ? [] : Object.keys(schema.properties);
@@ -108,9 +104,6 @@ const operationTransform = async function (ctx) {
                 }
             }
         }
-        // if ('page' === entityModel.name) {
-        //   console.log('RESOLVE-TRANSFORM-RESPONSE', entityModel.name, op.method, kind, direction, transform, why, schema)
-        // }
         return [transform, why];
     };
     const resolveRequestTransform = (entityModel, op, kind, direction, method, mdef, content, schema, propkeys) => {
