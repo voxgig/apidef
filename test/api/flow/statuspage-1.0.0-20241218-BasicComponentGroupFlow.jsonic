@@ -1,0 +1,99 @@
+# BasicComponentGroupFlow
+
+main: sdk: flow: BasicComponentGroupFlow:
+{
+  param: {
+    STATUSPAGE_TEST_COMPONENT_GROUP_ENTID: {
+      component_group01: "COMPONENT_GROUP01",
+      component_group02: "COMPONENT_GROUP02",
+      component_group03: "COMPONENT_GROUP03"
+    }
+  }
+
+  test: {
+    entity: {
+      ComponentGroup: {
+        COMPONENT_GROUP01: {
+          id: "COMPONENT_GROUP01",
+          page_id: "s1",
+          name: "s2",
+          description: "s3",
+          components: "s4",
+          position: "s5",
+          created_at: "s6",
+          updated_at: "s7"
+        }
+
+        COMPONENT_GROUP02: {
+          id: "COMPONENT_GROUP02",
+          page_id: "s51",
+          name: "s52",
+          description: "s53",
+          components: "s54",
+          position: "s55",
+          created_at: "s56",
+          updated_at: "s57"
+        }
+
+        COMPONENT_GROUP03: {
+          id: "COMPONENT_GROUP03",
+          page_id: "sa1",
+          name: "sa2",
+          description: "sa3",
+          components: "sa4",
+          position: "sa5",
+          created_at: "sa6",
+          updated_at: "sa7"
+        }
+      }
+    }
+  }
+
+  step: [
+    {
+      name: "load_component_group0",
+      kind: "entity",
+      entity: "component_group",
+      action: "load",
+      match: {
+        id: "`dm$=p.STATUSPAGE_TEST_COMPONENT_GROUP_ENTID.component_group01`"
+      }
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_component_group0.match.id`"
+      }
+    }
+
+    {
+      name: "update_component_group1",
+      ref: "load_component_group0",
+      action: "update",
+      reqdata: {
+        name: "s2-`$WHEN`"
+      }
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_component_group0.match.id`",
+        name: "`dm$=s.update_component_group1.reqdata.name`"
+      }
+    }
+
+    {
+      name: "load_component_group2",
+      kind: "entity",
+      entity: "component_group",
+      action: "load",
+      match: {
+        id: "`dm$=p.STATUSPAGE_TEST_COMPONENT_GROUP_ENTID.component_group01`"
+      }
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_component_group0.match.id`",
+        name: "`dm$=s.update_component_group1.reqdata.name`"
+      }
+    }
+  ]
+}

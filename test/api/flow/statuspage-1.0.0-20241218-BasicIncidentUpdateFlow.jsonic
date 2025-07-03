@@ -1,0 +1,32 @@
+# BasicIncidentUpdateFlow
+
+main: sdk: flow: BasicIncidentUpdateFlow:
+{
+  param: {
+    STATUSPAGE_TEST_INCIDENT_UPDATE_ENTID: {
+      incident_update01: "INCIDENT_UPDATE01",
+      incident_update02: "INCIDENT_UPDATE02",
+      incident_update03: "INCIDENT_UPDATE03"
+    }
+  }
+
+  test: {
+    entity: {
+      IncidentUpdate: {
+        INCIDENT_UPDATE01: {
+          id: "INCIDENT_UPDATE01"
+        }
+
+        INCIDENT_UPDATE02: {
+          id: "INCIDENT_UPDATE02"
+        }
+
+        INCIDENT_UPDATE03: {
+          id: "INCIDENT_UPDATE03"
+        }
+      }
+    }
+  }
+
+  step: []
+}

@@ -3,11 +3,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.fieldTransform = void 0;
 const jostraca_1 = require("jostraca");
 const transform_1 = require("../transform");
-const fieldTransform = async function (ctx, guide, tspec, model, def) {
+const fieldTransform = async function (ctx) {
+    const { apimodel, model, def } = ctx;
+    const guide = model.main.api.guide;
     let msg = 'fields: ';
     (0, jostraca_1.each)(guide.entity, (guideEntity) => {
         const entityName = guideEntity.key$;
-        const entityModel = model.main.api.entity[entityName];
+        const entityModel = apimodel.main.api.entity[entityName];
         let fieldCount = 0;
         (0, jostraca_1.each)(guideEntity.path, (guidePath) => {
             const path = guidePath.key$;
@@ -58,86 +60,4 @@ function fieldbuild(entityModel, pathdef, op, path, entity, model) {
     }
     return fieldCount;
 }
-/*
-
-# API Specification Transform Guide
-
-
-@"@voxgig/apidef/model/guide.jsonic"
-
-
-guide: control: transform: openapi: order: `
-
-  top,
-  entity,
-  operation,
-  field,
-  customField,
-  
-  `
-
-guide: transform: customField: {
-  load: 'customField.js'
-}
-
-
-guide: entity: {
-  pet: path: {
-    '/pet/{petId}': {
-      op:{ load: 'get', create: 'post', update: 'put' }
-    }
-  }
-  pet: test: {
-    quick: {
-      active: true,
-      create: { id: 1, name:'Rex' },
-      load: { id: 1 },
-    }
-  }
-
-  # direct custom definition
-  pet: def: {}
-}
-
-
-
-
-const { each, getx } = require('jostraca')
-
-
-async function customField(ctx, tspec, model, def) {
-  const { spec, util: {fixName} } = ctx
-
-  const nameField = {
-    name: 'name',
-    type: 'string',
-    short: 'Name of pet'
-  }
-  fixName(nameField, nameField.name)
-  fixName(nameField, nameField.type, 'type')
-  
-  const ageField = {
-    name: 'age',
-    type: 'number',
-    short: 'Age of pet'
-  }
-  fixName(ageField, ageField.name)
-  fixName(ageField, ageField.type, 'type')
-
-  
-  Object.assign(model.main.api.entity.pet.field, {
-    name: nameField,
-    age: ageField,
-  })
-  
-  return { ok: true }
-}
-
-
-module.exports = {
-  customField
-}
-
-  
-  */
 //# sourceMappingURL=field.js.map

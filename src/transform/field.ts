@@ -2,25 +2,27 @@
 
 import { each, getx } from 'jostraca'
 
-import type { TransformCtx, TransformSpec, TransformResult, Transform, Guide } from '../transform'
+import type { TransformResult, Transform } from '../transform'
 
 import { fixName } from '../transform'
 
 
 
 const fieldTransform: Transform = async function(
-  ctx: TransformCtx,
-  guide: Guide,
-  tspec: TransformSpec,
-  model: any,
-  def: any
+  ctx: any,
+  // guide: Guide,
+  // // tspec: TransformSpec,
+  // model: any,
+  // def: any
 ): Promise<TransformResult> {
+  const { apimodel, model, def } = ctx
+  const guide = model.main.api.guide
 
   let msg = 'fields: '
 
   each(guide.entity, (guideEntity: any) => {
     const entityName = guideEntity.key$
-    const entityModel = model.main.api.entity[entityName]
+    const entityModel = apimodel.main.api.entity[entityName]
 
     let fieldCount = 0
     each(guideEntity.path, (guidePath: any) => {
@@ -96,88 +98,3 @@ export {
   fieldTransform
 }
 
-
-
-
-/*
-
-# API Specification Transform Guide
-
-
-@"@voxgig/apidef/model/guide.jsonic"
-
-
-guide: control: transform: openapi: order: `
-
-  top,
-  entity,
-  operation,
-  field,
-  customField,
-  
-  `
-
-guide: transform: customField: {
-  load: 'customField.js'
-}
-
-
-guide: entity: {
-  pet: path: {
-    '/pet/{petId}': {
-      op:{ load: 'get', create: 'post', update: 'put' }
-    }
-  }
-  pet: test: {
-    quick: {
-      active: true,
-      create: { id: 1, name:'Rex' },
-      load: { id: 1 },
-    }
-  }
-
-  # direct custom definition
-  pet: def: {}
-}
-
-
-
-
-const { each, getx } = require('jostraca')
-
-
-async function customField(ctx, tspec, model, def) {
-  const { spec, util: {fixName} } = ctx
-
-  const nameField = {
-    name: 'name',
-    type: 'string',
-    short: 'Name of pet'
-  }
-  fixName(nameField, nameField.name)
-  fixName(nameField, nameField.type, 'type')
-  
-  const ageField = {
-    name: 'age',
-    type: 'number',
-    short: 'Age of pet'
-  }
-  fixName(ageField, ageField.name)
-  fixName(ageField, ageField.type, 'type')
-
-  
-  Object.assign(model.main.api.entity.pet.field, {
-    name: nameField,
-    age: ageField,
-  })
-  
-  return { ok: true }
-}
-
-
-module.exports = {
-  customField
-}
-
-  
-  */

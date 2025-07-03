@@ -1,5 +1,6 @@
 /* Copyright (c) 2024 Voxgig Ltd, MIT License */
 
+import * as Fs from 'node:fs'
 
 import { test, describe } from 'node:test'
 import { expect } from '@hapi/code'
@@ -7,12 +8,13 @@ import { expect } from '@hapi/code'
 import { Aontu } from 'aontu'
 
 
-// import { cmp, each, Project, Folder, File, Code } from 'jostraca'
 
 import {
   ApiDef
 } from '../'
 
+
+// TODO: remove all sdk refs or rename to api
 
 
 describe('apidef', () => {
@@ -23,57 +25,62 @@ describe('apidef', () => {
 
 
   test('api-statuspage', async () => {
-    const build = await ApiDef.makeBuild({
-      folder: __dirname + '/../test/api',
-      debug: 'debug',
-      outprefix: 'statuspage-1.0.0-20241218-'
-    })
+    try {
+      const outprefix = 'statuspage-1.0.0-20241218-'
+      const folder = __dirname + '/../test/api'
 
-    const model = Aontu(`
+      const build = await ApiDef.makeBuild({
+        folder,
+        debug: 'debug',
+        outprefix,
+      })
+
+      const modelSrc = `
+# apidef test: ${outprefix}
+
+name: statuspage
+
 @"@voxgig/apidef/model/apidef.jsonic"
 
-def: 'statuspage-1.0.0-20241218-def.json'
+def: '${outprefix}def.json'
+`
 
-main: api: guide: {
+      const model = Aontu(modelSrc).gen()
 
-entity: page: {
-  path: {
-    '/pages/{page_id}': op: {
-      load: { method: get, place: foo }
-      update: method: put
-    }
-  }
-}
-
-entity: incident: {
-  path: {
-    '/pages/{page_id}/incidents': op: {
-      create: method: post
-      list: method: get    
-    }
-    '/pages/{page_id}/incidents/{incident_id}': op: {
-      remove: method: delete
-      update: method: put
-      load: method: get
-    }
-  }
-}
-
-
-}
-
-`).gen()
-
-    // console.dir(model, { depth: null })
-
-    const buildspec = {
-      spec: {
-        base: __dirname + '/../test/api'
+      const buildspec = {
+        spec: {
+          base: __dirname + '/../test/api'
+        }
       }
+
+      await build(model, buildspec, {})
+
+
+      const rootSrc = `
+@"@voxgig/apidef/model/apidef.jsonic"
+
+@"${outprefix}guide.jsonic"
+
+@"api/${outprefix}api-def.jsonic"
+@"api/${outprefix}api-entity-index.jsonic"
+@"flow/${outprefix}flow-index.jsonic"
+
+`
+
+      const rootFile = folder + `/${outprefix}root.jsonic`
+      Fs.writeFileSync(rootFile, rootSrc)
+
+      const result = Aontu(rootSrc, {
+        path: rootFile,
+        // base: folder
+      }).gen()
+
+      Fs.writeFileSync(folder + `/${outprefix}root.json`, JSON.stringify(result, null, 2))
     }
-
-    await build(model, buildspec, {})
+    catch (err: any) {
+      console.log(err)
+      throw err
+    }
   })
-
 
 })

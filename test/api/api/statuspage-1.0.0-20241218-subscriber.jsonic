@@ -1,0 +1,339 @@
+# Entity: subscriber
+
+main: api: entity: subscriber: {
+
+  alias: field: {
+    "subscriber_id": "id",
+    "id": "subscriber_id"
+  }
+
+  op: {
+    remove: {
+      path: "/pages/{page_id}/incidents/{incident_id}/subscribers/{subscriber_id}",
+      method: "delete",
+      kind: "res",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        incident_id: {
+          required: true,
+          name: "incident_id",
+          Name: "IncidentId",
+          NAME: "INCIDENT_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        subscriber_id: {
+          required: true,
+          name: "subscriber_id",
+          Name: "SubscriberId",
+          NAME: "SUBSCRIBER_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+      resform: "`body`",
+      reqform: "`data`",
+      name: "remove",
+      Name: "Remove",
+      NAME: "REMOVE"
+    }
+
+    update: {
+      path: "/pages/{page_id}/subscribers/{subscriber_id}",
+      method: "patch",
+      kind: "req",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        subscriber_id: {
+          required: true,
+          name: "subscriber_id",
+          Name: "SubscriberId",
+          NAME: "SUBSCRIBER_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+      resform: "`body.component_ids`",
+      reqform: {
+        component_ids: "`data`"
+      }
+
+      name: "update",
+      Name: "Update",
+      NAME: "UPDATE"
+    }
+
+    load: {
+      path: "/pages/{page_id}/incidents/{incident_id}/subscribers/{subscriber_id}",
+      method: "get",
+      kind: "res",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        incident_id: {
+          required: true,
+          name: "incident_id",
+          Name: "IncidentId",
+          NAME: "INCIDENT_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        subscriber_id: {
+          required: true,
+          name: "subscriber_id",
+          Name: "SubscriberId",
+          NAME: "SUBSCRIBER_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+      resform: "`body`",
+      reqform: "`data`",
+      name: "load",
+      Name: "Load",
+      NAME: "LOAD"
+    }
+
+    list: {
+      path: "/pages/{page_id}/incidents/{incident_id}/subscribers",
+      method: "get",
+      kind: "res",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        incident_id: {
+          required: true,
+          name: "incident_id",
+          Name: "IncidentId",
+          NAME: "INCIDENT_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+      resform: "`body`",
+      reqform: "`data`",
+      name: "list",
+      Name: "List",
+      NAME: "LIST"
+    }
+  }
+
+  field: {
+    id: {
+      name: "id",
+      Name: "Id",
+      NAME: "ID",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Subscriber Identifier"
+    }
+
+    skip_confirmation_notification: {
+      name: "skip_confirmation_notification",
+      Name: "SkipConfirmationNotification",
+      NAME: "SKIP_CONFIRMATION_NOTIFICATION",
+      type: "boolean",
+      Type: "Boolean",
+      TYPE: "BOOLEAN",
+      short: "If this is true, do not notify the user with changes to their subscription."
+    }
+
+    mode: {
+      name: "mode",
+      Name: "Mode",
+      NAME: "MODE",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "The communication mode of the subscriber."
+    }
+
+    email: {
+      name: "email",
+      Name: "Email",
+      NAME: "EMAIL",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "The email address to use to contact the subscriber. Used for Email and Webhook subscribers."
+    }
+
+    endpoint: {
+      name: "endpoint",
+      Name: "Endpoint",
+      NAME: "ENDPOINT",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "The URL where a webhook subscriber elects to receive updates."
+    }
+
+    phone_number: {
+      name: "phone_number",
+      Name: "PhoneNumber",
+      NAME: "PHONE_NUMBER",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "The phone number used to contact an SMS subscriber"
+    }
+
+    phone_country: {
+      name: "phone_country",
+      Name: "PhoneCountry",
+      NAME: "PHONE_COUNTRY",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "The two-character country code representing the country of which the phone_number is a part."
+    }
+
+    display_phone_number: {
+      name: "display_phone_number",
+      Name: "DisplayPhoneNumber",
+      NAME: "DISPLAY_PHONE_NUMBER",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "A formatted version of the phone_number and phone_country pair, nicely formatted for display."
+    }
+
+    obfuscated_channel_name: {
+      name: "obfuscated_channel_name",
+      Name: "ObfuscatedChannelName",
+      NAME: "OBFUSCATED_CHANNEL_NAME",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Obfuscated slack channel name"
+    }
+
+    workspace_name: {
+      name: "workspace_name",
+      Name: "WorkspaceName",
+      NAME: "WORKSPACE_NAME",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "The workspace name of the slack subscriber."
+    }
+
+    quarantined_at: {
+      name: "quarantined_at",
+      Name: "QuarantinedAt",
+      NAME: "QUARANTINED_AT",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "The timestamp when the subscriber was quarantined due to an issue reaching them."
+    }
+
+    purge_at: {
+      name: "purge_at",
+      Name: "PurgeAt",
+      NAME: "PURGE_AT",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "The timestamp when a quarantined subscriber will be purged (unsubscribed)."
+    }
+
+    components: {
+      name: "components",
+      Name: "Components",
+      NAME: "COMPONENTS",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "The components for which the subscriber has elected to receive updates."
+    }
+
+    page_access_user_id: {
+      name: "page_access_user_id",
+      Name: "PageAccessUserId",
+      NAME: "PAGE_ACCESS_USER_ID",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "The Page Access user this subscriber belongs to (only for audience-specific pages)."
+    }
+
+    created_at: {
+      name: "created_at",
+      Name: "CreatedAt",
+      NAME: "CREATED_AT",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING"
+    }
+  }
+
+  cmd: {}
+
+  id: {
+    name: "id",
+    field: "id"
+  }
+
+  name: "subscriber",
+  Name: "Subscriber",
+  NAME: "SUBSCRIBER",
+  "key$": "subscriber"
+
+
+}

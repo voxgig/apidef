@@ -1,0 +1,99 @@
+# BasicMetricsProviderFlow
+
+main: sdk: flow: BasicMetricsProviderFlow:
+{
+  param: {
+    STATUSPAGE_TEST_METRICS_PROVIDER_ENTID: {
+      metrics_provider01: "METRICS_PROVIDER01",
+      metrics_provider02: "METRICS_PROVIDER02",
+      metrics_provider03: "METRICS_PROVIDER03"
+    }
+  }
+
+  test: {
+    entity: {
+      MetricsProvider: {
+        METRICS_PROVIDER01: {
+          id: "METRICS_PROVIDER01",
+          type: "s1",
+          disabled: true,
+          metric_base_uri: "s3",
+          last_revalidated_at: "s4",
+          created_at: "s5",
+          updated_at: "s6",
+          page_id: "s7"
+        }
+
+        METRICS_PROVIDER02: {
+          id: "METRICS_PROVIDER02",
+          type: "s51",
+          disabled: true,
+          metric_base_uri: "s53",
+          last_revalidated_at: "s54",
+          created_at: "s55",
+          updated_at: "s56",
+          page_id: "s57"
+        }
+
+        METRICS_PROVIDER03: {
+          id: "METRICS_PROVIDER03",
+          type: "sa1",
+          disabled: true,
+          metric_base_uri: "sa3",
+          last_revalidated_at: "sa4",
+          created_at: "sa5",
+          updated_at: "sa6",
+          page_id: "sa7"
+        }
+      }
+    }
+  }
+
+  step: [
+    {
+      name: "load_metrics_provider0",
+      kind: "entity",
+      entity: "metrics_provider",
+      action: "load",
+      match: {
+        id: "`dm$=p.STATUSPAGE_TEST_METRICS_PROVIDER_ENTID.metrics_provider01`"
+      }
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_metrics_provider0.match.id`"
+      }
+    }
+
+    {
+      name: "update_metrics_provider1",
+      ref: "load_metrics_provider0",
+      action: "update",
+      reqdata: {
+        type: "s1-`$WHEN`"
+      }
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_metrics_provider0.match.id`",
+        type: "`dm$=s.update_metrics_provider1.reqdata.type`"
+      }
+    }
+
+    {
+      name: "load_metrics_provider2",
+      kind: "entity",
+      entity: "metrics_provider",
+      action: "load",
+      match: {
+        id: "`dm$=p.STATUSPAGE_TEST_METRICS_PROVIDER_ENTID.metrics_provider01`"
+      }
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_metrics_provider0.match.id`",
+        type: "`dm$=s.update_metrics_provider1.reqdata.type`"
+      }
+    }
+  ]
+}

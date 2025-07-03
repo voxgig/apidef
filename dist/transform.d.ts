@@ -89,7 +89,7 @@ declare const GuideShape: {
 };
 type Guide = ReturnType<typeof GuideShape>;
 declare function resolveTransforms(ctx: TransformCtx): Promise<TransformSpec>;
-declare function processTransforms(ctx: TransformCtx, spec: TransformSpec, apimodel: any, def: any): Promise<ProcessResult>;
+declare function processTransforms(ctx: TransformCtx, transforms: any[], apimodel: any, def: any): Promise<ProcessResult>;
 declare function fixName(base: any, name: string, prop?: string): void;
 export type { TransformCtx, TransformSpec, Transform, TransformResult, Guide, };
 export { fixName, OPKIND, GuideShape, resolveTransforms, processTransforms, };

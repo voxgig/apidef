@@ -1,0 +1,171 @@
+# BasicIncidentFlow
+
+main: sdk: flow: BasicIncidentFlow:
+{
+  param: {
+    STATUSPAGE_TEST_INCIDENT_ENTID: {
+      incident01: "INCIDENT01",
+      incident02: "INCIDENT02",
+      incident03: "INCIDENT03"
+    }
+  }
+
+  test: {
+    entity: {
+      Incident: {
+        INCIDENT01: {
+          id: "INCIDENT01",
+          components: [],
+          created_at: "s2",
+          impact: "s3",
+          impact_override: "s4",
+          incident_updates: [],
+          metadata: {}
+
+          monitoring_at: "s7",
+          name: "s8",
+          page_id: "s9",
+          postmortem_body: "sa",
+          postmortem_body_last_updated_at: "sb",
+          postmortem_ignored: true,
+          postmortem_notified_subscribers: false,
+          postmortem_notified_twitter: true,
+          postmortem_published_at: false,
+          resolved_at: "s10",
+          scheduled_auto_completed: false,
+          scheduled_auto_in_progress: true,
+          scheduled_for: "s13",
+          auto_transition_deliver_notifications_at_end: true,
+          auto_transition_deliver_notifications_at_start: false,
+          auto_transition_to_maintenance_state: true,
+          auto_transition_to_operational_state: false,
+          scheduled_remind_prior: true,
+          scheduled_reminded_at: "s19",
+          scheduled_until: "s1a",
+          shortlink: "s1b",
+          status: "s1c",
+          updated_at: "s1d",
+          reminder_intervals: "s1e"
+        }
+
+        INCIDENT02: {
+          id: "INCIDENT02",
+          components: [],
+          created_at: "s138",
+          impact: "s139",
+          impact_override: "s13a",
+          incident_updates: [],
+          metadata: {}
+
+          monitoring_at: "s13d",
+          name: "s13e",
+          page_id: "s13f",
+          postmortem_body: "s140",
+          postmortem_body_last_updated_at: "s141",
+          postmortem_ignored: true,
+          postmortem_notified_subscribers: false,
+          postmortem_notified_twitter: true,
+          postmortem_published_at: false,
+          resolved_at: "s146",
+          scheduled_auto_completed: false,
+          scheduled_auto_in_progress: true,
+          scheduled_for: "s149",
+          auto_transition_deliver_notifications_at_end: true,
+          auto_transition_deliver_notifications_at_start: false,
+          auto_transition_to_maintenance_state: true,
+          auto_transition_to_operational_state: false,
+          scheduled_remind_prior: true,
+          scheduled_reminded_at: "s14f",
+          scheduled_until: "s150",
+          shortlink: "s151",
+          status: "s152",
+          updated_at: "s153",
+          reminder_intervals: "s154"
+        }
+
+        INCIDENT03: {
+          id: "INCIDENT03",
+          components: [],
+          created_at: "s26e",
+          impact: "s26f",
+          impact_override: "s270",
+          incident_updates: [],
+          metadata: {}
+
+          monitoring_at: "s273",
+          name: "s274",
+          page_id: "s275",
+          postmortem_body: "s276",
+          postmortem_body_last_updated_at: "s277",
+          postmortem_ignored: true,
+          postmortem_notified_subscribers: false,
+          postmortem_notified_twitter: true,
+          postmortem_published_at: false,
+          resolved_at: "s27c",
+          scheduled_auto_completed: false,
+          scheduled_auto_in_progress: true,
+          scheduled_for: "s27f",
+          auto_transition_deliver_notifications_at_end: true,
+          auto_transition_deliver_notifications_at_start: false,
+          auto_transition_to_maintenance_state: true,
+          auto_transition_to_operational_state: false,
+          scheduled_remind_prior: true,
+          scheduled_reminded_at: "s285",
+          scheduled_until: "s286",
+          shortlink: "s287",
+          status: "s288",
+          updated_at: "s289",
+          reminder_intervals: "s28a"
+        }
+      }
+    }
+  }
+
+  step: [
+    {
+      name: "load_incident0",
+      kind: "entity",
+      entity: "incident",
+      action: "load",
+      match: {
+        id: "`dm$=p.STATUSPAGE_TEST_INCIDENT_ENTID.incident01`"
+      }
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_incident0.match.id`"
+      }
+    }
+
+    {
+      name: "update_incident1",
+      ref: "load_incident0",
+      action: "update",
+      reqdata: {
+        created_at: "s2-`$WHEN`"
+      }
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_incident0.match.id`",
+        created_at: "`dm$=s.update_incident1.reqdata.created_at`"
+      }
+    }
+
+    {
+      name: "load_incident2",
+      kind: "entity",
+      entity: "incident",
+      action: "load",
+      match: {
+        id: "`dm$=p.STATUSPAGE_TEST_INCIDENT_ENTID.incident01`"
+      }
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_incident0.match.id`",
+        created_at: "`dm$=s.update_incident1.reqdata.created_at`"
+      }
+    }
+  ]
+}

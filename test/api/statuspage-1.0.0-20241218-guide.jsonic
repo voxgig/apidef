@@ -1,0 +1,173 @@
+# Guide
+
+main: api: guide: { 
+
+
+entity: page: path: {
+  '/pages/{page_id}': op: {
+    'update': method: put
+    'update': transform: reqform: {"page":"`reqdata`"}
+    'load': method: get
+  }
+  '/pages': op: {
+    'list': method: get
+  }
+}
+
+entity: page_access_user: path: {
+  '/pages/{page_id}/page_access_users/{page_access_user_id}': op: {
+    'update': method: put
+    'remove': method: delete
+    'load': method: get
+  }
+  '/pages/{page_id}/page_access_users': op: {
+    'list': method: get
+  }
+}
+
+entity: component: path: {
+  '/pages/{page_id}/page_access_users/{page_access_user_id}/components/{component_id}': op: {
+    'remove': method: delete
+  }
+  '/pages/{page_id}/page_access_groups/{page_access_group_id}/components/{component_id}': op: {
+    'remove': method: delete
+  }
+  '/pages/{page_id}/components/{component_id}': op: {
+    'update': method: put
+    'update': transform: reqform: {"component":"`reqdata`"}
+    'remove': method: delete
+    'load': method: get
+  }
+  '/pages/{page_id}/page_access_users/{page_access_user_id}/components': op: {
+    'list': method: get
+  }
+  '/pages/{page_id}/page_access_groups/{page_access_group_id}/components': op: {
+    'list': method: get
+  }
+  '/pages/{page_id}/components': op: {
+    'list': method: get
+  }
+}
+
+entity: metric: path: {
+  '/pages/{page_id}/page_access_users/{page_access_user_id}/metrics/{metric_id}': op: {
+    'remove': method: delete
+  }
+  '/pages/{page_id}/metrics/{metric_id}': op: {
+    'update': method: put
+    'update': transform: reqform: {"metric":"`reqdata`"}
+    'remove': method: delete
+    'load': method: get
+  }
+  '/pages/{page_id}/page_access_users/{page_access_user_id}/metrics': op: {
+    'list': method: get
+  }
+  '/pages/{page_id}/metrics': op: {
+    'list': method: get
+  }
+  '/pages/{page_id}/metrics_providers/{metrics_provider_id}/metrics': op: {
+    'list': method: get
+  }
+}
+
+entity: page_access_group: path: {
+  '/pages/{page_id}/page_access_groups/{page_access_group_id}': op: {
+    'load': method: get
+    'update': method: put
+    'update': transform: reqform: {"page_access_group":"`reqdata`"}
+    'remove': method: delete
+  }
+  '/pages/{page_id}/page_access_groups': op: {
+    'list': method: get
+  }
+}
+
+entity: subscriber: path: {
+  '/pages/{page_id}/subscribers/{subscriber_id}': op: {
+    'remove': method: delete
+    'update': method: patch
+    'load': method: get
+  }
+  '/pages/{page_id}/incidents/{incident_id}/subscribers/{subscriber_id}': op: {
+    'remove': method: delete
+    'load': method: get
+  }
+  '/pages/{page_id}/subscribers': op: {
+    'list': method: get
+  }
+  '/pages/{page_id}/incidents/{incident_id}/subscribers': op: {
+    'list': method: get
+  }
+}
+
+entity: incident: path: {
+  '/pages/{page_id}/incidents/{incident_id}': op: {
+    'remove': method: delete
+    'update': method: put
+    'update': transform: reqform: {"incident":"`reqdata`"}
+    'load': method: get
+  }
+  '/pages/{page_id}/incidents': op: {
+    'list': method: get
+  }
+}
+
+entity: incident_update: path: {
+  '/pages/{page_id}/incidents/{incident_id}/incident_updates/{incident_update_id}': op: {
+    'update': method: put
+    'update': transform: reqform: {"incident_update":"`reqdata`"}
+  }
+}
+
+entity: component_group: path: {
+  '/pages/{page_id}/component-groups/{id}': op: {
+    'update': method: put
+    'update': transform: reqform: {"component_group":"`reqdata`"}
+    'remove': method: delete
+    'load': method: get
+  }
+  '/pages/{page_id}/component-groups': op: {
+    'list': method: get
+  }
+}
+
+entity: metrics_provider: path: {
+  '/pages/{page_id}/metrics_providers/{metrics_provider_id}': op: {
+    'load': method: get
+    'update': method: put
+    'update': transform: reqform: {"metrics_provider":"`reqdata`"}
+    'remove': method: delete
+  }
+  '/pages/{page_id}/metrics_providers': op: {
+    'list': method: get
+  }
+}
+
+entity: permission: path: {
+  '/organizations/{organization_id}/permissions/{user_id}': op: {
+    'update': method: put
+    'load': method: get
+  }
+}
+
+entity: user: path: {
+  '/organizations/{organization_id}/users/{user_id}': op: {
+    'remove': method: delete
+  }
+  '/organizations/{organization_id}/users': op: {
+    'list': method: get
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+}

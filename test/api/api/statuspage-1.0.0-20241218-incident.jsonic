@@ -1,0 +1,470 @@
+# Entity: incident
+
+main: api: entity: incident: {
+
+  alias: field: {
+    "incident_id": "id",
+    "id": "incident_id"
+  }
+
+  op: {
+    remove: {
+      path: "/pages/{page_id}/incidents/{incident_id}",
+      method: "delete",
+      kind: "res",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        incident_id: {
+          required: true,
+          name: "incident_id",
+          Name: "IncidentId",
+          NAME: "INCIDENT_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+      resform: "`body`",
+      reqform: "`data`",
+      name: "remove",
+      Name: "Remove",
+      NAME: "REMOVE"
+    }
+
+    update: {
+      path: "/pages/{page_id}/incidents/{incident_id}",
+      method: "put",
+      kind: "req",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        incident_id: {
+          required: true,
+          name: "incident_id",
+          Name: "IncidentId",
+          NAME: "INCIDENT_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+      resform: "`body.incident`",
+      reqform: {
+        incident: "`reqdata`"
+      }
+
+      name: "update",
+      Name: "Update",
+      NAME: "UPDATE"
+    }
+
+    load: {
+      path: "/pages/{page_id}/incidents/{incident_id}",
+      method: "get",
+      kind: "res",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        incident_id: {
+          required: true,
+          name: "incident_id",
+          Name: "IncidentId",
+          NAME: "INCIDENT_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+      resform: "`body`",
+      reqform: "`data`",
+      name: "load",
+      Name: "Load",
+      NAME: "LOAD"
+    }
+
+    list: {
+      path: "/pages/{page_id}/incidents",
+      method: "get",
+      kind: "res",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+      resform: "`body`",
+      reqform: "`data`",
+      name: "list",
+      Name: "List",
+      NAME: "LIST"
+    }
+  }
+
+  field: {
+    id: {
+      name: "id",
+      Name: "Id",
+      NAME: "ID",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Incident Identifier"
+    }
+
+    components: {
+      name: "components",
+      Name: "Components",
+      NAME: "COMPONENTS",
+      type: "array",
+      Type: "Array",
+      TYPE: "ARRAY",
+      short: "Incident components"
+    }
+
+    created_at: {
+      name: "created_at",
+      Name: "CreatedAt",
+      NAME: "CREATED_AT",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "The timestamp when the incident was created at."
+    }
+
+    impact: {
+      name: "impact",
+      Name: "Impact",
+      NAME: "IMPACT",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "The impact of the incident."
+    }
+
+    impact_override: {
+      name: "impact_override",
+      Name: "ImpactOverride",
+      NAME: "IMPACT_OVERRIDE",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "value to override calculated impact value"
+    }
+
+    incident_updates: {
+      name: "incident_updates",
+      Name: "IncidentUpdates",
+      NAME: "INCIDENT_UPDATES",
+      type: "array",
+      Type: "Array",
+      TYPE: "ARRAY",
+      short: "The incident updates for incident."
+    }
+
+    metadata: {
+      name: "metadata",
+      Name: "Metadata",
+      NAME: "METADATA",
+      type: "object",
+      Type: "Object",
+      TYPE: "OBJECT",
+      short: "Metadata attached to the incident. Top level values must be objects."
+    }
+
+    monitoring_at: {
+      name: "monitoring_at",
+      Name: "MonitoringAt",
+      NAME: "MONITORING_AT",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "The timestamp when incident entered monitoring state."
+    }
+
+    name: {
+      name: "name",
+      Name: "Name",
+      NAME: "NAME",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Incident Name. There is a maximum limit of 255 characters."
+    }
+
+    page_id: {
+      name: "page_id",
+      Name: "PageId",
+      NAME: "PAGE_ID",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Incident Page Identifier"
+    }
+
+    postmortem_body: {
+      name: "postmortem_body",
+      Name: "PostmortemBody",
+      NAME: "POSTMORTEM_BODY",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Body of the Postmortem."
+    }
+
+    postmortem_body_last_updated_at: {
+      name: "postmortem_body_last_updated_at",
+      Name: "PostmortemBodyLastUpdatedAt",
+      NAME: "POSTMORTEM_BODY_LAST_UPDATED_AT",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "The timestamp when the incident postmortem body was last updated at."
+    }
+
+    postmortem_ignored: {
+      name: "postmortem_ignored",
+      Name: "PostmortemIgnored",
+      NAME: "POSTMORTEM_IGNORED",
+      type: "boolean",
+      Type: "Boolean",
+      TYPE: "BOOLEAN",
+      short: "Controls whether the incident will have postmortem."
+    }
+
+    postmortem_notified_subscribers: {
+      name: "postmortem_notified_subscribers",
+      Name: "PostmortemNotifiedSubscribers",
+      NAME: "POSTMORTEM_NOTIFIED_SUBSCRIBERS",
+      type: "boolean",
+      Type: "Boolean",
+      TYPE: "BOOLEAN",
+      short: "Indicates whether subscribers are already notificed about postmortem."
+    }
+
+    postmortem_notified_twitter: {
+      name: "postmortem_notified_twitter",
+      Name: "PostmortemNotifiedTwitter",
+      NAME: "POSTMORTEM_NOTIFIED_TWITTER",
+      type: "boolean",
+      Type: "Boolean",
+      TYPE: "BOOLEAN",
+      short: "Controls whether to decide if notify postmortem on twitter."
+    }
+
+    postmortem_published_at: {
+      name: "postmortem_published_at",
+      Name: "PostmortemPublishedAt",
+      NAME: "POSTMORTEM_PUBLISHED_AT",
+      type: "boolean",
+      Type: "Boolean",
+      TYPE: "BOOLEAN",
+      short: "The timestamp when the postmortem was published."
+    }
+
+    resolved_at: {
+      name: "resolved_at",
+      Name: "ResolvedAt",
+      NAME: "RESOLVED_AT",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "The timestamp when incident was resolved."
+    }
+
+    scheduled_auto_completed: {
+      name: "scheduled_auto_completed",
+      Name: "ScheduledAutoCompleted",
+      NAME: "SCHEDULED_AUTO_COMPLETED",
+      type: "boolean",
+      Type: "Boolean",
+      TYPE: "BOOLEAN",
+      short: "Controls whether the incident is scheduled to automatically change to complete."
+    }
+
+    scheduled_auto_in_progress: {
+      name: "scheduled_auto_in_progress",
+      Name: "ScheduledAutoInProgress",
+      NAME: "SCHEDULED_AUTO_IN_PROGRESS",
+      type: "boolean",
+      Type: "Boolean",
+      TYPE: "BOOLEAN",
+      short: "Controls whether the incident is scheduled to automatically change to in progress."
+    }
+
+    scheduled_for: {
+      name: "scheduled_for",
+      Name: "ScheduledFor",
+      NAME: "SCHEDULED_FOR",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "The timestamp the incident is scheduled for."
+    }
+
+    auto_transition_deliver_notifications_at_end: {
+      name: "auto_transition_deliver_notifications_at_end",
+      Name: "AutoTransitionDeliverNotificationsAtEnd",
+      NAME: "AUTO_TRANSITION_DELIVER_NOTIFICATIONS_AT_END",
+      type: "boolean",
+      Type: "Boolean",
+      TYPE: "BOOLEAN",
+      short: "Controls whether send notification when scheduled maintenances auto transition to completed."
+    }
+
+    auto_transition_deliver_notifications_at_start: {
+      name: "auto_transition_deliver_notifications_at_start",
+      Name: "AutoTransitionDeliverNotificationsAtStart",
+      NAME: "AUTO_TRANSITION_DELIVER_NOTIFICATIONS_AT_START",
+      type: "boolean",
+      Type: "Boolean",
+      TYPE: "BOOLEAN",
+      short: "Controls whether send notification when scheduled maintenances auto transition to started."
+    }
+
+    auto_transition_to_maintenance_state: {
+      name: "auto_transition_to_maintenance_state",
+      Name: "AutoTransitionToMaintenanceState",
+      NAME: "AUTO_TRANSITION_TO_MAINTENANCE_STATE",
+      type: "boolean",
+      Type: "Boolean",
+      TYPE: "BOOLEAN",
+      short: "Controls whether change components status to under_maintenance once scheduled maintenance is in progress."
+    }
+
+    auto_transition_to_operational_state: {
+      name: "auto_transition_to_operational_state",
+      Name: "AutoTransitionToOperationalState",
+      NAME: "AUTO_TRANSITION_TO_OPERATIONAL_STATE",
+      type: "boolean",
+      Type: "Boolean",
+      TYPE: "BOOLEAN",
+      short: "Controls whether change components status to operational once scheduled maintenance completes."
+    }
+
+    scheduled_remind_prior: {
+      name: "scheduled_remind_prior",
+      Name: "ScheduledRemindPrior",
+      NAME: "SCHEDULED_REMIND_PRIOR",
+      type: "boolean",
+      Type: "Boolean",
+      TYPE: "BOOLEAN",
+      short: "Controls whether to remind subscribers prior to scheduled incidents."
+    }
+
+    scheduled_reminded_at: {
+      name: "scheduled_reminded_at",
+      Name: "ScheduledRemindedAt",
+      NAME: "SCHEDULED_REMINDED_AT",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "The timestamp when the scheduled incident reminder was sent at."
+    }
+
+    scheduled_until: {
+      name: "scheduled_until",
+      Name: "ScheduledUntil",
+      NAME: "SCHEDULED_UNTIL",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "The timestamp the incident is scheduled until."
+    }
+
+    shortlink: {
+      name: "shortlink",
+      Name: "Shortlink",
+      NAME: "SHORTLINK",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Incident Shortlink."
+    }
+
+    status: {
+      name: "status",
+      Name: "Status",
+      NAME: "STATUS",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "The incident status. For realtime incidents, valid values are investigating, identified, monitoring, and resolved. For scheduled incidents, valid values are scheduled, in_progress, verifying, and completed."
+    }
+
+    updated_at: {
+      name: "updated_at",
+      Name: "UpdatedAt",
+      NAME: "UPDATED_AT",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "The timestamp when the incident was updated at."
+    }
+
+    reminder_intervals: {
+      name: "reminder_intervals",
+      Name: "ReminderIntervals",
+      NAME: "REMINDER_INTERVALS",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Custom reminder intervals for unresolved/open incidents. Not applicable for <strong>Scheduled maintenance</strong><br>There are 4 possible states for reminder_intervals:<br><strong>DEFAULT:</strong> NULL, representing a default behavior with intervals [3, 6, 12, 24].<br><strong>AFTER:</strong> A serialized array of strictly increasing intervals, each integer ranges from [1-24] (inclusive). Ex \"[1, 5, 7, 10]\"<br><strong>EVERY:</strong> An integer in the range [1-24] as a string, representing equal intervals. Ex \"4\" for [4, 8, 12, 16, 20, 24]<br><strong>OFF:</strong> A serialized empty array, for example, \"[]\", meaning no reminder notifications will be sent."
+    }
+  }
+
+  cmd: {}
+
+  id: {
+    name: "id",
+    field: "id"
+  }
+
+  name: "incident",
+  Name: "Incident",
+  NAME: "INCIDENT",
+  "key$": "incident"
+
+
+}
