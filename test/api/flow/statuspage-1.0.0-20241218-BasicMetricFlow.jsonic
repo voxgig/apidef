@@ -2,17 +2,25 @@
 
 main: sdk: flow: BasicMetricFlow:
 {
+  name: "BasicMetricFlow",
+  active: true,
   param: {
     STATUSPAGE_TEST_METRIC_ENTID: {
       metric01: "METRIC01",
       metric02: "METRIC02",
       metric03: "METRIC03"
     }
+
+    STATUSPAGE_TEST_LIVE: "FALSE",
+    STATUSPAGE_TEST_EXPLAIN: "FALSE",
+    STATUSPAGE_TEST_PAGE_ENTID: {
+      page01: "PAGE01"
+    }
   }
 
   test: {
     entity: {
-      Metric: {
+      metric: {
         METRIC01: {
           id: "METRIC01",
           metrics_provider_id: "s1",
@@ -31,7 +39,8 @@ main: sdk: flow: BasicMetricFlow:
           updated_at: "se",
           last_fetched_at: "sf",
           backfill_percentage: "s10",
-          reference_name: "s11"
+          reference_name: "s11",
+          page_id: "PAGE01"
         }
 
         METRIC02: {
@@ -86,12 +95,14 @@ main: sdk: flow: BasicMetricFlow:
       entity: "metric",
       action: "load",
       match: {
-        id: "`dm$=p.STATUSPAGE_TEST_METRIC_ENTID.metric01`"
+        id: "`dm$=p.STATUSPAGE_TEST_METRIC_ENTID.metric01`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
       }
 
       valid: {
         "`$OPEN`": true,
-        id: "`dm$=s.load_metric0.match.id`"
+        id: "`dm$=s.load_metric0.match.id`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
       }
     }
 
@@ -106,6 +117,7 @@ main: sdk: flow: BasicMetricFlow:
       valid: {
         "`$OPEN`": true,
         id: "`dm$=s.load_metric0.match.id`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
         name: "`dm$=s.update_metric1.reqdata.name`"
       }
     }
@@ -116,12 +128,14 @@ main: sdk: flow: BasicMetricFlow:
       entity: "metric",
       action: "load",
       match: {
-        id: "`dm$=p.STATUSPAGE_TEST_METRIC_ENTID.metric01`"
+        id: "`dm$=p.STATUSPAGE_TEST_METRIC_ENTID.metric01`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
       }
 
       valid: {
         "`$OPEN`": true,
         id: "`dm$=s.load_metric0.match.id`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
         name: "`dm$=s.update_metric1.reqdata.name`"
       }
     }

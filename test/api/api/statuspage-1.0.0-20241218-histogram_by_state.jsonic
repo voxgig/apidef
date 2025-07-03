@@ -1,0 +1,63 @@
+# Entity: histogram_by_state
+
+main: api: entity: histogram_by_state: {
+
+  alias: field: {}
+
+  op: {
+    list: {
+      path: "/pages/{page_id}/subscribers/histogram_by_state",
+      method: "get",
+      kind: "res",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+
+      # resform derivation: default
+      resform: "`body`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`"
+        }
+      }
+
+      name: "list",
+      Name: "List",
+      NAME: "LIST"
+    }
+  }
+
+  field: {}
+
+  cmd: {}
+
+  id: {
+    name: "id",
+    field: "id"
+  }
+
+  ancestors: [
+    "page"
+  ],
+  name: "histogram_by_state",
+  Name: "HistogramByState",
+  NAME: "HISTOGRAM_BY_STATE",
+  "key$": "histogram_by_state"
+
+
+}

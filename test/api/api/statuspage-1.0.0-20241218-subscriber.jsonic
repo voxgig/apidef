@@ -46,8 +46,21 @@ main: api: entity: subscriber: {
 
       query: {}
 
+
+      # resform derivation: default
       resform: "`body`",
-      reqform: "`data`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`",
+          incident_id: "`$STRING`",
+          subscriber_id: "`$STRING`"
+        }
+      }
+
       name: "remove",
       Name: "Remove",
       NAME: "REMOVE"
@@ -81,9 +94,21 @@ main: api: entity: subscriber: {
 
       query: {}
 
-      resform: "`body.component_ids`",
+
+      # resform derivation: default
+      resform: "`body`",
+
+      # reqform derivation: map-single-prop:component_ids
       reqform: {
         component_ids: "`data`"
+      }
+
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`",
+          subscriber_id: "`$STRING`"
+        }
       }
 
       name: "update",
@@ -129,8 +154,21 @@ main: api: entity: subscriber: {
 
       query: {}
 
+
+      # resform derivation: default
       resform: "`body`",
-      reqform: "`data`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`",
+          incident_id: "`$STRING`",
+          subscriber_id: "`$STRING`"
+        }
+      }
+
       name: "load",
       Name: "Load",
       NAME: "LOAD"
@@ -164,8 +202,20 @@ main: api: entity: subscriber: {
 
       query: {}
 
+
+      # resform derivation: default
       resform: "`body`",
-      reqform: "`data`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`",
+          incident_id: "`$STRING`"
+        }
+      }
+
       name: "list",
       Name: "List",
       NAME: "LIST"
@@ -330,6 +380,9 @@ main: api: entity: subscriber: {
     field: "id"
   }
 
+  ancestors: [
+    "page"
+  ],
   name: "subscriber",
   Name: "Subscriber",
   NAME: "SUBSCRIBER",

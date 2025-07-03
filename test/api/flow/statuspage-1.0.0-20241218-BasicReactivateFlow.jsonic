@@ -1,0 +1,37 @@
+# BasicReactivateFlow
+
+main: sdk: flow: BasicReactivateFlow:
+{
+  name: "BasicReactivateFlow",
+  active: true,
+  param: {
+    STATUSPAGE_TEST_REACTIVATE_ENTID: {
+      reactivate01: "REACTIVATE01",
+      reactivate02: "REACTIVATE02",
+      reactivate03: "REACTIVATE03"
+    }
+
+    STATUSPAGE_TEST_LIVE: "FALSE",
+    STATUSPAGE_TEST_EXPLAIN: "FALSE"
+  }
+
+  test: {
+    entity: {
+      reactivate: {
+        REACTIVATE01: {
+          id: "REACTIVATE01"
+        }
+
+        REACTIVATE02: {
+          id: "REACTIVATE02"
+        }
+
+        REACTIVATE03: {
+          id: "REACTIVATE03"
+        }
+      }
+    }
+  }
+
+  step: []
+}

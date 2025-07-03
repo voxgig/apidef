@@ -2,17 +2,29 @@
 
 main: sdk: flow: BasicSubscriberFlow:
 {
+  name: "BasicSubscriberFlow",
+  active: true,
   param: {
     STATUSPAGE_TEST_SUBSCRIBER_ENTID: {
       subscriber01: "SUBSCRIBER01",
       subscriber02: "SUBSCRIBER02",
       subscriber03: "SUBSCRIBER03"
     }
+
+    STATUSPAGE_TEST_LIVE: "FALSE",
+    STATUSPAGE_TEST_EXPLAIN: "FALSE",
+    STATUSPAGE_TEST_PAGE_ENTID: {
+      page01: "PAGE01"
+    }
+
+    STATUSPAGE_TEST_INCIDENT_ENTID: {
+      incident01: "INCIDENT01"
+    }
   }
 
   test: {
     entity: {
-      Subscriber: {
+      subscriber: {
         SUBSCRIBER01: {
           id: "SUBSCRIBER01",
           skip_confirmation_notification: false,
@@ -28,7 +40,9 @@ main: sdk: flow: BasicSubscriberFlow:
           purge_at: "sb",
           components: "sc",
           page_access_user_id: "sd",
-          created_at: "se"
+          created_at: "se",
+          page_id: "PAGE01",
+          incident_id: "INCIDENT01"
         }
 
         SUBSCRIBER02: {
@@ -77,12 +91,16 @@ main: sdk: flow: BasicSubscriberFlow:
       entity: "subscriber",
       action: "load",
       match: {
-        id: "`dm$=p.STATUSPAGE_TEST_SUBSCRIBER_ENTID.subscriber01`"
+        id: "`dm$=p.STATUSPAGE_TEST_SUBSCRIBER_ENTID.subscriber01`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
+        incident_id: "`dm$=p.STATUSPAGE_TEST_INCIDENT_ENTID.incident01`"
       }
 
       valid: {
         "`$OPEN`": true,
-        id: "`dm$=s.load_subscriber0.match.id`"
+        id: "`dm$=s.load_subscriber0.match.id`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
+        incident_id: "`dm$=p.STATUSPAGE_TEST_INCIDENT_ENTID.incident01`"
       }
     }
 
@@ -97,6 +115,8 @@ main: sdk: flow: BasicSubscriberFlow:
       valid: {
         "`$OPEN`": true,
         id: "`dm$=s.load_subscriber0.match.id`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
+        incident_id: "`dm$=p.STATUSPAGE_TEST_INCIDENT_ENTID.incident01`",
         mode: "`dm$=s.update_subscriber1.reqdata.mode`"
       }
     }
@@ -107,12 +127,16 @@ main: sdk: flow: BasicSubscriberFlow:
       entity: "subscriber",
       action: "load",
       match: {
-        id: "`dm$=p.STATUSPAGE_TEST_SUBSCRIBER_ENTID.subscriber01`"
+        id: "`dm$=p.STATUSPAGE_TEST_SUBSCRIBER_ENTID.subscriber01`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
+        incident_id: "`dm$=p.STATUSPAGE_TEST_INCIDENT_ENTID.incident01`"
       }
 
       valid: {
         "`$OPEN`": true,
         id: "`dm$=s.load_subscriber0.match.id`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
+        incident_id: "`dm$=p.STATUSPAGE_TEST_INCIDENT_ENTID.incident01`",
         mode: "`dm$=s.update_subscriber1.reqdata.mode`"
       }
     }

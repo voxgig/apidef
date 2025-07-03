@@ -37,8 +37,20 @@ main: api: entity: metric: {
 
       query: {}
 
+
+      # resform derivation: default
       resform: "`body`",
-      reqform: "`data`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`",
+          metric_id: "`$STRING`"
+        }
+      }
+
       name: "remove",
       Name: "Remove",
       NAME: "REMOVE"
@@ -72,9 +84,21 @@ main: api: entity: metric: {
 
       query: {}
 
-      resform: "`body.metric`",
+
+      # resform derivation: default
+      resform: "`body`",
+
+      # reqform derivation: map-single-prop:metric
       reqform: {
-        metric: "`reqdata`"
+        metric: "`data`"
+      }
+
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`",
+          metric_id: "`$STRING`"
+        }
       }
 
       name: "update",
@@ -110,8 +134,20 @@ main: api: entity: metric: {
 
       query: {}
 
+
+      # resform derivation: default
       resform: "`body`",
-      reqform: "`data`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`",
+          metric_id: "`$STRING`"
+        }
+      }
+
       name: "load",
       Name: "Load",
       NAME: "LOAD"
@@ -145,8 +181,20 @@ main: api: entity: metric: {
 
       query: {}
 
+
+      # resform derivation: default
       resform: "`body`",
-      reqform: "`data`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`",
+          metrics_provider_id: "`$STRING`"
+        }
+      }
+
       name: "list",
       Name: "List",
       NAME: "LIST"
@@ -331,6 +379,10 @@ main: api: entity: metric: {
     field: "id"
   }
 
+  ancestors: [
+    "page",
+    "page_access_user"
+  ],
   name: "metric",
   Name: "Metric",
   NAME: "METRIC",

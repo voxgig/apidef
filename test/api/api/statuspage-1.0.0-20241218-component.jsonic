@@ -36,8 +36,20 @@ main: api: entity: component: {
 
       query: {}
 
+
+      # resform derivation: none
       resform: "`body`",
+
+      # reqform derivation: none
       reqform: "`body`",
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`",
+          component_id: "`$STRING`"
+        }
+      }
+
       name: "remove",
       Name: "Remove",
       NAME: "REMOVE"
@@ -71,9 +83,21 @@ main: api: entity: component: {
 
       query: {}
 
-      resform: "`body.component`",
+
+      # resform derivation: default
+      resform: "`body`",
+
+      # reqform derivation: map-single-prop:component
       reqform: {
-        component: "`reqdata`"
+        component: "`data`"
+      }
+
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`",
+          component_id: "`$STRING`"
+        }
       }
 
       name: "update",
@@ -109,8 +133,20 @@ main: api: entity: component: {
 
       query: {}
 
+
+      # resform derivation: default
       resform: "`body`",
-      reqform: "`data`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`",
+          component_id: "`$STRING`"
+        }
+      }
+
       name: "load",
       Name: "Load",
       NAME: "LOAD"
@@ -134,8 +170,19 @@ main: api: entity: component: {
 
       query: {}
 
+
+      # resform derivation: default
       resform: "`body`",
-      reqform: "`data`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`"
+        }
+      }
+
       name: "list",
       Name: "List",
       NAME: "LIST"
@@ -289,6 +336,10 @@ main: api: entity: component: {
     field: "id"
   }
 
+  ancestors: [
+    "page",
+    "page_access_user"
+  ],
   name: "component",
   Name: "Component",
   NAME: "COMPONENT",

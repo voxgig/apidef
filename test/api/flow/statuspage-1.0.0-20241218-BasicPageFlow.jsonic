@@ -2,17 +2,22 @@
 
 main: sdk: flow: BasicPageFlow:
 {
+  name: "BasicPageFlow",
+  active: true,
   param: {
     STATUSPAGE_TEST_PAGE_ENTID: {
       page01: "PAGE01",
       page02: "PAGE02",
       page03: "PAGE03"
     }
+
+    STATUSPAGE_TEST_LIVE: "FALSE",
+    STATUSPAGE_TEST_EXPLAIN: "FALSE"
   }
 
   test: {
     entity: {
-      Page: {
+      page: {
         PAGE01: {
           id: "PAGE01",
           created_at: "s1",

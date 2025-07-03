@@ -1,0 +1,27 @@
+# Entity: unsubscribe
+
+main: api: entity: unsubscribe: {
+
+  alias: field: {}
+
+  op: {}
+
+  field: {}
+
+  cmd: {}
+
+  id: {
+    name: "id",
+    field: "id"
+  }
+
+  ancestors: [
+    "page"
+  ],
+  name: "unsubscribe",
+  Name: "Unsubscribe",
+  NAME: "UNSUBSCRIBE",
+  "key$": "unsubscribe"
+
+
+}

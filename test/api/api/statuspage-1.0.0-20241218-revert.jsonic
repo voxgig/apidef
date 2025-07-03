@@ -1,0 +1,28 @@
+# Entity: revert
+
+main: api: entity: revert: {
+
+  alias: field: {}
+
+  op: {}
+
+  field: {}
+
+  cmd: {}
+
+  id: {
+    name: "id",
+    field: "id"
+  }
+
+  ancestors: [
+    "page",
+    "incident"
+  ],
+  name: "revert",
+  Name: "Revert",
+  NAME: "REVERT",
+  "key$": "revert"
+
+
+}

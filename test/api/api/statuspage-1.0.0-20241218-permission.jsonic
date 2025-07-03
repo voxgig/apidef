@@ -33,9 +33,21 @@ main: api: entity: permission: {
 
       query: {}
 
-      resform: "`body.pages`",
+
+      # resform derivation: map-single-prop:data
+      resform: "`body.data`",
+
+      # reqform derivation: map-single-prop:pages
       reqform: {
         pages: "`data`"
+      }
+
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          organization_id: "`$STRING`",
+          user_id: "`$STRING`"
+        }
       }
 
       name: "update",
@@ -71,9 +83,18 @@ main: api: entity: permission: {
 
       query: {}
 
+
+      # resform derivation: map-single-prop:data
       resform: "`body.data`",
-      reqform: {
-        data: "`data`"
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          organization_id: "`$STRING`",
+          user_id: "`$STRING`"
+        }
       }
 
       name: "load",
@@ -100,6 +121,9 @@ main: api: entity: permission: {
     field: "id"
   }
 
+  ancestors: [
+    "organization"
+  ],
   name: "permission",
   Name: "Permission",
   NAME: "PERMISSION",

@@ -1,0 +1,37 @@
+# BasicRevertFlow
+
+main: sdk: flow: BasicRevertFlow:
+{
+  name: "BasicRevertFlow",
+  active: true,
+  param: {
+    STATUSPAGE_TEST_REVERT_ENTID: {
+      revert01: "REVERT01",
+      revert02: "REVERT02",
+      revert03: "REVERT03"
+    }
+
+    STATUSPAGE_TEST_LIVE: "FALSE",
+    STATUSPAGE_TEST_EXPLAIN: "FALSE"
+  }
+
+  test: {
+    entity: {
+      revert: {
+        REVERT01: {
+          id: "REVERT01"
+        }
+
+        REVERT02: {
+          id: "REVERT02"
+        }
+
+        REVERT03: {
+          id: "REVERT03"
+        }
+      }
+    }
+  }
+
+  step: []
+}

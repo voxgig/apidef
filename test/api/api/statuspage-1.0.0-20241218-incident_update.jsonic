@@ -46,9 +46,22 @@ main: api: entity: incident_update: {
 
       query: {}
 
-      resform: "`body.incident_update`",
+
+      # resform derivation: default
+      resform: "`body`",
+
+      # reqform derivation: map-single-prop:incident_update
       reqform: {
-        incident_update: "`reqdata`"
+        incident_update: "`data`"
+      }
+
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`",
+          incident_id: "`$STRING`",
+          incident_update_id: "`$STRING`"
+        }
       }
 
       name: "update",
@@ -66,6 +79,10 @@ main: api: entity: incident_update: {
     field: "id"
   }
 
+  ancestors: [
+    "page",
+    "incident"
+  ],
   name: "incident_update",
   Name: "IncidentUpdate",
   NAME: "INCIDENT_UPDATE",

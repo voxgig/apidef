@@ -1,0 +1,28 @@
+# Entity: publish
+
+main: api: entity: publish: {
+
+  alias: field: {}
+
+  op: {}
+
+  field: {}
+
+  cmd: {}
+
+  id: {
+    name: "id",
+    field: "id"
+  }
+
+  ancestors: [
+    "page",
+    "incident"
+  ],
+  name: "publish",
+  Name: "Publish",
+  NAME: "PUBLISH",
+  "key$": "publish"
+
+
+}

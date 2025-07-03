@@ -26,9 +26,20 @@ main: api: entity: page: {
 
       query: {}
 
-      resform: "`body.page`",
+
+      # resform derivation: default
+      resform: "`body`",
+
+      # reqform derivation: map-single-prop:page
       reqform: {
-        page: "`reqdata`"
+        page: "`data`"
+      }
+
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`"
+        }
       }
 
       name: "update",
@@ -54,8 +65,19 @@ main: api: entity: page: {
 
       query: {}
 
+
+      # resform derivation: default
       resform: "`body`",
-      reqform: "`data`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`"
+        }
+      }
+
       name: "load",
       Name: "Load",
       NAME: "LOAD"
@@ -69,8 +91,18 @@ main: api: entity: page: {
 
       query: {}
 
+
+      # resform derivation: default
       resform: "`body`",
-      reqform: "`data`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          "`$OPEN`": true
+        }
+      }
+
       name: "list",
       Name: "List",
       NAME: "LIST"
@@ -521,6 +553,7 @@ main: api: entity: page: {
     field: "page_id"
   }
 
+  ancestors: [],
   name: "page",
   Name: "Page",
   NAME: "PAGE",

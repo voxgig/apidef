@@ -36,8 +36,20 @@ main: api: entity: user: {
 
       query: {}
 
+
+      # resform derivation: default
       resform: "`body`",
-      reqform: "`data`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          organization_id: "`$STRING`",
+          user_id: "`$STRING`"
+        }
+      }
+
       name: "remove",
       Name: "Remove",
       NAME: "REMOVE"
@@ -61,8 +73,19 @@ main: api: entity: user: {
 
       query: {}
 
+
+      # resform derivation: default
       resform: "`body`",
-      reqform: "`data`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          organization_id: "`$STRING`"
+        }
+      }
+
       name: "list",
       Name: "List",
       NAME: "LIST"
@@ -78,6 +101,9 @@ main: api: entity: user: {
     field: "id"
   }
 
+  ancestors: [
+    "organization"
+  ],
   name: "user",
   Name: "User",
   NAME: "USER",

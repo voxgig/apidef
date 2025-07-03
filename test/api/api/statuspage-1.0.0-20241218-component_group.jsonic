@@ -33,9 +33,18 @@ main: api: entity: component_group: {
 
       query: {}
 
+
+      # resform derivation: default
       resform: "`body`",
-      reqform: {
-        component_group: "`reqdata`"
+
+      # reqform derivation: default
+      reqform: "`data`",
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`",
+          id: "`$STRING`"
+        }
       }
 
       name: "update",
@@ -71,8 +80,20 @@ main: api: entity: component_group: {
 
       query: {}
 
+
+      # resform derivation: default
       resform: "`body`",
-      reqform: "`data`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`",
+          id: "`$STRING`"
+        }
+      }
+
       name: "remove",
       Name: "Remove",
       NAME: "REMOVE"
@@ -106,8 +127,20 @@ main: api: entity: component_group: {
 
       query: {}
 
+
+      # resform derivation: default
       resform: "`body`",
-      reqform: "`data`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`",
+          id: "`$STRING`"
+        }
+      }
+
       name: "load",
       Name: "Load",
       NAME: "LOAD"
@@ -131,8 +164,19 @@ main: api: entity: component_group: {
 
       query: {}
 
+
+      # resform derivation: default
       resform: "`body`",
-      reqform: "`data`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`"
+        }
+      }
+
       name: "list",
       Name: "List",
       NAME: "LIST"
@@ -221,6 +265,9 @@ main: api: entity: component_group: {
     field: "id"
   }
 
+  ancestors: [
+    "page"
+  ],
   name: "component_group",
   Name: "ComponentGroup",
   NAME: "COMPONENT_GROUP",

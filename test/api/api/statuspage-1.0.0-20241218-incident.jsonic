@@ -36,8 +36,20 @@ main: api: entity: incident: {
 
       query: {}
 
+
+      # resform derivation: default
       resform: "`body`",
-      reqform: "`data`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`",
+          incident_id: "`$STRING`"
+        }
+      }
+
       name: "remove",
       Name: "Remove",
       NAME: "REMOVE"
@@ -71,9 +83,21 @@ main: api: entity: incident: {
 
       query: {}
 
-      resform: "`body.incident`",
+
+      # resform derivation: default
+      resform: "`body`",
+
+      # reqform derivation: map-single-prop:incident
       reqform: {
-        incident: "`reqdata`"
+        incident: "`data`"
+      }
+
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`",
+          incident_id: "`$STRING`"
+        }
       }
 
       name: "update",
@@ -109,8 +133,20 @@ main: api: entity: incident: {
 
       query: {}
 
+
+      # resform derivation: default
       resform: "`body`",
-      reqform: "`data`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`",
+          incident_id: "`$STRING`"
+        }
+      }
+
       name: "load",
       Name: "Load",
       NAME: "LOAD"
@@ -134,8 +170,19 @@ main: api: entity: incident: {
 
       query: {}
 
+
+      # resform derivation: default
       resform: "`body`",
-      reqform: "`data`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`"
+        }
+      }
+
       name: "list",
       Name: "List",
       NAME: "LIST"
@@ -461,6 +508,9 @@ main: api: entity: incident: {
     field: "id"
   }
 
+  ancestors: [
+    "page"
+  ],
   name: "incident",
   Name: "Incident",
   NAME: "INCIDENT",

@@ -1,0 +1,37 @@
+# BasicUptimeFlow
+
+main: sdk: flow: BasicUptimeFlow:
+{
+  name: "BasicUptimeFlow",
+  active: true,
+  param: {
+    STATUSPAGE_TEST_UPTIME_ENTID: {
+      uptime01: "UPTIME01",
+      uptime02: "UPTIME02",
+      uptime03: "UPTIME03"
+    }
+
+    STATUSPAGE_TEST_LIVE: "FALSE",
+    STATUSPAGE_TEST_EXPLAIN: "FALSE"
+  }
+
+  test: {
+    entity: {
+      uptime: {
+        UPTIME01: {
+          id: "UPTIME01"
+        }
+
+        UPTIME02: {
+          id: "UPTIME02"
+        }
+
+        UPTIME03: {
+          id: "UPTIME03"
+        }
+      }
+    }
+  }
+
+  step: []
+}

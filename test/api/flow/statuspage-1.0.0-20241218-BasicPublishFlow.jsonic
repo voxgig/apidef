@@ -1,0 +1,37 @@
+# BasicPublishFlow
+
+main: sdk: flow: BasicPublishFlow:
+{
+  name: "BasicPublishFlow",
+  active: true,
+  param: {
+    STATUSPAGE_TEST_PUBLISH_ENTID: {
+      publish01: "PUBLISH01",
+      publish02: "PUBLISH02",
+      publish03: "PUBLISH03"
+    }
+
+    STATUSPAGE_TEST_LIVE: "FALSE",
+    STATUSPAGE_TEST_EXPLAIN: "FALSE"
+  }
+
+  test: {
+    entity: {
+      publish: {
+        PUBLISH01: {
+          id: "PUBLISH01"
+        }
+
+        PUBLISH02: {
+          id: "PUBLISH02"
+        }
+
+        PUBLISH03: {
+          id: "PUBLISH03"
+        }
+      }
+    }
+  }
+
+  step: []
+}

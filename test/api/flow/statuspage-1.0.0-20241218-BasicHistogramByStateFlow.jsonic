@@ -1,0 +1,37 @@
+# BasicHistogramByStateFlow
+
+main: sdk: flow: BasicHistogramByStateFlow:
+{
+  name: "BasicHistogramByStateFlow",
+  active: true,
+  param: {
+    STATUSPAGE_TEST_HISTOGRAM_BY_STATE_ENTID: {
+      histogram_by_state01: "HISTOGRAM_BY_STATE01",
+      histogram_by_state02: "HISTOGRAM_BY_STATE02",
+      histogram_by_state03: "HISTOGRAM_BY_STATE03"
+    }
+
+    STATUSPAGE_TEST_LIVE: "FALSE",
+    STATUSPAGE_TEST_EXPLAIN: "FALSE"
+  }
+
+  test: {
+    entity: {
+      histogram_by_state: {
+        HISTOGRAM_BY_STATE01: {
+          id: "HISTOGRAM_BY_STATE01"
+        }
+
+        HISTOGRAM_BY_STATE02: {
+          id: "HISTOGRAM_BY_STATE02"
+        }
+
+        HISTOGRAM_BY_STATE03: {
+          id: "HISTOGRAM_BY_STATE03"
+        }
+      }
+    }
+  }
+
+  step: []
+}

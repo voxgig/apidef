@@ -2,17 +2,25 @@
 
 main: sdk: flow: BasicIncidentFlow:
 {
+  name: "BasicIncidentFlow",
+  active: true,
   param: {
     STATUSPAGE_TEST_INCIDENT_ENTID: {
       incident01: "INCIDENT01",
       incident02: "INCIDENT02",
       incident03: "INCIDENT03"
     }
+
+    STATUSPAGE_TEST_LIVE: "FALSE",
+    STATUSPAGE_TEST_EXPLAIN: "FALSE",
+    STATUSPAGE_TEST_PAGE_ENTID: {
+      page01: "PAGE01"
+    }
   }
 
   test: {
     entity: {
-      Incident: {
+      incident: {
         INCIDENT01: {
           id: "INCIDENT01",
           components: [],
@@ -24,7 +32,7 @@ main: sdk: flow: BasicIncidentFlow:
 
           monitoring_at: "s7",
           name: "s8",
-          page_id: "s9",
+          page_id: "PAGE01",
           postmortem_body: "sa",
           postmortem_body_last_updated_at: "sb",
           postmortem_ignored: true,
@@ -128,12 +136,14 @@ main: sdk: flow: BasicIncidentFlow:
       entity: "incident",
       action: "load",
       match: {
-        id: "`dm$=p.STATUSPAGE_TEST_INCIDENT_ENTID.incident01`"
+        id: "`dm$=p.STATUSPAGE_TEST_INCIDENT_ENTID.incident01`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
       }
 
       valid: {
         "`$OPEN`": true,
-        id: "`dm$=s.load_incident0.match.id`"
+        id: "`dm$=s.load_incident0.match.id`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
       }
     }
 
@@ -148,6 +158,7 @@ main: sdk: flow: BasicIncidentFlow:
       valid: {
         "`$OPEN`": true,
         id: "`dm$=s.load_incident0.match.id`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
         created_at: "`dm$=s.update_incident1.reqdata.created_at`"
       }
     }
@@ -158,12 +169,14 @@ main: sdk: flow: BasicIncidentFlow:
       entity: "incident",
       action: "load",
       match: {
-        id: "`dm$=p.STATUSPAGE_TEST_INCIDENT_ENTID.incident01`"
+        id: "`dm$=p.STATUSPAGE_TEST_INCIDENT_ENTID.incident01`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
       }
 
       valid: {
         "`$OPEN`": true,
         id: "`dm$=s.load_incident0.match.id`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
         created_at: "`dm$=s.update_incident1.reqdata.created_at`"
       }
     }

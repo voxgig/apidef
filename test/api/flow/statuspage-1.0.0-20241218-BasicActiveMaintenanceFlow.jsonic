@@ -1,0 +1,37 @@
+# BasicActiveMaintenanceFlow
+
+main: sdk: flow: BasicActiveMaintenanceFlow:
+{
+  name: "BasicActiveMaintenanceFlow",
+  active: true,
+  param: {
+    STATUSPAGE_TEST_ACTIVE_MAINTENANCE_ENTID: {
+      active_maintenance01: "ACTIVE_MAINTENANCE01",
+      active_maintenance02: "ACTIVE_MAINTENANCE02",
+      active_maintenance03: "ACTIVE_MAINTENANCE03"
+    }
+
+    STATUSPAGE_TEST_LIVE: "FALSE",
+    STATUSPAGE_TEST_EXPLAIN: "FALSE"
+  }
+
+  test: {
+    entity: {
+      active_maintenance: {
+        ACTIVE_MAINTENANCE01: {
+          id: "ACTIVE_MAINTENANCE01"
+        }
+
+        ACTIVE_MAINTENANCE02: {
+          id: "ACTIVE_MAINTENANCE02"
+        }
+
+        ACTIVE_MAINTENANCE03: {
+          id: "ACTIVE_MAINTENANCE03"
+        }
+      }
+    }
+  }
+
+  step: []
+}

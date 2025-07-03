@@ -2,20 +2,28 @@
 
 main: sdk: flow: BasicPageAccessGroupFlow:
 {
+  name: "BasicPageAccessGroupFlow",
+  active: true,
   param: {
     STATUSPAGE_TEST_PAGE_ACCESS_GROUP_ENTID: {
       page_access_group01: "PAGE_ACCESS_GROUP01",
       page_access_group02: "PAGE_ACCESS_GROUP02",
       page_access_group03: "PAGE_ACCESS_GROUP03"
     }
+
+    STATUSPAGE_TEST_LIVE: "FALSE",
+    STATUSPAGE_TEST_EXPLAIN: "FALSE",
+    STATUSPAGE_TEST_PAGE_ENTID: {
+      page01: "PAGE01"
+    }
   }
 
   test: {
     entity: {
-      PageAccessGroup: {
+      page_access_group: {
         PAGE_ACCESS_GROUP01: {
           id: "PAGE_ACCESS_GROUP01",
-          page_id: "s1",
+          page_id: "PAGE01",
           name: "s2",
           page_access_user_ids: [],
           external_identifier: "s4",
@@ -59,12 +67,14 @@ main: sdk: flow: BasicPageAccessGroupFlow:
       entity: "page_access_group",
       action: "load",
       match: {
-        id: "`dm$=p.STATUSPAGE_TEST_PAGE_ACCESS_GROUP_ENTID.page_access_group01`"
+        id: "`dm$=p.STATUSPAGE_TEST_PAGE_ACCESS_GROUP_ENTID.page_access_group01`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
       }
 
       valid: {
         "`$OPEN`": true,
-        id: "`dm$=s.load_page_access_group0.match.id`"
+        id: "`dm$=s.load_page_access_group0.match.id`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
       }
     }
 
@@ -79,6 +89,7 @@ main: sdk: flow: BasicPageAccessGroupFlow:
       valid: {
         "`$OPEN`": true,
         id: "`dm$=s.load_page_access_group0.match.id`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
         name: "`dm$=s.update_page_access_group1.reqdata.name`"
       }
     }
@@ -89,12 +100,14 @@ main: sdk: flow: BasicPageAccessGroupFlow:
       entity: "page_access_group",
       action: "load",
       match: {
-        id: "`dm$=p.STATUSPAGE_TEST_PAGE_ACCESS_GROUP_ENTID.page_access_group01`"
+        id: "`dm$=p.STATUSPAGE_TEST_PAGE_ACCESS_GROUP_ENTID.page_access_group01`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
       }
 
       valid: {
         "`$OPEN`": true,
         id: "`dm$=s.load_page_access_group0.match.id`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
         name: "`dm$=s.update_page_access_group1.reqdata.name`"
       }
     }

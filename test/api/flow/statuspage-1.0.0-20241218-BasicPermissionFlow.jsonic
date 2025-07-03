@@ -2,21 +2,30 @@
 
 main: sdk: flow: BasicPermissionFlow:
 {
+  name: "BasicPermissionFlow",
+  active: true,
   param: {
     STATUSPAGE_TEST_PERMISSION_ENTID: {
       permission01: "PERMISSION01",
       permission02: "PERMISSION02",
       permission03: "PERMISSION03"
     }
+
+    STATUSPAGE_TEST_LIVE: "FALSE",
+    STATUSPAGE_TEST_EXPLAIN: "FALSE",
+    STATUSPAGE_TEST_USER_ENTID: {
+      user01: "USER01"
+    }
   }
 
   test: {
     entity: {
-      Permission: {
+      permission: {
         PERMISSION01: {
           data: {}
 
-          id: "PERMISSION01"
+          id: "PERMISSION01",
+          user_id: "USER01"
         }
 
         PERMISSION02: {
@@ -41,12 +50,14 @@ main: sdk: flow: BasicPermissionFlow:
       entity: "permission",
       action: "load",
       match: {
-        id: "`dm$=p.STATUSPAGE_TEST_PERMISSION_ENTID.permission01`"
+        id: "`dm$=p.STATUSPAGE_TEST_PERMISSION_ENTID.permission01`",
+        user_id: "`dm$=p.STATUSPAGE_TEST_USER_ENTID.user01`"
       }
 
       valid: {
         "`$OPEN`": true,
-        id: "`dm$=s.load_permission0.match.id`"
+        id: "`dm$=s.load_permission0.match.id`",
+        user_id: "`dm$=p.STATUSPAGE_TEST_USER_ENTID.user01`"
       }
     }
 
@@ -58,7 +69,8 @@ main: sdk: flow: BasicPermissionFlow:
 
       valid: {
         "`$OPEN`": true,
-        id: "`dm$=s.load_permission0.match.id`"
+        id: "`dm$=s.load_permission0.match.id`",
+        user_id: "`dm$=p.STATUSPAGE_TEST_USER_ENTID.user01`"
       }
     }
 
@@ -68,12 +80,14 @@ main: sdk: flow: BasicPermissionFlow:
       entity: "permission",
       action: "load",
       match: {
-        id: "`dm$=p.STATUSPAGE_TEST_PERMISSION_ENTID.permission01`"
+        id: "`dm$=p.STATUSPAGE_TEST_PERMISSION_ENTID.permission01`",
+        user_id: "`dm$=p.STATUSPAGE_TEST_USER_ENTID.user01`"
       }
 
       valid: {
         "`$OPEN`": true,
-        id: "`dm$=s.load_permission0.match.id`"
+        id: "`dm$=s.load_permission0.match.id`",
+        user_id: "`dm$=p.STATUSPAGE_TEST_USER_ENTID.user01`"
       }
     }
   ]

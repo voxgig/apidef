@@ -1,0 +1,27 @@
+# Entity: resend_confirmation
+
+main: api: entity: resend_confirmation: {
+
+  alias: field: {}
+
+  op: {}
+
+  field: {}
+
+  cmd: {}
+
+  id: {
+    name: "id",
+    field: "id"
+  }
+
+  ancestors: [
+    "page"
+  ],
+  name: "resend_confirmation",
+  Name: "ResendConfirmation",
+  NAME: "RESEND_CONFIRMATION",
+  "key$": "resend_confirmation"
+
+
+}

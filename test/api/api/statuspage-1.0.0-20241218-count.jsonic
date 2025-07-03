@@ -1,0 +1,63 @@
+# Entity: count
+
+main: api: entity: count: {
+
+  alias: field: {}
+
+  op: {
+    list: {
+      path: "/pages/{page_id}/subscribers/count",
+      method: "get",
+      kind: "res",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+
+      # resform derivation: default
+      resform: "`body`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`"
+        }
+      }
+
+      name: "list",
+      Name: "List",
+      NAME: "LIST"
+    }
+  }
+
+  field: {}
+
+  cmd: {}
+
+  id: {
+    name: "id",
+    field: "id"
+  }
+
+  ancestors: [
+    "page"
+  ],
+  name: "count",
+  Name: "Count",
+  NAME: "COUNT",
+  "key$": "count"
+
+
+}

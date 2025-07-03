@@ -2,20 +2,28 @@
 
 main: sdk: flow: BasicComponentGroupFlow:
 {
+  name: "BasicComponentGroupFlow",
+  active: true,
   param: {
     STATUSPAGE_TEST_COMPONENT_GROUP_ENTID: {
       component_group01: "COMPONENT_GROUP01",
       component_group02: "COMPONENT_GROUP02",
       component_group03: "COMPONENT_GROUP03"
     }
+
+    STATUSPAGE_TEST_LIVE: "FALSE",
+    STATUSPAGE_TEST_EXPLAIN: "FALSE",
+    STATUSPAGE_TEST_PAGE_ENTID: {
+      page01: "PAGE01"
+    }
   }
 
   test: {
     entity: {
-      ComponentGroup: {
+      component_group: {
         COMPONENT_GROUP01: {
           id: "COMPONENT_GROUP01",
-          page_id: "s1",
+          page_id: "PAGE01",
           name: "s2",
           description: "s3",
           components: "s4",
@@ -56,12 +64,14 @@ main: sdk: flow: BasicComponentGroupFlow:
       entity: "component_group",
       action: "load",
       match: {
-        id: "`dm$=p.STATUSPAGE_TEST_COMPONENT_GROUP_ENTID.component_group01`"
+        id: "`dm$=p.STATUSPAGE_TEST_COMPONENT_GROUP_ENTID.component_group01`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
       }
 
       valid: {
         "`$OPEN`": true,
-        id: "`dm$=s.load_component_group0.match.id`"
+        id: "`dm$=s.load_component_group0.match.id`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
       }
     }
 
@@ -76,6 +86,7 @@ main: sdk: flow: BasicComponentGroupFlow:
       valid: {
         "`$OPEN`": true,
         id: "`dm$=s.load_component_group0.match.id`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
         name: "`dm$=s.update_component_group1.reqdata.name`"
       }
     }
@@ -86,12 +97,14 @@ main: sdk: flow: BasicComponentGroupFlow:
       entity: "component_group",
       action: "load",
       match: {
-        id: "`dm$=p.STATUSPAGE_TEST_COMPONENT_GROUP_ENTID.component_group01`"
+        id: "`dm$=p.STATUSPAGE_TEST_COMPONENT_GROUP_ENTID.component_group01`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
       }
 
       valid: {
         "`$OPEN`": true,
         id: "`dm$=s.load_component_group0.match.id`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
         name: "`dm$=s.update_component_group1.reqdata.name`"
       }
     }

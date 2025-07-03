@@ -1,0 +1,27 @@
+# Entity: datum
+
+main: api: entity: datum: {
+
+  alias: field: {}
+
+  op: {}
+
+  field: {}
+
+  cmd: {}
+
+  id: {
+    name: "id",
+    field: "id"
+  }
+
+  ancestors: [
+    "page"
+  ],
+  name: "datum",
+  Name: "Datum",
+  NAME: "DATUM",
+  "key$": "datum"
+
+
+}

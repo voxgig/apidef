@@ -2,20 +2,28 @@
 
 main: sdk: flow: BasicComponentFlow:
 {
+  name: "BasicComponentFlow",
+  active: true,
   param: {
     STATUSPAGE_TEST_COMPONENT_ENTID: {
       component01: "COMPONENT01",
       component02: "COMPONENT02",
       component03: "COMPONENT03"
     }
+
+    STATUSPAGE_TEST_LIVE: "FALSE",
+    STATUSPAGE_TEST_EXPLAIN: "FALSE",
+    STATUSPAGE_TEST_PAGE_ENTID: {
+      page01: "PAGE01"
+    }
   }
 
   test: {
     entity: {
-      Component: {
+      component: {
         COMPONENT01: {
           id: "COMPONENT01",
-          page_id: "s1",
+          page_id: "PAGE01",
           group_id: "s2",
           created_at: "s3",
           updated_at: "s4",
@@ -74,12 +82,14 @@ main: sdk: flow: BasicComponentFlow:
       entity: "component",
       action: "load",
       match: {
-        id: "`dm$=p.STATUSPAGE_TEST_COMPONENT_ENTID.component01`"
+        id: "`dm$=p.STATUSPAGE_TEST_COMPONENT_ENTID.component01`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
       }
 
       valid: {
         "`$OPEN`": true,
-        id: "`dm$=s.load_component0.match.id`"
+        id: "`dm$=s.load_component0.match.id`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
       }
     }
 
@@ -94,6 +104,7 @@ main: sdk: flow: BasicComponentFlow:
       valid: {
         "`$OPEN`": true,
         id: "`dm$=s.load_component0.match.id`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
         created_at: "`dm$=s.update_component1.reqdata.created_at`"
       }
     }
@@ -104,12 +115,14 @@ main: sdk: flow: BasicComponentFlow:
       entity: "component",
       action: "load",
       match: {
-        id: "`dm$=p.STATUSPAGE_TEST_COMPONENT_ENTID.component01`"
+        id: "`dm$=p.STATUSPAGE_TEST_COMPONENT_ENTID.component01`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
       }
 
       valid: {
         "`$OPEN`": true,
         id: "`dm$=s.load_component0.match.id`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
         created_at: "`dm$=s.update_component1.reqdata.created_at`"
       }
     }

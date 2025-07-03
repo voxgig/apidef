@@ -1,0 +1,37 @@
+# BasicPostmortemFlow
+
+main: sdk: flow: BasicPostmortemFlow:
+{
+  name: "BasicPostmortemFlow",
+  active: true,
+  param: {
+    STATUSPAGE_TEST_POSTMORTEM_ENTID: {
+      postmortem01: "POSTMORTEM01",
+      postmortem02: "POSTMORTEM02",
+      postmortem03: "POSTMORTEM03"
+    }
+
+    STATUSPAGE_TEST_LIVE: "FALSE",
+    STATUSPAGE_TEST_EXPLAIN: "FALSE"
+  }
+
+  test: {
+    entity: {
+      postmortem: {
+        POSTMORTEM01: {
+          id: "POSTMORTEM01"
+        }
+
+        POSTMORTEM02: {
+          id: "POSTMORTEM02"
+        }
+
+        POSTMORTEM03: {
+          id: "POSTMORTEM03"
+        }
+      }
+    }
+  }
+
+  step: []
+}

@@ -36,8 +36,20 @@ main: api: entity: metrics_provider: {
 
       query: {}
 
+
+      # resform derivation: default
       resform: "`body`",
-      reqform: "`data`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`",
+          metrics_provider_id: "`$STRING`"
+        }
+      }
+
       name: "load",
       Name: "Load",
       NAME: "LOAD"
@@ -71,9 +83,21 @@ main: api: entity: metrics_provider: {
 
       query: {}
 
-      resform: "`body.metrics_provider`",
+
+      # resform derivation: default
+      resform: "`body`",
+
+      # reqform derivation: map-single-prop:metrics_provider
       reqform: {
-        metrics_provider: "`reqdata`"
+        metrics_provider: "`data`"
+      }
+
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`",
+          metrics_provider_id: "`$STRING`"
+        }
       }
 
       name: "update",
@@ -109,8 +133,20 @@ main: api: entity: metrics_provider: {
 
       query: {}
 
+
+      # resform derivation: default
       resform: "`body`",
-      reqform: "`data`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`",
+          metrics_provider_id: "`$STRING`"
+        }
+      }
+
       name: "remove",
       Name: "Remove",
       NAME: "REMOVE"
@@ -134,8 +170,19 @@ main: api: entity: metrics_provider: {
 
       query: {}
 
+
+      # resform derivation: default
       resform: "`body`",
-      reqform: "`data`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`"
+        }
+      }
+
       name: "list",
       Name: "List",
       NAME: "LIST"
@@ -224,6 +271,9 @@ main: api: entity: metrics_provider: {
     field: "id"
   }
 
+  ancestors: [
+    "page"
+  ],
   name: "metrics_provider",
   Name: "MetricsProvider",
   NAME: "METRICS_PROVIDER",

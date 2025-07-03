@@ -1,0 +1,63 @@
+# Entity: status_embed_config
+
+main: api: entity: status_embed_config: {
+
+  alias: field: {}
+
+  op: {
+    list: {
+      path: "/pages/{page_id}/status_embed_config",
+      method: "get",
+      kind: "res",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+
+      # resform derivation: default
+      resform: "`body`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`"
+        }
+      }
+
+      name: "list",
+      Name: "List",
+      NAME: "LIST"
+    }
+  }
+
+  field: {}
+
+  cmd: {}
+
+  id: {
+    name: "id",
+    field: "id"
+  }
+
+  ancestors: [
+    "page"
+  ],
+  name: "status_embed_config",
+  Name: "StatusEmbedConfig",
+  NAME: "STATUS_EMBED_CONFIG",
+  "key$": "status_embed_config"
+
+
+}

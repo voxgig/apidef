@@ -2,17 +2,22 @@
 
 main: sdk: flow: BasicIncidentUpdateFlow:
 {
+  name: "BasicIncidentUpdateFlow",
+  active: true,
   param: {
     STATUSPAGE_TEST_INCIDENT_UPDATE_ENTID: {
       incident_update01: "INCIDENT_UPDATE01",
       incident_update02: "INCIDENT_UPDATE02",
       incident_update03: "INCIDENT_UPDATE03"
     }
+
+    STATUSPAGE_TEST_LIVE: "FALSE",
+    STATUSPAGE_TEST_EXPLAIN: "FALSE"
   }
 
   test: {
     entity: {
-      IncidentUpdate: {
+      incident_update: {
         INCIDENT_UPDATE01: {
           id: "INCIDENT_UPDATE01"
         }

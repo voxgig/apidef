@@ -1,0 +1,37 @@
+# BasicIncidentTemplateFlow
+
+main: sdk: flow: BasicIncidentTemplateFlow:
+{
+  name: "BasicIncidentTemplateFlow",
+  active: true,
+  param: {
+    STATUSPAGE_TEST_INCIDENT_TEMPLATE_ENTID: {
+      incident_template01: "INCIDENT_TEMPLATE01",
+      incident_template02: "INCIDENT_TEMPLATE02",
+      incident_template03: "INCIDENT_TEMPLATE03"
+    }
+
+    STATUSPAGE_TEST_LIVE: "FALSE",
+    STATUSPAGE_TEST_EXPLAIN: "FALSE"
+  }
+
+  test: {
+    entity: {
+      incident_template: {
+        INCIDENT_TEMPLATE01: {
+          id: "INCIDENT_TEMPLATE01"
+        }
+
+        INCIDENT_TEMPLATE02: {
+          id: "INCIDENT_TEMPLATE02"
+        }
+
+        INCIDENT_TEMPLATE03: {
+          id: "INCIDENT_TEMPLATE03"
+        }
+      }
+    }
+  }
+
+  step: []
+}

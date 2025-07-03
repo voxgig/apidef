@@ -36,8 +36,20 @@ main: api: entity: page_access_user: {
 
       query: {}
 
-      resform: "`reqdata`",
+
+      # resform derivation: default
+      resform: "`body`",
+
+      # reqform derivation: none
       reqform: "`reqdata`",
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`",
+          page_access_user_id: "`$STRING`"
+        }
+      }
+
       name: "update",
       Name: "Update",
       NAME: "UPDATE"
@@ -71,8 +83,20 @@ main: api: entity: page_access_user: {
 
       query: {}
 
+
+      # resform derivation: none
       resform: "`body`",
+
+      # reqform derivation: none
       reqform: "`body`",
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`",
+          page_access_user_id: "`$STRING`"
+        }
+      }
+
       name: "remove",
       Name: "Remove",
       NAME: "REMOVE"
@@ -106,8 +130,20 @@ main: api: entity: page_access_user: {
 
       query: {}
 
+
+      # resform derivation: default
       resform: "`body`",
-      reqform: "`data`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`",
+          page_access_user_id: "`$STRING`"
+        }
+      }
+
       name: "load",
       Name: "Load",
       NAME: "LOAD"
@@ -131,8 +167,19 @@ main: api: entity: page_access_user: {
 
       query: {}
 
+
+      # resform derivation: default
       resform: "`body`",
-      reqform: "`data`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          "`$OPEN`": true,
+          page_id: "`$STRING`"
+        }
+      }
+
       name: "list",
       Name: "List",
       NAME: "LIST"
@@ -222,6 +269,9 @@ main: api: entity: page_access_user: {
     field: "id"
   }
 
+  ancestors: [
+    "page"
+  ],
   name: "page_access_user",
   Name: "PageAccessUser",
   NAME: "PAGE_ACCESS_USER",

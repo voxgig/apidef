@@ -1,0 +1,37 @@
+# BasicStatusEmbedConfigFlow
+
+main: sdk: flow: BasicStatusEmbedConfigFlow:
+{
+  name: "BasicStatusEmbedConfigFlow",
+  active: true,
+  param: {
+    STATUSPAGE_TEST_STATUS_EMBED_CONFIG_ENTID: {
+      status_embed_config01: "STATUS_EMBED_CONFIG01",
+      status_embed_config02: "STATUS_EMBED_CONFIG02",
+      status_embed_config03: "STATUS_EMBED_CONFIG03"
+    }
+
+    STATUSPAGE_TEST_LIVE: "FALSE",
+    STATUSPAGE_TEST_EXPLAIN: "FALSE"
+  }
+
+  test: {
+    entity: {
+      status_embed_config: {
+        STATUS_EMBED_CONFIG01: {
+          id: "STATUS_EMBED_CONFIG01"
+        }
+
+        STATUS_EMBED_CONFIG02: {
+          id: "STATUS_EMBED_CONFIG02"
+        }
+
+        STATUS_EMBED_CONFIG03: {
+          id: "STATUS_EMBED_CONFIG03"
+        }
+      }
+    }
+  }
+
+  step: []
+}
