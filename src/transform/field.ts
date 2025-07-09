@@ -61,15 +61,21 @@ function fieldbuild(
     }
   }
 
+  console.log('FIELD-DEF', entityModel, pathdef.get)
+
   each(fieldSets, (fieldSet: any) => {
     each(fieldSet.properties, (property: any) => {
       const field =
         (entityModel.field[property.key$] = entityModel.field[property.key$] || {})
 
+      console.log('PROPERTY', property)
+
       field.name = property.key$
       fixName(field, field.name)
 
-      field.type = property.type
+      // field.type = property.type
+      resolveFieldType(entityModel, field, property)
+      console.log('FIELD', field)
       fixName(field, field.type, 'type')
 
       field.short = property.description
@@ -92,6 +98,31 @@ function fieldbuild(
   return fieldCount
 }
 
+
+// Resovles a heuristic "primary" type which subsumes the more detailed type.
+// The primary type is only: string, number, boolean, null, object, array
+function resolveFieldType(entity: any, field: any, property: any) {
+  const ptt = typeof property.type
+
+  if ('string' === ptt) {
+    field.type = property.type
+  }
+  else if (Array.isArray(property.type)) {
+    field.type =
+      (property.type.filter((t: string) => 'null' != t).sort()[0]) ||
+      property.type[0] ||
+      'string'
+    field.typelist = property.type
+  }
+  else if ('undefined' === ptt && null != property.enum) {
+    field.type = 'string'
+    field.enum = property.enum
+  }
+  else {
+    throw new Error(
+      `APIDEF: Unsupported property type: ${property.type} (${entity.name}.${field.name})`)
+  }
+}
 
 
 export {

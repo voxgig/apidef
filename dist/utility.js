@@ -26,32 +26,43 @@ function depluralize(word) {
     }
     // Common irregular plurals
     const irregulars = {
-        'children': 'child',
-        'men': 'man',
-        'women': 'woman',
-        'teeth': 'tooth',
-        'feet': 'foot',
-        'geese': 'goose',
-        'mice': 'mouse',
-        'people': 'person',
-        'data': 'datum',
-        'criteria': 'criterion',
-        'phenomena': 'phenomenon',
-        'indices': 'index',
-        'matrices': 'matrix',
-        'vertices': 'vertex',
         'analyses': 'analysis',
+        'appendices': 'appendix',
         'axes': 'axis',
+        'children': 'child',
+        'courses': 'course',
         'crises': 'crisis',
+        'criteria': 'criterion',
+        'data': 'datum',
         'diagnoses': 'diagnosis',
+        'feet': 'foot',
+        'furnace': 'furnaces',
+        'geese': 'goose',
+        'horses': 'horse',
+        'house': 'houses',
+        'indices': 'index',
+        'license': 'licenses',
+        'matrices': 'matrix',
+        'men': 'man',
+        'mice': 'mouse',
+        'notice': 'notices',
         'oases': 'oasis',
+        'people': 'person',
+        'phenomena': 'phenomenon',
+        'practice': 'practices',
+        'promise': 'promises',
+        'teeth': 'tooth',
         'theses': 'thesis',
-        'appendices': 'appendix'
+        'vertices': 'vertex',
+        'women': 'woman',
     };
     if (irregulars[word]) {
         return irregulars[word];
     }
     // Rules for regular plurals (applied in order)
+    if (word.endsWith('ies') && word.length > 3) {
+        return word.slice(0, -3) + 'y';
+    }
     // -ies -> -y (cities -> city)
     if (word.endsWith('ies') && word.length > 3) {
         return word.slice(0, -3) + 'y';
