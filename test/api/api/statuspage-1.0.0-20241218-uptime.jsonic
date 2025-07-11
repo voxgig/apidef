@@ -6,7 +6,7 @@ main: api: entity: uptime: {
 
   op: {
     list: {
-      path: "/pages/{page_id}/component-groups/{id}/uptime",
+      path: "/pages/{page_id}/component-groups/{component_groups_id}/uptime",
       method: "get",
       kind: "res",
       param: {
@@ -20,18 +20,38 @@ main: api: entity: uptime: {
           TYPE: "STRING"
         }
 
-        id: {
+        component_groups_id: {
           required: true,
-          name: "id",
-          Name: "Id",
-          NAME: "ID",
+          name: "component_groups_id",
+          Name: "ComponentGroupsId",
+          NAME: "COMPONENT_GROUPS_ID",
           type: "string",
           Type: "String",
           TYPE: "STRING"
         }
       }
 
-      query: {}
+      query: {
+        start: {
+          required: false,
+          name: "start",
+          Name: "Start",
+          NAME: "START",
+          type: "partialstartdate",
+          Type: "PartialStartDate",
+          TYPE: "PARTIALSTARTDATE"
+        }
+
+        end: {
+          required: false,
+          name: "end",
+          Name: "End",
+          NAME: "END",
+          type: "partialenddate",
+          Type: "PartialEndDate",
+          TYPE: "PARTIALENDDATE"
+        }
+      }
 
 
       # resform derivation: default
@@ -43,7 +63,7 @@ main: api: entity: uptime: {
         params: {
           "`$OPEN`": true,
           page_id: "`$STRING`",
-          id: "`$STRING`"
+          component_groups_id: "`$STRING`"
         }
       }
 

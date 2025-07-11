@@ -1250,7 +1250,35 @@
                   "TYPE": "STRING"
                 }
               },
-              "query": {},
+              "query": {
+                "email": {
+                  "required": false,
+                  "name": "email",
+                  "Name": "Email",
+                  "NAME": "EMAIL",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "page": {
+                  "required": false,
+                  "name": "page",
+                  "Name": "Page",
+                  "NAME": "PAGE",
+                  "type": "integer",
+                  "Type": "Integer",
+                  "TYPE": "INTEGER"
+                },
+                "per_page": {
+                  "required": false,
+                  "name": "per_page",
+                  "Name": "PerPage",
+                  "NAME": "PER_PAGE",
+                  "type": "integer",
+                  "Type": "Integer",
+                  "TYPE": "INTEGER"
+                }
+              },
               "resform": "`body`",
               "reqform": "`body`",
               "validate": {
@@ -1484,7 +1512,26 @@
                   "TYPE": "STRING"
                 }
               },
-              "query": {},
+              "query": {
+                "page": {
+                  "required": false,
+                  "name": "page",
+                  "Name": "Page",
+                  "NAME": "PAGE",
+                  "type": "integer",
+                  "Type": "Integer",
+                  "TYPE": "INTEGER"
+                },
+                "per_page": {
+                  "required": false,
+                  "name": "per_page",
+                  "Name": "PerPage",
+                  "NAME": "PER_PAGE",
+                  "type": "integer",
+                  "Type": "Integer",
+                  "TYPE": "INTEGER"
+                }
+              },
               "resform": "`body`",
               "reqform": "`body`",
               "validate": {
@@ -1787,7 +1834,26 @@
                   "TYPE": "STRING"
                 }
               },
-              "query": {},
+              "query": {
+                "page": {
+                  "required": false,
+                  "name": "page",
+                  "Name": "Page",
+                  "NAME": "PAGE",
+                  "type": "integer",
+                  "Type": "Integer",
+                  "TYPE": "INTEGER"
+                },
+                "per_page": {
+                  "required": false,
+                  "name": "per_page",
+                  "Name": "PerPage",
+                  "NAME": "PER_PAGE",
+                  "type": "integer",
+                  "Type": "Integer",
+                  "TYPE": "INTEGER"
+                }
+              },
               "resform": "`body`",
               "reqform": "`body`",
               "validate": {
@@ -2108,7 +2174,26 @@
                   "TYPE": "STRING"
                 }
               },
-              "query": {},
+              "query": {
+                "page": {
+                  "required": false,
+                  "name": "page",
+                  "Name": "Page",
+                  "NAME": "PAGE",
+                  "type": "integer",
+                  "Type": "Integer",
+                  "TYPE": "INTEGER"
+                },
+                "per_page": {
+                  "required": false,
+                  "name": "per_page",
+                  "Name": "PerPage",
+                  "NAME": "PER_PAGE",
+                  "type": "integer",
+                  "Type": "Integer",
+                  "TYPE": "INTEGER"
+                }
+              },
               "resform": "`body`",
               "reqform": "`body`",
               "validate": {
@@ -2381,7 +2466,26 @@
                   "TYPE": "STRING"
                 }
               },
-              "query": {},
+              "query": {
+                "page": {
+                  "required": false,
+                  "name": "page",
+                  "Name": "Page",
+                  "NAME": "PAGE",
+                  "type": "integer",
+                  "Type": "Integer",
+                  "TYPE": "INTEGER"
+                },
+                "per_page": {
+                  "required": false,
+                  "name": "per_page",
+                  "Name": "PerPage",
+                  "NAME": "PER_PAGE",
+                  "type": "integer",
+                  "Type": "Integer",
+                  "TYPE": "INTEGER"
+                }
+              },
               "resform": "`body`",
               "reqform": "`body`",
               "validate": {
@@ -2684,7 +2788,35 @@
                   "TYPE": "STRING"
                 }
               },
-              "query": {},
+              "query": {
+                "q": {
+                  "required": false,
+                  "name": "q",
+                  "Name": "Q",
+                  "NAME": "Q",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "limit": {
+                  "required": false,
+                  "name": "limit",
+                  "Name": "Limit",
+                  "NAME": "LIMIT",
+                  "type": "integer",
+                  "Type": "Integer",
+                  "TYPE": "INTEGER"
+                },
+                "page": {
+                  "required": false,
+                  "name": "page",
+                  "Name": "Page",
+                  "NAME": "PAGE",
+                  "type": "integer",
+                  "Type": "Integer",
+                  "TYPE": "INTEGER"
+                }
+              },
               "resform": "`body`",
               "reqform": "`body`",
               "validate": {
@@ -3200,7 +3332,26 @@
                   "TYPE": "STRING"
                 }
               },
-              "query": {},
+              "query": {
+                "page": {
+                  "required": false,
+                  "name": "page",
+                  "Name": "Page",
+                  "NAME": "PAGE",
+                  "type": "integer",
+                  "Type": "Integer",
+                  "TYPE": "INTEGER"
+                },
+                "per_page": {
+                  "required": false,
+                  "name": "per_page",
+                  "Name": "PerPage",
+                  "NAME": "PER_PAGE",
+                  "type": "integer",
+                  "Type": "Integer",
+                  "TYPE": "INTEGER"
+                }
+              },
               "resform": "`body`",
               "reqform": "`body`",
               "validate": {
@@ -3695,7 +3846,26 @@
                   "TYPE": "STRING"
                 }
               },
-              "query": {},
+              "query": {
+                "page": {
+                  "required": false,
+                  "name": "page",
+                  "Name": "Page",
+                  "NAME": "PAGE",
+                  "type": "integer",
+                  "Type": "Integer",
+                  "TYPE": "INTEGER"
+                },
+                "per_page": {
+                  "required": false,
+                  "name": "per_page",
+                  "Name": "PerPage",
+                  "NAME": "PER_PAGE",
+                  "type": "integer",
+                  "Type": "Integer",
+                  "TYPE": "INTEGER"
+                }
+              },
               "resform": "`body`",
               "reqform": "`body`",
               "validate": {
@@ -3848,7 +4018,26 @@
                   "TYPE": "STRING"
                 }
               },
-              "query": {},
+              "query": {
+                "type": {
+                  "required": false,
+                  "name": "type",
+                  "Name": "Type",
+                  "NAME": "TYPE",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "state": {
+                  "required": false,
+                  "name": "state",
+                  "Name": "State",
+                  "NAME": "STATE",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
               "resform": "`body`",
               "reqform": "`body`",
               "validate": {
@@ -3896,7 +4085,26 @@
                   "TYPE": "STRING"
                 }
               },
-              "query": {},
+              "query": {
+                "page": {
+                  "required": false,
+                  "name": "page",
+                  "Name": "Page",
+                  "NAME": "PAGE",
+                  "type": "integer",
+                  "Type": "Integer",
+                  "TYPE": "INTEGER"
+                },
+                "per_page": {
+                  "required": false,
+                  "name": "per_page",
+                  "Name": "PerPage",
+                  "NAME": "PER_PAGE",
+                  "type": "integer",
+                  "Type": "Integer",
+                  "TYPE": "INTEGER"
+                }
+              },
               "resform": "`body`",
               "reqform": "`body`",
               "validate": {
@@ -3944,7 +4152,26 @@
                   "TYPE": "STRING"
                 }
               },
-              "query": {},
+              "query": {
+                "page": {
+                  "required": false,
+                  "name": "page",
+                  "Name": "Page",
+                  "NAME": "PAGE",
+                  "type": "integer",
+                  "Type": "Integer",
+                  "TYPE": "INTEGER"
+                },
+                "per_page": {
+                  "required": false,
+                  "name": "per_page",
+                  "Name": "PerPage",
+                  "NAME": "PER_PAGE",
+                  "type": "integer",
+                  "Type": "Integer",
+                  "TYPE": "INTEGER"
+                }
+              },
               "resform": "`body`",
               "reqform": "`body`",
               "validate": {
@@ -3992,7 +4219,26 @@
                   "TYPE": "STRING"
                 }
               },
-              "query": {},
+              "query": {
+                "page": {
+                  "required": false,
+                  "name": "page",
+                  "Name": "Page",
+                  "NAME": "PAGE",
+                  "type": "integer",
+                  "Type": "Integer",
+                  "TYPE": "INTEGER"
+                },
+                "per_page": {
+                  "required": false,
+                  "name": "per_page",
+                  "Name": "PerPage",
+                  "NAME": "PER_PAGE",
+                  "type": "integer",
+                  "Type": "Integer",
+                  "TYPE": "INTEGER"
+                }
+              },
               "resform": "`body`",
               "reqform": "`body`",
               "validate": {
@@ -4040,7 +4286,26 @@
                   "TYPE": "STRING"
                 }
               },
-              "query": {},
+              "query": {
+                "page": {
+                  "required": false,
+                  "name": "page",
+                  "Name": "Page",
+                  "NAME": "PAGE",
+                  "type": "integer",
+                  "Type": "Integer",
+                  "TYPE": "INTEGER"
+                },
+                "per_page": {
+                  "required": false,
+                  "name": "per_page",
+                  "Name": "PerPage",
+                  "NAME": "PER_PAGE",
+                  "type": "integer",
+                  "Type": "Integer",
+                  "TYPE": "INTEGER"
+                }
+              },
               "resform": "`body`",
               "reqform": "`body`",
               "validate": {
@@ -4088,7 +4353,26 @@
                   "TYPE": "STRING"
                 }
               },
-              "query": {},
+              "query": {
+                "page": {
+                  "required": false,
+                  "name": "page",
+                  "Name": "Page",
+                  "NAME": "PAGE",
+                  "type": "integer",
+                  "Type": "Integer",
+                  "TYPE": "INTEGER"
+                },
+                "per_page": {
+                  "required": false,
+                  "name": "per_page",
+                  "Name": "PerPage",
+                  "NAME": "PER_PAGE",
+                  "type": "integer",
+                  "Type": "Integer",
+                  "TYPE": "INTEGER"
+                }
+              },
               "resform": "`body`",
               "reqform": "`body`",
               "validate": {
@@ -4136,7 +4420,26 @@
                   "TYPE": "STRING"
                 }
               },
-              "query": {},
+              "query": {
+                "page": {
+                  "required": false,
+                  "name": "page",
+                  "Name": "Page",
+                  "NAME": "PAGE",
+                  "type": "integer",
+                  "Type": "Integer",
+                  "TYPE": "INTEGER"
+                },
+                "per_page": {
+                  "required": false,
+                  "name": "per_page",
+                  "Name": "PerPage",
+                  "NAME": "PER_PAGE",
+                  "type": "integer",
+                  "Type": "Integer",
+                  "TYPE": "INTEGER"
+                }
+              },
               "resform": "`body`",
               "reqform": "`body`",
               "validate": {
@@ -4269,7 +4572,7 @@
           },
           "op": {
             "list": {
-              "path": "/pages/{page_id}/component-groups/{id}/uptime",
+              "path": "/pages/{page_id}/component-groups/{component_groups_id}/uptime",
               "method": "get",
               "kind": "res",
               "param": {
@@ -4282,24 +4585,43 @@
                   "Type": "String",
                   "TYPE": "STRING"
                 },
-                "id": {
+                "component_groups_id": {
                   "required": true,
-                  "name": "id",
-                  "Name": "Id",
-                  "NAME": "ID",
+                  "name": "component_groups_id",
+                  "Name": "ComponentGroupsId",
+                  "NAME": "COMPONENT_GROUPS_ID",
                   "type": "string",
                   "Type": "String",
                   "TYPE": "STRING"
                 }
               },
-              "query": {},
+              "query": {
+                "start": {
+                  "required": false,
+                  "name": "start",
+                  "Name": "Start",
+                  "NAME": "START",
+                  "type": "partialstartdate",
+                  "Type": "PartialStartDate",
+                  "TYPE": "PARTIALSTARTDATE"
+                },
+                "end": {
+                  "required": false,
+                  "name": "end",
+                  "Name": "End",
+                  "NAME": "END",
+                  "type": "partialenddate",
+                  "Type": "PartialEndDate",
+                  "TYPE": "PARTIALENDDATE"
+                }
+              },
               "resform": "`body`",
               "reqform": "`body`",
               "validate": {
                 "params": {
                   "`$OPEN`": true,
                   "page_id": "`$STRING`",
-                  "id": "`$STRING`"
+                  "component_groups_id": "`$STRING`"
                 }
               },
               "name": "list",

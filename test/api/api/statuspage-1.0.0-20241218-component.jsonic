@@ -168,7 +168,27 @@ main: api: entity: component: {
         }
       }
 
-      query: {}
+      query: {
+        page: {
+          required: false,
+          name: "page",
+          Name: "Page",
+          NAME: "PAGE",
+          type: "integer",
+          Type: "Integer",
+          TYPE: "INTEGER"
+        }
+
+        per_page: {
+          required: false,
+          name: "per_page",
+          Name: "PerPage",
+          NAME: "PER_PAGE",
+          type: "integer",
+          Type: "Integer",
+          TYPE: "INTEGER"
+        }
+      }
 
 
       # resform derivation: default

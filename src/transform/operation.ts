@@ -1,11 +1,12 @@
 
 
-import { each, getx } from 'jostraca'
+import { each, getx, snakify } from 'jostraca'
+
+import { transform } from '@voxgig/struct'
 
 import type { TransformResult } from '../transform'
 
 import { fixName, OPKIND } from '../transform'
-
 
 
 const operationTransform = async function(
@@ -31,6 +32,17 @@ const operationTransform = async function(
     entity: any,
     model: any
   ) => {
+    // Rewrite /foo/{id}/bar as /foo/{foo_id}/bar
+    // Avoids ambiguity with bar id
+    if ('id' === paramDef.name) {
+      let m = path.key$.match(/\/([^\/]+)\/{id\}\/[^\/]/)
+
+      if (m) {
+        const parent = snakify(m[1])
+        paramDef.name = `${parent}_id`
+        opModel.path = path.key$.replace('{id}', '{' + paramDef.name + '}')
+      }
+    }
 
     const paramSpec: any = paramMap[paramDef.name] = {
       required: paramDef.required
@@ -269,7 +281,7 @@ const operationTransform = async function(
       const [reqform, reqform_COMMENT] =
         resolveTransform(entityModel, op, kind, 'reqform', pathdef)
 
-      const opModel = entityModel.op[opname] = {
+      const opModel = {
         path: path.key$,
         method,
         kind,
@@ -291,21 +303,46 @@ const operationTransform = async function(
 
       // Params are in the path
       if (0 < path.params$.length) {
-        let params = getx(pathdef[method], 'parameters?in=path') || []
-        if (Array.isArray(params)) {
-          params.reduce((a: any, p: any) =>
-          (paramBuilder(a, p, opModel, entityModel,
-            pathdef, op, path, entity, model), a), opModel.param)
-        }
+        let sharedparams = getx(pathdef, 'parameters?in=path') || []
+        let params = sharedparams.concat(
+          getx(pathdef[method], 'parameters?in=path') || []
+        )
+
+        // if (Array.isArray(params)) {
+        params.reduce((a: any, p: any) =>
+        (paramBuilder(a, p, opModel, entityModel,
+          pathdef, op, path, entity, model), a), opModel.param)
+        //}
       }
 
       // Queries are after the ?
-      let queries = getx(pathdef[op.val$], 'parameters?in!=path') || []
-      if (Array.isArray(queries)) {
-        queries.reduce((a: any, p: any) =>
-        (queryBuilder(a, p, opModel, entityModel,
-          pathdef, op, path, entity, model), a), opModel.query)
+      let sharedqueries = getx(pathdef, 'parameters?in!=path') || []
+      let queries = sharedqueries.concat(getx(pathdef[method], 'parameters?in!=path') || [])
+      queries.reduce((a: any, p: any) =>
+      (queryBuilder(a, p, opModel, entityModel,
+        pathdef, op, path, entity, model), a), opModel.query)
+
+      /*
+      if (null != entityModel.op[opname]) {
+        let existingOpModel = entityModel.op[opname]
+        const existingpath = existingOpModel.path
+        let pathlist: any[] = []
+
+        if (!Array.isArray(existingpath)) {
+          pathlist.push(makePathSelector(existingpath))
+        }
+        else {
+          pathlist = existingpath
+        }
+
+        pathlist.push(makePathSelector(existingpath))
+
+        opModel.path = pathlist
       }
+      */
+
+
+      entityModel.op[opname] = opModel
 
       return opModel
     },
@@ -333,6 +370,22 @@ const operationTransform = async function(
 
   }
 
+  /*
+    console.dir(
+      transform({ guide }, {
+        entity: {
+          '`$PACK`': ['guide.entity', {
+            '`$KEY`': 'name',
+            op: {
+              // load: ['`$IF`', ['`$SELECT`',{path:{'`$ANY`':{op:{load:'`$EXISTS`'}}}}], {
+              load: ['`$IF`', 'path.*.op.load', {
+                path: () => 'foo'
+              }]
+            }
+          }]
+        }
+      }), { depth: null })
+  */
 
   each(guide.entity, (guideEntity: any) => {
     let opcount = 0
@@ -354,6 +407,18 @@ const operationTransform = async function(
   })
 
   return { ok: true, msg }
+}
+
+function makePathSelector(path: string) {
+  let out: any = { path }
+
+  for (const m of path.matchAll(/\/[^\/]+\/{([^}]+)\}/g)) {
+    out[m[1]] = true
+  }
+
+  console.log('PS', out)
+
+  return out
 }
 
 

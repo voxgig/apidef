@@ -168,7 +168,37 @@ main: api: entity: incident: {
         }
       }
 
-      query: {}
+      query: {
+        q: {
+          required: false,
+          name: "q",
+          Name: "Q",
+          NAME: "Q",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        limit: {
+          required: false,
+          name: "limit",
+          Name: "Limit",
+          NAME: "LIMIT",
+          type: "integer",
+          Type: "Integer",
+          TYPE: "INTEGER"
+        }
+
+        page: {
+          required: false,
+          name: "page",
+          Name: "Page",
+          NAME: "PAGE",
+          type: "integer",
+          Type: "Integer",
+          TYPE: "INTEGER"
+        }
+      }
 
 
       # resform derivation: default

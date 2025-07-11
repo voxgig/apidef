@@ -21,7 +21,27 @@ main: api: entity: count: {
         }
       }
 
-      query: {}
+      query: {
+        type: {
+          required: false,
+          name: "type",
+          Name: "Type",
+          NAME: "TYPE",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        state: {
+          required: false,
+          name: "state",
+          Name: "State",
+          NAME: "STATE",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
 
 
       # resform derivation: default
