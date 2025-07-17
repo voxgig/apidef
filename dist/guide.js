@@ -6,25 +6,44 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.resolveGuide = resolveGuide;
 const node_path_1 = __importDefault(require("node:path"));
 const jostraca_1 = require("jostraca");
+const struct_1 = require("@voxgig/struct");
 const heuristic01_1 = require("./guide/heuristic01");
+const utility_1 = require("./utility");
+// Log non-fatal wierdness.
+const dlog = (0, utility_1.getdlog)('apidef', __filename);
 async function resolveGuide(ctx) {
-    let guide = ctx.model.main.api.guide;
+    let baseguide = {};
+    let override = ctx.model.main.api.guide;
     if ('heuristic01' === ctx.opts.strategy) {
-        guide = await (0, heuristic01_1.heuristic01)(ctx);
+        baseguide = await (0, heuristic01_1.heuristic01)(ctx);
     }
     else {
         throw new Error('Unknown guide strategy: ' + ctx.opts.strategy);
     }
+    // Override generated base guide with custom hints 
+    let guide = (0, struct_1.merge)([{}, baseguide, override]);
+    // TODO: this is a hack!!!
+    // Instead, update @voxgig/model, so that builders can request a reload of the entire
+    // model. This allows builders to modify the model for later buidlers
+    // during a single generation pass.
     guide = cleanGuide(guide);
-    ctx.model.main.api.guide = guide;
-    const guideFile = node_path_1.default.join(ctx.opts.folder, (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'guide.jsonic');
+    // TODO: FIX: sdk.jsonic should have final version of guide
+    if (ctx.model.main?.api) {
+        ctx.model.main.api.guide = guide;
+    }
+    else {
+        dlog('missing', 'ctx.model.main.api');
+    }
+    dlog('missing', 'ctx.model.main.api');
+    const guideFile = node_path_1.default.join(ctx.opts.folder, (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'base-guide.jsonic');
     const guideBlocks = [
         '# Guide',
         '',
         'main: api: guide: { ',
         '',
     ];
-    guideBlocks.push(...(0, jostraca_1.each)(guide.entity, (entity, entityname) => {
+    // guideBlocks.push(...each(guide.entity, (entity, entityname) => {
+    guideBlocks.push(...(0, jostraca_1.each)(baseguide.entity, (entity, entityname) => {
         guideBlocks.push(`\nentity: ${entityname}: {`);
         (0, jostraca_1.each)(entity.path, (path, pathname) => {
             guideBlocks.push(`  path: '${pathname}': op: {`);
@@ -41,7 +60,8 @@ async function resolveGuide(ctx) {
     guideBlocks.push('}');
     const guideSrc = guideBlocks.join('\n');
     return () => {
-        (0, jostraca_1.File)({ name: node_path_1.default.basename(guideFile) }, () => (0, jostraca_1.Content)(guideSrc));
+        // Save base guide for reference
+        (0, jostraca_1.File)({ name: '../def/' + node_path_1.default.basename(guideFile) }, () => (0, jostraca_1.Content)(guideSrc));
     };
 }
 function cleanGuide(guide) {

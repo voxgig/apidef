@@ -3,27 +3,55 @@ import Path from 'node:path'
 
 import { File, Content, each } from 'jostraca'
 
+import { merge } from '@voxgig/struct'
+
 
 import { heuristic01 } from './guide/heuristic01'
 
+import {
+  getdlog,
+} from './utility'
+
+
+// Log non-fatal wierdness.
+const dlog = getdlog('apidef', __filename)
 
 async function resolveGuide(ctx: any) {
-  let guide: Record<string, any> = ctx.model.main.api.guide
+  let baseguide: Record<string, any> = {}
+  let override: Record<string, any> = ctx.model.main.api.guide
 
   if ('heuristic01' === ctx.opts.strategy) {
-    guide = await heuristic01(ctx)
+    baseguide = await heuristic01(ctx)
   }
   else {
     throw new Error('Unknown guide strategy: ' + ctx.opts.strategy)
   }
 
+  // Override generated base guide with custom hints 
+  let guide = merge([{}, baseguide, override])
+
+  // TODO: this is a hack!!!
+  // Instead, update @voxgig/model, so that builders can request a reload of the entire
+  // model. This allows builders to modify the model for later buidlers
+  // during a single generation pass.
+
+
   guide = cleanGuide(guide)
 
-  ctx.model.main.api.guide = guide
+
+  // TODO: FIX: sdk.jsonic should have final version of guide
+  if (ctx.model.main?.api) {
+    ctx.model.main.api.guide = guide
+  }
+  else {
+    dlog('missing', 'ctx.model.main.api')
+  }
+
+  dlog('missing', 'ctx.model.main.api')
 
   const guideFile =
     Path.join(ctx.opts.folder,
-      (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'guide.jsonic')
+      (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'base-guide.jsonic')
 
   const guideBlocks = [
     '# Guide',
@@ -33,7 +61,8 @@ async function resolveGuide(ctx: any) {
   ]
 
 
-  guideBlocks.push(...each(guide.entity, (entity, entityname) => {
+  // guideBlocks.push(...each(guide.entity, (entity, entityname) => {
+  guideBlocks.push(...each(baseguide.entity, (entity, entityname) => {
     guideBlocks.push(`\nentity: ${entityname}: {`)
 
     each(entity.path, (path, pathname) => {
@@ -58,8 +87,8 @@ async function resolveGuide(ctx: any) {
   const guideSrc = guideBlocks.join('\n')
 
   return () => {
-    File({ name: Path.basename(guideFile) }, () => Content(guideSrc))
-
+    // Save base guide for reference
+    File({ name: '../def/' + Path.basename(guideFile) }, () => Content(guideSrc))
   }
 }
 

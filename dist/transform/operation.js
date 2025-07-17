@@ -3,21 +3,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.operationTransform = void 0;
 const jostraca_1 = require("jostraca");
 const transform_1 = require("../transform");
+const utility_1 = require("../utility");
 const operationTransform = async function (ctx) {
     const { apimodel, model, def } = ctx;
     const guide = model.main.api.guide;
     let msg = 'operations: ';
     const paramBuilder = (paramMap, paramDef, opModel, entityModel, pathdef, op, path, entity, model) => {
-        // Rewrite /foo/{id}/bar as /foo/{foo_id}/bar
-        // Avoids ambiguity with bar id
-        if ('id' === paramDef.name) {
-            let m = path.key$.match(/\/([^\/]+)\/{id\}\/[^\/]/);
-            if (m) {
-                const parent = (0, jostraca_1.snakify)(m[1]);
-                paramDef.name = `${parent}_id`;
-                opModel.path = path.key$.replace('{id}', '{' + paramDef.name + '}');
-            }
-        }
         const paramSpec = paramMap[paramDef.name] = {
             required: paramDef.required
         };
@@ -28,6 +19,7 @@ const operationTransform = async function (ctx) {
         opModel.validate.params[paramDef.name] = `\`$${paramSpec.TYPE}\``;
     };
     const queryBuilder = (queryMap, queryDef, opModel, entityModel, pathdef, op, path, entity, model) => {
+        // console.log('queryDef', queryDef)
         const querySpec = queryMap[queryDef.name] = {
             required: queryDef.required
         };
@@ -73,7 +65,8 @@ const operationTransform = async function (ctx) {
     const resolveResponseTransform = (entityModel, op, kind, direction, method, mdef, content, schema, propkeys) => {
         let why = 'default';
         let transform = '`body`';
-        if (null == content || null == schema || null == propkeys) {
+        const properties = schema?.properties;
+        if (null == content || null == schema || null == propkeys || null == properties) {
             return transform;
         }
         const opname = op.key$;
@@ -86,9 +79,10 @@ const operationTransform = async function (ctx) {
                 else {
                     // Use sub property that is an array
                     for (let pk of propkeys) {
-                        if ('array' === schema.properties[pk]?.type) {
+                        if ('array' === properties[pk]?.type) {
                             why = 'list-single-array:' + pk;
                             transform = '`body.' + pk + '`';
+                            // TODO: if each item has prop === name of entity, use that, get with $EACH
                             break;
                         }
                     }
@@ -97,14 +91,14 @@ const operationTransform = async function (ctx) {
         }
         else {
             if ('object' === schema.type) {
-                if (null == schema.properties.id) {
+                if (null == properties.id) {
                     if (1 === propkeys.length) {
                         why = 'map-single-prop:' + propkeys[0];
                         transform = '`body.' + propkeys[0] + '`';
                     }
                     else {
                         for (let pk of propkeys) {
-                            if (schema.properties[pk].properties?.id) {
+                            if (properties[pk]?.properties?.id) {
                                 why = 'map-sub-prop:' + pk;
                                 transform = '`body.' + pk + '`';
                                 break;
@@ -119,7 +113,8 @@ const operationTransform = async function (ctx) {
     const resolveRequestTransform = (entityModel, op, kind, direction, method, mdef, content, schema, propkeys) => {
         let transform = '`data`';
         let why = 'default';
-        if (null == content || null == schema || null == propkeys) {
+        const properties = schema?.properties;
+        if (null == content || null == schema || null == propkeys || null == properties) {
             return transform;
         }
         const opname = op.key$;
@@ -132,7 +127,7 @@ const operationTransform = async function (ctx) {
                 else {
                     // Use sub property that is an array
                     for (let pk of propkeys) {
-                        if ('array' === schema.properties[pk]?.type) {
+                        if ('array' === properties[pk]?.type) {
                             why = 'list-single-array:' + pk;
                             transform = { [pk]: '`data`' };
                             break;
@@ -143,14 +138,14 @@ const operationTransform = async function (ctx) {
         }
         else {
             if ('object' === schema.type) {
-                if (null == schema.properties.id) {
+                if (null == properties.id) {
                     if (1 === propkeys.length) {
                         why = 'map-single-prop:' + propkeys[0];
                         transform = { [propkeys[0]]: '`data`' };
                     }
                     else {
                         for (let pk of propkeys) {
-                            if (schema.properties[pk].properties?.id) {
+                            if (properties[pk]?.properties?.id) {
                                 why = 'map-sub-prop:' + pk;
                                 transform = { [pk]: '`data`' };
                                 break;
@@ -171,6 +166,7 @@ const operationTransform = async function (ctx) {
             const [reqform, reqform_COMMENT] = resolveTransform(entityModel, op, kind, 'reqform', pathdef);
             const opModel = {
                 path: path.key$,
+                pathalt: [],
                 method,
                 kind,
                 param: {},
@@ -184,10 +180,11 @@ const operationTransform = async function (ctx) {
                 }
             };
             (0, transform_1.fixName)(opModel, op.key$);
+            let params = [];
             // Params are in the path
             if (0 < path.params$.length) {
                 let sharedparams = (0, jostraca_1.getx)(pathdef, 'parameters?in=path') || [];
-                let params = sharedparams.concat((0, jostraca_1.getx)(pathdef[method], 'parameters?in=path') || []);
+                params = sharedparams.concat((0, jostraca_1.getx)(pathdef[method], 'parameters?in=path') || []);
                 // if (Array.isArray(params)) {
                 params.reduce((a, p) => (paramBuilder(a, p, opModel, entityModel, pathdef, op, path, entity, model), a), opModel.param);
                 //}
@@ -196,24 +193,34 @@ const operationTransform = async function (ctx) {
             let sharedqueries = (0, jostraca_1.getx)(pathdef, 'parameters?in!=path') || [];
             let queries = sharedqueries.concat((0, jostraca_1.getx)(pathdef[method], 'parameters?in!=path') || []);
             queries.reduce((a, p) => (queryBuilder(a, p, opModel, entityModel, pathdef, op, path, entity, model), a), opModel.query);
-            /*
+            let pathalt = [];
+            const pathselector = makePathSelector(path.key$); // , params)
+            let before = false;
             if (null != entityModel.op[opname]) {
-              let existingOpModel = entityModel.op[opname]
-              const existingpath = existingOpModel.path
-              let pathlist: any[] = []
-      
-              if (!Array.isArray(existingpath)) {
-                pathlist.push(makePathSelector(existingpath))
-              }
-              else {
-                pathlist = existingpath
-              }
-      
-              pathlist.push(makePathSelector(existingpath))
-      
-              opModel.path = pathlist
+                pathalt = entityModel.op[opname].pathalt;
+                // Ordering for pathalts: most to least paramrs, then alphanumberic
+                for (let i = 0; i < pathalt.length; i++) {
+                    let current = pathalt[i];
+                    before =
+                        pathselector.pn$ > current.pn$ ||
+                            (pathselector.pn$ === current.pn$ &&
+                                pathselector.path <= current.path);
+                    if (before) {
+                        pathalt = [
+                            ...pathalt.slice(0, i),
+                            pathselector,
+                            ...pathalt.slice(i),
+                        ];
+                        break;
+                    }
+                }
             }
-            */
+            if (!before) {
+                pathalt.push(pathselector);
+            }
+            opModel.path = pathalt[pathalt.length - 1].path;
+            opModel.pathalt = pathalt;
+            // console.log(opModel.pathalt)
             entityModel.op[opname] = opModel;
             return opModel;
         },
@@ -268,11 +275,19 @@ const operationTransform = async function (ctx) {
 };
 exports.operationTransform = operationTransform;
 function makePathSelector(path) {
+    // console.log('MPS', path, params)
     let out = { path };
+    let pn$ = 0;
     for (const m of path.matchAll(/\/[^\/]+\/{([^}]+)\}/g)) {
+        const paramName = (0, utility_1.depluralize)((0, jostraca_1.snakify)(m[1]));
         out[m[1]] = true;
+        pn$++;
     }
-    console.log('PS', out);
+    out.pn$ = pn$;
+    // for (let p of params) {
+    //   setprop(out, p.name, getprop(out, p.name, false))
+    //   console.log('SP', p.name, out[p.name])
+    // }
     return out;
 }
 //# sourceMappingURL=operation.js.map

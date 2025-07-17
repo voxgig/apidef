@@ -1,8 +1,25 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.getdlog = getdlog;
 exports.loadFile = loadFile;
 exports.formatJsonSrc = formatJsonSrc;
 exports.depluralize = depluralize;
+const node_path_1 = __importDefault(require("node:path"));
+function getdlog(tagin, filepath) {
+    const tag = tagin || '-';
+    const file = node_path_1.default.basename(filepath || '-');
+    const g = global;
+    g.__dlog__ = (g.__dlog__ || []);
+    const dlog = (...args) => g.__dlog__.push([tag, file, Date.now(), ...args]);
+    dlog.tag = tag;
+    dlog.file = file;
+    dlog.log = (filepath, f) => (f = null == filepath ? null : node_path_1.default.basename(filepath),
+        g.__dlog__.filter((n) => n[0] === tag && (null == f || n[2] === f)));
+    return dlog;
+}
 function loadFile(path, what, fs, log) {
     try {
         const source = fs.readFileSync(path, 'utf8');

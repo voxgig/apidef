@@ -16,11 +16,6 @@ type TransformResult = {
     transform?: any;
 };
 type Transform = (ctx: TransformCtx, guide: Guide, tspec: TransformSpec, apimodel: any, def: any) => Promise<TransformResult>;
-type ProcessResult = {
-    ok: boolean;
-    msg: string;
-    results: TransformResult[];
-};
 declare const OPKIND: any;
 declare const GuideShape: {
     <V>(root?: V | undefined, ctx?: import("gubu").Context): V & {
@@ -88,8 +83,6 @@ declare const GuideShape: {
     };
 };
 type Guide = ReturnType<typeof GuideShape>;
-declare function resolveTransforms(ctx: TransformCtx): Promise<TransformSpec>;
-declare function processTransforms(ctx: TransformCtx, transforms: any[], apimodel: any, def: any): Promise<ProcessResult>;
 declare function fixName(base: any, name: string, prop?: string): void;
 export type { TransformCtx, TransformSpec, Transform, TransformResult, Guide, };
-export { fixName, OPKIND, GuideShape, resolveTransforms, processTransforms, };
+export { fixName, OPKIND, GuideShape, };

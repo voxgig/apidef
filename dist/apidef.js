@@ -54,8 +54,11 @@ const top_1 = require("./transform/top");
 const entity_1 = require("./transform/entity");
 const operation_1 = require("./transform/operation");
 const field_1 = require("./transform/field");
+const clean_1 = require("./transform/clean");
 const entity_2 = require("./builder/entity");
 const flow_1 = require("./builder/flow");
+// Log non-fatal wierdness.
+const dlog = (0, utility_1.getdlog)('apidef', __filename);
 function ApiDef(opts) {
     // TODO: gubu opts!
     const fs = opts.fs || Fs;
@@ -64,6 +67,7 @@ function ApiDef(opts) {
     opts.strategy = opts.strategy || 'heuristic01';
     async function generate(spec) {
         const start = Date.now();
+        dlog('start');
         const model = (0, types_1.OpenModelShape)(spec.model);
         const build = (0, types_1.OpenBuildShape)(spec.build);
         (0, jostraca_1.names)(model, model.name);
@@ -96,7 +100,9 @@ function ApiDef(opts) {
             def: undefined
         };
         const defsrc = (0, utility_1.loadFile)(defpath, 'def', fs, log);
-        const def = await (0, parse_1.parse)('OpenAPI', defsrc, { file: defpath });
+        let def = await (0, parse_1.parse)('OpenAPI', defsrc, { file: defpath });
+        def = (0, parse_1.rewrite)(def);
+        fs.writeFileSync(defpath + '.full.json', JSON.stringify(def, null, 2));
         ctx.def = def;
         const guideBuilder = await (0, guide_1.resolveGuide)(ctx);
         // const transformSpec = await resolveTransforms(ctx)
@@ -105,6 +111,7 @@ function ApiDef(opts) {
             entity: entity_1.entityTransform,
             operation: operation_1.operationTransform,
             field: field_1.fieldTransform,
+            clean: clean_1.cleanTransform,
         });
         const builders = await (0, resolver_1.resolveElements)(ctx, 'builder', 'standard', {
             entity: entity_2.makeEntityBuilder,
@@ -131,6 +138,9 @@ function ApiDef(opts) {
             existing: { txt: { merge: true } }
         }, root);
         log.info({ point: 'generate-end', note: 'success', break: true });
+        dlog('end');
+        console.log('DLOG');
+        console.dir(dlog.log());
         return {
             ok: true,
             name: 'apidef',

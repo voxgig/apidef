@@ -28,7 +28,8 @@ import {
 
 
 import {
-  parse
+  parse,
+  rewrite,
 } from './parse'
 
 
@@ -44,19 +45,24 @@ import {
 
 import {
   loadFile,
+  getdlog,
 } from './utility'
-
 
 import { topTransform } from './transform/top'
 import { entityTransform } from './transform/entity'
 import { operationTransform } from './transform/operation'
 import { fieldTransform } from './transform/field'
+import { cleanTransform } from './transform/clean'
 
 import { makeEntityBuilder } from './builder/entity'
 import { makeFlowBuilder } from './builder/flow'
 
+// Log non-fatal wierdness.
+const dlog = getdlog('apidef', __filename)
+
 
 function ApiDef(opts: ApiDefOptions) {
+
 
   // TODO: gubu opts!
   const fs = opts.fs || Fs
@@ -68,6 +74,7 @@ function ApiDef(opts: ApiDefOptions) {
 
   async function generate(spec: any) {
     const start = Date.now()
+    dlog('start')
 
     const model: Model = OpenModelShape(spec.model)
     const build: Build = OpenBuildShape(spec.build)
@@ -110,8 +117,14 @@ function ApiDef(opts: ApiDefOptions) {
 
     const defsrc = loadFile(defpath, 'def', fs, log)
 
-    const def = await parse('OpenAPI', defsrc, { file: defpath })
+    let def = await parse('OpenAPI', defsrc, { file: defpath })
+
+    def = rewrite(def)
+
+    fs.writeFileSync(defpath + '.full.json', JSON.stringify(def, null, 2))
+
     ctx.def = def
+
 
     const guideBuilder = await resolveGuide(ctx)
 
@@ -122,6 +135,7 @@ function ApiDef(opts: ApiDefOptions) {
       entity: entityTransform,
       operation: operationTransform,
       field: fieldTransform,
+      clean: cleanTransform,
     })
 
     const builders = await resolveElements(ctx, 'builder', 'standard', {
@@ -156,6 +170,10 @@ function ApiDef(opts: ApiDefOptions) {
     }, root)
 
     log.info({ point: 'generate-end', note: 'success', break: true })
+
+    dlog('end')
+    console.log('DLOG')
+    console.dir(dlog.log())
 
     return {
       ok: true,

@@ -79,6 +79,7 @@ const GuideShape = Gubu({
 type Guide = ReturnType<typeof GuideShape>
 
 
+/*
 async function resolveTransforms(ctx: TransformCtx): Promise<TransformSpec> {
   const { log, model: { main: { api: { guide } } } } = ctx
 
@@ -89,27 +90,27 @@ async function resolveTransforms(ctx: TransformCtx): Promise<TransformSpec> {
   // TODO: parameterize
   const defkind = 'openapi'
   const transformNames = guide.control.transform[defkind].order
-    .split(/\s*,\s*/)
+    .split(/\s*,\s* /)
     .map((t: string) => t.trim())
-    .filter((t: string) => '' != t)
+  .filter((t: string) => '' != t)
 
-  log.info({
-    point: 'transform', note: 'order: ' + transformNames.join(';'),
-    order: transformNames
-  })
+log.info({
+  point: 'transform', note: 'order: ' + transformNames.join(';'),
+  order: transformNames
+})
 
-  try {
-    for (const tn of transformNames) {
-      log.debug({ what: 'transform', transform: tn, note: tn })
-      const transform = await resolveTransform(tn, ctx)
-      tspec.transform.push(transform)
-    }
+try {
+  for (const tn of transformNames) {
+    log.debug({ what: 'transform', transform: tn, note: tn })
+    const transform = await resolveTransform(tn, ctx)
+    tspec.transform.push(transform)
   }
-  catch (err: any) {
-    throw err
-  }
+}
+catch (err: any) {
+  throw err
+}
 
-  return tspec
+return tspec
 }
 
 
@@ -195,13 +196,19 @@ async function processTransforms(
 
   return pres
 }
+*/
 
 
 
 function fixName(base: any, name: string, prop = 'name') {
-  base[prop.toLowerCase()] = name.toLowerCase()
-  base[camelify(prop)] = camelify(name)
-  base[prop.toUpperCase()] = name.toUpperCase()
+  if (null != base && 'object' === typeof base && 'string' === typeof name) {
+    base[prop.toLowerCase()] = name.toLowerCase()
+    base[camelify(prop)] = camelify(name)
+    base[prop.toUpperCase()] = name.toUpperCase()
+  }
+  else {
+    // record to a "wierds" log
+  }
 }
 
 
@@ -221,6 +228,6 @@ export {
   fixName,
   OPKIND,
   GuideShape,
-  resolveTransforms,
-  processTransforms,
+  // resolveTransforms,
+  // processTransforms,
 }

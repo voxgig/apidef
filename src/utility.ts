@@ -8,6 +8,26 @@ import type {
 } from './types'
 
 
+function getdlog(
+  tagin?: string,
+  filepath?: string)
+  : ((...args: any[]) => void) &
+  { tag: string, file: string, log: (fp?: string) => any[] } {
+  const tag = tagin || '-'
+  const file = Path.basename(filepath || '-')
+  const g = global as any
+  g.__dlog__ = (g.__dlog__ || [])
+  const dlog = (...args: any[]) =>
+    g.__dlog__.push([tag, file, Date.now(), ...args])
+  dlog.tag = tag
+  dlog.file = file
+  dlog.log = (filepath?: string, f?: string | null) =>
+  (f = null == filepath ? null : Path.basename(filepath),
+    g.__dlog__.filter((n: any[]) => n[0] === tag && (null == f || n[2] === f)))
+  return dlog
+}
+
+
 function loadFile(path: string, what: string, fs: FsUtil, log: Log) {
   try {
     const source = fs.readFileSync(path, 'utf8')
@@ -166,6 +186,7 @@ function writeChanged(
 
 
 export {
+  getdlog,
   loadFile,
   formatJsonSrc,
   depluralize,

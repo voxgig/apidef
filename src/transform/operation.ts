@@ -2,11 +2,13 @@
 
 import { each, getx, snakify } from 'jostraca'
 
-import { transform } from '@voxgig/struct'
+import { transform, setprop, getprop } from '@voxgig/struct'
 
 import type { TransformResult } from '../transform'
 
 import { fixName, OPKIND } from '../transform'
+
+import { depluralize } from '../utility'
 
 
 const operationTransform = async function(
@@ -32,18 +34,6 @@ const operationTransform = async function(
     entity: any,
     model: any
   ) => {
-    // Rewrite /foo/{id}/bar as /foo/{foo_id}/bar
-    // Avoids ambiguity with bar id
-    if ('id' === paramDef.name) {
-      let m = path.key$.match(/\/([^\/]+)\/{id\}\/[^\/]/)
-
-      if (m) {
-        const parent = snakify(m[1])
-        paramDef.name = `${parent}_id`
-        opModel.path = path.key$.replace('{id}', '{' + paramDef.name + '}')
-      }
-    }
-
     const paramSpec: any = paramMap[paramDef.name] = {
       required: paramDef.required
     }
@@ -68,6 +58,8 @@ const operationTransform = async function(
     entity: any,
     model: any
   ) => {
+    // console.log('queryDef', queryDef)
+
     const querySpec: any = queryMap[queryDef.name] = {
       required: queryDef.required
     }
@@ -158,8 +150,9 @@ const operationTransform = async function(
   ) => {
     let why = 'default'
     let transform: any = '`body`'
+    const properties = schema?.properties
 
-    if (null == content || null == schema || null == propkeys) {
+    if (null == content || null == schema || null == propkeys || null == properties) {
       return transform
     }
 
@@ -174,9 +167,12 @@ const operationTransform = async function(
         else {
           // Use sub property that is an array
           for (let pk of propkeys) {
-            if ('array' === schema.properties[pk]?.type) {
+            if ('array' === properties[pk]?.type) {
               why = 'list-single-array:' + pk
               transform = '`body.' + pk + '`'
+
+              // TODO: if each item has prop === name of entity, use that, get with $EACH
+
               break
             }
           }
@@ -185,14 +181,14 @@ const operationTransform = async function(
     }
     else {
       if ('object' === schema.type) {
-        if (null == schema.properties.id) {
+        if (null == properties.id) {
           if (1 === propkeys.length) {
             why = 'map-single-prop:' + propkeys[0]
             transform = '`body.' + propkeys[0] + '`'
           }
           else {
             for (let pk of propkeys) {
-              if (schema.properties[pk].properties?.id) {
+              if (properties[pk]?.properties?.id) {
                 why = 'map-sub-prop:' + pk
                 transform = '`body.' + pk + '`'
                 break
@@ -220,8 +216,9 @@ const operationTransform = async function(
   ) => {
     let transform: any = '`data`'
     let why = 'default'
+    const properties = schema?.properties
 
-    if (null == content || null == schema || null == propkeys) {
+    if (null == content || null == schema || null == propkeys || null == properties) {
       return transform
     }
 
@@ -236,7 +233,7 @@ const operationTransform = async function(
         else {
           // Use sub property that is an array
           for (let pk of propkeys) {
-            if ('array' === schema.properties[pk]?.type) {
+            if ('array' === properties[pk]?.type) {
               why = 'list-single-array:' + pk
               transform = { [pk]: '`data`' }
               break
@@ -247,14 +244,14 @@ const operationTransform = async function(
     }
     else {
       if ('object' === schema.type) {
-        if (null == schema.properties.id) {
+        if (null == properties.id) {
           if (1 === propkeys.length) {
             why = 'map-single-prop:' + propkeys[0]
             transform = { [propkeys[0]]: '`data`' }
           }
           else {
             for (let pk of propkeys) {
-              if (schema.properties[pk].properties?.id) {
+              if (properties[pk]?.properties?.id) {
                 why = 'map-sub-prop:' + pk
                 transform = { [pk]: '`data`' }
                 break
@@ -283,6 +280,8 @@ const operationTransform = async function(
 
       const opModel = {
         path: path.key$,
+        pathalt: ([] as any[]),
+
         method,
         kind,
         param: {},
@@ -301,10 +300,12 @@ const operationTransform = async function(
 
       fixName(opModel, op.key$)
 
+      let params: any[] = []
+
       // Params are in the path
       if (0 < path.params$.length) {
         let sharedparams = getx(pathdef, 'parameters?in=path') || []
-        let params = sharedparams.concat(
+        params = sharedparams.concat(
           getx(pathdef[method], 'parameters?in=path') || []
         )
 
@@ -322,25 +323,40 @@ const operationTransform = async function(
       (queryBuilder(a, p, opModel, entityModel,
         pathdef, op, path, entity, model), a), opModel.query)
 
-      /*
+      let pathalt: any[] = []
+      const pathselector = makePathSelector(path.key$) // , params)
+      let before = false
+
       if (null != entityModel.op[opname]) {
-        let existingOpModel = entityModel.op[opname]
-        const existingpath = existingOpModel.path
-        let pathlist: any[] = []
+        pathalt = entityModel.op[opname].pathalt
 
-        if (!Array.isArray(existingpath)) {
-          pathlist.push(makePathSelector(existingpath))
+        // Ordering for pathalts: most to least paramrs, then alphanumberic
+        for (let i = 0; i < pathalt.length; i++) {
+          let current = pathalt[i]
+          before =
+            pathselector.pn$ > current.pn$ ||
+            (pathselector.pn$ === current.pn$ &&
+              pathselector.path <= current.path)
+
+          if (before) {
+            pathalt = [
+              ...pathalt.slice(0, i),
+              pathselector,
+              ...pathalt.slice(i),
+            ]
+            break
+          }
         }
-        else {
-          pathlist = existingpath
-        }
-
-        pathlist.push(makePathSelector(existingpath))
-
-        opModel.path = pathlist
       }
-      */
 
+      if (!before) {
+        pathalt.push(pathselector)
+      }
+
+      opModel.path = pathalt[pathalt.length - 1].path
+      opModel.pathalt = pathalt
+
+      // console.log(opModel.pathalt)
 
       entityModel.op[opname] = opModel
 
@@ -401,6 +417,8 @@ const operationTransform = async function(
           opcount++
         }
       })
+
+
     })
 
     msg += guideEntity.name + '=' + opcount + ' '
@@ -409,14 +427,23 @@ const operationTransform = async function(
   return { ok: true, msg }
 }
 
-function makePathSelector(path: string) {
+
+function makePathSelector(path: string) { // , params: any[]) {
+  // console.log('MPS', path, params)
   let out: any = { path }
 
+  let pn$ = 0
   for (const m of path.matchAll(/\/[^\/]+\/{([^}]+)\}/g)) {
+    const paramName = depluralize(snakify(m[1]))
     out[m[1]] = true
+    pn$++
   }
+  out.pn$ = pn$
 
-  console.log('PS', out)
+  // for (let p of params) {
+  //   setprop(out, p.name, getprop(out, p.name, false))
+  //   console.log('SP', p.name, out[p.name])
+  // }
 
   return out
 }
