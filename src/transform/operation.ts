@@ -58,8 +58,6 @@ const operationTransform = async function(
     entity: any,
     model: any
   ) => {
-    // console.log('queryDef', queryDef)
-
     const querySpec: any = queryMap[queryDef.name] = {
       required: queryDef.required
     }
@@ -147,13 +145,13 @@ const operationTransform = async function(
     content: any,
     schema: any,
     propkeys: any
-  ) => {
+  ): [any, string] => {
     let why = 'default'
     let transform: any = '`body`'
     const properties = schema?.properties
 
     if (null == content || null == schema || null == propkeys || null == properties) {
-      return transform
+      return [transform, why]
     }
 
     const opname = op.key$
@@ -213,13 +211,13 @@ const operationTransform = async function(
     content: any,
     schema: any,
     propkeys: any
-  ) => {
+  ): [any, string] => {
     let transform: any = '`data`'
     let why = 'default'
     const properties = schema?.properties
 
     if (null == content || null == schema || null == propkeys || null == properties) {
-      return transform
+      return [transform, why]
     }
 
     const opname = op.key$
@@ -356,8 +354,6 @@ const operationTransform = async function(
       opModel.path = pathalt[pathalt.length - 1].path
       opModel.pathalt = pathalt
 
-      // console.log(opModel.pathalt)
-
       entityModel.op[opname] = opModel
 
       return opModel
@@ -429,13 +425,12 @@ const operationTransform = async function(
 
 
 function makePathSelector(path: string) { // , params: any[]) {
-  // console.log('MPS', path, params)
   let out: any = { path }
 
   let pn$ = 0
   for (const m of path.matchAll(/\/[^\/]+\/{([^}]+)\}/g)) {
     const paramName = depluralize(snakify(m[1]))
-    out[m[1]] = true
+    out[paramName] = true
     pn$++
   }
   out.pn$ = pn$

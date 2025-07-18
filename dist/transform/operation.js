@@ -19,7 +19,6 @@ const operationTransform = async function (ctx) {
         opModel.validate.params[paramDef.name] = `\`$${paramSpec.TYPE}\``;
     };
     const queryBuilder = (queryMap, queryDef, opModel, entityModel, pathdef, op, path, entity, model) => {
-        // console.log('queryDef', queryDef)
         const querySpec = queryMap[queryDef.name] = {
             required: queryDef.required
         };
@@ -67,7 +66,7 @@ const operationTransform = async function (ctx) {
         let transform = '`body`';
         const properties = schema?.properties;
         if (null == content || null == schema || null == propkeys || null == properties) {
-            return transform;
+            return [transform, why];
         }
         const opname = op.key$;
         if ('list' === opname) {
@@ -115,7 +114,7 @@ const operationTransform = async function (ctx) {
         let why = 'default';
         const properties = schema?.properties;
         if (null == content || null == schema || null == propkeys || null == properties) {
-            return transform;
+            return [transform, why];
         }
         const opname = op.key$;
         if ('list' === opname) {
@@ -220,7 +219,6 @@ const operationTransform = async function (ctx) {
             }
             opModel.path = pathalt[pathalt.length - 1].path;
             opModel.pathalt = pathalt;
-            // console.log(opModel.pathalt)
             entityModel.op[opname] = opModel;
             return opModel;
         },
@@ -275,12 +273,11 @@ const operationTransform = async function (ctx) {
 };
 exports.operationTransform = operationTransform;
 function makePathSelector(path) {
-    // console.log('MPS', path, params)
     let out = { path };
     let pn$ = 0;
     for (const m of path.matchAll(/\/[^\/]+\/{([^}]+)\}/g)) {
         const paramName = (0, utility_1.depluralize)((0, jostraca_1.snakify)(m[1]));
-        out[m[1]] = true;
+        out[paramName] = true;
         pn$++;
     }
     out.pn$ = pn$;

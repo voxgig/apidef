@@ -47,8 +47,6 @@ async function resolveGuide(ctx: any) {
     dlog('missing', 'ctx.model.main.api')
   }
 
-  dlog('missing', 'ctx.model.main.api')
-
   const guideFile =
     Path.join(ctx.opts.folder,
       (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'base-guide.jsonic')
@@ -57,13 +55,13 @@ async function resolveGuide(ctx: any) {
     '# Guide',
     '',
     'main: api: guide: { ',
-    '',
+
   ]
 
 
-  // guideBlocks.push(...each(guide.entity, (entity, entityname) => {
   guideBlocks.push(...each(baseguide.entity, (entity, entityname) => {
-    guideBlocks.push(`\nentity: ${entityname}: {`)
+    guideBlocks.push(`
+entity: ${entityname}: {`)
 
     each(entity.path, (path, pathname) => {
       guideBlocks.push(`  path: '${pathname}': op: {`)
@@ -99,7 +97,19 @@ function cleanGuide(guide: Record<string, any>): Record<string, any> {
     entity: {}
   }
 
+  const exclude_entity = guide.exclude?.entity?.split(',')
+  const include_entity = guide.include?.entity?.split(',')
+
   each(guide.entity, (entity: any, name: string) => {
+    if (exclude_entity.includes(name)) {
+      return
+    }
+    if (exclude_entity.includes('*')) {
+      if (!include_entity.includes(name)) {
+        return
+      }
+    }
+
     let ent: any = clean.entity[name] = clean.entity[name] = { name, path: {} }
 
     each(entity.path, (path: any, pathname: string) => {

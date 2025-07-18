@@ -37,16 +37,13 @@ function fieldbuild(entityModel, pathdef, op, path, entity, model) {
             fieldSets = [fieldSets];
         }
     }
-    // console.log('FIELD-DEF', entityModel, pathdef.get)
     (0, jostraca_1.each)(fieldSets, (fieldSet) => {
         (0, jostraca_1.each)(fieldSet.properties, (property) => {
             const field = (entityModel.field[property.key$] = entityModel.field[property.key$] || {});
-            // console.log('PROPERTY', property)
             field.name = property.key$;
             (0, transform_1.fixName)(field, field.name);
             // field.type = property.type
             resolveFieldType(entityModel, field, property);
-            // console.log('FIELD', field)
             (0, transform_1.fixName)(field, field.type, 'type');
             field.short = property.description;
             fieldCount++;

@@ -2,8 +2,13 @@
 
 import { each, snakify, names } from 'jostraca'
 
+import { size } from '@voxgig/struct'
 
-import { depluralize } from '../utility'
+
+import {
+  depluralize,
+  getdlog
+} from '../utility'
 
 
 type EntityDesc = {
@@ -19,9 +24,11 @@ type EntityPathDesc = {
   op: Record<string, any>
 }
 
+// Log non-fatal wierdness.
+const dlog = getdlog('apidef', __filename)
+
 async function heuristic01(ctx: any): Promise<Record<string, any>> {
   let guide = ctx.model.main.api.guide
-
 
   const entityDescs = resolveEntityDescs(ctx)
 
@@ -68,16 +75,12 @@ function resolveEntityDescs(ctx: any) {
       each(pathDef, (methodDef: any, methodStr: string) => {
         methodStr = methodStr.toLowerCase()
 
+
         if (!METHOD_IDOP[methodStr]) {
           return
         }
 
         const entdesc = resolveEntity(entityDescs, pathDef, pathStr, methodDef, methodStr)
-
-        if ('/v2/users/{user_id}/enrollment' === pathStr) {
-          console.log('QQQ', pathStr, methodStr, METHOD_IDOP[methodStr])
-          console.dir(entdesc, { depth: null })
-        }
 
         if (null == entdesc) {
           console.log(
@@ -91,15 +94,15 @@ function resolveEntityDescs(ctx: any) {
         //   console.dir(ent2, { depth: null })
         // }
 
-        let opname = METHOD_IDOP[methodStr]
-        if (null == opname) return;
+        let opname = resolveOpName(methodStr, methodDef, pathStr, entdesc)
 
-        const islist = isListResponse(methodDef)
-        // console.log('ISLIST', pathStr, methodStr, islist)
-
-        if ('load' === opname && islist) {
-          opname = 'list'
+        if (null == opname) {
+          console.log(
+            'WARNING: unable to resolve operation for method ' + methodStr +
+            ' path ' + pathStr)
+          return
         }
+
 
         const transform: Record<string, any> = {
           // reqform: '`reqdata`',
@@ -192,6 +195,10 @@ function resolveEntityDescs(ctx: any) {
       */
   })
 
+
+  console.log('USER')
+  console.dir(entityDescs.user, { depth: null })
+
   return entityDescs
 }
 
@@ -244,7 +251,7 @@ function resolveEntity(
 
 
   // entdesc.plural = origentname
-  // entdesc.origname = origentname
+  entdesc.origname = origentname
 
   names(entdesc, entname)
 
@@ -316,9 +323,26 @@ function resolveComponentName(
 }
 
 
+function resolveOpName(methodStr: string, methodDef: any, pathStr: string, entdesc: EntityDesc)
+  : string | undefined {
+
+  let opname = METHOD_IDOP[methodStr]
+  if (null == opname) return;
+
+  if ('load' === opname) {
+    const islist = isListResponse(methodDef, pathStr, entdesc)
+    console.log('ISLIST', pathStr, methodStr, islist)
+    opname = islist ? 'list' : opname
+  }
+
+  return opname
+}
+
 
 function isListResponse(
   methodDef: Record<string, any>,
+  pathStr: string,
+  entdesc: EntityDesc
 ): boolean {
   const responses = methodDef.responses
   const resdef = responses?.['201'] || responses?.['200']
@@ -332,7 +356,19 @@ function isListResponse(
       const properties = schema.properties || {}
       each(properties, (prop) => {
         if (prop.type === 'array') {
-          islist = true
+
+          if (
+            1 === size(properties) ||
+            prop.key$ === entdesc.name ||
+            prop.key$ === entdesc.origname ||
+            listedEntity(prop) === entdesc.name
+          ) {
+            islist = true
+          }
+
+          if ('/v2/users' === pathStr) {
+            console.log('islistresponse', islist, pathStr, entdesc.name, listedEntity(prop), properties)
+          }
         }
       })
     }
@@ -340,6 +376,16 @@ function isListResponse(
 
   return islist
 }
+
+
+function listedEntity(prop: any) {
+  const xref = prop?.items?.['x-ref']
+  const m = 'string' === typeof xref && xref.match(/^#\/components\/schemas\/(.+)$/)
+  if (m) {
+    return depluralize(snakify(m[1]))
+  }
+}
+
 
 
 export {

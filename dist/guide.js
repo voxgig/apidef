@@ -34,17 +34,15 @@ async function resolveGuide(ctx) {
     else {
         dlog('missing', 'ctx.model.main.api');
     }
-    dlog('missing', 'ctx.model.main.api');
     const guideFile = node_path_1.default.join(ctx.opts.folder, (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'base-guide.jsonic');
     const guideBlocks = [
         '# Guide',
         '',
         'main: api: guide: { ',
-        '',
     ];
-    // guideBlocks.push(...each(guide.entity, (entity, entityname) => {
     guideBlocks.push(...(0, jostraca_1.each)(baseguide.entity, (entity, entityname) => {
-        guideBlocks.push(`\nentity: ${entityname}: {`);
+        guideBlocks.push(`
+entity: ${entityname}: {`);
         (0, jostraca_1.each)(entity.path, (path, pathname) => {
             guideBlocks.push(`  path: '${pathname}': op: {`);
             (0, jostraca_1.each)(path.op, (op, opname) => {
@@ -69,7 +67,17 @@ function cleanGuide(guide) {
         control: guide.control,
         entity: {}
     };
+    const exclude_entity = guide.exclude?.entity?.split(',');
+    const include_entity = guide.include?.entity?.split(',');
     (0, jostraca_1.each)(guide.entity, (entity, name) => {
+        if (exclude_entity.includes(name)) {
+            return;
+        }
+        if (exclude_entity.includes('*')) {
+            if (!include_entity.includes(name)) {
+                return;
+            }
+        }
         let ent = clean.entity[name] = clean.entity[name] = { name, path: {} };
         (0, jostraca_1.each)(entity.path, (path, pathname) => {
             ent.path[pathname] = path;

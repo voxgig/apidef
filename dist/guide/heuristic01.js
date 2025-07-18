@@ -2,7 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.heuristic01 = heuristic01;
 const jostraca_1 = require("jostraca");
+const struct_1 = require("@voxgig/struct");
 const utility_1 = require("../utility");
+// Log non-fatal wierdness.
+const dlog = (0, utility_1.getdlog)('apidef', __filename);
 async function heuristic01(ctx) {
     let guide = ctx.model.main.api.guide;
     const entityDescs = resolveEntityDescs(ctx);
@@ -39,10 +42,6 @@ function resolveEntityDescs(ctx) {
                     return;
                 }
                 const entdesc = resolveEntity(entityDescs, pathDef, pathStr, methodDef, methodStr);
-                if ('/v2/users/{user_id}/enrollment' === pathStr) {
-                    console.log('QQQ', pathStr, methodStr, METHOD_IDOP[methodStr]);
-                    console.dir(entdesc, { depth: null });
-                }
                 if (null == entdesc) {
                     console.log('WARNING: unable to resolve entity for method ' + methodStr +
                         ' path ' + pathStr);
@@ -52,13 +51,11 @@ function resolveEntityDescs(ctx) {
                 //   console.log('ENTRES', pathStr, methodStr)
                 //   console.dir(ent2, { depth: null })
                 // }
-                let opname = METHOD_IDOP[methodStr];
-                if (null == opname)
+                let opname = resolveOpName(methodStr, methodDef, pathStr, entdesc);
+                if (null == opname) {
+                    console.log('WARNING: unable to resolve operation for method ' + methodStr +
+                        ' path ' + pathStr);
                     return;
-                const islist = isListResponse(methodDef);
-                // console.log('ISLIST', pathStr, methodStr, islist)
-                if ('load' === opname && islist) {
-                    opname = 'list';
                 }
                 const transform = {
                 // reqform: '`reqdata`',
@@ -142,6 +139,8 @@ function resolveEntityDescs(ctx) {
           }
           */
     });
+    console.log('USER');
+    console.dir(entityDescs.user, { depth: null });
     return entityDescs;
 }
 function resolveEntity(entityDescs, pathDef, pathStr, methodDef, methodStr) {
@@ -177,7 +176,7 @@ function resolveEntity(entityDescs, pathDef, pathStr, methodDef, methodStr) {
         return;
     }
     // entdesc.plural = origentname
-    // entdesc.origname = origentname
+    entdesc.origname = origentname;
     (0, jostraca_1.names)(entdesc, entname);
     entdesc.alias = entdesc.alias || {};
     entdesc.path = (entdesc.path || {});
@@ -230,7 +229,18 @@ function resolveComponentName(methodDef, methodStr) {
     }
     return compname;
 }
-function isListResponse(methodDef) {
+function resolveOpName(methodStr, methodDef, pathStr, entdesc) {
+    let opname = METHOD_IDOP[methodStr];
+    if (null == opname)
+        return;
+    if ('load' === opname) {
+        const islist = isListResponse(methodDef, pathStr, entdesc);
+        console.log('ISLIST', pathStr, methodStr, islist);
+        opname = islist ? 'list' : opname;
+    }
+    return opname;
+}
+function isListResponse(methodDef, pathStr, entdesc) {
     const responses = methodDef.responses;
     const resdef = responses?.['201'] || responses?.['200'];
     const content = resdef?.content;
@@ -241,11 +251,26 @@ function isListResponse(methodDef) {
             const properties = schema.properties || {};
             (0, jostraca_1.each)(properties, (prop) => {
                 if (prop.type === 'array') {
-                    islist = true;
+                    if (1 === (0, struct_1.size)(properties) ||
+                        prop.key$ === entdesc.name ||
+                        prop.key$ === entdesc.origname ||
+                        listedEntity(prop) === entdesc.name) {
+                        islist = true;
+                    }
+                    if ('/v2/users' === pathStr) {
+                        console.log('islistresponse', islist, pathStr, entdesc.name, listedEntity(prop), properties);
+                    }
                 }
             });
         }
     }
     return islist;
+}
+function listedEntity(prop) {
+    const xref = prop?.items?.['x-ref'];
+    const m = 'string' === typeof xref && xref.match(/^#\/components\/schemas\/(.+)$/);
+    if (m) {
+        return (0, utility_1.depluralize)((0, jostraca_1.snakify)(m[1]));
+    }
 }
 //# sourceMappingURL=heuristic01.js.map

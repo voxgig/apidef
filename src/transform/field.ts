@@ -61,21 +61,16 @@ function fieldbuild(
     }
   }
 
-  // console.log('FIELD-DEF', entityModel, pathdef.get)
-
   each(fieldSets, (fieldSet: any) => {
     each(fieldSet.properties, (property: any) => {
       const field =
         (entityModel.field[property.key$] = entityModel.field[property.key$] || {})
-
-      // console.log('PROPERTY', property)
 
       field.name = property.key$
       fixName(field, field.name)
 
       // field.type = property.type
       resolveFieldType(entityModel, field, property)
-      // console.log('FIELD', field)
       fixName(field, field.type, 'type')
 
       field.short = property.description

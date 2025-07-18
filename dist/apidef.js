@@ -67,7 +67,7 @@ function ApiDef(opts) {
     opts.strategy = opts.strategy || 'heuristic01';
     async function generate(spec) {
         const start = Date.now();
-        dlog('start');
+        // dlog('start')
         const model = (0, types_1.OpenModelShape)(spec.model);
         const build = (0, types_1.OpenBuildShape)(spec.build);
         (0, jostraca_1.names)(model, model.name);
@@ -138,7 +138,7 @@ function ApiDef(opts) {
             existing: { txt: { merge: true } }
         }, root);
         log.info({ point: 'generate-end', note: 'success', break: true });
-        dlog('end');
+        // dlog('end')
         console.log('DLOG');
         console.dir(dlog.log());
         return {

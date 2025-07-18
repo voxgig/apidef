@@ -74,7 +74,7 @@ function ApiDef(opts: ApiDefOptions) {
 
   async function generate(spec: any) {
     const start = Date.now()
-    dlog('start')
+    // dlog('start')
 
     const model: Model = OpenModelShape(spec.model)
     const build: Build = OpenBuildShape(spec.build)
@@ -171,7 +171,7 @@ function ApiDef(opts: ApiDefOptions) {
 
     log.info({ point: 'generate-end', note: 'success', break: true })
 
-    dlog('end')
+    // dlog('end')
     console.log('DLOG')
     console.dir(dlog.log())
 
