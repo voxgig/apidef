@@ -148,56 +148,10 @@ function resolveEntityDescs(ctx: any) {
         }
       })
     }
-
-    /*
-    // Look for rightmmost /entname.
-    m = pathStr.match(/\/([a-zA-Z0-1_-]+)$/)
-    if (m) {
-      // const entdesc = resolveEntity(entityDescs, pathstr, m[1])
-
-      each(pathDef, (methodDef: any, methodStr: string) => {
-        methodStr = methodStr.toLowerCase()
-        if (!METHOD_IDOP[methodStr]) {
-          return
-        }
-
-        const entdesc = resolveEntity(entityDescs, pathDef, pathStr, methodDef, methodStr)
-        if (null == entdesc) {
-          console.log(
-            'WARNING: unable to resolve entity for method ' + methodStr +
-            ' path ' + pathStr)
-          return
-        }
-
-
-        const op: Record<string, any> = { list: { method: 'get' } }
-        entdesc.path[pathStr] = { op }
-
-        const transform: Record<string, any> = {}
-        // const mdef = pathDef.get
-        const mdef = pathDef[methodStr]
-        const resokdef = mdef.responses[200] || mdef.responses[201]
-        const resbody = resokdef?.content?.['application/json']?.schema
-        if (resbody) {
-          if (resbody[entdesc.origname]) {
-            transform.resform = '`body.' + entdesc.origname + '`'
-          }
-          else if (resbody[entdesc.name]) {
-            transform.resform = '`body.' + entdesc.name + '`'
-          }
-        }
-
-        if (0 < Object.entries(transform).length) {
-          op.transform = transform
-        }
-      })
-      }
-      */
   })
 
-
-  console.log('USER')
-  console.dir(entityDescs.user, { depth: null })
+  // console.log('USER')
+  // console.dir(entityDescs.user, { depth: null })
 
   return entityDescs
 }
@@ -230,7 +184,8 @@ function resolveEntity(
 
     entdesc = (entityDescs[entname] = entityDescs[entname] || {
       name: entname,
-      id: Math.random()
+      id: Math.random(),
+      alias: {}
     })
 
     let pathParam = m[3]
@@ -279,42 +234,69 @@ function resolveComponentName(
 ): string | undefined {
   const kind = REQKIND[methodStr]
   let compname: string | undefined = undefined
-  let content: Record<string, any> | undefined = undefined
 
-  if ('req' === kind) {
-    content = methodDef.requestBody?.content
-  }
-  else {
-    const responses = methodDef.responses
-    const resdef = responses?.['201'] || responses?.['200']
-    content = resdef?.content
-  }
-
-  // console.log('RCN', methodStr, content?.['application/json']?.schema)
-
-  if (null != content) {
-    const schema = content['application/json']?.schema
-    if (schema) {
-      let xref = schema['x-ref']
-      // console.log('RCN-XREF', methodStr, 'xref-0', xref)
-
-      if (null == xref) {
-        const properties = schema.properties || {}
-        each(properties, (prop) => {
-          if (null == xref) {
-            if (prop.type === 'array') {
-              xref = prop.items?.['x-ref']
-              // console.log('RCN', methodStr, 'xref-1', xref)
-            }
-          }
-        })
-      }
-
-      if (null != xref && 'string' === typeof xref) {
-        let xrefm = xref.match(/\/components\/schemas\/(.+)$/)
+  const responses = methodDef.responses
+  const schemalist =
+    [
+      methodDef.requestBody?.content,
+      responses?.['201'],
+      responses?.['200'],
+    ]
+      .filter(cmp => null != cmp)
+      .map(content => content['application/json']?.schema)
+      .filter(schema => null != schema)
+      .filter(schema => null != schema['x-ref'])
+      .map(schema => {
+        let xrefm = schema['x-ref'].match(/\/components\/schemas\/(.+)$/)
         if (xrefm) {
-          compname = xrefm[1]
+          schema['x-ref-cmp'] = xrefm[1]
         }
+        return schema
+      })
+      .filter(schema => null != schema['x-ref-cmp'])
+
+  let schema = undefined
+  let splen = -1
+
+  for (let sI = 0; sI < schemalist.length; sI++) {
+    let nextschema = schemalist[sI]
+    let nsplen = nextschema.properties?.length || -1
+
+    // console.log('QQQ', splen, nsplen, schema?.['x-ref-cmp'], nextschema?.['x-ref-cmp'])
+
+    if (
+      // More properties probably means it is the full entity.
+      splen < nsplen ||
+
+      // Shorter name probably means it is the full entity (no suffix/prefix).
+      (schema && splen === nsplen && nextschema['x-ref-cmp'].length < schema['x-ref-cmp'].length)
+
+    ) {
+      schema = nextschema
+      splen = nsplen
+    }
+  }
+
+  if (schema) {
+    let xref = schema['x-ref']
+    // console.log('RCN-XREF', methodStr, 'xref-0', xref)
+
+    if (null == xref) {
+      const properties = schema.properties || {}
+      each(properties, (prop) => {
+        if (null == xref) {
+          if (prop.type === 'array') {
+            xref = prop.items?.['x-ref']
+            // console.log('RCN', methodStr, 'xref-1', xref)
+          }
+        }
+      })
+    }
+
+    if (null != xref && 'string' === typeof xref) {
+      let xrefm = xref.match(/\/components\/schemas\/(.+)$/)
+      if (xrefm) {
+        compname = xrefm[1]
       }
     }
   }
@@ -331,8 +313,9 @@ function resolveOpName(methodStr: string, methodDef: any, pathStr: string, entde
 
   if ('load' === opname) {
     const islist = isListResponse(methodDef, pathStr, entdesc)
-    console.log('ISLIST', pathStr, methodStr, islist)
     opname = islist ? 'list' : opname
+
+    console.log('ISLIST', entdesc.name, methodStr, opname, pathStr)
   }
 
   return opname
@@ -353,24 +336,30 @@ function isListResponse(
   if (null != content) {
     const schema = content['application/json']?.schema
     if (schema) {
-      const properties = schema.properties || {}
-      each(properties, (prop) => {
-        if (prop.type === 'array') {
+      if (schema.type === 'array') {
+        islist = true
+      }
 
-          if (
-            1 === size(properties) ||
-            prop.key$ === entdesc.name ||
-            prop.key$ === entdesc.origname ||
-            listedEntity(prop) === entdesc.name
-          ) {
-            islist = true
-          }
+      if (!islist) {
+        const properties = schema.properties || {}
+        each(properties, (prop) => {
+          if (prop.type === 'array') {
 
-          if ('/v2/users' === pathStr) {
-            console.log('islistresponse', islist, pathStr, entdesc.name, listedEntity(prop), properties)
+            if (
+              1 === size(properties) ||
+              prop.key$ === entdesc.name ||
+              prop.key$ === entdesc.origname ||
+              listedEntity(prop) === entdesc.name
+            ) {
+              islist = true
+            }
+
+            if ('/v2/users' === pathStr) {
+              console.log('islistresponse', islist, pathStr, entdesc.name, listedEntity(prop), properties)
+            }
           }
-        }
-      })
+        })
+      }
     }
   }
 

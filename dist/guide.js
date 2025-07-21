@@ -67,8 +67,8 @@ function cleanGuide(guide) {
         control: guide.control,
         entity: {}
     };
-    const exclude_entity = guide.exclude?.entity?.split(',');
-    const include_entity = guide.include?.entity?.split(',');
+    const exclude_entity = guide.exclude?.entity?.split(',') || [];
+    const include_entity = guide.include?.entity?.split(',') || [];
     (0, jostraca_1.each)(guide.entity, (entity, name) => {
         if (exclude_entity.includes(name)) {
             return;

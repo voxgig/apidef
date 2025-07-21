@@ -97,8 +97,8 @@ function cleanGuide(guide: Record<string, any>): Record<string, any> {
     entity: {}
   }
 
-  const exclude_entity = guide.exclude?.entity?.split(',')
-  const include_entity = guide.include?.entity?.split(',')
+  const exclude_entity = guide.exclude?.entity?.split(',') || []
+  const include_entity = guide.include?.entity?.split(',') || []
 
   each(guide.entity, (entity: any, name: string) => {
     if (exclude_entity.includes(name)) {
