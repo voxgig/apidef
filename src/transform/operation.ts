@@ -212,7 +212,7 @@ const operationTransform = async function(
     schema: any,
     propkeys: any
   ): [any, string] => {
-    let transform: any = '`data`'
+    let transform: any = '`reqdata`'
     let why = 'default'
     const properties = schema?.properties
 
@@ -226,14 +226,14 @@ const operationTransform = async function(
       if ('array' !== schema.type) {
         if (1 === propkeys.length) {
           why = 'list-single-prop:' + propkeys[0]
-          transform = { [propkeys[0]]: '`data`' }
+          transform = { [propkeys[0]]: '`reqdata`' }
         }
         else {
           // Use sub property that is an array
           for (let pk of propkeys) {
             if ('array' === properties[pk]?.type) {
               why = 'list-single-array:' + pk
-              transform = { [pk]: '`data`' }
+              transform = { [pk]: '`reqdata`' }
               break
             }
           }
@@ -245,13 +245,13 @@ const operationTransform = async function(
         if (null == properties.id) {
           if (1 === propkeys.length) {
             why = 'map-single-prop:' + propkeys[0]
-            transform = { [propkeys[0]]: '`data`' }
+            transform = { [propkeys[0]]: '`reqdata`' }
           }
           else {
             for (let pk of propkeys) {
               if (properties[pk]?.properties?.id) {
                 why = 'map-sub-prop:' + pk
-                transform = { [pk]: '`data`' }
+                transform = { [pk]: '`reqdata`' }
                 break
               }
             }
