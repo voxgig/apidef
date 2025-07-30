@@ -5,8 +5,21 @@ main: api: entity: uptime: {
   alias: field: {}
 
   op: {
-    list: {
-      path: "/pages/{page_id}/component-groups/{component_groups_id}/uptime",
+    load: {
+      path: "/pages/{page_id}/components/{component_id}/uptime",
+      pathalt: [
+        {
+          path: "/pages/{page_id}/component-groups/{id}/uptime",
+          page_id: true,
+          id: true
+        }
+
+        {
+          path: "/pages/{page_id}/components/{component_id}/uptime",
+          page_id: true,
+          component_id: true
+        }
+      ],
       method: "get",
       kind: "res",
       param: {
@@ -20,11 +33,11 @@ main: api: entity: uptime: {
           TYPE: "STRING"
         }
 
-        component_groups_id: {
+        component_id: {
           required: true,
-          name: "component_groups_id",
-          Name: "ComponentGroupsId",
-          NAME: "COMPONENT_GROUPS_ID",
+          name: "component_id",
+          Name: "ComponentId",
+          NAME: "COMPONENT_ID",
           type: "string",
           Type: "String",
           TYPE: "STRING"
@@ -61,19 +74,108 @@ main: api: entity: uptime: {
       reqform: "`body`",
       validate: {
         params: {
-          "`$OPEN`": true,
           page_id: "`$STRING`",
-          component_groups_id: "`$STRING`"
+          component_id: "`$STRING`"
         }
       }
 
-      name: "list",
-      Name: "List",
-      NAME: "LIST"
+      name: "load",
+      Name: "Load",
+      NAME: "LOAD"
     }
   }
 
-  field: {}
+  field: {
+    range_start: {
+      name: "range_start",
+      Name: "RangeStart",
+      NAME: "RANGE_START",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Start date used for uptime calculation (see the warnings field in the response if this value does not match the start parameter you provided)."
+    }
+
+    range_end: {
+      name: "range_end",
+      Name: "RangeEnd",
+      NAME: "RANGE_END",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "End date used for uptime calculation (see the warnings field in the response if this value does not match the end parameter you provided)."
+    }
+
+    uptime_percentage: {
+      name: "uptime_percentage",
+      Name: "UptimePercentage",
+      NAME: "UPTIME_PERCENTAGE",
+      type: "number",
+      Type: "Number",
+      TYPE: "NUMBER",
+      short: "Uptime percentage for a component"
+    }
+
+    major_outage: {
+      name: "major_outage",
+      Name: "MajorOutage",
+      NAME: "MAJOR_OUTAGE",
+      type: "integer",
+      Type: "Integer",
+      TYPE: "INTEGER",
+      short: "Seconds of major outage"
+    }
+
+    partial_outage: {
+      name: "partial_outage",
+      Name: "PartialOutage",
+      NAME: "PARTIAL_OUTAGE",
+      type: "integer",
+      Type: "Integer",
+      TYPE: "INTEGER",
+      short: "Seconds of partial outage"
+    }
+
+    warnings: {
+      name: "warnings",
+      Name: "Warnings",
+      NAME: "WARNINGS",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Warning messages related to the uptime query that may occur"
+    }
+
+    id: {
+      name: "id",
+      Name: "Id",
+      NAME: "ID",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Component identifier"
+    }
+
+    name: {
+      name: "name",
+      Name: "Name",
+      NAME: "NAME",
+      type: "string",
+      Type: "String",
+      TYPE: "STRING",
+      short: "Component display name"
+    }
+
+    related_events: {
+      name: "related_events",
+      Name: "RelatedEvents",
+      NAME: "RELATED_EVENTS",
+      type: "object",
+      Type: "Object",
+      TYPE: "OBJECT",
+      short: "Related incidents"
+    }
+  }
 
   cmd: {}
 
@@ -84,7 +186,7 @@ main: api: entity: uptime: {
 
   ancestors: [
     "page",
-    "component"
+    "component_group"
   ],
   name: "uptime",
   Name: "Uptime",

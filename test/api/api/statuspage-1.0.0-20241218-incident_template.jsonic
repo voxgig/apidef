@@ -5,8 +5,58 @@ main: api: entity: incident_template: {
   alias: field: {}
 
   op: {
+    create: {
+      path: "/pages/{page_id}/incident_templates",
+      pathalt: [
+        {
+          path: "/pages/{page_id}/incident_templates",
+          page_id: true
+        }
+      ],
+      method: "post",
+      kind: "req",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+
+      # resform derivation: default
+      resform: "`body`",
+
+      # reqform derivation: map-single-prop:template
+      reqform: {
+        template: "`reqdata`"
+      }
+
+      validate: {
+        params: {
+          page_id: "`$STRING`"
+        }
+      }
+
+      name: "create",
+      Name: "Create",
+      NAME: "CREATE"
+    }
+
     list: {
       path: "/pages/{page_id}/incident_templates",
+      pathalt: [
+        {
+          path: "/pages/{page_id}/incident_templates",
+          page_id: true
+        }
+      ],
       method: "get",
       kind: "res",
       param: {
@@ -51,7 +101,6 @@ main: api: entity: incident_template: {
       reqform: "`body`",
       validate: {
         params: {
-          "`$OPEN`": true,
           page_id: "`$STRING`"
         }
       }

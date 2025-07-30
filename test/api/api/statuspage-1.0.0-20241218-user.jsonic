@@ -8,26 +8,22 @@ main: api: entity: user: {
   }
 
   op: {
-    remove: {
-      path: "/organizations/{organization_id}/users/{user_id}",
-      method: "delete",
-      kind: "res",
+    create: {
+      path: "/organizations/{organization_id}/users",
+      pathalt: [
+        {
+          path: "/organizations/{organization_id}/users",
+          organization_id: true
+        }
+      ],
+      method: "post",
+      kind: "req",
       param: {
         organization_id: {
           required: true,
           name: "organization_id",
           Name: "OrganizationId",
           NAME: "ORGANIZATION_ID",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
-        }
-
-        user_id: {
-          required: true,
-          name: "user_id",
-          Name: "UserId",
-          NAME: "USER_ID",
           type: "string",
           Type: "String",
           TYPE: "STRING"
@@ -40,23 +36,30 @@ main: api: entity: user: {
       # resform derivation: default
       resform: "`body`",
 
-      # reqform derivation: none
-      reqform: "`body`",
+      # reqform derivation: map-single-prop:user
+      reqform: {
+        user: "`reqdata`"
+      }
+
       validate: {
         params: {
-          "`$OPEN`": true,
-          organization_id: "`$STRING`",
-          user_id: "`$STRING`"
+          organization_id: "`$STRING`"
         }
       }
 
-      name: "remove",
-      Name: "Remove",
-      NAME: "REMOVE"
+      name: "create",
+      Name: "Create",
+      NAME: "CREATE"
     }
 
     list: {
       path: "/organizations/{organization_id}/users",
+      pathalt: [
+        {
+          path: "/organizations/{organization_id}/users",
+          organization_id: true
+        }
+      ],
       method: "get",
       kind: "res",
       param: {
@@ -101,7 +104,6 @@ main: api: entity: user: {
       reqform: "`body`",
       validate: {
         params: {
-          "`$OPEN`": true,
           organization_id: "`$STRING`"
         }
       }
@@ -109,6 +111,59 @@ main: api: entity: user: {
       name: "list",
       Name: "List",
       NAME: "LIST"
+    }
+
+    remove: {
+      path: "/organizations/{organization_id}/users/{user_id}",
+      pathalt: [
+        {
+          path: "/organizations/{organization_id}/users/{user_id}",
+          organization_id: true,
+          user_id: true
+        }
+      ],
+      method: "delete",
+      kind: "res",
+      param: {
+        organization_id: {
+          required: true,
+          name: "organization_id",
+          Name: "OrganizationId",
+          NAME: "ORGANIZATION_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        user_id: {
+          required: true,
+          name: "user_id",
+          Name: "UserId",
+          NAME: "USER_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+
+      # resform derivation: default
+      resform: "`body`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          organization_id: "`$STRING`",
+          user_id: "`$STRING`"
+        }
+      }
+
+      name: "remove",
+      Name: "Remove",
+      NAME: "REMOVE"
     }
   }
 

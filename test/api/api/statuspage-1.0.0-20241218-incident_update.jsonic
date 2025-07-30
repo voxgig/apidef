@@ -10,6 +10,14 @@ main: api: entity: incident_update: {
   op: {
     update: {
       path: "/pages/{page_id}/incidents/{incident_id}/incident_updates/{incident_update_id}",
+      pathalt: [
+        {
+          path: "/pages/{page_id}/incidents/{incident_id}/incident_updates/{incident_update_id}",
+          page_id: true,
+          incident_id: true,
+          incident_update_id: true
+        }
+      ],
       method: "put",
       kind: "req",
       param: {
@@ -52,12 +60,11 @@ main: api: entity: incident_update: {
 
       # reqform derivation: map-single-prop:incident_update
       reqform: {
-        incident_update: "`data`"
+        incident_update: "`reqdata`"
       }
 
       validate: {
         params: {
-          "`$OPEN`": true,
           page_id: "`$STRING`",
           incident_id: "`$STRING`",
           incident_update_id: "`$STRING`"

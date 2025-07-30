@@ -137,10 +137,13 @@ function ApiDef(opts) {
             model: jmodel,
             existing: { txt: { merge: true } }
         }, root);
+        const dlogs = dlog.log();
+        if (0 < dlogs.length) {
+            for (let dlogentry of dlogs) {
+                log.debug({ point: 'generate-warning', dlogentry, note: String(dlogentry) });
+            }
+        }
         log.info({ point: 'generate-end', note: 'success', break: true });
-        // dlog('end')
-        console.log('DLOG');
-        console.dir(dlog.log());
         return {
             ok: true,
             name: 'apidef',

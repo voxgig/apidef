@@ -1,0 +1,331 @@
+# Guide
+
+main: api: guide: { 
+
+entity: permission: {
+  path: '/organizations/{organization_id}/permissions/{user_id}': op: {
+    'update': method: put
+    'load': method: get
+  }
+}
+
+entity: user: {
+  path: '/organizations/{organization_id}/users': op: {
+    'create': method: post
+    'list': method: get
+  }
+  path: '/organizations/{organization_id}/users/{user_id}': op: {
+    'remove': method: delete
+  }
+}
+
+entity: page: {
+  path: '/pages': op: {
+    'list': method: get
+  }
+  path: '/pages/{page_id}': op: {
+    'update': method: put
+    'load': method: get
+  }
+}
+
+entity: component_group: {
+  path: '/pages/{page_id}/component-groups': op: {
+    'create': method: post
+    'list': method: get
+  }
+  path: '/pages/{page_id}/component-groups/{id}': op: {
+    'update': method: put
+    'remove': method: delete
+    'load': method: get
+  }
+}
+
+entity: uptime: {
+  path: '/pages/{page_id}/component-groups/{id}/uptime': op: {
+    'load': method: get
+  }
+  path: '/pages/{page_id}/components/{component_id}/uptime': op: {
+    'load': method: get
+  }
+}
+
+entity: component: {
+  path: '/pages/{page_id}/components': op: {
+    'create': method: post
+    'list': method: get
+  }
+  path: '/pages/{page_id}/components/{component_id}': op: {
+    'update': method: put
+    'remove': method: delete
+    'load': method: get
+  }
+  path: '/pages/{page_id}/page_access_groups/{page_access_group_id}/components': op: {
+    'update': method: put
+    'create': method: post
+    'remove': method: delete
+    'list': method: get
+  }
+  path: '/pages/{page_id}/page_access_groups/{page_access_group_id}/components/{component_id}': op: {
+    'remove': method: delete
+  }
+  path: '/pages/{page_id}/page_access_users/{page_access_user_id}/components': op: {
+    'update': method: put
+    'create': method: post
+    'remove': method: delete
+    'list': method: get
+  }
+  path: '/pages/{page_id}/page_access_users/{page_access_user_id}/components/{component_id}': op: {
+    'remove': method: delete
+  }
+}
+
+entity: page_access_group: {
+  path: '/pages/{page_id}/components/{component_id}/page_access_groups': op: {
+    'remove': method: delete
+    'create': method: post
+  }
+  path: '/pages/{page_id}/page_access_groups': op: {
+    'list': method: get
+    'create': method: post
+  }
+  path: '/pages/{page_id}/page_access_groups/{page_access_group_id}': op: {
+    'load': method: get
+    'update': method: put
+    'remove': method: delete
+  }
+}
+
+entity: page_access_user: {
+  path: '/pages/{page_id}/components/{component_id}/page_access_users': op: {
+    'remove': method: delete
+    'create': method: post
+  }
+  path: '/pages/{page_id}/page_access_users': op: {
+    'create': method: post
+    'list': method: get
+  }
+  path: '/pages/{page_id}/page_access_users/{page_access_user_id}': op: {
+    'update': method: put
+    'remove': method: delete
+    'load': method: get
+  }
+}
+
+entity: incident_template: {
+  path: '/pages/{page_id}/incident_templates': op: {
+    'create': method: post
+    'list': method: get
+  }
+}
+
+entity: incident: {
+  path: '/pages/{page_id}/incidents': op: {
+    'create': method: post
+    'list': method: get
+  }
+  path: '/pages/{page_id}/incidents/{incident_id}': op: {
+    'remove': method: delete
+    'update': method: put
+    'load': method: get
+  }
+}
+
+entity: active_maintenance: {
+  path: '/pages/{page_id}/incidents/active_maintenance': op: {
+    'list': method: get
+  }
+}
+
+entity: scheduled: {
+  path: '/pages/{page_id}/incidents/scheduled': op: {
+    'list': method: get
+  }
+}
+
+entity: unresolved: {
+  path: '/pages/{page_id}/incidents/unresolved': op: {
+    'list': method: get
+  }
+}
+
+entity: upcoming: {
+  path: '/pages/{page_id}/incidents/upcoming': op: {
+    'list': method: get
+  }
+}
+
+entity: incident_update: {
+  path: '/pages/{page_id}/incidents/{incident_id}/incident_updates/{incident_update_id}': op: {
+    'update': method: put
+  }
+}
+
+entity: postmortem: {
+  path: '/pages/{page_id}/incidents/{incident_id}/postmortem': op: {
+    'load': method: get
+    'update': method: put
+    'update': transform: reqform: {"postmortem":"`reqdata`"}
+    'remove': method: delete
+  }
+}
+
+entity: publish: {
+  path: '/pages/{page_id}/incidents/{incident_id}/postmortem/publish': op: {
+    'update': method: put
+  }
+}
+
+entity: revert: {
+  path: '/pages/{page_id}/incidents/{incident_id}/postmortem/revert': op: {
+    'update': method: put
+  }
+}
+
+entity: subscriber: {
+  path: '/pages/{page_id}/incidents/{incident_id}/subscribers': op: {
+    'create': method: post
+    'list': method: get
+  }
+  path: '/pages/{page_id}/incidents/{incident_id}/subscribers/{subscriber_id}': op: {
+    'remove': method: delete
+    'load': method: get
+  }
+  path: '/pages/{page_id}/subscribers': op: {
+    'create': method: post
+    'list': method: get
+  }
+  path: '/pages/{page_id}/subscribers/{subscriber_id}': op: {
+    'remove': method: delete
+    'update': method: patch
+    'load': method: get
+  }
+}
+
+entity: resend_confirmation: {
+  path: '/pages/{page_id}/incidents/{incident_id}/subscribers/{subscriber_id}/resend_confirmation': op: {
+    'create': method: post
+  }
+  path: '/pages/{page_id}/subscribers/resend_confirmation': op: {
+    'create': method: post
+  }
+  path: '/pages/{page_id}/subscribers/{subscriber_id}/resend_confirmation': op: {
+    'create': method: post
+  }
+}
+
+entity: metric: {
+  path: '/pages/{page_id}/metrics': op: {
+    'load': method: get
+  }
+  path: '/pages/{page_id}/metrics/{metric_id}': op: {
+    'update': method: put
+    'remove': method: delete
+    'load': method: get
+  }
+  path: '/pages/{page_id}/metrics_providers/{metrics_provider_id}/metrics': op: {
+    'load': method: get
+    'create': method: post
+  }
+  path: '/pages/{page_id}/page_access_users/{page_access_user_id}/metrics': op: {
+    'update': method: put
+    'create': method: post
+    'remove': method: delete
+    'list': method: get
+  }
+  path: '/pages/{page_id}/page_access_users/{page_access_user_id}/metrics/{metric_id}': op: {
+    'remove': method: delete
+  }
+}
+
+entity: datum: {
+  path: '/pages/{page_id}/metrics/data': op: {
+    'create': method: post
+    'create': transform: reqform: {"data":"`reqdata`"}
+  }
+  path: '/pages/{page_id}/metrics/{metric_id}/data': op: {
+    'remove': method: delete
+    'create': method: post
+    'create': transform: reqform: {"data":"`reqdata`"}
+  }
+}
+
+entity: metrics_provider: {
+  path: '/pages/{page_id}/metrics_providers': op: {
+    'list': method: get
+    'create': method: post
+  }
+  path: '/pages/{page_id}/metrics_providers/{metrics_provider_id}': op: {
+    'load': method: get
+    'update': method: put
+    'remove': method: delete
+  }
+}
+
+entity: status_embed_config: {
+  path: '/pages/{page_id}/status_embed_config': op: {
+    'load': method: get
+    'update': method: put
+    'update': transform: reqform: {"status_embed_config":"`reqdata`"}
+  }
+}
+
+entity: count: {
+  path: '/pages/{page_id}/subscribers/count': op: {
+    'load': method: get
+  }
+}
+
+entity: histogram_by_state: {
+  path: '/pages/{page_id}/subscribers/histogram_by_state': op: {
+    'load': method: get
+  }
+}
+
+entity: reactivate: {
+  path: '/pages/{page_id}/subscribers/reactivate': op: {
+    'create': method: post
+  }
+}
+
+entity: unsubscribe: {
+  path: '/pages/{page_id}/subscribers/unsubscribe': op: {
+    'create': method: post
+  }
+}
+
+entity: unsubscribed: {
+  path: '/pages/{page_id}/subscribers/unsubscribed': op: {
+    'list': method: get
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+}

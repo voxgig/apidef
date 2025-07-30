@@ -12,26 +12,83 @@ main: sdk: flow: BasicHistogramByStateFlow:
     }
 
     STATUSPAGE_TEST_LIVE: "FALSE",
-    STATUSPAGE_TEST_EXPLAIN: "FALSE"
+    STATUSPAGE_TEST_EXPLAIN: "FALSE",
+    STATUSPAGE_TEST_PAGE_ENTID: {
+      page01: "PAGE01"
+    }
   }
 
   test: {
     entity: {
       histogram_by_state: {
         HISTOGRAM_BY_STATE01: {
-          id: "HISTOGRAM_BY_STATE01"
+          email: {}
+
+          sms: {}
+
+          webhook: {}
+
+          integration_partner: {}
+
+          slack: {}
+
+          teams: {}
+
+          id: "HISTOGRAM_BY_STATE01",
+          page_id: "PAGE01"
         }
 
         HISTOGRAM_BY_STATE02: {
+          email: {}
+
+          sms: {}
+
+          webhook: {}
+
+          integration_partner: {}
+
+          slack: {}
+
+          teams: {}
+
           id: "HISTOGRAM_BY_STATE02"
         }
 
         HISTOGRAM_BY_STATE03: {
+          email: {}
+
+          sms: {}
+
+          webhook: {}
+
+          integration_partner: {}
+
+          slack: {}
+
+          teams: {}
+
           id: "HISTOGRAM_BY_STATE03"
         }
       }
     }
   }
 
-  step: []
+  step: [
+    {
+      name: "load_histogram_by_state0",
+      kind: "entity",
+      entity: "histogram_by_state",
+      action: "load",
+      match: {
+        id: "`dm$=p.STATUSPAGE_TEST_HISTOGRAM_BY_STATE_ENTID.histogram_by_state01`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
+      }
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_histogram_by_state0.match.id`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
+      }
+    }
+  ]
 }

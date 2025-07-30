@@ -16,10 +16,6 @@ main: sdk: flow: BasicSubscriberFlow:
     STATUSPAGE_TEST_PAGE_ENTID: {
       page01: "PAGE01"
     }
-
-    STATUSPAGE_TEST_INCIDENT_ENTID: {
-      incident01: "INCIDENT01"
-    }
   }
 
   test: {
@@ -41,8 +37,7 @@ main: sdk: flow: BasicSubscriberFlow:
           components: "sc",
           page_access_user_id: "sd",
           created_at: "se",
-          page_id: "PAGE01",
-          incident_id: "INCIDENT01"
+          page_id: "PAGE01"
         }
 
         SUBSCRIBER02: {
@@ -92,15 +87,13 @@ main: sdk: flow: BasicSubscriberFlow:
       action: "load",
       match: {
         id: "`dm$=p.STATUSPAGE_TEST_SUBSCRIBER_ENTID.subscriber01`",
-        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
-        incident_id: "`dm$=p.STATUSPAGE_TEST_INCIDENT_ENTID.incident01`"
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
       }
 
       valid: {
         "`$OPEN`": true,
         id: "`dm$=s.load_subscriber0.match.id`",
-        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
-        incident_id: "`dm$=p.STATUSPAGE_TEST_INCIDENT_ENTID.incident01`"
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
       }
     }
 
@@ -116,7 +109,6 @@ main: sdk: flow: BasicSubscriberFlow:
         "`$OPEN`": true,
         id: "`dm$=s.load_subscriber0.match.id`",
         page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
-        incident_id: "`dm$=p.STATUSPAGE_TEST_INCIDENT_ENTID.incident01`",
         mode: "`dm$=s.update_subscriber1.reqdata.mode`"
       }
     }
@@ -128,15 +120,13 @@ main: sdk: flow: BasicSubscriberFlow:
       action: "load",
       match: {
         id: "`dm$=p.STATUSPAGE_TEST_SUBSCRIBER_ENTID.subscriber01`",
-        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
-        incident_id: "`dm$=p.STATUSPAGE_TEST_INCIDENT_ENTID.incident01`"
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
       }
 
       valid: {
         "`$OPEN`": true,
         id: "`dm$=s.load_subscriber0.match.id`",
         page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
-        incident_id: "`dm$=p.STATUSPAGE_TEST_INCIDENT_ENTID.incident01`",
         mode: "`dm$=s.update_subscriber1.reqdata.mode`"
       }
     }

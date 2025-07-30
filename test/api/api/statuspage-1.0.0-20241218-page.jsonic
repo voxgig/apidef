@@ -8,8 +8,42 @@ main: api: entity: page: {
   }
 
   op: {
+    list: {
+      path: "/pages",
+      pathalt: [
+        {
+          path: "/pages"
+        }
+      ],
+      method: "get",
+      kind: "res",
+      param: {}
+
+      query: {}
+
+
+      # resform derivation: default
+      resform: "`body`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {}
+      }
+
+      name: "list",
+      Name: "List",
+      NAME: "LIST"
+    }
+
     update: {
       path: "/pages/{page_id}",
+      pathalt: [
+        {
+          path: "/pages/{page_id}",
+          page_id: true
+        }
+      ],
       method: "put",
       kind: "req",
       param: {
@@ -32,12 +66,11 @@ main: api: entity: page: {
 
       # reqform derivation: map-single-prop:page
       reqform: {
-        page: "`data`"
+        page: "`reqdata`"
       }
 
       validate: {
         params: {
-          "`$OPEN`": true,
           page_id: "`$STRING`"
         }
       }
@@ -49,6 +82,12 @@ main: api: entity: page: {
 
     load: {
       path: "/pages/{page_id}",
+      pathalt: [
+        {
+          path: "/pages/{page_id}",
+          page_id: true
+        }
+      ],
       method: "get",
       kind: "res",
       param: {
@@ -73,7 +112,6 @@ main: api: entity: page: {
       reqform: "`body`",
       validate: {
         params: {
-          "`$OPEN`": true,
           page_id: "`$STRING`"
         }
       }
@@ -81,31 +119,6 @@ main: api: entity: page: {
       name: "load",
       Name: "Load",
       NAME: "LOAD"
-    }
-
-    list: {
-      path: "/pages",
-      method: "get",
-      kind: "res",
-      param: {}
-
-      query: {}
-
-
-      # resform derivation: default
-      resform: "`body`",
-
-      # reqform derivation: none
-      reqform: "`body`",
-      validate: {
-        params: {
-          "`$OPEN`": true
-        }
-      }
-
-      name: "list",
-      Name: "List",
-      NAME: "LIST"
     }
   }
 

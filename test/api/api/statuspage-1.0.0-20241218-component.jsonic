@@ -8,56 +8,27 @@ main: api: entity: component: {
   }
 
   op: {
-    remove: {
-      path: "/pages/{page_id}/components/{component_id}",
-      method: "delete",
-      kind: "res",
-      param: {
-        page_id: {
-          required: true,
-          name: "page_id",
-          Name: "PageId",
-          NAME: "PAGE_ID",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
+    create: {
+      path: "/pages/{page_id}/components",
+      pathalt: [
+        {
+          path: "/pages/{page_id}/page_access_groups/{page_access_group_id}/components",
+          page_id: true,
+          page_access_group_id: true
         }
 
-        component_id: {
-          required: true,
-          name: "component_id",
-          Name: "ComponentId",
-          NAME: "COMPONENT_ID",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
+        {
+          path: "/pages/{page_id}/page_access_users/{page_access_user_id}/components",
+          page_id: true,
+          page_access_user_id: true
         }
-      }
 
-      query: {}
-
-
-      # resform derivation: none
-      resform: "`body`",
-
-      # reqform derivation: none
-      reqform: "`body`",
-      validate: {
-        params: {
-          "`$OPEN`": true,
-          page_id: "`$STRING`",
-          component_id: "`$STRING`"
+        {
+          path: "/pages/{page_id}/components",
+          page_id: true
         }
-      }
-
-      name: "remove",
-      Name: "Remove",
-      NAME: "REMOVE"
-    }
-
-    update: {
-      path: "/pages/{page_id}/components/{component_id}",
-      method: "put",
+      ],
+      method: "post",
       kind: "req",
       param: {
         page_id: {
@@ -70,11 +41,11 @@ main: api: entity: component: {
           TYPE: "STRING"
         }
 
-        component_id: {
+        page_access_user_id: {
           required: true,
-          name: "component_id",
-          Name: "ComponentId",
-          NAME: "COMPONENT_ID",
+          name: "page_access_user_id",
+          Name: "PageAccessUserId",
+          NAME: "PAGE_ACCESS_USER_ID",
           type: "string",
           Type: "String",
           TYPE: "STRING"
@@ -87,73 +58,43 @@ main: api: entity: component: {
       # resform derivation: default
       resform: "`body`",
 
-      # reqform derivation: map-single-prop:component
+      # reqform derivation: map-single-prop:component_ids
       reqform: {
-        component: "`data`"
+        component_ids: "`reqdata`"
       }
 
       validate: {
         params: {
-          "`$OPEN`": true,
           page_id: "`$STRING`",
-          component_id: "`$STRING`"
+          page_access_user_id: "`$STRING`"
         }
       }
 
-      name: "update",
-      Name: "Update",
-      NAME: "UPDATE"
-    }
-
-    load: {
-      path: "/pages/{page_id}/components/{component_id}",
-      method: "get",
-      kind: "res",
-      param: {
-        page_id: {
-          required: true,
-          name: "page_id",
-          Name: "PageId",
-          NAME: "PAGE_ID",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
-        }
-
-        component_id: {
-          required: true,
-          name: "component_id",
-          Name: "ComponentId",
-          NAME: "COMPONENT_ID",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
-        }
-      }
-
-      query: {}
-
-
-      # resform derivation: default
-      resform: "`body`",
-
-      # reqform derivation: none
-      reqform: "`body`",
-      validate: {
-        params: {
-          "`$OPEN`": true,
-          page_id: "`$STRING`",
-          component_id: "`$STRING`"
-        }
-      }
-
-      name: "load",
-      Name: "Load",
-      NAME: "LOAD"
+      name: "create",
+      Name: "Create",
+      NAME: "CREATE"
     }
 
     list: {
       path: "/pages/{page_id}/components",
+      pathalt: [
+        {
+          path: "/pages/{page_id}/page_access_groups/{page_access_group_id}/components",
+          page_id: true,
+          page_access_group_id: true
+        }
+
+        {
+          path: "/pages/{page_id}/page_access_users/{page_access_user_id}/components",
+          page_id: true,
+          page_access_user_id: true
+        }
+
+        {
+          path: "/pages/{page_id}/components",
+          page_id: true
+        }
+      ],
       method: "get",
       kind: "res",
       param: {
@@ -162,6 +103,16 @@ main: api: entity: component: {
           name: "page_id",
           Name: "PageId",
           NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        page_access_user_id: {
+          required: true,
+          name: "page_access_user_id",
+          Name: "PageAccessUserId",
+          NAME: "PAGE_ACCESS_USER_ID",
           type: "string",
           Type: "String",
           TYPE: "STRING"
@@ -198,14 +149,225 @@ main: api: entity: component: {
       reqform: "`body`",
       validate: {
         params: {
-          "`$OPEN`": true,
-          page_id: "`$STRING`"
+          page_id: "`$STRING`",
+          page_access_user_id: "`$STRING`"
         }
       }
 
       name: "list",
       Name: "List",
       NAME: "LIST"
+    }
+
+    update: {
+      path: "/pages/{page_id}/page_access_users/{page_access_user_id}/components",
+      pathalt: [
+        {
+          path: "/pages/{page_id}/components/{component_id}",
+          page_id: true,
+          component_id: true
+        }
+
+        {
+          path: "/pages/{page_id}/page_access_groups/{page_access_group_id}/components",
+          page_id: true,
+          page_access_group_id: true
+        }
+
+        {
+          path: "/pages/{page_id}/page_access_users/{page_access_user_id}/components",
+          page_id: true,
+          page_access_user_id: true
+        }
+      ],
+      method: "put",
+      kind: "req",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        page_access_user_id: {
+          required: true,
+          name: "page_access_user_id",
+          Name: "PageAccessUserId",
+          NAME: "PAGE_ACCESS_USER_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+
+      # resform derivation: default
+      resform: "`body`",
+
+      # reqform derivation: map-single-prop:component_ids
+      reqform: {
+        component_ids: "`reqdata`"
+      }
+
+      validate: {
+        params: {
+          page_id: "`$STRING`",
+          page_access_user_id: "`$STRING`"
+        }
+      }
+
+      name: "update",
+      Name: "Update",
+      NAME: "UPDATE"
+    }
+
+    remove: {
+      path: "/pages/{page_id}/page_access_users/{page_access_user_id}/components",
+      pathalt: [
+        {
+          path: "/pages/{page_id}/page_access_groups/{page_access_group_id}/components/{component_id}",
+          page_id: true,
+          page_access_group_id: true,
+          component_id: true
+        }
+
+        {
+          path: "/pages/{page_id}/page_access_users/{page_access_user_id}/components/{component_id}",
+          page_id: true,
+          page_access_user_id: true,
+          component_id: true
+        }
+
+        {
+          path: "/pages/{page_id}/components/{component_id}",
+          page_id: true,
+          component_id: true
+        }
+
+        {
+          path: "/pages/{page_id}/page_access_groups/{page_access_group_id}/components",
+          page_id: true,
+          page_access_group_id: true
+        }
+
+        {
+          path: "/pages/{page_id}/page_access_users/{page_access_user_id}/components",
+          page_id: true,
+          page_access_user_id: true
+        }
+      ],
+      method: "delete",
+      kind: "res",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        page_access_user_id: {
+          required: true,
+          name: "page_access_user_id",
+          Name: "PageAccessUserId",
+          NAME: "PAGE_ACCESS_USER_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        component_id: {
+          required: true,
+          name: "component_id",
+          Name: "ComponentId",
+          NAME: "COMPONENT_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+
+      # resform derivation: default
+      resform: "`body`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          page_id: "`$STRING`",
+          page_access_user_id: "`$STRING`",
+          component_id: "`$STRING`"
+        }
+      }
+
+      name: "remove",
+      Name: "Remove",
+      NAME: "REMOVE"
+    }
+
+    load: {
+      path: "/pages/{page_id}/components/{component_id}",
+      pathalt: [
+        {
+          path: "/pages/{page_id}/components/{component_id}",
+          page_id: true,
+          component_id: true
+        }
+      ],
+      method: "get",
+      kind: "res",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        component_id: {
+          required: true,
+          name: "component_id",
+          Name: "ComponentId",
+          NAME: "COMPONENT_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+
+      # resform derivation: default
+      resform: "`body`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          page_id: "`$STRING`",
+          component_id: "`$STRING`"
+        }
+      }
+
+      name: "load",
+      Name: "Load",
+      NAME: "LOAD"
     }
   }
 
@@ -357,8 +519,7 @@ main: api: entity: component: {
   }
 
   ancestors: [
-    "page",
-    "page_access_user"
+    "page"
   ],
   name: "component",
   Name: "Component",

@@ -7,6 +7,13 @@ main: api: entity: permission: {
   op: {
     update: {
       path: "/organizations/{organization_id}/permissions/{user_id}",
+      pathalt: [
+        {
+          path: "/organizations/{organization_id}/permissions/{user_id}",
+          organization_id: true,
+          user_id: true
+        }
+      ],
       method: "put",
       kind: "req",
       param: {
@@ -39,12 +46,11 @@ main: api: entity: permission: {
 
       # reqform derivation: map-single-prop:pages
       reqform: {
-        pages: "`data`"
+        pages: "`reqdata`"
       }
 
       validate: {
         params: {
-          "`$OPEN`": true,
           organization_id: "`$STRING`",
           user_id: "`$STRING`"
         }
@@ -57,6 +63,13 @@ main: api: entity: permission: {
 
     load: {
       path: "/organizations/{organization_id}/permissions/{user_id}",
+      pathalt: [
+        {
+          path: "/organizations/{organization_id}/permissions/{user_id}",
+          organization_id: true,
+          user_id: true
+        }
+      ],
       method: "get",
       kind: "res",
       param: {
@@ -91,7 +104,6 @@ main: api: entity: permission: {
       reqform: "`body`",
       validate: {
         params: {
-          "`$OPEN`": true,
           organization_id: "`$STRING`",
           user_id: "`$STRING`"
         }

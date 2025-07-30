@@ -12,26 +12,124 @@ main: sdk: flow: BasicPostmortemFlow:
     }
 
     STATUSPAGE_TEST_LIVE: "FALSE",
-    STATUSPAGE_TEST_EXPLAIN: "FALSE"
+    STATUSPAGE_TEST_EXPLAIN: "FALSE",
+    STATUSPAGE_TEST_PAGE_ENTID: {
+      page01: "PAGE01"
+    }
+
+    STATUSPAGE_TEST_INCIDENT_ENTID: {
+      incident01: "INCIDENT01"
+    }
   }
 
   test: {
     entity: {
       postmortem: {
         POSTMORTEM01: {
-          id: "POSTMORTEM01"
+          preview_key: "s0",
+          body: "s1",
+          body_updated_at: "s2",
+          body_draft: "s3",
+          body_draft_updated_at: "s4",
+          published_at: "s5",
+          notify_subscribers: true,
+          notify_twitter: false,
+          custom_tweet: "s8",
+          created_at: "s9",
+          updated_at: "sa",
+          id: "POSTMORTEM01",
+          page_id: "PAGE01",
+          incident_id: "INCIDENT01"
         }
 
         POSTMORTEM02: {
+          preview_key: "s6e",
+          body: "s6f",
+          body_updated_at: "s70",
+          body_draft: "s71",
+          body_draft_updated_at: "s72",
+          published_at: "s73",
+          notify_subscribers: true,
+          notify_twitter: false,
+          custom_tweet: "s76",
+          created_at: "s77",
+          updated_at: "s78",
           id: "POSTMORTEM02"
         }
 
         POSTMORTEM03: {
+          preview_key: "sdc",
+          body: "sdd",
+          body_updated_at: "sde",
+          body_draft: "sdf",
+          body_draft_updated_at: "se0",
+          published_at: "se1",
+          notify_subscribers: true,
+          notify_twitter: false,
+          custom_tweet: "se4",
+          created_at: "se5",
+          updated_at: "se6",
           id: "POSTMORTEM03"
         }
       }
     }
   }
 
-  step: []
+  step: [
+    {
+      name: "load_postmortem0",
+      kind: "entity",
+      entity: "postmortem",
+      action: "load",
+      match: {
+        id: "`dm$=p.STATUSPAGE_TEST_POSTMORTEM_ENTID.postmortem01`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
+        incident_id: "`dm$=p.STATUSPAGE_TEST_INCIDENT_ENTID.incident01`"
+      }
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_postmortem0.match.id`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
+        incident_id: "`dm$=p.STATUSPAGE_TEST_INCIDENT_ENTID.incident01`"
+      }
+    }
+
+    {
+      name: "update_postmortem1",
+      ref: "load_postmortem0",
+      action: "update",
+      reqdata: {
+        preview_key: "s0-`$WHEN`"
+      }
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_postmortem0.match.id`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
+        incident_id: "`dm$=p.STATUSPAGE_TEST_INCIDENT_ENTID.incident01`",
+        preview_key: "`dm$=s.update_postmortem1.reqdata.preview_key`"
+      }
+    }
+
+    {
+      name: "load_postmortem2",
+      kind: "entity",
+      entity: "postmortem",
+      action: "load",
+      match: {
+        id: "`dm$=p.STATUSPAGE_TEST_POSTMORTEM_ENTID.postmortem01`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
+        incident_id: "`dm$=p.STATUSPAGE_TEST_INCIDENT_ENTID.incident01`"
+      }
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_postmortem0.match.id`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
+        incident_id: "`dm$=p.STATUSPAGE_TEST_INCIDENT_ENTID.incident01`",
+        preview_key: "`dm$=s.update_postmortem1.reqdata.preview_key`"
+      }
+    }
+  ]
 }

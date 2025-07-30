@@ -12,26 +12,98 @@ main: sdk: flow: BasicStatusEmbedConfigFlow:
     }
 
     STATUSPAGE_TEST_LIVE: "FALSE",
-    STATUSPAGE_TEST_EXPLAIN: "FALSE"
+    STATUSPAGE_TEST_EXPLAIN: "FALSE",
+    STATUSPAGE_TEST_PAGE_ENTID: {
+      page01: "PAGE01"
+    }
   }
 
   test: {
     entity: {
       status_embed_config: {
         STATUS_EMBED_CONFIG01: {
+          page_id: "PAGE01",
+          position: "s1",
+          incident_background_color: "s2",
+          incident_text_color: "s3",
+          maintenance_background_color: "s4",
+          maintenance_text_color: "s5",
           id: "STATUS_EMBED_CONFIG01"
         }
 
         STATUS_EMBED_CONFIG02: {
+          page_id: "s3c",
+          position: "s3d",
+          incident_background_color: "s3e",
+          incident_text_color: "s3f",
+          maintenance_background_color: "s40",
+          maintenance_text_color: "s41",
           id: "STATUS_EMBED_CONFIG02"
         }
 
         STATUS_EMBED_CONFIG03: {
+          page_id: "s78",
+          position: "s79",
+          incident_background_color: "s7a",
+          incident_text_color: "s7b",
+          maintenance_background_color: "s7c",
+          maintenance_text_color: "s7d",
           id: "STATUS_EMBED_CONFIG03"
         }
       }
     }
   }
 
-  step: []
+  step: [
+    {
+      name: "load_status_embed_config0",
+      kind: "entity",
+      entity: "status_embed_config",
+      action: "load",
+      match: {
+        id: "`dm$=p.STATUSPAGE_TEST_STATUS_EMBED_CONFIG_ENTID.status_embed_config01`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
+      }
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_status_embed_config0.match.id`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
+      }
+    }
+
+    {
+      name: "update_status_embed_config1",
+      ref: "load_status_embed_config0",
+      action: "update",
+      reqdata: {
+        position: "s1-`$WHEN`"
+      }
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_status_embed_config0.match.id`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
+        position: "`dm$=s.update_status_embed_config1.reqdata.position`"
+      }
+    }
+
+    {
+      name: "load_status_embed_config2",
+      kind: "entity",
+      entity: "status_embed_config",
+      action: "load",
+      match: {
+        id: "`dm$=p.STATUSPAGE_TEST_STATUS_EMBED_CONFIG_ENTID.status_embed_config01`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
+      }
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_status_embed_config0.match.id`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
+        position: "`dm$=s.update_status_embed_config1.reqdata.position`"
+      }
+    }
+  ]
 }

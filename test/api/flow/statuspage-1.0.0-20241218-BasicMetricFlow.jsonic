@@ -16,6 +16,10 @@ main: sdk: flow: BasicMetricFlow:
     STATUSPAGE_TEST_PAGE_ENTID: {
       page01: "PAGE01"
     }
+
+    STATUSPAGE_TEST_METRICS_PROVIDER_ENTID: {
+      metrics_provider01: "METRICS_PROVIDER01"
+    }
   }
 
   test: {
@@ -23,7 +27,7 @@ main: sdk: flow: BasicMetricFlow:
       metric: {
         METRIC01: {
           id: "METRIC01",
-          metrics_provider_id: "s1",
+          metrics_provider_id: "METRICS_PROVIDER01",
           metric_identifier: "s2",
           name: "s3",
           display: true,
@@ -96,13 +100,15 @@ main: sdk: flow: BasicMetricFlow:
       action: "load",
       match: {
         id: "`dm$=p.STATUSPAGE_TEST_METRIC_ENTID.metric01`",
-        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
+        metrics_provider_id: "`dm$=p.STATUSPAGE_TEST_METRICS_PROVIDER_ENTID.metrics_provider01`"
       }
 
       valid: {
         "`$OPEN`": true,
         id: "`dm$=s.load_metric0.match.id`",
-        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
+        metrics_provider_id: "`dm$=p.STATUSPAGE_TEST_METRICS_PROVIDER_ENTID.metrics_provider01`"
       }
     }
 
@@ -118,6 +124,7 @@ main: sdk: flow: BasicMetricFlow:
         "`$OPEN`": true,
         id: "`dm$=s.load_metric0.match.id`",
         page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
+        metrics_provider_id: "`dm$=p.STATUSPAGE_TEST_METRICS_PROVIDER_ENTID.metrics_provider01`",
         name: "`dm$=s.update_metric1.reqdata.name`"
       }
     }
@@ -129,13 +136,15 @@ main: sdk: flow: BasicMetricFlow:
       action: "load",
       match: {
         id: "`dm$=p.STATUSPAGE_TEST_METRIC_ENTID.metric01`",
-        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
+        metrics_provider_id: "`dm$=p.STATUSPAGE_TEST_METRICS_PROVIDER_ENTID.metrics_provider01`"
       }
 
       valid: {
         "`$OPEN`": true,
         id: "`dm$=s.load_metric0.match.id`",
         page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
+        metrics_provider_id: "`dm$=p.STATUSPAGE_TEST_METRICS_PROVIDER_ENTID.metrics_provider01`",
         name: "`dm$=s.update_metric1.reqdata.name`"
       }
     }

@@ -7,6 +7,12 @@ main: api: entity: unsubscribed: {
   op: {
     list: {
       path: "/pages/{page_id}/subscribers/unsubscribed",
+      pathalt: [
+        {
+          path: "/pages/{page_id}/subscribers/unsubscribed",
+          page_id: true
+        }
+      ],
       method: "get",
       kind: "res",
       param: {
@@ -51,7 +57,6 @@ main: api: entity: unsubscribed: {
       reqform: "`body`",
       validate: {
         params: {
-          "`$OPEN`": true,
           page_id: "`$STRING`"
         }
       }

@@ -4,7 +4,48 @@ main: api: entity: reactivate: {
 
   alias: field: {}
 
-  op: {}
+  op: {
+    create: {
+      path: "/pages/{page_id}/subscribers/reactivate",
+      pathalt: [
+        {
+          path: "/pages/{page_id}/subscribers/reactivate",
+          page_id: true
+        }
+      ],
+      method: "post",
+      kind: "req",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+
+      # resform derivation: none
+      resform: "`reqdata`",
+
+      # reqform derivation: default
+      reqform: "`reqdata`",
+      validate: {
+        params: {
+          page_id: "`$STRING`"
+        }
+      }
+
+      name: "create",
+      Name: "Create",
+      NAME: "CREATE"
+    }
+  }
 
   field: {}
 

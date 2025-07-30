@@ -4,7 +4,63 @@ main: api: entity: publish: {
 
   alias: field: {}
 
-  op: {}
+  op: {
+    update: {
+      path: "/pages/{page_id}/incidents/{incident_id}/postmortem/publish",
+      pathalt: [
+        {
+          path: "/pages/{page_id}/incidents/{incident_id}/postmortem/publish",
+          page_id: true,
+          incident_id: true
+        }
+      ],
+      method: "put",
+      kind: "req",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        incident_id: {
+          required: true,
+          name: "incident_id",
+          Name: "IncidentId",
+          NAME: "INCIDENT_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+
+      # resform derivation: default
+      resform: "`body`",
+
+      # reqform derivation: map-single-prop:postmortem
+      reqform: {
+        postmortem: "`reqdata`"
+      }
+
+      validate: {
+        params: {
+          page_id: "`$STRING`",
+          incident_id: "`$STRING`"
+        }
+      }
+
+      name: "update",
+      Name: "Update",
+      NAME: "UPDATE"
+    }
+  }
 
   field: {}
 

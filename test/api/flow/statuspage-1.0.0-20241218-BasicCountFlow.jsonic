@@ -12,26 +12,65 @@ main: sdk: flow: BasicCountFlow:
     }
 
     STATUSPAGE_TEST_LIVE: "FALSE",
-    STATUSPAGE_TEST_EXPLAIN: "FALSE"
+    STATUSPAGE_TEST_EXPLAIN: "FALSE",
+    STATUSPAGE_TEST_PAGE_ENTID: {
+      page01: "PAGE01"
+    }
   }
 
   test: {
     entity: {
       count: {
         COUNT01: {
-          id: "COUNT01"
+          email: "s0",
+          sms: "s1",
+          webhook: "s2",
+          integration_partner: "s3",
+          slack: "s4",
+          teams: "s5",
+          id: "COUNT01",
+          page_id: "PAGE01"
         }
 
         COUNT02: {
+          email: "s3c",
+          sms: "s3d",
+          webhook: "s3e",
+          integration_partner: "s3f",
+          slack: "s40",
+          teams: "s41",
           id: "COUNT02"
         }
 
         COUNT03: {
+          email: "s78",
+          sms: "s79",
+          webhook: "s7a",
+          integration_partner: "s7b",
+          slack: "s7c",
+          teams: "s7d",
           id: "COUNT03"
         }
       }
     }
   }
 
-  step: []
+  step: [
+    {
+      name: "load_count0",
+      kind: "entity",
+      entity: "count",
+      action: "load",
+      match: {
+        id: "`dm$=p.STATUSPAGE_TEST_COUNT_ENTID.count01`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
+      }
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_count0.match.id`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
+      }
+    }
+  ]
 }

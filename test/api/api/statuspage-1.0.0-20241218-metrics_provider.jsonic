@@ -8,8 +8,100 @@ main: api: entity: metrics_provider: {
   }
 
   op: {
+    list: {
+      path: "/pages/{page_id}/metrics_providers",
+      pathalt: [
+        {
+          path: "/pages/{page_id}/metrics_providers",
+          page_id: true
+        }
+      ],
+      method: "get",
+      kind: "res",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+
+      # resform derivation: default
+      resform: "`body`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          page_id: "`$STRING`"
+        }
+      }
+
+      name: "list",
+      Name: "List",
+      NAME: "LIST"
+    }
+
+    create: {
+      path: "/pages/{page_id}/metrics_providers",
+      pathalt: [
+        {
+          path: "/pages/{page_id}/metrics_providers",
+          page_id: true
+        }
+      ],
+      method: "post",
+      kind: "req",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+
+      # resform derivation: default
+      resform: "`body`",
+
+      # reqform derivation: map-single-prop:metrics_provider
+      reqform: {
+        metrics_provider: "`reqdata`"
+      }
+
+      validate: {
+        params: {
+          page_id: "`$STRING`"
+        }
+      }
+
+      name: "create",
+      Name: "Create",
+      NAME: "CREATE"
+    }
+
     load: {
       path: "/pages/{page_id}/metrics_providers/{metrics_provider_id}",
+      pathalt: [
+        {
+          path: "/pages/{page_id}/metrics_providers/{metrics_provider_id}",
+          page_id: true,
+          metrics_provider_id: true
+        }
+      ],
       method: "get",
       kind: "res",
       param: {
@@ -44,7 +136,6 @@ main: api: entity: metrics_provider: {
       reqform: "`body`",
       validate: {
         params: {
-          "`$OPEN`": true,
           page_id: "`$STRING`",
           metrics_provider_id: "`$STRING`"
         }
@@ -57,6 +148,13 @@ main: api: entity: metrics_provider: {
 
     update: {
       path: "/pages/{page_id}/metrics_providers/{metrics_provider_id}",
+      pathalt: [
+        {
+          path: "/pages/{page_id}/metrics_providers/{metrics_provider_id}",
+          page_id: true,
+          metrics_provider_id: true
+        }
+      ],
       method: "put",
       kind: "req",
       param: {
@@ -89,12 +187,11 @@ main: api: entity: metrics_provider: {
 
       # reqform derivation: map-single-prop:metrics_provider
       reqform: {
-        metrics_provider: "`data`"
+        metrics_provider: "`reqdata`"
       }
 
       validate: {
         params: {
-          "`$OPEN`": true,
           page_id: "`$STRING`",
           metrics_provider_id: "`$STRING`"
         }
@@ -107,6 +204,13 @@ main: api: entity: metrics_provider: {
 
     remove: {
       path: "/pages/{page_id}/metrics_providers/{metrics_provider_id}",
+      pathalt: [
+        {
+          path: "/pages/{page_id}/metrics_providers/{metrics_provider_id}",
+          page_id: true,
+          metrics_provider_id: true
+        }
+      ],
       method: "delete",
       kind: "res",
       param: {
@@ -141,7 +245,6 @@ main: api: entity: metrics_provider: {
       reqform: "`body`",
       validate: {
         params: {
-          "`$OPEN`": true,
           page_id: "`$STRING`",
           metrics_provider_id: "`$STRING`"
         }
@@ -150,42 +253,6 @@ main: api: entity: metrics_provider: {
       name: "remove",
       Name: "Remove",
       NAME: "REMOVE"
-    }
-
-    list: {
-      path: "/pages/{page_id}/metrics_providers",
-      method: "get",
-      kind: "res",
-      param: {
-        page_id: {
-          required: true,
-          name: "page_id",
-          Name: "PageId",
-          NAME: "PAGE_ID",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
-        }
-      }
-
-      query: {}
-
-
-      # resform derivation: default
-      resform: "`body`",
-
-      # reqform derivation: none
-      reqform: "`body`",
-      validate: {
-        params: {
-          "`$OPEN`": true,
-          page_id: "`$STRING`"
-        }
-      }
-
-      name: "list",
-      Name: "List",
-      NAME: "LIST"
     }
   }
 

@@ -169,11 +169,14 @@ function ApiDef(opts: ApiDefOptions) {
       existing: { txt: { merge: true } }
     }, root)
 
-    log.info({ point: 'generate-end', note: 'success', break: true })
+    const dlogs = dlog.log()
+    if (0 < dlogs.length) {
+      for (let dlogentry of dlogs) {
+        log.debug({ point: 'generate-warning', dlogentry, note: String(dlogentry) })
+      }
+    }
 
-    // dlog('end')
-    console.log('DLOG')
-    console.dir(dlog.log())
+    log.info({ point: 'generate-end', note: 'success', break: true })
 
     return {
       ok: true,

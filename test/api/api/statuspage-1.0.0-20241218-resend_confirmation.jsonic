@@ -4,7 +4,72 @@ main: api: entity: resend_confirmation: {
 
   alias: field: {}
 
-  op: {}
+  op: {
+    create: {
+      path: "/pages/{page_id}/subscribers/resend_confirmation",
+      pathalt: [
+        {
+          path: "/pages/{page_id}/incidents/{incident_id}/subscribers/{subscriber_id}/resend_confirmation",
+          page_id: true,
+          incident_id: true,
+          subscriber_id: true
+        }
+
+        {
+          path: "/pages/{page_id}/subscribers/{subscriber_id}/resend_confirmation",
+          page_id: true,
+          subscriber_id: true
+        }
+
+        {
+          path: "/pages/{page_id}/subscribers/resend_confirmation",
+          page_id: true
+        }
+      ],
+      method: "post",
+      kind: "req",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        subscriber_id: {
+          required: true,
+          name: "subscriber_id",
+          Name: "SubscriberId",
+          NAME: "SUBSCRIBER_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+
+      # resform derivation: none
+      resform: "`reqdata`",
+
+      # reqform derivation: none
+      reqform: "`reqdata`",
+      validate: {
+        params: {
+          page_id: "`$STRING`",
+          subscriber_id: "`$STRING`"
+        }
+      }
+
+      name: "create",
+      Name: "Create",
+      NAME: "CREATE"
+    }
+  }
 
   field: {}
 
@@ -16,7 +81,9 @@ main: api: entity: resend_confirmation: {
   }
 
   ancestors: [
-    "page"
+    "page",
+    "incident",
+    "subscriber"
   ],
   name: "resend_confirmation",
   Name: "ResendConfirmation",
