@@ -49,6 +49,8 @@ const BuildShape = Gubu({
     require: '',
     log: {},
     fs: Any(),
+    dryrun: false,
+    buildargs: {},
     watch: {
       mod: true,
       add: true,

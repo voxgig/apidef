@@ -42,11 +42,14 @@ async function resolveGuide(ctx) {
     ];
     guideBlocks.push(...(0, jostraca_1.each)(baseguide.entity, (entity, entityname) => {
         guideBlocks.push(`
-entity: ${entityname}: {`);
+entity: ${entityname}: {` +
+            (0 < entity.why_name.length ? ' # name:' + entity.why_name.join(';') : ''));
         (0, jostraca_1.each)(entity.path, (path, pathname) => {
-            guideBlocks.push(`  path: '${pathname}': op: {`);
+            guideBlocks.push(`  path: '${pathname}': op: {` +
+                (0 < path.why_ent.length ? ' # ent:' + path.why_ent.join(';') : ''));
             (0, jostraca_1.each)(path.op, (op, opname) => {
-                guideBlocks.push(`    '${opname}': method: ${op.method}`);
+                guideBlocks.push(`    '${opname}': method: ${op.method}` +
+                    (0 < op.why_op.length ? ' # ' + op.why_op : ''));
                 if (op.transform?.reqform) {
                     guideBlocks.push(`    '${opname}': transform: reqform: ${JSON.stringify(op.transform.reqform)}`);
                 }
@@ -78,7 +81,11 @@ function cleanGuide(guide) {
                 return;
             }
         }
-        let ent = clean.entity[name] = clean.entity[name] = { name, path: {} };
+        let ent = clean.entity[name] = clean.entity[name] = {
+            name,
+            why_name: entity.why_name || [],
+            path: {}
+        };
         (0, jostraca_1.each)(entity.path, (path, pathname) => {
             ent.path[pathname] = path;
         });

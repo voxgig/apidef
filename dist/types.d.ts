@@ -334,6 +334,8 @@ declare const BuildShape: {
             require: string;
             log: {};
             fs: any;
+            dryrun: boolean;
+            buildargs: {};
             watch: {
                 mod: boolean;
                 add: boolean;
@@ -351,6 +353,8 @@ declare const BuildShape: {
             require: string;
             log: {};
             fs: import("gubu").Node<unknown>;
+            dryrun: boolean;
+            buildargs: {};
             watch: {
                 mod: boolean;
                 add: boolean;
@@ -406,6 +410,8 @@ declare const BuildShape: {
             require: string;
             log: {};
             fs: import("gubu").Node<unknown>;
+            dryrun: boolean;
+            buildargs: {};
             watch: {
                 mod: boolean;
                 add: boolean;
@@ -447,6 +453,8 @@ declare const OpenBuildShape: {
                 require: string;
                 log: {};
                 fs: any;
+                dryrun: boolean;
+                buildargs: {};
                 watch: {
                     mod: boolean;
                     add: boolean;
@@ -464,6 +472,8 @@ declare const OpenBuildShape: {
                 require: string;
                 log: {};
                 fs: import("gubu").Node<unknown>;
+                dryrun: boolean;
+                buildargs: {};
                 watch: {
                     mod: boolean;
                     add: boolean;
@@ -519,6 +529,8 @@ declare const OpenBuildShape: {
                 require: string;
                 log: {};
                 fs: import("gubu").Node<unknown>;
+                dryrun: boolean;
+                buildargs: {};
                 watch: {
                     mod: boolean;
                     add: boolean;
@@ -583,6 +595,8 @@ declare const OpenBuildShape: {
                 require: string;
                 log: {};
                 fs: any;
+                dryrun: boolean;
+                buildargs: {};
                 watch: {
                     mod: boolean;
                     add: boolean;
@@ -600,6 +614,8 @@ declare const OpenBuildShape: {
                 require: string;
                 log: {};
                 fs: import("gubu").Node<unknown>;
+                dryrun: boolean;
+                buildargs: {};
                 watch: {
                     mod: boolean;
                     add: boolean;
@@ -655,6 +671,8 @@ declare const OpenBuildShape: {
                 require: string;
                 log: {};
                 fs: import("gubu").Node<unknown>;
+                dryrun: boolean;
+                buildargs: {};
                 watch: {
                     mod: boolean;
                     add: boolean;

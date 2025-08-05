@@ -322,7 +322,8 @@ const operationTransform = async function(
         pathdef, op, path, entity, model), a), opModel.query)
 
       let pathalt: any[] = []
-      const pathselector = makePathSelector(path.key$) // , params)
+      const pathselector = makePathSelector(path.key$)
+
       let before = false
 
       if (null != entityModel.op[opname]) {
@@ -413,9 +414,30 @@ const operationTransform = async function(
           opcount++
         }
       })
-
-
     })
+
+    // Full list of params only know after all operations built.
+    each(entityModel.op, (op: any) => {
+      const params = Object.keys(op.param || {})
+      const pathalt = op.pathalt || []
+
+      // if ('course' === entityModel.name) {
+      //   console.log('PA', params, pathalt)
+      // }
+
+      for (const pa of pathalt) {
+        for (const p of params) {
+          pa[p] = pa[p] || false
+          // if ('course' === entityModel.name) {
+          //   console.log('PA-SET', p, pa)
+          // }
+        }
+      }
+    })
+
+    // if ('course' === entityModel.name) {
+    //   console.dir(entityModel, { depth: null })
+    // }
 
     msg += guideEntity.name + '=' + opcount + ' '
   })
@@ -424,7 +446,7 @@ const operationTransform = async function(
 }
 
 
-function makePathSelector(path: string) { // , params: any[]) {
+function makePathSelector(path: string) {
   let out: any = { path }
 
   let pn$ = 0
@@ -434,11 +456,6 @@ function makePathSelector(path: string) { // , params: any[]) {
     pn$++
   }
   out.pn$ = pn$
-
-  // for (let p of params) {
-  //   setprop(out, p.name, getprop(out, p.name, false))
-  //   console.log('SP', p.name, out[p.name])
-  // }
 
   return out
 }

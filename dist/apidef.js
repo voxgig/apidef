@@ -165,7 +165,13 @@ ApiDef.makeBuild = async function (opts) {
     const build = async function (model, build, ctx) {
         if (null == apidef) {
             apidef = ApiDef({
-                ...opts,
+                def: opts.def,
+                fs: opts.fs,
+                debug: opts.debug,
+                folder: opts.folder,
+                meta: opts.meta,
+                outprefix: opts.outprefix,
+                strategy: opts.strategy,
                 pino: build.log,
             });
         }

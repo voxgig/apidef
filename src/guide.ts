@@ -61,13 +61,16 @@ async function resolveGuide(ctx: any) {
 
   guideBlocks.push(...each(baseguide.entity, (entity, entityname) => {
     guideBlocks.push(`
-entity: ${entityname}: {`)
+entity: ${entityname}: {` +
+      (0 < entity.why_name.length ? ' # name:' + entity.why_name.join(';') : ''))
 
     each(entity.path, (path, pathname) => {
-      guideBlocks.push(`  path: '${pathname}': op: {`)
+      guideBlocks.push(`  path: '${pathname}': op: {` +
+        (0 < path.why_ent.length ? ' # ent:' + path.why_ent.join(';') : ''))
 
       each(path.op, (op, opname) => {
-        guideBlocks.push(`    '${opname}': method: ${op.method}`)
+        guideBlocks.push(`    '${opname}': method: ${op.method}` +
+          (0 < op.why_op.length ? ' # ' + op.why_op : ''))
         if (op.transform?.reqform) {
           guideBlocks.push(
             `    '${opname}': transform: reqform: ${JSON.stringify(op.transform.reqform)}`)
@@ -110,7 +113,11 @@ function cleanGuide(guide: Record<string, any>): Record<string, any> {
       }
     }
 
-    let ent: any = clean.entity[name] = clean.entity[name] = { name, path: {} }
+    let ent: any = clean.entity[name] = clean.entity[name] = {
+      name,
+      why_name: entity.why_name || [],
+      path: {}
+    }
 
     each(entity.path, (path: any, pathname: string) => {
       ent.path[pathname] = path

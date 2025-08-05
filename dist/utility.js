@@ -97,6 +97,11 @@ function depluralize(word) {
     if (word.endsWith('oes')) {
         return word.slice(0, -2);
     }
+    // Handle words ending in -nses (like responses, expenses, licenses)
+    // These should only lose the final -s, not -es
+    if (word.endsWith('nses')) {
+        return word.slice(0, -1);
+    }
     // -ses, -xes, -zes, -shes, -ches -> remove -es (boxes -> box)
     if (word.endsWith('ses') || word.endsWith('xes') || word.endsWith('zes') ||
         word.endsWith('shes') || word.endsWith('ches')) {

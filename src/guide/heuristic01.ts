@@ -2,7 +2,7 @@
 
 import { each, snakify, names } from 'jostraca'
 
-import { size } from '@voxgig/struct'
+import { size, walk } from '@voxgig/struct'
 
 
 import {
@@ -14,6 +14,7 @@ import {
 type EntityDesc = {
   name: string
   origname: string
+  why_name?: string[]
   plural: string
   path: Record<string, EntityPathDesc>
   alias: Record<string, string>
@@ -22,6 +23,7 @@ type EntityDesc = {
 
 type EntityPathDesc = {
   op: Record<string, any>
+  why_ent: string[]
 }
 
 // Log non-fatal wierdness.
@@ -32,16 +34,10 @@ async function heuristic01(ctx: any): Promise<Record<string, any>> {
 
   const entityDescs = resolveEntityDescs(ctx)
 
-  // console.log('entityDescs')
-  // console.dir(entityDescs, { depth: null })
-
   guide = {
     control: guide.control,
     entity: entityDescs,
   }
-
-  // console.log('GUIDE')
-  // console.dir(guide, { depth: null })
 
   return guide
 }
@@ -73,14 +69,19 @@ function resolveEntityDescs(ctx: any) {
       // const entdesc = resolveEntity(entityDescs, pathStr, m[1], m[2])
 
       each(pathDef, (methodDef: any, methodStr: string) => {
-        methodStr = methodStr.toLowerCase()
+        // console.log('PPP', pathStr, methodStr, methodDef)
 
+        methodStr = methodStr.toLowerCase()
+        let why_op: string[] = []
 
         if (!METHOD_IDOP[methodStr]) {
           return
         }
 
-        const entdesc = resolveEntity(entityDescs, pathDef, pathStr, methodDef, methodStr)
+        const why_ent: string[] = []
+        const entdesc =
+          resolveEntity(entityDescs, pathDef, pathStr, methodDef, methodStr, why_ent)
+
 
         if (null == entdesc) {
           console.log(
@@ -89,12 +90,15 @@ function resolveEntityDescs(ctx: any) {
           return
         }
 
+        entdesc.path[pathStr].why_ent = why_ent
+
+
         // if (pathStr.includes('courses')) {
         //   console.log('ENTRES', pathStr, methodStr)
         //   console.dir(ent2, { depth: null })
         // }
 
-        let opname = resolveOpName(methodStr, methodDef, pathStr, entdesc)
+        let opname = resolveOpName(methodStr, methodDef, pathStr, entdesc, why_op)
 
         if (null == opname) {
           console.log(
@@ -109,7 +113,7 @@ function resolveEntityDescs(ctx: any) {
           // resform: '`body`',
         }
 
-        const resokdef = methodDef.responses[200] || methodDef.responses[201]
+        const resokdef = methodDef.responses?.[200] || methodDef.responses?.[201]
         const resbody = resokdef?.content?.['application/json']?.schema
         if (resbody) {
           if (resbody[entdesc.origname]) {
@@ -136,16 +140,17 @@ function resolveEntityDescs(ctx: any) {
         op[opname] = {
           // TODO: in actual guide, remove "standard" method ops since redundant
           method: methodStr,
+          why_op: why_op.join(';')
         }
 
         if (0 < Object.entries(transform).length) {
           op[opname].transform = transform
         }
 
-        if ('/v2/users/{user_id}/enrollment' === pathStr) {
-          console.log('ENT')
-          console.dir(entdesc, { depth: null })
-        }
+        // if ('/v2/users/{user_id}/enrollment' === pathStr) {
+        //   console.log('ENT')
+        //   console.dir(entdesc, { depth: null })
+        // }
       })
     }
   })
@@ -163,24 +168,32 @@ function resolveEntity(
   pathStr: string,
   methodDef: Record<string, any>,
   methodStr: string,
+  why_ent: string[]
 ): EntityDesc | undefined {
 
   let entdesc: EntityDesc
   let entname: string = ''
   let origentname: string = ''
 
+  const why_name: string[] = []
+
   const m = pathStr.match(/\/([a-zA-Z0-1_-]+)(\/\{([a-zA-Z0-1_-]+)\})?$/)
   if (m) {
     let pathName = m[1]
     origentname = snakify(pathName)
+    entname = depluralize(origentname)
 
     // Check schema
-    const compname = resolveComponentName(methodDef, methodStr)
+    const compname = resolveComponentName(entname, methodDef, methodStr, pathStr, why_name)
     if (compname) {
       origentname = snakify(compname)
+      entname = depluralize(origentname)
+      why_ent.push('cmp:' + entname)
     }
-
-    entname = depluralize(origentname)
+    else {
+      why_ent.push('path:' + m[1])
+      why_name.push('path:' + m[1])
+    }
 
     entdesc = (entityDescs[entname] = entityDescs[entname] || {
       name: entname,
@@ -216,6 +229,10 @@ function resolveEntity(
   entdesc.path[pathStr] = entdesc.path[pathStr] || {}
   entdesc.path[pathStr].op = entdesc.path[pathStr].op || {}
 
+  if (null == entdesc.why_name) {
+    entdesc.why_name = why_name
+  }
+
   return entdesc
 }
 
@@ -229,12 +246,44 @@ const REQKIND: any = {
 
 
 function resolveComponentName(
+  entname: string,
   methodDef: Record<string, any>,
   methodStr: string,
+  pathStr: string,
+  why_name: string[]
 ): string | undefined {
-  const kind = REQKIND[methodStr]
   let compname: string | undefined = undefined
 
+  let xrefs = find(methodDef, 'x-ref')
+    .filter(xref => xref.val.includes('schema'))
+
+    // TODO: identify non-ent schemas
+    .filter(xref => !xref.val.includes('Meta'))
+
+    .sort((a, b) => a.path.length - b.path.length)
+
+  // console.log('RCN', pathStr, methodStr, xrefs.map(x => [x.val, x.path.length]))
+
+  let first = xrefs[0]?.val
+
+  if (null != first) {
+    let xrefm = (first as string).match(/\/components\/schemas\/(.+)$/)
+    if (xrefm) {
+      why_name.push('cmp')
+      compname = xrefm[1]
+    }
+  }
+
+  if (null != compname) {
+    compname = depluralize(snakify(compname))
+
+    // Assume sub schemas suffixes are not real entities
+    if (compname.includes(entname)) {
+      compname = compname.slice(0, compname.indexOf(entname) + entname.length)
+    }
+  }
+
+  /*
   const responses = methodDef.responses
   const schemalist =
     [
@@ -245,9 +294,18 @@ function resolveComponentName(
       .filter(cmp => null != cmp)
       .map(content => content['application/json']?.schema)
       .filter(schema => null != schema)
-      .filter(schema => null != schema['x-ref'])
+      // .filter(schema => null != schema['x-ref'])
       .map(schema => {
-        let xrefm = schema['x-ref'].match(/\/components\/schemas\/(.+)$/)
+
+        let xrefs = find(schema, 'x-ref')
+
+        if ('responses' === pathName) {
+          console.log('xrefs', xrefs)
+        }
+
+        let xrefv = String(xrefs[0])
+
+        let xrefm = xrefv.match(/\/components\/schemas\/(.+)$/)
         if (xrefm) {
           schema['x-ref-cmp'] = xrefm[1]
         }
@@ -255,8 +313,17 @@ function resolveComponentName(
       })
       .filter(schema => null != schema['x-ref-cmp'])
 
+  if ('responses' === pathName) {
+    console.log('CMP', pathName, schemalist.length)
+    // console.dir(methodDef.responses['200'].content['application/json'].schema, { depth: null })
+  }
+
   let schema = undefined
   let splen = -1
+
+  if (0 < schemalist.length) {
+    why_name.push('schema')
+  }
 
   for (let sI = 0; sI < schemalist.length; sI++) {
     let nextschema = schemalist[sI]
@@ -282,6 +349,7 @@ function resolveComponentName(
     // console.log('RCN-XREF', methodStr, 'xref-0', xref)
 
     if (null == xref) {
+      why_name.push('xref')
       const properties = schema.properties || {}
       each(properties, (prop) => {
         if (null == xref) {
@@ -296,26 +364,42 @@ function resolveComponentName(
     if (null != xref && 'string' === typeof xref) {
       let xrefm = xref.match(/\/components\/schemas\/(.+)$/)
       if (xrefm) {
+        why_name.push('cmp')
         compname = xrefm[1]
       }
     }
   }
+  */
 
   return compname
 }
 
 
-function resolveOpName(methodStr: string, methodDef: any, pathStr: string, entdesc: EntityDesc)
+function resolveOpName(
+  methodStr: string,
+  methodDef: any,
+  pathStr: string,
+  entdesc: EntityDesc,
+  why: string[]
+)
   : string | undefined {
+  // console.log('ROP', pathStr, methodDef)
+
 
   let opname = METHOD_IDOP[methodStr]
-  if (null == opname) return;
+  if (null == opname) {
+    why.push('no-op:' + methodStr)
+    return
+  }
 
   if ('load' === opname) {
-    const islist = isListResponse(methodDef, pathStr, entdesc)
+    const islist = isListResponse(methodDef, pathStr, entdesc, why)
     opname = islist ? 'list' : opname
 
-    console.log('ISLIST', entdesc.name, methodStr, opname, pathStr)
+    // console.log('ISLIST', entdesc.name, methodStr, opname, pathStr)
+  }
+  else {
+    why.push('not-load')
   }
 
   return opname
@@ -325,7 +409,8 @@ function resolveOpName(methodStr: string, methodDef: any, pathStr: string, entde
 function isListResponse(
   methodDef: Record<string, any>,
   pathStr: string,
-  entdesc: EntityDesc
+  entdesc: EntityDesc,
+  why: string[]
 ): boolean {
   const responses = methodDef.responses
   const resdef = responses?.['201'] || responses?.['200']
@@ -333,10 +418,19 @@ function isListResponse(
 
   let islist = false
 
-  if (null != content) {
+  if (null == content) {
+    // console.log('NO-CONTENT', pathStr, methodDef)
+    why.push('no-content')
+  }
+  else {
     const schema = content['application/json']?.schema
-    if (schema) {
+    if (null == schema) {
+      why.push('no-schema')
+    }
+    else {
+
       if (schema.type === 'array') {
+        why.push('array')
         islist = true
       }
 
@@ -345,20 +439,45 @@ function isListResponse(
         each(properties, (prop) => {
           if (prop.type === 'array') {
 
-            if (
-              1 === size(properties) ||
-              prop.key$ === entdesc.name ||
-              prop.key$ === entdesc.origname ||
-              listedEntity(prop) === entdesc.name
-            ) {
+            if (1 === size(properties)) {
+              why.push('one-prop:' + prop.key$)
               islist = true
             }
 
-            if ('/v2/users' === pathStr) {
-              console.log('islistresponse', islist, pathStr, entdesc.name, listedEntity(prop), properties)
+            if (2 === size(properties) &&
+              ('data' === prop.key$ ||
+                'list' === prop.key$)
+            ) {
+              why.push('two-prop:' + prop.key$)
+              islist = true
             }
+
+            if (prop.key$ === entdesc.name) {
+              why.push('name:' + entdesc.origname)
+              islist = true
+            }
+
+            if (prop.key$ === entdesc.origname) {
+              why.push('origname:' + entdesc.origname)
+              islist = true
+            }
+
+            const listent = listedEntity(prop)
+            if (listent === entdesc.name) {
+              why.push('listent:' + listent)
+              islist = true
+            }
+
+
+            // if ('/v2/users' === pathStr) {
+            //   console.log('islistresponse', islist, pathStr, entdesc.name, listedEntity(prop), properties)
+            // }
           }
         })
+      }
+
+      if (!islist) {
+        why.push('not-list')
       }
     }
   }
@@ -375,6 +494,17 @@ function listedEntity(prop: any) {
   }
 }
 
+
+function find(obj: any, qkey: string): any[] {
+  let vals: any[] = []
+  walk(obj, (key: any, val: any, _p: any, t: string[]) => {
+    if (qkey === key) {
+      vals.push({ key, val, path: t })
+    }
+    return val
+  })
+  return vals
+}
 
 
 export {

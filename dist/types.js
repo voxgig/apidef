@@ -27,6 +27,8 @@ const BuildShape = (0, gubu_1.Gubu)({
         require: '',
         log: {},
         fs: (0, gubu_1.Any)(),
+        dryrun: false,
+        buildargs: {},
         watch: {
             mod: true,
             add: true,

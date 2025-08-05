@@ -193,7 +193,7 @@ const operationTransform = async function (ctx) {
             let queries = sharedqueries.concat((0, jostraca_1.getx)(pathdef[method], 'parameters?in!=path') || []);
             queries.reduce((a, p) => (queryBuilder(a, p, opModel, entityModel, pathdef, op, path, entity, model), a), opModel.query);
             let pathalt = [];
-            const pathselector = makePathSelector(path.key$); // , params)
+            const pathselector = makePathSelector(path.key$);
             let before = false;
             if (null != entityModel.op[opname]) {
                 pathalt = entityModel.op[opname].pathalt;
@@ -267,6 +267,25 @@ const operationTransform = async function (ctx) {
                 }
             });
         });
+        // Full list of params only know after all operations built.
+        (0, jostraca_1.each)(entityModel.op, (op) => {
+            const params = Object.keys(op.param || {});
+            const pathalt = op.pathalt || [];
+            // if ('course' === entityModel.name) {
+            //   console.log('PA', params, pathalt)
+            // }
+            for (const pa of pathalt) {
+                for (const p of params) {
+                    pa[p] = pa[p] || false;
+                    // if ('course' === entityModel.name) {
+                    //   console.log('PA-SET', p, pa)
+                    // }
+                }
+            }
+        });
+        // if ('course' === entityModel.name) {
+        //   console.dir(entityModel, { depth: null })
+        // }
         msg += guideEntity.name + '=' + opcount + ' ';
     });
     return { ok: true, msg };
@@ -281,10 +300,6 @@ function makePathSelector(path) {
         pn$++;
     }
     out.pn$ = pn$;
-    // for (let p of params) {
-    //   setprop(out, p.name, getprop(out, p.name, false))
-    //   console.log('SP', p.name, out[p.name])
-    // }
     return out;
 }
 //# sourceMappingURL=operation.js.map
