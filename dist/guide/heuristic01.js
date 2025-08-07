@@ -288,61 +288,67 @@ function resolveOpName(methodStr, methodDef, pathStr, entdesc, why) {
     return opname;
 }
 function isListResponse(methodDef, pathStr, entdesc, why) {
-    const responses = methodDef.responses;
-    const resdef = responses?.['201'] || responses?.['200'];
-    const content = resdef?.content;
+    const caught = capture(methodDef, {
+        responses: {
+            '`$ANY`': { content: { 'application/json': { schema: { '`$CAPTURE`': 'schema' } } } },
+        }
+    });
+    // console.log('CAUGHT', caught)
+    const schema = caught.schema;
+    // const responses = methodDef.responses
+    // const resdef = responses?.['201'] || responses?.['200']
+    // const content = resdef?.content
     let islist = false;
-    if (null == content) {
-        // console.log('NO-CONTENT', pathStr, methodDef)
-        why.push('no-content');
+    if (null == schema) {
+        why.push('no-schema');
     }
     else {
-        const schema = content['application/json']?.schema;
-        if (null == schema) {
-            why.push('no-schema');
+        // const schema = content['application/json']?.schema
+        // if (null == schema) {
+        //   why.push('no-schema')
+        // }
+        // else {
+        if (schema.type === 'array') {
+            why.push('array');
+            islist = true;
         }
-        else {
-            if (schema.type === 'array') {
-                why.push('array');
-                islist = true;
-            }
-            if (!islist) {
-                const properties = schema.properties || {};
-                (0, jostraca_1.each)(properties, (prop) => {
-                    if (prop.type === 'array') {
-                        if (1 === (0, struct_1.size)(properties)) {
-                            why.push('one-prop:' + prop.key$);
-                            islist = true;
-                        }
-                        if (2 === (0, struct_1.size)(properties) &&
-                            ('data' === prop.key$ ||
-                                'list' === prop.key$)) {
-                            why.push('two-prop:' + prop.key$);
-                            islist = true;
-                        }
-                        if (prop.key$ === entdesc.name) {
-                            why.push('name:' + entdesc.origname);
-                            islist = true;
-                        }
-                        if (prop.key$ === entdesc.origname) {
-                            why.push('origname:' + entdesc.origname);
-                            islist = true;
-                        }
-                        const listent = listedEntity(prop);
-                        if (listent === entdesc.name) {
-                            why.push('listent:' + listent);
-                            islist = true;
-                        }
-                        // if ('/v2/users' === pathStr) {
-                        //   console.log('islistresponse', islist, pathStr, entdesc.name, listedEntity(prop), properties)
-                        // }
+        if (!islist) {
+            const properties = schema.properties || {};
+            (0, jostraca_1.each)(properties, (prop) => {
+                if (prop.type === 'array') {
+                    if (1 === (0, struct_1.size)(properties)) {
+                        why.push('one-prop:' + prop.key$);
+                        islist = true;
                     }
-                });
-            }
-            if (!islist) {
-                why.push('not-list');
-            }
+                    if (2 === (0, struct_1.size)(properties) &&
+                        ('data' === prop.key$ ||
+                            'list' === prop.key$)) {
+                        why.push('two-prop:' + prop.key$);
+                        islist = true;
+                    }
+                    if (prop.key$ === entdesc.name) {
+                        why.push('name:' + entdesc.origname);
+                        islist = true;
+                    }
+                    if (prop.key$ === entdesc.origname) {
+                        why.push('origname:' + entdesc.origname);
+                        islist = true;
+                    }
+                    const listent = listedEntity(prop);
+                    if (listent === entdesc.name) {
+                        why.push('listent:' + listent);
+                        islist = true;
+                    }
+                    // if ('/v2/users' === pathStr) {
+                    //   console.log('islistresponse', islist, pathStr, entdesc.name, listedEntity(prop), properties)
+                    // }
+                }
+            });
         }
+        if (!islist) {
+            why.push('not-list');
+        }
+        // }
     }
     return islist;
 }
@@ -362,5 +368,43 @@ function find(obj, qkey) {
         return val;
     });
     return vals;
+}
+function capture(data, shape) {
+    let meta = { capture: {} };
+    let errs = [];
+    (0, struct_1.transform)(data, shape, { extra: { $CAPTURE, $ANY }, errs, meta });
+    if (0 < errs.length) {
+        console.log('ERRS', errs);
+        dlog(errs);
+    }
+    return meta.capture;
+}
+function $CAPTURE(inj) {
+    if ('key:pre' === inj.mode) {
+        const { val, prior } = inj;
+        const { dparent, key } = prior;
+        const dval = dparent?.[key];
+        if (undefined !== dval) {
+            inj.meta.capture[val] = dval;
+        }
+    }
+}
+function $ANY(inj, _val, _ref, store) {
+    if ('key:pre' === inj.mode) {
+        const { prior } = inj;
+        const child = inj.parent[inj.key];
+        const { dparent, key } = prior;
+        const dval = dparent?.[key];
+        if ((0, struct_1.isnode)(dval)) {
+            for (let n of Object.entries(dval)) {
+                let vstore = { ...store };
+                vstore.$TOP = n[1];
+                (0, struct_1.inject)((0, struct_1.clone)(child), vstore, {
+                    meta: inj.meta,
+                    errs: inj.errs,
+                });
+            }
+        }
+    }
 }
 //# sourceMappingURL=heuristic01.js.map

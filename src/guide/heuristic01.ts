@@ -2,7 +2,7 @@
 
 import { each, snakify, names } from 'jostraca'
 
-import { size, walk } from '@voxgig/struct'
+import { inject, clone, isnode, size, walk, transform } from '@voxgig/struct'
 
 
 import {
@@ -412,74 +412,84 @@ function isListResponse(
   entdesc: EntityDesc,
   why: string[]
 ): boolean {
-  const responses = methodDef.responses
-  const resdef = responses?.['201'] || responses?.['200']
-  const content = resdef?.content
+
+  const caught = capture(methodDef, {
+    responses: {
+      '`$ANY`': { content: { 'application/json': { schema: { '`$CAPTURE`': 'schema' } } } },
+    }
+  })
+
+  // console.log('CAUGHT', caught)
+
+  const schema = caught.schema
+
+  // const responses = methodDef.responses
+  // const resdef = responses?.['201'] || responses?.['200']
+  // const content = resdef?.content
 
   let islist = false
 
-  if (null == content) {
-    // console.log('NO-CONTENT', pathStr, methodDef)
-    why.push('no-content')
+  if (null == schema) {
+    why.push('no-schema')
   }
   else {
-    const schema = content['application/json']?.schema
-    if (null == schema) {
-      why.push('no-schema')
+    // const schema = content['application/json']?.schema
+    // if (null == schema) {
+    //   why.push('no-schema')
+    // }
+    // else {
+
+    if (schema.type === 'array') {
+      why.push('array')
+      islist = true
     }
-    else {
 
-      if (schema.type === 'array') {
-        why.push('array')
-        islist = true
-      }
+    if (!islist) {
+      const properties = schema.properties || {}
+      each(properties, (prop) => {
+        if (prop.type === 'array') {
 
-      if (!islist) {
-        const properties = schema.properties || {}
-        each(properties, (prop) => {
-          if (prop.type === 'array') {
-
-            if (1 === size(properties)) {
-              why.push('one-prop:' + prop.key$)
-              islist = true
-            }
-
-            if (2 === size(properties) &&
-              ('data' === prop.key$ ||
-                'list' === prop.key$)
-            ) {
-              why.push('two-prop:' + prop.key$)
-              islist = true
-            }
-
-            if (prop.key$ === entdesc.name) {
-              why.push('name:' + entdesc.origname)
-              islist = true
-            }
-
-            if (prop.key$ === entdesc.origname) {
-              why.push('origname:' + entdesc.origname)
-              islist = true
-            }
-
-            const listent = listedEntity(prop)
-            if (listent === entdesc.name) {
-              why.push('listent:' + listent)
-              islist = true
-            }
-
-
-            // if ('/v2/users' === pathStr) {
-            //   console.log('islistresponse', islist, pathStr, entdesc.name, listedEntity(prop), properties)
-            // }
+          if (1 === size(properties)) {
+            why.push('one-prop:' + prop.key$)
+            islist = true
           }
-        })
-      }
 
-      if (!islist) {
-        why.push('not-list')
-      }
+          if (2 === size(properties) &&
+            ('data' === prop.key$ ||
+              'list' === prop.key$)
+          ) {
+            why.push('two-prop:' + prop.key$)
+            islist = true
+          }
+
+          if (prop.key$ === entdesc.name) {
+            why.push('name:' + entdesc.origname)
+            islist = true
+          }
+
+          if (prop.key$ === entdesc.origname) {
+            why.push('origname:' + entdesc.origname)
+            islist = true
+          }
+
+          const listent = listedEntity(prop)
+          if (listent === entdesc.name) {
+            why.push('listent:' + listent)
+            islist = true
+          }
+
+
+          // if ('/v2/users' === pathStr) {
+          //   console.log('islistresponse', islist, pathStr, entdesc.name, listedEntity(prop), properties)
+          // }
+        }
+      })
     }
+
+    if (!islist) {
+      why.push('not-list')
+    }
+    // }
   }
 
   return islist
@@ -504,6 +514,49 @@ function find(obj: any, qkey: string): any[] {
     return val
   })
   return vals
+}
+
+
+function capture(data: any, shape: any): Record<string, any> {
+  let meta = { capture: {} }
+  let errs: any[] = []
+  transform(data, shape, { extra: { $CAPTURE, $ANY }, errs, meta })
+  if (0 < errs.length) {
+    console.log('ERRS', errs)
+    dlog(errs)
+  }
+  return meta.capture
+}
+
+function $CAPTURE(inj: any) {
+  if ('key:pre' === inj.mode) {
+    const { val, prior } = inj
+    const { dparent, key } = prior
+    const dval = dparent?.[key]
+    if (undefined !== dval) {
+      inj.meta.capture[val] = dval
+    }
+  }
+}
+
+
+function $ANY(inj: any, _val: any, _ref: any, store: any) {
+  if ('key:pre' === inj.mode) {
+    const { prior } = inj
+    const child = inj.parent[inj.key]
+    const { dparent, key } = prior
+    const dval = dparent?.[key]
+    if (isnode(dval)) {
+      for (let n of Object.entries(dval)) {
+        let vstore = { ...store }
+        vstore.$TOP = n[1]
+        inject(clone(child), vstore, {
+          meta: inj.meta,
+          errs: inj.errs,
+        })
+      }
+    }
+  }
 }
 
 

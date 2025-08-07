@@ -11,7 +11,7 @@ const defs = readdirSync(__dirname+'/def')
               !fn.endsWith('~') &&
               (!match || fn.includes(match)))
 
-// console.log(match, defs)
+console.log(match, defs)
 
 run()
 

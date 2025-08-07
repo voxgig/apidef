@@ -24,6 +24,67 @@ describe('apidef', () => {
   })
 
 
+  test('api-solar', async () => {
+    try {
+      const outprefix = 'solar-1.0.0-openapi-3.0.0-'
+      const folder = __dirname + '/../test/api'
+
+      const build = await ApiDef.makeBuild({
+        folder,
+        debug: 'debug',
+        outprefix,
+      })
+
+      const modelSrc = `
+# apidef test: ${outprefix}
+
+name: solar
+
+@"@voxgig/apidef/model/apidef.jsonic"
+
+def: '${outprefix}def.yaml'
+`
+
+      const model = Aontu(modelSrc).gen()
+
+      const buildspec = {
+        spec: {
+          base: __dirname + '/../test/api'
+        }
+      }
+
+      await build(model, buildspec, {})
+
+
+      const rootSrc = `
+@"@voxgig/apidef/model/apidef.jsonic"
+
+# @"${outprefix}guide.jsonic"
+
+@"api/${outprefix}api-def.jsonic"
+@"api/${outprefix}api-entity-index.jsonic"
+@"flow/${outprefix}flow-index.jsonic"
+
+`
+
+      const rootFile = folder + `/${outprefix}root.jsonic`
+      Fs.writeFileSync(rootFile, rootSrc)
+
+      const result = Aontu(rootSrc, {
+        path: rootFile,
+        // base: folder
+      }).gen()
+
+      Fs.writeFileSync(folder + `/${outprefix}root.json`, JSON.stringify(result, null, 2))
+    }
+    catch (err: any) {
+      console.log(err)
+      throw err
+    }
+  })
+
+
+
   test('api-statuspage', async () => {
     try {
       const outprefix = 'statuspage-1.0.0-20241218-'

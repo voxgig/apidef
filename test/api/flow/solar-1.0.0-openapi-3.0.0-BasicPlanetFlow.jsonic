@@ -1,0 +1,92 @@
+# BasicPlanetFlow
+
+main: sdk: flow: BasicPlanetFlow:
+{
+  name: "BasicPlanetFlow",
+  active: true,
+  param: {
+    SOLAR_TEST_PLANET_ENTID: {
+      planet01: "PLANET01",
+      planet02: "PLANET02",
+      planet03: "PLANET03"
+    }
+
+    SOLAR_TEST_LIVE: "FALSE",
+    SOLAR_TEST_EXPLAIN: "FALSE"
+  }
+
+  test: {
+    entity: {
+      planet: {
+        PLANET01: {
+          id: "PLANET01",
+          name: "s1",
+          kind: "s2",
+          diameter: 3
+        }
+
+        PLANET02: {
+          id: "PLANET02",
+          name: "s29",
+          kind: "s2a",
+          diameter: 43
+        }
+
+        PLANET03: {
+          id: "PLANET03",
+          name: "s51",
+          kind: "s52",
+          diameter: 83
+        }
+      }
+    }
+  }
+
+  step: [
+    {
+      name: "load_planet0",
+      kind: "entity",
+      entity: "planet",
+      action: "load",
+      match: {
+        id: "`dm$=p.SOLAR_TEST_PLANET_ENTID.planet01`"
+      }
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_planet0.match.id`"
+      }
+    }
+
+    {
+      name: "update_planet1",
+      ref: "load_planet0",
+      action: "update",
+      reqdata: {
+        name: "s1-`$WHEN`"
+      }
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_planet0.match.id`",
+        name: "`dm$=s.update_planet1.reqdata.name`"
+      }
+    }
+
+    {
+      name: "load_planet2",
+      kind: "entity",
+      entity: "planet",
+      action: "load",
+      match: {
+        id: "`dm$=p.SOLAR_TEST_PLANET_ENTID.planet01`"
+      }
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_planet0.match.id`",
+        name: "`dm$=s.update_planet1.reqdata.name`"
+      }
+    }
+  ]
+}

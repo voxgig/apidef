@@ -1,0 +1,90 @@
+# BasicComponentUptimeFlow
+
+main: sdk: flow: BasicComponentUptimeFlow:
+{
+  name: "BasicComponentUptimeFlow",
+  active: true,
+  param: {
+    STATUSPAGE_TEST_COMPONENT_UPTIME_ENTID: {
+      component_uptime01: "COMPONENT_UPTIME01",
+      component_uptime02: "COMPONENT_UPTIME02",
+      component_uptime03: "COMPONENT_UPTIME03"
+    }
+
+    STATUSPAGE_TEST_LIVE: "FALSE",
+    STATUSPAGE_TEST_EXPLAIN: "FALSE",
+    STATUSPAGE_TEST_PAGE_ENTID: {
+      page01: "PAGE01"
+    }
+
+    STATUSPAGE_TEST_COMPONENT_ENTID: {
+      component01: "COMPONENT01"
+    }
+  }
+
+  test: {
+    entity: {
+      component_uptime: {
+        COMPONENT_UPTIME01: {
+          range_start: "s0",
+          range_end: "s1",
+          uptime_percentage: 2,
+          major_outage: "s3",
+          partial_outage: "s4",
+          warnings: "s5",
+          id: "COMPONENT_UPTIME01",
+          name: "s7",
+          related_events: {}
+
+          page_id: "PAGE01",
+          component_id: "COMPONENT01"
+        }
+
+        COMPONENT_UPTIME02: {
+          range_start: "s5a",
+          range_end: "s5b",
+          uptime_percentage: 92,
+          major_outage: "s5d",
+          partial_outage: "s5e",
+          warnings: "s5f",
+          id: "COMPONENT_UPTIME02",
+          name: "s61",
+          related_events: {}
+        }
+
+        COMPONENT_UPTIME03: {
+          range_start: "sb4",
+          range_end: "sb5",
+          uptime_percentage: 182,
+          major_outage: "sb7",
+          partial_outage: "sb8",
+          warnings: "sb9",
+          id: "COMPONENT_UPTIME03",
+          name: "sbb",
+          related_events: {}
+        }
+      }
+    }
+  }
+
+  step: [
+    {
+      name: "load_component_uptime0",
+      kind: "entity",
+      entity: "component_uptime",
+      action: "load",
+      match: {
+        id: "`dm$=p.STATUSPAGE_TEST_COMPONENT_UPTIME_ENTID.component_uptime01`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
+        component_id: "`dm$=p.STATUSPAGE_TEST_COMPONENT_ENTID.component01`"
+      }
+
+      valid: {
+        "`$OPEN`": true,
+        id: "`dm$=s.load_component_uptime0.match.id`",
+        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
+        component_id: "`dm$=p.STATUSPAGE_TEST_COMPONENT_ENTID.component01`"
+      }
+    }
+  ]
+}
