@@ -180,36 +180,5 @@ main: sdk: flow: BasicPageFlow:
         id: "`dm$=s.load_page0.match.id`"
       }
     }
-
-    {
-      name: "update_page1",
-      ref: "load_page0",
-      action: "update",
-      reqdata: {
-        created_at: "s1-`$WHEN`"
-      }
-
-      valid: {
-        "`$OPEN`": true,
-        id: "`dm$=s.load_page0.match.id`",
-        created_at: "`dm$=s.update_page1.reqdata.created_at`"
-      }
-    }
-
-    {
-      name: "load_page2",
-      kind: "entity",
-      entity: "page",
-      action: "load",
-      match: {
-        id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
-      }
-
-      valid: {
-        "`$OPEN`": true,
-        id: "`dm$=s.load_page0.match.id`",
-        created_at: "`dm$=s.update_page1.reqdata.created_at`"
-      }
-    }
   ]
 }

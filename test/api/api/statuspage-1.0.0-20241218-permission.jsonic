@@ -5,62 +5,6 @@ main: api: entity: permission: {
   alias: field: {}
 
   op: {
-    update: {
-      path: "/organizations/{organization_id}/permissions/{user_id}",
-      pathalt: [
-        {
-          path: "/organizations/{organization_id}/permissions/{user_id}",
-          organization_id: true,
-          user_id: true
-        }
-      ],
-      method: "put",
-      kind: "req",
-      param: {
-        organization_id: {
-          required: true,
-          name: "organization_id",
-          Name: "OrganizationId",
-          NAME: "ORGANIZATION_ID",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
-        }
-
-        user_id: {
-          required: true,
-          name: "user_id",
-          Name: "UserId",
-          NAME: "USER_ID",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
-        }
-      }
-
-      query: {}
-
-
-      # resform derivation: map-single-prop:data
-      resform: "`body.data`",
-
-      # reqform derivation: map-single-prop:pages
-      reqform: {
-        pages: "`reqdata`"
-      }
-
-      validate: {
-        params: {
-          organization_id: "`$STRING`",
-          user_id: "`$STRING`"
-        }
-      }
-
-      name: "update",
-      Name: "Update",
-      NAME: "UPDATE"
-    }
-
     load: {
       path: "/organizations/{organization_id}/permissions/{user_id}",
       pathalt: [

@@ -8,173 +8,6 @@ main: api: entity: subscriber: {
   }
 
   op: {
-    create: {
-      path: "/pages/{page_id}/subscribers",
-      pathalt: [
-        {
-          path: "/pages/{page_id}/incidents/{incident_id}/subscribers",
-          page_id: true,
-          incident_id: true
-        }
-
-        {
-          path: "/pages/{page_id}/subscribers",
-          page_id: true
-        }
-      ],
-      method: "post",
-      kind: "req",
-      param: {
-        page_id: {
-          required: true,
-          name: "page_id",
-          Name: "PageId",
-          NAME: "PAGE_ID",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
-        }
-      }
-
-      query: {}
-
-
-      # resform derivation: default
-      resform: "`body`",
-
-      # reqform derivation: map-single-prop:subscriber
-      reqform: {
-        subscriber: "`reqdata`"
-      }
-
-      validate: {
-        params: {
-          page_id: "`$STRING`"
-        }
-      }
-
-      name: "create",
-      Name: "Create",
-      NAME: "CREATE"
-    }
-
-    list: {
-      path: "/pages/{page_id}/subscribers",
-      pathalt: [
-        {
-          path: "/pages/{page_id}/incidents/{incident_id}/subscribers",
-          page_id: true,
-          incident_id: true
-        }
-
-        {
-          path: "/pages/{page_id}/subscribers",
-          page_id: true
-        }
-      ],
-      method: "get",
-      kind: "res",
-      param: {
-        page_id: {
-          required: true,
-          name: "page_id",
-          Name: "PageId",
-          NAME: "PAGE_ID",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
-        }
-      }
-
-      query: {
-        q: {
-          required: false,
-          name: "q",
-          Name: "Q",
-          NAME: "Q",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
-        }
-
-        type: {
-          required: false,
-          name: "type",
-          Name: "Type",
-          NAME: "TYPE",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
-        }
-
-        state: {
-          required: false,
-          name: "state",
-          Name: "State",
-          NAME: "STATE",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
-        }
-
-        limit: {
-          required: false,
-          name: "limit",
-          Name: "Limit",
-          NAME: "LIMIT",
-          type: "integer",
-          Type: "Integer",
-          TYPE: "INTEGER"
-        }
-
-        page: {
-          required: false,
-          name: "page",
-          Name: "Page",
-          NAME: "PAGE",
-          type: "integer",
-          Type: "Integer",
-          TYPE: "INTEGER"
-        }
-
-        sort_field: {
-          required: false,
-          name: "sort_field",
-          Name: "SortField",
-          NAME: "SORT_FIELD",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
-        }
-
-        sort_direction: {
-          required: false,
-          name: "sort_direction",
-          Name: "SortDirection",
-          NAME: "SORT_DIRECTION",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
-        }
-      }
-
-
-      # resform derivation: default
-      resform: "`body`",
-
-      # reqform derivation: none
-      reqform: "`body`",
-      validate: {
-        params: {
-          page_id: "`$STRING`"
-        }
-      }
-
-      name: "list",
-      Name: "List",
-      NAME: "LIST"
-    }
-
     remove: {
       path: "/pages/{page_id}/subscribers/{subscriber_id}",
       pathalt: [
@@ -188,7 +21,8 @@ main: api: entity: subscriber: {
         {
           path: "/pages/{page_id}/subscribers/{subscriber_id}",
           page_id: true,
-          subscriber_id: true
+          subscriber_id: true,
+          incident_id: false
         }
       ],
       method: "delete",
@@ -199,6 +33,16 @@ main: api: entity: subscriber: {
           name: "page_id",
           Name: "PageId",
           NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        incident_id: {
+          required: true,
+          name: "incident_id",
+          Name: "IncidentId",
+          NAME: "INCIDENT_ID",
           type: "string",
           Type: "String",
           TYPE: "STRING"
@@ -258,7 +102,8 @@ main: api: entity: subscriber: {
         {
           path: "/pages/{page_id}/subscribers/{subscriber_id}",
           page_id: true,
-          subscriber_id: true
+          subscriber_id: true,
+          incident_id: false
         }
       ],
       method: "get",
@@ -269,6 +114,16 @@ main: api: entity: subscriber: {
           name: "page_id",
           Name: "PageId",
           NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        incident_id: {
+          required: true,
+          name: "incident_id",
+          Name: "IncidentId",
+          NAME: "INCIDENT_ID",
           type: "string",
           Type: "String",
           TYPE: "STRING"
@@ -303,62 +158,6 @@ main: api: entity: subscriber: {
       name: "load",
       Name: "Load",
       NAME: "LOAD"
-    }
-
-    update: {
-      path: "/pages/{page_id}/subscribers/{subscriber_id}",
-      pathalt: [
-        {
-          path: "/pages/{page_id}/subscribers/{subscriber_id}",
-          page_id: true,
-          subscriber_id: true
-        }
-      ],
-      method: "patch",
-      kind: "req",
-      param: {
-        page_id: {
-          required: true,
-          name: "page_id",
-          Name: "PageId",
-          NAME: "PAGE_ID",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
-        }
-
-        subscriber_id: {
-          required: true,
-          name: "subscriber_id",
-          Name: "SubscriberId",
-          NAME: "SUBSCRIBER_ID",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
-        }
-      }
-
-      query: {}
-
-
-      # resform derivation: default
-      resform: "`body`",
-
-      # reqform derivation: map-single-prop:component_ids
-      reqform: {
-        component_ids: "`reqdata`"
-      }
-
-      validate: {
-        params: {
-          page_id: "`$STRING`",
-          subscriber_id: "`$STRING`"
-        }
-      }
-
-      name: "update",
-      Name: "Update",
-      NAME: "UPDATE"
     }
   }
 

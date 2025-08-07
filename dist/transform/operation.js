@@ -157,18 +157,23 @@ const operationTransform = async function (ctx) {
         return [transform, why];
     };
     const opBuilder = {
-        any: (entityModel, pathdef, op, path, entity, model) => {
-            const opname = op.key$;
-            const method = op.method;
+        any: (entityModel, pathdef, guideOp, guidePath, guideEntity, model) => {
+            if (false === guidePath.active) {
+                return;
+            }
+            const opname = guideOp.key$;
+            const method = guideOp.method;
             const kind = transform_1.OPKIND[opname];
-            const [resform, resform_COMMENT] = resolveTransform(entityModel, op, kind, 'resform', pathdef);
-            const [reqform, reqform_COMMENT] = resolveTransform(entityModel, op, kind, 'reqform', pathdef);
+            const existingOpModel = entityModel.op[opname];
+            const existingParam = existingOpModel?.param;
+            const [resform, resform_COMMENT] = resolveTransform(entityModel, guideOp, kind, 'resform', pathdef);
+            const [reqform, reqform_COMMENT] = resolveTransform(entityModel, guideOp, kind, 'reqform', pathdef);
             const opModel = {
-                path: path.key$,
+                path: guidePath.key$,
                 pathalt: [],
                 method,
                 kind,
-                param: {},
+                param: existingParam || {},
                 query: {},
                 resform_COMMENT: 'derivation: ' + resform_COMMENT,
                 resform,
@@ -178,22 +183,22 @@ const operationTransform = async function (ctx) {
                     params: { '`$OPEN`': true }
                 }
             };
-            (0, transform_1.fixName)(opModel, op.key$);
+            (0, transform_1.fixName)(opModel, guideOp.key$);
             let params = [];
             // Params are in the path
-            if (0 < path.params$.length) {
+            if (0 < guidePath.params$.length) {
                 let sharedparams = (0, jostraca_1.getx)(pathdef, 'parameters?in=path') || [];
                 params = sharedparams.concat((0, jostraca_1.getx)(pathdef[method], 'parameters?in=path') || []);
                 // if (Array.isArray(params)) {
-                params.reduce((a, p) => (paramBuilder(a, p, opModel, entityModel, pathdef, op, path, entity, model), a), opModel.param);
+                params.reduce((a, p) => (paramBuilder(a, p, opModel, entityModel, pathdef, guideOp, guidePath, guideEntity, model), a), opModel.param);
                 //}
             }
             // Queries are after the ?
             let sharedqueries = (0, jostraca_1.getx)(pathdef, 'parameters?in!=path') || [];
             let queries = sharedqueries.concat((0, jostraca_1.getx)(pathdef[method], 'parameters?in!=path') || []);
-            queries.reduce((a, p) => (queryBuilder(a, p, opModel, entityModel, pathdef, op, path, entity, model), a), opModel.query);
+            queries.reduce((a, p) => (queryBuilder(a, p, opModel, entityModel, pathdef, guideOp, guidePath, guideEntity, model), a), opModel.query);
             let pathalt = [];
-            const pathselector = makePathSelector(path.key$);
+            const pathselector = makePathSelector(guidePath.key$);
             let before = false;
             if (null != entityModel.op[opname]) {
                 pathalt = entityModel.op[opname].pathalt;
@@ -259,10 +264,10 @@ const operationTransform = async function (ctx) {
         const entityModel = apimodel.main.api.entity[guideEntity.key$];
         (0, jostraca_1.each)(guideEntity.path, (guidePath) => {
             const pathdef = def.paths[guidePath.key$];
-            (0, jostraca_1.each)(guidePath.op, (op) => {
-                const opbuild = opBuilder[op.key$];
+            (0, jostraca_1.each)(guidePath.op, (guideOp) => {
+                const opbuild = opBuilder[guideOp.key$];
                 if (opbuild) {
-                    opbuild(entityModel, pathdef, op, guidePath, guideEntity, model);
+                    opbuild(entityModel, pathdef, guideOp, guidePath, guideEntity, model);
                     opcount++;
                 }
             });

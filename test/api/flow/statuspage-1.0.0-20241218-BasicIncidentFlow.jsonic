@@ -146,39 +146,5 @@ main: sdk: flow: BasicIncidentFlow:
         page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
       }
     }
-
-    {
-      name: "update_incident1",
-      ref: "load_incident0",
-      action: "update",
-      reqdata: {
-        created_at: "s2-`$WHEN`"
-      }
-
-      valid: {
-        "`$OPEN`": true,
-        id: "`dm$=s.load_incident0.match.id`",
-        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
-        created_at: "`dm$=s.update_incident1.reqdata.created_at`"
-      }
-    }
-
-    {
-      name: "load_incident2",
-      kind: "entity",
-      entity: "incident",
-      action: "load",
-      match: {
-        id: "`dm$=p.STATUSPAGE_TEST_INCIDENT_ENTID.incident01`",
-        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
-      }
-
-      valid: {
-        "`$OPEN`": true,
-        id: "`dm$=s.load_incident0.match.id`",
-        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
-        created_at: "`dm$=s.update_incident1.reqdata.created_at`"
-      }
-    }
   ]
 }

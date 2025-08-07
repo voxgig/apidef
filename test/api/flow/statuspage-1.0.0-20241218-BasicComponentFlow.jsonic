@@ -92,39 +92,5 @@ main: sdk: flow: BasicComponentFlow:
         page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
       }
     }
-
-    {
-      name: "update_component1",
-      ref: "load_component0",
-      action: "update",
-      reqdata: {
-        created_at: "s3-`$WHEN`"
-      }
-
-      valid: {
-        "`$OPEN`": true,
-        id: "`dm$=s.load_component0.match.id`",
-        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
-        created_at: "`dm$=s.update_component1.reqdata.created_at`"
-      }
-    }
-
-    {
-      name: "load_component2",
-      kind: "entity",
-      entity: "component",
-      action: "load",
-      match: {
-        id: "`dm$=p.STATUSPAGE_TEST_COMPONENT_ENTID.component01`",
-        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
-      }
-
-      valid: {
-        "`$OPEN`": true,
-        id: "`dm$=s.load_component0.match.id`",
-        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
-        created_at: "`dm$=s.update_component1.reqdata.created_at`"
-      }
-    }
   ]
 }

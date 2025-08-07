@@ -3,9 +3,9 @@
 main: api: entity: metric: {
 
   alias: field: {
-    "metrics_provider_id": "id",
+    "metric_id": "id",
     "id": "metric_id",
-    "metric_id": "id"
+    "metrics_provider_id": "id"
   }
 
   op: {
@@ -15,18 +15,22 @@ main: api: entity: metric: {
         {
           path: "/pages/{page_id}/metrics/{metric_id}",
           page_id: true,
-          metric_id: true
+          metric_id: true,
+          metrics_provider_id: false
         }
 
         {
           path: "/pages/{page_id}/metrics_providers/{metrics_provider_id}/metrics",
           page_id: true,
-          metrics_provider_id: true
+          metrics_provider_id: true,
+          metric_id: false
         }
 
         {
           path: "/pages/{page_id}/metrics",
-          page_id: true
+          page_id: true,
+          metric_id: false,
+          metrics_provider_id: false
         }
       ],
       method: "get",
@@ -37,6 +41,16 @@ main: api: entity: metric: {
           name: "page_id",
           Name: "PageId",
           NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        metric_id: {
+          required: true,
+          name: "metric_id",
+          Name: "MetricId",
+          NAME: "METRIC_ID",
           type: "string",
           Type: "String",
           TYPE: "STRING"
@@ -93,78 +107,9 @@ main: api: entity: metric: {
       NAME: "LOAD"
     }
 
-    update: {
-      path: "/pages/{page_id}/page_access_users/{page_access_user_id}/metrics",
-      pathalt: [
-        {
-          path: "/pages/{page_id}/metrics/{metric_id}",
-          page_id: true,
-          metric_id: true
-        }
-
-        {
-          path: "/pages/{page_id}/page_access_users/{page_access_user_id}/metrics",
-          page_id: true,
-          page_access_user_id: true
-        }
-      ],
-      method: "put",
-      kind: "req",
-      param: {
-        page_id: {
-          required: true,
-          name: "page_id",
-          Name: "PageId",
-          NAME: "PAGE_ID",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
-        }
-
-        page_access_user_id: {
-          required: true,
-          name: "page_access_user_id",
-          Name: "PageAccessUserId",
-          NAME: "PAGE_ACCESS_USER_ID",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
-        }
-      }
-
-      query: {}
-
-
-      # resform derivation: default
-      resform: "`body`",
-
-      # reqform derivation: map-single-prop:metric_ids
-      reqform: {
-        metric_ids: "`reqdata`"
-      }
-
-      validate: {
-        params: {
-          page_id: "`$STRING`",
-          page_access_user_id: "`$STRING`"
-        }
-      }
-
-      name: "update",
-      Name: "Update",
-      NAME: "UPDATE"
-    }
-
     remove: {
-      path: "/pages/{page_id}/page_access_users/{page_access_user_id}/metrics",
+      path: "/pages/{page_id}/metrics/{metric_id}/data",
       pathalt: [
-        {
-          path: "/pages/{page_id}/page_access_users/{page_access_user_id}/metrics/{metric_id}",
-          page_id: true,
-          page_access_user_id: true,
-          metric_id: true
-        }
-
         {
           path: "/pages/{page_id}/metrics/{metric_id}",
           page_id: true,
@@ -172,9 +117,9 @@ main: api: entity: metric: {
         }
 
         {
-          path: "/pages/{page_id}/page_access_users/{page_access_user_id}/metrics",
+          path: "/pages/{page_id}/metrics/{metric_id}/data",
           page_id: true,
-          page_access_user_id: true
+          metric_id: true
         }
       ],
       method: "delete",
@@ -185,16 +130,6 @@ main: api: entity: metric: {
           name: "page_id",
           Name: "PageId",
           NAME: "PAGE_ID",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
-        }
-
-        page_access_user_id: {
-          required: true,
-          name: "page_access_user_id",
-          Name: "PageAccessUserId",
-          NAME: "PAGE_ACCESS_USER_ID",
           type: "string",
           Type: "String",
           TYPE: "STRING"
@@ -222,7 +157,6 @@ main: api: entity: metric: {
       validate: {
         params: {
           page_id: "`$STRING`",
-          page_access_user_id: "`$STRING`",
           metric_id: "`$STRING`"
         }
       }
@@ -230,141 +164,6 @@ main: api: entity: metric: {
       name: "remove",
       Name: "Remove",
       NAME: "REMOVE"
-    }
-
-    create: {
-      path: "/pages/{page_id}/page_access_users/{page_access_user_id}/metrics",
-      pathalt: [
-        {
-          path: "/pages/{page_id}/metrics_providers/{metrics_provider_id}/metrics",
-          page_id: true,
-          metrics_provider_id: true
-        }
-
-        {
-          path: "/pages/{page_id}/page_access_users/{page_access_user_id}/metrics",
-          page_id: true,
-          page_access_user_id: true
-        }
-      ],
-      method: "post",
-      kind: "req",
-      param: {
-        page_id: {
-          required: true,
-          name: "page_id",
-          Name: "PageId",
-          NAME: "PAGE_ID",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
-        }
-
-        page_access_user_id: {
-          required: true,
-          name: "page_access_user_id",
-          Name: "PageAccessUserId",
-          NAME: "PAGE_ACCESS_USER_ID",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
-        }
-      }
-
-      query: {}
-
-
-      # resform derivation: default
-      resform: "`body`",
-
-      # reqform derivation: map-single-prop:metric_ids
-      reqform: {
-        metric_ids: "`reqdata`"
-      }
-
-      validate: {
-        params: {
-          page_id: "`$STRING`",
-          page_access_user_id: "`$STRING`"
-        }
-      }
-
-      name: "create",
-      Name: "Create",
-      NAME: "CREATE"
-    }
-
-    list: {
-      path: "/pages/{page_id}/page_access_users/{page_access_user_id}/metrics",
-      pathalt: [
-        {
-          path: "/pages/{page_id}/page_access_users/{page_access_user_id}/metrics",
-          page_id: true,
-          page_access_user_id: true
-        }
-      ],
-      method: "get",
-      kind: "res",
-      param: {
-        page_id: {
-          required: true,
-          name: "page_id",
-          Name: "PageId",
-          NAME: "PAGE_ID",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
-        }
-
-        page_access_user_id: {
-          required: true,
-          name: "page_access_user_id",
-          Name: "PageAccessUserId",
-          NAME: "PAGE_ACCESS_USER_ID",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
-        }
-      }
-
-      query: {
-        page: {
-          required: false,
-          name: "page",
-          Name: "Page",
-          NAME: "PAGE",
-          type: "integer",
-          Type: "Integer",
-          TYPE: "INTEGER"
-        }
-
-        per_page: {
-          required: false,
-          name: "per_page",
-          Name: "PerPage",
-          NAME: "PER_PAGE",
-          type: "integer",
-          Type: "Integer",
-          TYPE: "INTEGER"
-        }
-      }
-
-
-      # resform derivation: default
-      resform: "`body`",
-
-      # reqform derivation: none
-      reqform: "`body`",
-      validate: {
-        params: {
-          page_id: "`$STRING`",
-          page_access_user_id: "`$STRING`"
-        }
-      }
-
-      name: "list",
-      Name: "List",
-      NAME: "LIST"
     }
   }
 

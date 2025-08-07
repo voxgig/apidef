@@ -71,39 +71,5 @@ main: sdk: flow: BasicStatusEmbedConfigFlow:
         page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
       }
     }
-
-    {
-      name: "update_status_embed_config1",
-      ref: "load_status_embed_config0",
-      action: "update",
-      reqdata: {
-        position: "s1-`$WHEN`"
-      }
-
-      valid: {
-        "`$OPEN`": true,
-        id: "`dm$=s.load_status_embed_config0.match.id`",
-        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
-        position: "`dm$=s.update_status_embed_config1.reqdata.position`"
-      }
-    }
-
-    {
-      name: "load_status_embed_config2",
-      kind: "entity",
-      entity: "status_embed_config",
-      action: "load",
-      match: {
-        id: "`dm$=p.STATUSPAGE_TEST_STATUS_EMBED_CONFIG_ENTID.status_embed_config01`",
-        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
-      }
-
-      valid: {
-        "`$OPEN`": true,
-        id: "`dm$=s.load_status_embed_config0.match.id`",
-        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
-        position: "`dm$=s.update_status_embed_config1.reqdata.position`"
-      }
-    }
   ]
 }

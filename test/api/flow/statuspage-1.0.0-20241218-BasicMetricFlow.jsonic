@@ -111,42 +111,5 @@ main: sdk: flow: BasicMetricFlow:
         metrics_provider_id: "`dm$=p.STATUSPAGE_TEST_METRICS_PROVIDER_ENTID.metrics_provider01`"
       }
     }
-
-    {
-      name: "update_metric1",
-      ref: "load_metric0",
-      action: "update",
-      reqdata: {
-        name: "s3-`$WHEN`"
-      }
-
-      valid: {
-        "`$OPEN`": true,
-        id: "`dm$=s.load_metric0.match.id`",
-        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
-        metrics_provider_id: "`dm$=p.STATUSPAGE_TEST_METRICS_PROVIDER_ENTID.metrics_provider01`",
-        name: "`dm$=s.update_metric1.reqdata.name`"
-      }
-    }
-
-    {
-      name: "load_metric2",
-      kind: "entity",
-      entity: "metric",
-      action: "load",
-      match: {
-        id: "`dm$=p.STATUSPAGE_TEST_METRIC_ENTID.metric01`",
-        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
-        metrics_provider_id: "`dm$=p.STATUSPAGE_TEST_METRICS_PROVIDER_ENTID.metrics_provider01`"
-      }
-
-      valid: {
-        "`$OPEN`": true,
-        id: "`dm$=s.load_metric0.match.id`",
-        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
-        metrics_provider_id: "`dm$=p.STATUSPAGE_TEST_METRICS_PROVIDER_ENTID.metrics_provider01`",
-        name: "`dm$=s.update_metric1.reqdata.name`"
-      }
-    }
   ]
 }

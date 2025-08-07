@@ -77,39 +77,5 @@ main: sdk: flow: BasicPageAccessGroupFlow:
         page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
       }
     }
-
-    {
-      name: "update_page_access_group1",
-      ref: "load_page_access_group0",
-      action: "update",
-      reqdata: {
-        name: "s2-`$WHEN`"
-      }
-
-      valid: {
-        "`$OPEN`": true,
-        id: "`dm$=s.load_page_access_group0.match.id`",
-        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
-        name: "`dm$=s.update_page_access_group1.reqdata.name`"
-      }
-    }
-
-    {
-      name: "load_page_access_group2",
-      kind: "entity",
-      entity: "page_access_group",
-      action: "load",
-      match: {
-        id: "`dm$=p.STATUSPAGE_TEST_PAGE_ACCESS_GROUP_ENTID.page_access_group01`",
-        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
-      }
-
-      valid: {
-        "`$OPEN`": true,
-        id: "`dm$=s.load_page_access_group0.match.id`",
-        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
-        name: "`dm$=s.update_page_access_group1.reqdata.name`"
-      }
-    }
   ]
 }

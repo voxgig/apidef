@@ -6,24 +6,13 @@ main: api: entity: resend_confirmation: {
 
   op: {
     create: {
-      path: "/pages/{page_id}/subscribers/resend_confirmation",
+      path: "/pages/{page_id}/incidents/{incident_id}/subscribers/{subscriber_id}/resend_confirmation",
       pathalt: [
         {
           path: "/pages/{page_id}/incidents/{incident_id}/subscribers/{subscriber_id}/resend_confirmation",
           page_id: true,
           incident_id: true,
           subscriber_id: true
-        }
-
-        {
-          path: "/pages/{page_id}/subscribers/{subscriber_id}/resend_confirmation",
-          page_id: true,
-          subscriber_id: true
-        }
-
-        {
-          path: "/pages/{page_id}/subscribers/resend_confirmation",
-          page_id: true
         }
       ],
       method: "post",
@@ -34,6 +23,16 @@ main: api: entity: resend_confirmation: {
           name: "page_id",
           Name: "PageId",
           NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        incident_id: {
+          required: true,
+          name: "incident_id",
+          Name: "IncidentId",
+          NAME: "INCIDENT_ID",
           type: "string",
           Type: "String",
           TYPE: "STRING"
@@ -61,6 +60,7 @@ main: api: entity: resend_confirmation: {
       validate: {
         params: {
           page_id: "`$STRING`",
+          incident_id: "`$STRING`",
           subscriber_id: "`$STRING`"
         }
       }

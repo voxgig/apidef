@@ -13,10 +13,6 @@ import { depluralize } from '../utility'
 
 const operationTransform = async function(
   ctx: any,
-  // guide: Guide,
-  // // tspec: TransformSpec,
-  // model: any,
-  // def: any
 ): Promise<TransformResult> {
   const { apimodel, model, def } = ctx
   const guide = model.main.api.guide
@@ -265,24 +261,38 @@ const operationTransform = async function(
 
 
   const opBuilder: any = {
-    any: (entityModel: any, pathdef: any, op: any, path: any, entity: any, model: any) => {
-      const opname = op.key$
-      const method = op.method
+    any: (
+      entityModel: any,
+      pathdef: any,
+      guideOp: any,
+      guidePath: any,
+      guideEntity: any,
+      model: any
+    ) => {
+      if (false === guidePath.active) {
+        return
+      }
+
+      const opname = guideOp.key$
+      const method = guideOp.method
       const kind = OPKIND[opname]
 
+      const existingOpModel = entityModel.op[opname]
+      const existingParam = existingOpModel?.param
+
       const [resform, resform_COMMENT] =
-        resolveTransform(entityModel, op, kind, 'resform', pathdef)
+        resolveTransform(entityModel, guideOp, kind, 'resform', pathdef)
 
       const [reqform, reqform_COMMENT] =
-        resolveTransform(entityModel, op, kind, 'reqform', pathdef)
+        resolveTransform(entityModel, guideOp, kind, 'reqform', pathdef)
 
       const opModel = {
-        path: path.key$,
+        path: guidePath.key$,
         pathalt: ([] as any[]),
 
         method,
         kind,
-        param: {},
+        param: existingParam || {},
         query: {},
 
         resform_COMMENT: 'derivation: ' + resform_COMMENT,
@@ -296,12 +306,12 @@ const operationTransform = async function(
         }
       }
 
-      fixName(opModel, op.key$)
+      fixName(opModel, guideOp.key$)
 
       let params: any[] = []
 
       // Params are in the path
-      if (0 < path.params$.length) {
+      if (0 < guidePath.params$.length) {
         let sharedparams = getx(pathdef, 'parameters?in=path') || []
         params = sharedparams.concat(
           getx(pathdef[method], 'parameters?in=path') || []
@@ -310,7 +320,7 @@ const operationTransform = async function(
         // if (Array.isArray(params)) {
         params.reduce((a: any, p: any) =>
         (paramBuilder(a, p, opModel, entityModel,
-          pathdef, op, path, entity, model), a), opModel.param)
+          pathdef, guideOp, guidePath, guideEntity, model), a), opModel.param)
         //}
       }
 
@@ -319,10 +329,10 @@ const operationTransform = async function(
       let queries = sharedqueries.concat(getx(pathdef[method], 'parameters?in!=path') || [])
       queries.reduce((a: any, p: any) =>
       (queryBuilder(a, p, opModel, entityModel,
-        pathdef, op, path, entity, model), a), opModel.query)
+        pathdef, guideOp, guidePath, guideEntity, model), a), opModel.query)
 
       let pathalt: any[] = []
-      const pathselector = makePathSelector(path.key$)
+      const pathselector = makePathSelector(guidePath.key$)
 
       let before = false
 
@@ -406,11 +416,11 @@ const operationTransform = async function(
     each(guideEntity.path, (guidePath: any) => {
       const pathdef = def.paths[guidePath.key$]
 
-      each(guidePath.op, (op: any) => {
-        const opbuild = opBuilder[op.key$]
+      each(guidePath.op, (guideOp: any) => {
+        const opbuild = opBuilder[guideOp.key$]
 
         if (opbuild) {
-          opbuild(entityModel, pathdef, op, guidePath, guideEntity, model)
+          opbuild(entityModel, pathdef, guideOp, guidePath, guideEntity, model)
           opcount++
         }
       })

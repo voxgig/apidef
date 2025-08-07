@@ -60,35 +60,5 @@ main: sdk: flow: BasicPermissionFlow:
         user_id: "`dm$=p.STATUSPAGE_TEST_USER_ENTID.user01`"
       }
     }
-
-    {
-      name: "update_permission1",
-      ref: "load_permission0",
-      action: "update",
-      reqdata: {}
-
-      valid: {
-        "`$OPEN`": true,
-        id: "`dm$=s.load_permission0.match.id`",
-        user_id: "`dm$=p.STATUSPAGE_TEST_USER_ENTID.user01`"
-      }
-    }
-
-    {
-      name: "load_permission2",
-      kind: "entity",
-      entity: "permission",
-      action: "load",
-      match: {
-        id: "`dm$=p.STATUSPAGE_TEST_PERMISSION_ENTID.permission01`",
-        user_id: "`dm$=p.STATUSPAGE_TEST_USER_ENTID.user01`"
-      }
-
-      valid: {
-        "`$OPEN`": true,
-        id: "`dm$=s.load_permission0.match.id`",
-        user_id: "`dm$=p.STATUSPAGE_TEST_USER_ENTID.user01`"
-      }
-    }
   ]
 }

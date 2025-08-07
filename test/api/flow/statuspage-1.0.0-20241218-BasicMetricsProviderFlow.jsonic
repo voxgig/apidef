@@ -74,39 +74,5 @@ main: sdk: flow: BasicMetricsProviderFlow:
         page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
       }
     }
-
-    {
-      name: "update_metrics_provider1",
-      ref: "load_metrics_provider0",
-      action: "update",
-      reqdata: {
-        type: "s1-`$WHEN`"
-      }
-
-      valid: {
-        "`$OPEN`": true,
-        id: "`dm$=s.load_metrics_provider0.match.id`",
-        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
-        type: "`dm$=s.update_metrics_provider1.reqdata.type`"
-      }
-    }
-
-    {
-      name: "load_metrics_provider2",
-      kind: "entity",
-      entity: "metrics_provider",
-      action: "load",
-      match: {
-        id: "`dm$=p.STATUSPAGE_TEST_METRICS_PROVIDER_ENTID.metrics_provider01`",
-        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`"
-      }
-
-      valid: {
-        "`$OPEN`": true,
-        id: "`dm$=s.load_metrics_provider0.match.id`",
-        page_id: "`dm$=p.STATUSPAGE_TEST_PAGE_ENTID.page01`",
-        type: "`dm$=s.update_metrics_provider1.reqdata.type`"
-      }
-    }
   ]
 }
