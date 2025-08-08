@@ -38,16 +38,18 @@ async function resolveGuide(ctx) {
     const guideBlocks = [
         '# Guide',
         '',
-        'main: api: guide: { ',
+        'main: api: guide: {',
     ];
     guideBlocks.push(...(0, jostraca_1.each)(baseguide.entity, (entity, entityname) => {
         guideBlocks.push(`
 entity: ${entityname}: {` +
             (0 < entity.why_name.length ? ' # name:' + entity.why_name.join(';') : ''));
-        (0, jostraca_1.each)(entity.path, (path, pathname) => {
+        (0, struct_1.items)(entity.path).map((pathn) => {
+            const [pathname, path] = pathn;
             guideBlocks.push(`  path: '${pathname}': op: {` +
                 (0 < path.why_ent.length ? ' # ent:' + path.why_ent.join(';') : ''));
-            (0, jostraca_1.each)(path.op, (op, opname) => {
+            (0, struct_1.items)(path.op).map((opn) => {
+                const [opname, op] = opn;
                 guideBlocks.push(`    '${opname}': method: ${op.method}` +
                     (0 < op.why_op.length ? ' # ' + op.why_op : ''));
                 if (op.transform?.reqform) {
@@ -60,6 +62,7 @@ entity: ${entityname}: {` +
     }));
     guideBlocks.push('}');
     const guideSrc = guideBlocks.join('\n');
+    ctx.note.guide = { base: guideSrc };
     return () => {
         // Save base guide for reference
         (0, jostraca_1.File)({ name: '../def/' + node_path_1.default.basename(guideFile) }, () => (0, jostraca_1.Content)(guideSrc));

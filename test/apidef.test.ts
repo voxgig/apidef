@@ -7,6 +7,7 @@ import { expect } from '@hapi/code'
 
 import { Aontu } from 'aontu'
 
+import * as Diff from 'diff'
 
 
 import {
@@ -53,7 +54,15 @@ def: '${outprefix}def.yaml'
         }
       }
 
-      await build(model, buildspec, {})
+      const bres = await build(model, buildspec, {})
+      const baseGuideSrc = bres.ctx.note.guide.base
+
+      if (baseGuideSrc !== SOLAR_GUIDE_BASE) {
+        const difflines = Diff.diffLines(baseGuideSrc, SOLAR_GUIDE_BASE)
+        console.log(difflines)
+        expect(bres.ctx.note.guide.base).equal(SOLAR_GUIDE_BASE)
+      }
+
 
 
       const rootSrc = `
@@ -76,6 +85,9 @@ def: '${outprefix}def.yaml'
       }).gen()
 
       Fs.writeFileSync(folder + `/${outprefix}root.json`, JSON.stringify(result, null, 2))
+
+
+
     }
     catch (err: any) {
       console.log(err)
@@ -145,3 +157,36 @@ def: '${outprefix}def.json'
   })
 
 })
+
+
+
+const SOLAR_GUIDE_BASE = `# Guide
+
+main: api: guide: {
+
+entity: planet: { # name:cmp
+  path: '/api/planet': op: { # ent:cmp:planet
+    'create': method: post # not-load
+    'list': method: get # array
+  }
+  path: '/api/planet/{planet_id}': op: { # ent:cmp:planet
+    'load': method: get # not-list
+    'remove': method: delete # not-load
+    'update': method: put # not-load
+  }
+}
+
+entity: moon: { # name:cmp
+  path: '/api/planet/{planet_id}/moon': op: { # ent:cmp:moon
+    'create': method: post # not-load
+    'list': method: get # array
+  }
+  path: '/api/planet/{planet_id}/moon/{moon_id}': op: { # ent:cmp:moon
+    'load': method: get # not-list
+    'remove': method: delete # not-load
+    'update': method: put # not-load
+  }
+}
+
+
+}`

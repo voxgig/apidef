@@ -97,7 +97,8 @@ function ApiDef(opts) {
             defpath: node_path_1.default.dirname(defpath),
             model,
             apimodel,
-            def: undefined
+            def: undefined,
+            note: {}
         };
         const defsrc = (0, utility_1.loadFile)(defpath, 'def', fs, log);
         let def = await (0, parse_1.parse)('OpenAPI', defsrc, { file: defpath });
@@ -148,6 +149,8 @@ function ApiDef(opts) {
             ok: true,
             name: 'apidef',
             apimodel,
+            ctx,
+            jres,
         };
     }
     return {

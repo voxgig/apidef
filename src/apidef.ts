@@ -112,7 +112,8 @@ function ApiDef(opts: ApiDefOptions) {
       defpath: Path.dirname(defpath),
       model,
       apimodel,
-      def: undefined
+      def: undefined,
+      note: {}
     }
 
     const defsrc = loadFile(defpath, 'def', fs, log)
@@ -182,6 +183,8 @@ function ApiDef(opts: ApiDefOptions) {
       ok: true,
       name: 'apidef',
       apimodel,
+      ctx,
+      jres,
     }
   }
 

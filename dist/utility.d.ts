@@ -7,4 +7,6 @@ declare function getdlog(tagin?: string, filepath?: string): ((...args: any[]) =
 declare function loadFile(path: string, what: string, fs: FsUtil, log: Log): string;
 declare function formatJsonSrc(jsonsrc: string): string;
 declare function depluralize(word: string): string;
-export { getdlog, loadFile, formatJsonSrc, depluralize, };
+declare function find(obj: any, qkey: string): any[];
+declare function capture(data: any, shape: any): Record<string, any>;
+export { getdlog, loadFile, formatJsonSrc, depluralize, find, capture, };

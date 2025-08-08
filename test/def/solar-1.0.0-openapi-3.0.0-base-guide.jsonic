@@ -1,28 +1,28 @@
 # Guide
 
-main: api: guide: { 
+main: api: guide: {
 
 entity: planet: { # name:cmp
   path: '/api/planet': op: { # ent:cmp:planet
-    'list': method: get # array
     'create': method: post # not-load
+    'list': method: get # array
   }
-  path: '/api/planet/{planet_id}': op: { # ent:path:planet
+  path: '/api/planet/{planet_id}': op: { # ent:cmp:planet
     'load': method: get # not-list
-    'update': method: put # not-load
     'remove': method: delete # not-load
+    'update': method: put # not-load
   }
 }
 
 entity: moon: { # name:cmp
   path: '/api/planet/{planet_id}/moon': op: { # ent:cmp:moon
-    'list': method: get # array
     'create': method: post # not-load
+    'list': method: get # array
   }
-  path: '/api/planet/{planet_id}/moon/{moon_id}': op: { # ent:path:moon
+  path: '/api/planet/{planet_id}/moon/{moon_id}': op: { # ent:cmp:moon
     'load': method: get # not-list
-    'update': method: put # not-load
     'remove': method: delete # not-load
+    'update': method: put # not-load
   }
 }
 

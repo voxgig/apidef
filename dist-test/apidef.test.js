@@ -38,6 +38,7 @@ const Fs = __importStar(require("node:fs"));
 const node_test_1 = require("node:test");
 const code_1 = require("@hapi/code");
 const aontu_1 = require("aontu");
+const Diff = __importStar(require("diff"));
 const __1 = require("../");
 // TODO: remove all sdk refs or rename to api
 (0, node_test_1.describe)('apidef', () => {
@@ -68,7 +69,13 @@ def: '${outprefix}def.yaml'
                     base: __dirname + '/../test/api'
                 }
             };
-            await build(model, buildspec, {});
+            const bres = await build(model, buildspec, {});
+            const baseGuideSrc = bres.ctx.note.guide.base;
+            if (baseGuideSrc !== SOLAR_GUIDE_BASE) {
+                const difflines = Diff.diffLines(baseGuideSrc, SOLAR_GUIDE_BASE);
+                console.log(difflines);
+                (0, code_1.expect)(bres.ctx.note.guide.base).equal(SOLAR_GUIDE_BASE);
+            }
             const rootSrc = `
 @"@voxgig/apidef/model/apidef.jsonic"
 
@@ -141,4 +148,34 @@ def: '${outprefix}def.json'
         }
     });
 });
+const SOLAR_GUIDE_BASE = `# Guide
+
+main: api: guide: {
+
+entity: planet: { # name:cmp
+  path: '/api/planet': op: { # ent:cmp:planet
+    'create': method: post # not-load
+    'list': method: get # array
+  }
+  path: '/api/planet/{planet_id}': op: { # ent:cmp:planet
+    'load': method: get # not-list
+    'remove': method: delete # not-load
+    'update': method: put # not-load
+  }
+}
+
+entity: moon: { # name:cmp
+  path: '/api/planet/{planet_id}/moon': op: { # ent:cmp:moon
+    'create': method: post # not-load
+    'list': method: get # array
+  }
+  path: '/api/planet/{planet_id}/moon/{moon_id}': op: { # ent:cmp:moon
+    'load': method: get # not-list
+    'remove': method: delete # not-load
+    'update': method: put # not-load
+  }
+}
+
+
+}`;
 //# sourceMappingURL=apidef.test.js.map
