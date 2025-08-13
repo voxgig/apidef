@@ -61,65 +61,6 @@ main: api: entity: component: {
       NAME: "LOAD"
     }
 
-    remove: {
-      path: "/pages/{page_id}/components/{component_id}/page_access_users",
-      pathalt: [
-        {
-          path: "/pages/{page_id}/components/{component_id}/page_access_groups",
-          page_id: true,
-          component_id: true
-        }
-
-        {
-          path: "/pages/{page_id}/components/{component_id}/page_access_users",
-          page_id: true,
-          component_id: true
-        }
-      ],
-      method: "delete",
-      kind: "res",
-      param: {
-        page_id: {
-          required: true,
-          name: "page_id",
-          Name: "PageId",
-          NAME: "PAGE_ID",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
-        }
-
-        component_id: {
-          required: true,
-          name: "component_id",
-          Name: "ComponentId",
-          NAME: "COMPONENT_ID",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
-        }
-      }
-
-      query: {}
-
-
-      # resform derivation: default
-      resform: "`body`",
-
-      # reqform derivation: none
-      reqform: "`body`",
-      validate: {
-        params: {
-          page_id: "`$STRING`",
-          component_id: "`$STRING`"
-        }
-      }
-
-      name: "remove",
-      Name: "Remove",
-      NAME: "REMOVE"
-    }
-
     create: {
       path: "/pages/{page_id}/components/{component_id}/page_access_users",
       pathalt: [
@@ -177,6 +118,65 @@ main: api: entity: component: {
       name: "create",
       Name: "Create",
       NAME: "CREATE"
+    }
+
+    remove: {
+      path: "/pages/{page_id}/components/{component_id}/page_access_users",
+      pathalt: [
+        {
+          path: "/pages/{page_id}/components/{component_id}/page_access_groups",
+          page_id: true,
+          component_id: true
+        }
+
+        {
+          path: "/pages/{page_id}/components/{component_id}/page_access_users",
+          page_id: true,
+          component_id: true
+        }
+      ],
+      method: "delete",
+      kind: "res",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        component_id: {
+          required: true,
+          name: "component_id",
+          Name: "ComponentId",
+          NAME: "COMPONENT_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+
+      # resform derivation: default
+      resform: "`body`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          page_id: "`$STRING`",
+          component_id: "`$STRING`"
+        }
+      }
+
+      name: "remove",
+      Name: "Remove",
+      NAME: "REMOVE"
     }
   }
 

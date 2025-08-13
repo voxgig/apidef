@@ -8,47 +8,6 @@ main: api: entity: moon: {
   }
 
   op: {
-    list: {
-      path: "/api/planet/{planet_id}/moon",
-      pathalt: [
-        {
-          path: "/api/planet/{planet_id}/moon",
-          planet_id: true
-        }
-      ],
-      method: "get",
-      kind: "res",
-      param: {
-        planet_id: {
-          required: true,
-          name: "planet_id",
-          Name: "PlanetId",
-          NAME: "PLANET_ID",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
-        }
-      }
-
-      query: {}
-
-
-      # resform derivation: default
-      resform: "`body`",
-
-      # reqform derivation: none
-      reqform: "`body`",
-      validate: {
-        params: {
-          planet_id: "`$STRING`"
-        }
-      }
-
-      name: "list",
-      Name: "List",
-      NAME: "LIST"
-    }
-
     create: {
       path: "/api/planet/{planet_id}/moon",
       pathalt: [
@@ -90,16 +49,15 @@ main: api: entity: moon: {
       NAME: "CREATE"
     }
 
-    remove: {
-      path: "/api/planet/{planet_id}/moon/{moon_id}",
+    list: {
+      path: "/api/planet/{planet_id}/moon",
       pathalt: [
         {
-          path: "/api/planet/{planet_id}/moon/{moon_id}",
-          planet_id: true,
-          moon_id: true
+          path: "/api/planet/{planet_id}/moon",
+          planet_id: true
         }
       ],
-      method: "delete",
+      method: "get",
       kind: "res",
       param: {
         planet_id: {
@@ -111,36 +69,25 @@ main: api: entity: moon: {
           Type: "String",
           TYPE: "STRING"
         }
-
-        moon_id: {
-          required: true,
-          name: "moon_id",
-          Name: "MoonId",
-          NAME: "MOON_ID",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
-        }
       }
 
       query: {}
 
 
-      # resform derivation: none
+      # resform derivation: default
       resform: "`body`",
 
       # reqform derivation: none
       reqform: "`body`",
       validate: {
         params: {
-          planet_id: "`$STRING`",
-          moon_id: "`$STRING`"
+          planet_id: "`$STRING`"
         }
       }
 
-      name: "remove",
-      Name: "Remove",
-      NAME: "REMOVE"
+      name: "list",
+      Name: "List",
+      NAME: "LIST"
     }
 
     load: {
@@ -194,6 +141,59 @@ main: api: entity: moon: {
       name: "load",
       Name: "Load",
       NAME: "LOAD"
+    }
+
+    remove: {
+      path: "/api/planet/{planet_id}/moon/{moon_id}",
+      pathalt: [
+        {
+          path: "/api/planet/{planet_id}/moon/{moon_id}",
+          planet_id: true,
+          moon_id: true
+        }
+      ],
+      method: "delete",
+      kind: "res",
+      param: {
+        planet_id: {
+          required: true,
+          name: "planet_id",
+          Name: "PlanetId",
+          NAME: "PLANET_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        moon_id: {
+          required: true,
+          name: "moon_id",
+          Name: "MoonId",
+          NAME: "MOON_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+
+      # resform derivation: none
+      resform: "`body`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          planet_id: "`$STRING`",
+          moon_id: "`$STRING`"
+        }
+      }
+
+      name: "remove",
+      Name: "Remove",
+      NAME: "REMOVE"
     }
 
     update: {

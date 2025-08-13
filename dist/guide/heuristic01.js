@@ -51,7 +51,6 @@ function resolveEntityDescs(ctx) {
                 ['`$APPEND`', 'methods', {
                         path: '`select$=key.paths`',
                         method: { '`$LOWER`': '`$KEY`' },
-                        // method: '`$KEY`',
                         summary: '`.summary`',
                         parameters: '`.parameters`',
                         responses: '`.responses`',

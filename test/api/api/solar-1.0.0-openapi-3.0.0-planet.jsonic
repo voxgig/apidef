@@ -8,34 +8,6 @@ main: api: entity: planet: {
   }
 
   op: {
-    list: {
-      path: "/api/planet",
-      pathalt: [
-        {
-          path: "/api/planet"
-        }
-      ],
-      method: "get",
-      kind: "res",
-      param: {}
-
-      query: {}
-
-
-      # resform derivation: default
-      resform: "`body`",
-
-      # reqform derivation: none
-      reqform: "`body`",
-      validate: {
-        params: {}
-      }
-
-      name: "list",
-      Name: "List",
-      NAME: "LIST"
-    }
-
     create: {
       path: "/api/planet",
       pathalt: [
@@ -64,45 +36,32 @@ main: api: entity: planet: {
       NAME: "CREATE"
     }
 
-    remove: {
-      path: "/api/planet/{planet_id}",
+    list: {
+      path: "/api/planet",
       pathalt: [
         {
-          path: "/api/planet/{planet_id}",
-          planet_id: true
+          path: "/api/planet"
         }
       ],
-      method: "delete",
+      method: "get",
       kind: "res",
-      param: {
-        planet_id: {
-          required: true,
-          name: "planet_id",
-          Name: "PlanetId",
-          NAME: "PLANET_ID",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
-        }
-      }
+      param: {}
 
       query: {}
 
 
-      # resform derivation: none
+      # resform derivation: default
       resform: "`body`",
 
       # reqform derivation: none
       reqform: "`body`",
       validate: {
-        params: {
-          planet_id: "`$STRING`"
-        }
+        params: {}
       }
 
-      name: "remove",
-      Name: "Remove",
-      NAME: "REMOVE"
+      name: "list",
+      Name: "List",
+      NAME: "LIST"
     }
 
     load: {
@@ -144,6 +103,47 @@ main: api: entity: planet: {
       name: "load",
       Name: "Load",
       NAME: "LOAD"
+    }
+
+    remove: {
+      path: "/api/planet/{planet_id}",
+      pathalt: [
+        {
+          path: "/api/planet/{planet_id}",
+          planet_id: true
+        }
+      ],
+      method: "delete",
+      kind: "res",
+      param: {
+        planet_id: {
+          required: true,
+          name: "planet_id",
+          Name: "PlanetId",
+          NAME: "PLANET_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+
+      # resform derivation: none
+      resform: "`body`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          planet_id: "`$STRING`"
+        }
+      }
+
+      name: "remove",
+      Name: "Remove",
+      NAME: "REMOVE"
     }
 
     update: {

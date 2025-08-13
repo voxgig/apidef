@@ -8,6 +8,77 @@ main: api: entity: subscriber: {
   }
 
   op: {
+    load: {
+      path: "/pages/{page_id}/subscribers/{subscriber_id}",
+      pathalt: [
+        {
+          path: "/pages/{page_id}/incidents/{incident_id}/subscribers/{subscriber_id}",
+          page_id: true,
+          incident_id: true,
+          subscriber_id: true
+        }
+
+        {
+          path: "/pages/{page_id}/subscribers/{subscriber_id}",
+          page_id: true,
+          subscriber_id: true,
+          incident_id: false
+        }
+      ],
+      method: "get",
+      kind: "res",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        incident_id: {
+          required: true,
+          name: "incident_id",
+          Name: "IncidentId",
+          NAME: "INCIDENT_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        subscriber_id: {
+          required: true,
+          name: "subscriber_id",
+          Name: "SubscriberId",
+          NAME: "SUBSCRIBER_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+
+      # resform derivation: default
+      resform: "`body`",
+
+      # reqform derivation: none
+      reqform: "`body`",
+      validate: {
+        params: {
+          page_id: "`$STRING`",
+          subscriber_id: "`$STRING`"
+        }
+      }
+
+      name: "load",
+      Name: "Load",
+      NAME: "LOAD"
+    }
+
     remove: {
       path: "/pages/{page_id}/subscribers/{subscriber_id}",
       pathalt: [
@@ -87,77 +158,6 @@ main: api: entity: subscriber: {
       name: "remove",
       Name: "Remove",
       NAME: "REMOVE"
-    }
-
-    load: {
-      path: "/pages/{page_id}/subscribers/{subscriber_id}",
-      pathalt: [
-        {
-          path: "/pages/{page_id}/incidents/{incident_id}/subscribers/{subscriber_id}",
-          page_id: true,
-          incident_id: true,
-          subscriber_id: true
-        }
-
-        {
-          path: "/pages/{page_id}/subscribers/{subscriber_id}",
-          page_id: true,
-          subscriber_id: true,
-          incident_id: false
-        }
-      ],
-      method: "get",
-      kind: "res",
-      param: {
-        page_id: {
-          required: true,
-          name: "page_id",
-          Name: "PageId",
-          NAME: "PAGE_ID",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
-        }
-
-        incident_id: {
-          required: true,
-          name: "incident_id",
-          Name: "IncidentId",
-          NAME: "INCIDENT_ID",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
-        }
-
-        subscriber_id: {
-          required: true,
-          name: "subscriber_id",
-          Name: "SubscriberId",
-          NAME: "SUBSCRIBER_ID",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
-        }
-      }
-
-      query: {}
-
-
-      # resform derivation: default
-      resform: "`body`",
-
-      # reqform derivation: none
-      reqform: "`body`",
-      validate: {
-        params: {
-          page_id: "`$STRING`",
-          subscriber_id: "`$STRING`"
-        }
-      }
-
-      name: "load",
-      Name: "Load",
-      NAME: "LOAD"
     }
   }
 

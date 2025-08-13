@@ -8,59 +8,6 @@ main: api: entity: page_access_user: {
   }
 
   op: {
-    update: {
-      path: "/pages/{page_id}/page_access_users/{page_access_user_id}",
-      pathalt: [
-        {
-          path: "/pages/{page_id}/page_access_users/{page_access_user_id}",
-          page_id: true,
-          page_access_user_id: true
-        }
-      ],
-      method: "put",
-      kind: "req",
-      param: {
-        page_id: {
-          required: true,
-          name: "page_id",
-          Name: "PageId",
-          NAME: "PAGE_ID",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
-        }
-
-        page_access_user_id: {
-          required: true,
-          name: "page_access_user_id",
-          Name: "PageAccessUserId",
-          NAME: "PAGE_ACCESS_USER_ID",
-          type: "string",
-          Type: "String",
-          TYPE: "STRING"
-        }
-      }
-
-      query: {}
-
-
-      # resform derivation: default
-      resform: "`body`",
-
-      # reqform derivation: none
-      reqform: "`reqdata`",
-      validate: {
-        params: {
-          page_id: "`$STRING`",
-          page_access_user_id: "`$STRING`"
-        }
-      }
-
-      name: "update",
-      Name: "Update",
-      NAME: "UPDATE"
-    }
-
     load: {
       path: "/pages/{page_id}/page_access_users/{page_access_user_id}",
       pathalt: [
@@ -112,6 +59,59 @@ main: api: entity: page_access_user: {
       name: "load",
       Name: "Load",
       NAME: "LOAD"
+    }
+
+    update: {
+      path: "/pages/{page_id}/page_access_users/{page_access_user_id}",
+      pathalt: [
+        {
+          path: "/pages/{page_id}/page_access_users/{page_access_user_id}",
+          page_id: true,
+          page_access_user_id: true
+        }
+      ],
+      method: "put",
+      kind: "req",
+      param: {
+        page_id: {
+          required: true,
+          name: "page_id",
+          Name: "PageId",
+          NAME: "PAGE_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+
+        page_access_user_id: {
+          required: true,
+          name: "page_access_user_id",
+          Name: "PageAccessUserId",
+          NAME: "PAGE_ACCESS_USER_ID",
+          type: "string",
+          Type: "String",
+          TYPE: "STRING"
+        }
+      }
+
+      query: {}
+
+
+      # resform derivation: default
+      resform: "`body`",
+
+      # reqform derivation: none
+      reqform: "`reqdata`",
+      validate: {
+        params: {
+          page_id: "`$STRING`",
+          page_access_user_id: "`$STRING`"
+        }
+      }
+
+      name: "update",
+      Name: "Update",
+      NAME: "UPDATE"
     }
 
     remove: {

@@ -8,7 +8,7 @@ declare function ApiDef(opts: ApiDefOptions): {
         apimodel: ApiModel;
         ctx: {
             fs: any;
-            log: import("pino").default.Logger<string, boolean>;
+            log: import("pino").Logger<string, boolean>;
             spec: any;
             opts: ApiDefOptions;
             util: {

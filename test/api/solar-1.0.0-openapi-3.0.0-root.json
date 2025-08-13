@@ -27,199 +27,6 @@
         "entity": {}
       },
       "entity": {
-        "planet": {
-          "alias": {
-            "field": {
-              "planet_id": "id",
-              "id": "planet_id"
-            }
-          },
-          "op": {
-            "list": {
-              "path": "/api/planet",
-              "pathalt": [
-                {
-                  "path": "/api/planet"
-                }
-              ],
-              "method": "get",
-              "kind": "res",
-              "param": {},
-              "query": {},
-              "resform": "`body`",
-              "reqform": "`body`",
-              "validate": {
-                "params": {}
-              },
-              "name": "list",
-              "Name": "List",
-              "NAME": "LIST"
-            },
-            "create": {
-              "path": "/api/planet",
-              "pathalt": [
-                {
-                  "path": "/api/planet"
-                }
-              ],
-              "method": "post",
-              "kind": "req",
-              "param": {},
-              "query": {},
-              "resform": "`body`",
-              "reqform": "`reqdata`",
-              "validate": {
-                "params": {}
-              },
-              "name": "create",
-              "Name": "Create",
-              "NAME": "CREATE"
-            },
-            "remove": {
-              "path": "/api/planet/{planet_id}",
-              "pathalt": [
-                {
-                  "path": "/api/planet/{planet_id}",
-                  "planet_id": true
-                }
-              ],
-              "method": "delete",
-              "kind": "res",
-              "param": {
-                "planet_id": {
-                  "required": true,
-                  "name": "planet_id",
-                  "Name": "PlanetId",
-                  "NAME": "PLANET_ID",
-                  "type": "string",
-                  "Type": "String",
-                  "TYPE": "STRING"
-                }
-              },
-              "query": {},
-              "resform": "`body`",
-              "reqform": "`body`",
-              "validate": {
-                "params": {
-                  "planet_id": "`$STRING`"
-                }
-              },
-              "name": "remove",
-              "Name": "Remove",
-              "NAME": "REMOVE"
-            },
-            "load": {
-              "path": "/api/planet/{planet_id}",
-              "pathalt": [
-                {
-                  "path": "/api/planet/{planet_id}",
-                  "planet_id": true
-                }
-              ],
-              "method": "get",
-              "kind": "res",
-              "param": {
-                "planet_id": {
-                  "required": true,
-                  "name": "planet_id",
-                  "Name": "PlanetId",
-                  "NAME": "PLANET_ID",
-                  "type": "string",
-                  "Type": "String",
-                  "TYPE": "STRING"
-                }
-              },
-              "query": {},
-              "resform": "`body`",
-              "reqform": "`body`",
-              "validate": {
-                "params": {
-                  "planet_id": "`$STRING`"
-                }
-              },
-              "name": "load",
-              "Name": "Load",
-              "NAME": "LOAD"
-            },
-            "update": {
-              "path": "/api/planet/{planet_id}",
-              "pathalt": [
-                {
-                  "path": "/api/planet/{planet_id}",
-                  "planet_id": true
-                }
-              ],
-              "method": "put",
-              "kind": "req",
-              "param": {
-                "planet_id": {
-                  "required": true,
-                  "name": "planet_id",
-                  "Name": "PlanetId",
-                  "NAME": "PLANET_ID",
-                  "type": "string",
-                  "Type": "String",
-                  "TYPE": "STRING"
-                }
-              },
-              "query": {},
-              "resform": "`body`",
-              "reqform": "`reqdata`",
-              "validate": {
-                "params": {
-                  "planet_id": "`$STRING`"
-                }
-              },
-              "name": "update",
-              "Name": "Update",
-              "NAME": "UPDATE"
-            }
-          },
-          "field": {
-            "id": {
-              "name": "id",
-              "Name": "Id",
-              "NAME": "ID",
-              "type": "string",
-              "Type": "String",
-              "TYPE": "STRING"
-            },
-            "name": {
-              "name": "name",
-              "Name": "Name",
-              "NAME": "NAME",
-              "type": "string",
-              "Type": "String",
-              "TYPE": "STRING"
-            },
-            "kind": {
-              "name": "kind",
-              "Name": "Kind",
-              "NAME": "KIND",
-              "type": "string",
-              "Type": "String",
-              "TYPE": "STRING"
-            },
-            "diameter": {
-              "name": "diameter",
-              "Name": "Diameter",
-              "NAME": "DIAMETER",
-              "type": "number",
-              "Type": "Number",
-              "TYPE": "NUMBER"
-            }
-          },
-          "cmd": {},
-          "id": {
-            "name": "id",
-            "field": "planet_id"
-          },
-          "ancestors": [],
-          "name": "planet",
-          "Name": "Planet",
-          "NAME": "PLANET",
-          "key$": "planet"
-        },
         "moon": {
           "alias": {
             "field": {
@@ -228,39 +35,6 @@
             }
           },
           "op": {
-            "list": {
-              "path": "/api/planet/{planet_id}/moon",
-              "pathalt": [
-                {
-                  "path": "/api/planet/{planet_id}/moon",
-                  "planet_id": true
-                }
-              ],
-              "method": "get",
-              "kind": "res",
-              "param": {
-                "planet_id": {
-                  "required": true,
-                  "name": "planet_id",
-                  "Name": "PlanetId",
-                  "NAME": "PLANET_ID",
-                  "type": "string",
-                  "Type": "String",
-                  "TYPE": "STRING"
-                }
-              },
-              "query": {},
-              "resform": "`body`",
-              "reqform": "`body`",
-              "validate": {
-                "params": {
-                  "planet_id": "`$STRING`"
-                }
-              },
-              "name": "list",
-              "Name": "List",
-              "NAME": "LIST"
-            },
             "create": {
               "path": "/api/planet/{planet_id}/moon",
               "pathalt": [
@@ -294,16 +68,15 @@
               "Name": "Create",
               "NAME": "CREATE"
             },
-            "remove": {
-              "path": "/api/planet/{planet_id}/moon/{moon_id}",
+            "list": {
+              "path": "/api/planet/{planet_id}/moon",
               "pathalt": [
                 {
-                  "path": "/api/planet/{planet_id}/moon/{moon_id}",
-                  "planet_id": true,
-                  "moon_id": true
+                  "path": "/api/planet/{planet_id}/moon",
+                  "planet_id": true
                 }
               ],
-              "method": "delete",
+              "method": "get",
               "kind": "res",
               "param": {
                 "planet_id": {
@@ -314,15 +87,6 @@
                   "type": "string",
                   "Type": "String",
                   "TYPE": "STRING"
-                },
-                "moon_id": {
-                  "required": true,
-                  "name": "moon_id",
-                  "Name": "MoonId",
-                  "NAME": "MOON_ID",
-                  "type": "string",
-                  "Type": "String",
-                  "TYPE": "STRING"
                 }
               },
               "query": {},
@@ -330,13 +94,12 @@
               "reqform": "`body`",
               "validate": {
                 "params": {
-                  "planet_id": "`$STRING`",
-                  "moon_id": "`$STRING`"
+                  "planet_id": "`$STRING`"
                 }
               },
-              "name": "remove",
-              "Name": "Remove",
-              "NAME": "REMOVE"
+              "name": "list",
+              "Name": "List",
+              "NAME": "LIST"
             },
             "load": {
               "path": "/api/planet/{planet_id}/moon/{moon_id}",
@@ -381,6 +144,50 @@
               "name": "load",
               "Name": "Load",
               "NAME": "LOAD"
+            },
+            "remove": {
+              "path": "/api/planet/{planet_id}/moon/{moon_id}",
+              "pathalt": [
+                {
+                  "path": "/api/planet/{planet_id}/moon/{moon_id}",
+                  "planet_id": true,
+                  "moon_id": true
+                }
+              ],
+              "method": "delete",
+              "kind": "res",
+              "param": {
+                "planet_id": {
+                  "required": true,
+                  "name": "planet_id",
+                  "Name": "PlanetId",
+                  "NAME": "PLANET_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                },
+                "moon_id": {
+                  "required": true,
+                  "name": "moon_id",
+                  "Name": "MoonId",
+                  "NAME": "MOON_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`body`",
+              "validate": {
+                "params": {
+                  "planet_id": "`$STRING`",
+                  "moon_id": "`$STRING`"
+                }
+              },
+              "name": "remove",
+              "Name": "Remove",
+              "NAME": "REMOVE"
             },
             "update": {
               "path": "/api/planet/{planet_id}/moon/{moon_id}",
@@ -481,6 +288,199 @@
           "Name": "Moon",
           "NAME": "MOON",
           "key$": "moon"
+        },
+        "planet": {
+          "alias": {
+            "field": {
+              "planet_id": "id",
+              "id": "planet_id"
+            }
+          },
+          "op": {
+            "create": {
+              "path": "/api/planet",
+              "pathalt": [
+                {
+                  "path": "/api/planet"
+                }
+              ],
+              "method": "post",
+              "kind": "req",
+              "param": {},
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`reqdata`",
+              "validate": {
+                "params": {}
+              },
+              "name": "create",
+              "Name": "Create",
+              "NAME": "CREATE"
+            },
+            "list": {
+              "path": "/api/planet",
+              "pathalt": [
+                {
+                  "path": "/api/planet"
+                }
+              ],
+              "method": "get",
+              "kind": "res",
+              "param": {},
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`body`",
+              "validate": {
+                "params": {}
+              },
+              "name": "list",
+              "Name": "List",
+              "NAME": "LIST"
+            },
+            "load": {
+              "path": "/api/planet/{planet_id}",
+              "pathalt": [
+                {
+                  "path": "/api/planet/{planet_id}",
+                  "planet_id": true
+                }
+              ],
+              "method": "get",
+              "kind": "res",
+              "param": {
+                "planet_id": {
+                  "required": true,
+                  "name": "planet_id",
+                  "Name": "PlanetId",
+                  "NAME": "PLANET_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`body`",
+              "validate": {
+                "params": {
+                  "planet_id": "`$STRING`"
+                }
+              },
+              "name": "load",
+              "Name": "Load",
+              "NAME": "LOAD"
+            },
+            "remove": {
+              "path": "/api/planet/{planet_id}",
+              "pathalt": [
+                {
+                  "path": "/api/planet/{planet_id}",
+                  "planet_id": true
+                }
+              ],
+              "method": "delete",
+              "kind": "res",
+              "param": {
+                "planet_id": {
+                  "required": true,
+                  "name": "planet_id",
+                  "Name": "PlanetId",
+                  "NAME": "PLANET_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`body`",
+              "validate": {
+                "params": {
+                  "planet_id": "`$STRING`"
+                }
+              },
+              "name": "remove",
+              "Name": "Remove",
+              "NAME": "REMOVE"
+            },
+            "update": {
+              "path": "/api/planet/{planet_id}",
+              "pathalt": [
+                {
+                  "path": "/api/planet/{planet_id}",
+                  "planet_id": true
+                }
+              ],
+              "method": "put",
+              "kind": "req",
+              "param": {
+                "planet_id": {
+                  "required": true,
+                  "name": "planet_id",
+                  "Name": "PlanetId",
+                  "NAME": "PLANET_ID",
+                  "type": "string",
+                  "Type": "String",
+                  "TYPE": "STRING"
+                }
+              },
+              "query": {},
+              "resform": "`body`",
+              "reqform": "`reqdata`",
+              "validate": {
+                "params": {
+                  "planet_id": "`$STRING`"
+                }
+              },
+              "name": "update",
+              "Name": "Update",
+              "NAME": "UPDATE"
+            }
+          },
+          "field": {
+            "id": {
+              "name": "id",
+              "Name": "Id",
+              "NAME": "ID",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "name": {
+              "name": "name",
+              "Name": "Name",
+              "NAME": "NAME",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "kind": {
+              "name": "kind",
+              "Name": "Kind",
+              "NAME": "KIND",
+              "type": "string",
+              "Type": "String",
+              "TYPE": "STRING"
+            },
+            "diameter": {
+              "name": "diameter",
+              "Name": "Diameter",
+              "NAME": "DIAMETER",
+              "type": "number",
+              "Type": "Number",
+              "TYPE": "NUMBER"
+            }
+          },
+          "cmd": {},
+          "id": {
+            "name": "id",
+            "field": "planet_id"
+          },
+          "ancestors": [],
+          "name": "planet",
+          "Name": "Planet",
+          "NAME": "PLANET",
+          "key$": "planet"
         }
       }
     },
@@ -492,85 +492,6 @@
     },
     "sdk": {
       "flow": {
-        "BasicPlanetFlow": {
-          "name": "BasicPlanetFlow",
-          "active": true,
-          "param": {
-            "SOLAR_TEST_PLANET_ENTID": {
-              "planet01": "PLANET01",
-              "planet02": "PLANET02",
-              "planet03": "PLANET03"
-            },
-            "SOLAR_TEST_LIVE": "FALSE",
-            "SOLAR_TEST_EXPLAIN": "FALSE"
-          },
-          "test": {
-            "entity": {
-              "planet": {
-                "PLANET01": {
-                  "id": "PLANET01",
-                  "name": "s1",
-                  "kind": "s2",
-                  "diameter": 3
-                },
-                "PLANET02": {
-                  "id": "PLANET02",
-                  "name": "s29",
-                  "kind": "s2a",
-                  "diameter": 43
-                },
-                "PLANET03": {
-                  "id": "PLANET03",
-                  "name": "s51",
-                  "kind": "s52",
-                  "diameter": 83
-                }
-              }
-            }
-          },
-          "step": [
-            {
-              "name": "load_planet0",
-              "kind": "entity",
-              "entity": "planet",
-              "action": "load",
-              "match": {
-                "id": "`dm$=p.SOLAR_TEST_PLANET_ENTID.planet01`"
-              },
-              "valid": {
-                "`$OPEN`": true,
-                "id": "`dm$=s.load_planet0.match.id`"
-              }
-            },
-            {
-              "name": "update_planet1",
-              "ref": "load_planet0",
-              "action": "update",
-              "reqdata": {
-                "name": "s1-`$WHEN`"
-              },
-              "valid": {
-                "`$OPEN`": true,
-                "id": "`dm$=s.load_planet0.match.id`",
-                "name": "`dm$=s.update_planet1.reqdata.name`"
-              }
-            },
-            {
-              "name": "load_planet2",
-              "kind": "entity",
-              "entity": "planet",
-              "action": "load",
-              "match": {
-                "id": "`dm$=p.SOLAR_TEST_PLANET_ENTID.planet01`"
-              },
-              "valid": {
-                "`$OPEN`": true,
-                "id": "`dm$=s.load_planet0.match.id`",
-                "name": "`dm$=s.update_planet1.reqdata.name`"
-              }
-            }
-          ]
-        },
         "BasicMoonFlow": {
           "name": "BasicMoonFlow",
           "active": true,
@@ -657,6 +578,85 @@
                 "id": "`dm$=s.load_moon0.match.id`",
                 "planet_id": "`dm$=p.SOLAR_TEST_PLANET_ENTID.planet01`",
                 "name": "`dm$=s.update_moon1.reqdata.name`"
+              }
+            }
+          ]
+        },
+        "BasicPlanetFlow": {
+          "name": "BasicPlanetFlow",
+          "active": true,
+          "param": {
+            "SOLAR_TEST_PLANET_ENTID": {
+              "planet01": "PLANET01",
+              "planet02": "PLANET02",
+              "planet03": "PLANET03"
+            },
+            "SOLAR_TEST_LIVE": "FALSE",
+            "SOLAR_TEST_EXPLAIN": "FALSE"
+          },
+          "test": {
+            "entity": {
+              "planet": {
+                "PLANET01": {
+                  "id": "PLANET01",
+                  "name": "s1",
+                  "kind": "s2",
+                  "diameter": 3
+                },
+                "PLANET02": {
+                  "id": "PLANET02",
+                  "name": "s29",
+                  "kind": "s2a",
+                  "diameter": 43
+                },
+                "PLANET03": {
+                  "id": "PLANET03",
+                  "name": "s51",
+                  "kind": "s52",
+                  "diameter": 83
+                }
+              }
+            }
+          },
+          "step": [
+            {
+              "name": "load_planet0",
+              "kind": "entity",
+              "entity": "planet",
+              "action": "load",
+              "match": {
+                "id": "`dm$=p.SOLAR_TEST_PLANET_ENTID.planet01`"
+              },
+              "valid": {
+                "`$OPEN`": true,
+                "id": "`dm$=s.load_planet0.match.id`"
+              }
+            },
+            {
+              "name": "update_planet1",
+              "ref": "load_planet0",
+              "action": "update",
+              "reqdata": {
+                "name": "s1-`$WHEN`"
+              },
+              "valid": {
+                "`$OPEN`": true,
+                "id": "`dm$=s.load_planet0.match.id`",
+                "name": "`dm$=s.update_planet1.reqdata.name`"
+              }
+            },
+            {
+              "name": "load_planet2",
+              "kind": "entity",
+              "entity": "planet",
+              "action": "load",
+              "match": {
+                "id": "`dm$=p.SOLAR_TEST_PLANET_ENTID.planet01`"
+              },
+              "valid": {
+                "`$OPEN`": true,
+                "id": "`dm$=s.load_planet0.match.id`",
+                "name": "`dm$=s.update_planet1.reqdata.name`"
               }
             }
           ]
