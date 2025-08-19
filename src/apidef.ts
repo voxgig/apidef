@@ -224,7 +224,7 @@ function ApiDef(opts: ApiDefOptions) {
       steps,
       ctrl,
 
-      guide: ctx.guide
+      guide: ctx.guide,
       apimodel,
       ctx,
       jres,

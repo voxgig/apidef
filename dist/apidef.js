@@ -135,7 +135,7 @@ function ApiDef(opts) {
         steps.push('transformers');
         // Step: builders (build generated sub models).
         if (!ctrl.step.builders) {
-            return { ok: false, steps, start, end: Date.now(), ctrl };
+            return { ok: false, steps, start, end: Date.now(), ctrl, guide: ctx.guide };
         }
         const builders = await (0, resolver_1.resolveElements)(ctx, 'builder', 'standard', {
             entity: entity_2.makeEntityBuilder,
@@ -144,7 +144,7 @@ function ApiDef(opts) {
         steps.push('builders');
         // Step: generate (generate model files).
         if (!ctrl.step.generate) {
-            return { ok: false, steps, start, end: Date.now(), ctrl };
+            return { ok: false, steps, start, end: Date.now(), ctrl, guide: ctx.guide };
         }
         const jostraca = (0, jostraca_1.Jostraca)({
             now: spec.now,
@@ -177,7 +177,7 @@ function ApiDef(opts) {
             end: Date.now(),
             steps,
             ctrl,
-            guide: guideModel,
+            guide: ctx.guide,
             apimodel,
             ctx,
             jres,
