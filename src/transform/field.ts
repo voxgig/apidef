@@ -10,13 +10,8 @@ import { fixName } from '../transform'
 
 const fieldTransform: Transform = async function(
   ctx: any,
-  // guide: Guide,
-  // // tspec: TransformSpec,
-  // model: any,
-  // def: any
 ): Promise<TransformResult> {
-  const { apimodel, model, def } = ctx
-  const guide = model.main.api.guide
+  const { apimodel, model, def, guide } = ctx
 
   let msg = 'fields: '
 

@@ -1,31 +1,6 @@
 {
   "main": {
     "api": {
-      "guide": {
-        "control": {
-          "transform": {
-            "openapi": {
-              "order": "\n      top,\n      entity,\n      operation,\n      field,\n      clean,\n      ",
-              "element": {
-                "top": {},
-                "entity": {},
-                "operation": {},
-                "field": {}
-              }
-            }
-          },
-          "builder": {
-            "standard": {
-              "order": "\n      entity,\n      flow,\n      ",
-              "element": {
-                "entity": {},
-                "flow": {}
-              }
-            }
-          }
-        },
-        "entity": {}
-      },
       "entity": {
         "moon": {
           "alias": {

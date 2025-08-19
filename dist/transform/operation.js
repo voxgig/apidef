@@ -5,8 +5,7 @@ const jostraca_1 = require("jostraca");
 const transform_1 = require("../transform");
 const utility_1 = require("../utility");
 const operationTransform = async function (ctx) {
-    const { apimodel, model, def } = ctx;
-    const guide = model.main.api.guide;
+    const { apimodel, model, def, guide } = ctx;
     let msg = 'operations: ';
     const paramBuilder = (paramMap, paramDef, opModel, entityModel, pathdef, op, path, entity, model) => {
         const paramSpec = paramMap[paramDef.name] = {

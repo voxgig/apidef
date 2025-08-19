@@ -14,8 +14,7 @@ import { depluralize } from '../utility'
 const operationTransform = async function(
   ctx: any,
 ): Promise<TransformResult> {
-  const { apimodel, model, def } = ctx
-  const guide = model.main.api.guide
+  const { apimodel, model, def, guide } = ctx
 
   let msg = 'operations: '
 

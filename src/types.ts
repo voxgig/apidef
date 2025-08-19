@@ -21,6 +21,20 @@ type ApiDefOptions = {
   strategy?: string
 }
 
+const ControlShape = Gubu({
+  step: {
+    parse: true,
+    guide: true,
+    transformers: true,
+    builders: true,
+    generate: true,
+  }
+})
+const OpenControlShape = Gubu(Open(ControlShape), { name: 'Control' })
+
+type Control = ReturnType<typeof ControlShape>
+
+
 
 const ModelShape = Gubu({
   name: String,
@@ -74,7 +88,22 @@ type ApiModel = {
 }
 
 
+type ApiDefResult = {
+  ok: boolean
+  start: number
+  end: number
+  steps: string[]
+  ctrl: Control
+
+  guide?: any
+  apimodel?: any
+  ctx?: any
+  jres?: any
+}
+
+
 export {
+  OpenControlShape,
   OpenModelShape,
   OpenBuildShape,
 }
@@ -84,6 +113,8 @@ export type {
   Log,
   FsUtil,
   ApiDefOptions,
+  ApiDefResult,
+  Control,
   Model,
   Build,
   ApiModel,

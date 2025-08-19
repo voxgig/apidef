@@ -44,7 +44,7 @@ const node_path_1 = __importDefault(require("node:path"));
 const jostraca_1 = require("jostraca");
 const util_1 = require("@voxgig/util");
 const types_1 = require("./types");
-const guide_1 = require("./guide");
+const guide_1 = require("./guide/guide");
 const parse_1 = require("./parse");
 Object.defineProperty(exports, "parse", { enumerable: true, get: function () { return parse_1.parse; } });
 const transform_1 = require("./transform");
@@ -67,9 +67,15 @@ function ApiDef(opts) {
     opts.strategy = opts.strategy || 'heuristic01';
     async function generate(spec) {
         const start = Date.now();
+        const steps = [];
         // dlog('start')
-        const model = (0, types_1.OpenModelShape)(spec.model);
-        const build = (0, types_1.OpenBuildShape)(spec.build);
+        const ctrl = (0, types_1.OpenControlShape)(spec.ctrl || {});
+        const model = (0, types_1.OpenModelShape)(spec.model || {});
+        const build = (0, types_1.OpenBuildShape)(spec.build || {});
+        // Step: parse (API spec).
+        if (!ctrl.step.parse) {
+            return { ok: false, steps, start, end: Date.now(), ctrl };
+        }
         (0, jostraca_1.names)(model, model.name);
         const apimodel = {
             main: {
@@ -97,6 +103,7 @@ function ApiDef(opts) {
             defpath: node_path_1.default.dirname(defpath),
             model,
             apimodel,
+            guide: {},
             def: undefined,
             note: {}
         };
@@ -105,7 +112,18 @@ function ApiDef(opts) {
         def = (0, parse_1.rewrite)(def);
         fs.writeFileSync(defpath + '.full.json', JSON.stringify(def, null, 2));
         ctx.def = def;
-        const guideBuilder = await (0, guide_1.resolveGuide)(ctx);
+        steps.push('parse');
+        // Step: guide (derive).
+        if (!ctrl.step.guide) {
+            return { ok: false, steps, start, end: Date.now(), ctrl };
+        }
+        const guideModel = await (0, guide_1.buildGuide)(ctx);
+        ctx.guide = guideModel.guide;
+        steps.push('guide');
+        // Step: transformers (transform spec and guide into core structures).
+        if (!ctrl.step.transformers) {
+            return { ok: false, steps, start, end: Date.now(), ctrl, guide: ctx.guide };
+        }
         // const transformSpec = await resolveTransforms(ctx)
         const transforms = await (0, resolver_1.resolveElements)(ctx, 'transform', 'openapi', {
             top: top_1.topTransform,
@@ -114,10 +132,20 @@ function ApiDef(opts) {
             field: field_1.fieldTransform,
             clean: clean_1.cleanTransform,
         });
+        steps.push('transformers');
+        // Step: builders (build generated sub models).
+        if (!ctrl.step.builders) {
+            return { ok: false, steps, start, end: Date.now(), ctrl };
+        }
         const builders = await (0, resolver_1.resolveElements)(ctx, 'builder', 'standard', {
             entity: entity_2.makeEntityBuilder,
             flow: flow_1.makeFlowBuilder,
         });
+        steps.push('builders');
+        // Step: generate (generate model files).
+        if (!ctrl.step.generate) {
+            return { ok: false, steps, start, end: Date.now(), ctrl };
+        }
         const jostraca = (0, jostraca_1.Jostraca)({
             now: spec.now,
             fs: () => fs,
@@ -125,9 +153,6 @@ function ApiDef(opts) {
         });
         const jmodel = {};
         const root = () => (0, jostraca_1.Project)({ folder: '.' }, async () => {
-            guideBuilder();
-            // entityBuilder()
-            // flowBuilder()
             for (let builder of builders) {
                 builder();
             }
@@ -144,10 +169,15 @@ function ApiDef(opts) {
                 log.debug({ point: 'generate-warning', dlogentry, note: String(dlogentry) });
             }
         }
+        steps.push('generate');
         log.info({ point: 'generate-end', note: 'success', break: true });
         return {
             ok: true,
-            name: 'apidef',
+            start,
+            end: Date.now(),
+            steps,
+            ctrl,
+            guide: guideModel,
             apimodel,
             ctx,
             jres,
@@ -159,7 +189,6 @@ function ApiDef(opts) {
 }
 ApiDef.makeBuild = async function (opts) {
     let apidef = undefined;
-    // const outprefix = null == opts.outprefix ? '' : opts.outprefix
     const config = {
         def: opts.def || 'no-def',
         kind: 'openapi3',
@@ -178,7 +207,8 @@ ApiDef.makeBuild = async function (opts) {
                 pino: build.log,
             });
         }
-        return await apidef.generate({ model, build, config });
+        const ctrl = build.spec.buildargs?.apidef?.ctrl || {};
+        return await apidef.generate({ model, build, config, ctrl });
     };
     build.step = 'pre';
     return build;

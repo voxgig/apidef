@@ -11,11 +11,11 @@ async function resolveElements(
   standard: Record<string, any>
 ) {
 
-  const { log, model } = ctx
+  const { log, model, guide } = ctx
 
   // TODO: model access should be via a utility that generates
   // useful errors when the target is missing
-  const control = model.main.api.guide.control[kind][subkind]
+  const control = guide.control[kind][subkind]
 
   const target = kind + '.' + subkind
 

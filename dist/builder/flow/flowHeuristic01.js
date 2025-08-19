@@ -4,7 +4,7 @@ exports.flowHeuristic01 = flowHeuristic01;
 const struct_1 = require("@voxgig/struct");
 const jostraca_1 = require("jostraca");
 async function flowHeuristic01(ctx) {
-    let entity = ctx.model.main.api.guide.entity;
+    let entity = ctx.guide.entity;
     const flows = [];
     (0, jostraca_1.each)(entity, (entity) => {
         flows.push(resolveBasicEntityFlow(ctx, entity));

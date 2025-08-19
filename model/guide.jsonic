@@ -1,0 +1,53 @@
+
+guide: control: {
+
+  transform: openapi: {
+    order: *`
+      top,
+      entity,
+      operation,
+      field,
+      clean,
+      ` | string,
+
+    element: {
+      top: {}
+      entity: {}
+      operation: {}
+      field: {}
+    }
+  }
+
+  builder: standard: {
+    order: *`
+      entity,
+      flow,
+      ` | string,
+
+    element: {
+      entity: {}
+      flow: {}
+    }
+  }
+
+}
+
+
+
+guide: entity: &: {
+  name: .$KEY
+  path: &: {
+    op: &: {
+      method: *'get' | string
+      transform: {
+        # TODO: make these work
+        # inward: *null | string | object
+        # outward: *null | string | object
+      }
+    }
+  }
+}
+
+
+
+

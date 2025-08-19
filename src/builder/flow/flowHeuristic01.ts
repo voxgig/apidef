@@ -5,7 +5,7 @@ import { each, names } from 'jostraca'
 
 
 async function flowHeuristic01(ctx: any): Promise<any[]> {
-  let entity = ctx.model.main.api.guide.entity
+  let entity = ctx.guide.entity
 
   const flows: any[] = []
 

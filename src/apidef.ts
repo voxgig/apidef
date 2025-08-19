@@ -11,6 +11,8 @@ import { prettyPino } from '@voxgig/util'
 
 import type {
   ApiDefOptions,
+  ApiDefResult,
+  Control,
   Model,
   Build,
   ApiModel,
@@ -19,12 +21,13 @@ import type {
 import {
   OpenModelShape,
   OpenBuildShape,
+  OpenControlShape,
 } from './types'
 
 
 import {
-  resolveGuide,
-} from './guide'
+  buildGuide,
+} from './guide/guide'
 
 
 import {
@@ -72,12 +75,19 @@ function ApiDef(opts: ApiDefOptions) {
   opts.strategy = opts.strategy || 'heuristic01'
 
 
-  async function generate(spec: any) {
+  async function generate(spec: any): Promise<ApiDefResult> {
     const start = Date.now()
+    const steps: string[] = []
     // dlog('start')
 
-    const model: Model = OpenModelShape(spec.model)
-    const build: Build = OpenBuildShape(spec.build)
+    const ctrl: Control = OpenControlShape(spec.ctrl || {})
+    const model: Model = OpenModelShape(spec.model || {})
+    const build: Build = OpenBuildShape(spec.build || {})
+
+    // Step: parse (API spec).
+    if (!ctrl.step.parse) {
+      return { ok: false, steps, start, end: Date.now(), ctrl }
+    }
 
     names(model, model.name)
 
@@ -112,6 +122,7 @@ function ApiDef(opts: ApiDefOptions) {
       defpath: Path.dirname(defpath),
       model,
       apimodel,
+      guide: {},
       def: undefined,
       note: {}
     }
@@ -126,9 +137,24 @@ function ApiDef(opts: ApiDefOptions) {
 
     ctx.def = def
 
+    steps.push('parse')
 
-    const guideBuilder = await resolveGuide(ctx)
 
+    // Step: guide (derive).
+    if (!ctrl.step.guide) {
+      return { ok: false, steps, start, end: Date.now(), ctrl }
+    }
+
+    const guideModel = await buildGuide(ctx)
+    ctx.guide = guideModel.guide
+
+    steps.push('guide')
+
+
+    // Step: transformers (transform spec and guide into core structures).
+    if (!ctrl.step.transformers) {
+      return { ok: false, steps, start, end: Date.now(), ctrl, guide: ctx.guide }
+    }
 
     // const transformSpec = await resolveTransforms(ctx)
     const transforms = await resolveElements(ctx, 'transform', 'openapi', {
@@ -139,11 +165,25 @@ function ApiDef(opts: ApiDefOptions) {
       clean: cleanTransform,
     })
 
+    steps.push('transformers')
+
+    // Step: builders (build generated sub models).
+    if (!ctrl.step.builders) {
+      return { ok: false, steps, start, end: Date.now(), ctrl, guide: ctx.guide }
+    }
+
     const builders = await resolveElements(ctx, 'builder', 'standard', {
       entity: makeEntityBuilder,
       flow: makeFlowBuilder,
     })
 
+    steps.push('builders')
+
+
+    // Step: generate (generate model files).
+    if (!ctrl.step.generate) {
+      return { ok: false, steps, start, end: Date.now(), ctrl, guide: ctx.guide }
+    }
 
     const jostraca = Jostraca({
       now: spec.now,
@@ -154,10 +194,6 @@ function ApiDef(opts: ApiDefOptions) {
     const jmodel = {}
 
     const root = () => Project({ folder: '.' }, async () => {
-      guideBuilder()
-      // entityBuilder()
-      // flowBuilder()
-
       for (let builder of builders) {
         builder()
       }
@@ -177,11 +213,18 @@ function ApiDef(opts: ApiDefOptions) {
       }
     }
 
+    steps.push('generate')
+
     log.info({ point: 'generate-end', note: 'success', break: true })
 
     return {
       ok: true,
-      name: 'apidef',
+      start,
+      end: Date.now(),
+      steps,
+      ctrl,
+
+      guide: ctx.guide
       apimodel,
       ctx,
       jres,
@@ -196,8 +239,6 @@ function ApiDef(opts: ApiDefOptions) {
 
 ApiDef.makeBuild = async function(opts: ApiDefOptions) {
   let apidef: any = undefined
-
-  // const outprefix = null == opts.outprefix ? '' : opts.outprefix
 
   const config = {
     def: opts.def || 'no-def',
@@ -220,7 +261,9 @@ ApiDef.makeBuild = async function(opts: ApiDefOptions) {
       })
     }
 
-    return await apidef.generate({ model, build, config })
+    const ctrl = build.spec.buildargs?.apidef?.ctrl || {}
+
+    return await apidef.generate({ model, build, config, ctrl })
   }
 
   build.step = 'pre'
