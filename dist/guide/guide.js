@@ -68,13 +68,17 @@ async function buildBaseGuide(ctx) {
         '',
         'guide: {',
     ];
+    validateBaseBuide(ctx, baseguide);
     (0, struct_1.items)(baseguide.entity).map(([entityname, entity]) => {
         guideBlocks.push(`
   entity: ${entityname}: {` +
             (0 < entity.why_name.length ? ' # name:' + entity.why_name.join(';') : ''));
-        (0, struct_1.items)(entity.path).map(([pathname, path]) => {
-            guideBlocks.push(`    path: '${pathname}': op: {` +
+        (0, struct_1.items)(entity.path).map(([pathstr, path]) => {
+            guideBlocks.push(`    path: '${pathstr}': op: {` +
                 (0 < path.why_ent.length ? ' # ent:' + path.why_ent.join(';') : ''));
+            if (null != path.origpath && path.origpath !== pathstr) {
+                guideBlocks.push(`      # origpath: ${path.origpath}`);
+            }
             (0, struct_1.items)(path.op).map(([opname, op]) => {
                 guideBlocks.push(`      '${opname}': method: ${op.method}` +
                     (0 < op.why_op.length ? ' # ' + op.why_op : ''));
@@ -88,6 +92,7 @@ async function buildBaseGuide(ctx) {
     });
     guideBlocks.push('', '}');
     const guideSrc = guideBlocks.join('\n');
+    console.log(guideSrc);
     ctx.note.guide = { base: guideSrc };
     const baseGuideFileName = (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'base-guide.jsonic';
     const jostraca = (0, jostraca_1.Jostraca)({
@@ -103,5 +108,53 @@ async function buildBaseGuide(ctx) {
         existing: { txt: { merge: true } }
     }, root);
     return jres;
+}
+function validateBaseBuide(ctx, baseguide) {
+    const srcm = {};
+    // Each orig path.
+    (0, jostraca_1.each)(ctx.def.paths, (pdef) => {
+        const pathStr = pdef.key$;
+        // Each orig method.
+        (0, jostraca_1.each)(pdef, (mdef) => {
+            if (mdef.key$.match(/^get|post|put|patch|delete$/i)) {
+                let key = pathStr + ' ' + mdef.key$;
+                let desc = (srcm[key] = (srcm[key] || { c: 0 }));
+                desc.c++;
+            }
+        });
+    });
+    // console.log('DEFPM', defpm)
+    const genm = {};
+    // Each entity.
+    (0, jostraca_1.each)(baseguide.entity, (edef) => {
+        // Each path.
+        (0, jostraca_1.each)(edef.path, (pdef) => {
+            // Each op.
+            (0, jostraca_1.each)(pdef.op, (odef) => {
+                let pathStr = pdef.origpath;
+                let key = pathStr + ' ' + odef.method;
+                let desc = (genm[key] = (genm[key] || { c: 0 }));
+                desc.c++;
+            });
+        });
+    });
+    const srcp = Object.keys(srcm).sort()
+        .reduce((a, k) => (a.push(k + ':c=' + srcm[k].c), a), []);
+    const genp = Object.keys(genm).sort()
+        .reduce((a, k) => (a.push(k + ':c=' + genm[k].c), a), []);
+    // Check that all paths have been assigned to entities.
+    if (srcp.join(';') !== genp.join(';')) {
+        console.log('     ', 'SRC-PATH'.padEnd(60, ' '), 'GEN-PATH');
+        for (let i = 0; i < srcp.length || i < genp.length; i++) {
+            let srcps = srcp[i];
+            let genps = genp[i];
+            let prefix = '     ';
+            if (srcps !== genps) {
+                prefix = ' *** ';
+            }
+            console.log(prefix, srcps.padEnd(60, ' '), genps);
+        }
+        throw new Error('PATH MISMATCH');
+    }
 }
 //# sourceMappingURL=guide.js.map

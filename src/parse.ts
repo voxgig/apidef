@@ -2,12 +2,6 @@
 
 import { bundleFromString, createConfig } from '@redocly/openapi-core'
 
-import { each, snakify } from 'jostraca'
-
-
-import { depluralize } from './utility'
-
-
 // Parse an API definition source into a JSON sructure.
 async function parse(kind: string, source: any, meta?: any) {
   if ('OpenAPI' === kind) {
@@ -79,60 +73,6 @@ async function parseOpenAPI(source: any, meta?: any) {
 
 
 
-// Make consistent changes to support semantic entities.
-function rewrite(def: any) {
-  const paths = def.paths
-  each(paths, (path) => {
-    each(path.parameters, (param: any) => {
-
-      let new_param = param.name
-      let new_path = path.key$
-
-      // Rename param if nane is "id", and not the final param.
-      // Rewrite /foo/{id}/bar as /foo/{foo_id}/bar.
-      // Avoids ambiguity with bar id.
-      if (param.name.match(/^id$/i)) {
-        let m = path.key$.match(/\/([^\/]+)\/{id\}\/[^\/]/)
-
-        if (m) {
-          const parent = depluralize(snakify(m[1]))
-          new_param = `${parent}_id`
-          new_path = path.key$.replace('{id}', '{' + new_param + '}')
-        }
-      }
-      else {
-        new_param = depluralize(snakify(param.name))
-        new_path = path.key$.replace('{' + param.name + '}', '{' + new_param + '}')
-      }
-
-      let pathdef = paths[path.key$]
-      delete paths[path.key$]
-
-      paths[new_path] = pathdef
-      path.key$ = new_path
-
-      param.name = new_param
-    })
-  })
-
-
-  sortkeys(def, 'paths')
-  sortkeys(def, 'components')
-
-  return def
-}
-
-
-function sortkeys(obj: any, prop: string) {
-  const sorted: any = {}
-  const sorted_keys = Object.keys(obj[prop]).sort()
-  for (let sk of sorted_keys) {
-    sorted[sk] = obj[prop][sk]
-  }
-  obj[prop] = sorted
-}
-
 export {
   parse,
-  rewrite,
 }

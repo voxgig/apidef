@@ -32,7 +32,6 @@ import {
 
 import {
   parse,
-  rewrite,
 } from './parse'
 
 
@@ -86,7 +85,7 @@ function ApiDef(opts: ApiDefOptions) {
 
     // Step: parse (API spec).
     if (!ctrl.step.parse) {
-      return { ok: false, steps, start, end: Date.now(), ctrl }
+      return { ok: true, steps, start, end: Date.now(), ctrl }
     }
 
     names(model, model.name)
@@ -131,8 +130,6 @@ function ApiDef(opts: ApiDefOptions) {
 
     let def = await parse('OpenAPI', defsrc, { file: defpath })
 
-    def = rewrite(def)
-
     fs.writeFileSync(defpath + '.full.json', JSON.stringify(def, null, 2))
 
     ctx.def = def
@@ -153,7 +150,7 @@ function ApiDef(opts: ApiDefOptions) {
 
     // Step: transformers (transform spec and guide into core structures).
     if (!ctrl.step.transformers) {
-      return { ok: false, steps, start, end: Date.now(), ctrl, guide: ctx.guide }
+      return { ok: true, steps, start, end: Date.now(), ctrl, guide: ctx.guide }
     }
 
     // const transformSpec = await resolveTransforms(ctx)
@@ -169,7 +166,7 @@ function ApiDef(opts: ApiDefOptions) {
 
     // Step: builders (build generated sub models).
     if (!ctrl.step.builders) {
-      return { ok: false, steps, start, end: Date.now(), ctrl, guide: ctx.guide }
+      return { ok: true, steps, start, end: Date.now(), ctrl, guide: ctx.guide }
     }
 
     const builders = await resolveElements(ctx, 'builder', 'standard', {
@@ -182,7 +179,7 @@ function ApiDef(opts: ApiDefOptions) {
 
     // Step: generate (generate model files).
     if (!ctrl.step.generate) {
-      return { ok: false, steps, start, end: Date.now(), ctrl, guide: ctx.guide }
+      return { ok: true, steps, start, end: Date.now(), ctrl, guide: ctx.guide }
     }
 
     const jostraca = Jostraca({

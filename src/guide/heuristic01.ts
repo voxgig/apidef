@@ -2,7 +2,7 @@
 
 import { each, snakify, names } from 'jostraca'
 
-import { size } from '@voxgig/struct'
+import { size, escre, items } from '@voxgig/struct'
 
 
 import {
@@ -11,6 +11,14 @@ import {
   capture,
   find,
 } from '../utility'
+
+
+type Metrics = {
+  count: {
+    path: number
+    schema: Record<string, number>
+  }
+}
 
 
 type EntityDesc = {
@@ -25,6 +33,7 @@ type EntityDesc = {
 
 type EntityPathDesc = {
   op: Record<string, any>
+  origpath?: string
   why_ent: string[]
 }
 
@@ -38,7 +47,7 @@ async function heuristic01(ctx: any): Promise<Record<string, any>> {
   const metrics = measure(ctx)
   // console.dir(metrics, { depth: null })
 
-  const entityDescs = resolveEntityDescs(ctx)
+  const entityDescs = resolveEntityDescs(ctx, metrics)
 
   guide = {
     control: guide.control,
@@ -49,15 +58,15 @@ async function heuristic01(ctx: any): Promise<Record<string, any>> {
 }
 
 
-function measure(ctx: any) {
-  const metrics = {
+function measure(ctx: any): Metrics {
+  const metrics: Metrics = {
     count: {
+      path: Object.keys(ctx.def.path ?? {}).length,
       schema: ({} as Record<string, number>)
     }
   }
 
   let xrefs = find(ctx.def, 'x-ref')
-  // console.log('XREFS', xrefs)
 
   let schemas = xrefs.filter(xref => xref.val.includes('schema'))
 
@@ -85,15 +94,16 @@ const METHOD_IDOP: Record<string, string> = {
 }
 
 
-function resolveEntityDescs(ctx: any) {
+function resolveEntityDescs(ctx: any, metrics: Metrics) {
   const entityDescs: Record<string, any> = {}
   const paths = ctx.def.paths
 
 
   const caught = capture(ctx.def, {
     paths:
-      ['`$SELECT`', /\/([a-zA-Z0-1_-]+)(\/\{([a-zA-Z0-1_-]+)\})?$/,
-        ['`$SELECT`', /get|post|put|patch|delete/i,
+      //['`$SELECT`', /\/([a-zA-Z0-1_-]+)(\/\{([a-zA-Z0-1_-]+)\})?$/,
+      ['`$SELECT`', /.*/,
+        ['`$SELECT`', /^get|post|put|patch|delete$/i,
           ['`$APPEND`', 'methods', {
             path: '`select$=key.paths`',
             method: { '`$LOWER`': '`$KEY`' },
@@ -108,9 +118,14 @@ function resolveEntityDescs(ctx: any) {
 
 
   each(caught.methods, (pmdef) => {
+    // console.dir(pmdef, { depth: null })
+
     let methodDef = pmdef
     let pathStr = pmdef.path
     let methodStr = pmdef.method
+
+    let pathDef = paths[pathStr]
+    pathDef.canonPath$ = pathDef.canonPath$ ?? pathStr
 
     // methodStr = methodStr.toLowerCase()
     let why_op: string[] = []
@@ -121,7 +136,7 @@ function resolveEntityDescs(ctx: any) {
 
     const why_ent: string[] = []
     const entdesc =
-      resolveEntity(entityDescs, pathStr, methodDef, methodStr, why_ent)
+      resolveEntity(metrics, entityDescs, pathStr, methodDef, methodStr, why_ent)
 
 
     if (null == entdesc) {
@@ -130,6 +145,28 @@ function resolveEntityDescs(ctx: any) {
         ' path ' + pathStr)
       return
     }
+
+    /*
+    // If {id} is last param, ensure it is the id of the ent
+    const lastid_match = pathStr.match(/\/([^\/{]+)\/\{id\}\//)
+    if (lastid_match) {
+      const parentname = depluralize(snakify(lastid_match[1]))
+      if (parentname !== entdesc.name) {
+        const new_param = `${parentname}_id`
+
+        const pathdesc = entdesc.path[pathStr]
+        delete entdesc.path[pathStr]
+        pathStr = pathStr.replace('{id}', '{' + new_param + '}')
+        entdesc.path[pathStr] = pathdesc
+
+        for (let paramdef of (pmdef.parameters || [])) {
+          if ('id' === paramdef.name) {
+            paramdef.name = new_param
+          }
+        }
+      }
+    }
+    */
 
     entdesc.path[pathStr].why_ent = why_ent
 
@@ -176,7 +213,16 @@ function resolveEntityDescs(ctx: any) {
 
     }
 
-    const op = entdesc.path[pathStr].op
+    const pathDesc = entdesc.path[pathStr]
+
+    if (null != pathDesc.origpath && pathDesc.origpath !== pathStr) {
+      throw new Error('ORIGPATH MISMATCH: ' + pathDesc.origpath + ' ' + pathStr)
+    }
+
+    pathDesc.origpath = pathStr
+
+
+    const op = pathDesc.op
 
     op[opname] = {
       // TODO: in actual guide, remove "standard" method ops since redundant
@@ -188,22 +234,36 @@ function resolveEntityDescs(ctx: any) {
       op[opname].transform = transform
     }
 
-    // if ('/v2/users/{user_id}/enrollment' === pathStr) {
-    //   console.log('ENT')
-    //   console.dir(entdesc, { depth: null })
-    // }
-    // })
-    // }
+    rewrite(ctx, pathStr, methodStr, entdesc)
   })
 
-  // console.log('USER')
-  // console.dir(entityDescs.user, { depth: null })
+
+  // Replace old paths with new paths
+  items(ctx.def.paths).map((n: any[]) => {
+    const [pathStr, pathDef] = n
+    const canonPath = pathDef.canonPath$
+    // delete ctx.def.paths[pathStr]
+    // ctx.def.paths[canonPath] = pathDef
+
+    each(entityDescs, (entdesc: EntityDesc) => {
+      items(entdesc.path).map((p: any[]) => {
+        let [pathname, pathdesc] = p
+        if (pathname === pathStr) {
+          delete entdesc.path[pathStr]
+          entdesc.path[canonPath] = pathdesc
+        }
+      })
+    })
+  })
+
+  console.dir(entityDescs, { depth: null })
 
   return entityDescs
 }
 
 
 function resolveEntity(
+  metrics: Metrics,
   entityDescs: Record<string, EntityDesc>,
   // pathDef: Record<string, any>,
   pathStr: string,
@@ -223,16 +283,31 @@ function resolveEntity(
     let pathName = m[1]
     let pathParam = m[3]
 
-
     origentname = snakify(pathName)
     entname = depluralize(origentname)
 
     // Check schema
-    const compname = resolveComponentName(entname, methodDef, methodStr, pathStr, why_name)
-    if (compname) {
-      origentname = snakify(compname)
-      entname = depluralize(origentname)
-      why_ent.push('cmp:' + entname)
+    const origCompName = resolveComponentName(entname, methodDef, methodStr, pathStr, why_name)
+    if (origCompName) {
+      let usecmp = false
+      let compname = fixEntName(origCompName)
+
+      if (
+        compname !== entname
+
+        // If schema is in all paths, then probably shared meta data
+        && metrics.count.schema[compname] < metrics.count.path
+      ) {
+        origentname = snakify(compname)
+        entname = depluralize(origentname)
+        why_ent.push('cmp:' + entname)
+        usecmp = true
+      }
+
+      if (!usecmp) {
+        why_ent.push('pathiscmp:' + m[1])
+        why_name.push('pathiscmp:' + m[1])
+      }
     }
     else {
       why_ent.push('path:' + m[1])
@@ -241,7 +316,7 @@ function resolveEntity(
 
     entdesc = (entityDescs[entname] = entityDescs[entname] || {
       name: entname,
-      id: Math.random(),
+      id: 'N' + ('' + Math.random()).substring(2, 10),
       alias: {}
     })
 
@@ -445,6 +520,196 @@ function listedEntity(prop: any) {
     return depluralize(snakify(m[1]))
   }
 }
+
+
+
+
+// Make consistent changes to support semantic entities.
+function rewrite(ctx: any, pathStr: string, methodStr: string, entdesc: EntityDesc) {
+
+  // Rewrite path parameters that are identifiers to follow the rules:
+  // 0. Parameters named [a-z]?id are considered identifiers
+  // 1. last identifier is always {id} as this is the primary entity
+  // 2. internal identifiers are formatted as {name_id} where name is the parent entity name
+  // Example: /api/bar/{id}/zed/{zid}/foo/{fid} ->
+  //          /api/bar/{bar_id}/zed/{zed_id}/foo/{id}
+
+
+  const parts = pathStr.split(/\//).filter(p => '' != p)
+
+  for (let partI = 0; partI < parts.length; partI++) {
+    let partStr = parts[partI]
+
+    if (isParam(partStr)) {
+      let oldParam = partStr.substring(1, partStr.length - 1)
+      let parentName = fixEntName(parts[partI - 1])
+
+      console.log(
+        'PARAM', partI + '/' + parts.length, oldParam, 'p=' + parentName, 'e=' + entdesc.name)
+
+      // id not at end, abd after a possible entname
+      // .../parentent/{id}/...
+      if (
+        'id' === oldParam &&
+        parentName !== entdesc.name &&
+        partI < parts.length - 1 &&
+        !isParam(parentName)
+      ) {
+        let newParamName = parentName + '_id'
+        modifyParam(ctx.def, pathStr, methodStr, oldParam, newParamName)
+      }
+    }
+  }
+
+  console.log('REWRITE', pathStr, '|', parts.join('\\'))
+
+  /*
+    const pathdef = ctx.def.paths[pathStr]
+    const param_keys = Object.keys(pathdef?.parameters || {})
+  
+    // Prevent duplicate names during rewrite
+    param_keys.sort(((a: string, b: string, _: any) => {
+      _ = a.length - b.length
+      if (0 === _) {
+        return a < b ? -1 : a > b ? 1 : 0
+      }
+      return _
+    }) as any)
+  
+  
+    param_keys.map((param_key: string) => {
+      let param = pathdef.parameters[param_key]
+      let old_path = pathdef.key$
+      let old_param = param.name
+  
+  
+      let new_param = param.name
+      let new_path = pathdef.key$
+  
+      let pathend_match = undefined
+  
+      if (null != new_path && '' !== new_path) {
+  
+        const pathend_re = new RegExp(
+          '\\/([^\\/]+)\\/\\{' +
+          escre(param.name) +
+          '\\}(\\/[^\\/{]+)?$')
+        pathend_match = old_path.match(pathend_re)
+  
+        if (pathend_match && 'id' != param.name) {
+          new_param = 'id'
+          new_path = pathdef.key$
+            .replace('{' + param.name + '}', '{' + new_param + '}')
+        }
+  
+        // Rename param if nane is "id" (or "Xid"), and not the final param.
+        // Rewrite /foo/{id}/bar as /foo/{foo_id}/bar.
+        // Avoids ambiguity with bar id.
+        else if (!pathend_match && old_param.match(/^([a-z]?id)$/i)) {
+          const pre = new RegExp('\\/([^\\/]+)\\/\\{' + escre(param.name) + '\\}\\/[^\\/]')
+          let m = old_path.match(pre)
+  
+          if (m) {
+            const parent = depluralize(snakify(m[1]))
+            new_param = `${parent}_id`
+            new_path = old_path
+              .replace('{' + param.name + '}', '{' + new_param + '}')
+          }
+        }
+        else {
+          new_param = depluralize(snakify(param.name))
+          new_path = pathdef.key$.replace('{' + param.name + '}', '{' + new_param + '}')
+        }
+  
+      }
+    })
+  
+  */
+}
+
+
+function isParam(partStr: string) {
+  return '{' === partStr[0] && '}' === partStr[partStr.length - 1]
+}
+
+
+function modifyParam(
+  def: any,
+  pathStr: string,
+  methodStr: string,
+  origParamName: string,
+  newParamName: string
+) {
+  const pathdef = def.paths[pathStr]
+  let canonPath = pathdef.canonPath$
+
+  canonPath = canonPath.replace('{' + origParamName + '}', '{' + newParamName + '}')
+
+  let params = [].concat((pathdef.parameters || [])).concat(pathdef[methodStr].parameters || [])
+    .filter((p: any) => p.name === origParamName)
+
+  params.map((p: any) => {
+    p.name = newParamName
+    return p
+  })
+
+  console.log('MODIFYPARAM', canonPath, params)
+
+  pathdef.canonPath$ = canonPath
+}
+
+
+function fixEntName(origName: string) {
+  return depluralize(snakify(origName))
+}
+
+
+/*
+function findUrlParams(path: string): string[] {
+  const re = /\{([A-Za-z0-9_.-]+)\}/g
+  const names: string[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(path)) !== null) {
+    names.push(m[1]);
+  }
+  return names;
+}
+
+
+function modifyPathParam(
+  paths: any,
+  pathdef: any,
+  param: any,
+  old_path: string,
+  old_param: string,
+  new_path: string,
+  new_param: string
+) {
+  if (paths) {
+    delete paths[old_path]
+    paths[new_path] = pathdef
+  }
+  pathdef.key$ = new_path
+
+  if (pathdef.parameters) {
+    delete pathdef.parameters[old_param]
+    pathdef.parameters[new_param] = param
+  }
+  param.name = new_param
+  param.key$ = new_param
+}
+
+
+function sortkeys(obj: any, prop: string) {
+  const src = obj[prop] ?? {}
+  const sorted: any = {}
+  const sorted_keys = Object.keys(src).sort()
+  for (let sk of sorted_keys) {
+    sorted[sk] = obj[prop][sk]
+  }
+  obj[prop] = sorted
+}
+*/
 
 
 

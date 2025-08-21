@@ -99,15 +99,20 @@ async function buildBaseGuide(ctx: any) {
     'guide: {',
   ]
 
+  validateBaseBuide(ctx, baseguide)
 
   items(baseguide.entity).map(([entityname, entity]: any[]) => {
     guideBlocks.push(`
   entity: ${entityname}: {` +
       (0 < entity.why_name.length ? ' # name:' + entity.why_name.join(';') : ''))
 
-    items(entity.path).map(([pathname, path]: any[]) => {
-      guideBlocks.push(`    path: '${pathname}': op: {` +
+    items(entity.path).map(([pathstr, path]: any[]) => {
+      guideBlocks.push(`    path: '${pathstr}': op: {` +
         (0 < path.why_ent.length ? ' # ent:' + path.why_ent.join(';') : ''))
+
+      if (null != path.origpath && path.origpath !== pathstr) {
+        guideBlocks.push(`      # origpath: ${path.origpath}`)
+      }
 
       items(path.op).map(([opname, op]: any[]) => {
         guideBlocks.push(`      '${opname}': method: ${op.method}` +
@@ -127,6 +132,8 @@ async function buildBaseGuide(ctx: any) {
   guideBlocks.push('', '}')
 
   const guideSrc = guideBlocks.join('\n')
+
+  console.log(guideSrc)
 
   ctx.note.guide = { base: guideSrc }
 
@@ -149,6 +156,67 @@ async function buildBaseGuide(ctx: any) {
   }, root)
 
   return jres
+}
+
+
+
+function validateBaseBuide(ctx: any, baseguide: any) {
+  const srcm: any = {}
+
+  // Each orig path.
+  each(ctx.def.paths, (pdef: any) => {
+    const pathStr = pdef.key$
+
+    // Each orig method.
+    each(pdef, (mdef: any) => {
+      if (mdef.key$.match(/^get|post|put|patch|delete$/i)) {
+        let key = pathStr + ' ' + mdef.key$
+        let desc = (srcm[key] = (srcm[key] || { c: 0 }))
+        desc.c++
+      }
+    })
+  })
+
+  // console.log('DEFPM', defpm)
+
+  const genm: any = {}
+
+  // Each entity.
+  each(baseguide.entity, (edef: any) => {
+
+    // Each path.
+    each(edef.path, (pdef) => {
+
+      // Each op.
+      each(pdef.op, (odef) => {
+        let pathStr = pdef.origpath
+        let key = pathStr + ' ' + odef.method
+        let desc = (genm[key] = (genm[key] || { c: 0 }))
+        desc.c++
+      })
+    })
+  })
+
+  const srcp = Object.keys(srcm).sort()
+    .reduce((a, k) => (a.push(k + ':c=' + srcm[k].c), a), [] as string[])
+
+  const genp = Object.keys(genm).sort()
+    .reduce((a, k) => (a.push(k + ':c=' + genm[k].c), a), [] as string[])
+
+  // Check that all paths have been assigned to entities.
+  if (srcp.join(';') !== genp.join(';')) {
+    console.log('     ', 'SRC-PATH'.padEnd(60, ' '), 'GEN-PATH')
+    for (let i = 0; i < srcp.length || i < genp.length; i++) {
+      let srcps = srcp[i]
+      let genps = genp[i]
+      let prefix = '     '
+      if (srcps !== genps) {
+        prefix = ' *** '
+      }
+      console.log(prefix, srcps.padEnd(60, ' '), genps)
+    }
+    throw new Error('PATH MISMATCH')
+  }
 }
 
 

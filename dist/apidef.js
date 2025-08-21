@@ -74,7 +74,7 @@ function ApiDef(opts) {
         const build = (0, types_1.OpenBuildShape)(spec.build || {});
         // Step: parse (API spec).
         if (!ctrl.step.parse) {
-            return { ok: false, steps, start, end: Date.now(), ctrl };
+            return { ok: true, steps, start, end: Date.now(), ctrl };
         }
         (0, jostraca_1.names)(model, model.name);
         const apimodel = {
@@ -109,7 +109,6 @@ function ApiDef(opts) {
         };
         const defsrc = (0, utility_1.loadFile)(defpath, 'def', fs, log);
         let def = await (0, parse_1.parse)('OpenAPI', defsrc, { file: defpath });
-        def = (0, parse_1.rewrite)(def);
         fs.writeFileSync(defpath + '.full.json', JSON.stringify(def, null, 2));
         ctx.def = def;
         steps.push('parse');
@@ -122,7 +121,7 @@ function ApiDef(opts) {
         steps.push('guide');
         // Step: transformers (transform spec and guide into core structures).
         if (!ctrl.step.transformers) {
-            return { ok: false, steps, start, end: Date.now(), ctrl, guide: ctx.guide };
+            return { ok: true, steps, start, end: Date.now(), ctrl, guide: ctx.guide };
         }
         // const transformSpec = await resolveTransforms(ctx)
         const transforms = await (0, resolver_1.resolveElements)(ctx, 'transform', 'openapi', {
@@ -135,7 +134,7 @@ function ApiDef(opts) {
         steps.push('transformers');
         // Step: builders (build generated sub models).
         if (!ctrl.step.builders) {
-            return { ok: false, steps, start, end: Date.now(), ctrl, guide: ctx.guide };
+            return { ok: true, steps, start, end: Date.now(), ctrl, guide: ctx.guide };
         }
         const builders = await (0, resolver_1.resolveElements)(ctx, 'builder', 'standard', {
             entity: entity_2.makeEntityBuilder,
@@ -144,7 +143,7 @@ function ApiDef(opts) {
         steps.push('builders');
         // Step: generate (generate model files).
         if (!ctrl.step.generate) {
-            return { ok: false, steps, start, end: Date.now(), ctrl, guide: ctx.guide };
+            return { ok: true, steps, start, end: Date.now(), ctrl, guide: ctx.guide };
         }
         const jostraca = (0, jostraca_1.Jostraca)({
             now: spec.now,
