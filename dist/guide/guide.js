@@ -63,6 +63,7 @@ async function buildBaseGuide(ctx) {
     else {
         throw new Error('Unknown guide strategy: ' + ctx.opts.strategy);
     }
+    // console.dir(baseguide, { depth: null })
     const guideBlocks = [
         '# Guide',
         '',
@@ -72,18 +73,22 @@ async function buildBaseGuide(ctx) {
     (0, struct_1.items)(baseguide.entity).map(([entityname, entity]) => {
         guideBlocks.push(`
   entity: ${entityname}: {` +
-            (0 < entity.why_name.length ? ' # name:' + entity.why_name.join(';') : ''));
+            (0 < entity.why_name?.length ? '  # name:' + entity.why_name.join(';') : ''));
         (0, struct_1.items)(entity.path).map(([pathstr, path]) => {
-            guideBlocks.push(`    path: '${pathstr}': op: {` +
-                (0 < path.why_ent.length ? ' # ent:' + path.why_ent.join(';') : ''));
-            if (null != path.origpath && path.origpath !== pathstr) {
-                guideBlocks.push(`      # origpath: ${path.origpath}`);
+            guideBlocks.push(`    path: '${pathstr}': {` +
+                (0 < path.why_ent.length ? '  # ent:' + path.why_ent.join(';') : ''));
+            if (!(0, struct_1.isempty)(path.rename?.param)) {
+                (0, struct_1.items)(path.rename.param).map(([psrc, ptgt]) => {
+                    guideBlocks.push(`      rename: param: ${psrc}: *"${ptgt}"|string` +
+                        (0 < path.rename.why_param?.[psrc]?.length ?
+                            '  # ' + path.rename.why_param[psrc].join(';') : ''));
+                });
             }
             (0, struct_1.items)(path.op).map(([opname, op]) => {
-                guideBlocks.push(`      '${opname}': method: ${op.method}` +
-                    (0 < op.why_op.length ? ' # ' + op.why_op : ''));
+                guideBlocks.push(`      op: ${opname}: method: *"${op.method}"|string` +
+                    (0 < op.why_op.length ? '  # ' + op.why_op : ''));
                 if (op.transform?.reqform) {
-                    guideBlocks.push(`      '${opname}': transform: reqform: ${JSON.stringify(op.transform.reqform)}`);
+                    guideBlocks.push(`      ${opname}: transform: reqform: ${JSON.stringify(op.transform.reqform)}`);
                 }
             });
             guideBlocks.push(`    }`);
@@ -117,7 +122,7 @@ function validateBaseBuide(ctx, baseguide) {
         // Each orig method.
         (0, jostraca_1.each)(pdef, (mdef) => {
             if (mdef.key$.match(/^get|post|put|patch|delete$/i)) {
-                let key = pathStr + ' ' + mdef.key$;
+                let key = pathStr + ' ' + mdef.key$.toUpperCase();
                 let desc = (srcm[key] = (srcm[key] || { c: 0 }));
                 desc.c++;
             }
@@ -128,10 +133,9 @@ function validateBaseBuide(ctx, baseguide) {
     // Each entity.
     (0, jostraca_1.each)(baseguide.entity, (edef) => {
         // Each path.
-        (0, jostraca_1.each)(edef.path, (pdef) => {
+        (0, jostraca_1.each)(edef.path, (pdef, pathStr) => {
             // Each op.
             (0, jostraca_1.each)(pdef.op, (odef) => {
-                let pathStr = pdef.origpath;
                 let key = pathStr + ' ' + odef.method;
                 let desc = (genm[key] = (genm[key] || { c: 0 }));
                 desc.c++;

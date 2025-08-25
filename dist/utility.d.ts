@@ -9,4 +9,8 @@ declare function formatJsonSrc(jsonsrc: string): string;
 declare function depluralize(word: string): string;
 declare function find(obj: any, qkey: string): any[];
 declare function capture(data: any, shape: any): Record<string, any>;
-export { getdlog, loadFile, formatJsonSrc, depluralize, find, capture, };
+declare function pathMatch(path: string | string[], expr: string): null | (string[] & {
+    index: number;
+    expr: string;
+});
+export { getdlog, loadFile, formatJsonSrc, depluralize, find, capture, pathMatch, };

@@ -2,7 +2,7 @@
 
 import { each, snakify, names } from 'jostraca'
 
-import { size, escre, items } from '@voxgig/struct'
+import { size, escre, items, getelem } from '@voxgig/struct'
 
 
 import {
@@ -10,6 +10,7 @@ import {
   getdlog,
   capture,
   find,
+  pathMatch,
 } from '../utility'
 
 
@@ -24,7 +25,6 @@ type Metrics = {
 type EntityDesc = {
   name: string
   origname: string
-  why_name?: string[]
   plural: string
   path: Record<string, EntityPathDesc>
   alias: Record<string, string>
@@ -33,7 +33,9 @@ type EntityDesc = {
 
 type EntityPathDesc = {
   op: Record<string, any>
-  origpath?: string
+  rename: {
+    param: Record<string, string>
+  }
   why_ent: string[]
 }
 
@@ -49,6 +51,8 @@ async function heuristic01(ctx: any): Promise<Record<string, any>> {
 
   const entityDescs = resolveEntityDescs(ctx, metrics)
 
+  // console.log('ED', Object.keys(entityDescs))
+
   guide = {
     control: guide.control,
     entity: entityDescs,
@@ -61,7 +65,7 @@ async function heuristic01(ctx: any): Promise<Record<string, any>> {
 function measure(ctx: any): Metrics {
   const metrics: Metrics = {
     count: {
-      path: Object.keys(ctx.def.path ?? {}).length,
+      path: Object.keys(ctx.def.paths ?? {}).length,
       schema: ({} as Record<string, number>)
     }
   }
@@ -73,7 +77,7 @@ function measure(ctx: any): Metrics {
   schemas.map(schema => {
     let m = schema.val.match(/\/components\/schemas\/(.+)$/)
     if (m) {
-      const name = m[1]
+      const name = fixEntName(m[1])
       metrics.count.schema[name] = 1 + (metrics.count.schema[name] || 0)
     }
   })
@@ -86,11 +90,11 @@ function measure(ctx: any): Metrics {
 
 
 const METHOD_IDOP: Record<string, string> = {
-  get: 'load',
-  post: 'create',
-  put: 'update',
-  patch: 'update',
-  delete: 'remove',
+  GET: 'load',
+  POST: 'create',
+  PUT: 'update',
+  PATCH: 'update',
+  DELETE: 'remove',
 }
 
 
@@ -106,7 +110,7 @@ function resolveEntityDescs(ctx: any, metrics: Metrics) {
         ['`$SELECT`', /^get|post|put|patch|delete$/i,
           ['`$APPEND`', 'methods', {
             path: '`select$=key.paths`',
-            method: { '`$LOWER`': '`$KEY`' },
+            method: { '`$UPPER`': '`$KEY`' },
             summary: '`.summary`',
             parameters: '`.parameters`',
             responses: '`.responses`',
@@ -122,65 +126,49 @@ function resolveEntityDescs(ctx: any, metrics: Metrics) {
 
     let methodDef = pmdef
     let pathStr = pmdef.path
-    let methodStr = pmdef.method
+    let methodName = pmdef.method
 
     let pathDef = paths[pathStr]
     pathDef.canonPath$ = pathDef.canonPath$ ?? pathStr
 
-    // methodStr = methodStr.toLowerCase()
     let why_op: string[] = []
 
-    if (!METHOD_IDOP[methodStr]) {
+    if (!METHOD_IDOP[methodName]) {
+      console.log('ERROR UNKNOWN METHOD: ' + methodName)
       return
     }
 
+    const parts = pathStr.split(/\//).filter((p: string) => '' != p)
+
     const why_ent: string[] = []
-    const entdesc =
-      resolveEntity(metrics, entityDescs, pathStr, methodDef, methodStr, why_ent)
+    const entres =
+      resolveEntity(metrics, entityDescs, pathStr, parts, methodDef, methodName, why_ent)
+
+    const entdesc = (entres.entdesc as EntityDesc)
 
 
     if (null == entdesc) {
       console.log(
-        'WARNING: unable to resolve entity for method ' + methodStr +
+        'WARNING: unable to resolve entity for method ' + methodName +
         ' path ' + pathStr)
       return
     }
 
-    /*
-    // If {id} is last param, ensure it is the id of the ent
-    const lastid_match = pathStr.match(/\/([^\/{]+)\/\{id\}\//)
-    if (lastid_match) {
-      const parentname = depluralize(snakify(lastid_match[1]))
-      if (parentname !== entdesc.name) {
-        const new_param = `${parentname}_id`
+    if (null == entdesc.name) {
+      console.log(
+        'WARNING: unable to resolve entity name for method ' + methodName +
+        ' path ' + pathStr + ' desc:', entdesc)
+      return
 
-        const pathdesc = entdesc.path[pathStr]
-        delete entdesc.path[pathStr]
-        pathStr = pathStr.replace('{id}', '{' + new_param + '}')
-        entdesc.path[pathStr] = pathdesc
-
-        for (let paramdef of (pmdef.parameters || [])) {
-          if ('id' === paramdef.name) {
-            paramdef.name = new_param
-          }
-        }
-      }
     }
-    */
 
     entdesc.path[pathStr].why_ent = why_ent
 
-
-    // if (pathStr.includes('courses')) {
-    //   console.log('ENTRES', pathStr, methodStr)
-    //   console.dir(ent2, { depth: null })
-    // }
-
-    let opname = resolveOpName(methodStr, methodDef, pathStr, entdesc, why_op)
+    let opname = resolveOpName(methodName, methodDef, pathStr, entres, why_op)
 
     if (null == opname) {
       console.log(
-        'WARNING: unable to resolve operation for method ' + methodStr +
+        'WARNING: unable to resolve operation for method ' + methodName +
         ' path ' + pathStr)
       return
     }
@@ -215,18 +203,11 @@ function resolveEntityDescs(ctx: any, metrics: Metrics) {
 
     const pathDesc = entdesc.path[pathStr]
 
-    if (null != pathDesc.origpath && pathDesc.origpath !== pathStr) {
-      throw new Error('ORIGPATH MISMATCH: ' + pathDesc.origpath + ' ' + pathStr)
-    }
-
-    pathDesc.origpath = pathStr
-
-
     const op = pathDesc.op
 
     op[opname] = {
       // TODO: in actual guide, remove "standard" method ops since redundant
-      method: methodStr,
+      method: methodName,
       why_op: why_op.join(';')
     }
 
@@ -234,29 +215,8 @@ function resolveEntityDescs(ctx: any, metrics: Metrics) {
       op[opname].transform = transform
     }
 
-    rewrite(ctx, pathStr, methodStr, entdesc)
+    renameParams(ctx, pathStr, methodName, entdesc)
   })
-
-
-  // Replace old paths with new paths
-  items(ctx.def.paths).map((n: any[]) => {
-    const [pathStr, pathDef] = n
-    const canonPath = pathDef.canonPath$
-    // delete ctx.def.paths[pathStr]
-    // ctx.def.paths[canonPath] = pathDef
-
-    each(entityDescs, (entdesc: EntityDesc) => {
-      items(entdesc.path).map((p: any[]) => {
-        let [pathname, pathdesc] = p
-        if (pathname === pathStr) {
-          delete entdesc.path[pathStr]
-          entdesc.path[canonPath] = pathdesc
-        }
-      })
-    })
-  })
-
-  console.dir(entityDescs, { depth: null })
 
   return entityDescs
 }
@@ -265,94 +225,171 @@ function resolveEntityDescs(ctx: any, metrics: Metrics) {
 function resolveEntity(
   metrics: Metrics,
   entityDescs: Record<string, EntityDesc>,
-  // pathDef: Record<string, any>,
   pathStr: string,
+  parts: string[],
   methodDef: Record<string, any>,
-  methodStr: string,
+  methodName: string,
   why_ent: string[]
-): EntityDesc | undefined {
+): { entdesc?: EntityDesc, why_name: string[], pm?: any } {
 
-  let entdesc: EntityDesc
-  let entname: string = ''
-  let origentname: string = ''
-
-  const why_name: string[] = []
-
-  const m = pathStr.match(/\/([a-zA-Z0-1_-]+)(\/\{([a-zA-Z0-1_-]+)\})?$/)
-  if (m) {
-    let pathName = m[1]
-    let pathParam = m[3]
-
-    origentname = snakify(pathName)
-    entname = depluralize(origentname)
-
-    // Check schema
-    const origCompName = resolveComponentName(entname, methodDef, methodStr, pathStr, why_name)
-    if (origCompName) {
-      let usecmp = false
-      let compname = fixEntName(origCompName)
-
-      if (
-        compname !== entname
-
-        // If schema is in all paths, then probably shared meta data
-        && metrics.count.schema[compname] < metrics.count.path
-      ) {
-        origentname = snakify(compname)
-        entname = depluralize(origentname)
-        why_ent.push('cmp:' + entname)
-        usecmp = true
-      }
-
-      if (!usecmp) {
-        why_ent.push('pathiscmp:' + m[1])
-        why_name.push('pathiscmp:' + m[1])
-      }
-    }
-    else {
-      why_ent.push('path:' + m[1])
-      why_name.push('path:' + m[1])
-    }
-
-    entdesc = (entityDescs[entname] = entityDescs[entname] || {
-      name: entname,
-      id: 'N' + ('' + Math.random()).substring(2, 10),
-      alias: {}
-    })
-
-    if (null != pathParam) {
-      const pathParamCanon = snakify(pathParam)
-      if ('id' != pathParamCanon) {
-        entdesc.alias.id = pathParamCanon
-        entdesc.alias[pathParamCanon] = 'id'
-      }
-    }
-  }
-
-  // Can't figure out the entity
-  else {
-    console.log('NO ENTTIY', pathStr)
-    return
+  const out: any = {
+    entdesc: undefined,
+    why_name: ([] as string[]),
+    pm: undefined
   }
 
 
-  // entdesc.plural = origentname
-  entdesc.origname = origentname
+  const cmpname = resolveComponentName(methodDef, methodName, pathStr, out.why_name)
+  const cmprate = (metrics.count.schema[cmpname ?? ''] ?? 0) / metrics.count.path
 
-  names(entdesc, entname)
+  // console.log('CMPRATE', cmpname, cmprate, metrics.count.schema[cmpname ?? ''], metrics.count.path)
 
-  entdesc.alias = entdesc.alias || {}
-
-  entdesc.path = (entdesc.path || {})
-  entdesc.path[pathStr] = entdesc.path[pathStr] || {}
-  entdesc.path[pathStr].op = entdesc.path[pathStr].op || {}
-
-  if (null == entdesc.why_name) {
-    entdesc.why_name = why_name
+  const cmp = {
+    name: cmpname,
+    rate: cmprate,
   }
 
-  return entdesc
+  let entname
+
+  let pm = undefined
+
+  if (pm = pathMatch(parts, 't/p/t/')) {
+    entname = entityPathMatch_tpte(pm, cmp, out.why_name)
+  }
+
+  else if (pm = pathMatch(parts, 't/p/')) {
+    entname = entityPathMatch_tpe(pm, cmp, out.why_name)
+  }
+
+  else if (pm = pathMatch(parts, 'p/t/')) {
+    entname = entityPathMatch_pte(pm, cmp, out.why_name)
+  }
+
+  else if (pm = pathMatch(parts, 't/')) {
+    entname = entityPathMatch_te(pm, cmp, out.why_name)
+  }
+
+  else if (pm = pathMatch(parts, 'p/')) {
+    throw new Error('UNSUPPORTED PATH:' + pathStr)
+  }
+
+  if (null == entname || '' === entname || 'undefined' === entname) {
+    throw new Error('ENTITY NAME UNRESOLVED:' + out.why_name + ' ' + pathStr)
+  }
+
+  out.pm = pm
+
+  out.entdesc = (entityDescs[entname] = entityDescs[entname] || {
+    name: entname,
+    id: 'N' + ('' + Math.random()).substring(2, 10),
+  })
+
+  out.entdesc.path = (out.entdesc.path || {})
+  out.entdesc.path[pathStr] = out.entdesc.path[pathStr] || {}
+  out.entdesc.path[pathStr].op = out.entdesc.path[pathStr].op || {}
+
+  return out
 }
+
+
+function entityPathMatch_tpte(pm: any, cmp: {
+  name?: string,
+  rate: number,
+}, why: string[]) {
+  const pathNameIndex = 2
+
+  why.push('path=t/p/t/')
+  const origPathName = pm[pathNameIndex]
+  let entname = fixEntName(origPathName)
+
+  if (null == cmp.name) {
+    // Probably a special suffix operation on the entity,
+    // so make the entity name sufficiently unique
+    entname = fixEntName(pm[0]) + '_' + entname
+  }
+  else {
+    why.push('cr=' + cmp.rate.toFixed(3))
+    if (entname != cmp.name && cmp.rate < 0.5) {
+      entname = cmp.name
+    }
+  }
+
+  return entname
+}
+
+
+function entityPathMatch_tpe(pm: any, cmp: {
+  name?: string,
+  rate: number,
+}, why: string[]) {
+  const pathNameIndex = 0
+
+  why.push('path=t/p/')
+  const origPathName = pm[pathNameIndex]
+  let entname = fixEntName(origPathName)
+
+  if (null == cmp.name) {
+    why.push('no-cmp')
+  }
+  else {
+    why.push('cr=' + cmp.rate.toFixed(3))
+    if (entname != cmp.name && cmp.rate < 0.5) {
+      entname = cmp.name
+    }
+  }
+
+  return entname
+}
+
+
+function entityPathMatch_pte(pm: any, cmp: {
+  name?: string,
+  rate: number,
+}, why: string[]) {
+  const pathNameIndex = 1
+
+  why.push('path=p/t/')
+  const origPathName = pm[pathNameIndex]
+  let entname = fixEntName(origPathName)
+
+  if (null == cmp.name) {
+    why.push('no-cmp')
+  }
+  else {
+    why.push('cr=' + cmp.rate.toFixed(3))
+    if (entname != cmp.name && cmp.rate < 0.5) {
+      entname = cmp.name
+    }
+  }
+
+  return entname
+}
+
+
+function entityPathMatch_te(pm: any, cmp: {
+  name?: string,
+  rate: number,
+}, why: string[]) {
+  const pathNameIndex = 0
+
+  why.push('path=t/')
+  const origPathName = pm[pathNameIndex]
+  let entname = fixEntName(origPathName)
+
+  if (null == cmp.name) {
+    why.push('no-cmp')
+  }
+  else {
+    why.push('cr=' + cmp.rate.toFixed(3))
+    if (entname != cmp.name && cmp.rate < 0.5) {
+      entname = cmp.name
+    }
+  }
+
+  return entname
+}
+
+
 
 
 const REQKIND: any = {
@@ -364,15 +401,21 @@ const REQKIND: any = {
 
 
 function resolveComponentName(
-  entname: string,
+  // entname: string,
   methodDef: Record<string, any>,
-  methodStr: string,
+  methodName: string,
   pathStr: string,
   why_name: string[]
 ): string | undefined {
-  let compname: string | undefined = undefined
+  let cmpname: string | undefined = undefined
 
-  let xrefs = find(methodDef, 'x-ref')
+  let responses = methodDef.responses
+
+  // let xrefs = find(methodDef, 'x-ref')
+  let xrefs = [
+    ...find(responses['200'], 'x-ref'),
+    ...find(responses['201'], 'x-ref'),
+  ]
     .filter(xref => xref.val.includes('schema'))
 
     // TODO: identify non-ent schemas
@@ -380,53 +423,48 @@ function resolveComponentName(
 
     .sort((a, b) => a.path.length - b.path.length)
 
-  // console.log('RCN', pathStr, methodStr, xrefs.map(x => [x.val, x.path.length]))
-
   let first = xrefs[0]?.val
 
   if (null != first) {
     let xrefm = (first as string).match(/\/components\/schemas\/(.+)$/)
     if (xrefm) {
-      why_name.push('cmp')
-      compname = xrefm[1]
+      cmpname = xrefm[1]
     }
   }
 
-  if (null != compname) {
-    compname = depluralize(snakify(compname))
+  if (null != cmpname) {
+    cmpname = depluralize(snakify(cmpname))
+    why_name.push('cmp=' + cmpname)
 
     // Assume sub schemas suffixes are not real entities
-    if (compname.includes(entname)) {
-      compname = compname.slice(0, compname.indexOf(entname) + entname.length)
-    }
+    // if (compname.includes(entname)) {
+    //   compname = compname.slice(0, compname.indexOf(entname) + entname.length)
+    // }
   }
 
-  return compname
+  return cmpname
 }
 
 
 function resolveOpName(
-  methodStr: string,
+  methodName: string,
   methodDef: any,
   pathStr: string,
-  entdesc: EntityDesc,
+  entres: any,
   why: string[]
 )
   : string | undefined {
   // console.log('ROP', pathStr, methodDef)
 
-
-  let opname = METHOD_IDOP[methodStr]
+  let opname = METHOD_IDOP[methodName]
   if (null == opname) {
-    why.push('no-op:' + methodStr)
+    why.push('no-op:' + methodName)
     return
   }
 
   if ('load' === opname) {
-    const islist = isListResponse(methodDef, pathStr, entdesc, why)
+    const islist = isListResponse(methodDef, pathStr, entres, why)
     opname = islist ? 'list' : opname
-
-    // console.log('ISLIST', entdesc.name, methodStr, opname, pathStr)
   }
   else {
     why.push('not-load')
@@ -439,74 +477,88 @@ function resolveOpName(
 function isListResponse(
   methodDef: Record<string, any>,
   pathStr: string,
-  entdesc: EntityDesc,
+  entres: any,
   why: string[]
 ): boolean {
 
-  const caught = capture(methodDef, {
-    responses: {
-      '`$ANY`': { content: { 'application/json': { schema: '`$CAPTURE`' } } },
-    }
-  })
-
-  const schema = caught.schema
   let islist = false
 
-  if (null == schema) {
-    why.push('no-schema')
+  if (entres.pm && entres.pm.expr.endsWith('p/')) {
+    why.push('end-param')
   }
   else {
-    if (schema.type === 'array') {
-      why.push('array')
-      islist = true
+
+    const caught = capture(methodDef, {
+      responses:
+        // '`$ANY`': { content: { 'application/json': { schema: '`$CAPTURE`' } } },
+        ['`$SELECT`', { '$KEY': { '`$OR`': ['200', '201'] } },
+          { content: { 'application/json': { schema: '`$CAPTURE`' } } }],
+
+    })
+
+    const schema = caught.schema
+
+    if (null == schema) {
+      why.push('no-schema')
     }
+    else {
+      if (schema.type === 'array') {
+        why.push('array')
+        islist = true
+      }
 
-    if (!islist) {
-      const properties = schema.properties || {}
-      each(properties, (prop) => {
-        if (prop.type === 'array') {
+      if (!islist) {
+        const properties = schema.properties || {}
+        each(properties, (prop) => {
+          // console.log('ISLIST', pathStr, prop.key$, prop.type)
 
-          if (1 === size(properties)) {
-            why.push('one-prop:' + prop.key$)
+          if (prop.type === 'array') {
+            why.push('array-prop:' + prop.key$)
             islist = true
+
+
+            /*
+            if (1 === size(properties)) {
+              why.push('one-prop:' + prop.key$)
+              islist = true
+            }
+   
+            if (2 === size(properties) &&
+              ('data' === prop.key$ ||
+                'list' === prop.key$)
+            ) {
+              why.push('two-prop:' + prop.key$)
+              islist = true
+            }
+   
+            if (prop.key$ === entdesc.name) {
+              why.push('name:' + entdesc.origname)
+              islist = true
+            }
+   
+            if (prop.key$ === entdesc.origname) {
+              why.push('origname:' + entdesc.origname)
+              islist = true
+            }
+   
+            const listent = listedEntity(prop)
+            if (listent === entdesc.name) {
+              why.push('listent:' + listent)
+              islist = true
+            }
+            */
+
+            // if ('/v2/users' === pathStr) {
+            //   console.log('islistresponse', islist, pathStr, entdesc.name, listedEntity(prop), properties)
+            // }
           }
+        })
+      }
 
-          if (2 === size(properties) &&
-            ('data' === prop.key$ ||
-              'list' === prop.key$)
-          ) {
-            why.push('two-prop:' + prop.key$)
-            islist = true
-          }
-
-          if (prop.key$ === entdesc.name) {
-            why.push('name:' + entdesc.origname)
-            islist = true
-          }
-
-          if (prop.key$ === entdesc.origname) {
-            why.push('origname:' + entdesc.origname)
-            islist = true
-          }
-
-          const listent = listedEntity(prop)
-          if (listent === entdesc.name) {
-            why.push('listent:' + listent)
-            islist = true
-          }
-
-
-          // if ('/v2/users' === pathStr) {
-          //   console.log('islistresponse', islist, pathStr, entdesc.name, listedEntity(prop), properties)
-          // }
-        }
-      })
+      if (!islist) {
+        why.push('not-list')
+      }
     }
-
-    if (!islist) {
-      why.push('not-list')
-    }
-    // }
   }
 
   return islist
@@ -525,7 +577,7 @@ function listedEntity(prop: any) {
 
 
 // Make consistent changes to support semantic entities.
-function rewrite(ctx: any, pathStr: string, methodStr: string, entdesc: EntityDesc) {
+function renameParams(ctx: any, pathStr: string, methodName: string, entdesc: EntityDesc) {
 
   // Rewrite path parameters that are identifiers to follow the rules:
   // 0. Parameters named [a-z]?id are considered identifiers
@@ -534,6 +586,9 @@ function rewrite(ctx: any, pathStr: string, methodStr: string, entdesc: EntityDe
   // Example: /api/bar/{id}/zed/{zid}/foo/{fid} ->
   //          /api/bar/{bar_id}/zed/{zed_id}/foo/{id}
 
+  const pathDef = entdesc.path[pathStr]
+  pathDef.rename = (pathDef.rename ?? {})
+  const paramRenames = pathDef.rename.param = (pathDef.rename.param ?? {})
 
   const parts = pathStr.split(/\//).filter(p => '' != p)
 
@@ -542,26 +597,63 @@ function rewrite(ctx: any, pathStr: string, methodStr: string, entdesc: EntityDe
 
     if (isParam(partStr)) {
       let oldParam = partStr.substring(1, partStr.length - 1)
-      let parentName = fixEntName(parts[partI - 1])
+      let hasParent = 1 < partI && !isParam(parts[partI - 1])
+      let parentName = hasParent ? fixEntName(parts[partI - 1]) : null
 
-      console.log(
-        'PARAM', partI + '/' + parts.length, oldParam, 'p=' + parentName, 'e=' + entdesc.name)
+      // console.log(
+      //   'PARAM', partI + '/' + parts.length, oldParam, 'p=' + parentName, 'e=' + entdesc.name)
 
-      // id not at end, abd after a possible entname
+      // Id not at end, and after a possible entname.
       // .../parentent/{id}/...
       if (
         'id' === oldParam &&
+        hasParent &&
         parentName !== entdesc.name &&
-        partI < parts.length - 1 &&
-        !isParam(parentName)
+        partI < parts.length - 2
       ) {
         let newParamName = parentName + '_id'
-        modifyParam(ctx.def, pathStr, methodStr, oldParam, newParamName)
+        paramRenames[oldParam] = newParamName
       }
+
+      // At end, but not called id.
+      // .../ent/{not-id}
+      else if (
+        partI === parts.length - 1 &&
+        'id' !== oldParam
+      ) {
+        paramRenames[oldParam] = 'id'
+      }
+
+      // Mot at end, has preceding non-param part.
+      // .../parentent/{paramname}/...
+      else if (
+        partI < parts.length - 1 &&
+        1 < partI &&
+        hasParent
+      ) {
+
+        // Actually primary ent with a filter$ suffix
+        if (
+          partI === parts.length - 2
+        ) {
+          if ('id' !== oldParam && fixEntName(partStr) === entdesc.name) {
+            paramRenames[oldParam] = 'id'
+          }
+        }
+
+        // Not primary ent.
+        else {
+          let newParamName = parentName + '_id'
+          if (newParamName != oldParam) {
+            paramRenames[oldParam] = newParamName
+          }
+        }
+      }
+
     }
   }
 
-  console.log('REWRITE', pathStr, '|', parts.join('\\'))
+  // console.log('REWRITE', pathStr, '|', parts.join('\\'))
 
   /*
     const pathdef = ctx.def.paths[pathStr]
@@ -632,7 +724,7 @@ function isParam(partStr: string) {
   return '{' === partStr[0] && '}' === partStr[partStr.length - 1]
 }
 
-
+/*
 function modifyParam(
   def: any,
   pathStr: string,
@@ -653,15 +745,19 @@ function modifyParam(
     return p
   })
 
-  console.log('MODIFYPARAM', canonPath, params)
+  // console.log('MODIFYPARAM', canonPath, params)
 
   pathdef.canonPath$ = canonPath
 }
-
+*/
 
 function fixEntName(origName: string) {
+  if (null == origName) {
+    return origName
+  }
   return depluralize(snakify(origName))
 }
+
 
 
 /*
@@ -674,8 +770,8 @@ function findUrlParams(path: string): string[] {
   }
   return names;
 }
-
-
+ 
+ 
 function modifyPathParam(
   paths: any,
   pathdef: any,
@@ -690,7 +786,7 @@ function modifyPathParam(
     paths[new_path] = pathdef
   }
   pathdef.key$ = new_path
-
+ 
   if (pathdef.parameters) {
     delete pathdef.parameters[old_param]
     pathdef.parameters[new_param] = param
@@ -698,8 +794,8 @@ function modifyPathParam(
   param.name = new_param
   param.key$ = new_param
 }
-
-
+ 
+ 
 function sortkeys(obj: any, prop: string) {
   const src = obj[prop] ?? {}
   const sorted: any = {}

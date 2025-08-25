@@ -9,6 +9,7 @@ exports.formatJsonSrc = formatJsonSrc;
 exports.depluralize = depluralize;
 exports.find = find;
 exports.capture = capture;
+exports.pathMatch = pathMatch;
 const node_path_1 = __importDefault(require("node:path"));
 const struct_1 = require("@voxgig/struct");
 function getdlog(tagin, filepath) {
@@ -48,6 +49,7 @@ function depluralize(word) {
     }
     // Common irregular plurals
     const irregulars = {
+        'analytics': 'analytics',
         'analyses': 'analysis',
         'appendices': 'appendix',
         'axes': 'axis',
@@ -138,7 +140,8 @@ function capture(data, shape) {
             $APPEND,
             $ANY,
             $SELECT,
-            $LOWER,
+            $LOWER: $RECASE,
+            $UPPER: $RECASE,
         },
         errs,
         meta
@@ -248,7 +251,7 @@ function $SELECT(inj, _val, _ref, store) {
         }
     }
 }
-function $LOWER(inj, val, ref, store) {
+function $RECASE(inj, val, ref, store) {
     if ('key:pre' === inj.mode) {
         const dval = inj.parent[inj.key];
         // TODO: handle paths more generally! use inj.prior?
@@ -264,9 +267,97 @@ function $LOWER(inj, val, ref, store) {
         });
         let tval = ptval[gkey][dkey];
         if ('string' === typeof tval) {
-            tval = tval.toLowerCase();
+            tval = '$UPPER' === ref ? tval.toUpperCase() : tval.toLowerCase();
         }
         inj.setval(tval, 2);
     }
+}
+// A special-purpose regex-style matcher for url paths.
+//   t - text part
+//   p - param part
+//   / - part separator
+//   / at start - must match from start
+//   / at end - must match to end
+// See utility.test.ts for examples
+function pathMatch(path, expr) {
+    const parts = (Array.isArray(path) ? path : path.split('/')).filter(p => '' !== p);
+    const res = [];
+    res.index = -1;
+    res.expr = expr;
+    const plen = parts.length;
+    const xlen = expr.length;
+    // console.log('INIT', { plen, xlen })
+    let xI = 0, pI = 0, mI = -1;
+    for (; pI <= parts.length; pI++) {
+        let p = parts[pI];
+        let x = expr[xI];
+        let isp = isParam(p);
+        // console.log('START', { xI, x, pI, p, isp })
+        if ('/' === x) {
+            if (0 === xI) {
+                if (0 === pI) {
+                    mI = 0;
+                    pI--;
+                    xI++;
+                }
+                else {
+                    break;
+                }
+            }
+            else if (xI === xlen - 1) {
+                if (pI === plen) {
+                    xI++;
+                    break;
+                }
+                else {
+                    if (-1 < mI) {
+                        // console.log('BACKTRACK-A')
+                        // backtrack
+                        pI = mI;
+                        mI = -1;
+                    }
+                    xI = 0;
+                }
+            }
+            else if (xI < xlen - 1) {
+                pI--;
+                xI++;
+            }
+            else {
+                xI = 0;
+                break;
+            }
+        }
+        else if ('t' === x && !isp) {
+            xI++;
+            mI = mI < 0 ? pI : mI;
+        }
+        else if ('p' === x && isp) {
+            xI++;
+            mI = mI < 0 ? pI : mI;
+        }
+        else {
+            if (-1 < mI) {
+                // console.log('BACKTRACK-B')
+                // backtrack
+                pI = mI;
+                mI = -1;
+            }
+            xI = 0;
+        }
+        // console.log('END', { xI, x, pI, p, isp })
+        if (xI === xlen) {
+            break;
+        }
+    }
+    if (xI === xlen) {
+        res.index = mI;
+        res.push(...parts.slice(mI, pI + 1));
+        return res;
+    }
+    return null;
+}
+function isParam(partStr) {
+    return null != partStr && '{' === partStr[0] && '}' === partStr[partStr.length - 1];
 }
 //# sourceMappingURL=utility.js.map

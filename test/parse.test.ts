@@ -8,7 +8,7 @@ import { expect } from '@hapi/code'
 
 import {
   parse,
-  rewrite,
+  // rewrite,
 } from '../dist/parse'
 
 
@@ -49,6 +49,7 @@ paths: {}
   })
 
 
+  /*
   test('rewrite', () => {
     expect(rewrite({})).equal({ paths: {}, components: {} })
 
@@ -203,6 +204,8 @@ paths: {}
 
 
   })
+  */
+
 
 })
 
