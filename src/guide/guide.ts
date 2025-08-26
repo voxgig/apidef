@@ -110,13 +110,13 @@ async function buildBaseGuide(ctx: any) {
 
     items(entity.path).map(([pathstr, path]: any[]) => {
       guideBlocks.push(`    path: '${pathstr}': {` +
-        (0 < path.why_ent.length ? '  # ent:' + path.why_ent.join(';') : ''))
+        (0 < path.why_path?.length ? '  # ent:' + path.why_path.join(';') : ''))
 
       if (!isempty(path.rename?.param)) {
         items(path.rename.param).map(([psrc, ptgt]: any[]) => {
           guideBlocks.push(`      rename: param: ${psrc}: *"${ptgt}"|string` +
-            (0 < path.rename.why_param?.[psrc]?.length ?
-              '  # ' + path.rename.why_param[psrc].join(';') : ''))
+            (0 < path.rename_why.param_why?.[psrc]?.length ?
+              '  # ' + path.rename_why.param_why[psrc].join(';') : ''))
         })
       }
 
@@ -139,7 +139,7 @@ async function buildBaseGuide(ctx: any) {
 
   const guideSrc = guideBlocks.join('\n')
 
-  console.log(guideSrc)
+  // console.log(guideSrc)
 
   ctx.note.guide = { base: guideSrc }
 

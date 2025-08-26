@@ -39,8 +39,8 @@ const METHOD_IDOP = {
     GET: 'load',
     POST: 'create',
     PUT: 'update',
-    PATCH: 'update',
     DELETE: 'remove',
+    PATCH: 'patch',
 };
 function resolveEntityDescs(ctx, metrics) {
     const entityDescs = {};
@@ -87,7 +87,6 @@ function resolveEntityDescs(ctx, metrics) {
                 ' path ' + pathStr + ' desc:', entdesc);
             return;
         }
-        entdesc.path[pathStr].why_ent = why_ent;
         let opname = resolveOpName(methodName, methodDef, pathStr, entres, why_op);
         if (null == opname) {
             console.log('WARNING: unable to resolve operation for method ' + methodName +
@@ -134,35 +133,38 @@ function resolveEntityDescs(ctx, metrics) {
 function resolveEntity(metrics, entityDescs, pathStr, parts, methodDef, methodName, why_ent) {
     const out = {
         entdesc: undefined,
-        why_name: [],
         pm: undefined
     };
-    const cmpname = resolveComponentName(methodDef, methodName, pathStr, out.why_name);
+    const why_path = [];
+    const cmpname = resolveComponentName(methodDef, methodName, pathStr, why_path);
     const cmprate = (metrics.count.schema[cmpname ?? ''] ?? 0) / metrics.count.path;
     // console.log('CMPRATE', cmpname, cmprate, metrics.count.schema[cmpname ?? ''], metrics.count.path)
     const cmp = {
         name: cmpname,
         rate: cmprate,
     };
+    if (null == cmpname) {
+        why_path.push('no-cmp');
+    }
     let entname;
     let pm = undefined;
     if (pm = (0, utility_1.pathMatch)(parts, 't/p/t/')) {
-        entname = entityPathMatch_tpte(pm, cmp, out.why_name);
+        entname = entityPathMatch_tpte(pm, cmp, why_path);
     }
     else if (pm = (0, utility_1.pathMatch)(parts, 't/p/')) {
-        entname = entityPathMatch_tpe(pm, cmp, out.why_name);
+        entname = entityPathMatch_tpe(pm, cmp, why_path);
     }
     else if (pm = (0, utility_1.pathMatch)(parts, 'p/t/')) {
-        entname = entityPathMatch_pte(pm, cmp, out.why_name);
+        entname = entityPathMatch_pte(pm, cmp, why_path);
     }
     else if (pm = (0, utility_1.pathMatch)(parts, 't/')) {
-        entname = entityPathMatch_te(pm, cmp, out.why_name);
+        entname = entityPathMatch_te(pm, cmp, why_path);
     }
     else if (pm = (0, utility_1.pathMatch)(parts, 'p/')) {
         throw new Error('UNSUPPORTED PATH:' + pathStr);
     }
     if (null == entname || '' === entname || 'undefined' === entname) {
-        throw new Error('ENTITY NAME UNRESOLVED:' + out.why_name + ' ' + pathStr);
+        throw new Error('ENTITY NAME UNRESOLVED:' + why_path + ' ' + pathStr);
     }
     out.pm = pm;
     out.entdesc = (entityDescs[entname] = entityDescs[entname] || {
@@ -172,11 +174,12 @@ function resolveEntity(metrics, entityDescs, pathStr, parts, methodDef, methodNa
     out.entdesc.path = (out.entdesc.path || {});
     out.entdesc.path[pathStr] = out.entdesc.path[pathStr] || {};
     out.entdesc.path[pathStr].op = out.entdesc.path[pathStr].op || {};
+    out.entdesc.path[pathStr].why_path = why_path;
     return out;
 }
-function entityPathMatch_tpte(pm, cmp, why) {
+function entityPathMatch_tpte(pm, cmp, why_path) {
     const pathNameIndex = 2;
-    why.push('path=t/p/t/');
+    why_path.push('path=t/p/t/');
     const origPathName = pm[pathNameIndex];
     let entname = fixEntName(origPathName);
     if (null == cmp.name) {
@@ -185,57 +188,73 @@ function entityPathMatch_tpte(pm, cmp, why) {
         entname = fixEntName(pm[0]) + '_' + entname;
     }
     else {
-        why.push('cr=' + cmp.rate.toFixed(3));
+        why_path.push('cr=' + cmp.rate.toFixed(3));
         if (entname != cmp.name && cmp.rate < 0.5) {
+            why_path.push('cmp-primary');
             entname = cmp.name;
+        }
+        else {
+            why_path.push('path-primary');
         }
     }
     return entname;
 }
-function entityPathMatch_tpe(pm, cmp, why) {
+function entityPathMatch_tpe(pm, cmp, why_path) {
     const pathNameIndex = 0;
-    why.push('path=t/p/');
+    why_path.push('path=t/p/');
     const origPathName = pm[pathNameIndex];
     let entname = fixEntName(origPathName);
     if (null == cmp.name) {
-        why.push('no-cmp');
+        why_path.push('no-cmp');
     }
     else {
-        why.push('cr=' + cmp.rate.toFixed(3));
+        why_path.push('cr=' + cmp.rate.toFixed(3));
         if (entname != cmp.name && cmp.rate < 0.5) {
+            why_path.push('cmp-primary');
             entname = cmp.name;
+        }
+        else {
+            why_path.push('path-primary');
         }
     }
     return entname;
 }
-function entityPathMatch_pte(pm, cmp, why) {
+function entityPathMatch_pte(pm, cmp, why_path) {
     const pathNameIndex = 1;
-    why.push('path=p/t/');
+    why_path.push('path=p/t/');
     const origPathName = pm[pathNameIndex];
     let entname = fixEntName(origPathName);
     if (null == cmp.name) {
-        why.push('no-cmp');
+        why_path.push('no-cmp');
     }
     else {
-        why.push('cr=' + cmp.rate.toFixed(3));
+        why_path.push('cr=' + cmp.rate.toFixed(3));
         if (entname != cmp.name && cmp.rate < 0.5) {
+            why_path.push('cmp-primary');
             entname = cmp.name;
+        }
+        else {
+            why_path.push('path-primary');
         }
     }
     return entname;
 }
-function entityPathMatch_te(pm, cmp, why) {
+function entityPathMatch_te(pm, cmp, why_path) {
     const pathNameIndex = 0;
-    why.push('path=t/');
+    why_path.push('path=t/');
     const origPathName = pm[pathNameIndex];
     let entname = fixEntName(origPathName);
     if (null == cmp.name) {
-        why.push('no-cmp');
+        why_path.push('no-cmp');
     }
     else {
-        why.push('cr=' + cmp.rate.toFixed(3));
+        why_path.push('cr=' + cmp.rate.toFixed(3));
         if (entname != cmp.name && cmp.rate < 0.5) {
+            why_path.push('cmp-primary');
             entname = cmp.name;
+        }
+        else {
+            why_path.push('path-primary');
         }
     }
     return entname;
@@ -381,30 +400,43 @@ function renameParams(ctx, pathStr, methodName, entdesc) {
     //          /api/bar/{bar_id}/zed/{zed_id}/foo/{id}
     const pathDef = entdesc.path[pathStr];
     pathDef.rename = (pathDef.rename ?? {});
+    pathDef.rename_why = (pathDef.rename_why ?? {});
     const paramRenames = pathDef.rename.param = (pathDef.rename.param ?? {});
+    const paramRenamesWhy = pathDef.rename_why.param_why = (pathDef.rename_why.param_why ?? {});
     const parts = pathStr.split(/\//).filter(p => '' != p);
     for (let partI = 0; partI < parts.length; partI++) {
         let partStr = parts[partI];
         if (isParam(partStr)) {
             let oldParam = partStr.substring(1, partStr.length - 1);
+            paramRenamesWhy[oldParam] = [];
             let hasParent = 1 < partI && !isParam(parts[partI - 1]);
             let parentName = hasParent ? fixEntName(parts[partI - 1]) : null;
             // console.log(
-            //   'PARAM', partI + '/' + parts.length, oldParam, 'p=' + parentName, 'e=' + entdesc.name)
-            // Id not at end, and after a possible entname.
+            //  'PARAM', partI + '/' + parts.length, oldParam, 'p=' + parentName, 'e=' + entdesc.name)
+            // Id-like not at end, and after a possible entname.
             // .../parentent/{id}/...
-            if ('id' === oldParam &&
+            if (oldParam.endsWith('id') &&
                 hasParent &&
-                parentName !== entdesc.name &&
-                partI < parts.length - 2) {
-                let newParamName = parentName + '_id';
-                paramRenames[oldParam] = newParamName;
+                partI < parts.length - 1 &&
+                parentName !== entdesc.name) {
+                // actually a filter
+                if (entdesc.name.startsWith(parentName + '_') && partI === parts.length - 2) {
+                    let newParamName = 'id';
+                    paramRenames[oldParam] = newParamName;
+                    paramRenamesWhy[oldParam].push('filter-not-parent:' + entdesc.name);
+                }
+                else {
+                    let newParamName = parentName + '_id';
+                    paramRenames[oldParam] = newParamName;
+                    paramRenamesWhy[oldParam].push('parent:' + parentName);
+                }
             }
             // At end, but not called id.
             // .../ent/{not-id}
             else if (partI === parts.length - 1 &&
                 'id' !== oldParam) {
                 paramRenames[oldParam] = 'id';
+                paramRenamesWhy[oldParam].push('end-id');
             }
             // Mot at end, has preceding non-param part.
             // .../parentent/{paramname}/...
@@ -415,6 +447,7 @@ function renameParams(ctx, pathStr, methodName, entdesc) {
                 if (partI === parts.length - 2) {
                     if ('id' !== oldParam && fixEntName(partStr) === entdesc.name) {
                         paramRenames[oldParam] = 'id';
+                        paramRenamesWhy[oldParam].push('filter-at-end');
                     }
                 }
                 // Not primary ent.
@@ -422,74 +455,17 @@ function renameParams(ctx, pathStr, methodName, entdesc) {
                     let newParamName = parentName + '_id';
                     if (newParamName != oldParam) {
                         paramRenames[oldParam] = newParamName;
+                        paramRenamesWhy[oldParam].push('non-primary');
                     }
                 }
             }
+            // Skip if renamed to itself!
+            if (paramRenames[oldParam] === oldParam) {
+                delete paramRenames[oldParam];
+                delete paramRenamesWhy[oldParam];
+            }
         }
     }
-    // console.log('REWRITE', pathStr, '|', parts.join('\\'))
-    /*
-      const pathdef = ctx.def.paths[pathStr]
-      const param_keys = Object.keys(pathdef?.parameters || {})
-    
-      // Prevent duplicate names during rewrite
-      param_keys.sort(((a: string, b: string, _: any) => {
-        _ = a.length - b.length
-        if (0 === _) {
-          return a < b ? -1 : a > b ? 1 : 0
-        }
-        return _
-      }) as any)
-    
-    
-      param_keys.map((param_key: string) => {
-        let param = pathdef.parameters[param_key]
-        let old_path = pathdef.key$
-        let old_param = param.name
-    
-    
-        let new_param = param.name
-        let new_path = pathdef.key$
-    
-        let pathend_match = undefined
-    
-        if (null != new_path && '' !== new_path) {
-    
-          const pathend_re = new RegExp(
-            '\\/([^\\/]+)\\/\\{' +
-            escre(param.name) +
-            '\\}(\\/[^\\/{]+)?$')
-          pathend_match = old_path.match(pathend_re)
-    
-          if (pathend_match && 'id' != param.name) {
-            new_param = 'id'
-            new_path = pathdef.key$
-              .replace('{' + param.name + '}', '{' + new_param + '}')
-          }
-    
-          // Rename param if nane is "id" (or "Xid"), and not the final param.
-          // Rewrite /foo/{id}/bar as /foo/{foo_id}/bar.
-          // Avoids ambiguity with bar id.
-          else if (!pathend_match && old_param.match(/^([a-z]?id)$/i)) {
-            const pre = new RegExp('\\/([^\\/]+)\\/\\{' + escre(param.name) + '\\}\\/[^\\/]')
-            let m = old_path.match(pre)
-    
-            if (m) {
-              const parent = depluralize(snakify(m[1]))
-              new_param = `${parent}_id`
-              new_path = old_path
-                .replace('{' + param.name + '}', '{' + new_param + '}')
-            }
-          }
-          else {
-            new_param = depluralize(snakify(param.name))
-            new_path = pathdef.key$.replace('{' + param.name + '}', '{' + new_param + '}')
-          }
-    
-        }
-      })
-    
-    */
 }
 function isParam(partStr) {
     return '{' === partStr[0] && '}' === partStr[partStr.length - 1];

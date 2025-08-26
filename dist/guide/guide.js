@@ -76,12 +76,12 @@ async function buildBaseGuide(ctx) {
             (0 < entity.why_name?.length ? '  # name:' + entity.why_name.join(';') : ''));
         (0, struct_1.items)(entity.path).map(([pathstr, path]) => {
             guideBlocks.push(`    path: '${pathstr}': {` +
-                (0 < path.why_ent.length ? '  # ent:' + path.why_ent.join(';') : ''));
+                (0 < path.why_path?.length ? '  # ent:' + path.why_path.join(';') : ''));
             if (!(0, struct_1.isempty)(path.rename?.param)) {
                 (0, struct_1.items)(path.rename.param).map(([psrc, ptgt]) => {
                     guideBlocks.push(`      rename: param: ${psrc}: *"${ptgt}"|string` +
-                        (0 < path.rename.why_param?.[psrc]?.length ?
-                            '  # ' + path.rename.why_param[psrc].join(';') : ''));
+                        (0 < path.rename_why.param_why?.[psrc]?.length ?
+                            '  # ' + path.rename_why.param_why[psrc].join(';') : ''));
                 });
             }
             (0, struct_1.items)(path.op).map(([opname, op]) => {
@@ -97,7 +97,7 @@ async function buildBaseGuide(ctx) {
     });
     guideBlocks.push('', '}');
     const guideSrc = guideBlocks.join('\n');
-    console.log(guideSrc);
+    // console.log(guideSrc)
     ctx.note.guide = { base: guideSrc };
     const baseGuideFileName = (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'base-guide.jsonic';
     const jostraca = (0, jostraca_1.Jostraca)({

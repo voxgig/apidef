@@ -83,6 +83,11 @@ function depluralize(word) {
     if (irregulars[word]) {
         return irregulars[word];
     }
+    for (let ending in irregulars) {
+        if (word.endsWith(ending)) {
+            return word.replace(ending, irregulars[ending]);
+        }
+    }
     // Rules for regular plurals (applied in order)
     if (word.endsWith('ies') && word.length > 3) {
         return word.slice(0, -3) + 'y';
