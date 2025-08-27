@@ -17,7 +17,8 @@ import {
 type Metrics = {
   count: {
     path: number
-    schema: Record<string, number>
+    schema: Record<string, number>,
+    entity: number
   }
 }
 
@@ -54,12 +55,14 @@ async function heuristic01(ctx: any): Promise<Record<string, any>> {
   // console.dir(metrics, { depth: null })
 
   const entityDescs = resolveEntityDescs(ctx, metrics)
+  metrics.count.entity = size(entityDescs)
 
   // console.log('ED', Object.keys(entityDescs))
 
   guide = {
     control: guide.control,
     entity: entityDescs,
+    metrics
   }
 
   return guide
@@ -70,7 +73,8 @@ function measure(ctx: any): Metrics {
   const metrics: Metrics = {
     count: {
       path: Object.keys(ctx.def.paths ?? {}).length,
-      schema: ({} as Record<string, number>)
+      schema: ({} as Record<string, number>),
+      entity: -1,
     }
   }
 
@@ -706,32 +710,6 @@ function isParam(partStr: string) {
   return '{' === partStr[0] && '}' === partStr[partStr.length - 1]
 }
 
-/*
-function modifyParam(
-  def: any,
-  pathStr: string,
-  methodStr: string,
-  origParamName: string,
-  newParamName: string
-) {
-  const pathdef = def.paths[pathStr]
-  let canonPath = pathdef.canonPath$
-
-  canonPath = canonPath.replace('{' + origParamName + '}', '{' + newParamName + '}')
-
-  let params = [].concat((pathdef.parameters || [])).concat(pathdef[methodStr].parameters || [])
-    .filter((p: any) => p.name === origParamName)
-
-  params.map((p: any) => {
-    p.name = newParamName
-    return p
-  })
-
-  // console.log('MODIFYPARAM', canonPath, params)
-
-  pathdef.canonPath$ = canonPath
-}
-*/
 
 function fixEntName(origName: string) {
   if (null == origName) {
@@ -739,56 +717,6 @@ function fixEntName(origName: string) {
   }
   return depluralize(snakify(origName))
 }
-
-
-
-/*
-function findUrlParams(path: string): string[] {
-  const re = /\{([A-Za-z0-9_.-]+)\}/g
-  const names: string[] = [];
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(path)) !== null) {
-    names.push(m[1]);
-  }
-  return names;
-}
- 
- 
-function modifyPathParam(
-  paths: any,
-  pathdef: any,
-  param: any,
-  old_path: string,
-  old_param: string,
-  new_path: string,
-  new_param: string
-) {
-  if (paths) {
-    delete paths[old_path]
-    paths[new_path] = pathdef
-  }
-  pathdef.key$ = new_path
- 
-  if (pathdef.parameters) {
-    delete pathdef.parameters[old_param]
-    pathdef.parameters[new_param] = param
-  }
-  param.name = new_param
-  param.key$ = new_param
-}
- 
- 
-function sortkeys(obj: any, prop: string) {
-  const src = obj[prop] ?? {}
-  const sorted: any = {}
-  const sorted_keys = Object.keys(src).sort()
-  for (let sk of sorted_keys) {
-    sorted[sk] = obj[prop][sk]
-  }
-  obj[prop] = sorted
-}
-*/
-
 
 
 export {

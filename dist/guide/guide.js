@@ -69,6 +69,13 @@ async function buildBaseGuide(ctx) {
         '',
         'guide: {',
     ];
+    const metrics = baseguide.metrics;
+    const epr = (metrics.count.entity / metrics.count.path).toFixed(3);
+    ctx.log.info({
+        point: 'metrics',
+        metrics,
+        note: `epr=${epr}  (entity=${metrics.count.entity} paths=${metrics.count.path} )`
+    });
     validateBaseBuide(ctx, baseguide);
     (0, struct_1.items)(baseguide.entity).map(([entityname, entity]) => {
         guideBlocks.push(`

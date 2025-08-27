@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.heuristic01 = heuristic01;
 const jostraca_1 = require("jostraca");
+const struct_1 = require("@voxgig/struct");
 const utility_1 = require("../utility");
 // Log non-fatal wierdness.
 const dlog = (0, utility_1.getdlog)('apidef', __filename);
@@ -10,10 +11,12 @@ async function heuristic01(ctx) {
     const metrics = measure(ctx);
     // console.dir(metrics, { depth: null })
     const entityDescs = resolveEntityDescs(ctx, metrics);
+    metrics.count.entity = (0, struct_1.size)(entityDescs);
     // console.log('ED', Object.keys(entityDescs))
     guide = {
         control: guide.control,
         entity: entityDescs,
+        metrics
     };
     return guide;
 }
@@ -21,7 +24,8 @@ function measure(ctx) {
     const metrics = {
         count: {
             path: Object.keys(ctx.def.paths ?? {}).length,
-            schema: {}
+            schema: {},
+            entity: -1,
         }
     };
     let xrefs = (0, utility_1.find)(ctx.def, 'x-ref');
@@ -470,32 +474,6 @@ function renameParams(ctx, pathStr, methodName, entdesc) {
 function isParam(partStr) {
     return '{' === partStr[0] && '}' === partStr[partStr.length - 1];
 }
-/*
-function modifyParam(
-  def: any,
-  pathStr: string,
-  methodStr: string,
-  origParamName: string,
-  newParamName: string
-) {
-  const pathdef = def.paths[pathStr]
-  let canonPath = pathdef.canonPath$
-
-  canonPath = canonPath.replace('{' + origParamName + '}', '{' + newParamName + '}')
-
-  let params = [].concat((pathdef.parameters || [])).concat(pathdef[methodStr].parameters || [])
-    .filter((p: any) => p.name === origParamName)
-
-  params.map((p: any) => {
-    p.name = newParamName
-    return p
-  })
-
-  // console.log('MODIFYPARAM', canonPath, params)
-
-  pathdef.canonPath$ = canonPath
-}
-*/
 function fixEntName(origName) {
     if (null == origName) {
         return origName;
