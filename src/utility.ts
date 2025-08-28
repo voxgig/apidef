@@ -144,7 +144,10 @@ function depluralize(word: string): string {
   }
 
   // -s -> remove -s (cats -> cat)
-  if (word.endsWith('s') && !word.endsWith('ss')) {
+  if (word.endsWith('s') &&
+    !word.endsWith('ss') &&
+    !word.endsWith('us')
+  ) {
     return word.slice(0, -1)
   }
 

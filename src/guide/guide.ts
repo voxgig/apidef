@@ -8,6 +8,7 @@ import { Aontu, Val, Nil, Context } from 'aontu'
 
 import { items, isempty } from '@voxgig/struct'
 
+import decircular from 'decircular'
 
 import { heuristic01 } from './heuristic01'
 
@@ -21,6 +22,10 @@ const dlog = getdlog('apidef', __filename)
 
 
 async function buildGuide(ctx: any): Promise<any> {
+  // console.log('Circular-buildGuide')
+  // console.log(JSON.stringify(decircular(ctx.def), null, 2))
+
+
   const errs: any[] = []
 
   // console.log(ctx)

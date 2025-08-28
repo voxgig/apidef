@@ -2,11 +2,13 @@
 
 import * as Fs from 'node:fs'
 import Path from 'node:path'
-import { inspect } from 'node:util'
+
 
 import { Jostraca, Project, names } from 'jostraca'
 
 import { prettyPino } from '@voxgig/util'
+
+import decircular from 'decircular'
 
 
 import type {
@@ -108,7 +110,9 @@ function ApiDef(opts: ApiDefOptions) {
 
     log.info({
       point: 'generate-start',
-      note: defpath.replace(process.cwd(), '.'), defpath, start
+      note: defpath.replace(process.cwd(), '.'),
+      defpath,
+      start
     })
 
     // TODO: Validate spec
@@ -128,11 +132,20 @@ function ApiDef(opts: ApiDefOptions) {
 
     const defsrc = loadFile(defpath, 'def', fs, log)
 
-    let def = await parse('OpenAPI', defsrc, { file: defpath })
+    const def = await parse('OpenAPI', defsrc, { file: defpath })
+    const defkeys = Object.keys(def)
+    console.log('DEF', defpath,)
 
-    fs.writeFileSync(defpath + '.full.json', JSON.stringify(def, null, 2))
+    log.info({
+      point: 'root-keys',
+      defpath,
+      note: defkeys.join(', ')
+    })
 
-    ctx.def = def
+    const safedef = decircular(def)
+    fs.writeFileSync(defpath + '.full.json', JSON.stringify(safedef, null, 2))
+
+    ctx.def = safedef
 
     steps.push('parse')
 

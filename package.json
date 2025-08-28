@@ -53,6 +53,7 @@
     "@voxgig/struct": "^0.0.9",
     "@voxgig/util": "^0.2.0",
     "chokidar": "^4.0.3",
+    "decircular": "^1.0.0",
     "diff": "^8.0.2",
     "gubu": "^9.0.0",
     "jostraca": "^0.24.1",

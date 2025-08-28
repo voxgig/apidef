@@ -2,8 +2,9 @@
 
 import { each, snakify, names } from 'jostraca'
 
-import { size, escre, items, getelem } from '@voxgig/struct'
+import { size, clone, items, getelem, merge } from '@voxgig/struct'
 
+import decircular from 'decircular'
 
 import {
   depluralize,
@@ -49,7 +50,7 @@ const dlog = getdlog('apidef', __filename)
 
 
 async function heuristic01(ctx: any): Promise<Record<string, any>> {
-  let guide = ctx.model.main.api.guide
+  let guide = ctx.guide
 
   const metrics = measure(ctx)
   // console.dir(metrics, { depth: null })
@@ -77,6 +78,10 @@ function measure(ctx: any): Metrics {
       entity: -1,
     }
   }
+
+  // console.log('Circular-measure')
+  // console.log(JSON.stringify(decircular(ctx.def), null, 2))
+
 
   let xrefs = find(ctx.def, 'x-ref')
 
@@ -108,6 +113,10 @@ const METHOD_IDOP: Record<string, string> = {
 
 function resolveEntityDescs(ctx: any, metrics: Metrics) {
   const entityDescs: Record<string, any> = {}
+
+  // console.log('Circular-resolveEntityDescs')
+  // console.log(JSON.stringify(decircular(ctx.def), null, 2))
+
   const paths = ctx.def.paths
 
 
@@ -278,6 +287,10 @@ function resolveEntity(
     entname = entityPathMatch_te(pm, cmp, why_path)
   }
 
+  else if (pm = pathMatch(parts, 't/p/p')) {
+    entname = entityPathMatch_tpp(pm, cmp, why_path)
+  }
+
   else if (pm = pathMatch(parts, 'p/')) {
     throw new Error('UNSUPPORTED PATH:' + pathStr)
   }
@@ -318,14 +331,7 @@ function entityPathMatch_tpte(pm: any, cmp: {
     entname = fixEntName(pm[0]) + '_' + entname
   }
   else {
-    why_path.push('cr=' + cmp.rate.toFixed(3))
-    if (entname != cmp.name && cmp.rate < 0.5) {
-      why_path.push('cmp-primary')
-      entname = cmp.name
-    }
-    else {
-      why_path.push('path-primary')
-    }
+    entname = entityCmpMatch(entname, cmp, why_path)
   }
 
   return entname
@@ -346,14 +352,7 @@ function entityPathMatch_tpe(pm: any, cmp: {
     why_path.push('no-cmp')
   }
   else {
-    why_path.push('cr=' + cmp.rate.toFixed(3))
-    if (entname != cmp.name && cmp.rate < 0.5) {
-      why_path.push('cmp-primary')
-      entname = cmp.name
-    }
-    else {
-      why_path.push('path-primary')
-    }
+    entname = entityCmpMatch(entname, cmp, why_path)
   }
 
   return entname
@@ -374,14 +373,7 @@ function entityPathMatch_pte(pm: any, cmp: {
     why_path.push('no-cmp')
   }
   else {
-    why_path.push('cr=' + cmp.rate.toFixed(3))
-    if (entname != cmp.name && cmp.rate < 0.5) {
-      why_path.push('cmp-primary')
-      entname = cmp.name
-    }
-    else {
-      why_path.push('path-primary')
-    }
+    entname = entityCmpMatch(entname, cmp, why_path)
   }
 
   return entname
@@ -402,19 +394,56 @@ function entityPathMatch_te(pm: any, cmp: {
     why_path.push('no-cmp')
   }
   else {
-    why_path.push('cr=' + cmp.rate.toFixed(3))
-    if (entname != cmp.name && cmp.rate < 0.5) {
-      why_path.push('cmp-primary')
-      entname = cmp.name
-    }
-    else {
-      why_path.push('path-primary')
-    }
+    entname = entityCmpMatch(entname, cmp, why_path)
   }
 
   return entname
 }
 
+
+function entityPathMatch_tpp(pm: any, cmp: {
+  name?: string,
+  rate: number,
+}, why_path: string[]) {
+  const pathNameIndex = 0
+
+  why_path.push('path=t/p/p')
+  const origPathName = pm[pathNameIndex]
+  let entname = fixEntName(origPathName)
+
+  if (null == cmp.name) {
+    why_path.push('no-cmp')
+  }
+  else {
+    entname = entityCmpMatch(entname, cmp, why_path)
+  }
+
+  return entname
+}
+
+
+function entityCmpMatch(
+  entname: string,
+  cmp: {
+    name?: string,
+    rate: number,
+  },
+  why_path: string[]
+) {
+  why_path.push('cr=' + cmp.rate.toFixed(3))
+  if (null != cmp.name &&
+    entname != cmp.name &&
+    cmp.rate < 0.5 &&
+    !cmp.name.startsWith(entname)
+  ) {
+    why_path.push('cmp-primary')
+    entname = cmp.name
+  }
+  else {
+    why_path.push('path-primary')
+  }
+  return entname
+}
 
 
 
@@ -442,7 +471,7 @@ function resolveComponentName(
     ...find(responses['200'], 'x-ref'),
     ...find(responses['201'], 'x-ref'),
   ]
-    .filter(xref => xref.val.includes('schema'))
+    .filter(xref => xref.val.includes('schema') || xref.val.includes('definitions'))
 
     // TODO: identify non-ent schemas
     .filter(xref => !xref.val.includes('Meta'))
@@ -453,6 +482,11 @@ function resolveComponentName(
 
   if (null != first) {
     let xrefm = (first as string).match(/\/components\/schemas\/(.+)$/)
+
+    if (!xrefm) {
+      xrefm = (first as string).match(/\/definitions\/(.+)$/)
+    }
+
     if (xrefm) {
       cmpname = xrefm[1]
     }
@@ -534,7 +568,8 @@ function isListResponse(
       }
 
       if (!islist) {
-        const properties = schema.properties || {}
+        const properties = resolveSchemaProperties(schema)
+
         each(properties, (prop) => {
           // console.log('ISLIST', pathStr, prop.key$, prop.type)
 
@@ -591,14 +626,22 @@ function isListResponse(
 }
 
 
-function listedEntity(prop: any) {
-  const xref = prop?.items?.['x-ref']
-  const m = 'string' === typeof xref && xref.match(/^#\/components\/schemas\/(.+)$/)
-  if (m) {
-    return depluralize(snakify(m[1]))
-  }
-}
+function resolveSchemaProperties(schema: any) {
+  let properties: Record<string, any> = {}
 
+  // This is definitely heuristic!
+  if (schema.allOf) {
+    for (let i = schema.allOf.length - 1; -1 < i; --i) {
+      properties = merge([properties, schema.allOf[i].properties || {}])
+    }
+  }
+
+  if (schema.properties) {
+    properties = merge([properties, schema.properties])
+  }
+
+  return properties
+}
 
 
 

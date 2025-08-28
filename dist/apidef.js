@@ -43,6 +43,7 @@ const Fs = __importStar(require("node:fs"));
 const node_path_1 = __importDefault(require("node:path"));
 const jostraca_1 = require("jostraca");
 const util_1 = require("@voxgig/util");
+const decircular_1 = __importDefault(require("decircular"));
 const types_1 = require("./types");
 const guide_1 = require("./guide/guide");
 const parse_1 = require("./parse");
@@ -91,7 +92,9 @@ function ApiDef(opts) {
         defpath = node_path_1.default.join(buildspec.base, '..', 'def', defpath);
         log.info({
             point: 'generate-start',
-            note: defpath.replace(process.cwd(), '.'), defpath, start
+            note: defpath.replace(process.cwd(), '.'),
+            defpath,
+            start
         });
         // TODO: Validate spec
         const ctx = {
@@ -108,9 +111,17 @@ function ApiDef(opts) {
             note: {}
         };
         const defsrc = (0, utility_1.loadFile)(defpath, 'def', fs, log);
-        let def = await (0, parse_1.parse)('OpenAPI', defsrc, { file: defpath });
-        fs.writeFileSync(defpath + '.full.json', JSON.stringify(def, null, 2));
-        ctx.def = def;
+        const def = await (0, parse_1.parse)('OpenAPI', defsrc, { file: defpath });
+        const defkeys = Object.keys(def);
+        console.log('DEF', defpath);
+        log.info({
+            point: 'root-keys',
+            defpath,
+            note: defkeys.join(', ')
+        });
+        const safedef = (0, decircular_1.default)(def);
+        fs.writeFileSync(defpath + '.full.json', JSON.stringify(safedef, null, 2));
+        ctx.def = safedef;
         steps.push('parse');
         // Step: guide (derive).
         if (!ctrl.step.guide) {

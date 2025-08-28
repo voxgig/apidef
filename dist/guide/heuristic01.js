@@ -7,7 +7,7 @@ const utility_1 = require("../utility");
 // Log non-fatal wierdness.
 const dlog = (0, utility_1.getdlog)('apidef', __filename);
 async function heuristic01(ctx) {
-    let guide = ctx.model.main.api.guide;
+    let guide = ctx.guide;
     const metrics = measure(ctx);
     // console.dir(metrics, { depth: null })
     const entityDescs = resolveEntityDescs(ctx, metrics);
@@ -28,6 +28,8 @@ function measure(ctx) {
             entity: -1,
         }
     };
+    // console.log('Circular-measure')
+    // console.log(JSON.stringify(decircular(ctx.def), null, 2))
     let xrefs = (0, utility_1.find)(ctx.def, 'x-ref');
     let schemas = xrefs.filter(xref => xref.val.includes('schema'));
     schemas.map(schema => {
@@ -48,6 +50,8 @@ const METHOD_IDOP = {
 };
 function resolveEntityDescs(ctx, metrics) {
     const entityDescs = {};
+    // console.log('Circular-resolveEntityDescs')
+    // console.log(JSON.stringify(decircular(ctx.def), null, 2))
     const paths = ctx.def.paths;
     const caught = (0, utility_1.capture)(ctx.def, {
         paths: 
@@ -164,6 +168,9 @@ function resolveEntity(metrics, entityDescs, pathStr, parts, methodDef, methodNa
     else if (pm = (0, utility_1.pathMatch)(parts, 't/')) {
         entname = entityPathMatch_te(pm, cmp, why_path);
     }
+    else if (pm = (0, utility_1.pathMatch)(parts, 't/p/p')) {
+        entname = entityPathMatch_tpp(pm, cmp, why_path);
+    }
     else if (pm = (0, utility_1.pathMatch)(parts, 'p/')) {
         throw new Error('UNSUPPORTED PATH:' + pathStr);
     }
@@ -192,14 +199,7 @@ function entityPathMatch_tpte(pm, cmp, why_path) {
         entname = fixEntName(pm[0]) + '_' + entname;
     }
     else {
-        why_path.push('cr=' + cmp.rate.toFixed(3));
-        if (entname != cmp.name && cmp.rate < 0.5) {
-            why_path.push('cmp-primary');
-            entname = cmp.name;
-        }
-        else {
-            why_path.push('path-primary');
-        }
+        entname = entityCmpMatch(entname, cmp, why_path);
     }
     return entname;
 }
@@ -212,14 +212,7 @@ function entityPathMatch_tpe(pm, cmp, why_path) {
         why_path.push('no-cmp');
     }
     else {
-        why_path.push('cr=' + cmp.rate.toFixed(3));
-        if (entname != cmp.name && cmp.rate < 0.5) {
-            why_path.push('cmp-primary');
-            entname = cmp.name;
-        }
-        else {
-            why_path.push('path-primary');
-        }
+        entname = entityCmpMatch(entname, cmp, why_path);
     }
     return entname;
 }
@@ -232,14 +225,7 @@ function entityPathMatch_pte(pm, cmp, why_path) {
         why_path.push('no-cmp');
     }
     else {
-        why_path.push('cr=' + cmp.rate.toFixed(3));
-        if (entname != cmp.name && cmp.rate < 0.5) {
-            why_path.push('cmp-primary');
-            entname = cmp.name;
-        }
-        else {
-            why_path.push('path-primary');
-        }
+        entname = entityCmpMatch(entname, cmp, why_path);
     }
     return entname;
 }
@@ -252,14 +238,34 @@ function entityPathMatch_te(pm, cmp, why_path) {
         why_path.push('no-cmp');
     }
     else {
-        why_path.push('cr=' + cmp.rate.toFixed(3));
-        if (entname != cmp.name && cmp.rate < 0.5) {
-            why_path.push('cmp-primary');
-            entname = cmp.name;
-        }
-        else {
-            why_path.push('path-primary');
-        }
+        entname = entityCmpMatch(entname, cmp, why_path);
+    }
+    return entname;
+}
+function entityPathMatch_tpp(pm, cmp, why_path) {
+    const pathNameIndex = 0;
+    why_path.push('path=t/p/p');
+    const origPathName = pm[pathNameIndex];
+    let entname = fixEntName(origPathName);
+    if (null == cmp.name) {
+        why_path.push('no-cmp');
+    }
+    else {
+        entname = entityCmpMatch(entname, cmp, why_path);
+    }
+    return entname;
+}
+function entityCmpMatch(entname, cmp, why_path) {
+    why_path.push('cr=' + cmp.rate.toFixed(3));
+    if (null != cmp.name &&
+        entname != cmp.name &&
+        cmp.rate < 0.5 &&
+        !cmp.name.startsWith(entname)) {
+        why_path.push('cmp-primary');
+        entname = cmp.name;
+    }
+    else {
+        why_path.push('path-primary');
     }
     return entname;
 }
@@ -279,13 +285,16 @@ methodDef, methodName, pathStr, why_name) {
         ...(0, utility_1.find)(responses['200'], 'x-ref'),
         ...(0, utility_1.find)(responses['201'], 'x-ref'),
     ]
-        .filter(xref => xref.val.includes('schema'))
+        .filter(xref => xref.val.includes('schema') || xref.val.includes('definitions'))
         // TODO: identify non-ent schemas
         .filter(xref => !xref.val.includes('Meta'))
         .sort((a, b) => a.path.length - b.path.length);
     let first = xrefs[0]?.val;
     if (null != first) {
         let xrefm = first.match(/\/components\/schemas\/(.+)$/);
+        if (!xrefm) {
+            xrefm = first.match(/\/definitions\/(.+)$/);
+        }
         if (xrefm) {
             cmpname = xrefm[1];
         }
@@ -338,7 +347,7 @@ function isListResponse(methodDef, pathStr, entres, why) {
                 islist = true;
             }
             if (!islist) {
-                const properties = schema.properties || {};
+                const properties = resolveSchemaProperties(schema);
                 (0, jostraca_1.each)(properties, (prop) => {
                     // console.log('ISLIST', pathStr, prop.key$, prop.type)
                     if (prop.type === 'array') {
@@ -387,12 +396,18 @@ function isListResponse(methodDef, pathStr, entres, why) {
     }
     return islist;
 }
-function listedEntity(prop) {
-    const xref = prop?.items?.['x-ref'];
-    const m = 'string' === typeof xref && xref.match(/^#\/components\/schemas\/(.+)$/);
-    if (m) {
-        return (0, utility_1.depluralize)((0, jostraca_1.snakify)(m[1]));
+function resolveSchemaProperties(schema) {
+    let properties = {};
+    // This is definitely heuristic!
+    if (schema.allOf) {
+        for (let i = schema.allOf.length - 1; -1 < i; --i) {
+            properties = (0, struct_1.merge)([properties, schema.allOf[i].properties || {}]);
+        }
     }
+    if (schema.properties) {
+        properties = (0, struct_1.merge)([properties, schema.properties]);
+    }
+    return properties;
 }
 // Make consistent changes to support semantic entities.
 function renameParams(ctx, pathStr, methodName, entdesc) {

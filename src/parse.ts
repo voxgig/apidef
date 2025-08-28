@@ -1,6 +1,9 @@
-/* Copyright (c) 2024 Voxgig, MIT License */
+/* Copyright (c) 2024-2025 Voxgig, MIT License */
 
 import { bundleFromString, createConfig } from '@redocly/openapi-core'
+
+import decircular from 'decircular'
+
 
 // Parse an API definition source into a JSON sructure.
 async function parse(kind: string, source: any, meta?: any) {
@@ -23,6 +26,9 @@ async function parseOpenAPI(source: any, meta?: any) {
     config,
     dereference: false,
   })
+
+  // console.log('Circular-parseOpenAPI')
+  // console.log(JSON.stringify(decircular(bundleWithRefs.bundle.parsed), null, 2))
 
   // Walk the tree and add x-ref properties
   const seen = new WeakSet()
@@ -52,17 +58,25 @@ async function parseOpenAPI(source: any, meta?: any) {
 
   addXRefs(bundleWithRefs.bundle.parsed)
 
+  // console.log('Circular-addXRefs')
+  // console.log(JSON.stringify(decircular(bundleWithRefs.bundle.parsed), null, 2))
+
+
   // Serialize back to string with x-refs preserved
-  const sourceWithXRefs = JSON.stringify(bundleWithRefs.bundle.parsed)
+  const sourceWithXRefs = JSON.stringify(decircular(bundleWithRefs.bundle.parsed))
 
   // Second pass: parse with dereferencing
   const bundle = await bundleFromString({
     source: sourceWithXRefs,
+    // source,
     config,
     dereference: true,
   })
 
-  const def = bundle.bundle.parsed
+  const def = decircular(bundle.bundle.parsed)
+
+  // console.log('Circular-done')
+  // console.log(JSON.stringify(def, null, 2))
 
   return def
 }

@@ -13,6 +13,8 @@ const utility_1 = require("../utility");
 // Log non-fatal wierdness.
 const dlog = (0, utility_1.getdlog)('apidef', __filename);
 async function buildGuide(ctx) {
+    // console.log('Circular-buildGuide')
+    // console.log(JSON.stringify(decircular(ctx.def), null, 2))
     const errs = [];
     // console.log(ctx)
     const folder = node_path_1.default.resolve(ctx.opts.folder);
