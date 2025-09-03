@@ -1,4 +1,14 @@
 import type { FsUtil, Log } from './types';
+declare function makeWarner(spec: {
+    point: string;
+    log: Log;
+}): {
+    (def: Record<string, any>): void;
+    history: ({
+        point: string;
+        when: number;
+    } & Record<string, any>)[];
+};
 declare function getdlog(tagin?: string, filepath?: string): ((...args: any[]) => void) & {
     tag: string;
     file: string;
@@ -13,4 +23,4 @@ declare function pathMatch(path: string | string[], expr: string): null | (strin
     index: number;
     expr: string;
 });
-export { getdlog, loadFile, formatJsonSrc, depluralize, find, capture, pathMatch, };
+export { getdlog, loadFile, formatJsonSrc, depluralize, find, capture, pathMatch, makeWarner, };

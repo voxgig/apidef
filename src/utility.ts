@@ -10,6 +10,22 @@ import type {
 } from './types'
 
 
+
+function makeWarner(spec: { point: string, log: Log }) {
+  const { point, log } = spec
+  const history: ({ point: string, when: number } & Record<string, any>)[] = []
+  const warn = function warn(def: Record<string, any>) {
+    const warning = { point, when: Date.now(), ...def }
+    log.warn(warning)
+    history.push(warning)
+  }
+  warn.history = history
+  return warn
+}
+
+
+
+
 function getdlog(
   tagin?: string,
   filepath?: string)
@@ -462,4 +478,5 @@ export {
   find,
   capture,
   pathMatch,
+  makeWarner,
 }

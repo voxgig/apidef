@@ -310,7 +310,7 @@ const operationTransform = async function(
       let params: any[] = []
 
       // Params are in the path
-      if (0 < guidePath.params$.length) {
+      if (0 < guidePath.params$?.length) {
         let sharedparams = getx(pathdef, 'parameters?in=path') || []
         params = sharedparams.concat(
           getx(pathdef[method], 'parameters?in=path') || []

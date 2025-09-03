@@ -185,7 +185,7 @@ const operationTransform = async function (ctx) {
             (0, transform_1.fixName)(opModel, guideOp.key$);
             let params = [];
             // Params are in the path
-            if (0 < guidePath.params$.length) {
+            if (0 < guidePath.params$?.length) {
                 let sharedparams = (0, jostraca_1.getx)(pathdef, 'parameters?in=path') || [];
                 params = sharedparams.concat((0, jostraca_1.getx)(pathdef[method], 'parameters?in=path') || []);
                 // if (Array.isArray(params)) {

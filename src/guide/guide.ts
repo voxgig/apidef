@@ -25,7 +25,6 @@ async function buildGuide(ctx: any): Promise<any> {
   // console.log('Circular-buildGuide')
   // console.log(JSON.stringify(decircular(ctx.def), null, 2))
 
-
   const errs: any[] = []
 
   // console.log(ctx)
@@ -34,12 +33,15 @@ async function buildGuide(ctx: any): Promise<any> {
 
   try {
     const basejres = await buildBaseGuide(ctx)
+    console.log(basejres)
   }
   catch (err: any) {
     errs.push(err)
   }
 
   handleErrors(ctx, errs)
+
+  // console.log(ctx.fs.__vol__.toJSON())
 
   let src = ''
   let guidePath = Path.join(folder, 'guide',
@@ -49,6 +51,7 @@ async function buildGuide(ctx: any): Promise<any> {
     src = ctx.fs.readFileSync(guidePath, 'utf8')
   }
   catch (err: any) {
+    console.log('GUIDE-FILE-ERR', ctx.fs.__mem__, err)
     errs.push(err)
   }
 
@@ -56,8 +59,11 @@ async function buildGuide(ctx: any): Promise<any> {
 
 
   const opts = {
-    path: guidePath
+    path: guidePath,
+    fs: ctx.fs,
   }
+
+  console.log('GUIDE-READY', guidePath, src)
 
   const guideRoot = Aontu(src, opts)
   errs.push(...guideRoot.err)
@@ -128,7 +134,7 @@ async function buildBaseGuide(ctx: any) {
 
       if (!isempty(path.rename?.param)) {
         items(path.rename.param).map(([psrc, ptgt]: any[]) => {
-          guideBlocks.push(`      rename: param: ${psrc}: *"${ptgt}"|string` +
+          guideBlocks.push(`      rename: param: "${psrc}": *"${ptgt}"|string` +
             (0 < path.rename_why.param_why?.[psrc]?.length ?
               '  # ' + path.rename_why.param_why[psrc].join(';') : ''))
         })
@@ -153,12 +159,14 @@ async function buildBaseGuide(ctx: any) {
 
   const guideSrc = guideBlocks.join('\n')
 
-  // console.log(guideSrc)
 
   ctx.note.guide = { base: guideSrc }
 
   const baseGuideFileName =
     (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'base-guide.jsonic'
+
+  console.log('GUIDE-SRC', baseGuideFileName, guideSrc.length)
+  // console.log(guideSrc)
 
   const jostraca = Jostraca({
     folder: ctx.opts.folder + '/guide',

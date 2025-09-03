@@ -1,3 +1,12 @@
 import type { Transform } from '../transform';
 declare const entityTransform: Transform;
-export { entityTransform };
+type PathListItem = {
+    orig: string;
+    parts: string[];
+    rename: Record<string, any>;
+};
+declare function resolvePathList(guideEntity: any): PathListItem[];
+declare function buildRelations(guideEntity: any, pathlist$: PathListItem[]): {
+    ancestors: any[];
+};
+export { resolvePathList, buildRelations, entityTransform, };

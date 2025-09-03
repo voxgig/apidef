@@ -983,8 +983,10 @@ declare const OpenBuildShape: {
 type Build = ReturnType<typeof BuildShape>;
 type ApiModel = {
     main: {
-        api: {
+        api: Record<string, any>;
+        sdk: {
             entity: Record<string, any>;
+            flow: Record<string, any>;
         };
         def: Record<string, any>;
     };

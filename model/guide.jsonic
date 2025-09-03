@@ -38,7 +38,8 @@ guide: entity: &: {
   name: .$KEY
   path: &: {
     op: &: {
-      method: *'get' | string
+      # TODO: try ranked defaults: **foo < *foo
+      method: string
       transform: {
         # TODO: make these work
         # inward: *null | string | object

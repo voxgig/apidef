@@ -2,7 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fieldTransform = void 0;
 const jostraca_1 = require("jostraca");
-const transform_1 = require("../transform");
+const utility_1 = require("../utility");
+// import { fixName } from '../transform'
 const fieldTransform = async function (ctx) {
     const { apimodel, model, def, guide } = ctx;
     let msg = 'fields: ';
@@ -39,11 +40,11 @@ function fieldbuild(entityModel, pathdef, op, path, entity, model) {
     (0, jostraca_1.each)(fieldSets, (fieldSet) => {
         (0, jostraca_1.each)(fieldSet.properties, (property) => {
             const field = (entityModel.field[property.key$] = entityModel.field[property.key$] || {});
-            field.name = property.key$;
-            (0, transform_1.fixName)(field, field.name);
+            field.name = canonize(property.key$);
+            // fixName(field, field.name)
             // field.type = property.type
             resolveFieldType(entityModel, field, property);
-            (0, transform_1.fixName)(field, field.type, 'type');
+            // fixName(field, field.type, 'type')
             field.short = property.description;
             fieldCount++;
         });
@@ -65,13 +66,12 @@ function fieldbuild(entityModel, pathdef, op, path, entity, model) {
 function resolveFieldType(entity, field, property) {
     const ptt = typeof property.type;
     if ('string' === ptt) {
-        field.type = property.type;
+        field.type = canonize(property.type);
     }
     else if (Array.isArray(property.type)) {
-        field.type =
-            (property.type.filter((t) => 'null' != t).sort()[0]) ||
-                property.type[0] ||
-                'string';
+        field.type = canonize((property.type.filter((t) => 'null' != t).sort()[0]) ||
+            property.type[0] ||
+            'string');
         field.typelist = property.type;
     }
     else if ('undefined' === ptt && null != property.enum) {
@@ -81,5 +81,8 @@ function resolveFieldType(entity, field, property) {
     else {
         throw new Error(`APIDEF: Unsupported property type: ${property.type} (${entity.name}.${field.name})`);
     }
+}
+function canonize(s) {
+    return (0, utility_1.depluralize)((0, jostraca_1.snakify)(s));
 }
 //# sourceMappingURL=field.js.map

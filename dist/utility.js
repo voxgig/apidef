@@ -10,8 +10,20 @@ exports.depluralize = depluralize;
 exports.find = find;
 exports.capture = capture;
 exports.pathMatch = pathMatch;
+exports.makeWarner = makeWarner;
 const node_path_1 = __importDefault(require("node:path"));
 const struct_1 = require("@voxgig/struct");
+function makeWarner(spec) {
+    const { point, log } = spec;
+    const history = [];
+    const warn = function warn(def) {
+        const warning = { point, when: Date.now(), ...def };
+        log.warn(warning);
+        history.push(warning);
+    };
+    warn.history = history;
+    return warn;
+}
 function getdlog(tagin, filepath) {
     const tag = tagin || '-';
     const file = node_path_1.default.basename(filepath || '-');

@@ -15,7 +15,7 @@ import {
 
 
 
-function resolveApiEntity(
+function resolveEntity(
   apimodel: any,
   opts: ApiDefOptions,
 ) {
@@ -29,7 +29,12 @@ function resolveApiEntity(
     const entityFile = (null == opts.outprefix ? '' : opts.outprefix) + entityName + '.jsonic'
 
     const entityJSON =
-      JSON.stringify(entity, null, 2)
+      JSON.stringify(entity, (k, v) => {
+        if (k.includes('$')) {
+          return undefined
+        }
+        return v
+      }, 2)
 
     const fieldAliasesSrc = fieldAliases(entity)
 
@@ -45,10 +50,10 @@ function resolveApiEntity(
     barrel.push(`@"${Path.basename(entityFile)}"`)
   }))
 
-  const indexFile = (null == opts.outprefix ? '' : opts.outprefix) + 'api-entity-index.jsonic'
+  const indexFile = (null == opts.outprefix ? '' : opts.outprefix) + 'entity-index.jsonic'
 
   return function apiEntityBuilder() {
-    Folder({ name: 'api' }, () => {
+    Folder({ name: 'entity' }, () => {
       each(entityFiles, (entityFile) => {
         File({ name: entityFile.name }, () => Content(entityFile.src))
       })
@@ -84,5 +89,5 @@ function fieldAliases(entity: any) {
 
 
 export {
-  resolveApiEntity
+  resolveEntity
 }

@@ -21,23 +21,28 @@ async function buildGuide(ctx) {
     // console.log('GUIDE folder', folder)
     try {
         const basejres = await buildBaseGuide(ctx);
+        console.log(basejres);
     }
     catch (err) {
         errs.push(err);
     }
     handleErrors(ctx, errs);
+    // console.log(ctx.fs.__vol__.toJSON())
     let src = '';
     let guidePath = node_path_1.default.join(folder, 'guide', (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'guide.jsonic');
     try {
         src = ctx.fs.readFileSync(guidePath, 'utf8');
     }
     catch (err) {
+        console.log('GUIDE-FILE-ERR', ctx.fs.__mem__, err);
         errs.push(err);
     }
     handleErrors(ctx, errs);
     const opts = {
-        path: guidePath
+        path: guidePath,
+        fs: ctx.fs,
     };
+    console.log('GUIDE-READY', guidePath, src);
     const guideRoot = (0, aontu_1.Aontu)(src, opts);
     errs.push(...guideRoot.err);
     handleErrors(ctx, errs);
@@ -88,7 +93,7 @@ async function buildBaseGuide(ctx) {
                 (0 < path.why_path?.length ? '  # ent:' + path.why_path.join(';') : ''));
             if (!(0, struct_1.isempty)(path.rename?.param)) {
                 (0, struct_1.items)(path.rename.param).map(([psrc, ptgt]) => {
-                    guideBlocks.push(`      rename: param: ${psrc}: *"${ptgt}"|string` +
+                    guideBlocks.push(`      rename: param: "${psrc}": *"${ptgt}"|string` +
                         (0 < path.rename_why.param_why?.[psrc]?.length ?
                             '  # ' + path.rename_why.param_why[psrc].join(';') : ''));
                 });
@@ -106,9 +111,10 @@ async function buildBaseGuide(ctx) {
     });
     guideBlocks.push('', '}');
     const guideSrc = guideBlocks.join('\n');
-    // console.log(guideSrc)
     ctx.note.guide = { base: guideSrc };
     const baseGuideFileName = (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'base-guide.jsonic';
+    console.log('GUIDE-SRC', baseGuideFileName, guideSrc.length);
+    // console.log(guideSrc)
     const jostraca = (0, jostraca_1.Jostraca)({
         folder: ctx.opts.folder + '/guide',
         now: ctx.spec.now,

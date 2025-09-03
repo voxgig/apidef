@@ -1,10 +1,12 @@
 
 
-import { each, getx } from 'jostraca'
+import { each, getx, snakify } from 'jostraca'
+
+import { depluralize } from '../utility'
 
 import type { TransformResult, Transform } from '../transform'
 
-import { fixName } from '../transform'
+// import { fixName } from '../transform'
 
 
 
@@ -61,12 +63,12 @@ function fieldbuild(
       const field =
         (entityModel.field[property.key$] = entityModel.field[property.key$] || {})
 
-      field.name = property.key$
-      fixName(field, field.name)
+      field.name = canonize(property.key$)
+      // fixName(field, field.name)
 
       // field.type = property.type
       resolveFieldType(entityModel, field, property)
-      fixName(field, field.type, 'type')
+      // fixName(field, field.type, 'type')
 
       field.short = property.description
 
@@ -95,13 +97,14 @@ function resolveFieldType(entity: any, field: any, property: any) {
   const ptt = typeof property.type
 
   if ('string' === ptt) {
-    field.type = property.type
+    field.type = canonize(property.type)
   }
   else if (Array.isArray(property.type)) {
-    field.type =
+    field.type = canonize(
       (property.type.filter((t: string) => 'null' != t).sort()[0]) ||
       property.type[0] ||
       'string'
+    )
     field.typelist = property.type
   }
   else if ('undefined' === ptt && null != property.enum) {
@@ -112,6 +115,11 @@ function resolveFieldType(entity: any, field: any, property: any) {
     throw new Error(
       `APIDEF: Unsupported property type: ${property.type} (${entity.name}.${field.name})`)
   }
+}
+
+
+function canonize(s: string) {
+  return depluralize(snakify(s))
 }
 
 

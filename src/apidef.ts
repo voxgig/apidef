@@ -50,6 +50,7 @@ import {
 import {
   loadFile,
   getdlog,
+  makeWarner,
 } from './utility'
 
 import { topTransform } from './transform/top'
@@ -72,6 +73,7 @@ function ApiDef(opts: ApiDefOptions) {
   const fs = opts.fs || Fs
   const pino = prettyPino('apidef', opts)
   const log = pino.child({ cmp: 'apidef' })
+  const warn = makeWarner({ point: 'interpret-warning', log })
 
   opts.strategy = opts.strategy || 'heuristic01'
 
@@ -94,8 +96,10 @@ function ApiDef(opts: ApiDefOptions) {
 
     const apimodel: ApiModel = {
       main: {
-        api: {
-          entity: {}
+        api: {},
+        sdk: {
+          entity: {},
+          flow: {},
         },
         def: {},
       },
@@ -134,7 +138,6 @@ function ApiDef(opts: ApiDefOptions) {
 
     const def = await parse('OpenAPI', defsrc, { file: defpath })
     const defkeys = Object.keys(def)
-    console.log('DEF', defpath,)
 
     log.info({
       point: 'root-keys',
@@ -143,7 +146,14 @@ function ApiDef(opts: ApiDefOptions) {
     })
 
     const safedef = decircular(def)
-    fs.writeFileSync(defpath + '.full.json', JSON.stringify(safedef, null, 2))
+    const fullsrc = JSON.stringify(safedef, null, 2)
+
+    console.log('APIDEF-GEN A', defpath, defsrc.length, fullsrc.length)
+
+    fs.writeFileSync(defpath + '.full.json', fullsrc)
+
+    console.log('APIDEF-GEN B', JSON.stringify(fs.__vol__.toJSON(),
+      (k, v) => 'string' === typeof v ? '...' : v, 2))
 
     ctx.def = safedef
 
@@ -167,7 +177,7 @@ function ApiDef(opts: ApiDefOptions) {
     }
 
     // const transformSpec = await resolveTransforms(ctx)
-    const transforms = await resolveElements(ctx, 'transform', 'openapi', {
+    const transres = await resolveElements(ctx, 'transform', 'openapi', {
       top: topTransform,
       entity: entityTransform,
       operation: operationTransform,
@@ -219,7 +229,7 @@ function ApiDef(opts: ApiDefOptions) {
     const dlogs = dlog.log()
     if (0 < dlogs.length) {
       for (let dlogentry of dlogs) {
-        log.debug({ point: 'generate-warning', dlogentry, note: String(dlogentry) })
+        log.debug({ point: 'generate-debug', dlogentry, note: String(dlogentry) })
       }
     }
 

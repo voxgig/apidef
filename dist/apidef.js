@@ -65,6 +65,7 @@ function ApiDef(opts) {
     const fs = opts.fs || Fs;
     const pino = (0, util_1.prettyPino)('apidef', opts);
     const log = pino.child({ cmp: 'apidef' });
+    const warn = (0, utility_1.makeWarner)({ point: 'interpret-warning', log });
     opts.strategy = opts.strategy || 'heuristic01';
     async function generate(spec) {
         const start = Date.now();
@@ -80,8 +81,10 @@ function ApiDef(opts) {
         (0, jostraca_1.names)(model, model.name);
         const apimodel = {
             main: {
-                api: {
-                    entity: {}
+                api: {},
+                sdk: {
+                    entity: {},
+                    flow: {},
                 },
                 def: {},
             },
@@ -113,14 +116,16 @@ function ApiDef(opts) {
         const defsrc = (0, utility_1.loadFile)(defpath, 'def', fs, log);
         const def = await (0, parse_1.parse)('OpenAPI', defsrc, { file: defpath });
         const defkeys = Object.keys(def);
-        console.log('DEF', defpath);
         log.info({
             point: 'root-keys',
             defpath,
             note: defkeys.join(', ')
         });
         const safedef = (0, decircular_1.default)(def);
-        fs.writeFileSync(defpath + '.full.json', JSON.stringify(safedef, null, 2));
+        const fullsrc = JSON.stringify(safedef, null, 2);
+        console.log('APIDEF-GEN A', defpath, defsrc.length, fullsrc.length);
+        fs.writeFileSync(defpath + '.full.json', fullsrc);
+        console.log('APIDEF-GEN B', JSON.stringify(fs.__vol__.toJSON(), (k, v) => 'string' === typeof v ? '...' : v, 2));
         ctx.def = safedef;
         steps.push('parse');
         // Step: guide (derive).
@@ -135,7 +140,7 @@ function ApiDef(opts) {
             return { ok: true, steps, start, end: Date.now(), ctrl, guide: ctx.guide };
         }
         // const transformSpec = await resolveTransforms(ctx)
-        const transforms = await (0, resolver_1.resolveElements)(ctx, 'transform', 'openapi', {
+        const transres = await (0, resolver_1.resolveElements)(ctx, 'transform', 'openapi', {
             top: top_1.topTransform,
             entity: entity_1.entityTransform,
             operation: operation_1.operationTransform,
@@ -176,7 +181,7 @@ function ApiDef(opts) {
         const dlogs = dlog.log();
         if (0 < dlogs.length) {
             for (let dlogentry of dlogs) {
-                log.debug({ point: 'generate-warning', dlogentry, note: String(dlogentry) });
+                log.debug({ point: 'generate-debug', dlogentry, note: String(dlogentry) });
             }
         }
         steps.push('generate');
