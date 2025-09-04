@@ -4,10 +4,12 @@ exports.entityTransform = void 0;
 exports.resolvePathList = resolvePathList;
 exports.buildRelations = buildRelations;
 const jostraca_1 = require("jostraca");
+const utility_1 = require("../utility");
 const entityTransform = async function (ctx) {
-    const { apimodel, model, def, guide } = ctx;
+    const { apimodel, guide } = ctx;
     let msg = '';
     (0, jostraca_1.each)(guide.entity, (guideEntity) => {
+        console.log(guideEntity);
         const entityName = guideEntity.key$;
         ctx.log.debug({ point: 'guide-entity', note: entityName });
         const pathlist$ = resolvePathList(guideEntity);
@@ -23,47 +25,10 @@ const entityTransform = async function (ctx) {
             relations,
             pathlist$
         };
-        /*
-        let ancestors: string[] = []
-        let ancestorsDone = false
-    
-        each(guideEntity.path, (guidePath: any, pathStr: string) => {
-          const path = guidePath.key$
-          const pathdef = def.paths[path]
-    
-          if (null == pathdef) {
-            throw new Error('path not found in OpenAPI: ' + path +
-              ' (entity: ' + guideEntity.name + ')')
-          }
-    
-          // TODO: is this needed?
-          guidePath.parts$ = path.split('/')
-          guidePath.params$ = guidePath.parts$
-            .filter((p: string) => p.startsWith('{'))
-            .map((p: string) => p.substring(1, p.length - 1))
-    
-          if (!ancestorsDone) {
-            // Find all path sections matching /foo/{..param..} and build ancestors array
-            const paramRegex = /\/([a-zA-Z0-9_-]+)\/\{[a-zA-Z0-9_-]+\}/g
-            let m
-            while ((m = paramRegex.exec(pathStr)) !== null) {
-              // Skip if this is the last section (the entity itself)
-              const remainingPath = pathStr.substring(m.index + m[0].length)
-              if (remainingPath.length > 0) {
-                const ancestorName = depluralize(snakify(m[1]))
-                ancestors.push(ancestorName)
-              }
-            }
-    
-            ancestorsDone = true
-          }
-        })
-    
-        entityModel.ancestors = ancestors
-    */
         msg += guideEntity.name + ' ';
     });
-    console.dir(apimodel.main.sdk.entity, { depth: null });
+    console.log('=== entityTransform ===');
+    console.log((0, utility_1.formatJSONIC)(apimodel.main.sdk.entity));
     return { ok: true, msg };
 };
 exports.entityTransform = entityTransform;
@@ -79,9 +44,11 @@ function resolvePathList(guideEntity) {
         pathlist$.push({
             orig,
             parts,
-            rename
+            rename,
+            op: guidePath.op
         });
     });
+    guideEntity.pathlist$ = pathlist$;
     return pathlist$;
 }
 function buildRelations(guideEntity, pathlist$) {
@@ -95,9 +62,11 @@ function buildRelations(guideEntity, pathlist$) {
     ancestors = ancestors
         .reduce((a, n, j) => ((0 < (ancestors.slice(j + 1).filter(p => suffix(p, n))).length
         ? null : a.push(n)), a), []);
-    return {
+    const relations = {
         ancestors
     };
+    guideEntity.relations$ = relations;
+    return relations;
 }
 // true if c is a suffix of p
 function suffix(p, c) {

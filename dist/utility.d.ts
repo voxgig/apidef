@@ -23,4 +23,8 @@ declare function pathMatch(path: string | string[], expr: string): null | (strin
     index: number;
     expr: string;
 });
-export { getdlog, loadFile, formatJsonSrc, depluralize, find, capture, pathMatch, makeWarner, };
+declare function formatJSONIC(val?: any, opts?: {
+    hsepd?: number;
+    $?: boolean;
+}): string;
+export { getdlog, loadFile, formatJsonSrc, depluralize, find, capture, pathMatch, makeWarner, formatJSONIC };

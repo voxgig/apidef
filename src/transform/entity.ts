@@ -6,17 +6,19 @@ import type { TransformResult, Transform } from '../transform'
 
 import { fixName } from '../transform'
 
-import { depluralize } from '../utility'
+import { formatJSONIC } from '../utility'
 
 
 const entityTransform: Transform = async function(
   ctx: any,
 ): Promise<TransformResult> {
-  const { apimodel, model, def, guide } = ctx
+  const { apimodel, guide } = ctx
 
   let msg = ''
 
   each(guide.entity, (guideEntity: any) => {
+    console.log(guideEntity)
+
     const entityName = guideEntity.key$
     ctx.log.debug({ point: 'guide-entity', note: entityName })
 
@@ -36,50 +38,11 @@ const entityTransform: Transform = async function(
       pathlist$
     }
 
-    /*
-    let ancestors: string[] = []
-    let ancestorsDone = false
-
-    each(guideEntity.path, (guidePath: any, pathStr: string) => {
-      const path = guidePath.key$
-      const pathdef = def.paths[path]
-
-      if (null == pathdef) {
-        throw new Error('path not found in OpenAPI: ' + path +
-          ' (entity: ' + guideEntity.name + ')')
-      }
-
-      // TODO: is this needed?
-      guidePath.parts$ = path.split('/')
-      guidePath.params$ = guidePath.parts$
-        .filter((p: string) => p.startsWith('{'))
-        .map((p: string) => p.substring(1, p.length - 1))
-
-      if (!ancestorsDone) {
-        // Find all path sections matching /foo/{..param..} and build ancestors array
-        const paramRegex = /\/([a-zA-Z0-9_-]+)\/\{[a-zA-Z0-9_-]+\}/g
-        let m
-        while ((m = paramRegex.exec(pathStr)) !== null) {
-          // Skip if this is the last section (the entity itself)
-          const remainingPath = pathStr.substring(m.index + m[0].length)
-          if (remainingPath.length > 0) {
-            const ancestorName = depluralize(snakify(m[1]))
-            ancestors.push(ancestorName)
-          }
-        }
-
-        ancestorsDone = true
-      }
-    })
-
-    entityModel.ancestors = ancestors
-*/
-
     msg += guideEntity.name + ' '
   })
 
-
-  console.dir(apimodel.main.sdk.entity, { depth: null })
+  console.log('=== entityTransform ===')
+  console.log(formatJSONIC(apimodel.main.sdk.entity))
 
   return { ok: true, msg }
 }
@@ -89,6 +52,7 @@ type PathListItem = {
   orig: string
   parts: string[]
   rename: Record<string, any>
+  op: Record<string, any>
 }
 
 
@@ -107,9 +71,12 @@ function resolvePathList(guideEntity: any) {
     pathlist$.push({
       orig,
       parts,
-      rename
+      rename,
+      op: guidePath.op
     })
   })
+
+  guideEntity.pathlist$ = pathlist$
 
   return pathlist$
 }
@@ -132,9 +99,13 @@ function buildRelations(guideEntity: any, pathlist$: PathListItem[]) {
     ((0 < (ancestors.slice(j + 1).filter(p => suffix(p, n))).length
       ? null : a.push(n)), a), [])
 
-  return {
+  const relations = {
     ancestors
   }
+
+  guideEntity.relations$ = relations
+
+  return relations
 }
 
 // true if c is a suffix of p

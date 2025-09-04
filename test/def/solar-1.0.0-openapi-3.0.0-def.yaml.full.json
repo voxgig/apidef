@@ -114,8 +114,7 @@
             }
           }
         }
-      },
-      "key$": "/api/planet"
+      }
     },
     "/api/planet/{planet_id}": {
       "get": {
@@ -261,8 +260,7 @@
             "description": "No Content"
           }
         }
-      },
-      "key$": "/api/planet/{planet_id}"
+      }
     },
     "/api/planet/{planet_id}/moon": {
       "get": {
@@ -405,8 +403,7 @@
             }
           }
         }
-      },
-      "key$": "/api/planet/{planet_id}/moon"
+      }
     },
     "/api/planet/{planet_id}/moon/{moon_id}": {
       "get": {
@@ -588,8 +585,7 @@
             "description": "No Content"
           }
         }
-      },
-      "key$": "/api/planet/{planet_id}/moon/{moon_id}"
+      }
     }
   },
   "components": {

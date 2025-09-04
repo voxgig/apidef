@@ -11,14 +11,15 @@ import * as Diff from 'diff'
 
 
 import {
-  pathMatch
+  pathMatch,
+  formatJSONIC,
 } from '../dist/utility'
 
 
 // TODO: remove all sdk refs or rename to api
 
 
-describe('utilit', () => {
+describe('utility', () => {
 
   test('pathMatch', async () => {
     const pmf = (p: any, x: any) => {
@@ -137,9 +138,101 @@ describe('utilit', () => {
     expect(pmf('/a/b/{c}/d/{e}', 't/p/t/p')).equals({
       i: 1, m: ['b', '{c}', 'd', '{e}'], x: 't/p/t/p'
     })
+  })
 
+
+  test('formatJSONIC', async () => {
+    expect(formatJSONIC()).equal('')
+    expect(formatJSONIC(undefined)).equal('')
+    expect(formatJSONIC(null)).equal('null\n')
+    expect(formatJSONIC(true)).equal('true\n')
+    expect(formatJSONIC(11)).equal('11\n')
+    expect(formatJSONIC("s")).equal('"s"\n')
+
+    expect(formatJSONIC({
+      "a": 1,
+      "a_COMMENT": "note about a",
+      "0b_COMMENT": "0b notes",
+      "0b": {
+        "$": "not printed",
+        "_CUR": "dollar",
+        "_CUR_COMMENT": [
+          "x",
+          "y"
+        ]
+      }
+    })).equal(`{
+  a: 1  # note about a
+  "0b": {  # 0b notes
+    _CUR: "dollar"  # x; y
+  }
+
+}
+`)
+
+    const a0: any = [100, 101, 102]
+    a0['0_COMMENT'] = 'zero'
+    a0['2_COMMENT'] = 'two'
+
+    expect(formatJSONIC({ a: a0, a_COMMENT: 'array' })).equal(`{
+  a: [  # array
+    100  # zero
+    101
+    102  # two
+  ]
+
+}
+`)
+
+
+    expect(formatJSONIC({ _COMMENT: 'topO' })).equal(`{  # topO
+}
+`)
+
+    const a1: any = []
+    a1._COMMENT = 'topA'
+    expect(formatJSONIC(a1)).equal(`[  # topA
+]
+`)
+
+
+    expect(formatJSONIC({ a: { b: {}, c: [], d: {} }, e: {} })).equal(`{
+  a: {
+    b: {
+    }
+    c: [
+    ]
+    d: {
+    }
+  }
+
+  e: {
+  }
+
+}
+`)
+
+
+    expect(formatJSONIC({ a1: { b1: {}, c1: [], d1: {} }, e1: {} }, { hsepd: 2 })).equal(`{
+  a1: {
+    b1: {
+    }
+
+    c1: [
+    ]
+
+    d1: {
+    }
+
+  }
+
+  e1: {
+  }
+
+}
+`)
 
 
   })
-
 })
+

@@ -469,6 +469,172 @@ function isParam(partStr: string) {
 }
 
 
+function formatJSONIC(val?: any, opts?: { hsepd?: number, $?: boolean }): string {
+  if (undefined === val) return ''
+
+  const hsepd = opts?.hsepd ?? 1
+  const showd = !!opts?.$
+
+  const space = '  '
+  const isBareKey = (k: string) => /^[A-Za-z_][_A-Za-z0-9]*$/.test(k)
+  const quoteKey = (k: string) => (isBareKey(k) ? k : JSON.stringify(k))
+
+  const renderPrimitive = (v: any): string => {
+    if (v === null) return 'null'
+    const t = typeof v
+    switch (t) {
+      case 'string': return JSON.stringify(v)
+      case 'number': return Number.isFinite(v) ? String(v) : 'null'
+      case 'boolean': return v ? 'true' : 'false'
+      case 'bigint': return JSON.stringify(v.toString())
+      case 'symbol':
+      case 'function':
+      case 'undefined':
+        return 'null'
+      default: return JSON.stringify(v)
+    }
+  }
+
+  const renderComment = (c: any): string | null => {
+    if (c == null) return null
+    if (Array.isArray(c) && c.every(x => typeof x === 'string')) return c.join('; ')
+    if (typeof c === 'string') return c
+    try { return JSON.stringify(c) } catch { return String(c) }
+  }
+
+  type ValueFrame = {
+    kind: 'value'
+    value: any
+    indentLevel: number
+    linePrefix: string
+    inlineComment?: string | null
+  }
+
+  type CloseFrame = {
+    kind: 'close'
+    token: '}' | ']'
+    indentLevel: number
+  }
+
+  let stack = new Array<ValueFrame | CloseFrame | undefined>(32)
+  let top = -1
+
+  // Seed root frame, capturing a possible top-level _COMMENT
+  let rootInline: string | null = null
+  if (val && typeof val === 'object') {
+    rootInline = renderComment((val as any)['_COMMENT'])
+  }
+  stack[++top] = { kind: 'value', value: val, indentLevel: 0, linePrefix: '', inlineComment: rootInline }
+
+  const lines: string[] = []
+
+  while (top >= 0) {
+    const frame = stack[top]!
+    // console.log('HSEP', hsep, frame.indentLevel, hsepd)
+
+    stack[top] = undefined
+    top -= 1
+
+    if (frame.kind === 'close') {
+      const indent = space.repeat(frame.indentLevel)
+      const hsep = 0 < frame.indentLevel && frame.indentLevel <= hsepd
+      lines.push(`${indent}${frame.token}${hsep ? '\n' : ''}`)
+      continue
+    }
+
+    let v = frame.value
+    while (v && typeof v === 'object' && typeof (v as any).toJSON === 'function') {
+      v = (v as any).toJSON()
+    }
+
+    const { indentLevel, linePrefix } = frame
+    const commentSuffix = frame.inlineComment ? `  # ${frame.inlineComment}` : ''
+
+    if (v === null || typeof v !== 'object') {
+      lines.push(`${linePrefix}${renderPrimitive(v)}${commentSuffix}`)
+      continue
+    }
+
+    if (Array.isArray(v)) {
+      const arr = v as any[]
+      if (arr.length === 0) {
+        // if (frame.inlineComment) {
+        // two-line style when there is an inline comment
+        lines.push(`${linePrefix}[${commentSuffix}`)
+        stack[++top] = { kind: 'close', token: ']', indentLevel }
+        // } else {
+        //   // single-line empty array
+        //   lines.push(`${linePrefix}[]`)
+        // }
+        continue
+      }
+
+      // opening line
+      lines.push(`${linePrefix}[${commentSuffix}`)
+      stack[++top] = { kind: 'close', token: ']', indentLevel }
+
+      // children (reverse push)
+      const childPrefix = space.repeat(indentLevel + 1)
+      for (let i = arr.length - 1; i >= 0; i--) {
+        const idxComment = renderComment((v as any)[`${i}_COMMENT`])
+        stack[++top] = {
+          kind: 'value',
+          value: arr[i],
+          indentLevel: indentLevel + 1,
+          linePrefix: `${childPrefix}`,
+          inlineComment: idxComment
+        }
+      }
+      continue
+    }
+
+    // Plain object
+    const obj = v as Record<string, any>
+    const keys = Object.keys(obj)
+    const printableKeys = keys.filter(k => !k.endsWith('_COMMENT') &&
+      (showd || !k.endsWith('$')))
+
+    if (printableKeys.length === 0) {
+      //if (frame.inlineComment) {
+      // two-line style when there is an inline comment
+      lines.push(`${linePrefix}{${commentSuffix}`)
+      stack[++top] = { kind: 'close', token: '}', indentLevel }
+      // } else {
+      //   // single-line empty object
+      //   lines.push(`${linePrefix}{}`)
+      // }
+      continue
+    }
+
+    // opening line
+    lines.push(`${linePrefix}{${commentSuffix}`)
+    stack[++top] = { kind: 'close', token: '}', indentLevel }
+
+    const nextIndentStr = space.repeat(indentLevel + 1)
+    for (let i = printableKeys.length - 1; i >= 0; i--) {
+      const k = printableKeys[i]
+      const keyText = quoteKey(k)
+      const valForKey = obj[k]
+      const cmt = renderComment(obj[`${k}_COMMENT`])
+
+      stack[++top] = {
+        kind: 'value',
+        value: valForKey,
+        indentLevel: indentLevel + 1,
+        linePrefix: `${nextIndentStr}${keyText}: `,
+        inlineComment: cmt
+      }
+    }
+  }
+
+  // Assertion: after loop, stack must be all undefined
+  for (let i = 0; i < stack.length; i++) {
+    if (stack[i] !== undefined) throw new Error(`Assertion failed: stack[${i}] not cleared`)
+  }
+
+  return lines.join('\n') + '\n'
+}
+
 
 export {
   getdlog,
@@ -479,4 +645,5 @@ export {
   capture,
   pathMatch,
   makeWarner,
+  formatJSONIC
 }

@@ -11,6 +11,7 @@ exports.find = find;
 exports.capture = capture;
 exports.pathMatch = pathMatch;
 exports.makeWarner = makeWarner;
+exports.formatJSONIC = formatJSONIC;
 const node_path_1 = __importDefault(require("node:path"));
 const struct_1 = require("@voxgig/struct");
 function makeWarner(spec) {
@@ -379,5 +380,144 @@ function pathMatch(path, expr) {
 }
 function isParam(partStr) {
     return null != partStr && '{' === partStr[0] && '}' === partStr[partStr.length - 1];
+}
+function formatJSONIC(val, opts) {
+    if (undefined === val)
+        return '';
+    const hsepd = opts?.hsepd ?? 1;
+    const showd = !!opts?.$;
+    const space = '  ';
+    const isBareKey = (k) => /^[A-Za-z_][_A-Za-z0-9]*$/.test(k);
+    const quoteKey = (k) => (isBareKey(k) ? k : JSON.stringify(k));
+    const renderPrimitive = (v) => {
+        if (v === null)
+            return 'null';
+        const t = typeof v;
+        switch (t) {
+            case 'string': return JSON.stringify(v);
+            case 'number': return Number.isFinite(v) ? String(v) : 'null';
+            case 'boolean': return v ? 'true' : 'false';
+            case 'bigint': return JSON.stringify(v.toString());
+            case 'symbol':
+            case 'function':
+            case 'undefined':
+                return 'null';
+            default: return JSON.stringify(v);
+        }
+    };
+    const renderComment = (c) => {
+        if (c == null)
+            return null;
+        if (Array.isArray(c) && c.every(x => typeof x === 'string'))
+            return c.join('; ');
+        if (typeof c === 'string')
+            return c;
+        try {
+            return JSON.stringify(c);
+        }
+        catch {
+            return String(c);
+        }
+    };
+    let stack = new Array(32);
+    let top = -1;
+    // Seed root frame, capturing a possible top-level _COMMENT
+    let rootInline = null;
+    if (val && typeof val === 'object') {
+        rootInline = renderComment(val['_COMMENT']);
+    }
+    stack[++top] = { kind: 'value', value: val, indentLevel: 0, linePrefix: '', inlineComment: rootInline };
+    const lines = [];
+    while (top >= 0) {
+        const frame = stack[top];
+        // console.log('HSEP', hsep, frame.indentLevel, hsepd)
+        stack[top] = undefined;
+        top -= 1;
+        if (frame.kind === 'close') {
+            const indent = space.repeat(frame.indentLevel);
+            const hsep = 0 < frame.indentLevel && frame.indentLevel <= hsepd;
+            lines.push(`${indent}${frame.token}${hsep ? '\n' : ''}`);
+            continue;
+        }
+        let v = frame.value;
+        while (v && typeof v === 'object' && typeof v.toJSON === 'function') {
+            v = v.toJSON();
+        }
+        const { indentLevel, linePrefix } = frame;
+        const commentSuffix = frame.inlineComment ? `  # ${frame.inlineComment}` : '';
+        if (v === null || typeof v !== 'object') {
+            lines.push(`${linePrefix}${renderPrimitive(v)}${commentSuffix}`);
+            continue;
+        }
+        if (Array.isArray(v)) {
+            const arr = v;
+            if (arr.length === 0) {
+                // if (frame.inlineComment) {
+                // two-line style when there is an inline comment
+                lines.push(`${linePrefix}[${commentSuffix}`);
+                stack[++top] = { kind: 'close', token: ']', indentLevel };
+                // } else {
+                //   // single-line empty array
+                //   lines.push(`${linePrefix}[]`)
+                // }
+                continue;
+            }
+            // opening line
+            lines.push(`${linePrefix}[${commentSuffix}`);
+            stack[++top] = { kind: 'close', token: ']', indentLevel };
+            // children (reverse push)
+            const childPrefix = space.repeat(indentLevel + 1);
+            for (let i = arr.length - 1; i >= 0; i--) {
+                const idxComment = renderComment(v[`${i}_COMMENT`]);
+                stack[++top] = {
+                    kind: 'value',
+                    value: arr[i],
+                    indentLevel: indentLevel + 1,
+                    linePrefix: `${childPrefix}`,
+                    inlineComment: idxComment
+                };
+            }
+            continue;
+        }
+        // Plain object
+        const obj = v;
+        const keys = Object.keys(obj);
+        const printableKeys = keys.filter(k => !k.endsWith('_COMMENT') &&
+            (showd || !k.endsWith('$')));
+        if (printableKeys.length === 0) {
+            //if (frame.inlineComment) {
+            // two-line style when there is an inline comment
+            lines.push(`${linePrefix}{${commentSuffix}`);
+            stack[++top] = { kind: 'close', token: '}', indentLevel };
+            // } else {
+            //   // single-line empty object
+            //   lines.push(`${linePrefix}{}`)
+            // }
+            continue;
+        }
+        // opening line
+        lines.push(`${linePrefix}{${commentSuffix}`);
+        stack[++top] = { kind: 'close', token: '}', indentLevel };
+        const nextIndentStr = space.repeat(indentLevel + 1);
+        for (let i = printableKeys.length - 1; i >= 0; i--) {
+            const k = printableKeys[i];
+            const keyText = quoteKey(k);
+            const valForKey = obj[k];
+            const cmt = renderComment(obj[`${k}_COMMENT`]);
+            stack[++top] = {
+                kind: 'value',
+                value: valForKey,
+                indentLevel: indentLevel + 1,
+                linePrefix: `${nextIndentStr}${keyText}: `,
+                inlineComment: cmt
+            };
+        }
+    }
+    // Assertion: after loop, stack must be all undefined
+    for (let i = 0; i < stack.length; i++) {
+        if (stack[i] !== undefined)
+            throw new Error(`Assertion failed: stack[${i}] not cleared`);
+    }
+    return lines.join('\n') + '\n';
 }
 //# sourceMappingURL=utility.js.map
