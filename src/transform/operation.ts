@@ -2,6 +2,8 @@
 
 import { each, snakify } from 'jostraca'
 
+import { getelem } from '@voxgig/struct'
+
 import type { TransformResult, Transform } from '../transform'
 
 import { fixName } from '../transform'
@@ -9,6 +11,20 @@ import { fixName } from '../transform'
 import { formatJSONIC } from '../utility'
 
 
+import type {
+  GuideEntity,
+  GuidePath,
+  GuideOp,
+  PathDesc,
+  ModelOpMap,
+  ModelOp,
+  OpName,
+} from './top'
+
+
+
+
+/*
 type AltDesc = {
   orig: string
   parts: string[]
@@ -28,6 +44,7 @@ type OpMap = {
   patch: undefined | OpDesc,
   delete: undefined | OpDesc,
 }
+*/
 
 
 
@@ -38,8 +55,11 @@ const operationTransform: Transform = async function(
 
   let msg = 'operation '
 
-  each(guide.entity, (gent: any, entname: string) => {
-    const opm: OpMap = {
+
+  each(guide.entity, (gent: GuideEntity, entname: string) => {
+    collectOps(gent)
+
+    const opm: ModelOpMap = {
       load: undefined,
       list: undefined,
       create: undefined,
@@ -48,7 +68,6 @@ const operationTransform: Transform = async function(
       patch: undefined,
     }
 
-    collectOps(gent)
     // console.log(entname, formatJSONIC(gent, { $: true }))
 
     resolveLoad(opm, gent)
@@ -62,7 +81,7 @@ const operationTransform: Transform = async function(
     // per path add select:param:name = false for params from other paths
     // updateSelect(opm)
 
-    console.log('OPM', entname, formatJSONIC(opm))
+    // console.log('OPM', entname, formatJSONIC(opm))
 
     apimodel.main.sdk.entity[entname].op = opm
 
@@ -72,54 +91,27 @@ const operationTransform: Transform = async function(
   console.log('=== operationTransform ===')
   console.log(formatJSONIC(apimodel.main.sdk.entity))
 
+
   return { ok: true, msg }
 }
 
 
-type OpName =
-  'load' |
-  'list' |
-  'create' |
-  'update' |
-  'delete' |
-  'patch'
-
-type MethodName = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
-
-type GuideOp = {
-  method: MethodName
-}
-
-
-type GuideEntity = {
-  name: string
-  pathlist$: {
-    op?: {
-      load?: GuideOp,
-      list?: GuideOp,
-      create?: GuideOp,
-      update?: GuideOp,
-      delete?: GuideOp,
-      patch?: GuideOp,
-    }
-  }[]
-  op$: Record<string, {
-    paths: any[]
-  }>
-}
-
-
 function collectOps(gent: GuideEntity) {
-  gent.op$ = gent.op$ ?? {}
-  each(gent.pathlist$, (gpath: GuideEntity["pathlist$"][number]) => {
-    each(gpath.op, (gop: any, opname: string) => {
-      gent.op$[opname] = gent.op$[opname] ?? { paths: [] }
-      const pdef = {
-        ...gpath,
-        method: gop.method ?? 'GET'
+  gent.opm$ = gent.opm$ ?? {}
+  each(gent.paths$, (pathdesc: PathDesc) => {
+    each(pathdesc.op, (gop: GuideOp, opname: OpName) => {
+      gent.opm$[opname] = gent.opm$[opname] ?? { paths: [] }
+
+      const oppathdesc: PathDesc = {
+        orig: pathdesc.orig,
+        parts: pathdesc.parts,
+        rename: pathdesc.rename,
+        method: gop.method,
+        op: pathdesc.op,
+        def: pathdesc.def,
       }
-      delete pdef.op
-      gent.op$[opname].paths.push(pdef)
+
+      gent.opm$[opname].paths.push(oppathdesc)
     })
   })
 }
@@ -127,37 +119,38 @@ function collectOps(gent: GuideEntity) {
 
 
 
-function resolveLoad(opm: OpMap, gent: GuideEntity): undefined | OpDesc {
+
+function resolveLoad(opm: ModelOpMap, gent: GuideEntity): undefined | ModelOp {
   const opdesc = opm.load = resolveOp('load', gent)
   return opdesc
 }
 
 
-function resolveList(opm: OpMap, gent: GuideEntity): undefined | OpDesc {
+function resolveList(opm: ModelOpMap, gent: GuideEntity): undefined | ModelOp {
   const opdesc = opm.list = resolveOp('list', gent)
   return opdesc
 }
 
 
-function resolveCreate(opm: OpMap, gent: GuideEntity): undefined | OpDesc {
+function resolveCreate(opm: ModelOpMap, gent: GuideEntity): undefined | ModelOp {
   const opdesc = opm.create = resolveOp('create', gent)
   return opdesc
 }
 
 
-function resolveUpdate(opm: OpMap, gent: GuideEntity): undefined | OpDesc {
+function resolveUpdate(opm: ModelOpMap, gent: GuideEntity): undefined | ModelOp {
   const opdesc = opm.update = resolveOp('update', gent)
   return opdesc
 }
 
 
-function resolveDelete(opm: OpMap, gent: GuideEntity): undefined | OpDesc {
+function resolveDelete(opm: ModelOpMap, gent: GuideEntity): undefined | ModelOp {
   const opdesc = opm.delete = resolveOp('delete', gent)
   return opdesc
 }
 
 
-function resolvePatch(opm: OpMap, gent: GuideEntity): undefined | OpDesc {
+function resolvePatch(opm: ModelOpMap, gent: GuideEntity): undefined | ModelOp {
   const opdesc = resolveOp('patch', gent)
 
   // If patch is actually update, make it update!
@@ -173,14 +166,15 @@ function resolvePatch(opm: OpMap, gent: GuideEntity): undefined | OpDesc {
 }
 
 
-function resolveOp(opname: OpName, gent: GuideEntity): undefined | OpDesc {
-  let opdesc: undefined | OpDesc = undefined
-  let opraw = gent.op$[opname]
-  if (opraw) {
-    opdesc = {
+function resolveOp(opname: OpName, gent: GuideEntity): undefined | ModelOp {
+  let mop: undefined | ModelOp = undefined
+  let opdsec = gent.opm$[opname]
+  if (opdsec) {
+    mop = {
       name: opname,
-      alt: opraw.paths.map(p => {
+      alts: opdsec.paths.map(p => {
         const parts = applyRename(p)
+
         return {
           orig: p.orig,
           parts,
@@ -189,22 +183,22 @@ function resolveOp(opname: OpName, gent: GuideEntity): undefined | OpDesc {
             param: parts
               .filter(p => '{' === p[0])
               .map(p => p.substring(1, p.length - 1))
-              .reduce((a, p) => (a[p] = true, a), {} as any)
-          }
+              .reduce((a, p) => (a[p] = true, a),
+                ('{id}' === getelem(parts, -2) ? {
+                  $action: getelem(parts, -1)
+                } : {}) as any)
+          },
         }
       })
     }
   }
-  return opdesc
+  return mop
 }
 
 
-function applyRename(rawpath: {
-  parts: string[],
-  rename?: { param?: Record<string, string> }
-}): string[] {
-  const prn: Record<string, string> = rawpath.rename?.param ?? {}
-  return rawpath.parts.map(p => '{' === p[0] ? (prn[p.substring(1, p.length - 1)] ?? p) : p)
+function applyRename(pathdesc: PathDesc): string[] {
+  const prn: Record<string, string> = pathdesc.rename?.param ?? {}
+  return pathdesc.parts.map(p => '{' === p[0] ? (prn[p.substring(1, p.length - 1)] ?? p) : p)
 }
 
 

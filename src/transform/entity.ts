@@ -1,12 +1,20 @@
 
 
-import { each, snakify } from 'jostraca'
+import { each } from 'jostraca'
 
 import type { TransformResult, Transform } from '../transform'
 
-import { fixName } from '../transform'
-
 import { formatJSONIC } from '../utility'
+
+
+import type {
+  GuideEntity,
+  GuidePath,
+  PathDesc,
+  ModelEntity,
+} from './top'
+
+
 
 
 const entityTransform: Transform = async function(
@@ -16,27 +24,31 @@ const entityTransform: Transform = async function(
 
   let msg = ''
 
-  each(guide.entity, (guideEntity: any) => {
-    console.log(guideEntity)
+  each(guide.entity, (guideEntity: GuideEntity, entname: string) => {
+    ctx.log.debug({ point: 'guide-entity', note: entname })
 
-    const entityName = guideEntity.key$
-    ctx.log.debug({ point: 'guide-entity', note: entityName })
+    const paths$ = resolvePathList(guideEntity, ctx.def)
+    const relations = buildRelations(guideEntity, paths$)
 
-    const pathlist$ = resolvePathList(guideEntity)
-    const relations = buildRelations(guideEntity, pathlist$)
-
-    apimodel.main.sdk.entity[entityName] = {
-      name: entityName,
-      op: {},
+    const modelent: ModelEntity = {
+      name: entname,
+      op: {
+        load: undefined,
+        list: undefined,
+        create: undefined,
+        update: undefined,
+        delete: undefined,
+        patch: undefined,
+      },
       field: {},
       id: {
         name: 'id',
         field: 'id',
       },
       relations,
-
-      pathlist$
     }
+
+    apimodel.main.sdk.entity[entname] = modelent
 
     msg += guideEntity.name + ' '
   })
@@ -48,18 +60,11 @@ const entityTransform: Transform = async function(
 }
 
 
-type PathListItem = {
-  orig: string
-  parts: string[]
-  rename: Record<string, any>
-  op: Record<string, any>
-}
 
+function resolvePathList(guideEntity: GuideEntity, def: { paths: Record<string, any> }) {
+  const paths$: PathDesc[] = []
 
-function resolvePathList(guideEntity: any) {
-  const pathlist$: PathListItem[] = []
-
-  each(guideEntity.path, (guidePath: any, orig: string) => {
+  each(guideEntity.path, (guidePath: GuidePath, orig: string) => {
     const parts = orig.split('/').filter(p => '' != p)
     const rename = guidePath.rename ?? {}
 
@@ -68,24 +73,27 @@ function resolvePathList(guideEntity: any) {
       parts[pI] = '{' + param.val$ + '}'
     })
 
-    pathlist$.push({
+    const pathdesc: PathDesc = {
       orig,
       parts,
       rename,
-      op: guidePath.op
-    })
+      method: '', // operation collectOps will copy and assign per op
+      op: guidePath.op,
+      def: def.paths[orig],
+    }
+
+    paths$.push(pathdesc)
   })
 
-  guideEntity.pathlist$ = pathlist$
+  guideEntity.paths$ = paths$
 
-  return pathlist$
+  return paths$
 }
 
 
 
-
-function buildRelations(guideEntity: any, pathlist$: PathListItem[]) {
-  let ancestors: any[] = pathlist$
+function buildRelations(guideEntity: any, paths$: PathDesc[]) {
+  let ancestors: any[] = paths$
     .map(pli => pli.parts
       .map((p, i) =>
         (pli.parts[i + 1]?.[0] === '{' && pli.parts[i + 1] !== '{id}') ? p : null)
@@ -108,8 +116,9 @@ function buildRelations(guideEntity: any, pathlist$: PathListItem[]) {
   return relations
 }
 
-// true if c is a suffix of p
-function suffix(p: string[], c: string[]) {
+
+// True if array c is a suffix of array p,
+function suffix(p: string[], c: string[]): boolean {
   return c.reduce((b, _, i) => (b && c[c.length - 1 - i] === p[p.length - 1 - i]), true)
 }
 

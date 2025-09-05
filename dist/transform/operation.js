@@ -2,11 +2,34 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.operationTransform = void 0;
 const jostraca_1 = require("jostraca");
+const struct_1 = require("@voxgig/struct");
 const utility_1 = require("../utility");
+/*
+type AltDesc = {
+  orig: string
+  parts: string[]
+  select: { param: Record<string, boolean> }
+}
+
+type OpDesc = {
+  name: string
+  alt: AltDesc[]
+}
+
+type OpMap = {
+  load: undefined | OpDesc,
+  list: undefined | OpDesc,
+  create: undefined | OpDesc,
+  update: undefined | OpDesc,
+  patch: undefined | OpDesc,
+  delete: undefined | OpDesc,
+}
+*/
 const operationTransform = async function (ctx) {
     const { apimodel, guide } = ctx;
     let msg = 'operation ';
     (0, jostraca_1.each)(guide.entity, (gent, entname) => {
+        collectOps(gent);
         const opm = {
             load: undefined,
             list: undefined,
@@ -15,7 +38,6 @@ const operationTransform = async function (ctx) {
             delete: undefined,
             patch: undefined,
         };
-        collectOps(gent);
         // console.log(entname, formatJSONIC(gent, { $: true }))
         resolveLoad(opm, gent);
         resolveList(opm, gent);
@@ -25,7 +47,7 @@ const operationTransform = async function (ctx) {
         resolvePatch(opm, gent);
         // per path add select:param:name = false for params from other paths
         // updateSelect(opm)
-        console.log('OPM', entname, (0, utility_1.formatJSONIC)(opm));
+        // console.log('OPM', entname, formatJSONIC(opm))
         apimodel.main.sdk.entity[entname].op = opm;
         msg += gent.name + ' ';
     });
@@ -35,16 +57,19 @@ const operationTransform = async function (ctx) {
 };
 exports.operationTransform = operationTransform;
 function collectOps(gent) {
-    gent.op$ = gent.op$ ?? {};
-    (0, jostraca_1.each)(gent.pathlist$, (gpath) => {
-        (0, jostraca_1.each)(gpath.op, (gop, opname) => {
-            gent.op$[opname] = gent.op$[opname] ?? { paths: [] };
-            const pdef = {
-                ...gpath,
-                method: gop.method ?? 'GET'
+    gent.opm$ = gent.opm$ ?? {};
+    (0, jostraca_1.each)(gent.paths$, (pathdesc) => {
+        (0, jostraca_1.each)(pathdesc.op, (gop, opname) => {
+            gent.opm$[opname] = gent.opm$[opname] ?? { paths: [] };
+            const oppathdesc = {
+                orig: pathdesc.orig,
+                parts: pathdesc.parts,
+                rename: pathdesc.rename,
+                method: gop.method,
+                op: pathdesc.op,
+                def: pathdesc.def,
             };
-            delete pdef.op;
-            gent.op$[opname].paths.push(pdef);
+            gent.opm$[opname].paths.push(oppathdesc);
         });
     });
 }
@@ -81,12 +106,12 @@ function resolvePatch(opm, gent) {
     return opdesc;
 }
 function resolveOp(opname, gent) {
-    let opdesc = undefined;
-    let opraw = gent.op$[opname];
-    if (opraw) {
-        opdesc = {
+    let mop = undefined;
+    let opdsec = gent.opm$[opname];
+    if (opdsec) {
+        mop = {
             name: opname,
-            alt: opraw.paths.map(p => {
+            alts: opdsec.paths.map(p => {
                 const parts = applyRename(p);
                 return {
                     orig: p.orig,
@@ -96,16 +121,18 @@ function resolveOp(opname, gent) {
                         param: parts
                             .filter(p => '{' === p[0])
                             .map(p => p.substring(1, p.length - 1))
-                            .reduce((a, p) => (a[p] = true, a), {})
-                    }
+                            .reduce((a, p) => (a[p] = true, a), ('{id}' === (0, struct_1.getelem)(parts, -2) ? {
+                            $action: (0, struct_1.getelem)(parts, -1)
+                        } : {}))
+                    },
                 };
             })
         };
     }
-    return opdesc;
+    return mop;
 }
-function applyRename(rawpath) {
-    const prn = rawpath.rename?.param ?? {};
-    return rawpath.parts.map(p => '{' === p[0] ? (prn[p.substring(1, p.length - 1)] ?? p) : p);
+function applyRename(pathdesc) {
+    const prn = pathdesc.rename?.param ?? {};
+    return pathdesc.parts.map(p => '{' === p[0] ? (prn[p.substring(1, p.length - 1)] ?? p) : p);
 }
 //# sourceMappingURL=operation.js.map

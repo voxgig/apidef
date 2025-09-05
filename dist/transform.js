@@ -8,6 +8,8 @@ const gubu_1 = require("gubu");
 const top_1 = require("./transform/top");
 const entity_1 = require("./transform/entity");
 const operation_1 = require("./transform/operation");
+// NEXT - handle param, query, headers etc
+// import { argsTransform } from './transform/args'
 const field_1 = require("./transform/field");
 const TRANSFORM = {
     top: top_1.topTransform,

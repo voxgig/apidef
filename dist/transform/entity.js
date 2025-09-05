@@ -8,23 +8,28 @@ const utility_1 = require("../utility");
 const entityTransform = async function (ctx) {
     const { apimodel, guide } = ctx;
     let msg = '';
-    (0, jostraca_1.each)(guide.entity, (guideEntity) => {
-        console.log(guideEntity);
-        const entityName = guideEntity.key$;
-        ctx.log.debug({ point: 'guide-entity', note: entityName });
-        const pathlist$ = resolvePathList(guideEntity);
-        const relations = buildRelations(guideEntity, pathlist$);
-        apimodel.main.sdk.entity[entityName] = {
-            name: entityName,
-            op: {},
+    (0, jostraca_1.each)(guide.entity, (guideEntity, entname) => {
+        ctx.log.debug({ point: 'guide-entity', note: entname });
+        const paths$ = resolvePathList(guideEntity, ctx.def);
+        const relations = buildRelations(guideEntity, paths$);
+        const modelent = {
+            name: entname,
+            op: {
+                load: undefined,
+                list: undefined,
+                create: undefined,
+                update: undefined,
+                delete: undefined,
+                patch: undefined,
+            },
             field: {},
             id: {
                 name: 'id',
                 field: 'id',
             },
             relations,
-            pathlist$
         };
+        apimodel.main.sdk.entity[entname] = modelent;
         msg += guideEntity.name + ' ';
     });
     console.log('=== entityTransform ===');
@@ -32,8 +37,8 @@ const entityTransform = async function (ctx) {
     return { ok: true, msg };
 };
 exports.entityTransform = entityTransform;
-function resolvePathList(guideEntity) {
-    const pathlist$ = [];
+function resolvePathList(guideEntity, def) {
+    const paths$ = [];
     (0, jostraca_1.each)(guideEntity.path, (guidePath, orig) => {
         const parts = orig.split('/').filter(p => '' != p);
         const rename = guidePath.rename ?? {};
@@ -41,18 +46,21 @@ function resolvePathList(guideEntity) {
             const pI = parts.indexOf('{' + param.key$ + '}');
             parts[pI] = '{' + param.val$ + '}';
         });
-        pathlist$.push({
+        const pathdesc = {
             orig,
             parts,
             rename,
-            op: guidePath.op
-        });
+            method: '', // operation collectOps will copy and assign per op
+            op: guidePath.op,
+            def: def.paths[orig],
+        };
+        paths$.push(pathdesc);
     });
-    guideEntity.pathlist$ = pathlist$;
-    return pathlist$;
+    guideEntity.paths$ = paths$;
+    return paths$;
 }
-function buildRelations(guideEntity, pathlist$) {
-    let ancestors = pathlist$
+function buildRelations(guideEntity, paths$) {
+    let ancestors = paths$
         .map(pli => pli.parts
         .map((p, i) => (pli.parts[i + 1]?.[0] === '{' && pli.parts[i + 1] !== '{id}') ? p : null)
         .filter(p => null != p))
@@ -68,7 +76,7 @@ function buildRelations(guideEntity, pathlist$) {
     guideEntity.relations$ = relations;
     return relations;
 }
-// true if c is a suffix of p
+// True if array c is a suffix of array p,
 function suffix(p, c) {
     return c.reduce((b, _, i) => (b && c[c.length - 1 - i] === p[p.length - 1 - i]), true);
 }
