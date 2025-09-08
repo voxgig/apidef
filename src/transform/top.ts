@@ -5,7 +5,7 @@ import { joinurl } from '@voxgig/struct'
 
 import type { TransformResult } from '../transform'
 
-import { fixName } from '../transform'
+import type { TypeName } from '../types'
 
 
 // Guide* => from guide model
@@ -43,7 +43,7 @@ type MethodName = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | ''
 type ModelEntity = {
   name: string,
   op: ModelOpMap,
-  field: {},
+  fields: ModelField[],
   id: {
     name: string,
     field: string,
@@ -70,10 +70,32 @@ type ModelAlt = {
   orig: string
   method: MethodName
   parts: string[]
+  args: {
+    param: ModelArg[]
+    query: ModelArg[]
+    header: ModelArg[]
+    cookie: ModelArg[]
+  }
   select: {
     param: Record<string, true | string>
   }
 }
+
+
+type ModelArg = {
+  name: string
+  type: any // @voxgig/struct validation schema
+  kind: 'param' | 'query' | 'header' | 'cookie'
+  req: boolean
+}
+
+
+type ModelField = {
+  name: string
+  type: any // @voxgig/struct validation schema
+  req: boolean
+}
+
 
 
 type OpDesc = {
@@ -93,29 +115,76 @@ type PathDesc = {
 }
 
 
+
+type PathDef = {
+  summary?: string
+  description?: string
+  get?: OperationDef
+  put?: OperationDef
+  post?: OperationDef
+  delete?: OperationDef
+  options?: OperationDef
+  head?: OperationDef
+  patch?: OperationDef
+  trace?: OperationDef
+  servers?: ServerDef[]
+  parameters?: ParameterDef[]
+}
+
+
+type OperationDef = {
+  tags?: string[]
+  summary?: string
+  description?: string
+  operationId?: string
+  parameters?: ParameterDef[]
+  // requestBody?: RequestBodyObject | ReferenceDef
+  // responses: Record<string, ResponseObject | ReferenceDef>
+  // callbacks?: Record<string, CallbackObject | ReferenceDef>
+  deprecated?: boolean
+  // security?: SecurityRequirementDef[]
+  servers?: ServerDef[]
+}
+
+
+type ServerDef = {
+  url: string
+  description?: string
+  variables?: Record<string, ServerVariableDef>
+}
+
+type ServerVariableDef = {
+  enum?: string[]
+  default: string
+  description?: string
+}
+
 type ParameterDef = {
   name: string
   in: "query" | "header" | "path" | "cookie"
   description?: string
   required?: boolean
   deprecated?: boolean
-  schema?: ParameterSchemaDef
+  schema?: SchemaDef
+  nullable?: boolean
+  example?: any
+  // examples?: Record<string, ExampleObject | ReferenceDef>
 }
 
 
-type ParameterSchemaDef = {
+type SchemaDef = {
   title?: string
   description?: string
   type?: string
   format?: string
   enum?: any[]
-  items?: ParameterSchemaDef
-  properties?: Record<string, ParameterSchemaDef>
+  items?: SchemaDef
+  properties?: Record<string, SchemaDef>
   required?: string[]
-  additionalProperties?: boolean | ParameterSchemaDef
-  allOf?: ParameterSchemaDef[]
-  oneOf?: ParameterSchemaDef[]
-  anyOf?: ParameterSchemaDef[]
+  additionalProperties?: boolean | SchemaDef
+  allOf?: SchemaDef[]
+  oneOf?: SchemaDef[]
+  anyOf?: SchemaDef[]
   nullable?: boolean
   default?: any
   example?: any
@@ -146,6 +215,10 @@ export {
 }
 
 export type {
+  PathDef,
+  ParameterDef,
+  OperationDef,
+  SchemaDef,
   GuideEntity,
   GuidePath,
   GuideOp,
@@ -153,5 +226,8 @@ export type {
   ModelOpMap,
   ModelOp,
   ModelEntity,
+  ModelAlt,
+  ModelArg,
+  ModelField,
   OpName,
 }

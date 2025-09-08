@@ -3,86 +3,96 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.fieldTransform = void 0;
 const jostraca_1 = require("jostraca");
 const utility_1 = require("../utility");
-// import { fixName } from '../transform'
 const fieldTransform = async function (ctx) {
-    const { apimodel, model, def, guide } = ctx;
-    let msg = 'fields: ';
-    (0, jostraca_1.each)(guide.entity, (guideEntity) => {
-        const entityName = guideEntity.key$;
-        const entityModel = apimodel.main.api.entity[entityName];
-        let fieldCount = 0;
-        (0, jostraca_1.each)(guideEntity.path, (guidePath) => {
-            const path = guidePath.key$;
-            const pathdef = def.paths[path];
-            (0, jostraca_1.each)(guidePath.op, (op) => {
-                const opname = op.key$;
-                if ('load' === opname) {
-                    fieldCount = fieldbuild(entityModel, pathdef, op, guidePath, guideEntity, model);
+    const { apimodel, def } = ctx;
+    let msg = 'field ';
+    const opFieldPrecedence = ['load', 'create', 'update', 'patch', 'list'];
+    (0, jostraca_1.each)(apimodel.main.sdk.entity, (ment, entname) => {
+        const fielddefs = [];
+        const fields = ment.fields;
+        const seen = {};
+        for (let opname of opFieldPrecedence) {
+            const mop = ment.op[opname];
+            if (mop) {
+                const malts = mop.alts;
+                for (let malt of malts) {
+                    const opfields = resolveOpFields(ment, mop, malt, def);
+                    console.log('OPFIELDS', ment.name, mop.name, malt.parts.join('/'), malt.method, 'F=', opfields);
+                    for (let opfield of opfields) {
+                        if (!seen[opfield.name]) {
+                            fields.push(opfield);
+                        }
+                        else {
+                            mergeField(ment, mop, malt, def, seen[opfield.name], opfield);
+                        }
+                    }
                 }
-            });
+            }
+        }
+        fields.sort((a, b) => {
+            return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
         });
-        msg += guideEntity.name + '=' + fieldCount + ' ';
+        msg += ment.name + ' ';
     });
+    console.log('=== fieldTransform ===');
+    console.log((0, utility_1.formatJSONIC)(apimodel.main.sdk.entity));
     return { ok: true, msg };
 };
 exports.fieldTransform = fieldTransform;
-function fieldbuild(entityModel, pathdef, op, path, entity, model) {
-    let fieldCount = 0;
-    let fieldSets = (0, jostraca_1.getx)(pathdef.get, 'responses 200 content "application/json" schema');
-    if (fieldSets) {
-        if (Array.isArray(fieldSets.allOf)) {
-            fieldSets = fieldSets.allOf;
-        }
-        else if (fieldSets.properties) {
-            fieldSets = [fieldSets];
-        }
+function resolveOpFields(ment, mop, malt, def) {
+    const mfields = [];
+    const fielddefs = findFieldDefs(ment, mop, malt, def);
+    console.log('FIELDDEFS', fielddefs.length);
+    for (let fielddef of fielddefs) {
+        const fieldname = fielddef.key$;
+        const mfield = {
+            name: (0, utility_1.canonize)(fieldname),
+            type: (0, utility_1.validator)(fielddef.type),
+            req: !!fielddef.required
+        };
+        mfields.push(mfield);
     }
-    (0, jostraca_1.each)(fieldSets, (fieldSet) => {
-        (0, jostraca_1.each)(fieldSet.properties, (property) => {
-            const field = (entityModel.field[property.key$] = entityModel.field[property.key$] || {});
-            field.name = canonize(property.key$);
-            // fixName(field, field.name)
-            // field.type = property.type
-            resolveFieldType(entityModel, field, property);
-            // fixName(field, field.type, 'type')
-            field.short = property.description;
-            fieldCount++;
-        });
-    });
-    // Guess id field name using GET path param
-    if ('load' === op.key$) {
-        const getdef = pathdef.get;
-        const getparams = getdef.parameters || [];
-        if (1 === getparams.length) {
-            if (entityModel.op.load.path.match(RegExp('\\{' + getdef.parameters[0].name + '\\}$'))) {
-                entityModel.id.field = getdef.parameters[0].name;
+    return mfields;
+}
+function findFieldDefs(ment, mop, malt, def) {
+    const fielddefs = [];
+    const pathdef = def.paths[malt.orig];
+    const method = malt.method.toLowerCase();
+    const opdef = pathdef[method];
+    if (opdef) {
+        const responses = opdef.responses;
+        const requestBody = opdef.requestBody;
+        console.log('OPDEF', pathdef.key$, !!responses, !!requestBody);
+        let fieldSets;
+        if (responses) {
+            fieldSets = (0, jostraca_1.getx)(responses, '200 content "application/json" schema');
+            if ('get' === method && 'list' == mop.name) {
+                fieldSets = (0, jostraca_1.getx)(responses, '201 content "application/json" schema items');
+            }
+            else if ('put' === method && null == fieldSets) {
+                fieldSets = (0, jostraca_1.getx)(responses, '201 content "application/json" schema');
             }
         }
+        if (requestBody) {
+            fieldSets = [fieldSets, (0, jostraca_1.getx)(requestBody, 'content "application/json" schema')];
+        }
+        if (fieldSets) {
+            if (Array.isArray(fieldSets.allOf)) {
+                fieldSets = fieldSets.allOf;
+            }
+            else if (fieldSets.properties) {
+                fieldSets = [fieldSets];
+            }
+        }
+        (0, jostraca_1.each)(fieldSets, (fieldSet) => {
+            (0, jostraca_1.each)(fieldSet?.properties, (property) => {
+                fielddefs.push(property);
+            });
+        });
     }
-    return fieldCount;
+    return fielddefs;
 }
-// Resovles a heuristic "primary" type which subsumes the more detailed type.
-// The primary type is only: string, number, boolean, null, object, array
-function resolveFieldType(entity, field, property) {
-    const ptt = typeof property.type;
-    if ('string' === ptt) {
-        field.type = canonize(property.type);
-    }
-    else if (Array.isArray(property.type)) {
-        field.type = canonize((property.type.filter((t) => 'null' != t).sort()[0]) ||
-            property.type[0] ||
-            'string');
-        field.typelist = property.type;
-    }
-    else if ('undefined' === ptt && null != property.enum) {
-        field.type = 'string';
-        field.enum = property.enum;
-    }
-    else {
-        throw new Error(`APIDEF: Unsupported property type: ${property.type} (${entity.name}.${field.name})`);
-    }
-}
-function canonize(s) {
-    return (0, utility_1.depluralize)((0, jostraca_1.snakify)(s));
+function mergeField(ment, mop, malt, def, exisingField, newField) {
+    return exisingField;
 }
 //# sourceMappingURL=field.js.map

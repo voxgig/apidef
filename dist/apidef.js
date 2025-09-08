@@ -54,6 +54,7 @@ const utility_1 = require("./utility");
 const top_1 = require("./transform/top");
 const entity_1 = require("./transform/entity");
 const operation_1 = require("./transform/operation");
+const args_1 = require("./transform/args");
 const field_1 = require("./transform/field");
 const clean_1 = require("./transform/clean");
 const entity_2 = require("./builder/entity");
@@ -144,6 +145,7 @@ function ApiDef(opts) {
             top: top_1.topTransform,
             entity: entity_1.entityTransform,
             operation: operation_1.operationTransform,
+            args: args_1.argsTransform,
             field: field_1.fieldTransform,
             clean: clean_1.cleanTransform,
         });

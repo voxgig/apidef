@@ -10,12 +10,7 @@ import { Gubu, Child, Exact } from 'gubu'
 import { topTransform } from './transform/top'
 import { entityTransform } from './transform/entity'
 import { operationTransform } from './transform/operation'
-
-
-// NEXT - handle param, query, headers etc
-// import { argsTransform } from './transform/args'
-
-
+import { argsTransform } from './transform/args'
 import { fieldTransform } from './transform/field'
 // import { manualTransform } from './transform/manual'
 
@@ -60,6 +55,7 @@ const TRANSFORM: Record<string, Transform> = {
   top: topTransform,
   entity: entityTransform,
   operation: operationTransform,
+  args: argsTransform,
   field: fieldTransform,
   // manual: manualTransform,
 }

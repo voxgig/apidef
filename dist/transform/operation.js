@@ -4,27 +4,6 @@ exports.operationTransform = void 0;
 const jostraca_1 = require("jostraca");
 const struct_1 = require("@voxgig/struct");
 const utility_1 = require("../utility");
-/*
-type AltDesc = {
-  orig: string
-  parts: string[]
-  select: { param: Record<string, boolean> }
-}
-
-type OpDesc = {
-  name: string
-  alt: AltDesc[]
-}
-
-type OpMap = {
-  load: undefined | OpDesc,
-  list: undefined | OpDesc,
-  create: undefined | OpDesc,
-  update: undefined | OpDesc,
-  patch: undefined | OpDesc,
-  delete: undefined | OpDesc,
-}
-*/
 const operationTransform = async function (ctx) {
     const { apimodel, guide } = ctx;
     let msg = 'operation ';
@@ -38,16 +17,12 @@ const operationTransform = async function (ctx) {
             delete: undefined,
             patch: undefined,
         };
-        // console.log(entname, formatJSONIC(gent, { $: true }))
         resolveLoad(opm, gent);
         resolveList(opm, gent);
         resolveCreate(opm, gent);
         resolveUpdate(opm, gent);
         resolveDelete(opm, gent);
         resolvePatch(opm, gent);
-        // per path add select:param:name = false for params from other paths
-        // updateSelect(opm)
-        // console.log('OPM', entname, formatJSONIC(opm))
         apimodel.main.sdk.entity[entname].op = opm;
         msg += gent.name + ' ';
     });
@@ -113,10 +88,16 @@ function resolveOp(opname, gent) {
             name: opname,
             alts: opdsec.paths.map(p => {
                 const parts = applyRename(p);
-                return {
+                const malt = {
                     orig: p.orig,
                     parts,
                     method: p.method,
+                    args: {
+                        param: [],
+                        query: [],
+                        header: [],
+                        cookie: [],
+                    },
                     select: {
                         param: parts
                             .filter(p => '{' === p[0])
@@ -126,6 +107,7 @@ function resolveOp(opname, gent) {
                         } : {}))
                     },
                 };
+                return malt;
             })
         };
     }

@@ -1,129 +1,177 @@
 
 
-import { each, getx, snakify } from 'jostraca'
+import { each, getx } from 'jostraca'
 
-import { depluralize } from '../utility'
+import { getelem } from '@voxgig/struct'
 
 import type { TransformResult, Transform } from '../transform'
 
-// import { fixName } from '../transform'
+import { fixName } from '../transform'
+
+import { formatJSONIC, validator, canonize } from '../utility'
+
+
+import type {
+  PathDef,
+  ParameterDef,
+  OperationDef,
+  SchemaDef,
+  GuideEntity,
+  GuideOp,
+  PathDesc,
+  ModelOpMap,
+  ModelOp,
+  OpName,
+  ModelEntity,
+  ModelAlt,
+  ModelArg,
+  ModelField,
+} from './top'
 
 
 
 const fieldTransform: Transform = async function(
   ctx: any,
 ): Promise<TransformResult> {
-  const { apimodel, model, def, guide } = ctx
+  const { apimodel, def } = ctx
 
-  let msg = 'fields: '
+  let msg = 'field '
 
-  each(guide.entity, (guideEntity: any) => {
-    const entityName = guideEntity.key$
-    const entityModel = apimodel.main.api.entity[entityName]
+  const opFieldPrecedence: OpName[] = ['load', 'create', 'update', 'patch', 'list']
 
-    let fieldCount = 0
-    each(guideEntity.path, (guidePath: any) => {
-      const path = guidePath.key$
-      const pathdef = def.paths[path]
+  each(apimodel.main.sdk.entity, (ment: ModelEntity, entname: string) => {
+    const fielddefs: SchemaDef[] = []
 
-      each(guidePath.op, (op: any) => {
-        const opname = op.key$
+    const fields = ment.fields
+    const seen: any = {}
 
-        if ('load' === opname) {
-          fieldCount = fieldbuild(entityModel, pathdef, op, guidePath, guideEntity, model)
+    for (let opname of opFieldPrecedence) {
+      const mop = ment.op[opname]
+      if (mop) {
+        const malts = mop.alts
+
+        for (let malt of malts) {
+          const opfields = resolveOpFields(ment, mop, malt, def)
+          console.log('OPFIELDS', ment.name, mop.name, malt.parts.join('/'), malt.method, 'F=', opfields)
+
+          for (let opfield of opfields) {
+            if (!seen[opfield.name]) {
+              fields.push(opfield)
+            }
+            else {
+              mergeField(ment, mop, malt, def, seen[opfield.name], opfield)
+            }
+          }
         }
+      }
+    }
 
-      })
+    fields.sort((a: ModelField, b: ModelField) => {
+      return a.name < b.name ? -1 : a.name > b.name ? 1 : 0
     })
 
-    msg += guideEntity.name + '=' + fieldCount + ' '
+    msg += ment.name + ' '
   })
+
+  console.log('=== fieldTransform ===')
+  console.log(formatJSONIC(apimodel.main.sdk.entity))
 
   return { ok: true, msg }
 }
 
 
-function fieldbuild(
-  entityModel: any, pathdef: any, op: any, path: any, entity: any, model: any
-) {
-  let fieldCount = 0
-  let fieldSets = getx(pathdef.get, 'responses 200 content "application/json" schema')
 
-  if (fieldSets) {
-    if (Array.isArray(fieldSets.allOf)) {
-      fieldSets = fieldSets.allOf
+function resolveOpFields(
+  ment: ModelEntity,
+  mop: ModelOp,
+  malt: ModelAlt,
+  def: any
+): ModelField[] {
+  const mfields: ModelField[] = []
+  const fielddefs = findFieldDefs(ment, mop, malt, def)
+  console.log('FIELDDEFS', fielddefs.length)
+
+  for (let fielddef of fielddefs) {
+    const fieldname = (fielddef as any).key$ as string
+    const mfield: ModelField = {
+      name: canonize(fieldname),
+      type: validator(fielddef.type),
+      req: !!fielddef.required
     }
-    else if (fieldSets.properties) {
-      fieldSets = [fieldSets]
-    }
+    mfields.push(mfield)
   }
 
-  each(fieldSets, (fieldSet: any) => {
-    each(fieldSet.properties, (property: any) => {
-      const field =
-        (entityModel.field[property.key$] = entityModel.field[property.key$] || {})
+  return mfields
+}
 
-      field.name = canonize(property.key$)
-      // fixName(field, field.name)
 
-      // field.type = property.type
-      resolveFieldType(entityModel, field, property)
-      // fixName(field, field.type, 'type')
+function findFieldDefs(
+  ment: ModelEntity,
+  mop: ModelOp,
+  malt: ModelAlt,
+  def: any
+): SchemaDef[] {
+  const fielddefs: SchemaDef[] = []
+  const pathdef = def.paths[malt.orig]
 
-      field.short = property.description
+  const method = malt.method.toLowerCase()
+  const opdef: any = pathdef[method]
 
-      fieldCount++
-    })
-  })
+  if (opdef) {
+    const responses = opdef.responses
+    const requestBody = opdef.requestBody
 
-  // Guess id field name using GET path param
-  if ('load' === op.key$) {
-    const getdef = pathdef.get
-    const getparams = getdef.parameters || []
-    if (1 === getparams.length) {
-      if (entityModel.op.load.path.match(RegExp('\\{' + getdef.parameters[0].name + '\\}$'))) {
-        entityModel.id.field = getdef.parameters[0].name
+    console.log('OPDEF', pathdef.key$, !!responses, !!requestBody)
+
+    let fieldSets
+
+    if (responses) {
+      fieldSets = getx(responses, '200 content "application/json" schema')
+      if ('get' === method && 'list' == mop.name) {
+        fieldSets = getx(responses, '201 content "application/json" schema items')
+      }
+      else if ('put' === method && null == fieldSets) {
+        fieldSets = getx(responses, '201 content "application/json" schema')
       }
     }
+
+    if (requestBody) {
+      fieldSets = [fieldSets, getx(requestBody, 'content "application/json" schema')]
+    }
+
+
+    if (fieldSets) {
+      if (Array.isArray(fieldSets.allOf)) {
+        fieldSets = fieldSets.allOf
+      }
+      else if (fieldSets.properties) {
+        fieldSets = [fieldSets]
+      }
+    }
+
+    each(fieldSets, (fieldSet: any) => {
+      each(fieldSet?.properties, (property: any) => {
+        fielddefs.push(property)
+      })
+    })
   }
 
-  return fieldCount
+  return fielddefs
 }
 
 
-// Resovles a heuristic "primary" type which subsumes the more detailed type.
-// The primary type is only: string, number, boolean, null, object, array
-function resolveFieldType(entity: any, field: any, property: any) {
-  const ptt = typeof property.type
-
-  if ('string' === ptt) {
-    field.type = canonize(property.type)
-  }
-  else if (Array.isArray(property.type)) {
-    field.type = canonize(
-      (property.type.filter((t: string) => 'null' != t).sort()[0]) ||
-      property.type[0] ||
-      'string'
-    )
-    field.typelist = property.type
-  }
-  else if ('undefined' === ptt && null != property.enum) {
-    field.type = 'string'
-    field.enum = property.enum
-  }
-  else {
-    throw new Error(
-      `APIDEF: Unsupported property type: ${property.type} (${entity.name}.${field.name})`)
-  }
-}
-
-
-function canonize(s: string) {
-  return depluralize(snakify(s))
+function mergeField(
+  ment: ModelEntity,
+  mop: ModelOp,
+  malt: ModelAlt,
+  def: any,
+  exisingField: ModelField,
+  newField: ModelField
+) {
+  return exisingField
 }
 
 
 export {
-  fieldTransform
+  fieldTransform,
 }
-

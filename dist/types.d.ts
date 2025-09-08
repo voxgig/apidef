@@ -2,6 +2,7 @@ import * as Fs from 'node:fs';
 import { Pino, prettyPino } from '@voxgig/util';
 type FsUtil = typeof Fs;
 type Log = ReturnType<typeof prettyPino>;
+type TypeName = 'String' | 'Number' | 'Integer' | 'Boolean' | 'Null' | 'Array' | 'Object' | 'Any';
 type ApiDefOptions = {
     def?: string;
     fs?: any;
@@ -1003,4 +1004,4 @@ type ApiDefResult = {
     jres?: any;
 };
 export { OpenControlShape, OpenModelShape, OpenBuildShape, };
-export type { Log, FsUtil, ApiDefOptions, ApiDefResult, Control, Model, Build, ApiModel, };
+export type { TypeName, Log, FsUtil, ApiDefOptions, ApiDefResult, Control, Model, Build, ApiModel, };

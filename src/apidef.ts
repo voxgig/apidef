@@ -56,6 +56,7 @@ import {
 import { topTransform } from './transform/top'
 import { entityTransform } from './transform/entity'
 import { operationTransform } from './transform/operation'
+import { argsTransform } from './transform/args'
 import { fieldTransform } from './transform/field'
 import { cleanTransform } from './transform/clean'
 
@@ -181,6 +182,7 @@ function ApiDef(opts: ApiDefOptions) {
       top: topTransform,
       entity: entityTransform,
       operation: operationTransform,
+      args: argsTransform,
       field: fieldTransform,
       clean: cleanTransform,
     })

@@ -1,12 +1,15 @@
 
 import Path from 'node:path'
 
+import { snakify } from 'jostraca'
+
 import { slice, merge, inject, clone, isnode, walk, transform, select } from '@voxgig/struct'
 
 
 import type {
   FsUtil,
-  Log
+  Log,
+  TypeName,
 } from './types'
 
 
@@ -636,6 +639,37 @@ function formatJSONIC(val?: any, opts?: { hsepd?: number, $?: boolean }): string
 }
 
 
+const VALID_CANON: Record<string, string> = {
+  'string': '`$STRING`',
+  'number': '`$NUMBER`',
+  'integer': '`$INTEGER`',
+  'boolean': '`$BOOLEAN`',
+  'null': '`$NULL`',
+  'array': '`$ARRAY`',
+  'object': '`$OBJECT`',
+  'any': '`$ANY`',
+}
+
+
+function validator(torig: undefined | string | string[]): any {
+  if ('string' === typeof torig) {
+    const tstr = torig.toLowerCase().trim()
+    const canon = VALID_CANON[tstr] ?? 'Any'
+    return canon
+  }
+  else if (Array.isArray(torig)) {
+    return ['`$ONE`', torig.map((t: string) => validator(t))]
+  }
+  else {
+    return '`$ANY`'
+  }
+}
+
+function canonize(s: string) {
+  return depluralize(snakify(s))
+}
+
+
 export {
   getdlog,
   loadFile,
@@ -645,5 +679,7 @@ export {
   capture,
   pathMatch,
   makeWarner,
-  formatJSONIC
+  formatJSONIC,
+  validator,
+  canonize,
 }

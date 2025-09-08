@@ -27,4 +27,6 @@ declare function formatJSONIC(val?: any, opts?: {
     hsepd?: number;
     $?: boolean;
 }): string;
-export { getdlog, loadFile, formatJsonSrc, depluralize, find, capture, pathMatch, makeWarner, formatJSONIC };
+declare function validator(torig: undefined | string | string[]): any;
+declare function canonize(s: string): string;
+export { getdlog, loadFile, formatJsonSrc, depluralize, find, capture, pathMatch, makeWarner, formatJSONIC, validator, canonize, };

@@ -10,6 +10,17 @@ type FsUtil = typeof Fs
 type Log = ReturnType<typeof prettyPino>
 
 
+type TypeName =
+  'String' |
+  'Number' |
+  'Integer' |
+  'Boolean' |
+  'Null' |
+  'Array' |
+  'Object' |
+  'Any'
+
+
 type ApiDefOptions = {
   def?: string
   fs?: any
@@ -112,6 +123,7 @@ export {
 
 
 export type {
+  TypeName,
   Log,
   FsUtil,
   ApiDefOptions,

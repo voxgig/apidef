@@ -40,7 +40,7 @@ const entityTransform: Transform = async function(
         delete: undefined,
         patch: undefined,
       },
-      field: {},
+      fields: [],
       id: {
         name: 'id',
         field: 'id',

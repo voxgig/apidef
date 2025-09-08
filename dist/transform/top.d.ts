@@ -19,7 +19,7 @@ type MethodName = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | '';
 type ModelEntity = {
     name: string;
     op: ModelOpMap;
-    field: {};
+    fields: ModelField[];
     id: {
         name: string;
         field: string;
@@ -39,9 +39,26 @@ type ModelAlt = {
     orig: string;
     method: MethodName;
     parts: string[];
+    args: {
+        param: ModelArg[];
+        query: ModelArg[];
+        header: ModelArg[];
+        cookie: ModelArg[];
+    };
     select: {
         param: Record<string, true | string>;
     };
+};
+type ModelArg = {
+    name: string;
+    type: any;
+    kind: 'param' | 'query' | 'header' | 'cookie';
+    req: boolean;
+};
+type ModelField = {
+    name: string;
+    type: any;
+    req: boolean;
 };
 type OpDesc = {
     paths: PathDesc[];
@@ -56,31 +73,66 @@ type PathDesc = {
         parameters?: ParameterDef[];
     };
 };
+type PathDef = {
+    summary?: string;
+    description?: string;
+    get?: OperationDef;
+    put?: OperationDef;
+    post?: OperationDef;
+    delete?: OperationDef;
+    options?: OperationDef;
+    head?: OperationDef;
+    patch?: OperationDef;
+    trace?: OperationDef;
+    servers?: ServerDef[];
+    parameters?: ParameterDef[];
+};
+type OperationDef = {
+    tags?: string[];
+    summary?: string;
+    description?: string;
+    operationId?: string;
+    parameters?: ParameterDef[];
+    deprecated?: boolean;
+    servers?: ServerDef[];
+};
+type ServerDef = {
+    url: string;
+    description?: string;
+    variables?: Record<string, ServerVariableDef>;
+};
+type ServerVariableDef = {
+    enum?: string[];
+    default: string;
+    description?: string;
+};
 type ParameterDef = {
     name: string;
     in: "query" | "header" | "path" | "cookie";
     description?: string;
     required?: boolean;
     deprecated?: boolean;
-    schema?: ParameterSchemaDef;
+    schema?: SchemaDef;
+    nullable?: boolean;
+    example?: any;
 };
-type ParameterSchemaDef = {
+type SchemaDef = {
     title?: string;
     description?: string;
     type?: string;
     format?: string;
     enum?: any[];
-    items?: ParameterSchemaDef;
-    properties?: Record<string, ParameterSchemaDef>;
+    items?: SchemaDef;
+    properties?: Record<string, SchemaDef>;
     required?: string[];
-    additionalProperties?: boolean | ParameterSchemaDef;
-    allOf?: ParameterSchemaDef[];
-    oneOf?: ParameterSchemaDef[];
-    anyOf?: ParameterSchemaDef[];
+    additionalProperties?: boolean | SchemaDef;
+    allOf?: SchemaDef[];
+    oneOf?: SchemaDef[];
+    anyOf?: SchemaDef[];
     nullable?: boolean;
     default?: any;
     example?: any;
 };
 declare const topTransform: (ctx: any) => Promise<TransformResult>;
 export { topTransform };
-export type { GuideEntity, GuidePath, GuideOp, PathDesc, ModelOpMap, ModelOp, ModelEntity, OpName, };
+export type { PathDef, ParameterDef, OperationDef, SchemaDef, GuideEntity, GuidePath, GuideOp, PathDesc, ModelOpMap, ModelOp, ModelEntity, ModelAlt, ModelArg, ModelField, OpName, };

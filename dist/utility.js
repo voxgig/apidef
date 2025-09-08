@@ -12,7 +12,10 @@ exports.capture = capture;
 exports.pathMatch = pathMatch;
 exports.makeWarner = makeWarner;
 exports.formatJSONIC = formatJSONIC;
+exports.validator = validator;
+exports.canonize = canonize;
 const node_path_1 = __importDefault(require("node:path"));
+const jostraca_1 = require("jostraca");
 const struct_1 = require("@voxgig/struct");
 function makeWarner(spec) {
     const { point, log } = spec;
@@ -519,5 +522,31 @@ function formatJSONIC(val, opts) {
             throw new Error(`Assertion failed: stack[${i}] not cleared`);
     }
     return lines.join('\n') + '\n';
+}
+const VALID_CANON = {
+    'string': '`$STRING`',
+    'number': '`$NUMBER`',
+    'integer': '`$INTEGER`',
+    'boolean': '`$BOOLEAN`',
+    'null': '`$NULL`',
+    'array': '`$ARRAY`',
+    'object': '`$OBJECT`',
+    'any': '`$ANY`',
+};
+function validator(torig) {
+    if ('string' === typeof torig) {
+        const tstr = torig.toLowerCase().trim();
+        const canon = VALID_CANON[tstr] ?? 'Any';
+        return canon;
+    }
+    else if (Array.isArray(torig)) {
+        return ['`$ONE`', torig.map((t) => validator(t))];
+    }
+    else {
+        return '`$ANY`';
+    }
+}
+function canonize(s) {
+    return depluralize((0, jostraca_1.snakify)(s));
 }
 //# sourceMappingURL=utility.js.map

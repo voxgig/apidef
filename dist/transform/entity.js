@@ -22,7 +22,7 @@ const entityTransform = async function (ctx) {
                 delete: undefined,
                 patch: undefined,
             },
-            field: {},
+            fields: [],
             id: {
                 name: 'id',
                 field: 'id',
