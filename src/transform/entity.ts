@@ -32,14 +32,7 @@ const entityTransform: Transform = async function(
 
     const modelent: ModelEntity = {
       name: entname,
-      op: {
-        load: undefined,
-        list: undefined,
-        create: undefined,
-        update: undefined,
-        delete: undefined,
-        patch: undefined,
-      },
+      op: {},
       fields: [],
       id: {
         name: 'id',
@@ -52,9 +45,6 @@ const entityTransform: Transform = async function(
 
     msg += guideEntity.name + ' '
   })
-
-  console.log('=== entityTransform ===')
-  console.log(formatJSONIC(apimodel.main.sdk.entity))
 
   return { ok: true, msg }
 }

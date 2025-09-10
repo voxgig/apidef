@@ -2,23 +2,16 @@
 
 import { each, snakify } from 'jostraca'
 
-import { getelem } from '@voxgig/struct'
-
 import type { TransformResult, Transform } from '../transform'
 
-import { fixName } from '../transform'
-
 import { formatJSONIC, depluralize, validator } from '../utility'
+
 
 
 import type {
   PathDef,
   ParameterDef,
   OperationDef,
-  GuideEntity,
-  GuideOp,
-  PathDesc,
-  ModelOpMap,
   ModelOp,
   OpName,
   ModelEntity,
@@ -48,16 +41,11 @@ const argsTransform: Transform = async function(
         argdefs.push(...(opdef.parameters ?? []))
 
         resolveArgs(ment, mop, malt, argdefs)
-
-        console.log('ALT', entname, opname, malt, argdefs)
       })
     })
 
     msg += ment.name + ' '
   })
-
-  console.log('=== argsTransform ===')
-  console.log(formatJSONIC(apimodel.main.sdk.entity))
 
   return { ok: true, msg }
 }
@@ -85,8 +73,7 @@ function resolveArgs(ment: ModelEntity, mop: ModelOp, malt: ModelAlt, argdefs: P
     }
 
     // insert sorted by name
-    let kindargs = malt.args[marg.kind]
-    // kindargs.push(marg)
+    let kindargs = (malt.args[marg.kind] = malt.args[marg.kind] ?? [])
 
     let kalen = kindargs.length
     for (let ka, i = 0; i <= kalen; i++) {

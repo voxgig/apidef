@@ -99,6 +99,7 @@ function ApiDef(opts: ApiDefOptions) {
       main: {
         api: {},
         sdk: {
+          info: {},
           entity: {},
           flow: {},
         },
@@ -149,17 +150,11 @@ function ApiDef(opts: ApiDefOptions) {
     const safedef = decircular(def)
     const fullsrc = JSON.stringify(safedef, null, 2)
 
-    console.log('APIDEF-GEN A', defpath, defsrc.length, fullsrc.length)
-
     fs.writeFileSync(defpath + '.full.json', fullsrc)
-
-    console.log('APIDEF-GEN B', JSON.stringify(fs.__vol__.toJSON(),
-      (k, v) => 'string' === typeof v ? '...' : v, 2))
 
     ctx.def = safedef
 
     steps.push('parse')
-
 
     // Step: guide (derive).
     if (!ctrl.step.guide) {
@@ -247,7 +242,7 @@ function ApiDef(opts: ApiDefOptions) {
       ctrl,
 
       guide: ctx.guide,
-      apimodel,
+      apimodel: ctx.apimodel,
       ctx,
       jres,
     }

@@ -13,28 +13,21 @@ const utility_1 = require("../utility");
 // Log non-fatal wierdness.
 const dlog = (0, utility_1.getdlog)('apidef', __filename);
 async function buildGuide(ctx) {
-    // console.log('Circular-buildGuide')
-    // console.log(JSON.stringify(decircular(ctx.def), null, 2))
     const errs = [];
-    // console.log(ctx)
     const folder = node_path_1.default.resolve(ctx.opts.folder);
-    // console.log('GUIDE folder', folder)
     try {
         const basejres = await buildBaseGuide(ctx);
-        console.log(basejres);
     }
     catch (err) {
         errs.push(err);
     }
     handleErrors(ctx, errs);
-    // console.log(ctx.fs.__vol__.toJSON())
     let src = '';
     let guidePath = node_path_1.default.join(folder, 'guide', (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'guide.jsonic');
     try {
         src = ctx.fs.readFileSync(guidePath, 'utf8');
     }
     catch (err) {
-        console.log('GUIDE-FILE-ERR', ctx.fs.__mem__, err);
         errs.push(err);
     }
     handleErrors(ctx, errs);
@@ -42,7 +35,6 @@ async function buildGuide(ctx) {
         path: guidePath,
         fs: ctx.fs,
     };
-    console.log('GUIDE-READY', guidePath, src);
     const guideRoot = (0, aontu_1.Aontu)(src, opts);
     errs.push(...guideRoot.err);
     handleErrors(ctx, errs);
@@ -70,7 +62,6 @@ async function buildBaseGuide(ctx) {
     else {
         throw new Error('Unknown guide strategy: ' + ctx.opts.strategy);
     }
-    // console.dir(baseguide, { depth: null })
     const guideBlocks = [
         '# Guide',
         '',
@@ -113,8 +104,6 @@ async function buildBaseGuide(ctx) {
     const guideSrc = guideBlocks.join('\n');
     ctx.note.guide = { base: guideSrc };
     const baseGuideFileName = (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'base-guide.jsonic';
-    console.log('GUIDE-SRC', baseGuideFileName, guideSrc.length);
-    // console.log(guideSrc)
     const jostraca = (0, jostraca_1.Jostraca)({
         folder: ctx.opts.folder + '/guide',
         now: ctx.spec.now,
@@ -143,7 +132,6 @@ function validateBaseBuide(ctx, baseguide) {
             }
         });
     });
-    // console.log('DEFPM', defpm)
     const genm = {};
     // Each entity.
     (0, jostraca_1.each)(baseguide.entity, (edef) => {

@@ -55,9 +55,6 @@ const operationTransform: Transform = async function(
     msg += gent.name + ' '
   })
 
-  console.log('=== operationTransform ===')
-  console.log(formatJSONIC(apimodel.main.sdk.entity))
-
   return { ok: true, msg }
 }
 
@@ -145,12 +142,7 @@ function resolveOp(opname: OpName, gent: GuideEntity): undefined | ModelOp {
           orig: p.orig,
           parts,
           method: p.method,
-          args: {
-            param: [],
-            query: [],
-            header: [],
-            cookie: [],
-          },
+          args: {},
           select: {
             param: parts
               .filter(p => '{' === p[0])

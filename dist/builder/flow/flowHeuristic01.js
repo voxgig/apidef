@@ -13,7 +13,7 @@ async function flowHeuristic01(ctx) {
 }
 function resolveBasicEntityFlow(ctx, entity) {
     const { apimodel, model } = ctx;
-    const apiEntity = apimodel.main.api.entity[entity.name];
+    const apiEntity = apimodel.main.sdk.entity[entity.name];
     const flow = {
         name: 'Basic' + apiEntity.Name + 'Flow'
     };

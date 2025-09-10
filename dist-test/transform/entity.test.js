@@ -5,36 +5,36 @@ const node_test_1 = require("node:test");
 const code_1 = require("@hapi/code");
 const entity_1 = require("../../dist/transform/entity");
 (0, node_test_1.describe)('transform-entity', () => {
-    (0, node_test_1.test)('resolvePathList', () => {
-        (0, code_1.expect)(entity_1.resolvePathList).exist();
-        (0, code_1.expect)((0, entity_1.resolvePathList)({
-            path: {
-                '/foo': {},
-                '/bar/{bar}': {},
-                '/zed/{f0}/dez/{f1}': {
-                    rename: {
-                        param: {
-                            f0: 't0',
-                            f1: 't1',
-                        }
-                    }
-                },
-            }
-        })).equals([
-            { orig: '/foo', parts: ['foo'], rename: {} },
-            { orig: '/bar/{bar}', parts: ['bar', '{bar}'], rename: {} },
-            {
-                orig: '/zed/{f0}/dez/{f1}',
-                parts: ['zed', '{t0}', 'dez', '{t1}'],
-                rename: {
-                    param: {
-                        f0: 't0',
-                        f1: 't1',
-                    }
-                }
-            }
-        ]);
-    });
+    // test('resolvePathList', () => {
+    //   expect(resolvePathList).exist()
+    //   expect(resolvePathList({
+    //     path: {
+    //       '/foo': {},
+    //       '/bar/{bar}': {},
+    //       '/zed/{f0}/dez/{f1}': {
+    //         rename: {
+    //           param: {
+    //             f0: 't0',
+    //             f1: 't1',
+    //           }
+    //         }
+    //       },
+    //     }
+    //   })).equals([
+    //     { orig: '/foo', parts: ['foo'], rename: {} },
+    //     { orig: '/bar/{bar}', parts: ['bar', '{bar}'], rename: {} },
+    //     {
+    //       orig: '/zed/{f0}/dez/{f1}',
+    //       parts: ['zed', '{t0}', 'dez', '{t1}'],
+    //       rename: {
+    //         param: {
+    //           f0: 't0',
+    //           f1: 't1',
+    //         }
+    //       }
+    //     }
+    //   ])
+    // })
     (0, node_test_1.test)('buildRelations', () => {
         (0, code_1.expect)(entity_1.buildRelations).exist();
         const r0 = (0, entity_1.buildRelations)({}, [

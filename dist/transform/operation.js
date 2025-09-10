@@ -3,7 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.operationTransform = void 0;
 const jostraca_1 = require("jostraca");
 const struct_1 = require("@voxgig/struct");
-const utility_1 = require("../utility");
 const operationTransform = async function (ctx) {
     const { apimodel, guide } = ctx;
     let msg = 'operation ';
@@ -26,8 +25,6 @@ const operationTransform = async function (ctx) {
         apimodel.main.sdk.entity[entname].op = opm;
         msg += gent.name + ' ';
     });
-    console.log('=== operationTransform ===');
-    console.log((0, utility_1.formatJSONIC)(apimodel.main.sdk.entity));
     return { ok: true, msg };
 };
 exports.operationTransform = operationTransform;
@@ -92,12 +89,7 @@ function resolveOp(opname, gent) {
                     orig: p.orig,
                     parts,
                     method: p.method,
-                    args: {
-                        param: [],
-                        query: [],
-                        header: [],
-                        cookie: [],
-                    },
+                    args: {},
                     select: {
                         param: parts
                             .filter(p => '{' === p[0])

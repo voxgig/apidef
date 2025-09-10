@@ -4,7 +4,6 @@ exports.entityTransform = void 0;
 exports.resolvePathList = resolvePathList;
 exports.buildRelations = buildRelations;
 const jostraca_1 = require("jostraca");
-const utility_1 = require("../utility");
 const entityTransform = async function (ctx) {
     const { apimodel, guide } = ctx;
     let msg = '';
@@ -14,14 +13,7 @@ const entityTransform = async function (ctx) {
         const relations = buildRelations(guideEntity, paths$);
         const modelent = {
             name: entname,
-            op: {
-                load: undefined,
-                list: undefined,
-                create: undefined,
-                update: undefined,
-                delete: undefined,
-                patch: undefined,
-            },
+            op: {},
             fields: [],
             id: {
                 name: 'id',
@@ -32,8 +24,6 @@ const entityTransform = async function (ctx) {
         apimodel.main.sdk.entity[entname] = modelent;
         msg += guideEntity.name + ' ';
     });
-    console.log('=== entityTransform ===');
-    console.log((0, utility_1.formatJSONIC)(apimodel.main.sdk.entity));
     return { ok: true, msg };
 };
 exports.entityTransform = entityTransform;

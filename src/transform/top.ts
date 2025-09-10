@@ -51,7 +51,9 @@ type ModelEntity = {
   relations: ModelEntityRelations
 }
 
-type ModelOpMap = Record<OpName, ModelOp | undefined>
+
+type ModelOpMap = Partial<Record<OpName, ModelOp | undefined>>
+
 
 type ModelEntityRelations = {
   ancestors: string[][]
@@ -70,12 +72,12 @@ type ModelAlt = {
   orig: string
   method: MethodName
   parts: string[]
-  args: {
+  args: Partial<{
     param: ModelArg[]
     query: ModelArg[]
     header: ModelArg[]
     cookie: ModelArg[]
-  }
+  }>
   select: {
     param: Record<string, true | string>
   }
@@ -94,7 +96,15 @@ type ModelField = {
   name: string
   type: any // @voxgig/struct validation schema
   req: boolean
+  op: Partial<Record<OpName, ModelFieldOp>>
 }
+
+
+type ModelFieldOp = {
+  type: any // @voxgig/struct validation schema
+  req: boolean
+}
+
 
 
 
@@ -196,12 +206,12 @@ const topTransform = async function(
 ): Promise<TransformResult> {
   const { apimodel, def } = ctx
 
-  apimodel.main.def.info = def.info
-  apimodel.main.def.servers = def.servers ?? []
+  apimodel.main.sdk.info = def.info
+  apimodel.main.sdk.servers = def.servers ?? []
 
   // Swagger 2.0
   if (def.host) {
-    apimodel.main.def.servers.push({
+    apimodel.main.sdk.info.servers.push({
       url: (def.schemes?.[0] ?? 'https') + '://' + joinurl([def.host, def.basePath])
     })
   }

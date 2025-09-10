@@ -22,26 +22,18 @@ const dlog = getdlog('apidef', __filename)
 
 
 async function buildGuide(ctx: any): Promise<any> {
-  // console.log('Circular-buildGuide')
-  // console.log(JSON.stringify(decircular(ctx.def), null, 2))
-
   const errs: any[] = []
 
-  // console.log(ctx)
   const folder = Path.resolve(ctx.opts.folder)
-  // console.log('GUIDE folder', folder)
 
   try {
     const basejres = await buildBaseGuide(ctx)
-    console.log(basejres)
   }
   catch (err: any) {
     errs.push(err)
   }
 
   handleErrors(ctx, errs)
-
-  // console.log(ctx.fs.__vol__.toJSON())
 
   let src = ''
   let guidePath = Path.join(folder, 'guide',
@@ -51,7 +43,6 @@ async function buildGuide(ctx: any): Promise<any> {
     src = ctx.fs.readFileSync(guidePath, 'utf8')
   }
   catch (err: any) {
-    console.log('GUIDE-FILE-ERR', ctx.fs.__mem__, err)
     errs.push(err)
   }
 
@@ -62,8 +53,6 @@ async function buildGuide(ctx: any): Promise<any> {
     path: guidePath,
     fs: ctx.fs,
   }
-
-  console.log('GUIDE-READY', guidePath, src)
 
   const guideRoot = Aontu(src, opts)
   errs.push(...guideRoot.err)
@@ -103,8 +92,6 @@ async function buildBaseGuide(ctx: any) {
   else {
     throw new Error('Unknown guide strategy: ' + ctx.opts.strategy)
   }
-
-  // console.dir(baseguide, { depth: null })
 
   const guideBlocks = [
     '# Guide',
@@ -165,9 +152,6 @@ async function buildBaseGuide(ctx: any) {
   const baseGuideFileName =
     (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'base-guide.jsonic'
 
-  console.log('GUIDE-SRC', baseGuideFileName, guideSrc.length)
-  // console.log(guideSrc)
-
   const jostraca = Jostraca({
     folder: ctx.opts.folder + '/guide',
     now: ctx.spec.now,
@@ -204,8 +188,6 @@ function validateBaseBuide(ctx: any, baseguide: any) {
       }
     })
   })
-
-  // console.log('DEFPM', defpm)
 
   const genm: any = {}
 

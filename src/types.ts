@@ -93,6 +93,7 @@ type ApiModel = {
   main: {
     api: Record<string, any>
     sdk: {
+      info: Record<string, any>
       entity: Record<string, any>
       flow: Record<string, any>
     }

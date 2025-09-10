@@ -25,8 +25,6 @@ async function parseOpenAPI(source, meta) {
         config,
         dereference: false,
     });
-    // console.log('Circular-parseOpenAPI')
-    // console.log(JSON.stringify(decircular(bundleWithRefs.bundle.parsed), null, 2))
     // Walk the tree and add x-ref properties
     const seen = new WeakSet();
     let refCount = 0;
@@ -52,8 +50,6 @@ async function parseOpenAPI(source, meta) {
         }
     }
     addXRefs(bundleWithRefs.bundle.parsed);
-    // console.log('Circular-addXRefs')
-    // console.log(JSON.stringify(decircular(bundleWithRefs.bundle.parsed), null, 2))
     // Serialize back to string with x-refs preserved
     const sourceWithXRefs = JSON.stringify((0, decircular_1.default)(bundleWithRefs.bundle.parsed));
     // Second pass: parse with dereferencing
@@ -64,8 +60,6 @@ async function parseOpenAPI(source, meta) {
         dereference: true,
     });
     const def = (0, decircular_1.default)(bundle.bundle.parsed);
-    // console.log('Circular-done')
-    // console.log(JSON.stringify(def, null, 2))
     return def;
 }
 //# sourceMappingURL=parse.js.map

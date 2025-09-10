@@ -21,7 +21,7 @@ async function flowHeuristic01(ctx: any): Promise<any[]> {
 
 function resolveBasicEntityFlow(ctx: any, entity: any) {
   const { apimodel, model } = ctx
-  const apiEntity = apimodel.main.api.entity[entity.name]
+  const apiEntity = apimodel.main.sdk.entity[entity.name]
 
   const flow: any = {
     name: 'Basic' + apiEntity.Name + 'Flow'

@@ -250,7 +250,6 @@ function $SELECT(inj, _val, _ref, store) {
         const dparents = Object.entries(inj.dparent || {})
             .filter(n => (0, struct_1.isnode)(n[1]))
             .reduce((a, n) => (a[n[0]] = n[1], a), {});
-        // console.log('SELECT-FROM', dparents)
         if (selector instanceof RegExp) {
             selector = {
                 '$KEY': { '`$LIKE`': selector.toString() }
@@ -310,13 +309,11 @@ function pathMatch(path, expr) {
     res.expr = expr;
     const plen = parts.length;
     const xlen = expr.length;
-    // console.log('INIT', { plen, xlen })
     let xI = 0, pI = 0, mI = -1;
     for (; pI <= parts.length; pI++) {
         let p = parts[pI];
         let x = expr[xI];
         let isp = isParam(p);
-        // console.log('START', { xI, x, pI, p, isp })
         if ('/' === x) {
             if (0 === xI) {
                 if (0 === pI) {
@@ -335,7 +332,6 @@ function pathMatch(path, expr) {
                 }
                 else {
                     if (-1 < mI) {
-                        // console.log('BACKTRACK-A')
                         // backtrack
                         pI = mI;
                         mI = -1;
@@ -362,14 +358,12 @@ function pathMatch(path, expr) {
         }
         else {
             if (-1 < mI) {
-                // console.log('BACKTRACK-B')
                 // backtrack
                 pI = mI;
                 mI = -1;
             }
             xI = 0;
         }
-        // console.log('END', { xI, x, pI, p, isp })
         if (xI === xlen) {
             break;
         }
@@ -433,7 +427,6 @@ function formatJSONIC(val, opts) {
     const lines = [];
     while (top >= 0) {
         const frame = stack[top];
-        // console.log('HSEP', hsep, frame.indentLevel, hsepd)
         stack[top] = undefined;
         top -= 1;
         if (frame.kind === 'close') {

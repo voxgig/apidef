@@ -6,19 +6,19 @@ import {
 } from './entity/entity'
 
 import {
-  resolveDef
-} from './entity/def'
+  resolveInfo
+} from './entity/info'
 
 
 async function makeEntityBuilder(ctx: any) {
   const { apimodel, opts } = ctx
 
   const entityBuilder = resolveEntity(apimodel, opts)
-  const defBuilder = resolveDef(apimodel, opts)
+  const infoBuilder = resolveInfo(apimodel, opts)
 
   return function fullEntityBuilder() {
     entityBuilder()
-    defBuilder()
+    infoBuilder()
   }
 }
 

@@ -1,21 +1,21 @@
 "use strict";
 /* Copyright (c) 2025 Voxgig, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.resolveDef = resolveDef;
+exports.resolveInfo = resolveInfo;
 const utility_1 = require("../../utility");
 const jostraca_1 = require("jostraca");
-function resolveDef(apimodel, opts) {
-    const infoFile = (null == opts.outprefix ? '' : opts.outprefix) + 'api-def.jsonic';
-    const modelDef = { main: { def: apimodel.main.def } };
+function resolveInfo(apimodel, opts) {
+    const infoFile = (null == opts.outprefix ? '' : opts.outprefix) + 'api-info.jsonic';
+    const modelInfo = { main: { info: apimodel.main.sdk.info } };
     // let modelDefSrc = JSON.stringify(modelDef, null, 2)
-    let modelDefSrc = (0, utility_1.formatJSONIC)(modelDef);
+    let modelDefSrc = (0, utility_1.formatJSONIC)(modelInfo);
     modelDefSrc =
-        '# API Definition\n\n' +
+        '# API Information\n\n' +
             modelDefSrc.substring(1, modelDefSrc.length - 1).replace(/\n  /g, '\n');
-    return function defBuilder() {
+    return function infoBuilder() {
         (0, jostraca_1.Folder)({ name: 'api' }, () => {
             (0, jostraca_1.File)({ name: infoFile }, () => (0, jostraca_1.Content)(modelDefSrc));
         });
     };
 }
-//# sourceMappingURL=def.js.map
+//# sourceMappingURL=info.js.map

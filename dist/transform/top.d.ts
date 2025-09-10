@@ -26,7 +26,7 @@ type ModelEntity = {
     };
     relations: ModelEntityRelations;
 };
-type ModelOpMap = Record<OpName, ModelOp | undefined>;
+type ModelOpMap = Partial<Record<OpName, ModelOp | undefined>>;
 type ModelEntityRelations = {
     ancestors: string[][];
 };
@@ -39,12 +39,12 @@ type ModelAlt = {
     orig: string;
     method: MethodName;
     parts: string[];
-    args: {
+    args: Partial<{
         param: ModelArg[];
         query: ModelArg[];
         header: ModelArg[];
         cookie: ModelArg[];
-    };
+    }>;
     select: {
         param: Record<string, true | string>;
     };
@@ -57,6 +57,11 @@ type ModelArg = {
 };
 type ModelField = {
     name: string;
+    type: any;
+    req: boolean;
+    op: Partial<Record<OpName, ModelFieldOp>>;
+};
+type ModelFieldOp = {
     type: any;
     req: boolean;
 };

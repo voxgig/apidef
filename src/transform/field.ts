@@ -52,11 +52,11 @@ const fieldTransform: Transform = async function(
 
         for (let malt of malts) {
           const opfields = resolveOpFields(ment, mop, malt, def)
-          console.log('OPFIELDS', ment.name, mop.name, malt.parts.join('/'), malt.method, 'F=', opfields)
 
           for (let opfield of opfields) {
             if (!seen[opfield.name]) {
               fields.push(opfield)
+              seen[opfield.name] = opfield
             }
             else {
               mergeField(ment, mop, malt, def, seen[opfield.name], opfield)
@@ -73,9 +73,6 @@ const fieldTransform: Transform = async function(
     msg += ment.name + ' '
   })
 
-  console.log('=== fieldTransform ===')
-  console.log(formatJSONIC(apimodel.main.sdk.entity))
-
   return { ok: true, msg }
 }
 
@@ -89,14 +86,14 @@ function resolveOpFields(
 ): ModelField[] {
   const mfields: ModelField[] = []
   const fielddefs = findFieldDefs(ment, mop, malt, def)
-  console.log('FIELDDEFS', fielddefs.length)
 
   for (let fielddef of fielddefs) {
     const fieldname = (fielddef as any).key$ as string
     const mfield: ModelField = {
       name: canonize(fieldname),
       type: validator(fielddef.type),
-      req: !!fielddef.required
+      req: !!fielddef.required,
+      op: {},
     }
     mfields.push(mfield)
   }
@@ -120,8 +117,6 @@ function findFieldDefs(
   if (opdef) {
     const responses = opdef.responses
     const requestBody = opdef.requestBody
-
-    console.log('OPDEF', pathdef.key$, !!responses, !!requestBody)
 
     let fieldSets
 
@@ -168,6 +163,14 @@ function mergeField(
   exisingField: ModelField,
   newField: ModelField
 ) {
+
+  if (newField.req !== exisingField.req) {
+    exisingField.op[mop.name] = {
+      req: newField.req,
+      type: newField.type,
+    }
+  }
+
   return exisingField
 }
 

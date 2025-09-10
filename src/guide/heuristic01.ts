@@ -571,8 +571,6 @@ function isListResponse(
         const properties = resolveSchemaProperties(schema)
 
         each(properties, (prop) => {
-          // console.log('ISLIST', pathStr, prop.key$, prop.type)
-
           if (prop.type === 'array') {
             why.push('array-prop:' + prop.key$)
             islist = true
@@ -609,9 +607,6 @@ function isListResponse(
             }
             */
 
-            // if ('/v2/users' === pathStr) {
-            //   console.log('islistresponse', islist, pathStr, entdesc.name, listedEntity(prop), properties)
-            // }
           }
         })
       }
@@ -674,9 +669,6 @@ function renameParams(ctx: any, pathStr: string, methodName: string, entdesc: En
 
       let hasParent = 1 < partI && !isParam(parts[partI - 1])
       let parentName = hasParent ? fixEntName(parts[partI - 1]) : null
-
-      // console.log(
-      //  'PARAM', partI + '/' + parts.length, oldParam, 'p=' + parentName, 'e=' + entdesc.name)
 
       // Id-like not at end, and after a possible entname.
       // .../parentent/{id}/...

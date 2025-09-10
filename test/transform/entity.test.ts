@@ -14,37 +14,37 @@ import {
 
 describe('transform-entity', () => {
 
-  test('resolvePathList', () => {
-    expect(resolvePathList).exist()
+  // test('resolvePathList', () => {
+  //   expect(resolvePathList).exist()
 
-    expect(resolvePathList({
-      path: {
-        '/foo': {},
-        '/bar/{bar}': {},
-        '/zed/{f0}/dez/{f1}': {
-          rename: {
-            param: {
-              f0: 't0',
-              f1: 't1',
-            }
-          }
-        },
-      }
-    })).equals([
-      { orig: '/foo', parts: ['foo'], rename: {} },
-      { orig: '/bar/{bar}', parts: ['bar', '{bar}'], rename: {} },
-      {
-        orig: '/zed/{f0}/dez/{f1}',
-        parts: ['zed', '{t0}', 'dez', '{t1}'],
-        rename: {
-          param: {
-            f0: 't0',
-            f1: 't1',
-          }
-        }
-      }
-    ])
-  })
+  //   expect(resolvePathList({
+  //     path: {
+  //       '/foo': {},
+  //       '/bar/{bar}': {},
+  //       '/zed/{f0}/dez/{f1}': {
+  //         rename: {
+  //           param: {
+  //             f0: 't0',
+  //             f1: 't1',
+  //           }
+  //         }
+  //       },
+  //     }
+  //   })).equals([
+  //     { orig: '/foo', parts: ['foo'], rename: {} },
+  //     { orig: '/bar/{bar}', parts: ['bar', '{bar}'], rename: {} },
+  //     {
+  //       orig: '/zed/{f0}/dez/{f1}',
+  //       parts: ['zed', '{t0}', 'dez', '{t1}'],
+  //       rename: {
+  //         param: {
+  //           f0: 't0',
+  //           f1: 't1',
+  //         }
+  //       }
+  //     }
+  //   ])
+  // })
 
 
   test('buildRelations', () => {

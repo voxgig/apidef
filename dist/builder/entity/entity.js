@@ -13,19 +13,22 @@ function resolveEntity(apimodel, opts) {
         '# Entity Models\n'
     ];
     const entityFiles = [];
-    (0, jostraca_1.each)(apimodel.main.api.entity, ((entity, entityName) => {
+    (0, jostraca_1.each)(apimodel.main.sdk.entity, ((entity, entityName) => {
         const entityFile = (null == opts.outprefix ? '' : opts.outprefix) + entityName + '.jsonic';
-        const entityJSON = JSON.stringify(entity, (k, v) => {
-            if (k.includes('$')) {
-                return undefined;
-            }
-            return v;
-        }, 2);
+        let entityJSONIC = (0, utility_1.formatJSONIC)(entity).trim();
+        entityJSONIC = entityJSONIC.substring(1, entityJSONIC.length - 1);
+        //   JSON.stringify(entity, (k, v) => {
+        //     if (k.includes('$')) {
+        //       return undefined
+        //     }
+        //     return v
+        //   }, 2)
         const fieldAliasesSrc = fieldAliases(entity);
         const entitySrc = `# Entity: ${entity.name}\n\n` +
-            `main: api: entity: ${entity.name}: {\n\n` +
+            `main: sdk: entity: ${entity.name}: {\n\n` +
             `  alias: field: ${fieldAliasesSrc}\n` +
-            (0, utility_1.formatJsonSrc)(entityJSON.substring(1, entityJSON.length - 1)) +
+            //formatJsonSrc(entityJSON.substring(1, entityJSON.length - 1)) +
+            entityJSONIC +
             '\n\n}\n';
         entityFiles.push({ name: entityFile, src: entitySrc });
         barrel.push(`@"${node_path_1.default.basename(entityFile)}"`);

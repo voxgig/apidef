@@ -15,13 +15,10 @@ const argsTransform = async function (ctx) {
                 const opdef = pathdef[malt.method.toLowerCase()];
                 argdefs.push(...(opdef.parameters ?? []));
                 resolveArgs(ment, mop, malt, argdefs);
-                console.log('ALT', entname, opname, malt, argdefs);
             });
         });
         msg += ment.name + ' ';
     });
-    console.log('=== argsTransform ===');
-    console.log((0, utility_1.formatJSONIC)(apimodel.main.sdk.entity));
     return { ok: true, msg };
 };
 exports.argsTransform = argsTransform;
@@ -43,8 +40,7 @@ function resolveArgs(ment, mop, malt, argdefs) {
             marg.type = ['`$ONE`', '`$NULL`', marg.type];
         }
         // insert sorted by name
-        let kindargs = malt.args[marg.kind];
-        // kindargs.push(marg)
+        let kindargs = (malt.args[marg.kind] = malt.args[marg.kind] ?? []);
         let kalen = kindargs.length;
         for (let ka, i = 0; i <= kalen; i++) {
             ka = kindargs[i];
