@@ -19,7 +19,9 @@ export function convert(
   schema: JSONSchema | undefined,
   opts: ConvertOptions = {}
 ): any {
-  const seen = new Set<JSONSchema>(); // avoid accidental infinite loops on bad refs
+  const seen = new Set<object>();
+  const resolvingRefs = new Set<string>();
+
 
   const resolveRef = ($ref: string): JSONSchema | undefined => {
     if (!$ref.startsWith("#/")) return undefined; // non-local refs not supported per spec; return undefined to fallback
@@ -57,27 +59,49 @@ export function convert(
     if (seen.has(s)) return "$ANY";
     seen.add(s);
 
+    // // // Expand $ref immediately (Rule 10)
+    // // if (s.$ref) {
+    // //   const tgt = expandRef(s);
+    // //   // Merge local decorations on top of the ref target (common in OAS)
+    // //   const merged = { ...tgt, ...without(s, ["$ref"]) };
+    // //   const out = convert(merged);
+    // //   seen.delete(s);
+    // //   return out;
+    // // }
+
+
     // // Expand $ref immediately (Rule 10)
     // if (s.$ref) {
-    //   const tgt = expandRef(s);
-    //   // Merge local decorations on top of the ref target (common in OAS)
-    //   const merged = { ...tgt, ...without(s, ["$ref"]) };
+    //   const target = expandRef(s);
+    //   const localDecor = without(s, ["$ref"]); // local fields that decorate the ref
+    //   // Use the same semantics as allOf merging to deep-merge properties/openness/etc.
+    //   const merged = mergeAllOf([target, localDecor]);
     //   const out = convert(merged);
     //   seen.delete(s);
     //   return out;
     // }
 
-
-    // Expand $ref immediately (Rule 10)
     if (s.$ref) {
-      const target = expandRef(s);
-      const localDecor = without(s, ["$ref"]); // local fields that decorate the ref
-      // Use the same semantics as allOf merging to deep-merge properties/openness/etc.
+      const ref = String(s.$ref);
+      if (resolvingRefs.has(ref)) {
+        // cycle detected -> cannot expand, fall back to ANY
+        seen.delete(s);
+        return "$ANY";
+      }
+      resolvingRefs.add(ref);
+
+      const target = expandRef(s); // returns referenced schema or {}
+      const localDecor = without(s, ["$ref"]);
+      // merge like allOf so local decorations augment target
       const merged = mergeAllOf([target, localDecor]);
+
       const out = convert(merged);
+
+      resolvingRefs.delete(ref);
       seen.delete(s);
       return out;
     }
+
 
     // Composition
     if (Array.isArray(s.allOf) && s.allOf.length > 0) {
@@ -242,49 +266,52 @@ function wrapNullable(inner: any) {
     : ["$ONE", inner, "$NULL"];
 }
 
-/** Merge for allOf (Rule 3): shallow-merge types, deep-merge object properties, OR them sensibly. */
 function mergeAllOf(schemas: JSONSchema[]): JSONSchema {
   const out: JSONSchema = {};
   let anyObject = false;
 
   for (const s of schemas) {
-    // Merge top-level flags relevant to objects
-    if (s.type === "object" || s.properties || s.additionalProperties !== undefined) {
+    const schema = s || {};
+
+    if (schema.type === "object" || schema.properties || schema.additionalProperties !== undefined) {
       anyObject = true;
       out.type = "object";
-      out.properties = { ...(out.properties ?? {}), ...(s.properties ?? {}) };
 
-      // Decide openness: if any parent is open, keep open
-      const ap = s.additionalProperties;
-      if (ap === true || (typeof ap === "object" && ap)) {
+      // --- properties: merge without losing earlier branches ---
+      const srcProps = schema.properties ?? {};
+      const dstProps = (out.properties = out.properties ?? {});
+      for (const [k, v] of Object.entries(srcProps)) {
+        if (k in dstProps) {
+          // Combine the two property schemas using allOf semantics.
+          // This preserves earlier constraints like {type:'number'} and
+          // later decorations like {nullable:true}.
+          dstProps[k] = { allOf: [dstProps[k], v] };
+        } else {
+          dstProps[k] = v;
+        }
+      }
+
+      // --- additionalProperties: openness is "true if any true/object" ---
+      const ap = schema.additionalProperties;
+      if (ap === true || (ap && typeof ap === "object")) {
         out.additionalProperties = true;
       } else if (out.additionalProperties === undefined) {
-        // carry forward exact false only if no previous true
         out.additionalProperties = ap;
       }
 
-      // Keep a union of required (best-effort; not represented in struct anyway)
-      const req = new Set([...(out.required ?? []), ...(s.required ?? [])]);
-      if (req.size) out.required = Array.from(req);
+      // --- required: union (not used in voxgig/struct but harmless to keep) ---
+      if (Array.isArray(schema.required)) {
+        const req = new Set([...(out.required ?? []), ...schema.required]);
+        out.required = Array.from(req);
+      }
     } else {
-      // For non-object shapes in allOf, we can’t represent intersections well → best-effort carry
-      Object.assign(out, s);
+      // For non-object shapes in allOf, a shallow merge is the best we can do.
+      Object.assign(out, schema);
     }
   }
 
-  // If nothing indicated object, fall back to last schema (still consistent with “merge”)
-  return anyObject ? out : (schemas.reduce((a, b) => ({ ...a, ...b }), {}) as JSONSchema);
+  // If nothing was objecty, return a shallow merge across all schemas.
+  return anyObject
+    ? out
+    : (schemas.reduce((a, b) => ({ ...a, ...(b || {}) }), {}) as JSONSchema);
 }
-
-/* -------------------------- Example usage --------------------------
-import openapi from "./openapi.json";
-
-const vox = convertToVoxgigStruct(
-  openapi.components.schemas.User,
-  {
-    rootDoc: openapi,
-    refRoots: [openapi.components?.schemas ?? {}, openapi.$defs ?? {}],
-  }
-);
-console.log(JSON.stringify(vox, null, 2));
-------------------------------------------------------------------- */

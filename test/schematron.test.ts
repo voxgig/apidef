@@ -10,37 +10,37 @@ describe('schematron', () => {
 
   test('top-level primitive (string)', () => {
     const out = convert({ type: 'string' });
-    assert.equal(out, '$STRING');
+    assert.equal(out, '`$STRING`');
   });
 
   test('top-level primitive (nullable via OpenAPI nullable:true)', () => {
     const out = convert({ type: 'string', nullable: true });
-    assert.deepEqual(out, ['$ONE', '$STRING', '$NULL']);
+    assert.deepEqual(out, ['`$ONE`', '`$STRING`', '`$NULL`']);
   });
 
   test('top-level union of primitives (type array)', () => {
     const out = convert({ type: ['string', 'integer'] });
-    assert.deepEqual(out, ['$ONE', '$STRING', '$INTEGER']);
+    assert.deepEqual(out, ['`$ONE`', '`$STRING`', '`$INTEGER`']);
   });
 
   test('nullable via type includes "null"', () => {
     const out = convert({ type: ['string', 'null'] });
-    assert.deepEqual(out, ['$ONE', '$STRING', '$NULL']);
+    assert.deepEqual(out, ['`$ONE`', '`$STRING`', '`$NULL`']);
   });
 
   test('empty schema -> $ANY', () => {
     const out = convert({});
-    assert.equal(out, '$ANY');
+    assert.equal(out, '`$ANY`');
   });
 
   test('enum -> $EXACT', () => {
     const out = convert({ type: 'string', enum: ['red', 'green'] });
-    assert.deepEqual(out, ['$EXACT', 'red', 'green']);
+    assert.deepEqual(out, ['`$EXACT`', 'red', 'green']);
   });
 
   test('const -> $EXACT single', () => {
     const out = convert({ const: 42 });
-    assert.deepEqual(out, ['$EXACT', 42]);
+    assert.deepEqual(out, ['`$EXACT`', 42]);
   });
 
   test('object with properties (no additionalProperties)', () => {
@@ -52,8 +52,8 @@ describe('schematron', () => {
       }
     });
     assert.deepEqual(out, {
-      name: '$STRING',
-      age: '$INTEGER'
+      name: '`$STRING`',
+      age: '`$INTEGER`'
     });
   });
 
@@ -65,7 +65,7 @@ describe('schematron', () => {
       }
     });
     assert.deepEqual(out, {
-      nickname: ['$ONE', '$STRING', '$NULL']
+      nickname: ['`$ONE`', '`$STRING`', '`$NULL`']
     });
   });
 
@@ -77,7 +77,7 @@ describe('schematron', () => {
       }
     });
     // oneOf at property level should become ["$ONE", "$INTEGER", "$NULL"]
-    assert.deepEqual(out, { val: ['$ONE', '$INTEGER', '$NULL'] });
+    assert.deepEqual(out, { val: ['`$ONE`', '`$INTEGER`', '`$NULL`'] });
   });
 
   test('additionalProperties: true -> $OPEN', () => {
@@ -88,7 +88,7 @@ describe('schematron', () => {
     });
     assert.deepEqual(out, {
       $OPEN: true,
-      a: '$STRING'
+      a: '`$STRING`'
     });
   });
 
@@ -100,7 +100,7 @@ describe('schematron', () => {
     });
     assert.deepEqual(out, {
       $OPEN: true,
-      known: '$INTEGER'
+      known: '`$INTEGER`'
     });
   });
 
@@ -114,7 +114,7 @@ describe('schematron', () => {
     });
     assert.deepEqual(out, {
       $NOTE: { readOnly: true, writeOnly: true, deprecated: true },
-      f: '$STRING'
+      f: '`$STRING`'
     });
   });
 
@@ -123,7 +123,7 @@ describe('schematron', () => {
       type: 'array',
       items: { type: 'string' }
     });
-    assert.deepEqual(out, ['$CHILD', '$STRING']);
+    assert.deepEqual(out, ['`$CHILD`', '`$STRING`']);
   });
 
   test('array: tuples -> positional array', () => {
@@ -131,7 +131,7 @@ describe('schematron', () => {
       type: 'array',
       items: [{ type: 'string' }, { type: 'integer' }]
     });
-    assert.deepEqual(out, ['$STRING', '$INTEGER']);
+    assert.deepEqual(out, ['`$STRING`', '`$INTEGER`']);
   });
 
   test('array: no items -> [] (any children)', () => {
@@ -143,14 +143,14 @@ describe('schematron', () => {
     const out = convert({
       oneOf: [{ type: 'string' }, { type: 'integer' }]
     });
-    assert.deepEqual(out, ['$ONE', '$STRING', '$INTEGER']);
+    assert.deepEqual(out, ['`$ONE`', '`$STRING`', '`$INTEGER`']);
   });
 
   test('anyOf -> ["$ANY", ...]', () => {
     const out = convert({
       anyOf: [{ type: 'string' }, { type: 'integer' }]
     });
-    assert.deepEqual(out, ['$ANY', '$STRING', '$INTEGER']);
+    assert.deepEqual(out, ['`$ANY`', '`$STRING`', '`$INTEGER`']);
   });
 
   test('allOf merges object properties and openness', () => {
@@ -171,8 +171,8 @@ describe('schematron', () => {
     // second schema's openness should propagate -> $OPEN: true
     assert.deepEqual(out, {
       $OPEN: true,
-      a: '$STRING',
-      b: '$INTEGER'
+      a: '`$STRING`',
+      b: '`$INTEGER`'
     });
   });
 
@@ -191,7 +191,7 @@ describe('schematron', () => {
       { $ref: '#/components/schemas/Refd' },
       { rootDoc }
     );
-    assert.deepEqual(out, { x: '$NUMBER' });
+    assert.deepEqual(out, { x: '`$NUMBER`' });
   });
 
   test('$ref expansion with local decorations merged over target', () => {
@@ -212,12 +212,12 @@ describe('schematron', () => {
       },
       { rootDoc }
     );
-    assert.deepEqual(out, { name: '$STRING', age: '$INTEGER' });
+    assert.deepEqual(out, { name: '`$STRING`', age: '`$INTEGER`' });
   });
 
   test('unresolvable $ref -> falls back to $ANY', () => {
     const out = convert({ $ref: '#/no/such/path' }, { rootDoc: {} });
-    assert.equal(out, '$ANY');
+    assert.equal(out, '`$ANY`');
   });
 
   test('nullable wrapper does not duplicate $NULL for existing $ONE with $NULL', () => {
@@ -228,26 +228,26 @@ describe('schematron', () => {
       }
     });
     // still exactly one $NULL
-    assert.deepEqual(out, { v: ['$ONE', '$STRING', '$NULL'] });
+    assert.deepEqual(out, { v: ['`$ONE`', '`$STRING`', '`$NULL`'] });
   });
 
   test('EXACT mixed-type enum (strings/numbers)', () => {
     const out = convert({ enum: ['A', 1, 2] });
-    assert.deepEqual(out, ['$EXACT', 'A', 1, 2]);
+    assert.deepEqual(out, ['`$EXACT`', 'A', 1, 2]);
   });
 
   test('object detection without explicit type (properties only)', () => {
     const out = convert({
       properties: { p: { type: 'boolean' } }
     });
-    assert.deepEqual(out, { p: '$BOOLEAN' });
+    assert.deepEqual(out, { p: '`$BOOLEAN`' });
   });
 
   test('array detection without explicit type (items only)', () => {
     const out = convert({
       items: { type: 'integer' }
     });
-    assert.deepEqual(out, ['$CHILD', '$INTEGER']);
+    assert.deepEqual(out, ['`$CHILD`', '`$INTEGER`']);
   });
 
   test('unsupported facets (patternProperties) are ignored; known props still convert', () => {
@@ -256,7 +256,7 @@ describe('schematron', () => {
       patternProperties: { '^x-': { type: 'string' } },
       properties: { ok: { type: 'string' } }
     });
-    assert.deepEqual(out, { ok: '$STRING' });
+    assert.deepEqual(out, { ok: '`$STRING`' });
   });
 
   test('self-referential $ref guarded by cycle protection -> $ANY', () => {
@@ -273,7 +273,7 @@ describe('schematron', () => {
       { $ref: '#/components/schemas/Node' },
       { rootDoc }
     );
-    assert.equal(out, '$ANY');
+    assert.equal(out, '`$ANY`');
   });
 
   test('anyOf with nested objects becomes ["$ANY", ...converted objs]', () => {
@@ -284,9 +284,9 @@ describe('schematron', () => {
       ]
     });
     assert.deepEqual(out, [
-      '$ANY',
-      { a: '$STRING' },
-      { b: '$INTEGER' }
+      '`$ANY`',
+      { a: '`$STRING`' },
+      { b: '`$INTEGER`' }
     ]);
   });
 
@@ -295,7 +295,7 @@ describe('schematron', () => {
       type: 'array',
       items: { type: 'string', nullable: true }
     });
-    assert.deepEqual(out, ['$CHILD', ['$ONE', '$STRING', '$NULL']]);
+    assert.deepEqual(out, ['`$CHILD`', ['`$ONE`', '`$STRING`', '`$NULL`']]);
   });
 
   test('tuple array with inner enums and consts', () => {
@@ -308,9 +308,9 @@ describe('schematron', () => {
       ]
     });
     assert.deepEqual(out, [
-      ['$EXACT', 'a', 'b'],
-      ['$EXACT', 0],
-      '$BOOLEAN'
+      ['`$EXACT`', 'a', 'b'],
+      ['`$EXACT`', 0],
+      '`$BOOLEAN`'
     ]);
   });
 
@@ -321,13 +321,13 @@ describe('schematron', () => {
         { type: 'object', properties: { n: { nullable: true } } }
       ]
     });
-    assert.deepEqual(out, { n: ['$ONE', '$NUMBER', '$NULL'] });
+    assert.deepEqual(out, { n: ['`$ONE`', '`$NUMBER`', '`$NULL`'] });
   });
 
   test('root ANY when schema has unknown/unsupported keywords only', () => {
     const out = convert({ not: { type: 'string' } });
     // "not" unsupported -> fallback $ANY
-    assert.equal(out, '$ANY');
+    assert.equal(out, '`$ANY`');
   });
 
 

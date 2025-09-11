@@ -69,6 +69,23 @@ function resolveEntityDescs(ctx, metrics) {
             ]
         ]
     });
+    caught.methods.sort((a, b) => {
+        if (a.path < b.path) {
+            return -1;
+        }
+        else if (a.path > b.path) {
+            return 1;
+        }
+        else if (a.method < b.method) {
+            return -1;
+        }
+        else if (a.method > b.method) {
+            return 1;
+        }
+        else {
+            return 0;
+        }
+    });
     (0, jostraca_1.each)(caught.methods, (pmdef) => {
         // console.dir(pmdef, { depth: null })
         let methodDef = pmdef;
@@ -82,8 +99,7 @@ function resolveEntityDescs(ctx, metrics) {
             return;
         }
         const parts = pathStr.split(/\//).filter((p) => '' != p);
-        const why_ent = [];
-        const entres = resolveEntity(metrics, entityDescs, pathStr, parts, methodDef, methodName, why_ent);
+        const entres = resolveEntity(metrics, entityDescs, pathStr, parts, methodDef, methodName);
         const entdesc = entres.entdesc;
         if (null == entdesc) {
             console.log('WARNING: unable to resolve entity for method ' + methodName +
@@ -134,11 +150,11 @@ function resolveEntityDescs(ctx, metrics) {
         if (0 < Object.entries(transform).length) {
             op[opname].transform = transform;
         }
-        renameParams(ctx, pathStr, methodName, entdesc);
+        renameParams(ctx, pathStr, methodName, entres);
     });
     return entityDescs;
 }
-function resolveEntity(metrics, entityDescs, pathStr, parts, methodDef, methodName, why_ent) {
+function resolveEntity(metrics, entityDescs, pathStr, parts, methodDef, methodName) {
     const out = {
         entdesc: undefined,
         pm: undefined
@@ -178,6 +194,7 @@ function resolveEntity(metrics, entityDescs, pathStr, parts, methodDef, methodNa
         throw new Error('ENTITY NAME UNRESOLVED:' + why_path + ' ' + pathStr);
     }
     out.pm = pm;
+    out.cmp = cmp;
     out.entdesc = (entityDescs[entname] = entityDescs[entname] || {
         name: entname,
         id: 'N' + ('' + Math.random()).substring(2, 10),
@@ -406,7 +423,9 @@ function resolveSchemaProperties(schema) {
     return properties;
 }
 // Make consistent changes to support semantic entities.
-function renameParams(ctx, pathStr, methodName, entdesc) {
+function renameParams(ctx, pathStr, methodName, entres) {
+    const entdesc = entres.entdesc;
+    const cmp = entres.cmp;
     // Rewrite path parameters that are identifiers to follow the rules:
     // 0. Parameters named [a-z]?id are considered identifiers
     // 1. last identifier is always {id} as this is the primary entity
@@ -419,26 +438,45 @@ function renameParams(ctx, pathStr, methodName, entdesc) {
     const paramRenames = pathDef.rename.param = (pathDef.rename.param ?? {});
     const paramRenamesWhy = pathDef.rename_why.param_why = (pathDef.rename_why.param_why ?? {});
     const parts = pathStr.split(/\//).filter(p => '' != p);
+    const cmpname = null != cmp.name && cmp.rate < 0.5 ? cmp.name : null;
     for (let partI = 0; partI < parts.length; partI++) {
         let partStr = parts[partI];
         if (isParam(partStr)) {
-            let oldParam = partStr.substring(1, partStr.length - 1);
+            const why = [];
+            const oldParam = partStr.substring(1, partStr.length - 1);
             paramRenamesWhy[oldParam] = [];
-            let hasParent = 1 < partI && !isParam(parts[partI - 1]);
-            let parentName = hasParent ? fixEntName(parts[partI - 1]) : null;
+            const lastPart = partI === parts.length - 1;
+            const secondLastPart = partI === parts.length - 2;
+            const notLastPart = partI < parts.length - 1;
+            const hasParent = 1 < partI && !isParam(parts[partI - 1]);
+            const parentName = hasParent ? fixEntName(parts[partI - 1]) : null;
+            const not_exact_id = 'id' !== oldParam;
+            const probably_an_id = oldParam.endsWith('id');
             // Id-like not at end, and after a possible entname.
             // .../parentent/{id}/...
-            if (oldParam.endsWith('id') &&
-                hasParent &&
-                partI < parts.length - 1 &&
-                parentName !== entdesc.name) {
-                // actually a filter
-                if (entdesc.name.startsWith(parentName + '_') && partI === parts.length - 2) {
+            if (probably_an_id
+                && hasParent
+                && notLastPart) {
+                why.push('maybe-parent');
+                // actually an action
+                if (secondLastPart
+                    && ((parentName !== entdesc.name
+                        && entdesc.name.startsWith(parentName + '_'))
+                        // || parentName === cmp.name
+                        || parentName === cmpname)) {
+                    why.push('action');
                     let newParamName = 'id';
                     paramRenames[oldParam] = newParamName;
-                    paramRenamesWhy[oldParam].push('filter-not-parent:' + entdesc.name);
+                    paramRenamesWhy[oldParam].push('action-not-parent:' + entdesc.name);
+                }
+                else if (hasParent
+                    && parentName === cmpname) {
+                    why.push('id-not-parent');
+                    paramRenames[oldParam] = 'id';
+                    paramRenamesWhy[oldParam].push('id-not-parent');
                 }
                 else {
+                    why.push('parent');
                     let newParamName = parentName + '_id';
                     paramRenames[oldParam] = newParamName;
                     paramRenamesWhy[oldParam].push('parent:' + parentName);
@@ -446,36 +484,76 @@ function renameParams(ctx, pathStr, methodName, entdesc) {
             }
             // At end, but not called id.
             // .../ent/{not-id}
-            else if (partI === parts.length - 1 &&
-                'id' !== oldParam) {
+            else if (lastPart
+                && not_exact_id
+                && (!hasParent || parentName === entdesc.name)
+                // && (null == cmp.name || cmp.name === entdesc.name)
+                && (null == cmpname || cmpname === entdesc.name)) {
+                why.push('end-id');
                 paramRenames[oldParam] = 'id';
                 paramRenamesWhy[oldParam].push('end-id');
             }
             // Mot at end, has preceding non-param part.
             // .../parentent/{paramname}/...
-            else if (partI < parts.length - 1 &&
-                1 < partI &&
-                hasParent) {
-                // Actually primary ent with a filter$ suffix
-                if (partI === parts.length - 2) {
+            else if (notLastPart
+                && 1 < partI
+                && hasParent) {
+                why.push('has-parent');
+                // Actually primary ent with an action$ suffix
+                if (
+                // partI === parts.length - 2
+                secondLastPart) {
+                    why.push('second-last');
                     if ('id' !== oldParam && fixEntName(partStr) === entdesc.name) {
+                        why.push('end-action');
                         paramRenames[oldParam] = 'id';
-                        paramRenamesWhy[oldParam].push('filter-at-end');
+                        paramRenamesWhy[oldParam].push('end-action');
                     }
+                    else {
+                        why.push('not-end-action');
+                    }
+                }
+                // Primary ent id not at end!
+                else if (hasParent
+                    && parentName === cmpname) {
+                    why.push('id-not-last');
+                    paramRenames[oldParam] = 'id';
+                    paramRenamesWhy[oldParam].push('id-not-last');
                 }
                 // Not primary ent.
                 else {
+                    why.push('default');
                     let newParamName = parentName + '_id';
                     if (newParamName != oldParam) {
+                        why.push('not-primary');
                         paramRenames[oldParam] = newParamName;
-                        paramRenamesWhy[oldParam].push('non-primary');
+                        paramRenamesWhy[oldParam].push('not-primary');
                     }
                 }
             }
+            why.push('done');
             // Skip if renamed to itself!
             if (paramRenames[oldParam] === oldParam) {
+                why.push('delete-dup');
                 delete paramRenames[oldParam];
                 delete paramRenamesWhy[oldParam];
+            }
+            if ('/pages/{page_id}/page_access_groups/{page_access_group_id}/components/{component_id}'
+                === pathStr) {
+                console.log('RENAME-PARAM', {
+                    methodName,
+                    partStr,
+                    why,
+                    oldParam,
+                    lastPart,
+                    secondLastPart,
+                    notLastPart,
+                    hasParent,
+                    parentName,
+                    not_exact_id,
+                    probably_an_id,
+                    cmpname,
+                }, entdesc);
             }
         }
     }
