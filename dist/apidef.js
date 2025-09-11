@@ -66,7 +66,7 @@ function ApiDef(opts) {
     const fs = opts.fs || Fs;
     const pino = (0, util_1.prettyPino)('apidef', opts);
     const log = pino.child({ cmp: 'apidef' });
-    const warn = (0, utility_1.makeWarner)({ point: 'interpret-warning', log });
+    const warn = (0, utility_1.makeWarner)({ point: 'warning', log });
     opts.strategy = opts.strategy || 'heuristic01';
     async function generate(spec) {
         const start = Date.now();
@@ -113,7 +113,8 @@ function ApiDef(opts) {
             apimodel,
             guide: {},
             def: undefined,
-            note: {}
+            note: {},
+            warn,
         };
         const defsrc = (0, utility_1.loadFile)(defpath, 'def', fs, log);
         const def = await (0, parse_1.parse)('OpenAPI', defsrc, { file: defpath });
@@ -186,7 +187,13 @@ function ApiDef(opts) {
             }
         }
         steps.push('generate');
-        log.info({ point: 'generate-end', note: 'success', break: true });
+        const hasWarnings = 0 < warn.history.length;
+        const endnote = hasWarnings ? `PARTIAL BUILD! There were ${warn.history.length} warnings (see above).` :
+            'success';
+        log[hasWarnings ? 'warn' : 'info']({ point: 'generate-end', note: endnote, break: true });
+        if (hasWarnings) {
+            ctx.fs.writeFileSync('./apidef-warnings.txt', warn.history.map(n => (0, utility_1.formatJSONIC)(n)).join('\n\n'));
+        }
         return {
             ok: true,
             start,

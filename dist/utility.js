@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.nom = nom;
 exports.getdlog = getdlog;
 exports.loadFile = loadFile;
 exports.formatJsonSrc = formatJsonSrc;
@@ -16,6 +17,7 @@ exports.validator = validator;
 exports.canonize = canonize;
 const node_path_1 = __importDefault(require("node:path"));
 const jostraca_1 = require("jostraca");
+const util_1 = require("@voxgig/util");
 const struct_1 = require("@voxgig/struct");
 function makeWarner(spec) {
     const { point, log } = spec;
@@ -381,6 +383,7 @@ function isParam(partStr) {
 function formatJSONIC(val, opts) {
     if (undefined === val)
         return '';
+    val = (0, util_1.decircular)(val);
     const hsepd = opts?.hsepd ?? 1;
     const showd = !!opts?.$;
     const space = '  ';
@@ -391,7 +394,13 @@ function formatJSONIC(val, opts) {
             return 'null';
         const t = typeof v;
         switch (t) {
-            case 'string': return JSON.stringify(v);
+            case 'string': return !v.includes('\n') ? JSON.stringify(v) :
+                '`' + JSON.stringify(v)
+                    .substring(1)
+                    .replace(/\\n/g, '\n')
+                    .replace(/\\"/g, ':')
+                    .replace(/`/g, '\\`')
+                    .replace(/"$/, '`');
             case 'number': return Number.isFinite(v) ? String(v) : 'null';
             case 'boolean': return v ? 'true' : 'false';
             case 'bigint': return JSON.stringify(v.toString());
@@ -423,7 +432,9 @@ function formatJSONIC(val, opts) {
     if (val && typeof val === 'object') {
         rootInline = renderComment(val['_COMMENT']);
     }
-    stack[++top] = { kind: 'value', value: val, indentLevel: 0, linePrefix: '', inlineComment: rootInline };
+    stack[++top] = {
+        kind: 'value', value: val, indentLevel: 0, linePrefix: '', inlineComment: rootInline
+    };
     const lines = [];
     while (top >= 0) {
         const frame = stack[top];
@@ -448,14 +459,8 @@ function formatJSONIC(val, opts) {
         if (Array.isArray(v)) {
             const arr = v;
             if (arr.length === 0) {
-                // if (frame.inlineComment) {
-                // two-line style when there is an inline comment
                 lines.push(`${linePrefix}[${commentSuffix}`);
                 stack[++top] = { kind: 'close', token: ']', indentLevel };
-                // } else {
-                //   // single-line empty array
-                //   lines.push(`${linePrefix}[]`)
-                // }
                 continue;
             }
             // opening line
@@ -478,17 +483,14 @@ function formatJSONIC(val, opts) {
         // Plain object
         const obj = v;
         const keys = Object.keys(obj);
+        if (v instanceof Error) {
+            keys.unshift('name', 'message', 'stack');
+        }
         const printableKeys = keys.filter(k => !k.endsWith('_COMMENT') &&
             (showd || !k.endsWith('$')));
         if (printableKeys.length === 0) {
-            //if (frame.inlineComment) {
-            // two-line style when there is an inline comment
             lines.push(`${linePrefix}{${commentSuffix}`);
             stack[++top] = { kind: 'close', token: '}', indentLevel };
-            // } else {
-            //   // single-line empty object
-            //   lines.push(`${linePrefix}{}`)
-            // }
             continue;
         }
         // opening line
@@ -541,5 +543,22 @@ function validator(torig) {
 }
 function canonize(s) {
     return depluralize((0, jostraca_1.snakify)(s));
+}
+// TODO: move to jostraca?
+function allcapify(s) {
+    return 'string' === typeof s ? (0, jostraca_1.snakify)(s).toUpperCase() : '';
+}
+function nom(v, format) {
+    let formatstr = 'string' == typeof format ? format : null;
+    if (null == formatstr) {
+        return '__MISSING__';
+    }
+    const canon = canonize(formatstr);
+    let out = v?.[canon] ?? '__MISSING_' + formatstr + '__';
+    out =
+        /[A-Z][a-z]/.test(formatstr) ? (0, jostraca_1.camelify)(out) :
+            /[A-Z][A-Z]/.test(formatstr) ? allcapify(out) :
+                /-/.test(formatstr) ? (0, jostraca_1.kebabify)(out) : out;
+    return out;
 }
 //# sourceMappingURL=utility.js.map

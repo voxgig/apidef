@@ -3,6 +3,12 @@ import Path from 'node:path'
 
 import { File, Content, Folder, each } from 'jostraca'
 
+
+import {
+  ApiDefContext,
+} from '../types'
+
+
 import {
   formatJsonSrc,
 } from '../utility'
@@ -11,18 +17,40 @@ import {
 import { flowHeuristic01 } from './flow/flowHeuristic01'
 
 
-async function makeFlowBuilder(ctx: any) {
+async function makeFlowBuilder(ctx: ApiDefContext): Promise<Function> {
   let flows: any[] = []
+  let flowBuilder = () => {
+    ctx.warn({
+      step: 'flow',
+      note: 'Unable to generate flow definitions as flows were not resolved.'
+    })
+  }
 
   if ('heuristic01' === ctx.opts.strategy) {
-    flows = await flowHeuristic01(ctx)
+    try {
+      flows = await flowHeuristic01(ctx)
+    }
+    catch (err: any) {
+      err.foo = { x: 1, y: [2] }
+      err.foo.z = err.foo
+      ctx.warn({
+        step: 'flow',
+        note: 'Unable to resolve flows due to unexpected error: ' + err.message,
+        err,
+      })
+      return flowBuilder
+    }
   }
   else {
-    throw new Error('Unknown guide strategy: ' + ctx.opts.strategy)
+    ctx.warn({
+      step: 'flow',
+      note: 'Unable to resolve flows: unknown guide strategy: ' + ctx.opts.strategy
+    })
+    return flowBuilder
   }
 
 
-  return function flowBuilder() {
+  flowBuilder = () => {
 
     Folder({ name: 'flow' }, () => {
       const barrel = [
@@ -52,6 +80,8 @@ main: sdk: flow: ${flow.Name}:
       }, () => Content(barrel.join('\n')))
     })
   }
+
+  return flowBuilder
 }
 
 

@@ -3,6 +3,18 @@ import { size } from '@voxgig/struct'
 
 import { each, names } from 'jostraca'
 
+import { getelem } from '@voxgig/struct'
+
+import {
+  ModelEntity,
+  ModelOp,
+  ModelAlt,
+} from '../../transform/top'
+
+import {
+  nom
+} from '../../utility'
+
 
 async function flowHeuristic01(ctx: any): Promise<any[]> {
   let entity = ctx.guide.entity
@@ -21,10 +33,10 @@ async function flowHeuristic01(ctx: any): Promise<any[]> {
 
 function resolveBasicEntityFlow(ctx: any, entity: any) {
   const { apimodel, model } = ctx
-  const apiEntity = apimodel.main.sdk.entity[entity.name]
+  const apiEntity: ModelEntity = apimodel.main.sdk.entity[entity.name]
 
   const flow: any = {
-    name: 'Basic' + apiEntity.Name + 'Flow'
+    name: 'Basic' + nom(apiEntity, 'Name') + 'Flow'
   }
 
   const refs = [
@@ -39,7 +51,7 @@ function resolveBasicEntityFlow(ctx: any, entity: any) {
     name: flow.name,
     active: true,
     param: {
-      [`${model.NAME}_TEST_${apiEntity.NAME}_ENTID`]: idmap,
+      [`${model.NAME}_TEST_${nom(apiEntity, 'NAME')}_ENTID`]: idmap,
       [`${model.NAME}_TEST_LIVE`]: "FALSE",
       [`${model.NAME}_TEST_EXPLAIN`]: "FALSE",
     },
@@ -56,8 +68,8 @@ function resolveBasicEntityFlow(ctx: any, entity: any) {
     const id = idmap[ref]
     const ent: any = data[id] = {}
 
-    let num = (i * size(apiEntity.field) * 10)
-    each(apiEntity.field, (field) => {
+    let num = (i * size(apiEntity.fields) * 10)
+    each(apiEntity.fields, (field) => {
       ent[field.name] =
         'number' === field.type ? num :
           'boolean' === field.type ? 0 === num % 2 :
@@ -77,11 +89,15 @@ function resolveBasicEntityFlow(ctx: any, entity: any) {
   let name
 
   const am: any = {}
+  const entop = apiEntity.op ?? {}
 
-  if (apiEntity.op.load) {
+
+  if (entop.load) {
+
+    const alt = findMainLoadAlt(entop.load)
 
     // Get additional required match properties
-    each(apiEntity.op.load.param, (param: any) => {
+    each(alt?.args.param, (param: any) => {
       if (param.required) {
         let ancestorName = param.name
         let ancestorEntity = apimodel.main.api.entity[ancestorName]
@@ -98,7 +114,7 @@ function resolveBasicEntityFlow(ctx: any, entity: any) {
           am[param.name] =
             `\`dm$=p.${model.NAME}_TEST_${ancestorEntity.NAME}_ENTID.${ancestorEntity.name}01\``
 
-          data[`${apiEntity.NAME}01`][param.name] = ancestorEntity.NAME + '01'
+          data[`${nom(apiEntity, 'NAME')}01`][param.name] = ancestorEntity.NAME + '01'
         }
       }
     })
@@ -111,7 +127,7 @@ function resolveBasicEntityFlow(ctx: any, entity: any) {
       entity: `${apiEntity.name}`,
       action: 'load',
       match: {
-        id: `\`dm$=p.${model.NAME}_TEST_${apiEntity.NAME}_ENTID.${apiEntity.name}01\``,
+        id: `\`dm$=p.${model.NAME}_TEST_${nom(apiEntity, 'NAME')}_ENTID.${apiEntity.name}01\``,
         ...am,
       },
       valid: {
@@ -122,7 +138,7 @@ function resolveBasicEntityFlow(ctx: any, entity: any) {
     })
   }
 
-  if (apiEntity.op.update && apiEntity.op.load) {
+  if (entop.update && entop.load) {
     num++
     name = `update_${apiEntity.name}${num}`
     const id = idmap[`${apiEntity.name}01`]
@@ -151,7 +167,7 @@ function resolveBasicEntityFlow(ctx: any, entity: any) {
       entity: `${apiEntity.name}`,
       action: 'load',
       match: {
-        id: `\`dm$=p.${model.NAME}_TEST_${apiEntity.NAME}_ENTID.${apiEntity.name}01\``,
+        id: `\`dm$=p.${model.NAME}_TEST_${nom(apiEntity, 'NAME')}_ENTID.${apiEntity.name}01\``,
         ...am,
       },
       valid: {
@@ -169,11 +185,18 @@ function resolveBasicEntityFlow(ctx: any, entity: any) {
 }
 
 
+function findMainLoadAlt(op: ModelOp): ModelAlt | undefined {
+  let cands = op.alts.filter(a => '{id}' === getelem(a.parts, -1))
+  return cands[0]
+}
+
+
 function makeUpdateData(name: string, apiEntity: any, flow: any, id: string) {
   const ud: any = {}
   const data = flow.model.test.entity[apiEntity.name]
 
-  const dataFields = each(apiEntity.field).filter(f => 'id' !== f.name && !f.name.includes('_id'))
+  const dataFields =
+    each(apiEntity.field).filter(f => 'id' !== f.name && !f.name.includes('_id'))
   const stringFields = each(dataFields).filter(f => 'string' === f.type)
 
   if (0 < size(stringFields)) {

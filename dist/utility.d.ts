@@ -1,14 +1,8 @@
-import type { FsUtil, Log } from './types';
+import type { FsUtil, Log, Warner } from './types';
 declare function makeWarner(spec: {
     point: string;
     log: Log;
-}): {
-    (def: Record<string, any>): void;
-    history: ({
-        point: string;
-        when: number;
-    } & Record<string, any>)[];
-};
+}): Warner;
 declare function getdlog(tagin?: string, filepath?: string): ((...args: any[]) => void) & {
     tag: string;
     file: string;
@@ -29,4 +23,5 @@ declare function formatJSONIC(val?: any, opts?: {
 }): string;
 declare function validator(torig: undefined | string | string[]): any;
 declare function canonize(s: string): string;
-export { getdlog, loadFile, formatJsonSrc, depluralize, find, capture, pathMatch, makeWarner, formatJSONIC, validator, canonize, };
+declare function nom(v: any, format: string): string;
+export { nom, getdlog, loadFile, formatJsonSrc, depluralize, find, capture, pathMatch, makeWarner, formatJSONIC, validator, canonize, };

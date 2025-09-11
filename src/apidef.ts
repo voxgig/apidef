@@ -24,6 +24,7 @@ import {
   OpenModelShape,
   OpenBuildShape,
   OpenControlShape,
+  ApiDefContext,
 } from './types'
 
 
@@ -51,6 +52,7 @@ import {
   loadFile,
   getdlog,
   makeWarner,
+  formatJSONIC,
 } from './utility'
 
 import { topTransform } from './transform/top'
@@ -74,7 +76,7 @@ function ApiDef(opts: ApiDefOptions) {
   const fs = opts.fs || Fs
   const pino = prettyPino('apidef', opts)
   const log = pino.child({ cmp: 'apidef' })
-  const warn = makeWarner({ point: 'interpret-warning', log })
+  const warn = makeWarner({ point: 'warning', log })
 
   opts.strategy = opts.strategy || 'heuristic01'
 
@@ -122,7 +124,7 @@ function ApiDef(opts: ApiDefOptions) {
     })
 
     // TODO: Validate spec
-    const ctx = {
+    const ctx: ApiDefContext = {
       fs,
       log,
       spec,
@@ -133,7 +135,8 @@ function ApiDef(opts: ApiDefOptions) {
       apimodel,
       guide: {},
       def: undefined,
-      note: {}
+      note: {},
+      warn,
     }
 
     const defsrc = loadFile(defpath, 'def', fs, log)
@@ -232,7 +235,16 @@ function ApiDef(opts: ApiDefOptions) {
 
     steps.push('generate')
 
-    log.info({ point: 'generate-end', note: 'success', break: true })
+    const hasWarnings = 0 < warn.history.length
+    const endnote =
+      hasWarnings ? `PARTIAL BUILD! There were ${warn.history.length} warnings (see above).` :
+        'success'
+    log[hasWarnings ? 'warn' : 'info']({ point: 'generate-end', note: endnote, break: true })
+
+    if (hasWarnings) {
+      ctx.fs.writeFileSync('./apidef-warnings.txt',
+        warn.history.map(n => formatJSONIC(n)).join('\n\n'))
+    }
 
     return {
       ok: true,

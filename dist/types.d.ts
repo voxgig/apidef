@@ -1004,5 +1004,25 @@ type ApiDefResult = {
     ctx?: any;
     jres?: any;
 };
+type ApiDefContext = {
+    fs: any;
+    log: any;
+    spec: any;
+    opts: any;
+    util: any;
+    defpath: string;
+    model: any;
+    apimodel: any;
+    guide: any;
+    def: any;
+    note: any;
+    warn: any;
+};
+type Warner = {
+    history: ({
+        point: string;
+        when: number;
+    } & Record<string, any>)[];
+} & ((details: Record<string, any>) => void);
 export { OpenControlShape, OpenModelShape, OpenBuildShape, };
-export type { TypeName, Log, FsUtil, ApiDefOptions, ApiDefResult, Control, Model, Build, ApiModel, };
+export type { TypeName, Log, FsUtil, ApiDefOptions, ApiDefResult, Control, Model, Build, ApiModel, ApiDefContext, Warner, };

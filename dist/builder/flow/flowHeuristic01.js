@@ -3,6 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.flowHeuristic01 = flowHeuristic01;
 const struct_1 = require("@voxgig/struct");
 const jostraca_1 = require("jostraca");
+const struct_2 = require("@voxgig/struct");
+const utility_1 = require("../../utility");
 async function flowHeuristic01(ctx) {
     let entity = ctx.guide.entity;
     const flows = [];
@@ -15,7 +17,7 @@ function resolveBasicEntityFlow(ctx, entity) {
     const { apimodel, model } = ctx;
     const apiEntity = apimodel.main.sdk.entity[entity.name];
     const flow = {
-        name: 'Basic' + apiEntity.Name + 'Flow'
+        name: 'Basic' + (0, utility_1.nom)(apiEntity, 'Name') + 'Flow'
     };
     const refs = [
         `${apiEntity.name}01`,
@@ -27,7 +29,7 @@ function resolveBasicEntityFlow(ctx, entity) {
         name: flow.name,
         active: true,
         param: {
-            [`${model.NAME}_TEST_${apiEntity.NAME}_ENTID`]: idmap,
+            [`${model.NAME}_TEST_${(0, utility_1.nom)(apiEntity, 'NAME')}_ENTID`]: idmap,
             [`${model.NAME}_TEST_LIVE`]: "FALSE",
             [`${model.NAME}_TEST_EXPLAIN`]: "FALSE",
         },
@@ -39,8 +41,8 @@ function resolveBasicEntityFlow(ctx, entity) {
     refs.map((ref, i) => {
         const id = idmap[ref];
         const ent = data[id] = {};
-        let num = (i * (0, struct_1.size)(apiEntity.field) * 10);
-        (0, jostraca_1.each)(apiEntity.field, (field) => {
+        let num = (i * (0, struct_1.size)(apiEntity.fields) * 10);
+        (0, jostraca_1.each)(apiEntity.fields, (field) => {
             ent[field.name] =
                 'number' === field.type ? num :
                     'boolean' === field.type ? 0 === num % 2 :
@@ -55,9 +57,11 @@ function resolveBasicEntityFlow(ctx, entity) {
     let num = 0;
     let name;
     const am = {};
-    if (apiEntity.op.load) {
+    const entop = apiEntity.op ?? {};
+    if (entop.load) {
+        const alt = findMainLoadAlt(entop.load);
         // Get additional required match properties
-        (0, jostraca_1.each)(apiEntity.op.load.param, (param) => {
+        (0, jostraca_1.each)(alt?.args.param, (param) => {
             if (param.required) {
                 let ancestorName = param.name;
                 let ancestorEntity = apimodel.main.api.entity[ancestorName];
@@ -71,7 +75,7 @@ function resolveBasicEntityFlow(ctx, entity) {
                     };
                     am[param.name] =
                         `\`dm$=p.${model.NAME}_TEST_${ancestorEntity.NAME}_ENTID.${ancestorEntity.name}01\``;
-                    data[`${apiEntity.NAME}01`][param.name] = ancestorEntity.NAME + '01';
+                    data[`${(0, utility_1.nom)(apiEntity, 'NAME')}01`][param.name] = ancestorEntity.NAME + '01';
                 }
             }
         });
@@ -82,7 +86,7 @@ function resolveBasicEntityFlow(ctx, entity) {
             entity: `${apiEntity.name}`,
             action: 'load',
             match: {
-                id: `\`dm$=p.${model.NAME}_TEST_${apiEntity.NAME}_ENTID.${apiEntity.name}01\``,
+                id: `\`dm$=p.${model.NAME}_TEST_${(0, utility_1.nom)(apiEntity, 'NAME')}_ENTID.${apiEntity.name}01\``,
                 ...am,
             },
             valid: {
@@ -92,7 +96,7 @@ function resolveBasicEntityFlow(ctx, entity) {
             }
         });
     }
-    if (apiEntity.op.update && apiEntity.op.load) {
+    if (entop.update && entop.load) {
         num++;
         name = `update_${apiEntity.name}${num}`;
         const id = idmap[`${apiEntity.name}01`];
@@ -119,7 +123,7 @@ function resolveBasicEntityFlow(ctx, entity) {
             entity: `${apiEntity.name}`,
             action: 'load',
             match: {
-                id: `\`dm$=p.${model.NAME}_TEST_${apiEntity.NAME}_ENTID.${apiEntity.name}01\``,
+                id: `\`dm$=p.${model.NAME}_TEST_${(0, utility_1.nom)(apiEntity, 'NAME')}_ENTID.${apiEntity.name}01\``,
                 ...am,
             },
             valid: {
@@ -131,6 +135,10 @@ function resolveBasicEntityFlow(ctx, entity) {
         });
     }
     return flow;
+}
+function findMainLoadAlt(op) {
+    let cands = op.alts.filter(a => '{id}' === (0, struct_2.getelem)(a.parts, -1));
+    return cands[0];
 }
 function makeUpdateData(name, apiEntity, flow, id) {
     const ud = {};

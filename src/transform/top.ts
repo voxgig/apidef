@@ -207,7 +207,7 @@ const topTransform = async function(
   const { apimodel, def } = ctx
 
   apimodel.main.sdk.info = def.info
-  apimodel.main.sdk.servers = def.servers ?? []
+  apimodel.main.sdk.info.servers = def.servers ?? []
 
   // Swagger 2.0
   if (def.host) {

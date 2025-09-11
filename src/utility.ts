@@ -1,7 +1,9 @@
 
 import Path from 'node:path'
 
-import { snakify } from 'jostraca'
+import { snakify, camelify, kebabify } from 'jostraca'
+
+import { decircular } from '@voxgig/util'
 
 import { slice, merge, inject, clone, isnode, walk, transform, select } from '@voxgig/struct'
 
@@ -9,12 +11,12 @@ import { slice, merge, inject, clone, isnode, walk, transform, select } from '@v
 import type {
   FsUtil,
   Log,
-  TypeName,
+  Warner,
 } from './types'
 
 
 
-function makeWarner(spec: { point: string, log: Log }) {
+function makeWarner(spec: { point: string, log: Log }): Warner {
   const { point, log } = spec
   const history: ({ point: string, when: number } & Record<string, any>)[] = []
   const warn = function warn(def: Record<string, any>) {
@@ -466,6 +468,8 @@ function isParam(partStr: string) {
 function formatJSONIC(val?: any, opts?: { hsepd?: number, $?: boolean }): string {
   if (undefined === val) return ''
 
+  val = decircular(val)
+
   const hsepd = opts?.hsepd ?? 1
   const showd = !!opts?.$
 
@@ -477,7 +481,13 @@ function formatJSONIC(val?: any, opts?: { hsepd?: number, $?: boolean }): string
     if (v === null) return 'null'
     const t = typeof v
     switch (t) {
-      case 'string': return JSON.stringify(v)
+      case 'string': return !v.includes('\n') ? JSON.stringify(v) :
+        '`' + JSON.stringify(v)
+          .substring(1)
+          .replace(/\\n/g, '\n')
+          .replace(/\\"/g, ':')
+          .replace(/`/g, '\\`')
+          .replace(/"$/, '`')
       case 'number': return Number.isFinite(v) ? String(v) : 'null'
       case 'boolean': return v ? 'true' : 'false'
       case 'bigint': return JSON.stringify(v.toString())
@@ -518,7 +528,9 @@ function formatJSONIC(val?: any, opts?: { hsepd?: number, $?: boolean }): string
   if (val && typeof val === 'object') {
     rootInline = renderComment((val as any)['_COMMENT'])
   }
-  stack[++top] = { kind: 'value', value: val, indentLevel: 0, linePrefix: '', inlineComment: rootInline }
+  stack[++top] = {
+    kind: 'value', value: val, indentLevel: 0, linePrefix: '', inlineComment: rootInline
+  }
 
   const lines: string[] = []
 
@@ -551,14 +563,8 @@ function formatJSONIC(val?: any, opts?: { hsepd?: number, $?: boolean }): string
     if (Array.isArray(v)) {
       const arr = v as any[]
       if (arr.length === 0) {
-        // if (frame.inlineComment) {
-        // two-line style when there is an inline comment
         lines.push(`${linePrefix}[${commentSuffix}`)
         stack[++top] = { kind: 'close', token: ']', indentLevel }
-        // } else {
-        //   // single-line empty array
-        //   lines.push(`${linePrefix}[]`)
-        // }
         continue
       }
 
@@ -584,18 +590,16 @@ function formatJSONIC(val?: any, opts?: { hsepd?: number, $?: boolean }): string
     // Plain object
     const obj = v as Record<string, any>
     const keys = Object.keys(obj)
+    if (v instanceof Error) {
+      keys.unshift('name', 'message', 'stack')
+    }
+
     const printableKeys = keys.filter(k => !k.endsWith('_COMMENT') &&
       (showd || !k.endsWith('$')))
 
     if (printableKeys.length === 0) {
-      //if (frame.inlineComment) {
-      // two-line style when there is an inline comment
       lines.push(`${linePrefix}{${commentSuffix}`)
       stack[++top] = { kind: 'close', token: '}', indentLevel }
-      // } else {
-      //   // single-line empty object
-      //   lines.push(`${linePrefix}{}`)
-      // }
       continue
     }
 
@@ -660,7 +664,30 @@ function canonize(s: string) {
 }
 
 
+// TODO: move to jostraca?
+function allcapify(s?: string) {
+  return 'string' === typeof s ? snakify(s).toUpperCase() : ''
+}
+
+
+function nom(v: any, format: string): string {
+  let formatstr = 'string' == typeof format ? format : null
+  if (null == formatstr) {
+    return '__MISSING__'
+  }
+  const canon = canonize(formatstr)
+  let out = v?.[canon] ?? '__MISSING_' + formatstr + '__'
+  out =
+    /[A-Z][a-z]/.test(formatstr) ? camelify(out) :
+      /[A-Z][A-Z]/.test(formatstr) ? allcapify(out) :
+        /-/.test(formatstr) ? kebabify(out) : out
+
+  return out
+}
+
+
 export {
+  nom,
   getdlog,
   loadFile,
   formatJsonSrc,

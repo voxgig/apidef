@@ -116,6 +116,28 @@ type ApiDefResult = {
 }
 
 
+type ApiDefContext = {
+  fs: any,
+  log: any,
+  spec: any,
+  opts: any,
+  util: any,
+  defpath: string,
+  model: any,
+  apimodel: any,
+  guide: any,
+  def: any,
+  note: any,
+  warn: any,
+
+}
+
+
+type Warner = {
+  history: ({ point: string, when: number } & Record<string, any>)[],
+} & ((details: Record<string, any>) => void)
+
+
 export {
   OpenControlShape,
   OpenModelShape,
@@ -133,5 +155,7 @@ export type {
   Model,
   Build,
   ApiModel,
+  ApiDefContext,
+  Warner,
 }
 
