@@ -1,10 +1,19 @@
 
 
-import { each, snakify, names } from 'jostraca'
+import { each, snakify } from 'jostraca'
 
-import { size, clone, items, getelem, merge } from '@voxgig/struct'
+import { size, merge } from '@voxgig/struct'
 
-import decircular from 'decircular'
+import {
+  ApiDefContext,
+  Metrics,
+  CmpDesc,
+} from '../types'
+
+import {
+  PathDef
+} from '../transform/top'
+
 
 import {
   depluralize,
@@ -12,16 +21,8 @@ import {
   capture,
   find,
   pathMatch,
+  canonize,
 } from '../utility'
-
-
-type Metrics = {
-  count: {
-    path: number
-    schema: Record<string, number>,
-    entity: number
-  }
-}
 
 
 type EntityDesc = {
@@ -48,39 +49,49 @@ type EntityPathDesc = {
 // Log non-fatal wierdness.
 const dlog = getdlog('apidef', __filename)
 
+// Schema components that occur less than this rate (over total method count) qualify
+// as unique entities, not shared schemas
+const IS_ENTCMP_METHOD_RATE = 0.21
+const IS_ENTCMP_PATH_RATE = 0.41
 
-async function heuristic01(ctx: any): Promise<Record<string, any>> {
+
+async function heuristic01(ctx: ApiDefContext): Promise<Record<string, any>> {
   let guide = ctx.guide
 
-  const metrics = measure(ctx)
-  // console.dir(metrics, { depth: null })
+  measure(ctx)
 
-  const entityDescs = resolveEntityDescs(ctx, metrics)
-  metrics.count.entity = size(entityDescs)
-
-  // console.log('ED', Object.keys(entityDescs))
+  const entityDescs = resolveEntityDescs(ctx)
+  ctx.metrics.count.entity = size(entityDescs)
 
   guide = {
     control: guide.control,
     entity: entityDescs,
-    metrics
+    metrics: ctx.metrics,
   }
 
   return guide
 }
 
 
-function measure(ctx: any): Metrics {
-  const metrics: Metrics = {
-    count: {
-      path: Object.keys(ctx.def.paths ?? {}).length,
-      schema: ({} as Record<string, number>),
-      entity: -1,
-    }
-  }
+function measure(ctx: ApiDefContext) {
+  const metrics = ctx.metrics
 
-  // console.log('Circular-measure')
-  // console.log(JSON.stringify(decircular(ctx.def), null, 2))
+  metrics.count.path = Object.keys(ctx.def.paths ?? {}).length
+  each(ctx.def.paths, (pathdef: PathDef) => {
+    metrics.count.method += (
+      (pathdef.get ? 1 : 0) +
+      (pathdef.post ? 1 : 0) +
+      (pathdef.put ? 1 : 0) +
+      (pathdef.patch ? 1 : 0) +
+      (pathdef.delete ? 1 : 0) +
+      (pathdef.options ? 1 : 0)
+    )
+  })
+
+
+  metrics.count.schema = ({} as Record<string, number>)
+  metrics.count.uniqschema = 0
+  metrics.count.entity = -1
 
 
   let xrefs = find(ctx.def, 'x-ref')
@@ -91,7 +102,11 @@ function measure(ctx: any): Metrics {
     let m = schema.val.match(/\/components\/schemas\/(.+)$/)
     if (m) {
       const name = fixEntName(m[1])
-      metrics.count.schema[name] = 1 + (metrics.count.schema[name] || 0)
+      if (null == metrics.count.schema[name]) {
+        metrics.count.uniqschema++
+        metrics.count.schema[name] = 0
+      }
+      metrics.count.schema[name]++
     }
   })
 
@@ -110,12 +125,17 @@ const METHOD_IDOP: Record<string, string> = {
   PATCH: 'patch',
 }
 
+const METHOD_CONSIDER_ORDER: Record<string, number> = {
+  'GET': 100,
+  'POST': 200,
+  'PUT': 300,
+  'PATCH': 400,
+  'DELETE': 500,
+}
 
-function resolveEntityDescs(ctx: any, metrics: Metrics) {
+
+function resolveEntityDescs(ctx: any) {
   const entityDescs: Record<string, any> = {}
-
-  // console.log('Circular-resolveEntityDescs')
-  // console.log(JSON.stringify(decircular(ctx.def), null, 2))
 
   const paths = ctx.def.paths
 
@@ -144,10 +164,10 @@ function resolveEntityDescs(ctx: any, metrics: Metrics) {
     else if (a.path > b.path) {
       return 1
     }
-    else if (a.method < b.method) {
+    else if (METHOD_CONSIDER_ORDER[a.method] < METHOD_CONSIDER_ORDER[b.method]) {
       return -1
     }
-    else if (a.method > b.method) {
+    else if (METHOD_CONSIDER_ORDER[a.method] > METHOD_CONSIDER_ORDER[b.method]) {
       return 1
     }
     else {
@@ -155,10 +175,10 @@ function resolveEntityDescs(ctx: any, metrics: Metrics) {
     }
   })
 
+  // console.log(caught.methods.map((n: any) => n.path + ' ' + n.method))
+
 
   each(caught.methods, (pmdef) => {
-    // console.dir(pmdef, { depth: null })
-
     let methodDef = pmdef
     let pathStr = pmdef.path
     let methodName = pmdef.method
@@ -176,11 +196,11 @@ function resolveEntityDescs(ctx: any, metrics: Metrics) {
     const parts = pathStr.split(/\//).filter((p: string) => '' != p)
 
     const entres =
-      resolveEntity(metrics, entityDescs, pathStr, parts, methodDef, methodName)
+      resolveEntity(ctx, entityDescs, pathStr, parts, methodDef, methodName)
 
     const entdesc = (entres.entdesc as EntityDesc)
 
-
+    // TODO: use ctx.warn
     if (null == entdesc) {
       console.log(
         'WARNING: unable to resolve entity for method ' + methodName +
@@ -255,13 +275,14 @@ function resolveEntityDescs(ctx: any, metrics: Metrics) {
 
 
 function resolveEntity(
-  metrics: Metrics,
+  ctx: ApiDefContext,
   entityDescs: Record<string, EntityDesc>,
   pathStr: string,
   parts: string[],
   methodDef: Record<string, any>,
   methodName: string,
 ): { entdesc?: EntityDesc, why_name: string[], pm?: any } {
+  const metrics = ctx.metrics
 
   const out: any = {
     entdesc: undefined,
@@ -270,13 +291,15 @@ function resolveEntity(
 
   const why_path: string[] = []
   const cmpname = resolveComponentName(methodDef, methodName, pathStr, why_path)
-  const cmprate = (metrics.count.schema[cmpname ?? ''] ?? 0) / metrics.count.path
+  const cmpoccur = metrics.count.schema[cmpname ?? ''] ?? 0
+  const path_rate = 0 == metrics.count.path ? -1 : (cmpoccur / metrics.count.path)
+  const method_rate = 0 == metrics.count.method ? -1 : (cmpoccur / metrics.count.method)
 
-  // console.log('CMPRATE', cmpname, cmprate, metrics.count.schema[cmpname ?? ''], metrics.count.path)
 
-  const cmp = {
+  const cmp: CmpDesc = {
     name: cmpname,
-    rate: cmprate,
+    path_rate: path_rate,
+    method_rate: method_rate,
   }
 
   if (null == cmpname) {
@@ -288,23 +311,23 @@ function resolveEntity(
   let pm = undefined
 
   if (pm = pathMatch(parts, 't/p/t/')) {
-    entname = entityPathMatch_tpte(pm, cmp, why_path)
+    entname = entityPathMatch_tpte(ctx, pm, cmp, pathStr, why_path)
   }
 
   else if (pm = pathMatch(parts, 't/p/')) {
-    entname = entityPathMatch_tpe(pm, cmp, why_path)
+    entname = entityPathMatch_tpe(ctx, pm, cmp, pathStr, why_path)
   }
 
   else if (pm = pathMatch(parts, 'p/t/')) {
-    entname = entityPathMatch_pte(pm, cmp, why_path)
+    entname = entityPathMatch_pte(ctx, pm, cmp, pathStr, why_path)
   }
 
   else if (pm = pathMatch(parts, 't/')) {
-    entname = entityPathMatch_te(pm, cmp, why_path)
+    entname = entityPathMatch_te(ctx, pm, cmp, pathStr, why_path)
   }
 
   else if (pm = pathMatch(parts, 't/p/p')) {
-    entname = entityPathMatch_tpp(pm, cmp, why_path)
+    entname = entityPathMatch_tpp(ctx, pm, cmp, pathStr, why_path)
   }
 
   else if (pm = pathMatch(parts, 'p/')) {
@@ -332,10 +355,8 @@ function resolveEntity(
 }
 
 
-function entityPathMatch_tpte(pm: any, cmp: {
-  name?: string,
-  rate: number,
-}, why_path: string[]) {
+function entityPathMatch_tpte(
+  ctx: ApiDefContext, pm: any, cmp: CmpDesc, pathStr: string, why_path: string[]) {
   const pathNameIndex = 2
 
   why_path.push('path=t/p/t/')
@@ -348,17 +369,15 @@ function entityPathMatch_tpte(pm: any, cmp: {
     entname = fixEntName(pm[0]) + '_' + entname
   }
   else {
-    entname = entityCmpMatch(entname, cmp, why_path)
+    entname = entityCmpMatch(ctx, entname, cmp, pathStr, why_path)
   }
 
   return entname
 }
 
 
-function entityPathMatch_tpe(pm: any, cmp: {
-  name?: string,
-  rate: number,
-}, why_path: string[]) {
+function entityPathMatch_tpe(
+  ctx: ApiDefContext, pm: any, cmp: CmpDesc, pathStr: string, why_path: string[]) {
   const pathNameIndex = 0
 
   why_path.push('path=t/p/')
@@ -369,17 +388,15 @@ function entityPathMatch_tpe(pm: any, cmp: {
     why_path.push('no-cmp')
   }
   else {
-    entname = entityCmpMatch(entname, cmp, why_path)
+    entname = entityCmpMatch(ctx, entname, cmp, pathStr, why_path)
   }
 
   return entname
 }
 
 
-function entityPathMatch_pte(pm: any, cmp: {
-  name?: string,
-  rate: number,
-}, why_path: string[]) {
+function entityPathMatch_pte(
+  ctx: ApiDefContext, pm: any, cmp: CmpDesc, pathStr: string, why_path: string[]) {
   const pathNameIndex = 1
 
   why_path.push('path=p/t/')
@@ -390,17 +407,15 @@ function entityPathMatch_pte(pm: any, cmp: {
     why_path.push('no-cmp')
   }
   else {
-    entname = entityCmpMatch(entname, cmp, why_path)
+    entname = entityCmpMatch(ctx, entname, cmp, pathStr, why_path)
   }
 
   return entname
 }
 
 
-function entityPathMatch_te(pm: any, cmp: {
-  name?: string,
-  rate: number,
-}, why_path: string[]) {
+function entityPathMatch_te(
+  ctx: ApiDefContext, pm: any, cmp: CmpDesc, pathStr: string, why_path: string[]) {
   const pathNameIndex = 0
 
   why_path.push('path=t/')
@@ -411,17 +426,15 @@ function entityPathMatch_te(pm: any, cmp: {
     why_path.push('no-cmp')
   }
   else {
-    entname = entityCmpMatch(entname, cmp, why_path)
+    entname = entityCmpMatch(ctx, entname, cmp, pathStr, why_path)
   }
 
   return entname
 }
 
 
-function entityPathMatch_tpp(pm: any, cmp: {
-  name?: string,
-  rate: number,
-}, why_path: string[]) {
+function entityPathMatch_tpp(
+  ctx: ApiDefContext, pm: any, cmp: CmpDesc, pathStr: string, why_path: string[]) {
   const pathNameIndex = 0
 
   why_path.push('path=t/p/p')
@@ -432,7 +445,7 @@ function entityPathMatch_tpp(pm: any, cmp: {
     why_path.push('no-cmp')
   }
   else {
-    entname = entityCmpMatch(entname, cmp, why_path)
+    entname = entityCmpMatch(ctx, entname, cmp, pathStr, why_path)
   }
 
   return entname
@@ -440,28 +453,61 @@ function entityPathMatch_tpp(pm: any, cmp: {
 
 
 function entityCmpMatch(
+  ctx: ApiDefContext,
   entname: string,
-  cmp: {
-    name?: string,
-    rate: number,
-  },
+  cmp: CmpDesc,
+  pathStr: string,
   why_path: string[]
 ) {
-  why_path.push('cr=' + cmp.rate.toFixed(3))
-  if (null != cmp.name &&
-    entname != cmp.name &&
-    cmp.rate < 0.5 &&
-    !cmp.name.startsWith(entname)
+  let out = entname
+  const cmpInfrequent = (
+    cmp.method_rate < IS_ENTCMP_METHOD_RATE
+    || cmp.path_rate < IS_ENTCMP_PATH_RATE
+  )
+
+  if (
+    null != cmp.name
+    && entname != cmp.name
+    && !cmp.name.startsWith(entname)
   ) {
-    why_path.push('cmp-primary')
-    entname = cmp.name
+    if (cmpInfrequent) {
+      why_path.push('cmp-primary')
+      out = cmp.name
+    }
+    else if (cmpOccursInPath(ctx, cmp.name)) {
+      why_path.push('cmp-path')
+      out = cmp.name
+    }
+    else {
+      why_path.push('path-primary')
+    }
   }
   else {
     why_path.push('path-primary')
   }
-  return entname
+
+  if (pathStr === process.env.npm_config_apipath) {
+    console.log('ENTITY-CMP-NAME', pathStr, entname + '->' + out, why_path, cmp,
+      IS_ENTCMP_METHOD_RATE, IS_ENTCMP_PATH_RATE)
+  }
+
+  return out
 }
 
+
+function cmpOccursInPath(ctx: ApiDefContext, cmpname: string): boolean {
+  if (null == ctx.work.potentialCmpsFromPaths) {
+    ctx.work.potentialCmpsFromPaths = {}
+    each(ctx.def.paths, (_pathdef: PathDef, pathstr: string) => {
+      pathstr
+        .split('/')
+        .filter(p => !p.startsWith('{'))
+        .map(p => ctx.work.potentialCmpsFromPaths[canonize(p)] = true)
+    })
+  }
+
+  return null != ctx.work.potentialCmpsFromPaths[cmpname]
+}
 
 
 const REQKIND: any = {
@@ -512,11 +558,6 @@ function resolveComponentName(
   if (null != cmpname) {
     cmpname = depluralize(snakify(cmpname))
     why_name.push('cmp=' + cmpname)
-
-    // Assume sub schemas suffixes are not real entities
-    // if (compname.includes(entname)) {
-    //   compname = compname.slice(0, compname.indexOf(entname) + entname.length)
-    // }
   }
 
   return cmpname
@@ -531,7 +572,6 @@ function resolveOpName(
   why: string[]
 )
   : string | undefined {
-  // console.log('ROP', pathStr, methodDef)
 
   let opname = METHOD_IDOP[methodName]
   if (null == opname) {
@@ -591,39 +631,6 @@ function isListResponse(
           if (prop.type === 'array') {
             why.push('array-prop:' + prop.key$)
             islist = true
-
-
-            /*
-            if (1 === size(properties)) {
-              why.push('one-prop:' + prop.key$)
-              islist = true
-            }
-   
-            if (2 === size(properties) &&
-              ('data' === prop.key$ ||
-                'list' === prop.key$)
-            ) {
-              why.push('two-prop:' + prop.key$)
-              islist = true
-            }
-   
-            if (prop.key$ === entdesc.name) {
-              why.push('name:' + entdesc.origname)
-              islist = true
-            }
-   
-            if (prop.key$ === entdesc.origname) {
-              why.push('origname:' + entdesc.origname)
-              islist = true
-            }
-   
-            const listent = listedEntity(prop)
-            if (listent === entdesc.name) {
-              why.push('listent:' + listent)
-              islist = true
-            }
-            */
-
           }
         })
       }
@@ -660,7 +667,7 @@ function resolveSchemaProperties(schema: any) {
 // Make consistent changes to support semantic entities.
 function renameParams(ctx: any, pathStr: string, methodName: string, entres: any) {
   const entdesc: EntityDesc = entres.entdesc
-  const cmp = entres.cmp
+  const cmp: CmpDesc = entres.cmp
 
   // Rewrite path parameters that are identifiers to follow the rules:
   // 0. Parameters named [a-z]?id are considered identifiers
@@ -673,12 +680,17 @@ function renameParams(ctx: any, pathStr: string, methodName: string, entres: any
   pathDef.rename = (pathDef.rename ?? {})
   pathDef.rename_why = (pathDef.rename_why ?? {})
 
-  const paramRenames = pathDef.rename.param = (pathDef.rename.param ?? {})
-  const paramRenamesWhy = pathDef.rename_why.param_why = (pathDef.rename_why.param_why ?? {})
-
+  const paramRenameCapture = {
+    rename: pathDef.rename.param = (pathDef.rename.param ?? {}),
+    why: pathDef.rename_why.param_why = (pathDef.rename_why.param_why ?? {}),
+  }
   const parts = pathStr.split(/\//).filter(p => '' != p)
 
-  const cmpname = null != cmp.name && cmp.rate < 0.5 ? cmp.name : null
+  const cmpname = cmp.name
+  const considerCmp =
+    null != cmp.name &&
+    0 < ctx.metrics.count.uniqschema &&
+    cmp.method_rate < IS_ENTCMP_METHOD_RATE
 
   for (let partI = 0; partI < parts.length; partI++) {
     let partStr = parts[partI]
@@ -687,7 +699,7 @@ function renameParams(ctx: any, pathStr: string, methodName: string, entres: any
       const why = []
 
       const oldParam = partStr.substring(1, partStr.length - 1)
-      paramRenamesWhy[oldParam] = []
+      paramRenameCapture.why[oldParam] = (paramRenameCapture.why[oldParam] ?? [])
 
       const lastPart = partI === parts.length - 1
       const secondLastPart = partI === parts.length - 2
@@ -718,27 +730,28 @@ function renameParams(ctx: any, pathStr: string, methodName: string, entres: any
             || parentName === cmpname
           )
         ) {
+          // let newParamName = 'id'
+          updateParamRename(
+            ctx, pathStr, methodName, paramRenameCapture, oldParam,
+            'id', 'action-not-parent:' + entdesc.name)
           why.push('action')
-          let newParamName = 'id'
-          paramRenames[oldParam] = newParamName
-          paramRenamesWhy[oldParam].push('action-not-parent:' + entdesc.name)
-
         }
 
         else if (
           hasParent
           && parentName === cmpname
         ) {
+          updateParamRename(
+            ctx, pathStr, methodName, paramRenameCapture, oldParam,
+            'id', 'id-not-parent')
           why.push('id-not-parent')
-          paramRenames[oldParam] = 'id'
-          paramRenamesWhy[oldParam].push('id-not-parent')
         }
 
         else {
+          updateParamRename(
+            ctx, pathStr, methodName, paramRenameCapture, oldParam,
+            parentName + '_id', 'parent:' + parentName)
           why.push('parent')
-          let newParamName = parentName + '_id'
-          paramRenames[oldParam] = newParamName
-          paramRenamesWhy[oldParam].push('parent:' + parentName)
         }
       }
 
@@ -748,12 +761,13 @@ function renameParams(ctx: any, pathStr: string, methodName: string, entres: any
         lastPart
         && not_exact_id
         && (!hasParent || parentName === entdesc.name)
-        // && (null == cmp.name || cmp.name === entdesc.name)
-        && (null == cmpname || cmpname === entdesc.name)
+        && (!considerCmp || cmpname === entdesc.name)
       ) {
+        updateParamRename(
+          ctx, pathStr, methodName, paramRenameCapture, oldParam,
+          'id', 'end-id:' + methodName + ':parent=' + hasParent + '/' + parentName +
+          ':cmp=' + considerCmp + '/' + cmpname)
         why.push('end-id')
-        paramRenames[oldParam] = 'id'
-        paramRenamesWhy[oldParam].push('end-id')
       }
 
       // Mot at end, has preceding non-param part.
@@ -767,15 +781,15 @@ function renameParams(ctx: any, pathStr: string, methodName: string, entres: any
 
         // Actually primary ent with an action$ suffix
         if (
-          // partI === parts.length - 2
           secondLastPart
         ) {
           why.push('second-last')
 
           if ('id' !== oldParam && fixEntName(partStr) === entdesc.name) {
+            updateParamRename(
+              ctx, pathStr, methodName, paramRenameCapture, oldParam,
+              'id', 'end-action')
             why.push('end-action')
-            paramRenames[oldParam] = 'id'
-            paramRenamesWhy[oldParam].push('end-action')
           }
           else {
             why.push('not-end-action')
@@ -787,9 +801,13 @@ function renameParams(ctx: any, pathStr: string, methodName: string, entres: any
           hasParent
           && parentName === cmpname
         ) {
+          updateParamRename(
+            ctx, pathStr, methodName, paramRenameCapture, oldParam,
+            'id', 'id-not-last')
+
           why.push('id-not-last')
-          paramRenames[oldParam] = 'id'
-          paramRenamesWhy[oldParam].push('id-not-last')
+          // paramRenames[oldParam] = 'id'
+          // paramRenamesWhy[oldParam].push('id-not-last')
         }
 
         // Not primary ent.
@@ -798,26 +816,30 @@ function renameParams(ctx: any, pathStr: string, methodName: string, entres: any
 
           let newParamName = parentName + '_id'
           if (newParamName != oldParam) {
+            updateParamRename(
+              ctx, pathStr, methodName, paramRenameCapture, oldParam,
+              newParamName, 'not-primary')
             why.push('not-primary')
-            paramRenames[oldParam] = newParamName
-            paramRenamesWhy[oldParam].push('not-primary')
+
+            // paramRenames[oldParam] = newParamName
+            // paramRenamesWhy[oldParam].push('not-primary')
           }
         }
       }
 
       why.push('done')
 
-      // Skip if renamed to itself!
-      if (paramRenames[oldParam] === oldParam) {
+      if (paramRenameCapture.rename[oldParam] === oldParam) {
         why.push('delete-dup')
-        delete paramRenames[oldParam]
-        delete paramRenamesWhy[oldParam]
+        delete paramRenameCapture.rename[oldParam]
+        delete paramRenameCapture.why[oldParam]
       }
 
-      if ('/pages/{page_id}/page_access_groups/{page_access_group_id}/components/{component_id}'
-        === pathStr) {
+      // TODO: these need to done via an API
+      if (process.env.npm_config_apipath === pathStr) {
         console.log('RENAME-PARAM',
           {
+            pathStr,
             methodName,
             partStr,
             why,
@@ -829,15 +851,59 @@ function renameParams(ctx: any, pathStr: string, methodName: string, entres: any
             parentName,
             not_exact_id,
             probably_an_id,
-            cmpname,
-          },
-
-          entdesc)
+            considerCmp,
+            cmp,
+            paramRenameCapture,
+            entdesc
+          }
+        )
       }
-
     }
   }
 }
+
+
+function updateParamRename(
+  ctx: ApiDefContext,
+  path: string,
+  method: string,
+  paramRenameCapture: {
+    rename: Record<string, string>,
+    why: Record<string, string[]>,
+  },
+  oldParamName: string,
+  newParamName: string,
+  why: string,
+) {
+  const existingNewName = paramRenameCapture.rename[oldParamName]
+  const existingWhy = paramRenameCapture.why[oldParamName]
+
+  if (path === process.env.npm_config_apipath) {
+    console.log('UPDATE-PARAM-RENAME', path, oldParamName, newParamName, existingNewName)
+  }
+
+  if (null == existingNewName) {
+    paramRenameCapture.rename[oldParamName] = newParamName
+    if (!existingWhy.includes(why)) {
+      existingWhy.push(why)
+    }
+  }
+  else if (newParamName == existingNewName) {
+    // if (!existingWhy.includes(why)) {
+    //   existingWhy.push(why)
+    // }
+  }
+  else {
+    ctx.warn({
+      paramRenameCapture, oldParamName, newParamName, why,
+      note: 'Param rename mismatch: existing: ' +
+        oldParamName + ' -> ' + existingNewName + ' (why: ' + existingNewName + ') ' +
+        ' proposed: ' + newParamName + ' (why: ' + why + ') ' +
+        'for path: ' + path + '. method: ' + method
+    })
+  }
+}
+
 
 
 function isParam(partStr: string) {

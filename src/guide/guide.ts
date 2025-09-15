@@ -116,6 +116,11 @@ async function buildBaseGuide(ctx: any) {
       (0 < entity.why_name?.length ? '  # name:' + entity.why_name.join(';') : ''))
 
     items(entity.path).map(([pathstr, path]: any[]) => {
+      if (pathstr === process.env.npm_config_apipath) {
+        console.log('BASE-GUIDE', pathstr)
+        console.dir(path, { depth: null })
+      }
+
       guideBlocks.push(`    path: '${pathstr}': {` +
         (0 < path.why_path?.length ? '  # ent:' + path.why_path.join(';') : ''))
 

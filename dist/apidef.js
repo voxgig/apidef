@@ -115,6 +115,16 @@ function ApiDef(opts) {
             def: undefined,
             note: {},
             warn,
+            metrics: {
+                count: {
+                    path: 0,
+                    method: 0,
+                    schema: {},
+                    uniqschema: 0,
+                    entity: 0,
+                }
+            },
+            work: {}
         };
         const defsrc = (0, utility_1.loadFile)(defpath, 'def', fs, log);
         const def = await (0, parse_1.parse)('OpenAPI', defsrc, { file: defpath });

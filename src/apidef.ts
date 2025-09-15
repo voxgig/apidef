@@ -20,6 +20,7 @@ import type {
   ApiModel,
 } from './types'
 
+
 import {
   OpenModelShape,
   OpenBuildShape,
@@ -137,6 +138,16 @@ function ApiDef(opts: ApiDefOptions) {
       def: undefined,
       note: {},
       warn,
+      metrics: {
+        count: {
+          path: 0,
+          method: 0,
+          schema: {},
+          uniqschema: 0,
+          entity: 0,
+        }
+      },
+      work: {}
     }
 
     const defsrc = loadFile(defpath, 'def', fs, log)

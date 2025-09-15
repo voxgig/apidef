@@ -80,6 +80,10 @@ async function buildBaseGuide(ctx) {
   entity: ${entityname}: {` +
             (0 < entity.why_name?.length ? '  # name:' + entity.why_name.join(';') : ''));
         (0, struct_1.items)(entity.path).map(([pathstr, path]) => {
+            if (pathstr === process.env.npm_config_apipath) {
+                console.log('BASE-GUIDE', pathstr);
+                console.dir(path, { depth: null });
+            }
             guideBlocks.push(`    path: '${pathstr}': {` +
                 (0 < path.why_path?.length ? '  # ent:' + path.why_path.join(';') : ''));
             if (!(0, struct_1.isempty)(path.rename?.param)) {

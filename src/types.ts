@@ -116,6 +116,18 @@ type ApiDefResult = {
 }
 
 
+type Metrics = {
+  count: {
+    path: number
+    method: number
+    schema: Record<string, number>,
+    uniqschema: number
+    entity: number
+  }
+}
+
+
+
 type ApiDefContext = {
   fs: any,
   log: any,
@@ -129,13 +141,21 @@ type ApiDefContext = {
   def: any,
   note: any,
   warn: any,
-
+  metrics: Metrics,
+  work: Record<string, any>
 }
 
 
 type Warner = {
   history: ({ point: string, when: number } & Record<string, any>)[],
 } & ((details: Record<string, any>) => void)
+
+
+type CmpDesc = {
+  name?: string,
+  path_rate: number,
+  method_rate: number,
+}
 
 
 export {
@@ -146,6 +166,7 @@ export {
 
 
 export type {
+  CmpDesc,
   TypeName,
   Log,
   FsUtil,
@@ -157,5 +178,6 @@ export type {
   ApiModel,
   ApiDefContext,
   Warner,
+  Metrics,
 }
 

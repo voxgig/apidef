@@ -1004,6 +1004,15 @@ type ApiDefResult = {
     ctx?: any;
     jres?: any;
 };
+type Metrics = {
+    count: {
+        path: number;
+        method: number;
+        schema: Record<string, number>;
+        uniqschema: number;
+        entity: number;
+    };
+};
 type ApiDefContext = {
     fs: any;
     log: any;
@@ -1017,6 +1026,8 @@ type ApiDefContext = {
     def: any;
     note: any;
     warn: any;
+    metrics: Metrics;
+    work: Record<string, any>;
 };
 type Warner = {
     history: ({
@@ -1024,5 +1035,10 @@ type Warner = {
         when: number;
     } & Record<string, any>)[];
 } & ((details: Record<string, any>) => void);
+type CmpDesc = {
+    name?: string;
+    path_rate: number;
+    method_rate: number;
+};
 export { OpenControlShape, OpenModelShape, OpenBuildShape, };
-export type { TypeName, Log, FsUtil, ApiDefOptions, ApiDefResult, Control, Model, Build, ApiModel, ApiDefContext, Warner, };
+export type { CmpDesc, TypeName, Log, FsUtil, ApiDefOptions, ApiDefResult, Control, Model, Build, ApiModel, ApiDefContext, Warner, Metrics, };
