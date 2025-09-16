@@ -12,6 +12,9 @@ type ApiDefOptions = {
     meta?: Record<string, any>;
     outprefix?: string;
     strategy?: string;
+    why?: {
+        show?: boolean;
+    };
 };
 declare const ControlShape: {
     <V>(root?: V | undefined, ctx?: import("gubu").Context): V & {
@@ -1040,5 +1043,10 @@ type CmpDesc = {
     path_rate: number;
     method_rate: number;
 };
+type MethodDesc = {
+    name: string;
+    def: Record<string, any>;
+    path: string;
+};
 export { OpenControlShape, OpenModelShape, OpenBuildShape, };
-export type { CmpDesc, TypeName, Log, FsUtil, ApiDefOptions, ApiDefResult, Control, Model, Build, ApiModel, ApiDefContext, Warner, Metrics, };
+export type { CmpDesc, MethodDesc, TypeName, Log, FsUtil, ApiDefOptions, ApiDefResult, Control, Model, Build, ApiModel, ApiDefContext, Warner, Metrics, };

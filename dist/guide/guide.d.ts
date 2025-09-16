@@ -1,2 +1,3 @@
-declare function buildGuide(ctx: any): Promise<any>;
+import { ApiDefContext } from '../types';
+declare function buildGuide(ctx: ApiDefContext): Promise<any>;
 export { buildGuide };

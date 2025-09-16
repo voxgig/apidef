@@ -298,6 +298,7 @@ ApiDef.makeBuild = async function(opts: ApiDefOptions) {
         outprefix: opts.outprefix,
         strategy: opts.strategy,
         pino: build.log,
+        why: opts.why,
       })
     }
 

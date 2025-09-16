@@ -3,14 +3,19 @@ import Path from 'node:path'
 
 import { Jostraca, Project, names, File, Content, each } from 'jostraca'
 
-import { Aontu, Val, Nil, Context } from 'aontu'
+import { Aontu, Context } from 'aontu'
 
 
 import { items, isempty } from '@voxgig/struct'
 
-import decircular from 'decircular'
 
 import { heuristic01 } from './heuristic01'
+
+
+import {
+  ApiDefContext
+} from '../types'
+
 
 import {
   getdlog,
@@ -21,7 +26,7 @@ import {
 const dlog = getdlog('apidef', __filename)
 
 
-async function buildGuide(ctx: any): Promise<any> {
+async function buildGuide(ctx: ApiDefContext): Promise<any> {
   const errs: any[] = []
 
   const folder = Path.resolve(ctx.opts.folder)
@@ -83,7 +88,7 @@ function handleErrors(ctx: any, errs: any[]) {
 }
 
 
-async function buildBaseGuide(ctx: any) {
+async function buildBaseGuide(ctx: ApiDefContext) {
   let baseguide: Record<string, any> = {}
 
   if ('heuristic01' === ctx.opts.strategy) {
@@ -110,31 +115,34 @@ async function buildBaseGuide(ctx: any) {
 
   validateBaseBuide(ctx, baseguide)
 
-  items(baseguide.entity).map(([entityname, entity]: any[]) => {
+  const sw = (s: string) => ctx.opts.why?.show ? s : ''
+
+  items(baseguide.entity).map(([entname, entity]: any[]) => {
     guideBlocks.push(`
-  entity: ${entityname}: {` +
-      (0 < entity.why_name?.length ? '  # name:' + entity.why_name.join(';') : ''))
+  entity: ${entname}: {` +
+      sw(0 < entity.why_name?.length ? '  # name:' + entity.why_name.join(';') : ''))
 
     items(entity.path).map(([pathstr, path]: any[]) => {
       if (pathstr === process.env.npm_config_apipath) {
-        console.log('BASE-GUIDE', pathstr)
+        console.log('BASE-GUIDE', entname, pathstr)
         console.dir(path, { depth: null })
       }
 
       guideBlocks.push(`    path: '${pathstr}': {` +
-        (0 < path.why_path?.length ? '  # ent:' + path.why_path.join(';') : ''))
+        sw(0 < path.why_path?.length ?
+          '  # ent:' + entname + ':' + path.why_path.join(';') : ''))
 
       if (!isempty(path.rename?.param)) {
         items(path.rename.param).map(([psrc, ptgt]: any[]) => {
           guideBlocks.push(`      rename: param: "${psrc}": *"${ptgt}"|string` +
-            (0 < path.rename_why.param_why?.[psrc]?.length ?
+            sw(0 < path.rename_why.param_why?.[psrc]?.length ?
               '  # ' + path.rename_why.param_why[psrc].join(';') : ''))
         })
       }
 
       items(path.op).map(([opname, op]: any[]) => {
         guideBlocks.push(`      op: ${opname}: method: *"${op.method}"|string` +
-          (0 < op.why_op.length ? '  # ' + op.why_op : ''))
+          sw(0 < op.why_op.length ? '  # ' + op.why_op : ''))
         if (op.transform?.reqform) {
           guideBlocks.push(
             `      ${opname}: transform: reqform: ${JSON.stringify(op.transform.reqform)}`)

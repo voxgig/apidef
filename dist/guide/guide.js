@@ -75,27 +75,29 @@ async function buildBaseGuide(ctx) {
         note: `epr=${epr}  (entity=${metrics.count.entity} paths=${metrics.count.path} )`
     });
     validateBaseBuide(ctx, baseguide);
-    (0, struct_1.items)(baseguide.entity).map(([entityname, entity]) => {
+    const sw = (s) => ctx.opts.why?.show ? s : '';
+    (0, struct_1.items)(baseguide.entity).map(([entname, entity]) => {
         guideBlocks.push(`
-  entity: ${entityname}: {` +
-            (0 < entity.why_name?.length ? '  # name:' + entity.why_name.join(';') : ''));
+  entity: ${entname}: {` +
+            sw(0 < entity.why_name?.length ? '  # name:' + entity.why_name.join(';') : ''));
         (0, struct_1.items)(entity.path).map(([pathstr, path]) => {
             if (pathstr === process.env.npm_config_apipath) {
-                console.log('BASE-GUIDE', pathstr);
+                console.log('BASE-GUIDE', entname, pathstr);
                 console.dir(path, { depth: null });
             }
             guideBlocks.push(`    path: '${pathstr}': {` +
-                (0 < path.why_path?.length ? '  # ent:' + path.why_path.join(';') : ''));
+                sw(0 < path.why_path?.length ?
+                    '  # ent:' + entname + ':' + path.why_path.join(';') : ''));
             if (!(0, struct_1.isempty)(path.rename?.param)) {
                 (0, struct_1.items)(path.rename.param).map(([psrc, ptgt]) => {
                     guideBlocks.push(`      rename: param: "${psrc}": *"${ptgt}"|string` +
-                        (0 < path.rename_why.param_why?.[psrc]?.length ?
+                        sw(0 < path.rename_why.param_why?.[psrc]?.length ?
                             '  # ' + path.rename_why.param_why[psrc].join(';') : ''));
                 });
             }
             (0, struct_1.items)(path.op).map(([opname, op]) => {
                 guideBlocks.push(`      op: ${opname}: method: *"${op.method}"|string` +
-                    (0 < op.why_op.length ? '  # ' + op.why_op : ''));
+                    sw(0 < op.why_op.length ? '  # ' + op.why_op : ''));
                 if (op.transform?.reqform) {
                     guideBlocks.push(`      ${opname}: transform: reqform: ${JSON.stringify(op.transform.reqform)}`);
                 }

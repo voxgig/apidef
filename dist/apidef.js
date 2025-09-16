@@ -238,6 +238,7 @@ ApiDef.makeBuild = async function (opts) {
                 outprefix: opts.outprefix,
                 strategy: opts.strategy,
                 pino: build.log,
+                why: opts.why,
             });
         }
         const ctrl = build.spec.buildargs?.apidef?.ctrl || {};

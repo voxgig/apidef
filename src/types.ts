@@ -30,6 +30,9 @@ type ApiDefOptions = {
   meta?: Record<string, any>
   outprefix?: string
   strategy?: string
+  why?: {
+    show?: boolean
+  }
 }
 
 const ControlShape = Gubu({
@@ -157,6 +160,12 @@ type CmpDesc = {
   method_rate: number,
 }
 
+type MethodDesc = {
+  name: string,
+  def: Record<string, any>,
+  path: string,
+}
+
 
 export {
   OpenControlShape,
@@ -167,6 +176,7 @@ export {
 
 export type {
   CmpDesc,
+  MethodDesc,
   TypeName,
   Log,
   FsUtil,

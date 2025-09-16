@@ -368,7 +368,7 @@ function $RECASE(inj: any, val: any, ref: any, store: any) {
 
 
 
-
+type PathMatch = (string[] & { index: number, expr: string })
 
 // A special-purpose regex-style matcher for url paths.
 //   t - text part
@@ -378,7 +378,7 @@ function $RECASE(inj: any, val: any, ref: any, store: any) {
 //   / at end - must match to end
 // See utility.test.ts for examples
 function pathMatch(path: string | string[], expr: string):
-  null | (string[] & { index: number, expr: string }) {
+  null | PathMatch {
 
   const parts = (Array.isArray(path) ? path : path.split('/')).filter(p => '' !== p)
   const res: any = []
@@ -685,6 +685,9 @@ function nom(v: any, format: string): string {
   return out
 }
 
+export type {
+  PathMatch
+}
 
 export {
   nom,
