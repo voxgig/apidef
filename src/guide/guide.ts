@@ -132,6 +132,14 @@ async function buildBaseGuide(ctx: ApiDefContext) {
         sw(0 < path.why_path?.length ?
           '  # ent:' + entname + ':' + path.why_path.join(';') : ''))
 
+      if (!isempty(path.action)) {
+        items(path.action).map(([actname, actdesc]: any[]) => {
+          guideBlocks.push(`      action: "${actname}": kind: *"${actdesc.kind}"|top` +
+            sw(0 < path.action_why[actname]?.length ?
+              '  # ' + path.action_why[actname].join(';') : ''))
+        })
+      }
+
       if (!isempty(path.rename?.param)) {
         items(path.rename.param).map(([psrc, ptgt]: any[]) => {
           guideBlocks.push(`      rename: param: "${psrc}": *"${ptgt}"|string` +

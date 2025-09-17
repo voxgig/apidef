@@ -491,6 +491,8 @@ function renameParams(ctx, pathStr, methodName, entres) {
     const pathDef = entdesc.path[pathStr];
     pathDef.rename = (pathDef.rename ?? {});
     pathDef.rename_why = (pathDef.rename_why ?? {});
+    pathDef.action = (pathDef.action ?? {});
+    pathDef.action_why = (pathDef.action_why ?? {});
     const paramRenameCapture = {
         rename: pathDef.rename.param = (pathDef.rename.param ?? {}),
         why: pathDef.rename_why.param_why = (pathDef.rename_why.param_why ?? {}),
@@ -528,6 +530,7 @@ function renameParams(ctx, pathStr, methodName, entres) {
                     // let newParamName = 'id'
                     updateParamRename(ctx, pathStr, methodName, paramRenameCapture, oldParam, 'id', 'action-not-parent:' + entdesc.name);
                     why.push('action');
+                    updateAction(ctx, pathStr, methodName, oldParam, parts[partI + 1], entdesc, pathDef, 'action-not-parent');
                 }
                 else if (hasParent
                     && parentName === cmpname) {
@@ -561,6 +564,7 @@ function renameParams(ctx, pathStr, methodName, entres) {
                     if ('id' !== oldParam && fixEntName(partStr) === entdesc.name) {
                         updateParamRename(ctx, pathStr, methodName, paramRenameCapture, oldParam, 'id', 'end-action');
                         why.push('end-action');
+                        updateAction(ctx, pathStr, methodName, oldParam, parts[partI + 1], entdesc, pathDef, 'end-action');
                     }
                     else {
                         why.push('not-end-action');
@@ -614,6 +618,16 @@ function renameParams(ctx, pathStr, methodName, entres) {
                 });
             }
         }
+    }
+}
+function updateAction(_ctx, _pathStr, methodName, oldParam, actionName, entityDesc, pathDesc, why) {
+    if (
+    // Entity not already encoding action.
+    !entityDesc.name.endsWith((0, utility_1.canonize)(actionName))
+        && null == pathDesc.action[actionName]) {
+        pathDesc.action[actionName] = { kind: '`$BOOLEAN`' };
+        pathDesc.action_why[actionName] =
+            [`ent:${entityDesc.name}:${why}:${oldParam}:${methodName}`];
     }
 }
 function updateParamRename(ctx, path, method, paramRenameCapture, oldParamName, newParamName, why) {

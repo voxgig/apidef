@@ -41,13 +41,18 @@ type EntityDesc = {
 
 type EntityPathDesc = {
   op: Record<string, any>
+  pm: PathMatch
+
   rename: {
     param: Record<string, string>
   }
-  pm: PathMatch
   rename_why: {
     param_why: Record<string, string[]>
   }
+
+  action: Record<string, { kind: any }>
+  action_why: Record<string, string[]>
+
   why_ent: string[]
   why_path: string[]
 }
@@ -773,6 +778,9 @@ function renameParams(ctx: any, pathStr: string, methodName: string, entres: any
   pathDef.rename = (pathDef.rename ?? {})
   pathDef.rename_why = (pathDef.rename_why ?? {})
 
+  pathDef.action = (pathDef.action ?? {})
+  pathDef.action_why = (pathDef.action_why ?? {})
+
   const paramRenameCapture = {
     rename: pathDef.rename.param = (pathDef.rename.param ?? {}),
     why: pathDef.rename_why.param_why = (pathDef.rename_why.param_why ?? {}),
@@ -828,6 +836,10 @@ function renameParams(ctx: any, pathStr: string, methodName: string, entres: any
             ctx, pathStr, methodName, paramRenameCapture, oldParam,
             'id', 'action-not-parent:' + entdesc.name)
           why.push('action')
+
+          updateAction(
+            ctx, pathStr, methodName, oldParam,
+            parts[partI + 1], entdesc, pathDef, 'action-not-parent')
         }
 
         else if (
@@ -883,6 +895,10 @@ function renameParams(ctx: any, pathStr: string, methodName: string, entres: any
               ctx, pathStr, methodName, paramRenameCapture, oldParam,
               'id', 'end-action')
             why.push('end-action')
+
+            updateAction(
+              ctx, pathStr, methodName, oldParam,
+              parts[partI + 1], entdesc, pathDef, 'end-action')
           }
           else {
             why.push('not-end-action')
@@ -954,6 +970,30 @@ function renameParams(ctx: any, pathStr: string, methodName: string, entres: any
     }
   }
 }
+
+
+
+function updateAction(
+  _ctx: ApiDefContext,
+  _pathStr: string,
+  methodName: string,
+  oldParam: string,
+  actionName: string,
+  entityDesc: EntityDesc,
+  pathDesc: EntityPathDesc,
+  why: string
+) {
+  if (
+    // Entity not already encoding action.
+    !entityDesc.name.endsWith(canonize(actionName))
+    && null == pathDesc.action[actionName]
+  ) {
+    pathDesc.action[actionName] = { kind: '`$BOOLEAN`' }
+    pathDesc.action_why[actionName] =
+      [`ent:${entityDesc.name}:${why}:${oldParam}:${methodName}`]
+  }
+}
+
 
 
 function updateParamRename(

@@ -88,6 +88,13 @@ async function buildBaseGuide(ctx) {
             guideBlocks.push(`    path: '${pathstr}': {` +
                 sw(0 < path.why_path?.length ?
                     '  # ent:' + entname + ':' + path.why_path.join(';') : ''));
+            if (!(0, struct_1.isempty)(path.action)) {
+                (0, struct_1.items)(path.action).map(([actname, actdesc]) => {
+                    guideBlocks.push(`      action: "${actname}": kind: *"${actdesc.kind}"|top` +
+                        sw(0 < path.action_why[actname]?.length ?
+                            '  # ' + path.action_why[actname].join(';') : ''));
+                });
+            }
             if (!(0, struct_1.isempty)(path.rename?.param)) {
                 (0, struct_1.items)(path.rename.param).map(([psrc, ptgt]) => {
                     guideBlocks.push(`      rename: param: "${psrc}": *"${ptgt}"|string` +
