@@ -16,6 +16,7 @@ declare function capture(data: any, shape: any): Record<string, any>;
 type PathMatch = (string[] & {
     index: number;
     expr: string;
+    path: string;
 });
 declare function pathMatch(path: string | string[], expr: string): null | PathMatch;
 declare function formatJSONIC(val?: any, opts?: {

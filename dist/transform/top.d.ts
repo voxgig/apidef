@@ -1,4 +1,5 @@
 import type { TransformResult } from '../transform';
+import type { MethodName } from '../types';
 type GuideEntity = {
     name: string;
     path: Record<string, GuidePath>;
@@ -15,7 +16,6 @@ type GuidePathRename = {
 type GuideOp = {
     method: MethodName;
 };
-type MethodName = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | '';
 type ModelEntity = {
     name: string;
     op: ModelOpMap;
@@ -81,18 +81,18 @@ type PathDesc = {
 type PathDef = {
     summary?: string;
     description?: string;
-    get?: OperationDef;
-    put?: OperationDef;
-    post?: OperationDef;
-    delete?: OperationDef;
-    options?: OperationDef;
-    head?: OperationDef;
-    patch?: OperationDef;
-    trace?: OperationDef;
+    get?: MethodDef;
+    put?: MethodDef;
+    post?: MethodDef;
+    delete?: MethodDef;
+    options?: MethodDef;
+    head?: MethodDef;
+    patch?: MethodDef;
+    trace?: MethodDef;
     servers?: ServerDef[];
     parameters?: ParameterDef[];
 };
-type OperationDef = {
+type MethodDef = {
     tags?: string[];
     summary?: string;
     description?: string;
@@ -140,4 +140,4 @@ type SchemaDef = {
 };
 declare const topTransform: (ctx: any) => Promise<TransformResult>;
 export { topTransform };
-export type { PathDef, ParameterDef, OperationDef, SchemaDef, GuideEntity, GuidePath, GuideOp, PathDesc, ModelOpMap, ModelOp, ModelEntity, ModelAlt, ModelArg, ModelField, OpName, };
+export type { PathDef, ParameterDef, MethodDef, SchemaDef, GuideEntity, GuidePath, GuideOp, PathDesc, ModelOpMap, ModelOp, ModelEntity, ModelAlt, ModelArg, ModelField, OpName, };

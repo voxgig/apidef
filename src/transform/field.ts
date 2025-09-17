@@ -14,7 +14,7 @@ import { formatJSONIC, validator, canonize } from '../utility'
 import type {
   PathDef,
   ParameterDef,
-  OperationDef,
+  MethodDef,
   SchemaDef,
   GuideEntity,
   GuideOp,

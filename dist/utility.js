@@ -309,6 +309,7 @@ function pathMatch(path, expr) {
     const res = [];
     res.index = -1;
     res.expr = expr;
+    res.path = path;
     const plen = parts.length;
     const xlen = expr.length;
     let xI = 0, pI = 0, mI = -1;

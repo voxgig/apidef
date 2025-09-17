@@ -1011,9 +1011,12 @@ type Metrics = {
     count: {
         path: number;
         method: number;
-        schema: Record<string, number>;
-        uniqschema: number;
+        origcmprefs: Record<string, number>;
+        cmp: number;
         entity: number;
+    };
+    found: {
+        cmp: Record<string, any>;
     };
 };
 type ApiDefContext = {
@@ -1039,14 +1042,20 @@ type Warner = {
     } & Record<string, any>)[];
 } & ((details: Record<string, any>) => void);
 type CmpDesc = {
-    name?: string;
+    namedesc?: CmpNameDesc;
     path_rate: number;
     method_rate: number;
 };
+type MethodName = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | '';
 type MethodDesc = {
-    name: string;
+    name: MethodName;
     def: Record<string, any>;
     path: string;
 };
+type CmpNameDesc = {
+    val: string;
+    cmp: string;
+    origcmp: string;
+};
 export { OpenControlShape, OpenModelShape, OpenBuildShape, };
-export type { CmpDesc, MethodDesc, TypeName, Log, FsUtil, ApiDefOptions, ApiDefResult, Control, Model, Build, ApiModel, ApiDefContext, Warner, Metrics, };
+export type { CmpDesc, CmpNameDesc, MethodName, MethodDesc, TypeName, Log, FsUtil, ApiDefOptions, ApiDefResult, Control, Model, Build, ApiModel, ApiDefContext, Warner, Metrics, };

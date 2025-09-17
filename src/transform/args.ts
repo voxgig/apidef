@@ -11,7 +11,7 @@ import { formatJSONIC, depluralize, validator } from '../utility'
 import type {
   PathDef,
   ParameterDef,
-  OperationDef,
+  MethodDef,
   ModelOp,
   OpName,
   ModelEntity,
@@ -37,7 +37,7 @@ const argsTransform: Transform = async function(
         const pathdef: PathDef = def.paths[malt.orig]
         argdefs.push(...(pathdef.parameters ?? []))
 
-        const opdef: OperationDef = (pathdef as any)[malt.method.toLowerCase()]
+        const opdef: MethodDef = (pathdef as any)[malt.method.toLowerCase()]
         argdefs.push(...(opdef.parameters ?? []))
 
         resolveArgs(ment, mop, malt, argdefs)

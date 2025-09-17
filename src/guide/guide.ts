@@ -1,7 +1,8 @@
 
+
 import Path from 'node:path'
 
-import { Jostraca, Project, names, File, Content, each } from 'jostraca'
+import { Jostraca, Project, File, Content, each } from 'jostraca'
 
 import { Aontu, Context } from 'aontu'
 

@@ -1,5 +1,4 @@
 
-
 import { each, snakify } from 'jostraca'
 
 import { size, merge, getelem } from '@voxgig/struct'
@@ -8,10 +7,13 @@ import {
   ApiDefContext,
   CmpDesc,
   MethodDesc,
+  MethodName,
+  CmpNameDesc,
 } from '../types'
 
 import {
-  PathDef
+  PathDef,
+  MethodDef,
 } from '../transform/top'
 
 
@@ -104,8 +106,8 @@ function measure(ctx: ApiDefContext) {
   })
 
 
-  metrics.count.schema = ({} as Record<string, number>)
-  metrics.count.uniqschema = 0
+  metrics.count.origcmprefs = ({} as Record<string, number>)
+  metrics.count.cmp = 0
   metrics.count.entity = -1
 
 
@@ -117,11 +119,15 @@ function measure(ctx: ApiDefContext) {
     let m = schema.val.match(/\/components\/schemas\/(.+)$/)
     if (m) {
       const name = fixEntName(m[1])
-      if (null == metrics.count.schema[name]) {
-        metrics.count.uniqschema++
-        metrics.count.schema[name] = 0
+      if (null == metrics.count.origcmprefs[name]) {
+        metrics.count.cmp++
+        metrics.count.origcmprefs[name] = 0
       }
-      metrics.count.schema[name]++
+      metrics.count.origcmprefs[name]++
+
+      if (null == metrics.found.cmp[name]) {
+        metrics.found.cmp[name] = {}
+      }
     }
   })
 
@@ -149,7 +155,7 @@ const METHOD_CONSIDER_ORDER: Record<string, number> = {
 }
 
 
-function resolveEntityDescs(ctx: any) {
+function resolveEntityDescs(ctx: ApiDefContext) {
   const entityDescs: Record<string, any> = {}
 
   const paths = ctx.def.paths
@@ -194,95 +200,110 @@ function resolveEntityDescs(ctx: any) {
 
 
   each(caught.methods, (pmdef) => {
-    let methodDef = pmdef
-    let pathStr = pmdef.path
-    let methodName = pmdef.method
+    try {
+      // QQQ
 
-    let pathDef = paths[pathStr]
-    pathDef.canonPath$ = pathDef.canonPath$ ?? pathStr
+      let methodDef = pmdef
+      let pathStr = pmdef.path
+      let methodName = pmdef.method
 
-    let why_op: string[] = []
+      let pathDef = paths[pathStr]
+      pathDef.canonPath$ = pathDef.canonPath$ ?? pathStr
 
-    if (!METHOD_IDOP[methodName]) {
-      console.log('ERROR UNKNOWN METHOD: ' + methodName)
-      return
-    }
+      let why_op: string[] = []
 
-    const parts = pathStr.split(/\//).filter((p: string) => '' != p)
-
-    const entres =
-      resolveEntity(ctx, entityDescs, pathStr, parts, methodDef, methodName)
-
-    const entdesc = (entres.entdesc as EntityDesc)
-
-    // TODO: use ctx.warn
-    if (null == entdesc) {
-      console.log(
-        'WARNING: unable to resolve entity for method ' + methodName +
-        ' path ' + pathStr)
-      return
-    }
-
-    if (null == entdesc.name) {
-      console.log(
-        'WARNING: unable to resolve entity name for method ' + methodName +
-        ' path ' + pathStr + ' desc:', entdesc)
-      return
-
-    }
-
-    let opname = resolveOpName(methodName, methodDef, pathStr, entres, why_op)
-
-    if (null == opname) {
-      console.log(
-        'WARNING: unable to resolve operation for method ' + methodName +
-        ' path ' + pathStr)
-      return
-    }
-
-
-    const transform: Record<string, any> = {
-      // reqform: '`reqdata`',
-      // resform: '`body`',
-    }
-
-    const resokdef = methodDef.responses?.[200] || methodDef.responses?.[201]
-    const resbody = resokdef?.content?.['application/json']?.schema
-    if (resbody) {
-      if (resbody[entdesc.origname]) {
-        transform.resform = '`body.' + entdesc.origname + '`'
-      }
-      else if (resbody[entdesc.name]) {
-        transform.resform = '`body.' + entdesc.name + '`'
-      }
-    }
-
-    const reqdef = methodDef.requestBody?.content?.['application/json']?.schema?.properties
-    if (reqdef) {
-      if (reqdef[entdesc.origname]) {
-        transform.reqform = { [entdesc.origname]: '`reqdata`' }
-      }
-      else if (reqdef[entdesc.origname]) {
-        transform.reqform = { [entdesc.origname]: '`reqdata`' }
+      if (!METHOD_IDOP[methodName]) {
+        console.log('ERROR UNKNOWN METHOD: ' + methodName)
+        return
       }
 
+      const parts = pathStr.split(/\//).filter((p: string) => '' != p)
+
+      const entres =
+        resolveEntity(ctx, entityDescs, pathStr, parts, methodDef, methodName)
+
+      const entdesc = (entres.entdesc as EntityDesc)
+
+      // TODO: use ctx.warn
+      if (null == entdesc) {
+        console.log(
+          'WARNING: unable to resolve entity for method ' + methodName +
+          ' path ' + pathStr)
+        return
+      }
+
+      if (null == entdesc.name) {
+        console.log(
+          'WARNING: unable to resolve entity name for method ' + methodName +
+          ' path ' + pathStr + ' desc:', entdesc)
+        return
+
+      }
+
+      let opname = resolveOpName(methodName, methodDef, pathStr, entres, why_op)
+
+      if (null == opname) {
+        console.log(
+          'WARNING: unable to resolve operation for method ' + methodName +
+          ' path ' + pathStr)
+        return
+      }
+
+
+      const transform: Record<string, any> = {
+        // reqform: '`reqdata`',
+        // resform: '`body`',
+      }
+
+      const resokdef = methodDef.responses?.[200] || methodDef.responses?.[201]
+      const resbody = resokdef?.content?.['application/json']?.schema
+      if (resbody) {
+        if (resbody[entdesc.origname]) {
+          transform.resform = '`body.' + entdesc.origname + '`'
+        }
+        else if (resbody[entdesc.name]) {
+          transform.resform = '`body.' + entdesc.name + '`'
+        }
+      }
+
+      const reqdef = methodDef.requestBody?.content?.['application/json']?.schema?.properties
+      if (reqdef) {
+        if (reqdef[entdesc.origname]) {
+          transform.reqform = { [entdesc.origname]: '`reqdata`' }
+        }
+        else if (reqdef[entdesc.origname]) {
+          transform.reqform = { [entdesc.origname]: '`reqdata`' }
+        }
+
+      }
+
+      const pathDesc = entdesc.path[pathStr]
+
+      const op = pathDesc.op
+
+      op[opname] = {
+        // TODO: in actual guide, remove "standard" method ops since redundant
+        method: methodName,
+        why_op: why_op.join(';')
+      }
+
+      if (0 < Object.entries(transform).length) {
+        op[opname].transform = transform
+      }
+
+      renameParams(ctx, pathStr, methodName, entres)
     }
+    catch (err: any) {
+      ctx.warn({
+        err,
+        pmdef,
+        path: pmdef?.path,
+        method: pmdef?.method,
+        note: 'Unexpected error for path: ' + pmdef?.path + ', method: ' + pmdef?.method +
+          ': ' + err.message
+      })
 
-    const pathDesc = entdesc.path[pathStr]
-
-    const op = pathDesc.op
-
-    op[opname] = {
-      // TODO: in actual guide, remove "standard" method ops since redundant
-      method: methodName,
-      why_op: why_op.join(';')
     }
-
-    if (0 < Object.entries(transform).length) {
-      op[opname].transform = transform
-    }
-
-    renameParams(ctx, pathStr, methodName, entres)
   })
 
   return entityDescs
@@ -295,7 +316,7 @@ function resolveEntity(
   pathStr: string,
   parts: string[],
   methodDef: Record<string, any>,
-  methodName: string,
+  methodName: MethodName,
 ) {
   const metrics = ctx.metrics
 
@@ -307,14 +328,13 @@ function resolveEntity(
   } = {}
 
   const why: string[] = []
-  const cmpname = resolveComponentName(methodDef, methodName, pathStr, why)
-  const cmpoccur = metrics.count.schema[cmpname ?? ''] ?? 0
+  const cmpnamedesc = resolveCmpName(ctx, methodDef, methodName, pathStr, why)
+  const cmpoccur = metrics.count.origcmprefs[cmpnamedesc?.origcmp ?? ''] ?? 0
   const path_rate = 0 == metrics.count.path ? -1 : (cmpoccur / metrics.count.path)
   const method_rate = 0 == metrics.count.method ? -1 : (cmpoccur / metrics.count.method)
 
-
   const cmp: CmpDesc = {
-    name: cmpname,
+    namedesc: cmpnamedesc,
     path_rate: path_rate,
     method_rate: method_rate,
   }
@@ -325,7 +345,7 @@ function resolveEntity(
     path: pathStr
   }
 
-  if (null == cmpname) {
+  if (null == cmpnamedesc) {
     why.push('no-cmp')
   }
 
@@ -399,18 +419,32 @@ function entityPathMatch_tpte(
   const origPathName = pm[pathNameIndex]
   let entname = fixEntName(origPathName)
 
-  if (null != cmpdesc.name || probableEntityMethod(ctx, mdesc, pm, why)) {
+  if (null != cmpdesc.namedesc) {
+    why.push('has-cmp')
+    entname = entityCmpMatch(ctx, entname, cmpdesc, mdesc, why)
+  }
+
+  else if (probableEntityMethod(ctx, mdesc, pm, why)) {
+    why.push('prob-ent')
     entname = entityCmpMatch(ctx, entname, cmpdesc, mdesc, why)
   }
 
   else {
+    why.push('part-ent')
     // Probably a special suffix operation on the entity,
     // so make the entity name sufficiently unique
-    entname = fixEntName(pm[0]) + '_' + entname
-    why.push('ent-act')
+    // entname = fixEntName(pm[0]) + '_' + entname
+    entname = fixEntName(getelem(pm, -3)) + '_' + entname
   }
 
   return entname
+}
+
+
+function entityOccursInPath(path: string | string[], entname: string) {
+  let parts = 'string' === typeof path ? path.split('/') : path
+  parts = parts.filter(p => '{' !== p[0]).map(p => canonize(p))
+  return !parts.reduce((a: boolean, p: string) => (a && p !== entname), true)
 }
 
 
@@ -422,7 +456,7 @@ function entityPathMatch_tpe(
   const origPathName = pm[pathNameIndex]
   let entname = fixEntName(origPathName)
 
-  if (null != cmpdesc.name || probableEntityMethod(ctx, mdesc, pm, why)) {
+  if (null != cmpdesc.namedesc || probableEntityMethod(ctx, mdesc, pm, why)) {
     entname = entityCmpMatch(ctx, entname, cmpdesc, mdesc, why)
   }
   else {
@@ -441,7 +475,7 @@ function entityPathMatch_pte(
   const origPathName = pm[pathNameIndex]
   let entname = fixEntName(origPathName)
 
-  if (null != cmpdesc.name || probableEntityMethod(ctx, mdesc, pm, why)) {
+  if (null != cmpdesc.namedesc || probableEntityMethod(ctx, mdesc, pm, why)) {
     entname = entityCmpMatch(ctx, entname, cmpdesc, mdesc, why)
   }
   else {
@@ -460,7 +494,7 @@ function entityPathMatch_te(
   const origPathName = pm[pathNameIndex]
   let entname = fixEntName(origPathName)
 
-  if (null != cmpdesc.name || probableEntityMethod(ctx, mdesc, pm, why)) {
+  if (null != cmpdesc.namedesc || probableEntityMethod(ctx, mdesc, pm, why)) {
     entname = entityCmpMatch(ctx, entname, cmpdesc, mdesc, why)
   }
   else {
@@ -479,7 +513,7 @@ function entityPathMatch_tpp(
   const origPathName = pm[pathNameIndex]
   let entname = fixEntName(origPathName)
 
-  if (null != cmpdesc.name || probableEntityMethod(ctx, mdesc, pm, why)) {
+  if (null != cmpdesc.namedesc || probableEntityMethod(ctx, mdesc, pm, why)) {
     entname = entityCmpMatch(ctx, entname, cmpdesc, mdesc, why)
   }
   else {
@@ -506,12 +540,12 @@ function probableEntityMethod(
 
   let prob_why = ''
 
-  let probableEntity = false
+  let probent = false
 
   if (noResponse) {
     // No response at all means not an action, thus probably an entity.
     prob_why = 'nores'
-    probableEntity = true
+    probent = true
   }
 
   else if (null != reqSchema) {
@@ -525,7 +559,7 @@ function probableEntityMethod(
         path.includes('/' + pm[pm.length - 1] + '/')).length)
     ) {
       prob_why = 'post'
-      probableEntity = true
+      probent = true
     }
 
     else if (
@@ -533,20 +567,24 @@ function probableEntityMethod(
       && pm.expr.endsWith('/p/')
     ) {
       prob_why = 'putish'
-      probableEntity = true
+      probent = true
     }
+  }
+  else if ('GET' === mdesc.name) {
+    prob_why = 'get'
+    probent = true
   }
 
   const rescodes = Object.keys(mdesc.def.responses ?? {})
 
   if (mdesc.path == process.env.npm_config_apipath) {
     console.log('PROBABLE-ENTITY-RESPONSE',
-      { mdesc, responses: rescodes, probableEntity, prob_why })
+      { mdesc, responses: rescodes, probent, prob_why })
   }
 
-  why.push('entres=' + probableEntity + '/' + rescodes + ('' === prob_why ? '' : '/' + prob_why))
+  why.push('entres=' + probent + '/' + rescodes + ('' === prob_why ? '' : '/' + prob_why))
 
-  return probableEntity
+  return probent
 }
 
 
@@ -564,22 +602,38 @@ function entityCmpMatch(
   )
 
   if (
-    null != cmpdesc.name
-    && entname != cmpdesc.name
-    && !cmpdesc.name.startsWith(entname)
+    null != cmpdesc.namedesc
+    && entname != cmpdesc.namedesc.cmp
+    && !cmpdesc.namedesc.cmp.startsWith(entname)
   ) {
     if (cmpInfrequent) {
       why.push('cmp-primary')
-      out = cmpdesc.name
+      out = cmpdesc.namedesc.cmp
     }
-    else if (cmpOccursInPath(ctx, cmpdesc.name)) {
+    else if (cmpOccursInPath(ctx, cmpdesc.namedesc.cmp)) {
       why.push('cmp-path')
-      out = cmpdesc.name
+      out = cmpdesc.namedesc.cmp
     }
     else {
-      why.push('path-primary')
+      why.push('path-over-cmp')
     }
   }
+
+  else if (
+    'DELETE' === mdesc.name
+    && null == cmpdesc.namedesc
+  ) {
+    let cmps = findcmps(ctx, mdesc.path, ['responses'], { uniq: true })
+
+    if (1 === cmps.length) {
+      out = cmps[0]
+      why.push('cmp-found-delete')
+    }
+    else {
+      why.push('path-primary-delete')
+    }
+  }
+
   else {
     why.push('path-primary')
   }
@@ -608,21 +662,13 @@ function cmpOccursInPath(ctx: ApiDefContext, cmpname: string): boolean {
 }
 
 
-const REQKIND: any = {
-  get: 'res',
-  post: 'req',
-  put: 'req',
-  patch: 'req',
-}
-
-
-function resolveComponentName(
-  // entname: string,
+function resolveCmpName(
+  ctx: ApiDefContext,
   methodDef: Record<string, any>,
-  methodName: string,
+  _methodName: string,
   pathStr: string,
   why_name: string[]
-): string | undefined {
+): CmpNameDesc | undefined {
   let cmpname: string | undefined = undefined
 
   let responses = methodDef.responses
@@ -633,32 +679,69 @@ function resolveComponentName(
     ...find(responses['201'], 'x-ref'),
   ]
     .filter(xref => xref.val.includes('schema') || xref.val.includes('definitions'))
+    .map(xref => {
+      let m = xref.val.match(/\/components\/schemas\/(.+)$/)
+      if (!m) {
+        m = xref.val.match(/\/definitions\/(.+)$/)
+      }
+      if (m) {
+        xref.cmp = canonize(m[1])
+      }
+      return xref
+    })
+    .filter(xref => null != xref.cmp)
 
-    // TODO: identify non-ent schemas
-    .filter(xref => !xref.val.includes('Meta'))
+  // TODO: identify non-ent schemas
+  // .filter(xref => !xref.val.includes('Meta'))
+
+  xrefs = xrefs
+    .map(xref => {
+      xref.origcmp = xref.cmp
+
+      // Redundancy in cmp name
+      const lastpart = canonize(getelem(pathStr.toLowerCase().split('/'), -1))
+      if (
+        '' !== lastpart
+        && (
+          xref.cmp === lastpart + '_response'
+          || xref.cmp === lastpart + '_request'
+        )
+      ) {
+        let cparts = xref.cmp.split('_')
+        xref.cmp = cparts.slice(0, cparts.length - 1).join('_')
+      }
+
+      return xref
+    })
+
+    .filter(xref => {
+      if (
+        xrefs.length <= 1
+        // || pathStr.toLowerCase().includes('/' + xref.cmp + '/')
+        || entityOccursInPath(pathStr.toLowerCase(), xref.cmp)
+      ) {
+        return true
+      }
+
+      // Exclude high frequency suspicious cmps as probably meta data
+      const cmprefs = ctx.metrics.count.origcmprefs[xref.origcmp] ?? 0
+      const mcount = ctx.metrics.count.method
+      const method_rate = (0 < mcount ? (cmprefs / mcount) : -1)
+      // console.log('RCN', xref.cmp, cmprefs, mcount, method_rate, IS_ENTCMP_METHOD_RATE, method_rate < IS_ENTCMP_METHOD_RATE)
+      return (
+        method_rate < IS_ENTCMP_METHOD_RATE
+      )
+    })
 
     .sort((a, b) => a.path.length - b.path.length)
 
-  let first = xrefs[0]?.val
+  const out: CmpNameDesc = xrefs[0]
 
-  if (null != first) {
-    let xrefm = (first as string).match(/\/components\/schemas\/(.+)$/)
-
-    if (!xrefm) {
-      xrefm = (first as string).match(/\/definitions\/(.+)$/)
-    }
-
-    if (xrefm) {
-      cmpname = xrefm[1]
-    }
+  if (null != out) {
+    why_name.push('cmp=' + out.cmp)
   }
 
-  if (null != cmpname) {
-    cmpname = depluralize(snakify(cmpname))
-    why_name.push('cmp=' + cmpname)
-  }
-
-  return cmpname
+  return out
 }
 
 
@@ -685,13 +768,15 @@ function resolveOpName(
     why.push('not-load')
   }
 
+  why.push('ent=' + entres.entdesc.name)
+
   return opname
 }
 
 
 function isListResponse(
   methodDef: Record<string, any>,
-  pathStr: string,
+  _pathStr: string,
   entres: any,
   why: string[]
 ): boolean {
@@ -787,9 +872,9 @@ function renameParams(ctx: any, pathStr: string, methodName: string, entres: any
   }
   const parts = pathStr.split(/\//).filter(p => '' != p)
 
-  const cmpname = cmp.name
+  const cmpname = cmp.namedesc?.cmp
   const considerCmp =
-    null != cmp.name &&
+    null != cmpname &&
     0 < ctx.metrics.count.uniqschema &&
     cmp.method_rate < IS_ENTCMP_METHOD_RATE
 
@@ -1052,49 +1137,92 @@ function fixEntName(origName: string) {
 }
 
 
+function findcmps(
+  ctx: ApiDefContext,
+  pathStr: string,
+  underprops: string[],
+  opts?: { uniq?: boolean }
+): string[] {
+  const cmplist: string[] = []
+  const cmpset = new Set<string>()
+
+  // TODO: cache in ctx.work
+
+  each(ctx.def.paths[pathStr])
+    .map((md: MethodDef) => {
+      underprops.map((up: string) => {
+        let found = find((md as any)[up], 'x-ref')
+
+
+        found.map((xref: { val: string }) => {
+          // console.log('FINDCMPS', pathStr, (md as any).key$, up, xref.val)
+          let m = xref.val.match(/\/(components\/schemas|definitions)\/(.+)$/)
+          if (m) {
+            cmplist.push(m[2])
+            cmpset.add(m[2])
+          }
+        })
+      })
+    })
+  // console.log('FOUNDCMPS', cmps)
+  return (opts?.uniq ? Array.from(cmpset) : cmplist).map(n => canonize(n))
+}
+
 
 // Some decisions require the full list of potential entities.
 function reviewEntityDescs(ctx: ApiDefContext, entityDescs: Record<string, any>) {
   const metrics = ctx.metrics
 
-  if (0 < metrics.count.uniqschema) {
+  if (0 < metrics.count.cmp) {
     each(entityDescs, (entdesc: EntityDesc, entname: string) => {
 
-      // Entities without components are suspicious
-      if (null == entdesc.cmp?.name && entname.includes('_')) {
-        let pathmap = entdesc.path
+      // Entities without "good" components are suspicious
+      if (entname.includes('_')) {
+        if (
+          null == entdesc.cmp?.namedesc
+        ) {
+          let pathmap = entdesc.path
 
-        if (1 === size(pathmap)) {
-          let path: EntityPathDesc = each(pathmap)[0]
+          if (1 === size(pathmap)) {
+            let path: EntityPathDesc = each(pathmap)[0]
 
-          // POST method for entity creation did not specify a schema,
-          // and there is an existing entity that is a better fit
-          if (1 === size(path.op) && path.op.create && path.pm.expr.endsWith('p/t/')) {
-            const lastpart = canonize(getelem(path.pm, -1))
-            const realent = entityDescs[lastpart]
+            // POST method for entity creation did not specify a schema,
+            // and there is an existing entity that is a better fit
+            if (1 === size(path.op) && path.op.create && path.pm.expr.endsWith('p/t/')) {
+              const lastpart = canonize(getelem(path.pm, -1))
+              const realent = entityDescs[lastpart]
 
-            if (null != realent && lastpart == realent.cmp?.name) {
+              // console.log('REVIEW', entname, entdesc.cmp, size(pathmap), lastpart, realent)
 
-              // Actually a known component
-              // console.dir(entdesc, { depth: null })
-              const pathStr = (path as any).key$
+              if (
+                null != realent
+                && (
+                  null == realent.cmp.name
+                  || lastpart == realent.cmp.name
+                )
+              ) {
 
-              const realpathmap = realent.path
-              let realpath = realpathmap[pathStr]
+                // Actually a known component
+                // console.dir(entdesc, { depth: null })
+                const pathStr = (path as any).key$
 
-              if (null === realpath) {
-                realpath = realpathmap[pathStr] = path
+                const realpathmap = realent.path
+                let realpath = realpathmap[pathStr]
+
+                if (null === realpath) {
+                  realpath = realpathmap[pathStr] = path
+                }
+                else if (null == realpath.op?.create) {
+                  realpath.op = (realpath.op ?? {})
+                  realpath.op.create = path.op.create
+                }
+
+                realpath.op.create.why_op = 'was:' + entname + ':' + realpath.op.create.why_op
+
+                delete entityDescs[entname]
+
+                // console.log('REPLACE', entname, realent.name, realpath)
               }
-              else if (null == realpath.op?.create) {
-                realpath.op = (realpath.op ?? {})
-                realpath.op.create = path.op.create
-              }
-
-              realpath.op.create.why_op = 'was:' + entname + ':' + realpath.op.create.why_op
-
-              delete entityDescs[entname]
-
-              // console.log('REPLACE', entname, realent.name, realpath)
             }
           }
         }

@@ -119,9 +119,12 @@ function ApiDef(opts) {
                 count: {
                     path: 0,
                     method: 0,
-                    schema: {},
-                    uniqschema: 0,
+                    origcmprefs: {},
+                    cmp: 0,
                     entity: 0,
+                },
+                found: {
+                    cmp: {}
                 }
             },
             work: {}

@@ -5,7 +5,10 @@ import { joinurl } from '@voxgig/struct'
 
 import type { TransformResult } from '../transform'
 
-import type { TypeName } from '../types'
+import type {
+  TypeName,
+  MethodName,
+} from '../types'
 
 
 // Guide* => from guide model
@@ -36,9 +39,6 @@ type GuidePathRename = {
 type GuideOp = {
   method: MethodName
 }
-
-type MethodName = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | ''
-
 
 type ModelEntity = {
   name: string,
@@ -129,20 +129,20 @@ type PathDesc = {
 type PathDef = {
   summary?: string
   description?: string
-  get?: OperationDef
-  put?: OperationDef
-  post?: OperationDef
-  delete?: OperationDef
-  options?: OperationDef
-  head?: OperationDef
-  patch?: OperationDef
-  trace?: OperationDef
+  get?: MethodDef
+  put?: MethodDef
+  post?: MethodDef
+  delete?: MethodDef
+  options?: MethodDef
+  head?: MethodDef
+  patch?: MethodDef
+  trace?: MethodDef
   servers?: ServerDef[]
   parameters?: ParameterDef[]
 }
 
 
-type OperationDef = {
+type MethodDef = {
   tags?: string[]
   summary?: string
   description?: string
@@ -227,7 +227,7 @@ export {
 export type {
   PathDef,
   ParameterDef,
-  OperationDef,
+  MethodDef,
   SchemaDef,
   GuideEntity,
   GuidePath,

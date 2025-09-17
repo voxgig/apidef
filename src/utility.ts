@@ -368,7 +368,7 @@ function $RECASE(inj: any, val: any, ref: any, store: any) {
 
 
 
-type PathMatch = (string[] & { index: number, expr: string })
+type PathMatch = (string[] & { index: number, expr: string, path: string })
 
 // A special-purpose regex-style matcher for url paths.
 //   t - text part
@@ -384,6 +384,7 @@ function pathMatch(path: string | string[], expr: string):
   const res: any = []
   res.index = -1
   res.expr = expr
+  res.path = path
 
   const plen = parts.length
   const xlen = expr.length
