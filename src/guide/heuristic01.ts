@@ -352,6 +352,10 @@ function resolveEntity(
     entname = entityPathMatch_tpp(ctx, pm, cmp, mdesc, why)
   }
 
+  // else if (pm = pathMatch(parts, 'p/p/p')) {
+  //   entname = entityPathMatch_ppp(ctx, pm, cmp, mdesc, why)
+  // }
+
   else if (pm = pathMatch(parts, 'p/')) {
     throw new Error('UNSUPPORTED PATH:' + pathStr)
   }
@@ -529,6 +533,29 @@ function entityPathMatch_tpp(
 
   return entname
 }
+
+
+/*
+// TODO: rightmost t
+function entityPathMatch_ppp(
+  ctx: ApiDefContext, pm: PathMatch, cmpdesc: CmpDesc, mdesc: MethodDesc, why: string[]) {
+  const pathNameIndex = 0
+
+  why.push('path=t/p/p')
+  const origPathName = pm[pathNameIndex]
+  let entname = fixEntName(origPathName)
+
+  if (null != cmpdesc.namedesc || probableEntityMethod(ctx, mdesc, pm, why)) {
+    let ecm = entityCmpMatch(ctx, entname, cmpdesc, mdesc, why)
+    entname = ecm.name
+  }
+  else {
+    why.push('ent-act')
+  }
+
+  return entname
+}
+*/
 
 
 // No entity component was found, but there still might be an entity.
@@ -935,6 +962,13 @@ function renameParams(ctx: any, pathStr: string, methodName: string, entres: any
   // Example: /api/bar/{id}/zed/{zid}/foo/{fid} ->
   //          /api/bar/{bar_id}/zed/{zed_id}/foo/{id}
 
+  // id needs to be t/p/
+  const multParamEndMatch = pathMatch(entres.pm?.path, 'p/p/')
+  if (multParamEndMatch) {
+    return
+  }
+
+
   const pathDef = entdesc.path[pathStr]
   pathDef.rename = (pathDef.rename ?? {})
   pathDef.rename_why = (pathDef.rename_why ?? {})
@@ -1026,7 +1060,12 @@ function renameParams(ctx: any, pathStr: string, methodName: string, entres: any
       else if (
         lastPart
         && not_exact_id
-        && (!hasParent || parentName === entdesc.name)
+        && (!hasParent
+          || (
+            parentName === entdesc.name
+            || entdesc.name.endsWith('_' + parentName)
+          )
+        )
         && (!considerCmp || cmpname === entdesc.name)
       ) {
         updateParamRename(

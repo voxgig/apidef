@@ -307,6 +307,9 @@ function $RECASE(inj, val, ref, store) {
 //   / at end - must match to end
 // See utility.test.ts for examples
 function pathMatch(path, expr) {
+    if (null == path) {
+        return null;
+    }
     const parts = (Array.isArray(path) ? path : path.split('/')).filter(p => '' !== p);
     const res = [];
     res.index = -1;

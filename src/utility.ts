@@ -382,6 +382,10 @@ type PathMatch = (string[] & { index: number, expr: string, path: string })
 function pathMatch(path: string | string[], expr: string):
   null | PathMatch {
 
+  if (null == path) {
+    return null
+  }
+
   const parts = (Array.isArray(path) ? path : path.split('/')).filter(p => '' !== p)
   const res: any = []
   res.index = -1

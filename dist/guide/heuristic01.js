@@ -203,6 +203,9 @@ function resolveEntity(ctx, entityDescs, pathStr, parts, methodDef, methodName) 
     else if (pm = (0, utility_1.pathMatch)(parts, 't/p/p')) {
         entname = entityPathMatch_tpp(ctx, pm, cmp, mdesc, why);
     }
+    // else if (pm = pathMatch(parts, 'p/p/p')) {
+    //   entname = entityPathMatch_ppp(ctx, pm, cmp, mdesc, why)
+    // }
     else if (pm = (0, utility_1.pathMatch)(parts, 'p/')) {
         throw new Error('UNSUPPORTED PATH:' + pathStr);
     }
@@ -332,6 +335,27 @@ function entityPathMatch_tpp(ctx, pm, cmpdesc, mdesc, why) {
     }
     return entname;
 }
+/*
+// TODO: rightmost t
+function entityPathMatch_ppp(
+  ctx: ApiDefContext, pm: PathMatch, cmpdesc: CmpDesc, mdesc: MethodDesc, why: string[]) {
+  const pathNameIndex = 0
+
+  why.push('path=t/p/p')
+  const origPathName = pm[pathNameIndex]
+  let entname = fixEntName(origPathName)
+
+  if (null != cmpdesc.namedesc || probableEntityMethod(ctx, mdesc, pm, why)) {
+    let ecm = entityCmpMatch(ctx, entname, cmpdesc, mdesc, why)
+    entname = ecm.name
+  }
+  else {
+    why.push('ent-act')
+  }
+
+  return entname
+}
+*/
 // No entity component was found, but there still might be an entity.
 function probableEntityMethod(ctx, mdesc, pm, why) {
     const request = mdesc.def.requestBody;
@@ -598,6 +622,11 @@ function renameParams(ctx, pathStr, methodName, entres) {
     // 2. internal identifiers are formatted as {name_id} where name is the parent entity name
     // Example: /api/bar/{id}/zed/{zid}/foo/{fid} ->
     //          /api/bar/{bar_id}/zed/{zed_id}/foo/{id}
+    // id needs to be t/p/
+    const multParamEndMatch = (0, utility_1.pathMatch)(entres.pm?.path, 'p/p/');
+    if (multParamEndMatch) {
+        return;
+    }
     const pathDef = entdesc.path[pathStr];
     pathDef.rename = (pathDef.rename ?? {});
     pathDef.rename_why = (pathDef.rename_why ?? {});
@@ -656,7 +685,9 @@ function renameParams(ctx, pathStr, methodName, entres) {
             // .../ent/{not-id}
             else if (lastPart
                 && not_exact_id
-                && (!hasParent || parentName === entdesc.name)
+                && (!hasParent
+                    || (parentName === entdesc.name
+                        || entdesc.name.endsWith('_' + parentName)))
                 && (!considerCmp || cmpname === entdesc.name)) {
                 updateParamRename(ctx, pathStr, methodName, paramRenameCapture, oldParam, 'id', 'end-id:' + methodName + ':parent=' + hasParent + '/' + parentName +
                     ':cmp=' + considerCmp + '/' + cmpname);
