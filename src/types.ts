@@ -176,7 +176,7 @@ type MethodDesc = {
 }
 
 type CmpNameDesc = {
-  val: string
+  // val: string
   cmp: string
   origcmp: string
 }

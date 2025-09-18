@@ -15,6 +15,8 @@ exports.makeWarner = makeWarner;
 exports.formatJSONIC = formatJSONIC;
 exports.validator = validator;
 exports.canonize = canonize;
+exports.debugpath = debugpath;
+exports.findPathsWithPrefix = findPathsWithPrefix;
 const node_path_1 = __importDefault(require("node:path"));
 const jostraca_1 = require("jostraca");
 const util_1 = require("@voxgig/util");
@@ -309,7 +311,7 @@ function pathMatch(path, expr) {
     const res = [];
     res.index = -1;
     res.expr = expr;
-    res.path = path;
+    res.path = 'string' === typeof path ? path : '/' + path.join('/');
     const plen = parts.length;
     const xlen = expr.length;
     let xI = 0, pI = 0, mI = -1;
@@ -387,28 +389,41 @@ function formatJSONIC(val, opts) {
     val = (0, util_1.decircular)(val);
     const hsepd = opts?.hsepd ?? 1;
     const showd = !!opts?.$;
+    const useColor = opts?.color ?? false;
     const space = '  ';
     const isBareKey = (k) => /^[A-Za-z_][_A-Za-z0-9]*$/.test(k);
     const quoteKey = (k) => (isBareKey(k) ? k : JSON.stringify(k));
+    // ANSI color codes
+    const colors = {
+        reset: '\x1b[0m',
+        key: '\x1b[94m', // bright blue
+        string: '\x1b[92m', // bright green
+        number: '\x1b[93m', // bright yellow
+        boolean: '\x1b[96m', // bright cyan
+        null: '\x1b[90m', // bright gray
+        bracket: '\x1b[37m', // white
+        comment: '\x1b[90m', // bright gray
+    };
+    const c = (color, text) => useColor ? `${colors[color]}${text}${colors.reset}` : text;
     const renderPrimitive = (v) => {
         if (v === null)
-            return 'null';
+            return c('null', 'null');
         const t = typeof v;
         switch (t) {
-            case 'string': return !v.includes('\n') ? JSON.stringify(v) :
+            case 'string': return c('string', !v.includes('\n') ? JSON.stringify(v) :
                 '`' + JSON.stringify(v)
                     .substring(1)
                     .replace(/\\n/g, '\n')
                     .replace(/\\"/g, ':')
                     .replace(/`/g, '\\`')
-                    .replace(/"$/, '`');
-            case 'number': return Number.isFinite(v) ? String(v) : 'null';
-            case 'boolean': return v ? 'true' : 'false';
-            case 'bigint': return JSON.stringify(v.toString());
+                    .replace(/"$/, '`'));
+            case 'number': return c('number', Number.isFinite(v) ? String(v) : 'null');
+            case 'boolean': return c('boolean', v ? 'true' : 'false');
+            case 'bigint': return c('string', JSON.stringify(v.toString()));
             case 'symbol':
             case 'function':
             case 'undefined':
-                return 'null';
+                return c('null', 'null');
             default: return JSON.stringify(v);
         }
     };
@@ -444,7 +459,7 @@ function formatJSONIC(val, opts) {
         if (frame.kind === 'close') {
             const indent = space.repeat(frame.indentLevel);
             const hsep = 0 < frame.indentLevel && frame.indentLevel <= hsepd;
-            lines.push(`${indent}${frame.token}${hsep ? '\n' : ''}`);
+            lines.push(`${indent}${c('bracket', frame.token)}${hsep ? '\n' : ''}`);
             continue;
         }
         let v = frame.value;
@@ -452,7 +467,7 @@ function formatJSONIC(val, opts) {
             v = v.toJSON();
         }
         const { indentLevel, linePrefix } = frame;
-        const commentSuffix = frame.inlineComment ? `  # ${frame.inlineComment}` : '';
+        const commentSuffix = frame.inlineComment ? `  ${c('comment', `# ${frame.inlineComment}`)}` : '';
         if (v === null || typeof v !== 'object') {
             lines.push(`${linePrefix}${renderPrimitive(v)}${commentSuffix}`);
             continue;
@@ -460,12 +475,12 @@ function formatJSONIC(val, opts) {
         if (Array.isArray(v)) {
             const arr = v;
             if (arr.length === 0) {
-                lines.push(`${linePrefix}[${commentSuffix}`);
+                lines.push(`${linePrefix}${c('bracket', '[')}${commentSuffix}`);
                 stack[++top] = { kind: 'close', token: ']', indentLevel };
                 continue;
             }
             // opening line
-            lines.push(`${linePrefix}[${commentSuffix}`);
+            lines.push(`${linePrefix}${c('bracket', '[')}${commentSuffix}`);
             stack[++top] = { kind: 'close', token: ']', indentLevel };
             // children (reverse push)
             const childPrefix = space.repeat(indentLevel + 1);
@@ -490,12 +505,12 @@ function formatJSONIC(val, opts) {
         const printableKeys = keys.filter(k => !k.endsWith('_COMMENT') &&
             (showd || !k.endsWith('$')));
         if (printableKeys.length === 0) {
-            lines.push(`${linePrefix}{${commentSuffix}`);
+            lines.push(`${linePrefix}${c('bracket', '{')}${commentSuffix}`);
             stack[++top] = { kind: 'close', token: '}', indentLevel };
             continue;
         }
         // opening line
-        lines.push(`${linePrefix}{${commentSuffix}`);
+        lines.push(`${linePrefix}${c('bracket', '{')}${commentSuffix}`);
         stack[++top] = { kind: 'close', token: '}', indentLevel };
         const nextIndentStr = space.repeat(indentLevel + 1);
         for (let i = printableKeys.length - 1; i >= 0; i--) {
@@ -507,7 +522,7 @@ function formatJSONIC(val, opts) {
                 kind: 'value',
                 value: valForKey,
                 indentLevel: indentLevel + 1,
-                linePrefix: `${nextIndentStr}${keyText}: `,
+                linePrefix: `${nextIndentStr}${c('key', keyText)}: `,
                 inlineComment: cmt
             };
         }
@@ -544,6 +559,44 @@ function validator(torig) {
 }
 function canonize(s) {
     return depluralize((0, jostraca_1.snakify)(s));
+}
+function debugpath(pathStr, methodName, ...args) {
+    const apipath = process.env.npm_config_apipath;
+    if (!apipath)
+        return;
+    const [targetPath, targetMethod] = apipath.split(':');
+    // Check if path matches
+    if (pathStr !== targetPath)
+        return;
+    // If a method is specified in apipath and we have a method name, check if it matches
+    if (targetMethod && methodName) {
+        if (methodName.toLowerCase() !== targetMethod.toLowerCase())
+            return;
+    }
+    console.log(methodName || '', ...args);
+}
+function findPathsWithPrefix(ctx, pathStr, opts) {
+    const strict = opts?.strict ?? false;
+    const param = opts?.param ?? false;
+    if (!param) {
+        pathStr = pathStr.replace(/\{[^}]+\}/g, '{}');
+    }
+    const matchingPaths = (0, jostraca_1.each)(ctx.def.paths)
+        .filter((pathDef) => {
+        let path = pathDef.key$;
+        if (!param) {
+            path = path.replace(/\{[^}]+\}/g, '{}');
+        }
+        if (strict) {
+            // Strict mode: path must start with prefix and have more segments
+            return path.startsWith(pathStr) && path.length > pathStr.length;
+        }
+        else {
+            // Non-strict mode: simple prefix match
+            return path.startsWith(pathStr);
+        }
+    });
+    return matchingPaths.length;
 }
 // TODO: move to jostraca?
 function allcapify(s) {

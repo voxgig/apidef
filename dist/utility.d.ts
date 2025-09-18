@@ -22,9 +22,15 @@ declare function pathMatch(path: string | string[], expr: string): null | PathMa
 declare function formatJSONIC(val?: any, opts?: {
     hsepd?: number;
     $?: boolean;
+    color?: boolean;
 }): string;
 declare function validator(torig: undefined | string | string[]): any;
 declare function canonize(s: string): string;
+declare function debugpath(pathStr: string, methodName: string | null | undefined, ...args: any[]): void;
+declare function findPathsWithPrefix(ctx: any, pathStr: string, opts?: {
+    strict?: boolean;
+    param?: boolean;
+}): number;
 declare function nom(v: any, format: string): string;
 export type { PathMatch };
-export { nom, getdlog, loadFile, formatJsonSrc, depluralize, find, capture, pathMatch, makeWarner, formatJSONIC, validator, canonize, };
+export { nom, getdlog, loadFile, formatJsonSrc, depluralize, find, capture, pathMatch, makeWarner, formatJSONIC, validator, canonize, debugpath, findPathsWithPrefix, };

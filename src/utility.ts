@@ -1,11 +1,13 @@
 
 import Path from 'node:path'
 
-import { snakify, camelify, kebabify } from 'jostraca'
+import { snakify, camelify, kebabify, each } from 'jostraca'
 
 import { decircular } from '@voxgig/util'
 
-import { slice, merge, inject, clone, isnode, walk, transform, select } from '@voxgig/struct'
+import {
+  slice, merge, inject, clone, isnode, walk, transform, select
+} from '@voxgig/struct'
 
 
 import type {
@@ -384,7 +386,7 @@ function pathMatch(path: string | string[], expr: string):
   const res: any = []
   res.index = -1
   res.expr = expr
-  res.path = path
+  res.path = 'string' === typeof path ? path : '/' + path.join('/')
 
   const plen = parts.length
   const xlen = expr.length
@@ -466,36 +468,52 @@ function isParam(partStr: string) {
 }
 
 
-function formatJSONIC(val?: any, opts?: { hsepd?: number, $?: boolean }): string {
+function formatJSONIC(val?: any, opts?: { hsepd?: number, $?: boolean, color?: boolean }): string {
   if (undefined === val) return ''
 
   val = decircular(val)
 
   const hsepd = opts?.hsepd ?? 1
   const showd = !!opts?.$
+  const useColor = opts?.color ?? false
 
   const space = '  '
   const isBareKey = (k: string) => /^[A-Za-z_][_A-Za-z0-9]*$/.test(k)
   const quoteKey = (k: string) => (isBareKey(k) ? k : JSON.stringify(k))
 
+  // ANSI color codes
+  const colors = {
+    reset: '\x1b[0m',
+    key: '\x1b[94m',      // bright blue
+    string: '\x1b[92m',   // bright green
+    number: '\x1b[93m',   // bright yellow
+    boolean: '\x1b[96m',  // bright cyan
+    null: '\x1b[90m',     // bright gray
+    bracket: '\x1b[37m',  // white
+    comment: '\x1b[90m',  // bright gray
+  }
+
+  const c = (color: keyof typeof colors, text: string) =>
+    useColor ? `${colors[color]}${text}${colors.reset}` : text
+
   const renderPrimitive = (v: any): string => {
-    if (v === null) return 'null'
+    if (v === null) return c('null', 'null')
     const t = typeof v
     switch (t) {
-      case 'string': return !v.includes('\n') ? JSON.stringify(v) :
+      case 'string': return c('string', !v.includes('\n') ? JSON.stringify(v) :
         '`' + JSON.stringify(v)
           .substring(1)
           .replace(/\\n/g, '\n')
           .replace(/\\"/g, ':')
           .replace(/`/g, '\\`')
-          .replace(/"$/, '`')
-      case 'number': return Number.isFinite(v) ? String(v) : 'null'
-      case 'boolean': return v ? 'true' : 'false'
-      case 'bigint': return JSON.stringify(v.toString())
+          .replace(/"$/, '`'))
+      case 'number': return c('number', Number.isFinite(v) ? String(v) : 'null')
+      case 'boolean': return c('boolean', v ? 'true' : 'false')
+      case 'bigint': return c('string', JSON.stringify(v.toString()))
       case 'symbol':
       case 'function':
       case 'undefined':
-        return 'null'
+        return c('null', 'null')
       default: return JSON.stringify(v)
     }
   }
@@ -544,7 +562,7 @@ function formatJSONIC(val?: any, opts?: { hsepd?: number, $?: boolean }): string
     if (frame.kind === 'close') {
       const indent = space.repeat(frame.indentLevel)
       const hsep = 0 < frame.indentLevel && frame.indentLevel <= hsepd
-      lines.push(`${indent}${frame.token}${hsep ? '\n' : ''}`)
+      lines.push(`${indent}${c('bracket', frame.token)}${hsep ? '\n' : ''}`)
       continue
     }
 
@@ -554,7 +572,7 @@ function formatJSONIC(val?: any, opts?: { hsepd?: number, $?: boolean }): string
     }
 
     const { indentLevel, linePrefix } = frame
-    const commentSuffix = frame.inlineComment ? `  # ${frame.inlineComment}` : ''
+    const commentSuffix = frame.inlineComment ? `  ${c('comment', `# ${frame.inlineComment}`)}` : ''
 
     if (v === null || typeof v !== 'object') {
       lines.push(`${linePrefix}${renderPrimitive(v)}${commentSuffix}`)
@@ -564,13 +582,13 @@ function formatJSONIC(val?: any, opts?: { hsepd?: number, $?: boolean }): string
     if (Array.isArray(v)) {
       const arr = v as any[]
       if (arr.length === 0) {
-        lines.push(`${linePrefix}[${commentSuffix}`)
+        lines.push(`${linePrefix}${c('bracket', '[')}${commentSuffix}`)
         stack[++top] = { kind: 'close', token: ']', indentLevel }
         continue
       }
 
       // opening line
-      lines.push(`${linePrefix}[${commentSuffix}`)
+      lines.push(`${linePrefix}${c('bracket', '[')}${commentSuffix}`)
       stack[++top] = { kind: 'close', token: ']', indentLevel }
 
       // children (reverse push)
@@ -599,13 +617,13 @@ function formatJSONIC(val?: any, opts?: { hsepd?: number, $?: boolean }): string
       (showd || !k.endsWith('$')))
 
     if (printableKeys.length === 0) {
-      lines.push(`${linePrefix}{${commentSuffix}`)
+      lines.push(`${linePrefix}${c('bracket', '{')}${commentSuffix}`)
       stack[++top] = { kind: 'close', token: '}', indentLevel }
       continue
     }
 
     // opening line
-    lines.push(`${linePrefix}{${commentSuffix}`)
+    lines.push(`${linePrefix}${c('bracket', '{')}${commentSuffix}`)
     stack[++top] = { kind: 'close', token: '}', indentLevel }
 
     const nextIndentStr = space.repeat(indentLevel + 1)
@@ -619,7 +637,7 @@ function formatJSONIC(val?: any, opts?: { hsepd?: number, $?: boolean }): string
         kind: 'value',
         value: valForKey,
         indentLevel: indentLevel + 1,
-        linePrefix: `${nextIndentStr}${keyText}: `,
+        linePrefix: `${nextIndentStr}${c('key', keyText)}: `,
         inlineComment: cmt
       }
     }
@@ -665,6 +683,55 @@ function canonize(s: string) {
 }
 
 
+function debugpath(pathStr: string, methodName: string | null | undefined, ...args: any[]): void {
+  const apipath = process.env.npm_config_apipath
+  if (!apipath) return
+
+  const [targetPath, targetMethod] = apipath.split(':')
+
+  // Check if path matches
+  if (pathStr !== targetPath) return
+
+  // If a method is specified in apipath and we have a method name, check if it matches
+  if (targetMethod && methodName) {
+    if (methodName.toLowerCase() !== targetMethod.toLowerCase()) return
+  }
+
+  console.log(methodName || '', ...args)
+}
+
+
+function findPathsWithPrefix(
+  ctx: any,
+  pathStr: string,
+  opts?: { strict?: boolean, param?: boolean }
+): number {
+  const strict = opts?.strict ?? false
+  const param = opts?.param ?? false
+
+  if (!param) {
+    pathStr = pathStr.replace(/\{[^}]+\}/g, '{}')
+  }
+
+  const matchingPaths = each(ctx.def.paths)
+    .filter((pathDef: any) => {
+      let path = pathDef.key$
+      if (!param) {
+        path = path.replace(/\{[^}]+\}/g, '{}')
+      }
+      if (strict) {
+        // Strict mode: path must start with prefix and have more segments
+        return path.startsWith(pathStr) && path.length > pathStr.length
+      } else {
+        // Non-strict mode: simple prefix match
+        return path.startsWith(pathStr)
+      }
+    })
+
+  return matchingPaths.length
+}
+
+
 // TODO: move to jostraca?
 function allcapify(s?: string) {
   return 'string' === typeof s ? snakify(s).toUpperCase() : ''
@@ -703,4 +770,6 @@ export {
   formatJSONIC,
   validator,
   canonize,
+  debugpath,
+  findPathsWithPrefix,
 }

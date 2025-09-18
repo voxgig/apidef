@@ -1053,7 +1053,6 @@ type MethodDesc = {
     path: string;
 };
 type CmpNameDesc = {
-    val: string;
     cmp: string;
     origcmp: string;
 };

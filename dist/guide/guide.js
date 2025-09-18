@@ -81,10 +81,7 @@ async function buildBaseGuide(ctx) {
   entity: ${entname}: {` +
             sw(0 < entity.why_name?.length ? '  # name:' + entity.why_name.join(';') : ''));
         (0, struct_1.items)(entity.path).map(([pathstr, path]) => {
-            if (pathstr === process.env.npm_config_apipath) {
-                console.log('BASE-GUIDE', entname, pathstr);
-                console.dir(path, { depth: null });
-            }
+            (0, utility_1.debugpath)(pathstr, null, 'BASE-GUIDE', entname, pathstr, (0, utility_1.formatJSONIC)(path, { hsepd: 0, $: true, color: true }));
             guideBlocks.push(`    path: '${pathstr}': {` +
                 sw(0 < path.why_path?.length ?
                     '  # ent:' + entname + ':' + path.why_path.join(';') : ''));
@@ -147,11 +144,25 @@ function validateBaseBuide(ctx, baseguide) {
     });
     const genm = {};
     // Each entity.
-    (0, jostraca_1.each)(baseguide.entity, (edef) => {
+    (0, jostraca_1.each)(baseguide.entity, (entm) => {
+        if ((0, struct_1.isempty)(entm.path)) {
+            ctx.warn({
+                note: `No paths defined for entity=${entm.name}`,
+                entm,
+            });
+        }
         // Each path.
-        (0, jostraca_1.each)(edef.path, (pdef, pathStr) => {
+        (0, jostraca_1.each)(entm.path, (pathm, pathStr) => {
+            if ((0, struct_1.isempty)(pathm.op)) {
+                ctx.warn({
+                    note: `No operations defined for entity=${entm.name} path=${pathStr}`,
+                    path: pathStr,
+                    entm,
+                    pathm,
+                });
+            }
             // Each op.
-            (0, jostraca_1.each)(pdef.op, (odef) => {
+            (0, jostraca_1.each)(pathm.op, (odef) => {
                 let key = pathStr + ' ' + odef.method;
                 let desc = (genm[key] = (genm[key] || { c: 0 }));
                 desc.c++;
@@ -165,12 +176,18 @@ function validateBaseBuide(ctx, baseguide) {
     // Check that all paths have been assigned to entities.
     if (srcp.join(';') !== genp.join(';')) {
         console.log('     ', 'SRC-PATH'.padEnd(60, ' '), 'GEN-PATH');
-        for (let i = 0; i < srcp.length || i < genp.length; i++) {
+        for (let i = 0, j = 0; i < srcp.length || j < genp.length; i++, j++) {
             let srcps = srcp[i];
-            let genps = genp[i];
+            let genps = genp[j];
             let prefix = '     ';
             if (srcps !== genps) {
                 prefix = ' *** ';
+                if (srcps === genp[j + 1]) {
+                    j++;
+                }
+                else if (genps === srcp[i + 1]) {
+                    i++;
+                }
             }
             console.log(prefix, srcps.padEnd(60, ' '), genps);
         }

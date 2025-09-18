@@ -7,7 +7,7 @@ import { Jostraca, Project, File, Content, each } from 'jostraca'
 import { Aontu, Context } from 'aontu'
 
 
-import { items, isempty } from '@voxgig/struct'
+import { items, isempty, size } from '@voxgig/struct'
 
 
 import { heuristic01 } from './heuristic01'
@@ -19,7 +19,15 @@ import {
 
 
 import {
+  GuideEntity,
+  GuidePath,
+} from '../transform/top'
+
+
+import {
   getdlog,
+  debugpath,
+  formatJSONIC,
 } from '../utility'
 
 
@@ -124,10 +132,7 @@ async function buildBaseGuide(ctx: ApiDefContext) {
       sw(0 < entity.why_name?.length ? '  # name:' + entity.why_name.join(';') : ''))
 
     items(entity.path).map(([pathstr, path]: any[]) => {
-      if (pathstr === process.env.npm_config_apipath) {
-        console.log('BASE-GUIDE', entname, pathstr)
-        console.dir(path, { depth: null })
-      }
+      debugpath(pathstr, null, 'BASE-GUIDE', entname, pathstr, formatJSONIC(path, { hsepd: 0, $: true, color: true }))
 
       guideBlocks.push(`    path: '${pathstr}': {` +
         sw(0 < path.why_path?.length ?
@@ -194,7 +199,7 @@ async function buildBaseGuide(ctx: ApiDefContext) {
 
 
 
-function validateBaseBuide(ctx: any, baseguide: any) {
+function validateBaseBuide(ctx: ApiDefContext, baseguide: any) {
   const srcm: any = {}
 
   // Each orig path.
@@ -214,13 +219,29 @@ function validateBaseBuide(ctx: any, baseguide: any) {
   const genm: any = {}
 
   // Each entity.
-  each(baseguide.entity, (edef: any) => {
+  each(baseguide.entity, (entm: GuideEntity) => {
+
+    if (isempty(entm.path)) {
+      ctx.warn({
+        note: `No paths defined for entity=${entm.name}`,
+        entm,
+      })
+    }
 
     // Each path.
-    each(edef.path, (pdef, pathStr) => {
+    each(entm.path, (pathm: GuidePath, pathStr) => {
+
+      if (isempty(pathm.op)) {
+        ctx.warn({
+          note: `No operations defined for entity=${entm.name} path=${pathStr}`,
+          path: pathStr,
+          entm,
+          pathm,
+        })
+      }
 
       // Each op.
-      each(pdef.op, (odef) => {
+      each(pathm.op, (odef) => {
         let key = pathStr + ' ' + odef.method
         let desc = (genm[key] = (genm[key] || { c: 0 }))
         desc.c++
@@ -237,12 +258,19 @@ function validateBaseBuide(ctx: any, baseguide: any) {
   // Check that all paths have been assigned to entities.
   if (srcp.join(';') !== genp.join(';')) {
     console.log('     ', 'SRC-PATH'.padEnd(60, ' '), 'GEN-PATH')
-    for (let i = 0; i < srcp.length || i < genp.length; i++) {
+    for (let i = 0, j = 0; i < srcp.length || j < genp.length; i++, j++) {
       let srcps = srcp[i]
-      let genps = genp[i]
+      let genps = genp[j]
       let prefix = '     '
       if (srcps !== genps) {
         prefix = ' *** '
+
+        if (srcps === genp[j + 1]) {
+          j++
+        }
+        else if (genps === srcp[i + 1]) {
+          i++
+        }
       }
       console.log(prefix, srcps.padEnd(60, ' '), genps)
     }
