@@ -60,7 +60,7 @@ type ModelEntityRelations = {
 }
 
 
-type OpName = 'load' | 'list' | 'create' | 'update' | 'delete' | 'patch'
+type OpName = 'load' | 'list' | 'create' | 'update' | 'delete' | 'patch' | 'head' | 'options'
 
 type ModelOp = {
   name: OpName

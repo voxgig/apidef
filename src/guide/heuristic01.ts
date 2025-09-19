@@ -18,15 +18,15 @@ import {
 
 
 import {
-  depluralize,
-  getdlog,
-  capture,
-  find,
-  pathMatch,
   canonize,
+  capture,
   debugpath,
-  formatJSONIC,
+  find,
   findPathsWithPrefix,
+  formatJSONIC,
+  getdlog,
+  pathMatch,
+  warnOnError,
 } from '../utility'
 
 import type {
@@ -78,7 +78,7 @@ async function heuristic01(ctx: ApiDefContext): Promise<Record<string, any>> {
 
   const entityDescs = resolveEntityDescs(ctx)
 
-  reviewEntityDescs(ctx, entityDescs)
+  warnOnError('reviewEntityDescs', ctx.warn, () => reviewEntityDescs(ctx, entityDescs))
 
   ctx.metrics.count.entity = size(entityDescs)
 
@@ -103,6 +103,7 @@ function measure(ctx: ApiDefContext) {
       (pathdef.put ? 1 : 0) +
       (pathdef.patch ? 1 : 0) +
       (pathdef.delete ? 1 : 0) +
+      (pathdef.head ? 1 : 0) +
       (pathdef.options ? 1 : 0)
     )
   })
@@ -120,7 +121,8 @@ function measure(ctx: ApiDefContext) {
   schemas.map(schema => {
     let m = schema.val.match(/\/components\/schemas\/(.+)$/)
     if (m) {
-      const name = fixEntName(m[1])
+      // const name = fixEntName(m[1])
+      const name = canonize(m[1])
       if (null == metrics.count.origcmprefs[name]) {
         metrics.count.cmp++
         metrics.count.origcmprefs[name] = 0
@@ -146,6 +148,8 @@ const METHOD_IDOP: Record<string, string> = {
   PUT: 'update',
   DELETE: 'remove',
   PATCH: 'patch',
+  HEAD: 'head',
+  OPTIONS: 'OPTIONS',
 }
 
 const METHOD_CONSIDER_ORDER: Record<string, number> = {
@@ -154,6 +158,8 @@ const METHOD_CONSIDER_ORDER: Record<string, number> = {
   'PUT': 300,
   'PATCH': 400,
   'DELETE': 500,
+  'HEAD': 600,
+  'OPTIONS': 700,
 }
 
 
@@ -299,6 +305,10 @@ function resolveEntity(
 ) {
   const metrics = ctx.metrics
 
+  ctx.work.entity = (ctx.work.entity || {})
+  const count = ctx.work.entity.count = (ctx.work.entity.count || {})
+  count.seen = 1 + (null == count.seen ? 0 : count.seen)
+
   const out: {
     entdesc?: EntityDesc,
     pm?: PathMatch | null,
@@ -356,12 +366,17 @@ function resolveEntity(
   //   entname = entityPathMatch_ppp(ctx, pm, cmp, mdesc, why)
   // }
 
-  else if (pm = pathMatch(parts, 'p/')) {
-    throw new Error('UNSUPPORTED PATH:' + pathStr)
-  }
+  // else if (pm = pathMatch(parts, 'p/')) {
+  //   throw new Error('UNSUPPORTED PATH:' + pathStr)
+  // }
 
-  if (null == entname || '' === entname || 'undefined' === entname) {
-    throw new Error('ENTITY NAME UNRESOLVED:' + why + ' ' + pathStr)
+  // if (null == entname || '' === entname || 'undefined' === entname) {
+  //   throw new Error('ENTITY NAME UNRESOLVED:' + why + ' ' + pathStr)
+  // }
+
+  else {
+    count.unresolved = 1 + (null == count.unresolved ? -1 : count.unresolved)
+    entname = 'entity' + count.unresolved
   }
 
   out.pm = pm
@@ -398,7 +413,8 @@ function entityPathMatch_tpte(
 
   why.push('path=t/p/t/')
   const origPathName = pm[pathNameIndex]
-  let entname = fixEntName(origPathName)
+  // let entname = fixEntName(origPathName)
+  let entname = canonize(origPathName)
   let ecm = undefined
 
   if (null != cmpdesc.namedesc) {
@@ -422,7 +438,8 @@ function entityPathMatch_tpte(
       why.push('prob-ent-prefix')
     }
     else {
-      entname = fixEntName(getelem(pm, -3)) + '_' + entname
+      // entname = fixEntName(getelem(pm, -3)) + '_' + entname
+      entname = canonize(getelem(pm, -3)) + '_' + entname
       why.push('prob-ent-part')
     }
   }
@@ -431,7 +448,8 @@ function entityPathMatch_tpte(
     why.push('part-ent')
     // Probably a special suffix operation,
     // so make the entity name sufficiently unique
-    entname = fixEntName(getelem(pm, -3)) + '_' + entname
+    // entname = fixEntName(getelem(pm, -3)) + '_' + entname
+    entname = canonize(getelem(pm, -3)) + '_' + entname
   }
 
   return entname
@@ -461,7 +479,8 @@ function entityPathMatch_tpe(
 
   why.push('path=t/p/')
   const origPathName = pm[pathNameIndex]
-  let entname = fixEntName(origPathName)
+  // let entname = fixEntName(origPathName)
+  let entname = canonize(origPathName)
 
   if (null != cmpdesc.namedesc || probableEntityMethod(ctx, mdesc, pm, why)) {
     let ecm = entityCmpMatch(ctx, entname, cmpdesc, mdesc, why)
@@ -481,7 +500,8 @@ function entityPathMatch_pte(
 
   why.push('path=p/t/')
   const origPathName = pm[pathNameIndex]
-  let entname = fixEntName(origPathName)
+  // let entname = fixEntName(origPathName)
+  let entname = canonize(origPathName)
 
   if (null != cmpdesc.namedesc || probableEntityMethod(ctx, mdesc, pm, why)) {
     let ecm = entityCmpMatch(ctx, entname, cmpdesc, mdesc, why)
@@ -501,7 +521,8 @@ function entityPathMatch_te(
 
   why.push('path=t/')
   const origPathName = pm[pathNameIndex]
-  let entname = fixEntName(origPathName)
+  // let entname = fixEntName(origPathName)
+  let entname = canonize(origPathName)
 
   if (null != cmpdesc.namedesc || probableEntityMethod(ctx, mdesc, pm, why)) {
     let ecm = entityCmpMatch(ctx, entname, cmpdesc, mdesc, why)
@@ -521,7 +542,8 @@ function entityPathMatch_tpp(
 
   why.push('path=t/p/p')
   const origPathName = pm[pathNameIndex]
-  let entname = fixEntName(origPathName)
+  // let entname = fixEntName(origPathName)
+  let entname = canonize(origPathName)
 
   if (null != cmpdesc.namedesc || probableEntityMethod(ctx, mdesc, pm, why)) {
     let ecm = entityCmpMatch(ctx, entname, cmpdesc, mdesc, why)
@@ -1001,7 +1023,8 @@ function renameParams(ctx: any, pathStr: string, methodName: string, entres: any
       const secondLastPart = partI === parts.length - 2
       const notLastPart = partI < parts.length - 1
       const hasParent = 1 < partI && !isParam(parts[partI - 1])
-      const parentName = hasParent ? fixEntName(parts[partI - 1]) : null
+      // const parentName = hasParent ? fixEntName(parts[partI - 1]) :
+      const parentName = hasParent ? canonize(parts[partI - 1]) : null
       const not_exact_id = 'id' !== oldParam
       const probably_an_id = oldParam.endsWith('id')
 
@@ -1090,7 +1113,11 @@ function renameParams(ctx: any, pathStr: string, methodName: string, entres: any
         ) {
           why.push('second-last')
 
-          if ('id' !== oldParam && fixEntName(partStr) === entdesc.name) {
+          if (
+            'id' !== oldParam
+            // && fixEntName(partStr) === entdesc.name
+            && canonize(partStr) === entdesc.name
+          ) {
             updateParamRename(
               ctx, pathStr, methodName, paramRenameCapture, oldParam,
               'id', 'end-action')
@@ -1240,12 +1267,14 @@ function isParam(partStr: string) {
 }
 
 
+/*
 function fixEntName(origName: string) {
   if (null == origName) {
     return origName
   }
   return depluralize(snakify(origName))
 }
+*/
 
 
 function findcmps(
@@ -1333,7 +1362,7 @@ function reviewEntityDescs(ctx: ApiDefContext, entityDescs: Record<string, Entit
                 const realpathmap = realent.path
                 let realpath = realpathmap[pathStr]
 
-                if (null === realpath) {
+                if (null == realpath) {
                   realpath = realpathmap[pathStr] = pathdesc
                 }
                 else if (null == realpath.op?.create) {

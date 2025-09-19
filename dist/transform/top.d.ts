@@ -30,7 +30,7 @@ type ModelOpMap = Partial<Record<OpName, ModelOp | undefined>>;
 type ModelEntityRelations = {
     ancestors: string[][];
 };
-type OpName = 'load' | 'list' | 'create' | 'update' | 'delete' | 'patch';
+type OpName = 'load' | 'list' | 'create' | 'update' | 'delete' | 'patch' | 'head' | 'options';
 type ModelOp = {
     name: OpName;
     alts: ModelAlt[];

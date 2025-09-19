@@ -1,4 +1,18 @@
 "use strict";
+// TODO:
+// Support these:
+/*
+/foo{bar}
+/{bar}zed
+/foo{bar}zed/
+/{a}{b}
+/reports/{id}.pdf
+/.{lang}/help
+/range/{start}-{end}
+/{id}
+/items/{id}/
+/files;rev={rev}
+ */
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -19,6 +33,7 @@ async function buildGuide(ctx) {
         const basejres = await buildBaseGuide(ctx);
     }
     catch (err) {
+        console.log(err);
         errs.push(err);
     }
     handleErrors(ctx, errs);
@@ -46,12 +61,19 @@ async function buildGuide(ctx) {
 }
 function handleErrors(ctx, errs) {
     if (0 < errs.length) {
-        let topmsg = [];
+        const topmsg = [];
         for (let err of errs) {
-            topmsg.push((err?.message?.split('\n')[0]) || '');
-            ctx.log.error({ err });
+            err = err instanceof Error ? err :
+                err.err instanceof Error ? err.err :
+                    Array.isArray(err.err) && null != err.err[0] ? err.err[0] :
+                        err;
+            const msg = err instanceof Error ? err.message : '' + err;
+            topmsg.push(msg);
         }
-        throw new Error('SUMMARY: ' + topmsg.join('; '));
+        const summary = new Error(`SUMMARY (${errs.length} errors): ` + topmsg.join(' | '));
+        ctx.log.error(summary);
+        summary.errs = () => errs;
+        throw summary;
     }
 }
 async function buildBaseGuide(ctx) {
@@ -68,42 +90,50 @@ async function buildBaseGuide(ctx) {
         'guide: {',
     ];
     const metrics = baseguide.metrics;
-    const epr = (metrics.count.entity / metrics.count.path).toFixed(3);
+    // TODO: these should influence the IS_ENTCMP_METHOD_RATE etc. values
+    const epr = 0 < metrics.count.path ? (metrics.count.entity / metrics.count.path).toFixed(3) : -1;
+    const emr = 0 < metrics.count.method ? (metrics.count.entity / metrics.count.method).toFixed(3) : -1;
     ctx.log.info({
         point: 'metrics',
         metrics,
-        note: `epr=${epr}  (entity=${metrics.count.entity} paths=${metrics.count.path} )`
+        note: `epr=${epr}  emr=${emr}  ` +
+            `(entity=${metrics.count.entity} ` +
+            `paths=${metrics.count.path} methods=${metrics.count.method})`
     });
     validateBaseBuide(ctx, baseguide);
     const sw = (s) => ctx.opts.why?.show ? s : '';
+    const qs = (s) => JSON.stringify(s);
+    guideBlocks.push(`  metrics: count: entity: ${metrics.count.entity}
+  metrics: count: path: ${metrics.count.path}
+  metrics: count: method: ${metrics.count.method}`);
     (0, struct_1.items)(baseguide.entity).map(([entname, entity]) => {
         guideBlocks.push(`
   entity: ${entname}: {` +
             sw(0 < entity.why_name?.length ? '  # name:' + entity.why_name.join(';') : ''));
         (0, struct_1.items)(entity.path).map(([pathstr, path]) => {
             (0, utility_1.debugpath)(pathstr, null, 'BASE-GUIDE', entname, pathstr, (0, utility_1.formatJSONIC)(path, { hsepd: 0, $: true, color: true }));
-            guideBlocks.push(`    path: '${pathstr}': {` +
+            guideBlocks.push(`    path: ${qs(pathstr)}: {` +
                 sw(0 < path.why_path?.length ?
                     '  # ent:' + entname + ':' + path.why_path.join(';') : ''));
             if (!(0, struct_1.isempty)(path.action)) {
                 (0, struct_1.items)(path.action).map(([actname, actdesc]) => {
-                    guideBlocks.push(`      action: "${actname}": kind: *"${actdesc.kind}"|top` +
+                    guideBlocks.push(`      action: ${qs(actname)}: kind: *${qs(actdesc.kind)}|top` +
                         sw(0 < path.action_why[actname]?.length ?
                             '  # ' + path.action_why[actname].join(';') : ''));
                 });
             }
             if (!(0, struct_1.isempty)(path.rename?.param)) {
                 (0, struct_1.items)(path.rename.param).map(([psrc, ptgt]) => {
-                    guideBlocks.push(`      rename: param: "${psrc}": *"${ptgt}"|string` +
+                    guideBlocks.push(`      rename: param: ${qs(psrc)}: *${qs(ptgt)}|string` +
                         sw(0 < path.rename_why.param_why?.[psrc]?.length ?
                             '  # ' + path.rename_why.param_why[psrc].join(';') : ''));
                 });
             }
             (0, struct_1.items)(path.op).map(([opname, op]) => {
-                guideBlocks.push(`      op: ${opname}: method: *"${op.method}"|string` +
+                guideBlocks.push(`      op: ${opname}: method: *${op.method}|string` +
                     sw(0 < op.why_op.length ? '  # ' + op.why_op : ''));
                 if (op.transform?.reqform) {
-                    guideBlocks.push(`      ${opname}: transform: reqform: ${JSON.stringify(op.transform.reqform)}`);
+                    guideBlocks.push(`      ${opname}: transform: reqform: ${qs(op.transform.reqform)}`);
                 }
             });
             guideBlocks.push(`    }`);
@@ -135,7 +165,7 @@ function validateBaseBuide(ctx, baseguide) {
         const pathStr = pdef.key$;
         // Each orig method.
         (0, jostraca_1.each)(pdef, (mdef) => {
-            if (mdef.key$.match(/^get|post|put|patch|delete$/i)) {
+            if (mdef.key$.match(/^get|post|put|patch|delete|head|options$/i)) {
                 let key = pathStr + ' ' + mdef.key$.toUpperCase();
                 let desc = (srcm[key] = (srcm[key] || { c: 0 }));
                 desc.c++;

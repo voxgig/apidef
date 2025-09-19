@@ -1,4 +1,18 @@
 
+// TODO:
+// Support these:
+/*
+/foo{bar}
+/{bar}zed
+/foo{bar}zed/
+/{a}{b}
+/reports/{id}.pdf
+/.{lang}/help
+/range/{start}-{end}
+/{id}
+/items/{id}/
+/files;rev={rev}
+ */
 
 import Path from 'node:path'
 
@@ -44,6 +58,7 @@ async function buildGuide(ctx: ApiDefContext): Promise<any> {
     const basejres = await buildBaseGuide(ctx)
   }
   catch (err: any) {
+    console.log(err)
     errs.push(err)
   }
 
@@ -87,12 +102,20 @@ async function buildGuide(ctx: ApiDefContext): Promise<any> {
 
 function handleErrors(ctx: any, errs: any[]) {
   if (0 < errs.length) {
-    let topmsg: string[] = []
+    const topmsg: string[] = []
     for (let err of errs) {
-      topmsg.push((err?.message?.split('\n')[0]) || '')
-      ctx.log.error({ err })
+      err = err instanceof Error ? err :
+        err.err instanceof Error ? err.err :
+          Array.isArray(err.err) && null != err.err[0] ? err.err[0] :
+            err
+      const msg =
+        err instanceof Error ? err.message : '' + err
+      topmsg.push(msg)
     }
-    throw new Error('SUMMARY: ' + topmsg.join('; '))
+    const summary: any = new Error(`SUMMARY (${errs.length} errors): ` + topmsg.join(' | '))
+    ctx.log.error(summary)
+    summary.errs = () => errs
+    throw summary
   }
 }
 
@@ -114,17 +137,29 @@ async function buildBaseGuide(ctx: ApiDefContext) {
   ]
 
   const metrics = baseguide.metrics
-  const epr = (metrics.count.entity / metrics.count.path).toFixed(3)
+
+  // TODO: these should influence the IS_ENTCMP_METHOD_RATE etc. values
+  const epr =
+    0 < metrics.count.path ? (metrics.count.entity / metrics.count.path).toFixed(3) : -1
+  const emr =
+    0 < metrics.count.method ? (metrics.count.entity / metrics.count.method).toFixed(3) : -1
 
   ctx.log.info({
     point: 'metrics',
     metrics,
-    note: `epr=${epr}  (entity=${metrics.count.entity} paths=${metrics.count.path} )`
+    note: `epr=${epr}  emr=${emr}  ` +
+      `(entity=${metrics.count.entity} ` +
+      `paths=${metrics.count.path} methods=${metrics.count.method})`
   })
 
   validateBaseBuide(ctx, baseguide)
 
   const sw = (s: string) => ctx.opts.why?.show ? s : ''
+  const qs = (s: string) => JSON.stringify(s)
+
+  guideBlocks.push(`  metrics: count: entity: ${metrics.count.entity}
+  metrics: count: path: ${metrics.count.path}
+  metrics: count: method: ${metrics.count.method}`)
 
   items(baseguide.entity).map(([entname, entity]: any[]) => {
     guideBlocks.push(`
@@ -132,15 +167,16 @@ async function buildBaseGuide(ctx: ApiDefContext) {
       sw(0 < entity.why_name?.length ? '  # name:' + entity.why_name.join(';') : ''))
 
     items(entity.path).map(([pathstr, path]: any[]) => {
-      debugpath(pathstr, null, 'BASE-GUIDE', entname, pathstr, formatJSONIC(path, { hsepd: 0, $: true, color: true }))
+      debugpath(pathstr, null, 'BASE-GUIDE', entname, pathstr,
+        formatJSONIC(path, { hsepd: 0, $: true, color: true }))
 
-      guideBlocks.push(`    path: '${pathstr}': {` +
+      guideBlocks.push(`    path: ${qs(pathstr)}: {` +
         sw(0 < path.why_path?.length ?
           '  # ent:' + entname + ':' + path.why_path.join(';') : ''))
 
       if (!isempty(path.action)) {
         items(path.action).map(([actname, actdesc]: any[]) => {
-          guideBlocks.push(`      action: "${actname}": kind: *"${actdesc.kind}"|top` +
+          guideBlocks.push(`      action: ${qs(actname)}: kind: *${qs(actdesc.kind)}|top` +
             sw(0 < path.action_why[actname]?.length ?
               '  # ' + path.action_why[actname].join(';') : ''))
         })
@@ -148,18 +184,18 @@ async function buildBaseGuide(ctx: ApiDefContext) {
 
       if (!isempty(path.rename?.param)) {
         items(path.rename.param).map(([psrc, ptgt]: any[]) => {
-          guideBlocks.push(`      rename: param: "${psrc}": *"${ptgt}"|string` +
+          guideBlocks.push(`      rename: param: ${qs(psrc)}: *${qs(ptgt)}|string` +
             sw(0 < path.rename_why.param_why?.[psrc]?.length ?
               '  # ' + path.rename_why.param_why[psrc].join(';') : ''))
         })
       }
 
       items(path.op).map(([opname, op]: any[]) => {
-        guideBlocks.push(`      op: ${opname}: method: *"${op.method}"|string` +
+        guideBlocks.push(`      op: ${opname}: method: *${op.method}|string` +
           sw(0 < op.why_op.length ? '  # ' + op.why_op : ''))
         if (op.transform?.reqform) {
           guideBlocks.push(
-            `      ${opname}: transform: reqform: ${JSON.stringify(op.transform.reqform)}`)
+            `      ${opname}: transform: reqform: ${qs(op.transform.reqform)}`)
         }
       })
 
@@ -208,7 +244,7 @@ function validateBaseBuide(ctx: ApiDefContext, baseguide: any) {
 
     // Each orig method.
     each(pdef, (mdef: any) => {
-      if (mdef.key$.match(/^get|post|put|patch|delete$/i)) {
+      if (mdef.key$.match(/^get|post|put|patch|delete|head|options$/i)) {
         let key = pathStr + ' ' + mdef.key$.toUpperCase()
         let desc = (srcm[key] = (srcm[key] || { c: 0 }))
         desc.c++

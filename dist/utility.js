@@ -17,6 +17,8 @@ exports.validator = validator;
 exports.canonize = canonize;
 exports.debugpath = debugpath;
 exports.findPathsWithPrefix = findPathsWithPrefix;
+exports.writeFileSyncWarn = writeFileSyncWarn;
+exports.warnOnError = warnOnError;
 const node_path_1 = __importDefault(require("node:path"));
 const jostraca_1 = require("jostraca");
 const util_1 = require("@voxgig/util");
@@ -30,7 +32,19 @@ function makeWarner(spec) {
         history.push(warning);
     };
     warn.history = history;
+    warn.point = point;
     return warn;
+}
+function writeFileSyncWarn(warn, fs, path, text) {
+    try {
+        fs.writeFileSync(path, text);
+    }
+    catch (err) {
+        warn({
+            err,
+            note: 'Unable to save file: ' + path
+        });
+    }
 }
 function getdlog(tagin, filepath) {
     const tag = tagin || '-';
@@ -393,6 +407,8 @@ function formatJSONIC(val, opts) {
     const hsepd = opts?.hsepd ?? 1;
     const showd = !!opts?.$;
     const useColor = opts?.color ?? false;
+    const maxlines = opts?.maxlines ?? Number.MAX_VALUE;
+    const exclude = opts?.exclude ?? [];
     const space = '  ';
     const isBareKey = (k) => /^[A-Za-z_][_A-Za-z0-9]*$/.test(k);
     const quoteKey = (k) => (isBareKey(k) ? k : JSON.stringify(k));
@@ -455,7 +471,7 @@ function formatJSONIC(val, opts) {
         kind: 'value', value: val, indentLevel: 0, linePrefix: '', inlineComment: rootInline
     };
     const lines = [];
-    while (top >= 0) {
+    while (top >= 0 && (lines.length < maxlines)) {
         const frame = stack[top];
         stack[top] = undefined;
         top -= 1;
@@ -518,6 +534,9 @@ function formatJSONIC(val, opts) {
         const nextIndentStr = space.repeat(indentLevel + 1);
         for (let i = printableKeys.length - 1; i >= 0; i--) {
             const k = printableKeys[i];
+            if (exclude.includes(k)) {
+                continue;
+            }
             const keyText = quoteKey(k);
             const valForKey = obj[k];
             const cmt = renderComment(obj[`${k}_COMMENT`]);
@@ -529,11 +548,6 @@ function formatJSONIC(val, opts) {
                 inlineComment: cmt
             };
         }
-    }
-    // Assertion: after loop, stack must be all undefined
-    for (let i = 0; i < stack.length; i++) {
-        if (stack[i] !== undefined)
-            throw new Error(`Assertion failed: stack[${i}] not cleared`);
     }
     return lines.join('\n') + '\n';
 }
@@ -561,7 +575,19 @@ function validator(torig) {
     }
 }
 function canonize(s) {
-    return depluralize((0, jostraca_1.snakify)(s));
+    return depluralize((0, jostraca_1.snakify)(s)).replace(/[^a-zA-Z_0-9]/g, '');
+}
+function warnOnError(where, warn, fn, result) {
+    try {
+        return fn();
+    }
+    catch (err) {
+        warn({
+            note: 'Error in ' + where + ': ' + err.message,
+            err
+        });
+        return result;
+    }
 }
 function debugpath(pathStr, methodName, ...args) {
     const apipath = process.env.npm_config_apipath;

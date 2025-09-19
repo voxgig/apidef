@@ -3,6 +3,7 @@ declare function makeWarner(spec: {
     point: string;
     log: Log;
 }): Warner;
+declare function writeFileSyncWarn(warn: Warner, fs: any, path: string, text: string): void;
 declare function getdlog(tagin?: string, filepath?: string): ((...args: any[]) => void) & {
     tag: string;
     file: string;
@@ -23,9 +24,12 @@ declare function formatJSONIC(val?: any, opts?: {
     hsepd?: number;
     $?: boolean;
     color?: boolean;
+    maxlines?: number;
+    exclude?: string[];
 }): string;
 declare function validator(torig: undefined | string | string[]): any;
 declare function canonize(s: string): string;
+declare function warnOnError(where: string, warn: Warner, fn: Function, result?: any): any;
 declare function debugpath(pathStr: string, methodName: string | null | undefined, ...args: any[]): void;
 declare function findPathsWithPrefix(ctx: any, pathStr: string, opts?: {
     strict?: boolean;
@@ -33,4 +37,4 @@ declare function findPathsWithPrefix(ctx: any, pathStr: string, opts?: {
 }): number;
 declare function nom(v: any, format: string): string;
 export type { PathMatch };
-export { nom, getdlog, loadFile, formatJsonSrc, depluralize, find, capture, pathMatch, makeWarner, formatJSONIC, validator, canonize, debugpath, findPathsWithPrefix, };
+export { nom, getdlog, loadFile, formatJsonSrc, depluralize, find, capture, pathMatch, makeWarner, formatJSONIC, validator, canonize, debugpath, findPathsWithPrefix, writeFileSyncWarn, warnOnError, };

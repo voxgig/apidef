@@ -1,5 +1,6 @@
 import type { ApiDefOptions, ApiDefResult } from './types';
 import { parse } from './parse';
+import { formatJSONIC } from './utility';
 declare function ApiDef(opts: ApiDefOptions): {
     generate: (spec: any) => Promise<ApiDefResult>;
 };
@@ -10,4 +11,4 @@ declare namespace ApiDef {
     }>;
 }
 export type { ApiDefOptions, };
-export { ApiDef, parse, };
+export { ApiDef, parse, formatJSONIC, };

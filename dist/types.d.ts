@@ -1001,7 +1001,8 @@ type ApiDefResult = {
     start: number;
     end: number;
     steps: string[];
-    ctrl: Control;
+    err?: any;
+    ctrl?: Control;
     guide?: any;
     apimodel?: any;
     ctx?: any;
@@ -1040,13 +1041,14 @@ type Warner = {
         point: string;
         when: number;
     } & Record<string, any>)[];
+    point: string;
 } & ((details: Record<string, any>) => void);
 type CmpDesc = {
     namedesc?: CmpNameDesc;
     path_rate: number;
     method_rate: number;
 };
-type MethodName = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | '';
+type MethodName = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS' | '';
 type MethodDesc = {
     name: MethodName;
     def: Record<string, any>;

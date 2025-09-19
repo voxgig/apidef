@@ -14,7 +14,7 @@ async function heuristic01(ctx) {
     let guide = ctx.guide;
     measure(ctx);
     const entityDescs = resolveEntityDescs(ctx);
-    reviewEntityDescs(ctx, entityDescs);
+    (0, utility_1.warnOnError)('reviewEntityDescs', ctx.warn, () => reviewEntityDescs(ctx, entityDescs));
     ctx.metrics.count.entity = (0, struct_1.size)(entityDescs);
     guide = {
         control: guide.control,
@@ -32,6 +32,7 @@ function measure(ctx) {
             (pathdef.put ? 1 : 0) +
             (pathdef.patch ? 1 : 0) +
             (pathdef.delete ? 1 : 0) +
+            (pathdef.head ? 1 : 0) +
             (pathdef.options ? 1 : 0));
     });
     metrics.count.origcmprefs = {};
@@ -42,7 +43,8 @@ function measure(ctx) {
     schemas.map(schema => {
         let m = schema.val.match(/\/components\/schemas\/(.+)$/);
         if (m) {
-            const name = fixEntName(m[1]);
+            // const name = fixEntName(m[1])
+            const name = (0, utility_1.canonize)(m[1]);
             if (null == metrics.count.origcmprefs[name]) {
                 metrics.count.cmp++;
                 metrics.count.origcmprefs[name] = 0;
@@ -61,6 +63,8 @@ const METHOD_IDOP = {
     PUT: 'update',
     DELETE: 'remove',
     PATCH: 'patch',
+    HEAD: 'head',
+    OPTIONS: 'OPTIONS',
 };
 const METHOD_CONSIDER_ORDER = {
     'GET': 100,
@@ -68,6 +72,8 @@ const METHOD_CONSIDER_ORDER = {
     'PUT': 300,
     'PATCH': 400,
     'DELETE': 500,
+    'HEAD': 600,
+    'OPTIONS': 700,
 };
 function resolveEntityDescs(ctx) {
     const entityDescs = {};
@@ -167,6 +173,9 @@ function resolveEntityDescs(ctx) {
 }
 function resolveEntity(ctx, entityDescs, pathStr, parts, methodDef, methodName) {
     const metrics = ctx.metrics;
+    ctx.work.entity = (ctx.work.entity || {});
+    const count = ctx.work.entity.count = (ctx.work.entity.count || {});
+    count.seen = 1 + (null == count.seen ? 0 : count.seen);
     const out = {};
     const why = [];
     const cmpnamedesc = resolveCmpName(ctx, methodDef, methodName, pathStr, why);
@@ -206,11 +215,15 @@ function resolveEntity(ctx, entityDescs, pathStr, parts, methodDef, methodName) 
     // else if (pm = pathMatch(parts, 'p/p/p')) {
     //   entname = entityPathMatch_ppp(ctx, pm, cmp, mdesc, why)
     // }
-    else if (pm = (0, utility_1.pathMatch)(parts, 'p/')) {
-        throw new Error('UNSUPPORTED PATH:' + pathStr);
-    }
-    if (null == entname || '' === entname || 'undefined' === entname) {
-        throw new Error('ENTITY NAME UNRESOLVED:' + why + ' ' + pathStr);
+    // else if (pm = pathMatch(parts, 'p/')) {
+    //   throw new Error('UNSUPPORTED PATH:' + pathStr)
+    // }
+    // if (null == entname || '' === entname || 'undefined' === entname) {
+    //   throw new Error('ENTITY NAME UNRESOLVED:' + why + ' ' + pathStr)
+    // }
+    else {
+        count.unresolved = 1 + (null == count.unresolved ? -1 : count.unresolved);
+        entname = 'entity' + count.unresolved;
     }
     out.pm = pm;
     out.cmp = cmp;
@@ -233,7 +246,8 @@ function entityPathMatch_tpte(ctx, pm, cmpdesc, mdesc, why) {
     const pathNameIndex = 2;
     why.push('path=t/p/t/');
     const origPathName = pm[pathNameIndex];
-    let entname = fixEntName(origPathName);
+    // let entname = fixEntName(origPathName)
+    let entname = (0, utility_1.canonize)(origPathName);
     let ecm = undefined;
     if (null != cmpdesc.namedesc) {
         ecm = entityCmpMatch(ctx, entname, cmpdesc, mdesc, why);
@@ -255,7 +269,8 @@ function entityPathMatch_tpte(ctx, pm, cmpdesc, mdesc, why) {
             why.push('prob-ent-prefix');
         }
         else {
-            entname = fixEntName((0, struct_1.getelem)(pm, -3)) + '_' + entname;
+            // entname = fixEntName(getelem(pm, -3)) + '_' + entname
+            entname = (0, utility_1.canonize)((0, struct_1.getelem)(pm, -3)) + '_' + entname;
             why.push('prob-ent-part');
         }
     }
@@ -263,7 +278,8 @@ function entityPathMatch_tpte(ctx, pm, cmpdesc, mdesc, why) {
         why.push('part-ent');
         // Probably a special suffix operation,
         // so make the entity name sufficiently unique
-        entname = fixEntName((0, struct_1.getelem)(pm, -3)) + '_' + entname;
+        // entname = fixEntName(getelem(pm, -3)) + '_' + entname
+        entname = (0, utility_1.canonize)((0, struct_1.getelem)(pm, -3)) + '_' + entname;
     }
     return entname;
 }
@@ -283,7 +299,8 @@ function entityPathMatch_tpe(ctx, pm, cmpdesc, mdesc, why) {
     const pathNameIndex = 0;
     why.push('path=t/p/');
     const origPathName = pm[pathNameIndex];
-    let entname = fixEntName(origPathName);
+    // let entname = fixEntName(origPathName)
+    let entname = (0, utility_1.canonize)(origPathName);
     if (null != cmpdesc.namedesc || probableEntityMethod(ctx, mdesc, pm, why)) {
         let ecm = entityCmpMatch(ctx, entname, cmpdesc, mdesc, why);
         entname = ecm.name;
@@ -297,7 +314,8 @@ function entityPathMatch_pte(ctx, pm, cmpdesc, mdesc, why) {
     const pathNameIndex = 1;
     why.push('path=p/t/');
     const origPathName = pm[pathNameIndex];
-    let entname = fixEntName(origPathName);
+    // let entname = fixEntName(origPathName)
+    let entname = (0, utility_1.canonize)(origPathName);
     if (null != cmpdesc.namedesc || probableEntityMethod(ctx, mdesc, pm, why)) {
         let ecm = entityCmpMatch(ctx, entname, cmpdesc, mdesc, why);
         entname = ecm.name;
@@ -311,7 +329,8 @@ function entityPathMatch_te(ctx, pm, cmpdesc, mdesc, why) {
     const pathNameIndex = 0;
     why.push('path=t/');
     const origPathName = pm[pathNameIndex];
-    let entname = fixEntName(origPathName);
+    // let entname = fixEntName(origPathName)
+    let entname = (0, utility_1.canonize)(origPathName);
     if (null != cmpdesc.namedesc || probableEntityMethod(ctx, mdesc, pm, why)) {
         let ecm = entityCmpMatch(ctx, entname, cmpdesc, mdesc, why);
         entname = ecm.name;
@@ -325,7 +344,8 @@ function entityPathMatch_tpp(ctx, pm, cmpdesc, mdesc, why) {
     const pathNameIndex = 0;
     why.push('path=t/p/p');
     const origPathName = pm[pathNameIndex];
-    let entname = fixEntName(origPathName);
+    // let entname = fixEntName(origPathName)
+    let entname = (0, utility_1.canonize)(origPathName);
     if (null != cmpdesc.namedesc || probableEntityMethod(ctx, mdesc, pm, why)) {
         let ecm = entityCmpMatch(ctx, entname, cmpdesc, mdesc, why);
         entname = ecm.name;
@@ -651,7 +671,8 @@ function renameParams(ctx, pathStr, methodName, entres) {
             const secondLastPart = partI === parts.length - 2;
             const notLastPart = partI < parts.length - 1;
             const hasParent = 1 < partI && !isParam(parts[partI - 1]);
-            const parentName = hasParent ? fixEntName(parts[partI - 1]) : null;
+            // const parentName = hasParent ? fixEntName(parts[partI - 1]) :
+            const parentName = hasParent ? (0, utility_1.canonize)(parts[partI - 1]) : null;
             const not_exact_id = 'id' !== oldParam;
             const probably_an_id = oldParam.endsWith('id');
             // Id-like not at end, and after a possible entname.
@@ -702,7 +723,9 @@ function renameParams(ctx, pathStr, methodName, entres) {
                 // Actually primary ent with an action$ suffix
                 if (secondLastPart) {
                     why.push('second-last');
-                    if ('id' !== oldParam && fixEntName(partStr) === entdesc.name) {
+                    if ('id' !== oldParam
+                        // && fixEntName(partStr) === entdesc.name
+                        && (0, utility_1.canonize)(partStr) === entdesc.name) {
                         updateParamRename(ctx, pathStr, methodName, paramRenameCapture, oldParam, 'id', 'end-action');
                         why.push('end-action');
                         updateAction(ctx, pathStr, methodName, oldParam, parts[partI + 1], entdesc, pathDef, 'end-action');
@@ -797,12 +820,14 @@ function updateParamRename(ctx, path, method, paramRenameCapture, oldParamName, 
 function isParam(partStr) {
     return '{' === partStr[0] && '}' === partStr[partStr.length - 1];
 }
-function fixEntName(origName) {
-    if (null == origName) {
-        return origName;
-    }
-    return (0, utility_1.depluralize)((0, jostraca_1.snakify)(origName));
+/*
+function fixEntName(origName: string) {
+  if (null == origName) {
+    return origName
+  }
+  return depluralize(snakify(origName))
 }
+*/
 function findcmps(ctx, pathStr, underprops, opts) {
     const cmplist = [];
     const cmpset = new Set();
@@ -855,7 +880,7 @@ function reviewEntityDescs(ctx, entityDescs) {
                                 // console.dir(entdesc, { depth: null })
                                 const realpathmap = realent.path;
                                 let realpath = realpathmap[pathStr];
-                                if (null === realpath) {
+                                if (null == realpath) {
                                     realpath = realpathmap[pathStr] = pathdesc;
                                 }
                                 else if (null == realpath.op?.create) {

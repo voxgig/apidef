@@ -4,7 +4,9 @@ import * as Fs from 'node:fs'
 import Path from 'node:path'
 
 
-import { Jostraca, Project, names } from 'jostraca'
+import {
+  Jostraca, JostracaResult, Project, names
+} from 'jostraca'
 
 import { prettyPino } from '@voxgig/util'
 
@@ -54,7 +56,9 @@ import {
   getdlog,
   makeWarner,
   formatJSONIC,
+  writeFileSyncWarn,
 } from './utility'
+
 
 import { topTransform } from './transform/top'
 import { entityTransform } from './transform/entity'
@@ -72,7 +76,6 @@ const dlog = getdlog('apidef', __filename)
 
 function ApiDef(opts: ApiDefOptions) {
 
-
   // TODO: gubu opts!
   const fs = opts.fs || Fs
   const pino = prettyPino('apidef', opts)
@@ -81,196 +84,228 @@ function ApiDef(opts: ApiDefOptions) {
 
   opts.strategy = opts.strategy || 'heuristic01'
 
-
   async function generate(spec: any): Promise<ApiDefResult> {
     const start = Date.now()
     const steps: string[] = []
-    // dlog('start')
 
-    const ctrl: Control = OpenControlShape(spec.ctrl || {})
-    const model: Model = OpenModelShape(spec.model || {})
-    const build: Build = OpenBuildShape(spec.build || {})
+    let ctx: ApiDefContext | undefined = undefined
+    let ctrl: Control | undefined = undefined
+    let jres: JostracaResult | undefined = undefined
 
-    // Step: parse (API spec).
-    if (!ctrl.step.parse) {
-      return { ok: true, steps, start, end: Date.now(), ctrl }
-    }
+    try {
+      ctrl = OpenControlShape(spec.ctrl || {}) as Control
 
-    names(model, model.name)
+      const model: Model = OpenModelShape(spec.model || {})
+      const build: Build = OpenBuildShape(spec.build || {})
 
-    const apimodel: ApiModel = {
-      main: {
-        api: {},
-        sdk: {
-          info: {},
-          entity: {},
-          flow: {},
+      // Step: parse (API spec).
+      if (!ctrl.step.parse) {
+        return { ok: true, steps, start, end: Date.now(), ctrl }
+      }
+
+      names(model, model.name)
+
+      const apimodel: ApiModel = {
+        main: {
+          api: {},
+          sdk: {
+            info: {},
+            entity: {},
+            flow: {},
+          },
+          def: {},
         },
-        def: {},
-      },
-    }
+      }
 
-    const buildspec = build.spec
+      const buildspec = build.spec
 
-    let defpath = model.def
+      let defpath = model.def
 
-    // TOOD: defpath should be independently defined
-    defpath = Path.join(buildspec.base, '..', 'def', defpath)
+      // TOOD: defpath should be independently defined
+      defpath = Path.join(buildspec.base, '..', 'def', defpath)
 
-    log.info({
-      point: 'generate-start',
-      note: defpath.replace(process.cwd(), '.'),
-      defpath,
-      start
-    })
+      log.info({
+        point: 'generate-start',
+        note: defpath.replace(process.cwd(), '.'),
+        defpath,
+        start
+      })
 
-    // TODO: Validate spec
-    const ctx: ApiDefContext = {
-      fs,
-      log,
-      spec,
-      opts,
-      util: { fixName },
-      defpath: Path.dirname(defpath),
-      model,
-      apimodel,
-      guide: {},
-      def: undefined,
-      note: {},
-      warn,
-      metrics: {
-        count: {
-          path: 0,
-          method: 0,
-          origcmprefs: {},
-          cmp: 0,
-          entity: 0,
+      // TODO: Validate spec
+      ctx = {
+        fs,
+        log,
+        spec,
+        opts,
+        util: { fixName },
+        defpath: Path.dirname(defpath),
+        model,
+        apimodel,
+        guide: {},
+        def: undefined,
+        note: {},
+        warn,
+        metrics: {
+          count: {
+            path: 0,
+            method: 0,
+            origcmprefs: {},
+            cmp: 0,
+            entity: 0,
+          },
+          found: {
+            cmp: {}
+          }
         },
-        found: {
-          cmp: {}
+        work: {}
+      }
+
+      const defsrc = loadFile(defpath, 'def', fs, log)
+
+      const def = await parse('OpenAPI', defsrc, { file: defpath })
+      const defkeys = Object.keys(def)
+
+      log.info({
+        point: 'root-keys',
+        defpath,
+        note: defkeys.join(', ')
+      })
+
+      const safedef = decircular(def)
+      const fullsrc = JSON.stringify(safedef, null, 2)
+
+      fs.writeFileSync(defpath + '.full.json', fullsrc)
+
+      ctx.def = safedef
+
+      steps.push('parse')
+
+      // Step: guide (derive).
+      if (!ctrl.step.guide) {
+        return { ok: false, steps, start, end: Date.now(), ctrl }
+      }
+
+      const guideModel = await buildGuide(ctx)
+      ctx.guide = guideModel.guide
+
+      steps.push('guide')
+
+
+      // Step: transformers (transform spec and guide into core structures).
+      if (!ctrl.step.transformers) {
+        return { ok: true, steps, start, end: Date.now(), ctrl, guide: ctx.guide }
+      }
+
+      // const transformSpec = await resolveTransforms(ctx)
+      const transres = await resolveElements(ctx, 'transform', 'openapi', {
+        top: topTransform,
+        entity: entityTransform,
+        operation: operationTransform,
+        args: argsTransform,
+        field: fieldTransform,
+        clean: cleanTransform,
+      })
+
+      steps.push('transformers')
+
+      // Step: builders (build generated sub models).
+      if (!ctrl.step.builders) {
+        return { ok: true, steps, start, end: Date.now(), ctrl, guide: ctx.guide }
+      }
+
+      const builders = await resolveElements(ctx, 'builder', 'standard', {
+        entity: makeEntityBuilder,
+        flow: makeFlowBuilder,
+      })
+
+      steps.push('builders')
+
+
+      // Step: generate (generate model files).
+      if (!ctrl.step.generate) {
+        return { ok: true, steps, start, end: Date.now(), ctrl, guide: ctx.guide }
+      }
+
+      const jostraca = Jostraca({
+        now: spec.now,
+        fs: () => fs,
+        log,
+      })
+
+      const jmodel = {}
+
+      const root = () => Project({ folder: '.' }, async () => {
+        for (let builder of builders) {
+          builder()
         }
-      },
-      work: {}
-    }
+      })
 
-    const defsrc = loadFile(defpath, 'def', fs, log)
+      jres = await jostraca.generate({
+        // folder: Path.dirname(opts.folder as string),
+        folder: opts.folder,
+        model: jmodel,
+        existing: { txt: { merge: true } }
+      }, root)
 
-    const def = await parse('OpenAPI', defsrc, { file: defpath })
-    const defkeys = Object.keys(def)
-
-    log.info({
-      point: 'root-keys',
-      defpath,
-      note: defkeys.join(', ')
-    })
-
-    const safedef = decircular(def)
-    const fullsrc = JSON.stringify(safedef, null, 2)
-
-    fs.writeFileSync(defpath + '.full.json', fullsrc)
-
-    ctx.def = safedef
-
-    steps.push('parse')
-
-    // Step: guide (derive).
-    if (!ctrl.step.guide) {
-      return { ok: false, steps, start, end: Date.now(), ctrl }
-    }
-
-    const guideModel = await buildGuide(ctx)
-    ctx.guide = guideModel.guide
-
-    steps.push('guide')
-
-
-    // Step: transformers (transform spec and guide into core structures).
-    if (!ctrl.step.transformers) {
-      return { ok: true, steps, start, end: Date.now(), ctrl, guide: ctx.guide }
-    }
-
-    // const transformSpec = await resolveTransforms(ctx)
-    const transres = await resolveElements(ctx, 'transform', 'openapi', {
-      top: topTransform,
-      entity: entityTransform,
-      operation: operationTransform,
-      args: argsTransform,
-      field: fieldTransform,
-      clean: cleanTransform,
-    })
-
-    steps.push('transformers')
-
-    // Step: builders (build generated sub models).
-    if (!ctrl.step.builders) {
-      return { ok: true, steps, start, end: Date.now(), ctrl, guide: ctx.guide }
-    }
-
-    const builders = await resolveElements(ctx, 'builder', 'standard', {
-      entity: makeEntityBuilder,
-      flow: makeFlowBuilder,
-    })
-
-    steps.push('builders')
-
-
-    // Step: generate (generate model files).
-    if (!ctrl.step.generate) {
-      return { ok: true, steps, start, end: Date.now(), ctrl, guide: ctx.guide }
-    }
-
-    const jostraca = Jostraca({
-      now: spec.now,
-      fs: () => fs,
-      log,
-    })
-
-    const jmodel = {}
-
-    const root = () => Project({ folder: '.' }, async () => {
-      for (let builder of builders) {
-        builder()
+      const dlogs = dlog.log()
+      if (0 < dlogs.length) {
+        for (let dlogentry of dlogs) {
+          log.debug({ point: 'generate-debug', dlogentry, note: String(dlogentry) })
+        }
       }
-    })
 
-    const jres = await jostraca.generate({
-      // folder: Path.dirname(opts.folder as string),
-      folder: opts.folder,
-      model: jmodel,
-      existing: { txt: { merge: true } }
-    }, root)
+      steps.push('generate')
 
-    const dlogs = dlog.log()
-    if (0 < dlogs.length) {
-      for (let dlogentry of dlogs) {
-        log.debug({ point: 'generate-debug', dlogentry, note: String(dlogentry) })
+      const hasWarnings = 0 < warn.history.length
+      const endnote =
+        hasWarnings ? `PARTIAL BUILD! There were ${warn.history.length} warnings (see above).` :
+          'success'
+      log[hasWarnings ? 'warn' : 'info']({ point: 'generate-end', note: endnote, break: true })
+
+      if (hasWarnings) {
+        writeFileSyncWarn(warn, fs, './apidef-warnings.txt',
+          warn.history.map(n => formatJSONIC(n)).join('\n\n'))
+      }
+
+      return {
+        ok: true,
+        err: null,
+        start,
+        end: Date.now(),
+        steps,
+        ctrl,
+        guide: ctx.guide,
+        apimodel: ctx.apimodel,
+        ctx,
+        jres,
       }
     }
+    catch (err: any) {
+      const endnote = '!! BUILD FAILED !! ' + err.message
+      log.error({ point: 'generate-end', err, note: endnote, break: true })
 
-    steps.push('generate')
+      warn.history.push({
+        point: warn.point,
+        when: Date.now(),
+        err,
+        note: endnote
+      })
 
-    const hasWarnings = 0 < warn.history.length
-    const endnote =
-      hasWarnings ? `PARTIAL BUILD! There were ${warn.history.length} warnings (see above).` :
-        'success'
-    log[hasWarnings ? 'warn' : 'info']({ point: 'generate-end', note: endnote, break: true })
-
-    if (hasWarnings) {
-      ctx.fs.writeFileSync('./apidef-warnings.txt',
+      writeFileSyncWarn(warn, fs, './apidef-warnings.txt',
         warn.history.map(n => formatJSONIC(n)).join('\n\n'))
-    }
 
-    return {
-      ok: true,
-      start,
-      end: Date.now(),
-      steps,
-      ctrl,
-
-      guide: ctx.guide,
-      apimodel: ctx.apimodel,
-      ctx,
-      jres,
+      return {
+        ok: false,
+        err,
+        start,
+        end: Date.now(),
+        steps,
+        ctrl,
+        guide: ctx?.guide,
+        apimodel: ctx?.apimodel,
+        ctx,
+        jres,
+      }
     }
   }
 
@@ -328,4 +363,5 @@ export type {
 export {
   ApiDef,
   parse,
+  formatJSONIC,
 }

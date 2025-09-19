@@ -27,9 +27,22 @@ function makeWarner(spec: { point: string, log: Log }): Warner {
     history.push(warning)
   }
   warn.history = history
+  warn.point = point
   return warn
 }
 
+
+function writeFileSyncWarn(warn: Warner, fs: any, path: string, text: string) {
+  try {
+    fs.writeFileSync(path, text)
+  }
+  catch (err: any) {
+    warn({
+      err,
+      note: 'Unable to save file: ' + path
+    })
+  }
+}
 
 
 
@@ -472,7 +485,16 @@ function isParam(partStr: string) {
 }
 
 
-function formatJSONIC(val?: any, opts?: { hsepd?: number, $?: boolean, color?: boolean }): string {
+function formatJSONIC(
+  val?: any,
+  opts?: {
+    hsepd?: number,
+    $?: boolean,
+    color?: boolean
+    maxlines?: number,
+    exclude?: string[],
+  }): string {
+
   if (undefined === val) return ''
 
   val = decircular(val)
@@ -480,6 +502,8 @@ function formatJSONIC(val?: any, opts?: { hsepd?: number, $?: boolean, color?: b
   const hsepd = opts?.hsepd ?? 1
   const showd = !!opts?.$
   const useColor = opts?.color ?? false
+  const maxlines = opts?.maxlines ?? Number.MAX_VALUE
+  const exclude = opts?.exclude ?? []
 
   const space = '  '
   const isBareKey = (k: string) => /^[A-Za-z_][_A-Za-z0-9]*$/.test(k)
@@ -557,7 +581,7 @@ function formatJSONIC(val?: any, opts?: { hsepd?: number, $?: boolean, color?: b
 
   const lines: string[] = []
 
-  while (top >= 0) {
+  while (top >= 0 && (lines.length < maxlines)) {
     const frame = stack[top]!
 
     stack[top] = undefined
@@ -633,6 +657,10 @@ function formatJSONIC(val?: any, opts?: { hsepd?: number, $?: boolean, color?: b
     const nextIndentStr = space.repeat(indentLevel + 1)
     for (let i = printableKeys.length - 1; i >= 0; i--) {
       const k = printableKeys[i]
+      if (exclude.includes(k)) {
+        continue
+      }
+
       const keyText = quoteKey(k)
       const valForKey = obj[k]
       const cmt = renderComment(obj[`${k}_COMMENT`])
@@ -645,11 +673,6 @@ function formatJSONIC(val?: any, opts?: { hsepd?: number, $?: boolean, color?: b
         inlineComment: cmt
       }
     }
-  }
-
-  // Assertion: after loop, stack must be all undefined
-  for (let i = 0; i < stack.length; i++) {
-    if (stack[i] !== undefined) throw new Error(`Assertion failed: stack[${i}] not cleared`)
   }
 
   return lines.join('\n') + '\n'
@@ -683,8 +706,23 @@ function validator(torig: undefined | string | string[]): any {
 }
 
 function canonize(s: string) {
-  return depluralize(snakify(s))
+  return depluralize(snakify(s)).replace(/[^a-zA-Z_0-9]/g, '')
 }
+
+
+function warnOnError(where: string, warn: Warner, fn: Function, result?: any) {
+  try {
+    return fn()
+  }
+  catch (err: any) {
+    warn({
+      note: 'Error in ' + where + ': ' + err.message,
+      err
+    })
+    return result
+  }
+}
+
 
 
 function debugpath(pathStr: string, methodName: string | null | undefined, ...args: any[]): void {
@@ -776,4 +814,7 @@ export {
   canonize,
   debugpath,
   findPathsWithPrefix,
+  writeFileSyncWarn,
+  warnOnError,
+
 }
