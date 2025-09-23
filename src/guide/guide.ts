@@ -50,6 +50,7 @@ const dlog = getdlog('apidef', __filename)
 
 
 async function buildGuide(ctx: ApiDefContext): Promise<any> {
+  const log = ctx.log
   const errs: any[] = []
 
   const folder = Path.resolve(ctx.opts.folder)
@@ -65,11 +66,18 @@ async function buildGuide(ctx: ApiDefContext): Promise<any> {
   handleErrors(ctx, errs)
 
   let src = ''
-  let guidePath = Path.join(folder, 'guide',
+  let guidepath = Path.join(folder, 'guide',
     (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'guide.jsonic')
 
+  log.info({
+    point: 'generate-guide',
+    note: guidepath.replace(process.cwd(), '.'),
+    guidepath,
+  })
+
+
   try {
-    src = ctx.fs.readFileSync(guidePath, 'utf8')
+    src = ctx.fs.readFileSync(guidepath, 'utf8')
   }
   catch (err: any) {
     errs.push(err)
@@ -79,7 +87,7 @@ async function buildGuide(ctx: ApiDefContext): Promise<any> {
 
 
   const opts = {
-    path: guidePath,
+    path: guidepath,
     fs: ctx.fs,
   }
 

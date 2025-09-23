@@ -27,6 +27,7 @@ const utility_1 = require("../utility");
 // Log non-fatal wierdness.
 const dlog = (0, utility_1.getdlog)('apidef', __filename);
 async function buildGuide(ctx) {
+    const log = ctx.log;
     const errs = [];
     const folder = node_path_1.default.resolve(ctx.opts.folder);
     try {
@@ -38,16 +39,21 @@ async function buildGuide(ctx) {
     }
     handleErrors(ctx, errs);
     let src = '';
-    let guidePath = node_path_1.default.join(folder, 'guide', (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'guide.jsonic');
+    let guidepath = node_path_1.default.join(folder, 'guide', (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'guide.jsonic');
+    log.info({
+        point: 'generate-guide',
+        note: guidepath.replace(process.cwd(), '.'),
+        guidepath,
+    });
     try {
-        src = ctx.fs.readFileSync(guidePath, 'utf8');
+        src = ctx.fs.readFileSync(guidepath, 'utf8');
     }
     catch (err) {
         errs.push(err);
     }
     handleErrors(ctx, errs);
     const opts = {
-        path: guidePath,
+        path: guidepath,
         fs: ctx.fs,
     };
     const guideRoot = (0, aontu_1.Aontu)(src, opts);
