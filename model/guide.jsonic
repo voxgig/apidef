@@ -36,9 +36,15 @@ guide: control: {
 
 
 guide: entity: &: {
+  active: *true|boolean        
   name: .$KEY
+
   path: &: {
+    active: *true|boolean
+    
     op: &: {
+      active: *true|boolean
+
       # TODO: try ranked defaults: **foo < *foo
       method: string
       transform: {
