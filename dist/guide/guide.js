@@ -57,7 +57,10 @@ async function buildGuide(ctx) {
         fs: ctx.fs,
     };
     const guideRoot = (0, aontu_1.Aontu)(src, opts);
-    errs.push(...guideRoot.err);
+    errs.push(...(guideRoot.err || []).map((nil) => {
+        nil.message = nil.msg;
+        return nil;
+    }));
     handleErrors(ctx, errs);
     let genctx = new aontu_1.Context({ root: guideRoot });
     const guideModel = guideRoot.gen(genctx);
@@ -73,7 +76,8 @@ function handleErrors(ctx, errs) {
                 err.err instanceof Error ? err.err :
                     Array.isArray(err.err) && null != err.err[0] ? err.err[0] :
                         err;
-            const msg = err instanceof Error ? err.message : '' + err;
+            const msg = 'string' === typeof err?.message ? err.message :
+                err instanceof Error ? err.message : '' + err;
             topmsg.push(msg);
         }
         const summary = new Error(`SUMMARY (${errs.length} errors): ` + topmsg.join(' | '));
@@ -139,7 +143,10 @@ async function buildBaseGuide(ctx) {
                 guideBlocks.push(`      op: ${opname}: method: *${op.method}|string` +
                     sw(0 < op.why_op.length ? '  # ' + op.why_op : ''));
                 if (op.transform?.reqform) {
-                    guideBlocks.push(`      ${opname}: transform: reqform: ${qs(op.transform.reqform)}`);
+                    guideBlocks.push(`      op: ${opname}: transform: req: *${qs(op.transform.reqform)}|top`);
+                }
+                if (op.transform?.resform) {
+                    guideBlocks.push(`      op: ${opname}: transform: res: *${qs(op.transform.resform)}|top`);
                 }
             });
             guideBlocks.push(`    }`);

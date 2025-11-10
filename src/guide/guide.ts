@@ -92,7 +92,10 @@ async function buildGuide(ctx: ApiDefContext): Promise<any> {
   }
 
   const guideRoot = Aontu(src, opts)
-  errs.push(...guideRoot.err)
+  errs.push(...(guideRoot.err || []).map((nil: any) => {
+    nil.message = nil.msg
+    return nil
+  }))
 
   handleErrors(ctx, errs)
 
@@ -116,8 +119,11 @@ function handleErrors(ctx: any, errs: any[]) {
         err.err instanceof Error ? err.err :
           Array.isArray(err.err) && null != err.err[0] ? err.err[0] :
             err
+
       const msg =
-        err instanceof Error ? err.message : '' + err
+        'string' === typeof err?.message ? err.message :
+          err instanceof Error ? err.message : '' + err
+
       topmsg.push(msg)
     }
     const summary: any = new Error(`SUMMARY (${errs.length} errors): ` + topmsg.join(' | '))
@@ -203,7 +209,11 @@ async function buildBaseGuide(ctx: ApiDefContext) {
           sw(0 < op.why_op.length ? '  # ' + op.why_op : ''))
         if (op.transform?.reqform) {
           guideBlocks.push(
-            `      ${opname}: transform: reqform: ${qs(op.transform.reqform)}`)
+            `      op: ${opname}: transform: req: *${qs(op.transform.reqform)}|top`)
+        }
+        if (op.transform?.resform) {
+          guideBlocks.push(
+            `      op: ${opname}: transform: res: *${qs(op.transform.resform)}|top`)
         }
       })
 

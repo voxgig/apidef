@@ -1,7 +1,7 @@
 
 import { each, snakify } from 'jostraca'
 
-import { size, merge, getelem, isempty, items } from '@voxgig/struct'
+import { size, merge, getelem, isempty, items, keysof } from '@voxgig/struct'
 
 import {
   ApiDefContext,
@@ -77,6 +77,7 @@ async function heuristic01(ctx: ApiDefContext): Promise<Record<string, any>> {
   measure(ctx)
 
   const entityDescs = resolveEntityDescs(ctx)
+  // console.dir(entityDescs.taf, { depth: null })
 
   warnOnError('reviewEntityDescs', ctx.warn, () => reviewEntityDescs(ctx, entityDescs))
 
@@ -270,7 +271,7 @@ function resolveEntityDescs(ctx: ApiDefContext) {
         why_op: why_op.join(';')
       }
 
-      resolveTransform(ctx, methodDef, pathDesc, entdesc, opname)
+      resolveTransform(ctx, pathStr, pathDesc, methodName, methodDef, entdesc, opname)
 
       debugpath(pathStr, methodName, 'OP-DEF', opname, pathStr, op[opname])
 
@@ -929,38 +930,38 @@ function resolveSchemaProperties(schema: any) {
 }
 
 
-
 function resolveTransform(
   ctx: ApiDefContext,
-  methodDef: any,
+  pathStr: string,
   pathDesc: EntityPathDesc,
+  methodName: string,
+  methodDef: any,
   entdesc: EntityDesc,
   opname: string
 ) {
   const op = pathDesc.op
-
-  const transform: Record<string, any> = {
-    // reqform: '`reqdata`',
-    // resform: '`body`',
-  }
+  const transform: Record<string, any> = {}
 
   const resokdef = methodDef.responses?.[200] || methodDef.responses?.[201]
-  const resbody = resokdef?.content?.['application/json']?.schema
-  if (resbody) {
-    if (resbody[entdesc.origname]) {
+  const resprops = resokdef?.content?.['application/json']?.schema?.properties
+  debugpath(pathStr, methodName, 'TRANSFORM-RES', keysof(resprops))
+
+  if (resprops) {
+    if (resprops[entdesc.origname]) {
       transform.resform = '`body.' + entdesc.origname + '`'
     }
-    else if (resbody[entdesc.name]) {
+    else if (resprops[entdesc.name]) {
       transform.resform = '`body.' + entdesc.name + '`'
     }
   }
 
-  const reqdef = methodDef.requestBody?.content?.['application/json']?.schema?.properties
-  if (reqdef) {
-    if (reqdef[entdesc.origname]) {
+  const reqprops = methodDef.requestBody?.content?.['application/json']?.schema?.properties
+  debugpath(pathStr, methodName, 'TRANSFORM-REQ', keysof(reqprops))
+  if (reqprops) {
+    if (reqprops[entdesc.origname]) {
       transform.reqform = { [entdesc.origname]: '`reqdata`' }
     }
-    else if (reqdef[entdesc.origname]) {
+    else if (reqprops[entdesc.origname]) {
       transform.reqform = { [entdesc.origname]: '`reqdata`' }
     }
 

@@ -14,6 +14,7 @@ async function heuristic01(ctx) {
     let guide = ctx.guide;
     measure(ctx);
     const entityDescs = resolveEntityDescs(ctx);
+    // console.dir(entityDescs.taf, { depth: null })
     (0, utility_1.warnOnError)('reviewEntityDescs', ctx.warn, () => reviewEntityDescs(ctx, entityDescs));
     ctx.metrics.count.entity = (0, struct_1.size)(entityDescs);
     guide = {
@@ -153,7 +154,7 @@ function resolveEntityDescs(ctx) {
                 method: methodName,
                 why_op: why_op.join(';')
             };
-            resolveTransform(ctx, methodDef, pathDesc, entdesc, opname);
+            resolveTransform(ctx, pathStr, pathDesc, methodName, methodDef, entdesc, opname);
             (0, utility_1.debugpath)(pathStr, methodName, 'OP-DEF', opname, pathStr, op[opname]);
             renameParams(ctx, pathStr, methodName, entres);
             (0, utility_1.debugpath)(pathStr, methodName, 'METHOD-DONE', (0, utility_1.formatJSONIC)(entres, { hsepd: 0, $: true, color: true }));
@@ -603,28 +604,27 @@ function resolveSchemaProperties(schema) {
     }
     return properties;
 }
-function resolveTransform(ctx, methodDef, pathDesc, entdesc, opname) {
+function resolveTransform(ctx, pathStr, pathDesc, methodName, methodDef, entdesc, opname) {
     const op = pathDesc.op;
-    const transform = {
-    // reqform: '`reqdata`',
-    // resform: '`body`',
-    };
+    const transform = {};
     const resokdef = methodDef.responses?.[200] || methodDef.responses?.[201];
-    const resbody = resokdef?.content?.['application/json']?.schema;
-    if (resbody) {
-        if (resbody[entdesc.origname]) {
+    const resprops = resokdef?.content?.['application/json']?.schema?.properties;
+    (0, utility_1.debugpath)(pathStr, methodName, 'TRANSFORM-RES', (0, struct_1.keysof)(resprops));
+    if (resprops) {
+        if (resprops[entdesc.origname]) {
             transform.resform = '`body.' + entdesc.origname + '`';
         }
-        else if (resbody[entdesc.name]) {
+        else if (resprops[entdesc.name]) {
             transform.resform = '`body.' + entdesc.name + '`';
         }
     }
-    const reqdef = methodDef.requestBody?.content?.['application/json']?.schema?.properties;
-    if (reqdef) {
-        if (reqdef[entdesc.origname]) {
+    const reqprops = methodDef.requestBody?.content?.['application/json']?.schema?.properties;
+    (0, utility_1.debugpath)(pathStr, methodName, 'TRANSFORM-REQ', (0, struct_1.keysof)(reqprops));
+    if (reqprops) {
+        if (reqprops[entdesc.origname]) {
             transform.reqform = { [entdesc.origname]: '`reqdata`' };
         }
-        else if (reqdef[entdesc.origname]) {
+        else if (reqprops[entdesc.origname]) {
             transform.reqform = { [entdesc.origname]: '`reqdata`' };
         }
     }

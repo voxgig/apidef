@@ -48,9 +48,8 @@ guide: entity: &: {
       # TODO: try ranked defaults: **foo < *foo
       method: string
       transform: {
-        # TODO: make these work
-        # inward: *null | string | object
-        # outward: *null | string | object
+        res: top
+        req: top
       }
     }
   }
