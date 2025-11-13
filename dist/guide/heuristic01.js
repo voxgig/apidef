@@ -79,7 +79,7 @@ const METHOD_CONSIDER_ORDER = {
 function resolveEntityDescs(ctx) {
     const entityDescs = {};
     const paths = ctx.def.paths;
-    const caught = (0, utility_1.capture)(ctx.def, {
+    let caught = (0, utility_1.capture)(ctx.def, {
         paths: 
         //['`$SELECT`', /\/([a-zA-Z0-1_-]+)(\/\{([a-zA-Z0-1_-]+)\})?$/,
         ['`$SELECT`', /.*/,
@@ -95,6 +95,9 @@ function resolveEntityDescs(ctx) {
             ]
         ]
     });
+    // TODO: capture should return these empty objects
+    caught = caught ?? {};
+    caught.methods = caught.methods ?? [];
     caught.methods.sort((a, b) => {
         if (a.path < b.path) {
             return -1;

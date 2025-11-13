@@ -18,6 +18,9 @@ import {
 // TODO: remove all sdk refs or rename to api
 
 
+const aontu = new Aontu()
+
+
 describe('apidef', () => {
 
   test('exist', async () => {
@@ -129,7 +132,8 @@ name: solar
 def: '${outprefix}def.yaml'
 `
 
-    const model = Aontu(modelSrc).gen()
+    // const model = Aontu(modelSrc).gen()
+    const model = aontu.generate(modelSrc)
 
     const buildspec = {
       spec: {
@@ -163,7 +167,8 @@ def: '${outprefix}def.yaml'
     const rootFile = folder + `/${outprefix}root.jsonic`
     Fs.writeFileSync(rootFile, rootSrc)
 
-    const result = Aontu(rootSrc, {
+    //const result = Aontu(rootSrc, {
+    const result = aontu.generate(rootSrc, {
       path: rootFile,
       // base: folder
     }).gen()

@@ -18,10 +18,9 @@ import Path from 'node:path'
 
 import { Jostraca, Project, File, Content, each } from 'jostraca'
 
-import { Aontu, Context } from 'aontu'
+import { Aontu } from 'aontu'
 
-
-import { items, isempty, size } from '@voxgig/struct'
+import { items, isempty } from '@voxgig/struct'
 
 
 import { heuristic01 } from './heuristic01'
@@ -47,6 +46,8 @@ import {
 
 // Log non-fatal wierdness.
 const dlog = getdlog('apidef', __filename)
+
+const aontu = new Aontu()
 
 
 async function buildGuide(ctx: ApiDefContext): Promise<any> {
@@ -86,28 +87,23 @@ async function buildGuide(ctx: ApiDefContext): Promise<any> {
   handleErrors(ctx, errs)
 
 
-  const opts = {
-    path: guidepath,
-    fs: ctx.fs,
+  if (0 === errs.length) {
+
+    const opts = {
+      path: guidepath,
+      fs: ctx.fs,
+    }
+
+
+    const guideModel = aontu.generate(src, opts)
+
+    // console.dir(guideModel, { depth: null })
+
+    handleErrors(ctx, errs)
+
+    return guideModel
+
   }
-
-  const guideRoot = Aontu(src, opts)
-  errs.push(...(guideRoot.err || []).map((nil: any) => {
-    nil.message = nil.msg
-    return nil
-  }))
-
-  handleErrors(ctx, errs)
-
-
-  let genctx = new Context({ root: guideRoot })
-  const guideModel = guideRoot.gen(genctx)
-
-  errs.push(...genctx.err)
-
-  handleErrors(ctx, errs)
-
-  return guideModel
 }
 
 
@@ -143,6 +139,9 @@ async function buildBaseGuide(ctx: ApiDefContext) {
   else {
     throw new Error('Unknown guide strategy: ' + ctx.opts.strategy)
   }
+
+  // console.dir(baseguide, { depth: null })
+
 
   const guideBlocks = [
     '# Guide',
@@ -198,14 +197,14 @@ async function buildBaseGuide(ctx: ApiDefContext) {
 
       if (!isempty(path.rename?.param)) {
         items(path.rename.param).map(([psrc, ptgt]: any[]) => {
-          guideBlocks.push(`      rename: param: ${qs(psrc)}: *${qs(ptgt)}|string` +
+          guideBlocks.push(`      rename: param: ${qs(psrc)}: *${qs(ptgt)}` +
             sw(0 < path.rename_why.param_why?.[psrc]?.length ?
               '  # ' + path.rename_why.param_why[psrc].join(';') : ''))
         })
       }
 
       items(path.op).map(([opname, op]: any[]) => {
-        guideBlocks.push(`      op: ${opname}: method: *${op.method}|string` +
+        guideBlocks.push(`      op: ${opname}: method: *${op.method}` +
           sw(0 < op.why_op.length ? '  # ' + op.why_op : ''))
         if (op.transform?.reqform) {
           guideBlocks.push(

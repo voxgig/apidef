@@ -1,28 +1,33 @@
 # Guide
 
 guide: {
+  metrics: count: entity: 2
+  metrics: count: path: 4
+  metrics: count: method: 10
 
-  entity: moon: { # name:cmp
-    path: '/api/planet/{planet_id}/moon': op: { # ent:cmp:moon
-      'create': method: post # not-load
-      'list': method: get # array
+  entity: moon: {
+    path: "/api/planet/{planet_id}/moon": {
+      op: create: method: *POST
+      op: list: method: *GET
     }
-    path: '/api/planet/{planet_id}/moon/{moon_id}': op: { # ent:cmp:moon
-      'load': method: get # not-list
-      'remove': method: delete # not-load
-      'update': method: put # not-load
+    path: "/api/planet/{planet_id}/moon/{moon_id}": {
+      rename: param: "moon_id": *"id"
+      op: load: method: *GET
+      op: remove: method: *DELETE
+      op: update: method: *PUT
     }
   }
 
-  entity: planet: { # name:cmp
-    path: '/api/planet': op: { # ent:cmp:planet
-      'create': method: post # not-load
-      'list': method: get # array
+  entity: planet: {
+    path: "/api/planet": {
+      op: create: method: *POST
+      op: list: method: *GET
     }
-    path: '/api/planet/{planet_id}': op: { # ent:cmp:planet
-      'load': method: get # not-list
-      'remove': method: delete # not-load
-      'update': method: put # not-load
+    path: "/api/planet/{planet_id}": {
+      rename: param: "planet_id": *"id"
+      op: load: method: *GET
+      op: remove: method: *DELETE
+      op: update: method: *PUT
     }
   }
 

@@ -5,44 +5,41 @@ main: sdk: flow: BasicMoonFlow:
   name: "BasicMoonFlow",
   active: true,
   param: {
-    SOLAR_TEST_MOON_ENTID: {
+    SOLAR_TEST_MI_SS_IN_GN_AM_E_ENTID: {
       moon01: "MOON01",
       moon02: "MOON02",
       moon03: "MOON03"
     }
 
     SOLAR_TEST_LIVE: "FALSE",
-    SOLAR_TEST_EXPLAIN: "FALSE",
-    SOLAR_TEST_PLANET_ENTID: {
-      planet01: "PLANET01"
-    }
+    SOLAR_TEST_EXPLAIN: "FALSE"
   }
 
   test: {
     entity: {
       moon: {
         MOON01: {
+          diameter: "s0",
           id: "MOON01",
-          name: "s1",
-          planet_id: "PLANET01",
-          kind: "s3",
-          diameter: 4
+          kind: "s2",
+          name: "s3",
+          planet_id: "s4"
         }
 
         MOON02: {
+          diameter: "s32",
           id: "MOON02",
-          name: "s33",
-          planet_id: "s34",
-          kind: "s35",
-          diameter: 54
+          kind: "s34",
+          name: "s35",
+          planet_id: "s36"
         }
 
         MOON03: {
+          diameter: "s64",
           id: "MOON03",
-          name: "s65",
-          planet_id: "s66",
-          kind: "s67",
-          diameter: 104
+          kind: "s66",
+          name: "s67",
+          planet_id: "s68"
         }
       }
     }
@@ -55,14 +52,12 @@ main: sdk: flow: BasicMoonFlow:
       entity: "moon",
       action: "load",
       match: {
-        id: "`dm$=p.SOLAR_TEST_MOON_ENTID.moon01`",
-        planet_id: "`dm$=p.SOLAR_TEST_PLANET_ENTID.planet01`"
+        id: "`dm$=p.SOLAR_TEST_MI_SS_IN_GN_AM_E_ENTID.moon01`"
       }
 
       valid: {
         "`$OPEN`": true,
-        id: "`dm$=s.load_moon0.match.id`",
-        planet_id: "`dm$=p.SOLAR_TEST_PLANET_ENTID.planet01`"
+        id: "`dm$=s.load_moon0.match.id`"
       }
     }
 
@@ -70,15 +65,11 @@ main: sdk: flow: BasicMoonFlow:
       name: "update_moon1",
       ref: "load_moon0",
       action: "update",
-      reqdata: {
-        name: "s1-`$WHEN`"
-      }
+      reqdata: {}
 
       valid: {
         "`$OPEN`": true,
-        id: "`dm$=s.load_moon0.match.id`",
-        planet_id: "`dm$=p.SOLAR_TEST_PLANET_ENTID.planet01`",
-        name: "`dm$=s.update_moon1.reqdata.name`"
+        id: "`dm$=s.load_moon0.match.id`"
       }
     }
 
@@ -88,15 +79,12 @@ main: sdk: flow: BasicMoonFlow:
       entity: "moon",
       action: "load",
       match: {
-        id: "`dm$=p.SOLAR_TEST_MOON_ENTID.moon01`",
-        planet_id: "`dm$=p.SOLAR_TEST_PLANET_ENTID.planet01`"
+        id: "`dm$=p.SOLAR_TEST_MI_SS_IN_GN_AM_E_ENTID.moon01`"
       }
 
       valid: {
         "`$OPEN`": true,
-        id: "`dm$=s.load_moon0.match.id`",
-        planet_id: "`dm$=p.SOLAR_TEST_PLANET_ENTID.planet01`",
-        name: "`dm$=s.update_moon1.reqdata.name`"
+        id: "`dm$=s.load_moon0.match.id`"
       }
     }
   ]

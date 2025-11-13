@@ -170,7 +170,7 @@ function resolveEntityDescs(ctx: ApiDefContext) {
   const paths = ctx.def.paths
 
 
-  const caught = capture(ctx.def, {
+  let caught = capture(ctx.def, {
     paths:
       //['`$SELECT`', /\/([a-zA-Z0-1_-]+)(\/\{([a-zA-Z0-1_-]+)\})?$/,
       ['`$SELECT`', /.*/,
@@ -186,6 +186,10 @@ function resolveEntityDescs(ctx: ApiDefContext) {
         ]
       ]
   })
+
+  // TODO: capture should return these empty objects
+  caught = caught ?? {}
+  caught.methods = caught.methods ?? []
 
   caught.methods.sort((a: any, b: any) => {
     if (a.path < b.path) {

@@ -26,6 +26,7 @@ const heuristic01_1 = require("./heuristic01");
 const utility_1 = require("../utility");
 // Log non-fatal wierdness.
 const dlog = (0, utility_1.getdlog)('apidef', __filename);
+const aontu = new aontu_1.Aontu();
 async function buildGuide(ctx) {
     const log = ctx.log;
     const errs = [];
@@ -52,21 +53,16 @@ async function buildGuide(ctx) {
         errs.push(err);
     }
     handleErrors(ctx, errs);
-    const opts = {
-        path: guidepath,
-        fs: ctx.fs,
-    };
-    const guideRoot = (0, aontu_1.Aontu)(src, opts);
-    errs.push(...(guideRoot.err || []).map((nil) => {
-        nil.message = nil.msg;
-        return nil;
-    }));
-    handleErrors(ctx, errs);
-    let genctx = new aontu_1.Context({ root: guideRoot });
-    const guideModel = guideRoot.gen(genctx);
-    errs.push(...genctx.err);
-    handleErrors(ctx, errs);
-    return guideModel;
+    if (0 === errs.length) {
+        const opts = {
+            path: guidepath,
+            fs: ctx.fs,
+        };
+        const guideModel = aontu.generate(src, opts);
+        // console.dir(guideModel, { depth: null })
+        handleErrors(ctx, errs);
+        return guideModel;
+    }
 }
 function handleErrors(ctx, errs) {
     if (0 < errs.length) {
@@ -94,6 +90,7 @@ async function buildBaseGuide(ctx) {
     else {
         throw new Error('Unknown guide strategy: ' + ctx.opts.strategy);
     }
+    // console.dir(baseguide, { depth: null })
     const guideBlocks = [
         '# Guide',
         '',
@@ -134,13 +131,13 @@ async function buildBaseGuide(ctx) {
             }
             if (!(0, struct_1.isempty)(path.rename?.param)) {
                 (0, struct_1.items)(path.rename.param).map(([psrc, ptgt]) => {
-                    guideBlocks.push(`      rename: param: ${qs(psrc)}: *${qs(ptgt)}|string` +
+                    guideBlocks.push(`      rename: param: ${qs(psrc)}: *${qs(ptgt)}` +
                         sw(0 < path.rename_why.param_why?.[psrc]?.length ?
                             '  # ' + path.rename_why.param_why[psrc].join(';') : ''));
                 });
             }
             (0, struct_1.items)(path.op).map(([opname, op]) => {
-                guideBlocks.push(`      op: ${opname}: method: *${op.method}|string` +
+                guideBlocks.push(`      op: ${opname}: method: *${op.method}` +
                     sw(0 < op.why_op.length ? '  # ' + op.why_op : ''));
                 if (op.transform?.reqform) {
                     guideBlocks.push(`      op: ${opname}: transform: req: *${qs(op.transform.reqform)}|top`);

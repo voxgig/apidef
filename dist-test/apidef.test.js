@@ -41,6 +41,7 @@ const aontu_1 = require("aontu");
 const Diff = __importStar(require("diff"));
 const __1 = require("../");
 // TODO: remove all sdk refs or rename to api
+const aontu = new aontu_1.Aontu();
 (0, node_test_1.describe)('apidef', () => {
     (0, node_test_1.test)('exist', async () => {
         (0, code_1.expect)(__1.ApiDef).exist();
@@ -134,7 +135,8 @@ name: solar
 
 def: '${outprefix}def.yaml'
 `;
-        const model = (0, aontu_1.Aontu)(modelSrc).gen();
+        // const model = Aontu(modelSrc).gen()
+        const model = aontu.generate(modelSrc);
         const buildspec = {
             spec: {
                 base: __dirname + '/../test/api'
@@ -159,7 +161,8 @@ def: '${outprefix}def.yaml'
 `;
         const rootFile = folder + `/${outprefix}root.jsonic`;
         Fs.writeFileSync(rootFile, rootSrc);
-        const result = (0, aontu_1.Aontu)(rootSrc, {
+        //const result = Aontu(rootSrc, {
+        const result = aontu.generate(rootSrc, {
             path: rootFile,
             // base: folder
         }).gen();
