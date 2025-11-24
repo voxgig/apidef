@@ -139,6 +139,7 @@ type PathDef = {
   trace?: MethodDef
   servers?: ServerDef[]
   parameters?: ParameterDef[]
+  tags?: any
 }
 
 

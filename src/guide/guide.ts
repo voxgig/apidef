@@ -1,18 +1,4 @@
 
-// TODO:
-// Support these:
-/*
-/foo{bar}
-/{bar}zed
-/foo{bar}zed/
-/{a}{b}
-/reports/{id}.pdf
-/.{lang}/help
-/range/{start}-{end}
-/{id}
-/items/{id}/
-/files;rev={rev}
- */
 
 import Path from 'node:path'
 
@@ -27,13 +13,21 @@ import { heuristic01 } from './heuristic01'
 
 
 import {
-  ApiDefContext
+  ApiDefContext,
+
+  Guide,
+  GuideMetrics,
+  GuideEntity,
+  GuidePath,
+  GuidePathAction,
+  GuideRenameParam,
+  GuidePathOp,
 } from '../types'
 
 
 import {
-  GuideEntity,
-  GuidePath,
+  // GuideEntity,
+  // GuidePath,
 } from '../transform/top'
 
 
@@ -48,6 +42,12 @@ import {
 const dlog = getdlog('apidef', __filename)
 
 const aontu = new Aontu()
+
+
+
+
+
+
 
 
 async function buildGuide(ctx: ApiDefContext): Promise<any> {
@@ -92,10 +92,11 @@ async function buildGuide(ctx: ApiDefContext): Promise<any> {
     const opts = {
       path: guidepath,
       fs: ctx.fs,
+      errs,
     }
 
-
     const guideModel = aontu.generate(src, opts)
+    // console.log('GUIDE-MODEL', guideModel, errs)
 
     // console.dir(guideModel, { depth: null })
 
@@ -130,8 +131,11 @@ function handleErrors(ctx: any, errs: any[]) {
 }
 
 
+
+
+
 async function buildBaseGuide(ctx: ApiDefContext) {
-  let baseguide: Record<string, any> = {}
+  let baseguide: Guide
 
   if ('heuristic01' === ctx.opts.strategy) {
     baseguide = await heuristic01(ctx)
@@ -168,51 +172,60 @@ async function buildBaseGuide(ctx: ApiDefContext) {
   validateBaseBuide(ctx, baseguide)
 
   const sw = (s: string) => ctx.opts.why?.show ? s : ''
-  const qs = (s: string) => JSON.stringify(s)
+  const qs = (v: any) => JSON.stringify(v)
+  const qt = (v: any) => '(' + qs(v) + ')'
 
   guideBlocks.push(`  metrics: count: entity: ${metrics.count.entity}
   metrics: count: path: ${metrics.count.path}
   metrics: count: method: ${metrics.count.method}`)
 
-  items(baseguide.entity).map(([entname, entity]: any[]) => {
-    guideBlocks.push(`
-  entity: ${entname}: {` +
-      sw(0 < entity.why_name?.length ? '  # name:' + entity.why_name.join(';') : ''))
+  // NOTE: items(...) sorts the iteration elements, so the generated model code
+  // is deterministic.
 
-    items(entity.path).map(([pathstr, path]: any[]) => {
+  items(baseguide.entity).map(([entname, entity]: [string, GuideEntity]) => {
+
+    guideBlocks.push(`
+  entity: ${entname}: {`
+      // sw(0 < entity.why_name.length ? '  # name:' + entity.why_name.join(';') : '')
+    )
+
+    // NOTE: items(...) sorts the paths
+    items(entity.path).map(([pathstr, path]: [string, GuidePath]) => {
       debugpath(pathstr, null, 'BASE-GUIDE', entname, pathstr,
         formatJSONIC(path, { hsepd: 0, $: true, color: true }))
 
       guideBlocks.push(`    path: ${qs(pathstr)}: {` +
-        sw(0 < path.why_path?.length ?
-          '  # ent:' + entname + ':' + path.why_path.join(';') : ''))
+        sw(0 < path.why_path.length ?
+          '  # ent:' + entname + ';' + path.why_path.join(';') : ''))
 
       if (!isempty(path.action)) {
-        items(path.action).map(([actname, actdesc]: any[]) => {
-          guideBlocks.push(`      action: ${qs(actname)}: kind: *${qs(actdesc.kind)}|top` +
-            sw(0 < path.action_why[actname]?.length ?
-              '  # ' + path.action_why[actname].join(';') : ''))
+        items(path.action).map(([actname, actdesc]: [string, GuidePathAction]) => {
+          guideBlocks.push(`      action: ${qs(actname)}: {}` +
+            sw(0 < actdesc.why_action.length ?
+              '  # ' + actdesc.why_action.join(';') : ''))
         })
       }
 
       if (!isempty(path.rename?.param)) {
-        items(path.rename.param).map(([psrc, ptgt]: any[]) => {
-          guideBlocks.push(`      rename: param: ${qs(psrc)}: *${qs(ptgt)}` +
-            sw(0 < path.rename_why.param_why?.[psrc]?.length ?
-              '  # ' + path.rename_why.param_why[psrc].join(';') : ''))
+        items(path.rename.param).map(([psrc, rp]: [string, GuideRenameParam]) => {
+          guideBlocks.push(`      rename: param: ${qs(psrc)}: *${qs(rp.target)}` +
+            sw(0 < rp.why_rename.length ?
+              '  # ' + rp.why_rename.join(';') : ''))
         })
       }
 
-      items(path.op).map(([opname, op]: any[]) => {
+      items(path.op).map(([opname, op]: [string, GuidePathOp]) => {
         guideBlocks.push(`      op: ${opname}: method: *${op.method}` +
           sw(0 < op.why_op.length ? '  # ' + op.why_op : ''))
-        if (op.transform?.reqform) {
+        if (null != op.transform.req) {
           guideBlocks.push(
-            `      op: ${opname}: transform: req: *${qs(op.transform.reqform)}|top`)
+            // `      op: ${opname}: transform: res: *${qt(op.transform.res)}|top`)
+            `      op: ${opname}: transform: res: *${qt(op.transform.res)}|top`)
         }
-        if (op.transform?.resform) {
+        if (null != op.transform.res) {
           guideBlocks.push(
-            `      op: ${opname}: transform: res: *${qs(op.transform.resform)}|top`)
+            // `      op: ${opname}: transform: res: *${qt(op.transform.res)}|top`)
+            `      op: ${opname}: transform: res: *${qt(op.transform.res)}|top`)
         }
       })
 
@@ -249,6 +262,7 @@ async function buildBaseGuide(ctx: ApiDefContext) {
 
   return jres
 }
+
 
 
 

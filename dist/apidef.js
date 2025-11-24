@@ -125,10 +125,12 @@ function ApiDef(opts) {
                         method: 0,
                         origcmprefs: {},
                         cmp: 0,
+                        tag: 0,
                         entity: 0,
                     },
                     found: {
-                        cmp: {}
+                        cmp: {},
+                        tag: {}
                     }
                 },
                 work: {}
@@ -151,6 +153,9 @@ function ApiDef(opts) {
                 return { ok: false, steps, start, end: Date.now(), ctrl };
             }
             const guideModel = await (0, guide_1.buildGuide)(ctx);
+            if (null == guideModel) {
+                throw new Error('Unable to build guide.');
+            }
             ctx.guide = guideModel.guide;
             steps.push('guide');
             // Step: transformers (transform spec and guide into core structures).

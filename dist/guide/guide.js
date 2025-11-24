@@ -1,18 +1,4 @@
 "use strict";
-// TODO:
-// Support these:
-/*
-/foo{bar}
-/{bar}zed
-/foo{bar}zed/
-/{a}{b}
-/reports/{id}.pdf
-/.{lang}/help
-/range/{start}-{end}
-/{id}
-/items/{id}/
-/files;rev={rev}
- */
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -57,8 +43,10 @@ async function buildGuide(ctx) {
         const opts = {
             path: guidepath,
             fs: ctx.fs,
+            errs,
         };
         const guideModel = aontu.generate(src, opts);
+        // console.log('GUIDE-MODEL', guideModel, errs)
         // console.dir(guideModel, { depth: null })
         handleErrors(ctx, errs);
         return guideModel;
@@ -83,7 +71,7 @@ function handleErrors(ctx, errs) {
     }
 }
 async function buildBaseGuide(ctx) {
-    let baseguide = {};
+    let baseguide;
     if ('heuristic01' === ctx.opts.strategy) {
         baseguide = await (0, heuristic01_1.heuristic01)(ctx);
     }
@@ -109,41 +97,50 @@ async function buildBaseGuide(ctx) {
     });
     validateBaseBuide(ctx, baseguide);
     const sw = (s) => ctx.opts.why?.show ? s : '';
-    const qs = (s) => JSON.stringify(s);
+    const qs = (v) => JSON.stringify(v);
+    const qt = (v) => '(' + qs(v) + ')';
     guideBlocks.push(`  metrics: count: entity: ${metrics.count.entity}
   metrics: count: path: ${metrics.count.path}
   metrics: count: method: ${metrics.count.method}`);
+    // NOTE: items(...) sorts the iteration elements, so the generated model code
+    // is deterministic.
     (0, struct_1.items)(baseguide.entity).map(([entname, entity]) => {
         guideBlocks.push(`
-  entity: ${entname}: {` +
-            sw(0 < entity.why_name?.length ? '  # name:' + entity.why_name.join(';') : ''));
+  entity: ${entname}: {`
+        // sw(0 < entity.why_name.length ? '  # name:' + entity.why_name.join(';') : '')
+        );
+        // NOTE: items(...) sorts the paths
         (0, struct_1.items)(entity.path).map(([pathstr, path]) => {
             (0, utility_1.debugpath)(pathstr, null, 'BASE-GUIDE', entname, pathstr, (0, utility_1.formatJSONIC)(path, { hsepd: 0, $: true, color: true }));
             guideBlocks.push(`    path: ${qs(pathstr)}: {` +
-                sw(0 < path.why_path?.length ?
-                    '  # ent:' + entname + ':' + path.why_path.join(';') : ''));
+                sw(0 < path.why_path.length ?
+                    '  # ent:' + entname + ';' + path.why_path.join(';') : ''));
             if (!(0, struct_1.isempty)(path.action)) {
                 (0, struct_1.items)(path.action).map(([actname, actdesc]) => {
-                    guideBlocks.push(`      action: ${qs(actname)}: kind: *${qs(actdesc.kind)}|top` +
-                        sw(0 < path.action_why[actname]?.length ?
-                            '  # ' + path.action_why[actname].join(';') : ''));
+                    guideBlocks.push(`      action: ${qs(actname)}: {}` +
+                        sw(0 < actdesc.why_action.length ?
+                            '  # ' + actdesc.why_action.join(';') : ''));
                 });
             }
             if (!(0, struct_1.isempty)(path.rename?.param)) {
-                (0, struct_1.items)(path.rename.param).map(([psrc, ptgt]) => {
-                    guideBlocks.push(`      rename: param: ${qs(psrc)}: *${qs(ptgt)}` +
-                        sw(0 < path.rename_why.param_why?.[psrc]?.length ?
-                            '  # ' + path.rename_why.param_why[psrc].join(';') : ''));
+                (0, struct_1.items)(path.rename.param).map(([psrc, rp]) => {
+                    guideBlocks.push(`      rename: param: ${qs(psrc)}: *${qs(rp.target)}` +
+                        sw(0 < rp.why_rename.length ?
+                            '  # ' + rp.why_rename.join(';') : ''));
                 });
             }
             (0, struct_1.items)(path.op).map(([opname, op]) => {
                 guideBlocks.push(`      op: ${opname}: method: *${op.method}` +
                     sw(0 < op.why_op.length ? '  # ' + op.why_op : ''));
-                if (op.transform?.reqform) {
-                    guideBlocks.push(`      op: ${opname}: transform: req: *${qs(op.transform.reqform)}|top`);
+                if (null != op.transform.req) {
+                    guideBlocks.push(
+                    // `      op: ${opname}: transform: res: *${qt(op.transform.res)}|top`)
+                    `      op: ${opname}: transform: res: *${qt(op.transform.res)}|top`);
                 }
-                if (op.transform?.resform) {
-                    guideBlocks.push(`      op: ${opname}: transform: res: *${qs(op.transform.resform)}|top`);
+                if (null != op.transform.res) {
+                    guideBlocks.push(
+                    // `      op: ${opname}: transform: res: *${qt(op.transform.res)}|top`)
+                    `      op: ${opname}: transform: res: *${qt(op.transform.res)}|top`);
                 }
             });
             guideBlocks.push(`    }`);

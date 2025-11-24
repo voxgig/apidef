@@ -152,10 +152,12 @@ function ApiDef(opts: ApiDefOptions) {
             method: 0,
             origcmprefs: {},
             cmp: 0,
+            tag: 0,
             entity: 0,
           },
           found: {
-            cmp: {}
+            cmp: {},
+            tag: {}
           }
         },
         work: {}
@@ -187,6 +189,10 @@ function ApiDef(opts: ApiDefOptions) {
       }
 
       const guideModel = await buildGuide(ctx)
+      if (null == guideModel) {
+        throw new Error('Unable to build guide.')
+      }
+
       ctx.guide = guideModel.guide
 
       steps.push('guide')

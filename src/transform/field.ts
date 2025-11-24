@@ -121,17 +121,24 @@ function findFieldDefs(
     let fieldSets
 
     if (responses) {
-      fieldSets = getx(responses, '200 content "application/json" schema')
+      fieldSets = getx(responses, '200 content "application/json" schema') ??
+        getx(responses, '200 schema')
       if ('get' === method && 'list' == mop.name) {
-        fieldSets = getx(responses, '201 content "application/json" schema items')
+        fieldSets = getx(responses, '201 content "application/json" schema items') ??
+          getx(responses, '201 schema items')
       }
       else if ('put' === method && null == fieldSets) {
-        fieldSets = getx(responses, '201 content "application/json" schema')
+        fieldSets = getx(responses, '201 content "application/json" schema') ??
+          getx(responses, '201 schema')
       }
     }
 
     if (requestBody) {
-      fieldSets = [fieldSets, getx(requestBody, 'content "application/json" schema')]
+      fieldSets = [
+        fieldSets,
+        getx(requestBody, 'content "application/json" schema') ??
+        getx(requestBody, 'schema')
+      ]
     }
 
 

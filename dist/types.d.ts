@@ -1014,10 +1014,12 @@ type Metrics = {
         method: number;
         origcmprefs: Record<string, number>;
         cmp: number;
+        tag: number;
         entity: number;
     };
     found: {
         cmp: Record<string, any>;
+        tag: Record<string, any>;
     };
 };
 type ApiDefContext = {
@@ -1044,7 +1046,7 @@ type Warner = {
     point: string;
 } & ((details: Record<string, any>) => void);
 type CmpDesc = {
-    namedesc?: CmpNameDesc;
+    namedesc?: any;
     path_rate: number;
     method_rate: number;
 };
@@ -1054,9 +1056,53 @@ type MethodDesc = {
     def: Record<string, any>;
     path: string;
 };
-type CmpNameDesc = {
-    cmp: string;
-    origcmp: string;
+type Guide = {
+    metrics: GuideMetrics;
+    entity: Record<string, GuideEntity>;
+    control: GuideControl;
+};
+type GuideControl = {};
+type GuideMetrics = {
+    count: {
+        path: number;
+        method: number;
+        entity: number;
+        tag: number;
+        cmp: number;
+        origcmprefs: Record<string, number>;
+    };
+    found: {
+        tag: Record<string, string>;
+        cmp: Record<string, string>;
+    };
+};
+type GuideEntity = {
+    name: string;
+    path: Record<string, GuidePath>;
+};
+type GuidePath = {
+    why_path: string[];
+    action: Record<string, GuidePathAction>;
+    rename: {
+        param: Record<string, GuideRenameParam>;
+    };
+    op: Record<string, GuidePathOp>;
+};
+type GuidePathAction = {
+    kind: string;
+    why_action: string[];
+};
+type GuideRenameParam = {
+    target: string;
+    why_rename: string[];
+};
+type GuidePathOp = {
+    method: string;
+    why_op: string[];
+    transform: {
+        req: any;
+        res: any;
+    };
 };
 export { OpenControlShape, OpenModelShape, OpenBuildShape, };
-export type { CmpDesc, CmpNameDesc, MethodName, MethodDesc, TypeName, Log, FsUtil, ApiDefOptions, ApiDefResult, Control, Model, Build, ApiModel, ApiDefContext, Warner, Metrics, };
+export type { Guide, GuideMetrics, GuideEntity, GuidePath, GuidePathAction, GuideRenameParam, GuidePathOp, CmpDesc, MethodName, MethodDesc, TypeName, Log, FsUtil, ApiDefOptions, ApiDefResult, Control, Model, Build, ApiModel, ApiDefContext, Warner, Metrics, };

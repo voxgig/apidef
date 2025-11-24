@@ -62,16 +62,23 @@ function findFieldDefs(ment, mop, malt, def) {
         const requestBody = opdef.requestBody;
         let fieldSets;
         if (responses) {
-            fieldSets = (0, jostraca_1.getx)(responses, '200 content "application/json" schema');
+            fieldSets = (0, jostraca_1.getx)(responses, '200 content "application/json" schema') ??
+                (0, jostraca_1.getx)(responses, '200 schema');
             if ('get' === method && 'list' == mop.name) {
-                fieldSets = (0, jostraca_1.getx)(responses, '201 content "application/json" schema items');
+                fieldSets = (0, jostraca_1.getx)(responses, '201 content "application/json" schema items') ??
+                    (0, jostraca_1.getx)(responses, '201 schema items');
             }
             else if ('put' === method && null == fieldSets) {
-                fieldSets = (0, jostraca_1.getx)(responses, '201 content "application/json" schema');
+                fieldSets = (0, jostraca_1.getx)(responses, '201 content "application/json" schema') ??
+                    (0, jostraca_1.getx)(responses, '201 schema');
             }
         }
         if (requestBody) {
-            fieldSets = [fieldSets, (0, jostraca_1.getx)(requestBody, 'content "application/json" schema')];
+            fieldSets = [
+                fieldSets,
+                (0, jostraca_1.getx)(requestBody, 'content "application/json" schema') ??
+                    (0, jostraca_1.getx)(requestBody, 'schema')
+            ];
         }
         if (fieldSets) {
             if (Array.isArray(fieldSets.allOf)) {

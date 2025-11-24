@@ -726,7 +726,7 @@ function warnOnError(where: string, warn: Warner, fn: Function, result?: any) {
 
 
 function debugpath(pathStr: string, methodName: string | null | undefined, ...args: any[]): void {
-  const apipath = process.env.npm_config_apipath
+  const apipath = process.env.APIDEF_DEBUG_PATH
   if (!apipath) return
 
   const [targetPath, targetMethod] = apipath.split(':')

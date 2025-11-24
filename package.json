@@ -7,8 +7,10 @@
   "description": "Voxgig SDK Generator.",
   "homepage": "https://github.com/voxgig/voxgig-apidef",
   "keywords": [
-    "voxgig-apidef",
-    "voxgig-apidef"
+    "voxgig",
+    "apidef",
+    "api",
+    "sdk"
   ],
   "author": "Richard Rodger (http://richardrodger.com)",
   "repository": {
@@ -45,7 +47,7 @@
     "typescript": "^5.9.3"
   },
   "peerDependencies": {
-    "aontu": ">=0.31.0",
+    "aontu": ">=0.32.1",
     "memfs": ">=4.51.0"
   },
   "dependencies": {
@@ -57,6 +59,7 @@
     "diff": "^8.0.2",
     "gubu": "^9.0.0",
     "jostraca": "^0.24.1",
+    "ordu": "^4.1.1",
     "pino": "^10.1.0",
     "pino-pretty": "^13.1.2",
     "sonic-boom": "^4.2.0"

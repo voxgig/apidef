@@ -590,7 +590,7 @@ function warnOnError(where, warn, fn, result) {
     }
 }
 function debugpath(pathStr, methodName, ...args) {
-    const apipath = process.env.npm_config_apipath;
+    const apipath = process.env.APIDEF_DEBUG_PATH;
     if (!apipath)
         return;
     const [targetPath, targetMethod] = apipath.split(':');

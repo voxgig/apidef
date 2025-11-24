@@ -1,56 +1,55 @@
 
-# guide: control: {
+guide: control: {
 
-#   transform: openapi: {
-#     order: *`
-#       top,
-#       entity,
-#       operation,
-#       args,
-#       field,
-#       clean,
-#       ` | string,
+  transform: openapi: {
+    order: *`
+      top,
+      entity,
+      operation,
+      args,
+      field,
+      clean,
+      ` | string,
 
-#     element: {
-#       top: {}
-#       entity: {}
-#       operation: {}
-#       field: {}
-#     }
-#   }
+    element: {
+      top: {}
+      entity: {}
+      operation: {}
+      field: {}
+    }
+  }
 
-#   builder: standard: {
-#     order: *`
-#       entity,
-#       flow,
-#       ` | string,
+  builder: standard: {
+    order: *`
+      entity,
+      flow,
+      ` | string,
 
-#     element: {
-#       entity: {}
-#       flow: {}
-#     }
-#   }
+    element: {
+      entity: {}
+      flow: {}
+    }
+  }
 
-# }
+}
 
 
 guide: entity: &: {
-#  active: **true
   active: *true
   name: key()
 
-#   path: &: {
-#     active: **true
+  path: &: {
+    active: *true
     
-#     op: &: {
-#       active: **true
-#       method: string
-#       transform: {
-#         res?: top
-#         req?: top
-#       }
-#     }
-#   }
+     op: &: {
+       active: *true
+       method: string
+       transform: {
+         res?: top
+         req?: top
+       }
+     }
+  }
 }
 
 
