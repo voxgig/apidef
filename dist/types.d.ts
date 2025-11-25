@@ -1078,6 +1078,7 @@ type GuideMetrics = {
 };
 type GuideEntity = {
     name: string;
+    orig: string;
     path: Record<string, GuidePath>;
 };
 type GuidePath = {

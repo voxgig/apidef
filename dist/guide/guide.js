@@ -21,7 +21,6 @@ async function buildGuide(ctx) {
         const basejres = await buildBaseGuide(ctx);
     }
     catch (err) {
-        console.log(err);
         errs.push(err);
     }
     handleErrors(ctx, errs);
@@ -55,6 +54,7 @@ async function buildGuide(ctx) {
 function handleErrors(ctx, errs) {
     if (0 < errs.length) {
         const topmsg = [];
+        const stacks = [];
         for (let err of errs) {
             err = err instanceof Error ? err :
                 err.err instanceof Error ? err.err :
@@ -63,8 +63,10 @@ function handleErrors(ctx, errs) {
             const msg = 'string' === typeof err?.message ? err.message :
                 err instanceof Error ? err.message : '' + err;
             topmsg.push(msg);
+            stacks.push('' + err.stack);
         }
         const summary = new Error(`SUMMARY (${errs.length} errors): ` + topmsg.join(' | '));
+        summary.stack = stacks.join('\n');
         ctx.log.error(summary);
         summary.errs = () => errs;
         throw summary;
@@ -114,7 +116,9 @@ async function buildBaseGuide(ctx) {
             (0, utility_1.debugpath)(pathstr, null, 'BASE-GUIDE', entname, pathstr, (0, utility_1.formatJSONIC)(path, { hsepd: 0, $: true, color: true }));
             guideBlocks.push(`    path: ${qs(pathstr)}: {` +
                 sw(0 < path.why_path.length ?
-                    '  # ent:' + entname + ';' + path.why_path.join(';') : ''));
+                    '  # ent=' + entname + ';' +
+                        (entity.orig !== entname && null != entity.orig ? 'orig=' + entity.orig + ';' : '') +
+                        path.why_path.join(';') : ''));
             if (!(0, struct_1.isempty)(path.action)) {
                 (0, struct_1.items)(path.action).map(([actname, actdesc]) => {
                     guideBlocks.push(`      action: ${qs(actname)}: {}` +

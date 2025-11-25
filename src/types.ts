@@ -204,7 +204,7 @@ type GuideMetrics = {
 
 type GuideEntity = {
   name: string
-  // why_name: string[]
+  orig: string
   path: Record<string, GuidePath>
 }
 

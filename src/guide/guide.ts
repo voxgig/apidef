@@ -45,11 +45,6 @@ const aontu = new Aontu()
 
 
 
-
-
-
-
-
 async function buildGuide(ctx: ApiDefContext): Promise<any> {
   const log = ctx.log
   const errs: any[] = []
@@ -60,7 +55,6 @@ async function buildGuide(ctx: ApiDefContext): Promise<any> {
     const basejres = await buildBaseGuide(ctx)
   }
   catch (err: any) {
-    console.log(err)
     errs.push(err)
   }
 
@@ -111,6 +105,7 @@ async function buildGuide(ctx: ApiDefContext): Promise<any> {
 function handleErrors(ctx: any, errs: any[]) {
   if (0 < errs.length) {
     const topmsg: string[] = []
+    const stacks: string[] = []
     for (let err of errs) {
       err = err instanceof Error ? err :
         err.err instanceof Error ? err.err :
@@ -122,8 +117,11 @@ function handleErrors(ctx: any, errs: any[]) {
           err instanceof Error ? err.message : '' + err
 
       topmsg.push(msg)
+
+      stacks.push('' + err.stack)
     }
     const summary: any = new Error(`SUMMARY (${errs.length} errors): ` + topmsg.join(' | '))
+    summary.stack = stacks.join('\n')
     ctx.log.error(summary)
     summary.errs = () => errs
     throw summary
@@ -196,7 +194,9 @@ async function buildBaseGuide(ctx: ApiDefContext) {
 
       guideBlocks.push(`    path: ${qs(pathstr)}: {` +
         sw(0 < path.why_path.length ?
-          '  # ent:' + entname + ';' + path.why_path.join(';') : ''))
+          '  # ent=' + entname + ';' +
+          (entity.orig !== entname && null != entity.orig ? 'orig=' + entity.orig + ';' : '') +
+          path.why_path.join(';') : ''))
 
       if (!isempty(path.action)) {
         items(path.action).map(([actname, actdesc]: [string, GuidePathAction]) => {

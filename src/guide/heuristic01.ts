@@ -1,6 +1,7 @@
 
 
 import { Ordu } from 'ordu'
+import type { TaskSpec } from 'ordu'
 
 
 import { each } from 'jostraca'
@@ -60,24 +61,25 @@ type MethodDesc = {
 
 type MethodEntityDesc = {
   ref: string
-  cmp: string
-  origcmp: string
+
+  cmp: string | null
+  origcmp: string | null
+  origcmpref: string | null
+
   why_cmp: string[]
   cmpoccur: number
   path_rate: number
   method_rate: number
   entname: string
   why_op: string[]
-  rename: any
-  why_rename: any
-  rename_orig: any
+  rename: Record<string, any>
+  why_rename: Record<string, any>
+  rename_orig: string[]
   opname: string
   why_opname: string[]
 
   pm?: any
 }
-
-
 
 
 type EntityDesc = {
@@ -173,12 +175,12 @@ async function heuristic01(ctx: ApiDefContext): Promise<Guide> {
 }
 
 
-function ShowNode(spec: any) {
+function ShowNode(spec: TaskSpec) {
   console.log('NODE', spec.node.key, spec.node.val)
 }
 
 
-function Prepare(spec: any) {
+function Prepare(spec: TaskSpec) {
   const guide: Guide = {
     control: {},
     entity: {},
@@ -215,9 +217,8 @@ function Prepare(spec: any) {
 }
 
 
-
 // Expects to run over paths
-function MeasurePath(spec: any) {
+function MeasurePath(spec: TaskSpec) {
   const guide = spec.data.guide
   const metrics = guide.metrics
   // const pathstr = spec.node.key
@@ -239,7 +240,7 @@ function MeasurePath(spec: any) {
 
 
 // Expects to run over paths.<method>
-function MeasureMethod(spec: any) {
+function MeasureMethod(spec: TaskSpec) {
   const guide = spec.data.guide
   const metrics = guide.metrics
   // const methodstr = spec.node.key
@@ -262,7 +263,7 @@ function MeasureMethod(spec: any) {
 }
 
 
-function PreparePath(spec: any) {
+function PreparePath(spec: TaskSpec) {
   const work = spec.data.work
   const pathstr = spec.node.key
   const pathdef = spec.node.val
@@ -278,8 +279,7 @@ function PreparePath(spec: any) {
 }
 
 
-
-function selectCmpXrefs(_source: any, spec: any) {
+function selectCmpXrefs(_source: any, spec: TaskSpec) {
   const out = find(spec.ctx.def, 'x-ref')
     .filter(xref => xref.val.match(/\/(components\/schemas|definitions)\//))
 
@@ -288,7 +288,7 @@ function selectCmpXrefs(_source: any, spec: any) {
 }
 
 
-function MeasureRef(spec: any) {
+function MeasureRef(spec: TaskSpec) {
   const guide = spec.data.guide
   const metrics = guide.metrics
 
@@ -308,8 +308,7 @@ function MeasureRef(spec: any) {
 }
 
 
-
-function selectAllMethods(_source: any, spec: any): MethodDesc[] {
+function selectAllMethods(_source: any, spec: TaskSpec): MethodDesc[] {
   const ctx = spec.ctx
   // const paths = ctx.def.paths
 
@@ -358,8 +357,7 @@ function selectAllMethods(_source: any, spec: any): MethodDesc[] {
 }
 
 
-
-function ResolveEntityComponent(spec: any) {
+function ResolveEntityComponent(spec: TaskSpec) {
   const guide = spec.data.guide
   const metrics = guide.metrics
 
@@ -384,7 +382,10 @@ function ResolveEntityComponent(spec: any) {
         m = xref.val.match(/\/definitions\/(.+)$/)
       }
       if (m) {
-        xref.cmp = canonize(m[1])
+        const cmp = canonize(m[1])
+        xref.cmp = cmp
+        xref.origcmp = m[1]
+        xref.origcmpref = cmp
       }
       return xref
     })
@@ -395,7 +396,6 @@ function ResolveEntityComponent(spec: any) {
 
   let cleanxrefs = cmpxrefs
     .map(xref => {
-      xref.origcmp = xref.cmp
 
       // Redundancy in cmp name
       const lastpart = canonize(getelem(pathStr.toLowerCase().split('/'), -1))
@@ -424,7 +424,7 @@ function ResolveEntityComponent(spec: any) {
       }
 
       // Exclude high frequency suspicious cmps as probably meta data
-      const cmprefs = metrics.count.origcmprefs[xref.origcmp] ?? 0
+      const cmprefs = metrics.count.origcmprefs[xref.origcmpref] ?? 0
       const mcount = metrics.count.method
       const pcount = metrics.count.path
       const method_rate = (0 < mcount ? (cmprefs / mcount) : -1)
@@ -440,90 +440,67 @@ function ResolveEntityComponent(spec: any) {
           path_rate, IS_ENTCMP_PATH_RATE
         )
       }
+
       return infrequent
     })
 
     .sort((a, b) => a.path.length - b.path.length)
+
 
   const fcmp: any = goodxrefs[0]
 
   let out: MethodEntityDesc | undefined = undefined
 
   if (null != fcmp) {
-    out = {
+    out = makeMethodEntityDesc({
       ref: fcmp.val,
       cmp: fcmp.cmp,
       origcmp: fcmp.origcmp,
-      why_cmp: [],
-      cmpoccur: 0,
-      path_rate: 0,
-      method_rate: 0,
+      origcmpref: fcmp.origcmpref,
       entname: fcmp.cmp,
-      why_op: [],
-      rename: null,
-      why_rename: null,
-      rename_orig: null,
-      opname: '',
-      why_opname: [],
-    }
+    })
   }
 
   const tags = methodDef.tags ?? []
   const goodtags = tags.filter((tag: any) => {
     const tagdesc = metrics.found.tag[tag]
     const ctag = tagdesc?.canon
-    return !!metrics.found.cmp[ctag]
+    return (
+      !!metrics.found.cmp[ctag] // tag matches a cmp
+      || null == fcmp // there's no cmp, so use tag
+    )
   })
 
-  debugpath(pathStr, methodName, 'TAGS', tags, goodtags, methodDef, metrics.found)
+  debugpath(pathStr, methodName, 'TAGS', tags, goodtags, fcmp, methodDef, metrics.found)
 
   const ftag = goodtags[0]
-
 
   if (null != ftag) {
     const tagdesc = metrics.found.tag[ftag]
     const tagcmp = metrics.found.cmp[tagdesc.canon]
 
-    if (tagdesc && tagcmp) {
+    if (tagdesc && (tagcmp || null == fcmp)) {
       if (null == out) {
-        out = {
+        out = makeMethodEntityDesc({
           ref: 'tag',
           cmp: tagdesc.canon,
           origcmp: ftag,
           why_cmp,
-          cmpoccur: 0,
-          path_rate: 0,
-          method_rate: 0,
           entname: tagdesc.canon,
-          why_op: [],
-          rename: null,
-          why_rename: null,
-          rename_orig: null,
-          opname: '',
-          why_opname: [],
-        }
+        })
         why_cmp.push('tag=' + out.cmp)
       }
       else if (
         (pathStr.includes('/' + ftag + '/') || pathStr.includes('/' + tagdesc.canon + '/'))
         && out.cmp !== tagdesc.canon
       ) {
-        out = {
+        out = makeMethodEntityDesc({
           ref: 'tag',
           cmp: tagdesc.canon,
           origcmp: ftag,
           why_cmp,
-          cmpoccur: 0,
-          path_rate: 0,
-          method_rate: 0,
           entname: tagdesc.canon,
-          why_op: [],
-          rename: null,
-          why_rename: null,
-          rename_orig: null,
-          opname: '',
-          why_opname: [],
-        }
+        })
         why_cmp.push('tag/path=' + out.cmp)
       }
     }
@@ -532,19 +509,21 @@ function ResolveEntityComponent(spec: any) {
   if (null != out) {
     why_cmp.push('cmp/resolve=' + out.cmp)
     out.why_cmp = why_cmp
-    out.cmpoccur = metrics.count.origcmprefs[out.origcmp ?? ''] ?? 0
+    out.cmpoccur = metrics.count.origcmprefs[out.origcmpref ?? ''] ?? 0
     out.path_rate = 0 == metrics.count.path ? -1 : (out.cmpoccur / metrics.count.path)
     out.method_rate = 0 == metrics.count.method ? -1 : (out.cmpoccur / metrics.count.method)
 
     methodDef.MethodEntity = out
   }
 
+  // console.log('RATE', out, metrics.count)
+
   debugpath(pathStr, methodName, 'CMP-NAME', out, origxrefs, cleanxrefs, goodxrefs, goodtags)
 }
 
 
 
-function ResolveEntityName(spec: any) {
+function ResolveEntityName(spec: TaskSpec) {
   const ctx = spec.ctx
   const mdesc: MethodDesc = spec.node.val
   const methodName = mdesc.method
@@ -557,21 +536,22 @@ function ResolveEntityName(spec: any) {
 
   work.entity.count.seen++
 
-  const why_path: string[] = []
-
   let ment: Partial<MethodEntityDesc>
   ment = mdesc.MethodEntity
 
+  const why_path: string[] = []
+
   if (null == ment) {
-    why_path.push('no-cmp')
-    mdesc.MethodEntity = {} as MethodEntityDesc
+    why_path.push('no-desc')
+    mdesc.MethodEntity = makeMethodEntityDesc({})
     ment = mdesc.MethodEntity
   }
+
+  why_path.push(...(ment.why_cmp ?? []))
 
   let entname
 
   let pm = undefined
-
 
   if (pm = pathMatch(parts, 't/p/t/')) {
     entname = entityPathMatch_tpte(ctx, pm, mdesc, why_path)
@@ -608,7 +588,9 @@ function ResolveEntityName(spec: any) {
 
   entdesc.path = (entdesc.path || {})
   entdesc.path[pathStr] = entdesc.path[pathStr] || {
-    pm
+    rename: { param: {} },
+    why_rename: { why_param: {} },
+    pm,
   }
   entdesc.path[pathStr].op = entdesc.path[pathStr].op || {}
   entdesc.path[pathStr].why_path = why_path
@@ -622,7 +604,7 @@ function ResolveEntityName(spec: any) {
 
 
 
-function RenameParams(spec: any) {
+function RenameParams(spec: TaskSpec) {
   const ctx = spec.ctx
   const data = spec.data
   const guide = data.guide
@@ -656,8 +638,8 @@ function RenameParams(spec: any) {
 
 
   const pathDesc = entdesc.path[pathStr]
-  pathDesc.rename = (pathDesc.rename ?? {})
-  pathDesc.why_rename = (pathDesc.why_rename ?? {})
+  pathDesc.rename = (pathDesc.rename ?? { param: {} })
+  pathDesc.why_rename = (pathDesc.why_rename ?? { why_param: {} })
 
   pathDesc.action = (pathDesc.action ?? {})
   pathDesc.why_action = (pathDesc.why_action ?? {})
@@ -882,7 +864,7 @@ function RenameParams(spec: any) {
 }
 
 
-function FindActions(spec: any) {
+function FindActions(spec: TaskSpec) {
   const mdesc = spec.node.val
   const pathStr = mdesc.path
   const work = spec.data.work
@@ -937,9 +919,7 @@ function FindActions(spec: any) {
 }
 
 
-function ResolveOperation(spec: any) {
-  // const ctx = spec.ctx
-
+function ResolveOperation(spec: TaskSpec) {
   const mdesc: MethodDesc = spec.node.val
   const ment = mdesc.MethodEntity
 
@@ -991,9 +971,7 @@ function ResolveOperation(spec: any) {
 }
 
 
-function ResolveTransform(spec: any) {
-  const ctx = spec.ctx
-
+function ResolveTransform(spec: TaskSpec) {
   const mdesc = spec.node.val
   const ment = mdesc.MethodEntity
 
@@ -1049,9 +1027,7 @@ function ResolveTransform(spec: any) {
 
 
 
-function BuildEntity(spec: any) {
-  const ctx = spec.ctx
-
+function BuildEntity(spec: TaskSpec) {
   const entdesc = spec.node.val
   // console.log('BUILD-ENTITY')
   // console.dir(entdesc, { depth: null })
@@ -1089,7 +1065,7 @@ function BuildEntity(spec: any) {
 
   entityMap[entdesc.name] = {
     name: entdesc.name,
-    // why_name: entdesc.why_name,
+    orig: entdesc.origcmp,
     path,
   }
 
@@ -1139,31 +1115,38 @@ function entityPathMatch_tpte(
   if (null != ment.cmp) {
     ecm = entityCmpMatch(data, entname, mdesc, why)
     entname = ecm.name
-    why.push('has-cmp')
+    why.push('has-cmp=' + ecm.orig)
   }
 
   else if (probableEntityMethod(metrics, ment, pm, why)) {
     ecm = entityCmpMatch(data, entname, mdesc, why)
     if (ecm.cmpish) {
       entname = ecm.name
-      why.push('prob-ent')
+      why.push('prob-ent=' + ecm.orig)
     }
     else if (endsWithCmp(data, pm)) {
       entname = canonize(getelem(pm, -1))
-      why.push('prob-ent-last')
+      why.push('prob-ent-last=' + ecm.orig)
     }
     else if (0 < findPathsWithPrefix(data, pm.path, { strict: true })) {
       entname = canonize(getelem(pm, -1))
-      why.push('prob-ent-prefix')
+      why.push('prob-ent-prefix=' + ecm.orig)
     }
     else {
-      // entname = fixEntName(getelem(pm, -3)) + '_' + entname
       entname = canonize(getelem(pm, -3)) + '_' + entname
       why.push('prob-ent-part')
     }
   }
 
+  // else if (null == ment.cmp && ) {
+  //   ecm = entityCmpMatch(data, entname, mdesc, why)
+  //   console.log('ECM', ecm)
+  //   process.exit()
+  // }
+
   else {
+    // console.log('PART-ENT', why, pm, mdesc)
+
     why.push('part-ent')
     // Probably a special suffix operation,
     // so make the entity name sufficiently unique
@@ -1371,10 +1354,12 @@ function entityCmpMatch(
 
   let out = {
     name: entname,
-    orig: entname,
+    orig: ment.origcmp ?? entname,
     cmpish: false,
     pathish: true,
   }
+
+  // console.log('ECM-A', out, ment)
 
   const cmpInfrequent = (
     ment.method_rate < IS_ENTCMP_METHOD_RATE
@@ -1389,14 +1374,18 @@ function entityCmpMatch(
     if (cmpInfrequent) {
       why.push('cmp-primary')
       out.name = ment.cmp
+      out.orig = ment.origcmp
       out.cmpish = true
       out.pathish = false
+      why.push('cmp-infreq')
     }
     else if (cmpOccursInPath(data, ment.cmp)) {
       why.push('cmp-path')
       out.name = ment.cmp
+      out.orig = ment.origcmp
       out.cmpish = true
       out.pathish = false
+      why.push('cmp-inpath')
     }
     else {
       why.push('path-over-cmp')
@@ -1407,10 +1396,12 @@ function entityCmpMatch(
     'DELETE' === mdesc.method
     && null == ment.cmp
   ) {
-    let cmps = findcmps(data, mdesc.path, ['responses'], { uniq: true })
+    let cmps: { cmp: string, origcmp: string }[] =
+      findcmps(data, mdesc.path, ['responses'], { uniq: true })
 
     if (1 === cmps.length) {
-      out.name = cmps[0]
+      out.name = cmps[0].cmp
+      out.orig = cmps[0].origcmp
       out.cmpish = true
       out.pathish = false
       why.push('cmp-found-delete')
@@ -1427,6 +1418,8 @@ function entityCmpMatch(
   debugpath(mdesc.path, mdesc.method, 'ENTITY-CMP-NAME', mdesc.path,
     mdesc.method, entname + '->' + out, why, ment,
     IS_ENTCMP_METHOD_RATE, IS_ENTCMP_PATH_RATE)
+
+  // console.log('ECM-Z', out, why, ment)
 
   return out
 }
@@ -1628,7 +1621,7 @@ function findcmps(
   pathStr: string,
   underprops: string[],
   opts?: { uniq?: boolean }
-): string[] {
+): { cmp: string, origcmp: string }[] {
   const cmplist: string[] = []
   const cmpset = new Set<string>()
 
@@ -1651,8 +1644,34 @@ function findcmps(
       })
     })
   // console.log('FOUNDCMPS', cmps)
-  return (opts?.uniq ? Array.from(cmpset) : cmplist).map(n => canonize(n))
+  return (opts?.uniq ? Array.from(cmpset) : cmplist).map(n =>
+    ({ cmp: canonize(n), origcmp: n }))
 }
+
+
+function makeMethodEntityDesc(desc: Record<string, any>): MethodEntityDesc {
+  let ment: MethodEntityDesc = {
+    cmp: desc.cmp ?? null,
+    origcmp: desc.origcmp ?? null,
+    origcmpref: desc.origcmpref ?? null,
+
+    ref: desc.ref ?? '',
+    why_cmp: desc.why_cmp ?? [],
+    cmpoccur: desc.cmpoccur ?? 0,
+    path_rate: desc.path_rate ?? 0,
+    method_rate: desc.method_rate ?? 0,
+    entname: desc.entname ?? '',
+    why_op: desc.why_op ?? [],
+    rename: desc.rename ?? { param: {} },
+    why_rename: desc.why_rename ?? { why_param: {} },
+    rename_orig: desc.rename_orig ?? [],
+    opname: desc.opname ?? '',
+    why_opname: desc.why_opname ?? [],
+  }
+  return ment
+}
+
+
 
 /*
 // Some decisions require the full list of potential entities.

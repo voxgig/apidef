@@ -215,7 +215,10 @@ function ResolveEntityComponent(spec) {
             m = xref.val.match(/\/definitions\/(.+)$/);
         }
         if (m) {
-            xref.cmp = (0, utility_1.canonize)(m[1]);
+            const cmp = (0, utility_1.canonize)(m[1]);
+            xref.cmp = cmp;
+            xref.origcmp = m[1];
+            xref.origcmpref = cmp;
         }
         return xref;
     })
@@ -224,7 +227,6 @@ function ResolveEntityComponent(spec) {
         .filter(xref => !xref.val.includes('Meta'));
     let cleanxrefs = cmpxrefs
         .map(xref => {
-        xref.origcmp = xref.cmp;
         // Redundancy in cmp name
         const lastpart = (0, utility_1.canonize)((0, struct_1.getelem)(pathStr.toLowerCase().split('/'), -1));
         if ('' !== lastpart
@@ -243,7 +245,7 @@ function ResolveEntityComponent(spec) {
             return true;
         }
         // Exclude high frequency suspicious cmps as probably meta data
-        const cmprefs = metrics.count.origcmprefs[xref.origcmp] ?? 0;
+        const cmprefs = metrics.count.origcmprefs[xref.origcmpref] ?? 0;
         const mcount = metrics.count.method;
         const pcount = metrics.count.path;
         const method_rate = (0 < mcount ? (cmprefs / mcount) : -1);
@@ -260,72 +262,47 @@ function ResolveEntityComponent(spec) {
     const fcmp = goodxrefs[0];
     let out = undefined;
     if (null != fcmp) {
-        out = {
+        out = makeMethodEntityDesc({
             ref: fcmp.val,
             cmp: fcmp.cmp,
             origcmp: fcmp.origcmp,
-            why_cmp: [],
-            cmpoccur: 0,
-            path_rate: 0,
-            method_rate: 0,
+            origcmpref: fcmp.origcmpref,
             entname: fcmp.cmp,
-            why_op: [],
-            rename: null,
-            why_rename: null,
-            rename_orig: null,
-            opname: '',
-            why_opname: [],
-        };
+        });
     }
     const tags = methodDef.tags ?? [];
     const goodtags = tags.filter((tag) => {
         const tagdesc = metrics.found.tag[tag];
         const ctag = tagdesc?.canon;
-        return !!metrics.found.cmp[ctag];
+        return (!!metrics.found.cmp[ctag] // tag matches a cmp
+            || null == fcmp // there's no cmp, so use tag
+        );
     });
-    (0, utility_1.debugpath)(pathStr, methodName, 'TAGS', tags, goodtags, methodDef, metrics.found);
+    (0, utility_1.debugpath)(pathStr, methodName, 'TAGS', tags, goodtags, fcmp, methodDef, metrics.found);
     const ftag = goodtags[0];
     if (null != ftag) {
         const tagdesc = metrics.found.tag[ftag];
         const tagcmp = metrics.found.cmp[tagdesc.canon];
-        if (tagdesc && tagcmp) {
+        if (tagdesc && (tagcmp || null == fcmp)) {
             if (null == out) {
-                out = {
+                out = makeMethodEntityDesc({
                     ref: 'tag',
                     cmp: tagdesc.canon,
                     origcmp: ftag,
                     why_cmp,
-                    cmpoccur: 0,
-                    path_rate: 0,
-                    method_rate: 0,
                     entname: tagdesc.canon,
-                    why_op: [],
-                    rename: null,
-                    why_rename: null,
-                    rename_orig: null,
-                    opname: '',
-                    why_opname: [],
-                };
+                });
                 why_cmp.push('tag=' + out.cmp);
             }
             else if ((pathStr.includes('/' + ftag + '/') || pathStr.includes('/' + tagdesc.canon + '/'))
                 && out.cmp !== tagdesc.canon) {
-                out = {
+                out = makeMethodEntityDesc({
                     ref: 'tag',
                     cmp: tagdesc.canon,
                     origcmp: ftag,
                     why_cmp,
-                    cmpoccur: 0,
-                    path_rate: 0,
-                    method_rate: 0,
                     entname: tagdesc.canon,
-                    why_op: [],
-                    rename: null,
-                    why_rename: null,
-                    rename_orig: null,
-                    opname: '',
-                    why_opname: [],
-                };
+                });
                 why_cmp.push('tag/path=' + out.cmp);
             }
         }
@@ -333,11 +310,12 @@ function ResolveEntityComponent(spec) {
     if (null != out) {
         why_cmp.push('cmp/resolve=' + out.cmp);
         out.why_cmp = why_cmp;
-        out.cmpoccur = metrics.count.origcmprefs[out.origcmp ?? ''] ?? 0;
+        out.cmpoccur = metrics.count.origcmprefs[out.origcmpref ?? ''] ?? 0;
         out.path_rate = 0 == metrics.count.path ? -1 : (out.cmpoccur / metrics.count.path);
         out.method_rate = 0 == metrics.count.method ? -1 : (out.cmpoccur / metrics.count.method);
         methodDef.MethodEntity = out;
     }
+    // console.log('RATE', out, metrics.count)
     (0, utility_1.debugpath)(pathStr, methodName, 'CMP-NAME', out, origxrefs, cleanxrefs, goodxrefs, goodtags);
 }
 function ResolveEntityName(spec) {
@@ -349,14 +327,15 @@ function ResolveEntityName(spec) {
     const pathDesc = work.pathmap[pathStr];
     const parts = pathDesc.parts;
     work.entity.count.seen++;
-    const why_path = [];
     let ment;
     ment = mdesc.MethodEntity;
+    const why_path = [];
     if (null == ment) {
-        why_path.push('no-cmp');
-        mdesc.MethodEntity = {};
+        why_path.push('no-desc');
+        mdesc.MethodEntity = makeMethodEntityDesc({});
         ment = mdesc.MethodEntity;
     }
+    why_path.push(...(ment.why_cmp ?? []));
     let entname;
     let pm = undefined;
     if (pm = (0, utility_1.pathMatch)(parts, 't/p/t/')) {
@@ -387,7 +366,9 @@ function ResolveEntityName(spec) {
     };
     entdesc.path = (entdesc.path || {});
     entdesc.path[pathStr] = entdesc.path[pathStr] || {
-        pm
+        rename: { param: {} },
+        why_rename: { why_param: {} },
+        pm,
     };
     entdesc.path[pathStr].op = entdesc.path[pathStr].op || {};
     entdesc.path[pathStr].why_path = why_path;
@@ -420,8 +401,8 @@ function RenameParams(spec) {
         return;
     }
     const pathDesc = entdesc.path[pathStr];
-    pathDesc.rename = (pathDesc.rename ?? {});
-    pathDesc.why_rename = (pathDesc.why_rename ?? {});
+    pathDesc.rename = (pathDesc.rename ?? { param: {} });
+    pathDesc.why_rename = (pathDesc.why_rename ?? { why_param: {} });
     pathDesc.action = (pathDesc.action ?? {});
     pathDesc.why_action = (pathDesc.why_action ?? {});
     const paramRenameCapture = {
@@ -610,7 +591,6 @@ function FindActions(spec) {
     // return pathdesc.action
 }
 function ResolveOperation(spec) {
-    // const ctx = spec.ctx
     const mdesc = spec.node.val;
     const ment = mdesc.MethodEntity;
     const pathStr = mdesc.path;
@@ -648,7 +628,6 @@ function ResolveOperation(spec) {
     };
 }
 function ResolveTransform(spec) {
-    const ctx = spec.ctx;
     const mdesc = spec.node.val;
     const ment = mdesc.MethodEntity;
     const pathStr = mdesc.path;
@@ -690,7 +669,6 @@ function ResolveTransform(spec) {
     }
 }
 function BuildEntity(spec) {
-    const ctx = spec.ctx;
     const entdesc = spec.node.val;
     // console.log('BUILD-ENTITY')
     // console.dir(entdesc, { depth: null })
@@ -722,7 +700,7 @@ function BuildEntity(spec) {
     });
     entityMap[entdesc.name] = {
         name: entdesc.name,
-        // why_name: entdesc.why_name,
+        orig: entdesc.origcmp,
         path,
     };
 }
@@ -755,29 +733,34 @@ function entityPathMatch_tpte(data, pm, mdesc, why) {
     if (null != ment.cmp) {
         ecm = entityCmpMatch(data, entname, mdesc, why);
         entname = ecm.name;
-        why.push('has-cmp');
+        why.push('has-cmp=' + ecm.orig);
     }
     else if (probableEntityMethod(metrics, ment, pm, why)) {
         ecm = entityCmpMatch(data, entname, mdesc, why);
         if (ecm.cmpish) {
             entname = ecm.name;
-            why.push('prob-ent');
+            why.push('prob-ent=' + ecm.orig);
         }
         else if (endsWithCmp(data, pm)) {
             entname = (0, utility_1.canonize)((0, struct_1.getelem)(pm, -1));
-            why.push('prob-ent-last');
+            why.push('prob-ent-last=' + ecm.orig);
         }
         else if (0 < (0, utility_1.findPathsWithPrefix)(data, pm.path, { strict: true })) {
             entname = (0, utility_1.canonize)((0, struct_1.getelem)(pm, -1));
-            why.push('prob-ent-prefix');
+            why.push('prob-ent-prefix=' + ecm.orig);
         }
         else {
-            // entname = fixEntName(getelem(pm, -3)) + '_' + entname
             entname = (0, utility_1.canonize)((0, struct_1.getelem)(pm, -3)) + '_' + entname;
             why.push('prob-ent-part');
         }
     }
+    // else if (null == ment.cmp && ) {
+    //   ecm = entityCmpMatch(data, entname, mdesc, why)
+    //   console.log('ECM', ecm)
+    //   process.exit()
+    // }
     else {
+        // console.log('PART-ENT', why, pm, mdesc)
         why.push('part-ent');
         // Probably a special suffix operation,
         // so make the entity name sufficiently unique
@@ -911,10 +894,11 @@ function entityCmpMatch(data, entname, mdesc, why) {
     const ment = mdesc.MethodEntity;
     let out = {
         name: entname,
-        orig: entname,
+        orig: ment.origcmp ?? entname,
         cmpish: false,
         pathish: true,
     };
+    // console.log('ECM-A', out, ment)
     const cmpInfrequent = (ment.method_rate < IS_ENTCMP_METHOD_RATE
         || ment.path_rate < IS_ENTCMP_PATH_RATE);
     if (null != ment.cmp
@@ -923,14 +907,18 @@ function entityCmpMatch(data, entname, mdesc, why) {
         if (cmpInfrequent) {
             why.push('cmp-primary');
             out.name = ment.cmp;
+            out.orig = ment.origcmp;
             out.cmpish = true;
             out.pathish = false;
+            why.push('cmp-infreq');
         }
         else if (cmpOccursInPath(data, ment.cmp)) {
             why.push('cmp-path');
             out.name = ment.cmp;
+            out.orig = ment.origcmp;
             out.cmpish = true;
             out.pathish = false;
+            why.push('cmp-inpath');
         }
         else {
             why.push('path-over-cmp');
@@ -940,7 +928,8 @@ function entityCmpMatch(data, entname, mdesc, why) {
         && null == ment.cmp) {
         let cmps = findcmps(data, mdesc.path, ['responses'], { uniq: true });
         if (1 === cmps.length) {
-            out.name = cmps[0];
+            out.name = cmps[0].cmp;
+            out.orig = cmps[0].origcmp;
             out.cmpish = true;
             out.pathish = false;
             why.push('cmp-found-delete');
@@ -953,6 +942,7 @@ function entityCmpMatch(data, entname, mdesc, why) {
         why.push('path-primary');
     }
     (0, utility_1.debugpath)(mdesc.path, mdesc.method, 'ENTITY-CMP-NAME', mdesc.path, mdesc.method, entname + '->' + out, why, ment, IS_ENTCMP_METHOD_RATE, IS_ENTCMP_PATH_RATE);
+    // console.log('ECM-Z', out, why, ment)
     return out;
 }
 function cmpOccursInPath(data, cmpname) {
@@ -1096,6 +1086,26 @@ function findcmps(data, pathStr, underprops, opts) {
         });
     });
     // console.log('FOUNDCMPS', cmps)
-    return (opts?.uniq ? Array.from(cmpset) : cmplist).map(n => (0, utility_1.canonize)(n));
+    return (opts?.uniq ? Array.from(cmpset) : cmplist).map(n => ({ cmp: (0, utility_1.canonize)(n), origcmp: n }));
+}
+function makeMethodEntityDesc(desc) {
+    let ment = {
+        cmp: desc.cmp ?? null,
+        origcmp: desc.origcmp ?? null,
+        origcmpref: desc.origcmpref ?? null,
+        ref: desc.ref ?? '',
+        why_cmp: desc.why_cmp ?? [],
+        cmpoccur: desc.cmpoccur ?? 0,
+        path_rate: desc.path_rate ?? 0,
+        method_rate: desc.method_rate ?? 0,
+        entname: desc.entname ?? '',
+        why_op: desc.why_op ?? [],
+        rename: desc.rename ?? { param: {} },
+        why_rename: desc.why_rename ?? { why_param: {} },
+        rename_orig: desc.rename_orig ?? [],
+        opname: desc.opname ?? '',
+        why_opname: desc.why_opname ?? [],
+    };
+    return ment;
 }
 //# sourceMappingURL=heuristic01.js.map
