@@ -1,5 +1,4 @@
 
-
 import { Ordu } from 'ordu'
 import type { TaskSpec } from 'ordu'
 
@@ -271,7 +270,7 @@ function PreparePath(spec: TaskSpec) {
   const pathdesc = {
     path: pathstr,
     def: pathdef,
-    parts: pathstr.split(/\//),
+    parts: pathstr.split('/').filter((p: string) => '' != p),
     op: {}
   }
 
@@ -361,18 +360,21 @@ function ResolveEntityComponent(spec: TaskSpec) {
   const guide = spec.data.guide
   const metrics = guide.metrics
 
+  const work = spec.data.work
+
   const methodDef = spec.node.val
   const methodName = methodDef.method
   const pathStr = methodDef.path
+
+  const parts = work.pathmap[pathStr].parts
 
   let why_cmp: string[] = []
 
   let responses = methodDef.responses
 
-  let origxrefs = [
-    ...find(responses['200'], 'x-ref'),
-    ...find(responses['201'], 'x-ref'),
-  ]
+  let origxrefs: any[] = findPotentialSchemaRefs(pathStr, methodName, responses).map(val => ({
+    val
+  }))
 
   let cmpxrefs = origxrefs
     .filter(xref => xref.val.includes('schema') || xref.val.includes('definitions'))
@@ -383,6 +385,7 @@ function ResolveEntityComponent(spec: TaskSpec) {
       }
       if (m) {
         const cmp = canonize(m[1])
+
         xref.cmp = cmp
         xref.origcmp = m[1]
         xref.origcmpref = cmp
@@ -397,17 +400,24 @@ function ResolveEntityComponent(spec: TaskSpec) {
   let cleanxrefs = cmpxrefs
     .map(xref => {
 
-      // Redundancy in cmp name
-      const lastpart = canonize(getelem(pathStr.toLowerCase().split('/'), -1))
+      // Redundancy in cmp name, remove request,response suffix
+      // const lastPart = getelem(pathStr.split('/'), -1)
+      const lastPart = getelem(parts, -1)
+      const lastPartLower = lastPart.toLowerCase()
+      const lastPartCanon = canonize(lastPart)
       if (
-        '' !== lastpart
+        '' !== lastPartCanon
         && (
-          xref.cmp === lastpart + '_response'
-          || xref.cmp === lastpart + '_request'
+          xref.cmp === lastPartCanon + '_response'
+          || xref.cmp === lastPartCanon + '_request'
+          || xref.origcmp.toLowerCase() === lastPartLower + 'response'
+          || xref.origcmp.toLowerCase() === lastPartLower + 'request'
         )
       ) {
         let cparts = xref.cmp.split('_')
-        xref.cmp = cparts.slice(0, cparts.length - 1).join('_')
+
+        // rec-canonize to deal with plural before removed suffix
+        xref.cmp = canonize(cparts.slice(0, cparts.length - 1).join('_'))
       }
 
       return xref
@@ -418,7 +428,8 @@ function ResolveEntityComponent(spec: TaskSpec) {
       if (
         cleanxrefs.length <= 1
         || pathStr.toLowerCase().includes('/' + xref.cmp + '/')
-        || entityOccursInPath(pathStr.toLowerCase(), xref.cmp)
+        // || entityOccursInPath(pathStr.toLowerCase(), xref.cmp)
+        || entityOccursInPath(parts, xref.cmp)
       ) {
         return true
       }
@@ -436,15 +447,16 @@ function ResolveEntityComponent(spec: TaskSpec) {
 
       if (!infrequent) {
         debugpath(pathStr, methodName, 'CMP-INFREQ',
-          method_rate, IS_ENTCMP_METHOD_RATE,
-          path_rate, IS_ENTCMP_PATH_RATE
+          xref.val,
+          'method:', method_rate, IS_ENTCMP_METHOD_RATE,
+          'path:', path_rate, IS_ENTCMP_PATH_RATE
         )
       }
 
       return infrequent
     })
 
-    .sort((a, b) => a.path.length - b.path.length)
+  // .sort((a, b) => a.path.length - b.path.length)
 
 
   const fcmp: any = goodxrefs[0]
@@ -516,8 +528,6 @@ function ResolveEntityComponent(spec: TaskSpec) {
     methodDef.MethodEntity = out
   }
 
-  // console.log('RATE', out, metrics.count)
-
   debugpath(pathStr, methodName, 'CMP-NAME', out, origxrefs, cleanxrefs, goodxrefs, goodtags)
 }
 
@@ -525,6 +535,8 @@ function ResolveEntityComponent(spec: TaskSpec) {
 
 function ResolveEntityName(spec: TaskSpec) {
   const ctx = spec.ctx
+  const data = spec.data
+
   const mdesc: MethodDesc = spec.node.val
   const methodName = mdesc.method
   const pathStr = mdesc.path
@@ -554,23 +566,23 @@ function ResolveEntityName(spec: TaskSpec) {
   let pm = undefined
 
   if (pm = pathMatch(parts, 't/p/t/')) {
-    entname = entityPathMatch_tpte(ctx, pm, mdesc, why_path)
+    entname = entityPathMatch_tpte(data, pm, mdesc, why_path)
   }
 
   else if (pm = pathMatch(parts, 't/p/')) {
-    entname = entityPathMatch_tpe(ctx, pm, mdesc, why_path)
+    entname = entityPathMatch_tpe(data, pm, mdesc, why_path)
   }
 
   else if (pm = pathMatch(parts, 'p/t/')) {
-    entname = entityPathMatch_pte(ctx, pm, mdesc, why_path)
+    entname = entityPathMatch_pte(data, pm, mdesc, why_path)
   }
 
   else if (pm = pathMatch(parts, 't/')) {
-    entname = entityPathMatch_te(ctx, pm, mdesc, why_path)
+    entname = entityPathMatch_te(data, pm, mdesc, why_path)
   }
 
   else if (pm = pathMatch(parts, 't/p/p')) {
-    entname = entityPathMatch_tpp(ctx, pm, mdesc, why_path)
+    entname = entityPathMatch_tpp(data, pm, mdesc, why_path)
   }
 
   else {
@@ -598,7 +610,7 @@ function ResolveEntityName(spec: TaskSpec) {
   ment.entname = entname
   ment.pm = pm
 
-  debugpath(pathStr, methodName, 'RESOLVE-ENTITY',
+  debugpath(pathStr, methodName, 'RESOLVE-ENTITY-NAME',
     formatJSONIC({ entdesc, ment }, { hsepd: 0, $: true, color: true }))
 }
 
@@ -648,7 +660,6 @@ function RenameParams(spec: TaskSpec) {
     rename: pathDesc.rename.param = (pathDesc.rename.param ?? {}),
     why: pathDesc.why_rename.why_param = (pathDesc.why_rename.why_param ?? {}),
   }
-  // const parts = pathStr.split(/\//).filter((p: string) => '' != p)
   const parts = pathdesc.parts
 
   const cmpname = mdesc.cmp
@@ -883,10 +894,14 @@ function FindActions(spec: TaskSpec) {
 
   const parts = spec.data.work.pathmap[pathStr].parts
 
-  const thirdLastPartCanon = canonize(parts[parts.length - 3])
+  const fourthLastPart = parts[parts.length - 4]
+  const fourthLastPartCanon = canonize(fourthLastPart)
+  const thirdLastPart = parts[parts.length - 3]
+  const thirdLastPartCanon = canonize(thirdLastPart)
   const secondLastPart = parts[parts.length - 2]
   const secondLastPartCanon = canonize(secondLastPart)
   const lastPart = parts[parts.length - 1]
+  const lastPartCanon = canonize(lastPart)
 
   const cmp = ment.cmp
 
@@ -897,7 +912,7 @@ function FindActions(spec: TaskSpec) {
     || secondLastPartCanon === entname
   ) {
     if (!isParam(lastPart)) {
-      updateAction(methodName, lastPart, lastPart, entdesc, pathdesc, 'no-param')
+      updateAction(methodName, lastPart, lastPartCanon, entdesc, pathdesc, 'no-param')
     }
   }
 
@@ -908,10 +923,24 @@ function FindActions(spec: TaskSpec) {
     || thirdLastPartCanon === entname
   ) {
     if (isParam(secondLastPart) && !isParam(lastPart)) {
-      updateAction(methodName, lastPart, lastPart, entdesc, pathdesc, 'ent-param')
+      updateAction(methodName, lastPart, lastPartCanon, entdesc, pathdesc,
+        'ent-param-2nd-last')
     }
   }
 
+  //  /api/foo/{param}/action/subaction
+  else if (
+    fourthLastPartCanon === cmp
+    || fourthLastPartCanon === ment.origcmp
+    || fourthLastPartCanon === entname
+  ) {
+    if (isParam(thirdLastPart) && !isParam(secondLastPart) && !isParam(lastPart)) {
+      const oldActionName = secondLastPart + '/' + lastPart
+      const actionName = secondLastPartCanon + '_' + lastPartCanon
+      updateAction(methodName, oldActionName, actionName, entdesc, pathdesc,
+        'ent-param-3rd-last')
+    }
+  }
 
   debugpath(pathStr, methodName, 'FIND-ACTIONS', cmp, parts, pathdesc.action, pathdesc.why_action)
 
@@ -925,6 +954,8 @@ function ResolveOperation(spec: TaskSpec) {
 
   const pathStr = mdesc.path
   const work = spec.data.work
+
+  const parts: string[] = work.pathmap[pathStr].parts
 
   const entname = mdesc.MethodEntity.entname
   const entdesc = work.entmap[entname]
@@ -941,14 +972,36 @@ function ResolveOperation(spec: TaskSpec) {
     return
   }
 
-  const has_id_param = ment.rename_orig.includes('id') ||
-    Object.values(ment.rename).includes('id')
+  // const has_id_param = ment.rename_orig.includes('id') ||
+  //  Object.values(ment.rename).includes('id')
+
+  // console.log(pathStr, ment.pm.expr)
+
+  // Sometimes POST is used to update, not create. Attempt to identify this.
+  const id_param_offset = ment.pm.expr.endsWith('/t/') ? 1 : 0
+  const has_end_id_param =
+    entname == canonize(parts[parts.length - 2 - id_param_offset])
+    && parts[parts.length - 1 - id_param_offset].toLowerCase().endsWith('id}')
+
+  // console.log('PM', work.pathmap)
+
+  // console.log('ROa', pathStr, methodName, opname, entname,
+  //   (entname == canonize(parts[parts.length - 2])),
+  //   (parts[parts.length - 1]?.toLowerCase().endsWith('id}')),
+  //   parts, has_end_id_param)
+
+
+
 
   if ('load' === opname) {
     const islist = isListResponse(mdesc, pathStr, why)
     opname = islist ? 'list' : opname
   }
-  else if ('create' === opname && has_id_param) {
+  // else if ('create' === opname && has_id_param && !hasMethod(spec.data.def, pathStr, 'PUT')) {
+  else if (
+    'create' === opname
+    && has_end_id_param
+  ) {
     opname = 'update'
     why.push('id-present')
   }
@@ -967,7 +1020,6 @@ function ResolveOperation(spec: TaskSpec) {
     method: methodName,
     why_op: why.join(';')
   }
-
 }
 
 
@@ -1102,7 +1154,6 @@ function entityPathMatch_tpte(
   mdesc: any,
   why: string[]
 ) {
-  const metrics = data.guide.metrics
   const ment = mdesc.MethodEntity
 
   const pathNameIndex = 2
@@ -1118,7 +1169,7 @@ function entityPathMatch_tpte(
     why.push('has-cmp=' + ecm.orig)
   }
 
-  else if (probableEntityMethod(metrics, ment, pm, why)) {
+  else if (probableEntityMethod(data, ment, pm, why)) {
     ecm = entityCmpMatch(data, entname, mdesc, why)
     if (ecm.cmpish) {
       entname = ecm.name
@@ -1138,19 +1189,12 @@ function entityPathMatch_tpte(
     }
   }
 
-  // else if (null == ment.cmp && ) {
-  //   ecm = entityCmpMatch(data, entname, mdesc, why)
-  //   console.log('ECM', ecm)
-  //   process.exit()
-  // }
-
   else {
     // console.log('PART-ENT', why, pm, mdesc)
 
     why.push('part-ent')
     // Probably a special suffix operation,
     // so make the entity name sufficiently unique
-    // entname = fixEntName(getelem(pm, -3)) + '_' + entname
     entname = canonize(getelem(pm, -3)) + '_' + entname
   }
 
@@ -1168,15 +1212,16 @@ function isOrigCmp(data: any, name: string) {
 }
 
 
-function entityOccursInPath(path: string | string[], entname: string) {
-  let parts = 'string' === typeof path ? path.split('/') : path
-  parts = parts.filter(p => '{' !== p[0]).map(p => canonize(p))
-  return !parts.reduce((a: boolean, p: string) => (a && p !== entname), true)
+function entityOccursInPath(parts: string[], entname: string) {
+  let partsLower = parts.map(p => p.toLowerCase())
+  partsLower = partsLower.filter(p => '{' !== p[0]).map(p => canonize(p))
+  return !partsLower.reduce((a: boolean, p: string) => (a && p !== entname), true)
 }
 
 
 function entityPathMatch_tpe(
-  ctx: ApiDefContext, pm: PathMatch, mdesc: any, why: string[]
+  data: { def: any, guide: any, work: any },
+  pm: PathMatch, mdesc: any, why: string[]
 ) {
   const ment = mdesc.MethodEntity
   const pathNameIndex = 0
@@ -1186,8 +1231,8 @@ function entityPathMatch_tpe(
   // let entname = fixEntName(origPathName)
   let entname = canonize(origPathName)
 
-  if (null != ment.cmp || probableEntityMethod(ctx, mdesc, pm, why)) {
-    let ecm = entityCmpMatch(ctx, entname, mdesc, why)
+  if (null != ment.cmp || probableEntityMethod(data, mdesc, pm, why)) {
+    let ecm = entityCmpMatch(data, entname, mdesc, why)
     entname = ecm.name
   }
   else {
@@ -1199,7 +1244,8 @@ function entityPathMatch_tpe(
 
 
 function entityPathMatch_pte(
-  ctx: ApiDefContext, pm: PathMatch, mdesc: any, why: string[]
+  data: { def: any, guide: any, work: any },
+  pm: PathMatch, mdesc: any, why: string[]
 ) {
   const ment = mdesc.MethodEntity
   const pathNameIndex = 1
@@ -1208,8 +1254,8 @@ function entityPathMatch_pte(
   const origPathName = pm[pathNameIndex]
   let entname = canonize(origPathName)
 
-  if (null != ment.cmp || probableEntityMethod(ctx, mdesc, pm, why)) {
-    let ecm = entityCmpMatch(ctx, entname, mdesc, why)
+  if (null != ment.cmp || probableEntityMethod(data, mdesc, pm, why)) {
+    let ecm = entityCmpMatch(data, entname, mdesc, why)
     entname = ecm.name
   }
   else {
@@ -1221,7 +1267,8 @@ function entityPathMatch_pte(
 
 
 function entityPathMatch_te(
-  ctx: ApiDefContext, pm: PathMatch, mdesc: any, why: string[]
+  data: { def: any, guide: any, work: any },
+  pm: PathMatch, mdesc: any, why: string[]
 ) {
   const ment = mdesc.MethodEntity
   const pathNameIndex = 0
@@ -1231,8 +1278,8 @@ function entityPathMatch_te(
   // let entname = fixEntName(origPathName)
   let entname = canonize(origPathName)
 
-  if (null != ment.cmp || probableEntityMethod(ctx, mdesc, pm, why)) {
-    let ecm = entityCmpMatch(ctx, entname, mdesc, why)
+  if (null != ment.cmp || probableEntityMethod(data, mdesc, pm, why)) {
+    let ecm = entityCmpMatch(data, entname, mdesc, why)
     entname = ecm.name
   }
   else {
@@ -1244,7 +1291,8 @@ function entityPathMatch_te(
 
 
 function entityPathMatch_tpp(
-  ctx: ApiDefContext, pm: PathMatch, mdesc: any, why: string[]
+  data: { def: any, guide: any, work: any },
+  pm: PathMatch, mdesc: any, why: string[]
 ) {
   const ment = mdesc.MethodEntity
   const pathNameIndex = 0
@@ -1254,8 +1302,8 @@ function entityPathMatch_tpp(
   // let entname = fixEntName(origPathName)
   let entname = canonize(origPathName)
 
-  if (null != ment.cmp || probableEntityMethod(ctx, mdesc, pm, why)) {
-    let ecm = entityCmpMatch(ctx, entname, mdesc, why)
+  if (null != ment.cmp || probableEntityMethod(data, mdesc, pm, why)) {
+    let ecm = entityCmpMatch(data, entname, mdesc, why)
     entname = ecm.name
   }
   else {
@@ -1279,7 +1327,7 @@ function getResponseSchema(response: any) {
 
 // No entity component was found, but there still might be an entity.
 function probableEntityMethod(
-  ctx: ApiDefContext,
+  data: { def: any },
   mdesc: any,
   pm: PathMatch,
   why: string[]
@@ -1308,7 +1356,7 @@ function probableEntityMethod(
 
       // A real entity would probably occur in at least one other t/p path
       // otherwise this is probably an action
-      && (1 < Object.keys(ctx.def.paths).filter(path =>
+      && (1 < Object.keys(data.def.paths).filter(path =>
         path.includes('/' + pm[pm.length - 1] + '/')).length)
     ) {
       prob_why = 'post'
@@ -1416,7 +1464,7 @@ function entityCmpMatch(
   }
 
   debugpath(mdesc.path, mdesc.method, 'ENTITY-CMP-NAME', mdesc.path,
-    mdesc.method, entname + '->' + out, why, ment,
+    mdesc.method, entname + '->', out, why, ment,
     IS_ENTCMP_METHOD_RATE, IS_ENTCMP_PATH_RATE)
 
   // console.log('ECM-Z', out, why, ment)
@@ -1429,8 +1477,9 @@ function cmpOccursInPath(data: { def: any, work: any }, cmpname: string): boolea
   if (null == data.work.potentialCmpsFromPaths) {
     data.work.potentialCmpsFromPaths = {}
     each(data.def.paths, (_pathdef: PathDef, pathstr: string) => {
-      pathstr
-        .split('/')
+      const parts: string[] = data.work.pathmap[pathstr].parts
+
+      parts
         .filter(p => !p.startsWith('{'))
         .map(p => data.work.potentialCmpsFromPaths[canonize(p)] = true)
     })
@@ -1669,6 +1718,40 @@ function makeMethodEntityDesc(desc: Record<string, any>): MethodEntityDesc {
     why_opname: desc.why_opname ?? [],
   }
   return ment
+}
+
+
+function findPotentialSchemaRefs(pathStr: string, methodName: string, responses: any) {
+  const xrefs: string[] = []
+  const rescodes = ['200', '201']
+  for (let rescode of rescodes) {
+    const schema = getResponseSchema(responses[rescode])
+    if (null != schema) {
+      if (null != schema['x-ref']) {
+        xrefs.push(schema['x-ref'])
+      }
+      else if ('array' === schema.type && null != schema.items?.['x-ref']) {
+        xrefs.push(schema.items?.['x-ref'])
+      }
+    }
+  }
+
+  debugpath(pathStr, methodName, 'POTENTIAL-SCHEMA-REFS', xrefs)
+  return xrefs
+}
+
+
+function hasMethod(def: any, pathStr: string, methodName: string) {
+  const pathDef = def?.paths?.[pathStr]
+  const found = (
+    null != pathDef
+    && (
+      null != pathDef[methodName.toLowerCase()]
+      || null != pathDef[methodName.toUpperCase()]
+    )
+  )
+  console.log('hasMethod', pathStr, methodName, found)
+  return found
 }
 
 

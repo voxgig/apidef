@@ -6,6 +6,17 @@ const code_1 = require("@hapi/code");
 const utility_1 = require("../dist/utility");
 // TODO: remove all sdk refs or rename to api
 (0, node_test_1.describe)('utility', () => {
+    (0, node_test_1.test)('depluralize', () => {
+        (0, code_1.expect)((0, utility_1.depluralize)('Dogs')).equal('Dog');
+        (0, code_1.expect)((0, utility_1.depluralize)('countries')).equal('country');
+        (0, code_1.expect)((0, utility_1.depluralize)('good_dogs')).equal('good_dog');
+        (0, code_1.expect)((0, utility_1.depluralize)('many_countries')).equal('many_country');
+        (0, code_1.expect)((0, utility_1.depluralize)('mice')).equal('mouse');
+        (0, code_1.expect)((0, utility_1.depluralize)('many_mice')).equal('many_mouse');
+        (0, code_1.expect)((0, utility_1.depluralize)('api_key')).equal('api_key');
+        (0, code_1.expect)((0, utility_1.depluralize)('api_keys')).equal('api_key');
+        (0, code_1.expect)((0, utility_1.depluralize)('ApiKeys')).equal('ApiKey');
+    });
     (0, node_test_1.test)('pathMatch', async () => {
         const pmf = (p, x) => {
             const r = (0, utility_1.pathMatch)(p, x);

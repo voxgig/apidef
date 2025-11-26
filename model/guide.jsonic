@@ -1,52 +1,17 @@
 
-guide: control: {
-
-  transform: openapi: {
-    order: *`
-      top,
-      entity,
-      operation,
-      args,
-      field,
-      clean,
-      ` | string,
-
-    element: {
-      top: {}
-      entity: {}
-      operation: {}
-      field: {}
-    }
-  }
-
-  builder: standard: {
-    order: *`
-      entity,
-      flow,
-      ` | string,
-
-    element: {
-      entity: {}
-      flow: {}
-    }
-  }
-
-}
-
-
 guide: entity: &: {
-  active: *true
+  active?: boolean
   name: key()
 
   path: &: {
-    active: *true
+    active?: boolean
     
      op: &: {
-       active: *true
+       active?: boolean
        method: string
-       transform: {
-         res?: top
+       transform?: {
          req?: top
+         res?: top
        }
      }
   }

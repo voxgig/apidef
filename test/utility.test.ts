@@ -13,6 +13,7 @@ import * as Diff from 'diff'
 import {
   pathMatch,
   formatJSONIC,
+  depluralize,
 } from '../dist/utility'
 
 
@@ -20,6 +21,19 @@ import {
 
 
 describe('utility', () => {
+
+  test('depluralize', () => {
+    expect(depluralize('Dogs')).equal('Dog')
+    expect(depluralize('countries')).equal('country')
+    expect(depluralize('good_dogs')).equal('good_dog')
+    expect(depluralize('many_countries')).equal('many_country')
+    expect(depluralize('mice')).equal('mouse')
+    expect(depluralize('many_mice')).equal('many_mouse')
+
+    expect(depluralize('api_key')).equal('api_key')
+    expect(depluralize('api_keys')).equal('api_key')
+    expect(depluralize('ApiKeys')).equal('ApiKey')
+  })
 
   test('pathMatch', async () => {
     const pmf = (p: any, x: any) => {

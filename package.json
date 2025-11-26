@@ -58,7 +58,7 @@
     "decircular": "^1.0.0",
     "diff": "^8.0.2",
     "gubu": "^9.0.0",
-    "jostraca": "^0.24.1",
+    "jostraca": "^0.25.1",
     "ordu": "^4.1.1",
     "pino": "^10.1.0",
     "pino-pretty": "^13.1.2",
