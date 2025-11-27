@@ -11,6 +11,24 @@ const dlog = (0, utility_1.getdlog)('apidef', __filename);
 // as unique entities, not shared schemas
 const IS_ENTCMP_METHOD_RATE = 0.21;
 const IS_ENTCMP_PATH_RATE = 0.41;
+const METHOD_IDOP = {
+    GET: 'load',
+    POST: 'create',
+    PUT: 'update',
+    DELETE: 'remove',
+    PATCH: 'patch',
+    HEAD: 'head',
+    OPTIONS: 'OPTIONS',
+};
+const METHOD_CONSIDER_ORDER = {
+    'GET': 100,
+    'POST': 200,
+    'PUT': 300,
+    'PATCH': 400,
+    'DELETE': 500,
+    'HEAD': 600,
+    'OPTIONS': 700,
+};
 async function heuristic01(ctx) {
     const analysis = new ordu_1.Ordu({ select: { sort: true } }).add([
         Prepare,
@@ -231,13 +249,14 @@ function ResolveEntityComponent(spec) {
         // Redundancy in cmp name, remove request,response suffix
         // const lastPart = getelem(pathStr.split('/'), -1)
         const lastPart = (0, struct_1.getelem)(parts, -1);
-        const lastPartLower = lastPart.toLowerCase();
+        const lastPartLower = lastPart?.toLowerCase();
         const lastPartCanon = (0, utility_1.canonize)(lastPart);
+        const origcmpLower = xref.origcmp?.toLowerCase();
         if ('' !== lastPartCanon
             && (xref.cmp === lastPartCanon + '_response'
                 || xref.cmp === lastPartCanon + '_request'
-                || xref.origcmp.toLowerCase() === lastPartLower + 'response'
-                || xref.origcmp.toLowerCase() === lastPartLower + 'request')) {
+                || origcmpLower === lastPartLower + 'response'
+                || origcmpLower === lastPartLower + 'request')) {
             let cparts = xref.cmp.split('_');
             // rec-canonize to deal with plural before removed suffix
             xref.cmp = (0, utility_1.canonize)(cparts.slice(0, cparts.length - 1).join('_'));
@@ -436,8 +455,10 @@ function RenameParams(spec) {
             const hasParent = 0 < partI && !isParam(parts[partI - 1]);
             const parentName = hasParent ? (0, utility_1.canonize)(parts[partI - 1]) : null;
             const not_exact_id = 'id' !== oldParam;
-            const probably_an_id = oldParam.endsWith('id') || oldParam.endsWith('Id');
-            (0, utility_1.debugpath)(pathStr, mdesc.method, 'RENAME-PARAMS', parts, partI, partStr, {
+            const probably_an_id = oldParam.endsWith('id')
+                || oldParam.endsWith('Id')
+                || (0, utility_1.canonize)(oldParam) === parentName;
+            (0, utility_1.debugpath)(pathStr, mdesc.method, 'RENAME-PARAM-PART', parts, partI, partStr, {
                 lastPart,
                 secondLastPart,
                 notLastPart,
@@ -476,6 +497,8 @@ function RenameParams(spec) {
                     why.push('parent');
                 }
             }
+            // /api/foo/{foo}/bar/...
+            // param matches parent entname, but is not _id format
             // At end, but not called id.
             // .../ent/{not-id}
             else if (lastPart
@@ -619,47 +642,64 @@ function ResolveOperation(spec) {
     const parts = work.pathmap[pathStr].parts;
     const entname = mdesc.MethodEntity.entname;
     const entdesc = work.entmap[entname];
-    // const pathdesc = spec.data.work.pathmap[pathStr]
     const methodName = mdesc.method;
-    const why = ment.why_op = [];
+    const why_op = ment.why_op = [];
     let opname = METHOD_IDOP[methodName];
+    let standard_opname = opname;
     if (null == opname) {
-        why.push('no-op:' + methodName);
+        why_op.push('no-op:' + methodName);
         return;
     }
-    // const has_id_param = ment.rename_orig.includes('id') ||
-    //  Object.values(ment.rename).includes('id')
-    // console.log(pathStr, ment.pm.expr)
+    // REVIEW: using POST and PUT in non-restian ways is too wierd to handle consistently
+    // correct using guide customizations
     // Sometimes POST is used to update, not create. Attempt to identify this.
-    const id_param_offset = ment.pm.expr.endsWith('/t/') ? 1 : 0;
-    const has_end_id_param = entname == (0, utility_1.canonize)(parts[parts.length - 2 - id_param_offset])
-        && parts[parts.length - 1 - id_param_offset].toLowerCase().endsWith('id}');
-    // console.log('PM', work.pathmap)
-    // console.log('ROa', pathStr, methodName, opname, entname,
-    //   (entname == canonize(parts[parts.length - 2])),
-    //   (parts[parts.length - 1]?.toLowerCase().endsWith('id}')),
-    //   parts, has_end_id_param)
-    if ('load' === opname) {
-        const islist = isListResponse(mdesc, pathStr, why);
+    // And sometimes vice versa for PUT
+    // const id_param_offset = ment.pm?.expr?.endsWith('/t/') ? 1 : 0
+    // const has_end_id_param =
+    //   entname == canonize(parts[parts.length - 2 - id_param_offset])
+    //   && parts[parts.length - 1 - id_param_offset]?.toLowerCase().endsWith('id}')
+    if ('load' === standard_opname) {
+        const islist = isListResponse(mdesc, pathStr, why_op);
         opname = islist ? 'list' : opname;
     }
-    // else if ('create' === opname && has_id_param && !hasMethod(spec.data.def, pathStr, 'PUT')) {
-    else if ('create' === opname
-        && has_end_id_param) {
-        opname = 'update';
-        why.push('id-present');
+    /*
+    else if (
+      'create' === standard_opname
+      && has_end_id_param
+    ) {
+      opname = 'update'
+      why_op.push('id-present')
     }
+  
+    else if (
+      'update' === standard_opname
+      && !has_end_id_param
+    ) {
+      opname = 'create'
+      why_op.push('no-id-present')
+    }
+    */
     else {
-        why.push('not-load');
+        why_op.push('not-load');
     }
     // why.push('ent=' + entdesc.name)
     ment.opname = opname;
-    ment.why_opname = why;
+    ment.why_opname = why_op;
     const op = entdesc.path[pathStr].op;
-    op[opname] = {
+    const opdef = {
         method: methodName,
-        why_op: why.join(';')
+        why_op: why_op.join(';')
     };
+    if (null == op[opname]) {
+        op[opname] = opdef;
+    }
+    // Conflicting methods for same operation
+    // METHOD_CONSIDER_ORDER wins
+    // Add operation using method name
+    else {
+        op[methodName.toLowerCase()] = opdef;
+    }
+    (0, utility_1.debugpath)(pathStr, methodName, 'ResolveOperation', standard_opname, opname, why_op, op);
 }
 function ResolveTransform(spec) {
     const mdesc = spec.node.val;
@@ -738,24 +778,6 @@ function BuildEntity(spec) {
         path,
     };
 }
-const METHOD_IDOP = {
-    GET: 'load',
-    POST: 'create',
-    PUT: 'update',
-    DELETE: 'remove',
-    PATCH: 'patch',
-    HEAD: 'head',
-    OPTIONS: 'OPTIONS',
-};
-const METHOD_CONSIDER_ORDER = {
-    'GET': 100,
-    'POST': 200,
-    'PUT': 300,
-    'PATCH': 400,
-    'DELETE': 500,
-    'HEAD': 600,
-    'OPTIONS': 700,
-};
 function entityPathMatch_tpte(data, pm, mdesc, why) {
     const ment = mdesc.MethodEntity;
     const pathNameIndex = 2;

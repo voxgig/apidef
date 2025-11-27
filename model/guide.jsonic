@@ -8,7 +8,11 @@ guide: entity: &: {
     
      op: &: {
        active?: boolean
+
+       # TODO: aontu error msg
+       # Does not identify missing peer node path
        method: string
+
        transform?: {
          req?: top
          res?: top
