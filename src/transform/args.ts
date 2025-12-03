@@ -21,7 +21,7 @@ import type {
 
 
 
-const argsTransform: Transform = async function(
+const argsTransform = async function(
   ctx: any,
 ): Promise<TransformResult> {
   const { apimodel, def } = ctx

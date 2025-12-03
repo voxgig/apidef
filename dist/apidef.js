@@ -49,7 +49,6 @@ const guide_1 = require("./guide/guide");
 const parse_1 = require("./parse");
 Object.defineProperty(exports, "parse", { enumerable: true, get: function () { return parse_1.parse; } });
 const transform_1 = require("./transform");
-const resolver_1 = require("./resolver");
 const utility_1 = require("./utility");
 Object.defineProperty(exports, "formatJSONIC", { enumerable: true, get: function () { return utility_1.formatJSONIC; } });
 const top_1 = require("./transform/top");
@@ -119,6 +118,7 @@ function ApiDef(opts) {
                 def: undefined,
                 note: {},
                 warn,
+                // TODO: remove (moved to guide)
                 metrics: {
                     count: {
                         path: 0,
@@ -162,24 +162,39 @@ function ApiDef(opts) {
             if (!ctrl.step.transformers) {
                 return { ok: true, steps, start, end: Date.now(), ctrl, guide: ctx.guide };
             }
-            // const transformSpec = await resolveTransforms(ctx)
-            const transres = await (0, resolver_1.resolveElements)(ctx, 'transform', 'openapi', {
-                top: top_1.topTransform,
-                entity: entity_1.entityTransform,
-                operation: operation_1.operationTransform,
-                args: args_1.argsTransform,
-                field: field_1.fieldTransform,
-                clean: clean_1.cleanTransform,
-            });
+            /*
+            const transres = await resolveElements(ctx, 'transform', 'openapi', {
+              top: topTransform,
+              entity: entityTransform,
+              operation: operationTransform,
+              args: argsTransform,
+              field: fieldTransform,
+              clean: cleanTransform,
+            })
+            */
+            // const transformResult = await runTransform(ctx)
+            // if (null == transformResult) {
+            //   throw new Error('Unable to run Transform.')
+            // }
+            await (0, top_1.topTransform)(ctx);
+            await (0, entity_1.entityTransform)(ctx);
+            await (0, operation_1.operationTransform)(ctx);
+            await (0, args_1.argsTransform)(ctx);
+            await (0, field_1.fieldTransform)(ctx);
+            await (0, clean_1.cleanTransform)(ctx);
             steps.push('transformers');
             // Step: builders (build generated sub models).
             if (!ctrl.step.builders) {
                 return { ok: true, steps, start, end: Date.now(), ctrl, guide: ctx.guide };
             }
-            const builders = await (0, resolver_1.resolveElements)(ctx, 'builder', 'standard', {
-                entity: entity_2.makeEntityBuilder,
-                flow: flow_1.makeFlowBuilder,
-            });
+            // const builders = await resolveElements(ctx, 'builder', 'standard', {
+            //   entity: makeEntityBuilder,
+            //   flow: makeFlowBuilder,
+            // })
+            const builders = [
+                await (0, entity_2.makeEntityBuilder)(ctx),
+                await (0, flow_1.makeFlowBuilder)(ctx),
+            ];
             steps.push('builders');
             // Step: generate (generate model files).
             if (!ctrl.step.generate) {

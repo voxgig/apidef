@@ -1,3 +1,3 @@
-import type { Transform } from '../transform';
-declare const argsTransform: Transform;
+import type { TransformResult } from '../transform';
+declare const argsTransform: (ctx: any) => Promise<TransformResult>;
 export { argsTransform, };

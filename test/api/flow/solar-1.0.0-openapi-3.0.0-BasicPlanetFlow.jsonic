@@ -5,7 +5,7 @@ main: sdk: flow: BasicPlanetFlow:
   name: "BasicPlanetFlow",
   active: true,
   param: {
-    SOLAR_TEST_MI_SS_IN_GN_AM_E_ENTID: {
+    SOLAR_TEST_PLANET_ENTID: {
       planet01: "PLANET01",
       planet02: "PLANET02",
       planet03: "PLANET03"
@@ -49,7 +49,7 @@ main: sdk: flow: BasicPlanetFlow:
       entity: "planet",
       action: "load",
       match: {
-        id: "`dm$=p.SOLAR_TEST_MI_SS_IN_GN_AM_E_ENTID.planet01`"
+        id: "`dm$=p.SOLAR_TEST_PLANET_ENTID.planet01`"
       }
 
       valid: {
@@ -76,7 +76,7 @@ main: sdk: flow: BasicPlanetFlow:
       entity: "planet",
       action: "load",
       match: {
-        id: "`dm$=p.SOLAR_TEST_MI_SS_IN_GN_AM_E_ENTID.planet01`"
+        id: "`dm$=p.SOLAR_TEST_PLANET_ENTID.planet01`"
       }
 
       valid: {

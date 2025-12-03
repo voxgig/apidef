@@ -72,15 +72,16 @@ describe('apidef', () => {
           path: {
             '/api/planet/{planet_id}/moon': {
               op: {
-                create: { method: 'post', transform: {} },
-                list: { method: 'get', transform: {} }
+                create: { method: 'POST' },
+                list: { method: 'GET' }
               }
             },
             '/api/planet/{planet_id}/moon/{moon_id}': {
+              rename: { param: { moon_id: 'id' } },
               op: {
-                load: { method: 'get', transform: {} },
-                remove: { method: 'delete', transform: {} },
-                update: { method: 'put', transform: {} }
+                load: { method: 'GET' },
+                remove: { method: 'DELETE' },
+                update: { method: 'PUT' }
               }
             }
           },
@@ -90,22 +91,25 @@ describe('apidef', () => {
           path: {
             '/api/planet': {
               op: {
-                create: { method: 'post', transform: {} },
-                list: { method: 'get', transform: {} }
+                create: { method: 'POST' },
+                list: { method: 'GET' }
               }
             },
             '/api/planet/{planet_id}': {
+              rename: { param: { planet_id: 'id' } },
               op: {
-                load: { method: 'get', transform: {} },
-                remove: { method: 'delete', transform: {} },
-                update: { method: 'put', transform: {} }
+                load: { method: 'GET' },
+                remove: { method: 'DELETE' },
+                update: { method: 'PUT' }
               }
             }
           },
           name: 'planet'
         }
-      }
+      },
+      metrics: { count: { entity: 2, path: 4, method: 10 } }
     }
+
 
     expect(bres.guide).contains(matchGuide)
   })

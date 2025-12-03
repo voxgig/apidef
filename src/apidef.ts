@@ -146,6 +146,8 @@ function ApiDef(opts: ApiDefOptions) {
         def: undefined,
         note: {},
         warn,
+
+        // TODO: remove (moved to guide)
         metrics: {
           count: {
             path: 0,
@@ -160,6 +162,7 @@ function ApiDef(opts: ApiDefOptions) {
             tag: {}
           }
         },
+
         work: {}
       }
 
@@ -203,7 +206,8 @@ function ApiDef(opts: ApiDefOptions) {
         return { ok: true, steps, start, end: Date.now(), ctrl, guide: ctx.guide }
       }
 
-      // const transformSpec = await resolveTransforms(ctx)
+
+      /*
       const transres = await resolveElements(ctx, 'transform', 'openapi', {
         top: topTransform,
         entity: entityTransform,
@@ -212,6 +216,20 @@ function ApiDef(opts: ApiDefOptions) {
         field: fieldTransform,
         clean: cleanTransform,
       })
+      */
+
+      // const transformResult = await runTransform(ctx)
+      // if (null == transformResult) {
+      //   throw new Error('Unable to run Transform.')
+      // }
+
+      await topTransform(ctx)
+      await entityTransform(ctx)
+      await operationTransform(ctx)
+      await argsTransform(ctx)
+      await fieldTransform(ctx)
+      await cleanTransform(ctx)
+
 
       steps.push('transformers')
 
@@ -220,10 +238,15 @@ function ApiDef(opts: ApiDefOptions) {
         return { ok: true, steps, start, end: Date.now(), ctrl, guide: ctx.guide }
       }
 
-      const builders = await resolveElements(ctx, 'builder', 'standard', {
-        entity: makeEntityBuilder,
-        flow: makeFlowBuilder,
-      })
+      // const builders = await resolveElements(ctx, 'builder', 'standard', {
+      //   entity: makeEntityBuilder,
+      //   flow: makeFlowBuilder,
+      // })
+
+      const builders = [
+        await makeEntityBuilder(ctx),
+        await makeFlowBuilder(ctx),
+      ]
 
       steps.push('builders')
 

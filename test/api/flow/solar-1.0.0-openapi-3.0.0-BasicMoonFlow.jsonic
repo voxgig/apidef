@@ -5,7 +5,7 @@ main: sdk: flow: BasicMoonFlow:
   name: "BasicMoonFlow",
   active: true,
   param: {
-    SOLAR_TEST_MI_SS_IN_GN_AM_E_ENTID: {
+    SOLAR_TEST_MOON_ENTID: {
       moon01: "MOON01",
       moon02: "MOON02",
       moon03: "MOON03"
@@ -52,7 +52,7 @@ main: sdk: flow: BasicMoonFlow:
       entity: "moon",
       action: "load",
       match: {
-        id: "`dm$=p.SOLAR_TEST_MI_SS_IN_GN_AM_E_ENTID.moon01`"
+        id: "`dm$=p.SOLAR_TEST_MOON_ENTID.moon01`"
       }
 
       valid: {
@@ -79,7 +79,7 @@ main: sdk: flow: BasicMoonFlow:
       entity: "moon",
       action: "load",
       match: {
-        id: "`dm$=p.SOLAR_TEST_MI_SS_IN_GN_AM_E_ENTID.moon01`"
+        id: "`dm$=p.SOLAR_TEST_MOON_ENTID.moon01`"
       }
 
       valid: {

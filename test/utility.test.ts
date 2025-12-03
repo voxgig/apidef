@@ -1,14 +1,8 @@
-/* Copyright (c) 2024 Voxgig Ltd, MIT License */
+/* Copyright (c) 2024-2025 Voxgig Ltd, MIT License */
 
-import * as Fs from 'node:fs'
 
 import { test, describe } from 'node:test'
 import { expect } from '@hapi/code'
-
-import { Aontu } from 'aontu'
-
-import * as Diff from 'diff'
-
 
 import {
   pathMatch,
@@ -17,7 +11,6 @@ import {
 } from '../dist/utility'
 
 
-// TODO: remove all sdk refs or rename to api
 
 
 describe('utility', () => {
@@ -33,6 +26,7 @@ describe('utility', () => {
     expect(depluralize('api_key')).equal('api_key')
     expect(depluralize('api_keys')).equal('api_key')
     expect(depluralize('ApiKeys')).equal('ApiKey')
+    expect(depluralize('API_Keys')).equal('API_Key')
   })
 
   test('pathMatch', async () => {

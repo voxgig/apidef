@@ -1,10 +1,9 @@
 "use strict";
-/* Copyright (c) 2024 Voxgig Ltd, MIT License */
+/* Copyright (c) 2024-2025 Voxgig Ltd, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 const node_test_1 = require("node:test");
 const code_1 = require("@hapi/code");
 const utility_1 = require("../dist/utility");
-// TODO: remove all sdk refs or rename to api
 (0, node_test_1.describe)('utility', () => {
     (0, node_test_1.test)('depluralize', () => {
         (0, code_1.expect)((0, utility_1.depluralize)('Dogs')).equal('Dog');
@@ -16,6 +15,7 @@ const utility_1 = require("../dist/utility");
         (0, code_1.expect)((0, utility_1.depluralize)('api_key')).equal('api_key');
         (0, code_1.expect)((0, utility_1.depluralize)('api_keys')).equal('api_key');
         (0, code_1.expect)((0, utility_1.depluralize)('ApiKeys')).equal('ApiKey');
+        (0, code_1.expect)((0, utility_1.depluralize)('API_Keys')).equal('API_Key');
     });
     (0, node_test_1.test)('pathMatch', async () => {
         const pmf = (p, x) => {

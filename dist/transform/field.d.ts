@@ -1,3 +1,3 @@
-import type { Transform } from '../transform';
-declare const fieldTransform: Transform;
+import type { TransformResult } from '../transform';
+declare const fieldTransform: (ctx: any) => Promise<TransformResult>;
 export { fieldTransform, };

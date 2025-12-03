@@ -17,7 +17,7 @@ import type {
 
 
 
-const entityTransform: Transform = async function(
+const entityTransform = async function(
   ctx: any,
 ): Promise<TransformResult> {
   const { apimodel, guide } = ctx

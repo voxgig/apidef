@@ -23,7 +23,7 @@ import type {
 
 
 
-const operationTransform: Transform = async function(
+const operationTransform = async function(
   ctx: any,
 ): Promise<TransformResult> {
   const { apimodel, guide } = ctx

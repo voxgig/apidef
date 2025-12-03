@@ -30,7 +30,7 @@ import type {
 
 
 
-const fieldTransform: Transform = async function(
+const fieldTransform = async function(
   ctx: any,
 ): Promise<TransformResult> {
   const { apimodel, def } = ctx

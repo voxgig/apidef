@@ -1,3 +1,3 @@
-import type { Transform } from '../transform';
-declare const operationTransform: Transform;
+import type { TransformResult } from '../transform';
+declare const operationTransform: (ctx: any) => Promise<TransformResult>;
 export { operationTransform, };
