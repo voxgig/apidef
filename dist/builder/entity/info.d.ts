@@ -1,3 +1,3 @@
-import type { ApiDefOptions, ApiModel } from '../../types';
-declare function resolveInfo(apimodel: ApiModel, opts: ApiDefOptions): () => void;
+import type { ApiDefOptions } from '../../types';
+declare function resolveInfo(apimodel: any, opts: ApiDefOptions): () => void;
 export { resolveInfo };

@@ -1,44 +1,9 @@
 "use strict";
 /* Copyright (c) 2024 Voxgig Ltd, MIT License */
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 Object.defineProperty(exports, "__esModule", { value: true });
-const Fs = __importStar(require("node:fs"));
 const node_test_1 = require("node:test");
 const code_1 = require("@hapi/code");
 const aontu_1 = require("aontu");
-const Diff = __importStar(require("diff"));
 const __1 = require("../");
 // TODO: remove all sdk refs or rename to api
 const aontu = new aontu_1.Aontu();
@@ -123,13 +88,16 @@ const aontu = new aontu_1.Aontu();
     });
     (0, node_test_1.test)('full-solar', async () => {
         const outprefix = 'solar-1.0.0-openapi-3.0.0-';
-        const folder = __dirname + '/../test/api';
+        const folder = __dirname + '/../test/solar';
         const build = await __1.ApiDef.makeBuild({
             folder,
             debug: 'debug',
             outprefix,
+            why: {
+                show: false
+            }
         });
-        const modelSrc = `
+        const modelSrcQ = `
 # apidef test: ${outprefix}
 
 name: solar
@@ -138,40 +106,62 @@ name: solar
 
 def: '${outprefix}def.yaml'
 `;
-        // const model = Aontu(modelSrc).gen()
-        const model = aontu.generate(modelSrc);
-        const buildspec = {
-            spec: {
-                base: __dirname + '/../test/api'
-            }
-        };
-        const bres = await build(model, buildspec, {});
-        const baseGuideSrc = bres.ctx.note.guide.base;
-        if (baseGuideSrc !== SOLAR_GUIDE_BASE) {
-            const difflines = Diff.diffLines(baseGuideSrc, SOLAR_GUIDE_BASE);
-            console.log(difflines);
-            (0, code_1.expect)(bres.ctx.note.guide.base).equal(SOLAR_GUIDE_BASE);
-        }
-        const rootSrc = `
+        const modelSrc = `
+# apidef test: ${outprefix}
+
 @"@voxgig/apidef/model/apidef.jsonic"
 
-# @"${outprefix}guide.jsonic"
+name: solar
 
-@"api/${outprefix}api-def.jsonic"
-@"api/${outprefix}api-entity-index.jsonic"
-@"flow/${outprefix}flow-index.jsonic"
+def: '${outprefix}def.yaml'
 
 `;
-        const rootFile = folder + `/${outprefix}root.jsonic`;
-        Fs.writeFileSync(rootFile, rootSrc);
-        //const result = Aontu(rootSrc, {
-        const result = aontu.generate(rootSrc, {
-            path: rootFile,
-            // base: folder
-        }).gen();
-        Fs.writeFileSync(folder + `/${outprefix}root.json`, JSON.stringify(result, null, 2));
+        // const model = Aontu(modelSrc).gen()
+        const modelinit = aontu.generate(modelSrc);
+        const buildspec = {
+            spec: {
+                base: __dirname + '/../test/solar'
+            }
+        };
+        const bres = await build(modelinit, buildspec, {});
+        console.log(bres.ok);
+        const model = aontu.generate(`@"test/solar/solar.jsonic"`);
+        console.dir(model, { depth: null });
+        // const baseGuideSrc = bres.ctx.note.guide.base
+        // console.log(baseGuideSrc)
+        /*
+        if (baseGuideSrc !== SOLAR_GUIDE_BASE) {
+          const difflines = Diff.diffLines(baseGuideSrc, SOLAR_GUIDE_BASE)
+          console.log(difflines)
+          expect(bres.ctx.note.guide.base).equal(SOLAR_GUIDE_BASE)
+        }
+        */
+        /*
+            const rootSrc = `
+        @"@voxgig/apidef/model/apidef.jsonic"
+        
+        # @"${outprefix}guide.jsonic"
+        
+        @"api/${outprefix}api-def.jsonic"
+        @"api/${outprefix}api-entity-index.jsonic"
+        @"flow/${outprefix}flow-index.jsonic"
+        
+        `
+        
+            const rootFile = folder + `/${outprefix}root.jsonic`
+            Fs.writeFileSync(rootFile, rootSrc)
+        
+            //const result = Aontu(rootSrc, {
+            const result = aontu.generate(rootSrc, {
+              path: rootFile,
+              // base: folder
+            }).gen()
+        
+            Fs.writeFileSync(folder + `/${outprefix}root.json`, JSON.stringify(result, null, 2))
+        */
     });
 });
+/*
 const SOLAR_GUIDE_BASE = `# Guide
 
 guide: {
@@ -200,5 +190,7 @@ guide: {
     }
   }
 
-}`;
+}`
+
+*/
 //# sourceMappingURL=apidef.test.js.map

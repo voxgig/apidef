@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.makeFlowBuilder = makeFlowBuilder;
 const node_path_1 = __importDefault(require("node:path"));
 const jostraca_1 = require("jostraca");
+const types_1 = require("../types");
 const utility_1 = require("../utility");
 const flowHeuristic01_1 = require("./flow/flowHeuristic01");
 async function makeFlowBuilder(ctx) {
@@ -49,7 +50,7 @@ async function makeFlowBuilder(ctx) {
                 let flowModelSrc = (0, utility_1.formatJsonSrc)(JSON.stringify(flow.model, null, 2));
                 let flowsrc = `# ${flow.Name}
 
-main: sdk: flow: ${flow.Name}:
+main: ${types_1.KIT}: flow: ${flow.Name}:
 ` + flowModelSrc;
                 barrel.push(`@"${node_path_1.default.basename(flowfile)}"`);
                 (0, jostraca_1.File)({ name: node_path_1.default.basename(flowfile) }, () => (0, jostraca_1.Content)(flowsrc));

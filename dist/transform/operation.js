@@ -3,8 +3,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.operationTransform = void 0;
 const jostraca_1 = require("jostraca");
 const struct_1 = require("@voxgig/struct");
+const types_1 = require("../types");
 const operationTransform = async function (ctx) {
     const { apimodel, guide } = ctx;
+    const kit = apimodel.main[types_1.KIT];
     let msg = 'operation ';
     (0, jostraca_1.each)(guide.entity, (gent, entname) => {
         collectOps(gent);
@@ -22,7 +24,7 @@ const operationTransform = async function (ctx) {
         resolveUpdate(opm, gent);
         resolveDelete(opm, gent);
         resolvePatch(opm, gent);
-        apimodel.main.sdk.entity[entname].op = opm;
+        kit.entity[entname].op = opm;
         msg += gent.name + ' ';
     });
     return { ok: true, msg };

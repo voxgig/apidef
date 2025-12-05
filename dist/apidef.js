@@ -86,7 +86,7 @@ function ApiDef(opts) {
             const apimodel = {
                 main: {
                     api: {},
-                    sdk: {
+                    [types_1.KIT]: {
                         info: {},
                         entity: {},
                         flow: {},

@@ -3,10 +3,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.argsTransform = void 0;
 const jostraca_1 = require("jostraca");
 const utility_1 = require("../utility");
+const types_1 = require("../types");
 const argsTransform = async function (ctx) {
     const { apimodel, def } = ctx;
+    const kit = apimodel.main[types_1.KIT];
     let msg = 'args ';
-    (0, jostraca_1.each)(apimodel.main.sdk.entity, (ment, entname) => {
+    (0, jostraca_1.each)(kit.entity, (ment, entname) => {
         (0, jostraca_1.each)(ment.op, (mop, opname) => {
             (0, jostraca_1.each)(mop.alts, (malt) => {
                 const argdefs = [];

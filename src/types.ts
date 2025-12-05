@@ -6,6 +6,9 @@ import { Pino, prettyPino } from '@voxgig/util'
 import { Gubu, Open, Any } from 'gubu'
 
 
+const KIT = 'kit'
+
+
 type FsUtil = typeof Fs
 type Log = ReturnType<typeof prettyPino>
 
@@ -54,7 +57,7 @@ const ModelShape = Gubu({
   name: String,
   def: String,
   main: {
-    sdk: {},
+    [KIT]: {},
     def: {},
     api: {
       guide: {},
@@ -93,6 +96,7 @@ type Build = ReturnType<typeof BuildShape>
 
 
 type ApiModel = {
+  /*
   main: {
     api: Record<string, any>
     sdk: {
@@ -101,8 +105,18 @@ type ApiModel = {
       flow: Record<string, any>
     }
     def: Record<string, any>
-  }
+    }
+    */
 }
+
+
+type KitModel = {
+  info: Record<string, any>
+  entity: Record<string, any>
+  flow: Record<string, any>
+}
+
+
 
 
 type ApiDefResult = {
@@ -237,9 +251,9 @@ type GuidePathOp = {
 }
 
 
-
-
 export {
+  KIT,
+
   OpenControlShape,
   OpenModelShape,
   OpenBuildShape,
@@ -254,6 +268,8 @@ export type {
   GuidePathAction,
   GuideRenameParam,
   GuidePathOp,
+
+  KitModel,
 
   CmpDesc,
   MethodName,

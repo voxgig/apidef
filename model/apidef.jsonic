@@ -1,4 +1,74 @@
 
-main: api: {}
+
+main: kit: info: {
+  title?: string
+  version?: string
+}
 
 
+main: kit: entity: &: {
+
+  name: key()
+  active: *true
+  
+  id: {
+    field: string
+    name: string
+  }
+
+  fields: [ &: {
+    name: string
+    req: boolean
+    type: top
+    active: *true
+  } ]
+  
+  op: &: {
+    name: string
+
+    alts: [ &: {
+
+      active: *true
+          
+      method: GET | PUT | POST | DELETE | PATCH | OPTIONS | HEAD
+
+      orig: string
+
+      parts: [ &: string ]
+
+      args: {
+        param: [ &: {
+          active: *true
+          kind: string
+          name: string
+          req: boolean
+          type: top
+        } ]
+      }
+
+      relations: []
+      
+      select: {
+        param: {}
+      }
+      
+    } ]
+  }
+}
+
+
+main: kit: flow: &: {
+  active: *true
+  name: key()
+
+  param: {}
+
+  setp: [ &: {
+    active: *true
+    name: string
+    kind: string
+    action: string
+    match: top
+    valid: top
+  } ]
+}

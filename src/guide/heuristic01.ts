@@ -1216,13 +1216,10 @@ function entityPathMatch_tpte(
     }
   }
 
+  // Probably an entity action suffix
   else {
-    // console.log('PART-ENT', why, pm, mdesc)
-
-    why.push('part-ent')
-    // Probably a special suffix operation,
-    // so make the entity name sufficiently unique
-    entname = canonize(getelem(pm, -3)) + '_' + entname
+    why.push('prob-ent-act')
+    entname = canonize(getelem(pm, -3))
   }
 
   return entname

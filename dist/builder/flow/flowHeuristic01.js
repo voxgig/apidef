@@ -4,6 +4,7 @@ exports.flowHeuristic01 = flowHeuristic01;
 const struct_1 = require("@voxgig/struct");
 const jostraca_1 = require("jostraca");
 const struct_2 = require("@voxgig/struct");
+const types_1 = require("../../types");
 const utility_1 = require("../../utility");
 async function flowHeuristic01(ctx) {
     let entity = ctx.guide.entity;
@@ -15,7 +16,8 @@ async function flowHeuristic01(ctx) {
 }
 function resolveBasicEntityFlow(ctx, entity) {
     const { apimodel, model } = ctx;
-    const apiEntity = apimodel.main.sdk.entity[entity.name];
+    const kit = apimodel.main[types_1.KIT];
+    const apiEntity = kit.entity[entity.name];
     const flow = {
         name: 'Basic' + (0, utility_1.nom)(apiEntity, 'Name') + 'Flow'
     };

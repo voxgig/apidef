@@ -2,8 +2,8 @@
 
 guide: {
   metrics: count: entity: 2
-  metrics: count: path: 4
-  metrics: count: method: 10
+  metrics: count: path: 6
+  metrics: count: method: 12
 
   entity: moon: {
     path: "/api/planet/{planet_id}/moon": {
@@ -28,6 +28,16 @@ guide: {
       op: load: method: *GET
       op: remove: method: *DELETE
       op: update: method: *PUT
+    }
+    path: "/api/planet/{planet_id}/forbid": {
+      action: "forbid": {}
+      rename: param: "planet_id": *"id"
+      op: create: method: *POST
+    }
+    path: "/api/planet/{planet_id}/terraform": {
+      action: "terraform": {}
+      rename: param: "planet_id": *"id"
+      op: create: method: *POST
     }
   }
 

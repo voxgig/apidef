@@ -1,0 +1,178 @@
+# Entity: moon
+
+main: kit: entity: moon: {
+
+  alias: field: {}
+
+  fields: [
+    {
+      name: "diameter"
+      req: false
+      type: "`$NUMBER`"
+    }
+    {
+      name: "id"
+      req: false
+      type: "`$STRING`"
+    }
+    {
+      name: "kind"
+      req: false
+      type: "`$STRING`"
+    }
+    {
+      name: "name"
+      req: false
+      type: "`$STRING`"
+    }
+    {
+      name: "planet_id"
+      req: false
+      type: "`$STRING`"
+    }
+  ]
+
+  id: {
+    field: "id"
+    name: "id"
+  }
+
+  name: "moon"
+  op: {
+    create: {
+      alts: [
+        {
+          args: {
+            param: [
+              {
+                kind: "param"
+                name: "planet_id"
+                req: true
+                type: "`$STRING`"
+              }
+            ]
+          }
+          method: "POST"
+          orig: "/api/planet/{planet_id}/moon"
+          parts: [
+            "api"
+            "planet"
+            "{planet_id}"
+            "moon"
+          ]
+          select: {
+            param: {
+              planet_id: true
+            }
+          }
+        }
+      ]
+      name: "create"
+    }
+    list: {
+      alts: [
+        {
+          args: {
+            param: [
+              {
+                kind: "param"
+                name: "planet_id"
+                req: true
+                type: "`$STRING`"
+              }
+            ]
+          }
+          method: "GET"
+          orig: "/api/planet/{planet_id}/moon"
+          parts: [
+            "api"
+            "planet"
+            "{planet_id}"
+            "moon"
+          ]
+          select: {
+            param: {
+              planet_id: true
+            }
+          }
+        }
+      ]
+      name: "list"
+    }
+    load: {
+      alts: [
+        {
+          args: {
+            param: [
+              {
+                kind: "param"
+                name: "planet_id"
+                req: true
+                type: "`$STRING`"
+              }
+            ]
+          }
+          method: "GET"
+          orig: "/api/planet/{planet_id}/moon/{moon_id}"
+          parts: [
+            "api"
+            "planet"
+            "{planet_id}"
+            "moon"
+            "{id}"
+          ]
+          select: {
+            param: {
+              id: true
+              planet_id: true
+            }
+          }
+        }
+      ]
+      name: "load"
+    }
+    update: {
+      alts: [
+        {
+          args: {
+            param: [
+              {
+                kind: "param"
+                name: "planet_id"
+                req: true
+                type: "`$STRING`"
+              }
+            ]
+          }
+          method: "PUT"
+          orig: "/api/planet/{planet_id}/moon/{moon_id}"
+          parts: [
+            "api"
+            "planet"
+            "{planet_id}"
+            "moon"
+            "{id}"
+          ]
+          select: {
+            param: {
+              id: true
+              planet_id: true
+            }
+          }
+        }
+      ]
+      name: "update"
+    }
+  }
+
+  relations: {
+    ancestors: [
+      [
+        "planet"
+      ]
+    ]
+  }
+
+
+
+}

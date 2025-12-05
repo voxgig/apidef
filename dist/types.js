@@ -1,8 +1,10 @@
 "use strict";
 /* Copyright (c) 2025 Voxgig, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.OpenBuildShape = exports.OpenModelShape = exports.OpenControlShape = void 0;
+exports.OpenBuildShape = exports.OpenModelShape = exports.OpenControlShape = exports.KIT = void 0;
 const gubu_1 = require("gubu");
+const KIT = 'kit';
+exports.KIT = KIT;
 const ControlShape = (0, gubu_1.Gubu)({
     step: {
         parse: true,
@@ -18,7 +20,7 @@ const ModelShape = (0, gubu_1.Gubu)({
     name: String,
     def: String,
     main: {
-        sdk: {},
+        [KIT]: {},
         def: {},
         api: {
             guide: {},

@@ -1,6 +1,6 @@
 # BasicPlanetFlow
 
-main: sdk: flow: BasicPlanetFlow:
+main: kit: flow: BasicPlanetFlow:
 {
   name: "BasicPlanetFlow",
   active: true,
@@ -20,23 +20,41 @@ main: sdk: flow: BasicPlanetFlow:
       planet: {
         PLANET01: {
           diameter: "s0",
+          forbid: "s1",
           id: "PLANET01",
-          kind: "s2",
-          name: "s3"
+          kind: "s3",
+          name: "s4",
+          ok: "s5",
+          start: "s6",
+          state: "s7",
+          stop: "s8",
+          why: "s9"
         }
 
         PLANET02: {
-          diameter: "s28",
+          diameter: "s64",
+          forbid: "s65",
           id: "PLANET02",
-          kind: "s2a",
-          name: "s2b"
+          kind: "s67",
+          name: "s68",
+          ok: "s69",
+          start: "s6a",
+          state: "s6b",
+          stop: "s6c",
+          why: "s6d"
         }
 
         PLANET03: {
-          diameter: "s50",
+          diameter: "sc8",
+          forbid: "sc9",
           id: "PLANET03",
-          kind: "s52",
-          name: "s53"
+          kind: "scb",
+          name: "scc",
+          ok: "scd",
+          start: "sce",
+          state: "scf",
+          stop: "sd0",
+          why: "sd1"
         }
       }
     }

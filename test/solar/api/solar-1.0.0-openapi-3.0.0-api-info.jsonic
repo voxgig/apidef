@@ -1,0 +1,11 @@
+# API Information
+
+
+main: {
+  info: {
+    title: "Solar System API"
+    version: "1.0.0"
+  }
+}
+
+}

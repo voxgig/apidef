@@ -4,8 +4,10 @@ exports.entityTransform = void 0;
 exports.resolvePathList = resolvePathList;
 exports.buildRelations = buildRelations;
 const jostraca_1 = require("jostraca");
+const types_1 = require("../types");
 const entityTransform = async function (ctx) {
     const { apimodel, guide } = ctx;
+    const kit = apimodel.main[types_1.KIT];
     let msg = '';
     (0, jostraca_1.each)(guide.entity, (guideEntity, entname) => {
         ctx.log.debug({ point: 'guide-entity', note: entname });
@@ -21,7 +23,7 @@ const entityTransform = async function (ctx) {
             },
             relations,
         };
-        apimodel.main.sdk.entity[entname] = modelent;
+        kit.entity[entname] = modelent;
         msg += guideEntity.name + ' ';
     });
     return { ok: true, msg };

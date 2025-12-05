@@ -6,7 +6,12 @@ import { each, File, Folder, Content } from 'jostraca'
 
 
 import type {
+  KitModel,
   ApiDefOptions,
+} from '../../types'
+
+import {
+  KIT
 } from '../../types'
 
 import {
@@ -19,32 +24,26 @@ function resolveEntity(
   apimodel: any,
   opts: ApiDefOptions,
 ) {
+  const kit: KitModel = apimodel.main[KIT]
+
   const barrel = [
     '# Entity Models\n'
   ]
 
   const entityFiles: { name: string, src: string }[] = []
 
-  each(apimodel.main.sdk.entity, ((entity: any, entityName: string) => {
+  each(kit.entity, ((entity: any, entityName: string) => {
     const entityFile = (null == opts.outprefix ? '' : opts.outprefix) + entityName + '.jsonic'
 
     let entityJSONIC = formatJSONIC(entity).trim()
     entityJSONIC = entityJSONIC.substring(1, entityJSONIC.length - 1)
 
-    //   JSON.stringify(entity, (k, v) => {
-    //     if (k.includes('$')) {
-    //       return undefined
-    //     }
-    //     return v
-    //   }, 2)
-
     const fieldAliasesSrc = fieldAliases(entity)
 
     const entitySrc =
       `# Entity: ${entity.name}\n\n` +
-      `main: sdk: entity: ${entity.name}: {\n\n` +
+      `main: ${KIT}: entity: ${entity.name}: {\n\n` +
       `  alias: field: ${fieldAliasesSrc}\n` +
-      //formatJsonSrc(entityJSON.substring(1, entityJSON.length - 1)) +
       entityJSONIC +
       '\n\n}\n'
 
@@ -64,8 +63,8 @@ function resolveEntity(
       File({ name: indexFile }, () => Content(barrel.join('\n')))
     })
   }
-
 }
+
 
 function fieldAliases(entity: any) {
   // HEURISTIC: id may be name_id or nameId

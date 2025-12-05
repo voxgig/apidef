@@ -1,5 +1,6 @@
 import * as Fs from 'node:fs';
 import { Pino, prettyPino } from '@voxgig/util';
+declare const KIT = "kit";
 type FsUtil = typeof Fs;
 type Log = ReturnType<typeof prettyPino>;
 type TypeName = 'String' | 'Number' | 'Integer' | 'Boolean' | 'Null' | 'Array' | 'Object' | 'Any';
@@ -305,7 +306,7 @@ declare const ModelShape: {
         name: string;
         def: string;
         main: {
-            sdk: {};
+            kit: {};
             def: {};
             api: {
                 guide: {};
@@ -317,7 +318,7 @@ declare const ModelShape: {
         name: StringConstructor;
         def: StringConstructor;
         main: {
-            sdk: {};
+            kit: {};
             def: {};
             api: {
                 guide: {};
@@ -367,7 +368,7 @@ declare const ModelShape: {
         name: StringConstructor;
         def: StringConstructor;
         main: {
-            sdk: {};
+            kit: {};
             def: {};
             api: {
                 guide: {};
@@ -403,7 +404,7 @@ declare const OpenModelShape: {
             name: string;
             def: string;
             main: {
-                sdk: {};
+                kit: {};
                 def: {};
                 api: {
                     guide: {};
@@ -415,7 +416,7 @@ declare const OpenModelShape: {
             name: StringConstructor;
             def: StringConstructor;
             main: {
-                sdk: {};
+                kit: {};
                 def: {};
                 api: {
                     guide: {};
@@ -465,7 +466,7 @@ declare const OpenModelShape: {
             name: StringConstructor;
             def: StringConstructor;
             main: {
-                sdk: {};
+                kit: {};
                 def: {};
                 api: {
                     guide: {};
@@ -524,7 +525,7 @@ declare const OpenModelShape: {
             name: string;
             def: string;
             main: {
-                sdk: {};
+                kit: {};
                 def: {};
                 api: {
                     guide: {};
@@ -536,7 +537,7 @@ declare const OpenModelShape: {
             name: StringConstructor;
             def: StringConstructor;
             main: {
-                sdk: {};
+                kit: {};
                 def: {};
                 api: {
                     guide: {};
@@ -586,7 +587,7 @@ declare const OpenModelShape: {
             name: StringConstructor;
             def: StringConstructor;
             main: {
-                sdk: {};
+                kit: {};
                 def: {};
                 api: {
                     guide: {};
@@ -985,16 +986,11 @@ declare const OpenBuildShape: {
     };
 };
 type Build = ReturnType<typeof BuildShape>;
-type ApiModel = {
-    main: {
-        api: Record<string, any>;
-        sdk: {
-            info: Record<string, any>;
-            entity: Record<string, any>;
-            flow: Record<string, any>;
-        };
-        def: Record<string, any>;
-    };
+type ApiModel = {};
+type KitModel = {
+    info: Record<string, any>;
+    entity: Record<string, any>;
+    flow: Record<string, any>;
 };
 type ApiDefResult = {
     ok: boolean;
@@ -1105,5 +1101,5 @@ type GuidePathOp = {
         res: any;
     };
 };
-export { OpenControlShape, OpenModelShape, OpenBuildShape, };
-export type { Guide, GuideMetrics, GuideEntity, GuidePath, GuidePathAction, GuideRenameParam, GuidePathOp, CmpDesc, MethodName, MethodDesc, TypeName, Log, FsUtil, ApiDefOptions, ApiDefResult, Control, Model, Build, ApiModel, ApiDefContext, Warner, Metrics, };
+export { KIT, OpenControlShape, OpenModelShape, OpenBuildShape, };
+export type { Guide, GuideMetrics, GuideEntity, GuidePath, GuidePathAction, GuideRenameParam, GuidePathOp, KitModel, CmpDesc, MethodName, MethodDesc, TypeName, Log, FsUtil, ApiDefOptions, ApiDefResult, Control, Model, Build, ApiModel, ApiDefContext, Warner, Metrics, };

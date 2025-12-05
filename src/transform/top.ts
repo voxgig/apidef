@@ -3,9 +3,12 @@ import { each, getx } from 'jostraca'
 
 import { joinurl } from '@voxgig/struct'
 
+import { KIT } from '../types'
+
 import type { TransformResult } from '../transform'
 
 import type {
+  KitModel,
   TypeName,
   MethodName,
 } from '../types'
@@ -206,13 +209,14 @@ const topTransform = async function(
   ctx: any,
 ): Promise<TransformResult> {
   const { apimodel, def } = ctx
+  const kit: KitModel = apimodel.main[KIT]
 
-  apimodel.main.sdk.info = def.info
-  apimodel.main.sdk.info.servers = def.servers ?? []
+  kit.info = def.info
+  kit.info.servers = def.servers ?? []
 
   // Swagger 2.0
   if (def.host) {
-    apimodel.main.sdk.info.servers.push({
+    kit.info.servers.push({
       url: (def.schemes?.[0] ?? 'https') + '://' + joinurl([def.host, def.basePath])
     })
   }

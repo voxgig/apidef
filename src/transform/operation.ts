@@ -10,6 +10,9 @@ import { fixName } from '../transform'
 
 import { formatJSONIC } from '../utility'
 
+import { KIT } from '../types'
+
+import type { KitModel } from '../types'
 
 import type {
   GuideEntity,
@@ -27,6 +30,7 @@ const operationTransform = async function(
   ctx: any,
 ): Promise<TransformResult> {
   const { apimodel, guide } = ctx
+  const kit = apimodel.main[KIT]
 
   let msg = 'operation '
 
@@ -50,7 +54,7 @@ const operationTransform = async function(
     resolveDelete(opm, gent)
     resolvePatch(opm, gent)
 
-    apimodel.main.sdk.entity[entname].op = opm
+    kit.entity[entname].op = opm
 
     msg += gent.name + ' '
   })

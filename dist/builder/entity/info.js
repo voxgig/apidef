@@ -3,11 +3,12 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.resolveInfo = resolveInfo;
 const utility_1 = require("../../utility");
+const types_1 = require("../../types");
 const jostraca_1 = require("jostraca");
 function resolveInfo(apimodel, opts) {
+    const kit = apimodel.main[types_1.KIT];
     const infoFile = (null == opts.outprefix ? '' : opts.outprefix) + 'api-info.jsonic';
-    const modelInfo = { main: { info: apimodel.main.sdk.info } };
-    // let modelDefSrc = JSON.stringify(modelDef, null, 2)
+    const modelInfo = { main: { info: kit.info } };
     let modelDefSrc = (0, utility_1.formatJSONIC)(modelInfo);
     modelDefSrc =
         '# API Information\n\n' +

@@ -7,27 +7,22 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.resolveEntity = resolveEntity;
 const node_path_1 = __importDefault(require("node:path"));
 const jostraca_1 = require("jostraca");
+const types_1 = require("../../types");
 const utility_1 = require("../../utility");
 function resolveEntity(apimodel, opts) {
+    const kit = apimodel.main[types_1.KIT];
     const barrel = [
         '# Entity Models\n'
     ];
     const entityFiles = [];
-    (0, jostraca_1.each)(apimodel.main.sdk.entity, ((entity, entityName) => {
+    (0, jostraca_1.each)(kit.entity, ((entity, entityName) => {
         const entityFile = (null == opts.outprefix ? '' : opts.outprefix) + entityName + '.jsonic';
         let entityJSONIC = (0, utility_1.formatJSONIC)(entity).trim();
         entityJSONIC = entityJSONIC.substring(1, entityJSONIC.length - 1);
-        //   JSON.stringify(entity, (k, v) => {
-        //     if (k.includes('$')) {
-        //       return undefined
-        //     }
-        //     return v
-        //   }, 2)
         const fieldAliasesSrc = fieldAliases(entity);
         const entitySrc = `# Entity: ${entity.name}\n\n` +
-            `main: sdk: entity: ${entity.name}: {\n\n` +
+            `main: ${types_1.KIT}: entity: ${entity.name}: {\n\n` +
             `  alias: field: ${fieldAliasesSrc}\n` +
-            //formatJsonSrc(entityJSON.substring(1, entityJSON.length - 1)) +
             entityJSONIC +
             '\n\n}\n';
         entityFiles.push({ name: entityFile, src: entitySrc });

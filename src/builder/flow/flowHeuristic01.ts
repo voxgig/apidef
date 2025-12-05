@@ -5,6 +5,15 @@ import { each, names } from 'jostraca'
 
 import { getelem } from '@voxgig/struct'
 
+
+import type {
+  KitModel
+} from '../../types'
+
+import {
+  KIT
+} from '../../types'
+
 import {
   ModelEntity,
   ModelOp,
@@ -33,7 +42,9 @@ async function flowHeuristic01(ctx: any): Promise<any[]> {
 
 function resolveBasicEntityFlow(ctx: any, entity: any) {
   const { apimodel, model } = ctx
-  const apiEntity: ModelEntity = apimodel.main.sdk.entity[entity.name]
+  const kit: KitModel = apimodel.main[KIT]
+
+  const apiEntity: ModelEntity = kit.entity[entity.name]
 
   const flow: any = {
     name: 'Basic' + nom(apiEntity, 'Name') + 'Flow'

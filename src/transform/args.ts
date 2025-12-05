@@ -7,6 +7,9 @@ import type { TransformResult, Transform } from '../transform'
 import { formatJSONIC, depluralize, validator } from '../utility'
 
 
+import { KIT } from '../types'
+
+import type { KitModel } from '../types'
 
 import type {
   PathDef,
@@ -25,11 +28,12 @@ const argsTransform = async function(
   ctx: any,
 ): Promise<TransformResult> {
   const { apimodel, def } = ctx
+  const kit: KitModel = apimodel.main[KIT]
 
   let msg = 'args '
 
 
-  each(apimodel.main.sdk.entity, (ment: ModelEntity, entname: string) => {
+  each(kit.entity, (ment: ModelEntity, entname: string) => {
     each(ment.op, (mop: ModelOp, opname: OpName) => {
       each(mop.alts, (malt: ModelAlt) => {
         const argdefs: ParameterDef[] = []

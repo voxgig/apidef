@@ -1,0 +1,207 @@
+# Entity: planet
+
+main: kit: entity: planet: {
+
+  alias: field: {}
+
+  fields: [
+    {
+      name: "diameter"
+      req: false
+      type: "`$NUMBER`"
+    }
+    {
+      name: "forbid"
+      req: false
+      type: "`$BOOLEAN`"
+    }
+    {
+      name: "id"
+      req: false
+      type: "`$STRING`"
+    }
+    {
+      name: "kind"
+      req: false
+      type: "`$STRING`"
+    }
+    {
+      name: "name"
+      req: false
+      type: "`$STRING`"
+    }
+    {
+      name: "ok"
+      req: false
+      type: "`$BOOLEAN`"
+    }
+    {
+      name: "start"
+      req: false
+      type: "`$BOOLEAN`"
+    }
+    {
+      name: "state"
+      req: false
+      type: "`$STRING`"
+    }
+    {
+      name: "stop"
+      req: false
+      type: "`$BOOLEAN`"
+    }
+    {
+      name: "why"
+      req: false
+      type: "`$STRING`"
+    }
+  ]
+
+  id: {
+    field: "id"
+    name: "id"
+  }
+
+  name: "planet"
+  op: {
+    create: {
+      alts: [
+        {
+          method: "POST"
+          orig: "/api/planet"
+          parts: [
+            "api"
+            "planet"
+          ]
+        }
+        {
+          args: {
+            param: [
+              {
+                kind: "param"
+                name: "planet_id"
+                req: true
+                type: "`$STRING`"
+              }
+            ]
+          }
+          method: "POST"
+          orig: "/api/planet/{planet_id}/forbid"
+          parts: [
+            "api"
+            "planet"
+            "{id}"
+            "forbid"
+          ]
+          select: {
+            param: {
+              "$action": "forbid"
+              id: true
+            }
+          }
+        }
+        {
+          args: {
+            param: [
+              {
+                kind: "param"
+                name: "planet_id"
+                req: true
+                type: "`$STRING`"
+              }
+            ]
+          }
+          method: "POST"
+          orig: "/api/planet/{planet_id}/terraform"
+          parts: [
+            "api"
+            "planet"
+            "{id}"
+            "terraform"
+          ]
+          select: {
+            param: {
+              "$action": "terraform"
+              id: true
+            }
+          }
+        }
+      ]
+      name: "create"
+    }
+    list: {
+      alts: [
+        {
+          method: "GET"
+          orig: "/api/planet"
+          parts: [
+            "api"
+            "planet"
+          ]
+        }
+      ]
+      name: "list"
+    }
+    load: {
+      alts: [
+        {
+          args: {
+            param: [
+              {
+                kind: "param"
+                name: "planet_id"
+                req: true
+                type: "`$STRING`"
+              }
+            ]
+          }
+          method: "GET"
+          orig: "/api/planet/{planet_id}"
+          parts: [
+            "api"
+            "planet"
+            "{id}"
+          ]
+          select: {
+            param: {
+              id: true
+            }
+          }
+        }
+      ]
+      name: "load"
+    }
+    update: {
+      alts: [
+        {
+          args: {
+            param: [
+              {
+                kind: "param"
+                name: "planet_id"
+                req: true
+                type: "`$STRING`"
+              }
+            ]
+          }
+          method: "PUT"
+          orig: "/api/planet/{planet_id}"
+          parts: [
+            "api"
+            "planet"
+            "{id}"
+          ]
+          select: {
+            param: {
+              id: true
+            }
+          }
+        }
+      ]
+      name: "update"
+    }
+  }
+
+
+
+}

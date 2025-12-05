@@ -6,6 +6,9 @@ import type { TransformResult, Transform } from '../transform'
 
 import { formatJSONIC } from '../utility'
 
+import { KIT } from '../types'
+
+import type { KitModel } from '../types'
 
 import type {
   GuideEntity,
@@ -21,6 +24,7 @@ const entityTransform = async function(
   ctx: any,
 ): Promise<TransformResult> {
   const { apimodel, guide } = ctx
+  const kit: KitModel = apimodel.main[KIT]
 
   let msg = ''
 
@@ -41,7 +45,7 @@ const entityTransform = async function(
       relations,
     }
 
-    apimodel.main.sdk.entity[entname] = modelent
+    kit.entity[entname] = modelent
 
     msg += guideEntity.name + ' '
   })

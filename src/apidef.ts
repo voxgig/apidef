@@ -25,6 +25,8 @@ import type {
 
 
 import {
+  KIT,
+
   OpenModelShape,
   OpenBuildShape,
   OpenControlShape,
@@ -109,7 +111,7 @@ function ApiDef(opts: ApiDefOptions) {
       const apimodel: ApiModel = {
         main: {
           api: {},
-          sdk: {
+          [KIT]: {
             info: {},
             entity: {},
             flow: {},

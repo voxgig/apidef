@@ -6,6 +6,7 @@ import { File, Content, Folder, each } from 'jostraca'
 
 import {
   ApiDefContext,
+  KIT,
 } from '../types'
 
 
@@ -67,7 +68,7 @@ async function makeFlowBuilder(ctx: ApiDefContext): Promise<Function> {
 
         let flowsrc = `# ${flow.Name}
 
-main: sdk: flow: ${flow.Name}:
+main: ${KIT}: flow: ${flow.Name}:
 ` + flowModelSrc
 
         barrel.push(`@"${Path.basename(flowfile)}"`)

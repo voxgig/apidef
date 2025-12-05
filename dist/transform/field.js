@@ -3,11 +3,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.fieldTransform = void 0;
 const jostraca_1 = require("jostraca");
 const utility_1 = require("../utility");
+const types_1 = require("../types");
 const fieldTransform = async function (ctx) {
     const { apimodel, def } = ctx;
+    const kit = apimodel.main[types_1.KIT];
     let msg = 'field ';
     const opFieldPrecedence = ['load', 'create', 'update', 'patch', 'list'];
-    (0, jostraca_1.each)(apimodel.main.sdk.entity, (ment, entname) => {
+    (0, jostraca_1.each)(kit.entity, (ment, entname) => {
         const fielddefs = [];
         const fields = ment.fields;
         const seen = {};

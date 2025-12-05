@@ -1,0 +1,49 @@
+# BasicPlanetTerraformFlow
+
+main: kit: flow: BasicPlanetTerraformFlow:
+{
+  name: "BasicPlanetTerraformFlow",
+  active: true,
+  param: {
+    SOLAR_TEST_PLANET_TERRAFORM_ENTID: {
+      planet_terraform01: "PLANET_TERRAFORM01",
+      planet_terraform02: "PLANET_TERRAFORM02",
+      planet_terraform03: "PLANET_TERRAFORM03"
+    }
+
+    SOLAR_TEST_LIVE: "FALSE",
+    SOLAR_TEST_EXPLAIN: "FALSE"
+  }
+
+  test: {
+    entity: {
+      planet_terraform: {
+        PLANET_TERRAFORM01: {
+          ok: "s0",
+          start: "s1",
+          state: "s2",
+          stop: "s3",
+          id: "PLANET_TERRAFORM01"
+        }
+
+        PLANET_TERRAFORM02: {
+          ok: "s28",
+          start: "s29",
+          state: "s2a",
+          stop: "s2b",
+          id: "PLANET_TERRAFORM02"
+        }
+
+        PLANET_TERRAFORM03: {
+          ok: "s50",
+          start: "s51",
+          state: "s52",
+          stop: "s53",
+          id: "PLANET_TERRAFORM03"
+        }
+      }
+    }
+  }
+
+  step: []
+}

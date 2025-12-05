@@ -10,6 +10,9 @@ import { fixName } from '../transform'
 
 import { formatJSONIC, validator, canonize } from '../utility'
 
+import { KIT } from '../types'
+
+import type { KitModel } from '../types'
 
 import type {
   PathDef,
@@ -34,12 +37,13 @@ const fieldTransform = async function(
   ctx: any,
 ): Promise<TransformResult> {
   const { apimodel, def } = ctx
+  const kit: KitModel = apimodel.main[KIT]
 
   let msg = 'field '
 
   const opFieldPrecedence: OpName[] = ['load', 'create', 'update', 'patch', 'list']
 
-  each(apimodel.main.sdk.entity, (ment: ModelEntity, entname: string) => {
+  each(kit.entity, (ment: ModelEntity, entname: string) => {
     const fielddefs: SchemaDef[] = []
 
     const fields = ment.fields

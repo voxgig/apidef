@@ -1,6 +1,6 @@
 # BasicMoonFlow
 
-main: sdk: flow: BasicMoonFlow:
+main: kit: flow: BasicMoonFlow:
 {
   name: "BasicMoonFlow",
   active: true,

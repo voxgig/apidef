@@ -5,10 +5,15 @@ import { formatJSONIC } from '../../utility'
 
 
 import type {
+  KitModel,
+
   ApiDefOptions,
   ApiModel,
 } from '../../types'
 
+import {
+  KIT
+} from '../../types'
 
 import {
   File,
@@ -18,14 +23,16 @@ import {
 
 
 function resolveInfo(
-  apimodel: ApiModel,
+  apimodel: any,
   opts: ApiDefOptions,
 ) {
+  const kit: KitModel = apimodel.main[KIT]
+
   const infoFile =
     (null == opts.outprefix ? '' : opts.outprefix) + 'api-info.jsonic'
 
-  const modelInfo = { main: { info: apimodel.main.sdk.info } }
-  // let modelDefSrc = JSON.stringify(modelDef, null, 2)
+  const modelInfo = { main: { info: kit.info } }
+
   let modelDefSrc = formatJSONIC(modelInfo)
 
   modelDefSrc =
