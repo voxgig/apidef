@@ -12,10 +12,16 @@ import type { KitModel } from '../types'
 
 import type {
   GuideEntity,
+} from './top'
+
+import type {
   GuidePath,
   PathDesc,
+} from '../desc'
+
+import type {
   ModelEntity,
-} from './top'
+} from '../model'
 
 
 

@@ -18,16 +18,22 @@ import {
   GuidePathAction,
   GuideRenameParam,
   GuidePathOp,
-
-  CmpDesc,
 } from '../types'
 
+import type {
+  CmpDesc,
+  MethodDesc,
+  MethodEntityDesc,
+  EntityDesc,
+  EntityPathDesc,
+} from '../desc'
 
 
-import {
+
+import type {
   PathDef,
   MethodDef,
-} from '../transform/top'
+} from '../def'
 
 
 import {
@@ -47,74 +53,6 @@ import type {
 } from '../utility'
 
 
-type MethodDesc = {
-  path: string
-  method: string
-  summary: string
-  tags: string[]
-  parameters: any[]
-  responses: Record<string, any>
-  requestBody: Record<string, any>
-  MethodEntity: MethodEntityDesc
-}
-
-type MethodEntityDesc = {
-  ref: string
-
-  cmp: string | null
-  origcmp: string | null
-  origcmpref: string | null
-
-  why_cmp: string[]
-  cmpoccur: number
-  path_rate: number
-  method_rate: number
-  entname: string
-  why_op: string[]
-  rename: Record<string, any>
-  why_rename: Record<string, any>
-  rename_orig: string[]
-  opname: string
-  why_opname: string[]
-
-  pm?: any
-}
-
-
-type EntityDesc = {
-  name: string
-  origname: string
-  plural: string
-  path: Record<string, EntityPathDesc>
-  alias: Record<string, string>,
-  cmp: CmpDesc
-}
-
-
-
-
-
-type EntityPathDesc = {
-  op: Record<string, any>
-  pm: PathMatch
-
-  rename: {
-    param: Record<string, string>
-  }
-  why_rename: {
-    why_param: Record<string, string[]>
-  }
-
-  action: Record<string, {
-    // kind: any,
-    why_action: string[]
-  }>
-
-  why_action: Record<string, string[]>
-
-  why_ent: string[]
-  why_path: string[]
-}
 
 // Log non - fatal wierdness.
 const dlog = getdlog('apidef', __filename)
@@ -981,7 +919,7 @@ function FindActions(spec: TaskSpec) {
 
 function ResolveOperation(spec: TaskSpec) {
   const mdesc: MethodDesc = spec.node.val
-  const ment = mdesc.MethodEntity
+  const ment: MethodEntityDesc = mdesc.MethodEntity
 
   const pathStr = mdesc.path
   const work = spec.data.work

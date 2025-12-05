@@ -15,12 +15,15 @@ import type {
   PathDef,
   ParameterDef,
   MethodDef,
-  ModelOp,
+} from '../def'
+
+import type {
   OpName,
+  ModelOp,
   ModelEntity,
   ModelAlt,
   ModelArg,
-} from './top'
+} from '../model'
 
 
 

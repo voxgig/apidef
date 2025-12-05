@@ -14,11 +14,11 @@ import {
   KIT
 } from '../../types'
 
-import {
+import type {
   ModelEntity,
   ModelOp,
   ModelAlt,
-} from '../../transform/top'
+} from '../../model'
 
 import {
   nom

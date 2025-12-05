@@ -174,21 +174,12 @@ type Warner = {
 } & ((details: Record<string, any>) => void)
 
 
-type CmpDesc = {
-  namedesc?: any,
-  path_rate: number,
-  method_rate: number,
-}
-
+import type {
+  CmpDesc,
+  BasicMethodDesc,
+} from './desc'
 
 type MethodName = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS' | ''
-
-
-type MethodDesc = {
-  name: MethodName,
-  def: Record<string, any>,
-  path: string,
-}
 
 
 
@@ -271,9 +262,7 @@ export type {
 
   KitModel,
 
-  CmpDesc,
   MethodName,
-  MethodDesc,
   TypeName,
   Log,
   FsUtil,
@@ -287,4 +276,27 @@ export type {
   Warner,
   Metrics,
 }
+
+export type {
+  CmpDesc,
+  BasicMethodDesc,
+  MethodDesc,
+  MethodEntityDesc,
+  EntityDesc,
+  EntityPathDesc,
+  PathDesc,
+  OpDesc,
+} from './desc'
+
+export type {
+  OpName,
+  ModelEntityRelations,
+  ModelOpMap,
+  ModelFieldOp,
+  ModelField,
+  ModelArg,
+  ModelAlt,
+  ModelOp,
+  ModelEntity,
+} from './model'
 

@@ -25,10 +25,6 @@ import {
 } from '../types'
 
 
-import {
-  // GuideEntity,
-  // GuidePath,
-} from '../transform/top'
 
 
 import {

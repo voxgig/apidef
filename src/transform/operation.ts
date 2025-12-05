@@ -16,13 +16,19 @@ import type { KitModel } from '../types'
 
 import type {
   GuideEntity,
+} from './top'
+
+import type {
   GuideOp,
   PathDesc,
+} from '../desc'
+
+import type {
+  OpName,
   ModelOpMap,
   ModelOp,
   ModelAlt,
-  OpName,
-} from './top'
+} from '../model'
 
 
 
@@ -148,10 +154,10 @@ function resolveOp(opname: OpName, gent: GuideEntity): undefined | ModelOp {
           method: p.method,
           args: {},
           select: {
-            param: parts
+            query: parts
               .filter(p => '{' === p[0])
               .map(p => p.substring(1, p.length - 1))
-              .reduce((a, p) => (a[p] = true, a),
+              .reduce((a, p) => (a[p] = '`$STRING`', a),
                 ('{id}' === getelem(parts, -2) ? {
                   $action: getelem(parts, -1)
                 } : {}) as any)

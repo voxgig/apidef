@@ -94,9 +94,9 @@ main: kit: entity: planet: {
             "forbid"
           ]
           select: {
-            param: {
+            query: {
               "$action": "forbid"
-              id: true
+              id: "`$STRING`"
             }
           }
         }
@@ -120,9 +120,9 @@ main: kit: entity: planet: {
             "terraform"
           ]
           select: {
-            param: {
+            query: {
               "$action": "terraform"
-              id: true
+              id: "`$STRING`"
             }
           }
         }
@@ -163,8 +163,8 @@ main: kit: entity: planet: {
             "{id}"
           ]
           select: {
-            param: {
-              id: true
+            query: {
+              id: "`$STRING`"
             }
           }
         }
@@ -192,8 +192,8 @@ main: kit: entity: planet: {
             "{id}"
           ]
           select: {
-            param: {
-              id: true
+            query: {
+              id: "`$STRING`"
             }
           }
         }

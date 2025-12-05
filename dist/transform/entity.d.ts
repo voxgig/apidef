@@ -1,5 +1,6 @@
 import type { TransformResult } from '../transform';
-import type { GuideEntity, PathDesc } from './top';
+import type { GuideEntity } from './top';
+import type { PathDesc } from '../desc';
 declare const entityTransform: (ctx: any) => Promise<TransformResult>;
 declare function resolvePathList(guideEntity: GuideEntity, def: {
     paths: Record<string, any>;

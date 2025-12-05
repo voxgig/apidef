@@ -1041,17 +1041,7 @@ type Warner = {
     } & Record<string, any>)[];
     point: string;
 } & ((details: Record<string, any>) => void);
-type CmpDesc = {
-    namedesc?: any;
-    path_rate: number;
-    method_rate: number;
-};
 type MethodName = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS' | '';
-type MethodDesc = {
-    name: MethodName;
-    def: Record<string, any>;
-    path: string;
-};
 type Guide = {
     metrics: GuideMetrics;
     entity: Record<string, GuideEntity>;
@@ -1102,4 +1092,6 @@ type GuidePathOp = {
     };
 };
 export { KIT, OpenControlShape, OpenModelShape, OpenBuildShape, };
-export type { Guide, GuideMetrics, GuideEntity, GuidePath, GuidePathAction, GuideRenameParam, GuidePathOp, KitModel, CmpDesc, MethodName, MethodDesc, TypeName, Log, FsUtil, ApiDefOptions, ApiDefResult, Control, Model, Build, ApiModel, ApiDefContext, Warner, Metrics, };
+export type { Guide, GuideMetrics, GuideEntity, GuidePath, GuidePathAction, GuideRenameParam, GuidePathOp, KitModel, MethodName, TypeName, Log, FsUtil, ApiDefOptions, ApiDefResult, Control, Model, Build, ApiModel, ApiDefContext, Warner, Metrics, };
+export type { CmpDesc, BasicMethodDesc, MethodDesc, MethodEntityDesc, EntityDesc, EntityPathDesc, PathDesc, OpDesc, } from './desc';
+export type { OpName, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelAlt, ModelOp, ModelEntity, } from './model';

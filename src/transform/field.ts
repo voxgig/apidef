@@ -19,17 +19,26 @@ import type {
   ParameterDef,
   MethodDef,
   SchemaDef,
+} from '../def'
+
+import type {
   GuideEntity,
+} from './top'
+
+import type {
   GuideOp,
   PathDesc,
+} from '../desc'
+
+import type {
+  OpName,
   ModelOpMap,
   ModelOp,
-  OpName,
   ModelEntity,
   ModelAlt,
   ModelArg,
   ModelField,
-} from './top'
+} from '../model'
 
 
 

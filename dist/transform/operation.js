@@ -93,10 +93,10 @@ function resolveOp(opname, gent) {
                     method: p.method,
                     args: {},
                     select: {
-                        param: parts
+                        query: parts
                             .filter(p => '{' === p[0])
                             .map(p => p.substring(1, p.length - 1))
-                            .reduce((a, p) => (a[p] = true, a), ('{id}' === (0, struct_1.getelem)(parts, -2) ? {
+                            .reduce((a, p) => (a[p] = '`$STRING`', a), ('{id}' === (0, struct_1.getelem)(parts, -2) ? {
                             $action: (0, struct_1.getelem)(parts, -1)
                         } : {}))
                     },

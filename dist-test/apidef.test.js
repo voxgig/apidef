@@ -13,7 +13,7 @@ const aontu = new aontu_1.Aontu();
     });
     (0, node_test_1.test)('guide-solar', async () => {
         const outprefix = 'solar-1.0.0-openapi-3.0.0-';
-        const folder = __dirname + '/../test/api';
+        const folder = __dirname + '/../test/solar';
         const build = await __1.ApiDef.makeBuild({
             folder,
             debug: 'debug',
@@ -24,7 +24,7 @@ const aontu = new aontu_1.Aontu();
             def: outprefix + 'def.yaml'
         }, {
             spec: {
-                base: __dirname + '/../test/api',
+                base: __dirname + '/../test/solar',
                 buildargs: {
                     apidef: {
                         ctrl: {
@@ -40,7 +40,7 @@ const aontu = new aontu_1.Aontu();
                 }
             }
         }, {});
-        // console.dir(bres.guide, { depth: null })
+        console.dir(bres.guide, { depth: null });
         const matchGuide = {
             entity: {
                 moon: {
@@ -77,12 +77,22 @@ const aontu = new aontu_1.Aontu();
                                 remove: { method: 'DELETE' },
                                 update: { method: 'PUT' }
                             }
+                        },
+                        '/api/planet/{planet_id}/forbid': {
+                            action: { forbid: {} },
+                            rename: { param: { planet_id: 'id' } },
+                            op: { create: { method: 'POST' } }
+                        },
+                        '/api/planet/{planet_id}/terraform': {
+                            action: { terraform: {} },
+                            rename: { param: { planet_id: 'id' } },
+                            op: { create: { method: 'POST' } }
                         }
                     },
                     name: 'planet'
                 }
             },
-            metrics: { count: { entity: 2, path: 4, method: 10 } }
+            metrics: { count: { entity: 2, path: 6, method: 12 } }
         };
         (0, code_1.expect)(bres.guide).contains(matchGuide);
     });

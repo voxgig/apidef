@@ -30,7 +30,7 @@ describe('apidef', () => {
 
   test('guide-solar', async () => {
     const outprefix = 'solar-1.0.0-openapi-3.0.0-'
-    const folder = __dirname + '/../test/api'
+    const folder = __dirname + '/../test/solar'
 
     const build = await ApiDef.makeBuild({
       folder,
@@ -45,7 +45,7 @@ describe('apidef', () => {
       },
       {
         spec: {
-          base: __dirname + '/../test/api',
+          base: __dirname + '/../test/solar',
           buildargs: {
             apidef: {
               ctrl: {
@@ -64,7 +64,7 @@ describe('apidef', () => {
       {}
     )
 
-    // console.dir(bres.guide, { depth: null })
+    console.dir(bres.guide, { depth: null })
 
     const matchGuide = {
       entity: {
@@ -102,12 +102,22 @@ describe('apidef', () => {
                 remove: { method: 'DELETE' },
                 update: { method: 'PUT' }
               }
+            },
+            '/api/planet/{planet_id}/forbid': {
+              action: { forbid: {} },
+              rename: { param: { planet_id: 'id' } },
+              op: { create: { method: 'POST' } }
+            },
+            '/api/planet/{planet_id}/terraform': {
+              action: { terraform: {} },
+              rename: { param: { planet_id: 'id' } },
+              op: { create: { method: 'POST' } }
             }
           },
           name: 'planet'
         }
       },
-      metrics: { count: { entity: 2, path: 4, method: 10 } }
+      metrics: { count: { entity: 2, path: 6, method: 12 } }
     }
 
 
