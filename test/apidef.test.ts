@@ -64,7 +64,7 @@ describe('apidef', () => {
       {}
     )
 
-    console.dir(bres.guide, { depth: null })
+    // console.dir(bres.guide, { depth: null })
 
     const matchGuide = {
       entity: {
@@ -174,8 +174,10 @@ def: '${outprefix}def.yaml'
     // console.log(bres.ok)
     expect(bres.ok).true()
 
+    // TODO: compare to expected model!
+
     const model = aontu.generate(`@"test/solar/solar.jsonic"`)
-    console.dir(model, { depth: null })
+    // console.dir(model, { depth: null })
 
     // const baseGuideSrc = bres.ctx.note.guide.base
 

@@ -1,4 +1,7 @@
 
+// TODO: move this to sdkgen
+
+
 import Path from 'node:path'
 
 import { File, Content, Folder, each } from 'jostraca'

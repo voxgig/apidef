@@ -242,13 +242,10 @@ function ApiDef(opts: ApiDefOptions) {
         return { ok: true, steps, start, end: Date.now(), ctrl, guide: ctx.guide }
       }
 
-      // const builders = await resolveElements(ctx, 'builder', 'standard', {
-      //   entity: makeEntityBuilder,
-      //   flow: makeFlowBuilder,
-      // })
-
       const builders = [
         await makeEntityBuilder(ctx),
+
+        // TODO: move to sdkgen
         await makeFlowBuilder(ctx),
       ]
 

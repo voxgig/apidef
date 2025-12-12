@@ -189,12 +189,9 @@ function ApiDef(opts) {
             if (!ctrl.step.builders) {
                 return { ok: true, steps, start, end: Date.now(), ctrl, guide: ctx.guide };
             }
-            // const builders = await resolveElements(ctx, 'builder', 'standard', {
-            //   entity: makeEntityBuilder,
-            //   flow: makeFlowBuilder,
-            // })
             const builders = [
                 await (0, entity_2.makeEntityBuilder)(ctx),
+                // TODO: move to sdkgen
                 await (0, flow_1.makeFlowBuilder)(ctx),
             ];
             steps.push('builders');
