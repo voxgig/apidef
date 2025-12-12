@@ -16,9 +16,9 @@ const cleanTransform = async function(
   // Remove empty nodes and undefined values
   walk(
     apimodel,
-    (k: any, v: any, _p: any, t: any) => {
+    (k: any, v: any, _p: any, ancestors: any) => {
       if (undefined === k) {
-        cur[t.length] = ismap(v) ? {} : islist(v) ? [] : v
+        cur[ancestors.length] = ismap(v) ? {} : islist(v) ? [] : v
         return v
       }
 
@@ -29,19 +29,20 @@ const cleanTransform = async function(
           vi = undefined
         }
         else {
-          vi = cur[t.length] = ismap(v) ? {} : []
+          vi = cur[ancestors.length] = ismap(v) ? {} : []
         }
 
       }
 
       if (undefined !== vi && !k.endsWith('$')) {
-        cur[t.length - 1][k] = vi
+        cur[ancestors.length - 1][k] = vi
       }
 
       return v
     },
-    (k: any, _v: any, _p: any, t: any) => {
-      const pi = cur[t.length - 1]
+
+    (k: any, _v: any, _p: any, ancestors: any) => {
+      const pi = cur[ancestors.length - 1]
       if (undefined !== pi) {
         const vi = pi[k]
         if (isnode(vi) && isempty(vi)) {

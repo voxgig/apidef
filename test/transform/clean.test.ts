@@ -17,18 +17,10 @@ describe('transform-clean', () => {
     expect(cleanTransform).exist()
 
     let c, r
-
-    // c = { apimodel: {} }
-    // r = await cleanTransform(c)
-    // expect(r.ok).equal(true)
-    // expect(c.apimodel).equal({})
-
     c = { apimodel: { a: { x: 1 }, b$: { x: 2 }, c: {}, d: [] } }
     r = await cleanTransform(c)
     expect(r.ok).equal(true)
-    expect(c.apimodel).equal({})
-
-
+    expect(c.apimodel).equal({ a: { x: 1 } })
   })
 
 

@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.operationTransform = void 0;
 const jostraca_1 = require("jostraca");
-const struct_1 = require("@voxgig/struct");
 const types_1 = require("../types");
 const operationTransform = async function (ctx) {
     const { apimodel, guide } = ctx;
@@ -81,25 +80,19 @@ function resolvePatch(opm, gent) {
 }
 function resolveOp(opname, gent) {
     let mop = undefined;
-    let opdsec = gent.opm$[opname];
-    if (opdsec) {
+    let opdesc = gent.opm$[opname];
+    if (opdesc) {
+        // console.dir(opdesc, { depth: null })
         mop = {
             name: opname,
-            alts: opdsec.paths.map(p => {
+            alts: opdesc.paths.map(p => {
                 const parts = applyRename(p);
                 const malt = {
                     orig: p.orig,
                     parts,
                     method: p.method,
                     args: {},
-                    select: {
-                        query: parts
-                            .filter(p => '{' === p[0])
-                            .map(p => p.substring(1, p.length - 1))
-                            .reduce((a, p) => (a[p] = '`$STRING`', a), ('{id}' === (0, struct_1.getelem)(parts, -2) ? {
-                            $action: (0, struct_1.getelem)(parts, -1)
-                        } : {}))
-                    },
+                    select: {}
                 };
                 return malt;
             })

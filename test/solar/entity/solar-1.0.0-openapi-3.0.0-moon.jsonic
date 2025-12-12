@@ -61,8 +61,8 @@ main: kit: entity: moon: {
             "moon"
           ]
           select: {
-            query: {
-              planet_id: "`$STRING`"
+            param: {
+              planet_id: true
             }
           }
         }
@@ -91,8 +91,8 @@ main: kit: entity: moon: {
             "moon"
           ]
           select: {
-            query: {
-              planet_id: "`$STRING`"
+            param: {
+              planet_id: true
             }
           }
         }
@@ -122,9 +122,8 @@ main: kit: entity: moon: {
             "{id}"
           ]
           select: {
-            query: {
-              id: "`$STRING`"
-              planet_id: "`$STRING`"
+            param: {
+              planet_id: true
             }
           }
         }
@@ -154,9 +153,8 @@ main: kit: entity: moon: {
             "{id}"
           ]
           select: {
-            query: {
-              id: "`$STRING`"
-              planet_id: "`$STRING`"
+            param: {
+              planet_id: true
             }
           }
         }

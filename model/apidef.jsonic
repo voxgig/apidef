@@ -49,7 +49,11 @@ main: kit: entity: &: {
       relations: []
       
       select: {
-        param: {}
+        param?: {}
+        query?: {}
+        header?: {}
+        cookie?: {}
+        '$action'?: string
       }
       
     } ]

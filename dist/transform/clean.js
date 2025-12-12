@@ -6,9 +6,9 @@ const cleanTransform = async function (ctx) {
     const { apimodel } = ctx;
     let cur = [];
     // Remove empty nodes and undefined values
-    (0, struct_1.walk)(apimodel, (k, v, _p, t) => {
+    (0, struct_1.walk)(apimodel, (k, v, _p, ancestors) => {
         if (undefined === k) {
-            cur[t.length] = (0, struct_1.ismap)(v) ? {} : (0, struct_1.islist)(v) ? [] : v;
+            cur[ancestors.length] = (0, struct_1.ismap)(v) ? {} : (0, struct_1.islist)(v) ? [] : v;
             return v;
         }
         let vi = v;
@@ -17,15 +17,15 @@ const cleanTransform = async function (ctx) {
                 vi = undefined;
             }
             else {
-                vi = cur[t.length] = (0, struct_1.ismap)(v) ? {} : [];
+                vi = cur[ancestors.length] = (0, struct_1.ismap)(v) ? {} : [];
             }
         }
         if (undefined !== vi && !k.endsWith('$')) {
-            cur[t.length - 1][k] = vi;
+            cur[ancestors.length - 1][k] = vi;
         }
         return v;
-    }, (k, _v, _p, t) => {
-        const pi = cur[t.length - 1];
+    }, (k, _v, _p, ancestors) => {
+        const pi = cur[ancestors.length - 1];
         if (undefined !== pi) {
             const vi = pi[k];
             if ((0, struct_1.isnode)(vi) && (0, struct_1.isempty)(vi)) {

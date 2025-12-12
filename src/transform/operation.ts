@@ -2,7 +2,7 @@
 
 import { each, snakify } from 'jostraca'
 
-import { getelem } from '@voxgig/struct'
+import { getelem, isempty } from '@voxgig/struct'
 
 import type { TransformResult, Transform } from '../transform'
 
@@ -141,11 +141,13 @@ function resolvePatch(opm: ModelOpMap, gent: GuideEntity): undefined | ModelOp {
 
 function resolveOp(opname: OpName, gent: GuideEntity): undefined | ModelOp {
   let mop: undefined | ModelOp = undefined
-  let opdsec = gent.opm$[opname]
-  if (opdsec) {
+  let opdesc = gent.opm$[opname]
+  if (opdesc) {
+    // console.dir(opdesc, { depth: null })
+
     mop = {
       name: opname,
-      alts: opdsec.paths.map(p => {
+      alts: opdesc.paths.map(p => {
         const parts = applyRename(p)
 
         const malt: ModelAlt = {
@@ -153,15 +155,7 @@ function resolveOp(opname: OpName, gent: GuideEntity): undefined | ModelOp {
           parts,
           method: p.method,
           args: {},
-          select: {
-            query: parts
-              .filter(p => '{' === p[0])
-              .map(p => p.substring(1, p.length - 1))
-              .reduce((a, p) => (a[p] = '`$STRING`', a),
-                ('{id}' === getelem(parts, -2) ? {
-                  $action: getelem(parts, -1)
-                } : {}) as any)
-          },
+          select: {}
         }
 
         return malt

@@ -56,7 +56,11 @@ type ModelAlt = {
     cookie: ModelArg[]
   }>
   select: {
-    query: Record<string, true | string>
+    param?: Record<string, boolean | string>
+    query?: Record<string, boolean | string>
+    header?: Record<string, boolean | string>
+    cookie?: Record<string, boolean | string>
+    $action?: string
   }
 }
 

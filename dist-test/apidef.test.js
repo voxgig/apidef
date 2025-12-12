@@ -134,7 +134,8 @@ def: '${outprefix}def.yaml'
             }
         };
         const bres = await build(modelinit, buildspec, {});
-        console.log(bres.ok);
+        // console.log(bres.ok)
+        (0, code_1.expect)(bres.ok).true();
         const model = aontu.generate(`@"test/solar/solar.jsonic"`);
         console.dir(model, { depth: null });
         // const baseGuideSrc = bres.ctx.note.guide.base

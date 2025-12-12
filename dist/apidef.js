@@ -55,6 +55,7 @@ const top_1 = require("./transform/top");
 const entity_1 = require("./transform/entity");
 const operation_1 = require("./transform/operation");
 const args_1 = require("./transform/args");
+const select_1 = require("./transform/select");
 const field_1 = require("./transform/field");
 const clean_1 = require("./transform/clean");
 const entity_2 = require("./builder/entity");
@@ -180,6 +181,7 @@ function ApiDef(opts) {
             await (0, entity_1.entityTransform)(ctx);
             await (0, operation_1.operationTransform)(ctx);
             await (0, args_1.argsTransform)(ctx);
+            await (0, select_1.selectTransform)(ctx);
             await (0, field_1.fieldTransform)(ctx);
             await (0, clean_1.cleanTransform)(ctx);
             steps.push('transformers');
