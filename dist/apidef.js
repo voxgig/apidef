@@ -37,7 +37,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.formatJSONIC = exports.parse = void 0;
+exports.getModelPath = exports.formatJSONIC = exports.parse = exports.KIT = void 0;
 exports.ApiDef = ApiDef;
 const Fs = __importStar(require("node:fs"));
 const node_path_1 = __importDefault(require("node:path"));
@@ -45,12 +45,14 @@ const jostraca_1 = require("jostraca");
 const util_1 = require("@voxgig/util");
 const decircular_1 = __importDefault(require("decircular"));
 const types_1 = require("./types");
+Object.defineProperty(exports, "KIT", { enumerable: true, get: function () { return types_1.KIT; } });
 const guide_1 = require("./guide/guide");
 const parse_1 = require("./parse");
 Object.defineProperty(exports, "parse", { enumerable: true, get: function () { return parse_1.parse; } });
 const transform_1 = require("./transform");
 const utility_1 = require("./utility");
 Object.defineProperty(exports, "formatJSONIC", { enumerable: true, get: function () { return utility_1.formatJSONIC; } });
+Object.defineProperty(exports, "getModelPath", { enumerable: true, get: function () { return utility_1.getModelPath; } });
 const top_1 = require("./transform/top");
 const entity_1 = require("./transform/entity");
 const operation_1 = require("./transform/operation");
@@ -77,6 +79,8 @@ function ApiDef(opts) {
         let jres = undefined;
         try {
             ctrl = (0, types_1.OpenControlShape)(spec.ctrl || {});
+            // console.log('APIDEF-MODEL')
+            // console.dir(spec.model, { depth: null })
             const model = (0, types_1.OpenModelShape)(spec.model || {});
             const build = (0, types_1.OpenBuildShape)(spec.build || {});
             // Step: parse (API spec).
@@ -86,13 +90,11 @@ function ApiDef(opts) {
             (0, jostraca_1.names)(model, model.name);
             const apimodel = {
                 main: {
-                    api: {},
                     [types_1.KIT]: {
                         info: {},
                         entity: {},
                         flow: {},
                     },
-                    def: {},
                 },
             };
             const buildspec = build.spec;
@@ -101,7 +103,7 @@ function ApiDef(opts) {
             defpath = node_path_1.default.join(buildspec.base, '..', 'def', defpath);
             log.info({
                 point: 'generate-start',
-                note: defpath.replace(process.cwd(), '.'),
+                note: (0, utility_1.relativizePath)(defpath),
                 defpath,
                 start
             });
@@ -163,20 +165,6 @@ function ApiDef(opts) {
             if (!ctrl.step.transformers) {
                 return { ok: true, steps, start, end: Date.now(), ctrl, guide: ctx.guide };
             }
-            /*
-            const transres = await resolveElements(ctx, 'transform', 'openapi', {
-              top: topTransform,
-              entity: entityTransform,
-              operation: operationTransform,
-              args: argsTransform,
-              field: fieldTransform,
-              clean: cleanTransform,
-            })
-            */
-            // const transformResult = await runTransform(ctx)
-            // if (null == transformResult) {
-            //   throw new Error('Unable to run Transform.')
-            // }
             await (0, top_1.topTransform)(ctx);
             await (0, entity_1.entityTransform)(ctx);
             await (0, operation_1.operationTransform)(ctx);

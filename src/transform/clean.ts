@@ -13,7 +13,8 @@ const cleanTransform = async function(
 
   let cur: any[] = []
 
-  // Remove empty nodes and undefined values
+  // Remove empty nodes and undefined values. This avoids spurious content in model.
+  // NOTE: including ancestors if thus also empty!
   walk(
     apimodel,
     (k: any, v: any, _p: any, ancestors: any) => {

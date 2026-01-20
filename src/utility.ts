@@ -39,7 +39,7 @@ function writeFileSyncWarn(warn: Warner, fs: any, path: string, text: string) {
   catch (err: any) {
     warn({
       err,
-      note: 'Unable to save file: ' + path
+      note: 'Unable to save file: ' + relativizePath(path)
     })
   }
 }
@@ -795,6 +795,88 @@ function nom(v: any, format: string): string {
   return out
 }
 
+
+function relativizePath(path: string): string {
+  const cwd = process.cwd()
+  if (path.startsWith(cwd)) {
+    return '.' + path.slice(cwd.length)
+  }
+  return path
+}
+
+
+function getModelPath(
+  model: any,
+  path: string,
+  flags?: { required?: boolean }
+): any {
+  const required = flags?.required ?? true
+
+  if (path === '') {
+    if (required) {
+      throw new Error('getModelPath: empty path provided')
+    }
+    return undefined
+  }
+
+  const parts = path.split('.')
+  const fullPath = path  // Store the full path for error messages
+  let current = model
+  let validPath: string[] = []
+
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i]
+
+    if (current == null) {
+      if (required) {
+        const validPathStr = validPath.length > 0 ? validPath.join('.') : '(root)'
+        throw new Error(
+          `getModelPath: path not found at '${fullPath}'.\n` +
+          `Valid path up to: '${validPathStr}'.\n` +
+          `Cannot access property '${part}' of ${current === null ? 'null' : 'undefined'}.`
+        )
+      }
+      return undefined
+    }
+
+    // Check if current is an object before using 'in' operator
+    if (typeof current !== 'object' || current === null) {
+      if (required) {
+        const validPathStr = validPath.length > 0 ? validPath.join('.') : '(root)'
+        throw new Error(
+          `getModelPath: path not found at '${fullPath}'.\n` +
+          `Valid path up to: '${validPathStr}'.\n` +
+          `Cannot access property '${part}' of ${typeof current}.`
+        )
+      }
+      return undefined
+    }
+
+    // Check if the key exists
+    if (!(part in current)) {
+      if (required) {
+        const validPathStr = validPath.length > 0 ? validPath.join('.') : '(root)'
+        const availableKeys = Array.isArray(current)
+          ? `array indices 0-${current.length - 1}`
+          : `[${Object.keys(current).join(', ')}]`
+
+        throw new Error(
+          `getModelPath: path not found at '${fullPath}'.\n` +
+          `Valid path up to: '${validPathStr}'.\n` +
+          `Property '${part}' does not exist.\n` +
+          `Available keys: ${availableKeys}`
+        )
+      }
+      return undefined
+    }
+
+    validPath.push(part)
+    current = current[part]
+  }
+
+  return current
+}
+
 export type {
   PathMatch
 }
@@ -816,5 +898,7 @@ export {
   findPathsWithPrefix,
   writeFileSyncWarn,
   warnOnError,
+  relativizePath,
+  getModelPath,
 
 }

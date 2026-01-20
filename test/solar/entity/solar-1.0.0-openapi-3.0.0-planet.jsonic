@@ -67,19 +67,12 @@ main: kit: entity: planet: {
     create: {
       alts: [
         {
-          method: "POST"
-          orig: "/api/planet"
-          parts: [
-            "api"
-            "planet"
-          ]
-        }
-        {
           args: {
             param: [
               {
                 kind: "param"
-                name: "planet_id"
+                name: "id"
+                orig: "planet_id"
                 req: true
                 type: "`$STRING`"
               }
@@ -93,11 +86,20 @@ main: kit: entity: planet: {
             "{id}"
             "forbid"
           ]
+          rename: {
+            param: {
+              planet_id: "id"
+            }
+          }
           select: {
             "$action": "forbid"
-            param: {
-              planet_id: true
-            }
+            exist: [
+              "id"
+            ]
+          }
+          transform: {
+            req: "`reqdata`"
+            res: "`resdata`"
           }
         }
         {
@@ -105,7 +107,8 @@ main: kit: entity: planet: {
             param: [
               {
                 kind: "param"
-                name: "planet_id"
+                name: "id"
+                orig: "planet_id"
                 req: true
                 type: "`$STRING`"
               }
@@ -119,11 +122,32 @@ main: kit: entity: planet: {
             "{id}"
             "terraform"
           ]
+          rename: {
+            param: {
+              planet_id: "id"
+            }
+          }
           select: {
             "$action": "terraform"
-            param: {
-              planet_id: true
-            }
+            exist: [
+              "id"
+            ]
+          }
+          transform: {
+            req: "`reqdata`"
+            res: "`resdata`"
+          }
+        }
+        {
+          method: "POST"
+          orig: "/api/planet"
+          parts: [
+            "api"
+            "planet"
+          ]
+          transform: {
+            req: "`reqdata`"
+            res: "`resdata`"
           }
         }
       ]
@@ -138,6 +162,10 @@ main: kit: entity: planet: {
             "api"
             "planet"
           ]
+          transform: {
+            req: "`reqdata`"
+            res: "`resdata`"
+          }
         }
       ]
       name: "list"
@@ -149,7 +177,8 @@ main: kit: entity: planet: {
             param: [
               {
                 kind: "param"
-                name: "planet_id"
+                name: "id"
+                orig: "planet_id"
                 req: true
                 type: "`$STRING`"
               }
@@ -162,10 +191,19 @@ main: kit: entity: planet: {
             "planet"
             "{id}"
           ]
-          select: {
+          rename: {
             param: {
-              planet_id: true
+              planet_id: "id"
             }
+          }
+          select: {
+            exist: [
+              "id"
+            ]
+          }
+          transform: {
+            req: "`reqdata`"
+            res: "`resdata`"
           }
         }
       ]
@@ -178,7 +216,8 @@ main: kit: entity: planet: {
             param: [
               {
                 kind: "param"
-                name: "planet_id"
+                name: "id"
+                orig: "planet_id"
                 req: true
                 type: "`$STRING`"
               }
@@ -192,9 +231,13 @@ main: kit: entity: planet: {
             "{id}"
           ]
           select: {
-            param: {
-              planet_id: true
-            }
+            exist: [
+              "id"
+            ]
+          }
+          transform: {
+            req: "`reqdata`"
+            res: "`resdata`"
           }
         }
       ]

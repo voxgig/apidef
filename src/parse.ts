@@ -4,14 +4,41 @@ import { bundleFromString, createConfig } from '@redocly/openapi-core'
 
 import decircular from 'decircular'
 
+import { relativizePath } from './utility'
+
+
 
 // Parse an API definition source into a JSON sructure.
-async function parse(kind: string, source: any, meta?: any) {
+async function parse(kind: string, source: any, meta: { file: string }) {
   if ('OpenAPI' === kind) {
-    return parseOpenAPI(source, meta)
+
+    validateSource(kind, source, meta)
+
+    try {
+      const def = await parseOpenAPI(source, meta)
+      return def
+    }
+    catch (pe: any) {
+      if (pe.originalError) {
+        pe.originalError.message =
+          `@voxgig/apidef: parse: syntax: ${pe.originalError.message}` +
+          ` (${relativizePath(meta.file)})`
+        pe = pe.originalError
+      }
+      else {
+        pe.message =
+          `@voxgig/apidef: parse: internal: ${pe.message}` +
+          ` (${relativizePath(meta.file)})`
+      }
+
+      throw pe
+    }
   }
   else {
-    throw new Error('@voxgig/apidef-parse: unknown kind: ' + kind)
+    throw new Error(
+      `@voxgig/apidef: parse: unknown kind: ${kind}` +
+      ` (${relativizePath(meta.file)})`
+    )
   }
 }
 
@@ -72,6 +99,26 @@ async function parseOpenAPI(source: any, meta?: any) {
 }
 
 
+
+function validateSource(kind: string, source: any, meta: { file: string }) {
+  if (typeof source !== 'string') {
+    throw new Error(
+      `@voxgig/apidef: parse: ${kind}: source must be a string` +
+      ` (${relativizePath(meta.file)})`
+    )
+  }
+
+  // Remove YAML comment lines (lines that start with # after
+  // optional whitespace)
+  const withoutComments = source.replace(/^\s*#.*$/gm, '')
+
+  if (withoutComments.trim().length === 0) {
+    throw new Error(
+      `@voxgig/apidef: parse: ${kind}: source is empty` +
+      ` (${relativizePath(meta.file)})`
+    )
+  }
+}
 
 
 

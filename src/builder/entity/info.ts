@@ -31,7 +31,7 @@ function resolveInfo(
   const infoFile =
     (null == opts.outprefix ? '' : opts.outprefix) + 'api-info.jsonic'
 
-  const modelInfo = { main: { info: kit.info } }
+  const modelInfo = { main: { kit: { info: kit.info } } }
 
   let modelDefSrc = formatJSONIC(modelInfo)
 

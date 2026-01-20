@@ -6,6 +6,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.resolveElements = resolveElements;
 const node_path_1 = __importDefault(require("node:path"));
+const utility_1 = require("./utility");
 async function resolveElements(ctx, kind, subkind, standard) {
     const { log, model, guide } = ctx;
     // TODO: model access should be via a utility that generates
@@ -53,7 +54,7 @@ async function resolveElement(en, control, target, standard, ctx) {
     }
     catch (e) {
         const err = new Error('Custom element not found: ' +
-            customtpath + ': ' + e.message);
+            (0, utility_1.relativizePath)(customtpath) + ': ' + e.message);
         log.error({ what: 'element', element: target + ': ' + en, fail: 'require', err });
         throw err;
     }

@@ -12,10 +12,10 @@ import type { KitModel } from '../types'
 
 import type {
   GuideEntity,
-} from './top'
+  GuidePath,
+} from '../types'
 
 import type {
-  GuidePath,
   PathDesc,
 } from '../desc'
 
@@ -85,7 +85,7 @@ function resolvePathList(guideEntity: GuideEntity, def: { paths: Record<string, 
     paths$.push(pathdesc)
   })
 
-  guideEntity.paths$ = paths$
+    ; (guideEntity as any).paths$ = paths$
 
   return paths$
 }

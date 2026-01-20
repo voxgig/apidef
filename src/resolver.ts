@@ -3,6 +3,8 @@
 
 import Path from 'node:path'
 
+import { relativizePath } from './utility'
+
 
 async function resolveElements(
   ctx: any,
@@ -77,7 +79,7 @@ async function resolveElement(
   }
   catch (e: any) {
     const err = new Error('Custom element not found: ' +
-      customtpath + ': ' + e.message)
+      relativizePath(customtpath) + ': ' + e.message)
     log.error({ what: 'element', element: target + ': ' + en, fail: 'require', err })
     throw err
   }

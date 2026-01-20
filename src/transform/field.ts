@@ -12,7 +12,11 @@ import { formatJSONIC, validator, canonize } from '../utility'
 
 import { KIT } from '../types'
 
-import type { KitModel } from '../types'
+import type {
+  KitModel,
+  GuideEntity,
+  GuidePathOp,
+} from '../types'
 
 import type {
   PathDef,
@@ -22,11 +26,6 @@ import type {
 } from '../def'
 
 import type {
-  GuideEntity,
-} from './top'
-
-import type {
-  GuideOp,
   PathDesc,
 } from '../desc'
 

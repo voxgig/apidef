@@ -986,7 +986,15 @@ declare const OpenBuildShape: {
     };
 };
 type Build = ReturnType<typeof BuildShape>;
-type ApiModel = {};
+type ApiModel = {
+    main: {
+        kit: {
+            info: Record<string, any>;
+            entity: Record<string, any>;
+            flow: Record<string, any>;
+        };
+    };
+};
 type KitModel = {
     info: Record<string, any>;
     entity: Record<string, any>;

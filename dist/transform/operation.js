@@ -30,16 +30,18 @@ const operationTransform = async function (ctx) {
 };
 exports.operationTransform = operationTransform;
 function collectOps(gent) {
+    ;
     gent.opm$ = gent.opm$ ?? {};
     (0, jostraca_1.each)(gent.paths$, (pathdesc) => {
         (0, jostraca_1.each)(pathdesc.op, (gop, opname) => {
+            ;
             gent.opm$[opname] = gent.opm$[opname] ?? { paths: [] };
             const oppathdesc = {
                 orig: pathdesc.orig,
                 parts: pathdesc.parts,
                 rename: pathdesc.rename,
                 method: gop.method,
-                op: pathdesc.op,
+                op: gop,
                 def: pathdesc.def,
             };
             gent.opm$[opname].paths.push(oppathdesc);
@@ -85,15 +87,21 @@ function resolveOp(opname, gent) {
         // console.dir(opdesc, { depth: null })
         mop = {
             name: opname,
-            alts: opdesc.paths.map(p => {
+            alts: opdesc.paths.map((p) => {
                 const parts = applyRename(p);
                 const malt = {
                     orig: p.orig,
                     parts,
+                    rename: p.rename,
                     method: p.method,
                     args: {},
-                    select: {}
+                    transform: opdesc.transform ?? {},
+                    select: {
+                        exist: []
+                    }
                 };
+                malt.transform.req = malt.transform.req ?? '`reqdata`';
+                malt.transform.res = malt.transform.res ?? '`body`';
                 return malt;
             })
         };

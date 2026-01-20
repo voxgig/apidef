@@ -1,16 +1,6 @@
 import type { PathMatch } from './utility';
 import type { MethodName } from './types';
 import type { ParameterDef } from './def';
-type GuidePathRename = {
-    param?: Record<string, string>;
-};
-type GuideOp = {
-    method: MethodName;
-};
-type GuidePath = {
-    rename?: GuidePathRename;
-    op?: Record<string, GuideOp>;
-};
 type CmpDesc = {
     namedesc?: any;
     path_rate: number;
@@ -77,8 +67,16 @@ type PathDesc = {
     orig: string;
     method: MethodName;
     parts: string[];
-    rename: GuidePathRename;
-    op: GuidePath["op"];
+    rename: {
+        param?: Record<string, any>;
+    };
+    op: Record<string, {
+        method: any;
+        transform: {
+            req?: any;
+            res?: any;
+        };
+    }>;
     def: {
         parameters?: ParameterDef[];
     };
@@ -86,4 +84,4 @@ type PathDesc = {
 type OpDesc = {
     paths: PathDesc[];
 };
-export type { GuidePathRename, GuideOp, GuidePath, CmpDesc, BasicMethodDesc, MethodDesc, MethodEntityDesc, EntityDesc, EntityPathDesc, PathDesc, OpDesc, };
+export type { CmpDesc, BasicMethodDesc, MethodDesc, MethodEntityDesc, EntityDesc, EntityPathDesc, PathDesc, OpDesc, };

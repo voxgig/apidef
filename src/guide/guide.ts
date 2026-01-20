@@ -31,6 +31,7 @@ import {
   getdlog,
   debugpath,
   formatJSONIC,
+  relativizePath,
 } from '../utility'
 
 
@@ -62,7 +63,7 @@ async function buildGuide(ctx: ApiDefContext): Promise<any> {
 
   log.info({
     point: 'generate-guide',
-    note: guidepath.replace(process.cwd(), '.'),
+    note: relativizePath(guidepath),
     guidepath,
   })
 

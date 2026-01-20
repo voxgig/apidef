@@ -7,13 +7,33 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.parse = parse;
 const openapi_core_1 = require("@redocly/openapi-core");
 const decircular_1 = __importDefault(require("decircular"));
+const utility_1 = require("./utility");
 // Parse an API definition source into a JSON sructure.
 async function parse(kind, source, meta) {
     if ('OpenAPI' === kind) {
-        return parseOpenAPI(source, meta);
+        validateSource(kind, source, meta);
+        try {
+            const def = await parseOpenAPI(source, meta);
+            return def;
+        }
+        catch (pe) {
+            if (pe.originalError) {
+                pe.originalError.message =
+                    `@voxgig/apidef: parse: syntax: ${pe.originalError.message}` +
+                        ` (${(0, utility_1.relativizePath)(meta.file)})`;
+                pe = pe.originalError;
+            }
+            else {
+                pe.message =
+                    `@voxgig/apidef: parse: internal: ${pe.message}` +
+                        ` (${(0, utility_1.relativizePath)(meta.file)})`;
+            }
+            throw pe;
+        }
     }
     else {
-        throw new Error('@voxgig/apidef-parse: unknown kind: ' + kind);
+        throw new Error(`@voxgig/apidef: parse: unknown kind: ${kind}` +
+            ` (${(0, utility_1.relativizePath)(meta.file)})`);
     }
 }
 async function parseOpenAPI(source, meta) {
@@ -61,5 +81,18 @@ async function parseOpenAPI(source, meta) {
     });
     const def = (0, decircular_1.default)(bundle.bundle.parsed);
     return def;
+}
+function validateSource(kind, source, meta) {
+    if (typeof source !== 'string') {
+        throw new Error(`@voxgig/apidef: parse: ${kind}: source must be a string` +
+            ` (${(0, utility_1.relativizePath)(meta.file)})`);
+    }
+    // Remove YAML comment lines (lines that start with # after
+    // optional whitespace)
+    const withoutComments = source.replace(/^\s*#.*$/gm, '');
+    if (withoutComments.trim().length === 0) {
+        throw new Error(`@voxgig/apidef: parse: ${kind}: source is empty` +
+            ` (${(0, utility_1.relativizePath)(meta.file)})`);
+    }
 }
 //# sourceMappingURL=parse.js.map

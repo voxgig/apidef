@@ -1,6 +1,4 @@
 
-import { each, getx } from 'jostraca'
-
 import { joinurl } from '@voxgig/struct'
 
 import { KIT } from '../types'
@@ -9,37 +7,16 @@ import type { TransformResult } from '../transform'
 
 import type {
   KitModel,
-  TypeName,
-  MethodName,
 } from '../types'
 
 import type {
-  PathDef,
-  MethodDef,
-  ServerDef,
-  ServerVariableDef,
-  ParameterDef,
-  SchemaDef,
-} from '../def'
-
-import type {
-  GuidePathRename,
-  GuideOp,
-  GuidePath,
+  // GuidePath,
   PathDesc,
   OpDesc,
 } from '../desc'
 
 import type {
   OpName,
-  ModelEntityRelations,
-  ModelOpMap,
-  ModelFieldOp,
-  ModelField,
-  ModelArg,
-  ModelAlt,
-  ModelOp,
-  ModelEntity,
 } from '../model'
 
 
@@ -49,22 +26,13 @@ import type {
 // Model* => Generated SDK Model
 
 
-type GuideEntity = {
-  name: string,
-  path: Record<string, GuidePath>
+// type GuideEntity = {
+//   name: string,
+//   path: Record<string, GuidePath>
 
-  paths$: PathDesc[]
-  opm$: Record<OpName, OpDesc>
-}
-
-
-
-
-
-
-
-
-
+//   paths$: PathDesc[]
+//   opm$: Record<OpName, OpDesc>
+// }
 
 
 const topTransform = async function(
@@ -91,6 +59,7 @@ export {
   topTransform
 }
 
-export type {
-  GuideEntity,
-}
+
+// export type {
+//   GuideEntity,
+// }

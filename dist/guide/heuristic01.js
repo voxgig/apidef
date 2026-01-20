@@ -713,6 +713,7 @@ function ResolveTransform(spec) {
     const methodName = mdesc.method;
     const opname = ment.opname;
     const op = pathdesc.op;
+    // Only specify transforms if they are not defaults
     const transform = {
         req: undefined,
         res: undefined,
@@ -720,6 +721,7 @@ function ResolveTransform(spec) {
     const resokdef = mdesc.responses?.[200] || mdesc.responses?.[201];
     const resprops = getResponseSchema(resokdef)?.properties;
     (0, utility_1.debugpath)(pathStr, methodName, 'TRANSFORM-RES', (0, struct_1.keysof)(resprops));
+    // console.log('APIDEF-resprops', resprops)
     if (resprops) {
         if (resprops[entdesc.origname]) {
             transform.res = '`body.' + entdesc.origname + '`';
@@ -734,8 +736,8 @@ function ResolveTransform(spec) {
         if (reqprops[entdesc.origname]) {
             transform.req = { [entdesc.origname]: '`reqdata`' };
         }
-        else if (reqprops[entdesc.origname]) {
-            transform.req = { [entdesc.origname]: '`reqdata`' };
+        else if (reqprops[entdesc.name]) {
+            transform.req = { [entdesc.name]: '`reqdata`' };
         }
     }
     if (!(0, struct_1.isempty)(transform)) {

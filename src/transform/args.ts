@@ -49,6 +49,7 @@ const argsTransform = async function(
 
         resolveArgs(ment, mop, malt, argdefs)
       })
+
     })
 
     msg += ment.name + ' '
@@ -68,10 +69,14 @@ const ARG_KIND: Record<string, ModelArg["kind"]> = {
 
 function resolveArgs(ment: ModelEntity, mop: ModelOp, malt: ModelAlt, argdefs: ParameterDef[]) {
   each(argdefs, (argdef: ParameterDef) => {
+    const orig = depluralize(snakify(argdef.name))
+    const kind = ARG_KIND[argdef.in] ?? 'query'
+    const name = malt.rename[kind]?.[orig] ?? orig
     const marg: ModelArg = {
-      name: depluralize(snakify(argdef.name)),
+      name,
+      orig,
       type: validator(argdef.schema?.type),
-      kind: ARG_KIND[argdef.in] ?? 'query',
+      kind,
       req: !!argdef.required
     }
 

@@ -85,7 +85,7 @@ def: '${outprefix}def.yaml'
         (0, code_1.expect)(bres.ok).true();
         // TODO: compare to expected model!
         const model = aontu.generate(`@"test/solar/solar.jsonic"`);
-        // console.dir(model, { depth: null })
+        console.dir(model, { depth: null });
         (0, code_1.expect)(model).includes(SOLAR_MODEL);
     });
 });
@@ -195,7 +195,7 @@ const SOLAR_MODEL = {
                                     method: 'POST',
                                     orig: '/api/planet/{planet_id}/moon',
                                     parts: ['api', 'planet', '{planet_id}', 'moon'],
-                                    select: { param: { planet_id: true } },
+                                    select: { exist: ['planet_id'] },
                                     active: true,
                                     relations: []
                                 }
@@ -219,7 +219,7 @@ const SOLAR_MODEL = {
                                     method: 'GET',
                                     orig: '/api/planet/{planet_id}/moon',
                                     parts: ['api', 'planet', '{planet_id}', 'moon'],
-                                    select: { param: { planet_id: true } },
+                                    select: { exist: ['planet_id'] },
                                     active: true,
                                     relations: []
                                 }
@@ -243,7 +243,7 @@ const SOLAR_MODEL = {
                                     method: 'GET',
                                     orig: '/api/planet/{planet_id}/moon/{moon_id}',
                                     parts: ['api', 'planet', '{planet_id}', 'moon', '{id}'],
-                                    select: { param: { planet_id: true } },
+                                    select: { exist: ['planet_id'] },
                                     active: true,
                                     relations: []
                                 }
@@ -267,7 +267,7 @@ const SOLAR_MODEL = {
                                     method: 'PUT',
                                     orig: '/api/planet/{planet_id}/moon/{moon_id}',
                                     parts: ['api', 'planet', '{planet_id}', 'moon', '{id}'],
-                                    select: { param: { planet_id: true } },
+                                    select: { exist: ['planet_id'] },
                                     active: true,
                                     relations: []
                                 }
@@ -343,15 +343,6 @@ const SOLAR_MODEL = {
                         create: {
                             alts: [
                                 {
-                                    method: 'POST',
-                                    orig: '/api/planet',
-                                    parts: ['api', 'planet'],
-                                    active: true,
-                                    args: { param: [] },
-                                    relations: [],
-                                    select: {}
-                                },
-                                {
                                     args: {
                                         param: [
                                             {
@@ -366,7 +357,7 @@ const SOLAR_MODEL = {
                                     method: 'POST',
                                     orig: '/api/planet/{planet_id}/forbid',
                                     parts: ['api', 'planet', '{id}', 'forbid'],
-                                    select: { '$action': 'forbid', param: { planet_id: true } },
+                                    select: { '$action': 'forbid', exist: ['planet_id'] },
                                     active: true,
                                     relations: []
                                 },
@@ -385,13 +376,19 @@ const SOLAR_MODEL = {
                                     method: 'POST',
                                     orig: '/api/planet/{planet_id}/terraform',
                                     parts: ['api', 'planet', '{id}', 'terraform'],
-                                    select: {
-                                        '$action': 'terraform',
-                                        param: { planet_id: true }
-                                    },
+                                    select: { '$action': 'terraform', exist: ['planet_id'] },
                                     active: true,
                                     relations: []
-                                }
+                                },
+                                {
+                                    method: 'POST',
+                                    orig: '/api/planet',
+                                    parts: ['api', 'planet'],
+                                    active: true,
+                                    args: { param: [] },
+                                    relations: [],
+                                    select: {}
+                                },
                             ],
                             name: 'create'
                         },
@@ -426,7 +423,7 @@ const SOLAR_MODEL = {
                                     method: 'GET',
                                     orig: '/api/planet/{planet_id}',
                                     parts: ['api', 'planet', '{id}'],
-                                    select: { param: { planet_id: true } },
+                                    select: { exist: ['planet_id'] },
                                     active: true,
                                     relations: []
                                 }
@@ -450,7 +447,7 @@ const SOLAR_MODEL = {
                                     method: 'PUT',
                                     orig: '/api/planet/{planet_id}',
                                     parts: ['api', 'planet', '{id}'],
-                                    select: { param: { planet_id: true } },
+                                    select: { exist: ['planet_id'] },
                                     active: true,
                                     relations: []
                                 }

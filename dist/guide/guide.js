@@ -28,7 +28,7 @@ async function buildGuide(ctx) {
     let guidepath = node_path_1.default.join(folder, 'guide', (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'guide.jsonic');
     log.info({
         point: 'generate-guide',
-        note: guidepath.replace(process.cwd(), '.'),
+        note: (0, utility_1.relativizePath)(guidepath),
         guidepath,
     });
     try {

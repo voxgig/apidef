@@ -1026,6 +1026,7 @@ function ResolveTransform(spec: TaskSpec) {
 
   const op = pathdesc.op
 
+  // Only specify transforms if they are not defaults
   const transform: Record<string, any> = {
     req: undefined,
     res: undefined,
@@ -1034,6 +1035,8 @@ function ResolveTransform(spec: TaskSpec) {
   const resokdef = mdesc.responses?.[200] || mdesc.responses?.[201]
   const resprops = getResponseSchema(resokdef)?.properties
   debugpath(pathStr, methodName, 'TRANSFORM-RES', keysof(resprops))
+
+  // console.log('APIDEF-resprops', resprops)
 
   if (resprops) {
     if (resprops[entdesc.origname]) {
@@ -1050,10 +1053,9 @@ function ResolveTransform(spec: TaskSpec) {
     if (reqprops[entdesc.origname]) {
       transform.req = { [entdesc.origname]: '`reqdata`' }
     }
-    else if (reqprops[entdesc.origname]) {
-      transform.req = { [entdesc.origname]: '`reqdata`' }
+    else if (reqprops[entdesc.name]) {
+      transform.req = { [entdesc.name]: '`reqdata`' }
     }
-
   }
 
   if (!isempty(transform)) {

@@ -60,6 +60,8 @@ import {
   makeWarner,
   formatJSONIC,
   writeFileSyncWarn,
+  relativizePath,
+  getModelPath,
 } from './utility'
 
 
@@ -99,6 +101,9 @@ function ApiDef(opts: ApiDefOptions) {
     try {
       ctrl = OpenControlShape(spec.ctrl || {}) as Control
 
+      // console.log('APIDEF-MODEL')
+      // console.dir(spec.model, { depth: null })
+
       const model: Model = OpenModelShape(spec.model || {})
       const build: Build = OpenBuildShape(spec.build || {})
 
@@ -111,13 +116,11 @@ function ApiDef(opts: ApiDefOptions) {
 
       const apimodel: ApiModel = {
         main: {
-          api: {},
           [KIT]: {
             info: {},
             entity: {},
             flow: {},
           },
-          def: {},
         },
       }
 
@@ -130,7 +133,7 @@ function ApiDef(opts: ApiDefOptions) {
 
       log.info({
         point: 'generate-start',
-        note: defpath.replace(process.cwd(), '.'),
+        note: relativizePath(defpath),
         defpath,
         start
       })
@@ -209,23 +212,6 @@ function ApiDef(opts: ApiDefOptions) {
         return { ok: true, steps, start, end: Date.now(), ctrl, guide: ctx.guide }
       }
 
-
-      /*
-      const transres = await resolveElements(ctx, 'transform', 'openapi', {
-        top: topTransform,
-        entity: entityTransform,
-        operation: operationTransform,
-        args: argsTransform,
-        field: fieldTransform,
-        clean: cleanTransform,
-      })
-      */
-
-      // const transformResult = await runTransform(ctx)
-      // if (null == transformResult) {
-      //   throw new Error('Unable to run Transform.')
-      // }
-
       await topTransform(ctx)
       await entityTransform(ctx)
       await operationTransform(ctx)
@@ -233,7 +219,6 @@ function ApiDef(opts: ApiDefOptions) {
       await selectTransform(ctx)
       await fieldTransform(ctx)
       await cleanTransform(ctx)
-
 
       steps.push('transformers')
 
@@ -424,7 +409,9 @@ export type {
 
 
 export {
+  KIT,
   ApiDef,
   parse,
   formatJSONIC,
+  getModelPath,
 }

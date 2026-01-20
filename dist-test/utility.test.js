@@ -181,5 +181,191 @@ const utility_1 = require("../dist/utility");
 }
 `);
     });
+    (0, node_test_1.test)('getModelPath - basic path traversal', () => {
+        const model = {
+            a: {
+                b: {
+                    c: 'value'
+                }
+            }
+        };
+        (0, code_1.expect)((0, utility_1.getModelPath)(model, 'a')).equal(model.a);
+        (0, code_1.expect)((0, utility_1.getModelPath)(model, 'a.b')).equal(model.a.b);
+        (0, code_1.expect)((0, utility_1.getModelPath)(model, 'a.b.c')).equal('value');
+    });
+    (0, node_test_1.test)('getModelPath - array indexing', () => {
+        const model = {
+            items: [
+                { name: 'first', value: 1 },
+                { name: 'second', value: 2 },
+                { name: 'third', value: 3 }
+            ]
+        };
+        (0, code_1.expect)((0, utility_1.getModelPath)(model, 'items.0')).equal(model.items[0]);
+        (0, code_1.expect)((0, utility_1.getModelPath)(model, 'items.1')).equal(model.items[1]);
+        (0, code_1.expect)((0, utility_1.getModelPath)(model, 'items.2')).equal(model.items[2]);
+        (0, code_1.expect)((0, utility_1.getModelPath)(model, 'items.0.name')).equal('first');
+        (0, code_1.expect)((0, utility_1.getModelPath)(model, 'items.1.value')).equal(2);
+        (0, code_1.expect)((0, utility_1.getModelPath)(model, 'items.2.name')).equal('third');
+    });
+    (0, node_test_1.test)('getModelPath - nested arrays and objects', () => {
+        const model = {
+            data: {
+                nested: [
+                    {
+                        items: [
+                            { id: 'a' },
+                            { id: 'b' }
+                        ]
+                    }
+                ]
+            }
+        };
+        (0, code_1.expect)((0, utility_1.getModelPath)(model, 'data.nested.0.items.0.id')).equal('a');
+        (0, code_1.expect)((0, utility_1.getModelPath)(model, 'data.nested.0.items.1.id')).equal('b');
+    });
+    (0, node_test_1.test)('getModelPath - required:true (default) throws on missing path', () => {
+        const model = {
+            a: {
+                b: 'value'
+            }
+        };
+        // Missing intermediate key
+        try {
+            (0, utility_1.getModelPath)(model, 'a.x.c');
+            (0, code_1.expect)(false).true(); // Should not reach here
+        }
+        catch (err) {
+            (0, code_1.expect)(err.message).contains("path not found at 'a.x.c'");
+            (0, code_1.expect)(err.message).contains("Valid path up to: 'a'");
+            (0, code_1.expect)(err.message).contains("Property 'x' does not exist");
+            (0, code_1.expect)(err.message).contains("Available keys: [b]");
+        }
+        // Missing final key - should show available keys
+        try {
+            (0, utility_1.getModelPath)(model, 'a.missing');
+            (0, code_1.expect)(false).true(); // Should not reach here
+        }
+        catch (err) {
+            (0, code_1.expect)(err.message).contains("path not found at 'a.missing'");
+            (0, code_1.expect)(err.message).contains("Valid path up to: 'a'");
+            (0, code_1.expect)(err.message).contains("Property 'missing' does not exist");
+            (0, code_1.expect)(err.message).contains("Available keys: [b]");
+        }
+        // Missing root key
+        try {
+            (0, utility_1.getModelPath)(model, 'missing');
+            (0, code_1.expect)(false).true(); // Should not reach here
+        }
+        catch (err) {
+            (0, code_1.expect)(err.message).contains("path not found at 'missing'");
+            (0, code_1.expect)(err.message).contains("Valid path up to: '(root)'");
+            (0, code_1.expect)(err.message).contains("Property 'missing' does not exist");
+            (0, code_1.expect)(err.message).contains("Available keys: [a]");
+        }
+    });
+    (0, node_test_1.test)('getModelPath - required:true throws on null/undefined in path', () => {
+        const model = {
+            a: {
+                b: null
+            }
+        };
+        try {
+            (0, utility_1.getModelPath)(model, 'a.b.c');
+            (0, code_1.expect)(false).true(); // Should not reach here
+        }
+        catch (err) {
+            (0, code_1.expect)(err.message).contains("path not found at 'a.b.c'");
+            (0, code_1.expect)(err.message).contains("Valid path up to: 'a.b'");
+            (0, code_1.expect)(err.message).contains("Cannot access property 'c' of null");
+        }
+        const model2 = {
+            a: {
+                b: undefined
+            }
+        };
+        try {
+            (0, utility_1.getModelPath)(model2, 'a.b.c');
+            (0, code_1.expect)(false).true(); // Should not reach here
+        }
+        catch (err) {
+            (0, code_1.expect)(err.message).contains("path not found at 'a.b.c'");
+            (0, code_1.expect)(err.message).contains("Valid path up to: 'a.b'");
+            (0, code_1.expect)(err.message).contains("Cannot access property 'c' of undefined");
+        }
+    });
+    (0, node_test_1.test)('getModelPath - required:true throws on array index out of bounds', () => {
+        const model = {
+            items: [
+                { name: 'first' },
+                { name: 'second' }
+            ]
+        };
+        try {
+            (0, utility_1.getModelPath)(model, 'items.5');
+            (0, code_1.expect)(false).true(); // Should not reach here
+        }
+        catch (err) {
+            (0, code_1.expect)(err.message).contains("path not found at 'items.5'");
+            (0, code_1.expect)(err.message).contains("Valid path up to: 'items'");
+            (0, code_1.expect)(err.message).contains("Property '5' does not exist");
+            (0, code_1.expect)(err.message).contains("Available keys: array indices 0-1");
+        }
+    });
+    (0, node_test_1.test)('getModelPath - required:false returns undefined on missing path', () => {
+        const model = {
+            a: {
+                b: 'value'
+            }
+        };
+        (0, code_1.expect)((0, utility_1.getModelPath)(model, 'a.x.c', { required: false })).equal(undefined);
+        (0, code_1.expect)((0, utility_1.getModelPath)(model, 'a.missing', { required: false })).equal(undefined);
+        (0, code_1.expect)((0, utility_1.getModelPath)(model, 'missing', { required: false })).equal(undefined);
+        (0, code_1.expect)((0, utility_1.getModelPath)(model, 'a.b.c', { required: false })).equal(undefined);
+    });
+    (0, node_test_1.test)('getModelPath - required:false returns undefined on null/undefined in path', () => {
+        const model = {
+            a: {
+                b: null
+            }
+        };
+        (0, code_1.expect)((0, utility_1.getModelPath)(model, 'a.b.c', { required: false })).equal(undefined);
+        const model2 = {
+            a: {
+                b: undefined
+            }
+        };
+        (0, code_1.expect)((0, utility_1.getModelPath)(model2, 'a.b.c', { required: false })).equal(undefined);
+    });
+    (0, node_test_1.test)('getModelPath - required:false returns undefined for array out of bounds', () => {
+        const model = {
+            items: [{ name: 'first' }]
+        };
+        (0, code_1.expect)((0, utility_1.getModelPath)(model, 'items.5', { required: false })).equal(undefined);
+        (0, code_1.expect)((0, utility_1.getModelPath)(model, 'items.5.name', { required: false })).equal(undefined);
+    });
+    (0, node_test_1.test)('getModelPath - empty path handling', () => {
+        const model = { a: 'value' };
+        try {
+            (0, utility_1.getModelPath)(model, '');
+            (0, code_1.expect)(false).true(); // Should not reach here
+        }
+        catch (err) {
+            (0, code_1.expect)(err.message).contains('empty path provided');
+        }
+        (0, code_1.expect)((0, utility_1.getModelPath)(model, '', { required: false })).equal(undefined);
+    });
+    (0, node_test_1.test)('getModelPath - returns actual values including falsy ones', () => {
+        const model = {
+            zero: 0,
+            empty: '',
+            falsy: false,
+            nullValue: null
+        };
+        (0, code_1.expect)((0, utility_1.getModelPath)(model, 'zero')).equal(0);
+        (0, code_1.expect)((0, utility_1.getModelPath)(model, 'empty')).equal('');
+        (0, code_1.expect)((0, utility_1.getModelPath)(model, 'falsy')).equal(false);
+        (0, code_1.expect)((0, utility_1.getModelPath)(model, 'nullValue')).equal(null);
+    });
 });
 //# sourceMappingURL=utility.test.js.map

@@ -7,19 +7,20 @@ import type { MethodName } from './types'
 import type { ParameterDef } from './def'
 
 
-// Intermediate Guide types used during analysis
-type GuidePathRename = {
-  param?: Record<string, string>
-}
 
-type GuideOp = {
-  method: MethodName
-}
+// // Intermediate Guide types used during analysis
+// type GuidePathRename = {
+//   param?: Record<string, string>
+// }
 
-type GuidePath = {
-  rename?: GuidePathRename
-  op?: Record<string, GuideOp>
-}
+// type GuideOp = {
+//   method: MethodName
+// }
+
+// type GuidePath = {
+//   rename?: GuidePathRename
+//   op?: Record<string, GuideOp>
+// }
 
 
 // Component analysis description
@@ -114,8 +115,18 @@ type PathDesc = {
   orig: string
   method: MethodName
   parts: string[]
-  rename: GuidePathRename
-  op: GuidePath["op"]
+  // rename: GuidePathRename
+  rename: {
+    param?: Record<string, any>
+  }
+  // op: GuidePath["op"]
+  op: Record<string, {
+    method: any
+    transform: {
+      req?: any
+      res?: any
+    }
+  }>
   def: {
     parameters?: ParameterDef[]
   }
@@ -129,9 +140,9 @@ type OpDesc = {
 
 
 export type {
-  GuidePathRename,
-  GuideOp,
-  GuidePath,
+  //  GuidePathRename,
+  //  GuideOp,
+  //  GuidePath,
   CmpDesc,
   BasicMethodDesc,
   MethodDesc,

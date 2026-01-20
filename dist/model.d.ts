@@ -16,6 +16,7 @@ type ModelField = {
 };
 type ModelArg = {
     name: string;
+    orig: string;
     type: any;
     kind: 'param' | 'query' | 'header' | 'cookie';
     req: boolean;
@@ -24,17 +25,24 @@ type ModelAlt = {
     orig: string;
     method: MethodName;
     parts: string[];
+    rename: Partial<{
+        param: Record<string, string>;
+        query: Record<string, string>;
+        header: Record<string, string>;
+        cookie: Record<string, string>;
+    }>;
     args: Partial<{
         param: ModelArg[];
         query: ModelArg[];
         header: ModelArg[];
         cookie: ModelArg[];
     }>;
+    transform: {
+        req?: any;
+        res?: any;
+    };
     select: {
-        param?: Record<string, boolean | string>;
-        query?: Record<string, boolean | string>;
-        header?: Record<string, boolean | string>;
-        cookie?: Record<string, boolean | string>;
+        exist: string[];
         $action?: string;
     };
 };

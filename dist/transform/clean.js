@@ -5,7 +5,8 @@ const struct_1 = require("@voxgig/struct");
 const cleanTransform = async function (ctx) {
     const { apimodel } = ctx;
     let cur = [];
-    // Remove empty nodes and undefined values
+    // Remove empty nodes and undefined values. This avoids spurious content in model.
+    // NOTE: including ancestors if thus also empty!
     (0, struct_1.walk)(apimodel, (k, v, _p, ancestors) => {
         if (undefined === k) {
             cur[ancestors.length] = (0, struct_1.ismap)(v) ? {} : (0, struct_1.islist)(v) ? [] : v;

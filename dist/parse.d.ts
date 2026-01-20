@@ -1,2 +1,4 @@
-declare function parse(kind: string, source: any, meta?: any): Promise<any>;
+declare function parse(kind: string, source: any, meta: {
+    file: string;
+}): Promise<any>;
 export { parse, };

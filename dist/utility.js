@@ -19,6 +19,8 @@ exports.debugpath = debugpath;
 exports.findPathsWithPrefix = findPathsWithPrefix;
 exports.writeFileSyncWarn = writeFileSyncWarn;
 exports.warnOnError = warnOnError;
+exports.relativizePath = relativizePath;
+exports.getModelPath = getModelPath;
 const node_path_1 = __importDefault(require("node:path"));
 const jostraca_1 = require("jostraca");
 const util_1 = require("@voxgig/util");
@@ -42,7 +44,7 @@ function writeFileSyncWarn(warn, fs, path, text) {
     catch (err) {
         warn({
             err,
-            note: 'Unable to save file: ' + path
+            note: 'Unable to save file: ' + relativizePath(path)
         });
     }
 }
@@ -643,5 +645,64 @@ function nom(v, format) {
             /[A-Z][A-Z]/.test(formatstr) ? allcapify(out) :
                 /-/.test(formatstr) ? (0, jostraca_1.kebabify)(out) : out;
     return out;
+}
+function relativizePath(path) {
+    const cwd = process.cwd();
+    if (path.startsWith(cwd)) {
+        return '.' + path.slice(cwd.length);
+    }
+    return path;
+}
+function getModelPath(model, path, flags) {
+    const required = flags?.required ?? true;
+    if (path === '') {
+        if (required) {
+            throw new Error('getModelPath: empty path provided');
+        }
+        return undefined;
+    }
+    const parts = path.split('.');
+    const fullPath = path; // Store the full path for error messages
+    let current = model;
+    let validPath = [];
+    for (let i = 0; i < parts.length; i++) {
+        const part = parts[i];
+        if (current == null) {
+            if (required) {
+                const validPathStr = validPath.length > 0 ? validPath.join('.') : '(root)';
+                throw new Error(`getModelPath: path not found at '${fullPath}'.\n` +
+                    `Valid path up to: '${validPathStr}'.\n` +
+                    `Cannot access property '${part}' of ${current === null ? 'null' : 'undefined'}.`);
+            }
+            return undefined;
+        }
+        // Check if current is an object before using 'in' operator
+        if (typeof current !== 'object' || current === null) {
+            if (required) {
+                const validPathStr = validPath.length > 0 ? validPath.join('.') : '(root)';
+                throw new Error(`getModelPath: path not found at '${fullPath}'.\n` +
+                    `Valid path up to: '${validPathStr}'.\n` +
+                    `Cannot access property '${part}' of ${typeof current}.`);
+            }
+            return undefined;
+        }
+        // Check if the key exists
+        if (!(part in current)) {
+            if (required) {
+                const validPathStr = validPath.length > 0 ? validPath.join('.') : '(root)';
+                const availableKeys = Array.isArray(current)
+                    ? `array indices 0-${current.length - 1}`
+                    : `[${Object.keys(current).join(', ')}]`;
+                throw new Error(`getModelPath: path not found at '${fullPath}'.\n` +
+                    `Valid path up to: '${validPathStr}'.\n` +
+                    `Property '${part}' does not exist.\n` +
+                    `Available keys: ${availableKeys}`);
+            }
+            return undefined;
+        }
+        validPath.push(part);
+        current = current[part];
+    }
+    return current;
 }
 //# sourceMappingURL=utility.js.map

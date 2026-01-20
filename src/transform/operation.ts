@@ -10,16 +10,15 @@ import { fixName } from '../transform'
 
 import { formatJSONIC } from '../utility'
 
-import { KIT } from '../types'
+import {
+  KIT,
+  GuideEntity,
+  GuidePathOp,
+} from '../types'
 
 import type { KitModel } from '../types'
 
 import type {
-  GuideEntity,
-} from './top'
-
-import type {
-  GuideOp,
   PathDesc,
 } from '../desc'
 
@@ -39,7 +38,6 @@ const operationTransform = async function(
   const kit = apimodel.main[KIT]
 
   let msg = 'operation '
-
 
   each(guide.entity, (gent: GuideEntity, entname: string) => {
     collectOps(gent)
@@ -70,21 +68,21 @@ const operationTransform = async function(
 
 
 function collectOps(gent: GuideEntity) {
-  gent.opm$ = gent.opm$ ?? {}
-  each(gent.paths$, (pathdesc: PathDesc) => {
-    each(pathdesc.op, (gop: GuideOp, opname: OpName) => {
-      gent.opm$[opname] = gent.opm$[opname] ?? { paths: [] }
+  ; (gent as any).opm$ = (gent as any).opm$ ?? {}
+  each((gent as any).paths$, (pathdesc: PathDesc) => {
+    each(pathdesc.op, (gop: GuidePathOp, opname: OpName) => {
+      ; (gent as any).opm$[opname] = (gent as any).opm$[opname] ?? { paths: [] }
 
       const oppathdesc: PathDesc = {
         orig: pathdesc.orig,
         parts: pathdesc.parts,
         rename: pathdesc.rename,
-        method: gop.method,
-        op: pathdesc.op,
+        method: gop.method as any,
+        op: gop as any,
         def: pathdesc.def,
       }
 
-      gent.opm$[opname].paths.push(oppathdesc)
+        ; (gent as any).opm$[opname].paths.push(oppathdesc)
     })
   })
 }
@@ -141,22 +139,29 @@ function resolvePatch(opm: ModelOpMap, gent: GuideEntity): undefined | ModelOp {
 
 function resolveOp(opname: OpName, gent: GuideEntity): undefined | ModelOp {
   let mop: undefined | ModelOp = undefined
-  let opdesc = gent.opm$[opname]
+  let opdesc = (gent as any).opm$[opname]
   if (opdesc) {
     // console.dir(opdesc, { depth: null })
 
     mop = {
       name: opname,
-      alts: opdesc.paths.map(p => {
+      alts: opdesc.paths.map((p: PathDesc) => {
         const parts = applyRename(p)
 
         const malt: ModelAlt = {
           orig: p.orig,
           parts,
+          rename: p.rename,
           method: p.method,
           args: {},
-          select: {}
+          transform: opdesc.transform ?? {},
+          select: {
+            exist: []
+          }
         }
+
+        malt.transform.req = malt.transform.req ?? '`reqdata`'
+        malt.transform.res = malt.transform.res ?? '`body`'
 
         return malt
       })
