@@ -12,7 +12,6 @@ const utility_1 = require("../utility");
 async function makeFlowBuilder(ctx) {
     const { apimodel, opts } = ctx;
     const flows = apimodel.main[types_1.KIT].flow;
-    console.log('FLOWS', flows);
     let flowBuilder = () => {
         ctx.warn({
             step: 'flow',

@@ -81,8 +81,6 @@ function ApiDef(opts) {
         let jres = undefined;
         try {
             ctrl = (0, types_1.OpenControlShape)(spec.ctrl || {});
-            // console.log('APIDEF-MODEL')
-            // console.dir(spec.model, { depth: null })
             const model = (0, types_1.OpenModelShape)(spec.model || {});
             const build = (0, types_1.OpenBuildShape)(spec.build || {});
             // Step: parse (API spec).

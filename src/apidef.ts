@@ -103,9 +103,6 @@ function ApiDef(opts: ApiDefOptions) {
     try {
       ctrl = OpenControlShape(spec.ctrl || {}) as Control
 
-      // console.log('APIDEF-MODEL')
-      // console.dir(spec.model, { depth: null })
-
       const model: Model = OpenModelShape(spec.model || {})
       const build: Build = OpenBuildShape(spec.build || {})
 

@@ -109,7 +109,6 @@ function resolveUpdate(opm: ModelOpMap, gent: GuideEntity): undefined | ModelOp 
 
 
 function resolveRemove(opm: ModelOpMap, gent: GuideEntity): undefined | ModelOp {
-  console.log('RD', (gent as any).opm$)
   const opdesc = opm.remove = resolveOp('remove', gent)
   return opdesc
 }
@@ -135,8 +134,6 @@ function resolveOp(opname: OpName, gent: GuideEntity): undefined | ModelOp {
   let mop: undefined | ModelOp = undefined
   let opdesc = (gent as any).opm$[opname]
   if (opdesc) {
-    // console.dir(opdesc, { depth: null })
-
     mop = {
       name: opname,
       alts: opdesc.paths.map((p: PathDesc) => {

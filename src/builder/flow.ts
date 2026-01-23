@@ -26,8 +26,6 @@ async function makeFlowBuilder(ctx: ApiDefContext): Promise<Function> {
 
   const flows = apimodel.main[KIT].flow
 
-  console.log('FLOWS', flows)
-
   let flowBuilder = () => {
     ctx.warn({
       step: 'flow',

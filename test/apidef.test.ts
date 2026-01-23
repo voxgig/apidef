@@ -64,8 +64,6 @@ describe('apidef', () => {
       {}
     )
 
-    // console.dir(bres.guide, { depth: null })
-
     expect(bres.guide).contains(SOLAR_GUIDE)
   })
 
@@ -105,8 +103,6 @@ def: '${outprefix}def.yaml'
 
 `
 
-
-    // const model = Aontu(modelSrc).gen()
     const modelinit = aontu.generate(modelSrc)
 
     const buildspec = {
@@ -116,17 +112,14 @@ def: '${outprefix}def.yaml'
     }
 
     const bres = await build(modelinit, buildspec, {})
-    // console.log(bres.ok)
     expect(bres.ok).true()
 
     const model = aontu.generate(`@"test/solar/solar.jsonic"`, {
       base: __dirname + '/..'
     })
-    console.dir(model, { depth: null })
 
     expect(model).includes(SOLAR_MODEL)
   })
-
 
 })
 
@@ -232,7 +225,8 @@ const SOLAR_MODEL = {
                       {
                         kind: 'param',
                         name: 'planet_id',
-                        req: true,
+                        orig: 'planet_id',
+                        reqd: true,
                         type: '`$STRING`',
                         active: true
                       }
@@ -242,6 +236,7 @@ const SOLAR_MODEL = {
                   orig: '/api/planet/{planet_id}/moon',
                   parts: ['api', 'planet', '{planet_id}', 'moon'],
                   select: { exist: ['planet_id'] },
+                  transform: { req: '`reqdata`', res: '`body`' },
                   active: true,
                   relations: []
                 }
@@ -256,7 +251,8 @@ const SOLAR_MODEL = {
                       {
                         kind: 'param',
                         name: 'planet_id',
-                        req: true,
+                        orig: 'planet_id',
+                        reqd: true,
                         type: '`$STRING`',
                         active: true
                       }
@@ -266,6 +262,7 @@ const SOLAR_MODEL = {
                   orig: '/api/planet/{planet_id}/moon',
                   parts: ['api', 'planet', '{planet_id}', 'moon'],
                   select: { exist: ['planet_id'] },
+                  transform: { req: '`reqdata`', res: '`body`' },
                   active: true,
                   relations: []
                 }
@@ -279,8 +276,17 @@ const SOLAR_MODEL = {
                     param: [
                       {
                         kind: 'param',
+                        name: 'id',
+                        orig: 'moon_id',
+                        reqd: true,
+                        type: '`$STRING`',
+                        active: true
+                      },
+                      {
+                        kind: 'param',
                         name: 'planet_id',
-                        req: true,
+                        orig: 'planet_id',
+                        reqd: true,
                         type: '`$STRING`',
                         active: true
                       }
@@ -289,12 +295,48 @@ const SOLAR_MODEL = {
                   method: 'GET',
                   orig: '/api/planet/{planet_id}/moon/{moon_id}',
                   parts: ['api', 'planet', '{planet_id}', 'moon', '{id}'],
-                  select: { exist: ['planet_id'] },
+                  rename: { param: { moon_id: 'id' } },
+                  select: { exist: ['id', 'planet_id'] },
+                  transform: { req: '`reqdata`', res: '`body`' },
                   active: true,
                   relations: []
                 }
               ],
               name: 'load'
+            },
+            remove: {
+              alts: [
+                {
+                  args: {
+                    param: [
+                      {
+                        kind: 'param',
+                        name: 'id',
+                        orig: 'moon_id',
+                        reqd: true,
+                        type: '`$STRING`',
+                        active: true
+                      },
+                      {
+                        kind: 'param',
+                        name: 'planet_id',
+                        orig: 'planet_id',
+                        reqd: true,
+                        type: '`$STRING`',
+                        active: true
+                      }
+                    ]
+                  },
+                  method: 'DELETE',
+                  orig: '/api/planet/{planet_id}/moon/{moon_id}',
+                  parts: ['api', 'planet', '{planet_id}', 'moon', '{id}'],
+                  select: { exist: ['id', 'planet_id'] },
+                  transform: { req: '`reqdata`', res: '`body`' },
+                  active: true,
+                  relations: []
+                }
+              ],
+              name: 'remove'
             },
             update: {
               alts: [
@@ -303,8 +345,17 @@ const SOLAR_MODEL = {
                     param: [
                       {
                         kind: 'param',
+                        name: 'id',
+                        orig: 'moon_id',
+                        reqd: true,
+                        type: '`$STRING`',
+                        active: true
+                      },
+                      {
+                        kind: 'param',
                         name: 'planet_id',
-                        req: true,
+                        orig: 'planet_id',
+                        reqd: true,
                         type: '`$STRING`',
                         active: true
                       }
@@ -313,7 +364,8 @@ const SOLAR_MODEL = {
                   method: 'PUT',
                   orig: '/api/planet/{planet_id}/moon/{moon_id}',
                   parts: ['api', 'planet', '{planet_id}', 'moon', '{id}'],
-                  select: { exist: ['planet_id'] },
+                  select: { exist: ['id', 'planet_id'] },
+                  transform: { req: '`reqdata`', res: '`body`' },
                   active: true,
                   relations: []
                 }
@@ -393,8 +445,9 @@ const SOLAR_MODEL = {
                     param: [
                       {
                         kind: 'param',
-                        name: 'planet_id',
-                        req: true,
+                        name: 'id',
+                        orig: 'planet_id',
+                        reqd: true,
                         type: '`$STRING`',
                         active: true
                       }
@@ -403,7 +456,9 @@ const SOLAR_MODEL = {
                   method: 'POST',
                   orig: '/api/planet/{planet_id}/forbid',
                   parts: ['api', 'planet', '{id}', 'forbid'],
-                  select: { '$action': 'forbid', exist: ['planet_id'] },
+                  rename: { param: { planet_id: 'id' } },
+                  select: { '$action': 'forbid', exist: ['id'] },
+                  transform: { req: '`reqdata`', res: '`body`' },
                   active: true,
                   relations: []
                 },
@@ -412,8 +467,9 @@ const SOLAR_MODEL = {
                     param: [
                       {
                         kind: 'param',
-                        name: 'planet_id',
-                        req: true,
+                        name: 'id',
+                        orig: 'planet_id',
+                        reqd: true,
                         type: '`$STRING`',
                         active: true
                       }
@@ -422,7 +478,9 @@ const SOLAR_MODEL = {
                   method: 'POST',
                   orig: '/api/planet/{planet_id}/terraform',
                   parts: ['api', 'planet', '{id}', 'terraform'],
-                  select: { '$action': 'terraform', exist: ['planet_id'] },
+                  rename: { param: { planet_id: 'id' } },
+                  select: { '$action': 'terraform', exist: ['id'] },
+                  transform: { req: '`reqdata`', res: '`body`' },
                   active: true,
                   relations: []
                 },
@@ -430,11 +488,12 @@ const SOLAR_MODEL = {
                   method: 'POST',
                   orig: '/api/planet',
                   parts: ['api', 'planet'],
+                  transform: { req: '`reqdata`', res: '`body`' },
                   active: true,
                   args: { param: [] },
                   relations: [],
                   select: {}
-                },
+                }
               ],
               name: 'create'
             },
@@ -444,6 +503,7 @@ const SOLAR_MODEL = {
                   method: 'GET',
                   orig: '/api/planet',
                   parts: ['api', 'planet'],
+                  transform: { req: '`reqdata`', res: '`body`' },
                   active: true,
                   args: { param: [] },
                   relations: [],
@@ -459,8 +519,9 @@ const SOLAR_MODEL = {
                     param: [
                       {
                         kind: 'param',
-                        name: 'planet_id',
-                        req: true,
+                        name: 'id',
+                        orig: 'planet_id',
+                        reqd: true,
                         type: '`$STRING`',
                         active: true
                       }
@@ -469,12 +530,40 @@ const SOLAR_MODEL = {
                   method: 'GET',
                   orig: '/api/planet/{planet_id}',
                   parts: ['api', 'planet', '{id}'],
-                  select: { exist: ['planet_id'] },
+                  rename: { param: { planet_id: 'id' } },
+                  select: { exist: ['id'] },
+                  transform: { req: '`reqdata`', res: '`body`' },
                   active: true,
                   relations: []
                 }
               ],
               name: 'load'
+            },
+            remove: {
+              alts: [
+                {
+                  args: {
+                    param: [
+                      {
+                        kind: 'param',
+                        name: 'id',
+                        orig: 'planet_id',
+                        reqd: true,
+                        type: '`$STRING`',
+                        active: true
+                      }
+                    ]
+                  },
+                  method: 'DELETE',
+                  orig: '/api/planet/{planet_id}',
+                  parts: ['api', 'planet', '{id}'],
+                  select: { exist: ['id'] },
+                  transform: { req: '`reqdata`', res: '`body`' },
+                  active: true,
+                  relations: []
+                }
+              ],
+              name: 'remove'
             },
             update: {
               alts: [
@@ -483,8 +572,9 @@ const SOLAR_MODEL = {
                     param: [
                       {
                         kind: 'param',
-                        name: 'planet_id',
-                        req: true,
+                        name: 'id',
+                        orig: 'planet_id',
+                        reqd: true,
                         type: '`$STRING`',
                         active: true
                       }
@@ -493,7 +583,8 @@ const SOLAR_MODEL = {
                   method: 'PUT',
                   orig: '/api/planet/{planet_id}',
                   parts: ['api', 'planet', '{id}'],
-                  select: { exist: ['planet_id'] },
+                  select: { exist: ['id'] },
+                  transform: { req: '`reqdata`', res: '`body`' },
                   active: true,
                   relations: []
                 }
@@ -506,152 +597,136 @@ const SOLAR_MODEL = {
       },
       flow: {
         BasicMoonFlow: {
+          entity: 'moon',
+          kind: 'basic',
           name: 'BasicMoonFlow',
-          active: true,
-          param: {
-            SOLAR_TEST_MOON_ENTID: { moon01: 'MOON01', moon02: 'MOON02', moon03: 'MOON03' },
-            SOLAR_TEST_LIVE: 'FALSE',
-            SOLAR_TEST_EXPLAIN: 'FALSE'
-          },
-          test: {
-            entity: {
-              moon: {
-                MOON01: {
-                  diameter: 's0',
-                  id: 'MOON01',
-                  kind: 's2',
-                  name: 's3',
-                  planet_id: 's4'
-                },
-                MOON02: {
-                  diameter: 's32',
-                  id: 'MOON02',
-                  kind: 's34',
-                  name: 's35',
-                  planet_id: 's36'
-                },
-                MOON03: {
-                  diameter: 's64',
-                  id: 'MOON03',
-                  kind: 's66',
-                  name: 's67',
-                  planet_id: 's68'
-                }
-              }
-            }
-          },
           step: [
             {
-              name: 'load_moon0',
-              kind: 'entity',
-              entity: 'moon',
-              action: 'load',
-              match: { id: '`dm$=p.SOLAR_TEST_MOON_ENTID.moon01`' },
-              valid: { '`$OPEN`': true, id: '`dm$=s.load_moon0.match.id`' }
+              data: { id: 'moon_n01', planet_id: 'planet01' },
+              input: { id: 'moon_n01' },
+              op: 'create',
+              active: true,
+              match: {}
             },
             {
-              name: 'update_moon1',
-              ref: 'load_moon0',
-              action: 'update',
-              reqdata: {},
-              valid: { '`$OPEN`': true, id: '`dm$=s.load_moon0.match.id`' }
+              match: { planet_id: 'planet01' },
+              op: 'list',
+              valid: [{ apply: 'ItemExists', spec: { id: 'moon_n01' } }],
+              active: true,
+              data: {}
             },
             {
-              name: 'load_moon2',
-              kind: 'entity',
-              entity: 'moon',
-              action: 'load',
-              match: { id: '`dm$=p.SOLAR_TEST_MOON_ENTID.moon01`' },
-              valid: { '`$OPEN`': true, id: '`dm$=s.load_moon0.match.id`' }
+              data: { id: 'moon_n01', planet_id: 'planet01' },
+              input: { id: 'moon_n01' },
+              op: 'update',
+              spec: [
+                {
+                  apply: 'TextFieldMark',
+                  def: { mark: 'Mark01-moon_n01' }
+                }
+              ],
+              active: true,
+              match: {}
+            },
+            {
+              input: { id: 'moon_n01' },
+              match: { id: 'moon_n01', planet_id: 'planet01' },
+              op: 'load',
+              valid: [
+                {
+                  apply: 'TextFieldMark',
+                  def: { mark: 'Mark01-moon_n01' }
+                }
+              ],
+              active: true,
+              data: {}
+            },
+            {
+              input: { id: 'moon_n01' },
+              match: { id: 'moon_n01', planet_id: 'planet01' },
+              op: 'remove',
+              active: true,
+              data: {}
+            },
+            {
+              match: { planet_id: 'planet01' },
+              op: 'list',
+              valid: [{ apply: 'ItemNotExists', def: { id: 'moon_n01' } }],
+              active: true,
+              data: {}
             }
           ],
-          setp: []
+          'key$': 'BasicMoonFlow',
+          active: true,
+          param: {}
         },
         BasicPlanetFlow: {
+          entity: 'planet',
+          kind: 'basic',
           name: 'BasicPlanetFlow',
-          active: true,
-          param: {
-            SOLAR_TEST_PLANET_ENTID: {
-              planet01: 'PLANET01',
-              planet02: 'PLANET02',
-              planet03: 'PLANET03'
-            },
-            SOLAR_TEST_LIVE: 'FALSE',
-            SOLAR_TEST_EXPLAIN: 'FALSE'
-          },
-          test: {
-            entity: {
-              planet: {
-                PLANET01: {
-                  diameter: 's0',
-                  forbid: 's1',
-                  id: 'PLANET01',
-                  kind: 's3',
-                  name: 's4',
-                  ok: 's5',
-                  start: 's6',
-                  state: 's7',
-                  stop: 's8',
-                  why: 's9'
-                },
-                PLANET02: {
-                  diameter: 's64',
-                  forbid: 's65',
-                  id: 'PLANET02',
-                  kind: 's67',
-                  name: 's68',
-                  ok: 's69',
-                  start: 's6a',
-                  state: 's6b',
-                  stop: 's6c',
-                  why: 's6d'
-                },
-                PLANET03: {
-                  diameter: 'sc8',
-                  forbid: 'sc9',
-                  id: 'PLANET03',
-                  kind: 'scb',
-                  name: 'scc',
-                  ok: 'scd',
-                  start: 'sce',
-                  state: 'scf',
-                  stop: 'sd0',
-                  why: 'sd1'
-                }
-              }
-            }
-          },
           step: [
             {
-              name: 'load_planet0',
-              kind: 'entity',
-              entity: 'planet',
-              action: 'load',
-              match: { id: '`dm$=p.SOLAR_TEST_PLANET_ENTID.planet01`' },
-              valid: { '`$OPEN`': true, id: '`dm$=s.load_planet0.match.id`' }
+              data: { id: 'planet_n01' },
+              input: { id: 'planet_n01' },
+              op: 'create',
+              active: true,
+              match: {}
             },
             {
-              name: 'update_planet1',
-              ref: 'load_planet0',
-              action: 'update',
-              reqdata: {},
-              valid: { '`$OPEN`': true, id: '`dm$=s.load_planet0.match.id`' }
+              op: 'list',
+              valid: [{ apply: 'ItemExists', spec: { id: 'planet_n01' } }],
+              active: true,
+              match: {},
+              data: {}
             },
             {
-              name: 'load_planet2',
-              kind: 'entity',
-              entity: 'planet',
-              action: 'load',
-              match: { id: '`dm$=p.SOLAR_TEST_PLANET_ENTID.planet01`' },
-              valid: { '`$OPEN`': true, id: '`dm$=s.load_planet0.match.id`' }
+              data: { id: 'planet_n01' },
+              input: { id: 'planet_n01' },
+              op: 'update',
+              spec: [
+                {
+                  apply: 'TextFieldMark',
+                  def: { mark: 'Mark01-planet_n01' }
+                }
+              ],
+              active: true,
+              match: {}
+            },
+            {
+              input: { id: 'planet_n01' },
+              match: { id: 'planet_n01' },
+              op: 'load',
+              valid: [
+                {
+                  apply: 'TextFieldMark',
+                  def: { mark: 'Mark01-planet_n01' }
+                }
+              ],
+              active: true,
+              data: {}
+            },
+            {
+              input: { id: 'planet_n01' },
+              match: { id: 'planet_n01' },
+              op: 'remove',
+              active: true,
+              data: {}
+            },
+            {
+              op: 'list',
+              valid: [{ apply: 'ItemNotExists', def: { id: 'planet_n01' } }],
+              active: true,
+              match: {},
+              data: {}
             }
           ],
-          setp: []
+          'key$': 'BasicPlanetFlow',
+          active: true,
+          param: {}
         }
       },
-      info: {}
-    },
-    info: { title: 'Solar System API', version: '1.0.0' }
+      info: { title: 'Solar System API', version: '1.0.0' }
+    }
   }
 }
 

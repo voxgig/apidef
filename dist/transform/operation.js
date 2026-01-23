@@ -65,7 +65,6 @@ function resolveUpdate(opm, gent) {
     return opdesc;
 }
 function resolveRemove(opm, gent) {
-    console.log('RD', gent.opm$);
     const opdesc = opm.remove = resolveOp('remove', gent);
     return opdesc;
 }
@@ -85,7 +84,6 @@ function resolveOp(opname, gent) {
     let mop = undefined;
     let opdesc = gent.opm$[opname];
     if (opdesc) {
-        // console.dir(opdesc, { depth: null })
         mop = {
             name: opname,
             alts: opdesc.paths.map((p) => {

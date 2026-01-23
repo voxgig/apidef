@@ -12,7 +12,6 @@ const flowstepTransform = async function (ctx) {
         ctx.log.debug({ point: 'flowstep', note: flowname });
         const ent = kit.entity[flow.entity];
         const opmap = ent.op;
-        console.log('FLOWSTEP', flowname, opmap);
         // TODO: spec parameter passed into each step func, used semantically by generator
         // validation: part of spec, semantic name and params, up to generator how to use it
         const idn01 = ent.name + '_n01';
