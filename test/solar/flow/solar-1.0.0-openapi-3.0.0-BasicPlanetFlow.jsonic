@@ -1,106 +1,98 @@
-# BasicPlanetFlow
+# undefined
 
 main: kit: flow: BasicPlanetFlow:
 {
+  entity: "planet",
+  kind: "basic",
   name: "BasicPlanetFlow",
-  active: true,
-  param: {
-    SOLAR_TEST_PLANET_ENTID: {
-      planet01: "PLANET01",
-      planet02: "PLANET02",
-      planet03: "PLANET03"
-    }
-
-    SOLAR_TEST_LIVE: "FALSE",
-    SOLAR_TEST_EXPLAIN: "FALSE"
-  }
-
-  test: {
-    entity: {
-      planet: {
-        PLANET01: {
-          diameter: "s0",
-          forbid: "s1",
-          id: "PLANET01",
-          kind: "s3",
-          name: "s4",
-          ok: "s5",
-          start: "s6",
-          state: "s7",
-          stop: "s8",
-          why: "s9"
-        }
-
-        PLANET02: {
-          diameter: "s64",
-          forbid: "s65",
-          id: "PLANET02",
-          kind: "s67",
-          name: "s68",
-          ok: "s69",
-          start: "s6a",
-          state: "s6b",
-          stop: "s6c",
-          why: "s6d"
-        }
-
-        PLANET03: {
-          diameter: "sc8",
-          forbid: "sc9",
-          id: "PLANET03",
-          kind: "scb",
-          name: "scc",
-          ok: "scd",
-          start: "sce",
-          state: "scf",
-          stop: "sd0",
-          why: "sd1"
-        }
-      }
-    }
-  }
-
   step: [
     {
-      name: "load_planet0",
-      kind: "entity",
-      entity: "planet",
-      action: "load",
-      match: {
-        id: "`dm$=p.SOLAR_TEST_PLANET_ENTID.planet01`"
+      data: {
+        id: "planet_n01"
       }
 
-      valid: {
-        "`$OPEN`": true,
-        id: "`dm$=s.load_planet0.match.id`"
+      input: {
+        id: "planet_n01"
       }
+
+      op: "create"
     }
 
     {
-      name: "update_planet1",
-      ref: "load_planet0",
-      action: "update",
-      reqdata: {}
-
-      valid: {
-        "`$OPEN`": true,
-        id: "`dm$=s.load_planet0.match.id`"
-      }
+      op: "list",
+      valid: [
+        {
+          apply: "ItemExists",
+          spec: {
+            id: "planet_n01"
+          }
+        }
+      ]
     }
 
     {
-      name: "load_planet2",
-      kind: "entity",
-      entity: "planet",
-      action: "load",
-      match: {
-        id: "`dm$=p.SOLAR_TEST_PLANET_ENTID.planet01`"
+      data: {
+        id: "planet_n01"
       }
 
-      valid: {
-        "`$OPEN`": true,
-        id: "`dm$=s.load_planet0.match.id`"
+      input: {
+        id: "planet_n01"
       }
+
+      op: "update",
+      spec: [
+        {
+          apply: "TextFieldMark",
+          def: {
+            mark: "Mark01-planet_n01"
+          }
+        }
+      ]
     }
-  ]
+
+    {
+      input: {
+        id: "planet_n01"
+      }
+
+      match: {
+        id: "planet_n01"
+      }
+
+      op: "load",
+      valid: [
+        {
+          apply: "TextFieldMark",
+          def: {
+            mark: "Mark01-planet_n01"
+          }
+        }
+      ]
+    }
+
+    {
+      input: {
+        id: "planet_n01"
+      }
+
+      match: {
+        id: "planet_n01"
+      }
+
+      op: "remove"
+    }
+
+    {
+      op: "list",
+      valid: [
+        {
+          apply: "ItemNotExists",
+          def: {
+            id: "planet_n01"
+          }
+        }
+      ]
+    }
+  ],
+  "key$": "BasicPlanetFlow"
 }

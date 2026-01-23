@@ -1,12 +1,46 @@
 "use strict";
 /* Copyright (c) 2024 Voxgig Ltd, MIT License */
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
+const Fs = __importStar(require("node:fs"));
 const node_test_1 = require("node:test");
 const code_1 = require("@hapi/code");
 const aontu_1 = require("aontu");
 const __1 = require("../");
 // TODO: remove all sdk refs or rename to api
-const aontu = new aontu_1.Aontu();
+const aontu = new aontu_1.Aontu({ fs: Fs });
 (0, node_test_1.describe)('apidef', () => {
     (0, node_test_1.test)('exist', async () => {
         (0, code_1.expect)(__1.ApiDef).exist();
@@ -83,8 +117,9 @@ def: '${outprefix}def.yaml'
         const bres = await build(modelinit, buildspec, {});
         // console.log(bres.ok)
         (0, code_1.expect)(bres.ok).true();
-        // TODO: compare to expected model!
-        const model = aontu.generate(`@"test/solar/solar.jsonic"`);
+        const model = aontu.generate(`@"test/solar/solar.jsonic"`, {
+            base: __dirname + '/..'
+        });
         console.dir(model, { depth: null });
         (0, code_1.expect)(model).includes(SOLAR_MODEL);
     });

@@ -633,6 +633,8 @@ function findPathsWithPrefix(ctx, pathStr, opts) {
 function allcapify(s) {
     return 'string' === typeof s ? (0, jostraca_1.snakify)(s).toUpperCase() : '';
 }
+// Get value from object as string, and format as indicated.
+// Example: nom({foo:'bar'},'Foo') -> 'Bar'
 function nom(v, format) {
     let formatstr = 'string' == typeof format ? format : null;
     if (null == formatstr) {

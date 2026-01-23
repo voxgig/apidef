@@ -2,46 +2,31 @@
 
 import { each, getx } from 'jostraca'
 
-import { getelem } from '@voxgig/struct'
-
 import type { TransformResult, Transform } from '../transform'
 
-import { fixName } from '../transform'
-
-import { formatJSONIC, validator, canonize } from '../utility'
+import { validator, canonize } from '../utility'
 
 import { KIT } from '../types'
 
 import type {
   KitModel,
-  GuideEntity,
-  GuidePathOp,
 } from '../types'
 
 import type {
-  PathDef,
-  ParameterDef,
-  MethodDef,
   SchemaDef,
 } from '../def'
 
 import type {
-  PathDesc,
-} from '../desc'
-
-import type {
   OpName,
-  ModelOpMap,
   ModelOp,
   ModelEntity,
   ModelAlt,
-  ModelArg,
   ModelField,
 } from '../model'
 
 
 
-const fieldTransform = async function(
+const fieldTransform: Transform = async function(
   ctx: any,
 ): Promise<TransformResult> {
   const { apimodel, def } = ctx
@@ -51,9 +36,7 @@ const fieldTransform = async function(
 
   const opFieldPrecedence: OpName[] = ['load', 'create', 'update', 'patch', 'list']
 
-  each(kit.entity, (ment: ModelEntity, entname: string) => {
-    const fielddefs: SchemaDef[] = []
-
+  each(kit.entity, (ment: ModelEntity, _entname: string) => {
     const fields = ment.fields
     const seen: any = {}
 
@@ -115,7 +98,7 @@ function resolveOpFields(
 
 
 function findFieldDefs(
-  ment: ModelEntity,
+  _ment: ModelEntity,
   mop: ModelOp,
   malt: ModelAlt,
   def: any

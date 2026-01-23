@@ -22,7 +22,12 @@ import { flowHeuristic01 } from './flow/flowHeuristic01'
 
 
 async function makeFlowBuilder(ctx: ApiDefContext): Promise<Function> {
-  let flows: any[] = []
+  const { apimodel, opts } = ctx
+
+  const flows = apimodel.main[KIT].flow
+
+  console.log('FLOWS', flows)
+
   let flowBuilder = () => {
     ctx.warn({
       step: 'flow',
@@ -30,6 +35,7 @@ async function makeFlowBuilder(ctx: ApiDefContext): Promise<Function> {
     })
   }
 
+  /*
   if ('heuristic01' === ctx.opts.strategy) {
     try {
       flows = await flowHeuristic01(ctx)
@@ -52,7 +58,7 @@ async function makeFlowBuilder(ctx: ApiDefContext): Promise<Function> {
     })
     return flowBuilder
   }
-
+  */
 
   flowBuilder = () => {
 
@@ -65,13 +71,13 @@ async function makeFlowBuilder(ctx: ApiDefContext): Promise<Function> {
         let flowfile =
           Path.join(ctx.opts.folder, 'flow',
             (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) +
-            flow.Name + '.jsonic')
+            flow.name + '.jsonic')
 
-        let flowModelSrc = formatJsonSrc(JSON.stringify(flow.model, null, 2))
+        let flowModelSrc = formatJsonSrc(JSON.stringify(flow, null, 2))
 
         let flowsrc = `# ${flow.Name}
 
-main: ${KIT}: flow: ${flow.Name}:
+main: ${KIT}: flow: ${flow.name}:
 ` + flowModelSrc
 
         barrel.push(`@"${Path.basename(flowfile)}"`)

@@ -71,6 +71,8 @@ import { operationTransform } from './transform/operation'
 import { argsTransform } from './transform/args'
 import { selectTransform } from './transform/select'
 import { fieldTransform } from './transform/field'
+import { flowTransform } from './transform/flow'
+import { flowstepTransform } from './transform/flowstep'
 import { cleanTransform } from './transform/clean'
 
 import { makeEntityBuilder } from './builder/entity'
@@ -218,6 +220,8 @@ function ApiDef(opts: ApiDefOptions) {
       await argsTransform(ctx)
       await selectTransform(ctx)
       await fieldTransform(ctx)
+      await flowTransform(ctx)
+      await flowstepTransform(ctx)
       await cleanTransform(ctx)
 
       steps.push('transformers')
@@ -340,7 +344,7 @@ ApiDef.makeBuild = async function(opts: ApiDefOptions) {
     meta: opts.meta || {},
   }
 
-  const build = async function(model: any, build: any, ctx: any) {
+  const build = async function(model: any, build: any, _ctx: any) {
 
     if (null == apidef) {
       apidef = ApiDef({

@@ -27,7 +27,7 @@ import type {
 
 
 
-const argsTransform = async function(
+const argsTransform: Transform = async function(
   ctx: any,
 ): Promise<TransformResult> {
   const { apimodel, def } = ctx
@@ -77,7 +77,7 @@ function resolveArgs(ment: ModelEntity, mop: ModelOp, malt: ModelAlt, argdefs: P
       orig,
       type: validator(argdef.schema?.type),
       kind,
-      req: !!argdef.required
+      reqd: !!argdef.required
     }
 
     if (argdef.nullable) {
@@ -86,17 +86,8 @@ function resolveArgs(ment: ModelEntity, mop: ModelOp, malt: ModelAlt, argdefs: P
 
     // insert sorted by name
     let kindargs = (malt.args[marg.kind] = malt.args[marg.kind] ?? [])
-
-    let kalen = kindargs.length
-    for (let ka, i = 0; i <= kalen; i++) {
-      ka = kindargs[i]
-      if (ka && ka.name > marg.name) {
-        kindargs = [...kindargs.slice(0, i), marg, ...kindargs.slice(i + 1)]
-      }
-      else {
-        kindargs.push(marg)
-      }
-    }
+    kindargs.push(marg)
+    kindargs.sort((a: ModelArg, b: ModelArg) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0)
   })
 }
 

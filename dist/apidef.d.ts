@@ -7,7 +7,7 @@ declare function ApiDef(opts: ApiDefOptions): {
 };
 declare namespace ApiDef {
     var makeBuild: (opts: ApiDefOptions) => Promise<{
-        (model: any, build: any, ctx: any): Promise<any>;
+        (model: any, build: any, _ctx: any): Promise<any>;
         step: string;
     }>;
 }

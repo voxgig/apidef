@@ -1,12 +1,10 @@
 
-import type { TransformResult } from '../transform'
+import type { TransformResult, Transform } from '../transform'
 
 import { walk, isempty, isnode, ismap, islist } from '@voxgig/struct'
 
-import { formatJSONIC } from '../utility'
 
-
-const cleanTransform = async function(
+const cleanTransform: Transform = async function(
   ctx: any,
 ): Promise<TransformResult> {
   const { apimodel } = ctx

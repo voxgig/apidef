@@ -6,7 +6,7 @@ import type { MethodName } from './types'
 
 
 // Operation names available on entities
-type OpName = 'load' | 'list' | 'create' | 'update' | 'delete' | 'patch' | 'head' | 'options'
+type OpName = 'load' | 'list' | 'create' | 'update' | 'remove' | 'patch' | 'head' | 'options'
 
 
 // Entity relationships information
@@ -41,7 +41,7 @@ type ModelArg = {
   orig: string
   type: any // @voxgig/struct validation schema
   kind: 'param' | 'query' | 'header' | 'cookie'
-  req: boolean
+  reqd: boolean
 }
 
 
@@ -93,6 +93,31 @@ type ModelEntity = {
 }
 
 
+type ModelEntityFlow = {
+  name: string,
+  entity: string
+  kind: string
+  // args: Record<string, string>
+  step: ModelEntityFlowStep[]
+}
+
+
+type ModelEntityFlowStep = {
+  op: OpName
+  input: Record<string, any>
+  match: Record<string, any>
+  data: Record<string, any>
+  spec: {
+    apply: string
+    def: Record<string, any>
+  }[]
+  valid: {
+    apply: string
+    def: Record<string, any>
+  }[]
+}
+
+
 export type {
   OpName,
   ModelEntityRelations,
@@ -103,4 +128,6 @@ export type {
   ModelAlt,
   ModelOp,
   ModelEntity,
+  ModelEntityFlow,
+  ModelEntityFlowStep,
 }

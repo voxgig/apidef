@@ -15,7 +15,7 @@ type TransformResult = {
     err?: any;
     transform?: any;
 };
-type Transform = (ctx: TransformCtx, guide: Guide, tspec: TransformSpec, apimodel: any, def: any) => Promise<TransformResult>;
+type Transform = (ctx: TransformCtx) => Promise<TransformResult>;
 declare const OPKIND: any;
 declare const GuideShape: {
     <V>(root?: V | undefined, ctx?: import("gubu").Context): V & {

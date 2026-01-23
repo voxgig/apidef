@@ -73,7 +73,7 @@ main: kit: entity: planet: {
                 kind: "param"
                 name: "id"
                 orig: "planet_id"
-                req: true
+                reqd: true
                 type: "`$STRING`"
               }
             ]
@@ -99,7 +99,7 @@ main: kit: entity: planet: {
           }
           transform: {
             req: "`reqdata`"
-            res: "`resdata`"
+            res: "`body`"
           }
         }
         {
@@ -109,7 +109,7 @@ main: kit: entity: planet: {
                 kind: "param"
                 name: "id"
                 orig: "planet_id"
-                req: true
+                reqd: true
                 type: "`$STRING`"
               }
             ]
@@ -135,7 +135,7 @@ main: kit: entity: planet: {
           }
           transform: {
             req: "`reqdata`"
-            res: "`resdata`"
+            res: "`body`"
           }
         }
         {
@@ -147,7 +147,7 @@ main: kit: entity: planet: {
           ]
           transform: {
             req: "`reqdata`"
-            res: "`resdata`"
+            res: "`body`"
           }
         }
       ]
@@ -164,7 +164,7 @@ main: kit: entity: planet: {
           ]
           transform: {
             req: "`reqdata`"
-            res: "`resdata`"
+            res: "`body`"
           }
         }
       ]
@@ -179,7 +179,7 @@ main: kit: entity: planet: {
                 kind: "param"
                 name: "id"
                 orig: "planet_id"
-                req: true
+                reqd: true
                 type: "`$STRING`"
               }
             ]
@@ -203,11 +203,45 @@ main: kit: entity: planet: {
           }
           transform: {
             req: "`reqdata`"
-            res: "`resdata`"
+            res: "`body`"
           }
         }
       ]
       name: "load"
+    }
+    remove: {
+      alts: [
+        {
+          args: {
+            param: [
+              {
+                kind: "param"
+                name: "id"
+                orig: "planet_id"
+                reqd: true
+                type: "`$STRING`"
+              }
+            ]
+          }
+          method: "DELETE"
+          orig: "/api/planet/{planet_id}"
+          parts: [
+            "api"
+            "planet"
+            "{id}"
+          ]
+          select: {
+            exist: [
+              "id"
+            ]
+          }
+          transform: {
+            req: "`reqdata`"
+            res: "`body`"
+          }
+        }
+      ]
+      name: "remove"
     }
     update: {
       alts: [
@@ -218,7 +252,7 @@ main: kit: entity: planet: {
                 kind: "param"
                 name: "id"
                 orig: "planet_id"
-                req: true
+                reqd: true
                 type: "`$STRING`"
               }
             ]
@@ -237,7 +271,7 @@ main: kit: entity: planet: {
           }
           transform: {
             req: "`reqdata`"
-            res: "`resdata`"
+            res: "`body`"
           }
         }
       ]

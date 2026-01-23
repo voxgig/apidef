@@ -18,7 +18,7 @@ import {
 // TODO: remove all sdk refs or rename to api
 
 
-const aontu = new Aontu()
+const aontu = new Aontu({ fs: Fs })
 
 
 describe('apidef', () => {
@@ -65,8 +65,6 @@ describe('apidef', () => {
     )
 
     // console.dir(bres.guide, { depth: null })
-
-
 
     expect(bres.guide).contains(SOLAR_GUIDE)
   })
@@ -121,9 +119,9 @@ def: '${outprefix}def.yaml'
     // console.log(bres.ok)
     expect(bres.ok).true()
 
-    // TODO: compare to expected model!
-
-    const model = aontu.generate(`@"test/solar/solar.jsonic"`)
+    const model = aontu.generate(`@"test/solar/solar.jsonic"`, {
+      base: __dirname + '/..'
+    })
     console.dir(model, { depth: null })
 
     expect(model).includes(SOLAR_MODEL)

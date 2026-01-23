@@ -7,8 +7,8 @@ const selectTransform = async function (ctx) {
     const { apimodel, def, guide } = ctx;
     const kit = apimodel.main[types_1.KIT];
     let msg = 'select ';
-    (0, jostraca_1.each)(kit.entity, (ment, entname) => {
-        (0, jostraca_1.each)(ment.op, (mop, opname) => {
+    (0, jostraca_1.each)(kit.entity, (ment, _entname) => {
+        (0, jostraca_1.each)(ment.op, (mop, _opname) => {
             (0, jostraca_1.each)(mop.alts, (malt) => {
                 const pdef = def.paths[malt.orig];
                 resolveSelect(guide, ment, mop, malt, pdef);
@@ -22,7 +22,7 @@ const selectTransform = async function (ctx) {
     return { ok: true, msg };
 };
 exports.selectTransform = selectTransform;
-function resolveSelect(guide, ment, mop, malt, pdef) {
+function resolveSelect(guide, ment, _mop, malt, _pdef) {
     const select = malt.select;
     const margs = malt.args;
     const argkinds = ['param', 'query', 'header', 'cookie'];
@@ -43,7 +43,7 @@ function resolveSelect(guide, ment, mop, malt, pdef) {
         }
     }
 }
-function sortAlts(guide, ment, mop) {
+function sortAlts(_guide, _ment, mop) {
     mop.alts.sort((a, b) => {
         // longest exist len first
         let order = b.select.exist.length - a.select.exist.length;

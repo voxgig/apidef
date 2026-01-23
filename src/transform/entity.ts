@@ -4,8 +4,6 @@ import { each } from 'jostraca'
 
 import type { TransformResult, Transform } from '../transform'
 
-import { formatJSONIC } from '../utility'
-
 import { KIT } from '../types'
 
 import type { KitModel } from '../types'
@@ -25,8 +23,7 @@ import type {
 
 
 
-
-const entityTransform = async function(
+const entityTransform: Transform = async function(
   ctx: any,
 ): Promise<TransformResult> {
   const { apimodel, guide } = ctx

@@ -59,9 +59,11 @@ const operation_1 = require("./transform/operation");
 const args_1 = require("./transform/args");
 const select_1 = require("./transform/select");
 const field_1 = require("./transform/field");
+const flow_1 = require("./transform/flow");
+const flowstep_1 = require("./transform/flowstep");
 const clean_1 = require("./transform/clean");
 const entity_2 = require("./builder/entity");
-const flow_1 = require("./builder/flow");
+const flow_2 = require("./builder/flow");
 // Log non-fatal wierdness.
 const dlog = (0, utility_1.getdlog)('apidef', __filename);
 function ApiDef(opts) {
@@ -171,6 +173,8 @@ function ApiDef(opts) {
             await (0, args_1.argsTransform)(ctx);
             await (0, select_1.selectTransform)(ctx);
             await (0, field_1.fieldTransform)(ctx);
+            await (0, flow_1.flowTransform)(ctx);
+            await (0, flowstep_1.flowstepTransform)(ctx);
             await (0, clean_1.cleanTransform)(ctx);
             steps.push('transformers');
             // Step: builders (build generated sub models).
@@ -180,7 +184,7 @@ function ApiDef(opts) {
             const builders = [
                 await (0, entity_2.makeEntityBuilder)(ctx),
                 // TODO: move to sdkgen
-                await (0, flow_1.makeFlowBuilder)(ctx),
+                await (0, flow_2.makeFlowBuilder)(ctx),
             ];
             steps.push('builders');
             // Step: generate (generate model files).
@@ -266,7 +270,7 @@ ApiDef.makeBuild = async function (opts) {
         kind: 'openapi3',
         meta: opts.meta || {},
     };
-    const build = async function (model, build, ctx) {
+    const build = async function (model, build, _ctx) {
         if (null == apidef) {
             apidef = ApiDef({
                 def: opts.def,

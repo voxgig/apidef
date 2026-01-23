@@ -1,91 +1,110 @@
-# BasicMoonFlow
+# undefined
 
 main: kit: flow: BasicMoonFlow:
 {
+  entity: "moon",
+  kind: "basic",
   name: "BasicMoonFlow",
-  active: true,
-  param: {
-    SOLAR_TEST_MOON_ENTID: {
-      moon01: "MOON01",
-      moon02: "MOON02",
-      moon03: "MOON03"
-    }
-
-    SOLAR_TEST_LIVE: "FALSE",
-    SOLAR_TEST_EXPLAIN: "FALSE"
-  }
-
-  test: {
-    entity: {
-      moon: {
-        MOON01: {
-          diameter: "s0",
-          id: "MOON01",
-          kind: "s2",
-          name: "s3",
-          planet_id: "s4"
-        }
-
-        MOON02: {
-          diameter: "s32",
-          id: "MOON02",
-          kind: "s34",
-          name: "s35",
-          planet_id: "s36"
-        }
-
-        MOON03: {
-          diameter: "s64",
-          id: "MOON03",
-          kind: "s66",
-          name: "s67",
-          planet_id: "s68"
-        }
-      }
-    }
-  }
-
   step: [
     {
-      name: "load_moon0",
-      kind: "entity",
-      entity: "moon",
-      action: "load",
-      match: {
-        id: "`dm$=p.SOLAR_TEST_MOON_ENTID.moon01`"
+      data: {
+        id: "moon_n01",
+        planet_id: "planet01"
       }
 
-      valid: {
-        "`$OPEN`": true,
-        id: "`dm$=s.load_moon0.match.id`"
+      input: {
+        id: "moon_n01"
       }
+
+      op: "create"
     }
 
     {
-      name: "update_moon1",
-      ref: "load_moon0",
-      action: "update",
-      reqdata: {}
-
-      valid: {
-        "`$OPEN`": true,
-        id: "`dm$=s.load_moon0.match.id`"
+      match: {
+        planet_id: "planet01"
       }
+
+      op: "list",
+      valid: [
+        {
+          apply: "ItemExists",
+          spec: {
+            id: "moon_n01"
+          }
+        }
+      ]
     }
 
     {
-      name: "load_moon2",
-      kind: "entity",
-      entity: "moon",
-      action: "load",
-      match: {
-        id: "`dm$=p.SOLAR_TEST_MOON_ENTID.moon01`"
+      data: {
+        id: "moon_n01",
+        planet_id: "planet01"
       }
 
-      valid: {
-        "`$OPEN`": true,
-        id: "`dm$=s.load_moon0.match.id`"
+      input: {
+        id: "moon_n01"
       }
+
+      op: "update",
+      spec: [
+        {
+          apply: "TextFieldMark",
+          def: {
+            mark: "Mark01-moon_n01"
+          }
+        }
+      ]
     }
-  ]
+
+    {
+      input: {
+        id: "moon_n01"
+      }
+
+      match: {
+        id: "moon_n01",
+        planet_id: "planet01"
+      }
+
+      op: "load",
+      valid: [
+        {
+          apply: "TextFieldMark",
+          def: {
+            mark: "Mark01-moon_n01"
+          }
+        }
+      ]
+    }
+
+    {
+      input: {
+        id: "moon_n01"
+      }
+
+      match: {
+        id: "moon_n01",
+        planet_id: "planet01"
+      }
+
+      op: "remove"
+    }
+
+    {
+      match: {
+        planet_id: "planet01"
+      }
+
+      op: "list",
+      valid: [
+        {
+          apply: "ItemNotExists",
+          def: {
+            id: "moon_n01"
+          }
+        }
+      ]
+    }
+  ],
+  "key$": "BasicMoonFlow"
 }

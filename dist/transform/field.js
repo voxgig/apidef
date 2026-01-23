@@ -9,8 +9,7 @@ const fieldTransform = async function (ctx) {
     const kit = apimodel.main[types_1.KIT];
     let msg = 'field ';
     const opFieldPrecedence = ['load', 'create', 'update', 'patch', 'list'];
-    (0, jostraca_1.each)(kit.entity, (ment, entname) => {
-        const fielddefs = [];
+    (0, jostraca_1.each)(kit.entity, (ment, _entname) => {
         const fields = ment.fields;
         const seen = {};
         for (let opname of opFieldPrecedence) {
@@ -54,7 +53,7 @@ function resolveOpFields(ment, mop, malt, def) {
     }
     return mfields;
 }
-function findFieldDefs(ment, mop, malt, def) {
+function findFieldDefs(_ment, mop, malt, def) {
     const fielddefs = [];
     const pathdef = def.paths[malt.orig];
     const method = malt.method.toLowerCase();

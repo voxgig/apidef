@@ -780,6 +780,8 @@ function allcapify(s?: string) {
 }
 
 
+// Get value from object as string, and format as indicated.
+// Example: nom({foo:'bar'},'Foo') -> 'Bar'
 function nom(v: any, format: string): string {
   let formatstr = 'string' == typeof format ? format : null
   if (null == formatstr) {

@@ -1,3 +1,3 @@
-import type { TransformResult } from '../transform';
-declare const cleanTransform: (ctx: any) => Promise<TransformResult>;
+import type { Transform } from '../transform';
+declare const cleanTransform: Transform;
 export { cleanTransform };

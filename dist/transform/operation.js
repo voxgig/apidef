@@ -14,14 +14,14 @@ const operationTransform = async function (ctx) {
             list: undefined,
             create: undefined,
             update: undefined,
-            delete: undefined,
+            remove: undefined,
             patch: undefined,
         };
         resolveLoad(opm, gent);
         resolveList(opm, gent);
         resolveCreate(opm, gent);
         resolveUpdate(opm, gent);
-        resolveDelete(opm, gent);
+        resolveRemove(opm, gent);
         resolvePatch(opm, gent);
         kit.entity[entname].op = opm;
         msg += gent.name + ' ';
@@ -64,8 +64,9 @@ function resolveUpdate(opm, gent) {
     const opdesc = opm.update = resolveOp('update', gent);
     return opdesc;
 }
-function resolveDelete(opm, gent) {
-    const opdesc = opm.delete = resolveOp('delete', gent);
+function resolveRemove(opm, gent) {
+    console.log('RD', gent.opm$);
+    const opdesc = opm.remove = resolveOp('remove', gent);
     return opdesc;
 }
 function resolvePatch(opm, gent) {

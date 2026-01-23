@@ -39,10 +39,10 @@ type TransformResult = {
 
 type Transform = (
   ctx: TransformCtx,
-  guide: Guide,
-  tspec: TransformSpec,
-  apimodel: any,
-  def: any,
+  // guide: Guide,
+  // tspec: TransformSpec,
+  // apimodel: any,
+  // def: any,
 ) => Promise<TransformResult>
 
 type ProcessResult = {

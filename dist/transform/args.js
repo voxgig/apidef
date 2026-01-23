@@ -40,23 +40,15 @@ function resolveArgs(ment, mop, malt, argdefs) {
             orig,
             type: (0, utility_1.validator)(argdef.schema?.type),
             kind,
-            req: !!argdef.required
+            reqd: !!argdef.required
         };
         if (argdef.nullable) {
             marg.type = ['`$ONE`', '`$NULL`', marg.type];
         }
         // insert sorted by name
         let kindargs = (malt.args[marg.kind] = malt.args[marg.kind] ?? []);
-        let kalen = kindargs.length;
-        for (let ka, i = 0; i <= kalen; i++) {
-            ka = kindargs[i];
-            if (ka && ka.name > marg.name) {
-                kindargs = [...kindargs.slice(0, i), marg, ...kindargs.slice(i + 1)];
-            }
-            else {
-                kindargs.push(marg);
-            }
-        }
+        kindargs.push(marg);
+        kindargs.sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
     });
 }
 //# sourceMappingURL=args.js.map

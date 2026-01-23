@@ -1,10 +1,8 @@
 
 
-import { each, snakify } from 'jostraca'
+import { each } from 'jostraca'
 
 import type { TransformResult, Transform } from '../transform'
-
-import { formatJSONIC, depluralize, validator } from '../utility'
 
 
 import { KIT } from '../types'
@@ -16,8 +14,6 @@ import type {
 
 import type {
   PathDef,
-  ParameterDef,
-  MethodDef,
 } from '../def'
 
 import type {
@@ -30,7 +26,7 @@ import type {
 
 
 
-const selectTransform = async function(
+const selectTransform: Transform = async function(
   ctx: any,
 ): Promise<TransformResult> {
   const { apimodel, def, guide } = ctx
@@ -38,8 +34,8 @@ const selectTransform = async function(
 
   let msg = 'select '
 
-  each(kit.entity, (ment: ModelEntity, entname: string) => {
-    each(ment.op, (mop: ModelOp, opname: OpName) => {
+  each(kit.entity, (ment: ModelEntity, _entname: string) => {
+    each(ment.op, (mop: ModelOp, _opname: OpName) => {
       each(mop.alts, (malt: ModelAlt) => {
         const pdef: PathDef = def.paths[malt.orig]
         resolveSelect(guide, ment, mop, malt, pdef)
@@ -59,9 +55,9 @@ const selectTransform = async function(
 function resolveSelect(
   guide: Guide,
   ment: ModelEntity,
-  mop: ModelOp,
+  _mop: ModelOp,
   malt: ModelAlt,
-  pdef: PathDef
+  _pdef: PathDef
 ) {
   const select: any = malt.select
   const margs: any = malt.args
@@ -93,8 +89,8 @@ function resolveSelect(
 
 
 function sortAlts(
-  guide: Guide,
-  ment: ModelEntity,
+  _guide: Guide,
+  _ment: ModelEntity,
   mop: ModelOp,
 ) {
   mop.alts.sort((a: ModelAlt, b: ModelAlt) => {

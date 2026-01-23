@@ -1,22 +1,15 @@
 
 
-import { each, snakify } from 'jostraca'
-
-import { getelem, isempty } from '@voxgig/struct'
+import { each } from 'jostraca'
 
 import type { TransformResult, Transform } from '../transform'
 
-import { fixName } from '../transform'
-
-import { formatJSONIC } from '../utility'
 
 import {
   KIT,
   GuideEntity,
   GuidePathOp,
 } from '../types'
-
-import type { KitModel } from '../types'
 
 import type {
   PathDesc,
@@ -31,7 +24,7 @@ import type {
 
 
 
-const operationTransform = async function(
+const operationTransform: Transform = async function(
   ctx: any,
 ): Promise<TransformResult> {
   const { apimodel, guide } = ctx
@@ -47,7 +40,7 @@ const operationTransform = async function(
       list: undefined,
       create: undefined,
       update: undefined,
-      delete: undefined,
+      remove: undefined,
       patch: undefined,
     }
 
@@ -55,7 +48,7 @@ const operationTransform = async function(
     resolveList(opm, gent)
     resolveCreate(opm, gent)
     resolveUpdate(opm, gent)
-    resolveDelete(opm, gent)
+    resolveRemove(opm, gent)
     resolvePatch(opm, gent)
 
     kit.entity[entname].op = opm
@@ -115,8 +108,9 @@ function resolveUpdate(opm: ModelOpMap, gent: GuideEntity): undefined | ModelOp 
 }
 
 
-function resolveDelete(opm: ModelOpMap, gent: GuideEntity): undefined | ModelOp {
-  const opdesc = opm.delete = resolveOp('delete', gent)
+function resolveRemove(opm: ModelOpMap, gent: GuideEntity): undefined | ModelOp {
+  console.log('RD', (gent as any).opm$)
+  const opdesc = opm.remove = resolveOp('remove', gent)
   return opdesc
 }
 

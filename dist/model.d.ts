@@ -1,5 +1,5 @@
 import type { MethodName } from './types';
-type OpName = 'load' | 'list' | 'create' | 'update' | 'delete' | 'patch' | 'head' | 'options';
+type OpName = 'load' | 'list' | 'create' | 'update' | 'remove' | 'patch' | 'head' | 'options';
 type ModelEntityRelations = {
     ancestors: string[][];
 };
@@ -19,7 +19,7 @@ type ModelArg = {
     orig: string;
     type: any;
     kind: 'param' | 'query' | 'header' | 'cookie';
-    req: boolean;
+    reqd: boolean;
 };
 type ModelAlt = {
     orig: string;
@@ -60,4 +60,24 @@ type ModelEntity = {
     };
     relations: ModelEntityRelations;
 };
-export type { OpName, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelAlt, ModelOp, ModelEntity, };
+type ModelEntityFlow = {
+    name: string;
+    entity: string;
+    kind: string;
+    step: ModelEntityFlowStep[];
+};
+type ModelEntityFlowStep = {
+    op: OpName;
+    input: Record<string, any>;
+    match: Record<string, any>;
+    data: Record<string, any>;
+    spec: {
+        apply: string;
+        def: Record<string, any>;
+    }[];
+    valid: {
+        apply: string;
+        def: Record<string, any>;
+    }[];
+};
+export type { OpName, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelAlt, ModelOp, ModelEntity, ModelEntityFlow, ModelEntityFlowStep, };

@@ -41,7 +41,7 @@ main: kit: entity: &: {
           active: *true
           kind: string
           name: string
-          req: boolean
+          reqd: boolean
           type: top
         } ]
       }
@@ -67,12 +67,16 @@ main: kit: flow: &: {
 
   param: {}
 
-  setp: [ &: {
+  step: [ &: {
     active: *true
-    name: string
-    kind: string
-    action: string
-    match: top
-    valid: top
+    op: string
+    match: {}
+    data: {}
+    
+    # name: string
+    # kind: string
+    # action: string
+    # match: top
+    # valid: top
   } ]
 }
