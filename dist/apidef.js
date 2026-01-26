@@ -37,7 +37,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getModelPath = exports.formatJSONIC = exports.parse = exports.KIT = void 0;
+exports.nom = exports.getModelPath = exports.formatJSONIC = exports.parse = exports.KIT = void 0;
 exports.ApiDef = ApiDef;
 const Fs = __importStar(require("node:fs"));
 const node_path_1 = __importDefault(require("node:path"));
@@ -51,6 +51,7 @@ const parse_1 = require("./parse");
 Object.defineProperty(exports, "parse", { enumerable: true, get: function () { return parse_1.parse; } });
 const transform_1 = require("./transform");
 const utility_1 = require("./utility");
+Object.defineProperty(exports, "nom", { enumerable: true, get: function () { return utility_1.nom; } });
 Object.defineProperty(exports, "formatJSONIC", { enumerable: true, get: function () { return utility_1.formatJSONIC; } });
 Object.defineProperty(exports, "getModelPath", { enumerable: true, get: function () { return utility_1.getModelPath; } });
 const top_1 = require("./transform/top");

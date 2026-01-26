@@ -51,7 +51,7 @@ async function makeFlowBuilder(ctx) {
                 let flowfile = node_path_1.default.join(ctx.opts.folder, 'flow', (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) +
                     flow.name + '.jsonic');
                 let flowModelSrc = (0, utility_1.formatJsonSrc)(JSON.stringify(flow, null, 2));
-                let flowsrc = `# ${flow.Name}
+                let flowsrc = `# ${(0, utility_1.nom)(flow, 'Name')}
 
 main: ${types_1.KIT}: flow: ${flow.name}:
 ` + flowModelSrc;

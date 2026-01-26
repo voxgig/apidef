@@ -14,6 +14,7 @@ import {
 
 
 import {
+  nom,
   formatJsonSrc,
 } from '../utility'
 
@@ -73,7 +74,7 @@ async function makeFlowBuilder(ctx: ApiDefContext): Promise<Function> {
 
         let flowModelSrc = formatJsonSrc(JSON.stringify(flow, null, 2))
 
-        let flowsrc = `# ${flow.Name}
+        let flowsrc = `# ${nom(flow, 'Name')}
 
 main: ${KIT}: flow: ${flow.name}:
 ` + flowModelSrc

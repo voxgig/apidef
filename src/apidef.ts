@@ -55,6 +55,7 @@ import {
 } from './resolver'
 
 import {
+  nom,
   loadFile,
   getdlog,
   makeWarner,
@@ -415,4 +416,5 @@ export {
   parse,
   formatJSONIC,
   getModelPath,
+  nom,
 }
