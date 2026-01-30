@@ -1,5 +1,12 @@
 import type { MethodName } from './types';
 type OpName = 'load' | 'list' | 'create' | 'update' | 'remove' | 'patch' | 'head' | 'options';
+type Model = {
+    main: {
+        kit: {
+            entity: Record<string, ModelEntity>;
+        };
+    };
+};
 type ModelEntityRelations = {
     ancestors: string[][];
 };
@@ -80,4 +87,4 @@ type ModelEntityFlowStep = {
         def: Record<string, any>;
     }[];
 };
-export type { OpName, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelAlt, ModelOp, ModelEntity, ModelEntityFlow, ModelEntityFlowStep, };
+export type { OpName, Model, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelAlt, ModelOp, ModelEntity, ModelEntityFlow, ModelEntityFlowStep, };

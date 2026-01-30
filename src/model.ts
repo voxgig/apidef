@@ -9,6 +9,15 @@ import type { MethodName } from './types'
 type OpName = 'load' | 'list' | 'create' | 'update' | 'remove' | 'patch' | 'head' | 'options'
 
 
+type Model = {
+  main: {
+    kit: {
+      entity: Record<string, ModelEntity>
+    }
+  }
+}
+
+
 // Entity relationships information
 type ModelEntityRelations = {
   ancestors: string[][]
@@ -120,6 +129,7 @@ type ModelEntityFlowStep = {
 
 export type {
   OpName,
+  Model,
   ModelEntityRelations,
   ModelOpMap,
   ModelFieldOp,

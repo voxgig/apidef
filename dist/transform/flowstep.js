@@ -14,12 +14,18 @@ const flowstepTransform = async function (ctx) {
         const opmap = ent.op;
         // TODO: spec parameter passed into each step func, used semantically by generator
         // validation: part of spec, semantic name and params, up to generator how to use it
-        const idn01 = ent.name + '_n01';
-        createStep(opmap, flow, ent, { input: { id: idn01 } });
-        listStep(opmap, flow, ent, { valid: [{ apply: 'ItemExists', spec: { id: idn01 } }] });
-        const mark01 = 'Mark01-' + idn01;
+        const ref01 = ent.name + '_ref01';
+        createStep(opmap, flow, ent, { input: { ref: ref01 } });
+        listStep(opmap, flow, ent, { valid: [{ apply: 'ItemExists', def: { ref: ref01 } }] });
+        const mark01 = 'Mark01-' + ref01;
+        const firsttf = firstTextField(ent);
         updateStep(opmap, flow, ent, {
-            input: { id: idn01 },
+            input: {
+                ref: ref01,
+                textfield: firsttf?.name,
+                suffix: '_up0',
+                srcdatavar: ref01 + '_data'
+            },
             spec: [{
                     apply: 'TextFieldMark',
                     def: { mark: mark01 }
@@ -27,16 +33,23 @@ const flowstepTransform = async function (ctx) {
         });
         loadStep(opmap, flow, ent, {
             input: {
-                id: idn01,
+                ref: ref01,
+                suffix: '_dt0',
+                srcdatavar: ref01 + '_data'
             },
             valid: [{
                     apply: 'TextFieldMark',
                     def: { mark: mark01 }
                 }]
         });
-        removeStep(opmap, flow, ent, { input: { id: idn01 } });
+        removeStep(opmap, flow, ent, {
+            input: { ref: ref01, suffix: '_rm0' }
+        });
         if (null != opmap.remove) {
-            listStep(opmap, flow, ent, { valid: [{ apply: 'ItemNotExists', def: { id: idn01 } }] });
+            listStep(opmap, flow, ent, {
+                input: { suffix: '_rt0' },
+                valid: [{ apply: 'ItemNotExists', def: { ref: ref01 } }]
+            });
         }
         msg += flowname + ' ';
     });
@@ -58,14 +71,6 @@ const createStep = (opmap, flow, ent, args) => {
         // Use last alt as most generic
         const alt = (0, struct_1.getelem)(opmap.update.alts, -1);
         const step = newFlowStep('create', args);
-        (0, jostraca_1.each)(alt.args.param, (param) => {
-            if ('id' === param.name) {
-                step.data.id = args.input?.id ?? ent.name + '99';
-            }
-            else {
-                step.data[param.name] = args.input?.[param.name] ?? param.name.replace(/_id/, '') + '01';
-            }
-        });
         flow.step.push(step);
     }
 };
@@ -128,4 +133,13 @@ const removeStep = (opmap, flow, ent, args) => {
         flow.step.push(step);
     }
 };
+function firstTextField(ent) {
+    const fields = (0, jostraca_1.each)(ent.fields);
+    for (let fI = 0; fI < fields.length; fI++) {
+        const field = fields[fI];
+        if ('`$STRING`' === field.type && 'id' !== field.name) {
+            return field;
+        }
+    }
+}
 //# sourceMappingURL=flowstep.js.map

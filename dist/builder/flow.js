@@ -58,9 +58,9 @@ main: ${types_1.KIT}: flow: ${flow.name}:
                 barrel.push(`@"${node_path_1.default.basename(flowfile)}"`);
                 (0, jostraca_1.File)({ name: node_path_1.default.basename(flowfile) }, () => (0, jostraca_1.Content)(flowsrc));
             });
-            (0, jostraca_1.File)({
-                name: (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'flow-index.jsonic'
-            }, () => (0, jostraca_1.Content)(barrel.join('\n')));
+            const barrelFile = (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'flow-index.jsonic';
+            const barrelContent = barrel.join('\n');
+            (0, jostraca_1.File)({ name: barrelFile }, () => (0, jostraca_1.Content)(barrelContent));
         });
     };
     return flowBuilder;

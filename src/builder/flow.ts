@@ -84,9 +84,11 @@ main: ${KIT}: flow: ${flow.name}:
         File({ name: Path.basename(flowfile) }, () => Content(flowsrc))
       })
 
-      File({
-        name: (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'flow-index.jsonic'
-      }, () => Content(barrel.join('\n')))
+      const barrelFile = (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'flow-index.jsonic'
+
+      const barrelContent = barrel.join('\n')
+
+      File({ name: barrelFile }, () => Content(barrelContent))
     })
   }
 

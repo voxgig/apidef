@@ -407,6 +407,9 @@ export type {
   ModelAlt,
   ModelOp,
   ModelEntity,
+  Model,
+  ModelEntityFlow,
+  ModelEntityFlowStep,
 } from './model'
 
 

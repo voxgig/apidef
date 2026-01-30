@@ -14,5 +14,5 @@ declare namespace ApiDef {
 export type { ApiDefOptions, };
 export type { PathDef, MethodDef, ServerDef, ServerVariableDef, ParameterDef, SchemaDef, } from './def';
 export type { CmpDesc, BasicMethodDesc, MethodDesc, MethodEntityDesc, EntityDesc, EntityPathDesc, PathDesc, OpDesc, } from './desc';
-export type { OpName, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelAlt, ModelOp, ModelEntity, } from './model';
+export type { OpName, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelAlt, ModelOp, ModelEntity, Model, ModelEntityFlow, ModelEntityFlowStep, } from './model';
 export { KIT, ApiDef, parse, formatJSONIC, getModelPath, nom, };
