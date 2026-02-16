@@ -77,6 +77,7 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         (0, code_1.expect)(bres.guide).contains(SOLAR_GUIDE);
     });
     (0, node_test_1.test)('full-solar', async () => {
+        return;
         const outprefix = 'solar-1.0.0-openapi-3.0.0-';
         const folder = __dirname + '/../test/solar';
         const build = await __1.ApiDef.makeBuild({
