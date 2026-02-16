@@ -1,4 +1,4 @@
-# undefined
+# BasicPlanetFlow
 
 main: kit: flow: BasicPlanetFlow:
 {
@@ -7,12 +7,8 @@ main: kit: flow: BasicPlanetFlow:
   name: "BasicPlanetFlow",
   step: [
     {
-      data: {
-        id: "planet_n01"
-      }
-
       input: {
-        id: "planet_n01"
+        ref: "planet_ref01"
       }
 
       op: "create"
@@ -23,8 +19,8 @@ main: kit: flow: BasicPlanetFlow:
       valid: [
         {
           apply: "ItemExists",
-          spec: {
-            id: "planet_n01"
+          def: {
+            ref: "planet_ref01"
           }
         }
       ]
@@ -32,11 +28,14 @@ main: kit: flow: BasicPlanetFlow:
 
     {
       data: {
-        id: "planet_n01"
+        id: "planet01"
       }
 
       input: {
-        id: "planet_n01"
+        ref: "planet_ref01",
+        srcdatavar: "planet_ref01_data",
+        suffix: "_up0",
+        textfield: "kind"
       }
 
       op: "update",
@@ -44,7 +43,7 @@ main: kit: flow: BasicPlanetFlow:
         {
           apply: "TextFieldMark",
           def: {
-            mark: "Mark01-planet_n01"
+            mark: "Mark01-planet_ref01"
           }
         }
       ]
@@ -52,11 +51,13 @@ main: kit: flow: BasicPlanetFlow:
 
     {
       input: {
-        id: "planet_n01"
+        ref: "planet_ref01",
+        srcdatavar: "planet_ref01_data",
+        suffix: "_dt0"
       }
 
       match: {
-        id: "planet_n01"
+        id: "planet01"
       }
 
       op: "load",
@@ -64,7 +65,7 @@ main: kit: flow: BasicPlanetFlow:
         {
           apply: "TextFieldMark",
           def: {
-            mark: "Mark01-planet_n01"
+            mark: "Mark01-planet_ref01"
           }
         }
       ]
@@ -72,23 +73,28 @@ main: kit: flow: BasicPlanetFlow:
 
     {
       input: {
-        id: "planet_n01"
+        ref: "planet_ref01",
+        suffix: "_rm0"
       }
 
       match: {
-        id: "planet_n01"
+        id: "planet01"
       }
 
       op: "remove"
     }
 
     {
+      input: {
+        suffix: "_rt0"
+      }
+
       op: "list",
       valid: [
         {
           apply: "ItemNotExists",
           def: {
-            id: "planet_n01"
+            ref: "planet_ref01"
           }
         }
       ]

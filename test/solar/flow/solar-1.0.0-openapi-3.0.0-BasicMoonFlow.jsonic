@@ -1,4 +1,4 @@
-# undefined
+# BasicMoonFlow
 
 main: kit: flow: BasicMoonFlow:
 {
@@ -7,13 +7,8 @@ main: kit: flow: BasicMoonFlow:
   name: "BasicMoonFlow",
   step: [
     {
-      data: {
-        id: "moon_n01",
-        planet_id: "planet01"
-      }
-
       input: {
-        id: "moon_n01"
+        ref: "moon_ref01"
       }
 
       op: "create"
@@ -28,8 +23,8 @@ main: kit: flow: BasicMoonFlow:
       valid: [
         {
           apply: "ItemExists",
-          spec: {
-            id: "moon_n01"
+          def: {
+            ref: "moon_ref01"
           }
         }
       ]
@@ -37,12 +32,15 @@ main: kit: flow: BasicMoonFlow:
 
     {
       data: {
-        id: "moon_n01",
+        id: "moon01",
         planet_id: "planet01"
       }
 
       input: {
-        id: "moon_n01"
+        ref: "moon_ref01",
+        srcdatavar: "moon_ref01_data",
+        suffix: "_up0",
+        textfield: "kind"
       }
 
       op: "update",
@@ -50,7 +48,7 @@ main: kit: flow: BasicMoonFlow:
         {
           apply: "TextFieldMark",
           def: {
-            mark: "Mark01-moon_n01"
+            mark: "Mark01-moon_ref01"
           }
         }
       ]
@@ -58,11 +56,13 @@ main: kit: flow: BasicMoonFlow:
 
     {
       input: {
-        id: "moon_n01"
+        ref: "moon_ref01",
+        srcdatavar: "moon_ref01_data",
+        suffix: "_dt0"
       }
 
       match: {
-        id: "moon_n01",
+        id: "moon01",
         planet_id: "planet01"
       }
 
@@ -71,7 +71,7 @@ main: kit: flow: BasicMoonFlow:
         {
           apply: "TextFieldMark",
           def: {
-            mark: "Mark01-moon_n01"
+            mark: "Mark01-moon_ref01"
           }
         }
       ]
@@ -79,11 +79,12 @@ main: kit: flow: BasicMoonFlow:
 
     {
       input: {
-        id: "moon_n01"
+        ref: "moon_ref01",
+        suffix: "_rm0"
       }
 
       match: {
-        id: "moon_n01",
+        id: "moon01",
         planet_id: "planet01"
       }
 
@@ -91,6 +92,10 @@ main: kit: flow: BasicMoonFlow:
     }
 
     {
+      input: {
+        suffix: "_rt0"
+      }
+
       match: {
         planet_id: "planet01"
       }
@@ -100,7 +105,7 @@ main: kit: flow: BasicMoonFlow:
         {
           apply: "ItemNotExists",
           def: {
-            id: "moon_n01"
+            ref: "moon_ref01"
           }
         }
       ]
