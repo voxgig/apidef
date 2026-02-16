@@ -104,7 +104,7 @@ const updateStep = (opmap, flow, ent, args) => {
 const loadStep = (opmap, flow, ent, args) => {
     if (null != opmap.load) {
         // Use last alt as most generic
-        const alt = (0, struct_1.getelem)(opmap.update.alts, -1);
+        const alt = (0, struct_1.getelem)(opmap.load.alts, -1);
         const step = newFlowStep('load', args);
         (0, jostraca_1.each)(alt.args.param, (param) => {
             if ('id' === param.name) {
@@ -120,7 +120,7 @@ const loadStep = (opmap, flow, ent, args) => {
 const removeStep = (opmap, flow, ent, args) => {
     if (null != opmap.remove) {
         // Use last alt as most generic
-        const alt = (0, struct_1.getelem)(opmap.update.alts, -1);
+        const alt = (0, struct_1.getelem)(opmap.remove.alts, -1);
         const step = newFlowStep('remove', args);
         (0, jostraca_1.each)(alt.args.param, (param) => {
             if ('id' === param.name) {

@@ -185,7 +185,7 @@ const loadStep: MakeFlowStep = (
 ) => {
   if (null != opmap.load) {
     // Use last alt as most generic
-    const alt = getelem(opmap.update.alts, -1)
+    const alt = getelem(opmap.load.alts, -1)
     const step = newFlowStep('load', args)
 
     each(alt.args.param, (param: any) => {
@@ -210,7 +210,7 @@ const removeStep: MakeFlowStep = (
 ) => {
   if (null != opmap.remove) {
     // Use last alt as most generic
-    const alt = getelem(opmap.update.alts, -1)
+    const alt = getelem(opmap.remove.alts, -1)
     const step = newFlowStep('remove', args)
 
     each(alt.args.param, (param: any) => {
