@@ -39,6 +39,7 @@ declare function nom(v: any, format: string): string;
 declare function relativizePath(path: string): string;
 declare function getModelPath(model: any, path: string, flags?: {
     required?: boolean;
+    only_active?: boolean;
 }): any;
 export type { PathMatch };
 export { nom, getdlog, loadFile, formatJsonSrc, depluralize, find, capture, pathMatch, makeWarner, formatJSONIC, validator, canonize, debugpath, findPathsWithPrefix, writeFileSyncWarn, warnOnError, relativizePath, getModelPath, };

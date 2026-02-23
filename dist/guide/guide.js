@@ -10,6 +10,7 @@ const aontu_1 = require("aontu");
 const struct_1 = require("@voxgig/struct");
 const heuristic01_1 = require("./heuristic01");
 const utility_1 = require("../utility");
+const KONSOLE_LOG = console['log'];
 // Log non-fatal wierdness.
 const dlog = (0, utility_1.getdlog)('apidef', __filename);
 const aontu = new aontu_1.Aontu();
@@ -45,8 +46,6 @@ async function buildGuide(ctx) {
             errs,
         };
         const guideModel = aontu.generate(src, opts);
-        // console.log('GUIDE-MODEL', guideModel, errs)
-        // console.dir(guideModel, { depth: null })
         handleErrors(ctx, errs);
         return guideModel;
     }
@@ -80,7 +79,6 @@ async function buildBaseGuide(ctx) {
     else {
         throw new Error('Unknown guide strategy: ' + ctx.opts.strategy);
     }
-    // console.dir(baseguide, { depth: null })
     const guideBlocks = [
         '# Guide',
         '',
@@ -216,7 +214,7 @@ function validateBaseBuide(ctx, baseguide) {
         .reduce((a, k) => (a.push(k + ':c=' + genm[k].c), a), []);
     // Check that all paths have been assigned to entities.
     if (srcp.join(';') !== genp.join(';')) {
-        console.log('     ', 'SRC-PATH'.padEnd(60, ' '), 'GEN-PATH');
+        KONSOLE_LOG('     ', 'SRC-PATH'.padEnd(60, ' '), 'GEN-PATH');
         for (let i = 0, j = 0; i < srcp.length || j < genp.length; i++, j++) {
             let srcps = srcp[i];
             let genps = genp[j];
@@ -230,7 +228,7 @@ function validateBaseBuide(ctx, baseguide) {
                     i++;
                 }
             }
-            console.log(prefix, srcps.padEnd(60, ' '), genps);
+            KONSOLE_LOG(prefix, srcps.padEnd(60, ' '), genps);
         }
         throw new Error('PATH MISMATCH');
     }

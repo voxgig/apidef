@@ -22,6 +22,10 @@ main: kit: entity: &: {
     type: top
     active: *true
   } ]
+
+  relations: {
+    ancestors: [ &: [ &: string ] ]
+  }
   
   op: &: {
     name: string
@@ -46,8 +50,6 @@ main: kit: entity: &: {
         } ]
       }
 
-      relations: []
-      
       select: {
         param?: {}
         query?: {}

@@ -25,14 +25,15 @@ import {
 } from '../types'
 
 
-
-
 import {
   getdlog,
   debugpath,
   formatJSONIC,
   relativizePath,
 } from '../utility'
+
+
+const KONSOLE_LOG = console['log']
 
 
 // Log non-fatal wierdness.
@@ -87,9 +88,6 @@ async function buildGuide(ctx: ApiDefContext): Promise<any> {
     }
 
     const guideModel = aontu.generate(src, opts)
-    // console.log('GUIDE-MODEL', guideModel, errs)
-
-    // console.dir(guideModel, { depth: null })
 
     handleErrors(ctx, errs)
 
@@ -138,9 +136,6 @@ async function buildBaseGuide(ctx: ApiDefContext) {
   else {
     throw new Error('Unknown guide strategy: ' + ctx.opts.strategy)
   }
-
-  // console.dir(baseguide, { depth: null })
-
 
   const guideBlocks = [
     '# Guide',
@@ -321,7 +316,7 @@ function validateBaseBuide(ctx: ApiDefContext, baseguide: any) {
 
   // Check that all paths have been assigned to entities.
   if (srcp.join(';') !== genp.join(';')) {
-    console.log('     ', 'SRC-PATH'.padEnd(60, ' '), 'GEN-PATH')
+    KONSOLE_LOG('     ', 'SRC-PATH'.padEnd(60, ' '), 'GEN-PATH')
     for (let i = 0, j = 0; i < srcp.length || j < genp.length; i++, j++) {
       let srcps = srcp[i]
       let genps = genp[j]
@@ -336,7 +331,7 @@ function validateBaseBuide(ctx: ApiDefContext, baseguide: any) {
           i++
         }
       }
-      console.log(prefix, srcps.padEnd(60, ' '), genps)
+      KONSOLE_LOG(prefix, srcps.padEnd(60, ' '), genps)
     }
     throw new Error('PATH MISMATCH')
   }

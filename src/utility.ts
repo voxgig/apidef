@@ -17,6 +17,8 @@ import type {
 } from './types'
 
 
+const KONSOLE_LOG = console['log']
+
 
 function makeWarner(spec: { point: string, log: Log }): Warner {
   const { point, log } = spec
@@ -222,7 +224,7 @@ function capture(data: any, shape: any): Record<string, any> {
   })
 
   if (0 < errs.length) {
-    console.log('ERRS', errs)
+    KONSOLE_LOG('ERRS', errs)
     dlog(errs)
   }
   return meta.capture
@@ -739,7 +741,7 @@ function debugpath(pathStr: string, methodName: string | null | undefined, ...ar
     if (methodName.toLowerCase() !== targetMethod.toLowerCase()) return
   }
 
-  console.log(methodName || '', ...args)
+  KONSOLE_LOG(methodName || '', ...args)
 }
 
 
@@ -807,12 +809,14 @@ function relativizePath(path: string): string {
 }
 
 
+// NOTE: removes inactive items by default
 function getModelPath(
   model: any,
   path: string,
-  flags?: { required?: boolean }
+  flags?: { required?: boolean, only_active?: boolean }
 ): any {
   const required = flags?.required ?? true
+  const only_active = flags?.only_active ?? true
 
   if (path === '') {
     if (required) {
@@ -874,6 +878,26 @@ function getModelPath(
 
     validPath.push(part)
     current = current[part]
+  }
+
+  if (current && only_active) {
+    if (false === current.active) {
+      current = undefined
+    }
+    if ('object' === typeof current) {
+      const out: any = Array.isArray(current) ? [] : {}
+      Object.entries(current).map((n: any) => {
+        if (null != n[1] && false !== n[1].active) {
+          if (Array.isArray(out)) {
+            out.push(n[1])
+          }
+          else {
+            out[n[0]] = n[1]
+          }
+        }
+      })
+      current = out
+    }
   }
 
   return current

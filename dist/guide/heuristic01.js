@@ -5,6 +5,7 @@ const ordu_1 = require("ordu");
 const jostraca_1 = require("jostraca");
 const struct_1 = require("@voxgig/struct");
 const utility_1 = require("../utility");
+const KONSOLE_LOG = console['log'];
 // Log non - fatal wierdness.
 const dlog = (0, utility_1.getdlog)('apidef', __filename);
 // Schema components that occur less than this rate(over total method count) qualify
@@ -58,15 +59,12 @@ async function heuristic01(ctx) {
         throw result.err;
     }
     const guide = result.data.guide;
-    // console.log('WORK', result.data.work)
-    // console.log('GUIDE')
-    // console.dir(guide, { depth: null })
     // TODO: move to Ordu
     // warnOnError('reviewEntityDescs', ctx.warn, () => reviewEntityDescs(ctx, result))
     return guide;
 }
 function ShowNode(spec) {
-    console.log('NODE', spec.node.key, spec.node.val);
+    KONSOLE_LOG('NODE', spec.node.key, spec.node.val);
 }
 function Prepare(spec) {
     const guide = {
@@ -153,7 +151,6 @@ function PreparePath(spec) {
 function selectCmpXrefs(_source, spec) {
     const out = (0, utility_1.find)(spec.ctx.def, 'x-ref')
         .filter(xref => xref.val.match(/\/(components\/schemas|definitions)\//));
-    // console.log('selectCmpXrefs', out)
     return out;
 }
 function MeasureRef(spec) {
@@ -210,7 +207,6 @@ function selectAllMethods(_source, spec) {
             return 0;
         }
     });
-    // console.log(caught.methods.map((n: any) => n.path + ' ' + n.method))
     return caught.methods || [];
 }
 function ResolveEntityComponent(spec) {
@@ -277,7 +273,6 @@ function ResolveEntityComponent(spec) {
         const pcount = metrics.count.path;
         const method_rate = (0 < mcount ? (cmprefs / mcount) : -1);
         const path_rate = (0 < pcount ? (cmprefs / pcount) : -1);
-        // console.log('RCN', xref.cmp, cmprefs, mcount, method_rate, IS_ENTCMP_METHOD_RATE, method_rate < IS_ENTCMP_METHOD_RATE)
         const infrequent = method_rate < IS_ENTCMP_METHOD_RATE
             || path_rate < IS_ENTCMP_PATH_RATE;
         if (!infrequent) {
@@ -721,7 +716,6 @@ function ResolveTransform(spec) {
     const resokdef = mdesc.responses?.[200] || mdesc.responses?.[201];
     const resprops = getResponseSchema(resokdef)?.properties;
     (0, utility_1.debugpath)(pathStr, methodName, 'TRANSFORM-RES', (0, struct_1.keysof)(resprops));
-    // console.log('APIDEF-resprops', resprops)
     if (resprops) {
         if (resprops[entdesc.origname]) {
             transform.res = '`body.' + entdesc.origname + '`';
@@ -746,14 +740,11 @@ function ResolveTransform(spec) {
 }
 function BuildEntity(spec) {
     const entdesc = spec.node.val;
-    // console.log('BUILD-ENTITY')
-    // console.dir(entdesc, { depth: null })
     const guide = spec.data.guide;
     guide.metrics.count.entity++;
     const entityMap = guide.entity;
     const path = {};
     const rename_param = (pathdesc) => {
-        // console.log('RENAME-PATHDESC', pathdesc)
         const out = {};
         (0, jostraca_1.each)(pathdesc.rename.param, (item) => {
             out[item.key$] = {
@@ -947,7 +938,6 @@ function entityCmpMatch(data, entname, mdesc, why) {
         cmpish: false,
         pathish: true,
     };
-    // console.log('ECM-A', out, ment)
     const cmpInfrequent = (ment.method_rate < IS_ENTCMP_METHOD_RATE
         || ment.path_rate < IS_ENTCMP_PATH_RATE);
     if (null != ment.cmp
@@ -991,7 +981,6 @@ function entityCmpMatch(data, entname, mdesc, why) {
         why.push('path-primary');
     }
     (0, utility_1.debugpath)(mdesc.path, mdesc.method, 'ENTITY-CMP-NAME', mdesc.path, mdesc.method, entname + '->', out, why, ment, IS_ENTCMP_METHOD_RATE, IS_ENTCMP_PATH_RATE);
-    // console.log('ECM-Z', out, why, ment)
     return out;
 }
 function cmpOccursInPath(data, cmpname) {
@@ -1125,7 +1114,6 @@ function findcmps(data, pathStr, underprops, opts) {
         underprops.map((up) => {
             let found = (0, utility_1.find)(md[up], 'x-ref');
             found.map((xref) => {
-                // console.log('FINDCMPS', pathStr, (md as any).key$, up, xref.val)
                 let m = xref.val.match(/\/(components\/schemas|definitions)\/(.+)$/);
                 if (m) {
                     cmplist.push(m[2]);
@@ -1134,7 +1122,6 @@ function findcmps(data, pathStr, underprops, opts) {
             });
         });
     });
-    // console.log('FOUNDCMPS', cmps)
     return (opts?.uniq ? Array.from(cmpset) : cmplist).map(n => ({ cmp: (0, utility_1.canonize)(n), origcmp: n }));
 }
 function makeMethodEntityDesc(desc) {
@@ -1179,7 +1166,6 @@ function hasMethod(def, pathStr, methodName) {
     const found = (null != pathDef
         && (null != pathDef[methodName.toLowerCase()]
             || null != pathDef[methodName.toUpperCase()]));
-    console.log('hasMethod', pathStr, methodName, found);
     return found;
 }
 //# sourceMappingURL=heuristic01.js.map

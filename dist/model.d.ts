@@ -1,6 +1,8 @@
 import type { MethodName } from './types';
 type OpName = 'load' | 'list' | 'create' | 'update' | 'remove' | 'patch' | 'head' | 'options';
 type Model = {
+    name: string;
+    origin?: string;
     main: {
         kit: {
             entity: Record<string, ModelEntity>;

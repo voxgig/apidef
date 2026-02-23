@@ -25,6 +25,7 @@ const node_path_1 = __importDefault(require("node:path"));
 const jostraca_1 = require("jostraca");
 const util_1 = require("@voxgig/util");
 const struct_1 = require("@voxgig/struct");
+const KONSOLE_LOG = console['log'];
 function makeWarner(spec) {
     const { point, log } = spec;
     const history = [];
@@ -191,7 +192,7 @@ function capture(data, shape) {
         meta
     });
     if (0 < errs.length) {
-        console.log('ERRS', errs);
+        KONSOLE_LOG('ERRS', errs);
         dlog(errs);
     }
     return meta.capture;
@@ -604,7 +605,7 @@ function debugpath(pathStr, methodName, ...args) {
         if (methodName.toLowerCase() !== targetMethod.toLowerCase())
             return;
     }
-    console.log(methodName || '', ...args);
+    KONSOLE_LOG(methodName || '', ...args);
 }
 function findPathsWithPrefix(ctx, pathStr, opts) {
     const strict = opts?.strict ?? false;
@@ -655,8 +656,10 @@ function relativizePath(path) {
     }
     return path;
 }
+// NOTE: removes inactive items by default
 function getModelPath(model, path, flags) {
     const required = flags?.required ?? true;
+    const only_active = flags?.only_active ?? true;
     if (path === '') {
         if (required) {
             throw new Error('getModelPath: empty path provided');
@@ -704,6 +707,25 @@ function getModelPath(model, path, flags) {
         }
         validPath.push(part);
         current = current[part];
+    }
+    if (current && only_active) {
+        if (false === current.active) {
+            current = undefined;
+        }
+        if ('object' === typeof current) {
+            const out = Array.isArray(current) ? [] : {};
+            Object.entries(current).map((n) => {
+                if (null != n[1] && false !== n[1].active) {
+                    if (Array.isArray(out)) {
+                        out.push(n[1]);
+                    }
+                    else {
+                        out[n[0]] = n[1];
+                    }
+                }
+            });
+            current = out;
+        }
     }
     return current;
 }
