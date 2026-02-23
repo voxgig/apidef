@@ -21,7 +21,7 @@ const topTransform = async function (ctx) {
     // Swagger 2.0
     if (def.host) {
         kit.info.servers.push({
-            url: (def.schemes?.[0] ?? 'https') + '://' + (0, struct_1.joinurl)([def.host, def.basePath])
+            url: (def.schemes?.[0] ?? 'https') + '://' + (0, struct_1.join)([def.host, def.basePath], '/', true)
         });
     }
     return { ok: true, msg: 'top' };

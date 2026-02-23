@@ -1,5 +1,5 @@
 
-import { joinurl } from '@voxgig/struct'
+import { join } from '@voxgig/struct'
 
 import { KIT } from '../types'
 
@@ -47,7 +47,7 @@ const topTransform = async function(
   // Swagger 2.0
   if (def.host) {
     kit.info.servers.push({
-      url: (def.schemes?.[0] ?? 'https') + '://' + joinurl([def.host, def.basePath])
+      url: (def.schemes?.[0] ?? 'https') + '://' + join([def.host, def.basePath], '/', true)
     })
   }
 

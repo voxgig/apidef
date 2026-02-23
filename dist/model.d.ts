@@ -3,6 +3,9 @@ type OpName = 'load' | 'list' | 'create' | 'update' | 'remove' | 'patch' | 'head
 type Model = {
     name: string;
     origin?: string;
+    const: {
+        Name: string;
+    };
     main: {
         kit: {
             entity: Record<string, ModelEntity>;
