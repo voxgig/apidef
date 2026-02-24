@@ -199,16 +199,18 @@ function capture(data, shape) {
 }
 function $CAPTURE(inj) {
     // Set prop foo with value at x: { x: { '`$CAPTURE`': 'foo' } }
-    if ('key:pre' === inj.mode) {
+    if (struct_1.M_KEYPRE === inj.mode) {
         const { val, prior } = inj;
-        const { dparent, key } = prior;
-        const dval = dparent?.[key];
-        if (undefined !== dval) {
-            inj.meta.capture[val] = dval;
+        if (null != prior) {
+            const { dparent, key } = prior;
+            const dval = dparent?.[key];
+            if (undefined !== dval) {
+                inj.meta.capture[val] = dval;
+            }
         }
     }
     // Use key x as prop name: { x: '`$CAPTURE`': }
-    else if ('val' === inj.mode) {
+    else if (struct_1.M_VAL === inj.mode) {
         const { key, dparent } = inj;
         const dval = dparent?.[key];
         if (undefined !== dval) {
@@ -218,17 +220,22 @@ function $CAPTURE(inj) {
 }
 function $APPEND(inj, val, ref, store) {
     // Set prop foo with value at x: { x: { '`$CAPTURE`': 'foo' } }
-    if ('key:pre' === inj.mode) {
+    if (struct_1.M_KEYPRE === inj.mode) {
         const { val, prior } = inj;
-        const { dparent, key } = prior;
-        const dval = dparent?.[key];
-        if (undefined !== dval) {
-            inj.meta.capture[val] = (inj.meta.capture[val] || []);
-            inj.meta.capture[val].push(dval);
+        if (null != prior) {
+            const { dparent, key } = prior;
+            const dval = dparent?.[key];
+            if (undefined !== dval) {
+                inj.meta.capture[val] = (inj.meta.capture[val] || []);
+                inj.meta.capture[val].push(dval);
+            }
         }
     }
-    else if ('val' === inj.mode) {
+    else if (struct_1.M_VAL === inj.mode) {
         inj.keyI = inj.keys.length;
+        if (null == inj.prior) {
+            return;
+        }
         const [_, prop, xform] = inj.parent;
         const { key, dparent } = inj.prior;
         const dval = dparent?.[key];
@@ -247,25 +254,27 @@ function $APPEND(inj, val, ref, store) {
     }
 }
 function $ANY(inj, _val, _ref, store) {
-    if ('key:pre' === inj.mode) {
+    if (struct_1.M_KEYPRE === inj.mode) {
         const { prior } = inj;
         const child = inj.parent[inj.key];
-        const { dparent, key } = prior;
-        const dval = dparent?.[key];
-        if ((0, struct_1.isnode)(dval)) {
-            for (let n of Object.entries(dval)) {
-                let vstore = { ...store };
-                vstore.$TOP = { [n[0]]: n[1] };
-                (0, struct_1.inject)((0, struct_1.clone)({ [n[0]]: child }), vstore, {
-                    meta: inj.meta,
-                    errs: inj.errs,
-                });
+        if (null != prior) {
+            const { dparent, key } = prior;
+            const dval = dparent?.[key];
+            if ((0, struct_1.isnode)(dval)) {
+                for (let n of Object.entries(dval)) {
+                    let vstore = { ...store };
+                    vstore.$TOP = { [n[0]]: n[1] };
+                    (0, struct_1.inject)((0, struct_1.clone)({ [n[0]]: child }), vstore, {
+                        meta: inj.meta,
+                        errs: inj.errs,
+                    });
+                }
             }
         }
     }
 }
 function $SELECT(inj, _val, _ref, store) {
-    if ('val' === inj.mode) {
+    if (struct_1.M_VAL === inj.mode) {
         inj.keyI = inj.keys.length;
         let [_, selector, descendor] = inj.parent;
         const dparents = Object.entries(inj.dparent || {})
@@ -296,7 +305,9 @@ function $SELECT(inj, _val, _ref, store) {
     }
 }
 function $RECASE(inj, val, ref, store) {
-    if ('key:pre' === inj.mode) {
+    if (struct_1.M_KEYPRE === inj.mode
+        && null != inj.prior
+        && null != inj.prior.prior) {
         const dval = inj.parent[inj.key];
         // TODO: handle paths more generally! use inj.prior?
         // TODO: mkae this into a utility method on inj?
@@ -594,16 +605,18 @@ function warnOnError(where, warn, fn, result) {
 }
 function debugpath(pathStr, methodName, ...args) {
     const apipath = process.env.APIDEF_DEBUG_PATH;
-    if (!apipath)
+    if (null == apipath || '' === apipath)
         return;
-    const [targetPath, targetMethod] = apipath.split(':');
-    // Check if path matches
-    if (pathStr !== targetPath)
-        return;
-    // If a method is specified in apipath and we have a method name, check if it matches
-    if (targetMethod && methodName) {
-        if (methodName.toLowerCase() !== targetMethod.toLowerCase())
+    if ('ALL' !== apipath) {
+        const [targetPath, targetMethod] = apipath.split(':');
+        // Check if path matches
+        if (pathStr !== targetPath)
             return;
+        // If a method is specified in apipath and we have a method name, check if it matches
+        if (targetMethod && methodName) {
+            if (methodName.toLowerCase() !== targetMethod.toLowerCase())
+                return;
+        }
     }
     KONSOLE_LOG(methodName || '', ...args);
 }

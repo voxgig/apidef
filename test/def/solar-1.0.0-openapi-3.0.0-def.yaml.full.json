@@ -4,6 +4,11 @@
     "title": "Solar System API",
     "version": "1.0.0"
   },
+  "servers": [
+    {
+      "url": "http://localhost:8901"
+    }
+  ],
   "paths": {
     "/api/planet": {
       "get": {

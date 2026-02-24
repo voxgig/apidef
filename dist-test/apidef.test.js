@@ -74,7 +74,6 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
                 }
             }
         }, {});
-        console.dir(bres.guide, { depth: null });
         (0, code_1.expect)(bres.guide).contains(SOLAR_GUIDE);
     });
     (0, node_test_1.test)('full-solar', async () => {

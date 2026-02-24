@@ -64,8 +64,6 @@ describe('apidef', () => {
       {}
     )
 
-    console.dir(bres.guide, { depth: null })
-
     expect(bres.guide).contains(SOLAR_GUIDE)
   })
 

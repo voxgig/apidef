@@ -79,6 +79,8 @@ async function buildGuide(ctx: ApiDefContext): Promise<any> {
   handleErrors(ctx, errs)
 
 
+
+
   if (0 === errs.length) {
 
     const opts = {

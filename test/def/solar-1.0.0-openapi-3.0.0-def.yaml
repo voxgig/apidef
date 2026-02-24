@@ -2,6 +2,10 @@ openapi: 3.0.0
 info:
   title: Solar System API
   version: 1.0.0
+
+servers:
+  - url: http://localhost:8901
+
 paths:
   /api/planet:
     get:
@@ -285,3 +289,4 @@ components:
         diameter:
           type: number
           format: float
+

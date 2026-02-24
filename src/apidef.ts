@@ -49,11 +49,6 @@ import {
 } from './transform'
 
 
-
-import {
-  resolveElements
-} from './resolver'
-
 import {
   nom,
   loadFile,
@@ -205,6 +200,7 @@ function ApiDef(opts: ApiDefOptions) {
       ctx.guide = guideModel.guide
 
       steps.push('guide')
+
 
 
       // Step: transformers (transform spec and guide into core structures).

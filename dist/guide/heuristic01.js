@@ -31,6 +31,7 @@ const METHOD_CONSIDER_ORDER = {
     'OPTIONS': 700,
 };
 async function heuristic01(ctx) {
+    // TODO: Ordu needs better debug output to track task exec
     const analysis = new ordu_1.Ordu({ select: { sort: true } }).add([
         Prepare,
         {
@@ -59,8 +60,6 @@ async function heuristic01(ctx) {
         throw result.err;
     }
     const guide = result.data.guide;
-    // TODO: move to Ordu
-    // warnOnError('reviewEntityDescs', ctx.warn, () => reviewEntityDescs(ctx, result))
     return guide;
 }
 function ShowNode(spec) {
@@ -172,24 +171,47 @@ function MeasureRef(spec) {
 function selectAllMethods(_source, spec) {
     const ctx = spec.ctx;
     // const paths = ctx.def.paths
-    let caught = (0, utility_1.capture)(ctx.def, {
-        paths: ['`$SELECT`', /.*/,
-            ['`$SELECT`', /^get|post|put|patch|delete$/i,
-                ['`$APPEND`', 'methods', {
-                        path: '`select$=key.paths`',
-                        method: { '`$UPPER`': '`$KEY`' },
-                        summary: '`.summary`',
-                        tags: '`.tags`',
-                        parameters: '`.parameters`',
-                        responses: '`.responses`',
-                        requestBody: '`.requestBody`'
-                    }]
-            ]
+    /*
+    let caught = capture(ctx.def, {
+      paths:
+        ['`$SELECT`', /.* /,
+          ['`$SELECT`', /^get|post|put|patch|delete$/i,
+            ['`$APPEND`', 'methods', {
+              path: '`select$=key.paths`',
+              method: { '`$UPPER`': '`$KEY`' },
+              summary: '`.summary`',
+              tags: '`.tags`',
+              parameters: '`.parameters`',
+              responses: '`.responses`',
+              requestBody: '`.requestBody`'
+            }]
+          ]
         ]
+        })
+  
+          // TODO: capture should return these empty objects
+          caught = caught ?? {}
+          caught.methods = caught.methods ?? []
+  
+    */
+    let caught = { methods: [] };
+    Object.entries(ctx.def.paths).map((n) => {
+        const path = n[0];
+        const pdef = n[1];
+        Object.entries(pdef).map((m) => {
+            const method = m[0].toUpperCase();
+            const mdef = m[1];
+            caught.methods.push({
+                path,
+                method,
+                summary: mdef.summary,
+                tags: mdef.tags,
+                parameters: mdef.parameters,
+                responses: mdef.responses,
+                requestBody: mdef.requestBody,
+            });
+        });
     });
-    // TODO: capture should return these empty objects
-    caught = caught ?? {};
-    caught.methods = caught.methods ?? [];
     caught.methods.sort((a, b) => {
         if (a.path < b.path) {
             return -1;

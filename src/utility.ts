@@ -6,7 +6,12 @@ import { snakify, camelify, kebabify, each } from 'jostraca'
 import { decircular } from '@voxgig/util'
 
 import {
-  slice, merge, inject, clone, isnode, walk, transform, select
+  slice, merge, inject, clone, isnode, walk, transform, select,
+  Injection,
+  M_VAL,
+  M_KEYPRE,
+  M_KEYPOST,
+
 } from '@voxgig/struct'
 
 
@@ -231,19 +236,21 @@ function capture(data: any, shape: any): Record<string, any> {
 }
 
 
-function $CAPTURE(inj: any) {
+function $CAPTURE(inj: Injection) {
   // Set prop foo with value at x: { x: { '`$CAPTURE`': 'foo' } }
-  if ('key:pre' === inj.mode) {
+  if (M_KEYPRE === inj.mode) {
     const { val, prior } = inj
-    const { dparent, key } = prior
-    const dval = dparent?.[key]
-    if (undefined !== dval) {
-      inj.meta.capture[val] = dval
+    if (null != prior) {
+      const { dparent, key } = prior
+      const dval = dparent?.[key]
+      if (undefined !== dval) {
+        inj.meta.capture[val] = dval
+      }
     }
   }
 
   // Use key x as prop name: { x: '`$CAPTURE`': }
-  else if ('val' === inj.mode) {
+  else if (M_VAL === inj.mode) {
     const { key, dparent } = inj
     const dval = dparent?.[key]
     if (undefined !== dval) {
@@ -253,21 +260,27 @@ function $CAPTURE(inj: any) {
 }
 
 
-function $APPEND(inj: any, val: any, ref: any, store: any) {
+function $APPEND(inj: Injection, val: any, ref: any, store: any) {
   // Set prop foo with value at x: { x: { '`$CAPTURE`': 'foo' } }
-  if ('key:pre' === inj.mode) {
+  if (M_KEYPRE === inj.mode) {
     const { val, prior } = inj
-    const { dparent, key } = prior
-    const dval = dparent?.[key]
-    if (undefined !== dval) {
-      inj.meta.capture[val] = (inj.meta.capture[val] || [])
-      inj.meta.capture[val].push(dval)
+    if (null != prior) {
+      const { dparent, key } = prior
+      const dval = dparent?.[key]
+      if (undefined !== dval) {
+        inj.meta.capture[val] = (inj.meta.capture[val] || [])
+        inj.meta.capture[val].push(dval)
+      }
     }
   }
 
 
-  else if ('val' === inj.mode) {
+  else if (M_VAL === inj.mode) {
     inj.keyI = inj.keys.length
+
+    if (null == inj.prior) {
+      return
+    }
 
     const [_, prop, xform] = inj.parent
     const { key, dparent } = inj.prior
@@ -293,28 +306,30 @@ function $APPEND(inj: any, val: any, ref: any, store: any) {
 
 
 
-function $ANY(inj: any, _val: any, _ref: any, store: any) {
-  if ('key:pre' === inj.mode) {
+function $ANY(inj: Injection, _val: any, _ref: any, store: any) {
+  if (M_KEYPRE === inj.mode) {
     const { prior } = inj
     const child = inj.parent[inj.key]
-    const { dparent, key } = prior
-    const dval = dparent?.[key]
-    if (isnode(dval)) {
-      for (let n of Object.entries(dval)) {
-        let vstore = { ...store }
-        vstore.$TOP = { [n[0]]: n[1] }
-        inject(clone({ [n[0]]: child }), vstore, {
-          meta: inj.meta,
-          errs: inj.errs,
-        })
+    if (null != prior) {
+      const { dparent, key } = prior
+      const dval = dparent?.[key]
+      if (isnode(dval)) {
+        for (let n of Object.entries(dval)) {
+          let vstore = { ...store }
+          vstore.$TOP = { [n[0]]: n[1] }
+          inject(clone({ [n[0]]: child }), vstore, {
+            meta: inj.meta,
+            errs: inj.errs,
+          })
+        }
       }
     }
   }
 }
 
 
-function $SELECT(inj: any, _val: any, _ref: any, store: any) {
-  if ('val' === inj.mode) {
+function $SELECT(inj: Injection, _val: any, _ref: any, store: any) {
+  if (M_VAL === inj.mode) {
     inj.keyI = inj.keys.length
 
     let [_, selector, descendor] = inj.parent
@@ -354,8 +369,12 @@ function $SELECT(inj: any, _val: any, _ref: any, store: any) {
 }
 
 
-function $RECASE(inj: any, val: any, ref: any, store: any) {
-  if ('key:pre' === inj.mode) {
+function $RECASE(inj: Injection, val: any, ref: any, store: any) {
+  if (
+    M_KEYPRE === inj.mode
+    && null != inj.prior
+    && null != inj.prior.prior
+  ) {
     const dval = inj.parent[inj.key]
 
     // TODO: handle paths more generally! use inj.prior?
@@ -729,16 +748,19 @@ function warnOnError(where: string, warn: Warner, fn: Function, result?: any) {
 
 function debugpath(pathStr: string, methodName: string | null | undefined, ...args: any[]): void {
   const apipath = process.env.APIDEF_DEBUG_PATH
-  if (!apipath) return
 
-  const [targetPath, targetMethod] = apipath.split(':')
+  if (null == apipath || '' === apipath) return
 
-  // Check if path matches
-  if (pathStr !== targetPath) return
+  if ('ALL' !== apipath) {
+    const [targetPath, targetMethod] = apipath.split(':')
 
-  // If a method is specified in apipath and we have a method name, check if it matches
-  if (targetMethod && methodName) {
-    if (methodName.toLowerCase() !== targetMethod.toLowerCase()) return
+    // Check if path matches
+    if (pathStr !== targetPath) return
+
+    // If a method is specified in apipath and we have a method name, check if it matches
+    if (targetMethod && methodName) {
+      if (methodName.toLowerCase() !== targetMethod.toLowerCase()) return
+    }
   }
 
   KONSOLE_LOG(methodName || '', ...args)

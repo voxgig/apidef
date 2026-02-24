@@ -89,6 +89,7 @@ const METHOD_CONSIDER_ORDER: Record<string, number> = {
 
 async function heuristic01(ctx: ApiDefContext): Promise<Guide> {
 
+  // TODO: Ordu needs better debug output to track task exec
   const analysis = new Ordu({ select: { sort: true } }).add([
     Prepare,
     {
@@ -120,10 +121,6 @@ async function heuristic01(ctx: ApiDefContext): Promise<Guide> {
   }
 
   const guide = result.data.guide
-
-
-  // TODO: move to Ordu
-  // warnOnError('reviewEntityDescs', ctx.warn, () => reviewEntityDescs(ctx, result))
 
   return guide
 
@@ -266,9 +263,10 @@ function selectAllMethods(_source: any, spec: TaskSpec): MethodDesc[] {
   const ctx = spec.ctx
   // const paths = ctx.def.paths
 
+  /*
   let caught = capture(ctx.def, {
     paths:
-      ['`$SELECT`', /.*/,
+      ['`$SELECT`', /.* /,
         ['`$SELECT`', /^get|post|put|patch|delete$/i,
           ['`$APPEND`', 'methods', {
             path: '`select$=key.paths`',
@@ -281,11 +279,35 @@ function selectAllMethods(_source: any, spec: TaskSpec): MethodDesc[] {
           }]
         ]
       ]
-  })
+      })
 
-  // TODO: capture should return these empty objects
-  caught = caught ?? {}
-  caught.methods = caught.methods ?? []
+        // TODO: capture should return these empty objects
+        caught = caught ?? {}
+        caught.methods = caught.methods ?? []
+
+  */
+
+  let caught: any = { methods: [] }
+
+  Object.entries(ctx.def.paths).map((n: any) => {
+    const path = n[0]
+    const pdef = n[1]
+
+    Object.entries(pdef).map((m: any) => {
+      const method = m[0].toUpperCase()
+      const mdef = m[1]
+
+      caught.methods.push({
+        path,
+        method,
+        summary: mdef.summary,
+        tags: mdef.tags,
+        parameters: mdef.parameters,
+        responses: mdef.responses,
+        requestBody: mdef.requestBody,
+      })
+    })
+  })
 
   caught.methods.sort((a: any, b: any) => {
     if (a.path < b.path) {
