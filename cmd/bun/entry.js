@@ -1,0 +1,178 @@
+// Bun-compatible entry point for standalone executable packaging.
+// Duplicates the CLI logic from bin/voxgig-apidef so Bun's bundler
+// can properly resolve and bundle all dependencies.
+
+const Path = require('node:path')
+const { statSync } = require('node:fs')
+const { parseArgs } = require('node:util')
+
+const { Gubu, Fault, One } = require('gubu')
+
+const Pkg = require('../../package.json')
+
+const { ApiDef } = require('../../dist/apidef.js')
+
+
+let CONSOLE = console
+
+run()
+
+
+async function run() {
+  try {
+    let options = resolveOptions()
+
+    if(options.version) {
+      version()
+    }
+
+    if(options.help) {
+      help()
+    }
+
+    if(options.version || options.help) {
+      exit()
+    }
+
+    options = validateOptions(options)
+
+    await generate(options)
+  }
+  catch(err) {
+    handleError(err)
+  }
+}
+
+
+function exit(err) {
+  let code = 0
+  if(err) {
+    code = 1
+  }
+  process.exit(code)
+}
+
+
+async function generate(options) {
+  const apidef = new ApiDef({
+    debug: options.debug
+  })
+
+  const spec = {
+    def: options.def,
+    kind: 'openapi-3',
+    model: Path.join(options.folder,'model/api.jsonic'),
+    meta: { name: options.name },
+  }
+
+  if(options.watch) {
+    await apidef.watch(spec)
+  }
+  else {
+    await apidef.generate(spec)
+  }
+}
+
+
+
+function resolveOptions() {
+
+  const args = parseArgs({
+    allowPositionals: true,
+    options: {
+      folder: {
+        type: 'string',
+        short: 'f',
+        default: '',
+      },
+
+      def: {
+        type: 'string',
+        short: 'd',
+        default: '',
+      },
+
+      watch: {
+        type: 'boolean',
+        short: 'w',
+      },
+
+      debug: {
+        type: 'string',
+        short: 'g',
+        default: 'info'
+      },
+
+      help: {
+        type: 'boolean',
+        short: 'h',
+      },
+
+      version: {
+        type: 'boolean',
+        short: 'v',
+      },
+
+    }
+  })
+
+  const options = {
+    name: args.positionals[0],
+    folder: '' === args.values.folder ? args.positionals[0] : args.values.folder,
+    def: args.values.def,
+    watch: !!args.values.watch,
+    debug: args.values.debug,
+    help: !!args.values.help,
+    version: !!args.values.version,
+  }
+
+  return options
+}
+
+
+function validateOptions(rawOptions) {
+  const optShape = Gubu({
+    name: Fault('The first argument should be the project name.', String),
+    folder: String,
+    def: '',
+    watch: Boolean,
+    debug: One(String,Boolean),
+    help: Boolean,
+    version: Boolean,
+  })
+
+  const err = []
+  const options = optShape(rawOptions,{err})
+
+  if(err[0]) {
+    throw new Error(err[0].text)
+  }
+
+  if('' !== options.def) {
+    options.def = Path.resolve(options.def)
+    const stat = statSync(options.def, {throwIfNoEntry:false})
+    if(null == stat) {
+      throw new Error('Definition file not found: '+options.def)
+    }
+  }
+
+  return options
+}
+
+
+async function handleError(err) {
+  CONSOLE.log('Voxgig API Definition Error:')
+  CONSOLE.log(err)
+  exit(err)
+}
+
+
+function version() {
+  CONSOLE.log(Pkg.version)
+}
+
+
+function help() {
+  const s = 'TODO'
+  CONSOLE.log(s)
+}
