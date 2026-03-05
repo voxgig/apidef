@@ -277,13 +277,33 @@ if command -v deno &> /dev/null; then
   DENO_EXE="$DENO_DIR/test-runner"
   mkdir -p "$DENO_DIR" "$DENO_OUT"
 
-  echo "Compiling with Deno..."
+  echo "Bundling with esbuild for Deno..."
   cd "$REPO_ROOT"
+
+  npx esbuild "$SCRIPT_DIR/run-test.js" \
+    --bundle \
+    --platform=node \
+    --target=esnext \
+    --outfile="$DENO_DIR/deno-bundle.js" \
+    2>&1
+
+  # If DENO_CERT is not set, try common CA bundle locations
+  if [ -z "${DENO_CERT:-}" ]; then
+    for ca in /etc/ssl/certs/ca-certificates.crt /etc/pki/tls/certs/ca-bundle.crt; do
+      if [ -f "$ca" ]; then
+        export DENO_CERT="$ca"
+        break
+      fi
+    done
+  fi
+
+  echo "Compiling with Deno..."
   deno compile \
+    --no-check \
     --allow-read --allow-write --allow-env --allow-net --allow-sys \
-    --node-modules-dir=auto \
+    --unstable-detect-cjs \
     --output "$DENO_EXE" \
-    "$SCRIPT_DIR/run-test.js" \
+    "$DENO_DIR/deno-bundle.js" \
     2>&1
 
   if [ -f "$DENO_EXE" ]; then
