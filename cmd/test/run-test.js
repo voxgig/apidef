@@ -117,6 +117,9 @@ async function run() {
       {}
     )
 
+    // Validate guide correctness against expected structure
+    const correctness = validateGuide(bres.guide)
+
     // Write results summary
     const summary = {
       ok: bres.ok,
@@ -125,6 +128,7 @@ async function run() {
       entityCount: bres.guide?.metrics?.count?.entity,
       pathCount: bres.guide?.metrics?.count?.path,
       methodCount: bres.guide?.metrics?.count?.method,
+      correctness,
     }
 
     console.log(JSON.stringify(summary, null, 2))
@@ -155,6 +159,20 @@ async function run() {
       process.exit(1)
     }
 
+    if (correctness.errors.length > 0) {
+      console.error('Correctness check FAILED:')
+      for (const err of correctness.errors) {
+        console.error('  ' + err)
+      }
+      process.exit(1)
+    }
+
+    // Write correctness result for external comparison
+    Fs.writeFileSync(
+      Path.join(solarOut, 'correctness.json'),
+      JSON.stringify(correctness, null, 2)
+    )
+
     console.log('Test completed successfully')
     process.exit(0)
   }
@@ -179,6 +197,95 @@ function collectFiles(dir, base) {
     }
   }
   return files
+}
+
+
+// Validate guide output against the expected solar guide structure.
+// This mirrors the SOLAR_GUIDE assertion from test/apidef.test.ts,
+// ensuring correctness is checked in every runtime (Node, Bun, SEA, Deno).
+function validateGuide(guide) {
+  const errors = []
+
+  function check(path, actual, expected) {
+    if (expected === null || expected === undefined) return
+    if (typeof expected === 'object' && !Array.isArray(expected)) {
+      if (typeof actual !== 'object' || actual === null) {
+        errors.push(path + ': expected object, got ' + typeof actual)
+        return
+      }
+      for (const key of Object.keys(expected)) {
+        check(path + '.' + key, actual[key], expected[key])
+      }
+    } else {
+      if (actual !== expected) {
+        errors.push(path + ': expected ' + JSON.stringify(expected) + ', got ' + JSON.stringify(actual))
+      }
+    }
+  }
+
+  if (!guide) {
+    return { ok: false, errors: ['guide is missing'] }
+  }
+
+  check('guide', guide, EXPECTED_GUIDE)
+
+  return { ok: errors.length === 0, errors }
+}
+
+
+// Expected guide structure for the full pipeline (all 5 steps).
+// Adapted from test/apidef.test.ts SOLAR_GUIDE which tests guide-only output.
+// In the full pipeline, rename.param is consumed by transformers/builders,
+// so rename becomes {} in the final output.
+// Uses deep-contains semantics: only specified keys are checked.
+const EXPECTED_GUIDE = {
+  entity: {
+    moon: {
+      path: {
+        '/api/planet/{planet_id}/moon': {
+          op: {
+            create: { method: 'POST' },
+            list: { method: 'GET' }
+          }
+        },
+        '/api/planet/{planet_id}/moon/{moon_id}': {
+          op: {
+            load: { method: 'GET' },
+            remove: { method: 'DELETE' },
+            update: { method: 'PUT' }
+          }
+        }
+      },
+      name: 'moon'
+    },
+    planet: {
+      path: {
+        '/api/planet': {
+          op: {
+            create: { method: 'POST' },
+            list: { method: 'GET' }
+          }
+        },
+        '/api/planet/{planet_id}': {
+          op: {
+            load: { method: 'GET' },
+            remove: { method: 'DELETE' },
+            update: { method: 'PUT' }
+          }
+        },
+        '/api/planet/{planet_id}/forbid': {
+          action: { forbid: {} },
+          op: { create: { method: 'POST' } }
+        },
+        '/api/planet/{planet_id}/terraform': {
+          action: { terraform: {} },
+          op: { create: { method: 'POST' } }
+        }
+      },
+      name: 'planet'
+    }
+  },
+  metrics: { count: { entity: 2, path: 6, method: 12 } }
 }
 
 

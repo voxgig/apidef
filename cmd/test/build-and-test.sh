@@ -76,6 +76,20 @@ compare_outputs() {
     report "FAIL" "$label: apimodel.json" "missing"
   fi
 
+  # Check correctness (guide validated against expected structure)
+  if [ -f "$test_dir/correctness.json" ]; then
+    local correct
+    correct=$(cat "$test_dir/correctness.json" | grep -o '"ok":[a-z]*' | grep -o '[a-z]*$')
+    if [ "$correct" = "true" ]; then
+      report "PASS" "$label: guide correctness"
+    else
+      report "FAIL" "$label: guide correctness"
+      cat "$test_dir/correctness.json" | head -20
+    fi
+  else
+    report "FAIL" "$label: correctness.json" "missing"
+  fi
+
   # Compare all .jsonic files
   local jsonic_pass=0
   local jsonic_fail=0
@@ -123,6 +137,22 @@ fi
 echo "Reference output generated. Files:"
 cat "$REF_DIR/solar/manifest.json"
 echo ""
+
+# Validate reference correctness
+if [ -f "$REF_DIR/solar/correctness.json" ]; then
+  REF_CORRECT=$(cat "$REF_DIR/solar/correctness.json" | grep -o '"ok":[a-z]*' | grep -o '[a-z]*$')
+  if [ "$REF_CORRECT" = "true" ]; then
+    report "PASS" "Reference: guide correctness"
+  else
+    report "FAIL" "Reference: guide correctness"
+    echo "  Correctness errors:"
+    cat "$REF_DIR/solar/correctness.json"
+    exit 1
+  fi
+else
+  report "FAIL" "Reference: correctness.json" "missing"
+  exit 1
+fi
 
 
 # ============================================================
