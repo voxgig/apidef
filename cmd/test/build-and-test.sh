@@ -79,7 +79,7 @@ compare_outputs() {
   # Check correctness (guide validated against expected structure)
   if [ -f "$test_dir/correctness.json" ]; then
     local correct
-    correct=$(cat "$test_dir/correctness.json" | grep -o '"ok":[a-z]*' | grep -o '[a-z]*$')
+    correct=$(cat "$test_dir/correctness.json" | grep -o '"ok": *[a-z]*' | grep -o '[a-z]*$')
     if [ "$correct" = "true" ]; then
       report "PASS" "$label: guide correctness"
     else
@@ -140,7 +140,7 @@ echo ""
 
 # Validate reference correctness
 if [ -f "$REF_DIR/solar/correctness.json" ]; then
-  REF_CORRECT=$(cat "$REF_DIR/solar/correctness.json" | grep -o '"ok":[a-z]*' | grep -o '[a-z]*$')
+  REF_CORRECT=$(cat "$REF_DIR/solar/correctness.json" | grep -o '"ok": *[a-z]*' | grep -o '[a-z]*$')
   if [ "$REF_CORRECT" = "true" ]; then
     report "PASS" "Reference: guide correctness"
   else
