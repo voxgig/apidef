@@ -129,3 +129,6 @@ out
 .pnp.*
 
 *~
+
+# Build warnings
+apidef-warnings.txt
