@@ -1,0 +1,15 @@
+{
+  "tasks": {
+    "start": "deno run --allow-read --allow-write --allow-env --allow-net main.ts",
+    "compile": "deno compile --allow-read --allow-write --allow-env --allow-net --output voxgig-apidef main.ts"
+  },
+  "imports": {
+    "@std/cli": "jsr:@std/cli@^1",
+    "@std/path": "jsr:@std/path@^1",
+    "@std/fs": "jsr:@std/fs@^1"
+  },
+  "nodeModulesDir": "auto",
+  "compilerOptions": {
+    "strict": true
+  }
+}
