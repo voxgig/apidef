@@ -71,6 +71,12 @@ const createStep = (opmap, flow, ent, args) => {
         // Use last alt as most generic
         const alt = (0, struct_1.getelem)(opmap.update.alts, -1);
         const step = newFlowStep('create', args);
+        (0, jostraca_1.each)(alt.args.param, (param) => {
+            // id should not be here in the first place
+            if ('id' !== param.name) {
+                step.match[param.name] = args.input?.[param.name] ?? param.name.replace(/_id/, '') + '01';
+            }
+        });
         flow.step.push(step);
     }
 };

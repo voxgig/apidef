@@ -127,6 +127,13 @@ const createStep: MakeFlowStep = (
     const alt = getelem(opmap.update.alts, -1)
     const step = newFlowStep('create', args)
 
+    each(alt.args.param, (param: any) => {
+      // id should not be here in the first place
+      if ('id' !== param.name) {
+        step.match[param.name] = args.input?.[param.name] ?? param.name.replace(/_id/, '') + '01'
+      }
+    })
+
     flow.step.push(step)
   }
 }
