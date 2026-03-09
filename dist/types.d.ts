@@ -1102,4 +1102,4 @@ type GuidePathOp = {
 export { KIT, OpenControlShape, OpenModelShape, OpenBuildShape, };
 export type { Guide, GuideMetrics, GuideEntity, GuidePath, GuidePathAction, GuideRenameParam, GuidePathOp, KitModel, MethodName, TypeName, Log, FsUtil, ApiDefOptions, ApiDefResult, Control, Model, Build, ApiModel, ApiDefContext, Warner, Metrics, };
 export type { CmpDesc, BasicMethodDesc, MethodDesc, MethodEntityDesc, EntityDesc, EntityPathDesc, PathDesc, OpDesc, } from './desc';
-export type { OpName, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelAlt, ModelOp, ModelEntity, } from './model';
+export type { OpName, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelTarget, ModelOp, ModelEntity, } from './model';

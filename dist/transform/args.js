@@ -10,13 +10,13 @@ const argsTransform = async function (ctx) {
     let msg = 'args ';
     (0, jostraca_1.each)(kit.entity, (ment, entname) => {
         (0, jostraca_1.each)(ment.op, (mop, opname) => {
-            (0, jostraca_1.each)(mop.alts, (malt) => {
+            (0, jostraca_1.each)(mop.targets, (mtarget) => {
                 const argdefs = [];
-                const pathdef = def.paths[malt.orig];
+                const pathdef = def.paths[mtarget.orig];
                 argdefs.push(...(pathdef.parameters ?? []));
-                const opdef = pathdef[malt.method.toLowerCase()];
+                const opdef = pathdef[mtarget.method.toLowerCase()];
                 argdefs.push(...(opdef.parameters ?? []));
-                resolveArgs(ment, mop, malt, argdefs);
+                resolveArgs(ment, mop, mtarget, argdefs);
             });
         });
         msg += ment.name + ' ';
@@ -30,11 +30,11 @@ const ARG_KIND = {
     'path': 'param',
     'cookie': 'cookie',
 };
-function resolveArgs(ment, mop, malt, argdefs) {
+function resolveArgs(ment, mop, mtarget, argdefs) {
     (0, jostraca_1.each)(argdefs, (argdef) => {
         const orig = (0, utility_1.depluralize)((0, jostraca_1.snakify)(argdef.name));
         const kind = ARG_KIND[argdef.in] ?? 'query';
-        const name = malt.rename[kind]?.[orig] ?? orig;
+        const name = mtarget.rename[kind]?.[orig] ?? orig;
         const marg = {
             name,
             orig,
@@ -46,7 +46,8 @@ function resolveArgs(ment, mop, malt, argdefs) {
             marg.type = ['`$ONE`', '`$NULL`', marg.type];
         }
         // insert sorted by name
-        let kindargs = (malt.args[marg.kind] = malt.args[marg.kind] ?? []);
+        const argsKey = (marg.kind === 'param' ? 'params' : marg.kind);
+        let kindargs = (mtarget.args[argsKey] = mtarget.args[argsKey] ?? []);
         kindargs.push(marg);
         kindargs.sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
     });

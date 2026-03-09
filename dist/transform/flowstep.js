@@ -68,10 +68,10 @@ function newFlowStep(opname, args) {
 }
 const createStep = (opmap, flow, ent, args) => {
     if (null != opmap.update) {
-        // Use last alt as most generic
-        const alt = (0, struct_1.getelem)(opmap.update.alts, -1);
+        // Use last target as most generic
+        const target = (0, struct_1.getelem)(opmap.update.targets, -1);
         const step = newFlowStep('create', args);
-        (0, jostraca_1.each)(alt.args.param, (param) => {
+        (0, jostraca_1.each)(target.args.params, (param) => {
             // id should not be here in the first place
             if ('id' !== param.name) {
                 step.match[param.name] = args.input?.[param.name] ?? param.name.replace(/_id/, '') + '01';
@@ -82,10 +82,10 @@ const createStep = (opmap, flow, ent, args) => {
 };
 const listStep = (opmap, flow, ent, args) => {
     if (null != opmap.list) {
-        // Use last alt as most generic
-        const alt = (0, struct_1.getelem)(opmap.list.alts, -1);
+        // Use last target as most generic
+        const target = (0, struct_1.getelem)(opmap.list.targets, -1);
         const step = newFlowStep('list', args);
-        (0, jostraca_1.each)(alt.args.param, (param) => {
+        (0, jostraca_1.each)(target.args.params, (param) => {
             step.match[param.name] = args.input?.[param.name] ?? param.name.replace(/_id/, '') + '01';
         });
         flow.step.push(step);
@@ -93,10 +93,10 @@ const listStep = (opmap, flow, ent, args) => {
 };
 const updateStep = (opmap, flow, ent, args) => {
     if (null != opmap.update) {
-        // Use last alt as most generic
-        const alt = (0, struct_1.getelem)(opmap.update.alts, -1);
+        // Use last target as most generic
+        const target = (0, struct_1.getelem)(opmap.update.targets, -1);
         const step = newFlowStep('update', args);
-        (0, jostraca_1.each)(alt.args.param, (param) => {
+        (0, jostraca_1.each)(target.args.params, (param) => {
             if ('id' === param.name) {
                 step.data.id = args.input?.id ?? ent.name + '01';
             }
@@ -109,10 +109,10 @@ const updateStep = (opmap, flow, ent, args) => {
 };
 const loadStep = (opmap, flow, ent, args) => {
     if (null != opmap.load) {
-        // Use last alt as most generic
-        const alt = (0, struct_1.getelem)(opmap.load.alts, -1);
+        // Use last target as most generic
+        const target = (0, struct_1.getelem)(opmap.load.targets, -1);
         const step = newFlowStep('load', args);
-        (0, jostraca_1.each)(alt.args.param, (param) => {
+        (0, jostraca_1.each)(target.args.params, (param) => {
             if ('id' === param.name) {
                 step.match.id = args.input?.id ?? ent.name + '01';
             }
@@ -125,10 +125,10 @@ const loadStep = (opmap, flow, ent, args) => {
 };
 const removeStep = (opmap, flow, ent, args) => {
     if (null != opmap.remove) {
-        // Use last alt as most generic
-        const alt = (0, struct_1.getelem)(opmap.remove.alts, -1);
+        // Use last target as most generic
+        const target = (0, struct_1.getelem)(opmap.remove.targets, -1);
         const step = newFlowStep('remove', args);
-        (0, jostraca_1.each)(alt.args.param, (param) => {
+        (0, jostraca_1.each)(target.args.params, (param) => {
             if ('id' === param.name) {
                 step.match.id = args.input?.id ?? ent.name + '01';
             }

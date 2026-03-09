@@ -20,7 +20,7 @@ import type {
   OpName,
   ModelOp,
   ModelEntity,
-  ModelAlt,
+  ModelTarget,
   ModelField,
 } from '../model'
 
@@ -43,10 +43,10 @@ const fieldTransform: Transform = async function(
     for (let opname of opFieldPrecedence) {
       const mop = ment.op[opname]
       if (mop) {
-        const malts = mop.alts
+        const mtargets = mop.targets
 
-        for (let malt of malts) {
-          const opfields = resolveOpFields(ment, mop, malt, def)
+        for (let mtarget of mtargets) {
+          const opfields = resolveOpFields(ment, mop, mtarget, def)
 
           for (let opfield of opfields) {
             if (!seen[opfield.name]) {
@@ -54,7 +54,7 @@ const fieldTransform: Transform = async function(
               seen[opfield.name] = opfield
             }
             else {
-              mergeField(ment, mop, malt, def, seen[opfield.name], opfield)
+              mergeField(ment, mop, mtarget, def, seen[opfield.name], opfield)
             }
           }
         }
@@ -76,11 +76,11 @@ const fieldTransform: Transform = async function(
 function resolveOpFields(
   ment: ModelEntity,
   mop: ModelOp,
-  malt: ModelAlt,
+  mtarget: ModelTarget,
   def: any
 ): ModelField[] {
   const mfields: ModelField[] = []
-  const fielddefs = findFieldDefs(ment, mop, malt, def)
+  const fielddefs = findFieldDefs(ment, mop, mtarget, def)
 
   for (let fielddef of fielddefs) {
     const fieldname = (fielddef as any).key$ as string
@@ -100,13 +100,13 @@ function resolveOpFields(
 function findFieldDefs(
   _ment: ModelEntity,
   mop: ModelOp,
-  malt: ModelAlt,
+  mtarget: ModelTarget,
   def: any
 ): SchemaDef[] {
   const fielddefs: SchemaDef[] = []
-  const pathdef = def.paths[malt.orig]
+  const pathdef = def.paths[mtarget.orig]
 
-  const method = malt.method.toLowerCase()
+  const method = mtarget.method.toLowerCase()
   const opdef: any = pathdef[method]
 
   if (opdef) {
@@ -160,7 +160,7 @@ function findFieldDefs(
 function mergeField(
   ment: ModelEntity,
   mop: ModelOp,
-  malt: ModelAlt,
+  mtarget: ModelTarget,
   def: any,
   exisingField: ModelField,
   newField: ModelField

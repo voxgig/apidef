@@ -62,8 +62,8 @@ type ModelArg = {
 }
 
 
-// Alternative implementation of an operation
-type ModelAlt = {
+// Target implementation of an operation
+type ModelTarget = {
   orig: string
   method: MethodName
   parts: string[]
@@ -74,7 +74,7 @@ type ModelAlt = {
     cookie: Record<string, string>
   }>
   args: Partial<{
-    param: ModelArg[]
+    params: ModelArg[]
     query: ModelArg[]
     header: ModelArg[]
     cookie: ModelArg[]
@@ -93,7 +93,7 @@ type ModelAlt = {
 // Operation definition
 type ModelOp = {
   name: OpName
-  alts: ModelAlt[]
+  targets: ModelTarget[]
 }
 
 
@@ -143,7 +143,7 @@ export type {
   ModelFieldOp,
   ModelField,
   ModelArg,
-  ModelAlt,
+  ModelTarget,
   ModelOp,
   ModelEntity,
   ModelEntityFlow,

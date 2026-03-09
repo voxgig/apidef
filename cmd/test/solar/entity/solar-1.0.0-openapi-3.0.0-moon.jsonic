@@ -40,10 +40,10 @@ main: kit: entity: moon: {
   name: "moon"
   op: {
     create: {
-      alts: [
+      targets: [
         {
           args: {
-            param: [
+            params: [
               {
                 kind: "param"
                 name: "planet_id"
@@ -75,10 +75,10 @@ main: kit: entity: moon: {
       name: "create"
     }
     list: {
-      alts: [
+      targets: [
         {
           args: {
-            param: [
+            params: [
               {
                 kind: "param"
                 name: "planet_id"
@@ -110,10 +110,10 @@ main: kit: entity: moon: {
       name: "list"
     }
     load: {
-      alts: [
+      targets: [
         {
           args: {
-            param: [
+            params: [
               {
                 kind: "param"
                 name: "id"
@@ -159,10 +159,10 @@ main: kit: entity: moon: {
       name: "load"
     }
     remove: {
-      alts: [
+      targets: [
         {
           args: {
-            param: [
+            params: [
               {
                 kind: "param"
                 name: "id"
@@ -203,10 +203,10 @@ main: kit: entity: moon: {
       name: "remove"
     }
     update: {
-      alts: [
+      targets: [
         {
           args: {
-            param: [
+            params: [
               {
                 kind: "param"
                 name: "id"

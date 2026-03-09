@@ -9,12 +9,12 @@ const selectTransform = async function (ctx) {
     let msg = 'select ';
     (0, jostraca_1.each)(kit.entity, (ment, _entname) => {
         (0, jostraca_1.each)(ment.op, (mop, _opname) => {
-            (0, jostraca_1.each)(mop.alts, (malt) => {
-                const pdef = def.paths[malt.orig];
-                resolveSelect(guide, ment, mop, malt, pdef);
+            (0, jostraca_1.each)(mop.targets, (mtarget) => {
+                const pdef = def.paths[mtarget.orig];
+                resolveSelect(guide, ment, mop, mtarget, pdef);
             });
-            if (null != mop.alts && 0 < mop.alts.length) {
-                sortAlts(guide, ment, mop);
+            if (null != mop.targets && 0 < mop.targets.length) {
+                sortTargets(guide, ment, mop);
             }
         });
         msg += ment.name + ' ';
@@ -22,10 +22,10 @@ const selectTransform = async function (ctx) {
     return { ok: true, msg };
 };
 exports.selectTransform = selectTransform;
-function resolveSelect(guide, ment, _mop, malt, _pdef) {
-    const select = malt.select;
-    const margs = malt.args;
-    const argkinds = ['param', 'query', 'header', 'cookie'];
+function resolveSelect(guide, ment, _mop, mtarget, _pdef) {
+    const select = mtarget.select;
+    const margs = mtarget.args;
+    const argkinds = ['params', 'query', 'header', 'cookie'];
     argkinds.map((kind) => {
         (0, jostraca_1.each)(margs[kind], (marg) => {
             if (!select.exist.includes(marg.name)) {
@@ -35,7 +35,7 @@ function resolveSelect(guide, ment, _mop, malt, _pdef) {
     });
     select.exist.sort();
     const gent = guide.entity[ment.name];
-    const gpath = gent.path[malt.orig];
+    const gpath = gent.path[mtarget.orig];
     if (gpath.action) {
         const actname = Object.keys(gpath.action)[0];
         if (null != actname) {
@@ -43,8 +43,8 @@ function resolveSelect(guide, ment, _mop, malt, _pdef) {
         }
     }
 }
-function sortAlts(_guide, _ment, mop) {
-    mop.alts.sort((a, b) => {
+function sortTargets(_guide, _ment, mop) {
+    mop.targets.sort((a, b) => {
         // longest exist len first
         let order = b.select.exist.length - a.select.exist.length;
         if (0 === order) {

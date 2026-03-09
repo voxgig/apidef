@@ -17,7 +17,7 @@ import {
 import type {
   ModelEntity,
   ModelOp,
-  ModelAlt,
+  ModelTarget,
 } from '../../model'
 
 import {
@@ -105,10 +105,10 @@ function resolveBasicEntityFlow(ctx: any, entity: any) {
 
   if (entop.load) {
 
-    const alt = findMainLoadAlt(entop.load)
+    const target = findMainLoadTarget(entop.load)
 
     // Get additional required match properties
-    each(alt?.args.param, (param: any) => {
+    each(target?.args.params, (param: any) => {
       if (param.required) {
         let ancestorName = param.name
         let ancestorEntity = apimodel.main.api.entity[ancestorName]
@@ -196,8 +196,8 @@ function resolveBasicEntityFlow(ctx: any, entity: any) {
 }
 
 
-function findMainLoadAlt(op: ModelOp): ModelAlt | undefined {
-  let cands = op.alts.filter(a => '{id}' === getelem(a.parts, -1))
+function findMainLoadTarget(op: ModelOp): ModelTarget | undefined {
+  let cands = op.targets.filter(a => '{id}' === getelem(a.parts, -1))
   return cands[0]
 }
 

@@ -86,9 +86,9 @@ function resolveOp(opname, gent) {
     if (opdesc) {
         mop = {
             name: opname,
-            alts: opdesc.paths.map((p) => {
+            targets: opdesc.paths.map((p) => {
                 const parts = applyRename(p);
-                const malt = {
+                const mtarget = {
                     orig: p.orig,
                     parts,
                     rename: p.rename,
@@ -99,9 +99,9 @@ function resolveOp(opname, gent) {
                         exist: []
                     }
                 };
-                malt.transform.req = malt.transform.req ?? '`reqdata`';
-                malt.transform.res = malt.transform.res ?? '`body`';
-                return malt;
+                mtarget.transform.req = mtarget.transform.req ?? '`reqdata`';
+                mtarget.transform.res = mtarget.transform.res ?? '`body`';
+                return mtarget;
             })
         };
     }

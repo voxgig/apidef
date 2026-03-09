@@ -20,7 +20,7 @@ import type {
   OpName,
   ModelOp,
   ModelEntity,
-  ModelAlt,
+  ModelTarget,
   ModelArg,
 } from '../model'
 
@@ -36,12 +36,12 @@ const selectTransform: Transform = async function(
 
   each(kit.entity, (ment: ModelEntity, _entname: string) => {
     each(ment.op, (mop: ModelOp, _opname: OpName) => {
-      each(mop.alts, (malt: ModelAlt) => {
-        const pdef: PathDef = def.paths[malt.orig]
-        resolveSelect(guide, ment, mop, malt, pdef)
+      each(mop.targets, (mtarget: ModelTarget) => {
+        const pdef: PathDef = def.paths[mtarget.orig]
+        resolveSelect(guide, ment, mop, mtarget, pdef)
       })
-      if (null != mop.alts && 0 < mop.alts.length) {
-        sortAlts(guide, ment, mop)
+      if (null != mop.targets && 0 < mop.targets.length) {
+        sortTargets(guide, ment, mop)
       }
     })
 
@@ -56,13 +56,13 @@ function resolveSelect(
   guide: Guide,
   ment: ModelEntity,
   _mop: ModelOp,
-  malt: ModelAlt,
+  mtarget: ModelTarget,
   _pdef: PathDef
 ) {
-  const select: any = malt.select
-  const margs: any = malt.args
+  const select: any = mtarget.select
+  const margs: any = mtarget.args
 
-  const argkinds = ['param', 'query', 'header', 'cookie']
+  const argkinds = ['params', 'query', 'header', 'cookie']
 
   argkinds.map((kind: string) => {
     each(margs[kind], (marg: ModelArg) => {
@@ -75,7 +75,7 @@ function resolveSelect(
   select.exist.sort()
 
   const gent = guide.entity[ment.name]
-  const gpath = gent.path[malt.orig]
+  const gpath = gent.path[mtarget.orig]
 
   if (gpath.action) {
     const actname = Object.keys(gpath.action)[0]
@@ -88,12 +88,12 @@ function resolveSelect(
 }
 
 
-function sortAlts(
+function sortTargets(
   _guide: Guide,
   _ment: ModelEntity,
   mop: ModelOp,
 ) {
-  mop.alts.sort((a: ModelAlt, b: ModelAlt) => {
+  mop.targets.sort((a: ModelTarget, b: ModelTarget) => {
     // longest exist len first
     let order = b.select.exist.length - a.select.exist.length
     if (0 === order) {

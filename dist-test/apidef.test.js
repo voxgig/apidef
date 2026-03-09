@@ -211,10 +211,10 @@ const SOLAR_MODEL = {
                     name: 'moon',
                     op: {
                         create: {
-                            alts: [
+                            targets: [
                                 {
                                     args: {
-                                        param: [
+                                        params: [
                                             {
                                                 kind: 'param',
                                                 name: 'planet_id',
@@ -237,10 +237,10 @@ const SOLAR_MODEL = {
                             name: 'create'
                         },
                         list: {
-                            alts: [
+                            targets: [
                                 {
                                     args: {
-                                        param: [
+                                        params: [
                                             {
                                                 kind: 'param',
                                                 name: 'planet_id',
@@ -263,10 +263,10 @@ const SOLAR_MODEL = {
                             name: 'list'
                         },
                         load: {
-                            alts: [
+                            targets: [
                                 {
                                     args: {
-                                        param: [
+                                        params: [
                                             {
                                                 kind: 'param',
                                                 name: 'id',
@@ -298,10 +298,10 @@ const SOLAR_MODEL = {
                             name: 'load'
                         },
                         remove: {
-                            alts: [
+                            targets: [
                                 {
                                     args: {
-                                        param: [
+                                        params: [
                                             {
                                                 kind: 'param',
                                                 name: 'id',
@@ -332,10 +332,10 @@ const SOLAR_MODEL = {
                             name: 'remove'
                         },
                         update: {
-                            alts: [
+                            targets: [
                                 {
                                     args: {
-                                        param: [
+                                        params: [
                                             {
                                                 kind: 'param',
                                                 name: 'id',
@@ -432,10 +432,10 @@ const SOLAR_MODEL = {
                     name: 'planet',
                     op: {
                         create: {
-                            alts: [
+                            targets: [
                                 {
                                     args: {
-                                        param: [
+                                        params: [
                                             {
                                                 kind: 'param',
                                                 name: 'id',
@@ -457,7 +457,7 @@ const SOLAR_MODEL = {
                                 },
                                 {
                                     args: {
-                                        param: [
+                                        params: [
                                             {
                                                 kind: 'param',
                                                 name: 'id',
@@ -483,7 +483,7 @@ const SOLAR_MODEL = {
                                     parts: ['api', 'planet'],
                                     transform: { req: '`reqdata`', res: '`body`' },
                                     active: true,
-                                    args: { param: [] },
+                                    args: { params: [] },
                                     relations: [],
                                     select: {}
                                 }
@@ -491,14 +491,14 @@ const SOLAR_MODEL = {
                             name: 'create'
                         },
                         list: {
-                            alts: [
+                            targets: [
                                 {
                                     method: 'GET',
                                     orig: '/api/planet',
                                     parts: ['api', 'planet'],
                                     transform: { req: '`reqdata`', res: '`body`' },
                                     active: true,
-                                    args: { param: [] },
+                                    args: { params: [] },
                                     relations: [],
                                     select: {}
                                 }
@@ -506,10 +506,10 @@ const SOLAR_MODEL = {
                             name: 'list'
                         },
                         load: {
-                            alts: [
+                            targets: [
                                 {
                                     args: {
-                                        param: [
+                                        params: [
                                             {
                                                 kind: 'param',
                                                 name: 'id',
@@ -533,10 +533,10 @@ const SOLAR_MODEL = {
                             name: 'load'
                         },
                         remove: {
-                            alts: [
+                            targets: [
                                 {
                                     args: {
-                                        param: [
+                                        params: [
                                             {
                                                 kind: 'param',
                                                 name: 'id',
@@ -559,10 +559,10 @@ const SOLAR_MODEL = {
                             name: 'remove'
                         },
                         update: {
-                            alts: [
+                            targets: [
                                 {
                                     args: {
-                                        param: [
+                                        params: [
                                             {
                                                 kind: 'param',
                                                 name: 'id',

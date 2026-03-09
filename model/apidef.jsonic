@@ -30,7 +30,7 @@ main: kit: entity: &: {
   op: &: {
     name: string
 
-    alts: [ &: {
+    targets: [ &: {
 
       active: *true
           
@@ -41,7 +41,7 @@ main: kit: entity: &: {
       parts: [ &: string ]
 
       args: {
-        param: [ &: {
+        params: [ &: {
           active: *true
           kind: string
           name: string

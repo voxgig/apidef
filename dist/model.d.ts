@@ -33,7 +33,7 @@ type ModelArg = {
     kind: 'param' | 'query' | 'header' | 'cookie';
     reqd: boolean;
 };
-type ModelAlt = {
+type ModelTarget = {
     orig: string;
     method: MethodName;
     parts: string[];
@@ -44,7 +44,7 @@ type ModelAlt = {
         cookie: Record<string, string>;
     }>;
     args: Partial<{
-        param: ModelArg[];
+        params: ModelArg[];
         query: ModelArg[];
         header: ModelArg[];
         cookie: ModelArg[];
@@ -60,7 +60,7 @@ type ModelAlt = {
 };
 type ModelOp = {
     name: OpName;
-    alts: ModelAlt[];
+    targets: ModelTarget[];
 };
 type ModelEntity = {
     name: string;
@@ -92,4 +92,4 @@ type ModelEntityFlowStep = {
         def: Record<string, any>;
     }[];
 };
-export type { OpName, Model, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelAlt, ModelOp, ModelEntity, ModelEntityFlow, ModelEntityFlowStep, };
+export type { OpName, Model, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelTarget, ModelOp, ModelEntity, ModelEntityFlow, ModelEntityFlowStep, };

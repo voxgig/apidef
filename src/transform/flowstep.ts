@@ -123,11 +123,11 @@ const createStep: MakeFlowStep = (
   args: Record<string, any>
 ) => {
   if (null != opmap.update) {
-    // Use last alt as most generic
-    const alt = getelem(opmap.update.alts, -1)
+    // Use last target as most generic
+    const target = getelem(opmap.update.targets, -1)
     const step = newFlowStep('create', args)
 
-    each(alt.args.param, (param: any) => {
+    each(target.args.params, (param: any) => {
       // id should not be here in the first place
       if ('id' !== param.name) {
         step.match[param.name] = args.input?.[param.name] ?? param.name.replace(/_id/, '') + '01'
@@ -146,11 +146,11 @@ const listStep: MakeFlowStep = (
   args: Record<string, any>
 ) => {
   if (null != opmap.list) {
-    // Use last alt as most generic
-    const alt = getelem(opmap.list.alts, -1)
+    // Use last target as most generic
+    const target = getelem(opmap.list.targets, -1)
     const step = newFlowStep('list', args)
 
-    each(alt.args.param, (param: any) => {
+    each(target.args.params, (param: any) => {
       step.match[param.name] = args.input?.[param.name] ?? param.name.replace(/_id/, '') + '01'
     })
 
@@ -166,11 +166,11 @@ const updateStep: MakeFlowStep = (
   args: Record<string, any>
 ) => {
   if (null != opmap.update) {
-    // Use last alt as most generic
-    const alt = getelem(opmap.update.alts, -1)
+    // Use last target as most generic
+    const target = getelem(opmap.update.targets, -1)
     const step = newFlowStep('update', args)
 
-    each(alt.args.param, (param: any) => {
+    each(target.args.params, (param: any) => {
       if ('id' === param.name) {
         step.data.id = args.input?.id ?? ent.name + '01'
       }
@@ -191,11 +191,11 @@ const loadStep: MakeFlowStep = (
   args: Record<string, any>
 ) => {
   if (null != opmap.load) {
-    // Use last alt as most generic
-    const alt = getelem(opmap.load.alts, -1)
+    // Use last target as most generic
+    const target = getelem(opmap.load.targets, -1)
     const step = newFlowStep('load', args)
 
-    each(alt.args.param, (param: any) => {
+    each(target.args.params, (param: any) => {
       if ('id' === param.name) {
         step.match.id = args.input?.id ?? ent.name + '01'
       }
@@ -216,11 +216,11 @@ const removeStep: MakeFlowStep = (
   args: Record<string, any>
 ) => {
   if (null != opmap.remove) {
-    // Use last alt as most generic
-    const alt = getelem(opmap.remove.alts, -1)
+    // Use last target as most generic
+    const target = getelem(opmap.remove.targets, -1)
     const step = newFlowStep('remove', args)
 
-    each(alt.args.param, (param: any) => {
+    each(target.args.params, (param: any) => {
       if ('id' === param.name) {
         step.match.id = args.input?.id ?? ent.name + '01'
       }

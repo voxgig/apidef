@@ -15,16 +15,16 @@ const fieldTransform = async function (ctx) {
         for (let opname of opFieldPrecedence) {
             const mop = ment.op[opname];
             if (mop) {
-                const malts = mop.alts;
-                for (let malt of malts) {
-                    const opfields = resolveOpFields(ment, mop, malt, def);
+                const mtargets = mop.targets;
+                for (let mtarget of mtargets) {
+                    const opfields = resolveOpFields(ment, mop, mtarget, def);
                     for (let opfield of opfields) {
                         if (!seen[opfield.name]) {
                             fields.push(opfield);
                             seen[opfield.name] = opfield;
                         }
                         else {
-                            mergeField(ment, mop, malt, def, seen[opfield.name], opfield);
+                            mergeField(ment, mop, mtarget, def, seen[opfield.name], opfield);
                         }
                     }
                 }
@@ -38,9 +38,9 @@ const fieldTransform = async function (ctx) {
     return { ok: true, msg };
 };
 exports.fieldTransform = fieldTransform;
-function resolveOpFields(ment, mop, malt, def) {
+function resolveOpFields(ment, mop, mtarget, def) {
     const mfields = [];
-    const fielddefs = findFieldDefs(ment, mop, malt, def);
+    const fielddefs = findFieldDefs(ment, mop, mtarget, def);
     for (let fielddef of fielddefs) {
         const fieldname = fielddef.key$;
         const mfield = {
@@ -53,10 +53,10 @@ function resolveOpFields(ment, mop, malt, def) {
     }
     return mfields;
 }
-function findFieldDefs(_ment, mop, malt, def) {
+function findFieldDefs(_ment, mop, mtarget, def) {
     const fielddefs = [];
-    const pathdef = def.paths[malt.orig];
-    const method = malt.method.toLowerCase();
+    const pathdef = def.paths[mtarget.orig];
+    const method = mtarget.method.toLowerCase();
     const opdef = pathdef[method];
     if (opdef) {
         const responses = opdef.responses;
@@ -97,7 +97,7 @@ function findFieldDefs(_ment, mop, malt, def) {
     }
     return fielddefs;
 }
-function mergeField(ment, mop, malt, def, exisingField, newField) {
+function mergeField(ment, mop, mtarget, def, exisingField, newField) {
     if (newField.req !== exisingField.req) {
         exisingField.op[mop.name] = {
             req: newField.req,

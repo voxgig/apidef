@@ -61,9 +61,9 @@ function resolveBasicEntityFlow(ctx, entity) {
     const am = {};
     const entop = apiEntity.op ?? {};
     if (entop.load) {
-        const alt = findMainLoadAlt(entop.load);
+        const target = findMainLoadTarget(entop.load);
         // Get additional required match properties
-        (0, jostraca_1.each)(alt?.args.param, (param) => {
+        (0, jostraca_1.each)(target?.args.params, (param) => {
             if (param.required) {
                 let ancestorName = param.name;
                 let ancestorEntity = apimodel.main.api.entity[ancestorName];
@@ -138,8 +138,8 @@ function resolveBasicEntityFlow(ctx, entity) {
     }
     return flow;
 }
-function findMainLoadAlt(op) {
-    let cands = op.alts.filter(a => '{id}' === (0, struct_2.getelem)(a.parts, -1));
+function findMainLoadTarget(op) {
+    let cands = op.targets.filter(a => '{id}' === (0, struct_2.getelem)(a.parts, -1));
     return cands[0];
 }
 function makeUpdateData(name, apiEntity, flow, id) {

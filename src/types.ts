@@ -291,7 +291,7 @@ export type {
   ModelFieldOp,
   ModelField,
   ModelArg,
-  ModelAlt,
+  ModelTarget,
   ModelOp,
   ModelEntity,
 } from './model'
