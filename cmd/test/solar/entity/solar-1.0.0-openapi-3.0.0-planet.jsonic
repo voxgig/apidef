@@ -1,0 +1,284 @@
+# Entity: planet
+
+main: kit: entity: planet: {
+
+  alias: field: {}
+
+  fields: [
+    {
+      name: "diameter"
+      req: false
+      type: "`$NUMBER`"
+    }
+    {
+      name: "forbid"
+      req: false
+      type: "`$BOOLEAN`"
+    }
+    {
+      name: "id"
+      req: false
+      type: "`$STRING`"
+    }
+    {
+      name: "kind"
+      req: false
+      type: "`$STRING`"
+    }
+    {
+      name: "name"
+      req: false
+      type: "`$STRING`"
+    }
+    {
+      name: "ok"
+      req: false
+      type: "`$BOOLEAN`"
+    }
+    {
+      name: "start"
+      req: false
+      type: "`$BOOLEAN`"
+    }
+    {
+      name: "state"
+      req: false
+      type: "`$STRING`"
+    }
+    {
+      name: "stop"
+      req: false
+      type: "`$BOOLEAN`"
+    }
+    {
+      name: "why"
+      req: false
+      type: "`$STRING`"
+    }
+  ]
+
+  id: {
+    field: "id"
+    name: "id"
+  }
+
+  name: "planet"
+  op: {
+    create: {
+      alts: [
+        {
+          args: {
+            param: [
+              {
+                kind: "param"
+                name: "id"
+                orig: "planet_id"
+                reqd: true
+                type: "`$STRING`"
+              }
+            ]
+          }
+          method: "POST"
+          orig: "/api/planet/{planet_id}/forbid"
+          parts: [
+            "api"
+            "planet"
+            "{id}"
+            "forbid"
+          ]
+          rename: {
+            param: {
+              planet_id: "id"
+            }
+          }
+          select: {
+            "$action": "forbid"
+            exist: [
+              "id"
+            ]
+          }
+          transform: {
+            req: "`reqdata`"
+            res: "`body`"
+          }
+        }
+        {
+          args: {
+            param: [
+              {
+                kind: "param"
+                name: "id"
+                orig: "planet_id"
+                reqd: true
+                type: "`$STRING`"
+              }
+            ]
+          }
+          method: "POST"
+          orig: "/api/planet/{planet_id}/terraform"
+          parts: [
+            "api"
+            "planet"
+            "{id}"
+            "terraform"
+          ]
+          rename: {
+            param: {
+              planet_id: "id"
+            }
+          }
+          select: {
+            "$action": "terraform"
+            exist: [
+              "id"
+            ]
+          }
+          transform: {
+            req: "`reqdata`"
+            res: "`body`"
+          }
+        }
+        {
+          method: "POST"
+          orig: "/api/planet"
+          parts: [
+            "api"
+            "planet"
+          ]
+          transform: {
+            req: "`reqdata`"
+            res: "`body`"
+          }
+        }
+      ]
+      name: "create"
+    }
+    list: {
+      alts: [
+        {
+          method: "GET"
+          orig: "/api/planet"
+          parts: [
+            "api"
+            "planet"
+          ]
+          transform: {
+            req: "`reqdata`"
+            res: "`body`"
+          }
+        }
+      ]
+      name: "list"
+    }
+    load: {
+      alts: [
+        {
+          args: {
+            param: [
+              {
+                kind: "param"
+                name: "id"
+                orig: "planet_id"
+                reqd: true
+                type: "`$STRING`"
+              }
+            ]
+          }
+          method: "GET"
+          orig: "/api/planet/{planet_id}"
+          parts: [
+            "api"
+            "planet"
+            "{id}"
+          ]
+          rename: {
+            param: {
+              planet_id: "id"
+            }
+          }
+          select: {
+            exist: [
+              "id"
+            ]
+          }
+          transform: {
+            req: "`reqdata`"
+            res: "`body`"
+          }
+        }
+      ]
+      name: "load"
+    }
+    remove: {
+      alts: [
+        {
+          args: {
+            param: [
+              {
+                kind: "param"
+                name: "id"
+                orig: "planet_id"
+                reqd: true
+                type: "`$STRING`"
+              }
+            ]
+          }
+          method: "DELETE"
+          orig: "/api/planet/{planet_id}"
+          parts: [
+            "api"
+            "planet"
+            "{id}"
+          ]
+          select: {
+            exist: [
+              "id"
+            ]
+          }
+          transform: {
+            req: "`reqdata`"
+            res: "`body`"
+          }
+        }
+      ]
+      name: "remove"
+    }
+    update: {
+      alts: [
+        {
+          args: {
+            param: [
+              {
+                kind: "param"
+                name: "id"
+                orig: "planet_id"
+                reqd: true
+                type: "`$STRING`"
+              }
+            ]
+          }
+          method: "PUT"
+          orig: "/api/planet/{planet_id}"
+          parts: [
+            "api"
+            "planet"
+            "{id}"
+          ]
+          select: {
+            exist: [
+              "id"
+            ]
+          }
+          transform: {
+            req: "`reqdata`"
+            res: "`body`"
+          }
+        }
+      ]
+      name: "update"
+    }
+  }
+
+
+
+}

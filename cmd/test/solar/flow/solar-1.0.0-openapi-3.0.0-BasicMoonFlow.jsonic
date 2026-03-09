@@ -1,0 +1,115 @@
+# BasicMoonFlow
+
+main: kit: flow: BasicMoonFlow:
+{
+  entity: "moon",
+  kind: "basic",
+  name: "BasicMoonFlow",
+  step: [
+    {
+      input: {
+        ref: "moon_ref01"
+      }
+
+      op: "create"
+    }
+
+    {
+      match: {
+        planet_id: "planet01"
+      }
+
+      op: "list",
+      valid: [
+        {
+          apply: "ItemExists",
+          def: {
+            ref: "moon_ref01"
+          }
+        }
+      ]
+    }
+
+    {
+      data: {
+        id: "moon01",
+        planet_id: "planet01"
+      }
+
+      input: {
+        ref: "moon_ref01",
+        srcdatavar: "moon_ref01_data",
+        suffix: "_up0",
+        textfield: "kind"
+      }
+
+      op: "update",
+      spec: [
+        {
+          apply: "TextFieldMark",
+          def: {
+            mark: "Mark01-moon_ref01"
+          }
+        }
+      ]
+    }
+
+    {
+      input: {
+        ref: "moon_ref01",
+        srcdatavar: "moon_ref01_data",
+        suffix: "_dt0"
+      }
+
+      match: {
+        id: "moon01",
+        planet_id: "planet01"
+      }
+
+      op: "load",
+      valid: [
+        {
+          apply: "TextFieldMark",
+          def: {
+            mark: "Mark01-moon_ref01"
+          }
+        }
+      ]
+    }
+
+    {
+      input: {
+        ref: "moon_ref01",
+        suffix: "_rm0"
+      }
+
+      match: {
+        id: "moon01",
+        planet_id: "planet01"
+      }
+
+      op: "remove"
+    }
+
+    {
+      input: {
+        suffix: "_rt0"
+      }
+
+      match: {
+        planet_id: "planet01"
+      }
+
+      op: "list",
+      valid: [
+        {
+          apply: "ItemNotExists",
+          def: {
+            ref: "moon_ref01"
+          }
+        }
+      ]
+    }
+  ],
+  "key$": "BasicMoonFlow"
+}

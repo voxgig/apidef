@@ -1,0 +1,104 @@
+# BasicPlanetFlow
+
+main: kit: flow: BasicPlanetFlow:
+{
+  entity: "planet",
+  kind: "basic",
+  name: "BasicPlanetFlow",
+  step: [
+    {
+      input: {
+        ref: "planet_ref01"
+      }
+
+      op: "create"
+    }
+
+    {
+      op: "list",
+      valid: [
+        {
+          apply: "ItemExists",
+          def: {
+            ref: "planet_ref01"
+          }
+        }
+      ]
+    }
+
+    {
+      data: {
+        id: "planet01"
+      }
+
+      input: {
+        ref: "planet_ref01",
+        srcdatavar: "planet_ref01_data",
+        suffix: "_up0",
+        textfield: "kind"
+      }
+
+      op: "update",
+      spec: [
+        {
+          apply: "TextFieldMark",
+          def: {
+            mark: "Mark01-planet_ref01"
+          }
+        }
+      ]
+    }
+
+    {
+      input: {
+        ref: "planet_ref01",
+        srcdatavar: "planet_ref01_data",
+        suffix: "_dt0"
+      }
+
+      match: {
+        id: "planet01"
+      }
+
+      op: "load",
+      valid: [
+        {
+          apply: "TextFieldMark",
+          def: {
+            mark: "Mark01-planet_ref01"
+          }
+        }
+      ]
+    }
+
+    {
+      input: {
+        ref: "planet_ref01",
+        suffix: "_rm0"
+      }
+
+      match: {
+        id: "planet01"
+      }
+
+      op: "remove"
+    }
+
+    {
+      input: {
+        suffix: "_rt0"
+      }
+
+      op: "list",
+      valid: [
+        {
+          apply: "ItemNotExists",
+          def: {
+            ref: "planet_ref01"
+          }
+        }
+      ]
+    }
+  ],
+  "key$": "BasicPlanetFlow"
+}
