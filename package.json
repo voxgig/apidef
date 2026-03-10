@@ -42,7 +42,7 @@
   "devDependencies": {
     "@hapi/code": "^9.0.3",
     "@types/js-yaml": "^4.0.9",
-    "@types/node": "25.3.3",
+    "@types/node": "25.4.0",
     "json-schema-to-ts": "^3.1.1",
     "typescript": "^5.9.3"
   },

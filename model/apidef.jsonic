@@ -29,6 +29,7 @@ main: kit: entity: &: {
   
   op: &: {
     name: string
+    input: *'data'
 
     targets: [ &: {
 
