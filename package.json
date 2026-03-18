@@ -1,6 +1,6 @@
 {
   "name": "@voxgig/apidef",
-  "version": "3.4.0",
+  "version": "3.5.0",
   "main": "dist/apidef.js",
   "type": "commonjs",
   "types": "dist/apidef.d.ts",
@@ -42,7 +42,7 @@
   "devDependencies": {
     "@hapi/code": "^9.0.3",
     "@types/js-yaml": "^4.0.9",
-    "@types/node": "25.4.0",
+    "@types/node": "25.5.0",
     "json-schema-to-ts": "^3.1.1",
     "typescript": "^5.9.3"
   },

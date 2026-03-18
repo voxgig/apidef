@@ -264,20 +264,15 @@ function ResolveEntityComponent(spec) {
         .filter(xref => !xref.val.includes('Meta'));
     let cleanxrefs = cmpxrefs
         .map(xref => {
-        // Redundancy in cmp name, remove request,response suffix
-        // const lastPart = getelem(pathStr.split('/'), -1)
-        const lastPart = (0, struct_1.getelem)(parts, -1);
-        const lastPartLower = lastPart?.toLowerCase();
-        const lastPartCanon = (0, utility_1.canonize)(lastPart);
-        const origcmpLower = xref.origcmp?.toLowerCase();
-        if ('' !== lastPartCanon
-            && (xref.cmp === lastPartCanon + '_response'
-                || xref.cmp === lastPartCanon + '_request'
-                || origcmpLower === lastPartLower + 'response'
-                || origcmpLower === lastPartLower + 'request')) {
-            let cparts = xref.cmp.split('_');
-            // rec-canonize to deal with plural before removed suffix
-            xref.cmp = (0, utility_1.canonize)(cparts.slice(0, cparts.length - 1).join('_'));
+        // Remove known schema suffixes: _response, _request
+        const knownSuffixes = ['_response', '_request'];
+        for (const suffix of knownSuffixes) {
+            if (xref.cmp.endsWith(suffix)) {
+                let cparts = xref.cmp.split('_');
+                // re-canonize to deal with plural before removed suffix
+                xref.cmp = (0, utility_1.canonize)(cparts.slice(0, cparts.length - 1).join('_'));
+                break;
+            }
         }
         return xref;
     });

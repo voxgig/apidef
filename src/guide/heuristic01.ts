@@ -375,26 +375,16 @@ function ResolveEntityComponent(spec: TaskSpec) {
   let cleanxrefs = cmpxrefs
     .map(xref => {
 
-      // Redundancy in cmp name, remove request,response suffix
-      // const lastPart = getelem(pathStr.split('/'), -1)
-      const lastPart = getelem(parts, -1)
-      const lastPartLower = lastPart?.toLowerCase()
-      const lastPartCanon = canonize(lastPart)
-      const origcmpLower = xref.origcmp?.toLowerCase()
+      // Remove known schema suffixes: _response, _request
+      const knownSuffixes = ['_response', '_request']
+      for (const suffix of knownSuffixes) {
+        if (xref.cmp.endsWith(suffix)) {
+          let cparts = xref.cmp.split('_')
 
-      if (
-        '' !== lastPartCanon
-        && (
-          xref.cmp === lastPartCanon + '_response'
-          || xref.cmp === lastPartCanon + '_request'
-          || origcmpLower === lastPartLower + 'response'
-          || origcmpLower === lastPartLower + 'request'
-        )
-      ) {
-        let cparts = xref.cmp.split('_')
-
-        // rec-canonize to deal with plural before removed suffix
-        xref.cmp = canonize(cparts.slice(0, cparts.length - 1).join('_'))
+          // re-canonize to deal with plural before removed suffix
+          xref.cmp = canonize(cparts.slice(0, cparts.length - 1).join('_'))
+          break
+        }
       }
 
       return xref

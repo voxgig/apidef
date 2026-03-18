@@ -25,7 +25,7 @@ const cleanTransform = async function (ctx) {
             cur[ancestors.length - 1][k] = vi;
         }
         return v;
-    }, (k, _v, _p, ancestors) => {
+    }, (k, v, _p, ancestors) => {
         const pi = cur[ancestors.length - 1];
         if (undefined !== pi) {
             const vi = pi[k];
@@ -33,6 +33,7 @@ const cleanTransform = async function (ctx) {
                 delete pi[k];
             }
         }
+        return v;
     });
     ctx.apimodel = cur[0];
     return { ok: true, msg: 'clean' };

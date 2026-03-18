@@ -5,7 +5,11 @@ guide: entity: &: {
 
   path: &: {
     active?: boolean
-    
+
+     rename?: {
+       param?: {}
+     }
+
      op: &: {
        active?: boolean
        method: string

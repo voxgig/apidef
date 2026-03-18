@@ -40,7 +40,7 @@ const cleanTransform: Transform = async function(
       return v
     },
 
-    (k: any, _v: any, _p: any, ancestors: any) => {
+    (k: any, v: any, _p: any, ancestors: any) => {
       const pi = cur[ancestors.length - 1]
       if (undefined !== pi) {
         const vi = pi[k]
@@ -48,6 +48,7 @@ const cleanTransform: Transform = async function(
           delete pi[k]
         }
       }
+      return v
     }
   )
 
