@@ -740,6 +740,38 @@ function canonize(s: string) {
 }
 
 
+const BOOLEAN_NAME_RE = /^(is_|has_|can_|should_|allow_|enabled$|disabled$|active$|visible$|deleted$|verified$|public$|private$|locked$|archived$|blocked$)/
+const INTEGER_NAME_RE = /(_count$|_number$|^total_|^count_|^num_|^limit$|^page$|^offset$|^per_page$|^page_size$|^size$|^skip$)/
+const NUMBER_NAME_RE = /^(latitude$|longitude$|lat$|lng$|lon$|price$|amount$|rate$|score$|weight$|height$|width$|depth$|radius$|distance$|duration$|percentage$|percent$)/
+const STRING_NAME_RE = /^(url$|href$|link$|uri$|email$|name$|title$|description$|slug$|path$|label$|username$|password$|token$|key$)/
+const ID_NAME_RE = /(_id$|^id$)/
+
+function inferFieldType(name: string, specType: string): string {
+  // Only override $ANY, or $STRING for boolean-patterned names
+  if ('`$ANY`' === specType) {
+    if (BOOLEAN_NAME_RE.test(name)) return '`$BOOLEAN`'
+    if (ID_NAME_RE.test(name)) return '`$STRING`'
+    if (INTEGER_NAME_RE.test(name)) return '`$INTEGER`'
+    if (NUMBER_NAME_RE.test(name)) return '`$NUMBER`'
+    if (STRING_NAME_RE.test(name)) return '`$STRING`'
+  }
+  else if ('`$STRING`' === specType) {
+    if (BOOLEAN_NAME_RE.test(name)) return '`$BOOLEAN`'
+  }
+  return specType
+}
+
+
+function normalizeFieldName(s: string): string {
+  if (null == s || '' === s) return ''
+  return s
+    .replace(/\[\]/g, '')
+    .replace(/[\[\].]+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '')
+}
+
+
 const MIN_ENTITY_NAME_LEN = 3
 const MAX_ENTITY_NAME_LEN = 67
 
@@ -1023,6 +1055,8 @@ export {
   canonize,
   cleanComponentName,
   ensureMinEntityName,
+  inferFieldType,
+  normalizeFieldName,
   debugpath,
   findPathsWithPrefix,
   writeFileSyncWarn,

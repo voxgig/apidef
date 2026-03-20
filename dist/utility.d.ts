@@ -29,6 +29,8 @@ declare function formatJSONIC(val?: any, opts?: {
 }): string;
 declare function validator(torig: undefined | string | string[]): any;
 declare function canonize(s: string): string;
+declare function inferFieldType(name: string, specType: string): string;
+declare function normalizeFieldName(s: string): string;
 declare function ensureMinEntityName(name: string, existing: Record<string, any>): string;
 declare function cleanComponentName(name: string): string;
 declare function warnOnError(where: string, warn: Warner, fn: Function, result?: any): any;
@@ -44,4 +46,4 @@ declare function getModelPath(model: any, path: string, flags?: {
     only_active?: boolean;
 }): any;
 export type { PathMatch };
-export { nom, getdlog, loadFile, formatJsonSrc, depluralize, find, capture, pathMatch, makeWarner, formatJSONIC, validator, canonize, cleanComponentName, ensureMinEntityName, debugpath, findPathsWithPrefix, writeFileSyncWarn, warnOnError, relativizePath, getModelPath, };
+export { nom, getdlog, loadFile, formatJsonSrc, depluralize, find, capture, pathMatch, makeWarner, formatJSONIC, validator, canonize, cleanComponentName, ensureMinEntityName, inferFieldType, normalizeFieldName, debugpath, findPathsWithPrefix, writeFileSyncWarn, warnOnError, relativizePath, getModelPath, };

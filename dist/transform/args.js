@@ -32,13 +32,13 @@ const ARG_KIND = {
 };
 function resolveArgs(ment, mop, mtarget, argdefs) {
     (0, jostraca_1.each)(argdefs, (argdef) => {
-        const orig = (0, utility_1.depluralize)((0, jostraca_1.snakify)(argdef.name));
+        const orig = (0, utility_1.depluralize)((0, jostraca_1.snakify)((0, utility_1.normalizeFieldName)(argdef.name)));
         const kind = ARG_KIND[argdef.in] ?? 'query';
         const name = mtarget.rename[kind]?.[orig] ?? orig;
         const marg = {
             name,
             orig,
-            type: (0, utility_1.validator)(argdef.schema?.type),
+            type: (0, utility_1.inferFieldType)(name, (0, utility_1.validator)(argdef.schema?.type)),
             kind,
             reqd: !!argdef.required
         };

@@ -4,7 +4,7 @@ import { each, snakify } from 'jostraca'
 
 import type { TransformResult, Transform } from '../transform'
 
-import { formatJSONIC, depluralize, validator } from '../utility'
+import { formatJSONIC, depluralize, inferFieldType, normalizeFieldName, validator } from '../utility'
 
 
 import { KIT } from '../types'
@@ -69,13 +69,13 @@ const ARG_KIND: Record<string, ModelArg["kind"]> = {
 
 function resolveArgs(ment: ModelEntity, mop: ModelOp, mtarget: ModelTarget, argdefs: ParameterDef[]) {
   each(argdefs, (argdef: ParameterDef) => {
-    const orig = depluralize(snakify(argdef.name))
+    const orig = depluralize(snakify(normalizeFieldName(argdef.name)))
     const kind = ARG_KIND[argdef.in] ?? 'query'
     const name = mtarget.rename[kind]?.[orig] ?? orig
     const marg: ModelArg = {
       name,
       orig,
-      type: validator(argdef.schema?.type),
+      type: inferFieldType(name, validator(argdef.schema?.type)),
       kind,
       reqd: !!argdef.required
     }

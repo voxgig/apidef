@@ -43,9 +43,10 @@ function resolveOpFields(ment, mop, mtarget, def) {
     const fielddefs = findFieldDefs(ment, mop, mtarget, def);
     for (let fielddef of fielddefs) {
         const fieldname = fielddef.key$;
+        const name = (0, utility_1.canonize)((0, utility_1.normalizeFieldName)(fieldname));
         const mfield = {
-            name: (0, utility_1.canonize)(fieldname),
-            type: (0, utility_1.validator)(fielddef.type),
+            name,
+            type: (0, utility_1.inferFieldType)(name, (0, utility_1.validator)(fielddef.type)),
             req: !!fielddef.required,
             op: {},
         };

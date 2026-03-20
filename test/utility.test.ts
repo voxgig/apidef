@@ -4,6 +4,8 @@
 import { test, describe } from 'node:test'
 import { expect } from '@hapi/code'
 
+import { snakify } from 'jostraca'
+
 import {
   pathMatch,
   formatJSONIC,
@@ -11,6 +13,8 @@ import {
   canonize,
   cleanComponentName,
   ensureMinEntityName,
+  inferFieldType,
+  normalizeFieldName,
   getModelPath,
 } from '../dist/utility'
 
@@ -73,6 +77,170 @@ describe('utility', () => {
     // Extension only stripped at end
     expect(canonize('json_data')).equal('json_data')
     expect(canonize('php_version')).equal('php_version')
+  })
+
+  test('normalizeFieldName', () => {
+    // Bracket notation becomes underscores
+    expect(normalizeFieldName('filter[text]')).equal('filter_text')
+    expect(normalizeFieldName('page[limit]')).equal('page_limit')
+    expect(normalizeFieldName('page[offset]')).equal('page_offset')
+
+    // Nested brackets
+    expect(normalizeFieldName('conditions[publication_date][gte]')).equal('conditions_publication_date_gte')
+
+    // Trailing empty brackets are stripped
+    expect(normalizeFieldName('fields[]')).equal('fields')
+    expect(normalizeFieldName('conditions[agencies][]')).equal('conditions_agencies')
+    expect(normalizeFieldName('conditions[type][]')).equal('conditions_type')
+
+    // Dot notation becomes underscores
+    expect(normalizeFieldName('facet.field')).equal('facet_field')
+    expect(normalizeFieldName('refine.country')).equal('refine_country')
+
+    // Regular names unchanged
+    expect(normalizeFieldName('name')).equal('name')
+    expect(normalizeFieldName('created_at')).equal('created_at')
+
+    // Empty/null
+    expect(normalizeFieldName('')).equal('')
+
+    // No duplicate or leading/trailing underscores
+    expect(normalizeFieldName('[foo]')).equal('foo')
+    expect(normalizeFieldName('a..b')).equal('a_b')
+  })
+
+  test('normalizeFieldName with canonize (field pipeline)', () => {
+    // Bracket notation: full field name pipeline as used in resolveOpFields
+    expect(canonize(normalizeFieldName('filter[text]'))).equal('filter_text')
+    expect(canonize(normalizeFieldName('page[limit]'))).equal('page_limit')
+    expect(canonize(normalizeFieldName('page[offset]'))).equal('page_offset')
+
+    // Nested brackets
+    expect(canonize(normalizeFieldName('conditions[agencies][]'))).equal('conditions_agency')
+    expect(canonize(normalizeFieldName('conditions[publication_date][gte]'))).equal('conditions_publication_date_gte')
+    expect(canonize(normalizeFieldName('conditions[type][]'))).equal('conditions_type')
+    expect(canonize(normalizeFieldName('fields[]'))).equal('field')
+
+    // Dot notation
+    expect(canonize(normalizeFieldName('facet.field'))).equal('facet_field')
+    expect(canonize(normalizeFieldName('refine.country'))).equal('refine_country')
+    expect(canonize(normalizeFieldName('refine.type'))).equal('refine_type')
+
+    // Regular names pass through normally
+    expect(canonize(normalizeFieldName('created_at'))).equal('created_at')
+    expect(canonize(normalizeFieldName('UserName'))).equal('user_name')
+  })
+
+  test('normalizeFieldName with snakify (arg pipeline)', () => {
+    // Bracket notation: arg name pipeline as used in resolveArgs
+    const argPipeline = (s: string) => depluralize(snakify(normalizeFieldName(s)))
+
+    expect(argPipeline('filter[text]')).equal('filter_text')
+    expect(argPipeline('page[limit]')).equal('page_limit')
+    expect(argPipeline('filter[route]')).equal('filter_route')
+
+    // Nested brackets
+    expect(argPipeline('conditions[agencies][]')).equal('conditions_agency')
+    expect(argPipeline('conditions[publication_date][gte]')).equal('conditions_publication_date_gte')
+
+    // Dot notation
+    expect(argPipeline('facet.field')).equal('facet_field')
+    expect(argPipeline('refine.country')).equal('refine_country')
+
+    // CamelCase args
+    expect(argPipeline('filterText')).equal('filter_text')
+    expect(argPipeline('pageLimit')).equal('page_limit')
+
+    // Regular args unchanged
+    expect(argPipeline('sort')).equal('sort')
+    expect(argPipeline('include')).equal('include')
+  })
+
+  test('inferFieldType', () => {
+    // Boolean patterns: $ANY -> $BOOLEAN
+    expect(inferFieldType('is_blocked', '`$ANY`')).equal('`$BOOLEAN`')
+    expect(inferFieldType('has_homepage', '`$ANY`')).equal('`$BOOLEAN`')
+    expect(inferFieldType('can_edit', '`$ANY`')).equal('`$BOOLEAN`')
+    expect(inferFieldType('should_notify', '`$ANY`')).equal('`$BOOLEAN`')
+    expect(inferFieldType('allow_merge', '`$ANY`')).equal('`$BOOLEAN`')
+    expect(inferFieldType('enabled', '`$ANY`')).equal('`$BOOLEAN`')
+    expect(inferFieldType('disabled', '`$ANY`')).equal('`$BOOLEAN`')
+    expect(inferFieldType('active', '`$ANY`')).equal('`$BOOLEAN`')
+    expect(inferFieldType('visible', '`$ANY`')).equal('`$BOOLEAN`')
+    expect(inferFieldType('deleted', '`$ANY`')).equal('`$BOOLEAN`')
+    expect(inferFieldType('verified', '`$ANY`')).equal('`$BOOLEAN`')
+    expect(inferFieldType('locked', '`$ANY`')).equal('`$BOOLEAN`')
+    expect(inferFieldType('archived', '`$ANY`')).equal('`$BOOLEAN`')
+    expect(inferFieldType('blocked', '`$ANY`')).equal('`$BOOLEAN`')
+
+    // Boolean patterns: $STRING -> $BOOLEAN
+    expect(inferFieldType('is_blocked', '`$STRING`')).equal('`$BOOLEAN`')
+    expect(inferFieldType('has_homepage', '`$STRING`')).equal('`$BOOLEAN`')
+    expect(inferFieldType('is_smartlink', '`$STRING`')).equal('`$BOOLEAN`')
+    expect(inferFieldType('active', '`$STRING`')).equal('`$BOOLEAN`')
+
+    // $STRING not overridden for non-boolean patterns
+    expect(inferFieldType('name', '`$STRING`')).equal('`$STRING`')
+    expect(inferFieldType('total_count', '`$STRING`')).equal('`$STRING`')
+
+    // ID patterns: $ANY -> $STRING
+    expect(inferFieldType('id', '`$ANY`')).equal('`$STRING`')
+    expect(inferFieldType('user_id', '`$ANY`')).equal('`$STRING`')
+    expect(inferFieldType('project_id', '`$ANY`')).equal('`$STRING`')
+
+    // Integer patterns: $ANY -> $INTEGER
+    expect(inferFieldType('total_count', '`$ANY`')).equal('`$INTEGER`')
+    expect(inferFieldType('item_count', '`$ANY`')).equal('`$INTEGER`')
+    expect(inferFieldType('page_number', '`$ANY`')).equal('`$INTEGER`')
+    expect(inferFieldType('limit', '`$ANY`')).equal('`$INTEGER`')
+    expect(inferFieldType('page', '`$ANY`')).equal('`$INTEGER`')
+    expect(inferFieldType('offset', '`$ANY`')).equal('`$INTEGER`')
+    expect(inferFieldType('per_page', '`$ANY`')).equal('`$INTEGER`')
+    expect(inferFieldType('page_size', '`$ANY`')).equal('`$INTEGER`')
+    expect(inferFieldType('size', '`$ANY`')).equal('`$INTEGER`')
+    expect(inferFieldType('skip', '`$ANY`')).equal('`$INTEGER`')
+    expect(inferFieldType('num_item', '`$ANY`')).equal('`$INTEGER`')
+
+    // Number patterns: $ANY -> $NUMBER
+    expect(inferFieldType('latitude', '`$ANY`')).equal('`$NUMBER`')
+    expect(inferFieldType('longitude', '`$ANY`')).equal('`$NUMBER`')
+    expect(inferFieldType('lat', '`$ANY`')).equal('`$NUMBER`')
+    expect(inferFieldType('lng', '`$ANY`')).equal('`$NUMBER`')
+    expect(inferFieldType('price', '`$ANY`')).equal('`$NUMBER`')
+    expect(inferFieldType('amount', '`$ANY`')).equal('`$NUMBER`')
+    expect(inferFieldType('score', '`$ANY`')).equal('`$NUMBER`')
+    expect(inferFieldType('weight', '`$ANY`')).equal('`$NUMBER`')
+    expect(inferFieldType('radius', '`$ANY`')).equal('`$NUMBER`')
+    expect(inferFieldType('distance', '`$ANY`')).equal('`$NUMBER`')
+    expect(inferFieldType('percentage', '`$ANY`')).equal('`$NUMBER`')
+
+    // String patterns: $ANY -> $STRING
+    expect(inferFieldType('url', '`$ANY`')).equal('`$STRING`')
+    expect(inferFieldType('href', '`$ANY`')).equal('`$STRING`')
+    expect(inferFieldType('email', '`$ANY`')).equal('`$STRING`')
+    expect(inferFieldType('name', '`$ANY`')).equal('`$STRING`')
+    expect(inferFieldType('title', '`$ANY`')).equal('`$STRING`')
+    expect(inferFieldType('description', '`$ANY`')).equal('`$STRING`')
+    expect(inferFieldType('slug', '`$ANY`')).equal('`$STRING`')
+    expect(inferFieldType('token', '`$ANY`')).equal('`$STRING`')
+
+    // Specific types from spec are not overridden
+    expect(inferFieldType('latitude', '`$STRING`')).equal('`$STRING`')
+    expect(inferFieldType('limit', '`$INTEGER`')).equal('`$INTEGER`')
+    expect(inferFieldType('id', '`$INTEGER`')).equal('`$INTEGER`')
+    expect(inferFieldType('price', '`$NUMBER`')).equal('`$NUMBER`')
+    expect(inferFieldType('is_active', '`$BOOLEAN`')).equal('`$BOOLEAN`')
+
+    // Unknown field names with $ANY stay $ANY
+    expect(inferFieldType('data', '`$ANY`')).equal('`$ANY`')
+    expect(inferFieldType('result', '`$ANY`')).equal('`$ANY`')
+    expect(inferFieldType('custom_field', '`$ANY`')).equal('`$ANY`')
+
+    // Names that look similar but should not be overridden
+    expect(inferFieldType('disable_reason', '`$STRING`')).equal('`$STRING`')
+    expect(inferFieldType('disable_reason', '`$ANY`')).equal('`$ANY`')
+    expect(inferFieldType('activation_code', '`$ANY`')).equal('`$ANY`')
+    expect(inferFieldType('page_title', '`$ANY`')).equal('`$ANY`')
   })
 
   test('cleanComponentName', () => {

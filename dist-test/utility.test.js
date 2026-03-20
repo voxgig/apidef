@@ -3,6 +3,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const node_test_1 = require("node:test");
 const code_1 = require("@hapi/code");
+const jostraca_1 = require("jostraca");
 const utility_1 = require("../dist/utility");
 (0, node_test_1.describe)('utility', () => {
     (0, node_test_1.test)('depluralize', () => {
@@ -51,6 +52,143 @@ const utility_1 = require("../dist/utility");
         // Extension only stripped at end
         (0, code_1.expect)((0, utility_1.canonize)('json_data')).equal('json_data');
         (0, code_1.expect)((0, utility_1.canonize)('php_version')).equal('php_version');
+    });
+    (0, node_test_1.test)('normalizeFieldName', () => {
+        // Bracket notation becomes underscores
+        (0, code_1.expect)((0, utility_1.normalizeFieldName)('filter[text]')).equal('filter_text');
+        (0, code_1.expect)((0, utility_1.normalizeFieldName)('page[limit]')).equal('page_limit');
+        (0, code_1.expect)((0, utility_1.normalizeFieldName)('page[offset]')).equal('page_offset');
+        // Nested brackets
+        (0, code_1.expect)((0, utility_1.normalizeFieldName)('conditions[publication_date][gte]')).equal('conditions_publication_date_gte');
+        // Trailing empty brackets are stripped
+        (0, code_1.expect)((0, utility_1.normalizeFieldName)('fields[]')).equal('fields');
+        (0, code_1.expect)((0, utility_1.normalizeFieldName)('conditions[agencies][]')).equal('conditions_agencies');
+        (0, code_1.expect)((0, utility_1.normalizeFieldName)('conditions[type][]')).equal('conditions_type');
+        // Dot notation becomes underscores
+        (0, code_1.expect)((0, utility_1.normalizeFieldName)('facet.field')).equal('facet_field');
+        (0, code_1.expect)((0, utility_1.normalizeFieldName)('refine.country')).equal('refine_country');
+        // Regular names unchanged
+        (0, code_1.expect)((0, utility_1.normalizeFieldName)('name')).equal('name');
+        (0, code_1.expect)((0, utility_1.normalizeFieldName)('created_at')).equal('created_at');
+        // Empty/null
+        (0, code_1.expect)((0, utility_1.normalizeFieldName)('')).equal('');
+        // No duplicate or leading/trailing underscores
+        (0, code_1.expect)((0, utility_1.normalizeFieldName)('[foo]')).equal('foo');
+        (0, code_1.expect)((0, utility_1.normalizeFieldName)('a..b')).equal('a_b');
+    });
+    (0, node_test_1.test)('normalizeFieldName with canonize (field pipeline)', () => {
+        // Bracket notation: full field name pipeline as used in resolveOpFields
+        (0, code_1.expect)((0, utility_1.canonize)((0, utility_1.normalizeFieldName)('filter[text]'))).equal('filter_text');
+        (0, code_1.expect)((0, utility_1.canonize)((0, utility_1.normalizeFieldName)('page[limit]'))).equal('page_limit');
+        (0, code_1.expect)((0, utility_1.canonize)((0, utility_1.normalizeFieldName)('page[offset]'))).equal('page_offset');
+        // Nested brackets
+        (0, code_1.expect)((0, utility_1.canonize)((0, utility_1.normalizeFieldName)('conditions[agencies][]'))).equal('conditions_agency');
+        (0, code_1.expect)((0, utility_1.canonize)((0, utility_1.normalizeFieldName)('conditions[publication_date][gte]'))).equal('conditions_publication_date_gte');
+        (0, code_1.expect)((0, utility_1.canonize)((0, utility_1.normalizeFieldName)('conditions[type][]'))).equal('conditions_type');
+        (0, code_1.expect)((0, utility_1.canonize)((0, utility_1.normalizeFieldName)('fields[]'))).equal('field');
+        // Dot notation
+        (0, code_1.expect)((0, utility_1.canonize)((0, utility_1.normalizeFieldName)('facet.field'))).equal('facet_field');
+        (0, code_1.expect)((0, utility_1.canonize)((0, utility_1.normalizeFieldName)('refine.country'))).equal('refine_country');
+        (0, code_1.expect)((0, utility_1.canonize)((0, utility_1.normalizeFieldName)('refine.type'))).equal('refine_type');
+        // Regular names pass through normally
+        (0, code_1.expect)((0, utility_1.canonize)((0, utility_1.normalizeFieldName)('created_at'))).equal('created_at');
+        (0, code_1.expect)((0, utility_1.canonize)((0, utility_1.normalizeFieldName)('UserName'))).equal('user_name');
+    });
+    (0, node_test_1.test)('normalizeFieldName with snakify (arg pipeline)', () => {
+        // Bracket notation: arg name pipeline as used in resolveArgs
+        const argPipeline = (s) => (0, utility_1.depluralize)((0, jostraca_1.snakify)((0, utility_1.normalizeFieldName)(s)));
+        (0, code_1.expect)(argPipeline('filter[text]')).equal('filter_text');
+        (0, code_1.expect)(argPipeline('page[limit]')).equal('page_limit');
+        (0, code_1.expect)(argPipeline('filter[route]')).equal('filter_route');
+        // Nested brackets
+        (0, code_1.expect)(argPipeline('conditions[agencies][]')).equal('conditions_agency');
+        (0, code_1.expect)(argPipeline('conditions[publication_date][gte]')).equal('conditions_publication_date_gte');
+        // Dot notation
+        (0, code_1.expect)(argPipeline('facet.field')).equal('facet_field');
+        (0, code_1.expect)(argPipeline('refine.country')).equal('refine_country');
+        // CamelCase args
+        (0, code_1.expect)(argPipeline('filterText')).equal('filter_text');
+        (0, code_1.expect)(argPipeline('pageLimit')).equal('page_limit');
+        // Regular args unchanged
+        (0, code_1.expect)(argPipeline('sort')).equal('sort');
+        (0, code_1.expect)(argPipeline('include')).equal('include');
+    });
+    (0, node_test_1.test)('inferFieldType', () => {
+        // Boolean patterns: $ANY -> $BOOLEAN
+        (0, code_1.expect)((0, utility_1.inferFieldType)('is_blocked', '`$ANY`')).equal('`$BOOLEAN`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('has_homepage', '`$ANY`')).equal('`$BOOLEAN`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('can_edit', '`$ANY`')).equal('`$BOOLEAN`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('should_notify', '`$ANY`')).equal('`$BOOLEAN`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('allow_merge', '`$ANY`')).equal('`$BOOLEAN`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('enabled', '`$ANY`')).equal('`$BOOLEAN`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('disabled', '`$ANY`')).equal('`$BOOLEAN`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('active', '`$ANY`')).equal('`$BOOLEAN`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('visible', '`$ANY`')).equal('`$BOOLEAN`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('deleted', '`$ANY`')).equal('`$BOOLEAN`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('verified', '`$ANY`')).equal('`$BOOLEAN`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('locked', '`$ANY`')).equal('`$BOOLEAN`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('archived', '`$ANY`')).equal('`$BOOLEAN`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('blocked', '`$ANY`')).equal('`$BOOLEAN`');
+        // Boolean patterns: $STRING -> $BOOLEAN
+        (0, code_1.expect)((0, utility_1.inferFieldType)('is_blocked', '`$STRING`')).equal('`$BOOLEAN`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('has_homepage', '`$STRING`')).equal('`$BOOLEAN`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('is_smartlink', '`$STRING`')).equal('`$BOOLEAN`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('active', '`$STRING`')).equal('`$BOOLEAN`');
+        // $STRING not overridden for non-boolean patterns
+        (0, code_1.expect)((0, utility_1.inferFieldType)('name', '`$STRING`')).equal('`$STRING`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('total_count', '`$STRING`')).equal('`$STRING`');
+        // ID patterns: $ANY -> $STRING
+        (0, code_1.expect)((0, utility_1.inferFieldType)('id', '`$ANY`')).equal('`$STRING`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('user_id', '`$ANY`')).equal('`$STRING`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('project_id', '`$ANY`')).equal('`$STRING`');
+        // Integer patterns: $ANY -> $INTEGER
+        (0, code_1.expect)((0, utility_1.inferFieldType)('total_count', '`$ANY`')).equal('`$INTEGER`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('item_count', '`$ANY`')).equal('`$INTEGER`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('page_number', '`$ANY`')).equal('`$INTEGER`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('limit', '`$ANY`')).equal('`$INTEGER`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('page', '`$ANY`')).equal('`$INTEGER`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('offset', '`$ANY`')).equal('`$INTEGER`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('per_page', '`$ANY`')).equal('`$INTEGER`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('page_size', '`$ANY`')).equal('`$INTEGER`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('size', '`$ANY`')).equal('`$INTEGER`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('skip', '`$ANY`')).equal('`$INTEGER`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('num_item', '`$ANY`')).equal('`$INTEGER`');
+        // Number patterns: $ANY -> $NUMBER
+        (0, code_1.expect)((0, utility_1.inferFieldType)('latitude', '`$ANY`')).equal('`$NUMBER`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('longitude', '`$ANY`')).equal('`$NUMBER`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('lat', '`$ANY`')).equal('`$NUMBER`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('lng', '`$ANY`')).equal('`$NUMBER`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('price', '`$ANY`')).equal('`$NUMBER`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('amount', '`$ANY`')).equal('`$NUMBER`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('score', '`$ANY`')).equal('`$NUMBER`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('weight', '`$ANY`')).equal('`$NUMBER`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('radius', '`$ANY`')).equal('`$NUMBER`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('distance', '`$ANY`')).equal('`$NUMBER`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('percentage', '`$ANY`')).equal('`$NUMBER`');
+        // String patterns: $ANY -> $STRING
+        (0, code_1.expect)((0, utility_1.inferFieldType)('url', '`$ANY`')).equal('`$STRING`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('href', '`$ANY`')).equal('`$STRING`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('email', '`$ANY`')).equal('`$STRING`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('name', '`$ANY`')).equal('`$STRING`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('title', '`$ANY`')).equal('`$STRING`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('description', '`$ANY`')).equal('`$STRING`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('slug', '`$ANY`')).equal('`$STRING`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('token', '`$ANY`')).equal('`$STRING`');
+        // Specific types from spec are not overridden
+        (0, code_1.expect)((0, utility_1.inferFieldType)('latitude', '`$STRING`')).equal('`$STRING`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('limit', '`$INTEGER`')).equal('`$INTEGER`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('id', '`$INTEGER`')).equal('`$INTEGER`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('price', '`$NUMBER`')).equal('`$NUMBER`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('is_active', '`$BOOLEAN`')).equal('`$BOOLEAN`');
+        // Unknown field names with $ANY stay $ANY
+        (0, code_1.expect)((0, utility_1.inferFieldType)('data', '`$ANY`')).equal('`$ANY`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('result', '`$ANY`')).equal('`$ANY`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('custom_field', '`$ANY`')).equal('`$ANY`');
+        // Names that look similar but should not be overridden
+        (0, code_1.expect)((0, utility_1.inferFieldType)('disable_reason', '`$STRING`')).equal('`$STRING`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('disable_reason', '`$ANY`')).equal('`$ANY`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('activation_code', '`$ANY`')).equal('`$ANY`');
+        (0, code_1.expect)((0, utility_1.inferFieldType)('page_title', '`$ANY`')).equal('`$ANY`');
     });
     (0, node_test_1.test)('cleanComponentName', () => {
         // Controller suffixes are stripped

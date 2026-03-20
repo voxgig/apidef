@@ -4,7 +4,7 @@ import { each, getx } from 'jostraca'
 
 import type { TransformResult, Transform } from '../transform'
 
-import { validator, canonize } from '../utility'
+import { validator, canonize, inferFieldType, normalizeFieldName } from '../utility'
 
 import { KIT } from '../types'
 
@@ -84,9 +84,10 @@ function resolveOpFields(
 
   for (let fielddef of fielddefs) {
     const fieldname = (fielddef as any).key$ as string
+    const name = canonize(normalizeFieldName(fieldname))
     const mfield: ModelField = {
-      name: canonize(fieldname),
-      type: validator(fielddef.type),
+      name,
+      type: inferFieldType(name, validator(fielddef.type)),
       req: !!fielddef.required,
       op: {},
     }
