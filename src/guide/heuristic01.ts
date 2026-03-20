@@ -303,6 +303,7 @@ function selectAllMethods(_source: any, spec: TaskSpec): MethodDesc[] {
         path,
         method,
         summary: mdef.summary,
+        operationId: mdef.operationId,
         tags: mdef.tags,
         parameters: mdef.parameters,
         responses: mdef.responses,
@@ -543,8 +544,11 @@ function ResolveEntityName(spec: TaskSpec) {
   }
 
   else {
-    work.entity.count.unresolved++
-    entname = 'entity' + work.entity.count.unresolved
+    entname = inferEntityName(mdesc, parts, why_path)
+    if (null == entname) {
+      work.entity.count.unresolved++
+      entname = 'entity' + work.entity.count.unresolved
+    }
   }
 
   entname = ensureMinEntityName(entname, work.entmap)
@@ -1278,6 +1282,47 @@ function getRequestBodySchema(requestBody: any) {
 function getResponseSchema(response: any) {
   return response?.content?.['application/json']?.schema ??
     response?.schema
+}
+
+
+function inferEntityName(
+  mdesc: any,
+  parts: string[],
+  why: string[],
+): string | null {
+
+  // Try operationId: e.g. "getUser" -> "user", "listProducts" -> "product"
+  if (mdesc.operationId) {
+    const opid = canonize(mdesc.operationId)
+    if (opid.length >= 3) {
+      why.push('infer-opid')
+      return opid
+    }
+  }
+
+  // Try response schema title
+  const response = mdesc.responses?.[200] ?? mdesc.responses?.[201]
+  const resSchema = getResponseSchema(response)
+  if (resSchema?.title) {
+    const title = canonize(resSchema.title)
+    if (title.length >= 3) {
+      why.push('infer-res-title')
+      return title
+    }
+  }
+
+  // Try last non-param path segment
+  for (let i = parts.length - 1; i >= 0; i--) {
+    if (!isParam(parts[i])) {
+      const seg = canonize(parts[i])
+      if (seg.length >= 3) {
+        why.push('infer-path-seg')
+        return seg
+      }
+    }
+  }
+
+  return null
 }
 
 

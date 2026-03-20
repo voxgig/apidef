@@ -91,7 +91,12 @@ function findFieldDefs(_ment, mop, mtarget, def) {
             }
         }
         (0, jostraca_1.each)(fieldSets, (fieldSet) => {
+            const requiredNames = Array.isArray(fieldSet?.required)
+                ? fieldSet.required : [];
             (0, jostraca_1.each)(fieldSet?.properties, (property) => {
+                if (requiredNames.includes(property.key$)) {
+                    property.required = true;
+                }
                 fielddefs.push(property);
             });
         });

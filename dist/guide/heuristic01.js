@@ -205,6 +205,7 @@ function selectAllMethods(_source, spec) {
                 path,
                 method,
                 summary: mdef.summary,
+                operationId: mdef.operationId,
                 tags: mdef.tags,
                 parameters: mdef.parameters,
                 responses: mdef.responses,
@@ -384,8 +385,11 @@ function ResolveEntityName(spec) {
         entname = entityPathMatch_tpp(data, pm, mdesc, why_path);
     }
     else {
-        work.entity.count.unresolved++;
-        entname = 'entity' + work.entity.count.unresolved;
+        entname = inferEntityName(mdesc, parts, why_path);
+        if (null == entname) {
+            work.entity.count.unresolved++;
+            entname = 'entity' + work.entity.count.unresolved;
+        }
     }
     entname = (0, utility_1.ensureMinEntityName)(entname, work.entmap);
     const entdesc = work.entmap[entname] = work.entmap[entname] ?? {
@@ -900,6 +904,37 @@ function getRequestBodySchema(requestBody) {
 function getResponseSchema(response) {
     return response?.content?.['application/json']?.schema ??
         response?.schema;
+}
+function inferEntityName(mdesc, parts, why) {
+    // Try operationId: e.g. "getUser" -> "user", "listProducts" -> "product"
+    if (mdesc.operationId) {
+        const opid = (0, utility_1.canonize)(mdesc.operationId);
+        if (opid.length >= 3) {
+            why.push('infer-opid');
+            return opid;
+        }
+    }
+    // Try response schema title
+    const response = mdesc.responses?.[200] ?? mdesc.responses?.[201];
+    const resSchema = getResponseSchema(response);
+    if (resSchema?.title) {
+        const title = (0, utility_1.canonize)(resSchema.title);
+        if (title.length >= 3) {
+            why.push('infer-res-title');
+            return title;
+        }
+    }
+    // Try last non-param path segment
+    for (let i = parts.length - 1; i >= 0; i--) {
+        if (!isParam(parts[i])) {
+            const seg = (0, utility_1.canonize)(parts[i]);
+            if (seg.length >= 3) {
+                why.push('infer-path-seg');
+                return seg;
+            }
+        }
+    }
+    return null;
 }
 // No entity component was found, but there still might be an entity.
 function probableEntityMethod(data, mdesc, pm, why) {

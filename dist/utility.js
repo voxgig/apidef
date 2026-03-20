@@ -15,6 +15,7 @@ exports.makeWarner = makeWarner;
 exports.formatJSONIC = formatJSONIC;
 exports.validator = validator;
 exports.canonize = canonize;
+exports.transliterate = transliterate;
 exports.cleanComponentName = cleanComponentName;
 exports.ensureMinEntityName = ensureMinEntityName;
 exports.inferFieldType = inferFieldType;
@@ -600,10 +601,14 @@ function validator(torig) {
     }
 }
 const FILE_EXT_RE = /\.(php|json|txt|png|jpg|jpeg|gif|svg|xml|html|csv|yml|yaml|md)$/i;
+function transliterate(s) {
+    return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
 function canonize(s) {
     if (null == s || '' === s)
         return '';
-    return depluralize((0, jostraca_1.snakify)(s.replace(FILE_EXT_RE, ''))).replace(/[^a-zA-Z_0-9]/g, '');
+    return depluralize((0, jostraca_1.snakify)(transliterate(s).replace(FILE_EXT_RE, '')))
+        .replace(/[^a-zA-Z_0-9]/g, '');
 }
 const BOOLEAN_NAME_RE = /^(is_|has_|can_|should_|allow_|enabled$|disabled$|active$|visible$|deleted$|verified$|public$|private$|locked$|archived$|blocked$)/;
 const INTEGER_NAME_RE = /(_count$|_number$|^total_|^count_|^num_|^limit$|^page$|^offset$|^per_page$|^page_size$|^size$|^skip$)/;

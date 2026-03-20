@@ -52,6 +52,36 @@ const utility_1 = require("../dist/utility");
         // Extension only stripped at end
         (0, code_1.expect)((0, utility_1.canonize)('json_data')).equal('json_data');
         (0, code_1.expect)((0, utility_1.canonize)('php_version')).equal('php_version');
+        // Accented characters are transliterated
+        (0, code_1.expect)((0, utility_1.canonize)('dólar')).equal('dolar');
+        (0, code_1.expect)((0, utility_1.canonize)('kölner')).equal('kolner');
+        (0, code_1.expect)((0, utility_1.canonize)('pokémon')).equal('pokemon');
+        (0, code_1.expect)((0, utility_1.canonize)('café')).equal('cafe');
+        (0, code_1.expect)((0, utility_1.canonize)('naïve')).equal('naive');
+        (0, code_1.expect)((0, utility_1.canonize)('über')).equal('uber');
+        (0, code_1.expect)((0, utility_1.canonize)('résumé')).equal('resume');
+        (0, code_1.expect)((0, utility_1.canonize)('señor')).equal('senor');
+        // Non-Latin chars are stripped (no transliteration)
+        (0, code_1.expect)((0, utility_1.canonize)('api検索')).equal('api');
+        (0, code_1.expect)((0, utility_1.canonize)('会議録')).equal('');
+    });
+    (0, node_test_1.test)('transliterate', () => {
+        // Latin diacritics are decomposed
+        (0, code_1.expect)((0, utility_1.transliterate)('dólar')).equal('dolar');
+        (0, code_1.expect)((0, utility_1.transliterate)('kölner')).equal('kolner');
+        (0, code_1.expect)((0, utility_1.transliterate)('pokémon')).equal('pokemon');
+        (0, code_1.expect)((0, utility_1.transliterate)('résumé')).equal('resume');
+        (0, code_1.expect)((0, utility_1.transliterate)('naïve')).equal('naive');
+        (0, code_1.expect)((0, utility_1.transliterate)('über')).equal('uber');
+        (0, code_1.expect)((0, utility_1.transliterate)('señor')).equal('senor');
+        (0, code_1.expect)((0, utility_1.transliterate)('café')).equal('cafe');
+        (0, code_1.expect)((0, utility_1.transliterate)('Ångström')).equal('Angstrom');
+        // ASCII unchanged
+        (0, code_1.expect)((0, utility_1.transliterate)('hello')).equal('hello');
+        (0, code_1.expect)((0, utility_1.transliterate)('foo-bar_123')).equal('foo-bar_123');
+        // Non-Latin scripts pass through (stripped later by canonize)
+        (0, code_1.expect)((0, utility_1.transliterate)('会議録')).equal('会議録');
+        (0, code_1.expect)((0, utility_1.transliterate)('api検索')).equal('api検索');
     });
     (0, node_test_1.test)('normalizeFieldName', () => {
         // Bracket notation becomes underscores

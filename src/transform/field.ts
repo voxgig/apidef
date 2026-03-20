@@ -148,7 +148,12 @@ function findFieldDefs(
     }
 
     each(fieldSets, (fieldSet: any) => {
+      const requiredNames: string[] = Array.isArray(fieldSet?.required)
+        ? fieldSet.required : []
       each(fieldSet?.properties, (property: any) => {
+        if (requiredNames.includes(property.key$)) {
+          property.required = true
+        }
         fielddefs.push(property)
       })
     })

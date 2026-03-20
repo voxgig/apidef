@@ -4,6 +4,11 @@
 main: {
   kit: {
     info: {
+      servers: [
+        {
+          url: "http://localhost:8901"
+        }
+      ]
       title: "Solar System API"
       version: "1.0.0"
     }

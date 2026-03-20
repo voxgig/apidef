@@ -734,9 +734,14 @@ function validator(torig: undefined | string | string[]): any {
 const FILE_EXT_RE =
   /\.(php|json|txt|png|jpg|jpeg|gif|svg|xml|html|csv|yml|yaml|md)$/i
 
+function transliterate(s: string): string {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+}
+
 function canonize(s: string) {
   if (null == s || '' === s) return ''
-  return depluralize(snakify(s.replace(FILE_EXT_RE, ''))).replace(/[^a-zA-Z_0-9]/g, '')
+  return depluralize(snakify(transliterate(s).replace(FILE_EXT_RE, '')))
+    .replace(/[^a-zA-Z_0-9]/g, '')
 }
 
 
@@ -1053,6 +1058,7 @@ export {
   formatJSONIC,
   validator,
   canonize,
+  transliterate,
   cleanComponentName,
   ensureMinEntityName,
   inferFieldType,

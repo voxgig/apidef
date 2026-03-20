@@ -11,6 +11,10 @@ main: kit: flow: BasicMoonFlow:
         ref: "moon_ref01"
       }
 
+      match: {
+        planet_id: "planet01"
+      }
+
       op: "create"
     }
 

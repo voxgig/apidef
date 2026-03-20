@@ -7,27 +7,27 @@ main: kit: entity: moon: {
   fields: [
     {
       name: "diameter"
-      req: false
+      req: true
       type: "`$NUMBER`"
     }
     {
       name: "id"
-      req: false
+      req: true
       type: "`$STRING`"
     }
     {
       name: "kind"
-      req: false
+      req: true
       type: "`$STRING`"
     }
     {
       name: "name"
-      req: false
+      req: true
       type: "`$STRING`"
     }
     {
       name: "planet_id"
-      req: false
+      req: true
       type: "`$STRING`"
     }
   ]
@@ -40,7 +40,12 @@ main: kit: entity: moon: {
   name: "moon"
   op: {
     create: {
+<<<<<<< GENERATED: 2026-03-20T15:45:10.381Z/merge
+      name: "create"
       targets: [
+=======
+      targets: [
+>>>>>>> EXISTING: 2026-02-16T17:23:58.518Z/merge
         {
           args: {
             params: [
@@ -72,10 +77,14 @@ main: kit: entity: moon: {
           }
         }
       ]
-      name: "create"
     }
     list: {
+<<<<<<< GENERATED: 2026-03-20T15:45:10.381Z/merge
+      name: "list"
       targets: [
+=======
+      targets: [
+>>>>>>> EXISTING: 2026-02-16T17:23:58.518Z/merge
         {
           args: {
             params: [
@@ -107,10 +116,14 @@ main: kit: entity: moon: {
           }
         }
       ]
-      name: "list"
     }
     load: {
+<<<<<<< GENERATED: 2026-03-20T15:45:10.381Z/merge
+      name: "load"
       targets: [
+=======
+      targets: [
+>>>>>>> EXISTING: 2026-02-16T17:23:58.518Z/merge
         {
           args: {
             params: [
@@ -156,10 +169,14 @@ main: kit: entity: moon: {
           }
         }
       ]
-      name: "load"
     }
     remove: {
+<<<<<<< GENERATED: 2026-03-20T15:45:10.381Z/merge
+      name: "remove"
       targets: [
+=======
+      targets: [
+>>>>>>> EXISTING: 2026-02-16T17:23:58.518Z/merge
         {
           args: {
             params: [
@@ -188,6 +205,11 @@ main: kit: entity: moon: {
             "moon"
             "{id}"
           ]
+          rename: {
+            param: {
+              moon_id: "id"
+            }
+          }
           select: {
             exist: [
               "id"
@@ -200,10 +222,14 @@ main: kit: entity: moon: {
           }
         }
       ]
-      name: "remove"
     }
     update: {
+<<<<<<< GENERATED: 2026-03-20T15:45:10.381Z/merge
+      name: "update"
       targets: [
+=======
+      targets: [
+>>>>>>> EXISTING: 2026-02-16T17:23:58.518Z/merge
         {
           args: {
             params: [
@@ -232,6 +258,11 @@ main: kit: entity: moon: {
             "moon"
             "{id}"
           ]
+          rename: {
+            param: {
+              moon_id: "id"
+            }
+          }
           select: {
             exist: [
               "id"
@@ -244,7 +275,6 @@ main: kit: entity: moon: {
           }
         }
       ]
-      name: "update"
     }
   }
 

@@ -11,6 +11,7 @@ import {
   formatJSONIC,
   depluralize,
   canonize,
+  transliterate,
   cleanComponentName,
   ensureMinEntityName,
   inferFieldType,
@@ -77,6 +78,41 @@ describe('utility', () => {
     // Extension only stripped at end
     expect(canonize('json_data')).equal('json_data')
     expect(canonize('php_version')).equal('php_version')
+
+    // Accented characters are transliterated
+    expect(canonize('dólar')).equal('dolar')
+    expect(canonize('kölner')).equal('kolner')
+    expect(canonize('pokémon')).equal('pokemon')
+    expect(canonize('café')).equal('cafe')
+    expect(canonize('naïve')).equal('naive')
+    expect(canonize('über')).equal('uber')
+    expect(canonize('résumé')).equal('resume')
+    expect(canonize('señor')).equal('senor')
+
+    // Non-Latin chars are stripped (no transliteration)
+    expect(canonize('api検索')).equal('api')
+    expect(canonize('会議録')).equal('')
+  })
+
+  test('transliterate', () => {
+    // Latin diacritics are decomposed
+    expect(transliterate('dólar')).equal('dolar')
+    expect(transliterate('kölner')).equal('kolner')
+    expect(transliterate('pokémon')).equal('pokemon')
+    expect(transliterate('résumé')).equal('resume')
+    expect(transliterate('naïve')).equal('naive')
+    expect(transliterate('über')).equal('uber')
+    expect(transliterate('señor')).equal('senor')
+    expect(transliterate('café')).equal('cafe')
+    expect(transliterate('Ångström')).equal('Angstrom')
+
+    // ASCII unchanged
+    expect(transliterate('hello')).equal('hello')
+    expect(transliterate('foo-bar_123')).equal('foo-bar_123')
+
+    // Non-Latin scripts pass through (stripped later by canonize)
+    expect(transliterate('会議録')).equal('会議録')
+    expect(transliterate('api検索')).equal('api検索')
   })
 
   test('normalizeFieldName', () => {

@@ -76,6 +76,58 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         }, {});
         (0, code_1.expect)(bres.guide).contains(SOLAR_GUIDE);
     });
+    (0, node_test_1.test)('field-required-solar', async () => {
+        const outprefix = 'solar-1.0.0-openapi-3.0.0-';
+        const folder = __dirname + '/../test/solar';
+        const build = await __1.ApiDef.makeBuild({
+            folder,
+            debug: 'debug',
+            outprefix,
+        });
+        const bres = await build({
+            name: 'solar',
+            def: outprefix + 'def.yaml'
+        }, {
+            spec: {
+                base: __dirname + '/../test/solar',
+                buildargs: {
+                    apidef: {
+                        ctrl: {
+                            step: {
+                                parse: true,
+                                guide: true,
+                                transformers: true,
+                                builders: true,
+                                generate: true,
+                            }
+                        }
+                    }
+                }
+            }
+        }, {});
+        // console.log('BRES-KEYS', JSON.stringify(Object.keys(bres)))
+        const planet = bres.apimodel.main.kit.entity.planet;
+        const moon = bres.apimodel.main.kit.entity.moon;
+        // Planet schema has required: [id, name, kind, diameter]
+        const planetFields = {};
+        for (const f of planet.fields) {
+            planetFields[f.name] = f;
+        }
+        (0, code_1.expect)(planetFields.id.req).true();
+        (0, code_1.expect)(planetFields.name.req).true();
+        (0, code_1.expect)(planetFields.kind.req).true();
+        (0, code_1.expect)(planetFields.diameter.req).true();
+        // Moon schema has required: [id, name, planet_id, kind, diameter]
+        const moonFields = {};
+        for (const f of moon.fields) {
+            moonFields[f.name] = f;
+        }
+        (0, code_1.expect)(moonFields.id.req).true();
+        (0, code_1.expect)(moonFields.name.req).true();
+        (0, code_1.expect)(moonFields.planet_id.req).true();
+        (0, code_1.expect)(moonFields.kind.req).true();
+        (0, code_1.expect)(moonFields.diameter.req).true();
+    });
     (0, node_test_1.test)('full-solar', async () => {
         return;
         const outprefix = 'solar-1.0.0-openapi-3.0.0-';
