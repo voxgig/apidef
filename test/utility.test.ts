@@ -8,6 +8,8 @@ import {
   pathMatch,
   formatJSONIC,
   depluralize,
+  canonize,
+  cleanComponentName,
   ensureMinEntityName,
   getModelPath,
 } from '../dist/utility'
@@ -41,6 +43,70 @@ describe('utility', () => {
     expect(depluralize('lens')).equal('lens')
     expect(depluralize('phrase')).equal('phrase')
     expect(depluralize('abs')).equal('abs')
+  })
+
+  test('canonize', () => {
+    // Basic canonization
+    expect(canonize('Dogs')).equal('dog')
+    expect(canonize('FooBar')).equal('foo_bar')
+    expect(canonize('my-thing')).equal('my_thing')
+
+    // File extensions are stripped
+    expect(canonize('categories.php')).equal('category')
+    expect(canonize('search.php')).equal('search')
+    expect(canonize('data.json')).equal('data')
+    expect(canonize('region.json')).equal('region')
+    expect(canonize('list.txt')).equal('list')
+    expect(canonize('height.jpg')).equal('height')
+    expect(canonize('location.png')).equal('location')
+    expect(canonize('robots.txt')).equal('robot')
+    expect(canonize('config.yaml')).equal('config')
+    expect(canonize('schema.xml')).equal('schema')
+
+    // Extensions are case-insensitive
+    expect(canonize('data.JSON')).equal('data')
+    expect(canonize('page.PHP')).equal('page')
+
+    // Non-extension dots are not matched (no known extension)
+    expect(canonize('v2.0')).equal('v20')
+
+    // Extension only stripped at end
+    expect(canonize('json_data')).equal('json_data')
+    expect(canonize('php_version')).equal('php_version')
+  })
+
+  test('cleanComponentName', () => {
+    // Controller suffixes are stripped
+    expect(cleanComponentName('nps_controller')).equal('nps')
+    expect(cleanComponentName('balance_controller')).equal('balance')
+    expect(cleanComponentName('gas_system_controller')).equal('gas_system')
+
+    // Rest controller suffix (two parts) is stripped
+    expect(cleanComponentName('donate_rest_controller')).equal('donate')
+    expect(cleanComponentName('portfolio_rest_controller')).equal('portfolio')
+
+    // Response/request suffixes are stripped
+    expect(cleanComponentName('user_response')).equal('user')
+    expect(cleanComponentName('order_request')).equal('order')
+
+    // HTTP verb prefixes are stripped
+    expect(cleanComponentName('get_account_lookup')).equal('account_lookup')
+    expect(cleanComponentName('post_transfer')).equal('transfer')
+    expect(cleanComponentName('put_setting')).equal('setting')
+    expect(cleanComponentName('delete_item')).equal('item')
+    expect(cleanComponentName('patch_record')).equal('record')
+
+    // Verb prefix not stripped if remainder is too short
+    expect(cleanComponentName('get_ab')).equal('get_ab')
+    expect(cleanComponentName('post_it')).equal('post_it')
+
+    // No suffix or prefix: unchanged
+    expect(cleanComponentName('user')).equal('user')
+    expect(cleanComponentName('gas_balance')).equal('gas_balance')
+
+    // Both suffix and prefix: suffix stripped first, then prefix
+    expect(cleanComponentName('get_user_response')).equal('user')
+    expect(cleanComponentName('get_balance_controller')).equal('balance')
   })
 
   test('ensureMinEntityName', () => {
@@ -102,6 +168,35 @@ describe('utility', () => {
     expect(ensureMinEntityName('a!b@c#d', {})).equal('abcd')
     expect(ensureMinEntityName('foo_bar', {})).equal('foo_bar')
     expect(ensureMinEntityName('a[b]', {})).equal('abn')
+
+    // Names under 67 chars are unchanged
+    expect(ensureMinEntityName(
+      'this_endpoint_is_tailored_for_searches_based_on_product_name', {}
+    )).equal('this_endpoint_is_tailored_for_searches_based_on_product_name')
+
+    // Sentence-length names are truncated to <= 67 chars at word boundaries
+    expect(ensureMinEntityName(
+      'if_you_have_the_name_of_a_specific_software_product_and_want_to_check', {}
+    )).equal('if_you_have_the_name_of_a_specific_software_product_and_want_to')
+    expect(ensureMinEntityName(
+      'this_is_a_very_long_entity_name_that_goes_well_beyond_the_sixty_seven_character_limit_set', {}
+    )).equal('this_is_a_very_long_entity_name_that_goes_well_beyond_the_sixty')
+
+    // Names at exactly 67 chars are unchanged
+    expect(ensureMinEntityName('a'.repeat(67), {})).equal('a'.repeat(67))
+
+    // Names at 68 chars get truncated
+    expect(ensureMinEntityName('abcde_' + 'x'.repeat(63), {})).equal('abcde')
+
+    // Single long word with no underscores gets hard-truncated at 67
+    expect(ensureMinEntityName('a'.repeat(80), {})).equal('a'.repeat(67))
+
+    // Truncation with collision
+    const truncated = 'if_you_have_the_name_of_a_specific_software_product_and_want_to'
+    expect(ensureMinEntityName(
+      'if_you_have_the_name_of_a_specific_software_product_and_want_to_check',
+      { [truncated]: {} }
+    )).equal(truncated + '2')
   })
 
   test('pathMatch', async () => {

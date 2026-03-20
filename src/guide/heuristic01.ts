@@ -39,6 +39,7 @@ import type {
 import {
   canonize,
   capture,
+  cleanComponentName,
   debugpath,
   ensureMinEntityName,
   find,
@@ -375,19 +376,7 @@ function ResolveEntityComponent(spec: TaskSpec) {
 
   let cleanxrefs = cmpxrefs
     .map(xref => {
-
-      // Remove known schema suffixes: _response, _request
-      const knownSuffixes = ['_response', '_request']
-      for (const suffix of knownSuffixes) {
-        if (xref.cmp.endsWith(suffix)) {
-          let cparts = xref.cmp.split('_')
-
-          // re-canonize to deal with plural before removed suffix
-          xref.cmp = canonize(cparts.slice(0, cparts.length - 1).join('_'))
-          break
-        }
-      }
-
+      xref.cmp = cleanComponentName(xref.cmp)
       return xref
     })
 

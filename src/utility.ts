@@ -731,18 +731,36 @@ function validator(torig: undefined | string | string[]): any {
   }
 }
 
+const FILE_EXT_RE =
+  /\.(php|json|txt|png|jpg|jpeg|gif|svg|xml|html|csv|yml|yaml|md)$/i
+
 function canonize(s: string) {
-  return depluralize(snakify(s)).replace(/[^a-zA-Z_0-9]/g, '')
+  if (null == s || '' === s) return ''
+  return depluralize(snakify(s.replace(FILE_EXT_RE, ''))).replace(/[^a-zA-Z_0-9]/g, '')
 }
 
 
 const MIN_ENTITY_NAME_LEN = 3
+const MAX_ENTITY_NAME_LEN = 67
 
 function ensureMinEntityName(
   name: string,
   existing: Record<string, any>,
 ): string {
   let padded = name.replace(/[^a-zA-Z_0-9]/g, '').replace(/^_+/, '')
+
+  // Truncate sentence-length names by taking leading segments
+  if (padded.length > MAX_ENTITY_NAME_LEN) {
+    const parts = padded.split('_')
+    let truncated = ''
+    for (const part of parts) {
+      const next = truncated === '' ? part : truncated + '_' + part
+      if (next.length > MAX_ENTITY_NAME_LEN) break
+      truncated = next
+    }
+    padded = truncated || parts[0].substring(0, MAX_ENTITY_NAME_LEN)
+  }
+
   if (padded.length > 0 && padded[0] >= '0' && padded[0] <= '9') {
     padded = 'n' + padded
   }
@@ -760,6 +778,35 @@ function ensureMinEntityName(
   }
 
   return padded
+}
+
+
+const CMP_SUFFIXES = ['_rest_controller', '_controller', '_response', '_request']
+const CMP_PREFIXES = ['get_', 'post_', 'put_', 'delete_', 'patch_']
+
+function cleanComponentName(name: string): string {
+  let cleaned = name
+
+  for (const suffix of CMP_SUFFIXES) {
+    if (cleaned.endsWith(suffix)) {
+      const parts = cleaned.split('_')
+      const suffixParts = suffix.split('_').filter(s => s !== '').length
+      cleaned = canonize(parts.slice(0, parts.length - suffixParts).join('_'))
+      break
+    }
+  }
+
+  for (const prefix of CMP_PREFIXES) {
+    if (cleaned.startsWith(prefix)) {
+      const remainder = cleaned.substring(prefix.length)
+      if (remainder.length >= 3) {
+        cleaned = remainder
+      }
+      break
+    }
+  }
+
+  return cleaned
 }
 
 
@@ -974,6 +1021,7 @@ export {
   formatJSONIC,
   validator,
   canonize,
+  cleanComponentName,
   ensureMinEntityName,
   debugpath,
   findPathsWithPrefix,

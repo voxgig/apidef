@@ -264,16 +264,7 @@ function ResolveEntityComponent(spec) {
         .filter(xref => !xref.val.includes('Meta'));
     let cleanxrefs = cmpxrefs
         .map(xref => {
-        // Remove known schema suffixes: _response, _request
-        const knownSuffixes = ['_response', '_request'];
-        for (const suffix of knownSuffixes) {
-            if (xref.cmp.endsWith(suffix)) {
-                let cparts = xref.cmp.split('_');
-                // re-canonize to deal with plural before removed suffix
-                xref.cmp = (0, utility_1.canonize)(cparts.slice(0, cparts.length - 1).join('_'));
-                break;
-            }
-        }
+        xref.cmp = (0, utility_1.cleanComponentName)(xref.cmp);
         return xref;
     });
     let goodxrefs = cleanxrefs

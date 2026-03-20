@@ -27,6 +27,58 @@ const utility_1 = require("../dist/utility");
         (0, code_1.expect)((0, utility_1.depluralize)('phrase')).equal('phrase');
         (0, code_1.expect)((0, utility_1.depluralize)('abs')).equal('abs');
     });
+    (0, node_test_1.test)('canonize', () => {
+        // Basic canonization
+        (0, code_1.expect)((0, utility_1.canonize)('Dogs')).equal('dog');
+        (0, code_1.expect)((0, utility_1.canonize)('FooBar')).equal('foo_bar');
+        (0, code_1.expect)((0, utility_1.canonize)('my-thing')).equal('my_thing');
+        // File extensions are stripped
+        (0, code_1.expect)((0, utility_1.canonize)('categories.php')).equal('category');
+        (0, code_1.expect)((0, utility_1.canonize)('search.php')).equal('search');
+        (0, code_1.expect)((0, utility_1.canonize)('data.json')).equal('data');
+        (0, code_1.expect)((0, utility_1.canonize)('region.json')).equal('region');
+        (0, code_1.expect)((0, utility_1.canonize)('list.txt')).equal('list');
+        (0, code_1.expect)((0, utility_1.canonize)('height.jpg')).equal('height');
+        (0, code_1.expect)((0, utility_1.canonize)('location.png')).equal('location');
+        (0, code_1.expect)((0, utility_1.canonize)('robots.txt')).equal('robot');
+        (0, code_1.expect)((0, utility_1.canonize)('config.yaml')).equal('config');
+        (0, code_1.expect)((0, utility_1.canonize)('schema.xml')).equal('schema');
+        // Extensions are case-insensitive
+        (0, code_1.expect)((0, utility_1.canonize)('data.JSON')).equal('data');
+        (0, code_1.expect)((0, utility_1.canonize)('page.PHP')).equal('page');
+        // Non-extension dots are not matched (no known extension)
+        (0, code_1.expect)((0, utility_1.canonize)('v2.0')).equal('v20');
+        // Extension only stripped at end
+        (0, code_1.expect)((0, utility_1.canonize)('json_data')).equal('json_data');
+        (0, code_1.expect)((0, utility_1.canonize)('php_version')).equal('php_version');
+    });
+    (0, node_test_1.test)('cleanComponentName', () => {
+        // Controller suffixes are stripped
+        (0, code_1.expect)((0, utility_1.cleanComponentName)('nps_controller')).equal('nps');
+        (0, code_1.expect)((0, utility_1.cleanComponentName)('balance_controller')).equal('balance');
+        (0, code_1.expect)((0, utility_1.cleanComponentName)('gas_system_controller')).equal('gas_system');
+        // Rest controller suffix (two parts) is stripped
+        (0, code_1.expect)((0, utility_1.cleanComponentName)('donate_rest_controller')).equal('donate');
+        (0, code_1.expect)((0, utility_1.cleanComponentName)('portfolio_rest_controller')).equal('portfolio');
+        // Response/request suffixes are stripped
+        (0, code_1.expect)((0, utility_1.cleanComponentName)('user_response')).equal('user');
+        (0, code_1.expect)((0, utility_1.cleanComponentName)('order_request')).equal('order');
+        // HTTP verb prefixes are stripped
+        (0, code_1.expect)((0, utility_1.cleanComponentName)('get_account_lookup')).equal('account_lookup');
+        (0, code_1.expect)((0, utility_1.cleanComponentName)('post_transfer')).equal('transfer');
+        (0, code_1.expect)((0, utility_1.cleanComponentName)('put_setting')).equal('setting');
+        (0, code_1.expect)((0, utility_1.cleanComponentName)('delete_item')).equal('item');
+        (0, code_1.expect)((0, utility_1.cleanComponentName)('patch_record')).equal('record');
+        // Verb prefix not stripped if remainder is too short
+        (0, code_1.expect)((0, utility_1.cleanComponentName)('get_ab')).equal('get_ab');
+        (0, code_1.expect)((0, utility_1.cleanComponentName)('post_it')).equal('post_it');
+        // No suffix or prefix: unchanged
+        (0, code_1.expect)((0, utility_1.cleanComponentName)('user')).equal('user');
+        (0, code_1.expect)((0, utility_1.cleanComponentName)('gas_balance')).equal('gas_balance');
+        // Both suffix and prefix: suffix stripped first, then prefix
+        (0, code_1.expect)((0, utility_1.cleanComponentName)('get_user_response')).equal('user');
+        (0, code_1.expect)((0, utility_1.cleanComponentName)('get_balance_controller')).equal('balance');
+    });
     (0, node_test_1.test)('ensureMinEntityName', () => {
         // Names already >= 3 chars are unchanged
         (0, code_1.expect)((0, utility_1.ensureMinEntityName)('foo', {})).equal('foo');
@@ -72,6 +124,20 @@ const utility_1 = require("../dist/utility");
         (0, code_1.expect)((0, utility_1.ensureMinEntityName)('a!b@c#d', {})).equal('abcd');
         (0, code_1.expect)((0, utility_1.ensureMinEntityName)('foo_bar', {})).equal('foo_bar');
         (0, code_1.expect)((0, utility_1.ensureMinEntityName)('a[b]', {})).equal('abn');
+        // Names under 67 chars are unchanged
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('this_endpoint_is_tailored_for_searches_based_on_product_name', {})).equal('this_endpoint_is_tailored_for_searches_based_on_product_name');
+        // Sentence-length names are truncated to <= 67 chars at word boundaries
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('if_you_have_the_name_of_a_specific_software_product_and_want_to_check', {})).equal('if_you_have_the_name_of_a_specific_software_product_and_want_to');
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('this_is_a_very_long_entity_name_that_goes_well_beyond_the_sixty_seven_character_limit_set', {})).equal('this_is_a_very_long_entity_name_that_goes_well_beyond_the_sixty');
+        // Names at exactly 67 chars are unchanged
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('a'.repeat(67), {})).equal('a'.repeat(67));
+        // Names at 68 chars get truncated
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('abcde_' + 'x'.repeat(63), {})).equal('abcde');
+        // Single long word with no underscores gets hard-truncated at 67
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('a'.repeat(80), {})).equal('a'.repeat(67));
+        // Truncation with collision
+        const truncated = 'if_you_have_the_name_of_a_specific_software_product_and_want_to';
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('if_you_have_the_name_of_a_specific_software_product_and_want_to_check', { [truncated]: {} })).equal(truncated + '2');
     });
     (0, node_test_1.test)('pathMatch', async () => {
         const pmf = (p, x) => {
