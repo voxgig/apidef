@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fieldTransform = void 0;
+exports.inferFieldsFromExamples = inferFieldsFromExamples;
+exports.inferTypeFromValue = inferTypeFromValue;
 const jostraca_1 = require("jostraca");
 const utility_1 = require("../utility");
 const types_1 = require("../types");
@@ -101,7 +103,89 @@ function findFieldDefs(_ment, mop, mtarget, def) {
             });
         });
     }
+    // Fallback: infer fields from example response data when no schema properties found
+    if (0 === fielddefs.length && opdef) {
+        const exampleFields = inferFieldsFromExamples(opdef);
+        for (const ef of exampleFields) {
+            fielddefs.push(ef);
+        }
+    }
     return fielddefs;
+}
+function inferFieldsFromExamples(opdef) {
+    const example = findExampleObject(opdef);
+    if (null == example || 'object' !== typeof example || Array.isArray(example)) {
+        return [];
+    }
+    const fielddefs = [];
+    for (const [key, value] of Object.entries(example)) {
+        const fielddef = {
+            key$: key,
+            type: inferTypeFromValue(value),
+        };
+        fielddefs.push(fielddef);
+    }
+    return fielddefs;
+}
+function findExampleObject(opdef) {
+    const responses = opdef.responses;
+    if (null == responses)
+        return null;
+    const resdef = responses[200] ?? responses[201] ?? responses['200'] ?? responses['201'];
+    if (null == resdef)
+        return null;
+    // OpenAPI 3.x: content.application/json.example
+    let example = (0, jostraca_1.getx)(resdef, 'content "application/json" example');
+    if (null != example && 'object' === typeof example)
+        return unwrapExample(example);
+    // OpenAPI 3.x: content.application/json.examples (named examples — take first)
+    const examples = (0, jostraca_1.getx)(resdef, 'content "application/json" examples');
+    if (null != examples && 'object' === typeof examples) {
+        for (const val of Object.values(examples)) {
+            const ex = val?.value;
+            if (null != ex && 'object' === typeof ex)
+                return unwrapExample(ex);
+        }
+    }
+    // OpenAPI 3.x: content.application/json.schema.example
+    example = (0, jostraca_1.getx)(resdef, 'content "application/json" schema example');
+    if (null != example && 'object' === typeof example)
+        return unwrapExample(example);
+    // Swagger 2.0: response.example / response.examples.application/json
+    example = resdef.example;
+    if (null != example && 'object' === typeof example)
+        return unwrapExample(example);
+    example = (0, jostraca_1.getx)(resdef, 'examples "application/json"');
+    if (null != example && 'object' === typeof example)
+        return unwrapExample(example);
+    // Swagger 2.0: schema.example
+    example = (0, jostraca_1.getx)(resdef, 'schema example');
+    if (null != example && 'object' === typeof example)
+        return unwrapExample(example);
+    return null;
+}
+// If the example is a wrapper with a single array property, unwrap to the first item
+function unwrapExample(example) {
+    if (Array.isArray(example)) {
+        return example.length > 0 ? example[0] : null;
+    }
+    return example;
+}
+function inferTypeFromValue(value) {
+    if (null == value)
+        return 'string';
+    if ('boolean' === typeof value)
+        return 'boolean';
+    if ('number' === typeof value) {
+        return Number.isInteger(value) ? 'integer' : 'number';
+    }
+    if ('string' === typeof value)
+        return 'string';
+    if (Array.isArray(value))
+        return 'array';
+    if ('object' === typeof value)
+        return 'object';
+    return 'string';
 }
 function mergeField(ment, mop, mtarget, def, exisingField, newField) {
     if (newField.req !== exisingField.req) {

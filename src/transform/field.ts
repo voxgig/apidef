@@ -159,7 +159,94 @@ function findFieldDefs(
     })
   }
 
+  // Fallback: infer fields from example response data when no schema properties found
+  if (0 === fielddefs.length && opdef) {
+    const exampleFields = inferFieldsFromExamples(opdef)
+    for (const ef of exampleFields) {
+      fielddefs.push(ef)
+    }
+  }
+
   return fielddefs
+}
+
+
+function inferFieldsFromExamples(opdef: any): SchemaDef[] {
+  const example = findExampleObject(opdef)
+  if (null == example || 'object' !== typeof example || Array.isArray(example)) {
+    return []
+  }
+
+  const fielddefs: SchemaDef[] = []
+  for (const [key, value] of Object.entries(example)) {
+    const fielddef: any = {
+      key$: key,
+      type: inferTypeFromValue(value),
+    }
+    fielddefs.push(fielddef)
+  }
+  return fielddefs
+}
+
+
+function findExampleObject(opdef: any): any {
+  const responses = opdef.responses
+  if (null == responses) return null
+
+  const resdef = responses[200] ?? responses[201] ?? responses['200'] ?? responses['201']
+  if (null == resdef) return null
+
+  // OpenAPI 3.x: content.application/json.example
+  let example = getx(resdef, 'content "application/json" example')
+  if (null != example && 'object' === typeof example) return unwrapExample(example)
+
+  // OpenAPI 3.x: content.application/json.examples (named examples — take first)
+  const examples = getx(resdef, 'content "application/json" examples')
+  if (null != examples && 'object' === typeof examples) {
+    for (const val of Object.values(examples)) {
+      const ex = (val as any)?.value
+      if (null != ex && 'object' === typeof ex) return unwrapExample(ex)
+    }
+  }
+
+  // OpenAPI 3.x: content.application/json.schema.example
+  example = getx(resdef, 'content "application/json" schema example')
+  if (null != example && 'object' === typeof example) return unwrapExample(example)
+
+  // Swagger 2.0: response.example / response.examples.application/json
+  example = resdef.example
+  if (null != example && 'object' === typeof example) return unwrapExample(example)
+
+  example = getx(resdef, 'examples "application/json"')
+  if (null != example && 'object' === typeof example) return unwrapExample(example)
+
+  // Swagger 2.0: schema.example
+  example = getx(resdef, 'schema example')
+  if (null != example && 'object' === typeof example) return unwrapExample(example)
+
+  return null
+}
+
+
+// If the example is a wrapper with a single array property, unwrap to the first item
+function unwrapExample(example: any): any {
+  if (Array.isArray(example)) {
+    return example.length > 0 ? example[0] : null
+  }
+  return example
+}
+
+
+function inferTypeFromValue(value: any): string {
+  if (null == value) return 'string'
+  if ('boolean' === typeof value) return 'boolean'
+  if ('number' === typeof value) {
+    return Number.isInteger(value) ? 'integer' : 'number'
+  }
+  if ('string' === typeof value) return 'string'
+  if (Array.isArray(value)) return 'array'
+  if ('object' === typeof value) return 'object'
+  return 'string'
 }
 
 
@@ -185,4 +272,6 @@ function mergeField(
 
 export {
   fieldTransform,
+  inferFieldsFromExamples,
+  inferTypeFromValue,
 }
