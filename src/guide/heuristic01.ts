@@ -40,6 +40,7 @@ import {
   canonize,
   capture,
   debugpath,
+  ensureMinEntityName,
   find,
   findPathsWithPrefix,
   formatJSONIC,
@@ -556,6 +557,8 @@ function ResolveEntityName(spec: TaskSpec) {
     work.entity.count.unresolved++
     entname = 'entity' + work.entity.count.unresolved
   }
+
+  entname = ensureMinEntityName(entname, work.entmap)
 
   const entdesc = work.entmap[entname] = work.entmap[entname] ?? {
     name: entname,

@@ -396,6 +396,7 @@ function ResolveEntityName(spec) {
         work.entity.count.unresolved++;
         entname = 'entity' + work.entity.count.unresolved;
     }
+    entname = (0, utility_1.ensureMinEntityName)(entname, work.entmap);
     const entdesc = work.entmap[entname] = work.entmap[entname] ?? {
         name: entname,
         id: 'N' + ('' + Math.random()).substring(2, 10),

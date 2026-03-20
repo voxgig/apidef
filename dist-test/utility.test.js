@@ -16,6 +16,62 @@ const utility_1 = require("../dist/utility");
         (0, code_1.expect)((0, utility_1.depluralize)('api_keys')).equal('api_key');
         (0, code_1.expect)((0, utility_1.depluralize)('ApiKeys')).equal('ApiKey');
         (0, code_1.expect)((0, utility_1.depluralize)('API_Keys')).equal('API_Key');
+        // Words where -ies is part of the base form, not a plural suffix
+        (0, code_1.expect)((0, utility_1.depluralize)('species')).equal('species');
+        (0, code_1.expect)((0, utility_1.depluralize)('series')).equal('series');
+        (0, code_1.expect)((0, utility_1.depluralize)('movies')).equal('movie');
+        (0, code_1.expect)((0, utility_1.depluralize)('amiiboseries')).equal('amiiboseries');
+        // Words that should not be truncated to <= 2 chars
+        (0, code_1.expect)((0, utility_1.depluralize)('yes')).equal('yes');
+        (0, code_1.expect)((0, utility_1.depluralize)('lens')).equal('lens');
+        (0, code_1.expect)((0, utility_1.depluralize)('phrase')).equal('phrase');
+        (0, code_1.expect)((0, utility_1.depluralize)('abs')).equal('abs');
+    });
+    (0, node_test_1.test)('ensureMinEntityName', () => {
+        // Names already >= 3 chars are unchanged
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('foo', {})).equal('foo');
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('abcd', {})).equal('abcd');
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('abc', {})).equal('abc');
+        // 2-char names get padded with "n"
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('ab', {})).equal('abn');
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('dc', {})).equal('dcn');
+        // 1-char names get padded with "nt"
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('d', {})).equal('dnt');
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('x', {})).equal('xnt');
+        // Empty string gets padded
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('', {})).equal('nt');
+        // No collision: padded name is free
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('ab', { other: {} })).equal('abn');
+        // Collision: padded name already taken by a different entity
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('ab', { abn: {} })).equal('abn2');
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('ab', { abn: {}, abn2: {} })).equal('abn3');
+        // No collision when original name is already in entmap (same entity, re-entry)
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('foo', { foo: {} })).equal('foo');
+        // Short name that doesn't collide after padding
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('d', { other: {} })).equal('dnt');
+        // Short name that collides after padding
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('d', { dnt: {} })).equal('dnt2');
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('d', { dnt: {}, dnt2: {} })).equal('dnt3');
+        // Names starting with a digit get "n" prefix
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('510k', {})).equal('n510k');
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('3d_model', {})).equal('n3d_model');
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('0day', {})).equal('n0day');
+        // Digit prefix also satisfies min-length
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('9', {})).equal('n9n');
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('42', {})).equal('n42');
+        // Non-digit names are not prefixed
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('abc', {})).equal('abc');
+        // Leading underscores are stripped, then digit prefix applies
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('_123', {})).equal('n123');
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('__foo', {})).equal('foo');
+        // Digit prefix with collision
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('510k', { n510k: {} })).equal('n510k2');
+        // Non-alphanumeric characters are removed (keeping _)
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('foo-bar', {})).equal('foobar');
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('hello.world', {})).equal('helloworld');
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('a!b@c#d', {})).equal('abcd');
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('foo_bar', {})).equal('foo_bar');
+        (0, code_1.expect)((0, utility_1.ensureMinEntityName)('a[b]', {})).equal('abn');
     });
     (0, node_test_1.test)('pathMatch', async () => {
         const pmf = (p, x) => {

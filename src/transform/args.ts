@@ -45,7 +45,7 @@ const argsTransform: Transform = async function(
         argdefs.push(...(pathdef.parameters ?? []))
 
         const opdef: MethodDef = (pathdef as any)[mtarget.method.toLowerCase()]
-        argdefs.push(...(opdef.parameters ?? []))
+        argdefs.push(...(opdef?.parameters ?? []))
 
         resolveArgs(ment, mop, mtarget, argdefs)
       })

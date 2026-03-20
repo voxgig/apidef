@@ -15,7 +15,7 @@ const argsTransform = async function (ctx) {
                 const pathdef = def.paths[mtarget.orig];
                 argdefs.push(...(pathdef.parameters ?? []));
                 const opdef = pathdef[mtarget.method.toLowerCase()];
-                argdefs.push(...(opdef.parameters ?? []));
+                argdefs.push(...(opdef?.parameters ?? []));
                 resolveArgs(ment, mop, mtarget, argdefs);
             });
         });

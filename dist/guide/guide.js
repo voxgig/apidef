@@ -182,6 +182,15 @@ function validateBaseBuide(ctx, baseguide) {
         });
     });
     const genm = {};
+    // Collect all paths that have ops under any entity.
+    const coveredPaths = {};
+    (0, jostraca_1.each)(baseguide.entity, (entm) => {
+        (0, jostraca_1.each)(entm.path, (pathm, pathStr) => {
+            if (!(0, struct_1.isempty)(pathm.op)) {
+                coveredPaths[pathStr] = true;
+            }
+        });
+    });
     // Each entity.
     (0, jostraca_1.each)(baseguide.entity, (entm) => {
         if ((0, struct_1.isempty)(entm.path)) {
@@ -193,12 +202,16 @@ function validateBaseBuide(ctx, baseguide) {
         // Each path.
         (0, jostraca_1.each)(entm.path, (pathm, pathStr) => {
             if ((0, struct_1.isempty)(pathm.op)) {
-                ctx.warn({
-                    note: `No operations defined for entity=${entm.name} path=${pathStr}`,
-                    path: pathStr,
-                    entm,
-                    pathm,
-                });
+                // Only warn if this path has no ops under any entity.
+                // Paths covered elsewhere (e.g. as actions of another entity) are expected.
+                if (!coveredPaths[pathStr]) {
+                    ctx.warn({
+                        note: `No operations defined for entity=${entm.name} path=${pathStr}`,
+                        path: pathStr,
+                        entm,
+                        pathm,
+                    });
+                }
             }
             // Each op.
             (0, jostraca_1.each)(pathm.op, (odef) => {

@@ -29,6 +29,7 @@ declare function formatJSONIC(val?: any, opts?: {
 }): string;
 declare function validator(torig: undefined | string | string[]): any;
 declare function canonize(s: string): string;
+declare function ensureMinEntityName(name: string, existing: Record<string, any>): string;
 declare function warnOnError(where: string, warn: Warner, fn: Function, result?: any): any;
 declare function debugpath(pathStr: string, methodName: string | null | undefined, ...args: any[]): void;
 declare function findPathsWithPrefix(ctx: any, pathStr: string, opts?: {
@@ -42,4 +43,4 @@ declare function getModelPath(model: any, path: string, flags?: {
     only_active?: boolean;
 }): any;
 export type { PathMatch };
-export { nom, getdlog, loadFile, formatJsonSrc, depluralize, find, capture, pathMatch, makeWarner, formatJSONIC, validator, canonize, debugpath, findPathsWithPrefix, writeFileSyncWarn, warnOnError, relativizePath, getModelPath, };
+export { nom, getdlog, loadFile, formatJsonSrc, depluralize, find, capture, pathMatch, makeWarner, formatJSONIC, validator, canonize, ensureMinEntityName, debugpath, findPathsWithPrefix, writeFileSyncWarn, warnOnError, relativizePath, getModelPath, };

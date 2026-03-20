@@ -280,6 +280,16 @@ function validateBaseBuide(ctx: ApiDefContext, baseguide: any) {
 
   const genm: any = {}
 
+  // Collect all paths that have ops under any entity.
+  const coveredPaths: Record<string, boolean> = {}
+  each(baseguide.entity, (entm: GuideEntity) => {
+    each(entm.path, (pathm: GuidePath, pathStr) => {
+      if (!isempty(pathm.op)) {
+        coveredPaths[pathStr] = true
+      }
+    })
+  })
+
   // Each entity.
   each(baseguide.entity, (entm: GuideEntity) => {
 
@@ -294,12 +304,16 @@ function validateBaseBuide(ctx: ApiDefContext, baseguide: any) {
     each(entm.path, (pathm: GuidePath, pathStr) => {
 
       if (isempty(pathm.op)) {
-        ctx.warn({
-          note: `No operations defined for entity=${entm.name} path=${pathStr}`,
-          path: pathStr,
-          entm,
-          pathm,
-        })
+        // Only warn if this path has no ops under any entity.
+        // Paths covered elsewhere (e.g. as actions of another entity) are expected.
+        if (!coveredPaths[pathStr]) {
+          ctx.warn({
+            note: `No operations defined for entity=${entm.name} path=${pathStr}`,
+            path: pathStr,
+            entm,
+            pathm,
+          })
+        }
       }
 
       // Each op.

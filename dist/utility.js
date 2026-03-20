@@ -15,6 +15,7 @@ exports.makeWarner = makeWarner;
 exports.formatJSONIC = formatJSONIC;
 exports.validator = validator;
 exports.canonize = canonize;
+exports.ensureMinEntityName = ensureMinEntityName;
 exports.debugpath = debugpath;
 exports.findPathsWithPrefix = findPathsWithPrefix;
 exports.writeFileSyncWarn = writeFileSyncWarn;
@@ -102,21 +103,27 @@ function depluralize(word) {
         'horses': 'horse',
         'house': 'houses',
         'indices': 'index',
+        'lens': 'lens',
         'license': 'licenses',
         'matrices': 'matrix',
         'men': 'man',
         'mice': 'mouse',
+        'movies': 'movie',
         'notice': 'notices',
         'oases': 'oasis',
+        'phrase': 'phrase',
         'releases': 'release',
         'people': 'person',
         'phenomena': 'phenomenon',
         'practice': 'practices',
         'promise': 'promises',
+        'series': 'series',
+        'species': 'species',
         'teeth': 'tooth',
         'theses': 'thesis',
         'vertices': 'vertex',
         'women': 'woman',
+        'yes': 'yes',
     };
     if (irregulars[word]) {
         return irregulars[word];
@@ -127,12 +134,12 @@ function depluralize(word) {
         }
     }
     // Rules for regular plurals (applied in order)
+    // -ies -> -y (cities -> city), but only if result is > 2 chars
     if (word.endsWith('ies') && word.length > 3) {
-        return word.slice(0, -3) + 'y';
-    }
-    // -ies -> -y (cities -> city)
-    if (word.endsWith('ies') && word.length > 3) {
-        return word.slice(0, -3) + 'y';
+        const result = word.slice(0, -3) + 'y';
+        if (result.length > 2) {
+            return result;
+        }
     }
     // -ves -> -f or -fe (wolves -> wolf, knives -> knife)
     if (word.endsWith('ves')) {
@@ -157,10 +164,11 @@ function depluralize(word) {
         word.endsWith('shes') || word.endsWith('ches')) {
         return word.slice(0, -2);
     }
-    // -s -> remove -s (cats -> cat)
+    // -s -> remove -s (cats -> cat), but only if result is > 2 chars
     if (word.endsWith('s') &&
         !word.endsWith('ss') &&
-        !word.endsWith('us')) {
+        !word.endsWith('us') &&
+        word.length > 3) {
         return word.slice(0, -1);
     }
     // If none of the rules apply, return as is
@@ -590,6 +598,25 @@ function validator(torig) {
 }
 function canonize(s) {
     return depluralize((0, jostraca_1.snakify)(s)).replace(/[^a-zA-Z_0-9]/g, '');
+}
+const MIN_ENTITY_NAME_LEN = 3;
+function ensureMinEntityName(name, existing) {
+    let padded = name.replace(/[^a-zA-Z_0-9]/g, '').replace(/^_+/, '');
+    if (padded.length > 0 && padded[0] >= '0' && padded[0] <= '9') {
+        padded = 'n' + padded;
+    }
+    if (padded.length < MIN_ENTITY_NAME_LEN) {
+        const padding = 'nt'.substring(0, MIN_ENTITY_NAME_LEN - padded.length);
+        padded = padded + padding;
+    }
+    if (padded !== name && null != existing[padded]) {
+        let i = 2;
+        while (null != existing[padded + i]) {
+            i++;
+        }
+        padded = padded + i;
+    }
+    return padded;
 }
 function warnOnError(where, warn, fn, result) {
     try {

@@ -8,6 +8,7 @@ import {
   pathMatch,
   formatJSONIC,
   depluralize,
+  ensureMinEntityName,
   getModelPath,
 } from '../dist/utility'
 
@@ -28,6 +29,79 @@ describe('utility', () => {
     expect(depluralize('api_keys')).equal('api_key')
     expect(depluralize('ApiKeys')).equal('ApiKey')
     expect(depluralize('API_Keys')).equal('API_Key')
+
+    // Words where -ies is part of the base form, not a plural suffix
+    expect(depluralize('species')).equal('species')
+    expect(depluralize('series')).equal('series')
+    expect(depluralize('movies')).equal('movie')
+    expect(depluralize('amiiboseries')).equal('amiiboseries')
+
+    // Words that should not be truncated to <= 2 chars
+    expect(depluralize('yes')).equal('yes')
+    expect(depluralize('lens')).equal('lens')
+    expect(depluralize('phrase')).equal('phrase')
+    expect(depluralize('abs')).equal('abs')
+  })
+
+  test('ensureMinEntityName', () => {
+    // Names already >= 3 chars are unchanged
+    expect(ensureMinEntityName('foo', {})).equal('foo')
+    expect(ensureMinEntityName('abcd', {})).equal('abcd')
+    expect(ensureMinEntityName('abc', {})).equal('abc')
+
+    // 2-char names get padded with "n"
+    expect(ensureMinEntityName('ab', {})).equal('abn')
+    expect(ensureMinEntityName('dc', {})).equal('dcn')
+
+    // 1-char names get padded with "nt"
+    expect(ensureMinEntityName('d', {})).equal('dnt')
+    expect(ensureMinEntityName('x', {})).equal('xnt')
+
+    // Empty string gets padded
+    expect(ensureMinEntityName('', {})).equal('nt')
+
+    // No collision: padded name is free
+    expect(ensureMinEntityName('ab', { other: {} })).equal('abn')
+
+    // Collision: padded name already taken by a different entity
+    expect(ensureMinEntityName('ab', { abn: {} })).equal('abn2')
+    expect(ensureMinEntityName('ab', { abn: {}, abn2: {} })).equal('abn3')
+
+    // No collision when original name is already in entmap (same entity, re-entry)
+    expect(ensureMinEntityName('foo', { foo: {} })).equal('foo')
+
+    // Short name that doesn't collide after padding
+    expect(ensureMinEntityName('d', { other: {} })).equal('dnt')
+
+    // Short name that collides after padding
+    expect(ensureMinEntityName('d', { dnt: {} })).equal('dnt2')
+    expect(ensureMinEntityName('d', { dnt: {}, dnt2: {} })).equal('dnt3')
+
+    // Names starting with a digit get "n" prefix
+    expect(ensureMinEntityName('510k', {})).equal('n510k')
+    expect(ensureMinEntityName('3d_model', {})).equal('n3d_model')
+    expect(ensureMinEntityName('0day', {})).equal('n0day')
+
+    // Digit prefix also satisfies min-length
+    expect(ensureMinEntityName('9', {})).equal('n9n')
+    expect(ensureMinEntityName('42', {})).equal('n42')
+
+    // Non-digit names are not prefixed
+    expect(ensureMinEntityName('abc', {})).equal('abc')
+
+    // Leading underscores are stripped, then digit prefix applies
+    expect(ensureMinEntityName('_123', {})).equal('n123')
+    expect(ensureMinEntityName('__foo', {})).equal('foo')
+
+    // Digit prefix with collision
+    expect(ensureMinEntityName('510k', { n510k: {} })).equal('n510k2')
+
+    // Non-alphanumeric characters are removed (keeping _)
+    expect(ensureMinEntityName('foo-bar', {})).equal('foobar')
+    expect(ensureMinEntityName('hello.world', {})).equal('helloworld')
+    expect(ensureMinEntityName('a!b@c#d', {})).equal('abcd')
+    expect(ensureMinEntityName('foo_bar', {})).equal('foo_bar')
+    expect(ensureMinEntityName('a[b]', {})).equal('abn')
   })
 
   test('pathMatch', async () => {
