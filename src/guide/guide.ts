@@ -83,11 +83,12 @@ async function buildGuide(ctx: ApiDefContext): Promise<any> {
 
   if (0 === errs.length) {
 
-    const opts = {
+    const opts: any = {
       path: guidepath,
-      fs: ctx.fs,
       errs,
     }
+
+    opts.fs = ctx.fs
 
     const guideModel = aontu.generate(src, opts)
 

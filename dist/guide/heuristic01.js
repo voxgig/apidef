@@ -751,7 +751,7 @@ function ResolveTransform(spec) {
             transform.req = { [entdesc.name]: '`reqdata`' };
         }
     }
-    if (!(0, struct_1.isempty)(transform)) {
+    if (!(0, struct_1.isempty)(transform) && null != op[opname]) {
         op[opname].transform = transform;
     }
 }
@@ -1163,6 +1163,9 @@ function makeMethodEntityDesc(desc) {
 }
 function findPotentialSchemaRefs(pathStr, methodName, responses) {
     const xrefs = [];
+    if (null == responses) {
+        return xrefs;
+    }
     const rescodes = ['200', '201'];
     for (let rescode of rescodes) {
         const schema = getResponseSchema(responses[rescode]);

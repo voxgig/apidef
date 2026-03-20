@@ -1061,7 +1061,7 @@ function ResolveTransform(spec: TaskSpec) {
     }
   }
 
-  if (!isempty(transform)) {
+  if (!isempty(transform) && null != op[opname]) {
     op[opname].transform = transform
   }
 }
@@ -1682,6 +1682,9 @@ function makeMethodEntityDesc(desc: Record<string, any>): MethodEntityDesc {
 
 function findPotentialSchemaRefs(pathStr: string, methodName: string, responses: any) {
   const xrefs: string[] = []
+  if (null == responses) {
+    return xrefs
+  }
   const rescodes = ['200', '201']
   for (let rescode of rescodes) {
     const schema = getResponseSchema(responses[rescode])

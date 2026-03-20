@@ -42,9 +42,10 @@ async function buildGuide(ctx) {
     if (0 === errs.length) {
         const opts = {
             path: guidepath,
-            fs: ctx.fs,
             errs,
         };
+        console.log('GUIDE-OPTS', opts, src, ctx.fs.readdirSync('/model/guide'), ctx.fs.readFileSync('/model/guide/foo-1.0.0-openapi-3.1.0-guide.jsonic').toString(), ctx.fs.readFileSync('/model/guide/foo-1.0.0-openapi-3.1.0-base-guide.jsonic').toString());
+        opts.fs = ctx.fs;
         const guideModel = aontu.generate(src, opts);
         handleErrors(ctx, errs);
         return guideModel;
@@ -165,6 +166,7 @@ async function buildBaseGuide(ctx) {
     const jres = await jostraca.generate({
         existing: { txt: { merge: true } }
     }, root);
+    console.log('JRES', jres, ctx.opts.folder, baseGuideFileName, guideSrc);
     return jres;
 }
 function validateBaseBuide(ctx, baseguide) {
