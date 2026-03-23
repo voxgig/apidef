@@ -65,6 +65,34 @@ const utility_1 = require("../dist/utility");
         (0, code_1.expect)((0, utility_1.canonize)('api検索')).equal('api');
         (0, code_1.expect)((0, utility_1.canonize)('会議録')).equal('');
     });
+    (0, node_test_1.test)('sanitizeSlug', () => {
+        // Simple slugs pass through unchanged
+        (0, code_1.expect)((0, utility_1.sanitizeSlug)('my-api')).equal('my-api');
+        (0, code_1.expect)((0, utility_1.sanitizeSlug)('cool-service')).equal('cool-service');
+        // Accented characters are transliterated
+        (0, code_1.expect)((0, utility_1.sanitizeSlug)('dólar-api')).equal('dolar-api');
+        (0, code_1.expect)((0, utility_1.sanitizeSlug)('café-service')).equal('cafe-service');
+        // Underscores and dots become hyphens
+        (0, code_1.expect)((0, utility_1.sanitizeSlug)('my_api')).equal('my-api');
+        (0, code_1.expect)((0, utility_1.sanitizeSlug)('api.v2')).equal('api-v2');
+        (0, code_1.expect)((0, utility_1.sanitizeSlug)('my_cool.api')).equal('my-cool-api');
+        // Special chars are stripped
+        (0, code_1.expect)((0, utility_1.sanitizeSlug)("bob's-api")).equal('bobs-api');
+        (0, code_1.expect)((0, utility_1.sanitizeSlug)('api!(v2)')).equal('apiv2');
+        // Standalone number segments merge with preceding word
+        (0, code_1.expect)((0, utility_1.sanitizeSlug)('ec-2-shop')).equal('ec2-shop');
+        (0, code_1.expect)((0, utility_1.sanitizeSlug)('advice-slip-api-2')).equal('advice-slip-api2');
+        (0, code_1.expect)((0, utility_1.sanitizeSlug)('s-3-bucket')).equal('s3-bucket');
+        // Leading numbers stay (no preceding word to merge with)
+        (0, code_1.expect)((0, utility_1.sanitizeSlug)('2-fast')).equal('2-fast');
+        // Hyphens are collapsed and trimmed
+        (0, code_1.expect)((0, utility_1.sanitizeSlug)('--my--api--')).equal('my-api');
+        // Empty/null returns 'unknown'
+        (0, code_1.expect)((0, utility_1.sanitizeSlug)('')).equal('unknown');
+        (0, code_1.expect)((0, utility_1.sanitizeSlug)('!!!')).equal('unknown');
+        // Non-Latin chars are stripped
+        (0, code_1.expect)((0, utility_1.sanitizeSlug)('api検索')).equal('api');
+    });
     (0, node_test_1.test)('transliterate', () => {
         // Latin diacritics are decomposed
         (0, code_1.expect)((0, utility_1.transliterate)('dólar')).equal('dolar');

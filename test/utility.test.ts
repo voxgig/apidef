@@ -11,6 +11,7 @@ import {
   formatJSONIC,
   depluralize,
   canonize,
+  sanitizeSlug,
   transliterate,
   cleanComponentName,
   ensureMinEntityName,
@@ -92,6 +93,43 @@ describe('utility', () => {
     // Non-Latin chars are stripped (no transliteration)
     expect(canonize('api検索')).equal('api')
     expect(canonize('会議録')).equal('')
+  })
+
+  test('sanitizeSlug', () => {
+    // Simple slugs pass through unchanged
+    expect(sanitizeSlug('my-api')).equal('my-api')
+    expect(sanitizeSlug('cool-service')).equal('cool-service')
+
+    // Accented characters are transliterated
+    expect(sanitizeSlug('dólar-api')).equal('dolar-api')
+    expect(sanitizeSlug('café-service')).equal('cafe-service')
+
+    // Underscores and dots become hyphens
+    expect(sanitizeSlug('my_api')).equal('my-api')
+    expect(sanitizeSlug('api.v2')).equal('api-v2')
+    expect(sanitizeSlug('my_cool.api')).equal('my-cool-api')
+
+    // Special chars are stripped
+    expect(sanitizeSlug("bob's-api")).equal('bobs-api')
+    expect(sanitizeSlug('api!(v2)')).equal('apiv2')
+
+    // Standalone number segments merge with preceding word
+    expect(sanitizeSlug('ec-2-shop')).equal('ec2-shop')
+    expect(sanitizeSlug('advice-slip-api-2')).equal('advice-slip-api2')
+    expect(sanitizeSlug('s-3-bucket')).equal('s3-bucket')
+
+    // Leading numbers stay (no preceding word to merge with)
+    expect(sanitizeSlug('2-fast')).equal('2-fast')
+
+    // Hyphens are collapsed and trimmed
+    expect(sanitizeSlug('--my--api--')).equal('my-api')
+
+    // Empty/null returns 'unknown'
+    expect(sanitizeSlug('')).equal('unknown')
+    expect(sanitizeSlug('!!!')).equal('unknown')
+
+    // Non-Latin chars are stripped
+    expect(sanitizeSlug('api検索')).equal('api')
   })
 
   test('transliterate', () => {

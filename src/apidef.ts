@@ -55,6 +55,7 @@ import {
   getdlog,
   makeWarner,
   formatJSONIC,
+  sanitizeSlug,
   writeFileSyncWarn,
   relativizePath,
   getModelPath,
@@ -414,6 +415,7 @@ export {
   ApiDef,
   parse,
   formatJSONIC,
+  sanitizeSlug,
   getModelPath,
   nom,
 }

@@ -15,6 +15,7 @@ exports.makeWarner = makeWarner;
 exports.formatJSONIC = formatJSONIC;
 exports.validator = validator;
 exports.canonize = canonize;
+exports.sanitizeSlug = sanitizeSlug;
 exports.transliterate = transliterate;
 exports.cleanComponentName = cleanComponentName;
 exports.ensureMinEntityName = ensureMinEntityName;
@@ -609,6 +610,36 @@ function canonize(s) {
         return '';
     return depluralize((0, jostraca_1.snakify)(transliterate(s).replace(FILE_EXT_RE, '')))
         .replace(/[^a-zA-Z_0-9]/g, '');
+}
+// Sanitize a raw slug into a clean kebab-case string suitable for
+// conversion to a valid JS identifier (via camelify/snakify/etc).
+function sanitizeSlug(s) {
+    if (null == s || '' === s)
+        return 'unknown';
+    // Transliterate accented characters to ASCII
+    let out = transliterate(s);
+    // Replace underscores and dots with hyphens (treat as word separators)
+    out = out.replace(/[_.]/g, '-');
+    // Strip all non-alphanumeric, non-hyphen chars
+    out = out.replace(/[^a-zA-Z0-9-]/g, '');
+    // Collapse multiple/leading/trailing hyphens
+    out = out.replace(/-+/g, '-').replace(/^-|-$/g, '');
+    // Merge standalone number segments with preceding word
+    // e.g. ec-2-shop -> ec2-shop, advice-slip-api-2 -> advice-slip-api2
+    const raw = out.split('-').filter(p => p.length > 0);
+    const parts = [];
+    for (const p of raw) {
+        if (/^\d+$/.test(p) && parts.length > 0) {
+            parts[parts.length - 1] += p;
+        }
+        else {
+            parts.push(p);
+        }
+    }
+    out = parts.join('-');
+    if (!out)
+        return 'unknown';
+    return out;
 }
 const BOOLEAN_NAME_RE = /^(is_|has_|can_|should_|allow_|enabled$|disabled$|active$|visible$|deleted$|verified$|public$|private$|locked$|archived$|blocked$)/;
 const INTEGER_NAME_RE = /(_count$|_number$|^total_|^count_|^num_|^limit$|^page$|^offset$|^per_page$|^page_size$|^size$|^skip$)/;
