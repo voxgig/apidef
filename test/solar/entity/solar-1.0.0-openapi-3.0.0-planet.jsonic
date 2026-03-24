@@ -65,12 +65,8 @@ main: kit: entity: planet: {
   name: "planet"
   op: {
     create: {
-<<<<<<< GENERATED: 2026-03-20T15:45:10.381Z/merge
       name: "create"
       targets: [
-=======
-      targets: [
->>>>>>> EXISTING: 2026-02-16T17:23:58.518Z/merge
         {
           args: {
             params: [
@@ -158,12 +154,8 @@ main: kit: entity: planet: {
       ]
     }
     list: {
-<<<<<<< GENERATED: 2026-03-20T15:45:10.381Z/merge
       name: "list"
       targets: [
-=======
-      targets: [
->>>>>>> EXISTING: 2026-02-16T17:23:58.518Z/merge
         {
           method: "GET"
           orig: "/api/planet"
@@ -179,12 +171,8 @@ main: kit: entity: planet: {
       ]
     }
     load: {
-<<<<<<< GENERATED: 2026-03-20T15:45:10.381Z/merge
       name: "load"
       targets: [
-=======
-      targets: [
->>>>>>> EXISTING: 2026-02-16T17:23:58.518Z/merge
         {
           args: {
             params: [
@@ -222,12 +210,8 @@ main: kit: entity: planet: {
       ]
     }
     remove: {
-<<<<<<< GENERATED: 2026-03-20T15:45:10.381Z/merge
       name: "remove"
       targets: [
-=======
-      targets: [
->>>>>>> EXISTING: 2026-02-16T17:23:58.518Z/merge
         {
           args: {
             params: [
@@ -265,12 +249,8 @@ main: kit: entity: planet: {
       ]
     }
     update: {
-<<<<<<< GENERATED: 2026-03-20T15:45:10.381Z/merge
       name: "update"
       targets: [
-=======
-      targets: [
->>>>>>> EXISTING: 2026-02-16T17:23:58.518Z/merge
         {
           args: {
             params: [
