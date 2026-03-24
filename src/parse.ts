@@ -2,7 +2,7 @@
 
 import { bundleFromString, createConfig } from '@redocly/openapi-core'
 
-import decircular from 'decircular'
+import { decircular } from '@voxgig/util'
 
 import { relativizePath } from './utility'
 

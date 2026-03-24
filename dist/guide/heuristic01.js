@@ -61,9 +61,17 @@ async function heuristic01(ctx) {
     }
     const guide = result.data.guide;
     const metrics = guide.metrics;
-    const entityCount = Object.keys(guide.entity).length;
-    const totalPaths = Object.values(guide.entity).reduce((sum, ent) => sum + Object.keys(ent.path || {}).length, 0);
-    const totalOps = Object.values(guide.entity).reduce((sum, ent) => sum + Object.keys(ent.path || {}).reduce((s, p) => s + Object.keys(ent.path[p].op || {}).length, 0), 0);
+    const entities = Object.values(guide.entity);
+    const entityCount = entities.length;
+    let totalPaths = 0;
+    let totalOps = 0;
+    for (const ent of entities) {
+        const pathKeys = Object.keys(ent.path || {});
+        totalPaths += pathKeys.length;
+        for (const p of pathKeys) {
+            totalOps += Object.keys(ent.path[p].op || {}).length;
+        }
+    }
     ctx.log.info({
         point: 'heuristic01',
         note: `entities=${entityCount} paths=${metrics.count.path}` +
