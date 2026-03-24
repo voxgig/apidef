@@ -2,10 +2,8 @@
 /* Copyright (c) 2024-2025 Voxgig, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.parse = parse;
-
 const jsonic_1 = require("jsonic");
 const yaml_1 = require("@jsonic/yaml");
-const decircular_1 = __importDefault(require("decircular"));
 const util_1 = require("@voxgig/util");
 const utility_1 = require("./utility");
 const yamlParser = jsonic_1.Jsonic.make().use(yaml_1.Yaml);
@@ -87,12 +85,10 @@ async function parseOpenAPI(source, _meta) {
             }
         }
     }
-
     addXRefs(parsed);
     // Resolve $ref pointers
     resolveRefs(parsed, parsed);
-    const def = (0, decircular_1.default)(parsed);
-
+    const def = (0, util_1.decircular)(parsed);
     return def;
 }
 // Resolve all $ref JSON pointers in an object tree.
