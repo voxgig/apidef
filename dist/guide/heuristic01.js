@@ -60,6 +60,25 @@ async function heuristic01(ctx) {
         throw result.err;
     }
     const guide = result.data.guide;
+    const metrics = guide.metrics;
+    const entities = Object.values(guide.entity);
+    const entityCount = entities.length;
+    let totalPaths = 0;
+    let totalOps = 0;
+    for (const ent of entities) {
+        const pathKeys = Object.keys(ent.path || {});
+        totalPaths += pathKeys.length;
+        for (const p of pathKeys) {
+            totalOps += Object.keys(ent.path[p].op || {}).length;
+        }
+    }
+    ctx.log.info({
+        point: 'heuristic01',
+        note: `entities=${entityCount} paths=${metrics.count.path}` +
+            ` methods=${metrics.count.method} tags=${metrics.count.tag}` +
+            ` cmps=${metrics.count.cmp}` +
+            ` entity-paths=${totalPaths} entity-ops=${totalOps}`,
+    });
     return guide;
 }
 function ShowNode(spec) {

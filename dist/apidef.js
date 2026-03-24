@@ -37,13 +37,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.nom = exports.getModelPath = exports.sanitizeSlug = exports.formatJSONIC = exports.parse = exports.KIT = void 0;
+exports.nom = exports.getModelPath = exports.slugToPascalCase = exports.sanitizeSlug = exports.formatJSONIC = exports.parse = exports.KIT = void 0;
 exports.ApiDef = ApiDef;
 const Fs = __importStar(require("node:fs"));
 const node_path_1 = __importDefault(require("node:path"));
 const jostraca_1 = require("jostraca");
 const util_1 = require("@voxgig/util");
-const decircular_1 = __importDefault(require("decircular"));
+const util_2 = require("@voxgig/util");
 const types_1 = require("./types");
 Object.defineProperty(exports, "KIT", { enumerable: true, get: function () { return types_1.KIT; } });
 const guide_1 = require("./guide/guide");
@@ -54,6 +54,7 @@ const utility_1 = require("./utility");
 Object.defineProperty(exports, "nom", { enumerable: true, get: function () { return utility_1.nom; } });
 Object.defineProperty(exports, "formatJSONIC", { enumerable: true, get: function () { return utility_1.formatJSONIC; } });
 Object.defineProperty(exports, "sanitizeSlug", { enumerable: true, get: function () { return utility_1.sanitizeSlug; } });
+Object.defineProperty(exports, "slugToPascalCase", { enumerable: true, get: function () { return utility_1.slugToPascalCase; } });
 Object.defineProperty(exports, "getModelPath", { enumerable: true, get: function () { return utility_1.getModelPath; } });
 const top_1 = require("./transform/top");
 const entity_1 = require("./transform/entity");
@@ -148,9 +149,13 @@ function ApiDef(opts) {
                 defpath,
                 note: defkeys.join(', ')
             });
-            const safedef = (0, decircular_1.default)(def);
-            const fullsrc = JSON.stringify(safedef, null, 2);
-            fs.writeFileSync(defpath + '.full.json', fullsrc);
+            const safedef = (0, util_2.decircular)(def);
+            // Only write the full JSON debug file when debug mode is enabled,
+            // as decircular + JSON.stringify + sync write is expensive for large specs.
+            if (opts.debug) {
+                const fullsrc = JSON.stringify(safedef, null, 2);
+                fs.writeFileSync(defpath + '.full.json', fullsrc);
+            }
             ctx.def = safedef;
             steps.push('parse');
             // Step: guide (derive).

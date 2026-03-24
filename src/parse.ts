@@ -3,7 +3,7 @@
 import { Jsonic } from 'jsonic'
 import { Yaml } from '@jsonic/yaml'
 
-import decircular from 'decircular'
+import { decircular } from '@voxgig/util'
 
 import { relativizePath } from './utility'
 

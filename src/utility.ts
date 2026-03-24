@@ -24,6 +24,11 @@ import type {
 
 const KONSOLE_LOG = console['log']
 
+// Pre-compiled regex patterns for formatJsonSrc to avoid recompilation per call.
+const RE_JSON_KEY = /"([a-zA-Z_][a-zA-Z_0-9]*)": /g
+const RE_JSON_TRAILING_BRACE = /},/g
+const RE_JSON_COMMENT = /\n(\s*)([a-zA-Z_][a-zA-Z_0-9]*)_COMMENT:\s*"(.*)",/g
+
 
 function makeWarner(spec: { point: string, log: Log }): Warner {
   const { point, log } = spec
@@ -90,10 +95,9 @@ function loadFile(path: string, what: string, fs: FsUtil, log: Log) {
 
 function formatJsonSrc(jsonsrc: string) {
   return jsonsrc
-    .replace(/"([a-zA-Z_][a-zA-Z_0-9]*)": /g, '$1: ')
-    .replace(/},/g, '}\n')
-    // .replace(/([a-zA-Z_][a-zA-Z_0-9]*)_COMMENT:/g, '# $1')
-    .replace(/\n(\s*)([a-zA-Z_][a-zA-Z_0-9]*)_COMMENT:\s*"(.*)",/g, '\n\n$1# $2 $3')
+    .replace(RE_JSON_KEY, '$1: ')
+    .replace(RE_JSON_TRAILING_BRACE, '}\n')
+    .replace(RE_JSON_COMMENT, '\n\n$1# $2 $3')
 }
 
 
@@ -772,7 +776,25 @@ function sanitizeSlug(s: string): string {
   out = parts.join('-')
 
   if (!out) return 'unknown'
+
+  // Ensure the slug does not start with a digit (invalid for JS identifiers)
+  if (/^\d/.test(out)) {
+    out = 'n' + out
+  }
+
   return out
+}
+
+
+// Convert a raw slug to a valid PascalCase identifier.
+// Applies sanitizeSlug first, then converts to PascalCase.
+function slugToPascalCase(s: string): string {
+  const slug = sanitizeSlug(s)
+  if (slug === 'unknown') return 'Unknown'
+  return slug
+    .split('-')
+    .map(p => p.charAt(0).toUpperCase() + p.slice(1))
+    .join('')
 }
 
 
@@ -1090,6 +1112,7 @@ export {
   validator,
   canonize,
   sanitizeSlug,
+  slugToPascalCase,
   transliterate,
   cleanComponentName,
   ensureMinEntityName,

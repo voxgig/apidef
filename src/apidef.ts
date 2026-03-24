@@ -11,7 +11,7 @@ import {
 
 import { prettyPino } from '@voxgig/util'
 
-import decircular from 'decircular'
+import { decircular } from '@voxgig/util'
 
 
 import type {
@@ -56,6 +56,7 @@ import {
   makeWarner,
   formatJSONIC,
   sanitizeSlug,
+  slugToPascalCase,
   writeFileSyncWarn,
   relativizePath,
   getModelPath,
@@ -180,9 +181,13 @@ function ApiDef(opts: ApiDefOptions) {
       })
 
       const safedef = decircular(def)
-      const fullsrc = JSON.stringify(safedef, null, 2)
 
-      fs.writeFileSync(defpath + '.full.json', fullsrc)
+      // Only write the full JSON debug file when debug mode is enabled,
+      // as decircular + JSON.stringify + sync write is expensive for large specs.
+      if (opts.debug) {
+        const fullsrc = JSON.stringify(safedef, null, 2)
+        fs.writeFileSync(defpath + '.full.json', fullsrc)
+      }
 
       ctx.def = safedef
 
@@ -416,6 +421,7 @@ export {
   parse,
   formatJSONIC,
   sanitizeSlug,
+  slugToPascalCase,
   getModelPath,
   nom,
 }

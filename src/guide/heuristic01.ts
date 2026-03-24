@@ -67,6 +67,7 @@ const IS_ENTCMP_METHOD_RATE = 0.21
 const IS_ENTCMP_PATH_RATE = 0.41
 
 
+
 const METHOD_IDOP: Record<string, string> = {
   GET: 'load',
   POST: 'create',
@@ -123,6 +124,27 @@ async function heuristic01(ctx: ApiDefContext): Promise<Guide> {
   }
 
   const guide = result.data.guide
+  const metrics = guide.metrics
+
+  const entities = Object.values(guide.entity)
+  const entityCount = entities.length
+  let totalPaths = 0
+  let totalOps = 0
+  for (const ent of entities as any[]) {
+    const pathKeys = Object.keys(ent.path || {})
+    totalPaths += pathKeys.length
+    for (const p of pathKeys) {
+      totalOps += Object.keys(ent.path[p].op || {}).length
+    }
+  }
+
+  ctx.log.info({
+    point: 'heuristic01',
+    note: `entities=${entityCount} paths=${metrics.count.path}` +
+      ` methods=${metrics.count.method} tags=${metrics.count.tag}` +
+      ` cmps=${metrics.count.cmp}` +
+      ` entity-paths=${totalPaths} entity-ops=${totalOps}`,
+  })
 
   return guide
 
