@@ -5,9 +5,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.parse = parse;
-const openapi_core_1 = require("@redocly/openapi-core");
+const jsonic_1 = require("jsonic");
+const yaml_1 = require("@jsonic/yaml");
 const decircular_1 = __importDefault(require("decircular"));
 const utility_1 = require("./utility");
+const yamlParser = jsonic_1.Jsonic.make().use(yaml_1.Yaml);
 // Parse an API definition source into a JSON sructure.
 async function parse(kind, source, meta) {
     if ('OpenAPI' === kind) {
@@ -23,6 +25,11 @@ async function parse(kind, source, meta) {
                         ` (${(0, utility_1.relativizePath)(meta.file)})`;
                 pe = pe.originalError;
             }
+            else if (pe.code && pe.code.startsWith('jsonic')) {
+                pe.message =
+                    `@voxgig/apidef: parse: syntax: ${pe.message}` +
+                        ` (${(0, utility_1.relativizePath)(meta.file)})`;
+            }
             else {
                 pe.message =
                     `@voxgig/apidef: parse: internal: ${pe.message}` +
@@ -36,16 +43,28 @@ async function parse(kind, source, meta) {
             ` (${(0, utility_1.relativizePath)(meta.file)})`);
     }
 }
-async function parseOpenAPI(source, meta) {
-    const base = meta?.config || {};
-    const config = await (0, openapi_core_1.createConfig)(base);
-    // First pass: parse without dereferencing to preserve $refs
-    const bundleWithRefs = await (0, openapi_core_1.bundleFromString)({
-        source,
-        config,
-        dereference: false,
-    });
-    // Walk the tree and add x-ref properties
+async function parseOpenAPI(source, _meta) {
+    let parsed;
+    try {
+        parsed = yamlParser(source);
+    }
+    catch (err) {
+        // Rethrow jsonic parse errors with context
+        throw err;
+    }
+    // Validate parsed result is a non-null object
+    if (null == parsed || 'object' !== typeof parsed || Array.isArray(parsed)) {
+        throw new Error(`@voxgig/apidef: parse: JSON/YAML source must be an object`);
+    }
+    // Validate it's an OpenAPI or Swagger spec
+    if (!parsed.openapi && !parsed.swagger) {
+        throw new Error(`@voxgig/apidef: parse: Unsupported OpenAPI version: undefined`);
+    }
+    // Ensure components exists (Redocly used to add this automatically)
+    if (null == parsed.components) {
+        parsed.components = {};
+    }
+    // Walk the tree and add x-ref properties (preserving original $ref values)
     const seen = new WeakSet();
     let refCount = 0;
     function addXRefs(obj, path = '') {
@@ -69,18 +88,77 @@ async function parseOpenAPI(source, meta) {
             }
         }
     }
-    addXRefs(bundleWithRefs.bundle.parsed);
-    // Serialize back to string with x-refs preserved
-    const sourceWithXRefs = JSON.stringify((0, decircular_1.default)(bundleWithRefs.bundle.parsed));
-    // Second pass: parse with dereferencing
-    const bundle = await (0, openapi_core_1.bundleFromString)({
-        source: sourceWithXRefs,
-        // source,
-        config,
-        dereference: true,
-    });
-    const def = (0, decircular_1.default)(bundle.bundle.parsed);
+    addXRefs(parsed);
+    // Resolve $ref pointers
+    resolveRefs(parsed, parsed);
+    const def = (0, decircular_1.default)(parsed);
     return def;
+}
+// Resolve all $ref JSON pointers in an object tree.
+// Replaces { $ref: "#/path/to/target", "x-ref": "..." } with the
+// resolved target's properties, preserving x-ref.
+function resolveRefs(obj, root, visited) {
+    if (!obj || typeof obj !== 'object')
+        return;
+    if (!visited)
+        visited = new WeakSet();
+    if (visited.has(obj))
+        return;
+    visited.add(obj);
+    if (Array.isArray(obj)) {
+        for (let i = 0; i < obj.length; i++) {
+            const item = obj[i];
+            if (item && typeof item === 'object' && typeof item.$ref === 'string') {
+                const resolved = resolvePointer(root, item.$ref);
+                if (resolved !== undefined) {
+                    const xref = item['x-ref'];
+                    obj[i] = { ...resolved };
+                    if (xref) {
+                        obj[i]['x-ref'] = xref;
+                    }
+                    resolveRefs(obj[i], root, visited);
+                }
+            }
+            else {
+                resolveRefs(item, root, visited);
+            }
+        }
+    }
+    else {
+        for (const key of Object.keys(obj)) {
+            const val = obj[key];
+            if (val && typeof val === 'object' && typeof val.$ref === 'string') {
+                const resolved = resolvePointer(root, val.$ref);
+                if (resolved !== undefined) {
+                    const xref = val['x-ref'];
+                    obj[key] = { ...resolved };
+                    if (xref) {
+                        obj[key]['x-ref'] = xref;
+                    }
+                    resolveRefs(obj[key], root, visited);
+                }
+            }
+            else {
+                resolveRefs(val, root, visited);
+            }
+        }
+    }
+}
+// Follow a JSON pointer like "#/components/schemas/Planet"
+function resolvePointer(root, ref) {
+    if (!ref.startsWith('#/'))
+        return undefined;
+    const parts = ref
+        .substring(2)
+        .split('/')
+        .map(p => p.replace(/~1/g, '/').replace(/~0/g, '~'));
+    let current = root;
+    for (const part of parts) {
+        if (current == null || typeof current !== 'object')
+            return undefined;
+        current = current[part];
+    }
+    return current;
 }
 function validateSource(kind, source, meta) {
     if (typeof source !== 'string') {
