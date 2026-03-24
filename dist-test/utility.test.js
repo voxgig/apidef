@@ -83,8 +83,11 @@ const utility_1 = require("../dist/utility");
         (0, code_1.expect)((0, utility_1.sanitizeSlug)('ec-2-shop')).equal('ec2-shop');
         (0, code_1.expect)((0, utility_1.sanitizeSlug)('advice-slip-api-2')).equal('advice-slip-api2');
         (0, code_1.expect)((0, utility_1.sanitizeSlug)('s-3-bucket')).equal('s3-bucket');
-        // Leading numbers stay (no preceding word to merge with)
-        (0, code_1.expect)((0, utility_1.sanitizeSlug)('2-fast')).equal('2-fast');
+        // Leading numbers get 'n' prefix (must be valid JS identifier)
+        (0, code_1.expect)((0, utility_1.sanitizeSlug)('2-fast')).equal('n2-fast');
+        (0, code_1.expect)((0, utility_1.sanitizeSlug)('404-error-handler')).equal('n404-error-handler');
+        (0, code_1.expect)((0, utility_1.sanitizeSlug)('4chan-api')).equal('n4chan-api');
+        (0, code_1.expect)((0, utility_1.sanitizeSlug)('7timer-weather-api')).equal('n7timer-weather-api');
         // Hyphens are collapsed and trimmed
         (0, code_1.expect)((0, utility_1.sanitizeSlug)('--my--api--')).equal('my-api');
         // Empty/null returns 'unknown'
@@ -92,6 +95,37 @@ const utility_1 = require("../dist/utility");
         (0, code_1.expect)((0, utility_1.sanitizeSlug)('!!!')).equal('unknown');
         // Non-Latin chars are stripped
         (0, code_1.expect)((0, utility_1.sanitizeSlug)('api検索')).equal('api');
+    });
+    (0, node_test_1.test)('slugToPascalCase', () => {
+        // Simple slugs
+        (0, code_1.expect)((0, utility_1.slugToPascalCase)('my-api')).equal('MyApi');
+        (0, code_1.expect)((0, utility_1.slugToPascalCase)('cool-service')).equal('CoolService');
+        // Accented characters are transliterated
+        (0, code_1.expect)((0, utility_1.slugToPascalCase)('dólar-y-monedas-api')).equal('DolarYMonedasApi');
+        // Special characters are stripped
+        (0, code_1.expect)((0, utility_1.slugToPascalCase)('data.gov.au-api')).equal('DataGovAuApi');
+        (0, code_1.expect)((0, utility_1.slugToPascalCase)('osu!-beatmap-api')).equal('OsuBeatmapApi');
+        (0, code_1.expect)((0, utility_1.slugToPascalCase)('healthcare.gov-content-api')).equal('HealthcareGovContentApi');
+        (0, code_1.expect)((0, utility_1.slugToPascalCase)('phish.in-api')).equal('PhishInApi');
+        (0, code_1.expect)((0, utility_1.slugToPascalCase)('v.gd-api')).equal('VGdApi');
+        (0, code_1.expect)((0, utility_1.slugToPascalCase)('swiss-federal-railways-(sbb)')).equal('SwissFederalRailwaysSbb');
+        (0, code_1.expect)((0, utility_1.slugToPascalCase)('yu-gi-oh!-api')).equal('YuGiOhApi');
+        // Leading numbers get 'n' prefix
+        (0, code_1.expect)((0, utility_1.slugToPascalCase)('404-error-handler')).equal('N404ErrorHandler');
+        (0, code_1.expect)((0, utility_1.slugToPascalCase)('4chan-api')).equal('N4chanApi');
+        (0, code_1.expect)((0, utility_1.slugToPascalCase)('7timer-weather-api')).equal('N7timerWeatherApi');
+        // Embedded numbers merge with preceding word
+        (0, code_1.expect)((0, utility_1.slugToPascalCase)('ec-2-shop')).equal('Ec2Shop');
+        (0, code_1.expect)((0, utility_1.slugToPascalCase)('guild-wars-2-api')).equal('GuildWars2Api');
+        (0, code_1.expect)((0, utility_1.slugToPascalCase)('magic-8-ball-api')).equal('Magic8BallApi');
+        // Normal slugs
+        (0, code_1.expect)((0, utility_1.slugToPascalCase)('no-as-a-service')).equal('NoAsAService');
+        (0, code_1.expect)((0, utility_1.slugToPascalCase)('yes-as-a-service')).equal('YesAsAService');
+        (0, code_1.expect)((0, utility_1.slugToPascalCase)('shame-as-a-service')).equal('ShameAsAService');
+        (0, code_1.expect)((0, utility_1.slugToPascalCase)('api')).equal('Api');
+        // Edge cases
+        (0, code_1.expect)((0, utility_1.slugToPascalCase)('')).equal('Unknown');
+        (0, code_1.expect)((0, utility_1.slugToPascalCase)('!!!')).equal('Unknown');
     });
     (0, node_test_1.test)('transliterate', () => {
         // Latin diacritics are decomposed

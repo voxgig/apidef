@@ -16,6 +16,7 @@ exports.formatJSONIC = formatJSONIC;
 exports.validator = validator;
 exports.canonize = canonize;
 exports.sanitizeSlug = sanitizeSlug;
+exports.slugToPascalCase = slugToPascalCase;
 exports.transliterate = transliterate;
 exports.cleanComponentName = cleanComponentName;
 exports.ensureMinEntityName = ensureMinEntityName;
@@ -639,7 +640,22 @@ function sanitizeSlug(s) {
     out = parts.join('-');
     if (!out)
         return 'unknown';
+    // Ensure the slug does not start with a digit (invalid for JS identifiers)
+    if (/^\d/.test(out)) {
+        out = 'n' + out;
+    }
     return out;
+}
+// Convert a raw slug to a valid PascalCase identifier.
+// Applies sanitizeSlug first, then converts to PascalCase.
+function slugToPascalCase(s) {
+    const slug = sanitizeSlug(s);
+    if (slug === 'unknown')
+        return 'Unknown';
+    return slug
+        .split('-')
+        .map(p => p.charAt(0).toUpperCase() + p.slice(1))
+        .join('');
 }
 const BOOLEAN_NAME_RE = /^(is_|has_|can_|should_|allow_|enabled$|disabled$|active$|visible$|deleted$|verified$|public$|private$|locked$|archived$|blocked$)/;
 const INTEGER_NAME_RE = /(_count$|_number$|^total_|^count_|^num_|^limit$|^page$|^offset$|^per_page$|^page_size$|^size$|^skip$)/;

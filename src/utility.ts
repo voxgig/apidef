@@ -772,7 +772,25 @@ function sanitizeSlug(s: string): string {
   out = parts.join('-')
 
   if (!out) return 'unknown'
+
+  // Ensure the slug does not start with a digit (invalid for JS identifiers)
+  if (/^\d/.test(out)) {
+    out = 'n' + out
+  }
+
   return out
+}
+
+
+// Convert a raw slug to a valid PascalCase identifier.
+// Applies sanitizeSlug first, then converts to PascalCase.
+function slugToPascalCase(s: string): string {
+  const slug = sanitizeSlug(s)
+  if (slug === 'unknown') return 'Unknown'
+  return slug
+    .split('-')
+    .map(p => p.charAt(0).toUpperCase() + p.slice(1))
+    .join('')
 }
 
 
@@ -1090,6 +1108,7 @@ export {
   validator,
   canonize,
   sanitizeSlug,
+  slugToPascalCase,
   transliterate,
   cleanComponentName,
   ensureMinEntityName,

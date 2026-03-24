@@ -12,6 +12,7 @@ import {
   depluralize,
   canonize,
   sanitizeSlug,
+  slugToPascalCase,
   transliterate,
   cleanComponentName,
   ensureMinEntityName,
@@ -118,8 +119,11 @@ describe('utility', () => {
     expect(sanitizeSlug('advice-slip-api-2')).equal('advice-slip-api2')
     expect(sanitizeSlug('s-3-bucket')).equal('s3-bucket')
 
-    // Leading numbers stay (no preceding word to merge with)
-    expect(sanitizeSlug('2-fast')).equal('2-fast')
+    // Leading numbers get 'n' prefix (must be valid JS identifier)
+    expect(sanitizeSlug('2-fast')).equal('n2-fast')
+    expect(sanitizeSlug('404-error-handler')).equal('n404-error-handler')
+    expect(sanitizeSlug('4chan-api')).equal('n4chan-api')
+    expect(sanitizeSlug('7timer-weather-api')).equal('n7timer-weather-api')
 
     // Hyphens are collapsed and trimmed
     expect(sanitizeSlug('--my--api--')).equal('my-api')
@@ -130,6 +134,44 @@ describe('utility', () => {
 
     // Non-Latin chars are stripped
     expect(sanitizeSlug('api検索')).equal('api')
+  })
+
+  test('slugToPascalCase', () => {
+    // Simple slugs
+    expect(slugToPascalCase('my-api')).equal('MyApi')
+    expect(slugToPascalCase('cool-service')).equal('CoolService')
+
+    // Accented characters are transliterated
+    expect(slugToPascalCase('dólar-y-monedas-api')).equal('DolarYMonedasApi')
+
+    // Special characters are stripped
+    expect(slugToPascalCase('data.gov.au-api')).equal('DataGovAuApi')
+    expect(slugToPascalCase('osu!-beatmap-api')).equal('OsuBeatmapApi')
+    expect(slugToPascalCase('healthcare.gov-content-api')).equal('HealthcareGovContentApi')
+    expect(slugToPascalCase('phish.in-api')).equal('PhishInApi')
+    expect(slugToPascalCase('v.gd-api')).equal('VGdApi')
+    expect(slugToPascalCase('swiss-federal-railways-(sbb)')).equal('SwissFederalRailwaysSbb')
+    expect(slugToPascalCase('yu-gi-oh!-api')).equal('YuGiOhApi')
+
+    // Leading numbers get 'n' prefix
+    expect(slugToPascalCase('404-error-handler')).equal('N404ErrorHandler')
+    expect(slugToPascalCase('4chan-api')).equal('N4chanApi')
+    expect(slugToPascalCase('7timer-weather-api')).equal('N7timerWeatherApi')
+
+    // Embedded numbers merge with preceding word
+    expect(slugToPascalCase('ec-2-shop')).equal('Ec2Shop')
+    expect(slugToPascalCase('guild-wars-2-api')).equal('GuildWars2Api')
+    expect(slugToPascalCase('magic-8-ball-api')).equal('Magic8BallApi')
+
+    // Normal slugs
+    expect(slugToPascalCase('no-as-a-service')).equal('NoAsAService')
+    expect(slugToPascalCase('yes-as-a-service')).equal('YesAsAService')
+    expect(slugToPascalCase('shame-as-a-service')).equal('ShameAsAService')
+    expect(slugToPascalCase('api')).equal('Api')
+
+    // Edge cases
+    expect(slugToPascalCase('')).equal('Unknown')
+    expect(slugToPascalCase('!!!')).equal('Unknown')
   })
 
   test('transliterate', () => {

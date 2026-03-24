@@ -56,6 +56,7 @@ import {
   makeWarner,
   formatJSONIC,
   sanitizeSlug,
+  slugToPascalCase,
   writeFileSyncWarn,
   relativizePath,
   getModelPath,
@@ -416,6 +417,7 @@ export {
   parse,
   formatJSONIC,
   sanitizeSlug,
+  slugToPascalCase,
   getModelPath,
   nom,
 }
