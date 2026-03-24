@@ -33,6 +33,10 @@ const jostraca_1 = require("jostraca");
 const util_1 = require("@voxgig/util");
 const struct_1 = require("@voxgig/struct");
 const KONSOLE_LOG = console['log'];
+// Pre-compiled regex patterns for formatJsonSrc to avoid recompilation per call.
+const RE_JSON_KEY = /"([a-zA-Z_][a-zA-Z_0-9]*)": /g;
+const RE_JSON_TRAILING_BRACE = /},/g;
+const RE_JSON_COMMENT = /\n(\s*)([a-zA-Z_][a-zA-Z_0-9]*)_COMMENT:\s*"(.*)",/g;
 function makeWarner(spec) {
     const { point, log } = spec;
     const history = [];
@@ -82,10 +86,9 @@ function loadFile(path, what, fs, log) {
 }
 function formatJsonSrc(jsonsrc) {
     return jsonsrc
-        .replace(/"([a-zA-Z_][a-zA-Z_0-9]*)": /g, '$1: ')
-        .replace(/},/g, '}\n')
-        // .replace(/([a-zA-Z_][a-zA-Z_0-9]*)_COMMENT:/g, '# $1')
-        .replace(/\n(\s*)([a-zA-Z_][a-zA-Z_0-9]*)_COMMENT:\s*"(.*)",/g, '\n\n$1# $2 $3');
+        .replace(RE_JSON_KEY, '$1: ')
+        .replace(RE_JSON_TRAILING_BRACE, '}\n')
+        .replace(RE_JSON_COMMENT, '\n\n$1# $2 $3');
 }
 function depluralize(word) {
     if (!word || word.length === 0) {

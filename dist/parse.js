@@ -1,12 +1,9 @@
 "use strict";
 /* Copyright (c) 2024-2025 Voxgig, MIT License */
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.parse = parse;
 const openapi_core_1 = require("@redocly/openapi-core");
-const decircular_1 = __importDefault(require("decircular"));
+const util_1 = require("@voxgig/util");
 const utility_1 = require("./utility");
 // Parse an API definition source into a JSON sructure.
 async function parse(kind, source, meta) {
@@ -71,7 +68,7 @@ async function parseOpenAPI(source, meta) {
     }
     addXRefs(bundleWithRefs.bundle.parsed);
     // Serialize back to string with x-refs preserved
-    const sourceWithXRefs = JSON.stringify((0, decircular_1.default)(bundleWithRefs.bundle.parsed));
+    const sourceWithXRefs = JSON.stringify((0, util_1.decircular)(bundleWithRefs.bundle.parsed));
     // Second pass: parse with dereferencing
     const bundle = await (0, openapi_core_1.bundleFromString)({
         source: sourceWithXRefs,
@@ -79,7 +76,7 @@ async function parseOpenAPI(source, meta) {
         config,
         dereference: true,
     });
-    const def = (0, decircular_1.default)(bundle.bundle.parsed);
+    const def = (0, util_1.decircular)(bundle.bundle.parsed);
     return def;
 }
 function validateSource(kind, source, meta) {

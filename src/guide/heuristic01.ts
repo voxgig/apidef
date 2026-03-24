@@ -126,12 +126,17 @@ async function heuristic01(ctx: ApiDefContext): Promise<Guide> {
   const guide = result.data.guide
   const metrics = guide.metrics
 
-  const entityCount = Object.keys(guide.entity).length
-  const totalPaths = Object.values(guide.entity).reduce((sum: number, ent: any) =>
-    sum + Object.keys(ent.path || {}).length, 0)
-  const totalOps = Object.values(guide.entity).reduce((sum: number, ent: any) =>
-    sum + Object.keys(ent.path || {}).reduce((s: number, p: string) =>
-      s + Object.keys(ent.path[p].op || {}).length, 0), 0)
+  const entities = Object.values(guide.entity)
+  const entityCount = entities.length
+  let totalPaths = 0
+  let totalOps = 0
+  for (const ent of entities as any[]) {
+    const pathKeys = Object.keys(ent.path || {})
+    totalPaths += pathKeys.length
+    for (const p of pathKeys) {
+      totalOps += Object.keys(ent.path[p].op || {}).length
+    }
+  }
 
   ctx.log.info({
     point: 'heuristic01',
