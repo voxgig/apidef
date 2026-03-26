@@ -3,7 +3,7 @@
 import * as Fs from 'node:fs'
 
 import { test, describe } from 'node:test'
-import { expect } from '@hapi/code'
+import assert from 'node:assert'
 
 import { Aontu } from 'aontu'
 
@@ -24,7 +24,7 @@ const aontu = new Aontu({ fs: Fs })
 describe('apidef', () => {
 
   test('exist', async () => {
-    expect(ApiDef).exist()
+    assert.ok(ApiDef)
   })
 
 
@@ -64,7 +64,10 @@ describe('apidef', () => {
       {}
     )
 
-    expect(bres.guide).contains(SOLAR_GUIDE)
+    assert.deepStrictEqual(bres.guide.entity, SOLAR_GUIDE.entity)
+    assert.deepStrictEqual(bres.guide.metrics.count.entity, SOLAR_GUIDE.metrics.count.entity)
+    assert.deepStrictEqual(bres.guide.metrics.count.path, SOLAR_GUIDE.metrics.count.path)
+    assert.deepStrictEqual(bres.guide.metrics.count.method, SOLAR_GUIDE.metrics.count.method)
   })
 
 
@@ -112,19 +115,19 @@ describe('apidef', () => {
     // Planet schema has required: [id, name, kind, diameter]
     const planetFields: Record<string, any> = {}
     for (const f of planet.fields) { planetFields[f.name] = f }
-    expect(planetFields.id.req).true()
-    expect(planetFields.name.req).true()
-    expect(planetFields.kind.req).true()
-    expect(planetFields.diameter.req).true()
+    assert.strictEqual(planetFields.id.req, true)
+    assert.strictEqual(planetFields.name.req, true)
+    assert.strictEqual(planetFields.kind.req, true)
+    assert.strictEqual(planetFields.diameter.req, true)
 
     // Moon schema has required: [id, name, planet_id, kind, diameter]
     const moonFields: Record<string, any> = {}
     for (const f of moon.fields) { moonFields[f.name] = f }
-    expect(moonFields.id.req).true()
-    expect(moonFields.name.req).true()
-    expect(moonFields.planet_id.req).true()
-    expect(moonFields.kind.req).true()
-    expect(moonFields.diameter.req).true()
+    assert.strictEqual(moonFields.id.req, true)
+    assert.strictEqual(moonFields.name.req, true)
+    assert.strictEqual(moonFields.planet_id.req, true)
+    assert.strictEqual(moonFields.kind.req, true)
+    assert.strictEqual(moonFields.diameter.req, true)
   })
 
 
@@ -173,13 +176,13 @@ def: '${outprefix}def.yaml'
     }
 
     const bres = await build(modelinit, buildspec, {})
-    expect(bres.ok).true()
+    assert.strictEqual(bres.ok, true)
 
     const model = aontu.generate(`@"test/solar/solar.jsonic"`, {
       base: __dirname + '/..'
     })
 
-    expect(model).includes(SOLAR_MODEL)
+    assert.deepStrictEqual(model.main.kit, SOLAR_MODEL.main.kit)
   })
 
 })

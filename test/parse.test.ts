@@ -2,7 +2,7 @@
 
 
 import { test, describe } from 'node:test'
-import { expect } from '@hapi/code'
+import assert from 'node:assert'
 
 
 
@@ -16,22 +16,22 @@ describe('parse', () => {
   test('happy', async () => {
     const pm0 = { file: 'f0' }
 
-    expect(parse).exist()
+    assert.ok(parse)
 
-    await expect(parse('not-a-kind', '', pm0)).reject(/unknown/)
-    await expect(parse('OpenAPI', 'bad', pm0)).reject(/JSON/)
-    await expect(parse('OpenAPI', undefined, pm0)).reject(/string/)
-    await expect(parse('OpenAPI', '{}', pm0)).reject(/Unsupported/)
-    await expect(parse('OpenAPI', '', pm0)).reject(/empty/)
+    await assert.rejects(parse('not-a-kind', '', pm0), /unknown/)
+    await assert.rejects(parse('OpenAPI', 'bad', pm0), /JSON/)
+    await assert.rejects(parse('OpenAPI', undefined, pm0), /string/)
+    await assert.rejects(parse('OpenAPI', '{}', pm0), /Unsupported/)
+    await assert.rejects(parse('OpenAPI', '', pm0), /empty/)
 
-    await expect(parse('OpenAPI', `openapi: 3.0.0
-a::1`, pm0)).reject(/syntax/)
+    await assert.rejects(parse('OpenAPI', `openapi: 3.0.0
+a::1`, pm0), /syntax/)
 
     const p0 = await parse(
       'OpenAPI',
       '{"openapi":"3.0.0", "info": {"title": "T0","version": "1.0.0"},"paths":{}}',
       pm0)
-    expect(p0).equal({
+    assert.deepStrictEqual(p0, {
       openapi: '3.0.0',
       info: { title: 'T0', version: '1.0.0' },
       paths: {},
@@ -46,7 +46,7 @@ info:
 paths: {}
 `, pm0)
 
-    expect(p1).equal({
+    assert.deepStrictEqual(p1, {
       openapi: '3.0.0',
       info: { title: 'T1', version: '1.0.0' },
       paths: {},
@@ -60,29 +60,29 @@ paths: {}
     const pm0 = { file: 'f0' }
 
     // Empty string should be rejected
-    await expect(parse('OpenAPI', '', pm0)).reject(/source is empty/)
+    await assert.rejects(parse('OpenAPI', '', pm0), /source is empty/)
 
     // Only whitespace should be rejected
-    await expect(parse('OpenAPI', '   \n\t  \n  ', pm0)).reject(/source is empty/)
+    await assert.rejects(parse('OpenAPI', '   \n\t  \n  ', pm0), /source is empty/)
 
     // Only YAML comments should be rejected
-    await expect(parse('OpenAPI', '# Just a comment', pm0)).reject(/source is empty/)
+    await assert.rejects(parse('OpenAPI', '# Just a comment', pm0), /source is empty/)
 
     // Comments and whitespace should be rejected
-    await expect(parse('OpenAPI', `
+    await assert.rejects(parse('OpenAPI', `
 # Comment 1
   # Comment 2
     # Comment 3
-`, pm0)).reject(/source is empty/)
+`, pm0), /source is empty/)
 
     // Mix of comments and whitespace should be rejected
-    await expect(parse('OpenAPI', `
+    await assert.rejects(parse('OpenAPI', `
 
 # Header comment
 
   # Another comment
 
-`, pm0)).reject(/source is empty/)
+`, pm0), /source is empty/)
   })
 
 

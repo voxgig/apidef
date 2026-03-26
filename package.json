@@ -40,26 +40,21 @@
     "LICENSE"
   ],
   "devDependencies": {
-    "@hapi/code": "^9.0.3",
-"@types/node": "25.5.0",
-    "json-schema-to-ts": "^3.1.1",
+    "@types/node": "25.5.0",
     "typescript": "^6.0.2"
   },
   "peerDependencies": {
-    "aontu": ">=0.39.0",
-    "memfs": ">=4.57.1"
+    "aontu": ">=0.39.0"
   },
   "dependencies": {
     "@jsonic/yaml": "0.1.4",
     "jsonic": "^2.19.0",
     "@voxgig/struct": "^0.0.10",
     "@voxgig/util": "^0.3.0",
-    "chokidar": "^5.0.0",
-    "decircular": "^1.0.0",
     "diff": "^8.0.4",
-    "gubu": "^9.0.0",
+    "shape": "^10.0.0",
     "jostraca": "^0.28.0",
-    "ordu": "^4.1.1",
+    "ordu": "^4.2.0",
     "pino": "^10.3.1",
     "pino-pretty": "^13.1.3"
   }

@@ -1,8 +1,11 @@
 "use strict";
 /* Copyright (c) 2024-2025 Voxgig Ltd, MIT License */
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const node_test_1 = require("node:test");
-const code_1 = require("@hapi/code");
+const node_assert_1 = __importDefault(require("node:assert"));
 const entity_1 = require("../../dist/transform/entity");
 (0, node_test_1.describe)('transform-entity', () => {
     // test('resolvePathList', () => {
@@ -36,7 +39,7 @@ const entity_1 = require("../../dist/transform/entity");
     //   ])
     // })
     (0, node_test_1.test)('buildRelations', () => {
-        (0, code_1.expect)(entity_1.buildRelations).exist();
+        node_assert_1.default.ok(entity_1.buildRelations);
         const r0 = (0, entity_1.buildRelations)({}, [
             { parts: ['a'] },
             { parts: ['b', '{id}'] },
@@ -50,7 +53,7 @@ const entity_1 = require("../../dist/transform/entity");
             { parts: ['oo', 'o', '{o_id}', 'n', '{n_id}', 'm', '{id}'] },
         ]);
         // console.dir(r0, { depth: null })
-        (0, code_1.expect)(r0).equals({
+        node_assert_1.default.deepStrictEqual(r0, {
             ancestors: [['f'], ['h'], ['l', 'k'], ['p', 'n'], ['q', 'o', 'n']]
         });
     });

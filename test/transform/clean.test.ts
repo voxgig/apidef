@@ -2,7 +2,7 @@
 
 
 import { test, describe } from 'node:test'
-import { expect } from '@hapi/code'
+import assert from 'node:assert'
 
 
 
@@ -14,12 +14,12 @@ import {
 describe('transform-clean', () => {
 
   test('basic', async () => {
-    expect(cleanTransform).exist()
+    assert.ok(cleanTransform)
 
     let c: any = { apimodel: { a: { x: 1 }, b$: { x: 2 }, c: {}, d: [] } }
     let r: any = await cleanTransform(c)
-    expect(r.ok).equal(true)
-    expect(c.apimodel).equal({ a: { x: 1 } })
+    assert.deepStrictEqual(r.ok, true)
+    assert.deepStrictEqual(c.apimodel, { a: { x: 1 } })
   })
 
 

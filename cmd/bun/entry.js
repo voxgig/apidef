@@ -6,7 +6,7 @@ const Path = require('node:path')
 const { statSync } = require('node:fs')
 const { parseArgs } = require('node:util')
 
-const { Gubu, Fault, One } = require('gubu')
+const { Shape, Fault, One } = require('shape')
 
 const Pkg = require('../../package.json')
 
@@ -131,7 +131,7 @@ function resolveOptions() {
 
 
 function validateOptions(rawOptions) {
-  const optShape = Gubu({
+  const optShape = Shape({
     name: Fault('The first argument should be the project name.', String),
     folder: String,
     def: '',

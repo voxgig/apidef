@@ -2,7 +2,7 @@
 
 
 import { test, describe } from 'node:test'
-import { expect } from '@hapi/code'
+import assert from 'node:assert'
 
 import { snakify } from 'jostraca'
 
@@ -27,460 +27,460 @@ import {
 describe('utility', () => {
 
   test('depluralize', () => {
-    expect(depluralize('Dogs')).equal('Dog')
-    expect(depluralize('countries')).equal('country')
-    expect(depluralize('good_dogs')).equal('good_dog')
-    expect(depluralize('many_countries')).equal('many_country')
-    expect(depluralize('mice')).equal('mouse')
-    expect(depluralize('many_mice')).equal('many_mouse')
+    assert.deepStrictEqual(depluralize('Dogs'),'Dog')
+    assert.deepStrictEqual(depluralize('countries'),'country')
+    assert.deepStrictEqual(depluralize('good_dogs'),'good_dog')
+    assert.deepStrictEqual(depluralize('many_countries'),'many_country')
+    assert.deepStrictEqual(depluralize('mice'),'mouse')
+    assert.deepStrictEqual(depluralize('many_mice'),'many_mouse')
 
-    expect(depluralize('api_key')).equal('api_key')
-    expect(depluralize('api_keys')).equal('api_key')
-    expect(depluralize('ApiKeys')).equal('ApiKey')
-    expect(depluralize('API_Keys')).equal('API_Key')
+    assert.deepStrictEqual(depluralize('api_key'),'api_key')
+    assert.deepStrictEqual(depluralize('api_keys'),'api_key')
+    assert.deepStrictEqual(depluralize('ApiKeys'),'ApiKey')
+    assert.deepStrictEqual(depluralize('API_Keys'),'API_Key')
 
     // Words where -ies is part of the base form, not a plural suffix
-    expect(depluralize('species')).equal('species')
-    expect(depluralize('series')).equal('series')
-    expect(depluralize('movies')).equal('movie')
-    expect(depluralize('amiiboseries')).equal('amiiboseries')
+    assert.deepStrictEqual(depluralize('species'),'species')
+    assert.deepStrictEqual(depluralize('series'),'series')
+    assert.deepStrictEqual(depluralize('movies'),'movie')
+    assert.deepStrictEqual(depluralize('amiiboseries'),'amiiboseries')
 
     // Words that should not be truncated to <= 2 chars
-    expect(depluralize('yes')).equal('yes')
-    expect(depluralize('lens')).equal('lens')
-    expect(depluralize('phrase')).equal('phrase')
-    expect(depluralize('abs')).equal('abs')
+    assert.deepStrictEqual(depluralize('yes'),'yes')
+    assert.deepStrictEqual(depluralize('lens'),'lens')
+    assert.deepStrictEqual(depluralize('phrase'),'phrase')
+    assert.deepStrictEqual(depluralize('abs'),'abs')
   })
 
   test('canonize', () => {
     // Basic canonization
-    expect(canonize('Dogs')).equal('dog')
-    expect(canonize('FooBar')).equal('foo_bar')
-    expect(canonize('my-thing')).equal('my_thing')
+    assert.deepStrictEqual(canonize('Dogs'),'dog')
+    assert.deepStrictEqual(canonize('FooBar'),'foo_bar')
+    assert.deepStrictEqual(canonize('my-thing'),'my_thing')
 
     // File extensions are stripped
-    expect(canonize('categories.php')).equal('category')
-    expect(canonize('search.php')).equal('search')
-    expect(canonize('data.json')).equal('data')
-    expect(canonize('region.json')).equal('region')
-    expect(canonize('list.txt')).equal('list')
-    expect(canonize('height.jpg')).equal('height')
-    expect(canonize('location.png')).equal('location')
-    expect(canonize('robots.txt')).equal('robot')
-    expect(canonize('config.yaml')).equal('config')
-    expect(canonize('schema.xml')).equal('schema')
+    assert.deepStrictEqual(canonize('categories.php'),'category')
+    assert.deepStrictEqual(canonize('search.php'),'search')
+    assert.deepStrictEqual(canonize('data.json'),'data')
+    assert.deepStrictEqual(canonize('region.json'),'region')
+    assert.deepStrictEqual(canonize('list.txt'),'list')
+    assert.deepStrictEqual(canonize('height.jpg'),'height')
+    assert.deepStrictEqual(canonize('location.png'),'location')
+    assert.deepStrictEqual(canonize('robots.txt'),'robot')
+    assert.deepStrictEqual(canonize('config.yaml'),'config')
+    assert.deepStrictEqual(canonize('schema.xml'),'schema')
 
     // Extensions are case-insensitive
-    expect(canonize('data.JSON')).equal('data')
-    expect(canonize('page.PHP')).equal('page')
+    assert.deepStrictEqual(canonize('data.JSON'),'data')
+    assert.deepStrictEqual(canonize('page.PHP'),'page')
 
     // Non-extension dots are not matched (no known extension)
-    expect(canonize('v2.0')).equal('v20')
+    assert.deepStrictEqual(canonize('v2.0'),'v20')
 
     // Extension only stripped at end
-    expect(canonize('json_data')).equal('json_data')
-    expect(canonize('php_version')).equal('php_version')
+    assert.deepStrictEqual(canonize('json_data'),'json_data')
+    assert.deepStrictEqual(canonize('php_version'),'php_version')
 
     // Accented characters are transliterated
-    expect(canonize('dólar')).equal('dolar')
-    expect(canonize('kölner')).equal('kolner')
-    expect(canonize('pokémon')).equal('pokemon')
-    expect(canonize('café')).equal('cafe')
-    expect(canonize('naïve')).equal('naive')
-    expect(canonize('über')).equal('uber')
-    expect(canonize('résumé')).equal('resume')
-    expect(canonize('señor')).equal('senor')
+    assert.deepStrictEqual(canonize('dólar'),'dolar')
+    assert.deepStrictEqual(canonize('kölner'),'kolner')
+    assert.deepStrictEqual(canonize('pokémon'),'pokemon')
+    assert.deepStrictEqual(canonize('café'),'cafe')
+    assert.deepStrictEqual(canonize('naïve'),'naive')
+    assert.deepStrictEqual(canonize('über'),'uber')
+    assert.deepStrictEqual(canonize('résumé'),'resume')
+    assert.deepStrictEqual(canonize('señor'),'senor')
 
     // Non-Latin chars are stripped (no transliteration)
-    expect(canonize('api検索')).equal('api')
-    expect(canonize('会議録')).equal('')
+    assert.deepStrictEqual(canonize('api検索'),'api')
+    assert.deepStrictEqual(canonize('会議録'),'')
   })
 
   test('sanitizeSlug', () => {
     // Simple slugs pass through unchanged
-    expect(sanitizeSlug('my-api')).equal('my-api')
-    expect(sanitizeSlug('cool-service')).equal('cool-service')
+    assert.deepStrictEqual(sanitizeSlug('my-api'),'my-api')
+    assert.deepStrictEqual(sanitizeSlug('cool-service'),'cool-service')
 
     // Accented characters are transliterated
-    expect(sanitizeSlug('dólar-api')).equal('dolar-api')
-    expect(sanitizeSlug('café-service')).equal('cafe-service')
+    assert.deepStrictEqual(sanitizeSlug('dólar-api'),'dolar-api')
+    assert.deepStrictEqual(sanitizeSlug('café-service'),'cafe-service')
 
     // Underscores and dots become hyphens
-    expect(sanitizeSlug('my_api')).equal('my-api')
-    expect(sanitizeSlug('api.v2')).equal('api-v2')
-    expect(sanitizeSlug('my_cool.api')).equal('my-cool-api')
+    assert.deepStrictEqual(sanitizeSlug('my_api'),'my-api')
+    assert.deepStrictEqual(sanitizeSlug('api.v2'),'api-v2')
+    assert.deepStrictEqual(sanitizeSlug('my_cool.api'),'my-cool-api')
 
     // Special chars are stripped
-    expect(sanitizeSlug("bob's-api")).equal('bobs-api')
-    expect(sanitizeSlug('api!(v2)')).equal('apiv2')
+    assert.deepStrictEqual(sanitizeSlug("bob's-api"),'bobs-api')
+    assert.deepStrictEqual(sanitizeSlug('api!(v2)'),'apiv2')
 
     // Standalone number segments merge with preceding word
-    expect(sanitizeSlug('ec-2-shop')).equal('ec2-shop')
-    expect(sanitizeSlug('advice-slip-api-2')).equal('advice-slip-api2')
-    expect(sanitizeSlug('s-3-bucket')).equal('s3-bucket')
+    assert.deepStrictEqual(sanitizeSlug('ec-2-shop'),'ec2-shop')
+    assert.deepStrictEqual(sanitizeSlug('advice-slip-api-2'),'advice-slip-api2')
+    assert.deepStrictEqual(sanitizeSlug('s-3-bucket'),'s3-bucket')
 
     // Leading numbers get 'n' prefix (must be valid JS identifier)
-    expect(sanitizeSlug('2-fast')).equal('n2-fast')
-    expect(sanitizeSlug('404-error-handler')).equal('n404-error-handler')
-    expect(sanitizeSlug('4chan-api')).equal('n4chan-api')
-    expect(sanitizeSlug('7timer-weather-api')).equal('n7timer-weather-api')
+    assert.deepStrictEqual(sanitizeSlug('2-fast'),'n2-fast')
+    assert.deepStrictEqual(sanitizeSlug('404-error-handler'),'n404-error-handler')
+    assert.deepStrictEqual(sanitizeSlug('4chan-api'),'n4chan-api')
+    assert.deepStrictEqual(sanitizeSlug('7timer-weather-api'),'n7timer-weather-api')
 
     // Hyphens are collapsed and trimmed
-    expect(sanitizeSlug('--my--api--')).equal('my-api')
+    assert.deepStrictEqual(sanitizeSlug('--my--api--'),'my-api')
 
     // Empty/null returns 'unknown'
-    expect(sanitizeSlug('')).equal('unknown')
-    expect(sanitizeSlug('!!!')).equal('unknown')
+    assert.deepStrictEqual(sanitizeSlug(''),'unknown')
+    assert.deepStrictEqual(sanitizeSlug('!!!'),'unknown')
 
     // Non-Latin chars are stripped
-    expect(sanitizeSlug('api検索')).equal('api')
+    assert.deepStrictEqual(sanitizeSlug('api検索'),'api')
   })
 
   test('slugToPascalCase', () => {
     // Simple slugs
-    expect(slugToPascalCase('my-api')).equal('MyApi')
-    expect(slugToPascalCase('cool-service')).equal('CoolService')
+    assert.deepStrictEqual(slugToPascalCase('my-api'),'MyApi')
+    assert.deepStrictEqual(slugToPascalCase('cool-service'),'CoolService')
 
     // Accented characters are transliterated
-    expect(slugToPascalCase('dólar-y-monedas-api')).equal('DolarYMonedasApi')
+    assert.deepStrictEqual(slugToPascalCase('dólar-y-monedas-api'),'DolarYMonedasApi')
 
     // Special characters are stripped
-    expect(slugToPascalCase('data.gov.au-api')).equal('DataGovAuApi')
-    expect(slugToPascalCase('osu!-beatmap-api')).equal('OsuBeatmapApi')
-    expect(slugToPascalCase('healthcare.gov-content-api')).equal('HealthcareGovContentApi')
-    expect(slugToPascalCase('phish.in-api')).equal('PhishInApi')
-    expect(slugToPascalCase('v.gd-api')).equal('VGdApi')
-    expect(slugToPascalCase('swiss-federal-railways-(sbb)')).equal('SwissFederalRailwaysSbb')
-    expect(slugToPascalCase('yu-gi-oh!-api')).equal('YuGiOhApi')
+    assert.deepStrictEqual(slugToPascalCase('data.gov.au-api'),'DataGovAuApi')
+    assert.deepStrictEqual(slugToPascalCase('osu!-beatmap-api'),'OsuBeatmapApi')
+    assert.deepStrictEqual(slugToPascalCase('healthcare.gov-content-api'),'HealthcareGovContentApi')
+    assert.deepStrictEqual(slugToPascalCase('phish.in-api'),'PhishInApi')
+    assert.deepStrictEqual(slugToPascalCase('v.gd-api'),'VGdApi')
+    assert.deepStrictEqual(slugToPascalCase('swiss-federal-railways-(sbb)'),'SwissFederalRailwaysSbb')
+    assert.deepStrictEqual(slugToPascalCase('yu-gi-oh!-api'),'YuGiOhApi')
 
     // Leading numbers get 'n' prefix
-    expect(slugToPascalCase('404-error-handler')).equal('N404ErrorHandler')
-    expect(slugToPascalCase('4chan-api')).equal('N4chanApi')
-    expect(slugToPascalCase('7timer-weather-api')).equal('N7timerWeatherApi')
+    assert.deepStrictEqual(slugToPascalCase('404-error-handler'),'N404ErrorHandler')
+    assert.deepStrictEqual(slugToPascalCase('4chan-api'),'N4chanApi')
+    assert.deepStrictEqual(slugToPascalCase('7timer-weather-api'),'N7timerWeatherApi')
 
     // Embedded numbers merge with preceding word
-    expect(slugToPascalCase('ec-2-shop')).equal('Ec2Shop')
-    expect(slugToPascalCase('guild-wars-2-api')).equal('GuildWars2Api')
-    expect(slugToPascalCase('magic-8-ball-api')).equal('Magic8BallApi')
+    assert.deepStrictEqual(slugToPascalCase('ec-2-shop'),'Ec2Shop')
+    assert.deepStrictEqual(slugToPascalCase('guild-wars-2-api'),'GuildWars2Api')
+    assert.deepStrictEqual(slugToPascalCase('magic-8-ball-api'),'Magic8BallApi')
 
     // Normal slugs
-    expect(slugToPascalCase('no-as-a-service')).equal('NoAsAService')
-    expect(slugToPascalCase('yes-as-a-service')).equal('YesAsAService')
-    expect(slugToPascalCase('shame-as-a-service')).equal('ShameAsAService')
-    expect(slugToPascalCase('api')).equal('Api')
+    assert.deepStrictEqual(slugToPascalCase('no-as-a-service'),'NoAsAService')
+    assert.deepStrictEqual(slugToPascalCase('yes-as-a-service'),'YesAsAService')
+    assert.deepStrictEqual(slugToPascalCase('shame-as-a-service'),'ShameAsAService')
+    assert.deepStrictEqual(slugToPascalCase('api'),'Api')
 
     // Edge cases
-    expect(slugToPascalCase('')).equal('Unknown')
-    expect(slugToPascalCase('!!!')).equal('Unknown')
+    assert.deepStrictEqual(slugToPascalCase(''),'Unknown')
+    assert.deepStrictEqual(slugToPascalCase('!!!'),'Unknown')
   })
 
   test('transliterate', () => {
     // Latin diacritics are decomposed
-    expect(transliterate('dólar')).equal('dolar')
-    expect(transliterate('kölner')).equal('kolner')
-    expect(transliterate('pokémon')).equal('pokemon')
-    expect(transliterate('résumé')).equal('resume')
-    expect(transliterate('naïve')).equal('naive')
-    expect(transliterate('über')).equal('uber')
-    expect(transliterate('señor')).equal('senor')
-    expect(transliterate('café')).equal('cafe')
-    expect(transliterate('Ångström')).equal('Angstrom')
+    assert.deepStrictEqual(transliterate('dólar'),'dolar')
+    assert.deepStrictEqual(transliterate('kölner'),'kolner')
+    assert.deepStrictEqual(transliterate('pokémon'),'pokemon')
+    assert.deepStrictEqual(transliterate('résumé'),'resume')
+    assert.deepStrictEqual(transliterate('naïve'),'naive')
+    assert.deepStrictEqual(transliterate('über'),'uber')
+    assert.deepStrictEqual(transliterate('señor'),'senor')
+    assert.deepStrictEqual(transliterate('café'),'cafe')
+    assert.deepStrictEqual(transliterate('Ångström'),'Angstrom')
 
     // ASCII unchanged
-    expect(transliterate('hello')).equal('hello')
-    expect(transliterate('foo-bar_123')).equal('foo-bar_123')
+    assert.deepStrictEqual(transliterate('hello'),'hello')
+    assert.deepStrictEqual(transliterate('foo-bar_123'),'foo-bar_123')
 
     // Non-Latin scripts pass through (stripped later by canonize)
-    expect(transliterate('会議録')).equal('会議録')
-    expect(transliterate('api検索')).equal('api検索')
+    assert.deepStrictEqual(transliterate('会議録'),'会議録')
+    assert.deepStrictEqual(transliterate('api検索'),'api検索')
   })
 
   test('normalizeFieldName', () => {
     // Bracket notation becomes underscores
-    expect(normalizeFieldName('filter[text]')).equal('filter_text')
-    expect(normalizeFieldName('page[limit]')).equal('page_limit')
-    expect(normalizeFieldName('page[offset]')).equal('page_offset')
+    assert.deepStrictEqual(normalizeFieldName('filter[text]'),'filter_text')
+    assert.deepStrictEqual(normalizeFieldName('page[limit]'),'page_limit')
+    assert.deepStrictEqual(normalizeFieldName('page[offset]'),'page_offset')
 
     // Nested brackets
-    expect(normalizeFieldName('conditions[publication_date][gte]')).equal('conditions_publication_date_gte')
+    assert.deepStrictEqual(normalizeFieldName('conditions[publication_date][gte]'),'conditions_publication_date_gte')
 
     // Trailing empty brackets are stripped
-    expect(normalizeFieldName('fields[]')).equal('fields')
-    expect(normalizeFieldName('conditions[agencies][]')).equal('conditions_agencies')
-    expect(normalizeFieldName('conditions[type][]')).equal('conditions_type')
+    assert.deepStrictEqual(normalizeFieldName('fields[]'),'fields')
+    assert.deepStrictEqual(normalizeFieldName('conditions[agencies][]'),'conditions_agencies')
+    assert.deepStrictEqual(normalizeFieldName('conditions[type][]'),'conditions_type')
 
     // Dot notation becomes underscores
-    expect(normalizeFieldName('facet.field')).equal('facet_field')
-    expect(normalizeFieldName('refine.country')).equal('refine_country')
+    assert.deepStrictEqual(normalizeFieldName('facet.field'),'facet_field')
+    assert.deepStrictEqual(normalizeFieldName('refine.country'),'refine_country')
 
     // Regular names unchanged
-    expect(normalizeFieldName('name')).equal('name')
-    expect(normalizeFieldName('created_at')).equal('created_at')
+    assert.deepStrictEqual(normalizeFieldName('name'),'name')
+    assert.deepStrictEqual(normalizeFieldName('created_at'),'created_at')
 
     // Empty/null
-    expect(normalizeFieldName('')).equal('')
+    assert.deepStrictEqual(normalizeFieldName(''),'')
 
     // No duplicate or leading/trailing underscores
-    expect(normalizeFieldName('[foo]')).equal('foo')
-    expect(normalizeFieldName('a..b')).equal('a_b')
+    assert.deepStrictEqual(normalizeFieldName('[foo]'),'foo')
+    assert.deepStrictEqual(normalizeFieldName('a..b'),'a_b')
   })
 
   test('normalizeFieldName with canonize (field pipeline)', () => {
     // Bracket notation: full field name pipeline as used in resolveOpFields
-    expect(canonize(normalizeFieldName('filter[text]'))).equal('filter_text')
-    expect(canonize(normalizeFieldName('page[limit]'))).equal('page_limit')
-    expect(canonize(normalizeFieldName('page[offset]'))).equal('page_offset')
+    assert.deepStrictEqual(canonize(normalizeFieldName('filter[text]')),'filter_text')
+    assert.deepStrictEqual(canonize(normalizeFieldName('page[limit]')),'page_limit')
+    assert.deepStrictEqual(canonize(normalizeFieldName('page[offset]')),'page_offset')
 
     // Nested brackets
-    expect(canonize(normalizeFieldName('conditions[agencies][]'))).equal('conditions_agency')
-    expect(canonize(normalizeFieldName('conditions[publication_date][gte]'))).equal('conditions_publication_date_gte')
-    expect(canonize(normalizeFieldName('conditions[type][]'))).equal('conditions_type')
-    expect(canonize(normalizeFieldName('fields[]'))).equal('field')
+    assert.deepStrictEqual(canonize(normalizeFieldName('conditions[agencies][]')),'conditions_agency')
+    assert.deepStrictEqual(canonize(normalizeFieldName('conditions[publication_date][gte]')),'conditions_publication_date_gte')
+    assert.deepStrictEqual(canonize(normalizeFieldName('conditions[type][]')),'conditions_type')
+    assert.deepStrictEqual(canonize(normalizeFieldName('fields[]')),'field')
 
     // Dot notation
-    expect(canonize(normalizeFieldName('facet.field'))).equal('facet_field')
-    expect(canonize(normalizeFieldName('refine.country'))).equal('refine_country')
-    expect(canonize(normalizeFieldName('refine.type'))).equal('refine_type')
+    assert.deepStrictEqual(canonize(normalizeFieldName('facet.field')),'facet_field')
+    assert.deepStrictEqual(canonize(normalizeFieldName('refine.country')),'refine_country')
+    assert.deepStrictEqual(canonize(normalizeFieldName('refine.type')),'refine_type')
 
     // Regular names pass through normally
-    expect(canonize(normalizeFieldName('created_at'))).equal('created_at')
-    expect(canonize(normalizeFieldName('UserName'))).equal('user_name')
+    assert.deepStrictEqual(canonize(normalizeFieldName('created_at')),'created_at')
+    assert.deepStrictEqual(canonize(normalizeFieldName('UserName')),'user_name')
   })
 
   test('normalizeFieldName with snakify (arg pipeline)', () => {
     // Bracket notation: arg name pipeline as used in resolveArgs
     const argPipeline = (s: string) => depluralize(snakify(normalizeFieldName(s)))
 
-    expect(argPipeline('filter[text]')).equal('filter_text')
-    expect(argPipeline('page[limit]')).equal('page_limit')
-    expect(argPipeline('filter[route]')).equal('filter_route')
+    assert.deepStrictEqual(argPipeline('filter[text]'),'filter_text')
+    assert.deepStrictEqual(argPipeline('page[limit]'),'page_limit')
+    assert.deepStrictEqual(argPipeline('filter[route]'),'filter_route')
 
     // Nested brackets
-    expect(argPipeline('conditions[agencies][]')).equal('conditions_agency')
-    expect(argPipeline('conditions[publication_date][gte]')).equal('conditions_publication_date_gte')
+    assert.deepStrictEqual(argPipeline('conditions[agencies][]'),'conditions_agency')
+    assert.deepStrictEqual(argPipeline('conditions[publication_date][gte]'),'conditions_publication_date_gte')
 
     // Dot notation
-    expect(argPipeline('facet.field')).equal('facet_field')
-    expect(argPipeline('refine.country')).equal('refine_country')
+    assert.deepStrictEqual(argPipeline('facet.field'),'facet_field')
+    assert.deepStrictEqual(argPipeline('refine.country'),'refine_country')
 
     // CamelCase args
-    expect(argPipeline('filterText')).equal('filter_text')
-    expect(argPipeline('pageLimit')).equal('page_limit')
+    assert.deepStrictEqual(argPipeline('filterText'),'filter_text')
+    assert.deepStrictEqual(argPipeline('pageLimit'),'page_limit')
 
     // Regular args unchanged
-    expect(argPipeline('sort')).equal('sort')
-    expect(argPipeline('include')).equal('include')
+    assert.deepStrictEqual(argPipeline('sort'),'sort')
+    assert.deepStrictEqual(argPipeline('include'),'include')
   })
 
   test('inferFieldType', () => {
     // Boolean patterns: $ANY -> $BOOLEAN
-    expect(inferFieldType('is_blocked', '`$ANY`')).equal('`$BOOLEAN`')
-    expect(inferFieldType('has_homepage', '`$ANY`')).equal('`$BOOLEAN`')
-    expect(inferFieldType('can_edit', '`$ANY`')).equal('`$BOOLEAN`')
-    expect(inferFieldType('should_notify', '`$ANY`')).equal('`$BOOLEAN`')
-    expect(inferFieldType('allow_merge', '`$ANY`')).equal('`$BOOLEAN`')
-    expect(inferFieldType('enabled', '`$ANY`')).equal('`$BOOLEAN`')
-    expect(inferFieldType('disabled', '`$ANY`')).equal('`$BOOLEAN`')
-    expect(inferFieldType('active', '`$ANY`')).equal('`$BOOLEAN`')
-    expect(inferFieldType('visible', '`$ANY`')).equal('`$BOOLEAN`')
-    expect(inferFieldType('deleted', '`$ANY`')).equal('`$BOOLEAN`')
-    expect(inferFieldType('verified', '`$ANY`')).equal('`$BOOLEAN`')
-    expect(inferFieldType('locked', '`$ANY`')).equal('`$BOOLEAN`')
-    expect(inferFieldType('archived', '`$ANY`')).equal('`$BOOLEAN`')
-    expect(inferFieldType('blocked', '`$ANY`')).equal('`$BOOLEAN`')
+    assert.deepStrictEqual(inferFieldType('is_blocked', '`$ANY`'),'`$BOOLEAN`')
+    assert.deepStrictEqual(inferFieldType('has_homepage', '`$ANY`'),'`$BOOLEAN`')
+    assert.deepStrictEqual(inferFieldType('can_edit', '`$ANY`'),'`$BOOLEAN`')
+    assert.deepStrictEqual(inferFieldType('should_notify', '`$ANY`'),'`$BOOLEAN`')
+    assert.deepStrictEqual(inferFieldType('allow_merge', '`$ANY`'),'`$BOOLEAN`')
+    assert.deepStrictEqual(inferFieldType('enabled', '`$ANY`'),'`$BOOLEAN`')
+    assert.deepStrictEqual(inferFieldType('disabled', '`$ANY`'),'`$BOOLEAN`')
+    assert.deepStrictEqual(inferFieldType('active', '`$ANY`'),'`$BOOLEAN`')
+    assert.deepStrictEqual(inferFieldType('visible', '`$ANY`'),'`$BOOLEAN`')
+    assert.deepStrictEqual(inferFieldType('deleted', '`$ANY`'),'`$BOOLEAN`')
+    assert.deepStrictEqual(inferFieldType('verified', '`$ANY`'),'`$BOOLEAN`')
+    assert.deepStrictEqual(inferFieldType('locked', '`$ANY`'),'`$BOOLEAN`')
+    assert.deepStrictEqual(inferFieldType('archived', '`$ANY`'),'`$BOOLEAN`')
+    assert.deepStrictEqual(inferFieldType('blocked', '`$ANY`'),'`$BOOLEAN`')
 
     // Boolean patterns: $STRING -> $BOOLEAN
-    expect(inferFieldType('is_blocked', '`$STRING`')).equal('`$BOOLEAN`')
-    expect(inferFieldType('has_homepage', '`$STRING`')).equal('`$BOOLEAN`')
-    expect(inferFieldType('is_smartlink', '`$STRING`')).equal('`$BOOLEAN`')
-    expect(inferFieldType('active', '`$STRING`')).equal('`$BOOLEAN`')
+    assert.deepStrictEqual(inferFieldType('is_blocked', '`$STRING`'),'`$BOOLEAN`')
+    assert.deepStrictEqual(inferFieldType('has_homepage', '`$STRING`'),'`$BOOLEAN`')
+    assert.deepStrictEqual(inferFieldType('is_smartlink', '`$STRING`'),'`$BOOLEAN`')
+    assert.deepStrictEqual(inferFieldType('active', '`$STRING`'),'`$BOOLEAN`')
 
     // $STRING not overridden for non-boolean patterns
-    expect(inferFieldType('name', '`$STRING`')).equal('`$STRING`')
-    expect(inferFieldType('total_count', '`$STRING`')).equal('`$STRING`')
+    assert.deepStrictEqual(inferFieldType('name', '`$STRING`'),'`$STRING`')
+    assert.deepStrictEqual(inferFieldType('total_count', '`$STRING`'),'`$STRING`')
 
     // ID patterns: $ANY -> $STRING
-    expect(inferFieldType('id', '`$ANY`')).equal('`$STRING`')
-    expect(inferFieldType('user_id', '`$ANY`')).equal('`$STRING`')
-    expect(inferFieldType('project_id', '`$ANY`')).equal('`$STRING`')
+    assert.deepStrictEqual(inferFieldType('id', '`$ANY`'),'`$STRING`')
+    assert.deepStrictEqual(inferFieldType('user_id', '`$ANY`'),'`$STRING`')
+    assert.deepStrictEqual(inferFieldType('project_id', '`$ANY`'),'`$STRING`')
 
     // Integer patterns: $ANY -> $INTEGER
-    expect(inferFieldType('total_count', '`$ANY`')).equal('`$INTEGER`')
-    expect(inferFieldType('item_count', '`$ANY`')).equal('`$INTEGER`')
-    expect(inferFieldType('page_number', '`$ANY`')).equal('`$INTEGER`')
-    expect(inferFieldType('limit', '`$ANY`')).equal('`$INTEGER`')
-    expect(inferFieldType('page', '`$ANY`')).equal('`$INTEGER`')
-    expect(inferFieldType('offset', '`$ANY`')).equal('`$INTEGER`')
-    expect(inferFieldType('per_page', '`$ANY`')).equal('`$INTEGER`')
-    expect(inferFieldType('page_size', '`$ANY`')).equal('`$INTEGER`')
-    expect(inferFieldType('size', '`$ANY`')).equal('`$INTEGER`')
-    expect(inferFieldType('skip', '`$ANY`')).equal('`$INTEGER`')
-    expect(inferFieldType('num_item', '`$ANY`')).equal('`$INTEGER`')
+    assert.deepStrictEqual(inferFieldType('total_count', '`$ANY`'),'`$INTEGER`')
+    assert.deepStrictEqual(inferFieldType('item_count', '`$ANY`'),'`$INTEGER`')
+    assert.deepStrictEqual(inferFieldType('page_number', '`$ANY`'),'`$INTEGER`')
+    assert.deepStrictEqual(inferFieldType('limit', '`$ANY`'),'`$INTEGER`')
+    assert.deepStrictEqual(inferFieldType('page', '`$ANY`'),'`$INTEGER`')
+    assert.deepStrictEqual(inferFieldType('offset', '`$ANY`'),'`$INTEGER`')
+    assert.deepStrictEqual(inferFieldType('per_page', '`$ANY`'),'`$INTEGER`')
+    assert.deepStrictEqual(inferFieldType('page_size', '`$ANY`'),'`$INTEGER`')
+    assert.deepStrictEqual(inferFieldType('size', '`$ANY`'),'`$INTEGER`')
+    assert.deepStrictEqual(inferFieldType('skip', '`$ANY`'),'`$INTEGER`')
+    assert.deepStrictEqual(inferFieldType('num_item', '`$ANY`'),'`$INTEGER`')
 
     // Number patterns: $ANY -> $NUMBER
-    expect(inferFieldType('latitude', '`$ANY`')).equal('`$NUMBER`')
-    expect(inferFieldType('longitude', '`$ANY`')).equal('`$NUMBER`')
-    expect(inferFieldType('lat', '`$ANY`')).equal('`$NUMBER`')
-    expect(inferFieldType('lng', '`$ANY`')).equal('`$NUMBER`')
-    expect(inferFieldType('price', '`$ANY`')).equal('`$NUMBER`')
-    expect(inferFieldType('amount', '`$ANY`')).equal('`$NUMBER`')
-    expect(inferFieldType('score', '`$ANY`')).equal('`$NUMBER`')
-    expect(inferFieldType('weight', '`$ANY`')).equal('`$NUMBER`')
-    expect(inferFieldType('radius', '`$ANY`')).equal('`$NUMBER`')
-    expect(inferFieldType('distance', '`$ANY`')).equal('`$NUMBER`')
-    expect(inferFieldType('percentage', '`$ANY`')).equal('`$NUMBER`')
+    assert.deepStrictEqual(inferFieldType('latitude', '`$ANY`'),'`$NUMBER`')
+    assert.deepStrictEqual(inferFieldType('longitude', '`$ANY`'),'`$NUMBER`')
+    assert.deepStrictEqual(inferFieldType('lat', '`$ANY`'),'`$NUMBER`')
+    assert.deepStrictEqual(inferFieldType('lng', '`$ANY`'),'`$NUMBER`')
+    assert.deepStrictEqual(inferFieldType('price', '`$ANY`'),'`$NUMBER`')
+    assert.deepStrictEqual(inferFieldType('amount', '`$ANY`'),'`$NUMBER`')
+    assert.deepStrictEqual(inferFieldType('score', '`$ANY`'),'`$NUMBER`')
+    assert.deepStrictEqual(inferFieldType('weight', '`$ANY`'),'`$NUMBER`')
+    assert.deepStrictEqual(inferFieldType('radius', '`$ANY`'),'`$NUMBER`')
+    assert.deepStrictEqual(inferFieldType('distance', '`$ANY`'),'`$NUMBER`')
+    assert.deepStrictEqual(inferFieldType('percentage', '`$ANY`'),'`$NUMBER`')
 
     // String patterns: $ANY -> $STRING
-    expect(inferFieldType('url', '`$ANY`')).equal('`$STRING`')
-    expect(inferFieldType('href', '`$ANY`')).equal('`$STRING`')
-    expect(inferFieldType('email', '`$ANY`')).equal('`$STRING`')
-    expect(inferFieldType('name', '`$ANY`')).equal('`$STRING`')
-    expect(inferFieldType('title', '`$ANY`')).equal('`$STRING`')
-    expect(inferFieldType('description', '`$ANY`')).equal('`$STRING`')
-    expect(inferFieldType('slug', '`$ANY`')).equal('`$STRING`')
-    expect(inferFieldType('token', '`$ANY`')).equal('`$STRING`')
+    assert.deepStrictEqual(inferFieldType('url', '`$ANY`'),'`$STRING`')
+    assert.deepStrictEqual(inferFieldType('href', '`$ANY`'),'`$STRING`')
+    assert.deepStrictEqual(inferFieldType('email', '`$ANY`'),'`$STRING`')
+    assert.deepStrictEqual(inferFieldType('name', '`$ANY`'),'`$STRING`')
+    assert.deepStrictEqual(inferFieldType('title', '`$ANY`'),'`$STRING`')
+    assert.deepStrictEqual(inferFieldType('description', '`$ANY`'),'`$STRING`')
+    assert.deepStrictEqual(inferFieldType('slug', '`$ANY`'),'`$STRING`')
+    assert.deepStrictEqual(inferFieldType('token', '`$ANY`'),'`$STRING`')
 
     // Specific types from spec are not overridden
-    expect(inferFieldType('latitude', '`$STRING`')).equal('`$STRING`')
-    expect(inferFieldType('limit', '`$INTEGER`')).equal('`$INTEGER`')
-    expect(inferFieldType('id', '`$INTEGER`')).equal('`$INTEGER`')
-    expect(inferFieldType('price', '`$NUMBER`')).equal('`$NUMBER`')
-    expect(inferFieldType('is_active', '`$BOOLEAN`')).equal('`$BOOLEAN`')
+    assert.deepStrictEqual(inferFieldType('latitude', '`$STRING`'),'`$STRING`')
+    assert.deepStrictEqual(inferFieldType('limit', '`$INTEGER`'),'`$INTEGER`')
+    assert.deepStrictEqual(inferFieldType('id', '`$INTEGER`'),'`$INTEGER`')
+    assert.deepStrictEqual(inferFieldType('price', '`$NUMBER`'),'`$NUMBER`')
+    assert.deepStrictEqual(inferFieldType('is_active', '`$BOOLEAN`'),'`$BOOLEAN`')
 
     // Unknown field names with $ANY stay $ANY
-    expect(inferFieldType('data', '`$ANY`')).equal('`$ANY`')
-    expect(inferFieldType('result', '`$ANY`')).equal('`$ANY`')
-    expect(inferFieldType('custom_field', '`$ANY`')).equal('`$ANY`')
+    assert.deepStrictEqual(inferFieldType('data', '`$ANY`'),'`$ANY`')
+    assert.deepStrictEqual(inferFieldType('result', '`$ANY`'),'`$ANY`')
+    assert.deepStrictEqual(inferFieldType('custom_field', '`$ANY`'),'`$ANY`')
 
     // Names that look similar but should not be overridden
-    expect(inferFieldType('disable_reason', '`$STRING`')).equal('`$STRING`')
-    expect(inferFieldType('disable_reason', '`$ANY`')).equal('`$ANY`')
-    expect(inferFieldType('activation_code', '`$ANY`')).equal('`$ANY`')
-    expect(inferFieldType('page_title', '`$ANY`')).equal('`$ANY`')
+    assert.deepStrictEqual(inferFieldType('disable_reason', '`$STRING`'),'`$STRING`')
+    assert.deepStrictEqual(inferFieldType('disable_reason', '`$ANY`'),'`$ANY`')
+    assert.deepStrictEqual(inferFieldType('activation_code', '`$ANY`'),'`$ANY`')
+    assert.deepStrictEqual(inferFieldType('page_title', '`$ANY`'),'`$ANY`')
   })
 
   test('cleanComponentName', () => {
     // Controller suffixes are stripped
-    expect(cleanComponentName('nps_controller')).equal('nps')
-    expect(cleanComponentName('balance_controller')).equal('balance')
-    expect(cleanComponentName('gas_system_controller')).equal('gas_system')
+    assert.deepStrictEqual(cleanComponentName('nps_controller'),'nps')
+    assert.deepStrictEqual(cleanComponentName('balance_controller'),'balance')
+    assert.deepStrictEqual(cleanComponentName('gas_system_controller'),'gas_system')
 
     // Rest controller suffix (two parts) is stripped
-    expect(cleanComponentName('donate_rest_controller')).equal('donate')
-    expect(cleanComponentName('portfolio_rest_controller')).equal('portfolio')
+    assert.deepStrictEqual(cleanComponentName('donate_rest_controller'),'donate')
+    assert.deepStrictEqual(cleanComponentName('portfolio_rest_controller'),'portfolio')
 
     // Response/request suffixes are stripped
-    expect(cleanComponentName('user_response')).equal('user')
-    expect(cleanComponentName('order_request')).equal('order')
+    assert.deepStrictEqual(cleanComponentName('user_response'),'user')
+    assert.deepStrictEqual(cleanComponentName('order_request'),'order')
 
     // HTTP verb prefixes are stripped
-    expect(cleanComponentName('get_account_lookup')).equal('account_lookup')
-    expect(cleanComponentName('post_transfer')).equal('transfer')
-    expect(cleanComponentName('put_setting')).equal('setting')
-    expect(cleanComponentName('delete_item')).equal('item')
-    expect(cleanComponentName('patch_record')).equal('record')
+    assert.deepStrictEqual(cleanComponentName('get_account_lookup'),'account_lookup')
+    assert.deepStrictEqual(cleanComponentName('post_transfer'),'transfer')
+    assert.deepStrictEqual(cleanComponentName('put_setting'),'setting')
+    assert.deepStrictEqual(cleanComponentName('delete_item'),'item')
+    assert.deepStrictEqual(cleanComponentName('patch_record'),'record')
 
     // Verb prefix not stripped if remainder is too short
-    expect(cleanComponentName('get_ab')).equal('get_ab')
-    expect(cleanComponentName('post_it')).equal('post_it')
+    assert.deepStrictEqual(cleanComponentName('get_ab'),'get_ab')
+    assert.deepStrictEqual(cleanComponentName('post_it'),'post_it')
 
     // No suffix or prefix: unchanged
-    expect(cleanComponentName('user')).equal('user')
-    expect(cleanComponentName('gas_balance')).equal('gas_balance')
+    assert.deepStrictEqual(cleanComponentName('user'),'user')
+    assert.deepStrictEqual(cleanComponentName('gas_balance'),'gas_balance')
 
     // Both suffix and prefix: suffix stripped first, then prefix
-    expect(cleanComponentName('get_user_response')).equal('user')
-    expect(cleanComponentName('get_balance_controller')).equal('balance')
+    assert.deepStrictEqual(cleanComponentName('get_user_response'),'user')
+    assert.deepStrictEqual(cleanComponentName('get_balance_controller'),'balance')
   })
 
   test('ensureMinEntityName', () => {
     // Names already >= 3 chars are unchanged
-    expect(ensureMinEntityName('foo', {})).equal('foo')
-    expect(ensureMinEntityName('abcd', {})).equal('abcd')
-    expect(ensureMinEntityName('abc', {})).equal('abc')
+    assert.deepStrictEqual(ensureMinEntityName('foo', {}),'foo')
+    assert.deepStrictEqual(ensureMinEntityName('abcd', {}),'abcd')
+    assert.deepStrictEqual(ensureMinEntityName('abc', {}),'abc')
 
     // 2-char names get padded with "n"
-    expect(ensureMinEntityName('ab', {})).equal('abn')
-    expect(ensureMinEntityName('dc', {})).equal('dcn')
+    assert.deepStrictEqual(ensureMinEntityName('ab', {}),'abn')
+    assert.deepStrictEqual(ensureMinEntityName('dc', {}),'dcn')
 
     // 1-char names get padded with "nt"
-    expect(ensureMinEntityName('d', {})).equal('dnt')
-    expect(ensureMinEntityName('x', {})).equal('xnt')
+    assert.deepStrictEqual(ensureMinEntityName('d', {}),'dnt')
+    assert.deepStrictEqual(ensureMinEntityName('x', {}),'xnt')
 
     // Empty string gets padded
-    expect(ensureMinEntityName('', {})).equal('nt')
+    assert.deepStrictEqual(ensureMinEntityName('', {}),'nt')
 
     // No collision: padded name is free
-    expect(ensureMinEntityName('ab', { other: {} })).equal('abn')
+    assert.deepStrictEqual(ensureMinEntityName('ab', { other: {} }),'abn')
 
     // Collision: padded name already taken by a different entity
-    expect(ensureMinEntityName('ab', { abn: {} })).equal('abn2')
-    expect(ensureMinEntityName('ab', { abn: {}, abn2: {} })).equal('abn3')
+    assert.deepStrictEqual(ensureMinEntityName('ab', { abn: {} }),'abn2')
+    assert.deepStrictEqual(ensureMinEntityName('ab', { abn: {}, abn2: {} }),'abn3')
 
     // No collision when original name is already in entmap (same entity, re-entry)
-    expect(ensureMinEntityName('foo', { foo: {} })).equal('foo')
+    assert.deepStrictEqual(ensureMinEntityName('foo', { foo: {} }),'foo')
 
     // Short name that doesn't collide after padding
-    expect(ensureMinEntityName('d', { other: {} })).equal('dnt')
+    assert.deepStrictEqual(ensureMinEntityName('d', { other: {} }),'dnt')
 
     // Short name that collides after padding
-    expect(ensureMinEntityName('d', { dnt: {} })).equal('dnt2')
-    expect(ensureMinEntityName('d', { dnt: {}, dnt2: {} })).equal('dnt3')
+    assert.deepStrictEqual(ensureMinEntityName('d', { dnt: {} }),'dnt2')
+    assert.deepStrictEqual(ensureMinEntityName('d', { dnt: {}, dnt2: {} }),'dnt3')
 
     // Names starting with a digit get "n" prefix
-    expect(ensureMinEntityName('510k', {})).equal('n510k')
-    expect(ensureMinEntityName('3d_model', {})).equal('n3d_model')
-    expect(ensureMinEntityName('0day', {})).equal('n0day')
+    assert.deepStrictEqual(ensureMinEntityName('510k', {}),'n510k')
+    assert.deepStrictEqual(ensureMinEntityName('3d_model', {}),'n3d_model')
+    assert.deepStrictEqual(ensureMinEntityName('0day', {}),'n0day')
 
     // Digit prefix also satisfies min-length
-    expect(ensureMinEntityName('9', {})).equal('n9n')
-    expect(ensureMinEntityName('42', {})).equal('n42')
+    assert.deepStrictEqual(ensureMinEntityName('9', {}),'n9n')
+    assert.deepStrictEqual(ensureMinEntityName('42', {}),'n42')
 
     // Non-digit names are not prefixed
-    expect(ensureMinEntityName('abc', {})).equal('abc')
+    assert.deepStrictEqual(ensureMinEntityName('abc', {}),'abc')
 
     // Leading underscores are stripped, then digit prefix applies
-    expect(ensureMinEntityName('_123', {})).equal('n123')
-    expect(ensureMinEntityName('__foo', {})).equal('foo')
+    assert.deepStrictEqual(ensureMinEntityName('_123', {}),'n123')
+    assert.deepStrictEqual(ensureMinEntityName('__foo', {}),'foo')
 
     // Digit prefix with collision
-    expect(ensureMinEntityName('510k', { n510k: {} })).equal('n510k2')
+    assert.deepStrictEqual(ensureMinEntityName('510k', { n510k: {} }),'n510k2')
 
     // Non-alphanumeric characters are removed (keeping _)
-    expect(ensureMinEntityName('foo-bar', {})).equal('foobar')
-    expect(ensureMinEntityName('hello.world', {})).equal('helloworld')
-    expect(ensureMinEntityName('a!b@c#d', {})).equal('abcd')
-    expect(ensureMinEntityName('foo_bar', {})).equal('foo_bar')
-    expect(ensureMinEntityName('a[b]', {})).equal('abn')
+    assert.deepStrictEqual(ensureMinEntityName('foo-bar', {}),'foobar')
+    assert.deepStrictEqual(ensureMinEntityName('hello.world', {}),'helloworld')
+    assert.deepStrictEqual(ensureMinEntityName('a!b@c#d', {}),'abcd')
+    assert.deepStrictEqual(ensureMinEntityName('foo_bar', {}),'foo_bar')
+    assert.deepStrictEqual(ensureMinEntityName('a[b]', {}),'abn')
 
     // Names under 67 chars are unchanged
-    expect(ensureMinEntityName(
+    assert.deepStrictEqual(ensureMinEntityName(
       'this_endpoint_is_tailored_for_searches_based_on_product_name', {}
-    )).equal('this_endpoint_is_tailored_for_searches_based_on_product_name')
+    ),'this_endpoint_is_tailored_for_searches_based_on_product_name')
 
     // Sentence-length names are truncated to <= 67 chars at word boundaries
-    expect(ensureMinEntityName(
+    assert.deepStrictEqual(ensureMinEntityName(
       'if_you_have_the_name_of_a_specific_software_product_and_want_to_check', {}
-    )).equal('if_you_have_the_name_of_a_specific_software_product_and_want_to')
-    expect(ensureMinEntityName(
+    ),'if_you_have_the_name_of_a_specific_software_product_and_want_to')
+    assert.deepStrictEqual(ensureMinEntityName(
       'this_is_a_very_long_entity_name_that_goes_well_beyond_the_sixty_seven_character_limit_set', {}
-    )).equal('this_is_a_very_long_entity_name_that_goes_well_beyond_the_sixty')
+    ),'this_is_a_very_long_entity_name_that_goes_well_beyond_the_sixty')
 
     // Names at exactly 67 chars are unchanged
-    expect(ensureMinEntityName('a'.repeat(67), {})).equal('a'.repeat(67))
+    assert.deepStrictEqual(ensureMinEntityName('a'.repeat(67), {}),'a'.repeat(67))
 
     // Names at 68 chars get truncated
-    expect(ensureMinEntityName('abcde_' + 'x'.repeat(63), {})).equal('abcde')
+    assert.deepStrictEqual(ensureMinEntityName('abcde_' + 'x'.repeat(63), {}),'abcde')
 
     // Single long word with no underscores gets hard-truncated at 67
-    expect(ensureMinEntityName('a'.repeat(80), {})).equal('a'.repeat(67))
+    assert.deepStrictEqual(ensureMinEntityName('a'.repeat(80), {}),'a'.repeat(67))
 
     // Truncation with collision
     const truncated = 'if_you_have_the_name_of_a_specific_software_product_and_want_to'
-    expect(ensureMinEntityName(
+    assert.deepStrictEqual(ensureMinEntityName(
       'if_you_have_the_name_of_a_specific_software_product_and_want_to_check',
       { [truncated]: {} }
-    )).equal(truncated + '2')
+    ),truncated + '2')
   })
 
   test('pathMatch', async () => {
@@ -489,129 +489,129 @@ describe('utility', () => {
       return null === r ? r : { i: r.index, m: r.slice(0), x: r.expr }
     }
 
-    expect(pmf('/api/foo0', '/t/t/')).equals({
+    assert.deepStrictEqual(pmf('/api/foo0', '/t/t/'),{
       i: 0, m: ['api', 'foo0'], x: '/t/t/'
     })
 
-    expect(pmf('/api/foo0n', '/t/')).equals(null)
-    expect(pmf('/api/foo0n', '/t/t/t/')).equals(null)
-    expect(pmf('/api/foo0n', 'p/')).equals(null)
-    expect(pmf('/api/foo0n', 't/p/')).equals(null)
-    expect(pmf('/api/foo0n', '/t/p/')).equals(null)
+    assert.deepStrictEqual(pmf('/api/foo0n', '/t/'),null)
+    assert.deepStrictEqual(pmf('/api/foo0n', '/t/t/t/'),null)
+    assert.deepStrictEqual(pmf('/api/foo0n', 'p/'),null)
+    assert.deepStrictEqual(pmf('/api/foo0n', 't/p/'),null)
+    assert.deepStrictEqual(pmf('/api/foo0n', '/t/p/'),null)
 
 
-    expect(pmf('/api/foo1/', '/t/t/')).equals({
+    assert.deepStrictEqual(pmf('/api/foo1/', '/t/t/'),{
       m: ['api', 'foo1'], i: 0, x: '/t/t/'
     })
 
-    expect(pmf('api/foo2/', '/t/t/')).equals({
+    assert.deepStrictEqual(pmf('api/foo2/', '/t/t/'),{
       m: ['api', 'foo2'], i: 0, x: '/t/t/'
     })
 
-    expect(pmf('api/foo3', '/t/t/')).equals({
+    assert.deepStrictEqual(pmf('api/foo3', '/t/t/'),{
       m: ['api', 'foo3'], i: 0, x: '/t/t/'
     })
 
 
-    expect(pmf('/foo4', '/t/')).equals({
+    assert.deepStrictEqual(pmf('/foo4', '/t/'),{
       m: ['foo4'], i: 0, x: '/t/'
     })
 
-    expect(pmf('/foo5/', '/t/')).equals({
+    assert.deepStrictEqual(pmf('/foo5/', '/t/'),{
       m: ['foo5'], i: 0, x: '/t/'
     })
 
-    expect(pmf('foo6/', '/t/')).equals({
+    assert.deepStrictEqual(pmf('foo6/', '/t/'),{
       m: ['foo6'], i: 0, x: '/t/'
     })
 
-    expect(pmf('foo7', '/t/')).equals({
+    assert.deepStrictEqual(pmf('foo7', '/t/'),{
       m: ['foo7'], i: 0, x: '/t/'
     })
 
 
-    expect(pmf('a0/{p0}', '/t/p/')).equals({
+    assert.deepStrictEqual(pmf('a0/{p0}', '/t/p/'),{
       m: ['a0', '{p0}'], i: 0, x: '/t/p/'
     })
 
-    expect(pmf('{p1}/a1/', '/p/t/')).equals({
+    assert.deepStrictEqual(pmf('{p1}/a1/', '/p/t/'),{
       m: ['{p1}', 'a1'], i: 0, x: '/p/t/'
     })
 
 
-    expect(pmf('/a/b/c', '/t')).equals({
+    assert.deepStrictEqual(pmf('/a/b/c', '/t'),{
       m: ['a'], i: 0, x: '/t'
     })
 
-    expect(pmf('/a/b/c', 't')).equals({
+    assert.deepStrictEqual(pmf('/a/b/c', 't'),{
       m: ['a'], i: 0, x: 't'
     })
 
 
-    expect(pmf('/a/b/c', 't/')).equals({
+    assert.deepStrictEqual(pmf('/a/b/c', 't/'),{
       m: ['c'], i: 2, x: 't/'
     })
 
-    expect(pmf('/a/b/c', 't/t/')).equals({
+    assert.deepStrictEqual(pmf('/a/b/c', 't/t/'),{
       m: ['b', 'c'], i: 1, x: 't/t/'
     })
 
 
-    expect(pmf('/a/b/{c}', 't/p/')).equals({
+    assert.deepStrictEqual(pmf('/a/b/{c}', 't/p/'),{
       m: ['b', '{c}'], i: 1, x: 't/p/'
     })
 
-    expect(pmf('/a/b/{c}', 'p/')).equals({
+    assert.deepStrictEqual(pmf('/a/b/{c}', 'p/'),{
       m: ['{c}'], i: 2, x: 'p/'
     })
 
-    expect(pmf('/a/b/{c}', 't/')).equals(null)
+    assert.deepStrictEqual(pmf('/a/b/{c}', 't/'),null)
 
 
 
-    expect(pmf('/a/b/{c}/d', 't/p')).equals({
+    assert.deepStrictEqual(pmf('/a/b/{c}/d', 't/p'),{
       m: ['b', '{c}'], i: 1, x: 't/p'
     })
 
-    expect(pmf('/a/b/{c}/d', 'p/t')).equals({
+    assert.deepStrictEqual(pmf('/a/b/{c}/d', 'p/t'),{
       m: ['{c}', 'd'], i: 2, x: 'p/t'
     })
 
-    expect(pmf('/a/b/{c}/d', 'p/t/')).equals({
+    assert.deepStrictEqual(pmf('/a/b/{c}/d', 'p/t/'),{
       m: ['{c}', 'd'], i: 2, x: 'p/t/'
     })
 
-    expect(pmf('/a/b/{c}/d/e', 'p/t/')).equals(null)
-    expect(pmf('/a/b/{c}/d/e', 'p/t')).equals({
+    assert.deepStrictEqual(pmf('/a/b/{c}/d/e', 'p/t/'),null)
+    assert.deepStrictEqual(pmf('/a/b/{c}/d/e', 'p/t'),{
       i: 2, m: ['{c}', 'd'], x: 'p/t'
     })
 
 
-    expect(pmf('/a/b/{c}/d/{e}', 't/p/')).equals({
+    assert.deepStrictEqual(pmf('/a/b/{c}/d/{e}', 't/p/'),{
       i: 3, m: ['d', '{e}'], x: 't/p/'
     })
 
-    expect(pmf('/a/b/{c}/d/{e}', 't/p')).equals({
+    assert.deepStrictEqual(pmf('/a/b/{c}/d/{e}', 't/p'),{
       i: 1, m: ['b', '{c}'], x: 't/p'
     })
 
-    expect(pmf('/a/b/{c}/d/{e}', '/t/p')).equals(null)
+    assert.deepStrictEqual(pmf('/a/b/{c}/d/{e}', '/t/p'),null)
 
-    expect(pmf('/a/b/{c}/d/{e}', 't/p/t/p')).equals({
+    assert.deepStrictEqual(pmf('/a/b/{c}/d/{e}', 't/p/t/p'),{
       i: 1, m: ['b', '{c}', 'd', '{e}'], x: 't/p/t/p'
     })
   })
 
 
   test('formatJSONIC', async () => {
-    expect(formatJSONIC()).equal('')
-    expect(formatJSONIC(undefined)).equal('')
-    expect(formatJSONIC(null)).equal('null\n')
-    expect(formatJSONIC(true)).equal('true\n')
-    expect(formatJSONIC(11)).equal('11\n')
-    expect(formatJSONIC("s")).equal('"s"\n')
+    assert.deepStrictEqual(formatJSONIC(),'')
+    assert.deepStrictEqual(formatJSONIC(undefined),'')
+    assert.deepStrictEqual(formatJSONIC(null),'null\n')
+    assert.deepStrictEqual(formatJSONIC(true),'true\n')
+    assert.deepStrictEqual(formatJSONIC(11),'11\n')
+    assert.deepStrictEqual(formatJSONIC("s"),'"s"\n')
 
-    expect(formatJSONIC({
+    assert.deepStrictEqual(formatJSONIC({
       "a": 1,
       "a_COMMENT": "note about a",
       "0b_COMMENT": "0b notes",
@@ -623,7 +623,7 @@ describe('utility', () => {
           "y"
         ]
       }
-    })).equal(`{
+    }),`{
   a: 1  # note about a
   "0b": {  # 0b notes
     _CUR: "dollar"  # x; y
@@ -636,7 +636,7 @@ describe('utility', () => {
     a0['0_COMMENT'] = 'zero'
     a0['2_COMMENT'] = 'two'
 
-    expect(formatJSONIC({ a: a0, a_COMMENT: 'array' })).equal(`{
+    assert.deepStrictEqual(formatJSONIC({ a: a0, a_COMMENT: 'array' }),`{
   a: [  # array
     100  # zero
     101
@@ -647,18 +647,18 @@ describe('utility', () => {
 `)
 
 
-    expect(formatJSONIC({ _COMMENT: 'topO' })).equal(`{  # topO
+    assert.deepStrictEqual(formatJSONIC({ _COMMENT: 'topO' }),`{  # topO
 }
 `)
 
     const a1: any = []
     a1._COMMENT = 'topA'
-    expect(formatJSONIC(a1)).equal(`[  # topA
+    assert.deepStrictEqual(formatJSONIC(a1),`[  # topA
 ]
 `)
 
 
-    expect(formatJSONIC({ a: { b: {}, c: [], d: {} }, e: {} })).equal(`{
+    assert.deepStrictEqual(formatJSONIC({ a: { b: {}, c: [], d: {} }, e: {} }),`{
   a: {
     b: {
     }
@@ -675,7 +675,7 @@ describe('utility', () => {
 `)
 
 
-    expect(formatJSONIC({ a1: { b1: {}, c1: [], d1: {} }, e1: {} }, { hsepd: 2 })).equal(`{
+    assert.deepStrictEqual(formatJSONIC({ a1: { b1: {}, c1: [], d1: {} }, e1: {} }, { hsepd: 2 }),`{
   a1: {
     b1: {
     }
@@ -707,9 +707,9 @@ describe('utility', () => {
       }
     }
 
-    expect(getModelPath(model, 'a')).equal(model.a)
-    expect(getModelPath(model, 'a.b')).equal(model.a.b)
-    expect(getModelPath(model, 'a.b.c')).equal('value')
+    assert.deepStrictEqual(getModelPath(model, 'a'),model.a)
+    assert.deepStrictEqual(getModelPath(model, 'a.b'),model.a.b)
+    assert.deepStrictEqual(getModelPath(model, 'a.b.c'),'value')
   })
 
 
@@ -722,12 +722,12 @@ describe('utility', () => {
       ]
     }
 
-    expect(getModelPath(model, 'items.0')).equal(model.items[0])
-    expect(getModelPath(model, 'items.1')).equal(model.items[1])
-    expect(getModelPath(model, 'items.2')).equal(model.items[2])
-    expect(getModelPath(model, 'items.0.name')).equal('first')
-    expect(getModelPath(model, 'items.1.value')).equal(2)
-    expect(getModelPath(model, 'items.2.name')).equal('third')
+    assert.deepStrictEqual(getModelPath(model, 'items.0'),model.items[0])
+    assert.deepStrictEqual(getModelPath(model, 'items.1'),model.items[1])
+    assert.deepStrictEqual(getModelPath(model, 'items.2'),model.items[2])
+    assert.deepStrictEqual(getModelPath(model, 'items.0.name'),'first')
+    assert.deepStrictEqual(getModelPath(model, 'items.1.value'),2)
+    assert.deepStrictEqual(getModelPath(model, 'items.2.name'),'third')
   })
 
 
@@ -745,8 +745,8 @@ describe('utility', () => {
       }
     }
 
-    expect(getModelPath(model, 'data.nested.0.items.0.id')).equal('a')
-    expect(getModelPath(model, 'data.nested.0.items.1.id')).equal('b')
+    assert.deepStrictEqual(getModelPath(model, 'data.nested.0.items.0.id'),'a')
+    assert.deepStrictEqual(getModelPath(model, 'data.nested.0.items.1.id'),'b')
   })
 
 
@@ -760,34 +760,34 @@ describe('utility', () => {
     // Missing intermediate key
     try {
       getModelPath(model, 'a.x.c')
-      expect(false).true() // Should not reach here
+      assert.fail('Should not reach here')
     } catch (err: any) {
-      expect(err.message).contains("path not found at 'a.x.c'")
-      expect(err.message).contains("Valid path up to: 'a'")
-      expect(err.message).contains("Property 'x' does not exist")
-      expect(err.message).contains("Available keys: [b]")
+      assert.match(err.message, new RegExp("path not found at 'a.x.c'"))
+      assert.match(err.message, new RegExp("Valid path up to: 'a'"))
+      assert.match(err.message, new RegExp("Property 'x' does not exist"))
+      assert.match(err.message, new RegExp("Available keys: \\[b\\]"))
     }
 
     // Missing final key - should show available keys
     try {
       getModelPath(model, 'a.missing')
-      expect(false).true() // Should not reach here
+      assert.fail('Should not reach here')
     } catch (err: any) {
-      expect(err.message).contains("path not found at 'a.missing'")
-      expect(err.message).contains("Valid path up to: 'a'")
-      expect(err.message).contains("Property 'missing' does not exist")
-      expect(err.message).contains("Available keys: [b]")
+      assert.match(err.message, new RegExp("path not found at 'a.missing'"))
+      assert.match(err.message, new RegExp("Valid path up to: 'a'"))
+      assert.match(err.message, new RegExp("Property 'missing' does not exist"))
+      assert.match(err.message, new RegExp("Available keys: \\[b\\]"))
     }
 
     // Missing root key
     try {
       getModelPath(model, 'missing')
-      expect(false).true() // Should not reach here
+      assert.fail('Should not reach here')
     } catch (err: any) {
-      expect(err.message).contains("path not found at 'missing'")
-      expect(err.message).contains("Valid path up to: '(root)'")
-      expect(err.message).contains("Property 'missing' does not exist")
-      expect(err.message).contains("Available keys: [a]")
+      assert.match(err.message, new RegExp("path not found at 'missing'"))
+      assert.match(err.message, new RegExp("Valid path up to: '\\(root\\)'"))
+      assert.match(err.message, new RegExp("Property 'missing' does not exist"))
+      assert.match(err.message, new RegExp("Available keys: \\[a\\]"))
     }
   })
 
@@ -801,11 +801,11 @@ describe('utility', () => {
 
     try {
       getModelPath(model, 'a.b.c')
-      expect(false).true() // Should not reach here
+      assert.fail('Should not reach here')
     } catch (err: any) {
-      expect(err.message).contains("path not found at 'a.b.c'")
-      expect(err.message).contains("Valid path up to: 'a.b'")
-      expect(err.message).contains("Cannot access property 'c' of null")
+      assert.match(err.message, new RegExp("path not found at 'a.b.c'"))
+      assert.match(err.message, new RegExp("Valid path up to: 'a.b'"))
+      assert.match(err.message, new RegExp("Cannot access property 'c' of null"))
     }
 
     const model2 = {
@@ -816,11 +816,11 @@ describe('utility', () => {
 
     try {
       getModelPath(model2, 'a.b.c')
-      expect(false).true() // Should not reach here
+      assert.fail('Should not reach here')
     } catch (err: any) {
-      expect(err.message).contains("path not found at 'a.b.c'")
-      expect(err.message).contains("Valid path up to: 'a.b'")
-      expect(err.message).contains("Cannot access property 'c' of undefined")
+      assert.match(err.message, new RegExp("path not found at 'a.b.c'"))
+      assert.match(err.message, new RegExp("Valid path up to: 'a.b'"))
+      assert.match(err.message, new RegExp("Cannot access property 'c' of undefined"))
     }
   })
 
@@ -835,12 +835,12 @@ describe('utility', () => {
 
     try {
       getModelPath(model, 'items.5')
-      expect(false).true() // Should not reach here
+      assert.fail('Should not reach here')
     } catch (err: any) {
-      expect(err.message).contains("path not found at 'items.5'")
-      expect(err.message).contains("Valid path up to: 'items'")
-      expect(err.message).contains("Property '5' does not exist")
-      expect(err.message).contains("Available keys: array indices 0-1")
+      assert.match(err.message, new RegExp("path not found at 'items.5'"))
+      assert.match(err.message, new RegExp("Valid path up to: 'items'"))
+      assert.match(err.message, new RegExp("Property '5' does not exist"))
+      assert.match(err.message, new RegExp("Available keys: array indices 0-1"))
     }
   })
 
@@ -852,10 +852,10 @@ describe('utility', () => {
       }
     }
 
-    expect(getModelPath(model, 'a.x.c', { required: false })).equal(undefined)
-    expect(getModelPath(model, 'a.missing', { required: false })).equal(undefined)
-    expect(getModelPath(model, 'missing', { required: false })).equal(undefined)
-    expect(getModelPath(model, 'a.b.c', { required: false })).equal(undefined)
+    assert.deepStrictEqual(getModelPath(model, 'a.x.c', { required: false }),undefined)
+    assert.deepStrictEqual(getModelPath(model, 'a.missing', { required: false }),undefined)
+    assert.deepStrictEqual(getModelPath(model, 'missing', { required: false }),undefined)
+    assert.deepStrictEqual(getModelPath(model, 'a.b.c', { required: false }),undefined)
   })
 
 
@@ -866,7 +866,7 @@ describe('utility', () => {
       }
     }
 
-    expect(getModelPath(model, 'a.b.c', { required: false })).equal(undefined)
+    assert.deepStrictEqual(getModelPath(model, 'a.b.c', { required: false }),undefined)
 
     const model2 = {
       a: {
@@ -874,7 +874,7 @@ describe('utility', () => {
       }
     }
 
-    expect(getModelPath(model2, 'a.b.c', { required: false })).equal(undefined)
+    assert.deepStrictEqual(getModelPath(model2, 'a.b.c', { required: false }),undefined)
   })
 
 
@@ -883,8 +883,8 @@ describe('utility', () => {
       items: [{ name: 'first' }]
     }
 
-    expect(getModelPath(model, 'items.5', { required: false })).equal(undefined)
-    expect(getModelPath(model, 'items.5.name', { required: false })).equal(undefined)
+    assert.deepStrictEqual(getModelPath(model, 'items.5', { required: false }),undefined)
+    assert.deepStrictEqual(getModelPath(model, 'items.5.name', { required: false }),undefined)
   })
 
 
@@ -893,12 +893,12 @@ describe('utility', () => {
 
     try {
       getModelPath(model, '')
-      expect(false).true() // Should not reach here
+      assert.fail('Should not reach here')
     } catch (err: any) {
-      expect(err.message).contains('empty path provided')
+      assert.match(err.message, new RegExp('empty path provided'))
     }
 
-    expect(getModelPath(model, '', { required: false })).equal(undefined)
+    assert.deepStrictEqual(getModelPath(model, '', { required: false }),undefined)
   })
 
 
@@ -910,10 +910,10 @@ describe('utility', () => {
       nullValue: null
     }
 
-    expect(getModelPath(model, 'zero')).equal(0)
-    expect(getModelPath(model, 'empty')).equal('')
-    expect(getModelPath(model, 'falsy')).equal(false)
-    expect(getModelPath(model, 'nullValue')).equal(null)
+    assert.deepStrictEqual(getModelPath(model, 'zero'),0)
+    assert.deepStrictEqual(getModelPath(model, 'empty'),'')
+    assert.deepStrictEqual(getModelPath(model, 'falsy'),false)
+    assert.deepStrictEqual(getModelPath(model, 'nullValue'),null)
   })
 })
 

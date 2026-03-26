@@ -18,7 +18,7 @@ type ApiDefOptions = {
     };
 };
 declare const ControlShape: {
-    <V>(root?: V | undefined, ctx?: import("gubu").Context): V & {
+    <V>(root?: V | undefined, ctx?: import("shape").Context): V & {
         step: {
             parse: boolean;
             guide: boolean;
@@ -27,7 +27,7 @@ declare const ControlShape: {
             generate: boolean;
         };
     };
-    valid: <V>(root?: V | undefined, ctx?: import("gubu").Context) => root is V & {
+    valid: <V>(root?: V | undefined, ctx?: import("shape").Context) => root is V & {
         step: {
             parse: boolean;
             guide: boolean;
@@ -36,9 +36,9 @@ declare const ControlShape: {
             generate: boolean;
         };
     };
-    match(root?: any, ctx?: import("gubu").Context): boolean;
-    error(root?: any, ctx?: import("gubu").Context): {
-        gubu: boolean;
+    match(root?: any, ctx?: import("shape").Context): boolean;
+    error(root?: any, ctx?: import("shape").Context): {
+        shape: boolean;
         code: string;
         gname: string;
         props: ({
@@ -52,7 +52,7 @@ declare const ControlShape: {
             err: {
                 key: string;
                 type: string;
-                node: import("gubu").Node<any>;
+                node: import("shape").Node<any>;
                 value: any;
                 path: string;
                 why: string;
@@ -74,7 +74,7 @@ declare const ControlShape: {
         stack?: string;
     }[];
     spec(): any;
-    node(): import("gubu").Node<{
+    node(): import("shape").Node<{
         step: {
             parse: boolean;
             guide: boolean;
@@ -86,13 +86,13 @@ declare const ControlShape: {
     stringify(...rest: any[]): string;
     jsonify(): any;
     toString(this: any): string;
-    gubu: {
-        gubu$: symbol;
+    shape: {
+        shape$: symbol;
         v$: string;
     };
 };
 declare const OpenControlShape: {
-    <V>(root?: V | undefined, ctx?: import("gubu").Context): V & {
+    <V>(root?: V | undefined, ctx?: import("shape").Context): V & {
         valid: {};
         match: {};
         error: {};
@@ -101,13 +101,13 @@ declare const OpenControlShape: {
         stringify: {};
         jsonify: {};
         toString: {};
-        gubu: {
-            gubu$: symbol;
+        shape: {
+            shape$: symbol;
             v$: string;
         };
     };
-    valid: <V>(root?: V | undefined, ctx?: import("gubu").Context) => root is V & {
-        <V_1>(root?: V_1 | undefined, ctx?: import("gubu").Context): V_1 & {
+    valid: <V>(root?: V | undefined, ctx?: import("shape").Context) => root is V & {
+        <V_1>(root?: V_1 | undefined, ctx?: import("shape").Context): V_1 & {
             step: {
                 parse: boolean;
                 guide: boolean;
@@ -116,7 +116,7 @@ declare const OpenControlShape: {
                 generate: boolean;
             };
         };
-        valid: <V_1>(root?: V_1 | undefined, ctx?: import("gubu").Context) => root is V_1 & {
+        valid: <V_1>(root?: V_1 | undefined, ctx?: import("shape").Context) => root is V_1 & {
             step: {
                 parse: boolean;
                 guide: boolean;
@@ -125,9 +125,9 @@ declare const OpenControlShape: {
                 generate: boolean;
             };
         };
-        match(root?: any, ctx?: import("gubu").Context): boolean;
-        error(root?: any, ctx?: import("gubu").Context): {
-            gubu: boolean;
+        match(root?: any, ctx?: import("shape").Context): boolean;
+        error(root?: any, ctx?: import("shape").Context): {
+            shape: boolean;
             code: string;
             gname: string;
             props: ({
@@ -141,7 +141,7 @@ declare const OpenControlShape: {
                 err: {
                     key: string;
                     type: string;
-                    node: import("gubu").Node<any>;
+                    node: import("shape").Node<any>;
                     value: any;
                     path: string;
                     why: string;
@@ -163,7 +163,7 @@ declare const OpenControlShape: {
             stack?: string;
         }[];
         spec(): any;
-        node(): import("gubu").Node<{
+        node(): import("shape").Node<{
             step: {
                 parse: boolean;
                 guide: boolean;
@@ -175,14 +175,14 @@ declare const OpenControlShape: {
         stringify(...rest: any[]): string;
         jsonify(): any;
         toString(this: any): string;
-        gubu: {
-            gubu$: symbol;
+        shape: {
+            shape$: symbol;
             v$: string;
         };
     };
-    match(root?: any, ctx?: import("gubu").Context): boolean;
-    error(root?: any, ctx?: import("gubu").Context): {
-        gubu: boolean;
+    match(root?: any, ctx?: import("shape").Context): boolean;
+    error(root?: any, ctx?: import("shape").Context): {
+        shape: boolean;
         code: string;
         gname: string;
         props: ({
@@ -196,7 +196,7 @@ declare const OpenControlShape: {
             err: {
                 key: string;
                 type: string;
-                node: import("gubu").Node<any>;
+                node: import("shape").Node<any>;
                 value: any;
                 path: string;
                 why: string;
@@ -218,8 +218,8 @@ declare const OpenControlShape: {
         stack?: string;
     }[];
     spec(): any;
-    node(): import("gubu").Node<{
-        <V>(root?: V | undefined, ctx?: import("gubu").Context): V & {
+    node(): import("shape").Node<{
+        <V>(root?: V | undefined, ctx?: import("shape").Context): V & {
             step: {
                 parse: boolean;
                 guide: boolean;
@@ -228,7 +228,7 @@ declare const OpenControlShape: {
                 generate: boolean;
             };
         };
-        valid: <V>(root?: V | undefined, ctx?: import("gubu").Context) => root is V & {
+        valid: <V>(root?: V | undefined, ctx?: import("shape").Context) => root is V & {
             step: {
                 parse: boolean;
                 guide: boolean;
@@ -237,9 +237,9 @@ declare const OpenControlShape: {
                 generate: boolean;
             };
         };
-        match(root?: any, ctx?: import("gubu").Context): boolean;
-        error(root?: any, ctx?: import("gubu").Context): {
-            gubu: boolean;
+        match(root?: any, ctx?: import("shape").Context): boolean;
+        error(root?: any, ctx?: import("shape").Context): {
+            shape: boolean;
             code: string;
             gname: string;
             props: ({
@@ -253,7 +253,7 @@ declare const OpenControlShape: {
                 err: {
                     key: string;
                     type: string;
-                    node: import("gubu").Node<any>;
+                    node: import("shape").Node<any>;
                     value: any;
                     path: string;
                     why: string;
@@ -275,7 +275,7 @@ declare const OpenControlShape: {
             stack?: string;
         }[];
         spec(): any;
-        node(): import("gubu").Node<{
+        node(): import("shape").Node<{
             step: {
                 parse: boolean;
                 guide: boolean;
@@ -287,22 +287,22 @@ declare const OpenControlShape: {
         stringify(...rest: any[]): string;
         jsonify(): any;
         toString(this: any): string;
-        gubu: {
-            gubu$: symbol;
+        shape: {
+            shape$: symbol;
             v$: string;
         };
     }>;
     stringify(...rest: any[]): string;
     jsonify(): any;
     toString(this: any): string;
-    gubu: {
-        gubu$: symbol;
+    shape: {
+        shape$: symbol;
         v$: string;
     };
 };
 type Control = ReturnType<typeof ControlShape>;
 declare const ModelShape: {
-    <V>(root?: V | undefined, ctx?: import("gubu").Context): V & {
+    <V>(root?: V | undefined, ctx?: import("shape").Context): V & {
         name: string;
         def: string;
         main: {
@@ -314,7 +314,7 @@ declare const ModelShape: {
             };
         };
     };
-    valid: <V>(root?: V | undefined, ctx?: import("gubu").Context) => root is V & {
+    valid: <V>(root?: V | undefined, ctx?: import("shape").Context) => root is V & {
         name: StringConstructor;
         def: StringConstructor;
         main: {
@@ -326,9 +326,9 @@ declare const ModelShape: {
             };
         };
     };
-    match(root?: any, ctx?: import("gubu").Context): boolean;
-    error(root?: any, ctx?: import("gubu").Context): {
-        gubu: boolean;
+    match(root?: any, ctx?: import("shape").Context): boolean;
+    error(root?: any, ctx?: import("shape").Context): {
+        shape: boolean;
         code: string;
         gname: string;
         props: ({
@@ -342,7 +342,7 @@ declare const ModelShape: {
             err: {
                 key: string;
                 type: string;
-                node: import("gubu").Node<any>;
+                node: import("shape").Node<any>;
                 value: any;
                 path: string;
                 why: string;
@@ -364,7 +364,7 @@ declare const ModelShape: {
         stack?: string;
     }[];
     spec(): any;
-    node(): import("gubu").Node<{
+    node(): import("shape").Node<{
         name: StringConstructor;
         def: StringConstructor;
         main: {
@@ -379,13 +379,13 @@ declare const ModelShape: {
     stringify(...rest: any[]): string;
     jsonify(): any;
     toString(this: any): string;
-    gubu: {
-        gubu$: symbol;
+    shape: {
+        shape$: symbol;
         v$: string;
     };
 };
 declare const OpenModelShape: {
-    <V>(root?: V | undefined, ctx?: import("gubu").Context): V & {
+    <V>(root?: V | undefined, ctx?: import("shape").Context): V & {
         valid: {};
         match: {};
         error: {};
@@ -394,13 +394,13 @@ declare const OpenModelShape: {
         stringify: {};
         jsonify: {};
         toString: {};
-        gubu: {
-            gubu$: symbol;
+        shape: {
+            shape$: symbol;
             v$: string;
         };
     };
-    valid: <V>(root?: V | undefined, ctx?: import("gubu").Context) => root is V & {
-        <V_1>(root?: V_1 | undefined, ctx?: import("gubu").Context): V_1 & {
+    valid: <V>(root?: V | undefined, ctx?: import("shape").Context) => root is V & {
+        <V_1>(root?: V_1 | undefined, ctx?: import("shape").Context): V_1 & {
             name: string;
             def: string;
             main: {
@@ -412,7 +412,7 @@ declare const OpenModelShape: {
                 };
             };
         };
-        valid: <V_1>(root?: V_1 | undefined, ctx?: import("gubu").Context) => root is V_1 & {
+        valid: <V_1>(root?: V_1 | undefined, ctx?: import("shape").Context) => root is V_1 & {
             name: StringConstructor;
             def: StringConstructor;
             main: {
@@ -424,9 +424,9 @@ declare const OpenModelShape: {
                 };
             };
         };
-        match(root?: any, ctx?: import("gubu").Context): boolean;
-        error(root?: any, ctx?: import("gubu").Context): {
-            gubu: boolean;
+        match(root?: any, ctx?: import("shape").Context): boolean;
+        error(root?: any, ctx?: import("shape").Context): {
+            shape: boolean;
             code: string;
             gname: string;
             props: ({
@@ -440,7 +440,7 @@ declare const OpenModelShape: {
                 err: {
                     key: string;
                     type: string;
-                    node: import("gubu").Node<any>;
+                    node: import("shape").Node<any>;
                     value: any;
                     path: string;
                     why: string;
@@ -462,7 +462,7 @@ declare const OpenModelShape: {
             stack?: string;
         }[];
         spec(): any;
-        node(): import("gubu").Node<{
+        node(): import("shape").Node<{
             name: StringConstructor;
             def: StringConstructor;
             main: {
@@ -477,14 +477,14 @@ declare const OpenModelShape: {
         stringify(...rest: any[]): string;
         jsonify(): any;
         toString(this: any): string;
-        gubu: {
-            gubu$: symbol;
+        shape: {
+            shape$: symbol;
             v$: string;
         };
     };
-    match(root?: any, ctx?: import("gubu").Context): boolean;
-    error(root?: any, ctx?: import("gubu").Context): {
-        gubu: boolean;
+    match(root?: any, ctx?: import("shape").Context): boolean;
+    error(root?: any, ctx?: import("shape").Context): {
+        shape: boolean;
         code: string;
         gname: string;
         props: ({
@@ -498,7 +498,7 @@ declare const OpenModelShape: {
             err: {
                 key: string;
                 type: string;
-                node: import("gubu").Node<any>;
+                node: import("shape").Node<any>;
                 value: any;
                 path: string;
                 why: string;
@@ -520,8 +520,8 @@ declare const OpenModelShape: {
         stack?: string;
     }[];
     spec(): any;
-    node(): import("gubu").Node<{
-        <V>(root?: V | undefined, ctx?: import("gubu").Context): V & {
+    node(): import("shape").Node<{
+        <V>(root?: V | undefined, ctx?: import("shape").Context): V & {
             name: string;
             def: string;
             main: {
@@ -533,7 +533,7 @@ declare const OpenModelShape: {
                 };
             };
         };
-        valid: <V>(root?: V | undefined, ctx?: import("gubu").Context) => root is V & {
+        valid: <V>(root?: V | undefined, ctx?: import("shape").Context) => root is V & {
             name: StringConstructor;
             def: StringConstructor;
             main: {
@@ -545,9 +545,9 @@ declare const OpenModelShape: {
                 };
             };
         };
-        match(root?: any, ctx?: import("gubu").Context): boolean;
-        error(root?: any, ctx?: import("gubu").Context): {
-            gubu: boolean;
+        match(root?: any, ctx?: import("shape").Context): boolean;
+        error(root?: any, ctx?: import("shape").Context): {
+            shape: boolean;
             code: string;
             gname: string;
             props: ({
@@ -561,7 +561,7 @@ declare const OpenModelShape: {
                 err: {
                     key: string;
                     type: string;
-                    node: import("gubu").Node<any>;
+                    node: import("shape").Node<any>;
                     value: any;
                     path: string;
                     why: string;
@@ -583,7 +583,7 @@ declare const OpenModelShape: {
             stack?: string;
         }[];
         spec(): any;
-        node(): import("gubu").Node<{
+        node(): import("shape").Node<{
             name: StringConstructor;
             def: StringConstructor;
             main: {
@@ -598,22 +598,22 @@ declare const OpenModelShape: {
         stringify(...rest: any[]): string;
         jsonify(): any;
         toString(this: any): string;
-        gubu: {
-            gubu$: symbol;
+        shape: {
+            shape$: symbol;
             v$: string;
         };
     }>;
     stringify(...rest: any[]): string;
     jsonify(): any;
     toString(this: any): string;
-    gubu: {
-        gubu$: symbol;
+    shape: {
+        shape$: symbol;
         v$: string;
     };
 };
 type Model = ReturnType<typeof ModelShape>;
 declare const BuildShape: {
-    <V>(root?: V | undefined, ctx?: import("gubu").Context): V & {
+    <V>(root?: V | undefined, ctx?: import("shape").Context): V & {
         spec: {
             base: string;
             path: string;
@@ -632,7 +632,7 @@ declare const BuildShape: {
             };
         };
     };
-    valid: <V>(root?: V | undefined, ctx?: import("gubu").Context) => root is V & {
+    valid: <V>(root?: V | undefined, ctx?: import("shape").Context) => root is V & {
         spec: {
             base: string;
             path: string;
@@ -641,7 +641,7 @@ declare const BuildShape: {
             res: never[];
             require: string;
             log: {};
-            fs: import("gubu").Node<unknown>;
+            fs: import("shape").Node<unknown>;
             dryrun: boolean;
             buildargs: {};
             watch: {
@@ -651,9 +651,9 @@ declare const BuildShape: {
             };
         };
     };
-    match(root?: any, ctx?: import("gubu").Context): boolean;
-    error(root?: any, ctx?: import("gubu").Context): {
-        gubu: boolean;
+    match(root?: any, ctx?: import("shape").Context): boolean;
+    error(root?: any, ctx?: import("shape").Context): {
+        shape: boolean;
         code: string;
         gname: string;
         props: ({
@@ -667,7 +667,7 @@ declare const BuildShape: {
             err: {
                 key: string;
                 type: string;
-                node: import("gubu").Node<any>;
+                node: import("shape").Node<any>;
                 value: any;
                 path: string;
                 why: string;
@@ -689,7 +689,7 @@ declare const BuildShape: {
         stack?: string;
     }[];
     spec(): any;
-    node(): import("gubu").Node<{
+    node(): import("shape").Node<{
         spec: {
             base: string;
             path: string;
@@ -698,7 +698,7 @@ declare const BuildShape: {
             res: never[];
             require: string;
             log: {};
-            fs: import("gubu").Node<unknown>;
+            fs: import("shape").Node<unknown>;
             dryrun: boolean;
             buildargs: {};
             watch: {
@@ -711,13 +711,13 @@ declare const BuildShape: {
     stringify(...rest: any[]): string;
     jsonify(): any;
     toString(this: any): string;
-    gubu: {
-        gubu$: symbol;
+    shape: {
+        shape$: symbol;
         v$: string;
     };
 };
 declare const OpenBuildShape: {
-    <V>(root?: V | undefined, ctx?: import("gubu").Context): V & {
+    <V>(root?: V | undefined, ctx?: import("shape").Context): V & {
         valid: {};
         match: {};
         error: {};
@@ -726,13 +726,13 @@ declare const OpenBuildShape: {
         stringify: {};
         jsonify: {};
         toString: {};
-        gubu: {
-            gubu$: symbol;
+        shape: {
+            shape$: symbol;
             v$: string;
         };
     };
-    valid: <V>(root?: V | undefined, ctx?: import("gubu").Context) => root is V & {
-        <V_1>(root?: V_1 | undefined, ctx?: import("gubu").Context): V_1 & {
+    valid: <V>(root?: V | undefined, ctx?: import("shape").Context) => root is V & {
+        <V_1>(root?: V_1 | undefined, ctx?: import("shape").Context): V_1 & {
             spec: {
                 base: string;
                 path: string;
@@ -751,7 +751,7 @@ declare const OpenBuildShape: {
                 };
             };
         };
-        valid: <V_1>(root?: V_1 | undefined, ctx?: import("gubu").Context) => root is V_1 & {
+        valid: <V_1>(root?: V_1 | undefined, ctx?: import("shape").Context) => root is V_1 & {
             spec: {
                 base: string;
                 path: string;
@@ -760,7 +760,7 @@ declare const OpenBuildShape: {
                 res: never[];
                 require: string;
                 log: {};
-                fs: import("gubu").Node<unknown>;
+                fs: import("shape").Node<unknown>;
                 dryrun: boolean;
                 buildargs: {};
                 watch: {
@@ -770,9 +770,9 @@ declare const OpenBuildShape: {
                 };
             };
         };
-        match(root?: any, ctx?: import("gubu").Context): boolean;
-        error(root?: any, ctx?: import("gubu").Context): {
-            gubu: boolean;
+        match(root?: any, ctx?: import("shape").Context): boolean;
+        error(root?: any, ctx?: import("shape").Context): {
+            shape: boolean;
             code: string;
             gname: string;
             props: ({
@@ -786,7 +786,7 @@ declare const OpenBuildShape: {
                 err: {
                     key: string;
                     type: string;
-                    node: import("gubu").Node<any>;
+                    node: import("shape").Node<any>;
                     value: any;
                     path: string;
                     why: string;
@@ -808,7 +808,7 @@ declare const OpenBuildShape: {
             stack?: string;
         }[];
         spec(): any;
-        node(): import("gubu").Node<{
+        node(): import("shape").Node<{
             spec: {
                 base: string;
                 path: string;
@@ -817,7 +817,7 @@ declare const OpenBuildShape: {
                 res: never[];
                 require: string;
                 log: {};
-                fs: import("gubu").Node<unknown>;
+                fs: import("shape").Node<unknown>;
                 dryrun: boolean;
                 buildargs: {};
                 watch: {
@@ -830,14 +830,14 @@ declare const OpenBuildShape: {
         stringify(...rest: any[]): string;
         jsonify(): any;
         toString(this: any): string;
-        gubu: {
-            gubu$: symbol;
+        shape: {
+            shape$: symbol;
             v$: string;
         };
     };
-    match(root?: any, ctx?: import("gubu").Context): boolean;
-    error(root?: any, ctx?: import("gubu").Context): {
-        gubu: boolean;
+    match(root?: any, ctx?: import("shape").Context): boolean;
+    error(root?: any, ctx?: import("shape").Context): {
+        shape: boolean;
         code: string;
         gname: string;
         props: ({
@@ -851,7 +851,7 @@ declare const OpenBuildShape: {
             err: {
                 key: string;
                 type: string;
-                node: import("gubu").Node<any>;
+                node: import("shape").Node<any>;
                 value: any;
                 path: string;
                 why: string;
@@ -873,8 +873,8 @@ declare const OpenBuildShape: {
         stack?: string;
     }[];
     spec(): any;
-    node(): import("gubu").Node<{
-        <V>(root?: V | undefined, ctx?: import("gubu").Context): V & {
+    node(): import("shape").Node<{
+        <V>(root?: V | undefined, ctx?: import("shape").Context): V & {
             spec: {
                 base: string;
                 path: string;
@@ -893,7 +893,7 @@ declare const OpenBuildShape: {
                 };
             };
         };
-        valid: <V>(root?: V | undefined, ctx?: import("gubu").Context) => root is V & {
+        valid: <V>(root?: V | undefined, ctx?: import("shape").Context) => root is V & {
             spec: {
                 base: string;
                 path: string;
@@ -902,7 +902,7 @@ declare const OpenBuildShape: {
                 res: never[];
                 require: string;
                 log: {};
-                fs: import("gubu").Node<unknown>;
+                fs: import("shape").Node<unknown>;
                 dryrun: boolean;
                 buildargs: {};
                 watch: {
@@ -912,9 +912,9 @@ declare const OpenBuildShape: {
                 };
             };
         };
-        match(root?: any, ctx?: import("gubu").Context): boolean;
-        error(root?: any, ctx?: import("gubu").Context): {
-            gubu: boolean;
+        match(root?: any, ctx?: import("shape").Context): boolean;
+        error(root?: any, ctx?: import("shape").Context): {
+            shape: boolean;
             code: string;
             gname: string;
             props: ({
@@ -928,7 +928,7 @@ declare const OpenBuildShape: {
                 err: {
                     key: string;
                     type: string;
-                    node: import("gubu").Node<any>;
+                    node: import("shape").Node<any>;
                     value: any;
                     path: string;
                     why: string;
@@ -950,7 +950,7 @@ declare const OpenBuildShape: {
             stack?: string;
         }[];
         spec(): any;
-        node(): import("gubu").Node<{
+        node(): import("shape").Node<{
             spec: {
                 base: string;
                 path: string;
@@ -959,7 +959,7 @@ declare const OpenBuildShape: {
                 res: never[];
                 require: string;
                 log: {};
-                fs: import("gubu").Node<unknown>;
+                fs: import("shape").Node<unknown>;
                 dryrun: boolean;
                 buildargs: {};
                 watch: {
@@ -972,16 +972,16 @@ declare const OpenBuildShape: {
         stringify(...rest: any[]): string;
         jsonify(): any;
         toString(this: any): string;
-        gubu: {
-            gubu$: symbol;
+        shape: {
+            shape$: symbol;
             v$: string;
         };
     }>;
     stringify(...rest: any[]): string;
     jsonify(): any;
     toString(this: any): string;
-    gubu: {
-        gubu$: symbol;
+    shape: {
+        shape$: symbol;
         v$: string;
     };
 };

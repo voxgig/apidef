@@ -4,7 +4,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.GuideShape = exports.OPKIND = void 0;
 exports.fixName = fixName;
 const jostraca_1 = require("jostraca");
-const gubu_1 = require("gubu");
+const shape_1 = require("shape");
 const top_1 = require("./transform/top");
 const entity_1 = require("./transform/entity");
 const operation_1 = require("./transform/operation");
@@ -28,7 +28,7 @@ const OPKIND = {
     update: 'req',
 };
 exports.OPKIND = OPKIND;
-const GuideShape = (0, gubu_1.Gubu)({
+const GuideShape = (0, shape_1.Shape)({
     entity: {},
     control: {},
     transform: {},

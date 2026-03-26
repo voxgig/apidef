@@ -7,7 +7,7 @@
 import * as path from "@std/path";
 import { parseArgs } from "@std/cli/parse-args";
 
-import { Gubu, Fault, One } from "npm:gubu@^9.0.0";
+import { Shape, Fault, One } from "npm:shape@^10.0.0";
 
 // Import the apidef library via npm specifier.
 import { ApiDef } from "npm:@voxgig/apidef@^3.3.1";
@@ -106,7 +106,7 @@ function resolveOptions() {
 }
 
 function validateOptions(rawOptions: Record<string, unknown>) {
-  const optShape = Gubu({
+  const optShape = Shape({
     name: Fault("The first argument should be the project name.", String),
     folder: String,
     def: "",

@@ -70,7 +70,7 @@ const flow_2 = require("./builder/flow");
 // Log non-fatal wierdness.
 const dlog = (0, utility_1.getdlog)('apidef', __filename);
 function ApiDef(opts) {
-    // TODO: gubu opts!
+    // TODO: shape opts!
     const fs = opts.fs || Fs;
     const pino = (0, util_1.prettyPino)('apidef', opts);
     const log = pino.child({ cmp: 'apidef' });

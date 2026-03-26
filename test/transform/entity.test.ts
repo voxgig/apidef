@@ -2,7 +2,7 @@
 
 
 import { test, describe } from 'node:test'
-import { expect } from '@hapi/code'
+import assert from 'node:assert'
 
 
 
@@ -48,7 +48,7 @@ describe('transform-entity', () => {
 
 
   test('buildRelations', () => {
-    expect(buildRelations).exist()
+    assert.ok(buildRelations)
 
     const r0 = buildRelations({}, [
       { parts: ['a'] },
@@ -64,7 +64,7 @@ describe('transform-entity', () => {
     ] as any)
 
     // console.dir(r0, { depth: null })
-    expect(r0).equals({
+    assert.deepStrictEqual(r0, {
       ancestors: [['f'], ['h'], ['l', 'k'], ['p', 'n'], ['q', 'o', 'n']]
     })
   })

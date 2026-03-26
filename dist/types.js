@@ -2,10 +2,10 @@
 /* Copyright (c) 2025 Voxgig, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.OpenBuildShape = exports.OpenModelShape = exports.OpenControlShape = exports.KIT = void 0;
-const gubu_1 = require("gubu");
+const shape_1 = require("shape");
 const KIT = 'kit';
 exports.KIT = KIT;
-const ControlShape = (0, gubu_1.Gubu)({
+const ControlShape = (0, shape_1.Shape)({
     step: {
         parse: true,
         guide: true,
@@ -14,9 +14,9 @@ const ControlShape = (0, gubu_1.Gubu)({
         generate: true,
     }
 });
-const OpenControlShape = (0, gubu_1.Gubu)((0, gubu_1.Open)(ControlShape), { name: 'Control' });
+const OpenControlShape = (0, shape_1.Shape)((0, shape_1.Open)(ControlShape), { name: 'Control' });
 exports.OpenControlShape = OpenControlShape;
-const ModelShape = (0, gubu_1.Gubu)({
+const ModelShape = (0, shape_1.Shape)({
     name: String,
     def: String,
     main: {
@@ -28,9 +28,9 @@ const ModelShape = (0, gubu_1.Gubu)({
         },
     }
 });
-const OpenModelShape = (0, gubu_1.Gubu)((0, gubu_1.Open)(ModelShape), { name: 'Model' });
+const OpenModelShape = (0, shape_1.Shape)((0, shape_1.Open)(ModelShape), { name: 'Model' });
 exports.OpenModelShape = OpenModelShape;
-const BuildShape = (0, gubu_1.Gubu)({
+const BuildShape = (0, shape_1.Shape)({
     spec: {
         base: '',
         path: '',
@@ -39,7 +39,7 @@ const BuildShape = (0, gubu_1.Gubu)({
         res: [],
         require: '',
         log: {},
-        fs: (0, gubu_1.Any)(),
+        fs: (0, shape_1.Any)(),
         dryrun: false,
         buildargs: {},
         watch: {
@@ -49,6 +49,6 @@ const BuildShape = (0, gubu_1.Gubu)({
         }
     }
 });
-const OpenBuildShape = (0, gubu_1.Gubu)((0, gubu_1.Open)(BuildShape));
+const OpenBuildShape = (0, shape_1.Shape)((0, shape_1.Open)(BuildShape));
 exports.OpenBuildShape = OpenBuildShape;
 //# sourceMappingURL=types.js.map

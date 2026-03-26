@@ -5,7 +5,7 @@ import Path from 'node:path'
 
 import { getx, each, camelify } from 'jostraca'
 
-import { Gubu, Child, Exact } from 'gubu'
+import { Shape, Child, Exact } from 'shape'
 
 import { topTransform } from './transform/top'
 import { entityTransform } from './transform/entity'
@@ -73,7 +73,7 @@ const OPKIND: any = {
 }
 
 
-const GuideShape = Gubu({
+const GuideShape = Shape({
   entity: {},
   control: {},
   transform: {},

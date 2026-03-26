@@ -82,7 +82,7 @@ const dlog = getdlog('apidef', __filename)
 
 function ApiDef(opts: ApiDefOptions) {
 
-  // TODO: gubu opts!
+  // TODO: shape opts!
   const fs = opts.fs || Fs
   const pino = prettyPino('apidef', opts)
   const log = pino.child({ cmp: 'apidef' })

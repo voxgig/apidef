@@ -1,7 +1,7 @@
 /* Copyright (c) 2024-2025 Voxgig Ltd, MIT License */
 
 import { test, describe } from 'node:test'
-import { expect } from '@hapi/code'
+import assert from 'node:assert'
 
 import {
   inferFieldsFromExamples,
@@ -12,21 +12,21 @@ import {
 describe('transform-field', () => {
 
   test('inferTypeFromValue', () => {
-    expect(inferTypeFromValue('hello')).equal('string')
-    expect(inferTypeFromValue('')).equal('string')
-    expect(inferTypeFromValue(true)).equal('boolean')
-    expect(inferTypeFromValue(false)).equal('boolean')
-    expect(inferTypeFromValue(42)).equal('integer')
-    expect(inferTypeFromValue(0)).equal('integer')
-    expect(inferTypeFromValue(-1)).equal('integer')
-    expect(inferTypeFromValue(3.14)).equal('number')
-    expect(inferTypeFromValue(0.5)).equal('number')
-    expect(inferTypeFromValue([1, 2])).equal('array')
-    expect(inferTypeFromValue([])).equal('array')
-    expect(inferTypeFromValue({ a: 1 })).equal('object')
-    expect(inferTypeFromValue({})).equal('object')
-    expect(inferTypeFromValue(null)).equal('string')
-    expect(inferTypeFromValue(undefined)).equal('string')
+    assert.deepStrictEqual(inferTypeFromValue('hello'),'string')
+    assert.deepStrictEqual(inferTypeFromValue(''),'string')
+    assert.deepStrictEqual(inferTypeFromValue(true),'boolean')
+    assert.deepStrictEqual(inferTypeFromValue(false),'boolean')
+    assert.deepStrictEqual(inferTypeFromValue(42),'integer')
+    assert.deepStrictEqual(inferTypeFromValue(0),'integer')
+    assert.deepStrictEqual(inferTypeFromValue(-1),'integer')
+    assert.deepStrictEqual(inferTypeFromValue(3.14),'number')
+    assert.deepStrictEqual(inferTypeFromValue(0.5),'number')
+    assert.deepStrictEqual(inferTypeFromValue([1, 2]),'array')
+    assert.deepStrictEqual(inferTypeFromValue([]),'array')
+    assert.deepStrictEqual(inferTypeFromValue({ a: 1 }),'object')
+    assert.deepStrictEqual(inferTypeFromValue({}),'object')
+    assert.deepStrictEqual(inferTypeFromValue(null),'string')
+    assert.deepStrictEqual(inferTypeFromValue(undefined),'string')
   })
 
 
@@ -52,18 +52,18 @@ describe('transform-field', () => {
     }
 
     const fields = inferFieldsFromExamples(opdef)
-    expect(fields.length).equal(7)
+    assert.deepStrictEqual(fields.length,7)
 
     const byName: Record<string, any> = {}
     for (const f of fields) { byName[(f as any).key$] = f }
 
-    expect(byName.id.type).equal('string')
-    expect(byName.name.type).equal('string')
-    expect(byName.count.type).equal('integer')
-    expect(byName.price.type).equal('number')
-    expect(byName.active.type).equal('boolean')
-    expect(byName.tags.type).equal('array')
-    expect(byName.meta.type).equal('object')
+    assert.deepStrictEqual(byName.id.type,'string')
+    assert.deepStrictEqual(byName.name.type,'string')
+    assert.deepStrictEqual(byName.count.type,'integer')
+    assert.deepStrictEqual(byName.price.type,'number')
+    assert.deepStrictEqual(byName.active.type,'boolean')
+    assert.deepStrictEqual(byName.tags.type,'array')
+    assert.deepStrictEqual(byName.meta.type,'object')
   })
 
 
@@ -96,14 +96,14 @@ describe('transform-field', () => {
     }
 
     const fields = inferFieldsFromExamples(opdef)
-    expect(fields.length).equal(3)
+    assert.deepStrictEqual(fields.length,3)
 
     const byName: Record<string, any> = {}
     for (const f of fields) { byName[(f as any).key$] = f }
 
-    expect(byName.id.type).equal('string')
-    expect(byName.title.type).equal('string')
-    expect(byName.score.type).equal('number')
+    assert.deepStrictEqual(byName.id.type,'string')
+    assert.deepStrictEqual(byName.title.type,'string')
+    assert.deepStrictEqual(byName.score.type,'number')
   })
 
 
@@ -124,15 +124,15 @@ describe('transform-field', () => {
     }
 
     const fields = inferFieldsFromExamples(opdef)
-    expect(fields.length).equal(4)
+    assert.deepStrictEqual(fields.length,4)
 
     const byName: Record<string, any> = {}
     for (const f of fields) { byName[(f as any).key$] = f }
 
-    expect(byName.username.type).equal('string')
-    expect(byName.email.type).equal('string')
-    expect(byName.is_active.type).equal('boolean')
-    expect(byName.login_count.type).equal('integer')
+    assert.deepStrictEqual(byName.username.type,'string')
+    assert.deepStrictEqual(byName.email.type,'string')
+    assert.deepStrictEqual(byName.is_active.type,'boolean')
+    assert.deepStrictEqual(byName.login_count.type,'integer')
   })
 
 
@@ -153,20 +153,20 @@ describe('transform-field', () => {
     }
 
     const fields = inferFieldsFromExamples(opdef)
-    expect(fields.length).equal(2)
+    assert.deepStrictEqual(fields.length,2)
 
     const byName: Record<string, any> = {}
     for (const f of fields) { byName[(f as any).key$] = f }
 
-    expect(byName.id.type).equal('integer')
-    expect(byName.name.type).equal('string')
+    assert.deepStrictEqual(byName.id.type,'integer')
+    assert.deepStrictEqual(byName.name.type,'string')
   })
 
 
   test('inferFieldsFromExamples - no responses returns empty', () => {
-    expect(inferFieldsFromExamples({})).equal([])
-    expect(inferFieldsFromExamples({ responses: {} })).equal([])
-    expect(inferFieldsFromExamples({ responses: { 404: {} } })).equal([])
+    assert.deepStrictEqual(inferFieldsFromExamples({}),[])
+    assert.deepStrictEqual(inferFieldsFromExamples({ responses: {} }),[])
+    assert.deepStrictEqual(inferFieldsFromExamples({ responses: { 404: {} } }),[])
   })
 
 
@@ -187,13 +187,13 @@ describe('transform-field', () => {
     }
 
     const fields = inferFieldsFromExamples(opdef)
-    expect(fields.length).equal(2)
+    assert.deepStrictEqual(fields.length,2)
 
     const byName: Record<string, any> = {}
     for (const f of fields) { byName[(f as any).key$] = f }
 
-    expect(byName.id.type).equal('string')
-    expect(byName.created.type).equal('boolean')
+    assert.deepStrictEqual(byName.id.type,'string')
+    assert.deepStrictEqual(byName.created.type,'boolean')
   })
 
 
@@ -212,13 +212,13 @@ describe('transform-field', () => {
     }
 
     const fields = inferFieldsFromExamples(opdef)
-    expect(fields.length).equal(2)
+    assert.deepStrictEqual(fields.length,2)
 
     const byName: Record<string, any> = {}
     for (const f of fields) { byName[(f as any).key$] = f }
 
-    expect(byName.status.type).equal('string')
-    expect(byName.version.type).equal('integer')
+    assert.deepStrictEqual(byName.status.type,'string')
+    assert.deepStrictEqual(byName.version.type,'integer')
   })
 
 })

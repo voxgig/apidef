@@ -33,17 +33,20 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const Fs = __importStar(require("node:fs"));
 const node_test_1 = require("node:test");
-const code_1 = require("@hapi/code");
+const node_assert_1 = __importDefault(require("node:assert"));
 const aontu_1 = require("aontu");
 const __1 = require("../");
 // TODO: remove all sdk refs or rename to api
 const aontu = new aontu_1.Aontu({ fs: Fs });
 (0, node_test_1.describe)('apidef', () => {
     (0, node_test_1.test)('exist', async () => {
-        (0, code_1.expect)(__1.ApiDef).exist();
+        node_assert_1.default.ok(__1.ApiDef);
     });
     (0, node_test_1.test)('guide-solar', async () => {
         const outprefix = 'solar-1.0.0-openapi-3.0.0-';
@@ -74,7 +77,10 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
                 }
             }
         }, {});
-        (0, code_1.expect)(bres.guide).contains(SOLAR_GUIDE);
+        node_assert_1.default.deepStrictEqual(bres.guide.entity, SOLAR_GUIDE.entity);
+        node_assert_1.default.deepStrictEqual(bres.guide.metrics.count.entity, SOLAR_GUIDE.metrics.count.entity);
+        node_assert_1.default.deepStrictEqual(bres.guide.metrics.count.path, SOLAR_GUIDE.metrics.count.path);
+        node_assert_1.default.deepStrictEqual(bres.guide.metrics.count.method, SOLAR_GUIDE.metrics.count.method);
     });
     (0, node_test_1.test)('field-required-solar', async () => {
         const outprefix = 'solar-1.0.0-openapi-3.0.0-';
@@ -113,20 +119,20 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         for (const f of planet.fields) {
             planetFields[f.name] = f;
         }
-        (0, code_1.expect)(planetFields.id.req).true();
-        (0, code_1.expect)(planetFields.name.req).true();
-        (0, code_1.expect)(planetFields.kind.req).true();
-        (0, code_1.expect)(planetFields.diameter.req).true();
+        node_assert_1.default.strictEqual(planetFields.id.req, true);
+        node_assert_1.default.strictEqual(planetFields.name.req, true);
+        node_assert_1.default.strictEqual(planetFields.kind.req, true);
+        node_assert_1.default.strictEqual(planetFields.diameter.req, true);
         // Moon schema has required: [id, name, planet_id, kind, diameter]
         const moonFields = {};
         for (const f of moon.fields) {
             moonFields[f.name] = f;
         }
-        (0, code_1.expect)(moonFields.id.req).true();
-        (0, code_1.expect)(moonFields.name.req).true();
-        (0, code_1.expect)(moonFields.planet_id.req).true();
-        (0, code_1.expect)(moonFields.kind.req).true();
-        (0, code_1.expect)(moonFields.diameter.req).true();
+        node_assert_1.default.strictEqual(moonFields.id.req, true);
+        node_assert_1.default.strictEqual(moonFields.name.req, true);
+        node_assert_1.default.strictEqual(moonFields.planet_id.req, true);
+        node_assert_1.default.strictEqual(moonFields.kind.req, true);
+        node_assert_1.default.strictEqual(moonFields.diameter.req, true);
     });
     (0, node_test_1.test)('full-solar', async () => {
         return;
@@ -166,11 +172,11 @@ def: '${outprefix}def.yaml'
             }
         };
         const bres = await build(modelinit, buildspec, {});
-        (0, code_1.expect)(bres.ok).true();
+        node_assert_1.default.strictEqual(bres.ok, true);
         const model = aontu.generate(`@"test/solar/solar.jsonic"`, {
             base: __dirname + '/..'
         });
-        (0, code_1.expect)(model).includes(SOLAR_MODEL);
+        node_assert_1.default.deepStrictEqual(model.main.kit, SOLAR_MODEL.main.kit);
     });
 });
 const SOLAR_GUIDE = {

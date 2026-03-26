@@ -3,7 +3,7 @@
 import * as Fs from 'node:fs'
 
 import { Pino, prettyPino } from '@voxgig/util'
-import { Gubu, Open, Any } from 'gubu'
+import { Shape, Open, Any } from 'shape'
 
 
 const KIT = 'kit'
@@ -38,7 +38,7 @@ type ApiDefOptions = {
   }
 }
 
-const ControlShape = Gubu({
+const ControlShape = Shape({
   step: {
     parse: true,
     guide: true,
@@ -47,13 +47,13 @@ const ControlShape = Gubu({
     generate: true,
   }
 })
-const OpenControlShape = Gubu(Open(ControlShape), { name: 'Control' })
+const OpenControlShape = Shape(Open(ControlShape), { name: 'Control' })
 
 type Control = ReturnType<typeof ControlShape>
 
 
 
-const ModelShape = Gubu({
+const ModelShape = Shape({
   name: String,
   def: String,
   main: {
@@ -65,12 +65,12 @@ const ModelShape = Gubu({
     },
   }
 })
-const OpenModelShape = Gubu(Open(ModelShape), { name: 'Model' })
+const OpenModelShape = Shape(Open(ModelShape), { name: 'Model' })
 
 type Model = ReturnType<typeof ModelShape>
 
 
-const BuildShape = Gubu({
+const BuildShape = Shape({
   spec: {
     base: '',
     path: '',
@@ -89,7 +89,7 @@ const BuildShape = Gubu({
     }
   }
 })
-const OpenBuildShape = Gubu(Open(BuildShape))
+const OpenBuildShape = Shape(Open(BuildShape))
 
 type Build = ReturnType<typeof BuildShape>
 

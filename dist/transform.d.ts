@@ -18,21 +18,21 @@ type TransformResult = {
 type Transform = (ctx: TransformCtx) => Promise<TransformResult>;
 declare const OPKIND: any;
 declare const GuideShape: {
-    <V>(root?: V | undefined, ctx?: import("gubu").Context): V & {
+    <V>(root?: V | undefined, ctx?: import("shape").Context): V & {
         entity: {};
         control: {};
         transform: {};
         manual: {};
     };
-    valid: <V>(root?: V | undefined, ctx?: import("gubu").Context) => root is V & {
+    valid: <V>(root?: V | undefined, ctx?: import("shape").Context) => root is V & {
         entity: {};
         control: {};
         transform: {};
         manual: {};
     };
-    match(root?: any, ctx?: import("gubu").Context): boolean;
-    error(root?: any, ctx?: import("gubu").Context): {
-        gubu: boolean;
+    match(root?: any, ctx?: import("shape").Context): boolean;
+    error(root?: any, ctx?: import("shape").Context): {
+        shape: boolean;
         code: string;
         gname: string;
         props: ({
@@ -46,7 +46,7 @@ declare const GuideShape: {
             err: {
                 key: string;
                 type: string;
-                node: import("gubu").Node<any>;
+                node: import("shape").Node<any>;
                 value: any;
                 path: string;
                 why: string;
@@ -68,7 +68,7 @@ declare const GuideShape: {
         stack?: string;
     }[];
     spec(): any;
-    node(): import("gubu").Node<{
+    node(): import("shape").Node<{
         entity: {};
         control: {};
         transform: {};
@@ -77,8 +77,8 @@ declare const GuideShape: {
     stringify(...rest: any[]): string;
     jsonify(): any;
     toString(this: any): string;
-    gubu: {
-        gubu$: symbol;
+    shape: {
+        shape$: symbol;
         v$: string;
     };
 };
