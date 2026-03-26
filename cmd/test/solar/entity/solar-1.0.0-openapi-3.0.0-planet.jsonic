@@ -65,7 +65,7 @@ main: kit: entity: planet: {
   name: "planet"
   op: {
     create: {
-      targets: [
+      points: [
         {
           args: {
             params: [
@@ -154,7 +154,7 @@ main: kit: entity: planet: {
       name: "create"
     }
     list: {
-      targets: [
+      points: [
         {
           method: "GET"
           orig: "/api/planet"
@@ -171,7 +171,7 @@ main: kit: entity: planet: {
       name: "list"
     }
     load: {
-      targets: [
+      points: [
         {
           args: {
             params: [
@@ -210,7 +210,7 @@ main: kit: entity: planet: {
       name: "load"
     }
     remove: {
-      targets: [
+      points: [
         {
           args: {
             params: [
@@ -244,7 +244,7 @@ main: kit: entity: planet: {
       name: "remove"
     }
     update: {
-      targets: [
+      points: [
         {
           args: {
             params: [

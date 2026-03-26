@@ -136,7 +136,7 @@ function resolveOp(opname: OpName, gent: GuideEntity): undefined | ModelOp {
   if (opdesc) {
     mop = {
       name: opname,
-      targets: opdesc.paths.map((p: PathDesc) => {
+      points: opdesc.paths.map((p: PathDesc) => {
         const parts = applyRename(p)
 
         const mtarget: ModelTarget = {

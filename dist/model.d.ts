@@ -60,7 +60,7 @@ type ModelTarget = {
 };
 type ModelOp = {
     name: OpName;
-    targets: ModelTarget[];
+    points: ModelTarget[];
 };
 type ModelEntity = {
     name: string;

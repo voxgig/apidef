@@ -38,7 +38,7 @@ const argsTransform: Transform = async function(
 
   each(kit.entity, (ment: ModelEntity, entname: string) => {
     each(ment.op, (mop: ModelOp, opname: OpName) => {
-      each(mop.targets, (mtarget: ModelTarget) => {
+      each(mop.points, (mtarget: ModelTarget) => {
         const argdefs: ParameterDef[] = []
 
         const pathdef: PathDef = def.paths[mtarget.orig]

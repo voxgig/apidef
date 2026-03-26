@@ -17,7 +17,7 @@ const fieldTransform = async function (ctx) {
         for (let opname of opFieldPrecedence) {
             const mop = ment.op[opname];
             if (mop) {
-                const mtargets = mop.targets;
+                const mtargets = mop.points;
                 for (let mtarget of mtargets) {
                     const opfields = resolveOpFields(ment, mop, mtarget, def);
                     for (let opfield of opfields) {

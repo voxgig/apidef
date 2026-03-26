@@ -105,10 +105,10 @@ function resolveBasicEntityFlow(ctx: any, entity: any) {
 
   if (entop.load) {
 
-    const target = findMainLoadTarget(entop.load)
+    const point = findMainLoadPoint(entop.load)
 
     // Get additional required match properties
-    each(target?.args.params, (param: any) => {
+    each(point?.args.params, (param: any) => {
       if (param.required) {
         let ancestorName = param.name
         let ancestorEntity = apimodel.main.api.entity[ancestorName]
@@ -196,8 +196,8 @@ function resolveBasicEntityFlow(ctx: any, entity: any) {
 }
 
 
-function findMainLoadTarget(op: ModelOp): ModelTarget | undefined {
-  let cands = op.targets.filter(a => '{id}' === getelem(a.parts, -1))
+function findMainLoadPoint(op: ModelOp): ModelTarget | undefined {
+  let cands = op.points.filter(a => '{id}' === getelem(a.parts, -1))
   return cands[0]
 }
 

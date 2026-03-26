@@ -86,7 +86,7 @@ function resolveOp(opname, gent) {
     if (opdesc) {
         mop = {
             name: opname,
-            targets: opdesc.paths.map((p) => {
+            points: opdesc.paths.map((p) => {
                 const parts = applyRename(p);
                 const mtarget = {
                     orig: p.orig,

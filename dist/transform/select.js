@@ -9,12 +9,12 @@ const selectTransform = async function (ctx) {
     let msg = 'select ';
     (0, jostraca_1.each)(kit.entity, (ment, _entname) => {
         (0, jostraca_1.each)(ment.op, (mop, _opname) => {
-            (0, jostraca_1.each)(mop.targets, (mtarget) => {
+            (0, jostraca_1.each)(mop.points, (mtarget) => {
                 const pdef = def.paths[mtarget.orig];
                 resolveSelect(guide, ment, mop, mtarget, pdef);
             });
-            if (null != mop.targets && 0 < mop.targets.length) {
-                sortTargets(guide, ment, mop);
+            if (null != mop.points && 0 < mop.points.length) {
+                sortPoints(guide, ment, mop);
             }
         });
         msg += ment.name + ' ';
@@ -43,8 +43,8 @@ function resolveSelect(guide, ment, _mop, mtarget, _pdef) {
         }
     }
 }
-function sortTargets(_guide, _ment, mop) {
-    mop.targets.sort((a, b) => {
+function sortPoints(_guide, _ment, mop) {
+    mop.points.sort((a, b) => {
         // longest exist len first
         let order = b.select.exist.length - a.select.exist.length;
         if (0 === order) {

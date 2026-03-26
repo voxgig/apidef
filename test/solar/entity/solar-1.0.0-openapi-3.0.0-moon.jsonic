@@ -41,7 +41,7 @@ main: kit: entity: moon: {
   op: {
     create: {
       name: "create"
-      targets: [
+      points: [
         {
           args: {
             params: [
@@ -76,7 +76,7 @@ main: kit: entity: moon: {
     }
     list: {
       name: "list"
-      targets: [
+      points: [
         {
           args: {
             params: [
@@ -111,7 +111,7 @@ main: kit: entity: moon: {
     }
     load: {
       name: "load"
-      targets: [
+      points: [
         {
           args: {
             params: [
@@ -160,7 +160,7 @@ main: kit: entity: moon: {
     }
     remove: {
       name: "remove"
-      targets: [
+      points: [
         {
           args: {
             params: [
@@ -209,7 +209,7 @@ main: kit: entity: moon: {
     }
     update: {
       name: "update"
-      targets: [
+      points: [
         {
           args: {
             params: [

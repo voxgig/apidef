@@ -263,7 +263,7 @@ const SOLAR_MODEL = {
                     name: 'moon',
                     op: {
                         create: {
-                            targets: [
+                            points: [
                                 {
                                     args: {
                                         params: [
@@ -289,7 +289,7 @@ const SOLAR_MODEL = {
                             name: 'create'
                         },
                         list: {
-                            targets: [
+                            points: [
                                 {
                                     args: {
                                         params: [
@@ -315,7 +315,7 @@ const SOLAR_MODEL = {
                             name: 'list'
                         },
                         load: {
-                            targets: [
+                            points: [
                                 {
                                     args: {
                                         params: [
@@ -350,7 +350,7 @@ const SOLAR_MODEL = {
                             name: 'load'
                         },
                         remove: {
-                            targets: [
+                            points: [
                                 {
                                     args: {
                                         params: [
@@ -384,7 +384,7 @@ const SOLAR_MODEL = {
                             name: 'remove'
                         },
                         update: {
-                            targets: [
+                            points: [
                                 {
                                     args: {
                                         params: [
@@ -484,7 +484,7 @@ const SOLAR_MODEL = {
                     name: 'planet',
                     op: {
                         create: {
-                            targets: [
+                            points: [
                                 {
                                     args: {
                                         params: [
@@ -543,7 +543,7 @@ const SOLAR_MODEL = {
                             name: 'create'
                         },
                         list: {
-                            targets: [
+                            points: [
                                 {
                                     method: 'GET',
                                     orig: '/api/planet',
@@ -558,7 +558,7 @@ const SOLAR_MODEL = {
                             name: 'list'
                         },
                         load: {
-                            targets: [
+                            points: [
                                 {
                                     args: {
                                         params: [
@@ -585,7 +585,7 @@ const SOLAR_MODEL = {
                             name: 'load'
                         },
                         remove: {
-                            targets: [
+                            points: [
                                 {
                                     args: {
                                         params: [
@@ -611,7 +611,7 @@ const SOLAR_MODEL = {
                             name: 'remove'
                         },
                         update: {
-                            targets: [
+                            points: [
                                 {
                                     args: {
                                         params: [

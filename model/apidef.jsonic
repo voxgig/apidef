@@ -31,7 +31,7 @@ main: kit: entity: &: {
     name: string
     input: *'data'
 
-    targets: [ &: {
+    points: [ &: {
 
       active: *true
           

@@ -10,7 +10,7 @@ const argsTransform = async function (ctx) {
     let msg = 'args ';
     (0, jostraca_1.each)(kit.entity, (ment, entname) => {
         (0, jostraca_1.each)(ment.op, (mop, opname) => {
-            (0, jostraca_1.each)(mop.targets, (mtarget) => {
+            (0, jostraca_1.each)(mop.points, (mtarget) => {
                 const argdefs = [];
                 const pathdef = def.paths[mtarget.orig];
                 argdefs.push(...(pathdef.parameters ?? []));

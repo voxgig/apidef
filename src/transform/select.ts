@@ -36,12 +36,12 @@ const selectTransform: Transform = async function(
 
   each(kit.entity, (ment: ModelEntity, _entname: string) => {
     each(ment.op, (mop: ModelOp, _opname: OpName) => {
-      each(mop.targets, (mtarget: ModelTarget) => {
+      each(mop.points, (mtarget: ModelTarget) => {
         const pdef: PathDef = def.paths[mtarget.orig]
         resolveSelect(guide, ment, mop, mtarget, pdef)
       })
-      if (null != mop.targets && 0 < mop.targets.length) {
-        sortTargets(guide, ment, mop)
+      if (null != mop.points && 0 < mop.points.length) {
+        sortPoints(guide, ment, mop)
       }
     })
 
@@ -88,12 +88,12 @@ function resolveSelect(
 }
 
 
-function sortTargets(
+function sortPoints(
   _guide: Guide,
   _ment: ModelEntity,
   mop: ModelOp,
 ) {
-  mop.targets.sort((a: ModelTarget, b: ModelTarget) => {
+  mop.points.sort((a: ModelTarget, b: ModelTarget) => {
     // longest exist len first
     let order = b.select.exist.length - a.select.exist.length
     if (0 === order) {

@@ -62,7 +62,7 @@ type ModelArg = {
 }
 
 
-// Target implementation of an operation
+// Point implementation of an operation
 type ModelTarget = {
   orig: string
   method: MethodName
@@ -93,7 +93,7 @@ type ModelTarget = {
 // Operation definition
 type ModelOp = {
   name: OpName
-  targets: ModelTarget[]
+  points: ModelTarget[]
 }
 
 
