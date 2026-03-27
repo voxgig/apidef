@@ -1,0 +1,2 @@
+input	expected
+{"name": "foo"}	{name: "foo"}

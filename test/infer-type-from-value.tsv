@@ -1,0 +1,15 @@
+input	expected
+"hello"	string
+""	string
+true	boolean
+false	boolean
+42	integer
+0	integer
+-1	integer
+3.14	number
+0.5	number
+[1,2]	array
+[]	array
+{"a":1}	object
+{}	object
+null	string

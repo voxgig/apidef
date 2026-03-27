@@ -1,0 +1,12 @@
+input	expected
+user	user
+ab	abn
+a	ant
+x	xnt
+abc	abc
+1abc	n1abc
+0	n0n
+__foo	foo
+a-b	abn
+valid_name	valid_name
+ok	okn

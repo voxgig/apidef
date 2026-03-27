@@ -1,0 +1,17 @@
+input	expected
+string	`$STRING`
+String	`$STRING`
+STRING	`$STRING`
+ string 	`$STRING`
+number	`$NUMBER`
+Number	`$NUMBER`
+integer	`$INTEGER`
+Integer	`$INTEGER`
+boolean	`$BOOLEAN`
+Boolean	`$BOOLEAN`
+null	`$NULL`
+array	`$ARRAY`
+object	`$OBJECT`
+any	`$ANY`
+unknown	Any
+foo	Any

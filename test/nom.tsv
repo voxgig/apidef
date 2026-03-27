@@ -1,0 +1,10 @@
+object	format	expected
+{"name":"planet"}	Name	Planet
+{"name":"moon"}	Name	Moon
+{"name":"planet"}	NAME	PLANET
+{"name":"moon"}	NAME	MOON
+{"name":"planet"}	name	planet
+{"name":"moon"}	name	moon
+{"name":"planet"}	name-kebab	missing-name-kebab
+{"name":"my_thing"}	Name	MyThing
+{"name":"my_thing"}	NAME	MY_THING

@@ -1,0 +1,15 @@
+input	expected
+foo	foo
+foo[]	foo
+foo[0]	foo_0
+a[b].c	a_b_c
+x__y	x_y
+_foo_	foo
+data[0].name	data_0_name
+items[].id	items_id
+a.b.c	a_b_c
+a[b][c]	a_b_c
+__double__	double
+simple	simple
+no.dots	no_dots
+

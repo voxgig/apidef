@@ -1,0 +1,25 @@
+input	expected
+my-api	my-api
+My API	MyAPI
+my_api	my-api
+my.api	my-api
+	unknown
+123-api	n123-api
+hello world	helloworld
+UPPER	UPPER
+with---dashes	with-dashes
+-leading-	leading
+trailing-	trailing
+hello_world.test	hello-world-test
+special!@#chars	specialchars
+api-v2	api-v2
+ec-2-shop	ec2-shop
+advice-slip-api-2	advice-slip-api2
+1abc	n1abc
+café	cafe
+résumé	resume
+naïve	naive
+über	uber
+a.b.c	a-b-c
+foo__bar	foo-bar
+CamelCase	CamelCase

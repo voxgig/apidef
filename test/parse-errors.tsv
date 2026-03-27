@@ -1,0 +1,6 @@
+kind	source	errorPattern
+NotAKind		unknown
+OpenAPI	bad	JSON
+OpenAPI	{}	Unsupported
+OpenAPI	# just a comment	empty
+OpenAPI	   	empty
