@@ -1,6 +1,6 @@
 {
   "name": "@voxgig/apidef",
-  "version": "5.3.0",
+  "version": "5.4.0",
   "main": "dist/apidef.js",
   "type": "commonjs",
   "types": "dist/apidef.d.ts",
@@ -47,8 +47,8 @@
     "aontu": ">=0.39.0"
   },
   "dependencies": {
-    "@jsonic/yaml": "0.1.4",
-    "jsonic": "^2.19.0",
+    "@jsonic/yaml": "0.2.0",
+    "jsonic": "^2.20.1",
     "@voxgig/struct": "^0.0.10",
     "@voxgig/util": "^0.4.0",
     "diff": "^8.0.4",
