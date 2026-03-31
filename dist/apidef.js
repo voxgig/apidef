@@ -43,7 +43,6 @@ const Fs = __importStar(require("node:fs"));
 const node_path_1 = __importDefault(require("node:path"));
 const jostraca_1 = require("jostraca");
 const util_1 = require("@voxgig/util");
-const util_2 = require("@voxgig/util");
 const types_1 = require("./types");
 Object.defineProperty(exports, "KIT", { enumerable: true, get: function () { return types_1.KIT; } });
 const guide_1 = require("./guide/guide");
@@ -150,14 +149,13 @@ function ApiDef(opts) {
                 defpath,
                 note: defkeys.join(', ')
             });
-            const safedef = (0, util_2.decircular)(def);
             // Only write the full JSON debug file when debug mode is enabled,
-            // as decircular + JSON.stringify + sync write is expensive for large specs.
+            // as JSON.stringify + sync write is expensive for large specs.
             if (opts.debug) {
-                const fullsrc = JSON.stringify(safedef, null, 2);
+                const fullsrc = JSON.stringify(def, null, 2);
                 fs.writeFileSync(defpath + '.full.json', fullsrc);
             }
-            ctx.def = safedef;
+            ctx.def = def;
             steps.push('parse');
             // Step: guide (derive).
             if (!ctrl.step.guide) {

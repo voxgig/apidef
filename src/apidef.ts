@@ -11,8 +11,6 @@ import {
 
 import { prettyPino } from '@voxgig/util'
 
-import { decircular } from '@voxgig/util'
-
 
 import type {
   ApiDefOptions,
@@ -181,16 +179,14 @@ function ApiDef(opts: ApiDefOptions) {
         note: defkeys.join(', ')
       })
 
-      const safedef = decircular(def)
-
       // Only write the full JSON debug file when debug mode is enabled,
-      // as decircular + JSON.stringify + sync write is expensive for large specs.
+      // as JSON.stringify + sync write is expensive for large specs.
       if (opts.debug) {
-        const fullsrc = JSON.stringify(safedef, null, 2)
+        const fullsrc = JSON.stringify(def, null, 2)
         fs.writeFileSync(defpath + '.full.json', fullsrc)
       }
 
-      ctx.def = safedef
+      ctx.def = def
 
       steps.push('parse')
 

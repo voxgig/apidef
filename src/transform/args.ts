@@ -68,6 +68,8 @@ const ARG_KIND: Record<string, ModelArg["kind"]> = {
 
 
 function resolveArgs(ment: ModelEntity, mop: ModelOp, mtarget: ModelTarget, argdefs: ParameterDef[]) {
+  const touchedKeys = new Set<string>()
+
   each(argdefs, (argdef: ParameterDef) => {
     const orig = depluralize(snakify(normalizeFieldName(argdef.name)))
     const kind = ARG_KIND[argdef.in] ?? 'query'
@@ -84,12 +86,17 @@ function resolveArgs(ment: ModelEntity, mop: ModelOp, mtarget: ModelTarget, argd
       marg.type = ['`$ONE`', '`$NULL`', marg.type]
     }
 
-    // insert sorted by name
     const argsKey = (marg.kind === 'param' ? 'params' : marg.kind) as keyof typeof mtarget.args
     let kindargs = (mtarget.args[argsKey] = mtarget.args[argsKey] ?? [])
     kindargs.push(marg)
-    kindargs.sort((a: ModelArg, b: ModelArg) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0)
+    touchedKeys.add(argsKey)
   })
+
+  // Sort once after all args are collected
+  const cmp = (a: ModelArg, b: ModelArg) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0
+  for (const key of touchedKeys) {
+    mtarget.args[key as keyof typeof mtarget.args]?.sort(cmp)
+  }
 }
 
 

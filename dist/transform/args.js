@@ -31,6 +31,7 @@ const ARG_KIND = {
     'cookie': 'cookie',
 };
 function resolveArgs(ment, mop, mtarget, argdefs) {
+    const touchedKeys = new Set();
     (0, jostraca_1.each)(argdefs, (argdef) => {
         const orig = (0, utility_1.depluralize)((0, jostraca_1.snakify)((0, utility_1.normalizeFieldName)(argdef.name)));
         const kind = ARG_KIND[argdef.in] ?? 'query';
@@ -45,11 +46,15 @@ function resolveArgs(ment, mop, mtarget, argdefs) {
         if (argdef.nullable) {
             marg.type = ['`$ONE`', '`$NULL`', marg.type];
         }
-        // insert sorted by name
         const argsKey = (marg.kind === 'param' ? 'params' : marg.kind);
         let kindargs = (mtarget.args[argsKey] = mtarget.args[argsKey] ?? []);
         kindargs.push(marg);
-        kindargs.sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+        touchedKeys.add(argsKey);
     });
+    // Sort once after all args are collected
+    const cmp = (a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
+    for (const key of touchedKeys) {
+        mtarget.args[key]?.sort(cmp);
+    }
 }
 //# sourceMappingURL=args.js.map

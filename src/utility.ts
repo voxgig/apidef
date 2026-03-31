@@ -29,6 +29,10 @@ const RE_JSON_KEY = /"([a-zA-Z_][a-zA-Z_0-9]*)": /g
 const RE_JSON_TRAILING_BRACE = /},/g
 const RE_JSON_COMMENT = /\n(\s*)([a-zA-Z_][a-zA-Z_0-9]*)_COMMENT:\s*"(.*)",/g
 
+const RE_BARE_KEY = /^[A-Za-z_][_A-Za-z0-9]*$/
+const isBareKey = (k: string) => RE_BARE_KEY.test(k)
+const quoteKey = (k: string) => (isBareKey(k) ? k : JSON.stringify(k))
+
 
 function makeWarner(spec: { point: string, log: Log }): Warner {
   const { point, log } = spec
@@ -101,59 +105,59 @@ function formatJsonSrc(jsonsrc: string) {
 }
 
 
+// Common irregular plurals - hoisted to module scope to avoid re-allocation per call.
+const IRREGULARS: Record<string, string> = {
+  'analytics': 'analytics',
+  'analyses': 'analysis',
+  'appendices': 'appendix',
+  'axes': 'axis',
+  'children': 'child',
+  'courses': 'course',
+  'crises': 'crisis',
+  'criteria': 'criterion',
+  // 'data': 'datum',
+  'diagnoses': 'diagnosis',
+  'feet': 'foot',
+  'furnace': 'furnaces',
+  'geese': 'goose',
+  'horses': 'horse',
+  'house': 'houses',
+  'indices': 'index',
+  'lens': 'lens',
+  'license': 'licenses',
+  'matrices': 'matrix',
+  'men': 'man',
+  'mice': 'mouse',
+  'movies': 'movie',
+  'notice': 'notices',
+  'oases': 'oasis',
+  'phrase': 'phrase',
+  'releases': 'release',
+  'people': 'person',
+  'phenomena': 'phenomenon',
+  'practice': 'practices',
+  'promise': 'promises',
+  'series': 'series',
+  'species': 'species',
+  'teeth': 'tooth',
+  'theses': 'thesis',
+  'vertices': 'vertex',
+  'women': 'woman',
+  'yes': 'yes',
+}
+
 function depluralize(word: string): string {
   if (!word || word.length === 0) {
     return word
   }
 
-  // Common irregular plurals
-  const irregulars: Record<string, string> = {
-    'analytics': 'analytics',
-    'analyses': 'analysis',
-    'appendices': 'appendix',
-    'axes': 'axis',
-    'children': 'child',
-    'courses': 'course',
-    'crises': 'crisis',
-    'criteria': 'criterion',
-    // 'data': 'datum',
-    'diagnoses': 'diagnosis',
-    'feet': 'foot',
-    'furnace': 'furnaces',
-    'geese': 'goose',
-    'horses': 'horse',
-    'house': 'houses',
-    'indices': 'index',
-    'lens': 'lens',
-    'license': 'licenses',
-    'matrices': 'matrix',
-    'men': 'man',
-    'mice': 'mouse',
-    'movies': 'movie',
-    'notice': 'notices',
-    'oases': 'oasis',
-    'phrase': 'phrase',
-    'releases': 'release',
-    'people': 'person',
-    'phenomena': 'phenomenon',
-    'practice': 'practices',
-    'promise': 'promises',
-    'series': 'series',
-    'species': 'species',
-    'teeth': 'tooth',
-    'theses': 'thesis',
-    'vertices': 'vertex',
-    'women': 'woman',
-    'yes': 'yes',
+  if (IRREGULARS[word]) {
+    return IRREGULARS[word]
   }
 
-  if (irregulars[word]) {
-    return irregulars[word]
-  }
-
-  for (let ending in irregulars) {
+  for (let ending in IRREGULARS) {
     if (word.endsWith(ending)) {
-      return word.replace(ending, irregulars[ending])
+      return word.replace(ending, IRREGULARS[ending])
     }
   }
 
@@ -527,17 +531,11 @@ function formatJSONIC(
 
   if (undefined === val) return ''
 
-  val = decircular(val)
-
   const hsepd = opts?.hsepd ?? 1
   const showd = !!opts?.$
   const useColor = opts?.color ?? false
   const maxlines = opts?.maxlines ?? Number.MAX_VALUE
   const exclude = opts?.exclude ?? []
-
-  const space = '  '
-  const isBareKey = (k: string) => /^[A-Za-z_][_A-Za-z0-9]*$/.test(k)
-  const quoteKey = (k: string) => (isBareKey(k) ? k : JSON.stringify(k))
 
   // ANSI color codes
   const colors = {
@@ -583,6 +581,25 @@ function formatJSONIC(
     try { return JSON.stringify(c) } catch { return String(c) }
   }
 
+  return renderJSONIC(val, hsepd, showd, useColor, maxlines, exclude, c,
+    renderPrimitive, renderComment)
+}
+
+
+function renderJSONIC(
+  val: any,
+  hsepd: number,
+  showd: boolean,
+  useColor: boolean,
+  maxlines: number,
+  exclude: string[],
+  c: (color: any, text: string) => string,
+  renderPrimitive: (v: any) => string,
+  renderComment: (c: any) => string | null,
+): string {
+
+  const space = '  '
+
   type ValueFrame = {
     kind: 'value'
     value: any
@@ -596,6 +613,8 @@ function formatJSONIC(
     token: '}' | ']'
     indentLevel: number
   }
+
+  const seen = new WeakSet()
 
   let stack = new Array<ValueFrame | CloseFrame | undefined>(32)
   let top = -1
@@ -636,6 +655,13 @@ function formatJSONIC(
       lines.push(`${linePrefix}${renderPrimitive(v)}${commentSuffix}`)
       continue
     }
+
+    // Circular reference detected — fall back to decircular
+    if (seen.has(v)) {
+      return renderJSONIC(decircular(val), hsepd, showd, useColor, maxlines, exclude, c,
+        renderPrimitive, renderComment)
+    }
+    seen.add(v)
 
     if (Array.isArray(v)) {
       const arr = v as any[]

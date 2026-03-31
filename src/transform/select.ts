@@ -93,6 +93,12 @@ function sortPoints(
   _ment: ModelEntity,
   mop: ModelOp,
 ) {
+  // Cache joined exist strings to avoid recomputing on every comparison.
+  const existCache = new Map<ModelTarget, string>()
+  for (const pt of mop.points) {
+    existCache.set(pt, pt.select.exist.join('\t'))
+  }
+
   mop.points.sort((a: ModelTarget, b: ModelTarget) => {
     // longest exist len first
     let order = b.select.exist.length - a.select.exist.length
@@ -103,8 +109,8 @@ function sortPoints(
       }
 
       if (0 === order) {
-        const a_exist_str = a.select.exist.join('\t')
-        const b_exist_str = b.select.exist.join('\t')
+        const a_exist_str = existCache.get(a)!
+        const b_exist_str = existCache.get(b)!
         order = a_exist_str < b_exist_str ? -1 :
           a_exist_str > b_exist_str ? 1 : 0
       }

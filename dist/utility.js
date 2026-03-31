@@ -37,6 +37,9 @@ const KONSOLE_LOG = console['log'];
 const RE_JSON_KEY = /"([a-zA-Z_][a-zA-Z_0-9]*)": /g;
 const RE_JSON_TRAILING_BRACE = /},/g;
 const RE_JSON_COMMENT = /\n(\s*)([a-zA-Z_][a-zA-Z_0-9]*)_COMMENT:\s*"(.*)",/g;
+const RE_BARE_KEY = /^[A-Za-z_][_A-Za-z0-9]*$/;
+const isBareKey = (k) => RE_BARE_KEY.test(k);
+const quoteKey = (k) => (isBareKey(k) ? k : JSON.stringify(k));
 function makeWarner(spec) {
     const { point, log } = spec;
     const history = [];
@@ -90,56 +93,56 @@ function formatJsonSrc(jsonsrc) {
         .replace(RE_JSON_TRAILING_BRACE, '}\n')
         .replace(RE_JSON_COMMENT, '\n\n$1# $2 $3');
 }
+// Common irregular plurals - hoisted to module scope to avoid re-allocation per call.
+const IRREGULARS = {
+    'analytics': 'analytics',
+    'analyses': 'analysis',
+    'appendices': 'appendix',
+    'axes': 'axis',
+    'children': 'child',
+    'courses': 'course',
+    'crises': 'crisis',
+    'criteria': 'criterion',
+    // 'data': 'datum',
+    'diagnoses': 'diagnosis',
+    'feet': 'foot',
+    'furnace': 'furnaces',
+    'geese': 'goose',
+    'horses': 'horse',
+    'house': 'houses',
+    'indices': 'index',
+    'lens': 'lens',
+    'license': 'licenses',
+    'matrices': 'matrix',
+    'men': 'man',
+    'mice': 'mouse',
+    'movies': 'movie',
+    'notice': 'notices',
+    'oases': 'oasis',
+    'phrase': 'phrase',
+    'releases': 'release',
+    'people': 'person',
+    'phenomena': 'phenomenon',
+    'practice': 'practices',
+    'promise': 'promises',
+    'series': 'series',
+    'species': 'species',
+    'teeth': 'tooth',
+    'theses': 'thesis',
+    'vertices': 'vertex',
+    'women': 'woman',
+    'yes': 'yes',
+};
 function depluralize(word) {
     if (!word || word.length === 0) {
         return word;
     }
-    // Common irregular plurals
-    const irregulars = {
-        'analytics': 'analytics',
-        'analyses': 'analysis',
-        'appendices': 'appendix',
-        'axes': 'axis',
-        'children': 'child',
-        'courses': 'course',
-        'crises': 'crisis',
-        'criteria': 'criterion',
-        // 'data': 'datum',
-        'diagnoses': 'diagnosis',
-        'feet': 'foot',
-        'furnace': 'furnaces',
-        'geese': 'goose',
-        'horses': 'horse',
-        'house': 'houses',
-        'indices': 'index',
-        'lens': 'lens',
-        'license': 'licenses',
-        'matrices': 'matrix',
-        'men': 'man',
-        'mice': 'mouse',
-        'movies': 'movie',
-        'notice': 'notices',
-        'oases': 'oasis',
-        'phrase': 'phrase',
-        'releases': 'release',
-        'people': 'person',
-        'phenomena': 'phenomenon',
-        'practice': 'practices',
-        'promise': 'promises',
-        'series': 'series',
-        'species': 'species',
-        'teeth': 'tooth',
-        'theses': 'thesis',
-        'vertices': 'vertex',
-        'women': 'woman',
-        'yes': 'yes',
-    };
-    if (irregulars[word]) {
-        return irregulars[word];
+    if (IRREGULARS[word]) {
+        return IRREGULARS[word];
     }
-    for (let ending in irregulars) {
+    for (let ending in IRREGULARS) {
         if (word.endsWith(ending)) {
-            return word.replace(ending, irregulars[ending]);
+            return word.replace(ending, IRREGULARS[ending]);
         }
     }
     // Rules for regular plurals (applied in order)
@@ -434,15 +437,11 @@ function isParam(partStr) {
 function formatJSONIC(val, opts) {
     if (undefined === val)
         return '';
-    val = (0, util_1.decircular)(val);
     const hsepd = opts?.hsepd ?? 1;
     const showd = !!opts?.$;
     const useColor = opts?.color ?? false;
     const maxlines = opts?.maxlines ?? Number.MAX_VALUE;
     const exclude = opts?.exclude ?? [];
-    const space = '  ';
-    const isBareKey = (k) => /^[A-Za-z_][_A-Za-z0-9]*$/.test(k);
-    const quoteKey = (k) => (isBareKey(k) ? k : JSON.stringify(k));
     // ANSI color codes
     const colors = {
         reset: '\x1b[0m',
@@ -491,6 +490,11 @@ function formatJSONIC(val, opts) {
             return String(c);
         }
     };
+    return renderJSONIC(val, hsepd, showd, useColor, maxlines, exclude, c, renderPrimitive, renderComment);
+}
+function renderJSONIC(val, hsepd, showd, useColor, maxlines, exclude, c, renderPrimitive, renderComment) {
+    const space = '  ';
+    const seen = new WeakSet();
     let stack = new Array(32);
     let top = -1;
     // Seed root frame, capturing a possible top-level _COMMENT
@@ -522,6 +526,11 @@ function formatJSONIC(val, opts) {
             lines.push(`${linePrefix}${renderPrimitive(v)}${commentSuffix}`);
             continue;
         }
+        // Circular reference detected — fall back to decircular
+        if (seen.has(v)) {
+            return renderJSONIC((0, util_1.decircular)(val), hsepd, showd, useColor, maxlines, exclude, c, renderPrimitive, renderComment);
+        }
+        seen.add(v);
         if (Array.isArray(v)) {
             const arr = v;
             if (arr.length === 0) {

@@ -44,6 +44,11 @@ function resolveSelect(guide, ment, _mop, mtarget, _pdef) {
     }
 }
 function sortPoints(_guide, _ment, mop) {
+    // Cache joined exist strings to avoid recomputing on every comparison.
+    const existCache = new Map();
+    for (const pt of mop.points) {
+        existCache.set(pt, pt.select.exist.join('\t'));
+    }
     mop.points.sort((a, b) => {
         // longest exist len first
         let order = b.select.exist.length - a.select.exist.length;
@@ -53,8 +58,8 @@ function sortPoints(_guide, _ment, mop) {
                     a.select.$action > b.select.$action ? 1 : 0;
             }
             if (0 === order) {
-                const a_exist_str = a.select.exist.join('\t');
-                const b_exist_str = b.select.exist.join('\t');
+                const a_exist_str = existCache.get(a);
+                const b_exist_str = existCache.get(b);
                 order = a_exist_str < b_exist_str ? -1 :
                     a_exist_str > b_exist_str ? 1 : 0;
             }

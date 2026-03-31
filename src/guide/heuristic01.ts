@@ -313,13 +313,9 @@ function selectAllMethods(_source: any, spec: TaskSpec): MethodDesc[] {
 
   let caught: any = { methods: [] }
 
-  Object.entries(ctx.def.paths).map((n: any) => {
-    const path = n[0]
-    const pdef = n[1]
-
-    Object.entries(pdef).map((m: any) => {
-      const method = m[0].toUpperCase()
-      const mdef = m[1]
+  for (const [path, pdef] of Object.entries(ctx.def.paths) as any[]) {
+    for (const [m, mdef] of Object.entries(pdef) as any[]) {
+      const method = m.toUpperCase()
 
       caught.methods.push({
         path,
@@ -331,8 +327,8 @@ function selectAllMethods(_source: any, spec: TaskSpec): MethodDesc[] {
         responses: mdef.responses,
         requestBody: mdef.requestBody,
       })
-    })
-  })
+    }
+  }
 
   caught.methods.sort((a: any, b: any) => {
     if (a.path < b.path) {
@@ -1195,9 +1191,7 @@ function isOrigCmp(data: any, name: string) {
 
 
 function entityOccursInPath(parts: string[], entname: string) {
-  let partsLower = parts.map(p => p.toLowerCase())
-  partsLower = partsLower.filter(p => '{' !== p[0]).map(p => canonize(p))
-  return !partsLower.reduce((a: boolean, p: string) => (a && p !== entname), true)
+  return parts.some(p => p[0] !== '{' && canonize(p.toLowerCase()) === entname)
 }
 
 

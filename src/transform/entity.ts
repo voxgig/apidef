@@ -98,11 +98,14 @@ function buildRelations(guideEntity: any, paths$: PathDesc[]) {
     .filter(n => 0 < n.length)
     .sort((a, b) => a.length - b.length)
 
-  // remove suffixes
+  // remove suffixes: keep only ancestors that are not a suffix of any later ancestor
   ancestors = ancestors
-    .reduce((a, n, j) =>
-    ((0 < (ancestors.slice(j + 1).filter(p => suffix(p, n))).length
-      ? null : a.push(n)), a), [])
+    .filter((n, j) => {
+      for (let k = j + 1; k < ancestors.length; k++) {
+        if (suffix(ancestors[k], n)) return false
+      }
+      return true
+    })
 
   const relations = {
     ancestors
@@ -114,9 +117,13 @@ function buildRelations(guideEntity: any, paths$: PathDesc[]) {
 }
 
 
-// True if array c is a suffix of array p,
+// True if array c is a suffix of array p.
 function suffix(p: string[], c: string[]): boolean {
-  return c.reduce((b, _, i) => (b && c[c.length - 1 - i] === p[p.length - 1 - i]), true)
+  if (c.length > p.length) return false
+  for (let i = 0; i < c.length; i++) {
+    if (c[c.length - 1 - i] !== p[p.length - 1 - i]) return false
+  }
+  return true
 }
 
 

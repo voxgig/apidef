@@ -214,12 +214,9 @@ function selectAllMethods(_source, spec) {
   
     */
     let caught = { methods: [] };
-    Object.entries(ctx.def.paths).map((n) => {
-        const path = n[0];
-        const pdef = n[1];
-        Object.entries(pdef).map((m) => {
-            const method = m[0].toUpperCase();
-            const mdef = m[1];
+    for (const [path, pdef] of Object.entries(ctx.def.paths)) {
+        for (const [m, mdef] of Object.entries(pdef)) {
+            const method = m.toUpperCase();
             caught.methods.push({
                 path,
                 method,
@@ -230,8 +227,8 @@ function selectAllMethods(_source, spec) {
                 responses: mdef.responses,
                 requestBody: mdef.requestBody,
             });
-        });
-    });
+        }
+    }
     caught.methods.sort((a, b) => {
         if (a.path < b.path) {
             return -1;
@@ -849,9 +846,7 @@ function isOrigCmp(data, name) {
     return null != data.metrics.count.origcmprefs[name];
 }
 function entityOccursInPath(parts, entname) {
-    let partsLower = parts.map(p => p.toLowerCase());
-    partsLower = partsLower.filter(p => '{' !== p[0]).map(p => (0, utility_1.canonize)(p));
-    return !partsLower.reduce((a, p) => (a && p !== entname), true);
+    return parts.some(p => p[0] !== '{' && (0, utility_1.canonize)(p.toLowerCase()) === entname);
 }
 function entityPathMatch_tpe(data, pm, mdesc, why) {
     const ment = mdesc.MethodEntity;

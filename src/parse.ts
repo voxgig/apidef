@@ -10,6 +10,9 @@ import { relativizePath } from './utility'
 
 const yamlParser = Jsonic.make().use(Yaml)
 
+// Matches any line that is not purely a YAML comment or whitespace.
+const RE_HAS_CONTENT = /^\s*[^#\s]/m
+
 
 // Parse an API definition source into a JSON sructure.
 async function parse(kind: string, source: any, meta: { file: string }) {
@@ -81,36 +84,8 @@ async function parseOpenAPI(source: any, _meta?: any) {
     parsed.components = {}
   }
 
-  // Walk the tree and add x-ref properties (preserving original $ref values)
-  const seen = new WeakSet()
-  let refCount = 0
-
-  function addXRefs(obj: any, path: string = '') {
-    if (!obj || typeof obj !== 'object' || seen.has(obj)) return
-    seen.add(obj)
-
-    if (Array.isArray(obj)) {
-      obj.forEach((item, index) => addXRefs(item, `${path}[${index}]`))
-    } else {
-      // Check for $ref property
-      if (obj.$ref && typeof obj.$ref === 'string') {
-        obj['x-ref'] = obj.$ref
-        refCount++
-      }
-
-      // Recursively process all properties
-      for (const [key, value] of Object.entries(obj)) {
-        if (value && typeof value === 'object') {
-          addXRefs(value, path ? `${path}.${key}` : key)
-        }
-      }
-    }
-  }
-
-  addXRefs(parsed)
-
-  // Resolve $ref pointers
-  resolveRefs(parsed, parsed)
+  // Single-pass: add x-ref properties and resolve $ref pointers together.
+  addXRefsAndResolve(parsed, parsed)
 
   const def = decircular(parsed)
 
@@ -118,10 +93,10 @@ async function parseOpenAPI(source: any, _meta?: any) {
 }
 
 
-// Resolve all $ref JSON pointers in an object tree.
-// Replaces { $ref: "#/path/to/target", "x-ref": "..." } with the
-// resolved target's properties, preserving x-ref.
-function resolveRefs(obj: any, root: any, visited?: WeakSet<any>) {
+// Single-pass tree walk that:
+// 1. Preserves original $ref values as x-ref
+// 2. Resolves $ref JSON pointers in-place
+function addXRefsAndResolve(obj: any, root: any, visited?: WeakSet<any>) {
   if (!obj || typeof obj !== 'object') return
   if (!visited) visited = new WeakSet()
   if (visited.has(obj)) return
@@ -130,35 +105,39 @@ function resolveRefs(obj: any, root: any, visited?: WeakSet<any>) {
   if (Array.isArray(obj)) {
     for (let i = 0; i < obj.length; i++) {
       const item = obj[i]
-      if (item && typeof item === 'object' && typeof item.$ref === 'string') {
-        const resolved = resolvePointer(root, item.$ref)
-        if (resolved !== undefined) {
-          const xref = item['x-ref']
-          obj[i] = { ...resolved }
-          if (xref) {
-            obj[i]['x-ref'] = xref
+      if (item && typeof item === 'object') {
+        if (typeof item.$ref === 'string') {
+          const xref = item.$ref
+          const resolved = resolvePointer(root, xref)
+          if (resolved !== undefined) {
+            obj[i] = { ...resolved, 'x-ref': xref }
+            addXRefsAndResolve(obj[i], root, visited)
+          } else {
+            item['x-ref'] = xref
+            addXRefsAndResolve(item, root, visited)
           }
-          resolveRefs(obj[i], root, visited)
+        } else {
+          addXRefsAndResolve(item, root, visited)
         }
-      } else {
-        resolveRefs(item, root, visited)
       }
     }
   } else {
     for (const key of Object.keys(obj)) {
       const val = obj[key]
-      if (val && typeof val === 'object' && typeof val.$ref === 'string') {
-        const resolved = resolvePointer(root, val.$ref)
-        if (resolved !== undefined) {
-          const xref = val['x-ref']
-          obj[key] = { ...resolved }
-          if (xref) {
-            obj[key]['x-ref'] = xref
+      if (val && typeof val === 'object') {
+        if (typeof val.$ref === 'string') {
+          const xref = val.$ref
+          const resolved = resolvePointer(root, xref)
+          if (resolved !== undefined) {
+            obj[key] = { ...resolved, 'x-ref': xref }
+            addXRefsAndResolve(obj[key], root, visited)
+          } else {
+            val['x-ref'] = xref
+            addXRefsAndResolve(val, root, visited)
           }
-          resolveRefs(obj[key], root, visited)
+        } else {
+          addXRefsAndResolve(val, root, visited)
         }
-      } else {
-        resolveRefs(val, root, visited)
       }
     }
   }
@@ -192,11 +171,9 @@ function validateSource(kind: string, source: any, meta: { file: string }) {
     )
   }
 
-  // Remove YAML comment lines (lines that start with # after
-  // optional whitespace)
-  const withoutComments = source.replace(/^\s*#.*$/gm, '')
-
-  if (withoutComments.trim().length === 0) {
+  // Check if source has any non-comment, non-whitespace content
+  // without creating a full string copy.
+  if (!RE_HAS_CONTENT.test(source)) {
     throw new Error(
       `@voxgig/apidef: parse: ${kind}: source is empty` +
       ` (${relativizePath(meta.file)})`
