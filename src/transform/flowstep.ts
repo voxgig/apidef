@@ -122,9 +122,9 @@ const createStep: MakeFlowStep = (
   ent: ModelEntity,
   args: Record<string, any>
 ) => {
-  if (null != opmap.update) {
+  if (null != opmap.create) {
     // Use last point as most generic
-    const point = getelem(opmap.update.points, -1)
+    const point = getelem(opmap.create.points, -1)
     const step = newFlowStep('create', args)
 
     each(point.args.params, (param: any) => {

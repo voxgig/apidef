@@ -67,9 +67,9 @@ function newFlowStep(opname, args) {
     };
 }
 const createStep = (opmap, flow, ent, args) => {
-    if (null != opmap.update) {
+    if (null != opmap.create) {
         // Use last point as most generic
-        const point = (0, struct_1.getelem)(opmap.update.points, -1);
+        const point = (0, struct_1.getelem)(opmap.create.points, -1);
         const step = newFlowStep('create', args);
         (0, jostraca_1.each)(point.args.params, (param) => {
             // id should not be here in the first place
