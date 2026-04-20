@@ -1520,27 +1520,8 @@ function isListResponse(
     why.push('end-param')
   }
   else {
-
-    let caught = capture(mdesc, {
-      responses:
-        // '`$ANY`': { content: { 'application/json': { schema: '`$CAPTURE`' } } },
-        ['`$SELECT`', { '$KEY': { '`$OR`': ['200', '201'] } },
-          { content: { 'application/json': { schema: '`$CAPTURE`' } } }],
-
-    })
-
-    schema = caught.schema
-
-    if (null == schema) {
-      caught = capture(mdesc, {
-        responses:
-          // '`$ANY`': { content: { 'application/json': { schema: '`$CAPTURE`' } } },
-          ['`$SELECT`', { '$KEY': { '`$OR`': ['200', '201'] } },
-            { schema: '`$CAPTURE`' }],
-
-      })
-      schema = caught.schema
-    }
+    const response = mdesc.responses?.[200] ?? mdesc.responses?.[201]
+    schema = getResponseSchema(response)
 
     if (null == schema) {
       why.push('no-schema')

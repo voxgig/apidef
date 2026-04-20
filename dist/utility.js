@@ -187,13 +187,25 @@ function depluralize(word) {
     return word;
 }
 function find(obj, qkey) {
-    let vals = [];
-    (0, struct_1.walk)(obj, (key, val, _p, t) => {
-        if (qkey === key) {
-            vals.push({ key, val, path: t });
+    const vals = [];
+    const collect = (o) => {
+        if (!o || 'object' !== typeof o)
+            return;
+        if (Array.isArray(o)) {
+            for (let i = 0; i < o.length; i++)
+                collect(o[i]);
         }
-        return val;
-    });
+        else {
+            for (const k of Object.keys(o)) {
+                const v = o[k];
+                if (qkey === k)
+                    vals.push({ key: k, val: v, path: [] });
+                if (v && 'object' === typeof v)
+                    collect(v);
+            }
+        }
+    };
+    collect(obj);
     return vals;
 }
 function capture(data, shape) {
@@ -618,11 +630,17 @@ const FILE_EXT_RE = /\.(php|json|txt|png|jpg|jpeg|gif|svg|xml|html|csv|yml|yaml|
 function transliterate(s) {
     return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
+const CANONIZE_CACHE = new Map();
 function canonize(s) {
     if (null == s || '' === s)
         return '';
-    return depluralize((0, jostraca_1.snakify)(transliterate(s).replace(FILE_EXT_RE, '')))
+    const cached = CANONIZE_CACHE.get(s);
+    if (undefined !== cached)
+        return cached;
+    const out = depluralize((0, jostraca_1.snakify)(transliterate(s).replace(FILE_EXT_RE, '')))
         .replace(/[^a-zA-Z_0-9]/g, '');
+    CANONIZE_CACHE.set(s, out);
+    return out;
 }
 // Sanitize a raw slug into a clean kebab-case string suitable for
 // conversion to a valid JS identifier (via camelify/snakify/etc).

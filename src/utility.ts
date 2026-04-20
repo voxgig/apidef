@@ -213,13 +213,20 @@ function depluralize(word: string): string {
 
 
 function find(obj: any, qkey: string): any[] {
-  let vals: any[] = []
-  walk(obj, (key: any, val: any, _p: any, t: string[]) => {
-    if (qkey === key) {
-      vals.push({ key, val, path: t })
+  const vals: any[] = []
+  const collect = (o: any): void => {
+    if (!o || 'object' !== typeof o) return
+    if (Array.isArray(o)) {
+      for (let i = 0; i < o.length; i++) collect(o[i])
+    } else {
+      for (const k of Object.keys(o)) {
+        const v = o[k]
+        if (qkey === k) vals.push({ key: k, val: v, path: [] })
+        if (v && 'object' === typeof v) collect(v)
+      }
     }
-    return val
-  })
+  }
+  collect(obj)
   return vals
 }
 
@@ -768,10 +775,16 @@ function transliterate(s: string): string {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 }
 
+const CANONIZE_CACHE = new Map<string, string>()
+
 function canonize(s: string) {
   if (null == s || '' === s) return ''
-  return depluralize(snakify(transliterate(s).replace(FILE_EXT_RE, '')))
+  const cached = CANONIZE_CACHE.get(s)
+  if (undefined !== cached) return cached
+  const out = depluralize(snakify(transliterate(s).replace(FILE_EXT_RE, '')))
     .replace(/[^a-zA-Z_0-9]/g, '')
+  CANONIZE_CACHE.set(s, out)
+  return out
 }
 
 
