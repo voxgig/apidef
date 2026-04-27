@@ -37,7 +37,7 @@ function resolveSelect(guide, ment, _mop, mtarget, _pdef) {
     const gent = guide.entity[ment.name];
     const gpath = gent.path[mtarget.orig];
     if (gpath.action) {
-        const actname = Object.keys(gpath.action)[0];
+        const actname = Object.keys(gpath.action).sort()[0];
         if (null != actname) {
             select.$action = actname;
         }

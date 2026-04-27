@@ -1,0 +1,243 @@
+{
+  "fields": [
+    {
+      "name": "attribute",
+      "req": false,
+      "type": "`$OBJECT`"
+    },
+    {
+      "name": "created_at",
+      "req": false,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "id",
+      "req": true,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "name",
+      "req": true,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "ok",
+      "req": false,
+      "type": "`$BOOLEAN`"
+    },
+    {
+      "name": "parent_id",
+      "req": false,
+      "type": "Any"
+    },
+    {
+      "name": "rank",
+      "req": true,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "updated_at",
+      "req": false,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "year",
+      "req": false,
+      "type": "`$INTEGER`"
+    }
+  ],
+  "id": {
+    "field": "id",
+    "name": "id"
+  },
+  "name": "domain",
+  "op": {
+    "create": {
+      "name": "create",
+      "points": [
+        {
+          "args": {
+            "params": [
+              {
+                "kind": "param",
+                "name": "id",
+                "orig": "id",
+                "reqd": true,
+                "type": "`$STRING`"
+              },
+              {
+                "kind": "param",
+                "name": "year",
+                "orig": "year",
+                "reqd": true,
+                "type": "`$INTEGER`"
+              }
+            ]
+          },
+          "method": "POST",
+          "orig": "/{year}/domain/{did}/revoke",
+          "parts": [
+            "{year}",
+            "domain",
+            "{id}",
+            "revoke"
+          ],
+          "rename": {
+            "param": {
+              "did": "id"
+            }
+          },
+          "select": {
+            "$action": "revoke",
+            "exist": [
+              "id",
+              "year"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    },
+    "list": {
+      "name": "list",
+      "points": [
+        {
+          "args": {
+            "params": [
+              {
+                "kind": "param",
+                "name": "year",
+                "orig": "year",
+                "reqd": true,
+                "type": "`$INTEGER`"
+              }
+            ],
+            "query": [
+              {
+                "kind": "query",
+                "name": "page",
+                "orig": "page",
+                "reqd": false,
+                "type": "`$INTEGER`"
+              },
+              {
+                "kind": "query",
+                "name": "page_size",
+                "orig": "page_size",
+                "reqd": false,
+                "type": "`$INTEGER`"
+              }
+            ]
+          },
+          "method": "GET",
+          "orig": "/{year}/domain",
+          "parts": [
+            "{year}",
+            "domain"
+          ],
+          "select": {
+            "exist": [
+              "page",
+              "page_size",
+              "year"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    },
+    "load": {
+      "name": "load",
+      "points": [
+        {
+          "args": {
+            "params": [
+              {
+                "kind": "param",
+                "name": "id",
+                "orig": "id",
+                "reqd": true,
+                "type": "`$STRING`"
+              },
+              {
+                "kind": "param",
+                "name": "year",
+                "orig": "year",
+                "reqd": true,
+                "type": "`$INTEGER`"
+              }
+            ]
+          },
+          "method": "GET",
+          "orig": "/{year}/domain/{id}",
+          "parts": [
+            "{year}",
+            "domain",
+            "{id}"
+          ],
+          "select": {
+            "exist": [
+              "id",
+              "year"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    },
+    "update": {
+      "name": "update",
+      "points": [
+        {
+          "args": {
+            "params": [
+              {
+                "kind": "param",
+                "name": "id",
+                "orig": "id",
+                "reqd": true,
+                "type": "`$STRING`"
+              },
+              {
+                "kind": "param",
+                "name": "year",
+                "orig": "year",
+                "reqd": true,
+                "type": "`$INTEGER`"
+              }
+            ]
+          },
+          "method": "PATCH",
+          "orig": "/{year}/domain/{id}",
+          "parts": [
+            "{year}",
+            "domain",
+            "{id}"
+          ],
+          "select": {
+            "exist": [
+              "id",
+              "year"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    }
+  },
+  "relations": {
+    "ancestors": null
+  }
+}

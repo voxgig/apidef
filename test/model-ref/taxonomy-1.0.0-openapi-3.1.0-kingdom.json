@@ -1,0 +1,231 @@
+{
+  "fields": [
+    {
+      "name": "attribute",
+      "req": false,
+      "type": "`$OBJECT`"
+    },
+    {
+      "name": "created_at",
+      "req": false,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "id",
+      "req": true,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "name",
+      "req": true,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "parent_id",
+      "req": false,
+      "type": "Any"
+    },
+    {
+      "name": "rank",
+      "req": true,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "updated_at",
+      "req": false,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "year",
+      "req": false,
+      "type": "`$INTEGER`"
+    }
+  ],
+  "id": {
+    "field": "id",
+    "name": "id"
+  },
+  "name": "kingdom",
+  "op": {
+    "create": {
+      "name": "create",
+      "points": [
+        {
+          "args": {
+            "params": [
+              {
+                "kind": "param",
+                "name": "domain_id",
+                "orig": "domain_id",
+                "reqd": true,
+                "type": "`$STRING`"
+              },
+              {
+                "kind": "param",
+                "name": "year",
+                "orig": "year",
+                "reqd": true,
+                "type": "`$INTEGER`"
+              }
+            ]
+          },
+          "method": "POST",
+          "orig": "/{year}/domain/{id}/kingdom",
+          "parts": [
+            "{year}",
+            "domain",
+            "{domain_id}",
+            "kingdom"
+          ],
+          "rename": {
+            "param": {
+              "id": "domain_id"
+            }
+          },
+          "select": {
+            "exist": [
+              "domain_id",
+              "year"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    },
+    "list": {
+      "name": "list",
+      "points": [
+        {
+          "args": {
+            "params": [
+              {
+                "kind": "param",
+                "name": "domain_id",
+                "orig": "id",
+                "reqd": true,
+                "type": "`$STRING`"
+              },
+              {
+                "kind": "param",
+                "name": "year",
+                "orig": "year",
+                "reqd": true,
+                "type": "`$INTEGER`"
+              }
+            ],
+            "query": [
+              {
+                "kind": "query",
+                "name": "page",
+                "orig": "page",
+                "reqd": false,
+                "type": "`$INTEGER`"
+              },
+              {
+                "kind": "query",
+                "name": "page_size",
+                "orig": "page_size",
+                "reqd": false,
+                "type": "`$INTEGER`"
+              }
+            ]
+          },
+          "method": "GET",
+          "orig": "/{year}/domain/{id}/kingdom",
+          "parts": [
+            "{year}",
+            "domain",
+            "{domain_id}",
+            "kingdom"
+          ],
+          "rename": {
+            "param": {
+              "id": "domain_id"
+            }
+          },
+          "select": {
+            "exist": [
+              "domain_id",
+              "page",
+              "page_size",
+              "year"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    },
+    "load": {
+      "name": "load",
+      "points": [
+        {
+          "args": {
+            "params": [
+              {
+                "kind": "param",
+                "name": "domain_id",
+                "orig": "domain_id",
+                "reqd": true,
+                "type": "`$STRING`"
+              },
+              {
+                "kind": "param",
+                "name": "year",
+                "orig": "year",
+                "reqd": true,
+                "type": "`$INTEGER`"
+              }
+            ],
+            "query": [
+              {
+                "kind": "query",
+                "name": "",
+                "orig": "",
+                "reqd": false,
+                "type": "Any"
+              }
+            ]
+          },
+          "method": "GET",
+          "orig": "/{year}/domain/{domain_id}/kingdom/{kingdom_id}",
+          "parts": [
+            "{year}",
+            "domain",
+            "{domain_id}",
+            "kingdom",
+            "{id}"
+          ],
+          "rename": {
+            "param": {
+              "kingdom_id": "id"
+            }
+          },
+          "select": {
+            "exist": [
+              "",
+              "domain_id",
+              "year"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    }
+  },
+  "relations": {
+    "ancestors": [
+      [
+        "domain"
+      ]
+    ]
+  }
+}

@@ -43,8 +43,8 @@ func (a *apiDefInstance) Generate(spec map[string]any) (*ApiDefResult, error) {
 	if specCtrl, ok := spec["ctrl"].(map[string]any); ok {
 		if stepCtrl, ok := specCtrl["step"].(map[string]any); ok {
 			ctrlStep := ctrl["step"].(map[string]any)
-			for k, v := range stepCtrl {
-				ctrlStep[k] = v
+			for _, k := range sortedKeys(stepCtrl) {
+				ctrlStep[k] = stepCtrl[k]
 			}
 		}
 	}

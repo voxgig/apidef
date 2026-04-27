@@ -78,7 +78,7 @@ function resolveSelect(
   const gpath = gent.path[mtarget.orig]
 
   if (gpath.action) {
-    const actname = Object.keys(gpath.action)[0]
+    const actname = Object.keys(gpath.action).sort()[0]
 
     if (null != actname) {
       select.$action = actname

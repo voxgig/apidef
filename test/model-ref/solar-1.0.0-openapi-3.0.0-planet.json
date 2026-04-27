@@ -1,0 +1,241 @@
+{
+  "fields": [
+    {
+      "name": "diameter",
+      "req": true,
+      "type": "`$NUMBER`"
+    },
+    {
+      "name": "id",
+      "req": true,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "kind",
+      "req": true,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "name",
+      "req": true,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "ok",
+      "req": false,
+      "type": "`$BOOLEAN`"
+    },
+    {
+      "name": "start",
+      "req": false,
+      "type": "`$BOOLEAN`"
+    },
+    {
+      "name": "state",
+      "req": false,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "stop",
+      "req": false,
+      "type": "`$BOOLEAN`"
+    }
+  ],
+  "id": {
+    "field": "id",
+    "name": "id"
+  },
+  "name": "planet",
+  "op": {
+    "create": {
+      "name": "create",
+      "points": [
+        {
+          "args": {
+            "params": [
+              {
+                "kind": "param",
+                "name": "id",
+                "orig": "planet_id",
+                "reqd": true,
+                "type": "`$STRING`"
+              }
+            ]
+          },
+          "method": "POST",
+          "orig": "/api/planet/{planet_id}/terraform",
+          "parts": [
+            "api",
+            "planet",
+            "{id}",
+            "terraform"
+          ],
+          "rename": {
+            "param": {
+              "planet_id": "id"
+            }
+          },
+          "select": {
+            "$action": "terraform",
+            "exist": [
+              "id"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        },
+        {
+          "method": "POST",
+          "orig": "/api/planet",
+          "parts": [
+            "api",
+            "planet"
+          ],
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    },
+    "list": {
+      "name": "list",
+      "points": [
+        {
+          "method": "GET",
+          "orig": "/api/planet",
+          "parts": [
+            "api",
+            "planet"
+          ],
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    },
+    "load": {
+      "name": "load",
+      "points": [
+        {
+          "args": {
+            "params": [
+              {
+                "kind": "param",
+                "name": "id",
+                "orig": "planet_id",
+                "reqd": true,
+                "type": "`$STRING`"
+              }
+            ]
+          },
+          "method": "GET",
+          "orig": "/api/planet/{planet_id}",
+          "parts": [
+            "api",
+            "planet",
+            "{id}"
+          ],
+          "rename": {
+            "param": {
+              "planet_id": "id"
+            }
+          },
+          "select": {
+            "exist": [
+              "id"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    },
+    "remove": {
+      "name": "remove",
+      "points": [
+        {
+          "args": {
+            "params": [
+              {
+                "kind": "param",
+                "name": "id",
+                "orig": "planet_id",
+                "reqd": true,
+                "type": "`$STRING`"
+              }
+            ]
+          },
+          "method": "DELETE",
+          "orig": "/api/planet/{planet_id}",
+          "parts": [
+            "api",
+            "planet",
+            "{id}"
+          ],
+          "rename": {
+            "param": {
+              "planet_id": "id"
+            }
+          },
+          "select": {
+            "exist": [
+              "id"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    },
+    "update": {
+      "name": "update",
+      "points": [
+        {
+          "args": {
+            "params": [
+              {
+                "kind": "param",
+                "name": "id",
+                "orig": "planet_id",
+                "reqd": true,
+                "type": "`$STRING`"
+              }
+            ]
+          },
+          "method": "PUT",
+          "orig": "/api/planet/{planet_id}",
+          "parts": [
+            "api",
+            "planet",
+            "{id}"
+          ],
+          "rename": {
+            "param": {
+              "planet_id": "id"
+            }
+          },
+          "select": {
+            "exist": [
+              "id"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    }
+  },
+  "relations": {
+    "ancestors": null
+  }
+}

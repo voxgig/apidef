@@ -13,7 +13,8 @@ func EntityTransform(ctx *ApiDefContext) (*TransformResult, error) {
 	guideEntity, _ := guide["entity"].(map[string]any)
 	msg := ""
 
-	for entname, gent := range guideEntity {
+	for _, entname := range sortedKeys(guideEntity) {
+		gent := guideEntity[entname]
 		gentMap, ok := gent.(map[string]any)
 		if !ok {
 			continue
@@ -46,7 +47,8 @@ func resolvePathList(guideEntity map[string]any, def map[string]any) []map[strin
 	paths, _ := guideEntity["path"].(map[string]any)
 	defPaths, _ := def["paths"].(map[string]any)
 
-	for orig, gpath := range paths {
+	for _, orig := range sortedKeys(paths) {
+		gpath := paths[orig]
 		gpathMap, _ := gpath.(map[string]any)
 		if gpathMap == nil {
 			continue
@@ -57,7 +59,8 @@ func resolvePathList(guideEntity map[string]any, def map[string]any) []map[strin
 		if r, ok := gpathMap["rename"].(map[string]any); ok {
 			rename = r
 			if paramRename, ok := r["param"].(map[string]any); ok {
-				for oldName, newName := range paramRename {
+				for _, oldName := range sortedKeys(paramRename) {
+					newName := paramRename[oldName]
 					newStr, _ := newName.(string)
 					if newStr == "" {
 						if rp, ok := newName.(map[string]any); ok {

@@ -1,0 +1,260 @@
+{
+  "fields": [
+    {
+      "name": "diameter",
+      "req": true,
+      "type": "`$NUMBER`"
+    },
+    {
+      "name": "id",
+      "req": true,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "kind",
+      "req": true,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "name",
+      "req": true,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "planet_id",
+      "req": true,
+      "type": "`$STRING`"
+    }
+  ],
+  "id": {
+    "field": "id",
+    "name": "id"
+  },
+  "name": "moon",
+  "op": {
+    "create": {
+      "name": "create",
+      "points": [
+        {
+          "args": {
+            "params": [
+              {
+                "kind": "param",
+                "name": "planet_id",
+                "orig": "planet_id",
+                "reqd": true,
+                "type": "`$STRING`"
+              }
+            ]
+          },
+          "method": "POST",
+          "orig": "/api/planet/{planet_id}/moon",
+          "parts": [
+            "api",
+            "planet",
+            "{planet_id}",
+            "moon"
+          ],
+          "select": {
+            "exist": [
+              "planet_id"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    },
+    "list": {
+      "name": "list",
+      "points": [
+        {
+          "args": {
+            "params": [
+              {
+                "kind": "param",
+                "name": "planet_id",
+                "orig": "planet_id",
+                "reqd": true,
+                "type": "`$STRING`"
+              }
+            ]
+          },
+          "method": "GET",
+          "orig": "/api/planet/{planet_id}/moon",
+          "parts": [
+            "api",
+            "planet",
+            "{planet_id}",
+            "moon"
+          ],
+          "select": {
+            "exist": [
+              "planet_id"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    },
+    "load": {
+      "name": "load",
+      "points": [
+        {
+          "args": {
+            "params": [
+              {
+                "kind": "param",
+                "name": "id",
+                "orig": "moon_id",
+                "reqd": true,
+                "type": "`$STRING`"
+              },
+              {
+                "kind": "param",
+                "name": "planet_id",
+                "orig": "planet_id",
+                "reqd": true,
+                "type": "`$STRING`"
+              }
+            ]
+          },
+          "method": "GET",
+          "orig": "/api/planet/{planet_id}/moon/{moon_id}",
+          "parts": [
+            "api",
+            "planet",
+            "{planet_id}",
+            "moon",
+            "{id}"
+          ],
+          "rename": {
+            "param": {
+              "moon_id": "id"
+            }
+          },
+          "select": {
+            "exist": [
+              "id",
+              "planet_id"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    },
+    "remove": {
+      "name": "remove",
+      "points": [
+        {
+          "args": {
+            "params": [
+              {
+                "kind": "param",
+                "name": "id",
+                "orig": "moon_id",
+                "reqd": true,
+                "type": "`$STRING`"
+              },
+              {
+                "kind": "param",
+                "name": "planet_id",
+                "orig": "planet_id",
+                "reqd": true,
+                "type": "`$STRING`"
+              }
+            ]
+          },
+          "method": "DELETE",
+          "orig": "/api/planet/{planet_id}/moon/{moon_id}",
+          "parts": [
+            "api",
+            "planet",
+            "{planet_id}",
+            "moon",
+            "{id}"
+          ],
+          "rename": {
+            "param": {
+              "moon_id": "id"
+            }
+          },
+          "select": {
+            "exist": [
+              "id",
+              "planet_id"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    },
+    "update": {
+      "name": "update",
+      "points": [
+        {
+          "args": {
+            "params": [
+              {
+                "kind": "param",
+                "name": "id",
+                "orig": "moon_id",
+                "reqd": true,
+                "type": "`$STRING`"
+              },
+              {
+                "kind": "param",
+                "name": "planet_id",
+                "orig": "planet_id",
+                "reqd": true,
+                "type": "`$STRING`"
+              }
+            ]
+          },
+          "method": "PUT",
+          "orig": "/api/planet/{planet_id}/moon/{moon_id}",
+          "parts": [
+            "api",
+            "planet",
+            "{planet_id}",
+            "moon",
+            "{id}"
+          ],
+          "rename": {
+            "param": {
+              "moon_id": "id"
+            }
+          },
+          "select": {
+            "exist": [
+              "id",
+              "planet_id"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    }
+  },
+  "relations": {
+    "ancestors": [
+      [
+        "planet"
+      ]
+    ]
+  }
+}

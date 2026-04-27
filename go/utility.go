@@ -5,14 +5,16 @@ package apidef
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
+	"strconv"
 	"strings"
 	"unicode"
 
 	vs "github.com/voxgig/struct"
-	util "github.com/voxgig/util"
 	"golang.org/x/text/unicode/norm"
 )
 
@@ -52,7 +54,8 @@ func Depluralize(word string) string {
 		}
 		return v
 	}
-	for ending, replacement := range irregulars {
+	for _, ending := range sortedKeysStr(irregulars) {
+		replacement := irregulars[ending]
 		if strings.HasSuffix(lower, ending) {
 			prefix := word[:len(word)-len(ending)]
 			return prefix + replacement
@@ -552,10 +555,7 @@ func GetModelPath(model any, path string, required bool) (any, error) {
 					if len(validPath) > 0 {
 						validPathStr = strings.Join(validPath, ".")
 					}
-					keys := make([]string, 0, len(m))
-					for k := range m {
-						keys = append(keys, k)
-					}
+					keys := sortedKeys(m)
 					return nil, fmt.Errorf(
 						"getModelPath: path not found at '%s'.\n"+
 							"Valid path up to: '%s'.\n"+
@@ -589,15 +589,149 @@ func GetModelPath(model any, path string, required bool) (any, error) {
 }
 
 // FormatJSONIC formats a value as JSONIC text.
+// FormatJSONIC formats a value in JSONIC format (like JSON but with
+// unquoted bare keys, no commas, and keys ending in $ excluded).
+// Matches the TS formatJSONIC output exactly.
 func FormatJSONIC(val any) string {
 	if val == nil {
 		return ""
 	}
-	safe := util.Decircular(val)
-	b, err := json.MarshalIndent(safe, "", "  ")
-	if err != nil {
-		return fmt.Sprintf("%v", val)
+	var lines []string
+	seen := map[uintptr]bool{}
+	formatJSONICValue(val, 0, "", &lines, seen)
+	return strings.Join(lines, "\n") + "\n"
+}
+
+var reBareKey = regexp.MustCompile(`^[A-Za-z_][_A-Za-z0-9]*$`)
+
+func isBareKey(k string) bool {
+	return reBareKey.MatchString(k)
+}
+
+func quoteKey(k string) string {
+	if isBareKey(k) {
+		return k
 	}
+	b, _ := json.Marshal(k)
+	return string(b)
+}
+
+func formatJSONICValue(val any, indent int, prefix string, lines *[]string, seen map[uintptr]bool) {
+	space := "  "
+	indentStr := strings.Repeat(space, indent)
+
+	if val == nil {
+		*lines = append(*lines, prefix+"null")
+		return
+	}
+
+	switch v := val.(type) {
+	case [][]string:
+		if len(v) == 0 {
+			*lines = append(*lines, prefix+"[")
+			*lines = append(*lines, indentStr+"]")
+			return
+		}
+		*lines = append(*lines, prefix+"[")
+		for _, inner := range v {
+			formatJSONICValue(inner, indent+1, strings.Repeat(space, indent+1), lines, seen)
+		}
+		*lines = append(*lines, indentStr+"]")
+	case string:
+		*lines = append(*lines, prefix+jsonString(v))
+	case float64:
+		if math.IsInf(v, 0) || math.IsNaN(v) {
+			*lines = append(*lines, prefix+"null")
+		} else if v == math.Trunc(v) {
+			*lines = append(*lines, prefix+strconv.FormatInt(int64(v), 10))
+		} else {
+			*lines = append(*lines, prefix+strconv.FormatFloat(v, 'f', -1, 64))
+		}
+	case int:
+		*lines = append(*lines, prefix+strconv.Itoa(v))
+	case int64:
+		*lines = append(*lines, prefix+strconv.FormatInt(v, 10))
+	case bool:
+		if v {
+			*lines = append(*lines, prefix+"true")
+		} else {
+			*lines = append(*lines, prefix+"false")
+		}
+	case []string:
+		if len(v) == 0 {
+			*lines = append(*lines, prefix+"[")
+			hsep := indent > 0 && indent <= 1
+			closeSuffix := ""
+			if hsep {
+				closeSuffix = "\n"
+			}
+			*lines = append(*lines, indentStr+"]"+closeSuffix)
+			return
+		}
+		*lines = append(*lines, prefix+"[")
+		childPrefix := strings.Repeat(space, indent+1)
+		for _, item := range v {
+			*lines = append(*lines, childPrefix+jsonString(item))
+		}
+		hsep := indent > 0 && indent <= 1
+		closeSuffix := ""
+		if hsep {
+			closeSuffix = "\n"
+		}
+		*lines = append(*lines, indentStr+"]"+closeSuffix)
+	case []any:
+		if len(v) == 0 {
+			*lines = append(*lines, prefix+"[")
+			hsep := indent > 0 && indent <= 1
+			closeSuffix := ""
+			if hsep { closeSuffix = "\n" }
+			*lines = append(*lines, indentStr+"]"+closeSuffix)
+			return
+		}
+		*lines = append(*lines, prefix+"[")
+		childPrefix := strings.Repeat(space, indent+1)
+		for _, item := range v {
+			formatJSONICValue(item, indent+1, childPrefix, lines, seen)
+		}
+		hsep := indent > 0 && indent <= 1
+		closeSuffix := ""
+		if hsep { closeSuffix = "\n" }
+		*lines = append(*lines, indentStr+"]"+closeSuffix)
+	case map[string]any:
+		keys := make([]string, 0, len(v))
+		for k := range v {
+			// Exclude keys ending in $ or _COMMENT
+			if strings.HasSuffix(k, "$") || strings.HasSuffix(k, "_COMMENT") {
+				continue
+			}
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+
+		if len(keys) == 0 {
+			*lines = append(*lines, prefix+"{")
+			*lines = append(*lines, indentStr+"}")
+			return
+		}
+		*lines = append(*lines, prefix+"{")
+		nextIndent := strings.Repeat(space, indent+1)
+		for _, k := range keys {
+			keyText := quoteKey(k)
+			childPrefix := nextIndent + keyText + ": "
+			formatJSONICValue(v[k], indent+1, childPrefix, lines, seen)
+		}
+		sep := ""
+		if indent > 0 && indent <= 1 {
+			sep = "\n"
+		}
+		*lines = append(*lines, indentStr+"}"+sep)
+	default:
+		*lines = append(*lines, prefix+fmt.Sprintf("%v", val))
+	}
+}
+
+func jsonString(s string) string {
+	b, _ := json.Marshal(s)
 	return string(b)
 }
 
@@ -719,7 +853,7 @@ func FindPathsWithPrefix(ctx *ApiDefContext, pathStr string, strict bool, param 
 
 	count := 0
 	defPaths, _ := ctx.Def["paths"].(map[string]any)
-	for p := range defPaths {
+	for _, p := range sortedKeys(defPaths) {
 		path := p
 		if !param {
 			paramRE := regexp.MustCompile(`\{[^}]+\}`)
@@ -736,6 +870,51 @@ func FindPathsWithPrefix(ctx *ApiDefContext, pathStr string, strict bool, param 
 		}
 	}
 	return count
+}
+
+func sortedKeys(m map[string]any) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func sortedKeysInt(m map[string]int) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func sortedKeysBool(m map[string]bool) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func sortedKeysStr(m map[string]string) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func sortedKeysOpmWork(m map[string][]map[string]any) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 // DebugPath logs debug info when APIDEF_DEBUG_PATH is set.

@@ -13,7 +13,8 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 	msg := "field "
 	opFieldPrecedence := []string{"load", "create", "update", "patch", "list"}
 
-	for entname, ment := range entityMap {
+	for _, entname := range sortedKeys(entityMap) {
+		ment := entityMap[entname]
 		mentMap, _ := ment.(map[string]any)
 		if mentMap == nil {
 			continue
@@ -34,7 +35,7 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 				if mtarget == nil {
 					continue
 				}
-				opfields := resolveOpFields(mtarget, def)
+				opfields := resolveOpFields(mtarget, def, opname)
 				for _, opfield := range opfields {
 					name, _ := opfield["name"].(string)
 					if _, exists := seen[name]; !exists {
@@ -61,9 +62,9 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 	return &TransformResult{OK: true, Msg: msg}, nil
 }
 
-func resolveOpFields(mtarget map[string]any, def map[string]any) []map[string]any {
+func resolveOpFields(mtarget map[string]any, def map[string]any, opname string) []map[string]any {
 	var mfields []map[string]any
-	fielddefs := findFieldDefs(mtarget, def)
+	fielddefs := findFieldDefs(mtarget, def, opname)
 
 	for _, fielddef := range fielddefs {
 		name := Canonize(NormalizeFieldName(fielddef["key$"].(string)))
@@ -80,7 +81,7 @@ func resolveOpFields(mtarget map[string]any, def map[string]any) []map[string]an
 	return mfields
 }
 
-func findFieldDefs(mtarget map[string]any, def map[string]any) []map[string]any {
+func findFieldDefs(mtarget map[string]any, def map[string]any, opname string) []map[string]any {
 	var fielddefs []map[string]any
 	defPaths, _ := def["paths"].(map[string]any)
 	orig, _ := mtarget["orig"].(string)
@@ -103,9 +104,21 @@ func findFieldDefs(mtarget map[string]any, def map[string]any) []map[string]any 
 	var fieldSets any
 
 	if responses != nil {
-		fieldSets = getFieldResponseSchema(responses, "200")
+		// For list operations (GET + list), extract from items array schema
+		// to avoid including pagination wrapper fields (page, total, etc.).
+		// Matches TS: getx(responses, '200 content "application/json" schema items')
+		isListOp := methodLower == "get" && opname == "list"
+		if isListOp {
+			fieldSets = getFieldResponseSchemaItems(responses, "200")
+			if fieldSets == nil {
+				fieldSets = getFieldResponseSchemaItems(responses, "201")
+			}
+		}
 		if fieldSets == nil {
-			fieldSets = getFieldResponseSchema(responses, "201")
+			fieldSets = getFieldResponseSchema(responses, "200")
+			if fieldSets == nil {
+				fieldSets = getFieldResponseSchema(responses, "201")
+			}
 		}
 	}
 
@@ -131,6 +144,33 @@ func findFieldDefs(mtarget map[string]any, def map[string]any) []map[string]any 
 	}
 
 	return fielddefs
+}
+
+// getFieldResponseSchemaItems extracts the items array schema from a list response.
+// For list endpoints, the response is typically { items: [...], page: N, total: N }.
+// This navigates to the items schema to extract entity fields, not wrapper fields.
+func getFieldResponseSchemaItems(responses map[string]any, code string) any {
+	schema := getFieldResponseSchema(responses, code)
+	if schema == nil {
+		return nil
+	}
+	if schemaMap, ok := schema.(map[string]any); ok {
+		// Check for properties.items or direct items
+		if props, ok := schemaMap["properties"].(map[string]any); ok {
+			if items, ok := props["items"].(map[string]any); ok {
+				// items might have its own items (array schema)
+				if innerItems, ok := items["items"]; ok {
+					return innerItems
+				}
+				return items
+			}
+		}
+		// Direct items field (array schema)
+		if items, ok := schemaMap["items"]; ok {
+			return items
+		}
+	}
+	return nil
 }
 
 func getFieldResponseSchema(responses map[string]any, code string) any {
@@ -187,7 +227,8 @@ func extractFields(fieldSets any, fielddefs *[]map[string]any) {
 					}
 				}
 			}
-			for name, prop := range props {
+			for _, name := range sortedKeys(props) {
+				prop := props[name]
 				fd := map[string]any{"key$": name}
 				if pm, ok := prop.(map[string]any); ok {
 					if t, ok := pm["type"].(string); ok {
@@ -218,7 +259,8 @@ func inferFieldsFromExamples(opdef map[string]any) []map[string]any {
 	}
 
 	var fielddefs []map[string]any
-	for key, value := range exMap {
+	for _, key := range sortedKeys(exMap) {
+		value := exMap[key]
 		fielddefs = append(fielddefs, map[string]any{
 			"key$": key,
 			"type": InferTypeFromValue(value),
@@ -251,7 +293,8 @@ func findExampleObject(opdef map[string]any) any {
 				return unwrapExample(example)
 			}
 			if examples, ok := appjson["examples"].(map[string]any); ok {
-				for _, v := range examples {
+				for _, ek := range sortedKeys(examples) {
+					v := examples[ek]
 					if vm, ok := v.(map[string]any); ok {
 						if ex, ok := vm["value"]; ok {
 							return unwrapExample(ex)

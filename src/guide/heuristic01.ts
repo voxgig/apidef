@@ -47,6 +47,8 @@ import {
   formatJSONIC,
   getdlog,
   pathMatch,
+  sortedEntries,
+  sortedKeys,
   warnOnError,
 } from '../utility'
 
@@ -131,10 +133,10 @@ async function heuristic01(ctx: ApiDefContext): Promise<Guide> {
   let totalPaths = 0
   let totalOps = 0
   for (const ent of entities as any[]) {
-    const pathKeys = Object.keys(ent.path || {})
+    const pathKeys = sortedKeys(ent.path || {})
     totalPaths += pathKeys.length
     for (const p of pathKeys) {
-      totalOps += Object.keys(ent.path[p].op || {}).length
+      totalOps += sortedKeys(ent.path[p].op || {}).length
     }
   }
 
@@ -313,8 +315,8 @@ function selectAllMethods(_source: any, spec: TaskSpec): MethodDesc[] {
 
   let caught: any = { methods: [] }
 
-  for (const [path, pdef] of Object.entries(ctx.def.paths) as any[]) {
-    for (const [m, mdef] of Object.entries(pdef) as any[]) {
+  for (const [path, pdef] of sortedEntries(ctx.def.paths)) {
+    for (const [m, mdef] of sortedEntries(pdef)) {
       const method = m.toUpperCase()
 
       caught.methods.push({
@@ -1373,7 +1375,7 @@ function probableEntityMethod(
 
       // A real entity would probably occur in at least one other t/p path
       // otherwise this is probably an action
-      && (1 < Object.keys(data.def.paths).filter(path =>
+      && (1 < sortedKeys(data.def.paths).filter(path =>
         path.includes('/' + pm[pm.length - 1] + '/')).length)
     ) {
       prob_why = 'post'
@@ -1393,7 +1395,7 @@ function probableEntityMethod(
     probent = true
   }
 
-  const rescodes = Object.keys(mdesc.responses ?? {})
+  const rescodes = sortedKeys(mdesc.responses ?? {})
 
   debugpath(mdesc.path, mdesc.method, 'PROBABLE-ENTITY-RESPONSE',
     { mdesc, responses: rescodes, probent, prob_why })

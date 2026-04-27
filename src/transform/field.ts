@@ -178,7 +178,7 @@ function inferFieldsFromExamples(opdef: any): SchemaDef[] {
   }
 
   const fielddefs: SchemaDef[] = []
-  for (const [key, value] of Object.entries(example)) {
+  for (const [key, value] of Object.entries(example).sort(([a],[b]) => a < b ? -1 : a > b ? 1 : 0)) {
     const fielddef: any = {
       key$: key,
       type: inferTypeFromValue(value),

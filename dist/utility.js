@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.sortedEntries = exports.sortedKeys = void 0;
 exports.nom = nom;
 exports.getdlog = getdlog;
 exports.loadFile = loadFile;
@@ -33,6 +34,11 @@ const jostraca_1 = require("jostraca");
 const util_1 = require("@voxgig/util");
 const struct_1 = require("@voxgig/struct");
 const KONSOLE_LOG = console['log'];
+// Sorted iteration helpers — ensures deterministic key order matching Go.
+const sortedKeys = (obj) => Object.keys(obj ?? {}).sort();
+exports.sortedKeys = sortedKeys;
+const sortedEntries = (obj) => Object.entries(obj ?? {}).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0);
+exports.sortedEntries = sortedEntries;
 // Pre-compiled regex patterns for formatJsonSrc to avoid recompilation per call.
 const RE_JSON_KEY = /"([a-zA-Z_][a-zA-Z_0-9]*)": /g;
 const RE_JSON_TRAILING_BRACE = /},/g;

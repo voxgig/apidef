@@ -1,4 +1,6 @@
 import type { FsUtil, Log, Warner } from './types';
+declare const sortedKeys: (obj: any) => string[];
+declare const sortedEntries: (obj: any) => [string, any][];
 declare function makeWarner(spec: {
     point: string;
     log: Log;
@@ -49,4 +51,4 @@ declare function getModelPath(model: any, path: string, flags?: {
     only_active?: boolean;
 }): any;
 export type { PathMatch };
-export { nom, getdlog, loadFile, formatJsonSrc, depluralize, find, capture, pathMatch, makeWarner, formatJSONIC, validator, canonize, sanitizeSlug, slugToPascalCase, transliterate, cleanComponentName, ensureMinEntityName, inferFieldType, normalizeFieldName, debugpath, findPathsWithPrefix, writeFileSyncWarn, warnOnError, relativizePath, getModelPath, };
+export { nom, getdlog, loadFile, formatJsonSrc, depluralize, find, capture, pathMatch, makeWarner, formatJSONIC, validator, canonize, sanitizeSlug, slugToPascalCase, transliterate, cleanComponentName, ensureMinEntityName, inferFieldType, normalizeFieldName, debugpath, findPathsWithPrefix, writeFileSyncWarn, warnOnError, relativizePath, getModelPath, sortedKeys, sortedEntries, };

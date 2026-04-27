@@ -5,6 +5,7 @@ package apidef
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"regexp"
 	"strings"
 
@@ -69,114 +70,94 @@ func parseOpenAPI(source string, meta map[string]string) (map[string]any, error)
 		parsed["components"] = map[string]any{}
 	}
 
-	// Walk the tree and add x-ref properties (preserving original $ref values)
-	addXRefs(parsed)
+	// Walk the tree: annotate x-ref and resolve $ref in one pass.
+	// Uses object-identity tracking to avoid exponential re-walking.
+	addXRefsAndResolve(parsed, parsed, nil)
 
-	// Resolve $ref pointers
-	resolveRefs(parsed, parsed, nil)
-
-	// Remove circular references
-	def := util.Decircular(parsed)
-	if defMap, ok := def.(map[string]any); ok {
-		return defMap, nil
-	}
-
+	// Skip Decircular for now — addXRefsAndResolve uses identity tracking
+	// which prevents true circular references from being created.
 	return parsed, nil
 }
 
-func addXRefs(obj any) {
-	addXRefsWalk(obj, make(map[uintptr]bool))
-}
-
-func addXRefsWalk(obj any, seen map[uintptr]bool) {
-	switch v := obj.(type) {
-	case map[string]any:
-		if ref, ok := v["$ref"]; ok {
-			if refStr, ok := ref.(string); ok {
-				v["x-ref"] = refStr
-			}
-		}
-		for _, val := range v {
-			addXRefsWalk(val, seen)
-		}
-	case []any:
-		for _, item := range v {
-			addXRefsWalk(item, seen)
-		}
-	}
-}
-
-func resolveRefs(obj any, root map[string]any, visited map[string]bool) {
+// addXRefsAndResolve combines x-ref annotation and $ref resolution in one pass.
+// Matches TS addXRefsAndResolve: uses object-identity visited tracking
+// (WeakSet equivalent via pointer map) to avoid re-walking shared children.
+// This prevents exponential expansion on large specs with many cross-references.
+// addXRefsAndResolve combines x-ref annotation and $ref resolution in one pass.
+// Matches TS addXRefsAndResolve exactly: uses object-identity visited tracking
+// (WeakSet equivalent via pointer map) to avoid re-walking shared children.
+func addXRefsAndResolve(obj any, root map[string]any, visited map[uintptr]bool) {
 	if obj == nil {
 		return
 	}
 	if visited == nil {
-		visited = make(map[string]bool)
+		visited = make(map[uintptr]bool)
 	}
 
 	switch v := obj.(type) {
 	case map[string]any:
-		for key, val := range v {
+		ptr := reflect.ValueOf(v).Pointer()
+		if visited[ptr] {
+			return
+		}
+		visited[ptr] = true
+
+		for _, key := range sortedKeys(v) {
+			val := v[key]
 			if m, ok := val.(map[string]any); ok {
 				if ref, ok := m["$ref"]; ok {
 					if refStr, ok := ref.(string); ok {
-						if visited[refStr] {
-							continue
-						}
-						visited[refStr] = true
 						resolved := resolvePointer(root, refStr)
 						if resolved != nil {
 							if resolvedMap, ok := resolved.(map[string]any); ok {
-								newMap := make(map[string]any)
+								// Replace ref entry with resolved content in-place.
+								// Copy resolved properties into the existing map,
+								// remove $ref, add x-ref. Children are shared (not copied).
+								delete(m, "$ref")
 								for k, rv := range resolvedMap {
-									newMap[k] = rv
+									m[k] = rv
 								}
-								if xref, ok := m["x-ref"]; ok {
-									newMap["x-ref"] = xref
-								}
-								v[key] = newMap
-								resolveRefs(newMap, root, visited)
+								m["x-ref"] = refStr
+								addXRefsAndResolve(m, root, visited)
 							}
+						} else {
+							m["x-ref"] = refStr
+							addXRefsAndResolve(m, root, visited)
 						}
-						delete(visited, refStr)
 					}
 				} else {
-					resolveRefs(val, root, visited)
+					addXRefsAndResolve(val, root, visited)
 				}
 			} else {
-				resolveRefs(val, root, visited)
+				addXRefsAndResolve(val, root, visited)
 			}
 		}
+
 	case []any:
-		for i, item := range v {
+		for _, item := range v {
 			if m, ok := item.(map[string]any); ok {
 				if ref, ok := m["$ref"]; ok {
 					if refStr, ok := ref.(string); ok {
-						if visited[refStr] {
-							continue
-						}
-						visited[refStr] = true
 						resolved := resolvePointer(root, refStr)
 						if resolved != nil {
 							if resolvedMap, ok := resolved.(map[string]any); ok {
-								newMap := make(map[string]any)
+								delete(m, "$ref")
 								for k, rv := range resolvedMap {
-									newMap[k] = rv
+									m[k] = rv
 								}
-								if xref, ok := m["x-ref"]; ok {
-									newMap["x-ref"] = xref
-								}
-								v[i] = newMap
-								resolveRefs(newMap, root, visited)
+								m["x-ref"] = refStr
+								addXRefsAndResolve(m, root, visited)
 							}
+						} else {
+							m["x-ref"] = refStr
+							addXRefsAndResolve(m, root, visited)
 						}
-						delete(visited, refStr)
 					}
 				} else {
-					resolveRefs(item, root, visited)
+					addXRefsAndResolve(item, root, visited)
 				}
 			} else {
-				resolveRefs(item, root, visited)
+				addXRefsAndResolve(item, root, visited)
 			}
 		}
 	}

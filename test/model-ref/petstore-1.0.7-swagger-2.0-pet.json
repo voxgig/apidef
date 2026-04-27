@@ -1,0 +1,376 @@
+{
+  "fields": [
+    {
+      "name": "category",
+      "req": false,
+      "type": "`$OBJECT`"
+    },
+    {
+      "name": "code",
+      "req": false,
+      "type": "`$INTEGER`"
+    },
+    {
+      "name": "id",
+      "req": false,
+      "type": "`$INTEGER`"
+    },
+    {
+      "name": "message",
+      "req": false,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "name",
+      "req": true,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "photo_url",
+      "req": true,
+      "type": "`$ARRAY`"
+    },
+    {
+      "name": "status",
+      "req": false,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "tag",
+      "req": false,
+      "type": "`$ARRAY`"
+    },
+    {
+      "name": "type",
+      "req": false,
+      "type": "`$STRING`"
+    }
+  ],
+  "id": {
+    "field": "id",
+    "name": "id"
+  },
+  "name": "pet",
+  "op": {
+    "create": {
+      "name": "create",
+      "points": [
+        {
+          "args": {
+            "params": [
+              {
+                "kind": "param",
+                "name": "pet_id",
+                "orig": "pet_id",
+                "reqd": true,
+                "type": "Any"
+              }
+            ],
+            "query": [
+              {
+                "kind": "query",
+                "name": "additional_metadata",
+                "orig": "additional_metadata",
+                "reqd": false,
+                "type": "Any"
+              },
+              {
+                "kind": "query",
+                "name": "file",
+                "orig": "file",
+                "reqd": false,
+                "type": "Any"
+              }
+            ]
+          },
+          "method": "POST",
+          "orig": "/pet/{petId}/uploadImage",
+          "parts": [
+            "pet",
+            "{id}",
+            "uploadImage"
+          ],
+          "rename": {
+            "param": {
+              "petId": "id"
+            }
+          },
+          "select": {
+            "$action": "uploadImage",
+            "exist": [
+              "additional_metadata",
+              "file",
+              "pet_id"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        },
+        {
+          "args": {
+            "params": [
+              {
+                "kind": "param",
+                "name": "pet_id",
+                "orig": "pet_id",
+                "reqd": true,
+                "type": "Any"
+              }
+            ],
+            "query": [
+              {
+                "kind": "query",
+                "name": "name",
+                "orig": "name",
+                "reqd": false,
+                "type": "Any"
+              },
+              {
+                "kind": "query",
+                "name": "status",
+                "orig": "status",
+                "reqd": false,
+                "type": "Any"
+              }
+            ]
+          },
+          "method": "POST",
+          "orig": "/pet/{petId}",
+          "parts": [
+            "pet",
+            "{id}"
+          ],
+          "rename": {
+            "param": {
+              "petId": "id"
+            }
+          },
+          "select": {
+            "exist": [
+              "name",
+              "pet_id",
+              "status"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        },
+        {
+          "args": {
+            "query": [
+              {
+                "kind": "query",
+                "name": "body",
+                "orig": "body",
+                "reqd": true,
+                "type": "`$OBJECT`"
+              }
+            ]
+          },
+          "method": "POST",
+          "orig": "/pet",
+          "parts": [
+            "pet"
+          ],
+          "select": {
+            "exist": [
+              "body"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    },
+    "list": {
+      "name": "list",
+      "points": [
+        {
+          "args": {
+            "query": [
+              {
+                "kind": "query",
+                "name": "status",
+                "orig": "status",
+                "reqd": true,
+                "type": "Any"
+              }
+            ]
+          },
+          "method": "GET",
+          "orig": "/pet/findByStatus",
+          "parts": [
+            "pet",
+            "findByStatus"
+          ],
+          "select": {
+            "$action": "find_by_status",
+            "exist": [
+              "status"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        },
+        {
+          "args": {
+            "query": [
+              {
+                "kind": "query",
+                "name": "tag",
+                "orig": "tag",
+                "reqd": true,
+                "type": "Any"
+              }
+            ]
+          },
+          "method": "GET",
+          "orig": "/pet/findByTags",
+          "parts": [
+            "pet",
+            "findByTags"
+          ],
+          "select": {
+            "$action": "find_by_tag",
+            "exist": [
+              "tag"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    },
+    "load": {
+      "name": "load",
+      "points": [
+        {
+          "args": {
+            "params": [
+              {
+                "kind": "param",
+                "name": "pet_id",
+                "orig": "pet_id",
+                "reqd": true,
+                "type": "Any"
+              }
+            ]
+          },
+          "method": "GET",
+          "orig": "/pet/{petId}",
+          "parts": [
+            "pet",
+            "{id}"
+          ],
+          "rename": {
+            "param": {
+              "petId": "id"
+            }
+          },
+          "select": {
+            "exist": [
+              "pet_id"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    },
+    "remove": {
+      "name": "remove",
+      "points": [
+        {
+          "args": {
+            "header": [
+              {
+                "kind": "header",
+                "name": "api_key",
+                "orig": "api_key",
+                "reqd": false,
+                "type": "Any"
+              }
+            ],
+            "params": [
+              {
+                "kind": "param",
+                "name": "pet_id",
+                "orig": "pet_id",
+                "reqd": true,
+                "type": "Any"
+              }
+            ]
+          },
+          "method": "DELETE",
+          "orig": "/pet/{petId}",
+          "parts": [
+            "pet",
+            "{id}"
+          ],
+          "rename": {
+            "param": {
+              "petId": "id"
+            }
+          },
+          "select": {
+            "exist": [
+              "api_key",
+              "pet_id"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    },
+    "update": {
+      "name": "update",
+      "points": [
+        {
+          "args": {
+            "query": [
+              {
+                "kind": "query",
+                "name": "body",
+                "orig": "body",
+                "reqd": true,
+                "type": "`$OBJECT`"
+              }
+            ]
+          },
+          "method": "PUT",
+          "orig": "/pet",
+          "parts": [
+            "pet"
+          ],
+          "select": {
+            "exist": [
+              "body"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    }
+  },
+  "relations": {
+    "ancestors": null
+  }
+}

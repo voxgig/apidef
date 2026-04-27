@@ -1,0 +1,70 @@
+{
+  "id": {
+    "field": "id",
+    "name": "id"
+  },
+  "name": "store",
+  "op": {
+    "load": {
+      "name": "load",
+      "points": [
+        {
+          "method": "GET",
+          "orig": "/store/inventory",
+          "parts": [
+            "store",
+            "inventory"
+          ],
+          "select": {
+            "$action": "inventory"
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    },
+    "remove": {
+      "name": "remove",
+      "points": [
+        {
+          "args": {
+            "params": [
+              {
+                "kind": "param",
+                "name": "order_id",
+                "orig": "order_id",
+                "reqd": true,
+                "type": "Any"
+              }
+            ]
+          },
+          "method": "DELETE",
+          "orig": "/store/order/{orderId}",
+          "parts": [
+            "store",
+            "order",
+            "{orderId}"
+          ],
+          "select": {
+            "exist": [
+              "order_id"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    }
+  },
+  "relations": {
+    "ancestors": [
+      [
+        "order"
+      ]
+    ]
+  }
+}

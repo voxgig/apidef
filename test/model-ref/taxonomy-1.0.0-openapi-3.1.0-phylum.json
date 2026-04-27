@@ -1,0 +1,128 @@
+{
+  "fields": [
+    {
+      "name": "attribute",
+      "req": false,
+      "type": "`$OBJECT`"
+    },
+    {
+      "name": "created_at",
+      "req": false,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "id",
+      "req": true,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "name",
+      "req": true,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "parent_id",
+      "req": false,
+      "type": "Any"
+    },
+    {
+      "name": "rank",
+      "req": true,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "updated_at",
+      "req": false,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "year",
+      "req": false,
+      "type": "`$INTEGER`"
+    }
+  ],
+  "id": {
+    "field": "id",
+    "name": "id"
+  },
+  "name": "phylum",
+  "op": {
+    "load": {
+      "name": "load",
+      "points": [
+        {
+          "args": {
+            "params": [
+              {
+                "kind": "param",
+                "name": "domain_id",
+                "orig": "domain",
+                "reqd": true,
+                "type": "Any"
+              },
+              {
+                "kind": "param",
+                "name": "id",
+                "orig": "itemid",
+                "reqd": true,
+                "type": "Any"
+              },
+              {
+                "kind": "param",
+                "name": "kingdom_id",
+                "orig": "kid",
+                "reqd": true,
+                "type": "Any"
+              },
+              {
+                "kind": "param",
+                "name": "year",
+                "orig": "year",
+                "reqd": true,
+                "type": "`$INTEGER`"
+              }
+            ]
+          },
+          "method": "GET",
+          "orig": "/{year}/domain/{domain}/kingdom/{kid}/phylum/{itemid}",
+          "parts": [
+            "{year}",
+            "domain",
+            "{domain_id}",
+            "kingdom",
+            "{kingdom_id}",
+            "phylum",
+            "{id}"
+          ],
+          "rename": {
+            "param": {
+              "domain": "domain_id",
+              "itemid": "id",
+              "kid": "kingdom_id"
+            }
+          },
+          "select": {
+            "exist": [
+              "domain_id",
+              "id",
+              "kingdom_id",
+              "year"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    }
+  },
+  "relations": {
+    "ancestors": [
+      [
+        "domain",
+        "kingdom"
+      ]
+    ]
+  }
+}

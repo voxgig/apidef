@@ -13,13 +13,15 @@ func SelectTransform(ctx *ApiDefContext) (*TransformResult, error) {
 	msg := "select "
 	guideEntity, _ := guide["entity"].(map[string]any)
 
-	for entname, ment := range entityMap {
+	for _, entname := range sortedKeys(entityMap) {
+		ment := entityMap[entname]
 		mentMap, _ := ment.(map[string]any)
 		if mentMap == nil {
 			continue
 		}
 		opMap, _ := mentMap["op"].(map[string]any)
-		for _, mop := range opMap {
+		for _, opkey := range sortedKeys(opMap) {
+			mop := opMap[opkey]
 			mopMap, _ := mop.(map[string]any)
 			if mopMap == nil {
 				continue
@@ -92,7 +94,7 @@ func resolveSelect(guideEntity map[string]any, entname string, mtarget map[strin
 		gpaths, _ := gent["path"].(map[string]any)
 		if gpath, ok := gpaths[orig].(map[string]any); ok {
 			if action, ok := gpath["action"].(map[string]any); ok {
-				for actname := range action {
+				for _, actname := range sortedKeys(action) {
 					selectMap["$action"] = actname
 					break
 				}

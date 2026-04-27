@@ -14,7 +14,8 @@ func cleanNode(v any) any {
 	switch node := v.(type) {
 	case map[string]any:
 		result := map[string]any{}
-		for k, val := range node {
+		for _, k := range sortedKeys(node) {
+			val := node[k]
 			// Remove keys ending with $
 			if strings.HasSuffix(k, "$") {
 				continue

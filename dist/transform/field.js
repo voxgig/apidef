@@ -118,7 +118,7 @@ function inferFieldsFromExamples(opdef) {
         return [];
     }
     const fielddefs = [];
-    for (const [key, value] of Object.entries(example)) {
+    for (const [key, value] of Object.entries(example).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)) {
         const fielddef = {
             key$: key,
             type: inferTypeFromValue(value),

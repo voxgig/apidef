@@ -16,7 +16,8 @@ func OperationTransform(ctx *ApiDefContext) (*TransformResult, error) {
 		"DELETE": "remove", "PATCH": "patch", "HEAD": "head", "OPTIONS": "options",
 	}
 
-	for entname, gent := range guideEntity {
+	for _, entname := range sortedKeys(guideEntity) {
+		gent := guideEntity[entname]
 		gentMap, _ := gent.(map[string]any)
 		if gentMap == nil {
 			continue
@@ -51,7 +52,8 @@ func collectOps(gent map[string]any, pathsDesc []map[string]any, methodIDOp map[
 
 	for _, pathdesc := range pathsDesc {
 		op, _ := pathdesc["op"].(map[string]any)
-		for opname, gop := range op {
+		for _, opname := range sortedKeys(op) {
+			gop := op[opname]
 			gopMap, _ := gop.(map[string]any)
 			if gopMap == nil {
 				continue
@@ -72,7 +74,8 @@ func collectOps(gent map[string]any, pathsDesc []map[string]any, methodIDOp map[
 
 	opm := map[string]any{}
 
-	for opname, paths := range opmWork {
+	for _, opname := range sortedKeysOpmWork(opmWork) {
+		paths := opmWork[opname]
 		points := make([]any, 0)
 		for _, p := range paths {
 			parts := applyRename(p)
@@ -118,7 +121,8 @@ func applyRename(pathdesc map[string]any) []string {
 	paramRename := map[string]string{}
 	if rename != nil {
 		if pr, ok := rename["param"].(map[string]any); ok {
-			for k, v := range pr {
+			for _, k := range sortedKeys(pr) {
+				v := pr[k]
 				switch vt := v.(type) {
 				case string:
 					paramRename[k] = vt

@@ -252,3 +252,17 @@ func TestTsvParseErrors(t *testing.T) {
 		}
 	})
 }
+
+func TestTsvFormatJsonSrc(t *testing.T) {
+	rows := loadTsv(t, "format-json-src")
+	for _, row := range rows {
+		input := row["input"]
+		expected := row["expected"]
+		t.Run("formatJsonSrc("+input+")", func(t *testing.T) {
+			got := FormatJsonSrc(input)
+			if got != expected {
+				t.Errorf("FormatJsonSrc(%q) = %q, want %q", input, got, expected)
+			}
+		})
+	}
+}

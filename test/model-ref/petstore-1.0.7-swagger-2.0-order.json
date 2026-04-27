@@ -1,0 +1,116 @@
+{
+  "fields": [
+    {
+      "name": "complete",
+      "req": false,
+      "type": "`$BOOLEAN`"
+    },
+    {
+      "name": "id",
+      "req": false,
+      "type": "`$INTEGER`"
+    },
+    {
+      "name": "pet_id",
+      "req": false,
+      "type": "`$INTEGER`"
+    },
+    {
+      "name": "quantity",
+      "req": false,
+      "type": "`$INTEGER`"
+    },
+    {
+      "name": "ship_date",
+      "req": false,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "status",
+      "req": false,
+      "type": "`$STRING`"
+    }
+  ],
+  "id": {
+    "field": "id",
+    "name": "id"
+  },
+  "name": "order",
+  "op": {
+    "create": {
+      "name": "create",
+      "points": [
+        {
+          "args": {
+            "query": [
+              {
+                "kind": "query",
+                "name": "body",
+                "orig": "body",
+                "reqd": true,
+                "type": "`$OBJECT`"
+              }
+            ]
+          },
+          "method": "POST",
+          "orig": "/store/order",
+          "parts": [
+            "store",
+            "order"
+          ],
+          "select": {
+            "exist": [
+              "body"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    },
+    "load": {
+      "name": "load",
+      "points": [
+        {
+          "args": {
+            "params": [
+              {
+                "kind": "param",
+                "name": "order_id",
+                "orig": "order_id",
+                "reqd": true,
+                "type": "Any"
+              }
+            ]
+          },
+          "method": "GET",
+          "orig": "/store/order/{orderId}",
+          "parts": [
+            "store",
+            "order",
+            "{id}"
+          ],
+          "rename": {
+            "param": {
+              "orderId": "id"
+            }
+          },
+          "select": {
+            "exist": [
+              "order_id"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    }
+  },
+  "relations": {
+    "ancestors": null
+  }
+}

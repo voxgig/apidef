@@ -14,7 +14,7 @@ func FlowTransform(ctx *ApiDefContext) (*TransformResult, error) {
 	guideEntity, _ := guide["entity"].(map[string]any)
 	msg := ""
 
-	for entname := range guideEntity {
+	for _, entname := range sortedKeys(guideEntity) {
 		modelent, _ := entityMap[entname].(map[string]any)
 		if modelent == nil {
 			continue
@@ -47,7 +47,8 @@ func FlowstepTransform(ctx *ApiDefContext) (*TransformResult, error) {
 
 	msg := ""
 
-	for flowname, flow := range flowMap {
+	for _, flowname := range sortedKeys(flowMap) {
+		flow := flowMap[flowname]
 		flowData, _ := flow.(map[string]any)
 		if flowData == nil {
 			continue

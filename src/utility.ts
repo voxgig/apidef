@@ -24,6 +24,11 @@ import type {
 
 const KONSOLE_LOG = console['log']
 
+// Sorted iteration helpers — ensures deterministic key order matching Go.
+const sortedKeys = (obj: any): string[] => Object.keys(obj ?? {}).sort()
+const sortedEntries = (obj: any): [string, any][] =>
+  Object.entries(obj ?? {}).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
+
 // Pre-compiled regex patterns for formatJsonSrc to avoid recompilation per call.
 const RE_JSON_KEY = /"([a-zA-Z_][a-zA-Z_0-9]*)": /g
 const RE_JSON_TRAILING_BRACE = /},/g
@@ -1163,5 +1168,7 @@ export {
   warnOnError,
   relativizePath,
   getModelPath,
+  sortedKeys,
+  sortedEntries,
 
 }

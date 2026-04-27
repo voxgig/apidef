@@ -66,10 +66,10 @@ async function heuristic01(ctx) {
     let totalPaths = 0;
     let totalOps = 0;
     for (const ent of entities) {
-        const pathKeys = Object.keys(ent.path || {});
+        const pathKeys = (0, utility_1.sortedKeys)(ent.path || {});
         totalPaths += pathKeys.length;
         for (const p of pathKeys) {
-            totalOps += Object.keys(ent.path[p].op || {}).length;
+            totalOps += (0, utility_1.sortedKeys)(ent.path[p].op || {}).length;
         }
     }
     ctx.log.info({
@@ -214,8 +214,8 @@ function selectAllMethods(_source, spec) {
   
     */
     let caught = { methods: [] };
-    for (const [path, pdef] of Object.entries(ctx.def.paths)) {
-        for (const [m, mdef] of Object.entries(pdef)) {
+    for (const [path, pdef] of (0, utility_1.sortedEntries)(ctx.def.paths)) {
+        for (const [m, mdef] of (0, utility_1.sortedEntries)(pdef)) {
             const method = m.toUpperCase();
             caught.methods.push({
                 path,
@@ -969,7 +969,7 @@ function probableEntityMethod(data, mdesc, pm, why) {
             && !pm.expr.endsWith('/p/')
             // A real entity would probably occur in at least one other t/p path
             // otherwise this is probably an action
-            && (1 < Object.keys(data.def.paths).filter(path => path.includes('/' + pm[pm.length - 1] + '/')).length)) {
+            && (1 < (0, utility_1.sortedKeys)(data.def.paths).filter(path => path.includes('/' + pm[pm.length - 1] + '/')).length)) {
             prob_why = 'post';
             probent = true;
         }
@@ -983,7 +983,7 @@ function probableEntityMethod(data, mdesc, pm, why) {
         prob_why = 'get';
         probent = true;
     }
-    const rescodes = Object.keys(mdesc.responses ?? {});
+    const rescodes = (0, utility_1.sortedKeys)(mdesc.responses ?? {});
     (0, utility_1.debugpath)(mdesc.path, mdesc.method, 'PROBABLE-ENTITY-RESPONSE', { mdesc, responses: rescodes, probent, prob_why });
     why.push('entres=' + probent + '/' + rescodes + ('' === prob_why ? '' : '/' + prob_why));
     return probent;

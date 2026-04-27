@@ -1,0 +1,320 @@
+{
+  "fields": [
+    {
+      "name": "email",
+      "req": false,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "first_name",
+      "req": false,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "id",
+      "req": false,
+      "type": "`$INTEGER`"
+    },
+    {
+      "name": "last_name",
+      "req": false,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "password",
+      "req": false,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "phone",
+      "req": false,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "user_status",
+      "req": false,
+      "type": "`$INTEGER`"
+    },
+    {
+      "name": "username",
+      "req": false,
+      "type": "`$STRING`"
+    }
+  ],
+  "id": {
+    "field": "id",
+    "name": "id"
+  },
+  "name": "user",
+  "op": {
+    "create": {
+      "name": "create",
+      "points": [
+        {
+          "args": {
+            "query": [
+              {
+                "kind": "query",
+                "name": "body",
+                "orig": "body",
+                "reqd": true,
+                "type": "`$OBJECT`"
+              }
+            ]
+          },
+          "method": "POST",
+          "orig": "/user",
+          "parts": [
+            "user"
+          ],
+          "select": {
+            "exist": [
+              "body"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        },
+        {
+          "args": {
+            "query": [
+              {
+                "kind": "query",
+                "name": "body",
+                "orig": "body",
+                "reqd": true,
+                "type": "`$ARRAY`"
+              }
+            ]
+          },
+          "method": "POST",
+          "orig": "/user/createWithArray",
+          "parts": [
+            "user",
+            "createWithArray"
+          ],
+          "select": {
+            "$action": "create_with_array",
+            "exist": [
+              "body"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        },
+        {
+          "args": {
+            "query": [
+              {
+                "kind": "query",
+                "name": "body",
+                "orig": "body",
+                "reqd": true,
+                "type": "`$ARRAY`"
+              }
+            ]
+          },
+          "method": "POST",
+          "orig": "/user/createWithList",
+          "parts": [
+            "user",
+            "createWithList"
+          ],
+          "select": {
+            "$action": "create_with_list",
+            "exist": [
+              "body"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    },
+    "load": {
+      "name": "load",
+      "points": [
+        {
+          "args": {
+            "query": [
+              {
+                "kind": "query",
+                "name": "password",
+                "orig": "password",
+                "reqd": true,
+                "type": "Any"
+              },
+              {
+                "kind": "query",
+                "name": "username",
+                "orig": "username",
+                "reqd": true,
+                "type": "Any"
+              }
+            ]
+          },
+          "method": "GET",
+          "orig": "/user/login",
+          "parts": [
+            "user",
+            "login"
+          ],
+          "select": {
+            "$action": "login",
+            "exist": [
+              "password",
+              "username"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        },
+        {
+          "args": {
+            "params": [
+              {
+                "kind": "param",
+                "name": "id",
+                "orig": "username",
+                "reqd": true,
+                "type": "Any"
+              }
+            ]
+          },
+          "method": "GET",
+          "orig": "/user/{username}",
+          "parts": [
+            "user",
+            "{id}"
+          ],
+          "rename": {
+            "param": {
+              "username": "id"
+            }
+          },
+          "select": {
+            "exist": [
+              "id"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        },
+        {
+          "method": "GET",
+          "orig": "/user/logout",
+          "parts": [
+            "user",
+            "logout"
+          ],
+          "select": {
+            "$action": "logout"
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    },
+    "remove": {
+      "name": "remove",
+      "points": [
+        {
+          "args": {
+            "params": [
+              {
+                "kind": "param",
+                "name": "id",
+                "orig": "username",
+                "reqd": true,
+                "type": "Any"
+              }
+            ]
+          },
+          "method": "DELETE",
+          "orig": "/user/{username}",
+          "parts": [
+            "user",
+            "{id}"
+          ],
+          "rename": {
+            "param": {
+              "username": "id"
+            }
+          },
+          "select": {
+            "exist": [
+              "id"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    },
+    "update": {
+      "name": "update",
+      "points": [
+        {
+          "args": {
+            "params": [
+              {
+                "kind": "param",
+                "name": "id",
+                "orig": "username",
+                "reqd": true,
+                "type": "Any"
+              }
+            ],
+            "query": [
+              {
+                "kind": "query",
+                "name": "body",
+                "orig": "body",
+                "reqd": true,
+                "type": "`$OBJECT`"
+              }
+            ]
+          },
+          "method": "PUT",
+          "orig": "/user/{username}",
+          "parts": [
+            "user",
+            "{id}"
+          ],
+          "rename": {
+            "param": {
+              "username": "id"
+            }
+          },
+          "select": {
+            "exist": [
+              "body",
+              "id"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    }
+  },
+  "relations": {
+    "ancestors": null
+  }
+}

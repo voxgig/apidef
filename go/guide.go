@@ -223,7 +223,8 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 	pathmap := work["pathmap"].(map[string]any)
 
 	// Phase 1: MeasurePath + MeasureMethod + PreparePath
-	for pathstr, pathdef := range paths {
+	for _, pathstr := range sortedKeys(paths) {
+		pathdef := paths[pathstr]
 		pathdefMap, _ := pathdef.(map[string]any)
 		if pathdefMap == nil {
 			continue
@@ -309,8 +310,8 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 
 	// Phase 4: BuildEntity
 	entmap := work["entmap"].(map[string]any)
-	for _, entval := range entmap {
-		buildEntity(data, entval)
+	for _, k := range sortedKeys(entmap) {
+		buildEntity(data, entmap[k])
 	}
 
 	return guide, nil
@@ -336,12 +337,14 @@ func selectAllMethods(ctx *ApiDefContext, data map[string]any) []map[string]any 
 
 	var methods []map[string]any
 
-	for pathstr, pathdef := range paths {
+	for _, pathstr := range sortedKeys(paths) {
+		pathdef := paths[pathstr]
 		pdef, _ := pathdef.(map[string]any)
 		if pdef == nil {
 			continue
 		}
-		for mkey, mval := range pdef {
+		for _, mkey := range sortedKeys(pdef) {
+			mval := pdef[mkey]
 			method := strings.ToUpper(mkey)
 			if _, ok := METHOD_CONSIDER_ORDER[method]; !ok {
 				continue
@@ -1155,27 +1158,22 @@ func buildEntity(data map[string]any, entval any) {
 	path := map[string]any{}
 
 	entPaths, _ := entdesc["path"].(map[string]any)
-	for pathstr, pd := range entPaths {
+	for _, pathstr := range sortedKeys(entPaths) {
+		pd := entPaths[pathstr]
 		pathdesc, _ := pd.(map[string]any)
 		if pathdesc == nil {
 			continue
 		}
 
+		// Keep rename.param values as flat strings (matching TS output).
+		// TS stores rename.param.planet_id = "id", not {target, why_rename}.
 		renameParam := map[string]any{}
 		if renameMap, ok := pathdesc["rename"].(map[string]any); ok {
 			if paramMap, ok := renameMap["param"].(map[string]any); ok {
-				whyRenameMap, _ := pathdesc["why_rename"].(map[string]any)
-				whyParamMap, _ := whyRenameMap["why_param"].(map[string]any)
-
-				for key, val := range paramMap {
-					valStr, _ := val.(string)
-					var whyRename []string
-					if wp, ok := whyParamMap[key].([]string); ok {
-						whyRename = wp
-					}
-					renameParam[key] = map[string]any{
-						"target":     valStr,
-						"why_rename": whyRename,
+				for _, key := range sortedKeys(paramMap) {
+					val := paramMap[key]
+					if valStr, ok := val.(string); ok {
+						renameParam[key] = valStr
 					}
 				}
 			}
@@ -1464,7 +1462,7 @@ func probableEntityMethod(data map[string]any, mdesc map[string]any, ment map[st
 				lastMatch = pm.Matches[len(pm.Matches)-1]
 			}
 			matchCount := 0
-			for p := range defPaths {
+			for _, p := range sortedKeys(defPaths) {
 				if strings.Contains(p, "/"+lastMatch+"/") {
 					matchCount++
 				}
@@ -1483,11 +1481,7 @@ func probableEntityMethod(data map[string]any, mdesc map[string]any, ment map[st
 		probent = true
 	}
 
-	var rescodes []string
-	for k := range responses {
-		rescodes = append(rescodes, k)
-	}
-	sort.Strings(rescodes)
+	rescodes := sortedKeys(responses)
 
 	rescodesStr := strings.Join(rescodes, ",")
 
@@ -1518,7 +1512,7 @@ func cmpOccursInPath(data map[string]any, cmpname string) bool {
 		defPaths, _ := def["paths"].(map[string]any)
 		pathmap, _ := work["pathmap"].(map[string]any)
 
-		for pathstr := range defPaths {
+		for _, pathstr := range sortedKeys(defPaths) {
 			entry, _ := pathmap[pathstr].(map[string]any)
 			if entry == nil {
 				continue
@@ -1625,7 +1619,8 @@ func isListResponse(mdesc map[string]any, pathStr string, why *[]string) bool {
 
 		if !islist {
 			properties := resolveSchemaProperties(schema)
-			for propName, propVal := range properties {
+			for _, propName := range sortedKeys(properties) {
+				propVal := properties[propName]
 				propMap, ok := propVal.(map[string]any)
 				if !ok {
 					continue
@@ -1664,15 +1659,15 @@ func resolveSchemaProperties(schema map[string]any) map[string]any {
 			if props == nil {
 				continue
 			}
-			for k, v := range props {
-				properties[k] = v
+			for _, k := range sortedKeys(props) {
+				properties[k] = props[k]
 			}
 		}
 	}
 
 	if props, ok := schema["properties"].(map[string]any); ok {
-		for k, v := range props {
-			properties[k] = v
+		for _, k := range sortedKeys(props) {
+			properties[k] = props[k]
 		}
 	}
 
@@ -1824,8 +1819,8 @@ func findcmps(data map[string]any, pathStr string, underprops []string, uniq boo
 		return nil
 	}
 
-	for _, mval := range pathDef {
-		mdef, ok := mval.(map[string]any)
+	for _, mk := range sortedKeys(pathDef) {
+		mdef, ok := pathDef[mk].(map[string]any)
 		if !ok {
 			continue
 		}
@@ -1848,10 +1843,9 @@ func findcmps(data map[string]any, pathStr string, underprops []string, uniq boo
 
 	var names []string
 	if uniq {
-		for n := range cmpset {
+		for _, n := range sortedKeysBool(cmpset) {
 			names = append(names, n)
 		}
-		sort.Strings(names)
 	} else {
 		names = cmplist
 	}
@@ -1978,7 +1972,7 @@ func findPathsWithPrefixFromData(data map[string]any, pathStr string, strict boo
 	count := 0
 	def := data["def"].(map[string]any)
 	defPaths, _ := def["paths"].(map[string]any)
-	for p := range defPaths {
+	for _, p := range sortedKeys(defPaths) {
 		path := paramRE.ReplaceAllString(p, "{}")
 		if strict {
 			if strings.HasPrefix(path, pathStr) && len(path) > len(pathStr) {
@@ -2017,15 +2011,6 @@ func getMatchElem(pm *PathMatchResult, idx int) string {
 }
 
 // Helper functions
-
-func sortedKeys(m map[string]any) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return keys
-}
 
 func toInt(v any) int {
 	switch val := v.(type) {

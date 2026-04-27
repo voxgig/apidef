@@ -45,11 +45,16 @@ func entityBuilder(ctx *ApiDefContext) {
 		}
 
 		entityFile := prefix + entityName + ".jsonic"
-		entityJSONIC := FormatJSONIC(entity)
-		// Trim outer braces
-		if len(entityJSONIC) > 2 {
+		// Strip "active" keys and empty "relations" before formatting
+		cleanEntity := stripKeys(entity, "active")
+		cleanEntity = stripEmptyRelations(cleanEntity)
+		entityJSONIC := FormatJSONIC(cleanEntity)
+		// Trim outer braces and trailing newline from formatter
+		entityJSONIC = strings.TrimSpace(entityJSONIC)
+		if len(entityJSONIC) > 2 && entityJSONIC[0] == '{' && entityJSONIC[len(entityJSONIC)-1] == '}' {
 			entityJSONIC = entityJSONIC[1 : len(entityJSONIC)-1]
 		}
+		entityJSONIC = strings.TrimRight(entityJSONIC, "\n")
 
 		fieldAliasesSrc := buildFieldAliases(entity)
 
@@ -57,7 +62,7 @@ func entityBuilder(ctx *ApiDefContext) {
 			fmt.Sprintf("main: %s: entity: %s: {\n\n", KIT, entityName) +
 			fmt.Sprintf("  alias: field: %s\n", fieldAliasesSrc) +
 			entityJSONIC +
-			"\n\n}\n"
+			"\n\n\n\n}"
 
 		os.WriteFile(filepath.Join(entityDir, entityFile), []byte(entitySrc), 0644)
 		barrel = append(barrel, fmt.Sprintf(`@"%s"`, entityFile))
@@ -66,6 +71,67 @@ func entityBuilder(ctx *ApiDefContext) {
 	indexFile := prefix + "entity-index.jsonic"
 	os.WriteFile(filepath.Join(entityDir, indexFile),
 		[]byte(strings.Join(barrel, "\n")), 0644)
+}
+
+// stripKeys recursively removes the named key from all maps.
+func stripKeys(val any, key string) any {
+	switch v := val.(type) {
+	case map[string]any:
+		out := make(map[string]any, len(v))
+		for _, k := range sortedKeys(v) {
+			child := v[k]
+			if k == key {
+				continue
+			}
+			out[k] = stripKeys(child, key)
+		}
+		return out
+	case []any:
+		out := make([]any, len(v))
+		for i, child := range v {
+			out[i] = stripKeys(child, key)
+		}
+		return out
+	default:
+		return val
+	}
+}
+
+// stripEmptyRelations removes the relations key if ancestors is empty.
+// TS only includes relations when ancestors exist.
+// stripEmptyRelations removes the relations key if ancestors is empty/nil.
+// TS only includes relations when ancestors exist.
+func stripEmptyRelations(val any) any {
+	m, ok := val.(map[string]any)
+	if !ok {
+		return val
+	}
+	rel, ok := m["relations"].(map[string]any)
+	if !ok {
+		return val
+	}
+
+	// Check if ancestors is non-empty (could be []any, [][]string, etc.)
+	hasAncestors := false
+	switch anc := rel["ancestors"].(type) {
+	case []any:
+		hasAncestors = len(anc) > 0
+	case [][]string:
+		hasAncestors = len(anc) > 0
+	}
+
+	if !hasAncestors {
+		out := make(map[string]any, len(m))
+		for _, k := range sortedKeys(m) {
+			v := m[k]
+			if k == "relations" {
+				continue
+			}
+			out[k] = v
+		}
+		return out
+	}
+	return val
 }
 
 func buildFieldAliases(entity map[string]any) string {

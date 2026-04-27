@@ -13,13 +13,15 @@ func ArgsTransform(ctx *ApiDefContext) (*TransformResult, error) {
 	msg := "args "
 	defPaths, _ := def["paths"].(map[string]any)
 
-	for entname, ment := range entityMap {
+	for _, entname := range sortedKeys(entityMap) {
+		ment := entityMap[entname]
 		mentMap, _ := ment.(map[string]any)
 		if mentMap == nil {
 			continue
 		}
 		opMap, _ := mentMap["op"].(map[string]any)
-		for _, mop := range opMap {
+		for _, opkey := range sortedKeys(opMap) {
+			mop := opMap[opkey]
 			mopMap, _ := mop.(map[string]any)
 			if mopMap == nil {
 				continue
