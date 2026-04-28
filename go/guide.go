@@ -1669,8 +1669,34 @@ func isListResponse(mdesc map[string]any, pathStr string, why *[]string) bool {
 }
 
 // resolveSchemaProperties merges allOf properties with direct properties.
+// Mirrors src/guide/heuristic01.ts:resolveSchemaProperties — TS calls
+// @voxgig/struct.merge which deep-merges per-property maps, so an
+// allOf entry like {result: {type: array}} combined with another
+// {result: {description: …}} yields {result: {type: array, description: …}}.
+// We do a one-level deep merge here without mutating the source schemas
+// (using vs.Merge on resolved $refs would mutate shared references).
 func resolveSchemaProperties(schema map[string]any) map[string]any {
-	properties := map[string]any{}
+	out := map[string]any{}
+
+	mergeProps := func(props map[string]any) {
+		for _, k := range sortedKeys(props) {
+			v := props[k]
+			if existing, ok := out[k].(map[string]any); ok {
+				if newMap, ok := v.(map[string]any); ok {
+					merged := map[string]any{}
+					for ek, ev := range existing {
+						merged[ek] = ev
+					}
+					for nk, nv := range newMap {
+						merged[nk] = nv
+					}
+					out[k] = merged
+					continue
+				}
+			}
+			out[k] = v
+		}
+	}
 
 	if allOf, ok := schema["allOf"].([]any); ok {
 		for i := len(allOf) - 1; i >= 0; i-- {
@@ -1678,23 +1704,17 @@ func resolveSchemaProperties(schema map[string]any) map[string]any {
 			if item == nil {
 				continue
 			}
-			props, _ := item["properties"].(map[string]any)
-			if props == nil {
-				continue
-			}
-			for _, k := range sortedKeys(props) {
-				properties[k] = props[k]
+			if props, ok := item["properties"].(map[string]any); ok {
+				mergeProps(props)
 			}
 		}
 	}
 
 	if props, ok := schema["properties"].(map[string]any); ok {
-		for _, k := range sortedKeys(props) {
-			properties[k] = props[k]
-		}
+		mergeProps(props)
 	}
 
-	return properties
+	return out
 }
 
 // getRequestBodySchema extracts schema from request body.

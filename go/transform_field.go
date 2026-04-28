@@ -144,14 +144,15 @@ func findFieldDefs(mtarget map[string]any, def map[string]any, opname string) []
 	}
 
 	if requestBody != nil {
+		// Mirrors src/transform/field.ts:146-152. TS unconditionally wraps
+		// fieldSets in an array when requestBody is present, even if the
+		// JSON schema lookup returns undefined. The wrapping is what stops
+		// the subsequent reshape (.allOf / .properties) from descending into
+		// a response wrapper like MessageResponse — once fieldSets is an
+		// array, neither check fires, so each-iteration only sees per-item
+		// `properties` (which an allOf-only schema doesn't have).
 		reqSchema := getFieldRequestBodySchema(requestBody)
-		if reqSchema != nil {
-			if fieldSets != nil {
-				fieldSets = []any{fieldSets, reqSchema}
-			} else {
-				fieldSets = reqSchema
-			}
-		}
+		fieldSets = []any{fieldSets, reqSchema}
 	}
 
 	// Mirrors src/transform/field.ts:155-173.
