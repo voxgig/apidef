@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 
 	yaml "github.com/jsonicjs/yaml/go"
@@ -215,4 +216,85 @@ func ToJSON(val any) string {
 		return "{}"
 	}
 	return string(b)
+}
+
+// ToJSONOrdered serialises like ToJSON but at every map level emits
+// non-`$`-suffixed keys alphabetically first, then `$`-suffixed keys
+// alphabetically. Mirrors the output ordering produced by JSON.stringify
+// over a TS map cleaned by transform/clean (alphabetical, with `key$`
+// appended afterwards by jostraca's `each`).
+func ToJSONOrdered(val any) string {
+	var buf strings.Builder
+	safe := util.Decircular(val)
+	writeOrdered(&buf, safe, 0)
+	return buf.String()
+}
+
+func writeOrdered(buf *strings.Builder, val any, indent int) {
+	switch v := val.(type) {
+	case map[string]any:
+		writeOrderedMap(buf, v, indent)
+	case []any:
+		writeOrderedArr(buf, v, indent)
+	default:
+		b, err := json.Marshal(val)
+		if err != nil {
+			buf.WriteString("null")
+			return
+		}
+		buf.Write(b)
+	}
+}
+
+func writeOrderedMap(buf *strings.Builder, m map[string]any, indent int) {
+	if len(m) == 0 {
+		buf.WriteString("{}")
+		return
+	}
+	var plain, dollar []string
+	for k := range m {
+		if strings.HasSuffix(k, "$") {
+			dollar = append(dollar, k)
+		} else {
+			plain = append(plain, k)
+		}
+	}
+	sort.Strings(plain)
+	sort.Strings(dollar)
+	keys := append(plain, dollar...)
+
+	buf.WriteString("{\n")
+	pad := strings.Repeat("  ", indent+1)
+	for i, k := range keys {
+		kb, _ := json.Marshal(k)
+		buf.WriteString(pad)
+		buf.Write(kb)
+		buf.WriteString(": ")
+		writeOrdered(buf, m[k], indent+1)
+		if i < len(keys)-1 {
+			buf.WriteString(",")
+		}
+		buf.WriteString("\n")
+	}
+	buf.WriteString(strings.Repeat("  ", indent))
+	buf.WriteString("}")
+}
+
+func writeOrderedArr(buf *strings.Builder, a []any, indent int) {
+	if len(a) == 0 {
+		buf.WriteString("[]")
+		return
+	}
+	buf.WriteString("[\n")
+	pad := strings.Repeat("  ", indent+1)
+	for i, v := range a {
+		buf.WriteString(pad)
+		writeOrdered(buf, v, indent+1)
+		if i < len(a)-1 {
+			buf.WriteString(",")
+		}
+		buf.WriteString("\n")
+	}
+	buf.WriteString(strings.Repeat("  ", indent))
+	buf.WriteString("]")
 }

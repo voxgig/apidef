@@ -3,6 +3,7 @@
 package apidef
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -107,32 +108,92 @@ func Transliterate(s string) string {
 	return b.String()
 }
 
-// Snakify converts a string to snake_case.
-func Snakify(s string) string {
-	var result strings.Builder
-	for i, r := range s {
-		if unicode.IsUpper(r) {
-			if i > 0 {
-				prev := rune(s[i-1])
-				if !unicode.IsUpper(prev) && prev != '_' && prev != '-' && prev != ' ' {
-					result.WriteRune('_')
-				}
+// partify mirrors jostraca's partify: collapse consecutive uppercase
+// runs (XYZ → Xyz), split on `-`/`_`/space and capital-letter boundaries,
+// then merge any single-character part into the next part.
+//
+// Example: "m_img" → ["mimg"]; "ab_cd" → ["ab", "cd"]; "MyAPI" → ["my", "api"].
+func partify(s string) []string {
+	if s == "" {
+		return nil
+	}
+	// Collapse consecutive caps: ABC → Abc (first cap kept, rest lowered).
+	var collapsed strings.Builder
+	collapsed.Grow(len(s))
+	i := 0
+	for i < len(s) {
+		c := s[i]
+		if c >= 'A' && c <= 'Z' && i+1 < len(s) && s[i+1] >= 'A' && s[i+1] <= 'Z' {
+			collapsed.WriteByte(c)
+			j := i + 1
+			for j < len(s) && s[j] >= 'A' && s[j] <= 'Z' {
+				collapsed.WriteByte(s[j] + ('a' - 'A'))
+				j++
 			}
-			result.WriteRune(unicode.ToLower(r))
-		} else if r == '-' || r == ' ' {
-			result.WriteRune('_')
-		} else {
-			result.WriteRune(r)
+			i = j
+			continue
+		}
+		collapsed.WriteByte(c)
+		i++
+	}
+	src := collapsed.String()
+
+	// Split on -/_/space and at capital-letter boundaries (capital starts new part).
+	var raw []string
+	cur := []byte{}
+	flush := func() {
+		if len(cur) > 0 {
+			raw = append(raw, string(cur))
+			cur = cur[:0]
 		}
 	}
-	return result.String()
+	// Mirror TS .split(/[-_ ]|([A-Z])/) semantics: separators consume the
+	// delimiter; capital letters split the preceding segment AND emit the
+	// capital as its own single-character segment, so the merge step can
+	// fold it into the following lowercase run.
+	for i := 0; i < len(src); i++ {
+		c := src[i]
+		switch {
+		case c == '-' || c == '_' || c == ' ':
+			flush()
+		case c >= 'A' && c <= 'Z':
+			flush()
+			raw = append(raw, string(c))
+		default:
+			cur = append(cur, c)
+		}
+	}
+	flush()
+
+	// Merge: if last accumulated part has length 1, fold the next part into it.
+	out := make([]string, 0, len(raw))
+	for _, p := range raw {
+		if p == "" {
+			continue
+		}
+		if len(out) > 0 && len(out[len(out)-1]) == 1 {
+			out[len(out)-1] += p
+			continue
+		}
+		out = append(out, p)
+	}
+	return out
 }
 
-// Camelify converts a string to PascalCase, splitting on _ - and spaces.
+// Snakify converts a string to snake_case using jostraca-compatible partify.
+func Snakify(s string) string {
+	parts := partify(s)
+	for i, p := range parts {
+		parts[i] = strings.ToLower(p)
+	}
+	return strings.Join(parts, "_")
+}
+
+// Camelify converts a string to PascalCase using jostraca-compatible partify.
+// Mirrors TS jostraca/util/basic.ts:camelify so single-char segments merge
+// into the next segment (e.g. "poetry_o_racle" → "PoetryOracle", not "PoetryORacle").
 func Camelify(s string) string {
-	parts := strings.FieldsFunc(s, func(r rune) bool {
-		return r == '_' || r == '-' || r == ' '
-	})
+	parts := partify(s)
 	var result strings.Builder
 	for _, part := range parts {
 		if part == "" {
@@ -221,7 +282,10 @@ func SlugToPascalCase(s string) string {
 	return result.String()
 }
 
-// Validator normalizes a type string to its canonical form.
+// Validator normalizes a type string to its canonical form. Mirrors
+// src/utility.ts:validator — undefined input (or anything non-string)
+// returns the canonical `$ANY` macro; a string that doesn't map to a
+// canonical type is returned as the literal "Any".
 func Validator(torig any) string {
 	validCanon := map[string]string{
 		"string": "`$STRING`", "number": "`$NUMBER`", "integer": "`$INTEGER`",
@@ -230,7 +294,12 @@ func Validator(torig any) string {
 	}
 	switch v := torig.(type) {
 	case string:
+		// An empty / whitespace-only string is treated as "no type given"
+		// (TS receives `undefined` here and falls through to `$ANY`).
 		tstr := strings.ToLower(strings.TrimSpace(v))
+		if tstr == "" {
+			return "`$ANY`"
+		}
 		if canon, ok := validCanon[tstr]; ok {
 			return canon
 		}
@@ -730,9 +799,40 @@ func formatJSONICValue(val any, indent int, prefix string, lines *[]string, seen
 	}
 }
 
+// jsonString serialises a string in JSON-compatible quoting, but mirrors
+// TS JSON.stringify by NOT HTML-escaping `<`, `>`, `&` and by emitting
+// backtick-quoted JSONIC literals for strings containing newlines (matches
+// formatJSONIC's renderPrimitive in src/utility.ts).
 func jsonString(s string) string {
-	b, _ := json.Marshal(s)
-	return string(b)
+	if strings.ContainsAny(s, "\n\r") {
+		// Backtick-quoted JSONIC literal — newlines kept verbatim.
+		// Mirrors src/utility.ts:543-547. Quoted-double-quote becomes
+		// a colon (`\":` → `:`) per the same code path.
+		raw := jsonStringHTMLSafe(s)
+		body := raw[1 : len(raw)-1]
+		body = strings.ReplaceAll(body, "\\n", "\n")
+		body = strings.ReplaceAll(body, "\\\"", ":")
+		body = strings.ReplaceAll(body, "`", "\\`")
+		return "`" + body + "`"
+	}
+	return jsonStringHTMLSafe(s)
+}
+
+// jsonStringHTMLSafe runs json.Marshal-equivalent encoding without
+// HTML-escaping (`<` / `>` / `&` / ` ` etc.).
+func jsonStringHTMLSafe(s string) string {
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+	if err := enc.Encode(s); err != nil {
+		b, _ := json.Marshal(s)
+		return string(b)
+	}
+	out := buf.Bytes()
+	if len(out) > 0 && out[len(out)-1] == '\n' {
+		out = out[:len(out)-1]
+	}
+	return string(out)
 }
 
 // LoadFile reads a file and returns its contents.

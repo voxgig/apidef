@@ -38,9 +38,27 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 				opfields := resolveOpFields(mtarget, def, opname)
 				for _, opfield := range opfields {
 					name, _ := opfield["name"].(string)
-					if _, exists := seen[name]; !exists {
+					if existing, exists := seen[name]; !exists {
 						fields = append(fields, opfield)
 						seen[name] = opfield
+					} else {
+						// Mirrors src/transform/field.ts mergeField: when the
+						// same field appears under another op with a
+						// different `req`, record the per-op override on the
+						// merged field's `op` map.
+						newReq, _ := opfield["req"].(bool)
+						existReq, _ := existing["req"].(bool)
+						if newReq != existReq {
+							opOverrides, _ := existing["op"].(map[string]any)
+							if opOverrides == nil {
+								opOverrides = map[string]any{}
+								existing["op"] = opOverrides
+							}
+							opOverrides[opname] = map[string]any{
+								"req":  newReq,
+								"type": opfield["type"],
+							}
+						}
 					}
 				}
 			}
@@ -103,22 +121,25 @@ func findFieldDefs(mtarget map[string]any, def map[string]any, opname string) []
 
 	var fieldSets any
 
+	// Mirrors src/transform/field.ts:117-144. Key invariants:
+	//   - Default lookup is the 200 schema; we do NOT fall back to 201 for
+	//     arbitrary methods, otherwise create/post ops collect response
+	//     fields that TS leaves out (TS only sees 200, which is missing here).
+	//   - The list branch unwraps array wrappers, with a 201-items fallback
+	//     when no unwrap is possible.
+	//   - PUT (method override 'put') falls back to 201 if 200 is absent.
 	if responses != nil {
-		// For list operations (GET + list), extract from items array schema
-		// to avoid including pagination wrapper fields (page, total, etc.).
-		// Matches TS: getx(responses, '200 content "application/json" schema items')
-		isListOp := methodLower == "get" && opname == "list"
-		if isListOp {
-			fieldSets = getFieldResponseSchemaItems(responses, "200")
-			if fieldSets == nil {
-				fieldSets = getFieldResponseSchemaItems(responses, "201")
+		fieldSets = getFieldResponseSchema(responses, "200")
+		if opname == "list" {
+			if unwrapped := unwrapArrayWrapper(fieldSets); unwrapped != nil {
+				fieldSets = unwrapped
+			} else {
+				if fromCreated := getFieldResponseSchemaItems(responses, "201"); fromCreated != nil {
+					fieldSets = fromCreated
+				}
 			}
-		}
-		if fieldSets == nil {
-			fieldSets = getFieldResponseSchema(responses, "200")
-			if fieldSets == nil {
-				fieldSets = getFieldResponseSchema(responses, "201")
-			}
+		} else if methodLower == "put" && fieldSets == nil {
+			fieldSets = getFieldResponseSchema(responses, "201")
 		}
 	}
 
@@ -133,8 +154,16 @@ func findFieldDefs(mtarget map[string]any, def map[string]any, opname string) []
 		}
 	}
 
+	// Mirrors src/transform/field.ts:155-173.
+	// TS reshapes fieldSets, then `each(fieldSets, fieldSet => each(fieldSet?.properties, ...))`.
+	//   - `each` over an array iterates elements.
+	//   - `each` over an object iterates values (sorted by key).
+	// So when fieldSets is e.g. `{type: "array", items: <schema>}` neither
+	// allOf nor top-level properties trigger a reshape, but the object-each
+	// still surfaces the inner `items` schema's properties — which is how
+	// non-list ops with array responses still produce fields.
 	if fieldSets != nil {
-		extractFields(fieldSets, &fielddefs)
+		extractFieldsTopLevel(fieldSets, &fielddefs)
 	}
 
 	// Fallback: infer from examples
@@ -144,6 +173,63 @@ func findFieldDefs(mtarget map[string]any, def map[string]any, opname string) []
 	}
 
 	return fielddefs
+}
+
+// unwrapArrayWrapper inspects a list-response schema and, when it is an
+// object with a single array-of-object-schema property (e.g.
+// { boards: [Board] } or { items: [Foo], page, total, ... }), returns
+// the inner item schema. Returns nil if the input is not unambiguously
+// such a wrapper. Mirrors src/transform/field.ts unwrapArrayWrapper.
+func unwrapArrayWrapper(schema any) any {
+	m, ok := schema.(map[string]any)
+	if !ok || m == nil {
+		return nil
+	}
+	// Direct list shape — { type: array, items: ... }
+	if t, _ := m["type"].(string); t == "array" {
+		if items, ok := m["items"].(map[string]any); ok {
+			if hasResolvableProperties(items) {
+				return items
+			}
+		}
+		return nil
+	}
+	props, ok := m["properties"].(map[string]any)
+	if !ok || props == nil {
+		return nil
+	}
+	var resolved any
+	for _, key := range sortedKeys(props) {
+		prop, ok := props[key].(map[string]any)
+		if !ok || prop == nil {
+			continue
+		}
+		if t, _ := prop["type"].(string); t != "array" {
+			continue
+		}
+		items, ok := prop["items"].(map[string]any)
+		if !ok || items == nil {
+			continue
+		}
+		if !hasResolvableProperties(items) {
+			continue
+		}
+		if resolved != nil {
+			return nil // ambiguous: multiple array-of-object properties
+		}
+		resolved = items
+	}
+	return resolved
+}
+
+func hasResolvableProperties(schema map[string]any) bool {
+	if _, ok := schema["properties"].(map[string]any); ok {
+		return true
+	}
+	if allOf, ok := schema["allOf"].([]any); ok && len(allOf) > 0 {
+		return true
+	}
+	return false
 }
 
 // getFieldResponseSchemaItems extracts the items array schema from a list response.
@@ -209,6 +295,75 @@ func getFieldRequestBodySchema(requestBody map[string]any) any {
 	return nil
 }
 
+// extractFieldsTopLevel handles the TS reshape-then-each pattern:
+//
+//	if Array.isArray(fieldSets.allOf) → fieldSets = fieldSets.allOf
+//	else if fieldSets.properties     → fieldSets = [fieldSets]
+//	each(fieldSets, fieldSet => each(fieldSet?.properties, ...))
+//
+// The implicit "object → iterate values" behavior of `each` means that a
+// schema like `{type: "array", items: <schema>}` still yields fields from
+// the inner items.
+func extractFieldsTopLevel(fieldSets any, fielddefs *[]map[string]any) {
+	switch fs := fieldSets.(type) {
+	case map[string]any:
+		if _, ok := fs["allOf"].([]any); ok {
+			extractFields(fs, fielddefs)
+			return
+		}
+		if _, ok := fs["properties"].(map[string]any); ok {
+			extractFields(fs, fielddefs)
+			return
+		}
+		for _, k := range sortedKeys(fs) {
+			extractPropertiesOnly(fs[k], fielddefs)
+		}
+	case []any:
+		for _, item := range fs {
+			extractPropertiesOnly(item, fielddefs)
+		}
+	}
+}
+
+// extractPropertiesOnly mirrors the inner `each(fieldSet?.properties, ...)`:
+// it pulls a single level of properties (and required[]) from the value, but
+// does not descend further. Required[] from the property's own sub-schema is
+// preserved as truthy so $ref-resolved properties keep their `req`.
+func extractPropertiesOnly(fieldSet any, fielddefs *[]map[string]any) {
+	fs, ok := fieldSet.(map[string]any)
+	if !ok || fs == nil {
+		return
+	}
+	props, ok := fs["properties"].(map[string]any)
+	if !ok || props == nil {
+		return
+	}
+	requiredNames := map[string]bool{}
+	if req, ok := fs["required"].([]any); ok {
+		for _, r := range req {
+			if s, ok := r.(string); ok {
+				requiredNames[s] = true
+			}
+		}
+	}
+	for _, name := range sortedKeys(props) {
+		prop := props[name]
+		fd := map[string]any{"key$": name}
+		if pm, ok := prop.(map[string]any); ok {
+			if t, ok := pm["type"].(string); ok {
+				fd["type"] = t
+			}
+			if r, ok := pm["required"]; ok {
+				fd["required"] = r
+			}
+		}
+		if requiredNames[name] {
+			fd["required"] = true
+		}
+		*fielddefs = append(*fielddefs, fd)
+	}
+}
+
 func extractFields(fieldSets any, fielddefs *[]map[string]any) {
 	switch fs := fieldSets.(type) {
 	case map[string]any:
@@ -233,6 +388,13 @@ func extractFields(fieldSets any, fielddefs *[]map[string]any) {
 				if pm, ok := prop.(map[string]any); ok {
 					if t, ok := pm["type"].(string); ok {
 						fd["type"] = t
+					}
+					// Preserve the property's own `required` so a $ref-
+					// resolved sub-schema with its own required array
+					// surfaces as a truthy `req` (TS treats `!!array` as
+					// true). Mirrors src/transform/field.ts:fielddefs.push(property).
+					if r, ok := pm["required"]; ok {
+						fd["required"] = r
 					}
 				}
 				if requiredNames[name] {
@@ -300,6 +462,15 @@ func findExampleObject(opdef map[string]any) any {
 							return unwrapExample(ex)
 						}
 					}
+				}
+			}
+			// OpenAPI 3.x: content.application/json.schema.example.
+			// Mirrors src/transform/field.ts:findExampleObject — TS probes
+			// this path after content-level example/examples, so single-key
+			// schemas with `example: { ... }` still surface fields.
+			if schema, ok := appjson["schema"].(map[string]any); ok {
+				if example, ok := schema["example"]; ok {
+					return unwrapExample(example)
 				}
 			}
 		}

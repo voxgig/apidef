@@ -119,9 +119,23 @@ function findFieldDefs(
     if (responses) {
       fieldSets = getx(responses, '200 content "application/json" schema') ??
         getx(responses, '200 schema')
-      if ('get' === method && 'list' == mop.name) {
-        fieldSets = getx(responses, '201 content "application/json" schema items') ??
-          getx(responses, '201 schema items')
+      if ('list' == mop.name) {
+        // List responses commonly come in three shapes:
+        //   1. direct array — { type: array, items: { ...item } }
+        //   2. wrapper object — { properties: { items: [Item], page, ... } }
+        //      (a single array-of-object property inside an object schema)
+        //   3. legacy "list of created items" under 201
+        // Resolve to the inner item schema when we can identify one
+        // unambiguously; otherwise fall through to the 200 schema as-is.
+        const unwrapped = unwrapArrayWrapper(fieldSets)
+        if (unwrapped) {
+          fieldSets = unwrapped
+        }
+        else {
+          const fromCreated = getx(responses, '201 content "application/json" schema items') ??
+            getx(responses, '201 schema items')
+          if (fromCreated) fieldSets = fromCreated
+        }
       }
       else if ('put' === method && null == fieldSets) {
         fieldSets = getx(responses, '201 content "application/json" schema') ??
@@ -234,6 +248,42 @@ function unwrapExample(example: any): any {
     return example.length > 0 ? example[0] : null
   }
   return example
+}
+
+
+// unwrapArrayWrapper inspects a list-response schema and, when it is an
+// object with a single array-of-object-schema property (e.g.
+// { boards: [Board] }, { items: [Foo], page, total, ... }), returns the
+// inner item schema so that field resolution sees the actual entity
+// properties rather than the wrapper's bookkeeping.
+//
+// Returns null if the input is not unambiguously such a wrapper:
+//   - schema is already an array → return null (let caller use it directly)
+//   - no array-of-object-schema property → return null
+//   - more than one array-of-object-schema property → ambiguous, return null
+function unwrapArrayWrapper(schema: any): any {
+  if (null == schema || 'object' !== typeof schema) return null
+  // Direct list shape — caller can resolve from items directly.
+  if (schema.type === 'array' && schema.items) {
+    const items = schema.items
+    if (items && (items.properties || Array.isArray(items.allOf))) {
+      return items
+    }
+    return null
+  }
+  if (null == schema.properties || 'object' !== typeof schema.properties) return null
+  let resolved: any = null
+  for (const key of Object.keys(schema.properties)) {
+    const prop = schema.properties[key]
+    if (null == prop || 'object' !== typeof prop) continue
+    if (prop.type !== 'array' || null == prop.items) continue
+    const items = prop.items
+    if (null == items || 'object' !== typeof items) continue
+    if (!items.properties && !Array.isArray(items.allOf)) continue
+    if (resolved != null) return null // ambiguous: multiple array-of-object props
+    resolved = items
+  }
+  return resolved
 }
 
 

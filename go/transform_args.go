@@ -147,9 +147,28 @@ func resolveArgs(mtarget map[string]any, argdefs []map[string]any) {
 	}
 }
 
+// toBool mirrors JavaScript's truthy semantics for non-bool values:
+// non-empty arrays/maps/strings → true; zero/empty → false; bool → as-is.
 func toBool(v any) bool {
-	if b, ok := v.(bool); ok {
-		return b
+	switch x := v.(type) {
+	case nil:
+		return false
+	case bool:
+		return x
+	case string:
+		return x != ""
+	case []any:
+		return len(x) > 0
+	case []string:
+		return len(x) > 0
+	case map[string]any:
+		return len(x) > 0
+	case int:
+		return x != 0
+	case int64:
+		return x != 0
+	case float64:
+		return x != 0
 	}
 	return false
 }

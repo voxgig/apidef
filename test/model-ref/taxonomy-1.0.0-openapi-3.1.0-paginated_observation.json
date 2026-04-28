@@ -1,0 +1,92 @@
+{
+  "fields": [
+    {
+      "name": "confidence",
+      "req": false,
+      "type": "`$NUMBER`"
+    },
+    {
+      "name": "id",
+      "req": true,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "location",
+      "req": false,
+      "type": "`$OBJECT`"
+    },
+    {
+      "name": "note",
+      "req": false,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "observed_at",
+      "req": true,
+      "type": "`$STRING`"
+    },
+    {
+      "name": "taxon_id",
+      "req": true,
+      "type": "`$STRING`"
+    }
+  ],
+  "id": {
+    "field": "id",
+    "name": "id"
+  },
+  "name": "paginated_observation",
+  "op": {
+    "list": {
+      "name": "list",
+      "points": [
+        {
+          "args": {
+            "params": [
+              {
+                "kind": "param",
+                "name": "year",
+                "orig": "year",
+                "reqd": true,
+                "type": "`$INTEGER`"
+              }
+            ],
+            "query": [
+              {
+                "kind": "query",
+                "name": "page",
+                "orig": "page",
+                "reqd": false,
+                "type": "`$INTEGER`"
+              },
+              {
+                "kind": "query",
+                "name": "page_size",
+                "orig": "page_size",
+                "reqd": false,
+                "type": "`$INTEGER`"
+              }
+            ]
+          },
+          "method": "GET",
+          "orig": "/{year}/observation",
+          "parts": [
+            "{year}",
+            "observation"
+          ],
+          "select": {
+            "exist": [
+              "page",
+              "page_size",
+              "year"
+            ]
+          },
+          "transform": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -79,12 +79,13 @@ func collectOps(gent map[string]any, pathsDesc []map[string]any, methodIDOp map[
 		points := make([]any, 0)
 		for _, p := range paths {
 			parts := applyRename(p)
+			// Mirrors src/transform/operation.ts: TS reads opdesc.transform
+			// (the *op-level* transform, not the per-path one), and
+			// `opdesc.transform` is currently always nil in the heuristic.
+			// Per-path `body.<entname>` transforms computed by the guide
+			// step are not propagated onto mtarget.transform in TS — Go
+			// follows that behaviour to stay aligned.
 			transform := map[string]any{}
-			if gopMap, ok := p["op"].(map[string]any); ok {
-				if t, ok := gopMap["transform"].(map[string]any); ok {
-					transform = t
-				}
-			}
 			if _, ok := transform["req"]; !ok {
 				transform["req"] = "`reqdata`"
 			}

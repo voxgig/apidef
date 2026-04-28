@@ -2,6 +2,8 @@
 
 package apidef
 
+import "strings"
+
 // TopTransform sets API info and servers from the definition.
 func TopTransform(ctx *ApiDefContext) (*TransformResult, error) {
 	kit := getKit(ctx)
@@ -27,9 +29,16 @@ func TopTransform(ctx *ApiDefContext) (*TransformResult, error) {
 			}
 		}
 		basePath, _ := def["basePath"].(string)
+		// Mirrors src/transform/top.ts:48-51 which uses
+		// `@voxgig/struct.join([host, basePath], '/', true)` — the url=true
+		// flag strips trailing slashes from the first segment and leading
+		// slashes from later segments, dropping empty pieces. So basePath="/"
+		// collapses to "" and yields a clean host without trailing slash.
+		host = strings.TrimRight(host, "/")
+		basePath = strings.Trim(basePath, "/")
 		url := scheme + "://" + host
 		if basePath != "" {
-			url += basePath
+			url += "/" + basePath
 		}
 		infoMap := kit["info"].(map[string]any)
 		serversList, _ := infoMap["servers"].([]any)

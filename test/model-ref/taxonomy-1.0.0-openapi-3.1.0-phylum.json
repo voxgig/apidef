@@ -23,7 +23,7 @@
     {
       "name": "parent_id",
       "req": false,
-      "type": "Any"
+      "type": "`$STRING`"
     },
     {
       "name": "rank",
@@ -58,21 +58,21 @@
                 "name": "domain_id",
                 "orig": "domain",
                 "reqd": true,
-                "type": "Any"
+                "type": "`$STRING`"
               },
               {
                 "kind": "param",
                 "name": "id",
                 "orig": "itemid",
                 "reqd": true,
-                "type": "Any"
+                "type": "`$STRING`"
               },
               {
                 "kind": "param",
                 "name": "kingdom_id",
                 "orig": "kid",
                 "reqd": true,
-                "type": "Any"
+                "type": "`$STRING`"
               },
               {
                 "kind": "param",

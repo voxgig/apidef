@@ -81,7 +81,7 @@
                 "name": "order_id",
                 "orig": "order_id",
                 "reqd": true,
-                "type": "Any"
+                "type": "`$STRING`"
               }
             ]
           },
@@ -109,8 +109,5 @@
         }
       ]
     }
-  },
-  "relations": {
-    "ancestors": null
   }
 }

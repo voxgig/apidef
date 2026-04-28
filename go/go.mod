@@ -12,8 +12,8 @@ require (
 require github.com/jsonicjs/jsonic/go v0.1.19 // indirect
 
 replace (
-	github.com/jsonicjs/jsonic/go v0.1.19 => ./.deps/jsonicjs-jsonic/go
-	github.com/jsonicjs/yaml/go v0.1.2 => ./.deps/jsonicjs-yaml/go
-	github.com/voxgig/struct v0.1.0 => ./.deps/voxgig-struct/go
-	github.com/voxgig/util v0.1.0 => ./.deps/voxgig-util/go
+	github.com/jsonicjs/jsonic/go v0.1.19 => /Users/richard/Projects/jsonicjs/jsonic/go
+	github.com/jsonicjs/yaml/go v0.1.2 => /Users/richard/Projects/jsonicjs/yaml/go
+	github.com/voxgig/struct v0.1.0 => /Users/richard/Projects/voxgig/struct/go
+	github.com/voxgig/util v0.1.0 => /Users/richard/Projects/voxgig/util/go
 )

@@ -17,6 +17,12 @@
     },
     {
       "name": "name",
+      "op": {
+        "update": {
+          "req": false,
+          "type": "`$STRING`"
+        }
+      },
       "req": true,
       "type": "`$STRING`"
     },
@@ -28,7 +34,7 @@
     {
       "name": "parent_id",
       "req": false,
-      "type": "Any"
+      "type": "`$STRING`"
     },
     {
       "name": "rank",
@@ -236,8 +242,5 @@
         }
       ]
     }
-  },
-  "relations": {
-    "ancestors": null
   }
 }

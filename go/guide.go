@@ -57,16 +57,14 @@ func BuildGuide(ctx *ApiDefContext) (map[string]any, error) {
 	// Generate guide JSONIC source
 	guideSrc := buildGuideSource(ctx, baseguide)
 
-	// Write base guide file
+	// Write base guide file. The TS pipeline never writes the full guide
+	// content to <prefix>guide.jsonic — that file is a small include
+	// template the user/host harness pre-creates. We mirror that here.
 	guideDir := filepath.Join(folder, "guide")
 	os.MkdirAll(guideDir, 0755)
 	prefix := ctx.Opts.OutPrefix
 	baseGuideFile := filepath.Join(guideDir, prefix+"base-guide.jsonic")
 	os.WriteFile(baseGuideFile, []byte(guideSrc), 0644)
-
-	// Write guide file
-	guideFile := filepath.Join(guideDir, prefix+"guide.jsonic")
-	os.WriteFile(guideFile, []byte(guideSrc), 0644)
 
 	// Parse guide back into model
 	var guideModel map[string]any
@@ -154,10 +152,11 @@ func buildGuideSource(ctx *ApiDefContext, baseguide map[string]any) string {
 					blocks = append(blocks, fmt.Sprintf("      op: %s: method: *%s", opname, method))
 
 					if transform, ok := opdef["transform"].(map[string]any); ok {
-						if req := transform["req"]; req != nil {
-							qt, _ := json.Marshal(req)
-							blocks = append(blocks, fmt.Sprintf("      op: %s: transform: res: *(%s)|top", opname, string(qt)))
-						}
+						// Mirrors src/guide/guide.ts:212-225 — only the res
+						// value is emitted, and only when transform.res is
+						// non-null. The src/guide/guide.ts also reads `req`
+						// but writes the *res* value, which is a no-op when
+						// res is null; we follow that here by gating on res.
 						if res := transform["res"]; res != nil {
 							qt, _ := json.Marshal(res)
 							blocks = append(blocks, fmt.Sprintf("      op: %s: transform: res: *(%s)|top", opname, string(qt)))
@@ -660,7 +659,12 @@ func resolveEntityName(ctx *ApiDefContext, data map[string]any, mdesc map[string
 		}
 		if origcmp, ok := ment["origcmp"]; ok {
 			entdesc["origcmp"] = origcmp
-			entdesc["origname"] = origcmp
+			// Mirrors src/guide/heuristic01.ts:576-582. TS spreads `...ment`
+			// into entdesc, which copies cmp/origcmp/etc. — but NOT origname,
+			// since makeMethodEntityDesc never adds that key. resolveTransform
+			// reads entdesc.origname expecting undefined; setting it here
+			// causes spurious `transform.res` matches when a response wrapper
+			// happens to share a key with the path part.
 		}
 		if origcmpref, ok := ment["origcmpref"]; ok {
 			entdesc["origcmpref"] = origcmpref
@@ -764,10 +768,20 @@ func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any)
 
 	parts, _ := pathdescEntry["parts"].([]string)
 
-	cmpname := safeStr(ment["cmp"])
+	// Mirrors src/guide/heuristic01.ts:648 — `const cmpname = mdesc.cmp`.
+	// `mdesc.cmp` is read off the method descriptor *itself*, not
+	// `mdesc.MethodEntity.cmp`, and is in fact never assigned. Treating
+	// cmpname as the (always-empty) mdesc-level value, rather than the
+	// MethodEntity one, keeps the rename branches (`parentName === cmpname`
+	// in particular) from firing on canonical-name matches that TS doesn't
+	// see — which would otherwise spawn extra `action-not-parent` entries.
+	cmpname := safeStr(mdesc["cmp"])
 
-	origcmprefs, _ := countMap["origcmprefs"].(map[string]int)
-	uniqschema := len(origcmprefs)
+	// Mirrors src/guide/heuristic01.ts:649-652. TS reads
+	// metrics.count.uniqschema, which is never assigned anywhere — it stays
+	// undefined, so `0 < undefined` is false and considerCmp collapses to
+	// false. We replicate that by reading the same (unset) key.
+	uniqschema := toInt(countMap["uniqschema"])
 	considerCmp := cmpname != "" && uniqschema > 0 &&
 		safeFloat(ment["method_rate"]) < IS_ENTCMP_METHOD_RATE
 
@@ -962,24 +976,33 @@ func findActions(data map[string]any, mdesc map[string]any) {
 	cmp := safeStr(ment["cmp"])
 	origcmp := safeStr(ment["origcmp"])
 
+	// Mirrors src/guide/heuristic01.ts:898-933. TS compares with `===` so
+	// empty-string canon (parts shorter than the index requires) does not
+	// match the (typically nil/null) ment.cmp/origcmp. We replicate by
+	// gating each comparison on the canon being non-empty AND matching a
+	// non-empty cmp/origcmp/entname; an entname-match is fine even when
+	// origcmp is unset because entname is never empty in practice.
+	matchesAt := func(canon string) bool {
+		if canon == "" {
+			return false
+		}
+		return (cmp != "" && canon == cmp) ||
+			(origcmp != "" && canon == origcmp) ||
+			canon == entname
+	}
+
 	// /api/foo/bar where foo is the entity and bar is the action, no id param
-	if secondLastPartCanon == cmp ||
-		secondLastPartCanon == origcmp ||
-		secondLastPartCanon == entname {
+	if matchesAt(secondLastPartCanon) {
 		if !isParam(lastPart) {
 			updateAction(methodName, lastPart, lastPartCanon, entdesc, pathdesc, "no-param")
 		}
-	} else if thirdLastPartCanon == cmp ||
-		thirdLastPartCanon == origcmp ||
-		thirdLastPartCanon == entname {
+	} else if matchesAt(thirdLastPartCanon) {
 		// /api/foo/{param}/action
 		if isParam(secondLastPart) && !isParam(lastPart) {
 			updateAction(methodName, lastPart, lastPartCanon, entdesc, pathdesc,
 				"ent-param-2nd-last")
 		}
-	} else if fourthLastPartCanon == cmp ||
-		fourthLastPartCanon == origcmp ||
-		fourthLastPartCanon == entname {
+	} else if matchesAt(fourthLastPartCanon) {
 		// /api/foo/{param}/action/subaction
 		if isParam(thirdLastPart) && !isParam(secondLastPart) && !isParam(lastPart) {
 			oldActionName := secondLastPart + "/" + lastPart

@@ -148,14 +148,14 @@
                 "name": "password",
                 "orig": "password",
                 "reqd": true,
-                "type": "Any"
+                "type": "`$STRING`"
               },
               {
                 "kind": "query",
                 "name": "username",
                 "orig": "username",
                 "reqd": true,
-                "type": "Any"
+                "type": "`$STRING`"
               }
             ]
           },
@@ -185,7 +185,7 @@
                 "name": "id",
                 "orig": "username",
                 "reqd": true,
-                "type": "Any"
+                "type": "`$STRING`"
               }
             ]
           },
@@ -238,7 +238,7 @@
                 "name": "id",
                 "orig": "username",
                 "reqd": true,
-                "type": "Any"
+                "type": "`$STRING`"
               }
             ]
           },
@@ -276,7 +276,7 @@
                 "name": "id",
                 "orig": "username",
                 "reqd": true,
-                "type": "Any"
+                "type": "`$STRING`"
               }
             ],
             "query": [
@@ -313,8 +313,5 @@
         }
       ]
     }
-  },
-  "relations": {
-    "ancestors": null
   }
 }

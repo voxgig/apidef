@@ -2,7 +2,10 @@
 
 package apidef
 
-import "strings"
+import (
+	"reflect"
+	"strings"
+)
 
 // CleanTransform removes empty nodes and internal properties from the model.
 func CleanTransform(ctx *ApiDefContext) (*TransformResult, error) {
@@ -42,10 +45,23 @@ func cleanNode(v any) any {
 			return nil
 		}
 		return result
-
-	default:
-		return v
 	}
+
+	// Typed slices ([]string, []int, …) — collapse empty ones to nil so
+	// the parent map treats them as absent. This mirrors TS clean's
+	// `isempty` check which tests structural emptiness uniformly across
+	// all list-shaped values.
+	if v != nil {
+		rv := reflect.ValueOf(v)
+		switch rv.Kind() {
+		case reflect.Slice, reflect.Array:
+			if rv.Len() == 0 {
+				return nil
+			}
+			return v
+		}
+	}
+	return v
 }
 
 func isEmptyNode(v any) bool {
@@ -56,7 +72,13 @@ func isEmptyNode(v any) bool {
 		return len(node) == 0
 	case nil:
 		return true
-	default:
-		return false
 	}
+	if v != nil {
+		rv := reflect.ValueOf(v)
+		switch rv.Kind() {
+		case reflect.Slice, reflect.Array, reflect.Map:
+			return rv.Len() == 0
+		}
+	}
+	return false
 }

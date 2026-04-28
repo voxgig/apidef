@@ -45,24 +45,25 @@ func entityBuilder(ctx *ApiDefContext) {
 		}
 
 		entityFile := prefix + entityName + ".jsonic"
-		// Strip "active" keys and empty "relations" before formatting
 		cleanEntity := stripKeys(entity, "active")
 		cleanEntity = stripEmptyRelations(cleanEntity)
 		entityJSONIC := FormatJSONIC(cleanEntity)
-		// Trim outer braces and trailing newline from formatter
+		// Mirrors src/builder/entity/entity.ts:
+		//   entityJSONIC = formatJSONIC(entity).trim()
+		//   entityJSONIC = entityJSONIC.substring(1, entityJSONIC.length - 1)
 		entityJSONIC = strings.TrimSpace(entityJSONIC)
 		if len(entityJSONIC) > 2 && entityJSONIC[0] == '{' && entityJSONIC[len(entityJSONIC)-1] == '}' {
 			entityJSONIC = entityJSONIC[1 : len(entityJSONIC)-1]
 		}
-		entityJSONIC = strings.TrimRight(entityJSONIC, "\n")
 
 		fieldAliasesSrc := buildFieldAliases(entity)
 
+		// Mirrors src/builder/entity/entity.ts: file ends with "\n\n}\n".
 		entitySrc := fmt.Sprintf("# Entity: %s\n\n", entityName) +
 			fmt.Sprintf("main: %s: entity: %s: {\n\n", KIT, entityName) +
 			fmt.Sprintf("  alias: field: %s\n", fieldAliasesSrc) +
 			entityJSONIC +
-			"\n\n\n\n}"
+			"\n\n}\n"
 
 		os.WriteFile(filepath.Join(entityDir, entityFile), []byte(entitySrc), 0644)
 		barrel = append(barrel, fmt.Sprintf(`@"%s"`, entityFile))
@@ -160,6 +161,18 @@ func infoBuilder(ctx *ApiDefContext) {
 
 	modelDefSrc := FormatJSONIC(modelInfo)
 
+	// Mirrors src/builder/entity/info.ts:
+	//   modelDefSrc.substring(1, modelDefSrc.length - 1).replace(/\n  /g, '\n')
+	// Drop the leading '{' and the single trailing '\n' (NOT the outer '}'),
+	// then shift indent left by one level.
+	if len(modelDefSrc) >= 2 && modelDefSrc[0] == '{' {
+		modelDefSrc = modelDefSrc[1:]
+	}
+	if len(modelDefSrc) > 0 && modelDefSrc[len(modelDefSrc)-1] == '\n' {
+		modelDefSrc = modelDefSrc[:len(modelDefSrc)-1]
+	}
+	modelDefSrc = strings.ReplaceAll(modelDefSrc, "\n  ", "\n")
+
 	src := "# API Information\n\n" + modelDefSrc
 	os.WriteFile(filepath.Join(apiDir, infoFile), []byte(src), 0644)
 }
@@ -191,9 +204,14 @@ func MakeFlowBuilder(ctx *ApiDefContext) (func() error, error) {
 				continue
 			}
 
+			// Mirrors src/builder/flow.ts: jostraca's `each(flows, ...)`
+			// mutates each value to set `key$` to the map key. Reproduce
+			// that here so the emitted JSONIC matches TS output.
+			flow["key$"] = flowName
+
 			flowfile := prefix + flowName + ".jsonic"
 			entNameMap := map[string]any{"name": flowName}
-			flowModelSrc := FormatJsonSrc(ToJSON(flow))
+			flowModelSrc := FormatJsonSrc(ToJSONOrdered(flow))
 			flowSrc := fmt.Sprintf("# %s\n\nmain: %s: flow: %s:\n%s",
 				Nom(entNameMap, "Name"), KIT, flowName, flowModelSrc)
 
