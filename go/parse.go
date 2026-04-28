@@ -71,6 +71,13 @@ func parseOpenAPI(source string, meta map[string]string) (map[string]any, error)
 		parsed["components"] = map[string]any{}
 	}
 
+	// Capture insertion-order of `examples` blocks before $ref resolution
+	// so duplicate-key blowups during $ref expansion don't disturb the
+	// parallel walk. TS uses Object.values(examples) which is insertion
+	// order; Go maps are unordered, so we annotate each examples map with
+	// `x-examples-order: [keys…]` for findExampleObject to consume.
+	annotateExamplesOrder(source, parsed)
+
 	// Walk the tree: annotate x-ref and resolve $ref in one pass.
 	// Uses object-identity tracking to avoid exponential re-walking.
 	addXRefsAndResolve(parsed, parsed, nil)
@@ -78,6 +85,107 @@ func parseOpenAPI(source string, meta map[string]string) (map[string]any, error)
 	// Skip Decircular for now — addXRefsAndResolve uses identity tracking
 	// which prevents true circular references from being created.
 	return parsed, nil
+}
+
+// annotateExamplesOrder walks the JSON source via json.Decoder in parallel
+// with the parsed map, recording the insertion order of every object that
+// is the value of an `examples` key. The order is stored as
+// `x-examples-order: [key, key, …]` on each such map, so that downstream
+// example-iteration matches TS's Object.values insertion order rather
+// than Go's alphabetical map iteration. YAML specs are skipped (they do
+// not flow through json.Decoder).
+func annotateExamplesOrder(source string, parsed map[string]any) {
+	trimmed := strings.TrimSpace(source)
+	if len(trimmed) >= 3 && trimmed[0] == 0xEF && trimmed[1] == 0xBB && trimmed[2] == 0xBF {
+		trimmed = strings.TrimSpace(trimmed[3:])
+	}
+	if !strings.HasPrefix(trimmed, "{") {
+		return
+	}
+	dec := json.NewDecoder(strings.NewReader(source))
+	dec.UseNumber()
+	tok, err := dec.Token()
+	if err != nil {
+		return
+	}
+	if d, ok := tok.(json.Delim); !ok || d != '{' {
+		return
+	}
+	_ = walkExamplesOrder(dec, parsed, "")
+}
+
+func walkExamplesOrder(dec *json.Decoder, current any, parentKey string) error {
+	m, ok := current.(map[string]any)
+	if !ok {
+		// We're inside a JSON object but the parsed-side has a non-map
+		// (e.g. the source got transformed). Drain tokens to keep the
+		// decoder aligned with the source.
+		return drainObject(dec)
+	}
+	keys := []string{}
+	for dec.More() {
+		kt, err := dec.Token()
+		if err != nil {
+			return err
+		}
+		key, _ := kt.(string)
+		keys = append(keys, key)
+		child := m[key]
+		if err := walkExamplesValue(dec, child, key); err != nil {
+			return err
+		}
+	}
+	if _, err := dec.Token(); err != nil {
+		return err
+	}
+	if parentKey == "examples" {
+		m["x-examples-order"] = keys
+	}
+	return nil
+}
+
+func walkExamplesValue(dec *json.Decoder, current any, parentKey string) error {
+	tok, err := dec.Token()
+	if err != nil {
+		return err
+	}
+	delim, isDelim := tok.(json.Delim)
+	if !isDelim {
+		return nil
+	}
+	switch delim {
+	case '{':
+		return walkExamplesOrder(dec, current, parentKey)
+	case '[':
+		arr, _ := current.([]any)
+		i := 0
+		for dec.More() {
+			var child any
+			if i < len(arr) {
+				child = arr[i]
+			}
+			if err := walkExamplesValue(dec, child, ""); err != nil {
+				return err
+			}
+			i++
+		}
+		_, err := dec.Token()
+		return err
+	}
+	return nil
+}
+
+func drainObject(dec *json.Decoder) error {
+	for dec.More() {
+		if _, err := dec.Token(); err != nil { // key
+			return err
+		}
+		if err := walkExamplesValue(dec, nil, ""); err != nil {
+			return err
+		}
+	}
+	_, err := dec.Token()
+	return err
 }
 
 // addXRefsAndResolve combines x-ref annotation and $ref resolution in one pass.

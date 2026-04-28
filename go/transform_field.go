@@ -305,6 +305,13 @@ func getFieldRequestBodySchema(requestBody map[string]any) any {
 // The implicit "object → iterate values" behavior of `each` means that a
 // schema like `{type: "array", items: <schema>}` still yields fields from
 // the inner items.
+//
+// jostraca's each marks every iterated object value with a `key$` property,
+// and inferFieldsFromExamples later iterates the same map — so a schema with
+// no allOf/properties (e.g. {type: "object", additionalProperties: …,
+// example: {…}}) ends up adding a synthetic "key$" entry to the example map.
+// Mirror that mutation here so canonize("key$")="key" surfaces alongside the
+// example fields, matching TS exactly.
 func extractFieldsTopLevel(fieldSets any, fielddefs *[]map[string]any) {
 	switch fs := fieldSets.(type) {
 	case map[string]any:
@@ -317,7 +324,11 @@ func extractFieldsTopLevel(fieldSets any, fielddefs *[]map[string]any) {
 			return
 		}
 		for _, k := range sortedKeys(fs) {
-			extractPropertiesOnly(fs[k], fielddefs)
+			val := fs[k]
+			if vm, ok := val.(map[string]any); ok {
+				vm["key$"] = k
+			}
+			extractPropertiesOnly(val, fielddefs)
 		}
 	case []any:
 		for _, item := range fs {
@@ -456,7 +467,13 @@ func findExampleObject(opdef map[string]any) any {
 				return unwrapExample(example)
 			}
 			if examples, ok := appjson["examples"].(map[string]any); ok {
-				for _, ek := range sortedKeys(examples) {
+				// Mirrors TS Object.values(examples) iteration order: when
+				// the parser annotated an `x-examples-order` slice via
+				// annotateExamplesOrder we use it; otherwise fall back to
+				// alphabetical (e.g. for YAML specs that didn't go through
+				// the JSON token walker).
+				order := exampleOrder(examples)
+				for _, ek := range order {
 					v := examples[ek]
 					if vm, ok := v.(map[string]any); ok {
 						if ex, ok := vm["value"]; ok {
@@ -493,6 +510,37 @@ func findExampleObject(opdef map[string]any) any {
 	}
 
 	return nil
+}
+
+// exampleOrder returns the iteration order for an examples map, preferring
+// the `x-examples-order` annotation set by annotateExamplesOrder during
+// parse. The annotation key itself is filtered out so it never participates
+// in iteration. When no annotation is present (e.g. YAML specs), falls back
+// to alphabetical to keep behavior deterministic.
+func exampleOrder(examples map[string]any) []string {
+	if raw, ok := examples["x-examples-order"]; ok {
+		switch o := raw.(type) {
+		case []string:
+			return o
+		case []any:
+			out := make([]string, 0, len(o))
+			for _, v := range o {
+				if s, ok := v.(string); ok {
+					out = append(out, s)
+				}
+			}
+			return out
+		}
+	}
+	keys := sortedKeys(examples)
+	out := make([]string, 0, len(keys))
+	for _, k := range keys {
+		if k == "x-examples-order" {
+			continue
+		}
+		out = append(out, k)
+	}
+	return out
 }
 
 func unwrapExample(example any) any {
