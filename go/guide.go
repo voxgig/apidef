@@ -1243,16 +1243,7 @@ func entityPathMatch_tpte(data map[string]any, pm *PathMatchResult, mdesc map[st
 		ecm := entityCmpMatch(data, entname, mdesc, why)
 		entname = safeStr(ecm["name"])
 		*why = append(*why, "has-cmp="+safeStr(ecm["orig"]))
-	} else if probableEntityMethod(data, ment, ment, pm, why) {
-		// Mirrors src/guide/heuristic01.ts:1155 — TS calls
-		// `probableEntityMethod(data, ment, pm, why)` here, passing the
-		// MethodEntity in place of the method descriptor. ment has no
-		// requestBody/responses/method, so this always returns false in TS
-		// (a long-standing bug), routing the path to the prob-ent-act
-		// else branch and using parts[-3] as the entity name. We mirror
-		// the same call signature here so e.g. /post/{postId}/meta resolves
-		// to "post" and /id/{id}/info to "idn"/"seed" instead of split
-		// "post_meta"/"id_info" entities.
+	} else if probableEntityMethod(data, mdesc, ment, pm, why) {
 		ecm := entityCmpMatch(data, entname, mdesc, why)
 		if safeBool(ecm["cmpish"]) {
 			entname = safeStr(ecm["name"])

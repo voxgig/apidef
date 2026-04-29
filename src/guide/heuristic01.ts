@@ -1152,7 +1152,7 @@ function entityPathMatch_tpte(
     why.push('has-cmp=' + ecm.orig)
   }
 
-  else if (probableEntityMethod(data, ment, pm, why)) {
+  else if (probableEntityMethod(data, mdesc, pm, why)) {
     ecm = entityCmpMatch(data, entname, mdesc, why)
     if (ecm.cmpish) {
       entname = ecm.name
@@ -1188,7 +1188,7 @@ function endsWithCmp(data: any, pm: PathMatch) {
 
 
 function isOrigCmp(data: any, name: string) {
-  return null != data.metrics.count.origcmprefs[name]
+  return null != data.guide.metrics.count.origcmprefs[name]
 }
 
 
