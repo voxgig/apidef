@@ -15,7 +15,7 @@ import (
 	"strings"
 	"unicode"
 
-	vs "github.com/voxgig/struct"
+	vs "github.com/voxgig/struct/go"
 	"golang.org/x/text/unicode/norm"
 )
 
