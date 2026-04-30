@@ -44,17 +44,17 @@
     "typescript": "6.0.3"
   },
   "peerDependencies": {
-    "aontu": ">=0",
     "@jsonic/yaml": ">=0",
-    "jsonic": ">=2",
     "@voxgig/struct": ">=0",
     "@voxgig/util": ">=0",
-    "shape": ">=10",
-    "jostraca": ">=0"
+    "aontu": ">=0",
+    "jostraca": ">=0",
+    "jsonic": ">=2",
+    "shape": ">=10"
   },
   "dependencies": {
     "diff": "9.0.0",
-    "ordu": "4.2.0",
+    "ordu": "4.3.0",
     "pino": "10.3.1",
     "pino-pretty": "13.1.3"
   }
