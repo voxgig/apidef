@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+const Version = "0.1.0"
+
 // ApiDef creates a new API definition generator with the given options.
 func NewApiDef(opts ApiDefOptions) *apiDefInstance {
 	if opts.Strategy == "" {
