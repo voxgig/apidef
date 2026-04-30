@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	yaml "github.com/jsonicjs/yaml/go"
-	util "github.com/voxgig/util"
+	util "github.com/voxgig/util/go"
 )
 
 var yamlCommentRE = regexp.MustCompile(`(?m)^\s*#.*$`)
