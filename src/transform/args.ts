@@ -71,9 +71,16 @@ function resolveArgs(ment: ModelEntity, mop: ModelOp, mtarget: ModelTarget, argd
   const touchedKeys = new Set<string>()
 
   each(argdefs, (argdef: ParameterDef) => {
-    const orig = depluralize(snakify(normalizeFieldName(argdef.name)))
+    // Spec name as written (e.g. `dataType`) is what the rename map is keyed
+    // by; the snakified form is the user-friendly runtime identifier.
+    const specName = normalizeFieldName(argdef.name)
+    const orig = depluralize(snakify(specName))
     const kind = ARG_KIND[argdef.in] ?? 'query'
-    const name = mtarget.rename[kind]?.[orig] ?? orig
+    // Rename map can be keyed by either the spec original (camelCase) or by
+    // the snakified form depending on which path went through heuristic01.
+    // Try both before falling through to `orig`.
+    const renameMap = mtarget.rename[kind]
+    const name = renameMap?.[specName] ?? renameMap?.[orig] ?? orig
     const marg: ModelArg = {
       name,
       orig,

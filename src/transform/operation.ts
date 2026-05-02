@@ -137,7 +137,14 @@ function resolveOp(opname: OpName, gent: GuideEntity): undefined | ModelOp {
     mop = {
       name: opname,
       points: opdesc.paths.map((p: PathDesc) => {
-        const parts = applyRename(p)
+        // Renames already applied by entity.ts resolvePathList — re-applying
+        // here corrupted paths for any spec where rename map maps an old
+        // name to a value that another rename maps to a different new name
+        // (e.g. gitlab `/groups/{id}/badges/{badge_id}` with rename
+        // `{badge_id: 'id', id: 'project_id'}` ended up as
+        // `/groups/{project_id}/badges/{project_id}` — the second pass
+        // rewrote the freshly-renamed `{id}` into `{project_id}` again).
+        const parts = p.parts
 
         const mtarget: ModelTarget = {
           orig: p.orig,
@@ -159,12 +166,6 @@ function resolveOp(opname: OpName, gent: GuideEntity): undefined | ModelOp {
     }
   }
   return mop
-}
-
-
-function applyRename(pathdesc: PathDesc): string[] {
-  const prn: Record<string, string> = pathdesc.rename?.param ?? {}
-  return pathdesc.parts.map(p => '{' === p[0] ? (prn[p.substring(1, p.length - 1)] ?? p) : p)
 }
 
 

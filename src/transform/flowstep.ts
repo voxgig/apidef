@@ -1,6 +1,6 @@
 
 
-import { each } from 'jostraca'
+import { each, camelify, lcf } from 'jostraca'
 
 import type { TransformResult, Transform } from '../transform'
 
@@ -9,6 +9,43 @@ import { getelem } from '@voxgig/struct'
 import {
   nom,
 } from '../utility'
+
+
+// Detect a path-parameter that is in fact the entity's own id, after URL
+// renaming. Three ways an identity can show up:
+//   1. The param literally has name 'id' (the common case for e.g. /things/{id}).
+//   2. The param's lower-camelCase name appears in `point.rename.param` mapping
+//      to 'id' — e.g. `{connectionId: 'id'}` for `/companies/{company_id}/connections/{id}`.
+//      In this case the param's own name is `connection_id` (apidef snake-cased
+//      it), which doesn't equal 'id' but the placeholder in `parts` is `{id}`.
+//   3. Positional convention: for singleton ops (load/update/remove), the
+//      LAST `{X}` placeholder in the path is the entity's own id. Catches
+//      cases where the entity name and path placeholder differ in spelling
+//      (e.g. entity `enviroment` vs path `/environments/{environment_id}`)
+//      and apidef therefore didn't synthesize a rename-to-id.
+//
+// Without this helper, the flow generator double-counts the entity's id —
+// emitting it as both `srcdatavar.id` AND a separate body field — which the
+// in-memory test mock then requires to match a non-existent field on the
+// stored entity.
+function isEntityIdParam(point: any, param: any, opname?: string): boolean {
+  if ('id' === param?.name) return true
+  const renameMap = point?.rename?.param
+  if (renameMap && param?.name) {
+    const camel = lcf(camelify(param.name))
+    if ('id' === renameMap[camel]) return true
+  }
+  if ('update' === opname || 'load' === opname || 'remove' === opname) {
+    const parts: any[] = point?.parts || []
+    let last: string | null = null
+    for (const p of parts) {
+      const m = String(p).match(/^\{(.+)\}$/)
+      if (m) last = m[1]
+    }
+    if (last && last === param?.name) return true
+  }
+  return false
+}
 
 import { KIT } from '../types'
 
@@ -116,6 +153,24 @@ function newFlowStep(opname: OpName, args: Record<string, any>): ModelEntityFlow
 }
 
 
+// Reverse-lookup: given a point with rename.param like {spaceId: 'id'} or
+// {space_id: 'id'}, return the snake_case ORIGINAL name (e.g. 'space_id') of
+// any param whose URL placeholder is now `{id}`. Returns null when no
+// rename-to-id is recorded — the literal `id` then represents the entity's
+// own id and createStep should skip it.
+function originalSnakeNameOfRenamedId(point: any): string | null {
+  const renameMap = point?.rename?.param || {}
+  for (const [src, dst] of Object.entries(renameMap)) {
+    if ('id' === dst) {
+      const srcStr = String(src)
+      // Already snake_case? Use as-is. Otherwise convert to snake form.
+      return srcStr.includes('_') ? srcStr : (srcStr.replace(/[A-Z]/g, m => '_' + m.toLowerCase()).replace(/^_/, ''))
+    }
+  }
+  return null
+}
+
+
 const createStep: MakeFlowStep = (
   opmap: any,
   flow: ModelEntityFlow,
@@ -128,13 +183,55 @@ const createStep: MakeFlowStep = (
     const step = newFlowStep('create', args)
 
     each(point.args.params, (param: any) => {
-      // id should not be here in the first place
-      if ('id' !== param.name) {
-        step.match[param.name] = args.input?.[param.name] ?? param.name.replace(/_id/, '') + '01'
+      if ('id' === param.name) {
+        // For CREATE, `id` in the path is NOT the entity's own id (entity is
+        // being created here — its id doesn't exist yet). It's some parent's
+        // id renamed by apidef's path normalization (e.g. `space_id` → `id`
+        // in `/spaces/{id}/space_memberships` for SpaceMembership). Recover
+        // the original snake_case name so the test seeds the parent's id
+        // into both the created entity's data AND the URL.
+        const origName = originalSnakeNameOfRenamedId(point)
+        if (origName) {
+          step.match[origName] = args.input?.[origName] ?? origName.replace(/_id/, '') + '01'
+        }
+        // If there's no rename-from, this is genuinely the entity's id — skip
+        // (the create call generates it).
+        return
       }
+      step.match[param.name] = args.input?.[param.name] ?? param.name.replace(/_id/, '') + '01'
     })
 
+    // Also seed any path-param fields required by other ops (typically LIST
+    // through a sibling parent path), so the in-memory test mock can find
+    // the just-created entity when a later step queries by those fields.
+    // Without this, a metric created at /pages/{page_id}/metrics/data lacks
+    // the page_access_user_id field required by
+    // /pages/{page_id}/page_access_users/{page_access_user_id}/metrics LIST.
+    seedRelatedOpParams(opmap, point, step)
+
     flow.step.push(step)
+  }
+}
+
+
+function seedRelatedOpParams(opmap: any, createPoint: any, step: ModelEntityFlowStep) {
+  const otherOps = ['list', 'load', 'update', 'remove']
+  for (const opname of otherOps) {
+    const op = opmap[opname]
+    if (!op?.points) continue
+    for (const point of op.points) {
+      const params: any[] = point?.args?.params || []
+      for (const param of params) {
+        if (!param?.name) continue
+        if (isEntityIdParam(point, param, opname as any)) continue
+        if (step.match[param.name] !== undefined) continue
+        // For renamed-from-id params on CREATE's chosen point we'd already
+        // have set the snake-case origin; don't double-write.
+        if ('id' === param.name) continue
+        step.match[param.name] =
+          param.name.replace(/_id/, '') + '01'
+      }
+    }
   }
 }
 
@@ -151,6 +248,17 @@ const listStep: MakeFlowStep = (
     const step = newFlowStep('list', args)
 
     each(point.args.params, (param: any) => {
+      if ('id' === param.name) {
+        // For LIST, `id` in the path is a parent's id renamed by apidef
+        // (LIST doesn't address a single entity by id). Recover the original
+        // snake_case name so test code references a real idmap entry rather
+        // than landing on the bogus `id01` default.
+        const origName = originalSnakeNameOfRenamedId(point)
+        if (origName) {
+          step.match[origName] = args.input?.[origName] ?? origName.replace(/_id/, '') + '01'
+        }
+        return
+      }
       step.match[param.name] = args.input?.[param.name] ?? param.name.replace(/_id/, '') + '01'
     })
 
@@ -171,12 +279,12 @@ const updateStep: MakeFlowStep = (
     const step = newFlowStep('update', args)
 
     each(point.args.params, (param: any) => {
-      if ('id' === param.name) {
-        step.data.id = args.input?.id ?? ent.name + '01'
+      if (isEntityIdParam(point, param, 'update')) {
+        // Entity's own id — supplied at test time via the loaded/created
+        // entity's id field, not as a separate body parameter. Skip.
+        return
       }
-      else {
-        step.data[param.name] = args.input?.[param.name] ?? param.name.replace(/_id/, '') + '01'
-      }
+      step.data[param.name] = args.input?.[param.name] ?? param.name.replace(/_id/, '') + '01'
     })
 
     flow.step.push(step)
@@ -196,7 +304,7 @@ const loadStep: MakeFlowStep = (
     const step = newFlowStep('load', args)
 
     each(point.args.params, (param: any) => {
-      if ('id' === param.name) {
+      if (isEntityIdParam(point, param, 'load')) {
         step.match.id = args.input?.id ?? ent.name + '01'
       }
       else {
@@ -221,7 +329,7 @@ const removeStep: MakeFlowStep = (
     const step = newFlowStep('remove', args)
 
     each(point.args.params, (param: any) => {
-      if ('id' === param.name) {
+      if (isEntityIdParam(point, param, 'remove')) {
         step.match.id = args.input?.id ?? ent.name + '01'
       }
       else {

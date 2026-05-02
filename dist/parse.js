@@ -63,6 +63,18 @@ async function parseOpenAPI(source, _meta) {
     if (null == parsed.components) {
         parsed.components = {};
     }
+    // Normalize path keys: jsonic's YAML parser leaves the surrounding double
+    // quotes IN the key for explicit-key form (`? "..."`). gitlab uses this for
+    // long paths and as a result every downstream split('/') sees a literal
+    // quote character at the head/tail of the path, breaking URL substitution.
+    if (parsed.paths && 'object' === typeof parsed.paths) {
+        const cleaned = {};
+        for (const [k, v] of Object.entries(parsed.paths)) {
+            const stripped = k.replace(/^"+|"+$/g, '');
+            cleaned[stripped] = v;
+        }
+        parsed.paths = cleaned;
+    }
     // Single-pass: add x-ref properties and resolve $ref pointers together.
     addXRefsAndResolve(parsed, parsed);
     const def = (0, util_1.decircular)(parsed);

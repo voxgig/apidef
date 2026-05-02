@@ -33,9 +33,16 @@ const ARG_KIND = {
 function resolveArgs(ment, mop, mtarget, argdefs) {
     const touchedKeys = new Set();
     (0, jostraca_1.each)(argdefs, (argdef) => {
-        const orig = (0, utility_1.depluralize)((0, jostraca_1.snakify)((0, utility_1.normalizeFieldName)(argdef.name)));
+        // Spec name as written (e.g. `dataType`) is what the rename map is keyed
+        // by; the snakified form is the user-friendly runtime identifier.
+        const specName = (0, utility_1.normalizeFieldName)(argdef.name);
+        const orig = (0, utility_1.depluralize)((0, jostraca_1.snakify)(specName));
         const kind = ARG_KIND[argdef.in] ?? 'query';
-        const name = mtarget.rename[kind]?.[orig] ?? orig;
+        // Rename map can be keyed by either the spec original (camelCase) or by
+        // the snakified form depending on which path went through heuristic01.
+        // Try both before falling through to `orig`.
+        const renameMap = mtarget.rename[kind];
+        const name = renameMap?.[specName] ?? renameMap?.[orig] ?? orig;
         const marg = {
             name,
             orig,
