@@ -5,6 +5,7 @@ const ordu_1 = require("ordu");
 const jostraca_1 = require("jostraca");
 const struct_1 = require("@voxgig/struct");
 const utility_1 = require("../utility");
+const jostraca_2 = require("jostraca");
 const KONSOLE_LOG = console['log'];
 // Log non - fatal wierdness.
 const dlog = (0, utility_1.getdlog)('apidef', __filename);
@@ -446,11 +447,6 @@ function RenameParams(spec) {
     // 2. internal identifiers are formatted as {name_id} where name is the parent entity name
     // Example: /api/bar/{id}/zed/{zid}/foo/{fid} ->
     //          /api/bar/{bar_id}/zed/{zed_id}/foo/{id}
-    // id needs to be t/p/
-    const multParamEndMatch = (0, utility_1.pathMatch)(mdesc.path, 'p/p/');
-    if (multParamEndMatch) {
-        return;
-    }
     const pathDesc = entdesc.path[pathStr];
     pathDesc.rename = (pathDesc.rename ?? { param: {} });
     pathDesc.why_rename = (pathDesc.why_rename ?? { why_param: {} });
@@ -461,6 +457,33 @@ function RenameParams(spec) {
         why: pathDesc.why_rename.why_param = (pathDesc.why_rename.why_param ?? {}),
     };
     const parts = pathdesc.parts;
+    // Implicit snake_case normalization for any path placeholder not already
+    // renamed by the id-rename logic. apidef's args transform snake-cases param
+    // names (e.g. spec `platformKey` → param.name `platform_key`); without
+    // normalizing the placeholder to match, runtime URL substitution by
+    // param.name fails to fill `{platformKey}`. Defined as a closure so we can
+    // run it after the id-rename loop OR after the multi-param early-return.
+    const applySnakeCaseRename = () => {
+        for (const part of parts) {
+            const m = part.match(/^\{(.+)\}$/);
+            if (!m)
+                continue;
+            const placeholder = m[1];
+            const snake = (0, utility_1.depluralize)((0, jostraca_2.snakify)((0, utility_1.normalizeFieldName)(placeholder)));
+            if (snake !== placeholder && paramRenameCapture.rename[placeholder] === undefined) {
+                paramRenameCapture.why[placeholder] = (paramRenameCapture.why[placeholder] ?? []);
+                updateParamRename(ctx, data, pathStr, methodName, paramRenameCapture, placeholder, snake, 'snake-case');
+            }
+        }
+    };
+    // id needs to be t/p/
+    const multParamEndMatch = (0, utility_1.pathMatch)(mdesc.path, 'p/p/');
+    if (multParamEndMatch) {
+        applySnakeCaseRename();
+        ment.rename = paramRenameCapture.rename;
+        ment.why_rename = paramRenameCapture.why;
+        return;
+    }
     const cmpname = mdesc.cmp;
     const considerCmp = null != cmpname &&
         0 < metrics.count.uniqschema &&
@@ -603,6 +626,7 @@ function RenameParams(spec) {
             });
         }
     }
+    applySnakeCaseRename();
     ment.rename = paramRenameCapture.rename;
     ment.why_rename = paramRenameCapture.why;
     ment.rename_orig = origParams;

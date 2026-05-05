@@ -41,16 +41,20 @@ import {
   capture,
   cleanComponentName,
   debugpath,
+  depluralize,
   ensureMinEntityName,
   find,
   findPathsWithPrefix,
   formatJSONIC,
   getdlog,
+  normalizeFieldName,
   pathMatch,
   sortedEntries,
   sortedKeys,
   warnOnError,
 } from '../utility'
+
+import { snakify } from 'jostraca'
 
 import type {
   PathMatch
@@ -625,13 +629,6 @@ function RenameParams(spec: TaskSpec) {
   // Example: /api/bar/{id}/zed/{zid}/foo/{fid} ->
   //          /api/bar/{bar_id}/zed/{zed_id}/foo/{id}
 
-  // id needs to be t/p/
-  const multParamEndMatch = pathMatch(mdesc.path, 'p/p/')
-  if (multParamEndMatch) {
-    return
-  }
-
-
   const pathDesc = entdesc.path[pathStr]
   pathDesc.rename = (pathDesc.rename ?? { param: {} })
   pathDesc.why_rename = (pathDesc.why_rename ?? { why_param: {} })
@@ -644,6 +641,36 @@ function RenameParams(spec: TaskSpec) {
     why: pathDesc.why_rename.why_param = (pathDesc.why_rename.why_param ?? {}),
   }
   const parts = pathdesc.parts
+
+  // Implicit snake_case normalization for any path placeholder not already
+  // renamed by the id-rename logic. apidef's args transform snake-cases param
+  // names (e.g. spec `platformKey` → param.name `platform_key`); without
+  // normalizing the placeholder to match, runtime URL substitution by
+  // param.name fails to fill `{platformKey}`. Defined as a closure so we can
+  // run it after the id-rename loop OR after the multi-param early-return.
+  const applySnakeCaseRename = () => {
+    for (const part of parts) {
+      const m = part.match(/^\{(.+)\}$/)
+      if (!m) continue
+      const placeholder = m[1]
+      const snake = depluralize(snakify(normalizeFieldName(placeholder)))
+      if (snake !== placeholder && paramRenameCapture.rename[placeholder] === undefined) {
+        paramRenameCapture.why[placeholder] = (paramRenameCapture.why[placeholder] ?? [])
+        updateParamRename(
+          ctx, data, pathStr, methodName, paramRenameCapture, placeholder,
+          snake, 'snake-case')
+      }
+    }
+  }
+
+  // id needs to be t/p/
+  const multParamEndMatch = pathMatch(mdesc.path, 'p/p/')
+  if (multParamEndMatch) {
+    applySnakeCaseRename()
+    ment.rename = paramRenameCapture.rename
+    ment.why_rename = paramRenameCapture.why
+    return
+  }
 
   const cmpname = mdesc.cmp
   const considerCmp =
@@ -858,6 +885,8 @@ function RenameParams(spec: TaskSpec) {
       )
     }
   }
+
+  applySnakeCaseRename()
 
   ment.rename = paramRenameCapture.rename
   ment.why_rename = paramRenameCapture.why

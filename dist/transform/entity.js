@@ -5,7 +5,6 @@ exports.resolvePathList = resolvePathList;
 exports.buildRelations = buildRelations;
 const jostraca_1 = require("jostraca");
 const types_1 = require("../types");
-const utility_1 = require("../utility");
 const entityTransform = async function (ctx) {
     const { apimodel, guide } = ctx;
     const kit = apimodel.main[types_1.KIT];
@@ -39,24 +38,6 @@ function resolvePathList(guideEntity, def) {
             const pI = parts.indexOf('{' + param.key$ + '}');
             if (pI >= 0)
                 parts[pI] = '{' + param.val$ + '}';
-        });
-        // Implicit snake_case normalization for any path placeholder that wasn't
-        // explicitly renamed. apidef's args transform snake-cases param names
-        // (e.g. spec `platformKey` → param.name `platform_key`); without
-        // normalizing the placeholder to match, runtime URL substitution by
-        // param.name fails to fill `{platformKey}`.
-        rename.param = rename.param ?? {};
-        parts.forEach((part, i) => {
-            const m = part.match(/^\{(.+)\}$/);
-            if (!m)
-                return;
-            const placeholder = m[1];
-            const snake = (0, utility_1.depluralize)((0, jostraca_1.snakify)((0, utility_1.normalizeFieldName)(placeholder)));
-            if (snake !== placeholder && rename.param[placeholder] === undefined) {
-                ;
-                rename.param[placeholder] = snake;
-                parts[i] = '{' + snake + '}';
-            }
         });
         const pathdesc = {
             orig,

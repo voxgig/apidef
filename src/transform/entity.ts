@@ -1,6 +1,6 @@
 
 
-import { each, snakify } from 'jostraca'
+import { each } from 'jostraca'
 
 import type { TransformResult, Transform } from '../transform'
 
@@ -20,11 +20,6 @@ import type {
 import type {
   ModelEntity,
 } from '../model'
-
-import {
-  depluralize,
-  normalizeFieldName,
-} from '../utility'
 
 
 
@@ -73,23 +68,6 @@ function resolvePathList(guideEntity: GuideEntity, def: { paths: Record<string, 
     each(rename.param, (param: any) => {
       const pI = parts.indexOf('{' + param.key$ + '}')
       if (pI >= 0) parts[pI] = '{' + param.val$ + '}'
-    })
-
-    // Implicit snake_case normalization for any path placeholder that wasn't
-    // explicitly renamed. apidef's args transform snake-cases param names
-    // (e.g. spec `platformKey` → param.name `platform_key`); without
-    // normalizing the placeholder to match, runtime URL substitution by
-    // param.name fails to fill `{platformKey}`.
-    rename.param = (rename.param as any) ?? {}
-    parts.forEach((part: string, i: number) => {
-      const m = part.match(/^\{(.+)\}$/)
-      if (!m) return
-      const placeholder = m[1]
-      const snake = depluralize(snakify(normalizeFieldName(placeholder)))
-      if (snake !== placeholder && (rename.param as any)[placeholder] === undefined) {
-        ; (rename.param as any)[placeholder] = snake
-        parts[i] = '{' + snake + '}'
-      }
     })
 
     const pathdesc: PathDesc = {
