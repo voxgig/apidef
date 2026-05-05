@@ -36,7 +36,6 @@ main: kit: flow: BasicMoonFlow:
 
     {
       data: {
-        id: "moon01",
         planet_id: "planet01"
       }
 

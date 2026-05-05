@@ -27,10 +27,6 @@ main: kit: flow: BasicPlanetFlow:
     }
 
     {
-      data: {
-        id: "planet01"
-      }
-
       input: {
         ref: "planet_ref01",
         srcdatavar: "planet_ref01_data",
