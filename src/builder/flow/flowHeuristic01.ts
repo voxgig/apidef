@@ -17,7 +17,7 @@ import {
 import type {
   ModelEntity,
   ModelOp,
-  ModelTarget,
+  ModelPoint,
 } from '../../model'
 
 import {
@@ -196,7 +196,7 @@ function resolveBasicEntityFlow(ctx: any, entity: any) {
 }
 
 
-function findMainLoadPoint(op: ModelOp): ModelTarget | undefined {
+function findMainLoadPoint(op: ModelOp): ModelPoint | undefined {
   let cands = op.points.filter(a => '{id}' === getelem(a.parts, -1))
   return cands[0]
 }

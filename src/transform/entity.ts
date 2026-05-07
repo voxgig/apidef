@@ -41,10 +41,6 @@ const entityTransform: Transform = async function(
       name: entname,
       op: {},
       fields: [],
-      id: {
-        name: 'id',
-        field: 'id',
-      },
       relations,
     }
 

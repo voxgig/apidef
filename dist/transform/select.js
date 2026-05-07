@@ -9,9 +9,9 @@ const selectTransform = async function (ctx) {
     let msg = 'select ';
     (0, jostraca_1.each)(kit.entity, (ment, _entname) => {
         (0, jostraca_1.each)(ment.op, (mop, _opname) => {
-            (0, jostraca_1.each)(mop.points, (mtarget) => {
-                const pdef = def.paths[mtarget.orig];
-                resolveSelect(guide, ment, mop, mtarget, pdef);
+            (0, jostraca_1.each)(mop.points, (mpoint) => {
+                const pdef = def.paths[mpoint.orig];
+                resolveSelect(guide, ment, mop, mpoint, pdef);
             });
             if (null != mop.points && 0 < mop.points.length) {
                 sortPoints(guide, ment, mop);
@@ -22,9 +22,9 @@ const selectTransform = async function (ctx) {
     return { ok: true, msg };
 };
 exports.selectTransform = selectTransform;
-function resolveSelect(guide, ment, _mop, mtarget, _pdef) {
-    const select = mtarget.select;
-    const margs = mtarget.args;
+function resolveSelect(guide, ment, _mop, mpoint, _pdef) {
+    const select = mpoint.select;
+    const margs = mpoint.args;
     const argkinds = ['params', 'query', 'header', 'cookie'];
     argkinds.map((kind) => {
         (0, jostraca_1.each)(margs[kind], (marg) => {
@@ -35,7 +35,7 @@ function resolveSelect(guide, ment, _mop, mtarget, _pdef) {
     });
     select.exist.sort();
     const gent = guide.entity[ment.name];
-    const gpath = gent.path[mtarget.orig];
+    const gpath = gent.path[mpoint.orig];
     if (gpath.action) {
         const actname = Object.keys(gpath.action).sort()[0];
         if (null != actname) {

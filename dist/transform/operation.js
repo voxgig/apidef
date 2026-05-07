@@ -95,7 +95,7 @@ function resolveOp(opname, gent) {
                 // `/groups/{project_id}/badges/{project_id}` — the second pass
                 // rewrote the freshly-renamed `{id}` into `{project_id}` again).
                 const parts = p.parts;
-                const mtarget = {
+                const mpoint = {
                     orig: p.orig,
                     parts,
                     rename: p.rename,
@@ -106,9 +106,9 @@ function resolveOp(opname, gent) {
                         exist: []
                     }
                 };
-                mtarget.transform.req = mtarget.transform.req ?? '`reqdata`';
-                mtarget.transform.res = mtarget.transform.res ?? '`body`';
-                return mtarget;
+                mpoint.transform.req = mpoint.transform.req ?? '`reqdata`';
+                mpoint.transform.res = mpoint.transform.res ?? '`body`';
+                return mpoint;
             })
         };
     }

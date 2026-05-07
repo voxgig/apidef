@@ -20,7 +20,7 @@ import type {
   OpName,
   ModelOp,
   ModelEntity,
-  ModelTarget,
+  ModelPoint,
   ModelField,
 } from '../model'
 
@@ -43,10 +43,10 @@ const fieldTransform: Transform = async function(
     for (let opname of opFieldPrecedence) {
       const mop = ment.op[opname]
       if (mop) {
-        const mtargets = mop.points
+        const mpoints = mop.points
 
-        for (let mtarget of mtargets) {
-          const opfields = resolveOpFields(ment, mop, mtarget, def)
+        for (let mpoint of mpoints) {
+          const opfields = resolveOpFields(ment, mop, mpoint, def)
 
           for (let opfield of opfields) {
             if (!seen[opfield.name]) {
@@ -54,7 +54,7 @@ const fieldTransform: Transform = async function(
               seen[opfield.name] = opfield
             }
             else {
-              mergeField(ment, mop, mtarget, def, seen[opfield.name], opfield)
+              mergeField(ment, mop, mpoint, def, seen[opfield.name], opfield)
             }
           }
         }
@@ -64,6 +64,15 @@ const fieldTransform: Transform = async function(
     fields.sort((a: ModelField, b: ModelField) => {
       return a.name < b.name ? -1 : a.name > b.name ? 1 : 0
     })
+
+    // Mark the entity as having an id only when the spec actually declares one.
+    // Downstream (test generators, fixture builders) gate id-specific code on
+    // this presence so that public read-only APIs without ids don't get
+    // bogus id assertions.
+    const idField = fields.find((f: ModelField) => 'id' === f.name)
+    if (idField) {
+      ment.id = { name: 'id', field: 'id' }
+    }
 
     msg += ment.name + ' '
   })
@@ -76,11 +85,11 @@ const fieldTransform: Transform = async function(
 function resolveOpFields(
   ment: ModelEntity,
   mop: ModelOp,
-  mtarget: ModelTarget,
+  mpoint: ModelPoint,
   def: any
 ): ModelField[] {
   const mfields: ModelField[] = []
-  const fielddefs = findFieldDefs(ment, mop, mtarget, def)
+  const fielddefs = findFieldDefs(ment, mop, mpoint, def)
 
   for (let fielddef of fielddefs) {
     const fieldname = (fielddef as any).key$ as string
@@ -101,13 +110,13 @@ function resolveOpFields(
 function findFieldDefs(
   _ment: ModelEntity,
   mop: ModelOp,
-  mtarget: ModelTarget,
+  mpoint: ModelPoint,
   def: any
 ): SchemaDef[] {
   const fielddefs: SchemaDef[] = []
-  const pathdef = def.paths[mtarget.orig]
+  const pathdef = def.paths[mpoint.orig]
 
-  const method = mtarget.method.toLowerCase()
+  const method = mpoint.method.toLowerCase()
   const opdef: any = pathdef[method]
 
   if (opdef) {
@@ -303,7 +312,7 @@ function inferTypeFromValue(value: any): string {
 function mergeField(
   ment: ModelEntity,
   mop: ModelOp,
-  mtarget: ModelTarget,
+  mpoint: ModelPoint,
   def: any,
   exisingField: ModelField,
   newField: ModelField

@@ -1002,6 +1002,7 @@ type KitModel = {
 };
 type ApiDefResult = {
     ok: boolean;
+    reload?: boolean;
     start: number;
     end: number;
     steps: string[];
@@ -1102,4 +1103,4 @@ type GuidePathOp = {
 export { KIT, OpenControlShape, OpenModelShape, OpenBuildShape, };
 export type { Guide, GuideMetrics, GuideEntity, GuidePath, GuidePathAction, GuideRenameParam, GuidePathOp, KitModel, MethodName, TypeName, Log, FsUtil, ApiDefOptions, ApiDefResult, Control, Model, Build, ApiModel, ApiDefContext, Warner, Metrics, };
 export type { CmpDesc, BasicMethodDesc, MethodDesc, MethodEntityDesc, EntityDesc, EntityPathDesc, PathDesc, OpDesc, } from './desc';
-export type { OpName, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelTarget, ModelOp, ModelEntity, } from './model';
+export type { OpName, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelPoint, ModelOp, ModelEntity, } from './model';

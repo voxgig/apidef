@@ -19,7 +19,7 @@ import type {
   OpName,
   ModelOpMap,
   ModelOp,
-  ModelTarget,
+  ModelPoint,
 } from '../model'
 
 
@@ -146,7 +146,7 @@ function resolveOp(opname: OpName, gent: GuideEntity): undefined | ModelOp {
         // rewrote the freshly-renamed `{id}` into `{project_id}` again).
         const parts = p.parts
 
-        const mtarget: ModelTarget = {
+        const mpoint: ModelPoint = {
           orig: p.orig,
           parts,
           rename: p.rename,
@@ -158,10 +158,10 @@ function resolveOp(opname: OpName, gent: GuideEntity): undefined | ModelOp {
           }
         }
 
-        mtarget.transform.req = mtarget.transform.req ?? '`reqdata`'
-        mtarget.transform.res = mtarget.transform.res ?? '`body`'
+        mpoint.transform.req = mpoint.transform.req ?? '`reqdata`'
+        mpoint.transform.res = mpoint.transform.res ?? '`body`'
 
-        return mtarget
+        return mpoint
       })
     }
   }

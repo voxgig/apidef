@@ -20,7 +20,7 @@ import type {
   OpName,
   ModelOp,
   ModelEntity,
-  ModelTarget,
+  ModelPoint,
   ModelArg,
 } from '../model'
 
@@ -36,9 +36,9 @@ const selectTransform: Transform = async function(
 
   each(kit.entity, (ment: ModelEntity, _entname: string) => {
     each(ment.op, (mop: ModelOp, _opname: OpName) => {
-      each(mop.points, (mtarget: ModelTarget) => {
-        const pdef: PathDef = def.paths[mtarget.orig]
-        resolveSelect(guide, ment, mop, mtarget, pdef)
+      each(mop.points, (mpoint: ModelPoint) => {
+        const pdef: PathDef = def.paths[mpoint.orig]
+        resolveSelect(guide, ment, mop, mpoint, pdef)
       })
       if (null != mop.points && 0 < mop.points.length) {
         sortPoints(guide, ment, mop)
@@ -56,11 +56,11 @@ function resolveSelect(
   guide: Guide,
   ment: ModelEntity,
   _mop: ModelOp,
-  mtarget: ModelTarget,
+  mpoint: ModelPoint,
   _pdef: PathDef
 ) {
-  const select: any = mtarget.select
-  const margs: any = mtarget.args
+  const select: any = mpoint.select
+  const margs: any = mpoint.args
 
   const argkinds = ['params', 'query', 'header', 'cookie']
 
@@ -75,7 +75,7 @@ function resolveSelect(
   select.exist.sort()
 
   const gent = guide.entity[ment.name]
-  const gpath = gent.path[mtarget.orig]
+  const gpath = gent.path[mpoint.orig]
 
   if (gpath.action) {
     const actname = Object.keys(gpath.action).sort()[0]
@@ -94,12 +94,12 @@ function sortPoints(
   mop: ModelOp,
 ) {
   // Cache joined exist strings to avoid recomputing on every comparison.
-  const existCache = new Map<ModelTarget, string>()
+  const existCache = new Map<ModelPoint, string>()
   for (const pt of mop.points) {
     existCache.set(pt, pt.select.exist.join('\t'))
   }
 
-  mop.points.sort((a: ModelTarget, b: ModelTarget) => {
+  mop.points.sort((a: ModelPoint, b: ModelPoint) => {
     // longest exist len first
     let order = b.select.exist.length - a.select.exist.length
     if (0 === order) {

@@ -17,10 +17,6 @@ const entityTransform = async function (ctx) {
             name: entname,
             op: {},
             fields: [],
-            id: {
-                name: 'id',
-                field: 'id',
-            },
             relations,
         };
         kit.entity[entname] = modelent;

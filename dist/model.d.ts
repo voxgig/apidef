@@ -1,14 +1,26 @@
 import type { MethodName } from './types';
 type OpName = 'load' | 'list' | 'create' | 'update' | 'remove' | 'patch' | 'head' | 'options';
-type Model = {
+type ArgKind = 'param' | 'query' | 'header' | 'cookie';
+type NamesCluster = {
     name: string;
+    Name: string;
+    NAME: string;
+};
+type Model = NamesCluster & {
     origin?: string;
-    const: {
-        Name: string;
+    def?: string;
+    const: NamesCluster & {
+        year?: number;
     };
     main: {
         kit: {
+            info: any;
+            config: any;
             entity: Record<string, ModelEntity>;
+            feature: Record<string, any>;
+            flow: Record<string, ModelEntityFlow>;
+            target: Record<string, any>;
+            option?: Record<string, any>;
         };
     };
 };
@@ -30,10 +42,11 @@ type ModelArg = {
     name: string;
     orig: string;
     type: any;
-    kind: 'param' | 'query' | 'header' | 'cookie';
+    kind: ArgKind;
     reqd: boolean;
+    example?: any;
 };
-type ModelTarget = {
+type ModelPoint = {
     orig: string;
     method: MethodName;
     parts: string[];
@@ -60,13 +73,15 @@ type ModelTarget = {
 };
 type ModelOp = {
     name: OpName;
-    points: ModelTarget[];
+    points: ModelPoint[];
 };
 type ModelEntity = {
     name: string;
+    Name?: string;
+    NAME?: string;
     op: ModelOpMap;
     fields: ModelField[];
-    id: {
+    id?: {
         name: string;
         field: string;
     };
@@ -77,19 +92,36 @@ type ModelEntityFlow = {
     entity: string;
     kind: string;
     step: ModelEntityFlowStep[];
+    active?: boolean;
+};
+type ModelEntityFlowStepInput = {
+    ref?: string;
+    entvar?: string;
+    matchvar?: string;
+    datavar?: string;
+    listvar?: string;
+    resdatavar?: string;
+    markdefvar?: string;
+    srcdatavar?: string;
+    suffix?: string;
+    textfield?: string;
+    id?: any;
+    [extra: string]: any;
+};
+type ModelEntityFlowStepValidator = {
+    apply: string;
+    def: Record<string, any>;
+};
+type ModelEntityFlowStepSpec = {
+    apply: string;
+    def: Record<string, any>;
 };
 type ModelEntityFlowStep = {
     op: OpName;
-    input: Record<string, any>;
+    input: ModelEntityFlowStepInput;
     match: Record<string, any>;
     data: Record<string, any>;
-    spec: {
-        apply: string;
-        def: Record<string, any>;
-    }[];
-    valid: {
-        apply: string;
-        def: Record<string, any>;
-    }[];
+    spec: ModelEntityFlowStepSpec[];
+    valid: ModelEntityFlowStepValidator[];
 };
-export type { OpName, Model, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelTarget, ModelOp, ModelEntity, ModelEntityFlow, ModelEntityFlowStep, };
+export type { OpName, ArgKind, NamesCluster, Model, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelPoint, ModelOp, ModelEntity, ModelEntityFlow, ModelEntityFlowStep, ModelEntityFlowStepInput, ModelEntityFlowStepValidator, ModelEntityFlowStepSpec, };

@@ -17,16 +17,16 @@ const fieldTransform = async function (ctx) {
         for (let opname of opFieldPrecedence) {
             const mop = ment.op[opname];
             if (mop) {
-                const mtargets = mop.points;
-                for (let mtarget of mtargets) {
-                    const opfields = resolveOpFields(ment, mop, mtarget, def);
+                const mpoints = mop.points;
+                for (let mpoint of mpoints) {
+                    const opfields = resolveOpFields(ment, mop, mpoint, def);
                     for (let opfield of opfields) {
                         if (!seen[opfield.name]) {
                             fields.push(opfield);
                             seen[opfield.name] = opfield;
                         }
                         else {
-                            mergeField(ment, mop, mtarget, def, seen[opfield.name], opfield);
+                            mergeField(ment, mop, mpoint, def, seen[opfield.name], opfield);
                         }
                     }
                 }
@@ -35,14 +35,22 @@ const fieldTransform = async function (ctx) {
         fields.sort((a, b) => {
             return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
         });
+        // Mark the entity as having an id only when the spec actually declares one.
+        // Downstream (test generators, fixture builders) gate id-specific code on
+        // this presence so that public read-only APIs without ids don't get
+        // bogus id assertions.
+        const idField = fields.find((f) => 'id' === f.name);
+        if (idField) {
+            ment.id = { name: 'id', field: 'id' };
+        }
         msg += ment.name + ' ';
     });
     return { ok: true, msg };
 };
 exports.fieldTransform = fieldTransform;
-function resolveOpFields(ment, mop, mtarget, def) {
+function resolveOpFields(ment, mop, mpoint, def) {
     const mfields = [];
-    const fielddefs = findFieldDefs(ment, mop, mtarget, def);
+    const fielddefs = findFieldDefs(ment, mop, mpoint, def);
     for (let fielddef of fielddefs) {
         const fieldname = fielddef.key$;
         const name = (0, utility_1.canonize)((0, utility_1.normalizeFieldName)(fieldname));
@@ -56,10 +64,10 @@ function resolveOpFields(ment, mop, mtarget, def) {
     }
     return mfields;
 }
-function findFieldDefs(_ment, mop, mtarget, def) {
+function findFieldDefs(_ment, mop, mpoint, def) {
     const fielddefs = [];
-    const pathdef = def.paths[mtarget.orig];
-    const method = mtarget.method.toLowerCase();
+    const pathdef = def.paths[mpoint.orig];
+    const method = mpoint.method.toLowerCase();
     const opdef = pathdef[method];
     if (opdef) {
         const responses = opdef.responses;
@@ -243,7 +251,7 @@ function inferTypeFromValue(value) {
         return 'object';
     return 'string';
 }
-function mergeField(ment, mop, mtarget, def, exisingField, newField) {
+function mergeField(ment, mop, mpoint, def, exisingField, newField) {
     if (newField.req !== exisingField.req) {
         exisingField.op[mop.name] = {
             req: newField.req,

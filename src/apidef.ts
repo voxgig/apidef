@@ -284,8 +284,21 @@ function ApiDef(opts: ApiDefOptions) {
           warn.history.map(n => formatJSONIC(n)).join('\n\n'))
       }
 
+      // apidef writes model source files (entity, flow, guide jsonics) into
+      // .sdk/model/. Downstream actions (sdkgen, etc.) read those via
+      // sdk.jsonic @-includes, so voxgig-model has to re-resolve the model
+      // before the post-step actions run. Signal reload whenever jostraca
+      // wrote or merged any files; if nothing changed on disk,
+      // voxgig-model's resolveModel cache short-circuits the re-read.
+      const jfiles = jres?.files
+      const reload = !!jfiles && (
+        (jfiles.written?.length ?? 0) > 0 ||
+        (jfiles.merged?.length ?? 0) > 0
+      )
+
       return {
         ok: true,
+        reload,
         err: null,
         start,
         end: Date.now(),
@@ -398,17 +411,22 @@ export type {
 
 export type {
   OpName,
+  ArgKind,
+  NamesCluster,
   ModelEntityRelations,
   ModelOpMap,
   ModelFieldOp,
   ModelField,
   ModelArg,
-  ModelTarget,
+  ModelPoint,
   ModelOp,
   ModelEntity,
   Model,
   ModelEntityFlow,
   ModelEntityFlowStep,
+  ModelEntityFlowStepInput,
+  ModelEntityFlowStepValidator,
+  ModelEntityFlowStepSpec,
 } from './model'
 
 

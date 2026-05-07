@@ -21,7 +21,7 @@ import type {
   OpName,
   ModelOp,
   ModelEntity,
-  ModelTarget,
+  ModelPoint,
   ModelArg,
 } from '../model'
 
@@ -38,16 +38,16 @@ const argsTransform: Transform = async function(
 
   each(kit.entity, (ment: ModelEntity, entname: string) => {
     each(ment.op, (mop: ModelOp, opname: OpName) => {
-      each(mop.points, (mtarget: ModelTarget) => {
+      each(mop.points, (mpoint: ModelPoint) => {
         const argdefs: ParameterDef[] = []
 
-        const pathdef: PathDef = def.paths[mtarget.orig]
+        const pathdef: PathDef = def.paths[mpoint.orig]
         argdefs.push(...(pathdef.parameters ?? []))
 
-        const opdef: MethodDef = (pathdef as any)[mtarget.method.toLowerCase()]
+        const opdef: MethodDef = (pathdef as any)[mpoint.method.toLowerCase()]
         argdefs.push(...(opdef?.parameters ?? []))
 
-        resolveArgs(ment, mop, mtarget, argdefs)
+        resolveArgs(ment, mop, mpoint, argdefs)
       })
 
     })
@@ -67,7 +67,7 @@ const ARG_KIND: Record<string, ModelArg["kind"]> = {
 }
 
 
-function resolveArgs(ment: ModelEntity, mop: ModelOp, mtarget: ModelTarget, argdefs: ParameterDef[]) {
+function resolveArgs(ment: ModelEntity, mop: ModelOp, mpoint: ModelPoint, argdefs: ParameterDef[]) {
   const touchedKeys = new Set<string>()
 
   each(argdefs, (argdef: ParameterDef) => {
@@ -79,7 +79,7 @@ function resolveArgs(ment: ModelEntity, mop: ModelOp, mtarget: ModelTarget, argd
     // Rename map can be keyed by either the spec original (camelCase) or by
     // the snakified form depending on which path went through heuristic01.
     // Try both before falling through to `orig`.
-    const renameMap = mtarget.rename[kind]
+    const renameMap = mpoint.rename[kind]
     const name = renameMap?.[specName] ?? renameMap?.[orig] ?? orig
     const marg: ModelArg = {
       name,
@@ -89,12 +89,17 @@ function resolveArgs(ment: ModelEntity, mop: ModelOp, mtarget: ModelTarget, argd
       reqd: !!argdef.required
     }
 
+    const example = resolveArgExample(argdef)
+    if (undefined !== example) {
+      marg.example = example
+    }
+
     if (argdef.nullable) {
       marg.type = ['`$ONE`', '`$NULL`', marg.type]
     }
 
-    const argsKey = (marg.kind === 'param' ? 'params' : marg.kind) as keyof typeof mtarget.args
-    let kindargs = (mtarget.args[argsKey] = mtarget.args[argsKey] ?? [])
+    const argsKey = (marg.kind === 'param' ? 'params' : marg.kind) as keyof typeof mpoint.args
+    let kindargs = (mpoint.args[argsKey] = mpoint.args[argsKey] ?? [])
     kindargs.push(marg)
     touchedKeys.add(argsKey)
   })
@@ -102,10 +107,38 @@ function resolveArgs(ment: ModelEntity, mop: ModelOp, mtarget: ModelTarget, argd
   // Sort once after all args are collected
   const cmp = (a: ModelArg, b: ModelArg) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0
   for (const key of touchedKeys) {
-    mtarget.args[key as keyof typeof mtarget.args]?.sort(cmp)
+    mpoint.args[key as keyof typeof mpoint.args]?.sort(cmp)
   }
 }
 
+
+// OpenAPI lets specs advertise example values four ways:
+//   parameter.example          (single value, OAS 3.0+)
+//   parameter.examples          (named-example object, take first .value)
+//   parameter.schema.example   (single value on the schema)
+//   parameter.schema.default   (default value)
+// Pick the first one we find so test generators can produce valid live
+// requests even when the parameter is required and has no other source.
+function resolveArgExample(argdef: any): any {
+  if (undefined !== argdef?.example) return argdef.example
+
+  const examples = argdef?.examples
+  if (examples && 'object' === typeof examples) {
+    for (const v of Object.values(examples)) {
+      if (v && 'object' === typeof v && undefined !== (v as any).value) {
+        return (v as any).value
+      }
+    }
+  }
+
+  const schema = argdef?.schema
+  if (schema) {
+    if (undefined !== schema.example) return schema.example
+    if (undefined !== schema.default) return schema.default
+  }
+
+  return undefined
+}
 
 
 export {

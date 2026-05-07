@@ -16,8 +16,8 @@ const types_1 = require("../types");
 const topTransform = async function (ctx) {
     const { apimodel, def } = ctx;
     const kit = apimodel.main[types_1.KIT];
-    kit.info = def.info;
-    kit.info.servers = def.servers ?? [];
+    kit.info = stringifyInfoScalars(def.info ?? {});
+    kit.info.servers = stringifyInfoScalars(def.servers ?? []);
     // Swagger 2.0
     if (def.host) {
         kit.info.servers.push({
@@ -27,6 +27,30 @@ const topTransform = async function (ctx) {
     return { ok: true, msg: 'top' };
 };
 exports.topTransform = topTransform;
+// OpenAPI's `info` object (and the `servers` array) declares every scalar
+// leaf as a string. YAML/JSON parsers don't enforce that — `version: 2`
+// without quotes parses as the number 2, `version: true` as a boolean.
+// Apidef's downstream schema (apidef.jsonic) unifies info fields as
+// `string`, so non-string scalars cause an aontu unify failure during
+// model resolution. Normalise scalar leaves to strings here, at the
+// model-build boundary, rather than relax the schema.
+function stringifyInfoScalars(node) {
+    if (null == node)
+        return node;
+    if (Array.isArray(node))
+        return node.map(stringifyInfoScalars);
+    if ('object' === typeof node) {
+        const out = {};
+        for (const [k, v] of Object.entries(node)) {
+            out[k] = stringifyInfoScalars(v);
+        }
+        return out;
+    }
+    if ('number' === typeof node || 'boolean' === typeof node) {
+        return String(node);
+    }
+    return node;
+}
 // export type {
 //   GuideEntity,
 // }

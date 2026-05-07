@@ -50,8 +50,8 @@ type ModelArg struct {
 	Reqd bool   `json:"reqd"`
 }
 
-// ModelTarget represents a point implementation of an operation.
-type ModelTarget struct {
+// ModelPoint represents a point implementation of an operation.
+type ModelPoint struct {
 	Orig      string            `json:"orig"`
 	Method    MethodName        `json:"method"`
 	Parts     []string          `json:"parts"`
@@ -64,7 +64,7 @@ type ModelTarget struct {
 // ModelOp represents an operation definition.
 type ModelOp struct {
 	Name   OpName         `json:"name"`
-	Points []*ModelTarget `json:"points"`
+	Points []*ModelPoint `json:"points"`
 }
 
 // ModelEntity represents an entity definition with operations and fields.

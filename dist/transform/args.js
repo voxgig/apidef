@@ -10,13 +10,13 @@ const argsTransform = async function (ctx) {
     let msg = 'args ';
     (0, jostraca_1.each)(kit.entity, (ment, entname) => {
         (0, jostraca_1.each)(ment.op, (mop, opname) => {
-            (0, jostraca_1.each)(mop.points, (mtarget) => {
+            (0, jostraca_1.each)(mop.points, (mpoint) => {
                 const argdefs = [];
-                const pathdef = def.paths[mtarget.orig];
+                const pathdef = def.paths[mpoint.orig];
                 argdefs.push(...(pathdef.parameters ?? []));
-                const opdef = pathdef[mtarget.method.toLowerCase()];
+                const opdef = pathdef[mpoint.method.toLowerCase()];
                 argdefs.push(...(opdef?.parameters ?? []));
-                resolveArgs(ment, mop, mtarget, argdefs);
+                resolveArgs(ment, mop, mpoint, argdefs);
             });
         });
         msg += ment.name + ' ';
@@ -30,7 +30,7 @@ const ARG_KIND = {
     'path': 'param',
     'cookie': 'cookie',
 };
-function resolveArgs(ment, mop, mtarget, argdefs) {
+function resolveArgs(ment, mop, mpoint, argdefs) {
     const touchedKeys = new Set();
     (0, jostraca_1.each)(argdefs, (argdef) => {
         // Spec name as written (e.g. `dataType`) is what the rename map is keyed
@@ -41,7 +41,7 @@ function resolveArgs(ment, mop, mtarget, argdefs) {
         // Rename map can be keyed by either the spec original (camelCase) or by
         // the snakified form depending on which path went through heuristic01.
         // Try both before falling through to `orig`.
-        const renameMap = mtarget.rename[kind];
+        const renameMap = mpoint.rename[kind];
         const name = renameMap?.[specName] ?? renameMap?.[orig] ?? orig;
         const marg = {
             name,
@@ -50,18 +50,49 @@ function resolveArgs(ment, mop, mtarget, argdefs) {
             kind,
             reqd: !!argdef.required
         };
+        const example = resolveArgExample(argdef);
+        if (undefined !== example) {
+            marg.example = example;
+        }
         if (argdef.nullable) {
             marg.type = ['`$ONE`', '`$NULL`', marg.type];
         }
         const argsKey = (marg.kind === 'param' ? 'params' : marg.kind);
-        let kindargs = (mtarget.args[argsKey] = mtarget.args[argsKey] ?? []);
+        let kindargs = (mpoint.args[argsKey] = mpoint.args[argsKey] ?? []);
         kindargs.push(marg);
         touchedKeys.add(argsKey);
     });
     // Sort once after all args are collected
     const cmp = (a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
     for (const key of touchedKeys) {
-        mtarget.args[key]?.sort(cmp);
+        mpoint.args[key]?.sort(cmp);
     }
+}
+// OpenAPI lets specs advertise example values four ways:
+//   parameter.example          (single value, OAS 3.0+)
+//   parameter.examples          (named-example object, take first .value)
+//   parameter.schema.example   (single value on the schema)
+//   parameter.schema.default   (default value)
+// Pick the first one we find so test generators can produce valid live
+// requests even when the parameter is required and has no other source.
+function resolveArgExample(argdef) {
+    if (undefined !== argdef?.example)
+        return argdef.example;
+    const examples = argdef?.examples;
+    if (examples && 'object' === typeof examples) {
+        for (const v of Object.values(examples)) {
+            if (v && 'object' === typeof v && undefined !== v.value) {
+                return v.value;
+            }
+        }
+    }
+    const schema = argdef?.schema;
+    if (schema) {
+        if (undefined !== schema.example)
+            return schema.example;
+        if (undefined !== schema.default)
+            return schema.default;
+    }
+    return undefined;
 }
 //# sourceMappingURL=args.js.map
