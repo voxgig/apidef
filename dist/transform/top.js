@@ -24,6 +24,14 @@ const topTransform = async function (ctx) {
             url: (def.schemes?.[0] ?? 'https') + '://' + (0, struct_1.join)([def.host, def.basePath], '/', true)
         });
     }
+    // A usable SDK requires a base URL. OpenAPI 3 puts it in `servers[].url`;
+    // Swagger 2 derives it from `host` + `basePath`. If neither yields a
+    // non-empty url, the generated SDK has no way to issue requests, so fail
+    // the apidef model build rather than emit broken code.
+    const firstServerUrl = kit.info.servers?.[0]?.url;
+    if (null == firstServerUrl || '' === String(firstServerUrl).trim()) {
+        throw new Error('apidef: no server URL found in API definition (servers[0].url is required).');
+    }
     return { ok: true, msg: 'top' };
 };
 exports.topTransform = topTransform;

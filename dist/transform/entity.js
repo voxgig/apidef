@@ -9,6 +9,16 @@ const entityTransform = async function (ctx) {
     const { apimodel, guide } = ctx;
     const kit = apimodel.main[types_1.KIT];
     let msg = '';
+    // Pre-pass: merge collection paths into the entity that owns the
+    // per-instance paths. Heuristic01 sometimes assigns "/people" to a
+    // separate "*_search" entity (because the response wraps Person in
+    // a search/pagination component) while "/people/{id}" and
+    // "/people/{id}/anime" land on "person". Result: the person entity has
+    // no primary list endpoint, so direct-load tests can't bootstrap an
+    // ID. Move "/people" onto person here; this also clears the way for
+    // sensible flow generation (one entity, one collection, multiple
+    // sub-resources).
+    mergeCollectionPaths(guide, ctx.log);
     (0, jostraca_1.each)(guide.entity, (guideEntity, entname) => {
         ctx.log.debug({ point: 'guide-entity', note: entname });
         const paths$ = resolvePathList(guideEntity, ctx.def);
@@ -25,6 +35,76 @@ const entityTransform = async function (ctx) {
     return { ok: true, msg };
 };
 exports.entityTransform = entityTransform;
+// Move "/X" paths onto the entity that owns "/X/{id}" or "/X/{id}/sub".
+// Only acts when the path "/X" sits on a different entity than the
+// per-instance paths — leaves correctly-classified APIs alone.
+function mergeCollectionPaths(guide, log) {
+    const entities = guide.entity;
+    // First pass: build collectionRoot -> owner-entity-name map.
+    // owner is the entity whose name contains "/X/{...}" paths; we prefer
+    // the owner whose direct-load path is "/X/{id}" (no further segments)
+    // so that nested-resource entities don't claim the root.
+    const rootOwners = {};
+    for (const [ename, entity] of Object.entries(entities)) {
+        for (const pathStr of Object.keys(entity.path ?? {})) {
+            // Match /A/{...} or /A/{...}/...
+            const m = pathStr.match(/^\/([^\/{}]+)\/\{[^}]+\}(\/.*)?$/);
+            if (!m)
+                continue;
+            const root = m[1];
+            const trailing = m[2] ?? '';
+            // Depth = number of segments after the {id} placeholder. Lower
+            // depth wins (e.g. "/people/{id}" beats "/people/{id}/anime").
+            const depth = trailing === '' ? 0 : trailing.split('/').filter(Boolean).length;
+            const cur = rootOwners[root];
+            if (!cur || depth < cur.depth) {
+                rootOwners[root] = { ename, depth };
+            }
+        }
+    }
+    // Second pass: for each entity with a "/X" path, if X has an owner
+    // elsewhere, move the path there.
+    for (const [ename, entity] of Object.entries(entities)) {
+        if (entity.path == null)
+            continue;
+        const pathsToMove = [];
+        for (const pathStr of Object.keys(entity.path)) {
+            // Match exactly /X (one literal segment, no params).
+            const m = pathStr.match(/^\/([^\/{}]+)$/);
+            if (!m)
+                continue;
+            const root = m[1];
+            const owner = rootOwners[root];
+            if (owner && owner.ename !== ename) {
+                pathsToMove.push(pathStr);
+            }
+        }
+        for (const pathStr of pathsToMove) {
+            const owner = rootOwners[pathStr.slice(1)];
+            const targetEntity = entities[owner.ename];
+            if (targetEntity == null)
+                continue;
+            targetEntity.path = targetEntity.path ?? {};
+            // If the target already has this path (unlikely), leave it alone.
+            if (targetEntity.path[pathStr] == null) {
+                targetEntity.path[pathStr] = entity.path[pathStr];
+            }
+            delete entity.path[pathStr];
+            log?.debug?.({
+                point: 'merge-collection-path',
+                path: pathStr,
+                from: ename,
+                to: owner.ename,
+            });
+        }
+    }
+    // Drop entities that are now empty after the merge.
+    for (const ename of Object.keys(entities)) {
+        if (entities[ename].path == null || Object.keys(entities[ename].path).length === 0) {
+            delete entities[ename];
+        }
+    }
+}
 function resolvePathList(guideEntity, def) {
     const paths$ = [];
     (0, jostraca_1.each)(guideEntity.path, (guidePath, orig) => {
@@ -49,9 +129,17 @@ function resolvePathList(guideEntity, def) {
     return paths$;
 }
 function buildRelations(guideEntity, paths$) {
+    // An ancestor is a literal collection segment (e.g. "rems") followed by
+    // a path-param placeholder that names an instance ID. We only collect
+    // the literal parts — placeholder parts like "{año}" must be excluded
+    // even when they're themselves followed by another placeholder, otherwise
+    // downstream code treats `{año}` as an ancestor name and emits broken
+    // idmap entries / match keys.
     let ancestors = paths$
         .map(pli => pli.parts
-        .map((p, i) => (pli.parts[i + 1]?.[0] === '{' && pli.parts[i + 1] !== '{id}') ? p : null)
+        .map((p, i) => ('{' !== p[0] &&
+        pli.parts[i + 1]?.[0] === '{' &&
+        pli.parts[i + 1] !== '{id}') ? p : null)
         .filter(p => null != p))
         .filter(n => 0 < n.length)
         .sort((a, b) => a.length - b.length);
