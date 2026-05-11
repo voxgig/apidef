@@ -6,6 +6,7 @@ const jostraca_1 = require("jostraca");
 const struct_1 = require("@voxgig/struct");
 const utility_1 = require("../utility");
 const jostraca_2 = require("jostraca");
+const entity_1 = require("../transform/entity");
 const KONSOLE_LOG = console['log'];
 // Log non - fatal wierdness.
 const dlog = (0, utility_1.getdlog)('apidef', __filename);
@@ -61,6 +62,13 @@ async function heuristic01(ctx) {
         throw result.err;
     }
     const guide = result.data.guide;
+    // Reassign single-segment collection paths (e.g. "/people") onto the entity
+    // that owns the per-instance path ("/people/{id}"). Heuristic discovery can
+    // split the two when response schemas wrap the resource in a search/pagination
+    // component. Running this here — before base-guide.jsonic is serialised —
+    // means the same merged layout flows into both guide-case (transformers off)
+    // and model-case (transformers on), so they agree on the final guide.
+    (0, entity_1.mergeCollectionPaths)(guide, ctx.log);
     const metrics = guide.metrics;
     const entities = Object.values(guide.entity);
     const entityCount = entities.length;

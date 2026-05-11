@@ -56,6 +56,8 @@ import {
 
 import { snakify } from 'jostraca'
 
+import { mergeCollectionPaths } from '../transform/entity'
+
 import type {
   PathMatch
 } from '../utility'
@@ -130,6 +132,15 @@ async function heuristic01(ctx: ApiDefContext): Promise<Guide> {
   }
 
   const guide = result.data.guide
+
+  // Reassign single-segment collection paths (e.g. "/people") onto the entity
+  // that owns the per-instance path ("/people/{id}"). Heuristic discovery can
+  // split the two when response schemas wrap the resource in a search/pagination
+  // component. Running this here — before base-guide.jsonic is serialised —
+  // means the same merged layout flows into both guide-case (transformers off)
+  // and model-case (transformers on), so they agree on the final guide.
+  mergeCollectionPaths(guide, ctx.log)
+
   const metrics = guide.metrics
 
   const entities = Object.values(guide.entity)

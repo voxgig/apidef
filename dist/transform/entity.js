@@ -3,8 +3,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.entityTransform = void 0;
 exports.resolvePathList = resolvePathList;
 exports.buildRelations = buildRelations;
+exports.mergeCollectionPaths = mergeCollectionPaths;
 const jostraca_1 = require("jostraca");
 const types_1 = require("../types");
+const utility_1 = require("../utility");
 const entityTransform = async function (ctx) {
     const { apimodel, guide } = ctx;
     const kit = apimodel.main[types_1.KIT];
@@ -85,9 +87,42 @@ function mergeCollectionPaths(guide, log) {
             if (targetEntity == null)
                 continue;
             targetEntity.path = targetEntity.path ?? {};
-            // If the target already has this path (unlikely), leave it alone.
-            if (targetEntity.path[pathStr] == null) {
-                targetEntity.path[pathStr] = entity.path[pathStr];
+            const srcPath = entity.path[pathStr];
+            const tgtPath = targetEntity.path[pathStr];
+            if (tgtPath == null) {
+                targetEntity.path[pathStr] = srcPath;
+            }
+            else {
+                // Target already owns this path under a different heuristic-discovered
+                // entity (e.g. `/gists` GET on `base_gist`, `/gists` POST on `gist`).
+                // Merge op/action/rename sets so no method is silently lost — without
+                // this, the second source's contribution drops on the floor and the
+                // base-guide loses paths that were in the original spec.
+                if (srcPath?.op) {
+                    tgtPath.op = tgtPath.op ?? {};
+                    for (const opname of Object.keys(srcPath.op)) {
+                        if (tgtPath.op[opname] == null) {
+                            tgtPath.op[opname] = srcPath.op[opname];
+                        }
+                    }
+                }
+                if (srcPath?.action) {
+                    tgtPath.action = tgtPath.action ?? {};
+                    for (const aname of Object.keys(srcPath.action)) {
+                        if (tgtPath.action[aname] == null) {
+                            tgtPath.action[aname] = srcPath.action[aname];
+                        }
+                    }
+                }
+                if (srcPath?.rename?.param) {
+                    tgtPath.rename = tgtPath.rename ?? {};
+                    tgtPath.rename.param = tgtPath.rename.param ?? {};
+                    for (const p of Object.keys(srcPath.rename.param)) {
+                        if (tgtPath.rename.param[p] == null) {
+                            tgtPath.rename.param[p] = srcPath.rename.param[p];
+                        }
+                    }
+                }
             }
             delete entity.path[pathStr];
             log?.debug?.({
@@ -96,12 +131,6 @@ function mergeCollectionPaths(guide, log) {
                 from: ename,
                 to: owner.ename,
             });
-        }
-    }
-    // Drop entities that are now empty after the merge.
-    for (const ename of Object.keys(entities)) {
-        if (entities[ename].path == null || Object.keys(entities[ename].path).length === 0) {
-            delete entities[ename];
         }
     }
 }
@@ -135,11 +164,17 @@ function buildRelations(guideEntity, paths$) {
     // even when they're themselves followed by another placeholder, otherwise
     // downstream code treats `{año}` as an ancestor name and emits broken
     // idmap entries / match keys.
+    //
+    // Each captured segment is then normalised to its entity name —
+    // depluralize+snakify — so that "files"/"audit-log" become "file"/"audit_log",
+    // i.e. the same keys downstream code uses to look up entities. Without this,
+    // `apimodel.main.kit.entity[ancestorName]` misses the parent entity for
+    // pluralised path segments.
     let ancestors = paths$
         .map(pli => pli.parts
         .map((p, i) => ('{' !== p[0] &&
         pli.parts[i + 1]?.[0] === '{' &&
-        pli.parts[i + 1] !== '{id}') ? p : null)
+        pli.parts[i + 1] !== '{id}') ? (0, utility_1.depluralize)((0, jostraca_1.snakify)(p)) : null)
         .filter(p => null != p))
         .filter(n => 0 < n.length)
         .sort((a, b) => a.length - b.length);
