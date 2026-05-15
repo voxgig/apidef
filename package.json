@@ -1,6 +1,6 @@
 {
   "name": "@voxgig/apidef",
-  "version": "6.1.1",
+  "version": "6.2.0",
   "main": "dist/apidef.js",
   "type": "commonjs",
   "types": "dist/apidef.d.ts",
@@ -40,7 +40,7 @@
     "LICENSE"
   ],
   "devDependencies": {
-    "@types/node": "25.7.0",
+    "@types/node": "25.8.0",
     "typescript": "6.0.3"
   },
   "peerDependencies": {
