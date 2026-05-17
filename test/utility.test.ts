@@ -50,6 +50,41 @@ describe('utility', () => {
     assert.deepStrictEqual(depluralize('lens'),'lens')
     assert.deepStrictEqual(depluralize('phrase'),'phrase')
     assert.deepStrictEqual(depluralize('abs'),'abs')
+
+    // `<vowel>+se+s` plurals — the generic `-ses → ∅` rule used to
+    // over-strip these to hous/phas/nos/etc. Each must round-trip via
+    // IRREGULARS.
+    assert.deepStrictEqual(depluralize('houses'),'house')
+    assert.deepStrictEqual(depluralize('phases'),'phase')
+    assert.deepStrictEqual(depluralize('noses'),'nose')
+    assert.deepStrictEqual(depluralize('cases'),'case')
+    assert.deepStrictEqual(depluralize('roses'),'rose')
+    assert.deepStrictEqual(depluralize('hoses'),'hose')
+    assert.deepStrictEqual(depluralize('doses'),'dose')
+    assert.deepStrictEqual(depluralize('pauses'),'pause')
+    assert.deepStrictEqual(depluralize('sources'),'source')
+    assert.deepStrictEqual(depluralize('purses'),'purse')
+    assert.deepStrictEqual(depluralize('nurses'),'nurse')
+    assert.deepStrictEqual(depluralize('verses'),'verse')
+    assert.deepStrictEqual(depluralize('licenses'),'license')
+    assert.deepStrictEqual(depluralize('notices'),'notice')
+    assert.deepStrictEqual(depluralize('practices'),'practice')
+    assert.deepStrictEqual(depluralize('promises'),'promise')
+    assert.deepStrictEqual(depluralize('premises'),'premise')
+    assert.deepStrictEqual(depluralize('furnaces'),'furnace')
+
+    // Other -ses plurals where the default rule IS correct (double-s
+    // before the -es). These must keep stripping the full -es.
+    assert.deepStrictEqual(depluralize('boxes'),'box')
+    assert.deepStrictEqual(depluralize('kisses'),'kiss')
+    assert.deepStrictEqual(depluralize('passes'),'pass')
+    assert.deepStrictEqual(depluralize('glasses'),'glass')
+    assert.deepStrictEqual(depluralize('buses'),'bus')
+
+    // Already-singular forms with -se ending must not be mangled.
+    assert.deepStrictEqual(depluralize('house'),'house')
+    assert.deepStrictEqual(depluralize('license'),'license')
+    assert.deepStrictEqual(depluralize('practice'),'practice')
   })
 
   test('canonize', () => {
