@@ -99,42 +99,61 @@ function formatJsonSrc(jsonsrc) {
         .replace(RE_JSON_TRAILING_BRACE, '}\n')
         .replace(RE_JSON_COMMENT, '\n\n$1# $2 $3');
 }
-// Common irregular plurals - hoisted to module scope to avoid re-allocation per call.
+// Common irregular plurals, in the form plural → singular. Used at the
+// head of depluralize() to short-circuit cases the suffix rules below
+// would otherwise mishandle.
+//
+// Special care: the generic `-ses → ∅` rule (used for boxes/buses/kisses)
+// also matches `house+s`-style plurals (houses, phases, noses, …) and
+// would over-strip them to `hous`, `phas`, `nos`. Every such -se+s
+// plural needs an explicit entry here.
 const IRREGULARS = {
     'analytics': 'analytics',
     'analyses': 'analysis',
     'appendices': 'appendix',
     'axes': 'axis',
+    'cases': 'case',
     'children': 'child',
     'courses': 'course',
     'crises': 'crisis',
     'criteria': 'criterion',
     // 'data': 'datum',
     'diagnoses': 'diagnosis',
+    'doses': 'dose',
     'feet': 'foot',
-    'furnace': 'furnaces',
+    'furnaces': 'furnace',
     'geese': 'goose',
     'horses': 'horse',
-    'house': 'houses',
+    'hoses': 'hose',
+    'houses': 'house',
     'indices': 'index',
     'lens': 'lens',
-    'license': 'licenses',
+    'licenses': 'license',
     'matrices': 'matrix',
     'men': 'man',
     'mice': 'mouse',
     'movies': 'movie',
-    'notice': 'notices',
+    'noses': 'nose',
+    'notices': 'notice',
+    'nurses': 'nurse',
     'oases': 'oasis',
-    'phrase': 'phrase',
+    'pauses': 'pause',
+    'phases': 'phase',
+    'phrases': 'phrase',
+    'practices': 'practice',
+    'premises': 'premise',
+    'promises': 'promise',
+    'purses': 'purse',
     'releases': 'release',
+    'roses': 'rose',
     'people': 'person',
     'phenomena': 'phenomenon',
-    'practice': 'practices',
-    'promise': 'promises',
     'series': 'series',
+    'sources': 'source',
     'species': 'species',
     'teeth': 'tooth',
     'theses': 'thesis',
+    'verses': 'verse',
     'vertices': 'vertex',
     'women': 'woman',
     'yes': 'yes',
