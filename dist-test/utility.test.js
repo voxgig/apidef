@@ -30,6 +30,38 @@ const utility_1 = require("../dist/utility");
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('lens'), 'lens');
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('phrase'), 'phrase');
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('abs'), 'abs');
+        // `<vowel>+se+s` plurals — the generic `-ses → ∅` rule used to
+        // over-strip these to hous/phas/nos/etc. Each must round-trip via
+        // IRREGULARS.
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('houses'), 'house');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('phases'), 'phase');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('noses'), 'nose');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('cases'), 'case');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('roses'), 'rose');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('hoses'), 'hose');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('doses'), 'dose');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('pauses'), 'pause');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('sources'), 'source');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('purses'), 'purse');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('nurses'), 'nurse');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('verses'), 'verse');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('licenses'), 'license');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('notices'), 'notice');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('practices'), 'practice');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('promises'), 'promise');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('premises'), 'premise');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('furnaces'), 'furnace');
+        // Other -ses plurals where the default rule IS correct (double-s
+        // before the -es). These must keep stripping the full -es.
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('boxes'), 'box');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('kisses'), 'kiss');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('passes'), 'pass');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('glasses'), 'glass');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('buses'), 'bus');
+        // Already-singular forms with -se ending must not be mangled.
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('house'), 'house');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('license'), 'license');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('practice'), 'practice');
     });
     (0, node_test_1.test)('canonize', () => {
         // Basic canonization
