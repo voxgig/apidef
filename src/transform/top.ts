@@ -51,6 +51,28 @@ const topTransform = async function(
     })
   }
 
+  // Some specs omit the scheme on `servers[].url` — e.g. the Art
+  // Institute of Chicago lists `api.artic.edu/api/v1` (no
+  // https://). Go's net/http barfs on that with "unsupported
+  // protocol scheme". Default to https when the URL has no scheme
+  // and the value isn't a relative path.
+  for (const server of (kit.info.servers as any[])) {
+    if (!server || 'string' !== typeof server.url) continue
+    const url: string = server.url.trim()
+    if (url === '') continue
+    if (/^[a-z][a-z0-9+.-]*:\/\//i.test(url)) continue   // already has scheme
+    // `//host/path` is a protocol-relative URL — meaningless to a
+    // backend SDK, treat as missing-scheme and default to https.
+    if (url.startsWith('//')) {
+      server.url = 'https:' + url
+      continue
+    }
+    // `/path` is path-only (relative to wherever the spec is served).
+    // Leave it untouched; it's a valid OpenAPI form.
+    if (url.startsWith('/')) continue
+    server.url = 'https://' + url
+  }
+
   // A usable SDK requires a base URL. OpenAPI 3 puts it in `servers[].url`;
   // Swagger 2 derives it from `host` + `basePath`. If neither yields a
   // non-empty url, the generated SDK has no way to issue requests, so fail
