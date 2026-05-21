@@ -10,6 +10,8 @@ import {
   pathMatch,
   formatJSONIC,
   depluralize,
+  setCustomPlurals,
+  clearCustomPlurals,
   canonize,
   sanitizeSlug,
   slugToPascalCase,
@@ -85,6 +87,115 @@ describe('utility', () => {
     assert.deepStrictEqual(depluralize('house'),'house')
     assert.deepStrictEqual(depluralize('license'),'license')
     assert.deepStrictEqual(depluralize('practice'),'practice')
+
+    // -ze + s plurals — the singular keeps the trailing -e. The
+    // generic `-zes → ∅` rule used to over-strip these to priz/siz/etc.
+    assert.deepStrictEqual(depluralize('prizes'),'prize')
+    assert.deepStrictEqual(depluralize('sizes'),'size')
+    assert.deepStrictEqual(depluralize('freezes'),'freeze')
+    assert.deepStrictEqual(depluralize('breezes'),'breeze')
+    assert.deepStrictEqual(depluralize('mazes'),'maze')
+    assert.deepStrictEqual(depluralize('sneezes'),'sneeze')
+
+    // -zz + es plurals — singular ends in -zz, strip full -es.
+    assert.deepStrictEqual(depluralize('buzzes'),'buzz')
+    assert.deepStrictEqual(depluralize('fizzes'),'fizz')
+
+    // -che + s plurals — singular keeps the -e. The generic
+    // `-ches → ∅` rule used to over-strip these to cach/nich/etc.
+    // Each entry round-trips via IRREGULARS.
+    assert.deepStrictEqual(depluralize('caches'),'cache')
+    assert.deepStrictEqual(depluralize('niches'),'niche')
+    assert.deepStrictEqual(depluralize('headaches'),'headache')
+    assert.deepStrictEqual(depluralize('avalanches'),'avalanche')
+    assert.deepStrictEqual(depluralize('moustaches'),'moustache')
+    assert.deepStrictEqual(depluralize('mustaches'),'mustache')
+
+    // Default -ches behaviour for -ch singulars must still work.
+    assert.deepStrictEqual(depluralize('arches'),'arch')
+    assert.deepStrictEqual(depluralize('branches'),'branch')
+    assert.deepStrictEqual(depluralize('beaches'),'beach')
+    assert.deepStrictEqual(depluralize('matches'),'match')
+    assert.deepStrictEqual(depluralize('churches'),'church')
+
+    // Case-insensitive IRREGULARS lookup — used to over-strip via
+    // the case-sensitive bypass (Houses → Hous, Mice → Mice).
+    assert.deepStrictEqual(depluralize('Houses'),'House')
+    assert.deepStrictEqual(depluralize('HOUSES'),'HOUSE')
+    assert.deepStrictEqual(depluralize('Mice'),'Mouse')
+    assert.deepStrictEqual(depluralize('MICE'),'MOUSE')
+    assert.deepStrictEqual(depluralize('Axes'),'Axis')
+    assert.deepStrictEqual(depluralize('Movies'),'Movie')
+    assert.deepStrictEqual(depluralize('Caches'),'Cache')
+    assert.deepStrictEqual(depluralize('MyHouses'),'MyHouse')
+
+    // All-uppercase suffix rules — used to fall through unchanged
+    // because endsWith() is case-sensitive.
+    assert.deepStrictEqual(depluralize('PRIZES'),'PRIZE')
+    assert.deepStrictEqual(depluralize('DOGS'),'DOG')
+    assert.deepStrictEqual(depluralize('CITIES'),'CITY')
+    assert.deepStrictEqual(depluralize('KNIVES'),'KNIFE')
+    assert.deepStrictEqual(depluralize('WOLVES'),'WOLF')
+    assert.deepStrictEqual(depluralize('BOXES'),'BOX')
+    assert.deepStrictEqual(depluralize('API_KEYS'),'API_KEY')
+  })
+
+  test('depluralize custom plurals', () => {
+    // Custom plurals from the model's main.custom.plurals section
+    // take priority over IRREGULARS, suffix rules, and even
+    // already-correct defaults. Per-test setup so test order is
+    // independent.
+    try {
+      // Exact-match override of a built-in IRREGULAR — fitness API
+      // where "axes" should singularize to "axe" instead of "axis".
+      setCustomPlurals({ axes: 'axe' })
+      assert.deepStrictEqual(depluralize('axes'), 'axe')
+      assert.deepStrictEqual(depluralize('Axes'), 'Axe')
+      assert.deepStrictEqual(depluralize('AXES'), 'AXE')
+
+      // Override a default rule result. By default 'prizes' → 'prize'
+      // via the -zes rule; a domain that treats "prizes" as a
+      // collection name singular to "prize_pool" can override.
+      setCustomPlurals({ prizes: 'prize_pool' })
+      assert.deepStrictEqual(depluralize('prizes'), 'prize_pool')
+
+      // Suffix match — same shape as the IRREGULARS scan.
+      setCustomPlurals({ widgets: 'widget' })
+      assert.deepStrictEqual(depluralize('user_widgets'), 'user_widget')
+      assert.deepStrictEqual(depluralize('UserWidgets'), 'UserWidget')
+
+      // Case-insensitive lookup: keys can be supplied in any case in
+      // the model, they normalize to lowercase internally.
+      setCustomPlurals({ Boxen: 'box' })
+      assert.deepStrictEqual(depluralize('boxen'), 'box')
+      assert.deepStrictEqual(depluralize('BOXEN'), 'BOX')
+
+      // Custom wins over default rules. Default depluralize would
+      // return 'datum' if 'data' were in IRREGULARS (it isn't), so
+      // demonstrate priority over the bare -s rule instead.
+      setCustomPlurals({ news: 'news' })
+      assert.deepStrictEqual(depluralize('news'), 'news')
+
+      // Null/undefined values in the map are dropped, not used to
+      // overwrite real words with empty strings.
+      setCustomPlurals({ Houses: null as any, mice: undefined as any })
+      assert.deepStrictEqual(depluralize('Houses'), 'House') // falls through to IRREGULARS
+      assert.deepStrictEqual(depluralize('mice'), 'mouse')
+
+      // Longest-suffix wins when multiple entries could match.
+      setCustomPlurals({ es: 'eee', boxes: 'box-special' })
+      assert.deepStrictEqual(depluralize('boxes'), 'box-special')
+
+      // clearCustomPlurals restores default behaviour fully.
+      clearCustomPlurals()
+      assert.deepStrictEqual(depluralize('axes'), 'axis')
+      assert.deepStrictEqual(depluralize('prizes'), 'prize')
+      assert.deepStrictEqual(depluralize('boxes'), 'box')
+    }
+    finally {
+      // Defensive: ensure no leak even if an assertion threw.
+      clearCustomPlurals()
+    }
   })
 
   test('canonize', () => {

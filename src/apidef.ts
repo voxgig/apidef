@@ -54,6 +54,8 @@ import {
   makeWarner,
   formatJSONIC,
   depluralize,
+  setCustomPlurals,
+  clearCustomPlurals,
   sanitizeSlug,
   slugToPascalCase,
   writeFileSyncWarn,
@@ -109,6 +111,11 @@ function ApiDef(opts: ApiDefOptions) {
       }
 
       names(model, model.name)
+
+      // Install per-model plural overrides for depluralize/canonize.
+      // Read from model.main.custom.plurals; downstream transforms
+      // and the guide pick this up implicitly via the utility module.
+      setCustomPlurals((model as any)?.main?.custom?.plurals)
 
       const apimodel: ApiModel = {
         main: {
@@ -336,6 +343,11 @@ function ApiDef(opts: ApiDefOptions) {
         ctx,
         jres,
       }
+    }
+    finally {
+      // Drop the per-model overrides so a subsequent generate() in
+      // the same process starts with a clean utility module.
+      clearCustomPlurals()
     }
   }
 

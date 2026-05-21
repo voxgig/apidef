@@ -63,6 +63,14 @@ const ModelShape = Shape({
       guide: {},
       entity: {},
     },
+    // Per-model overrides. `custom.plurals` is a plural → singular map
+    // consulted by depluralize() before the built-in IRREGULARS table
+    // and rule chain. Use for API-specific terminology where the
+    // generic English rules misclassify a name — e.g. {axes: axe}
+    // for a fitness API where the singular is "axe" not "axis".
+    custom: {
+      plurals: {},
+    },
   }
 })
 const OpenModelShape = Shape(Open(ModelShape), { name: 'Model' })
