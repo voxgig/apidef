@@ -13,6 +13,8 @@ declare function getdlog(tagin?: string, filepath?: string): ((...args: any[]) =
 };
 declare function loadFile(path: string, what: string, fs: FsUtil, log: Log): string;
 declare function formatJsonSrc(jsonsrc: string): string;
+declare function setCustomPlurals(plurals: Record<string, string> | undefined | null): void;
+declare function clearCustomPlurals(): void;
 declare function depluralize(word: string): string;
 declare function find(obj: any, qkey: string): any[];
 declare function capture(data: any, shape: any): Record<string, any>;
@@ -51,4 +53,4 @@ declare function getModelPath(model: any, path: string, flags?: {
     only_active?: boolean;
 }): any;
 export type { PathMatch };
-export { nom, getdlog, loadFile, formatJsonSrc, depluralize, find, capture, pathMatch, makeWarner, formatJSONIC, validator, canonize, sanitizeSlug, slugToPascalCase, transliterate, cleanComponentName, ensureMinEntityName, inferFieldType, normalizeFieldName, debugpath, findPathsWithPrefix, writeFileSyncWarn, warnOnError, relativizePath, getModelPath, sortedKeys, sortedEntries, };
+export { nom, getdlog, loadFile, formatJsonSrc, depluralize, setCustomPlurals, clearCustomPlurals, find, capture, pathMatch, makeWarner, formatJSONIC, validator, canonize, sanitizeSlug, slugToPascalCase, transliterate, cleanComponentName, ensureMinEntityName, inferFieldType, normalizeFieldName, debugpath, findPathsWithPrefix, writeFileSyncWarn, warnOnError, relativizePath, getModelPath, sortedKeys, sortedEntries, };

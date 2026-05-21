@@ -312,6 +312,9 @@ declare const ModelShape: {
                 guide: {};
                 entity: {};
             };
+            custom: {
+                plurals: {};
+            };
         };
     };
     valid: <V>(root?: V | undefined, ctx?: import("shape").Context) => root is V & {
@@ -323,6 +326,9 @@ declare const ModelShape: {
             api: {
                 guide: {};
                 entity: {};
+            };
+            custom: {
+                plurals: {};
             };
         };
     };
@@ -374,6 +380,9 @@ declare const ModelShape: {
                 guide: {};
                 entity: {};
             };
+            custom: {
+                plurals: {};
+            };
         };
     }>;
     stringify(...rest: any[]): string;
@@ -410,6 +419,9 @@ declare const OpenModelShape: {
                     guide: {};
                     entity: {};
                 };
+                custom: {
+                    plurals: {};
+                };
             };
         };
         valid: <V_1>(root?: V_1 | undefined, ctx?: import("shape").Context) => root is V_1 & {
@@ -421,6 +433,9 @@ declare const OpenModelShape: {
                 api: {
                     guide: {};
                     entity: {};
+                };
+                custom: {
+                    plurals: {};
                 };
             };
         };
@@ -471,6 +486,9 @@ declare const OpenModelShape: {
                 api: {
                     guide: {};
                     entity: {};
+                };
+                custom: {
+                    plurals: {};
                 };
             };
         }>;
@@ -531,6 +549,9 @@ declare const OpenModelShape: {
                     guide: {};
                     entity: {};
                 };
+                custom: {
+                    plurals: {};
+                };
             };
         };
         valid: <V>(root?: V | undefined, ctx?: import("shape").Context) => root is V & {
@@ -542,6 +563,9 @@ declare const OpenModelShape: {
                 api: {
                     guide: {};
                     entity: {};
+                };
+                custom: {
+                    plurals: {};
                 };
             };
         };
@@ -592,6 +616,9 @@ declare const OpenModelShape: {
                 api: {
                     guide: {};
                     entity: {};
+                };
+                custom: {
+                    plurals: {};
                 };
             };
         }>;

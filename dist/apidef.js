@@ -91,6 +91,10 @@ function ApiDef(opts) {
                 return { ok: true, steps, start, end: Date.now(), ctrl };
             }
             (0, jostraca_1.names)(model, model.name);
+            // Install per-model plural overrides for depluralize/canonize.
+            // Read from model.main.custom.plurals; downstream transforms
+            // and the guide pick this up implicitly via the utility module.
+            (0, utility_1.setCustomPlurals)(model?.main?.custom?.plurals);
             const apimodel = {
                 main: {
                     [types_1.KIT]: {
@@ -271,6 +275,11 @@ function ApiDef(opts) {
                 ctx,
                 jres,
             };
+        }
+        finally {
+            // Drop the per-model overrides so a subsequent generate() in
+            // the same process starts with a clean utility module.
+            (0, utility_1.clearCustomPlurals)();
         }
     }
     return {

@@ -62,6 +62,101 @@ const utility_1 = require("../dist/utility");
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('house'), 'house');
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('license'), 'license');
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('practice'), 'practice');
+        // -ze + s plurals — the singular keeps the trailing -e. The
+        // generic `-zes → ∅` rule used to over-strip these to priz/siz/etc.
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('prizes'), 'prize');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('sizes'), 'size');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('freezes'), 'freeze');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('breezes'), 'breeze');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('mazes'), 'maze');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('sneezes'), 'sneeze');
+        // -zz + es plurals — singular ends in -zz, strip full -es.
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('buzzes'), 'buzz');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('fizzes'), 'fizz');
+        // -che + s plurals — singular keeps the -e. The generic
+        // `-ches → ∅` rule used to over-strip these to cach/nich/etc.
+        // Each entry round-trips via IRREGULARS.
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('caches'), 'cache');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('niches'), 'niche');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('headaches'), 'headache');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('avalanches'), 'avalanche');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('moustaches'), 'moustache');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('mustaches'), 'mustache');
+        // Default -ches behaviour for -ch singulars must still work.
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('arches'), 'arch');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('branches'), 'branch');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('beaches'), 'beach');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('matches'), 'match');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('churches'), 'church');
+        // Case-insensitive IRREGULARS lookup — used to over-strip via
+        // the case-sensitive bypass (Houses → Hous, Mice → Mice).
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('Houses'), 'House');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('HOUSES'), 'HOUSE');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('Mice'), 'Mouse');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('MICE'), 'MOUSE');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('Axes'), 'Axis');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('Movies'), 'Movie');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('Caches'), 'Cache');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('MyHouses'), 'MyHouse');
+        // All-uppercase suffix rules — used to fall through unchanged
+        // because endsWith() is case-sensitive.
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('PRIZES'), 'PRIZE');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('DOGS'), 'DOG');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('CITIES'), 'CITY');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('KNIVES'), 'KNIFE');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('WOLVES'), 'WOLF');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('BOXES'), 'BOX');
+        node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('API_KEYS'), 'API_KEY');
+    });
+    (0, node_test_1.test)('depluralize custom plurals', () => {
+        // Custom plurals from the model's main.custom.plurals section
+        // take priority over IRREGULARS, suffix rules, and even
+        // already-correct defaults. Per-test setup so test order is
+        // independent.
+        try {
+            // Exact-match override of a built-in IRREGULAR — fitness API
+            // where "axes" should singularize to "axe" instead of "axis".
+            (0, utility_1.setCustomPlurals)({ axes: 'axe' });
+            node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('axes'), 'axe');
+            node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('Axes'), 'Axe');
+            node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('AXES'), 'AXE');
+            // Override a default rule result. By default 'prizes' → 'prize'
+            // via the -zes rule; a domain that treats "prizes" as a
+            // collection name singular to "prize_pool" can override.
+            (0, utility_1.setCustomPlurals)({ prizes: 'prize_pool' });
+            node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('prizes'), 'prize_pool');
+            // Suffix match — same shape as the IRREGULARS scan.
+            (0, utility_1.setCustomPlurals)({ widgets: 'widget' });
+            node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('user_widgets'), 'user_widget');
+            node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('UserWidgets'), 'UserWidget');
+            // Case-insensitive lookup: keys can be supplied in any case in
+            // the model, they normalize to lowercase internally.
+            (0, utility_1.setCustomPlurals)({ Boxen: 'box' });
+            node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('boxen'), 'box');
+            node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('BOXEN'), 'BOX');
+            // Custom wins over default rules. Default depluralize would
+            // return 'datum' if 'data' were in IRREGULARS (it isn't), so
+            // demonstrate priority over the bare -s rule instead.
+            (0, utility_1.setCustomPlurals)({ news: 'news' });
+            node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('news'), 'news');
+            // Null/undefined values in the map are dropped, not used to
+            // overwrite real words with empty strings.
+            (0, utility_1.setCustomPlurals)({ Houses: null, mice: undefined });
+            node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('Houses'), 'House'); // falls through to IRREGULARS
+            node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('mice'), 'mouse');
+            // Longest-suffix wins when multiple entries could match.
+            (0, utility_1.setCustomPlurals)({ es: 'eee', boxes: 'box-special' });
+            node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('boxes'), 'box-special');
+            // clearCustomPlurals restores default behaviour fully.
+            (0, utility_1.clearCustomPlurals)();
+            node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('axes'), 'axis');
+            node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('prizes'), 'prize');
+            node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('boxes'), 'box');
+        }
+        finally {
+            // Defensive: ensure no leak even if an assertion threw.
+            (0, utility_1.clearCustomPlurals)();
+        }
     });
     (0, node_test_1.test)('canonize', () => {
         // Basic canonization

@@ -9,6 +9,8 @@ exports.getdlog = getdlog;
 exports.loadFile = loadFile;
 exports.formatJsonSrc = formatJsonSrc;
 exports.depluralize = depluralize;
+exports.setCustomPlurals = setCustomPlurals;
+exports.clearCustomPlurals = clearCustomPlurals;
 exports.find = find;
 exports.capture = capture;
 exports.pathMatch = pathMatch;
@@ -103,26 +105,42 @@ function formatJsonSrc(jsonsrc) {
 // head of depluralize() to short-circuit cases the suffix rules below
 // would otherwise mishandle.
 //
-// Special care: the generic `-ses → ∅` rule (used for boxes/buses/kisses)
-// also matches `house+s`-style plurals (houses, phases, noses, …) and
-// would over-strip them to `hous`, `phas`, `nos`. Every such -se+s
-// plural needs an explicit entry here.
+// Two over-strip classes are worked around here because the surface
+// form gives no clean discriminator:
+//
+//   * `-Vse+s` plurals (houses, phases, noses, …) would hit the
+//     generic `-ses → ∅` rule and become hous/phas/nos. Every such
+//     -se+s plural needs an explicit entry.
+//
+//   * `-che+s` plurals (caches, niches, headaches, …) would hit the
+//     generic `-ches → ∅` rule and become cach/nich/headach. Same
+//     pattern: no letter-doubling tell exists (cache vs church both
+//     have a single 'ch'), so each -che singular is enumerated.
+//
+// Keys are lowercase; depluralize() does a case-insensitive lookup
+// and reapplies the caller's casing on the way out.
 const IRREGULARS = {
     'analytics': 'analytics',
     'analyses': 'analysis',
     'appendices': 'appendix',
+    'avalanches': 'avalanche',
     'axes': 'axis',
+    'caches': 'cache',
     'cases': 'case',
     'children': 'child',
+    'cliches': 'cliche',
     'courses': 'course',
+    'creches': 'creche',
     'crises': 'crisis',
     'criteria': 'criterion',
     // 'data': 'datum',
     'diagnoses': 'diagnosis',
     'doses': 'dose',
+    'douches': 'douche',
     'feet': 'foot',
     'furnaces': 'furnace',
     'geese': 'goose',
+    'headaches': 'headache',
     'horses': 'horse',
     'hoses': 'hose',
     'houses': 'house',
@@ -132,17 +150,22 @@ const IRREGULARS = {
     'matrices': 'matrix',
     'men': 'man',
     'mice': 'mouse',
+    'moustaches': 'moustache',
     'movies': 'movie',
+    'mustaches': 'mustache',
+    'niches': 'niche',
     'noses': 'nose',
     'notices': 'notice',
     'nurses': 'nurse',
     'oases': 'oasis',
+    'pastiches': 'pastiche',
     'pauses': 'pause',
     'phases': 'phase',
     'phrases': 'phrase',
     'practices': 'practice',
     'premises': 'premise',
     'promises': 'promise',
+    'psyches': 'psyche',
     'purses': 'purse',
     'releases': 'release',
     'roses': 'rose',
@@ -158,53 +181,143 @@ const IRREGULARS = {
     'women': 'woman',
     'yes': 'yes',
 };
+// Sorted longest-first so the most specific IRREGULARS suffix wins.
+// Without this, 'women' would be shadowed by 'men' (3 < 5) under
+// insertion-order iteration. Both happen to round-trip correctly
+// today, but the sort makes any future entry safe by construction.
+const IRREGULAR_KEYS = Object.keys(IRREGULARS).sort((a, b) => b.length - a.length);
+// Reapply the case pattern of `source` to `target`. Used so the
+// case-insensitive lookups in depluralize() preserve the caller's
+// casing on the way out (HOUSES → HOUSE, Houses → House, houses →
+// house). Falls through to `target` unchanged for mixed-case sources
+// that don't fit one of the three canonical patterns.
+function matchCase(source, target) {
+    if (source === source.toLowerCase())
+        return target.toLowerCase();
+    if (source === source.toUpperCase())
+        return target.toUpperCase();
+    if (source[0] === source[0].toUpperCase()) {
+        return target[0].toUpperCase() + target.slice(1).toLowerCase();
+    }
+    return target;
+}
+// Per-model plural overrides, populated from the model's
+// `main.custom.plurals` section at apidef pipeline entry and cleared
+// between runs. Checked by depluralize() before the built-in
+// IRREGULARS table and rule chain — so a model can override any
+// default depluralization, including correct-by-default cases, when
+// its domain demands a different singular (e.g. fitness API with
+// {axes: axe}, photography app with {lenses: lens}).
+//
+// Module-level rather than a parameter so the many existing
+// depluralize/canonize call sites across transforms and guide
+// inherit the override without signature churn. apidef is
+// single-model-per-process; if that ever changes, switch this to a
+// per-context map.
+let CUSTOM_PLURALS = {};
+let CUSTOM_PLURAL_KEYS = [];
+function setCustomPlurals(plurals) {
+    CUSTOM_PLURALS = {};
+    if (plurals) {
+        for (const k of Object.keys(plurals)) {
+            // Skip null/undefined values so a partially-typed model entry
+            // doesn't poison the map.
+            const v = plurals[k];
+            if (null == v)
+                continue;
+            CUSTOM_PLURALS[k.toLowerCase()] = v;
+        }
+    }
+    CUSTOM_PLURAL_KEYS = Object.keys(CUSTOM_PLURALS).sort((a, b) => b.length - a.length);
+}
+function clearCustomPlurals() {
+    setCustomPlurals(undefined);
+}
 function depluralize(word) {
     if (!word || word.length === 0) {
         return word;
     }
-    if (IRREGULARS[word]) {
-        return IRREGULARS[word];
+    // Case-insensitive throughout: IRREGULARS lookups and every
+    // suffix-rule endsWith() check operate on the lowercased form,
+    // but slice/concat use the original word so the caller's casing
+    // is preserved (HOUSES → HOUSE, Houses → House, houses → house).
+    const lower = word.toLowerCase();
+    // Per-model custom plurals win over the built-in IRREGULARS and
+    // rule chain. Same lookup shape: exact match first, then
+    // longest-suffix match against CUSTOM_PLURAL_KEYS.
+    const customExact = CUSTOM_PLURALS[lower];
+    if (customExact) {
+        return matchCase(word, customExact);
     }
-    for (let ending in IRREGULARS) {
-        if (word.endsWith(ending)) {
-            return word.replace(ending, IRREGULARS[ending]);
+    for (const ending of CUSTOM_PLURAL_KEYS) {
+        if (lower.endsWith(ending)) {
+            const cut = word.length - ending.length;
+            return word.slice(0, cut) + matchCase(word.slice(cut), CUSTOM_PLURALS[ending]);
         }
     }
-    // Rules for regular plurals (applied in order)
+    const exact = IRREGULARS[lower];
+    if (exact) {
+        return matchCase(word, exact);
+    }
+    for (const ending of IRREGULAR_KEYS) {
+        if (lower.endsWith(ending)) {
+            const cut = word.length - ending.length;
+            return word.slice(0, cut) + matchCase(word.slice(cut), IRREGULARS[ending]);
+        }
+    }
+    // Rules for regular plurals (applied in order). The -ies and -ves
+    // rules add a letter, so they need to match the case of the dropped
+    // suffix; all other rules just slice and inherit the caller's case.
     // -ies -> -y (cities -> city), but only if result is > 2 chars
-    if (word.endsWith('ies') && word.length > 3) {
-        const result = word.slice(0, -3) + 'y';
+    if (lower.endsWith('ies') && word.length > 3) {
+        const dropped = word.slice(-3);
+        const y = dropped === dropped.toUpperCase() ? 'Y' : 'y';
+        const result = word.slice(0, -3) + y;
         if (result.length > 2) {
             return result;
         }
     }
     // -ves -> -f or -fe (wolves -> wolf, knives -> knife)
-    if (word.endsWith('ves')) {
+    if (lower.endsWith('ves')) {
         const stem = word.slice(0, -3);
+        const dropped = word.slice(-3);
+        const isUpper = dropped === dropped.toUpperCase();
         // Check if it should be -fe (like knife, wife, life)
-        if (['kni', 'wi', 'li'].includes(stem)) {
-            return stem + 'fe';
+        if (['kni', 'wi', 'li'].includes(stem.toLowerCase())) {
+            return stem + (isUpper ? 'FE' : 'fe');
         }
-        return stem + 'f';
+        return stem + (isUpper ? 'F' : 'f');
     }
     // -oes -> -o (potatoes -> potato)
-    if (word.endsWith('oes')) {
+    if (lower.endsWith('oes')) {
         return word.slice(0, -2);
     }
     // Handle words ending in -nses (like responses, expenses, licenses)
     // These should only lose the final -s, not -es
-    if (word.endsWith('nses')) {
+    if (lower.endsWith('nses')) {
         return word.slice(0, -1);
     }
-    // -ses, -xes, -zes, -shes, -ches -> remove -es (boxes -> box)
-    if (word.endsWith('ses') || word.endsWith('xes') || word.endsWith('zes') ||
-        word.endsWith('shes') || word.endsWith('ches')) {
+    // -zes plurals come from -ze singulars (prize, size, freeze, maze,
+    // breeze, …) far more often than from a bare -z taking -es. The only
+    // -zes plurals that strip the full -es have a doubled-z stem
+    // (buzz/buzzes, fez/fezzes). Discriminate on -zzes so prizes → prize
+    // instead of priz. Mirrors the -ses/-Vse+s problem the IRREGULARS
+    // table works around for the -se case.
+    if (lower.endsWith('zzes')) {
+        return word.slice(0, -2);
+    }
+    if (lower.endsWith('zes')) {
+        return word.slice(0, -1);
+    }
+    // -ses, -xes, -shes, -ches -> remove -es (boxes -> box)
+    if (lower.endsWith('ses') || lower.endsWith('xes') ||
+        lower.endsWith('shes') || lower.endsWith('ches')) {
         return word.slice(0, -2);
     }
     // -s -> remove -s (cats -> cat), but only if result is > 2 chars
-    if (word.endsWith('s') &&
-        !word.endsWith('ss') &&
-        !word.endsWith('us') &&
+    if (lower.endsWith('s') &&
+        !lower.endsWith('ss') &&
+        !lower.endsWith('us') &&
         word.length > 3) {
         return word.slice(0, -1);
     }
