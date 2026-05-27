@@ -9,6 +9,14 @@ on:
   pull_request:
     branches: [ main ]
 
+# Opt the JavaScript runner actions (checkout, setup-node, ...) onto
+# Node 24 internals now rather than waiting for the 2026-06-02
+# default switchover. Silences the "Node.js 20 actions are
+# deprecated" annotation on every run. Independent of the matrix
+# below — that controls which Node the project's tests run on.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
 
