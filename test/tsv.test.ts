@@ -44,7 +44,14 @@ type TsvRow = Record<string, string>
 function loadTsv(name: string): TsvRow[] {
   const filepath = Path.join(__dirname, '..', 'test', name + '.tsv')
   const text = Fs.readFileSync(filepath, 'utf8')
-  const lines = text.split('\n').filter(line => line.trim() !== '')
+  // Split on CRLF or LF — git's core.autocrlf on Windows checks files
+  // out with CRLF endings, and a bare \n split would leave a trailing
+  // \r on every last cell. The header row's "expected\r" then doesn't
+  // match the row[headers[j]] = 'expected' access pattern below, so
+  // every TSV-driven assertion compared the real value against
+  // undefined. Manifested as a Windows-only CI failure across every
+  // tsv.test.ts suite.
+  const lines = text.split(/\r?\n/).filter(line => line.trim() !== '')
   const headers = lines[0].split('\t')
   const rows: TsvRow[] = []
   for (let i = 1; i < lines.length; i++) {
