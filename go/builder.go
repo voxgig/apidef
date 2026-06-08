@@ -162,14 +162,13 @@ func infoBuilder(ctx *ApiDefContext) {
 	modelDefSrc := FormatJSONIC(modelInfo)
 
 	// Mirrors src/builder/entity/info.ts:
-	//   modelDefSrc.substring(1, modelDefSrc.length - 1).replace(/\n  /g, '\n')
-	// Drop the leading '{' and the single trailing '\n' (NOT the outer '}'),
-	// then shift indent left by one level.
-	if len(modelDefSrc) >= 2 && modelDefSrc[0] == '{' {
-		modelDefSrc = modelDefSrc[1:]
-	}
-	if len(modelDefSrc) > 0 && modelDefSrc[len(modelDefSrc)-1] == '\n' {
-		modelDefSrc = modelDefSrc[:len(modelDefSrc)-1]
+	//   formatJSONIC(modelInfo).trim().substring(1, len-1).replace(/\n  /g, '\n')
+	// Trim first so stripping the first and last char removes the wrapping
+	// '{' and '}' — without the trim the trailing newline is removed instead,
+	// leaving a dangling '}'. Then shift indent left by one level.
+	modelDefSrc = strings.TrimSpace(modelDefSrc)
+	if len(modelDefSrc) >= 2 {
+		modelDefSrc = modelDefSrc[1 : len(modelDefSrc)-1]
 	}
 	modelDefSrc = strings.ReplaceAll(modelDefSrc, "\n  ", "\n")
 

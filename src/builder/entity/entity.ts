@@ -66,26 +66,16 @@ function resolveEntity(
 }
 
 
-function fieldAliases(entity: any) {
-  // HEURISTIC: id may be name_id or nameId
-  const fieldAliases =
-    each(entity.op, (op: any) =>
-      each(op.param))
-      .flat()
-      .reduce((a: any, p: any) =>
-
-      (entity.field[p.keys] ? null :
-        (p.key$.toLowerCase().includes(entity.name) ?
-          (a[p.key$] = 'id', a.id = p.key$) :
-          null)
-
-        , a), {})
-
-  const fieldAliasesSrc =
-    JSON.stringify(fieldAliases, null, 2)
-      .replace(/\n/g, '\n  ')
-
-  return fieldAliasesSrc
+function fieldAliases(_entity: any): string {
+  // Field aliasing (mapping e.g. a `<name>_id` field onto the canonical
+  // `id`) is not currently implemented. The original heuristic referenced
+  // properties that don't exist on the entity at this stage
+  // (`entity.field`, `op.param`, `p.keys` — entities carry `fields`, ops
+  // carry `points`, and `each` stamps `key$`), so it always produced `{}`
+  // and would have thrown if any branch ran. Emit an empty alias map
+  // explicitly until the alias semantics are specified.
+  // Parity: go/builder.go buildFieldAliases (also `{}`).
+  return '{}'
 }
 
 

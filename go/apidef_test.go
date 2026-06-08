@@ -64,6 +64,33 @@ func TestCustomPlurals(t *testing.T) {
 	}
 }
 
+func TestOperationTransformPropagation(t *testing.T) {
+	pathsDesc := []map[string]any{
+		{"orig": "/pets", "parts": []string{"pets"}, "rename": map[string]any{}, "def": map[string]any{},
+			"op": map[string]any{"list": map[string]any{"method": "GET", "transform": map[string]any{"res": "`body.pet`"}}}},
+		{"orig": "/things", "parts": []string{"things"}, "rename": map[string]any{}, "def": map[string]any{},
+			"op": map[string]any{"create": map[string]any{"method": "POST"}}},
+	}
+	opm := collectOps(map[string]any{}, pathsDesc, map[string]string{})
+
+	cases := map[string][2]string{
+		"list":   {"`body.pet`", "`reqdata`"}, // guide-computed res carried through
+		"create": {"`body`", "`reqdata`"},     // no transform -> generic defaults
+	}
+	for name, want := range cases {
+		op, _ := opm[name].(map[string]any)
+		if op == nil {
+			t.Fatalf("missing op %q", name)
+		}
+		pt := op["points"].([]any)[0].(map[string]any)
+		tr := pt["transform"].(map[string]any)
+		if tr["res"] != want[0] || tr["req"] != want[1] {
+			t.Errorf("%s transform = {res:%v req:%v}, want {res:%q req:%q}",
+				name, tr["res"], tr["req"], want[0], want[1])
+		}
+	}
+}
+
 func TestCanonize(t *testing.T) {
 	tests := map[string]string{
 		"Users":      "user",

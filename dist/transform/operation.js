@@ -101,7 +101,13 @@ function resolveOp(opname, gent) {
                     rename: p.rename,
                     method: p.method,
                     args: {},
-                    transform: opdesc.transform ?? {},
+                    // Carry the per-path op transform (res `body.<entity>`, req
+                    // `{<entity>: reqdata}`) computed by the guide step
+                    // (heuristic01 ResolveTransform) onto the point. It lives on the
+                    // path's op, not on the op-map entry, so read p.op.transform.
+                    // Spread into a fresh object so the default-fill below never
+                    // mutates the shared guide op.transform across points.
+                    transform: { ...(p.op?.transform ?? {}) },
                     select: {
                         exist: []
                     }
