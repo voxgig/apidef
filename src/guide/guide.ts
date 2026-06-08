@@ -212,14 +212,13 @@ async function buildBaseGuide(ctx: ApiDefContext) {
       items(path.op).map(([opname, op]: [string, GuidePathOp]) => {
         guideBlocks.push(`      op: ${opname}: method: *${op.method}` +
           sw(0 < op.why_op.length ? '  # ' + op.why_op : ''))
-        if (null != op.transform.req) {
-          guideBlocks.push(
-            // `      op: ${opname}: transform: res: *${qt(op.transform.res)}|top`)
-            `      op: ${opname}: transform: res: *${qt(op.transform.res)}|top`)
-        }
+        // Only the res transform is emitted, and only when set. (The
+        // previous req-guarded block pushed a *second* res line built from
+        // op.transform.res — emitting `transform: res: *undefined` whenever
+        // a request was wrapped but the response was not.) Matches the Go
+        // guide builder, which gates solely on res.
         if (null != op.transform.res) {
           guideBlocks.push(
-            // `      op: ${opname}: transform: res: *${qt(op.transform.res)}|top`)
             `      op: ${opname}: transform: res: *${qt(op.transform.res)}|top`)
         }
       })
@@ -270,7 +269,7 @@ function validateBaseBuide(ctx: ApiDefContext, baseguide: any) {
 
     // Each orig method.
     each(pdef, (mdef: any) => {
-      if (mdef.key$.match(/^get|post|put|patch|delete|head|options$/i)) {
+      if (mdef.key$.match(/^(get|post|put|patch|delete|head|options)$/i)) {
         let key = pathStr + ' ' + mdef.key$.toUpperCase()
         let desc = (srcm[key] = (srcm[key] || { c: 0 }))
         desc.c++
