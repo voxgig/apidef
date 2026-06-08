@@ -1,0 +1,47 @@
+# @voxgig/apidef
+
+> Compiles an OpenAPI 3 / Swagger 2.0 spec into a normalized internal API
+> model (entities, operations, fields, flows) that downstream tooling turns
+> into client SDKs. It infers the resource/CRUD structure OpenAPI leaves
+> implicit.
+
+apidef has two implementations: the canonical TypeScript build under `ts/`
+(the published npm package) and a Go parity port under `go/`. The pipeline is
+`parse → guide → transform → builder → generate`. Node 24+.
+
+## Start here
+- [README](./README.md): project overview, install, quick example
+- [AGENTS.md](./AGENTS.md): orientation for AI agents (rules, commands, gotchas)
+- [Documentation index](./docs/README.md): all docs, organized by purpose
+
+## Tutorial
+- [Getting started](./docs/tutorial/getting-started.md): install, generate a model from a small spec, read the output
+
+## How-to guides
+- [Use as a library](./docs/how-to/use-as-a-library.md): makeBuild / generate / parse; in-memory vs files; virtual fs
+- [Use the CLI](./docs/how-to/use-the-cli.md): the voxgig-apidef binary
+- [Customize entity naming](./docs/how-to/customize-entity-naming.md): custom.plurals overrides for singularization
+- [Run only part of the pipeline](./docs/how-to/control-the-pipeline.md): ctrl.step flags
+- [Debug a build](./docs/how-to/debug-a-build.md): warnings, debug output, why_* traces, common symptoms
+- [Work on the codebase](./docs/how-to/work-on-the-codebase.md): contributor loop, TS-canonical + Go-parity workflow
+
+## Reference
+- [Programmatic API](./docs/reference/api.md): ApiDef, makeBuild, generate, options, result, exports
+- [CLI](./docs/reference/cli.md): flags
+- [Configuration & inputs](./docs/reference/configuration.md): model, build spec, ctrl.step, spec-file path rule
+- [Internal API model](./docs/reference/model.md): entity / op / point / arg / field / flow shapes
+- [Guide model](./docs/reference/guide.md): classification output and why_* traces
+- [Pipeline stages](./docs/reference/pipeline.md): the five stages and nine transform passes
+
+## Explanation
+- [Architecture overview](./docs/explanation/architecture.md): stages, context, building blocks, two implementations
+- [Classification heuristics](./docs/explanation/classification-heuristics.md): how paths become entities/ops/actions
+- [The internal model](./docs/explanation/the-internal-model.md): why entities/ops/points/flows are shaped as they are
+- [Canonical build & parity port](./docs/explanation/canonical-and-parity.md): TS is canonical, Go mirrors it
+
+## Source
+- [ts/src/apidef.ts](./ts/src/apidef.ts): pipeline entry point
+- [ts/src/parse.ts](./ts/src/parse.ts): parse + $ref resolution
+- [ts/src/guide/heuristic01.ts](./ts/src/guide/heuristic01.ts): the classification engine
+- [ts/src/transform/](./ts/src/transform/): the nine transform passes
+- [ts/src/utility.ts](./ts/src/utility.ts): pure helpers (depluralize, canonize, validator, formatJSONIC)
