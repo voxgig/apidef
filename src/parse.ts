@@ -75,7 +75,7 @@ async function parseOpenAPI(source: any, _meta?: any) {
   // Validate it's an OpenAPI or Swagger spec
   if (!parsed.openapi && !parsed.swagger) {
     throw new Error(
-      `@voxgig/apidef: parse: Unsupported OpenAPI version: undefined`
+      `@voxgig/apidef: parse: Unsupported spec: missing 'openapi' or 'swagger' version field`
     )
   }
 
@@ -109,6 +109,14 @@ async function parseOpenAPI(source: any, _meta?: any) {
 // Single-pass tree walk that:
 // 1. Preserves original $ref values as x-ref
 // 2. Resolves $ref JSON pointers in-place
+//
+// NOTE: resolution inlines a shallow copy of the target ({ ...resolved }),
+// so multiple references to the same component share that component's
+// nested child objects. Downstream consumers must therefore treat the
+// resolved schema as read-only — mutating an inlined sub-object would leak
+// across every site that referenced the same component. (A deep clone is
+// deliberately avoided: schemas can be self-referential, which would make
+// cloning non-terminating.)
 function addXRefsAndResolve(obj: any, root: any, visited?: WeakSet<any>) {
   if (!obj || typeof obj !== 'object') return
   if (!visited) visited = new WeakSet()

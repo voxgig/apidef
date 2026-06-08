@@ -54,7 +54,7 @@ const fieldTransform: Transform = async function(
               seen[opfield.name] = opfield
             }
             else {
-              mergeField(ment, mop, mpoint, def, seen[opfield.name], opfield)
+              mergeField(mop, seen[opfield.name], opfield)
             }
           }
         }
@@ -174,10 +174,17 @@ function findFieldDefs(
       const requiredNames: string[] = Array.isArray(fieldSet?.required)
         ? fieldSet.required : []
       each(fieldSet?.properties, (property: any) => {
-        if (requiredNames.includes(property.key$)) {
-          property.required = true
+        // Don't mutate the parsed schema: a $ref-resolved schema is shared
+        // across every operation that references it, so flipping
+        // `property.required = true` here would leak this operation's
+        // required[] onto all the others. Derive `required` onto a shallow
+        // copy instead (matches the Go port, which builds fresh field defs).
+        if (!property.required && requiredNames.includes(property.key$)) {
+          fielddefs.push({ ...property, required: true })
         }
-        fielddefs.push(property)
+        else {
+          fielddefs.push(property)
+        }
       })
     })
   }
@@ -216,7 +223,7 @@ function findExampleObject(opdef: any): any {
   const responses = opdef.responses
   if (null == responses) return null
 
-  const resdef = responses[200] ?? responses[201] ?? responses['200'] ?? responses['201']
+  const resdef = responses['200'] ?? responses['201']
   if (null == resdef) return null
 
   // OpenAPI 3.x: content.application/json.example
@@ -310,22 +317,18 @@ function inferTypeFromValue(value: any): string {
 
 
 function mergeField(
-  ment: ModelEntity,
   mop: ModelOp,
-  mpoint: ModelPoint,
-  def: any,
-  exisingField: ModelField,
+  existingField: ModelField,
   newField: ModelField
 ) {
-
-  if (newField.req !== exisingField.req) {
-    exisingField.op[mop.name] = {
+  if (newField.req !== existingField.req) {
+    existingField.op[mop.name] = {
       req: newField.req,
       type: newField.type,
     }
   }
 
-  return exisingField
+  return existingField
 }
 
 

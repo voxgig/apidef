@@ -27,6 +27,43 @@ func TestDepluralize(t *testing.T) {
 	}
 }
 
+func TestCustomPlurals(t *testing.T) {
+	defer ClearCustomPlurals()
+
+	// Exact override beats the built-in irregular (axes -> axis by default).
+	SetCustomPlurals(map[string]any{"axes": "axe"})
+	if got := Depluralize("axes"); got != "axe" {
+		t.Errorf("custom exact: Depluralize(axes) = %q, want axe", got)
+	}
+	if got := Depluralize("AXES"); got != "AXE" {
+		t.Errorf("custom exact case: Depluralize(AXES) = %q, want AXE", got)
+	}
+	if got := Canonize("axes"); got != "axe" {
+		t.Errorf("custom Canonize(axes) = %q, want axe", got)
+	}
+
+	// Longest-suffix override, same shape as the irregular scan.
+	SetCustomPlurals(map[string]any{"widgets": "widget"})
+	if got := Depluralize("user_widgets"); got != "user_widget" {
+		t.Errorf("custom suffix: Depluralize(user_widgets) = %q, want user_widget", got)
+	}
+
+	// Non-string / empty values are skipped, not used to blank a word.
+	SetCustomPlurals(map[string]any{"houses": nil, "mice": "", "boxen": "box"})
+	if got := Depluralize("houses"); got != "house" {
+		t.Errorf("nil custom value should fall through: Depluralize(houses) = %q, want house", got)
+	}
+	if got := Depluralize("boxen"); got != "box" {
+		t.Errorf("Depluralize(boxen) = %q, want box", got)
+	}
+
+	// Clear restores default behaviour.
+	ClearCustomPlurals()
+	if got := Depluralize("axes"); got != "axis" {
+		t.Errorf("after clear: Depluralize(axes) = %q, want axis", got)
+	}
+}
+
 func TestCanonize(t *testing.T) {
 	tests := map[string]string{
 		"Users":      "user",

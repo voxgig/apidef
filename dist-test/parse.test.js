@@ -39,6 +39,31 @@ paths: {}
             components: {}
         });
     });
+    (0, node_test_1.test)('resolves repeated $ref with x-ref preserved', async () => {
+        const pm0 = { file: 'f0' };
+        const mkop = () => ({
+            get: {
+                responses: {
+                    '200': { content: { 'application/json': { schema: { $ref: '#/components/schemas/Pet' } } } }
+                }
+            }
+        });
+        const src = JSON.stringify({
+            openapi: '3.0.0',
+            info: { title: 'T', version: '1.0.0' },
+            paths: { '/a': mkop(), '/b': mkop() },
+            components: { schemas: { Pet: { type: 'object', properties: { id: { type: 'string' } } } } }
+        });
+        const def = await (0, parse_1.parse)('OpenAPI', src, pm0);
+        // Each reference is inlined with the resolved content and the original
+        // pointer preserved as x-ref.
+        for (const p of ['/a', '/b']) {
+            const schema = def.paths[p].get.responses['200'].content['application/json'].schema;
+            node_assert_1.default.strictEqual(schema['x-ref'], '#/components/schemas/Pet', p);
+            node_assert_1.default.strictEqual(schema.type, 'object', p);
+            node_assert_1.default.strictEqual(schema.properties.id.type, 'string', p);
+        }
+    });
     (0, node_test_1.test)('validateSource', async () => {
         const pm0 = { file: 'f0' };
         // Empty string should be rejected

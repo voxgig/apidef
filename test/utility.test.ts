@@ -13,6 +13,8 @@ import {
   setCustomPlurals,
   clearCustomPlurals,
   canonize,
+  find,
+  validator,
   sanitizeSlug,
   slugToPascalCase,
   transliterate,
@@ -860,6 +862,41 @@ describe('utility', () => {
 `)
 
 
+  })
+
+
+  test('formatJSONIC multiline string keeps embedded quotes', () => {
+    // A multi-line string renders as a JSONIC backtick literal; embedded
+    // double quotes must stay literal (regression: they were corrupted to
+    // ':' by renderPrimitive).
+    const out = formatJSONIC({ note: 'a"b"c\nsecond' })
+    assert.ok(out.includes('`a"b"c'), out)
+    assert.ok(out.includes('second`'), out)
+    assert.ok(!out.includes('a:b:c'), 'quotes must not become colons: ' + out)
+  })
+
+
+  test('find collects all values for a key across the tree', () => {
+    const tree = {
+      id: 1,
+      a: { id: 2, b: { id: 3 } },
+      c: [{ id: 4 }, { nested: { id: 5 } }],
+      d: { other: 9 },
+    }
+    const vals = find(tree, 'id').map((r: any) => r.val).sort((x: number, y: number) => x - y)
+    assert.deepStrictEqual(vals, [1, 2, 3, 4, 5])
+    assert.deepStrictEqual(find(tree, 'missing'), [])
+  })
+
+
+  test('validator normalizes scalar and union types', () => {
+    assert.deepStrictEqual(validator('string'), '`$STRING`')
+    assert.deepStrictEqual(validator('  Integer '), '`$INTEGER`') // trim + case-insensitive
+    assert.deepStrictEqual(validator('weird'), 'Any')             // unknown string
+    assert.deepStrictEqual(validator(undefined), '`$ANY`')        // missing type
+    // Array unions map to a $ONE of each member validator.
+    assert.deepStrictEqual(validator(['string', 'number']),
+      ['`$ONE`', ['`$STRING`', '`$NUMBER`']])
   })
 
 

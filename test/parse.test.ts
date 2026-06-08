@@ -56,6 +56,35 @@ paths: {}
   })
 
 
+  test('resolves repeated $ref with x-ref preserved', async () => {
+    const pm0 = { file: 'f0' }
+    const mkop = () => ({
+      get: {
+        responses: {
+          '200': { content: { 'application/json': { schema: { $ref: '#/components/schemas/Pet' } } } }
+        }
+      }
+    })
+    const src = JSON.stringify({
+      openapi: '3.0.0',
+      info: { title: 'T', version: '1.0.0' },
+      paths: { '/a': mkop(), '/b': mkop() },
+      components: { schemas: { Pet: { type: 'object', properties: { id: { type: 'string' } } } } }
+    })
+
+    const def: any = await parse('OpenAPI', src, pm0)
+
+    // Each reference is inlined with the resolved content and the original
+    // pointer preserved as x-ref.
+    for (const p of ['/a', '/b']) {
+      const schema = def.paths[p].get.responses['200'].content['application/json'].schema
+      assert.strictEqual(schema['x-ref'], '#/components/schemas/Pet', p)
+      assert.strictEqual(schema.type, 'object', p)
+      assert.strictEqual(schema.properties.id.type, 'string', p)
+    }
+  })
+
+
   test('validateSource', async () => {
     const pm0 = { file: 'f0' }
 

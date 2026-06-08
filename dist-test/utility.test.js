@@ -681,6 +681,34 @@ const utility_1 = require("../dist/utility");
 }
 `);
     });
+    (0, node_test_1.test)('formatJSONIC multiline string keeps embedded quotes', () => {
+        // A multi-line string renders as a JSONIC backtick literal; embedded
+        // double quotes must stay literal (regression: they were corrupted to
+        // ':' by renderPrimitive).
+        const out = (0, utility_1.formatJSONIC)({ note: 'a"b"c\nsecond' });
+        node_assert_1.default.ok(out.includes('`a"b"c'), out);
+        node_assert_1.default.ok(out.includes('second`'), out);
+        node_assert_1.default.ok(!out.includes('a:b:c'), 'quotes must not become colons: ' + out);
+    });
+    (0, node_test_1.test)('find collects all values for a key across the tree', () => {
+        const tree = {
+            id: 1,
+            a: { id: 2, b: { id: 3 } },
+            c: [{ id: 4 }, { nested: { id: 5 } }],
+            d: { other: 9 },
+        };
+        const vals = (0, utility_1.find)(tree, 'id').map((r) => r.val).sort((x, y) => x - y);
+        node_assert_1.default.deepStrictEqual(vals, [1, 2, 3, 4, 5]);
+        node_assert_1.default.deepStrictEqual((0, utility_1.find)(tree, 'missing'), []);
+    });
+    (0, node_test_1.test)('validator normalizes scalar and union types', () => {
+        node_assert_1.default.deepStrictEqual((0, utility_1.validator)('string'), '`$STRING`');
+        node_assert_1.default.deepStrictEqual((0, utility_1.validator)('  Integer '), '`$INTEGER`'); // trim + case-insensitive
+        node_assert_1.default.deepStrictEqual((0, utility_1.validator)('weird'), 'Any'); // unknown string
+        node_assert_1.default.deepStrictEqual((0, utility_1.validator)(undefined), '`$ANY`'); // missing type
+        // Array unions map to a $ONE of each member validator.
+        node_assert_1.default.deepStrictEqual((0, utility_1.validator)(['string', 'number']), ['`$ONE`', ['`$STRING`', '`$NUMBER`']]);
+    });
     (0, node_test_1.test)('getModelPath - basic path traversal', () => {
         const model = {
             a: {

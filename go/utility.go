@@ -55,7 +55,8 @@ func matchCase(source, target string) string {
 // Package-level so it is built once rather than per call.
 var irregularPlurals = map[string]string{
 	"analytics": "analytics", "analyses": "analysis", "appendices": "appendix",
-	"avalanches": "avalanche", "axes": "axis", "caches": "cache", "cases": "case",
+	"avalanches": "avalanche", "axes": "axis", "caches": "cache", "canoes": "canoe",
+	"cases": "case",
 	"children": "child", "cliches": "cliche", "courses": "course", "creches": "creche",
 	"crises": "crisis", "criteria": "criterion", "diagnoses": "diagnosis",
 	"doses": "dose", "douches": "douche", "feet": "foot", "furnaces": "furnace",
@@ -63,11 +64,13 @@ var irregularPlurals = map[string]string{
 	"houses": "house", "indices": "index", "lens": "lens", "licenses": "license",
 	"matrices": "matrix", "men": "man", "mice": "mouse", "moustaches": "moustache",
 	"movies": "movie", "mustaches": "mustache", "niches": "niche", "noses": "nose",
-	"notices": "notice", "nurses": "nurse", "oases": "oasis", "pastiches": "pastiche",
+	"notices": "notice", "nurses": "nurse", "oases": "oasis", "oboes": "oboe",
+	"pastiches": "pastiche",
 	"pauses": "pause", "phases": "phase", "phrases": "phrase", "practices": "practice",
 	"premises": "premise", "promises": "promise", "psyches": "psyche", "purses": "purse",
 	"releases": "release", "roses": "rose", "people": "person", "phenomena": "phenomenon",
-	"series": "series", "sources": "source", "species": "species", "teeth": "tooth",
+	"series": "series", "shoes": "shoe", "sources": "source", "species": "species",
+	"teeth": "tooth",
 	"theses": "thesis", "verses": "verse", "vertices": "vertex", "women": "woman",
 	"yes": "yes",
 }
@@ -91,15 +94,58 @@ func sortedByLenDesc(m map[string]string) []string {
 	return keys
 }
 
+// customPlurals holds per-model plural overrides (plural -> singular),
+// installed via SetCustomPlurals and consulted by Depluralize before the
+// built-in table. Mirrors CUSTOM_PLURALS in src/utility.ts. Module-level
+// (single-model-per-process), matching the TS design.
+var (
+	customPlurals    = map[string]string{}
+	customPluralKeys []string
+)
+
+// SetCustomPlurals installs per-model plural overrides. Keys are lowercased;
+// non-string or empty values are skipped so a partially-typed model entry
+// can't poison the map. Mirrors src/utility.ts:setCustomPlurals.
+func SetCustomPlurals(plurals any) {
+	customPlurals = map[string]string{}
+	if pm, ok := plurals.(map[string]any); ok {
+		for k, v := range pm {
+			s, ok := v.(string)
+			if !ok || s == "" {
+				continue
+			}
+			customPlurals[strings.ToLower(k)] = s
+		}
+	}
+	customPluralKeys = sortedByLenDesc(customPlurals)
+}
+
+// ClearCustomPlurals drops the per-model overrides so a subsequent
+// Generate in the same process starts clean.
+func ClearCustomPlurals() {
+	SetCustomPlurals(nil)
+}
+
 // Depluralize converts a plural word to its singular form. Mirrors
-// src/utility.ts:depluralize. Note: per-model custom plurals
-// (setCustomPlurals in the TS build) are not supported in the Go port.
+// src/utility.ts:depluralize, including per-model custom plural overrides
+// installed via SetCustomPlurals.
 func Depluralize(word string) string {
 	if word == "" {
 		return word
 	}
 
 	lower := strings.ToLower(word)
+
+	// Per-model custom plurals win over the built-in table and rules.
+	if v, ok := customPlurals[lower]; ok {
+		return matchCase(word, v)
+	}
+	for _, ending := range customPluralKeys {
+		if strings.HasSuffix(lower, ending) {
+			cut := len(word) - len(ending)
+			return word[:cut] + matchCase(word[cut:], customPlurals[ending])
+		}
+	}
 
 	if v, ok := irregularPlurals[lower]; ok {
 		return matchCase(word, v)
@@ -889,12 +935,14 @@ func formatJSONICValue(val any, indent int, prefix string, lines *[]string, seen
 func jsonString(s string) string {
 	if strings.ContainsAny(s, "\n\r") {
 		// Backtick-quoted JSONIC literal — newlines kept verbatim.
-		// Mirrors src/utility.ts:543-547. Quoted-double-quote becomes
-		// a colon (`\":` → `:`) per the same code path.
+		// Mirrors src/utility.ts renderPrimitive: inside a backtick
+		// literal a double quote is a literal character, so unescape
+		// JSON's \" back to " (was previously replaced with ':', which
+		// silently corrupted quoted text).
 		raw := jsonStringHTMLSafe(s)
 		body := raw[1 : len(raw)-1]
 		body = strings.ReplaceAll(body, "\\n", "\n")
-		body = strings.ReplaceAll(body, "\\\"", ":")
+		body = strings.ReplaceAll(body, "\\\"", "\"")
 		body = strings.ReplaceAll(body, "`", "\\`")
 		return "`" + body + "`"
 	}
@@ -1064,25 +1112,7 @@ func sortedKeys(m map[string]any) []string {
 	return keys
 }
 
-func sortedKeysInt(m map[string]int) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return keys
-}
-
 func sortedKeysBool(m map[string]bool) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return keys
-}
-
-func sortedKeysStr(m map[string]string) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
 		keys = append(keys, k)

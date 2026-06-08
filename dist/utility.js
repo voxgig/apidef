@@ -105,7 +105,7 @@ function formatJsonSrc(jsonsrc) {
 // head of depluralize() to short-circuit cases the suffix rules below
 // would otherwise mishandle.
 //
-// Two over-strip classes are worked around here because the surface
+// Three over-strip classes are worked around here because the surface
 // form gives no clean discriminator:
 //
 //   * `-Vse+s` plurals (houses, phases, noses, …) would hit the
@@ -117,6 +117,12 @@ function formatJsonSrc(jsonsrc) {
 //     pattern: no letter-doubling tell exists (cache vs church both
 //     have a single 'ch'), so each -che singular is enumerated.
 //
+//   * `-oe+s` plurals (shoes, canoes, oboes) would hit the generic
+//     `-oes → -o` rule (for potatoes/heroes) and become sho/cano/obo.
+//     Only collision-safe entries are listed: a key must not also be a
+//     suffix of a real `-o`+es plural (e.g. `toes` is excluded because
+//     it would turn tomatoes → tomatoe).
+//
 // Keys are lowercase; depluralize() does a case-insensitive lookup
 // and reapplies the caller's casing on the way out.
 const IRREGULARS = {
@@ -126,6 +132,7 @@ const IRREGULARS = {
     'avalanches': 'avalanche',
     'axes': 'axis',
     'caches': 'cache',
+    'canoes': 'canoe',
     'cases': 'case',
     'children': 'child',
     'cliches': 'cliche',
@@ -158,6 +165,7 @@ const IRREGULARS = {
     'notices': 'notice',
     'nurses': 'nurse',
     'oases': 'oasis',
+    'oboes': 'oboe',
     'pastiches': 'pastiche',
     'pauses': 'pause',
     'phases': 'phase',
@@ -172,6 +180,7 @@ const IRREGULARS = {
     'people': 'person',
     'phenomena': 'phenomenon',
     'series': 'series',
+    'shoes': 'shoe',
     'sources': 'source',
     'species': 'species',
     'teeth': 'tooth',
@@ -619,7 +628,10 @@ function formatJSONIC(val, opts) {
                 '`' + JSON.stringify(v)
                     .substring(1)
                     .replace(/\\n/g, '\n')
-                    .replace(/\\"/g, ':')
+                    // Inside a JSONIC backtick literal a double quote is a literal
+                    // character, so unescape JSON's \" back to " (was previously
+                    // replaced with ':' which silently corrupted quoted text).
+                    .replace(/\\"/g, '"')
                     .replace(/`/g, '\\`')
                     .replace(/"$/, '`'));
             case 'number': return c('number', Number.isFinite(v) ? String(v) : 'null');

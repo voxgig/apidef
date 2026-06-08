@@ -26,7 +26,7 @@ const fieldTransform = async function (ctx) {
                             seen[opfield.name] = opfield;
                         }
                         else {
-                            mergeField(ment, mop, mpoint, def, seen[opfield.name], opfield);
+                            mergeField(mop, seen[opfield.name], opfield);
                         }
                     }
                 }
@@ -119,10 +119,17 @@ function findFieldDefs(_ment, mop, mpoint, def) {
             const requiredNames = Array.isArray(fieldSet?.required)
                 ? fieldSet.required : [];
             (0, jostraca_1.each)(fieldSet?.properties, (property) => {
-                if (requiredNames.includes(property.key$)) {
-                    property.required = true;
+                // Don't mutate the parsed schema: a $ref-resolved schema is shared
+                // across every operation that references it, so flipping
+                // `property.required = true` here would leak this operation's
+                // required[] onto all the others. Derive `required` onto a shallow
+                // copy instead (matches the Go port, which builds fresh field defs).
+                if (!property.required && requiredNames.includes(property.key$)) {
+                    fielddefs.push({ ...property, required: true });
                 }
-                fielddefs.push(property);
+                else {
+                    fielddefs.push(property);
+                }
             });
         });
     }
@@ -154,7 +161,7 @@ function findExampleObject(opdef) {
     const responses = opdef.responses;
     if (null == responses)
         return null;
-    const resdef = responses[200] ?? responses[201] ?? responses['200'] ?? responses['201'];
+    const resdef = responses['200'] ?? responses['201'];
     if (null == resdef)
         return null;
     // OpenAPI 3.x: content.application/json.example
@@ -251,13 +258,13 @@ function inferTypeFromValue(value) {
         return 'object';
     return 'string';
 }
-function mergeField(ment, mop, mpoint, def, exisingField, newField) {
-    if (newField.req !== exisingField.req) {
-        exisingField.op[mop.name] = {
+function mergeField(mop, existingField, newField) {
+    if (newField.req !== existingField.req) {
+        existingField.op[mop.name] = {
             req: newField.req,
             type: newField.type,
         };
     }
-    return exisingField;
+    return existingField;
 }
 //# sourceMappingURL=field.js.map

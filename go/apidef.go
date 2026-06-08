@@ -83,6 +83,12 @@ func (a *apiDefInstance) Generate(spec map[string]any) (*ApiDefResult, error) {
 		return &ApiDefResult{OK: true, Steps: steps, Start: start, End: time.Now().UnixMilli(), Ctrl: ctrl}, nil
 	}
 
+	// Install per-model plural overrides for Depluralize/Canonize, read from
+	// model.main.custom.plurals (mirrors src/apidef.ts). Cleared on every
+	// return path so a reused MakeBuild instance starts clean per model.
+	SetCustomPlurals(modelCustomPlurals(model))
+	defer ClearCustomPlurals()
+
 	defName, _ := model["def"].(string)
 	base, _ := buildSpec["base"].(string)
 	defpath := filepath.Join(base, "..", "def", defName)
@@ -264,6 +270,18 @@ func MakeBuild(opts ApiDefOptions) func(model, build map[string]any) (*ApiDefRes
 			"ctrl":  ctrl,
 		})
 	}
+}
+
+// modelCustomPlurals extracts model.main.custom.plurals, returning nil when
+// any level is absent. Mirrors the (model as any)?.main?.custom?.plurals
+// optional-chain in src/apidef.ts.
+func modelCustomPlurals(model map[string]any) any {
+	main, _ := model["main"].(map[string]any)
+	custom, _ := main["custom"].(map[string]any)
+	if custom == nil {
+		return nil
+	}
+	return custom["plurals"]
 }
 
 func makeErrorResult(start int64, steps []string, ctrl map[string]any, ctx *ApiDefContext, err error) *ApiDefResult {
