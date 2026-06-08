@@ -15,7 +15,7 @@ type tsvRow = map[string]string
 
 func loadTsv(t *testing.T, name string) []tsvRow {
 	t.Helper()
-	fp := filepath.Join("..", "test", name+".tsv")
+	fp := filepath.Join("..", "ts", "test", name+".tsv")
 	data, err := os.ReadFile(fp)
 	if err != nil {
 		t.Fatalf("failed to load TSV %s: %v", name, err)

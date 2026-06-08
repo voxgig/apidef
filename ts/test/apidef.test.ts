@@ -12,7 +12,7 @@ import * as Diff from 'diff'
 
 import {
   ApiDef
-} from '../'
+} from '../dist/apidef'
 
 
 // TODO: remove all sdk refs or rename to api

@@ -164,7 +164,7 @@ func TestValidateGuide(t *testing.T) {
 }
 
 // TestValidateModelData compares the raw entity model data (as JSON) between
-// Go and a reference snapshot. The reference files are in test/model-ref/.
+// Go and a reference snapshot. The reference files are in ts/test/model-ref/.
 // If a reference file doesn't exist, it's created (first run generates baseline).
 // On subsequent runs, Go output must match the reference exactly.
 func TestValidateModelData(t *testing.T) {
@@ -174,7 +174,7 @@ func TestValidateModelData(t *testing.T) {
 	}
 
 	defDir := filepath.Join(validateDir, "..", "def")
-	refDir := filepath.Join("..", "test", "model-ref")
+	refDir := filepath.Join("..", "ts", "test", "model-ref")
 	os.MkdirAll(refDir, 0755)
 
 	// Only test solar, petstore, taxonomy (not foo)

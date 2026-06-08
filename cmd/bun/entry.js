@@ -10,7 +10,7 @@ const { Shape, Fault, One } = require('shape')
 
 const Pkg = require('../../package.json')
 
-const { ApiDef } = require('../../dist/apidef.js')
+const { ApiDef } = require('../../ts/dist/apidef.js')
 
 
 let CONSOLE = console

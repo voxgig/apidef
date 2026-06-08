@@ -41,17 +41,17 @@ const Fs = __importStar(require("node:fs"));
 const node_test_1 = require("node:test");
 const node_assert_1 = __importDefault(require("node:assert"));
 const aontu_1 = require("aontu");
-const __1 = require("../");
+const apidef_1 = require("../dist/apidef");
 // TODO: remove all sdk refs or rename to api
 const aontu = new aontu_1.Aontu({ fs: Fs });
 (0, node_test_1.describe)('apidef', () => {
     (0, node_test_1.test)('exist', async () => {
-        node_assert_1.default.ok(__1.ApiDef);
+        node_assert_1.default.ok(apidef_1.ApiDef);
     });
     (0, node_test_1.test)('guide-solar', async () => {
         const outprefix = 'solar-1.0.0-openapi-3.0.0-';
         const folder = __dirname + '/../test/solar';
-        const build = await __1.ApiDef.makeBuild({
+        const build = await apidef_1.ApiDef.makeBuild({
             folder,
             debug: 'debug',
             outprefix,
@@ -85,7 +85,7 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
     (0, node_test_1.test)('field-required-solar', async () => {
         const outprefix = 'solar-1.0.0-openapi-3.0.0-';
         const folder = __dirname + '/../test/solar';
-        const build = await __1.ApiDef.makeBuild({
+        const build = await apidef_1.ApiDef.makeBuild({
             folder,
             debug: 'debug',
             outprefix,
@@ -138,7 +138,7 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         return;
         const outprefix = 'solar-1.0.0-openapi-3.0.0-';
         const folder = __dirname + '/../test/solar';
-        const build = await __1.ApiDef.makeBuild({
+        const build = await apidef_1.ApiDef.makeBuild({
             folder,
             debug: 'debug',
             outprefix,
