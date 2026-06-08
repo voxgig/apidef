@@ -29,65 +29,148 @@ var (
 	nonAlphaNumRE = regexp.MustCompile(`[^a-zA-Z_0-9]`)
 )
 
-// Depluralize converts a plural word to its singular form.
+// matchCase reapplies the case pattern of source onto target. Mirrors
+// src/utility.ts:matchCase so the case-insensitive irregular lookups in
+// Depluralize preserve the caller's casing (HOUSES → HOUSE, Houses →
+// House, houses → house).
+func matchCase(source, target string) string {
+	if target == "" {
+		return target
+	}
+	if source == strings.ToLower(source) {
+		return strings.ToLower(target)
+	}
+	if source == strings.ToUpper(source) {
+		return strings.ToUpper(target)
+	}
+	if source[:1] == strings.ToUpper(source[:1]) {
+		return strings.ToUpper(target[:1]) + strings.ToLower(target[1:])
+	}
+	return target
+}
+
+// irregularPlurals maps plural → singular for forms the suffix rules in
+// Depluralize would otherwise mishandle. Mirrors the IRREGULARS table in
+// src/utility.ts; keys are lowercase and looked up case-insensitively.
+// Package-level so it is built once rather than per call.
+var irregularPlurals = map[string]string{
+	"analytics": "analytics", "analyses": "analysis", "appendices": "appendix",
+	"avalanches": "avalanche", "axes": "axis", "caches": "cache", "cases": "case",
+	"children": "child", "cliches": "cliche", "courses": "course", "creches": "creche",
+	"crises": "crisis", "criteria": "criterion", "diagnoses": "diagnosis",
+	"doses": "dose", "douches": "douche", "feet": "foot", "furnaces": "furnace",
+	"geese": "goose", "headaches": "headache", "horses": "horse", "hoses": "hose",
+	"houses": "house", "indices": "index", "lens": "lens", "licenses": "license",
+	"matrices": "matrix", "men": "man", "mice": "mouse", "moustaches": "moustache",
+	"movies": "movie", "mustaches": "mustache", "niches": "niche", "noses": "nose",
+	"notices": "notice", "nurses": "nurse", "oases": "oasis", "pastiches": "pastiche",
+	"pauses": "pause", "phases": "phase", "phrases": "phrase", "practices": "practice",
+	"premises": "premise", "promises": "promise", "psyches": "psyche", "purses": "purse",
+	"releases": "release", "roses": "rose", "people": "person", "phenomena": "phenomenon",
+	"series": "series", "sources": "source", "species": "species", "teeth": "tooth",
+	"theses": "thesis", "verses": "verse", "vertices": "vertex", "women": "woman",
+	"yes": "yes",
+}
+
+// irregularKeys holds irregularPlurals' keys sorted longest-first so the
+// most specific suffix wins (e.g. "women" before "men"), matching the
+// IRREGULAR_KEYS ordering in src/utility.ts.
+var irregularKeys = sortedByLenDesc(irregularPlurals)
+
+func sortedByLenDesc(m map[string]string) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		if len(keys[i]) != len(keys[j]) {
+			return len(keys[i]) > len(keys[j])
+		}
+		return keys[i] < keys[j]
+	})
+	return keys
+}
+
+// Depluralize converts a plural word to its singular form. Mirrors
+// src/utility.ts:depluralize. Note: per-model custom plurals
+// (setCustomPlurals in the TS build) are not supported in the Go port.
 func Depluralize(word string) string {
 	if word == "" {
 		return word
 	}
 
-	irregulars := map[string]string{
-		"analytics": "analytics", "analyses": "analysis", "appendices": "appendix",
-		"axes": "axis", "children": "child", "courses": "course", "crises": "crisis",
-		"criteria": "criterion", "diagnoses": "diagnosis", "feet": "foot",
-		"furnace": "furnaces", "geese": "goose", "horses": "horse", "house": "houses",
-		"indices": "index", "lens": "lens", "license": "licenses", "matrices": "matrix",
-		"men": "man", "mice": "mouse", "movies": "movie", "notice": "notices",
-		"oases": "oasis", "phrase": "phrase", "releases": "release", "people": "person",
-		"phenomena": "phenomenon", "practice": "practices", "promise": "promises",
-		"series": "series", "species": "species", "teeth": "tooth", "theses": "thesis",
-		"vertices": "vertex", "women": "woman", "yes": "yes",
-	}
-
 	lower := strings.ToLower(word)
-	if v, ok := irregulars[lower]; ok {
-		if word[0] >= 'A' && word[0] <= 'Z' {
-			return strings.ToUpper(v[:1]) + v[1:]
-		}
-		return v
+
+	if v, ok := irregularPlurals[lower]; ok {
+		return matchCase(word, v)
 	}
-	for _, ending := range sortedKeysStr(irregulars) {
-		replacement := irregulars[ending]
+	for _, ending := range irregularKeys {
 		if strings.HasSuffix(lower, ending) {
-			prefix := word[:len(word)-len(ending)]
-			return prefix + replacement
+			cut := len(word) - len(ending)
+			return word[:cut] + matchCase(word[cut:], irregularPlurals[ending])
 		}
 	}
 
-	// Rules for regular plurals (applied in order)
+	// Rules for regular plurals (applied in order).
+
+	// -ies -> -y (cities -> city), only if result is > 2 chars
 	if strings.HasSuffix(lower, "ies") && len(word) > 3 {
-		result := word[:len(word)-3] + "y"
+		dropped := word[len(word)-3:]
+		y := "y"
+		if dropped == strings.ToUpper(dropped) {
+			y = "Y"
+		}
+		result := word[:len(word)-3] + y
 		if len(result) > 2 {
 			return result
 		}
 	}
+
+	// -ves -> -f or -fe (wolves -> wolf, knives -> knife)
 	if strings.HasSuffix(lower, "ves") {
-		stem := strings.ToLower(word[:len(word)-3])
-		if stem == "kni" || stem == "wi" || stem == "li" {
-			return word[:len(word)-3] + "fe"
+		stem := word[:len(word)-3]
+		dropped := word[len(word)-3:]
+		isUpper := dropped == strings.ToUpper(dropped)
+		switch strings.ToLower(stem) {
+		case "kni", "wi", "li":
+			if isUpper {
+				return stem + "FE"
+			}
+			return stem + "fe"
 		}
-		return word[:len(word)-3] + "f"
+		if isUpper {
+			return stem + "F"
+		}
+		return stem + "f"
 	}
+
+	// -oes -> -o (potatoes -> potato)
 	if strings.HasSuffix(lower, "oes") {
 		return word[:len(word)-2]
 	}
+
+	// -nses -> drop only the final -s (responses -> response)
 	if strings.HasSuffix(lower, "nses") {
 		return word[:len(word)-1]
 	}
-	if strings.HasSuffix(lower, "ses") || strings.HasSuffix(lower, "xes") ||
-		strings.HasSuffix(lower, "zes") || strings.HasSuffix(lower, "shes") ||
-		strings.HasSuffix(lower, "ches") {
+
+	// -zzes -> drop -es (buzzes -> buzz); -zes -> drop -s (prizes -> prize).
+	// The -zes singular keeps its trailing -e far more often than not, so
+	// only the doubled-z stem strips the full -es.
+	if strings.HasSuffix(lower, "zzes") {
 		return word[:len(word)-2]
 	}
+	if strings.HasSuffix(lower, "zes") {
+		return word[:len(word)-1]
+	}
+
+	// -ses, -xes, -shes, -ches -> remove -es (boxes -> box)
+	if strings.HasSuffix(lower, "ses") || strings.HasSuffix(lower, "xes") ||
+		strings.HasSuffix(lower, "shes") || strings.HasSuffix(lower, "ches") {
+		return word[:len(word)-2]
+	}
+
+	// -s -> remove -s (cats -> cat), only if result is > 2 chars
 	if strings.HasSuffix(lower, "s") && !strings.HasSuffix(lower, "ss") &&
 		!strings.HasSuffix(lower, "us") && len(word) > 3 {
 		return word[:len(word)-1]

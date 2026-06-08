@@ -229,6 +229,12 @@ function setCustomPlurals(plurals) {
         }
     }
     CUSTOM_PLURAL_KEYS = Object.keys(CUSTOM_PLURALS).sort((a, b) => b.length - a.length);
+    // canonize() memoizes depluralize() output, and depluralize() consults
+    // CUSTOM_PLURALS — so the cache is only valid for the plural config that
+    // produced it. ApiDef.makeBuild reuses one apidef instance across models,
+    // so without this a second model would read the first model's
+    // custom-plural-affected canonize results. Invalidate on every change.
+    CANONIZE_CACHE.clear();
 }
 function clearCustomPlurals() {
     setCustomPlurals(undefined);

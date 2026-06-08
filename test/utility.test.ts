@@ -198,6 +198,25 @@ describe('utility', () => {
     }
   })
 
+  test('canonize cache invalidates on custom plural change', () => {
+    // canonize() memoizes depluralize() output, and depluralize()
+    // depends on the active custom-plural config. Changing custom
+    // plurals must invalidate the cache, otherwise a reused apidef
+    // instance (ApiDef.makeBuild keeps one across models) would serve
+    // the previous model's custom-plural-affected result. Regression.
+    try {
+      clearCustomPlurals()
+      assert.deepStrictEqual(canonize('axes'), 'axis') // default, populates cache
+      setCustomPlurals({ axes: 'axe' })
+      assert.deepStrictEqual(canonize('axes'), 'axe')  // not the cached 'axis'
+      clearCustomPlurals()
+      assert.deepStrictEqual(canonize('axes'), 'axis') // not the cached 'axe'
+    }
+    finally {
+      clearCustomPlurals()
+    }
+  })
+
   test('canonize', () => {
     // Basic canonization
     assert.deepStrictEqual(canonize('Dogs'),'dog')

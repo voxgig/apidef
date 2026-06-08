@@ -158,6 +158,24 @@ const utility_1 = require("../dist/utility");
             (0, utility_1.clearCustomPlurals)();
         }
     });
+    (0, node_test_1.test)('canonize cache invalidates on custom plural change', () => {
+        // canonize() memoizes depluralize() output, and depluralize()
+        // depends on the active custom-plural config. Changing custom
+        // plurals must invalidate the cache, otherwise a reused apidef
+        // instance (ApiDef.makeBuild keeps one across models) would serve
+        // the previous model's custom-plural-affected result. Regression.
+        try {
+            (0, utility_1.clearCustomPlurals)();
+            node_assert_1.default.deepStrictEqual((0, utility_1.canonize)('axes'), 'axis'); // default, populates cache
+            (0, utility_1.setCustomPlurals)({ axes: 'axe' });
+            node_assert_1.default.deepStrictEqual((0, utility_1.canonize)('axes'), 'axe'); // not the cached 'axis'
+            (0, utility_1.clearCustomPlurals)();
+            node_assert_1.default.deepStrictEqual((0, utility_1.canonize)('axes'), 'axis'); // not the cached 'axe'
+        }
+        finally {
+            (0, utility_1.clearCustomPlurals)();
+        }
+    });
     (0, node_test_1.test)('canonize', () => {
         // Basic canonization
         node_assert_1.default.deepStrictEqual((0, utility_1.canonize)('Dogs'), 'dog');
