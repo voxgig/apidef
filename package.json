@@ -1,9 +1,9 @@
 {
   "name": "@voxgig/apidef",
   "version": "6.2.0",
-  "main": "dist/apidef.js",
+  "main": "ts/dist/apidef.js",
   "type": "commonjs",
-  "types": "dist/apidef.d.ts",
+  "types": "ts/dist/apidef.d.ts",
   "description": "Voxgig SDK Generator.",
   "homepage": "https://github.com/voxgig/voxgig-apidef",
   "keywords": [
@@ -21,11 +21,11 @@
     "voxgig-apidef": "bin/voxgig-apidef"
   },
   "scripts": {
-    "test": "node --enable-source-maps --test \"dist-test/**/*.test.js\"",
-    "test-some": "node --enable-source-maps --test-name-pattern=\"$TEST_PATTERN\" --test \"dist-test/**/*.test.js\"",
-    "watch": "tsc --build src test -w",
-    "build": "tsc --build src test",
-    "clean": "rm -rf dist dist-test node_modules yarn.lock package-lock.json",
+    "test": "node --enable-source-maps --test \"ts/dist-test/**/*.test.js\"",
+    "test-some": "node --enable-source-maps --test-name-pattern=\"$TEST_PATTERN\" --test \"ts/dist-test/**/*.test.js\"",
+    "watch": "tsc --build ts/src ts/test -w",
+    "build": "tsc --build ts/src ts/test",
+    "clean": "rm -rf ts/dist ts/dist-test node_modules yarn.lock package-lock.json",
     "reset": "npm run clean && npm i && npm run build && npm test",
     "repo-tag": "REPO_VERSION=`node -e \"console.log(require('./package').version)\"` && echo TAG: v$REPO_VERSION && git commit -a -m v$REPO_VERSION && git push && git tag v$REPO_VERSION && git push --tags;",
     "repo-publish": "npm run clean && npm i && npm run repo-publish-quick",
@@ -34,13 +34,13 @@
   "license": "MIT",
   "files": [
     "model",
-    "src",
-    "dist",
+    "ts/src",
+    "ts/dist",
     "bin",
     "LICENSE"
   ],
   "devDependencies": {
-    "@types/node": "25.8.0",
+    "@types/node": "25.9.2",
     "typescript": "6.0.3"
   },
   "peerDependencies": {

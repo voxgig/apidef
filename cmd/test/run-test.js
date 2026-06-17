@@ -47,7 +47,7 @@ try {
   // Ignore if require.main cannot be set
 }
 
-const { ApiDef } = require('../../dist/apidef.js')
+const { ApiDef } = require('../../ts/dist/apidef.js')
 
 const FIXTURE_DIR = process.argv[2]
 const WORKDIR = process.argv[3]

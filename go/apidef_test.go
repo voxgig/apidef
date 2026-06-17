@@ -27,6 +27,70 @@ func TestDepluralize(t *testing.T) {
 	}
 }
 
+func TestCustomPlurals(t *testing.T) {
+	defer ClearCustomPlurals()
+
+	// Exact override beats the built-in irregular (axes -> axis by default).
+	SetCustomPlurals(map[string]any{"axes": "axe"})
+	if got := Depluralize("axes"); got != "axe" {
+		t.Errorf("custom exact: Depluralize(axes) = %q, want axe", got)
+	}
+	if got := Depluralize("AXES"); got != "AXE" {
+		t.Errorf("custom exact case: Depluralize(AXES) = %q, want AXE", got)
+	}
+	if got := Canonize("axes"); got != "axe" {
+		t.Errorf("custom Canonize(axes) = %q, want axe", got)
+	}
+
+	// Longest-suffix override, same shape as the irregular scan.
+	SetCustomPlurals(map[string]any{"widgets": "widget"})
+	if got := Depluralize("user_widgets"); got != "user_widget" {
+		t.Errorf("custom suffix: Depluralize(user_widgets) = %q, want user_widget", got)
+	}
+
+	// Non-string / empty values are skipped, not used to blank a word.
+	SetCustomPlurals(map[string]any{"houses": nil, "mice": "", "boxen": "box"})
+	if got := Depluralize("houses"); got != "house" {
+		t.Errorf("nil custom value should fall through: Depluralize(houses) = %q, want house", got)
+	}
+	if got := Depluralize("boxen"); got != "box" {
+		t.Errorf("Depluralize(boxen) = %q, want box", got)
+	}
+
+	// Clear restores default behaviour.
+	ClearCustomPlurals()
+	if got := Depluralize("axes"); got != "axis" {
+		t.Errorf("after clear: Depluralize(axes) = %q, want axis", got)
+	}
+}
+
+func TestOperationTransformPropagation(t *testing.T) {
+	pathsDesc := []map[string]any{
+		{"orig": "/pets", "parts": []string{"pets"}, "rename": map[string]any{}, "def": map[string]any{},
+			"op": map[string]any{"list": map[string]any{"method": "GET", "transform": map[string]any{"res": "`body.pet`"}}}},
+		{"orig": "/things", "parts": []string{"things"}, "rename": map[string]any{}, "def": map[string]any{},
+			"op": map[string]any{"create": map[string]any{"method": "POST"}}},
+	}
+	opm := collectOps(map[string]any{}, pathsDesc, map[string]string{})
+
+	cases := map[string][2]string{
+		"list":   {"`body.pet`", "`reqdata`"}, // guide-computed res carried through
+		"create": {"`body`", "`reqdata`"},     // no transform -> generic defaults
+	}
+	for name, want := range cases {
+		op, _ := opm[name].(map[string]any)
+		if op == nil {
+			t.Fatalf("missing op %q", name)
+		}
+		pt := op["points"].([]any)[0].(map[string]any)
+		tr := pt["transform"].(map[string]any)
+		if tr["res"] != want[0] || tr["req"] != want[1] {
+			t.Errorf("%s transform = {res:%v req:%v}, want {res:%q req:%q}",
+				name, tr["res"], tr["req"], want[0], want[1])
+		}
+	}
+}
+
 func TestCanonize(t *testing.T) {
 	tests := map[string]string{
 		"Users":      "user",

@@ -16,7 +16,7 @@ test-ts:
 	npm test
 
 clean-ts:
-	rm -rf dist dist-test
+	rm -rf ts/dist ts/dist-test
 
 # Go
 build-go:

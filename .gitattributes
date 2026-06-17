@@ -1,5 +1,5 @@
 # Force LF line endings on test fixtures. The TSV loader in
-# test/tsv.test.ts splits on /\r?\n/ defensively, but other tooling
+# ts/test/tsv.test.ts splits on /\r?\n/ defensively, but other tooling
 # (jsonic parsers, diff readers, snapshot tests) is line-ending
 # sensitive too; keep the canonical form stable across platforms.
 *.tsv text eol=lf

@@ -62,7 +62,7 @@ func parseOpenAPI(source string, meta map[string]string) (map[string]any, error)
 	_, hasSwagger := parsed["swagger"]
 	if !hasOpenAPI && !hasSwagger {
 		return nil, fmt.Errorf(
-			"@voxgig/apidef: parse: Unsupported OpenAPI version: undefined (%s)",
+			"@voxgig/apidef: parse: Unsupported spec: missing 'openapi' or 'swagger' version field (%s)",
 			RelativizePath(meta["file"]))
 	}
 
@@ -190,11 +190,14 @@ func drainObject(dec *json.Decoder) error {
 
 // addXRefsAndResolve combines x-ref annotation and $ref resolution in one pass.
 // Matches TS addXRefsAndResolve: uses object-identity visited tracking
-// (WeakSet equivalent via pointer map) to avoid re-walking shared children.
-// This prevents exponential expansion on large specs with many cross-references.
-// addXRefsAndResolve combines x-ref annotation and $ref resolution in one pass.
-// Matches TS addXRefsAndResolve exactly: uses object-identity visited tracking
-// (WeakSet equivalent via pointer map) to avoid re-walking shared children.
+// (WeakSet equivalent via pointer map) to avoid re-walking shared children,
+// which prevents exponential expansion on large specs with many cross-references.
+//
+// NOTE: resolution merges the target's keys into the ref node in place, so
+// multiple references to the same component share that component's nested
+// child objects. Downstream consumers must treat the resolved schema as
+// read-only — mutating an inlined sub-object would leak across every site
+// that referenced the same component.
 func addXRefsAndResolve(obj any, root map[string]any, visited map[uintptr]bool) {
 	if obj == nil {
 		return
