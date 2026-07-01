@@ -105,16 +105,23 @@ var (
 
 // SetCustomPlurals installs per-model plural overrides. Keys are lowercased;
 // non-string or empty values are skipped so a partially-typed model entry
-// can't poison the map. Mirrors src/utility.ts:setCustomPlurals.
+// can't poison the map. Both map[string]any (JSON-decoded models) and
+// map[string]string (programmatic callers) are accepted. Mirrors
+// src/utility.ts:setCustomPlurals.
 func SetCustomPlurals(plurals any) {
 	customPlurals = map[string]string{}
-	if pm, ok := plurals.(map[string]any); ok {
+	switch pm := plurals.(type) {
+	case map[string]any:
 		for k, v := range pm {
-			s, ok := v.(string)
-			if !ok || s == "" {
-				continue
+			if s, ok := v.(string); ok && s != "" {
+				customPlurals[strings.ToLower(k)] = s
 			}
-			customPlurals[strings.ToLower(k)] = s
+		}
+	case map[string]string:
+		for k, s := range pm {
+			if s != "" {
+				customPlurals[strings.ToLower(k)] = s
+			}
 		}
 	}
 	customPluralKeys = sortedByLenDesc(customPlurals)

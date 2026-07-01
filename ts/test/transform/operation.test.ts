@@ -48,6 +48,19 @@ describe('transform-operation transform propagation', () => {
     assert.strictEqual(pt.transform.req, '`reqdata`') // req absent -> default
   })
 
+  test('carries an object req envelope onto the point', async () => {
+    // Wrapped request body: the guide put a { <entity>: `reqdata` } envelope
+    // on op.transform.req. It must reach the point unchanged (not be
+    // flattened to the default `reqdata`).
+    const ctx = makeCtx('pet', {
+      create: { method: 'POST', transform: { req: { pet: '`reqdata`' }, res: '`body.pet`' } },
+    })
+    await operationTransform(ctx)
+    const pt = ctx.apimodel.main[KIT].entity.pet.op.create.points[0]
+    assert.deepStrictEqual(pt.transform.req, { pet: '`reqdata`' })
+    assert.strictEqual(pt.transform.res, '`body.pet`')
+  })
+
   test('falls back to generic defaults when the op has no transform', async () => {
     const ctx = makeCtx('thing', {
       create: { method: 'POST' },

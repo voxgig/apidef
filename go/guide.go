@@ -152,14 +152,22 @@ func buildGuideSource(ctx *ApiDefContext, baseguide map[string]any) string {
 					blocks = append(blocks, fmt.Sprintf("      op: %s: method: *%s", opname, method))
 
 					if transform, ok := opdef["transform"].(map[string]any); ok {
-						// Mirrors src/guide/guide.ts:212-225 — only the res
-						// value is emitted, and only when transform.res is
-						// non-null. The src/guide/guide.ts also reads `req`
-						// but writes the *res* value, which is a no-op when
-						// res is null; we follow that here by gating on res.
+						// Mirrors src/guide/guide.ts: emit res (a string) and
+						// req (an object envelope { <entity>: `reqdata` }, one
+						// nested key per entry). Go's guideModel is a direct
+						// JSON copy of the in-memory guide, so this serializer
+						// only governs the written base-guide.jsonic — but it
+						// must still match TS so the artifacts stay identical.
 						if res := transform["res"]; res != nil {
 							qt, _ := json.Marshal(res)
 							blocks = append(blocks, fmt.Sprintf("      op: %s: transform: res: *(%s)|top", opname, string(qt)))
+						}
+						if req, ok := transform["req"].(map[string]any); ok {
+							for _, rk := range sortedKeys(req) {
+								rkq, _ := json.Marshal(rk)
+								rvq, _ := json.Marshal(req[rk])
+								blocks = append(blocks, fmt.Sprintf("      op: %s: transform: req: %s: *(%s)|top", opname, string(rkq), string(rvq)))
+							}
 						}
 					}
 				}

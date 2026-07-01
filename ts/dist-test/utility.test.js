@@ -709,6 +709,24 @@ const utility_1 = require("../dist/utility");
         // Array unions map to a $ONE of each member validator.
         node_assert_1.default.deepStrictEqual((0, utility_1.validator)(['string', 'number']), ['`$ONE`', ['`$STRING`', '`$NUMBER`']]);
     });
+    (0, node_test_1.test)('setCustomPlurals overrides, and skips empty/non-string values', () => {
+        try {
+            (0, utility_1.setCustomPlurals)({ axes: 'axe' });
+            node_assert_1.default.strictEqual((0, utility_1.depluralize)('axes'), 'axe'); // custom beats irregular (axis)
+            node_assert_1.default.strictEqual((0, utility_1.depluralize)('AXES'), 'AXE'); // casing reapplied
+            (0, utility_1.setCustomPlurals)({ widgets: 'widget' });
+            node_assert_1.default.strictEqual((0, utility_1.depluralize)('user_widgets'), 'user_widget'); // longest-suffix
+            // Empty / non-string values must be skipped — an empty value would
+            // otherwise make the suffix pass return '' for the whole word.
+            (0, utility_1.setCustomPlurals)({ mice: '', geese: null, boxen: 'box' });
+            node_assert_1.default.strictEqual((0, utility_1.depluralize)('mice'), 'mouse'); // falls through to irregular
+            node_assert_1.default.strictEqual((0, utility_1.depluralize)('boxen'), 'box');
+        }
+        finally {
+            (0, utility_1.clearCustomPlurals)();
+        }
+        node_assert_1.default.strictEqual((0, utility_1.depluralize)('axes'), 'axis'); // cleared -> default
+    });
     (0, node_test_1.test)('getModelPath - basic path traversal', () => {
         const model = {
             a: {

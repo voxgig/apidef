@@ -785,7 +785,11 @@ function ResolveTransform(spec) {
             transform.res = '`body.' + entdesc.name + '`';
         }
     }
-    const reqprops = getRequestBodySchema(mdesc.requestBody);
+    // Read the request body schema's *properties* (as the response side does
+    // above) — an enveloped body is `schema.properties.<entity>`. Without
+    // `.properties` this checked the schema's own keys and never matched, so
+    // wrapped requests were undetected (the Go port reads properties here).
+    const reqprops = getRequestBodySchema(mdesc.requestBody)?.properties;
     (0, utility_1.debugpath)(pathStr, methodName, 'TRANSFORM-REQ', (0, struct_1.keysof)(reqprops));
     if (reqprops) {
         if (reqprops[entdesc.origname]) {

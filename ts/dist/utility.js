@@ -229,10 +229,12 @@ function setCustomPlurals(plurals) {
     CUSTOM_PLURALS = {};
     if (plurals) {
         for (const k of Object.keys(plurals)) {
-            // Skip null/undefined values so a partially-typed model entry
-            // doesn't poison the map.
+            // Skip non-string or empty values so a partially-typed model entry
+            // doesn't poison the map. An empty value is especially harmful: the
+            // suffix pass in depluralize() would then return '' for the whole
+            // word. Matches the Go port's SetCustomPlurals.
             const v = plurals[k];
-            if (null == v)
+            if ('string' !== typeof v || '' === v)
                 continue;
             CUSTOM_PLURALS[k.toLowerCase()] = v;
         }

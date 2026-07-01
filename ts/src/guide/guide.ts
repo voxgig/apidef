@@ -221,6 +221,18 @@ async function buildBaseGuide(ctx: ApiDefContext) {
           guideBlocks.push(
             `      op: ${opname}: transform: res: *${qt(op.transform.res)}|top`)
         }
+        // The req transform is an object envelope ({ <entity>: `reqdata` }),
+        // so emit each entry as a nested key. Without this the wrapper is
+        // dropped when the base-guide is re-read, and the model point falls
+        // back to an unwrapped `reqdata` — diverging from the in-memory Go
+        // guide, which keeps it. (operationTransform copies op.transform onto
+        // the point, so this is what makes wrapped requests survive.)
+        if (null != op.transform.req && 'object' === typeof op.transform.req) {
+          items(op.transform.req).map(([rk, rv]: [string, any]) => {
+            guideBlocks.push(
+              `      op: ${opname}: transform: req: ${qs(rk)}: *${qt(rv)}|top`)
+          })
+        }
       })
 
       guideBlocks.push(`    }`)

@@ -57,6 +57,13 @@ func TestCustomPlurals(t *testing.T) {
 		t.Errorf("Depluralize(boxen) = %q, want box", got)
 	}
 
+	// map[string]string is accepted too (programmatic callers), not just
+	// the map[string]any that JSON decoding produces.
+	SetCustomPlurals(map[string]string{"axes": "axe"})
+	if got := Depluralize("axes"); got != "axe" {
+		t.Errorf("map[string]string override: Depluralize(axes) = %q, want axe", got)
+	}
+
 	// Clear restores default behaviour.
 	ClearCustomPlurals()
 	if got := Depluralize("axes"); got != "axis" {
@@ -70,6 +77,9 @@ func TestOperationTransformPropagation(t *testing.T) {
 			"op": map[string]any{"list": map[string]any{"method": "GET", "transform": map[string]any{"res": "`body.pet`"}}}},
 		{"orig": "/things", "parts": []string{"things"}, "rename": map[string]any{}, "def": map[string]any{},
 			"op": map[string]any{"create": map[string]any{"method": "POST"}}},
+		{"orig": "/wrap", "parts": []string{"wrap"}, "rename": map[string]any{}, "def": map[string]any{},
+			"op": map[string]any{"update": map[string]any{"method": "PUT",
+				"transform": map[string]any{"req": map[string]any{"pet": "`reqdata`"}, "res": "`body.pet`"}}}},
 	}
 	opm := collectOps(map[string]any{}, pathsDesc, map[string]string{})
 
@@ -88,6 +98,13 @@ func TestOperationTransformPropagation(t *testing.T) {
 			t.Errorf("%s transform = {res:%v req:%v}, want {res:%q req:%q}",
 				name, tr["res"], tr["req"], want[0], want[1])
 		}
+	}
+
+	// An object req envelope must propagate onto the point unchanged.
+	up := opm["update"].(map[string]any)["points"].([]any)[0].(map[string]any)["transform"].(map[string]any)
+	reqEnv, _ := up["req"].(map[string]any)
+	if reqEnv["pet"] != "`reqdata`" {
+		t.Errorf("update req envelope = %v, want {pet: `reqdata`}", up["req"])
 	}
 }
 

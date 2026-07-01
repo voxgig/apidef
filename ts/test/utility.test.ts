@@ -900,6 +900,28 @@ describe('utility', () => {
   })
 
 
+  test('setCustomPlurals overrides, and skips empty/non-string values', () => {
+    try {
+      setCustomPlurals({ axes: 'axe' })
+      assert.strictEqual(depluralize('axes'), 'axe')   // custom beats irregular (axis)
+      assert.strictEqual(depluralize('AXES'), 'AXE')   // casing reapplied
+
+      setCustomPlurals({ widgets: 'widget' })
+      assert.strictEqual(depluralize('user_widgets'), 'user_widget') // longest-suffix
+
+      // Empty / non-string values must be skipped — an empty value would
+      // otherwise make the suffix pass return '' for the whole word.
+      setCustomPlurals({ mice: '', geese: null as any, boxen: 'box' })
+      assert.strictEqual(depluralize('mice'), 'mouse')  // falls through to irregular
+      assert.strictEqual(depluralize('boxen'), 'box')
+    }
+    finally {
+      clearCustomPlurals()
+    }
+    assert.strictEqual(depluralize('axes'), 'axis')     // cleared -> default
+  })
+
+
   test('getModelPath - basic path traversal', () => {
     const model = {
       a: {
