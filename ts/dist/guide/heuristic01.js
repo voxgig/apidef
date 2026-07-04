@@ -778,10 +778,16 @@ function ResolveTransform(spec) {
     const resprops = getResponseSchema(resokdef)?.properties;
     (0, utility_1.debugpath)(pathStr, methodName, 'TRANSFORM-RES', (0, struct_1.keysof)(resprops));
     if (resprops) {
-        if (resprops[entdesc.origname]) {
+        // Only unwrap `body.<entity>` when the entity-named response property is
+        // itself a structured value (object/array/ref/composed schema) that could
+        // actually contain the entity. A scalar property that merely shares the
+        // entity's name (e.g. an entity `advice` whose own fields include a
+        // string field `advice`) is a FIELD of the entity, not a wrapper around
+        // it: the response IS the entity, so it must stay `body` (the default).
+        if (isEntityWrapperProp(resprops[entdesc.origname])) {
             transform.res = '`body.' + entdesc.origname + '`';
         }
-        else if (resprops[entdesc.name]) {
+        else if (isEntityWrapperProp(resprops[entdesc.name])) {
             transform.res = '`body.' + entdesc.name + '`';
         }
     }
@@ -950,6 +956,28 @@ function getRequestBodySchema(requestBody) {
 function getResponseSchema(response) {
     return response?.content?.['application/json']?.schema ??
         response?.schema;
+}
+// A response property only "wraps" the entity when it is itself a structured
+// value that could contain the entity: an object, an array, a $ref, or a
+// composed (allOf/oneOf/anyOf) schema. A scalar property (string, integer,
+// number, boolean) that merely shares the entity's name is a field of the
+// entity, not a wrapper, so the response must not be unwrapped down to it.
+function isEntityWrapperProp(propSchema) {
+    if (null == propSchema || 'object' !== typeof propSchema) {
+        return false;
+    }
+    if (null != propSchema.$ref) {
+        return true;
+    }
+    if (null != propSchema.properties ||
+        null != propSchema.items ||
+        null != propSchema.allOf ||
+        null != propSchema.oneOf ||
+        null != propSchema.anyOf) {
+        return true;
+    }
+    const t = propSchema.type;
+    return 'object' === t || 'array' === t;
 }
 function inferEntityName(mdesc, parts, why) {
     // Try operationId: e.g. "getUser" -> "user", "listProducts" -> "product"

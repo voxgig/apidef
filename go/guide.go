@@ -1134,10 +1134,16 @@ func resolveTransform(data map[string]any, mdesc map[string]any) {
 	origname := safeStr(entdesc["origname"])
 	ename := safeStr(entdesc["name"])
 
+	// Only unwrap `body.<entity>` when the entity-named response property is
+	// itself a structured value (object/array/ref/composed schema) that could
+	// actually contain the entity. A scalar property that merely shares the
+	// entity's name (e.g. entity `advice` with a string field `advice`) is a
+	// FIELD of the entity, not a wrapper: the response IS the entity, so it
+	// must stay `body` (the default). Mirrors ts/src/guide/heuristic01.ts.
 	if resprops != nil {
-		if _, ok := resprops[origname]; ok && origname != "" {
+		if isEntityWrapperProp(resprops[origname]) && origname != "" {
 			transform["res"] = "`body." + origname + "`"
-		} else if _, ok := resprops[ename]; ok && ename != "" {
+		} else if isEntityWrapperProp(resprops[ename]) && ename != "" {
 			transform["res"] = "`body." + ename + "`"
 		}
 	}
@@ -1761,6 +1767,30 @@ func getResponseSchemaProps(response map[string]any) map[string]any {
 	}
 	props, _ := schema["properties"].(map[string]any)
 	return props
+}
+
+// isEntityWrapperProp reports whether a response property "wraps" the entity:
+// it must be a structured value that could contain the entity (object, array,
+// $ref, or composed allOf/oneOf/anyOf schema). A scalar property (string,
+// integer, number, boolean) that merely shares the entity's name is a field of
+// the entity, not a wrapper. Mirrors ts/src/guide/heuristic01.ts.
+func isEntityWrapperProp(propSchema any) bool {
+	prop, ok := propSchema.(map[string]any)
+	if !ok || prop == nil {
+		return false
+	}
+	if prop["$ref"] != nil {
+		return true
+	}
+	if prop["properties"] != nil ||
+		prop["items"] != nil ||
+		prop["allOf"] != nil ||
+		prop["oneOf"] != nil ||
+		prop["anyOf"] != nil {
+		return true
+	}
+	t := safeStr(prop["type"])
+	return t == "object" || t == "array"
 }
 
 // getRequestBodySchemaProps gets properties from a request body schema.
