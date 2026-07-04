@@ -135,3 +135,6 @@ apidef-warnings.txt
 
 # Build output (standalone executables)
 cmd/build/
+
+# agent/session state
+.claude/

@@ -44,6 +44,18 @@ const topTransform = async function(
   kit.info = stringifyInfoScalars(def.info ?? {})
   kit.info.servers = stringifyInfoScalars(def.servers ?? [])
 
+  // Public APIs that declare NO authentication (no security schemes, no
+  // top-level `security`, and no per-operation `security`) get an explicit
+  // no-auth signal in the model. Downstream sdkgen reads it via
+  // isAuthActive() (main.kit.info.auth === false) to suppress apikey/auth
+  // code, docs and examples. Only the negative signal is emitted: when the
+  // spec DOES declare auth we leave `auth` unset so the SDK's own config
+  // (main.kit.config.auth) governs. Set AFTER stringifyInfoScalars so the
+  // value stays a real boolean rather than the string "false".
+  if (!specDeclaresAuth(def)) {
+    kit.info.auth = false
+  }
+
   // Swagger 2.0
   if (def.host) {
     kit.info.servers.push({
@@ -85,6 +97,44 @@ const topTransform = async function(
   }
 
   return { ok: true, msg: 'top' }
+}
+
+
+// Does the spec declare any authentication? True if it defines security
+// schemes (OpenAPI 3 `components.securitySchemes` or Swagger 2
+// `securityDefinitions`), a top-level `security` requirement, or a
+// per-operation `security` requirement. Used to emit a no-auth signal
+// (info.auth: false) for fully public APIs.
+function specDeclaresAuth(def: any): boolean {
+  if (null == def || 'object' !== typeof def) return false
+
+  const nonEmptyObj = (v: any) =>
+    null != v && 'object' === typeof v && Object.keys(v).length > 0
+
+  // OpenAPI 3 security schemes.
+  if (nonEmptyObj(def.components?.securitySchemes)) return true
+
+  // Swagger 2 security definitions.
+  if (nonEmptyObj(def.securityDefinitions)) return true
+
+  // Top-level security requirement.
+  if (Array.isArray(def.security) && def.security.length > 0) return true
+
+  // Per-operation security requirement.
+  const paths = def.paths
+  if (paths && 'object' === typeof paths) {
+    for (const pathItem of Object.values(paths)) {
+      if (null == pathItem || 'object' !== typeof pathItem) continue
+      for (const op of Object.values(pathItem as Record<string, any>)) {
+        if (op && 'object' === typeof op &&
+          Array.isArray((op as any).security) && (op as any).security.length > 0) {
+          return true
+        }
+      }
+    }
+  }
+
+  return false
 }
 
 

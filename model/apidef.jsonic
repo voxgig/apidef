@@ -3,6 +3,12 @@
 main: kit: info: {
   title?: string
   version?: string
+
+  # Set to false by the top transform when the spec declares no
+  # authentication (no security schemes / security requirements). sdkgen's
+  # isAuthActive() reads this to suppress apikey/auth code and docs. Left
+  # unset when the API does declare auth.
+  auth?: boolean
 }
 
 

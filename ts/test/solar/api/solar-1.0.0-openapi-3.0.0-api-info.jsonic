@@ -4,6 +4,7 @@
 main: {
   kit: {
     info: {
+      auth: false
       servers: [
         {
           url: "http://localhost:8901"
