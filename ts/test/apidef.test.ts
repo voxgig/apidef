@@ -131,6 +131,69 @@ describe('apidef', () => {
   })
 
 
+  test('query-verb-book', async () => {
+    // RFC 10008 QUERY verb: a safe, idempotent read carrying its filter in the
+    // request body. apidef maps it onto load/list. This fixture exercises a
+    // `query:` operation on a collection path returning an array of Book, with
+    // a separate BookQuery filter schema in the request body.
+    const outprefix = 'query-book-'
+    const folder = __dirname + '/../test/query'
+
+    const build = await ApiDef.makeBuild({
+      folder,
+      debug: 'debug',
+      outprefix,
+    })
+
+    const bres = await build(
+      {
+        name: 'book',
+        def: outprefix + 'def.yaml'
+      },
+      {
+        spec: {
+          base: __dirname + '/../test/query',
+          buildargs: {
+            apidef: {
+              ctrl: {
+                step: {
+                  parse: true,
+                  guide: true,
+                  transformers: true,
+                  builders: true,
+                  generate: true,
+                }
+              }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    // The QUERY method is counted like any other method.
+    assert.strictEqual(bres.guide.metrics.count.method, 2)
+
+    // The collection QUERY is classified as a `list` op (array response),
+    // carrying the QUERY method through to the guide.
+    const bookGuide = bres.guide.entity.book
+    assert.ok(bookGuide, 'book entity discovered')
+    assert.strictEqual(bookGuide.path['/api/book'].op.list.method, 'QUERY')
+
+    // The QUERY method flows through to the model op point.
+    const book = bres.apimodel.main.kit.entity.book
+    assert.strictEqual(book.op.list.points[0].method, 'QUERY')
+
+    // The Book response schema supplies the entity fields...
+    const fieldNames = book.fields.map((f: any) => f.name).sort()
+    assert.deepStrictEqual(fieldNames, ['author', 'id', 'title'])
+
+    // ...and the QUERY filter body (BookQuery: q, page) must NOT leak into them.
+    assert.ok(!fieldNames.includes('q'), 'filter field q must not leak')
+    assert.ok(!fieldNames.includes('page'), 'filter field page must not leak')
+  })
+
+
   test('full-solar', async () => {
     return;
 

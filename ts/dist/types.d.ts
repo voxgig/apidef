@@ -1077,7 +1077,7 @@ type Warner = {
     } & Record<string, any>)[];
     point: string;
 } & ((details: Record<string, any>) => void);
-type MethodName = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS' | '';
+type MethodName = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS' | 'QUERY' | '';
 type Guide = {
     metrics: GuideMetrics;
     entity: Record<string, GuideEntity>;

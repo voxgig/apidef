@@ -1,0 +1,18 @@
+# Guide
+
+guide: {
+  metrics: count: entity: 1
+  metrics: count: path: 2
+  metrics: count: method: 2
+
+  entity: book: {
+    path: "/api/book": {
+      op: list: method: *QUERY
+    }
+    path: "/api/book/{book_id}": {
+      rename: param: "book_id": *"id"
+      op: load: method: *GET
+    }
+  }
+
+}

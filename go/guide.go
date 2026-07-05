@@ -18,7 +18,11 @@ const IS_ENTCMP_METHOD_RATE = 0.21
 const IS_ENTCMP_PATH_RATE = 0.41
 
 var METHOD_IDOP = map[string]string{
-	"GET":     "load",
+	"GET": "load",
+	// QUERY (RFC 10008) is a safe, idempotent read carrying its filter in the
+	// request body — a "GET with a body". Treat it as a load; ResolveOperation
+	// promotes it to `list` when the response is a collection.
+	"QUERY":   "load",
 	"POST":    "create",
 	"PUT":     "update",
 	"DELETE":  "remove",
@@ -29,6 +33,7 @@ var METHOD_IDOP = map[string]string{
 
 var METHOD_CONSIDER_ORDER = map[string]int{
 	"GET":     100,
+	"QUERY":   150,
 	"POST":    200,
 	"PUT":     300,
 	"PATCH":   400,
@@ -233,7 +238,7 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 		countMap["path"] = toInt(countMap["path"]) + 1
 
 		methodCount := 0
-		httpMethods := []string{"get", "post", "put", "patch", "delete", "head", "options"}
+		httpMethods := []string{"get", "post", "put", "patch", "delete", "head", "options", "query"}
 		for _, m := range httpMethods {
 			if _, ok := pathdefMap[m]; ok {
 				methodCount++
@@ -1503,6 +1508,11 @@ func probableEntityMethod(data map[string]any, mdesc map[string]any, ment map[st
 		} else if (method == "PUT" || method == "PATCH") &&
 			strings.HasSuffix(pm.Expr, "/p/") {
 			probWhy = "putish"
+			probent = true
+		} else if method == "QUERY" {
+			// QUERY (RFC 10008) carries a filter body but is a safe read, so —
+			// like GET — it implies an entity, not an action.
+			probWhy = "query"
 			probent = true
 		}
 	} else if method == "GET" {

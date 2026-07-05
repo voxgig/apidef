@@ -16,6 +16,10 @@ const IS_ENTCMP_METHOD_RATE = 0.21;
 const IS_ENTCMP_PATH_RATE = 0.41;
 const METHOD_IDOP = {
     GET: 'load',
+    // QUERY (RFC 10008) is a safe, idempotent read carrying its filter in the
+    // request body — a "GET with a body". Treat it as a load; ResolveOperation
+    // promotes it to `list` when the response is a collection.
+    QUERY: 'load',
     POST: 'create',
     PUT: 'update',
     DELETE: 'remove',
@@ -25,6 +29,7 @@ const METHOD_IDOP = {
 };
 const METHOD_CONSIDER_ORDER = {
     'GET': 100,
+    'QUERY': 150,
     'POST': 200,
     'PUT': 300,
     'PATCH': 400,
@@ -140,7 +145,8 @@ function MeasurePath(spec) {
         (pathdef.patch ? 1 : 0) +
         (pathdef.delete ? 1 : 0) +
         (pathdef.head ? 1 : 0) +
-        (pathdef.options ? 1 : 0));
+        (pathdef.options ? 1 : 0) +
+        (pathdef.query ? 1 : 0));
 }
 // Expects to run over paths.<method>
 function MeasureMethod(spec) {
@@ -1036,6 +1042,12 @@ function probableEntityMethod(data, mdesc, pm, why) {
         else if (('PUT' === mdesc.method || 'PATCH' === mdesc.method)
             && pm.expr.endsWith('/p/')) {
             prob_why = 'putish';
+            probent = true;
+        }
+        // QUERY (RFC 10008) carries a filter body but is a safe read, so — like
+        // GET — it implies an entity, not an action.
+        else if ('QUERY' === mdesc.method) {
+            prob_why = 'query';
             probent = true;
         }
     }

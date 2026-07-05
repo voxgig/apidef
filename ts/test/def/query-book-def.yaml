@@ -1,0 +1,65 @@
+openapi: 3.0.0
+info:
+  title: Book Query API
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8902
+
+paths:
+  /api/book:
+    query:
+      summary: Search books
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookQuery'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Book'
+  /api/book/{book_id}:
+    get:
+      summary: Get book
+      parameters:
+        - name: book_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+
+components:
+  schemas:
+    Book:
+      type: object
+      required:
+        - id
+        - title
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        author:
+          type: string
+    BookQuery:
+      type: object
+      properties:
+        q:
+          type: string
+        page:
+          type: integer

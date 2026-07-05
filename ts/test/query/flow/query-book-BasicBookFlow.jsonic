@@ -1,0 +1,44 @@
+# BasicBookFlow
+
+main: kit: flow: BasicBookFlow:
+{
+  entity: "book",
+  kind: "basic",
+  name: "BasicBookFlow",
+  step: [
+    {
+      op: "list",
+      valid: [
+        {
+          apply: "ItemExists",
+          def: {
+            ref: "book_ref01"
+          }
+        }
+      ]
+    }
+
+    {
+      input: {
+        ref: "book_ref01",
+        srcdatavar: "book_ref01_data",
+        suffix: "_dt0"
+      }
+
+      match: {
+        id: "book01"
+      }
+
+      op: "load",
+      valid: [
+        {
+          apply: "TextFieldMark",
+          def: {
+            mark: "Mark01-book_ref01"
+          }
+        }
+      ]
+    }
+  ],
+  "key$": "BasicBookFlow"
+}

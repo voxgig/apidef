@@ -172,7 +172,7 @@ function validateBaseBuide(ctx, baseguide) {
         const pathStr = pdef.key$;
         // Each orig method.
         (0, jostraca_1.each)(pdef, (mdef) => {
-            if (mdef.key$.match(/^(get|post|put|patch|delete|head|options)$/i)) {
+            if (mdef.key$.match(/^(get|post|put|patch|delete|head|options|query)$/i)) {
                 let key = pathStr + ' ' + mdef.key$.toUpperCase();
                 let desc = (srcm[key] = (srcm[key] || { c: 0 }));
                 desc.c++;

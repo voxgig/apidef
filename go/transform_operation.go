@@ -12,7 +12,7 @@ func OperationTransform(ctx *ApiDefContext) (*TransformResult, error) {
 	msg := "operation "
 
 	methodIDOp := map[string]string{
-		"GET": "load", "POST": "create", "PUT": "update",
+		"GET": "load", "QUERY": "load", "POST": "create", "PUT": "update",
 		"DELETE": "remove", "PATCH": "patch", "HEAD": "head", "OPTIONS": "options",
 	}
 

@@ -1,0 +1,18 @@
+# API Information
+
+
+main: {
+  kit: {
+    info: {
+      auth: false
+      servers: [
+        {
+          url: "http://localhost:8902"
+        }
+      ]
+      title: "Book Query API"
+      version: "1.0.0"
+    }
+  }
+}
+

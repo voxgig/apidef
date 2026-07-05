@@ -1,0 +1,92 @@
+# Entity: book
+
+main: kit: entity: book: {
+
+  alias: field: {}
+
+  fields: [
+    {
+      name: "author"
+      req: false
+      type: "`$STRING`"
+    }
+    {
+      name: "id"
+      req: true
+      type: "`$STRING`"
+    }
+    {
+      name: "title"
+      req: true
+      type: "`$STRING`"
+    }
+  ]
+
+  id: {
+    field: "id"
+    name: "id"
+  }
+
+  name: "book"
+  op: {
+    list: {
+      name: "list"
+      points: [
+        {
+          method: "QUERY"
+          orig: "/api/book"
+          parts: [
+            "api"
+            "book"
+          ]
+          transform: {
+            req: "`reqdata`"
+            res: "`body`"
+          }
+        }
+      ]
+    }
+    load: {
+      name: "load"
+      points: [
+        {
+          args: {
+            params: [
+              {
+                kind: "param"
+                name: "id"
+                orig: "book_id"
+                reqd: true
+                type: "`$STRING`"
+              }
+            ]
+          }
+          method: "GET"
+          orig: "/api/book/{book_id}"
+          parts: [
+            "api"
+            "book"
+            "{id}"
+          ]
+          rename: {
+            param: {
+              book_id: "id"
+            }
+          }
+          select: {
+            exist: [
+              "id"
+            ]
+          }
+          transform: {
+            req: "`reqdata`"
+            res: "`body`"
+          }
+        }
+      ]
+    }
+  }
+
+
+
+}

@@ -100,7 +100,11 @@ function findFieldDefs(_ment, mop, mpoint, def) {
                     (0, jostraca_1.getx)(responses, '201 schema');
             }
         }
-        if (requestBody) {
+        // A QUERY (RFC 10008) request body is a filter/query schema, not the
+        // entity shape, so it must not contribute entity fields. Fields for a
+        // QUERY op come from its response only. Other methods (POST/PUT/PATCH)
+        // carry the entity in the body, so merge as usual.
+        if (requestBody && 'query' !== method) {
             fieldSets = [
                 fieldSets,
                 (0, jostraca_1.getx)(requestBody, 'content "application/json" schema') ??

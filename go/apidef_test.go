@@ -91,6 +91,89 @@ func TestOperationTransformPropagation(t *testing.T) {
 	}
 }
 
+// RFC 10008 QUERY verb: a safe, idempotent read carrying its filter in the
+// request body. Mirrors the TS `query-verb-book` case in ts/test/apidef.test.ts.
+// QUERY maps onto load/list; its collection response supplies the entity
+// fields, and its filter body (BookQuery) must not leak into them.
+func TestQueryVerb(t *testing.T) {
+	def := `{
+		"openapi":"3.0.0",
+		"info":{"title":"Book Query API","version":"1.0.0"},
+		"paths":{
+			"/api/book":{
+				"query":{
+					"summary":"Search books",
+					"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/BookQuery"}}}},
+					"responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/Book"}}}}}}
+				}
+			},
+			"/api/book/{book_id}":{
+				"get":{
+					"summary":"Get book",
+					"parameters":[{"name":"book_id","in":"path","required":true,"schema":{"type":"string"}}],
+					"responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Book"}}}}}
+				}
+			}
+		},
+		"components":{"schemas":{
+			"Book":{"type":"object","required":["id","title"],"properties":{"id":{"type":"string"},"title":{"type":"string"},"author":{"type":"string"}}},
+			"BookQuery":{"type":"object","properties":{"q":{"type":"string"},"page":{"type":"integer"}}}
+		}}
+	}`
+
+	parsed, err := Parse("OpenAPI", def, map[string]string{"file": "query-book"})
+	if err != nil {
+		t.Fatalf("parse failed: %v", err)
+	}
+
+	ctx := &ApiDefContext{
+		Opts: ApiDefOptions{
+			Folder:    t.TempDir(),
+			OutPrefix: "query-book-",
+			Strategy:  "heuristic01",
+		},
+		Def:  parsed,
+		Note: map[string]any{},
+		Warn: MakeWarner("test", nil),
+		Work: map[string]any{},
+	}
+
+	guideResult, err := BuildGuide(ctx)
+	if err != nil {
+		t.Fatalf("guide build failed: %v", err)
+	}
+
+	guide, _ := guideResult["guide"].(map[string]any)
+	if guide == nil {
+		t.Fatal("no guide in result")
+	}
+
+	// The QUERY method is counted like any other method.
+	metrics, _ := guide["metrics"].(map[string]any)
+	count, _ := metrics["count"].(map[string]any)
+	if toInt(count["method"]) != 2 {
+		t.Errorf("method count = %v, want 2", count["method"])
+	}
+
+	entity, _ := guide["entity"].(map[string]any)
+	book, _ := entity["book"].(map[string]any)
+	if book == nil {
+		t.Fatalf("book entity not discovered; entities: %v", sortedKeys(entity))
+	}
+
+	// The collection QUERY is classified as a `list` op carrying the QUERY method.
+	paths, _ := book["path"].(map[string]any)
+	collection, _ := paths["/api/book"].(map[string]any)
+	ops, _ := collection["op"].(map[string]any)
+	list, _ := ops["list"].(map[string]any)
+	if list == nil {
+		t.Fatalf("no list op on /api/book; ops: %v", sortedKeys(ops))
+	}
+	if list["method"] != "QUERY" {
+		t.Errorf("list op method = %v, want QUERY", list["method"])
+	}
+}
+
 func TestCanonize(t *testing.T) {
 	tests := map[string]string{
 		"Users":      "user",
