@@ -143,8 +143,11 @@ func findFieldDefs(mtarget map[string]any, def map[string]any, opname string) []
 		}
 	}
 
-	if requestBody != nil {
-		// Mirrors src/transform/field.ts:146-152. TS unconditionally wraps
+	// A QUERY (RFC 10008) request body is a filter/query schema, not the
+	// entity shape, so it must not contribute entity fields. Fields for a
+	// QUERY op come from its response only.
+	if requestBody != nil && methodLower != "query" {
+		// Mirrors src/transform/field.ts. TS unconditionally wraps
 		// fieldSets in an array when requestBody is present, even if the
 		// JSON schema lookup returns undefined. The wrapping is what stops
 		// the subsequent reshape (.allOf / .properties) from descending into

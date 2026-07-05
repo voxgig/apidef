@@ -187,7 +187,7 @@ import type {
   BasicMethodDesc,
 } from './desc'
 
-type MethodName = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS' | ''
+type MethodName = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS' | 'QUERY' | ''
 
 
 
