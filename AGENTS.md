@@ -14,6 +14,12 @@ paths form a resource, which methods are CRUD, how params map to identifiers.
 Pipeline: `parse → guide → transform×9 → builder → generate`. Entry point:
 [`ts/src/apidef.ts`](./ts/src/apidef.ts).
 
+**Building an SDK end-to-end?** apidef is the *spec → model* step of a larger
+pipeline. To go from an OpenAPI spec to a tested, published SDK, start at
+[`create-sdkgen/AGENTS.md`](https://github.com/voxgig/create-sdkgen/blob/main/AGENTS.md) (scaffold → generate →
+test → publish); this guide covers how apidef turns your spec into the model
+that drives it.
+
 ## ⚠️ The one rule that matters most
 
 **TypeScript (`ts/`) is the canonical implementation. Go (`go/`) is a parity
