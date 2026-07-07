@@ -77,10 +77,13 @@ is the source of truth; Go follows. See
 ## Build & test
 
 ```sh
-npm run build      # tsc --build ts/src ts/test  ->  ts/dist, ts/dist-test
-npm test           # node --test ts/dist-test/**/*.test.js
-make all           # TypeScript build+test AND Go build+test
+cd ts && npm run build   # tsc --build src test  ->  ts/dist, ts/dist-test
+cd ts && npm test        # node --test dist-test/**/*.test.js
+make all                 # TypeScript build+test AND Go build+test (from repo root)
 ```
+
+The npm package lives in `ts/`; run `npm` there. `go/` is the parallel Go
+project. `make all` from the repo root drives both.
 
 ## For AI coding agents
 

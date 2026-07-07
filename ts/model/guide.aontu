@@ -1,0 +1,27 @@
+
+guide: entity: &: {
+  active?: boolean
+  name: key()
+
+  path: &: {
+    active?: boolean
+
+     rename?: {
+       param?: {}
+     }
+
+     op: &: {
+       active?: boolean
+       method: string
+       
+       transform?: {
+         req?: top
+         res?: top
+       }
+     }
+  }
+}
+
+
+
+

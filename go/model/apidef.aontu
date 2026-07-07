@@ -1,0 +1,124 @@
+
+
+main: kit: info: {
+  title?: string
+  version?: string
+
+  # Set to false by the top transform when the spec declares no
+  # authentication (no security schemes / security requirements). sdkgen's
+  # isAuthActive() reads this to suppress apikey/auth code and docs. Left
+  # unset when the API does declare auth.
+  auth?: boolean
+}
+
+
+main: kit: entity: &: {
+
+  name: key()
+  active: *true
+
+  # Present only when the spec models an id for this entity (response /
+  # request schema declares one, or examples imply one). Public APIs that
+  # return payloads without an id leave this undefined.
+  id?: {
+    field: string
+    name: string
+  }
+
+  fields: [ &: {
+    name: string
+    req: boolean
+    type: top
+    active: *true
+  } ]
+
+  relations: {
+    ancestors: [ &: [ &: string ] ]
+  }
+  
+  op: &: {
+    name: string
+    input: *'data'
+
+    points: [ &: {
+
+      active: *true
+          
+      method: GET | PUT | POST | DELETE | PATCH | OPTIONS | HEAD
+
+      orig: string
+
+      parts: [ &: string ]
+
+      # Each arg kind (path params, query, header, cookie) has the same
+      # element shape. `kind` is constrained to the kind tag matching the
+      # array it appears in; `example` is optional and captures a spec-
+      # provided example value used by test generators.
+      args: {
+        params?: [ &: {
+          active: *true
+          kind: 'param'
+          name: string
+          orig?: string
+          reqd: boolean
+          type: top
+          example?: top
+        } ]
+        query?: [ &: {
+          active: *true
+          kind: 'query'
+          name: string
+          orig?: string
+          reqd: boolean
+          type: top
+          example?: top
+        } ]
+        header?: [ &: {
+          active: *true
+          kind: 'header'
+          name: string
+          orig?: string
+          reqd: boolean
+          type: top
+          example?: top
+        } ]
+        cookie?: [ &: {
+          active: *true
+          kind: 'cookie'
+          name: string
+          orig?: string
+          reqd: boolean
+          type: top
+          example?: top
+        } ]
+      }
+
+      select: {
+        param?: {}
+        query?: {}
+        header?: {}
+        cookie?: {}
+        '$action'?: string
+      }
+      
+    } ]
+  }
+}
+
+
+main: kit: flow: &: {
+  active: *true
+  name: key()
+
+  param: {}
+
+  step: [ &: {
+    active: *true
+    op: string
+    match: {}
+    data: {}
+    input: {}
+    spec: []
+    valid: []
+  } ]
+}

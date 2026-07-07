@@ -87,13 +87,13 @@ heuristic classification that apidef regenerates on every run
 (`<outprefix>base-guide.jsonic`):
 
 ```jsonic
-@"@voxgig/apidef/model/guide.jsonic"
+@"@voxgig/apidef/model/guide.aontu"
 @"<outprefix>base-guide.jsonic"
 ```
 
 Within a single run the base-guide is written *before* this file is read, so a
 cold start works in one pass as long as the guide entry file exists. The
-`@voxgig/apidef/model/guide.jsonic` reference is resolved from `node_modules`,
+`@voxgig/apidef/model/guide.aontu` reference is resolved from `node_modules`,
 so apidef must be installed in the project. Any classification overrides go
 below the includes; the file is merged, never clobbered, on re-runs.
 

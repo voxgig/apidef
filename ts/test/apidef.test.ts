@@ -214,7 +214,7 @@ describe('apidef', () => {
 
 name: solar
 
-@"@voxgig/apidef/model/apidef.jsonic"
+@"@voxgig/apidef/model/apidef.aontu"
 
 def: '${outprefix}def.yaml'
 `
@@ -222,7 +222,7 @@ def: '${outprefix}def.yaml'
     const modelSrc = `
 # apidef test: ${outprefix}
 
-@"@voxgig/apidef/model/apidef.jsonic"
+@"@voxgig/apidef/model/apidef.aontu"
 
 name: solar
 

@@ -67,7 +67,7 @@ while still being provably equivalent on the inputs that matter.
 
 ```sh
 # 1. change TypeScript, prove it
-( cd .. && npm run build && npm test )
+( cd ts && npm run build && npm test )
 
 # 2. mirror into Go, prove parity
 ( cd go && go build ./... && go test ./... )

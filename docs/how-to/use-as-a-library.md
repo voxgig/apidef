@@ -3,7 +3,7 @@
 > **Prerequisites.** Before any of these calls succeed, the project needs
 > (1) a guide entry file at `<folder>/guide/<outprefix>guide.jsonic` and
 > (2) a spec that declares `servers[0].url`. The guide file is two lines:
-> `@"@voxgig/apidef/model/guide.jsonic"` then
+> `@"@voxgig/apidef/model/guide.aontu"` then
 > `@"<outprefix>base-guide.jsonic"`. See
 > [Configuration → The guide file](../reference/configuration.md#the-guide-file).
 > Every example below assumes this is in place.

@@ -1,6 +1,6 @@
-.PHONY: all build test clean build-ts build-go test-ts test-go clean-ts clean-go publish-go tags-go reset
+.PHONY: all build test clean build-ts build-go test-ts test-go clean-ts clean-go publish-go tags-go reset sync-model check-model
 
-all: build test
+all: check-model build test
 
 build: build-ts build-go
 
@@ -8,12 +8,31 @@ test: test-ts test-go
 
 clean: clean-ts clean-go
 
+# Shared aontu model. Canonical copies live at model/; each packaging system
+# can only ship files under its own root, so they are mirrored into ts/model/
+# (npm) and go/model/ (go:embed). Edit model/, then `make sync-model`.
+MODEL_FILES = apidef.aontu guide.aontu
+
+sync-model:
+	@for f in $(MODEL_FILES); do \
+	  cp model/$$f ts/model/$$f; \
+	  cp model/$$f go/model/$$f; \
+	done
+	@echo "synced model/ -> ts/model/, go/model/"
+
+check-model:
+	@for f in $(MODEL_FILES); do \
+	  cmp -s model/$$f ts/model/$$f || { echo "DRIFT: ts/model/$$f != model/$$f (run: make sync-model)"; exit 1; }; \
+	  cmp -s model/$$f go/model/$$f || { echo "DRIFT: go/model/$$f != model/$$f (run: make sync-model)"; exit 1; }; \
+	done
+	@echo "model mirrors in sync"
+
 # TypeScript
 build-ts:
-	npm run build
+	cd ts && npm run build
 
 test-ts:
-	npm test
+	cd ts && npm test
 
 clean-ts:
 	rm -rf ts/dist ts/dist-test
@@ -42,7 +61,7 @@ tags-go:
 	git tag -l 'go/v*' --sort=-version:refname
 
 reset:
-	npm run reset
+	cd ts && npm run reset
 	cd go && go clean -cache
 	cd go && go build ./...
 	cd go && go test -v ./...

@@ -201,14 +201,14 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
 
 name: solar
 
-@"@voxgig/apidef/model/apidef.jsonic"
+@"@voxgig/apidef/model/apidef.aontu"
 
 def: '${outprefix}def.yaml'
 `;
         const modelSrc = `
 # apidef test: ${outprefix}
 
-@"@voxgig/apidef/model/apidef.jsonic"
+@"@voxgig/apidef/model/apidef.aontu"
 
 name: solar
 

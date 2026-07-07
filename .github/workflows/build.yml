@@ -28,6 +28,12 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
+    # The npm package lives in ts/ (ts/ and go/ are self-contained
+    # per-language projects). Run all shell steps there.
+    defaults:
+      run:
+        working-directory: ts
+
     steps:
     - uses: actions/checkout@v4
     - name: Use Node.js ${{ matrix.node-version }}

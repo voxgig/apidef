@@ -33,10 +33,13 @@ Entry point: `ts/src/apidef.ts` (`ApiDef` / `ApiDef.makeBuild`).
 
 ## Build & test
 
+The npm package lives in `ts/` (`ts/package.json`); `go/` is the parallel Go
+project. Run `npm` from `ts/`; `make all` from the repo root drives both.
+
 ```sh
-npm run build      # tsc --build ts/src ts/test  -> ts/dist/, ts/dist-test/
-npm test           # node --test ts/dist-test/**/*.test.js
-make all           # TS build+test AND Go build+test
+cd ts && npm run build   # tsc --build src test  -> ts/dist/, ts/dist-test/
+cd ts && npm test        # node --test dist-test/**/*.test.js
+make all                 # TS build+test AND Go build+test
 cd go && go test ./...
 ```
 

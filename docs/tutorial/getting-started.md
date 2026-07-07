@@ -106,7 +106,7 @@ read it.
 Put exactly this in `my-sdk/model/guide/petstore-guide.jsonic`:
 
 ```jsonic
-@"@voxgig/apidef/model/guide.jsonic"
+@"@voxgig/apidef/model/guide.aontu"
 @"petstore-base-guide.jsonic"
 ```
 

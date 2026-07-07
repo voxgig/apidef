@@ -38,12 +38,15 @@ Never make Go diverge from TS. If Go looks more correct, fix TS first.
 ## Commands
 
 ```sh
-npm run build      # tsc --build ts/src ts/test  ->  ts/dist, ts/dist-test
-npm test           # node --test ts/dist-test/**/*.test.js   (canonical suite)
-TEST_PATTERN=foo npm run test-some   # run a subset
-cd go && go test ./...               # the Go parity suite
+cd ts && npm run build      # tsc --build src test  ->  ts/dist, ts/dist-test
+cd ts && npm test           # node --test dist-test/**/*.test.js   (canonical suite)
+cd ts && TEST_PATTERN=foo npm run test-some   # run a subset
+cd go && go test ./...                        # the Go parity suite
 make all           # TS build+test AND Go build+test  (run before declaring done)
 ```
+
+The npm package lives in `ts/` (run `npm` there); `go/` is the parallel Go
+project. `make all` from the repo root drives both.
 
 Node 24+ (the `shape` peer dep wants it). `go/validate_test.go` golden tests
 read an external `../../apidef-validate` checkout and `t.Skip` without it.
@@ -61,11 +64,21 @@ ts/src/        canonical source
   types|model|desc|def.ts   shapes & types
 ts/test/       *.test.ts, shared *.tsv fixtures, solar/petstore/taxonomy specs, model-ref/ goldens
 ts/dist*/      built JS (committed, published)
+ts/bin/        voxgig-apidef CLI
+ts/cmd/        standalone-executable packaging (node-sea / deno / bun)
+ts/package.json  the npm package manifest (ts/ is the package root)
+ts/model/      mirror of model/ (published as @voxgig/apidef/model/*)
 go/            Go parity port (flat package) + *_test.go
-model/         jsonic model templates
-bin/           voxgig-apidef CLI
+go/model/      mirror of model/ (go:embed, package model)
+model/         CANONICAL aontu model schemas: apidef.aontu, guide.aontu
 docs/          full documentation (tutorial / how-to / reference / explanation)
 ```
+
+The shared aontu model (`apidef.aontu`, `guide.aontu`) is canonical at
+top-level `model/` and mirrored into `ts/model/` (for npm) and `go/model/`
+(for the Go module) — each packaging system can only ship files under its own
+root. Edit `model/`, then `make sync-model`; `make check-model` (and the TS
+suite) fail on drift.
 
 ## Using apidef as a tool
 
@@ -82,7 +95,7 @@ result.apimodel.main.kit.entity   // { pet: { op, fields, id, relations, … } }
 
 - **Prerequisites:** the spec must declare `servers[0].url`, and a guide entry
   file must exist at `<folder>/guide/<outprefix>guide.jsonic` (two `@`-includes:
-  `@voxgig/apidef/model/guide.jsonic` and `<outprefix>base-guide.jsonic`). See
+  `@voxgig/apidef/model/guide.aontu` and `<outprefix>base-guide.jsonic`). See
   [Configuration → The guide file](./docs/reference/configuration.md#the-guide-file).
 - **Spec file path rule:** the spec is read from `<build.spec.base>/../def/<model.def>`,
   **not** verbatim. Output goes to `options.folder`.
@@ -97,7 +110,7 @@ result.apimodel.main.kit.entity   // { pet: { op, fields, id, relations, … } }
 ## Conventions & gotchas
 
 - **Commit `ts/dist` and `ts/dist-test`** whenever `ts/src` or `ts/test`
-  changes (`npm run build` regenerates them).
+  changes (`cd ts && npm run build` regenerates them).
 - **Validator tokens, not OpenAPI types:** field/arg `type` is `` `$STRING` ``,
   `` `$NUMBER` ``, `` `$BOOLEAN` ``, `` `$ANY` ``, … not `"string"`.
 - **`$ref` inlining shares structure:** resolved refs share nested children;

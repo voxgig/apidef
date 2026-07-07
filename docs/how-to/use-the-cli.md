@@ -35,7 +35,7 @@ gives you full control over inputs, control flags, and the returned model.
 ## Standalone binaries
 
 To ship apidef as a single self-contained executable (no Node install
-required), see the packaging scripts under [`cmd/`](../../cmd/) for Node SEA,
-Deno, and Bun, with results in `cmd/RESULTS.md`.
+required), see the packaging scripts under [`ts/cmd/`](../../ts/cmd/) for Node
+SEA, Deno, and Bun, with results in `ts/cmd/RESULTS.md`.
 
 For the full flag list see the [CLI reference](../reference/cli.md).

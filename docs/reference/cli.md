@@ -1,7 +1,7 @@
 # Reference: command-line tool
 
 Installing the package provides a `voxgig-apidef` binary
-([`bin/voxgig-apidef`](../../bin/voxgig-apidef)).
+([`ts/bin/voxgig-apidef`](../../ts/bin/voxgig-apidef)).
 
 ```sh
 npx voxgig-apidef <name> [options]
@@ -40,7 +40,7 @@ project folder.
 
 ## Standalone executables
 
-[`cmd/`](../../cmd/) contains packaging scripts that bundle the CLI into a
+[`ts/cmd/`](../../ts/cmd/) contains packaging scripts that bundle the CLI into a
 single self-contained executable via Node SEA, Deno, or Bun. See
-[`cmd/README.md`](../../cmd/README.md) and `cmd/RESULTS.md` for the approaches
-and their trade-offs.
+[`ts/cmd/README.md`](../../ts/cmd/README.md) and `ts/cmd/RESULTS.md` for the
+approaches and their trade-offs.

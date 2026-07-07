@@ -84,13 +84,19 @@ reasoning, and the rules for changing either side, are in
 ## Repository map
 
 ```
-ts/        canonical TypeScript implementation
+model/     CANONICAL shared aontu model schemas (apidef.aontu, guide.aontu)
+ts/        canonical TypeScript implementation + npm package (package.json)
   src/       source (parse, guide, transform/*, builder/*, utility, apidef)
   test/      tests + shared *.tsv fixtures + solar/petstore/taxonomy specs
   dist/      built JS + .d.ts (committed, published)
+  model/     mirror of /model (published as @voxgig/apidef/model/*)
+  bin/       the voxgig-apidef CLI entry point
+  cmd/       standalone-executable packaging (node-sea / deno / bun)
 go/        Go parity port (flat package) + *_test.go
-model/     jsonic model templates (apidef.jsonic, guide.jsonic)
-bin/       the voxgig-apidef CLI entry point
-cmd/       standalone-executable packaging (node-sea / deno / bun)
+  model/     mirror of /model (go:embed, package model)
 docs/      this documentation
 ```
+
+The shared aontu model is canonical at top-level `model/` and mirrored into
+`ts/model/` and `go/model/` (each packaging system can only ship files under
+its own root). Edit `model/`, then `make sync-model`.
