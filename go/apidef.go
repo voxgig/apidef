@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-const Version = "0.1.1"
+const Version = "0.1.2"
 
 // ApiDef creates a new API definition generator with the given options.
 func NewApiDef(opts ApiDefOptions) *apiDefInstance {
