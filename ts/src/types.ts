@@ -125,7 +125,7 @@ type KitModel = {
 
 type ApiDefResult = {
   ok: boolean
-  // True when apidef wrote model source files (e.g. entity / flow jsonics).
+  // True when apidef wrote model source files (e.g. entity / flow aontu files).
   // Producer host (voxgig-model) uses this to re-resolve the unified model
   // before downstream actions run, so they see the freshly written sources.
   reload?: boolean

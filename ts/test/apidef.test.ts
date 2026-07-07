@@ -241,7 +241,7 @@ def: '${outprefix}def.yaml'
     const bres = await build(modelinit, buildspec, {})
     assert.strictEqual(bres.ok, true)
 
-    const model = aontu.generate(`@"test/solar/solar.jsonic"`, {
+    const model = aontu.generate(`@"test/solar/solar.aontu"`, {
       base: __dirname + '/..'
     })
 

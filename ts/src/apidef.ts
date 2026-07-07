@@ -291,9 +291,9 @@ function ApiDef(opts: ApiDefOptions) {
           warn.history.map(n => formatJSONIC(n)).join('\n\n'))
       }
 
-      // apidef writes model source files (entity, flow, guide jsonics) into
+      // apidef writes model source files (entity, flow, guide aontu files) into
       // .sdk/model/. Downstream actions (sdkgen, etc.) read those via
-      // sdk.jsonic @-includes, so voxgig-model has to re-resolve the model
+      // sdk.aontu @-includes, so voxgig-model has to re-resolve the model
       // before the post-step actions run. Signal reload whenever jostraca
       // wrote or merged any files; if nothing changed on disk,
       // voxgig-model's resolveModel cache short-circuits the re-read.

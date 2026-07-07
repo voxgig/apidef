@@ -49,7 +49,7 @@ async function makeFlowBuilder(ctx) {
             ];
             (0, jostraca_1.each)(flows, (flow) => {
                 let flowfile = node_path_1.default.join(ctx.opts.folder, 'flow', (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) +
-                    flow.name + '.jsonic');
+                    flow.name + '.aontu');
                 let flowModelSrc = (0, utility_1.formatJsonSrc)(JSON.stringify(flow, null, 2));
                 let flowsrc = `# ${(0, utility_1.nom)(flow, 'Name')}
 
@@ -58,7 +58,7 @@ main: ${types_1.KIT}: flow: ${flow.name}:
                 barrel.push(`@"${node_path_1.default.basename(flowfile)}"`);
                 (0, jostraca_1.File)({ name: node_path_1.default.basename(flowfile) }, () => (0, jostraca_1.Content)(flowsrc));
             });
-            const barrelFile = (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'flow-index.jsonic';
+            const barrelFile = (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'flow-index.aontu';
             const barrelContent = barrel.join('\n');
             (0, jostraca_1.File)({ name: barrelFile }, () => (0, jostraca_1.Content)(barrelContent));
         });

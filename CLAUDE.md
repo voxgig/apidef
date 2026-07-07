@@ -27,7 +27,7 @@ track; keep those accurate when you touch either side.
 
 `parse` → `guide` (heuristic classification of paths into entities/ops/
 actions) → `transform/*` (build the internal apimodel) → `builder/*` (emit
-jsonic model source) → `generate` (write files via jostraca).
+aontu model source) → `generate` (write files via jostraca).
 
 Entry point: `ts/src/apidef.ts` (`ApiDef` / `ApiDef.makeBuild`).
 

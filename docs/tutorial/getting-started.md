@@ -29,7 +29,7 @@ my-sdk/
     petstore.yml                 # the OpenAPI spec (input)
   model/
     guide/
-      petstore-guide.jsonic      # the guide entry file (you write this, step 4)
+      petstore-guide.aontu      # the guide entry file (you write this, step 4)
   generate.mjs                   # the script (step 5)
 ```
 
@@ -99,15 +99,15 @@ components:
 
 The **guide** is how apidef records its path-classification — and how *you*
 override it when a heuristic guesses wrong. On every run apidef writes its
-automatic classification to `<prefix>base-guide.jsonic`; your
-`<prefix>guide.jsonic` pulls that in (and the guide schema) so the build can
+automatic classification to `<prefix>base-guide.aontu`; your
+`<prefix>guide.aontu` pulls that in (and the guide schema) so the build can
 read it.
 
-Put exactly this in `my-sdk/model/guide/petstore-guide.jsonic`:
+Put exactly this in `my-sdk/model/guide/petstore-guide.aontu`:
 
 ```jsonic
 @"@voxgig/apidef/model/guide.aontu"
-@"petstore-base-guide.jsonic"
+@"petstore-base-guide.aontu"
 ```
 
 The prefix (`petstore-`) matches the `outprefix` we set in the next step. You
@@ -184,13 +184,13 @@ apidef also wrote model source files under `my-sdk/model/`:
 
 ```
 model/
-  api/    petstore-api-info.jsonic        # title, version, servers
-  entity/ petstore-pet.jsonic             # the pet entity
-          petstore-entity-index.jsonic    # barrel that @-includes each entity
-  flow/   petstore-BasicPetFlow.jsonic    # a basic CRUD test flow
-          petstore-flow-index.jsonic
-  guide/  petstore-guide.jsonic           # your guide (kept)
-          petstore-base-guide.jsonic      # the regenerated heuristic classification
+  api/    petstore-api-info.aontu        # title, version, servers
+  entity/ petstore-pet.aontu             # the pet entity
+          petstore-entity-index.aontu    # barrel that @-includes each entity
+  flow/   petstore-BasicPetFlow.aontu    # a basic CRUD test flow
+          petstore-flow-index.aontu
+  guide/  petstore-guide.aontu           # your guide (kept)
+          petstore-base-guide.aontu      # the regenerated heuristic classification
 ```
 
 These are [`jsonic`](https://github.com/jsonicjs/jsonic) files — a relaxed

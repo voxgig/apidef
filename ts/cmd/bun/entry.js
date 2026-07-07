@@ -61,7 +61,7 @@ async function generate(options) {
   const spec = {
     def: options.def,
     kind: 'openapi-3',
-    model: Path.join(options.folder,'model/api.jsonic'),
+    model: Path.join(options.folder,'model/api.aontu'),
     meta: { name: options.name },
   }
 

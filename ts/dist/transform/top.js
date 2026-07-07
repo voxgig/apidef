@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.topTransform = void 0;
+exports.resolveSecurity = resolveSecurity;
+exports.findAuthPrefix = findAuthPrefix;
 const struct_1 = require("@voxgig/struct");
 const types_1 = require("../types");
 // Guide* => from guide model
@@ -28,6 +30,15 @@ const topTransform = async function (ctx) {
     // value stays a real boolean rather than the string "false".
     if (!specDeclaresAuth(def)) {
         kit.info.auth = false;
+    }
+    else {
+        // Describe the primary security scheme so generators can emit the
+        // API's actual credential format instead of assuming `Bearer` —
+        // e.g. Statuspage documents `Authorization: OAuth <key>`.
+        const security = resolveSecurity(def);
+        if (null != security) {
+            kit.info.security = security;
+        }
     }
     // Swagger 2.0
     if (def.host) {
@@ -71,6 +82,82 @@ const topTransform = async function (ctx) {
     return { ok: true, msg: 'top' };
 };
 exports.topTransform = topTransform;
+// Describe the spec's PRIMARY security scheme as model facts
+// (info.security): scheme key, type, where the credential goes (in/name),
+// and the value prefix for Authorization-header credentials. The primary
+// scheme is the one named by the first top-level `security` requirement,
+// falling back to the first declared scheme. Returns null when nothing
+// usable is declared (the no-auth signal is handled separately).
+//
+// Prefix rules:
+//   http basic/bearer      -> 'Basic' / 'Bearer'
+//   oauth2 / openIdConnect -> 'Bearer' (access token in Authorization)
+//   apiKey in an Authorization header -> the scheme the API's own prose
+//     documents (e.g. `Authorization: OAuth <key>`), else 'Bearer'
+//   apiKey in any other header/query/cookie -> '' (raw credential)
+function resolveSecurity(def) {
+    const schemes = def.components?.securitySchemes ?? def.securityDefinitions ?? {};
+    let schemeName = Array.isArray(def.security) && def.security[0] &&
+        'object' === typeof def.security[0] ?
+        Object.keys(def.security[0])[0] : undefined;
+    if (null == schemeName || null == schemes[schemeName]) {
+        schemeName = Object.keys(schemes)[0];
+    }
+    const scheme = null == schemeName ? null : schemes[schemeName];
+    if (null == scheme || 'object' !== typeof scheme) {
+        return null;
+    }
+    const type = String(scheme.type ?? '').toLowerCase();
+    const out = {
+        scheme: schemeName,
+        type: scheme.type ?? '',
+        in: scheme.in ?? 'header',
+        name: scheme.name ?? 'Authorization',
+        prefix: '',
+    };
+    if ('http' === type) {
+        // Swagger 2 `type: basic` has no `scheme`; OpenAPI 3 uses
+        // `scheme: basic|bearer|...`.
+        out.prefix = 'basic' === String(scheme.scheme ?? '').toLowerCase() ?
+            'Basic' : 'Bearer';
+    }
+    else if ('basic' === type) {
+        out.prefix = 'Basic';
+    }
+    else if ('oauth2' === type || 'openidconnect' === type) {
+        out.in = 'header';
+        out.name = 'Authorization';
+        out.prefix = 'Bearer';
+    }
+    else if ('apikey' === type) {
+        if ('header' === String(out.in).toLowerCase() &&
+            'authorization' === String(out.name).toLowerCase()) {
+            out.prefix =
+                findAuthPrefix(scheme.description) ??
+                    findAuthPrefix(def.info?.description) ??
+                    'Bearer';
+        }
+        // else: raw credential in a named header/query/cookie — no prefix.
+    }
+    return out;
+}
+// Extract the credential prefix from prose showing the Authorization
+// header format, e.g. `Authorization: OAuth 89a2...` or
+// `-H "Authorization: token <key>"`. The prefix must be a short word on
+// the SAME line, followed by something credential-shaped — a long token,
+// or a `<key>` / `{token}` / `$KEY` / `YOUR_...`-style placeholder. Bare
+// credentials (`Authorization: 89a2...`) and prose coincidences yield no
+// match.
+function findAuthPrefix(text) {
+    if ('string' !== typeof text || '' === text) {
+        return null;
+    }
+    const m = text.match(/Authorization:[ \t]*([A-Za-z][A-Za-z0-9._-]{0,14})[ \t]+(?:<[^>\n]+>|\{[^}\n]+\}|\$[A-Za-z_][A-Za-z0-9_]*|[Yy][Oo][Uu][Rr][A-Za-z0-9_-]*|[A-Za-z0-9._~+/=-]{8,})/);
+    if (null == m) {
+        return null;
+    }
+    return m[1];
+}
 // Does the spec declare any authentication? True if it defines security
 // schemes (OpenAPI 3 `components.securitySchemes` or Swagger 2
 // `securityDefinitions`), a top-level `security` requirement, or a
@@ -108,7 +195,7 @@ function specDeclaresAuth(def) {
 // OpenAPI's `info` object (and the `servers` array) declares every scalar
 // leaf as a string. YAML/JSON parsers don't enforce that — `version: 2`
 // without quotes parses as the number 2, `version: true` as a boolean.
-// Apidef's downstream schema (apidef.jsonic) unifies info fields as
+// Apidef's downstream schema (apidef.aontu) unifies info fields as
 // `string`, so non-string scalars cause an aontu unify failure during
 // model resolution. Normalise scalar leaves to strings here, at the
 // model-build boundary, rather than relax the schema.

@@ -60,5 +60,5 @@ console.log(Object.keys(result.apimodel.main.kit.entity))
 ```
 
 If a name is still wrong, you can also override the classification directly by
-editing `base-guide.jsonic` — see
+editing `base-guide.aontu` — see
 [How path classification works](../explanation/classification-heuristics.md).

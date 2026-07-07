@@ -9,6 +9,25 @@ main: kit: info: {
   # isAuthActive() reads this to suppress apikey/auth code and docs. Left
   # unset when the API does declare auth.
   auth?: boolean
+
+  # Spec-derived description of the API's primary security scheme, set by
+  # the top transform when the spec declares auth. Downstream generators
+  # read `prefix` (via sdkgen's resolveAuthPrefix) to emit the correct
+  # Authorization value format — e.g. Statuspage documents
+  # `Authorization: OAuth <key>`, not the common `Bearer`. The SDK's own
+  # config (main.kit.config.auth) still overrides when set.
+  security?: {
+    # Key of the chosen scheme in components.securitySchemes.
+    scheme?: string
+    # OpenAPI scheme type: apiKey | http | oauth2 | openIdConnect.
+    type?: string
+    # Where the credential goes: header | query | cookie.
+    in?: string
+    # Header/query/cookie parameter name (e.g. Authorization, X-API-Key).
+    name?: string
+    # Credential value prefix inside an Authorization header ('' = raw key).
+    prefix?: string
+  }
 }
 
 

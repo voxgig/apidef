@@ -2,7 +2,7 @@
 # Master test script: builds executables, runs them, compares output.
 #
 # Creates reference output using Node.js, then tests each executable
-# approach against it. Compares jsonic, json, and aontu output files.
+# approach against it. Compares aontu and json output files.
 
 set -euo pipefail
 
@@ -90,11 +90,11 @@ compare_outputs() {
     report "FAIL" "$label: correctness.json" "missing"
   fi
 
-  # Compare all .jsonic files
+  # Compare all .aontu files
   local jsonic_pass=0
   local jsonic_fail=0
   while IFS= read -r file; do
-    if [[ "$file" == *.jsonic ]]; then
+    if [[ "$file" == *.aontu ]]; then
       if [ -f "$test_dir/$file" ]; then
         if diff -q "$ref_dir/$file" "$test_dir/$file" > /dev/null 2>&1; then
           jsonic_pass=$((jsonic_pass + 1))
@@ -111,9 +111,9 @@ compare_outputs() {
   done < <(cat "$ref_dir/manifest.json" | grep -o '"[^"]*"' | tr -d '"')
 
   if [ $jsonic_fail -eq 0 ] && [ $jsonic_pass -gt 0 ]; then
-    report "PASS" "$label: all $jsonic_pass .jsonic files match"
+    report "PASS" "$label: all $jsonic_pass .aontu files match"
   elif [ $jsonic_fail -gt 0 ]; then
-    report "FAIL" "$label: $jsonic_fail/$((jsonic_pass + jsonic_fail)) .jsonic files differ"
+    report "FAIL" "$label: $jsonic_fail/$((jsonic_pass + jsonic_fail)) .aontu files differ"
   fi
 }
 

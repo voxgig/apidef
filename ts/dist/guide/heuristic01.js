@@ -70,7 +70,7 @@ async function heuristic01(ctx) {
     // Reassign single-segment collection paths (e.g. "/people") onto the entity
     // that owns the per-instance path ("/people/{id}"). Heuristic discovery can
     // split the two when response schemas wrap the resource in a search/pagination
-    // component. Running this here — before base-guide.jsonic is serialised —
+    // component. Running this here — before base-guide.aontu is serialised —
     // means the same merged layout flows into both guide-case (transformers off)
     // and model-case (transformers on), so they agree on the final guide.
     (0, entity_1.mergeCollectionPaths)(guide, ctx.log);

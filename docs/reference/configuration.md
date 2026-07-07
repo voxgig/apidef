@@ -68,7 +68,7 @@ So with `base: '/proj/model'` and `def: 'petstore.yml'`, apidef reads
 proj/
   def/petstore.yml     # input  (base/../def/)
   model/               # output (options.folder), also used as base
-    guide/<prefix>guide.jsonic   # the guide entry file (see below)
+    guide/<prefix>guide.aontu   # the guide entry file (see below)
 ```
 
 > The spec **must declare at least one server** (`servers[0].url`); the `top`
@@ -79,16 +79,16 @@ proj/
 The classification (guide) stage reads a guide entry file from:
 
 ```
-<options.folder>/guide/<outprefix>guide.jsonic
+<options.folder>/guide/<outprefix>guide.aontu
 ```
 
 You author this file once. It pulls in apidef's guide schema and the
 heuristic classification that apidef regenerates on every run
-(`<outprefix>base-guide.jsonic`):
+(`<outprefix>base-guide.aontu`):
 
 ```jsonic
 @"@voxgig/apidef/model/guide.aontu"
-@"<outprefix>base-guide.jsonic"
+@"<outprefix>base-guide.aontu"
 ```
 
 Within a single run the base-guide is written *before* this file is read, so a

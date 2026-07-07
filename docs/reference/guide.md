@@ -1,7 +1,7 @@
 # Reference: the guide model
 
 The guide is the output of the classification stage (`result.guide`, also
-written as `base-guide.jsonic`). It records *which paths belong to which
+written as `base-guide.aontu`). It records *which paths belong to which
 entity* and *how each method was classified*, with a `why_*` trace for every
 decision. Types live in [`ts/src/types.ts`](../../ts/src/types.ts) (`Guide`,
 `GuideEntity`, `GuidePath`, `GuidePathOp`, …).
@@ -86,7 +86,7 @@ entity: moon: {
 
 ## Editing the guide
 
-`base-guide.jsonic` is meant to be edited when a heuristic guesses wrong, and
+`base-guide.aontu` is meant to be edited when a heuristic guesses wrong, and
 it is **merged** (not overwritten) on the next run. This is the intended escape
 hatch for non-conventional APIs — see
 [How path classification works](../explanation/classification-heuristics.md).

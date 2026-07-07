@@ -63,12 +63,12 @@ func BuildGuide(ctx *ApiDefContext) (map[string]any, error) {
 	guideSrc := buildGuideSource(ctx, baseguide)
 
 	// Write base guide file. The TS pipeline never writes the full guide
-	// content to <prefix>guide.jsonic — that file is a small include
+	// content to <prefix>guide.aontu — that file is a small include
 	// template the user/host harness pre-creates. We mirror that here.
 	guideDir := filepath.Join(folder, "guide")
 	os.MkdirAll(guideDir, 0755)
 	prefix := ctx.Opts.OutPrefix
-	baseGuideFile := filepath.Join(guideDir, prefix+"base-guide.jsonic")
+	baseGuideFile := filepath.Join(guideDir, prefix+"base-guide.aontu")
 	os.WriteFile(baseGuideFile, []byte(guideSrc), 0644)
 
 	// Parse guide back into model

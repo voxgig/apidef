@@ -77,7 +77,7 @@ the request URL.
 Heuristics are, by nature, guesses — so the guide never throws a decision away
 silently. Each classification carries a `why_*` array (`why_path`, `why_op`,
 `why_action`, `why_rename`) describing the rule that fired. These traces are
-emitted into the human-editable `base-guide.jsonic`, which means a person (or
+emitted into the human-editable `base-guide.aontu`, which means a person (or
 an agent) can **read why apidef decided something and override it** rather
 than fighting an opaque black box.
 
@@ -87,7 +87,7 @@ The heuristics are tuned for conventional REST APIs. For specs that break the
 conventions:
 
 - a mis-singularized name → add a [custom plural](../how-to/customize-entity-naming.md);
-- a mis-classified path → edit the generated `base-guide.jsonic` (it is meant
+- a mis-classified path → edit the generated `base-guide.aontu` (it is meant
   to be edited and is merged, not overwritten, on the next run);
 - a structural surprise → apidef records a **warning** (see
   [Debug a build](../how-to/debug-a-build.md)) rather than failing the whole

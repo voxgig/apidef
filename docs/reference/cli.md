@@ -29,7 +29,7 @@ voxgig-apidef petstore --folder ./petstore --def ./def/petstore.yml --debug debu
 ```
 
 The CLI expects the project folder to contain a `model/` directory with an
-`api.jsonic` entry model; it writes generated model files back into the
+`api.aontu` entry model; it writes generated model files back into the
 project folder.
 
 > **Note.** The library interface (`ApiDef.makeBuild` / `apidef.generate`,

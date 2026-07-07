@@ -25,10 +25,10 @@ ctrl: { step: { transformers: false } }
 // -> result.guide  (entities, ops, actions, renames, why_* traces)
 ```
 
-The guide stage still reads your `<prefix>guide.jsonic`
+The guide stage still reads your `<prefix>guide.aontu`
 ([see configuration](../reference/configuration.md#the-guide-file)), so it must
 exist. `result.guide` is the *resolved* guide (heuristic plus your overrides);
-the raw heuristic classification is written to `<prefix>base-guide.jsonic` on
+the raw heuristic classification is written to `<prefix>base-guide.aontu` on
 disk regardless — useful to read directly when you are bootstrapping the guide
 file or diagnosing a `PATH MISMATCH`.
 

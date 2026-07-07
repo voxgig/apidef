@@ -7,7 +7,7 @@ const types_1 = require("../../types");
 const jostraca_1 = require("jostraca");
 function resolveInfo(apimodel, opts) {
     const kit = apimodel.main[types_1.KIT];
-    const infoFile = (null == opts.outprefix ? '' : opts.outprefix) + 'api-info.jsonic';
+    const infoFile = (null == opts.outprefix ? '' : opts.outprefix) + 'api-info.aontu';
     const modelInfo = { main: { kit: { info: kit.info } } };
     // .trim() first so substring(1, len-1) strips the wrapping `{` and `}`.
     // Without it, formatJSONIC's trailing newline is removed instead of the

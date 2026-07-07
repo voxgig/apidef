@@ -223,7 +223,7 @@ def: '${outprefix}def.yaml'
         };
         const bres = await build(modelinit, buildspec, {});
         node_assert_1.default.strictEqual(bres.ok, true);
-        const model = aontu.generate(`@"test/solar/solar.jsonic"`, {
+        const model = aontu.generate(`@"test/solar/solar.aontu"`, {
             base: __dirname + '/..'
         });
         node_assert_1.default.deepStrictEqual(model.main.kit, SOLAR_MODEL.main.kit);

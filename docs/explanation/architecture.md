@@ -6,7 +6,7 @@ passes, each one enriching a shared data structure.
 
 ```
                          ┌─────────────────────────────────────────┐
-  OpenAPI / Swagger ───▶ │  parse → guide → transform* → builder* → generate │ ───▶ model/*.jsonic
+  OpenAPI / Swagger ───▶ │  parse → guide → transform* → builder* → generate │ ───▶ model/*.aontu
    (YAML or JSON)        └─────────────────────────────────────────┘
                                           │
                                    in-memory apimodel
@@ -26,7 +26,7 @@ early — useful for tests and tooling. The stages, in order:
    belong to which **entity**, classify each method as a CRUD **operation** or
    an **action**, and work out parameter **renames** (e.g. `{pet_id}` → `id`).
    Every decision is recorded with a `why_*` trace. Output: `ctx.guide`, and a
-   human-editable `base-guide.jsonic`.
+   human-editable `base-guide.aontu`.
 
 3. **transform** — Nine ordered passes turn the guide plus the parsed spec
    into the concrete model: `top` (info/servers), `entity`, `operation`,

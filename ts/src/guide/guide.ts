@@ -60,7 +60,7 @@ async function buildGuide(ctx: ApiDefContext): Promise<any> {
 
   let src = ''
   let guidepath = Path.join(folder, 'guide',
-    (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'guide.jsonic')
+    (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'guide.aontu')
 
   log.info({
     point: 'generate-guide',
@@ -237,7 +237,7 @@ async function buildBaseGuide(ctx: ApiDefContext) {
   ctx.note.guide = { base: guideSrc }
 
   const baseGuideFileName =
-    (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'base-guide.jsonic'
+    (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'base-guide.aontu'
 
   const jostraca = Jostraca({
     folder: ctx.opts.folder + '/guide',

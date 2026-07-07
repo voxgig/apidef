@@ -28,10 +28,10 @@ Source: [`ts/src/guide/guide.ts`](../../ts/src/guide/guide.ts),
 Classify `def.paths` into entities, operations, actions, and parameter
 renames, recording `why_*` traces. This stage:
 
-1. runs the heuristic and writes `<outprefix>base-guide.jsonic` (the raw
+1. runs the heuristic and writes `<outprefix>base-guide.aontu` (the raw
    classification), validating that every source path/method is accounted for
    (a mismatch is a `PATH MISMATCH` error);
-2. reads the guide entry file `<folder>/guide/<outprefix>guide.jsonic` (which
+2. reads the guide entry file `<folder>/guide/<outprefix>guide.aontu` (which
    you author — it `@`-includes the base-guide plus the guide schema) and
    resolves it with `aontu`.
 

@@ -26,7 +26,7 @@ async function buildGuide(ctx) {
     }
     handleErrors(ctx, errs);
     let src = '';
-    let guidepath = node_path_1.default.join(folder, 'guide', (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'guide.jsonic');
+    let guidepath = node_path_1.default.join(folder, 'guide', (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'guide.aontu');
     log.info({
         point: 'generate-guide',
         note: (0, utility_1.relativizePath)(guidepath),
@@ -150,7 +150,7 @@ async function buildBaseGuide(ctx) {
     guideBlocks.push('', '}');
     const guideSrc = guideBlocks.join('\n');
     ctx.note.guide = { base: guideSrc };
-    const baseGuideFileName = (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'base-guide.jsonic';
+    const baseGuideFileName = (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'base-guide.aontu';
     const jostraca = (0, jostraca_1.Jostraca)({
         folder: ctx.opts.folder + '/guide',
         now: ctx.spec.now,

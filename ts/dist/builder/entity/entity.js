@@ -16,7 +16,7 @@ function resolveEntity(apimodel, opts) {
     ];
     const entityFiles = [];
     (0, jostraca_1.each)(kit.entity, ((entity, entityName) => {
-        const entityFile = (null == opts.outprefix ? '' : opts.outprefix) + entityName + '.jsonic';
+        const entityFile = (null == opts.outprefix ? '' : opts.outprefix) + entityName + '.aontu';
         let entityJSONIC = (0, utility_1.formatJSONIC)(entity).trim();
         entityJSONIC = entityJSONIC.substring(1, entityJSONIC.length - 1);
         const fieldAliasesSrc = fieldAliases(entity);
@@ -28,7 +28,7 @@ function resolveEntity(apimodel, opts) {
         entityFiles.push({ name: entityFile, src: entitySrc });
         barrel.push(`@"${node_path_1.default.basename(entityFile)}"`);
     }));
-    const indexFile = (null == opts.outprefix ? '' : opts.outprefix) + 'entity-index.jsonic';
+    const indexFile = (null == opts.outprefix ? '' : opts.outprefix) + 'entity-index.aontu';
     return function apiEntityBuilder() {
         (0, jostraca_1.Folder)({ name: 'entity' }, () => {
             (0, jostraca_1.each)(entityFiles, (entityFile) => {

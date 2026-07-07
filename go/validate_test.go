@@ -113,7 +113,7 @@ func TestValidateGuide(t *testing.T) {
 			t.Logf("%s: guide OK, %d entities", cn, len(entities))
 
 			// Compare entity names with TS reference
-			refGuideFile := filepath.Join(validateDir, "guide", cn+"-base-guide.jsonic")
+			refGuideFile := filepath.Join(validateDir, "guide", cn+"-base-guide.aontu")
 			if _, err := os.Stat(refGuideFile); err == nil {
 				refGuide, _ := os.ReadFile(refGuideFile)
 				refStr := string(refGuide)
@@ -540,7 +540,7 @@ func TestValidateModel(t *testing.T) {
 						}
 					}
 
-					refFile := filepath.Join(refModelDir, cn+"-"+entName+".jsonic")
+					refFile := filepath.Join(refModelDir, cn+"-"+entName+".aontu")
 					if _, err := os.Stat(refFile); err == nil {
 						refData, _ := os.ReadFile(refFile)
 						refStr := string(refData)

@@ -59,7 +59,7 @@ ts/src/        canonical source
   parse.ts       parse + $ref resolution
   guide/         heuristic path→entity/op classification
   transform/     9 ordered passes: top,entity,operation,args,select,field,flow,flowstep,clean
-  builder/       render model -> jsonic files
+  builder/       render model -> aontu files
   utility.ts     pure helpers (depluralize, canonize, validator, formatJSONIC, …)
   types|model|desc|def.ts   shapes & types
 ts/test/       *.test.ts, shared *.tsv fixtures, solar/petstore/taxonomy specs, model-ref/ goldens
@@ -94,8 +94,8 @@ result.apimodel.main.kit.entity   // { pet: { op, fields, id, relations, … } }
 ```
 
 - **Prerequisites:** the spec must declare `servers[0].url`, and a guide entry
-  file must exist at `<folder>/guide/<outprefix>guide.jsonic` (two `@`-includes:
-  `@voxgig/apidef/model/guide.aontu` and `<outprefix>base-guide.jsonic`). See
+  file must exist at `<folder>/guide/<outprefix>guide.aontu` (two `@`-includes:
+  `@voxgig/apidef/model/guide.aontu` and `<outprefix>base-guide.aontu`). See
   [Configuration → The guide file](./docs/reference/configuration.md#the-guide-file).
 - **Spec file path rule:** the spec is read from `<build.spec.base>/../def/<model.def>`,
   **not** verbatim. Output goes to `options.folder`.
@@ -117,7 +117,7 @@ result.apimodel.main.kit.entity   // { pet: { op, fields, id, relations, … } }
   treat inlined schemas as read-only (mutating one leaks to every reference).
 - **Determinism in Go:** map iteration is sorted (`sortedKeys`) to match
   JS insertion order; preserve this when porting.
-- **Fixtures are LF:** `*.tsv`/`*.jsonic` are forced to LF (`.gitattributes`).
+- **Fixtures are LF:** `*.tsv`/`*.aontu` are forced to LF (`.gitattributes`).
 - **Soft failure:** the pipeline records warnings (`apidef-warnings.txt`)
   rather than aborting; `result.ok`/`result.steps` report how far it got.
 - Commit messages: clear and descriptive; do not include model/tool identifiers.

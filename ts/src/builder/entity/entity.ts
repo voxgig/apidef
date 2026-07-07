@@ -33,7 +33,7 @@ function resolveEntity(
   const entityFiles: { name: string, src: string }[] = []
 
   each(kit.entity, ((entity: any, entityName: string) => {
-    const entityFile = (null == opts.outprefix ? '' : opts.outprefix) + entityName + '.jsonic'
+    const entityFile = (null == opts.outprefix ? '' : opts.outprefix) + entityName + '.aontu'
 
     let entityJSONIC = formatJSONIC(entity).trim()
     entityJSONIC = entityJSONIC.substring(1, entityJSONIC.length - 1)
@@ -52,7 +52,7 @@ function resolveEntity(
     barrel.push(`@"${Path.basename(entityFile)}"`)
   }))
 
-  const indexFile = (null == opts.outprefix ? '' : opts.outprefix) + 'entity-index.jsonic'
+  const indexFile = (null == opts.outprefix ? '' : opts.outprefix) + 'entity-index.aontu'
 
   return function apiEntityBuilder() {
     Folder({ name: 'entity' }, () => {
