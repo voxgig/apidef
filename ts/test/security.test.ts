@@ -142,4 +142,34 @@ describe('security', () => {
     assert.strictEqual(findAuthPrefix(null), null)
   })
 
+  test('findAuthPrefix detects a named scheme without an Authorization: line', () => {
+    // NoFrixion's shape: "using the Bearer scheme" + "Example: Bearer eyJ...".
+    assert.strictEqual(findAuthPrefix(
+      'JWT Authorization header using the Bearer scheme.\nExample: Bearer eyJhbGciOiJ...'), 'Bearer')
+    assert.strictEqual(findAuthPrefix('Example: Bearer eyJhbGciOiJ9.abc'), 'Bearer')
+    assert.strictEqual(findAuthPrefix('Use the Bearer scheme'), 'Bearer')
+    assert.strictEqual(findAuthPrefix('Basic authentication'), 'Basic')
+    assert.strictEqual(findAuthPrefix('e.g. Token 0123456789abcdef'), 'Token')
+    // Only known scheme words qualify for the loose match — no false positives.
+    assert.strictEqual(findAuthPrefix('This API is the bearer of good news for developers'), null)
+    assert.strictEqual(findAuthPrefix('Provide your token in the header'), null)
+  })
+
+  test('a NoFrixion-style apiKey scheme resolves to Bearer from its prose', () => {
+    const def = {
+      security: [{ Bearer: [] }],
+      components: {
+        securitySchemes: {
+          Bearer: {
+            type: 'apiKey', in: 'header', name: 'Authorization',
+            description: 'JWT Authorization header using the Bearer scheme.<br/>\n' +
+              'Enter your JWT access token in the text input below.<br/>\n' +
+              'Example: Bearer eyJhbGciOiJ...',
+          },
+        },
+      },
+    }
+    assert.strictEqual(resolveSecurity(def)?.prefix, 'Bearer')
+  })
+
 })

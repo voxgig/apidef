@@ -127,5 +127,32 @@ const top_1 = require("../dist/transform/top");
         node_assert_1.default.strictEqual((0, top_1.findAuthPrefix)(''), null);
         node_assert_1.default.strictEqual((0, top_1.findAuthPrefix)(null), null);
     });
+    (0, node_test_1.test)('findAuthPrefix detects a named scheme without an Authorization: line', () => {
+        // NoFrixion's shape: "using the Bearer scheme" + "Example: Bearer eyJ...".
+        node_assert_1.default.strictEqual((0, top_1.findAuthPrefix)('JWT Authorization header using the Bearer scheme.\nExample: Bearer eyJhbGciOiJ...'), 'Bearer');
+        node_assert_1.default.strictEqual((0, top_1.findAuthPrefix)('Example: Bearer eyJhbGciOiJ9.abc'), 'Bearer');
+        node_assert_1.default.strictEqual((0, top_1.findAuthPrefix)('Use the Bearer scheme'), 'Bearer');
+        node_assert_1.default.strictEqual((0, top_1.findAuthPrefix)('Basic authentication'), 'Basic');
+        node_assert_1.default.strictEqual((0, top_1.findAuthPrefix)('e.g. Token 0123456789abcdef'), 'Token');
+        // Only known scheme words qualify for the loose match — no false positives.
+        node_assert_1.default.strictEqual((0, top_1.findAuthPrefix)('This API is the bearer of good news for developers'), null);
+        node_assert_1.default.strictEqual((0, top_1.findAuthPrefix)('Provide your token in the header'), null);
+    });
+    (0, node_test_1.test)('a NoFrixion-style apiKey scheme resolves to Bearer from its prose', () => {
+        const def = {
+            security: [{ Bearer: [] }],
+            components: {
+                securitySchemes: {
+                    Bearer: {
+                        type: 'apiKey', in: 'header', name: 'Authorization',
+                        description: 'JWT Authorization header using the Bearer scheme.<br/>\n' +
+                            'Enter your JWT access token in the text input below.<br/>\n' +
+                            'Example: Bearer eyJhbGciOiJ...',
+                    },
+                },
+            },
+        };
+        node_assert_1.default.strictEqual((0, top_1.resolveSecurity)(def)?.prefix, 'Bearer');
+    });
 });
 //# sourceMappingURL=security.test.js.map

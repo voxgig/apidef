@@ -300,23 +300,55 @@ function resolveSecurity(def: any): Record<string, string> | null {
 }
 
 
-// Extract the credential prefix from prose showing the Authorization
-// header format, e.g. `Authorization: OAuth 89a2...` or
-// `-H "Authorization: token <key>"`. The prefix must be a short word on
-// the SAME line, followed by something credential-shaped — a long token,
-// or a `<key>` / `{token}` / `$KEY` / `YOUR_...`-style placeholder. Bare
-// credentials (`Authorization: 89a2...`) and prose coincidences yield no
-// match.
+// Extract the credential prefix from a securityScheme's / info prose.
+// Three signals, in confidence order:
+//   1. An explicit `Authorization: <prefix> <cred>` line (any prefix word)
+//      — e.g. Statuspage's `Authorization: OAuth 89a2...`. The prefix must
+//      be a short word followed by something credential-shaped (a long
+//      token, or a `<key>` / `{token}` / `$KEY` / `YOUR_...` placeholder),
+//      so a bare `Authorization: 89a2...` doesn't match.
+//   2. A KNOWN scheme word (Bearer/OAuth/Token/Basic) shown as an example
+//      prefix — `Example: Bearer eyJ...` (NoFrixion's shape).
+//   3. A KNOWN scheme word named as the scheme — `the Bearer scheme`,
+//      `Bearer authentication`.
+// Returns null when nothing indicates a prefix (an apiKey then goes in raw).
 function findAuthPrefix(text: unknown): string | null {
   if ('string' !== typeof text || '' === text) {
     return null
   }
-  const m = text.match(
+
+  const explicit = text.match(
     /Authorization:[ \t]*([A-Za-z][A-Za-z0-9._-]{0,14})[ \t]+(?:<[^>\n]+>|\{[^}\n]+\}|\$[A-Za-z_][A-Za-z0-9_]*|[Yy][Oo][Uu][Rr][A-Za-z0-9_-]*|[A-Za-z0-9._~+/=-]{8,})/)
-  if (null == m) {
-    return null
+  if (null != explicit) {
+    return explicit[1]
   }
-  return m[1]
+
+  // A known scheme word as an example prefix, then a credential-shaped tail.
+  const example = text.match(
+    /(?:example|e\.g\.)[:\s][^\n]{0,20}?\b(Bearer|OAuth2?|Token|Basic)\b[ \t]+(?:<[^>\n]+>|\{[^}\n]+\}|[A-Za-z0-9._~+/=-]{6,})/i)
+  if (null != example) {
+    return canonAuthScheme(example[1])
+  }
+
+  // A known scheme word named as the auth scheme.
+  const named = text.match(
+    /\b(Bearer|OAuth2?|Token|Basic)\b[ \t]+(?:scheme|authentication|auth\b|credentials?)/i)
+  if (null != named) {
+    return canonAuthScheme(named[1])
+  }
+
+  return null
+}
+
+
+// Canonical casing for a known scheme word (Bearer/OAuth/Token/Basic).
+function canonAuthScheme(word: string): string {
+  const w = word.toLowerCase()
+  if (w.startsWith('oauth')) return 'OAuth'
+  if ('bearer' === w) return 'Bearer'
+  if ('token' === w) return 'Token'
+  if ('basic' === w) return 'Basic'
+  return word
 }
 
 
