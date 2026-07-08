@@ -4,6 +4,20 @@ main: kit: info: {
   title?: string
   version?: string
 
+  # Short one-line description of the API's purpose, set by the top
+  # transform: the spec's `info.summary` when present, else the first
+  # prose sentence of `info.description` (leading markdown headings
+  # stripped, capped). Downstream doc generators surface it as the SDK's
+  # "what this API is" blurb. Unset when the spec offers no usable prose.
+  summary?: string
+
+  # Canonical link back to the API's own website, set by the top
+  # transform: `externalDocs.url`, else the redoc `x-logo.href`, else the
+  # homepage derived from the primary server host (stripping an `api.` /
+  # `developer.` / `docs.` subdomain), else `contact.url` / termsOfService.
+  # Doc generators link to it so readers can reach the source API.
+  website?: string
+
   # Set to false by the top transform when the spec declares no
   # authentication (no security schemes / security requirements). sdkgen's
   # isAuthActive() reads this to suppress apikey/auth code and docs. Left

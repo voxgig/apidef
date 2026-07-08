@@ -105,7 +105,121 @@ const topTransform = async function(
     )
   }
 
+  // A short "what this API is" blurb and a canonical website link, for doc
+  // generators. Only set when derivable, so downstream can gate on them.
+  const summary = resolveSummary(def)
+  if (null != summary) {
+    kit.info.summary = summary
+  }
+  const website = resolveWebsite(def, kit.info.servers as any[])
+  if (null != website) {
+    kit.info.website = website
+  }
+
   return { ok: true, msg: 'top' }
+}
+
+
+// A short one-line description of the API's purpose: the spec's
+// `info.summary` (OpenAPI 3.1) when present, else the first prose sentence
+// of `info.description` with leading markdown headings/blank lines stripped
+// and the length capped. Returns undefined when no usable prose exists
+// (e.g. GitLab, whose top-level description is empty).
+function resolveSummary(def: any): string | undefined {
+  const info = def?.info ?? {}
+
+  const explicit = 'string' === typeof info.summary ? info.summary.trim() : ''
+  if ('' !== explicit) {
+    return firstSentence(explicit)
+  }
+
+  const desc = 'string' === typeof info.description ? info.description : ''
+  if ('' === desc.trim()) {
+    return undefined
+  }
+
+  const lines = desc.split('\n')
+  let i = 0
+  // Skip leading blank lines, ATX headings (`# ...`) and setext underlines.
+  while (i < lines.length &&
+    ('' === lines[i].trim() ||
+      /^\s*#{1,6}\s/.test(lines[i]) ||
+      /^\s*(-{2,}|={2,})\s*$/.test(lines[i]))) {
+    i++
+  }
+  // Take the first paragraph (up to the next blank line or heading).
+  const para: string[] = []
+  while (i < lines.length &&
+    '' !== lines[i].trim() &&
+    !/^\s*#{1,6}\s/.test(lines[i])) {
+    para.push(lines[i].trim())
+    i++
+  }
+  const paragraph = para.join(' ').trim()
+  return '' === paragraph ? undefined : firstSentence(paragraph)
+}
+
+
+// The first sentence of `text` (up to a `.`/`!`/`?` followed by whitespace
+// or end), whitespace-collapsed and length-capped with an ellipsis.
+function firstSentence(text: string): string {
+  const collapsed = text.replace(/\s+/g, ' ').trim()
+  const m = collapsed.match(/^(.+?[.!?])(\s|$)/)
+  let out = m ? m[1] : collapsed
+  const MAX = 240
+  if (out.length > MAX) {
+    out = out.slice(0, MAX - 1).trimEnd() + '…'
+  }
+  return out
+}
+
+
+// A canonical link back to the API's own website, in priority order:
+//   1. externalDocs.url          (the spec's explicit external link)
+//   2. info['x-logo'].href       (redoc homepage link)
+//   3. homepage from the server  (strip an api./developer./docs. subdomain)
+//   4. info.contact.url
+//   5. info.termsOfService
+function resolveWebsite(def: any, servers: any[]): string | undefined {
+  const info = def?.info ?? {}
+
+  const ext = def?.externalDocs?.url
+  if (isHttpUrl(ext)) return ext.trim()
+
+  const logoHref = info['x-logo']?.href
+  if (isHttpUrl(logoHref)) return logoHref.trim()
+
+  const home = homepageFromServer(servers?.[0]?.url)
+  if (null != home) return home
+
+  if (isHttpUrl(info.contact?.url)) return info.contact.url.trim()
+  if (isHttpUrl(info.termsOfService)) return info.termsOfService.trim()
+
+  return undefined
+}
+
+
+// Derive a homepage from an API server URL by dropping the path and an
+// `api.` / `developer.` / `docs.` / `www.` service subdomain — e.g.
+// `https://api.thesmsworks.co.uk/v1` -> `https://thesmsworks.co.uk`.
+function homepageFromServer(url: any): string | undefined {
+  if ('string' !== typeof url || '' === url.trim()) return undefined
+  try {
+    const u = new URL(url.includes('://') ? url : 'https://' + url)
+    let host = u.hostname
+    if ('' === host || !host.includes('.')) return undefined
+    host = host.replace(
+      /^(api|api-[a-z0-9]+|apis|developer|developers|docs?|www)\./i, '')
+    return u.protocol + '//' + host
+  }
+  catch (_e) {
+    return undefined
+  }
+}
+
+
+function isHttpUrl(v: any): boolean {
+  return 'string' === typeof v && /^https?:\/\//i.test(v.trim())
 }
 
 
@@ -271,6 +385,9 @@ function stringifyInfoScalars(node: any): any {
 export {
   topTransform,
   resolveSecurity,
+  resolveSummary,
+  resolveWebsite,
+  homepageFromServer,
   findAuthPrefix,
 }
 
