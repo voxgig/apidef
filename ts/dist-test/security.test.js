@@ -31,15 +31,18 @@ const top_1 = require("../dist/transform/top");
             name: 'Authorization', prefix: 'OAuth',
         });
     });
-    (0, node_test_1.test)('apiKey in Authorization header defaults to Bearer without prose evidence', () => {
+    (0, node_test_1.test)('apiKey in Authorization header is raw (no prefix) without prose evidence', () => {
+        // An apiKey scheme means "send the credential as-is"; a Bearer/etc.
+        // prefix must come from an http+bearer scheme or explicit prose. This
+        // is The SMS Works case: `Authorization: <jwt>`, no prefix.
         const def = {
             components: {
                 securitySchemes: {
-                    key: { type: 'apiKey', in: 'header', name: 'Authorization' },
+                    JWT: { type: 'apiKey', in: 'header', name: 'Authorization' },
                 },
             },
         };
-        node_assert_1.default.strictEqual((0, top_1.resolveSecurity)(def)?.prefix, 'Bearer');
+        node_assert_1.default.strictEqual((0, top_1.resolveSecurity)(def)?.prefix, '');
     });
     (0, node_test_1.test)('apiKey in a custom header is a raw credential (no prefix)', () => {
         const def = {

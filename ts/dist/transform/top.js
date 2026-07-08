@@ -92,8 +92,13 @@ exports.topTransform = topTransform;
 // Prefix rules:
 //   http basic/bearer      -> 'Basic' / 'Bearer'
 //   oauth2 / openIdConnect -> 'Bearer' (access token in Authorization)
-//   apiKey in an Authorization header -> the scheme the API's own prose
-//     documents (e.g. `Authorization: OAuth <key>`), else 'Bearer'
+//   apiKey in an Authorization header -> the prefix the API's own prose
+//     documents (e.g. `Authorization: OAuth <key>`), else '' (raw). An
+//     `apiKey` scheme means "send the credential as-is" — a `Bearer`/etc.
+//     prefix is only implied by an `http`+`bearer` scheme or explicit
+//     prose, so absent evidence the key goes in raw (e.g. The SMS Works'
+//     `Authorization: <jwt>`). A user override is available via
+//     config.auth.prefix.
 //   apiKey in any other header/query/cookie -> '' (raw credential)
 function resolveSecurity(def) {
     const schemes = def.components?.securitySchemes ?? def.securityDefinitions ?? {};
@@ -132,10 +137,12 @@ function resolveSecurity(def) {
     else if ('apikey' === type) {
         if ('header' === String(out.in).toLowerCase() &&
             'authorization' === String(out.name).toLowerCase()) {
+            // Only adopt a prefix the API's prose actually documents; otherwise
+            // the apiKey goes in raw (no assumed 'Bearer').
             out.prefix =
                 findAuthPrefix(scheme.description) ??
                     findAuthPrefix(def.info?.description) ??
-                    'Bearer';
+                    '';
         }
         // else: raw credential in a named header/query/cookie — no prefix.
     }

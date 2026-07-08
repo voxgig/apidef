@@ -36,15 +36,18 @@ describe('security', () => {
     })
   })
 
-  test('apiKey in Authorization header defaults to Bearer without prose evidence', () => {
+  test('apiKey in Authorization header is raw (no prefix) without prose evidence', () => {
+    // An apiKey scheme means "send the credential as-is"; a Bearer/etc.
+    // prefix must come from an http+bearer scheme or explicit prose. This
+    // is The SMS Works case: `Authorization: <jwt>`, no prefix.
     const def = {
       components: {
         securitySchemes: {
-          key: { type: 'apiKey', in: 'header', name: 'Authorization' },
+          JWT: { type: 'apiKey', in: 'header', name: 'Authorization' },
         },
       },
     }
-    assert.strictEqual(resolveSecurity(def)?.prefix, 'Bearer')
+    assert.strictEqual(resolveSecurity(def)?.prefix, '')
   })
 
   test('apiKey in a custom header is a raw credential (no prefix)', () => {
