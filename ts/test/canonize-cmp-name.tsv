@@ -1,0 +1,6 @@
+input	expected
+NoFrixion.MoneyMoov.Models.PaymentRequests.MerchantPaymentRequestTemplate	merchant_payment_request_template
+Microsoft.AspNetCore.Mvc.ProblemDetails	problem_detail
+NoFrixion.Biz.BizModels.Paging.PayoutPageResponse	payout_page_response
+UserResponse	user_response
+users	user

@@ -266,3 +266,72 @@ func TestTsvFormatJsonSrc(t *testing.T) {
 		})
 	}
 }
+
+func TestTsvStripSchemaNamespace(t *testing.T) {
+	rows := loadTsv(t, "strip-schema-namespace")
+	for _, row := range rows {
+		input, expected := row["input"], row["expected"]
+		t.Run("stripSchemaNamespace("+input+")", func(t *testing.T) {
+			got := StripSchemaNamespace(input)
+			if got != expected {
+				t.Errorf("StripSchemaNamespace(%q) = %q, want %q", input, got, expected)
+			}
+		})
+	}
+}
+
+func TestTsvCanonizeCmpName(t *testing.T) {
+	rows := loadTsv(t, "canonize-cmp-name")
+	for _, row := range rows {
+		input, expected := row["input"], row["expected"]
+		t.Run("canonizeCmpName("+input+")", func(t *testing.T) {
+			got := CanonizeCmpName(input)
+			if got != expected {
+				t.Errorf("CanonizeCmpName(%q) = %q, want %q", input, got, expected)
+			}
+		})
+	}
+}
+
+// EnsureMinEntityName same-origin dedup is stateful (depends on the
+// `existing` map), so it cannot be a pure-function TSV fixture.
+// Mirrors ts/test/tsv.test.ts ensure-min-entity-name-longname.
+func TestEnsureMinEntityNameLongname(t *testing.T) {
+	long := strings.Repeat("x", 80) + "_tail"
+	other := strings.Repeat("x", 80) + "_othertail"
+
+	t.Run("same origin re-encountered reuses the truncated name", func(t *testing.T) {
+		existing := map[string]any{}
+		first := EnsureMinEntityName(long, existing)
+		existing[first] = map[string]any{"name": first, "longname": long}
+		if got := EnsureMinEntityName(long, existing); got != first {
+			t.Errorf("same-origin re-encounter = %q, want %q", got, first)
+		}
+	})
+
+	t.Run("different origin with same truncation gets a numeric suffix", func(t *testing.T) {
+		existing := map[string]any{}
+		first := EnsureMinEntityName(long, existing)
+		existing[first] = map[string]any{"name": first, "longname": long}
+		second := EnsureMinEntityName(other, existing)
+		if second != first+"2" {
+			t.Errorf("different-origin = %q, want %q", second, first+"2")
+		}
+		existing[second] = map[string]any{"name": second, "longname": other}
+		if got := EnsureMinEntityName(long, existing); got != first {
+			t.Errorf("origin A resolves to %q, want %q", got, first)
+		}
+		if got := EnsureMinEntityName(other, existing); got != second {
+			t.Errorf("origin B resolves to %q, want %q", got, second)
+		}
+	})
+
+	t.Run("entries without longname keep the always-suffix rule", func(t *testing.T) {
+		existing := map[string]any{}
+		first := EnsureMinEntityName(long, existing)
+		existing[first] = map[string]any{"name": first}
+		if got := EnsureMinEntityName(long, existing); got != first+"2" {
+			t.Errorf("no-longname entry = %q, want %q", got, first+"2")
+		}
+	})
+}

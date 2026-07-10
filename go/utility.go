@@ -357,6 +357,38 @@ func Canonize(s string) string {
 	return out
 }
 
+// StripSchemaNamespace reduces a namespace-qualified schema name
+// (ASP.NET/Java style: "NoFrixion.MoneyMoov.Models.PaymentRequests.X",
+// "com.example.api.Payment") to its last meaningful dotted segment —
+// skipping version-ish ("v2", "10") or too-short tails — so entity names
+// derive from the type, not the namespace.
+// Mirrors src/utility.ts stripSchemaNamespace.
+func StripSchemaNamespace(name string) string {
+	if name == "" || !strings.Contains(name, ".") {
+		return name
+	}
+	segs := strings.Split(name, ".")
+	for i := len(segs) - 1; i >= 0; i-- {
+		seg := segs[i]
+		if len(seg) >= 3 && !versionSegRE.MatchString(seg) {
+			return seg
+		}
+	}
+	return name
+}
+
+var versionSegRE = regexp.MustCompile(`^[vV]?\d+$`)
+
+// CanonizeCmpName is the canonical form of an OpenAPI component schema
+// name, for use as an entity-name candidate and as the frequency-metric
+// key. Must be applied uniformly wherever schema refs are counted or
+// resolved (MeasureRef, ResolveEntityComponent, findcmps) so the metric
+// keys stay consistent.
+// Mirrors src/utility.ts canonizeCmpName.
+func CanonizeCmpName(orig string) string {
+	return Canonize(StripSchemaNamespace(orig))
+}
+
 // SanitizeSlug sanitizes a raw slug into a clean kebab-case string.
 func SanitizeSlug(s string) string {
 	if s == "" {
@@ -481,7 +513,12 @@ func NormalizeFieldName(s string) string {
 // CleanComponentName cleans a component name by removing common suffixes/prefixes.
 func CleanComponentName(name string) string {
 	cleaned := name
-	suffixes := []string{"_rest_controller", "_controller", "_response", "_request"}
+	// Order matters: longer suffixes first — the strip loop breaks on the
+	// first match, and '_page_response'/'_create_response' also end with
+	// '_response'. Mirrors src/utility.ts CMP_SUFFIXES.
+	suffixes := []string{"_rest_controller", "_controller",
+		"_create_response", "_update_response", "_page_response",
+		"_response", "_request", "_page"}
 	prefixes := []string{"get_", "post_", "put_", "delete_", "patch_"}
 
 	for _, suffix := range suffixes {
@@ -550,13 +587,29 @@ func EnsureMinEntityName(name string, existing map[string]any) string {
 	}
 
 	if padded != name && existing != nil {
-		if _, ok := existing[padded]; ok {
+		if cur, ok := existing[padded]; ok {
+			// The name was modified (truncated/sanitized) and collides with
+			// an existing entity. Only a collision between DIFFERENT origins
+			// needs a numeric suffix — the same original name re-encountered
+			// (e.g. the same long schema referenced by several methods on one
+			// path) must reuse the existing entity so its ops merge instead
+			// of minting phantom "<entity>2/3/4" entities. Entities record
+			// their pre-truncation name as `longname`; entries without one
+			// keep the old always-suffix rule.
+			// Mirrors src/utility.ts ensureMinEntityName.
+			if sameLongname(cur, name) {
+				return padded
+			}
 			i := 2
 			for {
 				key := fmt.Sprintf("%s%d", padded, i)
-				if _, ok := existing[key]; !ok {
+				prev, ok := existing[key]
+				if !ok {
 					padded = key
 					break
+				}
+				if sameLongname(prev, name) {
+					return key
 				}
 				i++
 			}
@@ -564,6 +617,17 @@ func EnsureMinEntityName(name string, existing map[string]any) string {
 	}
 
 	return padded
+}
+
+// sameLongname reports whether an entmap entry's recorded pre-truncation
+// name (`longname`) equals the given original name.
+func sameLongname(entry any, name string) bool {
+	m, ok := entry.(map[string]any)
+	if !ok {
+		return false
+	}
+	ln, ok := m["longname"].(string)
+	return ok && ln == name
 }
 
 // Find searches an object tree for all occurrences of a key.

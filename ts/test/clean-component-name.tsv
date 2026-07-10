@@ -13,3 +13,9 @@ user	user
 get_ab	get_ab
 my_rest_controller	my
 order_item_response	order_item
+beneficiaries_create_response	beneficiary
+payouts_create_response	payout
+user_invites_update_response	user_invite
+beneficiary_page_response	beneficiary
+merchant_token_page	merchant_token
+transaction_page	transaction

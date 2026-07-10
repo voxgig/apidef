@@ -8,6 +8,8 @@ import assert from 'node:assert'
 import {
   depluralize,
   canonize,
+  canonizeCmpName,
+  stripSchemaNamespace,
   sanitizeSlug,
   slugToPascalCase,
   transliterate,
@@ -133,6 +135,57 @@ describe('tsv-clean-component-name', () => {
       assert.deepStrictEqual(cleanComponentName(row.input), row.expected)
     })
   }
+})
+
+
+describe('tsv-strip-schema-namespace', () => {
+  const rows = loadTsv('strip-schema-namespace')
+  for (const row of rows) {
+    test(`stripSchemaNamespace("${row.input}") => "${row.expected}"`, () => {
+      assert.deepStrictEqual(stripSchemaNamespace(row.input), row.expected)
+    })
+  }
+})
+
+
+describe('tsv-canonize-cmp-name', () => {
+  const rows = loadTsv('canonize-cmp-name')
+  for (const row of rows) {
+    test(`canonizeCmpName("${row.input}") => "${row.expected}"`, () => {
+      assert.deepStrictEqual(canonizeCmpName(row.input), row.expected)
+    })
+  }
+})
+
+
+// ensureMinEntityName same-origin dedup is stateful (depends on the
+// `existing` map), so it cannot be a pure-function TSV fixture.
+describe('ensure-min-entity-name-longname', () => {
+  const LONG = 'x'.repeat(80) + '_tail' // truncates to the leading segment
+  test('same origin re-encountered reuses the truncated name', () => {
+    const existing: Record<string, any> = {}
+    const first = ensureMinEntityName(LONG, existing)
+    existing[first] = { name: first, longname: LONG }
+    assert.deepStrictEqual(ensureMinEntityName(LONG, existing), first)
+  })
+  test('different origin with same truncation gets a numeric suffix', () => {
+    const OTHER = 'x'.repeat(80) + '_othertail'
+    const existing: Record<string, any> = {}
+    const first = ensureMinEntityName(LONG, existing)
+    existing[first] = { name: first, longname: LONG }
+    const second = ensureMinEntityName(OTHER, existing)
+    assert.deepStrictEqual(second, first + '2')
+    existing[second] = { name: second, longname: OTHER }
+    // and each origin keeps resolving to its own entity
+    assert.deepStrictEqual(ensureMinEntityName(LONG, existing), first)
+    assert.deepStrictEqual(ensureMinEntityName(OTHER, existing), second)
+  })
+  test('entries without longname keep the always-suffix rule', () => {
+    const existing: Record<string, any> = {}
+    const first = ensureMinEntityName(LONG, existing)
+    existing[first] = { name: first }
+    assert.deepStrictEqual(ensureMinEntityName(LONG, existing), first + '2')
+  })
 })
 
 

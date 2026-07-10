@@ -1,0 +1,9 @@
+input	expected
+NoFrixion.MoneyMoov.Models.PaymentRequests.MerchantPayment	MerchantPayment
+Microsoft.AspNetCore.Mvc.ProblemDetails	ProblemDetails
+com.example.api.Payment	Payment
+Payment	Payment
+payment_request	payment_request
+Payment.v2	Payment
+Api.V10.Order	Order
+NoFrixion.MoneyMoov.Models.NoFrixionVersion	NoFrixionVersion

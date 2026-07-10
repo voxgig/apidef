@@ -605,7 +605,7 @@ function ResolveEntityName(spec: TaskSpec) {
     op: {},
     why_path,
     ...ment,
-    origname: rawEntname,
+    longname: rawEntname,
   }
 
   entdesc.path = (entdesc.path || {})

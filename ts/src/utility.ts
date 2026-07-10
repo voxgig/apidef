@@ -1096,13 +1096,13 @@ function ensureMinEntityName(
     // long schema referenced by several methods on one path) must reuse the
     // existing entity so its ops merge instead of minting phantom
     // "<entity>2/3/4" entities. Entities record their pre-truncation name
-    // as `origname`; entries without one keep the old always-suffix rule.
-    if (existing[padded].origname === name) {
+    // as `longname`; entries without one keep the old always-suffix rule.
+    if (existing[padded].longname === name) {
       return padded
     }
     let i = 2
     while (null != existing[padded + i]) {
-      if (existing[padded + i].origname === name) {
+      if (existing[padded + i].longname === name) {
         return padded + i
       }
       i++
@@ -1115,11 +1115,17 @@ function ensureMinEntityName(
 
 
 // Order matters: longer suffixes first — the strip loop breaks on the first
-// match, and '_page_response' also ends with '_response'. The pagination
-// wrappers ('_page_response', '_page') fold list-wrapper schemas
-// (BeneficiaryPageResponse, MerchantTokenPage, ...) into their base entity
-// instead of minting a separate '<entity>_page' entity.
-const CMP_SUFFIXES = ['_rest_controller', '_controller', '_page_response', '_response', '_request', '_page']
+// match, and '_page_response'/'_create_response' also end with '_response'.
+// The pagination wrappers ('_page_response', '_page') fold list-wrapper
+// schemas (BeneficiaryPageResponse, MerchantTokenPage, ...) into their base
+// entity instead of minting a separate '<entity>_page' entity. The op-reply
+// wrappers ('_create_response', '_update_response') fold op-result schemas
+// (BeneficiariesCreateResponse, ...) into the base entity, whose op comes
+// from the HTTP method — instead of a phantom '<entity>_create' entity.
+// Bare '_create'/'_update' are NOT stripped: too likely to be a real noun.
+const CMP_SUFFIXES = ['_rest_controller', '_controller',
+  '_create_response', '_update_response', '_page_response',
+  '_response', '_request', '_page']
 const CMP_PREFIXES = ['get_', 'post_', 'put_', 'delete_', 'patch_']
 
 function cleanComponentName(name: string): string {

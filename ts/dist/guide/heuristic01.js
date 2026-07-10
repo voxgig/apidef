@@ -433,7 +433,7 @@ function ResolveEntityName(spec) {
         op: {},
         why_path,
         ...ment,
-        origname: rawEntname,
+        longname: rawEntname,
     };
     entdesc.path = (entdesc.path || {});
     entdesc.path[pathStr] = entdesc.path[pathStr] || {

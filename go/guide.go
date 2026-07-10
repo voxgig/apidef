@@ -287,7 +287,7 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 		xrefVal, _ := xref["val"].(string)
 		m := xrefRE.FindStringSubmatch(xrefVal)
 		if m != nil {
-			name := Canonize(m[2])
+			name := CanonizeCmpName(m[2])
 			if _, exists := origcmprefs[name]; !exists {
 				countMap["cmp"] = toInt(countMap["cmp"]) + 1
 				origcmprefs[name] = 0
@@ -430,7 +430,7 @@ func resolveEntityComponent(data map[string]any, mdesc map[string]any) {
 			m = regexp.MustCompile(`/definitions/(.+)$`).FindStringSubmatch(val)
 		}
 		if m != nil {
-			cmp := Canonize(m[1])
+			cmp := CanonizeCmpName(m[1])
 			xref["cmp"] = cmp
 			xref["origcmp"] = m[1]
 			xref["origcmpref"] = cmp
@@ -648,15 +648,22 @@ func resolveEntityName(ctx *ApiDefContext, data map[string]any, mdesc map[string
 	}
 
 	entmap := work["entmap"].(map[string]any)
+	// Keep the pre-truncation name so a truncated-name collision can tell a
+	// re-encounter of the SAME origin (merge) from a genuinely different one
+	// (numeric suffix) — see EnsureMinEntityName / sameLongname. Note the key
+	// is `longname`, NOT `origname`: origname has separate resolveTransform
+	// semantics (see the comment below). Mirrors src/guide/heuristic01.ts.
+	rawEntname := entname
 	entname = EnsureMinEntityName(entname, entmap)
 
 	// Get or create entity descriptor
 	entdesc, _ := entmap[entname].(map[string]any)
 	if entdesc == nil {
 		entdesc = map[string]any{
-			"name":    entname,
-			"op":      map[string]any{},
+			"name":     entname,
+			"op":       map[string]any{},
 			"why_path": whyPath,
+			"longname": rawEntname,
 		}
 		// Copy ment fields into entdesc
 		if cmp, ok := ment["cmp"]; ok {
@@ -1936,7 +1943,7 @@ func findcmps(data map[string]any, pathStr string, underprops []string, uniq boo
 	var result []map[string]string
 	for _, n := range names {
 		result = append(result, map[string]string{
-			"cmp":     Canonize(n),
+			"cmp":     CanonizeCmpName(n),
 			"origcmp": n,
 		})
 	}
