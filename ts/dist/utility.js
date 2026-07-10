@@ -18,6 +18,8 @@ exports.makeWarner = makeWarner;
 exports.formatJSONIC = formatJSONIC;
 exports.validator = validator;
 exports.canonize = canonize;
+exports.canonizeCmpName = canonizeCmpName;
+exports.stripSchemaNamespace = stripSchemaNamespace;
 exports.sanitizeSlug = sanitizeSlug;
 exports.slugToPascalCase = slugToPascalCase;
 exports.transliterate = transliterate;
@@ -798,6 +800,31 @@ function canonize(s) {
     CANONIZE_CACHE.set(s, out);
     return out;
 }
+// Namespace-qualified schema names (ASP.NET / Java style:
+// "NoFrixion.MoneyMoov.Models.PaymentRequests.MerchantPayment",
+// "com.example.api.Payment") describe the type by their LAST dotted
+// segment; the namespace prefix is packaging noise. Reduce to the last
+// meaningful segment — skipping version-ish ("v2", "10") or too-short
+// tails — so entity names derive from the type, not the namespace.
+function stripSchemaNamespace(name) {
+    if (null == name || !name.includes('.'))
+        return name;
+    const segs = name.split('.');
+    for (let i = segs.length - 1; i >= 0; i--) {
+        const seg = segs[i];
+        if (seg.length >= 3 && !/^v?\d+$/i.test(seg)) {
+            return seg;
+        }
+    }
+    return name;
+}
+// Canonical form of an OpenAPI component schema name, for use as an
+// entity-name candidate and as the frequency-metric key. Must be applied
+// uniformly wherever schema refs are counted or resolved (MeasureRef,
+// ResolveEntityComponent, findcmps) so the metric keys stay consistent.
+function canonizeCmpName(orig) {
+    return canonize(stripSchemaNamespace(orig));
+}
 // Sanitize a raw slug into a clean kebab-case string suitable for
 // conversion to a valid JS identifier (via camelify/snakify/etc).
 function sanitizeSlug(s) {
@@ -901,15 +928,33 @@ function ensureMinEntityName(name, existing) {
         padded = padded + padding;
     }
     if (padded !== name && null != existing[padded]) {
+        // The name was modified (truncated/sanitized) and collides with an
+        // existing entity. Only a collision between DIFFERENT origins needs a
+        // numeric suffix — the same original name re-encountered (e.g. the same
+        // long schema referenced by several methods on one path) must reuse the
+        // existing entity so its ops merge instead of minting phantom
+        // "<entity>2/3/4" entities. Entities record their pre-truncation name
+        // as `origname`; entries without one keep the old always-suffix rule.
+        if (existing[padded].origname === name) {
+            return padded;
+        }
         let i = 2;
         while (null != existing[padded + i]) {
+            if (existing[padded + i].origname === name) {
+                return padded + i;
+            }
             i++;
         }
         padded = padded + i;
     }
     return padded;
 }
-const CMP_SUFFIXES = ['_rest_controller', '_controller', '_response', '_request'];
+// Order matters: longer suffixes first — the strip loop breaks on the first
+// match, and '_page_response' also ends with '_response'. The pagination
+// wrappers ('_page_response', '_page') fold list-wrapper schemas
+// (BeneficiaryPageResponse, MerchantTokenPage, ...) into their base entity
+// instead of minting a separate '<entity>_page' entity.
+const CMP_SUFFIXES = ['_rest_controller', '_controller', '_page_response', '_response', '_request', '_page'];
 const CMP_PREFIXES = ['get_', 'post_', 'put_', 'delete_', 'patch_'];
 function cleanComponentName(name) {
     let cleaned = name;

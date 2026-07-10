@@ -34,6 +34,8 @@ declare function formatJSONIC(val?: any, opts?: {
 declare function validator(torig: undefined | string | string[]): any;
 declare function transliterate(s: string): string;
 declare function canonize(s: string): string;
+declare function stripSchemaNamespace(name: string): string;
+declare function canonizeCmpName(orig: string): string;
 declare function sanitizeSlug(s: string): string;
 declare function slugToPascalCase(s: string): string;
 declare function inferFieldType(name: string, specType: string): string;
@@ -53,4 +55,4 @@ declare function getModelPath(model: any, path: string, flags?: {
     only_active?: boolean;
 }): any;
 export type { PathMatch };
-export { nom, getdlog, loadFile, formatJsonSrc, depluralize, setCustomPlurals, clearCustomPlurals, find, capture, pathMatch, makeWarner, formatJSONIC, validator, canonize, sanitizeSlug, slugToPascalCase, transliterate, cleanComponentName, ensureMinEntityName, inferFieldType, normalizeFieldName, debugpath, findPathsWithPrefix, writeFileSyncWarn, warnOnError, relativizePath, getModelPath, sortedKeys, sortedEntries, };
+export { nom, getdlog, loadFile, formatJsonSrc, depluralize, setCustomPlurals, clearCustomPlurals, find, capture, pathMatch, makeWarner, formatJSONIC, validator, canonize, canonizeCmpName, stripSchemaNamespace, sanitizeSlug, slugToPascalCase, transliterate, cleanComponentName, ensureMinEntityName, inferFieldType, normalizeFieldName, debugpath, findPathsWithPrefix, writeFileSyncWarn, warnOnError, relativizePath, getModelPath, sortedKeys, sortedEntries, };

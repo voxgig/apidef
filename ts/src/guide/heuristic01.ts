@@ -38,6 +38,7 @@ import type {
 
 import {
   canonize,
+  canonizeCmpName,
   capture,
   cleanComponentName,
   debugpath,
@@ -292,7 +293,7 @@ function MeasureRef(spec: TaskSpec) {
 
   let m = spec.node.val.val.match(/\/(components\/schemas|definitions)\/(.+)$/)
   if (m) {
-    const name = canonize(m[2])
+    const name = canonizeCmpName(m[2])
     if (null == metrics.count.origcmprefs[name]) {
       metrics.count.cmp++
       metrics.count.origcmprefs[name] = 0
@@ -403,7 +404,7 @@ function ResolveEntityComponent(spec: TaskSpec) {
         m = xref.val.match(/\/definitions\/(.+)$/)
       }
       if (m) {
-        const cmp = canonize(m[1])
+        const cmp = canonizeCmpName(m[1])
 
         xref.cmp = cmp
         xref.origcmp = m[1]
@@ -592,6 +593,10 @@ function ResolveEntityName(spec: TaskSpec) {
     }
   }
 
+  // Keep the pre-truncation name so a truncated-name collision can tell a
+  // re-encounter of the SAME origin (merge) from a genuinely different one
+  // (numeric suffix) — see ensureMinEntityName.
+  const rawEntname = entname
   entname = ensureMinEntityName(entname, work.entmap)
 
   const entdesc = work.entmap[entname] = work.entmap[entname] ?? {
@@ -599,7 +604,8 @@ function ResolveEntityName(spec: TaskSpec) {
     id: 'N' + ('' + Math.random()).substring(2, 10),
     op: {},
     why_path,
-    ...ment
+    ...ment,
+    origname: rawEntname,
   }
 
   entdesc.path = (entdesc.path || {})
@@ -1772,7 +1778,7 @@ function findcmps(
     })
 
   return (opts?.uniq ? Array.from(cmpset) : cmplist).map(n =>
-    ({ cmp: canonize(n), origcmp: n }))
+    ({ cmp: canonizeCmpName(n), origcmp: n }))
 }
 
 

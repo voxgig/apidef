@@ -191,7 +191,7 @@ function MeasureRef(spec) {
     const metrics = guide.metrics;
     let m = spec.node.val.val.match(/\/(components\/schemas|definitions)\/(.+)$/);
     if (m) {
-        const name = (0, utility_1.canonize)(m[2]);
+        const name = (0, utility_1.canonizeCmpName)(m[2]);
         if (null == metrics.count.origcmprefs[name]) {
             metrics.count.cmp++;
             metrics.count.origcmprefs[name] = 0;
@@ -284,7 +284,7 @@ function ResolveEntityComponent(spec) {
             m = xref.val.match(/\/definitions\/(.+)$/);
         }
         if (m) {
-            const cmp = (0, utility_1.canonize)(m[1]);
+            const cmp = (0, utility_1.canonizeCmpName)(m[1]);
             xref.cmp = cmp;
             xref.origcmp = m[1];
             xref.origcmpref = cmp;
@@ -422,13 +422,18 @@ function ResolveEntityName(spec) {
             entname = 'entity' + work.entity.count.unresolved;
         }
     }
+    // Keep the pre-truncation name so a truncated-name collision can tell a
+    // re-encounter of the SAME origin (merge) from a genuinely different one
+    // (numeric suffix) — see ensureMinEntityName.
+    const rawEntname = entname;
     entname = (0, utility_1.ensureMinEntityName)(entname, work.entmap);
     const entdesc = work.entmap[entname] = work.entmap[entname] ?? {
         name: entname,
         id: 'N' + ('' + Math.random()).substring(2, 10),
         op: {},
         why_path,
-        ...ment
+        ...ment,
+        origname: rawEntname,
     };
     entdesc.path = (entdesc.path || {});
     entdesc.path[pathStr] = entdesc.path[pathStr] || {
@@ -1238,7 +1243,7 @@ function findcmps(data, pathStr, underprops, opts) {
             });
         });
     });
-    return (opts?.uniq ? Array.from(cmpset) : cmplist).map(n => ({ cmp: (0, utility_1.canonize)(n), origcmp: n }));
+    return (opts?.uniq ? Array.from(cmpset) : cmplist).map(n => ({ cmp: (0, utility_1.canonizeCmpName)(n), origcmp: n }));
 }
 function makeMethodEntityDesc(desc) {
     let ment = {
