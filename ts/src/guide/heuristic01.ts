@@ -419,7 +419,11 @@ function ResolveEntityComponent(spec: TaskSpec) {
 
   let cleanxrefs = cmpxrefs
     .map(xref => {
-      xref.cmp = cleanComponentName(xref.cmp)
+      // Guarded wrapper-suffix stripping folds e.g. BeneficiaryPageResponse
+      // into beneficiary — but only when the remainder is itself a schema
+      // measured by MeasureRef (keys are canonizeCmpName, pre-clean).
+      xref.cmp = cleanComponentName(xref.cmp,
+        (n: string) => null != metrics.count.origcmprefs[n])
       return xref
     })
 

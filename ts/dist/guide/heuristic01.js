@@ -296,7 +296,10 @@ function ResolveEntityComponent(spec) {
         .filter(xref => !xref.val.includes('Meta'));
     let cleanxrefs = cmpxrefs
         .map(xref => {
-        xref.cmp = (0, utility_1.cleanComponentName)(xref.cmp);
+        // Guarded wrapper-suffix stripping folds e.g. BeneficiaryPageResponse
+        // into beneficiary — but only when the remainder is itself a schema
+        // measured by MeasureRef (keys are canonizeCmpName, pre-clean).
+        xref.cmp = (0, utility_1.cleanComponentName)(xref.cmp, (n) => null != metrics.count.origcmprefs[n]);
         return xref;
     });
     let goodxrefs = cleanxrefs

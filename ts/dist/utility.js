@@ -949,27 +949,45 @@ function ensureMinEntityName(name, existing) {
     }
     return padded;
 }
-// Order matters: longer suffixes first — the strip loop breaks on the first
-// match, and '_page_response'/'_create_response' also end with '_response'.
-// The pagination wrappers ('_page_response', '_page') fold list-wrapper
-// schemas (BeneficiaryPageResponse, MerchantTokenPage, ...) into their base
-// entity instead of minting a separate '<entity>_page' entity. The op-reply
-// wrappers ('_create_response', '_update_response') fold op-result schemas
-// (BeneficiariesCreateResponse, ...) into the base entity, whose op comes
-// from the HTTP method — instead of a phantom '<entity>_create' entity.
-// Bare '_create'/'_update' are NOT stripped: too likely to be a real noun.
-const CMP_SUFFIXES = ['_rest_controller', '_controller',
-    '_create_response', '_update_response', '_page_response',
-    '_response', '_request', '_page'];
+// Unconditional suffixes: framework noise, always stripped.
+const CMP_SUFFIXES = ['_rest_controller', '_controller', '_response', '_request'];
+// Guarded suffixes: pagination wrappers ('_page_response', '_page') and
+// op-reply wrappers ('_create_response', '_update_response') fold wrapper
+// schemas (BeneficiaryPageResponse, MerchantTokenPage,
+// BeneficiariesCreateResponse, ...) into their base entity — but ONLY when
+// the remainder is itself a known component schema (the wrapper
+// convention). Without that guard a real noun gets mangled: an API whose
+// resource IS a page (LandingPage entity at /landing-pages) must keep
+// 'landing_page', not become 'landing'. Order matters: longer first, since
+// '_page_response'/'_create_response' also end with '_response'. Bare
+// '_create'/'_update' are never stripped: too likely part of a real noun.
+const CMP_GUARDED_SUFFIXES = ['_create_response', '_update_response', '_page_response', '_page'];
 const CMP_PREFIXES = ['get_', 'post_', 'put_', 'delete_', 'patch_'];
-function cleanComponentName(name) {
+function cleanComponentName(name, isKnownCmp) {
     let cleaned = name;
-    for (const suffix of CMP_SUFFIXES) {
-        if (cleaned.endsWith(suffix)) {
-            const parts = cleaned.split('_');
-            const suffixParts = suffix.split('_').filter(s => s !== '').length;
-            cleaned = canonize(parts.slice(0, parts.length - suffixParts).join('_'));
-            break;
+    let stripped = false;
+    if (null != isKnownCmp) {
+        for (const suffix of CMP_GUARDED_SUFFIXES) {
+            if (cleaned.endsWith(suffix)) {
+                const parts = cleaned.split('_');
+                const suffixParts = suffix.split('_').filter(s => s !== '').length;
+                const remainder = canonize(parts.slice(0, parts.length - suffixParts).join('_'));
+                if (remainder.length >= 3 && isKnownCmp(remainder)) {
+                    cleaned = remainder;
+                    stripped = true;
+                }
+                break;
+            }
+        }
+    }
+    if (!stripped) {
+        for (const suffix of CMP_SUFFIXES) {
+            if (cleaned.endsWith(suffix)) {
+                const parts = cleaned.split('_');
+                const suffixParts = suffix.split('_').filter(s => s !== '').length;
+                cleaned = canonize(parts.slice(0, parts.length - suffixParts).join('_'));
+                break;
+            }
         }
     }
     for (const prefix of CMP_PREFIXES) {

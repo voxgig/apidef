@@ -41,7 +41,7 @@ declare function slugToPascalCase(s: string): string;
 declare function inferFieldType(name: string, specType: string): string;
 declare function normalizeFieldName(s: string): string;
 declare function ensureMinEntityName(name: string, existing: Record<string, any>): string;
-declare function cleanComponentName(name: string): string;
+declare function cleanComponentName(name: string, isKnownCmp?: (canonizedRemainder: string) => boolean): string;
 declare function warnOnError(where: string, warn: Warner, fn: Function, result?: any): any;
 declare function debugpath(pathStr: string, methodName: string | null | undefined, ...args: any[]): void;
 declare function findPathsWithPrefix(ctx: any, pathStr: string, opts?: {

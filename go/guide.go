@@ -443,10 +443,17 @@ func resolveEntityComponent(data map[string]any, mdesc map[string]any) {
 		}
 	}
 
-	// Clean component names
+	// Clean component names. Guarded wrapper-suffix stripping folds e.g.
+	// BeneficiaryPageResponse into beneficiary — but only when the remainder
+	// is itself a schema measured by MeasureRef (keys are CanonizeCmpName,
+	// pre-clean). Mirrors src/guide/heuristic01.ts.
+	isKnownCmp := func(n string) bool {
+		_, ok := origcmprefs[n]
+		return ok
+	}
 	for _, xref := range cmpxrefs {
 		cmp, _ := xref["cmp"].(string)
-		xref["cmp"] = CleanComponentName(cmp)
+		xref["cmp"] = CleanComponentName(cmp, isKnownCmp)
 	}
 
 	// Filter by path occurrence and frequency

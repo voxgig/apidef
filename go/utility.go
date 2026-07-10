@@ -510,27 +510,54 @@ func NormalizeFieldName(s string) string {
 	return out
 }
 
-// CleanComponentName cleans a component name by removing common suffixes/prefixes.
-func CleanComponentName(name string) string {
+// CleanComponentName cleans a component name by removing common
+// suffixes/prefixes. Guarded wrapper suffixes (pagination and op-reply
+// wrappers: '_page_response', '_page', '_create_response',
+// '_update_response') are stripped ONLY when isKnownCmp reports the
+// canonized remainder is itself a known component schema — the wrapper
+// convention. Without that guard a real noun gets mangled: an API whose
+// resource IS a page (LandingPage at /landing-pages) must keep
+// 'landing_page', not become 'landing'. Pass nil to skip guarded
+// stripping. Mirrors src/utility.ts cleanComponentName.
+func CleanComponentName(name string, isKnownCmp func(string) bool) string {
 	cleaned := name
-	// Order matters: longer suffixes first — the strip loop breaks on the
-	// first match, and '_page_response'/'_create_response' also end with
-	// '_response'. Mirrors src/utility.ts CMP_SUFFIXES.
-	suffixes := []string{"_rest_controller", "_controller",
-		"_create_response", "_update_response", "_page_response",
-		"_response", "_request", "_page"}
+	stripped := false
+	// Order matters: longer suffixes first — '_page_response' and
+	// '_create_response' also end with '_response'.
+	guarded := []string{"_create_response", "_update_response", "_page_response", "_page"}
+	suffixes := []string{"_rest_controller", "_controller", "_response", "_request"}
 	prefixes := []string{"get_", "post_", "put_", "delete_", "patch_"}
 
-	for _, suffix := range suffixes {
-		if strings.HasSuffix(cleaned, suffix) {
-			parts := strings.Split(cleaned, "_")
-			suffixParts := len(strings.Split(strings.TrimPrefix(suffix, "_"), "_"))
-			if len(parts) > suffixParts {
-				cleaned = Canonize(strings.Join(parts[:len(parts)-suffixParts], "_"))
+	if isKnownCmp != nil {
+		for _, suffix := range guarded {
+			if strings.HasSuffix(cleaned, suffix) {
+				parts := strings.Split(cleaned, "_")
+				suffixParts := len(strings.Split(strings.TrimPrefix(suffix, "_"), "_"))
+				if len(parts) > suffixParts {
+					remainder := Canonize(strings.Join(parts[:len(parts)-suffixParts], "_"))
+					if len(remainder) >= 3 && isKnownCmp(remainder) {
+						cleaned = remainder
+						stripped = true
+					}
+				}
+				break
 			}
-			break
 		}
 	}
+
+	if !stripped {
+		for _, suffix := range suffixes {
+			if strings.HasSuffix(cleaned, suffix) {
+				parts := strings.Split(cleaned, "_")
+				suffixParts := len(strings.Split(strings.TrimPrefix(suffix, "_"), "_"))
+				if len(parts) > suffixParts {
+					cleaned = Canonize(strings.Join(parts[:len(parts)-suffixParts], "_"))
+				}
+				break
+			}
+		}
+	}
+
 	for _, prefix := range prefixes {
 		if strings.HasPrefix(cleaned, prefix) {
 			remainder := cleaned[len(prefix):]

@@ -141,6 +141,32 @@ function loadTsv(name) {
         });
     }
 });
+// Guarded wrapper-suffix stripping needs the isKnownCmp checker, so it
+// cannot be a pure-function TSV fixture (the TSV rows above cover the
+// checker-less behavior: guarded suffixes do NOT strip).
+(0, node_test_1.describe)('clean-component-name-guarded', () => {
+    const known = new Set(['beneficiary', 'merchant_token', 'transaction',
+        'payout', 'user_invite', 'role']);
+    const isKnown = (n) => known.has(n);
+    const CASES = [
+        // wrapper convention: remainder is a known schema -> fold
+        ['beneficiary_page_response', 'beneficiary'],
+        ['merchant_token_page', 'merchant_token'],
+        ['transaction_page', 'transaction'],
+        ['payouts_create_response', 'payout'],
+        ['user_invites_update_response', 'user_invite'],
+        ['roles_create_response', 'role'],
+        // real noun: remainder unknown -> keep (falls back to plain _response strip)
+        ['landing_page', 'landing_page'],
+        ['static_page', 'static_page'],
+        ['generic_page_response', 'generic_page'],
+    ];
+    for (const [input, expected] of CASES) {
+        (0, node_test_1.test)(`cleanComponentName("${input}", known) => "${expected}"`, () => {
+            node_assert_1.default.deepStrictEqual((0, utility_1.cleanComponentName)(input, isKnown), expected);
+        });
+    }
+});
 // ensureMinEntityName same-origin dedup is stateful (depends on the
 // `existing` map), so it cannot be a pure-function TSV fixture.
 (0, node_test_1.describe)('ensure-min-entity-name-longname', () => {

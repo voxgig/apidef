@@ -131,7 +131,7 @@ func TestTsvCleanComponentName(t *testing.T) {
 	for _, row := range rows {
 		input, expected := row["input"], row["expected"]
 		t.Run("cleanComponentName("+input+")", func(t *testing.T) {
-			got := CleanComponentName(input)
+			got := CleanComponentName(input, nil)
 			if got != expected {
 				t.Errorf("CleanComponentName(%q) = %q, want %q", input, got, expected)
 			}
@@ -334,4 +334,34 @@ func TestEnsureMinEntityNameLongname(t *testing.T) {
 			t.Errorf("no-longname entry = %q, want %q", got, first+"2")
 		}
 	})
+}
+
+// Guarded wrapper-suffix stripping needs the isKnownCmp checker, so it
+// cannot be a pure-function TSV fixture. Mirrors
+// ts/test/tsv.test.ts clean-component-name-guarded.
+func TestCleanComponentNameGuarded(t *testing.T) {
+	known := map[string]bool{
+		"beneficiary": true, "merchant_token": true, "transaction": true,
+		"payout": true, "user_invite": true, "role": true,
+	}
+	isKnown := func(n string) bool { return known[n] }
+	cases := [][2]string{
+		{"beneficiary_page_response", "beneficiary"},
+		{"merchant_token_page", "merchant_token"},
+		{"transaction_page", "transaction"},
+		{"payouts_create_response", "payout"},
+		{"user_invites_update_response", "user_invite"},
+		{"roles_create_response", "role"},
+		{"landing_page", "landing_page"},
+		{"static_page", "static_page"},
+		{"generic_page_response", "generic_page"},
+	}
+	for _, c := range cases {
+		input, expected := c[0], c[1]
+		t.Run("cleanComponentNameGuarded("+input+")", func(t *testing.T) {
+			if got := CleanComponentName(input, isKnown); got != expected {
+				t.Errorf("CleanComponentName(%q, known) = %q, want %q", input, got, expected)
+			}
+		})
+	}
 }
