@@ -125,6 +125,51 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-strip-schema-namespace', () => {
+    const rows = loadTsv('strip-schema-namespace');
+    for (const row of rows) {
+        (0, node_test_1.test)(`stripSchemaNamespace("${row.input}") => "${row.expected}"`, () => {
+            node_assert_1.default.deepStrictEqual((0, utility_1.stripSchemaNamespace)(row.input), row.expected);
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-canonize-cmp-name', () => {
+    const rows = loadTsv('canonize-cmp-name');
+    for (const row of rows) {
+        (0, node_test_1.test)(`canonizeCmpName("${row.input}") => "${row.expected}"`, () => {
+            node_assert_1.default.deepStrictEqual((0, utility_1.canonizeCmpName)(row.input), row.expected);
+        });
+    }
+});
+// ensureMinEntityName same-origin dedup is stateful (depends on the
+// `existing` map), so it cannot be a pure-function TSV fixture.
+(0, node_test_1.describe)('ensure-min-entity-name-longname', () => {
+    const LONG = 'x'.repeat(80) + '_tail'; // truncates to the leading segment
+    (0, node_test_1.test)('same origin re-encountered reuses the truncated name', () => {
+        const existing = {};
+        const first = (0, utility_1.ensureMinEntityName)(LONG, existing);
+        existing[first] = { name: first, longname: LONG };
+        node_assert_1.default.deepStrictEqual((0, utility_1.ensureMinEntityName)(LONG, existing), first);
+    });
+    (0, node_test_1.test)('different origin with same truncation gets a numeric suffix', () => {
+        const OTHER = 'x'.repeat(80) + '_othertail';
+        const existing = {};
+        const first = (0, utility_1.ensureMinEntityName)(LONG, existing);
+        existing[first] = { name: first, longname: LONG };
+        const second = (0, utility_1.ensureMinEntityName)(OTHER, existing);
+        node_assert_1.default.deepStrictEqual(second, first + '2');
+        existing[second] = { name: second, longname: OTHER };
+        // and each origin keeps resolving to its own entity
+        node_assert_1.default.deepStrictEqual((0, utility_1.ensureMinEntityName)(LONG, existing), first);
+        node_assert_1.default.deepStrictEqual((0, utility_1.ensureMinEntityName)(OTHER, existing), second);
+    });
+    (0, node_test_1.test)('entries without longname keep the always-suffix rule', () => {
+        const existing = {};
+        const first = (0, utility_1.ensureMinEntityName)(LONG, existing);
+        existing[first] = { name: first };
+        node_assert_1.default.deepStrictEqual((0, utility_1.ensureMinEntityName)(LONG, existing), first + '2');
+    });
+});
 (0, node_test_1.describe)('tsv-infer-field-type', () => {
     const rows = loadTsv('infer-field-type');
     for (const row of rows) {
