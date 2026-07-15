@@ -122,7 +122,10 @@ const flowstepTransform: Transform = async function(
       input: { ref: ref01, suffix: '_rm0' }
     })
 
-    if (null != opmap.remove) {
+    // The "removed item is gone" verify LIST only makes sense after a real
+    // remove step, which is now gated on create. Gate the verify on create
+    // too, so create-less flows stay read-only.
+    if (null != opmap.remove && null != opmap.create) {
       listStep(opmap, flow, ent, {
         input: { suffix: '_rt0' },
         valid: [{ apply: 'ItemNotExists', def: { ref: ref01 } }]
@@ -323,7 +326,11 @@ const removeStep: MakeFlowStep = (
   ent: ModelEntity,
   args: Record<string, any>
 ) => {
-  if (null != opmap.remove) {
+  // A REMOVE must operate on an entity the flow itself CREATEd — never on
+  // pre-existing data. If the entity has no create op (e.g. merchant), emit
+  // no remove step at all; a create-less remove would delete real records in
+  // live mode and makes no sense as a self-contained CRUD test.
+  if (null != opmap.remove && null != opmap.create) {
     // Use last point as most generic
     const point = getelem(opmap.remove.points, -1)
     const step = newFlowStep('remove', args)
