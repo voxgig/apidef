@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "esModuleInterop": true,
+    "composite": true,
     "module": "nodenext",
     "noEmitOnError": true,
     "outDir":"../dist",
