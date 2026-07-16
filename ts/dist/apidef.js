@@ -214,7 +214,12 @@ function ApiDef(opts) {
                 // folder: Path.dirname(opts.folder as string),
                 folder: opts.folder,
                 model: jmodel,
-                existing: { txt: { merge: true } }
+                // Overwrite the generated model source (.aontu) rather than 3-way merge:
+                // merging against a drifting .jostraca base silently keeps stale files
+                // and can inject <<<<<<< conflict markers. Generated output is
+                // model-derived and never hand-edited. See sdkgen
+                // docs/explanation/regeneration-overwrite.md.
+                existing: { txt: { write: true, merge: false } }
             }, root);
             const dlogs = dlog.log();
             if (0 < dlogs.length) {
