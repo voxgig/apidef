@@ -46,8 +46,8 @@
     "LICENSE"
   ],
   "devDependencies": {
-    "@types/node": "25.9.2",
-    "typescript": "6.0.3"
+    "@types/node": "25.9.5",
+    "typescript": "7.0.2"
   },
   "peerDependencies": {
     "@jsonic/yaml": ">=0",
