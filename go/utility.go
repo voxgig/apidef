@@ -443,16 +443,25 @@ func SlugToPascalCase(s string) string {
 	return result.String()
 }
 
+// ValidCanon maps an OpenAPI type NAME to its canonical `$SENTINEL` form.
+// Mirrors src/utility.ts:VALID_CANON. Exported (with CanonOne) so downstream
+// consumers can verify they cover the full sentinel vocabulary.
+var ValidCanon = map[string]string{
+	"string": "`$STRING`", "number": "`$NUMBER`", "integer": "`$INTEGER`",
+	"boolean": "`$BOOLEAN`", "null": "`$NULL`", "array": "`$ARRAY`",
+	"object": "`$OBJECT`", "any": "`$ANY`",
+}
+
+// CanonOne is the union sentinel used for multi-type values. Mirrors
+// src/utility.ts:CANON_ONE.
+const CanonOne = "`$ONE`"
+
 // Validator normalizes a type string to its canonical form. Mirrors
 // src/utility.ts:validator — undefined input (or anything non-string)
 // returns the canonical `$ANY` macro; a string that doesn't map to a
 // canonical type is returned as the literal "Any".
 func Validator(torig any) string {
-	validCanon := map[string]string{
-		"string": "`$STRING`", "number": "`$NUMBER`", "integer": "`$INTEGER`",
-		"boolean": "`$BOOLEAN`", "null": "`$NULL`", "array": "`$ARRAY`",
-		"object": "`$OBJECT`", "any": "`$ANY`",
-	}
+	validCanon := ValidCanon
 	switch v := torig.(type) {
 	case string:
 		// An empty / whitespace-only string is treated as "no type given"

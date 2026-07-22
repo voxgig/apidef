@@ -61,6 +61,8 @@ import {
   writeFileSyncWarn,
   relativizePath,
   getModelPath,
+  VALID_CANON,
+  CANON_ONE,
 } from './utility'
 
 
@@ -457,4 +459,6 @@ export {
   slugToPascalCase,
   getModelPath,
   nom,
+  VALID_CANON,
+  CANON_ONE,
 }
