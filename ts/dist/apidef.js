@@ -37,7 +37,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.nom = exports.getModelPath = exports.slugToPascalCase = exports.sanitizeSlug = exports.depluralize = exports.formatJSONIC = exports.parse = exports.KIT = void 0;
+exports.CANON_ONE = exports.VALID_CANON = exports.nom = exports.getModelPath = exports.slugToPascalCase = exports.sanitizeSlug = exports.depluralize = exports.formatJSONIC = exports.parse = exports.KIT = void 0;
 exports.ApiDef = ApiDef;
 const Fs = __importStar(require("node:fs"));
 const node_path_1 = __importDefault(require("node:path"));
@@ -56,6 +56,8 @@ Object.defineProperty(exports, "depluralize", { enumerable: true, get: function 
 Object.defineProperty(exports, "sanitizeSlug", { enumerable: true, get: function () { return utility_1.sanitizeSlug; } });
 Object.defineProperty(exports, "slugToPascalCase", { enumerable: true, get: function () { return utility_1.slugToPascalCase; } });
 Object.defineProperty(exports, "getModelPath", { enumerable: true, get: function () { return utility_1.getModelPath; } });
+Object.defineProperty(exports, "VALID_CANON", { enumerable: true, get: function () { return utility_1.VALID_CANON; } });
+Object.defineProperty(exports, "CANON_ONE", { enumerable: true, get: function () { return utility_1.CANON_ONE; } });
 const top_1 = require("./transform/top");
 const entity_1 = require("./transform/entity");
 const operation_1 = require("./transform/operation");

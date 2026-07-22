@@ -905,6 +905,12 @@ function renderJSONIC(
 }
 
 
+// Canonical type-sentinel vocabulary. VALID_CANON maps an OpenAPI type NAME
+// to its `$SENTINEL` form; CANON_ONE is the union sentinel produced by
+// `validator` for a multi-type (`['`$ONE`', [member, ...]]`). Both are part
+// of the public API so downstream consumers (e.g. @voxgig/sdkgen's
+// sentinel -> language-type table) can verify they cover the full set
+// instead of hand-syncing against this file.
 const VALID_CANON: Record<string, string> = {
   'string': '`$STRING`',
   'number': '`$NUMBER`',
@@ -916,6 +922,8 @@ const VALID_CANON: Record<string, string> = {
   'any': '`$ANY`',
 }
 
+const CANON_ONE = '`$ONE`'
+
 
 function validator(torig: undefined | string | string[]): any {
   if ('string' === typeof torig) {
@@ -924,7 +932,7 @@ function validator(torig: undefined | string | string[]): any {
     return canon
   }
   else if (Array.isArray(torig)) {
-    return ['`$ONE`', torig.map((t: string) => validator(t))]
+    return [CANON_ONE, torig.map((t: string) => validator(t))]
   }
   else {
     return '`$ANY`'
@@ -1390,6 +1398,8 @@ export {
   makeWarner,
   formatJSONIC,
   validator,
+  VALID_CANON,
+  CANON_ONE,
   canonize,
   canonizeCmpName,
   stripSchemaNamespace,

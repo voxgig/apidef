@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sortedEntries = exports.sortedKeys = void 0;
+exports.sortedEntries = exports.sortedKeys = exports.CANON_ONE = exports.VALID_CANON = void 0;
 exports.nom = nom;
 exports.getdlog = getdlog;
 exports.loadFile = loadFile;
@@ -761,6 +761,12 @@ function renderJSONIC(val, hsepd, showd, useColor, maxlines, exclude, c, renderP
     }
     return lines.join('\n') + '\n';
 }
+// Canonical type-sentinel vocabulary. VALID_CANON maps an OpenAPI type NAME
+// to its `$SENTINEL` form; CANON_ONE is the union sentinel produced by
+// `validator` for a multi-type (`['`$ONE`', [member, ...]]`). Both are part
+// of the public API so downstream consumers (e.g. @voxgig/sdkgen's
+// sentinel -> language-type table) can verify they cover the full set
+// instead of hand-syncing against this file.
 const VALID_CANON = {
     'string': '`$STRING`',
     'number': '`$NUMBER`',
@@ -771,6 +777,9 @@ const VALID_CANON = {
     'object': '`$OBJECT`',
     'any': '`$ANY`',
 };
+exports.VALID_CANON = VALID_CANON;
+const CANON_ONE = '`$ONE`';
+exports.CANON_ONE = CANON_ONE;
 function validator(torig) {
     if ('string' === typeof torig) {
         const tstr = torig.toLowerCase().trim();
@@ -778,7 +787,7 @@ function validator(torig) {
         return canon;
     }
     else if (Array.isArray(torig)) {
-        return ['`$ONE`', torig.map((t) => validator(t))];
+        return [CANON_ONE, torig.map((t) => validator(t))];
     }
     else {
         return '`$ANY`';
