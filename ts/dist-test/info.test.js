@@ -30,11 +30,35 @@ const top_1 = require("../dist/transform/top");
         node_assert_1.default.strictEqual((0, top_1.resolveSummary)({ info: { description: '   ' } }), undefined);
         node_assert_1.default.strictEqual((0, top_1.resolveSummary)({}), undefined);
     });
+    (0, node_test_1.test)('a letterless placeholder description yields undefined (readme.io ".")', () => {
+        node_assert_1.default.strictEqual((0, top_1.resolveSummary)({ info: { description: '.' } }), undefined);
+        node_assert_1.default.strictEqual((0, top_1.resolveSummary)({ info: { summary: '.', description: '---' } }), undefined);
+    });
     (0, node_test_1.test)('over-long first sentences are capped with an ellipsis', () => {
         const long = 'A' + 'a'.repeat(300) + '.';
         const out = (0, top_1.resolveSummary)({ info: { description: long } });
         node_assert_1.default.ok(out.length <= 240);
         node_assert_1.default.ok(out.endsWith('…'));
+    });
+});
+(0, node_test_1.describe)('ensureDescription', () => {
+    (0, node_test_1.test)('keeps real prose unchanged', () => {
+        node_assert_1.default.strictEqual((0, top_1.ensureDescription)({ description: 'A fast SMS API.', title: 'SMS' }), 'A fast SMS API.');
+    });
+    (0, node_test_1.test)('synthesises a sentence from the title when the description is a "." placeholder', () => {
+        node_assert_1.default.strictEqual((0, top_1.ensureDescription)({ description: '.', title: 'PayConex 4' }), 'The PayConex 4 API.');
+    });
+    (0, node_test_1.test)('synthesises for empty / letterless / absent descriptions', () => {
+        node_assert_1.default.strictEqual((0, top_1.ensureDescription)({ title: 'Merchant Services' }), 'The Merchant Services API.');
+        node_assert_1.default.strictEqual((0, top_1.ensureDescription)({ description: '   ', title: 'X' }), 'The X API.');
+        node_assert_1.default.strictEqual((0, top_1.ensureDescription)({ description: '---', title: 'X' }), 'The X API.');
+    });
+    (0, node_test_1.test)('does not append a redundant "API" when the title already names one', () => {
+        node_assert_1.default.strictEqual((0, top_1.ensureDescription)({ description: '.', title: 'Decryptx External Api' }), 'The Decryptx External Api.');
+    });
+    (0, node_test_1.test)('falls back to a generic sentence when there is no usable title', () => {
+        node_assert_1.default.strictEqual((0, top_1.ensureDescription)({ description: '.' }), 'Client SDK for this API.');
+        node_assert_1.default.strictEqual((0, top_1.ensureDescription)({ description: '.', title: '   ' }), 'Client SDK for this API.');
     });
 });
 (0, node_test_1.describe)('resolveWebsite', () => {

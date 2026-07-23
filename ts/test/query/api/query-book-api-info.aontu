@@ -5,6 +5,7 @@ main: {
   kit: {
     info: {
       auth: false
+      description: "The Book Query API."
       servers: [
         {
           url: "http://localhost:8902"

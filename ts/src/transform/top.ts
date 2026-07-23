@@ -44,6 +44,13 @@ const topTransform = async function(
   kit.info = stringifyInfoScalars(def.info ?? {})
   kit.info.servers = stringifyInfoScalars(def.servers ?? [])
 
+  // Guarantee at least one sentence of API description. Many specs (e.g. the
+  // readme.io-hosted Bluefin APIs) ship a placeholder `info.description` of
+  // "." — letterless, useless prose. When the description is empty or has no
+  // letters, synthesise a sentence from the title so the api-info.aontu (and
+  // the docs generated from it) never carry an empty/degenerate description.
+  kit.info.description = ensureDescription(kit.info)
+
   // Public APIs that declare NO authentication (no security schemes, no
   // top-level `security`, and no per-operation `security`) get an explicit
   // no-auth signal in the model. Downstream sdkgen reads it via
@@ -120,6 +127,31 @@ const topTransform = async function(
 }
 
 
+// True when the text carries at least one alphabetic character — i.e. it is
+// real prose rather than a placeholder like "." / "---" / whitespace.
+function hasLetters(text: string): boolean {
+  return /[a-zA-Z]/.test(text)
+}
+
+
+// A non-empty, at-least-one-sentence description for the API. Keeps the spec's
+// own `info.description` when it is real prose; otherwise synthesises a sentence
+// from the title (falling back to a generic sentence when even that is
+// missing). Never returns an empty or letterless string.
+function ensureDescription(info: any): string {
+  const current = 'string' === typeof info.description ? info.description.trim() : ''
+  if ('' !== current && hasLetters(current)) {
+    return info.description
+  }
+  const title = 'string' === typeof info.title ? info.title.trim() : ''
+  if ('' === title || !hasLetters(title)) {
+    return 'Client SDK for this API.'
+  }
+  // Avoid a redundant "… Api API." when the title already names itself an API.
+  return 'The ' + title + (/\bapi\b/i.test(title) ? '' : ' API') + '.'
+}
+
+
 // A short one-line description of the API's purpose: the spec's
 // `info.summary` (OpenAPI 3.1) when present, else the first prose sentence
 // of `info.description` with leading markdown headings/blank lines stripped
@@ -129,12 +161,14 @@ function resolveSummary(def: any): string | undefined {
   const info = def?.info ?? {}
 
   const explicit = 'string' === typeof info.summary ? info.summary.trim() : ''
-  if ('' !== explicit) {
+  if ('' !== explicit && hasLetters(explicit)) {
     return firstSentence(explicit)
   }
 
   const desc = 'string' === typeof info.description ? info.description : ''
-  if ('' === desc.trim()) {
+  // Treat letterless prose (a bare "." placeholder, "---", …) as no summary
+  // rather than surfacing it verbatim.
+  if ('' === desc.trim() || !hasLetters(desc)) {
     return undefined
   }
 
@@ -418,6 +452,7 @@ export {
   topTransform,
   resolveSecurity,
   resolveSummary,
+  ensureDescription,
   resolveWebsite,
   homepageFromServer,
   findAuthPrefix,

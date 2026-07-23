@@ -9,6 +9,7 @@ import assert from 'node:assert'
 
 import {
   resolveSummary,
+  ensureDescription,
   resolveWebsite,
   homepageFromServer,
 } from '../dist/transform/top'
@@ -51,11 +52,49 @@ describe('resolveSummary', () => {
     assert.strictEqual(resolveSummary({}), undefined)
   })
 
+  test('a letterless placeholder description yields undefined (readme.io ".")', () => {
+    assert.strictEqual(resolveSummary({ info: { description: '.' } }), undefined)
+    assert.strictEqual(resolveSummary({ info: { summary: '.', description: '---' } }), undefined)
+  })
+
   test('over-long first sentences are capped with an ellipsis', () => {
     const long = 'A' + 'a'.repeat(300) + '.'
     const out = resolveSummary({ info: { description: long }})!
     assert.ok(out.length <= 240)
     assert.ok(out.endsWith('…'))
+  })
+})
+
+
+describe('ensureDescription', () => {
+
+  test('keeps real prose unchanged', () => {
+    assert.strictEqual(
+      ensureDescription({ description: 'A fast SMS API.', title: 'SMS' }),
+      'A fast SMS API.')
+  })
+
+  test('synthesises a sentence from the title when the description is a "." placeholder', () => {
+    assert.strictEqual(
+      ensureDescription({ description: '.', title: 'PayConex 4' }),
+      'The PayConex 4 API.')
+  })
+
+  test('synthesises for empty / letterless / absent descriptions', () => {
+    assert.strictEqual(ensureDescription({ title: 'Merchant Services' }), 'The Merchant Services API.')
+    assert.strictEqual(ensureDescription({ description: '   ', title: 'X' }), 'The X API.')
+    assert.strictEqual(ensureDescription({ description: '---', title: 'X' }), 'The X API.')
+  })
+
+  test('does not append a redundant "API" when the title already names one', () => {
+    assert.strictEqual(
+      ensureDescription({ description: '.', title: 'Decryptx External Api' }),
+      'The Decryptx External Api.')
+  })
+
+  test('falls back to a generic sentence when there is no usable title', () => {
+    assert.strictEqual(ensureDescription({ description: '.' }), 'Client SDK for this API.')
+    assert.strictEqual(ensureDescription({ description: '.', title: '   ' }), 'Client SDK for this API.')
   })
 })
 

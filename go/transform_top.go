@@ -2,7 +2,13 @@
 
 package apidef
 
-import "strings"
+import (
+	"regexp"
+	"strings"
+)
+
+// Mirrors src/transform/top.ts — word-boundary, case-insensitive "api".
+var apiWordRe = regexp.MustCompile(`(?i)\bapi\b`)
 
 // TopTransform sets API info and servers from the definition.
 func TopTransform(ctx *ApiDefContext) (*TransformResult, error) {
@@ -12,6 +18,10 @@ func TopTransform(ctx *ApiDefContext) (*TransformResult, error) {
 	info, _ := def["info"].(map[string]any)
 	if info != nil {
 		kit["info"] = info
+		// Guarantee at least one sentence of API description; synthesise from
+		// the title when the spec's description is empty or letterless (e.g. a
+		// "." placeholder). Mirrors src/transform/top.ts ensureDescription.
+		info["description"] = ensureDescription(info)
 	}
 
 	servers, _ := def["servers"]
@@ -51,4 +61,41 @@ func TopTransform(ctx *ApiDefContext) (*TransformResult, error) {
 func getKit(ctx *ApiDefContext) map[string]any {
 	main := ctx.ApiModel["main"].(map[string]any)
 	return main[KIT].(map[string]any)
+}
+
+// hasLetters reports whether text carries at least one ASCII letter — i.e. it
+// is real prose rather than a placeholder like "." / "---" / whitespace.
+// Mirrors src/transform/top.ts hasLetters.
+func hasLetters(text string) bool {
+	for _, r := range text {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') {
+			return true
+		}
+	}
+	return false
+}
+
+// ensureDescription returns a non-empty, at-least-one-sentence description:
+// the spec's own info.description when it is real prose, else a sentence
+// synthesised from the title (else a generic sentence). Never empty or
+// letterless. Mirrors src/transform/top.ts ensureDescription.
+func ensureDescription(info map[string]any) string {
+	current := ""
+	if d, ok := info["description"].(string); ok {
+		current = strings.TrimSpace(d)
+	}
+	if current != "" && hasLetters(current) {
+		return info["description"].(string)
+	}
+	title := ""
+	if t, ok := info["title"].(string); ok {
+		title = strings.TrimSpace(t)
+	}
+	if title == "" || !hasLetters(title) {
+		return "Client SDK for this API."
+	}
+	if apiWordRe.MatchString(title) {
+		return "The " + title + "."
+	}
+	return "The " + title + " API."
 }

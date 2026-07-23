@@ -5,6 +5,7 @@ main: {
   kit: {
     info: {
       auth: false
+      description: "The Solar System API."
       servers: [
         {
           url: "http://localhost:8901"
