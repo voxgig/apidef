@@ -6,6 +6,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
+	"golang.org/x/text/unicode/norm"
 	"math"
 	"os"
 	"path/filepath"
@@ -14,9 +17,9 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 
 	vs "github.com/voxgig/struct/go"
-	"golang.org/x/text/unicode/norm"
 )
 
 var (
@@ -56,7 +59,7 @@ func matchCase(source, target string) string {
 var irregularPlurals = map[string]string{
 	"analytics": "analytics", "analyses": "analysis", "appendices": "appendix",
 	"avalanches": "avalanche", "axes": "axis", "caches": "cache", "canoes": "canoe",
-	"cases": "case",
+	"cases":    "case",
 	"children": "child", "cliches": "cliche", "courses": "course", "creches": "creche",
 	"crises": "crisis", "criteria": "criterion", "diagnoses": "diagnosis",
 	"doses": "dose", "douches": "douche", "feet": "foot", "furnaces": "furnace",
@@ -66,11 +69,11 @@ var irregularPlurals = map[string]string{
 	"movies": "movie", "mustaches": "mustache", "niches": "niche", "noses": "nose",
 	"notices": "notice", "nurses": "nurse", "oases": "oasis", "oboes": "oboe",
 	"pastiches": "pastiche",
-	"pauses": "pause", "phases": "phase", "phrases": "phrase", "practices": "practice",
+	"pauses":    "pause", "phases": "phase", "phrases": "phrase", "practices": "practice",
 	"premises": "premise", "promises": "promise", "psyches": "psyche", "purses": "purse",
 	"releases": "release", "roses": "rose", "people": "person", "phenomena": "phenomenon",
 	"series": "series", "shoes": "shoe", "sources": "source", "species": "species",
-	"teeth": "tooth",
+	"teeth":  "tooth",
 	"theses": "thesis", "verses": "verse", "vertices": "vertex", "women": "woman",
 	"yes": "yes",
 }
@@ -237,37 +240,65 @@ func Transliterate(s string) string {
 	return b.String()
 }
 
-// partify mirrors jostraca's partify: collapse consecutive uppercase
-// runs (XYZ → Xyz), split on `-`/`_`/space and capital-letter boundaries,
-// then merge any single-character part into the next part.
+// partify mirrors jostraca's partify (jostraca/util/basic.ts) exactly. That
+// function is the root of every generated identifier — entity names, field
+// names, SDK class names — so any deviation here changes the emitted SDK.
+// The TS side imports it from jostraca; this is a hand port, so it is pinned
+// by the shared snakify/camelify/kebabify TSV fixtures. Do not "simplify" it
+// without re-running those.
 //
-// Example: "m_img" → ["mimg"]; "ab_cd" → ["ab", "cd"]; "MyAPI" → ["my", "api"].
+// The original is three steps:
+//
+//	.replace(/([A-Z])([A-Z]+)(?![a-z])/g, (_, a, b) => a + b.toLowerCase())
+//	.split(/[-_ ]|([A-Z])/).filter(p => null != p && '' !== p)
+//	.reduce(merge-single-UPPERCASE-into-following-lowercase)
+//
+// Example: "m_img" → ["mimg"]; "ab_cd" → ["ab", "cd"]; "APIKeys" → ["Api","Keys"].
 func partify(s string) []string {
 	if s == "" {
 		return nil
 	}
-	// Collapse consecutive caps: ABC → Abc (first cap kept, rest lowered).
+
+	// Step 1: collapse acronym runs, honouring the regex's (?![a-z]) guard.
+	//
+	// For a maximal run of N uppercase letters, the greedy match backtracks so
+	// the run's LAST letter is left alone when a lowercase letter follows it —
+	// that letter starts the next word. So "APIaddress" collapses only "AP"
+	// (→ "Ap") and yields "ApIaddress", not "Apiaddress"; and "ABc" is left
+	// untouched because only one letter would remain to collapse.
 	var collapsed strings.Builder
 	collapsed.Grow(len(s))
-	i := 0
-	for i < len(s) {
-		c := s[i]
-		if c >= 'A' && c <= 'Z' && i+1 < len(s) && s[i+1] >= 'A' && s[i+1] <= 'Z' {
-			collapsed.WriteByte(c)
-			j := i + 1
-			for j < len(s) && s[j] >= 'A' && s[j] <= 'Z' {
-				collapsed.WriteByte(s[j] + ('a' - 'A'))
-				j++
-			}
-			i = j
+	for i := 0; i < len(s); {
+		if !isUpperASCII(s[i]) {
+			collapsed.WriteByte(s[i])
+			i++
 			continue
 		}
-		collapsed.WriteByte(c)
-		i++
+		run := i
+		for run < len(s) && isUpperASCII(s[run]) {
+			run++
+		}
+		n := run - i
+		// A lowercase letter directly after the run claims the run's last letter.
+		eff := n
+		if run < len(s) && s[run] >= 'a' && s[run] <= 'z' {
+			eff = n - 1
+		}
+		if eff >= 2 {
+			collapsed.WriteByte(s[i])
+			for j := i + 1; j < i+eff; j++ {
+				collapsed.WriteByte(s[j] + ('a' - 'A'))
+			}
+			collapsed.WriteString(s[i+eff : run])
+		} else {
+			collapsed.WriteString(s[i:run])
+		}
+		i = run
 	}
 	src := collapsed.String()
 
-	// Split on -/_/space and at capital-letter boundaries (capital starts new part).
+	// Step 2: split on -/_/space (delimiter consumed) and at capital letters
+	// (the capital is captured, so it becomes its own single-char segment).
 	var raw []string
 	cur := []byte{}
 	flush := func() {
@@ -276,16 +307,12 @@ func partify(s string) []string {
 			cur = cur[:0]
 		}
 	}
-	// Mirror TS .split(/[-_ ]|([A-Z])/) semantics: separators consume the
-	// delimiter; capital letters split the preceding segment AND emit the
-	// capital as its own single-character segment, so the merge step can
-	// fold it into the following lowercase run.
 	for i := 0; i < len(src); i++ {
 		c := src[i]
 		switch {
 		case c == '-' || c == '_' || c == ' ':
 			flush()
-		case c >= 'A' && c <= 'Z':
+		case isUpperASCII(c):
 			flush()
 			raw = append(raw, string(c))
 		default:
@@ -294,20 +321,28 @@ func partify(s string) []string {
 	}
 	flush()
 
-	// Merge: if last accumulated part has length 1, fold the next part into it.
+	// Step 3: re-attach a captured single UPPERCASE letter to the lowercase
+	// tail that follows it. The uppercase guard matters: without it a lone
+	// lowercase segment between separators ("a" in "yes-as-a-service", or any
+	// digit in "1_2_3") would also be glued to the next part.
 	out := make([]string, 0, len(raw))
 	for _, p := range raw {
 		if p == "" {
 			continue
 		}
-		if len(out) > 0 && len(out[len(out)-1]) == 1 {
-			out[len(out)-1] += p
-			continue
+		if len(out) > 0 {
+			prev := out[len(out)-1]
+			if len(prev) == 1 && isUpperASCII(prev[0]) && !isUpperASCII(p[0]) {
+				out[len(out)-1] = prev + p
+				continue
+			}
 		}
 		out = append(out, p)
 	}
 	return out
 }
+
+func isUpperASCII(c byte) bool { return c >= 'A' && c <= 'Z' }
 
 // Snakify converts a string to snake_case using jostraca-compatible partify.
 func Snakify(s string) string {
@@ -317,6 +352,14 @@ func Snakify(s string) string {
 	}
 	return strings.Join(parts, "_")
 }
+
+// jsUpper reproduces JavaScript's String.prototype.toUpperCase: locale-
+// independent FULL Unicode case mapping, so "ß" → "SS" and "ﬁ" → "FI".
+// Go's strings.ToUpper is simple (1:1) mapping and leaves those unchanged.
+// Only used where output must match TS character-for-character.
+var jsUpperCaser = cases.Upper(language.Und)
+
+func jsUpper(s string) string { return jsUpperCaser.String(s) }
 
 // Camelify converts a string to PascalCase using jostraca-compatible partify.
 // Mirrors TS jostraca/util/basic.ts:camelify so single-char segments merge
@@ -328,7 +371,17 @@ func Camelify(s string) string {
 		if part == "" {
 			continue
 		}
-		result.WriteString(strings.ToUpper(part[:1]) + part[1:])
+		// Upper-case the first RUNE, not the first byte. `part[:1]` splits a
+		// multibyte character (schema names carry accented and non-Latin
+		// text), so "Ünicode" became a replacement char followed by a stray
+		// continuation byte — invalid UTF-8 in a generated identifier.
+		//
+		// jsUpper, not strings.ToUpper: JS toUpperCase() applies full Unicode
+		// case mapping, where one code point can expand to several ("ß" → "SS").
+		// strings.ToUpper only does simple 1:1 mapping and leaves "ß" alone.
+		r, size := utf8.DecodeRuneInString(part)
+		result.WriteString(jsUpper(string(r)))
+		result.WriteString(part[size:])
 	}
 	return result.String()
 }
@@ -338,8 +391,7 @@ func Kebabify(s string) string {
 	out := Snakify(s)
 	out = strings.ReplaceAll(out, "_", "-")
 	// Collapse multiple hyphens and strip leading/trailing
-	multiHyphen := regexp.MustCompile(`-+`)
-	out = multiHyphen.ReplaceAllString(out, "-")
+	out = multiHyphenRE.ReplaceAllString(out, "-")
 	out = strings.Trim(out, "-")
 	return out
 }
@@ -468,30 +520,61 @@ func ValidCanon() map[string]string {
 // src/utility.ts:CANON_ONE.
 const CanonOne = "`$ONE`"
 
-// Validator normalizes a type string to its canonical form. Mirrors
-// src/utility.ts:validator — undefined input (or anything non-string)
-// returns the canonical `$ANY` macro; a string that doesn't map to a
-// canonical type is returned as the literal "Any".
-func Validator(torig any) string {
+// Validator normalizes a spec type to its canonical form. Mirrors
+// src/utility.ts:validator.
+//
+// Returns `any`, not `string`: OpenAPI 3.1 expresses a nullable field as a
+// type ARRAY (`type: [string, "null"]`), and TS maps that to the union form
+// [CANON_ONE, [member, ...]]. An earlier port declared this `string`, which
+// made the array branch unreachable and silently degraded every nullable
+// field to `$ANY` — so the Go SDK lost all union type information.
+//
+// A string that doesn't map to a canonical type returns the literal "Any",
+// matching TS (VALID_CANON[tstr] ?? 'Any'). That includes the empty string:
+// TS lowercases and trims first, finds no entry, and yields "Any" — only a
+// genuinely absent value (nil here, undefined there) reaches `$ANY`.
+func Validator(torig any) any {
 	switch v := torig.(type) {
 	case string:
-		// An empty / whitespace-only string is treated as "no type given"
-		// (TS receives `undefined` here and falls through to `$ANY`).
 		tstr := strings.ToLower(strings.TrimSpace(v))
-		if tstr == "" {
-			return "`$ANY`"
-		}
 		if canon, ok := validCanon[tstr]; ok {
 			return canon
 		}
 		return "Any"
+	case []any:
+		members := make([]any, 0, len(v))
+		for _, t := range v {
+			members = append(members, Validator(t))
+		}
+		return []any{CanonOne, members}
+	case []string:
+		members := make([]any, 0, len(v))
+		for _, t := range v {
+			members = append(members, Validator(t))
+		}
+		return []any{CanonOne, members}
 	default:
 		return "`$ANY`"
 	}
 }
 
-// InferFieldType infers field type from its name and spec type.
-func InferFieldType(name string, specType string) string {
+// ValidatorString is Validator for callers that know the input is a single
+// type name and want the string form (the shared TSV fixtures, mainly).
+// Union results are returned unchanged as their `$ONE` sentinel.
+func ValidatorString(torig any) string {
+	if s, ok := Validator(torig).(string); ok {
+		return s
+	}
+	return CanonOne
+}
+
+// InferFieldType infers field type from its name and spec type. Mirrors
+// src/utility.ts:inferFieldType.
+//
+// specType is `any` because Validator can hand back a union array; TS types
+// this parameter `string` but is called with validator()'s `any` result, and
+// the array falls through both branches to be returned unchanged.
+func InferFieldType(name string, specType any) any {
 	if specType == "`$ANY`" {
 		if booleanNameRE.MatchString(name) {
 			return "`$BOOLEAN`"
@@ -516,19 +599,34 @@ func InferFieldType(name string, specType string) string {
 	return specType
 }
 
+// InferFieldTypeString is InferFieldType for the string-only call sites and
+// the shared TSV fixtures.
+func InferFieldTypeString(name string, specType string) string {
+	if s, ok := InferFieldType(name, specType).(string); ok {
+		return s
+	}
+	return specType
+}
+
 // NormalizeFieldName normalizes a field name.
 func NormalizeFieldName(s string) string {
 	if s == "" {
 		return ""
 	}
 	out := strings.ReplaceAll(s, "[]", "")
-	bracketRE := regexp.MustCompile(`[\[\].]+`)
 	out = bracketRE.ReplaceAllString(out, "_")
-	underscoreRE := regexp.MustCompile(`_+`)
 	out = underscoreRE.ReplaceAllString(out, "_")
 	out = strings.Trim(out, "_")
 	return out
 }
+
+// Package-level: NormalizeFieldName runs once per field of every entity, so
+// compiling these per call showed up in the profile.
+var (
+	bracketRE     = regexp.MustCompile(`[\[\].]+`)
+	underscoreRE  = regexp.MustCompile(`_+`)
+	multiHyphenRE = regexp.MustCompile(`-+`)
+)
 
 // CleanComponentName cleans a component name by removing common
 // suffixes/prefixes. Guarded wrapper suffixes (pagination and op-reply
@@ -993,7 +1091,9 @@ func formatJSONICValue(val any, indent int, prefix string, lines *[]string, seen
 			*lines = append(*lines, prefix+"[")
 			hsep := indent > 0 && indent <= 1
 			closeSuffix := ""
-			if hsep { closeSuffix = "\n" }
+			if hsep {
+				closeSuffix = "\n"
+			}
 			*lines = append(*lines, indentStr+"]"+closeSuffix)
 			return
 		}
@@ -1004,7 +1104,9 @@ func formatJSONICValue(val any, indent int, prefix string, lines *[]string, seen
 		}
 		hsep := indent > 0 && indent <= 1
 		closeSuffix := ""
-		if hsep { closeSuffix = "\n" }
+		if hsep {
+			closeSuffix = "\n"
+		}
 		*lines = append(*lines, indentStr+"]"+closeSuffix)
 	case map[string]any:
 		keys := make([]string, 0, len(v))

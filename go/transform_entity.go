@@ -67,9 +67,17 @@ func resolvePathList(guideEntity map[string]any, def map[string]any) []map[strin
 							newStr, _ = rp["target"].(string)
 						}
 					}
+					// Mirrors src/transform/entity.ts, which uses
+					// parts.indexOf(...) and so rewrites only the FIRST
+					// match. Rewriting every occurrence turns a repeated
+					// placeholder into a duplicate, e.g.
+					// /groups/{group_id}/badges/{id} emitting
+					// /groups/{group_id}/badges/{group_id} under a chained
+					// rename — silently dropping an argument from the URL.
 					for i, p := range parts {
 						if p == "{"+oldName+"}" {
 							parts[i] = "{" + newStr + "}"
+							break
 						}
 					}
 				}

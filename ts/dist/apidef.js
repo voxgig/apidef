@@ -174,8 +174,15 @@ function ApiDef(opts) {
             ctx.guide = guideModel.guide;
             steps.push('guide');
             // Step: transformers (transform spec and guide into core structures).
+            // Early stops return the model built so far: `ctrl.step.generate = false`
+            // is the documented way to build the model in memory without writing
+            // files (see AGENTS.md), which requires `apimodel` in the result. The Go
+            // port already returns it from every early return.
             if (!ctrl.step.transformers) {
-                return { ok: true, steps, start, end: Date.now(), ctrl, guide: ctx.guide };
+                return {
+                    ok: true, steps, start, end: Date.now(), ctrl,
+                    guide: ctx.guide, apimodel: ctx.apimodel
+                };
             }
             await (0, top_1.topTransform)(ctx);
             await (0, entity_1.entityTransform)(ctx);
@@ -189,7 +196,10 @@ function ApiDef(opts) {
             steps.push('transformers');
             // Step: builders (build generated sub models).
             if (!ctrl.step.builders) {
-                return { ok: true, steps, start, end: Date.now(), ctrl, guide: ctx.guide };
+                return {
+                    ok: true, steps, start, end: Date.now(), ctrl,
+                    guide: ctx.guide, apimodel: ctx.apimodel
+                };
             }
             const builders = [
                 await (0, entity_2.makeEntityBuilder)(ctx),
@@ -199,7 +209,10 @@ function ApiDef(opts) {
             steps.push('builders');
             // Step: generate (generate model files).
             if (!ctrl.step.generate) {
-                return { ok: true, steps, start, end: Date.now(), ctrl, guide: ctx.guide };
+                return {
+                    ok: true, steps, start, end: Date.now(), ctrl,
+                    guide: ctx.guide, apimodel: ctx.apimodel
+                };
             }
             const jostraca = (0, jostraca_1.Jostraca)({
                 now: spec.now,

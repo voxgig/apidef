@@ -216,8 +216,15 @@ function ApiDef(opts: ApiDefOptions) {
 
 
       // Step: transformers (transform spec and guide into core structures).
+      // Early stops return the model built so far: `ctrl.step.generate = false`
+      // is the documented way to build the model in memory without writing
+      // files (see AGENTS.md), which requires `apimodel` in the result. The Go
+      // port already returns it from every early return.
       if (!ctrl.step.transformers) {
-        return { ok: true, steps, start, end: Date.now(), ctrl, guide: ctx.guide }
+        return {
+          ok: true, steps, start, end: Date.now(), ctrl,
+          guide: ctx.guide, apimodel: ctx.apimodel
+        }
       }
 
       await topTransform(ctx)
@@ -234,7 +241,10 @@ function ApiDef(opts: ApiDefOptions) {
 
       // Step: builders (build generated sub models).
       if (!ctrl.step.builders) {
-        return { ok: true, steps, start, end: Date.now(), ctrl, guide: ctx.guide }
+        return {
+          ok: true, steps, start, end: Date.now(), ctrl,
+          guide: ctx.guide, apimodel: ctx.apimodel
+        }
       }
 
       const builders = [
@@ -249,7 +259,10 @@ function ApiDef(opts: ApiDefOptions) {
 
       // Step: generate (generate model files).
       if (!ctrl.step.generate) {
-        return { ok: true, steps, start, end: Date.now(), ctrl, guide: ctx.guide }
+        return {
+          ok: true, steps, start, end: Date.now(), ctrl,
+          guide: ctx.guide, apimodel: ctx.apimodel
+        }
       }
 
       const jostraca = Jostraca({

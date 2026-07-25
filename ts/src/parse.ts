@@ -3,8 +3,6 @@
 import { Jsonic } from 'jsonic'
 import { Yaml } from '@jsonic/yaml'
 
-import { decircular } from '@voxgig/util'
-
 import { relativizePath } from './utility'
 
 
@@ -100,9 +98,77 @@ async function parseOpenAPI(source: any, _meta?: any) {
   // Single-pass: add x-ref properties and resolve $ref pointers together.
   addXRefsAndResolve(parsed, parsed)
 
-  const def = decircular(parsed)
+  const def = decycle(parsed)
 
   return def
+}
+
+
+// Break reference cycles so the parsed spec stays JSON-serializable, WITHOUT
+// destroying the structure sharing that $ref inlining deliberately creates.
+//
+// @voxgig/util's decircular() rebuilds the tree — it allocates a fresh object
+// per *visit*, so a component reachable by k distinct paths is copied k times
+// and the result is the tree-expansion of the DAG, size O(fanout^depth). That
+// is catastrophic on exactly the shape real specs have (components reused
+// across nesting levels): a 2.3 KB spec with 12 levels and 3 refs per level
+// expanded to a 172 MB model, and 13 levels exhausted a 2 GB heap.
+//
+// Cycles are real here — inlining a self-referential schema makes the copy's
+// `properties` the same object as the original's, so the copy contains
+// itself — so they still have to be cut. This does it in place: only the edge
+// that closes a cycle is replaced (with decircular's marker string, so the
+// output shape is unchanged), every other node is visited exactly once and
+// left shared. Linear in the number of distinct nodes.
+function decycle(root: any) {
+  // Entry path of each node on the current ancestor chain; presence in this
+  // map is what identifies a back-edge. Nodes are removed on the way out, so
+  // a node reachable twice as a *sibling* is not treated as a cycle.
+  const onPath = new Map<any, string[]>()
+  // Fully-processed nodes. Revisiting one is legitimate sharing, not a cycle,
+  // and must not be walked (or copied) again.
+  const done = new WeakSet<any>()
+  const path: string[] = []
+
+  const walk = (node: any) => {
+    if (null == node || 'object' !== typeof node) return
+    if (done.has(node)) return
+
+    // The YAML parser hands back null-prototype objects. decircular() used to
+    // launder them into plain objects as a side effect of rebuilding the tree;
+    // parse()'s result is public, so keep that contract (callers reasonably
+    // expect `hasOwnProperty` etc. on a parsed spec) rather than leaking the
+    // parser's internal shape now that nothing is rebuilt.
+    if (!Array.isArray(node) && null === Object.getPrototypeOf(node)) {
+      Object.setPrototypeOf(node, Object.prototype)
+    }
+
+    onPath.set(node, path.slice())
+
+    const keys = Array.isArray(node) ?
+      node.map((_: any, i: number) => i) : Object.keys(node)
+
+    for (const key of keys as any[]) {
+      const val = node[key]
+      if (null == val || 'object' !== typeof val) continue
+
+      const cyclePath = onPath.get(val)
+      if (undefined !== cyclePath) {
+        node[key] = `[Circular *${cyclePath.join('.')}]`
+        continue
+      }
+
+      path.push(String(key))
+      walk(val)
+      path.pop()
+    }
+
+    onPath.delete(node)
+    done.add(node)
+  }
+
+  walk(root)
+  return root
 }
 
 
@@ -165,22 +231,52 @@ function addXRefsAndResolve(obj: any, root: any, visited?: WeakSet<any>) {
 }
 
 
-// Follow a JSON pointer like "#/components/schemas/Planet"
+// Follow a JSON pointer like "#/components/schemas/Planet".
+//
+// Alias components — `Foo: { $ref: '#/components/schemas/Bar' }` — are a
+// normal OpenAPI idiom, so a pointer can land on another bare $ref node.
+// Follow the chain to its end rather than returning the intermediate: the
+// caller inlines `{ ...resolved }`, and a `$ref` *string* key in that spread
+// is never followed by the object-valued recursion in addXRefsAndResolve, so
+// stopping early yields a schema with no properties and every field is
+// silently dropped. Whether that happened used to depend on whether `paths`
+// or `components` came first in the document, because resolution reads a root
+// the same walk is still mutating.
+//
+// `seen` holds pointer strings (not object identities) so a self- or
+// mutually-referential alias cycle terminates instead of looping forever.
 function resolvePointer(root: any, ref: string): any {
-  if (!ref.startsWith('#/')) return undefined
+  const seen = new Set<string>()
+  let current: any = undefined
+  let pointer = ref
 
-  const parts = ref
-    .substring(2)
-    .split('/')
-    .map(p => p.replace(/~1/g, '/').replace(/~0/g, '~'))
+  for (; ;) {
+    if (!pointer.startsWith('#/')) return undefined
+    if (seen.has(pointer)) return undefined
+    seen.add(pointer)
 
-  let current = root
-  for (const part of parts) {
-    if (current == null || typeof current !== 'object') return undefined
-    current = current[part]
+    const parts = pointer
+      .substring(2)
+      .split('/')
+      .map(p => p.replace(/~1/g, '/').replace(/~0/g, '~'))
+
+    current = root
+    for (const part of parts) {
+      if (current == null || typeof current !== 'object') return undefined
+      current = current[part]
+    }
+
+    // Landed on another alias: follow it. Anything else is the target.
+    if (current != null &&
+      'object' === typeof current &&
+      !Array.isArray(current) &&
+      'string' === typeof current.$ref) {
+      pointer = current.$ref
+      continue
+    }
+
+    return current
   }
-
-  return current
 }
 
 
