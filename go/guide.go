@@ -69,7 +69,24 @@ func BuildGuide(ctx *ApiDefContext) (map[string]any, error) {
 	os.MkdirAll(guideDir, 0755)
 	prefix := ctx.Opts.OutPrefix
 	baseGuideFile := filepath.Join(guideDir, prefix+"base-guide.aontu")
-	os.WriteFile(baseGuideFile, []byte(guideSrc), 0644)
+	if err := os.WriteFile(baseGuideFile, []byte(guideSrc), 0644); err != nil {
+		return nil, fmt.Errorf("failed to write base guide %s: %w",
+			RelativizePath(baseGuideFile), err)
+	}
+
+	// The TS pipeline unifies <prefix>guide.aontu — the user-editable overlay
+	// that @-includes this base guide — over the heuristic result via aontu,
+	// and that overlay is where every documented customization lives
+	// (entity rename/hide/move/activate, per-path deactivation, method
+	// override, param rename, response transform).
+	//
+	// There is no Go aontu, so this port cannot apply it. Ignoring it
+	// silently is the dangerous option: the build succeeds and emits a model
+	// that disagrees with the one TS produces, with no signal. Refuse
+	// instead, and say exactly what was found.
+	if err := checkGuideOverlay(ctx, guideDir, prefix); err != nil {
+		return nil, err
+	}
 
 	// Parse guide back into model
 	var guideModel map[string]any
@@ -78,6 +95,52 @@ func BuildGuide(ctx *ApiDefContext) (map[string]any, error) {
 	}
 
 	return map[string]any{"guide": guideModel}, nil
+}
+
+// checkGuideOverlay fails when <prefix>guide.aontu carries customizations
+// this port cannot honour. A bare overlay (only comments and the two
+// @-includes) is the common case and is fine — it contributes nothing beyond
+// the base guide, so Go's output matches TS's.
+func checkGuideOverlay(ctx *ApiDefContext, guideDir string, prefix string) error {
+	overlayFile := filepath.Join(guideDir, prefix+"guide.aontu")
+	src, err := os.ReadFile(overlayFile)
+	if err != nil {
+		// Absent overlay is not an error here: the TS side surfaces that
+		// through aontu when it tries to resolve the entry file.
+		return nil
+	}
+
+	custom := guideOverlayCustomizations(string(src))
+	if len(custom) == 0 {
+		return nil
+	}
+
+	return fmt.Errorf(
+		"guide customizations are not supported by the Go port: %s declares %d "+
+			"customization line(s) (first: %q). The TypeScript implementation "+
+			"unifies this overlay via aontu; Go has no aontu, so honouring it is "+
+			"not possible and ignoring it would silently produce a different "+
+			"model. Remove the customizations, or generate this model with the "+
+			"TypeScript implementation",
+		RelativizePath(overlayFile), len(custom), custom[0])
+}
+
+// guideOverlayCustomizations returns the overlay's significant lines —
+// everything that is not blank, a comment, or an @-include.
+func guideOverlayCustomizations(src string) []string {
+	var out []string
+	for _, line := range strings.Split(src, "\n") {
+		t := strings.TrimSpace(line)
+		if t == "" || strings.HasPrefix(t, "#") || strings.HasPrefix(t, "@") {
+			continue
+		}
+		// `guide:{}` is the conventional empty-overlay placeholder.
+		if strings.ReplaceAll(t, " ", "") == "guide:{}" {
+			continue
+		}
+		out = append(out, t)
+	}
+	return out
 }
 
 func guideToJSON(guide map[string]any) string {
@@ -815,7 +878,7 @@ func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any)
 			continue
 		}
 
-		origParams = append(origParams, strings.Trim(partStr, "{}" + "*"))
+		origParams = append(origParams, strings.Trim(partStr, "{}"+"*"))
 
 		oldParam := partStr[1 : len(partStr)-1]
 

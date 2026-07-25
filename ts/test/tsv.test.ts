@@ -27,6 +27,8 @@ import {
   inferTypeFromValue,
 } from '../dist/transform/field'
 
+import { snakify, camelify, kebabify } from 'jostraca'
+
 import {
   parse,
 } from '../dist/parse'
@@ -66,6 +68,30 @@ function loadTsv(name: string): TsvRow[] {
   }
   return rows
 }
+
+
+// snakify/camelify/kebabify come from jostraca on the TS side and are
+// hand-ported in go/utility.go:partify. They are the root of every generated
+// identifier — entity names, field names, SDK class names — so a silent
+// divergence there renames the whole SDK. Two rules had drifted: jostraca
+// guards acronym collapsing with `(?![a-z])` (APIaddress -> ap_iaddress, not
+// apiaddress) and only merges a single UPPERCASE segment into the following
+// part (1_2_3 stays 1_2_3, not 12_3). This fixture pins both, and doubles as
+// the contract to re-run against on any jostraca upgrade.
+describe('tsv-name-parts', () => {
+  const rows = loadTsv('name-parts')
+  for (const row of rows) {
+    test(`snakify("${row.input}") => "${row.snakify}"`, () => {
+      assert.deepStrictEqual(snakify(row.input), row.snakify)
+    })
+    test(`camelify("${row.input}") => "${row.camelify}"`, () => {
+      assert.deepStrictEqual(camelify(row.input), row.camelify)
+    })
+    test(`kebabify("${row.input}") => "${row.kebabify}"`, () => {
+      assert.deepStrictEqual(kebabify(row.input), row.kebabify)
+    })
+  }
+})
 
 
 describe('tsv-depluralize', () => {

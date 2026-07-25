@@ -48,6 +48,31 @@ func loadTsv(t *testing.T, name string) []tsvRow {
 	return rows
 }
 
+// Snakify/Camelify/Kebabify are a hand port of jostraca's partify (the TS
+// side imports it). They drive every generated identifier, so this fixture is
+// the contract that keeps the port honest — see the note in tsv.test.ts.
+func TestTsvNameParts(t *testing.T) {
+	rows := loadTsv(t, "name-parts")
+	for _, row := range rows {
+		input := row["input"]
+		t.Run("snakify("+input+")", func(t *testing.T) {
+			if got := Snakify(input); got != row["snakify"] {
+				t.Errorf("Snakify(%q) = %q, want %q", input, got, row["snakify"])
+			}
+		})
+		t.Run("camelify("+input+")", func(t *testing.T) {
+			if got := Camelify(input); got != row["camelify"] {
+				t.Errorf("Camelify(%q) = %q, want %q", input, got, row["camelify"])
+			}
+		})
+		t.Run("kebabify("+input+")", func(t *testing.T) {
+			if got := Kebabify(input); got != row["kebabify"] {
+				t.Errorf("Kebabify(%q) = %q, want %q", input, got, row["kebabify"])
+			}
+		})
+	}
+}
+
 func TestTsvDepluralize(t *testing.T) {
 	rows := loadTsv(t, "depluralize")
 	for _, row := range rows {
@@ -144,7 +169,7 @@ func TestTsvInferFieldType(t *testing.T) {
 	for _, row := range rows {
 		name, specType, expected := row["name"], row["specType"], row["expected"]
 		t.Run("inferFieldType("+name+","+specType+")", func(t *testing.T) {
-			got := InferFieldType(name, specType)
+			got := InferFieldTypeString(name, specType)
 			if got != expected {
 				t.Errorf("InferFieldType(%q, %q) = %q, want %q", name, specType, got, expected)
 			}
@@ -157,7 +182,7 @@ func TestTsvValidator(t *testing.T) {
 	for _, row := range rows {
 		input, expected := row["input"], row["expected"]
 		t.Run("validator("+input+")", func(t *testing.T) {
-			got := Validator(input)
+			got := ValidatorString(input)
 			if got != expected {
 				t.Errorf("Validator(%q) = %q, want %q", input, got, expected)
 			}

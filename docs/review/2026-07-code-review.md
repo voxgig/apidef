@@ -15,6 +15,32 @@ do not reach.
 
 ---
 
+## 0. Status — what has since been fixed
+
+Most of this review has been actioned; see `docs/review/2026-07-parity-fixes.md`
+for the change log and measurements. In brief:
+
+| finding | status |
+|---|---|
+| §4.1 prototype-key crash | **fixed** (TS) |
+| §4.2 chained `$ref` | **fixed** (TS) |
+| §4.3 `decircular` DAG expansion | **fixed** (TS) |
+| §4.4 missing `apimodel` on early stop | **fixed** (TS) |
+| §5.1 Go union types collapsing to `$ANY` | **fixed** (Go) |
+| §5.2 rename replacing every occurrence | **fixed** (Go) |
+| §5.3 discarded builder write errors | **fixed** (Go) |
+| §5.5 missing `mergeCollectionPaths` | **fixed** (Go) |
+| §5.9 per-call regexp compilation | **fixed** (Go) |
+| §6.1 naming-primitive divergence | **fixed** (Go) + fixture added |
+| §3.7 no fixture for snakify/camelify/kebabify | **fixed** (`name-parts.tsv`) |
+| §3.1 Go ignores the guide overlay | **mitigated** — Go now refuses rather than silently diverging; a real fix needs a Go aontu |
+| §6.2 remaining entity-classification gap | **open** — needs a maintainer decision, see the fixes doc |
+| §3.2–3.6 harness/CI gaps | **open** |
+
+Two claims in this review were wrong and are corrected in place (§3.7 on
+`"Any"`, §5.1 on the args union shape), alongside the retraction already noted
+in §2.
+
 ## 1. Verdict
 
 The pipeline design is sound and the code is unusually well commented — most
@@ -207,11 +233,13 @@ transform passes and the builders. Specifically not covered:
 `canonize.tsv` illustrates the pattern: it has `API_Keys → api_key` (underscore
 already present, where both agree) but not `APIKeys` — the shape that diverges.
 
-`validator.tsv` additionally **codifies a defect**: rows `unknown → Any` and
-`foo → Any`. Every real validator token is backticked (`` `$STRING` ``,
-`` `$ANY` ``); a bare `Any` is not a token, and emitting it into an `.aontu`
-model yields an unresolvable identifier. Both implementations do it and the
-fixture now locks it in.
+`validator.tsv` additionally pins an oddity worth a look: rows `unknown → Any`
+and `foo → Any`, where every real validator token is backticked
+(`` `$STRING` ``, `` `$ANY` ``). **Corrected from an earlier draft:** this is
+not an unresolvable identifier — the goldens emit `type: "Any"` as a quoted
+string, which is valid aontu. Both implementations agree on it, so it is not a
+parity issue; the open question is only whether sdkgen's sentinel → language
+type table recognises the literal `"Any"`. Left unchanged.
 
 ### 3.8 Loader asymmetry and no header validation **[code-read]**
 
@@ -418,10 +446,11 @@ differ, e.g.
 | `assessment.grade` | `` ['`$ONE`', ['`$NUMBER`','`$NULL`']] `` | `` `$ANY` `` |
 | `bundle.description` | `` ['`$ONE`', ['`$STRING`','`$NULL`']] `` | `` `$STRING` `` |
 
-Separately, where Go *does* build a union it uses a different shape:
-`go/transform_args.go:117` emits a flat `[]any{"`$ONE`", "`$NULL`", fieldType}`
-(3 elements) against TS's nested `['`$ONE`', [t1, t2]]` (2 elements). Any
-consumer pattern-matching on that structure sees two formats.
+**Corrected from an earlier draft:** the flat
+`['`$ONE`', '`$NULL`', type]` shape at `go/transform_args.go:117` is *not* a
+divergence — `ts/src/transform/args.ts:98` builds exactly the same flat shape
+for the `nullable` case. TS genuinely has two union shapes (validator's nested
+one and args.ts's flat one) and Go matched both. Left unchanged.
 
 **Fix:** return `any` and mirror the array branch, using `CanonOne` (already
 defined at `go/utility.go:469`). Normalise the `transform_args.go` shape.
