@@ -209,6 +209,59 @@ fields and 4 ops to `comment` (Go) vs `threaded_comment` (TS); gitlab has 2
 tables are byte-identical, so the difference is downstream; github has 2
 field-set differences.
 
+## 6. Dependency currency
+
+Everything is now at latest except one package, which is blocked:
+
+| | version | note |
+|---|---|---|
+| aontu | 0.48.2 | was 0.48.1 |
+| @voxgig/struct | 0.2.2 | was 0.2.1 |
+| @voxgig/util | 0.5.4 | was 0.5.1 |
+| shape | 10.1.3 | was 10.1.0 |
+| jostraca, jsonic, @jsonic/yaml, diff, ordu, pino, pino-pretty, typescript | latest | unchanged |
+| **@types/node** | **25.9.5** | **held back** — see below |
+| github.com/voxgig/util/go | v0.1.5 | was v0.1.2 |
+| jsonicjs/yaml/go, voxgig/struct/go, golang.org/x/text, jsonicjs/jsonic/go | latest | unchanged |
+
+**`@types/node` is pinned at 25.9.5 deliberately.** 26.x removes
+`TransferListItem` from the `worker_threads` namespace, and `thread-stream`
+(reached through `pino` → `pino-pretty`) still references it:
+
+```
+node_modules/thread-stream/index.d.ts(96,73): error TS2694:
+  Namespace '"worker_threads"' has no exported member 'TransferListItem'
+```
+
+`tsc --build` fails on that. Revisit when `thread-stream` updates its typings.
+
+**Two things worth knowing about the npm side.**
+
+First, a footgun: plain `npm update` **downgrades aontu from 0.48.x to 0.46.0**
+on any Node older than 24, because aontu 0.48 declares
+`engines: { node: '>=24' }` and the peer range was the unbounded `>=0`. That
+is a silent downgrade of the package that performs guide unification. The
+aontu peer range is therefore now `^0.48.2` rather than `>=0` — **the one
+outward-facing change here**, since it tightens the published peer contract.
+Revert that single line if the loose range is wanted; the lockfile pin alone
+would still give dev and CI the right version, but the footgun would return.
+
+The other six peer ranges are left at `>=0`/`>=2`/`>=10`. That inconsistency
+is deliberate — bounding them all is the review's §9 recommendation and a
+decision about the published contract, not a mechanical update.
+
+Second, and more consequential: because the peer ranges are loose but the
+lockfile pins them, **CI tests against versions no consumer necessarily
+gets**. `npm ci` resolves aontu 0.48.2, shape 10.1.3, `@voxgig/util` 0.5.4;
+an installing consumer resolves whatever `>=0` yields for them. For a package
+whose output depends on `jostraca`'s naming functions (§4), that gap is a
+parity risk as much as a supply-chain one.
+
+Verified after all updates: shared pure functions still at **0** divergences,
+and the end-to-end corpus table in §1 is **unchanged**. `ts/dist` was rebuilt
+clean from the pinned toolchain, which also settles the reproducibility gap
+noted in review §3.9.
+
 ### Harness and CI (review §3.2–3.6) — untouched
 
 Still open, and still the highest-leverage remaining work: there is no test
