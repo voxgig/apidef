@@ -1068,6 +1068,7 @@ type Metrics = {
 };
 type ApiDefContext = {
     fs: any;
+    fsInjected: boolean;
     log: any;
     spec: any;
     opts: any;

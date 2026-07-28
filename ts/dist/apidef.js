@@ -119,6 +119,7 @@ function ApiDef(opts) {
             // TODO: Validate spec
             ctx = {
                 fs,
+                fsInjected: null != opts.fs,
                 log,
                 spec,
                 opts,
@@ -165,7 +166,7 @@ function ApiDef(opts) {
             steps.push('parse');
             // Step: guide (derive).
             if (!ctrl.step.guide) {
-                return { ok: false, steps, start, end: Date.now(), ctrl };
+                return { ok: false, steps, start, end: Date.now(), ctrl, ctx };
             }
             const guideModel = await (0, guide_1.buildGuide)(ctx);
             if (null == guideModel) {
@@ -181,7 +182,7 @@ function ApiDef(opts) {
             if (!ctrl.step.transformers) {
                 return {
                     ok: true, steps, start, end: Date.now(), ctrl,
-                    guide: ctx.guide, apimodel: ctx.apimodel
+                    guide: ctx.guide, apimodel: ctx.apimodel, ctx
                 };
             }
             await (0, top_1.topTransform)(ctx);
@@ -198,7 +199,7 @@ function ApiDef(opts) {
             if (!ctrl.step.builders) {
                 return {
                     ok: true, steps, start, end: Date.now(), ctrl,
-                    guide: ctx.guide, apimodel: ctx.apimodel
+                    guide: ctx.guide, apimodel: ctx.apimodel, ctx
                 };
             }
             const builders = [
@@ -211,7 +212,7 @@ function ApiDef(opts) {
             if (!ctrl.step.generate) {
                 return {
                     ok: true, steps, start, end: Date.now(), ctrl,
-                    guide: ctx.guide, apimodel: ctx.apimodel
+                    guide: ctx.guide, apimodel: ctx.apimodel, ctx
                 };
             }
             const jostraca = (0, jostraca_1.Jostraca)({

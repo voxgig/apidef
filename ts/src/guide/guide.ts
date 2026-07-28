@@ -88,7 +88,36 @@ async function buildGuide(ctx: ApiDefContext): Promise<any> {
       errs,
     }
 
-    opts.fs = ctx.fs
+    // Only forward a *genuinely injected* fs.
+    //
+    // aontu resolves `@`-includes through @tabnas/multisource, which does:
+    //   const P = null != ctx.meta?.fs ? Path.posix : Path
+    // i.e. it switches to POSIX path semantics whenever an fs is present, on
+    // the assumption that an injected fs is memfs keyed by POSIX paths.
+    //
+    // apidef defaults ctx.fs to the real node:fs (`opts.fs || Fs`), so
+    // forwarding it unconditionally made multisource parse *Windows* paths
+    // with Path.posix. 'D:\...\guide\x-guide.aontu' contains no '/', so the
+    // include base resolved to '' and sibling includes were looked up against
+    // the cwd instead of the guide folder — every build failed on Windows
+    // with `source not found: <prefix>base-guide.aontu`. Linux and macOS were
+    // unaffected because there Path and Path.posix are the same module.
+    //
+    // Callers that supply a real memfs (e.g. apidef-validate) still get it,
+    // and still get the POSIX semantics they need.
+    //
+    // Uses the explicit ctx.fsInjected flag rather than `Fs !== ctx.fs`:
+    // esModuleInterop compiles `import * as Fs` to __importStar(), which
+    // builds a fresh wrapper per module, so identity comparison across
+    // modules is always false.
+    if (ctx.fsInjected) {
+      opts.fs = ctx.fs
+    }
+
+    // Record what was actually handed to aontu, not what we intended to hand
+    // it, so the regression test fails if this block is ever changed back to
+    // an unconditional assignment.
+    ctx.work.guideAontuFs = undefined !== opts.fs
 
     const guideModel = aontu.generate(src, opts)
 

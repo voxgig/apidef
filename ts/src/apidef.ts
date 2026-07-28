@@ -146,6 +146,7 @@ function ApiDef(opts: ApiDefOptions) {
       // TODO: Validate spec
       ctx = {
         fs,
+        fsInjected: null != opts.fs,
         log,
         spec,
         opts,
@@ -201,7 +202,7 @@ function ApiDef(opts: ApiDefOptions) {
 
       // Step: guide (derive).
       if (!ctrl.step.guide) {
-        return { ok: false, steps, start, end: Date.now(), ctrl }
+        return { ok: false, steps, start, end: Date.now(), ctrl, ctx }
       }
 
       const guideModel = await buildGuide(ctx)
@@ -223,7 +224,7 @@ function ApiDef(opts: ApiDefOptions) {
       if (!ctrl.step.transformers) {
         return {
           ok: true, steps, start, end: Date.now(), ctrl,
-          guide: ctx.guide, apimodel: ctx.apimodel
+          guide: ctx.guide, apimodel: ctx.apimodel, ctx
         }
       }
 
@@ -243,7 +244,7 @@ function ApiDef(opts: ApiDefOptions) {
       if (!ctrl.step.builders) {
         return {
           ok: true, steps, start, end: Date.now(), ctrl,
-          guide: ctx.guide, apimodel: ctx.apimodel
+          guide: ctx.guide, apimodel: ctx.apimodel, ctx
         }
       }
 
@@ -261,7 +262,7 @@ function ApiDef(opts: ApiDefOptions) {
       if (!ctrl.step.generate) {
         return {
           ok: true, steps, start, end: Date.now(), ctrl,
-          guide: ctx.guide, apimodel: ctx.apimodel
+          guide: ctx.guide, apimodel: ctx.apimodel, ctx
         }
       }
 
