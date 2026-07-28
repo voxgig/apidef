@@ -11,6 +11,38 @@ import (
 	"strings"
 )
 
+// writeGen writes one generated model file, recording any failure as a
+// pipeline warning. Discarding these errors made a build that wrote nothing —
+// read-only output directory, full disk, bad path — still report OK with an
+// empty warning list, so the caller had no way to tell an empty model from a
+// failed write. The TS side gets this from jostraca, which reports the files
+// it wrote and drives `result.reload`.
+func writeGen(ctx *ApiDefContext, path string, src string) {
+	if err := os.WriteFile(path, []byte(src), 0644); err != nil {
+		warnGen(ctx, "write", path, err)
+	}
+}
+
+// mkdirGen is MkdirAll with the same error reporting.
+func mkdirGen(ctx *ApiDefContext, dir string) {
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		warnGen(ctx, "mkdir", dir, err)
+	}
+}
+
+func warnGen(ctx *ApiDefContext, what string, path string, err error) {
+	if ctx == nil || ctx.Warn == nil {
+		return
+	}
+	ctx.Warn.Warn(map[string]any{
+		"what": what,
+		"path": path,
+		"err":  err.Error(),
+		"note": fmt.Sprintf("builder: %s failed: %s: %s",
+			what, RelativizePath(path), err.Error()),
+	})
+}
+
 // MakeEntityBuilder creates a builder that generates entity definition files.
 func MakeEntityBuilder(ctx *ApiDefContext) (func() error, error) {
 	return func() error {
@@ -27,7 +59,7 @@ func entityBuilder(ctx *ApiDefContext) {
 	prefix := ctx.Opts.OutPrefix
 
 	entityDir := filepath.Join(folder, "entity")
-	os.MkdirAll(entityDir, 0755)
+	mkdirGen(ctx, entityDir)
 
 	barrel := []string{"# Entity Models\n"}
 
@@ -65,13 +97,12 @@ func entityBuilder(ctx *ApiDefContext) {
 			entityJSONIC +
 			"\n\n}\n"
 
-		os.WriteFile(filepath.Join(entityDir, entityFile), []byte(entitySrc), 0644)
+		writeGen(ctx, filepath.Join(entityDir, entityFile), entitySrc)
 		barrel = append(barrel, fmt.Sprintf(`@"%s"`, entityFile))
 	}
 
 	indexFile := prefix + "entity-index.aontu"
-	os.WriteFile(filepath.Join(entityDir, indexFile),
-		[]byte(strings.Join(barrel, "\n")), 0644)
+	writeGen(ctx, filepath.Join(entityDir, indexFile), strings.Join(barrel, "\n"))
 }
 
 // stripKeys recursively removes the named key from all maps.
@@ -148,7 +179,7 @@ func infoBuilder(ctx *ApiDefContext) {
 	prefix := ctx.Opts.OutPrefix
 
 	apiDir := filepath.Join(folder, "api")
-	os.MkdirAll(apiDir, 0755)
+	mkdirGen(ctx, apiDir)
 
 	infoFile := prefix + "api-info.aontu"
 	modelInfo := map[string]any{
@@ -173,7 +204,7 @@ func infoBuilder(ctx *ApiDefContext) {
 	modelDefSrc = strings.ReplaceAll(modelDefSrc, "\n  ", "\n")
 
 	src := "# API Information\n\n" + modelDefSrc
-	os.WriteFile(filepath.Join(apiDir, infoFile), []byte(src), 0644)
+	writeGen(ctx, filepath.Join(apiDir, infoFile), src)
 }
 
 // MakeFlowBuilder creates a builder that generates flow definition files.
@@ -186,7 +217,7 @@ func MakeFlowBuilder(ctx *ApiDefContext) (func() error, error) {
 		prefix := ctx.Opts.OutPrefix
 
 		flowDir := filepath.Join(folder, "flow")
-		os.MkdirAll(flowDir, 0755)
+		mkdirGen(ctx, flowDir)
 
 		barrel := []string{"# Flows\n"}
 
@@ -214,13 +245,12 @@ func MakeFlowBuilder(ctx *ApiDefContext) (func() error, error) {
 			flowSrc := fmt.Sprintf("# %s\n\nmain: %s: flow: %s:\n%s",
 				Nom(entNameMap, "Name"), KIT, flowName, flowModelSrc)
 
-			os.WriteFile(filepath.Join(flowDir, flowfile), []byte(flowSrc), 0644)
+			writeGen(ctx, filepath.Join(flowDir, flowfile), flowSrc)
 			barrel = append(barrel, fmt.Sprintf(`@"%s"`, flowfile))
 		}
 
 		barrelFile := prefix + "flow-index.aontu"
-		os.WriteFile(filepath.Join(flowDir, barrelFile),
-			[]byte(strings.Join(barrel, "\n")), 0644)
+		writeGen(ctx, filepath.Join(flowDir, barrelFile), strings.Join(barrel, "\n"))
 		return nil
 	}, nil
 }

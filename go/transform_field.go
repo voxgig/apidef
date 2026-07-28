@@ -86,7 +86,9 @@ func resolveOpFields(mtarget map[string]any, def map[string]any, opname string) 
 
 	for _, fielddef := range fielddefs {
 		name := Canonize(NormalizeFieldName(fielddef["key$"].(string)))
-		ftype, _ := fielddef["type"].(string)
+		// Pass the raw value: a 3.1 nullable field carries a type ARRAY, and
+		// asserting to string here would drop it to "" and lose the union.
+		ftype := fielddef["type"]
 		mfield := map[string]any{
 			"name":   name,
 			"type":   InferFieldType(name, Validator(ftype)),
@@ -365,7 +367,11 @@ func extractPropertiesOnly(fieldSet any, fielddefs *[]map[string]any) {
 		prop := props[name]
 		fd := map[string]any{"key$": name}
 		if pm, ok := prop.(map[string]any); ok {
-			if t, ok := pm["type"].(string); ok {
+			// Carry `type` through unasserted: OpenAPI 3.1 writes a nullable
+			// field as a type ARRAY (`type: [string, "null"]`), and a string
+			// assertion here silently dropped it so Validator only ever saw
+			// nil and produced `$ANY`.
+			if t, ok := pm["type"]; ok {
 				fd["type"] = t
 			}
 			if r, ok := pm["required"]; ok {
@@ -401,7 +407,8 @@ func extractFields(fieldSets any, fielddefs *[]map[string]any) {
 				prop := props[name]
 				fd := map[string]any{"key$": name}
 				if pm, ok := prop.(map[string]any); ok {
-					if t, ok := pm["type"].(string); ok {
+					// Unasserted: a 3.1 nullable field's type is an ARRAY.
+					if t, ok := pm["type"]; ok {
 						fd["type"] = t
 					}
 					// Preserve the property's own `required` so a $ref-

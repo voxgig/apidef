@@ -43,6 +43,7 @@ const node_test_1 = require("node:test");
 const node_assert_1 = __importDefault(require("node:assert"));
 const utility_1 = require("../dist/utility");
 const field_1 = require("../dist/transform/field");
+const jostraca_1 = require("jostraca");
 const parse_1 = require("../dist/parse");
 const clean_1 = require("../dist/transform/clean");
 const transform_1 = require("../dist/transform");
@@ -69,6 +70,45 @@ function loadTsv(name) {
     }
     return rows;
 }
+// snakify/camelify/kebabify come from jostraca on the TS side and are
+// hand-ported in go/utility.go:partify. They are the root of every generated
+// identifier — entity names, field names, SDK class names — so a silent
+// divergence there renames the whole SDK. Two rules had drifted: jostraca
+// guards acronym collapsing with `(?![a-z])` (APIaddress -> ap_iaddress, not
+// apiaddress) and only merges a single UPPERCASE segment into the following
+// part (1_2_3 stays 1_2_3, not 12_3). This fixture pins both, and doubles as
+// the contract to re-run against on any jostraca upgrade.
+(0, node_test_1.describe)('tsv-name-parts', () => {
+    const rows = loadTsv('name-parts');
+    for (const row of rows) {
+        (0, node_test_1.test)(`snakify("${row.input}") => "${row.snakify}"`, () => {
+            node_assert_1.default.deepStrictEqual((0, jostraca_1.snakify)(row.input), row.snakify);
+        });
+        (0, node_test_1.test)(`camelify("${row.input}") => "${row.camelify}"`, () => {
+            node_assert_1.default.deepStrictEqual((0, jostraca_1.camelify)(row.input), row.camelify);
+        });
+        (0, node_test_1.test)(`kebabify("${row.input}") => "${row.kebabify}"`, () => {
+            node_assert_1.default.deepStrictEqual((0, jostraca_1.kebabify)(row.input), row.kebabify);
+        });
+    }
+});
+// Union validators cannot be expressed in the string-only TSV format, so the
+// array branch — the whole point of OpenAPI 3.1 nullable types — needs its own
+// case on both sides. Mirrors go/tsv_test.go TestValidatorUnion.
+(0, node_test_1.describe)('tsv-validator-union', () => {
+    const CASES = [
+        [['string', 'null'], ['`$ONE`', ['`$STRING`', '`$NULL`']]],
+        [['integer', 'null', 'boolean'], ['`$ONE`', ['`$INTEGER`', '`$NULL`', '`$BOOLEAN`']]],
+        [[], ['`$ONE`', []]],
+        ['string', '`$STRING`'],
+        [undefined, '`$ANY`'],
+    ];
+    for (const [input, expected] of CASES) {
+        (0, node_test_1.test)(`validator(${JSON.stringify(input)})`, () => {
+            node_assert_1.default.deepStrictEqual((0, utility_1.validator)(input), expected);
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-depluralize', () => {
     const rows = loadTsv('depluralize');
     for (const row of rows) {

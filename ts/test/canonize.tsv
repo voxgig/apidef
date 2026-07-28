@@ -26,3 +26,9 @@ Children	child
 People	person
 event_logs	event_log
 API_Keys	api_key
+constructor	constructor
+__proto__	proto
+toString	to_string
+valueOf	value_of
+hasOwnProperty	has_own_property
+prototype	prototype

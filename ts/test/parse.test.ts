@@ -11,6 +11,125 @@ import {
 } from '../dist/parse'
 
 
+// The $ref logic differs from the previous implementation exactly on these
+// inputs, so they are the ones that need pinning: alias chains in BOTH
+// document orders (resolution reads a root the same walk is mutating, so
+// order used to decide whether it worked), $ref carrying sibling keywords,
+// cyclic aliases, and a shared recursive schema (the old cycle-breaker
+// rebuilt the tree and expanded the DAG exponentially).
+describe('parse-refs', () => {
+  const HEAD = `openapi: 3.0.0
+info: { title: t, version: "1.0.0" }
+servers: [ { url: "https://x.example" } ]
+`
+  const PATHS = `paths:
+  /thing:
+    get:
+      responses:
+        "200":
+          content: { application/json: { schema: { $ref: "#/components/schemas/Alias" } } }
+`
+  const schema = async (src: string) => {
+    const def: any = await parse('OpenAPI', src, { file: 'p.yaml' })
+    return def.paths['/thing'].get.responses['200']
+      .content['application/json'].schema
+  }
+
+  const CHAIN = `components:
+  schemas:
+    Alias: { $ref: "#/components/schemas/Mid" }
+    Mid: { $ref: "#/components/schemas/Real" }
+    Real: { type: object, properties: { id: { type: string } } }
+`
+
+  test('alias chain resolves regardless of document order', async () => {
+    for (const [label, src] of [
+      ['paths-first', HEAD + PATHS + CHAIN],
+      ['components-first', HEAD + CHAIN + PATHS],
+    ] as [string, string][]) {
+      const s = await schema(src)
+      assert.deepStrictEqual(s.type, 'object', label)
+      assert.deepStrictEqual(s.properties.id.type, 'string', label)
+    }
+  })
+
+  const SIB = `components:
+  schemas:
+    Alias: { $ref: "#/components/schemas/Real", description: "aliased" }
+    Real: { type: object, description: "target", properties: { id: { type: string } } }
+`
+
+  test('$ref siblings survive inlining and win over the target', async () => {
+    for (const [label, src] of [
+      ['paths-first', HEAD + PATHS + SIB],
+      ['components-first', HEAD + SIB + PATHS],
+    ] as [string, string][]) {
+      const s = await schema(src)
+      assert.deepStrictEqual(s.properties.id.type, 'string', label)
+      assert.deepStrictEqual(s.description, 'aliased', label)
+    }
+  })
+
+  test('cyclic alias chain terminates', async () => {
+    const src = HEAD + PATHS + `components:
+  schemas:
+    Alias: { $ref: "#/components/schemas/B" }
+    B: { $ref: "#/components/schemas/Alias" }
+`
+    const s = await schema(src)
+    assert.deepStrictEqual('object', typeof s)
+  })
+
+  test('self-referential schema is cut, not expanded', async () => {
+    const src = HEAD + PATHS + `components:
+  schemas:
+    Alias:
+      type: object
+      properties:
+        self: { $ref: "#/components/schemas/Alias" }
+        id: { type: string }
+`
+    const s = await schema(src)
+    assert.deepStrictEqual(s.properties.id.type, 'string')
+    // Serialisable: the cycle was broken, not left in place.
+    assert.deepStrictEqual('string', typeof JSON.stringify(s))
+  })
+
+  test('shared components stay shared (no exponential expansion)', async () => {
+    // 12 levels x 3 refs per level is ~531k nodes if the DAG is expanded into
+    // a tree, and a few dozen if sharing is preserved.
+    const depth = 12, fan = 3
+    const schemas = ['    L0: { type: object, properties: { v: { type: string } } }']
+    for (let d = 1; d <= depth; d++) {
+      const props = []
+      for (let f = 0; f < fan; f++) props.push(`p${f}: { $ref: "#/components/schemas/L${d - 1}" }`)
+      schemas.push(`    L${d}: { type: object, properties: { ${props.join(', ')} } }`)
+    }
+    const src = `${HEAD}components:
+  schemas:
+${schemas.join('\n')}
+paths:
+  /thing:
+    get:
+      responses:
+        "200":
+          content: { application/json: { schema: { $ref: "#/components/schemas/L${depth}" } } }
+`
+    const def: any = await parse('OpenAPI', src, { file: 'd.yaml' })
+    const seen = new Set<any>()
+    const stack: any[] = [def]
+    while (0 < stack.length) {
+      const n = stack.pop()
+      if (null == n || 'object' !== typeof n || seen.has(n)) continue
+      seen.add(n)
+      for (const k of Object.keys(n)) stack.push(n[k])
+    }
+    assert.ok(seen.size < 1000,
+      `parsed spec expanded to ${seen.size} distinct nodes — DAG sharing lost`)
+  })
+})
+
+
 describe('parse', () => {
 
   test('happy', async () => {

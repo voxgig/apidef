@@ -36,8 +36,8 @@ declare const ControlShape: {
             generate: boolean;
         };
     };
-    match(root?: any, ctx?: import("shape").Context): boolean;
-    error(root?: any, ctx?: import("shape").Context): {
+    match: (root?: any, ctx?: import("shape").Context) => boolean;
+    error: (root?: any, ctx?: import("shape").Context) => {
         shape: boolean;
         code: string;
         gname: string;
@@ -55,6 +55,7 @@ declare const ControlShape: {
                 node: import("shape").Node<any>;
                 value: any;
                 path: string;
+                pathArr: (string | number)[];
                 why: string;
                 check: string;
                 args: Record<string, any>;
@@ -73,8 +74,8 @@ declare const ControlShape: {
         message: string;
         stack?: string;
     }[];
-    spec(): any;
-    node(): import("shape").Node<{
+    spec: () => any;
+    node: () => import("shape").Node<{
         step: {
             parse: boolean;
             guide: boolean;
@@ -83,9 +84,9 @@ declare const ControlShape: {
             generate: boolean;
         };
     }>;
-    stringify(...rest: any[]): string;
-    jsonify(): any;
-    toString(this: any): string;
+    stringify: (...rest: any[]) => string;
+    jsonify: () => any;
+    toString: (this: any) => string;
     shape: {
         shape$: symbol;
         v$: string;
@@ -125,8 +126,8 @@ declare const OpenControlShape: {
                 generate: boolean;
             };
         };
-        match(root?: any, ctx?: import("shape").Context): boolean;
-        error(root?: any, ctx?: import("shape").Context): {
+        match: (root?: any, ctx?: import("shape").Context) => boolean;
+        error: (root?: any, ctx?: import("shape").Context) => {
             shape: boolean;
             code: string;
             gname: string;
@@ -144,6 +145,7 @@ declare const OpenControlShape: {
                     node: import("shape").Node<any>;
                     value: any;
                     path: string;
+                    pathArr: (string | number)[];
                     why: string;
                     check: string;
                     args: Record<string, any>;
@@ -162,8 +164,8 @@ declare const OpenControlShape: {
             message: string;
             stack?: string;
         }[];
-        spec(): any;
-        node(): import("shape").Node<{
+        spec: () => any;
+        node: () => import("shape").Node<{
             step: {
                 parse: boolean;
                 guide: boolean;
@@ -172,16 +174,16 @@ declare const OpenControlShape: {
                 generate: boolean;
             };
         }>;
-        stringify(...rest: any[]): string;
-        jsonify(): any;
-        toString(this: any): string;
+        stringify: (...rest: any[]) => string;
+        jsonify: () => any;
+        toString: (this: any) => string;
         shape: {
             shape$: symbol;
             v$: string;
         };
     };
-    match(root?: any, ctx?: import("shape").Context): boolean;
-    error(root?: any, ctx?: import("shape").Context): {
+    match: (root?: any, ctx?: import("shape").Context) => boolean;
+    error: (root?: any, ctx?: import("shape").Context) => {
         shape: boolean;
         code: string;
         gname: string;
@@ -199,6 +201,7 @@ declare const OpenControlShape: {
                 node: import("shape").Node<any>;
                 value: any;
                 path: string;
+                pathArr: (string | number)[];
                 why: string;
                 check: string;
                 args: Record<string, any>;
@@ -217,8 +220,8 @@ declare const OpenControlShape: {
         message: string;
         stack?: string;
     }[];
-    spec(): any;
-    node(): import("shape").Node<{
+    spec: () => any;
+    node: () => import("shape").Node<{
         <V>(root?: V | undefined, ctx?: import("shape").Context): V & {
             step: {
                 parse: boolean;
@@ -237,8 +240,8 @@ declare const OpenControlShape: {
                 generate: boolean;
             };
         };
-        match(root?: any, ctx?: import("shape").Context): boolean;
-        error(root?: any, ctx?: import("shape").Context): {
+        match: (root?: any, ctx?: import("shape").Context) => boolean;
+        error: (root?: any, ctx?: import("shape").Context) => {
             shape: boolean;
             code: string;
             gname: string;
@@ -256,6 +259,7 @@ declare const OpenControlShape: {
                     node: import("shape").Node<any>;
                     value: any;
                     path: string;
+                    pathArr: (string | number)[];
                     why: string;
                     check: string;
                     args: Record<string, any>;
@@ -274,8 +278,8 @@ declare const OpenControlShape: {
             message: string;
             stack?: string;
         }[];
-        spec(): any;
-        node(): import("shape").Node<{
+        spec: () => any;
+        node: () => import("shape").Node<{
             step: {
                 parse: boolean;
                 guide: boolean;
@@ -284,17 +288,17 @@ declare const OpenControlShape: {
                 generate: boolean;
             };
         }>;
-        stringify(...rest: any[]): string;
-        jsonify(): any;
-        toString(this: any): string;
+        stringify: (...rest: any[]) => string;
+        jsonify: () => any;
+        toString: (this: any) => string;
         shape: {
             shape$: symbol;
             v$: string;
         };
     }>;
-    stringify(...rest: any[]): string;
-    jsonify(): any;
-    toString(this: any): string;
+    stringify: (...rest: any[]) => string;
+    jsonify: () => any;
+    toString: (this: any) => string;
     shape: {
         shape$: symbol;
         v$: string;
@@ -332,8 +336,8 @@ declare const ModelShape: {
             };
         };
     };
-    match(root?: any, ctx?: import("shape").Context): boolean;
-    error(root?: any, ctx?: import("shape").Context): {
+    match: (root?: any, ctx?: import("shape").Context) => boolean;
+    error: (root?: any, ctx?: import("shape").Context) => {
         shape: boolean;
         code: string;
         gname: string;
@@ -351,6 +355,7 @@ declare const ModelShape: {
                 node: import("shape").Node<any>;
                 value: any;
                 path: string;
+                pathArr: (string | number)[];
                 why: string;
                 check: string;
                 args: Record<string, any>;
@@ -369,8 +374,8 @@ declare const ModelShape: {
         message: string;
         stack?: string;
     }[];
-    spec(): any;
-    node(): import("shape").Node<{
+    spec: () => any;
+    node: () => import("shape").Node<{
         name: StringConstructor;
         def: StringConstructor;
         main: {
@@ -385,9 +390,9 @@ declare const ModelShape: {
             };
         };
     }>;
-    stringify(...rest: any[]): string;
-    jsonify(): any;
-    toString(this: any): string;
+    stringify: (...rest: any[]) => string;
+    jsonify: () => any;
+    toString: (this: any) => string;
     shape: {
         shape$: symbol;
         v$: string;
@@ -439,8 +444,8 @@ declare const OpenModelShape: {
                 };
             };
         };
-        match(root?: any, ctx?: import("shape").Context): boolean;
-        error(root?: any, ctx?: import("shape").Context): {
+        match: (root?: any, ctx?: import("shape").Context) => boolean;
+        error: (root?: any, ctx?: import("shape").Context) => {
             shape: boolean;
             code: string;
             gname: string;
@@ -458,6 +463,7 @@ declare const OpenModelShape: {
                     node: import("shape").Node<any>;
                     value: any;
                     path: string;
+                    pathArr: (string | number)[];
                     why: string;
                     check: string;
                     args: Record<string, any>;
@@ -476,8 +482,8 @@ declare const OpenModelShape: {
             message: string;
             stack?: string;
         }[];
-        spec(): any;
-        node(): import("shape").Node<{
+        spec: () => any;
+        node: () => import("shape").Node<{
             name: StringConstructor;
             def: StringConstructor;
             main: {
@@ -492,16 +498,16 @@ declare const OpenModelShape: {
                 };
             };
         }>;
-        stringify(...rest: any[]): string;
-        jsonify(): any;
-        toString(this: any): string;
+        stringify: (...rest: any[]) => string;
+        jsonify: () => any;
+        toString: (this: any) => string;
         shape: {
             shape$: symbol;
             v$: string;
         };
     };
-    match(root?: any, ctx?: import("shape").Context): boolean;
-    error(root?: any, ctx?: import("shape").Context): {
+    match: (root?: any, ctx?: import("shape").Context) => boolean;
+    error: (root?: any, ctx?: import("shape").Context) => {
         shape: boolean;
         code: string;
         gname: string;
@@ -519,6 +525,7 @@ declare const OpenModelShape: {
                 node: import("shape").Node<any>;
                 value: any;
                 path: string;
+                pathArr: (string | number)[];
                 why: string;
                 check: string;
                 args: Record<string, any>;
@@ -537,8 +544,8 @@ declare const OpenModelShape: {
         message: string;
         stack?: string;
     }[];
-    spec(): any;
-    node(): import("shape").Node<{
+    spec: () => any;
+    node: () => import("shape").Node<{
         <V>(root?: V | undefined, ctx?: import("shape").Context): V & {
             name: string;
             def: string;
@@ -569,8 +576,8 @@ declare const OpenModelShape: {
                 };
             };
         };
-        match(root?: any, ctx?: import("shape").Context): boolean;
-        error(root?: any, ctx?: import("shape").Context): {
+        match: (root?: any, ctx?: import("shape").Context) => boolean;
+        error: (root?: any, ctx?: import("shape").Context) => {
             shape: boolean;
             code: string;
             gname: string;
@@ -588,6 +595,7 @@ declare const OpenModelShape: {
                     node: import("shape").Node<any>;
                     value: any;
                     path: string;
+                    pathArr: (string | number)[];
                     why: string;
                     check: string;
                     args: Record<string, any>;
@@ -606,8 +614,8 @@ declare const OpenModelShape: {
             message: string;
             stack?: string;
         }[];
-        spec(): any;
-        node(): import("shape").Node<{
+        spec: () => any;
+        node: () => import("shape").Node<{
             name: StringConstructor;
             def: StringConstructor;
             main: {
@@ -622,17 +630,17 @@ declare const OpenModelShape: {
                 };
             };
         }>;
-        stringify(...rest: any[]): string;
-        jsonify(): any;
-        toString(this: any): string;
+        stringify: (...rest: any[]) => string;
+        jsonify: () => any;
+        toString: (this: any) => string;
         shape: {
             shape$: symbol;
             v$: string;
         };
     }>;
-    stringify(...rest: any[]): string;
-    jsonify(): any;
-    toString(this: any): string;
+    stringify: (...rest: any[]) => string;
+    jsonify: () => any;
+    toString: (this: any) => string;
     shape: {
         shape$: symbol;
         v$: string;
@@ -678,8 +686,8 @@ declare const BuildShape: {
             };
         };
     };
-    match(root?: any, ctx?: import("shape").Context): boolean;
-    error(root?: any, ctx?: import("shape").Context): {
+    match: (root?: any, ctx?: import("shape").Context) => boolean;
+    error: (root?: any, ctx?: import("shape").Context) => {
         shape: boolean;
         code: string;
         gname: string;
@@ -697,6 +705,7 @@ declare const BuildShape: {
                 node: import("shape").Node<any>;
                 value: any;
                 path: string;
+                pathArr: (string | number)[];
                 why: string;
                 check: string;
                 args: Record<string, any>;
@@ -715,8 +724,8 @@ declare const BuildShape: {
         message: string;
         stack?: string;
     }[];
-    spec(): any;
-    node(): import("shape").Node<{
+    spec: () => any;
+    node: () => import("shape").Node<{
         spec: {
             base: string;
             path: string;
@@ -735,9 +744,9 @@ declare const BuildShape: {
             };
         };
     }>;
-    stringify(...rest: any[]): string;
-    jsonify(): any;
-    toString(this: any): string;
+    stringify: (...rest: any[]) => string;
+    jsonify: () => any;
+    toString: (this: any) => string;
     shape: {
         shape$: symbol;
         v$: string;
@@ -797,8 +806,8 @@ declare const OpenBuildShape: {
                 };
             };
         };
-        match(root?: any, ctx?: import("shape").Context): boolean;
-        error(root?: any, ctx?: import("shape").Context): {
+        match: (root?: any, ctx?: import("shape").Context) => boolean;
+        error: (root?: any, ctx?: import("shape").Context) => {
             shape: boolean;
             code: string;
             gname: string;
@@ -816,6 +825,7 @@ declare const OpenBuildShape: {
                     node: import("shape").Node<any>;
                     value: any;
                     path: string;
+                    pathArr: (string | number)[];
                     why: string;
                     check: string;
                     args: Record<string, any>;
@@ -834,8 +844,8 @@ declare const OpenBuildShape: {
             message: string;
             stack?: string;
         }[];
-        spec(): any;
-        node(): import("shape").Node<{
+        spec: () => any;
+        node: () => import("shape").Node<{
             spec: {
                 base: string;
                 path: string;
@@ -854,16 +864,16 @@ declare const OpenBuildShape: {
                 };
             };
         }>;
-        stringify(...rest: any[]): string;
-        jsonify(): any;
-        toString(this: any): string;
+        stringify: (...rest: any[]) => string;
+        jsonify: () => any;
+        toString: (this: any) => string;
         shape: {
             shape$: symbol;
             v$: string;
         };
     };
-    match(root?: any, ctx?: import("shape").Context): boolean;
-    error(root?: any, ctx?: import("shape").Context): {
+    match: (root?: any, ctx?: import("shape").Context) => boolean;
+    error: (root?: any, ctx?: import("shape").Context) => {
         shape: boolean;
         code: string;
         gname: string;
@@ -881,6 +891,7 @@ declare const OpenBuildShape: {
                 node: import("shape").Node<any>;
                 value: any;
                 path: string;
+                pathArr: (string | number)[];
                 why: string;
                 check: string;
                 args: Record<string, any>;
@@ -899,8 +910,8 @@ declare const OpenBuildShape: {
         message: string;
         stack?: string;
     }[];
-    spec(): any;
-    node(): import("shape").Node<{
+    spec: () => any;
+    node: () => import("shape").Node<{
         <V>(root?: V | undefined, ctx?: import("shape").Context): V & {
             spec: {
                 base: string;
@@ -939,8 +950,8 @@ declare const OpenBuildShape: {
                 };
             };
         };
-        match(root?: any, ctx?: import("shape").Context): boolean;
-        error(root?: any, ctx?: import("shape").Context): {
+        match: (root?: any, ctx?: import("shape").Context) => boolean;
+        error: (root?: any, ctx?: import("shape").Context) => {
             shape: boolean;
             code: string;
             gname: string;
@@ -958,6 +969,7 @@ declare const OpenBuildShape: {
                     node: import("shape").Node<any>;
                     value: any;
                     path: string;
+                    pathArr: (string | number)[];
                     why: string;
                     check: string;
                     args: Record<string, any>;
@@ -976,8 +988,8 @@ declare const OpenBuildShape: {
             message: string;
             stack?: string;
         }[];
-        spec(): any;
-        node(): import("shape").Node<{
+        spec: () => any;
+        node: () => import("shape").Node<{
             spec: {
                 base: string;
                 path: string;
@@ -996,17 +1008,17 @@ declare const OpenBuildShape: {
                 };
             };
         }>;
-        stringify(...rest: any[]): string;
-        jsonify(): any;
-        toString(this: any): string;
+        stringify: (...rest: any[]) => string;
+        jsonify: () => any;
+        toString: (this: any) => string;
         shape: {
             shape$: symbol;
             v$: string;
         };
     }>;
-    stringify(...rest: any[]): string;
-    jsonify(): any;
-    toString(this: any): string;
+    stringify: (...rest: any[]) => string;
+    jsonify: () => any;
+    toString: (this: any) => string;
     shape: {
         shape$: symbol;
         v$: string;
@@ -1056,6 +1068,7 @@ type Metrics = {
 };
 type ApiDefContext = {
     fs: any;
+    fsInjected: boolean;
     log: any;
     spec: any;
     opts: any;

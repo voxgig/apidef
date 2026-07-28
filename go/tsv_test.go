@@ -48,6 +48,31 @@ func loadTsv(t *testing.T, name string) []tsvRow {
 	return rows
 }
 
+// Snakify/Camelify/Kebabify are a hand port of jostraca's partify (the TS
+// side imports it). They drive every generated identifier, so this fixture is
+// the contract that keeps the port honest — see the note in tsv.test.ts.
+func TestTsvNameParts(t *testing.T) {
+	rows := loadTsv(t, "name-parts")
+	for _, row := range rows {
+		input := row["input"]
+		t.Run("snakify("+input+")", func(t *testing.T) {
+			if got := Snakify(input); got != row["snakify"] {
+				t.Errorf("Snakify(%q) = %q, want %q", input, got, row["snakify"])
+			}
+		})
+		t.Run("camelify("+input+")", func(t *testing.T) {
+			if got := Camelify(input); got != row["camelify"] {
+				t.Errorf("Camelify(%q) = %q, want %q", input, got, row["camelify"])
+			}
+		})
+		t.Run("kebabify("+input+")", func(t *testing.T) {
+			if got := Kebabify(input); got != row["kebabify"] {
+				t.Errorf("Kebabify(%q) = %q, want %q", input, got, row["kebabify"])
+			}
+		})
+	}
+}
+
 func TestTsvDepluralize(t *testing.T) {
 	rows := loadTsv(t, "depluralize")
 	for _, row := range rows {
@@ -144,7 +169,7 @@ func TestTsvInferFieldType(t *testing.T) {
 	for _, row := range rows {
 		name, specType, expected := row["name"], row["specType"], row["expected"]
 		t.Run("inferFieldType("+name+","+specType+")", func(t *testing.T) {
-			got := InferFieldType(name, specType)
+			got := InferFieldTypeString(name, specType)
 			if got != expected {
 				t.Errorf("InferFieldType(%q, %q) = %q, want %q", name, specType, got, expected)
 			}
@@ -157,7 +182,7 @@ func TestTsvValidator(t *testing.T) {
 	for _, row := range rows {
 		input, expected := row["input"], row["expected"]
 		t.Run("validator("+input+")", func(t *testing.T) {
-			got := Validator(input)
+			got := ValidatorString(input)
 			if got != expected {
 				t.Errorf("Validator(%q) = %q, want %q", input, got, expected)
 			}
@@ -363,5 +388,179 @@ func TestCleanComponentNameGuarded(t *testing.T) {
 				t.Errorf("CleanComponentName(%q, known) = %q, want %q", input, got, expected)
 			}
 		})
+	}
+}
+
+// Union validators cannot be expressed in the string-only TSV format, and the
+// []any branch is the whole fix for OpenAPI 3.1 nullable types — so it needs
+// committed coverage here or it can regress with both suites green.
+// Mirrors ts/test/tsv.test.ts tsv-validator-union.
+func TestValidatorUnion(t *testing.T) {
+	cases := []struct {
+		in   any
+		want string
+	}{
+		{[]any{"string", "null"}, `["` + "`$ONE`" + `",["` + "`$STRING`" + `","` + "`$NULL`" + `"]]`},
+		{[]any{"integer", "null", "boolean"}, `["` + "`$ONE`" + `",["` + "`$INTEGER`" + `","` + "`$NULL`" + `","` + "`$BOOLEAN`" + `"]]`},
+		{[]any{}, `["` + "`$ONE`" + `",[]]`},
+		{"string", `"` + "`$STRING`" + `"`},
+		{nil, `"` + "`$ANY`" + `"`},
+	}
+	for _, c := range cases {
+		got, err := json.Marshal(Validator(c.in))
+		if err != nil {
+			t.Fatalf("marshal: %v", err)
+		}
+		if string(got) != c.want {
+			t.Errorf("Validator(%v) = %s, want %s", c.in, got, c.want)
+		}
+	}
+}
+
+// A nullable field must keep its union all the way through the field
+// transform — asserting Validator alone would miss a caller that re-asserts
+// the spec type to string and drops the array before Validator sees it.
+func TestNullableFieldKeepsUnion(t *testing.T) {
+	spec := `openapi: 3.1.0
+info: { title: t, version: "1.0.0" }
+servers: [ { url: "https://x.example" } ]
+paths:
+  /widgets:
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Widget" } }
+  /widgets/{id}:
+    get:
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses:
+        "200":
+          content: { application/json: { schema: { $ref: "#/components/schemas/Widget" } } }
+components:
+  schemas:
+    Widget:
+      type: object
+      properties:
+        id: { type: string }
+        note: { type: [string, "null"] }
+`
+	def, err := Parse("OpenAPI", spec, map[string]string{"file": "u.yaml"})
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	props := def["components"].(map[string]any)["schemas"].(map[string]any)["Widget"].(map[string]any)["properties"].(map[string]any)
+	noteType := props["note"].(map[string]any)["type"]
+	got, _ := json.Marshal(InferFieldType("note", Validator(noteType)))
+	want := `["` + "`$ONE`" + `",["` + "`$STRING`" + `","` + "`$NULL`" + `"]]`
+	if string(got) != want {
+		t.Errorf("nullable field type = %s, want %s", got, want)
+	}
+}
+
+// Alias chains, $ref siblings and cycles — the cases where resolvePointer
+// differs from a single-hop lookup. Mirrors ts/test/parse.test.ts parse-refs.
+func TestParseRefChains(t *testing.T) {
+	const head = `openapi: 3.0.0
+info: { title: t, version: "1.0.0" }
+servers: [ { url: "https://x.example" } ]
+`
+	const paths = `paths:
+  /thing:
+    get:
+      responses:
+        "200":
+          content: { application/json: { schema: { $ref: "#/components/schemas/Alias" } } }
+`
+	const chain = `components:
+  schemas:
+    Alias: { $ref: "#/components/schemas/Mid" }
+    Mid: { $ref: "#/components/schemas/Real" }
+    Real: { type: object, properties: { id: { type: string } } }
+`
+	const sib = `components:
+  schemas:
+    Alias: { $ref: "#/components/schemas/Real", description: "aliased" }
+    Real: { type: object, description: "target", properties: { id: { type: string } } }
+`
+	const cyc = `components:
+  schemas:
+    Alias: { $ref: "#/components/schemas/B" }
+    B: { $ref: "#/components/schemas/Alias" }
+`
+	schemaOf := func(t *testing.T, src string) map[string]any {
+		t.Helper()
+		def, err := Parse("OpenAPI", src, map[string]string{"file": "p.yaml"})
+		if err != nil {
+			t.Fatalf("parse: %v", err)
+		}
+		s := def["paths"].(map[string]any)["/thing"].(map[string]any)["get"].(map[string]any)["responses"].(map[string]any)["200"].(map[string]any)["content"].(map[string]any)["application/json"].(map[string]any)["schema"]
+		m, _ := s.(map[string]any)
+		return m
+	}
+
+	for _, c := range []struct{ name, src string }{
+		{"chain/paths-first", head + paths + chain},
+		{"chain/components-first", head + chain + paths},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			s := schemaOf(t, c.src)
+			props, ok := s["properties"].(map[string]any)
+			if !ok || props["id"] == nil {
+				t.Fatalf("alias chain not resolved: %v", s)
+			}
+		})
+	}
+
+	for _, c := range []struct{ name, src string }{
+		{"siblings/paths-first", head + paths + sib},
+		{"siblings/components-first", head + sib + paths},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			s := schemaOf(t, c.src)
+			if _, ok := s["properties"].(map[string]any); !ok {
+				t.Fatalf("not resolved: %v", s)
+			}
+			if s["description"] != "aliased" {
+				t.Errorf("description = %v, want \"aliased\" (sibling must win)", s["description"])
+			}
+		})
+	}
+
+	t.Run("cyclic alias terminates", func(t *testing.T) {
+		if s := schemaOf(t, head+paths+cyc); s == nil {
+			t.Fatal("expected an object")
+		}
+	})
+}
+
+// An empty overlay is not a customization however it is spelled — matching
+// one textual form flagged the multi-line variant and failed valid builds.
+func TestGuideOverlayCustomizations(t *testing.T) {
+	empty := []string{
+		"",
+		"# just a comment\n",
+		"@\"@voxgig/apidef/model/guide.aontu\"\n@\"x-base-guide.aontu\"\n",
+		"@\"x-base-guide.aontu\"\n\nguide:{}\n",
+		"@\"x-base-guide.aontu\"\n\nguide: {}\n",
+		"@\"x-base-guide.aontu\"\n\nguide: {\n}\n",
+		"# c\n@\"x-base-guide.aontu\"\n\nguide: {\n}\n\n",
+	}
+	for _, src := range empty {
+		if got := guideOverlayCustomizations(src); len(got) != 0 {
+			t.Errorf("expected no customizations for %q, got %v", src, got)
+		}
+	}
+
+	custom := []string{
+		"@\"x-base-guide.aontu\"\n\nguide: entity: bar: { active: false }\n",
+		"@\"x-base-guide.aontu\"\n\nguide: entity: yike: hide({})\n",
+		"@\"x-base-guide.aontu\"\n\nguide: {\n  entity: foo: { active: false }\n}\n",
+	}
+	for _, src := range custom {
+		if got := guideOverlayCustomizations(src); len(got) == 0 {
+			t.Errorf("expected customizations for %q", src)
+		}
 	}
 }

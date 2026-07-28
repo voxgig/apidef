@@ -134,7 +134,12 @@ function formatJsonSrc(jsonsrc: string) {
 //
 // Keys are lowercase; depluralize() does a case-insensitive lookup
 // and reapplies the caller's casing on the way out.
-const IRREGULARS: Record<string, string> = {
+//
+// Null-prototype: these tables are indexed by spec-derived names, so a
+// schema or path segment called `constructor` / `__proto__` / `toString`
+// would otherwise resolve to the inherited Object member and be returned
+// as a "match" — crashing matchCase() on a function. See NULL_PROTO_NOTE.
+const IRREGULARS: Record<string, string> = Object.assign(Object.create(null), {
   'analytics': 'analytics',
   'analyses': 'analysis',
   'appendices': 'appendix',
@@ -198,7 +203,18 @@ const IRREGULARS: Record<string, string> = {
   'vertices': 'vertex',
   'women': 'woman',
   'yes': 'yes',
-}
+})
+
+// NULL_PROTO_NOTE: every plain-object lookup table in this module whose keys
+// come from an API spec is built with a null prototype
+// (`Object.assign(Object.create(null), {...})`). Without it, `TABLE[name]`
+// inherits from Object.prototype, so `TABLE['constructor']` yields the Object
+// constructor (truthy, a function) and `TABLE['__proto__']` yields
+// Object.prototype (truthy, an object). Both then flow into code expecting a
+// string. A spec with `components.schemas.Constructor` is enough to reach
+// this: canonize -> depluralize -> matchCase -> `.toLowerCase is not a
+// function`, failing the whole build at the guide stage. Keep new tables
+// null-prototype, or use a Map (CANONIZE_CACHE already does).
 
 // Sorted longest-first so the most specific IRREGULARS suffix wins.
 // Without this, 'women' would be shadowed by 'men' (3 < 5) under
@@ -235,12 +251,13 @@ function matchCase(source: string, target: string): string {
 // inherit the override without signature churn. apidef is
 // single-model-per-process; if that ever changes, switch this to a
 // per-context map.
-let CUSTOM_PLURALS: Record<string, string> = {}
+// Null-prototype: see NULL_PROTO_NOTE above.
+let CUSTOM_PLURALS: Record<string, string> = Object.create(null)
 let CUSTOM_PLURAL_KEYS: string[] = []
 
 
 function setCustomPlurals(plurals: Record<string, string> | undefined | null) {
-  CUSTOM_PLURALS = {}
+  CUSTOM_PLURALS = Object.create(null)
   if (plurals) {
     for (const k of Object.keys(plurals)) {
       // Skip null/undefined values so a partially-typed model entry
@@ -911,7 +928,11 @@ function renderJSONIC(
 // of the public API so downstream consumers (e.g. @voxgig/sdkgen's
 // sentinel -> language-type table) can verify they cover the full set
 // instead of hand-syncing against this file.
-const VALID_CANON: Record<string, string> = {
+//
+// Null-prototype (see NULL_PROTO_NOTE): `type` values come from the spec, so
+// a schema declaring `type: constructor` would otherwise return the Object
+// constructor here rather than falling through to the 'Any' default.
+const VALID_CANON: Record<string, string> = Object.assign(Object.create(null), {
   'string': '`$STRING`',
   'number': '`$NUMBER`',
   'integer': '`$INTEGER`',
@@ -920,7 +941,7 @@ const VALID_CANON: Record<string, string> = {
   'array': '`$ARRAY`',
   'object': '`$OBJECT`',
   'any': '`$ANY`',
-}
+})
 
 const CANON_ONE = '`$ONE`'
 

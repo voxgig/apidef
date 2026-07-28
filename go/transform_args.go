@@ -103,11 +103,14 @@ func resolveArgs(mtarget map[string]any, argdefs []map[string]any) {
 			}
 		}
 
-		schemaType := ""
+		// Mirrors src/transform/args.ts: `validator(argdef.schema?.type)`.
+		// Keep this nil (not "") when absent — TS passes `undefined`, which
+		// Validator maps to `$ANY`, whereas an empty string maps to "Any".
+		// Keep it unasserted when present — a 3.1 nullable arg has a type
+		// ARRAY, and asserting to string would drop the union.
+		var schemaType any
 		if schema, ok := argdef["schema"].(map[string]any); ok {
-			if t, ok := schema["type"].(string); ok {
-				schemaType = t
-			}
+			schemaType = schema["type"]
 		}
 
 		var fieldType any = InferFieldType(name, Validator(schemaType))

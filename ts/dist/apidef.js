@@ -119,6 +119,7 @@ function ApiDef(opts) {
             // TODO: Validate spec
             ctx = {
                 fs,
+                fsInjected: null != opts.fs,
                 log,
                 spec,
                 opts,
@@ -165,7 +166,7 @@ function ApiDef(opts) {
             steps.push('parse');
             // Step: guide (derive).
             if (!ctrl.step.guide) {
-                return { ok: false, steps, start, end: Date.now(), ctrl };
+                return { ok: false, steps, start, end: Date.now(), ctrl, ctx };
             }
             const guideModel = await (0, guide_1.buildGuide)(ctx);
             if (null == guideModel) {
@@ -174,8 +175,15 @@ function ApiDef(opts) {
             ctx.guide = guideModel.guide;
             steps.push('guide');
             // Step: transformers (transform spec and guide into core structures).
+            // Early stops return the model built so far: `ctrl.step.generate = false`
+            // is the documented way to build the model in memory without writing
+            // files (see AGENTS.md), which requires `apimodel` in the result. The Go
+            // port already returns it from every early return.
             if (!ctrl.step.transformers) {
-                return { ok: true, steps, start, end: Date.now(), ctrl, guide: ctx.guide };
+                return {
+                    ok: true, steps, start, end: Date.now(), ctrl,
+                    guide: ctx.guide, apimodel: ctx.apimodel, ctx
+                };
             }
             await (0, top_1.topTransform)(ctx);
             await (0, entity_1.entityTransform)(ctx);
@@ -189,7 +197,10 @@ function ApiDef(opts) {
             steps.push('transformers');
             // Step: builders (build generated sub models).
             if (!ctrl.step.builders) {
-                return { ok: true, steps, start, end: Date.now(), ctrl, guide: ctx.guide };
+                return {
+                    ok: true, steps, start, end: Date.now(), ctrl,
+                    guide: ctx.guide, apimodel: ctx.apimodel, ctx
+                };
             }
             const builders = [
                 await (0, entity_2.makeEntityBuilder)(ctx),
@@ -199,7 +210,10 @@ function ApiDef(opts) {
             steps.push('builders');
             // Step: generate (generate model files).
             if (!ctrl.step.generate) {
-                return { ok: true, steps, start, end: Date.now(), ctrl, guide: ctx.guide };
+                return {
+                    ok: true, steps, start, end: Date.now(), ctrl,
+                    guide: ctx.guide, apimodel: ctx.apimodel, ctx
+                };
             }
             const jostraca = (0, jostraca_1.Jostraca)({
                 now: spec.now,

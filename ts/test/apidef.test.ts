@@ -28,6 +28,51 @@ describe('apidef', () => {
   })
 
 
+  // aontu resolves @-includes through @tabnas/multisource, which picks POSIX
+  // vs native path semantics purely from whether an fs was injected:
+  //   const P = null != ctx.meta?.fs ? Path.posix : Path
+  // apidef used to forward ctx.fs unconditionally, but ctx.fs defaults to the
+  // real node:fs — so on Windows the guide path was parsed with Path.posix,
+  // 'D:\...\guide\x.aontu' yielded an empty base dir, and every sibling
+  // include failed with `source not found: <prefix>base-guide.aontu`. Linux
+  // and macOS never saw it because there Path and Path.posix are identical.
+  //
+  // Pin the contract: forward fs only when the caller actually supplied one.
+  // Asserted on the flag rather than on behaviour so it fails on any platform.
+  test('fs-injected-flag', async () => {
+    const outprefix = 'solar-1.0.0-openapi-3.0.0-'
+    const folder = __dirname + '/../test/solar'
+    const spec = {
+      spec: {
+        base: folder,
+        buildargs: {
+          apidef: {
+            ctrl: { step: { parse: true, guide: true, transformers: false } }
+          }
+        }
+      }
+    }
+
+    // ctx.work.guideAontuFs records what was actually put on the aontu opts,
+    // so reverting to an unconditional `opts.fs = ctx.fs` fails this.
+    const defaultBuild = await ApiDef.makeBuild({ folder, outprefix })
+    const defaultRes: any = await defaultBuild(
+      { name: 'solar', def: outprefix + 'def.yaml' }, spec, {})
+    assert.strictEqual(defaultRes.ctx.fsInjected, false)
+    assert.strictEqual(defaultRes.ctx.work.guideAontuFs, false,
+      'default node:fs must NOT be forwarded to aontu — it makes multisource ' +
+      'parse Windows paths with Path.posix and every @-include fails')
+
+    const customFs: any = { ...Fs }
+    const injectedBuild = await ApiDef.makeBuild({ folder, outprefix, fs: customFs })
+    const injectedRes: any = await injectedBuild(
+      { name: 'solar', def: outprefix + 'def.yaml' }, spec, {})
+    assert.strictEqual(injectedRes.ctx.fsInjected, true)
+    assert.strictEqual(injectedRes.ctx.work.guideAontuFs, true,
+      'an explicitly supplied fs (e.g. memfs) must still be forwarded')
+  })
+
+
   test('guide-solar', async () => {
     const outprefix = 'solar-1.0.0-openapi-3.0.0-'
     const folder = __dirname + '/../test/solar'

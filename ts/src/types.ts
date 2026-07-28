@@ -160,6 +160,11 @@ type Metrics = {
 
 type ApiDefContext = {
   fs: any,
+  // True only when the caller supplied ApiDefOptions.fs (e.g. memfs), as
+  // opposed to the node:fs default. aontu/@tabnas/multisource treats the
+  // presence of an injected fs as "paths are POSIX", so forwarding the real
+  // node:fs breaks include resolution on Windows. See guide/guide.ts.
+  fsInjected: boolean,
   log: any,
   spec: any,
   opts: any,

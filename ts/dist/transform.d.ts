@@ -30,8 +30,8 @@ declare const GuideShape: {
         transform: {};
         manual: {};
     };
-    match(root?: any, ctx?: import("shape").Context): boolean;
-    error(root?: any, ctx?: import("shape").Context): {
+    match: (root?: any, ctx?: import("shape").Context) => boolean;
+    error: (root?: any, ctx?: import("shape").Context) => {
         shape: boolean;
         code: string;
         gname: string;
@@ -49,6 +49,7 @@ declare const GuideShape: {
                 node: import("shape").Node<any>;
                 value: any;
                 path: string;
+                pathArr: (string | number)[];
                 why: string;
                 check: string;
                 args: Record<string, any>;
@@ -67,16 +68,16 @@ declare const GuideShape: {
         message: string;
         stack?: string;
     }[];
-    spec(): any;
-    node(): import("shape").Node<{
+    spec: () => any;
+    node: () => import("shape").Node<{
         entity: {};
         control: {};
         transform: {};
         manual: {};
     }>;
-    stringify(...rest: any[]): string;
-    jsonify(): any;
-    toString(this: any): string;
+    stringify: (...rest: any[]) => string;
+    jsonify: () => any;
+    toString: (this: any) => string;
     shape: {
         shape$: symbol;
         v$: string;

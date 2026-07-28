@@ -2,7 +2,11 @@
 
 package apidef
 
-import "sort"
+import (
+	"regexp"
+	"sort"
+	"strings"
+)
 
 // EntityTransform creates entity definitions from the guide.
 func EntityTransform(ctx *ApiDefContext) (*TransformResult, error) {
@@ -12,6 +16,11 @@ func EntityTransform(ctx *ApiDefContext) (*TransformResult, error) {
 
 	guideEntity, _ := guide["entity"].(map[string]any)
 	msg := ""
+
+	// Mirrors src/transform/entity.ts: the heuristic can leave the plain
+	// collection path "/X" on a different entity than the per-instance
+	// "/X/{id}" paths, which leaves the owning entity with no list endpoint.
+	mergeCollectionPaths(guide)
 
 	for _, entname := range sortedKeys(guideEntity) {
 		gent := guideEntity[entname]
@@ -41,6 +50,148 @@ func EntityTransform(ctx *ApiDefContext) (*TransformResult, error) {
 	return &TransformResult{OK: true, Msg: msg}, nil
 }
 
+// instancePathRE matches "/A/{...}" or "/A/{...}/rest"; collectionPathRE
+// matches exactly "/A" (one literal segment, no params).
+// Mirrors the two regexes in src/transform/entity.ts:mergeCollectionPaths.
+var (
+	instancePathRE   = regexp.MustCompile(`^/([^/{}]+)/\{[^}]+\}(/.*)?$`)
+	collectionPathRE = regexp.MustCompile(`^/([^/{}]+)$`)
+)
+
+type rootOwner struct {
+	ename string
+	depth int
+}
+
+// mergeCollectionPaths moves "/X" onto the entity that owns "/X/{id}" or
+// "/X/{id}/sub". Only acts when "/X" sits on a different entity than the
+// per-instance paths, so correctly-classified APIs are left alone.
+// Mirrors src/transform/entity.ts:mergeCollectionPaths.
+func mergeCollectionPaths(guide map[string]any) {
+	entities, _ := guide["entity"].(map[string]any)
+	if entities == nil {
+		return
+	}
+
+	// First pass: collectionRoot -> owning entity. Prefer the owner whose
+	// direct-load path is "/X/{id}" with nothing after it, so a nested
+	// sub-resource entity doesn't claim the root.
+	rootOwners := map[string]rootOwner{}
+	for _, ename := range sortedKeys(entities) {
+		entity, _ := entities[ename].(map[string]any)
+		if entity == nil {
+			continue
+		}
+		paths, _ := entity["path"].(map[string]any)
+		for _, pathStr := range sortedKeys(paths) {
+			m := instancePathRE.FindStringSubmatch(pathStr)
+			if m == nil {
+				continue
+			}
+			root := m[1]
+			depth := 0
+			if m[2] != "" {
+				for _, seg := range strings.Split(m[2], "/") {
+					if seg != "" {
+						depth++
+					}
+				}
+			}
+			if cur, ok := rootOwners[root]; !ok || depth < cur.depth {
+				rootOwners[root] = rootOwner{ename: ename, depth: depth}
+			}
+		}
+	}
+
+	// Second pass: move each "/X" whose root is owned elsewhere.
+	for _, ename := range sortedKeys(entities) {
+		entity, _ := entities[ename].(map[string]any)
+		if entity == nil {
+			continue
+		}
+		paths, _ := entity["path"].(map[string]any)
+		if paths == nil {
+			continue
+		}
+
+		var toMove []string
+		for _, pathStr := range sortedKeys(paths) {
+			m := collectionPathRE.FindStringSubmatch(pathStr)
+			if m == nil {
+				continue
+			}
+			if owner, ok := rootOwners[m[1]]; ok && owner.ename != ename {
+				toMove = append(toMove, pathStr)
+			}
+		}
+
+		for _, pathStr := range toMove {
+			owner := rootOwners[strings.TrimPrefix(pathStr, "/")]
+			target, _ := entities[owner.ename].(map[string]any)
+			if target == nil {
+				continue
+			}
+			tgtPaths, _ := target["path"].(map[string]any)
+			if tgtPaths == nil {
+				tgtPaths = map[string]any{}
+				target["path"] = tgtPaths
+			}
+
+			srcPath := paths[pathStr]
+			tgtPath, _ := tgtPaths[pathStr].(map[string]any)
+			if tgtPath == nil {
+				tgtPaths[pathStr] = srcPath
+			} else if srcMap, ok := srcPath.(map[string]any); ok {
+				// Target already owns this path via a different
+				// heuristic-discovered entity (e.g. `/gists` GET on
+				// `base_gist`, POST on `gist`). Merge the op/action/rename
+				// sets so the second source's methods aren't dropped.
+				mergeSubMap(srcMap, tgtPath, "op")
+				mergeSubMap(srcMap, tgtPath, "action")
+				if srcRename, ok := srcMap["rename"].(map[string]any); ok {
+					if srcParam, ok := srcRename["param"].(map[string]any); ok {
+						tgtRename, _ := tgtPath["rename"].(map[string]any)
+						if tgtRename == nil {
+							tgtRename = map[string]any{}
+							tgtPath["rename"] = tgtRename
+						}
+						tgtParam, _ := tgtRename["param"].(map[string]any)
+						if tgtParam == nil {
+							tgtParam = map[string]any{}
+							tgtRename["param"] = tgtParam
+						}
+						for _, p := range sortedKeys(srcParam) {
+							if _, exists := tgtParam[p]; !exists {
+								tgtParam[p] = srcParam[p]
+							}
+						}
+					}
+				}
+			}
+			delete(paths, pathStr)
+		}
+	}
+}
+
+// mergeSubMap copies missing keys of src[key] into tgt[key], creating the
+// target sub-map when absent.
+func mergeSubMap(src map[string]any, tgt map[string]any, key string) {
+	srcSub, ok := src[key].(map[string]any)
+	if !ok {
+		return
+	}
+	tgtSub, _ := tgt[key].(map[string]any)
+	if tgtSub == nil {
+		tgtSub = map[string]any{}
+		tgt[key] = tgtSub
+	}
+	for _, name := range sortedKeys(srcSub) {
+		if _, exists := tgtSub[name]; !exists {
+			tgtSub[name] = srcSub[name]
+		}
+	}
+}
+
 func resolvePathList(guideEntity map[string]any, def map[string]any) []map[string]any {
 	var pathsDesc []map[string]any
 
@@ -67,9 +218,17 @@ func resolvePathList(guideEntity map[string]any, def map[string]any) []map[strin
 							newStr, _ = rp["target"].(string)
 						}
 					}
+					// Mirrors src/transform/entity.ts, which uses
+					// parts.indexOf(...) and so rewrites only the FIRST
+					// match. Rewriting every occurrence turns a repeated
+					// placeholder into a duplicate, e.g.
+					// /groups/{group_id}/badges/{id} emitting
+					// /groups/{group_id}/badges/{group_id} under a chained
+					// rename — silently dropping an argument from the URL.
 					for i, p := range parts {
 						if p == "{"+oldName+"}" {
 							parts[i] = "{" + newStr + "}"
+							break
 						}
 					}
 				}
