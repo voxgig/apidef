@@ -183,6 +183,20 @@ function decycle(root: any) {
 // across every site that referenced the same component. (A deep clone is
 // deliberately avoided: schemas can be self-referential, which would make
 // cloning non-terminating.)
+// Keywords sitting beside a `$ref` on the *referring* node. OpenAPI 3.1 and
+// JSON Schema 2020-12 both allow them (`description`, `required`,
+// constraints, ...) and they still apply, so inlining must not drop them.
+// Applied over the resolved target, so the local statement wins.
+function refSiblings(node: any): any {
+  const out: any = {}
+  for (const k of Object.keys(node)) {
+    if ('$ref' === k) continue
+    out[k] = node[k]
+  }
+  return out
+}
+
+
 function addXRefsAndResolve(obj: any, root: any, visited?: WeakSet<any>) {
   if (!obj || typeof obj !== 'object') return
   if (!visited) visited = new WeakSet()
@@ -197,7 +211,7 @@ function addXRefsAndResolve(obj: any, root: any, visited?: WeakSet<any>) {
           const xref = item.$ref
           const resolved = resolvePointer(root, xref)
           if (resolved !== undefined) {
-            obj[i] = { ...resolved, 'x-ref': xref }
+            obj[i] = { ...resolved, ...refSiblings(item), 'x-ref': xref }
             addXRefsAndResolve(obj[i], root, visited)
           } else {
             item['x-ref'] = xref
@@ -216,7 +230,7 @@ function addXRefsAndResolve(obj: any, root: any, visited?: WeakSet<any>) {
           const xref = val.$ref
           const resolved = resolvePointer(root, xref)
           if (resolved !== undefined) {
-            obj[key] = { ...resolved, 'x-ref': xref }
+            obj[key] = { ...resolved, ...refSiblings(val), 'x-ref': xref }
             addXRefsAndResolve(obj[key], root, visited)
           } else {
             val['x-ref'] = xref
@@ -247,6 +261,12 @@ function addXRefsAndResolve(obj: any, root: any, visited?: WeakSet<any>) {
 // mutually-referential alias cycle terminates instead of looping forever.
 function resolvePointer(root: any, ref: string): any {
   const seen = new Set<string>()
+  // Keywords sitting beside a `$ref` along the chain, outermost first.
+  // OpenAPI 3.1 / JSON Schema 2020-12 allow `$ref` to carry siblings
+  // (`description`, `required`, constraints, ...) and they still apply, so
+  // following the chain must not discard them. Merged onto the final target
+  // below, outermost last so the most specific alias wins.
+  const siblings: any[] = []
   let current: any = undefined
   let pointer = ref
 
@@ -271,11 +291,33 @@ function resolvePointer(root: any, ref: string): any {
       'object' === typeof current &&
       !Array.isArray(current) &&
       'string' === typeof current.$ref) {
+      const sib: any = {}
+      let hasSib = false
+      for (const k of Object.keys(current)) {
+        if ('$ref' === k) continue
+        sib[k] = current[k]
+        hasSib = true
+      }
+      if (hasSib) siblings.push(sib)
       pointer = current.$ref
       continue
     }
 
-    return current
+    if (0 === siblings.length) {
+      // No siblings anywhere on the chain: return the target itself, so
+      // multiple references keep sharing one object (see the note on
+      // addXRefsAndResolve — a fresh copy per site would defeat that).
+      return current
+    }
+
+    // Siblings present: a merged view is necessarily a new object. Apply
+    // deepest-first so the outermost alias's keywords win.
+    const merged: any = (null != current && 'object' === typeof current &&
+      !Array.isArray(current)) ? { ...current } : {}
+    for (let i = siblings.length - 1; 0 <= i; i--) {
+      Object.assign(merged, siblings[i])
+    }
+    return merged
   }
 }
 

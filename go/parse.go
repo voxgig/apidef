@@ -226,8 +226,16 @@ func addXRefsAndResolve(obj any, root map[string]any, visited map[uintptr]bool) 
 								// Copy resolved properties into the existing map,
 								// remove $ref, add x-ref. Children are shared (not copied).
 								delete(m, "$ref")
-								for k, rv := range resolvedMap {
-									m[k] = rv
+								// Keys already on m are the $ref's SIBLINGS
+								// (description, required, constraints — legal in
+								// OpenAPI 3.1 / JSON Schema 2020-12). They are the
+								// more specific, local statement, so they win over
+								// the target's. Mirrors src/parse.ts:
+								// { ...resolved, ...refSiblings(val), 'x-ref': xref }
+								for _, k := range sortedKeys(resolvedMap) {
+									if _, has := m[k]; !has {
+										m[k] = resolvedMap[k]
+									}
 								}
 								m["x-ref"] = refStr
 								addXRefsAndResolve(m, root, visited)
@@ -254,8 +262,16 @@ func addXRefsAndResolve(obj any, root map[string]any, visited map[uintptr]bool) 
 						if resolved != nil {
 							if resolvedMap, ok := resolved.(map[string]any); ok {
 								delete(m, "$ref")
-								for k, rv := range resolvedMap {
-									m[k] = rv
+								// Keys already on m are the $ref's SIBLINGS
+								// (description, required, constraints — legal in
+								// OpenAPI 3.1 / JSON Schema 2020-12). They are the
+								// more specific, local statement, so they win over
+								// the target's. Mirrors src/parse.ts:
+								// { ...resolved, ...refSiblings(val), 'x-ref': xref }
+								for _, k := range sortedKeys(resolvedMap) {
+									if _, has := m[k]; !has {
+										m[k] = resolvedMap[k]
+									}
 								}
 								m["x-ref"] = refStr
 								addXRefsAndResolve(m, root, visited)
@@ -276,23 +292,84 @@ func addXRefsAndResolve(obj any, root map[string]any, visited map[uintptr]bool) 
 }
 
 // resolvePointer follows a JSON pointer like "#/components/schemas/Planet"
+// resolvePointer follows a JSON pointer, chasing alias chains to their end.
+// Mirrors src/parse.ts:resolvePointer.
+//
+// `Foo: { $ref: '#/components/schemas/Bar' }` is a normal OpenAPI idiom, and
+// a pointer can land on another bare $ref. Stopping at the intermediate
+// leaves a `$ref` string key in the inlined copy, which the object-valued
+// recursion in addXRefsAndResolve never follows — so the schema arrives with
+// no properties and every field is silently dropped.
+//
+// `seen` holds pointer strings (not object identities) so a self- or
+// mutually-referential alias cycle terminates instead of looping forever.
+//
+// Keywords beside a `$ref` (OpenAPI 3.1 / JSON Schema 2020-12 allow
+// `description`, `required`, constraints, ...) still apply, so they are
+// collected along the chain and merged onto the target, outermost last so the
+// most specific alias wins.
 func resolvePointer(root map[string]any, ref string) any {
-	if !strings.HasPrefix(ref, "#/") {
-		return nil
-	}
-	path := ref[2:]
-	parts := strings.Split(path, "/")
-	var current any = root
-	for _, part := range parts {
-		part = strings.ReplaceAll(part, "~1", "/")
-		part = strings.ReplaceAll(part, "~0", "~")
-		if m, ok := current.(map[string]any); ok {
-			current = m[part]
-		} else {
+	seen := map[string]bool{}
+	var siblings []map[string]any
+	pointer := ref
+
+	for {
+		if !strings.HasPrefix(pointer, "#/") {
 			return nil
 		}
+		if seen[pointer] {
+			return nil
+		}
+		seen[pointer] = true
+
+		parts := strings.Split(pointer[2:], "/")
+		var current any = root
+		for _, part := range parts {
+			part = strings.ReplaceAll(part, "~1", "/")
+			part = strings.ReplaceAll(part, "~0", "~")
+			if m, ok := current.(map[string]any); ok {
+				current = m[part]
+			} else {
+				return nil
+			}
+		}
+
+		if m, ok := current.(map[string]any); ok {
+			if next, ok := m["$ref"].(string); ok {
+				sib := map[string]any{}
+				for _, k := range sortedKeys(m) {
+					if k == "$ref" {
+						continue
+					}
+					sib[k] = m[k]
+				}
+				if len(sib) > 0 {
+					siblings = append(siblings, sib)
+				}
+				pointer = next
+				continue
+			}
+		}
+
+		if len(siblings) == 0 {
+			// Return the target itself so multiple references keep sharing
+			// one object; a copy per site would defeat that.
+			return current
+		}
+
+		merged := map[string]any{}
+		if m, ok := current.(map[string]any); ok {
+			for _, k := range sortedKeys(m) {
+				merged[k] = m[k]
+			}
+		}
+		for i := len(siblings) - 1; i >= 0; i-- {
+			for _, k := range sortedKeys(siblings[i]) {
+				merged[k] = siblings[i][k]
+			}
+		}
+		return merged
 	}
-	return current
 }
 
 func validateSource(kind string, source string, meta map[string]string) error {

@@ -92,6 +92,23 @@ function loadTsv(name) {
         });
     }
 });
+// Union validators cannot be expressed in the string-only TSV format, so the
+// array branch — the whole point of OpenAPI 3.1 nullable types — needs its own
+// case on both sides. Mirrors go/tsv_test.go TestValidatorUnion.
+(0, node_test_1.describe)('tsv-validator-union', () => {
+    const CASES = [
+        [['string', 'null'], ['`$ONE`', ['`$STRING`', '`$NULL`']]],
+        [['integer', 'null', 'boolean'], ['`$ONE`', ['`$INTEGER`', '`$NULL`', '`$BOOLEAN`']]],
+        [[], ['`$ONE`', []]],
+        ['string', '`$STRING`'],
+        [undefined, '`$ANY`'],
+    ];
+    for (const [input, expected] of CASES) {
+        (0, node_test_1.test)(`validator(${JSON.stringify(input)})`, () => {
+            node_assert_1.default.deepStrictEqual((0, utility_1.validator)(input), expected);
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-depluralize', () => {
     const rows = loadTsv('depluralize');
     for (const row of rows) {

@@ -379,7 +379,17 @@ func Camelify(s string) string {
 		// jsUpper, not strings.ToUpper: JS toUpperCase() applies full Unicode
 		// case mapping, where one code point can expand to several ("ß" → "SS").
 		// strings.ToUpper only does simple 1:1 mapping and leaves "ß" alone.
+		//
+		// Supplementary-plane characters are left alone: JS strings are UTF-16
+		// and `p[0]` is a single code UNIT, so for an astral character it is a
+		// lone high surrogate, which has no uppercase mapping and comes back
+		// unchanged. Upper-casing the whole code point here (e.g. U+10428 →
+		// U+10400) would diverge from the canonical implementation.
 		r, size := utf8.DecodeRuneInString(part)
+		if r > 0xFFFF {
+			result.WriteString(part)
+			continue
+		}
 		result.WriteString(jsUpper(string(r)))
 		result.WriteString(part[size:])
 	}

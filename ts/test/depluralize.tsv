@@ -80,3 +80,9 @@ canoes	canoe
 oboes	oboe
 heroes	hero
 tomatoes	tomato
+constructor	constructor
+__proto__	__proto__
+toString	toString
+valueOf	valueOf
+hasOwnProperty	hasOwnProperty
+prototype	prototype

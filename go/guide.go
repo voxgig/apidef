@@ -127,6 +127,17 @@ func checkGuideOverlay(ctx *ApiDefContext, guideDir string, prefix string) error
 
 // guideOverlayCustomizations returns the overlay's significant lines —
 // everything that is not blank, a comment, or an @-include.
+//
+// An empty overlay is not a customization, however it is spelled. Both the
+// one-line `guide: {}` and the multi-line
+//
+//	guide: {
+//	}
+//
+// are valid aontu for "adds nothing", and TS accepts either, so the joined
+// remainder is compared rather than individual lines — matching per-line
+// against a single spelling flagged the multi-line form as two
+// customizations and failed an otherwise fine build.
 func guideOverlayCustomizations(src string) []string {
 	var out []string
 	for _, line := range strings.Split(src, "\n") {
@@ -134,12 +145,22 @@ func guideOverlayCustomizations(src string) []string {
 		if t == "" || strings.HasPrefix(t, "#") || strings.HasPrefix(t, "@") {
 			continue
 		}
-		// `guide:{}` is the conventional empty-overlay placeholder.
-		if strings.ReplaceAll(t, " ", "") == "guide:{}" {
-			continue
-		}
 		out = append(out, t)
 	}
+
+	// Collapse whitespace across the remaining lines; anything that reduces to
+	// nothing, or to an empty `guide` object, contributes no customization.
+	joined := strings.Join(out, "")
+	joined = strings.Map(func(r rune) rune {
+		if r == ' ' || r == '\t' || r == '\r' {
+			return -1
+		}
+		return r
+	}, joined)
+	if joined == "" || joined == "guide:{}" {
+		return nil
+	}
+
 	return out
 }
 

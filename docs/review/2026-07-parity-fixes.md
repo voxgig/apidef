@@ -235,6 +235,37 @@ node_modules/thread-stream/index.d.ts(96,73): error TS2694:
 
 `tsc --build` fails on that. Revisit when `thread-stream` updates its typings.
 
+**A Windows-only trap this uncovered.** Upgrading aontu surfaced a latent bug
+in how apidef calls it. aontu resolves `@`-includes through
+`@tabnas/multisource`, which picks path semantics from whether an fs was
+injected:
+
+```js
+const P = null != ctx.meta?.fs ? Path.posix : Path
+```
+
+The assumption is that an injected fs means memfs, keyed by POSIX paths. But
+apidef defaults `ctx.fs` to the real `node:fs` and was forwarding it
+unconditionally, so on Windows the guide path was parsed with `Path.posix`:
+
+```
+Path.posix.parse('D:\…\guide\x-guide.aontu').dir  === ''
+Path.win32.parse('D:\…\guide\x-guide.aontu').dir  === 'D:\…\guide'
+```
+
+An empty base meant sibling includes resolved against the cwd, so the base
+guide was never found and **every build failed on Windows** at the guide
+stage. Linux and macOS were unaffected because there `Path` and `Path.posix`
+are the same module — which is exactly why it passed locally and on two of
+three CI platforms.
+
+Fixed by forwarding fs only when the caller actually supplied one. The
+regression test asserts what was placed on the aontu options rather than what
+apidef intended, so it fails from any platform if the conditional is ever
+removed. The general lesson matches §4: a dependency's behaviour can differ by
+platform, and a permissive version range plus a single-platform dev box hides
+it until CI.
+
 **Two things worth knowing about the npm side.**
 
 First, a footgun: plain `npm update` **downgrades aontu from 0.48.x to 0.46.0**
