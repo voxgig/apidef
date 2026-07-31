@@ -1,12 +1,15 @@
 /* Copyright (c) 2024-2025 Voxgig, MIT License */
 
-import { Jsonic } from 'jsonic'
-import { Yaml } from '@jsonic/yaml'
+import { Jsonic } from '@tabnas/jsonic'
+import { Yaml } from '@tabnas/yaml'
 
 import { relativizePath } from './utility'
 
 
-const yamlParser = Jsonic.make().use(Yaml)
+// NOTE: @tabnas/yaml types its Plugin against @tabnas/parser, while
+// Jsonic.use expects @tabnas/jsonic's own (structurally identical) Plugin
+// type - hence the cast.
+const yamlParser = Jsonic.make().use(Yaml as any)
 
 // Matches any line that is not purely a YAML comment or whitespace.
 const RE_HAS_CONTENT = /^\s*[^#\s]/m

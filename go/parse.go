@@ -10,7 +10,8 @@ import (
 	"sort"
 	"strings"
 
-	yaml "github.com/jsonicjs/yaml/go"
+	tabnas "github.com/tabnas/parser/go"
+	yaml "github.com/tabnas/yaml/go"
 	util "github.com/voxgig/util/go"
 )
 
@@ -36,8 +37,11 @@ func Parse(kind string, source string, meta map[string]string) (map[string]any, 
 func parseOpenAPI(source string, meta map[string]string) (map[string]any, error) {
 	var parsed map[string]any
 
-	// Use jsonic/yaml to parse (handles both JSON and YAML)
+	// Use tabnas/yaml to parse (handles both JSON and YAML)
 	result, err := yaml.Parse(source)
+	// tabnas/yaml returns insertion-ordered *tabnas.OrderedMap nodes;
+	// apidef works on plain maps, so flatten them back.
+	result = tabnas.Plainify(result)
 	if err != nil {
 		// Wrap parse errors with context
 		if strings.Contains(err.Error(), "jsonic") {

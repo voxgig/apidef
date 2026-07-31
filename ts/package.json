@@ -50,12 +50,12 @@
     "typescript": "7.0.2"
   },
   "peerDependencies": {
-    "@jsonic/yaml": ">=0",
+    "@tabnas/jsonic": ">=0",
+    "@tabnas/yaml": ">=0",
     "@voxgig/struct": ">=0",
     "@voxgig/util": ">=0",
     "aontu": "^0.48.2",
     "jostraca": ">=0",
-    "jsonic": ">=2",
     "shape": ">=10"
   },
   "dependencies": {

@@ -2,9 +2,12 @@
 /* Copyright (c) 2024-2025 Voxgig, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.parse = parse;
-const jsonic_1 = require("jsonic");
-const yaml_1 = require("@jsonic/yaml");
+const jsonic_1 = require("@tabnas/jsonic");
+const yaml_1 = require("@tabnas/yaml");
 const utility_1 = require("./utility");
+// NOTE: @tabnas/yaml types its Plugin against @tabnas/parser, while
+// Jsonic.use expects @tabnas/jsonic's own (structurally identical) Plugin
+// type - hence the cast.
 const yamlParser = jsonic_1.Jsonic.make().use(yaml_1.Yaml);
 // Matches any line that is not purely a YAML comment or whitespace.
 const RE_HAS_CONTENT = /^\s*[^#\s]/m;
