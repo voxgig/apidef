@@ -241,14 +241,29 @@ async function buildBaseGuide(ctx: ApiDefContext) {
       items(path.op).map(([opname, op]: [string, GuidePathOp]) => {
         guideBlocks.push(`      op: ${opname}: method: *${op.method}` +
           sw(0 < op.why_op.length ? '  # ' + op.why_op : ''))
-        // Only the res transform is emitted, and only when set. (The
-        // previous req-guarded block pushed a *second* res line built from
-        // op.transform.res — emitting `transform: res: *undefined` whenever
-        // a request was wrapped but the response was not.) Matches the Go
-        // guide builder, which gates solely on res.
+        // Each transform is emitted only when set, and each on its own terms.
+        // (An earlier req-GUARDED block pushed a second res line built from
+        // op.transform.res — emitting `transform: res: *undefined` whenever a
+        // request was wrapped but the response was not. Hence the separate
+        // null checks below rather than one shared guard.)
         if (null != op.transform.res) {
           guideBlocks.push(
             `      op: ${opname}: transform: res: *${qt(op.transform.res)}|top`)
+        }
+        // The req transform is a MAP of body property -> source expression
+        // (see closedBodyTransform), so it takes one line per property. THE
+        // SERIALISED GUIDE IS WHAT THE TRANSFORM STEP READS: a transform not
+        // written here never reaches the model, which is why restricting a
+        // closed request body had no effect until this existed. Only the map
+        // form is representable as aontu paths; a scalar req is left alone.
+        const reqmap: any = op.transform.req
+        if (null != reqmap && 'object' === typeof reqmap) {
+          items(reqmap).map(([bodykey, source]: [string, any]) => {
+            if ('string' === typeof source) {
+              guideBlocks.push(`      op: ${opname}: transform: req: ` +
+                `${qs(bodykey)}: *${qt(source)}|top`)
+            }
+          })
         }
       })
 

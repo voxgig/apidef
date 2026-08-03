@@ -1,0 +1,10 @@
+schema	expected
+{"additionalProperties":false,"properties":{"title":{"type":"string"},"done":{"type":"boolean"}}}	{"title":"`reqdata.title`","done":"`reqdata.done`"}
+{"additionalProperties":false,"properties":{"name":{"type":"string"}}}	{"name":"`reqdata.name`"}
+{"properties":{"title":{"type":"string"}}}	null
+{"additionalProperties":true,"properties":{"title":{"type":"string"}}}	null
+{"additionalProperties":false,"properties":{}}	null
+{"additionalProperties":false}	null
+{}	null
+{"additionalProperties":false,"properties":{"UserName":{"type":"string"},"conditions[type]":{"type":"string"}}}	{"UserName":"`reqdata.user_name`","conditions[type]":"`reqdata.conditions_type`"}
+{"additionalProperties":false,"properties":{"__proto__":{"type":"string"}}}	{"__proto__":"`reqdata.proto`"}

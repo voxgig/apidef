@@ -7,6 +7,8 @@ import { each } from 'jostraca'
 
 import { size, merge, getelem, isempty, items, keysof } from '@voxgig/struct'
 
+import { isEntityWrapperProp, envelopeProp, closedBodyTransform } from '../utility'
+
 
 import {
   ApiDefContext,
@@ -1126,16 +1128,47 @@ function ResolveTransform(spec: TaskSpec) {
     else if (isEntityWrapperProp(resprops[entdesc.name])) {
       transform.res = '`body.' + entdesc.name + '`'
     }
+    else {
+      // The wrapper is often named for the CARDINALITY rather than the
+      // entity — `{item: {...}}` from a load, `{items: [...]}` from a list —
+      // which the entity-name rules above cannot see. Left unwrapped, list()
+      // hands back the envelope where the caller expects an array, and the
+      // envelope key is mistaken for a field of the entity.
+      const envelope = envelopeProp(resprops, opname)
+      if (null != envelope) {
+        transform.res = '`body.' + envelope + '`'
+      }
+    }
   }
 
-  const reqprops = getRequestBodySchema(mdesc.requestBody)
+  // The SCHEMA is what closedBodyTransform needs (it reads
+  // additionalProperties); the wrapper-name checks need its PROPERTIES. They
+  // used to share one value and index the schema itself, so
+  // `schema['todoitem']` was always undefined and the entity-name request
+  // envelope was never detected — while the Go port read `.properties` and
+  // did detect it. That divergence was inert only because `req` was never
+  // serialised; now that it is, the two implementations would emit different
+  // request bodies for the same spec.
+  const reqschema = getRequestBodySchema(mdesc.requestBody)
+  const reqprops = reqschema?.properties
   debugpath(pathStr, methodName, 'TRANSFORM-REQ', keysof(reqprops))
-  if (reqprops) {
-    if (reqprops[entdesc.origname]) {
+  if (reqschema) {
+    if (null != reqprops?.[entdesc.origname]) {
       transform.req = { [entdesc.origname]: '`reqdata`' }
     }
-    else if (reqprops[entdesc.name]) {
+    else if (null != reqprops?.[entdesc.name]) {
       transform.req = { [entdesc.name]: '`reqdata`' }
+    }
+    else {
+      // A CLOSED body schema names every property the server will accept, so
+      // the body is those properties — not the whole request payload. The
+      // payload also carries the op's PATH params (`id` for
+      // `PUT /item/{id}`), and a closed shape rejects the entire request over
+      // that one extra key: every update came back 400 with `invalid-data`.
+      const body = closedBodyTransform(reqschema)
+      if (null != body) {
+        transform.req = body
+      }
     }
   }
 
@@ -1362,30 +1395,6 @@ function getRequestBodySchema(requestBody: any) {
 function getResponseSchema(response: any) {
   return response?.content?.['application/json']?.schema ??
     response?.schema
-}
-
-
-// A response property only "wraps" the entity when it is itself a structured
-// value that could contain the entity: an object, an array, a $ref, or a
-// composed (allOf/oneOf/anyOf) schema. A scalar property (string, integer,
-// number, boolean) that merely shares the entity's name is a field of the
-// entity, not a wrapper, so the response must not be unwrapped down to it.
-function isEntityWrapperProp(propSchema: any): boolean {
-  if (null == propSchema || 'object' !== typeof propSchema) {
-    return false
-  }
-  if (null != propSchema.$ref) {
-    return true
-  }
-  if (null != propSchema.properties ||
-    null != propSchema.items ||
-    null != propSchema.allOf ||
-    null != propSchema.oneOf ||
-    null != propSchema.anyOf) {
-    return true
-  }
-  const t = propSchema.type
-  return 'object' === t || 'array' === t
 }
 
 

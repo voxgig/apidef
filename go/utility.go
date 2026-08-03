@@ -1423,3 +1423,156 @@ func GetElem(val any, idx int, alts ...any) any {
 func Merge(val any, maxdepths ...int) any {
 	return vs.Merge(val, maxdepths...)
 }
+
+// envelopeProp reports the single response property to unwrap to when the body
+// is nothing but an ENVELOPE around the result — `{item: {...}}`,
+// `{data: {...}}`, `{items: [...]}`, `{results: [...]}` — or "" when the body
+// is the result itself.
+//
+// Two conditions keep this from firing on a response that IS the entity:
+//
+//  1. EXACTLY ONE property. A body with siblings is a structure in its own
+//     right, not a wrapper — `{ok, id}` from a delete, or any paged
+//     `{results, next}`, must be handed over whole.
+//  2. The property's SHAPE matches the operation's cardinality. A `list`
+//     unwraps only to an array, every other op only to a non-array. So a
+//     single-entity op facing `{items: [...]}` is left alone rather than
+//     silently yielding a list, and vice versa.
+//
+// A one-field entity whose sole field is itself structured can still be
+// unwrapped wrongly; that is the residual cost of the spec not saying which it
+// means. Naming the wrapper after the entity remains the unambiguous signal,
+// and is still checked first. Mirrors ts/src/utility.ts.
+func envelopeProp(resprops map[string]any, opname string) string {
+	if len(resprops) != 1 {
+		return ""
+	}
+
+	var key string
+	var prop any
+	for k, v := range resprops {
+		key, prop = k, v
+	}
+
+	if !isEntityWrapperProp(prop) {
+		return ""
+	}
+
+	islist, known := propIsList(prop)
+	if !known || islist != (opname == "list") {
+		return ""
+	}
+
+	return key
+}
+
+// propIsList reports whether a schema is a collection, and whether the schema
+// says at all.
+//
+// isEntityWrapperProp accepts a composed schema (allOf/oneOf/anyOf) as
+// structured, but a composed schema carries no outer `type` or `items` — so
+// reading those alone silently called it a non-list. A `list` then kept its
+// envelope, and worse, a single-entity op unwrapped to an array-valued
+// property. Composed branches are inspected instead, and unanimity required: a
+// union that is an array in one branch and an object in another does not say
+// what the caller will get, and an envelope is not worth guessing at. Mirrors
+// ts/src/utility.ts.
+func propIsList(schema any) (bool, bool) {
+	sch, ok := schema.(map[string]any)
+	if !ok || sch == nil {
+		return false, false
+	}
+
+	branches, ok := sch["allOf"].([]any)
+	if !ok {
+		branches, ok = sch["oneOf"].([]any)
+	}
+	if !ok {
+		branches, ok = sch["anyOf"].([]any)
+	}
+	if ok {
+		if len(branches) == 0 {
+			return false, false
+		}
+		first, known := propIsList(branches[0])
+		if !known {
+			return false, false
+		}
+		for _, branch := range branches {
+			islist, known := propIsList(branch)
+			if !known || islist != first {
+				return false, false
+			}
+		}
+		return first, true
+	}
+
+	return safeStr(sch["type"]) == "array" || sch["items"] != nil, true
+}
+
+// isEntityWrapperProp reports whether a response property "wraps" the entity:
+// it must be a structured value that could contain the entity (object, array,
+// $ref, or composed allOf/oneOf/anyOf schema). A scalar property (string,
+// integer, number, boolean) that merely shares the entity's name is a field of
+// the entity, not a wrapper. Mirrors ts/src/utility.ts.
+func isEntityWrapperProp(propSchema any) bool {
+	prop, ok := propSchema.(map[string]any)
+	if !ok || prop == nil {
+		return false
+	}
+	if prop["$ref"] != nil {
+		return true
+	}
+	if prop["properties"] != nil ||
+		prop["items"] != nil ||
+		prop["allOf"] != nil ||
+		prop["oneOf"] != nil ||
+		prop["anyOf"] != nil {
+		return true
+	}
+	t := safeStr(prop["type"])
+	return t == "object" || t == "array"
+}
+
+// closedBodyTransform returns the request BODY a closed schema permits, as a
+// transform mapping, or nil when there is nothing to restrict.
+//
+// `additionalProperties: false` is the spec saying the server rejects any
+// property it did not declare. When a body says that, sending the caller's
+// whole request payload is wrong: an op's payload also carries its PATH params
+// (`id` for `PUT /item/{id}`), and a closed shape 400s the entire request over
+// that one extra key. Restricting the body to the declared properties is then
+// not a heuristic — it is what the spec asked for.
+//
+// nil for an open or property-less schema, where `reqdata` (send everything)
+// remains the right default: an open body accepts extras, and with no declared
+// properties there is nothing to restrict to. Mirrors ts/src/utility.ts.
+func closedBodyTransform(schema any) map[string]any {
+	sch, ok := schema.(map[string]any)
+	if !ok || sch == nil {
+		return nil
+	}
+
+	ap, ok := sch["additionalProperties"].(bool)
+	if !ok || ap {
+		return nil
+	}
+
+	props, _ := sch["properties"].(map[string]any)
+	if len(props) == 0 {
+		return nil
+	}
+
+	// The KEY is the property's wire name — that is what goes on the wire and
+	// what the server matches against. The SOURCE is read by the field's
+	// CANONICAL name, because that is the only name the caller ever sees:
+	// findFieldDefs runs every property through Canonize(NormalizeFieldName()),
+	// so a spec property `UserName` reaches the generated request type as
+	// `user_name`. Reading `reqdata.UserName` would find nothing and send an
+	// undefined value.
+	out := map[string]any{}
+	for name := range props {
+		out[name] = "`reqdata." + Canonize(NormalizeFieldName(name)) + "`"
+	}
+	return out
+}

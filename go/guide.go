@@ -241,14 +241,32 @@ func buildGuideSource(ctx *ApiDefContext, baseguide map[string]any) string {
 					blocks = append(blocks, fmt.Sprintf("      op: %s: method: *%s", opname, method))
 
 					if transform, ok := opdef["transform"].(map[string]any); ok {
-						// Mirrors src/guide/guide.ts:212-225 — only the res
-						// value is emitted, and only when transform.res is
-						// non-null. The src/guide/guide.ts also reads `req`
-						// but writes the *res* value, which is a no-op when
-						// res is null; we follow that here by gating on res.
+						// Each transform is emitted only when set, and each on
+						// its own terms. Mirrors src/guide/guide.ts.
 						if res := transform["res"]; res != nil {
 							qt, _ := json.Marshal(res)
 							blocks = append(blocks, fmt.Sprintf("      op: %s: transform: res: *(%s)|top", opname, string(qt)))
+						}
+						// The req transform is a MAP of body property -> source
+						// expression (see closedBodyTransform), so it takes one
+						// line per property, keys sorted for stable output. THE
+						// SERIALISED GUIDE IS WHAT THE TRANSFORM STEP READS: a
+						// transform not written here never reaches the model,
+						// which is why restricting a closed request body had no
+						// effect until this existed. Only the map form is
+						// representable as aontu paths.
+						if reqmap, ok := transform["req"].(map[string]any); ok {
+							for _, bodykey := range sortedKeys(reqmap) {
+								source, ok := reqmap[bodykey].(string)
+								if !ok {
+									continue
+								}
+								qk, _ := json.Marshal(bodykey)
+								qv, _ := json.Marshal(source)
+								blocks = append(blocks, fmt.Sprintf(
+									"      op: %s: transform: req: %s: *(%s)|top",
+									opname, string(qk), string(qv)))
+							}
 						}
 					}
 				}
@@ -1248,19 +1266,40 @@ func resolveTransform(data map[string]any, mdesc map[string]any) {
 			transform["res"] = "`body." + origname + "`"
 		} else if isEntityWrapperProp(resprops[ename]) && ename != "" {
 			transform["res"] = "`body." + ename + "`"
+		} else if envelope := envelopeProp(resprops, opname); envelope != "" {
+			// The wrapper is often named for the CARDINALITY rather than the
+			// entity — `{item: {...}}` from a load, `{items: [...]}` from a
+			// list — which the entity-name rules above cannot see. Left
+			// unwrapped, list() hands back the envelope where the caller
+			// expects an array, and the envelope key is mistaken for a field
+			// of the entity.
+			transform["res"] = "`body." + envelope + "`"
 		}
 	}
 
-	// Check request body schema
+	// Check request body schema. The SCHEMA is what closedBodyTransform needs
+	// (it reads additionalProperties); the wrapper-name checks need its
+	// PROPERTIES. Mirrors ts/src/guide/heuristic01.ts, which used to share one
+	// value and index the schema itself — so the entity-name request envelope
+	// was detected here and not there.
 	reqBody, _ := mdesc["requestBody"].(map[string]any)
+	reqschema := getRequestBodySchema(reqBody)
 	reqprops := getRequestBodySchemaProps(reqBody)
 	DebugPath(pathStr, methodName, "TRANSFORM-REQ", reqprops)
 
-	if reqprops != nil {
+	if reqschema != nil {
 		if _, ok := reqprops[origname]; ok && origname != "" {
 			transform["req"] = map[string]any{origname: "`reqdata`"}
 		} else if _, ok := reqprops[ename]; ok && ename != "" {
 			transform["req"] = map[string]any{ename: "`reqdata`"}
+		} else if body := closedBodyTransform(reqschema); body != nil {
+			// A CLOSED body schema names every property the server will
+			// accept, so the body is those properties — not the whole request
+			// payload. The payload also carries the op's PATH params (`id` for
+			// `PUT /item/{id}`), and a closed shape rejects the entire request
+			// over that one extra key: every update came back 400 with
+			// `invalid-data`.
+			transform["req"] = body
 		}
 	}
 
@@ -1875,30 +1914,6 @@ func getResponseSchemaProps(response map[string]any) map[string]any {
 	}
 	props, _ := schema["properties"].(map[string]any)
 	return props
-}
-
-// isEntityWrapperProp reports whether a response property "wraps" the entity:
-// it must be a structured value that could contain the entity (object, array,
-// $ref, or composed allOf/oneOf/anyOf schema). A scalar property (string,
-// integer, number, boolean) that merely shares the entity's name is a field of
-// the entity, not a wrapper. Mirrors ts/src/guide/heuristic01.ts.
-func isEntityWrapperProp(propSchema any) bool {
-	prop, ok := propSchema.(map[string]any)
-	if !ok || prop == nil {
-		return false
-	}
-	if prop["$ref"] != nil {
-		return true
-	}
-	if prop["properties"] != nil ||
-		prop["items"] != nil ||
-		prop["allOf"] != nil ||
-		prop["oneOf"] != nil ||
-		prop["anyOf"] != nil {
-		return true
-	}
-	t := safeStr(prop["type"])
-	return t == "object" || t == "array"
 }
 
 // getRequestBodySchemaProps gets properties from a request body schema.

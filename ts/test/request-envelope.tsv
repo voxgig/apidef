@@ -1,0 +1,7 @@
+reqschema	origname	name	expected
+{"type":"object","properties":{"todoitem":{"$ref":"#/x"}}}	todoitem	todoitem	todoitem
+{"type":"object","properties":{"TodoItem":{"$ref":"#/x"}}}	TodoItem	todoitem	TodoItem
+{"type":"object","properties":{"todoitem":{"$ref":"#/x"}}}	widget	todoitem	todoitem
+{"type":"object","properties":{"title":{"type":"string"}}}	todoitem	todoitem
+{"type":"object","additionalProperties":false,"properties":{"title":{"type":"string"}}}	todoitem	todoitem
+{}	todoitem	todoitem

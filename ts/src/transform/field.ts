@@ -4,7 +4,7 @@ import { each, getx } from 'jostraca'
 
 import type { TransformResult, Transform } from '../transform'
 
-import { validator, canonize, inferFieldType, normalizeFieldName } from '../utility'
+import { validator, canonize, inferFieldType, normalizeFieldName, envelopeProp } from '../utility'
 
 import { KIT } from '../types'
 
@@ -149,6 +149,21 @@ function findFieldDefs(
       else if ('put' === method && null == fieldSets) {
         fieldSets = getx(responses, '201 content "application/json" schema') ??
           getx(responses, '201 schema')
+      }
+
+      // Single-entity responses get the same treatment the list branch above
+      // already gives collections: a body that is only an envelope around the
+      // entity — `{item: {...}}` — describes the WRAPPER, not the entity, so
+      // its sole property would otherwise be harvested as a field. That is
+      // how an entity `todoitem` ended up with a required `item` field of
+      // type object, which then appeared in the generated create/update data
+      // types. envelopeProp applies the same two rules used to pick the
+      // response transform, so the field list and the transform agree.
+      if ('list' != mop.name) {
+        const envelope = envelopeProp(fieldSets?.properties, mop.name)
+        if (null != envelope) {
+          fieldSets = fieldSets.properties[envelope]
+        }
       }
     }
 

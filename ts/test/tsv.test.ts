@@ -21,6 +21,8 @@ import {
   nom,
   formatJsonSrc,
   getModelPath,
+  envelopeProp,
+  closedBodyTransform,
 } from '../dist/utility'
 
 import {
@@ -36,6 +38,7 @@ import {
 import {
   cleanTransform,
 } from '../dist/transform/clean'
+
 
 import {
   fixName,
@@ -487,4 +490,85 @@ describe('tsv-getModelPath-extended', () => {
     assert.deepStrictEqual(v.a.name, 'a')
     assert.deepStrictEqual(v.c.name, 'c')
   })
+})
+
+
+// envelopeProp decides whether a 200/201 body is an ENVELOPE around the
+// result — `{item: {...}}`, `{items: [...]}` — or the result itself. It runs
+// only after the entity-name rules in ResolveTransform have failed, which is
+// the common case for a spec whose wrapper is named for the cardinality
+// rather than the entity: without it, list() returns the envelope object
+// where the caller expects an array, and `item`/`items` is picked up as a
+// field of the entity.
+//
+// The fixture pins both directions. A row with an empty `expected` is a
+// deliberate NON-match: multiple properties (a delete's `{ok,id}`, a paged
+// `{results,next}`), a scalar property that is really a field, or a wrapper
+// whose cardinality contradicts the op. Mirrors go/tsv_test.go
+// TestEnvelopeProp — one fixture, both languages.
+describe('tsv-envelope-prop', () => {
+  const rows = loadTsv('envelope-prop')
+  for (const row of rows) {
+    test(`envelopeProp(${row.resprops}, "${row.opname}") => "${row.expected}"`, () => {
+      const resprops = JSON.parse(row.resprops)
+      const expected = '' === row.expected ? null : row.expected
+      assert.deepStrictEqual(envelopeProp(resprops, row.opname), expected)
+    })
+  }
+})
+
+
+// closedBodyTransform turns a CLOSED request-body schema into the mapping
+// that builds the body from the request payload. `additionalProperties:
+// false` is the spec stating the server rejects anything it did not declare,
+// so the body must be exactly those properties — not the whole payload,
+// which also carries the op's path params (`id` for `PUT /item/{id}`). One
+// extra key against a closed shape 400s the entire request.
+//
+// An OPEN or property-less schema returns null: the default `reqdata` (send
+// everything) stays correct there, because an open body accepts extras and a
+// schema with no declared properties gives nothing to restrict to. Mirrors
+// go/tsv_test.go TestClosedBodyTransform.
+describe('tsv-closed-body-transform', () => {
+  const rows = loadTsv('closed-body-transform')
+  for (const row of rows) {
+    test(`closedBodyTransform(${row.schema})`, () => {
+      const got = closedBodyTransform(JSON.parse(row.schema))
+      // Spread to a plain object before comparing: the map is built with a
+      // null prototype ON PURPOSE (a `__proto__` property would otherwise be
+      // swallowed), and deepStrictEqual treats that as a difference.
+      assert.deepStrictEqual(
+        null == got ? null : { ...got }, JSON.parse(row.expected))
+    })
+  }
+})
+
+
+// The entity-named REQUEST envelope — a body of `{todoitem: {...}}` — is
+// detected by name, and the name lives under the schema's `.properties`.
+// TypeScript used to index the SCHEMA (`schema['todoitem']`, always
+// undefined) while the Go port read `.properties` and found it. The
+// divergence was inert only while `req` was never serialised; once it was,
+// the two produced different request bodies for the same spec.
+//
+// `expected` is the wrapper property name, or empty for no name match — the
+// case that falls through to closedBodyTransform. Mirrors go/tsv_test.go
+// TestRequestEnvelopeProp.
+describe('tsv-request-envelope', () => {
+  const rows = loadTsv('request-envelope')
+
+  // The name lookup as ResolveTransform performs it.
+  function wrapperName(schema: any, origname: string, name: string): string {
+    const props = schema?.properties
+    return null != props?.[origname] ? origname :
+      null != props?.[name] ? name : ''
+  }
+
+  for (const row of rows) {
+    test(`request envelope ${row.reqschema} (${row.origname}/${row.name})`, () => {
+      assert.strictEqual(
+        wrapperName(JSON.parse(row.reqschema), row.origname, row.name),
+        row.expected)
+    })
+  }
 })

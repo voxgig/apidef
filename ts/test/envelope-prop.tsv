@@ -1,0 +1,22 @@
+resprops	opname	expected
+{"item":{"$ref":"#/components/schemas/TodoItem"}}	load	item
+{"item":{"$ref":"#/components/schemas/TodoItem"}}	create	item
+{"item":{"$ref":"#/components/schemas/TodoItem"}}	update	item
+{"items":{"type":"array","items":{"$ref":"#/components/schemas/TodoItem"}}}	list	items
+{"data":{"type":"object"}}	load	data
+{"results":{"type":"array"}}	list	results
+{"items":{"type":"array"}}	load
+{"item":{"$ref":"#/components/schemas/TodoItem"}}	list
+{"ok":{"type":"boolean"},"id":{"type":"string"}}	remove
+{"results":{"type":"array"},"next":{"type":"string"}}	list
+{"name":{"type":"string"}}	load
+{"count":{"type":"integer"}}	list
+{}	load
+{"item":{"allOf":[{"$ref":"#/components/schemas/TodoItem"}]}}	load	item
+{"item":{"properties":{"id":{"type":"string"}}}}	load	item
+{"list":{"items":{"$ref":"#/components/schemas/TodoItem"}}}	list	list
+{"items":{"oneOf":[{"type":"array","items":{"$ref":"#/x"}}]}}	list	items
+{"item":{"oneOf":[{"type":"object"},{"$ref":"#/x"}]}}	load	item
+{"item":{"oneOf":[{"type":"array"},{"type":"object"}]}}	load
+{"items":{"oneOf":[{"type":"array"},{"type":"object"}]}}	list
+{"item":{"allOf":[]}}	load
