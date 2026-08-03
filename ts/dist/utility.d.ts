@@ -57,4 +57,7 @@ declare function getModelPath(model: any, path: string, flags?: {
     only_active?: boolean;
 }): any;
 export type { PathMatch };
-export { nom, getdlog, loadFile, formatJsonSrc, depluralize, setCustomPlurals, clearCustomPlurals, find, capture, pathMatch, makeWarner, formatJSONIC, validator, VALID_CANON, CANON_ONE, canonize, canonizeCmpName, stripSchemaNamespace, sanitizeSlug, slugToPascalCase, transliterate, cleanComponentName, ensureMinEntityName, inferFieldType, normalizeFieldName, debugpath, findPathsWithPrefix, writeFileSyncWarn, warnOnError, relativizePath, getModelPath, sortedKeys, sortedEntries, };
+declare function isEntityWrapperProp(propSchema: any): boolean;
+declare function envelopeProp(resprops: any, opname: string): string | null;
+declare function closedBodyTransform(schema: any): Record<string, string> | null;
+export { nom, getdlog, loadFile, formatJsonSrc, depluralize, setCustomPlurals, clearCustomPlurals, find, capture, pathMatch, makeWarner, formatJSONIC, validator, VALID_CANON, CANON_ONE, canonize, canonizeCmpName, stripSchemaNamespace, sanitizeSlug, slugToPascalCase, transliterate, cleanComponentName, ensureMinEntityName, inferFieldType, normalizeFieldName, debugpath, findPathsWithPrefix, writeFileSyncWarn, warnOnError, relativizePath, getModelPath, sortedKeys, sortedEntries, isEntityWrapperProp, envelopeProp, closedBodyTransform, };

@@ -433,4 +433,46 @@ function loadTsv(name) {
         node_assert_1.default.deepStrictEqual(v.c.name, 'c');
     });
 });
+// envelopeProp decides whether a 200/201 body is an ENVELOPE around the
+// result — `{item: {...}}`, `{items: [...]}` — or the result itself. It runs
+// only after the entity-name rules in ResolveTransform have failed, which is
+// the common case for a spec whose wrapper is named for the cardinality
+// rather than the entity: without it, list() returns the envelope object
+// where the caller expects an array, and `item`/`items` is picked up as a
+// field of the entity.
+//
+// The fixture pins both directions. A row with an empty `expected` is a
+// deliberate NON-match: multiple properties (a delete's `{ok,id}`, a paged
+// `{results,next}`), a scalar property that is really a field, or a wrapper
+// whose cardinality contradicts the op. Mirrors go/tsv_test.go
+// TestEnvelopeProp — one fixture, both languages.
+(0, node_test_1.describe)('tsv-envelope-prop', () => {
+    const rows = loadTsv('envelope-prop');
+    for (const row of rows) {
+        (0, node_test_1.test)(`envelopeProp(${row.resprops}, "${row.opname}") => "${row.expected}"`, () => {
+            const resprops = JSON.parse(row.resprops);
+            const expected = '' === row.expected ? null : row.expected;
+            node_assert_1.default.deepStrictEqual((0, utility_1.envelopeProp)(resprops, row.opname), expected);
+        });
+    }
+});
+// closedBodyTransform turns a CLOSED request-body schema into the mapping
+// that builds the body from the request payload. `additionalProperties:
+// false` is the spec stating the server rejects anything it did not declare,
+// so the body must be exactly those properties — not the whole payload,
+// which also carries the op's path params (`id` for `PUT /item/{id}`). One
+// extra key against a closed shape 400s the entire request.
+//
+// An OPEN or property-less schema returns null: the default `reqdata` (send
+// everything) stays correct there, because an open body accepts extras and a
+// schema with no declared properties gives nothing to restrict to. Mirrors
+// go/tsv_test.go TestClosedBodyTransform.
+(0, node_test_1.describe)('tsv-closed-body-transform', () => {
+    const rows = loadTsv('closed-body-transform');
+    for (const row of rows) {
+        (0, node_test_1.test)(`closedBodyTransform(${row.schema})`, () => {
+            node_assert_1.default.deepStrictEqual((0, utility_1.closedBodyTransform)(JSON.parse(row.schema)), JSON.parse(row.expected));
+        });
+    }
+});
 //# sourceMappingURL=tsv.test.js.map

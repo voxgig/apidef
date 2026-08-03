@@ -1,0 +1,8 @@
+schema	expected
+{"additionalProperties":false,"properties":{"title":{"type":"string"},"done":{"type":"boolean"}}}	{"title":"`reqdata.title`","done":"`reqdata.done`"}
+{"additionalProperties":false,"properties":{"name":{"type":"string"}}}	{"name":"`reqdata.name`"}
+{"properties":{"title":{"type":"string"}}}	null
+{"additionalProperties":true,"properties":{"title":{"type":"string"}}}	null
+{"additionalProperties":false,"properties":{}}	null
+{"additionalProperties":false}	null
+{}	null

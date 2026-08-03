@@ -6,7 +6,7 @@ import { snakify, camelify, kebabify, each } from 'jostraca'
 import { decircular } from '@voxgig/util'
 
 import {
-  slice, merge, inject, clone, isnode, walk, transform, select,
+  slice, merge, inject, clone, isnode, walk, transform, select, keysof,
   Injection,
   M_VAL,
   M_KEYPRE,
@@ -1405,6 +1405,103 @@ export type {
   PathMatch
 }
 
+
+// A response property only "wraps" the entity when it is itself a structured
+// value that could contain the entity: an object, an array, a $ref, or a
+// composed (allOf/oneOf/anyOf) schema. A scalar property (string, integer,
+// number, boolean) that merely shares the entity's name is a field of the
+// entity, not a wrapper, so the response must not be unwrapped down to it.
+function isEntityWrapperProp(propSchema: any): boolean {
+  if (null == propSchema || 'object' !== typeof propSchema) {
+    return false
+  }
+  if (null != propSchema.$ref) {
+    return true
+  }
+  if (null != propSchema.properties ||
+    null != propSchema.items ||
+    null != propSchema.allOf ||
+    null != propSchema.oneOf ||
+    null != propSchema.anyOf) {
+    return true
+  }
+  const t = propSchema.type
+  return 'object' === t || 'array' === t
+}
+
+
+// A response body that is nothing but a single wrapper property is an
+// ENVELOPE around the result: `{item: {...}}`, `{data: {...}}`,
+// `{items: [...]}`, `{results: [...]}`. Return that property's name so the
+// caller can unwrap to it, or null when the body is the result itself.
+//
+// Two conditions keep this from firing on a response that IS the entity:
+//
+//   1. EXACTLY ONE property. A body with siblings is a structure in its own
+//      right, not a wrapper — `{ok, id}` from a delete, or any paged
+//      `{results, next}`, must be handed over whole.
+//   2. The property's SHAPE matches the operation's cardinality. A `list`
+//      unwraps only to an array, every other op only to a non-array. So a
+//      single-entity op facing `{items: [...]}` is left alone rather than
+//      silently yielding a list, and vice versa.
+//
+// A one-field entity whose sole field is itself structured can still be
+// unwrapped wrongly; that is the residual cost of the spec not saying which
+// it means. Naming the wrapper after the entity remains the unambiguous
+// signal, and is still checked first.
+function envelopeProp(resprops: any, opname: string): string | null {
+  const keys = keysof(resprops)
+  if (1 !== keys.length) {
+    return null
+  }
+
+  const key = keys[0]
+  const prop = resprops[key]
+  if (!isEntityWrapperProp(prop)) {
+    return null
+  }
+
+  const islist = 'array' === prop.type || null != prop.items
+  if (islist !== ('list' === opname)) {
+    return null
+  }
+
+  return key
+}
+
+
+// The request BODY a closed schema permits, as a transform mapping.
+//
+// `additionalProperties: false` is the spec saying the server rejects any
+// property it did not declare. When a body says that, sending the caller's
+// whole request payload is wrong: an op's payload also carries its PATH
+// params (`id` for `PUT /item/{id}`), and a closed shape 400s the entire
+// request over that one extra key. Restricting the body to the declared
+// properties is then not a heuristic — it is what the spec asked for.
+//
+// Returns null for an open or property-less schema, where `reqdata` (send
+// everything) remains the right default: an open body accepts extras, and
+// with no declared properties there is nothing to restrict to.
+function closedBodyTransform(schema: any): Record<string, string> | null {
+  if (null == schema || 'object' !== typeof schema) {
+    return null
+  }
+  if (false !== schema.additionalProperties) {
+    return null
+  }
+
+  const names = keysof(schema.properties)
+  if (0 === names.length) {
+    return null
+  }
+
+  const out: Record<string, string> = {}
+  for (const name of names) {
+    out[name] = '`reqdata.' + name + '`'
+  }
+  return out
+}
+
 export {
   nom,
   getdlog,
@@ -1439,5 +1536,8 @@ export {
   getModelPath,
   sortedKeys,
   sortedEntries,
+  isEntityWrapperProp,
+  envelopeProp,
+  closedBodyTransform,
 
 }

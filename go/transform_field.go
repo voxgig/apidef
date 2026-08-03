@@ -143,6 +143,24 @@ func findFieldDefs(mtarget map[string]any, def map[string]any, opname string) []
 		} else if methodLower == "put" && fieldSets == nil {
 			fieldSets = getFieldResponseSchema(responses, "201")
 		}
+
+		// Single-entity responses get the same treatment the list branch above
+		// already gives collections: a body that is only an envelope around
+		// the entity — `{item: {...}}` — describes the WRAPPER, not the
+		// entity, so its sole property would otherwise be harvested as a
+		// field. That is how an entity `todoitem` ended up with a required
+		// `item` field of type object, which then appeared in the generated
+		// create/update data types. envelopeProp applies the same two rules
+		// used to pick the response transform, so the field list and the
+		// transform agree. Mirrors src/transform/field.ts.
+		if opname != "list" {
+			if fsmap, ok := fieldSets.(map[string]any); ok {
+				props, _ := fsmap["properties"].(map[string]any)
+				if envelope := envelopeProp(props, opname); envelope != "" {
+					fieldSets = props[envelope]
+				}
+			}
+		}
 	}
 
 	// A QUERY (RFC 10008) request body is a filter/query schema, not the
