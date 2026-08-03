@@ -1141,13 +1141,22 @@ function ResolveTransform(spec: TaskSpec) {
     }
   }
 
-  const reqprops = getRequestBodySchema(mdesc.requestBody)
+  // The SCHEMA is what closedBodyTransform needs (it reads
+  // additionalProperties); the wrapper-name checks need its PROPERTIES. They
+  // used to share one value and index the schema itself, so
+  // `schema['todoitem']` was always undefined and the entity-name request
+  // envelope was never detected — while the Go port read `.properties` and
+  // did detect it. That divergence was inert only because `req` was never
+  // serialised; now that it is, the two implementations would emit different
+  // request bodies for the same spec.
+  const reqschema = getRequestBodySchema(mdesc.requestBody)
+  const reqprops = reqschema?.properties
   debugpath(pathStr, methodName, 'TRANSFORM-REQ', keysof(reqprops))
-  if (reqprops) {
-    if (reqprops[entdesc.origname]) {
+  if (reqschema) {
+    if (null != reqprops?.[entdesc.origname]) {
       transform.req = { [entdesc.origname]: '`reqdata`' }
     }
-    else if (reqprops[entdesc.name]) {
+    else if (null != reqprops?.[entdesc.name]) {
       transform.req = { [entdesc.name]: '`reqdata`' }
     }
     else {
@@ -1156,7 +1165,7 @@ function ResolveTransform(spec: TaskSpec) {
       // payload also carries the op's PATH params (`id` for
       // `PUT /item/{id}`), and a closed shape rejects the entire request over
       // that one extra key: every update came back 400 with `invalid-data`.
-      const body = closedBodyTransform(reqprops)
+      const body = closedBodyTransform(reqschema)
       if (null != body) {
         transform.req = body
       }

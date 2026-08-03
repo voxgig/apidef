@@ -638,3 +638,43 @@ func TestClosedBodyTransform(t *testing.T) {
 		})
 	}
 }
+
+// The entity-named REQUEST envelope — a body of `{todoitem: {...}}` — is
+// detected by name, and the name lives under the schema's `.properties`. The
+// TypeScript side used to index the SCHEMA (always undefined) while this port
+// read `.properties` and found it; the divergence was inert only while `req`
+// was never serialised. Mirrors ts/test/tsv.test.ts tsv-request-envelope —
+// one fixture, both languages.
+func TestRequestEnvelopeProp(t *testing.T) {
+	rows := loadTsv(t, "request-envelope")
+	if len(rows) == 0 {
+		t.Fatal("no request-envelope rows loaded")
+	}
+
+	// The name lookup as resolveTransform performs it.
+	wrapperName := func(schema map[string]any, origname, name string) string {
+		props, _ := schema["properties"].(map[string]any)
+		if _, ok := props[origname]; ok && origname != "" {
+			return origname
+		}
+		if _, ok := props[name]; ok && name != "" {
+			return name
+		}
+		return ""
+	}
+
+	for _, row := range rows {
+		src, origname, name, want :=
+			row["reqschema"], row["origname"], row["name"], row["expected"]
+		t.Run(src+" "+origname+"/"+name, func(t *testing.T) {
+			var schema map[string]any
+			if err := json.Unmarshal([]byte(src), &schema); err != nil {
+				t.Fatalf("bad reqschema %q: %v", src, err)
+			}
+			if got := wrapperName(schema, origname, name); got != want {
+				t.Errorf("wrapperName(%s, %q, %q) = %q, want %q",
+					src, origname, name, got, want)
+			}
+		})
+	}
+}

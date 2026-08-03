@@ -6,3 +6,5 @@ schema	expected
 {"additionalProperties":false,"properties":{}}	null
 {"additionalProperties":false}	null
 {}	null
+{"additionalProperties":false,"properties":{"UserName":{"type":"string"},"conditions[type]":{"type":"string"}}}	{"UserName":"`reqdata.user_name`","conditions[type]":"`reqdata.conditions_type`"}
+{"additionalProperties":false,"properties":{"__proto__":{"type":"string"}}}	{"__proto__":"`reqdata.proto`"}

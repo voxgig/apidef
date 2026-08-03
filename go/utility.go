@@ -1458,13 +1458,56 @@ func envelopeProp(resprops map[string]any, opname string) string {
 		return ""
 	}
 
-	propmap, _ := prop.(map[string]any)
-	islist := safeStr(propmap["type"]) == "array" || propmap["items"] != nil
-	if islist != (opname == "list") {
+	islist, known := propIsList(prop)
+	if !known || islist != (opname == "list") {
 		return ""
 	}
 
 	return key
+}
+
+// propIsList reports whether a schema is a collection, and whether the schema
+// says at all.
+//
+// isEntityWrapperProp accepts a composed schema (allOf/oneOf/anyOf) as
+// structured, but a composed schema carries no outer `type` or `items` — so
+// reading those alone silently called it a non-list. A `list` then kept its
+// envelope, and worse, a single-entity op unwrapped to an array-valued
+// property. Composed branches are inspected instead, and unanimity required: a
+// union that is an array in one branch and an object in another does not say
+// what the caller will get, and an envelope is not worth guessing at. Mirrors
+// ts/src/utility.ts.
+func propIsList(schema any) (bool, bool) {
+	sch, ok := schema.(map[string]any)
+	if !ok || sch == nil {
+		return false, false
+	}
+
+	branches, ok := sch["allOf"].([]any)
+	if !ok {
+		branches, ok = sch["oneOf"].([]any)
+	}
+	if !ok {
+		branches, ok = sch["anyOf"].([]any)
+	}
+	if ok {
+		if len(branches) == 0 {
+			return false, false
+		}
+		first, known := propIsList(branches[0])
+		if !known {
+			return false, false
+		}
+		for _, branch := range branches {
+			islist, known := propIsList(branch)
+			if !known || islist != first {
+				return false, false
+			}
+		}
+		return first, true
+	}
+
+	return safeStr(sch["type"]) == "array" || sch["items"] != nil, true
 }
 
 // isEntityWrapperProp reports whether a response property "wraps" the entity:
@@ -1520,9 +1563,16 @@ func closedBodyTransform(schema any) map[string]any {
 		return nil
 	}
 
+	// The KEY is the property's wire name — that is what goes on the wire and
+	// what the server matches against. The SOURCE is read by the field's
+	// CANONICAL name, because that is the only name the caller ever sees:
+	// findFieldDefs runs every property through Canonize(NormalizeFieldName()),
+	// so a spec property `UserName` reaches the generated request type as
+	// `user_name`. Reading `reqdata.UserName` would find nothing and send an
+	// undefined value.
 	out := map[string]any{}
 	for name := range props {
-		out[name] = "`reqdata." + name + "`"
+		out[name] = "`reqdata." + Canonize(NormalizeFieldName(name)) + "`"
 	}
 	return out
 }

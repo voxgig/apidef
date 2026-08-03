@@ -1235,11 +1235,42 @@ function envelopeProp(resprops, opname) {
     if (!isEntityWrapperProp(prop)) {
         return null;
     }
-    const islist = 'array' === prop.type || null != prop.items;
-    if (islist !== ('list' === opname)) {
+    const islist = propIsList(prop);
+    if (null == islist || islist !== ('list' === opname)) {
         return null;
     }
     return key;
+}
+// Is this schema a collection? null when the schema does not say.
+//
+// `isEntityWrapperProp` accepts a composed schema (allOf/oneOf/anyOf) as
+// structured, but a composed schema carries no outer `type` or `items` — so
+// reading those alone silently called it a non-list. A `list` then kept its
+// envelope, and worse, a single-entity op unwrapped to an array-valued
+// property. Composed branches are inspected instead, and unanimity required:
+// a union that is an array in one branch and an object in another does not
+// say what the caller will get, and an envelope is not worth guessing at.
+function propIsList(schema) {
+    if (null == schema || 'object' !== typeof schema) {
+        return null;
+    }
+    const branches = schema.allOf ?? schema.oneOf ?? schema.anyOf;
+    if (Array.isArray(branches)) {
+        if (0 === branches.length) {
+            return null;
+        }
+        const first = propIsList(branches[0]);
+        if (null == first) {
+            return null;
+        }
+        for (const branch of branches) {
+            if (propIsList(branch) !== first) {
+                return null;
+            }
+        }
+        return first;
+    }
+    return 'array' === schema.type || null != schema.items;
 }
 // The request BODY a closed schema permits, as a transform mapping.
 //
@@ -1253,6 +1284,14 @@ function envelopeProp(resprops, opname) {
 // Returns null for an open or property-less schema, where `reqdata` (send
 // everything) remains the right default: an open body accepts extras, and
 // with no declared properties there is nothing to restrict to.
+//
+// The KEY is the property's wire name — that is what goes on the wire and
+// what the server matches against. The SOURCE is read by the field's
+// CANONICAL name, because that is the only name the caller ever sees:
+// findFieldDefs runs every property through `canonize(normalizeFieldName())`,
+// so a spec property `UserName` reaches the generated request type as
+// `user_name`. Reading `reqdata.UserName` would find nothing and send
+// undefined.
 function closedBodyTransform(schema) {
     if (null == schema || 'object' !== typeof schema) {
         return null;
@@ -1264,9 +1303,13 @@ function closedBodyTransform(schema) {
     if (0 === names.length) {
         return null;
     }
-    const out = {};
+    // Null prototype: a spec is free to declare a property called `__proto__`,
+    // and on an ordinary object that assignment sets the prototype instead of
+    // creating an own property — the mapping would vanish, and with it the
+    // whole body restriction if it were the only one.
+    const out = Object.create(null);
     for (const name of names) {
-        out[name] = '`reqdata.' + name + '`';
+        out[name] = '`reqdata.' + canonize(normalizeFieldName(name)) + '`';
     }
     return out;
 }

@@ -471,7 +471,35 @@ function loadTsv(name) {
     const rows = loadTsv('closed-body-transform');
     for (const row of rows) {
         (0, node_test_1.test)(`closedBodyTransform(${row.schema})`, () => {
-            node_assert_1.default.deepStrictEqual((0, utility_1.closedBodyTransform)(JSON.parse(row.schema)), JSON.parse(row.expected));
+            const got = (0, utility_1.closedBodyTransform)(JSON.parse(row.schema));
+            // Spread to a plain object before comparing: the map is built with a
+            // null prototype ON PURPOSE (a `__proto__` property would otherwise be
+            // swallowed), and deepStrictEqual treats that as a difference.
+            node_assert_1.default.deepStrictEqual(null == got ? null : { ...got }, JSON.parse(row.expected));
+        });
+    }
+});
+// The entity-named REQUEST envelope — a body of `{todoitem: {...}}` — is
+// detected by name, and the name lives under the schema's `.properties`.
+// TypeScript used to index the SCHEMA (`schema['todoitem']`, always
+// undefined) while the Go port read `.properties` and found it. The
+// divergence was inert only while `req` was never serialised; once it was,
+// the two produced different request bodies for the same spec.
+//
+// `expected` is the wrapper property name, or empty for no name match — the
+// case that falls through to closedBodyTransform. Mirrors go/tsv_test.go
+// TestRequestEnvelopeProp.
+(0, node_test_1.describe)('tsv-request-envelope', () => {
+    const rows = loadTsv('request-envelope');
+    // The name lookup as ResolveTransform performs it.
+    function wrapperName(schema, origname, name) {
+        const props = schema?.properties;
+        return null != props?.[origname] ? origname :
+            null != props?.[name] ? name : '';
+    }
+    for (const row of rows) {
+        (0, node_test_1.test)(`request envelope ${row.reqschema} (${row.origname}/${row.name})`, () => {
+            node_assert_1.default.strictEqual(wrapperName(JSON.parse(row.reqschema), row.origname, row.name), row.expected);
         });
     }
 });

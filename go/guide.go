@@ -1277,24 +1277,28 @@ func resolveTransform(data map[string]any, mdesc map[string]any) {
 		}
 	}
 
-	// Check request body schema
+	// Check request body schema. The SCHEMA is what closedBodyTransform needs
+	// (it reads additionalProperties); the wrapper-name checks need its
+	// PROPERTIES. Mirrors ts/src/guide/heuristic01.ts, which used to share one
+	// value and index the schema itself — so the entity-name request envelope
+	// was detected here and not there.
 	reqBody, _ := mdesc["requestBody"].(map[string]any)
+	reqschema := getRequestBodySchema(reqBody)
 	reqprops := getRequestBodySchemaProps(reqBody)
 	DebugPath(pathStr, methodName, "TRANSFORM-REQ", reqprops)
 
-	if reqprops != nil {
+	if reqschema != nil {
 		if _, ok := reqprops[origname]; ok && origname != "" {
 			transform["req"] = map[string]any{origname: "`reqdata`"}
 		} else if _, ok := reqprops[ename]; ok && ename != "" {
 			transform["req"] = map[string]any{ename: "`reqdata`"}
-		} else if body := closedBodyTransform(getRequestBodySchema(reqBody)); body != nil {
+		} else if body := closedBodyTransform(reqschema); body != nil {
 			// A CLOSED body schema names every property the server will
 			// accept, so the body is those properties — not the whole request
 			// payload. The payload also carries the op's PATH params (`id` for
 			// `PUT /item/{id}`), and a closed shape rejects the entire request
 			// over that one extra key: every update came back 400 with
-			// `invalid-data`. Note this takes the SCHEMA, where the checks
-			// above take its properties.
+			// `invalid-data`.
 			transform["req"] = body
 		}
 	}

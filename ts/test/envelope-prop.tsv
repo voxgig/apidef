@@ -15,3 +15,8 @@ resprops	opname	expected
 {"item":{"allOf":[{"$ref":"#/components/schemas/TodoItem"}]}}	load	item
 {"item":{"properties":{"id":{"type":"string"}}}}	load	item
 {"list":{"items":{"$ref":"#/components/schemas/TodoItem"}}}	list	list
+{"items":{"oneOf":[{"type":"array","items":{"$ref":"#/x"}}]}}	list	items
+{"item":{"oneOf":[{"type":"object"},{"$ref":"#/x"}]}}	load	item
+{"item":{"oneOf":[{"type":"array"},{"type":"object"}]}}	load
+{"items":{"oneOf":[{"type":"array"},{"type":"object"}]}}	list
+{"item":{"allOf":[]}}	load
