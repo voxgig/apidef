@@ -66,6 +66,74 @@ function resolveEntity(
 }
 
 
+// Garbage-collect orphaned entity model files.
+//
+// The builder above EMITS one <outprefix><name>.aontu per derived entity but
+// never removes anything, so an entity that disappears from the def — a spec
+// rename, a dropped path, a schema rename that changes the derived entity
+// name — leaves its old file behind on every regen. The orphan is not in the
+// regenerated entity-index barrel, so it is silently dead weight at best; at
+// worst a later hand-include resurrects a stale surface.
+//
+// Deletion is guarded three ways, so nothing a user could own is touched:
+//   1. only `<outprefix>*.aontu` files inside the entity folder are candidates
+//      (a different outprefix belongs to a different def sharing the folder);
+//   2. the current entity set and the index barrel are always kept;
+//   3. the file must START with the generated header (`# Entity: `) — a file
+//      apidef did not write is left alone.
+//
+// GC failure must never fail a build: errors are logged and swallowed.
+function gcEntityFiles(
+  fs: any,
+  log: any,
+  modelFolder: string,
+  outprefix: string | undefined,
+  entityNames: string[],
+): string[] {
+  const removed: string[] = []
+  const prefix = null == outprefix ? '' : outprefix
+  const entityFolder = Path.join(modelFolder, 'entity')
+
+  const keep = new Set<string>(
+    entityNames.map((name) => prefix + name + '.aontu'))
+  keep.add(prefix + 'entity-index.aontu')
+
+  let entries: string[] = []
+  try {
+    entries = fs.readdirSync(entityFolder)
+  }
+  catch (_err: any) {
+    return removed // no entity folder yet — nothing to collect
+  }
+
+  for (const entry of entries) {
+    if (!entry.endsWith('.aontu')) { continue }
+    if (!entry.startsWith(prefix)) { continue }
+    if (keep.has(entry)) { continue }
+
+    const file = Path.join(entityFolder, entry)
+    try {
+      const head = String(fs.readFileSync(file)).slice(0, 64)
+      if (!head.startsWith('# Entity: ')) { continue }
+      fs.unlinkSync(file)
+      removed.push(entry)
+      log?.info?.({
+        point: 'entity-gc', file: entry,
+        note: `removed orphaned entity model file ${entry} (no longer derived from the def)`,
+      })
+    }
+    catch (err: any) {
+      log?.warn?.({
+        point: 'entity-gc-failed', file: entry, err,
+        note: `could not gc ${entry}: ${err?.message}`,
+      })
+    }
+  }
+
+  return removed
+}
+
+
 function fieldAliases(_entity: any): string {
   // Field aliasing (mapping e.g. a `<name>_id` field onto the canonical
   // `id`) is not currently implemented. The original heuristic referenced
@@ -81,5 +149,6 @@ function fieldAliases(_entity: any): string {
 
 
 export {
-  resolveEntity
+  resolveEntity,
+  gcEntityFiles,
 }

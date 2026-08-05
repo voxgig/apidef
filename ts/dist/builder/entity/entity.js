@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.resolveEntity = resolveEntity;
+exports.gcEntityFiles = gcEntityFiles;
 const node_path_1 = __importDefault(require("node:path"));
 const jostraca_1 = require("jostraca");
 const types_1 = require("../../types");
@@ -37,6 +38,68 @@ function resolveEntity(apimodel, opts) {
             (0, jostraca_1.File)({ name: indexFile }, () => (0, jostraca_1.Content)(barrel.join('\n')));
         });
     };
+}
+// Garbage-collect orphaned entity model files.
+//
+// The builder above EMITS one <outprefix><name>.aontu per derived entity but
+// never removes anything, so an entity that disappears from the def — a spec
+// rename, a dropped path, a schema rename that changes the derived entity
+// name — leaves its old file behind on every regen. The orphan is not in the
+// regenerated entity-index barrel, so it is silently dead weight at best; at
+// worst a later hand-include resurrects a stale surface.
+//
+// Deletion is guarded three ways, so nothing a user could own is touched:
+//   1. only `<outprefix>*.aontu` files inside the entity folder are candidates
+//      (a different outprefix belongs to a different def sharing the folder);
+//   2. the current entity set and the index barrel are always kept;
+//   3. the file must START with the generated header (`# Entity: `) — a file
+//      apidef did not write is left alone.
+//
+// GC failure must never fail a build: errors are logged and swallowed.
+function gcEntityFiles(fs, log, modelFolder, outprefix, entityNames) {
+    const removed = [];
+    const prefix = null == outprefix ? '' : outprefix;
+    const entityFolder = node_path_1.default.join(modelFolder, 'entity');
+    const keep = new Set(entityNames.map((name) => prefix + name + '.aontu'));
+    keep.add(prefix + 'entity-index.aontu');
+    let entries = [];
+    try {
+        entries = fs.readdirSync(entityFolder);
+    }
+    catch (_err) {
+        return removed; // no entity folder yet — nothing to collect
+    }
+    for (const entry of entries) {
+        if (!entry.endsWith('.aontu')) {
+            continue;
+        }
+        if (!entry.startsWith(prefix)) {
+            continue;
+        }
+        if (keep.has(entry)) {
+            continue;
+        }
+        const file = node_path_1.default.join(entityFolder, entry);
+        try {
+            const head = String(fs.readFileSync(file)).slice(0, 64);
+            if (!head.startsWith('# Entity: ')) {
+                continue;
+            }
+            fs.unlinkSync(file);
+            removed.push(entry);
+            log?.info?.({
+                point: 'entity-gc', file: entry,
+                note: `removed orphaned entity model file ${entry} (no longer derived from the def)`,
+            });
+        }
+        catch (err) {
+            log?.warn?.({
+                point: 'entity-gc-failed', file: entry, err,
+                note: `could not gc ${entry}: ${err?.message}`,
+            });
+        }
+    }
+    return removed;
 }
 function fieldAliases(_entity) {
     // Field aliasing (mapping e.g. a `<name>_id` field onto the canonical

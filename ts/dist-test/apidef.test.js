@@ -265,6 +265,66 @@ def: '${outprefix}def.yaml'
         });
         node_assert_1.default.deepStrictEqual(model.main.kit, SOLAR_MODEL.main.kit);
     });
+    // The entity builders only ever WRITE: a spec change that removes or
+    // renames a derived entity used to leave the old <name>.aontu behind on
+    // every regen (12 orphaned list_*.aontu on the dingconnect build). The GC
+    // removes exactly those — and nothing a user could own.
+    (0, node_test_1.describe)('entity-gc', () => {
+        const Os = require('node:os');
+        const PathMod = require('node:path');
+        function tmpModel(files) {
+            const dir = Fs.mkdtempSync(PathMod.join(Os.tmpdir(), 'apidef-gc-'));
+            Fs.mkdirSync(PathMod.join(dir, 'entity'));
+            for (const [name, content] of Object.entries(files)) {
+                Fs.writeFileSync(PathMod.join(dir, 'entity', name), content);
+            }
+            return dir;
+        }
+        const GEN = (name) => `# Entity: ${name}\n\nmain: kit: entity: ${name}: {}\n`;
+        const listing = (dir) => Fs.readdirSync(PathMod.join(dir, 'entity')).sort();
+        (0, node_test_1.test)('removes generated files for entities no longer derived', () => {
+            const dir = tmpModel({
+                'country.aontu': GEN('country'),
+                'list_country.aontu': GEN('list_country'), // orphan
+                'entity-index.aontu': '# Entity Models\n',
+            });
+            const removed = (0, apidef_1.gcEntityFiles)(Fs, null, dir, undefined, ['country']);
+            node_assert_1.default.deepStrictEqual(removed, ['list_country.aontu']);
+            node_assert_1.default.deepStrictEqual(listing(dir), ['country.aontu', 'entity-index.aontu']);
+        });
+        (0, node_test_1.test)('never touches a file apidef did not write', () => {
+            const dir = tmpModel({
+                'country.aontu': GEN('country'),
+                'custom.aontu': '# my hand-written model fragment\nfoo: 1\n', // no generated header
+                'notes.txt': 'not aontu at all',
+            });
+            const removed = (0, apidef_1.gcEntityFiles)(Fs, null, dir, undefined, ['country']);
+            node_assert_1.default.deepStrictEqual(removed, []);
+            node_assert_1.default.deepStrictEqual(listing(dir), ['country.aontu', 'custom.aontu', 'notes.txt']);
+        });
+        (0, node_test_1.test)('respects outprefix — another def sharing the folder is not collected', () => {
+            const dir = tmpModel({
+                'solar-planet.aontu': GEN('planet'),
+                'solar-moon.aontu': GEN('moon'), // orphan of the solar def
+                'solar-entity-index.aontu': '# Entity Models\n',
+                'lunar-crater.aontu': GEN('crater'), // belongs to a DIFFERENT def
+            });
+            const removed = (0, apidef_1.gcEntityFiles)(Fs, null, dir, 'solar-', ['planet']);
+            node_assert_1.default.deepStrictEqual(removed, ['solar-moon.aontu']);
+            node_assert_1.default.deepStrictEqual(listing(dir), ['lunar-crater.aontu', 'solar-entity-index.aontu', 'solar-planet.aontu']);
+        });
+        (0, node_test_1.test)('keeps the index and the whole current set; missing folder is a no-op', () => {
+            const dir = tmpModel({
+                'a.aontu': GEN('a'), 'b.aontu': GEN('b'),
+                'entity-index.aontu': '# Entity Models\n',
+            });
+            node_assert_1.default.deepStrictEqual((0, apidef_1.gcEntityFiles)(Fs, null, dir, undefined, ['a', 'b']), []);
+            node_assert_1.default.deepStrictEqual(listing(dir), ['a.aontu', 'b.aontu', 'entity-index.aontu']);
+            // No entity folder at all: return empty, do not throw.
+            const empty = Fs.mkdtempSync(PathMod.join(Os.tmpdir(), 'apidef-gc-'));
+            node_assert_1.default.deepStrictEqual((0, apidef_1.gcEntityFiles)(Fs, null, empty, undefined, ['a']), []);
+        });
+    });
 });
 const SOLAR_GUIDE = {
     entity: {

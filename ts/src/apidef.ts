@@ -77,6 +77,7 @@ import { flowstepTransform } from './transform/flowstep'
 import { cleanTransform } from './transform/clean'
 
 import { makeEntityBuilder } from './builder/entity'
+import { gcEntityFiles } from './builder/entity/entity'
 import { makeFlowBuilder } from './builder/flow'
 
 // Log non-fatal wierdness.
@@ -301,6 +302,20 @@ function ApiDef(opts: ApiDefOptions) {
 
       steps.push('generate')
 
+      // Garbage-collect entity model files no longer derived from the def.
+      // The builders only ever WRITE: a spec change that removes or renames a
+      // derived entity used to leave the old <name>.aontu behind forever.
+      // Runs after generate so the current set is on disk; guarded so only
+      // apidef-generated files under this build's outprefix are touched.
+      try {
+        const kitEntity = (ctx.apimodel?.main as any)?.[KIT]?.entity || {}
+        gcEntityFiles(fs, log, opts.folder as string, opts.outprefix,
+          Object.keys(kitEntity))
+      }
+      catch (err: any) {
+        log.warn({ point: 'entity-gc-failed', err, note: String(err?.message) })
+      }
+
       const hasWarnings = 0 < warn.history.length
       const endnote =
         hasWarnings ? `PARTIAL BUILD! There were ${warn.history.length} warnings (see above).` :
@@ -466,6 +481,7 @@ export type {
 export {
   KIT,
   ApiDef,
+  gcEntityFiles,
   parse,
   formatJSONIC,
   depluralize,

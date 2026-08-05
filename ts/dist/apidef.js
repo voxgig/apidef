@@ -37,7 +37,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CANON_ONE = exports.VALID_CANON = exports.nom = exports.getModelPath = exports.slugToPascalCase = exports.sanitizeSlug = exports.depluralize = exports.formatJSONIC = exports.parse = exports.KIT = void 0;
+exports.CANON_ONE = exports.VALID_CANON = exports.nom = exports.getModelPath = exports.slugToPascalCase = exports.sanitizeSlug = exports.depluralize = exports.formatJSONIC = exports.parse = exports.gcEntityFiles = exports.KIT = void 0;
 exports.ApiDef = ApiDef;
 const Fs = __importStar(require("node:fs"));
 const node_path_1 = __importDefault(require("node:path"));
@@ -68,6 +68,8 @@ const flow_1 = require("./transform/flow");
 const flowstep_1 = require("./transform/flowstep");
 const clean_1 = require("./transform/clean");
 const entity_2 = require("./builder/entity");
+const entity_3 = require("./builder/entity/entity");
+Object.defineProperty(exports, "gcEntityFiles", { enumerable: true, get: function () { return entity_3.gcEntityFiles; } });
 const flow_2 = require("./builder/flow");
 // Log non-fatal wierdness.
 const dlog = (0, utility_1.getdlog)('apidef', __filename);
@@ -244,6 +246,18 @@ function ApiDef(opts) {
                 }
             }
             steps.push('generate');
+            // Garbage-collect entity model files no longer derived from the def.
+            // The builders only ever WRITE: a spec change that removes or renames a
+            // derived entity used to leave the old <name>.aontu behind forever.
+            // Runs after generate so the current set is on disk; guarded so only
+            // apidef-generated files under this build's outprefix are touched.
+            try {
+                const kitEntity = ctx.apimodel?.main?.[types_1.KIT]?.entity || {};
+                (0, entity_3.gcEntityFiles)(fs, log, opts.folder, opts.outprefix, Object.keys(kitEntity));
+            }
+            catch (err) {
+                log.warn({ point: 'entity-gc-failed', err, note: String(err?.message) });
+            }
             const hasWarnings = 0 < warn.history.length;
             const endnote = hasWarnings ? `PARTIAL BUILD! There were ${warn.history.length} warnings (see above).` :
                 'success';
