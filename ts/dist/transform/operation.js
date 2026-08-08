@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.operationTransform = void 0;
+const utility_1 = require("../utility");
 const jostraca_1 = require("jostraca");
 const types_1 = require("../types");
 const operationTransform = async function (ctx) {
@@ -8,6 +9,8 @@ const operationTransform = async function (ctx) {
     const kit = apimodel.main[types_1.KIT];
     let msg = 'operation ';
     (0, jostraca_1.each)(guide.entity, (gent, entname) => {
+        if (!(0, utility_1.guideActive)(gent))
+            return;
         collectOps(gent);
         const opm = {
             load: undefined,
@@ -34,6 +37,10 @@ function collectOps(gent) {
     gent.opm$ = gent.opm$ ?? {};
     (0, jostraca_1.each)(gent.paths$, (pathdesc) => {
         (0, jostraca_1.each)(pathdesc.op, (gop, opname) => {
+            // Op-level opt-out; see the entity-level note in transform/entity.ts.
+            if (!(0, utility_1.guideActive)(gop)) {
+                return;
+            }
             ;
             gent.opm$[opname] = gent.opm$[opname] ?? { paths: [] };
             const oppathdesc = {

@@ -21,7 +21,7 @@ import type {
   ModelEntity,
 } from '../model'
 
-import { depluralize } from '../utility'
+import { depluralize, guideActive } from '../utility'
 
 
 
@@ -45,6 +45,17 @@ const entityTransform: Transform = async function(
   mergeCollectionPaths(guide, ctx.log)
 
   each(guide.entity, (guideEntity: GuideEntity, entname: string) => {
+    // `active: false` in guide.aontu drops the entity. The guide model has
+    // always declared `active?: boolean` at entity, path and op level and the
+    // docs call it the intended escape hatch, but nothing read it — so an
+    // entity a heuristic invented (a response envelope classified as a
+    // resource, say) could not be removed by the one file a user is meant to
+    // edit. Absent means active, so existing guides are unaffected.
+    if (!guideActive(guideEntity)) {
+      ctx.log.debug({ point: 'guide-entity', note: entname, active: false })
+      return
+    }
+
     ctx.log.debug({ point: 'guide-entity', note: entname })
 
     const paths$ = resolvePathList(guideEntity, ctx.def)
@@ -172,6 +183,11 @@ function resolvePathList(guideEntity: GuideEntity, def: { paths: Record<string, 
   const paths$: PathDesc[] = []
 
   each(guideEntity.path, (guidePath: GuidePath, orig: string) => {
+    // Path-level opt-out (see the entity-level note above).
+    if (!guideActive(guidePath)) {
+      return
+    }
+
     const parts = orig.split('/').filter(p => '' != p)
     const rename = guidePath.rename ?? {}
 

@@ -22,6 +22,16 @@ const entityTransform = async function (ctx) {
     // sub-resources).
     mergeCollectionPaths(guide, ctx.log);
     (0, jostraca_1.each)(guide.entity, (guideEntity, entname) => {
+        // `active: false` in guide.aontu drops the entity. The guide model has
+        // always declared `active?: boolean` at entity, path and op level and the
+        // docs call it the intended escape hatch, but nothing read it — so an
+        // entity a heuristic invented (a response envelope classified as a
+        // resource, say) could not be removed by the one file a user is meant to
+        // edit. Absent means active, so existing guides are unaffected.
+        if (!(0, utility_1.guideActive)(guideEntity)) {
+            ctx.log.debug({ point: 'guide-entity', note: entname, active: false });
+            return;
+        }
         ctx.log.debug({ point: 'guide-entity', note: entname });
         const paths$ = resolvePathList(guideEntity, ctx.def);
         const relations = buildRelations(guideEntity, paths$);
@@ -137,6 +147,10 @@ function mergeCollectionPaths(guide, log) {
 function resolvePathList(guideEntity, def) {
     const paths$ = [];
     (0, jostraca_1.each)(guideEntity.path, (guidePath, orig) => {
+        // Path-level opt-out (see the entity-level note above).
+        if (!(0, utility_1.guideActive)(guidePath)) {
+            return;
+        }
         const parts = orig.split('/').filter(p => '' != p);
         const rename = guidePath.rename ?? {};
         (0, jostraca_1.each)(rename.param, (param) => {

@@ -9,6 +9,8 @@ const flowTransform = async function (ctx) {
     const kit = apimodel.main[types_1.KIT];
     let msg = '';
     (0, jostraca_1.each)(guide.entity, (guideEntity, entname) => {
+        if (!(0, utility_1.guideActive)(guideEntity))
+            return;
         ctx.log.debug({ point: 'guide-flow', note: entname });
         const modelent = kit.entity[entname];
         const basicflow = {

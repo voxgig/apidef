@@ -1,3 +1,4 @@
+import { guideActive } from '../utility'
 
 
 import { each } from 'jostraca'
@@ -33,6 +34,8 @@ const operationTransform: Transform = async function(
   let msg = 'operation '
 
   each(guide.entity, (gent: GuideEntity, entname: string) => {
+    if (!guideActive(gent)) return
+
     collectOps(gent)
 
     const opm: ModelOpMap = {
@@ -64,6 +67,11 @@ function collectOps(gent: GuideEntity) {
   ; (gent as any).opm$ = (gent as any).opm$ ?? {}
   each((gent as any).paths$, (pathdesc: PathDesc) => {
     each(pathdesc.op, (gop: GuidePathOp, opname: OpName) => {
+      // Op-level opt-out; see the entity-level note in transform/entity.ts.
+      if (!guideActive(gop)) {
+        return
+      }
+
       ; (gent as any).opm$[opname] = (gent as any).opm$[opname] ?? { paths: [] }
 
       const oppathdesc: PathDesc = {
