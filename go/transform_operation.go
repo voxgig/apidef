@@ -58,6 +58,10 @@ func collectOps(gent map[string]any, pathsDesc []map[string]any, methodIDOp map[
 			if gopMap == nil {
 				continue
 			}
+			// Op-level opt-out; see the entity-level note in transform_entity.go.
+			if !guideActive(gopMap) {
+				continue
+			}
 			method, _ := gopMap["method"].(string)
 
 			opPathDesc := map[string]any{

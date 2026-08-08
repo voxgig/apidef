@@ -638,6 +638,24 @@ var (
 	multiHyphenRE = regexp.MustCompile(`-+`)
 )
 
+// reCmpVersion splits a trailing _v<N> off a canonized component name.
+var reCmpVersion = regexp.MustCompile(`^(.*)_v(\d+)$`)
+
+// guideActive reports whether a guide node (entity, path or op) is active.
+// Absent means active. Mirrors src/utility.ts guideActive.
+func guideActive(node any) bool {
+	m, ok := node.(map[string]any)
+	if !ok {
+		return true
+	}
+	if v, has := m["active"]; has {
+		if b, isBool := v.(bool); isBool {
+			return b
+		}
+	}
+	return true
+}
+
 // CleanComponentName cleans a component name by removing common
 // suffixes/prefixes. Guarded wrapper suffixes (pagination and op-reply
 // wrappers: '_page_response', '_page', '_create_response',
@@ -655,6 +673,62 @@ func CleanComponentName(name string, isKnownCmp func(string) bool) string {
 	guarded := []string{"_create_response", "_update_response", "_page_response", "_page"}
 	suffixes := []string{"_rest_controller", "_controller", "_response", "_request"}
 	prefixes := []string{"get_", "post_", "put_", "delete_", "patch_"}
+	resultVerbs := []string{
+		"list", "create", "show", "update", "delete", "remove",
+		"get", "edit", "resolve", "rotate", "search",
+	}
+
+	// Version-tolerant known-schema probe: APIs that version their schemas
+	// name the base type SeverityV1 / IncidentV2, so a guard asking only for
+	// 'severity' misses by exactly the version suffix.
+	version := ""
+	preVersion := cleaned
+	if m := reCmpVersion.FindStringSubmatch(cleaned); m != nil {
+		version = m[2]
+		cleaned = m[1]
+	}
+	knownWithVersion := func(remainder string) bool {
+		if isKnownCmp == nil {
+			return false
+		}
+		if isKnownCmp(remainder) {
+			return true
+		}
+		return version != "" && isKnownCmp(remainder+"_v"+version)
+	}
+
+	// <namespace>_<verb>[_<object>]_result -> the object, else the namespace.
+	if isKnownCmp != nil && strings.HasSuffix(cleaned, "_result") {
+		base := strings.TrimSuffix(cleaned, "_result")
+		parts := strings.Split(base, "_")
+		vI := -1
+		for i, p := range parts {
+			for _, v := range resultVerbs {
+				if p == v {
+					vI = i
+					break
+				}
+			}
+			if vI >= 0 {
+				break
+			}
+		}
+		if vI >= 0 {
+			after := strings.Join(parts[vI+1:], "_")
+			before := strings.Join(parts[:vI], "_")
+			var cands []string
+			if after != "" {
+				cands = []string{Canonize(Depluralize(after)), Canonize(Depluralize(before + "_" + after))}
+			} else if before != "" {
+				cands = []string{Canonize(Depluralize(before))}
+			}
+			for _, cand := range cands {
+				if len(cand) >= 3 && knownWithVersion(cand) {
+					return cand
+				}
+			}
+		}
+	}
 
 	if isKnownCmp != nil {
 		for _, suffix := range guarded {
@@ -663,7 +737,7 @@ func CleanComponentName(name string, isKnownCmp func(string) bool) string {
 				suffixParts := len(strings.Split(strings.TrimPrefix(suffix, "_"), "_"))
 				if len(parts) > suffixParts {
 					remainder := Canonize(strings.Join(parts[:len(parts)-suffixParts], "_"))
-					if len(remainder) >= 3 && isKnownCmp(remainder) {
+					if len(remainder) >= 3 && knownWithVersion(remainder) {
 						cleaned = remainder
 						stripped = true
 					}
@@ -684,6 +758,12 @@ func CleanComponentName(name string, isKnownCmp func(string) bool) string {
 				break
 			}
 		}
+	}
+
+	// Nothing stripped it: restore the version suffix removed above, or a
+	// versioned schema that is a real entity (IncidentV2) silently renames.
+	if !stripped && cleaned == reCmpVersion.ReplaceAllString(preVersion, "$1") && version != "" {
+		cleaned = preVersion
 	}
 
 	for _, prefix := range prefixes {

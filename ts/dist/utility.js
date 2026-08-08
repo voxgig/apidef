@@ -24,6 +24,7 @@ exports.sanitizeSlug = sanitizeSlug;
 exports.slugToPascalCase = slugToPascalCase;
 exports.transliterate = transliterate;
 exports.cleanComponentName = cleanComponentName;
+exports.guideActive = guideActive;
 exports.ensureMinEntityName = ensureMinEntityName;
 exports.inferFieldType = inferFieldType;
 exports.normalizeFieldName = normalizeFieldName;
@@ -1022,17 +1023,76 @@ const CMP_SUFFIXES = ['_rest_controller', '_controller', '_response', '_request'
 // '_page_response'/'_create_response' also end with '_response'. Bare
 // '_create'/'_update' are never stripped: too likely part of a real noun.
 const CMP_GUARDED_SUFFIXES = ['_create_response', '_update_response', '_page_response', '_page'];
+// Op-reply wrappers of the form <namespace><Verb>Result (incident.io:
+// AlertsResolveResultV2, SeveritiesListResultV1). Same idea as
+// '_create_response' above, but the verb varies and sits before the wrapper
+// word rather than being part of a fixed pair, so the shape is matched rather
+// than enumerated. Guarded exactly like the others: nothing is stripped
+// unless the remainder is a real schema.
+const CMP_RESULT_VERBS = [
+    'list', 'create', 'show', 'update', 'delete', 'remove',
+    'get', 'edit', 'resolve', 'rotate', 'search',
+];
 const CMP_PREFIXES = ['get_', 'post_', 'put_', 'delete_', 'patch_'];
+// A guide node (entity, path or op) is active unless guide.aontu explicitly
+// says otherwise. `active` has always been declared in the guide model and
+// documented as the escape hatch for a misclassified entity; this is the
+// single place that decides what it means, so entity/flow/operation transforms
+// cannot drift on it.
+function guideActive(node) {
+    return false !== node?.active;
+}
 function cleanComponentName(name, isKnownCmp) {
     let cleaned = name;
     let stripped = false;
+    // Version-tolerant known-schema probe. APIs that version their schemas name
+    // the base type SeverityV1 / IncidentV2, so a guard asking only for
+    // 'severity' misses by exactly the version suffix and every wrapper survives.
+    const knownWithVersion = (remainder, version) => {
+        if (null == isKnownCmp)
+            return false;
+        if (isKnownCmp(remainder))
+            return true;
+        return null != version && isKnownCmp(remainder + '_v' + version);
+    };
+    // Split a trailing _v<N> off before any suffix matching, and remember it for
+    // the guard probe above. If nothing ends up stripping, the version is put
+    // BACK: a versioned schema that is a real entity (IncidentV2) must keep its
+    // name, or every such API silently renames.
+    let version = null;
+    const preVersion = cleaned;
+    {
+        const vm = cleaned.match(/^(.*)_v(\d+)$/);
+        if (vm) {
+            version = vm[2];
+            cleaned = vm[1];
+        }
+    }
+    // <namespace>_<verb>[_<object>]_result -> the object, else the namespace.
+    if (null != isKnownCmp && cleaned.endsWith('_result')) {
+        const base = cleaned.slice(0, -'_result'.length);
+        const parts = base.split('_');
+        const vI = parts.findIndex(p => CMP_RESULT_VERBS.includes(p));
+        if (vI >= 0) {
+            const after = parts.slice(vI + 1).join('_');
+            const before = parts.slice(0, vI).join('_');
+            const cands = after
+                ? [canonize(depluralize(after)), canonize(depluralize(before + '_' + after))]
+                : [canonize(depluralize(before))];
+            for (const cand of cands) {
+                if (cand.length >= 3 && knownWithVersion(cand, version)) {
+                    return cand;
+                }
+            }
+        }
+    }
     if (null != isKnownCmp) {
         for (const suffix of CMP_GUARDED_SUFFIXES) {
             if (cleaned.endsWith(suffix)) {
                 const parts = cleaned.split('_');
                 const suffixParts = suffix.split('_').filter(s => s !== '').length;
                 const remainder = canonize(parts.slice(0, parts.length - suffixParts).join('_'));
-                if (remainder.length >= 3 && isKnownCmp(remainder)) {
+                if (remainder.length >= 3 && knownWithVersion(remainder, version)) {
                     cleaned = remainder;
                     stripped = true;
                 }
@@ -1049,6 +1109,10 @@ function cleanComponentName(name, isKnownCmp) {
                 break;
             }
         }
+    }
+    // Nothing stripped it: restore the version suffix removed above.
+    if (!stripped && cleaned === preVersion.replace(/_v\d+$/, '') && null != version) {
+        cleaned = preVersion;
     }
     for (const prefix of CMP_PREFIXES) {
         if (cleaned.startsWith(prefix)) {

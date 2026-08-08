@@ -6,6 +6,7 @@ import type { TransformResult, Transform } from '../transform'
 
 import {
   nom,
+  guideActive,
 } from '../utility'
 
 import { KIT } from '../types'
@@ -33,6 +34,8 @@ const flowTransform: Transform = async function(
   let msg = ''
 
   each(guide.entity, (guideEntity: GuideEntity, entname: string) => {
+    if (!guideActive(guideEntity)) return
+
     ctx.log.debug({ point: 'guide-flow', note: entname })
 
     const modelent: ModelEntity = kit.entity[entname]

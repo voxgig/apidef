@@ -29,6 +29,11 @@ func EntityTransform(ctx *ApiDefContext) (*TransformResult, error) {
 			continue
 		}
 
+		// `active: false` in guide.aontu drops the entity.
+		if !guideActive(gentMap) {
+			continue
+		}
+
 		pathsDesc := resolvePathList(gentMap, ctx.Def)
 		relations := BuildRelations(gentMap, pathsDesc)
 
@@ -202,6 +207,11 @@ func resolvePathList(guideEntity map[string]any, def map[string]any) []map[strin
 		gpath := paths[orig]
 		gpathMap, _ := gpath.(map[string]any)
 		if gpathMap == nil {
+			continue
+		}
+
+		// Path-level opt-out (see the entity-level note above).
+		if !guideActive(gpathMap) {
 			continue
 		}
 
