@@ -679,9 +679,15 @@ function formatJSONIC(val, opts) {
             return String(c);
         }
     };
-    return renderJSONIC(val, hsepd, showd, useColor, maxlines, exclude, c, renderPrimitive, renderComment);
+    return renderJSONIC(val, hsepd, showd, useColor, maxlines, exclude, c, renderPrimitive, renderComment, false);
 }
-function renderJSONIC(val, hsepd, showd, useColor, maxlines, exclude, c, renderPrimitive, renderComment) {
+function renderJSONIC(val, hsepd, showd, useColor, maxlines, exclude, c, renderPrimitive, renderComment, 
+// True once the value has already been through decircular. `seen` never
+// forgets a node, so a merely REPEATED reference (a shared node in a DAG,
+// not a cycle) also lands in the fallback below. If decircular leaves such
+// a repeat in place, retrying forever overflows the stack — which is what
+// formatting a deep validation error used to do. Retry at most once.
+decircularized) {
     const space = '  ';
     const seen = new WeakSet();
     let stack = new Array(32);
@@ -700,6 +706,9 @@ function renderJSONIC(val, hsepd, showd, useColor, maxlines, exclude, c, renderP
         stack[top] = undefined;
         top -= 1;
         if (frame.kind === 'close') {
+            if (undefined !== frame.node) {
+                seen.delete(frame.node);
+            }
             const indent = space.repeat(frame.indentLevel);
             const hsep = 0 < frame.indentLevel && frame.indentLevel <= hsepd;
             lines.push(`${indent}${c('bracket', frame.token)}${hsep ? '\n' : ''}`);
@@ -715,21 +724,40 @@ function renderJSONIC(val, hsepd, showd, useColor, maxlines, exclude, c, renderP
             lines.push(`${linePrefix}${renderPrimitive(v)}${commentSuffix}`);
             continue;
         }
-        // Circular reference detected — fall back to decircular
+        // Repeated reference — fall back to decircular, but only once.
         if (seen.has(v)) {
-            return renderJSONIC((0, util_1.decircular)(val), hsepd, showd, useColor, maxlines, exclude, c, renderPrimitive, renderComment);
+            if (!decircularized) {
+                // decircular recurses per level, so a deep value can overflow the
+                // stack inside it. This whole path usually runs while formatting an
+                // error, so degrade to the marker instead of throwing over it.
+                let flat;
+                try {
+                    flat = (0, util_1.decircular)(val);
+                }
+                catch (err) {
+                    flat = undefined;
+                }
+                if (undefined !== flat) {
+                    return renderJSONIC(flat, hsepd, showd, useColor, maxlines, exclude, c, renderPrimitive, renderComment, true);
+                }
+            }
+            // decircular did not resolve it, so render a marker rather than
+            // recursing again. Better a placeholder than a crash while
+            // formatting an error the user actually needs to read.
+            lines.push(`${linePrefix}${c('string', '"[Circular]"')}${commentSuffix}`);
+            continue;
         }
         seen.add(v);
         if (Array.isArray(v)) {
             const arr = v;
             if (arr.length === 0) {
                 lines.push(`${linePrefix}${c('bracket', '[')}${commentSuffix}`);
-                stack[++top] = { kind: 'close', token: ']', indentLevel };
+                stack[++top] = { kind: 'close', token: ']', indentLevel, node: v };
                 continue;
             }
             // opening line
             lines.push(`${linePrefix}${c('bracket', '[')}${commentSuffix}`);
-            stack[++top] = { kind: 'close', token: ']', indentLevel };
+            stack[++top] = { kind: 'close', token: ']', indentLevel, node: v };
             // children (reverse push)
             const childPrefix = space.repeat(indentLevel + 1);
             for (let i = arr.length - 1; i >= 0; i--) {
@@ -754,12 +782,12 @@ function renderJSONIC(val, hsepd, showd, useColor, maxlines, exclude, c, renderP
             (showd || !k.endsWith('$')));
         if (printableKeys.length === 0) {
             lines.push(`${linePrefix}${c('bracket', '{')}${commentSuffix}`);
-            stack[++top] = { kind: 'close', token: '}', indentLevel };
+            stack[++top] = { kind: 'close', token: '}', indentLevel, node: v };
             continue;
         }
         // opening line
         lines.push(`${linePrefix}${c('bracket', '{')}${commentSuffix}`);
-        stack[++top] = { kind: 'close', token: '}', indentLevel };
+        stack[++top] = { kind: 'close', token: '}', indentLevel, node: v };
         const nextIndentStr = space.repeat(indentLevel + 1);
         for (let i = printableKeys.length - 1; i >= 0; i--) {
             const k = printableKeys[i];
