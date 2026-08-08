@@ -600,6 +600,31 @@ const utility_1 = require("../dist/utility");
             i: 1, m: ['b', '{c}', 'd', '{e}'], x: 't/p/t/p'
         });
     });
+    // A repeated reference is not a cycle. `seen` used to be a global set that
+    // never forgot a node, so a shared node in a DAG took the circular
+    // fallback, which re-entered renderJSONIC with a decircular()'d copy that
+    // still repeated — recursing until the stack blew. Formatting a deep
+    // validation error hit exactly this, so the CLI reported
+    // "Maximum call stack size exceeded" instead of the error you needed.
+    (0, node_test_1.test)('formatJSONIC-shared-and-circular', async () => {
+        // Shared but acyclic: rendered in full, both times, with no marker.
+        const shared = { name: 's', v: 1 };
+        const dag = (0, utility_1.formatJSONIC)({ x: shared, y: shared });
+        node_assert_1.default.equal(dag.includes('[Circular]'), false);
+        node_assert_1.default.equal((dag.match(/name/g) || []).length, 2);
+        // Genuinely circular: terminates, and says so rather than throwing.
+        const cyc = { n: 1 };
+        cyc.self = cyc;
+        node_assert_1.default.match((0, utility_1.formatJSONIC)(cyc), /Circular/);
+        // Deep AND repeating: the shape that used to overflow the stack.
+        let deep = { shared };
+        for (let i = 0; i < 5000; i++) {
+            deep = { k: deep, shared };
+        }
+        const out = (0, utility_1.formatJSONIC)(deep);
+        node_assert_1.default.equal(out.includes('[Circular]'), false);
+        node_assert_1.default.ok(1000 < out.split('\n').length);
+    });
     (0, node_test_1.test)('formatJSONIC', async () => {
         node_assert_1.default.deepStrictEqual((0, utility_1.formatJSONIC)(), '');
         node_assert_1.default.deepStrictEqual((0, utility_1.formatJSONIC)(undefined), '');

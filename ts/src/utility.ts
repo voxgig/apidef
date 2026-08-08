@@ -769,7 +769,7 @@ function formatJSONIC(
   }
 
   return renderJSONIC(val, hsepd, showd, useColor, maxlines, exclude, c,
-    renderPrimitive, renderComment)
+    renderPrimitive, renderComment, false)
 }
 
 
@@ -783,6 +783,12 @@ function renderJSONIC(
   c: (color: any, text: string) => string,
   renderPrimitive: (v: any) => string,
   renderComment: (c: any) => string | null,
+  // True once the value has already been through decircular. `seen` never
+  // forgets a node, so a merely REPEATED reference (a shared node in a DAG,
+  // not a cycle) also lands in the fallback below. If decircular leaves such
+  // a repeat in place, retrying forever overflows the stack — which is what
+  // formatting a deep validation error used to do. Retry at most once.
+  decircularized: boolean,
 ): string {
 
   const space = '  '
@@ -799,6 +805,10 @@ function renderJSONIC(
     kind: 'close'
     token: '}' | ']'
     indentLevel: number
+    // The container this frame closes. `seen` tracks the ANCESTOR PATH, so
+    // the node is removed again on the way out — otherwise a merely repeated
+    // (shared) node is indistinguishable from a cycle.
+    node?: any
   }
 
   const seen = new WeakSet()
@@ -824,6 +834,9 @@ function renderJSONIC(
     top -= 1
 
     if (frame.kind === 'close') {
+      if (undefined !== frame.node) {
+        seen.delete(frame.node)
+      }
       const indent = space.repeat(frame.indentLevel)
       const hsep = 0 < frame.indentLevel && frame.indentLevel <= hsepd
       lines.push(`${indent}${c('bracket', frame.token)}${hsep ? '\n' : ''}`)
@@ -843,10 +856,29 @@ function renderJSONIC(
       continue
     }
 
-    // Circular reference detected — fall back to decircular
+    // Repeated reference — fall back to decircular, but only once.
     if (seen.has(v)) {
-      return renderJSONIC(decircular(val), hsepd, showd, useColor, maxlines, exclude, c,
-        renderPrimitive, renderComment)
+      if (!decircularized) {
+        // decircular recurses per level, so a deep value can overflow the
+        // stack inside it. This whole path usually runs while formatting an
+        // error, so degrade to the marker instead of throwing over it.
+        let flat: any
+        try {
+          flat = decircular(val)
+        }
+        catch (err: any) {
+          flat = undefined
+        }
+        if (undefined !== flat) {
+          return renderJSONIC(flat, hsepd, showd, useColor, maxlines, exclude, c,
+            renderPrimitive, renderComment, true)
+        }
+      }
+      // decircular did not resolve it, so render a marker rather than
+      // recursing again. Better a placeholder than a crash while
+      // formatting an error the user actually needs to read.
+      lines.push(`${linePrefix}${c('string', '"[Circular]"')}${commentSuffix}`)
+      continue
     }
     seen.add(v)
 
@@ -854,13 +886,13 @@ function renderJSONIC(
       const arr = v as any[]
       if (arr.length === 0) {
         lines.push(`${linePrefix}${c('bracket', '[')}${commentSuffix}`)
-        stack[++top] = { kind: 'close', token: ']', indentLevel }
+        stack[++top] = { kind: 'close', token: ']', indentLevel, node: v }
         continue
       }
 
       // opening line
       lines.push(`${linePrefix}${c('bracket', '[')}${commentSuffix}`)
-      stack[++top] = { kind: 'close', token: ']', indentLevel }
+      stack[++top] = { kind: 'close', token: ']', indentLevel, node: v }
 
       // children (reverse push)
       const childPrefix = space.repeat(indentLevel + 1)
@@ -889,13 +921,13 @@ function renderJSONIC(
 
     if (printableKeys.length === 0) {
       lines.push(`${linePrefix}${c('bracket', '{')}${commentSuffix}`)
-      stack[++top] = { kind: 'close', token: '}', indentLevel }
+      stack[++top] = { kind: 'close', token: '}', indentLevel, node: v }
       continue
     }
 
     // opening line
     lines.push(`${linePrefix}${c('bracket', '{')}${commentSuffix}`)
-    stack[++top] = { kind: 'close', token: '}', indentLevel }
+    stack[++top] = { kind: 'close', token: '}', indentLevel, node: v }
 
     const nextIndentStr = space.repeat(indentLevel + 1)
     for (let i = printableKeys.length - 1; i >= 0; i--) {
