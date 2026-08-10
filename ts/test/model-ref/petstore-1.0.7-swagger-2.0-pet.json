@@ -26,7 +26,7 @@
       "type": "`$STRING`"
     },
     {
-      "name": "photo_url",
+      "name": "photoUrls",
       "req": true,
       "type": "`$ARRAY`"
     },
@@ -36,7 +36,7 @@
       "type": "`$STRING`"
     },
     {
-      "name": "tag",
+      "name": "tags",
       "req": false,
       "type": "`$ARRAY`"
     },

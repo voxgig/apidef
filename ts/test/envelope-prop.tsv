@@ -8,7 +8,7 @@ resprops	opname	expected
 {"items":{"type":"array"}}	load
 {"item":{"$ref":"#/components/schemas/TodoItem"}}	list
 {"ok":{"type":"boolean"},"id":{"type":"string"}}	remove
-{"results":{"type":"array"},"next":{"type":"string"}}	list
+{"results":{"type":"array"},"next":{"type":"string"}}	list	results
 {"name":{"type":"string"}}	load
 {"count":{"type":"integer"}}	list
 {}	load
@@ -20,3 +20,9 @@ resprops	opname	expected
 {"item":{"oneOf":[{"type":"array"},{"type":"object"}]}}	load
 {"items":{"oneOf":[{"type":"array"},{"type":"object"}]}}	list
 {"item":{"allOf":[]}}	load
+{"success":{"type":"boolean"},"data":{"type":"array","items":{"$ref":"#/x"}}}	list	data
+{"success":{"type":"boolean"},"data":{"type":"object"}}	load	data
+{"status":{"type":"string"},"result":{"$ref":"#/x"}}	load	result
+{"success":{"type":"boolean"},"data":{"type":"array"}}	load	
+{"data":{"type":"object"},"meta":{"type":"object"}}	load	
+{"success":{"type":"boolean"},"count":{"type":"integer"}}	list	

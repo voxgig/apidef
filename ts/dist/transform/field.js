@@ -53,7 +53,10 @@ function resolveOpFields(ment, mop, mpoint, def) {
     const fielddefs = findFieldDefs(ment, mop, mpoint, def);
     for (let fielddef of fielddefs) {
         const fieldname = fielddef.key$;
-        const name = (0, utility_1.canonize)((0, utility_1.normalizeFieldName)(fieldname));
+        // Field names are WIRE identifiers — see canonizeField. Using the
+        // entity-name canonizer here renamed modelType -> model_type and
+        // items -> item, so the SDK read keys the server never sends.
+        const name = (0, utility_1.canonizeField)((0, utility_1.normalizeFieldName)(fieldname));
         const mfield = {
             name,
             type: (0, utility_1.inferFieldType)(name, (0, utility_1.validator)(fielddef.type)),

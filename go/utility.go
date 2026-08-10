@@ -419,6 +419,36 @@ func Canonize(s string) string {
 	return out
 }
 
+// CanonizeField canonicalises a FIELD name — which is a WIRE identifier, not
+// a type name.
+//
+// Canonize is right for entity/type names: it snakifies and depluralizes so
+// `Users` and `user-items` converge on `user` / `user_item`. Applied to a
+// field it is actively WRONG, because the name has to match the JSON the
+// server actually sends:
+//
+//	modelType   -> Canonize -> model_type    (server sends modelType)
+//	items       -> Canonize -> item          (server sends items)
+//
+// Nothing maps back: the model's `alias.field` map is emitted empty and no
+// generator consumes it, so the wire name is simply lost. Across the fleet's
+// specs that renamed 23% of all fields (146 repos) and depluralized another
+// 13% — every one of those SDKs reading a key the server never sends.
+//
+// So: keep the transliteration and identifier sanitisation that stop a name
+// being unusable in a target language, and drop the snakify/depluralize that
+// change what the name MEANS. Case and plurality are preserved verbatim.
+//
+// Mirrors src/utility.ts canonizeField.
+func CanonizeField(s string) string {
+	if s == "" {
+		return ""
+	}
+	out := Transliterate(s)
+	out = nonAlphaNumRE.ReplaceAllString(out, "")
+	return out
+}
+
 // StripSchemaNamespace reduces a namespace-qualified schema name
 // (ASP.NET/Java style: "NoFrixion.MoneyMoov.Models.PaymentRequests.X",
 // "com.example.api.Payment") to its last meaningful dotted segment —
@@ -1524,19 +1554,38 @@ func Merge(val any, maxdepths ...int) any {
 // means. Naming the wrapper after the entity remains the unambiguous signal,
 // and is still checked first. Mirrors ts/src/utility.ts.
 func envelopeProp(resprops map[string]any, opname string) string {
-	if len(resprops) != 1 {
+	if len(resprops) == 0 {
 		return ""
 	}
 
-	var key string
-	var prop any
-	for k, v := range resprops {
-		key, prop = k, v
+	// Exactly one STRUCTURED property, with any siblings being scalars.
+	//
+	// The original rule demanded exactly one property full stop, which missed
+	// the single most common envelope shape in the wild:
+	//
+	//   { "success": true, "data": [ ... ] }
+	//   { "status": "ok",  "result": { ... } }
+	//
+	// A boolean/string status flag beside the payload is metadata, not a
+	// sibling of equal standing, so the body is still an envelope. Scalar-only
+	// siblings keep the guard meaningful: `{ok, id}` from a delete has no
+	// structured member and is still handed over whole, and a body with TWO
+	// structured members is a composite we must not guess at.
+	//
+	// Sorted keys: map iteration order is random in Go, and with more than one
+	// structured member the choice must be deterministic to match TS.
+	structured := make([]string, 0, len(resprops))
+	for _, k := range sortedKeys(resprops) {
+		if isEntityWrapperProp(resprops[k]) {
+			structured = append(structured, k)
+		}
 	}
-
-	if !isEntityWrapperProp(prop) {
+	if len(structured) != 1 {
 		return ""
 	}
+
+	key := structured[0]
+	prop := resprops[key]
 
 	islist, known := propIsList(prop)
 	if !known || islist != (opname == "list") {

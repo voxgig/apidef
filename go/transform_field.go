@@ -85,7 +85,10 @@ func resolveOpFields(mtarget map[string]any, def map[string]any, opname string) 
 	fielddefs := findFieldDefs(mtarget, def, opname)
 
 	for _, fielddef := range fielddefs {
-		name := Canonize(NormalizeFieldName(fielddef["key$"].(string)))
+		// Field names are WIRE identifiers — see CanonizeField. Using the
+		// entity-name canonizer here renamed modelType -> model_type and
+		// items -> item, so the SDK read keys the server never sends.
+		name := CanonizeField(NormalizeFieldName(fielddef["key$"].(string)))
 		// Pass the raw value: a 3.1 nullable field carries a type ARRAY, and
 		// asserting to string here would drop it to "" and lose the union.
 		ftype := fielddef["type"]

@@ -6,12 +6,12 @@ main: kit: entity: issue: {
 
   fields: [
     {
-      name: "archived_at"
+      name: "archivedAt"
       req: false
       type: "`$ANY`"
     }
     {
-      name: "created_at"
+      name: "createdAt"
       req: true
       type: "`$ANY`"
     }

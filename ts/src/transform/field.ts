@@ -4,7 +4,7 @@ import { each, getx } from 'jostraca'
 
 import type { TransformResult, Transform } from '../transform'
 
-import { validator, canonize, inferFieldType, normalizeFieldName, envelopeProp } from '../utility'
+import { validator, canonizeField, inferFieldType, normalizeFieldName, envelopeProp } from '../utility'
 
 import { KIT } from '../types'
 
@@ -93,7 +93,10 @@ function resolveOpFields(
 
   for (let fielddef of fielddefs) {
     const fieldname = (fielddef as any).key$ as string
-    const name = canonize(normalizeFieldName(fieldname))
+    // Field names are WIRE identifiers — see canonizeField. Using the
+    // entity-name canonizer here renamed modelType -> model_type and
+    // items -> item, so the SDK read keys the server never sends.
+    const name = canonizeField(normalizeFieldName(fieldname))
     const mfield: ModelField = {
       name,
       type: inferFieldType(name, validator(fielddef.type)),

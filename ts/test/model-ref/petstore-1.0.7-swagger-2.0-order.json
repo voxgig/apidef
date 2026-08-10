@@ -11,7 +11,7 @@
       "type": "`$INTEGER`"
     },
     {
-      "name": "pet_id",
+      "name": "petId",
       "req": false,
       "type": "`$INTEGER`"
     },
@@ -21,7 +21,7 @@
       "type": "`$INTEGER`"
     },
     {
-      "name": "ship_date",
+      "name": "shipDate",
       "req": false,
       "type": "`$STRING`"
     },
