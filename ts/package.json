@@ -1,6 +1,6 @@
 {
   "name": "@voxgig/apidef",
-  "version": "6.5.0",
+  "version": "6.5.1",
   "main": "dist/apidef.js",
   "type": "commonjs",
   "types": "dist/apidef.d.ts",
@@ -50,13 +50,14 @@
     "typescript": "7.0.2"
   },
   "peerDependencies": {
-    "@tabnas/jsonic": ">=0.5.0",
-    "@tabnas/yaml": ">=0.5.0",
+    "@tabnas/jsonic": "0.6.0",
+    "@tabnas/yaml": "0.5.1",
     "@voxgig/struct": ">=0",
     "@voxgig/util": ">=0",
     "aontu": "^0.50.0",
     "jostraca": ">=0",
-    "shape": ">=10"
+    "shape": ">=10",
+    "@tabnas/parser": "0.8.0"
   },
   "dependencies": {
     "diff": "9.0.0",
