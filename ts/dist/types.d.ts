@@ -1112,6 +1112,7 @@ type GuideControl = {};
 type GuideMetrics = {
     count: {
         path: number;
+        field: number;
         method: number;
         entity: number;
         tag: number;
@@ -1126,6 +1127,7 @@ type GuideMetrics = {
 type GuideEntity = {
     name: string;
     orig: string;
+    field?: Record<string, GuidePath>;
     path: Record<string, GuidePath>;
 };
 type GuidePath = {
@@ -1146,6 +1148,7 @@ type GuideRenameParam = {
 };
 type GuidePathOp = {
     method: string;
+    optype?: string;
     why_op: string[];
     transform: {
         req: any;

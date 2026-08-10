@@ -188,6 +188,7 @@ function Prepare(spec: TaskSpec) {
     metrics: {
       count: {
         path: 0,
+        field: 0,
         method: 0,
         tag: 0,
         cmp: 0,

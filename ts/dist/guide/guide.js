@@ -9,6 +9,7 @@ const jostraca_1 = require("jostraca");
 const aontu_1 = require("aontu");
 const struct_1 = require("@voxgig/struct");
 const heuristic01_1 = require("./heuristic01");
+const graphql01_1 = require("./graphql01");
 const utility_1 = require("../utility");
 const KONSOLE_LOG = console['log'];
 // Log non-fatal wierdness.
@@ -104,6 +105,9 @@ async function buildBaseGuide(ctx) {
     if ('heuristic01' === ctx.opts.strategy) {
         baseguide = await (0, heuristic01_1.heuristic01)(ctx);
     }
+    else if ('graphql01' === ctx.opts.strategy) {
+        baseguide = await (0, graphql01_1.graphql01)(ctx);
+    }
     else {
         throw new Error('Unknown guide strategy: ' + ctx.opts.strategy);
     }
@@ -132,15 +136,15 @@ async function buildBaseGuide(ctx) {
   metrics: count: method: ${metrics.count.method}`);
     // NOTE: items(...) sorts the iteration elements, so the generated model code
     // is deterministic.
-    (0, struct_1.items)(baseguide.entity).map(([entname, entity]) => {
-        guideBlocks.push(`
-  entity: ${entname}: {`
-        // sw(0 < entity.why_name.length ? '  # name:' + entity.why_name.join(';') : '')
-        );
-        // NOTE: items(...) sorts the paths
-        (0, struct_1.items)(entity.path).map(([pathstr, path]) => {
-            (0, utility_1.debugpath)(pathstr, null, 'BASE-GUIDE', entname, pathstr, (0, utility_1.formatJSONIC)(path, { hsepd: 0, $: true, color: true }));
-            guideBlocks.push(`    path: ${qs(pathstr)}: {` +
+    // Emit one guide entry. REST guides key entries by path, GraphQL guides by
+    // schema root field (`branch`); the body is otherwise identical, so both
+    // share this emitter. GraphQL ops carry `optype` ALONGSIDE `method: POST`,
+    // which keeps every downstream transform that reads gop.method working
+    // unchanged while recording the query/mutation distinction.
+    const emitEntry = (branch, entname, entity, entrykey, path) => {
+        {
+            (0, utility_1.debugpath)(entrykey, null, 'BASE-GUIDE', entname, entrykey, (0, utility_1.formatJSONIC)(path, { hsepd: 0, $: true, color: true }));
+            guideBlocks.push(`    ${branch}: ${qs(entrykey)}: {` +
                 sw(0 < path.why_path.length ?
                     '  # ent=' + entname + ';' +
                         (entity.orig !== entname && null != entity.orig ? 'orig=' + entity.orig + ';' : '') +
@@ -162,6 +166,9 @@ async function buildBaseGuide(ctx) {
             (0, struct_1.items)(path.op).map(([opname, op]) => {
                 guideBlocks.push(`      op: ${opname}: method: *${op.method}` +
                     sw(0 < op.why_op.length ? '  # ' + op.why_op : ''));
+                if (null != op.optype) {
+                    guideBlocks.push(`      op: ${opname}: optype: *${op.optype}`);
+                }
                 // Each transform is emitted only when set, and each on its own terms.
                 // (An earlier req-GUARDED block pushed a second res line built from
                 // op.transform.res — emitting `transform: res: *undefined` whenever a
@@ -187,7 +194,14 @@ async function buildBaseGuide(ctx) {
                 }
             });
             guideBlocks.push(`    }`);
-        });
+        }
+    };
+    (0, struct_1.items)(baseguide.entity).map(([entname, entity]) => {
+        guideBlocks.push(`
+  entity: ${entname}: {`);
+        // NOTE: items(...) sorts the entries, so output is deterministic.
+        (0, struct_1.items)(entity.path).map(([pathstr, path]) => emitEntry('path', entname, entity, pathstr, path));
+        (0, struct_1.items)(entity.field).map(([fieldstr, path]) => emitEntry('field', entname, entity, fieldstr, path));
         guideBlocks.push(`  }`);
     });
     guideBlocks.push('', '}');
@@ -208,7 +222,48 @@ async function buildBaseGuide(ctx) {
     }, root);
     return jres;
 }
+// GraphQL coverage guard: every Query/Mutation root field must either be
+// assigned to an entity op or be deliberately excluded by the classifier
+// (machinery types, scalar returns). Mirrors the REST PATH MISMATCH check —
+// silence about an unclassified field is how an API silently loses surface.
+function validateGraphqlBaseGuide(ctx, baseguide) {
+    const covered = {};
+    (0, jostraca_1.each)(baseguide.entity, (entm) => {
+        (0, jostraca_1.each)(entm.field, (fieldm, fieldStr) => {
+            if (!(0, struct_1.isempty)(fieldm.op)) {
+                covered[fieldStr] = true;
+            }
+        });
+    });
+    const uncovered = [];
+    for (const roots of [ctx.def?.query, ctx.def?.mutation]) {
+        for (const fname of Object.keys(roots ?? {}).sort()) {
+            if (!covered[fname]) {
+                uncovered.push(fname);
+            }
+        }
+    }
+    // Unclassified root fields are expected (scalars like `version`, machinery
+    // returns), so this is a warning rather than a hard failure — but it is
+    // always reported, so a missed entity is visible.
+    if (0 < uncovered.length) {
+        ctx.warn({
+            note: `GraphQL root fields not mapped to an entity op: ` +
+                uncovered.join(', '),
+            uncovered,
+        });
+    }
+    ctx.log.info({
+        point: 'graphql-coverage',
+        note: `mapped=${Object.keys(covered).length} unmapped=${uncovered.length}`,
+    });
+}
 function validateBaseBuide(ctx, baseguide) {
+    // GraphQL guides key entries by root field, not path: the path-based
+    // reconciliation below has nothing to compare.
+    if (true === ctx.def?.graphql) {
+        return validateGraphqlBaseGuide(ctx, baseguide);
+    }
     const srcm = {};
     // Each orig path.
     (0, jostraca_1.each)(ctx.def.paths, (pdef) => {

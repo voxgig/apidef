@@ -1,0 +1,13 @@
+name	in	out
+issue-load	{"optype":"query","name":"issue","args":[{"name":"id","gqltype":"String!","reqd":true}],"ret":{"kind":"entity","entity":"Issue"}}	{"entity":"Issue","op":"load","optype":"query"}
+issues-list-connection	{"optype":"query","name":"issues","args":[{"name":"first","gqltype":"Int","reqd":false}],"ret":{"kind":"connection","entity":"Issue","nodes":"nodes"}}	{"entity":"Issue","op":"list","optype":"query"}
+teams-list-plain	{"optype":"query","name":"teams","args":[],"ret":{"kind":"list","entity":"Team"}}	{"entity":"Team","op":"list","optype":"query"}
+viewer-singleton	{"optype":"query","name":"viewer","args":[],"ret":{"kind":"entity","entity":"User"}}	{"entity":"User","op":"load","optype":"query"}
+version-scalar-excluded	{"optype":"query","name":"version","args":[],"ret":{"kind":"scalar"}}	{"exclude":true}
+issue-create-by-input	{"optype":"mutation","name":"issueCreate","args":[{"name":"input","gqltype":"IssueCreateInput!","reqd":true}],"ret":{"kind":"payload","entity":"Issue","unwrap":"issue"},"inputTypeName":"IssueCreateInput"}	{"entity":"Issue","op":"create","optype":"mutation"}
+issue-update-by-input	{"optype":"mutation","name":"issueUpdate","args":[{"name":"id","gqltype":"String!","reqd":true},{"name":"input","gqltype":"IssueUpdateInput!","reqd":true}],"ret":{"kind":"payload","entity":"Issue","unwrap":"issue"},"inputTypeName":"IssueUpdateInput"}	{"entity":"Issue","op":"update","optype":"mutation"}
+create-verb-first	{"optype":"mutation","name":"createTodo","args":[{"name":"input","gqltype":"CreateTodoInput!","reqd":true}],"ret":{"kind":"entity","entity":"Todo"}}	{"entity":"Todo","op":"create","optype":"mutation"}
+issue-delete	{"optype":"mutation","name":"issueDelete","args":[{"name":"id","gqltype":"String!","reqd":true}],"ret":{"kind":"payload","entity":"Issue","unwrap":"issue"}}	{"entity":"Issue","op":"remove","optype":"mutation"}
+issue-archive-action-on-update	{"optype":"mutation","name":"issueArchive","args":[{"name":"id","gqltype":"String!","reqd":true}],"ret":{"kind":"payload","entity":"Issue","unwrap":"issue"}}	{"entity":"Issue","op":"update","action":"archive","optype":"mutation"}
+file-upload-action-prefix-stripped	{"optype":"mutation","name":"fileUpload","args":[{"name":"filename","gqltype":"String!","reqd":true},{"name":"size","gqltype":"Int!","reqd":true}],"ret":{"kind":"payload","entity":"File","unwrap":"file"}}	{"entity":"File","op":"create","action":"upload","optype":"mutation"}
+delete-payload-no-entity-excluded	{"optype":"mutation","name":"issuePurge","args":[{"name":"id","gqltype":"String!","reqd":true}],"ret":{"kind":"payload","deleteish":true}}	{"exclude":true}

@@ -237,6 +237,8 @@ type GuideControl = {}
 type GuideMetrics = {
   count: {
     path: number
+    // Schema root fields classified (GraphQL guides; 0 for OpenAPI).
+    field: number
     method: number
     entity: number
     tag: number
@@ -253,6 +255,9 @@ type GuideMetrics = {
 type GuideEntity = {
   name: string
   orig: string
+  // GraphQL guides key operations by schema root field instead of path;
+  // the two branches are mutually exclusive per guide.
+  field?: Record<string, GuidePath>
   path: Record<string, GuidePath>
 }
 
@@ -277,6 +282,9 @@ type GuideRenameParam = {
 
 type GuidePathOp = {
   method: string
+  // GraphQL root-field ops carry the operation type instead of relying on
+  // an HTTP verb (points still synthesize method 'POST').
+  optype?: string
   why_op: string[]
   transform: {
     req: any

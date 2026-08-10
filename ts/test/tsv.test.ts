@@ -31,6 +31,8 @@ import {
 
 import { snakify, camelify, kebabify } from 'jostraca'
 
+import { classifyGraphQLField } from '../dist/guide/graphql01'
+
 import {
   parse,
 } from '../dist/parse'
@@ -569,6 +571,33 @@ describe('tsv-request-envelope', () => {
       assert.strictEqual(
         wrapperName(JSON.parse(row.reqschema), row.origname, row.name),
         row.expected)
+    })
+  }
+})
+
+
+// GraphQL root-field classification. Shape first, name second: the same
+// (fieldSig, profile) pair must yield the same {entity, op, action} in both
+// the TypeScript and (once ported) the Go implementation, so the decision is
+// a pure function driven by this shared fixture.
+//
+// `in` is the classifier signature, `out` the expected classification minus
+// the `why` trace (which is diagnostic, not contractual). Mirrors
+// go/tsv_test.go TestGraphqlClassify.
+describe('tsv-graphql-classify', () => {
+  const rows = loadTsv('graphql-classify')
+
+  for (const row of rows) {
+    test(`graphql classify ${row.name}`, () => {
+      const sig = JSON.parse(row.in)
+      const expected = JSON.parse(row.out)
+
+      const got: any = classifyGraphQLField(sig, 'none')
+
+      // `why` is a diagnostic trace, not part of the contract.
+      delete got.why
+
+      assert.deepStrictEqual(got, expected)
     })
   }
 })
