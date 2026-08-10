@@ -1,0 +1,992 @@
+{
+  "graphql": true,
+  "info": {
+    "title": "solar",
+    "version": "",
+    "description": ""
+  },
+  "servers": [
+    {
+      "url": "https://api.solardemo.test/api/graphql"
+    }
+  ],
+  "types": {
+    "Boolean": {
+      "name": "Boolean",
+      "kind": "SCALAR",
+      "fields": {},
+      "desc": "The `Boolean` scalar type represents `true` or `false`."
+    },
+    "Float": {
+      "name": "Float",
+      "kind": "SCALAR",
+      "fields": {},
+      "desc": "The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point)."
+    },
+    "ID": {
+      "name": "ID",
+      "kind": "SCALAR",
+      "fields": {},
+      "desc": "The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `\"4\"`) or integer (such as `4`) input value will be accepted as an ID."
+    },
+    "Int": {
+      "name": "Int",
+      "kind": "SCALAR",
+      "fields": {},
+      "desc": "The `Int` scalar type represents non-fractional signed whole numeric values. Int can represent values between -(2^31) and 2^31 - 1."
+    },
+    "Moon": {
+      "name": "Moon",
+      "kind": "OBJECT",
+      "fields": {
+        "diameter": {
+          "name": "diameter",
+          "gqltype": "Float!",
+          "type": "Float",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "id": {
+          "name": "id",
+          "gqltype": "ID!",
+          "type": "ID",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "kind": {
+          "name": "kind",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "name": {
+          "name": "name",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "planet": {
+          "name": "planet",
+          "gqltype": "Planet!",
+          "type": "Planet",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        }
+      }
+    },
+    "MoonConnection": {
+      "name": "MoonConnection",
+      "kind": "OBJECT",
+      "fields": {
+        "nodes": {
+          "name": "nodes",
+          "gqltype": "[Moon!]!",
+          "type": "Moon",
+          "reqd": true,
+          "list": true,
+          "args": [],
+          "deprecated": false
+        },
+        "pageInfo": {
+          "name": "pageInfo",
+          "gqltype": "PageInfo!",
+          "type": "PageInfo",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        }
+      }
+    },
+    "MoonCreateInput": {
+      "name": "MoonCreateInput",
+      "kind": "INPUT_OBJECT",
+      "fields": {
+        "diameter": {
+          "name": "diameter",
+          "gqltype": "Float!",
+          "type": "Float",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "kind": {
+          "name": "kind",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "name": {
+          "name": "name",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "planetId": {
+          "name": "planetId",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        }
+      }
+    },
+    "MoonPayload": {
+      "name": "MoonPayload",
+      "kind": "OBJECT",
+      "fields": {
+        "moon": {
+          "name": "moon",
+          "gqltype": "Moon",
+          "type": "Moon",
+          "reqd": false,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "success": {
+          "name": "success",
+          "gqltype": "Boolean!",
+          "type": "Boolean",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        }
+      }
+    },
+    "MoonUpdateInput": {
+      "name": "MoonUpdateInput",
+      "kind": "INPUT_OBJECT",
+      "fields": {
+        "diameter": {
+          "name": "diameter",
+          "gqltype": "Float",
+          "type": "Float",
+          "reqd": false,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "kind": {
+          "name": "kind",
+          "gqltype": "String",
+          "type": "String",
+          "reqd": false,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "name": {
+          "name": "name",
+          "gqltype": "String",
+          "type": "String",
+          "reqd": false,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        }
+      }
+    },
+    "Mutation": {
+      "name": "Mutation",
+      "kind": "OBJECT",
+      "fields": {
+        "moonCreate": {
+          "name": "moonCreate",
+          "gqltype": "MoonPayload!",
+          "type": "MoonPayload",
+          "reqd": true,
+          "list": false,
+          "args": [
+            {
+              "name": "input",
+              "gqltype": "MoonCreateInput!",
+              "type": "MoonCreateInput",
+              "reqd": true
+            }
+          ],
+          "deprecated": false
+        },
+        "moonDelete": {
+          "name": "moonDelete",
+          "gqltype": "MoonPayload!",
+          "type": "MoonPayload",
+          "reqd": true,
+          "list": false,
+          "args": [
+            {
+              "name": "id",
+              "gqltype": "String!",
+              "type": "String",
+              "reqd": true
+            }
+          ],
+          "deprecated": false
+        },
+        "moonUpdate": {
+          "name": "moonUpdate",
+          "gqltype": "MoonPayload!",
+          "type": "MoonPayload",
+          "reqd": true,
+          "list": false,
+          "args": [
+            {
+              "name": "id",
+              "gqltype": "String!",
+              "type": "String",
+              "reqd": true
+            },
+            {
+              "name": "input",
+              "gqltype": "MoonUpdateInput!",
+              "type": "MoonUpdateInput",
+              "reqd": true
+            }
+          ],
+          "deprecated": false
+        },
+        "planetCreate": {
+          "name": "planetCreate",
+          "gqltype": "PlanetPayload!",
+          "type": "PlanetPayload",
+          "reqd": true,
+          "list": false,
+          "args": [
+            {
+              "name": "input",
+              "gqltype": "PlanetCreateInput!",
+              "type": "PlanetCreateInput",
+              "reqd": true
+            }
+          ],
+          "deprecated": false
+        },
+        "planetDelete": {
+          "name": "planetDelete",
+          "gqltype": "PlanetPayload!",
+          "type": "PlanetPayload",
+          "reqd": true,
+          "list": false,
+          "args": [
+            {
+              "name": "id",
+              "gqltype": "String!",
+              "type": "String",
+              "reqd": true
+            }
+          ],
+          "deprecated": false
+        },
+        "planetForbid": {
+          "name": "planetForbid",
+          "gqltype": "PlanetStatePayload!",
+          "type": "PlanetStatePayload",
+          "reqd": true,
+          "list": false,
+          "args": [
+            {
+              "name": "id",
+              "gqltype": "String!",
+              "type": "String",
+              "reqd": true
+            },
+            {
+              "name": "forbid",
+              "gqltype": "Boolean",
+              "type": "Boolean",
+              "reqd": false
+            },
+            {
+              "name": "why",
+              "gqltype": "String",
+              "type": "String",
+              "reqd": false
+            }
+          ],
+          "deprecated": false
+        },
+        "planetTerraform": {
+          "name": "planetTerraform",
+          "gqltype": "PlanetStatePayload!",
+          "type": "PlanetStatePayload",
+          "reqd": true,
+          "list": false,
+          "args": [
+            {
+              "name": "id",
+              "gqltype": "String!",
+              "type": "String",
+              "reqd": true
+            },
+            {
+              "name": "start",
+              "gqltype": "Boolean",
+              "type": "Boolean",
+              "reqd": false
+            },
+            {
+              "name": "stop",
+              "gqltype": "Boolean",
+              "type": "Boolean",
+              "reqd": false
+            }
+          ],
+          "deprecated": false
+        },
+        "planetUpdate": {
+          "name": "planetUpdate",
+          "gqltype": "PlanetPayload!",
+          "type": "PlanetPayload",
+          "reqd": true,
+          "list": false,
+          "args": [
+            {
+              "name": "id",
+              "gqltype": "String!",
+              "type": "String",
+              "reqd": true
+            },
+            {
+              "name": "input",
+              "gqltype": "PlanetUpdateInput!",
+              "type": "PlanetUpdateInput",
+              "reqd": true
+            }
+          ],
+          "deprecated": false
+        }
+      }
+    },
+    "PageInfo": {
+      "name": "PageInfo",
+      "kind": "OBJECT",
+      "fields": {
+        "endCursor": {
+          "name": "endCursor",
+          "gqltype": "String",
+          "type": "String",
+          "reqd": false,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "hasNextPage": {
+          "name": "hasNextPage",
+          "gqltype": "Boolean!",
+          "type": "Boolean",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        }
+      },
+      "desc": "The solar demo API, expressed as GraphQL.\n\nThis is the SAME API as solar-1.0.0-openapi-3.0.0-def.yaml — same entities,\nsame fields, same operations, same two planet actions — rendered the way a\nGraphQL team would naturally write it. That is the point: the two defs are a\nmatched pair, so the model apidef derives from each can be compared, and\n\"a GraphQL API produces the same SDK surface as its REST equivalent\" becomes\na checkable claim rather than an aspiration.\n\nKept in sync with the served schema in the solardemo app\n(sdkgen: ts/test/solardemo/app/def/solardemo-1.0.0-graphql.graphql).\n\nDeliberately idiomatic rather than a mechanical translation:\n  - collections are Relay connections, not bare lists\n  - mutations return payload wrappers carrying the entity\n  - the REST sub-resource path /planet/{id}/moon becomes a `planetId`\n    argument on `moons`, plus a `moons` connection on Planet\n  - terraform and forbid are plain mutations; they map to $action points\n    exactly as the REST action paths do"
+    },
+    "Planet": {
+      "name": "Planet",
+      "kind": "OBJECT",
+      "fields": {
+        "diameter": {
+          "name": "diameter",
+          "gqltype": "Float!",
+          "type": "Float",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "id": {
+          "name": "id",
+          "gqltype": "ID!",
+          "type": "ID",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "kind": {
+          "name": "kind",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "moons": {
+          "name": "moons",
+          "gqltype": "MoonConnection!",
+          "type": "MoonConnection",
+          "reqd": true,
+          "list": false,
+          "args": [
+            {
+              "name": "first",
+              "gqltype": "Int",
+              "type": "Int",
+              "reqd": false
+            },
+            {
+              "name": "after",
+              "gqltype": "String",
+              "type": "String",
+              "reqd": false
+            }
+          ],
+          "deprecated": false
+        },
+        "name": {
+          "name": "name",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        }
+      }
+    },
+    "PlanetConnection": {
+      "name": "PlanetConnection",
+      "kind": "OBJECT",
+      "fields": {
+        "nodes": {
+          "name": "nodes",
+          "gqltype": "[Planet!]!",
+          "type": "Planet",
+          "reqd": true,
+          "list": true,
+          "args": [],
+          "deprecated": false
+        },
+        "pageInfo": {
+          "name": "pageInfo",
+          "gqltype": "PageInfo!",
+          "type": "PageInfo",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        }
+      }
+    },
+    "PlanetCreateInput": {
+      "name": "PlanetCreateInput",
+      "kind": "INPUT_OBJECT",
+      "fields": {
+        "diameter": {
+          "name": "diameter",
+          "gqltype": "Float!",
+          "type": "Float",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "kind": {
+          "name": "kind",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "name": {
+          "name": "name",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        }
+      }
+    },
+    "PlanetFilter": {
+      "name": "PlanetFilter",
+      "kind": "INPUT_OBJECT",
+      "fields": {
+        "kind": {
+          "name": "kind",
+          "gqltype": "String",
+          "type": "String",
+          "reqd": false,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        }
+      }
+    },
+    "PlanetPayload": {
+      "name": "PlanetPayload",
+      "kind": "OBJECT",
+      "fields": {
+        "planet": {
+          "name": "planet",
+          "gqltype": "Planet",
+          "type": "Planet",
+          "reqd": false,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "success": {
+          "name": "success",
+          "gqltype": "Boolean!",
+          "type": "Boolean",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        }
+      }
+    },
+    "PlanetStatePayload": {
+      "name": "PlanetStatePayload",
+      "kind": "OBJECT",
+      "fields": {
+        "planet": {
+          "name": "planet",
+          "gqltype": "Planet",
+          "type": "Planet",
+          "reqd": false,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "state": {
+          "name": "state",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "success": {
+          "name": "success",
+          "gqltype": "Boolean!",
+          "type": "Boolean",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        }
+      },
+      "desc": "Action payloads carry the resulting state alongside the entity, mirroring the\n`{ ok, state }` body the REST terraform/forbid endpoints return."
+    },
+    "PlanetUpdateInput": {
+      "name": "PlanetUpdateInput",
+      "kind": "INPUT_OBJECT",
+      "fields": {
+        "diameter": {
+          "name": "diameter",
+          "gqltype": "Float",
+          "type": "Float",
+          "reqd": false,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "kind": {
+          "name": "kind",
+          "gqltype": "String",
+          "type": "String",
+          "reqd": false,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "name": {
+          "name": "name",
+          "gqltype": "String",
+          "type": "String",
+          "reqd": false,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        }
+      }
+    },
+    "Query": {
+      "name": "Query",
+      "kind": "OBJECT",
+      "fields": {
+        "moon": {
+          "name": "moon",
+          "gqltype": "Moon",
+          "type": "Moon",
+          "reqd": false,
+          "list": false,
+          "args": [
+            {
+              "name": "id",
+              "gqltype": "String!",
+              "type": "String",
+              "reqd": true
+            }
+          ],
+          "deprecated": false
+        },
+        "moons": {
+          "name": "moons",
+          "gqltype": "MoonConnection!",
+          "type": "MoonConnection",
+          "reqd": true,
+          "list": false,
+          "args": [
+            {
+              "name": "planetId",
+              "gqltype": "String",
+              "type": "String",
+              "reqd": false
+            },
+            {
+              "name": "first",
+              "gqltype": "Int",
+              "type": "Int",
+              "reqd": false
+            },
+            {
+              "name": "after",
+              "gqltype": "String",
+              "type": "String",
+              "reqd": false
+            }
+          ],
+          "deprecated": false
+        },
+        "planet": {
+          "name": "planet",
+          "gqltype": "Planet",
+          "type": "Planet",
+          "reqd": false,
+          "list": false,
+          "args": [
+            {
+              "name": "id",
+              "gqltype": "String!",
+              "type": "String",
+              "reqd": true
+            }
+          ],
+          "deprecated": false
+        },
+        "planets": {
+          "name": "planets",
+          "gqltype": "PlanetConnection!",
+          "type": "PlanetConnection",
+          "reqd": true,
+          "list": false,
+          "args": [
+            {
+              "name": "filter",
+              "gqltype": "PlanetFilter",
+              "type": "PlanetFilter",
+              "reqd": false
+            },
+            {
+              "name": "first",
+              "gqltype": "Int",
+              "type": "Int",
+              "reqd": false
+            },
+            {
+              "name": "after",
+              "gqltype": "String",
+              "type": "String",
+              "reqd": false
+            }
+          ],
+          "deprecated": false
+        }
+      }
+    },
+    "String": {
+      "name": "String",
+      "kind": "SCALAR",
+      "fields": {},
+      "desc": "The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text."
+    }
+  },
+  "query": {
+    "moon": {
+      "name": "moon",
+      "gqltype": "Moon",
+      "type": "Moon",
+      "reqd": false,
+      "list": false,
+      "args": [
+        {
+          "name": "id",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true
+        }
+      ],
+      "deprecated": false
+    },
+    "moons": {
+      "name": "moons",
+      "gqltype": "MoonConnection!",
+      "type": "MoonConnection",
+      "reqd": true,
+      "list": false,
+      "args": [
+        {
+          "name": "planetId",
+          "gqltype": "String",
+          "type": "String",
+          "reqd": false
+        },
+        {
+          "name": "first",
+          "gqltype": "Int",
+          "type": "Int",
+          "reqd": false
+        },
+        {
+          "name": "after",
+          "gqltype": "String",
+          "type": "String",
+          "reqd": false
+        }
+      ],
+      "deprecated": false
+    },
+    "planet": {
+      "name": "planet",
+      "gqltype": "Planet",
+      "type": "Planet",
+      "reqd": false,
+      "list": false,
+      "args": [
+        {
+          "name": "id",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true
+        }
+      ],
+      "deprecated": false
+    },
+    "planets": {
+      "name": "planets",
+      "gqltype": "PlanetConnection!",
+      "type": "PlanetConnection",
+      "reqd": true,
+      "list": false,
+      "args": [
+        {
+          "name": "filter",
+          "gqltype": "PlanetFilter",
+          "type": "PlanetFilter",
+          "reqd": false
+        },
+        {
+          "name": "first",
+          "gqltype": "Int",
+          "type": "Int",
+          "reqd": false
+        },
+        {
+          "name": "after",
+          "gqltype": "String",
+          "type": "String",
+          "reqd": false
+        }
+      ],
+      "deprecated": false
+    }
+  },
+  "mutation": {
+    "moonCreate": {
+      "name": "moonCreate",
+      "gqltype": "MoonPayload!",
+      "type": "MoonPayload",
+      "reqd": true,
+      "list": false,
+      "args": [
+        {
+          "name": "input",
+          "gqltype": "MoonCreateInput!",
+          "type": "MoonCreateInput",
+          "reqd": true
+        }
+      ],
+      "deprecated": false
+    },
+    "moonDelete": {
+      "name": "moonDelete",
+      "gqltype": "MoonPayload!",
+      "type": "MoonPayload",
+      "reqd": true,
+      "list": false,
+      "args": [
+        {
+          "name": "id",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true
+        }
+      ],
+      "deprecated": false
+    },
+    "moonUpdate": {
+      "name": "moonUpdate",
+      "gqltype": "MoonPayload!",
+      "type": "MoonPayload",
+      "reqd": true,
+      "list": false,
+      "args": [
+        {
+          "name": "id",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true
+        },
+        {
+          "name": "input",
+          "gqltype": "MoonUpdateInput!",
+          "type": "MoonUpdateInput",
+          "reqd": true
+        }
+      ],
+      "deprecated": false
+    },
+    "planetCreate": {
+      "name": "planetCreate",
+      "gqltype": "PlanetPayload!",
+      "type": "PlanetPayload",
+      "reqd": true,
+      "list": false,
+      "args": [
+        {
+          "name": "input",
+          "gqltype": "PlanetCreateInput!",
+          "type": "PlanetCreateInput",
+          "reqd": true
+        }
+      ],
+      "deprecated": false
+    },
+    "planetDelete": {
+      "name": "planetDelete",
+      "gqltype": "PlanetPayload!",
+      "type": "PlanetPayload",
+      "reqd": true,
+      "list": false,
+      "args": [
+        {
+          "name": "id",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true
+        }
+      ],
+      "deprecated": false
+    },
+    "planetForbid": {
+      "name": "planetForbid",
+      "gqltype": "PlanetStatePayload!",
+      "type": "PlanetStatePayload",
+      "reqd": true,
+      "list": false,
+      "args": [
+        {
+          "name": "id",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true
+        },
+        {
+          "name": "forbid",
+          "gqltype": "Boolean",
+          "type": "Boolean",
+          "reqd": false
+        },
+        {
+          "name": "why",
+          "gqltype": "String",
+          "type": "String",
+          "reqd": false
+        }
+      ],
+      "deprecated": false
+    },
+    "planetTerraform": {
+      "name": "planetTerraform",
+      "gqltype": "PlanetStatePayload!",
+      "type": "PlanetStatePayload",
+      "reqd": true,
+      "list": false,
+      "args": [
+        {
+          "name": "id",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true
+        },
+        {
+          "name": "start",
+          "gqltype": "Boolean",
+          "type": "Boolean",
+          "reqd": false
+        },
+        {
+          "name": "stop",
+          "gqltype": "Boolean",
+          "type": "Boolean",
+          "reqd": false
+        }
+      ],
+      "deprecated": false
+    },
+    "planetUpdate": {
+      "name": "planetUpdate",
+      "gqltype": "PlanetPayload!",
+      "type": "PlanetPayload",
+      "reqd": true,
+      "list": false,
+      "args": [
+        {
+          "name": "id",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true
+        },
+        {
+          "name": "input",
+          "gqltype": "PlanetUpdateInput!",
+          "type": "PlanetUpdateInput",
+          "reqd": true
+        }
+      ],
+      "deprecated": false
+    }
+  },
+  "subscription": {}
+}

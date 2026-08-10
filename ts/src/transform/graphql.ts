@@ -220,8 +220,14 @@ const graphqlTransform: Transform = async function(
           respath = 'body.data.' + rootfield + '.' + ret.unwrap
         }
 
+        // Distinct operation name per point. The action comes from the GUIDE,
+        // not from mpoint.select: selectTransform runs after this stage, so
+        // $action is not set yet, and without the suffix every action point
+        // on an op would ship the same operation name (three PlanetUpdates),
+        // which is what server logs, tracing and APM key on.
+        const actionName = Object.keys((gfield as any)?.action ?? {})[0]
         const docname = pascal(entname) + pascal(opname) +
-          (null != mpoint.select?.$action ? pascal(mpoint.select.$action) : '')
+          (null != actionName ? pascal(actionName) : '')
 
         // GraphQL points ride the HTTP machinery: POST to the single
         // endpoint, no path parts. The document carries everything else.

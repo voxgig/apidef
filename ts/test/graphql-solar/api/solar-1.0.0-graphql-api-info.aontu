@@ -1,0 +1,26 @@
+# API Information
+
+
+main: {
+  kit: {
+    info: {
+      description: "The solar API."
+      security: {
+        in: "header"
+        name: "Authorization"
+        prefix: ""
+        scheme: "apikey"
+        type: "apiKey"
+      }
+      servers: [
+        {
+          url: "https://api.solardemo.test/api/graphql"
+        }
+      ]
+      title: "solar"
+      version: ""
+      website: "https://solardemo.test"
+    }
+  }
+}
+

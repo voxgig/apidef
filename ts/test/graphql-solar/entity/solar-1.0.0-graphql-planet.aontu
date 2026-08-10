@@ -1,19 +1,14 @@
-# Entity: issue
+# Entity: planet
 
-main: kit: entity: issue: {
+main: kit: entity: planet: {
 
   alias: field: {}
 
   fields: [
     {
-      name: "archived_at"
-      req: false
-      type: "`$ANY`"
-    }
-    {
-      name: "created_at"
+      name: "diameter"
       req: true
-      type: "`$ANY`"
+      type: "`$NUMBER`"
     }
     {
       name: "id"
@@ -21,22 +16,12 @@ main: kit: entity: issue: {
       type: "`$STRING`"
     }
     {
-      name: "identifier"
+      name: "kind"
       req: true
       type: "`$STRING`"
     }
     {
-      name: "priority"
-      req: false
-      type: "`$STRING`"
-    }
-    {
-      name: "team"
-      req: false
-      type: "`$OBJECT`"
-    }
-    {
-      name: "title"
+      name: "name"
       req: true
       type: "`$STRING`"
     }
@@ -47,30 +32,30 @@ main: kit: entity: issue: {
     name: "id"
   }
 
-  name: "issue"
+  name: "planet"
   op: {
     create: {
       name: "create"
       points: [
         {
           graphql: {
-            doc: "mutation IssueCreate($input: IssueCreateInput!) { issueCreate(input: $input) { issue { ...IssueFields } success } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }"
-            field: "issueCreate"
+            doc: "mutation PlanetCreate($input: PlanetCreateInput!) { planetCreate(input: $input) { planet { ...PlanetFields } success } } fragment PlanetFields on Planet { diameter id kind name }"
+            field: "planetCreate"
             optype: "mutation"
             vars: [
               {
                 from: ""
-                gqltype: "IssueCreateInput!"
+                gqltype: "PlanetCreateInput!"
                 name: "input"
               }
             ]
           }
           kind: "graphql"
           method: "POST"
-          orig: "issueCreate"
+          orig: "planetCreate"
           transform: {
             req: "`reqdata`"
-            res: "`body.data.issueCreate.issue`"
+            res: "`body.data.planetCreate.planet`"
           }
         }
       ]
@@ -98,8 +83,8 @@ main: kit: entity: issue: {
             ]
           }
           graphql: {
-            doc: "query IssueList($filter: IssueFilter, $first: Int, $after: String) { issues(filter: $filter, first: $first, after: $after) { nodes { ...IssueFields } pageInfo { endCursor hasNextPage } } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }"
-            field: "issues"
+            doc: "query PlanetList($filter: PlanetFilter, $first: Int, $after: String) { planets(filter: $filter, first: $first, after: $after) { nodes { ...PlanetFields } pageInfo { endCursor hasNextPage } } } fragment PlanetFields on Planet { diameter id kind name }"
+            field: "planets"
             optype: "query"
             page: {
               cursor: "pageInfo.endCursor"
@@ -110,7 +95,7 @@ main: kit: entity: issue: {
             vars: [
               {
                 from: ""
-                gqltype: "IssueFilter"
+                gqltype: "PlanetFilter"
                 name: "filter"
               }
               {
@@ -127,10 +112,10 @@ main: kit: entity: issue: {
           }
           kind: "graphql"
           method: "POST"
-          orig: "issues"
+          orig: "planets"
           transform: {
             req: "`reqdata`"
-            res: "`body.data.issues.nodes`"
+            res: "`body.data.planets.nodes`"
           }
         }
       ]
@@ -151,8 +136,8 @@ main: kit: entity: issue: {
             ]
           }
           graphql: {
-            doc: "query IssueLoad($id: String!) { issue(id: $id) { ...IssueFields } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }"
-            field: "issue"
+            doc: "query PlanetLoad($id: String!) { planet(id: $id) { ...PlanetFields } } fragment PlanetFields on Planet { diameter id kind name }"
+            field: "planet"
             optype: "query"
             vars: [
               {
@@ -164,7 +149,7 @@ main: kit: entity: issue: {
           }
           kind: "graphql"
           method: "POST"
-          orig: "issue"
+          orig: "planet"
           select: {
             exist: [
               "id"
@@ -172,7 +157,7 @@ main: kit: entity: issue: {
           }
           transform: {
             req: "`reqdata`"
-            res: "`body.data.issue`"
+            res: "`body.data.planet`"
           }
         }
       ]
@@ -193,8 +178,8 @@ main: kit: entity: issue: {
             ]
           }
           graphql: {
-            doc: "mutation IssueRemove($id: String!) { issueDelete(id: $id) { issue { ...IssueFields } success } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }"
-            field: "issueDelete"
+            doc: "mutation PlanetRemove($id: String!) { planetDelete(id: $id) { planet { ...PlanetFields } success } } fragment PlanetFields on Planet { diameter id kind name }"
+            field: "planetDelete"
             optype: "mutation"
             vars: [
               {
@@ -206,7 +191,7 @@ main: kit: entity: issue: {
           }
           kind: "graphql"
           method: "POST"
-          orig: "issueDelete"
+          orig: "planetDelete"
           select: {
             exist: [
               "id"
@@ -214,7 +199,7 @@ main: kit: entity: issue: {
           }
           transform: {
             req: "`reqdata`"
-            res: "`body.data.issueDelete.issue`"
+            res: "`body.data.planetDelete.planet`"
           }
         }
       ]
@@ -227,16 +212,30 @@ main: kit: entity: issue: {
             params: [
               {
                 kind: "param"
+                name: "forbid"
+                orig: "forbid"
+                reqd: false
+                type: "`$BOOLEAN`"
+              }
+              {
+                kind: "param"
                 name: "id"
                 orig: "id"
                 reqd: true
                 type: "`$STRING`"
               }
+              {
+                kind: "param"
+                name: "why"
+                orig: "why"
+                reqd: false
+                type: "`$STRING`"
+              }
             ]
           }
           graphql: {
-            doc: "mutation IssueUpdateArchive($id: String!) { issueArchive(id: $id) { issue { ...IssueFields } success } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }"
-            field: "issueArchive"
+            doc: "mutation PlanetUpdateForbid($id: String!, $forbid: Boolean, $why: String) { planetForbid(id: $id, forbid: $forbid, why: $why) { planet { ...PlanetFields } success } } fragment PlanetFields on Planet { diameter id kind name }"
+            field: "planetForbid"
             optype: "mutation"
             vars: [
               {
@@ -244,20 +243,92 @@ main: kit: entity: issue: {
                 gqltype: "String!"
                 name: "id"
               }
+              {
+                from: "forbid"
+                gqltype: "Boolean"
+                name: "forbid"
+              }
+              {
+                from: "why"
+                gqltype: "String"
+                name: "why"
+              }
             ]
           }
           kind: "graphql"
           method: "POST"
-          orig: "issueArchive"
+          orig: "planetForbid"
           select: {
-            "$action": "archive"
+            "$action": "forbid"
             exist: [
               "id"
             ]
           }
           transform: {
             req: "`reqdata`"
-            res: "`body.data.issueArchive.issue`"
+            res: "`body.data.planetForbid.planet`"
+          }
+        }
+        {
+          args: {
+            params: [
+              {
+                kind: "param"
+                name: "id"
+                orig: "id"
+                reqd: true
+                type: "`$STRING`"
+              }
+              {
+                kind: "param"
+                name: "start"
+                orig: "start"
+                reqd: false
+                type: "`$BOOLEAN`"
+              }
+              {
+                kind: "param"
+                name: "stop"
+                orig: "stop"
+                reqd: false
+                type: "`$BOOLEAN`"
+              }
+            ]
+          }
+          graphql: {
+            doc: "mutation PlanetUpdateTerraform($id: String!, $start: Boolean, $stop: Boolean) { planetTerraform(id: $id, start: $start, stop: $stop) { planet { ...PlanetFields } success } } fragment PlanetFields on Planet { diameter id kind name }"
+            field: "planetTerraform"
+            optype: "mutation"
+            vars: [
+              {
+                from: "id"
+                gqltype: "String!"
+                name: "id"
+              }
+              {
+                from: "start"
+                gqltype: "Boolean"
+                name: "start"
+              }
+              {
+                from: "stop"
+                gqltype: "Boolean"
+                name: "stop"
+              }
+            ]
+          }
+          kind: "graphql"
+          method: "POST"
+          orig: "planetTerraform"
+          select: {
+            "$action": "terraform"
+            exist: [
+              "id"
+            ]
+          }
+          transform: {
+            req: "`reqdata`"
+            res: "`body.data.planetTerraform.planet`"
           }
         }
         {
@@ -273,8 +344,8 @@ main: kit: entity: issue: {
             ]
           }
           graphql: {
-            doc: "mutation IssueUpdate($id: String!, $input: IssueUpdateInput!) { issueUpdate(id: $id, input: $input) { issue { ...IssueFields } success } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }"
-            field: "issueUpdate"
+            doc: "mutation PlanetUpdate($id: String!, $input: PlanetUpdateInput!) { planetUpdate(id: $id, input: $input) { planet { ...PlanetFields } success } } fragment PlanetFields on Planet { diameter id kind name }"
+            field: "planetUpdate"
             optype: "mutation"
             vars: [
               {
@@ -284,14 +355,14 @@ main: kit: entity: issue: {
               }
               {
                 from: ""
-                gqltype: "IssueUpdateInput!"
+                gqltype: "PlanetUpdateInput!"
                 name: "input"
               }
             ]
           }
           kind: "graphql"
           method: "POST"
-          orig: "issueUpdate"
+          orig: "planetUpdate"
           select: {
             exist: [
               "id"
@@ -299,7 +370,7 @@ main: kit: entity: issue: {
           }
           transform: {
             req: "`reqdata`"
-            res: "`body.data.issueUpdate.issue`"
+            res: "`body.data.planetUpdate.planet`"
           }
         }
       ]
