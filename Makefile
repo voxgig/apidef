@@ -53,10 +53,10 @@ publish-go: test-go
 	# Portable in-place edit: `sed -i ''` is BSD/macOS only and fails on GNU
 	# sed, which reads '' as the script. It failed silently here before — the
 	# constant said 0.1.2 while go/v0.1.3 was already tagged. The grep below
-	# stops a release whose Version constant did not actually get rewritten.
-	perl -pi -e 's/^const Version = ".*"/const Version = "$(V)"/' go/apidef.go
-	@grep -q '^const Version = "$(V)"' go/apidef.go || \
-	  (echo "publish-go: failed to set Version in go/apidef.go" && exit 1)
+	# stops a release whose VERSION constant did not actually get rewritten.
+	perl -pi -e 's/^const VERSION = ".*"/const VERSION = "$(V)"/' go/apidef.go
+	@grep -q '^const VERSION = "$(V)"' go/apidef.go || \
+	  (echo "publish-go: failed to set VERSION in go/apidef.go" && exit 1)
 	git add go/apidef.go
 	git commit -m "go: v$(V)"
 	git tag go/v$(V)
