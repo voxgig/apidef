@@ -83,6 +83,31 @@ function selectionFields(typeName: string, def: any): string[] {
 }
 
 
+// Scalar fields of a payload type, for payloads that carry no entity. Used
+// when there is nothing to spread a fragment on, so the operation still has
+// a valid selection set.
+function payloadScalarFields(typeName: string, def: any): string[] {
+  const gtype = def.types?.[typeName]
+  if (null == gtype) {
+    return []
+  }
+
+  const out: string[] = []
+
+  for (const fname of Object.keys(gtype.fields)) {
+    const f = gtype.fields[fname]
+    const kind = def.types?.[f.type]?.kind
+
+    if (!f.deprecated && !f.args.some((a: any) => a.reqd) &&
+      ('SCALAR' === kind || 'ENUM' === kind)) {
+      out.push(fname)
+    }
+  }
+
+  return out.sort()
+}
+
+
 // Variable bindings for a root field: one per argument. `from` is the op
 // argument the value is read from; for the input-object argument that is the
 // request data itself.
@@ -208,6 +233,17 @@ const graphqlTransform: Transform = async function(
         }
         else if ('list' === ret.kind) {
           selection = fragSpread
+        }
+        else if ('payload' === ret.kind && null == ret.entity) {
+          // Entity-less payload: Linear's DeletePayload is entityId +
+          // success + lastSyncId and nothing else. The classifier admits
+          // these (the entity comes from the field name), so the renderer
+          // must not fall through to the default `{ id }` spread — the
+          // payload HAS no id, and the server rejects the whole document.
+          // Select the payload's own scalars and unwrap to the payload.
+          const own = payloadScalarFields(fielddef.type, def)
+          selection = '{ ' + (0 < own.length ? own.join(' ') : '__typename') + ' }'
+          respath = 'body.data.' + rootfield
         }
         else if ('payload' === ret.kind && null != ret.unwrap) {
           // Mutation payload wrapper: select the entity inside it (plus the

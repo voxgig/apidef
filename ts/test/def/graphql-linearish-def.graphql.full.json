@@ -137,6 +137,31 @@
       "fields": {},
       "desc": "A deliberately small, Linear-shaped GraphQL schema used to exercise every\nbranch of the GraphQL ingestion pipeline. NOT a copy of Linear's schema —\npurpose-built so the emitted goldens stay readable.\n\nCoverage:\n  - load / list / create / update / remove on Issue\n  - a command mutation (issueArchive) folded as an $action point\n  - Relay connection machinery (nodes + pageInfo) driving list pagination\n  - a deprecated field, excluded from the default fragment\n  - a scalar field with a REQUIRED argument, also excluded (selecting it\n    unbound would fail GraphQL validation)\n  - a to-one relation, reduced to an { id } stub\n  - a to-many relation (a connection on the type, not a root field)\n  - an enum, a custom scalar, and comparator-style filter inputs\n  - ragged op sets: Team has no mutations, Comment has create only"
     },
+    "DeletePayload": {
+      "name": "DeletePayload",
+      "kind": "OBJECT",
+      "fields": {
+        "entityId": {
+          "name": "entityId",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "success": {
+          "name": "success",
+          "gqltype": "Boolean!",
+          "type": "Boolean",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        }
+      },
+      "desc": "A delete payload that names no entity — Linear's real shape. The entity a\nmutation returning this belongs to can only come from the field name, and\nthe operation document must select these fields rather than spreading an\nentity fragment."
+    },
     "ID": {
       "name": "ID",
       "kind": "SCALAR",
@@ -445,6 +470,22 @@
               "name": "input",
               "gqltype": "CommentCreateInput!",
               "type": "CommentCreateInput",
+              "reqd": true
+            }
+          ],
+          "deprecated": false
+        },
+        "commentDelete": {
+          "name": "commentDelete",
+          "gqltype": "DeletePayload!",
+          "type": "DeletePayload",
+          "reqd": true,
+          "list": false,
+          "args": [
+            {
+              "name": "id",
+              "gqltype": "String!",
+              "type": "String",
               "reqd": true
             }
           ],
@@ -858,6 +899,22 @@
           "name": "input",
           "gqltype": "CommentCreateInput!",
           "type": "CommentCreateInput",
+          "reqd": true
+        }
+      ],
+      "deprecated": false
+    },
+    "commentDelete": {
+      "name": "commentDelete",
+      "gqltype": "DeletePayload!",
+      "type": "DeletePayload",
+      "reqd": true,
+      "list": false,
+      "args": [
+        {
+          "name": "id",
+          "gqltype": "String!",
+          "type": "String",
           "reqd": true
         }
       ],
