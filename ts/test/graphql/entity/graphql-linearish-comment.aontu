@@ -1,0 +1,67 @@
+# Entity: comment
+
+main: kit: entity: comment: {
+
+  alias: field: {}
+
+  fields: [
+    {
+      name: "body"
+      req: true
+      type: "`$STRING`"
+    }
+    {
+      name: "created_at"
+      req: true
+      type: "`$STRING`"
+    }
+    {
+      name: "id"
+      req: true
+      type: "`$STRING`"
+    }
+    {
+      name: "issue_id"
+      req: false
+      type: "`$STRING`"
+    }
+  ]
+
+  id: {
+    field: "id"
+    name: "id"
+  }
+
+  name: "comment"
+  op: {
+    create: {
+      name: "create"
+      points: [
+        {
+          graphql: {
+            doc: "mutation CommentCreate($input: CommentCreateInput!) { commentCreate(input: $input) { comment { ...CommentFields } success } } fragment CommentFields on Comment { body createdAt id issue { id } }"
+            field: "commentCreate"
+            optype: "mutation"
+            vars: [
+              {
+                from: ""
+                gqltype: "CommentCreateInput!"
+                name: "input"
+              }
+            ]
+          }
+          kind: "graphql"
+          method: "POST"
+          orig: "commentCreate"
+          transform: {
+            req: "`reqdata`"
+            res: "`body.data.commentCreate.comment`"
+          }
+        }
+      ]
+    }
+  }
+
+
+
+}

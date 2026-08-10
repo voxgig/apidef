@@ -205,6 +205,12 @@ async function buildBaseGuide(ctx: ApiDefContext) {
   metrics: count: path: ${metrics.count.path}
   metrics: count: method: ${metrics.count.method}`)
 
+  // Root-field count is GraphQL-only; omit it for REST guides so their
+  // emitted base-guide files stay byte-identical.
+  if (0 < (metrics.count.field ?? 0)) {
+    guideBlocks.push(`  metrics: count: field: ${metrics.count.field}`)
+  }
+
   // NOTE: items(...) sorts the iteration elements, so the generated model code
   // is deterministic.
 

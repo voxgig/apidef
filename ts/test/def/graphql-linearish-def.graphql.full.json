@@ -1,0 +1,938 @@
+{
+  "graphql": true,
+  "info": {
+    "title": "graphql",
+    "version": "",
+    "description": ""
+  },
+  "servers": [
+    {
+      "url": "https://api.example.test/graphql"
+    }
+  ],
+  "types": {
+    "Boolean": {
+      "name": "Boolean",
+      "kind": "SCALAR",
+      "fields": {},
+      "desc": "The `Boolean` scalar type represents `true` or `false`."
+    },
+    "Comment": {
+      "name": "Comment",
+      "kind": "OBJECT",
+      "fields": {
+        "body": {
+          "name": "body",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "gqltype": "DateTime!",
+          "type": "DateTime",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "id": {
+          "name": "id",
+          "gqltype": "ID!",
+          "type": "ID",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "issue": {
+          "name": "issue",
+          "gqltype": "Issue!",
+          "type": "Issue",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        }
+      }
+    },
+    "CommentConnection": {
+      "name": "CommentConnection",
+      "kind": "OBJECT",
+      "fields": {
+        "nodes": {
+          "name": "nodes",
+          "gqltype": "[Comment!]!",
+          "type": "Comment",
+          "reqd": true,
+          "list": true,
+          "args": [],
+          "deprecated": false
+        },
+        "pageInfo": {
+          "name": "pageInfo",
+          "gqltype": "PageInfo!",
+          "type": "PageInfo",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        }
+      }
+    },
+    "CommentCreateInput": {
+      "name": "CommentCreateInput",
+      "kind": "INPUT_OBJECT",
+      "fields": {
+        "body": {
+          "name": "body",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "issueId": {
+          "name": "issueId",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        }
+      }
+    },
+    "CommentPayload": {
+      "name": "CommentPayload",
+      "kind": "OBJECT",
+      "fields": {
+        "comment": {
+          "name": "comment",
+          "gqltype": "Comment",
+          "type": "Comment",
+          "reqd": false,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "success": {
+          "name": "success",
+          "gqltype": "Boolean!",
+          "type": "Boolean",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        }
+      }
+    },
+    "DateTime": {
+      "name": "DateTime",
+      "kind": "SCALAR",
+      "fields": {},
+      "desc": "A deliberately small, Linear-shaped GraphQL schema used to exercise every\nbranch of the GraphQL ingestion pipeline. NOT a copy of Linear's schema —\npurpose-built so the emitted goldens stay readable.\n\nCoverage:\n  - load / list / create / update / remove on Issue\n  - a command mutation (issueArchive) folded as an $action point\n  - Relay connection machinery (nodes + pageInfo) driving list pagination\n  - a deprecated field, excluded from the default fragment\n  - a scalar field with a REQUIRED argument, also excluded (selecting it\n    unbound would fail GraphQL validation)\n  - a to-one relation, reduced to an { id } stub\n  - a to-many relation (a connection on the type, not a root field)\n  - an enum, a custom scalar, and comparator-style filter inputs\n  - ragged op sets: Team has no mutations, Comment has create only"
+    },
+    "ID": {
+      "name": "ID",
+      "kind": "SCALAR",
+      "fields": {},
+      "desc": "The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `\"4\"`) or integer (such as `4`) input value will be accepted as an ID."
+    },
+    "Int": {
+      "name": "Int",
+      "kind": "SCALAR",
+      "fields": {},
+      "desc": "The `Int` scalar type represents non-fractional signed whole numeric values. Int can represent values between -(2^31) and 2^31 - 1."
+    },
+    "Issue": {
+      "name": "Issue",
+      "kind": "OBJECT",
+      "fields": {
+        "archivedAt": {
+          "name": "archivedAt",
+          "gqltype": "DateTime",
+          "type": "DateTime",
+          "reqd": false,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "comments": {
+          "name": "comments",
+          "gqltype": "CommentConnection!",
+          "type": "CommentConnection",
+          "reqd": true,
+          "list": false,
+          "args": [
+            {
+              "name": "first",
+              "gqltype": "Int",
+              "type": "Int",
+              "reqd": false
+            },
+            {
+              "name": "after",
+              "gqltype": "String",
+              "type": "String",
+              "reqd": false
+            }
+          ],
+          "deprecated": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "gqltype": "DateTime!",
+          "type": "DateTime",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "icon": {
+          "name": "icon",
+          "gqltype": "String",
+          "type": "String",
+          "reqd": false,
+          "list": false,
+          "args": [
+            {
+              "name": "size",
+              "gqltype": "Int!",
+              "type": "Int",
+              "reqd": true
+            }
+          ],
+          "deprecated": false
+        },
+        "id": {
+          "name": "id",
+          "gqltype": "ID!",
+          "type": "ID",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "identifier": {
+          "name": "identifier",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "legacyCode": {
+          "name": "legacyCode",
+          "gqltype": "String",
+          "type": "String",
+          "reqd": false,
+          "list": false,
+          "args": [],
+          "deprecated": true
+        },
+        "priority": {
+          "name": "priority",
+          "gqltype": "IssuePriority",
+          "type": "IssuePriority",
+          "reqd": false,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "team": {
+          "name": "team",
+          "gqltype": "Team!",
+          "type": "Team",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "title": {
+          "name": "title",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        }
+      }
+    },
+    "IssueArchivePayload": {
+      "name": "IssueArchivePayload",
+      "kind": "OBJECT",
+      "fields": {
+        "issue": {
+          "name": "issue",
+          "gqltype": "Issue",
+          "type": "Issue",
+          "reqd": false,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "success": {
+          "name": "success",
+          "gqltype": "Boolean!",
+          "type": "Boolean",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        }
+      }
+    },
+    "IssueConnection": {
+      "name": "IssueConnection",
+      "kind": "OBJECT",
+      "fields": {
+        "nodes": {
+          "name": "nodes",
+          "gqltype": "[Issue!]!",
+          "type": "Issue",
+          "reqd": true,
+          "list": true,
+          "args": [],
+          "deprecated": false
+        },
+        "pageInfo": {
+          "name": "pageInfo",
+          "gqltype": "PageInfo!",
+          "type": "PageInfo",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        }
+      }
+    },
+    "IssueCreateInput": {
+      "name": "IssueCreateInput",
+      "kind": "INPUT_OBJECT",
+      "fields": {
+        "priority": {
+          "name": "priority",
+          "gqltype": "IssuePriority",
+          "type": "IssuePriority",
+          "reqd": false,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "teamId": {
+          "name": "teamId",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "title": {
+          "name": "title",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        }
+      }
+    },
+    "IssueFilter": {
+      "name": "IssueFilter",
+      "kind": "INPUT_OBJECT",
+      "fields": {
+        "priority": {
+          "name": "priority",
+          "gqltype": "Int",
+          "type": "Int",
+          "reqd": false,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "title": {
+          "name": "title",
+          "gqltype": "StringComparator",
+          "type": "StringComparator",
+          "reqd": false,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        }
+      }
+    },
+    "IssuePayload": {
+      "name": "IssuePayload",
+      "kind": "OBJECT",
+      "fields": {
+        "issue": {
+          "name": "issue",
+          "gqltype": "Issue",
+          "type": "Issue",
+          "reqd": false,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "success": {
+          "name": "success",
+          "gqltype": "Boolean!",
+          "type": "Boolean",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        }
+      }
+    },
+    "IssuePriority": {
+      "name": "IssuePriority",
+      "kind": "ENUM",
+      "fields": {},
+      "values": [
+        "HIGH",
+        "LOW",
+        "MEDIUM",
+        "NONE",
+        "URGENT"
+      ]
+    },
+    "IssueUpdateInput": {
+      "name": "IssueUpdateInput",
+      "kind": "INPUT_OBJECT",
+      "fields": {
+        "priority": {
+          "name": "priority",
+          "gqltype": "IssuePriority",
+          "type": "IssuePriority",
+          "reqd": false,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "title": {
+          "name": "title",
+          "gqltype": "String",
+          "type": "String",
+          "reqd": false,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        }
+      }
+    },
+    "Mutation": {
+      "name": "Mutation",
+      "kind": "OBJECT",
+      "fields": {
+        "commentCreate": {
+          "name": "commentCreate",
+          "gqltype": "CommentPayload!",
+          "type": "CommentPayload",
+          "reqd": true,
+          "list": false,
+          "args": [
+            {
+              "name": "input",
+              "gqltype": "CommentCreateInput!",
+              "type": "CommentCreateInput",
+              "reqd": true
+            }
+          ],
+          "deprecated": false
+        },
+        "issueArchive": {
+          "name": "issueArchive",
+          "gqltype": "IssueArchivePayload!",
+          "type": "IssueArchivePayload",
+          "reqd": true,
+          "list": false,
+          "args": [
+            {
+              "name": "id",
+              "gqltype": "String!",
+              "type": "String",
+              "reqd": true
+            }
+          ],
+          "deprecated": false
+        },
+        "issueCreate": {
+          "name": "issueCreate",
+          "gqltype": "IssuePayload!",
+          "type": "IssuePayload",
+          "reqd": true,
+          "list": false,
+          "args": [
+            {
+              "name": "input",
+              "gqltype": "IssueCreateInput!",
+              "type": "IssueCreateInput",
+              "reqd": true
+            }
+          ],
+          "deprecated": false
+        },
+        "issueDelete": {
+          "name": "issueDelete",
+          "gqltype": "IssuePayload!",
+          "type": "IssuePayload",
+          "reqd": true,
+          "list": false,
+          "args": [
+            {
+              "name": "id",
+              "gqltype": "String!",
+              "type": "String",
+              "reqd": true
+            }
+          ],
+          "deprecated": false
+        },
+        "issueUpdate": {
+          "name": "issueUpdate",
+          "gqltype": "IssuePayload!",
+          "type": "IssuePayload",
+          "reqd": true,
+          "list": false,
+          "args": [
+            {
+              "name": "id",
+              "gqltype": "String!",
+              "type": "String",
+              "reqd": true
+            },
+            {
+              "name": "input",
+              "gqltype": "IssueUpdateInput!",
+              "type": "IssueUpdateInput",
+              "reqd": true
+            }
+          ],
+          "deprecated": false
+        }
+      }
+    },
+    "PageInfo": {
+      "name": "PageInfo",
+      "kind": "OBJECT",
+      "fields": {
+        "endCursor": {
+          "name": "endCursor",
+          "gqltype": "String",
+          "type": "String",
+          "reqd": false,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "hasNextPage": {
+          "name": "hasNextPage",
+          "gqltype": "Boolean!",
+          "type": "Boolean",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        }
+      }
+    },
+    "Query": {
+      "name": "Query",
+      "kind": "OBJECT",
+      "fields": {
+        "issue": {
+          "name": "issue",
+          "gqltype": "Issue",
+          "type": "Issue",
+          "reqd": false,
+          "list": false,
+          "args": [
+            {
+              "name": "id",
+              "gqltype": "String!",
+              "type": "String",
+              "reqd": true
+            }
+          ],
+          "deprecated": false
+        },
+        "issues": {
+          "name": "issues",
+          "gqltype": "IssueConnection!",
+          "type": "IssueConnection",
+          "reqd": true,
+          "list": false,
+          "args": [
+            {
+              "name": "filter",
+              "gqltype": "IssueFilter",
+              "type": "IssueFilter",
+              "reqd": false
+            },
+            {
+              "name": "first",
+              "gqltype": "Int",
+              "type": "Int",
+              "reqd": false
+            },
+            {
+              "name": "after",
+              "gqltype": "String",
+              "type": "String",
+              "reqd": false
+            }
+          ],
+          "deprecated": false
+        },
+        "team": {
+          "name": "team",
+          "gqltype": "Team",
+          "type": "Team",
+          "reqd": false,
+          "list": false,
+          "args": [
+            {
+              "name": "id",
+              "gqltype": "String!",
+              "type": "String",
+              "reqd": true
+            }
+          ],
+          "deprecated": false
+        },
+        "teams": {
+          "name": "teams",
+          "gqltype": "TeamConnection!",
+          "type": "TeamConnection",
+          "reqd": true,
+          "list": false,
+          "args": [
+            {
+              "name": "first",
+              "gqltype": "Int",
+              "type": "Int",
+              "reqd": false
+            },
+            {
+              "name": "after",
+              "gqltype": "String",
+              "type": "String",
+              "reqd": false
+            }
+          ],
+          "deprecated": false
+        },
+        "version": {
+          "name": "version",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        }
+      }
+    },
+    "String": {
+      "name": "String",
+      "kind": "SCALAR",
+      "fields": {},
+      "desc": "The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text."
+    },
+    "StringComparator": {
+      "name": "StringComparator",
+      "kind": "INPUT_OBJECT",
+      "fields": {
+        "contains": {
+          "name": "contains",
+          "gqltype": "String",
+          "type": "String",
+          "reqd": false,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "eq": {
+          "name": "eq",
+          "gqltype": "String",
+          "type": "String",
+          "reqd": false,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        }
+      }
+    },
+    "Team": {
+      "name": "Team",
+      "kind": "OBJECT",
+      "fields": {
+        "id": {
+          "name": "id",
+          "gqltype": "ID!",
+          "type": "ID",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "issues": {
+          "name": "issues",
+          "gqltype": "IssueConnection!",
+          "type": "IssueConnection",
+          "reqd": true,
+          "list": false,
+          "args": [
+            {
+              "name": "first",
+              "gqltype": "Int",
+              "type": "Int",
+              "reqd": false
+            },
+            {
+              "name": "after",
+              "gqltype": "String",
+              "type": "String",
+              "reqd": false
+            }
+          ],
+          "deprecated": false
+        },
+        "key": {
+          "name": "key",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        },
+        "name": {
+          "name": "name",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        }
+      }
+    },
+    "TeamConnection": {
+      "name": "TeamConnection",
+      "kind": "OBJECT",
+      "fields": {
+        "nodes": {
+          "name": "nodes",
+          "gqltype": "[Team!]!",
+          "type": "Team",
+          "reqd": true,
+          "list": true,
+          "args": [],
+          "deprecated": false
+        },
+        "pageInfo": {
+          "name": "pageInfo",
+          "gqltype": "PageInfo!",
+          "type": "PageInfo",
+          "reqd": true,
+          "list": false,
+          "args": [],
+          "deprecated": false
+        }
+      }
+    }
+  },
+  "query": {
+    "issue": {
+      "name": "issue",
+      "gqltype": "Issue",
+      "type": "Issue",
+      "reqd": false,
+      "list": false,
+      "args": [
+        {
+          "name": "id",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true
+        }
+      ],
+      "deprecated": false
+    },
+    "issues": {
+      "name": "issues",
+      "gqltype": "IssueConnection!",
+      "type": "IssueConnection",
+      "reqd": true,
+      "list": false,
+      "args": [
+        {
+          "name": "filter",
+          "gqltype": "IssueFilter",
+          "type": "IssueFilter",
+          "reqd": false
+        },
+        {
+          "name": "first",
+          "gqltype": "Int",
+          "type": "Int",
+          "reqd": false
+        },
+        {
+          "name": "after",
+          "gqltype": "String",
+          "type": "String",
+          "reqd": false
+        }
+      ],
+      "deprecated": false
+    },
+    "team": {
+      "name": "team",
+      "gqltype": "Team",
+      "type": "Team",
+      "reqd": false,
+      "list": false,
+      "args": [
+        {
+          "name": "id",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true
+        }
+      ],
+      "deprecated": false
+    },
+    "teams": {
+      "name": "teams",
+      "gqltype": "TeamConnection!",
+      "type": "TeamConnection",
+      "reqd": true,
+      "list": false,
+      "args": [
+        {
+          "name": "first",
+          "gqltype": "Int",
+          "type": "Int",
+          "reqd": false
+        },
+        {
+          "name": "after",
+          "gqltype": "String",
+          "type": "String",
+          "reqd": false
+        }
+      ],
+      "deprecated": false
+    },
+    "version": {
+      "name": "version",
+      "gqltype": "String!",
+      "type": "String",
+      "reqd": true,
+      "list": false,
+      "args": [],
+      "deprecated": false
+    }
+  },
+  "mutation": {
+    "commentCreate": {
+      "name": "commentCreate",
+      "gqltype": "CommentPayload!",
+      "type": "CommentPayload",
+      "reqd": true,
+      "list": false,
+      "args": [
+        {
+          "name": "input",
+          "gqltype": "CommentCreateInput!",
+          "type": "CommentCreateInput",
+          "reqd": true
+        }
+      ],
+      "deprecated": false
+    },
+    "issueArchive": {
+      "name": "issueArchive",
+      "gqltype": "IssueArchivePayload!",
+      "type": "IssueArchivePayload",
+      "reqd": true,
+      "list": false,
+      "args": [
+        {
+          "name": "id",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true
+        }
+      ],
+      "deprecated": false
+    },
+    "issueCreate": {
+      "name": "issueCreate",
+      "gqltype": "IssuePayload!",
+      "type": "IssuePayload",
+      "reqd": true,
+      "list": false,
+      "args": [
+        {
+          "name": "input",
+          "gqltype": "IssueCreateInput!",
+          "type": "IssueCreateInput",
+          "reqd": true
+        }
+      ],
+      "deprecated": false
+    },
+    "issueDelete": {
+      "name": "issueDelete",
+      "gqltype": "IssuePayload!",
+      "type": "IssuePayload",
+      "reqd": true,
+      "list": false,
+      "args": [
+        {
+          "name": "id",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true
+        }
+      ],
+      "deprecated": false
+    },
+    "issueUpdate": {
+      "name": "issueUpdate",
+      "gqltype": "IssuePayload!",
+      "type": "IssuePayload",
+      "reqd": true,
+      "list": false,
+      "args": [
+        {
+          "name": "id",
+          "gqltype": "String!",
+          "type": "String",
+          "reqd": true
+        },
+        {
+          "name": "input",
+          "gqltype": "IssueUpdateInput!",
+          "type": "IssueUpdateInput",
+          "reqd": true
+        }
+      ],
+      "deprecated": false
+    }
+  },
+  "subscription": {}
+}

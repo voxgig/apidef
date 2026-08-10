@@ -1,0 +1,131 @@
+"""
+A deliberately small, Linear-shaped GraphQL schema used to exercise every
+branch of the GraphQL ingestion pipeline. NOT a copy of Linear's schema —
+purpose-built so the emitted goldens stay readable.
+
+Coverage:
+  - load / list / create / update / remove on Issue
+  - a command mutation (issueArchive) folded as an $action point
+  - Relay connection machinery (nodes + pageInfo) driving list pagination
+  - a deprecated field, excluded from the default fragment
+  - a scalar field with a REQUIRED argument, also excluded (selecting it
+    unbound would fail GraphQL validation)
+  - a to-one relation, reduced to an { id } stub
+  - a to-many relation (a connection on the type, not a root field)
+  - an enum, a custom scalar, and comparator-style filter inputs
+  - ragged op sets: Team has no mutations, Comment has create only
+"""
+
+scalar DateTime
+
+enum IssuePriority {
+  NONE
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+type PageInfo {
+  hasNextPage: Boolean!
+  endCursor: String
+}
+
+type Team {
+  id: ID!
+  name: String!
+  key: String!
+  issues(first: Int, after: String): IssueConnection!
+}
+
+type Issue {
+  id: ID!
+  title: String!
+  identifier: String!
+  priority: IssuePriority
+  createdAt: DateTime!
+  archivedAt: DateTime
+  legacyCode: String @deprecated(reason: "replaced by identifier")
+  icon(size: Int!): String
+  team: Team!
+  comments(first: Int, after: String): CommentConnection!
+}
+
+type Comment {
+  id: ID!
+  body: String!
+  createdAt: DateTime!
+  issue: Issue!
+}
+
+type IssueConnection {
+  nodes: [Issue!]!
+  pageInfo: PageInfo!
+}
+
+type CommentConnection {
+  nodes: [Comment!]!
+  pageInfo: PageInfo!
+}
+
+type TeamConnection {
+  nodes: [Team!]!
+  pageInfo: PageInfo!
+}
+
+input StringComparator {
+  eq: String
+  contains: String
+}
+
+input IssueFilter {
+  title: StringComparator
+  priority: Int
+}
+
+input IssueCreateInput {
+  title: String!
+  teamId: String!
+  priority: IssuePriority
+}
+
+input IssueUpdateInput {
+  title: String
+  priority: IssuePriority
+}
+
+input CommentCreateInput {
+  issueId: String!
+  body: String!
+}
+
+type IssuePayload {
+  success: Boolean!
+  issue: Issue
+}
+
+type CommentPayload {
+  success: Boolean!
+  comment: Comment
+}
+
+type IssueArchivePayload {
+  success: Boolean!
+  issue: Issue
+}
+
+type Query {
+  issue(id: String!): Issue
+  issues(filter: IssueFilter, first: Int, after: String): IssueConnection!
+  team(id: String!): Team
+  teams(first: Int, after: String): TeamConnection!
+  version: String!
+}
+
+type Mutation {
+  issueCreate(input: IssueCreateInput!): IssuePayload!
+  issueUpdate(id: String!, input: IssueUpdateInput!): IssuePayload!
+  issueDelete(id: String!): IssuePayload!
+  issueArchive(id: String!): IssueArchivePayload!
+  commentCreate(input: CommentCreateInput!): CommentPayload!
+}

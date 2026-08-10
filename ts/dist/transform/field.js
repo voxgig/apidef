@@ -64,7 +64,64 @@ function resolveOpFields(ment, mop, mpoint, def) {
     }
     return mfields;
 }
+// GraphQL entity fields come straight from the object type: every
+// non-deprecated scalar field, minus any that require arguments (selecting
+// `download(format: Format!)` without binding its argument makes every
+// operation using the fragment fail GraphQL validation), plus one id-stub
+// reference per to-one relation.
+function findGraphqlFieldDefs(ment, mpoint, def) {
+    const typeName = mpoint.graphql?.entityType$ ??
+        ment.orig$ ?? '';
+    const gtype = def.types?.[typeName];
+    if (null == gtype) {
+        return [];
+    }
+    const out = [];
+    // Sorted by construction in parse/graphql.ts, so output stays byte-stable.
+    for (const fname of Object.keys(gtype.fields)) {
+        const f = gtype.fields[fname];
+        if (f.deprecated) {
+            continue;
+        }
+        // A field taking required arguments cannot appear in a fixed fragment.
+        if (f.args.some((a) => a.reqd)) {
+            continue;
+        }
+        const ftype = def.types?.[f.type];
+        const kind = ftype?.kind;
+        if ('SCALAR' === kind || 'ENUM' === kind) {
+            out.push({
+                key$: fname,
+                type: gqlFieldType(f.type),
+                required: f.reqd,
+            });
+        }
+        else if (('OBJECT' === kind || 'INTERFACE' === kind) && !f.list) {
+            // To-one relation: the default fragment selects only { id }, so the
+            // entity carries an id-stub reference rather than a nested object.
+            const idField = ftype.fields?.id;
+            if (null != idField) {
+                out.push({
+                    key$: fname + '_id',
+                    type: 'string',
+                    required: false,
+                });
+            }
+        }
+    }
+    return out;
+}
+// GraphQL named type -> the type names the field typing understands.
+function gqlFieldType(typeName) {
+    return 'Int' === typeName ? 'integer' :
+        'Float' === typeName ? 'number' :
+            'Boolean' === typeName ? 'boolean' :
+                'string';
+}
 function findFieldDefs(_ment, mop, mpoint, def) {
+    if ('graphql' === mpoint.kind) {
+        return findGraphqlFieldDefs(_ment, mpoint, def);
+    }
     const fielddefs = [];
     const pathdef = def.paths[mpoint.orig];
     const method = mpoint.method.toLowerCase();

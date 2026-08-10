@@ -12,10 +12,32 @@ const argsTransform = async function (ctx) {
         (0, jostraca_1.each)(ment.op, (mop, opname) => {
             (0, jostraca_1.each)(mop.points, (mpoint) => {
                 const argdefs = [];
-                const pathdef = def.paths[mpoint.orig];
-                argdefs.push(...(pathdef.parameters ?? []));
-                const opdef = pathdef[mpoint.method.toLowerCase()];
-                argdefs.push(...(opdef?.parameters ?? []));
+                if ('graphql' === mpoint.kind) {
+                    // GraphQL root-field arguments become 'param' args, so the existing
+                    // arg machinery (select.exist matching, request typing, test
+                    // generation) works on them unchanged. Input-object arguments are
+                    // the request body and are bound as variables by the document
+                    // renderer instead, so they are not surfaced as params here.
+                    const fielddef = graphqlFieldDef(def, mpoint);
+                    for (const arg of (fielddef?.args ?? [])) {
+                        const argtype = def.types?.[arg.type];
+                        if (null != argtype && 'INPUT_OBJECT' === argtype.kind) {
+                            continue;
+                        }
+                        argdefs.push({
+                            name: arg.name,
+                            in: 'path',
+                            required: arg.reqd,
+                            schema: { type: gqlScalarType(arg.type) },
+                        });
+                    }
+                }
+                else {
+                    const pathdef = def.paths[mpoint.orig];
+                    argdefs.push(...(pathdef.parameters ?? []));
+                    const opdef = pathdef[mpoint.method.toLowerCase()];
+                    argdefs.push(...(opdef?.parameters ?? []));
+                }
                 resolveArgs(ment, mop, mpoint, argdefs);
             });
         });
@@ -24,6 +46,21 @@ const argsTransform = async function (ctx) {
     return { ok: true, msg };
 };
 exports.argsTransform = argsTransform;
+// Locate the normalised root-field descriptor a GraphQL point came from.
+function graphqlFieldDef(def, mpoint) {
+    const field = mpoint.graphql?.field ?? mpoint.orig;
+    return 'mutation' === mpoint.graphql?.optype ?
+        def.mutation?.[field] : def.query?.[field];
+}
+// Map a GraphQL named type onto the JSON-schema-ish scalar names the
+// existing arg/field typing understands. Custom scalars (DateTime, JSON,
+// entity IDs) are strings on the wire.
+function gqlScalarType(typeName) {
+    return 'Int' === typeName ? 'integer' :
+        'Float' === typeName ? 'number' :
+            'Boolean' === typeName ? 'boolean' :
+                'string';
+}
 const ARG_KIND = {
     'query': 'query',
     'header': 'header',

@@ -1,0 +1,18 @@
+# BasicCommentFlow
+
+main: kit: flow: BasicCommentFlow:
+{
+  entity: "comment",
+  kind: "basic",
+  name: "BasicCommentFlow",
+  step: [
+    {
+      input: {
+        ref: "comment_ref01"
+      }
+
+      op: "create"
+    }
+  ],
+  "key$": "BasicCommentFlow"
+}

@@ -70,6 +70,7 @@ import {
 import { topTransform } from './transform/top'
 import { entityTransform } from './transform/entity'
 import { operationTransform } from './transform/operation'
+import { graphqlTransform } from './transform/graphql'
 import { argsTransform } from './transform/args'
 import { selectTransform } from './transform/select'
 import { fieldTransform } from './transform/field'
@@ -245,6 +246,9 @@ function ApiDef(opts: ApiDefOptions) {
       await topTransform(ctx)
       await entityTransform(ctx)
       await operationTransform(ctx)
+      // Must precede args and field: both branch on point.kind === 'graphql'
+      // and read the graphql block this stamps on.
+      await graphqlTransform(ctx)
       await argsTransform(ctx)
       await selectTransform(ctx)
       await fieldTransform(ctx)

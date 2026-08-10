@@ -42,7 +42,10 @@ const entityTransform: Transform = async function(
   // ID. Move "/people" onto person here; this also clears the way for
   // sensible flow generation (one entity, one collection, multiple
   // sub-resources).
-  mergeCollectionPaths(guide, ctx.log)
+  // Path-shaped collection merging is meaningless for root-field guides.
+  if (true !== ctx.def?.graphql) {
+    mergeCollectionPaths(guide, ctx.log)
+  }
 
   each(guide.entity, (guideEntity: GuideEntity, entname: string) => {
     // `active: false` in guide.aontu drops the entity. The guide model has
@@ -58,8 +61,18 @@ const entityTransform: Transform = async function(
 
     ctx.log.debug({ point: 'guide-entity', note: entname })
 
-    const paths$ = resolvePathList(guideEntity, ctx.def)
-    const relations = buildRelations(guideEntity, paths$)
+    const graphql = true === ctx.def?.graphql
+
+    const paths$ = graphql ?
+      resolveFieldList(guideEntity, ctx.def) :
+      resolvePathList(guideEntity, ctx.def)
+
+    // Ancestry is inferred from literal/{param} path pairs, which root
+    // fields do not have; GraphQL relations come from the schema instead
+    // (see transform/graphql.ts).
+    const relations = graphql ?
+      { ancestors: [] } :
+      buildRelations(guideEntity, paths$)
 
     const modelent: ModelEntity = {
       name: entname,
@@ -203,6 +216,45 @@ function resolvePathList(guideEntity: GuideEntity, def: { paths: Record<string, 
       method: '', // operation collectOps will copy and assign per op
       op: guidePath.op,
       def: def.paths[orig],
+    }
+
+    paths$.push(pathdesc)
+  })
+
+    ; (guideEntity as any).paths$ = paths$
+
+  return paths$
+}
+
+
+// Root-field equivalent of resolvePathList for GraphQL guides. A root field
+// has no path to split, so `parts` stays empty (GraphQL points address the
+// single endpoint and carry their operation document instead) and `def` is
+// the normalised root-field descriptor rather than a path item.
+function resolveFieldList(guideEntity: GuideEntity, def: any) {
+  const paths$: PathDesc[] = []
+
+  each((guideEntity as any).field, (guideField: GuidePath, orig: string) => {
+    if (!guideActive(guideField)) {
+      return
+    }
+
+    // The root field lives under query or mutation depending on the op type
+    // the guide recorded.
+    const optype = Object.values(guideField.op ?? {})
+      .map((o: any) => o.optype)
+      .find((t: any) => null != t) ?? 'query'
+
+    const fielddef = 'mutation' === optype ?
+      def.mutation?.[orig] : def.query?.[orig]
+
+    const pathdesc: PathDesc = {
+      orig,
+      parts: [],
+      rename: guideField.rename ?? {},
+      method: '', // operation collectOps will copy and assign per op
+      op: guideField.op,
+      def: fielddef,
     }
 
     paths$.push(pathdesc)
