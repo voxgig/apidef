@@ -46,6 +46,11 @@ it does.
 - [The internal model, and why it exists](./explanation/the-internal-model.md)
 - [The canonical TypeScript build and the Go parity port](./explanation/canonical-and-parity.md)
 
+### 📐 Design — *proposals under discussion*
+Design documents for planned or prospective changes.
+
+- [GraphQL ingestion for apidef / sdkgen](./design/graphql-ingestion.md)
+
 ---
 
 For repository conventions and the development workflow, see
