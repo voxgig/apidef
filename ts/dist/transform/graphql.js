@@ -58,6 +58,25 @@ function selectionFields(typeName, def) {
     }
     return out.sort();
 }
+// Scalar fields of a payload type, for payloads that carry no entity. Used
+// when there is nothing to spread a fragment on, so the operation still has
+// a valid selection set.
+function payloadScalarFields(typeName, def) {
+    const gtype = def.types?.[typeName];
+    if (null == gtype) {
+        return [];
+    }
+    const out = [];
+    for (const fname of Object.keys(gtype.fields)) {
+        const f = gtype.fields[fname];
+        const kind = def.types?.[f.type]?.kind;
+        if (!f.deprecated && !f.args.some((a) => a.reqd) &&
+            ('SCALAR' === kind || 'ENUM' === kind)) {
+            out.push(fname);
+        }
+    }
+    return out.sort();
+}
 // Variable bindings for a root field: one per argument. `from` is the op
 // argument the value is read from; for the input-object argument that is the
 // request data itself.
@@ -148,6 +167,17 @@ const graphqlTransform = async function (ctx) {
                 else if ('list' === ret.kind) {
                     selection = fragSpread;
                 }
+                else if ('payload' === ret.kind && null == ret.entity) {
+                    // Entity-less payload: Linear's DeletePayload is entityId +
+                    // success + lastSyncId and nothing else. The classifier admits
+                    // these (the entity comes from the field name), so the renderer
+                    // must not fall through to the default `{ id }` spread — the
+                    // payload HAS no id, and the server rejects the whole document.
+                    // Select the payload's own scalars and unwrap to the payload.
+                    const own = payloadScalarFields(fielddef.type, def);
+                    selection = '{ ' + (0 < own.length ? own.join(' ') : '__typename') + ' }';
+                    respath = 'body.data.' + rootfield;
+                }
                 else if ('payload' === ret.kind && null != ret.unwrap) {
                     // Mutation payload wrapper: select the entity inside it (plus the
                     // conventional success flag when present) and unwrap on the way
@@ -158,8 +188,14 @@ const graphqlTransform = async function (ctx) {
                         (hasSuccess ? ' success' : '') + ' }';
                     respath = 'body.data.' + rootfield + '.' + ret.unwrap;
                 }
+                // Distinct operation name per point. The action comes from the GUIDE,
+                // not from mpoint.select: selectTransform runs after this stage, so
+                // $action is not set yet, and without the suffix every action point
+                // on an op would ship the same operation name (three PlanetUpdates),
+                // which is what server logs, tracing and APM key on.
+                const actionName = Object.keys(gfield?.action ?? {})[0];
                 const docname = pascal(entname) + pascal(opname) +
-                    (null != mpoint.select?.$action ? pascal(mpoint.select.$action) : '');
+                    (null != actionName ? pascal(actionName) : '');
                 // GraphQL points ride the HTTP machinery: POST to the single
                 // endpoint, no path parts. The document carries everything else.
                 mpoint.kind = 'graphql';

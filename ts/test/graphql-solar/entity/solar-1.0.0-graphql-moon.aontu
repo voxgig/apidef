@@ -1,19 +1,14 @@
-# Entity: issue
+# Entity: moon
 
-main: kit: entity: issue: {
+main: kit: entity: moon: {
 
   alias: field: {}
 
   fields: [
     {
-      name: "archived_at"
-      req: false
-      type: "`$ANY`"
-    }
-    {
-      name: "created_at"
+      name: "diameter"
       req: true
-      type: "`$ANY`"
+      type: "`$NUMBER`"
     }
     {
       name: "id"
@@ -21,24 +16,19 @@ main: kit: entity: issue: {
       type: "`$STRING`"
     }
     {
-      name: "identifier"
+      name: "kind"
       req: true
       type: "`$STRING`"
     }
     {
-      name: "priority"
-      req: false
+      name: "name"
+      req: true
       type: "`$STRING`"
     }
     {
-      name: "team"
+      name: "planet"
       req: false
       type: "`$OBJECT`"
-    }
-    {
-      name: "title"
-      req: true
-      type: "`$STRING`"
     }
   ]
 
@@ -47,30 +37,30 @@ main: kit: entity: issue: {
     name: "id"
   }
 
-  name: "issue"
+  name: "moon"
   op: {
     create: {
       name: "create"
       points: [
         {
           graphql: {
-            doc: "mutation IssueCreate($input: IssueCreateInput!) { issueCreate(input: $input) { issue { ...IssueFields } success } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }"
-            field: "issueCreate"
+            doc: "mutation MoonCreate($input: MoonCreateInput!) { moonCreate(input: $input) { moon { ...MoonFields } success } } fragment MoonFields on Moon { diameter id kind name planet { id } }"
+            field: "moonCreate"
             optype: "mutation"
             vars: [
               {
                 from: ""
-                gqltype: "IssueCreateInput!"
+                gqltype: "MoonCreateInput!"
                 name: "input"
               }
             ]
           }
           kind: "graphql"
           method: "POST"
-          orig: "issueCreate"
+          orig: "moonCreate"
           transform: {
             req: "`reqdata`"
-            res: "`body.data.issueCreate.issue`"
+            res: "`body.data.moonCreate.moon`"
           }
         }
       ]
@@ -95,11 +85,18 @@ main: kit: entity: issue: {
                 reqd: false
                 type: "`$INTEGER`"
               }
+              {
+                kind: "param"
+                name: "planet_id"
+                orig: "planet_id"
+                reqd: false
+                type: "`$STRING`"
+              }
             ]
           }
           graphql: {
-            doc: "query IssueList($filter: IssueFilter, $first: Int, $after: String) { issues(filter: $filter, first: $first, after: $after) { nodes { ...IssueFields } pageInfo { endCursor hasNextPage } } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }"
-            field: "issues"
+            doc: "query MoonList($planetId: String, $first: Int, $after: String) { moons(planetId: $planetId, first: $first, after: $after) { nodes { ...MoonFields } pageInfo { endCursor hasNextPage } } } fragment MoonFields on Moon { diameter id kind name planet { id } }"
+            field: "moons"
             optype: "query"
             page: {
               cursor: "pageInfo.endCursor"
@@ -109,9 +106,9 @@ main: kit: entity: issue: {
             }
             vars: [
               {
-                from: ""
-                gqltype: "IssueFilter"
-                name: "filter"
+                from: "planetId"
+                gqltype: "String"
+                name: "planetId"
               }
               {
                 from: "first"
@@ -127,10 +124,10 @@ main: kit: entity: issue: {
           }
           kind: "graphql"
           method: "POST"
-          orig: "issues"
+          orig: "moons"
           transform: {
             req: "`reqdata`"
-            res: "`body.data.issues.nodes`"
+            res: "`body.data.moons.nodes`"
           }
         }
       ]
@@ -151,8 +148,8 @@ main: kit: entity: issue: {
             ]
           }
           graphql: {
-            doc: "query IssueLoad($id: String!) { issue(id: $id) { ...IssueFields } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }"
-            field: "issue"
+            doc: "query MoonLoad($id: String!) { moon(id: $id) { ...MoonFields } } fragment MoonFields on Moon { diameter id kind name planet { id } }"
+            field: "moon"
             optype: "query"
             vars: [
               {
@@ -164,7 +161,7 @@ main: kit: entity: issue: {
           }
           kind: "graphql"
           method: "POST"
-          orig: "issue"
+          orig: "moon"
           select: {
             exist: [
               "id"
@@ -172,7 +169,7 @@ main: kit: entity: issue: {
           }
           transform: {
             req: "`reqdata`"
-            res: "`body.data.issue`"
+            res: "`body.data.moon`"
           }
         }
       ]
@@ -193,8 +190,8 @@ main: kit: entity: issue: {
             ]
           }
           graphql: {
-            doc: "mutation IssueRemove($id: String!) { issueDelete(id: $id) { issue { ...IssueFields } success } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }"
-            field: "issueDelete"
+            doc: "mutation MoonRemove($id: String!) { moonDelete(id: $id) { moon { ...MoonFields } success } } fragment MoonFields on Moon { diameter id kind name planet { id } }"
+            field: "moonDelete"
             optype: "mutation"
             vars: [
               {
@@ -206,7 +203,7 @@ main: kit: entity: issue: {
           }
           kind: "graphql"
           method: "POST"
-          orig: "issueDelete"
+          orig: "moonDelete"
           select: {
             exist: [
               "id"
@@ -214,7 +211,7 @@ main: kit: entity: issue: {
           }
           transform: {
             req: "`reqdata`"
-            res: "`body.data.issueDelete.issue`"
+            res: "`body.data.moonDelete.moon`"
           }
         }
       ]
@@ -235,46 +232,8 @@ main: kit: entity: issue: {
             ]
           }
           graphql: {
-            doc: "mutation IssueUpdateArchive($id: String!) { issueArchive(id: $id) { issue { ...IssueFields } success } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }"
-            field: "issueArchive"
-            optype: "mutation"
-            vars: [
-              {
-                from: "id"
-                gqltype: "String!"
-                name: "id"
-              }
-            ]
-          }
-          kind: "graphql"
-          method: "POST"
-          orig: "issueArchive"
-          select: {
-            "$action": "archive"
-            exist: [
-              "id"
-            ]
-          }
-          transform: {
-            req: "`reqdata`"
-            res: "`body.data.issueArchive.issue`"
-          }
-        }
-        {
-          args: {
-            params: [
-              {
-                kind: "param"
-                name: "id"
-                orig: "id"
-                reqd: true
-                type: "`$STRING`"
-              }
-            ]
-          }
-          graphql: {
-            doc: "mutation IssueUpdate($id: String!, $input: IssueUpdateInput!) { issueUpdate(id: $id, input: $input) { issue { ...IssueFields } success } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }"
-            field: "issueUpdate"
+            doc: "mutation MoonUpdate($id: String!, $input: MoonUpdateInput!) { moonUpdate(id: $id, input: $input) { moon { ...MoonFields } success } } fragment MoonFields on Moon { diameter id kind name planet { id } }"
+            field: "moonUpdate"
             optype: "mutation"
             vars: [
               {
@@ -284,14 +243,14 @@ main: kit: entity: issue: {
               }
               {
                 from: ""
-                gqltype: "IssueUpdateInput!"
+                gqltype: "MoonUpdateInput!"
                 name: "input"
               }
             ]
           }
           kind: "graphql"
           method: "POST"
-          orig: "issueUpdate"
+          orig: "moonUpdate"
           select: {
             exist: [
               "id"
@@ -299,7 +258,7 @@ main: kit: entity: issue: {
           }
           transform: {
             req: "`reqdata`"
-            res: "`body.data.issueUpdate.issue`"
+            res: "`body.data.moonUpdate.moon`"
           }
         }
       ]

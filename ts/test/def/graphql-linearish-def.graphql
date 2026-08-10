@@ -114,6 +114,17 @@ type IssueArchivePayload {
   issue: Issue
 }
 
+"""
+A delete payload that names no entity — Linear's real shape. The entity a
+mutation returning this belongs to can only come from the field name, and
+the operation document must select these fields rather than spreading an
+entity fragment.
+"""
+type DeletePayload {
+  success: Boolean!
+  entityId: String!
+}
+
 type Query {
   issue(id: String!): Issue
   issues(filter: IssueFilter, first: Int, after: String): IssueConnection!
@@ -128,4 +139,5 @@ type Mutation {
   issueDelete(id: String!): IssuePayload!
   issueArchive(id: String!): IssueArchivePayload!
   commentCreate(input: CommentCreateInput!): CommentPayload!
+  commentDelete(id: String!): DeletePayload!
 }

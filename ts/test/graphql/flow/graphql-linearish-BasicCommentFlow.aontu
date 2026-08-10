@@ -13,6 +13,19 @@ main: kit: flow: BasicCommentFlow:
 
       op: "create"
     }
+
+    {
+      input: {
+        ref: "comment_ref01",
+        suffix: "_rm0"
+      }
+
+      match: {
+        id: "comment01"
+      }
+
+      op: "remove"
+    }
   ],
   "key$": "BasicCommentFlow"
 }

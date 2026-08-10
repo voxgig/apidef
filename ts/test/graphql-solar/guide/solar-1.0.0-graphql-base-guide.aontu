@@ -1,0 +1,65 @@
+# Guide
+
+guide: {
+  metrics: count: entity: 2
+  metrics: count: path: 0
+  metrics: count: method: 0
+  metrics: count: field: 12
+
+  entity: moon: {
+    field: "moon": {
+      op: load: method: *POST
+      op: load: optype: *query
+    }
+    field: "moonCreate": {
+      op: create: method: *POST
+      op: create: optype: *mutation
+    }
+    field: "moonDelete": {
+      op: remove: method: *POST
+      op: remove: optype: *mutation
+    }
+    field: "moonUpdate": {
+      op: update: method: *POST
+      op: update: optype: *mutation
+    }
+    field: "moons": {
+      op: list: method: *POST
+      op: list: optype: *query
+    }
+  }
+
+  entity: planet: {
+    field: "planet": {
+      op: load: method: *POST
+      op: load: optype: *query
+    }
+    field: "planetCreate": {
+      op: create: method: *POST
+      op: create: optype: *mutation
+    }
+    field: "planetDelete": {
+      op: remove: method: *POST
+      op: remove: optype: *mutation
+    }
+    field: "planetForbid": {
+      action: "forbid": {}
+      op: update: method: *POST
+      op: update: optype: *mutation
+    }
+    field: "planetTerraform": {
+      action: "terraform": {}
+      op: update: method: *POST
+      op: update: optype: *mutation
+    }
+    field: "planetUpdate": {
+      op: update: method: *POST
+      op: update: optype: *mutation
+    }
+    field: "planets": {
+      op: list: method: *POST
+      op: list: optype: *query
+    }
+  }
+
+}

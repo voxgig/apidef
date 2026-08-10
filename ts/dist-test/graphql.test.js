@@ -110,7 +110,7 @@ async function buildGraphql(step) {
         node_assert_1.default.equal(issue.issueArchive.op.update.optype, 'mutation');
         // Ragged op sets are the norm: Team is read-only, Comment create-only.
         node_assert_1.default.deepStrictEqual(Object.keys(gent.team.field).sort(), ['team', 'teams']);
-        node_assert_1.default.deepStrictEqual(Object.keys(gent.comment.field).sort(), ['commentCreate']);
+        node_assert_1.default.deepStrictEqual(Object.keys(gent.comment.field).sort(), ['commentCreate', 'commentDelete']);
         // Root fields, not paths, are what got classified.
         node_assert_1.default.equal(bres.guide.metrics.count.entity, 3);
         node_assert_1.default.equal(bres.guide.metrics.count.path, 0);
@@ -271,6 +271,27 @@ async function buildGraphql(step) {
             },
         };
         node_assert_1.default.deepStrictEqual((0, graphql01_1.deriveRetShape)({ name: 'issueCreate', type: 'IssuePayload', list: false, args: [], deprecated: false }, types), { kind: 'payload', entity: 'Issue', unwrap: 'issue' });
+    });
+});
+// A payload that names no entity (Linear's DeletePayload: entityId, success)
+// is admitted by classification via the field name — so the renderer must
+// select the payload's OWN fields. Spreading an entity fragment, or the
+// default { id }, produces a document the server rejects outright, which
+// would break every recovered remove op at runtime rather than at build.
+(0, node_test_1.describe)('graphql-entityless-payload', () => {
+    (0, node_test_1.test)('remove-selects-payload-fields', async () => {
+        const bres = await buildGraphql({ generate: false });
+        node_assert_1.default.equal(bres.ok, true);
+        const remove = bres.apimodel.main.kit.entity.comment.op.remove;
+        node_assert_1.default.ok(null != remove, 'comment gains remove from commentDelete');
+        const point = remove.points[0];
+        node_assert_1.default.equal(point.graphql.doc, 'mutation CommentRemove($id: String!)' +
+            ' { commentDelete(id: $id) { entityId success } }');
+        // No entity fragment, and crucially no `{ id }`: DeletePayload has none.
+        node_assert_1.default.ok(!point.graphql.doc.includes('fragment'));
+        node_assert_1.default.ok(!point.graphql.doc.includes('{ id }'));
+        // Unwraps to the payload itself, since no entity is nested in it.
+        node_assert_1.default.equal(point.transform.res, '`body.data.commentDelete`');
     });
 });
 //# sourceMappingURL=graphql.test.js.map

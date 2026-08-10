@@ -4,12 +4,16 @@ guide: {
   metrics: count: entity: 3
   metrics: count: path: 0
   metrics: count: method: 0
-  metrics: count: field: 10
+  metrics: count: field: 11
 
   entity: comment: {
     field: "commentCreate": {
       op: create: method: *POST
       op: create: optype: *mutation
+    }
+    field: "commentDelete": {
+      op: remove: method: *POST
+      op: remove: optype: *mutation
     }
   }
 

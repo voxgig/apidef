@@ -1,0 +1,121 @@
+"""
+The solar demo API, expressed as GraphQL.
+
+This is the SAME API as solar-1.0.0-openapi-3.0.0-def.yaml — same entities,
+same fields, same operations, same two planet actions — rendered the way a
+GraphQL team would naturally write it. That is the point: the two defs are a
+matched pair, so the model apidef derives from each can be compared, and
+"a GraphQL API produces the same SDK surface as its REST equivalent" becomes
+a checkable claim rather than an aspiration.
+
+Kept in sync with the served schema in the solardemo app
+(sdkgen: ts/test/solardemo/app/def/solardemo-1.0.0-graphql.graphql).
+
+Deliberately idiomatic rather than a mechanical translation:
+  - collections are Relay connections, not bare lists
+  - mutations return payload wrappers carrying the entity
+  - the REST sub-resource path /planet/{id}/moon becomes a `planetId`
+    argument on `moons`, plus a `moons` connection on Planet
+  - terraform and forbid are plain mutations; they map to $action points
+    exactly as the REST action paths do
+"""
+
+type PageInfo {
+  hasNextPage: Boolean!
+  endCursor: String
+}
+
+type Planet {
+  id: ID!
+  name: String!
+  kind: String!
+  diameter: Float!
+  moons(first: Int, after: String): MoonConnection!
+}
+
+type Moon {
+  id: ID!
+  name: String!
+  kind: String!
+  diameter: Float!
+  planet: Planet!
+}
+
+type PlanetConnection {
+  nodes: [Planet!]!
+  pageInfo: PageInfo!
+}
+
+type MoonConnection {
+  nodes: [Moon!]!
+  pageInfo: PageInfo!
+}
+
+input PlanetFilter {
+  kind: String
+}
+
+input PlanetCreateInput {
+  name: String!
+  kind: String!
+  diameter: Float!
+}
+
+input PlanetUpdateInput {
+  name: String
+  kind: String
+  diameter: Float
+}
+
+input MoonCreateInput {
+  planetId: String!
+  name: String!
+  kind: String!
+  diameter: Float!
+}
+
+input MoonUpdateInput {
+  name: String
+  kind: String
+  diameter: Float
+}
+
+type PlanetPayload {
+  success: Boolean!
+  planet: Planet
+}
+
+type MoonPayload {
+  success: Boolean!
+  moon: Moon
+}
+
+"""
+Action payloads carry the resulting state alongside the entity, mirroring the
+`{ ok, state }` body the REST terraform/forbid endpoints return.
+"""
+type PlanetStatePayload {
+  success: Boolean!
+  state: String!
+  planet: Planet
+}
+
+type Query {
+  planet(id: String!): Planet
+  planets(filter: PlanetFilter, first: Int, after: String): PlanetConnection!
+  moon(id: String!): Moon
+  moons(planetId: String, first: Int, after: String): MoonConnection!
+}
+
+type Mutation {
+  planetCreate(input: PlanetCreateInput!): PlanetPayload!
+  planetUpdate(id: String!, input: PlanetUpdateInput!): PlanetPayload!
+  planetDelete(id: String!): PlanetPayload!
+
+  planetTerraform(id: String!, start: Boolean, stop: Boolean): PlanetStatePayload!
+  planetForbid(id: String!, forbid: Boolean!, why: String): PlanetStatePayload!
+
+  moonCreate(input: MoonCreateInput!): MoonPayload!
+  moonUpdate(id: String!, input: MoonUpdateInput!): MoonPayload!
+  moonDelete(id: String!): MoonPayload!
+}

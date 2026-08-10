@@ -97,7 +97,9 @@ describe('graphql', () => {
 
     // Ragged op sets are the norm: Team is read-only, Comment create-only.
     assert.deepStrictEqual(Object.keys(gent.team.field).sort(), ['team', 'teams'])
-    assert.deepStrictEqual(Object.keys(gent.comment.field).sort(), ['commentCreate'])
+    assert.deepStrictEqual(
+      Object.keys(gent.comment.field).sort(),
+      ['commentCreate', 'commentDelete'])
 
     // Root fields, not paths, are what got classified.
     assert.equal(bres.guide.metrics.count.entity, 3)
@@ -303,6 +305,38 @@ describe('graphql-retshape', () => {
         { name: 'issueCreate', type: 'IssuePayload', list: false, args: [], deprecated: false } as any,
         types),
       { kind: 'payload', entity: 'Issue', unwrap: 'issue' })
+  })
+
+})
+
+
+// A payload that names no entity (Linear's DeletePayload: entityId, success)
+// is admitted by classification via the field name — so the renderer must
+// select the payload's OWN fields. Spreading an entity fragment, or the
+// default { id }, produces a document the server rejects outright, which
+// would break every recovered remove op at runtime rather than at build.
+describe('graphql-entityless-payload', () => {
+
+  test('remove-selects-payload-fields', async () => {
+    const bres = await buildGraphql({ generate: false })
+    assert.equal(bres.ok, true)
+
+    const remove = bres.apimodel.main.kit.entity.comment.op.remove
+    assert.ok(null != remove, 'comment gains remove from commentDelete')
+
+    const point = remove.points[0]
+
+    assert.equal(
+      point.graphql.doc,
+      'mutation CommentRemove($id: String!)' +
+      ' { commentDelete(id: $id) { entityId success } }')
+
+    // No entity fragment, and crucially no `{ id }`: DeletePayload has none.
+    assert.ok(!point.graphql.doc.includes('fragment'))
+    assert.ok(!point.graphql.doc.includes('{ id }'))
+
+    // Unwraps to the payload itself, since no entity is nested in it.
+    assert.equal(point.transform.res, '`body.data.commentDelete`')
   })
 
 })

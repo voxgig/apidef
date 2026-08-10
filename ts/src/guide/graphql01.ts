@@ -65,6 +65,9 @@ type GqlFieldSig = {
   args: GqlArgSig[]
   ret: GqlRetShape
   inputTypeName?: string
+  // Entity named by the field itself, used when the return type carries
+  // none (see nameEntityType).
+  nameEntity?: string
 }
 
 
@@ -109,14 +112,17 @@ function splitEntityVerb(fieldName: string, entity: string): string {
 }
 
 
-// Does this field take exactly one required id-ish argument?
+// Does this field take a required id-ish argument?
+//
+// Any required id counts, not just a lone one: a command like
+// `planetForbid(id: String!, forbid: Boolean!)` addresses an existing record
+// just as much as `planetArchive(id: String!)` does. Requiring it to be the
+// only required argument made an operation stop looking id-addressed the
+// moment the API made a second argument mandatory, which flipped it from an
+// update action to a create.
 function idArg(args: GqlArgSig[]): GqlArgSig | undefined {
-  const reqd = args.filter((a: GqlArgSig) => a.reqd)
-  if (1 !== reqd.length) {
-    return undefined
-  }
-  const only = reqd[0]
-  return /^(id|.*Id)$/i.test(only.name) ? only : undefined
+  return args.find(
+    (a: GqlArgSig) => a.reqd && /^(id|.*Id)$/i.test(a.name))
 }
 
 
@@ -130,12 +136,27 @@ function classifyGraphQLField(
   const why: string[] = []
   const ret = sig.ret
 
-  if (null == ret.entity || 'scalar' === ret.kind || 'other' === ret.kind) {
+  if ('scalar' === ret.kind || 'other' === ret.kind) {
     why.push('ret:' + ret.kind)
     return { exclude: true, why }
   }
 
-  const entity = ret.entity
+  // A payload that carries no entity (Linear's DeletePayload is just
+  // `entityId`) still belongs to the entity its field NAMES. Without this,
+  // every such delete mutation is dropped and the entity silently loses its
+  // remove op. Confined to payload returns: a query returning a scalar must
+  // not be rescued by its name.
+  const entity = ret.entity ??
+    ('payload' === ret.kind ? sig.nameEntity : undefined)
+
+  if (null == entity) {
+    why.push('ret:' + ret.kind + ':no-entity')
+    return { exclude: true, why }
+  }
+
+  if (null == ret.entity) {
+    why.push('entity-by-name:' + entity)
+  }
   const id = idArg(sig.args)
 
   if ('query' === sig.optype) {
@@ -321,7 +342,46 @@ function fieldSig(
     })),
     ret: deriveRetShape(field, types),
     inputTypeName,
+    nameEntity: nameEntityType(field.name, types),
   }
+}
+
+
+// Verb suffixes a mutation field name may carry, longest first so
+// `issueUnarchive` strips `Unarchive` rather than `Archive`.
+const NAME_VERBS = [
+  'Unarchive', 'Archive', 'Delete', 'Remove', 'Destroy',
+  'Create', 'Update', 'Insert', 'Upsert',
+]
+
+
+// Resolve the entity a mutation NAMES, for payloads that do not carry one.
+// Linear's DeletePayload holds `entityId: String!` and nothing else, so
+// `commentDelete` has no entity in its return type — the field name is the
+// only signal, and by convention it is a reliable one.
+function nameEntityType(
+  fieldName: string,
+  types: Record<string, GqlType>
+): string | undefined {
+  for (const verb of NAME_VERBS) {
+    if (!fieldName.endsWith(verb)) {
+      continue
+    }
+
+    const stem = fieldName.slice(0, fieldName.length - verb.length)
+    if ('' === stem) {
+      continue
+    }
+
+    const candidate = stem.charAt(0).toUpperCase() + stem.slice(1)
+    const gtype = types[candidate]
+
+    if (null != gtype && 'OBJECT' === gtype.kind) {
+      return candidate
+    }
+  }
+
+  return undefined
 }
 
 
