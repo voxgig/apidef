@@ -8,12 +8,12 @@ main: kit: entity: issue: {
     {
       name: "archived_at"
       req: false
-      type: "`$STRING`"
+      type: "`$ANY`"
     }
     {
       name: "created_at"
       req: true
-      type: "`$STRING`"
+      type: "`$ANY`"
     }
     {
       name: "id"
@@ -31,9 +31,9 @@ main: kit: entity: issue: {
       type: "`$STRING`"
     }
     {
-      name: "team_id"
+      name: "team"
       req: false
-      type: "`$STRING`"
+      type: "`$OBJECT`"
     }
     {
       name: "title"
@@ -128,12 +128,6 @@ main: kit: entity: issue: {
           kind: "graphql"
           method: "POST"
           orig: "issues"
-          select: {
-            exist: [
-              "after"
-              "first"
-            ]
-          }
           transform: {
             req: "`reqdata`"
             res: "`body.data.issues.nodes`"

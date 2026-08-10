@@ -56,7 +56,9 @@ const argsTransform: Transform = async function(
             argdefs.push({
               name: arg.name,
               in: 'path',
-              required: arg.reqd,
+              // A schema default makes a non-null argument omittable by the
+              // caller, so it is not required of the SDK caller either.
+              required: arg.reqd && undefined === arg.deflt,
               schema: { type: gqlScalarType(arg.type) },
             } as any)
           }
@@ -90,13 +92,19 @@ function graphqlFieldDef(def: any, mpoint: ModelPoint): any {
 
 
 // Map a GraphQL named type onto the JSON-schema-ish scalar names the
-// existing arg/field typing understands. Custom scalars (DateTime, JSON,
-// entity IDs) are strings on the wire.
-function gqlScalarType(typeName: string): string {
+// existing arg/field typing understands.
+//
+// Only the built-in scalars have a known JSON shape. A custom scalar can be
+// anything — JSON/JSONObject accept objects and arrays, DateTime is a
+// string, Upload is a file handle — so anything unrecognised stays
+// unconstrained rather than being wrongly advertised (and validated) as a
+// string. ID and String are the two custom-free string cases.
+function gqlScalarType(typeName: string): string | undefined {
   return 'Int' === typeName ? 'integer' :
     'Float' === typeName ? 'number' :
       'Boolean' === typeName ? 'boolean' :
-        'string'
+        ('String' === typeName || 'ID' === typeName) ? 'string' :
+          undefined
 }
 
 

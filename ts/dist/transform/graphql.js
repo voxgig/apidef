@@ -62,29 +62,43 @@ function selectionFields(typeName, def) {
 // argument the value is read from; for the input-object argument that is the
 // request data itself.
 function buildVars(fielddef, def) {
-    const vars = [];
-    for (const arg of (fielddef?.args ?? [])) {
-        const atype = def.types?.[arg.type];
-        const isInput = null != atype && 'INPUT_OBJECT' === atype.kind;
-        vars.push({
+    const args = fielddef?.args ?? [];
+    // The whole-request-body binding is the SINGLE-entity-input convention
+    // (issueCreate(input: IssueCreateInput!)). A field taking several input
+    // objects — items(filter: Filter, orderBy: OrderBy) — must bind each from
+    // its own argument, or they all receive the same value and at least one
+    // fails input validation.
+    const inputs = args.filter((a) => {
+        const atype = def.types?.[a.type];
+        return null != atype && 'INPUT_OBJECT' === atype.kind;
+    });
+    const soleInput = 1 === inputs.length ? inputs[0].name : undefined;
+    return args.map((arg) => {
+        const v = {
             name: arg.name,
-            // Input objects carry the whole request body; scalars map to the
-            // like-named op argument.
-            from: isInput ? '' : arg.name,
+            from: arg.name === soleInput ? '' : arg.name,
             gqltype: arg.gqltype,
-        });
-    }
-    return vars;
+        };
+        if (undefined !== arg.deflt) {
+            v.deflt = arg.deflt;
+        }
+        return v;
+    });
 }
 // `issue(id: $id, first: $first)` — argument list wired to variables.
 function argList(vars) {
     return 0 === vars.length ? '' :
         '(' + vars.map((v) => v.name + ': $' + v.name).join(', ') + ')';
 }
-// `($id: String!, $first: Int)` — the operation's variable declarations.
+// `($id: String!, $first: Int = 100)` — the operation's variable
+// declarations. A schema default is carried through: without it a non-null
+// argument that the schema makes omittable (`first: Int! = 100`) would fail
+// variable coercion when the caller leaves it out.
 function varDecl(vars) {
     return 0 === vars.length ? '' :
-        '(' + vars.map((v) => '$' + v.name + ': ' + v.gqltype).join(', ') + ')';
+        '(' + vars.map((v) => '$' + v.name + ': ' + v.gqltype +
+            (undefined === v.deflt ? '' :
+                ' = ' + JSON.stringify(v.deflt))).join(', ') + ')';
 }
 // Render one operation document, single-line.
 function renderDoc(opname, optype, field, vars, selection, fragName, fragType, fragFields) {

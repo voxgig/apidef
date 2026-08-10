@@ -77,12 +77,6 @@ main: kit: entity: team: {
           kind: "graphql"
           method: "POST"
           orig: "teams"
-          select: {
-            exist: [
-              "after"
-              "first"
-            ]
-          }
           transform: {
             req: "`reqdata`"
             res: "`body.data.teams.nodes`"

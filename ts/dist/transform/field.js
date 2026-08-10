@@ -92,18 +92,22 @@ function findGraphqlFieldDefs(ment, mpoint, def) {
         if ('SCALAR' === kind || 'ENUM' === kind) {
             out.push({
                 key$: fname,
-                type: gqlFieldType(f.type),
+                // Enum values are always strings; scalars map by name, with unknown
+                // custom scalars left unconstrained.
+                type: 'ENUM' === kind ? 'string' : gqlFieldType(f.type),
                 required: f.reqd,
             });
         }
         else if (('OBJECT' === kind || 'INTERFACE' === kind) && !f.list) {
-            // To-one relation: the default fragment selects only { id }, so the
-            // entity carries an id-stub reference rather than a nested object.
+            // To-one relation. The default fragment selects `team { id }`, so the
+            // response carries a nested stub object — declare it as such. Naming a
+            // flat `team_id` here would advertise a field the wire never returns,
+            // since nothing flattens the response.
             const idField = ftype.fields?.id;
             if (null != idField) {
                 out.push({
-                    key$: fname + '_id',
-                    type: 'string',
+                    key$: fname,
+                    type: 'object',
                     required: false,
                 });
             }
@@ -112,11 +116,17 @@ function findGraphqlFieldDefs(ment, mpoint, def) {
     return out;
 }
 // GraphQL named type -> the type names the field typing understands.
+//
+// Built-ins only: a custom scalar (JSON, JSONObject, Upload, ...) can hold
+// any JSON value, so advertising it as a string would misdescribe the data
+// and make generated validation reject values the schema accepts. Enums are
+// mapped by the caller, which knows they are strings.
 function gqlFieldType(typeName) {
     return 'Int' === typeName ? 'integer' :
         'Float' === typeName ? 'number' :
             'Boolean' === typeName ? 'boolean' :
-                'string';
+                ('String' === typeName || 'ID' === typeName) ? 'string' :
+                    undefined;
 }
 function findFieldDefs(_ment, mop, mpoint, def) {
     if ('graphql' === mpoint.kind) {

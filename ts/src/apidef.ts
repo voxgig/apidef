@@ -427,17 +427,23 @@ function resolveKind(def?: string): DefKind {
 ApiDef.makeBuild = async function(opts: ApiDefOptions) {
   let apidef: any = undefined
 
-  const kind = opts.kind || resolveKind(opts.def)
-
   const config = {
     def: opts.def || 'no-def',
-    kind: 'GraphQL' === kind ? 'graphql' : 'openapi3',
+    kind: 'openapi3',
     meta: opts.meta || {},
   }
 
   const build = async function(model: any, build: any, _ctx: any) {
 
     if (null == apidef) {
+      // Resolve the input format HERE, not at makeBuild time: in the
+      // documented pattern the definition filename arrives as `model.def`
+      // and `opts.def` is unset, so sniffing at construction would pin every
+      // build to OpenAPI and send SDL to the OpenAPI parser.
+      const kind = opts.kind || resolveKind(opts.def || model.def)
+
+      config.kind = 'GraphQL' === kind ? 'graphql' : 'openapi3'
+
       apidef = ApiDef({
         def: opts.def,
         fs: opts.fs,

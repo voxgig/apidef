@@ -17,6 +17,7 @@ import assert from 'node:assert'
 import { Aontu } from 'aontu'
 
 import { ApiDef } from '../dist/apidef'
+import { deriveRetShape } from '../dist/guide/graphql01'
 
 
 const OUTPREFIX = 'graphql-linearish-'
@@ -114,9 +115,12 @@ describe('graphql', () => {
     const issue = bres.apimodel.main.kit.entity.issue
     const names = issue.fields.map((f: any) => f.name)
 
+    // `team` is the to-one relation stub. The fragment selects `team { id }`,
+    // so the response carries a nested object — declaring a flat `team_id`
+    // would advertise a field the wire never returns.
     assert.deepStrictEqual(names, [
       'archived_at', 'created_at', 'id', 'identifier', 'priority',
-      'team_id', 'title',
+      'team', 'title',
     ])
 
     // `legacyCode` is deprecated and `icon(size: Int!)` needs an argument:
@@ -169,6 +173,11 @@ describe('graphql', () => {
       more: 'pageInfo.hasNextPage',
     })
     assert.ok(list.graphql.doc.includes('pageInfo { endCursor hasNextPage }'))
+
+    // `exist` names values that must be present for a point to be selected.
+    // Relay's optional first/after must NOT appear, or list() would demand
+    // every pagination argument before it could be chosen.
+    assert.deepStrictEqual(list.select?.exist, undefined)
 
     // Mutation payload is unwrapped, so create returns the entity itself —
     // exactly as a REST create does.
@@ -229,6 +238,71 @@ describe('graphql', () => {
     assert.equal(point.method, 'POST')
     assert.deepStrictEqual(point.parts, [])
     assert.ok(point.graphql.doc.startsWith('query IssueLoad'))
+  })
+
+})
+
+
+// Return-shape derivation feeds the classifier; these are the two shapes
+// where picking the wrong type silently produces an invalid document.
+describe('graphql-retshape', () => {
+
+  // An edges-only Relay connection: the entity is the edge's NODE type.
+  // Taking the edge wrapper would spread a fragment declared on IssueEdge
+  // inside `edges { node { ... } }` — a validation error — and unwrap the
+  // response to edge wrappers instead of entities.
+  test('edges-only-follows-node', () => {
+    const types: any = {
+      IssueConnection: {
+        name: 'IssueConnection', kind: 'OBJECT', fields: {
+          edges: { name: 'edges', type: 'IssueEdge', list: true, args: [], deprecated: false },
+          pageInfo: { name: 'pageInfo', type: 'PageInfo', list: false, args: [], deprecated: false },
+        },
+      },
+      IssueEdge: {
+        name: 'IssueEdge', kind: 'OBJECT', fields: {
+          node: { name: 'node', type: 'Issue', list: false, args: [], deprecated: false },
+        },
+      },
+      Issue: {
+        name: 'Issue', kind: 'OBJECT', fields: {
+          id: { name: 'id', type: 'ID', list: false, args: [], deprecated: false },
+        },
+      },
+      PageInfo: { name: 'PageInfo', kind: 'OBJECT', fields: {} },
+    }
+
+    assert.deepStrictEqual(
+      deriveRetShape(
+        { name: 'issues', type: 'IssueConnection', list: false, args: [], deprecated: false } as any,
+        types),
+      { kind: 'connection', entity: 'Issue', nodes: 'edges' })
+  })
+
+
+  // The `errors: [UserError!]!` convention must not win on sort order and
+  // become the payload's "entity" — that would unwrap errors, not the record.
+  test('payload-prefers-entity-over-errors', () => {
+    const types: any = {
+      IssuePayload: {
+        name: 'IssuePayload', kind: 'OBJECT', fields: {
+          errors: { name: 'errors', type: 'UserError', list: true, args: [], deprecated: false },
+          issue: { name: 'issue', type: 'Issue', list: false, args: [], deprecated: false },
+        },
+      },
+      UserError: { name: 'UserError', kind: 'OBJECT', fields: {} },
+      Issue: {
+        name: 'Issue', kind: 'OBJECT', fields: {
+          id: { name: 'id', type: 'ID', list: false, args: [], deprecated: false },
+        },
+      },
+    }
+
+    assert.deepStrictEqual(
+      deriveRetShape(
+        { name: 'issueCreate', type: 'IssuePayload', list: false, args: [], deprecated: false } as any,
+        types),
+      { kind: 'payload', entity: 'Issue', unwrap: 'issue' })
   })
 
 })

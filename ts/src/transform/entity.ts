@@ -248,10 +248,18 @@ function resolveFieldList(guideEntity: GuideEntity, def: any) {
     const fielddef = 'mutation' === optype ?
       def.mutation?.[orig] : def.query?.[orig]
 
+    // The guide expresses GraphQL renames as `rename: arg:` (root fields
+    // have arguments, not path params), while the model's arg machinery
+    // reads `rename.param`. Translate so a user override actually applies.
+    const grename: any = guideField.rename ?? {}
+    const rename: any = null != grename.arg ?
+      { ...grename, param: { ...(grename.param ?? {}), ...grename.arg } } :
+      grename
+
     const pathdesc: PathDesc = {
       orig,
       parts: [],
-      rename: guideField.rename ?? {},
+      rename,
       method: '', // operation collectOps will copy and assign per op
       op: guideField.op,
       def: fielddef,

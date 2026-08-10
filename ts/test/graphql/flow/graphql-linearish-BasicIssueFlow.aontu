@@ -41,7 +41,7 @@ main: kit: flow: BasicIssueFlow:
         ref: "issue_ref01",
         srcdatavar: "issue_ref01_data",
         suffix: "_up0",
-        textfield: "archived_at"
+        textfield: "identifier"
       }
 
       op: "update",

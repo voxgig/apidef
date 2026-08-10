@@ -87,22 +87,30 @@ function selectionFields(typeName: string, def: any): string[] {
 // argument the value is read from; for the input-object argument that is the
 // request data itself.
 function buildVars(fielddef: any, def: any): ModelGraphqlVar[] {
-  const vars: ModelGraphqlVar[] = []
+  const args = fielddef?.args ?? []
 
-  for (const arg of (fielddef?.args ?? [])) {
-    const atype = def.types?.[arg.type]
-    const isInput = null != atype && 'INPUT_OBJECT' === atype.kind
+  // The whole-request-body binding is the SINGLE-entity-input convention
+  // (issueCreate(input: IssueCreateInput!)). A field taking several input
+  // objects — items(filter: Filter, orderBy: OrderBy) — must bind each from
+  // its own argument, or they all receive the same value and at least one
+  // fails input validation.
+  const inputs = args.filter((a: any) => {
+    const atype = def.types?.[a.type]
+    return null != atype && 'INPUT_OBJECT' === atype.kind
+  })
+  const soleInput = 1 === inputs.length ? inputs[0].name : undefined
 
-    vars.push({
+  return args.map((arg: any) => {
+    const v: any = {
       name: arg.name,
-      // Input objects carry the whole request body; scalars map to the
-      // like-named op argument.
-      from: isInput ? '' : arg.name,
+      from: arg.name === soleInput ? '' : arg.name,
       gqltype: arg.gqltype,
-    })
-  }
-
-  return vars
+    }
+    if (undefined !== arg.deflt) {
+      v.deflt = arg.deflt
+    }
+    return v
+  })
 }
 
 
@@ -113,10 +121,15 @@ function argList(vars: ModelGraphqlVar[]): string {
 }
 
 
-// `($id: String!, $first: Int)` — the operation's variable declarations.
+// `($id: String!, $first: Int = 100)` — the operation's variable
+// declarations. A schema default is carried through: without it a non-null
+// argument that the schema makes omittable (`first: Int! = 100`) would fail
+// variable coercion when the caller leaves it out.
 function varDecl(vars: ModelGraphqlVar[]): string {
   return 0 === vars.length ? '' :
-    '(' + vars.map((v) => '$' + v.name + ': ' + v.gqltype).join(', ') + ')'
+    '(' + vars.map((v) => '$' + v.name + ': ' + v.gqltype +
+      (undefined === (v as any).deflt ? '' :
+        ' = ' + JSON.stringify((v as any).deflt))).join(', ') + ')'
 }
 
 

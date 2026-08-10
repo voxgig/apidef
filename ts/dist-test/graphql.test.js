@@ -50,6 +50,7 @@ const node_test_1 = require("node:test");
 const node_assert_1 = __importDefault(require("node:assert"));
 const aontu_1 = require("aontu");
 const apidef_1 = require("../dist/apidef");
+const graphql01_1 = require("../dist/guide/graphql01");
 const OUTPREFIX = 'graphql-linearish-';
 const FOLDER = Path.join(__dirname, '..', 'test', 'graphql');
 const ENDPOINT = 'https://api.example.test/graphql';
@@ -122,9 +123,12 @@ async function buildGraphql(step) {
         node_assert_1.default.equal(bres.ok, true);
         const issue = bres.apimodel.main.kit.entity.issue;
         const names = issue.fields.map((f) => f.name);
+        // `team` is the to-one relation stub. The fragment selects `team { id }`,
+        // so the response carries a nested object — declaring a flat `team_id`
+        // would advertise a field the wire never returns.
         node_assert_1.default.deepStrictEqual(names, [
             'archived_at', 'created_at', 'id', 'identifier', 'priority',
-            'team_id', 'title',
+            'team', 'title',
         ]);
         // `legacyCode` is deprecated and `icon(size: Int!)` needs an argument:
         // selecting either in a fixed fragment is wrong (the latter is a hard
@@ -167,6 +171,10 @@ async function buildGraphql(step) {
             more: 'pageInfo.hasNextPage',
         });
         node_assert_1.default.ok(list.graphql.doc.includes('pageInfo { endCursor hasNextPage }'));
+        // `exist` names values that must be present for a point to be selected.
+        // Relay's optional first/after must NOT appear, or list() would demand
+        // every pagination argument before it could be chosen.
+        node_assert_1.default.deepStrictEqual(list.select?.exist, undefined);
         // Mutation payload is unwrapped, so create returns the entity itself —
         // exactly as a REST create does.
         const create = ops.create.points[0];
@@ -214,6 +222,55 @@ async function buildGraphql(step) {
         node_assert_1.default.equal(point.method, 'POST');
         node_assert_1.default.deepStrictEqual(point.parts, []);
         node_assert_1.default.ok(point.graphql.doc.startsWith('query IssueLoad'));
+    });
+});
+// Return-shape derivation feeds the classifier; these are the two shapes
+// where picking the wrong type silently produces an invalid document.
+(0, node_test_1.describe)('graphql-retshape', () => {
+    // An edges-only Relay connection: the entity is the edge's NODE type.
+    // Taking the edge wrapper would spread a fragment declared on IssueEdge
+    // inside `edges { node { ... } }` — a validation error — and unwrap the
+    // response to edge wrappers instead of entities.
+    (0, node_test_1.test)('edges-only-follows-node', () => {
+        const types = {
+            IssueConnection: {
+                name: 'IssueConnection', kind: 'OBJECT', fields: {
+                    edges: { name: 'edges', type: 'IssueEdge', list: true, args: [], deprecated: false },
+                    pageInfo: { name: 'pageInfo', type: 'PageInfo', list: false, args: [], deprecated: false },
+                },
+            },
+            IssueEdge: {
+                name: 'IssueEdge', kind: 'OBJECT', fields: {
+                    node: { name: 'node', type: 'Issue', list: false, args: [], deprecated: false },
+                },
+            },
+            Issue: {
+                name: 'Issue', kind: 'OBJECT', fields: {
+                    id: { name: 'id', type: 'ID', list: false, args: [], deprecated: false },
+                },
+            },
+            PageInfo: { name: 'PageInfo', kind: 'OBJECT', fields: {} },
+        };
+        node_assert_1.default.deepStrictEqual((0, graphql01_1.deriveRetShape)({ name: 'issues', type: 'IssueConnection', list: false, args: [], deprecated: false }, types), { kind: 'connection', entity: 'Issue', nodes: 'edges' });
+    });
+    // The `errors: [UserError!]!` convention must not win on sort order and
+    // become the payload's "entity" — that would unwrap errors, not the record.
+    (0, node_test_1.test)('payload-prefers-entity-over-errors', () => {
+        const types = {
+            IssuePayload: {
+                name: 'IssuePayload', kind: 'OBJECT', fields: {
+                    errors: { name: 'errors', type: 'UserError', list: true, args: [], deprecated: false },
+                    issue: { name: 'issue', type: 'Issue', list: false, args: [], deprecated: false },
+                },
+            },
+            UserError: { name: 'UserError', kind: 'OBJECT', fields: {} },
+            Issue: {
+                name: 'Issue', kind: 'OBJECT', fields: {
+                    id: { name: 'id', type: 'ID', list: false, args: [], deprecated: false },
+                },
+            },
+        };
+        node_assert_1.default.deepStrictEqual((0, graphql01_1.deriveRetShape)({ name: 'issueCreate', type: 'IssuePayload', list: false, args: [], deprecated: false }, types), { kind: 'payload', entity: 'Issue', unwrap: 'issue' });
     });
 });
 //# sourceMappingURL=graphql.test.js.map

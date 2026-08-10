@@ -116,21 +116,50 @@ function deriveRetShape(field, types) {
     const fnames = Object.keys(named.fields);
     if (fnames.includes('pageInfo') &&
         (fnames.includes('nodes') || fnames.includes('edges'))) {
-        const nodesField = fnames.includes('nodes') ? 'nodes' : 'edges';
-        const nodeType = named.fields[nodesField]?.type;
-        return { kind: 'connection', entity: nodeType, nodes: nodesField };
+        if (fnames.includes('nodes')) {
+            return {
+                kind: 'connection',
+                entity: named.fields.nodes.type,
+                nodes: 'nodes',
+            };
+        }
+        // Edges-only connection: the entity is the EDGE'S NODE type, not the
+        // edge wrapper. Taking IssueEdge here would spread a fragment declared
+        // on IssueEdge inside `edges { node { ... } }` (a validation error) and
+        // unwrap the response to edge wrappers instead of entities.
+        const edgeType = types[named.fields.edges.type];
+        const nodeType = edgeType?.fields?.node?.type;
+        if (null != nodeType) {
+            return { kind: 'connection', entity: nodeType, nodes: 'edges' };
+        }
     }
     // Mutation payload wrapper: <X>Payload holding the entity (plus success /
     // lastSyncId style metadata).
     if (/Payload$/.test(named.name)) {
-        // The wrapped entity is the first object-typed field that is not itself
-        // machinery. Sorted field order keeps this deterministic.
-        for (const fname of fnames) {
+        // Candidates: single object-typed fields that are not machinery. LISTS
+        // are excluded — the widespread `errors: [UserError!]!` convention would
+        // otherwise win on sort order and make the payload's error collection the
+        // "entity", unwrapping errors instead of the record.
+        const candidates = fnames.filter((fname) => {
             const f = named.fields[fname];
             const ftype = types[f.type];
-            if (null != ftype && 'OBJECT' === ftype.kind && !MACHINERY_RE.test(ftype.name)) {
-                return { kind: 'payload', entity: ftype.name, unwrap: fname };
-            }
+            return null != ftype && 'OBJECT' === ftype.kind &&
+                !f.list && !MACHINERY_RE.test(ftype.name) &&
+                !/^(errors?|userErrors?)$/i.test(fname);
+        });
+        // Prefer the field whose name matches the payload's own entity prefix
+        // (IssuePayload -> issue), which is the convention every CRUD-regular
+        // GraphQL API follows; fall back to the single remaining candidate.
+        const prefix = named.name.replace(/Payload$/, '');
+        const byName = candidates.find((fname) => fname.toLowerCase() === prefix.toLowerCase() ||
+            types[named.fields[fname].type]?.name === prefix);
+        const chosen = byName ?? candidates[0];
+        if (null != chosen) {
+            return {
+                kind: 'payload',
+                entity: types[named.fields[chosen].type].name,
+                unwrap: chosen,
+            };
         }
         return { kind: 'payload', deleteish: true };
     }

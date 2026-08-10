@@ -13,7 +13,7 @@ main: kit: entity: comment: {
     {
       name: "created_at"
       req: true
-      type: "`$STRING`"
+      type: "`$ANY`"
     }
     {
       name: "id"
@@ -21,9 +21,9 @@ main: kit: entity: comment: {
       type: "`$STRING`"
     }
     {
-      name: "issue_id"
+      name: "issue"
       req: false
-      type: "`$STRING`"
+      type: "`$OBJECT`"
     }
   ]
 

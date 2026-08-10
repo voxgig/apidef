@@ -66,8 +66,18 @@ function resolveSelect(
 
   const argkinds = ['params', 'query', 'header', 'cookie']
 
+  // `exist` names values that must be PRESENT for this point to be chosen.
+  // A GraphQL root field exposes its optional arguments (relay's first /
+  // after, filters) as params, and requiring those for selection would make
+  // list() unusable without supplying every pagination argument. Only
+  // required arguments identify a point.
+  const reqdonly = 'graphql' === (mpoint as any).kind
+
   argkinds.map((kind: string) => {
     each(margs[kind], (marg: ModelArg) => {
+      if (reqdonly && !marg.reqd) {
+        return
+      }
       if (!select.exist.includes(marg.name)) {
         select.exist.push(marg.name)
       }
