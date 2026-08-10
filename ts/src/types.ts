@@ -33,9 +33,39 @@ type ApiDefOptions = {
   meta?: Record<string, any>
   outprefix?: string
   strategy?: string
+
+  // Input format. Defaults to 'OpenAPI'; sniffed from the def file name
+  // when not given (see resolveKind in apidef.ts).
+  kind?: DefKind
+
+  // GraphQL-only build inputs. A GraphQL schema carries neither a
+  // deployment URL nor an HTTP auth declaration, so both must be supplied
+  // out of band (see docs/design/graphql-ingestion.md).
+  endpoint?: string
+  auth?: ApiDefAuthOption
+
   why?: {
     show?: boolean
   }
+}
+
+
+// Input definition format.
+type DefKind = 'OpenAPI' | 'GraphQL'
+
+
+// Auth descriptor for schema formats that cannot declare their own. When
+// omitted for a GraphQL build, no auth signal is emitted either way, so the
+// SDK's own config governs; set `active: false` to state a public API
+// explicitly (which suppresses generated auth code, as an OpenAPI spec with
+// no security schemes does).
+type ApiDefAuthOption = {
+  active?: boolean
+  scheme?: string
+  type?: string
+  in?: string
+  name?: string
+  prefix?: string
 }
 
 const ControlShape = Shape({
@@ -207,6 +237,8 @@ type GuideControl = {}
 type GuideMetrics = {
   count: {
     path: number
+    // Schema root fields classified (GraphQL guides; 0 for OpenAPI).
+    field: number
     method: number
     entity: number
     tag: number
@@ -223,6 +255,9 @@ type GuideMetrics = {
 type GuideEntity = {
   name: string
   orig: string
+  // GraphQL guides key operations by schema root field instead of path;
+  // the two branches are mutually exclusive per guide.
+  field?: Record<string, GuidePath>
   path: Record<string, GuidePath>
 }
 
@@ -247,6 +282,9 @@ type GuideRenameParam = {
 
 type GuidePathOp = {
   method: string
+  // GraphQL root-field ops carry the operation type instead of relying on
+  // an HTTP verb (points still synthesize method 'POST').
+  optype?: string
   why_op: string[]
   transform: {
     req: any
@@ -280,6 +318,8 @@ export type {
   Log,
   FsUtil,
   ApiDefOptions,
+  DefKind,
+  ApiDefAuthOption,
   ApiDefResult,
   Control,
   Model,

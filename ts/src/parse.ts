@@ -5,6 +5,8 @@ import { Yaml } from '@tabnas/yaml'
 
 import { relativizePath } from './utility'
 
+import { parseGraphQL } from './parse/graphql'
+
 
 // NOTE: @tabnas/yaml types its Plugin against @tabnas/parser, while
 // Jsonic.use expects @tabnas/jsonic's own (structurally identical) Plugin
@@ -40,6 +42,27 @@ async function parse(kind: string, source: any, meta: { file: string }) {
       else {
         pe.message =
           `@voxgig/apidef: parse: internal: ${pe.message}` +
+          ` (${relativizePath(meta.file)})`
+      }
+
+      throw pe
+    }
+  }
+  else if ('GraphQL' === kind) {
+
+    validateSource(kind, source, meta)
+
+    try {
+      const def = await parseGraphQL(source, meta, (meta as any).graphql)
+      return def
+    }
+    catch (pe: any) {
+      // Already-decorated errors (missing endpoint, missing package) carry
+      // the package prefix; only raw parser failures need wrapping.
+      if ('string' === typeof pe.message &&
+        !pe.message.startsWith('@voxgig/apidef:')) {
+        pe.message =
+          `@voxgig/apidef: parse: syntax: ${pe.message}` +
           ` (${relativizePath(meta.file)})`
       }
 

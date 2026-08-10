@@ -5,6 +5,7 @@ exports.parse = parse;
 const jsonic_1 = require("@tabnas/jsonic");
 const yaml_1 = require("@tabnas/yaml");
 const utility_1 = require("./utility");
+const graphql_1 = require("./parse/graphql");
 // NOTE: @tabnas/yaml types its Plugin against @tabnas/parser, while
 // Jsonic.use expects @tabnas/jsonic's own (structurally identical) Plugin
 // type - hence the cast.
@@ -34,6 +35,24 @@ async function parse(kind, source, meta) {
             else {
                 pe.message =
                     `@voxgig/apidef: parse: internal: ${pe.message}` +
+                        ` (${(0, utility_1.relativizePath)(meta.file)})`;
+            }
+            throw pe;
+        }
+    }
+    else if ('GraphQL' === kind) {
+        validateSource(kind, source, meta);
+        try {
+            const def = await (0, graphql_1.parseGraphQL)(source, meta, meta.graphql);
+            return def;
+        }
+        catch (pe) {
+            // Already-decorated errors (missing endpoint, missing package) carry
+            // the package prefix; only raw parser failures need wrapping.
+            if ('string' === typeof pe.message &&
+                !pe.message.startsWith('@voxgig/apidef:')) {
+                pe.message =
+                    `@voxgig/apidef: parse: syntax: ${pe.message}` +
                         ` (${(0, utility_1.relativizePath)(meta.file)})`;
             }
             throw pe;

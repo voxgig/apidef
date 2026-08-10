@@ -59,7 +59,31 @@ const topTransform = async function(
   // spec DOES declare auth we leave `auth` unset so the SDK's own config
   // (main.kit.config.auth) governs. Set AFTER stringifyInfoScalars so the
   // value stays a real boolean rather than the string "false".
-  if (!specDeclaresAuth(def)) {
+  if (true === def.graphql) {
+    // A GraphQL schema NEVER declares HTTP auth, so specDeclaresAuth would
+    // report every secured GraphQL API (Linear included) as public and
+    // suppress all generated auth code. Take the explicit build option
+    // instead: only an option that actively says "public" emits the no-auth
+    // signal; silence leaves auth unset so the SDK's own config governs.
+    const authopt = ctx.opts?.auth
+    if (null != authopt) {
+      if (false === authopt.active) {
+        kit.info.auth = false
+      }
+      else {
+        kit.info.security = {
+          scheme: authopt.scheme ?? 'apikey',
+          type: authopt.type ?? 'apiKey',
+          in: authopt.in ?? 'header',
+          name: authopt.name ?? 'Authorization',
+          // '' means a raw credential with no prefix (Linear's style);
+          // prepareAuth in generated SDKs already honours that.
+          prefix: authopt.prefix ?? '',
+        }
+      }
+    }
+  }
+  else if (!specDeclaresAuth(def)) {
     kit.info.auth = false
   }
   else {
@@ -105,10 +129,15 @@ const topTransform = async function(
   // Swagger 2 derives it from `host` + `basePath`. If neither yields a
   // non-empty url, the generated SDK has no way to issue requests, so fail
   // the apidef model build rather than emit broken code.
+  // (For GraphQL the parser already synthesised servers[0] from the required
+  // `endpoint` build option, so this check passes on the same terms.)
   const firstServerUrl: any = kit.info.servers?.[0]?.url
   if (null == firstServerUrl || '' === String(firstServerUrl).trim()) {
     throw new Error(
-      'apidef: no server URL found in API definition (servers[0].url is required).'
+      true === def.graphql ?
+        'apidef: no endpoint given for GraphQL schema' +
+        ' (the endpoint build option is required).' :
+        'apidef: no server URL found in API definition (servers[0].url is required).'
     )
   }
 

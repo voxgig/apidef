@@ -1,0 +1,26 @@
+# API Information
+
+
+main: {
+  kit: {
+    info: {
+      description: "The graphql API."
+      security: {
+        in: "header"
+        name: "Authorization"
+        prefix: ""
+        scheme: "apikey"
+        type: "apiKey"
+      }
+      servers: [
+        {
+          url: "https://api.example.test/graphql"
+        }
+      ]
+      title: "graphql"
+      version: ""
+      website: "https://example.test"
+    }
+  }
+}
+

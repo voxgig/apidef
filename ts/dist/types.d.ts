@@ -13,9 +13,21 @@ type ApiDefOptions = {
     meta?: Record<string, any>;
     outprefix?: string;
     strategy?: string;
+    kind?: DefKind;
+    endpoint?: string;
+    auth?: ApiDefAuthOption;
     why?: {
         show?: boolean;
     };
+};
+type DefKind = 'OpenAPI' | 'GraphQL';
+type ApiDefAuthOption = {
+    active?: boolean;
+    scheme?: string;
+    type?: string;
+    in?: string;
+    name?: string;
+    prefix?: string;
 };
 declare const ControlShape: {
     <V>(root?: V | undefined, ctx?: import("shape").Context): V & {
@@ -1100,6 +1112,7 @@ type GuideControl = {};
 type GuideMetrics = {
     count: {
         path: number;
+        field: number;
         method: number;
         entity: number;
         tag: number;
@@ -1114,6 +1127,7 @@ type GuideMetrics = {
 type GuideEntity = {
     name: string;
     orig: string;
+    field?: Record<string, GuidePath>;
     path: Record<string, GuidePath>;
 };
 type GuidePath = {
@@ -1134,6 +1148,7 @@ type GuideRenameParam = {
 };
 type GuidePathOp = {
     method: string;
+    optype?: string;
     why_op: string[];
     transform: {
         req: any;
@@ -1141,6 +1156,6 @@ type GuidePathOp = {
     };
 };
 export { KIT, OpenControlShape, OpenModelShape, OpenBuildShape, };
-export type { Guide, GuideMetrics, GuideEntity, GuidePath, GuidePathAction, GuideRenameParam, GuidePathOp, KitModel, MethodName, TypeName, Log, FsUtil, ApiDefOptions, ApiDefResult, Control, Model, Build, ApiModel, ApiDefContext, Warner, Metrics, };
+export type { Guide, GuideMetrics, GuideEntity, GuidePath, GuidePathAction, GuideRenameParam, GuidePathOp, KitModel, MethodName, TypeName, Log, FsUtil, ApiDefOptions, DefKind, ApiDefAuthOption, ApiDefResult, Control, Model, Build, ApiModel, ApiDefContext, Warner, Metrics, };
 export type { CmpDesc, BasicMethodDesc, MethodDesc, MethodEntityDesc, EntityDesc, EntityPathDesc, PathDesc, OpDesc, } from './desc';
 export type { OpName, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelPoint, ModelOp, ModelEntity, } from './model';

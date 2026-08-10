@@ -37,7 +37,9 @@ const selectTransform: Transform = async function(
   each(kit.entity, (ment: ModelEntity, _entname: string) => {
     each(ment.op, (mop: ModelOp, _opname: OpName) => {
       each(mop.points, (mpoint: ModelPoint) => {
-        const pdef: PathDef = def.paths[mpoint.orig]
+        // GraphQL defs have no `paths`; the lookup is only passed through to
+        // an unused parameter, so skip it rather than dereference undefined.
+        const pdef: PathDef = def.paths?.[mpoint.orig]
         resolveSelect(guide, ment, mop, mpoint, pdef)
       })
       if (null != mop.points && 0 < mop.points.length) {
@@ -64,8 +66,18 @@ function resolveSelect(
 
   const argkinds = ['params', 'query', 'header', 'cookie']
 
+  // `exist` names values that must be PRESENT for this point to be chosen.
+  // A GraphQL root field exposes its optional arguments (relay's first /
+  // after, filters) as params, and requiring those for selection would make
+  // list() unusable without supplying every pagination argument. Only
+  // required arguments identify a point.
+  const reqdonly = 'graphql' === (mpoint as any).kind
+
   argkinds.map((kind: string) => {
     each(margs[kind], (marg: ModelArg) => {
+      if (reqdonly && !marg.reqd) {
+        return
+      }
       if (!select.exist.includes(marg.name)) {
         select.exist.push(marg.name)
       }
@@ -75,7 +87,12 @@ function resolveSelect(
   select.exist.sort()
 
   const gent = guide.entity[ment.name]
-  const gpath = gent.path[mpoint.orig]
+  // REST guides key entries by path, GraphQL guides by root field.
+  const gpath = gent.path?.[mpoint.orig] ?? (gent as any).field?.[mpoint.orig]
+
+  if (null == gpath) {
+    return
+  }
 
   if (gpath.action) {
     const actname = Object.keys(gpath.action).sort()[0]

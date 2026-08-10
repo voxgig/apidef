@@ -61,6 +61,7 @@ Object.defineProperty(exports, "CANON_ONE", { enumerable: true, get: function ()
 const top_1 = require("./transform/top");
 const entity_1 = require("./transform/entity");
 const operation_1 = require("./transform/operation");
+const graphql_1 = require("./transform/graphql");
 const args_1 = require("./transform/args");
 const select_1 = require("./transform/select");
 const field_1 = require("./transform/field");
@@ -79,7 +80,11 @@ function ApiDef(opts) {
     const pino = (0, util_1.prettyPino)('apidef', opts);
     const log = pino.child({ cmp: 'apidef' });
     const warn = (0, utility_1.makeWarner)({ point: 'warning', log });
-    opts.strategy = opts.strategy || 'heuristic01';
+    // Input format: explicit option wins, else sniff from the def file name.
+    // A GraphQL build defaults to the graphql01 guide strategy.
+    opts.kind = opts.kind || resolveKind(opts.def);
+    opts.strategy = opts.strategy ||
+        ('GraphQL' === opts.kind ? 'graphql01' : 'heuristic01');
     async function generate(spec) {
         const start = Date.now();
         const steps = [];
@@ -151,7 +156,15 @@ function ApiDef(opts) {
                 work: {}
             };
             const defsrc = (0, utility_1.loadFile)(defpath, 'def', fs, log);
-            const def = await (0, parse_1.parse)('OpenAPI', defsrc, { file: defpath });
+            const def = await (0, parse_1.parse)(opts.kind, defsrc, {
+                file: defpath,
+                // GraphQL-only inputs; ignored by the OpenAPI parser.
+                graphql: {
+                    endpoint: opts.endpoint,
+                    title: model.name,
+                    version: model.main?.[types_1.KIT]?.info?.version,
+                },
+            });
             const defkeys = Object.keys(def);
             log.info({
                 point: 'root-keys',
@@ -190,6 +203,9 @@ function ApiDef(opts) {
             await (0, top_1.topTransform)(ctx);
             await (0, entity_1.entityTransform)(ctx);
             await (0, operation_1.operationTransform)(ctx);
+            // Must precede args and field: both branch on point.kind === 'graphql'
+            // and read the graphql block this stamps on.
+            await (0, graphql_1.graphqlTransform)(ctx);
             await (0, args_1.argsTransform)(ctx);
             await (0, select_1.selectTransform)(ctx);
             await (0, field_1.fieldTransform)(ctx);
@@ -321,6 +337,18 @@ function ApiDef(opts) {
         generate,
     };
 }
+// Sniff the input format from the definition file name. GraphQL schemas use
+// .graphql/.graphqls/.gql; an explicit `kind` option always wins. Introspection
+// JSON must be named .graphql.json (or declared) since a bare .json could be
+// either format.
+function resolveKind(def) {
+    const name = String(def ?? '').toLowerCase();
+    if (name.endsWith('.graphql') || name.endsWith('.graphqls') ||
+        name.endsWith('.gql') || name.endsWith('.graphql.json')) {
+        return 'GraphQL';
+    }
+    return 'OpenAPI';
+}
 ApiDef.makeBuild = async function (opts) {
     let apidef = undefined;
     const config = {
@@ -330,6 +358,12 @@ ApiDef.makeBuild = async function (opts) {
     };
     const build = async function (model, build, _ctx) {
         if (null == apidef) {
+            // Resolve the input format HERE, not at makeBuild time: in the
+            // documented pattern the definition filename arrives as `model.def`
+            // and `opts.def` is unset, so sniffing at construction would pin every
+            // build to OpenAPI and send SDL to the OpenAPI parser.
+            const kind = opts.kind || resolveKind(opts.def || model.def);
+            config.kind = 'GraphQL' === kind ? 'graphql' : 'openapi3';
             apidef = ApiDef({
                 def: opts.def,
                 fs: opts.fs,
@@ -338,6 +372,9 @@ ApiDef.makeBuild = async function (opts) {
                 meta: opts.meta,
                 outprefix: opts.outprefix,
                 strategy: opts.strategy,
+                kind,
+                endpoint: opts.endpoint,
+                auth: opts.auth,
                 pino: build.log,
                 why: opts.why,
             });

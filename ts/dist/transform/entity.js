@@ -20,7 +20,10 @@ const entityTransform = async function (ctx) {
     // ID. Move "/people" onto person here; this also clears the way for
     // sensible flow generation (one entity, one collection, multiple
     // sub-resources).
-    mergeCollectionPaths(guide, ctx.log);
+    // Path-shaped collection merging is meaningless for root-field guides.
+    if (true !== ctx.def?.graphql) {
+        mergeCollectionPaths(guide, ctx.log);
+    }
     (0, jostraca_1.each)(guide.entity, (guideEntity, entname) => {
         // `active: false` in guide.aontu drops the entity. The guide model has
         // always declared `active?: boolean` at entity, path and op level and the
@@ -33,8 +36,16 @@ const entityTransform = async function (ctx) {
             return;
         }
         ctx.log.debug({ point: 'guide-entity', note: entname });
-        const paths$ = resolvePathList(guideEntity, ctx.def);
-        const relations = buildRelations(guideEntity, paths$);
+        const graphql = true === ctx.def?.graphql;
+        const paths$ = graphql ?
+            resolveFieldList(guideEntity, ctx.def) :
+            resolvePathList(guideEntity, ctx.def);
+        // Ancestry is inferred from literal/{param} path pairs, which root
+        // fields do not have; GraphQL relations come from the schema instead
+        // (see transform/graphql.ts).
+        const relations = graphql ?
+            { ancestors: [] } :
+            buildRelations(guideEntity, paths$);
         const modelent = {
             name: entname,
             op: {},
@@ -165,6 +176,43 @@ function resolvePathList(guideEntity, def) {
             method: '', // operation collectOps will copy and assign per op
             op: guidePath.op,
             def: def.paths[orig],
+        };
+        paths$.push(pathdesc);
+    });
+    guideEntity.paths$ = paths$;
+    return paths$;
+}
+// Root-field equivalent of resolvePathList for GraphQL guides. A root field
+// has no path to split, so `parts` stays empty (GraphQL points address the
+// single endpoint and carry their operation document instead) and `def` is
+// the normalised root-field descriptor rather than a path item.
+function resolveFieldList(guideEntity, def) {
+    const paths$ = [];
+    (0, jostraca_1.each)(guideEntity.field, (guideField, orig) => {
+        if (!(0, utility_1.guideActive)(guideField)) {
+            return;
+        }
+        // The root field lives under query or mutation depending on the op type
+        // the guide recorded.
+        const optype = Object.values(guideField.op ?? {})
+            .map((o) => o.optype)
+            .find((t) => null != t) ?? 'query';
+        const fielddef = 'mutation' === optype ?
+            def.mutation?.[orig] : def.query?.[orig];
+        // The guide expresses GraphQL renames as `rename: arg:` (root fields
+        // have arguments, not path params), while the model's arg machinery
+        // reads `rename.param`. Translate so a user override actually applies.
+        const grename = guideField.rename ?? {};
+        const rename = null != grename.arg ?
+            { ...grename, param: { ...(grename.param ?? {}), ...grename.arg } } :
+            grename;
+        const pathdesc = {
+            orig,
+            parts: [],
+            rename,
+            method: '', // operation collectOps will copy and assign per op
+            op: guideField.op,
+            def: fielddef,
         };
         paths$.push(pathdesc);
     });

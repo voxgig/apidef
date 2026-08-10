@@ -44,6 +44,7 @@ const node_assert_1 = __importDefault(require("node:assert"));
 const utility_1 = require("../dist/utility");
 const field_1 = require("../dist/transform/field");
 const jostraca_1 = require("jostraca");
+const graphql01_1 = require("../dist/guide/graphql01");
 const parse_1 = require("../dist/parse");
 const clean_1 = require("../dist/transform/clean");
 const transform_1 = require("../dist/transform");
@@ -500,6 +501,27 @@ function loadTsv(name) {
     for (const row of rows) {
         (0, node_test_1.test)(`request envelope ${row.reqschema} (${row.origname}/${row.name})`, () => {
             node_assert_1.default.strictEqual(wrapperName(JSON.parse(row.reqschema), row.origname, row.name), row.expected);
+        });
+    }
+});
+// GraphQL root-field classification. Shape first, name second: the same
+// (fieldSig, profile) pair must yield the same {entity, op, action} in both
+// the TypeScript and (once ported) the Go implementation, so the decision is
+// a pure function driven by this shared fixture.
+//
+// `in` is the classifier signature, `out` the expected classification minus
+// the `why` trace (which is diagnostic, not contractual). Mirrors
+// go/tsv_test.go TestGraphqlClassify.
+(0, node_test_1.describe)('tsv-graphql-classify', () => {
+    const rows = loadTsv('graphql-classify');
+    for (const row of rows) {
+        (0, node_test_1.test)(`graphql classify ${row.name}`, () => {
+            const sig = JSON.parse(row.in);
+            const expected = JSON.parse(row.out);
+            const got = (0, graphql01_1.classifyGraphQLField)(sig, 'none');
+            // `why` is a diagnostic trace, not part of the contract.
+            delete got.why;
+            node_assert_1.default.deepStrictEqual(got, expected);
         });
     }
 });

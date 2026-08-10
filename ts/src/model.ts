@@ -90,13 +90,54 @@ type ModelArg = {
 }
 
 
-// One concrete HTTP endpoint that can satisfy an operation. An entity op
+// Transport a point speaks. 'http' is the default and covers every
+// OpenAPI-derived point; 'graphql' points carry a `graphql` block instead
+// of relying on method+path (they synthesize method 'POST' and empty
+// parts so the HTTP-shaped machinery downstream keeps working unchanged).
+type PointKind = 'http' | 'graphql'
+
+
+// Pagination descriptor for a GraphQL list op. `nodes`/`cursor`/`more` are
+// dotted paths relative to the unwrapped connection object.
+type ModelGraphqlPage = {
+  style: string
+  nodes: string
+  cursor: string
+  more: string
+}
+
+
+// One GraphQL variable binding: `name` is the variable as it appears in the
+// operation document, `from` the op argument it is read from, `gqltype` the
+// declared GraphQL type (e.g. 'String!').
+type ModelGraphqlVar = {
+  name: string
+  from: string
+  gqltype: string
+}
+
+
+// GraphQL wire data for a point. `doc` is the complete operation document,
+// rendered single-line with sorted selection fields so output stays
+// byte-stable and schema drift shows up in model diffs.
+type ModelGraphql = {
+  optype: 'query' | 'mutation'
+  field: string
+  doc: string
+  vars: ModelGraphqlVar[]
+  page?: ModelGraphqlPage
+}
+
+
+// One concrete endpoint that can satisfy an operation. An entity op
 // (load/list/create/...) carries an array of these — apidef chooses
 // between them at runtime via `select.exist` matching against reqmatch /
 // reqdata. (Originally named `ModelTarget`; renamed for consistency with
 // the field name `points` and the runtime utility `MakePoint`.)
 type ModelPoint = {
   orig: string
+  kind?: PointKind
+  graphql?: ModelGraphql
   method: MethodName
   parts: string[]
   rename: Partial<{
@@ -210,6 +251,10 @@ type ModelEntityFlowStep = {
 export type {
   OpName,
   ArgKind,
+  PointKind,
+  ModelGraphql,
+  ModelGraphqlVar,
+  ModelGraphqlPage,
   NamesCluster,
   Model,
   ModelEntityRelations,

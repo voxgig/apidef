@@ -10,7 +10,9 @@ const selectTransform = async function (ctx) {
     (0, jostraca_1.each)(kit.entity, (ment, _entname) => {
         (0, jostraca_1.each)(ment.op, (mop, _opname) => {
             (0, jostraca_1.each)(mop.points, (mpoint) => {
-                const pdef = def.paths[mpoint.orig];
+                // GraphQL defs have no `paths`; the lookup is only passed through to
+                // an unused parameter, so skip it rather than dereference undefined.
+                const pdef = def.paths?.[mpoint.orig];
                 resolveSelect(guide, ment, mop, mpoint, pdef);
             });
             if (null != mop.points && 0 < mop.points.length) {
@@ -26,8 +28,17 @@ function resolveSelect(guide, ment, _mop, mpoint, _pdef) {
     const select = mpoint.select;
     const margs = mpoint.args;
     const argkinds = ['params', 'query', 'header', 'cookie'];
+    // `exist` names values that must be PRESENT for this point to be chosen.
+    // A GraphQL root field exposes its optional arguments (relay's first /
+    // after, filters) as params, and requiring those for selection would make
+    // list() unusable without supplying every pagination argument. Only
+    // required arguments identify a point.
+    const reqdonly = 'graphql' === mpoint.kind;
     argkinds.map((kind) => {
         (0, jostraca_1.each)(margs[kind], (marg) => {
+            if (reqdonly && !marg.reqd) {
+                return;
+            }
             if (!select.exist.includes(marg.name)) {
                 select.exist.push(marg.name);
             }
@@ -35,7 +46,11 @@ function resolveSelect(guide, ment, _mop, mpoint, _pdef) {
     });
     select.exist.sort();
     const gent = guide.entity[ment.name];
-    const gpath = gent.path[mpoint.orig];
+    // REST guides key entries by path, GraphQL guides by root field.
+    const gpath = gent.path?.[mpoint.orig] ?? gent.field?.[mpoint.orig];
+    if (null == gpath) {
+        return;
+    }
     if (gpath.action) {
         const actname = Object.keys(gpath.action).sort()[0];
         if (null != actname) {

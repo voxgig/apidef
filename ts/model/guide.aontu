@@ -20,6 +20,28 @@ guide: entity: &: {
        }
      }
   }
+
+  # GraphQL guides key operations by schema root field instead of path.
+  field?: &: {
+    active?: boolean
+
+    action?: {}
+
+    rename?: {
+      arg?: {}
+    }
+
+    op: &: {
+      active?: boolean
+      method?: string
+      optype?: string
+
+      transform?: {
+        req?: top
+        res?: top
+      }
+    }
+  }
 }
 
 
