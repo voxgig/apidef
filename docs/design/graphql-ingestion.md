@@ -54,7 +54,13 @@ isomorphic:
 Five existing mechanisms carry over unchanged and do most of the work:
 
 1. **Parse dispatch** — `ts/src/parse.ts` already switches on input `kind`
-   (`'OpenAPI' === kind`). A `'GraphQL'` kind slots in beside it.
+   (`'OpenAPI' === kind`). A `'GraphQL'` kind slots in beside it. The kind
+   must also become caller-selectable: `ApiDef.generate` currently calls
+   `parse('OpenAPI', ...)` unconditionally (`ts/src/apidef.ts:184`) and
+   `makeBuild` hardcodes `kind: 'openapi3'` in its config, so ingestion
+   adds an `opts.kind` (defaulted by input sniffing: `.graphql`/`.graphqls`
+   extension or `type Query` content → GraphQL; `__schema` JSON →
+   introspection) propagated through both entry points.
 2. **Guide strategy** — `ts/src/guide/guide.ts` dispatches on
    `ctx.opts.strategy` (`'heuristic01'`). The GraphQL classifier is a
    sibling strategy emitting the *same* guide grammar, so the override
@@ -125,6 +131,28 @@ Linear publishes its full SDL (`packages/sdk/src/schema.graphql` in the
 `linear/linear` monorepo). Dagger is introspection-only by nature (the
 schema is per-session and extended dynamically by modules).
 
+### Build inputs the schema cannot supply
+
+Two model inputs that OpenAPI carries in-band are absent from a GraphQL
+schema and must arrive as build options:
+
+- **Endpoint URL.** `topTransform` requires `def.servers[0].url` and fails
+  the build without it (`ts/src/transform/top.ts:104-112`) — correctly, as
+  a usable SDK needs a base URL. SDL and introspection carry no deployment
+  URL, so GraphQL ingestion adds an `endpoint` option (e.g.
+  `https://api.linear.app/graphql`) normalized into `kit.info.servers` so
+  the existing check and sdkgen's `options.base` default both work
+  unchanged.
+- **Auth metadata.** When an OpenAPI spec declares no security schemes,
+  `topTransform` stamps an explicit no-auth signal (`kit.info.auth =
+  false`, `ts/src/transform/top.ts:54-64`) that suppresses downstream auth
+  code, docs, and examples. A GraphQL schema *never* declares HTTP auth,
+  so applying `specDeclaresAuth` as-is would wrongly mark every secured
+  GraphQL API (Linear included) as auth-free. GraphQL ingestion takes an
+  `auth` option (scheme + header prefix, e.g. bare-key `Authorization` for
+  Linear) — supplied directly or by the naming profile — and emits the
+  no-auth signal only when the option explicitly says so.
+
 ### Classification: shape first, names second
 
 Naming conventions diverge across ecosystems (Hasura `insert_<table>_one`,
@@ -183,6 +211,13 @@ guide: entity: issue: {
 `validateBaseBuide`'s coverage check carries over: every root field must be
 assigned to some entity, or explicitly excluded.
 
+The canonical guide schema must grow the new branch in the same step:
+`model/guide.aontu` currently admits only `path:` entries whose ops carry a
+`method` string, so a guide emitting `field:`/`optype:` entries would fail
+aontu unification against it. Extend the schema with the field-keyed shape
+(alongside `path:`) and synchronize the package mirrors and the Go parity
+port, per the canonical-model conventions in `AGENTS.md`.
+
 ## Model extension: documents are data
 
 The decisive choice: **apidef precomputes the complete GraphQL operation
@@ -221,6 +256,16 @@ op: load: points: [ {
 } ]
 ```
 
+The canonical apidef model schema is part of this change, not an
+afterthought: `model/apidef.aontu` currently *requires* every point to
+carry `method` (constrained to the HTTP verb disjunction) and `parts`, so
+a GraphQL point omitting them would fail unification. The point schema
+becomes transport-discriminated — `method`/`parts` required when `kind` is
+`http`, the `graphql` block required when `kind` is `graphql` — with the
+package mirrors and Go port synchronized alongside (`AGENTS.md`
+canonical-model rules; the same applies to sdkgen's `model/sdkgen.aontu`
+via `make sync-model`).
+
 Entity fields come from the GraphQL object type's scalar fields through the
 existing `ModelField` shape. Relations get real data from the schema:
 to-one relations recorded as id-stub references; to-many relations as
@@ -233,6 +278,11 @@ The fragment baked into each document follows Linear's proven scheme (it is
 what `@linear/sdk`'s own generator does):
 
 - all **non-deprecated scalar fields** of the entity type;
+- **excluding scalar fields that take required arguments** — selecting
+  `download(format: Format!): String!` without binding its argument fails
+  GraphQL validation, so such fields are dropped from the default fragment
+  (a guide entry can adopt one explicitly, binding its arguments as op
+  vars);
 - **to-one relations reduced to `{ id }`**;
 - recursion cut at every relation boundary (to-many relations omitted from
   the default fragment);
@@ -324,14 +374,23 @@ Changes needed:
    and `makeFetchDef` stringifies object bodies without adding one; most
    GraphQL servers reject that. The sugar sets it; optionally `direct`
    learns "object body → default `application/json`" (benefits REST too).
-3. **`allow.op` governance** — add `graphql` as its own token so an SDK
-   operator can disable raw schema access while keeping entity ops (the
-   default list already gates `direct`, and already reserves `command`).
+3. **`allow.op` governance** — add `graphql` as its own token (the default
+   list already gates `direct`, and already reserves `command`). To be
+   precise about what it buys: the token gates the *sugar only* — an
+   identical raw request remains expressible through `direct`, so an
+   operator who wants to block raw schema access must disable both
+   `graphql` and `direct`. Document that pairing rather than pretending
+   the token alone is a boundary; entity ops are unaffected either way.
 4. **Absolute-URL override (optional)** — `makeUrl` always joins
    `base + prefix + path + suffix`, so `direct` cannot reach a different
    host. Linear's staged file upload (mutation returns a signed S3 URL,
    client PUTs bytes there) needs exactly that. Honor `fetchargs.url` as an
-   absolute override (the `Spec` class already carries a `url` field).
+   absolute override (the `Spec` class already carries a `url` field) —
+   and preserve **binary bodies**: `makeFetchDef` JSON-stringifies any
+   object body today, which would corrupt a `Buffer`/`Uint8Array`/`Blob`/
+   stream upload. The upload path must detect binary body types, pass the
+   bytes through untouched, and skip the JSON content-type default for
+   them.
 
 Documented caveat (not a change): `direct` bypasses the feature pipeline —
 no `featureHook` calls, so retry/ratelimit/paging features do not apply to
@@ -411,14 +470,20 @@ support.
 
 ## Delivery plan
 
-1. **apidef ingestion** — GraphQL parse (`kind: 'GraphQL'`), shape
-   classifier + `linear`/`relay` profiles as a new guide strategy, document
-   renderer; Linear SDL fixture; TSV fixtures for classifier decisions.
+1. **apidef ingestion** — GraphQL parse (`kind: 'GraphQL'`), with
+   `opts.kind` selection propagated through `ApiDef.generate` and
+   `makeBuild` (both hardcode OpenAPI today); `endpoint` and `auth` build
+   options (see *Build inputs the schema cannot supply*); shape classifier
+   + `linear`/`relay` profiles as a new guide strategy; document renderer;
+   Linear SDL fixture; TSV fixtures for classifier decisions.
    **Go parity port is definition-of-done**, with `Mirrors src/...`
    comments and shared `.tsv` fixtures (apidef is dual-implementation).
 2. **Model schema extension** — new point fields in `ts/src/model.ts` and
-   the builders; in sdkgen, `model/sdkgen.aontu` + `make sync-model` + the
-   `model-mirror` drift guard + `make check-model`.
+   the builders, plus the canonical schemas: transport-discriminated point
+   shape in `model/apidef.aontu`, the field-keyed guide branch in
+   `model/guide.aontu`, and package-mirror/Go sync for both; in sdkgen,
+   `model/sdkgen.aontu` + `make sync-model` + the `model-mirror` drift
+   guard + `make check-model`.
 3. **sdkgen ts/js reference** — `GraphqlUtility` template, `makeSpec`/
    `makeFetchDef` dispatch on `point.kind`, `PagingFeature` relay support,
    `client.graphql()` sugar + `allow.op` token, document-constant emission
