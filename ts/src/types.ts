@@ -33,9 +33,39 @@ type ApiDefOptions = {
   meta?: Record<string, any>
   outprefix?: string
   strategy?: string
+
+  // Input format. Defaults to 'OpenAPI'; sniffed from the def file name
+  // when not given (see resolveKind in apidef.ts).
+  kind?: DefKind
+
+  // GraphQL-only build inputs. A GraphQL schema carries neither a
+  // deployment URL nor an HTTP auth declaration, so both must be supplied
+  // out of band (see docs/design/graphql-ingestion.md).
+  endpoint?: string
+  auth?: ApiDefAuthOption
+
   why?: {
     show?: boolean
   }
+}
+
+
+// Input definition format.
+type DefKind = 'OpenAPI' | 'GraphQL'
+
+
+// Auth descriptor for schema formats that cannot declare their own. When
+// omitted for a GraphQL build, no auth signal is emitted either way, so the
+// SDK's own config governs; set `active: false` to state a public API
+// explicitly (which suppresses generated auth code, as an OpenAPI spec with
+// no security schemes does).
+type ApiDefAuthOption = {
+  active?: boolean
+  scheme?: string
+  type?: string
+  in?: string
+  name?: string
+  prefix?: string
 }
 
 const ControlShape = Shape({
@@ -280,6 +310,8 @@ export type {
   Log,
   FsUtil,
   ApiDefOptions,
+  DefKind,
+  ApiDefAuthOption,
   ApiDefResult,
   Control,
   Model,

@@ -16,6 +16,7 @@ import type {
   ApiDefOptions,
   ApiDefResult,
   Control,
+  DefKind,
   Model,
   Build,
   ApiModel,
@@ -92,7 +93,11 @@ function ApiDef(opts: ApiDefOptions) {
   const log = pino.child({ cmp: 'apidef' })
   const warn = makeWarner({ point: 'warning', log })
 
-  opts.strategy = opts.strategy || 'heuristic01'
+  // Input format: explicit option wins, else sniff from the def file name.
+  // A GraphQL build defaults to the graphql01 guide strategy.
+  opts.kind = opts.kind || resolveKind(opts.def)
+  opts.strategy = opts.strategy ||
+    ('GraphQL' === opts.kind ? 'graphql01' : 'heuristic01')
 
   async function generate(spec: any): Promise<ApiDefResult> {
     const start = Date.now()
@@ -181,7 +186,15 @@ function ApiDef(opts: ApiDefOptions) {
 
       const defsrc = loadFile(defpath, 'def', fs, log)
 
-      const def = await parse('OpenAPI', defsrc, { file: defpath })
+      const def = await parse(opts.kind as string, defsrc, {
+        file: defpath,
+        // GraphQL-only inputs; ignored by the OpenAPI parser.
+        graphql: {
+          endpoint: opts.endpoint,
+          title: model.name,
+          version: (model.main as any)?.[KIT]?.info?.version,
+        },
+      } as any)
       const defkeys = Object.keys(def)
 
       log.info({
@@ -393,12 +406,28 @@ function ApiDef(opts: ApiDefOptions) {
 }
 
 
+// Sniff the input format from the definition file name. GraphQL schemas use
+// .graphql/.graphqls/.gql; an explicit `kind` option always wins. Introspection
+// JSON must be named .graphql.json (or declared) since a bare .json could be
+// either format.
+function resolveKind(def?: string): DefKind {
+  const name = String(def ?? '').toLowerCase()
+  if (name.endsWith('.graphql') || name.endsWith('.graphqls') ||
+    name.endsWith('.gql') || name.endsWith('.graphql.json')) {
+    return 'GraphQL'
+  }
+  return 'OpenAPI'
+}
+
+
 ApiDef.makeBuild = async function(opts: ApiDefOptions) {
   let apidef: any = undefined
 
+  const kind = opts.kind || resolveKind(opts.def)
+
   const config = {
     def: opts.def || 'no-def',
-    kind: 'openapi3',
+    kind: 'GraphQL' === kind ? 'graphql' : 'openapi3',
     meta: opts.meta || {},
   }
 
@@ -413,6 +442,9 @@ ApiDef.makeBuild = async function(opts: ApiDefOptions) {
         meta: opts.meta,
         outprefix: opts.outprefix,
         strategy: opts.strategy,
+        kind,
+        endpoint: opts.endpoint,
+        auth: opts.auth,
         pino: build.log,
         why: opts.why,
       })
