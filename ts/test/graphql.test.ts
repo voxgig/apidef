@@ -211,8 +211,14 @@ describe('graphql', () => {
     const modelpath = Path.join(FOLDER, 'graphql.aontu')
     const src = Fs.readFileSync(modelpath, 'utf8')
 
+    // NOTE: no `fs` injection. @tabnas/multisource switches to Path.posix
+    // whenever an fs is present, so injecting the real node:fs makes it parse
+    // Windows paths ('D:\...' contains no '/') with POSIX semantics, the
+    // include base resolves to '' and every sibling include fails. apidef's
+    // own buildGuide forwards fs only when the caller supplied one, for
+    // exactly this reason (see guide/guide.ts).
     const errs: any[] = []
-    const out: any = new Aontu({ fs: Fs }).generate(src, { path: modelpath, errs })
+    const out: any = new Aontu().generate(src, { path: modelpath, errs })
 
     assert.deepStrictEqual(
       errs.map((e: any) => String(e).split('\n')[0]), [],
