@@ -77,11 +77,34 @@ main: kit: entity: &: {
 
       active: *true
           
+      # Transport discriminator. GraphQL points synthesize method 'POST'
+      # and an empty parts list, so the HTTP shape below stays required.
+      kind: *'http' | 'graphql'
+
       method: GET | PUT | POST | DELETE | PATCH | OPTIONS | HEAD
 
       orig: string
 
       parts: [ &: string ]
+
+      # GraphQL wire data: the precomputed operation document plus the
+      # variable bindings and (for list ops) the pagination descriptor.
+      graphql?: {
+        optype: 'query' | 'mutation'
+        field: string
+        doc: string
+        vars: [ &: {
+          name: string
+          from: string
+          gqltype: string
+        } ]
+        page?: {
+          style: string
+          nodes: string
+          cursor: string
+          more: string
+        }
+      }
 
       # Each arg kind (path params, query, header, cookie) has the same
       # element shape. `kind` is constrained to the kind tag matching the

@@ -46,8 +46,29 @@ type ModelArg = {
     reqd: boolean;
     example?: any;
 };
+type PointKind = 'http' | 'graphql';
+type ModelGraphqlPage = {
+    style: string;
+    nodes: string;
+    cursor: string;
+    more: string;
+};
+type ModelGraphqlVar = {
+    name: string;
+    from: string;
+    gqltype: string;
+};
+type ModelGraphql = {
+    optype: 'query' | 'mutation';
+    field: string;
+    doc: string;
+    vars: ModelGraphqlVar[];
+    page?: ModelGraphqlPage;
+};
 type ModelPoint = {
     orig: string;
+    kind?: PointKind;
+    graphql?: ModelGraphql;
     method: MethodName;
     parts: string[];
     rename: Partial<{
@@ -124,4 +145,4 @@ type ModelEntityFlowStep = {
     spec: ModelEntityFlowStepSpec[];
     valid: ModelEntityFlowStepValidator[];
 };
-export type { OpName, ArgKind, NamesCluster, Model, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelPoint, ModelOp, ModelEntity, ModelEntityFlow, ModelEntityFlowStep, ModelEntityFlowStepInput, ModelEntityFlowStepValidator, ModelEntityFlowStepSpec, };
+export type { OpName, ArgKind, PointKind, ModelGraphql, ModelGraphqlVar, ModelGraphqlPage, NamesCluster, Model, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelPoint, ModelOp, ModelEntity, ModelEntityFlow, ModelEntityFlowStep, ModelEntityFlowStepInput, ModelEntityFlowStepValidator, ModelEntityFlowStepSpec, };
