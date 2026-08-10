@@ -25,14 +25,16 @@ function splitEntityVerb(fieldName, entity) {
     }
     return fieldName;
 }
-// Does this field take exactly one required id-ish argument?
+// Does this field take a required id-ish argument?
+//
+// Any required id counts, not just a lone one: a command like
+// `planetForbid(id: String!, forbid: Boolean!)` addresses an existing record
+// just as much as `planetArchive(id: String!)` does. Requiring it to be the
+// only required argument made an operation stop looking id-addressed the
+// moment the API made a second argument mandatory, which flipped it from an
+// update action to a create.
 function idArg(args) {
-    const reqd = args.filter((a) => a.reqd);
-    if (1 !== reqd.length) {
-        return undefined;
-    }
-    const only = reqd[0];
-    return /^(id|.*Id)$/i.test(only.name) ? only : undefined;
+    return args.find((a) => a.reqd && /^(id|.*Id)$/i.test(a.name));
 }
 // Classify one root field. PURE: plain-JSON in, plain-JSON out, no schema
 // objects, no closures, no I/O — so a shared TSV fixture can drive this in

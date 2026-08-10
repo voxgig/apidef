@@ -113,7 +113,7 @@ type Mutation {
   planetDelete(id: String!): PlanetPayload!
 
   planetTerraform(id: String!, start: Boolean, stop: Boolean): PlanetStatePayload!
-  planetForbid(id: String!, forbid: Boolean, why: String): PlanetStatePayload!
+  planetForbid(id: String!, forbid: Boolean!, why: String): PlanetStatePayload!
 
   moonCreate(input: MoonCreateInput!): MoonPayload!
   moonUpdate(id: String!, input: MoonUpdateInput!): MoonPayload!

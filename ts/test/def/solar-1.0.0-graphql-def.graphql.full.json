@@ -314,9 +314,9 @@
             },
             {
               "name": "forbid",
-              "gqltype": "Boolean",
+              "gqltype": "Boolean!",
               "type": "Boolean",
-              "reqd": false
+              "reqd": true
             },
             {
               "name": "why",
@@ -924,9 +924,9 @@
         },
         {
           "name": "forbid",
-          "gqltype": "Boolean",
+          "gqltype": "Boolean!",
           "type": "Boolean",
-          "reqd": false
+          "reqd": true
         },
         {
           "name": "why",

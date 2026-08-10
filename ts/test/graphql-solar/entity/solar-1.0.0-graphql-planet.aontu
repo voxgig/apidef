@@ -214,7 +214,7 @@ main: kit: entity: planet: {
                 kind: "param"
                 name: "forbid"
                 orig: "forbid"
-                reqd: false
+                reqd: true
                 type: "`$BOOLEAN`"
               }
               {
@@ -234,7 +234,7 @@ main: kit: entity: planet: {
             ]
           }
           graphql: {
-            doc: "mutation PlanetUpdateForbid($id: String!, $forbid: Boolean, $why: String) { planetForbid(id: $id, forbid: $forbid, why: $why) { planet { ...PlanetFields } success } } fragment PlanetFields on Planet { diameter id kind name }"
+            doc: "mutation PlanetUpdateForbid($id: String!, $forbid: Boolean!, $why: String) { planetForbid(id: $id, forbid: $forbid, why: $why) { planet { ...PlanetFields } success } } fragment PlanetFields on Planet { diameter id kind name }"
             field: "planetForbid"
             optype: "mutation"
             vars: [
@@ -245,7 +245,7 @@ main: kit: entity: planet: {
               }
               {
                 from: "forbid"
-                gqltype: "Boolean"
+                gqltype: "Boolean!"
                 name: "forbid"
               }
               {
@@ -261,6 +261,7 @@ main: kit: entity: planet: {
           select: {
             "$action": "forbid"
             exist: [
+              "forbid"
               "id"
             ]
           }
