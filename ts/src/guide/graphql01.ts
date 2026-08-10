@@ -65,6 +65,9 @@ type GqlFieldSig = {
   args: GqlArgSig[]
   ret: GqlRetShape
   inputTypeName?: string
+  // Entity named by the field itself, used when the return type carries
+  // none (see nameEntityType).
+  nameEntity?: string
 }
 
 
@@ -130,12 +133,27 @@ function classifyGraphQLField(
   const why: string[] = []
   const ret = sig.ret
 
-  if (null == ret.entity || 'scalar' === ret.kind || 'other' === ret.kind) {
+  if ('scalar' === ret.kind || 'other' === ret.kind) {
     why.push('ret:' + ret.kind)
     return { exclude: true, why }
   }
 
-  const entity = ret.entity
+  // A payload that carries no entity (Linear's DeletePayload is just
+  // `entityId`) still belongs to the entity its field NAMES. Without this,
+  // every such delete mutation is dropped and the entity silently loses its
+  // remove op. Confined to payload returns: a query returning a scalar must
+  // not be rescued by its name.
+  const entity = ret.entity ??
+    ('payload' === ret.kind ? sig.nameEntity : undefined)
+
+  if (null == entity) {
+    why.push('ret:' + ret.kind + ':no-entity')
+    return { exclude: true, why }
+  }
+
+  if (null == ret.entity) {
+    why.push('entity-by-name:' + entity)
+  }
   const id = idArg(sig.args)
 
   if ('query' === sig.optype) {
@@ -321,7 +339,46 @@ function fieldSig(
     })),
     ret: deriveRetShape(field, types),
     inputTypeName,
+    nameEntity: nameEntityType(field.name, types),
   }
+}
+
+
+// Verb suffixes a mutation field name may carry, longest first so
+// `issueUnarchive` strips `Unarchive` rather than `Archive`.
+const NAME_VERBS = [
+  'Unarchive', 'Archive', 'Delete', 'Remove', 'Destroy',
+  'Create', 'Update', 'Insert', 'Upsert',
+]
+
+
+// Resolve the entity a mutation NAMES, for payloads that do not carry one.
+// Linear's DeletePayload holds `entityId: String!` and nothing else, so
+// `commentDelete` has no entity in its return type — the field name is the
+// only signal, and by convention it is a reliable one.
+function nameEntityType(
+  fieldName: string,
+  types: Record<string, GqlType>
+): string | undefined {
+  for (const verb of NAME_VERBS) {
+    if (!fieldName.endsWith(verb)) {
+      continue
+    }
+
+    const stem = fieldName.slice(0, fieldName.length - verb.length)
+    if ('' === stem) {
+      continue
+    }
+
+    const candidate = stem.charAt(0).toUpperCase() + stem.slice(1)
+    const gtype = types[candidate]
+
+    if (null != gtype && 'OBJECT' === gtype.kind) {
+      return candidate
+    }
+  }
+
+  return undefined
 }
 
 

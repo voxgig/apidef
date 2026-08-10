@@ -19,6 +19,7 @@ type GqlFieldSig = {
     args: GqlArgSig[];
     ret: GqlRetShape;
     inputTypeName?: string;
+    nameEntity?: string;
 };
 type GqlClassification = {
     exclude?: boolean;
