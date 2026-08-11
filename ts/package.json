@@ -1,6 +1,6 @@
 {
   "name": "@voxgig/apidef",
-  "version": "6.5.1",
+  "version": "7.0.0",
   "main": "dist/apidef.js",
   "type": "commonjs",
   "types": "dist/apidef.d.ts",
