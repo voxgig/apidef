@@ -14,7 +14,7 @@ import (
 // VERSION is the apidef Go module version, rewritten by `make publish-go`.
 // Spelled in caps to match the TypeScript side's exported VERSION, so the
 // two ports name the same thing the same way.
-const VERSION = "0.1.6"
+const VERSION = "0.2.0"
 
 // ApiDef creates a new API definition generator with the given options.
 func NewApiDef(opts ApiDefOptions) *apiDefInstance {
