@@ -16,17 +16,17 @@
       "type": "`$OBJECT`"
     },
     {
-      "name": "note",
+      "name": "notes",
       "req": false,
       "type": "`$STRING`"
     },
     {
-      "name": "observed_at",
+      "name": "observedAt",
       "req": true,
       "type": "`$STRING`"
     },
     {
-      "name": "taxon_id",
+      "name": "taxonId",
       "req": true,
       "type": "`$STRING`"
     }
@@ -83,7 +83,7 @@
           },
           "transform": {
             "req": "`reqdata`",
-            "res": "`body`"
+            "res": "`body.items`"
           }
         }
       ]

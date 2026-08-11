@@ -126,8 +126,16 @@ async function buildGraphql(step) {
         // `team` is the to-one relation stub. The fragment selects `team { id }`,
         // so the response carries a nested object — declaring a flat `team_id`
         // would advertise a field the wire never returns.
+        //
+        // Field names are the WIRE names, verbatim. The schema declares
+        // `archivedAt: DateTime`, so that is what the response carries and that is
+        // what the model must say. These used to be snake_cased by `canonize`,
+        // which is right for entity/type names and wrong for fields — and doubly
+        // wrong for GraphQL, where camelCase is the convention, so it renamed
+        // essentially every field of every GraphQL API. Same reasoning as the
+        // `team_id` note above: do not advertise a name the wire never uses.
         node_assert_1.default.deepStrictEqual(names, [
-            'archived_at', 'created_at', 'id', 'identifier', 'priority',
+            'archivedAt', 'createdAt', 'id', 'identifier', 'priority',
             'team', 'title',
         ]);
         // `legacyCode` is deprecated and `icon(size: Int!)` needs an argument:

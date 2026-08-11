@@ -11,7 +11,7 @@ main: kit: entity: comment: {
       type: "`$STRING`"
     }
     {
-      name: "created_at"
+      name: "createdAt"
       req: true
       type: "`$ANY`"
     }

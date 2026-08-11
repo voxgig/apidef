@@ -1,12 +1,12 @@
 {
   "fields": [
     {
-      "name": "attribute",
+      "name": "attributes",
       "req": false,
       "type": "`$OBJECT`"
     },
     {
-      "name": "created_at",
+      "name": "createdAt",
       "req": false,
       "type": "`$STRING`"
     },
@@ -21,9 +21,9 @@
       "type": "`$STRING`"
     },
     {
-      "name": "parent_id",
+      "name": "parentId",
       "req": false,
-      "type": "`$STRING`"
+      "type": "`$ANY`"
     },
     {
       "name": "rank",
@@ -31,7 +31,7 @@
       "type": "`$STRING`"
     },
     {
-      "name": "updated_at",
+      "name": "updatedAt",
       "req": false,
       "type": "`$STRING`"
     },
@@ -156,7 +156,7 @@
           },
           "transform": {
             "req": "`reqdata`",
-            "res": "`body`"
+            "res": "`body.items`"
           }
         }
       ]

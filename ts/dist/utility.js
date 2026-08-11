@@ -18,6 +18,7 @@ exports.makeWarner = makeWarner;
 exports.formatJSONIC = formatJSONIC;
 exports.validator = validator;
 exports.canonize = canonize;
+exports.canonizeField = canonizeField;
 exports.canonizeCmpName = canonizeCmpName;
 exports.stripSchemaNamespace = stripSchemaNamespace;
 exports.sanitizeSlug = sanitizeSlug;
@@ -861,6 +862,35 @@ function canonize(s) {
     CANONIZE_CACHE.set(s, out);
     return out;
 }
+// Canonicalise a FIELD name — which is a WIRE identifier, not a type name.
+//
+// `canonize` is right for entity/type names: it snakifies and depluralizes so
+// `Users` and `user-items` converge on `user` / `user_item`. Applied to a
+// field it is actively WRONG, because the name has to match the JSON the
+// server actually sends:
+//
+//   modelType   -> canonize -> model_type    (server sends modelType)
+//   items       -> canonize -> item          (server sends items)
+//
+// Nothing maps back: the model's `alias.field` map is emitted empty and no
+// generator consumes it, so the wire name is simply lost. Across the fleet's
+// specs that renamed 23% of all fields (146 repos) and depluralized another
+// 13% — every one of those SDKs reading a key the server never sends.
+//
+// So: keep the transliteration and identifier sanitisation that stop a name
+// being unusable in a target language, and drop the snakify/depluralize that
+// change what the name MEANS. Case and plurality are preserved verbatim.
+const CANONIZE_FIELD_CACHE = new Map();
+function canonizeField(s) {
+    if (null == s || '' === s)
+        return '';
+    const cached = CANONIZE_FIELD_CACHE.get(s);
+    if (undefined !== cached)
+        return cached;
+    const out = transliterate(s).replace(/[^a-zA-Z_0-9]/g, '');
+    CANONIZE_FIELD_CACHE.set(s, out);
+    return out;
+}
 // Namespace-qualified schema names (ASP.NET / Java style:
 // "NoFrixion.MoneyMoov.Models.PaymentRequests.MerchantPayment",
 // "com.example.api.Payment") describe the type by their LAST dotted
@@ -1319,14 +1349,32 @@ function isEntityWrapperProp(propSchema) {
 // signal, and is still checked first.
 function envelopeProp(resprops, opname) {
     const keys = (0, struct_1.keysof)(resprops);
-    if (1 !== keys.length) {
+    if (0 === keys.length) {
         return null;
     }
-    const key = keys[0];
+    // Exactly one STRUCTURED property, with any siblings being scalars.
+    //
+    // The original rule demanded exactly one property full stop, which missed
+    // the single most common envelope shape in the wild:
+    //
+    //   { "success": true, "data": [ ... ] }
+    //   { "status": "ok",  "result": { ... } }
+    //
+    // A boolean/string status flag beside the payload is metadata, not a
+    // sibling of equal standing, so the body is still an envelope. UniVec's
+    // /v1/models returns exactly this and every generated SDK — TypeScript, Go,
+    // Python alike — returned an empty list against an API plainly serving
+    // data.
+    //
+    // Scalar-only siblings keep the guard meaningful: `{ok, id}` from a delete
+    // has no structured member and is still handed over whole, and a body with
+    // TWO structured members is a composite we must not guess at.
+    const structured = keys.filter((k) => isEntityWrapperProp(resprops[k]));
+    if (1 !== structured.length) {
+        return null;
+    }
+    const key = structured[0];
     const prop = resprops[key];
-    if (!isEntityWrapperProp(prop)) {
-        return null;
-    }
     const islist = propIsList(prop);
     if (null == islist || islist !== ('list' === opname)) {
         return null;
