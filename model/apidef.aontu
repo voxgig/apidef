@@ -1,5 +1,33 @@
 
 
+# ---------------------------------------------------------------------------
+# ROOT IDENTITY
+#
+# `name` is the SDK's own name — the single input every generated IDENTIFIER
+# is built from. apidef expands it into the case variants (Name, NAME, name_,
+# name-) via names(model, model.name), and downstream generators turn those
+# into class names, entity types and package identifiers.
+#
+# It is deliberately NOT the repo name, and NOT the published package name.
+# Those are separate concerns, declared separately — see the SDK IDENTITY
+# note in @voxgig/sdkgen's model/sdkgen.aontu. Both default to derivations of
+# `name`, but a project may need all three to differ: renaming the slug to
+# fix a repo path is what silently renames every public class.
+#
+# Declared here because apidef is the first consumer of `name`, and because
+# an undeclared field carries no documentation to the projects that set it.
+#
+# OPTIONAL, deliberately. apidef is also run on definitions that carry no SDK
+# identity at all (the GraphQL fixtures, for one), and a required `name` — or
+# an `origin` with a default — would either fail to unify or inject identity
+# into models that have none. These declare intent; they do not impose it.
+name?: string
+
+# Publisher slug: the git org that hosts the source, and the scope that
+# published packages sit under. Consumers default it to 'voxgig-sdk'.
+origin?: string
+
+
 main: kit: info: {
   title?: string
   version?: string
