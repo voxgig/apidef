@@ -235,6 +235,17 @@ function homepageFromServer(url) {
         let host = u.hostname;
         if ('' === host || !host.includes('.'))
             return undefined;
+        // A templated server — `https://{instance}.dreamapply.com/api`, a per-tenant
+        // API declaring `instance` as an OpenAPI server variable — is a legitimate
+        // spec, but its host is not a resolvable address. Deriving a "website" from
+        // it put `https://{instance}.dreamapply.com` into the README as a clickable
+        // link that no browser can open. The URL parser accepts the braces, so the
+        // placeholder has to be rejected explicitly.
+        //
+        // Only the WEBSITE is skipped: the server URL itself is still emitted, where
+        // the variable is meaningful and the runtime substitutes it.
+        if (/[{}]/.test(host))
+            return undefined;
         host = host.replace(/^(api|api-[a-z0-9]+|apis|developer|developers|docs?|www)\./i, '');
         return u.protocol + '//' + host;
     }

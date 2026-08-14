@@ -118,6 +118,35 @@ describe('resolveWebsite', () => {
     )
   })
 
+  test('a templated server host yields no website', () => {
+    // `https://{instance}.dreamapply.com/api` is a legitimate per-tenant spec —
+    // `instance` is a declared OpenAPI server variable — but the host is not a
+    // resolvable address, and deriving a website from it put a dead clickable
+    // link in the generated README. The URL parser accepts the braces, so the
+    // placeholder has to be rejected explicitly.
+    assert.strictEqual(
+      resolveWebsite({ info: {} }, [{ url: 'https://{instance}.dreamapply.com/api' }]),
+      undefined,
+    )
+    assert.strictEqual(
+      homepageFromServer('https://{instance}.dreamapply.com/api'),
+      undefined,
+    )
+  })
+
+
+  test('a templated server does not block an explicit external link', () => {
+    // externalDocs still wins — the guard only removes the SERVER-derived
+    // fallback, it does not suppress a website the spec states outright.
+    assert.strictEqual(
+      resolveWebsite(
+        { externalDocs: { url: 'https://help.dreamapply.com/api/' }, info: {} },
+        [{ url: 'https://{instance}.dreamapply.com/api' }]),
+      'https://help.dreamapply.com/api/',
+    )
+  })
+
+
   test('falls back to the homepage derived from the server host', () => {
     assert.strictEqual(
       resolveWebsite({ info: {} }, [{ url: 'https://api.cloudsmith.io' }]),

@@ -69,6 +69,20 @@ const top_1 = require("../dist/transform/top");
     (0, node_test_1.test)('redoc x-logo.href is used next', () => {
         node_assert_1.default.strictEqual((0, top_1.resolveWebsite)({ info: { 'x-logo': { href: 'https://thesmsworks.co.uk' } } }, [{ url: 'https://api.thesmsworks.co.uk/v1' }]), 'https://thesmsworks.co.uk');
     });
+    (0, node_test_1.test)('a templated server host yields no website', () => {
+        // `https://{instance}.dreamapply.com/api` is a legitimate per-tenant spec —
+        // `instance` is a declared OpenAPI server variable — but the host is not a
+        // resolvable address, and deriving a website from it put a dead clickable
+        // link in the generated README. The URL parser accepts the braces, so the
+        // placeholder has to be rejected explicitly.
+        node_assert_1.default.strictEqual((0, top_1.resolveWebsite)({ info: {} }, [{ url: 'https://{instance}.dreamapply.com/api' }]), undefined);
+        node_assert_1.default.strictEqual((0, top_1.homepageFromServer)('https://{instance}.dreamapply.com/api'), undefined);
+    });
+    (0, node_test_1.test)('a templated server does not block an explicit external link', () => {
+        // externalDocs still wins — the guard only removes the SERVER-derived
+        // fallback, it does not suppress a website the spec states outright.
+        node_assert_1.default.strictEqual((0, top_1.resolveWebsite)({ externalDocs: { url: 'https://help.dreamapply.com/api/' }, info: {} }, [{ url: 'https://{instance}.dreamapply.com/api' }]), 'https://help.dreamapply.com/api/');
+    });
     (0, node_test_1.test)('falls back to the homepage derived from the server host', () => {
         node_assert_1.default.strictEqual((0, top_1.resolveWebsite)({ info: {} }, [{ url: 'https://api.cloudsmith.io' }]), 'https://cloudsmith.io');
     });
