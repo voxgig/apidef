@@ -63,6 +63,14 @@ function resolveOpFields(ment, mop, mpoint, def) {
             req: !!fielddef.required,
             op: {},
         };
+        // Record an untagged union under this field. The field is already typed
+        // openly ($ANY/$ARRAY/$OBJECT) because there is nothing to narrow it to;
+        // this says WHY, so the generated docs can explain the open type instead
+        // of leaving it looking like a modelling failure.
+        const union = (0, utility_1.scanUntaggedUnion)(fielddef);
+        if (null != union) {
+            mfield.union = union;
+        }
         mfields.push(mfield);
     }
     return mfields;

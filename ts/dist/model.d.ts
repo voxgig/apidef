@@ -37,6 +37,11 @@ type ModelField = {
     type: any;
     req: boolean;
     op: Partial<Record<OpName, ModelFieldOp>>;
+    union?: {
+        count: number;
+        branches: number;
+        depth: number;
+    };
 };
 type ModelArg = {
     name: string;

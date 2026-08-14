@@ -1705,3 +1705,129 @@ func closedBodyTransform(schema any) map[string]any {
 	}
 	return out
 }
+
+// UntaggedUnionBranches reports the number of real branches in an UNTAGGED
+// union: oneOf/anyOf with two or more branches and no discriminator. Nothing
+// in such a schema says which branch a given value is, so no generator can
+// choose a variant and the field can only be modelled as an open type.
+//
+// Two shapes are deliberately NOT unions to resolve: a discriminated union,
+// where the discriminator names the deciding property; and the nullable idiom
+// anyOf: [X, {type: null}], which is one type that may be absent rather than a
+// choice between variants.
+//
+// Mirrors ts/src/utility.ts untaggedUnionBranches.
+func UntaggedUnionBranches(schema any) int {
+	sch, ok := schema.(map[string]any)
+	if !ok || sch == nil {
+		return 0
+	}
+	if sch["discriminator"] != nil {
+		return 0
+	}
+	branches, ok := sch["oneOf"].([]any)
+	if !ok {
+		branches, ok = sch["anyOf"].([]any)
+	}
+	if !ok || len(branches) < 2 {
+		return 0
+	}
+	real := 0
+	for _, b := range branches {
+		bm, ok := b.(map[string]any)
+		if !ok || bm == nil {
+			continue
+		}
+		if safeStr(bm["type"]) == "null" {
+			continue
+		}
+		real++
+	}
+	if real < 2 {
+		return 0
+	}
+	return real
+}
+
+// UnionScan is the widest untagged union reachable from a field schema.
+type UnionScan struct {
+	Count    int `json:"count"`
+	Branches int `json:"branches"`
+	Depth    int `json:"depth"`
+}
+
+const maxUnionScanDepth = 64
+
+// ScanUntaggedUnion finds the widest untagged union beneath a field schema, or
+// nil when the field is resolvable.
+//
+// The search is RECURSIVE because the union is rarely at the top: in the
+// Typebot Builder spec the groups field is an array whose item schema carries
+// 18 untagged unions, the widest 19 branches, 12 levels down.
+//
+// Mirrors ts/src/utility.ts scanUntaggedUnion.
+func ScanUntaggedUnion(schema any) *UnionScan {
+	return scanUntaggedUnion(schema, 0, map[any]bool{})
+}
+
+func scanUntaggedUnion(schema any, depth int, seen map[any]bool) *UnionScan {
+	sch, ok := schema.(map[string]any)
+	if !ok || sch == nil || depth > maxUnionScanDepth {
+		return nil
+	}
+	// Go maps are not comparable, so identity is tracked by the address of the
+	// reflected value rather than the map itself.
+	key := fmt.Sprintf("%p", sch)
+	if seen[key] {
+		return nil
+	}
+	seen[key] = true
+
+	count := 0
+	branches := 0
+	at := 0
+
+	if here := UntaggedUnionBranches(sch); here > 0 {
+		count = 1
+		branches = here
+		at = depth
+	}
+
+	for _, child := range sch {
+		var found *UnionScan
+		switch c := child.(type) {
+		case map[string]any:
+			found = scanUntaggedUnion(c, depth+1, seen)
+		case []any:
+			for _, item := range c {
+				if sub := scanUntaggedUnion(item, depth+2, seen); sub != nil {
+					if found == nil {
+						found = &UnionScan{}
+					}
+					found.Count += sub.Count
+					if sub.Branches > found.Branches {
+						found.Branches = sub.Branches
+					}
+					if sub.Depth > found.Depth {
+						found.Depth = sub.Depth
+					}
+				}
+			}
+		}
+		if found == nil {
+			continue
+		}
+		count += found.Count
+		if found.Branches > branches {
+			branches = found.Branches
+		}
+		if found.Depth > at {
+			at = found.Depth
+		}
+	}
+
+	if count == 0 {
+		return nil
+	}
+	return &UnionScan{Count: count, Branches: branches, Depth: at}
+}

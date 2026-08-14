@@ -99,6 +99,17 @@ func resolveOpFields(mtarget map[string]any, def map[string]any, opname string) 
 			"active": true,
 			"op":     map[string]any{},
 		}
+		// Record an untagged union under this field. The field is already
+		// typed openly because there is nothing to narrow it to; this says
+		// WHY, so the generated docs can explain the open type instead of
+		// leaving it looking like a modelling failure.
+		if union := ScanUntaggedUnion(fielddef); union != nil {
+			mfield["union"] = map[string]any{
+				"count":    union.Count,
+				"branches": union.Branches,
+				"depth":    union.Depth,
+			}
+		}
 		mfields = append(mfields, mfield)
 	}
 	return mfields

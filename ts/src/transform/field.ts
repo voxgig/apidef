@@ -4,7 +4,10 @@ import { each, getx } from 'jostraca'
 
 import type { TransformResult, Transform } from '../transform'
 
-import { validator, canonizeField, inferFieldType, normalizeFieldName, envelopeProp } from '../utility'
+import {
+  validator, canonizeField, inferFieldType, normalizeFieldName, envelopeProp,
+  scanUntaggedUnion,
+} from '../utility'
 
 import { KIT } from '../types'
 
@@ -102,6 +105,14 @@ function resolveOpFields(
       type: inferFieldType(name, validator(fielddef.type)),
       req: !!fielddef.required,
       op: {},
+    }
+    // Record an untagged union under this field. The field is already typed
+    // openly ($ANY/$ARRAY/$OBJECT) because there is nothing to narrow it to;
+    // this says WHY, so the generated docs can explain the open type instead
+    // of leaving it looking like a modelling failure.
+    const union = scanUntaggedUnion(fielddef)
+    if (null != union) {
+      mfield.union = union
     }
     mfields.push(mfield)
   }

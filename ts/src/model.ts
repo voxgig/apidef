@@ -67,11 +67,23 @@ type ModelFieldOp = {
 
 
 // Entity field definition
+//
+// `union` is present only when the field bottoms out in an UNTAGGED union —
+// `oneOf`/`anyOf`, two or more branches, no `discriminator` — so the spec
+// never says which variant a value is and the field can only be modelled as
+// an open type. It records the widest such union found beneath the field, and
+// exists so generators can SAY SO in the documentation rather than silently
+// emitting a permissive type that looks like a modelling failure.
 type ModelField = {
   name: string
   type: any // @voxgig/struct validation schema
   req: boolean
   op: Partial<Record<OpName, ModelFieldOp>>
+  union?: {
+    count: number     // how many untagged unions lie beneath the field
+    branches: number  // widest branch count among them
+    depth: number     // how far down the widest one sits
+  }
 }
 
 

@@ -38,6 +38,8 @@ exports.getModelPath = getModelPath;
 exports.isEntityWrapperProp = isEntityWrapperProp;
 exports.envelopeProp = envelopeProp;
 exports.closedBodyTransform = closedBodyTransform;
+exports.untaggedUnionBranches = untaggedUnionBranches;
+exports.scanUntaggedUnion = scanUntaggedUnion;
 const node_path_1 = __importDefault(require("node:path"));
 const jostraca_1 = require("jostraca");
 const util_1 = require("@voxgig/util");
@@ -1381,6 +1383,74 @@ function envelopeProp(resprops, opname) {
     }
     return key;
 }
+// An UNTAGGED union: `oneOf`/`anyOf` with two or more real branches and no
+// `discriminator`. Nothing in the schema says which branch a given value is,
+// so no generator can choose a variant, and the field can only be modelled as
+// an open type.
+//
+// Two shapes are deliberately NOT unions to resolve:
+//   - a discriminated union — the discriminator names the deciding property;
+//   - the nullable idiom `anyOf: [X, {type: 'null'}]`, which is one type that
+//     may be absent, not a choice between variants.
+function untaggedUnionBranches(schema) {
+    if (null == schema || 'object' !== typeof schema) {
+        return 0;
+    }
+    if (null != schema.discriminator) {
+        return 0;
+    }
+    const branches = schema.oneOf ?? schema.anyOf;
+    if (!Array.isArray(branches) || branches.length < 2) {
+        return 0;
+    }
+    const real = branches.filter((b) => null != b && 'null' !== b.type);
+    return real.length < 2 ? 0 : real.length;
+}
+// Deepest/widest untagged union reachable from a field schema, or null when
+// the field is resolvable.
+//
+// The search is RECURSIVE because the union is rarely at the top: in the
+// Typebot Builder spec the `groups` field is an array whose item schema
+// carries 18 untagged unions, the widest 19 branches, 12 levels down. Only a
+// field that bottoms out in such a union has to degrade to an open type, so
+// only a recursive scan can report which fields those are.
+//
+// `seen` guards the self-referential schemas these specs use freely; `depth`
+// is bounded so a pathological document cannot spin.
+function scanUntaggedUnion(schema, depth = 0, seen = new Set()) {
+    if (null == schema || 'object' !== typeof schema ||
+        seen.has(schema) || depth > MAX_UNION_SCAN_DEPTH) {
+        return null;
+    }
+    seen.add(schema);
+    let count = 0;
+    let branches = 0;
+    let at = 0;
+    const here = untaggedUnionBranches(schema);
+    if (0 < here) {
+        count = 1;
+        branches = here;
+        at = depth;
+    }
+    for (const child of Object.values(schema)) {
+        if (null == child || 'object' !== typeof child) {
+            continue;
+        }
+        const found = scanUntaggedUnion(child, depth + 1, seen);
+        if (null == found) {
+            continue;
+        }
+        count += found.count;
+        if (found.branches > branches) {
+            branches = found.branches;
+        }
+        if (found.depth > at) {
+            at = found.depth;
+        }
+    }
+    return 0 === count ? null : { count, branches, depth: at };
+}
+const MAX_UNION_SCAN_DEPTH = 64;
 // Is this schema a collection? null when the schema does not say.
 //
 // `isEntityWrapperProp` accepts a composed schema (allOf/oneOf/anyOf) as
