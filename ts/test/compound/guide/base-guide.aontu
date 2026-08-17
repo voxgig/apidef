@@ -1,0 +1,17 @@
+# Guide
+
+guide: {
+  metrics: count: entity: 1
+  metrics: count: path: 2
+  metrics: count: method: 2
+
+  entity: repo: {
+    path: "/repos/{owner}/{repo}": {
+      op: load: method: *GET
+    }
+    path: "/user/repos": {
+      op: list: method: *GET
+    }
+  }
+
+}

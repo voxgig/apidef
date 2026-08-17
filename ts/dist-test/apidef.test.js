@@ -119,6 +119,28 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.deepStrictEqual(bres.guide.metrics.count.path, SOLAR_GUIDE.metrics.count.path);
         node_assert_1.default.deepStrictEqual(bres.guide.metrics.count.method, SOLAR_GUIDE.metrics.count.method);
     });
+    // GitHub-style compound key: two path params in a row, no literal
+    // between them. GET must classify as load, not merge into list.
+    (0, node_test_1.test)('guide-compound-key-load', async () => {
+        const folder = __dirname + '/../test/compound';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'compound', def: 'compound-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: false,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        const ops = Object.keys(bres.guide.entity.repo.path['/repos/{owner}/{repo}'].op);
+        node_assert_1.default.ok(ops.includes('load'), 'GET /repos/{owner}/{repo} did not classify as load');
+        node_assert_1.default.ok(!ops.includes('list'), 'GET /repos/{owner}/{repo} wrongly classified as list');
+    });
     (0, node_test_1.test)('field-required-solar', async () => {
         const outprefix = 'solar-1.0.0-openapi-3.0.0-';
         const folder = __dirname + '/../test/solar';
