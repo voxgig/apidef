@@ -118,6 +118,37 @@ describe('apidef', () => {
 
 
 
+  // GitHub-style compound key: two path params in a row, no literal
+  // between them. GET must classify as load, not merge into list.
+  test('guide-compound-key-load', async () => {
+    const folder = __dirname + '/../test/compound'
+
+    const build = await ApiDef.makeBuild({ folder })
+
+    const bres = await build(
+      { name: 'compound', def: 'compound-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: false,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    const ops = Object.keys(bres.guide.entity.repo.path['/repos/{owner}/{repo}'].op)
+    assert.ok(ops.includes('load'), 'GET /repos/{owner}/{repo} did not classify as load')
+    assert.ok(!ops.includes('list'), 'GET /repos/{owner}/{repo} wrongly classified as list')
+  })
+
+
   test('field-required-solar', async () => {
     const outprefix = 'solar-1.0.0-openapi-3.0.0-'
     const folder = __dirname + '/../test/solar'
