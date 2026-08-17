@@ -1,0 +1,31 @@
+{
+  "openapi": "3.0.0",
+  "info": { "title": "Compound", "version": "1.0.0" },
+  "paths": {
+    "/repos/{owner}/{repo}": {
+      "get": {
+        "operationId": "getRepo",
+        "parameters": [
+          { "name": "owner", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "repo", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "ok", "content": { "application/json": {
+          "schema": { "type": "object", "properties": {
+            "id": { "type": "integer" }, "name": { "type": "string" },
+            "topics": { "type": "array", "items": { "type": "string" } }
+          } }
+        } } } }
+      }
+    },
+    "/user/repos": {
+      "get": {
+        "operationId": "listRepos",
+        "responses": { "200": { "description": "ok", "content": { "application/json": {
+          "schema": { "type": "array", "items": { "type": "object", "properties": {
+            "id": { "type": "integer" }
+          } } }
+        } } } }
+      }
+    }
+  }
+}
