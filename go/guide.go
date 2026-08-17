@@ -1761,7 +1761,9 @@ func isListResponse(mdesc map[string]any, pathStr string, why *[]string) bool {
 
 	islist := false
 
-	if pm != nil && strings.HasSuffix(pm.Expr, "p/") {
+	// 'p/' (anchored, e.g. t/p/) or a bare trailing 'p' (e.g. t/p/p,
+	// a compound key like /repos/{owner}/{repo}) both end in a param.
+	if pm != nil && (strings.HasSuffix(pm.Expr, "p/") || strings.HasSuffix(pm.Expr, "p")) {
 		*why = append(*why, "end-param")
 		return false
 	}
