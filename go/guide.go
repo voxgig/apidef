@@ -1761,9 +1761,18 @@ func isListResponse(mdesc map[string]any, pathStr string, why *[]string) bool {
 
 	islist := false
 
-	// 'p/' (anchored, e.g. t/p/) or a bare trailing 'p' (e.g. t/p/p,
-	// a compound key like /repos/{owner}/{repo}) both end in a param.
-	if pm != nil && (strings.HasSuffix(pm.Expr, "p/") || strings.HasSuffix(pm.Expr, "p")) {
+	// 'p/' is anchored (e.g. t/p/): the path ends at a param, so it is an
+	// item path and the response shape cannot change that.
+	//
+	// A bare trailing 'p' (e.g. t/p/p, a compound key like
+	// /repos/{owner}/{repo}) also ends at a param, but the same shape covers
+	// a sub-collection scoped by a compound key (e.g. /audit-log/{ns}/{repo}).
+	// Those are told apart by the response: a collection returns an array at
+	// the top level, an item does not.
+	endParamAnchored := pm != nil && strings.HasSuffix(pm.Expr, "p/")
+	endParamBare := pm != nil && !endParamAnchored && strings.HasSuffix(pm.Expr, "p")
+
+	if endParamAnchored {
 		*why = append(*why, "end-param")
 		return false
 	}
@@ -1795,7 +1804,12 @@ func isListResponse(mdesc map[string]any, pathStr string, why *[]string) bool {
 			islist = true
 		}
 
-		if !islist {
+		// The array-prop fallback is deliberately loose, and an item schema
+		// often carries an incidental array property (GitHub's full-repository
+		// has topics: string[]). That is good enough evidence for an ordinary
+		// path, but not for a compound-key path, where it is exactly what
+		// misclassifies the item as a list.
+		if !islist && !endParamBare {
 			properties := resolveSchemaProperties(schema)
 			for _, propName := range sortedKeys(properties) {
 				propVal := properties[propName]
@@ -1813,7 +1827,11 @@ func isListResponse(mdesc map[string]any, pathStr string, why *[]string) bool {
 		}
 
 		if !islist {
-			*why = append(*why, "not-list")
+			if endParamBare {
+				*why = append(*why, "end-param")
+			} else {
+				*why = append(*why, "not-list")
+			}
 		}
 	}
 

@@ -1621,9 +1621,18 @@ function isListResponse(
   let islist = false
   let schema
 
-  // 'p/' (anchored, e.g. t/p/) or a bare trailing 'p' (e.g. t/p/p,
-  // a compound key like /repos/{owner}/{repo}) both end in a param.
-  if (pm && /p\/?$/.test(pm.expr)) {
+  // 'p/' is anchored (e.g. t/p/): the path ends at a param, so it is an
+  // item path and the response shape cannot change that.
+  //
+  // A bare trailing 'p' (e.g. t/p/p, a compound key like
+  // /repos/{owner}/{repo}) also ends at a param, but the same shape covers
+  // a sub-collection scoped by a compound key (e.g. /audit-log/{ns}/{repo}).
+  // Those are told apart by the response: a collection returns an array at
+  // the top level, an item does not.
+  const endParamAnchored = !!(pm && pm.expr.endsWith('p/'))
+  const endParamBare = !!(pm && !endParamAnchored && pm.expr.endsWith('p'))
+
+  if (endParamAnchored) {
     why.push('end-param')
   }
   else {
@@ -1639,7 +1648,12 @@ function isListResponse(
         islist = true
       }
 
-      if (!islist) {
+      // The array-prop fallback is deliberately loose, and an item schema
+      // often carries an incidental array property (GitHub's full-repository
+      // has topics: string[]). That is good enough evidence for an ordinary
+      // path, but not for a compound-key path, where it is exactly what
+      // misclassifies the item as a list.
+      if (!islist && !endParamBare) {
         const properties = resolveSchemaProperties(schema)
 
         each(properties, (prop) => {
@@ -1651,7 +1665,7 @@ function isListResponse(
       }
 
       if (!islist) {
-        why.push('not-list')
+        why.push(endParamBare ? 'end-param' : 'not-list')
       }
     }
   }
