@@ -1621,7 +1621,9 @@ function isListResponse(
   let islist = false
   let schema
 
-  if (pm && pm.expr.endsWith('p/')) {
+  // 'p/' (anchored, e.g. t/p/) or a bare trailing 'p' (e.g. t/p/p,
+  // a compound key like /repos/{owner}/{repo}) both end in a param.
+  if (pm && /p\/?$/.test(pm.expr)) {
     why.push('end-param')
   }
   else {
