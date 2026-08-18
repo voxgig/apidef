@@ -4,6 +4,11 @@ Context for AI coding agents working **on** this repo or using apidef **as a
 tool**. Human-readable docs are in [`docs/`](./docs/README.md); this file is
 the orientation layer.
 
+Fundamentals are recorded in [`ADR.md`](./ADR.md): decisions everything else
+is built on, which must not be quietly reversed. **ADR-001 — entity names are
+singular, always**, is the one most easily broken by accident, because every
+source apidef infers a name from is naturally plural.
+
 ## What this tool does
 
 apidef compiles an OpenAPI 3 / Swagger 2.0 spec into an internal **API model**
