@@ -122,6 +122,43 @@ result.apimodel.main.kit.entity   // { pet: { op, fields, id, relations, … } }
   rather than aborting; `result.ok`/`result.steps` report how far it got.
 - Commit messages: clear and descriptive; do not include model/tool identifiers.
 
+## Releasing
+
+Publishing is **tag-driven and runs in CI**: pushing a `v*` tag fires
+`.github/workflows/publish.yml`, which publishes `@voxgig/apidef` to npm over
+GitHub OIDC trusted publishing (no `NPM_TOKEN`, provenance attached).
+
+**Do not run `npm run repo-publish` / `repo-publish-quick` locally.** Those
+scripts still exist in `ts/package.json` and look like the obvious route, but
+they publish over a token and bypass OIDC entirely — the publish workflow's own
+header says so. They remain only for emergencies.
+
+TypeScript release:
+
+```bash
+cd ts && npm run repo-bump          # patch bump of ts/package.json only
+npm run repo-release-dry            # build + test + `npm publish --dry-run`
+cd .. && git add -A && git commit -m "X.Y.Z" && git push
+git tag vX.Y.Z && git push origin vX.Y.Z    # publish.yml takes it from here
+```
+
+Go module release is separate and local, because a Go module release IS its
+tag — the proxy serves it directly:
+
+```bash
+make publish-go V=x.y.z    # rewrites const VERSION in go/apidef.go,
+                           # commits, tags go/vx.y.z, pushes, cuts a GH release
+```
+
+Keep the two ports in step: a change that touches both `ts/src` and `go/`
+needs both a `vX.Y.Z` and a `go/vX.Y.Z` release, or downstreams see the fix in
+one runtime only. Verify after publishing: `npm view @voxgig/apidef version`
+and `GOPROXY=https://proxy.golang.org go list -m github.com/voxgig/apidef/go@vx.y.z`.
+
+Downstream goldens: `apidef-validate` pins this package and records its
+generated output, so a release that changes generated output needs a goldens
+refresh there (`v1/package.json`, `v1/go/go.mod`) as a follow-up.
+
 ## Where to read more
 
 - New to the tool? [docs/tutorial/getting-started.md](./docs/tutorial/getting-started.md)
