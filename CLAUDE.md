@@ -5,7 +5,9 @@ into an internal API model (entities, operations, fields, flows) that
 downstream tools (sdkgen) turn into SDKs.
 
 The full agent guide is [`AGENTS.md`](./AGENTS.md); comprehensive human docs
-are in [`docs/`](./docs/README.md). The essentials are below.
+are in [`docs/`](./docs/README.md). Fundamental decisions are in
+[`ADR.md`](./ADR.md) — notably ADR-001, entity names are singular, always.
+The essentials are below.
 
 ## Canonical implementation
 
