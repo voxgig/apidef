@@ -1,18 +1,53 @@
-# Publishes @voxgig/apidef to npm on a `v*` tag push, via GitHub OIDC
-# Trusted Publishing — no NPM_TOKEN secret. The `id-token: write`
-# permission lets npm exchange a GitHub OIDC token for a short-lived
-# publish credential, and provenance is attached automatically.
+# Releases @voxgig/apidef: publishes to npm AND writes both git tags.
 #
-# The trusted publisher must be registered on npmjs.com for
-# voxgig/apidef against THIS filename (publish.yml); renaming this file
-# breaks publishing until the npm-side config is updated to match.
+# ONE FILE, BECAUSE NPM ALLOWS EXACTLY ONE. A trusted publisher is registered
+# on npmjs.com against a single workflow FILENAME, and every @voxgig package
+# is registered against `publish.yml`. A second workflow cannot publish, no
+# matter what permissions it holds: npm rejects the exchange and reports it as
 #
-# The npm package lives in ts/ (ts/ and go/ are self-contained
-# per-language projects), so all steps run there.
+#   npm error 404 Not Found - PUT https://registry.npmjs.org/@voxgig%2fapidef
 #
-# Release flow: bump ts/package.json, merge to main, then push a v* tag.
-# Do NOT run `npm run repo-publish` locally — it publishes over a token
-# and bypasses OIDC entirely.
+# — a 404, not a 403, so as not to leak whether the package exists. That is
+# what killed the short-lived release.yml. So tagging lives HERE, in the file
+# npm already trusts, rather than in a workflow of its own.
+#
+# TWO DIFFERENT CREDENTIALS ARE AT WORK, and conflating them is the usual
+# mistake:
+#
+#   id-token: write   OIDC -> a short-lived credential AT NPM. Publishes.
+#                     Cannot write a git ref; its audience is the registry.
+#   contents: write   the per-run GITHUB_TOKEN. Writes tags. Same trust model
+#                     — short-lived, one run, no stored secret — but it is a
+#                     GitHub authority, and it has to be asked for.
+#
+# A ref pushed with GITHUB_TOKEN does NOT start another workflow run (GitHub
+# suppresses that so workflows cannot trigger themselves). That is harmless
+# here only because publishing and tagging happen in the same job; splitting
+# them across workflows publishes nothing, silently.
+#
+# TWO WAYS IN:
+#
+#   workflow_dispatch  the normal path. Publishes what is missing, then tags.
+#   push: tags v*      the manual path, for a tag pushed by hand. Publishes
+#                      only — the tag already exists, so the tag steps are
+#                      skipped.
+#
+# VERSION BUMPS ARE NOT AUTOMATED, deliberately. This workflow never commits.
+# It reads the versions already on the branch and releases exactly those, so
+# the bump stays a reviewable diff and the release stays a button.
+#
+#   npm   ts/package.json "version"     -> tag v<version>
+#   go    go/apidef.go    const VERSION -> tag go/v<version>
+#
+# Go modules have no registry step: the tag IS the release. And
+# proxy.golang.org caches a module version immutably, so a wrong go/vX.Y.Z
+# cannot be fixed by re-pushing it — bump to the next patch instead.
+#
+# Renaming this file breaks publishing until the npm-side trusted publisher
+# is updated to match. Do NOT run `npm run repo-publish` locally: it publishes
+# over a token and bypasses OIDC entirely.
+#
+# See docs/how-to/release-and-tag.md.
 
 name: publish
 
@@ -20,6 +55,11 @@ on:
   push:
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      go:
+        description: 'Also tag the Go module go/v<VERSION>'
+        type: boolean
+        default: true
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -28,30 +68,125 @@ jobs:
   publish:
     name: npm publish
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+
     permissions:
-      id-token: write
-      contents: read
-    defaults:
-      run:
-        working-directory: ts
+      id-token: write   # npm trusted publishing (OIDC)
+      contents: write   # create tags (GITHUB_TOKEN, dispatch path only)
 
     steps:
+      # fetch-depth 0 so existing tags are present to guard against.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 24.x
           registry-url: 'https://registry.npmjs.org'
 
+      - name: Resolve the versions being released
+        id: versions
+        run: |
+          set -euo pipefail
+          NPM_VERSION="$(node -p "require('./ts/package.json').version")"
+          GO_VERSION="$(sed -n 's/^const VERSION = "\(.*\)"$/\1/p' go/apidef.go)"
+
+          test -n "$NPM_VERSION" || { echo "::error::could not read ts/package.json version"; exit 1; }
+          test -n "$GO_VERSION"  || { echo "::error::could not read VERSION from go/apidef.go"; exit 1; }
+
+          echo "npm_version=$NPM_VERSION" >> "$GITHUB_OUTPUT"
+          echo "go_version=$GO_VERSION"   >> "$GITHUB_OUTPUT"
+          echo "npm: $NPM_VERSION -> v$NPM_VERSION"
+          echo "go:  $GO_VERSION -> go/v$GO_VERSION"
+
+      # Only on the dispatch path. On a tag push the v* tag necessarily
+      # already exists — that is what triggered the run.
+      - name: Refuse to reuse an existing tag
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          set -euo pipefail
+          fail=0
+          if git rev-parse -q --verify "refs/tags/v${{ steps.versions.outputs.npm_version }}" >/dev/null; then
+            echo "::error::tag v${{ steps.versions.outputs.npm_version }} already exists — bump ts/package.json"
+            fail=1
+          fi
+          if [ "${{ inputs.go }}" = "true" ]; then
+            if git rev-parse -q --verify "refs/tags/go/v${{ steps.versions.outputs.go_version }}" >/dev/null; then
+              echo "::error::tag go/v${{ steps.versions.outputs.go_version }} already exists — bump VERSION in go/apidef.go"
+              fail=1
+            fi
+          fi
+          exit $fail
+
+      - name: Check the model mirrors are in sync
+        run: make check-model
+
+      - name: Build and test TypeScript
+        working-directory: ts
+        run: |
+          npm ci
+          npm run build
+          npm test
+
+      # build.yml does not cover Go on pushes or PRs, so this is the only
+      # automated gate between a Go change and a tagged module release. Uses
+      # the runner's preinstalled Go rather than another action to pin.
+      - name: Build and test Go
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.go }}
+        working-directory: go
+        run: |
+          go version
+          go build ./...
+          go test ./... -count=1
+
       # Trusted publishing requires npm >= 11.5.1.
       - name: Use a trusted-publishing capable npm
         run: npm install -g npm@latest
 
-      # package-lock.json is committed here, so ci is safe and reproducible.
-      - run: npm ci
-      - run: npm run build
-      - run: npm test
+      # THE REGISTRY IS THE SOURCE OF TRUTH FOR "IS THIS RELEASED", not the
+      # tag. A run can publish and then fail before tagging, leaving a version
+      # on npm with nothing pointing at it. Without this check that state is
+      # unrecoverable: the publish step dies on "cannot publish over the
+      # previously published versions" before reaching the tag steps.
+      #
+      # Publishing only what is missing, and tagging either way, makes a
+      # dispatch idempotent and able to reconcile a half-finished release.
+      - name: Is this version already on npm?
+        id: registry
+        run: |
+          set -euo pipefail
+          V="${{ steps.versions.outputs.npm_version }}"
+          if npm view "@voxgig/apidef@$V" version >/dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "$V is already on npm — skipping publish"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+            echo "$V is not on npm — will publish"
+          fi
 
+      # Publish BEFORE tagging, so a tag only ever exists for a release that
+      # actually reached the registry. A failed publish writes no tag and the
+      # dispatch can simply be re-run.
       - name: Publish to npm
+        if: ${{ steps.registry.outputs.published == 'false' }}
+        working-directory: ts
         run: npm publish --access public
+
+      - name: Tag the npm release
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          set -euo pipefail
+          TAG="v${{ steps.versions.outputs.npm_version }}"
+          git tag "$TAG"
+          git push origin "refs/tags/$TAG"
+          echo "pushed $TAG" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Tag the Go module
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.go }}
+        run: |
+          set -euo pipefail
+          TAG="go/v${{ steps.versions.outputs.go_version }}"
+          git tag "$TAG"
+          git push origin "refs/tags/$TAG"
+          echo "pushed $TAG" >> "$GITHUB_STEP_SUMMARY"
