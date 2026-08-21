@@ -4,7 +4,6 @@ package apidef
 
 import (
 	"sort"
-	"strings"
 )
 
 // FieldTransform extracts and infers entity fields from operations.
@@ -116,7 +115,9 @@ func resolveOpFields(mtarget map[string]any, def map[string]any, opname string) 
 		// non-empty string: a whitespace or non-string value would put a
 		// meaningless cell where an empty one is honest.
 		if fdesc, ok := fielddef["description"].(string); ok {
-			if trimmed := strings.TrimSpace(fdesc); trimmed != "" {
+			// ONE LINE, not the whole description — see src/transform/field.ts.
+			// Generated Readmes interpolate this into a markdown table cell.
+			if trimmed := FirstSentence(fdesc); trimmed != "" {
 				mfield["short"] = trimmed
 			}
 		}

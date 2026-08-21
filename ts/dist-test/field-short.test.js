@@ -185,5 +185,65 @@ function fieldsByName(fields) {
         node_assert_1.default.strictEqual(fields.name.short, 'Common name.', 'GqlField.desc must reach ModelField.short, trimmed');
         node_assert_1.default.strictEqual(fields.id.short, undefined, 'an undescribed GraphQL field must not acquire an invented description');
     });
+    // A description is prose the spec author wrote for a docs page, not a table
+    // cell. `short` is rendered by every generated Readme as one cell of a
+    // markdown row, where a raw newline ends the row and orphans the rest of the
+    // table. The validation corpus has 194 multi-line descriptions and one of
+    // 1725 characters, so this is the common case, not the pathological one.
+    (0, node_test_1.test)('short-is-reduced-to-one-capped-line', async () => {
+        const bullets = [
+            'The status of the user',
+            '- `joined`, the user has joined the space',
+            '- `invited`, the user has been sent an invitation',
+        ].join('\n');
+        const entity = {
+            name: 'planet',
+            fields: [],
+            op: {
+                load: {
+                    name: 'load',
+                    points: [{ orig: '/planets/{id}', method: 'GET', kind: 'json' }],
+                },
+            },
+        };
+        const def = {
+            paths: {
+                '/planets/{id}': {
+                    get: {
+                        responses: {
+                            200: {
+                                content: {
+                                    'application/json': {
+                                        schema: {
+                                            type: 'object',
+                                            properties: {
+                                                status: { key$: 'status', type: 'string', description: bullets },
+                                                note: {
+                                                    key$: 'note', type: 'string',
+                                                    description: 'First sentence here. Second one should not appear.',
+                                                },
+                                                long: {
+                                                    key$: 'long', type: 'string',
+                                                    description: 'x'.repeat(400),
+                                                },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        };
+        const fields = fieldsByName(await runFieldTransform(entity, def));
+        for (const name of ['status', 'note', 'long']) {
+            node_assert_1.default.ok(!fields[name].short.includes('\n'), `${name}.short must not contain a newline — it lands in a markdown table cell`);
+        }
+        node_assert_1.default.strictEqual(fields.status.short, 'The status of the user - `joined`, the user has joined the space - `invited`, the user has been sent an invitation', 'newlines collapse to spaces rather than being dropped or truncating the text');
+        node_assert_1.default.strictEqual(fields.note.short, 'First sentence here.', 'a description with real sentences is cut at the first one');
+        node_assert_1.default.strictEqual(fields.long.short.length, 240, 'an over-long description is capped');
+        node_assert_1.default.ok(fields.long.short.endsWith('\u2026'), 'the cap is marked with an ellipsis rather than cutting silently');
+    });
 });
 //# sourceMappingURL=field-short.test.js.map
