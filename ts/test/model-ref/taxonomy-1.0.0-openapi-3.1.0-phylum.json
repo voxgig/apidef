@@ -13,6 +13,7 @@
     {
       "name": "id",
       "req": true,
+      "short": "URL-safe identifier",
       "type": "`$STRING`"
     },
     {
@@ -23,6 +24,7 @@
     {
       "name": "parentId",
       "req": false,
+      "short": "ID of the parent taxon in the hierarchy",
       "type": "`$ANY`"
     },
     {
@@ -38,6 +40,7 @@
     {
       "name": "year",
       "req": false,
+      "short": "Year view this record belongs to",
       "type": "`$INTEGER`"
     }
   ],
