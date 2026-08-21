@@ -26,6 +26,7 @@ Goal-oriented recipes that assume you already know the basics.
 - [Run only part of the pipeline](./how-to/control-the-pipeline.md)
 - [Debug a build](./how-to/debug-a-build.md)
 - [Work on the codebase](./how-to/work-on-the-codebase.md)
+- [Release and tag](./how-to/release-and-tag.md)
 
 ### 📑 Reference — *the precise details*
 Dry, complete descriptions of every interface and data shape.
