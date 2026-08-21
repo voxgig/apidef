@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+	"unicode/utf16"
 	"unicode/utf8"
 
 	vs "github.com/voxgig/struct/go"
@@ -1830,4 +1831,45 @@ func scanUntaggedUnion(schema any, depth int, seen map[any]bool) *UnionScan {
 		return nil
 	}
 	return &UnionScan{Count: count, Branches: branches, Depth: at}
+}
+
+// jsWhitespace is the character class JavaScript's `\s` matches. Go's `\s` is
+// ASCII-only, and the TS side is the reference implementation, so the set is
+// spelled out rather than approximated — a class mismatch would collapse
+// whitespace differently in the two ports and surface as a model diff.
+const jsWhitespace = "\t\n\v\f\r \u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005" +
+	"\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000\ufeff"
+
+var jsWhitespaceRun = regexp.MustCompile("[" + jsWhitespace + "]+")
+
+var firstSentenceRe = regexp.MustCompile(`^(.+?[.!?])([` + jsWhitespace + `]|$)`)
+
+// FirstSentence returns the first sentence of text (up to a `.`/`!`/`?`
+// followed by whitespace or end), whitespace-collapsed and length-capped with
+// an ellipsis.
+//
+// Mirrors src/utility.ts firstSentence. The cap counts UTF-16 code units and
+// slices on them, because the reference implementation is JavaScript and
+// `String.prototype.length` is UTF-16 — counting runes or bytes here would cut
+// a long non-ASCII description at a different point than TS does.
+//
+// Nothing would catch that today: TestValidateModelData compares this port
+// against ts/test/model-ref/, but only for solar, petstore and taxonomy, and
+// none of those has a description long enough to reach the cap. The ports are
+// matched here deliberately rather than because a test insists on it.
+func FirstSentence(text string) string {
+	collapsed := strings.Trim(jsWhitespaceRun.ReplaceAllString(text, " "), jsWhitespace)
+
+	out := collapsed
+	if m := firstSentenceRe.FindStringSubmatch(collapsed); m != nil {
+		out = m[1]
+	}
+
+	const max = 240
+	units := utf16.Encode([]rune(out))
+	if len(units) > max {
+		out = strings.TrimRight(string(utf16.Decode(units[:max-1])), jsWhitespace) + "\u2026"
+	}
+
+	return out
 }

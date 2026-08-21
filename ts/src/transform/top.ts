@@ -3,6 +3,8 @@ import { join } from '@voxgig/struct'
 
 import { KIT } from '../types'
 
+import { firstSentence } from '../utility'
+
 import type { TransformResult } from '../transform'
 
 import type {
@@ -220,20 +222,6 @@ function resolveSummary(def: any): string | undefined {
   }
   const paragraph = para.join(' ').trim()
   return '' === paragraph ? undefined : firstSentence(paragraph)
-}
-
-
-// The first sentence of `text` (up to a `.`/`!`/`?` followed by whitespace
-// or end), whitespace-collapsed and length-capped with an ellipsis.
-function firstSentence(text: string): string {
-  const collapsed = text.replace(/\s+/g, ' ').trim()
-  const m = collapsed.match(/^(.+?[.!?])(\s|$)/)
-  let out = m ? m[1] : collapsed
-  const MAX = 240
-  if (out.length > MAX) {
-    out = out.slice(0, MAX - 1).trimEnd() + '…'
-  }
-  return out
 }
 
 

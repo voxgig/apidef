@@ -9,6 +9,7 @@ exports.homepageFromServer = homepageFromServer;
 exports.findAuthPrefix = findAuthPrefix;
 const struct_1 = require("@voxgig/struct");
 const types_1 = require("../types");
+const utility_1 = require("../utility");
 // Guide* => from guide model
 // *Desc => internal working descriptiuon
 // *Def => API spec definition
@@ -161,7 +162,7 @@ function resolveSummary(def) {
     const info = def?.info ?? {};
     const explicit = 'string' === typeof info.summary ? info.summary.trim() : '';
     if ('' !== explicit && hasLetters(explicit)) {
-        return firstSentence(explicit);
+        return (0, utility_1.firstSentence)(explicit);
     }
     const desc = 'string' === typeof info.description ? info.description : '';
     // Treat letterless prose (a bare "." placeholder, "---", …) as no summary
@@ -187,19 +188,7 @@ function resolveSummary(def) {
         i++;
     }
     const paragraph = para.join(' ').trim();
-    return '' === paragraph ? undefined : firstSentence(paragraph);
-}
-// The first sentence of `text` (up to a `.`/`!`/`?` followed by whitespace
-// or end), whitespace-collapsed and length-capped with an ellipsis.
-function firstSentence(text) {
-    const collapsed = text.replace(/\s+/g, ' ').trim();
-    const m = collapsed.match(/^(.+?[.!?])(\s|$)/);
-    let out = m ? m[1] : collapsed;
-    const MAX = 240;
-    if (out.length > MAX) {
-        out = out.slice(0, MAX - 1).trimEnd() + '…';
-    }
-    return out;
+    return '' === paragraph ? undefined : (0, utility_1.firstSentence)(paragraph);
 }
 // A canonical link back to the API's own website, in priority order:
 //   1. externalDocs.url          (the spec's explicit external link)

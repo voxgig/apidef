@@ -70,9 +70,18 @@ function resolveOpFields(ment, mop, mpoint, def) {
         // supplies. Trimmed, and only when it is a non-empty string: a whitespace
         // or non-string value would put a meaningless cell where an empty one is
         // honest.
+        // ONE LINE, not the whole description. Every generated Readme drops this
+        // straight into a markdown table cell, where a raw newline ends the row
+        // and orphans the rest of the table — and specs put bullet lists, fenced
+        // examples and multi-paragraph notes in `description`. firstSentence is
+        // the same reduction the API summary uses, so `short` means the same
+        // thing wherever it appears.
         const fdesc = fielddef.description;
         if ('string' === typeof fdesc && '' !== fdesc.trim()) {
-            mfield.short = fdesc.trim();
+            const short = (0, utility_1.firstSentence)(fdesc);
+            if ('' !== short) {
+                mfield.short = short;
+            }
         }
         // Record an untagged union under this field. The field is already typed
         // openly ($ANY/$ARRAY/$OBJECT) because there is nothing to narrow it to;

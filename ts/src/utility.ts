@@ -1779,6 +1779,28 @@ function closedBodyTransform(schema: any): Record<string, string> | null {
   return out
 }
 
+// The first sentence of `text` (up to a `.`/`!`/`?` followed by whitespace
+// or end), whitespace-collapsed and length-capped with an ellipsis.
+//
+// Shared by the API summary and by a field's `short`, because both answer
+// the same question — give me one line of prose for a place that has room
+// for one line. A field's `short` is interpolated straight into a markdown
+// table cell by every generated Readme, where a raw newline ends the row and
+// takes the rest of the table with it. Specs supply plenty: bullet lists,
+// fenced examples and multi-paragraph notes all appear as a property's
+// `description`, up to 1725 characters of it in the validation corpus.
+function firstSentence(text: string): string {
+  const collapsed = text.replace(/\s+/g, ' ').trim()
+  const m = collapsed.match(/^(.+?[.!?])(\s|$)/)
+  let out = m ? m[1] : collapsed
+  const MAX = 240
+  if (out.length > MAX) {
+    out = out.slice(0, MAX - 1).trimEnd() + '\u2026'
+  }
+  return out
+}
+
+
 export {
   nom,
   getdlog,
@@ -1820,5 +1842,6 @@ export {
   closedBodyTransform,
   untaggedUnionBranches,
   scanUntaggedUnion,
+  firstSentence,
 
 }

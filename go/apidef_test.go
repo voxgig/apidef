@@ -3,6 +3,7 @@
 package apidef
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -607,5 +608,76 @@ func TestFieldShortSurvivesMerge(t *testing.T) {
 
 	if got := byName["name"]["short"]; got != "Common name." {
 		t.Errorf("name.short = %v, want %q — a later op's description must survive the merge", got, "Common name.")
+	}
+}
+
+// `short` is one capped line in the Go port too.
+//
+// Mirrors the `short-is-reduced-to-one-capped-line` case in
+// ts/test/field-short.test.ts. A description is prose written for a docs page;
+// `short` is rendered as one cell of a markdown table row, where a raw newline
+// ends the row and orphans the rest of the table.
+func TestFieldShortIsOneCappedLine(t *testing.T) {
+	bullets := "The status of the user\n" +
+		"- `joined`, the user has joined the space\n" +
+		"- `invited`, the user has been sent an invitation"
+
+	def := map[string]any{
+		"paths": map[string]any{
+			"/planets/{id}": map[string]any{
+				"get": map[string]any{
+					"responses": map[string]any{
+						"200": map[string]any{
+							"content": map[string]any{
+								"application/json": map[string]any{
+									"schema": map[string]any{
+										"type": "object",
+										"properties": map[string]any{
+											"status": map[string]any{"type": "string", "description": bullets},
+											"note": map[string]any{"type": "string",
+												"description": "First sentence here. Second one should not appear."},
+											"long": map[string]any{"type": "string",
+												"description": strings.Repeat("x", 400)},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	mtarget := map[string]any{"orig": "/planets/{id}", "method": "GET", "kind": "json"}
+
+	byName := map[string]map[string]any{}
+	for _, f := range resolveOpFields(mtarget, def, "load") {
+		byName[f["name"].(string)] = f
+	}
+
+	for _, name := range []string{"status", "note", "long"} {
+		short, _ := byName[name]["short"].(string)
+		if strings.Contains(short, "\n") {
+			t.Errorf("%s.short contains a newline; it lands in a markdown table cell", name)
+		}
+	}
+
+	wantStatus := "The status of the user - `joined`, the user has joined the space " +
+		"- `invited`, the user has been sent an invitation"
+	if got := byName["status"]["short"]; got != wantStatus {
+		t.Errorf("status.short = %q, want %q", got, wantStatus)
+	}
+
+	if got := byName["note"]["short"]; got != "First sentence here." {
+		t.Errorf("note.short = %q, want %q", got, "First sentence here.")
+	}
+
+	long, _ := byName["long"]["short"].(string)
+	if n := len([]rune(long)); n != 240 {
+		t.Errorf("long.short length = %d runes, want 240", n)
+	}
+	if !strings.HasSuffix(long, "…") {
+		t.Errorf("long.short = %q, want an ellipsis suffix", long)
 	}
 }
