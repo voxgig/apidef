@@ -50,6 +50,20 @@ clean-go:
 # Publish Go module: make publish-go V=0.1.1
 publish-go: test-go
 	@test -n "$(V)" || (echo "Usage: make publish-go V=x.y.z" && exit 1)
+	# BRANCH AND CLEANLINESS GUARDS, checked before anything is written.
+	#
+	# This target commits to the CURRENT branch, tags THAT commit, and then
+	# pushes `main` plus the tag. Run from a feature branch it therefore tags
+	# unreviewed code and publishes it as an immutable Go module version,
+	# while pushing a `main` that does not contain the commit at all — a
+	# module release nobody reviewed, which proxy.golang.org will then cache
+	# forever. Prefer the publish workflow; if you must use this, be on main.
+	@test "$$(git rev-parse --abbrev-ref HEAD)" = "main" || \
+	  (echo "publish-go: must be on main (currently $$(git rev-parse --abbrev-ref HEAD))" && exit 1)
+	@test -z "$$(git status --porcelain)" || \
+	  (echo "publish-go: working tree is not clean" && exit 1)
+	@git fetch origin main --quiet && test -z "$$(git rev-list HEAD..origin/main)" || \
+	  (echo "publish-go: local main is behind origin/main" && exit 1)
 	# Portable in-place edit: `sed -i ''` is BSD/macOS only and fails on GNU
 	# sed, which reads '' as the script. It failed silently here before — the
 	# constant said 0.1.2 while go/v0.1.3 was already tagged. The grep below
