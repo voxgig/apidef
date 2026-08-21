@@ -398,3 +398,214 @@ func TestCleanTransform(t *testing.T) {
 		t.Error("expected a to be kept")
 	}
 }
+
+// A property's `description` becomes the field's `short`.
+//
+// Mirrors the `field-required-solar` assertions in ts/test/apidef.test.ts.
+// Every generated per-entity table has a Description column and every cell was
+// blank, because nothing read the description the spec supplies. The negative
+// cases matter as much as the positive one: a field the spec does not describe
+// must NOT acquire an invented description, and a whitespace-only or non-string
+// value is not a description either — an empty cell is honest, a meaningless
+// one is not.
+func TestFieldShortFromDescription(t *testing.T) {
+	def := map[string]any{
+		"paths": map[string]any{
+			"/planets": map[string]any{
+				"get": map[string]any{
+					"responses": map[string]any{
+						"200": map[string]any{
+							"content": map[string]any{
+								"application/json": map[string]any{
+									"schema": map[string]any{
+										"type": "array",
+										"items": map[string]any{
+											"type": "object",
+											"properties": map[string]any{
+												"id":   map[string]any{"type": "string"},
+												"name": map[string]any{"type": "string", "description": "  Common name.  "},
+												"kind": map[string]any{"type": "string", "description": "   "},
+												"mass": map[string]any{"type": "number", "description": 42},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	mtarget := map[string]any{
+		"orig":   "/planets",
+		"method": "GET",
+		"kind":   "json",
+	}
+
+	byName := map[string]map[string]any{}
+	for _, f := range resolveOpFields(mtarget, def, "list") {
+		byName[f["name"].(string)] = f
+	}
+
+	if got := byName["name"]["short"]; got != "Common name." {
+		t.Errorf("name.short = %v, want %q (trimmed)", got, "Common name.")
+	}
+	for _, fname := range []string{"id", "kind", "mass"} {
+		f, ok := byName[fname]
+		if !ok {
+			t.Fatalf("missing field %q", fname)
+		}
+		if _, has := f["short"]; has {
+			t.Errorf("%s.short = %v, want absent (no usable description in the spec)",
+				fname, f["short"])
+		}
+	}
+}
+
+// The request-body path must carry `description` too.
+//
+// TestFieldShortFromDescription above covers the response path, which routes
+// through extractFields. A non-QUERY op WITH a request body takes a different
+// route: findFieldDefs wraps the schemas in a slice, and a slice sends every
+// item through extractPropertiesOnly instead. That helper builds a fresh map
+// carrying only the keys it names, so a description in a POST/PUT/PATCH body
+// reached TS (which passes the raw property through) and never reached Go —
+// the two ports disagreeing on the same spec.
+func TestFieldShortFromRequestBodyDescription(t *testing.T) {
+	def := map[string]any{
+		"paths": map[string]any{
+			"/planets": map[string]any{
+				"post": map[string]any{
+					"requestBody": map[string]any{
+						"content": map[string]any{
+							"application/json": map[string]any{
+								"schema": map[string]any{
+									"type": "object",
+									"properties": map[string]any{
+										"id":   map[string]any{"type": "string"},
+										"name": map[string]any{"type": "string", "description": "  Common name.  "},
+										"kind": map[string]any{"type": "string", "description": "   "},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	mtarget := map[string]any{
+		"orig":   "/planets",
+		"method": "POST",
+		"kind":   "json",
+	}
+
+	byName := map[string]map[string]any{}
+	for _, f := range resolveOpFields(mtarget, def, "create") {
+		byName[f["name"].(string)] = f
+	}
+
+	if got := byName["name"]["short"]; got != "Common name." {
+		t.Errorf("name.short = %v, want %q (trimmed)", got, "Common name.")
+	}
+	for _, fname := range []string{"id", "kind"} {
+		f, ok := byName[fname]
+		if !ok {
+			t.Fatalf("missing field %q", fname)
+		}
+		if _, has := f["short"]; has {
+			t.Errorf("%s.short = %v, want absent (no usable description in the spec)",
+				fname, f["short"])
+		}
+	}
+}
+
+// The Go port's inline merge mirrors src/transform/field.ts mergeField, and
+// must mirror its description handling too: first non-empty wins.
+func TestFieldShortSurvivesMerge(t *testing.T) {
+	def := map[string]any{
+		"paths": map[string]any{
+			"/planets/{id}": map[string]any{
+				"get": map[string]any{
+					"responses": map[string]any{
+						"200": map[string]any{
+							"content": map[string]any{
+								"application/json": map[string]any{
+									"schema": map[string]any{
+										"type": "object",
+										"properties": map[string]any{
+											"id":   map[string]any{"type": "string"},
+											"name": map[string]any{"type": "string"},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			"/planets": map[string]any{
+				"post": map[string]any{
+					"requestBody": map[string]any{
+						"content": map[string]any{
+							"application/json": map[string]any{
+								"schema": map[string]any{
+									"type": "object",
+									"properties": map[string]any{
+										"id":   map[string]any{"type": "string", "description": "Stable identifier."},
+										"name": map[string]any{"type": "string", "description": "Common name."},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	apimodel := map[string]any{
+		"main": map[string]any{
+			"kit": map[string]any{
+				"entity": map[string]any{
+					"planet": map[string]any{
+						"name":   "planet",
+						"fields": []any{},
+						"op": map[string]any{
+							"load": map[string]any{
+								"name": "load",
+								"points": []any{map[string]any{
+									"orig": "/planets/{id}", "method": "GET", "kind": "json",
+								}},
+							},
+							"create": map[string]any{
+								"name": "create",
+								"points": []any{map[string]any{
+									"orig": "/planets", "method": "POST", "kind": "json",
+								}},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if _, err := FieldTransform(&ApiDefContext{ApiModel: apimodel, Def: def}); err != nil {
+		t.Fatalf("FieldTransform: %v", err)
+	}
+
+	ent := apimodel["main"].(map[string]any)["kit"].(map[string]any)["entity"].(map[string]any)["planet"].(map[string]any)
+	byName := map[string]map[string]any{}
+	for _, f := range ent["fields"].([]any) {
+		fm := f.(map[string]any)
+		byName[fm["name"].(string)] = fm
+	}
+
+	if got := byName["name"]["short"]; got != "Common name." {
+		t.Errorf("name.short = %v, want %q — a later op's description must survive the merge", got, "Common name.")
+	}
+}

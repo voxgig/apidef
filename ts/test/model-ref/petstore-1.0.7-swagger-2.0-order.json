@@ -28,6 +28,7 @@
     {
       "name": "status",
       "req": false,
+      "short": "Order Status",
       "type": "`$STRING`"
     }
   ],

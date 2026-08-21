@@ -182,6 +182,15 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.strictEqual(planetFields.name.req, true);
         node_assert_1.default.strictEqual(planetFields.kind.req, true);
         node_assert_1.default.strictEqual(planetFields.diameter.req, true);
+        // A property's `description` becomes the field's `short`. Every generated
+        // per-entity table has a Description column, and every cell was blank
+        // because nothing read this. Only Planet.diameter carries one in the
+        // fixture, which is the point: the fields WITHOUT a description must not
+        // acquire an invented one.
+        node_assert_1.default.strictEqual(planetFields.diameter.short, 'Mean equatorial diameter in kilometres.');
+        node_assert_1.default.strictEqual(planetFields.id.short, undefined);
+        node_assert_1.default.strictEqual(planetFields.name.short, undefined);
+        node_assert_1.default.strictEqual(planetFields.kind.short, undefined);
         // Moon schema has required: [id, name, planet_id, kind, diameter]
         const moonFields = {};
         for (const f of moon.fields) {

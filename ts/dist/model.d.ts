@@ -37,6 +37,7 @@ type ModelField = {
     type: any;
     req: boolean;
     op: Partial<Record<OpName, ModelFieldOp>>;
+    short?: string;
     union?: {
         count: number;
         branches: number;

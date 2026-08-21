@@ -106,6 +106,18 @@ function resolveOpFields(
       req: !!fielddef.required,
       op: {},
     }
+    // Carry the spec's own words for the field, when it has any.
+    //
+    // Every generated per-entity table has a Description column and every cell
+    // was blank, because nothing ever read the property `description` the spec
+    // supplies. Trimmed, and only when it is a non-empty string: a whitespace
+    // or non-string value would put a meaningless cell where an empty one is
+    // honest.
+    const fdesc = (fielddef as any).description
+    if ('string' === typeof fdesc && '' !== fdesc.trim()) {
+      mfield.short = fdesc.trim()
+    }
+
     // Record an untagged union under this field. The field is already typed
     // openly ($ANY/$ARRAY/$OBJECT) because there is nothing to narrow it to;
     // this says WHY, so the generated docs can explain the open type instead
@@ -164,6 +176,10 @@ function findGraphqlFieldDefs(
         // custom scalars left unconstrained.
         type: 'ENUM' === kind ? 'string' : gqlFieldType(f.type),
         required: f.reqd,
+        // GraphQL puts the field's own words on GqlField.desc (see
+        // parse/graphql.ts). resolveOpFields reads `description`, the OpenAPI
+        // spelling, so name it that here rather than teaching the reader two.
+        description: f.desc,
       } as any)
     }
     else if (('OBJECT' === kind || 'INTERFACE' === kind) && !f.list) {
@@ -177,6 +193,7 @@ function findGraphqlFieldDefs(
           key$: fname,
           type: 'object',
           required: false,
+          description: f.desc,
         } as any)
       }
     }
@@ -443,6 +460,16 @@ function mergeField(
       req: newField.req,
       type: newField.type,
     }
+  }
+
+  // Field identity is first-writer-wins, but a DESCRIPTION is not part of
+  // identity: the op that first names a field is often not the one that
+  // documents it (a load response referencing a bare component, a create body
+  // referencing the annotated one). Take the first non-empty description in
+  // opFieldPrecedence order and keep it — dropping it left a blank cell in
+  // every generated table while the spec had the words all along.
+  if (null == existingField.short && null != newField.short) {
+    existingField.short = newField.short
   }
 
   return existingField

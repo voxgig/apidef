@@ -8,6 +8,7 @@ main: kit: entity: planet: {
     {
       name: "diameter"
       req: true
+      short: "Mean equatorial diameter in kilometres."
       type: "`$NUMBER`"
     }
     {

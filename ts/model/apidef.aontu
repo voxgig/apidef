@@ -91,6 +91,13 @@ main: kit: entity: &: {
     req: boolean
     type: top
     active: *true
+
+    # The spec's own one-line words for this field, from the property's
+    # `description`. Set only when the spec supplies a non-empty string, so
+    # an absent `short` means "the spec said nothing" rather than "apidef
+    # dropped it". Generated per-entity tables render it as the Description
+    # column. Since 7.2.
+    short?: string
   } ]
 
   relations: {

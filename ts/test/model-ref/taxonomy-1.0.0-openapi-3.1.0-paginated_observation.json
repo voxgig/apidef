@@ -8,6 +8,7 @@
     {
       "name": "id",
       "req": true,
+      "short": "URL-safe identifier",
       "type": "`$STRING`"
     },
     {
@@ -28,6 +29,7 @@
     {
       "name": "taxonId",
       "req": true,
+      "short": "URL-safe identifier",
       "type": "`$STRING`"
     }
   ],
