@@ -62,6 +62,15 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 								"type": opfield["type"],
 							}
 						}
+						// Field identity is first-writer-wins, but a
+						// DESCRIPTION is not part of identity: the op that
+						// first names a field is often not the one that
+						// documents it. First non-empty wins.
+						if _, has := existing["short"]; !has {
+							if short, ok := opfield["short"]; ok {
+								existing["short"] = short
+							}
+						}
 					}
 				}
 			}
@@ -421,6 +430,14 @@ func extractPropertiesOnly(fieldSet any, fielddefs *[]map[string]any) {
 			}
 			if r, ok := pm["required"]; ok {
 				fd["required"] = r
+			}
+			// Carry `description` for the same reason extractFields does: this
+			// map IS the field def downstream, so a key not copied here is
+			// invisible. This is the route a non-QUERY op's request body takes
+			// (findFieldDefs wraps the schemas in a slice), and omitting it
+			// made Go silently drop descriptions TS kept.
+			if d, ok := pm["description"]; ok {
+				fd["description"] = d
 			}
 		}
 		if requiredNames[name] {
