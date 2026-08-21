@@ -15,7 +15,23 @@ nothing to undo it.
 
 ## The normal path
 
-One dispatch does everything:
+```sh
+make publish V=7.3.0
+```
+
+Bumps `ts/package.json` (and its lockfile) and `go/apidef.go` to the **same**
+version, runs the full suite, commits, pushes `main`, and dispatches the
+workflow — which publishes to npm and writes `v<V>` and `go/v<V>`.
+
+Every guard runs **before** anything is written, because half of this is
+irreversible: npm never allows republishing a version, and
+`proxy.golang.org` caches a Go module version immutably. It refuses unless
+you are on `main`, with a clean tree, not behind `origin/main`, with neither
+tag already taken, and with the Go module path matching the major version
+(see below).
+
+### Or drive the workflow directly
+
 
 **Actions → publish → Run workflow**, on `main`, leaving `go` ticked unless
 only the npm package changed. That single run publishes to npm and pushes
@@ -43,6 +59,34 @@ the release stays a button.
 Release only the half that changed. A TypeScript-only change wants
 `go=false`; leaving it ticked with an unchanged `VERSION` is harmless — the
 workflow refuses rather than moving an existing tag.
+
+## One version for both artifacts
+
+`make publish` gives npm and the Go module the same version, which is worth
+knowing has a hard constraint behind it: **from v2 on, Go requires the major
+version in the module path.**
+
+```
+module github.com/voxgig/apidef/go      # ok for v0.x and v1.x
+module github.com/voxgig/apidef/go/v7   # required for v7.x
+```
+
+Tagging `go/v7.3.0` while `go.mod` still declares the unsuffixed path
+produces a version the Go toolchain will not resolve — and the tag cannot be
+taken back. `make check-go-major` refuses that combination rather than
+letting it reach a tag:
+
+```
+$ make check-go-major V=7.3.0
+publish: go.mod says 'github.com/voxgig/apidef/go' but v7.3.0 is major 7.
+         Go requires the major in the module path from v2 on:
+           module github.com/voxgig/apidef/go/v7
+         Every consumer's import path changes with it.
+```
+
+Moving to a shared major therefore means editing `go/go.mod`, and every
+consumer's import path with it. It is a one-time, deliberate migration, not
+something a release command should do on the fly.
 
 ## Why publishing and tagging live in the same file
 

@@ -1,4 +1,5 @@
-.PHONY: all build test clean build-ts build-go test-ts test-go clean-ts clean-go publish-go tags-go reset sync-model check-model
+.PHONY: all build test clean build-ts build-go test-ts test-go clean-ts clean-go \
+        publish publish-go check-go-major tags-go reset sync-model check-model
 
 all: check-model build test
 
@@ -46,6 +47,71 @@ test-go:
 
 clean-go:
 	cd go && go clean
+
+
+# ONE VERSION, BOTH ARTIFACTS, ONE COMMAND.
+#
+#   make publish V=7.3.0
+#
+# Bumps ts/package.json (and its lockfile) and go/apidef.go to the SAME
+# version, runs the full suite, commits, pushes main, and dispatches the
+# publish workflow — which publishes to npm and writes v<V> and go/v<V>.
+#
+# The guards run BEFORE anything is written, because half of this is
+# irreversible: npm never allows republishing a version, and
+# proxy.golang.org caches a Go module version immutably.
+publish:
+	@test -n "$(V)" || (echo "Usage: make publish V=x.y.z" && exit 1)
+	@echo "$(V)" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+([-+].*)?$$' || \
+	  (echo "publish: V=$(V) is not a semver x.y.z" && exit 1)
+	@command -v gh >/dev/null 2>&1 || \
+	  (echo "publish: needs the gh CLI to dispatch the workflow" && exit 1)
+	@test "$$(git rev-parse --abbrev-ref HEAD)" = "main" || \
+	  (echo "publish: must be on main (currently $$(git rev-parse --abbrev-ref HEAD))" && exit 1)
+	@test -z "$$(git status --porcelain)" || \
+	  (echo "publish: working tree is not clean" && exit 1)
+	@git fetch origin main --quiet && test -z "$$(git rev-list HEAD..origin/main)" || \
+	  (echo "publish: local main is behind origin/main" && exit 1)
+	@$(MAKE) --no-print-directory check-go-major V=$(V)
+	@git rev-parse -q --verify "refs/tags/v$(V)" >/dev/null && \
+	  (echo "publish: tag v$(V) already exists" && exit 1) || true
+	@git rev-parse -q --verify "refs/tags/go/v$(V)" >/dev/null && \
+	  (echo "publish: tag go/v$(V) already exists" && exit 1) || true
+	cd ts && npm version --no-git-tag-version $(V)
+	perl -pi -e 's/^const VERSION = ".*"/const VERSION = "$(V)"/' go/apidef.go
+	@grep -q '^const VERSION = "$(V)"' go/apidef.go || \
+	  (echo "publish: failed to set VERSION in go/apidef.go" && exit 1)
+	$(MAKE) all
+	git add ts/package.json ts/package-lock.json go/apidef.go
+	git commit -m "$(V)"
+	git push origin main
+	gh workflow run publish.yml --ref main -f npm=true -f go=true
+	@echo
+	@echo "dispatched. watch with:  gh run list --workflow=publish.yml --limit 1"
+
+# Go's semantic import versioning: from v2 on, the MAJOR must appear in the
+# module path. Tagging go/v7.3.0 while go.mod still says
+# `module github.com/voxgig/apidef/go` produces a version the toolchain will
+# not resolve — and the tag cannot be taken back. Refuse instead.
+check-go-major:
+	@test -n "$(V)" || (echo "Usage: make check-go-major V=x.y.z" && exit 1)
+	@major=$$(echo "$(V)" | cut -d. -f1); \
+	 path=$$(sed -n 's/^module //p' go/go.mod); \
+	 if [ "$$major" -ge 2 ]; then \
+	   case "$$path" in \
+	     */v$$major) : ;; \
+	     *) echo "publish: go.mod says '$$path' but v$(V) is major $$major."; \
+	        echo "         Go requires the major in the module path from v2 on:"; \
+	        echo "           module $$path/v$$major"; \
+	        echo "         Every consumer's import path changes with it."; \
+	        exit 1 ;; \
+	   esac; \
+	 else \
+	   case "$$path" in \
+	     */v[0-9]*) echo "publish: go.mod path '$$path' carries a major suffix but V=$(V) is major $$major." && exit 1 ;; \
+	     *) : ;; \
+	   esac; \
+	 fi
 
 # Publish Go module: make publish-go V=0.1.1
 publish-go: test-go
