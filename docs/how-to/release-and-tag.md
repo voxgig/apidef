@@ -16,12 +16,17 @@ nothing to undo it.
 ## The normal path
 
 ```sh
-make publish V=7.3.0
+make publish V=7.3.0 GOV=0.2.3   # release both
+make publish V=7.3.0             # npm only
+make publish GOV=0.2.3           # Go module only
 ```
 
-Bumps `ts/package.json` (and its lockfile) and `go/apidef.go` to the **same**
-version, runs the full suite, commits, pushes `main`, and dispatches the
-workflow — which publishes to npm and writes `v<V>` and `go/v<V>`.
+Bumps whichever versions you give — `V` for `ts/package.json` and its
+lockfile, `GOV` for `go/apidef.go` — runs the full suite, commits, pushes
+`main`, and dispatches the workflow with matching inputs, which publishes to
+npm and writes `v<V>` and `go/v<GOV>`.
+
+**Two numbers, not one, deliberately** — see [One version series each](#one-version-series-each).
 
 Every guard runs **before** anything is written, because half of this is
 irreversible: npm never allows republishing a version, and
@@ -60,11 +65,11 @@ Release only the half that changed. A TypeScript-only change wants
 `go=false`; leaving it ticked with an unchanged `VERSION` is harmless — the
 workflow refuses rather than moving an existing tag.
 
-## One version for both artifacts
+## One version series each
 
-`make publish` gives npm and the Go module the same version, which is worth
-knowing has a hard constraint behind it: **from v2 on, Go requires the major
-version in the module path.**
+npm and the Go module are versioned independently — npm is on 7.x, the Go
+module on 0.x — and sharing a number is not as simple as it sounds, because
+**from v2 on, Go requires the major version in the module path.**
 
 ```
 module github.com/voxgig/apidef/go      # ok for v0.x and v1.x
@@ -84,9 +89,11 @@ publish: go.mod says 'github.com/voxgig/apidef/go' but v7.3.0 is major 7.
          Every consumer's import path changes with it.
 ```
 
-Moving to a shared major therefore means editing `go/go.mod`, and every
-consumer's import path with it. It is a one-time, deliberate migration, not
-something a release command should do on the fly.
+Putting the Go module on 7.x to match npm would therefore mean editing
+`go/go.mod` **and every consumer's import path** — apidef-validate included.
+That is a one-time, deliberate migration, not something a release command
+should do on the fly, so the two series stay separate and `make publish`
+takes a version for each.
 
 ## Why publishing and tagging live in the same file
 
