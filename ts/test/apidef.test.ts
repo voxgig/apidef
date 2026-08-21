@@ -197,6 +197,17 @@ describe('apidef', () => {
     assert.strictEqual(planetFields.kind.req, true)
     assert.strictEqual(planetFields.diameter.req, true)
 
+    // A property's `description` becomes the field's `short`. Every generated
+    // per-entity table has a Description column, and every cell was blank
+    // because nothing read this. Only Planet.diameter carries one in the
+    // fixture, which is the point: the fields WITHOUT a description must not
+    // acquire an invented one.
+    assert.strictEqual(planetFields.diameter.short,
+      'Mean equatorial diameter in kilometres.')
+    assert.strictEqual(planetFields.id.short, undefined)
+    assert.strictEqual(planetFields.name.short, undefined)
+    assert.strictEqual(planetFields.kind.short, undefined)
+
     // Moon schema has required: [id, name, planet_id, kind, diameter]
     const moonFields: Record<string, any> = {}
     for (const f of moon.fields) { moonFields[f.name] = f }

@@ -269,6 +269,7 @@ components:
         diameter:
           type: number
           format: float
+          description: Mean equatorial diameter in kilometres.
     Moon:
       type: object
       required:

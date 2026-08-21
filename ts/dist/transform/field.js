@@ -63,6 +63,17 @@ function resolveOpFields(ment, mop, mpoint, def) {
             req: !!fielddef.required,
             op: {},
         };
+        // Carry the spec's own words for the field, when it has any.
+        //
+        // Every generated per-entity table has a Description column and every cell
+        // was blank, because nothing ever read the property `description` the spec
+        // supplies. Trimmed, and only when it is a non-empty string: a whitespace
+        // or non-string value would put a meaningless cell where an empty one is
+        // honest.
+        const fdesc = fielddef.description;
+        if ('string' === typeof fdesc && '' !== fdesc.trim()) {
+            mfield.short = fdesc.trim();
+        }
         // Record an untagged union under this field. The field is already typed
         // openly ($ANY/$ARRAY/$OBJECT) because there is nothing to narrow it to;
         // this says WHY, so the generated docs can explain the open type instead

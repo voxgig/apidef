@@ -79,6 +79,11 @@ type ModelField = {
   type: any // @voxgig/struct validation schema
   req: boolean
   op: Partial<Record<OpName, ModelFieldOp>>
+
+  // One-line human description, straight from the spec's property
+  // `description`. Absent when the spec does not describe the property —
+  // generators render an empty cell rather than inventing prose.
+  short?: string
   union?: {
     count: number     // how many untagged unions lie beneath the field
     branches: number  // widest branch count among them

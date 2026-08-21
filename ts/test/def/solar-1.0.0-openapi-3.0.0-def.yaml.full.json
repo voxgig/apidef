@@ -40,7 +40,8 @@
                       },
                       "diameter": {
                         "type": "number",
-                        "format": "float"
+                        "format": "float",
+                        "description": "Mean equatorial diameter in kilometres."
                       }
                     },
                     "x-ref": "#/components/schemas/Planet"
@@ -77,7 +78,8 @@
                   },
                   "diameter": {
                     "type": "number",
-                    "format": "float"
+                    "format": "float",
+                    "description": "Mean equatorial diameter in kilometres."
                   }
                 },
                 "x-ref": "#/components/schemas/Planet"
@@ -110,7 +112,8 @@
                     },
                     "diameter": {
                       "type": "number",
-                      "format": "float"
+                      "format": "float",
+                      "description": "Mean equatorial diameter in kilometres."
                     }
                   },
                   "x-ref": "#/components/schemas/Planet"
@@ -159,7 +162,8 @@
                     },
                     "diameter": {
                       "type": "number",
-                      "format": "float"
+                      "format": "float",
+                      "description": "Mean equatorial diameter in kilometres."
                     }
                   },
                   "x-ref": "#/components/schemas/Planet"
@@ -205,7 +209,8 @@
                   },
                   "diameter": {
                     "type": "number",
-                    "format": "float"
+                    "format": "float",
+                    "description": "Mean equatorial diameter in kilometres."
                   }
                 },
                 "x-ref": "#/components/schemas/Planet"
@@ -238,7 +243,8 @@
                     },
                     "diameter": {
                       "type": "number",
-                      "format": "float"
+                      "format": "float",
+                      "description": "Mean equatorial diameter in kilometres."
                     }
                   },
                   "x-ref": "#/components/schemas/Planet"
@@ -721,7 +727,8 @@
           },
           "diameter": {
             "type": "number",
-            "format": "float"
+            "format": "float",
+            "description": "Mean equatorial diameter in kilometres."
           }
         }
       },

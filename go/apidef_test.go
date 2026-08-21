@@ -398,3 +398,68 @@ func TestCleanTransform(t *testing.T) {
 		t.Error("expected a to be kept")
 	}
 }
+
+// A property's `description` becomes the field's `short`.
+//
+// Mirrors the `field-required-solar` assertions in ts/test/apidef.test.ts.
+// Every generated per-entity table has a Description column and every cell was
+// blank, because nothing read the description the spec supplies. The negative
+// cases matter as much as the positive one: a field the spec does not describe
+// must NOT acquire an invented description, and a whitespace-only or non-string
+// value is not a description either — an empty cell is honest, a meaningless
+// one is not.
+func TestFieldShortFromDescription(t *testing.T) {
+	def := map[string]any{
+		"paths": map[string]any{
+			"/planets": map[string]any{
+				"get": map[string]any{
+					"responses": map[string]any{
+						"200": map[string]any{
+							"content": map[string]any{
+								"application/json": map[string]any{
+									"schema": map[string]any{
+										"type": "array",
+										"items": map[string]any{
+											"type": "object",
+											"properties": map[string]any{
+												"id":   map[string]any{"type": "string"},
+												"name": map[string]any{"type": "string", "description": "  Common name.  "},
+												"kind": map[string]any{"type": "string", "description": "   "},
+												"mass": map[string]any{"type": "number", "description": 42},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	mtarget := map[string]any{
+		"orig":   "/planets",
+		"method": "GET",
+		"kind":   "json",
+	}
+
+	byName := map[string]map[string]any{}
+	for _, f := range resolveOpFields(mtarget, def, "list") {
+		byName[f["name"].(string)] = f
+	}
+
+	if got := byName["name"]["short"]; got != "Common name." {
+		t.Errorf("name.short = %v, want %q (trimmed)", got, "Common name.")
+	}
+	for _, fname := range []string{"id", "kind", "mass"} {
+		f, ok := byName[fname]
+		if !ok {
+			t.Fatalf("missing field %q", fname)
+		}
+		if _, has := f["short"]; has {
+			t.Errorf("%s.short = %v, want absent (no usable description in the spec)",
+				fname, f["short"])
+		}
+	}
+}

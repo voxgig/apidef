@@ -39,6 +39,12 @@ type ModelField struct {
 	Type any                     `json:"type"`
 	Req  bool                    `json:"req"`
 	Op   map[OpName]*ModelFieldOp `json:"op,omitempty"`
+
+	// One-line human description, straight from the spec's property
+	// `description`. Omitted when the spec does not describe the property —
+	// generators render an empty cell rather than inventing prose.
+	// Mirrors src/model.ts ModelField.short.
+	Short string `json:"short,omitempty"`
 }
 
 // ModelArg represents an operation argument/parameter.

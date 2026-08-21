@@ -2,7 +2,10 @@
 
 package apidef
 
-import "sort"
+import (
+	"sort"
+	"strings"
+)
 
 // FieldTransform extracts and infers entity fields from operations.
 func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
@@ -99,6 +102,16 @@ func resolveOpFields(mtarget map[string]any, def map[string]any, opname string) 
 			"active": true,
 			"op":     map[string]any{},
 		}
+		// Carry the spec's own words for the field, when it has any.
+		// Mirrors src/transform/field.ts. Trimmed, and only when it is a
+		// non-empty string: a whitespace or non-string value would put a
+		// meaningless cell where an empty one is honest.
+		if fdesc, ok := fielddef["description"].(string); ok {
+			if trimmed := strings.TrimSpace(fdesc); trimmed != "" {
+				mfield["short"] = trimmed
+			}
+		}
+
 		// Record an untagged union under this field. The field is already
 		// typed openly because there is nothing to narrow it to; this says
 		// WHY, so the generated docs can explain the open type instead of
@@ -449,6 +462,15 @@ func extractFields(fieldSets any, fielddefs *[]map[string]any) {
 					// true). Mirrors src/transform/field.ts:fielddefs.push(property).
 					if r, ok := pm["required"]; ok {
 						fd["required"] = r
+					}
+					// Carry the property's own words through. TS passes the
+					// raw property object to resolveOpFields, so its
+					// `description` is simply there; this port builds a NEW
+					// map with selected keys, so anything not copied here is
+					// invisible downstream — which is exactly how the field
+					// description was lost on this side.
+					if d, ok := pm["description"]; ok {
+						fd["description"] = d
 					}
 				}
 				if requiredNames[name] {
