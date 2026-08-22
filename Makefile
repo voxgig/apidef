@@ -70,12 +70,14 @@ publish:
 	@test -n "$(V)$(GOV)" || \
 	  (echo "Usage: make publish [V=x.y.z] [GOV=x.y.z]   (npm version, Go module version)" && exit 1)
 	@if [ -n "$(V)" ]; then \
-	  echo "$(V)" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+([-+].*)?$$' || \
-	    { echo "publish: V=$(V) is not a semver x.y.z"; exit 1; }; \
+	  echo "$(V)" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$$' || \
+	    { echo "publish: V=$(V) is not a semver x.y.z (build metadata is not accepted)"; exit 1; }; \
+	  case "$(V)" in *+*) echo "publish: V=$(V) carries +build metadata, which npm discards"; exit 1 ;; esac; \
 	fi
 	@if [ -n "$(GOV)" ]; then \
-	  echo "$(GOV)" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+([-+].*)?$$' || \
-	    { echo "publish: GOV=$(GOV) is not a semver x.y.z"; exit 1; }; \
+	  echo "$(GOV)" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$$' || \
+	    { echo "publish: GOV=$(GOV) is not a semver x.y.z (build metadata is not accepted)"; exit 1; }; \
+	  case "$(GOV)" in *+*) echo "publish: GOV=$(GOV) carries +build metadata, which npm discards"; exit 1 ;; esac; \
 	  $(MAKE) --no-print-directory check-go-major V=$(GOV); \
 	fi
 	@command -v gh >/dev/null 2>&1 || \
@@ -86,10 +88,18 @@ publish:
 	  (echo "publish: working tree is not clean" && exit 1)
 	@git fetch origin main --quiet && test -z "$$(git rev-list HEAD..origin/main)" || \
 	  (echo "publish: local main is behind origin/main" && exit 1)
+	@# ASK THE REMOTE, NOT THE CLONE. `git fetch origin main` does not fetch
+	@# tags, so a local rev-parse passes in a fresh or stale clone while the
+	@# tag already exists on origin — and by the time the workflow refuses,
+	@# this target has already bumped and pushed main.
+	@if [ -n "$(V)" ] && git ls-remote --exit-code --tags origin "refs/tags/v$(V)" >/dev/null 2>&1; then \
+	  echo "publish: tag v$(V) already exists on origin"; exit 1; fi
+	@if [ -n "$(GOV)" ] && git ls-remote --exit-code --tags origin "refs/tags/go/v$(GOV)" >/dev/null 2>&1; then \
+	  echo "publish: tag go/v$(GOV) already exists on origin"; exit 1; fi
 	@if [ -n "$(V)" ] && git rev-parse -q --verify "refs/tags/v$(V)" >/dev/null 2>&1; then \
-	  echo "publish: tag v$(V) already exists"; exit 1; fi
+	  echo "publish: tag v$(V) already exists locally"; exit 1; fi
 	@if [ -n "$(GOV)" ] && git rev-parse -q --verify "refs/tags/go/v$(GOV)" >/dev/null 2>&1; then \
-	  echo "publish: tag go/v$(GOV) already exists"; exit 1; fi
+	  echo "publish: tag go/v$(GOV) already exists locally"; exit 1; fi
 	@if [ -n "$(V)" ]; then cd ts && npm version --no-git-tag-version $(V); fi
 	@if [ -n "$(GOV)" ]; then \
 	  perl -pi -e 's/^const VERSION = ".*"/const VERSION = "$(GOV)"/' go/apidef.go; \
@@ -101,8 +111,12 @@ publish:
 	@if [ -n "$(GOV)" ]; then git add go/apidef.go; fi
 	git commit -m "release:$(if $(V), npm $(V))$(if $(GOV), go $(GOV))"
 	git push origin main
+	@# `--ref main` is a MOVING target: another commit can land between the
+	@# push above and the run resolving, and be released under the version
+	@# just bumped. Pin the dispatch to the SHA we pushed.
 	gh workflow run publish.yml --ref main \
-	  -f npm=$(if $(V),true,false) -f go=$(if $(GOV),true,false)
+	  -f npm=$(if $(V),true,false) -f go=$(if $(GOV),true,false) \
+	  -f expect_sha=$$(git rev-parse HEAD)
 	@echo
 	@echo "dispatched. watch with:  gh run list --workflow=publish.yml --limit 1"
 
@@ -133,24 +147,24 @@ check-go-major:
 # Publish Go module: make publish-go V=0.1.1
 publish-go: test-go
 	@test -n "$(V)" || (echo "Usage: make publish-go V=x.y.z" && exit 1)
-	# BRANCH AND CLEANLINESS GUARDS, checked before anything is written.
-	#
-	# This target commits to the CURRENT branch, tags THAT commit, and then
-	# pushes `main` plus the tag. Run from a feature branch it therefore tags
-	# unreviewed code and publishes it as an immutable Go module version,
-	# while pushing a `main` that does not contain the commit at all — a
-	# module release nobody reviewed, which proxy.golang.org will then cache
-	# forever. Prefer the publish workflow; if you must use this, be on main.
+	@# BRANCH AND CLEANLINESS GUARDS, checked before anything is written.
+	@#
+	@# This target commits to the CURRENT branch, tags THAT commit, and then
+	@# pushes `main` plus the tag. Run from a feature branch it therefore tags
+	@# unreviewed code and publishes it as an immutable Go module version,
+	@# while pushing a `main` that does not contain the commit at all — a
+	@# module release nobody reviewed, which proxy.golang.org will then cache
+	@# forever. Prefer the publish workflow; if you must use this, be on main.
 	@test "$$(git rev-parse --abbrev-ref HEAD)" = "main" || \
 	  (echo "publish-go: must be on main (currently $$(git rev-parse --abbrev-ref HEAD))" && exit 1)
 	@test -z "$$(git status --porcelain)" || \
 	  (echo "publish-go: working tree is not clean" && exit 1)
 	@git fetch origin main --quiet && test -z "$$(git rev-list HEAD..origin/main)" || \
 	  (echo "publish-go: local main is behind origin/main" && exit 1)
-	# Portable in-place edit: `sed -i ''` is BSD/macOS only and fails on GNU
-	# sed, which reads '' as the script. It failed silently here before — the
-	# constant said 0.1.2 while go/v0.1.3 was already tagged. The grep below
-	# stops a release whose VERSION constant did not actually get rewritten.
+	@# Portable in-place edit: `sed -i ''` is BSD/macOS only and fails on GNU
+	@# sed, which reads '' as the script. It failed silently here before — the
+	@# constant said 0.1.2 while go/v0.1.3 was already tagged. The grep below
+	@# stops a release whose VERSION constant did not actually get rewritten.
 	perl -pi -e 's/^const VERSION = ".*"/const VERSION = "$(V)"/' go/apidef.go
 	@grep -q '^const VERSION = "$(V)"' go/apidef.go || \
 	  (echo "publish-go: failed to set VERSION in go/apidef.go" && exit 1)
