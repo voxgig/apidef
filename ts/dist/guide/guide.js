@@ -27,7 +27,23 @@ async function buildGuide(ctx) {
     }
     handleErrors(ctx, errs);
     let src = '';
-    let guidepath = node_path_1.default.join(folder, 'guide', (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'guide.aontu');
+    const guideprefix = null == ctx.opts.outprefix ? '' : ctx.opts.outprefix;
+    let guidepath = node_path_1.default.join(folder, 'guide', guideprefix + 'guide.aon');
+    // MIGRATE, DO NOT ABANDON. The guide is the one model file the user owns —
+    // entity renames, hides, method overrides, response transforms. Reading
+    // `guide.aon` without this would find nothing in any project created before
+    // the extension rename, silently discarding every customization in the 660
+    // generated repos that carry a guide.aontu. So a legacy file is RENAMED
+    // here, once, contents byte-for-byte.
+    const legacyguide = node_path_1.default.join(folder, 'guide', guideprefix + 'guide.aontu');
+    if (!ctx.fs.existsSync(guidepath) && ctx.fs.existsSync(legacyguide)) {
+        ctx.fs.writeFileSync(guidepath, ctx.fs.readFileSync(legacyguide));
+        try {
+            ctx.fs.unlinkSync(legacyguide);
+        }
+        catch (_err) { }
+        log.info({ point: 'migrate-guide', note: 'guide.aontu -> guide.aon' });
+    }
     log.info({
         point: 'generate-guide',
         note: (0, utility_1.relativizePath)(guidepath),
@@ -212,7 +228,7 @@ async function buildBaseGuide(ctx) {
     guideBlocks.push('', '}');
     const guideSrc = guideBlocks.join('\n');
     ctx.note.guide = { base: guideSrc };
-    const baseGuideFileName = (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'base-guide.aontu';
+    const baseGuideFileName = (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'base-guide.aon';
     const jostraca = (0, jostraca_1.Jostraca)({
         folder: ctx.opts.folder + '/guide',
         now: ctx.spec.now,

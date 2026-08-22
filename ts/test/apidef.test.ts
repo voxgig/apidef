@@ -34,7 +34,7 @@ describe('apidef', () => {
   //   const P = null != ctx.meta?.fs ? Path.posix : Path
   // apidef used to forward ctx.fs unconditionally, but ctx.fs defaults to the
   // real node:fs — so on Windows the guide path was parsed with Path.posix,
-  // 'D:\...\guide\x.aontu' yielded an empty base dir, and every sibling
+  // 'D:\...\guide\x.aon' yielded an empty base dir, and every sibling
   // include failed with `source not found: <prefix>base-guide.aontu`. Linux
   // and macOS never saw it because there Path and Path.posix are identical.
   //
@@ -302,7 +302,7 @@ describe('apidef', () => {
 
 name: solar
 
-@"@voxgig/apidef/model/apidef.aontu"
+@"@voxgig/apidef/model/apidef.aon"
 
 def: '${outprefix}def.yaml'
 `
@@ -310,7 +310,7 @@ def: '${outprefix}def.yaml'
     const modelSrc = `
 # apidef test: ${outprefix}
 
-@"@voxgig/apidef/model/apidef.aontu"
+@"@voxgig/apidef/model/apidef.aon"
 
 name: solar
 
@@ -329,7 +329,7 @@ def: '${outprefix}def.yaml'
     const bres = await build(modelinit, buildspec, {})
     assert.strictEqual(bres.ok, true)
 
-    const model = aontu.generate(`@"test/solar/solar.aontu"`, {
+    const model = aontu.generate(`@"test/solar/solar.aon"`, {
       base: __dirname + '/..'
     })
 
@@ -359,46 +359,46 @@ def: '${outprefix}def.yaml'
 
     test('removes generated files for entities no longer derived', () => {
       const dir = tmpModel({
-        'country.aontu': GEN('country'),
-        'list_country.aontu': GEN('list_country'),   // orphan
-        'entity-index.aontu': '# Entity Models\n',
+        'country.aon': GEN('country'),
+        'list_country.aon': GEN('list_country'),   // orphan
+        'entity-index.aon': '# Entity Models\n',
       })
       const removed = gcEntityFiles(Fs, null, dir, undefined, ['country'])
-      assert.deepStrictEqual(removed, ['list_country.aontu'])
-      assert.deepStrictEqual(listing(dir), ['country.aontu', 'entity-index.aontu'])
+      assert.deepStrictEqual(removed, ['list_country.aon'])
+      assert.deepStrictEqual(listing(dir), ['country.aon', 'entity-index.aon'])
     })
 
     test('never touches a file apidef did not write', () => {
       const dir = tmpModel({
-        'country.aontu': GEN('country'),
-        'custom.aontu': '# my hand-written model fragment\nfoo: 1\n',  // no generated header
+        'country.aon': GEN('country'),
+        'custom.aon': '# my hand-written model fragment\nfoo: 1\n',  // no generated header
         'notes.txt': 'not aontu at all',
       })
       const removed = gcEntityFiles(Fs, null, dir, undefined, ['country'])
       assert.deepStrictEqual(removed, [])
-      assert.deepStrictEqual(listing(dir), ['country.aontu', 'custom.aontu', 'notes.txt'])
+      assert.deepStrictEqual(listing(dir), ['country.aon', 'custom.aon', 'notes.txt'])
     })
 
     test('respects outprefix — another def sharing the folder is not collected', () => {
       const dir = tmpModel({
-        'solar-planet.aontu': GEN('planet'),
-        'solar-moon.aontu': GEN('moon'),             // orphan of the solar def
-        'solar-entity-index.aontu': '# Entity Models\n',
-        'lunar-crater.aontu': GEN('crater'),         // belongs to a DIFFERENT def
+        'solar-planet.aon': GEN('planet'),
+        'solar-moon.aon': GEN('moon'),             // orphan of the solar def
+        'solar-entity-index.aon': '# Entity Models\n',
+        'lunar-crater.aon': GEN('crater'),         // belongs to a DIFFERENT def
       })
       const removed = gcEntityFiles(Fs, null, dir, 'solar-', ['planet'])
-      assert.deepStrictEqual(removed, ['solar-moon.aontu'])
+      assert.deepStrictEqual(removed, ['solar-moon.aon'])
       assert.deepStrictEqual(listing(dir),
-        ['lunar-crater.aontu', 'solar-entity-index.aontu', 'solar-planet.aontu'])
+        ['lunar-crater.aon', 'solar-entity-index.aon', 'solar-planet.aon'])
     })
 
     test('keeps the index and the whole current set; missing folder is a no-op', () => {
       const dir = tmpModel({
-        'a.aontu': GEN('a'), 'b.aontu': GEN('b'),
-        'entity-index.aontu': '# Entity Models\n',
+        'a.aon': GEN('a'), 'b.aon': GEN('b'),
+        'entity-index.aon': '# Entity Models\n',
       })
       assert.deepStrictEqual(gcEntityFiles(Fs, null, dir, undefined, ['a', 'b']), [])
-      assert.deepStrictEqual(listing(dir), ['a.aontu', 'b.aontu', 'entity-index.aontu'])
+      assert.deepStrictEqual(listing(dir), ['a.aon', 'b.aon', 'entity-index.aon'])
       // No entity folder at all: return empty, do not throw.
       const empty = Fs.mkdtempSync(PathMod.join(Os.tmpdir(), 'apidef-gc-'))
       assert.deepStrictEqual(gcEntityFiles(Fs, null, empty, undefined, ['a']), [])

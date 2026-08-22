@@ -186,13 +186,13 @@ async function buildRest() {
     (0, node_test_1.test)('unify-graphql-solar', async () => {
         const bres = await buildGraphql();
         node_assert_1.default.equal(bres.ok, true);
-        const modelpath = Path.join(GQL_FOLDER, 'graphql-solar.aontu');
+        const modelpath = Path.join(GQL_FOLDER, 'graphql-solar.aon');
         const src = Fs.readFileSync(modelpath, 'utf8');
         const errs = [];
         // No fs injection: see the note in graphql.test.ts (multisource parses
         // Windows paths with POSIX semantics whenever an fs is present).
         const out = new aontu_1.Aontu().generate(src, { path: modelpath, errs });
-        node_assert_1.default.deepStrictEqual(errs.map((e) => String(e).split('\n')[0]), [], 'emitted solar GraphQL model must unify against model/apidef.aontu');
+        node_assert_1.default.deepStrictEqual(errs.map((e) => String(e).split('\n')[0]), [], 'emitted solar GraphQL model must unify against model/apidef.aon');
         node_assert_1.default.equal(out.main.kit.entity.planet.op.load.points[0].kind, 'graphql');
     });
 });

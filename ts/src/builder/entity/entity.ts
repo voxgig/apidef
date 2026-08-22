@@ -33,7 +33,7 @@ function resolveEntity(
   const entityFiles: { name: string, src: string }[] = []
 
   each(kit.entity, ((entity: any, entityName: string) => {
-    const entityFile = (null == opts.outprefix ? '' : opts.outprefix) + entityName + '.aontu'
+    const entityFile = (null == opts.outprefix ? '' : opts.outprefix) + entityName + '.aon'
 
     let entityJSONIC = formatJSONIC(entity).trim()
     entityJSONIC = entityJSONIC.substring(1, entityJSONIC.length - 1)
@@ -52,7 +52,7 @@ function resolveEntity(
     barrel.push(`@"${Path.basename(entityFile)}"`)
   }))
 
-  const indexFile = (null == opts.outprefix ? '' : opts.outprefix) + 'entity-index.aontu'
+  const indexFile = (null == opts.outprefix ? '' : opts.outprefix) + 'entity-index.aon'
 
   return function apiEntityBuilder() {
     Folder({ name: 'entity' }, () => {
@@ -68,7 +68,7 @@ function resolveEntity(
 
 // Garbage-collect orphaned entity model files.
 //
-// The builder above EMITS one <outprefix><name>.aontu per derived entity but
+// The builder above EMITS one <outprefix><name>.aon per derived entity but
 // never removes anything, so an entity that disappears from the def — a spec
 // rename, a dropped path, a schema rename that changes the derived entity
 // name — leaves its old file behind on every regen. The orphan is not in the
@@ -76,7 +76,7 @@ function resolveEntity(
 // worst a later hand-include resurrects a stale surface.
 //
 // Deletion is guarded three ways, so nothing a user could own is touched:
-//   1. only `<outprefix>*.aontu` files inside the entity folder are candidates
+//   1. only `<outprefix>*.aon` / `*.aontu` files in the entity folder
 //      (a different outprefix belongs to a different def sharing the folder);
 //   2. the current entity set and the index barrel are always kept;
 //   3. the file must START with the generated header (`# Entity: `) — a file
@@ -95,8 +95,8 @@ function gcEntityFiles(
   const entityFolder = Path.join(modelFolder, 'entity')
 
   const keep = new Set<string>(
-    entityNames.map((name) => prefix + name + '.aontu'))
-  keep.add(prefix + 'entity-index.aontu')
+    entityNames.map((name) => prefix + name + '.aon'))
+  keep.add(prefix + 'entity-index.aon')
 
   let entries: string[] = []
   try {
@@ -107,7 +107,12 @@ function gcEntityFiles(
   }
 
   for (const entry of entries) {
-    if (!entry.endsWith('.aontu')) { continue }
+    // BOTH extensions are candidates. `.aon` is what the builder emits
+    // now; `.aontu` is what it emitted before the rename, and such files
+    // are orphaned by definition — the regenerated index barrel no longer
+    // includes them. The `# Entity: ` header guard below still applies, so
+    // only a file apidef itself wrote is ever removed.
+    if (!entry.endsWith('.aon') && !entry.endsWith('.aontu')) { continue }
     if (!entry.startsWith(prefix)) { continue }
     if (keep.has(entry)) { continue }
 

@@ -63,18 +63,18 @@ func BuildGuide(ctx *ApiDefContext) (map[string]any, error) {
 	guideSrc := buildGuideSource(ctx, baseguide)
 
 	// Write base guide file. The TS pipeline never writes the full guide
-	// content to <prefix>guide.aontu — that file is a small include
+	// content to <prefix>guide.aon — that file is a small include
 	// template the user/host harness pre-creates. We mirror that here.
 	guideDir := filepath.Join(folder, "guide")
 	os.MkdirAll(guideDir, 0755)
 	prefix := ctx.Opts.OutPrefix
-	baseGuideFile := filepath.Join(guideDir, prefix+"base-guide.aontu")
+	baseGuideFile := filepath.Join(guideDir, prefix+"base-guide.aon")
 	if err := os.WriteFile(baseGuideFile, []byte(guideSrc), 0644); err != nil {
 		return nil, fmt.Errorf("failed to write base guide %s: %w",
 			RelativizePath(baseGuideFile), err)
 	}
 
-	// The TS pipeline unifies <prefix>guide.aontu — the user-editable overlay
+	// The TS pipeline unifies <prefix>guide.aon — the user-editable overlay
 	// that @-includes this base guide — over the heuristic result via aontu,
 	// and that overlay is where every documented customization lives
 	// (entity rename/hide/move/activate, per-path deactivation, method
@@ -97,13 +97,22 @@ func BuildGuide(ctx *ApiDefContext) (map[string]any, error) {
 	return map[string]any{"guide": guideModel}, nil
 }
 
-// checkGuideOverlay fails when <prefix>guide.aontu carries customizations
+// checkGuideOverlay fails when <prefix>guide.aon carries customizations
 // this port cannot honour. A bare overlay (only comments and the two
 // @-includes) is the common case and is fine — it contributes nothing beyond
 // the base guide, so Go's output matches TS's.
 func checkGuideOverlay(ctx *ApiDefContext, guideDir string, prefix string) error {
-	overlayFile := filepath.Join(guideDir, prefix+"guide.aontu")
+	// BOTH extensions. `.aon` is the current name; `.aontu` is what every
+	// project created before the rename still carries. Reading only `.aon`
+	// would treat a legacy overlay as ABSENT — and an absent overlay is
+	// reported as fine — so unsupported customizations would be silently
+	// accepted instead of refused, which is the opposite of this check.
+	overlayFile := filepath.Join(guideDir, prefix+"guide.aon")
 	src, err := os.ReadFile(overlayFile)
+	if err != nil {
+		overlayFile = filepath.Join(guideDir, prefix+"guide.aontu")
+		src, err = os.ReadFile(overlayFile)
+	}
 	if err != nil {
 		// Absent overlay is not an error here: the TS side surfaces that
 		// through aontu when it tries to resolve the entry file.

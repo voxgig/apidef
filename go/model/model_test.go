@@ -8,7 +8,7 @@ import "testing"
 // this test additionally asserts the expected files are present and non-empty,
 // so downstream Go clients can rely on model.FS / model.Read.
 func TestEmbeddedModelFiles(t *testing.T) {
-	for _, name := range []string{"apidef.aontu", "guide.aontu"} {
+	for _, name := range []string{"apidef.aon", "guide.aon"} {
 		data, err := Read(name)
 		if err != nil {
 			t.Fatalf("Read(%q): %v", name, err)

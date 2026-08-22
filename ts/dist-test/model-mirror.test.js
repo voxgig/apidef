@@ -14,7 +14,7 @@ const node_assert_1 = __importDefault(require("node:assert"));
 const node_fs_1 = require("node:fs");
 const node_path_1 = __importDefault(require("node:path"));
 const REPO = node_path_1.default.resolve(__dirname, '..', '..');
-const MODEL_FILES = ['apidef.aontu', 'guide.aontu'];
+const MODEL_FILES = ['apidef.aon', 'guide.aon'];
 (0, node_test_1.describe)('model-mirror', () => {
     for (const file of MODEL_FILES) {
         (0, node_test_1.test)(`ts/model/${file} matches canonical model/${file}`, () => {

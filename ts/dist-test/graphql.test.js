@@ -214,7 +214,7 @@ async function buildGraphql(step) {
     (0, node_test_1.test)('unify-graphql', async () => {
         const bres = await buildGraphql();
         node_assert_1.default.equal(bres.ok, true);
-        const modelpath = Path.join(FOLDER, 'graphql.aontu');
+        const modelpath = Path.join(FOLDER, 'graphql.aon');
         const src = Fs.readFileSync(modelpath, 'utf8');
         // NOTE: no `fs` injection. @tabnas/multisource switches to Path.posix
         // whenever an fs is present, so injecting the real node:fs makes it parse
@@ -224,7 +224,7 @@ async function buildGraphql(step) {
         // exactly this reason (see guide/guide.ts).
         const errs = [];
         const out = new aontu_1.Aontu().generate(src, { path: modelpath, errs });
-        node_assert_1.default.deepStrictEqual(errs.map((e) => String(e).split('\n')[0]), [], 'emitted GraphQL model must unify against model/apidef.aontu');
+        node_assert_1.default.deepStrictEqual(errs.map((e) => String(e).split('\n')[0]), [], 'emitted GraphQL model must unify against model/apidef.aon');
         const point = out.main.kit.entity.issue.op.load.points[0];
         node_assert_1.default.equal(point.kind, 'graphql');
         node_assert_1.default.equal(point.method, 'POST');

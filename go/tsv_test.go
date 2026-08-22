@@ -541,11 +541,11 @@ func TestGuideOverlayCustomizations(t *testing.T) {
 	empty := []string{
 		"",
 		"# just a comment\n",
-		"@\"@voxgig/apidef/model/guide.aontu\"\n@\"x-base-guide.aontu\"\n",
-		"@\"x-base-guide.aontu\"\n\nguide:{}\n",
-		"@\"x-base-guide.aontu\"\n\nguide: {}\n",
-		"@\"x-base-guide.aontu\"\n\nguide: {\n}\n",
-		"# c\n@\"x-base-guide.aontu\"\n\nguide: {\n}\n\n",
+		"@\"@voxgig/apidef/model/guide.aon\"\n@\"x-base-guide.aon\"\n",
+		"@\"x-base-guide.aon\"\n\nguide:{}\n",
+		"@\"x-base-guide.aon\"\n\nguide: {}\n",
+		"@\"x-base-guide.aon\"\n\nguide: {\n}\n",
+		"# c\n@\"x-base-guide.aon\"\n\nguide: {\n}\n\n",
 	}
 	for _, src := range empty {
 		if got := guideOverlayCustomizations(src); len(got) != 0 {
@@ -554,9 +554,9 @@ func TestGuideOverlayCustomizations(t *testing.T) {
 	}
 
 	custom := []string{
-		"@\"x-base-guide.aontu\"\n\nguide: entity: bar: { active: false }\n",
-		"@\"x-base-guide.aontu\"\n\nguide: entity: yike: hide({})\n",
-		"@\"x-base-guide.aontu\"\n\nguide: {\n  entity: foo: { active: false }\n}\n",
+		"@\"x-base-guide.aon\"\n\nguide: entity: bar: { active: false }\n",
+		"@\"x-base-guide.aon\"\n\nguide: entity: yike: hide({})\n",
+		"@\"x-base-guide.aon\"\n\nguide: {\n  entity: foo: { active: false }\n}\n",
 	}
 	for _, src := range custom {
 		if got := guideOverlayCustomizations(src); len(got) == 0 {

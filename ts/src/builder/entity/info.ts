@@ -29,7 +29,7 @@ function resolveInfo(
   const kit: KitModel = apimodel.main[KIT]
 
   const infoFile =
-    (null == opts.outprefix ? '' : opts.outprefix) + 'api-info.aontu'
+    (null == opts.outprefix ? '' : opts.outprefix) + 'api-info.aon'
 
   const modelInfo = { main: { kit: { info: kit.info } } }
 

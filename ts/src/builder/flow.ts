@@ -70,7 +70,7 @@ async function makeFlowBuilder(ctx: ApiDefContext): Promise<Function> {
         let flowfile =
           Path.join(ctx.opts.folder, 'flow',
             (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) +
-            flow.name + '.aontu')
+            flow.name + '.aon')
 
         let flowModelSrc = formatJsonSrc(JSON.stringify(flow, null, 2))
 
@@ -84,7 +84,7 @@ main: ${KIT}: flow: ${flow.name}:
         File({ name: Path.basename(flowfile) }, () => Content(flowsrc))
       })
 
-      const barrelFile = (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'flow-index.aontu'
+      const barrelFile = (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'flow-index.aon'
 
       const barrelContent = barrel.join('\n')
 

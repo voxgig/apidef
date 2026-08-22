@@ -227,7 +227,7 @@ describe('graphql', () => {
     const bres = await buildGraphql()
     assert.equal(bres.ok, true)
 
-    const modelpath = Path.join(FOLDER, 'graphql.aontu')
+    const modelpath = Path.join(FOLDER, 'graphql.aon')
     const src = Fs.readFileSync(modelpath, 'utf8')
 
     // NOTE: no `fs` injection. @tabnas/multisource switches to Path.posix
@@ -241,7 +241,7 @@ describe('graphql', () => {
 
     assert.deepStrictEqual(
       errs.map((e: any) => String(e).split('\n')[0]), [],
-      'emitted GraphQL model must unify against model/apidef.aontu')
+      'emitted GraphQL model must unify against model/apidef.aon')
 
     const point = out.main.kit.entity.issue.op.load.points[0]
     assert.equal(point.kind, 'graphql')

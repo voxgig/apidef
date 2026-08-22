@@ -213,7 +213,7 @@ describe('graphql-solar', () => {
     const bres = await buildGraphql()
     assert.equal(bres.ok, true)
 
-    const modelpath = Path.join(GQL_FOLDER, 'graphql-solar.aontu')
+    const modelpath = Path.join(GQL_FOLDER, 'graphql-solar.aon')
     const src = Fs.readFileSync(modelpath, 'utf8')
 
     const errs: any[] = []
@@ -223,7 +223,7 @@ describe('graphql-solar', () => {
 
     assert.deepStrictEqual(
       errs.map((e: any) => String(e).split('\n')[0]), [],
-      'emitted solar GraphQL model must unify against model/apidef.aontu')
+      'emitted solar GraphQL model must unify against model/apidef.aon')
 
     assert.equal(
       out.main.kit.entity.planet.op.load.points[0].kind, 'graphql')

@@ -14,7 +14,7 @@ import Path from 'node:path'
 
 
 const REPO = Path.resolve(__dirname, '..', '..')
-const MODEL_FILES = ['apidef.aontu', 'guide.aontu']
+const MODEL_FILES = ['apidef.aon', 'guide.aon']
 
 
 describe('model-mirror', () => {

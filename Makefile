@@ -12,7 +12,7 @@ clean: clean-ts clean-go
 # Shared aontu model. Canonical copies live at model/; each packaging system
 # can only ship files under its own root, so they are mirrored into ts/model/
 # (npm) and go/model/ (go:embed). Edit model/, then `make sync-model`.
-MODEL_FILES = apidef.aontu guide.aontu
+MODEL_FILES = apidef.aon guide.aon
 
 sync-model:
 	@for f in $(MODEL_FILES); do \

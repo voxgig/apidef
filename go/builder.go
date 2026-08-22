@@ -76,7 +76,7 @@ func entityBuilder(ctx *ApiDefContext) {
 			continue
 		}
 
-		entityFile := prefix + entityName + ".aontu"
+		entityFile := prefix + entityName + ".aon"
 		cleanEntity := stripKeys(entity, "active")
 		cleanEntity = stripEmptyRelations(cleanEntity)
 		entityJSONIC := FormatJSONIC(cleanEntity)
@@ -101,7 +101,7 @@ func entityBuilder(ctx *ApiDefContext) {
 		barrel = append(barrel, fmt.Sprintf(`@"%s"`, entityFile))
 	}
 
-	indexFile := prefix + "entity-index.aontu"
+	indexFile := prefix + "entity-index.aon"
 	writeGen(ctx, filepath.Join(entityDir, indexFile), strings.Join(barrel, "\n"))
 }
 
@@ -181,7 +181,7 @@ func infoBuilder(ctx *ApiDefContext) {
 	apiDir := filepath.Join(folder, "api")
 	mkdirGen(ctx, apiDir)
 
-	infoFile := prefix + "api-info.aontu"
+	infoFile := prefix + "api-info.aon"
 	modelInfo := map[string]any{
 		"main": map[string]any{
 			KIT: map[string]any{
@@ -239,7 +239,7 @@ func MakeFlowBuilder(ctx *ApiDefContext) (func() error, error) {
 			// that here so the emitted JSONIC matches TS output.
 			flow["key$"] = flowName
 
-			flowfile := prefix + flowName + ".aontu"
+			flowfile := prefix + flowName + ".aon"
 			entNameMap := map[string]any{"name": flowName}
 			flowModelSrc := FormatJsonSrc(ToJSONOrdered(flow))
 			flowSrc := fmt.Sprintf("# %s\n\nmain: %s: flow: %s:\n%s",
@@ -249,7 +249,7 @@ func MakeFlowBuilder(ctx *ApiDefContext) (func() error, error) {
 			barrel = append(barrel, fmt.Sprintf(`@"%s"`, flowfile))
 		}
 
-		barrelFile := prefix + "flow-index.aontu"
+		barrelFile := prefix + "flow-index.aon"
 		writeGen(ctx, filepath.Join(flowDir, barrelFile), strings.Join(barrel, "\n"))
 		return nil
 	}, nil
