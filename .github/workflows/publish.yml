@@ -135,10 +135,12 @@ jobs:
       # be released under the version just bumped.
       - name: main must still be the commit we intended to release
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.expect_sha != '' }}
+        env:
+          EXPECT_SHA: ${{ inputs.expect_sha }}
         run: |
           set -euo pipefail
-          if [ "$GITHUB_SHA" != "${{ inputs.expect_sha }}" ]; then
-            echo "::error::main has moved: expected ${{ inputs.expect_sha }}, got $GITHUB_SHA"
+          if [ "$GITHUB_SHA" != "$EXPECT_SHA" ]; then
+            echo "::error::main has moved: expected $EXPECT_SHA, got $GITHUB_SHA"
             exit 1
           fi
 
@@ -148,9 +150,11 @@ jobs:
       # run goes GREEN — leaving a v7.3.0 tag with no npm release behind it.
       - name: The pushed tag must match the package version
         if: ${{ github.event_name == 'push' }}
+        env:
+          NPM_VERSION: ${{ steps.versions.outputs.npm_version }}
         run: |
           set -euo pipefail
-          WANT="v${{ steps.versions.outputs.npm_version }}"
+          WANT="v$NPM_VERSION"
           if [ "$GITHUB_REF_NAME" != "$WANT" ]; then
             echo "::error::tag $GITHUB_REF_NAME does not match ts/package.json ($WANT)"
             exit 1
@@ -167,6 +171,11 @@ jobs:
       # not bumped, and moving it would rewrite a published release.
       - name: Refuse a tag that points at a different commit
         if: ${{ github.event_name == 'workflow_dispatch' }}
+        env:
+          INPUT_NPM: ${{ inputs.npm }}
+          INPUT_GO: ${{ inputs.go }}
+          NPM_VERSION: ${{ steps.versions.outputs.npm_version }}
+          GO_VERSION: ${{ steps.versions.outputs.go_version }}
         run: |
           set -euo pipefail
           HEAD_SHA="$(git rev-parse HEAD)"
@@ -186,11 +195,11 @@ jobs:
             return 0
           }
 
-          if [ "${{ inputs.npm }}" = "true" ]; then
-            check "v${{ steps.versions.outputs.npm_version }}" "ts/package.json" || fail=1
+          if [ "$INPUT_NPM" = "true" ]; then
+            check "v$NPM_VERSION" "ts/package.json" || fail=1
           fi
-          if [ "${{ inputs.go }}" = "true" ]; then
-            check "go/v${{ steps.versions.outputs.go_version }}" "VERSION in go/apidef.go" || fail=1
+          if [ "$INPUT_GO" = "true" ]; then
+            check "go/v$GO_VERSION" "VERSION in go/apidef.go" || fail=1
           fi
           exit $fail
 
@@ -225,9 +234,11 @@ jobs:
       # previously published versions" before the tag job ever runs.
       - name: Is this version already on npm?
         id: registry
+        env:
+          NPM_VERSION: ${{ steps.versions.outputs.npm_version }}
         run: |
           set -euo pipefail
-          V="${{ steps.versions.outputs.npm_version }}"
+          V="$NPM_VERSION"
           if npm view "@voxgig/apidef@$V" version >/dev/null 2>&1; then
             echo "published=true" >> "$GITHUB_OUTPUT"
             echo "$V is already on npm — skipping publish"
@@ -245,11 +256,18 @@ jobs:
       # npm records the source commit as `gitHead`, so this is checkable.
       # Absent gitHead cannot be verified, so warn rather than block: refusing
       # would make legitimate recovery impossible.
+      #
+      # Gated on the npm half being requested. `make publish GOV=x.y.z` is a
+      # Go-only release: the npm version is unchanged and was published from an
+      # EARLIER commit, so comparing its gitHead with this one would always
+      # mismatch and block a release that is not touching npm at all.
       - name: A published version must come from this commit
-        if: ${{ steps.registry.outputs.published == 'true' }}
+        if: ${{ steps.registry.outputs.published == 'true' && (github.event_name == 'push' || inputs.npm) }}
+        env:
+          NPM_VERSION: ${{ steps.versions.outputs.npm_version }}
         run: |
           set -euo pipefail
-          V="${{ steps.versions.outputs.npm_version }}"
+          V="$NPM_VERSION"
           GH="$(npm view "@voxgig/apidef@$V" gitHead 2>/dev/null || true)"
           if [ -z "$GH" ]; then
             echo "::warning::npm records no gitHead for $V; cannot verify it was built from this commit"
@@ -265,9 +283,11 @@ jobs:
       - name: Publish to npm
         if: ${{ (github.event_name == 'push' || inputs.npm) && steps.registry.outputs.published == 'false' }}
         working-directory: ts
+        env:
+          NPM_VERSION: ${{ steps.versions.outputs.npm_version }}
         run: |
           set -euo pipefail
-          V="${{ steps.versions.outputs.npm_version }}"
+          V="$NPM_VERSION"
           # A PRERELEASE MUST NOT BECOME `latest`. `npm publish` defaults to the
           # latest dist-tag, so publishing 1.2.3-beta.1 that way hands it to
           # every unpinned install.
@@ -299,9 +319,11 @@ jobs:
       # that is what makes re-dispatching after a partial release safe.
       - name: Tag the npm release
         if: ${{ inputs.npm }}
+        env:
+          NPM_VERSION: ${{ needs.publish.outputs.npm_version }}
         run: |
           set -euo pipefail
-          TAG="v${{ needs.publish.outputs.npm_version }}"
+          TAG="v$NPM_VERSION"
           HEAD_SHA="$(git rev-parse HEAD)"
 
           # EXISTENCE IS NOT ENOUGH. `--verify` only asks whether the name
@@ -324,9 +346,11 @@ jobs:
 
       - name: Tag the Go module
         if: ${{ inputs.go }}
+        env:
+          GO_VERSION: ${{ needs.publish.outputs.go_version }}
         run: |
           set -euo pipefail
-          TAG="go/v${{ needs.publish.outputs.go_version }}"
+          TAG="go/v$GO_VERSION"
           HEAD_SHA="$(git rev-parse HEAD)"
 
           # EXISTENCE IS NOT ENOUGH. `--verify` only asks whether the name
