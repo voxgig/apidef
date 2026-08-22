@@ -67,6 +67,10 @@ on:
         description: 'Tag the Go module go/v<VERSION>'
         type: boolean
         default: true
+      expect_sha:
+        description: 'Optional: refuse unless main is still at this commit (set by `make publish`)'
+        type: string
+        default: ''
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -111,6 +115,32 @@ jobs:
           echo "go_version=$GO_VERSION"   >> "$GITHUB_OUTPUT"
           echo "npm: $NPM_VERSION -> v$NPM_VERSION"
           echo "go:  $GO_VERSION -> go/v$GO_VERSION"
+
+      # RELEASES COME FROM main, INCLUDING FROM THE BUTTON. `gh workflow run
+      # --ref` accepts any branch or tag, and the Makefile's `main` guard only
+      # binds callers who went through `make publish` — so without this the
+      # Actions UI or a stray API call could publish and tag a feature branch,
+      # irreversibly.
+      - name: Dispatches must come from main
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_REF_NAME" != "main" ]; then
+            echo "::error::dispatch ref is $GITHUB_REF_NAME; releases must come from main"
+            exit 1
+          fi
+
+      # `--ref main` names a MUTABLE branch, so between `make publish` pushing
+      # the release commit and this run resolving, another commit can land and
+      # be released under the version just bumped.
+      - name: main must still be the commit we intended to release
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.expect_sha != '' }}
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_SHA" != "${{ inputs.expect_sha }}" ]; then
+            echo "::error::main has moved: expected ${{ inputs.expect_sha }}, got $GITHUB_SHA"
+            exit 1
+          fi
 
       # A tag pushed by hand must agree with the version it claims to release.
       # Without this, pushing v7.3.0 while ts/package.json still says 7.2.0
@@ -206,12 +236,47 @@ jobs:
             echo "$V is not on npm — will publish"
           fi
 
+      # SKIPPING THE PUBLISH ASSUMES "SAME VERSION MEANS SAME CODE". That holds
+      # only if main has not moved. Publish succeeds at commit A, the tag job
+      # fails, main advances to B, someone re-dispatches: the version is still
+      # on npm, so the publish is skipped and B gets tagged — while the
+      # registry artifact was built from A.
+      #
+      # npm records the source commit as `gitHead`, so this is checkable.
+      # Absent gitHead cannot be verified, so warn rather than block: refusing
+      # would make legitimate recovery impossible.
+      - name: A published version must come from this commit
+        if: ${{ steps.registry.outputs.published == 'true' }}
+        run: |
+          set -euo pipefail
+          V="${{ steps.versions.outputs.npm_version }}"
+          GH="$(npm view "@voxgig/apidef@$V" gitHead 2>/dev/null || true)"
+          if [ -z "$GH" ]; then
+            echo "::warning::npm records no gitHead for $V; cannot verify it was built from this commit"
+          elif [ "$GH" != "$GITHUB_SHA" ]; then
+            echo "::error::npm has $V built from $GH, but this run is $GITHUB_SHA — tagging would point at code the registry does not contain"
+            exit 1
+          else
+            echo "$V on npm was built from this commit"
+          fi
+
       # Publish BEFORE tagging (the tag job `needs` this one), so a tag only
       # ever exists for a release that reached the registry.
       - name: Publish to npm
         if: ${{ (github.event_name == 'push' || inputs.npm) && steps.registry.outputs.published == 'false' }}
         working-directory: ts
-        run: npm publish --access public
+        run: |
+          set -euo pipefail
+          V="${{ steps.versions.outputs.npm_version }}"
+          # A PRERELEASE MUST NOT BECOME `latest`. `npm publish` defaults to the
+          # latest dist-tag, so publishing 1.2.3-beta.1 that way hands it to
+          # every unpinned install.
+          case "$V" in
+            *-*) DIST=next ;;
+            *)   DIST=latest ;;
+          esac
+          echo "publishing $V under dist-tag $DIST"
+          npm publish --access public --tag "$DIST"
 
   # Runs git and nothing else. No npm install, no project code — so the
   # repository-write credential is never in scope while third-party code runs.
@@ -237,8 +302,20 @@ jobs:
         run: |
           set -euo pipefail
           TAG="v${{ needs.publish.outputs.npm_version }}"
-          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
-            echo "$TAG already exists — nothing to do" >> "$GITHUB_STEP_SUMMARY"
+          HEAD_SHA="$(git rev-parse HEAD)"
+
+          # EXISTENCE IS NOT ENOUGH. `--verify` only asks whether the name
+          # resolves; a tag created between the publish job's guard and this
+          # checkout could point anywhere. Treating that as idempotent would
+          # leave a green run with an artifact from THIS commit and a release
+          # tag on a different one.
+          AT="$(git rev-parse -q --verify "refs/tags/$TAG^{commit}" 2>/dev/null || true)"
+          if [ -n "$AT" ]; then
+            if [ "$AT" != "$HEAD_SHA" ]; then
+              echo "::error::$TAG exists on $AT, not this commit ($HEAD_SHA)"
+              exit 1
+            fi
+            echo "$TAG already points here — nothing to do" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
           git tag "$TAG"
@@ -250,8 +327,20 @@ jobs:
         run: |
           set -euo pipefail
           TAG="go/v${{ needs.publish.outputs.go_version }}"
-          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
-            echo "$TAG already exists — nothing to do" >> "$GITHUB_STEP_SUMMARY"
+          HEAD_SHA="$(git rev-parse HEAD)"
+
+          # EXISTENCE IS NOT ENOUGH. `--verify` only asks whether the name
+          # resolves; a tag created between the publish job's guard and this
+          # checkout could point anywhere. Treating that as idempotent would
+          # leave a green run with an artifact from THIS commit and a release
+          # tag on a different one.
+          AT="$(git rev-parse -q --verify "refs/tags/$TAG^{commit}" 2>/dev/null || true)"
+          if [ -n "$AT" ]; then
+            if [ "$AT" != "$HEAD_SHA" ]; then
+              echo "::error::$TAG exists on $AT, not this commit ($HEAD_SHA)"
+              exit 1
+            fi
+            echo "$TAG already points here — nothing to do" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
           git tag "$TAG"
