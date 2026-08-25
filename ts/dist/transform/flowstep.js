@@ -57,7 +57,7 @@ const flowstepTransform = async function (ctx) {
         createStep(opmap, flow, ent, { input: { ref: ref01 } });
         listStep(opmap, flow, ent, { valid: [{ apply: 'ItemExists', def: { ref: ref01 } }] });
         const mark01 = 'Mark01-' + ref01;
-        const firsttf = firstTextField(ent);
+        const firsttf = firstTextField(ent, opmap.update);
         updateStep(opmap, flow, ent, {
             input: {
                 ref: ref01,
@@ -256,11 +256,32 @@ const removeStep = (opmap, flow, ent, args) => {
         flow.step.push(step);
     }
 };
-function firstTextField(ent) {
+// The field the generated basic-flow test WRITES, to prove an update took
+// effect. It must not be a route parameter of the update itself.
+//
+// The test mock builds its lookup selector out of the request data, so when
+// the marked field is also a path segment the selector asks for the record by
+// the value it is about to write — it matches nothing and the mock answers
+// 404, on a flow that is doing exactly what it was told to.
+//
+// trello's notification_channel_setting chose `channel`, the {channel} of
+// PUT /members/{member_id}/notificationsChannelSettings/{channel}, and its js,
+// php and ts suites all failed on it. Updating a routing key is a rename, not
+// a field update, and neither the mock nor the SDK models it as one.
+function firstTextField(ent, op) {
+    const paramNames = {};
+    (0, jostraca_1.each)(op?.points).forEach((pt) => {
+        (0, jostraca_1.each)(pt?.args?.params).forEach((p) => {
+            if (p && null != p.name) {
+                paramNames[p.name] = true;
+            }
+        });
+    });
     const fields = (0, jostraca_1.each)(ent.fields);
     for (let fI = 0; fI < fields.length; fI++) {
         const field = fields[fI];
-        if ('`$STRING`' === field.type && 'id' !== field.name) {
+        if ('`$STRING`' === field.type && 'id' !== field.name &&
+            true !== paramNames[field.name]) {
             return field;
         }
     }
