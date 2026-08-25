@@ -43,11 +43,62 @@ const fieldTransform = async function (ctx) {
         if (idField) {
             ment.id = { name: 'id', field: 'id' };
         }
+        else if (addressedById(ment)) {
+            // The FIELD as well as the descriptor. An entity addressed by id has an
+            // id at runtime — the test fixture seeds one, and the SDK sends it — so
+            // a model that declares the descriptor without the field makes the
+            // generated TYPE disagree with the generated TEST: trello's Option,
+            // Reaction and Sticker compiled to `TS2339: Property 'id' does not
+            // exist` the moment the test started assigning data.id.
+            fields.push({
+                name: 'id',
+                type: '`$STRING`',
+                req: false,
+            });
+            fields.sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+            // ADDRESSABLE BY ID WITHOUT DECLARING ONE AS A FIELD.
+            //
+            // The rule above reads the RESPONSE schema, and plenty of real entities
+            // are addressed by an id their response never repeats. github's
+            // private_registry is one: PATCH /orgs/{org}/private-registries/{secret_name}
+            // renames secret_name to id, so the entity is addressed by id on every
+            // one of its own routes, while its schema declares only created_at, key,
+            // name, url and friends.
+            //
+            // Downstream that absence is not cosmetic. TestEntity gates
+            // `data.id = <created>.id` on THIS descriptor, so the generated update
+            // carried no id at all, the test mock's selector fell back to whatever
+            // else was in reqdata (org_id), matched no single record, and the flow
+            // failed with a 404 that named nothing to do with ids.
+            //
+            // An entity whose own points take an `id` param IS addressable by id;
+            // that is the property the downstream generators actually want. Entities
+            // with neither a field nor an id param — the read-only public APIs the
+            // rule above was written for — still get no descriptor, so they still
+            // get no id assertions.
+            ment.id = { name: 'id', field: 'id' };
+        }
         msg += ment.name + ' ';
     });
     return { ok: true, msg };
 };
 exports.fieldTransform = fieldTransform;
+// True when any of the entity's own operation points declares an `id`
+// parameter — i.e. the API addresses this entity by id, whether or not its
+// response schema declares an id field.
+function addressedById(ment) {
+    let found = false;
+    (0, jostraca_1.each)(ment.op, (mop) => {
+        (0, jostraca_1.each)(mop?.points, (mpoint) => {
+            (0, jostraca_1.each)(mpoint?.args?.params, (param) => {
+                if (param && 'id' === param.name) {
+                    found = true;
+                }
+            });
+        });
+    });
+    return found;
+}
 function resolveOpFields(ment, mop, mpoint, def) {
     const mfields = [];
     const fielddefs = findFieldDefs(ment, mop, mpoint, def);
