@@ -1127,6 +1127,8 @@ type GuideMetrics = {
 type GuideEntity = {
     name: string;
     orig: string;
+    active?: boolean;
+    why_inactive?: string;
     field?: Record<string, GuidePath>;
     path: Record<string, GuidePath>;
 };

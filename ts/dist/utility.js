@@ -26,6 +26,8 @@ exports.slugToPascalCase = slugToPascalCase;
 exports.transliterate = transliterate;
 exports.cleanComponentName = cleanComponentName;
 exports.guideActive = guideActive;
+exports.authExchangeOp = authExchangeOp;
+exports.specSecuredByDefault = specSecuredByDefault;
 exports.ensureMinEntityName = ensureMinEntityName;
 exports.inferFieldType = inferFieldType;
 exports.normalizeFieldName = normalizeFieldName;
@@ -1074,6 +1076,106 @@ const CMP_PREFIXES = ['get_', 'post_', 'put_', 'delete_', 'patch_'];
 // cannot drift on it.
 function guideActive(node) {
     return false !== node?.active;
+}
+// An API's ACCESS-TOKEN EXCHANGE is not a resource, and must not become an
+// entity. The shape apidef looks for is the one every such endpoint has:
+//
+//   1. The spec as a whole is SECURED (a top-level `security` requirement).
+//      Without that, a per-operation `security: []` clears nothing and
+//      carries no signal at all.
+//   2. The operation clears that requirement with its own `security: []` —
+//      it is the one call a client can make before it holds a credential,
+//      because it is what issues them.
+//   3. It is a POST. A credential exchange writes; a GET that happens to
+//      return a field called `token` is far likelier to be a resource.
+//   4. Its success response carries a TOKEN-shaped field.
+//
+// All four together, or it is a resource. There is deliberately no vendor
+// extension and no overlay to say otherwise (ADR-002): a spec apidef does
+// not control cannot be annotated anyway, and a heuristic that can be
+// corrected in guide.aon needs no second correction surface.
+//
+// Returns the field names the exchange uses, which is what sdkgen's
+// `secrets` feature needs to drive it, or null when this is a resource.
+const AUTH_TOKEN_FIELDS = [
+    'access_token', 'accessToken', 'access-token',
+    'id_token', 'idToken',
+    'token', 'jwt',
+];
+// What the exchange SENDS. Optional: an operation answering with an access
+// token is an exchange whether or not apidef recognises the credential it
+// was bought with, and sdkgen carries its own default for the field name.
+const AUTH_CREDENTIAL_FIELDS = [
+    'refresh_token', 'refreshToken', 'refresh-token',
+    'client_secret', 'clientSecret',
+    'assertion', 'grant_type', 'grantType',
+    'api_key', 'apiKey', 'apikey',
+    'password', 'code',
+];
+function authExchangeOp(op, specSecured) {
+    if (true !== specSecured) {
+        return null;
+    }
+    // An empty ARRAY, specifically. `security` absent means "inherit the
+    // global requirement"; `security: []` means "no credential needed here".
+    if (!Array.isArray(op?.security) || 0 !== op.security.length) {
+        return null;
+    }
+    if ('POST' !== String(op?.method ?? '').toUpperCase()) {
+        return null;
+    }
+    const response = firstFieldMatch(schemaProps(successResponseSchema(op?.responses)), AUTH_TOKEN_FIELDS);
+    if (null == response) {
+        return null;
+    }
+    const request = firstFieldMatch(schemaProps(requestBodySchema(op?.requestBody)), AUTH_CREDENTIAL_FIELDS);
+    return { request, response };
+}
+// Does the spec require a credential by default? Only a non-empty top-level
+// `security` makes a per-operation `security: []` meaningful.
+function specSecuredByDefault(def) {
+    return Array.isArray(def?.security) && 0 < def.security.length;
+}
+// The 2xx body schema, OpenAPI 3 (`content`) or Swagger 2 (`schema`).
+function successResponseSchema(responses) {
+    const res = responses?.['200'] ?? responses?.[200] ??
+        responses?.['201'] ?? responses?.[201];
+    if (null == res) {
+        return null;
+    }
+    return res.content?.['application/json']?.schema ?? res.schema ?? null;
+}
+function requestBodySchema(requestBody) {
+    if (null == requestBody) {
+        return null;
+    }
+    return requestBody.content?.['application/json']?.schema ?? null;
+}
+function schemaProps(schema) {
+    const props = schema?.properties;
+    if (null == props || 'object' !== typeof props) {
+        return [];
+    }
+    return Object.keys(props);
+}
+// First name in `names` that the schema declares, compared case-insensitively
+// so `Access_Token` matches `access_token`. Ordered by the CANDIDATE list, not
+// by declaration order, so `access_token` wins over a sibling `token`.
+function firstFieldMatch(props, names) {
+    const lower = new Map();
+    for (const p of props) {
+        const k = p.toLowerCase();
+        if (!lower.has(k)) {
+            lower.set(k, p);
+        }
+    }
+    for (const name of names) {
+        const hit = lower.get(name.toLowerCase());
+        if (null != hit) {
+            return hit;
+        }
+    }
+    return null;
 }
 function cleanComponentName(name, isKnownCmp) {
     let cleaned = name;

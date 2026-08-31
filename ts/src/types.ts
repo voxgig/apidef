@@ -255,6 +255,13 @@ type GuideMetrics = {
 type GuideEntity = {
   name: string
   orig: string
+  // `false` drops the entity downstream (transform/entity.ts). Emitted by
+  // the heuristic for an access-token exchange, and editable in guide.aon —
+  // which is the ONLY correction surface (ADR-002).
+  active?: boolean
+  // Why the heuristic deactivated it, so guide.aon reads as a record of a
+  // decision rather than an unexplained `active: false`.
+  why_inactive?: string
   // GraphQL guides key operations by schema root field instead of path;
   // the two branches are mutually exclusive per guide.
   field?: Record<string, GuidePath>

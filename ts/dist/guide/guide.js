@@ -220,6 +220,23 @@ async function buildBaseGuide(ctx) {
     (0, struct_1.items)(baseguide.entity).map(([entname, entity]) => {
         guideBlocks.push(`
   entity: ${entname}: {`);
+        // An entity the heuristic deactivated (today: an access-token exchange,
+        // which is credential plumbing rather than a resource) is EMITTED, not
+        // dropped, so the classification is visible and reversible in guide.aon
+        // — the only correction surface (ADR-002).
+        //
+        // `*false` — a DEFAULT, not a concrete value. aontu conflicts two
+        // concrete values rather than letting one win, so a concrete `active:
+        // false` here would make a user's `guide: entity: <name>: active: true`
+        // in guide.aon fail to unify instead of overriding it. That is the same
+        // trap the `method: *POST` entries above avoid.
+        if (false === entity.active) {
+            const why = entity.why_inactive;
+            guideBlocks.push(`    # Deactivated by the heuristic` +
+                (null == why ? '' : ` (${why})`) + `. Set` +
+                ` \`active: true\` here in guide.aon to generate it as an entity.`);
+            guideBlocks.push(`    active: *false`);
+        }
         // NOTE: items(...) sorts the entries, so output is deterministic.
         (0, struct_1.items)(entity.path).map(([pathstr, path]) => emitEntry('path', entname, entity, pathstr, path));
         (0, struct_1.items)(entity.field).map(([fieldstr, path]) => emitEntry('field', entname, entity, fieldstr, path));
