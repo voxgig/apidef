@@ -23,6 +23,8 @@ import {
   getModelPath,
   envelopeProp,
   closedBodyTransform,
+  authExchangeOp,
+  specSecuredByDefault,
 } from '../dist/utility'
 
 import {
@@ -600,4 +602,44 @@ describe('tsv-graphql-classify', () => {
       assert.deepStrictEqual(got, expected)
     })
   }
+})
+
+
+// An API's access-token exchange is credential plumbing, not a resource, and
+// must not become an entity (ADR-002). This fixture pins the four signals the
+// heuristic requires together — a secured spec, a per-operation `security: []`
+// clearing it, a POST, and a token-shaped success response — and the field
+// names it reports back, which are what sdkgen's `secrets` feature drives the
+// exchange with. There is deliberately no vendor extension or overlay to
+// override it: correction happens in guide.aon.
+describe('tsv-auth-exchange', () => {
+  const rows = loadTsv('auth-exchange')
+  for (const row of rows) {
+    test(`authExchangeOp(${row.note}) => ${row.expected || 'null'}`, () => {
+      const op = JSON.parse(row.op)
+      const secured = 'true' === row.secured
+      const expected = '' === row.expected ? null : JSON.parse(row.expected)
+      assert.deepStrictEqual(authExchangeOp(op, secured), expected)
+    })
+  }
+})
+
+
+// `security: []` on an operation only MEANS anything when there is a
+// top-level requirement for it to clear. Pinned separately because it is the
+// gate on the whole heuristic: get this wrong and every public API's
+// endpoints look like credential exchanges.
+describe('spec-secured-by-default', () => {
+  test('non-empty top-level security', () => {
+    assert.strictEqual(specSecuredByDefault({ security: [{ bearerAuth: [] }] }), true)
+  })
+  test('empty top-level security', () => {
+    assert.strictEqual(specSecuredByDefault({ security: [] }), false)
+  })
+  test('no top-level security', () => {
+    assert.strictEqual(specSecuredByDefault({}), false)
+  })
+  test('null def', () => {
+    assert.strictEqual(specSecuredByDefault(null), false)
+  })
 })

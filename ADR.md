@@ -18,6 +18,7 @@ ADR-NNN**, so the reasoning that led there stays readable.
 | ADR | Decision | Status |
 |-----|----------|--------|
 | [ADR-001](#adr-001--entity-names-are-singular-always) | Entity names are singular, always | Accepted |
+| [ADR-002](#adr-002--guideaon-is-the-only-correction-surface) | `guide.aon` is the only correction surface | Accepted |
 
 ---
 
@@ -172,3 +173,112 @@ We accept that:
   must exempt them, or it will flag the correct name as the defect. The
   same assertion applied to a FIELD name would be a bug in the test, not
   a finding.
+
+
+---
+
+## ADR-002 — `guide.aon` is the only correction surface
+
+**Status:** Accepted
+
+### Context
+
+apidef *infers*. It reads a spec that never names an entity and decides
+which paths form a resource, which methods are CRUD, and which
+operations are not resources at all. Inference is wrong sometimes, so
+there must be a way to correct it — and the question this ADR settles is
+**where that way lives**, because there were three candidates and each
+one is individually reasonable.
+
+1. **A vendor extension in the spec** — `x-voxgig-entity: false`,
+   `x-voxgig-auth: exchange`. Deterministic, and it sits beside the thing
+   it describes.
+2. **An overlay document** — a separate file of patches applied to the
+   spec before parsing, in the shape of the OpenAPI Overlay
+   specification.
+3. **`guide.aon`** — the file apidef already generates, already
+   documents as the escape hatch, and already reads back on every run.
+
+The decisive fact is **whose spec it is**. The specs apidef is pointed at
+are, in the main, not ours: they are published by the API's owner,
+fetched from a URL, and re-fetched when the API changes. An annotation
+added to such a file is lost on the next fetch, and cannot be added at
+all when the spec is served rather than stored. A correction surface
+that only works on specs you control is not a correction surface — it is
+a second way to write the spec, available exactly when you least need it.
+
+The overlay avoids that, and is a real specification with real tooling.
+But it buys the same capability `guide.aon` already has, in a second
+file, with a second syntax, applied at a different pipeline stage — and
+then every correction has two possible homes and a precedence question
+between them. `guide.aon` had `active?: boolean` at entity, path, op and
+field level before this decision was written; what it lacked was code
+that read it, which is a bug, not an argument for a new mechanism.
+
+### Decision
+
+**All customisation and correction of apidef's inference happens in
+`guide.aon`. apidef reads no vendor extensions (`x-*`) and no overlay
+documents, and emits none.**
+
+Heuristics are free to be as clever as the evidence allows, because
+`guide.aon` is always there to overrule them. Two consequences follow,
+and both are load-bearing:
+
+- **A heuristic must never silently DROP anything.** A classification
+  that removes an entity has to emit it with `active: false`, not omit
+  it — an entity that is absent from `guide.aon` cannot be switched back
+  on there, which would leave the user with no correction surface at all
+  and hand the argument back to the vendor extension. Emit, deactivate,
+  explain in a comment.
+- **Generated defaults must be aontu DEFAULTS (`*value`), never concrete
+  values.** aontu conflicts two concrete values rather than letting one
+  win, so a concrete `active: false` in the generated `base-guide.aon`
+  would make a user's `active: true` in `guide.aon` fail to unify instead
+  of overriding it. The correction surface only works if what it
+  overrides yields.
+
+The first application is the **access-token exchange**: an operation
+that issues credentials is not a resource, and `authExchangeOp()`
+recognises it from four signals together — a secured spec, a
+per-operation `security: []` clearing that requirement, a POST, and a
+token-shaped success response. The entity is emitted deactivated, and
+the exchange survives into the model as facts on
+`info.security.exchange` for sdkgen's `secrets` feature to drive.
+
+### Consequences we accept
+
+- **A wrong heuristic is a wrong DEFAULT, not a wrong answer**, and the
+  fix is one line in a file the user already has. But it is still a
+  default: someone must notice. A heuristic that misfires quietly on a
+  spec nobody inspects ships a wrong SDK, and no amount of correction
+  surface prevents that — which is why the signals are conjunctions
+  rather than any-of, and why each deactivation writes a comment saying
+  what decided it.
+- **We cannot express anything that has no `guide.aon` representation.**
+  When a new kind of correction is needed, the guide model grows — that
+  is the cost, and it is deliberately paid in the schema rather than in
+  a new file format.
+- **Specs we DO own gain nothing from owning them.** The elementdemo
+  reference spec is ours, and an `x-voxgig-auth: exchange` in it would
+  be simpler than the heuristic. We do not write one, because a
+  reference API whose SDK generates only by virtue of an annotation no
+  third-party spec carries stops being a test of the real path. It is
+  meant to stress the generator the way an unowned spec would.
+
+### Enforcement
+
+- `authExchangeOp()` and `specSecuredByDefault()` in `ts/src/utility.ts`
+  are the canonical detection, pinned by `ts/test/auth-exchange.tsv`
+  (14 rows, both polarities) through `ts/test/tsv.test.ts`.
+- `guideActive()` is the single reader of `active`, consumed by the
+  entity, path, op and field transforms. A new suppression must route
+  through it rather than filtering a list somewhere.
+- The guide emitter (`ts/src/guide/guide.ts`) writes `active: *false` —
+  the star is not decoration. A plain `active: false` there passes every
+  test in this repo and breaks the override in the consumer's project,
+  where the two concrete values meet.
+- **Grep for `x-` before adding a spec-reading branch.** apidef reads
+  `x-ref` (a `$ref` bookkeeping key of its own making, not a vendor
+  extension) and nothing else. A genuine `x-*` read is a reversal of
+  this ADR and needs an ADR of its own.

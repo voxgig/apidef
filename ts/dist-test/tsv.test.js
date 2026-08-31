@@ -525,4 +525,40 @@ function loadTsv(name) {
         });
     }
 });
+// An API's access-token exchange is credential plumbing, not a resource, and
+// must not become an entity (ADR-002). This fixture pins the four signals the
+// heuristic requires together — a secured spec, a per-operation `security: []`
+// clearing it, a POST, and a token-shaped success response — and the field
+// names it reports back, which are what sdkgen's `secrets` feature drives the
+// exchange with. There is deliberately no vendor extension or overlay to
+// override it: correction happens in guide.aon.
+(0, node_test_1.describe)('tsv-auth-exchange', () => {
+    const rows = loadTsv('auth-exchange');
+    for (const row of rows) {
+        (0, node_test_1.test)(`authExchangeOp(${row.note}) => ${row.expected || 'null'}`, () => {
+            const op = JSON.parse(row.op);
+            const secured = 'true' === row.secured;
+            const expected = '' === row.expected ? null : JSON.parse(row.expected);
+            node_assert_1.default.deepStrictEqual((0, utility_1.authExchangeOp)(op, secured), expected);
+        });
+    }
+});
+// `security: []` on an operation only MEANS anything when there is a
+// top-level requirement for it to clear. Pinned separately because it is the
+// gate on the whole heuristic: get this wrong and every public API's
+// endpoints look like credential exchanges.
+(0, node_test_1.describe)('spec-secured-by-default', () => {
+    (0, node_test_1.test)('non-empty top-level security', () => {
+        node_assert_1.default.strictEqual((0, utility_1.specSecuredByDefault)({ security: [{ bearerAuth: [] }] }), true);
+    });
+    (0, node_test_1.test)('empty top-level security', () => {
+        node_assert_1.default.strictEqual((0, utility_1.specSecuredByDefault)({ security: [] }), false);
+    });
+    (0, node_test_1.test)('no top-level security', () => {
+        node_assert_1.default.strictEqual((0, utility_1.specSecuredByDefault)({}), false);
+    });
+    (0, node_test_1.test)('null def', () => {
+        node_assert_1.default.strictEqual((0, utility_1.specSecuredByDefault)(null), false);
+    });
+});
 //# sourceMappingURL=tsv.test.js.map

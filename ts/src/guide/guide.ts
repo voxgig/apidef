@@ -306,6 +306,25 @@ async function buildBaseGuide(ctx: ApiDefContext) {
     guideBlocks.push(`
   entity: ${entname}: {`)
 
+    // An entity the heuristic deactivated (today: an access-token exchange,
+    // which is credential plumbing rather than a resource) is EMITTED, not
+    // dropped, so the classification is visible and reversible in guide.aon
+    // — the only correction surface (ADR-002).
+    //
+    // `*false` — a DEFAULT, not a concrete value. aontu conflicts two
+    // concrete values rather than letting one win, so a concrete `active:
+    // false` here would make a user's `guide: entity: <name>: active: true`
+    // in guide.aon fail to unify instead of overriding it. That is the same
+    // trap the `method: *POST` entries above avoid.
+    if (false === entity.active) {
+      const why = (entity as any).why_inactive
+      guideBlocks.push(
+        `    # Deactivated by the heuristic` +
+        (null == why ? '' : ` (${why})`) + `. Set` +
+        ` \`active: true\` here in guide.aon to generate it as an entity.`)
+      guideBlocks.push(`    active: *false`)
+    }
+
     // NOTE: items(...) sorts the entries, so output is deterministic.
     items(entity.path).map(([pathstr, path]: [string, GuidePath]) =>
       emitEntry('path', entname, entity, pathstr, path))

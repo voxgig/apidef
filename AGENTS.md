@@ -7,7 +7,11 @@ the orientation layer.
 Fundamentals are recorded in [`ADR.md`](./ADR.md): decisions everything else
 is built on, which must not be quietly reversed. **ADR-001 — entity names are
 singular, always**, is the one most easily broken by accident, because every
-source apidef infers a name from is naturally plural.
+source apidef infers a name from is naturally plural. **ADR-002 — `guide.aon`
+is the only correction surface**: apidef reads no `x-*` vendor extensions and
+no overlay documents, so a heuristic must EMIT a rejected classification with
+`active: *false` rather than dropping it — anything dropped cannot be switched
+back on.
 
 ## What this tool does
 

@@ -7,7 +7,10 @@ import { each } from 'jostraca'
 
 import { size, merge, getelem, isempty, items, keysof } from '@voxgig/struct'
 
-import { isEntityWrapperProp, envelopeProp, closedBodyTransform } from '../utility'
+import {
+  isEntityWrapperProp, envelopeProp, closedBodyTransform,
+  authExchangeOp, specSecuredByDefault,
+} from '../utility'
 
 
 import {
@@ -353,6 +356,9 @@ function selectAllMethods(_source: any, spec: TaskSpec): MethodDesc[] {
         parameters: mdef.parameters,
         responses: mdef.responses,
         requestBody: mdef.requestBody,
+        // Carried so authExchangeOp can see a per-operation `security: []`.
+        // Everything downstream ignores it.
+        security: mdef.security,
       })
     }
   }
@@ -1065,6 +1071,16 @@ function ResolveOperation(spec: TaskSpec) {
   ment.opname = opname
   ment.why_opname = why_op
 
+  // Tally access-token exchanges per entity. An entity whose ops are ALL
+  // exchange is deactivated in BuildEntity: it is credential plumbing, not a
+  // resource. Counted here rather than in BuildEntity because this is where
+  // an op is known to be real — the `no-op` early return above has already
+  // discarded the methods that never become operations.
+  entdesc.total_ops = (entdesc.total_ops ?? 0) + 1
+  if (null != authExchangeOp(mdesc, specSecuredByDefault(spec.data.def))) {
+    entdesc.authexchange_ops = (entdesc.authexchange_ops ?? 0) + 1
+  }
+
   const op = entdesc.path[pathStr].op
 
   const opdef = {
@@ -1213,11 +1229,24 @@ function BuildEntity(spec: TaskSpec) {
     path[pathstr] = guidepath
   })
 
-  entityMap[entdesc.name] = {
+  const guideEntity: GuideEntity = {
     name: entdesc.name,
     orig: entdesc.origcmp,
     path,
   }
+
+  // An entity built ENTIRELY out of access-token exchanges is not a resource
+  // — it is the credential plumbing an SDK's auth layer performs. Emitted
+  // with `active: false` rather than dropped, so it stays visible in
+  // guide.aon and the classification can be reversed there (ADR-002): flip
+  // it to `true` and the entity comes back. The exchange itself is recorded
+  // separately as model facts by transform/top.ts.
+  if (0 < entdesc.authexchange_ops && entdesc.authexchange_ops === entdesc.total_ops) {
+    guideEntity.active = false
+    guideEntity.why_inactive = 'auth-exchange'
+  }
+
+  entityMap[entdesc.name] = guideEntity
 
 }
 

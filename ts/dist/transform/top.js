@@ -73,6 +73,16 @@ const topTransform = async function (ctx) {
         const security = resolveSecurity(def);
         if (null != security) {
             kit.info.security = security;
+            // Record the ACCESS-TOKEN EXCHANGE, when the spec describes one. The
+            // endpoint that issues credentials is not a resource and does not
+            // become an entity (the guide deactivates it — see
+            // guide/heuristic01.ts and ADR-002); these facts are how it survives
+            // into the model instead, and they are exactly what sdkgen's
+            // `secrets` feature needs to drive the exchange.
+            const exchange = findAuthExchange(def);
+            if (null != exchange) {
+                kit.info.security.exchange = exchange;
+            }
         }
     }
     // Swagger 2.0
@@ -310,6 +320,44 @@ function resolveSecurity(def) {
         // else: raw credential in a named header/query/cookie — no prefix.
     }
     return out;
+}
+// Find the spec's access-token exchange and describe it as model facts:
+// where it lives, and the field names it sends and answers with. Returns
+// null when the spec describes no exchange, which is the common case.
+//
+// `path` is RELATIVE to the server URL, with no leading slash, because the
+// server URL already carries whatever account or tenant segment the API
+// templates into it — an absolute path would drop that segment. sdkgen's
+// secrets feature resolves it against `options.base` for the same reason.
+//
+// Only the FIRST exchange is recorded. A spec describing two token
+// endpoints is describing two auth schemes, which is a bigger thing than a
+// field on info.security and is not guessed at here.
+function findAuthExchange(def) {
+    const secured = (0, utility_1.specSecuredByDefault)(def);
+    if (!secured) {
+        return null;
+    }
+    for (const [pathStr, pdef] of (0, utility_1.sortedEntries)(def.paths ?? {})) {
+        for (const [methodName, mdef] of (0, utility_1.sortedEntries)(pdef)) {
+            const found = (0, utility_1.authExchangeOp)({ ...mdef, method: methodName.toUpperCase() }, secured);
+            if (null != found) {
+                const out = {
+                    path: String(pathStr).replace(/^\/+/, ''),
+                    method: methodName.toUpperCase(),
+                    response: found.response,
+                };
+                // Only when the heuristic actually recognised the credential field.
+                // Absent, sdkgen keeps its own documented default rather than
+                // carrying a guess that reads like a fact.
+                if (null != found.request) {
+                    out.request = found.request;
+                }
+                return out;
+            }
+        }
+    }
+    return null;
 }
 // Extract the credential prefix from a securityScheme's / info prose.
 // Three signals, in confidence order:
