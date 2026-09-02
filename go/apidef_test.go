@@ -390,6 +390,29 @@ func assertSegments(t *testing.T, paths []map[string]any, want [][]map[string]an
 	}
 }
 
+// A COMPOUND element: two placeholders glued together with a separator that
+// belongs to neither, e.g. /x/{outputFields}.{format}. Typing it as a var
+// would invent a parameter named `outputFields}.{format`, which matches
+// nothing in args.params. It is a literal — the same thing the braced-string
+// form did with it, since the rename lookup was a whole-element match too.
+func TestResolvePathListCompoundElement(t *testing.T) {
+	paths := resolvePathList(map[string]any{
+		"path": map[string]any{
+			"/x/{a}.{b}": map[string]any{
+				"rename": map[string]any{"param": map[string]any{"a": "aa", "b": "bb"}},
+			},
+			"/y/{}":     map[string]any{},
+			"/z/pre{c}": map[string]any{},
+		},
+	}, map[string]any{"paths": map[string]any{}})
+
+	assertSegments(t, paths, [][]map[string]any{
+		{{"lit": "x"}, {"lit": "{a}.{b}"}},
+		{{"lit": "y"}, {"lit": "{}"}},
+		{{"lit": "z"}, {"lit": "pre{c}"}},
+	})
+}
+
 // End-to-end guard for ADR-003: the emitted model carries typed `segments`
 // and no braced-string `parts` for a consumer to parse back out. Also catches
 // a formatter that cannot serialise the segment vector — before the reflect

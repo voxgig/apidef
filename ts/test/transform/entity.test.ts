@@ -85,6 +85,29 @@ describe('transform-entity', () => {
   })
 
 
+  // A COMPOUND element: two placeholders glued together with a separator
+  // that belongs to neither, e.g. `/x/{outputFields}.{format}`. Typing it
+  // `{ var }` would invent a parameter named `outputFields}.{format`, which
+  // matches nothing in args.params. It is a literal — the same thing the
+  // braced-string form did with it, since the rename lookup was a
+  // whole-element match too.
+  test('resolvePathList: a compound element is a literal, not a bogus var', () => {
+    const paths = resolvePathList({
+      path: {
+        '/x/{a}.{b}': { rename: { param: { a: 'aa', b: 'bb' } } },
+        '/y/{}': {},
+        '/z/pre{c}': {},
+      }
+    } as any, { paths: {} } as any)
+
+    assert.deepStrictEqual(paths.map((p: any) => p.segments), [
+      [{ lit: 'x' }, { lit: '{a}.{b}' }],
+      [{ lit: 'y' }, { lit: '{}' }],
+      [{ lit: 'z' }, { lit: 'pre{c}' }],
+    ])
+  })
+
+
   test('buildRelations', () => {
     assert.ok(buildRelations)
 

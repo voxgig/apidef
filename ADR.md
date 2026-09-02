@@ -338,6 +338,13 @@ A segment is a literal or a variable, and nothing else:
 segments: [ { lit: "element" }, { var: "id" } ]
 ```
 
+A segment is a WHOLE path element or nothing: `{a}.{b}` is two parameters
+glued together with a separator that belongs to neither, so it has no honest
+`var` and stays a literal. Deciding otherwise would invent a parameter named
+`a}.{b`, matching nothing in `args.params`. This is also what the braced form
+did with it — the rename lookup was a whole-element match — so the rule is
+not new, only now explicit.
+
 Two things make option 2 wrong rather than merely redundant.
 
 - **The string form is LOSSY.** `"{id}"` cannot represent a literal path

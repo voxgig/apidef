@@ -179,6 +179,15 @@ function resolvePathList(guideEntity, def) {
                 return { lit: p };
             }
             const raw = p.slice(1, -1);
+            // A WHOLE element is the placeholder, or it is a literal. `{a}.{b}`
+            // is two parameters glued into one element with a separator that
+            // belongs to neither; it is not one parameter called `a}.{b`, and
+            // there is no honest `var` for it. `{}` names nothing. Both stay
+            // literal — which is exactly what the braced-string form did with
+            // them, since the rename lookup was a whole-element match too.
+            if ('' === raw || raw.includes('{') || raw.includes('}')) {
+                return { lit: p };
+            }
             // Renames map the spec's parameter name to the model's. Applied
             // here, on the NAME, rather than by rewriting a braced string.
             const renamed = rename.param?.[raw];

@@ -235,6 +235,17 @@ func resolvePathList(guideEntity map[string]any, def map[string]any) []map[strin
 				continue
 			}
 			raw := part[1 : len(part)-1]
+			// A WHOLE element is the placeholder, or it is a literal.
+			// `{a}.{b}` is two parameters glued into one element with a
+			// separator that belongs to neither; it is not one parameter
+			// called `a}.{b`, and there is no honest var for it. `{}` names
+			// nothing. Both stay literal — which is what the braced-string
+			// form did with them, since the rename lookup was a whole-element
+			// match too. Mirrors src/transform/entity.ts.
+			if raw == "" || strings.ContainsAny(raw, "{}") {
+				segments = append(segments, map[string]any{"lit": part})
+				continue
+			}
 			name := raw
 			if newName, ok := paramRename[raw]; ok {
 				if newStr, ok := newName.(string); ok && newStr != "" {
