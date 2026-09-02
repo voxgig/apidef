@@ -44,6 +44,58 @@ const aontu = new Aontu()
 
 
 
+
+// MIGRATE, DO NOT ABANDON. The guide is the one model file the user owns —
+// entity renames, hides, method overrides, response transforms. Reading
+// `guide.aon` without this would find nothing in any project created before
+// the extension rename, silently discarding every customization in the 660
+// generated repos that carry a guide.aontu.
+//
+// RENAMING THE FILE IS NOT ENOUGH, and doing only that was worse than doing
+// nothing: a legacy guide `@`-includes two files BY THE OLD EXTENSION —
+// `@voxgig/apidef/model/guide.aontu`, which this package no longer ships, and
+// its sibling `<prefix>base-guide.aontu`, which is now written as `.aon`.
+// Carried across byte-for-byte, both dangle, and every build of such a
+// project dies on
+//
+//   [aontu/multisource_not_found]: source not found:
+//     @voxgig/apidef/model/guide.aontu
+//
+// — which is what apidef-validate hit on all 14 of its real-world specs. So
+// the two includes the rename invalidates are rewritten with it. Nothing else
+// is touched: the rest of the file is the user's.
+//
+// Returns true when a migration actually happened.
+function migrateLegacyGuide(fs: any, folder: string, guideprefix: string): boolean {
+  const guidepath = Path.join(folder, 'guide', guideprefix + 'guide.aon')
+  const legacyguide = Path.join(folder, 'guide', guideprefix + 'guide.aontu')
+
+  if (fs.existsSync(guidepath) || !fs.existsSync(legacyguide)) {
+    return false
+  }
+
+  // EXACTLY the two includes the rename invalidates, and no others.
+  //
+  // The sibling is `<guideprefix>base-guide`, because that is the only
+  // base-guide this build writes. Matching any `*base-guide.aontu` instead
+  // would rewrite a user's own `@"shared-base-guide.aontu"` — a file nothing
+  // renamed — into a path that does not exist, breaking the guide while
+  // deleting the original. A plain split/join keeps the prefix a literal, so
+  // a prefix containing regex metacharacters cannot widen the match either.
+  const legacysrc = String(fs.readFileSync(legacyguide, 'utf8'))
+  const migrated = legacysrc
+    .replace(/@"@voxgig\/apidef\/model\/guide\.aontu"/g,
+      '@"@voxgig/apidef/model/guide.aon"')
+    .split('@"' + guideprefix + 'base-guide.aontu"')
+    .join('@"' + guideprefix + 'base-guide.aon"')
+
+  fs.writeFileSync(guidepath, migrated)
+  try { fs.unlinkSync(legacyguide) } catch (_err: any) { }
+
+  return true
+}
+
+
 async function buildGuide(ctx: ApiDefContext): Promise<any> {
   const log = ctx.log
   const errs: any[] = []
@@ -63,16 +115,7 @@ async function buildGuide(ctx: ApiDefContext): Promise<any> {
   const guideprefix = null == ctx.opts.outprefix ? '' : ctx.opts.outprefix
   let guidepath = Path.join(folder, 'guide', guideprefix + 'guide.aon')
 
-  // MIGRATE, DO NOT ABANDON. The guide is the one model file the user owns —
-  // entity renames, hides, method overrides, response transforms. Reading
-  // `guide.aon` without this would find nothing in any project created before
-  // the extension rename, silently discarding every customization in the 660
-  // generated repos that carry a guide.aontu. So a legacy file is RENAMED
-  // here, once, contents byte-for-byte.
-  const legacyguide = Path.join(folder, 'guide', guideprefix + 'guide.aontu')
-  if (!ctx.fs.existsSync(guidepath) && ctx.fs.existsSync(legacyguide)) {
-    ctx.fs.writeFileSync(guidepath, ctx.fs.readFileSync(legacyguide))
-    try { ctx.fs.unlinkSync(legacyguide) } catch (_err: any) { }
+  if (migrateLegacyGuide(ctx.fs, folder, guideprefix)) {
     log.info({ point: 'migrate-guide', note: 'guide.aontu -> guide.aon' })
   }
 
@@ -509,5 +552,6 @@ function validateBaseBuide(ctx: ApiDefContext, baseguide: any) {
 
 
 export {
+  migrateLegacyGuide,
   buildGuide
 }
