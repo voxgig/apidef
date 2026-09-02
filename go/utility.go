@@ -12,6 +12,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"sort"
 	"strconv"
@@ -1258,6 +1259,33 @@ func formatJSONICValue(val any, indent int, prefix string, lines *[]string, seen
 		}
 		*lines = append(*lines, indentStr+"}"+sep)
 	default:
+		// Any other slice or map — e.g. the []map[string]any of a point's
+		// url segments. Normalise to the []any / map[string]any cases above
+		// rather than adding a case per concrete type: the fallthrough used
+		// to reach fmt %v, which emits Go's `map[lit:api]` into a file that
+		// is supposed to be aontu source. Silently, since %v never fails.
+		rv := reflect.ValueOf(val)
+		switch rv.Kind() {
+		case reflect.Slice, reflect.Array:
+			// []byte is data, not a list of numbers.
+			if rv.Kind() == reflect.Slice && rv.Type().Elem().Kind() == reflect.Uint8 {
+				break
+			}
+			items := make([]any, rv.Len())
+			for i := 0; i < rv.Len(); i++ {
+				items[i] = rv.Index(i).Interface()
+			}
+			formatJSONICValue(items, indent, prefix, lines, seen)
+			return
+		case reflect.Map:
+			m := make(map[string]any, rv.Len())
+			iter := rv.MapRange()
+			for iter.Next() {
+				m[fmt.Sprint(iter.Key().Interface())] = iter.Value().Interface()
+			}
+			formatJSONICValue(m, indent, prefix, lines, seen)
+			return
+		}
 		*lines = append(*lines, prefix+fmt.Sprintf("%v", val))
 	}
 }

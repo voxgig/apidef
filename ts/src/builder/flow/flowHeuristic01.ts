@@ -197,7 +197,7 @@ function resolveBasicEntityFlow(ctx: any, entity: any) {
 
 
 function findMainLoadPoint(op: ModelOp): ModelPoint | undefined {
-  let cands = op.points.filter(a => '{id}' === getelem(a.parts, -1))
+  let cands = op.points.filter(a => 'id' === getelem(a.segments, -1)?.var)
   return cands[0]
 }
 

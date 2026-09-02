@@ -74,17 +74,25 @@
           },
           "method": "POST",
           "orig": "/{year}/domain/{id}/kingdom",
-          "parts": [
-            "{year}",
-            "domain",
-            "{domain_id}",
-            "kingdom"
-          ],
           "rename": {
             "param": {
               "id": "domain_id"
             }
           },
+          "segments": [
+            {
+              "var": "year"
+            },
+            {
+              "lit": "domain"
+            },
+            {
+              "var": "domain_id"
+            },
+            {
+              "lit": "kingdom"
+            }
+          ],
           "select": {
             "exist": [
               "domain_id",
@@ -138,17 +146,25 @@
           },
           "method": "GET",
           "orig": "/{year}/domain/{id}/kingdom",
-          "parts": [
-            "{year}",
-            "domain",
-            "{domain_id}",
-            "kingdom"
-          ],
           "rename": {
             "param": {
               "id": "domain_id"
             }
           },
+          "segments": [
+            {
+              "var": "year"
+            },
+            {
+              "lit": "domain"
+            },
+            {
+              "var": "domain_id"
+            },
+            {
+              "lit": "kingdom"
+            }
+          ],
           "select": {
             "exist": [
               "domain_id",
@@ -197,18 +213,28 @@
           },
           "method": "GET",
           "orig": "/{year}/domain/{domain_id}/kingdom/{kingdom_id}",
-          "parts": [
-            "{year}",
-            "domain",
-            "{domain_id}",
-            "kingdom",
-            "{id}"
-          ],
           "rename": {
             "param": {
               "kingdom_id": "id"
             }
           },
+          "segments": [
+            {
+              "var": "year"
+            },
+            {
+              "lit": "domain"
+            },
+            {
+              "var": "domain_id"
+            },
+            {
+              "lit": "kingdom"
+            },
+            {
+              "var": "id"
+            }
+          ],
           "select": {
             "exist": [
               "",

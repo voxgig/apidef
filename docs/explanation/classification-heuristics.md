@@ -18,6 +18,11 @@ A path like `/api/planet/{planet_id}/moon/{moon_id}` becomes the parts
 ```
 
 Segments wrapped in `{…}` are **parameters**; the rest are **literals**.
+
+These string parts belong to the GUIDE step alone — the classifier's own
+working view of the path. They are not what the MODEL carries: a point's
+path is emitted as a typed `segments` vector with the braces already
+resolved away (see [ADR-003](../../ADR.md#adr-003--the-model-carries-resolved-structure-not-templates-to-parse)).
 Reading the parts left to right, the guide recognizes the familiar REST
 shapes: a *collection* segment (`planet`) optionally followed by an *item*
 selector (`{planet_id}`), optionally nested (`moon`, `{moon_id}`).

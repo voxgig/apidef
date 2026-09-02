@@ -65,12 +65,12 @@ func collectOps(gent map[string]any, pathsDesc []map[string]any, methodIDOp map[
 			method, _ := gopMap["method"].(string)
 
 			opPathDesc := map[string]any{
-				"orig":   pathdesc["orig"],
-				"parts":  pathdesc["parts"],
-				"rename": pathdesc["rename"],
-				"method": method,
-				"op":     gop,
-				"def":    pathdesc["def"],
+				"orig":     pathdesc["orig"],
+				"segments": pathdesc["segments"],
+				"rename":   pathdesc["rename"],
+				"method":   method,
+				"op":       gop,
+				"def":      pathdesc["def"],
 			}
 			opmWork[opname] = append(opmWork[opname], opPathDesc)
 		}
@@ -82,7 +82,17 @@ func collectOps(gent map[string]any, pathsDesc []map[string]any, methodIDOp map[
 		paths := opmWork[opname]
 		points := make([]any, 0)
 		for _, p := range paths {
-			parts := applyRename(p)
+			// Renames are already applied by resolvePathList in
+			// transform_entity.go — THE construction site (ADR-003). A second
+			// pass here re-read names it had just written: gitlab's
+			// /groups/{id}/badges/{badge_id} with rename
+			// {badge_id: 'id', id: 'project_id'} became
+			// /groups/{project_id}/badges/{project_id}, silently dropping an
+			// argument. Mirrors src/transform/operation.ts.
+			segments, _ := p["segments"].([]map[string]any)
+			if segments == nil {
+				segments = []map[string]any{}
+			}
 			// Carry the per-path op transform (res `body.<entname>`, req
 			// `{<entname>: reqdata}`) computed by the guide step
 			// (resolveTransform) onto the model point, then fall back to the
@@ -106,7 +116,7 @@ func collectOps(gent map[string]any, pathsDesc []map[string]any, methodIDOp map[
 
 			mtarget := map[string]any{
 				"orig":      p["orig"],
-				"parts":     parts,
+				"segments":  segments,
 				"rename":    p["rename"],
 				"method":    p["method"],
 				"args":      map[string]any{},
@@ -125,40 +135,4 @@ func collectOps(gent map[string]any, pathsDesc []map[string]any, methodIDOp map[
 	}
 
 	return opm
-}
-
-func applyRename(pathdesc map[string]any) []string {
-	parts, _ := pathdesc["parts"].([]string)
-	rename, _ := pathdesc["rename"].(map[string]any)
-	paramRename := map[string]string{}
-	if rename != nil {
-		if pr, ok := rename["param"].(map[string]any); ok {
-			for _, k := range sortedKeys(pr) {
-				v := pr[k]
-				switch vt := v.(type) {
-				case string:
-					paramRename[k] = vt
-				case map[string]any:
-					if target, ok := vt["target"].(string); ok {
-						paramRename[k] = target
-					}
-				}
-			}
-		}
-	}
-
-	result := make([]string, len(parts))
-	for i, p := range parts {
-		if len(p) > 0 && p[0] == '{' {
-			name := p[1 : len(p)-1]
-			if newName, ok := paramRename[name]; ok {
-				result[i] = "{" + newName + "}"
-			} else {
-				result[i] = p
-			}
-		} else {
-			result[i] = p
-		}
-	}
-	return result
 }

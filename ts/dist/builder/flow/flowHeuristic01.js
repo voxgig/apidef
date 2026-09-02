@@ -139,7 +139,7 @@ function resolveBasicEntityFlow(ctx, entity) {
     return flow;
 }
 function findMainLoadPoint(op) {
-    let cands = op.points.filter(a => '{id}' === (0, struct_2.getelem)(a.parts, -1));
+    let cands = op.points.filter(a => 'id' === (0, struct_2.getelem)(a.segments, -1)?.var);
     return cands[0];
 }
 function makeUpdateData(name, apiEntity, flow, id) {

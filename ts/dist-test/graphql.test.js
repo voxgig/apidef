@@ -153,9 +153,9 @@ async function buildGraphql(step) {
         const ops = bres.apimodel.main.kit.entity.issue.op;
         const load = ops.load.points[0];
         node_assert_1.default.equal(load.kind, 'graphql');
-        // GraphQL points ride the HTTP machinery: one POST, no path parts.
+        // GraphQL points ride the HTTP machinery: one POST, no path segments.
         node_assert_1.default.equal(load.method, 'POST');
-        node_assert_1.default.deepStrictEqual(load.parts, undefined);
+        node_assert_1.default.deepStrictEqual(load.segments, undefined);
         node_assert_1.default.equal(load.graphql.optype, 'query');
         node_assert_1.default.equal(load.graphql.field, 'issue');
         node_assert_1.default.equal(load.graphql.doc, 'query IssueLoad($id: String!) { issue(id: $id) { ...IssueFields } }' +
@@ -228,7 +228,7 @@ async function buildGraphql(step) {
         const point = out.main.kit.entity.issue.op.load.points[0];
         node_assert_1.default.equal(point.kind, 'graphql');
         node_assert_1.default.equal(point.method, 'POST');
-        node_assert_1.default.deepStrictEqual(point.parts, []);
+        node_assert_1.default.deepStrictEqual(point.segments, []);
         node_assert_1.default.ok(point.graphql.doc.startsWith('query IssueLoad'));
     });
 });

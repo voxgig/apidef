@@ -15,7 +15,7 @@ GraphQL. GraphQL enters as a **second front-end to apidef**, not as a new
 mode of sdkgen: the pipeline classifies schema **root fields** the way it
 classifies REST paths today, and emits the same apimodel, extended with one
 additive concept — an operation *point* whose `kind` is `graphql` and which
-carries a **precomputed operation document** instead of `method` + `parts`.
+carries a **precomputed operation document** instead of `method` + `segments`.
 
 The end result is the goal stated for the project: generated SDKs expose the
 **same methods and objects** for a GraphQL API as for a REST API. GraphQL
@@ -28,7 +28,7 @@ The entity/op model is nearly transport-neutral today. The REST-specific
 surface area is small and localized:
 
 - **In the model:** only the `ModelPoint` record couples to HTTP —
-  `method`, `parts`, and arg kinds (`ts/src/model.ts:98-122`). Everything
+  `method`, `segments`, and arg kinds (`ts/src/model.ts:98-122`). Everything
   else (entities, fields, op maps, `select`, `transform`) is
   transport-agnostic.
 - **In generated SDKs:** only the spec/request steps couple to HTTP —
@@ -258,9 +258,9 @@ op: load: points: [ {
 
 The canonical apidef model schema is part of this change, not an
 afterthought: `model/apidef.aontu` currently *requires* every point to
-carry `method` (constrained to the HTTP verb disjunction) and `parts`, so
+carry `method` (constrained to the HTTP verb disjunction) and `segments`, so
 a GraphQL point omitting them would fail unification. The point schema
-becomes transport-discriminated — `method`/`parts` required when `kind` is
+becomes transport-discriminated — `method`/`segments` required when `kind` is
 `http`, the `graphql` block required when `kind` is `graphql` — with the
 package mirrors and Go port synchronized alongside (`AGENTS.md`
 canonical-model rules; the same applies to sdkgen's `model/sdkgen.aontu`

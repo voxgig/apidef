@@ -64,17 +64,25 @@
           },
           "method": "POST",
           "orig": "/api/planet/{planet_id}/terraform",
-          "parts": [
-            "api",
-            "planet",
-            "{id}",
-            "terraform"
-          ],
           "rename": {
             "param": {
               "planet_id": "id"
             }
           },
+          "segments": [
+            {
+              "lit": "api"
+            },
+            {
+              "lit": "planet"
+            },
+            {
+              "var": "id"
+            },
+            {
+              "lit": "terraform"
+            }
+          ],
           "select": {
             "$action": "terraform",
             "exist": [
@@ -89,9 +97,13 @@
         {
           "method": "POST",
           "orig": "/api/planet",
-          "parts": [
-            "api",
-            "planet"
+          "segments": [
+            {
+              "lit": "api"
+            },
+            {
+              "lit": "planet"
+            }
           ],
           "transform": {
             "req": "`reqdata`",
@@ -106,9 +118,13 @@
         {
           "method": "GET",
           "orig": "/api/planet",
-          "parts": [
-            "api",
-            "planet"
+          "segments": [
+            {
+              "lit": "api"
+            },
+            {
+              "lit": "planet"
+            }
           ],
           "transform": {
             "req": "`reqdata`",
@@ -134,16 +150,22 @@
           },
           "method": "GET",
           "orig": "/api/planet/{planet_id}",
-          "parts": [
-            "api",
-            "planet",
-            "{id}"
-          ],
           "rename": {
             "param": {
               "planet_id": "id"
             }
           },
+          "segments": [
+            {
+              "lit": "api"
+            },
+            {
+              "lit": "planet"
+            },
+            {
+              "var": "id"
+            }
+          ],
           "select": {
             "exist": [
               "id"
@@ -173,16 +195,22 @@
           },
           "method": "DELETE",
           "orig": "/api/planet/{planet_id}",
-          "parts": [
-            "api",
-            "planet",
-            "{id}"
-          ],
           "rename": {
             "param": {
               "planet_id": "id"
             }
           },
+          "segments": [
+            {
+              "lit": "api"
+            },
+            {
+              "lit": "planet"
+            },
+            {
+              "var": "id"
+            }
+          ],
           "select": {
             "exist": [
               "id"
@@ -212,16 +240,22 @@
           },
           "method": "PUT",
           "orig": "/api/planet/{planet_id}",
-          "parts": [
-            "api",
-            "planet",
-            "{id}"
-          ],
           "rename": {
             "param": {
               "planet_id": "id"
             }
           },
+          "segments": [
+            {
+              "lit": "api"
+            },
+            {
+              "lit": "planet"
+            },
+            {
+              "var": "id"
+            }
+          ],
           "select": {
             "exist": [
               "id"

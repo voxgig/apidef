@@ -252,8 +252,21 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.ok(!fieldNames.includes('q'), 'filter field q must not leak');
         node_assert_1.default.ok(!fieldNames.includes('page'), 'filter field page must not leak');
     });
-    (0, node_test_1.test)('full-solar', async () => {
-        return;
+    // DISABLED, and honestly: this asserted nothing at all.
+    //
+    // The body used to begin with a bare `return;`, so the test reported `ok`
+    // on every run while never reaching its assertion — SOLAR_MODEL could be
+    // replaced with garbage and the suite stayed green (verified). A test that
+    // passes without checking is worse than one that is skipped, because the
+    // suite count says it is covering the canonical end-to-end pipeline.
+    //
+    // Re-enabling it fails on drift that has nothing to do with the path
+    // representation: every field now comes back `req: true` where SOLAR_MODEL
+    // says `req: false`, and each op carries an `input` key the expectation
+    // predates. Whether that is correct is a question for whoever changed it —
+    // blessing it in a snapshot here would bury it. SOLAR_MODEL's `segments`
+    // ARE up to date, so re-enabling is only about those two questions.
+    (0, node_test_1.test)('full-solar', { skip: 'SOLAR_MODEL has drifted: field `req` and op `input`' }, async () => {
         const outprefix = 'solar-1.0.0-openapi-3.0.0-';
         const folder = __dirname + '/../test/solar';
         const build = await apidef_1.ApiDef.makeBuild({
@@ -463,7 +476,7 @@ const SOLAR_MODEL = {
                                     },
                                     method: 'POST',
                                     orig: '/api/planet/{planet_id}/moon',
-                                    parts: ['api', 'planet', '{planet_id}', 'moon'],
+                                    segments: [{ lit: 'api' }, { lit: 'planet' }, { var: 'planet_id' }, { lit: 'moon' }],
                                     select: { exist: ['planet_id'] },
                                     transform: { req: '`reqdata`', res: '`body`' },
                                     active: true,
@@ -489,7 +502,7 @@ const SOLAR_MODEL = {
                                     },
                                     method: 'GET',
                                     orig: '/api/planet/{planet_id}/moon',
-                                    parts: ['api', 'planet', '{planet_id}', 'moon'],
+                                    segments: [{ lit: 'api' }, { lit: 'planet' }, { var: 'planet_id' }, { lit: 'moon' }],
                                     select: { exist: ['planet_id'] },
                                     transform: { req: '`reqdata`', res: '`body`' },
                                     active: true,
@@ -523,7 +536,7 @@ const SOLAR_MODEL = {
                                     },
                                     method: 'GET',
                                     orig: '/api/planet/{planet_id}/moon/{moon_id}',
-                                    parts: ['api', 'planet', '{planet_id}', 'moon', '{id}'],
+                                    segments: [{ lit: 'api' }, { lit: 'planet' }, { var: 'planet_id' }, { lit: 'moon' }, { var: 'id' }],
                                     rename: { param: { moon_id: 'id' } },
                                     select: { exist: ['id', 'planet_id'] },
                                     transform: { req: '`reqdata`', res: '`body`' },
@@ -558,7 +571,7 @@ const SOLAR_MODEL = {
                                     },
                                     method: 'DELETE',
                                     orig: '/api/planet/{planet_id}/moon/{moon_id}',
-                                    parts: ['api', 'planet', '{planet_id}', 'moon', '{id}'],
+                                    segments: [{ lit: 'api' }, { lit: 'planet' }, { var: 'planet_id' }, { lit: 'moon' }, { var: 'id' }],
                                     select: { exist: ['id', 'planet_id'] },
                                     transform: { req: '`reqdata`', res: '`body`' },
                                     active: true,
@@ -592,7 +605,7 @@ const SOLAR_MODEL = {
                                     },
                                     method: 'PUT',
                                     orig: '/api/planet/{planet_id}/moon/{moon_id}',
-                                    parts: ['api', 'planet', '{planet_id}', 'moon', '{id}'],
+                                    segments: [{ lit: 'api' }, { lit: 'planet' }, { var: 'planet_id' }, { lit: 'moon' }, { var: 'id' }],
                                     select: { exist: ['id', 'planet_id'] },
                                     transform: { req: '`reqdata`', res: '`body`' },
                                     active: true,
@@ -684,7 +697,7 @@ const SOLAR_MODEL = {
                                     },
                                     method: 'POST',
                                     orig: '/api/planet/{planet_id}/forbid',
-                                    parts: ['api', 'planet', '{id}', 'forbid'],
+                                    segments: [{ lit: 'api' }, { lit: 'planet' }, { var: 'id' }, { lit: 'forbid' }],
                                     rename: { param: { planet_id: 'id' } },
                                     select: { '$action': 'forbid', exist: ['id'] },
                                     transform: { req: '`reqdata`', res: '`body`' },
@@ -706,7 +719,7 @@ const SOLAR_MODEL = {
                                     },
                                     method: 'POST',
                                     orig: '/api/planet/{planet_id}/terraform',
-                                    parts: ['api', 'planet', '{id}', 'terraform'],
+                                    segments: [{ lit: 'api' }, { lit: 'planet' }, { var: 'id' }, { lit: 'terraform' }],
                                     rename: { param: { planet_id: 'id' } },
                                     select: { '$action': 'terraform', exist: ['id'] },
                                     transform: { req: '`reqdata`', res: '`body`' },
@@ -716,7 +729,7 @@ const SOLAR_MODEL = {
                                 {
                                     method: 'POST',
                                     orig: '/api/planet',
-                                    parts: ['api', 'planet'],
+                                    segments: [{ lit: 'api' }, { lit: 'planet' }],
                                     transform: { req: '`reqdata`', res: '`body`' },
                                     active: true,
                                     args: { params: [] },
@@ -731,7 +744,7 @@ const SOLAR_MODEL = {
                                 {
                                     method: 'GET',
                                     orig: '/api/planet',
-                                    parts: ['api', 'planet'],
+                                    segments: [{ lit: 'api' }, { lit: 'planet' }],
                                     transform: { req: '`reqdata`', res: '`body`' },
                                     active: true,
                                     args: { params: [] },
@@ -758,7 +771,7 @@ const SOLAR_MODEL = {
                                     },
                                     method: 'GET',
                                     orig: '/api/planet/{planet_id}',
-                                    parts: ['api', 'planet', '{id}'],
+                                    segments: [{ lit: 'api' }, { lit: 'planet' }, { var: 'id' }],
                                     rename: { param: { planet_id: 'id' } },
                                     select: { exist: ['id'] },
                                     transform: { req: '`reqdata`', res: '`body`' },
@@ -785,7 +798,7 @@ const SOLAR_MODEL = {
                                     },
                                     method: 'DELETE',
                                     orig: '/api/planet/{planet_id}',
-                                    parts: ['api', 'planet', '{id}'],
+                                    segments: [{ lit: 'api' }, { lit: 'planet' }, { var: 'id' }],
                                     select: { exist: ['id'] },
                                     transform: { req: '`reqdata`', res: '`body`' },
                                     active: true,
@@ -811,7 +824,7 @@ const SOLAR_MODEL = {
                                     },
                                     method: 'PUT',
                                     orig: '/api/planet/{planet_id}',
-                                    parts: ['api', 'planet', '{id}'],
+                                    segments: [{ lit: 'api' }, { lit: 'planet' }, { var: 'id' }],
                                     select: { exist: ['id'] },
                                     transform: { req: '`reqdata`', res: '`body`' },
                                     active: true,

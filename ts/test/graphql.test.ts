@@ -153,9 +153,9 @@ describe('graphql', () => {
 
     const load = ops.load.points[0]
     assert.equal(load.kind, 'graphql')
-    // GraphQL points ride the HTTP machinery: one POST, no path parts.
+    // GraphQL points ride the HTTP machinery: one POST, no path segments.
     assert.equal(load.method, 'POST')
-    assert.deepStrictEqual(load.parts, undefined)
+    assert.deepStrictEqual(load.segments, undefined)
     assert.equal(load.graphql.optype, 'query')
     assert.equal(load.graphql.field, 'issue')
     assert.equal(
@@ -246,7 +246,7 @@ describe('graphql', () => {
     const point = out.main.kit.entity.issue.op.load.points[0]
     assert.equal(point.kind, 'graphql')
     assert.equal(point.method, 'POST')
-    assert.deepStrictEqual(point.parts, [])
+    assert.deepStrictEqual(point.segments, [])
     assert.ok(point.graphql.doc.startsWith('query IssueLoad'))
   })
 

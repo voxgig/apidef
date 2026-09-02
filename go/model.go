@@ -35,9 +35,9 @@ type ModelFieldOp struct {
 
 // ModelField represents an entity field definition.
 type ModelField struct {
-	Name string                  `json:"name"`
-	Type any                     `json:"type"`
-	Req  bool                    `json:"req"`
+	Name string                   `json:"name"`
+	Type any                      `json:"type"`
+	Req  bool                     `json:"req"`
 	Op   map[OpName]*ModelFieldOp `json:"op,omitempty"`
 
 	// One-line human description, straight from the spec's property
@@ -58,28 +58,28 @@ type ModelArg struct {
 
 // ModelPoint represents a point implementation of an operation.
 type ModelPoint struct {
-	Orig      string            `json:"orig"`
-	Method    MethodName        `json:"method"`
-	Parts     []string          `json:"parts"`
-	Rename    map[string]any    `json:"rename,omitempty"`
-	Args      map[string]any    `json:"args,omitempty"`
-	Transform map[string]any    `json:"transform,omitempty"`
-	Select    map[string]any    `json:"select,omitempty"`
+	Orig      string           `json:"orig"`
+	Method    MethodName       `json:"method"`
+	Segments  []map[string]any `json:"segments"`
+	Rename    map[string]any   `json:"rename,omitempty"`
+	Args      map[string]any   `json:"args,omitempty"`
+	Transform map[string]any   `json:"transform,omitempty"`
+	Select    map[string]any   `json:"select,omitempty"`
 }
 
 // ModelOp represents an operation definition.
 type ModelOp struct {
-	Name   OpName         `json:"name"`
+	Name   OpName        `json:"name"`
 	Points []*ModelPoint `json:"points"`
 }
 
 // ModelEntity represents an entity definition with operations and fields.
 type ModelEntity struct {
 	Name      string               `json:"name"`
-	Op        ModelOpMap            `json:"op"`
-	Fields    []*ModelField         `json:"fields"`
-	ID        map[string]string     `json:"id"`
-	Relations ModelEntityRelations  `json:"relations"`
+	Op        ModelOpMap           `json:"op"`
+	Fields    []*ModelField        `json:"fields"`
+	ID        map[string]string    `json:"id"`
+	Relations ModelEntityRelations `json:"relations"`
 }
 
 // ModelEntityFlow represents a flow definition.

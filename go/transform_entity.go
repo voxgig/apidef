@@ -215,34 +215,51 @@ func resolvePathList(guideEntity map[string]any, def map[string]any) []map[strin
 			continue
 		}
 
-		parts := splitPath(orig)
+		// THE path construction site (ADR-003), mirroring
+		// src/transform/entity.ts. A segment is a literal or a variable;
+		// renames apply to the NAME, looked up once from the ORIGINAL spec
+		// name, so they cannot chain the way a braced-string rewrite could.
 		rename := map[string]any{}
+		paramRename := map[string]any{}
 		if r, ok := gpathMap["rename"].(map[string]any); ok {
 			rename = r
-			if paramRename, ok := r["param"].(map[string]any); ok {
-				for _, oldName := range sortedKeys(paramRename) {
-					newName := paramRename[oldName]
-					newStr, _ := newName.(string)
-					if newStr == "" {
-						if rp, ok := newName.(map[string]any); ok {
-							newStr, _ = rp["target"].(string)
-						}
-					}
-					// Mirrors src/transform/entity.ts, which uses
-					// parts.indexOf(...) and so rewrites only the FIRST
-					// match. Rewriting every occurrence turns a repeated
-					// placeholder into a duplicate, e.g.
-					// /groups/{group_id}/badges/{id} emitting
-					// /groups/{group_id}/badges/{group_id} under a chained
-					// rename — silently dropping an argument from the URL.
-					for i, p := range parts {
-						if p == "{"+oldName+"}" {
-							parts[i] = "{" + newStr + "}"
-							break
-						}
+			if pr, ok := r["param"].(map[string]any); ok {
+				paramRename = pr
+			}
+		}
+
+		var segments []map[string]any
+		for _, part := range splitPath(orig) {
+			if len(part) < 2 || part[0] != '{' || part[len(part)-1] != '}' {
+				segments = append(segments, map[string]any{"lit": part})
+				continue
+			}
+			raw := part[1 : len(part)-1]
+			// A WHOLE element is the placeholder, or it is a literal.
+			// `{a}.{b}` is two parameters glued into one element with a
+			// separator that belongs to neither; it is not one parameter
+			// called `a}.{b`, and there is no honest var for it. `{}` names
+			// nothing. Both stay literal — which is what the braced-string
+			// form did with them, since the rename lookup was a whole-element
+			// match too. Mirrors src/transform/entity.ts.
+			if raw == "" || strings.ContainsAny(raw, "{}") {
+				segments = append(segments, map[string]any{"lit": part})
+				continue
+			}
+			name := raw
+			if newName, ok := paramRename[raw]; ok {
+				if newStr, ok := newName.(string); ok && newStr != "" {
+					name = newStr
+				} else if rp, ok := newName.(map[string]any); ok {
+					if t, ok := rp["target"].(string); ok && t != "" {
+						name = t
 					}
 				}
 			}
+			segments = append(segments, map[string]any{"var": name})
+		}
+		if segments == nil {
+			segments = []map[string]any{}
 		}
 
 		op := map[string]any{}
@@ -258,12 +275,12 @@ func resolvePathList(guideEntity map[string]any, def map[string]any) []map[strin
 		}
 
 		pathdesc := map[string]any{
-			"orig":   orig,
-			"parts":  parts,
-			"rename": rename,
-			"method": "",
-			"op":     op,
-			"def":    pathDef,
+			"orig":     orig,
+			"segments": segments,
+			"rename":   rename,
+			"method":   "",
+			"op":       op,
+			"def":      pathDef,
 		}
 
 		pathsDesc = append(pathsDesc, pathdesc)
@@ -277,16 +294,17 @@ func BuildRelations(guideEntity any, pathsDesc []map[string]any) map[string]any 
 	var allAncestors [][]string
 
 	for _, pli := range pathsDesc {
-		parts, _ := pli["parts"].([]string)
-		if parts == nil {
+		segments, _ := pli["segments"].([]map[string]any)
+		if segments == nil {
 			continue
 		}
 		var ancestors []string
-		for i, p := range parts {
-			if i+1 < len(parts) {
-				next := parts[i+1]
-				if len(next) > 0 && next[0] == '{' && next != "{id}" {
-					ancestors = append(ancestors, p)
+		for i, s := range segments {
+			if i+1 < len(segments) {
+				lit, isLit := s["lit"].(string)
+				nextVar, isVar := segments[i+1]["var"].(string)
+				if isLit && isVar && nextVar != "id" {
+					ancestors = append(ancestors, lit)
 				}
 			}
 		}

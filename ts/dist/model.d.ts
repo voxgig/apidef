@@ -71,12 +71,16 @@ type ModelGraphql = {
     vars: ModelGraphqlVar[];
     page?: ModelGraphqlPage;
 };
+type ModelPathSegment = {
+    lit?: string;
+    var?: string;
+};
 type ModelPoint = {
     orig: string;
     kind?: PointKind;
     graphql?: ModelGraphql;
     method: MethodName;
-    parts: string[];
+    segments: ModelPathSegment[];
     rename: Partial<{
         param: Record<string, string>;
         query: Record<string, string>;
@@ -151,4 +155,4 @@ type ModelEntityFlowStep = {
     spec: ModelEntityFlowStepSpec[];
     valid: ModelEntityFlowStepValidator[];
 };
-export type { OpName, ArgKind, PointKind, ModelGraphql, ModelGraphqlVar, ModelGraphqlPage, NamesCluster, Model, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelPoint, ModelOp, ModelEntity, ModelEntityFlow, ModelEntityFlowStep, ModelEntityFlowStepInput, ModelEntityFlowStepValidator, ModelEntityFlowStepSpec, };
+export type { OpName, ArgKind, PointKind, ModelGraphql, ModelGraphqlVar, ModelGraphqlPage, NamesCluster, Model, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelPoint, ModelPathSegment, ModelOp, ModelEntity, ModelEntityFlow, ModelEntityFlowStep, ModelEntityFlowStepInput, ModelEntityFlowStepValidator, ModelEntityFlowStepSpec, };
