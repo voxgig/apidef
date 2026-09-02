@@ -162,16 +162,31 @@ function resolvePathList(guideEntity, def) {
         if (!(0, utility_1.guideActive)(guidePath)) {
             return;
         }
-        const parts = orig.split('/').filter(p => '' != p);
+        // THE path construction site (ADR-003). The split, the rename
+        // application and the segment typing all happen here and nowhere else:
+        // a second place that decides what a path segment is would be free to
+        // decide differently.
+        //
+        // A segment is a literal or a variable. The braced form this replaces
+        // could not tell a literal containing braces from a parameter, so the
+        // brace test below is the LAST point at which that ambiguity exists.
         const rename = guidePath.rename ?? {};
-        (0, jostraca_1.each)(rename.param, (param) => {
-            const pI = parts.indexOf('{' + param.key$ + '}');
-            if (pI >= 0)
-                parts[pI] = '{' + param.val$ + '}';
+        const segments = orig
+            .split('/')
+            .filter(p => '' != p)
+            .map(p => {
+            if ('{' !== p[0] || '}' !== p[p.length - 1]) {
+                return { lit: p };
+            }
+            const raw = p.slice(1, -1);
+            // Renames map the spec's parameter name to the model's. Applied
+            // here, on the NAME, rather than by rewriting a braced string.
+            const renamed = rename.param?.[raw];
+            return { var: null == renamed ? raw : String(renamed) };
         });
         const pathdesc = {
             orig,
-            parts,
+            segments,
             rename,
             method: '', // operation collectOps will copy and assign per op
             op: guidePath.op,
@@ -183,7 +198,7 @@ function resolvePathList(guideEntity, def) {
     return paths$;
 }
 // Root-field equivalent of resolvePathList for GraphQL guides. A root field
-// has no path to split, so `parts` stays empty (GraphQL points address the
+// has no path to split, so `segments` stays empty (GraphQL points address the
 // single endpoint and carry their operation document instead) and `def` is
 // the normalised root-field descriptor rather than a path item.
 function resolveFieldList(guideEntity, def) {
@@ -208,7 +223,7 @@ function resolveFieldList(guideEntity, def) {
             grename;
         const pathdesc = {
             orig,
-            parts: [],
+            segments: [],
             rename,
             method: '', // operation collectOps will copy and assign per op
             op: guideField.op,
@@ -233,10 +248,12 @@ function buildRelations(guideEntity, paths$) {
     // `apimodel.main.kit.entity[ancestorName]` misses the parent entity for
     // pluralised path segments.
     let ancestors = paths$
-        .map(pli => pli.parts
-        .map((p, i) => ('{' !== p[0] &&
-        pli.parts[i + 1]?.[0] === '{' &&
-        pli.parts[i + 1] !== '{id}') ? (0, utility_1.depluralize)((0, jostraca_1.snakify)(p)) : null)
+        .map(pli => pli.segments
+        .map((s, i) => {
+        const next = pli.segments[i + 1];
+        return (null != s.lit && null != next?.var && 'id' !== next.var)
+            ? (0, utility_1.depluralize)((0, jostraca_1.snakify)(s.lit)) : null;
+    })
         .filter(p => null != p))
         .filter(n => 0 < n.length)
         .sort((a, b) => a.length - b.length);

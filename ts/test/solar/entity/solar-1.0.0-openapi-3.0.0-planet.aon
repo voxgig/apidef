@@ -82,17 +82,25 @@ main: kit: entity: planet: {
           }
           method: "POST"
           orig: "/api/planet/{planet_id}/forbid"
-          parts: [
-            "api"
-            "planet"
-            "{id}"
-            "forbid"
-          ]
           rename: {
             param: {
               planet_id: "id"
             }
           }
+          segments: [
+            {
+              lit: "api"
+            }
+            {
+              lit: "planet"
+            }
+            {
+              var: "id"
+            }
+            {
+              lit: "forbid"
+            }
+          ]
           select: {
             "$action": "forbid"
             exist: [
@@ -118,17 +126,25 @@ main: kit: entity: planet: {
           }
           method: "POST"
           orig: "/api/planet/{planet_id}/terraform"
-          parts: [
-            "api"
-            "planet"
-            "{id}"
-            "terraform"
-          ]
           rename: {
             param: {
               planet_id: "id"
             }
           }
+          segments: [
+            {
+              lit: "api"
+            }
+            {
+              lit: "planet"
+            }
+            {
+              var: "id"
+            }
+            {
+              lit: "terraform"
+            }
+          ]
           select: {
             "$action": "terraform"
             exist: [
@@ -143,9 +159,13 @@ main: kit: entity: planet: {
         {
           method: "POST"
           orig: "/api/planet"
-          parts: [
-            "api"
-            "planet"
+          segments: [
+            {
+              lit: "api"
+            }
+            {
+              lit: "planet"
+            }
           ]
           transform: {
             req: "`reqdata`"
@@ -160,9 +180,13 @@ main: kit: entity: planet: {
         {
           method: "GET"
           orig: "/api/planet"
-          parts: [
-            "api"
-            "planet"
+          segments: [
+            {
+              lit: "api"
+            }
+            {
+              lit: "planet"
+            }
           ]
           transform: {
             req: "`reqdata`"
@@ -188,16 +212,22 @@ main: kit: entity: planet: {
           }
           method: "GET"
           orig: "/api/planet/{planet_id}"
-          parts: [
-            "api"
-            "planet"
-            "{id}"
-          ]
           rename: {
             param: {
               planet_id: "id"
             }
           }
+          segments: [
+            {
+              lit: "api"
+            }
+            {
+              lit: "planet"
+            }
+            {
+              var: "id"
+            }
+          ]
           select: {
             exist: [
               "id"
@@ -227,16 +257,22 @@ main: kit: entity: planet: {
           }
           method: "DELETE"
           orig: "/api/planet/{planet_id}"
-          parts: [
-            "api"
-            "planet"
-            "{id}"
-          ]
           rename: {
             param: {
               planet_id: "id"
             }
           }
+          segments: [
+            {
+              lit: "api"
+            }
+            {
+              lit: "planet"
+            }
+            {
+              var: "id"
+            }
+          ]
           select: {
             exist: [
               "id"
@@ -266,16 +302,22 @@ main: kit: entity: planet: {
           }
           method: "PUT"
           orig: "/api/planet/{planet_id}"
-          parts: [
-            "api"
-            "planet"
-            "{id}"
-          ]
           rename: {
             param: {
               planet_id: "id"
             }
           }
+          segments: [
+            {
+              lit: "api"
+            }
+            {
+              lit: "planet"
+            }
+            {
+              var: "id"
+            }
+          ]
           select: {
             exist: [
               "id"

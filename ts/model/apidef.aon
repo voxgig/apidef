@@ -113,14 +113,20 @@ main: kit: entity: &: {
       active: *true
           
       # Transport discriminator. GraphQL points synthesize method 'POST'
-      # and an empty parts list, so the HTTP shape below stays required.
+      # and an empty segment list, so the HTTP shape below stays required.
       kind: *'http' | 'graphql'
 
       method: GET | PUT | POST | DELETE | PATCH | OPTIONS | HEAD
 
       orig: string
 
-      parts: [ &: string ]
+      # The path, resolved (ADR-003). Each segment is a literal or a
+      # variable naming one of `args.params` — never a braced string for a
+      # consumer to parse back out. Renames are already applied.
+      segments: [ &: {
+        lit?: string
+        var?: string
+      } ]
 
       # GraphQL wire data: the precomputed operation document plus the
       # variable bindings and (for list ops) the pagination descriptor.

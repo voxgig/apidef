@@ -3,6 +3,9 @@
 package apidef
 
 import (
+	"os"
+	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -67,9 +70,11 @@ func TestCustomPlurals(t *testing.T) {
 
 func TestOperationTransformPropagation(t *testing.T) {
 	pathsDesc := []map[string]any{
-		{"orig": "/pets", "parts": []string{"pets"}, "rename": map[string]any{}, "def": map[string]any{},
+		{"orig": "/pets", "segments": []map[string]any{{"lit": "pets"}},
+			"rename": map[string]any{}, "def": map[string]any{},
 			"op": map[string]any{"list": map[string]any{"method": "GET", "transform": map[string]any{"res": "`body.pet`"}}}},
-		{"orig": "/things", "parts": []string{"things"}, "rename": map[string]any{}, "def": map[string]any{},
+		{"orig": "/things", "segments": []map[string]any{{"lit": "things"}},
+			"rename": map[string]any{}, "def": map[string]any{},
 			"op": map[string]any{"create": map[string]any{"method": "POST"}}},
 	}
 	opm := collectOps(map[string]any{}, pathsDesc, map[string]string{})
@@ -191,11 +196,11 @@ func TestCanonize(t *testing.T) {
 
 func TestSanitizeSlug(t *testing.T) {
 	tests := map[string]string{
-		"my-api":      "my-api",
-		"My API":      "MyAPI",
-		"my_api":      "my-api",
-		"":            "unknown",
-		"123-api":     "n123-api",
+		"my-api":  "my-api",
+		"My API":  "MyAPI",
+		"my_api":  "my-api",
+		"":        "unknown",
+		"123-api": "n123-api",
 	}
 	for input, expected := range tests {
 		result := SanitizeSlug(input)
@@ -242,10 +247,10 @@ func TestInferFieldType(t *testing.T) {
 
 func TestNormalizeFieldName(t *testing.T) {
 	tests := map[string]string{
-		"foo[]":    "foo",
-		"a[b].c":  "a_b_c",
-		"x__y":    "x_y",
-		"_foo_":   "foo",
+		"foo[]":  "foo",
+		"a[b].c": "a_b_c",
+		"x__y":   "x_y",
+		"_foo_":  "foo",
 	}
 	for input, expected := range tests {
 		result := NormalizeFieldName(input)
@@ -294,13 +299,164 @@ func TestPathMatch(t *testing.T) {
 	}
 }
 
+// resolvePathList is THE path construction site (ADR-003): the split, the
+// rename application and the segment typing happen there and nowhere else.
+// Mirrors ts/test/transform/entity.test.ts.
+func TestResolvePathListSegments(t *testing.T) {
+	paths := resolvePathList(map[string]any{
+		"path": map[string]any{
+			"/foo":       map[string]any{},
+			"/bar/{bar}": map[string]any{},
+			"/zed/{f0}/dez/{f1}": map[string]any{
+				"rename": map[string]any{
+					"param": map[string]any{"f0": "t0", "f1": "t1"},
+				},
+			},
+		},
+	}, map[string]any{"paths": map[string]any{}})
+
+	// Paths are visited in SORTED key order, so the result is bar, foo, zed —
+	// not declaration order.
+	want := [][]map[string]any{
+		{{"lit": "bar"}, {"var": "bar"}},
+		{{"lit": "foo"}},
+		// Renames apply to the NAME, not by rewriting a braced string.
+		{{"lit": "zed"}, {"var": "t0"}, {"lit": "dez"}, {"var": "t1"}},
+	}
+	assertSegments(t, paths, want)
+
+	// No braced strings survive: a consumer never parses a segment.
+	for _, p := range paths {
+		for _, seg := range p["segments"].([]map[string]any) {
+			if lit, ok := seg["lit"].(string); ok && strings.HasPrefix(lit, "{") {
+				t.Errorf("a literal segment must not be a braced string: %v", seg)
+			}
+		}
+	}
+}
+
+// CHAINED RENAMES. The braced-string form had to rewrite only the FIRST match
+// (an index lookup + break), because a second pass would re-read the name it
+// had just written: with {badge_id: id, id: project_id},
+// /groups/{id}/badges/{badge_id} could end up with {project_id} in both slots,
+// silently dropping an argument from the URL.
+//
+// Segments cannot chain: each segment's ORIGINAL name is looked up once, so
+// {id} -> project_id and {badge_id} -> id, independently.
+func TestResolvePathListRenamesDoNotChain(t *testing.T) {
+	paths := resolvePathList(map[string]any{
+		"path": map[string]any{
+			"/groups/{id}/badges/{badge_id}": map[string]any{
+				"rename": map[string]any{
+					"param": map[string]any{"badge_id": "id", "id": "project_id"},
+				},
+			},
+		},
+	}, map[string]any{"paths": map[string]any{}})
+
+	assertSegments(t, paths, [][]map[string]any{{
+		{"lit": "groups"}, {"var": "project_id"},
+		{"lit": "badges"}, {"var": "id"},
+	}})
+}
+
+// A repeated placeholder is ONE parameter and must rename consistently. The
+// first-match-only rewrite renamed only the first, leaving the second
+// referring to a parameter name that no longer existed.
+func TestResolvePathListRepeatedPlaceholder(t *testing.T) {
+	paths := resolvePathList(map[string]any{
+		"path": map[string]any{
+			"/a/{id}/b/{id}": map[string]any{
+				"rename": map[string]any{"param": map[string]any{"id": "thing_id"}},
+			},
+		},
+	}, map[string]any{"paths": map[string]any{}})
+
+	assertSegments(t, paths, [][]map[string]any{{
+		{"lit": "a"}, {"var": "thing_id"},
+		{"lit": "b"}, {"var": "thing_id"},
+	}})
+}
+
+func assertSegments(t *testing.T, paths []map[string]any, want [][]map[string]any) {
+	t.Helper()
+	got := make([][]map[string]any, 0, len(paths))
+	for _, p := range paths {
+		segs, _ := p["segments"].([]map[string]any)
+		got = append(got, segs)
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("segments = %v, want %v", got, want)
+	}
+}
+
+// End-to-end guard for ADR-003: the emitted model carries typed `segments`
+// and no braced-string `parts` for a consumer to parse back out. Also catches
+// a formatter that cannot serialise the segment vector — before the reflect
+// fallback in formatJSONICValue, []map[string]any fell through to fmt %v and
+// wrote Go's `map[lit:api]` into a file that is meant to be aontu source.
+func TestPointSegmentsEmitted(t *testing.T) {
+	tmp, err := os.MkdirTemp("", "apidef-segments-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmp)
+
+	ad := NewApiDef(ApiDefOptions{
+		Folder:    tmp,
+		OutPrefix: "solar-1.0.0-openapi-3.0.0-",
+		Strategy:  "heuristic01",
+	})
+	res, err := ad.Generate(map[string]any{
+		"model": map[string]any{"name": "solar", "def": "solar-1.0.0-openapi-3.0.0-def.yaml"},
+		"build": map[string]any{"spec": map[string]any{"base": "../ts/test/def"}},
+		"ctrl": map[string]any{"step": map[string]any{
+			"parse": true, "guide": true, "transformers": true,
+			"builders": true, "generate": true,
+		}},
+	})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v res=%+v", err, res)
+	}
+
+	nsegments, nparts := 0, 0
+	err = filepath.Walk(tmp, func(p string, fi os.FileInfo, e error) error {
+		if e != nil || fi.IsDir() || !strings.HasSuffix(p, ".aon") {
+			return e
+		}
+		b, rerr := os.ReadFile(p)
+		if rerr != nil {
+			return rerr
+		}
+		src := string(b)
+		nsegments += strings.Count(src, "segments:")
+		nparts += strings.Count(src, "parts:")
+		if strings.Contains(src, "map[") {
+			t.Errorf("%s: Go map syntax leaked into aontu source", filepath.Base(p))
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if nsegments == 0 {
+		t.Error("no segments emitted")
+	}
+	if nparts != 0 {
+		t.Errorf("parts still emitted (%d occurrences); see ADR-003", nparts)
+	}
+}
+
 func TestBuildRelations(t *testing.T) {
 	pathsDesc := []map[string]any{
-		{"parts": []string{"a"}},
-		{"parts": []string{"b", "{id}"}},
-		{"parts": []string{"d", "c", "{id}"}},
-		{"parts": []string{"f", "{f_id}", "e", "{id}"}},
-		{"parts": []string{"i", "h", "{h_id}", "g", "{id}"}},
+		{"segments": []map[string]any{{"lit": "a"}}},
+		{"segments": []map[string]any{{"lit": "b"}, {"var": "id"}}},
+		{"segments": []map[string]any{{"lit": "d"}, {"lit": "c"}, {"var": "id"}}},
+		{"segments": []map[string]any{
+			{"lit": "f"}, {"var": "f_id"}, {"lit": "e"}, {"var": "id"}}},
+		{"segments": []map[string]any{
+			{"lit": "i"}, {"lit": "h"}, {"var": "h_id"}, {"lit": "g"}, {"var": "id"}}},
 	}
 
 	result := BuildRelations(nil, pathsDesc)
@@ -374,10 +530,10 @@ func TestParse(t *testing.T) {
 func TestCleanTransform(t *testing.T) {
 	ctx := &ApiDefContext{
 		ApiModel: map[string]any{
-			"a": map[string]any{"x": 1},
+			"a":  map[string]any{"x": 1},
 			"b$": map[string]any{"x": 2},
-			"c": map[string]any{},
-			"d": []any{},
+			"c":  map[string]any{},
+			"d":  []any{},
 		},
 	}
 

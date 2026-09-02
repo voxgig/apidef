@@ -63,10 +63,14 @@ type EntityPathDesc = {
     why_ent: string[];
     why_path: string[];
 };
+type PathSegment = {
+    lit?: string;
+    var?: string;
+};
 type PathDesc = {
     orig: string;
     method: MethodName;
-    parts: string[];
+    segments: PathSegment[];
     rename: {
         param?: Record<string, any>;
     };
@@ -84,4 +88,4 @@ type PathDesc = {
 type OpDesc = {
     paths: PathDesc[];
 };
-export type { CmpDesc, BasicMethodDesc, MethodDesc, MethodEntityDesc, EntityDesc, EntityPathDesc, PathDesc, OpDesc, };
+export type { CmpDesc, BasicMethodDesc, MethodDesc, MethodEntityDesc, EntityDesc, EntityPathDesc, PathDesc, PathSegment, OpDesc, };

@@ -35,9 +35,13 @@ main: kit: entity: book: {
         {
           method: "QUERY"
           orig: "/api/book"
-          parts: [
-            "api"
-            "book"
+          segments: [
+            {
+              lit: "api"
+            }
+            {
+              lit: "book"
+            }
           ]
           transform: {
             req: "`reqdata`"
@@ -63,16 +67,22 @@ main: kit: entity: book: {
           }
           method: "GET"
           orig: "/api/book/{book_id}"
-          parts: [
-            "api"
-            "book"
-            "{id}"
-          ]
           rename: {
             param: {
               book_id: "id"
             }
           }
+          segments: [
+            {
+              lit: "api"
+            }
+            {
+              lit: "book"
+            }
+            {
+              var: "id"
+            }
+          ]
           select: {
             exist: [
               "id"

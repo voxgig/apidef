@@ -266,10 +266,10 @@ const graphqlTransform: Transform = async function(
           (null != actionName ? pascal(actionName) : '')
 
         // GraphQL points ride the HTTP machinery: POST to the single
-        // endpoint, no path parts. The document carries everything else.
+        // endpoint, no path segments. The document carries everything else.
         mpoint.kind = 'graphql'
         mpoint.method = 'POST'
-        mpoint.parts = []
+        mpoint.segments = []
 
         mpoint.graphql = {
           optype: optype as 'query' | 'mutation',

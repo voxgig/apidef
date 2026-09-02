@@ -76,7 +76,7 @@ function collectOps(gent: GuideEntity) {
 
       const oppathdesc: PathDesc = {
         orig: pathdesc.orig,
-        parts: pathdesc.parts,
+        segments: pathdesc.segments,
         rename: pathdesc.rename,
         method: gop.method as any,
         op: gop as any,
@@ -152,11 +152,11 @@ function resolveOp(opname: OpName, gent: GuideEntity): undefined | ModelOp {
         // `{badge_id: 'id', id: 'project_id'}` ended up as
         // `/groups/{project_id}/badges/{project_id}` — the second pass
         // rewrote the freshly-renamed `{id}` into `{project_id}` again).
-        const parts = p.parts
+        const segments = p.segments
 
         const mpoint: ModelPoint = {
           orig: p.orig,
-          parts,
+          segments,
           rename: p.rename,
           method: p.method,
           args: {},

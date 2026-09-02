@@ -110,7 +110,7 @@ type ModelArg = {
 // Transport a point speaks. 'http' is the default and covers every
 // OpenAPI-derived point; 'graphql' points carry a `graphql` block instead
 // of relying on method+path (they synthesize method 'POST' and empty
-// parts so the HTTP-shaped machinery downstream keeps working unchanged).
+// segments so the HTTP-shaped machinery downstream keeps working unchanged).
 type PointKind = 'http' | 'graphql'
 
 
@@ -151,12 +151,20 @@ type ModelGraphql = {
 // between them at runtime via `select.exist` matching against reqmatch /
 // reqdata. (Originally named `ModelTarget`; renamed for consistency with
 // the field name `points` and the runtime utility `MakePoint`.)
+// One resolved path segment (ADR-003). Exactly one of `lit` / `var` is set;
+// `var` names an entry of the point's `args.params`.
+type ModelPathSegment = {
+  lit?: string
+  var?: string
+}
+
+
 type ModelPoint = {
   orig: string
   kind?: PointKind
   graphql?: ModelGraphql
   method: MethodName
-  parts: string[]
+  segments: ModelPathSegment[]
   rename: Partial<{
     param: Record<string, string>
     query: Record<string, string>
@@ -280,6 +288,7 @@ export type {
   ModelField,
   ModelArg,
   ModelPoint,
+  ModelPathSegment,
   ModelOp,
   ModelEntity,
   ModelEntityFlow,

@@ -9,9 +9,9 @@ const struct_1 = require("@voxgig/struct");
 //   2. The param's lower-camelCase name appears in `point.rename.param` mapping
 //      to 'id' — e.g. `{connectionId: 'id'}` for `/companies/{company_id}/connections/{id}`.
 //      In this case the param's own name is `connection_id` (apidef snake-cased
-//      it), which doesn't equal 'id' but the placeholder in `parts` is `{id}`.
+//      it), which doesn't equal 'id' but the segment's `var` is 'id'.
 //   3. Positional convention: for singleton ops (load/update/remove), the
-//      LAST `{X}` placeholder in the path is the entity's own id. Catches
+//      LAST variable segment in the path is the entity's own id. Catches
 //      cases where the entity name and path placeholder differ in spelling
 //      (e.g. entity `enviroment` vs path `/environments/{environment_id}`)
 //      and apidef therefore didn't synthesize a rename-to-id.
@@ -30,12 +30,11 @@ function isEntityIdParam(point, param, opname) {
             return true;
     }
     if ('update' === opname || 'load' === opname || 'remove' === opname) {
-        const parts = point?.parts || [];
+        const segments = point?.segments || [];
         let last = null;
-        for (const p of parts) {
-            const m = String(p).match(/^\{(.+)\}$/);
-            if (m)
-                last = m[1];
+        for (const s of segments) {
+            if (null != s?.var)
+                last = s.var;
         }
         if (last && last === param?.name)
             return true;

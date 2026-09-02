@@ -110,11 +110,21 @@ type EntityPathDesc = {
 }
 
 
+// One resolved path segment (ADR-003): a literal, or a variable naming a
+// path parameter. Exactly one of `lit` / `var` is set. The braced-string
+// form it replaces could not distinguish a literal containing braces from a
+// parameter reference.
+type PathSegment = {
+  lit?: string
+  var?: string
+}
+
+
 // Path analysis description
 type PathDesc = {
   orig: string
   method: MethodName
-  parts: string[]
+  segments: PathSegment[]
   // rename: GuidePathRename
   rename: {
     param?: Record<string, any>
@@ -150,5 +160,6 @@ export type {
   EntityDesc,
   EntityPathDesc,
   PathDesc,
+  PathSegment,
   OpDesc,
 }

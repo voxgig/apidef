@@ -19,6 +19,7 @@ ADR-NNN**, so the reasoning that led there stays readable.
 |-----|----------|--------|
 | [ADR-001](#adr-001--entity-names-are-singular-always) | Entity names are singular, always | Accepted |
 | [ADR-002](#adr-002--guideaon-is-the-only-correction-surface) | `guide.aon` is the only correction surface | Accepted |
+| [ADR-003](#adr-003--the-model-carries-resolved-structure-not-templates-to-parse) | The model carries resolved structure, not templates to parse | Accepted |
 
 ---
 
@@ -282,3 +283,121 @@ the exchange survives into the model as facts on
   `x-ref` (a `$ref` bookkeeping key of its own making, not a vendor
   extension) and nothing else. A genuine `x-*` read is a reversal of
   this ADR and needs an ADR of its own.
+
+---
+
+## ADR-003 — The model carries resolved structure, not templates to parse
+
+### Context
+
+A request path is fully known at parse time. apidef already splits it and
+already applies the guide's parameter renames, emitting
+
+```
+orig:  "/element/{element_id}"
+parts: ["element", "{id}"]
+```
+
+But `parts` carries `{id}` as a BRACED STRING, so every consumer has to
+parse the braces back out. In the generated SDKs that happens on every
+request: `preparePath` joins the parts into `"element/{id}"`, `makeUrl`
+concatenates base/prefix/path/suffix into one string, and then builds a
+fresh regular expression PER PARAMETER to take the braces out again.
+`MakeUrlUtility` has carried `// TODO: use parts to avoid regexp?` for as
+long as it has existed.
+
+So structure computed once, here, is discarded and re-derived by regex on
+every call — in thirteen hand-written implementations of the same brace
+grammar, one per target language. That count is the argument. Three of
+them have already drifted from the other ten in ways that shipped: the
+`auth.basic` optspec differed in rust and zig, and ts, js and lua emitted
+unquoted map keys for names the other nine quoted.
+
+Three options were considered.
+
+1. **Leave it.** The grammar is trivial, and each target's version is
+   twenty lines. But "trivial and repeated twenty-two times" is precisely
+   the shape that produced the divergences above, and the cost recurs on
+   every request rather than once.
+
+2. **Emit `segments` alongside `parts`**, so consumers migrate at their
+   own pace. Rejected, and the reasoning is the load-bearing part of this
+   entry — see the Decision.
+
+3. **Emit `segments` only.** Chosen.
+
+### Decision
+
+**apidef emits each point's path as a typed segment vector. It emits no
+brace-templated string for a consumer to parse, and never two
+representations of the same fact.**
+
+A segment is a literal or a variable, and nothing else:
+
+```
+segments: [ { lit: "element" }, { var: "id" } ]
+```
+
+Two things make option 2 wrong rather than merely redundant.
+
+- **The string form is LOSSY.** `"{id}"` cannot represent a literal path
+  segment that contains braces, and `parts` cannot distinguish one from a
+  parameter reference. Round-tripping through it therefore loses
+  information the parse already had. You do not keep the lossy
+  representation alongside the faithful one; you delete it.
+- **The model is committed data.** A consumer's `.sdk/model/` is checked
+  in, and the point shape is baked into every generated SDK's `Config`.
+  Duplication there is durable and shipped, and two representations of
+  one path are two things that can disagree. Transitional duplication
+  belongs in sdkgen's generation layer, which is rebuilt from source on
+  every release, not in data that outlives it.
+
+The transition is therefore sdkgen's to absorb: it derives the old
+`parts` shape from `segments` in one generation-time helper, so targets
+that have not migrated are untouched, and that helper is deleted when the
+last one has.
+
+**Scope: the PATH only.** The server URL keeps its own construction-time
+substitution. A `base` is a runtime option a caller can override with a
+literal, so making it a segment vector would change that option's
+semantics — a separate decision, deliberately not taken here. The
+consequence is accepted below.
+
+### Consequences we accept
+
+- **A breaking change to the model**, gated by the peer floor rather than
+  by carrying both shapes. That mechanism is proven: apidef 8.1 shipped a
+  new fact and consumers moved their floor to `>=8.1` rather than apidef
+  emitting the old and new shapes together.
+- **The model gets more verbose.** A vector of maps is bigger than a
+  vector of strings. Paid once, in data, to remove parsing from
+  twenty-two runtimes.
+- **Two mechanisms survive**, because the scope is the path only: server
+  variables are still substituted into `base` at construction by a regex
+  in each target's `makeOptions`. This entry does not fix that, and a
+  later one may.
+- **A path segment carries no `src` tag.** Under this scope every
+  variable segment resolves from the operation's parameters, so a tag
+  would be a constant. It is omitted rather than reserved: if the server
+  URL is ever brought into the same vector, the tag is added then, by the
+  ADR that decides it.
+- **The Go port must follow.** It is already behind on ADR-002's exchange
+  facts, and this widens that gap until it is ported. The shared `.tsv`
+  fixtures do not assert on `parts`, so the two ports can be moved
+  independently without the suite hiding a divergence — but they must
+  both move before the model schema can require the new shape.
+
+### Enforcement
+
+- `resolvePathList()` in `ts/src/transform/entity.ts` is the single
+  construction site: the split, the rename application, and now the
+  segment typing happen there and nowhere else.
+- **`parts` must not come back.** Grep for it before adding a path
+  representation, the way ADR-002 says to grep for `x-`. A second shape
+  for one fact is a reversal of this entry and needs an ADR of its own.
+- The point shape in `model/apidef.aon` declares `segments` and not
+  `parts`, so a model carrying the old key fails unification in the
+  consumer rather than being silently half-read.
+- A new brace-parsing regular expression in a generated runtime is the
+  symptom this entry exists to remove. In sdkgen, `makeUrl` and
+  `preparePath` are the files to check.
