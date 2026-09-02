@@ -43,10 +43,19 @@ function migrateLegacyGuide(fs, folder, guideprefix) {
     if (fs.existsSync(guidepath) || !fs.existsSync(legacyguide)) {
         return false;
     }
+    // EXACTLY the two includes the rename invalidates, and no others.
+    //
+    // The sibling is `<guideprefix>base-guide`, because that is the only
+    // base-guide this build writes. Matching any `*base-guide.aontu` instead
+    // would rewrite a user's own `@"shared-base-guide.aontu"` — a file nothing
+    // renamed — into a path that does not exist, breaking the guide while
+    // deleting the original. A plain split/join keeps the prefix a literal, so
+    // a prefix containing regex metacharacters cannot widen the match either.
     const legacysrc = String(fs.readFileSync(legacyguide, 'utf8'));
     const migrated = legacysrc
         .replace(/@"@voxgig\/apidef\/model\/guide\.aontu"/g, '@"@voxgig/apidef/model/guide.aon"')
-        .replace(/@"([\w.\-]*base-guide)\.aontu"/g, '@"$1.aon"');
+        .split('@"' + guideprefix + 'base-guide.aontu"')
+        .join('@"' + guideprefix + 'base-guide.aon"');
     fs.writeFileSync(guidepath, migrated);
     try {
         fs.unlinkSync(legacyguide);

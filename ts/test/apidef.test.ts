@@ -53,6 +53,11 @@ describe('apidef', () => {
       '',
       '@"x-base-guide.aontu"',
       '',
+      // A user's OWN include that merely ENDS in base-guide.aontu. Nothing
+      // renamed this file, so rewriting it would point the guide at a path
+      // that does not exist — while deleting the original.
+      '@"shared-base-guide.aontu"',
+      '',
       // The user's own content, which must survive untouched — including a
       // string that merely mentions the old extension.
       'guide: { entity: { thing: { note: "see guide.aontu notes" } } }',
@@ -68,8 +73,8 @@ describe('apidef', () => {
       'package include not migrated: ' + out)
     assert.ok(out.includes('@"x-base-guide.aon"'),
       'base-guide include not migrated: ' + out)
-    assert.ok(!out.includes('.aontu"'),
-      'a dangling .aontu include survived: ' + out)
+    assert.ok(out.includes('@"shared-base-guide.aontu"'),
+      'a user-owned base-guide include was rewritten: ' + out)
 
     // The user's content is theirs: only the two includes change.
     assert.ok(out.includes('note: "see guide.aontu notes"'),
