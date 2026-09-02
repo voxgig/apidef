@@ -48,6 +48,43 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
     (0, node_test_1.test)('exist', async () => {
         node_assert_1.default.ok(apidef_1.ApiDef);
     });
+    // LEGACY GUIDE MIGRATION. The guide is the one model file a user owns, so
+    // the extension rename migrates it rather than abandoning it — but renaming
+    // the FILE byte-for-byte was not enough. A legacy guide `@`-includes two
+    // files by the old extension, and both dangle after the rename:
+    //
+    //   @"@voxgig/apidef/model/guide.aontu"   <- no longer shipped
+    //   @"<prefix>base-guide.aontu"           <- now written as .aon
+    //
+    // Every build of such a project then died on `source not found`, which is
+    // what apidef-validate hit on all 14 of its real-world specs. Pin that the
+    // migration rewrites exactly those two includes and nothing else.
+    (0, node_test_1.test)('migrate-legacy-guide', () => {
+        const Os = require('node:os');
+        const Path = require('node:path');
+        const { migrateLegacyGuide } = require('../dist/guide/guide');
+        const dir = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'apidef-guide-'));
+        Fs.mkdirSync(Path.join(dir, 'guide'), { recursive: true });
+        const legacy = Path.join(dir, 'guide', 'x-guide.aontu');
+        Fs.writeFileSync(legacy, [
+            '@"@voxgig/apidef/model/guide.aontu"',
+            '',
+            '@"x-base-guide.aontu"',
+            '',
+            // The user's own content, which must survive untouched — including a
+            // string that merely mentions the old extension.
+            'guide: { entity: { thing: { note: "see guide.aontu notes" } } }',
+            '',
+        ].join('\n'));
+        migrateLegacyGuide(Fs, dir, 'x-');
+        node_assert_1.default.ok(!Fs.existsSync(legacy), 'legacy file should be gone');
+        const out = Fs.readFileSync(Path.join(dir, 'guide', 'x-guide.aon'), 'utf8');
+        node_assert_1.default.ok(out.includes('@"@voxgig/apidef/model/guide.aon"'), 'package include not migrated: ' + out);
+        node_assert_1.default.ok(out.includes('@"x-base-guide.aon"'), 'base-guide include not migrated: ' + out);
+        node_assert_1.default.ok(!out.includes('.aontu"'), 'a dangling .aontu include survived: ' + out);
+        // The user's content is theirs: only the two includes change.
+        node_assert_1.default.ok(out.includes('note: "see guide.aontu notes"'), 'user content was rewritten: ' + out);
+    });
     // aontu resolves @-includes through @tabnas/multisource, which picks POSIX
     // vs native path semantics purely from whether an fs was injected:
     //   const P = null != ctx.meta?.fs ? Path.posix : Path
