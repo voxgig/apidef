@@ -49,11 +49,19 @@
           },
           "method": "POST",
           "orig": "/api/planet/{planet_id}/moon",
-          "parts": [
-            "api",
-            "planet",
-            "{planet_id}",
-            "moon"
+          "segments": [
+            {
+              "lit": "api"
+            },
+            {
+              "lit": "planet"
+            },
+            {
+              "var": "planet_id"
+            },
+            {
+              "lit": "moon"
+            }
           ],
           "select": {
             "exist": [
@@ -84,11 +92,19 @@
           },
           "method": "GET",
           "orig": "/api/planet/{planet_id}/moon",
-          "parts": [
-            "api",
-            "planet",
-            "{planet_id}",
-            "moon"
+          "segments": [
+            {
+              "lit": "api"
+            },
+            {
+              "lit": "planet"
+            },
+            {
+              "var": "planet_id"
+            },
+            {
+              "lit": "moon"
+            }
           ],
           "select": {
             "exist": [
@@ -126,18 +142,28 @@
           },
           "method": "GET",
           "orig": "/api/planet/{planet_id}/moon/{moon_id}",
-          "parts": [
-            "api",
-            "planet",
-            "{planet_id}",
-            "moon",
-            "{id}"
-          ],
           "rename": {
             "param": {
               "moon_id": "id"
             }
           },
+          "segments": [
+            {
+              "lit": "api"
+            },
+            {
+              "lit": "planet"
+            },
+            {
+              "var": "planet_id"
+            },
+            {
+              "lit": "moon"
+            },
+            {
+              "var": "id"
+            }
+          ],
           "select": {
             "exist": [
               "id",
@@ -175,18 +201,28 @@
           },
           "method": "DELETE",
           "orig": "/api/planet/{planet_id}/moon/{moon_id}",
-          "parts": [
-            "api",
-            "planet",
-            "{planet_id}",
-            "moon",
-            "{id}"
-          ],
           "rename": {
             "param": {
               "moon_id": "id"
             }
           },
+          "segments": [
+            {
+              "lit": "api"
+            },
+            {
+              "lit": "planet"
+            },
+            {
+              "var": "planet_id"
+            },
+            {
+              "lit": "moon"
+            },
+            {
+              "var": "id"
+            }
+          ],
           "select": {
             "exist": [
               "id",
@@ -224,18 +260,28 @@
           },
           "method": "PUT",
           "orig": "/api/planet/{planet_id}/moon/{moon_id}",
-          "parts": [
-            "api",
-            "planet",
-            "{planet_id}",
-            "moon",
-            "{id}"
-          ],
           "rename": {
             "param": {
               "moon_id": "id"
             }
           },
+          "segments": [
+            {
+              "lit": "api"
+            },
+            {
+              "lit": "planet"
+            },
+            {
+              "var": "planet_id"
+            },
+            {
+              "lit": "moon"
+            },
+            {
+              "var": "id"
+            }
+          ],
           "select": {
             "exist": [
               "id",

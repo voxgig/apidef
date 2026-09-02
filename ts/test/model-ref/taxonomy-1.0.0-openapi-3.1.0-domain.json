@@ -85,17 +85,25 @@
           },
           "method": "POST",
           "orig": "/{year}/domain/{did}/revoke",
-          "parts": [
-            "{year}",
-            "domain",
-            "{id}",
-            "revoke"
-          ],
           "rename": {
             "param": {
               "did": "id"
             }
           },
+          "segments": [
+            {
+              "var": "year"
+            },
+            {
+              "lit": "domain"
+            },
+            {
+              "var": "id"
+            },
+            {
+              "lit": "revoke"
+            }
+          ],
           "select": {
             "$action": "revoke",
             "exist": [
@@ -143,9 +151,13 @@
           },
           "method": "GET",
           "orig": "/{year}/domain",
-          "parts": [
-            "{year}",
-            "domain"
+          "segments": [
+            {
+              "var": "year"
+            },
+            {
+              "lit": "domain"
+            }
           ],
           "select": {
             "exist": [
@@ -185,10 +197,16 @@
           },
           "method": "GET",
           "orig": "/{year}/domain/{id}",
-          "parts": [
-            "{year}",
-            "domain",
-            "{id}"
+          "segments": [
+            {
+              "var": "year"
+            },
+            {
+              "lit": "domain"
+            },
+            {
+              "var": "id"
+            }
           ],
           "select": {
             "exist": [
@@ -227,10 +245,16 @@
           },
           "method": "PATCH",
           "orig": "/{year}/domain/{id}",
-          "parts": [
-            "{year}",
-            "domain",
-            "{id}"
+          "segments": [
+            {
+              "var": "year"
+            },
+            {
+              "lit": "domain"
+            },
+            {
+              "var": "id"
+            }
           ],
           "select": {
             "exist": [

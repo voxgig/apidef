@@ -11,9 +11,13 @@
         {
           "method": "GET",
           "orig": "/store/inventory",
-          "parts": [
-            "store",
-            "inventory"
+          "segments": [
+            {
+              "lit": "store"
+            },
+            {
+              "lit": "inventory"
+            }
           ],
           "select": {
             "$action": "inventory"
@@ -42,10 +46,16 @@
           },
           "method": "DELETE",
           "orig": "/store/order/{orderId}",
-          "parts": [
-            "store",
-            "order",
-            "{orderId}"
+          "segments": [
+            {
+              "lit": "store"
+            },
+            {
+              "lit": "order"
+            },
+            {
+              "var": "orderId"
+            }
           ],
           "select": {
             "exist": [

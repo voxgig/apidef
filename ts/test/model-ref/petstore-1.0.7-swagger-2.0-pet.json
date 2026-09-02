@@ -86,16 +86,22 @@
           },
           "method": "POST",
           "orig": "/pet/{petId}/uploadImage",
-          "parts": [
-            "pet",
-            "{id}",
-            "uploadImage"
-          ],
           "rename": {
             "param": {
               "petId": "id"
             }
           },
+          "segments": [
+            {
+              "lit": "pet"
+            },
+            {
+              "var": "id"
+            },
+            {
+              "lit": "uploadImage"
+            }
+          ],
           "select": {
             "$action": "upload_image",
             "exist": [
@@ -139,15 +145,19 @@
           },
           "method": "POST",
           "orig": "/pet/{petId}",
-          "parts": [
-            "pet",
-            "{id}"
-          ],
           "rename": {
             "param": {
               "petId": "id"
             }
           },
+          "segments": [
+            {
+              "lit": "pet"
+            },
+            {
+              "var": "id"
+            }
+          ],
           "select": {
             "exist": [
               "name",
@@ -174,8 +184,10 @@
           },
           "method": "POST",
           "orig": "/pet",
-          "parts": [
-            "pet"
+          "segments": [
+            {
+              "lit": "pet"
+            }
           ],
           "select": {
             "exist": [
@@ -206,9 +218,13 @@
           },
           "method": "GET",
           "orig": "/pet/findByStatus",
-          "parts": [
-            "pet",
-            "findByStatus"
+          "segments": [
+            {
+              "lit": "pet"
+            },
+            {
+              "lit": "findByStatus"
+            }
           ],
           "select": {
             "$action": "find_by_status",
@@ -235,9 +251,13 @@
           },
           "method": "GET",
           "orig": "/pet/findByTags",
-          "parts": [
-            "pet",
-            "findByTags"
+          "segments": [
+            {
+              "lit": "pet"
+            },
+            {
+              "lit": "findByTags"
+            }
           ],
           "select": {
             "$action": "find_by_tag",
@@ -269,15 +289,19 @@
           },
           "method": "GET",
           "orig": "/pet/{petId}",
-          "parts": [
-            "pet",
-            "{id}"
-          ],
           "rename": {
             "param": {
               "petId": "id"
             }
           },
+          "segments": [
+            {
+              "lit": "pet"
+            },
+            {
+              "var": "id"
+            }
+          ],
           "select": {
             "exist": [
               "pet_id"
@@ -316,15 +340,19 @@
           },
           "method": "DELETE",
           "orig": "/pet/{petId}",
-          "parts": [
-            "pet",
-            "{id}"
-          ],
           "rename": {
             "param": {
               "petId": "id"
             }
           },
+          "segments": [
+            {
+              "lit": "pet"
+            },
+            {
+              "var": "id"
+            }
+          ],
           "select": {
             "exist": [
               "api_key",
@@ -355,8 +383,10 @@
           },
           "method": "PUT",
           "orig": "/pet",
-          "parts": [
-            "pet"
+          "segments": [
+            {
+              "lit": "pet"
+            }
           ],
           "select": {
             "exist": [

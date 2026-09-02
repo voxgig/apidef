@@ -55,9 +55,13 @@
           },
           "method": "POST",
           "orig": "/store/order",
-          "parts": [
-            "store",
-            "order"
+          "segments": [
+            {
+              "lit": "store"
+            },
+            {
+              "lit": "order"
+            }
           ],
           "select": {
             "exist": [
@@ -88,16 +92,22 @@
           },
           "method": "GET",
           "orig": "/store/order/{orderId}",
-          "parts": [
-            "store",
-            "order",
-            "{id}"
-          ],
           "rename": {
             "param": {
               "orderId": "id"
             }
           },
+          "segments": [
+            {
+              "lit": "store"
+            },
+            {
+              "lit": "order"
+            },
+            {
+              "var": "id"
+            }
+          ],
           "select": {
             "exist": [
               "order_id"
