@@ -37,7 +37,8 @@ path + method"; it is:
 ```
 op.create
   └─ points[]            each is one concrete path/method that yields create
-       ├─ orig, parts    the source path
+       ├─ orig           the source path, as written in the spec
+       ├─ segments       that path RESOLVED: { lit } / { var }, no braces to parse
        ├─ method         GET/POST/…
        ├─ args           parameters to send
        ├─ select         how to identify the target instance

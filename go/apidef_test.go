@@ -413,6 +413,31 @@ func TestResolvePathListCompoundElement(t *testing.T) {
 	})
 }
 
+// A placeholder occupying only PART of an element — /reports/{id}.json,
+// /v{version}/items — stays literal under the same whole-element rule.
+//
+// This is the KNOWN LIMIT recorded in ADR-003, pinned here so it cannot
+// change silently. It is NOT a regression: the braced form did not mark these
+// as parameters either (its rename lookup was a whole-element match too), and
+// the reconstruction sdkgen hands the runtimes is byte-identical, so the
+// per-parameter regex still substitutes them. It is the one case that blocks
+// retiring that regex.
+func TestResolvePathListPartialElement(t *testing.T) {
+	paths := resolvePathList(map[string]any{
+		"path": map[string]any{
+			"/reports/{id}.json": map[string]any{
+				"rename": map[string]any{"param": map[string]any{"id": "report_id"}},
+			},
+			"/v{version}/items": map[string]any{},
+		},
+	}, map[string]any{"paths": map[string]any{}})
+
+	assertSegments(t, paths, [][]map[string]any{
+		{{"lit": "reports"}, {"lit": "{id}.json"}},
+		{{"lit": "v{version}"}, {"lit": "items"}},
+	})
+}
+
 // End-to-end guard for ADR-003: the emitted model carries typed `segments`
 // and no braced-string `parts` for a consumer to parse back out. Also catches
 // a formatter that cannot serialise the segment vector — before the reflect

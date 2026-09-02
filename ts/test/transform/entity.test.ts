@@ -108,6 +108,39 @@ describe('transform-entity', () => {
   })
 
 
+  // A placeholder occupying only PART of an element — `/reports/{id}.json`,
+  // `/v{version}/items` — stays literal under the same whole-element rule.
+  //
+  // This is the KNOWN LIMIT recorded in ADR-003, pinned here so it cannot
+  // change silently. It is NOT a regression: the braced form did not mark
+  // these as parameters either (its rename lookup was a whole-element match
+  // too), and the reconstruction sdkgen hands the runtimes is byte-identical,
+  // so the per-parameter regex still substitutes them. It is the one case
+  // that blocks retiring that regex.
+  test('resolvePathList: a partial-element placeholder stays literal (ADR-003 limit)', () => {
+    const paths = resolvePathList({
+      path: {
+        '/reports/{id}.json': { rename: { param: { id: 'report_id' } } },
+        '/v{version}/items': {},
+      }
+    } as any, { paths: {} } as any)
+
+    assert.deepStrictEqual(paths.map((p: any) => p.segments), [
+      [{ lit: 'reports' }, { lit: '{id}.json' }],
+      [{ lit: 'v{version}' }, { lit: 'items' }],
+    ])
+
+    // What a consumer reconstructing the old form gets — unchanged from what
+    // apidef used to emit directly, which is why nothing breaks today.
+    const parts = (p: any) => p.segments.map((s: any) =>
+      null == s.var ? String(s.lit ?? '') : '{' + s.var + '}')
+    assert.deepStrictEqual(paths.map(parts), [
+      ['reports', '{id}.json'],
+      ['v{version}', 'items'],
+    ])
+  })
+
+
   test('buildRelations', () => {
     assert.ok(buildRelations)
 

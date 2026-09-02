@@ -345,6 +345,21 @@ glued together with a separator that belongs to neither, so it has no honest
 did with it — the rename lookup was a whole-element match — so the rule is
 not new, only now explicit.
 
+**KNOWN LIMIT, and the one place this decision is not yet complete.** The
+same rule catches a placeholder that occupies only PART of an element:
+`/reports/{id}.json`, `/v{version}/items`. Those elements stay literal, so
+the vector does not say that `{id}` inside `{id}.json` is a parameter. This
+is not a regression — the braced form did not say so either, and the
+reconstruction sdkgen hands the runtimes is byte-identical, so today's
+per-parameter regex still substitutes them. But it is the one case where a
+consumer walking only `var` entries would be wrong, and it therefore BLOCKS
+the migration this ADR is ultimately for: the runtimes cannot drop their
+regex until the model can express a partial-element placeholder. Doing that
+means a segment carrying a list of pieces rather than one `lit`/`var`, which
+nests the 99% case to serve the 1% — a trade to weigh when the migration is
+actually scheduled, not before. Until then the limit is pinned by tests in
+both runtimes.
+
 Two things make option 2 wrong rather than merely redundant.
 
 - **The string form is LOSSY.** `"{id}"` cannot represent a literal path

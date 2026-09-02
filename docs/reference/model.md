@@ -54,7 +54,7 @@ TypeScript types are in [`ts/src/model.ts`](../../ts/src/model.ts).
 | field | type | meaning |
 |-------|------|---------|
 | `orig` | `string` | the source path string |
-| `parts` | `string[]` | the path split into segments (params as `{name}`, post-rename) |
+| `segments` | `PathSegment[]` | the resolved path: `{ lit }` for a literal element, `{ var }` naming one of `args.params`. Renames are already applied, and there is no braced string to parse — see [ADR-003](../../ADR.md#adr-003--the-model-carries-resolved-structure-not-templates-to-parse) |
 | `method` | `string` | HTTP method |
 | `rename` | `{ param: { [orig]: target } }` | parameter renames applied to this path |
 | `args` | `{ params: ModelArg[] }` | the call arguments |
@@ -115,14 +115,16 @@ entity: planet: {
   ]
   op: {
     list: { name: list, points: [ {
-      method: GET, orig: "/api/planet", parts: [ api, planet ]
+      method: GET, orig: "/api/planet"
+      segments: [ { lit: api } { lit: planet } ]
       args: { params: [] }
       select: {}
       transform: { req: `reqdata`, res: `body` }
       active: true
     } ] }
     load: { name: load, points: [ {
-      method: GET, orig: "/api/planet/{planet_id}", parts: [ api, planet, "{id}" ]
+      method: GET, orig: "/api/planet/{planet_id}"
+      segments: [ { lit: api } { lit: planet } { var: id } ]
       rename: { param: { planet_id: id } }
       args: { params: [ { kind: param, name: id, orig: planet_id, reqd: true, type: `$STRING`, active: true } ] }
       select: { exist: [ id ] }
