@@ -54,11 +54,11 @@ TypeScript types are in [`ts/src/model.ts`](../../ts/src/model.ts).
 | field | type | meaning |
 |-------|------|---------|
 | `orig` | `string` | the source path string |
-| `segments` | `PathSegment[]` | the resolved path: `{ lit }` for a literal element, `{ var }` naming one of `args.params`. Renames are already applied, and there is no braced string to parse — see [ADR-003](../../ADR.md#adr-003--the-model-carries-resolved-structure-not-templates-to-parse) |
+| `segments` | `PathSegment[]` | the resolved path: `{ lit }` for a literal element, `{ var }` naming one of `args.params`. Renames are already applied, and there is no braced string to parse: the model carries resolved structure, never a template |
 | `method` | `string` | HTTP method |
 | `rename` | `{ param: { [orig]: target } }` | parameter renames applied to this path |
 | `args` | `{ params: ModelArg[] }` | the call arguments |
-| `select` | `{ exist: string[], $action? }` | which instance(s) this point targets |
+| `select` | `{ exist: string[], $action? }` | which instances this point targets |
 | `transform` | `{ req, res }` | request/response envelope handling (defaults `` `reqdata` `` / `` `body` ``) |
 | `relations` | `array` | per-point relation links |
 | `active` | `boolean` | included in output |

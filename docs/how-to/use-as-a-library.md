@@ -89,7 +89,7 @@ const build = await ApiDef.makeBuild({ folder: '/v/model', fs: vol })
 
 ## Inspecting the result
 
-`result.steps` tells you how far the pipeline ran; `result.apimodel`,
+`result.steps` records how far the pipeline ran; `result.apimodel`,
 `result.guide`, and `result.jres` hold the model, classification, and the list
 of written/merged files respectively. See the
 [API reference](../reference/api.md#apidefresult).

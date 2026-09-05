@@ -89,9 +89,9 @@ flow.BasicPlanetFlow
        └─ valid         what to assert afterwards
 ```
 
-This is why apidef is more than a schema converter: it captures not just the
-*shape* of an API but a baseline of its expected *behavior*, which `sdkgen`
-can turn into both an SDK and its test suite.
+This is why apidef is more than a schema converter: it captures the *shape*
+of an API and a baseline of its expected *behavior*, and `sdkgen` turns the
+two into an SDK and its test suite.
 
 ## Why a separate `jsonic` representation?
 

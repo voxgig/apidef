@@ -138,7 +138,7 @@ OIDC **cannot create a tag** — its audience is the registry, not GitHub.
 scoped to one run, no stored secret), just aimed at GitHub; it only has to be
 asked for.
 
-**They live in separate jobs, and that separation is load-bearing.** The
+**They live in separate jobs, and that separation is deliberate.** The
 `publish` job runs `npm ci`, the build and the tests — dependency lifecycle
 scripts and project code — and keeps `contents: read`. The `tag` job runs git
 and nothing else, and is the only place `contents: write` exists. In one job
@@ -212,7 +212,7 @@ npm package. It does **not** tag the Go module — the tag steps are skipped on
 that path, because the `v*` tag already exists and nothing has told the run to
 create the Go one.
 
-`make publish-go V=x.y.z` rewrites `const VERSION`, commits, tags and pushes
+`make publish-go V=x.y.z` rewrites `const VERSION`, commits, tags, and pushes
 in one step — and it is sharper than it looks. It commits to whatever branch
 is **currently checked out**, tags that commit, then runs
 `git push origin main go/vX.Y.Z`. Run from a feature branch it therefore

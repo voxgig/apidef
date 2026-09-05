@@ -207,4 +207,3 @@ make are preserved.
 - What each `steps` stage does: [Pipeline stages](../reference/pipeline.md).
 - When the automatic naming gets a word wrong:
   [Customize entity naming](../how-to/customize-entity-naming.md).
-```

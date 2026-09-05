@@ -47,7 +47,7 @@ A full walk-through is in [the getting-started tutorial](./docs/tutorial/getting
 
 ## Documentation
 
-Comprehensive docs live in [`docs/`](./docs/README.md):
+The documentation lives in [`docs/`](./docs/README.md):
 
 - **[Tutorial](./docs/tutorial/getting-started.md)** — learn by generating your first model.
 - **How-to guides** — [library](./docs/how-to/use-as-a-library.md) ·
@@ -83,13 +83,8 @@ make all                 # TypeScript build+test AND Go build+test (from repo ro
 ```
 
 The npm package lives in `ts/`; run `npm` there. `go/` is the parallel Go
-project. `make all` from the repo root drives both.
-
-## For AI coding agents
-
-This repository ships agent-oriented context files: [`AGENTS.md`](./AGENTS.md),
-[`CLAUDE.md`](./CLAUDE.md), and [`llms.txt`](./llms.txt). Start with
-`AGENTS.md`.
+project. `make all` from the repo root drives both, and `make test` also runs
+the prose gate over these pages, which follow [the style guide](./STYLE-GUIDE.md).
 
 ## License
 
