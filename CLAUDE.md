@@ -25,6 +25,15 @@ When changing behaviour:
 Go source files carry `Mirrors src/...` comments pointing at the TS code they
 track; keep those accurate when you touch either side.
 
+## Prose
+
+The reader-facing pages (`README.md` and `docs/`, minus `docs/design/` and
+`docs/review/`) follow [`STYLE-GUIDE.md`](./STYLE-GUIDE.md): the voice, the
+banned phrases, the spaced em dash, and the rule that documentation never
+cites a working document (this file, `AGENTS.md`, and `ADR.md` included).
+Two gates enforce it, `vale` and `python3 tools/check_prose.py`;
+`make scan-prose` runs both, and `make test` runs it.
+
 ## Pipeline
 
 `parse` → `guide` (heuristic classification of paths into entities/ops/

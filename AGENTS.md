@@ -81,6 +81,9 @@ go/            Go parity port (flat package) + *_test.go
 go/model/      mirror of model/ (go:embed, package model)
 model/         CANONICAL aontu model schemas: apidef.aontu, guide.aontu
 docs/          full documentation (tutorial / how-to / reference / explanation)
+               docs/design/ and docs/review/ are working documents, not pages
+STYLE-GUIDE.md how the reader-facing pages are written; tools/check_prose.py
+               and .vale.ini gate them (see "Prose follows STYLE-GUIDE.md")
 ```
 
 The shared aontu model (`apidef.aontu`, `guide.aontu`) is canonical at
@@ -130,6 +133,31 @@ result.apimodel.main.kit.entity   // { pet: { op, fields, id, relations, … } }
 - **Soft failure:** the pipeline records warnings (`apidef-warnings.txt`)
   rather than aborting; `result.ok`/`result.steps` report how far it got.
 - Commit messages: clear and descriptive; do not include model/tool identifiers.
+
+## Prose follows STYLE-GUIDE.md
+
+[`STYLE-GUIDE.md`](STYLE-GUIDE.md) is normative for the reader-facing pages:
+the root `README.md` and every page under `docs/` except `docs/design/` and
+`docs/review/`, which are working documents. Two gates enforce it and both
+run in CI (`.github/workflows/docs.yml`) and under `make test`:
+
+| Gate | Checks |
+|---|---|
+| `vale --minAlertLevel=error $(python3 tools/check_prose.py --files)` | Google's rules plus the banned list, at the levels in `.vale.ini` |
+| `python3 tools/check_prose.py` | the banned list across line wraps, em-dash spacing and ration, first person, no emoji, no citations of a working document, resolving relative links, a complete page set |
+
+`make scan-prose` runs both (Vale where installed). The banned list is
+`.vale/styles/config/vocabularies/Apidef/reject.txt`, read by both gates.
+The page set is the configuration block at the top of
+`tools/check_prose.py`; a new documentation page must be reachable from it
+or neither gate reads it.
+
+Three things trip agents most often: a page must not name or link
+`AGENTS.md`, `CLAUDE.md`, `ADR.md`, `TODO.md`, or anything under
+`docs/design/` or `docs/review/` (state the fact instead); the em dash is
+spaced (` — `) and rationed to one aside per line; and a word Vale's
+dictionary does not know goes into `accept.txt` one entry at a time, never
+as a suffix pattern.
 
 ## Releasing
 

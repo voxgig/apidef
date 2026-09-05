@@ -1,14 +1,14 @@
 # How to debug a build
 
 apidef is built to fail *soft*: instead of aborting on a surprising spec, it
-records a warning and produces the best model it can. These are the levers for
+records a warning and produces as complete a model as it can. These are the levers for
 seeing what happened.
 
 ## Check how far it got
 
 `result.steps` lists the stages that ran. If it stops short of
-`['parse','guide','transformers','builders','generate']`, the last entry tells
-you where things ended.
+`['parse','guide','transformers','builders','generate']`, the last entry is where
+things ended.
 
 ```js
 const result = await build(model, buildSpec, {})

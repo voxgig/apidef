@@ -25,7 +25,7 @@ more correct, the fix belongs in TypeScript first; Go follows.
 
 ## How parity is enforced
 
-Three mechanisms keep the two implementations honest:
+Three mechanisms keep the two implementations in step:
 
 ### 1. Shared TSV fixtures
 

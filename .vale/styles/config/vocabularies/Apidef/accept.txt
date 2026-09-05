@@ -1,0 +1,62 @@
+# Terms Vale's dictionary does not know. Entries are REGEXES, so
+# [Vv]oxgig accepts both casings without Vale.Terms then enforcing one of
+# them over the other -- listing both plain forms is what turns this file
+# into a capitalisation rule by accident.
+#
+# EVERY ENTRY BELOW WAS MEASURED, not guessed. `Vale.Spelling` at error
+# level over the 20 reader-facing pages produced 111 alerts across 32
+# distinct words on a clean run; this file is those words, sorted into
+# the groups below, and nothing else. A word that stops appearing in the
+# docs should come out of here, and a new one is added when the gate asks
+# for it.
+
+[Vv]oxgig
+
+# British spellings. Google style is US English; the house voice is not,
+# and the precedence in .vale.ini puts the house voice first.
+#
+# LISTED, not matched by suffix. `\w+ise` and friends accept any word
+# ending in those letters -- `madeupise` included -- and so punch a hole
+# straight through the error-level spelling gate this file exists to make
+# usable. Add the stem when a new one is needed; the cost of doing that is
+# the point.
+#
+# None yet: the only British form on these pages (`recognising`) is one
+# the dictionary already knows, so no stem has needed listing.
+
+# The tool, its model, and the public API surface.
+apidef(?:'s)?
+apimodel
+aontu
+[Aa]rgs?
+assertable
+[Bb]oolean
+canonicalization
+canonicalize
+depluralize
+inlined
+overridable
+sdkgen
+[Tt]ruthy
+unsuffixed
+validator
+
+# General programming vocabulary.
+APIs
+async
+config
+lockfile
+lowercased
+npm
+[Rr]epo
+schema's
+SDKs
+SDK's
+stdout
+toolchain
+[Tt]ranspiling
+unreviewed
+
+# Tool and runtime names.
+Deno
+[Pp]ino

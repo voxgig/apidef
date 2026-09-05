@@ -11,13 +11,13 @@ CRUD classification applied automatically.
 The documentation is organized into four kinds of material. Start with the
 one that matches what you need right now:
 
-### 📘 [Tutorial](./tutorial/getting-started.md) — *learning by doing*
+### [Tutorial](./tutorial/getting-started.md) — *learning by doing*
 A guided walk-through. Install the package, generate a model from a worked
 example, and look at what comes out. Start here if you are new.
 
 - [Getting started](./tutorial/getting-started.md)
 
-### 🔧 How-to guides — *getting a specific job done*
+### How-to guides — *getting a specific job done*
 Goal-oriented recipes that assume you already know the basics.
 
 - [Use apidef as a library](./how-to/use-as-a-library.md)
@@ -28,8 +28,8 @@ Goal-oriented recipes that assume you already know the basics.
 - [Work on the codebase](./how-to/work-on-the-codebase.md)
 - [Release and tag](./how-to/release-and-tag.md)
 
-### 📑 Reference — *the precise details*
-Dry, complete descriptions of every interface and data shape.
+### Reference — *the precise details*
+Dry and complete descriptions of every interface and data shape.
 
 - [Programmatic API](./reference/api.md)
 - [CLI](./reference/cli.md)
@@ -38,7 +38,7 @@ Dry, complete descriptions of every interface and data shape.
 - [The guide model](./reference/guide.md)
 - [Pipeline stages](./reference/pipeline.md)
 
-### 💡 Explanation — *the ideas behind it*
+### Explanation — *the ideas behind it*
 Background and rationale. Read these to understand *why* apidef works the way
 it does.
 
@@ -47,13 +47,10 @@ it does.
 - [The internal model, and why it exists](./explanation/the-internal-model.md)
 - [The canonical TypeScript build and the Go parity port](./explanation/canonical-and-parity.md)
 
-### 📐 Design — *proposals under discussion*
-Design documents for planned or prospective changes.
-
-- [GraphQL ingestion for apidef / sdkgen](./design/graphql-ingestion.md)
-
 ---
 
-For repository conventions and the development workflow, see
-[`AGENTS.md`](../AGENTS.md) and [`CLAUDE.md`](../CLAUDE.md) at the repository
-root.
+Changing apidef itself? TypeScript under `ts/` is canonical and Go under
+`go/` is a parity port: change TypeScript first, with a test, then bring Go
+into step. The contributor loop is in
+[Work on the codebase](./how-to/work-on-the-codebase.md), and these pages
+follow [the style guide](../STYLE-GUIDE.md).
