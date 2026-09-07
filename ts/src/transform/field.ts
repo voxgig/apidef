@@ -182,6 +182,34 @@ function resolveOpFields(
       }
     }
 
+    // SPEC FACTS ABOUT THE FIELD, carried through verbatim.
+    //
+    // These four are declared by OpenAPI on the property and were being
+    // dropped on the floor. `readOnly` is the one that matters most: it is
+    // the difference between a field a client MAY send and one it may not,
+    // and nothing else in the model says which — so every generator has been
+    // putting server-assigned fields into the type a caller fills in.
+    //
+    // ONLY WHEN THE SPEC SAYS SO, and for the booleans only when TRUE. Each
+    // defaults to false in OpenAPI, so an absent key and an explicit `false`
+    // carry the same information; emitting the false ones would add a key to
+    // every field of every model and say nothing. Same discipline as
+    // `short`: absent means "the spec did not say", never "apidef dropped
+    // it".
+    for (const flag of ['readOnly', 'writeOnly', 'deprecated'] as const) {
+      if (true === (fielddef as any)[flag]) {
+        mfield[flag] = true
+      }
+    }
+
+    // `format` is an open vocabulary — OpenAPI defines a handful and lets a
+    // spec coin its own — so it is carried as the string it is rather than
+    // interpreted here. `password` is the one a generator acts on today.
+    const ffmt = (fielddef as any).format
+    if ('string' === typeof ffmt && '' !== ffmt.trim()) {
+      mfield.format = ffmt.trim()
+    }
+
     // Record an untagged union under this field. The field is already typed
     // openly ($ANY/$ARRAY/$OBJECT) because there is nothing to narrow it to;
     // this says WHY, so the generated docs can explain the open type instead
@@ -534,6 +562,23 @@ function mergeField(
   // every generated table while the spec had the words all along.
   if (null == existingField.short && null != newField.short) {
     existingField.short = newField.short
+  }
+
+  // The spec facts merge the same way, and for the same reason: one schema
+  // annotates the field and another references it bare, so taking the first
+  // declaration in opFieldPrecedence order is what finds the annotation.
+  //
+  // THE PRECEDENCE ORDER PUTS `load` FIRST, WHICH IS THE SAFE DIRECTION HERE.
+  // A field the response schema marks readOnly and a request body also lists
+  // is a self-contradictory spec — OpenAPI says a client must not send a
+  // readOnly property at all — and this resolves it by believing the
+  // restriction rather than the omission. Marking a writable field readOnly
+  // costs a caller one field; the other way round sends a value the server
+  // rejects.
+  for (const flag of ['readOnly', 'writeOnly', 'deprecated', 'format'] as const) {
+    if (null == existingField[flag] && null != newField[flag]) {
+      (existingField as any)[flag] = newField[flag]
+    }
   }
 
   return existingField

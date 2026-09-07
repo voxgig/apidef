@@ -45,6 +45,22 @@ type ModelField struct {
 	// generators render an empty cell rather than inventing prose.
 	// Mirrors src/model.ts ModelField.short.
 	Short string `json:"short,omitempty"`
+
+	// SPEC FACTS ABOUT THE FIELD ITSELF, carried through verbatim from the
+	// OpenAPI property. Facts the spec states, not inferences.
+	//
+	// `ReadOnly` is the load-bearing one: it is the difference between a
+	// field a client MAY send and one it may not, which nothing else in this
+	// record expresses.
+	//
+	// `omitempty` on all four is not cosmetic — it is the encoding of "the
+	// spec did not say". Each boolean defaults to false in OpenAPI, so an
+	// absent key and an explicit false carry the same information.
+	// Mirrors src/model.ts ModelField.readOnly/writeOnly/deprecated/format.
+	ReadOnly   bool   `json:"readOnly,omitempty"`
+	WriteOnly  bool   `json:"writeOnly,omitempty"`
+	Deprecated bool   `json:"deprecated,omitempty"`
+	Format     string `json:"format,omitempty"`
 }
 
 // ModelArg represents an operation argument/parameter.
