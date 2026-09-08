@@ -737,6 +737,10 @@ function RenameParams(spec: TaskSpec) {
         oldParam.endsWith('id')
         || oldParam.endsWith('Id')
         || canonize(oldParam) === parentName
+        // GitHub-style `<parent>_number` keys (pull_number, issue_number):
+        // the parent's own key under another name. Only when the param sits
+        // under its own entity, so a nested collection keeps its parent key.
+        || (oldParam.endsWith('_number') && parentName === entdesc.name)
 
       debugpath(pathStr, mdesc.method, 'RENAME-PARAM-PART', parts, partI, partStr, {
         lastPart,
@@ -960,8 +964,15 @@ function FindActions(spec: TaskSpec) {
 
   const cmp = ment.cmp
 
+  // A verb that ResolveEntityName assigned to its parent entity
+  // (verbOnParent) is an action whatever the parent literal canonizes to:
+  // `/app/installations/{installation_id}/access_tokens` belongs to `app`.
+  if (null != ment.verb_on_parent) {
+    updateAction(methodName, lastPart, lastPartCanon, entdesc, pathdesc, 'verb-on-parent')
+  }
+
   // /api/foo/bar where foo is the entity and bar is the action, no id param
-  if (
+  else if (
     secondLastPartCanon === cmp
     || secondLastPartCanon === ment.origcmp
     || secondLastPartCanon === entname
@@ -1272,9 +1283,17 @@ function entityPathMatch_tpte(
   let ecm = undefined
 
   if (null != ment.cmp) {
-    ecm = entityCmpMatch(data, entname, mdesc, why)
-    entname = ecm.name
-    why.push('has-cmp=' + ecm.orig)
+    const parent = verbOnParent(data, pm, mdesc)
+    if (null != parent) {
+      entname = parent
+      ment.verb_on_parent = getelem(pm, -1)
+      why.push('verb-on-parent=' + parent)
+    }
+    else {
+      ecm = entityCmpMatch(data, entname, mdesc, why)
+      entname = ecm.name
+      why.push('has-cmp=' + ecm.orig)
+    }
   }
 
   else if (probableEntityMethod(data, mdesc, pm, why)) {
@@ -1309,6 +1328,72 @@ function entityPathMatch_tpte(
 function endsWithCmp(data: any, pm: PathMatch) {
   const last = canonize(getelem(pm, -1))
   return isOrigCmp(data, last)
+}
+
+
+// A write on `.../<parent>/{id}/<verb>` is a VERB ON THE PARENT, not an
+// entity named after its result shape.
+//
+// GitHub's `PUT /repos/{owner}/{repo}/pulls/{pull_number}/merge` answers with
+// a `pull-request-merge-result` component. Naming the method's entity after
+// that component (the cmp-primary rule) produced a `pull_request_merge_result`
+// entity with a single `update` op, while the GET on the same path (no
+// response schema) stayed an action on `pull`: one route split across two
+// entities by method, and the verb unreachable from the entity it acts on.
+//
+// Four signals, together: the method writes (a GET on such a path is a
+// sub-resource read and keeps the component rule); the response component
+// occurs nowhere else in the spec (a one-off result, not a resource shape);
+// the item selector itself (`.../pulls/{pull_number}`) is a path of the
+// spec, so the trailing literal cannot be a collection of its own; and
+// nothing extends the path (`.../private-registries/{secret_name}` makes
+// `private-registries` a collection, whatever its POST answers with). The
+// verb then joins the parent entity, where FindActions records it as an
+// action and select stamps `$action` on its points. Returns the parent's
+// entity name, or null when the rule does not apply.
+function verbOnParent(
+  data: { def: any, guide: any, work: any },
+  pm: PathMatch,
+  mdesc: any,
+): null | string {
+  const method = mdesc.method
+  if ('GET' === method || 'QUERY' === method || 'HEAD' === method || 'OPTIONS' === method) {
+    return null
+  }
+
+  const ment = mdesc.MethodEntity
+  if (1 < (ment.cmpoccur ?? 0)) {
+    return null
+  }
+
+  const defpaths = data.def?.paths ?? {}
+
+  const itemPath = pm.path.replace(/\/[^/]+$/, '')
+  if (null == defpaths[itemPath]) {
+    return null
+  }
+
+  // A leaf: no path continues past the verb. Compared on a segment boundary,
+  // parameters normalised, so `/merge` is not "extended" by `/merge-async`.
+  const normalize = (p: string) => p.replace(/\{[^}]+\}/g, '{}')
+  const prefix = normalize(pm.path) + '/'
+  for (const p of Object.keys(defpaths)) {
+    if (normalize(p).startsWith(prefix)) {
+      return null
+    }
+  }
+
+  // Methods resolve in path order, so the item path's entity is already
+  // known: use its resolved name rather than re-deriving it from the
+  // literal, which a component-named parent would not match.
+  const entmap = data.work.entmap ?? {}
+  for (const name of sortedKeys(entmap)) {
+    if (null != entmap[name]?.path?.[itemPath]) {
+      return entmap[name].name
+    }
+  }
+
+  return canonize(getelem(pm, -3))
 }
 
 

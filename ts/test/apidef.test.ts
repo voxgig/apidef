@@ -202,6 +202,80 @@ describe('apidef', () => {
   })
 
 
+  // A verb on an item selector is an ACTION on the parent entity, even when
+  // its response has a schema of its own: GitHub's PUT
+  // /repos/{owner}/{repo}/pulls/{pull_number}/merge answers with a
+  // `pull-request-merge-result`, and naming an entity after it split the
+  // route across two entities by method and left `merge` unreachable from
+  // `pull`. The `<parent>_number` key is renamed to `id` on the verb path
+  // as it is on the item path, and a PATCH on the item is promoted to
+  // `update` over an update slot that holds only action points.
+  test('guide-verb-on-parent', async () => {
+    const folder = __dirname + '/../test/verb'
+
+    const build = await ApiDef.makeBuild({ folder })
+
+    const bres = await build(
+      { name: 'verb', def: 'verb-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: true,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const gents = Object.keys(bres.guide.entity).sort()
+    assert.deepStrictEqual(gents, ['note', 'thing'],
+      'expected thing + note only, got ' + gents.join(','))
+
+    const merge = bres.guide.entity.thing.path['/things/{thing_number}/merge']
+    assert.ok(null != merge, 'merge path did not join thing')
+    assert.deepStrictEqual(Object.keys(merge.action ?? {}), ['merge'])
+    assert.deepStrictEqual(Object.keys(merge.op).sort(), ['load', 'update'])
+    assert.strictEqual(merge.rename.param.thing_number?.target ?? merge.rename.param.thing_number, 'id')
+
+    const item = bres.guide.entity.thing.path['/things/{thing_number}']
+    assert.strictEqual(item.rename.param.thing_number?.target ?? item.rename.param.thing_number, 'id')
+
+    // The nested collection is still its own entity, with its parent key kept.
+    const notes = bres.guide.entity.note.path['/things/{thing_number}/notes']
+    assert.ok(null != notes, 'nested collection lost')
+    assert.ok(null == notes.action || 0 === Object.keys(notes.action).length,
+      'nested collection wrongly became an action')
+
+    // Model: PATCH promoted to update; the merge PUT rides along as an action point.
+    const thing = bres.apimodel.main.kit.entity.thing
+    assert.strictEqual(thing.op.patch, undefined, 'patch should have been promoted')
+    const update = thing.op.update.points.map((pt: any) => [pt.method, pt.orig, pt.select.$action])
+    assert.deepStrictEqual(update, [
+      ['PATCH', '/things/{thing_number}', undefined],
+      ['PUT', '/things/{thing_number}/merge', 'merge'],
+    ])
+    const load = thing.op.load.points.map((pt: any) => [pt.method, pt.orig, pt.select.$action])
+    assert.deepStrictEqual(load.sort(), [
+      ['GET', '/things/{thing_number}', undefined],
+      ['GET', '/things/{thing_number}/merge', 'merge'],
+    ])
+    // Both item and verb points address the thing by the renamed key.
+    for (const pt of [...thing.op.update.points, ...thing.op.load.points]) {
+      const names = (pt.args.params ?? []).map((a: any) => a.name)
+      assert.ok(names.includes('id') && !names.includes('thing_number'),
+        pt.orig + ' params ' + names.join(','))
+    }
+  })
+
+
   test('field-required-solar', async () => {
     const outprefix = 'solar-1.0.0-openapi-3.0.0-'
     const folder = __dirname + '/../test/solar'

@@ -945,7 +945,12 @@ func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any)
 		notExactId := oldParam != "id"
 		probablyAnId := strings.HasSuffix(oldParam, "id") ||
 			strings.HasSuffix(oldParam, "Id") ||
-			Canonize(oldParam) == parentName
+			Canonize(oldParam) == parentName ||
+			// GitHub-style `<parent>_number` keys (pull_number, issue_number):
+			// the parent's own key under another name. Only under its own
+			// entity, so a nested collection keeps its parent key. Mirrors
+			// src/guide/heuristic01.ts.
+			(strings.HasSuffix(oldParam, "_number") && parentName == entdescName)
 
 		DebugPath(pathStr, methodName, "RENAME-PARAM-PART", parts, partI, partStr)
 
@@ -1121,8 +1126,13 @@ func findActions(data map[string]any, mdesc map[string]any) {
 			canon == entname
 	}
 
-	// /api/foo/bar where foo is the entity and bar is the action, no id param
-	if matchesAt(secondLastPartCanon) {
+	// A verb that ResolveEntityName assigned to its parent entity
+	// (verbOnParent) is an action whatever the parent literal canonizes
+	// to. Mirrors src/guide/heuristic01.ts FindActions.
+	if safeStr(ment["verb_on_parent"]) != "" {
+		updateAction(methodName, lastPart, lastPartCanon, entdesc, pathdesc, "verb-on-parent")
+	} else if matchesAt(secondLastPartCanon) {
+		// /api/foo/bar where foo is the entity and bar is the action, no id param
 		if !isParam(lastPart) {
 			updateAction(methodName, lastPart, lastPartCanon, entdesc, pathdesc, "no-param")
 		}
@@ -1397,9 +1407,15 @@ func entityPathMatch_tpte(data map[string]any, pm *PathMatchResult, mdesc map[st
 	entname := Canonize(origPathName)
 
 	if safeStr(ment["cmp"]) != "" {
-		ecm := entityCmpMatch(data, entname, mdesc, why)
-		entname = safeStr(ecm["name"])
-		*why = append(*why, "has-cmp="+safeStr(ecm["orig"]))
+		if parent := verbOnParent(data, pm, mdesc); parent != "" {
+			entname = parent
+			ment["verb_on_parent"] = getMatchElem(pm, -1)
+			*why = append(*why, "verb-on-parent="+parent)
+		} else {
+			ecm := entityCmpMatch(data, entname, mdesc, why)
+			entname = safeStr(ecm["name"])
+			*why = append(*why, "has-cmp="+safeStr(ecm["orig"]))
+		}
 	} else if probableEntityMethod(data, mdesc, ment, pm, why) {
 		ecm := entityCmpMatch(data, entname, mdesc, why)
 		if safeBool(ecm["cmpish"]) {
@@ -1422,6 +1438,65 @@ func entityPathMatch_tpte(data map[string]any, pm *PathMatchResult, mdesc map[st
 	}
 
 	return entname
+}
+
+// verbOnParent decides whether a write on `.../<parent>/{id}/<verb>` is a
+// verb on the parent entity rather than an entity named after its result
+// shape. Mirrors src/guide/heuristic01.ts verbOnParent: the method writes,
+// the response component occurs nowhere else, the item selector is itself a
+// path of the spec, and nothing extends the path. Returns the parent's
+// resolved entity name (methods resolve in path order, so it is already in
+// work.entmap), or "" when the rule does not apply.
+func verbOnParent(data map[string]any, pm *PathMatchResult, mdesc map[string]any) string {
+	method := safeStr(mdesc["method"])
+	if method == "GET" || method == "QUERY" || method == "HEAD" || method == "OPTIONS" {
+		return ""
+	}
+
+	ment, _ := mdesc["MethodEntity"].(map[string]any)
+	if ment != nil && toInt(ment["cmpoccur"]) > 1 {
+		return ""
+	}
+
+	def, _ := data["def"].(map[string]any)
+	defPaths, _ := def["paths"].(map[string]any)
+	if defPaths == nil {
+		return ""
+	}
+
+	idx := strings.LastIndex(pm.Path, "/")
+	if idx <= 0 {
+		return ""
+	}
+	itemPath := pm.Path[:idx]
+	if defPaths[itemPath] == nil {
+		return ""
+	}
+
+	// A leaf: no path continues past the verb. Compared on a segment
+	// boundary, parameters normalised, so `/merge` is not "extended" by
+	// `/merge-async`.
+	paramRE := regexp.MustCompile(`\{[^}]+\}`)
+	prefix := paramRE.ReplaceAllString(pm.Path, "{}") + "/"
+	for _, p := range sortedKeys(defPaths) {
+		if strings.HasPrefix(paramRE.ReplaceAllString(p, "{}"), prefix) {
+			return ""
+		}
+	}
+
+	work, _ := data["work"].(map[string]any)
+	entmap, _ := work["entmap"].(map[string]any)
+	for _, name := range sortedKeys(entmap) {
+		ent, _ := entmap[name].(map[string]any)
+		if ent == nil {
+			continue
+		}
+		if epath, ok := ent["path"].(map[string]any); ok && epath[itemPath] != nil {
+			return safeStr(ent["name"])
+		}
+	}
+
+	return Canonize(getMatchElem(pm, -3))
 }
 
 // entityPathMatch_tpe handles the t/p/ path pattern.

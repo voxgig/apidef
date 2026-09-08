@@ -241,6 +241,7 @@ function resolvePathList(guideEntity: GuideEntity, def: { paths: Record<string, 
       rename,
       method: '', // operation collectOps will copy and assign per op
       op: guidePath.op,
+      action: guidePath.action,
       def: def.paths[orig],
     }
 

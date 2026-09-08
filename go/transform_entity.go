@@ -280,7 +280,11 @@ func resolvePathList(guideEntity map[string]any, def map[string]any) []map[strin
 			"rename":   rename,
 			"method":   "",
 			"op":       op,
-			"def":      pathDef,
+			// The guide path's actions, so the operation transform can tell
+			// a verb borrowing an op slot from the op itself. Mirrors
+			// src/transform/entity.ts.
+			"action": gpathMap["action"],
+			"def":    pathDef,
 		}
 
 		pathsDesc = append(pathsDesc, pathdesc)

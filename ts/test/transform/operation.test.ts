@@ -35,6 +35,73 @@ function makeCtx(entname: string, op: any): any {
 }
 
 
+describe('transform-operation op resolution', () => {
+
+  // Guide overlays may name an op anything; only the six CRUD names exist.
+  // A stray name used to vanish without a trace (ADR-002: guide.aon is the
+  // only correction surface, so a silent drop defeats it).
+  test('drops an unknown op name with a warning', async () => {
+    const ctx = makeCtx('pull', {
+      load: { method: 'GET' },
+      merge: { method: 'PUT' },
+    })
+    const warnings: any[] = []
+    ctx.warn = (w: any) => warnings.push(w)
+    await operationTransform(ctx)
+    const ops = ctx.apimodel.main[KIT].entity.pull.op
+    assert.ok(null != ops.load)
+    assert.strictEqual((ops as any).merge, undefined)
+    assert.strictEqual(warnings.length, 1)
+    assert.strictEqual(warnings[0].op, 'merge')
+    assert.strictEqual(warnings[0].path, '/pull')
+    assert.match(warnings[0].note, /action: merge/)
+  })
+
+  test('skips head and options without a warning', async () => {
+    const ctx = makeCtx('pull', {
+      load: { method: 'GET' },
+      head: { method: 'HEAD' },
+      OPTIONS: { method: 'OPTIONS' },
+    })
+    const warnings: any[] = []
+    ctx.warn = (w: any) => warnings.push(w)
+    await operationTransform(ctx)
+    assert.strictEqual(warnings.length, 0)
+    assert.ok(null != ctx.apimodel.main[KIT].entity.pull.op.load)
+  })
+
+  // A verb borrows the update slot (actions have none of their own). The
+  // entity's real PATCH must still be its update, with the verb's point
+  // riding along for `$action` selection.
+  test('promotes PATCH to update when every update point is an action', async () => {
+    const ctx = makeCtx('pull', { patch: { method: 'PATCH' } })
+    ctx.guide.entity.pull.paths$[0].orig = '/pulls/{id}'
+    ctx.guide.entity.pull.paths$.push({
+      orig: '/pulls/{id}/merge', parts: ['pulls', '{id}', 'merge'], rename: {}, def: {},
+      op: { update: { method: 'PUT' } },
+      action: { merge: {} },
+    })
+    await operationTransform(ctx)
+    const ops = ctx.apimodel.main[KIT].entity.pull.op
+    assert.strictEqual(ops.patch, undefined)
+    assert.strictEqual(ops.update.name, 'update')
+    assert.deepStrictEqual(ops.update.points.map((p: any) => [p.method, p.orig]), [
+      ['PATCH', '/pulls/{id}'],
+      ['PUT', '/pulls/{id}/merge'],
+    ])
+  })
+
+  test('keeps PATCH as patch beside a real update', async () => {
+    const ctx = makeCtx('pull', { patch: { method: 'PATCH' }, update: { method: 'PUT' } })
+    await operationTransform(ctx)
+    const ops = ctx.apimodel.main[KIT].entity.pull.op
+    assert.strictEqual(ops.update.points[0].method, 'PUT')
+    assert.strictEqual(ops.patch.points[0].method, 'PATCH')
+  })
+
+})
+
+
 describe('transform-operation transform propagation', () => {
 
   test('carries the guide-computed res transform onto the point', async () => {

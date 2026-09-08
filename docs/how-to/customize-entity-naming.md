@@ -59,6 +59,6 @@ Build with `generate: false` and read back the entity names:
 console.log(Object.keys(result.apimodel.main.kit.entity))
 ```
 
-If a name is still wrong, you can also override the classification directly by
-editing `base-guide.aontu` — see
-[How path classification works](../explanation/classification-heuristics.md).
+If a name is still wrong, you can also override the classification directly in
+your `guide.aon` — see
+[Correcting the guide](../reference/guide.md#correcting-the-guide).

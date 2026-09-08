@@ -77,7 +77,7 @@ func TestOperationTransformPropagation(t *testing.T) {
 			"rename": map[string]any{}, "def": map[string]any{},
 			"op": map[string]any{"create": map[string]any{"method": "POST"}}},
 	}
-	opm := collectOps(map[string]any{}, pathsDesc, map[string]string{})
+	opm, _ := collectOps(nil, "pet", map[string]any{}, pathsDesc, map[string]string{})
 
 	cases := map[string][2]string{
 		"list":   {"`body.pet`", "`reqdata`"}, // guide-computed res carried through
@@ -94,6 +94,146 @@ func TestOperationTransformPropagation(t *testing.T) {
 			t.Errorf("%s transform = {res:%v req:%v}, want {res:%q req:%q}",
 				name, tr["res"], tr["req"], want[0], want[1])
 		}
+	}
+}
+
+// A verb borrows the update slot; the entity's PATCH must still be its
+// update, with the verb's point riding along for `$action` selection. An
+// unknown op name is dropped with a warning; head/options are skipped
+// silently. Mirrors the TS `transform-operation op resolution` cases.
+func TestOperationTransformVerbs(t *testing.T) {
+	pathsDesc := []map[string]any{
+		{"orig": "/pulls/{id}", "segments": []map[string]any{{"lit": "pulls"}, {"var": "id"}},
+			"rename": map[string]any{}, "def": map[string]any{},
+			"op": map[string]any{
+				"patch": map[string]any{"method": "PATCH"},
+				"merge": map[string]any{"method": "PUT"},
+				"head":  map[string]any{"method": "HEAD"},
+			}},
+		{"orig": "/pulls/{id}/merge", "segments": []map[string]any{{"lit": "pulls"}, {"var": "id"}, {"lit": "merge"}},
+			"rename": map[string]any{}, "def": map[string]any{},
+			"action": map[string]any{"merge": map[string]any{}},
+			"op":     map[string]any{"update": map[string]any{"method": "PUT"}}},
+	}
+	ctx := &ApiDefContext{
+		Guide: map[string]any{"entity": map[string]any{"pull": map[string]any{"name": "pull", "path": map[string]any{}}}},
+		ApiModel: map[string]any{"main": map[string]any{"kit": map[string]any{
+			"entity": map[string]any{"pull": map[string]any{"paths$": pathsDesc}},
+		}}},
+		Warn: MakeWarner("test", nil),
+	}
+	if _, err := OperationTransform(ctx); err != nil {
+		t.Fatalf("operation transform failed: %v", err)
+	}
+	kit := getKit(ctx)
+	pull := kit["entity"].(map[string]any)["pull"].(map[string]any)
+	opm := pull["op"].(map[string]any)
+
+	if _, ok := opm["patch"]; ok {
+		t.Errorf("patch should have been promoted to update")
+	}
+	if _, ok := opm["merge"]; ok {
+		t.Errorf("unknown op merge must be dropped")
+	}
+	update, _ := opm["update"].(map[string]any)
+	if update == nil {
+		t.Fatalf("no update op")
+	}
+	pts, _ := update["points"].([]any)
+	if len(pts) != 2 {
+		t.Fatalf("update points = %d, want 2 (PATCH then PUT merge)", len(pts))
+	}
+	first := pts[0].(map[string]any)
+	second := pts[1].(map[string]any)
+	if first["method"] != "PATCH" || first["orig"] != "/pulls/{id}" {
+		t.Errorf("first update point = %v %v, want PATCH /pulls/{id}", first["method"], first["orig"])
+	}
+	if second["method"] != "PUT" || second["orig"] != "/pulls/{id}/merge" {
+		t.Errorf("second update point = %v %v, want PUT /pulls/{id}/merge", second["method"], second["orig"])
+	}
+
+	hist := ctx.Warn.History()
+	if len(hist) != 1 {
+		t.Fatalf("warnings = %d, want exactly 1 (the unknown op; head is silent)", len(hist))
+	}
+	if hist[0]["op"] != "merge" {
+		t.Errorf("warning op = %v, want merge", hist[0]["op"])
+	}
+}
+
+// A verb on an item selector is an ACTION on the parent entity, even when
+// its response has a schema of its own; the `<parent>_number` key is renamed
+// to `id` on the verb path as on the item path, and a nested collection is
+// still its own entity. Mirrors the TS `guide-verb-on-parent` case.
+func TestGuideVerbOnParent(t *testing.T) {
+	src, err := os.ReadFile("../ts/test/def/verb-def.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := Parse("OpenAPI", string(src), map[string]string{"file": "verb-def.json"})
+	if err != nil {
+		t.Fatalf("parse failed: %v", err)
+	}
+
+	ctx := &ApiDefContext{
+		Opts: ApiDefOptions{
+			Folder:    t.TempDir(),
+			OutPrefix: "verb-",
+			Strategy:  "heuristic01",
+		},
+		Def:  parsed,
+		Note: map[string]any{},
+		Warn: MakeWarner("test", nil),
+		Work: map[string]any{},
+	}
+
+	guideResult, err := BuildGuide(ctx)
+	if err != nil {
+		t.Fatalf("guide build failed: %v", err)
+	}
+	guide, _ := guideResult["guide"].(map[string]any)
+	entities, _ := guide["entity"].(map[string]any)
+
+	names := sortedKeys(entities)
+	if strings.Join(names, ",") != "note,thing" {
+		t.Fatalf("entities = %v, want note,thing", names)
+	}
+
+	thing := entities["thing"].(map[string]any)
+	tpaths := thing["path"].(map[string]any)
+	merge, _ := tpaths["/things/{thing_number}/merge"].(map[string]any)
+	if merge == nil {
+		t.Fatalf("merge path did not join thing: %v", sortedKeys(tpaths))
+	}
+	actions, _ := merge["action"].(map[string]any)
+	if _, ok := actions["merge"]; !ok || len(actions) != 1 {
+		t.Errorf("merge path actions = %v, want {merge}", sortedKeys(actions))
+	}
+	mops, _ := merge["op"].(map[string]any)
+	if got := strings.Join(sortedKeys(mops), ","); got != "load,update" {
+		t.Errorf("merge path ops = %s, want load,update", got)
+	}
+	for _, p := range []string{"/things/{thing_number}", "/things/{thing_number}/merge"} {
+		pd, _ := tpaths[p].(map[string]any)
+		rename, _ := pd["rename"].(map[string]any)
+		param, _ := rename["param"].(map[string]any)
+		target := param["thing_number"]
+		if tm, ok := target.(map[string]any); ok {
+			target = tm["target"]
+		}
+		if target != "id" {
+			t.Errorf("%s: thing_number rename = %v, want id", p, target)
+		}
+	}
+
+	note := entities["note"].(map[string]any)
+	npaths := note["path"].(map[string]any)
+	notes, _ := npaths["/things/{thing_number}/notes"].(map[string]any)
+	if notes == nil {
+		t.Fatalf("nested collection lost: %v", sortedKeys(npaths))
+	}
+	if nactions, _ := notes["action"].(map[string]any); len(nactions) != 0 {
+		t.Errorf("nested collection wrongly became an action: %v", sortedKeys(nactions))
 	}
 }
 
