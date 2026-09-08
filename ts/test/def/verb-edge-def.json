@@ -1,0 +1,414 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Verb Edge API",
+    "version": "1.0.0",
+    "description": "Fixture: edge cases of the verb-on-parent rule. The item path spells its key differently from the verb path; a PUT on the item answers with a one-off acknowledgement; a create-only nested collection stays an entity; a verb that is a suffix of its parent's name is still recorded as an action."
+  },
+  "servers": [
+    {
+      "url": "https://verb-edge.example.com"
+    }
+  ],
+  "paths": {
+    "/widgets": {
+      "get": {
+        "operationId": "widgets/list",
+        "tags": [
+          "widgets"
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/widget-record"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/widgets/{id}": {
+      "get": {
+        "operationId": "widgets/get",
+        "tags": [
+          "widgets"
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/widget-record"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      },
+      "put": {
+        "operationId": "widgets/replace",
+        "tags": [
+          "widgets"
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ack"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/widgets/{widget_number}/merge": {
+      "put": {
+        "operationId": "widgets/merge",
+        "tags": [
+          "widgets"
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/widget-merge-result"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "widget_number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/widgets/{id}/labels": {
+      "post": {
+        "operationId": "labels/create",
+        "tags": [
+          "labels"
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/label"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/email-archives": {
+      "get": {
+        "operationId": "email-archives/list",
+        "tags": [
+          "email-archives"
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/email-archive"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/email-archives/{email_archive_id}": {
+      "get": {
+        "operationId": "email-archives/get",
+        "tags": [
+          "email-archives"
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email-archive"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "email_archive_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      }
+    },
+    "/email-archives/{email_archive_id}/archive": {
+      "put": {
+        "operationId": "email-archives/archive",
+        "tags": [
+          "email-archives"
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/archive-result"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "email_archive_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/widgets/{id}/access_keys": {
+      "post": {
+        "operationId": "access_keys/create",
+        "tags": [
+          "access_keys"
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/widget-access-key-set"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "widget-record": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "ack": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          }
+        }
+      },
+      "widget-merge-result": {
+        "type": "object",
+        "properties": {
+          "sha": {
+            "type": "string"
+          },
+          "merged": {
+            "type": "boolean"
+          }
+        }
+      },
+      "label": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "text": {
+            "type": "string"
+          }
+        }
+      },
+      "email-archive": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "subject": {
+            "type": "string"
+          }
+        }
+      },
+      "archive-result": {
+        "type": "object",
+        "properties": {
+          "archived": {
+            "type": "boolean"
+          }
+        }
+      },
+      "widget-access-key-set": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "secret": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -2,7 +2,10 @@
 
 package apidef
 
-import "sort"
+import (
+	"fmt"
+	"sort"
+)
 
 // ArgsTransform extracts and resolves operation arguments from the API spec.
 func ArgsTransform(ctx *ApiDefContext) (*TransformResult, error) {
@@ -60,7 +63,7 @@ func ArgsTransform(ctx *ApiDefContext) (*TransformResult, error) {
 					}
 				}
 
-				resolveArgs(mtarget, argdefs)
+				resolveArgs(ctx, entname, opkey, mtarget, argdefs)
 			}
 		}
 		msg += entname + " "
@@ -76,7 +79,10 @@ var argKindMap = map[string]string{
 	"cookie": "cookie",
 }
 
-func resolveArgs(mtarget map[string]any, argdefs []map[string]any) {
+func resolveArgs(
+	ctx *ApiDefContext, entname string, opname string,
+	mtarget map[string]any, argdefs []map[string]any,
+) {
 	rename, _ := mtarget["rename"].(map[string]any)
 	args, _ := mtarget["args"].(map[string]any)
 	if args == nil {
@@ -89,6 +95,33 @@ func resolveArgs(mtarget map[string]any, argdefs []map[string]any) {
 		argIn, _ := argdef["in"].(string)
 
 		orig := Depluralize(Snakify(NormalizeFieldName(argName)))
+
+		// A parameter with no name is not a parameter. This is what a
+		// DANGLING `$ref` looks like by the time it reaches here: the
+		// reference survives unresolved, `name` and `in` are both absent,
+		// and the arg would become a nameless `query` entry that every
+		// target then has to render. Ruby cannot: `Struct.new(:"")` raises
+		// at load and takes the whole SDK with it. Drop it and say which
+		// reference is missing. Mirrors src/transform/args.ts.
+		if orig == "" {
+			if ctx != nil && ctx.Warn != nil {
+				detail := "."
+				if ref, ok := argdef["$ref"].(string); ok && ref != "" {
+					detail = fmt.Sprintf(": `$ref` %q resolves to nothing.", ref)
+				}
+				ctx.Warn.Warn(map[string]any{
+					"note": fmt.Sprintf(
+						"Parameter with no name on entity=%s op=%s path=%s is dropped%s"+
+							" A parameter needs a `name`, or a reference that resolves to one.",
+						entname, opname, safeStr(mtarget["orig"]), detail),
+					"entity": entname,
+					"path":   mtarget["orig"],
+					"op":     opname,
+				})
+			}
+			continue
+		}
+
 		kind := argKindMap[argIn]
 		if kind == "" {
 			kind = "query"

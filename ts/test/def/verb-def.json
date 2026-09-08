@@ -1,0 +1,397 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Verb API",
+    "version": "1.0.0",
+    "description": "Fixture: a verb on an item selector is an action on the parent entity, not an entity named after its result."
+  },
+  "servers": [
+    {
+      "url": "https://verb.example.com"
+    }
+  ],
+  "paths": {
+    "/things": {
+      "get": {
+        "operationId": "things/list",
+        "summary": "List things",
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/thing-record"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "things"
+        ]
+      },
+      "post": {
+        "operationId": "things/create",
+        "summary": "Create a thing",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/thing-record"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "things"
+        ]
+      }
+    },
+    "/things/{thing_number}": {
+      "get": {
+        "operationId": "things/get",
+        "summary": "Get a thing",
+        "parameters": [
+          {
+            "name": "thing_number",
+            "in": "path",
+            "required": true,
+            "description": "The number that identifies the thing.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/thing-record"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "things"
+        ]
+      },
+      "patch": {
+        "operationId": "things/update",
+        "summary": "Update a thing",
+        "parameters": [
+          {
+            "name": "thing_number",
+            "in": "path",
+            "required": true,
+            "description": "The number that identifies the thing.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/thing-record"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "things"
+        ]
+      }
+    },
+    "/things/{thing_number}/merge": {
+      "get": {
+        "operationId": "things/check-merged",
+        "summary": "Check if a thing has been merged",
+        "parameters": [
+          {
+            "name": "thing_number",
+            "in": "path",
+            "required": true,
+            "description": "The number that identifies the thing.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "merged"
+          },
+          "404": {
+            "description": "not merged"
+          }
+        },
+        "tags": [
+          "things"
+        ]
+      },
+      "put": {
+        "operationId": "things/merge",
+        "summary": "Merge a thing",
+        "parameters": [
+          {
+            "name": "thing_number",
+            "in": "path",
+            "required": true,
+            "description": "The number that identifies the thing.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "commit_message": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/thing-merge-result"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "things"
+        ]
+      }
+    },
+    "/things/{thing_number}/notes": {
+      "get": {
+        "operationId": "notes/list",
+        "summary": "List notes on a thing",
+        "parameters": [
+          {
+            "name": "thing_number",
+            "in": "path",
+            "required": true,
+            "description": "The number that identifies the thing.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/note"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "notes"
+        ]
+      },
+      "post": {
+        "operationId": "notes/create",
+        "summary": "Create a note on a thing",
+        "parameters": [
+          {
+            "name": "thing_number",
+            "in": "path",
+            "required": true,
+            "description": "The number that identifies the thing.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "body": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/note"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "notes"
+        ]
+      }
+    },
+    "/notes/{note_id}": {
+      "get": {
+        "operationId": "notes/get",
+        "summary": "Get a note",
+        "parameters": [
+          {
+            "name": "note_id",
+            "in": "path",
+            "required": true,
+            "description": "The note id.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/note"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "notes"
+        ]
+      },
+      "delete": {
+        "operationId": "notes/delete",
+        "summary": "Delete a note",
+        "parameters": [
+          {
+            "name": "note_id",
+            "in": "path",
+            "required": true,
+            "description": "The note id.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "deleted"
+          }
+        },
+        "tags": [
+          "notes"
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "thing-merge-result": {
+        "type": "object",
+        "properties": {
+          "sha": {
+            "type": "string"
+          },
+          "merged": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "note": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "body": {
+            "type": "string"
+          }
+        }
+      },
+      "thing-record": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "number": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

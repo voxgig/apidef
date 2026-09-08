@@ -824,6 +824,21 @@ func resolveEntityName(ctx *ApiDefContext, data map[string]any, mdesc map[string
 	ment["entname"] = entname
 	ment["pm"] = pm
 
+	// Which entity took each path+method, in resolution order; verbOnParent
+	// reads the item path's GET owner from here. Mirrors
+	// src/guide/heuristic01.ts ResolveEntityName.
+	pathowner, _ := work["pathowner"].(map[string]any)
+	if pathowner == nil {
+		pathowner = map[string]any{}
+		work["pathowner"] = pathowner
+	}
+	owners, _ := pathowner[pathStr].(map[string]any)
+	if owners == nil {
+		owners = map[string]any{}
+		pathowner[pathStr] = owners
+	}
+	owners[methodName] = entname
+
 	DebugPath(pathStr, methodName, "RESOLVE-ENTITY-NAME", entname)
 }
 
@@ -945,7 +960,12 @@ func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any)
 		notExactId := oldParam != "id"
 		probablyAnId := strings.HasSuffix(oldParam, "id") ||
 			strings.HasSuffix(oldParam, "Id") ||
-			Canonize(oldParam) == parentName
+			Canonize(oldParam) == parentName ||
+			// GitHub-style `<parent>_number` keys (pull_number, issue_number):
+			// the parent's own key under another name. Only under its own
+			// entity, so a nested collection keeps its parent key. Mirrors
+			// src/guide/heuristic01.ts.
+			(strings.HasSuffix(oldParam, "_number") && parentName == entdescName)
 
 		DebugPath(pathStr, methodName, "RENAME-PARAM-PART", parts, partI, partStr)
 
@@ -1121,8 +1141,25 @@ func findActions(data map[string]any, mdesc map[string]any) {
 			canon == entname
 	}
 
-	// /api/foo/bar where foo is the entity and bar is the action, no id param
-	if matchesAt(secondLastPartCanon) {
+	// A verb that ResolveEntityName assigned to its parent entity
+	// (verbOnParent) is an action whatever the parent literal canonizes
+	// to. Mirrors src/guide/heuristic01.ts FindActions.
+	if safeStr(ment["verb_on_parent"]) != "" {
+		// Recorded directly rather than through updateAction, whose guard
+		// against an entity "already encoding" the verb would drop `archive`
+		// on `email_archive`. Mirrors src/guide/heuristic01.ts FindActions.
+		action, _ := pathdesc["action"].(map[string]any)
+		if action == nil {
+			action = map[string]any{}
+			pathdesc["action"] = action
+		}
+		if action[lastPartCanon] == nil {
+			action[lastPartCanon] = map[string]any{
+				"why_action": []string{"ent", safeStr(entdesc["name"]), "verb-on-parent", lastPart, methodName},
+			}
+		}
+	} else if matchesAt(secondLastPartCanon) {
+		// /api/foo/bar where foo is the entity and bar is the action, no id param
 		if !isParam(lastPart) {
 			updateAction(methodName, lastPart, lastPartCanon, entdesc, pathdesc, "no-param")
 		}
@@ -1397,9 +1434,15 @@ func entityPathMatch_tpte(data map[string]any, pm *PathMatchResult, mdesc map[st
 	entname := Canonize(origPathName)
 
 	if safeStr(ment["cmp"]) != "" {
-		ecm := entityCmpMatch(data, entname, mdesc, why)
-		entname = safeStr(ecm["name"])
-		*why = append(*why, "has-cmp="+safeStr(ecm["orig"]))
+		if parent := verbOnParent(data, pm, mdesc); parent != "" {
+			entname = parent
+			ment["verb_on_parent"] = getMatchElem(pm, -1)
+			*why = append(*why, "verb-on-parent="+parent)
+		} else {
+			ecm := entityCmpMatch(data, entname, mdesc, why)
+			entname = safeStr(ecm["name"])
+			*why = append(*why, "has-cmp="+safeStr(ecm["orig"]))
+		}
 	} else if probableEntityMethod(data, mdesc, ment, pm, why) {
 		ecm := entityCmpMatch(data, entname, mdesc, why)
 		if safeBool(ecm["cmpish"]) {
@@ -1422,6 +1465,106 @@ func entityPathMatch_tpte(data map[string]any, pm *PathMatchResult, mdesc map[st
 	}
 
 	return entname
+}
+
+// verbOnParent decides whether a write on `.../<parent>/{id}/<verb>` is a
+// verb on the parent entity rather than an entity named after its result
+// shape. Mirrors src/guide/heuristic01.ts verbOnParent: the method writes,
+// the response component occurs nowhere else, the item selector is itself a
+// path of the spec, and nothing extends the path. Returns the parent's
+// resolved entity name (methods resolve in path order, so it is already in
+// work.entmap), or "" when the rule does not apply.
+func verbOnParent(data map[string]any, pm *PathMatchResult, mdesc map[string]any) string {
+	method := safeStr(mdesc["method"])
+	if method == "GET" || method == "QUERY" || method == "HEAD" || method == "OPTIONS" {
+		return ""
+	}
+
+	ment, _ := mdesc["MethodEntity"].(map[string]any)
+	if ment != nil && toInt(ment["cmpoccur"]) > 1 {
+		return ""
+	}
+
+	// A PLURAL literal names a nested collection, whatever it answers with:
+	// `asset_keys` under `{environment_id}` creates an asset key, and
+	// `approvals` under `{merge_request_iid}` is a collection of approvals.
+	// A verb is singular — `merge`, `revoke`, `resend_confirmation` — so the
+	// component rule below is never reached for a plural, which is what
+	// keeps a create-only collection an entity of its own.
+	lit := Snakify(getMatchElem(pm, -1))
+	if lit == "" || Depluralize(lit) != lit {
+		return ""
+	}
+
+	// A singular literal still names a collection when its response
+	// component is that collection's member shape (`label` answering with
+	// `label`, or with a parent-prefixed `thing_label`); a verb answers with
+	// something else.
+	verb := Canonize(getMatchElem(pm, -1))
+	cmp := ""
+	if ment != nil {
+		cmp = safeStr(ment["cmp"])
+	}
+	if verb == "" || cmp == verb || strings.HasSuffix(cmp, "_"+verb) {
+		return ""
+	}
+
+	def, _ := data["def"].(map[string]any)
+	defPaths, _ := def["paths"].(map[string]any)
+	if defPaths == nil {
+		return ""
+	}
+
+	idx := strings.LastIndex(pm.Path, "/")
+	if idx <= 0 {
+		return ""
+	}
+
+	// Paths compare with parameters normalised: the item path may spell its
+	// key `{id}` where the verb path spells it `{thing_number}`.
+	paramRE := regexp.MustCompile(`\{[^}]+\}`)
+	itemNorm := paramRE.ReplaceAllString(pm.Path[:idx], "{}")
+	prefix := paramRE.ReplaceAllString(pm.Path, "{}") + "/"
+
+	itemPath := ""
+	for _, p := range sortedKeys(defPaths) {
+		pn := paramRE.ReplaceAllString(p, "{}")
+		if pn == itemNorm {
+			itemPath = p
+		} else if strings.HasPrefix(pn, prefix) {
+			// A leaf: no path continues past the verb. Compared on a segment
+			// boundary, so `/merge` is not "extended" by `/merge-async`.
+			return ""
+		}
+	}
+	if itemPath == "" {
+		return ""
+	}
+
+	// The parent is the entity a READ of the item returns: a PUT on the
+	// item answering with a one-off acknowledgement is named after that and
+	// must not claim the verb. Fall back to any owner, then the literal.
+	work, _ := data["work"].(map[string]any)
+	pathowner, _ := work["pathowner"].(map[string]any)
+	owners, _ := pathowner[itemPath].(map[string]any)
+	if parent := safeStr(owners["GET"]); parent != "" {
+		return parent
+	}
+	if parent := safeStr(owners["QUERY"]); parent != "" {
+		return parent
+	}
+	if names := sortedKeys(owners); len(names) > 0 {
+		vals := make([]string, 0, len(names))
+		for _, n := range names {
+			vals = append(vals, safeStr(owners[n]))
+		}
+		sort.Strings(vals)
+		if vals[0] != "" {
+			return vals[0]
+		}
+	}
+
+	return Canonize(getMatchElem(pm, -3))
 }
 
 // entityPathMatch_tpe handles the t/p/ path pattern.

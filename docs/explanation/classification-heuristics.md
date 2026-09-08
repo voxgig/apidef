@@ -75,6 +75,33 @@ the model as points with a `select.$action` marker, so downstream tooling can
 generate a method like `planet.terraform(...)` rather than inventing a bogus
 entity.
 
+A verb that answers with a schema of its own is still a verb. GitHub's
+`PUT /repos/{owner}/{repo}/pulls/{pull_number}/merge` returns a
+`pull-request-merge-result`, and naming an entity after it would leave
+`merge` unreachable from `pull`. The heuristic keeps the verb on the parent
+when six things hold: the method writes, the response component occurs
+nowhere else in the spec, the literal is singular, that literal is not the
+name of the component's own member shape, the item selector
+(`.../pulls/{pull_number}`) is a path of the spec, and nothing extends the
+verb's path. A `GET` on such a path is a sub-resource read, and a literal
+with paths beneath it is a collection, so both keep the component rule. The
+verb joins the entity a read of the item returns, however the two paths
+spell the key.
+
+Plurality decides first, and on its own. A verb reads as one instruction —
+`merge`, `revoke`, `resend_confirmation` — where a plural literal names a
+collection whatever it answers with. Contentful's
+`POST /spaces/{sid}/environments/{eid}/asset_keys` answers with an
+`Assets keys` component and GitLab's `.../merge_requests/{iid}/approvals`
+with an `ApprovalState`; neither component is the literal's member shape,
+so only the plural keeps these create-only collections entities of their
+own.
+
+An action borrows an op slot rather than owning one: `PUT .../merge` sits in
+`update`. When every point in `update` is an action, a `PATCH` on the item
+path is promoted to `update` and the action points ride along, so a plain
+`update()` reaches the real update and `$action` selects the verb.
+
 ## Parameter renames
 
 A path parameter named after its entity — `{planet_id}` on the `planet`
@@ -88,9 +115,9 @@ the request URL.
 Heuristics are, by nature, guesses — so the guide never throws a decision away
 silently. Each classification carries a `why_*` array (`why_path`, `why_op`,
 `why_action`, `why_rename`) describing the rule that fired. These traces are
-emitted into the human-editable `base-guide.aontu`, which means a person (or
-an agent) can **read why apidef decided something and override it** rather
-than fighting an opaque black box.
+emitted into `base-guide.aon`, which means a person (or an agent) can **read
+why apidef decided something and override it** in `guide.aon` rather than
+fighting an opaque black box.
 
 ## When the guess is wrong
 
@@ -98,8 +125,9 @@ The heuristics are tuned for conventional REST APIs. For specs that break the
 conventions:
 
 - a mis-singularized name → add a [custom plural](../how-to/customize-entity-naming.md);
-- a mis-classified path → edit the generated `base-guide.aontu` (it is meant
-  to be edited and is merged, not overwritten, on the next run);
+- a mis-classified path → override it in `guide.aon` (the generated
+  `base-guide.aon` is rewritten on every run) — see
+  [Correcting the guide](../reference/guide.md#correcting-the-guide);
 - a structural surprise → apidef records a **warning** (see
   [Debug a build](../how-to/debug-a-build.md)) rather than failing the whole
   build.

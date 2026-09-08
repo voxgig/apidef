@@ -38,6 +38,7 @@ type MethodEntityDesc = {
     opname: string;
     why_opname: string[];
     pm?: any;
+    verb_on_parent?: string;
 };
 type EntityDesc = {
     name: string;
@@ -81,6 +82,7 @@ type PathDesc = {
             res?: any;
         };
     }>;
+    action?: Record<string, any>;
     def: {
         parameters?: ParameterDef[];
     };

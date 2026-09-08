@@ -84,9 +84,37 @@ entity: moon: {
 }
 ```
 
-## Editing the guide
+## Correcting the guide
 
-`base-guide.aontu` is meant to be edited when a heuristic guesses wrong, and
-it is **merged** (not overwritten) on the next run. This is the intended escape
-hatch for non-conventional APIs — see
-[How path classification works](../explanation/classification-heuristics.md).
+`base-guide.aon` is the heuristic's output, and apidef rewrites it on every
+run. Corrections go in the project's own `guide.aon`, the two-line file that
+includes the base guide: anything written below the includes unifies over the
+heuristic's defaults, and survives regeneration. Never edit the base guide
+itself. An edit there lasts until the next run on a machine without your
+merge baseline, which is any fresh clone.
+
+The base guide writes every default as an aontu default (`*GET`, `*"id"`),
+so your concrete value wins. The shapes you can correct:
+
+```jsonic
+@"@voxgig/apidef/model/guide.aon"
+@"base-guide.aon"
+
+# Switch off an entity the heuristic invented.
+guide: entity: pull_request_merge_result: active: false
+
+# Fold a verb onto its entity as an action, selected at call time with
+# `$action`, and address it by the same key as the entity's item path.
+guide: entity: pull: path: "/repos/{owner}/{repo}/pulls/{pull_number}/merge": {
+  action: merge: {}
+  rename: param: pull_number: id
+  op: update: method: PUT
+}
+```
+
+An action needs a CRUD op beside it on the same path: the op names the slot
+(`load`, `list`, `create`, `update`, `remove`, `patch`) and the action names
+the point within it. An `op` key outside those six is dropped with a warning
+rather than resolved. See
+[How path classification works](../explanation/classification-heuristics.md)
+for what the heuristic does on its own.

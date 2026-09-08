@@ -199,6 +199,7 @@ function resolvePathList(guideEntity, def) {
             rename,
             method: '', // operation collectOps will copy and assign per op
             op: guidePath.op,
+            action: guidePath.action,
             def: def.paths[orig],
         };
         paths$.push(pathdesc);

@@ -4,6 +4,15 @@ exports.operationTransform = void 0;
 const utility_1 = require("../utility");
 const jostraca_1 = require("jostraca");
 const types_1 = require("../types");
+// The op names the transform resolves. Anything else under a guide path's
+// `op` map is dropped, and an unknown name (a verb such as `merge`, or a
+// typo) is dropped WITH A WARNING: guide.aon is the only correction surface
+// (ADR-002), so a correction that vanishes silently defeats it. A non-CRUD
+// verb is declared as `action: <verb>: {}` beside a CRUD op on the same path.
+const RESOLVED_OPS = ['load', 'list', 'create', 'update', 'remove', 'patch'];
+// Emitted by the heuristic for HEAD and OPTIONS methods; no SDK operation
+// exists for them yet, so they are skipped without a warning.
+const IGNORED_OPS = ['head', 'options', 'OPTIONS'];
 const operationTransform = async function (ctx) {
     const { apimodel, guide } = ctx;
     const kit = apimodel.main[types_1.KIT];
@@ -11,7 +20,7 @@ const operationTransform = async function (ctx) {
     (0, jostraca_1.each)(guide.entity, (gent, entname) => {
         if (!(0, utility_1.guideActive)(gent))
             return;
-        collectOps(gent);
+        collectOps(ctx, gent);
         const opm = {
             load: undefined,
             list: undefined,
@@ -32,13 +41,26 @@ const operationTransform = async function (ctx) {
     return { ok: true, msg };
 };
 exports.operationTransform = operationTransform;
-function collectOps(gent) {
+function collectOps(ctx, gent) {
     ;
     gent.opm$ = gent.opm$ ?? {};
     (0, jostraca_1.each)(gent.paths$, (pathdesc) => {
         (0, jostraca_1.each)(pathdesc.op, (gop, opname) => {
             // Op-level opt-out; see the entity-level note in transform/entity.ts.
             if (!(0, utility_1.guideActive)(gop)) {
+                return;
+            }
+            if (!RESOLVED_OPS.includes(opname)) {
+                if (!IGNORED_OPS.includes(opname)) {
+                    ctx.warn?.({
+                        note: `Unknown op "${opname}" on entity=${gent.name} path=${pathdesc.orig}` +
+                            ` is dropped: only ${RESOLVED_OPS.join('/')} are resolved.` +
+                            ` Declare a verb as \`action: ${opname}: {}\` beside a CRUD op on that path.`,
+                        entity: gent.name,
+                        path: pathdesc.orig,
+                        op: opname,
+                    });
+                }
                 return;
             }
             ;
@@ -49,6 +71,7 @@ function collectOps(gent) {
                 rename: pathdesc.rename,
                 method: gop.method,
                 op: gop,
+                action: pathdesc.action,
                 def: pathdesc.def,
             };
             gent.opm$[opname].paths.push(oppathdesc);
@@ -78,7 +101,18 @@ function resolveRemove(opm, gent) {
 function resolvePatch(opm, gent) {
     const opdesc = resolveOp('patch', gent);
     // If patch is actually update, make it update!
-    if (null != opdesc && null == opm.update) {
+    //
+    // That holds when there is no PUT update at all, and equally when every
+    // PUT update point is an ACTION: a verb such as GitHub's `merge` borrows
+    // the update slot (actions have no slot of their own) but is not the
+    // entity's update. Leaving PATCH as `patch` there made the real update
+    // unreachable, since no target emits a `patch` method, and routed a plain
+    // update() to the verb. The action points join the promoted PATCH, and
+    // `$action` selects them at call time.
+    if (null != opdesc && (null == opm.update || onlyActionPaths(gent, 'update'))) {
+        if (null != opm.update) {
+            opdesc.points.push(...opm.update.points);
+        }
         opm.update = opdesc;
         opm.update.name = 'update';
     }
@@ -86,6 +120,12 @@ function resolvePatch(opm, gent) {
         opm.patch = opdesc;
     }
     return opdesc;
+}
+// True when every path collected under the op carries a guide action.
+function onlyActionPaths(gent, opname) {
+    const paths = gent.opm$?.[opname]?.paths ?? [];
+    return 0 < paths.length &&
+        paths.every((p) => 0 < Object.keys(p.action ?? {}).length);
 }
 function resolveOp(opname, gent) {
     let mop = undefined;

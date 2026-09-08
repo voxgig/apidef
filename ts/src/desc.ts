@@ -73,6 +73,9 @@ type MethodEntityDesc = {
   why_opname: string[]
 
   pm?: any
+  // Set by ResolveEntityName when a write on `.../{id}/<verb>` joined its
+  // parent entity (verbOnParent); FindActions then records the verb.
+  verb_on_parent?: string
 }
 
 
@@ -137,6 +140,9 @@ type PathDesc = {
       res?: any
     }
   }>
+  // The guide path's actions (`action: merge: {}`), carried so the operation
+  // transform can tell a verb borrowing an op slot from the op itself.
+  action?: Record<string, any>
   def: {
     parameters?: ParameterDef[]
   }

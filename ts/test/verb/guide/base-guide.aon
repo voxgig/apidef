@@ -1,0 +1,38 @@
+# Guide
+
+guide: {
+  metrics: count: entity: 2
+  metrics: count: path: 5
+  metrics: count: method: 10
+
+  entity: note: {
+    path: "/notes/{note_id}": {
+      rename: param: "note_id": *"id"
+      op: load: method: *GET
+      op: remove: method: *DELETE
+    }
+    path: "/things/{thing_number}/notes": {
+      op: create: method: *POST
+      op: list: method: *GET
+    }
+  }
+
+  entity: thing: {
+    path: "/things": {
+      op: create: method: *POST
+      op: list: method: *GET
+    }
+    path: "/things/{thing_number}": {
+      rename: param: "thing_number": *"id"
+      op: load: method: *GET
+      op: patch: method: *PATCH
+    }
+    path: "/things/{thing_number}/merge": {
+      action: "merge": {}
+      rename: param: "thing_number": *"id"
+      op: load: method: *GET
+      op: update: method: *PUT
+    }
+  }
+
+}
