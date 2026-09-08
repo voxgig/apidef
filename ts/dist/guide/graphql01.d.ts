@@ -1,4 +1,4 @@
-import type { ApiDefContext, Guide } from '../types';
+import type { ApiDefContext, Guide, GuideEntity } from '../types';
 import type { GqlField, GqlType } from '../parse/graphql';
 type GqlOpName = 'load' | 'list' | 'create' | 'update' | 'remove';
 type GqlRetShape = {
@@ -34,6 +34,7 @@ declare function classifyGraphQLField(sig: GqlFieldSig, profile: GqlProfile): Gq
 declare function deriveRetShape(field: GqlField, types: Record<string, GqlType>): GqlRetShape;
 declare function fieldSig(optype: 'query' | 'mutation', field: GqlField, types: Record<string, GqlType>): GqlFieldSig;
 declare function entityName(typeName: string): string;
+declare function resolveEntityName(typeName: string, entities: Record<string, GuideEntity>): string;
 declare function graphql01(ctx: ApiDefContext): Promise<Guide>;
-export { graphql01, classifyGraphQLField, deriveRetShape, fieldSig, entityName, };
+export { graphql01, classifyGraphQLField, deriveRetShape, fieldSig, entityName, resolveEntityName, };
 export type { GqlFieldSig, GqlArgSig, GqlRetShape, GqlClassification, GqlProfile, GqlOpName, };

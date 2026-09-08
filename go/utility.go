@@ -483,6 +483,26 @@ func CanonizeCmpName(orig string) string {
 	return Canonize(StripSchemaNamespace(orig))
 }
 
+var firstLetterRE = regexp.MustCompile(`[a-zA-Z]`)
+
+// PrefixLeadingDigit prefixes an "n" when a name starts with a digit, since
+// no target language permits an identifier that starts with one. The prefix
+// takes the case of the name it guards: lower for "3ds_session", upper for
+// "3DSecure", and lower for a name with no letter in it at all ("404").
+//
+// This is the ONE place the rule lives. Mirrors src/utility.ts
+// prefixLeadingDigit.
+func PrefixLeadingDigit(s string) string {
+	if s == "" || s[0] < '0' || s[0] > '9' {
+		return s
+	}
+	letter := firstLetterRE.FindString(s)
+	if letter != "" && letter[0] >= 'A' && letter[0] <= 'Z' {
+		return "N" + s
+	}
+	return "n" + s
+}
+
 // SanitizeSlug sanitizes a raw slug into a clean kebab-case string.
 func SanitizeSlug(s string) string {
 	if s == "" {
@@ -515,10 +535,7 @@ func SanitizeSlug(s string) string {
 	if out == "" {
 		return "unknown"
 	}
-	if out[0] >= '0' && out[0] <= '9' {
-		out = "n" + out
-	}
-	return out
+	return PrefixLeadingDigit(out)
 }
 
 // SlugToPascalCase converts a raw slug to PascalCase.
@@ -842,9 +859,7 @@ func EnsureMinEntityName(name string, existing map[string]any) string {
 		}
 	}
 
-	if len(padded) > 0 && padded[0] >= '0' && padded[0] <= '9' {
-		padded = "n" + padded
-	}
+	padded = PrefixLeadingDigit(padded)
 	if len(padded) < minEntityNameLen {
 		padding := "nt"
 		if minEntityNameLen-len(padded) < len(padding) {

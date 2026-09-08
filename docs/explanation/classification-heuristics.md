@@ -39,6 +39,11 @@ that wildly different spellings collapse onto one canonical identifier:
   `planets` → `planet`, `moons` → `moon`. English pluralization is irregular,
   so a curated table handles the exceptions (see
   [Customize entity naming](../how-to/customize-entity-naming.md)).
+- **guard the first character** — no target language accepts an identifier
+  that starts with a digit, so a name that does gets an `n` in front, cased
+  to match what follows: `3ds_session` becomes `n3ds_session`, `3DSecure`
+  becomes `N3DSecure`. Field names are exempt, because they have to keep
+  matching the keys the server sends.
 
 Nested collections become nested entities with an **ancestor** relationship:
 `moon` records that it lives under `planet`.

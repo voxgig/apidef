@@ -17,6 +17,7 @@ import {
   cleanComponentName,
   inferFieldType,
   ensureMinEntityName,
+  prefixLeadingDigit,
   validator,
   nom,
   formatJsonSrc,
@@ -135,6 +136,16 @@ describe('tsv-canonize', () => {
   for (const row of rows) {
     test(`canonize("${row.input}") => "${row.expected}"`, () => {
       assert.deepStrictEqual(canonize(row.input), row.expected)
+    })
+  }
+})
+
+
+describe('tsv-prefix-leading-digit', () => {
+  const rows = loadTsv('prefix-leading-digit')
+  for (const row of rows) {
+    test(`prefixLeadingDigit("${row.input}") => "${row.expected}"`, () => {
+      assert.deepStrictEqual(prefixLeadingDigit(row.input), row.expected)
     })
   }
 })

@@ -31,6 +31,7 @@ exports.specSecuredByDefault = specSecuredByDefault;
 exports.ensureMinEntityName = ensureMinEntityName;
 exports.inferFieldType = inferFieldType;
 exports.normalizeFieldName = normalizeFieldName;
+exports.prefixLeadingDigit = prefixLeadingDigit;
 exports.debugpath = debugpath;
 exports.findPathsWithPrefix = findPathsWithPrefix;
 exports.writeFileSyncWarn = writeFileSyncWarn;
@@ -921,6 +922,35 @@ function stripSchemaNamespace(name) {
 function canonizeCmpName(orig) {
     return canonize(stripSchemaNamespace(orig));
 }
+const FIRST_LETTER_RE = /[a-zA-Z]/;
+// No target language permits an identifier that starts with a digit, so a
+// name derived from one — a `3dsSession` schema, a `/2fa` path segment, a
+// `_3DSecure` GraphQL type — is prefixed with an `n`.
+//
+// The prefix takes the case of the name it guards: lower for `3ds_session`,
+// upper for `3DSecure`. That keeps the result inside whatever casing
+// convention the caller was already working in, so a later PascalCase or
+// camelCase conversion has nothing to undo. A name with no letter in it at
+// all (`404`) takes the lower-case prefix.
+//
+// This is the ONE place the rule lives. Entity names reach it through
+// `ensureMinEntityName` and the GraphQL guide's `entityName`; project slugs
+// through `sanitizeSlug`.
+//
+// FIELD names deliberately do NOT come here. A field name is a WIRE
+// identifier and renaming it makes the SDK read a key the server never sends
+// — the mistake `canonizeField` exists to document. Targets escape those at
+// the point of emission instead.
+function prefixLeadingDigit(s) {
+    if (null == s || '' === s)
+        return s;
+    const first = s.charCodeAt(0);
+    if (first < 48 || first > 57)
+        return s;
+    const letter = s.match(FIRST_LETTER_RE);
+    const upper = null != letter && letter[0] >= 'A' && letter[0] <= 'Z';
+    return (upper ? 'N' : 'n') + s;
+}
 // Sanitize a raw slug into a clean kebab-case string suitable for
 // conversion to a valid JS identifier (via camelify/snakify/etc).
 function sanitizeSlug(s) {
@@ -949,11 +979,7 @@ function sanitizeSlug(s) {
     out = parts.join('-');
     if (!out)
         return 'unknown';
-    // Ensure the slug does not start with a digit (invalid for JS identifiers)
-    if (/^\d/.test(out)) {
-        out = 'n' + out;
-    }
-    return out;
+    return prefixLeadingDigit(out);
 }
 // Convert a raw slug to a valid PascalCase identifier.
 // Applies sanitizeSlug first, then converts to PascalCase.
@@ -1016,9 +1042,7 @@ function ensureMinEntityName(name, existing) {
         }
         padded = truncated || parts[0].substring(0, MAX_ENTITY_NAME_LEN);
     }
-    if (padded.length > 0 && padded[0] >= '0' && padded[0] <= '9') {
-        padded = 'n' + padded;
-    }
+    padded = prefixLeadingDigit(padded);
     if (padded.length < MIN_ENTITY_NAME_LEN) {
         const padding = 'nt'.substring(0, MIN_ENTITY_NAME_LEN - padded.length);
         padded = padded + padding;
