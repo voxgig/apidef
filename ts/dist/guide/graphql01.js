@@ -239,8 +239,16 @@ function nameEntityType(fieldName, types) {
 // Entity model name from a GraphQL type name: Issue -> issue,
 // WorkflowState -> workflow_state (canonize handles the casing rules that
 // the REST path classifier already uses).
+//
+// The leading-digit guard is applied here rather than inherited: the REST
+// side gets it from `ensureMinEntityName`, which this path deliberately does
+// not call (its min-length padding and collision suffixing are the REST
+// classifier's rules, and entities here merge by name on purpose). GraphQL
+// type names cannot begin with a digit, but they can begin with `_`, which
+// `normalizeFieldName` strips — so `_3DSSessions` reaches an SDK as the
+// entity `3_ds_session` and every generated language rejects the identifier.
 function entityName(typeName) {
-    return (0, utility_1.depluralize)((0, utility_1.canonize)((0, utility_1.normalizeFieldName)(typeName)));
+    return (0, utility_1.prefixLeadingDigit)((0, utility_1.depluralize)((0, utility_1.canonize)((0, utility_1.normalizeFieldName)(typeName))));
 }
 function newGuidePath() {
     return {

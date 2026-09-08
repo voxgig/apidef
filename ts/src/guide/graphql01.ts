@@ -29,7 +29,12 @@ import type {
 
 import type { GqlDef, GqlField, GqlType } from '../parse/graphql'
 
-import { canonize, depluralize, normalizeFieldName } from '../utility'
+import {
+  canonize,
+  depluralize,
+  normalizeFieldName,
+  prefixLeadingDigit,
+} from '../utility'
 
 
 // Op the classifier can assign. 'update' hosts id-bearing actions,
@@ -388,8 +393,16 @@ function nameEntityType(
 // Entity model name from a GraphQL type name: Issue -> issue,
 // WorkflowState -> workflow_state (canonize handles the casing rules that
 // the REST path classifier already uses).
+//
+// The leading-digit guard is applied here rather than inherited: the REST
+// side gets it from `ensureMinEntityName`, which this path deliberately does
+// not call (its min-length padding and collision suffixing are the REST
+// classifier's rules, and entities here merge by name on purpose). GraphQL
+// type names cannot begin with a digit, but they can begin with `_`, which
+// `normalizeFieldName` strips — so `_3DSSessions` reaches an SDK as the
+// entity `3_ds_session` and every generated language rejects the identifier.
 function entityName(typeName: string): string {
-  return depluralize(canonize(normalizeFieldName(typeName)))
+  return prefixLeadingDigit(depluralize(canonize(normalizeFieldName(typeName))))
 }
 
 

@@ -17,7 +17,7 @@ import assert from 'node:assert'
 import { Aontu } from 'aontu'
 
 import { ApiDef } from '../dist/apidef'
-import { deriveRetShape } from '../dist/guide/graphql01'
+import { deriveRetShape, entityName } from '../dist/guide/graphql01'
 
 
 const OUTPREFIX = 'graphql-linearish-'
@@ -313,6 +313,30 @@ describe('graphql-retshape', () => {
         { name: 'issueCreate', type: 'IssuePayload', list: false, args: [], deprecated: false } as any,
         types),
       { kind: 'payload', entity: 'Issue', unwrap: 'issue' })
+  })
+
+})
+
+
+// GraphQL type names cannot START with a digit, but they can start with `_`,
+// and `normalizeFieldName` strips that — so `_3DSSessions` used to reach an
+// SDK as the entity `3_ds_session`, an identifier every generated language
+// rejects. The REST classifier gets the guard from `ensureMinEntityName`,
+// which this path does not call; it is applied in `entityName` instead.
+describe('graphql-entity-name', () => {
+
+  test('leading-digit-guarded', () => {
+    assert.equal(entityName('_3DSSessions'), 'n3_ds_session')
+    assert.equal(entityName('_3dsSession'), 'n3ds_session')
+    assert.equal(entityName('3DSSession'), 'n3_ds_session')
+    assert.equal(entityName('_2FAToken'), 'n2_fa_token')
+  })
+
+  test('ordinary-names-unchanged', () => {
+    assert.equal(entityName('Issue'), 'issue')
+    assert.equal(entityName('WorkflowStates'), 'workflow_state')
+    assert.equal(entityName('__Type'), 'type')
+    assert.equal(entityName('_v2Users'), 'v2_user')
   })
 
 })
