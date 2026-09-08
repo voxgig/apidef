@@ -84,6 +84,23 @@ type ModelField = {
   // `description`. Absent when the spec does not describe the property —
   // generators render an empty cell rather than inventing prose.
   short?: string
+
+  // SPEC FACTS ABOUT THE FIELD ITSELF, carried through verbatim from the
+  // OpenAPI property. Facts the spec states, not inferences.
+  //
+  // `readOnly` is the load-bearing one: it is the difference between a field
+  // a client MAY send and one it may not, which nothing else in this record
+  // expresses. Without it every generator necessarily puts server-assigned
+  // fields into the type a caller fills in.
+  //
+  // The booleans are present ONLY when the spec declares them true — each
+  // defaults to false in OpenAPI, so absent and explicit-false mean the same
+  // thing and emitting the false ones would change every model for no
+  // information. `format` is present only for a non-empty string.
+  readOnly?: boolean
+  writeOnly?: boolean
+  deprecated?: boolean
+  format?: string
   union?: {
     count: number     // how many untagged unions lie beneath the field
     branches: number  // widest branch count among them

@@ -281,6 +281,71 @@ async function buildGraphql(step) {
         node_assert_1.default.deepStrictEqual((0, graphql01_1.deriveRetShape)({ name: 'issueCreate', type: 'IssuePayload', list: false, args: [], deprecated: false }, types), { kind: 'payload', entity: 'Issue', unwrap: 'issue' });
     });
 });
+// GraphQL type names cannot START with a digit, but they can start with `_`,
+// and `normalizeFieldName` strips that — so `_3DSSessions` used to reach an
+// SDK as the entity `3_ds_session`, an identifier every generated language
+// rejects. The REST classifier gets the guard from `ensureMinEntityName`,
+// which this path does not call; it is applied in `entityName` instead.
+(0, node_test_1.describe)('graphql-entity-name', () => {
+    (0, node_test_1.test)('leading-digit-guarded', () => {
+        node_assert_1.default.equal((0, graphql01_1.entityName)('_3DSSessions'), 'n3_ds_session');
+        node_assert_1.default.equal((0, graphql01_1.entityName)('_3dsSession'), 'n3ds_session');
+        node_assert_1.default.equal((0, graphql01_1.entityName)('3DSSession'), 'n3_ds_session');
+        node_assert_1.default.equal((0, graphql01_1.entityName)('_2FAToken'), 'n2_fa_token');
+    });
+    (0, node_test_1.test)('ordinary-names-unchanged', () => {
+        node_assert_1.default.equal((0, graphql01_1.entityName)('Issue'), 'issue');
+        node_assert_1.default.equal((0, graphql01_1.entityName)('WorkflowStates'), 'workflow_state');
+        node_assert_1.default.equal((0, graphql01_1.entityName)('__Type'), 'type');
+        node_assert_1.default.equal((0, graphql01_1.entityName)('_v2Users'), 'v2_user');
+    });
+    // The guard maps a previously unreachable name onto one another type can
+    // own natively, so `_3DSSessions` and `N3DSSession` — unrelated types —
+    // would both want `n3_ds_session`. Merging them folds two entities' fields
+    // and ops together under an `orig` recording only the first, and leaves no
+    // second guide entry to correct (ADR-002: guide.aon is the only correction
+    // surface). The suffix is `ensureMinEntityName`'s convention, borrowed.
+    (0, node_test_1.test)('guard-induced-collision-is-split', () => {
+        const entities = {};
+        const a = (0, graphql01_1.resolveEntityName)('N3DSSession', entities);
+        node_assert_1.default.equal(a, 'n3_ds_session');
+        entities[a] = { name: a, orig: 'N3DSSession' };
+        const b = (0, graphql01_1.resolveEntityName)('_3DSSessions', entities);
+        node_assert_1.default.equal(b, 'n3_ds_session2');
+    });
+    // ... in EITHER order: which type is seen first is an accident of sorted
+    // root-field iteration, and both orders must yield two entities.
+    (0, node_test_1.test)('guard-induced-collision-is-split-either-order', () => {
+        const entities = {};
+        const a = (0, graphql01_1.resolveEntityName)('_3DSSessions', entities);
+        node_assert_1.default.equal(a, 'n3_ds_session');
+        entities[a] = { name: a, orig: '_3DSSessions' };
+        const b = (0, graphql01_1.resolveEntityName)('N3DSSession', entities);
+        node_assert_1.default.equal(b, 'n3_ds_session2');
+    });
+    // The scope is exactly the collisions the guard creates. A collision that
+    // predates it is canonicalization doing its job — singular and plural
+    // spellings of one thing — and must still merge, guarded or not.
+    (0, node_test_1.test)('canonical-merges-are-untouched', () => {
+        const entities = {};
+        // Neither name is guarded.
+        entities.issue = { name: 'issue', orig: 'Issue' };
+        node_assert_1.default.equal((0, graphql01_1.resolveEntityName)('Issues', entities), 'issue');
+        // Both names are guarded.
+        entities.n3_ds_session = { name: 'n3_ds_session', orig: '_3DSSessions' };
+        node_assert_1.default.equal((0, graphql01_1.resolveEntityName)('_3DSSession', entities), 'n3_ds_session');
+    });
+    // The same type reached from several root fields (query + mutation) is one
+    // entity, so its ops merge instead of minting a phantom second entry.
+    (0, node_test_1.test)('same-type-reuses-its-own-entry', () => {
+        const entities = {
+            n3_ds_session: { name: 'n3_ds_session', orig: '_3DSSessions' },
+            n3_ds_session2: { name: 'n3_ds_session2', orig: 'N3DSSession' },
+        };
+        node_assert_1.default.equal((0, graphql01_1.resolveEntityName)('N3DSSession', entities), 'n3_ds_session2');
+        node_assert_1.default.equal((0, graphql01_1.resolveEntityName)('_3DSSessions', entities), 'n3_ds_session');
+    });
+});
 // A payload that names no entity (Linear's DeletePayload: entityId, success)
 // is admitted by classification via the field name — so the renderer must
 // select the payload's OWN fields. Spreading an entity fragment, or the

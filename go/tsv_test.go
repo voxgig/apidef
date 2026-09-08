@@ -99,6 +99,19 @@ func TestTsvCanonize(t *testing.T) {
 	}
 }
 
+func TestTsvPrefixLeadingDigit(t *testing.T) {
+	rows := loadTsv(t, "prefix-leading-digit")
+	for _, row := range rows {
+		input, expected := row["input"], row["expected"]
+		t.Run("prefixLeadingDigit("+input+")", func(t *testing.T) {
+			got := PrefixLeadingDigit(input)
+			if got != expected {
+				t.Errorf("PrefixLeadingDigit(%q) = %q, want %q", input, got, expected)
+			}
+		})
+	}
+}
+
 func TestTsvSanitizeSlug(t *testing.T) {
 	rows := loadTsv(t, "sanitize-slug")
 	for _, row := range rows {

@@ -126,6 +126,14 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-prefix-leading-digit', () => {
+    const rows = loadTsv('prefix-leading-digit');
+    for (const row of rows) {
+        (0, node_test_1.test)(`prefixLeadingDigit("${row.input}") => "${row.expected}"`, () => {
+            node_assert_1.default.deepStrictEqual((0, utility_1.prefixLeadingDigit)(row.input), row.expected);
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-sanitize-slug', () => {
     const rows = loadTsv('sanitize-slug');
     for (const row of rows) {

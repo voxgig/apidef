@@ -6,6 +6,7 @@ main: kit: entity: moon: {
 
   fields: [
     {
+      format: "float"
       name: "diameter"
       req: true
       type: "`$NUMBER`"
