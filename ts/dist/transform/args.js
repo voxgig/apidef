@@ -40,7 +40,7 @@ const argsTransform = async function (ctx) {
                     const opdef = pathdef[mpoint.method.toLowerCase()];
                     argdefs.push(...(opdef?.parameters ?? []));
                 }
-                resolveArgs(ment, mop, mpoint, argdefs);
+                resolveArgs(ctx, ment, mop, mpoint, argdefs);
             });
         });
         msg += ment.name + ' ';
@@ -75,13 +75,32 @@ const ARG_KIND = {
     'path': 'param',
     'cookie': 'cookie',
 };
-function resolveArgs(ment, mop, mpoint, argdefs) {
+function resolveArgs(ctx, ment, mop, mpoint, argdefs) {
     const touchedKeys = new Set();
     (0, jostraca_1.each)(argdefs, (argdef) => {
         // Spec name as written (e.g. `dataType`) is what the rename map is keyed
         // by; the snakified form is the user-friendly runtime identifier.
         const specName = (0, utility_1.normalizeFieldName)(argdef.name);
         const orig = (0, utility_1.depluralize)((0, jostraca_1.snakify)(specName));
+        // A parameter with no name is not a parameter. This is what a DANGLING
+        // `$ref` looks like by the time it reaches here: the reference survives
+        // unresolved, `name` and `in` are both absent, and the arg would become
+        // a nameless `query` entry that every target then has to render. Ruby
+        // cannot: `Struct.new(:"")` raises at load and takes the whole SDK with
+        // it. Drop it and say which reference is missing.
+        if ('' === orig) {
+            const ref = argdef?.$ref;
+            ctx?.warn?.({
+                note: `Parameter with no name on entity=${ment.name} op=${mop.name}` +
+                    ` path=${mpoint.orig} is dropped` +
+                    (null == ref ? '.' : `: \`$ref\` "${ref}" resolves to nothing.`) +
+                    ' A parameter needs a `name`, or a reference that resolves to one.',
+                entity: ment.name,
+                path: mpoint.orig,
+                op: mop.name,
+            });
+            return;
+        }
         const kind = ARG_KIND[argdef.in] ?? 'query';
         // Rename map can be keyed by either the spec original (camelCase) or by
         // the snakified form depending on which path went through heuristic01.

@@ -1090,3 +1090,74 @@ func TestFieldShortIsOneCappedLine(t *testing.T) {
 		t.Errorf("long.short = %q, want an ellipsis suffix", long)
 	}
 }
+
+// A `$ref` that resolves to nothing keeps its `$ref` key and has neither
+// `name` nor `in`. Left alone it becomes a nameless `query` arg that every
+// target has to render, and Ruby cannot: `Struct.new(:"")` raises when the
+// generated SDK loads. Mirrors ts/test/transform/args.test.ts.
+func TestArgsTransformNamelessParam(t *testing.T) {
+	path := "/{year}/kingdom/{kingdom_id}"
+	ctx := &ApiDefContext{
+		Def: map[string]any{"paths": map[string]any{
+			path: map[string]any{"get": map[string]any{"parameters": []any{
+				map[string]any{
+					"name": "year", "in": "path", "required": true,
+					"schema": map[string]any{"type": "integer"},
+				},
+				map[string]any{"$ref": "#/components/parameters/KingdomId"},
+			}}},
+		}},
+		ApiModel: map[string]any{"main": map[string]any{"kit": map[string]any{
+			"entity": map[string]any{"kingdom": map[string]any{
+				"name": "kingdom",
+				"op": map[string]any{"load": map[string]any{
+					"points": []any{map[string]any{
+						"orig": path, "method": "GET",
+						"rename": map[string]any{}, "args": map[string]any{},
+					}},
+				}},
+			}},
+		}}},
+		Warn: MakeWarner("test", nil),
+	}
+
+	if _, err := ArgsTransform(ctx); err != nil {
+		t.Fatalf("args transform failed: %v", err)
+	}
+
+	kit := getKit(ctx)
+	kingdom := kit["entity"].(map[string]any)["kingdom"].(map[string]any)
+	opm := kingdom["op"].(map[string]any)
+	load := opm["load"].(map[string]any)
+	point := load["points"].([]any)[0].(map[string]any)
+	args := point["args"].(map[string]any)
+
+	for _, kind := range []string{"params", "query", "header", "cookie"} {
+		list, _ := args[kind].([]any)
+		for _, a := range list {
+			am, _ := a.(map[string]any)
+			if safeStr(am["name"]) == "" {
+				t.Errorf("nameless arg survived in %s: %v", kind, am)
+			}
+		}
+	}
+
+	params, _ := args["params"].([]any)
+	if len(params) != 1 {
+		t.Fatalf("params = %d, want 1 (year)", len(params))
+	}
+	if safeStr(params[0].(map[string]any)["name"]) != "year" {
+		t.Errorf("param = %v, want year", params[0])
+	}
+
+	hist := ctx.Warn.History()
+	if len(hist) != 1 {
+		t.Fatalf("warnings = %d, want exactly 1", len(hist))
+	}
+	if hist[0]["entity"] != "kingdom" || hist[0]["op"] != "load" {
+		t.Errorf("warning = %v, want entity=kingdom op=load", hist[0])
+	}
+	if !strings.Contains(safeStr(hist[0]["note"]), "KingdomId") {
+		t.Errorf("warning note does not name the missing ref: %v", hist[0]["note"])
+	}
+}

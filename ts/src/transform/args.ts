@@ -71,7 +71,7 @@ const argsTransform: Transform = async function(
           argdefs.push(...(opdef?.parameters ?? []))
         }
 
-        resolveArgs(ment, mop, mpoint, argdefs)
+        resolveArgs(ctx, ment, mop, mpoint, argdefs)
       })
 
     })
@@ -116,7 +116,10 @@ const ARG_KIND: Record<string, ModelArg["kind"]> = {
 }
 
 
-function resolveArgs(ment: ModelEntity, mop: ModelOp, mpoint: ModelPoint, argdefs: ParameterDef[]) {
+function resolveArgs(
+  ctx: any,
+  ment: ModelEntity, mop: ModelOp, mpoint: ModelPoint, argdefs: ParameterDef[]
+) {
   const touchedKeys = new Set<string>()
 
   each(argdefs, (argdef: ParameterDef) => {
@@ -124,6 +127,27 @@ function resolveArgs(ment: ModelEntity, mop: ModelOp, mpoint: ModelPoint, argdef
     // by; the snakified form is the user-friendly runtime identifier.
     const specName = normalizeFieldName(argdef.name)
     const orig = depluralize(snakify(specName))
+
+    // A parameter with no name is not a parameter. This is what a DANGLING
+    // `$ref` looks like by the time it reaches here: the reference survives
+    // unresolved, `name` and `in` are both absent, and the arg would become
+    // a nameless `query` entry that every target then has to render. Ruby
+    // cannot: `Struct.new(:"")` raises at load and takes the whole SDK with
+    // it. Drop it and say which reference is missing.
+    if ('' === orig) {
+      const ref = (argdef as any)?.$ref
+      ctx?.warn?.({
+        note: `Parameter with no name on entity=${ment.name} op=${mop.name}` +
+          ` path=${mpoint.orig} is dropped` +
+          (null == ref ? '.' : `: \`$ref\` "${ref}" resolves to nothing.`) +
+          ' A parameter needs a `name`, or a reference that resolves to one.',
+        entity: ment.name,
+        path: mpoint.orig,
+        op: mop.name,
+      })
+      return
+    }
+
     const kind = ARG_KIND[argdef.in] ?? 'query'
     // Rename map can be keyed by either the spec original (camelCase) or by
     // the snakified form depending on which path went through heuristic01.
