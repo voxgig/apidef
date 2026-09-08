@@ -60,3 +60,8 @@ unreviewed
 # Tool and runtime names.
 Deno
 [Pp]ino
+
+# API vendors named in the classification examples. Added because the gate
+# asked for them, per the note at the top of this file.
+Contentful(?:'s)?
+GitLab(?:'s)?

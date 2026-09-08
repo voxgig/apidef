@@ -87,7 +87,7 @@ Plurality decides first, and on its own. A verb reads as one instruction —
 `merge`, `revoke`, `resend_confirmation` — where a plural literal names a
 collection whatever it answers with. Contentful's
 `POST /spaces/{sid}/environments/{eid}/asset_keys` answers with an
-`Assets keys` component and Gitlab's `.../merge_requests/{iid}/approvals`
+`Assets keys` component and GitLab's `.../merge_requests/{iid}/approvals`
 with an `ApprovalState`; neither component is the literal's member shape,
 so only the plural keeps these create-only collections entities of their
 own.
