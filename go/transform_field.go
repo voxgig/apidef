@@ -4,6 +4,7 @@ package apidef
 
 import (
 	"sort"
+	"strings"
 )
 
 // FieldTransform extracts and infers entity fields from operations.
@@ -70,6 +71,25 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 								existing["short"] = short
 							}
 						}
+						// The spec facts merge the same way, and for the same
+						// reason: one schema annotates the field and another
+						// references it bare, so the first declaration in
+						// precedence order is what finds the annotation.
+						//
+						// The order puts `load` first, which is the safe
+						// direction: a field a response marks readOnly and a
+						// request body also lists is a self-contradictory
+						// spec, and this believes the restriction.
+						// Mirrors src/transform/field.ts.
+						for _, flag := range []string{
+							"readOnly", "writeOnly", "deprecated", "format",
+						} {
+							if _, has := existing[flag]; !has {
+								if v, ok := opfield[flag]; ok {
+									existing[flag] = v
+								}
+							}
+						}
 					}
 				}
 			}
@@ -119,6 +139,28 @@ func resolveOpFields(mtarget map[string]any, def map[string]any, opname string) 
 			// Generated Readmes interpolate this into a markdown table cell.
 			if trimmed := FirstSentence(fdesc); trimmed != "" {
 				mfield["short"] = trimmed
+			}
+		}
+
+		// SPEC FACTS ABOUT THE FIELD, carried through verbatim.
+		// Mirrors src/transform/field.ts.
+		//
+		// ONLY WHEN THE SPEC SAYS SO, and for the booleans only when TRUE.
+		// Each defaults to false in OpenAPI, so an absent key and an explicit
+		// false carry the same information; emitting the false ones would add
+		// a key to every field of every model and say nothing.
+		for _, flag := range []string{"readOnly", "writeOnly", "deprecated"} {
+			if b, ok := fielddef[flag].(bool); ok && b {
+				mfield[flag] = true
+			}
+		}
+
+		// `format` is an open vocabulary — OpenAPI defines a handful and lets
+		// a spec coin its own — so it is carried as the string it is rather
+		// than interpreted here.
+		if ffmt, ok := fielddef["format"].(string); ok {
+			if trimmed := strings.TrimSpace(ffmt); trimmed != "" {
+				mfield["format"] = trimmed
 			}
 		}
 
@@ -440,6 +482,17 @@ func extractPropertiesOnly(fieldSet any, fielddefs *[]map[string]any) {
 			if d, ok := pm["description"]; ok {
 				fd["description"] = d
 			}
+			// ...and the spec facts, for exactly the same reason. THIS MAP IS
+			// THE FIELD DEF DOWNSTREAM, so a key not copied here is invisible
+			// — which is how `description` came to reach TS and not Go on the
+			// request-body route. Adding a key to ModelField means adding it
+			// here as well, or the two ports disagree on the same spec and
+			// only a request body shows it.
+			for _, k := range []string{"readOnly", "writeOnly", "deprecated", "format"} {
+				if v, ok := pm[k]; ok {
+					fd[k] = v
+				}
+			}
 		}
 		if requiredNames[name] {
 			fd["required"] = true
@@ -489,6 +542,17 @@ func extractFields(fieldSets any, fielddefs *[]map[string]any) {
 					// description was lost on this side.
 					if d, ok := pm["description"]; ok {
 						fd["description"] = d
+					}
+					// ...and the spec facts. SAME RULE, SECOND PLACE: this
+					// port has TWO helpers that build a fresh field def from
+					// selected keys (this one for the response route,
+					// extractPropertiesOnly for the request-body route), and
+					// a key added to ModelField has to be copied in BOTH or
+					// the ports disagree on half the specs.
+					for _, k := range []string{"readOnly", "writeOnly", "deprecated", "format"} {
+						if v, ok := pm[k]; ok {
+							fd[k] = v
+						}
 					}
 				}
 				if requiredNames[name] {

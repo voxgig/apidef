@@ -41,6 +41,24 @@ TypeScript types are in [`ts/src/model.ts`](../../ts/src/model.ts).
 | `req` | `boolean` | required (from the schema's `required[]`) |
 | `active` | `boolean` | included in output |
 | `op` | `{ [opname]: { req, type } }` | per-operation overrides when `req`/`type` differ for a specific op |
+| `short` | `string?` | the property's `description`, reduced to one sentence |
+| `readOnly` | `boolean?` | the spec says a client must not send this field |
+| `writeOnly` | `boolean?` | the spec says the field is never returned |
+| `deprecated` | `boolean?` | the spec marks the property deprecated |
+| `format` | `string?` | the property's `format`, verbatim (`date-time`, `password`, …) |
+
+The last five are present only when the spec states them, and the three flags
+only when the spec states them **true**. Each defaults to false in OpenAPI, so
+an absent key and an explicit `false` carry the same information.
+That distinction matters: an absent key means the spec said nothing, never
+that apidef dropped it.
+
+Where two schemas for one field disagree — a response marking a field
+`readOnly` and a request body listing it as ordinary — the first declaration
+wins in operation precedence order, which reads the response first. A spec
+that does both contradicts itself, and believing the restriction costs a
+caller one field they might have been able to send, while believing the
+omission sends a value the server rejects.
 
 ## `ModelOp`
 

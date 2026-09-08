@@ -885,3 +885,127 @@ func TestFieldShortIsOneCappedLine(t *testing.T) {
 		t.Errorf("long.short = %q, want an ellipsis suffix", long)
 	}
 }
+
+
+// The four OpenAPI property keywords that now reach ModelField:
+// readOnly, writeOnly, deprecated and format.
+//
+// Mirrors ts/test/field-spec-facts.test.ts. `readOnly` is the one that
+// matters: it is the only statement in a spec of whether a client MAY send a
+// field, so without it every generated create/update type offers the caller
+// fields the server assigns.
+func TestFieldSpecFactsFromResponse(t *testing.T) {
+	def := map[string]any{
+		"paths": map[string]any{
+			"/planets/{id}": map[string]any{
+				"get": map[string]any{
+					"responses": map[string]any{
+						"200": map[string]any{
+							"content": map[string]any{
+								"application/json": map[string]any{
+									"schema": map[string]any{
+										"type": "object",
+										"properties": map[string]any{
+											"id":      map[string]any{"type": "string", "readOnly": true},
+											"secret":  map[string]any{"type": "string", "writeOnly": true},
+											"legacy":  map[string]any{"type": "string", "deprecated": true},
+											"created": map[string]any{"type": "string", "format": "  date-time  "},
+											"plain":   map[string]any{"type": "string"},
+											"stated": map[string]any{
+												"type": "string", "readOnly": false,
+												"writeOnly": false, "deprecated": false,
+											},
+											"blankfmt": map[string]any{"type": "string", "format": "   "},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	mtarget := map[string]any{"orig": "/planets/{id}", "method": "GET", "kind": "json"}
+
+	byName := map[string]map[string]any{}
+	for _, f := range resolveOpFields(mtarget, def, "load") {
+		byName[f["name"].(string)] = f
+	}
+
+	if got := byName["id"]["readOnly"]; got != true {
+		t.Errorf("id.readOnly = %v, want true", got)
+	}
+	if got := byName["secret"]["writeOnly"]; got != true {
+		t.Errorf("secret.writeOnly = %v, want true", got)
+	}
+	if got := byName["legacy"]["deprecated"]; got != true {
+		t.Errorf("legacy.deprecated = %v, want true", got)
+	}
+	if got := byName["created"]["format"]; got != "date-time" {
+		t.Errorf("created.format = %v, want %q (trimmed)", got, "date-time")
+	}
+
+	// ABSENT AND EXPLICIT-FALSE MEAN THE SAME THING, so only true is emitted:
+	// each keyword defaults to false in OpenAPI, and emitting the false ones
+	// would add three keys to every field of every model and say nothing.
+	for _, fname := range []string{"plain", "stated"} {
+		for _, key := range []string{"readOnly", "writeOnly", "deprecated", "format"} {
+			if _, has := byName[fname][key]; has {
+				t.Errorf("%s.%s was emitted for a field the spec did not flag", fname, key)
+			}
+		}
+	}
+	if _, has := byName["blankfmt"]["format"]; has {
+		t.Errorf("blankfmt.format was emitted for a blank format")
+	}
+}
+
+// THE REQUEST-BODY ROUTE, which is a different code path in Go and the one
+// that has already produced a TS/Go divergence once.
+//
+// findFieldDefs wraps the schemas in a slice for a non-QUERY op with a request
+// body, and a slice sends every item through extractPropertiesOnly — which
+// builds a FRESH map carrying only the keys it names. A key not copied there
+// is invisible, which is exactly how `description` reached TS and not Go.
+func TestFieldSpecFactsFromRequestBody(t *testing.T) {
+	def := map[string]any{
+		"paths": map[string]any{
+			"/planets": map[string]any{
+				"post": map[string]any{
+					"requestBody": map[string]any{
+						"content": map[string]any{
+							"application/json": map[string]any{
+								"schema": map[string]any{
+									"type": "object",
+									"properties": map[string]any{
+										"id":    map[string]any{"type": "string", "readOnly": true},
+										"token": map[string]any{"type": "string", "writeOnly": true, "format": "password"},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	mtarget := map[string]any{"orig": "/planets", "method": "POST", "kind": "json"}
+
+	byName := map[string]map[string]any{}
+	for _, f := range resolveOpFields(mtarget, def, "create") {
+		byName[f["name"].(string)] = f
+	}
+
+	if got := byName["id"]["readOnly"]; got != true {
+		t.Errorf("id.readOnly = %v, want true (the request-body route dropped it)", got)
+	}
+	if got := byName["token"]["writeOnly"]; got != true {
+		t.Errorf("token.writeOnly = %v, want true", got)
+	}
+	if got := byName["token"]["format"]; got != "password" {
+		t.Errorf("token.format = %v, want %q", got, "password")
+	}
+}

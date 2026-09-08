@@ -98,6 +98,28 @@ main: kit: entity: &: {
     # dropped it". Generated per-entity tables render it as the Description
     # column. Since 7.2.
     short?: string
+
+    # SPEC FACTS ABOUT THE FIELD ITSELF, carried through verbatim.
+    #
+    # These four are declared by OpenAPI on the property and were being
+    # dropped. They are facts the spec states, not inferences: `readOnly` is
+    # the difference between a field a client MAY send and one it may not,
+    # which no other key in this record expresses, and a generator that
+    # cannot see it necessarily puts server-assigned fields into the type a
+    # caller fills in.
+    #
+    # PRESENT ONLY WHEN THE SPEC SAYS SO. The three booleans are set only
+    # when the spec declares them TRUE — each defaults to false in OpenAPI,
+    # so an absent key and an explicit `false` mean the same thing, and
+    # emitting the false ones would change every model for no information.
+    # `format` is set only for a non-empty string.
+    #
+    # Where two schemas for one field disagree, the first declaration wins in
+    # the same operation precedence `short` uses. See the transform.
+    readOnly?: boolean
+    writeOnly?: boolean
+    deprecated?: boolean
+    format?: string
   } ]
 
   relations: {

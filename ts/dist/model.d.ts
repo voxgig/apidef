@@ -38,6 +38,10 @@ type ModelField = {
     req: boolean;
     op: Partial<Record<OpName, ModelFieldOp>>;
     short?: string;
+    readOnly?: boolean;
+    writeOnly?: boolean;
+    deprecated?: boolean;
+    format?: string;
     union?: {
         count: number;
         branches: number;

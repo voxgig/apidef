@@ -6,6 +6,7 @@ main: kit: entity: planet: {
 
   fields: [
     {
+      format: "float"
       name: "diameter"
       req: true
       short: "Mean equatorial diameter in kilometres."
