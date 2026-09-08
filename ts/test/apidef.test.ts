@@ -321,6 +321,16 @@ describe('apidef', () => {
     assert.deepStrictEqual(Object.keys(gents.label.path['/widgets/{id}/labels'].op), ['create'])
     assert.ok(null == gents.widget.path['/widgets/{id}/labels'], 'labels wrongly became a verb on widget')
 
+    // The same, when the response component is NOT the segment's member
+    // shape: `access_keys` answers with `widget-access-key-set`, the way
+    // contentful's `asset_keys` answers `Assets keys`. Only the PLURAL
+    // segment says collection, and it has to be enough on its own.
+    const aks = gents.widget_access_key_set
+    assert.ok(null != aks, 'access_keys entity lost: ' + Object.keys(gents).join(','))
+    assert.deepStrictEqual(Object.keys(aks.path['/widgets/{id}/access_keys'].op), ['create'])
+    assert.ok(null == gents.widget.path['/widgets/{id}/access_keys'],
+      'a plural collection wrongly became a verb on widget')
+
     // A verb that suffixes its parent's name is still recorded as an action.
     const archive = gents.email_archive?.path['/email-archives/{email_archive_id}/archive']
     assert.ok(null != archive, 'archive did not join email_archive: ' + Object.keys(gents).join(','))

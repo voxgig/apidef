@@ -290,6 +290,50 @@
           }
         }
       }
+    },
+    "/widgets/{id}/access_keys": {
+      "post": {
+        "operationId": "access_keys/create",
+        "tags": [
+          "access_keys"
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/widget-access-key-set"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -351,6 +395,17 @@
         "properties": {
           "archived": {
             "type": "boolean"
+          }
+        }
+      },
+      "widget-access-key-set": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "secret": {
+            "type": "string"
           }
         }
       }

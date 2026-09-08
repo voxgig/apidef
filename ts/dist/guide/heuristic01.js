@@ -1012,9 +1012,20 @@ function verbOnParent(data, pm, mdesc) {
     if (1 < (ment.cmpoccur ?? 0)) {
         return null;
     }
-    // The literal names a collection when its response component is that
-    // collection's member shape (`labels` answering with `label`, or with a
-    // parent-prefixed `thing_label`); a verb answers with something else.
+    // A PLURAL literal names a nested collection, whatever it answers with:
+    // `asset_keys` under `{environment_id}` creates an asset key, and
+    // `approvals` under `{merge_request_iid}` is a collection of approvals.
+    // A verb is singular — `merge`, `revoke`, `resend_confirmation` — so the
+    // component rule below is never reached for a plural, which is what keeps
+    // a create-only collection an entity of its own.
+    const lit = (0, jostraca_2.snakify)((0, struct_1.getelem)(pm, -1));
+    if ('' === lit || (0, utility_2.depluralize)(lit) !== lit) {
+        return null;
+    }
+    // A singular literal still names a collection when its response component
+    // is that collection's member shape (`label` answering with `label`, or
+    // with a parent-prefixed `thing_label`); a verb answers with something
+    // else.
     const verb = (0, utility_2.canonize)((0, struct_1.getelem)(pm, -1));
     const cmp = String(ment.cmp ?? '');
     if ('' === verb || cmp === verb || cmp.endsWith('_' + verb)) {
