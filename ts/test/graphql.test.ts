@@ -17,7 +17,11 @@ import assert from 'node:assert'
 import { Aontu } from 'aontu'
 
 import { ApiDef } from '../dist/apidef'
-import { deriveRetShape, entityName } from '../dist/guide/graphql01'
+import {
+  deriveRetShape,
+  entityName,
+  resolveEntityName,
+} from '../dist/guide/graphql01'
 
 
 const OUTPREFIX = 'graphql-linearish-'
@@ -337,6 +341,64 @@ describe('graphql-entity-name', () => {
     assert.equal(entityName('WorkflowStates'), 'workflow_state')
     assert.equal(entityName('__Type'), 'type')
     assert.equal(entityName('_v2Users'), 'v2_user')
+  })
+
+
+  // The guard maps a previously unreachable name onto one another type can
+  // own natively, so `_3DSSessions` and `N3DSSession` — unrelated types —
+  // would both want `n3_ds_session`. Merging them folds two entities' fields
+  // and ops together under an `orig` recording only the first, and leaves no
+  // second guide entry to correct (ADR-002: guide.aon is the only correction
+  // surface). The suffix is `ensureMinEntityName`'s convention, borrowed.
+  test('guard-induced-collision-is-split', () => {
+    const entities: any = {}
+    const a = resolveEntityName('N3DSSession', entities)
+    assert.equal(a, 'n3_ds_session')
+    entities[a] = { name: a, orig: 'N3DSSession' }
+
+    const b = resolveEntityName('_3DSSessions', entities)
+    assert.equal(b, 'n3_ds_session2')
+  })
+
+
+  // ... in EITHER order: which type is seen first is an accident of sorted
+  // root-field iteration, and both orders must yield two entities.
+  test('guard-induced-collision-is-split-either-order', () => {
+    const entities: any = {}
+    const a = resolveEntityName('_3DSSessions', entities)
+    assert.equal(a, 'n3_ds_session')
+    entities[a] = { name: a, orig: '_3DSSessions' }
+
+    const b = resolveEntityName('N3DSSession', entities)
+    assert.equal(b, 'n3_ds_session2')
+  })
+
+
+  // The scope is exactly the collisions the guard creates. A collision that
+  // predates it is canonicalization doing its job — singular and plural
+  // spellings of one thing — and must still merge, guarded or not.
+  test('canonical-merges-are-untouched', () => {
+    const entities: any = {}
+
+    // Neither name is guarded.
+    entities.issue = { name: 'issue', orig: 'Issue' }
+    assert.equal(resolveEntityName('Issues', entities), 'issue')
+
+    // Both names are guarded.
+    entities.n3_ds_session = { name: 'n3_ds_session', orig: '_3DSSessions' }
+    assert.equal(resolveEntityName('_3DSSession', entities), 'n3_ds_session')
+  })
+
+
+  // The same type reached from several root fields (query + mutation) is one
+  // entity, so its ops merge instead of minting a phantom second entry.
+  test('same-type-reuses-its-own-entry', () => {
+    const entities: any = {
+      n3_ds_session: { name: 'n3_ds_session', orig: '_3DSSessions' },
+      n3_ds_session2: { name: 'n3_ds_session2', orig: 'N3DSSession' },
+    }
+    assert.equal(resolveEntityName('N3DSSession', entities), 'n3_ds_session2')
+    assert.equal(resolveEntityName('_3DSSessions', entities), 'n3_ds_session')
   })
 
 })

@@ -393,16 +393,60 @@ function nameEntityType(
 // Entity model name from a GraphQL type name: Issue -> issue,
 // WorkflowState -> workflow_state (canonize handles the casing rules that
 // the REST path classifier already uses).
-//
+function rawEntityName(typeName: string): string {
+  return depluralize(canonize(normalizeFieldName(typeName)))
+}
+
+
 // The leading-digit guard is applied here rather than inherited: the REST
 // side gets it from `ensureMinEntityName`, which this path deliberately does
-// not call (its min-length padding and collision suffixing are the REST
-// classifier's rules, and entities here merge by name on purpose). GraphQL
-// type names cannot begin with a digit, but they can begin with `_`, which
-// `normalizeFieldName` strips — so `_3DSSessions` reaches an SDK as the
-// entity `3_ds_session` and every generated language rejects the identifier.
+// not call (its min-length padding is the REST classifier's rule, and
+// entities here merge by name on purpose). GraphQL type names cannot begin
+// with a digit, but they can begin with `_`, which `normalizeFieldName`
+// strips — so `_3DSSessions` reaches an SDK as the entity `3_ds_session` and
+// every generated language rejects the identifier.
 function entityName(typeName: string): string {
-  return prefixLeadingDigit(depluralize(canonize(normalizeFieldName(typeName))))
+  return prefixLeadingDigit(rawEntityName(typeName))
+}
+
+
+// Two GraphQL types that canonize to ONE entity name merge, deliberately:
+// `_3DSSession` and `_3DSSessions` are the singular and plural spellings of
+// one thing, and `Issue`/`Issues` likewise. That is what canonicalization is
+// for, and the caller's `guide.entity[entname] ?? {…}` is how it happens.
+//
+// The leading-digit guard opens one collision that is NOT that. A guarded
+// name (`_3DSSessions` -> `3_ds_session` -> `n3_ds_session`) can land on a
+// name another type already owns natively (`N3DSSession` -> `n3_ds_session`).
+// Those are unrelated types, and merging them would fold two entities' fields
+// and ops together under a name whose `orig` records only the first — with no
+// second guide entry for a user to correct, since guide.aon is the only
+// correction surface (ADR-002).
+//
+// So a collision between a guarded name and an unguarded one takes a numeric
+// suffix, the same convention `ensureMinEntityName` uses on the REST side.
+// The scope is exactly the collisions this guard creates: when both names are
+// guarded, or neither is, the merge is what it was before the guard existed
+// and stands untouched. The same type re-encountered on another root field
+// always reuses its own entry.
+function resolveEntityName(
+  typeName: string,
+  entities: Record<string, GuideEntity>,
+): string {
+  const raw = rawEntityName(typeName)
+  const base = prefixLeadingDigit(raw)
+  const guarded = base !== raw
+
+  let out = base
+  for (let i = 2; null != entities[out]; i++) {
+    const held = entities[out]
+    if (held.orig === typeName) return out
+    const heldRaw = rawEntityName(held.orig)
+    if (guarded === (prefixLeadingDigit(heldRaw) !== heldRaw)) return out
+    out = base + i
+  }
+
+  return out
 }
 
 
@@ -466,7 +510,7 @@ async function graphql01(ctx: ApiDefContext): Promise<Guide> {
         continue
       }
 
-      const entname = entityName(cls.entity)
+      const entname = resolveEntityName(cls.entity, guide.entity)
 
       const gent: GuideEntity = guide.entity[entname] ?? {
         name: entname,
@@ -517,6 +561,7 @@ export {
   deriveRetShape,
   fieldSig,
   entityName,
+  resolveEntityName,
 }
 
 export type {
