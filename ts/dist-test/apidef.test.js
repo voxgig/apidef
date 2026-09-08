@@ -240,6 +240,49 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
             node_assert_1.default.ok(names.includes('id') && !names.includes('thing_number'), pt.orig + ' params ' + names.join(','));
         }
     });
+    // Edges of the verb-on-parent rule. The item path spells its key `{id}`
+    // where the verb path spells it `{widget_number}`; a PUT on the item
+    // answers with a one-off `ack` and so owns the item path beside the GET;
+    // a create-only nested collection (`POST .../labels` answering with a
+    // `label`) is a collection, not a verb; and a verb that is a suffix of
+    // its parent's name (`archive` on `email_archive`) is still an action.
+    (0, node_test_1.test)('guide-verb-on-parent-edges', async () => {
+        const folder = __dirname + '/../test/verb-edge';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'verb-edge', def: 'verb-edge-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: true,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        const gents = bres.guide.entity;
+        // The verb joins the entity the item's GET returns, not the one that
+        // sorts first (`ack` < `widget`), and the key spelling does not matter.
+        const merge = gents.widget?.path['/widgets/{widget_number}/merge'];
+        node_assert_1.default.ok(null != merge, 'merge did not join widget: ' + Object.keys(gents).join(','));
+        node_assert_1.default.deepStrictEqual(Object.keys(merge.action ?? {}), ['merge']);
+        node_assert_1.default.strictEqual(merge.rename.param.widget_number?.target ?? merge.rename.param.widget_number, 'id');
+        node_assert_1.default.ok(null == gents.ack?.path['/widgets/{widget_number}/merge'], 'merge wrongly joined ack');
+        // A create-only nested collection keeps its entity and its create.
+        node_assert_1.default.ok(null != gents.label, 'label entity lost: ' + Object.keys(gents).join(','));
+        node_assert_1.default.deepStrictEqual(Object.keys(gents.label.path['/widgets/{id}/labels'].op), ['create']);
+        node_assert_1.default.ok(null == gents.widget.path['/widgets/{id}/labels'], 'labels wrongly became a verb on widget');
+        // A verb that suffixes its parent's name is still recorded as an action.
+        const archive = gents.email_archive?.path['/email-archives/{email_archive_id}/archive'];
+        node_assert_1.default.ok(null != archive, 'archive did not join email_archive: ' + Object.keys(gents).join(','));
+        node_assert_1.default.deepStrictEqual(Object.keys(archive.action ?? {}), ['archive']);
+        const ea = bres.apimodel.main.kit.entity.email_archive;
+        const archivePt = ea.op.update.points.find((pt) => pt.orig.endsWith('/archive'));
+        node_assert_1.default.strictEqual(archivePt?.select?.$action, 'archive');
+    });
     (0, node_test_1.test)('field-required-solar', async () => {
         const outprefix = 'solar-1.0.0-openapi-3.0.0-';
         const folder = __dirname + '/../test/solar';

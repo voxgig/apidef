@@ -824,6 +824,21 @@ func resolveEntityName(ctx *ApiDefContext, data map[string]any, mdesc map[string
 	ment["entname"] = entname
 	ment["pm"] = pm
 
+	// Which entity took each path+method, in resolution order; verbOnParent
+	// reads the item path's GET owner from here. Mirrors
+	// src/guide/heuristic01.ts ResolveEntityName.
+	pathowner, _ := work["pathowner"].(map[string]any)
+	if pathowner == nil {
+		pathowner = map[string]any{}
+		work["pathowner"] = pathowner
+	}
+	owners, _ := pathowner[pathStr].(map[string]any)
+	if owners == nil {
+		owners = map[string]any{}
+		pathowner[pathStr] = owners
+	}
+	owners[methodName] = entname
+
 	DebugPath(pathStr, methodName, "RESOLVE-ENTITY-NAME", entname)
 }
 
@@ -1130,7 +1145,19 @@ func findActions(data map[string]any, mdesc map[string]any) {
 	// (verbOnParent) is an action whatever the parent literal canonizes
 	// to. Mirrors src/guide/heuristic01.ts FindActions.
 	if safeStr(ment["verb_on_parent"]) != "" {
-		updateAction(methodName, lastPart, lastPartCanon, entdesc, pathdesc, "verb-on-parent")
+		// Recorded directly rather than through updateAction, whose guard
+		// against an entity "already encoding" the verb would drop `archive`
+		// on `email_archive`. Mirrors src/guide/heuristic01.ts FindActions.
+		action, _ := pathdesc["action"].(map[string]any)
+		if action == nil {
+			action = map[string]any{}
+			pathdesc["action"] = action
+		}
+		if action[lastPartCanon] == nil {
+			action[lastPartCanon] = map[string]any{
+				"why_action": []string{"ent", safeStr(entdesc["name"]), "verb-on-parent", lastPart, methodName},
+			}
+		}
 	} else if matchesAt(secondLastPartCanon) {
 		// /api/foo/bar where foo is the entity and bar is the action, no id param
 		if !isParam(lastPart) {
@@ -1458,6 +1485,18 @@ func verbOnParent(data map[string]any, pm *PathMatchResult, mdesc map[string]any
 		return ""
 	}
 
+	// The literal names a collection when its response component is that
+	// collection's member shape (`labels` answering with `label`, or with
+	// a parent-prefixed `thing_label`); a verb answers with something else.
+	verb := Canonize(getMatchElem(pm, -1))
+	cmp := ""
+	if ment != nil {
+		cmp = safeStr(ment["cmp"])
+	}
+	if verb == "" || cmp == verb || strings.HasSuffix(cmp, "_"+verb) {
+		return ""
+	}
+
 	def, _ := data["def"].(map[string]any)
 	defPaths, _ := def["paths"].(map[string]any)
 	if defPaths == nil {
@@ -1468,31 +1507,48 @@ func verbOnParent(data map[string]any, pm *PathMatchResult, mdesc map[string]any
 	if idx <= 0 {
 		return ""
 	}
-	itemPath := pm.Path[:idx]
-	if defPaths[itemPath] == nil {
-		return ""
-	}
 
-	// A leaf: no path continues past the verb. Compared on a segment
-	// boundary, parameters normalised, so `/merge` is not "extended" by
-	// `/merge-async`.
+	// Paths compare with parameters normalised: the item path may spell its
+	// key `{id}` where the verb path spells it `{thing_number}`.
 	paramRE := regexp.MustCompile(`\{[^}]+\}`)
+	itemNorm := paramRE.ReplaceAllString(pm.Path[:idx], "{}")
 	prefix := paramRE.ReplaceAllString(pm.Path, "{}") + "/"
+
+	itemPath := ""
 	for _, p := range sortedKeys(defPaths) {
-		if strings.HasPrefix(paramRE.ReplaceAllString(p, "{}"), prefix) {
+		pn := paramRE.ReplaceAllString(p, "{}")
+		if pn == itemNorm {
+			itemPath = p
+		} else if strings.HasPrefix(pn, prefix) {
+			// A leaf: no path continues past the verb. Compared on a segment
+			// boundary, so `/merge` is not "extended" by `/merge-async`.
 			return ""
 		}
 	}
+	if itemPath == "" {
+		return ""
+	}
 
+	// The parent is the entity a READ of the item returns: a PUT on the
+	// item answering with a one-off acknowledgement is named after that and
+	// must not claim the verb. Fall back to any owner, then the literal.
 	work, _ := data["work"].(map[string]any)
-	entmap, _ := work["entmap"].(map[string]any)
-	for _, name := range sortedKeys(entmap) {
-		ent, _ := entmap[name].(map[string]any)
-		if ent == nil {
-			continue
+	pathowner, _ := work["pathowner"].(map[string]any)
+	owners, _ := pathowner[itemPath].(map[string]any)
+	if parent := safeStr(owners["GET"]); parent != "" {
+		return parent
+	}
+	if parent := safeStr(owners["QUERY"]); parent != "" {
+		return parent
+	}
+	if names := sortedKeys(owners); len(names) > 0 {
+		vals := make([]string, 0, len(names))
+		for _, n := range names {
+			vals = append(vals, safeStr(owners[n]))
 		}
-		if epath, ok := ent["path"].(map[string]any); ok && epath[itemPath] != nil {
-			return safeStr(ent["name"])
+		sort.Strings(vals)
+		if vals[0] != "" {
+			return vals[0]
 		}
 	}
 

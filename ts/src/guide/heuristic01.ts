@@ -633,6 +633,15 @@ function ResolveEntityName(spec: TaskSpec) {
   ment.entname = entname
   ment.pm = pm
 
+  // Which entity took each path+method, in resolution order. verbOnParent
+  // reads the item path's GET owner from here: a t/p/ item path can be
+  // split across entities by method (a PUT answering with a one-off
+  // acknowledgement is named after it), and the parent of a verb is the
+  // entity a read of the item returns.
+  work.pathowner = work.pathowner ?? {}
+  work.pathowner[pathStr] = work.pathowner[pathStr] ?? {}
+  work.pathowner[pathStr][methodName] = entname
+
   debugpath(pathStr, methodName, 'RESOLVE-ENTITY-NAME',
     formatJSONIC({ entdesc, ment }, { hsepd: 0, $: true, color: true }))
 }
@@ -967,8 +976,13 @@ function FindActions(spec: TaskSpec) {
   // A verb that ResolveEntityName assigned to its parent entity
   // (verbOnParent) is an action whatever the parent literal canonizes to:
   // `/app/installations/{installation_id}/access_tokens` belongs to `app`.
+  // Recorded directly rather than through updateAction, whose guard against
+  // an entity "already encoding" the verb would drop `archive` on
+  // `email_archive` and leave the verb as a plain CRUD point.
   if (null != ment.verb_on_parent) {
-    updateAction(methodName, lastPart, lastPartCanon, entdesc, pathdesc, 'verb-on-parent')
+    pathdesc.action[lastPartCanon] = pathdesc.action[lastPartCanon] ?? {
+      why_action: ['ent', entdesc.name, 'verb-on-parent', lastPart, methodName],
+    }
   }
 
   // /api/foo/bar where foo is the entity and bar is the action, no id param
@@ -1341,14 +1355,16 @@ function endsWithCmp(data: any, pm: PathMatch) {
 // response schema) stayed an action on `pull`: one route split across two
 // entities by method, and the verb unreachable from the entity it acts on.
 //
-// Four signals, together: the method writes (a GET on such a path is a
+// Five signals, together: the method writes (a GET on such a path is a
 // sub-resource read and keeps the component rule); the response component
 // occurs nowhere else in the spec (a one-off result, not a resource shape);
-// the item selector itself (`.../pulls/{pull_number}`) is a path of the
-// spec, so the trailing literal cannot be a collection of its own; and
-// nothing extends the path (`.../private-registries/{secret_name}` makes
-// `private-registries` a collection, whatever its POST answers with). The
-// verb then joins the parent entity, where FindActions records it as an
+// that component is not the literal's own collection shape (a create-only
+// `POST .../{id}/labels` answering with a `label` is a nested collection,
+// not a verb); the item selector itself (`.../pulls/{pull_number}`) is a
+// path of the spec, so the trailing literal cannot be a collection of its
+// own; and nothing extends the path (`.../private-registries/{secret_name}`
+// makes `private-registries` a collection, whatever its POST answers with).
+// The verb then joins the parent entity, where FindActions records it as an
 // action and select stamps `$action` on its points. Returns the parent's
 // entity name, or null when the rule does not apply.
 function verbOnParent(
@@ -1366,31 +1382,48 @@ function verbOnParent(
     return null
   }
 
-  const defpaths = data.def?.paths ?? {}
-
-  const itemPath = pm.path.replace(/\/[^/]+$/, '')
-  if (null == defpaths[itemPath]) {
+  // The literal names a collection when its response component is that
+  // collection's member shape (`labels` answering with `label`, or with a
+  // parent-prefixed `thing_label`); a verb answers with something else.
+  const verb = canonize(getelem(pm, -1))
+  const cmp = String(ment.cmp ?? '')
+  if ('' === verb || cmp === verb || cmp.endsWith('_' + verb)) {
     return null
   }
 
-  // A leaf: no path continues past the verb. Compared on a segment boundary,
-  // parameters normalised, so `/merge` is not "extended" by `/merge-async`.
+  const defpaths = data.def?.paths ?? {}
+
+  // Paths compare with parameters normalised: the item path may spell its
+  // key `{id}` where the verb path spells it `{thing_number}`.
   const normalize = (p: string) => p.replace(/\{[^}]+\}/g, '{}')
+  const itemNorm = normalize(pm.path.replace(/\/[^/]+$/, ''))
   const prefix = normalize(pm.path) + '/'
+
+  let itemPath: undefined | string = undefined
   for (const p of Object.keys(defpaths)) {
-    if (normalize(p).startsWith(prefix)) {
+    const pn = normalize(p)
+    if (pn === itemNorm) {
+      itemPath = p
+    }
+    // A leaf: no path continues past the verb. Compared on a segment
+    // boundary, so `/merge` is not "extended" by `/merge-async`.
+    else if (pn.startsWith(prefix)) {
       return null
     }
   }
+  if (null == itemPath) {
+    return null
+  }
 
-  // Methods resolve in path order, so the item path's entity is already
-  // known: use its resolved name rather than re-deriving it from the
-  // literal, which a component-named parent would not match.
-  const entmap = data.work.entmap ?? {}
-  for (const name of sortedKeys(entmap)) {
-    if (null != entmap[name]?.path?.[itemPath]) {
-      return entmap[name].name
-    }
+  // Methods resolve in path order, so the item path's owners are already
+  // known. The parent is the entity a READ of the item returns: a PUT on
+  // the item answering with a one-off acknowledgement is named after that
+  // and must not claim the verb. Fall back to any owner, then the literal.
+  const owners = data.work.pathowner?.[itemPath] ?? {}
+  const parent = owners.GET ?? owners.QUERY ??
+    Object.values(owners).sort()[0] as undefined | string
+  if (null != parent) {
+    return parent
   }
 
   return canonize(getelem(pm, -3))

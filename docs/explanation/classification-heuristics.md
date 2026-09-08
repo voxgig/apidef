@@ -74,11 +74,14 @@ A verb that answers with a schema of its own is still a verb. GitHub's
 `PUT /repos/{owner}/{repo}/pulls/{pull_number}/merge` returns a
 `pull-request-merge-result`, and naming an entity after it would leave
 `merge` unreachable from `pull`. The heuristic keeps the verb on the parent
-when four things hold: the method writes, the response component occurs
-nowhere else in the spec, the item selector (`.../pulls/{pull_number}`) is a
-path of the spec, and nothing extends the verb's path. A `GET` on such a path
-is a sub-resource read, and a literal with paths beneath it is a collection,
-so both keep the component rule.
+when five things hold: the method writes, the response component occurs
+nowhere else in the spec, that component is not the literal's own member
+shape (`POST .../labels` answering with a `label` is a collection), the item
+selector (`.../pulls/{pull_number}`) is a path of the spec, and nothing
+extends the verb's path. A `GET` on such a path is a sub-resource read, and a
+literal with paths beneath it is a collection, so both keep the component
+rule. The verb joins the entity a read of the item returns, however the two
+paths spell the key.
 
 An action borrows an op slot rather than owning one: `PUT .../merge` sits in
 `update`. When every point in `update` is an action, a `PATCH` on the item

@@ -237,6 +237,71 @@ func TestGuideVerbOnParent(t *testing.T) {
 	}
 }
 
+// Edges of the verb-on-parent rule; mirrors the TS `guide-verb-on-parent-edges`
+// case: key spelled differently on the verb path, a one-off PUT answer on the
+// item path, a create-only nested collection, and a verb that suffixes its
+// parent's name.
+func TestGuideVerbOnParentEdges(t *testing.T) {
+	src, err := os.ReadFile("../ts/test/def/verb-edge-def.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := Parse("OpenAPI", string(src), map[string]string{"file": "verb-edge-def.json"})
+	if err != nil {
+		t.Fatalf("parse failed: %v", err)
+	}
+	ctx := &ApiDefContext{
+		Opts: ApiDefOptions{Folder: t.TempDir(), OutPrefix: "verb-edge-", Strategy: "heuristic01"},
+		Def:  parsed, Note: map[string]any{}, Warn: MakeWarner("test", nil), Work: map[string]any{},
+	}
+	guideResult, err := BuildGuide(ctx)
+	if err != nil {
+		t.Fatalf("guide build failed: %v", err)
+	}
+	guide, _ := guideResult["guide"].(map[string]any)
+	entities, _ := guide["entity"].(map[string]any)
+	pathsOf := func(ent string) map[string]any {
+		e, _ := entities[ent].(map[string]any)
+		if e == nil {
+			return map[string]any{}
+		}
+		p, _ := e["path"].(map[string]any)
+		return p
+	}
+	actionsOf := func(pd any) []string {
+		pm, _ := pd.(map[string]any)
+		a, _ := pm["action"].(map[string]any)
+		return sortedKeys(a)
+	}
+
+	merge := pathsOf("widget")["/widgets/{widget_number}/merge"]
+	if merge == nil {
+		t.Fatalf("merge did not join widget: %v", sortedKeys(entities))
+	}
+	if got := strings.Join(actionsOf(merge), ","); got != "merge" {
+		t.Errorf("merge actions = %s, want merge", got)
+	}
+	if pathsOf("ack")["/widgets/{widget_number}/merge"] != nil {
+		t.Errorf("merge wrongly joined ack")
+	}
+
+	labels := pathsOf("label")["/widgets/{id}/labels"]
+	if labels == nil {
+		t.Fatalf("label entity lost: %v", sortedKeys(entities))
+	}
+	if pathsOf("widget")["/widgets/{id}/labels"] != nil {
+		t.Errorf("labels wrongly became a verb on widget")
+	}
+
+	archive := pathsOf("email_archive")["/email-archives/{email_archive_id}/archive"]
+	if archive == nil {
+		t.Fatalf("archive did not join email_archive: %v", sortedKeys(entities))
+	}
+	if got := strings.Join(actionsOf(archive), ","); got != "archive" {
+		t.Errorf("archive actions = %s, want archive", got)
+	}
+}
+
 // RFC 10008 QUERY verb: a safe, idempotent read carrying its filter in the
 // request body. Mirrors the TS `query-verb-book` case in ts/test/apidef.test.ts.
 // QUERY maps onto load/list; its collection response supplies the entity

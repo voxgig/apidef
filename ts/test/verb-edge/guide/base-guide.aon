@@ -1,0 +1,49 @@
+# Guide
+
+guide: {
+  metrics: count: entity: 4
+  metrics: count: path: 7
+  metrics: count: method: 8
+
+  entity: ack: {
+    path: "/widgets": {
+      op: list: method: *GET
+    }
+    path: "/widgets/{id}": {
+      op: update: method: *PUT
+    }
+  }
+
+  entity: email_archive: {
+    path: "/email-archives": {
+      op: list: method: *GET
+    }
+    path: "/email-archives/{email_archive_id}": {
+      op: load: method: *GET
+    }
+    path: "/email-archives/{email_archive_id}/archive": {
+      action: "archive": {}
+      rename: param: "email_archive_id": *"email_archif_id"
+      op: update: method: *PUT
+    }
+  }
+
+  entity: label: {
+    path: "/widgets/{id}/labels": {
+      rename: param: "id": *"widget_id"
+      op: create: method: *POST
+    }
+  }
+
+  entity: widget: {
+    path: "/widgets/{id}": {
+      op: load: method: *GET
+    }
+    path: "/widgets/{widget_number}/merge": {
+      action: "merge": {}
+      rename: param: "widget_number": *"id"
+      op: update: method: *PUT
+    }
+  }
+
+}
