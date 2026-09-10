@@ -153,9 +153,25 @@ const IdSep = "/"
 // adjacency cannot tell a compound key from a trailing modifier such as
 // github's `{artifact_id}/{archive_format}`. Mirrors src/transform/field.ts
 // compositeId.
+// WHAT `gent` CAN ACTUALLY CARRY IN THIS PORT. ctx.Guide is built from the
+// heuristic base guide alone: BuildGuide calls checkGuideOverlay, which
+// REFUSES the build outright when a project overlay is present, because
+// there is no Go aontu to apply it and silently emitting a model that
+// disagrees with the TS one is the worse failure. So an `id:` block stated in
+// guide.aon does not reach here — the build stops before it could.
+//
+// The override is read anyway, and deliberately: it keeps the two ports'
+// logic identical, so the day Go can apply an overlay this needs no change,
+// and a caller that constructs ctx.Guide itself (as the tests do) gets the
+// documented behaviour today.
 func compositeId(mentMap map[string]any, gent map[string]any, def map[string]any) ([]string, string, map[string]string) {
+	var gid map[string]any
 	if gent != nil {
-		if gid, ok := gent["id"].(map[string]any); ok && gid != nil {
+		gid, _ = gent["id"].(map[string]any)
+	}
+
+	if gent != nil {
+		if gid != nil {
 			// `composite: false` turns the inference off. A boolean rather
 			// than an empty `parts`, because aontu resolves an empty list to
 			// nothing and the key would arrive absent.
@@ -183,8 +199,22 @@ func compositeId(mentMap map[string]any, gent map[string]any, def map[string]any
 		}
 	}
 
+	// `gid` IS FORWARDED HERE TOO. A guide that states `from` while letting
+	// the parts themselves be inferred is the documented case for correcting
+	// one mapping without restating the rest; passing nil discarded every
+	// stated mapping and diverged from the TS port, which captures it.
+	// A guide that sets only `sep` still gets it: restating every inferred
+	// part merely to change the separator is exactly what the optional key
+	// exists to avoid.
+	sep := IdSep
+	if gid != nil {
+		if s, ok := gid["sep"].(string); ok && "" != s {
+			sep = s
+		}
+	}
+
 	parts := identityParams(mentMap)
-	return parts, IdSep, identityFromWith(mentMap, parts, def, nil)
+	return parts, sep, identityFromWith(mentMap, parts, def, gid)
 }
 
 // identityFromWith resolves where each composite part's value lives in a
@@ -219,6 +249,24 @@ func identityFromWith(
 
 	if 0 == len(out) {
 		return nil
+	}
+	return out
+}
+
+// pointSegmentMaps reads a point's path segments, accepting both shapes the
+// pipeline produces: []map[string]any from OperationTransform, and []any from
+// the guide-derived descriptors.
+func pointSegmentMaps(point map[string]any) []map[string]any {
+	if typed, ok := point["segments"].([]map[string]any); ok {
+		return typed
+	}
+
+	loose, _ := point["segments"].([]any)
+	out := make([]map[string]any, 0, len(loose))
+	for _, seg := range loose {
+		if segMap, _ := seg.(map[string]any); segMap != nil {
+			out = append(out, segMap)
+		}
 	}
 	return out
 }
@@ -464,16 +512,14 @@ func identityParams(mentMap map[string]any) []string {
 		// same variables, so it serves as a fallback.
 		var point map[string]any
 		for _, ptMap := range points {
-			segs, _ := ptMap["segments"].([]any)
+			segs := pointSegmentMaps(ptMap)
 			if 0 == len(segs) {
 				continue
 			}
-			last, _ := segs[len(segs)-1].(map[string]any)
-			if last != nil {
-				if v, has := last["var"]; has && v != nil {
-					point = ptMap
-					break
-				}
+			last := segs[len(segs)-1]
+			if v, has := last["var"]; has && v != nil {
+				point = ptMap
+				break
 			}
 		}
 		if point == nil && 0 < len(points) {
@@ -486,13 +532,14 @@ func identityParams(mentMap map[string]any) []string {
 		// Walk back from the end, collecting variables until a literal stops
 		// the run. That literal is the sub-collection boundary; anything
 		// before it scopes this record rather than naming it.
-		allSegs, _ := point["segments"].([]any)
-		segs := make([]map[string]any, 0, len(allSegs))
-		for _, seg := range allSegs {
-			if segMap, _ := seg.(map[string]any); segMap != nil {
-				segs = append(segs, segMap)
-			}
-		}
+		//
+		// SEGMENTS ARE []map[string]any HERE, which is what
+		// OperationTransform stores (transform_operation.go). Asserting
+		// []any instead yielded nil for every route, so the walk found no
+		// parts and Go inferred no composite identity at all — the port
+		// compiled and did nothing. Both shapes are accepted because the
+		// guide-derived path descriptors are []any.
+		segs := pointSegmentMaps(point)
 
 		run := []string{}
 		for i := len(segs) - 1; 0 <= i; i-- {

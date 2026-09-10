@@ -39,9 +39,32 @@ const fieldTransform = async function (ctx) {
         // Downstream (test generators, fixture builders) gate id-specific code on
         // this presence so that public read-only APIs without ids don't get
         // bogus id assertions.
+        // COMPOSITE FIRST, because a compound key need not come with an `id`.
+        //
+        // An entity addressed by `{owner}/{repo}` whose response carries only
+        // `owner` and `name` has no field literally named `id`, and its adjacent
+        // placeholders are left unrenamed so `addressedById` is false too.
+        // Neither branch below then ran, so the entity got NO id descriptor and
+        // even an explicit `guide.entity.<name>.id.parts` was silently ignored —
+        // while the Go port, which initialises a descriptor unconditionally,
+        // emitted the composite. The ports disagreed on exactly the shape this
+        // feature exists for.
+        const gent = guide?.entity?.[ment.name];
+        const composite = compositeId(ment, gent, def);
         const idField = fields.find((f) => 'id' === f.name);
-        if (idField) {
-            ment.id = { name: 'id', field: 'id', ...compositeId(ment, guide?.entity?.[ment.name], def) };
+        if (null != composite.parts && null == idField) {
+            // The FIELD as well as the descriptor, for the reason the branch below
+            // documents: a model that declares the descriptor without the field
+            // makes the generated type disagree with the generated test.
+            fields.push({
+                name: 'id',
+                type: '`$STRING`',
+                req: false,
+            });
+            fields.sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+        }
+        if (idField || null != composite.parts) {
+            ment.id = { name: 'id', field: 'id', ...composite };
         }
         else if (addressedById(ment)) {
             // The FIELD as well as the descriptor. An entity addressed by id has an
@@ -76,7 +99,7 @@ const fieldTransform = async function (ctx) {
             // with neither a field nor an id param — the read-only public APIs the
             // rule above was written for — still get no descriptor, so they still
             // get no id assertions.
-            ment.id = { name: 'id', field: 'id', ...compositeId(ment, guide?.entity?.[ment.name], def) };
+            ment.id = { name: 'id', field: 'id', ...composite };
         }
         msg += ment.name + ' ';
     });
@@ -279,6 +302,17 @@ function resolveRef(schema, def) {
     return node;
 }
 // The 2xx response schema of a point, as the spec states it.
+//
+// BOTH SPEC VERSIONS, and the envelope. An OpenAPI 3 response carries the
+// schema under `content['application/json']`; a SWAGGER 2 response carries it
+// directly as `schema`. Reading only the first meant every Swagger 2 spec —
+// cloudsmith, petstore, gitlab and dingconnect in the validation corpus —
+// resolved no schema at all, so a nested composite part silently lost its
+// `from` mapping and the id could not be rebuilt.
+//
+// A response that WRAPS the record in a property (or an array of them) is
+// unwrapped the same way field extraction unwraps it, so the properties this
+// searches are the record's own rather than the envelope's.
 function findResponseSchema(mpoint, def) {
     const path = (def?.paths || {})[mpoint?.orig];
     const method = String(mpoint?.method || '').toLowerCase();
@@ -287,18 +321,39 @@ function findResponseSchema(mpoint, def) {
         if (!/^2/.test(code)) {
             continue;
         }
-        const content = responses[code]?.content || {};
+        const resdef = responses[code] || {};
+        // OpenAPI 3 content map first, then Swagger 2's direct `schema`.
+        const candidates = [];
+        const content = resdef.content || {};
         for (const ctype of Object.keys(content)) {
-            const resolved = resolveRef(content[ctype]?.schema, def);
-            if (null != resolved?.properties) {
-                return resolved;
-            }
-            // A collection response: the record shape is the item schema.
-            const items = resolveRef(resolved?.items, def);
-            if (null != items?.properties) {
-                return items;
+            candidates.push(content[ctype]?.schema);
+        }
+        candidates.push(resdef.schema);
+        for (const candidate of candidates) {
+            const record = unwrapRecordSchema(resolveRef(candidate, def), def);
+            if (null != record?.properties) {
+                return record;
             }
         }
+    }
+    return null;
+}
+// The schema of ONE record, given whatever a response wraps it in: the schema
+// itself, an array's `items`, or a single object property holding either.
+function unwrapRecordSchema(schema, def) {
+    const node = resolveRef(schema, def);
+    if (null == node) {
+        return null;
+    }
+    if (null != node.properties) {
+        // An envelope is an object whose properties are the wrapper, not the
+        // record. Prefer the node itself; a caller that finds no part in it can
+        // still look one level in, which is what the loop below does.
+        return node;
+    }
+    const items = resolveRef(node.items, def);
+    if (null != items?.properties) {
+        return items;
     }
     return null;
 }
@@ -345,8 +400,11 @@ function compositeId(ment, gent, def) {
             .map((p) => String(p));
         return 1 < given.length ? withFrom(given, sep) : {};
     }
+    // A guide that sets only `sep` still gets it. Restating every inferred
+    // part merely to change the separator is what the optional key exists to
+    // avoid, and `sep` was resolved above already.
     const parts = identityParams(ment);
-    return 1 < parts.length ? withFrom(parts, ID_SEP) : {};
+    return 1 < parts.length ? withFrom(parts, sep) : {};
 }
 // True when any of the entity's own operation points declares an `id`
 // parameter — i.e. the API addresses this entity by id, whether or not its
