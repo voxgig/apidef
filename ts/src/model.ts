@@ -232,6 +232,29 @@ type ModelEntity = {
   id?: {
     name: string
     field: string
+    // COMPOSITE IDENTITY. Present only when the API addresses one record by
+    // MORE THAN ONE path parameter, so no single parameter is the id.
+    // github's repo is the case: GET /repos/{owner}/{repo} needs both, and
+    // neither alone names a repository.
+    //
+    // `parts` are those parameters in path order; `sep` joins them into the
+    // one `id` an SDK entity carries. Absent means the ordinary single-key
+    // entity, so downstream can branch on presence alone.
+    parts?: string[]
+    sep?: string
+    // WHERE EACH PART'S VALUE LIVES IN A RESPONSE, as a dotted path into the
+    // record. A path parameter's name is not generally a response field's
+    // name: github's repo is addressed by {owner}/{repo}, and the response
+    // carries `owner` as an OBJECT (the value is `owner.login`) and the
+    // repository name as `name`, never `repo`. Without this an SDK can
+    // address a record it was given the id of, but cannot work out the id of
+    // a record the API just handed back — so a created or listed record has
+    // no id at all.
+    //
+    // Only the parts that could be resolved appear. A part that is absent is
+    // absent on purpose: nothing in the spec relates it to a response field,
+    // and guessing would put a wrong id on a real record.
+    from?: Record<string, string>
   }
   relations: ModelEntityRelations
 }

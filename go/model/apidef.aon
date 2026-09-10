@@ -84,6 +84,34 @@ main: kit: entity: &: {
   id?: {
     field: string
     name: string
+
+    # COMPOSITE IDENTITY — set only when the API addresses one record by
+    # more than one path parameter, so no single parameter is the id.
+    # github's repo is the case: GET /repos/{owner}/{repo} needs both, and
+    # neither alone names a repository. The same shape covers three or more.
+    #
+    # `parts` lists those parameters in path order; `sep` joins them into
+    # the single `id` an SDK entity carries, so the unitary-id design holds
+    # for these entities too. A slash is safe as the separator because it
+    # cannot occur inside one path segment — a literal slash in a value
+    # arrives percent-encoded — so the join is never ambiguous and the split
+    # never over-splits.
+    #
+    # Absent for an ordinary single-key entity, so downstream branches on
+    # presence rather than on a parts length of one.
+    parts?: [ string ]
+    sep?: string
+
+    # Where each part's value lives in a RESPONSE, as a dotted path into the
+    # record: `{ owner: 'owner.login', repo: 'name' }` for github's repo,
+    # whose response carries the owner as an object and the repository name
+    # as `name`. A path parameter's name is not generally a response field's
+    # name, and without this an SDK can address a record it was given the id
+    # of but cannot work out the id of one the API just returned.
+    #
+    # Only resolved parts appear; an absent part means nothing in the spec
+    # relates it to a response field.
+    from?: {}
   }
 
   fields: [ &: {
