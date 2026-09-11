@@ -232,6 +232,16 @@ type ModelEntity = {
   id?: {
     name: string
     field: string
+    // COMPOSITE IDENTITY. Present only when the API addresses one record by
+    // MORE THAN ONE path parameter, so no single parameter is the id.
+    // github's repo is the case: GET /repos/{owner}/{repo} needs both, and
+    // neither alone names a repository.
+    //
+    // `parts` are those parameters in path order; `sep` joins them into the
+    // one `id` an SDK entity carries. Absent means the ordinary single-key
+    // entity, so downstream can branch on presence alone.
+    parts?: string[]
+    sep?: string
   }
   relations: ModelEntityRelations
 }

@@ -253,6 +253,21 @@ type GuideMetrics = {
 
 
 type GuideEntity = {
+  // COMPOSITE IDENTITY CORRECTION, the guide's say over how an entity is
+  // addressed. apidef infers a compound key from adjacent path parameters,
+  // which is right far more often than not and cannot always be right:
+  // `/…/artifacts/{artifact_id}/{archive_format}` reads as composite and is
+  // not. Stating it here is the documented correction surface (ADR-002).
+  //
+  // `parts` names the compound key outright; `composite: false` says these
+  // adjacent parameters are not one (the record still has a key); `sep`
+  // changes the separator without restating the parts.
+  id?: {
+    parts?: string[]
+    sep?: string
+    composite?: boolean
+  }
+
   name: string
   orig: string
   // `false` drops the entity downstream (transform/entity.ts). Emitted by

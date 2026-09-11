@@ -96,6 +96,26 @@ function migrateLegacyGuide(fs: any, folder: string, guideprefix: string): boole
 }
 
 
+// The first unresolved merge-conflict marker in a source, or null.
+//
+// Anchored at line start and requiring exactly the conventional seven
+// characters: a guide legitimately contains `>>>>>>> GENERATED` inside the
+// jostraca provenance comments it writes about itself, and `====` shows up in
+// prose. Only a real marker at column zero counts.
+function findConflict(src: string): { line: number, text: string } | null {
+  const lines = String(src || '').split('\n')
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    if (/^(<{7}|>{7})(?!<|>)/.test(line) || /^={7}(?!=)\s*$/.test(line)) {
+      return { line: i + 1, text: line.slice(0, 80) }
+    }
+  }
+
+  return null
+}
+
+
 async function buildGuide(ctx: ApiDefContext): Promise<any> {
   const log = ctx.log
   const errs: any[] = []
@@ -131,6 +151,60 @@ async function buildGuide(ctx: ApiDefContext): Promise<any> {
   }
   catch (err: any) {
     errs.push(err)
+  }
+
+  handleErrors(ctx, errs)
+
+  // A MERGE CONFLICT IN A GUIDE IS SAID OUT LOUD, HERE.
+  //
+  // The guide is 3-way merged: apidef regenerates the base guide from the
+  // spec and merges it over what the project already had. Change the spec
+  // enough — swap a 5-path definition for the API's whole 722-path one — and
+  // an edit the project made can no longer be reconciled, so the merge
+  // writes ordinary `<<<<<<<` / `=======` / `>>>>>>>` markers into the file.
+  //
+  // Nothing then read the file until aontu did, and aontu reports what it
+  // sees: `unexpected character(s): <<<<<<<`, thousands of lines into a
+  // generated file, with no hint that this is a merge conflict or which edit
+  // caused it. That cost a long detour — the failure was read as apidef
+  // hanging, and the real cause (one conflicted rename) sat two lines away
+  // from a marker nobody had looked for.
+  //
+  // The guide is a file apidef itself writes, so apidef is the right place to
+  // recognise its own merge output before handing it on.
+  // BOTH FILES, and the base guide is the one that usually has it: `guide.aon`
+  // is two @-includes a user rarely edits, while `base-guide.aon` is what
+  // apidef regenerates and merges. Checking only the top-level file found
+  // nothing and left aontu to report the marker.
+  const basepath = Path.join(folder, 'guide', guideprefix + 'base-guide.aon')
+  for (const checkpath of [guidepath, basepath]) {
+    let checksrc = ''
+    try {
+      checksrc = checkpath === guidepath ? src : String(ctx.fs.readFileSync(checkpath, 'utf8'))
+    }
+    catch (_err: any) {
+      continue
+    }
+
+    const conflict = findConflict(checksrc)
+    if (null != conflict) {
+      errs.push(new Error(
+        `@voxgig/apidef: guide: unresolved merge conflict at ${
+          relativizePath(checkpath)}:${conflict.line}\n` +
+        `  ${conflict.text}\n` +
+        `A guide is merged, not overwritten, so an edit the regenerated base\n` +
+        `guide contradicts is left for a human to settle. Resolve the marked\n` +
+        `block` +
+        // DELETING ONLY HELPS FOR THE BASE GUIDE. Regeneration rewrites that
+        // file, while the top-level entry guide is the user's own and is read
+        // back unchanged — so advising its deletion would send a reader in a
+        // circle, failing this same check on the next build.
+        (checkpath === basepath ?
+          `, or delete ${guideprefix}base-guide.aon to regenerate it from the\n` +
+          `specification and re-apply the edit afterwards.` :
+          ` in ${relativizePath(checkpath)}.`)))
+      break
+    }
   }
 
   handleErrors(ctx, errs)

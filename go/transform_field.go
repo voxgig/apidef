@@ -3,6 +3,7 @@
 package apidef
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 )
@@ -105,10 +106,388 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 		})
 
 		mentMap["fields"] = fields
+
+		// COMPOSITE IDENTITY. Mirrors src/transform/field.ts compositeId.
+		//
+		// Set here rather than in EntityTransform (where the rest of the id
+		// descriptor is built) because this needs the entity's POINTS, and
+		// those do not exist until OperationTransform has run. TS reaches the
+		// same place for the same reason.
+		if idMap, ok := mentMap["id"].(map[string]any); ok && idMap != nil {
+			var gent map[string]any
+			if guide, ok := ctx.Guide["entity"].(map[string]any); ok && guide != nil {
+				gent, _ = guide[entname].(map[string]any)
+			}
+			if parts, sep := compositeId(mentMap, gent); 1 < len(parts) {
+				partsAny := make([]any, len(parts))
+				for i, p := range parts {
+					partsAny[i] = p
+				}
+				idMap["parts"] = partsAny
+				idMap["sep"] = sep
+
+				// THE FIELD THE DESCRIPTOR POINTS AT, mirroring the TS port.
+				//
+				// A composite entity need not expose an `id` of its own —
+				// github's repo response carries `owner` and `name`, not
+				// `id`. Attaching the metadata while leaving `fields` without
+				// the field made the descriptor name something that does not
+				// exist, so Go-generated types diverged from TS for the
+				// primary {owner}/{repo} case.
+				//
+				// And where an `id` DOES exist it is typically the API's own
+				// numeric id, while the composite identity is a joined
+				// string, so the declaration is corrected — along with the
+				// spec facts that described the old type, which would
+				// otherwise contradict it.
+				fields, _ := mentMap["fields"].([]any)
+				var idField map[string]any
+				for _, fv := range fields {
+					f, _ := fv.(map[string]any)
+					if f == nil {
+						continue
+					}
+					if n, _ := f["name"].(string); "id" == n {
+						idField = f
+						break
+					}
+				}
+
+				if idField == nil {
+					fields = append(fields, map[string]any{
+						"name": "id",
+						"type": "`$STRING`",
+						"req":  false,
+					})
+					sort.Slice(fields, func(i, j int) bool {
+						fi, _ := fields[i].(map[string]any)
+						fj, _ := fields[j].(map[string]any)
+						ni, _ := fi["name"].(string)
+						nj, _ := fj["name"].(string)
+						return ni < nj
+					})
+					mentMap["fields"] = fields
+				} else if !strings.Contains(
+					strings.ToUpper(fmt.Sprint(idField["type"])), "STRING") {
+					// THE API'S OWN id MOVES ASIDE, it is not rewritten —
+					// mirroring the canonical TS branch. `id` must hold the
+					// joined string, and the spec's numeric property must
+					// survive with its type, format and per-op metadata, so
+					// it is copied to `<api>_id` and the alias map records
+					// where it went. Overwriting in place (what this did)
+					// lost an API field outright and diverged from TS.
+					apiname := "api"
+					if model, ok := ctx.Model["name"].(string); ok && "" != model {
+						apiname = model
+					}
+					keep := apiname + "_id"
+
+					if !hasField(fields, keep) {
+						// A DEEP COPY: the deletions below run on the
+						// original, and a shallow one shares the `op` map, so
+						// the preserved field would lose the very metadata it
+						// exists to keep.
+						moved := deepCopyMap(idField)
+						moved["name"] = keep
+						fields = append(fields, moved)
+
+						alias, _ := mentMap["alias"].(map[string]any)
+						if alias == nil {
+							alias = map[string]any{}
+							mentMap["alias"] = alias
+						}
+						aliasField, _ := alias["field"].(map[string]any)
+						if aliasField == nil {
+							aliasField = map[string]any{}
+							alias["field"] = aliasField
+						}
+						aliasField[keep] = "id"
+
+						sort.Slice(fields, func(i, j int) bool {
+							fi, _ := fields[i].(map[string]any)
+							fj, _ := fields[j].(map[string]any)
+							ni, _ := fi["name"].(string)
+							nj, _ := fj["name"].(string)
+							return ni < nj
+						})
+						mentMap["fields"] = fields
+					}
+
+					idField["type"] = "`$STRING`"
+					delete(idField, "format")
+					if opOverrides, ok := idField["op"].(map[string]any); ok {
+						for _, on := range sortedKeys(opOverrides) {
+							if ov, ok := opOverrides[on].(map[string]any); ok {
+								delete(ov, "type")
+							}
+						}
+					}
+				}
+			}
+		}
+
 		msg += entname + " "
 	}
 
 	return &TransformResult{OK: true, Msg: msg}, nil
+}
+
+// hasField reports whether a field of that name is already present.
+func hasField(fields []any, name string) bool {
+	for _, fv := range fields {
+		if f, _ := fv.(map[string]any); f != nil {
+			if n, _ := f["name"].(string); n == name {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// deepCopyMap copies a field map and its nested maps, so a later deletion on
+// the original cannot reach the copy.
+func deepCopyMap(in map[string]any) map[string]any {
+	out := map[string]any{}
+	for k, v := range in {
+		if nested, ok := v.(map[string]any); ok {
+			out[k] = deepCopyMap(nested)
+		} else {
+			out[k] = v
+		}
+	}
+	return out
+}
+
+// IdSep joins a composite id into one string. A forward slash cannot occur
+// inside a single path segment — a literal slash in a value arrives
+// percent-encoded — so the join is never ambiguous and the split never
+// over-splits. Mirrors ID_SEP in src/transform/field.ts.
+const IdSep = "/"
+
+// IdOps are the ops that address ONE record, most authoritative first. Only a
+// tie-break: identityParams compares candidates from all of them.
+var IdOps = []string{"load", "update", "patch", "remove"}
+
+// compositeId returns the composite parts and separator for an entity, or an
+// empty slice for the ordinary single-key case. An explicit `id: parts` in
+// guide.aon wins over the inference, and an empty list turns it off —
+// adjacency cannot tell a compound key from a trailing modifier such as
+// github's `{artifact_id}/{archive_format}`. Mirrors src/transform/field.ts
+// compositeId.
+// WHAT `gent` CAN ACTUALLY CARRY IN THIS PORT. ctx.Guide is built from the
+// heuristic base guide alone: BuildGuide calls checkGuideOverlay, which
+// REFUSES the build outright when a project overlay is present, because
+// there is no Go aontu to apply it and silently emitting a model that
+// disagrees with the TS one is the worse failure. So an `id:` block stated in
+// guide.aon does not reach here — the build stops before it could.
+//
+// The override is read anyway, and deliberately: it keeps the two ports'
+// logic identical, so the day Go can apply an overlay this needs no change,
+// and a caller that constructs ctx.Guide itself (as the tests do) gets the
+// documented behaviour today.
+func compositeId(mentMap map[string]any, gent map[string]any) ([]string, string) {
+	var gid map[string]any
+	if gent != nil {
+		gid, _ = gent["id"].(map[string]any)
+	}
+
+	sep := IdSep
+	if gid != nil {
+		if s, ok := gid["sep"].(string); ok && "" != s {
+			sep = s
+		}
+	}
+
+	if gid != nil {
+		// `composite: false` turns the inference off. A boolean rather than an
+		// empty `parts`, because aontu resolves an empty list to nothing.
+		if c, ok := gid["composite"].(bool); ok && !c {
+			return nil, sep
+		}
+		if raw, has := gid["parts"]; has && raw != nil {
+			given := []string{}
+			if list, ok := raw.([]any); ok {
+				for _, p := range list {
+					if ps, ok := p.(string); ok && "" != ps {
+						given = append(given, ps)
+					}
+				}
+			}
+			if 1 < len(given) {
+				return given, sep
+			}
+			return nil, sep
+		}
+	}
+
+	return identityParams(mentMap), sep
+}
+
+// pointSegmentMaps reads a point's path segments, accepting both shapes the
+// pipeline produces: []map[string]any from OperationTransform, and []any from
+// the guide-derived descriptors.
+func pointSegmentMaps(point map[string]any) []map[string]any {
+	if typed, ok := point["segments"].([]map[string]any); ok {
+		return typed
+	}
+
+	loose, _ := point["segments"].([]any)
+	out := make([]map[string]any, 0, len(loose))
+	for _, seg := range loose {
+		if segMap, _ := seg.(map[string]any); segMap != nil {
+			out = append(out, segMap)
+		}
+	}
+	return out
+}
+
+// scalarFieldType reports whether a model field's canon type can be a path
+// segment. Mirrors scalarField in src/transform/field.ts.
+func scalarFieldType(f map[string]any) bool {
+	t := strings.ToUpper(fmt.Sprint(f["type"]))
+	return !strings.Contains(t, "OBJECT") && !strings.Contains(t, "ARRAY") &&
+		!strings.Contains(t, "MAP") && !strings.Contains(t, "LIST")
+}
+
+// identityParams returns the ordered path parameters that address ONE record
+// of this entity, read from the op that names a single record and never from
+// `list` (whose path params are the entity's parents, not its identity).
+// Mirrors src/transform/field.ts identityParams.
+func identityParams(mentMap map[string]any) []string {
+	opMap, _ := mentMap["op"].(map[string]any)
+	if opMap == nil {
+		return nil
+	}
+
+	type cand struct {
+		run   []string
+		scope int
+		// own: the run ends in the record's own key. This transform RENAMES
+		// that parameter to `id`, so such a run is the port's own statement
+		// of what identifies the record, and the composite inference must
+		// not contradict it. Narrow on purpose: `id` or an unrenamed
+		// `<entity>_id`, never any `*_id`.
+		own   bool
+		order int
+	}
+
+	entname, _ := mentMap["name"].(string)
+
+	// EVERY ID-BEARING OP AT ONCE, not the first one that offers a candidate.
+	//
+	// These ops all address a single record, so all describe the same
+	// identity — but they do not all carry the same routes. gitlab's
+	// `project` has /api/v4/projects/{id} under `remove` alone, while its
+	// `load` carries only sub-resources like
+	// /api/v4/projects/{id}/uploads/{secret}/{filename}. Stopping at the
+	// first op with any candidate therefore made a PROJECT identified by
+	// `secret/filename`. The op order is now only a tie-break.
+	var cands []cand
+
+	for order, opname := range IdOps {
+		mop, ok := opMap[opname].(map[string]any)
+		if !ok || mop == nil {
+			continue
+		}
+
+		allPoints, _ := mop["points"].([]any)
+
+		for _, pt := range allPoints {
+			ptMap, _ := pt.(map[string]any)
+			if ptMap == nil {
+				continue
+			}
+			// Action points are verbs dispatched by `$action`, not addresses.
+			if sel, ok := ptMap["select"].(map[string]any); ok && sel != nil {
+				if _, has := sel["$action"]; has {
+					continue
+				}
+			}
+
+			run := trailingVars(ptMap)
+			if 0 == len(run) {
+				continue
+			}
+
+			segs := pointSegmentMaps(ptMap)
+			last := run[len(run)-1]
+
+			cands = append(cands, cand{
+				run: run,
+				// Segments BEFORE the run: how much parent scope the route
+				// needs.
+				scope: len(segs) - len(run),
+				own:   "id" == last || entname+"_id" == last,
+				order: order,
+			})
+		}
+	}
+
+	// WHICH ROUTE IS THE RECORD'S OWN ADDRESS. Mirrors the canonical TS
+	// comment in src/transform/field.ts, which records the three rules that
+	// were measured against the validation corpus and why each is wrong.
+	// What separates them is PARENT SCOPE: the record's own route is the
+	// least-qualified one that names it, and among equally-qualified routes
+	// the one carrying the fullest key.
+	var best *cand
+	for i := range cands {
+		c := cands[i]
+		if best == nil {
+			best = &cands[i]
+			continue
+		}
+		if c.scope != best.scope {
+			if c.scope < best.scope {
+				best = &cands[i]
+			}
+			continue
+		}
+		if c.own != best.own {
+			if c.own {
+				best = &cands[i]
+			}
+			continue
+		}
+		if len(c.run) != len(best.run) {
+			if len(best.run) < len(c.run) {
+				best = &cands[i]
+			}
+			continue
+		}
+		if c.order < best.order {
+			best = &cands[i]
+		}
+	}
+
+	if best == nil {
+		return nil
+	}
+
+	return best.run
+}
+
+// trailingVars walks back from a point's end, collecting variables until a
+// literal stops the run. That literal is the sub-collection boundary;
+// anything before it scopes this record rather than naming it.
+//
+// SEGMENTS ARE []map[string]any HERE, which is what OperationTransform
+// stores (transform_operation.go); pointSegmentMaps accepts the []any shape
+// the guide-derived descriptors use too. Asserting one alone yielded nil for
+// every route, so the walk found no parts and Go inferred no composite
+// identity at all — silently, with every existing test still passing.
+func trailingVars(ptMap map[string]any) []string {
+	segs := pointSegmentMaps(ptMap)
+	var run []string
+
+	for i := len(segs) - 1; 0 <= i; i-- {
+		v, has := segs[i]["var"]
+		if !has || v == nil {
+			break
+		}
+		run = append([]string{fmt.Sprint(v)}, run...)
+	}
+
+	return run
 }
 
 func resolveOpFields(mtarget map[string]any, def map[string]any, opname string) []map[string]any {

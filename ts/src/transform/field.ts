@@ -32,7 +32,7 @@ import type {
 const fieldTransform: Transform = async function(
   ctx: any,
 ): Promise<TransformResult> {
-  const { apimodel, def } = ctx
+  const { apimodel, def, guide, model } = ctx
   const kit: KitModel = apimodel.main[KIT]
 
   let msg = 'field '
@@ -72,9 +72,101 @@ const fieldTransform: Transform = async function(
     // Downstream (test generators, fixture builders) gate id-specific code on
     // this presence so that public read-only APIs without ids don't get
     // bogus id assertions.
+    // COMPOSITE FIRST, because a compound key need not come with an `id`.
+    //
+    // An entity addressed by `{owner}/{repo}` whose response carries only
+    // `owner` and `name` has no field literally named `id`, and its adjacent
+    // placeholders are left unrenamed so `addressedById` is false too.
+    // Neither branch below then ran, so the entity got NO id descriptor and
+    // even an explicit `guide.entity.<name>.id.parts` was silently ignored —
+    // while the Go port, which initialises a descriptor unconditionally,
+    // emitted the composite. The ports disagreed on exactly the shape this
+    // feature exists for.
+    const gent = guide?.entity?.[ment.name]
+    const composite = compositeId(ment, gent)
+
     const idField = fields.find((f: ModelField) => 'id' === f.name)
-    if (idField) {
-      ment.id = { name: 'id', field: 'id' }
+
+    // A COMPOSITE ID IS A STRING, whatever the API's own `id` field is —
+    // AND THE API'S OWN id IS KEPT.
+    //
+    // github's repo declares `id` as an integer, its global database id,
+    // while the composite identity is `owner/repo`. Two facts have to
+    // survive: `id` must hold a string, because that is what the joined
+    // value is and what every generated type has to store; and the spec's
+    // numeric property must not be silently reinterpreted, because a
+    // consumer that wants the database id is entitled to it with its own
+    // type and format intact.
+    //
+    // So the API's field MOVES to `<api>_id` rather than being rewritten in
+    // place, carrying its type, format and per-op overrides with it, and the
+    // entity's `alias.field` map records where it went. Retyping in place
+    // (the first attempt) claimed the server's numeric id was a string;
+    // leaving it alone made `id.field` name a declaration the runtime value
+    // cannot satisfy. Moving it is the only option that lies about neither.
+    if (null != composite.parts && null != idField && !scalarStringField(idField)) {
+      const idf: any = idField
+      const apiname = String((model as any)?.name || 'api')
+      const keep = apiname + '_id'
+
+      if (!fields.some((f: ModelField) => f.name === keep)) {
+        // A DEEP COPY, because the move is followed by deletions on the
+        // original. A spread shares the `op` object, so clearing the stale
+        // per-op `type` off `id` cleared it off the preserved field too —
+        // the preservation preserved nothing for exactly the key it was
+        // added to keep.
+        fields.push(JSON.parse(JSON.stringify({ ...idf, name: keep })) as any)
+
+        const alias = ((ment as any).alias = (ment as any).alias || {})
+        alias.field = alias.field || {}
+        alias.field[keep] = 'id'
+      }
+
+      idf.type = '`$STRING`'
+      // The facts that described the moved type go with it: `format: int64`
+      // beside a string, or a per-op `type` override still saying integer,
+      // is a model contradicting itself — and the op override is what a
+      // generator reads for that op.
+      delete idf.format
+      for (const opname of Object.keys(idf.op || {})) {
+        delete idf.op[opname].type
+      }
+
+      fields.sort((a: ModelField, b: ModelField) =>
+        a.name < b.name ? -1 : a.name > b.name ? 1 : 0)
+    }
+
+    if (null != composite.parts && null == idField) {
+      // The FIELD as well as the descriptor, for the reason the branch below
+      // documents: a model that declares the descriptor without the field
+      // makes the generated type disagree with the generated test.
+      fields.push({
+        name: 'id',
+        type: '`$STRING`',
+        req: false,
+      } as any)
+      fields.sort((a: ModelField, b: ModelField) =>
+        a.name < b.name ? -1 : a.name > b.name ? 1 : 0)
+    }
+
+    const singleKey = (composite as any).single
+    delete (composite as any).single
+
+    if (null == idField && null != singleKey && null == composite.parts) {
+      // The guide disabled composite; the terminal parameter is the key, and
+      // the entity needs the field to carry it for the same reason the
+      // composite branch above does.
+      fields.push({
+        name: 'id',
+        type: '`$STRING`',
+        req: false,
+      } as any)
+      fields.sort((a: ModelField, b: ModelField) =>
+        a.name < b.name ? -1 : a.name > b.name ? 1 : 0)
+    }
+
+    if (idField || null != composite.parts || null != singleKey) {
+      ment.id = { name: 'id', field: 'id', ...composite }
     }
     else if (addressedById(ment)) {
       // The FIELD as well as the descriptor. An entity addressed by id has an
@@ -111,7 +203,7 @@ const fieldTransform: Transform = async function(
       // with neither a field nor an id param — the read-only public APIs the
       // rule above was written for — still get no descriptor, so they still
       // get no id assertions.
-      ment.id = { name: 'id', field: 'id' }
+      ment.id = { name: 'id', field: 'id', ...composite }
     }
 
     msg += ment.name + ' '
@@ -120,6 +212,238 @@ const fieldTransform: Transform = async function(
   return { ok: true, msg }
 }
 
+
+
+// The separator that joins a composite id into one string.
+//
+// A forward slash cannot occur inside a single path segment — a raw `/`
+// would end the segment, and a value that legitimately contains one arrives
+// percent-encoded as `%2F` — so joining on it can never be ambiguous, and
+// splitting on it can never over-split. That is what makes the composite id
+// safe to carry as a single opaque string, which is the property the SDK and
+// Seneca entities are built on.
+const ID_SEP = '/'
+
+// The ops that address ONE record, most authoritative first. Only a
+// tie-break: identityParams compares candidates from all of them.
+const ID_OPS = ['load', 'update', 'patch', 'remove']
+
+
+// The parameters that TOGETHER name one record: the trailing run of
+// ADJACENT variable segments on the addressing route.
+//
+// ADJACENCY IS THE WHOLE TEST, and it is what separates a compound key from
+// ordinary parent/child nesting:
+//
+//   /repos/{owner}/{repo}                     -> owner, repo   COMPOSITE
+//   /api/planet/{planet_id}/moon/{moon_id}    -> moon_id       single
+//   /repos/{owner}/{repo}/pulls/{pull_number} -> pull_number   single
+//
+// A literal segment between two variables names a SUB-COLLECTION, so the
+// earlier variable scopes the later one — `planet_id` says which planet's
+// moons, and `moon_id` alone identifies the moon. Two variables with nothing
+// between them address no sub-collection: neither value names anything on
+// its own, and only the pair identifies a repository.
+//
+// Taking every variable on the path instead was tried first and is wrong on
+// most real specs — it made `moon` (planet_id + moon_id), petstore's `order`,
+// `pet` and `user`, and taxonomy's `domain` and `kingdom` all falsely
+// composite, which the apidef-validate goldens caught immediately. Nested
+// resources are the common shape; compound keys are the exception, and
+// adjacency is the thing that actually distinguishes them.
+//
+// Read from the op that names a single record, never from `list`: a
+// collection route's path params are the entity's parents. A point ending in
+// a literal is a verb ON the record (`.../{number}/merge`) and carries the
+// same variables, so it is a fallback rather than a different answer.
+// Walk back from a point's end, collecting variables until a literal stops
+// the run. That literal is the sub-collection boundary; anything before it
+// scopes this record rather than naming it.
+function trailingVars(point: any): string[] {
+  const segs = ((point?.segments || []) as any[]).filter((s: any) => null != s)
+  const run: string[] = []
+
+  for (let i = segs.length - 1; 0 <= i; i--) {
+    if (null == segs[i].var) {
+      break
+    }
+    run.unshift(String(segs[i].var))
+  }
+
+  return run
+}
+
+
+function identityParams(ment: ModelEntity): string[] {
+  // EVERY ID-BEARING OP AT ONCE, not the first one that offers a candidate.
+  //
+  // These four ops all address a single record, so all four describe the
+  // same identity — but they do not all carry the same routes. gitlab's
+  // `project` has `/api/v4/projects/{id}` under `remove` alone, while its
+  // `load` carries only sub-resources like
+  // `/api/v4/projects/{id}/uploads/{secret}/{filename}`. Returning on the
+  // first op with any candidate therefore made a PROJECT identified by
+  // `secret/filename`. The op order is now only a tie-break.
+  const cands: any[] = []
+
+  for (let o = 0; o < ID_OPS.length; o++) {
+    const mop = (ment as any).op?.[ID_OPS[o]]
+    if (null == mop) {
+      continue
+    }
+
+    // Action points are verbs dispatched by `$action`, not addresses.
+    for (const pt of (mop.points || [])) {
+      if (null != pt?.select?.['$action']) {
+        continue
+      }
+      const run = trailingVars(pt)
+      if (0 === run.length) {
+        continue
+      }
+      cands.push({
+        run,
+        // Segments BEFORE the run: how much parent scope the route needs.
+        scope: ((pt.segments || []).length - run.length),
+        // DOES THE RUN END IN THE RECORD'S OWN KEY? Then it is the
+        // record's address and nothing further is needed.
+        //
+        // This transform RENAMES that parameter to `id`, so a run ending in
+        // it is this port's own statement of what identifies the record —
+        // and the composite inference must not contradict it.
+        // `/gists/{gist_id}` becomes `/gists/{id}` and is a gist;
+        // `/gists/{gist_id}/{sha}` is a REVISION of one, and won on key
+        // length alone, so a gist came out keyed `gist_id/sha` while the
+        // generated SDK's own load match takes the single parameter. The
+        // same contradiction gave cloudsmith's repo and vulnerability
+        // compound keys their SDKs never address them by.
+        //
+        // Deliberately narrow: exactly `id` or an unrenamed `<entity>_id`,
+        // never any `*_id`. `actor_type/actor_id` IS a compound key, and a
+        // looser test breaks it.
+        own: 'id' === run[run.length - 1] ||
+          (ment as any).name + '_id' === run[run.length - 1],
+        order: o,
+      })
+    }
+  }
+
+  // WHICH ROUTE IS THE RECORD'S OWN ADDRESS.
+  //
+  // An entity gathers every route that reads it, and in a large
+  // specification most of those are sub-resources. Three earlier rules were
+  // measured against the validation corpus, and each is wrong:
+  //
+  //   The FIRST route listed gave github's `repo` the single part
+  //   `subject_digest`, from
+  //   `/repos/{owner}/{repo}/attestations/{subject_digest}` — no compound
+  //   key at all, for the entity this feature exists for. Invisible on a
+  //   small spec, where the first item route IS the record's own.
+  //
+  //   The SHORTEST route ending in a variable took cloudsmith's
+  //   `/vulnerabilities/{owner}/` — a LIST of an owner's vulnerabilities —
+  //   and cut a four-part key down to `owner`, dropping three more
+  //   composites. Ending in a variable does not make a route an address.
+  //
+  //   The LONGEST trailing run took
+  //   `/orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}` and made a TEAM
+  //   identified by `owner/repo`. A deep sub-resource can carry more
+  //   adjacent variables than the record's own route does.
+  //
+  // What separates them is PARENT SCOPE: the record's own route is the
+  // least-qualified one that names it, and among equally-qualified routes
+  // the one carrying the fullest key. `/repos/{owner}/{repo}` is qualified
+  // by one segment and the attestations route by four; `/teams/{team_id}`
+  // by one and the org-team-repo route by five; cloudsmith's vulnerability
+  // routes are all qualified by one, so the fullest of them wins.
+  const best = cands.reduce((b: any, c: any) => {
+    if (null == b) {
+      return c
+    }
+    if (c.scope !== b.scope) {
+      return c.scope < b.scope ? c : b
+    }
+    if (c.own !== b.own) {
+      return c.own ? c : b
+    }
+    if (c.run.length !== b.run.length) {
+      return b.run.length < c.run.length ? c : b
+    }
+    return c.order < b.order ? c : b
+  }, null)
+
+  return null == best ? [] : best.run
+}
+
+// Is this model field declared as a string? A composite id is the parts
+// joined, so the field that holds it has to be one.
+function scalarStringField(f: any): boolean {
+  return String(f?.type || '').toUpperCase().includes('STRING')
+}
+
+
+// WHICH PARAMETER IS THE RECORD'S OWN KEY, among several that looked
+// adjacent. The same shape apidef's id handling recognises everywhere else:
+//
+//   1. one named exactly `id`
+//   2. `<entity>_id` — the entity's own id, however the path spells it
+//   3. any `*_id` — an id by name
+//   4. failing all that, the terminal parameter
+//
+// Position is the LAST resort, not the first.
+function singleKeyOf(ment: ModelEntity, parts: string[]): string | undefined {
+  if (0 === parts.length) {
+    return undefined
+  }
+
+  return parts.find((p: string) => 'id' === p)
+    ?? parts.find((p: string) => p === ment.name + '_id')
+    ?? parts.find((p: string) => p.endsWith('_id'))
+    ?? parts[parts.length - 1]
+}
+
+
+// The composite half of the id descriptor, or `{}` for the ordinary case.
+//
+// Emitted ONLY for a genuinely composite id (two or more addressing
+// parameters). A single-parameter entity already round-trips through one
+// `id` and gains nothing from carrying a one-element `parts`, so its
+// descriptor is left exactly as it was — no existing model output moves.
+function compositeId(
+  ment: ModelEntity,
+  gent?: any,
+): { parts?: string[], sep?: string } {
+  const gid = gent?.id
+  const sep = null != gid?.sep && '' !== String(gid.sep) ? String(gid.sep) : ID_SEP
+
+  // `composite: false` turns the inference off. A boolean rather than an
+  // empty `parts`, because aontu resolves an empty list to nothing and the
+  // key would arrive absent — indistinguishable from never having been set.
+  if (null != gid && false === gid.composite) {
+    // DISABLING COMPOSITE MUST NOT DISABLE THE ID. The correction says these
+    // adjacent parameters are not a compound key; it does not say the record
+    // has no key. Returning a bare `{}` left an entity whose response has no
+    // literal `id` with no descriptor at all — the false positive removed and
+    // nothing identifying the real key.
+    //
+    // WHICH of the adjacent parameters is that key is decided by the same
+    // id-finding rules apidef uses elsewhere, not by position. Taking the
+    // terminal one picked `archive_format` for
+    // `/artifacts/{artifact_id}/{archive_format}` — the modifier, precisely
+    // the false positive the correction exists to undo.
+    return { single: singleKeyOf(ment, identityParams(ment)) } as any
+  }
+
+  if (null != gid && null != gid.parts) {
+    const given = (gid.parts as any[])
+      .filter((p: any) => null != p && '' !== String(p))
+      .map((p: any) => String(p))
+    return 1 < given.length ? { parts: given, sep } : {}
+  }
+
+  const parts = identityParams(ment)
+  return 1 < parts.length ? { parts, sep } : {}
+}
 
 
 // True when any of the entity's own operation points declares an `id`

@@ -88,11 +88,32 @@ func BuildGuide(ctx *ApiDefContext) (map[string]any, error) {
 		return nil, err
 	}
 
+	// THE ID OVERRIDE IS READ EVEN SO, because otherwise it is undocumentable
+	// in this port.
+	//
+	// checkGuideOverlay refuses a customized guide because there is no Go
+	// aontu to apply one, and silently emitting a model that disagrees with
+	// the TS one is the worse failure. But composite identity is INFERRED
+	// here, and adjacency cannot always be right — github's
+	// /…/artifacts/{artifact_id}/{archive_format} reads as composite and is
+	// not. Without this the Go port emits a false compound key that the
+	// documented correction surface cannot reach: stating the override makes
+	// the build refuse, and omitting it leaves the wrong answer.
+	//
+	// So exactly the `entity.<name>.id` blocks are lifted out of the project
+	// guide, by a narrow scan rather than by unifying it. That keeps the
+	// refusal for everything else while making the one correction this port
+	// can act on actually work. Parity is the rule (AGENTS.md); a feature the
+	// TS port can correct and the Go port cannot is not parity.
+	idOverrides := readGuideIdOverrides(guideDir, prefix)
+
 	// Parse guide back into model
 	var guideModel map[string]any
 	if err := json.Unmarshal([]byte(guideToJSON(baseguide)), &guideModel); err != nil {
 		return nil, fmt.Errorf("failed to parse guide model: %w", err)
 	}
+
+	applyGuideIdOverrides(guideModel, idOverrides)
 
 	return map[string]any{"guide": guideModel}, nil
 }
@@ -147,11 +168,30 @@ func checkGuideOverlay(ctx *ApiDefContext, guideDir string, prefix string) error
 // remainder is compared rather than individual lines — matching per-line
 // against a single spelling flagged the multi-line form as two
 // customizations and failed an otherwise fine build.
+// The one overlay form this port can honour: `entity: <name>: id: <key>: …`
+// for parts / sep / composite. Shared by the refusal check and the reader so
+// the two cannot disagree about what is supported.
+var guideIdLineRE = regexp.MustCompile(
+	`^\s*entity:\s*[A-Za-z0-9_]+:\s*id:\s*(parts|sep|composite):`)
+
 func guideOverlayCustomizations(src string) []string {
 	var out []string
 	for _, line := range strings.Split(src, "\n") {
 		t := strings.TrimSpace(line)
 		if t == "" || strings.HasPrefix(t, "#") || strings.HasPrefix(t, "@") {
+			continue
+		}
+		// THE ID CORRECTION IS SUPPORTED, so it is not a refusable
+		// customization.
+		//
+		// This port INFERS composite identity, and adjacency cannot always be
+		// right — github's /…/artifacts/{artifact_id}/{archive_format} reads
+		// as composite and is not. readGuideIdOverrides lifts exactly these
+		// lines and applies them, so refusing them left the correction
+		// unreachable: stating it failed the build, omitting it kept the
+		// false compound key. Everything else is still refused, because
+		// everything else needs aontu.
+		if guideIdLineRE.MatchString(t) {
 			continue
 		}
 		out = append(out, t)
@@ -2463,4 +2503,93 @@ func nilOrStr(v any) string {
 		return ""
 	}
 	return s
+}
+
+// readGuideIdOverrides lifts the `entity.<name>.id` blocks out of a project
+// guide, and nothing else.
+//
+// A NARROW SCAN, NOT A UNIFICATION. There is no Go aontu, so the guide cannot
+// be applied properly here — checkGuideOverlay refuses it for exactly that
+// reason. But composite identity is INFERRED in this port, and adjacency
+// cannot always be right, so the correction has to be reachable or the Go
+// model carries a false compound key no documented means can fix.
+//
+// Scanning recognises the three forms the schema allows, in the flat
+// `a: b: c: v` style the guide is written in:
+//
+//	entity: repo: id: parts: [ 'owner', 'repo' ]
+//	entity: repo: id: composite: false
+//	entity: repo: id: sep: ':'
+//
+// Anything it does not recognise is ignored and still refused by
+// checkGuideOverlay, so this widens nothing: it reads a key that the TS port
+// reads through aontu, and no more.
+func readGuideIdOverrides(guideDir string, prefix string) map[string]map[string]any {
+	out := map[string]map[string]any{}
+
+	path := filepath.Join(guideDir, prefix+"guide.aon")
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return out
+	}
+
+	// entity: <name>: id: <key>: <value>
+	// Same shape the refusal check exempts, with the value captured.
+	re := regexp.MustCompile(
+		`(?m)^\s*entity:\s*([A-Za-z0-9_]+):\s*id:\s*(parts|sep|composite):\s*(.+?)\s*$`)
+
+	for _, m := range re.FindAllStringSubmatch(string(raw), -1) {
+		entname, key, value := m[1], m[2], strings.TrimSpace(m[3])
+
+		if out[entname] == nil {
+			out[entname] = map[string]any{}
+		}
+
+		switch key {
+		case "composite":
+			out[entname]["composite"] = "true" == value
+		case "sep":
+			out[entname]["sep"] = strings.Trim(value, `'"`)
+		case "parts":
+			parts := []any{}
+			for _, p := range strings.Split(strings.Trim(value, "[]"), ",") {
+				if p = strings.Trim(strings.TrimSpace(p), `'"`); "" != p {
+					parts = append(parts, p)
+				}
+			}
+			if 0 < len(parts) {
+				out[entname]["parts"] = parts
+			}
+		}
+	}
+
+	return out
+}
+
+// applyGuideIdOverrides merges the scanned id blocks into the guide model the
+// transforms read, so FieldTransform sees what the TS port sees.
+func applyGuideIdOverrides(guideModel map[string]any, overrides map[string]map[string]any) {
+	if 0 == len(overrides) {
+		return
+	}
+
+	entities, _ := guideModel["entity"].(map[string]any)
+	if entities == nil {
+		return
+	}
+
+	for entname, id := range overrides {
+		gent, _ := entities[entname].(map[string]any)
+		if gent == nil {
+			continue
+		}
+		existing, _ := gent["id"].(map[string]any)
+		if existing == nil {
+			existing = map[string]any{}
+			gent["id"] = existing
+		}
+		for k, v := range id {
+			existing[k] = v
+		}
+	}
 }
