@@ -113,18 +113,105 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 		// descriptor is built) because this needs the entity's POINTS, and
 		// those do not exist until OperationTransform has run. TS reaches the
 		// same place for the same reason.
-		if idMap, ok := mentMap["id"].(map[string]any); ok && idMap != nil {
+		{
 			var gent map[string]any
 			if guide, ok := ctx.Guide["entity"].(map[string]any); ok && guide != nil {
 				gent, _ = guide[entname].(map[string]any)
 			}
-			if parts, sep := compositeId(mentMap, gent); 1 < len(parts) {
-				partsAny := make([]any, len(parts))
-				for i, p := range parts {
-					partsAny[i] = p
+
+			parts, sep := compositeId(mentMap, gent)
+			singleKey := compositeIdSingle(mentMap, gent)
+
+			// THE DESCRIPTOR IS NOT UNCONDITIONAL. Mirrors the four
+			// conditions at the end of src/transform/field.ts: an id field,
+			// composite parts, a guide-corrected single key, or an entity
+			// addressed by an `id` PARAMETER. An entity with none of those
+			// gets no descriptor — petstore's `store` is one, and Go emitted
+			// an `id: { field: id, name: id }` that TS does not, so every
+			// downstream generator saw a key the API has no route for.
+			//
+			// EntityTransform used to initialise it here, which is why this
+			// port never implemented the decision at all.
+			fields, _ := mentMap["fields"].([]any)
+			var idField map[string]any
+			for _, fv := range fields {
+				f, _ := fv.(map[string]any)
+				if f == nil {
+					continue
 				}
-				idMap["parts"] = partsAny
-				idMap["sep"] = sep
+				if n, _ := f["name"].(string); "id" == n {
+					idField = f
+					break
+				}
+			}
+
+			sortFields := func(fs []any) []any {
+				sort.Slice(fs, func(i, j int) bool {
+					fi, _ := fs[i].(map[string]any)
+					fj, _ := fs[j].(map[string]any)
+					ni, _ := fi["name"].(string)
+					nj, _ := fj["name"].(string)
+					return ni < nj
+				})
+				return fs
+			}
+
+			syntheticId := func() {
+				fields = append(fields, map[string]any{
+					"name": "id",
+					"type": "`$STRING`",
+					"req":  false,
+				})
+				mentMap["fields"] = sortFields(fields)
+			}
+
+			descriptor := func() {
+				id := map[string]any{"name": "id", "field": "id"}
+				if 1 < len(parts) {
+					partsAny := make([]any, len(parts))
+					for i, p := range parts {
+						partsAny[i] = p
+					}
+					id["parts"] = partsAny
+					id["sep"] = sep
+				}
+				mentMap["id"] = id
+			}
+
+			// A COMPOSITE ENTITY NEED NOT EXPOSE AN `id`, and the field
+			// goes in as well as the descriptor: github's repo response
+			// carries `owner` and `name`, never `id`, and a descriptor
+			// without a field makes the generated type disagree with the
+			// generated test.
+			if 1 < len(parts) && idField == nil {
+				syntheticId()
+				fields, _ = mentMap["fields"].([]any)
+			}
+
+			// The guide disabled composite; the terminal parameter is the
+			// key, and the entity needs the field to carry it for the same
+			// reason the composite branch does.
+			if idField == nil && "" != singleKey && 1 >= len(parts) {
+				syntheticId()
+				fields, _ = mentMap["fields"].([]any)
+			}
+
+			if idField != nil || 1 < len(parts) || "" != singleKey {
+				descriptor()
+			} else if addressedById(mentMap) {
+				// ADDRESSABLE BY ID WITHOUT DECLARING ONE AS A FIELD — the
+				// field as well as the descriptor, because an entity
+				// addressed by id has one at runtime and a descriptor
+				// without a field makes the generated type disagree with the
+				// generated test.
+				syntheticId()
+				fields, _ = mentMap["fields"].([]any)
+				descriptor()
+			} else {
+				delete(mentMap, "id")
+			}
+
+			if 1 < len(parts) {
 
 				// THE FIELD THE DESCRIPTOR POINTS AT, mirroring the TS port.
 				//
@@ -140,33 +227,8 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 				// string, so the declaration is corrected — along with the
 				// spec facts that described the old type, which would
 				// otherwise contradict it.
-				fields, _ := mentMap["fields"].([]any)
-				var idField map[string]any
-				for _, fv := range fields {
-					f, _ := fv.(map[string]any)
-					if f == nil {
-						continue
-					}
-					if n, _ := f["name"].(string); "id" == n {
-						idField = f
-						break
-					}
-				}
-
 				if idField == nil {
-					fields = append(fields, map[string]any{
-						"name": "id",
-						"type": "`$STRING`",
-						"req":  false,
-					})
-					sort.Slice(fields, func(i, j int) bool {
-						fi, _ := fields[i].(map[string]any)
-						fj, _ := fields[j].(map[string]any)
-						ni, _ := fi["name"].(string)
-						nj, _ := fj["name"].(string)
-						return ni < nj
-					})
-					mentMap["fields"] = fields
+					// Already pushed above where the descriptor was decided.
 				} else if !strings.Contains(
 					strings.ToUpper(fmt.Sprint(idField["type"])), "STRING") {
 					// THE API'S OWN id MOVES ASIDE, it is not rewritten —
@@ -285,6 +347,113 @@ var IdOps = []string{"load", "update", "patch", "remove"}
 // logic identical, so the day Go can apply an overlay this needs no change,
 // and a caller that constructs ctx.Guide itself (as the tests do) gets the
 // documented behaviour today.
+// singleKeyOf picks WHICH of several adjacent parameters is the record's own
+// key, by the same id-finding rules apidef uses elsewhere rather than by
+// position. Taking the terminal one picked `archive_format` for
+// `/artifacts/{artifact_id}/{archive_format}` — the modifier, precisely the
+// false positive a `composite: false` correction exists to undo.
+// Mirrors singleKeyOf in src/transform/field.ts.
+func singleKeyOf(mentMap map[string]any, parts []string) string {
+	if 0 == len(parts) {
+		return ""
+	}
+
+	name, _ := mentMap["name"].(string)
+
+	for _, p := range parts {
+		if "id" == p {
+			return p
+		}
+	}
+	for _, p := range parts {
+		if name+"_id" == p {
+			return p
+		}
+	}
+	for _, p := range parts {
+		if strings.HasSuffix(p, "_id") {
+			return p
+		}
+	}
+
+	return parts[len(parts)-1]
+}
+
+// addressedById reports whether any of the entity's own points declares an
+// `id` parameter — i.e. the API addresses this entity by id, whether or not
+// its response schema declares an id field. Mirrors addressedById in
+// src/transform/field.ts.
+func addressedById(mentMap map[string]any) bool {
+	opMap, _ := mentMap["op"].(map[string]any)
+
+	for _, opname := range sortedKeys(opMap) {
+		mop, _ := opMap[opname].(map[string]any)
+		if mop == nil {
+			continue
+		}
+		points, _ := mop["points"].([]any)
+		for _, pt := range points {
+			ptMap, _ := pt.(map[string]any)
+			if ptMap == nil {
+				continue
+			}
+			args, _ := ptMap["args"].(map[string]any)
+			if args == nil {
+				continue
+			}
+			for _, p := range argsParamList(args["params"]) {
+				if n, _ := p["name"].(string); "id" == n {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
+}
+
+// argsParamList reads a point's `args.params` in either shape the pipeline
+// produces: a name-keyed map, or a list.
+func argsParamList(raw any) []map[string]any {
+	var out []map[string]any
+
+	switch v := raw.(type) {
+	case map[string]any:
+		for _, k := range sortedKeys(v) {
+			if p, ok := v[k].(map[string]any); ok {
+				out = append(out, p)
+			}
+		}
+	case []any:
+		for _, e := range v {
+			if p, ok := e.(map[string]any); ok {
+				out = append(out, p)
+			}
+		}
+	}
+
+	return out
+}
+
+// compositeIdSingle is compositeId's other answer: the ONE key a
+// `composite: false` correction leaves in place. TS returns it as
+// `{ single }` from the same function; Go keeps the signatures separate
+// because a Go caller cannot destructure.
+func compositeIdSingle(mentMap map[string]any, gent map[string]any) string {
+	var gid map[string]any
+	if gent != nil {
+		gid, _ = gent["id"].(map[string]any)
+	}
+	if gid == nil {
+		return ""
+	}
+	if c, ok := gid["composite"].(bool); ok && !c {
+		return singleKeyOf(mentMap, identityParams(mentMap))
+	}
+
+	return ""
+}
+
 func compositeId(mentMap map[string]any, gent map[string]any) ([]string, string) {
 	var gid map[string]any
 	if gent != nil {

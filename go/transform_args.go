@@ -94,7 +94,11 @@ func resolveArgs(
 		argName, _ := argdef["name"].(string)
 		argIn, _ := argdef["in"].(string)
 
-		orig := Depluralize(Snakify(NormalizeFieldName(argName)))
+		// THE SPEC NAME AS WRITTEN is what the rename map is keyed by; the
+		// snakified form is the user-friendly runtime identifier. Both are
+		// needed, and this port kept only the second.
+		specName := NormalizeFieldName(argName)
+		orig := Depluralize(Snakify(specName))
 
 		// A parameter with no name is not a parameter. This is what a
 		// DANGLING `$ref` looks like by the time it reaches here: the
@@ -127,10 +131,22 @@ func resolveArgs(
 			kind = "query"
 		}
 
+		// The rename map can be keyed by either the spec original (camelCase)
+		// or the snakified form, depending on which path went through
+		// heuristic01 — so try both, SPEC NAME FIRST, exactly as TS does.
+		//
+		// Looking up only the snakified form missed every camelCase rename:
+		// petstore renames `petId` to `id`, Go asked the map for `pet_id`,
+		// found nothing, and named the parameter `pet_id`. The model then
+		// disagreed with TS about the name of the key that addresses a pet,
+		// and with its own path segments, which the rename had already
+		// rewritten to `{id}`.
 		name := orig
 		if rename != nil {
 			if kindRename, ok := rename[kind].(map[string]any); ok {
-				if rn, ok := kindRename[orig].(string); ok {
+				if rn, ok := kindRename[specName].(string); ok && "" != rn {
+					name = rn
+				} else if rn, ok := kindRename[orig].(string); ok && "" != rn {
 					name = rn
 				}
 			}
@@ -160,6 +176,15 @@ func resolveArgs(
 			"kind":   kind,
 			"reqd":   toBool(argdef["required"]),
 			"active": true,
+		}
+
+		// AN EXAMPLE VALUE, where the spec advertises one. Mirrors
+		// resolveArgExample in src/transform/args.ts and was missing here, so
+		// taxonomy's `page` and `per_page` carried `example: 1` / `20` in the
+		// TS model and nothing in Go — a test generator reading the Go model
+		// had no valid value for a required parameter with no other source.
+		if example, has := resolveArgExample(argdef); has {
+			marg["example"] = example
 		}
 
 		argsKey := kind
@@ -219,4 +244,45 @@ func toLower(s string) string {
 		}
 	}
 	return string(result)
+}
+
+// resolveArgExample finds the example value a spec advertises for a
+// parameter. OpenAPI allows four spellings:
+//
+//	parameter.example         (single value, OAS 3.0+)
+//	parameter.examples        (named-example object, take the first .value)
+//	parameter.schema.example  (single value on the schema)
+//	parameter.schema.default  (default value)
+//
+// The first found wins, so a test generator can produce a valid live request
+// even for a required parameter with no other source. Mirrors
+// resolveArgExample in src/transform/args.ts.
+func resolveArgExample(argdef map[string]any) (any, bool) {
+	if v, has := argdef["example"]; has && v != nil {
+		return v, true
+	}
+
+	if examples, ok := argdef["examples"].(map[string]any); ok {
+		// SORTED, so "the first one" is the same on both ports: Go map
+		// iteration is randomised and TS reads insertion order, so an
+		// unsorted walk would make this key vary between runs.
+		for _, k := range sortedKeys(examples) {
+			if e, ok := examples[k].(map[string]any); ok {
+				if v, has := e["value"]; has && v != nil {
+					return v, true
+				}
+			}
+		}
+	}
+
+	if schema, ok := argdef["schema"].(map[string]any); ok {
+		if v, has := schema["example"]; has && v != nil {
+			return v, true
+		}
+		if v, has := schema["default"]; has && v != nil {
+			return v, true
+		}
+	}
+
+	return nil, false
 }

@@ -475,3 +475,157 @@ func TestIdentityParamsMerelyIdSuffixedPartDoesNotWin(t *testing.T) {
 		t.Errorf("got %v, want [actor_type actor_id]", got)
 	}
 }
+
+// THE ID DESCRIPTOR IS NOT UNCONDITIONAL. EntityTransform used to initialise
+// one for every entity, so this port emitted `id: { field: id, name: id }`
+// for an entity the canonical TS gives none — petstore's `store`, which has
+// no id field, no composite parts and no `id` parameter on any of its own
+// routes. Every downstream generator then saw a key the API has no route for.
+//
+// Mirrors the four conditions at the end of src/transform/field.ts.
+func TestIdDescriptorOnlyWhenTheEntityHasOne(t *testing.T) {
+	// An entity addressed by a literal-terminal route, with no id field and
+	// no `id` param: no descriptor.
+	bare := map[string]any{
+		"name":   "store",
+		"fields": []any{},
+		"op": map[string]any{
+			"load": map[string]any{"points": []any{
+				map[string]any{
+					"orig":     "/store/inventory",
+					"method":   "GET",
+					"segments": segTyped(lit("store"), lit("inventory")),
+				},
+			}},
+		},
+	}
+
+	ctx := &ApiDefContext{
+		Model: map[string]any{"name": "petstore"},
+		ApiModel: map[string]any{"main": map[string]any{
+			KIT: map[string]any{"entity": map[string]any{"store": bare}},
+		}},
+		Def: map[string]any{"paths": map[string]any{
+			"/store/inventory": map[string]any{
+				"get": map[string]any{"responses": map[string]any{
+					"200": map[string]any{"content": map[string]any{}},
+				}},
+			},
+		}},
+	}
+
+	if _, err := FieldTransform(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if id, has := bare["id"]; has {
+		t.Errorf("an entity with no id got a descriptor: %v", id)
+	}
+
+	// AND AN ENTITY ADDRESSED BY AN `id` PARAMETER GETS BOTH the descriptor
+	// and the field, even though its response declares no id: the generated
+	// type would otherwise disagree with the generated test.
+	addressed := map[string]any{
+		"name":   "secret",
+		"fields": []any{},
+		"op": map[string]any{
+			"load": map[string]any{"points": []any{
+				map[string]any{
+					"orig":     "/secrets/{id}",
+					"method":   "GET",
+					"segments": segTyped(lit("secrets"), vr("id")),
+					"args": map[string]any{
+						"params": []any{map[string]any{"name": "id"}},
+					},
+				},
+			}},
+		},
+	}
+
+	ctx.ApiModel = map[string]any{"main": map[string]any{
+		KIT: map[string]any{"entity": map[string]any{"secret": addressed}},
+	}}
+	ctx.Def = map[string]any{"paths": map[string]any{
+		"/secrets/{id}": map[string]any{
+			"get": map[string]any{"responses": map[string]any{
+				"200": map[string]any{"content": map[string]any{}},
+			}},
+		},
+	}}
+
+	if _, err := FieldTransform(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	id, _ := addressed["id"].(map[string]any)
+	if id == nil || "id" != id["field"] {
+		t.Errorf("an entity addressed by id got no descriptor: %v", addressed["id"])
+	}
+	fields, _ := addressed["fields"].([]any)
+	if !hasField(fields, "id") {
+		t.Errorf("the descriptor was emitted without the field: %v", fields)
+	}
+}
+
+// A PARAM RENAME IS KEYED BY THE SPEC NAME. petstore renames `petId` to
+// `id`; this port asked the rename map for the SNAKIFIED `pet_id`, found
+// nothing, and named the parameter `pet_id` — disagreeing with TS, and with
+// its own path segments, which the rename had already rewritten to `{id}`.
+func TestArgRenameUsesTheSpecName(t *testing.T) {
+	mtarget := map[string]any{
+		"orig": "/pet/{petId}",
+		"rename": map[string]any{
+			"param": map[string]any{"petId": "id"},
+		},
+	}
+
+	resolveArgs(nil, "pet", "load", mtarget, []map[string]any{
+		{"name": "petId", "in": "path", "required": true},
+	})
+
+	args, _ := mtarget["args"].(map[string]any)
+	params, _ := args["params"].([]any)
+	if 1 != len(params) {
+		t.Fatalf("got %d params, want 1: %v", len(params), params)
+	}
+	p, _ := params[0].(map[string]any)
+	if "id" != p["name"] {
+		t.Errorf("param name = %v, want id", p["name"])
+	}
+	if "pet_id" != p["orig"] {
+		t.Errorf("param orig = %v, want pet_id", p["orig"])
+	}
+}
+
+// AN EXAMPLE VALUE IS CARRIED THROUGH, in all four spellings OpenAPI allows.
+// taxonomy's `page` and `per_page` carried one in the TS model and nothing
+// here, so a test generator reading the Go model had no valid value for a
+// required parameter with no other source.
+func TestResolveArgExampleSpellings(t *testing.T) {
+	cases := []struct {
+		name   string
+		argdef map[string]any
+		want   any
+	}{
+		{"parameter.example", map[string]any{"example": 1}, 1},
+		{"parameter.examples", map[string]any{"examples": map[string]any{
+			"first": map[string]any{"value": "a"},
+		}}, "a"},
+		{"schema.example", map[string]any{
+			"schema": map[string]any{"example": 20},
+		}, 20},
+		{"schema.default", map[string]any{
+			"schema": map[string]any{"default": 7},
+		}, 7},
+	}
+
+	for _, c := range cases {
+		got, has := resolveArgExample(c.argdef)
+		if !has || got != c.want {
+			t.Errorf("%s: got %v (has=%v), want %v", c.name, got, has, c.want)
+		}
+	}
+
+	if _, has := resolveArgExample(map[string]any{"name": "x"}); has {
+		t.Errorf("a parameter with no example reported one")
+	}
+}

@@ -1,8 +1,4 @@
 {
-  "id": {
-    "field": "id",
-    "name": "id"
-  },
   "name": "store",
   "op": {
     "load": {
@@ -46,6 +42,11 @@
           },
           "method": "DELETE",
           "orig": "/store/order/{orderId}",
+          "rename": {
+            "param": {
+              "orderId": "order_id"
+            }
+          },
           "segments": [
             {
               "lit": "store"
@@ -54,7 +55,7 @@
               "lit": "order"
             },
             {
-              "var": "orderId"
+              "var": "order_id"
             }
           ],
           "select": {
