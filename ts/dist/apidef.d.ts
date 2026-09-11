@@ -3,6 +3,7 @@ import { KIT } from './types';
 import { parse } from './parse';
 import { nom, formatJSONIC, depluralize, sanitizeSlug, slugToPascalCase, getModelPath, VALID_CANON, CANON_ONE } from './utility';
 import { gcEntityFiles } from './builder/entity/entity';
+declare function warningsFileText(history: any[]): string;
 declare function ApiDef(opts: ApiDefOptions): {
     generate: (spec: any) => Promise<ApiDefResult>;
 };
@@ -16,4 +17,4 @@ export type { ApiDefOptions, };
 export type { PathDef, MethodDef, ServerDef, ServerVariableDef, ParameterDef, SchemaDef, } from './def';
 export type { CmpDesc, BasicMethodDesc, MethodDesc, MethodEntityDesc, EntityDesc, EntityPathDesc, PathDesc, OpDesc, } from './desc';
 export type { OpName, ArgKind, NamesCluster, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelPoint, ModelOp, ModelEntity, Model, ModelEntityFlow, ModelEntityFlowStep, ModelEntityFlowStepInput, ModelEntityFlowStepValidator, ModelEntityFlowStepSpec, } from './model';
-export { KIT, ApiDef, gcEntityFiles, parse, formatJSONIC, depluralize, sanitizeSlug, slugToPascalCase, getModelPath, nom, VALID_CANON, CANON_ONE, };
+export { KIT, ApiDef, gcEntityFiles, warningsFileText, parse, formatJSONIC, depluralize, sanitizeSlug, slugToPascalCase, getModelPath, nom, VALID_CANON, CANON_ONE, };

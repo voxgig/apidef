@@ -39,6 +39,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CANON_ONE = exports.VALID_CANON = exports.nom = exports.getModelPath = exports.slugToPascalCase = exports.sanitizeSlug = exports.depluralize = exports.formatJSONIC = exports.parse = exports.gcEntityFiles = exports.KIT = void 0;
 exports.ApiDef = ApiDef;
+exports.warningsFileText = warningsFileText;
 const Fs = __importStar(require("node:fs"));
 const node_path_1 = __importDefault(require("node:path"));
 const jostraca_1 = require("jostraca");
@@ -74,6 +75,26 @@ Object.defineProperty(exports, "gcEntityFiles", { enumerable: true, get: functio
 const flow_2 = require("./builder/flow");
 // Log non-fatal wierdness.
 const dlog = (0, utility_1.getdlog)('apidef', __filename);
+// THE WARNINGS FILE IS A REVIEWABLE ARTIFACT, so it carries no clock.
+//
+// Every warning is stamped with `when: Date.now()` — useful in a live log,
+// and fatal in a file that consumers COMMIT. An SDK project regenerates and
+// commits `.sdk/apidef-warnings.txt`, and its CI asserts that a regeneration
+// reproduces the committed tree byte for byte; with a timestamp in it that
+// check can never pass, and every regeneration produces a diff saying
+// nothing about the warnings themselves. github-sdk failed exactly that way:
+// one file, three changed lines, all of them clocks.
+//
+// The timestamp stays on the in-memory history, where a caller streaming
+// warnings still wants it.
+function warningsFileText(history) {
+    return history
+        .map((n) => {
+        const { when, ...rest } = n || {};
+        return (0, utility_1.formatJSONIC)(rest);
+    })
+        .join('\n\n');
+}
 function ApiDef(opts) {
     // TODO: shape opts!
     const fs = opts.fs || Fs;
@@ -279,7 +300,7 @@ function ApiDef(opts) {
                 'success';
             log[hasWarnings ? 'warn' : 'info']({ point: 'generate-end', note: endnote, break: true });
             if (hasWarnings) {
-                (0, utility_1.writeFileSyncWarn)(warn, fs, './apidef-warnings.txt', warn.history.map(n => (0, utility_1.formatJSONIC)(n)).join('\n\n'));
+                (0, utility_1.writeFileSyncWarn)(warn, fs, './apidef-warnings.txt', warningsFileText(warn.history));
             }
             // apidef writes model source files (entity, flow, guide aontu files) into
             // .sdk/model/. Downstream actions (sdkgen, etc.) read those via
@@ -313,7 +334,7 @@ function ApiDef(opts) {
                 err,
                 note: endnote
             });
-            (0, utility_1.writeFileSyncWarn)(warn, fs, './apidef-warnings.txt', warn.history.map(n => (0, utility_1.formatJSONIC)(n)).join('\n\n'));
+            (0, utility_1.writeFileSyncWarn)(warn, fs, './apidef-warnings.txt', warningsFileText(warn.history));
             return {
                 ok: false,
                 err,

@@ -86,6 +86,28 @@ import { makeFlowBuilder } from './builder/flow'
 const dlog = getdlog('apidef', __filename)
 
 
+// THE WARNINGS FILE IS A REVIEWABLE ARTIFACT, so it carries no clock.
+//
+// Every warning is stamped with `when: Date.now()` — useful in a live log,
+// and fatal in a file that consumers COMMIT. An SDK project regenerates and
+// commits `.sdk/apidef-warnings.txt`, and its CI asserts that a regeneration
+// reproduces the committed tree byte for byte; with a timestamp in it that
+// check can never pass, and every regeneration produces a diff saying
+// nothing about the warnings themselves. github-sdk failed exactly that way:
+// one file, three changed lines, all of them clocks.
+//
+// The timestamp stays on the in-memory history, where a caller streaming
+// warnings still wants it.
+function warningsFileText(history: any[]): string {
+  return history
+    .map((n: any) => {
+      const { when, ...rest } = n || {}
+      return formatJSONIC(rest)
+    })
+    .join('\n\n')
+}
+
+
 function ApiDef(opts: ApiDefOptions) {
 
   // TODO: shape opts!
@@ -341,7 +363,7 @@ function ApiDef(opts: ApiDefOptions) {
 
       if (hasWarnings) {
         writeFileSyncWarn(warn, fs, './apidef-warnings.txt',
-          warn.history.map(n => formatJSONIC(n)).join('\n\n'))
+          warningsFileText(warn.history))
       }
 
       // apidef writes model source files (entity, flow, guide aontu files) into
@@ -382,7 +404,7 @@ function ApiDef(opts: ApiDefOptions) {
       })
 
       writeFileSyncWarn(warn, fs, './apidef-warnings.txt',
-        warn.history.map(n => formatJSONIC(n)).join('\n\n'))
+        warningsFileText(warn.history))
 
       return {
         ok: false,
@@ -524,6 +546,7 @@ export {
   KIT,
   ApiDef,
   gcEntityFiles,
+  warningsFileText,
   parse,
   formatJSONIC,
   depluralize,
