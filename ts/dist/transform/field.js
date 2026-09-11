@@ -244,6 +244,24 @@ function identityParams(ment) {
                 run,
                 // Segments BEFORE the run: how much parent scope the route needs.
                 scope: ((pt.segments || []).length - run.length),
+                // DOES THE RUN END IN THE RECORD'S OWN KEY? Then it is the
+                // record's address and nothing further is needed.
+                //
+                // This transform RENAMES that parameter to `id`, so a run ending in
+                // it is this port's own statement of what identifies the record —
+                // and the composite inference must not contradict it.
+                // `/gists/{gist_id}` becomes `/gists/{id}` and is a gist;
+                // `/gists/{gist_id}/{sha}` is a REVISION of one, and won on key
+                // length alone, so a gist came out keyed `gist_id/sha` while the
+                // generated SDK's own load match takes the single parameter. The
+                // same contradiction gave cloudsmith's repo and vulnerability
+                // compound keys their SDKs never address them by.
+                //
+                // Deliberately narrow: exactly `id` or an unrenamed `<entity>_id`,
+                // never any `*_id`. `actor_type/actor_id` IS a compound key, and a
+                // looser test breaks it.
+                own: 'id' === run[run.length - 1] ||
+                    ment.name + '_id' === run[run.length - 1],
                 order: o,
             });
         }
@@ -282,6 +300,9 @@ function identityParams(ment) {
         }
         if (c.scope !== b.scope) {
             return c.scope < b.scope ? c : b;
+        }
+        if (c.own !== b.own) {
+            return c.own ? c : b;
         }
         if (c.run.length !== b.run.length) {
             return b.run.length < c.run.length ? c : b;

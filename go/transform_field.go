@@ -362,8 +362,16 @@ func identityParams(mentMap map[string]any) []string {
 	type cand struct {
 		run   []string
 		scope int
+		// own: the run ends in the record's own key. This transform RENAMES
+		// that parameter to `id`, so such a run is the port's own statement
+		// of what identifies the record, and the composite inference must
+		// not contradict it. Narrow on purpose: `id` or an unrenamed
+		// `<entity>_id`, never any `*_id`.
+		own   bool
 		order int
 	}
+
+	entname, _ := mentMap["name"].(string)
 
 	// EVERY ID-BEARING OP AT ONCE, not the first one that offers a candidate.
 	//
@@ -402,11 +410,14 @@ func identityParams(mentMap map[string]any) []string {
 			}
 
 			segs := pointSegmentMaps(ptMap)
+			last := run[len(run)-1]
+
 			cands = append(cands, cand{
 				run: run,
 				// Segments BEFORE the run: how much parent scope the route
 				// needs.
 				scope: len(segs) - len(run),
+				own:   "id" == last || entname+"_id" == last,
 				order: order,
 			})
 		}
@@ -427,6 +438,12 @@ func identityParams(mentMap map[string]any) []string {
 		}
 		if c.scope != best.scope {
 			if c.scope < best.scope {
+				best = &cands[i]
+			}
+			continue
+		}
+		if c.own != best.own {
+			if c.own {
 				best = &cands[i]
 			}
 			continue

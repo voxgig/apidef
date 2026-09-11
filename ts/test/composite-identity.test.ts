@@ -177,6 +177,49 @@ describe('composite-identity', () => {
   })
 
 
+  // A RUN ENDING IN THE RECORD'S OWN KEY NEEDS NOTHING MORE.
+  // `/gists/{gist_id}` is a gist and `/gists/{gist_id}/{sha}` is a REVISION
+  // of one; on key length alone the revision wins, and a gist came out keyed
+  // `gist_id/sha` while the SDK's own load match takes the one parameter.
+  test('a run ending in the entity id beats a longer one', async () => {
+    const ent = await runPoints('gist', [
+      ['gists', '{gist_id}', '{sha}'],
+      ['gists', '{gist_id}'],
+    ])
+
+    assert.equal(ent.id?.parts, undefined)
+  })
+
+
+  // AND IN THE RENAMED FORM, which is what the model normally carries: this
+  // transform renames the record's own key parameter to `id`, so a run
+  // ending in `id` is the port's own statement of what identifies the
+  // record. github's gist reaches this branch that way, and so do
+  // cloudsmith's repo and vulnerability, whose compound keys contradicted
+  // the single key their own SDKs address them by.
+  test('the renamed id parameter is recognised too', async () => {
+    const ent = await runPoints('vulnerability', [
+      ['vulnerabilities', '{owner}', '{repo}', '{package}', '{identifier}'],
+      ['vulnerabilities', '{id}'],
+    ])
+
+    assert.equal(ent.id?.parts, undefined)
+  })
+
+
+  // And the test is narrow ON PURPOSE: `actor_id` ends in `_id` but is not
+  // this entity's own id, so `actor_type/actor_id` stays a compound key.
+  // A looser "ends with _id" test broke exactly this.
+  test('a merely _id-suffixed part does not win', async () => {
+    const ent = await runPoints('api_insights_summary_stat', [
+      ['api-insights', '{actor_type}', '{actor_id}'],
+      ['api-insights', '{actor_type}'],
+    ])
+
+    assert.deepStrictEqual(ent.id.parts, ['actor_type', 'actor_id'])
+  })
+
+
   test('three adjacent parameters compose in path order', async () => {
     const ent = await run('entitlement',
       ['entitlements', '{owner}', '{repo}', '{identifier}'])

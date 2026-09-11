@@ -418,3 +418,60 @@ func TestIdentityParamsComparesAcrossOps(t *testing.T) {
 		t.Errorf("got %v, want [id] — the record's own route", got)
 	}
 }
+
+// A RUN ENDING IN THE RECORD'S OWN KEY NEEDS NOTHING MORE. This transform
+// renames that parameter to `id`, so such a run is the port's own statement
+// of what identifies the record — github's `/gists/{gist_id}` is a gist while
+// `/gists/{gist_id}/{sha}` is a REVISION of one, and the revision won on key
+// length alone.
+func TestIdentityParamsOwnKeyBeatsALongerRun(t *testing.T) {
+	cases := map[string][]map[string]any{
+		// The renamed form, which is what the model normally carries.
+		"renamed": {
+			{"segments": segTyped(lit("gists"), vr("id"))},
+			{"segments": segTyped(lit("gists"), vr("gist_id"), vr("sha"))},
+		},
+		// And the unrenamed <entity>_id form.
+		"unrenamed": {
+			{"segments": segTyped(lit("gists"), vr("gist_id"))},
+			{"segments": segTyped(lit("gists"), vr("gist_id"), vr("sha"))},
+		},
+	}
+
+	for name, points := range cases {
+		pts := make([]any, 0, len(points))
+		for _, p := range points {
+			pts = append(pts, p)
+		}
+		ent := map[string]any{
+			"name": "gist",
+			"op":   map[string]any{"load": map[string]any{"points": pts}},
+		}
+
+		if got := identityParams(ent); 1 != len(got) || !strings.HasSuffix(got[0], "id") {
+			t.Errorf("%s: got %v, want the single own key", name, got)
+		}
+	}
+}
+
+// AND THE TEST IS NARROW. `actor_id` ends in `_id` but is not this entity's
+// own key, so `actor_type/actor_id` stays a compound key; a looser test
+// broke exactly this.
+func TestIdentityParamsMerelyIdSuffixedPartDoesNotWin(t *testing.T) {
+	ent := map[string]any{
+		"name": "api_insights_summary_stat",
+		"op": map[string]any{
+			"load": map[string]any{"points": []any{
+				map[string]any{"segments": segTyped(
+					lit("api-insights"), vr("actor_type"), vr("actor_id"))},
+				map[string]any{"segments": segTyped(
+					lit("api-insights"), vr("actor_type"))},
+			}},
+		},
+	}
+
+	got := identityParams(ent)
+	if 2 != len(got) || "actor_type" != got[0] || "actor_id" != got[1] {
+		t.Errorf("got %v, want [actor_type actor_id]", got)
+	}
+}
