@@ -264,6 +264,10 @@ func deepCopyMap(in map[string]any) map[string]any {
 // over-splits. Mirrors ID_SEP in src/transform/field.ts.
 const IdSep = "/"
 
+// IdOps are the ops that address ONE record, most authoritative first. Only a
+// tie-break: identityParams compares candidates from all of them.
+var IdOps = []string{"load", "update", "patch", "remove"}
+
 // compositeId returns the composite parts and separator for an entity, or an
 // empty slice for the ordinary single-key case. An explicit `id: parts` in
 // guide.aon wins over the inference, and an empty list turns it off —
@@ -355,7 +359,24 @@ func identityParams(mentMap map[string]any) []string {
 		return nil
 	}
 
-	for _, opname := range []string{"load", "update", "patch", "remove"} {
+	type cand struct {
+		run   []string
+		scope int
+		order int
+	}
+
+	// EVERY ID-BEARING OP AT ONCE, not the first one that offers a candidate.
+	//
+	// These ops all address a single record, so all describe the same
+	// identity — but they do not all carry the same routes. gitlab's
+	// `project` has /api/v4/projects/{id} under `remove` alone, while its
+	// `load` carries only sub-resources like
+	// /api/v4/projects/{id}/uploads/{secret}/{filename}. Stopping at the
+	// first op with any candidate therefore made a PROJECT identified by
+	// `secret/filename`. The op order is now only a tie-break.
+	var cands []cand
+
+	for order, opname := range IdOps {
 		mop, ok := opMap[opname].(map[string]any)
 		if !ok || mop == nil {
 			continue
@@ -363,74 +384,93 @@ func identityParams(mentMap map[string]any) []string {
 
 		allPoints, _ := mop["points"].([]any)
 
-		// Action points are verbs dispatched by `$action`, not addresses.
-		points := make([]map[string]any, 0, len(allPoints))
 		for _, pt := range allPoints {
 			ptMap, _ := pt.(map[string]any)
 			if ptMap == nil {
 				continue
 			}
+			// Action points are verbs dispatched by `$action`, not addresses.
 			if sel, ok := ptMap["select"].(map[string]any); ok && sel != nil {
 				if _, has := sel["$action"]; has {
 					continue
 				}
 			}
-			points = append(points, ptMap)
-		}
 
-		// A point whose LAST segment is a variable is the one that addresses
-		// a record; one ending in a literal is a verb on it and carries the
-		// same variables, so it serves as a fallback.
-		var point map[string]any
-		for _, ptMap := range points {
-			segs := pointSegmentMaps(ptMap)
-			if 0 == len(segs) {
+			run := trailingVars(ptMap)
+			if 0 == len(run) {
 				continue
 			}
-			last := segs[len(segs)-1]
-			if v, has := last["var"]; has && v != nil {
-				point = ptMap
-				break
-			}
-		}
-		if point == nil && 0 < len(points) {
-			point = points[0]
-		}
-		if point == nil {
-			continue
-		}
 
-		// Walk back from the end, collecting variables until a literal stops
-		// the run. That literal is the sub-collection boundary; anything
-		// before it scopes this record rather than naming it.
-		//
-		// SEGMENTS ARE []map[string]any HERE, which is what
-		// OperationTransform stores (transform_operation.go). Asserting
-		// []any instead yielded nil for every route, so the walk found no
-		// parts and Go inferred no composite identity at all — the port
-		// compiled and did nothing. Both shapes are accepted because the
-		// guide-derived path descriptors are []any.
-		segs := pointSegmentMaps(point)
-
-		run := []string{}
-		for i := len(segs) - 1; 0 <= i; i-- {
-			v, has := segs[i]["var"]
-			if !has || v == nil {
-				break
-			}
-			vs, ok := v.(string)
-			if !ok || "" == vs {
-				break
-			}
-			run = append([]string{vs}, run...)
-		}
-
-		if 0 < len(run) {
-			return run
+			segs := pointSegmentMaps(ptMap)
+			cands = append(cands, cand{
+				run: run,
+				// Segments BEFORE the run: how much parent scope the route
+				// needs.
+				scope: len(segs) - len(run),
+				order: order,
+			})
 		}
 	}
 
-	return nil
+	// WHICH ROUTE IS THE RECORD'S OWN ADDRESS. Mirrors the canonical TS
+	// comment in src/transform/field.ts, which records the three rules that
+	// were measured against the validation corpus and why each is wrong.
+	// What separates them is PARENT SCOPE: the record's own route is the
+	// least-qualified one that names it, and among equally-qualified routes
+	// the one carrying the fullest key.
+	var best *cand
+	for i := range cands {
+		c := cands[i]
+		if best == nil {
+			best = &cands[i]
+			continue
+		}
+		if c.scope != best.scope {
+			if c.scope < best.scope {
+				best = &cands[i]
+			}
+			continue
+		}
+		if len(c.run) != len(best.run) {
+			if len(best.run) < len(c.run) {
+				best = &cands[i]
+			}
+			continue
+		}
+		if c.order < best.order {
+			best = &cands[i]
+		}
+	}
+
+	if best == nil {
+		return nil
+	}
+
+	return best.run
+}
+
+// trailingVars walks back from a point's end, collecting variables until a
+// literal stops the run. That literal is the sub-collection boundary;
+// anything before it scopes this record rather than naming it.
+//
+// SEGMENTS ARE []map[string]any HERE, which is what OperationTransform
+// stores (transform_operation.go); pointSegmentMaps accepts the []any shape
+// the guide-derived descriptors use too. Asserting one alone yielded nil for
+// every route, so the walk found no parts and Go inferred no composite
+// identity at all — silently, with every existing test still passing.
+func trailingVars(ptMap map[string]any) []string {
+	segs := pointSegmentMaps(ptMap)
+	var run []string
+
+	for i := len(segs) - 1; 0 <= i; i-- {
+		v, has := segs[i]["var"]
+		if !has || v == nil {
+			break
+		}
+		run = append([]string{fmt.Sprint(v)}, run...)
+	}
+
+	return run
 }
 
 func resolveOpFields(mtarget map[string]any, def map[string]any, opname string) []map[string]any {

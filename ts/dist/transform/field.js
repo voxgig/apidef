@@ -171,6 +171,9 @@ exports.fieldTransform = fieldTransform;
 // safe to carry as a single opaque string, which is the property the SDK and
 // Seneca entities are built on.
 const ID_SEP = '/';
+// The ops that address ONE record, most authoritative first. Only a
+// tie-break: identityParams compares candidates from all of them.
+const ID_OPS = ['load', 'update', 'patch', 'remove'];
 // The parameters that TOGETHER name one record: the trailing run of
 // ADJACENT variable segments on the addressing route.
 //
@@ -198,38 +201,94 @@ const ID_SEP = '/';
 // collection route's path params are the entity's parents. A point ending in
 // a literal is a verb ON the record (`.../{number}/merge`) and carries the
 // same variables, so it is a fallback rather than a different answer.
+// Walk back from a point's end, collecting variables until a literal stops
+// the run. That literal is the sub-collection boundary; anything before it
+// scopes this record rather than naming it.
+function trailingVars(point) {
+    const segs = (point?.segments || []).filter((s) => null != s);
+    const run = [];
+    for (let i = segs.length - 1; 0 <= i; i--) {
+        if (null == segs[i].var) {
+            break;
+        }
+        run.unshift(String(segs[i].var));
+    }
+    return run;
+}
 function identityParams(ment) {
-    for (const opname of ['load', 'update', 'patch', 'remove']) {
-        const mop = ment.op?.[opname];
+    // EVERY ID-BEARING OP AT ONCE, not the first one that offers a candidate.
+    //
+    // These four ops all address a single record, so all four describe the
+    // same identity — but they do not all carry the same routes. gitlab's
+    // `project` has `/api/v4/projects/{id}` under `remove` alone, while its
+    // `load` carries only sub-resources like
+    // `/api/v4/projects/{id}/uploads/{secret}/{filename}`. Returning on the
+    // first op with any candidate therefore made a PROJECT identified by
+    // `secret/filename`. The op order is now only a tie-break.
+    const cands = [];
+    for (let o = 0; o < ID_OPS.length; o++) {
+        const mop = ment.op?.[ID_OPS[o]];
         if (null == mop) {
             continue;
         }
-        const points = (mop.points || []).filter((pt) => null == (pt && pt.select && pt.select['$action']));
-        const items = points.filter((pt) => {
-            const segs = (pt && pt.segments) || [];
-            return null != segs[segs.length - 1]?.var;
-        });
-        const point = items[0] || points[0];
-        if (null == point) {
-            continue;
-        }
-        // Walk back from the end, collecting variables until a literal stops
-        // the run. That literal is the sub-collection boundary; anything before
-        // it scopes this record rather than naming it.
-        const segs = (point.segments || []).filter((s) => null != s);
-        const run = [];
-        for (let i = segs.length - 1; 0 <= i; i--) {
-            const seg = segs[i];
-            if (null == seg.var) {
-                break;
+        // Action points are verbs dispatched by `$action`, not addresses.
+        for (const pt of (mop.points || [])) {
+            if (null != pt?.select?.['$action']) {
+                continue;
             }
-            run.unshift(String(seg.var));
-        }
-        if (0 < run.length) {
-            return run;
+            const run = trailingVars(pt);
+            if (0 === run.length) {
+                continue;
+            }
+            cands.push({
+                run,
+                // Segments BEFORE the run: how much parent scope the route needs.
+                scope: ((pt.segments || []).length - run.length),
+                order: o,
+            });
         }
     }
-    return [];
+    // WHICH ROUTE IS THE RECORD'S OWN ADDRESS.
+    //
+    // An entity gathers every route that reads it, and in a large
+    // specification most of those are sub-resources. Three earlier rules were
+    // measured against the validation corpus, and each is wrong:
+    //
+    //   The FIRST route listed gave github's `repo` the single part
+    //   `subject_digest`, from
+    //   `/repos/{owner}/{repo}/attestations/{subject_digest}` — no compound
+    //   key at all, for the entity this feature exists for. Invisible on a
+    //   small spec, where the first item route IS the record's own.
+    //
+    //   The SHORTEST route ending in a variable took cloudsmith's
+    //   `/vulnerabilities/{owner}/` — a LIST of an owner's vulnerabilities —
+    //   and cut a four-part key down to `owner`, dropping three more
+    //   composites. Ending in a variable does not make a route an address.
+    //
+    //   The LONGEST trailing run took
+    //   `/orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}` and made a TEAM
+    //   identified by `owner/repo`. A deep sub-resource can carry more
+    //   adjacent variables than the record's own route does.
+    //
+    // What separates them is PARENT SCOPE: the record's own route is the
+    // least-qualified one that names it, and among equally-qualified routes
+    // the one carrying the fullest key. `/repos/{owner}/{repo}` is qualified
+    // by one segment and the attestations route by four; `/teams/{team_id}`
+    // by one and the org-team-repo route by five; cloudsmith's vulnerability
+    // routes are all qualified by one, so the fullest of them wins.
+    const best = cands.reduce((b, c) => {
+        if (null == b) {
+            return c;
+        }
+        if (c.scope !== b.scope) {
+            return c.scope < b.scope ? c : b;
+        }
+        if (c.run.length !== b.run.length) {
+            return b.run.length < c.run.length ? c : b;
+        }
+        return c.order < b.order ? c : b;
+    }, null);
+    return null == best ? [] : best.run;
 }
 // Is this model field declared as a string? A composite id is the parts
 // joined, so the field that holds it has to be one.

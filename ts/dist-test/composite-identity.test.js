@@ -52,6 +52,31 @@ async function run(name, path, fields = [], guide, model) {
     await (0, field_1.fieldTransform)(ctx);
     return ent;
 }
+// An entity with SEVERAL read routes, which is what a large specification
+// actually produces.
+async function runPoints(name, paths, model) {
+    const ent = {
+        name,
+        fields: [],
+        op: {
+            load: {
+                points: paths.map((path) => ({
+                    orig: '/' + path.join('/'),
+                    method: 'GET',
+                    segments: seg(...path),
+                })),
+            },
+        },
+    };
+    const apimodel = { main: { kit: { entity: { [name]: ent } } } };
+    const def = { paths: {} };
+    for (const path of paths) {
+        def.paths['/' + path.join('/')] =
+            { get: { responses: { '200': { content: {} } } } };
+    }
+    await (0, field_1.fieldTransform)({ apimodel, def, guide: undefined, model });
+    return ent;
+}
 (0, node_test_1.describe)('composite-identity', () => {
     // /repos/{owner}/{repo} — two variables with nothing between them address
     // no sub-collection, so only the pair identifies a repository.
@@ -70,6 +95,47 @@ async function run(name, path, fields = [], guide, model) {
     (0, node_test_1.test)('a trailing literal yields no parts', async () => {
         const ent = await run('geo', ['api', 'geo', '{id}', 'graphql']);
         node_assert_1.default.equal(ent.id?.parts, undefined);
+    });
+    // THE RECORD'S OWN ROUTE DECIDES, not the first one listed. github's repo
+    // carries `/repos/{owner}/{repo}/attestations/{subject_digest}` ahead of
+    // `/repos/{owner}/{repo}`, and reading the first gave the entity the single
+    // part `subject_digest` — no compound key at all, for the case this feature
+    // exists for. A one-path fixture cannot catch that: the defect only appears
+    // once an entity has more than one read route, which is every entity in a
+    // real specification.
+    (0, node_test_1.test)('the least-qualified record route decides the parts', async () => {
+        const ent = await runPoints('repo', [
+            ['repos', '{owner}', '{repo}', 'attestations', '{subject_digest}'],
+            ['repos', '{owner}', '{repo}', 'contents', '{path}'],
+            ['repos', '{owner}', '{repo}'],
+            ['repos', '{owner}', '{repo}', 'collaborators', '{username}'],
+        ]);
+        node_assert_1.default.deepStrictEqual(ent.id.parts, ['owner', 'repo']);
+    });
+    // And a route ending in a literal never wins: it is a verb on the record,
+    // not the record's address.
+    (0, node_test_1.test)('a non-record route does not win', async () => {
+        const ent = await runPoints('repo', [
+            ['repos', '{owner}', '{repo}', 'forks'],
+            ['repos', '{owner}', '{repo}'],
+        ]);
+        node_assert_1.default.deepStrictEqual(ent.id.parts, ['owner', 'repo']);
+    });
+    // ENDING IN A VARIABLE IS NOT ENOUGH. cloudsmith reads an owner's
+    // vulnerabilities from `/vulnerabilities/{owner}/` — a LIST, by any
+    // measure the shortest route here that ends in a variable. Preferring the
+    // shortest such route (the first attempt at the rule above) cut this
+    // four-part key down to `owner` and dropped three more composites across
+    // the validation corpus. The record's address is the route that carries
+    // its whole key, so the longest run wins.
+    (0, node_test_1.test)('a shorter list route does not beat the full address', async () => {
+        const ent = await runPoints('vulnerability', [
+            ['vulnerabilities', '{owner}'],
+            ['vulnerabilities', '{owner}', '{repo}'],
+            ['vulnerabilities', '{owner}', '{repo}', '{package}', '{identifier}'],
+            ['vulnerabilities', '{owner}', '{repo}', '{package}'],
+        ]);
+        node_assert_1.default.deepStrictEqual(ent.id.parts, ['owner', 'repo', 'package', 'identifier']);
     });
     (0, node_test_1.test)('three adjacent parameters compose in path order', async () => {
         const ent = await run('entitlement', ['entitlements', '{owner}', '{repo}', '{identifier}']);

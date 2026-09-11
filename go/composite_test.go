@@ -326,3 +326,95 @@ func TestDeepCopyMapSurvivesDeletionOnTheOriginal(t *testing.T) {
 		t.Errorf("copy shared the op map: %v", cop)
 	}
 }
+
+// THE RECORD'S OWN ROUTE DECIDES — the least-qualified route that names it.
+// Mirrors the TS cases in ts/test/composite-identity.test.ts. A one-route
+// fixture cannot catch this: the defect appears only once an entity has
+// several read routes, which every entity in a real specification does.
+func TestIdentityParamsPrefersTheRecordsOwnRoute(t *testing.T) {
+	ent := map[string]any{
+		"name": "repo",
+		"op": map[string]any{
+			"load": map[string]any{
+				"points": []any{
+					// A sub-resource first, as github's spec orders them.
+					map[string]any{"segments": segTyped(
+						lit("repos"), vr("owner"), vr("repo"),
+						lit("attestations"), vr("subject_digest"))},
+					// A verb on the record: shorter, but not an address.
+					map[string]any{"segments": segTyped(
+						lit("repos"), vr("owner"), vr("repo"), lit("forks"))},
+					// The record's own route.
+					map[string]any{"segments": segTyped(
+						lit("repos"), vr("owner"), vr("repo"))},
+					map[string]any{"segments": segTyped(
+						lit("repos"), vr("owner"), vr("repo"),
+						lit("collaborators"), vr("username"))},
+				},
+			},
+		},
+	}
+
+	got := identityParams(ent)
+	if 2 != len(got) || "owner" != got[0] || "repo" != got[1] {
+		t.Errorf("got %v, want [owner repo]", got)
+	}
+}
+
+// ENDING IN A VARIABLE IS NOT ENOUGH. cloudsmith reads an owner's
+// vulnerabilities from /vulnerabilities/{owner}/ — a LIST, and the shortest
+// route here that ends in a variable. Among routes at the SAME parent scope
+// the fullest key wins, so the four-part address does.
+func TestIdentityParamsFullestKeyAtEqualScope(t *testing.T) {
+	ent := map[string]any{
+		"name": "vulnerability",
+		"op": map[string]any{
+			"load": map[string]any{"points": []any{
+				map[string]any{"segments": segTyped(
+					lit("vulnerabilities"), vr("owner"))},
+				map[string]any{"segments": segTyped(
+					lit("vulnerabilities"), vr("owner"), vr("repo"))},
+				map[string]any{"segments": segTyped(
+					lit("vulnerabilities"), vr("owner"), vr("repo"),
+					vr("package"), vr("identifier"))},
+			}},
+		},
+	}
+
+	got := identityParams(ent)
+	want := []string{"owner", "repo", "package", "identifier"}
+	if len(got) != len(want) {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("part %d = %q, want %q", i, got[i], want[i])
+		}
+	}
+}
+
+// EVERY ID-BEARING OP IS COMPARED, not just the first with a candidate.
+// gitlab's project carries /api/v4/projects/{id} under `remove` alone, while
+// its `load` has only sub-resources — so stopping at `load` made a PROJECT
+// identified by `secret/filename`.
+func TestIdentityParamsComparesAcrossOps(t *testing.T) {
+	ent := map[string]any{
+		"name": "project",
+		"op": map[string]any{
+			"load": map[string]any{"points": []any{
+				map[string]any{"segments": segTyped(
+					lit("api"), lit("v4"), lit("projects"), vr("id"),
+					lit("uploads"), vr("secret"), vr("filename"))},
+			}},
+			"remove": map[string]any{"points": []any{
+				map[string]any{"segments": segTyped(
+					lit("api"), lit("v4"), lit("projects"), vr("id"))},
+			}},
+		},
+	}
+
+	got := identityParams(ent)
+	if 1 != len(got) || "id" != got[0] {
+		t.Errorf("got %v, want [id] — the record's own route", got)
+	}
+}

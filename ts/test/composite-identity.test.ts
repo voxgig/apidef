@@ -66,6 +66,36 @@ async function run(
 }
 
 
+// An entity with SEVERAL read routes, which is what a large specification
+// actually produces.
+async function runPoints(name: string, paths: string[][], model?: any) {
+  const ent: any = {
+    name,
+    fields: [],
+    op: {
+      load: {
+        points: paths.map((path: string[]) => ({
+          orig: '/' + path.join('/'),
+          method: 'GET',
+          segments: seg(...path),
+        })),
+      },
+    },
+  }
+
+  const apimodel = { main: { kit: { entity: { [name]: ent } } } }
+  const def: any = { paths: {} }
+  for (const path of paths) {
+    def.paths['/' + path.join('/')] =
+      { get: { responses: { '200': { content: {} } } } }
+  }
+
+  await fieldTransform({ apimodel, def, guide: undefined, model } as any)
+
+  return ent
+}
+
+
 describe('composite-identity', () => {
 
   // /repos/{owner}/{repo} — two variables with nothing between them address
@@ -93,6 +123,57 @@ describe('composite-identity', () => {
     const ent = await run('geo', ['api', 'geo', '{id}', 'graphql'])
 
     assert.equal(ent.id?.parts, undefined)
+  })
+
+
+  // THE RECORD'S OWN ROUTE DECIDES, not the first one listed. github's repo
+  // carries `/repos/{owner}/{repo}/attestations/{subject_digest}` ahead of
+  // `/repos/{owner}/{repo}`, and reading the first gave the entity the single
+  // part `subject_digest` — no compound key at all, for the case this feature
+  // exists for. A one-path fixture cannot catch that: the defect only appears
+  // once an entity has more than one read route, which is every entity in a
+  // real specification.
+  test('the least-qualified record route decides the parts', async () => {
+    const ent = await runPoints('repo', [
+      ['repos', '{owner}', '{repo}', 'attestations', '{subject_digest}'],
+      ['repos', '{owner}', '{repo}', 'contents', '{path}'],
+      ['repos', '{owner}', '{repo}'],
+      ['repos', '{owner}', '{repo}', 'collaborators', '{username}'],
+    ])
+
+    assert.deepStrictEqual(ent.id.parts, ['owner', 'repo'])
+  })
+
+
+  // And a route ending in a literal never wins: it is a verb on the record,
+  // not the record's address.
+  test('a non-record route does not win', async () => {
+    const ent = await runPoints('repo', [
+      ['repos', '{owner}', '{repo}', 'forks'],
+      ['repos', '{owner}', '{repo}'],
+    ])
+
+    assert.deepStrictEqual(ent.id.parts, ['owner', 'repo'])
+  })
+
+
+  // ENDING IN A VARIABLE IS NOT ENOUGH. cloudsmith reads an owner's
+  // vulnerabilities from `/vulnerabilities/{owner}/` — a LIST, by any
+  // measure the shortest route here that ends in a variable. Preferring the
+  // shortest such route (the first attempt at the rule above) cut this
+  // four-part key down to `owner` and dropped three more composites across
+  // the validation corpus. The record's address is the route that carries
+  // its whole key, so the longest run wins.
+  test('a shorter list route does not beat the full address', async () => {
+    const ent = await runPoints('vulnerability', [
+      ['vulnerabilities', '{owner}'],
+      ['vulnerabilities', '{owner}', '{repo}'],
+      ['vulnerabilities', '{owner}', '{repo}', '{package}', '{identifier}'],
+      ['vulnerabilities', '{owner}', '{repo}', '{package}'],
+    ])
+
+    assert.deepStrictEqual(ent.id.parts,
+      ['owner', 'repo', 'package', 'identifier'])
   })
 
 
