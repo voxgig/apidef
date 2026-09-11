@@ -266,6 +266,10 @@ type GuideEntity = {
     parts?: string[]
     sep?: string
     composite?: boolean
+    // Corrects WHERE A PART LIVES in a response, per part, so a spec can fix
+    // one mapping without restating the others — the heuristic gets most of
+    // them right and the odd one wrong.
+    from?: Record<string, string>
   }
 
   name: string

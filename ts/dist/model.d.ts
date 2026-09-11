@@ -121,6 +121,7 @@ type ModelEntity = {
         field: string;
         parts?: string[];
         sep?: string;
+        from?: Record<string, string>;
     };
     relations: ModelEntityRelations;
 };
