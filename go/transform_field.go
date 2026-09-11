@@ -132,6 +132,60 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 					}
 					idMap["from"] = fromAny
 				}
+
+				// THE FIELD THE DESCRIPTOR POINTS AT, mirroring the TS port.
+				//
+				// A composite entity need not expose an `id` of its own —
+				// github's repo response carries `owner` and `name`, not
+				// `id`. Attaching the metadata while leaving `fields` without
+				// the field made the descriptor name something that does not
+				// exist, so Go-generated types diverged from TS for the
+				// primary {owner}/{repo} case.
+				//
+				// And where an `id` DOES exist it is typically the API's own
+				// numeric id, while the composite identity is a joined
+				// string, so the declaration is corrected — along with the
+				// spec facts that described the old type, which would
+				// otherwise contradict it.
+				fields, _ := mentMap["fields"].([]any)
+				var idField map[string]any
+				for _, fv := range fields {
+					f, _ := fv.(map[string]any)
+					if f == nil {
+						continue
+					}
+					if n, _ := f["name"].(string); "id" == n {
+						idField = f
+						break
+					}
+				}
+
+				if idField == nil {
+					fields = append(fields, map[string]any{
+						"name": "id",
+						"type": "`$STRING`",
+						"req":  false,
+					})
+					sort.Slice(fields, func(i, j int) bool {
+						fi, _ := fields[i].(map[string]any)
+						fj, _ := fields[j].(map[string]any)
+						ni, _ := fi["name"].(string)
+						nj, _ := fj["name"].(string)
+						return ni < nj
+					})
+					mentMap["fields"] = fields
+				} else if !strings.Contains(
+					strings.ToUpper(fmt.Sprint(idField["type"])), "STRING") {
+					idField["type"] = "`$STRING`"
+					delete(idField, "format")
+					if opOverrides, ok := idField["op"].(map[string]any); ok {
+						for _, on := range sortedKeys(opOverrides) {
+							if ov, ok := opOverrides[on].(map[string]any); ok {
+								delete(ov, "type")
+							}
+						}
+					}
+				}
 			}
 		}
 
@@ -284,55 +338,23 @@ func scalarFieldType(f map[string]any) bool {
 }
 
 // identityFrom maps each composite part to the response path carrying it.
-// Mirrors src/transform/field.ts identityFrom — same four rules, same order.
+// Mirrors src/transform/field.ts identityFrom — the response schema is the
+// authority, envelopes are descended, and a renamed parameter is looked up
+// under its wire name too.
 func identityFrom(
 	mentMap map[string]any, parts []string, def map[string]any,
 ) map[string]string {
-	byName := map[string]map[string]any{}
-	if fields, ok := mentMap["fields"].([]any); ok {
-		for _, fv := range fields {
-			if f, ok := fv.(map[string]any); ok {
-				if n, ok := f["name"].(string); ok {
-					byName[n] = f
-				}
-			}
-		}
-	}
-
+	candidates := responseCandidates(mentMap, def)
 	entname, _ := mentMap["name"].(string)
 	out := map[string]string{}
 
 	for _, part := range parts {
-		own, hasOwn := byName[part]
+		aliases := partAliases(mentMap, part)
 
-		if hasOwn && scalarFieldType(own) {
-			out[part] = part
-			continue
-		}
-
-		if part == entname {
-			if named, ok := byName["name"]; ok && scalarFieldType(named) {
-				out[part] = "name"
-				continue
-			}
-		}
-
-		found := ""
-		for _, suffix := range []string{"_name", "_login", "_slug"} {
-			cand := part + suffix
-			if f, ok := byName[cand]; ok && scalarFieldType(f) {
-				found = cand
+		for _, props := range candidates {
+			if found := resolvePart(entname, part, aliases, props, def); "" != found {
+				out[part] = found
 				break
-			}
-		}
-		if "" != found {
-			out[part] = found
-			continue
-		}
-
-		if hasOwn && !scalarFieldType(own) {
-			if sub := nestedIdKey(mentMap, part, def); "" != sub {
-				out[part] = part + "." + sub
 			}
 		}
 	}
@@ -340,15 +362,127 @@ func identityFrom(
 	return out
 }
 
-// nestedIdKey reads the conventional identifying subfield of a nested object
-// field out of the spec's own response schema. Mirrors nestedIdKey /
-// nestedProps / findResponseSchema in src/transform/field.ts.
-func nestedIdKey(mentMap map[string]any, part string, def map[string]any) string {
-	props := nestedProps(mentMap, part, def)
+// partAliases lists every name a part might be carried under: the model's
+// name plus the original wire name of any parameter renamed to it. Mirrors
+// partAliases in src/transform/field.ts.
+func partAliases(mentMap map[string]any, part string) []string {
+	names := []string{part}
+	seen := map[string]bool{part: true}
+
+	opMap, _ := mentMap["op"].(map[string]any)
+	for _, opname := range sortedKeys(opMap) {
+		mop, _ := opMap[opname].(map[string]any)
+		if mop == nil {
+			continue
+		}
+		points, _ := mop["points"].([]any)
+		for _, pv := range points {
+			pt, _ := pv.(map[string]any)
+			if pt == nil {
+				continue
+			}
+			if rename, ok := pt["rename"].(map[string]any); ok {
+				if rp, ok := rename["param"].(map[string]any); ok {
+					for _, orig := range sortedKeys(rp) {
+						if fmt.Sprint(rp[orig]) == part && !seen[orig] {
+							seen[orig] = true
+							names = append(names, orig)
+						}
+					}
+				}
+			}
+			args, _ := pt["args"].(map[string]any)
+			if args == nil {
+				continue
+			}
+			params, _ := args["params"].([]any)
+			for _, av := range params {
+				arg, _ := av.(map[string]any)
+				if arg == nil {
+					continue
+				}
+				if n, _ := arg["name"].(string); n == part {
+					if o, _ := arg["orig"].(string); "" != o && !seen[o] {
+						seen[o] = true
+						names = append(names, o)
+					}
+				}
+			}
+		}
+	}
+
+	return names
+}
+
+// resolvePart finds where one part is carried in a property map, or "".
+// Mirrors resolvePart in src/transform/field.ts — same four rules, same order.
+func resolvePart(
+	entname string, part string, aliases []string,
+	props map[string]any, def map[string]any,
+) string {
 	if props == nil {
 		return ""
 	}
 
+	prop := func(name string) map[string]any {
+		return resolveSchemaRef(toMap(props[name]), def)
+	}
+	scalar := func(p map[string]any) bool {
+		if p == nil {
+			return false
+		}
+		t := fmt.Sprint(p["type"])
+		if "object" == t || "array" == t {
+			return false
+		}
+		if _, has := p["properties"]; has {
+			return false
+		}
+		if _, has := p["items"]; has {
+			return false
+		}
+		return true
+	}
+
+	for _, name := range aliases {
+		if scalar(prop(name)) {
+			return name
+		}
+	}
+
+	if part == entname && scalar(prop("name")) {
+		return "name"
+	}
+
+	for _, name := range aliases {
+		for _, suffix := range []string{"_name", "_login", "_slug"} {
+			if scalar(prop(name + suffix)) {
+				return name + suffix
+			}
+		}
+	}
+
+	for _, name := range aliases {
+		nested := prop(name)
+		if nested == nil {
+			continue
+		}
+		if np, ok := nested["properties"].(map[string]any); ok && np != nil {
+			if sub := nestedIdKey(np); "" != sub {
+				return name + "." + sub
+			}
+		}
+	}
+
+	return ""
+}
+
+// nestedIdKey reads the conventional identifying subfield of a nested object
+// field out of the spec's own response schema. Mirrors nestedIdKey /
+// nestedProps / findResponseSchema in src/transform/field.ts.
+// nestedIdKey reads the conventional identifying subfield of a property map.
+// Mirrors conventionalIdKey in src/transform/field.ts.
+func nestedIdKey(props map[string]any) string {
 	for _, key := range nestedIdKeys {
 		pv, ok := props[key].(map[string]any)
 		if !ok || pv == nil {
@@ -363,11 +497,62 @@ func nestedIdKey(mentMap map[string]any, part string, def map[string]any) string
 	return ""
 }
 
-func nestedProps(mentMap map[string]any, part string, def map[string]any) map[string]any {
-	opMap, _ := mentMap["op"].(map[string]any)
-	if opMap == nil {
-		return nil
+// responseCandidates returns the property maps a response could be describing,
+// best first. Mirrors responseCandidates in src/transform/field.ts.
+//
+// BOTH SPEC VERSIONS: an OpenAPI 3 response carries its schema under
+// content["application/json"], a SWAGGER 2 response directly as "schema".
+// Reading only the first meant no schema resolved at all for every Swagger 2
+// specification, and a nested part could never obtain its mapping — while the
+// TS port reads both, so the ports disagreed.
+//
+// AND THE ENVELOPE: a response that wraps the record states the record's
+// fields one level in, so each object- or array-valued property is offered as
+// a further candidate.
+func responseCandidates(mentMap map[string]any, def map[string]any) []map[string]any {
+	out := []map[string]any{}
+	seen := map[string]bool{}
+
+	add := func(schema any) {
+		node := resolveSchemaRef(toMap(schema), def)
+		if node == nil {
+			return
+		}
+		key := fmt.Sprintf("%p", node)
+		if seen[key] {
+			return
+		}
+		seen[key] = true
+
+		if props, ok := node["properties"].(map[string]any); ok && props != nil {
+			out = append(out, props)
+
+			for _, pk := range sortedKeys(props) {
+				inner := resolveSchemaRef(toMap(props[pk]), def)
+				if inner == nil {
+					continue
+				}
+				if ip, ok := inner["properties"].(map[string]any); ok && ip != nil {
+					out = append(out, ip)
+				}
+				if items := resolveSchemaRef(toMap(inner["items"]), def); items != nil {
+					if ip, ok := items["properties"].(map[string]any); ok && ip != nil {
+						out = append(out, ip)
+					}
+				}
+			}
+			return
+		}
+
+		if items := resolveSchemaRef(toMap(node["items"]), def); items != nil {
+			if ip, ok := items["properties"].(map[string]any); ok && ip != nil {
+				out = append(out, ip)
+			}
+		}
 	}
+
+	opMap, _ := mentMap["op"].(map[string]any)
+	paths, _ := def["paths"].(map[string]any)
 
 	for _, opname := range []string{"load", "list", "update", "create"} {
 		mop, _ := opMap[opname].(map[string]any)
@@ -380,26 +565,42 @@ func nestedProps(mentMap map[string]any, part string, def map[string]any) map[st
 			if pt == nil {
 				continue
 			}
-			schema := findResponseSchema(pt, def)
-			if schema == nil {
+			orig, _ := pt["orig"].(string)
+			pathItem, _ := paths[orig].(map[string]any)
+			if pathItem == nil {
 				continue
 			}
-			sprops, _ := schema["properties"].(map[string]any)
-			if sprops == nil {
+			opItem, _ := pathItem[strings.ToLower(fmt.Sprint(pt["method"]))].(map[string]any)
+			if opItem == nil {
 				continue
 			}
-			prop, _ := sprops[part].(map[string]any)
-			resolved := resolveSchemaRef(prop, def)
-			if resolved == nil {
-				continue
-			}
-			if rprops, ok := resolved["properties"].(map[string]any); ok && rprops != nil {
-				return rprops
+			responses, _ := opItem["responses"].(map[string]any)
+			for _, code := range sortedKeys(responses) {
+				if !strings.HasPrefix(code, "2") {
+					continue
+				}
+				resp, _ := responses[code].(map[string]any)
+				if resp == nil {
+					continue
+				}
+				if content, ok := resp["content"].(map[string]any); ok {
+					for _, ctype := range sortedKeys(content) {
+						cv, _ := content[ctype].(map[string]any)
+						add(cv["schema"])
+					}
+				}
+				// Swagger 2 puts it here.
+				add(resp["schema"])
 			}
 		}
 	}
 
-	return nil
+	return out
+}
+
+func toMap(v any) map[string]any {
+	m, _ := v.(map[string]any)
+	return m
 }
 
 func resolveSchemaRef(schema map[string]any, def map[string]any) map[string]any {
@@ -424,54 +625,6 @@ func resolveSchemaRef(schema map[string]any, def map[string]any) map[string]any 
 	}
 	out, _ := node.(map[string]any)
 	return out
-}
-
-func findResponseSchema(pt map[string]any, def map[string]any) map[string]any {
-	paths, _ := def["paths"].(map[string]any)
-	if paths == nil {
-		return nil
-	}
-	orig, _ := pt["orig"].(string)
-	pathItem, _ := paths[orig].(map[string]any)
-	if pathItem == nil {
-		return nil
-	}
-	method := strings.ToLower(fmt.Sprint(pt["method"]))
-	opItem, _ := pathItem[method].(map[string]any)
-	if opItem == nil {
-		return nil
-	}
-	responses, _ := opItem["responses"].(map[string]any)
-	if responses == nil {
-		return nil
-	}
-
-	for _, code := range sortedKeys(responses) {
-		if !strings.HasPrefix(code, "2") {
-			continue
-		}
-		resp, _ := responses[code].(map[string]any)
-		content, _ := resp["content"].(map[string]any)
-		for _, ctype := range sortedKeys(content) {
-			cv, _ := content[ctype].(map[string]any)
-			sch, _ := cv["schema"].(map[string]any)
-			resolved := resolveSchemaRef(sch, def)
-			if resolved == nil {
-				continue
-			}
-			if p, ok := resolved["properties"].(map[string]any); ok && p != nil {
-				return resolved
-			}
-			items, _ := resolved["items"].(map[string]any)
-			if ir := resolveSchemaRef(items, def); ir != nil {
-				if p, ok := ir["properties"].(map[string]any); ok && p != nil {
-					return ir
-				}
-			}
-		}
-	}
-
-	return nil
 }
 
 // identityParams returns the ordered path parameters that address ONE record

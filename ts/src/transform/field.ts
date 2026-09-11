@@ -87,6 +87,28 @@ const fieldTransform: Transform = async function(
 
     const idField = fields.find((f: ModelField) => 'id' === f.name)
 
+    // A COMPOSITE ID IS A STRING, whatever the API's own `id` field is.
+    //
+    // github's repo declares `id` as an integer — its global database id —
+    // while the composite identity is `owner/repo`. Leaving the field typed
+    // as a number made `id.field` point at a declaration the runtime value
+    // cannot satisfy, so every generated type disagreed with what the SDK
+    // actually stores. The API's own numeric id is not lost: consumers keep
+    // it under a provider-specific name.
+    if (null != composite.parts && null != idField && !scalarStringField(idField)) {
+      const idf: any = idField
+      idf.type = '`$STRING`'
+
+      // AND THE FACTS THAT DESCRIBED THE OLD TYPE. `format: 'int64'` beside a
+      // string, or a per-op `type` override still saying integer, is a model
+      // that contradicts itself — and the op override is what a generator
+      // reads for that op, so leaving it would keep emitting the number.
+      delete idf.format
+      for (const opname of Object.keys(idf.op || {})) {
+        delete idf.op[opname].type
+      }
+    }
+
     if (null != composite.parts && null == idField) {
       // The FIELD as well as the descriptor, for the reason the branch below
       // documents: a model that declares the descriptor without the field
@@ -100,7 +122,23 @@ const fieldTransform: Transform = async function(
         a.name < b.name ? -1 : a.name > b.name ? 1 : 0)
     }
 
-    if (idField || null != composite.parts) {
+    const singleKey = (composite as any).single
+    delete (composite as any).single
+
+    if (null == idField && null != singleKey && null == composite.parts) {
+      // The guide disabled composite; the terminal parameter is the key, and
+      // the entity needs the field to carry it for the same reason the
+      // composite branch above does.
+      fields.push({
+        name: 'id',
+        type: '`$STRING`',
+        req: false,
+      } as any)
+      fields.sort((a: ModelField, b: ModelField) =>
+        a.name < b.name ? -1 : a.name > b.name ? 1 : 0)
+    }
+
+    if (idField || null != composite.parts || null != singleKey) {
       ment.id = { name: 'id', field: 'id', ...composite }
     }
     else if (addressedById(ment)) {
@@ -236,6 +274,12 @@ function identityParams(ment: ModelEntity): string[] {
 const NESTED_ID_KEYS = ['login', 'slug', 'name', 'key', 'id']
 
 
+// Is this model field declared as a string?
+function scalarStringField(f: any): boolean {
+  return String(f?.type || '').toUpperCase().includes('STRING')
+}
+
+
 // Is this model field a scalar, i.e. can its value be a path segment?
 function scalarField(f: any): boolean {
   const t = String(f?.type || '').toUpperCase()
@@ -269,42 +313,40 @@ function identityFrom(
   parts: string[],
   def: any,
 ): Record<string, string> {
-  const fields: any[] = (ment.fields || []) as any[]
-  const byName = new Map<string, any>(fields.map((f: any) => [f.name, f]))
+  // THE RESPONSE SCHEMA IS THE AUTHORITY, not `ment.fields`.
+  //
+  // `ment.fields` is merged across load, create, update and list, so a part
+  // that exists only in a REQUEST BODY appears there too. Resolving against
+  // it recorded such a part in `from` as though a returned record carried it,
+  // and a consumer then rebuilt an id from a property the response never
+  // sends — worse than leaving the part unresolved, which at least says so.
+  //
+  // Candidate property maps, in order: the response's own properties, then
+  // one level into an envelope. A response that wraps the record
+  // (`{ item: {...} }`, `{ data: [ {...} ] }`) states the record's fields one
+  // level in, and searching only the wrapper found nothing.
+  const candidates = responseCandidates(ment, def)
   const out: Record<string, string> = {}
 
   for (const part of parts) {
-    const own = byName.get(part)
+    // THE WIRE NAME AS WELL AS THE MODEL NAME. `identityParams` reads the
+    // RENAMED parameter off the path segments, while a response keeps its own
+    // casing — so a `tenantKey` renamed to `tenant_key` was looked up under a
+    // name the response does not use, and the mapping was dropped for every
+    // camel-cased or depluralized parameter.
+    const aliases = partAliases(ment, part)
 
-    if (null != own && scalarField(own)) {
-      out[part] = part
-      continue
-    }
+    let found: string | null = null
 
-    if (part === ment.name) {
-      const named = byName.get('name')
-      if (null != named && scalarField(named)) {
-        out[part] = 'name'
-        continue
+    for (const props of candidates) {
+      found = resolvePart(ment, part, aliases, props, def)
+      if (null != found) {
+        break
       }
     }
 
-    const suffixed = ['_name', '_login', '_slug']
-      .map((s: string) => part + s)
-      .find((n: string) => {
-        const f = byName.get(n)
-        return null != f && scalarField(f)
-      })
-    if (null != suffixed) {
-      out[part] = suffixed
-      continue
-    }
-
-    if (null != own && !scalarField(own)) {
-      const sub = nestedIdKey(ment, part, def)
-      if (null != sub) {
-        out[part] = part + '.' + sub
-      }
+    if (null != found) {
+      out[part] = found
     }
   }
 
@@ -312,25 +354,78 @@ function identityFrom(
 }
 
 
-// The conventional identifying subfield of a nested object field, read from
-// the spec's own schema for it rather than assumed. Returns null when the
-// schema is not reachable or names none of them — the part is then simply
-// unresolved, which is the honest answer.
-function nestedIdKey(ment: ModelEntity, part: string, def: any): string | null {
-  const props = nestedProps(ment, part, def)
+// Every name a part might be carried under: the model's name for it, plus the
+// original wire names of any path parameter that was renamed to it.
+function partAliases(ment: ModelEntity, part: string): string[] {
+  const names = new Set<string>([part])
+
+  each((ment as any).op, (mop: any) => {
+    each(mop?.points, (mpoint: any) => {
+      const rename = mpoint?.rename?.param || {}
+      for (const orig of Object.keys(rename)) {
+        if (String(rename[orig]) === part) {
+          names.add(orig)
+        }
+      }
+      for (const arg of (mpoint?.args?.params || [])) {
+        if (null != arg && arg.name === part && null != arg.orig) {
+          names.add(String(arg.orig))
+        }
+      }
+    })
+  })
+
+  return [...names]
+}
+
+
+// Where one part is carried in a given property map, or null.
+//
+// The four rules, in order, each a fact the spec states: a scalar property of
+// that name; the part naming this entity, resolved to `name`; a scalar
+// `<part>_name` / `_login` / `_slug`; or an object property's conventional
+// identifying subfield.
+function resolvePart(
+  ment: ModelEntity,
+  part: string,
+  aliases: string[],
+  props: any,
+  def: any,
+): string | null {
   if (null == props) {
     return null
   }
 
-  for (const key of NESTED_ID_KEYS) {
-    const p = props[key]
-    if (null == p) {
-      continue
+  const prop = (name: string) => resolveRef(props[name], def)
+  const scalar = (p: any) =>
+    null != p && 'object' !== String(p.type) && 'array' !== String(p.type) &&
+    null == p.properties && null == p.items
+
+  for (const name of aliases) {
+    if (scalar(prop(name))) {
+      return name
     }
-    const t = String((p as any).type || '')
-    // Only a scalar can be a path segment.
-    if ('object' !== t && 'array' !== t) {
-      return key
+  }
+
+  if (part === ment.name && scalar(prop('name'))) {
+    return 'name'
+  }
+
+  for (const name of aliases) {
+    for (const suffix of ['_name', '_login', '_slug']) {
+      if (scalar(prop(name + suffix))) {
+        return name + suffix
+      }
+    }
+  }
+
+  for (const name of aliases) {
+    const nested = prop(name)
+    if (null != nested?.properties) {
+      const sub = conventionalIdKey(nested.properties)
+      if (null != sub) {
+        return name + '.' + sub
+      }
     }
   }
 
@@ -338,19 +433,16 @@ function nestedIdKey(ment: ModelEntity, part: string, def: any): string | null {
 }
 
 
-// The property map of a nested object field, from the response schema of the
-// entity's load (else list) op. Best-effort: a spec that composes the shape
-// out of allOf/oneOf may not answer, and that is handled by returning null.
-function nestedProps(ment: ModelEntity, part: string, def: any): any {
-  for (const opname of ['load', 'list', 'update', 'create']) {
-    const mop = (ment as any).op?.[opname]
-    for (const mpoint of (mop?.points || [])) {
-      const schema = findResponseSchema(mpoint, def)
-      const prop = schema?.properties?.[part]
-      const resolved = resolveRef(prop, def)
-      if (null != resolved?.properties) {
-        return resolved.properties
-      }
+// The conventional identifying subfield of a property map, or null.
+function conventionalIdKey(props: any): string | null {
+  for (const key of NESTED_ID_KEYS) {
+    const p = props[key]
+    if (null == p) {
+      continue
+    }
+    const t = String(p.type || '')
+    if ('object' !== t && 'array' !== t) {
+      return key
     }
   }
 
@@ -380,71 +472,83 @@ function resolveRef(schema: any, def: any): any {
 }
 
 
-// The 2xx response schema of a point, as the spec states it.
+// THE PROPERTY MAPS A RESPONSE COULD BE DESCRIBING, best first.
 //
-// BOTH SPEC VERSIONS, and the envelope. An OpenAPI 3 response carries the
+// Both spec versions and the envelope. An OpenAPI 3 response carries its
 // schema under `content['application/json']`; a SWAGGER 2 response carries it
-// directly as `schema`. Reading only the first meant every Swagger 2 spec —
-// cloudsmith, petstore, gitlab and dingconnect in the validation corpus —
-// resolved no schema at all, so a nested composite part silently lost its
-// `from` mapping and the id could not be rebuilt.
+// directly as `schema`. Reading only the first meant every Swagger 2 spec in
+// the validation corpus — cloudsmith, petstore, gitlab, dingconnect —
+// resolved no schema at all.
 //
-// A response that WRAPS the record in a property (or an array of them) is
-// unwrapped the same way field extraction unwraps it, so the properties this
-// searches are the record's own rather than the envelope's.
-function findResponseSchema(mpoint: any, def: any): any {
-  const path = (def?.paths || {})[mpoint?.orig]
-  const method = String(mpoint?.method || '').toLowerCase()
-  const responses = path?.[method]?.responses || {}
+// And a response that WRAPS the record states the record's fields one level
+// in: `{ item: {...} }`, `{ data: [ {...} ] }`, `{ results: [...] }`. The
+// wrapper's own properties are the envelope, not the record, so each
+// object-or-array-valued property is offered as a further candidate. Callers
+// take the first candidate that resolves the part, so an unwrapped response
+// still wins on its own properties.
+function responseCandidates(ment: ModelEntity, def: any): any[] {
+  const out: any[] = []
+  const seen = new Set<any>()
 
-  for (const code of Object.keys(responses)) {
-    if (!/^2/.test(code)) {
-      continue
+  const add = (schema: any) => {
+    const node = resolveRef(schema, def)
+    if (null == node || seen.has(node)) {
+      return
+    }
+    seen.add(node)
+
+    if (null != node.properties) {
+      out.push(node.properties)
+
+      // One level in: whatever this object wraps.
+      for (const key of Object.keys(node.properties)) {
+        const inner = resolveRef(node.properties[key], def)
+        if (null == inner) {
+          continue
+        }
+        if (null != inner.properties) {
+          out.push(inner.properties)
+        }
+        const innerItems = resolveRef(inner.items, def)
+        if (null != innerItems?.properties) {
+          out.push(innerItems.properties)
+        }
+      }
+      return
     }
 
-    const resdef = responses[code] || {}
-
-    // OpenAPI 3 content map first, then Swagger 2's direct `schema`.
-    const candidates: any[] = []
-    const content = resdef.content || {}
-    for (const ctype of Object.keys(content)) {
-      candidates.push(content[ctype]?.schema)
+    // A bare array response: the record is the item.
+    const items = resolveRef(node.items, def)
+    if (null != items?.properties) {
+      out.push(items.properties)
     }
-    candidates.push(resdef.schema)
+  }
 
-    for (const candidate of candidates) {
-      const record = unwrapRecordSchema(resolveRef(candidate, def), def)
-      if (null != record?.properties) {
-        return record
+  for (const opname of ['load', 'list', 'update', 'create']) {
+    const mop = (ment as any).op?.[opname]
+    for (const mpoint of (mop?.points || [])) {
+      const path = (def?.paths || {})[mpoint?.orig]
+      const method = String(mpoint?.method || '').toLowerCase()
+      const responses = path?.[method]?.responses || {}
+
+      for (const code of Object.keys(responses)) {
+        if (!/^2/.test(code)) {
+          continue
+        }
+        const resdef = responses[code] || {}
+
+        const content = resdef.content || {}
+        for (const ctype of Object.keys(content)) {
+          add(content[ctype]?.schema)
+        }
+
+        // Swagger 2 puts it here.
+        add(resdef.schema)
       }
     }
   }
 
-  return null
-}
-
-
-// The schema of ONE record, given whatever a response wraps it in: the schema
-// itself, an array's `items`, or a single object property holding either.
-function unwrapRecordSchema(schema: any, def: any): any {
-  const node = resolveRef(schema, def)
-  if (null == node) {
-    return null
-  }
-
-  if (null != node.properties) {
-    // An envelope is an object whose properties are the wrapper, not the
-    // record. Prefer the node itself; a caller that finds no part in it can
-    // still look one level in, which is what the loop below does.
-    return node
-  }
-
-  const items = resolveRef(node.items, def)
-  if (null != items?.properties) {
-    return items
-  }
-
-  return null
+  return out
 }
 
 
@@ -471,7 +575,17 @@ function compositeId(
   // empty `parts`, because aontu resolves an empty list to nothing and the
   // key would arrive absent — see model/guide.aon.
   if (null != gid && false === gid.composite) {
-    return {}
+    // DISABLING COMPOSITE MUST NOT DISABLE THE ID. The correction says "these
+    // adjacent parameters are not a compound key" — it does not say the
+    // record has no key. `/artifacts/{artifact_id}/{archive_format}` is still
+    // addressed by an artifact id, and returning a bare `{}` left an entity
+    // whose response has no literal `id` with no descriptor at all: the
+    // false positive was removed and nothing identified the real key.
+    //
+    // The terminal parameter is that key, which is what the single-key path
+    // would have chosen had the run never been adjacent.
+    const single = identityParams(ment)
+    return { single: 0 < single.length ? single[single.length - 1] : undefined } as any
   }
 
   // `from` STATED IN guide.aon WINS PER PART, so a spec can correct one

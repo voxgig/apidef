@@ -136,3 +136,84 @@ func TestCompositeIdGuideOverride(t *testing.T) {
 		t.Errorf("inferred parts with stated from: got %v, want owner=owner.login", from)
 	}
 }
+
+// `from` resolution reads the RESPONSE schema, in both spec dialects, and
+// descends an envelope. Mirrors identityFrom in src/transform/field.ts.
+//
+// Each of these was a real parity gap: the Go resolver read only OpenAPI 3's
+// `content`, so every Swagger 2 specification resolved no schema at all.
+func TestIdentityFromSpecDialectsAndEnvelope(t *testing.T) {
+	repoSchema := map[string]any{
+		"properties": map[string]any{
+			"name":  map[string]any{"type": "string"},
+			"owner": map[string]any{"properties": map[string]any{"login": map[string]any{"type": "string"}}},
+		},
+	}
+
+	cases := map[string]map[string]any{
+		"openapi 3 content": {
+			"content": map[string]any{
+				"application/json": map[string]any{"schema": repoSchema},
+			},
+		},
+		"swagger 2 direct schema": {
+			"schema": repoSchema,
+		},
+		"envelope one level in": {
+			"schema": map[string]any{
+				"properties": map[string]any{"item": repoSchema},
+			},
+		},
+	}
+
+	for name, response := range cases {
+		def := map[string]any{"paths": map[string]any{
+			"/repos/{owner}/{repo}": map[string]any{
+				"get": map[string]any{"responses": map[string]any{"200": response}},
+			},
+		}}
+
+		ent := entWithSegments(segTyped(lit("repos"), vr("owner"), vr("repo")))
+		from := identityFrom(ent, []string{"owner", "repo"}, def)
+
+		if "owner.login" != from["owner"] {
+			t.Errorf("%s: owner -> %q, want owner.login", name, from["owner"])
+		}
+		// `repo` names the entity, so it resolves to the response's `name`.
+		if "name" != from["repo"] {
+			t.Errorf("%s: repo -> %q, want name", name, from["repo"])
+		}
+	}
+}
+
+// A renamed parameter is looked up under its WIRE name too: identityParams
+// returns the renamed name while a response keeps its own casing.
+func TestIdentityFromFollowsRenames(t *testing.T) {
+	def := map[string]any{"paths": map[string]any{
+		"/t/{tenantKey}/{repo}": map[string]any{
+			"get": map[string]any{"responses": map[string]any{"200": map[string]any{
+				"schema": map[string]any{"properties": map[string]any{
+					"tenantKey": map[string]any{"type": "string"},
+					"name":      map[string]any{"type": "string"},
+				}},
+			}}},
+		},
+	}}
+
+	ent := map[string]any{
+		"name": "repo",
+		"op": map[string]any{"load": map[string]any{"points": []any{
+			map[string]any{
+				"orig":     "/t/{tenantKey}/{repo}",
+				"method":   "GET",
+				"segments": segTyped(lit("t"), vr("tenant_key"), vr("repo")),
+				"rename":   map[string]any{"param": map[string]any{"tenantKey": "tenant_key"}},
+			},
+		}}},
+	}
+
+	from := identityFrom(ent, []string{"tenant_key", "repo"}, def)
+	if "tenantKey" != from["tenant_key"] {
+		t.Errorf("renamed part: got %q, want tenantKey", from["tenant_key"])
+	}
+}
