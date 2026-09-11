@@ -3,6 +3,44 @@ guide: entity: &: {
   active?: boolean
   name: key()
 
+  # COMPOSITE IDENTITY OVERRIDE.
+  #
+  # Some APIs address one record by several path parameters at once, with no
+  # single parameter that is the id: github needs {owner} and {repo} together
+  # to name a repository, and cloudsmith needs {owner}/{repo}/{identifier}
+  # for an entitlement. The model carries those as `id.parts`, joined by
+  # `id.sep` into the one id an SDK entity holds.
+  #
+  # apidef infers this from ADJACENT variable path segments, which is right
+  # far more often than not but cannot always be right: a trailing variable
+  # is sometimes a MODIFIER rather than part of the key. github's
+  # `/…/artifacts/{artifact_id}/{archive_format}` is the clear case —
+  # `archive_format` selects zip or tar, it does not identify the artifact —
+  # and no reading of the path alone distinguishes that from a genuine
+  # compound key.
+  #
+  # So state it here when the inference is wrong:
+  #
+  #   id: parts: [ 'owner', 'repo' ]   # this IS the compound key
+  #   id: composite: false             # it is not; the last param is the id
+  #
+  # An explicit `parts` wins over the inference. `composite: false` turns the
+  # inference off, which is what `archive_format` above wants.
+  #
+  # THE FLAG IS A BOOLEAN, NOT AN EMPTY `parts`. Writing `parts: []` reads as
+  # "no parts" but cannot work: aontu resolves an empty list to nothing, so
+  # the key arrives absent and is indistinguishable from never having been
+  # set — the inference then runs anyway. That was tried first.
+  #
+  # `sep` defaults to '/' and rarely wants changing: a slash cannot occur
+  # inside one path segment, so the join is unambiguous.
+  id?: {
+    parts?: [ &: string ]
+    sep?: string
+    composite?: boolean
+
+  }
+
   path: &: {
     active?: boolean
 

@@ -3,6 +3,7 @@
 package apidef
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 )
@@ -105,10 +106,578 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 		})
 
 		mentMap["fields"] = fields
+
+		// COMPOSITE IDENTITY. Mirrors src/transform/field.ts compositeId.
+		//
+		// Set here rather than in EntityTransform (where the rest of the id
+		// descriptor is built) because this needs the entity's POINTS, and
+		// those do not exist until OperationTransform has run. TS reaches the
+		// same place for the same reason.
+		if idMap, ok := mentMap["id"].(map[string]any); ok && idMap != nil {
+			var gent map[string]any
+			if guide, ok := ctx.Guide["entity"].(map[string]any); ok && guide != nil {
+				gent, _ = guide[entname].(map[string]any)
+			}
+			if parts, sep := compositeId(mentMap, gent); 1 < len(parts) {
+				partsAny := make([]any, len(parts))
+				for i, p := range parts {
+					partsAny[i] = p
+				}
+				idMap["parts"] = partsAny
+				idMap["sep"] = sep
+
+				// THE FIELD THE DESCRIPTOR POINTS AT, mirroring the TS port.
+				//
+				// A composite entity need not expose an `id` of its own —
+				// github's repo response carries `owner` and `name`, not
+				// `id`. Attaching the metadata while leaving `fields` without
+				// the field made the descriptor name something that does not
+				// exist, so Go-generated types diverged from TS for the
+				// primary {owner}/{repo} case.
+				//
+				// And where an `id` DOES exist it is typically the API's own
+				// numeric id, while the composite identity is a joined
+				// string, so the declaration is corrected — along with the
+				// spec facts that described the old type, which would
+				// otherwise contradict it.
+				fields, _ := mentMap["fields"].([]any)
+				var idField map[string]any
+				for _, fv := range fields {
+					f, _ := fv.(map[string]any)
+					if f == nil {
+						continue
+					}
+					if n, _ := f["name"].(string); "id" == n {
+						idField = f
+						break
+					}
+				}
+
+				if idField == nil {
+					fields = append(fields, map[string]any{
+						"name": "id",
+						"type": "`$STRING`",
+						"req":  false,
+					})
+					sort.Slice(fields, func(i, j int) bool {
+						fi, _ := fields[i].(map[string]any)
+						fj, _ := fields[j].(map[string]any)
+						ni, _ := fi["name"].(string)
+						nj, _ := fj["name"].(string)
+						return ni < nj
+					})
+					mentMap["fields"] = fields
+				} else if !strings.Contains(
+					strings.ToUpper(fmt.Sprint(idField["type"])), "STRING") {
+					idField["type"] = "`$STRING`"
+					delete(idField, "format")
+					if opOverrides, ok := idField["op"].(map[string]any); ok {
+						for _, on := range sortedKeys(opOverrides) {
+							if ov, ok := opOverrides[on].(map[string]any); ok {
+								delete(ov, "type")
+							}
+						}
+					}
+				}
+			}
+		}
+
 		msg += entname + " "
 	}
 
 	return &TransformResult{OK: true, Msg: msg}, nil
+}
+
+// IdSep joins a composite id into one string. A forward slash cannot occur
+// inside a single path segment — a literal slash in a value arrives
+// percent-encoded — so the join is never ambiguous and the split never
+// over-splits. Mirrors ID_SEP in src/transform/field.ts.
+const IdSep = "/"
+
+// compositeId returns the composite parts and separator for an entity, or an
+// empty slice for the ordinary single-key case. An explicit `id: parts` in
+// guide.aon wins over the inference, and an empty list turns it off —
+// adjacency cannot tell a compound key from a trailing modifier such as
+// github's `{artifact_id}/{archive_format}`. Mirrors src/transform/field.ts
+// compositeId.
+// WHAT `gent` CAN ACTUALLY CARRY IN THIS PORT. ctx.Guide is built from the
+// heuristic base guide alone: BuildGuide calls checkGuideOverlay, which
+// REFUSES the build outright when a project overlay is present, because
+// there is no Go aontu to apply it and silently emitting a model that
+// disagrees with the TS one is the worse failure. So an `id:` block stated in
+// guide.aon does not reach here — the build stops before it could.
+//
+// The override is read anyway, and deliberately: it keeps the two ports'
+// logic identical, so the day Go can apply an overlay this needs no change,
+// and a caller that constructs ctx.Guide itself (as the tests do) gets the
+// documented behaviour today.
+func compositeId(mentMap map[string]any, gent map[string]any) ([]string, string) {
+	var gid map[string]any
+	if gent != nil {
+		gid, _ = gent["id"].(map[string]any)
+	}
+
+	sep := IdSep
+	if gid != nil {
+		if s, ok := gid["sep"].(string); ok && "" != s {
+			sep = s
+		}
+	}
+
+	if gid != nil {
+		// `composite: false` turns the inference off. A boolean rather than an
+		// empty `parts`, because aontu resolves an empty list to nothing.
+		if c, ok := gid["composite"].(bool); ok && !c {
+			return nil, sep
+		}
+		if raw, has := gid["parts"]; has && raw != nil {
+			given := []string{}
+			if list, ok := raw.([]any); ok {
+				for _, p := range list {
+					if ps, ok := p.(string); ok && "" != ps {
+						given = append(given, ps)
+					}
+				}
+			}
+			if 1 < len(given) {
+				return given, sep
+			}
+			return nil, sep
+		}
+	}
+
+	return identityParams(mentMap), sep
+}
+
+// pointSegmentMaps reads a point's path segments, accepting both shapes the
+// pipeline produces: []map[string]any from OperationTransform, and []any from
+// the guide-derived descriptors.
+func pointSegmentMaps(point map[string]any) []map[string]any {
+	if typed, ok := point["segments"].([]map[string]any); ok {
+		return typed
+	}
+
+	loose, _ := point["segments"].([]any)
+	out := make([]map[string]any, 0, len(loose))
+	for _, seg := range loose {
+		if segMap, _ := seg.(map[string]any); segMap != nil {
+			out = append(out, segMap)
+		}
+	}
+	return out
+}
+
+// nestedIdKeys are the subfields that conventionally carry the identifying
+// value of a nested object. Mirrors NESTED_ID_KEYS in src/transform/field.ts.
+var nestedIdKeys = []string{"login", "slug", "name", "key", "id"}
+
+// scalarFieldType reports whether a model field's canon type can be a path
+// segment. Mirrors scalarField in src/transform/field.ts.
+func scalarFieldType(f map[string]any) bool {
+	t := strings.ToUpper(fmt.Sprint(f["type"]))
+	return !strings.Contains(t, "OBJECT") && !strings.Contains(t, "ARRAY") &&
+		!strings.Contains(t, "MAP") && !strings.Contains(t, "LIST")
+}
+
+// identityFrom maps each composite part to the response path carrying it.
+// Mirrors src/transform/field.ts identityFrom — the response schema is the
+// authority, envelopes are descended, and a renamed parameter is looked up
+// under its wire name too.
+func identityFrom(
+	mentMap map[string]any, parts []string, def map[string]any,
+) map[string]string {
+	candidates := responseCandidates(mentMap, def)
+	entname, _ := mentMap["name"].(string)
+	out := map[string]string{}
+
+	for _, part := range parts {
+		aliases := partAliases(mentMap, part)
+
+		for _, props := range candidates {
+			if found := resolvePart(entname, part, aliases, props, def); "" != found {
+				out[part] = found
+				break
+			}
+		}
+	}
+
+	return out
+}
+
+// partAliases lists every name a part might be carried under: the model's
+// name plus the original wire name of any parameter renamed to it. Mirrors
+// partAliases in src/transform/field.ts.
+func partAliases(mentMap map[string]any, part string) []string {
+	names := []string{part}
+	seen := map[string]bool{part: true}
+
+	opMap, _ := mentMap["op"].(map[string]any)
+	for _, opname := range sortedKeys(opMap) {
+		mop, _ := opMap[opname].(map[string]any)
+		if mop == nil {
+			continue
+		}
+		points, _ := mop["points"].([]any)
+		for _, pv := range points {
+			pt, _ := pv.(map[string]any)
+			if pt == nil {
+				continue
+			}
+			if rename, ok := pt["rename"].(map[string]any); ok {
+				if rp, ok := rename["param"].(map[string]any); ok {
+					for _, orig := range sortedKeys(rp) {
+						if fmt.Sprint(rp[orig]) == part && !seen[orig] {
+							seen[orig] = true
+							names = append(names, orig)
+						}
+					}
+				}
+			}
+			args, _ := pt["args"].(map[string]any)
+			if args == nil {
+				continue
+			}
+			params, _ := args["params"].([]any)
+			for _, av := range params {
+				arg, _ := av.(map[string]any)
+				if arg == nil {
+					continue
+				}
+				if n, _ := arg["name"].(string); n == part {
+					if o, _ := arg["orig"].(string); "" != o && !seen[o] {
+						seen[o] = true
+						names = append(names, o)
+					}
+				}
+			}
+		}
+	}
+
+	return names
+}
+
+// resolvePart finds where one part is carried in a property map, or "".
+// Mirrors resolvePart in src/transform/field.ts — same four rules, same order.
+func resolvePart(
+	entname string, part string, aliases []string,
+	props map[string]any, def map[string]any,
+) string {
+	if props == nil {
+		return ""
+	}
+
+	prop := func(name string) map[string]any {
+		return resolveSchemaRef(toMap(props[name]), def)
+	}
+	scalar := func(p map[string]any) bool {
+		if p == nil {
+			return false
+		}
+		t := fmt.Sprint(p["type"])
+		if "object" == t || "array" == t {
+			return false
+		}
+		if _, has := p["properties"]; has {
+			return false
+		}
+		if _, has := p["items"]; has {
+			return false
+		}
+		return true
+	}
+
+	for _, name := range aliases {
+		if scalar(prop(name)) {
+			return name
+		}
+	}
+
+	if part == entname && scalar(prop("name")) {
+		return "name"
+	}
+
+	for _, name := range aliases {
+		for _, suffix := range []string{"_name", "_login", "_slug"} {
+			if scalar(prop(name + suffix)) {
+				return name + suffix
+			}
+		}
+	}
+
+	for _, name := range aliases {
+		nested := prop(name)
+		if nested == nil {
+			continue
+		}
+		if np, ok := nested["properties"].(map[string]any); ok && np != nil {
+			if sub := nestedIdKey(np); "" != sub {
+				return name + "." + sub
+			}
+		}
+	}
+
+	return ""
+}
+
+// nestedIdKey reads the conventional identifying subfield of a nested object
+// field out of the spec's own response schema. Mirrors nestedIdKey /
+// nestedProps / findResponseSchema in src/transform/field.ts.
+// nestedIdKey reads the conventional identifying subfield of a property map.
+// Mirrors conventionalIdKey in src/transform/field.ts.
+func nestedIdKey(props map[string]any) string {
+	for _, key := range nestedIdKeys {
+		pv, ok := props[key].(map[string]any)
+		if !ok || pv == nil {
+			continue
+		}
+		t := fmt.Sprint(pv["type"])
+		if "object" != t && "array" != t {
+			return key
+		}
+	}
+
+	return ""
+}
+
+// responseCandidates returns the property maps a response could be describing,
+// best first. Mirrors responseCandidates in src/transform/field.ts — both spec
+// dialects, JSON where there is a choice, allOf expanded, only the envelope
+// property descended, and action points skipped.
+func responseCandidates(mentMap map[string]any, def map[string]any) []map[string]any {
+	out := []map[string]any{}
+	seen := map[string]bool{}
+
+	// Every property map a schema describes, expanding allOf.
+	var propsOf func(any) []map[string]any
+	propsOf = func(schema any) []map[string]any {
+		node := resolveSchemaRef(toMap(schema), def)
+		if node == nil {
+			return nil
+		}
+		key := fmt.Sprintf("%p", node)
+		if seen[key] {
+			return nil
+		}
+		seen[key] = true
+
+		if allOf, ok := node["allOf"].([]any); ok {
+			acc := []map[string]any{}
+			for _, member := range allOf {
+				acc = append(acc, propsOf(member)...)
+			}
+			return acc
+		}
+
+		if props, ok := node["properties"].(map[string]any); ok && props != nil {
+			return []map[string]any{props}
+		}
+
+		if items := node["items"]; items != nil {
+			return propsOf(items)
+		}
+
+		return nil
+	}
+
+	add := func(schema any, opname string) {
+		for _, props := range propsOf(schema) {
+			out = append(out, props)
+
+			// One level in, but ONLY through the envelope property: treating
+			// every nested object as a whole record produces a confidently
+			// wrong path (`tenant` instead of `metadata.tenant`).
+			envelope := envelopeProp(props, opname)
+			if "" == envelope {
+				continue
+			}
+			for _, innerProps := range propsOf(props[envelope]) {
+				out = append(out, innerProps)
+			}
+		}
+	}
+
+	opMap, _ := mentMap["op"].(map[string]any)
+	paths, _ := def["paths"].(map[string]any)
+
+	for _, opname := range []string{"load", "list", "update", "create"} {
+		mop, _ := opMap[opname].(map[string]any)
+		if mop == nil {
+			continue
+		}
+		points, _ := mop["points"].([]any)
+		for _, pv := range points {
+			pt, _ := pv.(map[string]any)
+			if pt == nil {
+				continue
+			}
+
+			// An action point's response is a verb's result, not the entity.
+			if sel, ok := pt["select"].(map[string]any); ok && sel != nil {
+				if _, has := sel["$action"]; has {
+					continue
+				}
+			}
+
+			orig, _ := pt["orig"].(string)
+			pathItem, _ := paths[orig].(map[string]any)
+			if pathItem == nil {
+				continue
+			}
+			opItem, _ := pathItem[strings.ToLower(fmt.Sprint(pt["method"]))].(map[string]any)
+			if opItem == nil {
+				continue
+			}
+			responses, _ := opItem["responses"].(map[string]any)
+			for _, code := range sortedKeys(responses) {
+				if !strings.HasPrefix(code, "2") {
+					continue
+				}
+				resp, _ := responses[code].(map[string]any)
+				if resp == nil {
+					continue
+				}
+
+				if content, ok := resp["content"].(map[string]any); ok {
+					jsonType := ""
+					for _, ctype := range sortedKeys(content) {
+						if strings.Contains(ctype, "json") {
+							jsonType = ctype
+							break
+						}
+					}
+					if "" != jsonType {
+						add(toMap(content[jsonType])["schema"], opname)
+					} else {
+						for _, ctype := range sortedKeys(content) {
+							add(toMap(content[ctype])["schema"], opname)
+						}
+					}
+				}
+
+				// Swagger 2 puts it here.
+				add(resp["schema"], opname)
+			}
+		}
+	}
+
+	return out
+}
+
+func toMap(v any) map[string]any {
+	m, _ := v.(map[string]any)
+	return m
+}
+
+func resolveSchemaRef(schema map[string]any, def map[string]any) map[string]any {
+	if schema == nil {
+		return nil
+	}
+	ref, ok := schema["$ref"].(string)
+	if !ok || !strings.HasPrefix(ref, "#/") {
+		return schema
+	}
+
+	var node any = def
+	for _, seg := range strings.Split(strings.TrimPrefix(ref, "#/"), "/") {
+		m, ok := node.(map[string]any)
+		if !ok {
+			return nil
+		}
+		node = m[seg]
+		if node == nil {
+			return nil
+		}
+	}
+	out, _ := node.(map[string]any)
+	return out
+}
+
+// identityParams returns the ordered path parameters that address ONE record
+// of this entity, read from the op that names a single record and never from
+// `list` (whose path params are the entity's parents, not its identity).
+// Mirrors src/transform/field.ts identityParams.
+func identityParams(mentMap map[string]any) []string {
+	opMap, _ := mentMap["op"].(map[string]any)
+	if opMap == nil {
+		return nil
+	}
+
+	for _, opname := range []string{"load", "update", "patch", "remove"} {
+		mop, ok := opMap[opname].(map[string]any)
+		if !ok || mop == nil {
+			continue
+		}
+
+		allPoints, _ := mop["points"].([]any)
+
+		// Action points are verbs dispatched by `$action`, not addresses.
+		points := make([]map[string]any, 0, len(allPoints))
+		for _, pt := range allPoints {
+			ptMap, _ := pt.(map[string]any)
+			if ptMap == nil {
+				continue
+			}
+			if sel, ok := ptMap["select"].(map[string]any); ok && sel != nil {
+				if _, has := sel["$action"]; has {
+					continue
+				}
+			}
+			points = append(points, ptMap)
+		}
+
+		// A point whose LAST segment is a variable is the one that addresses
+		// a record; one ending in a literal is a verb on it and carries the
+		// same variables, so it serves as a fallback.
+		var point map[string]any
+		for _, ptMap := range points {
+			segs := pointSegmentMaps(ptMap)
+			if 0 == len(segs) {
+				continue
+			}
+			last := segs[len(segs)-1]
+			if v, has := last["var"]; has && v != nil {
+				point = ptMap
+				break
+			}
+		}
+		if point == nil && 0 < len(points) {
+			point = points[0]
+		}
+		if point == nil {
+			continue
+		}
+
+		// Walk back from the end, collecting variables until a literal stops
+		// the run. That literal is the sub-collection boundary; anything
+		// before it scopes this record rather than naming it.
+		//
+		// SEGMENTS ARE []map[string]any HERE, which is what
+		// OperationTransform stores (transform_operation.go). Asserting
+		// []any instead yielded nil for every route, so the walk found no
+		// parts and Go inferred no composite identity at all — the port
+		// compiled and did nothing. Both shapes are accepted because the
+		// guide-derived path descriptors are []any.
+		segs := pointSegmentMaps(point)
+
+		run := []string{}
+		for i := len(segs) - 1; 0 <= i; i-- {
+			v, has := segs[i]["var"]
+			if !has || v == nil {
+				break
+			}
+			vs, ok := v.(string)
+			if !ok || "" == vs {
+				break
+			}
+			run = append([]string{vs}, run...)
+		}
+
+		if 0 < len(run) {
+			return run
+		}
+	}
+
+	return nil
 }
 
 func resolveOpFields(mtarget map[string]any, def map[string]any, opname string) []map[string]any {

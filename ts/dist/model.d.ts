@@ -119,6 +119,8 @@ type ModelEntity = {
     id?: {
         name: string;
         field: string;
+        parts?: string[];
+        sep?: string;
     };
     relations: ModelEntityRelations;
 };
