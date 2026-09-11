@@ -11,6 +11,7 @@
       "type": "`$STRING`"
     },
     {
+      "format": "int64",
       "name": "id",
       "req": false,
       "type": "`$INTEGER`"
@@ -31,6 +32,7 @@
       "type": "`$STRING`"
     },
     {
+      "format": "int32",
       "name": "userStatus",
       "req": false,
       "short": "User Status",

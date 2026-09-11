@@ -6,11 +6,13 @@
       "type": "`$OBJECT`"
     },
     {
+      "format": "int32",
       "name": "code",
       "req": false,
       "type": "`$INTEGER`"
     },
     {
+      "format": "int64",
       "name": "id",
       "req": false,
       "type": "`$INTEGER`"
@@ -61,7 +63,7 @@
             "params": [
               {
                 "kind": "param",
-                "name": "pet_id",
+                "name": "id",
                 "orig": "pet_id",
                 "reqd": true,
                 "type": "`$STRING`"
@@ -107,7 +109,7 @@
             "exist": [
               "additional_metadata",
               "file",
-              "pet_id"
+              "id"
             ]
           },
           "transform": {
@@ -120,7 +122,7 @@
             "params": [
               {
                 "kind": "param",
-                "name": "pet_id",
+                "name": "id",
                 "orig": "pet_id",
                 "reqd": true,
                 "type": "`$STRING`"
@@ -160,8 +162,8 @@
           ],
           "select": {
             "exist": [
+              "id",
               "name",
-              "pet_id",
               "status"
             ]
           },
@@ -280,7 +282,7 @@
             "params": [
               {
                 "kind": "param",
-                "name": "pet_id",
+                "name": "id",
                 "orig": "pet_id",
                 "reqd": true,
                 "type": "`$STRING`"
@@ -304,7 +306,7 @@
           ],
           "select": {
             "exist": [
-              "pet_id"
+              "id"
             ]
           },
           "transform": {
@@ -331,7 +333,7 @@
             "params": [
               {
                 "kind": "param",
-                "name": "pet_id",
+                "name": "id",
                 "orig": "pet_id",
                 "reqd": true,
                 "type": "`$STRING`"
@@ -356,7 +358,7 @@
           "select": {
             "exist": [
               "api_key",
-              "pet_id"
+              "id"
             ]
           },
           "transform": {

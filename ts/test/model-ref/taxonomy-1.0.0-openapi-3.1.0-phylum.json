@@ -6,6 +6,7 @@
       "type": "`$OBJECT`"
     },
     {
+      "format": "date-time",
       "name": "createdAt",
       "req": false,
       "type": "`$STRING`"
@@ -33,6 +34,7 @@
       "type": "`$STRING`"
     },
     {
+      "format": "date-time",
       "name": "updatedAt",
       "req": false,
       "type": "`$STRING`"

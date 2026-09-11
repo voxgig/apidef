@@ -6,21 +6,25 @@
       "type": "`$BOOLEAN`"
     },
     {
+      "format": "int64",
       "name": "id",
       "req": false,
       "type": "`$INTEGER`"
     },
     {
+      "format": "int64",
       "name": "petId",
       "req": false,
       "type": "`$INTEGER`"
     },
     {
+      "format": "int32",
       "name": "quantity",
       "req": false,
       "type": "`$INTEGER`"
     },
     {
+      "format": "date-time",
       "name": "shipDate",
       "req": false,
       "type": "`$STRING`"
@@ -83,7 +87,7 @@
             "params": [
               {
                 "kind": "param",
-                "name": "order_id",
+                "name": "id",
                 "orig": "order_id",
                 "reqd": true,
                 "type": "`$STRING`"
@@ -110,7 +114,7 @@
           ],
           "select": {
             "exist": [
-              "order_id"
+              "id"
             ]
           },
           "transform": {

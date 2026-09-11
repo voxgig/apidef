@@ -38,10 +38,15 @@ func EntityTransform(ctx *ApiDefContext) (*TransformResult, error) {
 		relations := BuildRelations(gentMap, pathsDesc)
 
 		modelent := map[string]any{
-			"name":      entname,
-			"op":        map[string]any{},
-			"fields":    []any{},
-			"id":        map[string]any{"name": "id", "field": "id"},
+			"name":   entname,
+			"op":     map[string]any{},
+			"fields": []any{},
+			// NO `id` HERE. FieldTransform decides whether this entity has
+			// a descriptor at all — an id field, composite parts, a
+			// guide-corrected single key, or an `id` PARAMETER on one of its
+			// own points — exactly as the canonical TS does. Initialising it
+			// unconditionally gave petstore's `store` an `id` TS does not
+			// emit, and meant this port never implemented the decision.
 			"relations": relations,
 			"alias":     map[string]any{"field": map[string]any{}},
 			"active":    true,

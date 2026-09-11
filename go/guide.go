@@ -912,12 +912,6 @@ func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any)
 
 	methodName, _ := mdesc["method"].(string)
 
-	// id needs to be t/p/
-	multParamEndMatch := PathMatch(pathStr, "p/p/")
-	if multParamEndMatch != nil {
-		return
-	}
-
 	entPaths, _ := entdesc["path"].(map[string]any)
 	pathDescEntry, _ := entPaths[pathStr].(map[string]any)
 	if pathDescEntry == nil {
@@ -952,6 +946,49 @@ func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any)
 	whyParam := whyRenameMap["why_param"].(map[string]any)
 
 	parts, _ := pathdescEntry["parts"].([]string)
+
+	// IMPLICIT SNAKE_CASE NORMALIZATION of any path placeholder the id-rename
+	// logic below does not itself rename. Mirrors applySnakeCaseRename in
+	// src/guide/heuristic01.ts, and it was missing here entirely.
+	//
+	// The args transform snake-cases a param's NAME (spec `orderId` becomes
+	// param.name `order_id`) while the path placeholder stays as written, so
+	// without this the runtime substitutes by param.name and never fills
+	// `{orderId}`. petstore's store kept `orderId` in Go and `order_id` in
+	// TS — the ports disagreed about the URL they would request.
+	applySnakeCaseRename := func() {
+		for _, part := range parts {
+			if !isParam(part) {
+				continue
+			}
+			placeholder := strings.Trim(part, "{}")
+			snake := Depluralize(Snakify(NormalizeFieldName(placeholder)))
+			if snake == placeholder {
+				continue
+			}
+			if _, has := paramRename[placeholder]; has {
+				continue
+			}
+			if whyParam[placeholder] == nil {
+				whyParam[placeholder] = []string{}
+			}
+			updateParamRename(ctx, data, pathStr, methodName,
+				paramRename, whyParam, placeholder, snake, "snake-case")
+		}
+	}
+
+	// id needs to be t/p/
+	//
+	// AFTER the rename maps exist, and the snake-case pass runs first: TS
+	// returns here with `ment.rename` SET, and Go returned before the maps
+	// were even built — so a path ending in two adjacent params carried no
+	// rename at all on this port.
+	if multParamEndMatch := PathMatch(pathStr, "p/p/"); multParamEndMatch != nil {
+		applySnakeCaseRename()
+		ment["rename"] = paramRename
+		ment["why_rename"] = whyParam
+		return
+	}
 
 	// Mirrors src/guide/heuristic01.ts:648 — `const cmpname = mdesc.cmp`.
 	// `mdesc.cmp` is read off the method descriptor *itself*, not
@@ -1093,6 +1130,8 @@ func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any)
 			oldParam, lastPart, secondLastPart, notLastPart, hasParent, parentName,
 			notExactId, probablyAnId, considerCmp, cmpname)
 	}
+
+	applySnakeCaseRename()
 
 	ment["rename"] = paramRename
 	ment["why_rename"] = whyParam
