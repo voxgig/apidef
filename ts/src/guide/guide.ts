@@ -194,8 +194,15 @@ async function buildGuide(ctx: ApiDefContext): Promise<any> {
         `  ${conflict.text}\n` +
         `A guide is merged, not overwritten, so an edit the regenerated base\n` +
         `guide contradicts is left for a human to settle. Resolve the marked\n` +
-        `block, or delete ${guideprefix}base-guide.aon to regenerate it from\n` +
-        `the specification and re-apply the edit afterwards.`))
+        `block` +
+        // DELETING ONLY HELPS FOR THE BASE GUIDE. Regeneration rewrites that
+        // file, while the top-level entry guide is the user's own and is read
+        // back unchanged — so advising its deletion would send a reader in a
+        // circle, failing this same check on the next build.
+        (checkpath === basepath ?
+          `, or delete ${guideprefix}base-guide.aon to regenerate it from the\n` +
+          `specification and re-apply the edit afterwards.` :
+          ` in ${relativizePath(checkpath)}.`)))
       break
     }
   }

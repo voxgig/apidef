@@ -1125,6 +1125,11 @@ type GuideMetrics = {
     };
 };
 type GuideEntity = {
+    id?: {
+        parts?: string[];
+        sep?: string;
+        composite?: boolean;
+    };
     name: string;
     orig: string;
     active?: boolean;

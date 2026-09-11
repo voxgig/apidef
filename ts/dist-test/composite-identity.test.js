@@ -38,7 +38,7 @@ function entity(name, path, fields = [], guide) {
     };
     return { ent, guide };
 }
-async function run(name, path, fields = [], guide) {
+async function run(name, path, fields = [], guide, model) {
     const { ent } = entity(name, path, fields);
     const apimodel = { main: { kit: { entity: { [name]: ent } } } };
     // Field extraction reads the response schema off the definition, so the
@@ -48,7 +48,7 @@ async function run(name, path, fields = [], guide) {
     const def = {
         paths: { [orig]: { get: { responses: { '200': { content: {} } } } } },
     };
-    const ctx = { apimodel, def, guide };
+    const ctx = { apimodel, def, guide, model };
     await (0, field_1.fieldTransform)(ctx);
     return ent;
 }
@@ -87,20 +87,27 @@ async function run(name, path, fields = [], guide) {
     // A COMPOSITE ID IS THE PARTS JOINED, so the field holding it is a string
     // whatever the API's own `id` happens to be — github's repo declares an
     // integer, its global database id.
-    (0, node_test_1.test)('a non-string id field is retyped, with its stale facts', async () => {
+    // THE API'S OWN id IS KEPT, not reinterpreted. `id` must hold a string
+    // because that is what the joined value is; the spec's numeric property
+    // moves to `<api>_id` with its type, format and per-op overrides intact,
+    // and `alias.field` records where it went. Retyping in place claimed the
+    // server's numeric id was a string; leaving it alone made `id.field` name
+    // a declaration the runtime value cannot satisfy.
+    (0, node_test_1.test)('the API id moves aside rather than being rewritten', async () => {
         const ent = await run('repo', ['repos', '{owner}', '{repo}'], [
             {
                 name: 'id', type: '`$INTEGER`', req: true, format: 'int64',
                 op: { list: { req: true, type: '`$INTEGER`' } },
             },
-        ]);
+        ], undefined, { name: 'github' });
         const idf = ent.fields.find((f) => 'id' === f.name);
         node_assert_1.default.equal(idf.type, '`$STRING`');
-        // A `format: int64` beside a string, or a per-op override still saying
-        // integer, is a model contradicting itself — and the op override is what
-        // a generator reads for that op.
         node_assert_1.default.equal(idf.format, undefined);
         node_assert_1.default.equal(idf.op.list.type, undefined);
+        const kept = ent.fields.find((f) => 'github_id' === f.name);
+        node_assert_1.default.equal(kept.type, '`$INTEGER`');
+        node_assert_1.default.equal(kept.format, 'int64');
+        node_assert_1.default.equal(ent.alias.field.github_id, 'id');
     });
     (0, node_test_1.describe)('guide corrections', () => {
         // Adjacency cannot always be right: github's
@@ -112,6 +119,9 @@ async function run(name, path, fields = [], guide) {
         });
         // DISABLING COMPOSITE MUST NOT DISABLE THE ID: the record still has a
         // key, and it is the terminal parameter.
+        // DISABLING COMPOSITE MUST NOT DISABLE THE ID, and WHICH parameter is
+        // the key is decided by the id-finding rules rather than by position:
+        // this route ends in a format selector, so position picks the modifier.
         (0, node_test_1.test)('composite:false leaves a single-key descriptor', async () => {
             const ent = await run('artifact', ['artifacts', '{artifact_id}', '{archive_format}'], [], { entity: { artifact: { id: { composite: false } } } });
             node_assert_1.default.equal(ent.id.field, 'id');

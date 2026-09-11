@@ -44,7 +44,9 @@ function entity(name: string, path: string[], fields: any[] = [], guide?: any) {
 }
 
 
-async function run(name: string, path: string[], fields: any[] = [], guide?: any) {
+async function run(
+  name: string, path: string[], fields: any[] = [], guide?: any, model?: any,
+) {
   const { ent } = entity(name, path, fields)
   const apimodel = { main: { kit: { entity: { [name]: ent } } } }
 
@@ -56,7 +58,7 @@ async function run(name: string, path: string[], fields: any[] = [], guide?: any
     paths: { [orig]: { get: { responses: { '200': { content: {} } } } } },
   }
 
-  const ctx: any = { apimodel, def, guide }
+  const ctx: any = { apimodel, def, guide, model }
 
   await fieldTransform(ctx)
 
@@ -118,21 +120,29 @@ describe('composite-identity', () => {
   // A COMPOSITE ID IS THE PARTS JOINED, so the field holding it is a string
   // whatever the API's own `id` happens to be — github's repo declares an
   // integer, its global database id.
-  test('a non-string id field is retyped, with its stale facts', async () => {
+  // THE API'S OWN id IS KEPT, not reinterpreted. `id` must hold a string
+  // because that is what the joined value is; the spec's numeric property
+  // moves to `<api>_id` with its type, format and per-op overrides intact,
+  // and `alias.field` records where it went. Retyping in place claimed the
+  // server's numeric id was a string; leaving it alone made `id.field` name
+  // a declaration the runtime value cannot satisfy.
+  test('the API id moves aside rather than being rewritten', async () => {
     const ent = await run('repo', ['repos', '{owner}', '{repo}'], [
       {
         name: 'id', type: '`$INTEGER`', req: true, format: 'int64',
         op: { list: { req: true, type: '`$INTEGER`' } },
       },
-    ])
+    ], undefined, { name: 'github' })
 
     const idf = ent.fields.find((f: any) => 'id' === f.name)
     assert.equal(idf.type, '`$STRING`')
-    // A `format: int64` beside a string, or a per-op override still saying
-    // integer, is a model contradicting itself — and the op override is what
-    // a generator reads for that op.
     assert.equal(idf.format, undefined)
     assert.equal(idf.op.list.type, undefined)
+
+    const kept = ent.fields.find((f: any) => 'github_id' === f.name)
+    assert.equal(kept.type, '`$INTEGER`')
+    assert.equal(kept.format, 'int64')
+    assert.equal(ent.alias.field.github_id, 'id')
   })
 
 
@@ -152,6 +162,9 @@ describe('composite-identity', () => {
 
     // DISABLING COMPOSITE MUST NOT DISABLE THE ID: the record still has a
     // key, and it is the terminal parameter.
+    // DISABLING COMPOSITE MUST NOT DISABLE THE ID, and WHICH parameter is
+    // the key is decided by the id-finding rules rather than by position:
+    // this route ends in a format selector, so position picks the modifier.
     test('composite:false leaves a single-key descriptor', async () => {
       const ent = await run('artifact',
         ['artifacts', '{artifact_id}', '{archive_format}'], [],

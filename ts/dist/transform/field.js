@@ -7,7 +7,7 @@ const jostraca_1 = require("jostraca");
 const utility_1 = require("../utility");
 const types_1 = require("../types");
 const fieldTransform = async function (ctx) {
-    const { apimodel, def, guide } = ctx;
+    const { apimodel, def, guide, model } = ctx;
     const kit = apimodel.main[types_1.KIT];
     let msg = 'field ';
     const opFieldPrecedence = ['load', 'create', 'update', 'patch', 'list'];
@@ -52,25 +52,43 @@ const fieldTransform = async function (ctx) {
         const gent = guide?.entity?.[ment.name];
         const composite = compositeId(ment, gent);
         const idField = fields.find((f) => 'id' === f.name);
-        // A COMPOSITE ID IS A STRING, whatever the API's own `id` field is.
+        // A COMPOSITE ID IS A STRING, whatever the API's own `id` field is —
+        // AND THE API'S OWN id IS KEPT.
         //
-        // github's repo declares `id` as an integer — its global database id —
-        // while the composite identity is `owner/repo`. Leaving the field typed
-        // as a number made `id.field` point at a declaration the runtime value
-        // cannot satisfy, so every generated type disagreed with what the SDK
-        // actually stores. The API's own numeric id is not lost: consumers keep
-        // it under a provider-specific name.
+        // github's repo declares `id` as an integer, its global database id,
+        // while the composite identity is `owner/repo`. Two facts have to
+        // survive: `id` must hold a string, because that is what the joined
+        // value is and what every generated type has to store; and the spec's
+        // numeric property must not be silently reinterpreted, because a
+        // consumer that wants the database id is entitled to it with its own
+        // type and format intact.
+        //
+        // So the API's field MOVES to `<api>_id` rather than being rewritten in
+        // place, carrying its type, format and per-op overrides with it, and the
+        // entity's `alias.field` map records where it went. Retyping in place
+        // (the first attempt) claimed the server's numeric id was a string;
+        // leaving it alone made `id.field` name a declaration the runtime value
+        // cannot satisfy. Moving it is the only option that lies about neither.
         if (null != composite.parts && null != idField && !scalarStringField(idField)) {
             const idf = idField;
+            const apiname = String(model?.name || 'api');
+            const keep = apiname + '_id';
+            if (!fields.some((f) => f.name === keep)) {
+                fields.push({ ...idf, name: keep });
+                const alias = (ment.alias = ment.alias || {});
+                alias.field = alias.field || {};
+                alias.field[keep] = 'id';
+            }
             idf.type = '`$STRING`';
-            // AND THE FACTS THAT DESCRIBED THE OLD TYPE. `format: 'int64'` beside a
-            // string, or a per-op `type` override still saying integer, is a model
-            // that contradicts itself — and the op override is what a generator
-            // reads for that op, so leaving it would keep emitting the number.
+            // The facts that described the moved type go with it: `format: int64`
+            // beside a string, or a per-op `type` override still saying integer,
+            // is a model contradicting itself — and the op override is what a
+            // generator reads for that op.
             delete idf.format;
             for (const opname of Object.keys(idf.op || {})) {
                 delete idf.op[opname].type;
             }
+            fields.sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
         }
         if (null != composite.parts && null == idField) {
             // The FIELD as well as the descriptor, for the reason the branch below
@@ -213,6 +231,24 @@ function identityParams(ment) {
 function scalarStringField(f) {
     return String(f?.type || '').toUpperCase().includes('STRING');
 }
+// WHICH PARAMETER IS THE RECORD'S OWN KEY, among several that looked
+// adjacent. The same shape apidef's id handling recognises everywhere else:
+//
+//   1. one named exactly `id`
+//   2. `<entity>_id` — the entity's own id, however the path spells it
+//   3. any `*_id` — an id by name
+//   4. failing all that, the terminal parameter
+//
+// Position is the LAST resort, not the first.
+function singleKeyOf(ment, parts) {
+    if (0 === parts.length) {
+        return undefined;
+    }
+    return parts.find((p) => 'id' === p)
+        ?? parts.find((p) => p === ment.name + '_id')
+        ?? parts.find((p) => p.endsWith('_id'))
+        ?? parts[parts.length - 1];
+}
 // The composite half of the id descriptor, or `{}` for the ordinary case.
 //
 // Emitted ONLY for a genuinely composite id (two or more addressing
@@ -230,9 +266,14 @@ function compositeId(ment, gent) {
         // adjacent parameters are not a compound key; it does not say the record
         // has no key. Returning a bare `{}` left an entity whose response has no
         // literal `id` with no descriptor at all — the false positive removed and
-        // nothing identifying the real key, which is the terminal parameter.
-        const single = identityParams(ment);
-        return { single: 0 < single.length ? single[single.length - 1] : undefined };
+        // nothing identifying the real key.
+        //
+        // WHICH of the adjacent parameters is that key is decided by the same
+        // id-finding rules apidef uses elsewhere, not by position. Taking the
+        // terminal one picked `archive_format` for
+        // `/artifacts/{artifact_id}/{archive_format}` — the modifier, precisely
+        // the false positive the correction exists to undo.
+        return { single: singleKeyOf(ment, identityParams(ment)) };
     }
     if (null != gid && null != gid.parts) {
         const given = gid.parts

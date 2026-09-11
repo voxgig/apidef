@@ -3,6 +3,8 @@
 package apidef
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -125,5 +127,42 @@ func TestCompositeIdGuideOverride(t *testing.T) {
 	gent = map[string]any{"id": map[string]any{"sep": ":"}}
 	if _, sep := compositeId(ent, gent); ":" != sep {
 		t.Errorf("inferred parts with stated sep: got %q, want %q", sep, ":")
+	}
+}
+
+// The Go port must reach the guide's id correction, or the documented fix is
+// unavailable here while the inference still runs — which is not parity.
+// BuildGuide refuses a customized guide in general (no Go aontu), so exactly
+// the `entity.<n>.id` blocks are lifted out by a narrow scan.
+func TestReadGuideIdOverrides(t *testing.T) {
+	dir := t.TempDir()
+	src := "" +
+		"# Guide\n" +
+		"guide: {\n" +
+		"  entity: artifact: id: composite: false\n" +
+		"  entity: repo: id: parts: [ 'owner', 'repo' ]\n" +
+		"  entity: thing: id: sep: ':'\n" +
+		"  entity: other: path: \"/x/{id}\": op: load: method: *GET\n" +
+		"}\n"
+	if err := os.WriteFile(filepath.Join(dir, "guide.aon"), []byte(src), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	got := readGuideIdOverrides(dir, "")
+
+	if false != got["artifact"]["composite"] {
+		t.Errorf("composite: got %v, want false", got["artifact"]["composite"])
+	}
+	parts, _ := got["repo"]["parts"].([]any)
+	if 2 != len(parts) || "owner" != parts[0] || "repo" != parts[1] {
+		t.Errorf("parts: got %v, want [owner repo]", parts)
+	}
+	if ":" != got["thing"]["sep"] {
+		t.Errorf("sep: got %v, want :", got["thing"]["sep"])
+	}
+	// Nothing else is lifted — everything not recognised stays refused by
+	// checkGuideOverlay rather than being half-applied here.
+	if _, has := got["other"]; has {
+		t.Errorf("unrelated entity was picked up: %v", got["other"])
 	}
 }

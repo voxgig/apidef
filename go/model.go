@@ -94,8 +94,27 @@ type ModelEntity struct {
 	Name      string               `json:"name"`
 	Op        ModelOpMap           `json:"op"`
 	Fields    []*ModelField        `json:"fields"`
-	ID        map[string]string    `json:"id"`
+	ID        *ModelEntityID       `json:"id,omitempty"`
 	Relations ModelEntityRelations `json:"relations"`
+}
+
+// ModelEntityID is the entity's id descriptor. Mirrors ModelEntity.id in
+// src/model.ts.
+//
+// `Parts` and `Sep` are present only for a COMPOSITE identity, where the API
+// addresses one record by several adjacent path parameters and no single one
+// is the id — github's `/repos/{owner}/{repo}`. Absent means the ordinary
+// single-key entity, so a consumer branches on presence alone.
+//
+// This was a map[string]string, which cannot hold `parts`: unmarshalling a
+// model carrying a composite id failed with "cannot unmarshal array ... into
+// ... type string", so a Go consumer could not read the very models this
+// feature produces.
+type ModelEntityID struct {
+	Name  string   `json:"name"`
+	Field string   `json:"field"`
+	Parts []string `json:"parts,omitempty"`
+	Sep   string   `json:"sep,omitempty"`
 }
 
 // ModelEntityFlow represents a flow definition.
