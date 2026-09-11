@@ -174,6 +174,9 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 					}
 					id["parts"] = partsAny
 					id["sep"] = sep
+					if from := compositeIdFrom(mentMap, gent, parts, ctx.Def); 0 < len(from) {
+						id["from"] = from
+					}
 				}
 				mentMap["id"] = id
 			}
@@ -490,6 +493,38 @@ func compositeId(mentMap map[string]any, gent map[string]any) ([]string, string)
 	}
 
 	return identityParams(mentMap), sep
+}
+
+// compositeIdFrom answers where each part lives in a response, with any
+// guide-stated mapping winning PER PART — so a spec can correct one without
+// restating the others, which matters because the heuristic gets most of them
+// right and the odd one wrong. Mirrors the `withFrom` closure in
+// src/transform/field.ts compositeId.
+func compositeIdFrom(
+	mentMap map[string]any, gent map[string]any,
+	parts []string, def map[string]any,
+) map[string]any {
+	derived := identityFrom(mentMap, parts, def)
+
+	var stated map[string]any
+	if gent != nil {
+		if gid, ok := gent["id"].(map[string]any); ok && gid != nil {
+			stated, _ = gid["from"].(map[string]any)
+		}
+	}
+
+	out := map[string]any{}
+	for _, part := range parts {
+		if say, ok := stated[part].(string); ok && "" != say {
+			out[part] = say
+			continue
+		}
+		if use, ok := derived[part]; ok {
+			out[part] = use
+		}
+	}
+
+	return out
 }
 
 // pointSegmentMaps reads a point's path segments, accepting both shapes the
@@ -1245,4 +1280,345 @@ func unwrapExample(example any) any {
 		return nil
 	}
 	return example
+}
+
+// NestedIdKeys are the subfields that conventionally carry the identifying
+// value of a nested object, in preference order. github's repo `owner` is a
+// user object whose identifier is `login`; other specs use `name`, `slug` or
+// `key`. `id` is last: it is the most common name and the least likely to be
+// the value a PATH parameter takes (a path that wanted an id would say so).
+// Mirrors NESTED_ID_KEYS in src/transform/field.ts.
+var NestedIdKeys = []string{"login", "slug", "name", "key", "id"}
+
+// identityFrom answers WHERE EACH COMPOSITE PART'S VALUE LIVES IN A RESPONSE.
+//
+// The parts are PATH PARAMETER names; a response names its fields whatever it
+// likes. Resolving one to the other is what lets an SDK put an id on a record
+// the API returned, rather than only address a record whose id it was given.
+//
+// A part no rule resolves is left OUT: downstream then knows the id cannot be
+// rebuilt for that entity and can say so, which is better than a confidently
+// wrong id on a real record. Mirrors identityFrom in src/transform/field.ts.
+func identityFrom(
+	mentMap map[string]any, parts []string, def map[string]any,
+) map[string]any {
+	// THE RESPONSE SCHEMA IS THE AUTHORITY, not `fields`, which is merged
+	// across load, create, update and list — so a part that exists only in a
+	// REQUEST BODY appears there too, and recording it would claim a returned
+	// record carries it.
+	candidates := responseCandidates(mentMap, def)
+	out := map[string]any{}
+
+	for _, part := range parts {
+		// THE WIRE NAME AS WELL AS THE MODEL NAME: identityParams reads the
+		// RENAMED parameter off the path segments while a response keeps its
+		// own casing.
+		aliases := partAliases(mentMap, part)
+
+		for _, props := range candidates {
+			if found := resolvePart(mentMap, part, aliases, props, def); "" != found {
+				out[part] = found
+				break
+			}
+		}
+	}
+
+	return out
+}
+
+// partAliases lists every name a part might be carried under: the model's name
+// for it, plus the original wire names of any path parameter renamed to it.
+func partAliases(mentMap map[string]any, part string) []string {
+	names := []string{part}
+	seen := map[string]bool{part: true}
+
+	add := func(n string) {
+		if "" != n && !seen[n] {
+			seen[n] = true
+			names = append(names, n)
+		}
+	}
+
+	opMap, _ := mentMap["op"].(map[string]any)
+	for _, opname := range sortedKeys(opMap) {
+		mop, _ := opMap[opname].(map[string]any)
+		if mop == nil {
+			continue
+		}
+		points, _ := mop["points"].([]any)
+		for _, pt := range points {
+			ptMap, _ := pt.(map[string]any)
+			if ptMap == nil {
+				continue
+			}
+
+			if rename, ok := ptMap["rename"].(map[string]any); ok {
+				if param, ok := rename["param"].(map[string]any); ok {
+					for _, orig := range sortedKeys(param) {
+						if to, _ := param[orig].(string); to == part {
+							add(orig)
+						}
+					}
+				}
+			}
+
+			if args, ok := ptMap["args"].(map[string]any); ok {
+				for _, p := range argsParamList(args["params"]) {
+					if n, _ := p["name"].(string); n == part {
+						if o, _ := p["orig"].(string); "" != o {
+							add(o)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return names
+}
+
+// resolvePart finds where one part is carried in a property map, or "".
+//
+// The four rules, in order, each a fact the spec states: a scalar property of
+// that name; the part naming this entity, resolved to `name`; a scalar
+// `<part>_name` / `_login` / `_slug`; or an object property's conventional
+// identifying subfield.
+func resolvePart(
+	mentMap map[string]any, part string, aliases []string,
+	props map[string]any, def map[string]any,
+) string {
+	if props == nil {
+		return ""
+	}
+
+	prop := func(name string) map[string]any {
+		return resolveRef(props[name], def)
+	}
+
+	scalar := func(p map[string]any) bool {
+		if p == nil {
+			return false
+		}
+		t := fmt.Sprint(p["type"])
+		if "object" == t || "array" == t {
+			return false
+		}
+		return p["properties"] == nil && p["items"] == nil
+	}
+
+	for _, name := range aliases {
+		if scalar(prop(name)) {
+			return name
+		}
+	}
+
+	if entname, _ := mentMap["name"].(string); part == entname && scalar(prop("name")) {
+		return "name"
+	}
+
+	for _, name := range aliases {
+		for _, suffix := range []string{"_name", "_login", "_slug"} {
+			if scalar(prop(name + suffix)) {
+				return name + suffix
+			}
+		}
+	}
+
+	for _, name := range aliases {
+		nested := prop(name)
+		if nested == nil {
+			continue
+		}
+		if nestedProps, ok := nested["properties"].(map[string]any); ok && nestedProps != nil {
+			if sub := conventionalIdKey(nestedProps); "" != sub {
+				return name + "." + sub
+			}
+		}
+	}
+
+	return ""
+}
+
+// conventionalIdKey returns the conventional identifying subfield of a
+// property map, or "".
+func conventionalIdKey(props map[string]any) string {
+	for _, key := range NestedIdKeys {
+		p, _ := props[key].(map[string]any)
+		if p == nil {
+			continue
+		}
+		t := fmt.Sprint(p["type"])
+		if "object" != t && "array" != t {
+			return key
+		}
+	}
+
+	return ""
+}
+
+// resolveRef follows a `$ref` one hop, or returns the schema itself. apidef
+// resolves most refs before this stage; this covers the ones that survive on
+// a nested property.
+func resolveRef(schema any, def map[string]any) map[string]any {
+	node, _ := schema.(map[string]any)
+	if node == nil {
+		return nil
+	}
+
+	ref, _ := node["$ref"].(string)
+	if !strings.HasPrefix(ref, "#/") {
+		return node
+	}
+
+	var cur any = def
+	for _, seg := range strings.Split(ref[2:], "/") {
+		curMap, _ := cur.(map[string]any)
+		if curMap == nil {
+			return nil
+		}
+		cur = curMap[seg]
+		if cur == nil {
+			return nil
+		}
+	}
+
+	out, _ := cur.(map[string]any)
+	return out
+}
+
+// responseCandidates lists the property maps a response could be describing,
+// best first.
+//
+// BOTH SPEC DIALECTS: an OpenAPI 3 response carries its schema under
+// `content['application/json']`, a SWAGGER 2 response directly as `schema`.
+// JSON only where there is a choice, `allOf` expanded, and ONLY the envelope
+// descended — descending every object-valued property instead treats an
+// ordinary nested object as a whole record. Action points are skipped, as
+// identityParams skips them. Mirrors responseCandidates in
+// src/transform/field.ts.
+func responseCandidates(mentMap map[string]any, def map[string]any) []map[string]any {
+	var out []map[string]any
+	seen := map[string]bool{}
+
+	var propsOf func(schema any) []map[string]any
+	propsOf = func(schema any) []map[string]any {
+		node := resolveRef(schema, def)
+		if node == nil {
+			return nil
+		}
+
+		// Cycle guard. Go cannot key a set on a map, so the pointer is
+		// spelled with fmt — enough to stop a self-referential schema.
+		key := fmt.Sprintf("%p", node)
+		if seen[key] {
+			return nil
+		}
+		seen[key] = true
+
+		if allOf, ok := node["allOf"].([]any); ok {
+			var acc []map[string]any
+			for _, member := range allOf {
+				acc = append(acc, propsOf(member)...)
+			}
+			return acc
+		}
+
+		if props, ok := node["properties"].(map[string]any); ok && props != nil {
+			return []map[string]any{props}
+		}
+
+		// A bare array response: the record is the item.
+		if items := resolveRef(node["items"], def); items != nil {
+			return propsOf(items)
+		}
+
+		return nil
+	}
+
+	add := func(schema any, opname string) {
+		for _, props := range propsOf(schema) {
+			out = append(out, props)
+
+			envelope := envelopeProp(props, opname)
+			if "" == envelope {
+				continue
+			}
+			inner := resolveRef(props[envelope], def)
+			if inner == nil {
+				continue
+			}
+			out = append(out, propsOf(inner)...)
+		}
+	}
+
+	opMap, _ := mentMap["op"].(map[string]any)
+	paths, _ := def["paths"].(map[string]any)
+
+	for _, opname := range []string{"load", "list", "update", "create"} {
+		mop, _ := opMap[opname].(map[string]any)
+		if mop == nil {
+			continue
+		}
+		points, _ := mop["points"].([]any)
+
+		for _, pt := range points {
+			ptMap, _ := pt.(map[string]any)
+			if ptMap == nil {
+				continue
+			}
+			if sel, ok := ptMap["select"].(map[string]any); ok && sel != nil {
+				if _, has := sel["$action"]; has {
+					continue
+				}
+			}
+
+			orig, _ := ptMap["orig"].(string)
+			path, _ := paths[orig].(map[string]any)
+			if path == nil {
+				continue
+			}
+			method, _ := path[strings.ToLower(fmt.Sprint(ptMap["method"]))].(map[string]any)
+			if method == nil {
+				continue
+			}
+			responses, _ := method["responses"].(map[string]any)
+
+			for _, code := range sortedKeys(responses) {
+				if !strings.HasPrefix(code, "2") {
+					continue
+				}
+				resdef, _ := responses[code].(map[string]any)
+				if resdef == nil {
+					continue
+				}
+
+				if content, ok := resdef["content"].(map[string]any); ok && content != nil {
+					ctypes := sortedKeys(content)
+					json := ""
+					for _, c := range ctypes {
+						if strings.Contains(c, "json") {
+							json = c
+							break
+						}
+					}
+					if "" != json {
+						if ct, ok := content[json].(map[string]any); ok {
+							add(ct["schema"], opname)
+						}
+					} else {
+						for _, c := range ctypes {
+							if ct, ok := content[c].(map[string]any); ok {
+								add(ct["schema"], opname)
+							}
+						}
+					}
+				}
+
+				// Swagger 2 puts it here.
+				add(resdef["schema"], opname)
+			}
+		}
+	}
+
+	return out
 }

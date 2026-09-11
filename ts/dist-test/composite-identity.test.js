@@ -213,6 +213,78 @@ async function runPoints(name, paths, model) {
         node_assert_1.default.equal(kept.op.list.type, '`$INTEGER`');
         node_assert_1.default.equal(ent.alias.field.github_id, 'id');
     });
+    // WHERE EACH PART LIVES IN A RESPONSE. The parts are PATH PARAMETER names
+    // and a response names its fields whatever it likes: github addresses a
+    // repo by `{owner}/{repo}` and returns the owner as an OBJECT
+    // (`owner.login`) with the repository under `name`. Without this a consumer
+    // can address a record it was given the id of, but cannot put an id on one
+    // the API returned.
+    (0, node_test_1.describe)('where a part lives in the response', () => {
+        // The response schema has to be real for these, so they build a def
+        // rather than reuse run()'s empty one.
+        async function withResponse(name, path, properties, guide) {
+            const ent = {
+                name,
+                fields: [],
+                op: {
+                    load: {
+                        points: [{
+                                orig: '/' + path.join('/'),
+                                method: 'GET',
+                                segments: seg(...path),
+                            }],
+                    },
+                },
+            };
+            const orig = '/' + path.join('/');
+            const def = {
+                paths: {
+                    [orig]: {
+                        get: {
+                            responses: {
+                                '200': {
+                                    content: {
+                                        'application/json': {
+                                            schema: { type: 'object', properties },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            };
+            await (0, field_1.fieldTransform)({ apimodel: { main: { kit: { entity: { [name]: ent } } } },
+                def, guide, model: undefined });
+            return ent;
+        }
+        (0, node_test_1.test)('an object part resolves to its conventional subfield', async () => {
+            const ent = await withResponse('repo', ['repos', '{owner}', '{repo}'], {
+                name: { type: 'string' },
+                owner: {
+                    type: 'object',
+                    properties: { login: { type: 'string' }, id: { type: 'integer' } },
+                },
+            });
+            node_assert_1.default.deepStrictEqual(ent.id.from, { owner: 'owner.login', repo: 'name' });
+        });
+        // A PART NO RULE RESOLVES IS LEFT OUT rather than guessed at: an
+        // incomplete map says the id cannot be rebuilt for that entity, which
+        // beats a confidently wrong id on a real record.
+        (0, node_test_1.test)('an unresolvable part is left out', async () => {
+            const ent = await withResponse('thing', ['things', '{tenant}', '{slug}'], {
+                slug: { type: 'string' },
+            });
+            node_assert_1.default.deepStrictEqual(ent.id.from, { slug: 'slug' });
+        });
+        // guide.aon corrects ONE mapping without restating the others.
+        (0, node_test_1.test)('a stated from wins per part', async () => {
+            const ent = await withResponse('thing', ['things', '{tenant}', '{slug}'], {
+                slug: { type: 'string' },
+            }, { entity: { thing: { id: { from: { tenant: 'meta.tenant' } } } } });
+            node_assert_1.default.deepStrictEqual(ent.id.from, { tenant: 'meta.tenant', slug: 'slug' });
+        });
+    });
     (0, node_test_1.describe)('guide corrections', () => {
         // Adjacency cannot always be right: github's
         // /…/artifacts/{artifact_id}/{archive_format} reads as composite and is

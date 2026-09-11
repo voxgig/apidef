@@ -1129,6 +1129,7 @@ type GuideEntity = {
         parts?: string[];
         sep?: string;
         composite?: boolean;
+        from?: Record<string, string>;
     };
     name: string;
     orig: string;

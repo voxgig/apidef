@@ -115,6 +115,17 @@ type ModelEntityID struct {
 	Field string   `json:"field"`
 	Parts []string `json:"parts,omitempty"`
 	Sep   string   `json:"sep,omitempty"`
+
+	// From says WHERE EACH PART'S VALUE LIVES IN A RESPONSE, as a dotted
+	// path. The parts are PATH PARAMETER names and a response names its
+	// fields whatever it likes: github returns a repo's owner as an OBJECT,
+	// so the value is at `owner.login`, and the repository under `name`.
+	// Without this a consumer can address a record it was given the id of,
+	// but cannot put an id on a record the API returned.
+	//
+	// A part no rule resolves is left OUT, so an incomplete map says the id
+	// cannot be rebuilt for that entity.
+	From map[string]string `json:"from,omitempty"`
 }
 
 // ModelEntityFlow represents a flow definition.

@@ -629,3 +629,142 @@ func TestResolveArgExampleSpellings(t *testing.T) {
 		t.Errorf("a parameter with no example reported one")
 	}
 }
+
+// WHERE EACH PART LIVES IN A RESPONSE. The parts are PATH PARAMETER names and
+// a response names its fields whatever it likes: github addresses a repo by
+// `{owner}/{repo}` and returns the owner as an OBJECT (`owner.login`) with
+// the repository under `name`. Without this a consumer can address a record
+// it was given the id of, but cannot put an id on one the API returned.
+//
+// The three parity specs have no composite entity that resolves a `from`, so
+// the model-ref goldens cannot reach this: it is pinned here instead. The
+// canonical statement is identityFrom in ts/src/transform/field.ts.
+func TestIdentityFromResolvesAPartToItsResponseField(t *testing.T) {
+	ent := map[string]any{
+		"name": "repo",
+		"op": map[string]any{
+			"load": map[string]any{"points": []any{
+				map[string]any{
+					"orig":     "/repos/{owner}/{repo}",
+					"method":   "GET",
+					"segments": segTyped(lit("repos"), vr("owner"), vr("repo")),
+				},
+			}},
+		},
+	}
+
+	def := map[string]any{"paths": map[string]any{
+		"/repos/{owner}/{repo}": map[string]any{
+			"get": map[string]any{"responses": map[string]any{
+				"200": map[string]any{"content": map[string]any{
+					"application/json": map[string]any{"schema": map[string]any{
+						"type": "object",
+						"properties": map[string]any{
+							// The repository's own name — rule 2, the part
+							// naming this entity.
+							"name": map[string]any{"type": "string"},
+							// An OBJECT, whose conventional identifying
+							// subfield is `login` — rule 4.
+							"owner": map[string]any{
+								"type": "object",
+								"properties": map[string]any{
+									"login": map[string]any{"type": "string"},
+									"id":    map[string]any{"type": "integer"},
+								},
+							},
+						},
+					}},
+				}},
+			}},
+		},
+	}}
+
+	got := identityFrom(ent, []string{"owner", "repo"}, def)
+
+	if "owner.login" != got["owner"] {
+		t.Errorf("owner -> %v, want owner.login", got["owner"])
+	}
+	if "name" != got["repo"] {
+		t.Errorf("repo -> %v, want name", got["repo"])
+	}
+}
+
+// A PART NO RULE RESOLVES IS LEFT OUT, rather than guessed at. An incomplete
+// map says the id cannot be rebuilt for that entity, which is better than a
+// confidently wrong id on a real record.
+func TestIdentityFromLeavesAnUnresolvablePartOut(t *testing.T) {
+	ent := map[string]any{
+		"name": "thing",
+		"op": map[string]any{
+			"load": map[string]any{"points": []any{
+				map[string]any{
+					"orig":     "/things/{tenant}/{slug}",
+					"method":   "GET",
+					"segments": segTyped(lit("things"), vr("tenant"), vr("slug")),
+				},
+			}},
+		},
+	}
+
+	def := map[string]any{"paths": map[string]any{
+		"/things/{tenant}/{slug}": map[string]any{
+			"get": map[string]any{"responses": map[string]any{
+				"200": map[string]any{"content": map[string]any{
+					"application/json": map[string]any{"schema": map[string]any{
+						"type": "object",
+						"properties": map[string]any{
+							"slug": map[string]any{"type": "string"},
+						},
+					}},
+				}},
+			}},
+		},
+	}}
+
+	got := identityFrom(ent, []string{"tenant", "slug"}, def)
+
+	if "slug" != got["slug"] {
+		t.Errorf("slug -> %v, want slug", got["slug"])
+	}
+	if _, has := got["tenant"]; has {
+		t.Errorf("tenant was resolved to %v; the response never carries it", got["tenant"])
+	}
+}
+
+// SWAGGER 2 PUTS THE SCHEMA DIRECTLY ON THE RESPONSE, not under `content`.
+// Reading only the OpenAPI 3 shape resolved nothing for every Swagger 2 spec
+// in the validation corpus.
+func TestIdentityFromReadsTheSwagger2Shape(t *testing.T) {
+	ent := map[string]any{
+		"name": "repository",
+		"op": map[string]any{
+			"load": map[string]any{"points": []any{
+				map[string]any{
+					"orig":     "/repos/{owner}/{identifier}/",
+					"method":   "GET",
+					"segments": segTyped(lit("repos"), vr("owner"), vr("identifier")),
+				},
+			}},
+		},
+	}
+
+	def := map[string]any{"paths": map[string]any{
+		"/repos/{owner}/{identifier}/": map[string]any{
+			"get": map[string]any{"responses": map[string]any{
+				"200": map[string]any{"schema": map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						"identifier": map[string]any{"type": "string"},
+						"owner":      map[string]any{"type": "string"},
+					},
+				}},
+			}},
+		},
+	}}
+
+	got := identityFrom(ent, []string{"owner", "identifier"}, def)
+
+	if "owner" != got["owner"] || "identifier" != got["identifier"] {
+		t.Errorf("got %v, want both parts resolved to their own names", got)
+	}
+}

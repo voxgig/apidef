@@ -274,6 +274,98 @@ describe('composite-identity', () => {
   })
 
 
+  // WHERE EACH PART LIVES IN A RESPONSE. The parts are PATH PARAMETER names
+  // and a response names its fields whatever it likes: github addresses a
+  // repo by `{owner}/{repo}` and returns the owner as an OBJECT
+  // (`owner.login`) with the repository under `name`. Without this a consumer
+  // can address a record it was given the id of, but cannot put an id on one
+  // the API returned.
+  describe('where a part lives in the response', () => {
+
+    // The response schema has to be real for these, so they build a def
+    // rather than reuse run()'s empty one.
+    async function withResponse(
+      name: string, path: string[], properties: any, guide?: any,
+    ) {
+      const ent: any = {
+        name,
+        fields: [],
+        op: {
+          load: {
+            points: [{
+              orig: '/' + path.join('/'),
+              method: 'GET',
+              segments: seg(...path),
+            }],
+          },
+        },
+      }
+
+      const orig = '/' + path.join('/')
+      const def: any = {
+        paths: {
+          [orig]: {
+            get: {
+              responses: {
+                '200': {
+                  content: {
+                    'application/json': {
+                      schema: { type: 'object', properties },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      }
+
+      await fieldTransform(
+        { apimodel: { main: { kit: { entity: { [name]: ent } } } },
+          def, guide, model: undefined } as any)
+
+      return ent
+    }
+
+
+    test('an object part resolves to its conventional subfield', async () => {
+      const ent = await withResponse('repo', ['repos', '{owner}', '{repo}'], {
+        name: { type: 'string' },
+        owner: {
+          type: 'object',
+          properties: { login: { type: 'string' }, id: { type: 'integer' } },
+        },
+      })
+
+      assert.deepStrictEqual(ent.id.from, { owner: 'owner.login', repo: 'name' })
+    })
+
+
+    // A PART NO RULE RESOLVES IS LEFT OUT rather than guessed at: an
+    // incomplete map says the id cannot be rebuilt for that entity, which
+    // beats a confidently wrong id on a real record.
+    test('an unresolvable part is left out', async () => {
+      const ent = await withResponse('thing', ['things', '{tenant}', '{slug}'], {
+        slug: { type: 'string' },
+      })
+
+      assert.deepStrictEqual(ent.id.from, { slug: 'slug' })
+    })
+
+
+    // guide.aon corrects ONE mapping without restating the others.
+    test('a stated from wins per part', async () => {
+      const ent = await withResponse('thing', ['things', '{tenant}', '{slug}'], {
+        slug: { type: 'string' },
+      }, { entity: { thing: { id: { from: { tenant: 'meta.tenant' } } } } })
+
+      assert.deepStrictEqual(ent.id.from,
+        { tenant: 'meta.tenant', slug: 'slug' })
+    })
+
+  })
+
+
   describe('guide corrections', () => {
 
     // Adjacency cannot always be right: github's
