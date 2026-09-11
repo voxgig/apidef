@@ -99,7 +99,7 @@ main: kit: entity: &: {
     #
     # Absent for an ordinary single-key entity, so downstream branches on
     # presence rather than on a parts length of one.
-    parts?: [ string ]
+    parts?: [ &: string ]
     sep?: string
 
     # Where each part's value lives in a RESPONSE, as a dotted path into the

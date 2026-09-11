@@ -474,59 +474,89 @@ function resolveRef(schema: any, def: any): any {
 
 // THE PROPERTY MAPS A RESPONSE COULD BE DESCRIBING, best first.
 //
-// Both spec versions and the envelope. An OpenAPI 3 response carries its
-// schema under `content['application/json']`; a SWAGGER 2 response carries it
-// directly as `schema`. Reading only the first meant every Swagger 2 spec in
-// the validation corpus — cloudsmith, petstore, gitlab, dingconnect —
-// resolved no schema at all.
+// BOTH SPEC DIALECTS. An OpenAPI 3 response carries its schema under
+// `content['application/json']`; a SWAGGER 2 response carries it directly as
+// `schema`. Reading only the first resolved nothing for every Swagger 2 spec
+// in the validation corpus.
 //
-// And a response that WRAPS the record states the record's fields one level
-// in: `{ item: {...} }`, `{ data: [ {...} ] }`, `{ results: [...] }`. The
-// wrapper's own properties are the envelope, not the record, so each
-// object-or-array-valued property is offered as a further candidate. Callers
-// take the first candidate that resolves the part, so an unwrapped response
-// still wins on its own properties.
+// JSON ONLY, where there is a choice. An operation may declare several media
+// types with different schemas, and field extraction uses the JSON one — so
+// picking whichever came first in source order could infer a path from an XML
+// or binary schema that the actual JSON record does not have.
+//
+// `allOf` IS EXPANDED, because a response that composes its entity that way
+// has neither `properties` nor `items` of its own. field extraction expands
+// it; not doing so here meant the fields were present while the id could not
+// be reconstructed.
+//
+// ONLY THE ENVELOPE IS DESCENDED, via the same `envelopeProp` rule field
+// extraction uses. Descending every object-valued property instead treats an
+// ordinary nested object as a whole record: for `{ slug, metadata: { tenant } }`
+// addressed by `{tenant}/{slug}`, `tenant` resolved to `tenant` rather than
+// `metadata.tenant` — a confidently wrong path, which is worse than no
+// mapping at all.
+//
+// ACTION POINTS ARE SKIPPED, as `identityParams` skips them: an action's
+// response is a verb's result, not a representation of the entity, so a field
+// that happens to appear there says nothing about what a returned record
+// carries.
 function responseCandidates(ment: ModelEntity, def: any): any[] {
   const out: any[] = []
   const seen = new Set<any>()
 
-  const add = (schema: any) => {
+  // Every property map this schema describes, expanding allOf.
+  const propsOf = (schema: any): any[] => {
     const node = resolveRef(schema, def)
     if (null == node || seen.has(node)) {
-      return
+      return []
     }
     seen.add(node)
 
-    if (null != node.properties) {
-      out.push(node.properties)
+    if (Array.isArray(node.allOf)) {
+      return node.allOf.flatMap((member: any) => propsOf(member))
+    }
 
-      // One level in: whatever this object wraps.
-      for (const key of Object.keys(node.properties)) {
-        const inner = resolveRef(node.properties[key], def)
-        if (null == inner) {
-          continue
-        }
-        if (null != inner.properties) {
-          out.push(inner.properties)
-        }
-        const innerItems = resolveRef(inner.items, def)
-        if (null != innerItems?.properties) {
-          out.push(innerItems.properties)
-        }
-      }
-      return
+    if (null != node.properties) {
+      return [node.properties]
     }
 
     // A bare array response: the record is the item.
     const items = resolveRef(node.items, def)
-    if (null != items?.properties) {
-      out.push(items.properties)
+    if (null != items) {
+      return propsOf(items)
+    }
+
+    return []
+  }
+
+  const add = (schema: any, opname: string) => {
+    for (const props of propsOf(schema)) {
+      out.push(props)
+
+      // One level in, but ONLY through the envelope property.
+      const envelope = envelopeProp(props, opname)
+      if (null == envelope) {
+        continue
+      }
+      const inner = resolveRef(props[envelope], def)
+      if (null == inner) {
+        continue
+      }
+      for (const innerProps of propsOf(inner)) {
+        out.push(innerProps)
+      }
     }
   }
 
   for (const opname of ['load', 'list', 'update', 'create']) {
     const mop = (ment as any).op?.[opname]
+
     for (const mpoint of (mop?.points || [])) {
+      // An action point's response is not the entity.
+      if (null != mpoint?.select?.['$action']) {
+        continue
+      }
+
       const path = (def?.paths || {})[mpoint?.orig]
       const method = String(mpoint?.method || '').toLowerCase()
       const responses = path?.[method]?.responses || {}
@@ -538,12 +568,20 @@ function responseCandidates(ment: ModelEntity, def: any): any[] {
         const resdef = responses[code] || {}
 
         const content = resdef.content || {}
-        for (const ctype of Object.keys(content)) {
-          add(content[ctype]?.schema)
+        const ctypes = Object.keys(content)
+        // Prefer JSON; fall back to whatever single type is offered.
+        const json = ctypes.find((c: string) => c.includes('json'))
+        if (null != json) {
+          add(content[json]?.schema, opname)
+        }
+        else {
+          for (const ctype of ctypes) {
+            add(content[ctype]?.schema, opname)
+          }
         }
 
         // Swagger 2 puts it here.
-        add(resdef.schema)
+        add(resdef.schema, opname)
       }
     }
   }

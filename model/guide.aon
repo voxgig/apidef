@@ -35,7 +35,7 @@ guide: entity: &: {
   # `sep` defaults to '/' and rarely wants changing: a slash cannot occur
   # inside one path segment, so the join is unambiguous.
   id?: {
-    parts?: [ string ]
+    parts?: [ &: string ]
     sep?: string
     composite?: boolean
 

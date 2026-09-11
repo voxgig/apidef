@@ -498,55 +498,58 @@ func nestedIdKey(props map[string]any) string {
 }
 
 // responseCandidates returns the property maps a response could be describing,
-// best first. Mirrors responseCandidates in src/transform/field.ts.
-//
-// BOTH SPEC VERSIONS: an OpenAPI 3 response carries its schema under
-// content["application/json"], a SWAGGER 2 response directly as "schema".
-// Reading only the first meant no schema resolved at all for every Swagger 2
-// specification, and a nested part could never obtain its mapping — while the
-// TS port reads both, so the ports disagreed.
-//
-// AND THE ENVELOPE: a response that wraps the record states the record's
-// fields one level in, so each object- or array-valued property is offered as
-// a further candidate.
+// best first. Mirrors responseCandidates in src/transform/field.ts — both spec
+// dialects, JSON where there is a choice, allOf expanded, only the envelope
+// property descended, and action points skipped.
 func responseCandidates(mentMap map[string]any, def map[string]any) []map[string]any {
 	out := []map[string]any{}
 	seen := map[string]bool{}
 
-	add := func(schema any) {
+	// Every property map a schema describes, expanding allOf.
+	var propsOf func(any) []map[string]any
+	propsOf = func(schema any) []map[string]any {
 		node := resolveSchemaRef(toMap(schema), def)
 		if node == nil {
-			return
+			return nil
 		}
 		key := fmt.Sprintf("%p", node)
 		if seen[key] {
-			return
+			return nil
 		}
 		seen[key] = true
 
-		if props, ok := node["properties"].(map[string]any); ok && props != nil {
-			out = append(out, props)
-
-			for _, pk := range sortedKeys(props) {
-				inner := resolveSchemaRef(toMap(props[pk]), def)
-				if inner == nil {
-					continue
-				}
-				if ip, ok := inner["properties"].(map[string]any); ok && ip != nil {
-					out = append(out, ip)
-				}
-				if items := resolveSchemaRef(toMap(inner["items"]), def); items != nil {
-					if ip, ok := items["properties"].(map[string]any); ok && ip != nil {
-						out = append(out, ip)
-					}
-				}
+		if allOf, ok := node["allOf"].([]any); ok {
+			acc := []map[string]any{}
+			for _, member := range allOf {
+				acc = append(acc, propsOf(member)...)
 			}
-			return
+			return acc
 		}
 
-		if items := resolveSchemaRef(toMap(node["items"]), def); items != nil {
-			if ip, ok := items["properties"].(map[string]any); ok && ip != nil {
-				out = append(out, ip)
+		if props, ok := node["properties"].(map[string]any); ok && props != nil {
+			return []map[string]any{props}
+		}
+
+		if items := node["items"]; items != nil {
+			return propsOf(items)
+		}
+
+		return nil
+	}
+
+	add := func(schema any, opname string) {
+		for _, props := range propsOf(schema) {
+			out = append(out, props)
+
+			// One level in, but ONLY through the envelope property: treating
+			// every nested object as a whole record produces a confidently
+			// wrong path (`tenant` instead of `metadata.tenant`).
+			envelope := envelopeProp(props, opname)
+			if "" == envelope {
+				continue
+			}
+			for _, innerProps := range propsOf(props[envelope]) {
+				out = append(out, innerProps)
 			}
 		}
 	}
@@ -565,6 +568,14 @@ func responseCandidates(mentMap map[string]any, def map[string]any) []map[string
 			if pt == nil {
 				continue
 			}
+
+			// An action point's response is a verb's result, not the entity.
+			if sel, ok := pt["select"].(map[string]any); ok && sel != nil {
+				if _, has := sel["$action"]; has {
+					continue
+				}
+			}
+
 			orig, _ := pt["orig"].(string)
 			pathItem, _ := paths[orig].(map[string]any)
 			if pathItem == nil {
@@ -583,14 +594,26 @@ func responseCandidates(mentMap map[string]any, def map[string]any) []map[string
 				if resp == nil {
 					continue
 				}
+
 				if content, ok := resp["content"].(map[string]any); ok {
+					jsonType := ""
 					for _, ctype := range sortedKeys(content) {
-						cv, _ := content[ctype].(map[string]any)
-						add(cv["schema"])
+						if strings.Contains(ctype, "json") {
+							jsonType = ctype
+							break
+						}
+					}
+					if "" != jsonType {
+						add(toMap(content[jsonType])["schema"], opname)
+					} else {
+						for _, ctype := range sortedKeys(content) {
+							add(toMap(content[ctype])["schema"], opname)
+						}
 					}
 				}
+
 				// Swagger 2 puts it here.
-				add(resp["schema"])
+				add(resp["schema"], opname)
 			}
 		}
 	}
