@@ -110,7 +110,12 @@ const fieldTransform: Transform = async function(
       const keep = apiname + '_id'
 
       if (!fields.some((f: ModelField) => f.name === keep)) {
-        fields.push({ ...idf, name: keep } as any)
+        // A DEEP COPY, because the move is followed by deletions on the
+        // original. A spread shares the `op` object, so clearing the stale
+        // per-op `type` off `id` cleared it off the preserved field too —
+        // the preservation preserved nothing for exactly the key it was
+        // added to keep.
+        fields.push(JSON.parse(JSON.stringify({ ...idf, name: keep })) as any)
 
         const alias = ((ment as any).alias = (ment as any).alias || {})
         alias.field = alias.field || {}

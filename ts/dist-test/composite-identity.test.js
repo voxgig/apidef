@@ -107,6 +107,10 @@ async function run(name, path, fields = [], guide, model) {
         const kept = ent.fields.find((f) => 'github_id' === f.name);
         node_assert_1.default.equal(kept.type, '`$INTEGER`');
         node_assert_1.default.equal(kept.format, 'int64');
+        // AND the per-op metadata, which a shallow copy silently lost: the
+        // deletions that clean up `id` ran over a shared `op` object, so the
+        // preserved field kept nothing for the one key it exists to keep.
+        node_assert_1.default.equal(kept.op.list.type, '`$INTEGER`');
         node_assert_1.default.equal(ent.alias.field.github_id, 'id');
     });
     (0, node_test_1.describe)('guide corrections', () => {

@@ -5,6 +5,7 @@ package apidef
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -164,5 +165,164 @@ func TestReadGuideIdOverrides(t *testing.T) {
 	// checkGuideOverlay rather than being half-applied here.
 	if _, has := got["other"]; has {
 		t.Errorf("unrelated entity was picked up: %v", got["other"])
+	}
+}
+
+// THE API'S OWN id MOVES ASIDE. The canonical TS behaviour is in
+// ts/test/composite-identity.test.ts, "the API id moves aside rather than
+// being rewritten". The Go port used to overwrite the field in place, which
+// destroyed a declared API field and diverged from TS for every composite
+// entity whose spec exposes a non-string `id` — github's repo, for one.
+func TestApiIdMovesAsideRatherThanBeingRewritten(t *testing.T) {
+	ent := entWithSegments(segTyped(lit("repos"), vr("owner"), vr("repo")))
+
+	// EntityTransform runs first and initialises the descriptor
+	// unconditionally (transform_entity.go), so FieldTransform always finds
+	// one; the test stands in for that step.
+	ent["id"] = map[string]any{"name": "id", "field": "id"}
+
+	// The fields come from the RESPONSE SCHEMA, not from the entity: this
+	// port builds them rather than reading a pre-seeded list. github's repo
+	// declares its `id` as an int64 — the global database id, which is not
+	// the pair that addresses the record.
+	idschema := map[string]any{
+		"type": "object",
+		"properties": map[string]any{
+			"id":   map[string]any{"type": "integer", "format": "int64"},
+			"name": map[string]any{"type": "string"},
+		},
+	}
+
+	ctx := &ApiDefContext{
+		Model: map[string]any{"name": "github"},
+		ApiModel: map[string]any{"main": map[string]any{
+			KIT: map[string]any{"entity": map[string]any{"repo": ent}},
+		}},
+		Def: map[string]any{"paths": map[string]any{
+			"/repos/{owner}/{repo}": map[string]any{
+				"get": map[string]any{"responses": map[string]any{
+					"200": map[string]any{"content": map[string]any{
+						"application/json": map[string]any{
+							"schema": idschema,
+						},
+					}},
+				}},
+			},
+		}},
+	}
+
+	if _, err := FieldTransform(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	fields, _ := ent["fields"].([]any)
+	byName := map[string]map[string]any{}
+	for _, fv := range fields {
+		if f, _ := fv.(map[string]any); f != nil {
+			n, _ := f["name"].(string)
+			byName[n] = f
+		}
+	}
+
+	// `id` holds the JOINED value, so it is a string with no numeric
+	// leftovers.
+	idf := byName["id"]
+	if idf == nil {
+		t.Fatalf("no id field: %v", byName)
+	}
+	if "`$STRING`" != idf["type"] {
+		t.Errorf("id type = %v, want `$STRING`", idf["type"])
+	}
+	if _, has := idf["format"]; has {
+		t.Errorf("id kept format %v", idf["format"])
+	}
+	if op, _ := idf["op"].(map[string]any); op != nil {
+		if list, _ := op["list"].(map[string]any); list != nil {
+			if _, has := list["type"]; has {
+				t.Errorf("id kept a per-op type %v", list["type"])
+			}
+		}
+	}
+
+	// And the spec's own property SURVIVES, whole.
+	kept := byName["github_id"]
+	if kept == nil {
+		t.Fatalf("the API id was not preserved: %v", byName)
+	}
+	if "`$INTEGER`" != kept["type"] {
+		t.Errorf("github_id type = %v, want `$INTEGER`", kept["type"])
+	}
+	if "int64" != kept["format"] {
+		t.Errorf("github_id format = %v, want int64", kept["format"])
+	}
+
+	// The alias records where it went, so a caller can still find it.
+	alias, _ := ent["alias"].(map[string]any)
+	aliasField, _ := alias["field"].(map[string]any)
+	if aliasField == nil || "id" != aliasField["github_id"] {
+		t.Errorf("alias.field = %v, want github_id -> id", aliasField)
+	}
+}
+
+// The id correction must REACH the port. checkGuideOverlay refuses a
+// customized guide because Go has no aontu, and that refusal used to cover
+// the very lines readGuideIdOverrides exists to read: stating the correction
+// failed the build, omitting it kept the false compound key, so the
+// documented fix was unreachable either way.
+func TestGuideIdLinesAreNotRefusedAsCustomizations(t *testing.T) {
+	idonly := "" +
+		"guide: {\n" +
+		"  entity: artifact: id: composite: false\n" +
+		"  entity: repo: id: parts: [ 'owner', 'repo' ]\n" +
+		"}\n"
+	if custom := guideOverlayCustomizations(idonly); 0 != len(custom) {
+		t.Errorf("id-only overlay was refused: %v", custom)
+	}
+
+	// Everything else is still refused — it still needs aontu.
+	mixed := idonly[:len(idonly)-2] +
+		"  entity: other: path: \"/x/{id}\": op: load: method: *GET\n}\n"
+	custom := guideOverlayCustomizations(mixed)
+	refused := false
+	for _, line := range custom {
+		if strings.Contains(line, "entity: other") {
+			refused = true
+		}
+		if guideIdLineRE.MatchString(line) {
+			t.Errorf("an id line reached the refusal list: %q", line)
+		}
+	}
+	if !refused {
+		t.Errorf("non-id customization was not refused: %v", custom)
+	}
+}
+
+// A SHALLOW COPY SHARES NESTED MAPS. The move is followed by deletions on the
+// original — clearing the stale per-op `type` off `id` — so a shallow copy
+// left the preserved field holding nothing for the one key it exists to keep.
+func TestDeepCopyMapSurvivesDeletionOnTheOriginal(t *testing.T) {
+	orig := map[string]any{
+		"name": "id", "type": "`$INTEGER`", "format": "int64",
+		"op": map[string]any{
+			"list": map[string]any{"req": true, "type": "`$INTEGER`"},
+		},
+	}
+
+	copied := deepCopyMap(orig)
+
+	delete(orig, "format")
+	if op, _ := orig["op"].(map[string]any); op != nil {
+		if list, _ := op["list"].(map[string]any); list != nil {
+			delete(list, "type")
+		}
+	}
+
+	if "int64" != copied["format"] {
+		t.Errorf("copy lost format: %v", copied["format"])
+	}
+	cop, _ := copied["op"].(map[string]any)
+	clist, _ := cop["list"].(map[string]any)
+	if clist == nil || "`$INTEGER`" != clist["type"] {
+		t.Errorf("copy shared the op map: %v", cop)
 	}
 }

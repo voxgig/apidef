@@ -169,6 +169,50 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 					mentMap["fields"] = fields
 				} else if !strings.Contains(
 					strings.ToUpper(fmt.Sprint(idField["type"])), "STRING") {
+					// THE API'S OWN id MOVES ASIDE, it is not rewritten —
+					// mirroring the canonical TS branch. `id` must hold the
+					// joined string, and the spec's numeric property must
+					// survive with its type, format and per-op metadata, so
+					// it is copied to `<api>_id` and the alias map records
+					// where it went. Overwriting in place (what this did)
+					// lost an API field outright and diverged from TS.
+					apiname := "api"
+					if model, ok := ctx.Model["name"].(string); ok && "" != model {
+						apiname = model
+					}
+					keep := apiname + "_id"
+
+					if !hasField(fields, keep) {
+						// A DEEP COPY: the deletions below run on the
+						// original, and a shallow one shares the `op` map, so
+						// the preserved field would lose the very metadata it
+						// exists to keep.
+						moved := deepCopyMap(idField)
+						moved["name"] = keep
+						fields = append(fields, moved)
+
+						alias, _ := mentMap["alias"].(map[string]any)
+						if alias == nil {
+							alias = map[string]any{}
+							mentMap["alias"] = alias
+						}
+						aliasField, _ := alias["field"].(map[string]any)
+						if aliasField == nil {
+							aliasField = map[string]any{}
+							alias["field"] = aliasField
+						}
+						aliasField[keep] = "id"
+
+						sort.Slice(fields, func(i, j int) bool {
+							fi, _ := fields[i].(map[string]any)
+							fj, _ := fields[j].(map[string]any)
+							ni, _ := fi["name"].(string)
+							nj, _ := fj["name"].(string)
+							return ni < nj
+						})
+						mentMap["fields"] = fields
+					}
+
 					idField["type"] = "`$STRING`"
 					delete(idField, "format")
 					if opOverrides, ok := idField["op"].(map[string]any); ok {
@@ -186,6 +230,32 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 	}
 
 	return &TransformResult{OK: true, Msg: msg}, nil
+}
+
+// hasField reports whether a field of that name is already present.
+func hasField(fields []any, name string) bool {
+	for _, fv := range fields {
+		if f, _ := fv.(map[string]any); f != nil {
+			if n, _ := f["name"].(string); n == name {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// deepCopyMap copies a field map and its nested maps, so a later deletion on
+// the original cannot reach the copy.
+func deepCopyMap(in map[string]any) map[string]any {
+	out := map[string]any{}
+	for k, v := range in {
+		if nested, ok := v.(map[string]any); ok {
+			out[k] = deepCopyMap(nested)
+		} else {
+			out[k] = v
+		}
+	}
+	return out
 }
 
 // IdSep joins a composite id into one string. A forward slash cannot occur

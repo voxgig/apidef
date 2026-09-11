@@ -168,11 +168,30 @@ func checkGuideOverlay(ctx *ApiDefContext, guideDir string, prefix string) error
 // remainder is compared rather than individual lines — matching per-line
 // against a single spelling flagged the multi-line form as two
 // customizations and failed an otherwise fine build.
+// The one overlay form this port can honour: `entity: <name>: id: <key>: …`
+// for parts / sep / composite. Shared by the refusal check and the reader so
+// the two cannot disagree about what is supported.
+var guideIdLineRE = regexp.MustCompile(
+	`^\s*entity:\s*[A-Za-z0-9_]+:\s*id:\s*(parts|sep|composite):`)
+
 func guideOverlayCustomizations(src string) []string {
 	var out []string
 	for _, line := range strings.Split(src, "\n") {
 		t := strings.TrimSpace(line)
 		if t == "" || strings.HasPrefix(t, "#") || strings.HasPrefix(t, "@") {
+			continue
+		}
+		// THE ID CORRECTION IS SUPPORTED, so it is not a refusable
+		// customization.
+		//
+		// This port INFERS composite identity, and adjacency cannot always be
+		// right — github's /…/artifacts/{artifact_id}/{archive_format} reads
+		// as composite and is not. readGuideIdOverrides lifts exactly these
+		// lines and applies them, so refusing them left the correction
+		// unreachable: stating it failed the build, omitting it kept the
+		// false compound key. Everything else is still refused, because
+		// everything else needs aontu.
+		if guideIdLineRE.MatchString(t) {
 			continue
 		}
 		out = append(out, t)
@@ -2515,6 +2534,7 @@ func readGuideIdOverrides(guideDir string, prefix string) map[string]map[string]
 	}
 
 	// entity: <name>: id: <key>: <value>
+	// Same shape the refusal check exempts, with the value captured.
 	re := regexp.MustCompile(
 		`(?m)^\s*entity:\s*([A-Za-z0-9_]+):\s*id:\s*(parts|sep|composite):\s*(.+?)\s*$`)
 

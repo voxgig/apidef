@@ -142,6 +142,10 @@ describe('composite-identity', () => {
     const kept = ent.fields.find((f: any) => 'github_id' === f.name)
     assert.equal(kept.type, '`$INTEGER`')
     assert.equal(kept.format, 'int64')
+    // AND the per-op metadata, which a shallow copy silently lost: the
+    // deletions that clean up `id` ran over a shared `op` object, so the
+    // preserved field kept nothing for the one key it exists to keep.
+    assert.equal(kept.op.list.type, '`$INTEGER`')
     assert.equal(ent.alias.field.github_id, 'id')
   })
 
