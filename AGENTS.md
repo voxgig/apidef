@@ -161,31 +161,43 @@ as a suffix pattern.
 
 ## Releasing
 
-Publishing is **tag-driven and runs in CI**: pushing a `v*` tag fires
-`.github/workflows/publish.yml`, which publishes `@voxgig/apidef` to npm over
-GitHub OIDC trusted publishing (no `NPM_TOKEN`, provenance attached).
-
-**Do not run `npm run repo-publish` / `repo-publish-quick` locally.** Those
-scripts still exist in `ts/package.json` and look like the obvious route, but
-they publish over a token and bypass OIDC entirely — the publish workflow's own
-header says so. They remain only for emergencies.
-
-TypeScript release:
+**NOTHING IS EVER PUBLISHED FROM A WORKSTATION. The release is performed by
+GitHub Actions over OIDC trusted publishing, and the way you start it is a
+WORKFLOW DISPATCH.**
 
 ```bash
-cd ts && npm run repo-bump          # patch bump of ts/package.json only
-npm run repo-release-dry            # build + test + `npm publish --dry-run`
-cd .. && git add -A && git commit -m "X.Y.Z" && git push
-git tag vX.Y.Z && git push origin vX.Y.Z    # publish.yml takes it from here
+make publish V=8.6.0              # npm only
+make publish GOV=0.7.0            # Go module only
+make publish V=8.6.0 GOV=0.7.0    # both, one dispatch
 ```
 
-Go module release is separate and local, because a Go module release IS its
-tag — the proxy serves it directly:
+`make publish` guards, bumps, builds, tests, commits, pushes `main`, waits for
+the remote to actually show the pushed SHA, then dispatches `publish.yml`
+pinned to it. The workflow publishes to npm over OIDC and writes BOTH tags —
+`vX.Y.Z` for npm, `go/vX.Y.Z` for the module — in a `tag` job that runs git
+and nothing else.
+
+To drive the dispatch by hand — same mechanism, without the bump:
 
 ```bash
-make publish-go V=x.y.z    # rewrites const VERSION in go/apidef.go,
-                           # commits, tags go/vx.y.z, pushes, cuts a GH release
+gh workflow run publish.yml --ref main \
+  -f npm=true -f go=false -f expect_sha=$(git rev-parse HEAD)
 ```
+
+### Never do these
+
+| Don't | Why |
+| --- | --- |
+| `npm run repo-publish` / `repo-publish-quick` from a checkout | Still in `ts/package.json` and still the obvious-looking route, but they publish over a token and bypass OIDC entirely: no provenance, long-lived credential. Emergencies only. |
+| `make publish-go` as the normal Go route | Its own header says "prefer the publish workflow". It commits to the CURRENT branch and tags THAT commit, so from a feature branch it publishes an immutable module version nobody reviewed — and `proxy.golang.org` caches it forever. |
+| Hand the release back as "run this locally yourself" | The release is a dispatch. If a local command is unavailable to you, prepare the commit and dispatch the workflow — do not convert a CI release into a manual one. |
+| Push a `v*` tag as the normal route | `publish.yml` accepts it, but that path is the FALLBACK for a tag pushed by hand and skips every guard `make publish` runs. |
+
+`--ref main` is a moving target, and `git push` returns BEFORE the ref is
+visible to every GitHub read path — so a dispatch fired immediately after a
+push can resolve the commit *before* the release commit, and `expect_sha`
+refuses by naming the very SHA you just pushed. `make publish` polls
+`git ls-remote` until the remote agrees. If you dispatch by hand, do the same.
 
 Keep the two ports in step: a change that touches both `ts/src` and `go/`
 needs both a `vX.Y.Z` and a `go/vX.Y.Z` release, or downstreams see the fix in
