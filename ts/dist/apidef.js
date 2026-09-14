@@ -61,6 +61,7 @@ Object.defineProperty(exports, "VALID_CANON", { enumerable: true, get: function 
 Object.defineProperty(exports, "CANON_ONE", { enumerable: true, get: function () { return utility_1.CANON_ONE; } });
 const top_1 = require("./transform/top");
 const entity_1 = require("./transform/entity");
+const contract_1 = require("./transform/contract");
 const operation_1 = require("./transform/operation");
 const graphql_1 = require("./transform/graphql");
 const args_1 = require("./transform/args");
@@ -227,6 +228,7 @@ function ApiDef(opts) {
             // Must precede args and field: both branch on point.kind === 'graphql'
             // and read the graphql block this stamps on.
             await (0, graphql_1.graphqlTransform)(ctx);
+            await (0, contract_1.contractTransform)(ctx);
             await (0, args_1.argsTransform)(ctx);
             await (0, select_1.selectTransform)(ctx);
             await (0, field_1.fieldTransform)(ctx);

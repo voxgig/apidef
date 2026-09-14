@@ -173,6 +173,7 @@ func (a *apiDefInstance) Generate(spec map[string]any) (*ApiDefResult, error) {
 		TopTransform,
 		EntityTransform,
 		OperationTransform,
+		ContractTransform,
 		ArgsTransform,
 		SelectTransform,
 		FieldTransform,

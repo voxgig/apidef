@@ -88,6 +88,12 @@
               }
             ]
           },
+          "contract": {
+            "id": "GET /{year}/domain/{domain}/kingdom/{kid}/phylum/{itemid}",
+            "json": "{\"operationId\":\"getPhylum\",\"parameters\":[{\"description\":\"Calendar year for the dataset view.\",\"in\":\"path\",\"name\":\"year\",\"required\":true,\"schema\":{\"minimum\":0,\"type\":\"integer\"}},{\"in\":\"path\",\"name\":\"domain\",\"required\":true},{\"in\":\"path\",\"name\":\"kid\",\"required\":true},{\"in\":\"path\",\"name\":\"itemid\",\"required\":true}],\"protocol\":\"http\",\"responses\":{\"200\":{\"content\":{\"application/json\":{\"schema\":{\"properties\":{\"attributes\":{\"additionalProperties\":true,\"type\":\"object\"},\"createdAt\":{\"format\":\"date-time\",\"type\":\"string\"},\"id\":{\"description\":\"URL-safe identifier\",\"examples\":[\"eukarya\",\"animalia\",\"chordata\"],\"pattern\":\"^[A-Za-z0-9_.-]+$\",\"type\":\"string\"},\"name\":{\"examples\":[\"Animalia\",\"Chordata\",\"Mammalia\"],\"type\":\"string\"},\"parentId\":{\"allOf\":[{\"description\":\"URL-safe identifier\",\"examples\":[\"eukarya\",\"animalia\",\"chordata\"],\"pattern\":\"^[A-Za-z0-9_.-]+$\",\"type\":\"string\"}],\"description\":\"ID of the parent taxon in the hierarchy\",\"nullable\":true},\"rank\":{\"enum\":[\"domain\",\"kingdom\",\"phylum\",\"class\",\"order\",\"family\",\"genus\",\"species\"],\"type\":\"string\"},\"updatedAt\":{\"format\":\"date-time\",\"type\":\"string\"},\"year\":{\"description\":\"Year view this record belongs to\",\"type\":\"integer\"}},\"required\":[\"id\",\"name\",\"rank\"],\"type\":\"object\"}}},\"description\":\"The requested taxon\"},\"default\":{\"content\":{\"application/json\":{\"schema\":{\"properties\":{\"code\":{\"description\":\"Machine-readable error code\",\"type\":\"string\"},\"details\":{\"additionalProperties\":true,\"type\":\"object\"},\"message\":{\"description\":\"Human-readable error message\",\"type\":\"string\"}},\"required\":[\"message\"],\"type\":\"object\"}}},\"description\":\"Error response\"}},\"securitySource\":\"unspecified\"}",
+            "source": "openapi3",
+            "version": 1
+          },
           "method": "GET",
           "orig": "/{year}/domain/{domain}/kingdom/{kid}/phylum/{itemid}",
           "rename": {

@@ -169,3 +169,29 @@ flow: BasicPlanetFlow: {
   ]
 }
 ```
+
+## Operation contracts
+
+Each operation point can carry `contract: { version: 1, id, source, json }`.
+The identifier is the HTTP method and original path; `source` identifies
+OpenAPI, Swagger, or GraphQL. The JSON string preserves explicit empty
+security lists, empty request examples, schema keywords, and null values
+through model unification and cleanup.
+
+HTTP facts retain the operation ID, body content and media types, parameter
+schemas, response contracts, and security requirements with their source.
+Swagger body parameters remain body parameters. GraphQL facts retain root
+field arguments, input types, and the modelled invocation. Existing entity
+fields remain available independently. `typesScope: "inputs"` limits the type
+map to the transitive argument types; output selection remains in the
+invocation. Recursive resolved schemas use JSON pointers rooted at the
+contract document, preserving recursion without expanding it indefinitely.
+
+An operation's `contract` guide entry can replace request, response, parameter,
+or security facts; `factSources` records which values came from the guide.
+An operation's `live` guide entry is copied into these facts. It provides
+input recipes and semantic bindings that the definition cannot express.
+Examples are candidates; their presence does not prove that a model name,
+resource ID, or vector is valid against the service. Schema references and
+constraints remain available for consumers to validate or report as
+unsupported. Consumers should reject unknown contract versions.

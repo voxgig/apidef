@@ -158,6 +158,8 @@ main: kit: entity: &: {
     input: *'data'
 
     points: [ &: {
+      # Versioned, lossless operation facts; JSON retains empty schemas/security.
+      contract?: { version: number, id: string, source: string, json: string }
 
       active: *true
           

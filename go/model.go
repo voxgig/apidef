@@ -73,7 +73,16 @@ type ModelArg struct {
 }
 
 // ModelPoint represents a point implementation of an operation.
+// ModelContract preserves lossless versioned operation facts.
+type ModelContract struct {
+	Version int    `json:"version"`
+	ID      string `json:"id"`
+	Source  string `json:"source"`
+	JSON    string `json:"json"`
+}
+
 type ModelPoint struct {
+	Contract  *ModelContract   `json:"contract,omitempty"`
 	Orig      string           `json:"orig"`
 	Method    MethodName       `json:"method"`
 	Segments  []map[string]any `json:"segments"`

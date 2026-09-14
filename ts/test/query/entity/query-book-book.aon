@@ -33,6 +33,12 @@ main: kit: entity: book: {
       name: "list"
       points: [
         {
+          contract: {
+            id: "QUERY /api/book"
+            json: "{\"parameters\":[],\"protocol\":\"http\",\"requestBody\":{\"content\":{\"application/json\":{\"schema\":{\"properties\":{\"page\":{\"type\":\"integer\"},\"q\":{\"type\":\"string\"}},\"type\":\"object\"}}},\"required\":true},\"responses\":{\"200\":{\"content\":{\"application/json\":{\"schema\":{\"items\":{\"properties\":{\"author\":{\"type\":\"string\"},\"id\":{\"type\":\"string\"},\"title\":{\"type\":\"string\"}},\"required\":[\"id\",\"title\"],\"type\":\"object\"},\"type\":\"array\"}}},\"description\":\"OK\"}},\"securitySource\":\"unspecified\"}"
+            source: "openapi3"
+            version: 1
+          }
           method: "QUERY"
           orig: "/api/book"
           segments: [
@@ -64,6 +70,12 @@ main: kit: entity: book: {
                 type: "`$STRING`"
               }
             ]
+          }
+          contract: {
+            id: "GET /api/book/{book_id}"
+            json: "{\"parameters\":[{\"in\":\"path\",\"name\":\"book_id\",\"required\":true,\"schema\":{\"type\":\"string\"}}],\"protocol\":\"http\",\"responses\":{\"200\":{\"content\":{\"application/json\":{\"schema\":{\"properties\":{\"author\":{\"type\":\"string\"},\"id\":{\"type\":\"string\"},\"title\":{\"type\":\"string\"}},\"required\":[\"id\",\"title\"],\"type\":\"object\"}}},\"description\":\"OK\"}},\"securitySource\":\"unspecified\"}"
+            source: "openapi3"
+            version: 1
           }
           method: "GET"
           orig: "/api/book/{book_id}"

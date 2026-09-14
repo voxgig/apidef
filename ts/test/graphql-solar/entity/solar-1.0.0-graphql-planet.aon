@@ -38,6 +38,12 @@ main: kit: entity: planet: {
       name: "create"
       points: [
         {
+          contract: {
+            id: "POST planetCreate"
+            json: "{\"field\":{\"args\":[{\"gqltype\":\"PlanetCreateInput!\",\"name\":\"input\",\"reqd\":true,\"type\":\"PlanetCreateInput\"}],\"deprecated\":false,\"gqltype\":\"PlanetPayload!\",\"list\":false,\"name\":\"planetCreate\",\"reqd\":true,\"type\":\"PlanetPayload\"},\"invocation\":{\"doc\":\"mutation PlanetCreate($input: PlanetCreateInput!) { planetCreate(input: $input) { planet { ...PlanetFields } success } } fragment PlanetFields on Planet { diameter id kind name }\",\"field\":\"planetCreate\",\"optype\":\"mutation\",\"vars\":[{\"from\":\"\",\"gqltype\":\"PlanetCreateInput!\",\"name\":\"input\"}]},\"protocol\":\"graphql\",\"types\":{\"Float\":{\"desc\":\"The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point).\",\"fields\":{},\"kind\":\"SCALAR\",\"name\":\"Float\"},\"PlanetCreateInput\":{\"fields\":{\"diameter\":{\"args\":[],\"deprecated\":false,\"gqltype\":\"Float!\",\"list\":false,\"name\":\"diameter\",\"reqd\":true,\"type\":\"Float\"},\"kind\":{\"args\":[],\"deprecated\":false,\"gqltype\":\"String!\",\"list\":false,\"name\":\"kind\",\"reqd\":true,\"type\":\"String\"},\"name\":{\"args\":[],\"deprecated\":false,\"gqltype\":\"String!\",\"list\":false,\"name\":\"name\",\"reqd\":true,\"type\":\"String\"}},\"kind\":\"INPUT_OBJECT\",\"name\":\"PlanetCreateInput\"},\"String\":{\"desc\":\"The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.\",\"fields\":{},\"kind\":\"SCALAR\",\"name\":\"String\"}},\"typesScope\":\"inputs\"}"
+            source: "graphql"
+            version: 1
+          }
           graphql: {
             doc: "mutation PlanetCreate($input: PlanetCreateInput!) { planetCreate(input: $input) { planet { ...PlanetFields } success } } fragment PlanetFields on Planet { diameter id kind name }"
             field: "planetCreate"
@@ -81,6 +87,12 @@ main: kit: entity: planet: {
                 type: "`$INTEGER`"
               }
             ]
+          }
+          contract: {
+            id: "POST planets"
+            json: "{\"field\":{\"args\":[{\"gqltype\":\"PlanetFilter\",\"name\":\"filter\",\"reqd\":false,\"type\":\"PlanetFilter\"},{\"gqltype\":\"Int\",\"name\":\"first\",\"reqd\":false,\"type\":\"Int\"},{\"gqltype\":\"String\",\"name\":\"after\",\"reqd\":false,\"type\":\"String\"}],\"deprecated\":false,\"gqltype\":\"PlanetConnection!\",\"list\":false,\"name\":\"planets\",\"reqd\":true,\"type\":\"PlanetConnection\"},\"invocation\":{\"doc\":\"query PlanetList($filter: PlanetFilter, $first: Int, $after: String) { planets(filter: $filter, first: $first, after: $after) { nodes { ...PlanetFields } pageInfo { endCursor hasNextPage } } } fragment PlanetFields on Planet { diameter id kind name }\",\"field\":\"planets\",\"optype\":\"query\",\"page\":{\"cursor\":\"pageInfo.endCursor\",\"more\":\"pageInfo.hasNextPage\",\"nodes\":\"nodes\",\"style\":\"relay\"},\"vars\":[{\"from\":\"\",\"gqltype\":\"PlanetFilter\",\"name\":\"filter\"},{\"from\":\"first\",\"gqltype\":\"Int\",\"name\":\"first\"},{\"from\":\"after\",\"gqltype\":\"String\",\"name\":\"after\"}]},\"protocol\":\"graphql\",\"types\":{\"Int\":{\"desc\":\"The `Int` scalar type represents non-fractional signed whole numeric values. Int can represent values between -(2^31) and 2^31 - 1.\",\"fields\":{},\"kind\":\"SCALAR\",\"name\":\"Int\"},\"PlanetFilter\":{\"fields\":{\"kind\":{\"args\":[],\"deprecated\":false,\"gqltype\":\"String\",\"list\":false,\"name\":\"kind\",\"reqd\":false,\"type\":\"String\"}},\"kind\":\"INPUT_OBJECT\",\"name\":\"PlanetFilter\"},\"String\":{\"desc\":\"The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.\",\"fields\":{},\"kind\":\"SCALAR\",\"name\":\"String\"}},\"typesScope\":\"inputs\"}"
+            source: "graphql"
+            version: 1
           }
           graphql: {
             doc: "query PlanetList($filter: PlanetFilter, $first: Int, $after: String) { planets(filter: $filter, first: $first, after: $after) { nodes { ...PlanetFields } pageInfo { endCursor hasNextPage } } } fragment PlanetFields on Planet { diameter id kind name }"
@@ -135,6 +147,12 @@ main: kit: entity: planet: {
               }
             ]
           }
+          contract: {
+            id: "POST planet"
+            json: "{\"field\":{\"args\":[{\"gqltype\":\"String!\",\"name\":\"id\",\"reqd\":true,\"type\":\"String\"}],\"deprecated\":false,\"gqltype\":\"Planet\",\"list\":false,\"name\":\"planet\",\"reqd\":false,\"type\":\"Planet\"},\"invocation\":{\"doc\":\"query PlanetLoad($id: String!) { planet(id: $id) { ...PlanetFields } } fragment PlanetFields on Planet { diameter id kind name }\",\"field\":\"planet\",\"optype\":\"query\",\"vars\":[{\"from\":\"id\",\"gqltype\":\"String!\",\"name\":\"id\"}]},\"protocol\":\"graphql\",\"types\":{\"String\":{\"desc\":\"The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.\",\"fields\":{},\"kind\":\"SCALAR\",\"name\":\"String\"}},\"typesScope\":\"inputs\"}"
+            source: "graphql"
+            version: 1
+          }
           graphql: {
             doc: "query PlanetLoad($id: String!) { planet(id: $id) { ...PlanetFields } } fragment PlanetFields on Planet { diameter id kind name }"
             field: "planet"
@@ -176,6 +194,12 @@ main: kit: entity: planet: {
                 type: "`$STRING`"
               }
             ]
+          }
+          contract: {
+            id: "POST planetDelete"
+            json: "{\"field\":{\"args\":[{\"gqltype\":\"String!\",\"name\":\"id\",\"reqd\":true,\"type\":\"String\"}],\"deprecated\":false,\"gqltype\":\"PlanetPayload!\",\"list\":false,\"name\":\"planetDelete\",\"reqd\":true,\"type\":\"PlanetPayload\"},\"invocation\":{\"doc\":\"mutation PlanetRemove($id: String!) { planetDelete(id: $id) { planet { ...PlanetFields } success } } fragment PlanetFields on Planet { diameter id kind name }\",\"field\":\"planetDelete\",\"optype\":\"mutation\",\"vars\":[{\"from\":\"id\",\"gqltype\":\"String!\",\"name\":\"id\"}]},\"protocol\":\"graphql\",\"types\":{\"String\":{\"desc\":\"The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.\",\"fields\":{},\"kind\":\"SCALAR\",\"name\":\"String\"}},\"typesScope\":\"inputs\"}"
+            source: "graphql"
+            version: 1
           }
           graphql: {
             doc: "mutation PlanetRemove($id: String!) { planetDelete(id: $id) { planet { ...PlanetFields } success } } fragment PlanetFields on Planet { diameter id kind name }"
@@ -232,6 +256,12 @@ main: kit: entity: planet: {
                 type: "`$STRING`"
               }
             ]
+          }
+          contract: {
+            id: "POST planetForbid"
+            json: "{\"field\":{\"args\":[{\"gqltype\":\"String!\",\"name\":\"id\",\"reqd\":true,\"type\":\"String\"},{\"gqltype\":\"Boolean!\",\"name\":\"forbid\",\"reqd\":true,\"type\":\"Boolean\"},{\"gqltype\":\"String\",\"name\":\"why\",\"reqd\":false,\"type\":\"String\"}],\"deprecated\":false,\"gqltype\":\"PlanetStatePayload!\",\"list\":false,\"name\":\"planetForbid\",\"reqd\":true,\"type\":\"PlanetStatePayload\"},\"invocation\":{\"doc\":\"mutation PlanetUpdateForbid($id: String!, $forbid: Boolean!, $why: String) { planetForbid(id: $id, forbid: $forbid, why: $why) { planet { ...PlanetFields } success } } fragment PlanetFields on Planet { diameter id kind name }\",\"field\":\"planetForbid\",\"optype\":\"mutation\",\"vars\":[{\"from\":\"id\",\"gqltype\":\"String!\",\"name\":\"id\"},{\"from\":\"forbid\",\"gqltype\":\"Boolean!\",\"name\":\"forbid\"},{\"from\":\"why\",\"gqltype\":\"String\",\"name\":\"why\"}]},\"protocol\":\"graphql\",\"types\":{\"Boolean\":{\"desc\":\"The `Boolean` scalar type represents `true` or `false`.\",\"fields\":{},\"kind\":\"SCALAR\",\"name\":\"Boolean\"},\"String\":{\"desc\":\"The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.\",\"fields\":{},\"kind\":\"SCALAR\",\"name\":\"String\"}},\"typesScope\":\"inputs\"}"
+            source: "graphql"
+            version: 1
           }
           graphql: {
             doc: "mutation PlanetUpdateForbid($id: String!, $forbid: Boolean!, $why: String) { planetForbid(id: $id, forbid: $forbid, why: $why) { planet { ...PlanetFields } success } } fragment PlanetFields on Planet { diameter id kind name }"
@@ -296,6 +326,12 @@ main: kit: entity: planet: {
               }
             ]
           }
+          contract: {
+            id: "POST planetTerraform"
+            json: "{\"field\":{\"args\":[{\"gqltype\":\"String!\",\"name\":\"id\",\"reqd\":true,\"type\":\"String\"},{\"gqltype\":\"Boolean\",\"name\":\"start\",\"reqd\":false,\"type\":\"Boolean\"},{\"gqltype\":\"Boolean\",\"name\":\"stop\",\"reqd\":false,\"type\":\"Boolean\"}],\"deprecated\":false,\"gqltype\":\"PlanetStatePayload!\",\"list\":false,\"name\":\"planetTerraform\",\"reqd\":true,\"type\":\"PlanetStatePayload\"},\"invocation\":{\"doc\":\"mutation PlanetUpdateTerraform($id: String!, $start: Boolean, $stop: Boolean) { planetTerraform(id: $id, start: $start, stop: $stop) { planet { ...PlanetFields } success } } fragment PlanetFields on Planet { diameter id kind name }\",\"field\":\"planetTerraform\",\"optype\":\"mutation\",\"vars\":[{\"from\":\"id\",\"gqltype\":\"String!\",\"name\":\"id\"},{\"from\":\"start\",\"gqltype\":\"Boolean\",\"name\":\"start\"},{\"from\":\"stop\",\"gqltype\":\"Boolean\",\"name\":\"stop\"}]},\"protocol\":\"graphql\",\"types\":{\"Boolean\":{\"desc\":\"The `Boolean` scalar type represents `true` or `false`.\",\"fields\":{},\"kind\":\"SCALAR\",\"name\":\"Boolean\"},\"String\":{\"desc\":\"The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.\",\"fields\":{},\"kind\":\"SCALAR\",\"name\":\"String\"}},\"typesScope\":\"inputs\"}"
+            source: "graphql"
+            version: 1
+          }
           graphql: {
             doc: "mutation PlanetUpdateTerraform($id: String!, $start: Boolean, $stop: Boolean) { planetTerraform(id: $id, start: $start, stop: $stop) { planet { ...PlanetFields } success } } fragment PlanetFields on Planet { diameter id kind name }"
             field: "planetTerraform"
@@ -343,6 +379,12 @@ main: kit: entity: planet: {
                 type: "`$STRING`"
               }
             ]
+          }
+          contract: {
+            id: "POST planetUpdate"
+            json: "{\"field\":{\"args\":[{\"gqltype\":\"String!\",\"name\":\"id\",\"reqd\":true,\"type\":\"String\"},{\"gqltype\":\"PlanetUpdateInput!\",\"name\":\"input\",\"reqd\":true,\"type\":\"PlanetUpdateInput\"}],\"deprecated\":false,\"gqltype\":\"PlanetPayload!\",\"list\":false,\"name\":\"planetUpdate\",\"reqd\":true,\"type\":\"PlanetPayload\"},\"invocation\":{\"doc\":\"mutation PlanetUpdate($id: String!, $input: PlanetUpdateInput!) { planetUpdate(id: $id, input: $input) { planet { ...PlanetFields } success } } fragment PlanetFields on Planet { diameter id kind name }\",\"field\":\"planetUpdate\",\"optype\":\"mutation\",\"vars\":[{\"from\":\"id\",\"gqltype\":\"String!\",\"name\":\"id\"},{\"from\":\"\",\"gqltype\":\"PlanetUpdateInput!\",\"name\":\"input\"}]},\"protocol\":\"graphql\",\"types\":{\"Float\":{\"desc\":\"The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point).\",\"fields\":{},\"kind\":\"SCALAR\",\"name\":\"Float\"},\"PlanetUpdateInput\":{\"fields\":{\"diameter\":{\"args\":[],\"deprecated\":false,\"gqltype\":\"Float\",\"list\":false,\"name\":\"diameter\",\"reqd\":false,\"type\":\"Float\"},\"kind\":{\"args\":[],\"deprecated\":false,\"gqltype\":\"String\",\"list\":false,\"name\":\"kind\",\"reqd\":false,\"type\":\"String\"},\"name\":{\"args\":[],\"deprecated\":false,\"gqltype\":\"String\",\"list\":false,\"name\":\"name\",\"reqd\":false,\"type\":\"String\"}},\"kind\":\"INPUT_OBJECT\",\"name\":\"PlanetUpdateInput\"},\"String\":{\"desc\":\"The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.\",\"fields\":{},\"kind\":\"SCALAR\",\"name\":\"String\"}},\"typesScope\":\"inputs\"}"
+            source: "graphql"
+            version: 1
           }
           graphql: {
             doc: "mutation PlanetUpdate($id: String!, $input: PlanetUpdateInput!) { planetUpdate(id: $id, input: $input) { planet { ...PlanetFields } success } } fragment PlanetFields on Planet { diameter id kind name }"

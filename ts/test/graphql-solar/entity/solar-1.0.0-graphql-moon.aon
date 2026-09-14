@@ -43,6 +43,12 @@ main: kit: entity: moon: {
       name: "create"
       points: [
         {
+          contract: {
+            id: "POST moonCreate"
+            json: "{\"field\":{\"args\":[{\"gqltype\":\"MoonCreateInput!\",\"name\":\"input\",\"reqd\":true,\"type\":\"MoonCreateInput\"}],\"deprecated\":false,\"gqltype\":\"MoonPayload!\",\"list\":false,\"name\":\"moonCreate\",\"reqd\":true,\"type\":\"MoonPayload\"},\"invocation\":{\"doc\":\"mutation MoonCreate($input: MoonCreateInput!) { moonCreate(input: $input) { moon { ...MoonFields } success } } fragment MoonFields on Moon { diameter id kind name planet { id } }\",\"field\":\"moonCreate\",\"optype\":\"mutation\",\"vars\":[{\"from\":\"\",\"gqltype\":\"MoonCreateInput!\",\"name\":\"input\"}]},\"protocol\":\"graphql\",\"types\":{\"Float\":{\"desc\":\"The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point).\",\"fields\":{},\"kind\":\"SCALAR\",\"name\":\"Float\"},\"MoonCreateInput\":{\"fields\":{\"diameter\":{\"args\":[],\"deprecated\":false,\"gqltype\":\"Float!\",\"list\":false,\"name\":\"diameter\",\"reqd\":true,\"type\":\"Float\"},\"kind\":{\"args\":[],\"deprecated\":false,\"gqltype\":\"String!\",\"list\":false,\"name\":\"kind\",\"reqd\":true,\"type\":\"String\"},\"name\":{\"args\":[],\"deprecated\":false,\"gqltype\":\"String!\",\"list\":false,\"name\":\"name\",\"reqd\":true,\"type\":\"String\"},\"planetId\":{\"args\":[],\"deprecated\":false,\"gqltype\":\"String!\",\"list\":false,\"name\":\"planetId\",\"reqd\":true,\"type\":\"String\"}},\"kind\":\"INPUT_OBJECT\",\"name\":\"MoonCreateInput\"},\"String\":{\"desc\":\"The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.\",\"fields\":{},\"kind\":\"SCALAR\",\"name\":\"String\"}},\"typesScope\":\"inputs\"}"
+            source: "graphql"
+            version: 1
+          }
           graphql: {
             doc: "mutation MoonCreate($input: MoonCreateInput!) { moonCreate(input: $input) { moon { ...MoonFields } success } } fragment MoonFields on Moon { diameter id kind name planet { id } }"
             field: "moonCreate"
@@ -93,6 +99,12 @@ main: kit: entity: moon: {
                 type: "`$STRING`"
               }
             ]
+          }
+          contract: {
+            id: "POST moons"
+            json: "{\"field\":{\"args\":[{\"gqltype\":\"String\",\"name\":\"planetId\",\"reqd\":false,\"type\":\"String\"},{\"gqltype\":\"Int\",\"name\":\"first\",\"reqd\":false,\"type\":\"Int\"},{\"gqltype\":\"String\",\"name\":\"after\",\"reqd\":false,\"type\":\"String\"}],\"deprecated\":false,\"gqltype\":\"MoonConnection!\",\"list\":false,\"name\":\"moons\",\"reqd\":true,\"type\":\"MoonConnection\"},\"invocation\":{\"doc\":\"query MoonList($planetId: String, $first: Int, $after: String) { moons(planetId: $planetId, first: $first, after: $after) { nodes { ...MoonFields } pageInfo { endCursor hasNextPage } } } fragment MoonFields on Moon { diameter id kind name planet { id } }\",\"field\":\"moons\",\"optype\":\"query\",\"page\":{\"cursor\":\"pageInfo.endCursor\",\"more\":\"pageInfo.hasNextPage\",\"nodes\":\"nodes\",\"style\":\"relay\"},\"vars\":[{\"from\":\"planetId\",\"gqltype\":\"String\",\"name\":\"planetId\"},{\"from\":\"first\",\"gqltype\":\"Int\",\"name\":\"first\"},{\"from\":\"after\",\"gqltype\":\"String\",\"name\":\"after\"}]},\"protocol\":\"graphql\",\"types\":{\"Int\":{\"desc\":\"The `Int` scalar type represents non-fractional signed whole numeric values. Int can represent values between -(2^31) and 2^31 - 1.\",\"fields\":{},\"kind\":\"SCALAR\",\"name\":\"Int\"},\"String\":{\"desc\":\"The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.\",\"fields\":{},\"kind\":\"SCALAR\",\"name\":\"String\"}},\"typesScope\":\"inputs\"}"
+            source: "graphql"
+            version: 1
           }
           graphql: {
             doc: "query MoonList($planetId: String, $first: Int, $after: String) { moons(planetId: $planetId, first: $first, after: $after) { nodes { ...MoonFields } pageInfo { endCursor hasNextPage } } } fragment MoonFields on Moon { diameter id kind name planet { id } }"
@@ -147,6 +159,12 @@ main: kit: entity: moon: {
               }
             ]
           }
+          contract: {
+            id: "POST moon"
+            json: "{\"field\":{\"args\":[{\"gqltype\":\"String!\",\"name\":\"id\",\"reqd\":true,\"type\":\"String\"}],\"deprecated\":false,\"gqltype\":\"Moon\",\"list\":false,\"name\":\"moon\",\"reqd\":false,\"type\":\"Moon\"},\"invocation\":{\"doc\":\"query MoonLoad($id: String!) { moon(id: $id) { ...MoonFields } } fragment MoonFields on Moon { diameter id kind name planet { id } }\",\"field\":\"moon\",\"optype\":\"query\",\"vars\":[{\"from\":\"id\",\"gqltype\":\"String!\",\"name\":\"id\"}]},\"protocol\":\"graphql\",\"types\":{\"String\":{\"desc\":\"The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.\",\"fields\":{},\"kind\":\"SCALAR\",\"name\":\"String\"}},\"typesScope\":\"inputs\"}"
+            source: "graphql"
+            version: 1
+          }
           graphql: {
             doc: "query MoonLoad($id: String!) { moon(id: $id) { ...MoonFields } } fragment MoonFields on Moon { diameter id kind name planet { id } }"
             field: "moon"
@@ -189,6 +207,12 @@ main: kit: entity: moon: {
               }
             ]
           }
+          contract: {
+            id: "POST moonDelete"
+            json: "{\"field\":{\"args\":[{\"gqltype\":\"String!\",\"name\":\"id\",\"reqd\":true,\"type\":\"String\"}],\"deprecated\":false,\"gqltype\":\"MoonPayload!\",\"list\":false,\"name\":\"moonDelete\",\"reqd\":true,\"type\":\"MoonPayload\"},\"invocation\":{\"doc\":\"mutation MoonRemove($id: String!) { moonDelete(id: $id) { moon { ...MoonFields } success } } fragment MoonFields on Moon { diameter id kind name planet { id } }\",\"field\":\"moonDelete\",\"optype\":\"mutation\",\"vars\":[{\"from\":\"id\",\"gqltype\":\"String!\",\"name\":\"id\"}]},\"protocol\":\"graphql\",\"types\":{\"String\":{\"desc\":\"The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.\",\"fields\":{},\"kind\":\"SCALAR\",\"name\":\"String\"}},\"typesScope\":\"inputs\"}"
+            source: "graphql"
+            version: 1
+          }
           graphql: {
             doc: "mutation MoonRemove($id: String!) { moonDelete(id: $id) { moon { ...MoonFields } success } } fragment MoonFields on Moon { diameter id kind name planet { id } }"
             field: "moonDelete"
@@ -230,6 +254,12 @@ main: kit: entity: moon: {
                 type: "`$STRING`"
               }
             ]
+          }
+          contract: {
+            id: "POST moonUpdate"
+            json: "{\"field\":{\"args\":[{\"gqltype\":\"String!\",\"name\":\"id\",\"reqd\":true,\"type\":\"String\"},{\"gqltype\":\"MoonUpdateInput!\",\"name\":\"input\",\"reqd\":true,\"type\":\"MoonUpdateInput\"}],\"deprecated\":false,\"gqltype\":\"MoonPayload!\",\"list\":false,\"name\":\"moonUpdate\",\"reqd\":true,\"type\":\"MoonPayload\"},\"invocation\":{\"doc\":\"mutation MoonUpdate($id: String!, $input: MoonUpdateInput!) { moonUpdate(id: $id, input: $input) { moon { ...MoonFields } success } } fragment MoonFields on Moon { diameter id kind name planet { id } }\",\"field\":\"moonUpdate\",\"optype\":\"mutation\",\"vars\":[{\"from\":\"id\",\"gqltype\":\"String!\",\"name\":\"id\"},{\"from\":\"\",\"gqltype\":\"MoonUpdateInput!\",\"name\":\"input\"}]},\"protocol\":\"graphql\",\"types\":{\"Float\":{\"desc\":\"The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point).\",\"fields\":{},\"kind\":\"SCALAR\",\"name\":\"Float\"},\"MoonUpdateInput\":{\"fields\":{\"diameter\":{\"args\":[],\"deprecated\":false,\"gqltype\":\"Float\",\"list\":false,\"name\":\"diameter\",\"reqd\":false,\"type\":\"Float\"},\"kind\":{\"args\":[],\"deprecated\":false,\"gqltype\":\"String\",\"list\":false,\"name\":\"kind\",\"reqd\":false,\"type\":\"String\"},\"name\":{\"args\":[],\"deprecated\":false,\"gqltype\":\"String\",\"list\":false,\"name\":\"name\",\"reqd\":false,\"type\":\"String\"}},\"kind\":\"INPUT_OBJECT\",\"name\":\"MoonUpdateInput\"},\"String\":{\"desc\":\"The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.\",\"fields\":{},\"kind\":\"SCALAR\",\"name\":\"String\"}},\"typesScope\":\"inputs\"}"
+            source: "graphql"
+            version: 1
           }
           graphql: {
             doc: "mutation MoonUpdate($id: String!, $input: MoonUpdateInput!) { moonUpdate(id: $id, input: $input) { moon { ...MoonFields } success } } fragment MoonFields on Moon { diameter id kind name planet { id } }"

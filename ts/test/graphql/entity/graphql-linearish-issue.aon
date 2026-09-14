@@ -53,6 +53,12 @@ main: kit: entity: issue: {
       name: "create"
       points: [
         {
+          contract: {
+            id: "POST issueCreate"
+            json: "{\"field\":{\"args\":[{\"gqltype\":\"IssueCreateInput!\",\"name\":\"input\",\"reqd\":true,\"type\":\"IssueCreateInput\"}],\"deprecated\":false,\"gqltype\":\"IssuePayload!\",\"list\":false,\"name\":\"issueCreate\",\"reqd\":true,\"type\":\"IssuePayload\"},\"invocation\":{\"doc\":\"mutation IssueCreate($input: IssueCreateInput!) { issueCreate(input: $input) { issue { ...IssueFields } success } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }\",\"field\":\"issueCreate\",\"optype\":\"mutation\",\"vars\":[{\"from\":\"\",\"gqltype\":\"IssueCreateInput!\",\"name\":\"input\"}]},\"protocol\":\"graphql\",\"types\":{\"IssueCreateInput\":{\"fields\":{\"priority\":{\"args\":[],\"deprecated\":false,\"gqltype\":\"IssuePriority\",\"list\":false,\"name\":\"priority\",\"reqd\":false,\"type\":\"IssuePriority\"},\"teamId\":{\"args\":[],\"deprecated\":false,\"gqltype\":\"String!\",\"list\":false,\"name\":\"teamId\",\"reqd\":true,\"type\":\"String\"},\"title\":{\"args\":[],\"deprecated\":false,\"gqltype\":\"String!\",\"list\":false,\"name\":\"title\",\"reqd\":true,\"type\":\"String\"}},\"kind\":\"INPUT_OBJECT\",\"name\":\"IssueCreateInput\"},\"IssuePriority\":{\"fields\":{},\"kind\":\"ENUM\",\"name\":\"IssuePriority\",\"values\":[\"HIGH\",\"LOW\",\"MEDIUM\",\"NONE\",\"URGENT\"]},\"String\":{\"desc\":\"The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.\",\"fields\":{},\"kind\":\"SCALAR\",\"name\":\"String\"}},\"typesScope\":\"inputs\"}"
+            source: "graphql"
+            version: 1
+          }
           graphql: {
             doc: "mutation IssueCreate($input: IssueCreateInput!) { issueCreate(input: $input) { issue { ...IssueFields } success } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }"
             field: "issueCreate"
@@ -96,6 +102,12 @@ main: kit: entity: issue: {
                 type: "`$INTEGER`"
               }
             ]
+          }
+          contract: {
+            id: "POST issues"
+            json: "{\"field\":{\"args\":[{\"gqltype\":\"IssueFilter\",\"name\":\"filter\",\"reqd\":false,\"type\":\"IssueFilter\"},{\"gqltype\":\"Int\",\"name\":\"first\",\"reqd\":false,\"type\":\"Int\"},{\"gqltype\":\"String\",\"name\":\"after\",\"reqd\":false,\"type\":\"String\"}],\"deprecated\":false,\"gqltype\":\"IssueConnection!\",\"list\":false,\"name\":\"issues\",\"reqd\":true,\"type\":\"IssueConnection\"},\"invocation\":{\"doc\":\"query IssueList($filter: IssueFilter, $first: Int, $after: String) { issues(filter: $filter, first: $first, after: $after) { nodes { ...IssueFields } pageInfo { endCursor hasNextPage } } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }\",\"field\":\"issues\",\"optype\":\"query\",\"page\":{\"cursor\":\"pageInfo.endCursor\",\"more\":\"pageInfo.hasNextPage\",\"nodes\":\"nodes\",\"style\":\"relay\"},\"vars\":[{\"from\":\"\",\"gqltype\":\"IssueFilter\",\"name\":\"filter\"},{\"from\":\"first\",\"gqltype\":\"Int\",\"name\":\"first\"},{\"from\":\"after\",\"gqltype\":\"String\",\"name\":\"after\"}]},\"protocol\":\"graphql\",\"types\":{\"Int\":{\"desc\":\"The `Int` scalar type represents non-fractional signed whole numeric values. Int can represent values between -(2^31) and 2^31 - 1.\",\"fields\":{},\"kind\":\"SCALAR\",\"name\":\"Int\"},\"IssueFilter\":{\"fields\":{\"priority\":{\"args\":[],\"deprecated\":false,\"gqltype\":\"Int\",\"list\":false,\"name\":\"priority\",\"reqd\":false,\"type\":\"Int\"},\"title\":{\"args\":[],\"deprecated\":false,\"gqltype\":\"StringComparator\",\"list\":false,\"name\":\"title\",\"reqd\":false,\"type\":\"StringComparator\"}},\"kind\":\"INPUT_OBJECT\",\"name\":\"IssueFilter\"},\"String\":{\"desc\":\"The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.\",\"fields\":{},\"kind\":\"SCALAR\",\"name\":\"String\"},\"StringComparator\":{\"fields\":{\"contains\":{\"args\":[],\"deprecated\":false,\"gqltype\":\"String\",\"list\":false,\"name\":\"contains\",\"reqd\":false,\"type\":\"String\"},\"eq\":{\"args\":[],\"deprecated\":false,\"gqltype\":\"String\",\"list\":false,\"name\":\"eq\",\"reqd\":false,\"type\":\"String\"}},\"kind\":\"INPUT_OBJECT\",\"name\":\"StringComparator\"}},\"typesScope\":\"inputs\"}"
+            source: "graphql"
+            version: 1
           }
           graphql: {
             doc: "query IssueList($filter: IssueFilter, $first: Int, $after: String) { issues(filter: $filter, first: $first, after: $after) { nodes { ...IssueFields } pageInfo { endCursor hasNextPage } } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }"
@@ -150,6 +162,12 @@ main: kit: entity: issue: {
               }
             ]
           }
+          contract: {
+            id: "POST issue"
+            json: "{\"field\":{\"args\":[{\"gqltype\":\"String!\",\"name\":\"id\",\"reqd\":true,\"type\":\"String\"}],\"deprecated\":false,\"gqltype\":\"Issue\",\"list\":false,\"name\":\"issue\",\"reqd\":false,\"type\":\"Issue\"},\"invocation\":{\"doc\":\"query IssueLoad($id: String!) { issue(id: $id) { ...IssueFields } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }\",\"field\":\"issue\",\"optype\":\"query\",\"vars\":[{\"from\":\"id\",\"gqltype\":\"String!\",\"name\":\"id\"}]},\"protocol\":\"graphql\",\"types\":{\"String\":{\"desc\":\"The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.\",\"fields\":{},\"kind\":\"SCALAR\",\"name\":\"String\"}},\"typesScope\":\"inputs\"}"
+            source: "graphql"
+            version: 1
+          }
           graphql: {
             doc: "query IssueLoad($id: String!) { issue(id: $id) { ...IssueFields } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }"
             field: "issue"
@@ -191,6 +209,12 @@ main: kit: entity: issue: {
                 type: "`$STRING`"
               }
             ]
+          }
+          contract: {
+            id: "POST issueDelete"
+            json: "{\"field\":{\"args\":[{\"gqltype\":\"String!\",\"name\":\"id\",\"reqd\":true,\"type\":\"String\"}],\"deprecated\":false,\"gqltype\":\"IssuePayload!\",\"list\":false,\"name\":\"issueDelete\",\"reqd\":true,\"type\":\"IssuePayload\"},\"invocation\":{\"doc\":\"mutation IssueRemove($id: String!) { issueDelete(id: $id) { issue { ...IssueFields } success } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }\",\"field\":\"issueDelete\",\"optype\":\"mutation\",\"vars\":[{\"from\":\"id\",\"gqltype\":\"String!\",\"name\":\"id\"}]},\"protocol\":\"graphql\",\"types\":{\"String\":{\"desc\":\"The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.\",\"fields\":{},\"kind\":\"SCALAR\",\"name\":\"String\"}},\"typesScope\":\"inputs\"}"
+            source: "graphql"
+            version: 1
           }
           graphql: {
             doc: "mutation IssueRemove($id: String!) { issueDelete(id: $id) { issue { ...IssueFields } success } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }"
@@ -234,6 +258,12 @@ main: kit: entity: issue: {
               }
             ]
           }
+          contract: {
+            id: "POST issueArchive"
+            json: "{\"field\":{\"args\":[{\"gqltype\":\"String!\",\"name\":\"id\",\"reqd\":true,\"type\":\"String\"}],\"deprecated\":false,\"gqltype\":\"IssueArchivePayload!\",\"list\":false,\"name\":\"issueArchive\",\"reqd\":true,\"type\":\"IssueArchivePayload\"},\"invocation\":{\"doc\":\"mutation IssueUpdateArchive($id: String!) { issueArchive(id: $id) { issue { ...IssueFields } success } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }\",\"field\":\"issueArchive\",\"optype\":\"mutation\",\"vars\":[{\"from\":\"id\",\"gqltype\":\"String!\",\"name\":\"id\"}]},\"protocol\":\"graphql\",\"types\":{\"String\":{\"desc\":\"The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.\",\"fields\":{},\"kind\":\"SCALAR\",\"name\":\"String\"}},\"typesScope\":\"inputs\"}"
+            source: "graphql"
+            version: 1
+          }
           graphql: {
             doc: "mutation IssueUpdateArchive($id: String!) { issueArchive(id: $id) { issue { ...IssueFields } success } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }"
             field: "issueArchive"
@@ -271,6 +301,12 @@ main: kit: entity: issue: {
                 type: "`$STRING`"
               }
             ]
+          }
+          contract: {
+            id: "POST issueUpdate"
+            json: "{\"field\":{\"args\":[{\"gqltype\":\"String!\",\"name\":\"id\",\"reqd\":true,\"type\":\"String\"},{\"gqltype\":\"IssueUpdateInput!\",\"name\":\"input\",\"reqd\":true,\"type\":\"IssueUpdateInput\"}],\"deprecated\":false,\"gqltype\":\"IssuePayload!\",\"list\":false,\"name\":\"issueUpdate\",\"reqd\":true,\"type\":\"IssuePayload\"},\"invocation\":{\"doc\":\"mutation IssueUpdate($id: String!, $input: IssueUpdateInput!) { issueUpdate(id: $id, input: $input) { issue { ...IssueFields } success } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }\",\"field\":\"issueUpdate\",\"optype\":\"mutation\",\"vars\":[{\"from\":\"id\",\"gqltype\":\"String!\",\"name\":\"id\"},{\"from\":\"\",\"gqltype\":\"IssueUpdateInput!\",\"name\":\"input\"}]},\"protocol\":\"graphql\",\"types\":{\"IssuePriority\":{\"fields\":{},\"kind\":\"ENUM\",\"name\":\"IssuePriority\",\"values\":[\"HIGH\",\"LOW\",\"MEDIUM\",\"NONE\",\"URGENT\"]},\"IssueUpdateInput\":{\"fields\":{\"priority\":{\"args\":[],\"deprecated\":false,\"gqltype\":\"IssuePriority\",\"list\":false,\"name\":\"priority\",\"reqd\":false,\"type\":\"IssuePriority\"},\"title\":{\"args\":[],\"deprecated\":false,\"gqltype\":\"String\",\"list\":false,\"name\":\"title\",\"reqd\":false,\"type\":\"String\"}},\"kind\":\"INPUT_OBJECT\",\"name\":\"IssueUpdateInput\"},\"String\":{\"desc\":\"The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.\",\"fields\":{},\"kind\":\"SCALAR\",\"name\":\"String\"}},\"typesScope\":\"inputs\"}"
+            source: "graphql"
+            version: 1
           }
           graphql: {
             doc: "mutation IssueUpdate($id: String!, $input: IssueUpdateInput!) { issueUpdate(id: $id, input: $input) { issue { ...IssueFields } success } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }"

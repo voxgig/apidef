@@ -56,31 +56,31 @@ type ApiDefContext struct {
 
 // Metrics holds counters and found items during processing.
 type Metrics struct {
-	Count MetricsCount        `json:"count"`
-	Found map[string]any      `json:"found"`
+	Count MetricsCount   `json:"count"`
+	Found map[string]any `json:"found"`
 }
 
 // MetricsCount holds metric counters.
 type MetricsCount struct {
-	Path         int            `json:"path"`
-	Method       int            `json:"method"`
-	OrigCmpRefs  map[string]int `json:"origcmprefs"`
-	Cmp          int            `json:"cmp"`
-	Tag          int            `json:"tag"`
-	Entity       int            `json:"entity"`
+	Path        int            `json:"path"`
+	Method      int            `json:"method"`
+	OrigCmpRefs map[string]int `json:"origcmprefs"`
+	Cmp         int            `json:"cmp"`
+	Tag         int            `json:"tag"`
+	Entity      int            `json:"entity"`
 }
 
 // Guide represents the guide structure mapping API spec to SDK entities.
 type Guide struct {
-	Control  map[string]any            `json:"control"`
-	Entity   map[string]*GuideEntity   `json:"entity"`
-	Metrics  GuideMetrics              `json:"metrics"`
+	Control map[string]any          `json:"control"`
+	Entity  map[string]*GuideEntity `json:"entity"`
+	Metrics GuideMetrics            `json:"metrics"`
 }
 
 // GuideMetrics holds guide-level metrics.
 type GuideMetrics struct {
-	Count GuideMetricsCount  `json:"count"`
-	Found map[string]any     `json:"found"`
+	Count GuideMetricsCount `json:"count"`
+	Found map[string]any    `json:"found"`
 }
 
 // GuideMetricsCount holds guide metric counters.
@@ -94,17 +94,17 @@ type GuideMetricsCount struct {
 
 // GuideEntity represents an entity in the guide.
 type GuideEntity struct {
-	Name string                  `json:"name"`
-	Orig string                  `json:"orig,omitempty"`
-	Path map[string]*GuidePath   `json:"path"`
+	Name string                `json:"name"`
+	Orig string                `json:"orig,omitempty"`
+	Path map[string]*GuidePath `json:"path"`
 }
 
 // GuidePath represents a path in the guide.
 type GuidePath struct {
-	WhyPath []string                          `json:"why_path,omitempty"`
-	Action  map[string]*GuidePathAction       `json:"action,omitempty"`
-	Rename  *GuidePathRename                  `json:"rename,omitempty"`
-	Op      map[string]*GuidePathOp           `json:"op,omitempty"`
+	WhyPath []string                    `json:"why_path,omitempty"`
+	Action  map[string]*GuidePathAction `json:"action,omitempty"`
+	Rename  *GuidePathRename            `json:"rename,omitempty"`
+	Op      map[string]*GuidePathOp     `json:"op,omitempty"`
 }
 
 // GuidePathAction represents an action on a guide path.
@@ -125,6 +125,8 @@ type GuideRenameParam struct {
 
 // GuidePathOp represents an operation on a guide path.
 type GuidePathOp struct {
+	Live      map[string]any `json:"live,omitempty"`
+	Contract  map[string]any `json:"contract,omitempty"`
 	Method    string         `json:"method"`
 	WhyOp     []string       `json:"why_op,omitempty"`
 	Transform map[string]any `json:"transform,omitempty"`
