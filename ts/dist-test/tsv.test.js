@@ -290,6 +290,18 @@ function loadTsv(name) {
         });
     }
 });
+// A path segment carries no word boundaries; the component name does. This
+// borrows the boundaries back, and ONLY the boundaries -- an exact
+// concatenation match is required, so no row here can produce a name whose
+// letters differ from the input's.
+(0, node_test_1.describe)('tsv-resplit-from-cmp', () => {
+    const rows = loadTsv('resplit-from-cmp');
+    for (const row of rows) {
+        (0, node_test_1.test)(`resplitFromCmp("${row.entname}", "${row.cmp}") => "${row.expected}"`, () => {
+            node_assert_1.default.deepStrictEqual((0, utility_1.resplitFromCmp)(row.entname, row.cmp, []), row.expected);
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-nom', () => {
     const rows = loadTsv('nom');
     for (const row of rows) {

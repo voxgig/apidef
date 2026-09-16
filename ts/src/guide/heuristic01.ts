@@ -55,6 +55,7 @@ import {
   getdlog,
   normalizeFieldName,
   pathMatch,
+  resplitFromCmp,
   sortedEntries,
   sortedKeys,
   warnOnError,
@@ -605,6 +606,21 @@ function ResolveEntityName(spec: TaskSpec) {
       entname = 'entity' + work.entity.count.unresolved
     }
   }
+
+  // A PATH SEGMENT CARRIES NO WORD BOUNDARIES, and the component name does.
+  //
+  // `/openbanking/payeeverification` is one lowercase run, so `canonize` has
+  // nothing to split on and the entity is named `payeeverification` ->
+  // `Payeeverification`. The boundary was never missing: the response
+  // component for that same operation is
+  // `PayeeVerification.PayeeVerificationResult`, which canonizes to
+  // `payee_verification_result`.
+  //
+  // Where the path wins over the component -- which is usually RIGHT, because
+  // a widely-reused response schema makes a poor entity name -- the component
+  // was being discarded whole, boundaries and all. Borrow just the boundaries
+  // back. See resplitFromCmp for why this cannot invent a name.
+  entname = resplitFromCmp(entname, ment.cmp as string, why_path)
 
   // Keep the pre-truncation name so a truncated-name collision can tell a
   // re-encounter of the SAME origin (merge) from a genuinely different one
