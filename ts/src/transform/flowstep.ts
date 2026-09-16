@@ -373,8 +373,13 @@ function firstTextField(ent: ModelEntity, op?: ModelOp) {
   const fields = each(ent.fields)
   for (let fI = 0; fI < fields.length; fI++) {
     const field = fields[fI]
+    // NOT A readOnly FIELD. The flow writes this one and then asserts the
+    // mark comes back, so a field the client may not send fails the step it
+    // was chosen for. Fields are sorted by name, so which field this lands on
+    // is alphabetical accident: solar's planet, once its spec declared the
+    // server-assigned `forbidReason`, marked that instead of `kind`.
     if ('`$STRING`' === field.type && 'id' !== field.name &&
-      true !== paramNames[field.name]) {
+      true !== field.readOnly && true !== paramNames[field.name]) {
       return field
     }
   }

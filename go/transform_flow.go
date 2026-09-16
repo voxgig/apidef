@@ -292,7 +292,10 @@ func lookupInput(input map[string]any, name string) (any, bool) {
 }
 
 // firstTextField mirrors TS firstTextField — returns the name of the
-// first $STRING field on the entity that is not the id.
+// first $STRING field on the entity that is not the id and is not
+// readOnly. The flow writes this field and then asserts the mark comes
+// back, so a field the client may not send fails the step it was chosen
+// for.
 func firstTextField(ent map[string]any) string {
 	fields, _ := ent["fields"].([]any)
 	for _, f := range fields {
@@ -302,6 +305,9 @@ func firstTextField(ent map[string]any) string {
 		}
 		ftype, _ := fm["type"].(string)
 		fname, _ := fm["name"].(string)
+		if ro, _ := fm["readOnly"].(bool); ro {
+			continue
+		}
 		if ftype == "`$STRING`" && fname != "id" {
 			return fname
 		}
