@@ -39,6 +39,17 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 				if mtarget == nil {
 					continue
 				}
+				// Mirrors src/transform/field.ts: action points contribute no
+				// fields. An action is a verb dispatched by `$action`, so its
+				// request body is that verb's arguments and its response is
+				// that verb's result — neither describes a record of this
+				// entity. identityParams and responseCandidates below skip
+				// them for the same reason.
+				if sel, ok := mtarget["select"].(map[string]any); ok && sel != nil {
+					if _, has := sel["$action"]; has {
+						continue
+					}
+				}
 				opfields := resolveOpFields(mtarget, def, opname)
 				for _, opfield := range opfields {
 					name, _ := opfield["name"].(string)

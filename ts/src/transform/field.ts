@@ -49,6 +49,24 @@ const fieldTransform: Transform = async function(
         const mpoints = mop.points
 
         for (let mpoint of mpoints) {
+          // ACTION POINTS CONTRIBUTE NO FIELDS, as `identityParams` and
+          // `responseCandidates` below already assume: an action is a VERB
+          // dispatched by `$action`, so its request body is that verb's
+          // arguments and its response is that verb's result. Neither says
+          // anything about what a record of this entity carries.
+          //
+          // A custom action lands under `create`, so every point of it was
+          // harvested along with the plain create's. solar's planet — four
+          // properties in the spec — came out with ten fields, the extra six
+          // being `{start, stop}` and `{forbid, why}` from the two action
+          // bodies and `{ok, state}` from their shared response envelope.
+          // Those reached the generated `Planet` type, its create and update
+          // data types, and the per-entity field table in the generated
+          // reference, none of which a planet has ever carried.
+          if (null != mpoint?.select?.['$action']) {
+            continue
+          }
+
           const opfields = resolveOpFields(ment, mop, mpoint, def)
 
           for (let opfield of opfields) {

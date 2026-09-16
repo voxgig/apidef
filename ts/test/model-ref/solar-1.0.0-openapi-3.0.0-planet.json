@@ -20,26 +20,6 @@
       "name": "name",
       "req": true,
       "type": "`$STRING`"
-    },
-    {
-      "name": "ok",
-      "req": false,
-      "type": "`$BOOLEAN`"
-    },
-    {
-      "name": "start",
-      "req": false,
-      "type": "`$BOOLEAN`"
-    },
-    {
-      "name": "state",
-      "req": false,
-      "type": "`$STRING`"
-    },
-    {
-      "name": "stop",
-      "req": false,
-      "type": "`$BOOLEAN`"
     }
   ],
   "id": {
