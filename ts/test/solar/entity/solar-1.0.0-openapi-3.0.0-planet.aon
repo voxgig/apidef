@@ -13,11 +13,6 @@ main: kit: entity: planet: {
       type: "`$NUMBER`"
     }
     {
-      name: "forbid"
-      req: false
-      type: "`$BOOLEAN`"
-    }
-    {
       name: "id"
       req: true
       type: "`$STRING`"
@@ -30,31 +25,6 @@ main: kit: entity: planet: {
     {
       name: "name"
       req: true
-      type: "`$STRING`"
-    }
-    {
-      name: "ok"
-      req: false
-      type: "`$BOOLEAN`"
-    }
-    {
-      name: "start"
-      req: false
-      type: "`$BOOLEAN`"
-    }
-    {
-      name: "state"
-      req: false
-      type: "`$STRING`"
-    }
-    {
-      name: "stop"
-      req: false
-      type: "`$BOOLEAN`"
-    }
-    {
-      name: "why"
-      req: false
       type: "`$STRING`"
     }
   ]

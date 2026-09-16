@@ -29,11 +29,6 @@
       "type": "`$STRING`"
     },
     {
-      "name": "ok",
-      "req": false,
-      "type": "`$BOOLEAN`"
-    },
-    {
       "name": "parentId",
       "req": false,
       "short": "ID of the parent taxon in the hierarchy",

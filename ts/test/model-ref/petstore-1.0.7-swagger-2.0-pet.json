@@ -6,21 +6,10 @@
       "type": "`$OBJECT`"
     },
     {
-      "format": "int32",
-      "name": "code",
-      "req": false,
-      "type": "`$INTEGER`"
-    },
-    {
       "format": "int64",
       "name": "id",
       "req": false,
       "type": "`$INTEGER`"
-    },
-    {
-      "name": "message",
-      "req": false,
-      "type": "`$STRING`"
     },
     {
       "name": "name",
@@ -42,11 +31,6 @@
       "name": "tags",
       "req": false,
       "type": "`$ARRAY`"
-    },
-    {
-      "name": "type",
-      "req": false,
-      "type": "`$STRING`"
     }
   ],
   "id": {
