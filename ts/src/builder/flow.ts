@@ -79,7 +79,9 @@ async function makeFlowBuilder(ctx: ApiDefContext): Promise<Function> {
 main: ${KIT}: flow: ${flow.name}:
 ` + flowModelSrc
 
-        barrel.push(`@"${Path.basename(flowfile)}"`)
+        // `./` — see the entity barrel: aontu 0.65 reads a bare
+        // single-segment include as a package name and refuses it.
+        barrel.push(`@"./${Path.basename(flowfile)}"`)
 
         File({ name: Path.basename(flowfile) }, () => Content(flowsrc))
       })

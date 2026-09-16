@@ -55,7 +55,9 @@ async function makeFlowBuilder(ctx) {
 
 main: ${types_1.KIT}: flow: ${flow.name}:
 ` + flowModelSrc;
-                barrel.push(`@"${node_path_1.default.basename(flowfile)}"`);
+                // `./` — see the entity barrel: aontu 0.65 reads a bare
+                // single-segment include as a package name and refuses it.
+                barrel.push(`@"./${node_path_1.default.basename(flowfile)}"`);
                 (0, jostraca_1.File)({ name: node_path_1.default.basename(flowfile) }, () => (0, jostraca_1.Content)(flowsrc));
             });
             const barrelFile = (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'flow-index.aon';
