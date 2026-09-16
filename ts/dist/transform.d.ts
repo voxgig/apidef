@@ -18,7 +18,17 @@ type TransformResult = {
 type Transform = (ctx: TransformCtx) => Promise<TransformResult>;
 declare const OPKIND: any;
 declare const GuideShape: {
-    <V>(root?: V | undefined, ctx?: import("shape").Context): V & {
+    <V>(root?: V | undefined, ctx?: import("shape").Context): (0 extends 1 & V ? true : false) extends true ? {
+        entity: {};
+        control: {};
+        transform: {};
+        manual: {};
+    } : V extends object ? Omit<V, "control" | "entity" | "manual" | "transform"> & {
+        entity: {};
+        control: {};
+        transform: {};
+        manual: {};
+    } : {
         entity: {};
         control: {};
         transform: {};
@@ -31,52 +41,18 @@ declare const GuideShape: {
         manual: {};
     };
     match: (root?: any, ctx?: import("shape").Context) => boolean;
-    error: (root?: any, ctx?: import("shape").Context) => {
-        shape: boolean;
-        code: string;
-        gname: string;
-        props: ({
-            path: string;
-            type: string;
-            value: any;
-        }[]);
-        desc: () => ({
-            name: string;
-            code: string;
-            err: {
-                key: string;
-                type: string;
-                node: import("shape").Node<any>;
-                value: any;
-                path: string;
-                pathArr: (string | number)[];
-                why: string;
-                check: string;
-                args: Record<string, any>;
-                mark: number;
-                text: string;
-                use: any;
-            }[];
-            ctx: any;
-        });
-        toJSON(): /*elided*/ any & {
-            err: any;
-            name: string;
-            message: string;
-        };
-        name: string;
-        message: string;
-        stack?: string;
-    }[];
+    error: (root?: any, ctx?: import("shape").Context) => import("shape").ErrDesc[];
     spec: () => any;
     node: () => import("shape").Node<{
-        entity: {};
-        control: {};
-        transform: {};
-        manual: {};
+        readonly entity: {};
+        readonly control: {};
+        readonly transform: {};
+        readonly manual: {};
     }>;
     stringify: (...rest: any[]) => string;
     jsonify: () => any;
+    jsonSchema: () => any;
+    json: () => any;
     toString: (this: any) => string;
     shape: {
         shape$: symbol;

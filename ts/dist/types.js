@@ -14,7 +14,7 @@ const ControlShape = (0, shape_1.Shape)({
         generate: true,
     }
 });
-const OpenControlShape = (0, shape_1.Shape)((0, shape_1.Open)(ControlShape), { name: 'Control' });
+const OpenControlShape = (0, shape_1.Shape)((0, shape_1.Open)(ControlShape.node()), { name: 'Control' });
 exports.OpenControlShape = OpenControlShape;
 const ModelShape = (0, shape_1.Shape)({
     name: String,
@@ -36,7 +36,7 @@ const ModelShape = (0, shape_1.Shape)({
         },
     }
 });
-const OpenModelShape = (0, shape_1.Shape)((0, shape_1.Open)(ModelShape), { name: 'Model' });
+const OpenModelShape = (0, shape_1.Shape)((0, shape_1.Open)(ModelShape.node()), { name: 'Model' });
 exports.OpenModelShape = OpenModelShape;
 const BuildShape = (0, shape_1.Shape)({
     spec: {
@@ -57,6 +57,6 @@ const BuildShape = (0, shape_1.Shape)({
         }
     }
 });
-const OpenBuildShape = (0, shape_1.Shape)((0, shape_1.Open)(BuildShape));
+const OpenBuildShape = (0, shape_1.Shape)((0, shape_1.Open)(BuildShape.node()));
 exports.OpenBuildShape = OpenBuildShape;
 //# sourceMappingURL=types.js.map

@@ -30,7 +30,23 @@ type ApiDefAuthOption = {
     prefix?: string;
 };
 declare const ControlShape: {
-    <V>(root?: V | undefined, ctx?: import("shape").Context): V & {
+    <V>(root?: V | undefined, ctx?: import("shape").Context): (0 extends 1 & V ? true : false) extends true ? {
+        step: {
+            parse: boolean;
+            guide: boolean;
+            transformers: boolean;
+            builders: boolean;
+            generate: boolean;
+        };
+    } : V extends object ? Omit<V, "step"> & {
+        step: {
+            parse: boolean;
+            guide: boolean;
+            transformers: boolean;
+            builders: boolean;
+            generate: boolean;
+        };
+    } : {
         step: {
             parse: boolean;
             guide: boolean;
@@ -49,55 +65,21 @@ declare const ControlShape: {
         };
     };
     match: (root?: any, ctx?: import("shape").Context) => boolean;
-    error: (root?: any, ctx?: import("shape").Context) => {
-        shape: boolean;
-        code: string;
-        gname: string;
-        props: ({
-            path: string;
-            type: string;
-            value: any;
-        }[]);
-        desc: () => ({
-            name: string;
-            code: string;
-            err: {
-                key: string;
-                type: string;
-                node: import("shape").Node<any>;
-                value: any;
-                path: string;
-                pathArr: (string | number)[];
-                why: string;
-                check: string;
-                args: Record<string, any>;
-                mark: number;
-                text: string;
-                use: any;
-            }[];
-            ctx: any;
-        });
-        toJSON(): /*elided*/ any & {
-            err: any;
-            name: string;
-            message: string;
-        };
-        name: string;
-        message: string;
-        stack?: string;
-    }[];
+    error: (root?: any, ctx?: import("shape").Context) => import("shape").ErrDesc[];
     spec: () => any;
     node: () => import("shape").Node<{
-        step: {
-            parse: boolean;
-            guide: boolean;
-            transformers: boolean;
-            builders: boolean;
-            generate: boolean;
+        readonly step: {
+            readonly parse: true;
+            readonly guide: true;
+            readonly transformers: true;
+            readonly builders: true;
+            readonly generate: true;
         };
     }>;
     stringify: (...rest: any[]) => string;
     jsonify: () => any;
+    jsonSchema: () => any;
+    json: () => any;
     toString: (this: any) => string;
     shape: {
         shape$: symbol;
@@ -105,211 +87,56 @@ declare const ControlShape: {
     };
 };
 declare const OpenControlShape: {
-    <V>(root?: V | undefined, ctx?: import("shape").Context): V & {
-        valid: {};
-        match: {};
-        error: {};
-        spec: {};
-        node: {};
-        stringify: {};
-        jsonify: {};
-        toString: {};
-        shape: {
-            shape$: symbol;
-            v$: string;
+    <V>(root?: V | undefined, ctx?: import("shape").Context): (0 extends 1 & V ? true : false) extends true ? {
+        step: {
+            parse: boolean;
+            guide: boolean;
+            transformers: boolean;
+            builders: boolean;
+            generate: boolean;
+        };
+    } : V extends object ? Omit<V, "step"> & {
+        step: {
+            parse: boolean;
+            guide: boolean;
+            transformers: boolean;
+            builders: boolean;
+            generate: boolean;
+        };
+    } : {
+        step: {
+            parse: boolean;
+            guide: boolean;
+            transformers: boolean;
+            builders: boolean;
+            generate: boolean;
         };
     };
     valid: <V>(root?: V | undefined, ctx?: import("shape").Context) => root is V & {
-        <V_1>(root?: V_1 | undefined, ctx?: import("shape").Context): V_1 & {
-            step: {
-                parse: boolean;
-                guide: boolean;
-                transformers: boolean;
-                builders: boolean;
-                generate: boolean;
-            };
-        };
-        valid: <V_1>(root?: V_1 | undefined, ctx?: import("shape").Context) => root is V_1 & {
-            step: {
-                parse: boolean;
-                guide: boolean;
-                transformers: boolean;
-                builders: boolean;
-                generate: boolean;
-            };
-        };
-        match: (root?: any, ctx?: import("shape").Context) => boolean;
-        error: (root?: any, ctx?: import("shape").Context) => {
-            shape: boolean;
-            code: string;
-            gname: string;
-            props: ({
-                path: string;
-                type: string;
-                value: any;
-            }[]);
-            desc: () => ({
-                name: string;
-                code: string;
-                err: {
-                    key: string;
-                    type: string;
-                    node: import("shape").Node<any>;
-                    value: any;
-                    path: string;
-                    pathArr: (string | number)[];
-                    why: string;
-                    check: string;
-                    args: Record<string, any>;
-                    mark: number;
-                    text: string;
-                    use: any;
-                }[];
-                ctx: any;
-            });
-            toJSON(): /*elided*/ any & {
-                err: any;
-                name: string;
-                message: string;
-            };
-            name: string;
-            message: string;
-            stack?: string;
-        }[];
-        spec: () => any;
-        node: () => import("shape").Node<{
-            step: {
-                parse: boolean;
-                guide: boolean;
-                transformers: boolean;
-                builders: boolean;
-                generate: boolean;
-            };
-        }>;
-        stringify: (...rest: any[]) => string;
-        jsonify: () => any;
-        toString: (this: any) => string;
-        shape: {
-            shape$: symbol;
-            v$: string;
+        step: {
+            parse: boolean;
+            guide: boolean;
+            transformers: boolean;
+            builders: boolean;
+            generate: boolean;
         };
     };
     match: (root?: any, ctx?: import("shape").Context) => boolean;
-    error: (root?: any, ctx?: import("shape").Context) => {
-        shape: boolean;
-        code: string;
-        gname: string;
-        props: ({
-            path: string;
-            type: string;
-            value: any;
-        }[]);
-        desc: () => ({
-            name: string;
-            code: string;
-            err: {
-                key: string;
-                type: string;
-                node: import("shape").Node<any>;
-                value: any;
-                path: string;
-                pathArr: (string | number)[];
-                why: string;
-                check: string;
-                args: Record<string, any>;
-                mark: number;
-                text: string;
-                use: any;
-            }[];
-            ctx: any;
-        });
-        toJSON(): /*elided*/ any & {
-            err: any;
-            name: string;
-            message: string;
-        };
-        name: string;
-        message: string;
-        stack?: string;
-    }[];
+    error: (root?: any, ctx?: import("shape").Context) => import("shape").ErrDesc[];
     spec: () => any;
-    node: () => import("shape").Node<{
-        <V>(root?: V | undefined, ctx?: import("shape").Context): V & {
-            step: {
-                parse: boolean;
-                guide: boolean;
-                transformers: boolean;
-                builders: boolean;
-                generate: boolean;
-            };
+    node: () => import("shape").Node<import("shape").Node<{
+        readonly step: {
+            readonly parse: true;
+            readonly guide: true;
+            readonly transformers: true;
+            readonly builders: true;
+            readonly generate: true;
         };
-        valid: <V>(root?: V | undefined, ctx?: import("shape").Context) => root is V & {
-            step: {
-                parse: boolean;
-                guide: boolean;
-                transformers: boolean;
-                builders: boolean;
-                generate: boolean;
-            };
-        };
-        match: (root?: any, ctx?: import("shape").Context) => boolean;
-        error: (root?: any, ctx?: import("shape").Context) => {
-            shape: boolean;
-            code: string;
-            gname: string;
-            props: ({
-                path: string;
-                type: string;
-                value: any;
-            }[]);
-            desc: () => ({
-                name: string;
-                code: string;
-                err: {
-                    key: string;
-                    type: string;
-                    node: import("shape").Node<any>;
-                    value: any;
-                    path: string;
-                    pathArr: (string | number)[];
-                    why: string;
-                    check: string;
-                    args: Record<string, any>;
-                    mark: number;
-                    text: string;
-                    use: any;
-                }[];
-                ctx: any;
-            });
-            toJSON(): /*elided*/ any & {
-                err: any;
-                name: string;
-                message: string;
-            };
-            name: string;
-            message: string;
-            stack?: string;
-        }[];
-        spec: () => any;
-        node: () => import("shape").Node<{
-            step: {
-                parse: boolean;
-                guide: boolean;
-                transformers: boolean;
-                builders: boolean;
-                generate: boolean;
-            };
-        }>;
-        stringify: (...rest: any[]) => string;
-        jsonify: () => any;
-        toString: (this: any) => string;
-        shape: {
-            shape$: symbol;
-            v$: string;
-        };
-    }>;
+    }>>;
     stringify: (...rest: any[]) => string;
     jsonify: () => any;
+    jsonSchema: () => any;
+    json: () => any;
     toString: (this: any) => string;
     shape: {
         shape$: symbol;
@@ -318,7 +145,35 @@ declare const OpenControlShape: {
 };
 type Control = ReturnType<typeof ControlShape>;
 declare const ModelShape: {
-    <V>(root?: V | undefined, ctx?: import("shape").Context): V & {
+    <V>(root?: V | undefined, ctx?: import("shape").Context): (0 extends 1 & V ? true : false) extends true ? {
+        name: string;
+        def: string;
+        main: {
+            kit: {};
+            def: {};
+            api: {
+                guide: {};
+                entity: {};
+            };
+            custom: {
+                plurals: {};
+            };
+        };
+    } : V extends object ? Omit<V, "def" | "main" | "name"> & {
+        name: string;
+        def: string;
+        main: {
+            kit: {};
+            def: {};
+            api: {
+                guide: {};
+                entity: {};
+            };
+            custom: {
+                plurals: {};
+            };
+        };
+    } : {
         name: string;
         def: string;
         main: {
@@ -334,8 +189,8 @@ declare const ModelShape: {
         };
     };
     valid: <V>(root?: V | undefined, ctx?: import("shape").Context) => root is V & {
-        name: StringConstructor;
-        def: StringConstructor;
+        name: string;
+        def: string;
         main: {
             kit: {};
             def: {};
@@ -349,61 +204,27 @@ declare const ModelShape: {
         };
     };
     match: (root?: any, ctx?: import("shape").Context) => boolean;
-    error: (root?: any, ctx?: import("shape").Context) => {
-        shape: boolean;
-        code: string;
-        gname: string;
-        props: ({
-            path: string;
-            type: string;
-            value: any;
-        }[]);
-        desc: () => ({
-            name: string;
-            code: string;
-            err: {
-                key: string;
-                type: string;
-                node: import("shape").Node<any>;
-                value: any;
-                path: string;
-                pathArr: (string | number)[];
-                why: string;
-                check: string;
-                args: Record<string, any>;
-                mark: number;
-                text: string;
-                use: any;
-            }[];
-            ctx: any;
-        });
-        toJSON(): /*elided*/ any & {
-            err: any;
-            name: string;
-            message: string;
-        };
-        name: string;
-        message: string;
-        stack?: string;
-    }[];
+    error: (root?: any, ctx?: import("shape").Context) => import("shape").ErrDesc[];
     spec: () => any;
     node: () => import("shape").Node<{
-        name: StringConstructor;
-        def: StringConstructor;
-        main: {
-            kit: {};
-            def: {};
-            api: {
+        readonly name: StringConstructor;
+        readonly def: StringConstructor;
+        readonly main: {
+            readonly kit: {};
+            readonly def: {};
+            readonly api: {
                 guide: {};
                 entity: {};
             };
-            custom: {
+            readonly custom: {
                 plurals: {};
             };
         };
     }>;
     stringify: (...rest: any[]) => string;
     jsonify: () => any;
+    jsonSchema: () => any;
+    json: () => any;
     toString: (this: any) => string;
     shape: {
         shape$: symbol;
@@ -411,247 +232,86 @@ declare const ModelShape: {
     };
 };
 declare const OpenModelShape: {
-    <V>(root?: V | undefined, ctx?: import("shape").Context): V & {
-        valid: {};
-        match: {};
-        error: {};
-        spec: {};
-        node: {};
-        stringify: {};
-        jsonify: {};
-        toString: {};
-        shape: {
-            shape$: symbol;
-            v$: string;
+    <V>(root?: V | undefined, ctx?: import("shape").Context): (0 extends 1 & V ? true : false) extends true ? {
+        name: string;
+        def: string;
+        main: {
+            kit: {};
+            def: {};
+            api: {
+                guide: {};
+                entity: {};
+            };
+            custom: {
+                plurals: {};
+            };
+        };
+    } : V extends object ? Omit<V, "def" | "main" | "name"> & {
+        name: string;
+        def: string;
+        main: {
+            kit: {};
+            def: {};
+            api: {
+                guide: {};
+                entity: {};
+            };
+            custom: {
+                plurals: {};
+            };
+        };
+    } : {
+        name: string;
+        def: string;
+        main: {
+            kit: {};
+            def: {};
+            api: {
+                guide: {};
+                entity: {};
+            };
+            custom: {
+                plurals: {};
+            };
         };
     };
     valid: <V>(root?: V | undefined, ctx?: import("shape").Context) => root is V & {
-        <V_1>(root?: V_1 | undefined, ctx?: import("shape").Context): V_1 & {
-            name: string;
-            def: string;
-            main: {
-                kit: {};
-                def: {};
-                api: {
-                    guide: {};
-                    entity: {};
-                };
-                custom: {
-                    plurals: {};
-                };
+        name: string;
+        def: string;
+        main: {
+            kit: {};
+            def: {};
+            api: {
+                guide: {};
+                entity: {};
             };
-        };
-        valid: <V_1>(root?: V_1 | undefined, ctx?: import("shape").Context) => root is V_1 & {
-            name: StringConstructor;
-            def: StringConstructor;
-            main: {
-                kit: {};
-                def: {};
-                api: {
-                    guide: {};
-                    entity: {};
-                };
-                custom: {
-                    plurals: {};
-                };
+            custom: {
+                plurals: {};
             };
-        };
-        match: (root?: any, ctx?: import("shape").Context) => boolean;
-        error: (root?: any, ctx?: import("shape").Context) => {
-            shape: boolean;
-            code: string;
-            gname: string;
-            props: ({
-                path: string;
-                type: string;
-                value: any;
-            }[]);
-            desc: () => ({
-                name: string;
-                code: string;
-                err: {
-                    key: string;
-                    type: string;
-                    node: import("shape").Node<any>;
-                    value: any;
-                    path: string;
-                    pathArr: (string | number)[];
-                    why: string;
-                    check: string;
-                    args: Record<string, any>;
-                    mark: number;
-                    text: string;
-                    use: any;
-                }[];
-                ctx: any;
-            });
-            toJSON(): /*elided*/ any & {
-                err: any;
-                name: string;
-                message: string;
-            };
-            name: string;
-            message: string;
-            stack?: string;
-        }[];
-        spec: () => any;
-        node: () => import("shape").Node<{
-            name: StringConstructor;
-            def: StringConstructor;
-            main: {
-                kit: {};
-                def: {};
-                api: {
-                    guide: {};
-                    entity: {};
-                };
-                custom: {
-                    plurals: {};
-                };
-            };
-        }>;
-        stringify: (...rest: any[]) => string;
-        jsonify: () => any;
-        toString: (this: any) => string;
-        shape: {
-            shape$: symbol;
-            v$: string;
         };
     };
     match: (root?: any, ctx?: import("shape").Context) => boolean;
-    error: (root?: any, ctx?: import("shape").Context) => {
-        shape: boolean;
-        code: string;
-        gname: string;
-        props: ({
-            path: string;
-            type: string;
-            value: any;
-        }[]);
-        desc: () => ({
-            name: string;
-            code: string;
-            err: {
-                key: string;
-                type: string;
-                node: import("shape").Node<any>;
-                value: any;
-                path: string;
-                pathArr: (string | number)[];
-                why: string;
-                check: string;
-                args: Record<string, any>;
-                mark: number;
-                text: string;
-                use: any;
-            }[];
-            ctx: any;
-        });
-        toJSON(): /*elided*/ any & {
-            err: any;
-            name: string;
-            message: string;
-        };
-        name: string;
-        message: string;
-        stack?: string;
-    }[];
+    error: (root?: any, ctx?: import("shape").Context) => import("shape").ErrDesc[];
     spec: () => any;
-    node: () => import("shape").Node<{
-        <V>(root?: V | undefined, ctx?: import("shape").Context): V & {
-            name: string;
-            def: string;
-            main: {
-                kit: {};
-                def: {};
-                api: {
-                    guide: {};
-                    entity: {};
-                };
-                custom: {
-                    plurals: {};
-                };
+    node: () => import("shape").Node<import("shape").Node<{
+        readonly name: StringConstructor;
+        readonly def: StringConstructor;
+        readonly main: {
+            readonly kit: {};
+            readonly def: {};
+            readonly api: {
+                guide: {};
+                entity: {};
+            };
+            readonly custom: {
+                plurals: {};
             };
         };
-        valid: <V>(root?: V | undefined, ctx?: import("shape").Context) => root is V & {
-            name: StringConstructor;
-            def: StringConstructor;
-            main: {
-                kit: {};
-                def: {};
-                api: {
-                    guide: {};
-                    entity: {};
-                };
-                custom: {
-                    plurals: {};
-                };
-            };
-        };
-        match: (root?: any, ctx?: import("shape").Context) => boolean;
-        error: (root?: any, ctx?: import("shape").Context) => {
-            shape: boolean;
-            code: string;
-            gname: string;
-            props: ({
-                path: string;
-                type: string;
-                value: any;
-            }[]);
-            desc: () => ({
-                name: string;
-                code: string;
-                err: {
-                    key: string;
-                    type: string;
-                    node: import("shape").Node<any>;
-                    value: any;
-                    path: string;
-                    pathArr: (string | number)[];
-                    why: string;
-                    check: string;
-                    args: Record<string, any>;
-                    mark: number;
-                    text: string;
-                    use: any;
-                }[];
-                ctx: any;
-            });
-            toJSON(): /*elided*/ any & {
-                err: any;
-                name: string;
-                message: string;
-            };
-            name: string;
-            message: string;
-            stack?: string;
-        }[];
-        spec: () => any;
-        node: () => import("shape").Node<{
-            name: StringConstructor;
-            def: StringConstructor;
-            main: {
-                kit: {};
-                def: {};
-                api: {
-                    guide: {};
-                    entity: {};
-                };
-                custom: {
-                    plurals: {};
-                };
-            };
-        }>;
-        stringify: (...rest: any[]) => string;
-        jsonify: () => any;
-        toString: (this: any) => string;
-        shape: {
-            shape$: symbol;
-            v$: string;
-        };
-    }>;
+    }>>;
     stringify: (...rest: any[]) => string;
     jsonify: () => any;
+    jsonSchema: () => any;
+    json: () => any;
     toString: (this: any) => string;
     shape: {
         shape$: symbol;
@@ -660,13 +320,49 @@ declare const OpenModelShape: {
 };
 type Model = ReturnType<typeof ModelShape>;
 declare const BuildShape: {
-    <V>(root?: V | undefined, ctx?: import("shape").Context): V & {
+    <V>(root?: V | undefined, ctx?: import("shape").Context): (0 extends 1 & V ? true : false) extends true ? {
         spec: {
             base: string;
             path: string;
             debug: string;
             use: {};
-            res: never[];
+            res: any[];
+            require: string;
+            log: {};
+            fs: any;
+            dryrun: boolean;
+            buildargs: {};
+            watch: {
+                mod: boolean;
+                add: boolean;
+                rem: boolean;
+            };
+        };
+    } : V extends object ? Omit<V, "spec"> & {
+        spec: {
+            base: string;
+            path: string;
+            debug: string;
+            use: {};
+            res: any[];
+            require: string;
+            log: {};
+            fs: any;
+            dryrun: boolean;
+            buildargs: {};
+            watch: {
+                mod: boolean;
+                add: boolean;
+                rem: boolean;
+            };
+        };
+    } : {
+        spec: {
+            base: string;
+            path: string;
+            debug: string;
+            use: {};
+            res: any[];
             require: string;
             log: {};
             fs: any;
@@ -685,10 +381,10 @@ declare const BuildShape: {
             path: string;
             debug: string;
             use: {};
-            res: never[];
+            res: any[];
             require: string;
             log: {};
-            fs: import("shape").Node<unknown>;
+            fs: any;
             dryrun: boolean;
             buildargs: {};
             watch: {
@@ -699,65 +395,31 @@ declare const BuildShape: {
         };
     };
     match: (root?: any, ctx?: import("shape").Context) => boolean;
-    error: (root?: any, ctx?: import("shape").Context) => {
-        shape: boolean;
-        code: string;
-        gname: string;
-        props: ({
-            path: string;
-            type: string;
-            value: any;
-        }[]);
-        desc: () => ({
-            name: string;
-            code: string;
-            err: {
-                key: string;
-                type: string;
-                node: import("shape").Node<any>;
-                value: any;
-                path: string;
-                pathArr: (string | number)[];
-                why: string;
-                check: string;
-                args: Record<string, any>;
-                mark: number;
-                text: string;
-                use: any;
-            }[];
-            ctx: any;
-        });
-        toJSON(): /*elided*/ any & {
-            err: any;
-            name: string;
-            message: string;
-        };
-        name: string;
-        message: string;
-        stack?: string;
-    }[];
+    error: (root?: any, ctx?: import("shape").Context) => import("shape").ErrDesc[];
     spec: () => any;
     node: () => import("shape").Node<{
-        spec: {
-            base: string;
-            path: string;
-            debug: string;
-            use: {};
-            res: never[];
-            require: string;
-            log: {};
-            fs: import("shape").Node<unknown>;
-            dryrun: boolean;
-            buildargs: {};
-            watch: {
-                mod: boolean;
-                add: boolean;
-                rem: boolean;
+        readonly spec: {
+            readonly base: "";
+            readonly path: "";
+            readonly debug: "";
+            readonly use: {};
+            readonly res: readonly [];
+            readonly require: "";
+            readonly log: {};
+            readonly fs: import("shape").Node<any>;
+            readonly dryrun: false;
+            readonly buildargs: {};
+            readonly watch: {
+                readonly mod: true;
+                readonly add: true;
+                readonly rem: true;
             };
         };
     }>;
     stringify: (...rest: any[]) => string;
     jsonify: () => any;
+    jsonSchema: () => any;
+    json: () => any;
     toString: (this: any) => string;
     shape: {
         shape$: symbol;
@@ -765,271 +427,106 @@ declare const BuildShape: {
     };
 };
 declare const OpenBuildShape: {
-    <V>(root?: V | undefined, ctx?: import("shape").Context): V & {
-        valid: {};
-        match: {};
-        error: {};
-        spec: {};
-        node: {};
-        stringify: {};
-        jsonify: {};
-        toString: {};
-        shape: {
-            shape$: symbol;
-            v$: string;
+    <V>(root?: V | undefined, ctx?: import("shape").Context): (0 extends 1 & V ? true : false) extends true ? {
+        spec: {
+            base: string;
+            path: string;
+            debug: string;
+            use: {};
+            res: any[];
+            require: string;
+            log: {};
+            fs: any;
+            dryrun: boolean;
+            buildargs: {};
+            watch: {
+                mod: boolean;
+                add: boolean;
+                rem: boolean;
+            };
+        };
+    } : V extends object ? Omit<V, "spec"> & {
+        spec: {
+            base: string;
+            path: string;
+            debug: string;
+            use: {};
+            res: any[];
+            require: string;
+            log: {};
+            fs: any;
+            dryrun: boolean;
+            buildargs: {};
+            watch: {
+                mod: boolean;
+                add: boolean;
+                rem: boolean;
+            };
+        };
+    } : {
+        spec: {
+            base: string;
+            path: string;
+            debug: string;
+            use: {};
+            res: any[];
+            require: string;
+            log: {};
+            fs: any;
+            dryrun: boolean;
+            buildargs: {};
+            watch: {
+                mod: boolean;
+                add: boolean;
+                rem: boolean;
+            };
         };
     };
     valid: <V>(root?: V | undefined, ctx?: import("shape").Context) => root is V & {
-        <V_1>(root?: V_1 | undefined, ctx?: import("shape").Context): V_1 & {
-            spec: {
-                base: string;
-                path: string;
-                debug: string;
-                use: {};
-                res: never[];
-                require: string;
-                log: {};
-                fs: any;
-                dryrun: boolean;
-                buildargs: {};
-                watch: {
-                    mod: boolean;
-                    add: boolean;
-                    rem: boolean;
-                };
+        spec: {
+            base: string;
+            path: string;
+            debug: string;
+            use: {};
+            res: any[];
+            require: string;
+            log: {};
+            fs: any;
+            dryrun: boolean;
+            buildargs: {};
+            watch: {
+                mod: boolean;
+                add: boolean;
+                rem: boolean;
             };
-        };
-        valid: <V_1>(root?: V_1 | undefined, ctx?: import("shape").Context) => root is V_1 & {
-            spec: {
-                base: string;
-                path: string;
-                debug: string;
-                use: {};
-                res: never[];
-                require: string;
-                log: {};
-                fs: import("shape").Node<unknown>;
-                dryrun: boolean;
-                buildargs: {};
-                watch: {
-                    mod: boolean;
-                    add: boolean;
-                    rem: boolean;
-                };
-            };
-        };
-        match: (root?: any, ctx?: import("shape").Context) => boolean;
-        error: (root?: any, ctx?: import("shape").Context) => {
-            shape: boolean;
-            code: string;
-            gname: string;
-            props: ({
-                path: string;
-                type: string;
-                value: any;
-            }[]);
-            desc: () => ({
-                name: string;
-                code: string;
-                err: {
-                    key: string;
-                    type: string;
-                    node: import("shape").Node<any>;
-                    value: any;
-                    path: string;
-                    pathArr: (string | number)[];
-                    why: string;
-                    check: string;
-                    args: Record<string, any>;
-                    mark: number;
-                    text: string;
-                    use: any;
-                }[];
-                ctx: any;
-            });
-            toJSON(): /*elided*/ any & {
-                err: any;
-                name: string;
-                message: string;
-            };
-            name: string;
-            message: string;
-            stack?: string;
-        }[];
-        spec: () => any;
-        node: () => import("shape").Node<{
-            spec: {
-                base: string;
-                path: string;
-                debug: string;
-                use: {};
-                res: never[];
-                require: string;
-                log: {};
-                fs: import("shape").Node<unknown>;
-                dryrun: boolean;
-                buildargs: {};
-                watch: {
-                    mod: boolean;
-                    add: boolean;
-                    rem: boolean;
-                };
-            };
-        }>;
-        stringify: (...rest: any[]) => string;
-        jsonify: () => any;
-        toString: (this: any) => string;
-        shape: {
-            shape$: symbol;
-            v$: string;
         };
     };
     match: (root?: any, ctx?: import("shape").Context) => boolean;
-    error: (root?: any, ctx?: import("shape").Context) => {
-        shape: boolean;
-        code: string;
-        gname: string;
-        props: ({
-            path: string;
-            type: string;
-            value: any;
-        }[]);
-        desc: () => ({
-            name: string;
-            code: string;
-            err: {
-                key: string;
-                type: string;
-                node: import("shape").Node<any>;
-                value: any;
-                path: string;
-                pathArr: (string | number)[];
-                why: string;
-                check: string;
-                args: Record<string, any>;
-                mark: number;
-                text: string;
-                use: any;
-            }[];
-            ctx: any;
-        });
-        toJSON(): /*elided*/ any & {
-            err: any;
-            name: string;
-            message: string;
-        };
-        name: string;
-        message: string;
-        stack?: string;
-    }[];
+    error: (root?: any, ctx?: import("shape").Context) => import("shape").ErrDesc[];
     spec: () => any;
-    node: () => import("shape").Node<{
-        <V>(root?: V | undefined, ctx?: import("shape").Context): V & {
-            spec: {
-                base: string;
-                path: string;
-                debug: string;
-                use: {};
-                res: never[];
-                require: string;
-                log: {};
-                fs: any;
-                dryrun: boolean;
-                buildargs: {};
-                watch: {
-                    mod: boolean;
-                    add: boolean;
-                    rem: boolean;
-                };
+    node: () => import("shape").Node<import("shape").Node<{
+        readonly spec: {
+            readonly base: "";
+            readonly path: "";
+            readonly debug: "";
+            readonly use: {};
+            readonly res: readonly [];
+            readonly require: "";
+            readonly log: {};
+            readonly fs: import("shape").Node<any>;
+            readonly dryrun: false;
+            readonly buildargs: {};
+            readonly watch: {
+                readonly mod: true;
+                readonly add: true;
+                readonly rem: true;
             };
         };
-        valid: <V>(root?: V | undefined, ctx?: import("shape").Context) => root is V & {
-            spec: {
-                base: string;
-                path: string;
-                debug: string;
-                use: {};
-                res: never[];
-                require: string;
-                log: {};
-                fs: import("shape").Node<unknown>;
-                dryrun: boolean;
-                buildargs: {};
-                watch: {
-                    mod: boolean;
-                    add: boolean;
-                    rem: boolean;
-                };
-            };
-        };
-        match: (root?: any, ctx?: import("shape").Context) => boolean;
-        error: (root?: any, ctx?: import("shape").Context) => {
-            shape: boolean;
-            code: string;
-            gname: string;
-            props: ({
-                path: string;
-                type: string;
-                value: any;
-            }[]);
-            desc: () => ({
-                name: string;
-                code: string;
-                err: {
-                    key: string;
-                    type: string;
-                    node: import("shape").Node<any>;
-                    value: any;
-                    path: string;
-                    pathArr: (string | number)[];
-                    why: string;
-                    check: string;
-                    args: Record<string, any>;
-                    mark: number;
-                    text: string;
-                    use: any;
-                }[];
-                ctx: any;
-            });
-            toJSON(): /*elided*/ any & {
-                err: any;
-                name: string;
-                message: string;
-            };
-            name: string;
-            message: string;
-            stack?: string;
-        }[];
-        spec: () => any;
-        node: () => import("shape").Node<{
-            spec: {
-                base: string;
-                path: string;
-                debug: string;
-                use: {};
-                res: never[];
-                require: string;
-                log: {};
-                fs: import("shape").Node<unknown>;
-                dryrun: boolean;
-                buildargs: {};
-                watch: {
-                    mod: boolean;
-                    add: boolean;
-                    rem: boolean;
-                };
-            };
-        }>;
-        stringify: (...rest: any[]) => string;
-        jsonify: () => any;
-        toString: (this: any) => string;
-        shape: {
-            shape$: symbol;
-            v$: string;
-        };
-    }>;
+    }>>;
     stringify: (...rest: any[]) => string;
     jsonify: () => any;
+    jsonSchema: () => any;
+    json: () => any;
     toString: (this: any) => string;
     shape: {
         shape$: symbol;

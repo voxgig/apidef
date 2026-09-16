@@ -77,7 +77,7 @@ const ControlShape = Shape({
     generate: true,
   }
 })
-const OpenControlShape = Shape(Open(ControlShape), { name: 'Control' })
+const OpenControlShape = Shape(Open(ControlShape.node()), { name: 'Control' })
 
 type Control = ReturnType<typeof ControlShape>
 
@@ -103,7 +103,7 @@ const ModelShape = Shape({
     },
   }
 })
-const OpenModelShape = Shape(Open(ModelShape), { name: 'Model' })
+const OpenModelShape = Shape(Open(ModelShape.node()), { name: 'Model' })
 
 type Model = ReturnType<typeof ModelShape>
 
@@ -127,7 +127,7 @@ const BuildShape = Shape({
     }
   }
 })
-const OpenBuildShape = Shape(Open(BuildShape))
+const OpenBuildShape = Shape(Open(BuildShape.node()))
 
 type Build = ReturnType<typeof BuildShape>
 

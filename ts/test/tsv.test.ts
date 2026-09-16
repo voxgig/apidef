@@ -411,7 +411,11 @@ describe('tsv-GuideShape', () => {
       transform: {},
       manual: {},
     })
-    assert.deepStrictEqual(result.entity.foo, {})
+    // `as any` because of a shape 11 typing change, not a runtime one. Produced<V,R>
+    // now prefers the SHAPE's type over the input's for overlapping keys, so
+    // `entity` is statically `{}` even though the open shape passes `foo`
+    // through at runtime. This assertion is exactly the check that it does.
+    assert.deepStrictEqual((result.entity as any).foo, {})
   })
 })
 

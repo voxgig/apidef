@@ -358,6 +358,10 @@ function loadTsv(name) {
             transform: {},
             manual: {},
         });
+        // `as any` because of a shape 11 typing change, not a runtime one. Produced<V,R>
+        // now prefers the SHAPE's type over the input's for overlapping keys, so
+        // `entity` is statically `{}` even though the open shape passes `foo`
+        // through at runtime. This assertion is exactly the check that it does.
         node_assert_1.default.deepStrictEqual(result.entity.foo, {});
     });
 });
