@@ -1,0 +1,9 @@
+entname	cmp	expected
+payeeverification	payee_verification_result	payee_verification
+virtual	payment_account	virtual
+paymentaccount	payment_account	payment_account
+payee_verification	payee_verification_result	payee_verification
+payment	payment_account_entry	payment
+user		user
+user	nosep	user
+verification	payee_verification_result	verification

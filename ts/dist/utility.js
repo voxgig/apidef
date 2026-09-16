@@ -44,6 +44,7 @@ exports.closedBodyTransform = closedBodyTransform;
 exports.untaggedUnionBranches = untaggedUnionBranches;
 exports.scanUntaggedUnion = scanUntaggedUnion;
 exports.firstSentence = firstSentence;
+exports.resplitFromCmp = resplitFromCmp;
 const node_path_1 = __importDefault(require("node:path"));
 const jostraca_1 = require("jostraca");
 const util_1 = require("@voxgig/util");
@@ -887,6 +888,53 @@ function canonize(s) {
 // being unusable in a target language, and drop the snakify/depluralize that
 // change what the name MEANS. Case and plurality are preserved verbatim.
 const CANONIZE_FIELD_CACHE = new Map();
+// Re-split a boundary-less entity name using the component name's boundaries.
+//
+// ONLY when the name has no boundaries of its own. A name that already
+// contains `_` was split by something that knew where the words were, and is
+// left exactly as it is.
+//
+// ONLY on an EXACT concatenation match, which is what stops this inventing
+// anything. The component's segments are accumulated left to right and the
+// result is used only if it equals the path-derived name with its separators
+// removed:
+//
+//   payeeverification  +  payee_verification_result
+//     payee                          -> "payee"             no
+//     payee_verification             -> "payeeverification" YES -> payee_verification
+//
+//   virtual            +  payment_account
+//     payment                        -> "payment"           no
+//     payment_account                -> "paymentaccount"    no  -> unchanged
+//
+// So a component that has nothing to do with the path token cannot rename it,
+// and a component that merely EXTENDS the token (`payment_account_entry` for
+// `payment`) cannot either -- only the prefix that reconstructs the token
+// exactly is taken. A different entity name is never reachable from here; the
+// same letters in the same order, with separators restored, is the whole of
+// what this can produce.
+function resplitFromCmp(entname, cmp, why) {
+    if (null == entname || '' === entname || entname.includes('_')) {
+        return entname;
+    }
+    if (null == cmp || '' === cmp || !cmp.includes('_')) {
+        return entname;
+    }
+    const seg = cmp.split('_');
+    let acc = '';
+    for (let i = 0; i < seg.length; i++) {
+        acc += seg[i];
+        if (acc === entname) {
+            const split = seg.slice(0, i + 1).join('_');
+            why.push('resplit-from-cmp=' + split);
+            return split;
+        }
+        if (acc.length > entname.length) {
+            return entname;
+        }
+    }
+    return entname;
+}
 function canonizeField(s) {
     if (null == s || '' === s)
         return '';

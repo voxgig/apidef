@@ -17,6 +17,7 @@ import {
   cleanComponentName,
   inferFieldType,
   ensureMinEntityName,
+  resplitFromCmp,
   prefixLeadingDigit,
   validator,
   nom,
@@ -325,6 +326,21 @@ describe('tsv-ensure-min-entity-name', () => {
   for (const row of rows) {
     test(`ensureMinEntityName("${row.input}") => "${row.expected}"`, () => {
       assert.deepStrictEqual(ensureMinEntityName(row.input, {}), row.expected)
+    })
+  }
+})
+
+
+// A path segment carries no word boundaries; the component name does. This
+// borrows the boundaries back, and ONLY the boundaries -- an exact
+// concatenation match is required, so no row here can produce a name whose
+// letters differ from the input's.
+describe('tsv-resplit-from-cmp', () => {
+  const rows = loadTsv('resplit-from-cmp')
+  for (const row of rows) {
+    test(`resplitFromCmp("${row.entname}", "${row.cmp}") => "${row.expected}"`, () => {
+      assert.deepStrictEqual(
+        resplitFromCmp(row.entname, row.cmp, []), row.expected)
     })
   }
 })
