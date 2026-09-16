@@ -95,6 +95,46 @@ function migrateLegacyGuide(fs: any, folder: string, guideprefix: string): boole
   return true
 }
 
+// Give the guide's sibling include a `./`, in place, once.
+//
+// `guide.aon` is PROJECT-OWNED — the scaffold writes it at init and never
+// again, because it is two includes a user rarely edits. So the scaffold
+// template gaining a `./` reaches new projects only, and every existing one
+// keeps `@"base-guide.aon"`, which aontu 0.65 refuses: a bare single-segment
+// include now names a PACKAGE (ADR-039).
+//
+// A file the toolchain writes and the toolchain then refuses to read has to
+// be migrated by the toolchain. `migrateLegacyGuide` above does exactly this
+// for the `.aontu` -> `.aon` rename; this is the same move for the same file.
+//
+// THE SIBLING ONLY, matched as a whole include with the prefix absent. The
+// package include beside it (`@"@voxgig/apidef/model/guide.aon"`) is a real
+// package reference and must stay bare, and a user's own `@"./something"` is
+// already correct. Anything else in the file is the user's.
+//
+// Returns true when a migration actually happened.
+function migrateGuideIncludePrefix(
+  fs: any, guidepath: string, guideprefix: string
+): boolean {
+  if (!fs.existsSync(guidepath)) {
+    return false
+  }
+
+  const bare = '@"' + guideprefix + 'base-guide.aon"'
+  const src = String(fs.readFileSync(guidepath, 'utf8'))
+
+  if (!src.includes(bare)) {
+    return false
+  }
+
+  fs.writeFileSync(guidepath,
+    src.split(bare).join('@"./' + guideprefix + 'base-guide.aon"'))
+
+  return true
+}
+
+
+
 
 // The first unresolved merge-conflict marker in a source, or null.
 //
@@ -137,6 +177,13 @@ async function buildGuide(ctx: ApiDefContext): Promise<any> {
 
   if (migrateLegacyGuide(ctx.fs, folder, guideprefix)) {
     log.info({ point: 'migrate-guide', note: 'guide.aontu -> guide.aon' })
+  }
+
+  if (migrateGuideIncludePrefix(ctx.fs, guidepath, guideprefix)) {
+    log.info({
+      point: 'migrate-guide-prefix',
+      note: 'base-guide.aon -> ./base-guide.aon'
+    })
   }
 
   log.info({
@@ -627,5 +674,6 @@ function validateBaseBuide(ctx: ApiDefContext, baseguide: any) {
 
 export {
   migrateLegacyGuide,
+  migrateGuideIncludePrefix,
   buildGuide
 }

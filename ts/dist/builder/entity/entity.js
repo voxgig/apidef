@@ -27,7 +27,10 @@ function resolveEntity(apimodel, opts) {
             entityJSONIC +
             '\n\n}\n';
         entityFiles.push({ name: entityFile, src: entitySrc });
-        barrel.push(`@"${node_path_1.default.basename(entityFile)}"`);
+        // `./` — aontu 0.65 reads a bare single-segment include as a PACKAGE
+        // name (ADR-039), so `@"account.aon"` now resolves against the package
+        // stores and refuses. A sibling file has to say it is one.
+        barrel.push(`@"./${node_path_1.default.basename(entityFile)}"`);
     }));
     const indexFile = (null == opts.outprefix ? '' : opts.outprefix) + 'entity-index.aon';
     return function apiEntityBuilder() {

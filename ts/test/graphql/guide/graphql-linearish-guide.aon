@@ -1,4 +1,4 @@
 
 @"@voxgig/apidef/model/guide.aon"
 
-@"graphql-linearish-base-guide.aon"
+@"./graphql-linearish-base-guide.aon"
