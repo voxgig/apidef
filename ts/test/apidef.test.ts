@@ -542,6 +542,63 @@ def: '${outprefix}def.yaml'
   })
 
 
+  // AN SDK COVERS EVERY ENTITY OF ITS API unless there is a stated reason
+  // not to, and when there is one, the guide narrows rather than the spec.
+  // That is expressible only because `active` is declared `active?:
+  // boolean` - OPTIONAL, with no default - and the base guide writes no
+  // `active` at all. The empty slot is what lets a project put a DEFAULT
+  // there and invert the denylist into an allowlist.
+  //
+  // Held by a test because it is invisible and one character wide. Give
+  // the guide model a concrete `active` default and every allowlist in
+  // the fleet starts failing with `pref_rank_clash`; write the project's
+  // side as a bare `false` rather than `*false` and the same thing
+  // happens, which is why the second case is pinned too.
+  describe('guide entity allowlist', () => {
+    const SHAPE = `guide: entity: &: {
+  active?: boolean
+  name: key()
+}
+guide: entity: card: { path: "/card": {} }
+guide: entity: payment: { path: "/payment": {} }
+guide: entity: envelope: { path: "/envelope": {} }
+`
+
+    // Through a FILE, the way a project's guide.aon is resolved: the
+    // wildcard and the per-entity overrides have to be unified as one
+    // document with a base path, which is what `generate` does for a
+    // source string only when it can resolve includes from somewhere.
+    function unify(src: string): any {
+      const Os = require('node:os')
+      const PathMod = require('node:path')
+      const dir = Fs.mkdtempSync(PathMod.join(Os.tmpdir(), 'apidef-guide-'))
+      const file = PathMod.join(dir, 'guide.aon')
+      Fs.writeFileSync(file, src)
+      return aontu.generate('@"' + file + '"')
+    }
+
+    test('a wildcard DEFAULT turns the denylist into an allowlist', () => {
+      const out = unify(SHAPE +
+        'guide: entity: &: active: *false\n' +
+        'guide: entity: card: active: true\n')
+
+      const ent = out.guide.entity
+      assert.strictEqual(ent.card.active, true, 'the named entity stays on')
+      assert.strictEqual(ent.payment.active, false, 'an unnamed entity goes off')
+      assert.strictEqual(ent.envelope.active, false, 'and so does every other')
+    })
+
+    test('a CONCRETE wildcard value cannot be overridden', () => {
+      // The trap: `false` rather than `*false`. Two concrete values do not
+      // unify, so this is a build failure and not a denylist that quietly
+      // wins.
+      assert.throws(() => unify(SHAPE +
+        'guide: entity: &: active: false\n' +
+        'guide: entity: card: active: true\n'))
+    })
+  })
+
+
   // The entity builders only ever WRITE: a spec change that removes or
   // renames a derived entity used to leave the old <name>.aontu behind on
   // every regen (12 orphaned list_*.aontu on the dingconnect build). The GC

@@ -57,9 +57,9 @@
     "@voxgig/struct": ">=0",
     "@voxgig/util": ">=0",
     "aontu": ">=0",
+    "graphql": ">=0",
     "jostraca": ">=0.31",
-    "shape": ">=11",
-    "graphql": ">=0"
+    "shape": ">=11"
   },
   "dependencies": {
     "diff": "9.0.0",

@@ -112,6 +112,46 @@ guide: entity: pull: path: "/repos/{owner}/{repo}/pulls/{pull_number}/merge": {
 }
 ```
 
+### Covering a subset of a large API
+
+**An SDK covers every entity of its API unless there is a specific reason
+not to.** Full coverage is the default and the expectation; a narrowed SDK
+is the exception, and one that needs stating rather than assuming. A
+reduced SDK reports as covering an API it covers a fraction of, and the
+fraction is invisible from the outside.
+
+When narrowing is genuinely wanted, **narrow the guide, not the spec.**
+Point apidef at the real upstream definition and switch entities off, so
+the model still knows what the API contains and the next person can see
+exactly what was left out and turn it back on.
+
+`active` is declared `active?: boolean` — OPTIONAL, with no default — and
+the base guide writes no `active` at all. That empty slot is what lets a
+project put a DEFAULT there and invert the rule from a denylist into an
+allowlist:
+
+```jsonic
+@"@voxgig/apidef/model/guide.aon"
+@"base-guide.aon"
+
+# Default every entity off, then name the ones this SDK covers.
+guide: entity: &: active: *false
+guide: entity: card: active: true
+guide: entity: payment: active: true
+```
+
+**The `*` decides whether this works.** `active: *false` is a default, so a concrete
+`active: true` on one entity overrides it. Written as a bare `active:
+false` it is a CONCRETE value, and aontu refuses to unify two concrete
+values — the build fails with `pref_rank_clash` at
+`$.guide.entity.active` rather than giving you an allowlist. The same
+applies to a default written in the wildcard at the same rank as another
+default: rank one of them with `**` to say which layer is weaker.
+
+Hand-authoring a reduced copy of the spec does the same job and loses the
+record of what was dropped, so the model cannot tell a narrowed SDK from a
+complete one.
+
 An action needs a CRUD op beside it on the same path: the op names the slot
 (`load`, `list`, `create`, `update`, `remove`, `patch`) and the action names
 the point within it. An `op` key outside those six is dropped with a warning
