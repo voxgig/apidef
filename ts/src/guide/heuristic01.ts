@@ -1747,6 +1747,39 @@ function updateParamRename(
   newParamName: string,
   why: string,
 ) {
+  // A DERIVED NAME MUST STILL BE AN IDENTIFIER.
+  //
+  // Most renames here are <parent-segment>_id, on the assumption that the
+  // parent segment names the resource that owns the parameter. It does not
+  // always. HubSpot versions its Marketing paths by date —
+  //
+  //   /marketing/campaigns/2026-09/{campaignGuid}/assets/{assetType}
+  //
+  // — so the parent is `2026-09` and `campaignGuid` was renamed to
+  // `2026_09_id`. That is not a legal identifier in any target language: the
+  // generated TypeScript carried it as an object key and the file did not
+  // even parse,
+  //
+  //   error TS6188: Numeric separators are not allowed here
+  //
+  // so hubspot-marketing, 65 entities, could not be built at all.
+  //
+  // Guarded HERE rather than at the call sites, because there are several and
+  // they all derive from the same path text. A name that cannot be an
+  // identifier is not an improvement on the one the spec gave, so the spec's
+  // name is kept.
+  if (!/^[A-Za-z_]/.test(newParamName)) {
+    ctx.log.debug({
+      point: 'param-rename-skip',
+      path,
+      param: oldParamName,
+      rejected: newParamName,
+      note: 'derived parameter name is not an identifier, keeping the' +
+        " specification's name"
+    })
+    return
+  }
+
   const existingNewName = paramRenameCapture.rename[oldParamName]
   const existingWhy = paramRenameCapture.why[oldParamName]
 
