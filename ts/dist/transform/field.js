@@ -843,9 +843,14 @@ function findFieldDefs(ment, mop, mpoint, def) {
     // A verb, rather than an address: see the call site in the transform.
     const isAction = null != mpoint?.select?.['$action'];
     const fielddefs = [];
+    // The same guard the args transform needs, for the same reason: a point
+    // can name a path the definition no longer has, and the whole build
+    // should not fail over one of them. No path means no field definitions,
+    // which is what the `if (opdef)` below already answers for a missing
+    // method.
     const pathdef = def.paths[mpoint.orig];
     const method = mpoint.method.toLowerCase();
-    const opdef = pathdef[method];
+    const opdef = pathdef?.[method];
     if (opdef) {
         const responses = opdef.responses;
         const requestBody = opdef.requestBody;

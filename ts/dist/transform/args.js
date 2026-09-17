@@ -35,9 +35,21 @@ const argsTransform = async function (ctx) {
                     }
                 }
                 else {
+                    // GUARDED THE SAME WAY `opdef` ALWAYS WAS. A point can name a path
+                    // the definition no longer has: the guide moves a collection path
+                    // onto another entity (mergeCollectionPaths), a project switches an
+                    // entity off, a spec is re-fetched with a path renamed. The op
+                    // lookup below has always tolerated that; the path lookup did not,
+                    // and threw `Cannot read properties of undefined (reading
+                    // 'parameters')` - which fails the WHOLE build over one point.
+                    //
+                    // Stripe's published definition reaches it at 419 paths and 153
+                    // entities. A point with no path contributes no path-level
+                    // parameters, which is the same answer `opdef?` gives for a
+                    // missing method.
                     const pathdef = def.paths[mpoint.orig];
-                    argdefs.push(...(pathdef.parameters ?? []));
-                    const opdef = pathdef[mpoint.method.toLowerCase()];
+                    argdefs.push(...(pathdef?.parameters ?? []));
+                    const opdef = pathdef?.[mpoint.method.toLowerCase()];
                     argdefs.push(...(opdef?.parameters ?? []));
                 }
                 resolveArgs(ctx, ment, mop, mpoint, argdefs);

@@ -2,20 +2,51 @@
 // keywords from aontu unification and the model's empty-node cleanup.
 import type { Transform } from '../transform'
 
+// MEMOISED WITHIN A FACT, FRESH BETWEEN FACTS.
+//
+// Each top-level key of a contract is self-contained: a reader of
+// `facts.parameters` never has to resolve a `$ref` into `facts.requestBody`.
+// That is deliberate and `recursive resolved schemas retain local references
+// without changing shared nodes` pins it, so the memo RESETS at each
+// top-level key.
+//
+// Inside one fact it does not reset, and that is the fix. The previous code
+// forgot a node on the way out (`ancestors.delete`), so only an ANCESTOR
+// became a `$ref` - a node reachable by two routes within the same fact was
+// copied whole at each, and a schema graph where that compounds expands
+// exponentially.
+//
+// Stripe's published definition is where that stops being theoretical:
+// 1,454 cross-referenced schemas produced a string past V8's maximum length
+// and the build died with `RangeError: Invalid string length`, 22 seconds
+// into the guide. Not a big contract - an impossible one.
 export function contractJSON(value: any): string {
-  const ancestors = new Map<any, string>()
-  function copy(v: any, path: string): any {
-    if (v === null || typeof v !== 'object') return v
-    if (ancestors.has(v)) return { $ref: ancestors.get(v) }
-    ancestors.set(v, path)
-    const out: any = Array.isArray(v) ? v.map((item, i) => copy(item, path + '/' + i)) : {}
-    if (!Array.isArray(v)) for (const k of Object.keys(v).sort()) {
-      if (!k.endsWith('$') && !k.startsWith('x-') && undefined !== v[k]) out[k] = copy(v[k], path + '/' + k.replace(/~/g, '~0').replace(/\//g, '~1'))
+  function walk(root: any, base: string): any {
+    // One memo per fact, so refs stay local to it.
+    const seen = new Map<any, string>()
+    function copy(v: any, path: string): any {
+      if (v === null || typeof v !== 'object') return v
+      if (seen.has(v)) return { $ref: seen.get(v) }
+      seen.set(v, path)
+      const out: any = Array.isArray(v) ? v.map((item, i) => copy(item, path + '/' + i)) : {}
+      if (!Array.isArray(v)) for (const k of Object.keys(v).sort()) {
+        if (!k.endsWith('$') && !k.startsWith('x-') && undefined !== v[k]) out[k] = copy(v[k], path + '/' + k.replace(/~/g, '~0').replace(/\//g, '~1'))
+      }
+      return out
     }
-    ancestors.delete(v)
-    return out
+    return copy(root, base)
   }
-  return JSON.stringify(copy(value, '#'))
+
+  if (null === value || 'object' !== typeof value || Array.isArray(value)) {
+    return JSON.stringify(walk(value, '#'))
+  }
+
+  const out: any = {}
+  for (const k of Object.keys(value).sort()) {
+    if (k.endsWith('$') || k.startsWith('x-') || undefined === value[k]) continue
+    out[k] = walk(value[k], '#/' + k.replace(/~/g, '~0').replace(/\//g, '~1'))
+  }
+  return JSON.stringify(out)
 }
 
 // An operation needs its argument types, including recursive input objects.
