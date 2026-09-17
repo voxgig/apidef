@@ -302,7 +302,13 @@ async function buildBaseGuide(ctx) {
     // unchanged while recording the query/mutation distinction.
     const emitEntry = (branch, entname, entity, entrykey, path) => {
         {
-            (0, utility_1.debugpath)(entrykey, null, 'BASE-GUIDE', entname, entrykey, (0, utility_1.formatJSONIC)(path, { hsepd: 0, $: true, color: true }));
+            // GUARDED, because the argument is the expensive part. This formats a
+            // whole resolved path and is discarded unless APIDEF_DEBUG_PATH is
+            // set - and doing it for every path of a real definition is what
+            // exhausted a 12 GB heap on Stripe's 447 entity-paths.
+            if ((0, utility_1.debugpathOn)()) {
+                (0, utility_1.debugpath)(entrykey, null, 'BASE-GUIDE', entname, entrykey, (0, utility_1.formatJSONIC)(path, { hsepd: 0, $: true, color: true }));
+            }
             guideBlocks.push(`    ${branch}: ${qs(entrykey)}: {` +
                 sw(0 < path.why_path.length ?
                     '  # ent=' + entname + ';' +

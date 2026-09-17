@@ -54,6 +54,7 @@ declare function authExchangeOp(op: any, specSecured: boolean): {
 declare function specSecuredByDefault(def: any): boolean;
 declare function cleanComponentName(name: string, isKnownCmp?: (canonizedRemainder: string) => boolean): string;
 declare function warnOnError(where: string, warn: Warner, fn: Function, result?: any): any;
+declare function debugpathOn(): boolean;
 declare function debugpath(pathStr: string, methodName: string | null | undefined, ...args: any[]): void;
 declare function findPathsWithPrefix(ctx: any, pathStr: string, opts?: {
     strict?: boolean;
@@ -76,4 +77,4 @@ declare function scanUntaggedUnion(schema: any, depth?: number, seen?: Set<any>)
 };
 declare function closedBodyTransform(schema: any): Record<string, string> | null;
 declare function firstSentence(text: string): string;
-export { nom, getdlog, loadFile, formatJsonSrc, depluralize, setCustomPlurals, clearCustomPlurals, find, capture, pathMatch, makeWarner, formatJSONIC, validator, VALID_CANON, CANON_ONE, canonize, canonizeField, canonizeCmpName, stripSchemaNamespace, sanitizeSlug, slugToPascalCase, transliterate, cleanComponentName, guideActive, authExchangeOp, specSecuredByDefault, ensureMinEntityName, inferFieldType, normalizeFieldName, prefixLeadingDigit, debugpath, findPathsWithPrefix, writeFileSyncWarn, warnOnError, relativizePath, getModelPath, sortedKeys, sortedEntries, isEntityWrapperProp, envelopeProp, closedBodyTransform, untaggedUnionBranches, scanUntaggedUnion, firstSentence, resplitFromCmp, };
+export { nom, getdlog, loadFile, formatJsonSrc, depluralize, setCustomPlurals, clearCustomPlurals, find, capture, pathMatch, makeWarner, formatJSONIC, validator, VALID_CANON, CANON_ONE, canonize, canonizeField, canonizeCmpName, stripSchemaNamespace, sanitizeSlug, slugToPascalCase, transliterate, cleanComponentName, guideActive, authExchangeOp, specSecuredByDefault, ensureMinEntityName, inferFieldType, normalizeFieldName, prefixLeadingDigit, debugpath, debugpathOn, findPathsWithPrefix, writeFileSyncWarn, warnOnError, relativizePath, getModelPath, sortedKeys, sortedEntries, isEntityWrapperProp, envelopeProp, closedBodyTransform, untaggedUnionBranches, scanUntaggedUnion, firstSentence, resplitFromCmp, };
