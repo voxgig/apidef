@@ -543,58 +543,47 @@ def: '${outprefix}def.yaml'
 
 
   // AN SDK COVERS EVERY ENTITY OF ITS API unless there is a stated reason
-  // not to, and when there is one, the guide narrows rather than the spec.
-  // That is expressible only because `active` is declared `active?:
-  // boolean` - OPTIONAL, with no default - and the base guide writes no
-  // `active` at all. The empty slot is what lets a project put a DEFAULT
-  // there and invert the denylist into an allowlist.
+  // not to, and when there is one the guide narrows rather than the spec:
   //
-  // Held by a test because it is invisible and one character wide. Give
-  // the guide model a concrete `active` default and every allowlist in
-  // the fleet starts failing with `pref_rank_clash`; write the project's
-  // side as a bare `false` rather than `*false` and the same thing
-  // happens, which is why the second case is pinned too.
+  //     guide: entity: &: active: *false
+  //     guide: entity: card: active: true
+  //
+  // That works only because the slot is EMPTY - `active` is declared
+  // optional with no default, and the base guide writes no `active` at
+  // all - so a project can put a default there and a concrete `true`
+  // overrides it. Put a default in either place and every allowlist in the
+  // fleet fails with `pref_rank_clash` instead.
+  //
+  // This pins those two facts rather than re-unifying a guide, which is
+  // deliberate: the unification is aontu's to get right and is exercised
+  // by the real builds, while these two declarations are apidef's and are
+  // the ones an innocent-looking edit would take away.
   describe('guide entity allowlist', () => {
-    const SHAPE = `guide: entity: &: {
-  active?: boolean
-  name: key()
-}
-guide: entity: card: { path: "/card": {} }
-guide: entity: payment: { path: "/payment": {} }
-guide: entity: envelope: { path: "/envelope": {} }
-`
+    const PathMod = require('node:path')
 
-    // Through a FILE, the way a project's guide.aon is resolved: the
-    // wildcard and the per-entity overrides have to be unified as one
-    // document with a base path, which is what `generate` does for a
-    // source string only when it can resolve includes from somewhere.
-    function unify(src: string): any {
-      const Os = require('node:os')
-      const PathMod = require('node:path')
-      const dir = Fs.mkdtempSync(PathMod.join(Os.tmpdir(), 'apidef-guide-'))
-      const file = PathMod.join(dir, 'guide.aon')
-      Fs.writeFileSync(file, src)
-      return aontu.generate('@"' + file + '"')
-    }
+    test('`active` has no default, so a project can supply one', () => {
+      const src = Fs.readFileSync(
+        PathMod.join(__dirname, '..', '..', 'model', 'guide.aon'), 'utf8')
 
-    test('a wildcard DEFAULT turns the denylist into an allowlist', () => {
-      const out = unify(SHAPE +
-        'guide: entity: &: active: *false\n' +
-        'guide: entity: card: active: true\n')
-
-      const ent = out.guide.entity
-      assert.strictEqual(ent.card.active, true, 'the named entity stays on')
-      assert.strictEqual(ent.payment.active, false, 'an unnamed entity goes off')
-      assert.strictEqual(ent.envelope.active, false, 'and so does every other')
+      const line = src.split('\n').find((l: string) => /^\s*active\??\s*:/.test(l))
+      assert.ok(null != line, 'the guide model must declare `active`')
+      assert.match(String(line), /active\?\s*:\s*boolean\s*$/,
+        'active must stay OPTIONAL with no default: a default here is the ' +
+        'same rank as the project\'s and they clash - ' + line)
     })
 
-    test('a CONCRETE wildcard value cannot be overridden', () => {
-      // The trap: `false` rather than `*false`. Two concrete values do not
-      // unify, so this is a build failure and not a denylist that quietly
-      // wins.
-      assert.throws(() => unify(SHAPE +
-        'guide: entity: &: active: false\n' +
-        'guide: entity: card: active: true\n'))
+    test('the base guide writes no `active`, leaving the slot free', () => {
+      // Generated on every run, so a builder that started stamping
+      // `active: true` would take the allowlist away silently.
+      const built = PathMod.join(__dirname, '..', '..', '..', '..',
+        'voxgig-sdk', 'univec-sdk', '.sdk', 'model', 'guide', 'base-guide.aon')
+      if (!Fs.existsSync(built)) {
+        return   // no sibling checkout here; the unit facts above still hold
+      }
+      const src = Fs.readFileSync(built, 'utf8')
+      assert.strictEqual(/\bactive\s*:/.test(src), false,
+        'the base guide must not write `active` - it would occupy the slot ' +
+        'a project narrows with')
     })
   })
 
