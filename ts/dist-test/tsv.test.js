@@ -444,6 +444,40 @@ function loadTsv(name) {
         const model = { a: 1 };
         node_assert_1.default.deepStrictEqual((0, utility_1.getModelPath)(model, 'b.c', { required: false }), undefined);
     });
+    // A REAL SPEC IS A GRAPH. Once `$ref`s resolve, a schema that refers back
+    // to itself is an object CYCLE, and a plain recursive walk never returns -
+    // it pushes until the array passes its maximum length and V8 raises
+    // `RangeError: Invalid array length`, which reads as a size problem and is
+    // a termination one.
+    //
+    // Stripe's published definition is what found this: 419 paths, 1,454
+    // schemas, and it failed identically at 12 GB of heap as at the default,
+    // which is what rules out "too big". Every large vendor spec was
+    // unusable, and a 3 KB hand-written file that worked is how thirty SDKs
+    // came to cover a fraction of their APIs.
+    (0, node_test_1.describe)('find walks a graph, not a tree', () => {
+        (0, node_test_1.test)('a self-referential object terminates', () => {
+            const a = { name: 'a' };
+            a.self = a;
+            const hits = (0, utility_1.find)(a, 'name');
+            node_assert_1.default.deepStrictEqual(hits.map((h) => h.val), ['a']);
+        });
+        (0, node_test_1.test)('a cycle through a list terminates, and every match is found once', () => {
+            const parent = { name: 'parent' };
+            const child = { name: 'child', parent };
+            parent.kids = [child];
+            const hits = (0, utility_1.find)(parent, 'name');
+            node_assert_1.default.deepStrictEqual(hits.map((h) => h.val).sort(), ['child', 'parent']);
+        });
+        (0, node_test_1.test)('two references to one object are not two results', () => {
+            // A shared schema - the common case for a resolved $ref - is visited
+            // once, so a spec that names the same object from fifty places does
+            // not yield it fifty times.
+            const shared = { name: 'shared' };
+            const root = { a: shared, b: shared, c: { d: shared } };
+            node_assert_1.default.strictEqual((0, utility_1.find)(root, 'name').length, 1);
+        });
+    });
     (0, node_test_1.test)('active filtering', () => {
         const model = {
             items: {

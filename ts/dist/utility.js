@@ -369,11 +369,28 @@ function depluralize(word) {
     // If none of the rules apply, return as is
     return word;
 }
+// A REAL SPEC IS A GRAPH, NOT A TREE. Once `$ref`s are resolved, a schema
+// that refers back to itself - directly, or around a cycle - is an object
+// cycle, and a plain recursive walk never comes back. It does not merely run
+// long: it pushes into `vals` until the array exceeds its maximum length and
+// V8 throws `RangeError: Invalid array length`, which reads like a size
+// problem and is a termination one.
+//
+// Stripe's published definition is the case that found this - 419 paths,
+// 1,454 schemas, cross-referenced - and it failed the same way at 12 GB of
+// heap as at the default, which is what rules out "too big" as the answer.
+//
+// `seen` is a WeakSet, so the walk holds no object alive beyond its own
+// lifetime.
 function find(obj, qkey) {
     const vals = [];
+    const seen = new WeakSet();
     const collect = (o) => {
         if (!o || 'object' !== typeof o)
             return;
+        if (seen.has(o))
+            return;
+        seen.add(o);
         if (Array.isArray(o)) {
             for (let i = 0; i < o.length; i++)
                 collect(o[i]);

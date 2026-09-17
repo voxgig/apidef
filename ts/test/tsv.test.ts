@@ -27,6 +27,7 @@ import {
   closedBodyTransform,
   authExchangeOp,
   specSecuredByDefault,
+  find,
 } from '../dist/utility'
 
 import {
@@ -511,6 +512,45 @@ describe('tsv-getModelPath-extended', () => {
     const model = { a: 1 }
     assert.deepStrictEqual(getModelPath(model, 'b.c', { required: false }), undefined)
   })
+
+  // A REAL SPEC IS A GRAPH. Once `$ref`s resolve, a schema that refers back
+  // to itself is an object CYCLE, and a plain recursive walk never returns -
+  // it pushes until the array passes its maximum length and V8 raises
+  // `RangeError: Invalid array length`, which reads as a size problem and is
+  // a termination one.
+  //
+  // Stripe's published definition is what found this: 419 paths, 1,454
+  // schemas, and it failed identically at 12 GB of heap as at the default,
+  // which is what rules out "too big". Every large vendor spec was
+  // unusable, and a 3 KB hand-written file that worked is how thirty SDKs
+  // came to cover a fraction of their APIs.
+  describe('find walks a graph, not a tree', () => {
+
+    test('a self-referential object terminates', () => {
+      const a: any = { name: 'a' }
+      a.self = a
+      const hits = find(a, 'name')
+      assert.deepStrictEqual(hits.map((h: any) => h.val), ['a'])
+    })
+
+    test('a cycle through a list terminates, and every match is found once', () => {
+      const parent: any = { name: 'parent' }
+      const child: any = { name: 'child', parent }
+      parent.kids = [child]
+      const hits = find(parent, 'name')
+      assert.deepStrictEqual(hits.map((h: any) => h.val).sort(), ['child', 'parent'])
+    })
+
+    test('two references to one object are not two results', () => {
+      // A shared schema - the common case for a resolved $ref - is visited
+      // once, so a spec that names the same object from fifty places does
+      // not yield it fifty times.
+      const shared: any = { name: 'shared' }
+      const root: any = { a: shared, b: shared, c: { d: shared } }
+      assert.strictEqual(find(root, 'name').length, 1)
+    })
+  })
+
 
   test('active filtering', () => {
     const model = {
