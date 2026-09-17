@@ -39,18 +39,15 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 				if mtarget == nil {
 					continue
 				}
-				// Mirrors src/transform/field.ts: action points contribute no
-				// fields. An action is a verb dispatched by `$action`, so its
-				// request body is that verb's arguments and its response is
-				// that verb's result — neither describes a record of this
-				// entity. identityParams and responseCandidates below skip
-				// them for the same reason.
-				if sel, ok := mtarget["select"].(map[string]any); ok && sel != nil {
-					if _, has := sel["$action"]; has {
-						continue
-					}
-				}
-				opfields := resolveOpFields(mtarget, def, opname)
+				// Mirrors src/transform/field.ts: an action point is a verb, so
+				// its request body is that verb's arguments and its response
+				// is that verb's result — neither describes a record of this
+				// entity. The exclusion lives in findFieldDefs, which drops
+				// an action's body outright and keeps its response only when
+				// that response is the entity's own component; deciding it
+				// here cost every entity whose points are all actions its
+				// whole field list.
+				opfields := resolveOpFields(mtarget, def, opname, entname)
 				for _, opfield := range opfields {
 					name, _ := opfield["name"].(string)
 					if existing, exists := seen[name]; !exists {
@@ -705,9 +702,9 @@ func trailingVars(ptMap map[string]any) []string {
 	return run
 }
 
-func resolveOpFields(mtarget map[string]any, def map[string]any, opname string) []map[string]any {
+func resolveOpFields(mtarget map[string]any, def map[string]any, opname string, entname string) []map[string]any {
 	var mfields []map[string]any
-	fielddefs := findFieldDefs(mtarget, def, opname)
+	fielddefs := findFieldDefs(mtarget, def, opname, entname)
 
 	for _, fielddef := range fielddefs {
 		// Field names are WIRE identifiers — see CanonizeField. Using the
@@ -774,8 +771,39 @@ func resolveOpFields(mtarget map[string]any, def map[string]any, opname string) 
 	return mfields
 }
 
-func findFieldDefs(mtarget map[string]any, def map[string]any, opname string) []map[string]any {
+// namesEntity reports whether a schema names the entity's own component.
+//
+// The comparison is on the canonicalised component name — the same function
+// the guide used to derive an entity name from a component — so Installment
+// and the entity installment meet. Mirrors namesEntity in
+// src/transform/field.ts.
+func namesEntity(schema any, entname string) bool {
+	m, _ := schema.(map[string]any)
+	if m == nil {
+		return false
+	}
+
+	xref, _ := m["x-ref"].(string)
+	if xref == "" {
+		return false
+	}
+
+	cmp := xref
+	if i := strings.LastIndex(xref, "/"); i >= 0 {
+		cmp = xref[i+1:]
+	}
+
+	return CanonizeCmpName(cmp) == entname
+}
+
+func findFieldDefs(mtarget map[string]any, def map[string]any, opname string, entname string) []map[string]any {
 	var fielddefs []map[string]any
+
+	// A verb, rather than an address: see the call site in FieldTransform.
+	isAction := false
+	if sel, ok := mtarget["select"].(map[string]any); ok && sel != nil {
+		_, isAction = sel["$action"]
+	}
 	defPaths, _ := def["paths"].(map[string]any)
 	orig, _ := mtarget["orig"].(string)
 	method, _ := mtarget["method"].(string)
@@ -836,10 +864,22 @@ func findFieldDefs(mtarget map[string]any, def map[string]any, opname string) []
 		}
 	}
 
+	// AN ACTION'S RESPONSE IS THE VERB'S RESULT — unless it is the entity.
+	//
+	// `POST /pet/{petId}/uploadImage` answers with an ApiResponse, which says
+	// how the upload went; `GET /v2/installments/active` answers with
+	// [Installment], which is what an installment IS. The verb cannot tell
+	// them apart, the component can, and parse.go keeps it: a resolved $ref
+	// leaves its pointer behind as x-ref.
+	if isAction && !namesEntity(fieldSets, entname) {
+		return fielddefs
+	}
+
 	// A QUERY (RFC 10008) request body is a filter/query schema, not the
 	// entity shape, so it must not contribute entity fields. Fields for a
-	// QUERY op come from its response only.
-	if requestBody != nil && methodLower != "query" {
+	// QUERY op come from its response only. An action's body is likewise the
+	// verb's arguments and never the record.
+	if requestBody != nil && methodLower != "query" && !isAction {
 		// Mirrors src/transform/field.ts. TS unconditionally wraps
 		// fieldSets in an array when requestBody is present, even if the
 		// JSON schema lookup returns undefined. The wrapping is what stops

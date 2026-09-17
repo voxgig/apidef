@@ -6,6 +6,7 @@ import type { TransformResult, Transform } from '../transform'
 
 import {
   validator, canonizeField, inferFieldType, normalizeFieldName, envelopeProp,
+  canonizeCmpName,
   scanUntaggedUnion, firstSentence,
 } from '../utility'
 
@@ -49,24 +50,29 @@ const fieldTransform: Transform = async function(
         const mpoints = mop.points
 
         for (let mpoint of mpoints) {
-          // ACTION POINTS CONTRIBUTE NO FIELDS, as `identityParams` and
-          // `responseCandidates` below already assume: an action is a VERB
-          // dispatched by `$action`, so its request body is that verb's
-          // arguments and its response is that verb's result. Neither says
-          // anything about what a record of this entity carries.
-          //
-          // A custom action lands under `create`, so every point of it was
-          // harvested along with the plain create's. solar's planet — four
-          // properties in the spec — came out with ten fields, the extra six
+          // AN ACTION POINT IS A VERB: its request body is that verb's
+          // arguments and its response is that verb's result, so neither
+          // describes a record of the entity. solar's planet -- four
+          // properties in the spec -- came out with ten fields, the extra six
           // being `{start, stop}` and `{forbid, why}` from the two action
           // bodies and `{ok, state}` from their shared response envelope.
           // Those reached the generated `Planet` type, its create and update
           // data types, and the per-entity field table in the generated
           // reference, none of which a planet has ever carried.
-          if (null != mpoint?.select?.['$action']) {
-            continue
-          }
-
+          //
+          // THE EXCLUSION BELONGS WITH THE SCHEMAS, not here. `findFieldDefs`
+          // drops an action's request body outright and keeps its response
+          // only when that response is the entity's OWN component --
+          // `/v2/installments/active` returning `[Installment]` is,
+          // `uploadImage` returning `ApiResponse` is not -- and on the
+          // graphql path the question never arises, because the fields come
+          // from the entity's own object type rather than from any response.
+          //
+          // Deciding it here instead cost every entity whose points are ALL
+          // actions its entire field list: 24 across the validate corpus,
+          // from github's graphql `commit` and `team` to learnworlds'
+          // `installment` and shopify's `mailing_address`, each left with a
+          // generated type carrying no fields at all.
           const opfields = resolveOpFields(ment, mop, mpoint, def)
 
           for (let opfield of opfields) {
@@ -518,6 +524,24 @@ function responseCandidates(ment: ModelEntity, def: any): any[] {
   return out
 }
 
+
+
+// Does this schema name the entity's own component?
+//
+// The comparison is on the CANONICALISED component name, the same function
+// the guide used to derive an entity name from a component in the first
+// place, so `Installment` and the entity `installment` meet.
+function namesEntity(schema: any, ment: ModelEntity): boolean {
+  const xref = schema?.['x-ref']
+
+  if ('string' !== typeof xref) {
+    return false
+  }
+
+  const cmp = xref.slice(xref.lastIndexOf('/') + 1)
+
+  return canonizeCmpName(cmp) === ment.name
+}
 
 // A `$ref` followed one hop, or the schema itself. apidef resolves most refs
 // before this stage; this covers the ones that survive on a nested property.
@@ -984,14 +1008,17 @@ function gqlFieldType(typeName: string): string | undefined {
 
 
 function findFieldDefs(
-  _ment: ModelEntity,
+  ment: ModelEntity,
   mop: ModelOp,
   mpoint: ModelPoint,
   def: any
 ): SchemaDef[] {
   if ('graphql' === mpoint.kind) {
-    return findGraphqlFieldDefs(_ment, mpoint, def)
+    return findGraphqlFieldDefs(ment, mpoint, def)
   }
+
+  // A verb, rather than an address: see the call site in the transform.
+  const isAction = null != (mpoint as any)?.select?.['$action']
 
   const fielddefs: SchemaDef[] = []
   const pathdef = def.paths[mpoint.orig]
@@ -1047,11 +1074,25 @@ function findFieldDefs(
       }
     }
 
+    // AN ACTION'S RESPONSE IS THE VERB'S RESULT -- unless it is the entity.
+    //
+    // `POST /pet/{petId}/uploadImage` answers with an `ApiResponse`, which
+    // says how the upload went; `GET /v2/installments/active` answers with
+    // `[Installment]`, which is what an installment IS. Both are actions, so
+    // the verb alone cannot tell them apart -- but the component can, and
+    // parse.ts keeps it: every resolved `$ref` leaves its original pointer
+    // behind as `x-ref`, so the component a response was written against
+    // survives inlining and can be compared with the entity that owns it.
+    if (isAction && !namesEntity(fieldSets, ment)) {
+      return fielddefs
+    }
+
     // A QUERY (RFC 10008) request body is a filter/query schema, not the
     // entity shape, so it must not contribute entity fields. Fields for a
     // QUERY op come from its response only. Other methods (POST/PUT/PATCH)
-    // carry the entity in the body, so merge as usual.
-    if (requestBody && 'query' !== method) {
+    // carry the entity in the body, so merge as usual -- except for an
+    // action, whose body is the verb's arguments and never the record.
+    if (requestBody && 'query' !== method && !isAction) {
       fieldSets = [
         fieldSets,
         getx(requestBody, 'content "application/json" schema') ??

@@ -127,6 +127,115 @@ function planetWithActions() {
 }
 
 
+
+// AN ACTION WHOSE RESPONSE IS THE ENTITY. `GET /v2/installments/active` is
+// classified an action by its verb-shaped last segment, and answers with
+// `{data: [Installment], meta}` — the entity itself, one envelope down. The
+// component survives inlining as `x-ref` (see parse.ts), which is what tells
+// this response apart from `uploadImage`'s `ApiResponse`.
+function installmentByAction(withBody = false) {
+  const installment = {
+    type: 'object',
+    'x-ref': '#/components/schemas/Installment',
+    properties: {
+      id: { key$: 'id', type: 'string' },
+      amount: { key$: 'amount', type: 'number' },
+      ends_at: { key$: 'ends_at', type: 'string' },
+    },
+  }
+
+  const json = (schema: any) => ({ content: { 'application/json': { schema } } })
+
+  const opdef: any = {
+    responses: {
+      200: json({
+        type: 'object',
+        properties: {
+          data: { key$: 'data', type: 'array', items: installment },
+          meta: { key$: 'meta', type: 'object', properties: {} },
+        },
+      }),
+    },
+  }
+
+  if (withBody) {
+    // The verb's arguments, which describe the call and not the record.
+    opdef.requestBody = json({
+      type: 'object',
+      properties: {
+        notify: { key$: 'notify', type: 'boolean' },
+        reason: { key$: 'reason', type: 'string' },
+      },
+    })
+  }
+
+  return {
+    entity: {
+      name: 'installment',
+      fields: [] as any[],
+      op: {
+        list: {
+          name: 'list',
+          points: [
+            {
+              orig: '/v2/installments/active',
+              method: withBody ? 'POST' : 'GET',
+              kind: 'json',
+              select: { $action: 'active', exist: [] },
+            },
+          ],
+        },
+      },
+    },
+    def: { paths: { '/v2/installments/active': { [withBody ? 'post' : 'get']: opdef } } },
+  }
+}
+
+
+// A GRAPHQL ACTION POINT. Its fields never come from the response: the
+// transform reads the entity's own object type, which transform/graphql
+// resolved from the root field's return shape and left on `entityType$`.
+function commitByMutation() {
+  return {
+    entity: {
+      name: 'commit',
+      fields: [] as any[],
+      op: {
+        create: {
+          name: 'create',
+          points: [
+            {
+              orig: 'createCommitOnBranch',
+              method: 'POST',
+              kind: 'graphql',
+              graphql: { entityType$: 'Commit' },
+              select: { $action: 'create_commit_on_branch', exist: [] },
+            },
+          ],
+        },
+      },
+    },
+    def: {
+      paths: {},
+      types: {
+        String: { kind: 'SCALAR', name: 'String', fields: {} },
+        Boolean: { kind: 'SCALAR', name: 'Boolean', fields: {} },
+        Commit: {
+          kind: 'OBJECT',
+          name: 'Commit',
+          fields: {
+            oid: { name: 'oid', type: 'String', reqd: true, list: false, args: [], desc: '' },
+            message: { name: 'message', type: 'String', reqd: false, list: false, args: [], desc: '' },
+            committedViaWeb: {
+              name: 'committedViaWeb', type: 'Boolean', reqd: false, list: false, args: [], desc: '',
+            },
+          },
+        },
+      },
+    },
+  }
+}
+
 describe('field-action-points', () => {
 
   test('an action point contributes no fields', async () => {
@@ -178,4 +287,35 @@ describe('field-action-points', () => {
     assert.deepStrictEqual(names(fields), ['diameter', 'id', 'kind', 'name'])
   })
 
+
+  test('an action whose response IS the entity contributes its fields', async () => {
+    const { entity, def } = installmentByAction()
+    const fields = await runFieldTransform(entity, def)
+
+    // Without this the entity has no fields at all: `/v2/installments/active`
+    // is its only point, so skipping the action skipped everything.
+    assert.deepEqual(names(fields), ['amount', 'ends_at', 'id'])
+  })
+
+
+  test("an action's request body is never harvested, response or not", async () => {
+    const { entity, def } = installmentByAction(true)
+    const fields = await runFieldTransform(entity, def)
+
+    // `notify` and `reason` are what the caller passes, not what an
+    // installment carries, and the response naming the entity does not
+    // license the body alongside it.
+    assert.deepEqual(names(fields), ['amount', 'ends_at', 'id'])
+  })
+
+
+  test("a graphql action point contributes the entity's own type", async () => {
+    const { entity, def } = commitByMutation()
+    const fields = await runFieldTransform(entity, def)
+
+    // github's graphql commit has exactly two points, both mutations, so the
+    // blanket skip left a Commit with no fields while the query the same
+    // derivation generates went on selecting every one of them.
+    assert.deepEqual(names(fields), ['committedViaWeb', 'message', 'oid'])
+  })
 })
