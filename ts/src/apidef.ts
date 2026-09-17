@@ -75,6 +75,7 @@ import { graphqlTransform } from './transform/graphql'
 import { argsTransform } from './transform/args'
 import { selectTransform } from './transform/select'
 import { fieldTransform } from './transform/field'
+import { casecollideTransform } from './transform/casecollide'
 import { flowTransform } from './transform/flow'
 import { flowstepTransform } from './transform/flowstep'
 import { cleanTransform } from './transform/clean'
@@ -261,6 +262,8 @@ function ApiDef(opts: ApiDefOptions) {
       await argsTransform(ctx)
       await selectTransform(ctx)
       await fieldTransform(ctx)
+      // Before flowTransform, so no flow is built for an entity it drops.
+      await casecollideTransform(ctx)
       await flowTransform(ctx)
       await flowstepTransform(ctx)
       await cleanTransform(ctx)

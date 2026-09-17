@@ -67,6 +67,7 @@ const graphql_1 = require("./transform/graphql");
 const args_1 = require("./transform/args");
 const select_1 = require("./transform/select");
 const field_1 = require("./transform/field");
+const casecollide_1 = require("./transform/casecollide");
 const flow_1 = require("./transform/flow");
 const flowstep_1 = require("./transform/flowstep");
 const clean_1 = require("./transform/clean");
@@ -217,6 +218,8 @@ function ApiDef(opts) {
             await (0, args_1.argsTransform)(ctx);
             await (0, select_1.selectTransform)(ctx);
             await (0, field_1.fieldTransform)(ctx);
+            // Before flowTransform, so no flow is built for an entity it drops.
+            await (0, casecollide_1.casecollideTransform)(ctx);
             await (0, flow_1.flowTransform)(ctx);
             await (0, flowstep_1.flowstepTransform)(ctx);
             await (0, clean_1.cleanTransform)(ctx);
