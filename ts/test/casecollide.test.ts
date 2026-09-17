@@ -30,11 +30,14 @@ function run(entity: any, guide?: any) {
 
 describe('casecollide', () => {
 
+  // An op whose body is EMPTY does not survive cleanTransform, so it is not
+  // an operation as far as the generated SDK is concerned. The fixtures below
+  // give each surviving op a real body for that reason.
   test('drops the colliding entity that has no operations', async () => {
     const { ctx, logged } = await run({
-      opt_out: { name: 'opt_out', op: { list: {}, update: {} } },
+      opt_out: { name: 'opt_out', op: { list: { method: 'GET' }, update: { method: 'PUT' } } },
       optout: { name: 'optout', op: {} },
-      other: { name: 'other', op: { list: {} } },
+      other: { name: 'other', op: { list: { method: 'GET' } } },
     }, { entity: { opt_out: {}, optout: {}, other: {} } })
 
     assert.deepEqual(
@@ -51,8 +54,8 @@ describe('casecollide', () => {
 
   test('keeps both when both carry operations, and warns', async () => {
     const { ctx, logged } = await run({
-      opt_out: { name: 'opt_out', op: { list: {} } },
-      optout: { name: 'optout', op: { load: {} } },
+      opt_out: { name: 'opt_out', op: { list: { method: 'GET' } } },
+      optout: { name: 'optout', op: { load: { method: 'GET' } } },
     })
 
     // Dropping either would remove operations from the SDK — worse than a
@@ -68,7 +71,7 @@ describe('casecollide', () => {
 
   test('leaves an op-less entity alone when nothing collides with it', async () => {
     const { ctx, logged } = await run({
-      thing: { name: 'thing', op: { list: {} } },
+      thing: { name: 'thing', op: { list: { method: 'GET' } } },
       spare: { name: 'spare', op: {} },
     })
 
@@ -82,9 +85,22 @@ describe('casecollide', () => {
 
   test('a group of three keeps every entity that has operations', async () => {
     const { ctx } = await run({
-      opt_out: { name: 'opt_out', op: { list: {} } },
+      opt_out: { name: 'opt_out', op: { list: { method: 'GET' } } },
       optout: { name: 'optout', op: {} },
       Opt_Out: { name: 'Opt_Out', op: {} },
+    })
+
+    assert.deepEqual(Object.keys((ctx.apimodel.main.kit as any).entity), ['opt_out'])
+  })
+
+  test('an op whose body is empty is not an operation', async () => {
+    // cleanTransform strips empty nodes at the end of the pipeline, so an
+    // entity whose ops are all empty reaches the SDK with no methods.
+    // Counting op KEYS reported customerio's `optout` as carrying two
+    // operations when it carried none.
+    const { ctx } = await run({
+      opt_out: { name: 'opt_out', op: { list: { method: 'GET' } } },
+      optout: { name: 'optout', op: { list: {}, update: { args: {} } } },
     })
 
     assert.deepEqual(Object.keys((ctx.apimodel.main.kit as any).entity), ['opt_out'])

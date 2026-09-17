@@ -29,6 +29,18 @@ const types_1 = require("../types");
 //
 // This runs after operationTransform (so ops are known) and before
 // flowTransform (so no flow is built for an entity about to be dropped).
+// Empty the way cleanTransform means it: a node holding only empty nodes is
+// itself empty and does not survive into the model.
+function deepempty(v) {
+    if (null == v)
+        return true;
+    if ('object' !== typeof v)
+        return false;
+    const keys = Object.keys(v);
+    if (0 === keys.length)
+        return true;
+    return keys.every((k) => deepempty(v[k]));
+}
 const casecollideTransform = async function (ctx) {
     const { apimodel, guide } = ctx;
     const kit = apimodel.main[types_1.KIT];
@@ -43,7 +55,17 @@ const casecollideTransform = async function (ctx) {
         const group = bylower[lower].sort();
         if (group.length < 2)
             continue;
-        const opcount = (name) => Object.keys(kit.entity[name]?.op || {}).length;
+        // COUNT ONLY OPERATIONS THAT SURVIVE. An entity can carry op KEYS whose
+        // bodies are empty, or hold nothing but more empty nodes. cleanTransform
+        // strips those at the end of the pipeline — "including ancestors if thus
+        // also empty" — and an entity left with none generates a class with no
+        // methods. Counting the keys alone reported `optout` as carrying two
+        // operations when it had none that would reach the SDK, so this applies
+        // the same recursive test clean does.
+        const opcount = (name) => {
+            const ops = kit.entity[name]?.op || {};
+            return Object.keys(ops).filter((opname) => !deepempty(ops[opname])).length;
+        };
         const withops = group.filter(n => 0 < opcount(n));
         const noops = group.filter(n => 0 === opcount(n));
         if (0 === withops.length || 0 === noops.length) {

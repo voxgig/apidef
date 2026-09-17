@@ -120,6 +120,29 @@ async function parseOpenAPI(source: any, _meta?: any) {
     parsed.paths = cleaned
   }
 
+  // COLON-STYLE PATH PARAMETERS ARE NOT OPENAPI, AND VENDORS SHIP THEM ANYWAY.
+  //
+  // OpenAPI declares a path parameter as `{name}`. Stytch's Management API
+  // publishes every one of its 28 paths in Express style instead:
+  //
+  //   /pwa/v3/projects/:project_slug/email_templates
+  //
+  // while declaring `in: path, name: project_slug` correctly in `parameters`.
+  // Nothing downstream substitutes a `:name` segment, so the generated SDK
+  // sent the LITERAL text to the server:
+  //
+  //   http://.../pwa/v3/projects/:project_slug/email_templates
+  //
+  // and every request would have 404'd against the real API. One generated
+  // test caught it, by asserting the request URL; the rest assert the mock's
+  // response body, which is returned whatever URL is asked for.
+  //
+  // ONLY a segment whose name is a DECLARED path parameter is rewritten. That
+  // is what keeps Google-style custom methods (`/users/{id}:activate`, where
+  // `:activate` is part of the resource name and no such parameter exists)
+  // from being mangled into a parameter.
+  normalizeColonPathParams(parsed, _meta)
+
   // Single-pass: add x-ref properties and resolve $ref pointers together.
   addXRefsAndResolve(parsed, parsed)
 
@@ -313,4 +336,62 @@ function validateSource(kind: string, source: any, meta: { file: string }) {
 
 export {
   parse,
+}
+
+
+const METHODS = [
+  'get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'
+]
+
+
+// Rewrite `/a/:b/c` to `/a/{b}/c`, but only for `:b` that the path or one of
+// its operations declares as `in: path`. See the call site for why.
+function normalizeColonPathParams(parsed: any, meta?: any) {
+  if (null == parsed.paths || 'object' !== typeof parsed.paths) return
+
+  const renamed: string[] = []
+  const out: Record<string, any> = {}
+
+  for (const [path, item] of Object.entries<any>(parsed.paths)) {
+    if (!path.includes('/:')) {
+      out[path] = item
+      continue
+    }
+
+    // Every `in: path` name this path knows about: the path-level parameters
+    // plus each operation's own.
+    const declared = new Set<string>()
+    const collect = (params: any) => {
+      if (!Array.isArray(params)) return
+      for (const param of params) {
+        if (param && 'path' === param.in && 'string' === typeof param.name) {
+          declared.add(param.name)
+        }
+      }
+    }
+    if (null != item) {
+      collect(item.parameters)
+      for (const method of METHODS) {
+        if (null != item[method]) collect(item[method].parameters)
+      }
+    }
+
+    const next = path.split('/').map((seg) =>
+      seg.startsWith(':') && declared.has(seg.slice(1)) ? '{' + seg.slice(1) + '}' : seg
+    ).join('/')
+
+    if (next !== path) renamed.push(path)
+    out[next] = item
+  }
+
+  parsed.paths = out
+
+  if (0 < renamed.length && null != meta?.log?.info) {
+    meta.log.info({
+      point: 'path-colon-params',
+      count: renamed.length,
+      note: 'rewrote ' + renamed.length + ' colon-style path parameter(s) to' +
+        ' OpenAPI brace form, e.g. ' + renamed[0]
+    })
+  }
 }
