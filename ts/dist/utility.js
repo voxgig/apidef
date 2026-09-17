@@ -33,6 +33,7 @@ exports.inferFieldType = inferFieldType;
 exports.normalizeFieldName = normalizeFieldName;
 exports.prefixLeadingDigit = prefixLeadingDigit;
 exports.debugpath = debugpath;
+exports.debugpathOn = debugpathOn;
 exports.findPathsWithPrefix = findPathsWithPrefix;
 exports.writeFileSyncWarn = writeFileSyncWarn;
 exports.warnOnError = warnOnError;
@@ -1360,6 +1361,19 @@ function warnOnError(where, warn, fn, result) {
         });
         return result;
     }
+}
+// IS PATH DEBUGGING ON AT ALL? Callers that build an expensive argument -
+// a formatJSONIC of a whole resolved path, say - must ask FIRST. JavaScript
+// evaluates arguments eagerly, so `debugpath(k, null, format(big))` does all
+// the formatting and then throws it away when debugging is off.
+//
+// That is not a micro-optimisation at scale: formatting every path of
+// Stripe's definition (447 entity-paths over a resolved schema graph)
+// exhausted a 12 GB heap and killed the build, with the output discarded on
+// the next line.
+function debugpathOn() {
+    const apipath = process.env.APIDEF_DEBUG_PATH;
+    return null != apipath && '' !== apipath;
 }
 function debugpath(pathStr, methodName, ...args) {
     const apipath = process.env.APIDEF_DEBUG_PATH;

@@ -475,7 +475,10 @@ function ResolveEntityName(spec) {
     work.pathowner = work.pathowner ?? {};
     work.pathowner[pathStr] = work.pathowner[pathStr] ?? {};
     work.pathowner[pathStr][methodName] = entname;
-    (0, utility_2.debugpath)(pathStr, methodName, 'RESOLVE-ENTITY-NAME', (0, utility_2.formatJSONIC)({ entdesc, ment }, { hsepd: 0, $: true, color: true }));
+    // Same guard, same reason: the formatting is the cost, not the call.
+    if ((0, utility_2.debugpathOn)()) {
+        (0, utility_2.debugpath)(pathStr, methodName, 'RESOLVE-ENTITY-NAME', (0, utility_2.formatJSONIC)({ entdesc, ment }, { hsepd: 0, $: true, color: true }));
+    }
 }
 function RenameParams(spec) {
     const ctx = spec.ctx;

@@ -1572,6 +1572,21 @@ function warnOnError(where: string, warn: Warner, fn: Function, result?: any) {
 
 
 
+// IS PATH DEBUGGING ON AT ALL? Callers that build an expensive argument -
+// a formatJSONIC of a whole resolved path, say - must ask FIRST. JavaScript
+// evaluates arguments eagerly, so `debugpath(k, null, format(big))` does all
+// the formatting and then throws it away when debugging is off.
+//
+// That is not a micro-optimisation at scale: formatting every path of
+// Stripe's definition (447 entity-paths over a resolved schema graph)
+// exhausted a 12 GB heap and killed the build, with the output discarded on
+// the next line.
+function debugpathOn(): boolean {
+  const apipath = process.env.APIDEF_DEBUG_PATH
+  return null != apipath && '' !== apipath
+}
+
+
 function debugpath(pathStr: string, methodName: string | null | undefined, ...args: any[]): void {
   const apipath = process.env.APIDEF_DEBUG_PATH
 
@@ -2053,6 +2068,7 @@ export {
   normalizeFieldName,
   prefixLeadingDigit,
   debugpath,
+  debugpathOn,
   findPathsWithPrefix,
   writeFileSyncWarn,
   warnOnError,

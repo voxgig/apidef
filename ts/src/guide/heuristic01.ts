@@ -47,6 +47,7 @@ import {
   capture,
   cleanComponentName,
   debugpath,
+  debugpathOn,
   depluralize,
   ensureMinEntityName,
   find,
@@ -658,8 +659,11 @@ function ResolveEntityName(spec: TaskSpec) {
   work.pathowner[pathStr] = work.pathowner[pathStr] ?? {}
   work.pathowner[pathStr][methodName] = entname
 
-  debugpath(pathStr, methodName, 'RESOLVE-ENTITY-NAME',
-    formatJSONIC({ entdesc, ment }, { hsepd: 0, $: true, color: true }))
+  // Same guard, same reason: the formatting is the cost, not the call.
+  if (debugpathOn()) {
+    debugpath(pathStr, methodName, 'RESOLVE-ENTITY-NAME',
+      formatJSONIC({ entdesc, ment }, { hsepd: 0, $: true, color: true }))
+  }
 }
 
 

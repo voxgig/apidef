@@ -29,6 +29,7 @@ import {
 import {
   getdlog,
   debugpath,
+  debugpathOn,
   formatJSONIC,
   relativizePath,
 } from '../utility'
@@ -404,8 +405,14 @@ async function buildBaseGuide(ctx: ApiDefContext) {
     path: GuidePath
   ) => {
     {
-      debugpath(entrykey, null, 'BASE-GUIDE', entname, entrykey,
-        formatJSONIC(path, { hsepd: 0, $: true, color: true }))
+      // GUARDED, because the argument is the expensive part. This formats a
+      // whole resolved path and is discarded unless APIDEF_DEBUG_PATH is
+      // set - and doing it for every path of a real definition is what
+      // exhausted a 12 GB heap on Stripe's 447 entity-paths.
+      if (debugpathOn()) {
+        debugpath(entrykey, null, 'BASE-GUIDE', entname, entrykey,
+          formatJSONIC(path, { hsepd: 0, $: true, color: true }))
+      }
 
       guideBlocks.push(`    ${branch}: ${qs(entrykey)}: {` +
         sw(0 < path.why_path.length ?
