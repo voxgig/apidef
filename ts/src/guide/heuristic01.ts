@@ -1780,6 +1780,53 @@ function updateParamRename(
     return
   }
 
+  // TWO PARAMETERS OF ONE PATH MUST NOT END UP WITH ONE NAME.
+  //
+  // The rename is <parent-segment>_id, and a path can have two parameters
+  // whose parent segments canonize the same way. HubSpot's
+  //
+  //   /crm/lists/2026-09/records/{objectTypeId}/{recordId}/memberships
+  //
+  // renamed BOTH to `record_id`, and the generated path came out as
+  // `records/{record_id}/{record_id}/memberships`: one value substituted into
+  // two positions, so the SDK would ask for a URL that does not exist. The
+  // generated direct-list test caught it only because it asserts the request
+  // URL — the rest of the suite asserts the mock's response and would not
+  // have noticed.
+  //
+  // The second parameter keeps the name the specification gave it. Losing the
+  // tidier name is nothing next to losing the parameter.
+  // The clash is with what the OTHER parameters of this path END UP CALLED,
+  // which is their rename if they have one and their own canonical name if
+  // they do not. Checking only the renames was not enough:
+  // `{objectTypeId}/{recordId}` renamed objectTypeId to `record_id` while
+  // recordId, left alone, canonizes to `record_id` as well — so the two still
+  // collided and the path still repeated a parameter.
+  const otherParams = (path.match(/\{([^}]+)\}/g) || [])
+    .map((seg) => seg.slice(1, -1))
+    .filter((name) => name !== oldParamName)
+
+  const takenBy =
+    Object.keys(paramRenameCapture.rename)
+      .find((other) => other !== oldParamName &&
+        paramRenameCapture.rename[other] === newParamName) ??
+    otherParams
+      .find((other) => null == paramRenameCapture.rename[other] &&
+        canonize(other) === newParamName)
+
+  if (null != takenBy) {
+    ctx.log.debug({
+      point: 'param-rename-collision',
+      path,
+      param: oldParamName,
+      rejected: newParamName,
+      takenBy,
+      note: 'another parameter of this path already renames to ' +
+        newParamName + ", keeping the specification's name"
+    })
+    return
+  }
+
   const existingNewName = paramRenameCapture.rename[oldParamName]
   const existingWhy = paramRenameCapture.why[oldParamName]
 
