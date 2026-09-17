@@ -1021,10 +1021,16 @@ function findFieldDefs(
   const isAction = null != (mpoint as any)?.select?.['$action']
 
   const fielddefs: SchemaDef[] = []
+
+  // The same guard the args transform needs, for the same reason: a point
+  // can name a path the definition no longer has, and the whole build
+  // should not fail over one of them. No path means no field definitions,
+  // which is what the `if (opdef)` below already answers for a missing
+  // method.
   const pathdef = def.paths[mpoint.orig]
 
   const method = mpoint.method.toLowerCase()
-  const opdef: any = pathdef[method]
+  const opdef: any = (pathdef as any)?.[method]
 
   if (opdef) {
     const responses = opdef.responses
