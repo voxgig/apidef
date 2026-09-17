@@ -65,3 +65,8 @@ Deno
 # asked for them, per the note at the top of this file.
 Contentful(?:'s)?
 GitLab(?:'s)?
+
+# The two halves of the entity-selection rule (guide reference). Vale's
+# dictionary has neither, and both are the standard terms.
+[Aa]llowlist
+[Dd]enylist

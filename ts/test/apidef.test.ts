@@ -542,6 +542,52 @@ def: '${outprefix}def.yaml'
   })
 
 
+  // AN SDK COVERS EVERY ENTITY OF ITS API unless there is a stated reason
+  // not to, and when there is one the guide narrows rather than the spec:
+  //
+  //     guide: entity: &: active: *false
+  //     guide: entity: card: active: true
+  //
+  // That works only because the slot is EMPTY - `active` is declared
+  // optional with no default, and the base guide writes no `active` at
+  // all - so a project can put a default there and a concrete `true`
+  // overrides it. Put a default in either place and every allowlist in the
+  // fleet fails with `pref_rank_clash` instead.
+  //
+  // This pins those two facts rather than re-unifying a guide, which is
+  // deliberate: the unification is aontu's to get right and is exercised
+  // by the real builds, while these two declarations are apidef's and are
+  // the ones an innocent-looking edit would take away.
+  describe('guide entity allowlist', () => {
+    const PathMod = require('node:path')
+
+    test('`active` has no default, so a project can supply one', () => {
+      const src = Fs.readFileSync(
+        PathMod.join(__dirname, '..', '..', 'model', 'guide.aon'), 'utf8')
+
+      const line = src.split('\n').find((l: string) => /^\s*active\??\s*:/.test(l))
+      assert.ok(null != line, 'the guide model must declare `active`')
+      assert.match(String(line), /active\?\s*:\s*boolean\s*$/,
+        'active must stay OPTIONAL with no default: a default here is the ' +
+        'same rank as the project\'s and they clash - ' + line)
+    })
+
+    test('the base guide writes no `active`, leaving the slot free', () => {
+      // Generated on every run, so a builder that started stamping
+      // `active: true` would take the allowlist away silently.
+      const built = PathMod.join(__dirname, '..', '..', '..', '..',
+        'voxgig-sdk', 'univec-sdk', '.sdk', 'model', 'guide', 'base-guide.aon')
+      if (!Fs.existsSync(built)) {
+        return   // no sibling checkout here; the unit facts above still hold
+      }
+      const src = Fs.readFileSync(built, 'utf8')
+      assert.strictEqual(/\bactive\s*:/.test(src), false,
+        'the base guide must not write `active` - it would occupy the slot ' +
+        'a project narrows with')
+    })
+  })
+
+
   // The entity builders only ever WRITE: a spec change that removes or
   // renames a derived entity used to leave the old <name>.aontu behind on
   // every regen (12 orphaned list_*.aontu on the dingconnect build). The GC
