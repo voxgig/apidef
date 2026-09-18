@@ -1,13 +1,3 @@
-# One element shape for every arg kind. An alias must be top level.
-%field_args = {
-  active: *true
-  kind: string
-  name: string
-  orig?: string
-  reqd: boolean
-  type: top
-  example?: top
-}
 
 
 name?: string
@@ -117,47 +107,20 @@ main: kit: entity: &: {
         }
       }
 
-      # Each arg kind (path params, query, header, cookie) has the same
-      # element shape. `kind` is constrained to the kind tag matching the
-      # array it appears in; `example` is optional and captures a spec-
-      # provided example value used by test generators.
+      # Every arg kind is one shape plus its own `kind` tag.
       args: {
-        &: [ &: %field_args ]
+        &: [ &: %field-args ]
         params?: [ &: {
-          active: *true
           kind: 'param'
-          name: string
-          orig?: string
-          reqd: boolean
-          type: top
-          example?: top
         }]
         query?: [ &: {
-          active: *true
           kind: 'query'
-          name: string
-          orig?: string
-          reqd: boolean
-          type: top
-          example?: top
         } ]
         header?: [ &: {
-          active: *true
           kind: 'header'
-          name: string
-          orig?: string
-          reqd: boolean
-          type: top
-          example?: top
         } ]
         cookie?: [ &: {
-          active: *true
           kind: 'cookie'
-          name: string
-          orig?: string
-          reqd: boolean
-          type: top
-          example?: top
         } ]
       }
 
@@ -194,3 +157,14 @@ main: kit: flow: &: {
 
 
 
+# The shared element shape, applied to every arg array by the `&:` rule
+# above; each array then adds only its own `kind` tag.
+%field-args = {
+  active: *true
+  kind: string
+  name: string
+  orig?: string
+  reqd: boolean
+  type: top
+  example?: top
+}
