@@ -5,7 +5,6 @@ package apidef
 // KIT is the central namespace constant for model structures.
 const KIT = "kit"
 
-// TypeName represents supported type names.
 type TypeName = string
 
 // ApiDefOptions holds configuration options for ApiDef.
@@ -20,7 +19,6 @@ type ApiDefOptions struct {
 	Why       *WhyOptions    `json:"why,omitempty"`
 }
 
-// WhyOptions controls diagnostic output.
 type WhyOptions struct {
 	Show bool `json:"show,omitempty"`
 }
@@ -60,7 +58,6 @@ type Metrics struct {
 	Found map[string]any `json:"found"`
 }
 
-// MetricsCount holds metric counters.
 type MetricsCount struct {
 	Path        int            `json:"path"`
 	Method      int            `json:"method"`
@@ -77,13 +74,11 @@ type Guide struct {
 	Metrics GuideMetrics            `json:"metrics"`
 }
 
-// GuideMetrics holds guide-level metrics.
 type GuideMetrics struct {
 	Count GuideMetricsCount `json:"count"`
 	Found map[string]any    `json:"found"`
 }
 
-// GuideMetricsCount holds guide metric counters.
 type GuideMetricsCount struct {
 	Path   int `json:"path"`
 	Method int `json:"method"`
@@ -92,14 +87,12 @@ type GuideMetricsCount struct {
 	Cmp    int `json:"cmp"`
 }
 
-// GuideEntity represents an entity in the guide.
 type GuideEntity struct {
 	Name string                `json:"name"`
 	Orig string                `json:"orig,omitempty"`
 	Path map[string]*GuidePath `json:"path"`
 }
 
-// GuidePath represents a path in the guide.
 type GuidePath struct {
 	WhyPath []string                    `json:"why_path,omitempty"`
 	Action  map[string]*GuidePathAction `json:"action,omitempty"`
@@ -117,7 +110,6 @@ type GuidePathRename struct {
 	Param map[string]*GuideRenameParam `json:"param,omitempty"`
 }
 
-// GuideRenameParam represents a parameter rename.
 type GuideRenameParam struct {
 	Target    string   `json:"target"`
 	WhyRename []string `json:"why_rename,omitempty"`

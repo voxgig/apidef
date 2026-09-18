@@ -27,9 +27,6 @@ function resolveEntity(apimodel, opts) {
             entityJSONIC +
             '\n\n}\n';
         entityFiles.push({ name: entityFile, src: entitySrc });
-        // `./` — aontu 0.65 reads a bare single-segment include as a PACKAGE
-        // name (ADR-039), so `@"account.aon"` now resolves against the package
-        // stores and refuses. A sibling file has to say it is one.
         barrel.push(`@"./${node_path_1.default.basename(entityFile)}"`);
     }));
     const indexFile = (null == opts.outprefix ? '' : opts.outprefix) + 'entity-index.aon';
@@ -42,23 +39,6 @@ function resolveEntity(apimodel, opts) {
         });
     };
 }
-// Garbage-collect orphaned entity model files.
-//
-// The builder above EMITS one <outprefix><name>.aon per derived entity but
-// never removes anything, so an entity that disappears from the def — a spec
-// rename, a dropped path, a schema rename that changes the derived entity
-// name — leaves its old file behind on every regen. The orphan is not in the
-// regenerated entity-index barrel, so it is silently dead weight at best; at
-// worst a later hand-include resurrects a stale surface.
-//
-// Deletion is guarded three ways, so nothing a user could own is touched:
-//   1. only `<outprefix>*.aon` / `*.aontu` files in the entity folder
-//      (a different outprefix belongs to a different def sharing the folder);
-//   2. the current entity set and the index barrel are always kept;
-//   3. the file must START with the generated header (`# Entity: `) — a file
-//      apidef did not write is left alone.
-//
-// GC failure must never fail a build: errors are logged and swallowed.
 function gcEntityFiles(fs, log, modelFolder, outprefix, entityNames) {
     const removed = [];
     const prefix = null == outprefix ? '' : outprefix;
@@ -73,11 +53,6 @@ function gcEntityFiles(fs, log, modelFolder, outprefix, entityNames) {
         return removed; // no entity folder yet — nothing to collect
     }
     for (const entry of entries) {
-        // BOTH extensions are candidates. `.aon` is what the builder emits
-        // now; `.aontu` is what it emitted before the rename, and such files
-        // are orphaned by definition — the regenerated index barrel no longer
-        // includes them. The `# Entity: ` header guard below still applies, so
-        // only a file apidef itself wrote is ever removed.
         if (!entry.endsWith('.aon') && !entry.endsWith('.aontu')) {
             continue;
         }
@@ -110,14 +85,6 @@ function gcEntityFiles(fs, log, modelFolder, outprefix, entityNames) {
     return removed;
 }
 function fieldAliases(_entity) {
-    // Field aliasing (mapping e.g. a `<name>_id` field onto the canonical
-    // `id`) is not currently implemented. The original heuristic referenced
-    // properties that don't exist on the entity at this stage
-    // (`entity.field`, `op.param`, `p.keys` — entities carry `fields`, ops
-    // carry `points`, and `each` stamps `key$`), so it always produced `{}`
-    // and would have thrown if any branch ran. Emit an empty alias map
-    // explicitly until the alias semantics are specified.
-    // Parity: go/builder.go buildFieldAliases (also `{}`).
     return '{}';
 }
 //# sourceMappingURL=entity.js.map

@@ -9,17 +9,6 @@ import (
 	"testing"
 )
 
-// Composite identity in the Go port. Mirrors the behaviour described in
-// src/transform/field.ts identityParams / compositeId.
-//
-// THE SEGMENT SHAPE IS THE POINT OF THE FIRST TEST. OperationTransform stores
-// a point's `segments` as []map[string]any; an earlier version of this code
-// asserted []any, which yields nil rather than an error, so the reverse walk
-// found no parts for any route and the port inferred no composite identity at
-// all. It compiled, every existing test passed, and the feature was simply
-// absent. Both shapes are exercised here because the guide-derived path
-// descriptors use []any.
-
 func segTyped(segs ...map[string]any) []map[string]any {
 	return segs
 }
@@ -54,7 +43,6 @@ func entWithSegments(segments any) map[string]any {
 }
 
 func TestIdentityParamsSegmentShapes(t *testing.T) {
-	// /repos/{owner}/{repo} — two ADJACENT variables, so a compound key.
 	want := []string{"owner", "repo"}
 
 	cases := map[string]any{
@@ -78,9 +66,6 @@ func TestIdentityParamsSegmentShapes(t *testing.T) {
 	}
 }
 
-// ADJACENCY IS THE TEST, not "every path variable". A literal between two
-// variables names a sub-collection, so the earlier variable scopes the later
-// one and only the last is the record's own key.
 func TestIdentityParamsNestedIsNotComposite(t *testing.T) {
 	// /api/planet/{planet_id}/moon/{moon_id}
 	ent := entWithSegments(segTyped(
@@ -168,11 +153,6 @@ func TestReadGuideIdOverrides(t *testing.T) {
 	}
 }
 
-// THE API'S OWN id MOVES ASIDE. The canonical TS behaviour is in
-// ts/test/composite-identity.test.ts, "the API id moves aside rather than
-// being rewritten". The Go port used to overwrite the field in place, which
-// destroyed a declared API field and diverged from TS for every composite
-// entity whose spec exposes a non-string `id` — github's repo, for one.
 func TestApiIdMovesAsideRatherThanBeingRewritten(t *testing.T) {
 	ent := entWithSegments(segTyped(lit("repos"), vr("owner"), vr("repo")))
 
@@ -264,11 +244,6 @@ func TestApiIdMovesAsideRatherThanBeingRewritten(t *testing.T) {
 	}
 }
 
-// The id correction must REACH the port. checkGuideOverlay refuses a
-// customized guide because Go has no aontu, and that refusal used to cover
-// the very lines readGuideIdOverrides exists to read: stating the correction
-// failed the build, omitting it kept the false compound key, so the
-// documented fix was unreachable either way.
 func TestGuideIdLinesAreNotRefusedAsCustomizations(t *testing.T) {
 	idonly := "" +
 		"guide: {\n" +
@@ -454,9 +429,6 @@ func TestIdentityParamsOwnKeyBeatsALongerRun(t *testing.T) {
 	}
 }
 
-// AND THE TEST IS NARROW. `actor_id` ends in `_id` but is not this entity's
-// own key, so `actor_type/actor_id` stays a compound key; a looser test
-// broke exactly this.
 func TestIdentityParamsMerelyIdSuffixedPartDoesNotWin(t *testing.T) {
 	ent := map[string]any{
 		"name": "api_insights_summary_stat",
@@ -476,13 +448,6 @@ func TestIdentityParamsMerelyIdSuffixedPartDoesNotWin(t *testing.T) {
 	}
 }
 
-// THE ID DESCRIPTOR IS NOT UNCONDITIONAL. EntityTransform used to initialise
-// one for every entity, so this port emitted `id: { field: id, name: id }`
-// for an entity the canonical TS gives none — petstore's `store`, which has
-// no id field, no composite parts and no `id` parameter on any of its own
-// routes. Every downstream generator then saw a key the API has no route for.
-//
-// Mirrors the four conditions at the end of src/transform/field.ts.
 func TestIdDescriptorOnlyWhenTheEntityHasOne(t *testing.T) {
 	// An entity addressed by a literal-terminal route, with no id field and
 	// no `id` param: no descriptor.
@@ -596,10 +561,6 @@ func TestArgRenameUsesTheSpecName(t *testing.T) {
 	}
 }
 
-// AN EXAMPLE VALUE IS CARRIED THROUGH, in all four spellings OpenAPI allows.
-// taxonomy's `page` and `per_page` carried one in the TS model and nothing
-// here, so a test generator reading the Go model had no valid value for a
-// required parameter with no other source.
 func TestResolveArgExampleSpellings(t *testing.T) {
 	cases := []struct {
 		name   string
@@ -630,15 +591,6 @@ func TestResolveArgExampleSpellings(t *testing.T) {
 	}
 }
 
-// WHERE EACH PART LIVES IN A RESPONSE. The parts are PATH PARAMETER names and
-// a response names its fields whatever it likes: github addresses a repo by
-// `{owner}/{repo}` and returns the owner as an OBJECT (`owner.login`) with
-// the repository under `name`. Without this a consumer can address a record
-// it was given the id of, but cannot put an id on one the API returned.
-//
-// The three parity specs have no composite entity that resolves a `from`, so
-// the model-ref goldens cannot reach this: it is pinned here instead. The
-// canonical statement is identityFrom in ts/src/transform/field.ts.
 func TestIdentityFromResolvesAPartToItsResponseField(t *testing.T) {
 	ent := map[string]any{
 		"name": "repo",
@@ -731,9 +683,6 @@ func TestIdentityFromLeavesAnUnresolvablePartOut(t *testing.T) {
 	}
 }
 
-// SWAGGER 2 PUTS THE SCHEMA DIRECTLY ON THE RESPONSE, not under `content`.
-// Reading only the OpenAPI 3 shape resolved nothing for every Swagger 2 spec
-// in the validation corpus.
 func TestIdentityFromReadsTheSwagger2Shape(t *testing.T) {
 	ent := map[string]any{
 		"name": "repository",

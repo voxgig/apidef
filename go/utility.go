@@ -34,10 +34,6 @@ var (
 	nonAlphaNumRE = regexp.MustCompile(`[^a-zA-Z_0-9]`)
 )
 
-// matchCase reapplies the case pattern of source onto target. Mirrors
-// src/utility.ts:matchCase so the case-insensitive irregular lookups in
-// Depluralize preserve the caller's casing (HOUSES → HOUSE, Houses →
-// House, houses → house).
 func matchCase(source, target string) string {
 	if target == "" {
 		return target
@@ -54,10 +50,6 @@ func matchCase(source, target string) string {
 	return target
 }
 
-// irregularPlurals maps plural → singular for forms the suffix rules in
-// Depluralize would otherwise mishandle. Mirrors the IRREGULARS table in
-// src/utility.ts; keys are lowercase and looked up case-insensitively.
-// Package-level so it is built once rather than per call.
 var irregularPlurals = map[string]string{
 	"analytics": "analytics", "analyses": "analysis", "appendices": "appendix",
 	"avalanches": "avalanche", "axes": "axis", "caches": "cache", "canoes": "canoe",
@@ -80,9 +72,6 @@ var irregularPlurals = map[string]string{
 	"yes": "yes",
 }
 
-// irregularKeys holds irregularPlurals' keys sorted longest-first so the
-// most specific suffix wins (e.g. "women" before "men"), matching the
-// IRREGULAR_KEYS ordering in src/utility.ts.
 var irregularKeys = sortedByLenDesc(irregularPlurals)
 
 func sortedByLenDesc(m map[string]string) []string {
@@ -99,18 +88,11 @@ func sortedByLenDesc(m map[string]string) []string {
 	return keys
 }
 
-// customPlurals holds per-model plural overrides (plural -> singular),
-// installed via SetCustomPlurals and consulted by Depluralize before the
-// built-in table. Mirrors CUSTOM_PLURALS in src/utility.ts. Module-level
-// (single-model-per-process), matching the TS design.
 var (
 	customPlurals    = map[string]string{}
 	customPluralKeys []string
 )
 
-// SetCustomPlurals installs per-model plural overrides. Keys are lowercased;
-// non-string or empty values are skipped so a partially-typed model entry
-// can't poison the map. Mirrors src/utility.ts:setCustomPlurals.
 func SetCustomPlurals(plurals any) {
 	customPlurals = map[string]string{}
 	if pm, ok := plurals.(map[string]any); ok {
@@ -131,9 +113,6 @@ func ClearCustomPlurals() {
 	SetCustomPlurals(nil)
 }
 
-// Depluralize converts a plural word to its singular form. Mirrors
-// src/utility.ts:depluralize, including per-model custom plural overrides
-// installed via SetCustomPlurals.
 func Depluralize(word string) string {
 	if word == "" {
 		return word
@@ -164,7 +143,6 @@ func Depluralize(word string) string {
 
 	// Rules for regular plurals (applied in order).
 
-	// -ies -> -y (cities -> city), only if result is > 2 chars
 	if strings.HasSuffix(lower, "ies") && len(word) > 3 {
 		dropped := word[len(word)-3:]
 		y := "y"
@@ -221,7 +199,6 @@ func Depluralize(word string) string {
 		return word[:len(word)-2]
 	}
 
-	// -s -> remove -s (cats -> cat), only if result is > 2 chars
 	if strings.HasSuffix(lower, "s") && !strings.HasSuffix(lower, "ss") &&
 		!strings.HasSuffix(lower, "us") && len(word) > 3 {
 		return word[:len(word)-1]
@@ -242,32 +219,11 @@ func Transliterate(s string) string {
 	return b.String()
 }
 
-// partify mirrors jostraca's partify (jostraca/util/basic.ts) exactly. That
-// function is the root of every generated identifier — entity names, field
-// names, SDK class names — so any deviation here changes the emitted SDK.
-// The TS side imports it from jostraca; this is a hand port, so it is pinned
-// by the shared snakify/camelify/kebabify TSV fixtures. Do not "simplify" it
-// without re-running those.
-//
-// The original is three steps:
-//
-//	.replace(/([A-Z])([A-Z]+)(?![a-z])/g, (_, a, b) => a + b.toLowerCase())
-//	.split(/[-_ ]|([A-Z])/).filter(p => null != p && '' !== p)
-//	.reduce(merge-single-UPPERCASE-into-following-lowercase)
-//
-// Example: "m_img" → ["mimg"]; "ab_cd" → ["ab", "cd"]; "APIKeys" → ["Api","Keys"].
 func partify(s string) []string {
 	if s == "" {
 		return nil
 	}
 
-	// Step 1: collapse acronym runs, honouring the regex's (?![a-z]) guard.
-	//
-	// For a maximal run of N uppercase letters, the greedy match backtracks so
-	// the run's LAST letter is left alone when a lowercase letter follows it —
-	// that letter starts the next word. So "APIaddress" collapses only "AP"
-	// (→ "Ap") and yields "ApIaddress", not "Apiaddress"; and "ABc" is left
-	// untouched because only one letter would remain to collapse.
 	var collapsed strings.Builder
 	collapsed.Grow(len(s))
 	for i := 0; i < len(s); {
@@ -363,9 +319,6 @@ var jsUpperCaser = cases.Upper(language.Und)
 
 func jsUpper(s string) string { return jsUpperCaser.String(s) }
 
-// Camelify converts a string to PascalCase using jostraca-compatible partify.
-// Mirrors TS jostraca/util/basic.ts:camelify so single-char segments merge
-// into the next segment (e.g. "poetry_o_racle" → "PoetryOracle", not "PoetryORacle").
 func Camelify(s string) string {
 	parts := partify(s)
 	var result strings.Builder
@@ -373,20 +326,6 @@ func Camelify(s string) string {
 		if part == "" {
 			continue
 		}
-		// Upper-case the first RUNE, not the first byte. `part[:1]` splits a
-		// multibyte character (schema names carry accented and non-Latin
-		// text), so "Ünicode" became a replacement char followed by a stray
-		// continuation byte — invalid UTF-8 in a generated identifier.
-		//
-		// jsUpper, not strings.ToUpper: JS toUpperCase() applies full Unicode
-		// case mapping, where one code point can expand to several ("ß" → "SS").
-		// strings.ToUpper only does simple 1:1 mapping and leaves "ß" alone.
-		//
-		// Supplementary-plane characters are left alone: JS strings are UTF-16
-		// and `p[0]` is a single code UNIT, so for an astral character it is a
-		// lone high surrogate, which has no uppercase mapping and comes back
-		// unchanged. Upper-casing the whole code point here (e.g. U+10428 →
-		// U+10400) would diverge from the canonical implementation.
 		r, size := utf8.DecodeRuneInString(part)
 		if r > 0xFFFF {
 			result.WriteString(part)
@@ -421,27 +360,6 @@ func Canonize(s string) string {
 	return out
 }
 
-// CanonizeField canonicalises a FIELD name — which is a WIRE identifier, not
-// a type name.
-//
-// Canonize is right for entity/type names: it snakifies and depluralizes so
-// `Users` and `user-items` converge on `user` / `user_item`. Applied to a
-// field it is actively WRONG, because the name has to match the JSON the
-// server actually sends:
-//
-//	modelType   -> Canonize -> model_type    (server sends modelType)
-//	items       -> Canonize -> item          (server sends items)
-//
-// Nothing maps back: the model's `alias.field` map is emitted empty and no
-// generator consumes it, so the wire name is simply lost. Across the fleet's
-// specs that renamed 23% of all fields (146 repos) and depluralized another
-// 13% — every one of those SDKs reading a key the server never sends.
-//
-// So: keep the transliteration and identifier sanitisation that stop a name
-// being unusable in a target language, and drop the snakify/depluralize that
-// change what the name MEANS. Case and plurality are preserved verbatim.
-//
-// Mirrors src/utility.ts canonizeField.
 func CanonizeField(s string) string {
 	if s == "" {
 		return ""
@@ -451,12 +369,6 @@ func CanonizeField(s string) string {
 	return out
 }
 
-// StripSchemaNamespace reduces a namespace-qualified schema name
-// (ASP.NET/Java style: "NoFrixion.MoneyMoov.Models.PaymentRequests.X",
-// "com.example.api.Payment") to its last meaningful dotted segment —
-// skipping version-ish ("v2", "10") or too-short tails — so entity names
-// derive from the type, not the namespace.
-// Mirrors src/utility.ts stripSchemaNamespace.
 func StripSchemaNamespace(name string) string {
 	if name == "" || !strings.Contains(name, ".") {
 		return name
@@ -473,25 +385,12 @@ func StripSchemaNamespace(name string) string {
 
 var versionSegRE = regexp.MustCompile(`^[vV]?\d+$`)
 
-// CanonizeCmpName is the canonical form of an OpenAPI component schema
-// name, for use as an entity-name candidate and as the frequency-metric
-// key. Must be applied uniformly wherever schema refs are counted or
-// resolved (MeasureRef, ResolveEntityComponent, findcmps) so the metric
-// keys stay consistent.
-// Mirrors src/utility.ts canonizeCmpName.
 func CanonizeCmpName(orig string) string {
 	return Canonize(StripSchemaNamespace(orig))
 }
 
 var firstLetterRE = regexp.MustCompile(`[a-zA-Z]`)
 
-// PrefixLeadingDigit prefixes an "n" when a name starts with a digit, since
-// no target language permits an identifier that starts with one. The prefix
-// takes the case of the name it guards: lower for "3ds_session", upper for
-// "3DSecure", and lower for a name with no letter in it at all ("404").
-//
-// This is the ONE place the rule lives. Mirrors src/utility.ts
-// prefixLeadingDigit.
 func PrefixLeadingDigit(s string) string {
 	if s == "" || s[0] < '0' || s[0] > '9' {
 		return s
@@ -563,10 +462,6 @@ var validCanon = map[string]string{
 	"object": "`$OBJECT`", "any": "`$ANY`",
 }
 
-// ValidCanon returns a COPY of the canonical OpenAPI type NAME ->
-// `$SENTINEL` map. Mirrors src/utility.ts:VALID_CANON. Exported (with
-// CanonOne) so downstream consumers can verify they cover the full sentinel
-// vocabulary; mutating the returned map does not affect Validator.
 func ValidCanon() map[string]string {
 	out := make(map[string]string, len(validCanon))
 	for k, v := range validCanon {
@@ -575,23 +470,8 @@ func ValidCanon() map[string]string {
 	return out
 }
 
-// CanonOne is the union sentinel used for multi-type values. Mirrors
-// src/utility.ts:CANON_ONE.
 const CanonOne = "`$ONE`"
 
-// Validator normalizes a spec type to its canonical form. Mirrors
-// src/utility.ts:validator.
-//
-// Returns `any`, not `string`: OpenAPI 3.1 expresses a nullable field as a
-// type ARRAY (`type: [string, "null"]`), and TS maps that to the union form
-// [CANON_ONE, [member, ...]]. An earlier port declared this `string`, which
-// made the array branch unreachable and silently degraded every nullable
-// field to `$ANY` — so the Go SDK lost all union type information.
-//
-// A string that doesn't map to a canonical type returns the literal "Any",
-// matching TS (VALID_CANON[tstr] ?? 'Any'). That includes the empty string:
-// TS lowercases and trims first, finds no entry, and yields "Any" — only a
-// genuinely absent value (nil here, undefined there) reaches `$ANY`.
 func Validator(torig any) any {
 	switch v := torig.(type) {
 	case string:
@@ -617,9 +497,6 @@ func Validator(torig any) any {
 	}
 }
 
-// ValidatorString is Validator for callers that know the input is a single
-// type name and want the string form (the shared TSV fixtures, mainly).
-// Union results are returned unchanged as their `$ONE` sentinel.
 func ValidatorString(torig any) string {
 	if s, ok := Validator(torig).(string); ok {
 		return s
@@ -627,12 +504,6 @@ func ValidatorString(torig any) string {
 	return CanonOne
 }
 
-// InferFieldType infers field type from its name and spec type. Mirrors
-// src/utility.ts:inferFieldType.
-//
-// specType is `any` because Validator can hand back a union array; TS types
-// this parameter `string` but is called with validator()'s `any` result, and
-// the array falls through both branches to be returned unchanged.
 func InferFieldType(name string, specType any) any {
 	if specType == "`$ANY`" {
 		if booleanNameRE.MatchString(name) {
@@ -690,8 +561,6 @@ var (
 // reCmpVersion splits a trailing _v<N> off a canonized component name.
 var reCmpVersion = regexp.MustCompile(`^(.*)_v(\d+)$`)
 
-// guideActive reports whether a guide node (entity, path or op) is active.
-// Absent means active. Mirrors src/utility.ts guideActive.
 func guideActive(node any) bool {
 	m, ok := node.(map[string]any)
 	if !ok {
@@ -705,15 +574,6 @@ func guideActive(node any) bool {
 	return true
 }
 
-// CleanComponentName cleans a component name by removing common
-// suffixes/prefixes. Guarded wrapper suffixes (pagination and op-reply
-// wrappers: '_page_response', '_page', '_create_response',
-// '_update_response') are stripped ONLY when isKnownCmp reports the
-// canonized remainder is itself a known component schema — the wrapper
-// convention. Without that guard a real noun gets mangled: an API whose
-// resource IS a page (LandingPage at /landing-pages) must keep
-// 'landing_page', not become 'landing'. Pass nil to skip guarded
-// stripping. Mirrors src/utility.ts cleanComponentName.
 func CleanComponentName(name string, isKnownCmp func(string) bool) string {
 	cleaned := name
 	stripped := false
@@ -832,7 +692,6 @@ const (
 	maxEntityNameLen = 67
 )
 
-// EnsureMinEntityName ensures an entity name meets minimum length requirements.
 func EnsureMinEntityName(name string, existing map[string]any) string {
 	padded := nonAlphaNumRE.ReplaceAllString(name, "")
 	padded = strings.TrimLeft(padded, "_")
@@ -870,15 +729,6 @@ func EnsureMinEntityName(name string, existing map[string]any) string {
 
 	if padded != name && existing != nil {
 		if cur, ok := existing[padded]; ok {
-			// The name was modified (truncated/sanitized) and collides with
-			// an existing entity. Only a collision between DIFFERENT origins
-			// needs a numeric suffix — the same original name re-encountered
-			// (e.g. the same long schema referenced by several methods on one
-			// path) must reuse the existing entity so its ops merge instead
-			// of minting phantom "<entity>2/3/4" entities. Entities record
-			// their pre-truncation name as `longname`; entries without one
-			// keep the old always-suffix rule.
-			// Mirrors src/utility.ts ensureMinEntityName.
 			if sameLongname(cur, name) {
 				return padded
 			}
@@ -1274,11 +1124,6 @@ func formatJSONICValue(val any, indent int, prefix string, lines *[]string, seen
 		}
 		*lines = append(*lines, indentStr+"}"+sep)
 	default:
-		// Any other slice or map — e.g. the []map[string]any of a point's
-		// url segments. Normalise to the []any / map[string]any cases above
-		// rather than adding a case per concrete type: the fallthrough used
-		// to reach fmt %v, which emits Go's `map[lit:api]` into a file that
-		// is supposed to be aontu source. Silently, since %v never fails.
 		rv := reflect.ValueOf(val)
 		switch rv.Kind() {
 		case reflect.Slice, reflect.Array:
@@ -1305,17 +1150,8 @@ func formatJSONICValue(val any, indent int, prefix string, lines *[]string, seen
 	}
 }
 
-// jsonString serialises a string in JSON-compatible quoting, but mirrors
-// TS JSON.stringify by NOT HTML-escaping `<`, `>`, `&` and by emitting
-// backtick-quoted JSONIC literals for strings containing newlines (matches
-// formatJSONIC's renderPrimitive in src/utility.ts).
 func jsonString(s string) string {
 	if strings.ContainsAny(s, "\n\r") {
-		// Backtick-quoted JSONIC literal — newlines kept verbatim.
-		// Mirrors src/utility.ts renderPrimitive: inside a backtick
-		// literal a double quote is a literal character, so unescape
-		// JSON's \" back to " (was previously replaced with ':', which
-		// silently corrupted quoted text).
 		raw := jsonStringHTMLSafe(s)
 		body := raw[1 : len(raw)-1]
 		body = strings.ReplaceAll(body, "\\n", "\n")
@@ -1578,46 +1414,11 @@ func Merge(val any, maxdepths ...int) any {
 	return vs.Merge(val, maxdepths...)
 }
 
-// envelopeProp reports the single response property to unwrap to when the body
-// is nothing but an ENVELOPE around the result — `{item: {...}}`,
-// `{data: {...}}`, `{items: [...]}`, `{results: [...]}` — or "" when the body
-// is the result itself.
-//
-// Two conditions keep this from firing on a response that IS the entity:
-//
-//  1. EXACTLY ONE property. A body with siblings is a structure in its own
-//     right, not a wrapper — `{ok, id}` from a delete, or any paged
-//     `{results, next}`, must be handed over whole.
-//  2. The property's SHAPE matches the operation's cardinality. A `list`
-//     unwraps only to an array, every other op only to a non-array. So a
-//     single-entity op facing `{items: [...]}` is left alone rather than
-//     silently yielding a list, and vice versa.
-//
-// A one-field entity whose sole field is itself structured can still be
-// unwrapped wrongly; that is the residual cost of the spec not saying which it
-// means. Naming the wrapper after the entity remains the unambiguous signal,
-// and is still checked first. Mirrors ts/src/utility.ts.
 func envelopeProp(resprops map[string]any, opname string) string {
 	if len(resprops) == 0 {
 		return ""
 	}
 
-	// Exactly one STRUCTURED property, with any siblings being scalars.
-	//
-	// The original rule demanded exactly one property full stop, which missed
-	// the single most common envelope shape in the wild:
-	//
-	//   { "success": true, "data": [ ... ] }
-	//   { "status": "ok",  "result": { ... } }
-	//
-	// A boolean/string status flag beside the payload is metadata, not a
-	// sibling of equal standing, so the body is still an envelope. Scalar-only
-	// siblings keep the guard meaningful: `{ok, id}` from a delete has no
-	// structured member and is still handed over whole, and a body with TWO
-	// structured members is a composite we must not guess at.
-	//
-	// Sorted keys: map iteration order is random in Go, and with more than one
-	// structured member the choice must be deterministic to match TS.
 	structured := make([]string, 0, len(resprops))
 	for _, k := range sortedKeys(resprops) {
 		if isEntityWrapperProp(resprops[k]) {
@@ -1639,17 +1440,6 @@ func envelopeProp(resprops map[string]any, opname string) string {
 	return key
 }
 
-// propIsList reports whether a schema is a collection, and whether the schema
-// says at all.
-//
-// isEntityWrapperProp accepts a composed schema (allOf/oneOf/anyOf) as
-// structured, but a composed schema carries no outer `type` or `items` — so
-// reading those alone silently called it a non-list. A `list` then kept its
-// envelope, and worse, a single-entity op unwrapped to an array-valued
-// property. Composed branches are inspected instead, and unanimity required: a
-// union that is an array in one branch and an object in another does not say
-// what the caller will get, and an envelope is not worth guessing at. Mirrors
-// ts/src/utility.ts.
 func propIsList(schema any) (bool, bool) {
 	sch, ok := schema.(map[string]any)
 	if !ok || sch == nil {
@@ -1707,19 +1497,6 @@ func isEntityWrapperProp(propSchema any) bool {
 	return t == "object" || t == "array"
 }
 
-// closedBodyTransform returns the request BODY a closed schema permits, as a
-// transform mapping, or nil when there is nothing to restrict.
-//
-// `additionalProperties: false` is the spec saying the server rejects any
-// property it did not declare. When a body says that, sending the caller's
-// whole request payload is wrong: an op's payload also carries its PATH params
-// (`id` for `PUT /item/{id}`), and a closed shape 400s the entire request over
-// that one extra key. Restricting the body to the declared properties is then
-// not a heuristic — it is what the spec asked for.
-//
-// nil for an open or property-less schema, where `reqdata` (send everything)
-// remains the right default: an open body accepts extras, and with no declared
-// properties there is nothing to restrict to. Mirrors ts/src/utility.ts.
 func closedBodyTransform(schema any) map[string]any {
 	sch, ok := schema.(map[string]any)
 	if !ok || sch == nil {
@@ -1736,13 +1513,6 @@ func closedBodyTransform(schema any) map[string]any {
 		return nil
 	}
 
-	// The KEY is the property's wire name — that is what goes on the wire and
-	// what the server matches against. The SOURCE is read by the field's
-	// CANONICAL name, because that is the only name the caller ever sees:
-	// findFieldDefs runs every property through Canonize(NormalizeFieldName()),
-	// so a spec property `UserName` reaches the generated request type as
-	// `user_name`. Reading `reqdata.UserName` would find nothing and send an
-	// undefined value.
 	out := map[string]any{}
 	for name := range props {
 		out[name] = "`reqdata." + Canonize(NormalizeFieldName(name)) + "`"
@@ -1750,17 +1520,6 @@ func closedBodyTransform(schema any) map[string]any {
 	return out
 }
 
-// UntaggedUnionBranches reports the number of real branches in an UNTAGGED
-// union: oneOf/anyOf with two or more branches and no discriminator. Nothing
-// in such a schema says which branch a given value is, so no generator can
-// choose a variant and the field can only be modelled as an open type.
-//
-// Two shapes are deliberately NOT unions to resolve: a discriminated union,
-// where the discriminator names the deciding property; and the nullable idiom
-// anyOf: [X, {type: null}], which is one type that may be absent rather than a
-// choice between variants.
-//
-// Mirrors ts/src/utility.ts untaggedUnionBranches.
 func UntaggedUnionBranches(schema any) int {
 	sch, ok := schema.(map[string]any)
 	if !ok || sch == nil {
@@ -1802,14 +1561,6 @@ type UnionScan struct {
 
 const maxUnionScanDepth = 64
 
-// ScanUntaggedUnion finds the widest untagged union beneath a field schema, or
-// nil when the field is resolvable.
-//
-// The search is RECURSIVE because the union is rarely at the top: in the
-// Typebot Builder spec the groups field is an array whose item schema carries
-// 18 untagged unions, the widest 19 branches, 12 levels down.
-//
-// Mirrors ts/src/utility.ts scanUntaggedUnion.
 func ScanUntaggedUnion(schema any) *UnionScan {
 	return scanUntaggedUnion(schema, 0, map[any]bool{})
 }
@@ -1876,10 +1627,6 @@ func scanUntaggedUnion(schema any, depth int, seen map[any]bool) *UnionScan {
 	return &UnionScan{Count: count, Branches: branches, Depth: at}
 }
 
-// jsWhitespace is the character class JavaScript's `\s` matches. Go's `\s` is
-// ASCII-only, and the TS side is the reference implementation, so the set is
-// spelled out rather than approximated — a class mismatch would collapse
-// whitespace differently in the two ports and surface as a model diff.
 const jsWhitespace = "\t\n\v\f\r \u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005" +
 	"\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000\ufeff"
 
@@ -1887,19 +1634,6 @@ var jsWhitespaceRun = regexp.MustCompile("[" + jsWhitespace + "]+")
 
 var firstSentenceRe = regexp.MustCompile(`^(.+?[.!?])([` + jsWhitespace + `]|$)`)
 
-// FirstSentence returns the first sentence of text (up to a `.`/`!`/`?`
-// followed by whitespace or end), whitespace-collapsed and length-capped with
-// an ellipsis.
-//
-// Mirrors src/utility.ts firstSentence. The cap counts UTF-16 code units and
-// slices on them, because the reference implementation is JavaScript and
-// `String.prototype.length` is UTF-16 — counting runes or bytes here would cut
-// a long non-ASCII description at a different point than TS does.
-//
-// Nothing would catch that today: TestValidateModelData compares this port
-// against ts/test/model-ref/, but only for solar, petstore and taxonomy, and
-// none of those has a description long enough to reach the cap. The ports are
-// matched here deliberately rather than because a test insists on it.
 func FirstSentence(text string) string {
 	collapsed := strings.Trim(jsWhitespaceRun.ReplaceAllString(text, " "), jsWhitespace)
 

@@ -27,9 +27,6 @@ function makeCtx(entname, op) {
     };
 }
 (0, node_test_1.describe)('transform-operation op resolution', () => {
-    // Guide overlays may name an op anything; only the six CRUD names exist.
-    // A stray name used to vanish without a trace (ADR-002: guide.aon is the
-    // only correction surface, so a silent drop defeats it).
     (0, node_test_1.test)('drops an unknown op name with a warning', async () => {
         const ctx = makeCtx('pull', {
             load: { method: 'GET' },
@@ -107,8 +104,6 @@ function makeCtx(entname, op) {
         node_assert_1.default.strictEqual(pt.transform.req, '`reqdata`');
     });
     (0, node_test_1.test)('does not mutate the shared guide op.transform across points', async () => {
-        // Two paths share one op object reference; defaulting on one point
-        // must not leak onto the other (the point spreads into a fresh object).
         const sharedOp = { method: 'GET', transform: { res: '`body.pet`' } };
         const ctx = makeCtx('pet', { list: sharedOp });
         ctx.guide.entity.pet.paths$.push({ orig: '/pets/{id}', parts: ['pets', '{id}'], rename: {}, def: {}, op: { list: sharedOp } });

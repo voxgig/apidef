@@ -50,7 +50,6 @@ type ApiDefOptions = {
 }
 
 
-// Input definition format.
 type DefKind = 'OpenAPI' | 'GraphQL'
 
 
@@ -237,7 +236,6 @@ type GuideControl = {}
 type GuideMetrics = {
   count: {
     path: number
-    // Schema root fields classified (GraphQL guides; 0 for OpenAPI).
     field: number
     method: number
     entity: number
@@ -253,15 +251,6 @@ type GuideMetrics = {
 
 
 type GuideEntity = {
-  // COMPOSITE IDENTITY CORRECTION, the guide's say over how an entity is
-  // addressed. apidef infers a compound key from adjacent path parameters,
-  // which is right far more often than not and cannot always be right:
-  // `/…/artifacts/{artifact_id}/{archive_format}` reads as composite and is
-  // not. Stating it here is the documented correction surface (ADR-002).
-  //
-  // `parts` names the compound key outright; `composite: false` says these
-  // adjacent parameters are not one (the record still has a key); `sep`
-  // changes the separator without restating the parts.
   id?: {
     parts?: string[]
     sep?: string
@@ -281,8 +270,6 @@ type GuideEntity = {
   // Why the heuristic deactivated it, so guide.aon reads as a record of a
   // decision rather than an unexplained `active: false`.
   why_inactive?: string
-  // GraphQL guides key operations by schema root field instead of path;
-  // the two branches are mutually exclusive per guide.
   field?: Record<string, GuidePath>
   path: Record<string, GuidePath>
 }

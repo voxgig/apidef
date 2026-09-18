@@ -1,13 +1,5 @@
 /* Copyright (c) 2024-2025 Voxgig, MIT License */
 
-// Package model embeds the shared aontu model schemas (apidef.aon,
-// guide.aon) so the Go module ships them to downstream Go clients that
-// unify apidef output.
-//
-// The canonical copies live at the repository root (../../model); these
-// files are mirrors, because a Go module can only embed files under its own
-// root. Keep the three copies in sync with `make sync-model` (verified by
-// `make check-model`).
 package model
 
 import "embed"

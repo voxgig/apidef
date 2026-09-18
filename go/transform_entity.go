@@ -17,9 +17,6 @@ func EntityTransform(ctx *ApiDefContext) (*TransformResult, error) {
 	guideEntity, _ := guide["entity"].(map[string]any)
 	msg := ""
 
-	// Mirrors src/transform/entity.ts: the heuristic can leave the plain
-	// collection path "/X" on a different entity than the per-instance
-	// "/X/{id}" paths, which leaves the owning entity with no list endpoint.
 	mergeCollectionPaths(guide)
 
 	for _, entname := range sortedKeys(guideEntity) {
@@ -38,15 +35,9 @@ func EntityTransform(ctx *ApiDefContext) (*TransformResult, error) {
 		relations := BuildRelations(gentMap, pathsDesc)
 
 		modelent := map[string]any{
-			"name":   entname,
-			"op":     map[string]any{},
-			"fields": []any{},
-			// NO `id` HERE. FieldTransform decides whether this entity has
-			// a descriptor at all — an id field, composite parts, a
-			// guide-corrected single key, or an `id` PARAMETER on one of its
-			// own points — exactly as the canonical TS does. Initialising it
-			// unconditionally gave petstore's `store` an `id` TS does not
-			// emit, and meant this port never implemented the decision.
+			"name":      entname,
+			"op":        map[string]any{},
+			"fields":    []any{},
 			"relations": relations,
 			"alias":     map[string]any{"field": map[string]any{}},
 			"active":    true,
@@ -60,9 +51,6 @@ func EntityTransform(ctx *ApiDefContext) (*TransformResult, error) {
 	return &TransformResult{OK: true, Msg: msg}, nil
 }
 
-// instancePathRE matches "/A/{...}" or "/A/{...}/rest"; collectionPathRE
-// matches exactly "/A" (one literal segment, no params).
-// Mirrors the two regexes in src/transform/entity.ts:mergeCollectionPaths.
 var (
 	instancePathRE   = regexp.MustCompile(`^/([^/{}]+)/\{[^}]+\}(/.*)?$`)
 	collectionPathRE = regexp.MustCompile(`^/([^/{}]+)$`)
@@ -73,10 +61,6 @@ type rootOwner struct {
 	depth int
 }
 
-// mergeCollectionPaths moves "/X" onto the entity that owns "/X/{id}" or
-// "/X/{id}/sub". Only acts when "/X" sits on a different entity than the
-// per-instance paths, so correctly-classified APIs are left alone.
-// Mirrors src/transform/entity.ts:mergeCollectionPaths.
 func mergeCollectionPaths(guide map[string]any) {
 	entities, _ := guide["entity"].(map[string]any)
 	if entities == nil {
@@ -152,10 +136,6 @@ func mergeCollectionPaths(guide map[string]any) {
 			if tgtPath == nil {
 				tgtPaths[pathStr] = srcPath
 			} else if srcMap, ok := srcPath.(map[string]any); ok {
-				// Target already owns this path via a different
-				// heuristic-discovered entity (e.g. `/gists` GET on
-				// `base_gist`, POST on `gist`). Merge the op/action/rename
-				// sets so the second source's methods aren't dropped.
 				mergeSubMap(srcMap, tgtPath, "op")
 				mergeSubMap(srcMap, tgtPath, "action")
 				if srcRename, ok := srcMap["rename"].(map[string]any); ok {
@@ -220,10 +200,6 @@ func resolvePathList(guideEntity map[string]any, def map[string]any) []map[strin
 			continue
 		}
 
-		// THE path construction site (ADR-003), mirroring
-		// src/transform/entity.ts. A segment is a literal or a variable;
-		// renames apply to the NAME, looked up once from the ORIGINAL spec
-		// name, so they cannot chain the way a braced-string rewrite could.
 		rename := map[string]any{}
 		paramRename := map[string]any{}
 		if r, ok := gpathMap["rename"].(map[string]any); ok {
@@ -240,13 +216,6 @@ func resolvePathList(guideEntity map[string]any, def map[string]any) []map[strin
 				continue
 			}
 			raw := part[1 : len(part)-1]
-			// A WHOLE element is the placeholder, or it is a literal.
-			// `{a}.{b}` is two parameters glued into one element with a
-			// separator that belongs to neither; it is not one parameter
-			// called `a}.{b`, and there is no honest var for it. `{}` names
-			// nothing. Both stay literal — which is what the braced-string
-			// form did with them, since the rename lookup was a whole-element
-			// match too. Mirrors src/transform/entity.ts.
 			if raw == "" || strings.ContainsAny(raw, "{}") {
 				segments = append(segments, map[string]any{"lit": part})
 				continue
@@ -285,11 +254,8 @@ func resolvePathList(guideEntity map[string]any, def map[string]any) []map[strin
 			"rename":   rename,
 			"method":   "",
 			"op":       op,
-			// The guide path's actions, so the operation transform can tell
-			// a verb borrowing an op slot from the op itself. Mirrors
-			// src/transform/entity.ts.
-			"action": gpathMap["action"],
-			"def":    pathDef,
+			"action":   gpathMap["action"],
+			"def":      pathDef,
 		}
 
 		pathsDesc = append(pathsDesc, pathdesc)

@@ -1,10 +1,5 @@
 /* Copyright (c) 2025 Voxgig Ltd, MIT License */
 
-// Benchmark harness mirroring v1/test/bench.ts.
-// Runs each case in parse-only and full configurations, reports min-of-N
-// timings, and enforces a 30s per-case timeout. Run with:
-//
-//	go test -tags bench -run TestBenchModelCase -timeout=20m -v ./...
 package apidef
 
 import (
@@ -45,10 +40,6 @@ func benchCaseName(c benchCase) string {
 	return fmt.Sprintf("%s-%s-%s", c.Name, c.Version, c.Spec)
 }
 
-// runOnce performs a single Generate run with the given step config.
-// Returns elapsed wall-clock duration. If the run exceeds budget, returns
-// (budget, errTimeout). The Generate call is synchronous, so a true cancel
-// is not possible — we instead let it complete but flag the overrun.
 func runOnce(validateDir string, c benchCase, step map[string]any, budget time.Duration) (time.Duration, error) {
 	cn := benchCaseName(c)
 	tmp, err := os.MkdirTemp("", "apidef-bench-")
@@ -100,8 +91,6 @@ func runOnce(validateDir string, c benchCase, step map[string]any, budget time.D
 		}
 		return o.dur, nil
 	case <-time.After(budget):
-		// Wait for the goroutine to actually finish so we don't leak it,
-		// but report the timeout. Cap the extra wait.
 		select {
 		case <-done:
 		case <-time.After(5 * time.Second):

@@ -17,41 +17,12 @@ const KONSOLE_LOG = console['log'];
 // Log non-fatal wierdness.
 const dlog = (0, utility_1.getdlog)('apidef', __filename);
 const aontu = new aontu_1.Aontu();
-// MIGRATE, DO NOT ABANDON. The guide is the one model file the user owns —
-// entity renames, hides, method overrides, response transforms. Reading
-// `guide.aon` without this would find nothing in any project created before
-// the extension rename, silently discarding every customization in the 660
-// generated repos that carry a guide.aontu.
-//
-// RENAMING THE FILE IS NOT ENOUGH, and doing only that was worse than doing
-// nothing: a legacy guide `@`-includes two files BY THE OLD EXTENSION —
-// `@voxgig/apidef/model/guide.aontu`, which this package no longer ships, and
-// its sibling `<prefix>base-guide.aontu`, which is now written as `.aon`.
-// Carried across byte-for-byte, both dangle, and every build of such a
-// project dies on
-//
-//   [aontu/multisource_not_found]: source not found:
-//     @voxgig/apidef/model/guide.aontu
-//
-// — which is what apidef-validate hit on all 14 of its real-world specs. So
-// the two includes the rename invalidates are rewritten with it. Nothing else
-// is touched: the rest of the file is the user's.
-//
-// Returns true when a migration actually happened.
 function migrateLegacyGuide(fs, folder, guideprefix) {
     const guidepath = node_path_1.default.join(folder, 'guide', guideprefix + 'guide.aon');
     const legacyguide = node_path_1.default.join(folder, 'guide', guideprefix + 'guide.aontu');
     if (fs.existsSync(guidepath) || !fs.existsSync(legacyguide)) {
         return false;
     }
-    // EXACTLY the two includes the rename invalidates, and no others.
-    //
-    // The sibling is `<guideprefix>base-guide`, because that is the only
-    // base-guide this build writes. Matching any `*base-guide.aontu` instead
-    // would rewrite a user's own `@"shared-base-guide.aontu"` — a file nothing
-    // renamed — into a path that does not exist, breaking the guide while
-    // deleting the original. A plain split/join keeps the prefix a literal, so
-    // a prefix containing regex metacharacters cannot widen the match either.
     const legacysrc = String(fs.readFileSync(legacyguide, 'utf8'));
     const migrated = legacysrc
         .replace(/@"@voxgig\/apidef\/model\/guide\.aontu"/g, '@"@voxgig/apidef/model/guide.aon"')
@@ -64,24 +35,6 @@ function migrateLegacyGuide(fs, folder, guideprefix) {
     catch (_err) { }
     return true;
 }
-// Give the guide's sibling include a `./`, in place, once.
-//
-// `guide.aon` is PROJECT-OWNED — the scaffold writes it at init and never
-// again, because it is two includes a user rarely edits. So the scaffold
-// template gaining a `./` reaches new projects only, and every existing one
-// keeps `@"base-guide.aon"`, which aontu 0.65 refuses: a bare single-segment
-// include now names a PACKAGE (ADR-039).
-//
-// A file the toolchain writes and the toolchain then refuses to read has to
-// be migrated by the toolchain. `migrateLegacyGuide` above does exactly this
-// for the `.aontu` -> `.aon` rename; this is the same move for the same file.
-//
-// THE SIBLING ONLY, matched as a whole include with the prefix absent. The
-// package include beside it (`@"@voxgig/apidef/model/guide.aon"`) is a real
-// package reference and must stay bare, and a user's own `@"./something"` is
-// already correct. Anything else in the file is the user's.
-//
-// Returns true when a migration actually happened.
 function migrateGuideIncludePrefix(fs, guidepath, guideprefix) {
     if (!fs.existsSync(guidepath)) {
         return false;
@@ -94,12 +47,6 @@ function migrateGuideIncludePrefix(fs, guidepath, guideprefix) {
     fs.writeFileSync(guidepath, src.split(bare).join('@"./' + guideprefix + 'base-guide.aon"'));
     return true;
 }
-// The first unresolved merge-conflict marker in a source, or null.
-//
-// Anchored at line start and requiring exactly the conventional seven
-// characters: a guide legitimately contains `>>>>>>> GENERATED` inside the
-// jostraca provenance comments it writes about itself, and `====` shows up in
-// prose. Only a real marker at column zero counts.
 function findConflict(src) {
     const lines = String(src || '').split('\n');
     for (let i = 0; i < lines.length; i++) {
@@ -145,27 +92,6 @@ async function buildGuide(ctx) {
         errs.push(err);
     }
     handleErrors(ctx, errs);
-    // A MERGE CONFLICT IN A GUIDE IS SAID OUT LOUD, HERE.
-    //
-    // The guide is 3-way merged: apidef regenerates the base guide from the
-    // spec and merges it over what the project already had. Change the spec
-    // enough — swap a 5-path definition for the API's whole 722-path one — and
-    // an edit the project made can no longer be reconciled, so the merge
-    // writes ordinary `<<<<<<<` / `=======` / `>>>>>>>` markers into the file.
-    //
-    // Nothing then read the file until aontu did, and aontu reports what it
-    // sees: `unexpected character(s): <<<<<<<`, thousands of lines into a
-    // generated file, with no hint that this is a merge conflict or which edit
-    // caused it. That cost a long detour — the failure was read as apidef
-    // hanging, and the real cause (one conflicted rename) sat two lines away
-    // from a marker nobody had looked for.
-    //
-    // The guide is a file apidef itself writes, so apidef is the right place to
-    // recognise its own merge output before handing it on.
-    // BOTH FILES, and the base guide is the one that usually has it: `guide.aon`
-    // is two @-includes a user rarely edits, while `base-guide.aon` is what
-    // apidef regenerates and merges. Checking only the top-level file found
-    // nothing and left aontu to report the marker.
     const basepath = node_path_1.default.join(folder, 'guide', guideprefix + 'base-guide.aon');
     for (const checkpath of [guidepath, basepath]) {
         let checksrc = '';
@@ -199,34 +125,9 @@ async function buildGuide(ctx) {
             path: guidepath,
             errs,
         };
-        // Only forward a *genuinely injected* fs.
-        //
-        // aontu resolves `@`-includes through @tabnas/multisource, which does:
-        //   const P = null != ctx.meta?.fs ? Path.posix : Path
-        // i.e. it switches to POSIX path semantics whenever an fs is present, on
-        // the assumption that an injected fs is memfs keyed by POSIX paths.
-        //
-        // apidef defaults ctx.fs to the real node:fs (`opts.fs || Fs`), so
-        // forwarding it unconditionally made multisource parse *Windows* paths
-        // with Path.posix. 'D:\...\guide\x-guide.aontu' contains no '/', so the
-        // include base resolved to '' and sibling includes were looked up against
-        // the cwd instead of the guide folder — every build failed on Windows
-        // with `source not found: <prefix>base-guide.aontu`. Linux and macOS were
-        // unaffected because there Path and Path.posix are the same module.
-        //
-        // Callers that supply a real memfs (e.g. apidef-validate) still get it,
-        // and still get the POSIX semantics they need.
-        //
-        // Uses the explicit ctx.fsInjected flag rather than `Fs !== ctx.fs`:
-        // esModuleInterop compiles `import * as Fs` to __importStar(), which
-        // builds a fresh wrapper per module, so identity comparison across
-        // modules is always false.
         if (ctx.fsInjected) {
             opts.fs = ctx.fs;
         }
-        // Record what was actually handed to aontu, not what we intended to hand
-        // it, so the regression test fails if this block is ever changed back to
-        // an unconditional assignment.
         ctx.work.guideAontuFs = undefined !== opts.fs;
         const guideModel = aontu.generate(src, opts);
         handleErrors(ctx, errs);
@@ -271,7 +172,6 @@ async function buildBaseGuide(ctx) {
         'guide: {',
     ];
     const metrics = baseguide.metrics;
-    // TODO: these should influence the IS_ENTCMP_METHOD_RATE etc. values
     const epr = 0 < metrics.count.path ? (metrics.count.entity / metrics.count.path).toFixed(3) : -1;
     const emr = 0 < metrics.count.method ? (metrics.count.entity / metrics.count.method).toFixed(3) : -1;
     ctx.log.info({
@@ -302,10 +202,6 @@ async function buildBaseGuide(ctx) {
     // unchanged while recording the query/mutation distinction.
     const emitEntry = (branch, entname, entity, entrykey, path) => {
         {
-            // GUARDED, because the argument is the expensive part. This formats a
-            // whole resolved path and is discarded unless APIDEF_DEBUG_PATH is
-            // set - and doing it for every path of a real definition is what
-            // exhausted a 12 GB heap on Stripe's 447 entity-paths.
             if ((0, utility_1.debugpathOn)()) {
                 (0, utility_1.debugpath)(entrykey, null, 'BASE-GUIDE', entname, entrykey, (0, utility_1.formatJSONIC)(path, { hsepd: 0, $: true, color: true }));
             }
@@ -334,20 +230,9 @@ async function buildBaseGuide(ctx) {
                 if (null != op.optype) {
                     guideBlocks.push(`      op: ${opname}: optype: *${op.optype}`);
                 }
-                // Each transform is emitted only when set, and each on its own terms.
-                // (An earlier req-GUARDED block pushed a second res line built from
-                // op.transform.res — emitting `transform: res: *undefined` whenever a
-                // request was wrapped but the response was not. Hence the separate
-                // null checks below rather than one shared guard.)
                 if (null != op.transform.res) {
                     guideBlocks.push(`      op: ${opname}: transform: res: *${qt(op.transform.res)}|top`);
                 }
-                // The req transform is a MAP of body property -> source expression
-                // (see closedBodyTransform), so it takes one line per property. THE
-                // SERIALISED GUIDE IS WHAT THE TRANSFORM STEP READS: a transform not
-                // written here never reaches the model, which is why restricting a
-                // closed request body had no effect until this existed. Only the map
-                // form is representable as aontu paths; a scalar req is left alone.
                 const reqmap = op.transform.req;
                 if (null != reqmap && 'object' === typeof reqmap) {
                     (0, struct_1.items)(reqmap).map(([bodykey, source]) => {
@@ -364,16 +249,6 @@ async function buildBaseGuide(ctx) {
     (0, struct_1.items)(baseguide.entity).map(([entname, entity]) => {
         guideBlocks.push(`
   entity: ${entname}: {`);
-        // An entity the heuristic deactivated (today: an access-token exchange,
-        // which is credential plumbing rather than a resource) is EMITTED, not
-        // dropped, so the classification is visible and reversible in guide.aon
-        // — the only correction surface (ADR-002).
-        //
-        // `*false` — a DEFAULT, not a concrete value. aontu conflicts two
-        // concrete values rather than letting one win, so a concrete `active:
-        // false` here would make a user's `guide: entity: <name>: active: true`
-        // in guide.aon fail to unify instead of overriding it. That is the same
-        // trap the `method: *POST` entries above avoid.
         if (false === entity.active) {
             const why = entity.why_inactive;
             guideBlocks.push(`    # Deactivated by the heuristic` +
@@ -404,10 +279,6 @@ async function buildBaseGuide(ctx) {
     }, root);
     return jres;
 }
-// GraphQL coverage guard: every Query/Mutation root field must either be
-// assigned to an entity op or be deliberately excluded by the classifier
-// (machinery types, scalar returns). Mirrors the REST PATH MISMATCH check —
-// silence about an unclassified field is how an API silently loses surface.
 function validateGraphqlBaseGuide(ctx, baseguide) {
     const covered = {};
     (0, jostraca_1.each)(baseguide.entity, (entm) => {

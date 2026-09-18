@@ -14,7 +14,6 @@ import type {
 } from '../types'
 
 import type {
-  // GuidePath,
   PathDesc,
   OpDesc,
 } from '../desc'
@@ -24,19 +23,9 @@ import type {
 } from '../model'
 
 
-// Guide* => from guide model
-// *Desc => internal working descriptiuon
-// *Def => API spec definition
-// Model* => Generated SDK Model
 
 
-// type GuideEntity = {
-//   name: string,
-//   path: Record<string, GuidePath>
 
-//   paths$: PathDesc[]
-//   opm$: Record<OpName, OpDesc>
-// }
 
 
 const topTransform = async function(
@@ -55,14 +44,6 @@ const topTransform = async function(
   // the docs generated from it) never carry an empty/degenerate description.
   kit.info.description = ensureDescription(kit.info)
 
-  // Public APIs that declare NO authentication (no security schemes, no
-  // top-level `security`, and no per-operation `security`) get an explicit
-  // no-auth signal in the model. Downstream sdkgen reads it via
-  // isAuthActive() (main.kit.info.auth === false) to suppress apikey/auth
-  // code, docs and examples. Only the negative signal is emitted: when the
-  // spec DOES declare auth we leave `auth` unset so the SDK's own config
-  // (main.kit.config.auth) governs. Set AFTER stringifyInfoScalars so the
-  // value stays a real boolean rather than the string "false".
   if (true === def.graphql) {
     // A GraphQL schema NEVER declares HTTP auth, so specDeclaresAuth would
     // report every secured GraphQL API (Linear included) as public and
@@ -80,8 +61,6 @@ const topTransform = async function(
           type: authopt.type ?? 'apiKey',
           in: authopt.in ?? 'header',
           name: authopt.name ?? 'Authorization',
-          // '' means a raw credential with no prefix (Linear's style);
-          // prepareAuth in generated SDKs already honours that.
           prefix: authopt.prefix ?? '',
         }
       }
@@ -98,12 +77,6 @@ const topTransform = async function(
     if (null != security) {
       kit.info.security = security
 
-      // Record the ACCESS-TOKEN EXCHANGE, when the spec describes one. The
-      // endpoint that issues credentials is not a resource and does not
-      // become an entity (the guide deactivates it — see
-      // guide/heuristic01.ts and ADR-002); these facts are how it survives
-      // into the model instead, and they are exactly what sdkgen's
-      // `secrets` feature needs to drive the exchange.
       const exchange = findAuthExchange(def)
       if (null != exchange) {
         kit.info.security.exchange = exchange
@@ -111,7 +84,6 @@ const topTransform = async function(
     }
   }
 
-  // Swagger 2.0
   if (def.host) {
     kit.info.servers.push({
       url: (def.schemes?.[0] ?? 'https') + '://' + join([def.host, def.basePath], '/', true)
@@ -127,25 +99,15 @@ const topTransform = async function(
     if (!server || 'string' !== typeof server.url) continue
     const url: string = server.url.trim()
     if (url === '') continue
-    if (/^[a-z][a-z0-9+.-]*:\/\//i.test(url)) continue   // already has scheme
-    // `//host/path` is a protocol-relative URL — meaningless to a
-    // backend SDK, treat as missing-scheme and default to https.
+    if (/^[a-z][a-z0-9+.-]*:\/\//i.test(url)) continue
     if (url.startsWith('//')) {
       server.url = 'https:' + url
       continue
     }
-    // `/path` is path-only (relative to wherever the spec is served).
-    // Leave it untouched; it's a valid OpenAPI form.
     if (url.startsWith('/')) continue
     server.url = 'https://' + url
   }
 
-  // A usable SDK requires a base URL. OpenAPI 3 puts it in `servers[].url`;
-  // Swagger 2 derives it from `host` + `basePath`. If neither yields a
-  // non-empty url, the generated SDK has no way to issue requests, so fail
-  // the apidef model build rather than emit broken code.
-  // (For GraphQL the parser already synthesised servers[0] from the required
-  // `endpoint` build option, so this check passes on the same terms.)
   const firstServerUrl: any = kit.info.servers?.[0]?.url
   if (null == firstServerUrl || '' === String(firstServerUrl).trim()) {
     throw new Error(
@@ -156,8 +118,6 @@ const topTransform = async function(
     )
   }
 
-  // A short "what this API is" blurb and a canonical website link, for doc
-  // generators. Only set when derivable, so downstream can gate on them.
   const summary = resolveSummary(def)
   if (null != summary) {
     kit.info.summary = summary
@@ -171,8 +131,6 @@ const topTransform = async function(
 }
 
 
-// True when the text carries at least one alphabetic character — i.e. it is
-// real prose rather than a placeholder like "." / "---" / whitespace.
 function hasLetters(text: string): boolean {
   return /[a-zA-Z]/.test(text)
 }
@@ -210,22 +168,18 @@ function resolveSummary(def: any): string | undefined {
   }
 
   const desc = 'string' === typeof info.description ? info.description : ''
-  // Treat letterless prose (a bare "." placeholder, "---", …) as no summary
-  // rather than surfacing it verbatim.
   if ('' === desc.trim() || !hasLetters(desc)) {
     return undefined
   }
 
   const lines = desc.split('\n')
   let i = 0
-  // Skip leading blank lines, ATX headings (`# ...`) and setext underlines.
   while (i < lines.length &&
     ('' === lines[i].trim() ||
       /^\s*#{1,6}\s/.test(lines[i]) ||
       /^\s*(-{2,}|={2,})\s*$/.test(lines[i]))) {
     i++
   }
-  // Take the first paragraph (up to the next blank line or heading).
   const para: string[] = []
   while (i < lines.length &&
     '' !== lines[i].trim() &&
@@ -238,12 +192,6 @@ function resolveSummary(def: any): string | undefined {
 }
 
 
-// A canonical link back to the API's own website, in priority order:
-//   1. externalDocs.url          (the spec's explicit external link)
-//   2. info['x-logo'].href       (redoc homepage link)
-//   3. homepage from the server  (strip an api./developer./docs. subdomain)
-//   4. info.contact.url
-//   5. info.termsOfService
 function resolveWebsite(def: any, servers: any[]): string | undefined {
   const info = def?.info ?? {}
 
@@ -272,15 +220,6 @@ function homepageFromServer(url: any): string | undefined {
     const u = new URL(url.includes('://') ? url : 'https://' + url)
     let host = u.hostname
     if ('' === host || !host.includes('.')) return undefined
-    // A templated server — `https://{instance}.dreamapply.com/api`, a per-tenant
-    // API declaring `instance` as an OpenAPI server variable — is a legitimate
-    // spec, but its host is not a resolvable address. Deriving a "website" from
-    // it put `https://{instance}.dreamapply.com` into the README as a clickable
-    // link that no browser can open. The URL parser accepts the braces, so the
-    // placeholder has to be rejected explicitly.
-    //
-    // Only the WEBSITE is skipped: the server URL itself is still emitted, where
-    // the variable is meaningful and the runtime substitutes it.
     if (/[{}]/.test(host)) return undefined
     host = host.replace(
       /^(api|api-[a-z0-9]+|apis|developer|developers|docs?|www)\./i, '')
@@ -297,24 +236,6 @@ function isHttpUrl(v: any): boolean {
 }
 
 
-// Describe the spec's PRIMARY security scheme as model facts
-// (info.security): scheme key, type, where the credential goes (in/name),
-// and the value prefix for Authorization-header credentials. The primary
-// scheme is the one named by the first top-level `security` requirement,
-// falling back to the first declared scheme. Returns null when nothing
-// usable is declared (the no-auth signal is handled separately).
-//
-// Prefix rules:
-//   http basic/bearer      -> 'Basic' / 'Bearer'
-//   oauth2 / openIdConnect -> 'Bearer' (access token in Authorization)
-//   apiKey in an Authorization header -> the prefix the API's own prose
-//     documents (e.g. `Authorization: OAuth <key>`), else '' (raw). An
-//     `apiKey` scheme means "send the credential as-is" — a `Bearer`/etc.
-//     prefix is only implied by an `http`+`bearer` scheme or explicit
-//     prose, so absent evidence the key goes in raw (e.g. The SMS Works'
-//     `Authorization: <jwt>`). A user override is available via
-//     config.auth.prefix.
-//   apiKey in any other header/query/cookie -> '' (raw credential)
 function resolveSecurity(def: any): Record<string, string> | null {
   const schemes: Record<string, any> =
     def.components?.securitySchemes ?? def.securityDefinitions ?? {}
@@ -344,8 +265,6 @@ function resolveSecurity(def: any): Record<string, string> | null {
   }
 
   if ('http' === type) {
-    // Swagger 2 `type: basic` has no `scheme`; OpenAPI 3 uses
-    // `scheme: basic|bearer|...`.
     out.prefix = 'basic' === String(scheme.scheme ?? '').toLowerCase() ?
       'Basic' : 'Bearer'
   }
@@ -367,25 +286,12 @@ function resolveSecurity(def: any): Record<string, string> | null {
         findAuthPrefix(def.info?.description) ??
         ''
     }
-    // else: raw credential in a named header/query/cookie — no prefix.
   }
 
   return out
 }
 
 
-// Find the spec's access-token exchange and describe it as model facts:
-// where it lives, and the field names it sends and answers with. Returns
-// null when the spec describes no exchange, which is the common case.
-//
-// `path` is RELATIVE to the server URL, with no leading slash, because the
-// server URL already carries whatever account or tenant segment the API
-// templates into it — an absolute path would drop that segment. sdkgen's
-// secrets feature resolves it against `options.base` for the same reason.
-//
-// Only the FIRST exchange is recorded. A spec describing two token
-// endpoints is describing two auth schemes, which is a bigger thing than a
-// field on info.security and is not guessed at here.
 function findAuthExchange(def: any): Record<string, string> | null {
   const secured = specSecuredByDefault(def)
   if (!secured) {
@@ -418,18 +324,6 @@ function findAuthExchange(def: any): Record<string, string> | null {
 }
 
 
-// Extract the credential prefix from a securityScheme's / info prose.
-// Three signals, in confidence order:
-//   1. An explicit `Authorization: <prefix> <cred>` line (any prefix word)
-//      — e.g. Statuspage's `Authorization: OAuth 89a2...`. The prefix must
-//      be a short word followed by something credential-shaped (a long
-//      token, or a `<key>` / `{token}` / `$KEY` / `YOUR_...` placeholder),
-//      so a bare `Authorization: 89a2...` doesn't match.
-//   2. A KNOWN scheme word (Bearer/OAuth/Token/Basic) shown as an example
-//      prefix — `Example: Bearer eyJ...` (NoFrixion's shape).
-//   3. A KNOWN scheme word named as the scheme — `the Bearer scheme`,
-//      `Bearer authentication`.
-// Returns null when nothing indicates a prefix (an apiKey then goes in raw).
 function findAuthPrefix(text: unknown): string | null {
   if ('string' !== typeof text || '' === text) {
     return null
@@ -441,14 +335,12 @@ function findAuthPrefix(text: unknown): string | null {
     return explicit[1]
   }
 
-  // A known scheme word as an example prefix, then a credential-shaped tail.
   const example = text.match(
     /(?:example|e\.g\.)[:\s][^\n]{0,20}?\b(Bearer|OAuth2?|Token|Basic)\b[ \t]+(?:<[^>\n]+>|\{[^}\n]+\}|[A-Za-z0-9._~+/=-]{6,})/i)
   if (null != example) {
     return canonAuthScheme(example[1])
   }
 
-  // A known scheme word named as the auth scheme.
   const named = text.match(
     /\b(Bearer|OAuth2?|Token|Basic)\b[ \t]+(?:scheme|authentication|auth\b|credentials?)/i)
   if (null != named) {
@@ -459,7 +351,6 @@ function findAuthPrefix(text: unknown): string | null {
 }
 
 
-// Canonical casing for a known scheme word (Bearer/OAuth/Token/Basic).
 function canonAuthScheme(word: string): string {
   const w = word.toLowerCase()
   if (w.startsWith('oauth')) return 'OAuth'
@@ -470,27 +361,18 @@ function canonAuthScheme(word: string): string {
 }
 
 
-// Does the spec declare any authentication? True if it defines security
-// schemes (OpenAPI 3 `components.securitySchemes` or Swagger 2
-// `securityDefinitions`), a top-level `security` requirement, or a
-// per-operation `security` requirement. Used to emit a no-auth signal
-// (info.auth: false) for fully public APIs.
 function specDeclaresAuth(def: any): boolean {
   if (null == def || 'object' !== typeof def) return false
 
   const nonEmptyObj = (v: any) =>
     null != v && 'object' === typeof v && Object.keys(v).length > 0
 
-  // OpenAPI 3 security schemes.
   if (nonEmptyObj(def.components?.securitySchemes)) return true
 
-  // Swagger 2 security definitions.
   if (nonEmptyObj(def.securityDefinitions)) return true
 
-  // Top-level security requirement.
   if (Array.isArray(def.security) && def.security.length > 0) return true
 
-  // Per-operation security requirement.
   const paths = def.paths
   if (paths && 'object' === typeof paths) {
     for (const pathItem of Object.values(paths)) {
@@ -508,13 +390,6 @@ function specDeclaresAuth(def: any): boolean {
 }
 
 
-// OpenAPI's `info` object (and the `servers` array) declares every scalar
-// leaf as a string. YAML/JSON parsers don't enforce that — `version: 2`
-// without quotes parses as the number 2, `version: true` as a boolean.
-// Apidef's downstream schema (apidef.aontu) unifies info fields as
-// `string`, so non-string scalars cause an aontu unify failure during
-// model resolution. Normalise scalar leaves to strings here, at the
-// model-build boundary, rather than relax the schema.
 function stringifyInfoScalars(node: any): any {
   if (null == node) return node
   if (Array.isArray(node)) return node.map(stringifyInfoScalars)
@@ -541,8 +416,3 @@ export {
   homepageFromServer,
   findAuthPrefix,
 }
-
-
-// export type {
-//   GuideEntity,
-// }

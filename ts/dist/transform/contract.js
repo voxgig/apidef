@@ -3,24 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.contractTransform = void 0;
 exports.contractJSON = contractJSON;
 exports.graphqlInputTypes = graphqlInputTypes;
-// MEMOISED WITHIN A FACT, FRESH BETWEEN FACTS.
-//
-// Each top-level key of a contract is self-contained: a reader of
-// `facts.parameters` never has to resolve a `$ref` into `facts.requestBody`.
-// That is deliberate and `recursive resolved schemas retain local references
-// without changing shared nodes` pins it, so the memo RESETS at each
-// top-level key.
-//
-// Inside one fact it does not reset, and that is the fix. The previous code
-// forgot a node on the way out (`ancestors.delete`), so only an ANCESTOR
-// became a `$ref` - a node reachable by two routes within the same fact was
-// copied whole at each, and a schema graph where that compounds expands
-// exponentially.
-//
-// Stripe's published definition is where that stops being theoretical:
-// 1,454 cross-referenced schemas produced a string past V8's maximum length
-// and the build died with `RangeError: Invalid string length`, 22 seconds
-// into the guide. Not a big contract - an impossible one.
 function contractJSON(value) {
     function walk(root, base) {
         // One memo per fact, so refs stay local to it.

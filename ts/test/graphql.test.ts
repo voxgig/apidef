@@ -1,12 +1,5 @@
 /* Copyright (c) 2024-2026 Voxgig Ltd, MIT License */
 
-// End-to-end GraphQL ingestion: SDL in, apimodel out.
-//
-// The final test here is the one that keeps the canonical schema honest — it
-// unifies the EMITTED model through @voxgig/apidef/model/apidef.aontu, so a
-// point shape the schema does not accept fails the suite rather than
-// surfacing downstream in sdkgen. (No such assertion existed for the REST
-// path: apidef.test.ts's `full-solar` is disabled.)
 
 import * as Fs from 'node:fs'
 import * as Path from 'node:path'
@@ -86,34 +79,27 @@ describe('graphql', () => {
       'issue', 'issueArchive', 'issueCreate', 'issueDelete', 'issueUpdate', 'issues',
     ])
 
-    // query issue(id:) -> load; issues(...): IssueConnection -> list
     assert.equal(issue.issue.op.load.optype, 'query')
     assert.equal(issue.issues.op.list.optype, 'query')
 
-    // Input-object shapes drive create/update; delete verb drives remove.
     assert.equal(issue.issueCreate.op.create.optype, 'mutation')
     assert.equal(issue.issueUpdate.op.update.optype, 'mutation')
     assert.equal(issue.issueDelete.op.remove.optype, 'mutation')
 
-    // The command mutation folds onto update as an $action point.
     assert.deepStrictEqual(Object.keys(issue.issueArchive.action), ['archive'])
     assert.equal(issue.issueArchive.op.update.optype, 'mutation')
 
-    // Ragged op sets are the norm: Team is read-only, Comment create-only.
     assert.deepStrictEqual(Object.keys(gent.team.field).sort(), ['team', 'teams'])
     assert.deepStrictEqual(
       Object.keys(gent.comment.field).sort(),
       ['commentCreate', 'commentDelete'])
 
-    // Root fields, not paths, are what got classified.
     assert.equal(bres.guide.metrics.count.entity, 3)
     assert.equal(bres.guide.metrics.count.path, 0)
     assert.ok(0 < bres.guide.metrics.count.field)
   })
 
 
-  // Entity fields come from the object type: non-deprecated scalars, no
-  // required-argument fields, to-one relations as id stubs.
   test('fields-graphql', async () => {
     const bres = await buildGraphql({ generate: false })
     assert.equal(bres.ok, true)
@@ -121,25 +107,11 @@ describe('graphql', () => {
     const issue = bres.apimodel.main.kit.entity.issue
     const names = issue.fields.map((f: any) => f.name)
 
-    // `team` is the to-one relation stub. The fragment selects `team { id }`,
-    // so the response carries a nested object — declaring a flat `team_id`
-    // would advertise a field the wire never returns.
-    //
-    // Field names are the WIRE names, verbatim. The schema declares
-    // `archivedAt: DateTime`, so that is what the response carries and that is
-    // what the model must say. These used to be snake_cased by `canonize`,
-    // which is right for entity/type names and wrong for fields — and doubly
-    // wrong for GraphQL, where camelCase is the convention, so it renamed
-    // essentially every field of every GraphQL API. Same reasoning as the
-    // `team_id` note above: do not advertise a name the wire never uses.
     assert.deepStrictEqual(names, [
       'archivedAt', 'createdAt', 'id', 'identifier', 'priority',
       'team', 'title',
     ])
 
-    // `legacyCode` is deprecated and `icon(size: Int!)` needs an argument:
-    // selecting either in a fixed fragment is wrong (the latter is a hard
-    // GraphQL validation error), so neither may appear.
     assert.ok(!names.includes('legacy_code'))
     assert.ok(!names.includes('icon'))
 
@@ -157,7 +129,6 @@ describe('graphql', () => {
 
     const load = ops.load.points[0]
     assert.equal(load.kind, 'graphql')
-    // GraphQL points ride the HTTP machinery: one POST, no path segments.
     assert.equal(load.method, 'POST')
     assert.deepStrictEqual(load.segments, undefined)
     assert.equal(load.graphql.optype, 'query')
@@ -172,12 +143,8 @@ describe('graphql', () => {
       { name: 'id', from: 'id', gqltype: 'String!' },
     ])
 
-    // Documents are single-line: byte-stable output, and the string survives
-    // the JSONIC round-trip into the emitted model.
     assert.ok(!load.graphql.doc.includes('\n'))
 
-    // Relay connection -> list, with the pagination descriptor recorded and
-    // the unwrap pointing at the node array.
     const list = ops.list.points[0]
     assert.equal(list.transform.res, '`body.data.issues.nodes`')
     assert.deepStrictEqual(list.graphql.page, {
@@ -193,8 +160,6 @@ describe('graphql', () => {
     // every pagination argument before it could be chosen.
     assert.deepStrictEqual(list.select?.exist, undefined)
 
-    // Mutation payload is unwrapped, so create returns the entity itself —
-    // exactly as a REST create does.
     const create = ops.create.points[0]
     assert.equal(create.graphql.optype, 'mutation')
     assert.equal(create.transform.res, '`body.data.issueCreate.issue`')
@@ -234,12 +199,6 @@ describe('graphql', () => {
     const modelpath = Path.join(FOLDER, 'graphql.aon')
     const src = Fs.readFileSync(modelpath, 'utf8')
 
-    // NOTE: no `fs` injection. @tabnas/multisource switches to Path.posix
-    // whenever an fs is present, so injecting the real node:fs makes it parse
-    // Windows paths ('D:\...' contains no '/') with POSIX semantics, the
-    // include base resolves to '' and every sibling include fails. apidef's
-    // own buildGuide forwards fs only when the caller supplied one, for
-    // exactly this reason (see guide/guide.ts).
     const errs: any[] = []
     const out: any = new Aontu().generate(src, { path: modelpath, errs })
 
@@ -257,8 +216,6 @@ describe('graphql', () => {
 })
 
 
-// Return-shape derivation feeds the classifier; these are the two shapes
-// where picking the wrong type silently produces an invalid document.
 describe('graphql-retshape', () => {
 
   // An edges-only Relay connection: the entity is the edge's NODE type.
@@ -322,11 +279,6 @@ describe('graphql-retshape', () => {
 })
 
 
-// GraphQL type names cannot START with a digit, but they can start with `_`,
-// and `normalizeFieldName` strips that — so `_3DSSessions` used to reach an
-// SDK as the entity `3_ds_session`, an identifier every generated language
-// rejects. The REST classifier gets the guard from `ensureMinEntityName`,
-// which this path does not call; it is applied in `entityName` instead.
 describe('graphql-entity-name', () => {
 
   test('leading-digit-guarded', () => {
@@ -344,12 +296,6 @@ describe('graphql-entity-name', () => {
   })
 
 
-  // The guard maps a previously unreachable name onto one another type can
-  // own natively, so `_3DSSessions` and `N3DSSession` — unrelated types —
-  // would both want `n3_ds_session`. Merging them folds two entities' fields
-  // and ops together under an `orig` recording only the first, and leaves no
-  // second guide entry to correct (ADR-002: guide.aon is the only correction
-  // surface). The suffix is `ensureMinEntityName`'s convention, borrowed.
   test('guard-induced-collision-is-split', () => {
     const entities: any = {}
     const a = resolveEntityName('N3DSSession', entities)
@@ -361,8 +307,6 @@ describe('graphql-entity-name', () => {
   })
 
 
-  // ... in EITHER order: which type is seen first is an accident of sorted
-  // root-field iteration, and both orders must yield two entities.
   test('guard-induced-collision-is-split-either-order', () => {
     const entities: any = {}
     const a = resolveEntityName('_3DSSessions', entities)
@@ -380,11 +324,9 @@ describe('graphql-entity-name', () => {
   test('canonical-merges-are-untouched', () => {
     const entities: any = {}
 
-    // Neither name is guarded.
     entities.issue = { name: 'issue', orig: 'Issue' }
     assert.equal(resolveEntityName('Issues', entities), 'issue')
 
-    // Both names are guarded.
     entities.n3_ds_session = { name: 'n3_ds_session', orig: '_3DSSessions' }
     assert.equal(resolveEntityName('_3DSSession', entities), 'n3_ds_session')
   })
@@ -425,11 +367,9 @@ describe('graphql-entityless-payload', () => {
       'mutation CommentRemove($id: String!)' +
       ' { commentDelete(id: $id) { entityId success } }')
 
-    // No entity fragment, and crucially no `{ id }`: DeletePayload has none.
     assert.ok(!point.graphql.doc.includes('fragment'))
     assert.ok(!point.graphql.doc.includes('{ id }'))
 
-    // Unwraps to the payload itself, since no entity is nested in it.
     assert.equal(point.transform.res, '`body.data.commentDelete`')
   })
 

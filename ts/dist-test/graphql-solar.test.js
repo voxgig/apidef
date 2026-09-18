@@ -37,21 +37,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-// GraphQL BASELINE: the solar demo API, ingested from GraphQL.
-//
-// solar is the reference API across the Voxgig repos, and it now exists as a
-// matched pair — solar-1.0.0-openapi-3.0.0-def.yaml and
-// solar-1.0.0-graphql-def.graphql describe the SAME API in the two formats.
-//
-// That pairing is what this file tests. The claim GraphQL support rests on is
-// "a GraphQL API yields the same SDK surface as its REST equivalent", and the
-// correspondence test below turns that into something that fails when it
-// stops being true — entity for entity, op for op, action for action.
-//
-// The purpose-built edge-case fixture lives in graphql.test.ts
-// (graphql-linearish): deprecated fields, required-argument fields,
-// edges-only connections, error-collection payloads. Baseline here, edges
-// there.
 const Path = __importStar(require("node:path"));
 const Fs = __importStar(require("node:fs"));
 const node_test_1 = require("node:test");
@@ -116,7 +101,6 @@ async function buildRest() {
         }
         node_assert_1.default.deepStrictEqual(ents.planet.fields.map((f) => f.name), ['diameter', 'id', 'kind', 'name']);
     });
-    // THE PAIRING TEST. Same API, two formats, same SDK surface.
     (0, node_test_1.test)('rest-graphql-correspondence', async () => {
         const [gres, rres] = await Promise.all([
             buildGraphql({ generate: false }), buildRest()
@@ -169,9 +153,6 @@ async function buildRest() {
         node_assert_1.default.equal(list.graphql.page.style, 'relay');
         // Payload unwrapping: create returns the planet, as REST does.
         node_assert_1.default.equal(ops.create.points[0].transform.res, '`body.data.planetCreate.planet`');
-        // Each action point is a distinct GraphQL operation. Operation names
-        // reach server logs and tracing, so three points on `update` must not
-        // all be called PlanetUpdate.
         const updocs = ops.update.points
             .map((p) => p.graphql.doc.split(/[\s(]/)[1]).sort();
         node_assert_1.default.deepStrictEqual(updocs, ['PlanetUpdate', 'PlanetUpdateForbid', 'PlanetUpdateTerraform']);

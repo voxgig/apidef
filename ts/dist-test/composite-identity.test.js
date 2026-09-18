@@ -7,21 +7,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const node_test_1 = require("node:test");
 const node_assert_1 = __importDefault(require("node:assert"));
 const field_1 = require("../dist/transform/field");
-// Composite entity identity: an API that addresses one record by SEVERAL
-// adjacent path parameters, with no single parameter that is the id.
-//
-// ADJACENCY IS THE WHOLE HEURISTIC, and these tests pin it from both sides,
-// because the first implementation took every path variable instead and made
-// solar's `moon`, petstore's `order`/`pet`/`user` and taxonomy's `domain` all
-// falsely composite. Nested resources are the common shape; a compound key is
-// the exception, and only adjacency separates them.
-//
-// Go carries the same cases in go/composite_test.go — this file is the
-// canonical statement of the behaviour that port is held to.
 function seg(...parts) {
     return parts.map((p) => p.startsWith('{') ? { var: p.slice(1, -1) } : { lit: p });
 }
-// An entity whose load op has one point over the given path.
 function entity(name, path, fields = [], guide) {
     const ent = {
         name,
@@ -52,8 +40,6 @@ async function run(name, path, fields = [], guide, model) {
     await (0, field_1.fieldTransform)(ctx);
     return ent;
 }
-// An entity with SEVERAL read routes, which is what a large specification
-// actually produces.
 async function runPoints(name, paths, model) {
     const ent = {
         name,
@@ -78,8 +64,6 @@ async function runPoints(name, paths, model) {
     return ent;
 }
 (0, node_test_1.describe)('composite-identity', () => {
-    // /repos/{owner}/{repo} — two variables with nothing between them address
-    // no sub-collection, so only the pair identifies a repository.
     (0, node_test_1.test)('adjacent parameters are a compound key', async () => {
         const ent = await run('repo', ['repos', '{owner}', '{repo}']);
         node_assert_1.default.deepStrictEqual(ent.id.parts, ['owner', 'repo']);
@@ -91,18 +75,10 @@ async function runPoints(name, paths, model) {
         const ent = await run('moon', ['api', 'planet', '{planet_id}', 'moon', '{moon_id}']);
         node_assert_1.default.equal(ent.id?.parts, undefined);
     });
-    // A route ending in a literal is a verb ON the record, not its address.
     (0, node_test_1.test)('a trailing literal yields no parts', async () => {
         const ent = await run('geo', ['api', 'geo', '{id}', 'graphql']);
         node_assert_1.default.equal(ent.id?.parts, undefined);
     });
-    // THE RECORD'S OWN ROUTE DECIDES, not the first one listed. github's repo
-    // carries `/repos/{owner}/{repo}/attestations/{subject_digest}` ahead of
-    // `/repos/{owner}/{repo}`, and reading the first gave the entity the single
-    // part `subject_digest` — no compound key at all, for the case this feature
-    // exists for. A one-path fixture cannot catch that: the defect only appears
-    // once an entity has more than one read route, which is every entity in a
-    // real specification.
     (0, node_test_1.test)('the least-qualified record route decides the parts', async () => {
         const ent = await runPoints('repo', [
             ['repos', '{owner}', '{repo}', 'attestations', '{subject_digest}'],
@@ -112,8 +88,6 @@ async function runPoints(name, paths, model) {
         ]);
         node_assert_1.default.deepStrictEqual(ent.id.parts, ['owner', 'repo']);
     });
-    // And a route ending in a literal never wins: it is a verb on the record,
-    // not the record's address.
     (0, node_test_1.test)('a non-record route does not win', async () => {
         const ent = await runPoints('repo', [
             ['repos', '{owner}', '{repo}', 'forks'],
@@ -121,13 +95,6 @@ async function runPoints(name, paths, model) {
         ]);
         node_assert_1.default.deepStrictEqual(ent.id.parts, ['owner', 'repo']);
     });
-    // ENDING IN A VARIABLE IS NOT ENOUGH. cloudsmith reads an owner's
-    // vulnerabilities from `/vulnerabilities/{owner}/` — a LIST, by any
-    // measure the shortest route here that ends in a variable. Preferring the
-    // shortest such route (the first attempt at the rule above) cut this
-    // four-part key down to `owner` and dropped three more composites across
-    // the validation corpus. The record's address is the route that carries
-    // its whole key, so the longest run wins.
     (0, node_test_1.test)('a shorter list route does not beat the full address', async () => {
         const ent = await runPoints('vulnerability', [
             ['vulnerabilities', '{owner}'],
@@ -148,12 +115,6 @@ async function runPoints(name, paths, model) {
         ]);
         node_assert_1.default.equal(ent.id?.parts, undefined);
     });
-    // AND IN THE RENAMED FORM, which is what the model normally carries: this
-    // transform renames the record's own key parameter to `id`, so a run
-    // ending in `id` is the port's own statement of what identifies the
-    // record. github's gist reaches this branch that way, and so do
-    // cloudsmith's repo and vulnerability, whose compound keys contradicted
-    // the single key their own SDKs address them by.
     (0, node_test_1.test)('the renamed id parameter is recognised too', async () => {
         const ent = await runPoints('vulnerability', [
             ['vulnerabilities', '{owner}', '{repo}', '{package}', '{identifier}'],
@@ -161,9 +122,6 @@ async function runPoints(name, paths, model) {
         ]);
         node_assert_1.default.equal(ent.id?.parts, undefined);
     });
-    // And the test is narrow ON PURPOSE: `actor_id` ends in `_id` but is not
-    // this entity's own id, so `actor_type/actor_id` stays a compound key.
-    // A looser "ends with _id" test broke exactly this.
     (0, node_test_1.test)('a merely _id-suffixed part does not win', async () => {
         const ent = await runPoints('api_insights_summary_stat', [
             ['api-insights', '{actor_type}', '{actor_id}'],
@@ -184,15 +142,6 @@ async function runPoints(name, paths, model) {
         const idf = ent.fields.find((f) => 'id' === f.name);
         node_assert_1.default.equal(idf.type, '`$STRING`');
     });
-    // A COMPOSITE ID IS THE PARTS JOINED, so the field holding it is a string
-    // whatever the API's own `id` happens to be — github's repo declares an
-    // integer, its global database id.
-    // THE API'S OWN id IS KEPT, not reinterpreted. `id` must hold a string
-    // because that is what the joined value is; the spec's numeric property
-    // moves to `<api>_id` with its type, format and per-op overrides intact,
-    // and `alias.field` records where it went. Retyping in place claimed the
-    // server's numeric id was a string; leaving it alone made `id.field` name
-    // a declaration the runtime value cannot satisfy.
     (0, node_test_1.test)('the API id moves aside rather than being rewritten', async () => {
         const ent = await run('repo', ['repos', '{owner}', '{repo}'], [
             {
@@ -213,15 +162,7 @@ async function runPoints(name, paths, model) {
         node_assert_1.default.equal(kept.op.list.type, '`$INTEGER`');
         node_assert_1.default.equal(ent.alias.field.github_id, 'id');
     });
-    // WHERE EACH PART LIVES IN A RESPONSE. The parts are PATH PARAMETER names
-    // and a response names its fields whatever it likes: github addresses a
-    // repo by `{owner}/{repo}` and returns the owner as an OBJECT
-    // (`owner.login`) with the repository under `name`. Without this a consumer
-    // can address a record it was given the id of, but cannot put an id on one
-    // the API returned.
     (0, node_test_1.describe)('where a part lives in the response', () => {
-        // The response schema has to be real for these, so they build a def
-        // rather than reuse run()'s empty one.
         async function withResponse(name, path, properties, guide) {
             const ent = {
                 name,
@@ -277,7 +218,6 @@ async function runPoints(name, paths, model) {
             });
             node_assert_1.default.deepStrictEqual(ent.id.from, { slug: 'slug' });
         });
-        // guide.aon corrects ONE mapping without restating the others.
         (0, node_test_1.test)('a stated from wins per part', async () => {
             const ent = await withResponse('thing', ['things', '{tenant}', '{slug}'], {
                 slug: { type: 'string' },

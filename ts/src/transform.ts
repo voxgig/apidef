@@ -13,7 +13,6 @@ import { operationTransform } from './transform/operation'
 import { argsTransform } from './transform/args'
 import { selectTransform } from './transform/select'
 import { fieldTransform } from './transform/field'
-// import { manualTransform } from './transform/manual'
 
 
 

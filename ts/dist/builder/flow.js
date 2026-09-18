@@ -1,5 +1,4 @@
 "use strict";
-// TODO: move this to sdkgen
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -19,54 +18,6 @@ async function makeFlowBuilder(ctx) {
             note: 'Unable to generate flow definitions as flows were not resolved.'
         });
     };
-    /*
-    if ('heuristic01' === ctx.opts.strategy) {
-      try {
-        flows = await flowHeuristic01(ctx)
-      }
-      catch (err: any) {
-        err.foo = { x: 1, y: [2] }
-        err.foo.z = err.foo
-        ctx.warn({
-          step: 'flow',
-          note: 'Unable to resolve flows due to unexpected error: ' + err.message,
-          err,
-        })
-        return flowBuilder
-      }
-    }
-    else {
-      ctx.warn({
-        step: 'flow',
-        note: 'Unable to resolve flows: unknown guide strategy: ' + ctx.opts.strategy
-      })
-      return flowBuilder
-    }
-    */
-    // FLOW FILE NAMES MUST BE UNIQUE WHEN CASE IS IGNORED.
-    //
-    // The file name is the flow name, and flow names are camel case derived
-    // from the entity name, so two entities whose names differ only in where
-    // the underscores fall produce two flow names that differ only in case.
-    // checkly's spec carries schemas `StaticIP` and `StaticIp`: apidef makes
-    // the entities `static_i_p` and `static_ip`, and the flows
-    // `BasicStaticIPFlow` and `BasicStaticIpFlow`.
-    //
-    // On a case-insensitive filesystem - APFS and NTFS, so macOS and Windows
-    // by default - those are ONE file. The second write silently replaced the
-    // first, flow-index.aon still imported both names (which resolved to the
-    // same file), and the model came out with 113 flows for 114 entities. The
-    // entity left without a flow then failed generation outright, in the go
-    // test template, as `getModelPath: path not found at
-    // 'main.kit.flow.BasicStaticIPFlow'` - a message that points at the
-    // lookup and says nothing about the file that was overwritten.
-    //
-    // snakify does not separate them (both give `basic_static_ip_flow`), so
-    // the discriminator is positional: every member of a colliding group is
-    // suffixed, in sorted-name order, so the names are stable across runs and
-    // no member keeps the bare name. Flows that do not collide are untouched.
-    // Only the FILE name changes - `flow.name`, and so the model key the
-    // generator looks up, is left exactly as it was.
     const flownames = [];
     (0, jostraca_1.each)(flows, (flow) => flownames.push(String(flow.name)));
     const filebase = flowFileBases(flownames);
@@ -92,8 +43,6 @@ async function makeFlowBuilder(ctx) {
 
 main: ${types_1.KIT}: flow: ${flow.name}:
 ` + flowModelSrc;
-                // `./` — see the entity barrel: aontu 0.65 reads a bare
-                // single-segment include as a package name and refuses it.
                 barrel.push(`@"./${node_path_1.default.basename(flowfile)}"`);
                 (0, jostraca_1.File)({ name: node_path_1.default.basename(flowfile) }, () => (0, jostraca_1.Content)(flowsrc));
             });

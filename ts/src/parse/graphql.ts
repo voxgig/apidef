@@ -1,23 +1,5 @@
 /* Copyright (c) 2024-2026 Voxgig, MIT License */
 
-// GraphQL ingestion: normalise an SDL document or an introspection result
-// into the plain `def` structure the guide and transform stages consume.
-//
-// The OpenAPI parser hands downstream stages the spec object itself, with
-// `$ref`s resolved in place. GraphQL has no equivalent literal document, so
-// this builds an explicit graph instead:
-//
-//   def.types    — every named type, keyed by type name
-//   def.query    — root Query fields, keyed by field name
-//   def.mutation — root Mutation fields, keyed by field name
-//   def.servers  — synthesised from the `endpoint` option (a schema carries
-//                  no deployment URL, but transform/top.ts requires one)
-//   def.info     — synthesised; SDL has no info block
-//
-// Type references are held as NAME STRINGS, never object pointers, so the
-// result is acyclic and JSON-serialisable by construction — GraphQL type
-// graphs are freely recursive (Issue.team.issues), and apidef writes
-// `<def>.full.json` under the debug flag.
 
 import { relativizePath } from '../utility'
 
@@ -114,8 +96,6 @@ function asIntrospection(source: string): any {
 }
 
 
-// Render a type reference to its GraphQL source form ('[Issue!]!') and its
-// named form ('Issue'), plus the required/list flags the classifier keys on.
 function describeType(G: any, gtype: any) {
   const gqltype = String(gtype)
   const named = G.getNamedType(gtype)
@@ -241,11 +221,6 @@ function rootFields(G: any, gtype: any): Record<string, GqlField> {
 }
 
 
-// Parse a GraphQL schema (SDL text or introspection JSON) into `def`.
-//
-// `opts.endpoint` is REQUIRED: a schema declares no deployment URL, but a
-// usable SDK needs a base URL and transform/top.ts fails the build without
-// `servers[0].url`.
 async function parseGraphQL(
   source: string,
   meta: { file: string },

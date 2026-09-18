@@ -42,23 +42,11 @@ const node_test_1 = require("node:test");
 const node_assert_1 = __importDefault(require("node:assert"));
 const aontu_1 = require("aontu");
 const apidef_1 = require("../dist/apidef");
-// TODO: remove all sdk refs or rename to api
 const aontu = new aontu_1.Aontu({ fs: Fs });
 (0, node_test_1.describe)('apidef', () => {
     (0, node_test_1.test)('exist', async () => {
         node_assert_1.default.ok(apidef_1.ApiDef);
     });
-    // LEGACY GUIDE MIGRATION. The guide is the one model file a user owns, so
-    // the extension rename migrates it rather than abandoning it — but renaming
-    // the FILE byte-for-byte was not enough. A legacy guide `@`-includes two
-    // files by the old extension, and both dangle after the rename:
-    //
-    //   @"@voxgig/apidef/model/guide.aontu"   <- no longer shipped
-    //   @"<prefix>base-guide.aontu"           <- now written as .aon
-    //
-    // Every build of such a project then died on `source not found`, which is
-    // what apidef-validate hit on all 14 of its real-world specs. Pin that the
-    // migration rewrites exactly those two includes and nothing else.
     (0, node_test_1.test)('migrate-legacy-guide', () => {
         const Os = require('node:os');
         const Path = require('node:path');
@@ -76,8 +64,6 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
             // that does not exist — while deleting the original.
             '@"shared-base-guide.aontu"',
             '',
-            // The user's own content, which must survive untouched — including a
-            // string that merely mentions the old extension.
             'guide: { entity: { thing: { note: "see guide.aontu notes" } } }',
             '',
         ].join('\n'));
@@ -87,20 +73,8 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.ok(out.includes('@"@voxgig/apidef/model/guide.aon"'), 'package include not migrated: ' + out);
         node_assert_1.default.ok(out.includes('@"x-base-guide.aon"'), 'base-guide include not migrated: ' + out);
         node_assert_1.default.ok(out.includes('@"shared-base-guide.aontu"'), 'a user-owned base-guide include was rewritten: ' + out);
-        // The user's content is theirs: only the two includes change.
         node_assert_1.default.ok(out.includes('note: "see guide.aontu notes"'), 'user content was rewritten: ' + out);
     });
-    // aontu resolves @-includes through @tabnas/multisource, which picks POSIX
-    // vs native path semantics purely from whether an fs was injected:
-    //   const P = null != ctx.meta?.fs ? Path.posix : Path
-    // apidef used to forward ctx.fs unconditionally, but ctx.fs defaults to the
-    // real node:fs — so on Windows the guide path was parsed with Path.posix,
-    // 'D:\...\guide\x.aon' yielded an empty base dir, and every sibling
-    // include failed with `source not found: <prefix>base-guide.aontu`. Linux
-    // and macOS never saw it because there Path and Path.posix are identical.
-    //
-    // Pin the contract: forward fs only when the caller actually supplied one.
-    // Asserted on the flag rather than on behaviour so it fails on any platform.
     (0, node_test_1.test)('fs-injected-flag', async () => {
         const outprefix = 'solar-1.0.0-openapi-3.0.0-';
         const folder = __dirname + '/../test/solar';
@@ -161,8 +135,6 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.deepStrictEqual(bres.guide.metrics.count.path, SOLAR_GUIDE.metrics.count.path);
         node_assert_1.default.deepStrictEqual(bres.guide.metrics.count.method, SOLAR_GUIDE.metrics.count.method);
     });
-    // GitHub-style compound key: two path params in a row, no literal
-    // between them. GET must classify as load, not merge into list.
     (0, node_test_1.test)('guide-compound-key-load', async () => {
         const folder = __dirname + '/../test/compound';
         const build = await apidef_1.ApiDef.makeBuild({ folder });
@@ -183,14 +155,6 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.ok(ops.includes('load'), 'GET /repos/{owner}/{repo} did not classify as load');
         node_assert_1.default.ok(!ops.includes('list'), 'GET /repos/{owner}/{repo} wrongly classified as list');
     });
-    // A verb on an item selector is an ACTION on the parent entity, even when
-    // its response has a schema of its own: GitHub's PUT
-    // /repos/{owner}/{repo}/pulls/{pull_number}/merge answers with a
-    // `pull-request-merge-result`, and naming an entity after it split the
-    // route across two entities by method and left `merge` unreachable from
-    // `pull`. The `<parent>_number` key is renamed to `id` on the verb path
-    // as it is on the item path, and a PATCH on the item is promoted to
-    // `update` over an update slot that holds only action points.
     (0, node_test_1.test)('guide-verb-on-parent', async () => {
         const folder = __dirname + '/../test/verb';
         const build = await apidef_1.ApiDef.makeBuild({ folder });
@@ -240,12 +204,6 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
             node_assert_1.default.ok(names.includes('id') && !names.includes('thing_number'), pt.orig + ' params ' + names.join(','));
         }
     });
-    // Edges of the verb-on-parent rule. The item path spells its key `{id}`
-    // where the verb path spells it `{widget_number}`; a PUT on the item
-    // answers with a one-off `ack` and so owns the item path beside the GET;
-    // a create-only nested collection (`POST .../labels` answering with a
-    // `label`) is a collection, not a verb; and a verb that is a suffix of
-    // its parent's name (`archive` on `email_archive`) is still an action.
     (0, node_test_1.test)('guide-verb-on-parent-edges', async () => {
         const folder = __dirname + '/../test/verb-edge';
         const build = await apidef_1.ApiDef.makeBuild({ folder });
@@ -275,10 +233,6 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.ok(null != gents.label, 'label entity lost: ' + Object.keys(gents).join(','));
         node_assert_1.default.deepStrictEqual(Object.keys(gents.label.path['/widgets/{id}/labels'].op), ['create']);
         node_assert_1.default.ok(null == gents.widget.path['/widgets/{id}/labels'], 'labels wrongly became a verb on widget');
-        // The same, when the response component is NOT the segment's member
-        // shape: `access_keys` answers with `widget-access-key-set`, the way
-        // contentful's `asset_keys` answers `Assets keys`. Only the PLURAL
-        // segment says collection, and it has to be enough on its own.
         const aks = gents.widget_access_key_set;
         node_assert_1.default.ok(null != aks, 'access_keys entity lost: ' + Object.keys(gents).join(','));
         node_assert_1.default.deepStrictEqual(Object.keys(aks.path['/widgets/{id}/access_keys'].op), ['create']);
@@ -402,20 +356,6 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.ok(!fieldNames.includes('q'), 'filter field q must not leak');
         node_assert_1.default.ok(!fieldNames.includes('page'), 'filter field page must not leak');
     });
-    // DISABLED, and honestly: this asserted nothing at all.
-    //
-    // The body used to begin with a bare `return;`, so the test reported `ok`
-    // on every run while never reaching its assertion — SOLAR_MODEL could be
-    // replaced with garbage and the suite stayed green (verified). A test that
-    // passes without checking is worse than one that is skipped, because the
-    // suite count says it is covering the canonical end-to-end pipeline.
-    //
-    // Re-enabling it fails on drift that has nothing to do with the path
-    // representation: every field now comes back `req: true` where SOLAR_MODEL
-    // says `req: false`, and each op carries an `input` key the expectation
-    // predates. Whether that is correct is a question for whoever changed it —
-    // blessing it in a snapshot here would bury it. SOLAR_MODEL's `segments`
-    // ARE up to date, so re-enabling is only about those two questions.
     (0, node_test_1.test)('full-solar', { skip: 'SOLAR_MODEL has drifted: field `req` and op `input`' }, async () => {
         const outprefix = 'solar-1.0.0-openapi-3.0.0-';
         const folder = __dirname + '/../test/solar';
@@ -459,22 +399,6 @@ def: '${outprefix}def.yaml'
         });
         node_assert_1.default.deepStrictEqual(model.main.kit, SOLAR_MODEL.main.kit);
     });
-    // AN SDK COVERS EVERY ENTITY OF ITS API unless there is a stated reason
-    // not to, and when there is one the guide narrows rather than the spec:
-    //
-    //     guide: entity: &: active: *false
-    //     guide: entity: card: active: true
-    //
-    // That works only because the slot is EMPTY - `active` is declared
-    // optional with no default, and the base guide writes no `active` at
-    // all - so a project can put a default there and a concrete `true`
-    // overrides it. Put a default in either place and every allowlist in the
-    // fleet fails with `pref_rank_clash` instead.
-    //
-    // This pins those two facts rather than re-unifying a guide, which is
-    // deliberate: the unification is aontu's to get right and is exercised
-    // by the real builds, while these two declarations are apidef's and are
-    // the ones an innocent-looking edit would take away.
     (0, node_test_1.describe)('guide entity allowlist', () => {
         const PathMod = require('node:path');
         (0, node_test_1.test)('`active` has no default, so a project can supply one', () => {
@@ -496,10 +420,6 @@ def: '${outprefix}def.yaml'
                 'a project narrows with');
         });
     });
-    // The entity builders only ever WRITE: a spec change that removes or
-    // renames a derived entity used to leave the old <name>.aontu behind on
-    // every regen (12 orphaned list_*.aontu on the dingconnect build). The GC
-    // removes exactly those — and nothing a user could own.
     (0, node_test_1.describe)('entity-gc', () => {
         const Os = require('node:os');
         const PathMod = require('node:path');

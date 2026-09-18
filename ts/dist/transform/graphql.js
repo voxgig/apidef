@@ -4,25 +4,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.graphqlTransform = void 0;
 exports.selectionFields = selectionFields;
 exports.renderDoc = renderDoc;
-// Render the GraphQL wire data onto each point: the complete operation
-// document, its variable bindings, the response unwrap path, and (for list
-// ops) the pagination descriptor.
-//
-// Documents are computed HERE, once, and stored in the model as strings.
-// The alternative — shipping structured selection data and assembling query
-// text inside every generated SDK — would mean one query assembler per
-// language target, all of which must stay semantically identical. One
-// renderer in apidef is the whole reason GraphQL support stays affordable
-// across the target matrix.
-//
-// Documents are rendered SINGLE-LINE with sorted selection fields, so the
-// emitted model is byte-stable and schema drift shows up in model diffs.
 const jostraca_1 = require("jostraca");
 const types_1 = require("../types");
 const graphql01_1 = require("../guide/graphql01");
-// Fields the default fragment never selects on a to-one relation: the stub
-// carries the id only, so the caller loads the related entity through its
-// own entity op.
 const REL_STUB = '{ id }';
 function pascal(s) {
     return s.replace(/(^|[_-])([a-z])/g, (_m, _p, c) => c.toUpperCase());
@@ -77,9 +61,6 @@ function payloadScalarFields(typeName, def) {
     }
     return out.sort();
 }
-// Variable bindings for a root field: one per argument. `from` is the op
-// argument the value is read from; for the input-object argument that is the
-// request data itself.
 function buildVars(fielddef, def) {
     const args = fielddef?.args ?? [];
     // The whole-request-body binding is the SINGLE-entity-input convention
@@ -104,7 +85,6 @@ function buildVars(fielddef, def) {
         return v;
     });
 }
-// `issue(id: $id, first: $first)` — argument list wired to variables.
 function argList(vars) {
     return 0 === vars.length ? '' :
         '(' + vars.map((v) => v.name + ': $' + v.name).join(', ') + ')';
@@ -119,14 +99,12 @@ function varDecl(vars) {
             (undefined === v.deflt ? '' :
                 ' = ' + JSON.stringify(v.deflt))).join(', ') + ')';
 }
-// Render one operation document, single-line.
 function renderDoc(opname, optype, field, vars, selection, fragName, fragType, fragFields) {
     const doc = optype + ' ' + opname + varDecl(vars) +
         ' { ' + field + argList(vars) + ' ' + selection + ' }' +
         (0 < fragFields.length ?
             ' fragment ' + fragName + ' on ' + fragType +
                 ' { ' + fragFields.join(' ') + ' }' : '');
-    // Collapse any accidental double spacing so the string is canonical.
     return doc.replace(/\s+/g, ' ').trim();
 }
 const graphqlTransform = async function (ctx) {
@@ -154,7 +132,6 @@ const graphqlTransform = async function (ctx) {
                 const fragName = pascal(entname) + 'Fields';
                 const fragSpread = 0 < fragFields.length ? '{ ...' + fragName + ' }' : '{ id }';
                 const vars = buildVars(fielddef, def);
-                // Selection shape and response unwrap both follow the return kind.
                 let selection = fragSpread;
                 let respath = 'body.data.' + rootfield;
                 if ('connection' === ret.kind) {
@@ -168,12 +145,6 @@ const graphqlTransform = async function (ctx) {
                     selection = fragSpread;
                 }
                 else if ('payload' === ret.kind && null == ret.entity) {
-                    // Entity-less payload: Linear's DeletePayload is entityId +
-                    // success + lastSyncId and nothing else. The classifier admits
-                    // these (the entity comes from the field name), so the renderer
-                    // must not fall through to the default `{ id }` spread — the
-                    // payload HAS no id, and the server rejects the whole document.
-                    // Select the payload's own scalars and unwrap to the payload.
                     const own = payloadScalarFields(fielddef.type, def);
                     selection = '{ ' + (0 < own.length ? own.join(' ') : '__typename') + ' }';
                     respath = 'body.data.' + rootfield;
@@ -188,16 +159,9 @@ const graphqlTransform = async function (ctx) {
                         (hasSuccess ? ' success' : '') + ' }';
                     respath = 'body.data.' + rootfield + '.' + ret.unwrap;
                 }
-                // Distinct operation name per point. The action comes from the GUIDE,
-                // not from mpoint.select: selectTransform runs after this stage, so
-                // $action is not set yet, and without the suffix every action point
-                // on an op would ship the same operation name (three PlanetUpdates),
-                // which is what server logs, tracing and APM key on.
                 const actionName = Object.keys(gfield?.action ?? {})[0];
                 const docname = pascal(entname) + pascal(opname) +
                     (null != actionName ? pascal(actionName) : '');
-                // GraphQL points ride the HTTP machinery: POST to the single
-                // endpoint, no path segments. The document carries everything else.
                 mpoint.kind = 'graphql';
                 mpoint.method = 'POST';
                 mpoint.segments = [];

@@ -3,23 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.flowstepTransform = void 0;
 const jostraca_1 = require("jostraca");
 const struct_1 = require("@voxgig/struct");
-// Detect a path-parameter that is in fact the entity's own id, after URL
-// renaming. Three ways an identity can show up:
-//   1. The param literally has name 'id' (the common case for e.g. /things/{id}).
-//   2. The param's lower-camelCase name appears in `point.rename.param` mapping
-//      to 'id' — e.g. `{connectionId: 'id'}` for `/companies/{company_id}/connections/{id}`.
-//      In this case the param's own name is `connection_id` (apidef snake-cased
-//      it), which doesn't equal 'id' but the segment's `var` is 'id'.
-//   3. Positional convention: for singleton ops (load/update/remove), the
-//      LAST variable segment in the path is the entity's own id. Catches
-//      cases where the entity name and path placeholder differ in spelling
-//      (e.g. entity `enviroment` vs path `/environments/{environment_id}`)
-//      and apidef therefore didn't synthesize a rename-to-id.
-//
-// Without this helper, the flow generator double-counts the entity's id —
-// emitting it as both `srcdatavar.id` AND a separate body field — which the
-// in-memory test mock then requires to match a non-existent field on the
-// stored entity.
 function isEntityIdParam(point, param, opname) {
     if ('id' === param?.name)
         return true;
@@ -50,8 +33,6 @@ const flowstepTransform = async function (ctx) {
         ctx.log.debug({ point: 'flowstep', note: flowname });
         const ent = kit.entity[flow.entity];
         const opmap = ent.op;
-        // TODO: spec parameter passed into each step func, used semantically by generator
-        // validation: part of spec, semantic name and params, up to generator how to use it
         const ref01 = ent.name + '_ref01';
         createStep(opmap, flow, ent, { input: { ref: ref01 } });
         listStep(opmap, flow, ent, { valid: [{ apply: 'ItemExists', def: { ref: ref01 } }] });
@@ -130,12 +111,6 @@ const createStep = (opmap, flow, ent, args) => {
         const step = newFlowStep('create', args);
         (0, jostraca_1.each)(point.args.params, (param) => {
             if ('id' === param.name) {
-                // For CREATE, `id` in the path is NOT the entity's own id (entity is
-                // being created here — its id doesn't exist yet). It's some parent's
-                // id renamed by apidef's path normalization (e.g. `space_id` → `id`
-                // in `/spaces/{id}/space_memberships` for SpaceMembership). Recover
-                // the original snake_case name so the test seeds the parent's id
-                // into both the created entity's data AND the URL.
                 const origName = originalSnakeNameOfRenamedId(point);
                 if (origName) {
                     step.match[origName] = args.input?.[origName] ?? origName.replace(/_id/, '') + '01';
@@ -146,12 +121,6 @@ const createStep = (opmap, flow, ent, args) => {
             }
             step.match[param.name] = args.input?.[param.name] ?? param.name.replace(/_id/, '') + '01';
         });
-        // Also seed any path-param fields required by other ops (typically LIST
-        // through a sibling parent path), so the in-memory test mock can find
-        // the just-created entity when a later step queries by those fields.
-        // Without this, a metric created at /pages/{page_id}/metrics/data lacks
-        // the page_access_user_id field required by
-        // /pages/{page_id}/page_access_users/{page_access_user_id}/metrics LIST.
         seedRelatedOpParams(opmap, point, step);
         flow.step.push(step);
     }
@@ -171,8 +140,6 @@ function seedRelatedOpParams(opmap, createPoint, step) {
                     continue;
                 if (step.match[param.name] !== undefined)
                     continue;
-                // For renamed-from-id params on CREATE's chosen point we'd already
-                // have set the snake-case origin; don't double-write.
                 if ('id' === param.name)
                     continue;
                 step.match[param.name] =
@@ -188,10 +155,6 @@ const listStep = (opmap, flow, ent, args) => {
         const step = newFlowStep('list', args);
         (0, jostraca_1.each)(point.args.params, (param) => {
             if ('id' === param.name) {
-                // For LIST, `id` in the path is a parent's id renamed by apidef
-                // (LIST doesn't address a single entity by id). Recover the original
-                // snake_case name so test code references a real idmap entry rather
-                // than landing on the bogus `id01` default.
                 const origName = originalSnakeNameOfRenamedId(point);
                 if (origName) {
                     step.match[origName] = args.input?.[origName] ?? origName.replace(/_id/, '') + '01';
@@ -255,18 +218,6 @@ const removeStep = (opmap, flow, ent, args) => {
         flow.step.push(step);
     }
 };
-// The field the generated basic-flow test WRITES, to prove an update took
-// effect. It must not be a route parameter of the update itself.
-//
-// The test mock builds its lookup selector out of the request data, so when
-// the marked field is also a path segment the selector asks for the record by
-// the value it is about to write — it matches nothing and the mock answers
-// 404, on a flow that is doing exactly what it was told to.
-//
-// trello's notification_channel_setting chose `channel`, the {channel} of
-// PUT /members/{member_id}/notificationsChannelSettings/{channel}, and its js,
-// php and ts suites all failed on it. Updating a routing key is a rename, not
-// a field update, and neither the mock nor the SDK models it as one.
 function firstTextField(ent, op) {
     const paramNames = {};
     (0, jostraca_1.each)(op?.points).forEach((pt) => {

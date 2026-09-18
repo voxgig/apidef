@@ -6,18 +6,6 @@ import assert from 'node:assert'
 import { flowstepTransform } from '../dist/transform/flowstep'
 
 
-// WHICH FIELD THE BASIC FLOW MARKS.
-//
-// The update step writes a text field, appends a mark, and the load step
-// after it asserts the mark came back. The field is chosen by walking the
-// entity's fields, which are sorted by name — so which one it lands on is
-// alphabetical accident, and any field it may land on has to be one a client
-// can actually write.
-//
-// `readOnly` is the spec's statement that a client may not. solar's planet
-// declared `forbidReason` once its spec described what the server returns,
-// and the flow moved from `kind` to it: a step that writes a value the
-// server discards and then asserts it was kept.
 
 function runFlowstep(entity: any) {
   const flow = {
@@ -91,8 +79,6 @@ describe('flow-textfield', () => {
   })
 
 
-  // The same field WITHOUT the flag is a perfectly good choice — this skips
-  // what the spec says a client may not send, not every optional field.
   test('a writable field in the same position is chosen', async () => {
     const entity = entityWith(
       { name: 'forbidReason', type: '`$STRING`', req: false })

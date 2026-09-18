@@ -76,18 +76,6 @@ Object.defineProperty(exports, "gcEntityFiles", { enumerable: true, get: functio
 const flow_2 = require("./builder/flow");
 // Log non-fatal wierdness.
 const dlog = (0, utility_1.getdlog)('apidef', __filename);
-// THE WARNINGS FILE IS A REVIEWABLE ARTIFACT, so it carries no clock.
-//
-// Every warning is stamped with `when: Date.now()` — useful in a live log,
-// and fatal in a file that consumers COMMIT. An SDK project regenerates and
-// commits `.sdk/apidef-warnings.txt`, and its CI asserts that a regeneration
-// reproduces the committed tree byte for byte; with a timestamp in it that
-// check can never pass, and every regeneration produces a diff saying
-// nothing about the warnings themselves. github-sdk failed exactly that way:
-// one file, three changed lines, all of them clocks.
-//
-// The timestamp stays on the in-memory history, where a caller streaming
-// warnings still wants it.
 function warningsFileText(history) {
     return history
         .map((n) => {
@@ -97,7 +85,6 @@ function warningsFileText(history) {
         .join('\n\n');
 }
 function ApiDef(opts) {
-    // TODO: shape opts!
     const fs = opts.fs || Fs;
     const pino = (0, util_1.prettyPino)('apidef', opts);
     const log = pino.child({ cmp: 'apidef' });
@@ -145,7 +132,6 @@ function ApiDef(opts) {
                 defpath,
                 start
             });
-            // TODO: Validate spec
             ctx = {
                 fs,
                 fsInjected: null != opts.fs,
@@ -160,7 +146,6 @@ function ApiDef(opts) {
                 def: undefined,
                 note: {},
                 warn,
-                // TODO: remove (moved to guide)
                 metrics: {
                     count: {
                         path: 0,
@@ -245,7 +230,6 @@ function ApiDef(opts) {
             }
             const builders = [
                 await (0, entity_2.makeEntityBuilder)(ctx),
-                // TODO: move to sdkgen
                 await (0, flow_2.makeFlowBuilder)(ctx),
             ];
             steps.push('builders');
@@ -271,11 +255,6 @@ function ApiDef(opts) {
                 // folder: Path.dirname(opts.folder as string),
                 folder: opts.folder,
                 model: jmodel,
-                // Overwrite the generated model source (.aontu) rather than 3-way merge:
-                // merging against a drifting .jostraca base silently keeps stale files
-                // and can inject <<<<<<< conflict markers. Generated output is
-                // model-derived and never hand-edited. See sdkgen
-                // docs/explanation/regeneration-overwrite.md.
                 existing: { txt: { write: true, merge: false } }
             }, root);
             const dlogs = dlog.log();
@@ -285,11 +264,6 @@ function ApiDef(opts) {
                 }
             }
             steps.push('generate');
-            // Garbage-collect entity model files no longer derived from the def.
-            // The builders only ever WRITE: a spec change that removes or renames a
-            // derived entity used to leave the old <name>.aontu behind forever.
-            // Runs after generate so the current set is on disk; guarded so only
-            // apidef-generated files under this build's outprefix are touched.
             try {
                 const kitEntity = ctx.apimodel?.main?.[types_1.KIT]?.entity || {};
                 (0, entity_3.gcEntityFiles)(fs, log, opts.folder, opts.outprefix, Object.keys(kitEntity));
@@ -304,12 +278,6 @@ function ApiDef(opts) {
             if (hasWarnings) {
                 (0, utility_1.writeFileSyncWarn)(warn, fs, './apidef-warnings.txt', warningsFileText(warn.history));
             }
-            // apidef writes model source files (entity, flow, guide aontu files) into
-            // .sdk/model/. Downstream actions (sdkgen, etc.) read those via
-            // sdk.aontu @-includes, so voxgig-model has to re-resolve the model
-            // before the post-step actions run. Signal reload whenever jostraca
-            // wrote or merged any files; if nothing changed on disk,
-            // voxgig-model's resolveModel cache short-circuits the re-read.
             const jfiles = jres?.files;
             const reload = !!jfiles && ((jfiles.written?.length ?? 0) > 0 ||
                 (jfiles.merged?.length ?? 0) > 0);

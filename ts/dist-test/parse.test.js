@@ -7,12 +7,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const node_test_1 = require("node:test");
 const node_assert_1 = __importDefault(require("node:assert"));
 const parse_1 = require("../dist/parse");
-// The $ref logic differs from the previous implementation exactly on these
-// inputs, so they are the ones that need pinning: alias chains in BOTH
-// document orders (resolution reads a root the same walk is mutating, so
-// order used to decide whether it worked), $ref carrying sibling keywords,
-// cyclic aliases, and a shared recursive schema (the old cycle-breaker
-// rebuilt the tree and expanded the DAG exponentially).
 (0, node_test_1.describe)('parse-refs', () => {
     const HEAD = `openapi: 3.0.0
 info: { title: t, version: "1.0.0" }
@@ -85,8 +79,6 @@ servers: [ { url: "https://x.example" } ]
         node_assert_1.default.deepStrictEqual('string', typeof JSON.stringify(s));
     });
     (0, node_test_1.test)('shared components stay shared (no exponential expansion)', async () => {
-        // 12 levels x 3 refs per level is ~531k nodes if the DAG is expanded into
-        // a tree, and a few dozen if sharing is preserved.
         const depth = 12, fan = 3;
         const schemas = ['    L0: { type: object, properties: { v: { type: string } } }'];
         for (let d = 1; d <= depth; d++) {

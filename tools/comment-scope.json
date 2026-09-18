@@ -1,0 +1,10 @@
+{
+  "exclude": {},
+  "excludeModels": {
+    "ts/cmd/test/solar": "Generated model/guide output used by golden and CLI tests; preserve byte-exact output.",
+    "ts/test/solar": "Generated model/guide output used by golden and CLI tests; preserve byte-exact output.",
+    "ts/test/query": "Generated model/guide output used by golden and CLI tests; preserve byte-exact output.",
+    "ts/test/graphql": "Generated model/guide output used by golden and CLI tests; preserve byte-exact output.",
+    "ts/test/graphql-solar": "Generated model/guide output used by golden and CLI tests; preserve byte-exact output."
+  }
+}

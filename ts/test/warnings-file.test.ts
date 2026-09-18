@@ -6,18 +6,6 @@ import assert from 'node:assert'
 import { warningsFileText } from '../dist/apidef'
 
 
-// THE WARNINGS FILE IS A REVIEWABLE ARTIFACT, so it carries no clock.
-//
-// Every warning is stamped with `when: Date.now()`, which is useful in a live
-// log and fatal in a file that consumers COMMIT. An SDK project regenerates
-// and commits `.sdk/apidef-warnings.txt`, and its CI asserts that a
-// regeneration reproduces the committed tree BYTE FOR BYTE — so a timestamp
-// in that file means the check can never pass, and every regeneration
-// produces a diff that says nothing about the warnings themselves.
-//
-// github-sdk failed exactly that way on its first full-spec commit: 23
-// language targets green, and the generator job red over one file and three
-// changed lines, all of them clocks.
 
 describe('warnings file', () => {
 

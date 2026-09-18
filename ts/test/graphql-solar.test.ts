@@ -1,20 +1,5 @@
 /* Copyright (c) 2024-2026 Voxgig Ltd, MIT License */
 
-// GraphQL BASELINE: the solar demo API, ingested from GraphQL.
-//
-// solar is the reference API across the Voxgig repos, and it now exists as a
-// matched pair — solar-1.0.0-openapi-3.0.0-def.yaml and
-// solar-1.0.0-graphql-def.graphql describe the SAME API in the two formats.
-//
-// That pairing is what this file tests. The claim GraphQL support rests on is
-// "a GraphQL API yields the same SDK surface as its REST equivalent", and the
-// correspondence test below turns that into something that fails when it
-// stops being true — entity for entity, op for op, action for action.
-//
-// The purpose-built edge-case fixture lives in graphql.test.ts
-// (graphql-linearish): deprecated fields, required-argument fields,
-// edges-only connections, error-collection payloads. Baseline here, edges
-// there.
 
 import * as Path from 'node:path'
 import * as Fs from 'node:fs'
@@ -112,7 +97,6 @@ describe('graphql-solar', () => {
   })
 
 
-  // THE PAIRING TEST. Same API, two formats, same SDK surface.
   test('rest-graphql-correspondence', async () => {
     const [gres, rres] = await Promise.all([
       buildGraphql({ generate: false }), buildRest()])
@@ -190,9 +174,6 @@ describe('graphql-solar', () => {
     assert.equal(
       ops.create.points[0].transform.res, '`body.data.planetCreate.planet`')
 
-    // Each action point is a distinct GraphQL operation. Operation names
-    // reach server logs and tracing, so three points on `update` must not
-    // all be called PlanetUpdate.
     const updocs = ops.update.points
       .map((p: any) => p.graphql.doc.split(/[\s(]/)[1]).sort()
     assert.deepStrictEqual(

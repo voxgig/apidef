@@ -116,35 +116,6 @@ function formatJsonSrc(jsonsrc) {
         .replace(RE_JSON_TRAILING_BRACE, '}\n')
         .replace(RE_JSON_COMMENT, '\n\n$1# $2 $3');
 }
-// Common irregular plurals, in the form plural → singular. Used at the
-// head of depluralize() to short-circuit cases the suffix rules below
-// would otherwise mishandle.
-//
-// Three over-strip classes are worked around here because the surface
-// form gives no clean discriminator:
-//
-//   * `-Vse+s` plurals (houses, phases, noses, …) would hit the
-//     generic `-ses → ∅` rule and become hous/phas/nos. Every such
-//     -se+s plural needs an explicit entry.
-//
-//   * `-che+s` plurals (caches, niches, headaches, …) would hit the
-//     generic `-ches → ∅` rule and become cach/nich/headach. Same
-//     pattern: no letter-doubling tell exists (cache vs church both
-//     have a single 'ch'), so each -che singular is enumerated.
-//
-//   * `-oe+s` plurals (shoes, canoes, oboes) would hit the generic
-//     `-oes → -o` rule (for potatoes/heroes) and become sho/cano/obo.
-//     Only collision-safe entries are listed: a key must not also be a
-//     suffix of a real `-o`+es plural (e.g. `toes` is excluded because
-//     it would turn tomatoes → tomatoe).
-//
-// Keys are lowercase; depluralize() does a case-insensitive lookup
-// and reapplies the caller's casing on the way out.
-//
-// Null-prototype: these tables are indexed by spec-derived names, so a
-// schema or path segment called `constructor` / `__proto__` / `toString`
-// would otherwise resolve to the inherited Object member and be returned
-// as a "match" — crashing matchCase() on a function. See NULL_PROTO_NOTE.
 const IRREGULARS = Object.assign(Object.create(null), {
     'analytics': 'analytics',
     'analyses': 'analysis',
@@ -210,26 +181,11 @@ const IRREGULARS = Object.assign(Object.create(null), {
     'women': 'woman',
     'yes': 'yes',
 });
-// NULL_PROTO_NOTE: every plain-object lookup table in this module whose keys
-// come from an API spec is built with a null prototype
-// (`Object.assign(Object.create(null), {...})`). Without it, `TABLE[name]`
-// inherits from Object.prototype, so `TABLE['constructor']` yields the Object
-// constructor (truthy, a function) and `TABLE['__proto__']` yields
-// Object.prototype (truthy, an object). Both then flow into code expecting a
-// string. A spec with `components.schemas.Constructor` is enough to reach
-// this: canonize -> depluralize -> matchCase -> `.toLowerCase is not a
-// function`, failing the whole build at the guide stage. Keep new tables
-// null-prototype, or use a Map (CANONIZE_CACHE already does).
 // Sorted longest-first so the most specific IRREGULARS suffix wins.
 // Without this, 'women' would be shadowed by 'men' (3 < 5) under
 // insertion-order iteration. Both happen to round-trip correctly
 // today, but the sort makes any future entry safe by construction.
 const IRREGULAR_KEYS = Object.keys(IRREGULARS).sort((a, b) => b.length - a.length);
-// Reapply the case pattern of `source` to `target`. Used so the
-// case-insensitive lookups in depluralize() preserve the caller's
-// casing on the way out (HOUSES → HOUSE, Houses → House, houses →
-// house). Falls through to `target` unchanged for mixed-case sources
-// that don't fit one of the three canonical patterns.
 function matchCase(source, target) {
     if (source === source.toLowerCase())
         return target.toLowerCase();
@@ -240,20 +196,6 @@ function matchCase(source, target) {
     }
     return target;
 }
-// Per-model plural overrides, populated from the model's
-// `main.custom.plurals` section at apidef pipeline entry and cleared
-// between runs. Checked by depluralize() before the built-in
-// IRREGULARS table and rule chain — so a model can override any
-// default depluralization, including correct-by-default cases, when
-// its domain demands a different singular (e.g. fitness API with
-// {axes: axe}, photography app with {lenses: lens}).
-//
-// Module-level rather than a parameter so the many existing
-// depluralize/canonize call sites across transforms and guide
-// inherit the override without signature churn. apidef is
-// single-model-per-process; if that ever changes, switch this to a
-// per-context map.
-// Null-prototype: see NULL_PROTO_NOTE above.
 let CUSTOM_PLURALS = Object.create(null);
 let CUSTOM_PLURAL_KEYS = [];
 function setCustomPlurals(plurals) {
@@ -314,7 +256,6 @@ function depluralize(word) {
     // Rules for regular plurals (applied in order). The -ies and -ves
     // rules add a letter, so they need to match the case of the dropped
     // suffix; all other rules just slice and inherit the caller's case.
-    // -ies -> -y (cities -> city), but only if result is > 2 chars
     if (lower.endsWith('ies') && word.length > 3) {
         const dropped = word.slice(-3);
         const y = dropped === dropped.toUpperCase() ? 'Y' : 'y';
@@ -343,12 +284,6 @@ function depluralize(word) {
     if (lower.endsWith('nses')) {
         return word.slice(0, -1);
     }
-    // -zes plurals come from -ze singulars (prize, size, freeze, maze,
-    // breeze, …) far more often than from a bare -z taking -es. The only
-    // -zes plurals that strip the full -es have a doubled-z stem
-    // (buzz/buzzes, fez/fezzes). Discriminate on -zzes so prizes → prize
-    // instead of priz. Mirrors the -ses/-Vse+s problem the IRREGULARS
-    // table works around for the -se case.
     if (lower.endsWith('zzes')) {
         return word.slice(0, -2);
     }
@@ -360,7 +295,6 @@ function depluralize(word) {
         lower.endsWith('shes') || lower.endsWith('ches')) {
         return word.slice(0, -2);
     }
-    // -s -> remove -s (cats -> cat), but only if result is > 2 chars
     if (lower.endsWith('s') &&
         !lower.endsWith('ss') &&
         !lower.endsWith('us') &&
@@ -370,19 +304,6 @@ function depluralize(word) {
     // If none of the rules apply, return as is
     return word;
 }
-// A REAL SPEC IS A GRAPH, NOT A TREE. Once `$ref`s are resolved, a schema
-// that refers back to itself - directly, or around a cycle - is an object
-// cycle, and a plain recursive walk never comes back. It does not merely run
-// long: it pushes into `vals` until the array exceeds its maximum length and
-// V8 throws `RangeError: Invalid array length`, which reads like a size
-// problem and is a termination one.
-//
-// Stripe's published definition is the case that found this - 419 paths,
-// 1,454 schemas, cross-referenced - and it failed the same way at 12 GB of
-// heap as at the default, which is what rules out "too big" as the answer.
-//
-// `seen` is a WeakSet, so the walk holds no object alive beyond its own
-// lifetime.
 function find(obj, qkey) {
     const vals = [];
     const seen = new WeakSet();
@@ -474,7 +395,6 @@ function $APPEND(inj, val, ref, store) {
         const dval = dparent?.[key];
         const vstore = { ...store };
         vstore.$TOP = { [key]: dval };
-        // const ptval = transform({ [key]: dval }, { [key]: xform }, {
         const ptval = (0, struct_1.inject)({ [key]: xform }, vstore, {
             meta: { ...inj.meta },
             errs: inj.errs,
@@ -518,7 +438,6 @@ function $SELECT(inj, _val, _ref, store) {
                 '$KEY': { '`$LIKE`': selector.toString() }
             };
         }
-        // TODO: select should be safe for scalars
         const children = (0, struct_1.select)(dparents, selector);
         if (0 < children.length) {
             for (let child of children) {
@@ -527,8 +446,6 @@ function $SELECT(inj, _val, _ref, store) {
                 (0, struct_1.inject)((0, struct_1.clone)({ [child.$KEY]: descendor }), vstore, {
                     meta: (0, struct_1.merge)([
                         inj.meta,
-                        // TODO: need this hack as struct does not provide a way to get grandparent keys
-                        // also, these capture actions are not preserving the path!
                         { select: { key: { [(0, struct_1.slice)(inj.path, 1, -1).join('+')]: child.$KEY } } }
                     ]),
                     errs: inj.errs,
@@ -542,8 +459,6 @@ function $RECASE(inj, val, ref, store) {
         && null != inj.prior
         && null != inj.prior.prior) {
         const dval = inj.parent[inj.key];
-        // TODO: handle paths more generally! use inj.prior?
-        // TODO: mkae this into a utility method on inj?
         const dkey = inj.prior.key;
         const gkey = inj.prior.prior.key;
         const vstore = { ...store };
@@ -560,13 +475,6 @@ function $RECASE(inj, val, ref, store) {
         inj.setval(tval, 2);
     }
 }
-// A special-purpose regex-style matcher for url paths.
-//   t - text part
-//   p - param part
-//   / - part separator
-//   / at start - must match from start
-//   / at end - must match to end
-// See utility.test.ts for examples
 function pathMatch(path, expr) {
     if (null == path) {
         return null;
@@ -676,9 +584,6 @@ function formatJSONIC(val, opts) {
                 '`' + JSON.stringify(v)
                     .substring(1)
                     .replace(/\\n/g, '\n')
-                    // Inside a JSONIC backtick literal a double quote is a literal
-                    // character, so unescape JSON's \" back to " (was previously
-                    // replaced with ':' which silently corrupted quoted text).
                     .replace(/\\"/g, '"')
                     .replace(/`/g, '\\`')
                     .replace(/"$/, '`'));
@@ -708,13 +613,7 @@ function formatJSONIC(val, opts) {
     };
     return renderJSONIC(val, hsepd, showd, useColor, maxlines, exclude, c, renderPrimitive, renderComment, false);
 }
-function renderJSONIC(val, hsepd, showd, useColor, maxlines, exclude, c, renderPrimitive, renderComment, 
-// True once the value has already been through decircular. `seen` never
-// forgets a node, so a merely REPEATED reference (a shared node in a DAG,
-// not a cycle) also lands in the fallback below. If decircular leaves such
-// a repeat in place, retrying forever overflows the stack — which is what
-// formatting a deep validation error used to do. Retry at most once.
-decircularized) {
+function renderJSONIC(val, hsepd, showd, useColor, maxlines, exclude, c, renderPrimitive, renderComment, decircularized) {
     const space = '  ';
     const seen = new WeakSet();
     let stack = new Array(32);
@@ -835,16 +734,6 @@ decircularized) {
     }
     return lines.join('\n') + '\n';
 }
-// Canonical type-sentinel vocabulary. VALID_CANON maps an OpenAPI type NAME
-// to its `$SENTINEL` form; CANON_ONE is the union sentinel produced by
-// `validator` for a multi-type (`['`$ONE`', [member, ...]]`). Both are part
-// of the public API so downstream consumers (e.g. @voxgig/sdkgen's
-// sentinel -> language-type table) can verify they cover the full set
-// instead of hand-syncing against this file.
-//
-// Null-prototype (see NULL_PROTO_NOTE): `type` values come from the spec, so
-// a schema declaring `type: constructor` would otherwise return the Object
-// constructor here rather than falling through to the 'Any' default.
 const VALID_CANON = Object.assign(Object.create(null), {
     'string': '`$STRING`',
     'number': '`$NUMBER`',
@@ -887,50 +776,7 @@ function canonize(s) {
     CANONIZE_CACHE.set(s, out);
     return out;
 }
-// Canonicalise a FIELD name — which is a WIRE identifier, not a type name.
-//
-// `canonize` is right for entity/type names: it snakifies and depluralizes so
-// `Users` and `user-items` converge on `user` / `user_item`. Applied to a
-// field it is actively WRONG, because the name has to match the JSON the
-// server actually sends:
-//
-//   modelType   -> canonize -> model_type    (server sends modelType)
-//   items       -> canonize -> item          (server sends items)
-//
-// Nothing maps back: the model's `alias.field` map is emitted empty and no
-// generator consumes it, so the wire name is simply lost. Across the fleet's
-// specs that renamed 23% of all fields (146 repos) and depluralized another
-// 13% — every one of those SDKs reading a key the server never sends.
-//
-// So: keep the transliteration and identifier sanitisation that stop a name
-// being unusable in a target language, and drop the snakify/depluralize that
-// change what the name MEANS. Case and plurality are preserved verbatim.
 const CANONIZE_FIELD_CACHE = new Map();
-// Re-split a boundary-less entity name using the component name's boundaries.
-//
-// ONLY when the name has no boundaries of its own. A name that already
-// contains `_` was split by something that knew where the words were, and is
-// left exactly as it is.
-//
-// ONLY on an EXACT concatenation match, which is what stops this inventing
-// anything. The component's segments are accumulated left to right and the
-// result is used only if it equals the path-derived name with its separators
-// removed:
-//
-//   payeeverification  +  payee_verification_result
-//     payee                          -> "payee"             no
-//     payee_verification             -> "payeeverification" YES -> payee_verification
-//
-//   virtual            +  payment_account
-//     payment                        -> "payment"           no
-//     payment_account                -> "paymentaccount"    no  -> unchanged
-//
-// So a component that has nothing to do with the path token cannot rename it,
-// and a component that merely EXTENDS the token (`payment_account_entry` for
-// `payment`) cannot either -- only the prefix that reconstructs the token
-// exactly is taken. A different entity name is never reachable from here; the
-// same letters in the same order, with separators restored, is the whole of
-// what this can produce.
 function resplitFromCmp(entname, cmp, why) {
     if (null == entname || '' === entname || entname.includes('_')) {
         return entname;
@@ -963,12 +809,6 @@ function canonizeField(s) {
     CANONIZE_FIELD_CACHE.set(s, out);
     return out;
 }
-// Namespace-qualified schema names (ASP.NET / Java style:
-// "NoFrixion.MoneyMoov.Models.PaymentRequests.MerchantPayment",
-// "com.example.api.Payment") describe the type by their LAST dotted
-// segment; the namespace prefix is packaging noise. Reduce to the last
-// meaningful segment — skipping version-ish ("v2", "10") or too-short
-// tails — so entity names derive from the type, not the namespace.
 function stripSchemaNamespace(name) {
     if (null == name || !name.includes('.'))
         return name;
@@ -989,24 +829,6 @@ function canonizeCmpName(orig) {
     return canonize(stripSchemaNamespace(orig));
 }
 const FIRST_LETTER_RE = /[a-zA-Z]/;
-// No target language permits an identifier that starts with a digit, so a
-// name derived from one — a `3dsSession` schema, a `/2fa` path segment, a
-// `_3DSecure` GraphQL type — is prefixed with an `n`.
-//
-// The prefix takes the case of the name it guards: lower for `3ds_session`,
-// upper for `3DSecure`. That keeps the result inside whatever casing
-// convention the caller was already working in, so a later PascalCase or
-// camelCase conversion has nothing to undo. A name with no letter in it at
-// all (`404`) takes the lower-case prefix.
-//
-// This is the ONE place the rule lives. Entity names reach it through
-// `ensureMinEntityName` and the GraphQL guide's `entityName`; project slugs
-// through `sanitizeSlug`.
-//
-// FIELD names deliberately do NOT come here. A field name is a WIRE
-// identifier and renaming it makes the SDK read a key the server never sends
-// — the mistake `canonizeField` exists to document. Targets escape those at
-// the point of emission instead.
 function prefixLeadingDigit(s) {
     if (null == s || '' === s)
         return s;
@@ -1114,13 +936,6 @@ function ensureMinEntityName(name, existing) {
         padded = padded + padding;
     }
     if (padded !== name && null != existing[padded]) {
-        // The name was modified (truncated/sanitized) and collides with an
-        // existing entity. Only a collision between DIFFERENT origins needs a
-        // numeric suffix — the same original name re-encountered (e.g. the same
-        // long schema referenced by several methods on one path) must reuse the
-        // existing entity so its ops merge instead of minting phantom
-        // "<entity>2/3/4" entities. Entities record their pre-truncation name
-        // as `longname`; entries without one keep the old always-suffix rule.
         if (existing[padded].longname === name) {
             return padded;
         }
@@ -1137,23 +952,7 @@ function ensureMinEntityName(name, existing) {
 }
 // Unconditional suffixes: framework noise, always stripped.
 const CMP_SUFFIXES = ['_rest_controller', '_controller', '_response', '_request'];
-// Guarded suffixes: pagination wrappers ('_page_response', '_page') and
-// op-reply wrappers ('_create_response', '_update_response') fold wrapper
-// schemas (BeneficiaryPageResponse, MerchantTokenPage,
-// BeneficiariesCreateResponse, ...) into their base entity — but ONLY when
-// the remainder is itself a known component schema (the wrapper
-// convention). Without that guard a real noun gets mangled: an API whose
-// resource IS a page (LandingPage entity at /landing-pages) must keep
-// 'landing_page', not become 'landing'. Order matters: longer first, since
-// '_page_response'/'_create_response' also end with '_response'. Bare
-// '_create'/'_update' are never stripped: too likely part of a real noun.
 const CMP_GUARDED_SUFFIXES = ['_create_response', '_update_response', '_page_response', '_page'];
-// Op-reply wrappers of the form <namespace><Verb>Result (incident.io:
-// AlertsResolveResultV2, SeveritiesListResultV1). Same idea as
-// '_create_response' above, but the verb varies and sits before the wrapper
-// word rather than being part of a fixed pair, so the shape is matched rather
-// than enumerated. Guarded exactly like the others: nothing is stripped
-// unless the remainder is a real schema.
 const CMP_RESULT_VERBS = [
     'list', 'create', 'show', 'update', 'delete', 'remove',
     'get', 'edit', 'resolve', 'rotate', 'search',
@@ -1167,26 +966,6 @@ const CMP_PREFIXES = ['get_', 'post_', 'put_', 'delete_', 'patch_'];
 function guideActive(node) {
     return false !== node?.active;
 }
-// An API's ACCESS-TOKEN EXCHANGE is not a resource, and must not become an
-// entity. The shape apidef looks for is the one every such endpoint has:
-//
-//   1. The spec as a whole is SECURED (a top-level `security` requirement).
-//      Without that, a per-operation `security: []` clears nothing and
-//      carries no signal at all.
-//   2. The operation clears that requirement with its own `security: []` —
-//      it is the one call a client can make before it holds a credential,
-//      because it is what issues them.
-//   3. It is a POST. A credential exchange writes; a GET that happens to
-//      return a field called `token` is far likelier to be a resource.
-//   4. Its success response carries a TOKEN-shaped field.
-//
-// All four together, or it is a resource. There is deliberately no vendor
-// extension and no overlay to say otherwise (ADR-002): a spec apidef does
-// not control cannot be annotated anyway, and a heuristic that can be
-// corrected in guide.aon needs no second correction surface.
-//
-// Returns the field names the exchange uses, which is what sdkgen's
-// `secrets` feature needs to drive it, or null when this is a resource.
 const AUTH_TOKEN_FIELDS = [
     'access_token', 'accessToken', 'access-token',
     'id_token', 'idToken',
@@ -1206,8 +985,6 @@ function authExchangeOp(op, specSecured) {
     if (true !== specSecured) {
         return null;
     }
-    // An empty ARRAY, specifically. `security` absent means "inherit the
-    // global requirement"; `security: []` means "no credential needed here".
     if (!Array.isArray(op?.security) || 0 !== op.security.length) {
         return null;
     }
@@ -1248,9 +1025,6 @@ function schemaProps(schema) {
     }
     return Object.keys(props);
 }
-// First name in `names` that the schema declares, compared case-insensitively
-// so `Access_Token` matches `access_token`. Ordered by the CANDIDATE list, not
-// by declaration order, so `access_token` wins over a sibling `token`.
 function firstFieldMatch(props, names) {
     const lower = new Map();
     for (const p of props) {
@@ -1362,15 +1136,6 @@ function warnOnError(where, warn, fn, result) {
         return result;
     }
 }
-// IS PATH DEBUGGING ON AT ALL? Callers that build an expensive argument -
-// a formatJSONIC of a whole resolved path, say - must ask FIRST. JavaScript
-// evaluates arguments eagerly, so `debugpath(k, null, format(big))` does all
-// the formatting and then throws it away when debugging is off.
-//
-// That is not a micro-optimisation at scale: formatting every path of
-// Stripe's definition (447 entity-paths over a resolved schema graph)
-// exhausted a 12 GB heap and killed the build, with the output discarded on
-// the next line.
 function debugpathOn() {
     const apipath = process.env.APIDEF_DEBUG_PATH;
     return null != apipath && '' !== apipath;
@@ -1384,7 +1149,6 @@ function debugpath(pathStr, methodName, ...args) {
         // Check if path matches
         if (pathStr !== targetPath)
             return;
-        // If a method is specified in apipath and we have a method name, check if it matches
         if (targetMethod && methodName) {
             if (methodName.toLowerCase() !== targetMethod.toLowerCase())
                 return;
@@ -1415,7 +1179,6 @@ function findPathsWithPrefix(ctx, pathStr, opts) {
     });
     return matchingPaths.length;
 }
-// TODO: move to jostraca?
 function allcapify(s) {
     return 'string' === typeof s ? (0, jostraca_1.snakify)(s).toUpperCase() : '';
 }
@@ -1536,47 +1299,11 @@ function isEntityWrapperProp(propSchema) {
     const t = propSchema.type;
     return 'object' === t || 'array' === t;
 }
-// A response body that is nothing but a single wrapper property is an
-// ENVELOPE around the result: `{item: {...}}`, `{data: {...}}`,
-// `{items: [...]}`, `{results: [...]}`. Return that property's name so the
-// caller can unwrap to it, or null when the body is the result itself.
-//
-// Two conditions keep this from firing on a response that IS the entity:
-//
-//   1. EXACTLY ONE property. A body with siblings is a structure in its own
-//      right, not a wrapper — `{ok, id}` from a delete, or any paged
-//      `{results, next}`, must be handed over whole.
-//   2. The property's SHAPE matches the operation's cardinality. A `list`
-//      unwraps only to an array, every other op only to a non-array. So a
-//      single-entity op facing `{items: [...]}` is left alone rather than
-//      silently yielding a list, and vice versa.
-//
-// A one-field entity whose sole field is itself structured can still be
-// unwrapped wrongly; that is the residual cost of the spec not saying which
-// it means. Naming the wrapper after the entity remains the unambiguous
-// signal, and is still checked first.
 function envelopeProp(resprops, opname) {
     const keys = (0, struct_1.keysof)(resprops);
     if (0 === keys.length) {
         return null;
     }
-    // Exactly one STRUCTURED property, with any siblings being scalars.
-    //
-    // The original rule demanded exactly one property full stop, which missed
-    // the single most common envelope shape in the wild:
-    //
-    //   { "success": true, "data": [ ... ] }
-    //   { "status": "ok",  "result": { ... } }
-    //
-    // A boolean/string status flag beside the payload is metadata, not a
-    // sibling of equal standing, so the body is still an envelope. UniVec's
-    // /v1/models returns exactly this and every generated SDK — TypeScript, Go,
-    // Python alike — returned an empty list against an API plainly serving
-    // data.
-    //
-    // Scalar-only siblings keep the guard meaningful: `{ok, id}` from a delete
-    // has no structured member and is still handed over whole, and a body with
-    // TWO structured members is a composite we must not guess at.
     const structured = keys.filter((k) => isEntityWrapperProp(resprops[k]));
     if (1 !== structured.length) {
         return null;
@@ -1589,15 +1316,6 @@ function envelopeProp(resprops, opname) {
     }
     return key;
 }
-// An UNTAGGED union: `oneOf`/`anyOf` with two or more real branches and no
-// `discriminator`. Nothing in the schema says which branch a given value is,
-// so no generator can choose a variant, and the field can only be modelled as
-// an open type.
-//
-// Two shapes are deliberately NOT unions to resolve:
-//   - a discriminated union — the discriminator names the deciding property;
-//   - the nullable idiom `anyOf: [X, {type: 'null'}]`, which is one type that
-//     may be absent, not a choice between variants.
 function untaggedUnionBranches(schema) {
     if (null == schema || 'object' !== typeof schema) {
         return 0;
@@ -1612,17 +1330,6 @@ function untaggedUnionBranches(schema) {
     const real = branches.filter((b) => null != b && 'null' !== b.type);
     return real.length < 2 ? 0 : real.length;
 }
-// Deepest/widest untagged union reachable from a field schema, or null when
-// the field is resolvable.
-//
-// The search is RECURSIVE because the union is rarely at the top: in the
-// Typebot Builder spec the `groups` field is an array whose item schema
-// carries 18 untagged unions, the widest 19 branches, 12 levels down. Only a
-// field that bottoms out in such a union has to degrade to an open type, so
-// only a recursive scan can report which fields those are.
-//
-// `seen` guards the self-referential schemas these specs use freely; `depth`
-// is bounded so a pathological document cannot spin.
 function scanUntaggedUnion(schema, depth = 0, seen = new Set()) {
     if (null == schema || 'object' !== typeof schema ||
         seen.has(schema) || depth > MAX_UNION_SCAN_DEPTH) {
@@ -1657,15 +1364,6 @@ function scanUntaggedUnion(schema, depth = 0, seen = new Set()) {
     return 0 === count ? null : { count, branches, depth: at };
 }
 const MAX_UNION_SCAN_DEPTH = 64;
-// Is this schema a collection? null when the schema does not say.
-//
-// `isEntityWrapperProp` accepts a composed schema (allOf/oneOf/anyOf) as
-// structured, but a composed schema carries no outer `type` or `items` — so
-// reading those alone silently called it a non-list. A `list` then kept its
-// envelope, and worse, a single-entity op unwrapped to an array-valued
-// property. Composed branches are inspected instead, and unanimity required:
-// a union that is an array in one branch and an object in another does not
-// say what the caller will get, and an envelope is not worth guessing at.
 function propIsList(schema) {
     if (null == schema || 'object' !== typeof schema) {
         return null;
@@ -1688,26 +1386,6 @@ function propIsList(schema) {
     }
     return 'array' === schema.type || null != schema.items;
 }
-// The request BODY a closed schema permits, as a transform mapping.
-//
-// `additionalProperties: false` is the spec saying the server rejects any
-// property it did not declare. When a body says that, sending the caller's
-// whole request payload is wrong: an op's payload also carries its PATH
-// params (`id` for `PUT /item/{id}`), and a closed shape 400s the entire
-// request over that one extra key. Restricting the body to the declared
-// properties is then not a heuristic — it is what the spec asked for.
-//
-// Returns null for an open or property-less schema, where `reqdata` (send
-// everything) remains the right default: an open body accepts extras, and
-// with no declared properties there is nothing to restrict to.
-//
-// The KEY is the property's wire name — that is what goes on the wire and
-// what the server matches against. The SOURCE is read by the field's
-// CANONICAL name, because that is the only name the caller ever sees:
-// findFieldDefs runs every property through `canonize(normalizeFieldName())`,
-// so a spec property `UserName` reaches the generated request type as
-// `user_name`. Reading `reqdata.UserName` would find nothing and send
-// undefined.
 function closedBodyTransform(schema) {
     if (null == schema || 'object' !== typeof schema) {
         return null;
@@ -1719,26 +1397,12 @@ function closedBodyTransform(schema) {
     if (0 === names.length) {
         return null;
     }
-    // Null prototype: a spec is free to declare a property called `__proto__`,
-    // and on an ordinary object that assignment sets the prototype instead of
-    // creating an own property — the mapping would vanish, and with it the
-    // whole body restriction if it were the only one.
     const out = Object.create(null);
     for (const name of names) {
         out[name] = '`reqdata.' + canonize(normalizeFieldName(name)) + '`';
     }
     return out;
 }
-// The first sentence of `text` (up to a `.`/`!`/`?` followed by whitespace
-// or end), whitespace-collapsed and length-capped with an ellipsis.
-//
-// Shared by the API summary and by a field's `short`, because both answer
-// the same question — give me one line of prose for a place that has room
-// for one line. A field's `short` is interpolated straight into a markdown
-// table cell by every generated Readme, where a raw newline ends the row and
-// takes the rest of the table with it. Specs supply plenty: bullet lists,
-// fenced examples and multi-paragraph notes all appear as a property's
-// `description`, up to 1725 characters of it in the validation corpus.
 function firstSentence(text) {
     const collapsed = text.replace(/\s+/g, ' ').trim();
     const m = collapsed.match(/^(.+?[.!?])(\s|$)/);

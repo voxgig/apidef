@@ -1,22 +1,5 @@
 /* Copyright (c) 2024-2026 Voxgig, MIT License */
 
-// GraphQL guide strategy: classify schema root fields into entities and
-// operations, the way heuristic01 classifies REST paths.
-//
-// Classification is SHAPE FIRST, NAME SECOND. Verb spellings diverge wildly
-// between GraphQL ecosystems (Hasura `insert_x_one`, Amplify `createTodo`,
-// Linear `issueCreate`, PostGraphile `createUser` — and PostGraphile's
-// inflector plugin can change them wholesale), but the type shapes do not:
-// a query returning the entity type behind a single required id argument is
-// a load in every one of them.
-//
-// Anything on Mutation that touches an entity but matches no CRUD shape
-// becomes an ACTION on a canonical op, reaching the SDK as an
-// `$action`-discriminated point — the same mechanism REST action paths
-// (/planet/{id}/terraform) already use. Nothing is ever dropped silently.
-//
-// `classifyGraphQLField` is a pure function of plain JSON, so it is driven
-// by a shared TSV fixture and can be ported to Go unchanged.
 
 import { each } from 'jostraca'
 
@@ -49,9 +32,7 @@ type GqlRetShape = {
   entity?: string
   // Connection only: the field holding the node array ('nodes' | 'edges').
   nodes?: string
-  // Payload only: the field the entity is wrapped in, if any.
   unwrap?: string
-  // Payload only: a delete-ish payload carries no entity.
   deleteish?: boolean
 }
 
@@ -63,7 +44,6 @@ type GqlArgSig = {
 }
 
 
-// Everything the classifier needs about one root field.
 type GqlFieldSig = {
   optype: 'query' | 'mutation'
   name: string
@@ -101,8 +81,6 @@ const MACHINERY_RE =
   /(Connection|Edge|PageInfo|Payload|Input|Filter|Comparator|Sort|OrderBy)$/
 
 
-// Strip a leading entity name off a mutation field name, returning the
-// residual verb. `issueCreate` -> `Create`; `createIssue` -> `create`.
 function splitEntityVerb(fieldName: string, entity: string): string {
   const lowerField = fieldName.toLowerCase()
   const lowerEnt = entity.toLowerCase()
@@ -117,14 +95,6 @@ function splitEntityVerb(fieldName: string, entity: string): string {
 }
 
 
-// Does this field take a required id-ish argument?
-//
-// Any required id counts, not just a lone one: a command like
-// `planetForbid(id: String!, forbid: Boolean!)` addresses an existing record
-// just as much as `planetArchive(id: String!)` does. Requiring it to be the
-// only required argument made an operation stop looking id-addressed the
-// moment the API made a second argument mandatory, which flipped it from an
-// update action to a create.
 function idArg(args: GqlArgSig[]): GqlArgSig | undefined {
   return args.find(
     (a: GqlArgSig) => a.reqd && /^(id|.*Id)$/i.test(a.name))
@@ -165,13 +135,11 @@ function classifyGraphQLField(
   const id = idArg(sig.args)
 
   if ('query' === sig.optype) {
-    // Connection or list of the entity -> list.
     if ('connection' === ret.kind || 'list' === ret.kind) {
       why.push('query:' + ret.kind)
       return { entity, op: 'list', optype: 'query', why }
     }
 
-    // Single entity behind one required id -> load.
     if ('entity' === ret.kind) {
       if (null != id) {
         why.push('query:entity:id=' + id.name)
@@ -193,7 +161,6 @@ function classifyGraphQLField(
     return { exclude: true, why }
   }
 
-  // --- mutation ---
   const verb = splitEntityVerb(sig.name, entity).replace(/^[_-]+/, '')
   const input = sig.inputTypeName ?? ''
 
@@ -204,14 +171,12 @@ function classifyGraphQLField(
     return { entity, op: 'create', optype: 'mutation', why }
   }
 
-  // update: <Entity>UpdateInput, or an update-ish verb.
   const updateByInput = new RegExp('^' + entity + '(Update|Edit|Patch|Set)Input$', 'i').test(input)
   if (updateByInput || UPDATE_RE.test(verb)) {
     why.push(updateByInput ? 'mutation:input:' + input : 'mutation:verb:' + verb)
     return { entity, op: 'update', optype: 'mutation', why }
   }
 
-  // remove: a delete-ish verb.
   if (REMOVE_RE.test(verb)) {
     why.push('mutation:verb:' + verb)
     return { entity, op: 'remove', optype: 'mutation', why }
@@ -249,7 +214,6 @@ function deriveRetShape(
     return { kind: 'other' }
   }
 
-  // Relay connection: has pageInfo plus nodes and/or edges.
   const fnames = Object.keys(named.fields)
   if (fnames.includes('pageInfo') &&
     (fnames.includes('nodes') || fnames.includes('edges'))) {
@@ -289,9 +253,6 @@ function deriveRetShape(
         !/^(errors?|userErrors?)$/i.test(fname)
     })
 
-    // Prefer the field whose name matches the payload's own entity prefix
-    // (IssuePayload -> issue), which is the convention every CRUD-regular
-    // GraphQL API follows; fall back to the single remaining candidate.
     const prefix = named.name.replace(/Payload$/, '')
     const byName = candidates.find((fname: string) =>
       fname.toLowerCase() === prefix.toLowerCase() ||
@@ -314,7 +275,6 @@ function deriveRetShape(
     return { kind: 'other' }
   }
 
-  // A list of the entity is a list op even without connection machinery.
   if (field.list) {
     return { kind: 'list', entity: named.name }
   }
@@ -323,13 +283,11 @@ function deriveRetShape(
 }
 
 
-// Build the classifier signature for a root field.
 function fieldSig(
   optype: 'query' | 'mutation',
   field: GqlField,
   types: Record<string, GqlType>
 ): GqlFieldSig {
-  // The input-object argument, if any, drives create/update detection.
   let inputTypeName: string | undefined = undefined
   for (const arg of field.args) {
     const at = types[arg.type]
@@ -352,8 +310,6 @@ function fieldSig(
 }
 
 
-// Verb suffixes a mutation field name may carry, longest first so
-// `issueUnarchive` strips `Unarchive` rather than `Archive`.
 const NAME_VERBS = [
   'Unarchive', 'Archive', 'Delete', 'Remove', 'Destroy',
   'Create', 'Update', 'Insert', 'Upsert',
@@ -390,45 +346,16 @@ function nameEntityType(
 }
 
 
-// Entity model name from a GraphQL type name: Issue -> issue,
-// WorkflowState -> workflow_state (canonize handles the casing rules that
-// the REST path classifier already uses).
 function rawEntityName(typeName: string): string {
   return depluralize(canonize(normalizeFieldName(typeName)))
 }
 
 
-// The leading-digit guard is applied here rather than inherited: the REST
-// side gets it from `ensureMinEntityName`, which this path deliberately does
-// not call (its min-length padding is the REST classifier's rule, and
-// entities here merge by name on purpose). GraphQL type names cannot begin
-// with a digit, but they can begin with `_`, which `normalizeFieldName`
-// strips — so `_3DSSessions` reaches an SDK as the entity `3_ds_session` and
-// every generated language rejects the identifier.
 function entityName(typeName: string): string {
   return prefixLeadingDigit(rawEntityName(typeName))
 }
 
 
-// Two GraphQL types that canonize to ONE entity name merge, deliberately:
-// `_3DSSession` and `_3DSSessions` are the singular and plural spellings of
-// one thing, and `Issue`/`Issues` likewise. That is what canonicalization is
-// for, and the caller's `guide.entity[entname] ?? {…}` is how it happens.
-//
-// The leading-digit guard opens one collision that is NOT that. A guarded
-// name (`_3DSSessions` -> `3_ds_session` -> `n3_ds_session`) can land on a
-// name another type already owns natively (`N3DSSession` -> `n3_ds_session`).
-// Those are unrelated types, and merging them would fold two entities' fields
-// and ops together under a name whose `orig` records only the first — with no
-// second guide entry for a user to correct, since guide.aon is the only
-// correction surface (ADR-002).
-//
-// So a collision between a guarded name and an unguarded one takes a numeric
-// suffix, the same convention `ensureMinEntityName` uses on the REST side.
-// The scope is exactly the collisions this guard creates: when both names are
-// guarded, or neither is, the merge is what it was before the guard existed
-// and stands untouched. The same type re-encountered on another root field
-// always reuses its own entry.
 function resolveEntityName(
   typeName: string,
   entities: Record<string, GuideEntity>,
@@ -460,7 +387,6 @@ function newGuidePath(): GuidePath {
 }
 
 
-// The GraphQL guide strategy.
 async function graphql01(ctx: ApiDefContext): Promise<Guide> {
   const def: GqlDef = ctx.def
   const profile: GqlProfile = (ctx.opts.profile ?? 'none') as GqlProfile
@@ -493,7 +419,6 @@ async function graphql01(ctx: ApiDefContext): Promise<Guide> {
   ]
 
   for (const root of roots) {
-    // Sorted iteration: byte-stable guide output.
     for (const fname of Object.keys(root.fields).sort()) {
       guide.metrics.count.field++
 

@@ -103,7 +103,6 @@ async function parseOpenAPI(source: any, _meta?: any) {
     )
   }
 
-  // Ensure components exists (Redocly used to add this automatically)
   if (null == parsed.components) {
     parsed.components = {}
   }
@@ -130,22 +129,6 @@ async function parseOpenAPI(source: any, _meta?: any) {
 }
 
 
-// Break reference cycles so the parsed spec stays JSON-serializable, WITHOUT
-// destroying the structure sharing that $ref inlining deliberately creates.
-//
-// @voxgig/util's decircular() rebuilds the tree — it allocates a fresh object
-// per *visit*, so a component reachable by k distinct paths is copied k times
-// and the result is the tree-expansion of the DAG, size O(fanout^depth). That
-// is catastrophic on exactly the shape real specs have (components reused
-// across nesting levels): a 2.3 KB spec with 12 levels and 3 refs per level
-// expanded to a 172 MB model, and 13 levels exhausted a 2 GB heap.
-//
-// Cycles are real here — inlining a self-referential schema makes the copy's
-// `properties` the same object as the original's, so the copy contains
-// itself — so they still have to be cut. This does it in place: only the edge
-// that closes a cycle is replaced (with decircular's marker string, so the
-// output shape is unchanged), every other node is visited exactly once and
-// left shared. Linear in the number of distinct nodes.
 function decycle(root: any) {
   // Entry path of each node on the current ancestor chain; presence in this
   // map is what identifies a back-edge. Nodes are removed on the way out, so
@@ -160,11 +143,6 @@ function decycle(root: any) {
     if (null == node || 'object' !== typeof node) return
     if (done.has(node)) return
 
-    // The YAML parser hands back null-prototype objects. decircular() used to
-    // launder them into plain objects as a side effect of rebuilding the tree;
-    // parse()'s result is public, so keep that contract (callers reasonably
-    // expect `hasOwnProperty` etc. on a parsed spec) rather than leaking the
-    // parser's internal shape now that nothing is rebuilt.
     if (!Array.isArray(node) && null === Object.getPrototypeOf(node)) {
       Object.setPrototypeOf(node, Object.prototype)
     }
@@ -198,21 +176,6 @@ function decycle(root: any) {
 }
 
 
-// Single-pass tree walk that:
-// 1. Preserves original $ref values as x-ref
-// 2. Resolves $ref JSON pointers in-place
-//
-// NOTE: resolution inlines a shallow copy of the target ({ ...resolved }),
-// so multiple references to the same component share that component's
-// nested child objects. Downstream consumers must therefore treat the
-// resolved schema as read-only — mutating an inlined sub-object would leak
-// across every site that referenced the same component. (A deep clone is
-// deliberately avoided: schemas can be self-referential, which would make
-// cloning non-terminating.)
-// Keywords sitting beside a `$ref` on the *referring* node. OpenAPI 3.1 and
-// JSON Schema 2020-12 both allow them (`description`, `required`,
-// constraints, ...) and they still apply, so inlining must not drop them.
-// Applied over the resolved target, so the local statement wins.
 function refSiblings(node: any): any {
   const out: any = {}
   for (const k of Object.keys(node)) {
@@ -271,27 +234,8 @@ function addXRefsAndResolve(obj: any, root: any, visited?: WeakSet<any>) {
 }
 
 
-// Follow a JSON pointer like "#/components/schemas/Planet".
-//
-// Alias components — `Foo: { $ref: '#/components/schemas/Bar' }` — are a
-// normal OpenAPI idiom, so a pointer can land on another bare $ref node.
-// Follow the chain to its end rather than returning the intermediate: the
-// caller inlines `{ ...resolved }`, and a `$ref` *string* key in that spread
-// is never followed by the object-valued recursion in addXRefsAndResolve, so
-// stopping early yields a schema with no properties and every field is
-// silently dropped. Whether that happened used to depend on whether `paths`
-// or `components` came first in the document, because resolution reads a root
-// the same walk is still mutating.
-//
-// `seen` holds pointer strings (not object identities) so a self- or
-// mutually-referential alias cycle terminates instead of looping forever.
 function resolvePointer(root: any, ref: string): any {
   const seen = new Set<string>()
-  // Keywords sitting beside a `$ref` along the chain, outermost first.
-  // OpenAPI 3.1 / JSON Schema 2020-12 allow `$ref` to carry siblings
-  // (`description`, `required`, constraints, ...) and they still apply, so
-  // following the chain must not discard them. Merged onto the final target
-  // below, outermost last so the most specific alias wins.
   const siblings: any[] = []
   let current: any = undefined
   let pointer = ref

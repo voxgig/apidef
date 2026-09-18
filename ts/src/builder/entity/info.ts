@@ -33,10 +33,6 @@ function resolveInfo(
 
   const modelInfo = { main: { kit: { info: kit.info } } }
 
-  // .trim() first so substring(1, len-1) strips the wrapping `{` and `}`.
-  // Without it, formatJSONIC's trailing newline is removed instead of the
-  // closing brace, leaving a dangling `}` in the output. Mirrors the sibling
-  // entity builder (builder/entity/entity.ts), which trims for this reason.
   let modelDefSrc = formatJSONIC(modelInfo).trim()
 
   modelDefSrc =

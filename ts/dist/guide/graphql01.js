@@ -13,8 +13,6 @@ const UPDATE_RE = /^(update|edit|modify|patch|set)$/i;
 const REMOVE_RE = /^(delete|remove|destroy|drop)$/i;
 // Type-name suffixes that mark schema machinery rather than API entities.
 const MACHINERY_RE = /(Connection|Edge|PageInfo|Payload|Input|Filter|Comparator|Sort|OrderBy)$/;
-// Strip a leading entity name off a mutation field name, returning the
-// residual verb. `issueCreate` -> `Create`; `createIssue` -> `create`.
 function splitEntityVerb(fieldName, entity) {
     const lowerField = fieldName.toLowerCase();
     const lowerEnt = entity.toLowerCase();
@@ -26,14 +24,6 @@ function splitEntityVerb(fieldName, entity) {
     }
     return fieldName;
 }
-// Does this field take a required id-ish argument?
-//
-// Any required id counts, not just a lone one: a command like
-// `planetForbid(id: String!, forbid: Boolean!)` addresses an existing record
-// just as much as `planetArchive(id: String!)` does. Requiring it to be the
-// only required argument made an operation stop looking id-addressed the
-// moment the API made a second argument mandatory, which flipped it from an
-// update action to a create.
 function idArg(args) {
     return args.find((a) => a.reqd && /^(id|.*Id)$/i.test(a.name));
 }
@@ -63,12 +53,10 @@ function classifyGraphQLField(sig, profile) {
     }
     const id = idArg(sig.args);
     if ('query' === sig.optype) {
-        // Connection or list of the entity -> list.
         if ('connection' === ret.kind || 'list' === ret.kind) {
             why.push('query:' + ret.kind);
             return { entity, op: 'list', optype: 'query', why };
         }
-        // Single entity behind one required id -> load.
         if ('entity' === ret.kind) {
             if (null != id) {
                 why.push('query:entity:id=' + id.name);
@@ -86,7 +74,6 @@ function classifyGraphQLField(sig, profile) {
         why.push('query:unmatched:' + ret.kind);
         return { exclude: true, why };
     }
-    // --- mutation ---
     const verb = splitEntityVerb(sig.name, entity).replace(/^[_-]+/, '');
     const input = sig.inputTypeName ?? '';
     // create: <Entity>CreateInput, or a create-ish verb, and no id argument.
@@ -95,13 +82,11 @@ function classifyGraphQLField(sig, profile) {
         why.push(createByInput ? 'mutation:input:' + input : 'mutation:verb:' + verb);
         return { entity, op: 'create', optype: 'mutation', why };
     }
-    // update: <Entity>UpdateInput, or an update-ish verb.
     const updateByInput = new RegExp('^' + entity + '(Update|Edit|Patch|Set)Input$', 'i').test(input);
     if (updateByInput || UPDATE_RE.test(verb)) {
         why.push(updateByInput ? 'mutation:input:' + input : 'mutation:verb:' + verb);
         return { entity, op: 'update', optype: 'mutation', why };
     }
-    // remove: a delete-ish verb.
     if (REMOVE_RE.test(verb)) {
         why.push('mutation:verb:' + verb);
         return { entity, op: 'remove', optype: 'mutation', why };
@@ -128,7 +113,6 @@ function deriveRetShape(field, types) {
     if ('OBJECT' !== named.kind && 'INTERFACE' !== named.kind) {
         return { kind: 'other' };
     }
-    // Relay connection: has pageInfo plus nodes and/or edges.
     const fnames = Object.keys(named.fields);
     if (fnames.includes('pageInfo') &&
         (fnames.includes('nodes') || fnames.includes('edges'))) {
@@ -163,9 +147,6 @@ function deriveRetShape(field, types) {
                 !f.list && !MACHINERY_RE.test(ftype.name) &&
                 !/^(errors?|userErrors?)$/i.test(fname);
         });
-        // Prefer the field whose name matches the payload's own entity prefix
-        // (IssuePayload -> issue), which is the convention every CRUD-regular
-        // GraphQL API follows; fall back to the single remaining candidate.
         const prefix = named.name.replace(/Payload$/, '');
         const byName = candidates.find((fname) => fname.toLowerCase() === prefix.toLowerCase() ||
             types[named.fields[fname].type]?.name === prefix);
@@ -182,15 +163,12 @@ function deriveRetShape(field, types) {
     if (MACHINERY_RE.test(named.name)) {
         return { kind: 'other' };
     }
-    // A list of the entity is a list op even without connection machinery.
     if (field.list) {
         return { kind: 'list', entity: named.name };
     }
     return { kind: 'entity', entity: named.name };
 }
-// Build the classifier signature for a root field.
 function fieldSig(optype, field, types) {
-    // The input-object argument, if any, drives create/update detection.
     let inputTypeName = undefined;
     for (const arg of field.args) {
         const at = types[arg.type];
@@ -210,8 +188,6 @@ function fieldSig(optype, field, types) {
         nameEntity: nameEntityType(field.name, types),
     };
 }
-// Verb suffixes a mutation field name may carry, longest first so
-// `issueUnarchive` strips `Unarchive` rather than `Archive`.
 const NAME_VERBS = [
     'Unarchive', 'Archive', 'Delete', 'Remove', 'Destroy',
     'Create', 'Update', 'Insert', 'Upsert',
@@ -237,41 +213,12 @@ function nameEntityType(fieldName, types) {
     }
     return undefined;
 }
-// Entity model name from a GraphQL type name: Issue -> issue,
-// WorkflowState -> workflow_state (canonize handles the casing rules that
-// the REST path classifier already uses).
 function rawEntityName(typeName) {
     return (0, utility_1.depluralize)((0, utility_1.canonize)((0, utility_1.normalizeFieldName)(typeName)));
 }
-// The leading-digit guard is applied here rather than inherited: the REST
-// side gets it from `ensureMinEntityName`, which this path deliberately does
-// not call (its min-length padding is the REST classifier's rule, and
-// entities here merge by name on purpose). GraphQL type names cannot begin
-// with a digit, but they can begin with `_`, which `normalizeFieldName`
-// strips — so `_3DSSessions` reaches an SDK as the entity `3_ds_session` and
-// every generated language rejects the identifier.
 function entityName(typeName) {
     return (0, utility_1.prefixLeadingDigit)(rawEntityName(typeName));
 }
-// Two GraphQL types that canonize to ONE entity name merge, deliberately:
-// `_3DSSession` and `_3DSSessions` are the singular and plural spellings of
-// one thing, and `Issue`/`Issues` likewise. That is what canonicalization is
-// for, and the caller's `guide.entity[entname] ?? {…}` is how it happens.
-//
-// The leading-digit guard opens one collision that is NOT that. A guarded
-// name (`_3DSSessions` -> `3_ds_session` -> `n3_ds_session`) can land on a
-// name another type already owns natively (`N3DSSession` -> `n3_ds_session`).
-// Those are unrelated types, and merging them would fold two entities' fields
-// and ops together under a name whose `orig` records only the first — with no
-// second guide entry for a user to correct, since guide.aon is the only
-// correction surface (ADR-002).
-//
-// So a collision between a guarded name and an unguarded one takes a numeric
-// suffix, the same convention `ensureMinEntityName` uses on the REST side.
-// The scope is exactly the collisions this guard creates: when both names are
-// guarded, or neither is, the merge is what it was before the guard existed
-// and stands untouched. The same type re-encountered on another root field
-// always reuses its own entry.
 function resolveEntityName(typeName, entities) {
     const raw = rawEntityName(typeName);
     const base = (0, utility_1.prefixLeadingDigit)(raw);
@@ -296,7 +243,6 @@ function newGuidePath() {
         op: {},
     };
 }
-// The GraphQL guide strategy.
 async function graphql01(ctx) {
     const def = ctx.def;
     const profile = (ctx.opts.profile ?? 'none');
@@ -325,7 +271,6 @@ async function graphql01(ctx) {
         { optype: 'mutation', fields: def.mutation ?? {} },
     ];
     for (const root of roots) {
-        // Sorted iteration: byte-stable guide output.
         for (const fname of Object.keys(root.fields).sort()) {
             guide.metrics.count.field++;
             const field = root.fields[fname];

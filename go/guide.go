@@ -62,9 +62,6 @@ func BuildGuide(ctx *ApiDefContext) (map[string]any, error) {
 	// Generate guide JSONIC source
 	guideSrc := buildGuideSource(ctx, baseguide)
 
-	// Write base guide file. The TS pipeline never writes the full guide
-	// content to <prefix>guide.aon — that file is a small include
-	// template the user/host harness pre-creates. We mirror that here.
 	guideDir := filepath.Join(folder, "guide")
 	os.MkdirAll(guideDir, 0755)
 	prefix := ctx.Opts.OutPrefix
@@ -74,37 +71,10 @@ func BuildGuide(ctx *ApiDefContext) (map[string]any, error) {
 			RelativizePath(baseGuideFile), err)
 	}
 
-	// The TS pipeline unifies <prefix>guide.aon — the user-editable overlay
-	// that @-includes this base guide — over the heuristic result via aontu,
-	// and that overlay is where every documented customization lives
-	// (entity rename/hide/move/activate, per-path deactivation, method
-	// override, param rename, response transform).
-	//
-	// There is no Go aontu, so this port cannot apply it. Ignoring it
-	// silently is the dangerous option: the build succeeds and emits a model
-	// that disagrees with the one TS produces, with no signal. Refuse
-	// instead, and say exactly what was found.
 	if err := checkGuideOverlay(ctx, guideDir, prefix); err != nil {
 		return nil, err
 	}
 
-	// THE ID OVERRIDE IS READ EVEN SO, because otherwise it is undocumentable
-	// in this port.
-	//
-	// checkGuideOverlay refuses a customized guide because there is no Go
-	// aontu to apply one, and silently emitting a model that disagrees with
-	// the TS one is the worse failure. But composite identity is INFERRED
-	// here, and adjacency cannot always be right — github's
-	// /…/artifacts/{artifact_id}/{archive_format} reads as composite and is
-	// not. Without this the Go port emits a false compound key that the
-	// documented correction surface cannot reach: stating the override makes
-	// the build refuse, and omitting it leaves the wrong answer.
-	//
-	// So exactly the `entity.<name>.id` blocks are lifted out of the project
-	// guide, by a narrow scan rather than by unifying it. That keeps the
-	// refusal for everything else while making the one correction this port
-	// can act on actually work. Parity is the rule (AGENTS.md); a feature the
-	// TS port can correct and the Go port cannot is not parity.
 	idOverrides := readGuideIdOverrides(guideDir, prefix)
 
 	// Parse guide back into model
@@ -155,22 +125,6 @@ func checkGuideOverlay(ctx *ApiDefContext, guideDir string, prefix string) error
 		RelativizePath(overlayFile), len(custom), custom[0])
 }
 
-// guideOverlayCustomizations returns the overlay's significant lines —
-// everything that is not blank, a comment, or an @-include.
-//
-// An empty overlay is not a customization, however it is spelled. Both the
-// one-line `guide: {}` and the multi-line
-//
-//	guide: {
-//	}
-//
-// are valid aontu for "adds nothing", and TS accepts either, so the joined
-// remainder is compared rather than individual lines — matching per-line
-// against a single spelling flagged the multi-line form as two
-// customizations and failed an otherwise fine build.
-// The one overlay form this port can honour: `entity: <name>: id: <key>: …`
-// for parts / sep / composite. Shared by the refusal check and the reader so
-// the two cannot disagree about what is supported.
 var guideIdLineRE = regexp.MustCompile(
 	`^\s*entity:\s*[A-Za-z0-9_]+:\s*id:\s*(parts|sep|composite):`)
 
@@ -181,16 +135,6 @@ func guideOverlayCustomizations(src string) []string {
 		if t == "" || strings.HasPrefix(t, "#") || strings.HasPrefix(t, "@") {
 			continue
 		}
-		// THE ID CORRECTION IS SUPPORTED, so it is not a refusable
-		// customization.
-		//
-		// This port INFERS composite identity, and adjacency cannot always be
-		// right — github's /…/artifacts/{artifact_id}/{archive_format} reads
-		// as composite and is not. readGuideIdOverrides lifts exactly these
-		// lines and applies them, so refusing them left the correction
-		// unreachable: stating it failed the build, omitting it kept the
-		// false compound key. Everything else is still refused, because
-		// everything else needs aontu.
 		if guideIdLineRE.MatchString(t) {
 			continue
 		}
@@ -290,20 +234,10 @@ func buildGuideSource(ctx *ApiDefContext, baseguide map[string]any) string {
 					blocks = append(blocks, fmt.Sprintf("      op: %s: method: *%s", opname, method))
 
 					if transform, ok := opdef["transform"].(map[string]any); ok {
-						// Each transform is emitted only when set, and each on
-						// its own terms. Mirrors src/guide/guide.ts.
 						if res := transform["res"]; res != nil {
 							qt, _ := json.Marshal(res)
 							blocks = append(blocks, fmt.Sprintf("      op: %s: transform: res: *(%s)|top", opname, string(qt)))
 						}
-						// The req transform is a MAP of body property -> source
-						// expression (see closedBodyTransform), so it takes one
-						// line per property, keys sorted for stable output. THE
-						// SERIALISED GUIDE IS WHAT THE TRANSFORM STEP READS: a
-						// transform not written here never reaches the model,
-						// which is why restricting a closed request body had no
-						// effect until this existed. Only the map form is
-						// representable as aontu paths.
 						if reqmap, ok := transform["req"].(map[string]any); ok {
 							for _, bodykey := range sortedKeys(reqmap) {
 								source, ok := reqmap[bodykey].(string)
@@ -594,10 +528,6 @@ func resolveEntityComponent(data map[string]any, mdesc map[string]any) {
 		}
 	}
 
-	// Clean component names. Guarded wrapper-suffix stripping folds e.g.
-	// BeneficiaryPageResponse into beneficiary — but only when the remainder
-	// is itself a schema measured by MeasureRef (keys are CanonizeCmpName,
-	// pre-clean). Mirrors src/guide/heuristic01.ts.
 	isKnownCmp := func(n string) bool {
 		_, ok := origcmprefs[n]
 		return ok
@@ -806,11 +736,6 @@ func resolveEntityName(ctx *ApiDefContext, data map[string]any, mdesc map[string
 	}
 
 	entmap := work["entmap"].(map[string]any)
-	// Keep the pre-truncation name so a truncated-name collision can tell a
-	// re-encounter of the SAME origin (merge) from a genuinely different one
-	// (numeric suffix) — see EnsureMinEntityName / sameLongname. Note the key
-	// is `longname`, NOT `origname`: origname has separate resolveTransform
-	// semantics (see the comment below). Mirrors src/guide/heuristic01.ts.
 	rawEntname := entname
 	entname = EnsureMinEntityName(entname, entmap)
 
@@ -829,12 +754,6 @@ func resolveEntityName(ctx *ApiDefContext, data map[string]any, mdesc map[string
 		}
 		if origcmp, ok := ment["origcmp"]; ok {
 			entdesc["origcmp"] = origcmp
-			// Mirrors src/guide/heuristic01.ts:576-582. TS spreads `...ment`
-			// into entdesc, which copies cmp/origcmp/etc. — but NOT origname,
-			// since makeMethodEntityDesc never adds that key. resolveTransform
-			// reads entdesc.origname expecting undefined; setting it here
-			// causes spurious `transform.res` matches when a response wrapper
-			// happens to share a key with the path part.
 		}
 		if origcmpref, ok := ment["origcmpref"]; ok {
 			entdesc["origcmpref"] = origcmpref
@@ -864,9 +783,6 @@ func resolveEntityName(ctx *ApiDefContext, data map[string]any, mdesc map[string
 	ment["entname"] = entname
 	ment["pm"] = pm
 
-	// Which entity took each path+method, in resolution order; verbOnParent
-	// reads the item path's GET owner from here. Mirrors
-	// src/guide/heuristic01.ts ResolveEntityName.
 	pathowner, _ := work["pathowner"].(map[string]any)
 	if pathowner == nil {
 		pathowner = map[string]any{}
@@ -947,15 +863,6 @@ func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any)
 
 	parts, _ := pathdescEntry["parts"].([]string)
 
-	// IMPLICIT SNAKE_CASE NORMALIZATION of any path placeholder the id-rename
-	// logic below does not itself rename. Mirrors applySnakeCaseRename in
-	// src/guide/heuristic01.ts, and it was missing here entirely.
-	//
-	// The args transform snake-cases a param's NAME (spec `orderId` becomes
-	// param.name `order_id`) while the path placeholder stays as written, so
-	// without this the runtime substitutes by param.name and never fills
-	// `{orderId}`. petstore's store kept `orderId` in Go and `order_id` in
-	// TS — the ports disagreed about the URL they would request.
 	applySnakeCaseRename := func() {
 		for _, part := range parts {
 			if !isParam(part) {
@@ -977,12 +884,6 @@ func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any)
 		}
 	}
 
-	// id needs to be t/p/
-	//
-	// AFTER the rename maps exist, and the snake-case pass runs first: TS
-	// returns here with `ment.rename` SET, and Go returned before the maps
-	// were even built — so a path ending in two adjacent params carried no
-	// rename at all on this port.
 	if multParamEndMatch := PathMatch(pathStr, "p/p/"); multParamEndMatch != nil {
 		applySnakeCaseRename()
 		ment["rename"] = paramRename
@@ -990,19 +891,8 @@ func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any)
 		return
 	}
 
-	// Mirrors src/guide/heuristic01.ts:648 — `const cmpname = mdesc.cmp`.
-	// `mdesc.cmp` is read off the method descriptor *itself*, not
-	// `mdesc.MethodEntity.cmp`, and is in fact never assigned. Treating
-	// cmpname as the (always-empty) mdesc-level value, rather than the
-	// MethodEntity one, keeps the rename branches (`parentName === cmpname`
-	// in particular) from firing on canonical-name matches that TS doesn't
-	// see — which would otherwise spawn extra `action-not-parent` entries.
 	cmpname := safeStr(mdesc["cmp"])
 
-	// Mirrors src/guide/heuristic01.ts:649-652. TS reads
-	// metrics.count.uniqschema, which is never assigned anywhere — it stays
-	// undefined, so `0 < undefined` is false and considerCmp collapses to
-	// false. We replicate that by reading the same (unset) key.
 	uniqschema := toInt(countMap["uniqschema"])
 	considerCmp := cmpname != "" && uniqschema > 0 &&
 		safeFloat(ment["method_rate"]) < IS_ENTCMP_METHOD_RATE
@@ -1038,10 +928,6 @@ func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any)
 		probablyAnId := strings.HasSuffix(oldParam, "id") ||
 			strings.HasSuffix(oldParam, "Id") ||
 			Canonize(oldParam) == parentName ||
-			// GitHub-style `<parent>_number` keys (pull_number, issue_number):
-			// the parent's own key under another name. Only under its own
-			// entity, so a nested collection keeps its parent key. Mirrors
-			// src/guide/heuristic01.ts.
 			(strings.HasSuffix(oldParam, "_number") && parentName == entdescName)
 
 		DebugPath(pathStr, methodName, "RENAME-PARAM-PART", parts, partI, partStr)
@@ -1205,12 +1091,6 @@ func findActions(data map[string]any, mdesc map[string]any) {
 	cmp := safeStr(ment["cmp"])
 	origcmp := safeStr(ment["origcmp"])
 
-	// Mirrors src/guide/heuristic01.ts:898-933. TS compares with `===` so
-	// empty-string canon (parts shorter than the index requires) does not
-	// match the (typically nil/null) ment.cmp/origcmp. We replicate by
-	// gating each comparison on the canon being non-empty AND matching a
-	// non-empty cmp/origcmp/entname; an entname-match is fine even when
-	// origcmp is unset because entname is never empty in practice.
 	matchesAt := func(canon string) bool {
 		if canon == "" {
 			return false
@@ -1220,13 +1100,7 @@ func findActions(data map[string]any, mdesc map[string]any) {
 			canon == entname
 	}
 
-	// A verb that ResolveEntityName assigned to its parent entity
-	// (verbOnParent) is an action whatever the parent literal canonizes
-	// to. Mirrors src/guide/heuristic01.ts FindActions.
 	if safeStr(ment["verb_on_parent"]) != "" {
-		// Recorded directly rather than through updateAction, whose guard
-		// against an entity "already encoding" the verb would drop `archive`
-		// on `email_archive`. Mirrors src/guide/heuristic01.ts FindActions.
 		action, _ := pathdesc["action"].(map[string]any)
 		if action == nil {
 			action = map[string]any{}
@@ -1380,33 +1254,16 @@ func resolveTransform(data map[string]any, mdesc map[string]any) {
 	origname := safeStr(entdesc["origname"])
 	ename := safeStr(entdesc["name"])
 
-	// Only unwrap `body.<entity>` when the entity-named response property is
-	// itself a structured value (object/array/ref/composed schema) that could
-	// actually contain the entity. A scalar property that merely shares the
-	// entity's name (e.g. entity `advice` with a string field `advice`) is a
-	// FIELD of the entity, not a wrapper: the response IS the entity, so it
-	// must stay `body` (the default). Mirrors ts/src/guide/heuristic01.ts.
 	if resprops != nil {
 		if isEntityWrapperProp(resprops[origname]) && origname != "" {
 			transform["res"] = "`body." + origname + "`"
 		} else if isEntityWrapperProp(resprops[ename]) && ename != "" {
 			transform["res"] = "`body." + ename + "`"
 		} else if envelope := envelopeProp(resprops, opname); envelope != "" {
-			// The wrapper is often named for the CARDINALITY rather than the
-			// entity — `{item: {...}}` from a load, `{items: [...]}` from a
-			// list — which the entity-name rules above cannot see. Left
-			// unwrapped, list() hands back the envelope where the caller
-			// expects an array, and the envelope key is mistaken for a field
-			// of the entity.
 			transform["res"] = "`body." + envelope + "`"
 		}
 	}
 
-	// Check request body schema. The SCHEMA is what closedBodyTransform needs
-	// (it reads additionalProperties); the wrapper-name checks need its
-	// PROPERTIES. Mirrors ts/src/guide/heuristic01.ts, which used to share one
-	// value and index the schema itself — so the entity-name request envelope
-	// was detected here and not there.
 	reqBody, _ := mdesc["requestBody"].(map[string]any)
 	reqschema := getRequestBodySchema(reqBody)
 	reqprops := getRequestBodySchemaProps(reqBody)
@@ -1418,12 +1275,6 @@ func resolveTransform(data map[string]any, mdesc map[string]any) {
 		} else if _, ok := reqprops[ename]; ok && ename != "" {
 			transform["req"] = map[string]any{ename: "`reqdata`"}
 		} else if body := closedBodyTransform(reqschema); body != nil {
-			// A CLOSED body schema names every property the server will
-			// accept, so the body is those properties — not the whole request
-			// payload. The payload also carries the op's PATH params (`id` for
-			// `PUT /item/{id}`), and a closed shape rejects the entire request
-			// over that one extra key: every update came back 400 with
-			// `invalid-data`.
 			transform["req"] = body
 		}
 	}
@@ -1546,13 +1397,6 @@ func entityPathMatch_tpte(data map[string]any, pm *PathMatchResult, mdesc map[st
 	return entname
 }
 
-// verbOnParent decides whether a write on `.../<parent>/{id}/<verb>` is a
-// verb on the parent entity rather than an entity named after its result
-// shape. Mirrors src/guide/heuristic01.ts verbOnParent: the method writes,
-// the response component occurs nowhere else, the item selector is itself a
-// path of the spec, and nothing extends the path. Returns the parent's
-// resolved entity name (methods resolve in path order, so it is already in
-// work.entmap), or "" when the rule does not apply.
 func verbOnParent(data map[string]any, pm *PathMatchResult, mdesc map[string]any) string {
 	method := safeStr(mdesc["method"])
 	if method == "GET" || method == "QUERY" || method == "HEAD" || method == "OPTIONS" {
@@ -1564,21 +1408,11 @@ func verbOnParent(data map[string]any, pm *PathMatchResult, mdesc map[string]any
 		return ""
 	}
 
-	// A PLURAL literal names a nested collection, whatever it answers with:
-	// `asset_keys` under `{environment_id}` creates an asset key, and
-	// `approvals` under `{merge_request_iid}` is a collection of approvals.
-	// A verb is singular — `merge`, `revoke`, `resend_confirmation` — so the
-	// component rule below is never reached for a plural, which is what
-	// keeps a create-only collection an entity of its own.
 	lit := Snakify(getMatchElem(pm, -1))
 	if lit == "" || Depluralize(lit) != lit {
 		return ""
 	}
 
-	// A singular literal still names a collection when its response
-	// component is that collection's member shape (`label` answering with
-	// `label`, or with a parent-prefixed `thing_label`); a verb answers with
-	// something else.
 	verb := Canonize(getMatchElem(pm, -1))
 	cmp := ""
 	if ment != nil {
@@ -1992,14 +1826,6 @@ func isListResponse(mdesc map[string]any, pathStr string, why *[]string) bool {
 
 	islist := false
 
-	// 'p/' is anchored (e.g. t/p/): the path ends at a param, so it is an
-	// item path and the response shape cannot change that.
-	//
-	// A bare trailing 'p' (e.g. t/p/p, a compound key like
-	// /repos/{owner}/{repo}) also ends at a param, but the same shape covers
-	// a sub-collection scoped by a compound key (e.g. /audit-log/{ns}/{repo}).
-	// Those are told apart by the response: a collection returns an array at
-	// the top level, an item does not.
 	endParamAnchored := pm != nil && strings.HasSuffix(pm.Expr, "p/")
 	endParamBare := pm != nil && !endParamAnchored && strings.HasSuffix(pm.Expr, "p")
 
@@ -2035,11 +1861,6 @@ func isListResponse(mdesc map[string]any, pathStr string, why *[]string) bool {
 			islist = true
 		}
 
-		// The array-prop fallback is deliberately loose, and an item schema
-		// often carries an incidental array property (GitHub's full-repository
-		// has topics: string[]). That is good enough evidence for an ordinary
-		// path, but not for a compound-key path, where it is exactly what
-		// misclassifies the item as a list.
 		if !islist && !endParamBare {
 			properties := resolveSchemaProperties(schema)
 			for _, propName := range sortedKeys(properties) {
@@ -2072,13 +1893,6 @@ func isListResponse(mdesc map[string]any, pathStr string, why *[]string) bool {
 	return islist
 }
 
-// resolveSchemaProperties merges allOf properties with direct properties.
-// Mirrors src/guide/heuristic01.ts:resolveSchemaProperties — TS calls
-// @voxgig/struct.merge which deep-merges per-property maps, so an
-// allOf entry like {result: {type: array}} combined with another
-// {result: {description: …}} yields {result: {type: array, description: …}}.
-// We do a one-level deep merge here without mutating the source schemas
-// (using vs.Merge on resolved $refs would mutate shared references).
 func resolveSchemaProperties(schema map[string]any) map[string]any {
 	out := map[string]any{}
 
@@ -2544,25 +2358,6 @@ func nilOrStr(v any) string {
 	return s
 }
 
-// readGuideIdOverrides lifts the `entity.<name>.id` blocks out of a project
-// guide, and nothing else.
-//
-// A NARROW SCAN, NOT A UNIFICATION. There is no Go aontu, so the guide cannot
-// be applied properly here — checkGuideOverlay refuses it for exactly that
-// reason. But composite identity is INFERRED in this port, and adjacency
-// cannot always be right, so the correction has to be reachable or the Go
-// model carries a false compound key no documented means can fix.
-//
-// Scanning recognises the three forms the schema allows, in the flat
-// `a: b: c: v` style the guide is written in:
-//
-//	entity: repo: id: parts: [ 'owner', 'repo' ]
-//	entity: repo: id: composite: false
-//	entity: repo: id: sep: ':'
-//
-// Anything it does not recognise is ignored and still refused by
-// checkGuideOverlay, so this widens nothing: it reads a key that the TS port
-// reads through aontu, and no more.
 func readGuideIdOverrides(guideDir string, prefix string) map[string]map[string]any {
 	out := map[string]map[string]any{}
 

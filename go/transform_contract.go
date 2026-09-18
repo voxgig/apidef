@@ -8,7 +8,6 @@ import (
 	"strings"
 )
 
-// Mirrors src/transform/contract.ts. Keep empty arrays, schemas and nulls.
 func contractCopy(v any) any {
 	return contractCopyAt(v, "#", map[uintptr]string{})
 }

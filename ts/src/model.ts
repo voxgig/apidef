@@ -1,15 +1,12 @@
 /* Copyright (c) 2024-2025 Voxgig, MIT License */
 
-// Consolidated model types for the API model derived from OpenAPI specifications
 
 import type { MethodName } from './types'
 
 
-// Operation names available on entities
 type OpName = 'load' | 'list' | 'create' | 'update' | 'remove' | 'patch' | 'head' | 'options'
 
 
-// Argument kinds supported on operation points.
 type ArgKind = 'param' | 'query' | 'header' | 'cookie'
 
 
@@ -49,62 +46,36 @@ type Model = NamesCluster & {
 }
 
 
-// Entity relationships information
 type ModelEntityRelations = {
   ancestors: string[][]
 }
 
 
-// Map of operations available on an entity
 type ModelOpMap = Partial<Record<OpName, ModelOp | undefined>>
 
 
-// Field-specific operation configuration
 type ModelFieldOp = {
-  type: any // @voxgig/struct validation schema
+  type: any
   req: boolean
 }
 
 
-// Entity field definition
-//
-// `union` is present only when the field bottoms out in an UNTAGGED union —
-// `oneOf`/`anyOf`, two or more branches, no `discriminator` — so the spec
-// never says which variant a value is and the field can only be modelled as
-// an open type. It records the widest such union found beneath the field, and
-// exists so generators can SAY SO in the documentation rather than silently
-// emitting a permissive type that looks like a modelling failure.
 type ModelField = {
   name: string
-  type: any // @voxgig/struct validation schema
+  type: any
   req: boolean
   op: Partial<Record<OpName, ModelFieldOp>>
 
-  // One-line human description, straight from the spec's property
-  // `description`. Absent when the spec does not describe the property —
-  // generators render an empty cell rather than inventing prose.
   short?: string
 
-  // SPEC FACTS ABOUT THE FIELD ITSELF, carried through verbatim from the
-  // OpenAPI property. Facts the spec states, not inferences.
-  //
-  // `readOnly` is the load-bearing one: it is the difference between a field
-  // a client MAY send and one it may not, which nothing else in this record
-  // expresses. Without it every generator necessarily puts server-assigned
-  // fields into the type a caller fills in.
-  //
-  // The booleans are present ONLY when the spec declares them true — each
-  // defaults to false in OpenAPI, so absent and explicit-false mean the same
-  // thing and emitting the false ones would change every model for no
-  // information. `format` is present only for a non-empty string.
   readOnly?: boolean
   writeOnly?: boolean
   deprecated?: boolean
   format?: string
   union?: {
-    count: number     // how many untagged unions lie beneath the field
-    branches: number  // widest branch count among them
-    depth: number     // how far down the widest one sits
+    count: number
+    branches: number
+    depth: number
   }
 }
 
@@ -117,7 +88,7 @@ type ModelField = {
 type ModelArg = {
   name: string
   orig: string
-  type: any // @voxgig/struct validation schema
+  type: any
   kind: ArgKind
   reqd: boolean
   example?: any
@@ -131,8 +102,6 @@ type ModelArg = {
 type PointKind = 'http' | 'graphql'
 
 
-// Pagination descriptor for a GraphQL list op. `nodes`/`cursor`/`more` are
-// dotted paths relative to the unwrapped connection object.
 type ModelGraphqlPage = {
   style: string
   nodes: string
@@ -141,9 +110,6 @@ type ModelGraphqlPage = {
 }
 
 
-// One GraphQL variable binding: `name` is the variable as it appears in the
-// operation document, `from` the op argument it is read from, `gqltype` the
-// declared GraphQL type (e.g. 'String!').
 type ModelGraphqlVar = {
   name: string
   from: string
@@ -151,9 +117,6 @@ type ModelGraphqlVar = {
 }
 
 
-// GraphQL wire data for a point. `doc` is the complete operation document,
-// rendered single-line with sorted selection fields so output stays
-// byte-stable and schema drift shows up in model diffs.
 type ModelGraphql = {
   optype: 'query' | 'mutation'
   field: string
@@ -163,13 +126,6 @@ type ModelGraphql = {
 }
 
 
-// One concrete endpoint that can satisfy an operation. An entity op
-// (load/list/create/...) carries an array of these — apidef chooses
-// between them at runtime via `select.exist` matching against reqmatch /
-// reqdata. (Originally named `ModelTarget`; renamed for consistency with
-// the field name `points` and the runtime utility `MakePoint`.)
-// One resolved path segment (ADR-003). Exactly one of `lit` / `var` is set;
-// `var` names an entry of the point's `args.params`.
 type ModelPathSegment = {
   lit?: string
   var?: string
@@ -206,24 +162,12 @@ type ModelPoint = {
 }
 
 
-// Operation definition
 type ModelOp = {
   name: OpName
   points: ModelPoint[]
 }
 
 
-// Entity definition - core model entity with operations and fields.
-// `id` is present only when the OpenAPI response/request schema declares
-// (or examples imply) an `id` field on the entity. Public APIs that return
-// payloads without an id (e.g. read-only feeds) leave it undefined.
-//
-// `Name`, `NAME` etc. are stamped on by jostraca's `names()` helper after
-// apidef hands the model to the generator. They're typed as optional here
-// so apidef's transform code can construct entities without them; template
-// code should reach for them through `nom(entity, 'Name')` rather than
-// direct property access, which both works pre-`names()` and lets us
-// remove the optional later.
 type ModelEntity = {
   name: string
   Name?: string
@@ -233,28 +177,8 @@ type ModelEntity = {
   id?: {
     name: string
     field: string
-    // COMPOSITE IDENTITY. Present only when the API addresses one record by
-    // MORE THAN ONE path parameter, so no single parameter is the id.
-    // github's repo is the case: GET /repos/{owner}/{repo} needs both, and
-    // neither alone names a repository.
-    //
-    // `parts` are those parameters in path order; `sep` joins them into the
-    // one `id` an SDK entity carries. Absent means the ordinary single-key
-    // entity, so downstream can branch on presence alone.
     parts?: string[]
     sep?: string
-    // WHERE EACH PART'S VALUE LIVES IN A RESPONSE, as a dotted path.
-    //
-    // The parts are PATH PARAMETER names and a response names its fields
-    // whatever it likes: github addresses a repo by `{owner}/{repo}` and
-    // returns the owner as an OBJECT, so the value is at `owner.login`, and
-    // the repository under `name`. Without this a consumer can address a
-    // record it was given the id of, but cannot put an id on a record the
-    // API returned.
-    //
-    // A part no rule resolves is left OUT, so an incomplete map says the id
-    // cannot be rebuilt for that entity — better than a confidently wrong id
-    // on a real record. guide.aon can state it instead.
     from?: Record<string, string>
   }
   relations: ModelEntityRelations
@@ -265,7 +189,6 @@ type ModelEntityFlow = {
   name: string,
   entity: string
   kind: string
-  // args: Record<string, string>
   step: ModelEntityFlowStep[]
   active?: boolean
 }
@@ -291,8 +214,6 @@ type ModelEntityFlowStepInput = {
 }
 
 
-// Validators and specs are user-supplied callables identified by the
-// `apply` discriminator; `def` is the validator-specific options bag.
 type ModelEntityFlowStepValidator = {
   apply: string
   def: Record<string, any>

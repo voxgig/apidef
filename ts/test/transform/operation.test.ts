@@ -37,9 +37,6 @@ function makeCtx(entname: string, op: any): any {
 
 describe('transform-operation op resolution', () => {
 
-  // Guide overlays may name an op anything; only the six CRUD names exist.
-  // A stray name used to vanish without a trace (ADR-002: guide.aon is the
-  // only correction surface, so a silent drop defeats it).
   test('drops an unknown op name with a warning', async () => {
     const ctx = makeCtx('pull', {
       load: { method: 'GET' },
@@ -126,8 +123,6 @@ describe('transform-operation transform propagation', () => {
   })
 
   test('does not mutate the shared guide op.transform across points', async () => {
-    // Two paths share one op object reference; defaulting on one point
-    // must not leak onto the other (the point spreads into a fresh object).
     const sharedOp = { method: 'GET', transform: { res: '`body.pet`' } }
     const ctx: any = makeCtx('pet', { list: sharedOp })
     ctx.guide.entity.pet.paths$.push(

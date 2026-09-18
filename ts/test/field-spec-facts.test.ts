@@ -6,18 +6,6 @@ import assert from 'node:assert'
 import { fieldTransform } from '../dist/transform/field'
 
 
-// The four OpenAPI property keywords that now reach ModelField:
-// `readOnly`, `writeOnly`, `deprecated` and `format`.
-//
-// They were being dropped, and `readOnly` is the expensive one to drop: it is
-// the only statement in a spec of whether a client MAY send a field, so
-// without it every generated create/update type offers the caller fields the
-// server assigns. The tests below pin the three decisions that make up the
-// feature — what is carried, what is deliberately NOT emitted, and how two
-// disagreeing schemas resolve.
-//
-// Shaped after field-short.test.ts, which covers the same paths for
-// `description`; the merge rule is deliberately the same one.
 
 function runFieldTransform(entity: any, def: any) {
   const apimodel = { main: { kit: { entity: { [entity.name]: entity } } } }
@@ -32,7 +20,6 @@ function fieldsByName(fields: any[]) {
 }
 
 
-// One entity with one GET, whose 200 response carries `schema`.
 function loadOnly(schema: any) {
   return {
     entity: {
@@ -83,12 +70,6 @@ describe('field-spec-facts', () => {
   })
 
 
-  // ABSENT AND EXPLICIT-FALSE MEAN THE SAME THING, so only true is emitted.
-  //
-  // Each keyword defaults to false in OpenAPI. Emitting the false ones would
-  // add three keys to every field of every model and say nothing that the
-  // absence did not already say — and it would move every golden in this
-  // repo, which is a large diff carrying no information.
   test('a false or absent keyword adds no key', async () => {
     const { entity, def } = loadOnly({
       type: 'object',
@@ -132,12 +113,6 @@ describe('field-spec-facts', () => {
   })
 
 
-  // THE MERGE, which is where a real spec differs from a constructed one.
-  //
-  // A field is first seen under a higher-precedence op that references a bare
-  // component, and annotated under a later one. Identity is first-writer-wins,
-  // so without a merge rule the annotation is thrown away — exactly the bug
-  // that left every Description cell blank before `short` was merged.
   test('an annotation on a later op survives the merge', async () => {
     const entity = {
       name: 'planet',
@@ -195,16 +170,6 @@ describe('field-spec-facts', () => {
   })
 
 
-  // TWO SCHEMAS THAT DISAGREE, resolved toward the restriction.
-  //
-  // A response marks the field readOnly and a request body lists it as an
-  // ordinary property. That spec contradicts itself — OpenAPI says a client
-  // must not send a readOnly property at all — and the first declaration in
-  // opFieldPrecedence order wins, which puts `load` (the response) first.
-  //
-  // That is the safe direction, and the reason is asymmetric: believing the
-  // restriction costs a caller one field they probably could have sent;
-  // believing the omission sends a value the server rejects.
   test('a readOnly response beats a request that omits it', async () => {
     const entity = {
       name: 'planet',
@@ -265,14 +230,6 @@ describe('field-spec-facts', () => {
   })
 
 
-  // The parsed schema is SHARED across every operation that references it, so
-  // nothing here may write a per-operation value back onto it — the hazard
-  // findFieldDefs already carries a comment about for `required`.
-  //
-  // Compared with the ITERATION METADATA stripped. `each` stamps `index$` on
-  // every object it walks, which is the traversal helper's business and not
-  // this transform writing anything; asserting on the raw JSON would fail on
-  // that and say "mutated" about a key no operation reads.
   test('the parsed schema keeps its own keys', async () => {
     const schema = {
       type: 'object',

@@ -6,20 +6,6 @@ import assert from 'node:assert'
 import { fieldTransform } from '../dist/transform/field'
 
 
-// An ACTION POINT contributes no fields to the entity.
-//
-// A custom action — `POST /api/planet/{planet_id}/terraform` — is classified
-// under `create` and marked with `select.$action`. Every point of an op was
-// harvested for fields, so the action's request body (that verb's arguments)
-// and its response (that verb's result) were read as though each described a
-// planet. solar's planet, four properties in the spec, came out with ten
-// fields; the six extra reached the generated `Planet` type, its create and
-// update data types, and the generated reference's field table.
-//
-// The rule this pins is already stated twice in the same transform:
-// `identityParams` skips action points because they are verbs rather than
-// addresses, and `responseCandidates` skips them because an action's response
-// is not a representation of the entity. The field list now agrees.
 
 function runFieldTransform(entity: any, def: any) {
   const apimodel = { main: { kit: { entity: { [entity.name]: entity } } } }
@@ -32,8 +18,6 @@ function names(fields: any[]) {
 }
 
 
-// A planet shaped like solar's: a plain create alongside two action points,
-// all three under `create`, plus the load that carries the entity proper.
 function planetWithActions() {
   const planet = {
     type: 'object',
@@ -46,8 +30,6 @@ function planetWithActions() {
     },
   }
 
-  // `{ok, state}` — the shared reply of both actions. Two properties, so it
-  // is not an envelope, and envelopeProp leaves it whole.
   const actionResponse = {
     type: 'object',
     properties: {
@@ -128,11 +110,6 @@ function planetWithActions() {
 
 
 
-// AN ACTION WHOSE RESPONSE IS THE ENTITY. `GET /v2/installments/active` is
-// classified an action by its verb-shaped last segment, and answers with
-// `{data: [Installment], meta}` — the entity itself, one envelope down. The
-// component survives inlining as `x-ref` (see parse.ts), which is what tells
-// this response apart from `uploadImage`'s `ApiResponse`.
 function installmentByAction(withBody = false) {
   const installment = {
     type: 'object',
@@ -259,8 +236,6 @@ describe('field-action-points', () => {
   test('the plain create beside the actions is still harvested', async () => {
     const { entity, def } = planetWithActions()
 
-    // Drop the load, leaving `create` as the only op: its three points are
-    // then the sole source of fields.
     delete (entity.op as any).load
 
     const fields = await runFieldTransform(entity, def)
@@ -272,8 +247,6 @@ describe('field-action-points', () => {
   })
 
 
-  // An entity with no actions is untouched — the six fields solar's planet
-  // lost are not a general narrowing of what a field list may contain.
   test('an entity without actions is unaffected', async () => {
     const { entity, def } = planetWithActions()
 
@@ -313,9 +286,6 @@ describe('field-action-points', () => {
     const { entity, def } = commitByMutation()
     const fields = await runFieldTransform(entity, def)
 
-    // github's graphql commit has exactly two points, both mutations, so the
-    // blanket skip left a Commit with no fields while the query the same
-    // derivation generates went on selecting every one of them.
     assert.deepEqual(names(fields), ['committedViaWeb', 'message', 'oid'])
   })
 })

@@ -6,19 +6,6 @@ import assert from 'node:assert'
 import { flowFileBases } from '../dist/builder/flow'
 
 
-// FLOW FILE NAMES ON A CASE-INSENSITIVE FILESYSTEM.
-//
-// Flow names are camel case built from the entity name, so entities whose
-// names differ only in where the underscores fall produce flow names that
-// differ only in case. checkly's spec carries `StaticIP` and `StaticIp`,
-// which become the entities `static_i_p` and `static_ip` and the flows
-// `BasicStaticIPFlow` and `BasicStaticIpFlow`.
-//
-// APFS and NTFS treat those as ONE file. The second write replaced the
-// first, flow-index.aon imported both names into the same content, and the
-// model came out with 113 flows for 114 entities — surfacing much later as
-// `getModelPath: path not found at 'main.kit.flow.BasicStaticIPFlow'` from
-// the go test template, which says nothing about the overwritten file.
 
 describe('flow-file-case', () => {
 

@@ -52,7 +52,6 @@ func TestCustomPlurals(t *testing.T) {
 		t.Errorf("custom suffix: Depluralize(user_widgets) = %q, want user_widget", got)
 	}
 
-	// Non-string / empty values are skipped, not used to blank a word.
 	SetCustomPlurals(map[string]any{"houses": nil, "mice": "", "boxen": "box"})
 	if got := Depluralize("houses"); got != "house" {
 		t.Errorf("nil custom value should fall through: Depluralize(houses) = %q, want house", got)
@@ -540,14 +539,6 @@ func TestResolvePathListSegments(t *testing.T) {
 	}
 }
 
-// CHAINED RENAMES. The braced-string form had to rewrite only the FIRST match
-// (an index lookup + break), because a second pass would re-read the name it
-// had just written: with {badge_id: id, id: project_id},
-// /groups/{id}/badges/{badge_id} could end up with {project_id} in both slots,
-// silently dropping an argument from the URL.
-//
-// Segments cannot chain: each segment's ORIGINAL name is looked up once, so
-// {id} -> project_id and {badge_id} -> id, independently.
 func TestResolvePathListRenamesDoNotChain(t *testing.T) {
 	paths := resolvePathList(map[string]any{
 		"path": map[string]any{
@@ -565,9 +556,6 @@ func TestResolvePathListRenamesDoNotChain(t *testing.T) {
 	}})
 }
 
-// A repeated placeholder is ONE parameter and must rename consistently. The
-// first-match-only rewrite renamed only the first, leaving the second
-// referring to a parameter name that no longer existed.
 func TestResolvePathListRepeatedPlaceholder(t *testing.T) {
 	paths := resolvePathList(map[string]any{
 		"path": map[string]any{
@@ -595,11 +583,6 @@ func assertSegments(t *testing.T, paths []map[string]any, want [][]map[string]an
 	}
 }
 
-// A COMPOUND element: two placeholders glued together with a separator that
-// belongs to neither, e.g. /x/{outputFields}.{format}. Typing it as a var
-// would invent a parameter named `outputFields}.{format`, which matches
-// nothing in args.params. It is a literal — the same thing the braced-string
-// form did with it, since the rename lookup was a whole-element match too.
 func TestResolvePathListCompoundElement(t *testing.T) {
 	paths := resolvePathList(map[string]any{
 		"path": map[string]any{
@@ -618,15 +601,6 @@ func TestResolvePathListCompoundElement(t *testing.T) {
 	})
 }
 
-// A placeholder occupying only PART of an element — /reports/{id}.json,
-// /v{version}/items — stays literal under the same whole-element rule.
-//
-// This is the KNOWN LIMIT recorded in ADR-003, pinned here so it cannot
-// change silently. It is NOT a regression: the braced form did not mark these
-// as parameters either (its rename lookup was a whole-element match too), and
-// the reconstruction sdkgen hands the runtimes is byte-identical, so the
-// per-parameter regex still substitutes them. It is the one case that blocks
-// retiring that regex.
 func TestResolvePathListPartialElement(t *testing.T) {
 	paths := resolvePathList(map[string]any{
 		"path": map[string]any{
@@ -809,15 +783,6 @@ func TestCleanTransform(t *testing.T) {
 	}
 }
 
-// A property's `description` becomes the field's `short`.
-//
-// Mirrors the `field-required-solar` assertions in ts/test/apidef.test.ts.
-// Every generated per-entity table has a Description column and every cell was
-// blank, because nothing read the description the spec supplies. The negative
-// cases matter as much as the positive one: a field the spec does not describe
-// must NOT acquire an invented description, and a whitespace-only or non-string
-// value is not a description either — an empty cell is honest, a meaningless
-// one is not.
 func TestFieldShortFromDescription(t *testing.T) {
 	def := map[string]any{
 		"paths": map[string]any{
@@ -874,15 +839,6 @@ func TestFieldShortFromDescription(t *testing.T) {
 	}
 }
 
-// The request-body path must carry `description` too.
-//
-// TestFieldShortFromDescription above covers the response path, which routes
-// through extractFields. A non-QUERY op WITH a request body takes a different
-// route: findFieldDefs wraps the schemas in a slice, and a slice sends every
-// item through extractPropertiesOnly instead. That helper builds a fresh map
-// carrying only the keys it names, so a description in a POST/PUT/PATCH body
-// reached TS (which passes the raw property through) and never reached Go —
-// the two ports disagreeing on the same spec.
 func TestFieldShortFromRequestBodyDescription(t *testing.T) {
 	def := map[string]any{
 		"paths": map[string]any{
@@ -933,8 +889,6 @@ func TestFieldShortFromRequestBodyDescription(t *testing.T) {
 	}
 }
 
-// The Go port's inline merge mirrors src/transform/field.ts mergeField, and
-// must mirror its description handling too: first non-empty wins.
 func TestFieldShortSurvivesMerge(t *testing.T) {
 	def := map[string]any{
 		"paths": map[string]any{
@@ -1020,12 +974,6 @@ func TestFieldShortSurvivesMerge(t *testing.T) {
 	}
 }
 
-// `short` is one capped line in the Go port too.
-//
-// Mirrors the `short-is-reduced-to-one-capped-line` case in
-// ts/test/field-short.test.ts. A description is prose written for a docs page;
-// `short` is rendered as one cell of a markdown table row, where a raw newline
-// ends the row and orphans the rest of the table.
 func TestFieldShortIsOneCappedLine(t *testing.T) {
 	bullets := "The status of the user\n" +
 		"- `joined`, the user has joined the space\n" +
@@ -1162,13 +1110,6 @@ func TestArgsTransformNamelessParam(t *testing.T) {
 	}
 }
 
-// The four OpenAPI property keywords that now reach ModelField:
-// readOnly, writeOnly, deprecated and format.
-//
-// Mirrors ts/test/field-spec-facts.test.ts. `readOnly` is the one that
-// matters: it is the only statement in a spec of whether a client MAY send a
-// field, so without it every generated create/update type offers the caller
-// fields the server assigns.
 func TestFieldSpecFactsFromResponse(t *testing.T) {
 	def := map[string]any{
 		"paths": map[string]any{
@@ -1222,9 +1163,6 @@ func TestFieldSpecFactsFromResponse(t *testing.T) {
 		t.Errorf("created.format = %v, want %q (trimmed)", got, "date-time")
 	}
 
-	// ABSENT AND EXPLICIT-FALSE MEAN THE SAME THING, so only true is emitted:
-	// each keyword defaults to false in OpenAPI, and emitting the false ones
-	// would add three keys to every field of every model and say nothing.
 	for _, fname := range []string{"plain", "stated"} {
 		for _, key := range []string{"readOnly", "writeOnly", "deprecated", "format"} {
 			if _, has := byName[fname][key]; has {
@@ -1237,13 +1175,6 @@ func TestFieldSpecFactsFromResponse(t *testing.T) {
 	}
 }
 
-// THE REQUEST-BODY ROUTE, which is a different code path in Go and the one
-// that has already produced a TS/Go divergence once.
-//
-// findFieldDefs wraps the schemas in a slice for a non-QUERY op with a request
-// body, and a slice sends every item through extractPropertiesOnly — which
-// builds a FRESH map carrying only the keys it names. A key not copied there
-// is invisible, which is exactly how `description` reached TS and not Go.
 func TestFieldSpecFactsFromRequestBody(t *testing.T) {
 	def := map[string]any{
 		"paths": map[string]any{

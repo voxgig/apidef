@@ -35,18 +35,6 @@ const argsTransform = async function (ctx) {
                     }
                 }
                 else {
-                    // GUARDED THE SAME WAY `opdef` ALWAYS WAS. A point can name a path
-                    // the definition no longer has: the guide moves a collection path
-                    // onto another entity (mergeCollectionPaths), a project switches an
-                    // entity off, a spec is re-fetched with a path renamed. The op
-                    // lookup below has always tolerated that; the path lookup did not,
-                    // and threw `Cannot read properties of undefined (reading
-                    // 'parameters')` - which fails the WHOLE build over one point.
-                    //
-                    // Stripe's published definition reaches it at 419 paths and 153
-                    // entities. A point with no path contributes no path-level
-                    // parameters, which is the same answer `opdef?` gives for a
-                    // missing method.
                     const pathdef = def.paths[mpoint.orig];
                     argdefs.push(...(pathdef?.parameters ?? []));
                     const opdef = pathdef?.[mpoint.method.toLowerCase()];
@@ -66,14 +54,6 @@ function graphqlFieldDef(def, mpoint) {
     return 'mutation' === mpoint.graphql?.optype ?
         def.mutation?.[field] : def.query?.[field];
 }
-// Map a GraphQL named type onto the JSON-schema-ish scalar names the
-// existing arg/field typing understands.
-//
-// Only the built-in scalars have a known JSON shape. A custom scalar can be
-// anything — JSON/JSONObject accept objects and arrays, DateTime is a
-// string, Upload is a file handle — so anything unrecognised stays
-// unconstrained rather than being wrongly advertised (and validated) as a
-// string. ID and String are the two custom-free string cases.
 function gqlScalarType(typeName) {
     return 'Int' === typeName ? 'integer' :
         'Float' === typeName ? 'number' :
@@ -90,16 +70,8 @@ const ARG_KIND = {
 function resolveArgs(ctx, ment, mop, mpoint, argdefs) {
     const touchedKeys = new Set();
     (0, jostraca_1.each)(argdefs, (argdef) => {
-        // Spec name as written (e.g. `dataType`) is what the rename map is keyed
-        // by; the snakified form is the user-friendly runtime identifier.
         const specName = (0, utility_1.normalizeFieldName)(argdef.name);
         const orig = (0, utility_1.depluralize)((0, jostraca_1.snakify)(specName));
-        // A parameter with no name is not a parameter. This is what a DANGLING
-        // `$ref` looks like by the time it reaches here: the reference survives
-        // unresolved, `name` and `in` are both absent, and the arg would become
-        // a nameless `query` entry that every target then has to render. Ruby
-        // cannot: `Struct.new(:"")` raises at load and takes the whole SDK with
-        // it. Drop it and say which reference is missing.
         if ('' === orig) {
             const ref = argdef?.$ref;
             ctx?.warn?.({
@@ -144,13 +116,6 @@ function resolveArgs(ctx, ment, mop, mpoint, argdefs) {
         mpoint.args[key]?.sort(cmp);
     }
 }
-// OpenAPI lets specs advertise example values four ways:
-//   parameter.example          (single value, OAS 3.0+)
-//   parameter.examples          (named-example object, take first .value)
-//   parameter.schema.example   (single value on the schema)
-//   parameter.schema.default   (default value)
-// Pick the first one we find so test generators can produce valid live
-// requests even when the parameter is required and has no other source.
 function resolveArgExample(argdef) {
     if (undefined !== argdef?.example)
         return argdef.example;
