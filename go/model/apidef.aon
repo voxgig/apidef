@@ -1,3 +1,13 @@
+# One element shape for every arg kind. An alias must be top level.
+%field_args = {
+  active: *true
+  kind: string
+  name: string
+  orig?: string
+  reqd: boolean
+  type: top
+  example?: top
+}
 
 
 name?: string
@@ -112,6 +122,7 @@ main: kit: entity: &: {
       # array it appears in; `example` is optional and captures a spec-
       # provided example value used by test generators.
       args: {
+        &: [ &: %field_args ]
         params?: [ &: {
           active: *true
           kind: 'param'
@@ -120,7 +131,7 @@ main: kit: entity: &: {
           reqd: boolean
           type: top
           example?: top
-        } ]
+        }]
         query?: [ &: {
           active: *true
           kind: 'query'
@@ -179,3 +190,7 @@ main: kit: flow: &: {
     valid: []
   } ]
 }
+
+
+
+
