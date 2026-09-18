@@ -73,7 +73,12 @@ export const contractTransform: Transform = async (ctx: any) => {
             ;(facts.factSources ??= {})[key] = 'guide'
           }
         }
-        if (hint !== undefined) facts.live = hint
+        // ON THE POINT, not only in the contract: the contract is a copy of
+        // the specification's facts, and this is the project's own hint.
+        if (hint !== undefined) {
+          facts.live = hint
+          point.live = hint
+        }
         point.contract = { version: 1, id: point.method + ' ' + point.orig,
           source: graphql ? 'graphql' : def.swagger ? 'swagger2' : 'openapi3',
           json: contractJSON(facts) }

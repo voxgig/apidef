@@ -7,6 +7,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const node_test_1 = require("node:test");
 const node_assert_1 = __importDefault(require("node:assert"));
 const apidef_1 = require("../dist/apidef");
+const contract_1 = require("../dist/transform/contract");
 const resolved_1 = require("../dist/resolved");
 const SPEC = {
     openapi: '3.0.0',
@@ -89,6 +90,34 @@ const SPEC = {
         const r = (0, resolved_1.makeResolved)('openapi3', def);
         node_assert_1.default.equal(r.operation('GET', '/projects/{slug}')?.protocol, 'http');
         node_assert_1.default.equal(r.operation('GET', '/projects/:slug'), undefined);
+    });
+});
+// `live` is the PROJECT's hint, taken from the guide, not a fact the
+// specification states. It gates live-scenario generation in four sdkgen
+// components, so it has to survive on the point once contracts go.
+(0, node_test_1.describe)('live-hint-on-point', () => {
+    (0, node_test_1.test)('a guide live hint lands on the point, not only in the contract', async () => {
+        const point = { method: 'GET', orig: '/things', kind: 'http' };
+        const ctx = {
+            def: { paths: { '/things': { get: { responses: {} } } } },
+            apimodel: { main: { kit: { entity: { thing: { name: 'thing',
+                                op: { list: { name: 'list', points: [point] } } } } } } },
+            guide: { entity: { thing: { path: { '/things': { op: { list: { live: true } } } } } } },
+        };
+        await (0, contract_1.contractTransform)(ctx);
+        node_assert_1.default.equal(point.live, true);
+        node_assert_1.default.equal(JSON.parse(point.contract.json).live, true);
+    });
+    (0, node_test_1.test)('no hint leaves the point alone', async () => {
+        const point = { method: 'GET', orig: '/things', kind: 'http' };
+        const ctx = {
+            def: { paths: { '/things': { get: { responses: {} } } } },
+            apimodel: { main: { kit: { entity: { thing: { name: 'thing',
+                                op: { list: { name: 'list', points: [point] } } } } } } },
+            guide: {},
+        };
+        await (0, contract_1.contractTransform)(ctx);
+        node_assert_1.default.equal(point.live, undefined);
     });
 });
 //# sourceMappingURL=resolved.test.js.map

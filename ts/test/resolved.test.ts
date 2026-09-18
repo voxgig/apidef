@@ -4,6 +4,7 @@ import { test, describe } from 'node:test'
 import assert from 'node:assert'
 
 import { parse } from '../dist/apidef'
+import { contractTransform } from '../dist/transform/contract'
 import { operationFacts, operationIndex, makeResolved, publishResolved, resolvedSpec }
   from '../dist/resolved'
 
@@ -103,6 +104,43 @@ describe('resolved', () => {
     const r = makeResolved('openapi3', def)
     assert.equal(r.operation('GET', '/projects/{slug}')?.protocol, 'http')
     assert.equal(r.operation('GET', '/projects/:slug'), undefined)
+  })
+
+})
+
+
+// `live` is the PROJECT's hint, taken from the guide, not a fact the
+// specification states. It gates live-scenario generation in four sdkgen
+// components, so it has to survive on the point once contracts go.
+describe('live-hint-on-point', () => {
+
+  test('a guide live hint lands on the point, not only in the contract', async () => {
+    const point: any = { method: 'GET', orig: '/things', kind: 'http' }
+    const ctx: any = {
+      def: { paths: { '/things': { get: { responses: {} } } } },
+      apimodel: { main: { kit: { entity: { thing: { name: 'thing',
+        op: { list: { name: 'list', points: [point] } } } } } } },
+      guide: { entity: { thing: { path: { '/things': { op: { list: { live: true } } } } } } },
+    }
+
+    await contractTransform(ctx)
+
+    assert.equal(point.live, true)
+    assert.equal(JSON.parse(point.contract.json).live, true)
+  })
+
+  test('no hint leaves the point alone', async () => {
+    const point: any = { method: 'GET', orig: '/things', kind: 'http' }
+    const ctx: any = {
+      def: { paths: { '/things': { get: { responses: {} } } } },
+      apimodel: { main: { kit: { entity: { thing: { name: 'thing',
+        op: { list: { name: 'list', points: [point] } } } } } } },
+      guide: {},
+    }
+
+    await contractTransform(ctx)
+
+    assert.equal(point.live, undefined)
   })
 
 })
