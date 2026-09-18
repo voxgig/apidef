@@ -1747,6 +1747,47 @@ function updateParamRename(
   newParamName: string,
   why: string,
 ) {
+  // A name that cannot be an identifier is not an improvement on the one the
+  // specification gave. See docs/design/derived-names.md
+  if (!/^[A-Za-z_]/.test(newParamName)) {
+    ctx.log.debug({
+      point: 'param-rename-skip',
+      path,
+      param: oldParamName,
+      rejected: newParamName,
+      note: 'derived parameter name is not an identifier, keeping the' +
+        " specification's name"
+    })
+    return
+  }
+
+  // The clash is with what the path's OTHER parameters end up called: their
+  // rename if they have one, their canonical name if not.
+  const otherParams = (path.match(/\{([^}]+)\}/g) || [])
+    .map((seg) => seg.slice(1, -1))
+    .filter((name) => name !== oldParamName)
+
+  const takenBy =
+    Object.keys(paramRenameCapture.rename)
+      .find((other) => other !== oldParamName &&
+        paramRenameCapture.rename[other] === newParamName) ??
+    otherParams
+      .find((other) => null == paramRenameCapture.rename[other] &&
+        canonize(other) === newParamName)
+
+  if (null != takenBy) {
+    ctx.log.debug({
+      point: 'param-rename-collision',
+      path,
+      param: oldParamName,
+      rejected: newParamName,
+      takenBy,
+      note: 'another parameter of this path already renames to ' +
+        newParamName + ", keeping the specification's name"
+    })
+    return
+  }
+
   const existingNewName = paramRenameCapture.rename[oldParamName]
   const existingWhy = paramRenameCapture.why[oldParamName]
 

@@ -765,13 +765,19 @@ function transliterate(s) {
     return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 const CANONIZE_CACHE = new Map();
+// A trailing plural after an acronym is part of the word, and snakify would
+// split it letter by letter. See docs/design/derived-names.md
+const ACRONYM_PLURAL_RE = /([A-Z]{2,})s(?![a-zA-Z])/g;
 function canonize(s) {
     if (null == s || '' === s)
         return '';
     const cached = CANONIZE_CACHE.get(s);
     if (undefined !== cached)
         return cached;
-    const out = depluralize((0, jostraca_1.snakify)(transliterate(s).replace(FILE_EXT_RE, '')))
+    const deacronymed = transliterate(s)
+        .replace(FILE_EXT_RE, '')
+        .replace(ACRONYM_PLURAL_RE, (_m, run) => run[0] + run.slice(1).toLowerCase() + 's');
+    const out = depluralize((0, jostraca_1.snakify)(deacronymed))
         .replace(/[^a-zA-Z_0-9]/g, '');
     CANONIZE_CACHE.set(s, out);
     return out;

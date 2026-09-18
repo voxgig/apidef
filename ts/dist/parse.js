@@ -95,6 +95,8 @@ async function parseOpenAPI(source, _meta) {
         }
         parsed.paths = cleaned;
     }
+    // See docs/design/derived-names.md
+    normalizeColonPathParams(parsed, _meta);
     // Single-pass: add x-ref properties and resolve $ref pointers together.
     addXRefsAndResolve(parsed, parsed);
     const def = decycle(parsed);
@@ -266,6 +268,55 @@ function validateSource(kind, source, meta) {
     if (!RE_HAS_CONTENT.test(source)) {
         throw new Error(`@voxgig/apidef: parse: ${kind}: source is empty` +
             ` (${(0, utility_1.relativizePath)(meta.file)})`);
+    }
+}
+const METHODS = [
+    'get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'
+];
+// Rewrite `/a/:b/c` to `/a/{b}/c`, for a `:b` the path or one of its
+// operations declares `in: path`. See docs/design/derived-names.md
+function normalizeColonPathParams(parsed, meta) {
+    if (null == parsed.paths || 'object' !== typeof parsed.paths)
+        return;
+    const renamed = [];
+    const out = {};
+    for (const [path, item] of Object.entries(parsed.paths)) {
+        if (!path.includes('/:')) {
+            out[path] = item;
+            continue;
+        }
+        // Every `in: path` name this path knows about: the path-level parameters
+        // plus each operation's own.
+        const declared = new Set();
+        const collect = (params) => {
+            if (!Array.isArray(params))
+                return;
+            for (const param of params) {
+                if (param && 'path' === param.in && 'string' === typeof param.name) {
+                    declared.add(param.name);
+                }
+            }
+        };
+        if (null != item) {
+            collect(item.parameters);
+            for (const method of METHODS) {
+                if (null != item[method])
+                    collect(item[method].parameters);
+            }
+        }
+        const next = path.split('/').map((seg) => seg.startsWith(':') && declared.has(seg.slice(1)) ? '{' + seg.slice(1) + '}' : seg).join('/');
+        if (next !== path)
+            renamed.push(path);
+        out[next] = item;
+    }
+    parsed.paths = out;
+    if (0 < renamed.length && null != meta?.log?.info) {
+        meta.log.info({
+            point: 'path-colon-params',
+            count: renamed.length,
+            note: 'rewrote ' + renamed.length + ' colon-style path parameter(s) to' +
+                ' OpenAPI brace form, e.g. ' + renamed[0]
+        });
     }
 }
 //# sourceMappingURL=parse.js.map

@@ -32,3 +32,11 @@ toString	to_string
 valueOf	value_of
 hasOwnProperty	has_own_property
 prototype	prototype
+StaticIPs	static_ip	a pluralised acronym is one word: snakify splits at the last capital before a lowercase, so the trailing plural s broke IP into i_p
+APIs	api	same shape, standalone
+URLs	url	same shape, standalone
+UserIDs	user_id	acronym plural at the end of a longer name
+OAuthURLs	o_auth_url	acronym plural after another capitalised run
+APIKeys	api_key	NOT an acronym plural - API + Keys - and must be unchanged
+HTTPHeaders	http_header	NOT an acronym plural - HTTP + Headers - and must be unchanged
+AWS	aws	trailing capital S is part of the acronym, not a plural
