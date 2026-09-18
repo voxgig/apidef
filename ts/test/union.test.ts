@@ -1,15 +1,5 @@
 /* Copyright (c) 2024-2026 Richard Rodger, MIT License */
 
-// An UNTAGGED union — oneOf/anyOf, two or more real branches, no
-// `discriminator` — cannot be resolved to a variant by any generator: nothing
-// in the schema says which branch a given value is. The field can only be
-// modelled as an open type, and the point of detecting it is to let the
-// generated documentation SAY why the type is open.
-//
-// The live case is the Typebot Builder spec, whose `groups` field is an array
-// whose item schema carries 18 untagged unions, the widest 19 branches, 12
-// levels down — which is why the scan has to recurse rather than look at the
-// field's own schema.
 
 import { describe, test } from 'node:test'
 import { equal, deepEqual } from 'node:assert'
@@ -34,8 +24,6 @@ describe('untagged-union', () => {
 
 
     test('a discriminated union is resolvable, so not counted', () => {
-      // The discriminator names the property that decides the branch, which
-      // is precisely what an untagged union lacks.
       equal(untaggedUnionBranches({
         oneOf: [{ type: 'object' }, { type: 'object' }],
         discriminator: { propertyName: 'kind' },
@@ -79,8 +67,6 @@ describe('untagged-union', () => {
 
 
     test('finds a union nested below the field, reporting its depth', () => {
-      // The shape of the Typebot `groups` field: an array whose items carry
-      // the union.
       const schema = {
         type: 'array',
         items: {
@@ -116,7 +102,6 @@ describe('untagged-union', () => {
 
 
     test('survives a self-referential schema', () => {
-      // These specs reference themselves freely; an unguarded walk would spin.
       const node: any = { type: 'object', properties: {} }
       node.properties.self = node
       node.properties.choice = { oneOf: [{ type: 'string' }, { type: 'number' }] }

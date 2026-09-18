@@ -58,8 +58,9 @@ port that must reproduce it exactly.** When changing behavior:
    languages execute every row — the TypeScript suite through
    `ts/test/tsv.test.ts`, the Go suite through `go/tsv_test.go` — which is
    what makes a fixture the shared contract rather than one language's test.
-3. Mirror the change into `go/...`, guided by the `// Mirrors src/...`
-   comments; keep those comments accurate.
+3. Mirror the change into `go/...`; corresponding filenames and shared
+   tests identify the matching implementation. Follow COMMENT-POLICY.md
+   when a surprising difference needs a short explanation.
 4. Rebuild and commit `ts/dist` + `ts/dist-test` (committed artifacts).
 5. `make all` must be green.
 
@@ -235,3 +236,11 @@ refresh there (`v1/package.json`, `v1/go/go.mod`) as a follow-up.
 - Changing the code? [docs/how-to/work-on-the-codebase.md](./docs/how-to/work-on-the-codebase.md)
 - Why it's built this way? [docs/explanation/](./docs/explanation/architecture.md)
 - Machine index: [llms.txt](./llms.txt)
+
+## Source code comments
+
+Follow [COMMENT-POLICY.md](COMMENT-POLICY.md): comments are sparse and terse,
+only for intricate or surprising code. Names carry intent; documents carry
+requirements. Run `make comments comments-test` after editing source.
+
+Durable implementation rationale is in [COMMENT-NOTES.md](COMMENT-NOTES.md).

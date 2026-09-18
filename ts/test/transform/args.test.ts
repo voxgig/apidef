@@ -59,12 +59,6 @@ function allargs(ctx: any) {
 
 describe('transform-args nameless parameters', () => {
 
-  // A `$ref` that resolves to nothing keeps its `$ref` key and has neither
-  // `name` nor `in`. Left alone it becomes a nameless `query` arg that every
-  // target has to render, and Ruby cannot: `Struct.new(:"")` raises when the
-  // generated SDK loads. taxonomy-1.0.0-openapi-3.1.0 in the validation
-  // corpus ships exactly this, pointing at a `KingdomId` component that its
-  // `components.parameters` does not define.
   test('drops a dangling $ref parameter and names it in the warning', async () => {
     const ctx = makeCtx('/{year}/kingdom/{kingdom_id}', [
       { name: 'year', in: 'path', required: true, schema: { type: 'integer' } },

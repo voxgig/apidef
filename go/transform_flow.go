@@ -22,9 +22,6 @@ func FlowTransform(ctx *ApiDefContext) (*TransformResult, error) {
 		entNameMap := map[string]any{"name": entname}
 		flowName := "Basic" + Nom(entNameMap, "Name") + "Flow"
 
-		// Mirrors src/transform/flow.ts: TS only sets name/entity/kind/step
-		// on the basic flow. The `key$` marker is added later by jostraca's
-		// `each(...)` iterator during file emission.
 		basicflow := map[string]any{
 			"name":   flowName,
 			"entity": entname,
@@ -39,9 +36,6 @@ func FlowTransform(ctx *ApiDefContext) (*TransformResult, error) {
 	return &TransformResult{OK: true, Msg: msg}, nil
 }
 
-// FlowstepTransform creates individual flow steps within entity flows.
-// Mirrors src/transform/flowstep.ts: createStep, listStep, updateStep,
-// loadStep, removeStep, plus a final post-remove listStep when remove exists.
 func FlowstepTransform(ctx *ApiDefContext) (*TransformResult, error) {
 	kit := getKit(ctx)
 	entityMap := kit["entity"].(map[string]any)
@@ -170,9 +164,6 @@ func FlowstepTransform(ctx *ApiDefContext) (*TransformResult, error) {
 	return &TransformResult{OK: true, Msg: msg}, nil
 }
 
-// newFlowStep mirrors src/transform/flowstep.ts:newFlowStep — fills any
-// field not provided in args with an empty zero-value, so cleanTransform
-// can drop the empty ones uniformly.
 func newFlowStep(opname string, args map[string]any) map[string]any {
 	get := func(k string, def any) any {
 		if v, ok := args[k]; ok && v != nil {
@@ -199,12 +190,6 @@ func getLastPoint(mop map[string]any) map[string]any {
 	return last
 }
 
-// fillStepMatchFromParams writes step.match[param.name].
-//
-// Special-case for the "id" parameter mirrors src/transform/flowstep.ts:
-//   - createStep skips id entirely
-//   - listStep uses param-name fallback (yields "id01")
-//   - loadStep / removeStep use entname+"01" for id (e.g. "order01")
 func fillStepMatchFromParams(step, point, input map[string]any, useEntNameForId bool, entname string) {
 	if point == nil {
 		return
@@ -275,7 +260,7 @@ func fillStepDataFromParams(step, point, input map[string]any, entname string) {
 }
 
 // flowParamValue returns input[name] if present, else name with `_id`
-// removed plus `01` (mirrors TS: param.name.replace(/_id/, '') + '01').
+// removed plus `01` (mirrors TS: param.name.replace(/_id/, ”) + '01').
 func flowParamValue(name string, input map[string]any) any {
 	if v, ok := lookupInput(input, name); ok {
 		return v

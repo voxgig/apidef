@@ -37,13 +37,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-// End-to-end GraphQL ingestion: SDL in, apimodel out.
-//
-// The final test here is the one that keeps the canonical schema honest — it
-// unifies the EMITTED model through @voxgig/apidef/model/apidef.aontu, so a
-// point shape the schema does not accept fails the suite rather than
-// surfacing downstream in sdkgen. (No such assertion existed for the REST
-// path: apidef.test.ts's `full-solar` is disabled.)
 const Fs = __importStar(require("node:fs"));
 const Path = __importStar(require("node:path"));
 const node_test_1 = require("node:test");
@@ -98,49 +91,28 @@ async function buildGraphql(step) {
         node_assert_1.default.deepStrictEqual(Object.keys(issue).sort(), [
             'issue', 'issueArchive', 'issueCreate', 'issueDelete', 'issueUpdate', 'issues',
         ]);
-        // query issue(id:) -> load; issues(...): IssueConnection -> list
         node_assert_1.default.equal(issue.issue.op.load.optype, 'query');
         node_assert_1.default.equal(issue.issues.op.list.optype, 'query');
-        // Input-object shapes drive create/update; delete verb drives remove.
         node_assert_1.default.equal(issue.issueCreate.op.create.optype, 'mutation');
         node_assert_1.default.equal(issue.issueUpdate.op.update.optype, 'mutation');
         node_assert_1.default.equal(issue.issueDelete.op.remove.optype, 'mutation');
-        // The command mutation folds onto update as an $action point.
         node_assert_1.default.deepStrictEqual(Object.keys(issue.issueArchive.action), ['archive']);
         node_assert_1.default.equal(issue.issueArchive.op.update.optype, 'mutation');
-        // Ragged op sets are the norm: Team is read-only, Comment create-only.
         node_assert_1.default.deepStrictEqual(Object.keys(gent.team.field).sort(), ['team', 'teams']);
         node_assert_1.default.deepStrictEqual(Object.keys(gent.comment.field).sort(), ['commentCreate', 'commentDelete']);
-        // Root fields, not paths, are what got classified.
         node_assert_1.default.equal(bres.guide.metrics.count.entity, 3);
         node_assert_1.default.equal(bres.guide.metrics.count.path, 0);
         node_assert_1.default.ok(0 < bres.guide.metrics.count.field);
     });
-    // Entity fields come from the object type: non-deprecated scalars, no
-    // required-argument fields, to-one relations as id stubs.
     (0, node_test_1.test)('fields-graphql', async () => {
         const bres = await buildGraphql({ generate: false });
         node_assert_1.default.equal(bres.ok, true);
         const issue = bres.apimodel.main.kit.entity.issue;
         const names = issue.fields.map((f) => f.name);
-        // `team` is the to-one relation stub. The fragment selects `team { id }`,
-        // so the response carries a nested object — declaring a flat `team_id`
-        // would advertise a field the wire never returns.
-        //
-        // Field names are the WIRE names, verbatim. The schema declares
-        // `archivedAt: DateTime`, so that is what the response carries and that is
-        // what the model must say. These used to be snake_cased by `canonize`,
-        // which is right for entity/type names and wrong for fields — and doubly
-        // wrong for GraphQL, where camelCase is the convention, so it renamed
-        // essentially every field of every GraphQL API. Same reasoning as the
-        // `team_id` note above: do not advertise a name the wire never uses.
         node_assert_1.default.deepStrictEqual(names, [
             'archivedAt', 'createdAt', 'id', 'identifier', 'priority',
             'team', 'title',
         ]);
-        // `legacyCode` is deprecated and `icon(size: Int!)` needs an argument:
-        // selecting either in a fixed fragment is wrong (the latter is a hard
-        // GraphQL validation error), so neither may appear.
         node_assert_1.default.ok(!names.includes('legacy_code'));
         node_assert_1.default.ok(!names.includes('icon'));
         node_assert_1.default.deepStrictEqual(issue.id, { field: 'id', name: 'id' });
@@ -153,7 +125,6 @@ async function buildGraphql(step) {
         const ops = bres.apimodel.main.kit.entity.issue.op;
         const load = ops.load.points[0];
         node_assert_1.default.equal(load.kind, 'graphql');
-        // GraphQL points ride the HTTP machinery: one POST, no path segments.
         node_assert_1.default.equal(load.method, 'POST');
         node_assert_1.default.deepStrictEqual(load.segments, undefined);
         node_assert_1.default.equal(load.graphql.optype, 'query');
@@ -165,11 +136,7 @@ async function buildGraphql(step) {
         node_assert_1.default.deepStrictEqual(load.graphql.vars, [
             { name: 'id', from: 'id', gqltype: 'String!' },
         ]);
-        // Documents are single-line: byte-stable output, and the string survives
-        // the JSONIC round-trip into the emitted model.
         node_assert_1.default.ok(!load.graphql.doc.includes('\n'));
-        // Relay connection -> list, with the pagination descriptor recorded and
-        // the unwrap pointing at the node array.
         const list = ops.list.points[0];
         node_assert_1.default.equal(list.transform.res, '`body.data.issues.nodes`');
         node_assert_1.default.deepStrictEqual(list.graphql.page, {
@@ -183,8 +150,6 @@ async function buildGraphql(step) {
         // Relay's optional first/after must NOT appear, or list() would demand
         // every pagination argument before it could be chosen.
         node_assert_1.default.deepStrictEqual(list.select?.exist, undefined);
-        // Mutation payload is unwrapped, so create returns the entity itself —
-        // exactly as a REST create does.
         const create = ops.create.points[0];
         node_assert_1.default.equal(create.graphql.optype, 'mutation');
         node_assert_1.default.equal(create.transform.res, '`body.data.issueCreate.issue`');
@@ -216,12 +181,6 @@ async function buildGraphql(step) {
         node_assert_1.default.equal(bres.ok, true);
         const modelpath = Path.join(FOLDER, 'graphql.aon');
         const src = Fs.readFileSync(modelpath, 'utf8');
-        // NOTE: no `fs` injection. @tabnas/multisource switches to Path.posix
-        // whenever an fs is present, so injecting the real node:fs makes it parse
-        // Windows paths ('D:\...' contains no '/') with POSIX semantics, the
-        // include base resolves to '' and every sibling include fails. apidef's
-        // own buildGuide forwards fs only when the caller supplied one, for
-        // exactly this reason (see guide/guide.ts).
         const errs = [];
         const out = new aontu_1.Aontu().generate(src, { path: modelpath, errs });
         node_assert_1.default.deepStrictEqual(errs.map((e) => String(e).split('\n')[0]), [], 'emitted GraphQL model must unify against model/apidef.aon');
@@ -232,8 +191,6 @@ async function buildGraphql(step) {
         node_assert_1.default.ok(point.graphql.doc.startsWith('query IssueLoad'));
     });
 });
-// Return-shape derivation feeds the classifier; these are the two shapes
-// where picking the wrong type silently produces an invalid document.
 (0, node_test_1.describe)('graphql-retshape', () => {
     // An edges-only Relay connection: the entity is the edge's NODE type.
     // Taking the edge wrapper would spread a fragment declared on IssueEdge
@@ -281,11 +238,6 @@ async function buildGraphql(step) {
         node_assert_1.default.deepStrictEqual((0, graphql01_1.deriveRetShape)({ name: 'issueCreate', type: 'IssuePayload', list: false, args: [], deprecated: false }, types), { kind: 'payload', entity: 'Issue', unwrap: 'issue' });
     });
 });
-// GraphQL type names cannot START with a digit, but they can start with `_`,
-// and `normalizeFieldName` strips that — so `_3DSSessions` used to reach an
-// SDK as the entity `3_ds_session`, an identifier every generated language
-// rejects. The REST classifier gets the guard from `ensureMinEntityName`,
-// which this path does not call; it is applied in `entityName` instead.
 (0, node_test_1.describe)('graphql-entity-name', () => {
     (0, node_test_1.test)('leading-digit-guarded', () => {
         node_assert_1.default.equal((0, graphql01_1.entityName)('_3DSSessions'), 'n3_ds_session');
@@ -299,12 +251,6 @@ async function buildGraphql(step) {
         node_assert_1.default.equal((0, graphql01_1.entityName)('__Type'), 'type');
         node_assert_1.default.equal((0, graphql01_1.entityName)('_v2Users'), 'v2_user');
     });
-    // The guard maps a previously unreachable name onto one another type can
-    // own natively, so `_3DSSessions` and `N3DSSession` — unrelated types —
-    // would both want `n3_ds_session`. Merging them folds two entities' fields
-    // and ops together under an `orig` recording only the first, and leaves no
-    // second guide entry to correct (ADR-002: guide.aon is the only correction
-    // surface). The suffix is `ensureMinEntityName`'s convention, borrowed.
     (0, node_test_1.test)('guard-induced-collision-is-split', () => {
         const entities = {};
         const a = (0, graphql01_1.resolveEntityName)('N3DSSession', entities);
@@ -313,8 +259,6 @@ async function buildGraphql(step) {
         const b = (0, graphql01_1.resolveEntityName)('_3DSSessions', entities);
         node_assert_1.default.equal(b, 'n3_ds_session2');
     });
-    // ... in EITHER order: which type is seen first is an accident of sorted
-    // root-field iteration, and both orders must yield two entities.
     (0, node_test_1.test)('guard-induced-collision-is-split-either-order', () => {
         const entities = {};
         const a = (0, graphql01_1.resolveEntityName)('_3DSSessions', entities);
@@ -328,10 +272,8 @@ async function buildGraphql(step) {
     // spellings of one thing — and must still merge, guarded or not.
     (0, node_test_1.test)('canonical-merges-are-untouched', () => {
         const entities = {};
-        // Neither name is guarded.
         entities.issue = { name: 'issue', orig: 'Issue' };
         node_assert_1.default.equal((0, graphql01_1.resolveEntityName)('Issues', entities), 'issue');
-        // Both names are guarded.
         entities.n3_ds_session = { name: 'n3_ds_session', orig: '_3DSSessions' };
         node_assert_1.default.equal((0, graphql01_1.resolveEntityName)('_3DSSession', entities), 'n3_ds_session');
     });
@@ -360,10 +302,8 @@ async function buildGraphql(step) {
         const point = remove.points[0];
         node_assert_1.default.equal(point.graphql.doc, 'mutation CommentRemove($id: String!)' +
             ' { commentDelete(id: $id) { entityId success } }');
-        // No entity fragment, and crucially no `{ id }`: DeletePayload has none.
         node_assert_1.default.ok(!point.graphql.doc.includes('fragment'));
         node_assert_1.default.ok(!point.graphql.doc.includes('{ id }'));
-        // Unwraps to the payload itself, since no entity is nested in it.
         node_assert_1.default.equal(point.transform.res, '`body.data.commentDelete`');
     });
 });

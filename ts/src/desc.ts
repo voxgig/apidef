@@ -8,22 +8,10 @@ import type { ParameterDef } from './def'
 
 
 
-// // Intermediate Guide types used during analysis
-// type GuidePathRename = {
-//   param?: Record<string, string>
-// }
-
-// type GuideOp = {
-//   method: MethodName
-// }
-
-// type GuidePath = {
-//   rename?: GuidePathRename
-//   op?: Record<string, GuideOp>
-// }
 
 
-// Component analysis description
+
+
 type CmpDesc = {
   namedesc?: any,
   path_rate: number,
@@ -52,7 +40,6 @@ type MethodDesc = {
 }
 
 
-// Method entity relationship analysis
 type MethodEntityDesc = {
   ref: string
 
@@ -79,7 +66,6 @@ type MethodEntityDesc = {
 }
 
 
-// Entity analysis description
 type EntityDesc = {
   name: string
   origname: string
@@ -90,7 +76,6 @@ type EntityDesc = {
 }
 
 
-// Entity path relationship analysis
 type EntityPathDesc = {
   op: Record<string, any>
   pm: PathMatch
@@ -123,16 +108,13 @@ type PathSegment = {
 }
 
 
-// Path analysis description
 type PathDesc = {
   orig: string
   method: MethodName
   segments: PathSegment[]
-  // rename: GuidePathRename
   rename: {
     param?: Record<string, any>
   }
-  // op: GuidePath["op"]
   op: Record<string, {
     method: any
     transform: {
@@ -149,16 +131,12 @@ type PathDesc = {
 }
 
 
-// Operation analysis description
 type OpDesc = {
   paths: PathDesc[]
 }
 
 
 export type {
-  //  GuidePathRename,
-  //  GuideOp,
-  //  GuidePath,
   CmpDesc,
   BasicMethodDesc,
   MethodDesc,

@@ -87,18 +87,6 @@ import { makeFlowBuilder } from './builder/flow'
 const dlog = getdlog('apidef', __filename)
 
 
-// THE WARNINGS FILE IS A REVIEWABLE ARTIFACT, so it carries no clock.
-//
-// Every warning is stamped with `when: Date.now()` — useful in a live log,
-// and fatal in a file that consumers COMMIT. An SDK project regenerates and
-// commits `.sdk/apidef-warnings.txt`, and its CI asserts that a regeneration
-// reproduces the committed tree byte for byte; with a timestamp in it that
-// check can never pass, and every regeneration produces a diff saying
-// nothing about the warnings themselves. github-sdk failed exactly that way:
-// one file, three changed lines, all of them clocks.
-//
-// The timestamp stays on the in-memory history, where a caller streaming
-// warnings still wants it.
 function warningsFileText(history: any[]): string {
   return history
     .map((n: any) => {
@@ -111,7 +99,6 @@ function warningsFileText(history: any[]): string {
 
 function ApiDef(opts: ApiDefOptions) {
 
-  // TODO: shape opts!
   const fs = opts.fs || Fs
   const pino = prettyPino('apidef', opts)
   const log = pino.child({ cmp: 'apidef' })
@@ -173,7 +160,6 @@ function ApiDef(opts: ApiDefOptions) {
         start
       })
 
-      // TODO: Validate spec
       ctx = {
         fs,
         fsInjected: null != opts.fs,
@@ -189,7 +175,6 @@ function ApiDef(opts: ApiDefOptions) {
         note: {},
         warn,
 
-        // TODO: remove (moved to guide)
         metrics: {
           count: {
             path: 0,
@@ -293,7 +278,6 @@ function ApiDef(opts: ApiDefOptions) {
       const builders = [
         await makeEntityBuilder(ctx),
 
-        // TODO: move to sdkgen
         await makeFlowBuilder(ctx),
       ]
 
@@ -326,11 +310,6 @@ function ApiDef(opts: ApiDefOptions) {
         // folder: Path.dirname(opts.folder as string),
         folder: opts.folder,
         model: jmodel,
-        // Overwrite the generated model source (.aontu) rather than 3-way merge:
-        // merging against a drifting .jostraca base silently keeps stale files
-        // and can inject <<<<<<< conflict markers. Generated output is
-        // model-derived and never hand-edited. See sdkgen
-        // docs/explanation/regeneration-overwrite.md.
         existing: { txt: { write: true, merge: false } }
       }, root)
 
@@ -343,11 +322,6 @@ function ApiDef(opts: ApiDefOptions) {
 
       steps.push('generate')
 
-      // Garbage-collect entity model files no longer derived from the def.
-      // The builders only ever WRITE: a spec change that removes or renames a
-      // derived entity used to leave the old <name>.aontu behind forever.
-      // Runs after generate so the current set is on disk; guarded so only
-      // apidef-generated files under this build's outprefix are touched.
       try {
         const kitEntity = (ctx.apimodel?.main as any)?.[KIT]?.entity || {}
         gcEntityFiles(fs, log, opts.folder as string, opts.outprefix,
@@ -368,12 +342,6 @@ function ApiDef(opts: ApiDefOptions) {
           warningsFileText(warn.history))
       }
 
-      // apidef writes model source files (entity, flow, guide aontu files) into
-      // .sdk/model/. Downstream actions (sdkgen, etc.) read those via
-      // sdk.aontu @-includes, so voxgig-model has to re-resolve the model
-      // before the post-step actions run. Signal reload whenever jostraca
-      // wrote or merged any files; if nothing changed on disk,
-      // voxgig-model's resolveModel cache short-circuits the re-read.
       const jfiles = jres?.files
       const reload = !!jfiles && (
         (jfiles.written?.length ?? 0) > 0 ||

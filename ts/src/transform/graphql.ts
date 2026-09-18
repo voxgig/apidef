@@ -1,18 +1,5 @@
 /* Copyright (c) 2024-2026 Voxgig, MIT License */
 
-// Render the GraphQL wire data onto each point: the complete operation
-// document, its variable bindings, the response unwrap path, and (for list
-// ops) the pagination descriptor.
-//
-// Documents are computed HERE, once, and stored in the model as strings.
-// The alternative — shipping structured selection data and assembling query
-// text inside every generated SDK — would mean one query assembler per
-// language target, all of which must stay semantically identical. One
-// renderer in apidef is the whole reason GraphQL support stays affordable
-// across the target matrix.
-//
-// Documents are rendered SINGLE-LINE with sorted selection fields, so the
-// emitted model is byte-stable and schema drift shows up in model diffs.
 
 import { each } from 'jostraca'
 
@@ -33,9 +20,6 @@ import type {
 import { deriveRetShape } from '../guide/graphql01'
 
 
-// Fields the default fragment never selects on a to-one relation: the stub
-// carries the id only, so the caller loads the related entity through its
-// own entity op.
 const REL_STUB = '{ id }'
 
 
@@ -108,9 +92,6 @@ function payloadScalarFields(typeName: string, def: any): string[] {
 }
 
 
-// Variable bindings for a root field: one per argument. `from` is the op
-// argument the value is read from; for the input-object argument that is the
-// request data itself.
 function buildVars(fielddef: any, def: any): ModelGraphqlVar[] {
   const args = fielddef?.args ?? []
 
@@ -139,7 +120,6 @@ function buildVars(fielddef: any, def: any): ModelGraphqlVar[] {
 }
 
 
-// `issue(id: $id, first: $first)` — argument list wired to variables.
 function argList(vars: ModelGraphqlVar[]): string {
   return 0 === vars.length ? '' :
     '(' + vars.map((v) => v.name + ': $' + v.name).join(', ') + ')'
@@ -158,7 +138,6 @@ function varDecl(vars: ModelGraphqlVar[]): string {
 }
 
 
-// Render one operation document, single-line.
 function renderDoc(
   opname: string,
   optype: string,
@@ -176,7 +155,6 @@ function renderDoc(
       ' fragment ' + fragName + ' on ' + fragType +
       ' { ' + fragFields.join(' ') + ' }' : '')
 
-  // Collapse any accidental double spacing so the string is canonical.
   return doc.replace(/\s+/g, ' ').trim()
 }
 
@@ -220,7 +198,6 @@ const graphqlTransform: Transform = async function(
 
         const vars = buildVars(fielddef, def)
 
-        // Selection shape and response unwrap both follow the return kind.
         let selection = fragSpread
         let respath = 'body.data.' + rootfield
 
@@ -235,12 +212,6 @@ const graphqlTransform: Transform = async function(
           selection = fragSpread
         }
         else if ('payload' === ret.kind && null == ret.entity) {
-          // Entity-less payload: Linear's DeletePayload is entityId +
-          // success + lastSyncId and nothing else. The classifier admits
-          // these (the entity comes from the field name), so the renderer
-          // must not fall through to the default `{ id }` spread — the
-          // payload HAS no id, and the server rejects the whole document.
-          // Select the payload's own scalars and unwrap to the payload.
           const own = payloadScalarFields(fielddef.type, def)
           selection = '{ ' + (0 < own.length ? own.join(' ') : '__typename') + ' }'
           respath = 'body.data.' + rootfield
@@ -256,17 +227,10 @@ const graphqlTransform: Transform = async function(
           respath = 'body.data.' + rootfield + '.' + ret.unwrap
         }
 
-        // Distinct operation name per point. The action comes from the GUIDE,
-        // not from mpoint.select: selectTransform runs after this stage, so
-        // $action is not set yet, and without the suffix every action point
-        // on an op would ship the same operation name (three PlanetUpdates),
-        // which is what server logs, tracing and APM key on.
         const actionName = Object.keys((gfield as any)?.action ?? {})[0]
         const docname = pascal(entname) + pascal(opname) +
           (null != actionName ? pascal(actionName) : '')
 
-        // GraphQL points ride the HTTP machinery: POST to the single
-        // endpoint, no path segments. The document carries everything else.
         mpoint.kind = 'graphql'
         mpoint.method = 'POST'
         mpoint.segments = []

@@ -46,7 +46,6 @@ function collectOps(ctx, gent) {
     gent.opm$ = gent.opm$ ?? {};
     (0, jostraca_1.each)(gent.paths$, (pathdesc) => {
         (0, jostraca_1.each)(pathdesc.op, (gop, opname) => {
-            // Op-level opt-out; see the entity-level note in transform/entity.ts.
             if (!(0, utility_1.guideActive)(gop)) {
                 return;
             }
@@ -100,15 +99,6 @@ function resolveRemove(opm, gent) {
 }
 function resolvePatch(opm, gent) {
     const opdesc = resolveOp('patch', gent);
-    // If patch is actually update, make it update!
-    //
-    // That holds when there is no PUT update at all, and equally when every
-    // PUT update point is an ACTION: a verb such as GitHub's `merge` borrows
-    // the update slot (actions have no slot of their own) but is not the
-    // entity's update. Leaving PATCH as `patch` there made the real update
-    // unreachable, since no target emits a `patch` method, and routed a plain
-    // update() to the verb. The action points join the promoted PATCH, and
-    // `$action` selects them at call time.
     if (null != opdesc && (null == opm.update || onlyActionPaths(gent, 'update'))) {
         if (null != opm.update) {
             opdesc.points.push(...opm.update.points);
@@ -134,13 +124,6 @@ function resolveOp(opname, gent) {
         mop = {
             name: opname,
             points: opdesc.paths.map((p) => {
-                // Renames already applied by entity.ts resolvePathList — re-applying
-                // here corrupted paths for any spec where rename map maps an old
-                // name to a value that another rename maps to a different new name
-                // (e.g. gitlab `/groups/{id}/badges/{badge_id}` with rename
-                // `{badge_id: 'id', id: 'project_id'}` ended up as
-                // `/groups/{project_id}/badges/{project_id}` — the second pass
-                // rewrote the freshly-renamed `{id}` into `{project_id}` again).
                 const segments = p.segments;
                 const mpoint = {
                     orig: p.orig,
@@ -148,12 +131,6 @@ function resolveOp(opname, gent) {
                     rename: p.rename,
                     method: p.method,
                     args: {},
-                    // Carry the per-path op transform (res `body.<entity>`, req
-                    // `{<entity>: reqdata}`) computed by the guide step
-                    // (heuristic01 ResolveTransform) onto the point. It lives on the
-                    // path's op, not on the op-map entry, so read p.op.transform.
-                    // Spread into a fresh object so the default-fill below never
-                    // mutates the shared guide op.transform across points.
                     transform: { ...(p.op?.transform ?? {}) },
                     select: {
                         exist: []

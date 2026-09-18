@@ -1,16 +1,6 @@
 "use strict";
 /* Copyright (c) 2024-2026 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-// An UNTAGGED union — oneOf/anyOf, two or more real branches, no
-// `discriminator` — cannot be resolved to a variant by any generator: nothing
-// in the schema says which branch a given value is. The field can only be
-// modelled as an open type, and the point of detecting it is to let the
-// generated documentation SAY why the type is open.
-//
-// The live case is the Typebot Builder spec, whose `groups` field is an array
-// whose item schema carries 18 untagged unions, the widest 19 branches, 12
-// levels down — which is why the scan has to recurse rather than look at the
-// field's own schema.
 const node_test_1 = require("node:test");
 const node_assert_1 = require("node:assert");
 // Built module, matching the other suites: the compiled test runs from
@@ -23,8 +13,6 @@ const utility_1 = require("../dist/utility");
             (0, node_assert_1.equal)((0, utility_1.untaggedUnionBranches)({ anyOf: [{ type: 'string' }, { type: 'number' }, { type: 'boolean' }] }), 3);
         });
         (0, node_test_1.test)('a discriminated union is resolvable, so not counted', () => {
-            // The discriminator names the property that decides the branch, which
-            // is precisely what an untagged union lacks.
             (0, node_assert_1.equal)((0, utility_1.untaggedUnionBranches)({
                 oneOf: [{ type: 'object' }, { type: 'object' }],
                 discriminator: { propertyName: 'kind' },
@@ -54,8 +42,6 @@ const utility_1 = require("../dist/utility");
             (0, node_assert_1.deepEqual)((0, utility_1.scanUntaggedUnion)({ oneOf: [{ type: 'string' }, { type: 'number' }] }), { count: 1, branches: 2, depth: 0 });
         });
         (0, node_test_1.test)('finds a union nested below the field, reporting its depth', () => {
-            // The shape of the Typebot `groups` field: an array whose items carry
-            // the union.
             const schema = {
                 type: 'array',
                 items: {
@@ -87,7 +73,6 @@ const utility_1 = require("../dist/utility");
             (0, node_assert_1.equal)(found?.branches, 4);
         });
         (0, node_test_1.test)('survives a self-referential schema', () => {
-            // These specs reference themselves freely; an unguarded walk would spin.
             const node = { type: 'object', properties: {} };
             node.properties.self = node;
             node.properties.choice = { oneOf: [{ type: 'string' }, { type: 'number' }] };

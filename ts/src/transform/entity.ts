@@ -34,27 +34,11 @@ const entityTransform: Transform = async function(
 
   let msg = ''
 
-  // Pre-pass: merge collection paths into the entity that owns the
-  // per-instance paths. Heuristic01 sometimes assigns "/people" to a
-  // separate "*_search" entity (because the response wraps Person in
-  // a search/pagination component) while "/people/{id}" and
-  // "/people/{id}/anime" land on "person". Result: the person entity has
-  // no primary list endpoint, so direct-load tests can't bootstrap an
-  // ID. Move "/people" onto person here; this also clears the way for
-  // sensible flow generation (one entity, one collection, multiple
-  // sub-resources).
-  // Path-shaped collection merging is meaningless for root-field guides.
   if (true !== ctx.def?.graphql) {
     mergeCollectionPaths(guide, ctx.log)
   }
 
   each(guide.entity, (guideEntity: GuideEntity, entname: string) => {
-    // `active: false` in guide.aontu drops the entity. The guide model has
-    // always declared `active?: boolean` at entity, path and op level and the
-    // docs call it the intended escape hatch, but nothing read it — so an
-    // entity a heuristic invented (a response envelope classified as a
-    // resource, say) could not be removed by the one file a user is meant to
-    // edit. Absent means active, so existing guides are unaffected.
     if (!guideActive(guideEntity)) {
       ctx.log.debug({ point: 'guide-entity', note: entname, active: false })
       return
@@ -68,9 +52,6 @@ const entityTransform: Transform = async function(
       resolveFieldList(guideEntity, ctx.def) :
       resolvePathList(guideEntity, ctx.def)
 
-    // Ancestry is inferred from literal/{param} path pairs, which root
-    // fields do not have; GraphQL relations come from the schema instead
-    // (see transform/graphql.ts).
     const relations = graphql ?
       { ancestors: [] } :
       buildRelations(guideEntity, paths$)
@@ -97,10 +78,6 @@ const entityTransform: Transform = async function(
 function mergeCollectionPaths(guide: any, log?: any) {
   const entities = guide.entity as Record<string, any>
 
-  // First pass: build collectionRoot -> owner-entity-name map.
-  // owner is the entity whose name contains "/X/{...}" paths; we prefer
-  // the owner whose direct-load path is "/X/{id}" (no further segments)
-  // so that nested-resource entities don't claim the root.
   const rootOwners: Record<string, { ename: string, depth: number }> = {}
 
   for (const [ename, entity] of Object.entries(entities)) {
@@ -110,8 +87,6 @@ function mergeCollectionPaths(guide: any, log?: any) {
       if (!m) continue
       const root = m[1]
       const trailing = m[2] ?? ''
-      // Depth = number of segments after the {id} placeholder. Lower
-      // depth wins (e.g. "/people/{id}" beats "/people/{id}/anime").
       const depth = trailing === '' ? 0 : trailing.split('/').filter(Boolean).length
 
       const cur = rootOwners[root]
@@ -149,11 +124,6 @@ function mergeCollectionPaths(guide: any, log?: any) {
         targetEntity.path[pathStr] = srcPath
       }
       else {
-        // Target already owns this path under a different heuristic-discovered
-        // entity (e.g. `/gists` GET on `base_gist`, `/gists` POST on `gist`).
-        // Merge op/action/rename sets so no method is silently lost — without
-        // this, the second source's contribution drops on the floor and the
-        // base-guide loses paths that were in the original spec.
         if (srcPath?.op) {
           tgtPath.op = tgtPath.op ?? {}
           for (const opname of Object.keys(srcPath.op)) {
@@ -202,14 +172,6 @@ function resolvePathList(guideEntity: GuideEntity, def: { paths: Record<string, 
       return
     }
 
-    // THE path construction site (ADR-003). The split, the rename
-    // application and the segment typing all happen here and nowhere else:
-    // a second place that decides what a path segment is would be free to
-    // decide differently.
-    //
-    // A segment is a literal or a variable. The braced form this replaces
-    // could not tell a literal containing braces from a parameter, so the
-    // brace test below is the LAST point at which that ambiguity exists.
     const rename = guidePath.rename ?? {}
 
     const segments: PathSegment[] = orig
@@ -220,12 +182,6 @@ function resolvePathList(guideEntity: GuideEntity, def: { paths: Record<string, 
           return { lit: p }
         }
         const raw = p.slice(1, -1)
-        // A WHOLE element is the placeholder, or it is a literal. `{a}.{b}`
-        // is two parameters glued into one element with a separator that
-        // belongs to neither; it is not one parameter called `a}.{b`, and
-        // there is no honest `var` for it. `{}` names nothing. Both stay
-        // literal — which is exactly what the braced-string form did with
-        // them, since the rename lookup was a whole-element match too.
         if ('' === raw || raw.includes('{') || raw.includes('}')) {
           return { lit: p }
         }
@@ -303,18 +259,6 @@ function resolveFieldList(guideEntity: GuideEntity, def: any) {
 
 
 function buildRelations(guideEntity: any, paths$: PathDesc[]) {
-  // An ancestor is a literal collection segment (e.g. "rems") followed by
-  // a path-param placeholder that names an instance ID. We only collect
-  // the literal parts — placeholder parts like "{año}" must be excluded
-  // even when they're themselves followed by another placeholder, otherwise
-  // downstream code treats `{año}` as an ancestor name and emits broken
-  // idmap entries / match keys.
-  //
-  // Each captured segment is then normalised to its entity name —
-  // depluralize+snakify — so that "files"/"audit-log" become "file"/"audit_log",
-  // i.e. the same keys downstream code uses to look up entities. Without this,
-  // `apimodel.main.kit.entity[ancestorName]` misses the parent entity for
-  // pluralised path segments.
   let ancestors: any[] = paths$
     .map(pli => pli.segments
       .map((s, i) => {

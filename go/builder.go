@@ -11,12 +11,6 @@ import (
 	"strings"
 )
 
-// writeGen writes one generated model file, recording any failure as a
-// pipeline warning. Discarding these errors made a build that wrote nothing —
-// read-only output directory, full disk, bad path — still report OK with an
-// empty warning list, so the caller had no way to tell an empty model from a
-// failed write. The TS side gets this from jostraca, which reports the files
-// it wrote and drives `result.reload`.
 func writeGen(ctx *ApiDefContext, path string, src string) {
 	if err := os.WriteFile(path, []byte(src), 0644); err != nil {
 		warnGen(ctx, "write", path, err)
@@ -80,9 +74,6 @@ func entityBuilder(ctx *ApiDefContext) {
 		cleanEntity := stripKeys(entity, "active")
 		cleanEntity = stripEmptyRelations(cleanEntity)
 		entityJSONIC := FormatJSONIC(cleanEntity)
-		// Mirrors src/builder/entity/entity.ts:
-		//   entityJSONIC = formatJSONIC(entity).trim()
-		//   entityJSONIC = entityJSONIC.substring(1, entityJSONIC.length - 1)
 		entityJSONIC = strings.TrimSpace(entityJSONIC)
 		if len(entityJSONIC) > 2 && entityJSONIC[0] == '{' && entityJSONIC[len(entityJSONIC)-1] == '}' {
 			entityJSONIC = entityJSONIC[1 : len(entityJSONIC)-1]
@@ -90,7 +81,6 @@ func entityBuilder(ctx *ApiDefContext) {
 
 		fieldAliasesSrc := buildFieldAliases(entity)
 
-		// Mirrors src/builder/entity/entity.ts: file ends with "\n\n}\n".
 		entitySrc := fmt.Sprintf("# Entity: %s\n\n", entityName) +
 			fmt.Sprintf("main: %s: entity: %s: {\n\n", KIT, entityName) +
 			fmt.Sprintf("  alias: field: %s\n", fieldAliasesSrc) +
@@ -192,11 +182,6 @@ func infoBuilder(ctx *ApiDefContext) {
 
 	modelDefSrc := FormatJSONIC(modelInfo)
 
-	// Mirrors src/builder/entity/info.ts:
-	//   formatJSONIC(modelInfo).trim().substring(1, len-1).replace(/\n  /g, '\n')
-	// Trim first so stripping the first and last char removes the wrapping
-	// '{' and '}' — without the trim the trailing newline is removed instead,
-	// leaving a dangling '}'. Then shift indent left by one level.
 	modelDefSrc = strings.TrimSpace(modelDefSrc)
 	if len(modelDefSrc) >= 2 {
 		modelDefSrc = modelDefSrc[1 : len(modelDefSrc)-1]
@@ -234,9 +219,6 @@ func MakeFlowBuilder(ctx *ApiDefContext) (func() error, error) {
 				continue
 			}
 
-			// Mirrors src/builder/flow.ts: jostraca's `each(flows, ...)`
-			// mutates each value to set `key$` to the map key. Reproduce
-			// that here so the emitted JSONIC matches TS output.
 			flow["key$"] = flowName
 
 			flowfile := prefix + flowName + ".aon"

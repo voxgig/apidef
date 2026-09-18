@@ -15,8 +15,6 @@ async function resolveElements(
 
   const { log, model, guide } = ctx
 
-  // TODO: model access should be via a utility that generates
-  // useful errors when the target is missing
   const control = guide.control[kind][subkind]
 
   const target = kind + '.' + subkind

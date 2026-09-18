@@ -113,7 +113,6 @@ const METHOD_CONSIDER_ORDER: Record<string, number> = {
 
 async function heuristic01(ctx: ApiDefContext): Promise<Guide> {
 
-  // TODO: Ordu needs better debug output to track task exec
   const analysis = new Ordu({ select: { sort: true } }).add([
     Prepare,
     {
@@ -146,12 +145,6 @@ async function heuristic01(ctx: ApiDefContext): Promise<Guide> {
 
   const guide = result.data.guide
 
-  // Reassign single-segment collection paths (e.g. "/people") onto the entity
-  // that owns the per-instance path ("/people/{id}"). Heuristic discovery can
-  // split the two when response schemas wrap the resource in a search/pagination
-  // component. Running this here — before base-guide.aontu is serialised —
-  // means the same merged layout flows into both guide-case (transformers off)
-  // and model-case (transformers on), so they agree on the final guide.
   mergeCollectionPaths(guide, ctx.log)
 
   const metrics = guide.metrics
@@ -228,7 +221,6 @@ function Prepare(spec: TaskSpec) {
 function MeasurePath(spec: TaskSpec) {
   const guide = spec.data.guide
   const metrics = guide.metrics
-  // const pathstr = spec.node.key
   const pathdef = spec.node.val
 
   metrics.count.path++
@@ -251,7 +243,6 @@ function MeasurePath(spec: TaskSpec) {
 function MeasureMethod(spec: TaskSpec) {
   const guide = spec.data.guide
   const metrics = guide.metrics
-  // const methodstr = spec.node.key
   const methoddef = spec.node.val
 
   const pathtags = methoddef.tags
@@ -317,31 +308,7 @@ function MeasureRef(spec: TaskSpec) {
 
 function selectAllMethods(_source: any, spec: TaskSpec): MethodDesc[] {
   const ctx = spec.ctx
-  // const paths = ctx.def.paths
 
-  /*
-  let caught = capture(ctx.def, {
-    paths:
-      ['`$SELECT`', /.* /,
-        ['`$SELECT`', /^get|post|put|patch|delete$/i,
-          ['`$APPEND`', 'methods', {
-            path: '`select$=key.paths`',
-            method: { '`$UPPER`': '`$KEY`' },
-            summary: '`.summary`',
-            tags: '`.tags`',
-            parameters: '`.parameters`',
-            responses: '`.responses`',
-            requestBody: '`.requestBody`'
-          }]
-        ]
-      ]
-      })
-
-        // TODO: capture should return these empty objects
-        caught = caught ?? {}
-        caught.methods = caught.methods ?? []
-
-  */
 
   let caught: any = { methods: [] }
 
@@ -425,7 +392,6 @@ function ResolveEntityComponent(spec: TaskSpec) {
     })
     .filter(xref => null != xref.cmp)
 
-    // TODO: identify non - ent schemas
     .filter(xref => !xref.val.includes('Meta'))
 
   let cleanxrefs = cmpxrefs
@@ -608,19 +574,6 @@ function ResolveEntityName(spec: TaskSpec) {
     }
   }
 
-  // A PATH SEGMENT CARRIES NO WORD BOUNDARIES, and the component name does.
-  //
-  // `/openbanking/payeeverification` is one lowercase run, so `canonize` has
-  // nothing to split on and the entity is named `payeeverification` ->
-  // `Payeeverification`. The boundary was never missing: the response
-  // component for that same operation is
-  // `PayeeVerification.PayeeVerificationResult`, which canonizes to
-  // `payee_verification_result`.
-  //
-  // Where the path wins over the component -- which is usually RIGHT, because
-  // a widely-reused response schema makes a poor entity name -- the component
-  // was being discarded whole, boundaries and all. Borrow just the boundaries
-  // back. See resplitFromCmp for why this cannot invent a name.
   entname = resplitFromCmp(entname, ment.cmp as string, why_path)
 
   // Keep the pre-truncation name so a truncated-name collision can tell a
@@ -687,12 +640,6 @@ function RenameParams(spec: TaskSpec) {
 
   const methodName = mdesc.method
 
-  // Rewrite path parameters that are identifiers to follow the rules:
-  // 0. Parameters named [a-z]?id are considered identifiers
-  // 1. last identifier is always {id} as this is the primary entity
-  // 2. internal identifiers are formatted as {name_id} where name is the parent entity name
-  // Example: /api/bar/{id}/zed/{zid}/foo/{fid} ->
-  //          /api/bar/{bar_id}/zed/{zed_id}/foo/{id}
 
   const pathDesc = entdesc.path[pathStr]
   pathDesc.rename = (pathDesc.rename ?? { param: {} })
@@ -707,12 +654,6 @@ function RenameParams(spec: TaskSpec) {
   }
   const parts = pathdesc.parts
 
-  // Implicit snake_case normalization for any path placeholder not already
-  // renamed by the id-rename logic. apidef's args transform snake-cases param
-  // names (e.g. spec `platformKey` → param.name `platform_key`); without
-  // normalizing the placeholder to match, runtime URL substitution by
-  // param.name fails to fill `{platformKey}`. Defined as a closure so we can
-  // run it after the id-rename loop OR after the multi-param early-return.
   const applySnakeCaseRename = () => {
     for (const part of parts) {
       const m = part.match(/^\{(.+)\}$/)
@@ -802,7 +743,6 @@ function RenameParams(spec: TaskSpec) {
             || parentName === cmpname
           )
         ) {
-          // let newParamName = 'id'
           updateParamRename(
             ctx, data, pathStr, methodName, paramRenameCapture, oldParam,
             'id', 'action-parent:' + entdesc.name)
@@ -901,8 +841,6 @@ function RenameParams(spec: TaskSpec) {
             'id', 'id-not-last')
 
           why.push('id-not-last')
-          // paramRenames[oldParam] = 'id'
-          // paramRenamesWhy[oldParam].push('id-not-last')
         }
 
         // Not primary ent.
@@ -916,8 +854,6 @@ function RenameParams(spec: TaskSpec) {
               newParamName, 'not-primary')
             why.push('not-primary')
 
-            // paramRenames[oldParam] = newParamName
-            // paramRenamesWhy[oldParam].push('not-primary')
           }
         }
       }
@@ -930,7 +866,6 @@ function RenameParams(spec: TaskSpec) {
         delete paramRenameCapture.why[oldParam]
       }
 
-      // TODO: these need to done via an API
       debugpath(pathStr, methodName, 'RENAME-PARAM',
         {
           pathStr,
@@ -972,7 +907,6 @@ function FindActions(spec: TaskSpec) {
   const entname = ment.entname
   const entdesc = work.entmap[entname]
 
-  // const pathdesc = spec.data.work.pathmap[pathStr]
   const pathdesc = entdesc.path[pathStr]
 
   const methodName = mdesc.method
@@ -993,12 +927,6 @@ function FindActions(spec: TaskSpec) {
 
   const cmp = ment.cmp
 
-  // A verb that ResolveEntityName assigned to its parent entity
-  // (verbOnParent) is an action whatever the parent literal canonizes to:
-  // `/app/installations/{installation_id}/access_tokens` belongs to `app`.
-  // Recorded directly rather than through updateAction, whose guard against
-  // an entity "already encoding" the verb would drop `archive` on
-  // `email_archive` and leave the verb as a plain CRUD point.
   if (null != ment.verb_on_parent) {
     pathdesc.action[lastPartCanon] = pathdesc.action[lastPartCanon] ?? {
       why_action: ['ent', entdesc.name, 'verb-on-parent', lastPart, methodName],
@@ -1072,15 +1000,7 @@ function ResolveOperation(spec: TaskSpec) {
     return
   }
 
-  // REVIEW: using POST and PUT in non-restian ways is too wierd to handle consistently
-  // correct using guide customizations
 
-  // Sometimes POST is used to update, not create. Attempt to identify this.
-  // And sometimes vice versa for PUT
-  // const id_param_offset = ment.pm?.expr?.endsWith('/t/') ? 1 : 0
-  // const has_end_id_param =
-  //   entname == canonize(parts[parts.length - 2 - id_param_offset])
-  //   && parts[parts.length - 1 - id_param_offset]?.toLowerCase().endsWith('id}')
 
 
   if ('load' === standard_opname) {
@@ -1088,30 +1008,12 @@ function ResolveOperation(spec: TaskSpec) {
     opname = islist ? 'list' : opname
   }
 
-  /*
-  else if (
-    'create' === standard_opname
-    && has_end_id_param
-  ) {
-    opname = 'update'
-    why_op.push('id-present')
-  }
-
-  else if (
-    'update' === standard_opname
-    && !has_end_id_param
-  ) {
-    opname = 'create'
-    why_op.push('no-id-present')
-  }
-  */
 
 
   else {
     why_op.push('not-load')
   }
 
-  // why.push('ent=' + entdesc.name)
 
   ment.opname = opname
   ment.why_opname = why_op
@@ -1158,7 +1060,6 @@ function ResolveTransform(spec: TaskSpec) {
   const entname = mdesc.MethodEntity.entname
   const entdesc = work.entmap[entname]
 
-  // const pathdesc = spec.data.work.pathmap[pathStr]
   const pathdesc = entdesc.path[pathStr]
 
   const methodName = mdesc.method
@@ -1178,12 +1079,6 @@ function ResolveTransform(spec: TaskSpec) {
   debugpath(pathStr, methodName, 'TRANSFORM-RES', keysof(resprops))
 
   if (resprops) {
-    // Only unwrap `body.<entity>` when the entity-named response property is
-    // itself a structured value (object/array/ref/composed schema) that could
-    // actually contain the entity. A scalar property that merely shares the
-    // entity's name (e.g. an entity `advice` whose own fields include a
-    // string field `advice`) is a FIELD of the entity, not a wrapper around
-    // it: the response IS the entity, so it must stay `body` (the default).
     if (isEntityWrapperProp(resprops[entdesc.origname])) {
       transform.res = '`body.' + entdesc.origname + '`'
     }
@@ -1203,14 +1098,6 @@ function ResolveTransform(spec: TaskSpec) {
     }
   }
 
-  // The SCHEMA is what closedBodyTransform needs (it reads
-  // additionalProperties); the wrapper-name checks need its PROPERTIES. They
-  // used to share one value and index the schema itself, so
-  // `schema['todoitem']` was always undefined and the entity-name request
-  // envelope was never detected — while the Go port read `.properties` and
-  // did detect it. That divergence was inert only because `req` was never
-  // serialised; now that it is, the two implementations would emit different
-  // request bodies for the same spec.
   const reqschema = getRequestBodySchema(mdesc.requestBody)
   const reqprops = reqschema?.properties
   debugpath(pathStr, methodName, 'TRANSFORM-REQ', keysof(reqprops))
@@ -1280,12 +1167,6 @@ function BuildEntity(spec: TaskSpec) {
     path,
   }
 
-  // An entity built ENTIRELY out of access-token exchanges is not a resource
-  // — it is the credential plumbing an SDK's auth layer performs. Emitted
-  // with `active: false` rather than dropped, so it stays visible in
-  // guide.aon and the classification can be reversed there (ADR-002): flip
-  // it to `true` and the entity comes back. The exchange itself is recorded
-  // separately as model facts by transform/top.ts.
   if (0 < entdesc.authexchange_ops && entdesc.authexchange_ops === entdesc.total_ops) {
     guideEntity.active = false
     guideEntity.why_inactive = 'auth-exchange'
@@ -1365,28 +1246,6 @@ function endsWithCmp(data: any, pm: PathMatch) {
 }
 
 
-// A write on `.../<parent>/{id}/<verb>` is a VERB ON THE PARENT, not an
-// entity named after its result shape.
-//
-// GitHub's `PUT /repos/{owner}/{repo}/pulls/{pull_number}/merge` answers with
-// a `pull-request-merge-result` component. Naming the method's entity after
-// that component (the cmp-primary rule) produced a `pull_request_merge_result`
-// entity with a single `update` op, while the GET on the same path (no
-// response schema) stayed an action on `pull`: one route split across two
-// entities by method, and the verb unreachable from the entity it acts on.
-//
-// Five signals, together: the method writes (a GET on such a path is a
-// sub-resource read and keeps the component rule); the response component
-// occurs nowhere else in the spec (a one-off result, not a resource shape);
-// that component is not the literal's own collection shape (a create-only
-// `POST .../{id}/labels` answering with a `label` is a nested collection,
-// not a verb); the item selector itself (`.../pulls/{pull_number}`) is a
-// path of the spec, so the trailing literal cannot be a collection of its
-// own; and nothing extends the path (`.../private-registries/{secret_name}`
-// makes `private-registries` a collection, whatever its POST answers with).
-// The verb then joins the parent entity, where FindActions records it as an
-// action and select stamps `$action` on its points. Returns the parent's
-// entity name, or null when the rule does not apply.
 function verbOnParent(
   data: { def: any, guide: any, work: any },
   pm: PathMatch,
@@ -1402,21 +1261,11 @@ function verbOnParent(
     return null
   }
 
-  // A PLURAL literal names a nested collection, whatever it answers with:
-  // `asset_keys` under `{environment_id}` creates an asset key, and
-  // `approvals` under `{merge_request_iid}` is a collection of approvals.
-  // A verb is singular — `merge`, `revoke`, `resend_confirmation` — so the
-  // component rule below is never reached for a plural, which is what keeps
-  // a create-only collection an entity of its own.
   const lit = snakify(getelem(pm, -1))
   if ('' === lit || depluralize(lit) !== lit) {
     return null
   }
 
-  // A singular literal still names a collection when its response component
-  // is that collection's member shape (`label` answering with `label`, or
-  // with a parent-prefixed `thing_label`); a verb answers with something
-  // else.
   const verb = canonize(getelem(pm, -1))
   const cmp = String(ment.cmp ?? '')
   if ('' === verb || cmp === verb || cmp.endsWith('_' + verb)) {
@@ -1481,7 +1330,6 @@ function entityPathMatch_tpe(
 
   why.push('path=t/p/')
   const origPathName = pm[pathNameIndex]
-  // let entname = fixEntName(origPathName)
   let entname = canonize(origPathName)
 
   if (null != ment.cmp || probableEntityMethod(data, mdesc, pm, why)) {
@@ -1528,7 +1376,6 @@ function entityPathMatch_te(
 
   why.push('path=t/')
   const origPathName = pm[pathNameIndex]
-  // let entname = fixEntName(origPathName)
   let entname = canonize(origPathName)
 
   if (null != ment.cmp || probableEntityMethod(data, mdesc, pm, why)) {
@@ -1552,7 +1399,6 @@ function entityPathMatch_tpp(
 
   why.push('path=t/p/p')
   const origPathName = pm[pathNameIndex]
-  // let entname = fixEntName(origPathName)
   let entname = canonize(origPathName)
 
   if (null != ment.cmp || probableEntityMethod(data, mdesc, pm, why)) {
@@ -1619,7 +1465,6 @@ function inferEntityName(
 }
 
 
-// No entity component was found, but there still might be an entity.
 function probableEntityMethod(
   data: { def: any },
   mdesc: any,
@@ -1800,14 +1645,6 @@ function isListResponse(
   let islist = false
   let schema
 
-  // 'p/' is anchored (e.g. t/p/): the path ends at a param, so it is an
-  // item path and the response shape cannot change that.
-  //
-  // A bare trailing 'p' (e.g. t/p/p, a compound key like
-  // /repos/{owner}/{repo}) also ends at a param, but the same shape covers
-  // a sub-collection scoped by a compound key (e.g. /audit-log/{ns}/{repo}).
-  // Those are told apart by the response: a collection returns an array at
-  // the top level, an item does not.
   const endParamAnchored = !!(pm && pm.expr.endsWith('p/'))
   const endParamBare = !!(pm && !endParamAnchored && pm.expr.endsWith('p'))
 
@@ -1827,11 +1664,6 @@ function isListResponse(
         islist = true
       }
 
-      // The array-prop fallback is deliberately loose, and an item schema
-      // often carries an incidental array property (GitHub's full-repository
-      // has topics: string[]). That is good enough evidence for an ordinary
-      // path, but not for a compound-key path, where it is exactly what
-      // misclassifies the item as a list.
       if (!islist && !endParamBare) {
         const properties = resolveSchemaProperties(schema)
 
@@ -1927,9 +1759,6 @@ function updateParamRename(
     }
   }
   else if (newParamName == existingNewName) {
-    // if (!existingWhy.includes(why)) {
-    //   existingWhy.push(why)
-    // }
   }
   else {
     ctx.warn({
@@ -1949,14 +1778,6 @@ function isParam(partStr: string) {
 }
 
 
-/*
-function fixEntName(origName: string) {
-  if (null == origName) {
-    return origName
-  }
-  return depluralize(snakify(origName))
-}
-*/
 
 
 function findcmps(
@@ -1968,7 +1789,6 @@ function findcmps(
   const cmplist: string[] = []
   const cmpset = new Set<string>()
 
-  // TODO: cache in ctx.work
 
   each(data.def.paths[pathStr])
     .map((md: MethodDef) => {

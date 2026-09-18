@@ -7,18 +7,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const node_test_1 = require("node:test");
 const node_assert_1 = __importDefault(require("node:assert"));
 const flowstep_1 = require("../dist/transform/flowstep");
-// WHICH FIELD THE BASIC FLOW MARKS.
-//
-// The update step writes a text field, appends a mark, and the load step
-// after it asserts the mark came back. The field is chosen by walking the
-// entity's fields, which are sorted by name — so which one it lands on is
-// alphabetical accident, and any field it may land on has to be one a client
-// can actually write.
-//
-// `readOnly` is the spec's statement that a client may not. solar's planet
-// declared `forbidReason` once its spec described what the server returns,
-// and the flow moved from `kind` to it: a step that writes a value the
-// server discards and then asserts it was kept.
 function runFlowstep(entity) {
     const flow = {
         name: 'Basic' + entity.name + 'Flow',
@@ -77,8 +65,6 @@ function entityWith(first) {
         const flow = await runFlowstep(entity);
         node_assert_1.default.strictEqual(markedField(flow), 'kind', 'the walk must pass over the readOnly field and take the next writable one');
     });
-    // The same field WITHOUT the flag is a perfectly good choice — this skips
-    // what the spec says a client may not send, not every optional field.
     (0, node_test_1.test)('a writable field in the same position is chosen', async () => {
         const entity = entityWith({ name: 'forbidReason', type: '`$STRING`', req: false });
         const flow = await runFlowstep(entity);

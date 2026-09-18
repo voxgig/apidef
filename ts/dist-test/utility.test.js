@@ -25,14 +25,10 @@ const utility_1 = require("../dist/utility");
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('series'), 'series');
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('movies'), 'movie');
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('amiiboseries'), 'amiiboseries');
-        // Words that should not be truncated to <= 2 chars
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('yes'), 'yes');
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('lens'), 'lens');
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('phrase'), 'phrase');
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('abs'), 'abs');
-        // `<vowel>+se+s` plurals — the generic `-ses → ∅` rule used to
-        // over-strip these to hous/phas/nos/etc. Each must round-trip via
-        // IRREGULARS.
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('houses'), 'house');
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('phases'), 'phase');
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('noses'), 'nose');
@@ -62,8 +58,6 @@ const utility_1 = require("../dist/utility");
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('house'), 'house');
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('license'), 'license');
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('practice'), 'practice');
-        // -ze + s plurals — the singular keeps the trailing -e. The
-        // generic `-zes → ∅` rule used to over-strip these to priz/siz/etc.
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('prizes'), 'prize');
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('sizes'), 'size');
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('freezes'), 'freeze');
@@ -73,9 +67,6 @@ const utility_1 = require("../dist/utility");
         // -zz + es plurals — singular ends in -zz, strip full -es.
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('buzzes'), 'buzz');
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('fizzes'), 'fizz');
-        // -che + s plurals — singular keeps the -e. The generic
-        // `-ches → ∅` rule used to over-strip these to cach/nich/etc.
-        // Each entry round-trips via IRREGULARS.
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('caches'), 'cache');
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('niches'), 'niche');
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('headaches'), 'headache');
@@ -88,8 +79,6 @@ const utility_1 = require("../dist/utility");
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('beaches'), 'beach');
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('matches'), 'match');
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('churches'), 'church');
-        // Case-insensitive IRREGULARS lookup — used to over-strip via
-        // the case-sensitive bypass (Houses → Hous, Mice → Mice).
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('Houses'), 'House');
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('HOUSES'), 'HOUSE');
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('Mice'), 'Mouse');
@@ -98,8 +87,6 @@ const utility_1 = require("../dist/utility");
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('Movies'), 'Movie');
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('Caches'), 'Cache');
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('MyHouses'), 'MyHouse');
-        // All-uppercase suffix rules — used to fall through unchanged
-        // because endsWith() is case-sensitive.
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('PRIZES'), 'PRIZE');
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('DOGS'), 'DOG');
         node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('CITIES'), 'CITY');
@@ -134,15 +121,10 @@ const utility_1 = require("../dist/utility");
             (0, utility_1.setCustomPlurals)({ Boxen: 'box' });
             node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('boxen'), 'box');
             node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('BOXEN'), 'BOX');
-            // Custom wins over default rules. Default depluralize would
-            // return 'datum' if 'data' were in IRREGULARS (it isn't), so
-            // demonstrate priority over the bare -s rule instead.
             (0, utility_1.setCustomPlurals)({ news: 'news' });
             node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('news'), 'news');
-            // Null/undefined values in the map are dropped, not used to
-            // overwrite real words with empty strings.
             (0, utility_1.setCustomPlurals)({ Houses: null, mice: undefined });
-            node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('Houses'), 'House'); // falls through to IRREGULARS
+            node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('Houses'), 'House');
             node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)('mice'), 'mouse');
             // Longest-suffix wins when multiple entries could match.
             (0, utility_1.setCustomPlurals)({ es: 'eee', boxes: 'box-special' });
@@ -166,18 +148,17 @@ const utility_1 = require("../dist/utility");
         // the previous model's custom-plural-affected result. Regression.
         try {
             (0, utility_1.clearCustomPlurals)();
-            node_assert_1.default.deepStrictEqual((0, utility_1.canonize)('axes'), 'axis'); // default, populates cache
+            node_assert_1.default.deepStrictEqual((0, utility_1.canonize)('axes'), 'axis');
             (0, utility_1.setCustomPlurals)({ axes: 'axe' });
-            node_assert_1.default.deepStrictEqual((0, utility_1.canonize)('axes'), 'axe'); // not the cached 'axis'
+            node_assert_1.default.deepStrictEqual((0, utility_1.canonize)('axes'), 'axe');
             (0, utility_1.clearCustomPlurals)();
-            node_assert_1.default.deepStrictEqual((0, utility_1.canonize)('axes'), 'axis'); // not the cached 'axe'
+            node_assert_1.default.deepStrictEqual((0, utility_1.canonize)('axes'), 'axis');
         }
         finally {
             (0, utility_1.clearCustomPlurals)();
         }
     });
     (0, node_test_1.test)('canonize', () => {
-        // Basic canonization
         node_assert_1.default.deepStrictEqual((0, utility_1.canonize)('Dogs'), 'dog');
         node_assert_1.default.deepStrictEqual((0, utility_1.canonize)('FooBar'), 'foo_bar');
         node_assert_1.default.deepStrictEqual((0, utility_1.canonize)('my-thing'), 'my_thing');
@@ -224,7 +205,6 @@ const utility_1 = require("../dist/utility");
         node_assert_1.default.deepStrictEqual((0, utility_1.sanitizeSlug)('my_api'), 'my-api');
         node_assert_1.default.deepStrictEqual((0, utility_1.sanitizeSlug)('api.v2'), 'api-v2');
         node_assert_1.default.deepStrictEqual((0, utility_1.sanitizeSlug)('my_cool.api'), 'my-cool-api');
-        // Special chars are stripped
         node_assert_1.default.deepStrictEqual((0, utility_1.sanitizeSlug)("bob's-api"), 'bobs-api');
         node_assert_1.default.deepStrictEqual((0, utility_1.sanitizeSlug)('api!(v2)'), 'apiv2');
         // Standalone number segments merge with preceding word
@@ -245,7 +225,6 @@ const utility_1 = require("../dist/utility");
         node_assert_1.default.deepStrictEqual((0, utility_1.sanitizeSlug)('api検索'), 'api');
     });
     (0, node_test_1.test)('slugToPascalCase', () => {
-        // Simple slugs
         node_assert_1.default.deepStrictEqual((0, utility_1.slugToPascalCase)('my-api'), 'MyApi');
         node_assert_1.default.deepStrictEqual((0, utility_1.slugToPascalCase)('cool-service'), 'CoolService');
         // Accented characters are transliterated
@@ -266,12 +245,10 @@ const utility_1 = require("../dist/utility");
         node_assert_1.default.deepStrictEqual((0, utility_1.slugToPascalCase)('ec-2-shop'), 'Ec2Shop');
         node_assert_1.default.deepStrictEqual((0, utility_1.slugToPascalCase)('guild-wars-2-api'), 'GuildWars2Api');
         node_assert_1.default.deepStrictEqual((0, utility_1.slugToPascalCase)('magic-8-ball-api'), 'Magic8BallApi');
-        // Normal slugs
         node_assert_1.default.deepStrictEqual((0, utility_1.slugToPascalCase)('no-as-a-service'), 'NoAsAService');
         node_assert_1.default.deepStrictEqual((0, utility_1.slugToPascalCase)('yes-as-a-service'), 'YesAsAService');
         node_assert_1.default.deepStrictEqual((0, utility_1.slugToPascalCase)('shame-as-a-service'), 'ShameAsAService');
         node_assert_1.default.deepStrictEqual((0, utility_1.slugToPascalCase)('api'), 'Api');
-        // Edge cases
         node_assert_1.default.deepStrictEqual((0, utility_1.slugToPascalCase)(''), 'Unknown');
         node_assert_1.default.deepStrictEqual((0, utility_1.slugToPascalCase)('!!!'), 'Unknown');
     });
@@ -286,7 +263,6 @@ const utility_1 = require("../dist/utility");
         node_assert_1.default.deepStrictEqual((0, utility_1.transliterate)('señor'), 'senor');
         node_assert_1.default.deepStrictEqual((0, utility_1.transliterate)('café'), 'cafe');
         node_assert_1.default.deepStrictEqual((0, utility_1.transliterate)('Ångström'), 'Angstrom');
-        // ASCII unchanged
         node_assert_1.default.deepStrictEqual((0, utility_1.transliterate)('hello'), 'hello');
         node_assert_1.default.deepStrictEqual((0, utility_1.transliterate)('foo-bar_123'), 'foo-bar_123');
         // Non-Latin scripts pass through (stripped later by canonize)
@@ -298,7 +274,6 @@ const utility_1 = require("../dist/utility");
         node_assert_1.default.deepStrictEqual((0, utility_1.normalizeFieldName)('filter[text]'), 'filter_text');
         node_assert_1.default.deepStrictEqual((0, utility_1.normalizeFieldName)('page[limit]'), 'page_limit');
         node_assert_1.default.deepStrictEqual((0, utility_1.normalizeFieldName)('page[offset]'), 'page_offset');
-        // Nested brackets
         node_assert_1.default.deepStrictEqual((0, utility_1.normalizeFieldName)('conditions[publication_date][gte]'), 'conditions_publication_date_gte');
         // Trailing empty brackets are stripped
         node_assert_1.default.deepStrictEqual((0, utility_1.normalizeFieldName)('fields[]'), 'fields');
@@ -307,10 +282,8 @@ const utility_1 = require("../dist/utility");
         // Dot notation becomes underscores
         node_assert_1.default.deepStrictEqual((0, utility_1.normalizeFieldName)('facet.field'), 'facet_field');
         node_assert_1.default.deepStrictEqual((0, utility_1.normalizeFieldName)('refine.country'), 'refine_country');
-        // Regular names unchanged
         node_assert_1.default.deepStrictEqual((0, utility_1.normalizeFieldName)('name'), 'name');
         node_assert_1.default.deepStrictEqual((0, utility_1.normalizeFieldName)('created_at'), 'created_at');
-        // Empty/null
         node_assert_1.default.deepStrictEqual((0, utility_1.normalizeFieldName)(''), '');
         // No duplicate or leading/trailing underscores
         node_assert_1.default.deepStrictEqual((0, utility_1.normalizeFieldName)('[foo]'), 'foo');
@@ -321,12 +294,10 @@ const utility_1 = require("../dist/utility");
         node_assert_1.default.deepStrictEqual((0, utility_1.canonize)((0, utility_1.normalizeFieldName)('filter[text]')), 'filter_text');
         node_assert_1.default.deepStrictEqual((0, utility_1.canonize)((0, utility_1.normalizeFieldName)('page[limit]')), 'page_limit');
         node_assert_1.default.deepStrictEqual((0, utility_1.canonize)((0, utility_1.normalizeFieldName)('page[offset]')), 'page_offset');
-        // Nested brackets
         node_assert_1.default.deepStrictEqual((0, utility_1.canonize)((0, utility_1.normalizeFieldName)('conditions[agencies][]')), 'conditions_agency');
         node_assert_1.default.deepStrictEqual((0, utility_1.canonize)((0, utility_1.normalizeFieldName)('conditions[publication_date][gte]')), 'conditions_publication_date_gte');
         node_assert_1.default.deepStrictEqual((0, utility_1.canonize)((0, utility_1.normalizeFieldName)('conditions[type][]')), 'conditions_type');
         node_assert_1.default.deepStrictEqual((0, utility_1.canonize)((0, utility_1.normalizeFieldName)('fields[]')), 'field');
-        // Dot notation
         node_assert_1.default.deepStrictEqual((0, utility_1.canonize)((0, utility_1.normalizeFieldName)('facet.field')), 'facet_field');
         node_assert_1.default.deepStrictEqual((0, utility_1.canonize)((0, utility_1.normalizeFieldName)('refine.country')), 'refine_country');
         node_assert_1.default.deepStrictEqual((0, utility_1.canonize)((0, utility_1.normalizeFieldName)('refine.type')), 'refine_type');
@@ -340,16 +311,12 @@ const utility_1 = require("../dist/utility");
         node_assert_1.default.deepStrictEqual(argPipeline('filter[text]'), 'filter_text');
         node_assert_1.default.deepStrictEqual(argPipeline('page[limit]'), 'page_limit');
         node_assert_1.default.deepStrictEqual(argPipeline('filter[route]'), 'filter_route');
-        // Nested brackets
         node_assert_1.default.deepStrictEqual(argPipeline('conditions[agencies][]'), 'conditions_agency');
         node_assert_1.default.deepStrictEqual(argPipeline('conditions[publication_date][gte]'), 'conditions_publication_date_gte');
-        // Dot notation
         node_assert_1.default.deepStrictEqual(argPipeline('facet.field'), 'facet_field');
         node_assert_1.default.deepStrictEqual(argPipeline('refine.country'), 'refine_country');
-        // CamelCase args
         node_assert_1.default.deepStrictEqual(argPipeline('filterText'), 'filter_text');
         node_assert_1.default.deepStrictEqual(argPipeline('pageLimit'), 'page_limit');
-        // Regular args unchanged
         node_assert_1.default.deepStrictEqual(argPipeline('sort'), 'sort');
         node_assert_1.default.deepStrictEqual(argPipeline('include'), 'include');
     });
@@ -435,7 +402,6 @@ const utility_1 = require("../dist/utility");
         node_assert_1.default.deepStrictEqual((0, utility_1.cleanComponentName)('nps_controller'), 'nps');
         node_assert_1.default.deepStrictEqual((0, utility_1.cleanComponentName)('balance_controller'), 'balance');
         node_assert_1.default.deepStrictEqual((0, utility_1.cleanComponentName)('gas_system_controller'), 'gas_system');
-        // Rest controller suffix (two parts) is stripped
         node_assert_1.default.deepStrictEqual((0, utility_1.cleanComponentName)('donate_rest_controller'), 'donate');
         node_assert_1.default.deepStrictEqual((0, utility_1.cleanComponentName)('portfolio_rest_controller'), 'portfolio');
         // Response/request suffixes are stripped
@@ -458,7 +424,6 @@ const utility_1 = require("../dist/utility");
         node_assert_1.default.deepStrictEqual((0, utility_1.cleanComponentName)('get_balance_controller'), 'balance');
     });
     (0, node_test_1.test)('ensureMinEntityName', () => {
-        // Names already >= 3 chars are unchanged
         node_assert_1.default.deepStrictEqual((0, utility_1.ensureMinEntityName)('foo', {}), 'foo');
         node_assert_1.default.deepStrictEqual((0, utility_1.ensureMinEntityName)('abcd', {}), 'abcd');
         node_assert_1.default.deepStrictEqual((0, utility_1.ensureMinEntityName)('abc', {}), 'abc');
@@ -468,7 +433,6 @@ const utility_1 = require("../dist/utility");
         // 1-char names get padded with "nt"
         node_assert_1.default.deepStrictEqual((0, utility_1.ensureMinEntityName)('d', {}), 'dnt');
         node_assert_1.default.deepStrictEqual((0, utility_1.ensureMinEntityName)('x', {}), 'xnt');
-        // Empty string gets padded
         node_assert_1.default.deepStrictEqual((0, utility_1.ensureMinEntityName)('', {}), 'nt');
         // No collision: padded name is free
         node_assert_1.default.deepStrictEqual((0, utility_1.ensureMinEntityName)('ab', { other: {} }), 'abn');
@@ -502,18 +466,13 @@ const utility_1 = require("../dist/utility");
         node_assert_1.default.deepStrictEqual((0, utility_1.ensureMinEntityName)('a!b@c#d', {}), 'abcd');
         node_assert_1.default.deepStrictEqual((0, utility_1.ensureMinEntityName)('foo_bar', {}), 'foo_bar');
         node_assert_1.default.deepStrictEqual((0, utility_1.ensureMinEntityName)('a[b]', {}), 'abn');
-        // Names under 67 chars are unchanged
         node_assert_1.default.deepStrictEqual((0, utility_1.ensureMinEntityName)('this_endpoint_is_tailored_for_searches_based_on_product_name', {}), 'this_endpoint_is_tailored_for_searches_based_on_product_name');
-        // Sentence-length names are truncated to <= 67 chars at word boundaries
         node_assert_1.default.deepStrictEqual((0, utility_1.ensureMinEntityName)('if_you_have_the_name_of_a_specific_software_product_and_want_to_check', {}), 'if_you_have_the_name_of_a_specific_software_product_and_want_to');
         node_assert_1.default.deepStrictEqual((0, utility_1.ensureMinEntityName)('this_is_a_very_long_entity_name_that_goes_well_beyond_the_sixty_seven_character_limit_set', {}), 'this_is_a_very_long_entity_name_that_goes_well_beyond_the_sixty');
-        // Names at exactly 67 chars are unchanged
         node_assert_1.default.deepStrictEqual((0, utility_1.ensureMinEntityName)('a'.repeat(67), {}), 'a'.repeat(67));
-        // Names at 68 chars get truncated
         node_assert_1.default.deepStrictEqual((0, utility_1.ensureMinEntityName)('abcde_' + 'x'.repeat(63), {}), 'abcde');
         // Single long word with no underscores gets hard-truncated at 67
         node_assert_1.default.deepStrictEqual((0, utility_1.ensureMinEntityName)('a'.repeat(80), {}), 'a'.repeat(67));
-        // Truncation with collision
         const truncated = 'if_you_have_the_name_of_a_specific_software_product_and_want_to';
         node_assert_1.default.deepStrictEqual((0, utility_1.ensureMinEntityName)('if_you_have_the_name_of_a_specific_software_product_and_want_to_check', { [truncated]: {} }), truncated + '2');
     });
@@ -600,12 +559,6 @@ const utility_1 = require("../dist/utility");
             i: 1, m: ['b', '{c}', 'd', '{e}'], x: 't/p/t/p'
         });
     });
-    // A repeated reference is not a cycle. `seen` used to be a global set that
-    // never forgot a node, so a shared node in a DAG took the circular
-    // fallback, which re-entered renderJSONIC with a decircular()'d copy that
-    // still repeated — recursing until the stack blew. Formatting a deep
-    // validation error hit exactly this, so the CLI reported
-    // "Maximum call stack size exceeded" instead of the error you needed.
     (0, node_test_1.test)('formatJSONIC-shared-and-circular', async () => {
         // Shared but acyclic: rendered in full, both times, with no marker.
         const shared = { name: 's', v: 1 };
@@ -616,7 +569,6 @@ const utility_1 = require("../dist/utility");
         const cyc = { n: 1 };
         cyc.self = cyc;
         node_assert_1.default.match((0, utility_1.formatJSONIC)(cyc), /Circular/);
-        // Deep AND repeating: the shape that used to overflow the stack.
         let deep = { shared };
         for (let i = 0; i < 5000; i++) {
             deep = { k: deep, shared };
@@ -728,9 +680,9 @@ const utility_1 = require("../dist/utility");
     });
     (0, node_test_1.test)('validator normalizes scalar and union types', () => {
         node_assert_1.default.deepStrictEqual((0, utility_1.validator)('string'), '`$STRING`');
-        node_assert_1.default.deepStrictEqual((0, utility_1.validator)('  Integer '), '`$INTEGER`'); // trim + case-insensitive
-        node_assert_1.default.deepStrictEqual((0, utility_1.validator)('weird'), 'Any'); // unknown string
-        node_assert_1.default.deepStrictEqual((0, utility_1.validator)(undefined), '`$ANY`'); // missing type
+        node_assert_1.default.deepStrictEqual((0, utility_1.validator)('  Integer '), '`$INTEGER`');
+        node_assert_1.default.deepStrictEqual((0, utility_1.validator)('weird'), 'Any');
+        node_assert_1.default.deepStrictEqual((0, utility_1.validator)(undefined), '`$ANY`');
         // Array unions map to a $ONE of each member validator.
         node_assert_1.default.deepStrictEqual((0, utility_1.validator)(['string', 'number']), ['`$ONE`', ['`$STRING`', '`$NUMBER`']]);
     });
@@ -783,7 +735,6 @@ const utility_1 = require("../dist/utility");
                 b: 'value'
             }
         };
-        // Missing intermediate key
         try {
             (0, utility_1.getModelPath)(model, 'a.x.c');
             node_assert_1.default.fail('Should not reach here');
@@ -805,7 +756,6 @@ const utility_1 = require("../dist/utility");
             node_assert_1.default.match(err.message, new RegExp("Property 'missing' does not exist"));
             node_assert_1.default.match(err.message, new RegExp("Available keys: \\[b\\]"));
         }
-        // Missing root key
         try {
             (0, utility_1.getModelPath)(model, 'missing');
             node_assert_1.default.fail('Should not reach here');

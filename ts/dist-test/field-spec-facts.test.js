@@ -7,18 +7,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const node_test_1 = require("node:test");
 const node_assert_1 = __importDefault(require("node:assert"));
 const field_1 = require("../dist/transform/field");
-// The four OpenAPI property keywords that now reach ModelField:
-// `readOnly`, `writeOnly`, `deprecated` and `format`.
-//
-// They were being dropped, and `readOnly` is the expensive one to drop: it is
-// the only statement in a spec of whether a client MAY send a field, so
-// without it every generated create/update type offers the caller fields the
-// server assigns. The tests below pin the three decisions that make up the
-// feature — what is carried, what is deliberately NOT emitted, and how two
-// disagreeing schemas resolve.
-//
-// Shaped after field-short.test.ts, which covers the same paths for
-// `description`; the merge rule is deliberately the same one.
 function runFieldTransform(entity, def) {
     const apimodel = { main: { kit: { entity: { [entity.name]: entity } } } };
     return (0, field_1.fieldTransform)({ apimodel, def }).then(() => entity.fields);
@@ -30,7 +18,6 @@ function fieldsByName(fields) {
     }
     return out;
 }
-// One entity with one GET, whose 200 response carries `schema`.
 function loadOnly(schema) {
     return {
         entity: {
@@ -73,12 +60,6 @@ function loadOnly(schema) {
         node_assert_1.default.strictEqual(fields.legacy.deprecated, true);
         node_assert_1.default.strictEqual(fields.created.format, 'date-time');
     });
-    // ABSENT AND EXPLICIT-FALSE MEAN THE SAME THING, so only true is emitted.
-    //
-    // Each keyword defaults to false in OpenAPI. Emitting the false ones would
-    // add three keys to every field of every model and say nothing that the
-    // absence did not already say — and it would move every golden in this
-    // repo, which is a large diff carrying no information.
     (0, node_test_1.test)('a false or absent keyword adds no key', async () => {
         const { entity, def } = loadOnly({
             type: 'object',
@@ -112,12 +93,6 @@ function loadOnly(schema) {
         node_assert_1.default.ok(!('format' in fields.wrong));
         node_assert_1.default.strictEqual(fields.real.format, 'password', 'a real format is trimmed, like short');
     });
-    // THE MERGE, which is where a real spec differs from a constructed one.
-    //
-    // A field is first seen under a higher-precedence op that references a bare
-    // component, and annotated under a later one. Identity is first-writer-wins,
-    // so without a merge rule the annotation is thrown away — exactly the bug
-    // that left every Description cell blank before `short` was merged.
     (0, node_test_1.test)('an annotation on a later op survives the merge', async () => {
         const entity = {
             name: 'planet',
@@ -167,16 +142,6 @@ function loadOnly(schema) {
         node_assert_1.default.strictEqual(fields.token.writeOnly, true);
         node_assert_1.default.strictEqual(fields.token.format, 'password');
     });
-    // TWO SCHEMAS THAT DISAGREE, resolved toward the restriction.
-    //
-    // A response marks the field readOnly and a request body lists it as an
-    // ordinary property. That spec contradicts itself — OpenAPI says a client
-    // must not send a readOnly property at all — and the first declaration in
-    // opFieldPrecedence order wins, which puts `load` (the response) first.
-    //
-    // That is the safe direction, and the reason is asymmetric: believing the
-    // restriction costs a caller one field they probably could have sent;
-    // believing the omission sends a value the server rejects.
     (0, node_test_1.test)('a readOnly response beats a request that omits it', async () => {
         const entity = {
             name: 'planet',
@@ -231,14 +196,6 @@ function loadOnly(schema) {
         const fields = fieldsByName(await runFieldTransform(entity, def));
         node_assert_1.default.strictEqual(fields.id.readOnly, true, 'the restriction lost to a schema that merely omitted it');
     });
-    // The parsed schema is SHARED across every operation that references it, so
-    // nothing here may write a per-operation value back onto it — the hazard
-    // findFieldDefs already carries a comment about for `required`.
-    //
-    // Compared with the ITERATION METADATA stripped. `each` stamps `index$` on
-    // every object it walks, which is the traversal helper's business and not
-    // this transform writing anything; asserting on the raw JSON would fail on
-    // that and say "mutated" about a key no operation reads.
     (0, node_test_1.test)('the parsed schema keeps its own keys', async () => {
         const schema = {
             type: 'object',

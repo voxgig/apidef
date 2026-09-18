@@ -9,10 +9,6 @@ function resolveInfo(apimodel, opts) {
     const kit = apimodel.main[types_1.KIT];
     const infoFile = (null == opts.outprefix ? '' : opts.outprefix) + 'api-info.aon';
     const modelInfo = { main: { kit: { info: kit.info } } };
-    // .trim() first so substring(1, len-1) strips the wrapping `{` and `}`.
-    // Without it, formatJSONIC's trailing newline is removed instead of the
-    // closing brace, leaving a dangling `}` in the output. Mirrors the sibling
-    // entity builder (builder/entity/entity.ts), which trims for this reason.
     let modelDefSrc = (0, utility_1.formatJSONIC)(modelInfo).trim();
     modelDefSrc =
         '# API Information\n\n' +

@@ -51,13 +51,6 @@ const transform_1 = require("../dist/transform");
 function loadTsv(name) {
     const filepath = Path.join(__dirname, '..', 'test', name + '.tsv');
     const text = Fs.readFileSync(filepath, 'utf8');
-    // Split on CRLF or LF — git's core.autocrlf on Windows checks files
-    // out with CRLF endings, and a bare \n split would leave a trailing
-    // \r on every last cell. The header row's "expected\r" then doesn't
-    // match the row[headers[j]] = 'expected' access pattern below, so
-    // every TSV-driven assertion compared the real value against
-    // undefined. Manifested as a Windows-only CI failure across every
-    // tsv.test.ts suite.
     const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
     const headers = lines[0].split('\t');
     const rows = [];
@@ -71,14 +64,6 @@ function loadTsv(name) {
     }
     return rows;
 }
-// snakify/camelify/kebabify come from jostraca on the TS side and are
-// hand-ported in go/utility.go:partify. They are the root of every generated
-// identifier — entity names, field names, SDK class names — so a silent
-// divergence there renames the whole SDK. Two rules had drifted: jostraca
-// guards acronym collapsing with `(?![a-z])` (APIaddress -> ap_iaddress, not
-// apiaddress) and only merges a single UPPERCASE segment into the following
-// part (1_2_3 stays 1_2_3, not 12_3). This fixture pins both, and doubles as
-// the contract to re-run against on any jostraca upgrade.
 (0, node_test_1.describe)('tsv-name-parts', () => {
     const rows = loadTsv('name-parts');
     for (const row of rows) {
@@ -93,9 +78,6 @@ function loadTsv(name) {
         });
     }
 });
-// Union validators cannot be expressed in the string-only TSV format, so the
-// array branch — the whole point of OpenAPI 3.1 nullable types — needs its own
-// case on both sides. Mirrors go/tsv_test.go TestValidatorUnion.
 (0, node_test_1.describe)('tsv-validator-union', () => {
     const CASES = [
         [['string', 'null'], ['`$ONE`', ['`$STRING`', '`$NULL`']]],
@@ -444,17 +426,6 @@ function loadTsv(name) {
         const model = { a: 1 };
         node_assert_1.default.deepStrictEqual((0, utility_1.getModelPath)(model, 'b.c', { required: false }), undefined);
     });
-    // A REAL SPEC IS A GRAPH. Once `$ref`s resolve, a schema that refers back
-    // to itself is an object CYCLE, and a plain recursive walk never returns -
-    // it pushes until the array passes its maximum length and V8 raises
-    // `RangeError: Invalid array length`, which reads as a size problem and is
-    // a termination one.
-    //
-    // Stripe's published definition is what found this: 419 paths, 1,454
-    // schemas, and it failed identically at 12 GB of heap as at the default,
-    // which is what rules out "too big". Every large vendor spec was
-    // unusable, and a 3 KB hand-written file that worked is how thirty SDKs
-    // came to cover a fraction of their APIs.
     (0, node_test_1.describe)('find walks a graph, not a tree', () => {
         (0, node_test_1.test)('a self-referential object terminates', () => {
             const a = { name: 'a' };
@@ -470,9 +441,6 @@ function loadTsv(name) {
             node_assert_1.default.deepStrictEqual(hits.map((h) => h.val).sort(), ['child', 'parent']);
         });
         (0, node_test_1.test)('two references to one object are not two results', () => {
-            // A shared schema - the common case for a resolved $ref - is visited
-            // once, so a spec that names the same object from fifty places does
-            // not yield it fifty times.
             const shared = { name: 'shared' };
             const root = { a: shared, b: shared, c: { d: shared } };
             node_assert_1.default.strictEqual((0, utility_1.find)(root, 'name').length, 1);
@@ -492,19 +460,6 @@ function loadTsv(name) {
         node_assert_1.default.deepStrictEqual(v.c.name, 'c');
     });
 });
-// envelopeProp decides whether a 200/201 body is an ENVELOPE around the
-// result — `{item: {...}}`, `{items: [...]}` — or the result itself. It runs
-// only after the entity-name rules in ResolveTransform have failed, which is
-// the common case for a spec whose wrapper is named for the cardinality
-// rather than the entity: without it, list() returns the envelope object
-// where the caller expects an array, and `item`/`items` is picked up as a
-// field of the entity.
-//
-// The fixture pins both directions. A row with an empty `expected` is a
-// deliberate NON-match: multiple properties (a delete's `{ok,id}`, a paged
-// `{results,next}`), a scalar property that is really a field, or a wrapper
-// whose cardinality contradicts the op. Mirrors go/tsv_test.go
-// TestEnvelopeProp — one fixture, both languages.
 (0, node_test_1.describe)('tsv-envelope-prop', () => {
     const rows = loadTsv('envelope-prop');
     for (const row of rows) {
@@ -515,39 +470,15 @@ function loadTsv(name) {
         });
     }
 });
-// closedBodyTransform turns a CLOSED request-body schema into the mapping
-// that builds the body from the request payload. `additionalProperties:
-// false` is the spec stating the server rejects anything it did not declare,
-// so the body must be exactly those properties — not the whole payload,
-// which also carries the op's path params (`id` for `PUT /item/{id}`). One
-// extra key against a closed shape 400s the entire request.
-//
-// An OPEN or property-less schema returns null: the default `reqdata` (send
-// everything) stays correct there, because an open body accepts extras and a
-// schema with no declared properties gives nothing to restrict to. Mirrors
-// go/tsv_test.go TestClosedBodyTransform.
 (0, node_test_1.describe)('tsv-closed-body-transform', () => {
     const rows = loadTsv('closed-body-transform');
     for (const row of rows) {
         (0, node_test_1.test)(`closedBodyTransform(${row.schema})`, () => {
             const got = (0, utility_1.closedBodyTransform)(JSON.parse(row.schema));
-            // Spread to a plain object before comparing: the map is built with a
-            // null prototype ON PURPOSE (a `__proto__` property would otherwise be
-            // swallowed), and deepStrictEqual treats that as a difference.
             node_assert_1.default.deepStrictEqual(null == got ? null : { ...got }, JSON.parse(row.expected));
         });
     }
 });
-// The entity-named REQUEST envelope — a body of `{todoitem: {...}}` — is
-// detected by name, and the name lives under the schema's `.properties`.
-// TypeScript used to index the SCHEMA (`schema['todoitem']`, always
-// undefined) while the Go port read `.properties` and found it. The
-// divergence was inert only while `req` was never serialised; once it was,
-// the two produced different request bodies for the same spec.
-//
-// `expected` is the wrapper property name, or empty for no name match — the
-// case that falls through to closedBodyTransform. Mirrors go/tsv_test.go
-// TestRequestEnvelopeProp.
 (0, node_test_1.describe)('tsv-request-envelope', () => {
     const rows = loadTsv('request-envelope');
     // The name lookup as ResolveTransform performs it.
@@ -562,14 +493,6 @@ function loadTsv(name) {
         });
     }
 });
-// GraphQL root-field classification. Shape first, name second: the same
-// (fieldSig, profile) pair must yield the same {entity, op, action} in both
-// the TypeScript and (once ported) the Go implementation, so the decision is
-// a pure function driven by this shared fixture.
-//
-// `in` is the classifier signature, `out` the expected classification minus
-// the `why` trace (which is diagnostic, not contractual). Mirrors
-// go/tsv_test.go TestGraphqlClassify.
 (0, node_test_1.describe)('tsv-graphql-classify', () => {
     const rows = loadTsv('graphql-classify');
     for (const row of rows) {
@@ -583,13 +506,6 @@ function loadTsv(name) {
         });
     }
 });
-// An API's access-token exchange is credential plumbing, not a resource, and
-// must not become an entity (ADR-002). This fixture pins the four signals the
-// heuristic requires together — a secured spec, a per-operation `security: []`
-// clearing it, a POST, and a token-shaped success response — and the field
-// names it reports back, which are what sdkgen's `secrets` feature drives the
-// exchange with. There is deliberately no vendor extension or overlay to
-// override it: correction happens in guide.aon.
 (0, node_test_1.describe)('tsv-auth-exchange', () => {
     const rows = loadTsv('auth-exchange');
     for (const row of rows) {
@@ -601,10 +517,6 @@ function loadTsv(name) {
         });
     }
 });
-// `security: []` on an operation only MEANS anything when there is a
-// top-level requirement for it to clear. Pinned separately because it is the
-// gate on the whole heuristic: get this wrong and every public API's
-// endpoints look like credential exchanges.
 (0, node_test_1.describe)('spec-secured-by-default', () => {
     (0, node_test_1.test)('non-empty top-level security', () => {
         node_assert_1.default.strictEqual((0, utility_1.specSecuredByDefault)({ security: [{ bearerAuth: [] }] }), true);

@@ -6,11 +6,6 @@ import assert from 'node:assert'
 import { fieldTransform } from '../dist/transform/field'
 
 
-// The paths a spec's `description` takes to reach ModelField.short.
-//
-// The first cut of this feature read the description in resolveOpFields and
-// stopped there, which covers the common case — one schema, one operation —
-// and silently drops it in three others. Each test below is one of those.
 
 function runFieldTransform(entity: any, def: any) {
   const apimodel = { main: { kit: { entity: { [entity.name]: entity } } } }
@@ -160,10 +155,6 @@ describe('field-short', () => {
   })
 
 
-  // GraphQL field descriptions live on GqlField.desc — parse/graphql.ts puts
-  // them there. findGraphqlFieldDefs built field defs with key$/type/required
-  // only, so the description lookup in resolveOpFields always read undefined
-  // and no GraphQL-sourced SDK ever got a Description column.
   test('graphql-description-reaches-short', async () => {
     const entity = {
       name: 'planet',
@@ -208,11 +199,6 @@ describe('field-short', () => {
   })
 
 
-  // A description is prose the spec author wrote for a docs page, not a table
-  // cell. `short` is rendered by every generated Readme as one cell of a
-  // markdown row, where a raw newline ends the row and orphans the rest of the
-  // table. The validation corpus has 194 multi-line descriptions and one of
-  // 1725 characters, so this is the common case, not the pathological one.
   test('short-is-reduced-to-one-capped-line', async () => {
     const bullets = [
       'The status of the user',

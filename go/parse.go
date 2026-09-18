@@ -75,11 +75,6 @@ func parseOpenAPI(source string, meta map[string]string) (map[string]any, error)
 		parsed["components"] = map[string]any{}
 	}
 
-	// Capture insertion-order of `examples` blocks before $ref resolution
-	// so duplicate-key blowups during $ref expansion don't disturb the
-	// parallel walk. TS uses Object.values(examples) which is insertion
-	// order; Go maps are unordered, so we annotate each examples map with
-	// `x-examples-order: [keys…]` for findExampleObject to consume.
 	annotateExamplesOrder(source, parsed)
 
 	// Walk the tree: annotate x-ref and resolve $ref in one pass.
@@ -91,13 +86,6 @@ func parseOpenAPI(source string, meta map[string]string) (map[string]any, error)
 	return parsed, nil
 }
 
-// annotateExamplesOrder walks the JSON source via json.Decoder in parallel
-// with the parsed map, recording the insertion order of every object that
-// is the value of an `examples` key. The order is stored as
-// `x-examples-order: [key, key, …]` on each such map, so that downstream
-// example-iteration matches TS's Object.values insertion order rather
-// than Go's alphabetical map iteration. YAML specs are skipped (they do
-// not flow through json.Decoder).
 func annotateExamplesOrder(source string, parsed map[string]any) {
 	trimmed := strings.TrimSpace(source)
 	if len(trimmed) >= 3 && trimmed[0] == 0xEF && trimmed[1] == 0xBB && trimmed[2] == 0xBF {
@@ -121,9 +109,6 @@ func annotateExamplesOrder(source string, parsed map[string]any) {
 func walkExamplesOrder(dec *json.Decoder, current any, parentKey string) error {
 	m, ok := current.(map[string]any)
 	if !ok {
-		// We're inside a JSON object but the parsed-side has a non-map
-		// (e.g. the source got transformed). Drain tokens to keep the
-		// decoder aligned with the source.
 		return drainObject(dec)
 	}
 	keys := []string{}
@@ -192,16 +177,6 @@ func drainObject(dec *json.Decoder) error {
 	return err
 }
 
-// addXRefsAndResolve combines x-ref annotation and $ref resolution in one pass.
-// Matches TS addXRefsAndResolve: uses object-identity visited tracking
-// (WeakSet equivalent via pointer map) to avoid re-walking shared children,
-// which prevents exponential expansion on large specs with many cross-references.
-//
-// NOTE: resolution merges the target's keys into the ref node in place, so
-// multiple references to the same component share that component's nested
-// child objects. Downstream consumers must treat the resolved schema as
-// read-only — mutating an inlined sub-object would leak across every site
-// that referenced the same component.
 func addXRefsAndResolve(obj any, root map[string]any, visited map[uintptr]bool) {
 	if obj == nil {
 		return
@@ -230,12 +205,6 @@ func addXRefsAndResolve(obj any, root map[string]any, visited map[uintptr]bool) 
 								// Copy resolved properties into the existing map,
 								// remove $ref, add x-ref. Children are shared (not copied).
 								delete(m, "$ref")
-								// Keys already on m are the $ref's SIBLINGS
-								// (description, required, constraints — legal in
-								// OpenAPI 3.1 / JSON Schema 2020-12). They are the
-								// more specific, local statement, so they win over
-								// the target's. Mirrors src/parse.ts:
-								// { ...resolved, ...refSiblings(val), 'x-ref': xref }
 								for _, k := range sortedKeys(resolvedMap) {
 									if _, has := m[k]; !has {
 										m[k] = resolvedMap[k]
@@ -266,12 +235,6 @@ func addXRefsAndResolve(obj any, root map[string]any, visited map[uintptr]bool) 
 						if resolved != nil {
 							if resolvedMap, ok := resolved.(map[string]any); ok {
 								delete(m, "$ref")
-								// Keys already on m are the $ref's SIBLINGS
-								// (description, required, constraints — legal in
-								// OpenAPI 3.1 / JSON Schema 2020-12). They are the
-								// more specific, local statement, so they win over
-								// the target's. Mirrors src/parse.ts:
-								// { ...resolved, ...refSiblings(val), 'x-ref': xref }
 								for _, k := range sortedKeys(resolvedMap) {
 									if _, has := m[k]; !has {
 										m[k] = resolvedMap[k]
@@ -295,23 +258,6 @@ func addXRefsAndResolve(obj any, root map[string]any, visited map[uintptr]bool) 
 	}
 }
 
-// resolvePointer follows a JSON pointer like "#/components/schemas/Planet"
-// resolvePointer follows a JSON pointer, chasing alias chains to their end.
-// Mirrors src/parse.ts:resolvePointer.
-//
-// `Foo: { $ref: '#/components/schemas/Bar' }` is a normal OpenAPI idiom, and
-// a pointer can land on another bare $ref. Stopping at the intermediate
-// leaves a `$ref` string key in the inlined copy, which the object-valued
-// recursion in addXRefsAndResolve never follows — so the schema arrives with
-// no properties and every field is silently dropped.
-//
-// `seen` holds pointer strings (not object identities) so a self- or
-// mutually-referential alias cycle terminates instead of looping forever.
-//
-// Keywords beside a `$ref` (OpenAPI 3.1 / JSON Schema 2020-12 allow
-// `description`, `required`, constraints, ...) still apply, so they are
-// collected along the chain and merged onto the target, outermost last so the
-// most specific alias wins.
 func resolvePointer(root map[string]any, ref string) any {
 	seen := map[string]bool{}
 	var siblings []map[string]any

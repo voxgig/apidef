@@ -7,20 +7,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const node_test_1 = require("node:test");
 const node_assert_1 = __importDefault(require("node:assert"));
 const field_1 = require("../dist/transform/field");
-// An ACTION POINT contributes no fields to the entity.
-//
-// A custom action — `POST /api/planet/{planet_id}/terraform` — is classified
-// under `create` and marked with `select.$action`. Every point of an op was
-// harvested for fields, so the action's request body (that verb's arguments)
-// and its response (that verb's result) were read as though each described a
-// planet. solar's planet, four properties in the spec, came out with ten
-// fields; the six extra reached the generated `Planet` type, its create and
-// update data types, and the generated reference's field table.
-//
-// The rule this pins is already stated twice in the same transform:
-// `identityParams` skips action points because they are verbs rather than
-// addresses, and `responseCandidates` skips them because an action's response
-// is not a representation of the entity. The field list now agrees.
 function runFieldTransform(entity, def) {
     const apimodel = { main: { kit: { entity: { [entity.name]: entity } } } };
     return (0, field_1.fieldTransform)({ apimodel, def }).then(() => entity.fields);
@@ -28,8 +14,6 @@ function runFieldTransform(entity, def) {
 function names(fields) {
     return fields.map((f) => f.name).sort();
 }
-// A planet shaped like solar's: a plain create alongside two action points,
-// all three under `create`, plus the load that carries the entity proper.
 function planetWithActions() {
     const planet = {
         type: 'object',
@@ -41,8 +25,6 @@ function planetWithActions() {
             diameter: { key$: 'diameter', type: 'number' },
         },
     };
-    // `{ok, state}` — the shared reply of both actions. Two properties, so it
-    // is not an envelope, and envelopeProp leaves it whole.
     const actionResponse = {
         type: 'object',
         properties: {
@@ -118,11 +100,6 @@ function planetWithActions() {
         },
     };
 }
-// AN ACTION WHOSE RESPONSE IS THE ENTITY. `GET /v2/installments/active` is
-// classified an action by its verb-shaped last segment, and answers with
-// `{data: [Installment], meta}` — the entity itself, one envelope down. The
-// component survives inlining as `x-ref` (see parse.ts), which is what tells
-// this response apart from `uploadImage`'s `ApiResponse`.
 function installmentByAction(withBody = false) {
     const installment = {
         type: 'object',
@@ -233,15 +210,11 @@ function commitByMutation() {
     // carries the entity. Skipping the action points must not take it too.
     (0, node_test_1.test)('the plain create beside the actions is still harvested', async () => {
         const { entity, def } = planetWithActions();
-        // Drop the load, leaving `create` as the only op: its three points are
-        // then the sole source of fields.
         delete entity.op.load;
         const fields = await runFieldTransform(entity, def);
         node_assert_1.default.deepStrictEqual(names(fields), ['diameter', 'id', 'kind', 'name']);
         node_assert_1.default.strictEqual(fields.find((f) => 'name' === f.name)?.req, true, 'requiredness comes from the plain create body, which is still read');
     });
-    // An entity with no actions is untouched — the six fields solar's planet
-    // lost are not a general narrowing of what a field list may contain.
     (0, node_test_1.test)('an entity without actions is unaffected', async () => {
         const { entity, def } = planetWithActions();
         entity.op.create.points = [
@@ -268,9 +241,6 @@ function commitByMutation() {
     (0, node_test_1.test)("a graphql action point contributes the entity's own type", async () => {
         const { entity, def } = commitByMutation();
         const fields = await runFieldTransform(entity, def);
-        // github's graphql commit has exactly two points, both mutations, so the
-        // blanket skip left a Commit with no fields while the query the same
-        // derivation generates went on selecting every one of them.
         node_assert_1.default.deepEqual(names(fields), ['committedViaWeb', 'message', 'oid']);
     });
 });

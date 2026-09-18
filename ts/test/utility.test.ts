@@ -49,15 +49,11 @@ describe('utility', () => {
     assert.deepStrictEqual(depluralize('movies'),'movie')
     assert.deepStrictEqual(depluralize('amiiboseries'),'amiiboseries')
 
-    // Words that should not be truncated to <= 2 chars
     assert.deepStrictEqual(depluralize('yes'),'yes')
     assert.deepStrictEqual(depluralize('lens'),'lens')
     assert.deepStrictEqual(depluralize('phrase'),'phrase')
     assert.deepStrictEqual(depluralize('abs'),'abs')
 
-    // `<vowel>+se+s` plurals — the generic `-ses → ∅` rule used to
-    // over-strip these to hous/phas/nos/etc. Each must round-trip via
-    // IRREGULARS.
     assert.deepStrictEqual(depluralize('houses'),'house')
     assert.deepStrictEqual(depluralize('phases'),'phase')
     assert.deepStrictEqual(depluralize('noses'),'nose')
@@ -90,8 +86,6 @@ describe('utility', () => {
     assert.deepStrictEqual(depluralize('license'),'license')
     assert.deepStrictEqual(depluralize('practice'),'practice')
 
-    // -ze + s plurals — the singular keeps the trailing -e. The
-    // generic `-zes → ∅` rule used to over-strip these to priz/siz/etc.
     assert.deepStrictEqual(depluralize('prizes'),'prize')
     assert.deepStrictEqual(depluralize('sizes'),'size')
     assert.deepStrictEqual(depluralize('freezes'),'freeze')
@@ -103,9 +97,6 @@ describe('utility', () => {
     assert.deepStrictEqual(depluralize('buzzes'),'buzz')
     assert.deepStrictEqual(depluralize('fizzes'),'fizz')
 
-    // -che + s plurals — singular keeps the -e. The generic
-    // `-ches → ∅` rule used to over-strip these to cach/nich/etc.
-    // Each entry round-trips via IRREGULARS.
     assert.deepStrictEqual(depluralize('caches'),'cache')
     assert.deepStrictEqual(depluralize('niches'),'niche')
     assert.deepStrictEqual(depluralize('headaches'),'headache')
@@ -120,8 +111,6 @@ describe('utility', () => {
     assert.deepStrictEqual(depluralize('matches'),'match')
     assert.deepStrictEqual(depluralize('churches'),'church')
 
-    // Case-insensitive IRREGULARS lookup — used to over-strip via
-    // the case-sensitive bypass (Houses → Hous, Mice → Mice).
     assert.deepStrictEqual(depluralize('Houses'),'House')
     assert.deepStrictEqual(depluralize('HOUSES'),'HOUSE')
     assert.deepStrictEqual(depluralize('Mice'),'Mouse')
@@ -131,8 +120,6 @@ describe('utility', () => {
     assert.deepStrictEqual(depluralize('Caches'),'Cache')
     assert.deepStrictEqual(depluralize('MyHouses'),'MyHouse')
 
-    // All-uppercase suffix rules — used to fall through unchanged
-    // because endsWith() is case-sensitive.
     assert.deepStrictEqual(depluralize('PRIZES'),'PRIZE')
     assert.deepStrictEqual(depluralize('DOGS'),'DOG')
     assert.deepStrictEqual(depluralize('CITIES'),'CITY')
@@ -172,16 +159,11 @@ describe('utility', () => {
       assert.deepStrictEqual(depluralize('boxen'), 'box')
       assert.deepStrictEqual(depluralize('BOXEN'), 'BOX')
 
-      // Custom wins over default rules. Default depluralize would
-      // return 'datum' if 'data' were in IRREGULARS (it isn't), so
-      // demonstrate priority over the bare -s rule instead.
       setCustomPlurals({ news: 'news' })
       assert.deepStrictEqual(depluralize('news'), 'news')
 
-      // Null/undefined values in the map are dropped, not used to
-      // overwrite real words with empty strings.
       setCustomPlurals({ Houses: null as any, mice: undefined as any })
-      assert.deepStrictEqual(depluralize('Houses'), 'House') // falls through to IRREGULARS
+      assert.deepStrictEqual(depluralize('Houses'), 'House')
       assert.deepStrictEqual(depluralize('mice'), 'mouse')
 
       // Longest-suffix wins when multiple entries could match.
@@ -208,11 +190,11 @@ describe('utility', () => {
     // the previous model's custom-plural-affected result. Regression.
     try {
       clearCustomPlurals()
-      assert.deepStrictEqual(canonize('axes'), 'axis') // default, populates cache
+      assert.deepStrictEqual(canonize('axes'), 'axis')
       setCustomPlurals({ axes: 'axe' })
-      assert.deepStrictEqual(canonize('axes'), 'axe')  // not the cached 'axis'
+      assert.deepStrictEqual(canonize('axes'), 'axe')
       clearCustomPlurals()
-      assert.deepStrictEqual(canonize('axes'), 'axis') // not the cached 'axe'
+      assert.deepStrictEqual(canonize('axes'), 'axis')
     }
     finally {
       clearCustomPlurals()
@@ -220,7 +202,6 @@ describe('utility', () => {
   })
 
   test('canonize', () => {
-    // Basic canonization
     assert.deepStrictEqual(canonize('Dogs'),'dog')
     assert.deepStrictEqual(canonize('FooBar'),'foo_bar')
     assert.deepStrictEqual(canonize('my-thing'),'my_thing')
@@ -277,7 +258,6 @@ describe('utility', () => {
     assert.deepStrictEqual(sanitizeSlug('api.v2'),'api-v2')
     assert.deepStrictEqual(sanitizeSlug('my_cool.api'),'my-cool-api')
 
-    // Special chars are stripped
     assert.deepStrictEqual(sanitizeSlug("bob's-api"),'bobs-api')
     assert.deepStrictEqual(sanitizeSlug('api!(v2)'),'apiv2')
 
@@ -304,7 +284,6 @@ describe('utility', () => {
   })
 
   test('slugToPascalCase', () => {
-    // Simple slugs
     assert.deepStrictEqual(slugToPascalCase('my-api'),'MyApi')
     assert.deepStrictEqual(slugToPascalCase('cool-service'),'CoolService')
 
@@ -330,13 +309,11 @@ describe('utility', () => {
     assert.deepStrictEqual(slugToPascalCase('guild-wars-2-api'),'GuildWars2Api')
     assert.deepStrictEqual(slugToPascalCase('magic-8-ball-api'),'Magic8BallApi')
 
-    // Normal slugs
     assert.deepStrictEqual(slugToPascalCase('no-as-a-service'),'NoAsAService')
     assert.deepStrictEqual(slugToPascalCase('yes-as-a-service'),'YesAsAService')
     assert.deepStrictEqual(slugToPascalCase('shame-as-a-service'),'ShameAsAService')
     assert.deepStrictEqual(slugToPascalCase('api'),'Api')
 
-    // Edge cases
     assert.deepStrictEqual(slugToPascalCase(''),'Unknown')
     assert.deepStrictEqual(slugToPascalCase('!!!'),'Unknown')
   })
@@ -353,7 +330,6 @@ describe('utility', () => {
     assert.deepStrictEqual(transliterate('café'),'cafe')
     assert.deepStrictEqual(transliterate('Ångström'),'Angstrom')
 
-    // ASCII unchanged
     assert.deepStrictEqual(transliterate('hello'),'hello')
     assert.deepStrictEqual(transliterate('foo-bar_123'),'foo-bar_123')
 
@@ -368,7 +344,6 @@ describe('utility', () => {
     assert.deepStrictEqual(normalizeFieldName('page[limit]'),'page_limit')
     assert.deepStrictEqual(normalizeFieldName('page[offset]'),'page_offset')
 
-    // Nested brackets
     assert.deepStrictEqual(normalizeFieldName('conditions[publication_date][gte]'),'conditions_publication_date_gte')
 
     // Trailing empty brackets are stripped
@@ -380,11 +355,9 @@ describe('utility', () => {
     assert.deepStrictEqual(normalizeFieldName('facet.field'),'facet_field')
     assert.deepStrictEqual(normalizeFieldName('refine.country'),'refine_country')
 
-    // Regular names unchanged
     assert.deepStrictEqual(normalizeFieldName('name'),'name')
     assert.deepStrictEqual(normalizeFieldName('created_at'),'created_at')
 
-    // Empty/null
     assert.deepStrictEqual(normalizeFieldName(''),'')
 
     // No duplicate or leading/trailing underscores
@@ -398,13 +371,11 @@ describe('utility', () => {
     assert.deepStrictEqual(canonize(normalizeFieldName('page[limit]')),'page_limit')
     assert.deepStrictEqual(canonize(normalizeFieldName('page[offset]')),'page_offset')
 
-    // Nested brackets
     assert.deepStrictEqual(canonize(normalizeFieldName('conditions[agencies][]')),'conditions_agency')
     assert.deepStrictEqual(canonize(normalizeFieldName('conditions[publication_date][gte]')),'conditions_publication_date_gte')
     assert.deepStrictEqual(canonize(normalizeFieldName('conditions[type][]')),'conditions_type')
     assert.deepStrictEqual(canonize(normalizeFieldName('fields[]')),'field')
 
-    // Dot notation
     assert.deepStrictEqual(canonize(normalizeFieldName('facet.field')),'facet_field')
     assert.deepStrictEqual(canonize(normalizeFieldName('refine.country')),'refine_country')
     assert.deepStrictEqual(canonize(normalizeFieldName('refine.type')),'refine_type')
@@ -422,19 +393,15 @@ describe('utility', () => {
     assert.deepStrictEqual(argPipeline('page[limit]'),'page_limit')
     assert.deepStrictEqual(argPipeline('filter[route]'),'filter_route')
 
-    // Nested brackets
     assert.deepStrictEqual(argPipeline('conditions[agencies][]'),'conditions_agency')
     assert.deepStrictEqual(argPipeline('conditions[publication_date][gte]'),'conditions_publication_date_gte')
 
-    // Dot notation
     assert.deepStrictEqual(argPipeline('facet.field'),'facet_field')
     assert.deepStrictEqual(argPipeline('refine.country'),'refine_country')
 
-    // CamelCase args
     assert.deepStrictEqual(argPipeline('filterText'),'filter_text')
     assert.deepStrictEqual(argPipeline('pageLimit'),'page_limit')
 
-    // Regular args unchanged
     assert.deepStrictEqual(argPipeline('sort'),'sort')
     assert.deepStrictEqual(argPipeline('include'),'include')
   })
@@ -532,7 +499,6 @@ describe('utility', () => {
     assert.deepStrictEqual(cleanComponentName('balance_controller'),'balance')
     assert.deepStrictEqual(cleanComponentName('gas_system_controller'),'gas_system')
 
-    // Rest controller suffix (two parts) is stripped
     assert.deepStrictEqual(cleanComponentName('donate_rest_controller'),'donate')
     assert.deepStrictEqual(cleanComponentName('portfolio_rest_controller'),'portfolio')
 
@@ -561,7 +527,6 @@ describe('utility', () => {
   })
 
   test('ensureMinEntityName', () => {
-    // Names already >= 3 chars are unchanged
     assert.deepStrictEqual(ensureMinEntityName('foo', {}),'foo')
     assert.deepStrictEqual(ensureMinEntityName('abcd', {}),'abcd')
     assert.deepStrictEqual(ensureMinEntityName('abc', {}),'abc')
@@ -574,7 +539,6 @@ describe('utility', () => {
     assert.deepStrictEqual(ensureMinEntityName('d', {}),'dnt')
     assert.deepStrictEqual(ensureMinEntityName('x', {}),'xnt')
 
-    // Empty string gets padded
     assert.deepStrictEqual(ensureMinEntityName('', {}),'nt')
 
     // No collision: padded name is free
@@ -620,12 +584,10 @@ describe('utility', () => {
     assert.deepStrictEqual(ensureMinEntityName('foo_bar', {}),'foo_bar')
     assert.deepStrictEqual(ensureMinEntityName('a[b]', {}),'abn')
 
-    // Names under 67 chars are unchanged
     assert.deepStrictEqual(ensureMinEntityName(
       'this_endpoint_is_tailored_for_searches_based_on_product_name', {}
     ),'this_endpoint_is_tailored_for_searches_based_on_product_name')
 
-    // Sentence-length names are truncated to <= 67 chars at word boundaries
     assert.deepStrictEqual(ensureMinEntityName(
       'if_you_have_the_name_of_a_specific_software_product_and_want_to_check', {}
     ),'if_you_have_the_name_of_a_specific_software_product_and_want_to')
@@ -633,16 +595,13 @@ describe('utility', () => {
       'this_is_a_very_long_entity_name_that_goes_well_beyond_the_sixty_seven_character_limit_set', {}
     ),'this_is_a_very_long_entity_name_that_goes_well_beyond_the_sixty')
 
-    // Names at exactly 67 chars are unchanged
     assert.deepStrictEqual(ensureMinEntityName('a'.repeat(67), {}),'a'.repeat(67))
 
-    // Names at 68 chars get truncated
     assert.deepStrictEqual(ensureMinEntityName('abcde_' + 'x'.repeat(63), {}),'abcde')
 
     // Single long word with no underscores gets hard-truncated at 67
     assert.deepStrictEqual(ensureMinEntityName('a'.repeat(80), {}),'a'.repeat(67))
 
-    // Truncation with collision
     const truncated = 'if_you_have_the_name_of_a_specific_software_product_and_want_to'
     assert.deepStrictEqual(ensureMinEntityName(
       'if_you_have_the_name_of_a_specific_software_product_and_want_to_check',
@@ -770,12 +729,6 @@ describe('utility', () => {
   })
 
 
-  // A repeated reference is not a cycle. `seen` used to be a global set that
-  // never forgot a node, so a shared node in a DAG took the circular
-  // fallback, which re-entered renderJSONIC with a decircular()'d copy that
-  // still repeated — recursing until the stack blew. Formatting a deep
-  // validation error hit exactly this, so the CLI reported
-  // "Maximum call stack size exceeded" instead of the error you needed.
   test('formatJSONIC-shared-and-circular', async () => {
     // Shared but acyclic: rendered in full, both times, with no marker.
     const shared = { name: 's', v: 1 }
@@ -788,7 +741,6 @@ describe('utility', () => {
     cyc.self = cyc
     assert.match(formatJSONIC(cyc), /Circular/)
 
-    // Deep AND repeating: the shape that used to overflow the stack.
     let deep: any = { shared }
     for (let i = 0; i < 5000; i++) {
       deep = { k: deep, shared }
@@ -920,9 +872,9 @@ describe('utility', () => {
 
   test('validator normalizes scalar and union types', () => {
     assert.deepStrictEqual(validator('string'), '`$STRING`')
-    assert.deepStrictEqual(validator('  Integer '), '`$INTEGER`') // trim + case-insensitive
-    assert.deepStrictEqual(validator('weird'), 'Any')             // unknown string
-    assert.deepStrictEqual(validator(undefined), '`$ANY`')        // missing type
+    assert.deepStrictEqual(validator('  Integer '), '`$INTEGER`')
+    assert.deepStrictEqual(validator('weird'), 'Any')
+    assert.deepStrictEqual(validator(undefined), '`$ANY`')
     // Array unions map to a $ONE of each member validator.
     assert.deepStrictEqual(validator(['string', 'number']),
       ['`$ONE`', ['`$STRING`', '`$NUMBER`']])
@@ -988,7 +940,6 @@ describe('utility', () => {
       }
     }
 
-    // Missing intermediate key
     try {
       getModelPath(model, 'a.x.c')
       assert.fail('Should not reach here')
@@ -1010,7 +961,6 @@ describe('utility', () => {
       assert.match(err.message, new RegExp("Available keys: \\[b\\]"))
     }
 
-    // Missing root key
     try {
       getModelPath(model, 'missing')
       assert.fail('Should not reach here')

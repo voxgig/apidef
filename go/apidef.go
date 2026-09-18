@@ -11,9 +11,6 @@ import (
 	"time"
 )
 
-// VERSION is the apidef Go module version, rewritten by `make publish-go`.
-// Spelled in caps to match the TypeScript side's exported VERSION, so the
-// two ports name the same thing the same way.
 const VERSION = "0.9.0"
 
 // ApiDef creates a new API definition generator with the given options.
@@ -86,9 +83,6 @@ func (a *apiDefInstance) Generate(spec map[string]any) (*ApiDefResult, error) {
 		return &ApiDefResult{OK: true, Steps: steps, Start: start, End: time.Now().UnixMilli(), Ctrl: ctrl}, nil
 	}
 
-	// Install per-model plural overrides for Depluralize/Canonize, read from
-	// model.main.custom.plurals (mirrors src/apidef.ts). Cleared on every
-	// return path so a reused MakeBuild instance starts clean per model.
 	SetCustomPlurals(modelCustomPlurals(model))
 	defer ClearCustomPlurals()
 
@@ -276,9 +270,6 @@ func MakeBuild(opts ApiDefOptions) func(model, build map[string]any) (*ApiDefRes
 	}
 }
 
-// modelCustomPlurals extracts model.main.custom.plurals, returning nil when
-// any level is absent. Mirrors the (model as any)?.main?.custom?.plurals
-// optional-chain in src/apidef.ts.
 func modelCustomPlurals(model map[string]any) any {
 	main, _ := model["main"].(map[string]any)
 	custom, _ := main["custom"].(map[string]any)
@@ -290,14 +281,14 @@ func modelCustomPlurals(model map[string]any) any {
 
 func makeErrorResult(start int64, steps []string, ctrl map[string]any, ctx *ApiDefContext, err error) *ApiDefResult {
 	return &ApiDefResult{
-		OK:    false,
-		Err:   err,
-		Start: start,
-		End:   time.Now().UnixMilli(),
-		Steps: steps,
-		Ctrl:  ctrl,
-		Guide: ctx.Guide,
+		OK:       false,
+		Err:      err,
+		Start:    start,
+		End:      time.Now().UnixMilli(),
+		Steps:    steps,
+		Ctrl:     ctrl,
+		Guide:    ctx.Guide,
 		ApiModel: ctx.ApiModel,
-		Ctx:   ctx,
+		Ctx:      ctx,
 	}
 }

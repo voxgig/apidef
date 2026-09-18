@@ -404,10 +404,6 @@ func TestCleanComponentNameGuarded(t *testing.T) {
 	}
 }
 
-// Union validators cannot be expressed in the string-only TSV format, and the
-// []any branch is the whole fix for OpenAPI 3.1 nullable types — so it needs
-// committed coverage here or it can regress with both suites green.
-// Mirrors ts/test/tsv.test.ts tsv-validator-union.
 func TestValidatorUnion(t *testing.T) {
 	cases := []struct {
 		in   any
@@ -578,19 +574,6 @@ func TestGuideOverlayCustomizations(t *testing.T) {
 	}
 }
 
-// envelopeProp decides whether a 200/201 body is an ENVELOPE around the
-// result — `{item: {...}}`, `{items: [...]}` — or the result itself. It runs
-// only after the entity-name rules in resolveTransform have failed, which is
-// the common case for a spec whose wrapper is named for the cardinality
-// rather than the entity: without it, list() returns the envelope object
-// where the caller expects an array, and `item`/`items` is picked up as a
-// field of the entity.
-//
-// A row with an empty `expected` is a deliberate NON-match: multiple
-// properties (a delete's `{ok,id}`, a paged `{results,next}`), a scalar
-// property that is really a field, or a wrapper whose cardinality
-// contradicts the op. Mirrors ts/test/tsv.test.ts tsv-envelope-prop — one
-// fixture, both languages.
 func TestEnvelopeProp(t *testing.T) {
 	rows := loadTsv(t, "envelope-prop")
 	if len(rows) == 0 {
@@ -611,16 +594,6 @@ func TestEnvelopeProp(t *testing.T) {
 	}
 }
 
-// closedBodyTransform turns a CLOSED request-body schema into the mapping that
-// builds the body from the request payload. `additionalProperties: false` is
-// the spec stating the server rejects anything it did not declare, so the body
-// must be exactly those properties — not the whole payload, which also carries
-// the op's path params (`id` for `PUT /item/{id}`). One extra key against a
-// closed shape 400s the entire request.
-//
-// An OPEN or property-less schema returns nil: the default `reqdata` (send
-// everything) stays correct there. Mirrors ts/test/tsv.test.ts
-// tsv-closed-body-transform — one fixture, both languages.
 func TestClosedBodyTransform(t *testing.T) {
 	rows := loadTsv(t, "closed-body-transform")
 	if len(rows) == 0 {
@@ -652,12 +625,6 @@ func TestClosedBodyTransform(t *testing.T) {
 	}
 }
 
-// The entity-named REQUEST envelope — a body of `{todoitem: {...}}` — is
-// detected by name, and the name lives under the schema's `.properties`. The
-// TypeScript side used to index the SCHEMA (always undefined) while this port
-// read `.properties` and found it; the divergence was inert only while `req`
-// was never serialised. Mirrors ts/test/tsv.test.ts tsv-request-envelope —
-// one fixture, both languages.
 func TestRequestEnvelopeProp(t *testing.T) {
 	rows := loadTsv(t, "request-envelope")
 	if len(rows) == 0 {

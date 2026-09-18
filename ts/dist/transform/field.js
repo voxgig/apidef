@@ -19,29 +19,6 @@ const fieldTransform = async function (ctx) {
             if (mop) {
                 const mpoints = mop.points;
                 for (let mpoint of mpoints) {
-                    // AN ACTION POINT IS A VERB: its request body is that verb's
-                    // arguments and its response is that verb's result, so neither
-                    // describes a record of the entity. solar's planet -- four
-                    // properties in the spec -- came out with ten fields, the extra six
-                    // being `{start, stop}` and `{forbid, why}` from the two action
-                    // bodies and `{ok, state}` from their shared response envelope.
-                    // Those reached the generated `Planet` type, its create and update
-                    // data types, and the per-entity field table in the generated
-                    // reference, none of which a planet has ever carried.
-                    //
-                    // THE EXCLUSION BELONGS WITH THE SCHEMAS, not here. `findFieldDefs`
-                    // drops an action's request body outright and keeps its response
-                    // only when that response is the entity's OWN component --
-                    // `/v2/installments/active` returning `[Installment]` is,
-                    // `uploadImage` returning `ApiResponse` is not -- and on the
-                    // graphql path the question never arises, because the fields come
-                    // from the entity's own object type rather than from any response.
-                    //
-                    // Deciding it here instead cost every entity whose points are ALL
-                    // actions its entire field list: 24 across the validate corpus,
-                    // from github's graphql `commit` and `team` to learnworlds'
-                    // `installment` and shopify's `mailing_address`, each left with a
-                    // generated type carrying no fields at all.
                     const opfields = resolveOpFields(ment, mop, mpoint, def);
                     for (let opfield of opfields) {
                         if (!seen[opfield.name]) {
@@ -58,40 +35,9 @@ const fieldTransform = async function (ctx) {
         fields.sort((a, b) => {
             return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
         });
-        // Mark the entity as having an id only when the spec actually declares one.
-        // Downstream (test generators, fixture builders) gate id-specific code on
-        // this presence so that public read-only APIs without ids don't get
-        // bogus id assertions.
-        // COMPOSITE FIRST, because a compound key need not come with an `id`.
-        //
-        // An entity addressed by `{owner}/{repo}` whose response carries only
-        // `owner` and `name` has no field literally named `id`, and its adjacent
-        // placeholders are left unrenamed so `addressedById` is false too.
-        // Neither branch below then ran, so the entity got NO id descriptor and
-        // even an explicit `guide.entity.<name>.id.parts` was silently ignored —
-        // while the Go port, which initialises a descriptor unconditionally,
-        // emitted the composite. The ports disagreed on exactly the shape this
-        // feature exists for.
         const gent = guide?.entity?.[ment.name];
         const composite = compositeId(ment, gent, def);
         const idField = fields.find((f) => 'id' === f.name);
-        // A COMPOSITE ID IS A STRING, whatever the API's own `id` field is —
-        // AND THE API'S OWN id IS KEPT.
-        //
-        // github's repo declares `id` as an integer, its global database id,
-        // while the composite identity is `owner/repo`. Two facts have to
-        // survive: `id` must hold a string, because that is what the joined
-        // value is and what every generated type has to store; and the spec's
-        // numeric property must not be silently reinterpreted, because a
-        // consumer that wants the database id is entitled to it with its own
-        // type and format intact.
-        //
-        // So the API's field MOVES to `<api>_id` rather than being rewritten in
-        // place, carrying its type, format and per-op overrides with it, and the
-        // entity's `alias.field` map records where it went. Retyping in place
-        // (the first attempt) claimed the server's numeric id was a string;
-        // leaving it alone made `id.field` name a declaration the runtime value
-        // cannot satisfy. Moving it is the only option that lies about neither.
         if (null != composite.parts && null != idField && !scalarStringField(idField)) {
             const idf = idField;
             const apiname = String(model?.name || 'api');
@@ -146,38 +92,12 @@ const fieldTransform = async function (ctx) {
             ment.id = { name: 'id', field: 'id', ...composite };
         }
         else if (addressedById(ment)) {
-            // The FIELD as well as the descriptor. An entity addressed by id has an
-            // id at runtime — the test fixture seeds one, and the SDK sends it — so
-            // a model that declares the descriptor without the field makes the
-            // generated TYPE disagree with the generated TEST: trello's Option,
-            // Reaction and Sticker compiled to `TS2339: Property 'id' does not
-            // exist` the moment the test started assigning data.id.
             fields.push({
                 name: 'id',
                 type: '`$STRING`',
                 req: false,
             });
             fields.sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
-            // ADDRESSABLE BY ID WITHOUT DECLARING ONE AS A FIELD.
-            //
-            // The rule above reads the RESPONSE schema, and plenty of real entities
-            // are addressed by an id their response never repeats. github's
-            // private_registry is one: PATCH /orgs/{org}/private-registries/{secret_name}
-            // renames secret_name to id, so the entity is addressed by id on every
-            // one of its own routes, while its schema declares only created_at, key,
-            // name, url and friends.
-            //
-            // Downstream that absence is not cosmetic. TestEntity gates
-            // `data.id = <created>.id` on THIS descriptor, so the generated update
-            // carried no id at all, the test mock's selector fell back to whatever
-            // else was in reqdata (org_id), matched no single record, and the flow
-            // failed with a 404 that named nothing to do with ids.
-            //
-            // An entity whose own points take an `id` param IS addressable by id;
-            // that is the property the downstream generators actually want. Entities
-            // with neither a field nor an id param — the read-only public APIs the
-            // rule above was written for — still get no descriptor, so they still
-            // get no id assertions.
             ment.id = { name: 'id', field: 'id', ...composite };
         }
         msg += ment.name + ' ';
@@ -185,14 +105,6 @@ const fieldTransform = async function (ctx) {
     return { ok: true, msg };
 };
 exports.fieldTransform = fieldTransform;
-// The separator that joins a composite id into one string.
-//
-// A forward slash cannot occur inside a single path segment — a raw `/`
-// would end the segment, and a value that legitimately contains one arrives
-// percent-encoded as `%2F` — so joining on it can never be ambiguous, and
-// splitting on it can never over-split. That is what makes the composite id
-// safe to carry as a single opaque string, which is the property the SDK and
-// Seneca entities are built on.
 const ID_SEP = '/';
 // Subfields that conventionally carry the identifying value of a nested
 // object, in preference order. github's repo `owner` is a user object whose
@@ -203,36 +115,6 @@ const NESTED_ID_KEYS = ['login', 'slug', 'name', 'key', 'id'];
 // The ops that address ONE record, most authoritative first. Only a
 // tie-break: identityParams compares candidates from all of them.
 const ID_OPS = ['load', 'update', 'patch', 'remove'];
-// The parameters that TOGETHER name one record: the trailing run of
-// ADJACENT variable segments on the addressing route.
-//
-// ADJACENCY IS THE WHOLE TEST, and it is what separates a compound key from
-// ordinary parent/child nesting:
-//
-//   /repos/{owner}/{repo}                     -> owner, repo   COMPOSITE
-//   /api/planet/{planet_id}/moon/{moon_id}    -> moon_id       single
-//   /repos/{owner}/{repo}/pulls/{pull_number} -> pull_number   single
-//
-// A literal segment between two variables names a SUB-COLLECTION, so the
-// earlier variable scopes the later one — `planet_id` says which planet's
-// moons, and `moon_id` alone identifies the moon. Two variables with nothing
-// between them address no sub-collection: neither value names anything on
-// its own, and only the pair identifies a repository.
-//
-// Taking every variable on the path instead was tried first and is wrong on
-// most real specs — it made `moon` (planet_id + moon_id), petstore's `order`,
-// `pet` and `user`, and taxonomy's `domain` and `kingdom` all falsely
-// composite, which the apidef-validate goldens caught immediately. Nested
-// resources are the common shape; compound keys are the exception, and
-// adjacency is the thing that actually distinguishes them.
-//
-// Read from the op that names a single record, never from `list`: a
-// collection route's path params are the entity's parents. A point ending in
-// a literal is a verb ON the record (`.../{number}/merge`) and carries the
-// same variables, so it is a fallback rather than a different answer.
-// Walk back from a point's end, collecting variables until a literal stops
-// the run. That literal is the sub-collection boundary; anything before it
-// scopes this record rather than naming it.
 function trailingVars(point) {
     const segs = (point?.segments || []).filter((s) => null != s);
     const run = [];
@@ -245,15 +127,6 @@ function trailingVars(point) {
     return run;
 }
 function identityParams(ment) {
-    // EVERY ID-BEARING OP AT ONCE, not the first one that offers a candidate.
-    //
-    // These four ops all address a single record, so all four describe the
-    // same identity — but they do not all carry the same routes. gitlab's
-    // `project` has `/api/v4/projects/{id}` under `remove` alone, while its
-    // `load` carries only sub-resources like
-    // `/api/v4/projects/{id}/uploads/{secret}/{filename}`. Returning on the
-    // first op with any candidate therefore made a PROJECT identified by
-    // `secret/filename`. The op order is now only a tie-break.
     const cands = [];
     for (let o = 0; o < ID_OPS.length; o++) {
         const mop = ment.op?.[ID_OPS[o]];
@@ -273,56 +146,12 @@ function identityParams(ment) {
                 run,
                 // Segments BEFORE the run: how much parent scope the route needs.
                 scope: ((pt.segments || []).length - run.length),
-                // DOES THE RUN END IN THE RECORD'S OWN KEY? Then it is the
-                // record's address and nothing further is needed.
-                //
-                // This transform RENAMES that parameter to `id`, so a run ending in
-                // it is this port's own statement of what identifies the record —
-                // and the composite inference must not contradict it.
-                // `/gists/{gist_id}` becomes `/gists/{id}` and is a gist;
-                // `/gists/{gist_id}/{sha}` is a REVISION of one, and won on key
-                // length alone, so a gist came out keyed `gist_id/sha` while the
-                // generated SDK's own load match takes the single parameter. The
-                // same contradiction gave cloudsmith's repo and vulnerability
-                // compound keys their SDKs never address them by.
-                //
-                // Deliberately narrow: exactly `id` or an unrenamed `<entity>_id`,
-                // never any `*_id`. `actor_type/actor_id` IS a compound key, and a
-                // looser test breaks it.
                 own: 'id' === run[run.length - 1] ||
                     ment.name + '_id' === run[run.length - 1],
                 order: o,
             });
         }
     }
-    // WHICH ROUTE IS THE RECORD'S OWN ADDRESS.
-    //
-    // An entity gathers every route that reads it, and in a large
-    // specification most of those are sub-resources. Three earlier rules were
-    // measured against the validation corpus, and each is wrong:
-    //
-    //   The FIRST route listed gave github's `repo` the single part
-    //   `subject_digest`, from
-    //   `/repos/{owner}/{repo}/attestations/{subject_digest}` — no compound
-    //   key at all, for the entity this feature exists for. Invisible on a
-    //   small spec, where the first item route IS the record's own.
-    //
-    //   The SHORTEST route ending in a variable took cloudsmith's
-    //   `/vulnerabilities/{owner}/` — a LIST of an owner's vulnerabilities —
-    //   and cut a four-part key down to `owner`, dropping three more
-    //   composites. Ending in a variable does not make a route an address.
-    //
-    //   The LONGEST trailing run took
-    //   `/orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}` and made a TEAM
-    //   identified by `owner/repo`. A deep sub-resource can carry more
-    //   adjacent variables than the record's own route does.
-    //
-    // What separates them is PARENT SCOPE: the record's own route is the
-    // least-qualified one that names it, and among equally-qualified routes
-    // the one carrying the fullest key. `/repos/{owner}/{repo}` is qualified
-    // by one segment and the attestations route by four; `/teams/{team_id}`
-    // by one and the org-team-repo route by five; cloudsmith's vulnerability
-    // routes are all qualified by one, so the fullest of them wins.
     const best = cands.reduce((b, c) => {
         if (null == b) {
             return c;
@@ -340,34 +169,6 @@ function identityParams(ment) {
     }, null);
     return null == best ? [] : best.run;
 }
-// THE PROPERTY MAPS A RESPONSE COULD BE DESCRIBING, best first.
-//
-// BOTH SPEC DIALECTS. An OpenAPI 3 response carries its schema under
-// `content['application/json']`; a SWAGGER 2 response carries it directly as
-// `schema`. Reading only the first resolved nothing for every Swagger 2 spec
-// in the validation corpus.
-//
-// JSON ONLY, where there is a choice. An operation may declare several media
-// types with different schemas, and field extraction uses the JSON one — so
-// picking whichever came first in source order could infer a path from an XML
-// or binary schema that the actual JSON record does not have.
-//
-// `allOf` IS EXPANDED, because a response that composes its entity that way
-// has neither `properties` nor `items` of its own. field extraction expands
-// it; not doing so here meant the fields were present while the id could not
-// be reconstructed.
-//
-// ONLY THE ENVELOPE IS DESCENDED, via the same `envelopeProp` rule field
-// extraction uses. Descending every object-valued property instead treats an
-// ordinary nested object as a whole record: for `{ slug, metadata: { tenant } }`
-// addressed by `{tenant}/{slug}`, `tenant` resolved to `tenant` rather than
-// `metadata.tenant` — a confidently wrong path, which is worse than no
-// mapping at all.
-//
-// ACTION POINTS ARE SKIPPED, as `identityParams` skips them: an action's
-// response is a verb's result, not a representation of the entity, so a field
-// that happens to appear there says nothing about what a returned record
-// carries.
 function responseCandidates(ment, def) {
     const out = [];
     const seen = new Set();
@@ -435,18 +236,12 @@ function responseCandidates(ment, def) {
                         add(content[ctype]?.schema, opname);
                     }
                 }
-                // Swagger 2 puts it here.
                 add(resdef.schema, opname);
             }
         }
     }
     return out;
 }
-// Does this schema name the entity's own component?
-//
-// The comparison is on the CANONICALISED component name, the same function
-// the guide used to derive an entity name from a component in the first
-// place, so `Installment` and the entity `installment` meet.
 function namesEntity(schema, ment) {
     const xref = schema?.['x-ref'];
     if ('string' !== typeof xref) {
@@ -509,12 +304,6 @@ function partAliases(ment, part) {
     });
     return [...names];
 }
-// Where one part is carried in a given property map, or null.
-//
-// The four rules, in order, each a fact the spec states: a scalar property of
-// that name; the part naming this entity, resolved to `name`; a scalar
-// `<part>_name` / `_login` / `_slug`; or an object property's conventional
-// identifying subfield.
 function resolvePart(ment, part, aliases, props, def) {
     if (null == props) {
         return null;
@@ -548,47 +337,10 @@ function resolvePart(ment, part, aliases, props, def) {
     }
     return null;
 }
-// WHERE EACH COMPOSITE PART'S VALUE LIVES IN A RESPONSE.
-//
-// The parts are PATH PARAMETER names; a response names its fields whatever it
-// likes. Resolving one to the other is what lets an SDK put an id on a record
-// the API returned, rather than only address a record whose id it was given.
-//
-// The rules, in order, and each of them is a fact about the spec rather than
-// a guess:
-//
-//   1. a scalar field of exactly that name             -> itself
-//   2. the part names this entity, and there is a `name` -> `name`
-//      (`/repos/{owner}/{repo}` on entity `repo`, whose response calls the
-//      repository `name`)
-//   3. a scalar `<part>_name` / `<part>_login` / `<part>_slug`
-//   4. an OBJECT field of that name         -> `<part>.<conventional key>`
-//      (`owner` is a user object; the value is `owner.login`)
-//
-// A part none of these resolve is left OUT. Downstream then knows the id
-// cannot be rebuilt for that entity and can say so, which is better than a
-// confidently wrong id on a real record. guide.aon can state it instead.
 function identityFrom(ment, parts, def) {
-    // THE RESPONSE SCHEMA IS THE AUTHORITY, not `ment.fields`.
-    //
-    // `ment.fields` is merged across load, create, update and list, so a part
-    // that exists only in a REQUEST BODY appears there too. Resolving against
-    // it recorded such a part in `from` as though a returned record carried it,
-    // and a consumer then rebuilt an id from a property the response never
-    // sends — worse than leaving the part unresolved, which at least says so.
-    //
-    // Candidate property maps, in order: the response's own properties, then
-    // one level into an envelope. A response that wraps the record
-    // (`{ item: {...} }`, `{ data: [ {...} ] }`) states the record's fields one
-    // level in, and searching only the wrapper found nothing.
     const candidates = responseCandidates(ment, def);
     const out = {};
     for (const part of parts) {
-        // THE WIRE NAME AS WELL AS THE MODEL NAME. `identityParams` reads the
-        // RENAMED parameter off the path segments, while a response keeps its own
-        // casing — so a `tenantKey` renamed to `tenant_key` was looked up under a
-        // name the response does not use, and the mapping was dropped for every
-        // camel-cased or depluralized parameter.
         const aliases = partAliases(ment, part);
         let found = null;
         for (const props of candidates) {
@@ -608,15 +360,6 @@ function identityFrom(ment, parts, def) {
 function scalarStringField(f) {
     return String(f?.type || '').toUpperCase().includes('STRING');
 }
-// WHICH PARAMETER IS THE RECORD'S OWN KEY, among several that looked
-// adjacent. The same shape apidef's id handling recognises everywhere else:
-//
-//   1. one named exactly `id`
-//   2. `<entity>_id` — the entity's own id, however the path spells it
-//   3. any `*_id` — an id by name
-//   4. failing all that, the terminal parameter
-//
-// Position is the LAST resort, not the first.
 function singleKeyOf(ment, parts) {
     if (0 === parts.length) {
         return undefined;
@@ -626,12 +369,6 @@ function singleKeyOf(ment, parts) {
         ?? parts.find((p) => p.endsWith('_id'))
         ?? parts[parts.length - 1];
 }
-// The composite half of the id descriptor, or `{}` for the ordinary case.
-//
-// Emitted ONLY for a genuinely composite id (two or more addressing
-// parameters). A single-parameter entity already round-trips through one
-// `id` and gains nothing from carrying a one-element `parts`, so its
-// descriptor is left exactly as it was — no existing model output moves.
 function compositeId(ment, gent, def) {
     const gid = gent?.id;
     const sep = null != gid?.sep && '' !== String(gid.sep) ? String(gid.sep) : ID_SEP;
@@ -639,17 +376,6 @@ function compositeId(ment, gent, def) {
     // empty `parts`, because aontu resolves an empty list to nothing and the
     // key would arrive absent — indistinguishable from never having been set.
     if (null != gid && false === gid.composite) {
-        // DISABLING COMPOSITE MUST NOT DISABLE THE ID. The correction says these
-        // adjacent parameters are not a compound key; it does not say the record
-        // has no key. Returning a bare `{}` left an entity whose response has no
-        // literal `id` with no descriptor at all — the false positive removed and
-        // nothing identifying the real key.
-        //
-        // WHICH of the adjacent parameters is that key is decided by the same
-        // id-finding rules apidef uses elsewhere, not by position. Taking the
-        // terminal one picked `archive_format` for
-        // `/artifacts/{artifact_id}/{archive_format}` — the modifier, precisely
-        // the false positive the correction exists to undo.
         return { single: singleKeyOf(ment, identityParams(ment)) };
     }
     // `from` STATED IN guide.aon WINS PER PART, so a spec can correct one
@@ -709,19 +435,6 @@ function resolveOpFields(ment, mop, mpoint, def) {
             req: !!fielddef.required,
             op: {},
         };
-        // Carry the spec's own words for the field, when it has any.
-        //
-        // Every generated per-entity table has a Description column and every cell
-        // was blank, because nothing ever read the property `description` the spec
-        // supplies. Trimmed, and only when it is a non-empty string: a whitespace
-        // or non-string value would put a meaningless cell where an empty one is
-        // honest.
-        // ONE LINE, not the whole description. Every generated Readme drops this
-        // straight into a markdown table cell, where a raw newline ends the row
-        // and orphans the rest of the table — and specs put bullet lists, fenced
-        // examples and multi-paragraph notes in `description`. firstSentence is
-        // the same reduction the API summary uses, so `short` means the same
-        // thing wherever it appears.
         const fdesc = fielddef.description;
         if ('string' === typeof fdesc && '' !== fdesc.trim()) {
             const short = (0, utility_1.firstSentence)(fdesc);
@@ -729,20 +442,6 @@ function resolveOpFields(ment, mop, mpoint, def) {
                 mfield.short = short;
             }
         }
-        // SPEC FACTS ABOUT THE FIELD, carried through verbatim.
-        //
-        // These four are declared by OpenAPI on the property and were being
-        // dropped on the floor. `readOnly` is the one that matters most: it is
-        // the difference between a field a client MAY send and one it may not,
-        // and nothing else in the model says which — so every generator has been
-        // putting server-assigned fields into the type a caller fills in.
-        //
-        // ONLY WHEN THE SPEC SAYS SO, and for the booleans only when TRUE. Each
-        // defaults to false in OpenAPI, so an absent key and an explicit `false`
-        // carry the same information; emitting the false ones would add a key to
-        // every field of every model and say nothing. Same discipline as
-        // `short`: absent means "the spec did not say", never "apidef dropped
-        // it".
         for (const flag of ['readOnly', 'writeOnly', 'deprecated']) {
             if (true === fielddef[flag]) {
                 mfield[flag] = true;
@@ -780,7 +479,6 @@ function findGraphqlFieldDefs(ment, mpoint, def) {
         return [];
     }
     const out = [];
-    // Sorted by construction in parse/graphql.ts, so output stays byte-stable.
     for (const fname of Object.keys(gtype.fields)) {
         const f = gtype.fields[fname];
         if (f.deprecated) {
@@ -799,17 +497,10 @@ function findGraphqlFieldDefs(ment, mpoint, def) {
                 // custom scalars left unconstrained.
                 type: 'ENUM' === kind ? 'string' : gqlFieldType(f.type),
                 required: f.reqd,
-                // GraphQL puts the field's own words on GqlField.desc (see
-                // parse/graphql.ts). resolveOpFields reads `description`, the OpenAPI
-                // spelling, so name it that here rather than teaching the reader two.
                 description: f.desc,
             });
         }
         else if (('OBJECT' === kind || 'INTERFACE' === kind) && !f.list) {
-            // To-one relation. The default fragment selects `team { id }`, so the
-            // response carries a nested stub object — declare it as such. Naming a
-            // flat `team_id` here would advertise a field the wire never returns,
-            // since nothing flattens the response.
             const idField = ftype.fields?.id;
             if (null != idField) {
                 out.push({
@@ -823,12 +514,6 @@ function findGraphqlFieldDefs(ment, mpoint, def) {
     }
     return out;
 }
-// GraphQL named type -> the type names the field typing understands.
-//
-// Built-ins only: a custom scalar (JSON, JSONObject, Upload, ...) can hold
-// any JSON value, so advertising it as a string would misdescribe the data
-// and make generated validation reject values the schema accepts. Enums are
-// mapped by the caller, which knows they are strings.
 function gqlFieldType(typeName) {
     return 'Int' === typeName ? 'integer' :
         'Float' === typeName ? 'number' :
@@ -843,11 +528,6 @@ function findFieldDefs(ment, mop, mpoint, def) {
     // A verb, rather than an address: see the call site in the transform.
     const isAction = null != mpoint?.select?.['$action'];
     const fielddefs = [];
-    // The same guard the args transform needs, for the same reason: a point
-    // can name a path the definition no longer has, and the whole build
-    // should not fail over one of them. No path means no field definitions,
-    // which is what the `if (opdef)` below already answers for a missing
-    // method.
     const pathdef = def.paths[mpoint.orig];
     const method = mpoint.method.toLowerCase();
     const opdef = pathdef?.[method];
@@ -859,13 +539,6 @@ function findFieldDefs(ment, mop, mpoint, def) {
             fieldSets = (0, jostraca_1.getx)(responses, '200 content "application/json" schema') ??
                 (0, jostraca_1.getx)(responses, '200 schema');
             if ('list' == mop.name) {
-                // List responses commonly come in three shapes:
-                //   1. direct array — { type: array, items: { ...item } }
-                //   2. wrapper object — { properties: { items: [Item], page, ... } }
-                //      (a single array-of-object property inside an object schema)
-                //   3. legacy "list of created items" under 201
-                // Resolve to the inner item schema when we can identify one
-                // unambiguously; otherwise fall through to the 200 schema as-is.
                 const unwrapped = unwrapArrayWrapper(fieldSets);
                 if (unwrapped) {
                     fieldSets = unwrapped;
@@ -881,14 +554,6 @@ function findFieldDefs(ment, mop, mpoint, def) {
                 fieldSets = (0, jostraca_1.getx)(responses, '201 content "application/json" schema') ??
                     (0, jostraca_1.getx)(responses, '201 schema');
             }
-            // Single-entity responses get the same treatment the list branch above
-            // already gives collections: a body that is only an envelope around the
-            // entity — `{item: {...}}` — describes the WRAPPER, not the entity, so
-            // its sole property would otherwise be harvested as a field. That is
-            // how an entity `todoitem` ended up with a required `item` field of
-            // type object, which then appeared in the generated create/update data
-            // types. envelopeProp applies the same two rules used to pick the
-            // response transform, so the field list and the transform agree.
             if ('list' != mop.name) {
                 const envelope = (0, utility_1.envelopeProp)(fieldSets?.properties, mop.name);
                 if (null != envelope) {
@@ -896,15 +561,6 @@ function findFieldDefs(ment, mop, mpoint, def) {
                 }
             }
         }
-        // AN ACTION'S RESPONSE IS THE VERB'S RESULT -- unless it is the entity.
-        //
-        // `POST /pet/{petId}/uploadImage` answers with an `ApiResponse`, which
-        // says how the upload went; `GET /v2/installments/active` answers with
-        // `[Installment]`, which is what an installment IS. Both are actions, so
-        // the verb alone cannot tell them apart -- but the component can, and
-        // parse.ts keeps it: every resolved `$ref` leaves its original pointer
-        // behind as `x-ref`, so the component a response was written against
-        // survives inlining and can be compared with the entity that owns it.
         if (isAction && !namesEntity(fieldSets, ment)) {
             return fielddefs;
         }
@@ -1001,7 +657,6 @@ function findExampleObject(opdef) {
     example = (0, jostraca_1.getx)(resdef, 'examples "application/json"');
     if (null != example && 'object' === typeof example)
         return unwrapExample(example);
-    // Swagger 2.0: schema.example
     example = (0, jostraca_1.getx)(resdef, 'schema example');
     if (null != example && 'object' === typeof example)
         return unwrapExample(example);
@@ -1014,16 +669,6 @@ function unwrapExample(example) {
     }
     return example;
 }
-// unwrapArrayWrapper inspects a list-response schema and, when it is an
-// object with a single array-of-object-schema property (e.g.
-// { boards: [Board] }, { items: [Foo], page, total, ... }), returns the
-// inner item schema so that field resolution sees the actual entity
-// properties rather than the wrapper's bookkeeping.
-//
-// Returns null if the input is not unambiguously such a wrapper:
-//   - schema is already an array → return null (let caller use it directly)
-//   - no array-of-object-schema property → return null
-//   - more than one array-of-object-schema property → ambiguous, return null
 function unwrapArrayWrapper(schema) {
     if (null == schema || 'object' !== typeof schema)
         return null;
@@ -1078,26 +723,9 @@ function mergeField(mop, existingField, newField) {
             type: newField.type,
         };
     }
-    // Field identity is first-writer-wins, but a DESCRIPTION is not part of
-    // identity: the op that first names a field is often not the one that
-    // documents it (a load response referencing a bare component, a create body
-    // referencing the annotated one). Take the first non-empty description in
-    // opFieldPrecedence order and keep it — dropping it left a blank cell in
-    // every generated table while the spec had the words all along.
     if (null == existingField.short && null != newField.short) {
         existingField.short = newField.short;
     }
-    // The spec facts merge the same way, and for the same reason: one schema
-    // annotates the field and another references it bare, so taking the first
-    // declaration in opFieldPrecedence order is what finds the annotation.
-    //
-    // THE PRECEDENCE ORDER PUTS `load` FIRST, WHICH IS THE SAFE DIRECTION HERE.
-    // A field the response schema marks readOnly and a request body also lists
-    // is a self-contradictory spec — OpenAPI says a client must not send a
-    // readOnly property at all — and this resolves it by believing the
-    // restriction rather than the omission. Marking a writable field readOnly
-    // costs a caller one field; the other way round sends a value the server
-    // rejects.
     for (const flag of ['readOnly', 'writeOnly', 'deprecated', 'format']) {
         if (null == existingField[flag] && null != newField[flag]) {
             existingField[flag] = newField[flag];

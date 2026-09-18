@@ -34,14 +34,6 @@ const entity_1 = require("../../dist/transform/entity");
             }
         }
     });
-    // CHAINED RENAMES. The braced-string form had to rewrite only the FIRST
-    // match (an indexOf + break), because a second pass would re-read the name
-    // it had just written: with { badge_id: 'id', id: 'project_id' },
-    // /groups/{id}/badges/{badge_id} could end up with {project_id} in both
-    // slots, silently dropping an argument from the URL.
-    //
-    // Segments cannot chain: each segment's ORIGINAL name is looked up once, so
-    // {id} -> project_id and {badge_id} -> id, independently.
     (0, node_test_1.test)('resolvePathList: renames do not chain', () => {
         const paths = (0, entity_1.resolvePathList)({
             path: {
@@ -55,9 +47,6 @@ const entity_1 = require("../../dist/transform/entity");
             { lit: 'badges' }, { var: 'id' },
         ]);
     });
-    // A repeated placeholder is ONE parameter and must rename consistently.
-    // indexOf+break renamed only the first, leaving the second referring to a
-    // parameter name that no longer existed.
     (0, node_test_1.test)('resolvePathList: a repeated placeholder renames consistently', () => {
         const paths = (0, entity_1.resolvePathList)({
             path: { '/a/{id}/b/{id}': { rename: { param: { id: 'thing_id' } } } }
@@ -67,12 +56,6 @@ const entity_1 = require("../../dist/transform/entity");
             { lit: 'b' }, { var: 'thing_id' },
         ]);
     });
-    // A COMPOUND element: two placeholders glued together with a separator
-    // that belongs to neither, e.g. `/x/{outputFields}.{format}`. Typing it
-    // `{ var }` would invent a parameter named `outputFields}.{format`, which
-    // matches nothing in args.params. It is a literal — the same thing the
-    // braced-string form did with it, since the rename lookup was a
-    // whole-element match too.
     (0, node_test_1.test)('resolvePathList: a compound element is a literal, not a bogus var', () => {
         const paths = (0, entity_1.resolvePathList)({
             path: {
@@ -87,15 +70,6 @@ const entity_1 = require("../../dist/transform/entity");
             [{ lit: 'z' }, { lit: 'pre{c}' }],
         ]);
     });
-    // A placeholder occupying only PART of an element — `/reports/{id}.json`,
-    // `/v{version}/items` — stays literal under the same whole-element rule.
-    //
-    // This is the KNOWN LIMIT recorded in ADR-003, pinned here so it cannot
-    // change silently. It is NOT a regression: the braced form did not mark
-    // these as parameters either (its rename lookup was a whole-element match
-    // too), and the reconstruction sdkgen hands the runtimes is byte-identical,
-    // so the per-parameter regex still substitutes them. It is the one case
-    // that blocks retiring that regex.
     (0, node_test_1.test)('resolvePathList: a partial-element placeholder stays literal (ADR-003 limit)', () => {
         const paths = (0, entity_1.resolvePathList)({
             path: {
@@ -107,8 +81,6 @@ const entity_1 = require("../../dist/transform/entity");
             [{ lit: 'reports' }, { lit: '{id}.json' }],
             [{ lit: 'v{version}' }, { lit: 'items' }],
         ]);
-        // What a consumer reconstructing the old form gets — unchanged from what
-        // apidef used to emit directly, which is why nothing breaks today.
         const parts = (p) => p.segments.map((s) => null == s.var ? String(s.lit ?? '') : '{' + s.var + '}');
         node_assert_1.default.deepStrictEqual(paths.map(parts), [
             ['reports', '{id}.json'],
@@ -129,7 +101,6 @@ const entity_1 = require("../../dist/transform/entity");
             { segments: [{ lit: 'q' }, { var: 'q_id' }, { lit: 'o' }, { var: 'o_id' }, { lit: 'n' }, { var: 'n_id' }, { lit: 'm' }, { var: 'id' }] },
             { segments: [{ lit: 'oo' }, { lit: 'o' }, { var: 'o_id' }, { lit: 'n' }, { var: 'n_id' }, { lit: 'm' }, { var: 'id' }] },
         ]);
-        // console.dir(r0, { depth: null })
         node_assert_1.default.deepStrictEqual(r0, {
             ancestors: [['f'], ['h'], ['l', 'k'], ['p', 'n'], ['q', 'o', 'n']]
         });

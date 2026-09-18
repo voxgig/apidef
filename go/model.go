@@ -16,7 +16,6 @@ const (
 	OpOptions OpName = "options"
 )
 
-// MethodName represents HTTP method names.
 type MethodName = string
 
 // ModelEntityRelations holds entity relationship information.
@@ -40,23 +39,8 @@ type ModelField struct {
 	Req  bool                     `json:"req"`
 	Op   map[OpName]*ModelFieldOp `json:"op,omitempty"`
 
-	// One-line human description, straight from the spec's property
-	// `description`. Omitted when the spec does not describe the property —
-	// generators render an empty cell rather than inventing prose.
-	// Mirrors src/model.ts ModelField.short.
 	Short string `json:"short,omitempty"`
 
-	// SPEC FACTS ABOUT THE FIELD ITSELF, carried through verbatim from the
-	// OpenAPI property. Facts the spec states, not inferences.
-	//
-	// `ReadOnly` is the load-bearing one: it is the difference between a
-	// field a client MAY send and one it may not, which nothing else in this
-	// record expresses.
-	//
-	// `omitempty` on all four is not cosmetic — it is the encoding of "the
-	// spec did not say". Each boolean defaults to false in OpenAPI, so an
-	// absent key and an explicit false carry the same information.
-	// Mirrors src/model.ts ModelField.readOnly/writeOnly/deprecated/format.
 	ReadOnly   bool   `json:"readOnly,omitempty"`
 	WriteOnly  bool   `json:"writeOnly,omitempty"`
 	Deprecated bool   `json:"deprecated,omitempty"`
@@ -92,7 +76,6 @@ type ModelPoint struct {
 	Select    map[string]any   `json:"select,omitempty"`
 }
 
-// ModelOp represents an operation definition.
 type ModelOp struct {
 	Name   OpName        `json:"name"`
 	Points []*ModelPoint `json:"points"`
@@ -107,37 +90,15 @@ type ModelEntity struct {
 	Relations ModelEntityRelations `json:"relations"`
 }
 
-// ModelEntityID is the entity's id descriptor. Mirrors ModelEntity.id in
-// src/model.ts.
-//
-// `Parts` and `Sep` are present only for a COMPOSITE identity, where the API
-// addresses one record by several adjacent path parameters and no single one
-// is the id — github's `/repos/{owner}/{repo}`. Absent means the ordinary
-// single-key entity, so a consumer branches on presence alone.
-//
-// This was a map[string]string, which cannot hold `parts`: unmarshalling a
-// model carrying a composite id failed with "cannot unmarshal array ... into
-// ... type string", so a Go consumer could not read the very models this
-// feature produces.
 type ModelEntityID struct {
 	Name  string   `json:"name"`
 	Field string   `json:"field"`
 	Parts []string `json:"parts,omitempty"`
 	Sep   string   `json:"sep,omitempty"`
 
-	// From says WHERE EACH PART'S VALUE LIVES IN A RESPONSE, as a dotted
-	// path. The parts are PATH PARAMETER names and a response names its
-	// fields whatever it likes: github returns a repo's owner as an OBJECT,
-	// so the value is at `owner.login`, and the repository under `name`.
-	// Without this a consumer can address a record it was given the id of,
-	// but cannot put an id on a record the API returned.
-	//
-	// A part no rule resolves is left OUT, so an incomplete map says the id
-	// cannot be rebuilt for that entity.
 	From map[string]string `json:"from,omitempty"`
 }
 
-// ModelEntityFlow represents a flow definition.
 type ModelEntityFlow struct {
 	Name   string                 `json:"name"`
 	Entity string                 `json:"entity"`
