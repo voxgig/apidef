@@ -210,8 +210,6 @@ type ApiDefContext = {
   metrics: Metrics,
   work: Record<string, any>
 
-  // The parsed definition, published for consumers. See
-  // docs/design/resolved-spec-capability.md
   resolved?: ResolvedSpec
 }
 

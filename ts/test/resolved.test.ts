@@ -109,9 +109,7 @@ describe('resolved', () => {
 })
 
 
-// `live` is the PROJECT's hint, taken from the guide, not a fact the
-// specification states. It gates live-scenario generation in four sdkgen
-// components, so it has to survive on the point once contracts go.
+// The guide's hint, not a specification fact, so it must survive on the point.
 describe('live-hint-on-point', () => {
 
   test('a guide live hint lands on the point, not only in the contract', async () => {

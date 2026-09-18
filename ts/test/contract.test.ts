@@ -18,8 +18,7 @@ for (const method of ['POST', 'QUERY']) test('lossless point contract ' + method
   const contract = ctx.apimodel.main.kit.entity.item.op.create.points[0].contract
   assert.equal(contract.version, 1); assert.equal(contract.id, method + ' /operation')
 
-  // The facts are what the capability serves. The contract no longer carries
-  // a serialised copy of them by default.
+  // Facts come from the capability; the serialised copy is opt-in.
   const facts: any = operationFacts(ctx.def, point)
   assert.deepEqual(facts.security, []); assert.deepEqual(facts.requestBody.content['application/json'].example, {})
   assert.equal(facts.requestBody.content['application/json'].schema.properties.n.type, 'integer')

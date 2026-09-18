@@ -24,8 +24,7 @@ for (const method of ['POST', 'QUERY'])
         const contract = ctx.apimodel.main.kit.entity.item.op.create.points[0].contract;
         strict_1.default.equal(contract.version, 1);
         strict_1.default.equal(contract.id, method + ' /operation');
-        // The facts are what the capability serves. The contract no longer carries
-        // a serialised copy of them by default.
+        // Facts come from the capability; the serialised copy is opt-in.
         const facts = (0, resolved_1.operationFacts)(ctx.def, point);
         strict_1.default.deepEqual(facts.security, []);
         strict_1.default.deepEqual(facts.requestBody.content['application/json'].example, {});

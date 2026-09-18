@@ -92,9 +92,7 @@ const SPEC = {
         node_assert_1.default.equal(r.operation('GET', '/projects/:slug'), undefined);
     });
 });
-// `live` is the PROJECT's hint, taken from the guide, not a fact the
-// specification states. It gates live-scenario generation in four sdkgen
-// components, so it has to survive on the point once contracts go.
+// The guide's hint, not a specification fact, so it must survive on the point.
 (0, node_test_1.describe)('live-hint-on-point', () => {
     (0, node_test_1.test)('a guide live hint lands on the point, not only in the contract', async () => {
         const point = { method: 'GET', orig: '/things', kind: 'http' };

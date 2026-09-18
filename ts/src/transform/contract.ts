@@ -1,5 +1,4 @@
-// Lossless point facts. JSON protects explicit empty contracts and schema
-// keywords from aontu unification and the model's empty-node cleanup.
+// Point contracts. See docs/design/resolved-spec-capability.md
 import type { Transform } from '../transform'
 
 import { operationFacts } from '../resolved'
@@ -73,14 +72,11 @@ export const contractTransform: Transform = async (ctx: any) => {
             ;(facts.factSources ??= {})[key] = 'guide'
           }
         }
-        // ON THE POINT, not only in the contract: the contract is a copy of
-        // the specification's facts, and this is the project's own hint.
         if (hint !== undefined) {
           facts.live = hint
           point.live = hint
         }
-        // WHAT THE OPERATION IS, not a copy of what the specification says
-        // about it. The resolved facts are served by the capability; see
+        // Identity only; facts come from the capability. See
         // docs/design/resolved-spec-capability.md
         point.contract = { version: 1, id: point.method + ' ' + point.orig,
           source: graphql ? 'graphql' : def.swagger ? 'swagger2' : 'openapi3' }
