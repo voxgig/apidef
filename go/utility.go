@@ -32,6 +32,9 @@ var (
 	idNameRE      = regexp.MustCompile(`(_id$|^id$)`)
 	fileExtRE     = regexp.MustCompile(`(?i)\.(php|json|txt|png|jpg|jpeg|gif|svg|xml|html|csv|yml|yaml|md)$`)
 	nonAlphaNumRE = regexp.MustCompile(`[^a-zA-Z_0-9]`)
+	// RE2 has no lookahead, so the "not followed by a letter" half of the
+	// TypeScript pattern is checked in deacronymPlural.
+	acronymPluralRE = regexp.MustCompile(`([A-Z]{2,})s`)
 )
 
 func matchCase(source, target string) string {
@@ -348,12 +351,39 @@ func Kebabify(s string) string {
 }
 
 // Canonize normalizes a name to canonical snake_case singular form.
+// deacronymPlural lowercases a trailing plural into the acronym before it,
+// so Snakify does not split the word letter by letter. See
+// docs/design/derived-names.md
+func deacronymPlural(s string) string {
+	locs := acronymPluralRE.FindAllStringSubmatchIndex(s, -1)
+	if nil == locs {
+		return s
+	}
+	var b strings.Builder
+	last := 0
+	for _, m := range locs {
+		if m[1] < len(s) {
+			c := s[m[1]]
+			if ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') {
+				continue
+			}
+		}
+		run := s[m[2]:m[3]]
+		b.WriteString(s[last:m[0]])
+		b.WriteString(run[:1] + strings.ToLower(run[1:]) + "s")
+		last = m[1]
+	}
+	b.WriteString(s[last:])
+	return b.String()
+}
+
 func Canonize(s string) string {
 	if s == "" {
 		return ""
 	}
 	out := Transliterate(s)
 	out = fileExtRE.ReplaceAllString(out, "")
+	out = deacronymPlural(out)
 	out = Snakify(out)
 	out = Depluralize(out)
 	out = nonAlphaNumRE.ReplaceAllString(out, "")
