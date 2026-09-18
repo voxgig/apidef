@@ -5,6 +5,8 @@ import * as Fs from 'node:fs'
 import { Pino, prettyPino } from '@voxgig/util'
 import { Shape, Open, Any } from 'shape'
 
+import type { ResolvedSpec } from './resolved'
+
 
 const KIT = 'kit'
 
@@ -207,6 +209,10 @@ type ApiDefContext = {
   warn: any,
   metrics: Metrics,
   work: Record<string, any>
+
+  // The parsed definition, published for consumers. See
+  // docs/design/resolved-spec-capability.md
+  resolved?: ResolvedSpec
 }
 
 

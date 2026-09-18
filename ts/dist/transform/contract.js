@@ -3,6 +3,25 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.contractTransform = void 0;
 exports.contractJSON = contractJSON;
 exports.graphqlInputTypes = graphqlInputTypes;
+const resolved_1 = require("../resolved");
+// MEMOISED WITHIN A FACT, FRESH BETWEEN FACTS.
+//
+// Each top-level key of a contract is self-contained: a reader of
+// `facts.parameters` never has to resolve a `$ref` into `facts.requestBody`.
+// That is deliberate and `recursive resolved schemas retain local references
+// without changing shared nodes` pins it, so the memo RESETS at each
+// top-level key.
+//
+// Inside one fact it does not reset, and that is the fix. The previous code
+// forgot a node on the way out (`ancestors.delete`), so only an ANCESTOR
+// became a `$ref` - a node reachable by two routes within the same fact was
+// copied whole at each, and a schema graph where that compounds expands
+// exponentially.
+//
+// Stripe's published definition is where that stops being theoretical:
+// 1,454 cross-referenced schemas produced a string past V8's maximum length
+// and the build died with `RangeError: Invalid string length`, 22 seconds
+// into the guide. Not a big contract - an impossible one.
 function contractJSON(value) {
     function walk(root, base) {
         // One memo per fact, so refs stay local to it.
@@ -63,26 +82,12 @@ const contractTransform = async (ctx) => {
                 const graphql = def.query?.[point.orig] || def.mutation?.[point.orig];
                 if (!method && !graphql)
                     continue;
-                const facts = { protocol: graphql ? 'graphql' : 'http' };
-                if (graphql) {
-                    facts.field = graphql;
-                    facts.types = graphqlInputTypes(graphql, def.types || {});
-                    facts.typesScope = 'inputs';
+                const facts = (0, resolved_1.operationFacts)(def, point);
+                if (null == facts)
+                    continue;
+                // A property of the point, not of the definition.
+                if (graphql)
                     facts.invocation = point.graphql;
-                }
-                else {
-                    for (const key of ['operationId', 'requestBody', 'responses', 'consumes', 'produces']) {
-                        if (undefined !== method[key])
-                            facts[key] = method[key];
-                    }
-                    facts.parameters = [...(path.parameters || []), ...(method.parameters || [])];
-                    facts.security = method.security ?? def.security;
-                    facts.securitySource = method.security !== undefined ? 'operation' :
-                        def.security !== undefined ? 'definition' : 'unspecified';
-                    facts.securitySchemes = def.components?.securitySchemes ?? def.securityDefinitions;
-                    facts.consumes ??= def.consumes;
-                    facts.produces ??= def.produces;
-                }
                 const guideOp = ctx.guide?.entity?.[entity.name]?.[graphql ? 'field' : 'path']?.[point.orig]?.op?.[op.name];
                 const hint = guideOp?.live;
                 for (const key of ['requestBody', 'responses', 'parameters', 'security']) {
