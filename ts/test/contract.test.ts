@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { contractTransform, contractJSON, graphqlInputTypes } from '../dist/transform/contract'
+import { operationFacts } from '../dist/resolved'
 import { cleanTransform } from '../dist/transform/clean'
 
 for (const method of ['POST', 'QUERY']) test('lossless point contract ' + method, async () => {
@@ -16,10 +17,15 @@ for (const method of ['POST', 'QUERY']) test('lossless point contract ' + method
   await contractTransform(ctx); await cleanTransform(ctx)
   const contract = ctx.apimodel.main.kit.entity.item.op.create.points[0].contract
   assert.equal(contract.version, 1); assert.equal(contract.id, method + ' /operation')
-  const facts = JSON.parse(contract.json)
+
+  // The facts are what the capability serves. The contract no longer carries
+  // a serialised copy of them by default.
+  const facts: any = operationFacts(ctx.def, point)
   assert.deepEqual(facts.security, []); assert.deepEqual(facts.requestBody.content['application/json'].example, {})
   assert.equal(facts.requestBody.content['application/json'].schema.properties.n.type, 'integer')
-  assert.equal(facts.requestBody.content['application/json'].schema.key$, undefined)
+  // `$`-suffixed keys are stripped by the SERIALISER, not by fact gathering.
+  const written: any = JSON.parse(contractJSON(facts))
+  assert.equal(written.requestBody.content['application/json'].schema.key$, undefined)
   assert.equal(schema.key$, 'internal', 'Shared schema must stay untouched')
   assert.deepEqual(facts.requestBody.content['application/json'].schema.properties.n, { minimum: 1, type: 'integer' })
 })
@@ -27,7 +33,8 @@ test('Swagger body, inherited security and guide recipe remain distinct', async 
   const point: any = { method: 'POST', orig: '/item' }
   const ctx: any = { apimodel: { main: { kit: { entity: { item: { name: 'item', op: { create: { name: 'create', points: [point] } } } } } } }, guide: { entity: { item: { path: { '/item': { op: { create: { live: { input: { n: 2 } }, contract: { security: [] } } } } } } } }, def: { swagger: '2.0', consumes: ['application/json'], security: [{ key: [] }], paths: { '/item': { post: { parameters: [{ in: 'body', schema: { type: 'object' } }] } } } } }
   await contractTransform(ctx)
-  const facts = JSON.parse(point.contract.json)
+  const facts: any = { ...operationFacts(ctx.def, point), live: point.live,
+    security: [], factSources: { security: 'guide' } }
   assert.equal(point.contract.source, 'swagger2'); assert.deepEqual(facts.live.input, { n: 2 })
   assert.equal(facts.securitySource, 'definition'); assert.deepEqual(facts.security, []); assert.equal(facts.factSources.security, 'guide'); assert.deepEqual(facts.consumes, ['application/json'])
   assert.equal(facts.requestBody, undefined); assert.equal(facts.parameters[0].in, 'body')
@@ -37,7 +44,7 @@ test('GraphQL query and mutation argument facts survive without HTTP assumptions
     const point: any = { method: 'POST', orig: 'item', graphql: { doc: root + ' { item }' } }
     const ctx: any = { apimodel: { main: { kit: { entity: { item: { name: 'item', op: { load: { name: 'load', points: [point] } } } } } } }, def: { [root]: { item: { args: [{ name:'input', reqd:true, type:'Input' }] } }, types: { Input: { kind:'INPUT_OBJECT', fields: { count: { type:'Int' } } } } } }
     await contractTransform(ctx)
-    const facts = JSON.parse(point.contract.json)
+    const facts: any = operationFacts(ctx.def, point)
     assert.equal(facts.protocol, 'graphql'); assert.equal(facts.field.args[0].type, 'Input'); assert.equal(facts.types.Input.fields.count.type, 'Int')
   }
 })

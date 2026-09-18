@@ -126,7 +126,11 @@ describe('live-hint-on-point', () => {
     await contractTransform(ctx)
 
     assert.equal(point.live, true)
-    assert.equal(JSON.parse(point.contract.json).live, true)
+
+    // The contract carries only its identity now; the serialised copy of the
+    // facts is opt-in.
+    assert.equal(point.contract.json, undefined)
+    assert.equal(point.contract.id, 'GET /things')
   })
 
   test('no hint leaves the point alone', async () => {

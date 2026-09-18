@@ -106,7 +106,10 @@ const SPEC = {
         };
         await (0, contract_1.contractTransform)(ctx);
         node_assert_1.default.equal(point.live, true);
-        node_assert_1.default.equal(JSON.parse(point.contract.json).live, true);
+        // The contract carries only its identity now; the serialised copy of the
+        // facts is opt-in.
+        node_assert_1.default.equal(point.contract.json, undefined);
+        node_assert_1.default.equal(point.contract.id, 'GET /things');
     });
     (0, node_test_1.test)('no hint leaves the point alone', async () => {
         const point = { method: 'GET', orig: '/things', kind: 'http' };

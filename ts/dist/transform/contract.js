@@ -102,9 +102,14 @@ const contractTransform = async (ctx) => {
                     facts.live = hint;
                     point.live = hint;
                 }
+                // WHAT THE OPERATION IS, not a copy of what the specification says
+                // about it. The resolved facts are served by the capability; see
+                // docs/design/resolved-spec-capability.md
                 point.contract = { version: 1, id: point.method + ' ' + point.orig,
-                    source: graphql ? 'graphql' : def.swagger ? 'swagger2' : 'openapi3',
-                    json: contractJSON(facts) };
+                    source: graphql ? 'graphql' : def.swagger ? 'swagger2' : 'openapi3' };
+                if (ctx.opts?.contractJson) {
+                    point.contract.json = contractJSON(facts);
+                }
             }
         }
     }
