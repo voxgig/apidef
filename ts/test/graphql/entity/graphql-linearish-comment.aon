@@ -40,7 +40,6 @@ main: kit: entity: comment: {
         {
           contract: {
             id: "POST commentCreate"
-            json: "{\"field\":{\"args\":[{\"gqltype\":\"CommentCreateInput!\",\"name\":\"input\",\"reqd\":true,\"type\":\"CommentCreateInput\"}],\"deprecated\":false,\"gqltype\":\"CommentPayload!\",\"list\":false,\"name\":\"commentCreate\",\"reqd\":true,\"type\":\"CommentPayload\"},\"invocation\":{\"doc\":\"mutation CommentCreate($input: CommentCreateInput!) { commentCreate(input: $input) { comment { ...CommentFields } success } } fragment CommentFields on Comment { body createdAt id issue { id } }\",\"field\":\"commentCreate\",\"optype\":\"mutation\",\"vars\":[{\"from\":\"\",\"gqltype\":\"CommentCreateInput!\",\"name\":\"input\"}]},\"protocol\":\"graphql\",\"types\":{\"CommentCreateInput\":{\"fields\":{\"body\":{\"args\":[],\"deprecated\":false,\"gqltype\":\"String!\",\"list\":false,\"name\":\"body\",\"reqd\":true,\"type\":\"String\"},\"issueId\":{\"args\":[],\"deprecated\":false,\"gqltype\":\"String!\",\"list\":false,\"name\":\"issueId\",\"reqd\":true,\"type\":\"String\"}},\"kind\":\"INPUT_OBJECT\",\"name\":\"CommentCreateInput\"},\"String\":{\"desc\":\"The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.\",\"fields\":{},\"kind\":\"SCALAR\",\"name\":\"String\"}},\"typesScope\":\"inputs\"}"
             source: "graphql"
             version: 1
           }
@@ -83,7 +82,6 @@ main: kit: entity: comment: {
           }
           contract: {
             id: "POST commentDelete"
-            json: "{\"field\":{\"args\":[{\"gqltype\":\"String!\",\"name\":\"id\",\"reqd\":true,\"type\":\"String\"}],\"deprecated\":false,\"gqltype\":\"DeletePayload!\",\"list\":false,\"name\":\"commentDelete\",\"reqd\":true,\"type\":\"DeletePayload\"},\"invocation\":{\"doc\":\"mutation CommentRemove($id: String!) { commentDelete(id: $id) { entityId success } }\",\"field\":\"commentDelete\",\"optype\":\"mutation\",\"vars\":[{\"from\":\"id\",\"gqltype\":\"String!\",\"name\":\"id\"}]},\"protocol\":\"graphql\",\"types\":{\"String\":{\"desc\":\"The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.\",\"fields\":{},\"kind\":\"SCALAR\",\"name\":\"String\"}},\"typesScope\":\"inputs\"}"
             source: "graphql"
             version: 1
           }

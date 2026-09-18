@@ -37,7 +37,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CANON_ONE = exports.VALID_CANON = exports.nom = exports.getModelPath = exports.slugToPascalCase = exports.sanitizeSlug = exports.depluralize = exports.formatJSONIC = exports.parse = exports.gcEntityFiles = exports.KIT = void 0;
+exports.resolvedSpec = exports.operationIndex = exports.operationFacts = exports.CANON_ONE = exports.VALID_CANON = exports.nom = exports.getModelPath = exports.slugToPascalCase = exports.sanitizeSlug = exports.depluralize = exports.formatJSONIC = exports.parse = exports.gcEntityFiles = exports.KIT = void 0;
 exports.ApiDef = ApiDef;
 exports.warningsFileText = warningsFileText;
 const Fs = __importStar(require("node:fs"));
@@ -71,6 +71,10 @@ const casecollide_1 = require("./transform/casecollide");
 const flow_1 = require("./transform/flow");
 const flowstep_1 = require("./transform/flowstep");
 const clean_1 = require("./transform/clean");
+const resolved_1 = require("./resolved");
+Object.defineProperty(exports, "operationFacts", { enumerable: true, get: function () { return resolved_1.operationFacts; } });
+Object.defineProperty(exports, "operationIndex", { enumerable: true, get: function () { return resolved_1.operationIndex; } });
+Object.defineProperty(exports, "resolvedSpec", { enumerable: true, get: function () { return resolved_1.resolvedSpec; } });
 const entity_2 = require("./builder/entity");
 const entity_3 = require("./builder/entity/entity");
 Object.defineProperty(exports, "gcEntityFiles", { enumerable: true, get: function () { return entity_3.gcEntityFiles; } });
@@ -186,6 +190,7 @@ function ApiDef(opts) {
                 fs.writeFileSync(defpath + '.full.json', fullsrc);
             }
             ctx.def = def;
+            ctx.resolved = (0, resolved_1.publishResolved)(spec.buildctx, spec.config?.kind ?? "openapi3", def);
             steps.push('parse');
             // Step: guide (derive).
             if (!ctrl.step.guide) {
@@ -374,7 +379,9 @@ ApiDef.makeBuild = async function (opts) {
             });
         }
         const ctrl = build.spec.buildargs?.apidef?.ctrl || {};
-        return await apidef.generate({ model, build, config, ctrl });
+        // `buildctx` is the model build's own context, shared across its pre and
+        // post steps, and is where the resolved definition is published.
+        return await apidef.generate({ model, build, config, ctrl, buildctx: _ctx });
     };
     build.step = 'pre';
     return build;

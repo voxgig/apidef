@@ -1,5 +1,6 @@
 import * as Fs from 'node:fs';
 import { Pino, prettyPino } from '@voxgig/util';
+import type { ResolvedSpec } from './resolved';
 declare const KIT = "kit";
 type FsUtil = typeof Fs;
 type Log = ReturnType<typeof prettyPino>;
@@ -591,6 +592,7 @@ type ApiDefContext = {
     warn: any;
     metrics: Metrics;
     work: Record<string, any>;
+    resolved?: ResolvedSpec;
 };
 type Warner = {
     history: ({

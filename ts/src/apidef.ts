@@ -80,6 +80,12 @@ import { flowTransform } from './transform/flow'
 import { flowstepTransform } from './transform/flowstep'
 import { cleanTransform } from './transform/clean'
 
+import {
+  publishResolved, operationFacts, operationIndex, resolvedSpec,
+} from './resolved'
+
+import type { OperationFacts, ResolvedSpec } from './resolved'
+
 import { makeEntityBuilder } from './builder/entity'
 import { gcEntityFiles } from './builder/entity/entity'
 import { makeFlowBuilder } from './builder/flow'
@@ -221,6 +227,7 @@ function ApiDef(opts: ApiDefOptions) {
       }
 
       ctx.def = def
+      ctx.resolved = publishResolved(spec.buildctx, spec.config?.kind ?? "openapi3", def)
 
       steps.push('parse')
 
@@ -457,7 +464,9 @@ ApiDef.makeBuild = async function(opts: ApiDefOptions) {
 
     const ctrl = build.spec.buildargs?.apidef?.ctrl || {}
 
-    return await apidef.generate({ model, build, config, ctrl })
+    // `buildctx` is the model build's own context, shared across its pre and
+    // post steps, and is where the resolved definition is published.
+    return await apidef.generate({ model, build, config, ctrl, buildctx: _ctx })
   }
 
   build.step = 'pre'
@@ -529,4 +538,13 @@ export {
   nom,
   VALID_CANON,
   CANON_ONE,
+
+  operationFacts,
+  operationIndex,
+  resolvedSpec,
+}
+
+export type {
+  OperationFacts,
+  ResolvedSpec,
 }

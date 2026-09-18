@@ -1,6 +1,8 @@
-// Lossless point facts. JSON protects explicit empty contracts and schema
-// keywords from aontu unification and the model's empty-node cleanup.
+// Point contracts. See docs/design/resolved-spec-capability.md
 import type { Transform } from '../transform'
+
+import { operationFacts } from '../resolved'
+
 
 export function contractJSON(value: any): string {
   function walk(root: any, base: string): any {
@@ -57,24 +59,11 @@ export const contractTransform: Transform = async (ctx: any) => {
         const method = path?.[point.method.toLowerCase()]
         const graphql = def.query?.[point.orig] || def.mutation?.[point.orig]
         if (!method && !graphql) continue
-        const facts: any = { protocol: graphql ? 'graphql' : 'http' }
-        if (graphql) {
-          facts.field = graphql
-          facts.types = graphqlInputTypes(graphql, def.types || {})
-          facts.typesScope = 'inputs'
-          facts.invocation = point.graphql
-        } else {
-          for (const key of ['operationId', 'requestBody', 'responses', 'consumes', 'produces']) {
-            if (undefined !== method[key]) facts[key] = method[key]
-          }
-          facts.parameters = [...(path.parameters || []), ...(method.parameters || [])]
-          facts.security = method.security ?? def.security
-          facts.securitySource = method.security !== undefined ? 'operation' :
-            def.security !== undefined ? 'definition' : 'unspecified'
-          facts.securitySchemes = def.components?.securitySchemes ?? def.securityDefinitions
-          facts.consumes ??= def.consumes
-          facts.produces ??= def.produces
-        }
+        const facts: any = operationFacts(def, point)
+        if (null == facts) continue
+
+        // A property of the point, not of the definition.
+        if (graphql) facts.invocation = point.graphql
         const guideOp = ctx.guide?.entity?.[entity.name]?.[graphql ? 'field' : 'path']?.[point.orig]?.op?.[op.name]
         const hint = guideOp?.live
         for (const key of ['requestBody', 'responses', 'parameters', 'security']) {
@@ -83,10 +72,18 @@ export const contractTransform: Transform = async (ctx: any) => {
             ;(facts.factSources ??= {})[key] = 'guide'
           }
         }
-        if (hint !== undefined) facts.live = hint
+        if (hint !== undefined) {
+          facts.live = hint
+          point.live = hint
+        }
+        // Identity only; facts come from the capability. See
+        // docs/design/resolved-spec-capability.md
         point.contract = { version: 1, id: point.method + ' ' + point.orig,
-          source: graphql ? 'graphql' : def.swagger ? 'swagger2' : 'openapi3',
-          json: contractJSON(facts) }
+          source: graphql ? 'graphql' : def.swagger ? 'swagger2' : 'openapi3' }
+
+        if (ctx.opts?.contractJson) {
+          point.contract.json = contractJSON(facts)
+        }
       }
     }
   }
