@@ -3,34 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.casecollideTransform = void 0;
 const jostraca_1 = require("jostraca");
 const types_1 = require("../types");
-// TWO ENTITY NAMES THAT DIFFER ONLY IN CASE ARE ONE FILE.
-//
-// Generators name files after the entity's camel form — `OptOutEntity.ts`,
-// `OptoutEntity.ts` — and APFS and NTFS, so macOS and Windows by default,
-// treat those as the SAME file. The second write replaces the first, and the
-// TypeScript compiler stops the build outright:
-//
-//   File name 'OptoutEntity.ts' differs from already included file name
-//   'OptOutEntity.ts' only in casing.
-//
-// It happens because two different derivations of the same resource land on
-// names that snakify differently: Customer.io's App API produced `opt_out`
-// (from the schema) and `optout` (from the `/v1/optouts` path segment), for
-// one resource.
-//
-// WHERE ONE OF THEM CARRIES NO OPERATIONS, it generates an entity class with
-// no methods — nothing a caller could use — while breaking the build for the
-// one that does. That one is dropped here, and the drop is logged with both
-// names so it is visible rather than inferred.
-//
-// WHERE BOTH CARRY OPERATIONS the collision is NOT resolved: dropping either
-// would silently remove operations from the SDK, which is worse than a build
-// that fails loudly. A warning names them and generation proceeds.
-//
-// This runs after operationTransform (so ops are known) and before
-// flowTransform (so no flow is built for an entity about to be dropped).
-// Empty the way cleanTransform means it: a node holding only empty nodes is
-// itself empty and does not survive into the model.
+// See docs/design/derived-names.md
 function deepempty(v) {
     if (null == v)
         return true;
@@ -55,13 +28,7 @@ const casecollideTransform = async function (ctx) {
         const group = bylower[lower].sort();
         if (group.length < 2)
             continue;
-        // COUNT ONLY OPERATIONS THAT SURVIVE. An entity can carry op KEYS whose
-        // bodies are empty, or hold nothing but more empty nodes. cleanTransform
-        // strips those at the end of the pipeline — "including ancestors if thus
-        // also empty" — and an entity left with none generates a class with no
-        // methods. Counting the keys alone reported `optout` as carrying two
-        // operations when it had none that would reach the SDK, so this applies
-        // the same recursive test clean does.
+        // See docs/design/derived-names.md
         const opcount = (name) => {
             const ops = kit.entity[name]?.op || {};
             return Object.keys(ops).filter((opname) => !deepempty(ops[opname])).length;

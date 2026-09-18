@@ -120,27 +120,7 @@ async function parseOpenAPI(source: any, _meta?: any) {
     parsed.paths = cleaned
   }
 
-  // COLON-STYLE PATH PARAMETERS ARE NOT OPENAPI, AND VENDORS SHIP THEM ANYWAY.
-  //
-  // OpenAPI declares a path parameter as `{name}`. Stytch's Management API
-  // publishes every one of its 28 paths in Express style instead:
-  //
-  //   /pwa/v3/projects/:project_slug/email_templates
-  //
-  // while declaring `in: path, name: project_slug` correctly in `parameters`.
-  // Nothing downstream substitutes a `:name` segment, so the generated SDK
-  // sent the LITERAL text to the server:
-  //
-  //   http://.../pwa/v3/projects/:project_slug/email_templates
-  //
-  // and every request would have 404'd against the real API. One generated
-  // test caught it, by asserting the request URL; the rest assert the mock's
-  // response body, which is returned whatever URL is asked for.
-  //
-  // ONLY a segment whose name is a DECLARED path parameter is rewritten. That
-  // is what keeps Google-style custom methods (`/users/{id}:activate`, where
-  // `:activate` is part of the resource name and no such parameter exists)
-  // from being mangled into a parameter.
+  // See docs/design/derived-names.md
   normalizeColonPathParams(parsed, _meta)
 
   // Single-pass: add x-ref properties and resolve $ref pointers together.
@@ -344,8 +324,8 @@ const METHODS = [
 ]
 
 
-// Rewrite `/a/:b/c` to `/a/{b}/c`, but only for `:b` that the path or one of
-// its operations declares as `in: path`. See the call site for why.
+// Rewrite `/a/:b/c` to `/a/{b}/c`, for a `:b` the path or one of its
+// operations declares `in: path`. See docs/design/derived-names.md
 function normalizeColonPathParams(parsed: any, meta?: any) {
   if (null == parsed.paths || 'object' !== typeof parsed.paths) return
 

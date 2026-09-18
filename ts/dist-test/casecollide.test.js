@@ -7,13 +7,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const node_test_1 = require("node:test");
 const node_assert_1 = __importDefault(require("node:assert"));
 const casecollide_1 = require("../dist/transform/casecollide");
-// TWO ENTITY NAMES THAT DIFFER ONLY IN CASE ARE ONE FILE.
-//
-// Generators name files after the entity's camel form, and APFS and NTFS
-// treat `OptOutEntity.ts` and `OptoutEntity.ts` as the same file. Customer.io's
-// App API produced `opt_out` (from the schema) and `optout` (from the
-// `/v1/optouts` path segment) for one resource, and tsc stopped the build:
-// "File name ... differs from already included file name ... only in casing."
+// See docs/design/derived-names.md
 function run(entity, guide) {
     const logged = [];
     const ctx = {
@@ -28,9 +22,7 @@ function run(entity, guide) {
     return (0, casecollide_1.casecollideTransform)(ctx).then(() => ({ ctx, logged }));
 }
 (0, node_test_1.describe)('casecollide', () => {
-    // An op whose body is EMPTY does not survive cleanTransform, so it is not
-    // an operation as far as the generated SDK is concerned. The fixtures below
-    // give each surviving op a real body for that reason.
+    // See docs/design/derived-names.md
     (0, node_test_1.test)('drops the colliding entity that has no operations', async () => {
         const { ctx, logged } = await run({
             opt_out: { name: 'opt_out', op: { list: { method: 'GET' }, update: { method: 'PUT' } } },
@@ -61,8 +53,7 @@ function run(entity, guide) {
             thing: { name: 'thing', op: { list: { method: 'GET' } } },
             spare: { name: 'spare', op: {} },
         });
-        // Entities with no operations are NOT this transform's business — only
-        // ones that collide. Removing them generally is a separate question.
+        // Only colliding entities are in scope here.
         node_assert_1.default.deepEqual(Object.keys(ctx.apimodel.main.kit.entity).sort(), ['spare', 'thing']);
         node_assert_1.default.equal(logged.length, 0);
     });
@@ -75,10 +66,7 @@ function run(entity, guide) {
         node_assert_1.default.deepEqual(Object.keys(ctx.apimodel.main.kit.entity), ['opt_out']);
     });
     (0, node_test_1.test)('an op whose body is empty is not an operation', async () => {
-        // cleanTransform strips empty nodes at the end of the pipeline, so an
-        // entity whose ops are all empty reaches the SDK with no methods.
-        // Counting op KEYS reported customerio's `optout` as carrying two
-        // operations when it carried none.
+        // See docs/design/derived-names.md
         const { ctx } = await run({
             opt_out: { name: 'opt_out', op: { list: { method: 'GET' } } },
             optout: { name: 'optout', op: { list: {}, update: { args: {} } } },

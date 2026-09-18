@@ -6,13 +6,7 @@ import assert from 'node:assert'
 import { casecollideTransform } from '../dist/transform/casecollide'
 
 
-// TWO ENTITY NAMES THAT DIFFER ONLY IN CASE ARE ONE FILE.
-//
-// Generators name files after the entity's camel form, and APFS and NTFS
-// treat `OptOutEntity.ts` and `OptoutEntity.ts` as the same file. Customer.io's
-// App API produced `opt_out` (from the schema) and `optout` (from the
-// `/v1/optouts` path segment) for one resource, and tsc stopped the build:
-// "File name ... differs from already included file name ... only in casing."
+// See docs/design/derived-names.md
 
 function run(entity: any, guide?: any) {
   const logged: any[] = []
@@ -30,9 +24,7 @@ function run(entity: any, guide?: any) {
 
 describe('casecollide', () => {
 
-  // An op whose body is EMPTY does not survive cleanTransform, so it is not
-  // an operation as far as the generated SDK is concerned. The fixtures below
-  // give each surviving op a real body for that reason.
+  // See docs/design/derived-names.md
   test('drops the colliding entity that has no operations', async () => {
     const { ctx, logged } = await run({
       opt_out: { name: 'opt_out', op: { list: { method: 'GET' }, update: { method: 'PUT' } } },
@@ -75,8 +67,7 @@ describe('casecollide', () => {
       spare: { name: 'spare', op: {} },
     })
 
-    // Entities with no operations are NOT this transform's business — only
-    // ones that collide. Removing them generally is a separate question.
+    // Only colliding entities are in scope here.
     assert.deepEqual(
       Object.keys((ctx.apimodel.main.kit as any).entity).sort(),
       ['spare', 'thing'])
@@ -94,10 +85,7 @@ describe('casecollide', () => {
   })
 
   test('an op whose body is empty is not an operation', async () => {
-    // cleanTransform strips empty nodes at the end of the pipeline, so an
-    // entity whose ops are all empty reaches the SDK with no methods.
-    // Counting op KEYS reported customerio's `optout` as carrying two
-    // operations when it carried none.
+    // See docs/design/derived-names.md
     const { ctx } = await run({
       opt_out: { name: 'opt_out', op: { list: { method: 'GET' } } },
       optout: { name: 'optout', op: { list: {}, update: { args: {} } } },

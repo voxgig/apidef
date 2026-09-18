@@ -907,31 +907,8 @@ function transliterate(s: string): string {
 
 const CANONIZE_CACHE = new Map<string, string>()
 
-// A PLURALISED ACRONYM IS ONE WORD, NOT ONE WORD PER LETTER.
-//
-// snakify splits at the last capital before a lowercase, which is the right
-// rule for `HTTPHeaders` (-> http_headers) and the wrong one for a trailing
-// plural `s`: `StaticIPs` becomes `static_i_ps`, and depluralize then leaves
-// `static_i_p`.
-//
-// So checkly's `/v1/static-ips` canonized to `static_ip` while the name
-// derived for `StaticIPs` canonized to `static_i_p` — TWO entities for one
-// resource, whose camel forms `StaticIp` and `StaticIP` differ only in case.
-// Every generator that names a file after the camel form then wrote both to
-// ONE file on APFS: apidef's flow files silently overwrote each other, and
-// sdkgen's ts target failed to compile with
-//
-//   File name 'StaticIpEntity.ts' differs from already included file name
-//   'StaticIPEntity.ts' only in casing.
-//
-// It is general, not a checkly quirk: `APIs` gave `ap_i`, `URLs` gave `ur_l`,
-// `IDs` gave `i_d`, `UserIDs` gave `user_i_d`.
-//
-// Lowercasing the plural `s` into the acronym before the split fixes all of
-// them: `StaticIPs` -> `StaticIps` -> `static_ips` -> `static_ip`. The run
-// must be two or more capitals and the `s` must end the word, so `APIKeys`
-// (already correct, `API` + `Keys`) and `AWS` (capital S, no plural) are
-// untouched.
+// A trailing plural after an acronym is part of the word, and snakify would
+// split it letter by letter. See docs/design/derived-names.md
 const ACRONYM_PLURAL_RE = /([A-Z]{2,})s(?![a-zA-Z])/g
 
 function canonize(s: string) {

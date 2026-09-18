@@ -7,20 +7,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const node_test_1 = require("node:test");
 const node_assert_1 = __importDefault(require("node:assert"));
 const apidef_1 = require("../dist/apidef");
-// COLON-STYLE PATH PARAMETERS ARE NOT OPENAPI, AND VENDORS SHIP THEM ANYWAY.
-//
-// OpenAPI declares a path parameter as `{name}`. Stytch's Management API
-// publishes all 28 of its paths in Express style — `/pwa/v3/projects/:project_slug`
-// — while declaring `in: path, name: project_slug` correctly in `parameters`.
-//
-// Nothing downstream substitutes a `:name` segment, so the generated SDK sent
-// the literal text to the server:
-//
-//   http://.../pwa/v3/projects/:project_slug/email_templates
-//
-// Every request would have 404'd. One generated test caught it, by asserting
-// the request URL; the rest assert the mock's response body, which comes back
-// whatever URL is asked for.
+// See docs/design/derived-names.md
 async function paths(spec) {
     const def = await (0, apidef_1.parse)('OpenAPI', JSON.stringify(spec), { file: 'test.json' });
     return Object.keys(def.paths);

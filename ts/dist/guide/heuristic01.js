@@ -1206,27 +1206,8 @@ function updateAction(methodName, oldParam, actionName, entityDesc, pathdesc, wh
     }
 }
 function updateParamRename(ctx, data, path, method, paramRenameCapture, oldParamName, newParamName, why) {
-    // A DERIVED NAME MUST STILL BE AN IDENTIFIER.
-    //
-    // Most renames here are <parent-segment>_id, on the assumption that the
-    // parent segment names the resource that owns the parameter. It does not
-    // always. HubSpot versions its Marketing paths by date —
-    //
-    //   /marketing/campaigns/2026-09/{campaignGuid}/assets/{assetType}
-    //
-    // — so the parent is `2026-09` and `campaignGuid` was renamed to
-    // `2026_09_id`. That is not a legal identifier in any target language: the
-    // generated TypeScript carried it as an object key and the file did not
-    // even parse,
-    //
-    //   error TS6188: Numeric separators are not allowed here
-    //
-    // so hubspot-marketing, 65 entities, could not be built at all.
-    //
-    // Guarded HERE rather than at the call sites, because there are several and
-    // they all derive from the same path text. A name that cannot be an
-    // identifier is not an improvement on the one the spec gave, so the spec's
-    // name is kept.
+    // A name that cannot be an identifier is not an improvement on the one the
+    // specification gave. See docs/design/derived-names.md
     if (!/^[A-Za-z_]/.test(newParamName)) {
         ctx.log.debug({
             point: 'param-rename-skip',
@@ -1238,28 +1219,8 @@ function updateParamRename(ctx, data, path, method, paramRenameCapture, oldParam
         });
         return;
     }
-    // TWO PARAMETERS OF ONE PATH MUST NOT END UP WITH ONE NAME.
-    //
-    // The rename is <parent-segment>_id, and a path can have two parameters
-    // whose parent segments canonize the same way. HubSpot's
-    //
-    //   /crm/lists/2026-09/records/{objectTypeId}/{recordId}/memberships
-    //
-    // renamed BOTH to `record_id`, and the generated path came out as
-    // `records/{record_id}/{record_id}/memberships`: one value substituted into
-    // two positions, so the SDK would ask for a URL that does not exist. The
-    // generated direct-list test caught it only because it asserts the request
-    // URL — the rest of the suite asserts the mock's response and would not
-    // have noticed.
-    //
-    // The second parameter keeps the name the specification gave it. Losing the
-    // tidier name is nothing next to losing the parameter.
-    // The clash is with what the OTHER parameters of this path END UP CALLED,
-    // which is their rename if they have one and their own canonical name if
-    // they do not. Checking only the renames was not enough:
-    // `{objectTypeId}/{recordId}` renamed objectTypeId to `record_id` while
-    // recordId, left alone, canonizes to `record_id` as well — so the two still
-    // collided and the path still repeated a parameter.
+    // The clash is with what the path's OTHER parameters end up called: their
+    // rename if they have one, their canonical name if not.
     const otherParams = (path.match(/\{([^}]+)\}/g) || [])
         .map((seg) => seg.slice(1, -1))
         .filter((name) => name !== oldParamName);
