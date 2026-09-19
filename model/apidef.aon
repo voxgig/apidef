@@ -110,7 +110,7 @@ main: kit: entity: &: {
 
       # Every arg kind is one shape plus its own `kind` tag.
       args: {
-        &: [ &: $.main.kit.type.field.args ]
+        &: [ &: $.main.kit.type.field-args ]
         params?: [ &: {
           kind: 'param'
         }]
@@ -159,7 +159,7 @@ main: kit: flow: &: {
 
 
 main: kit: type: type({
-  field: args: {
+  field-args: {
     active: *true
     kind: string
     name: string
