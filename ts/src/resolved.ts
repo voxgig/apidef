@@ -2,7 +2,22 @@
 
 // See docs/design/resolved-spec-capability.md
 
-import { graphqlInputTypes } from './transform/contract'
+// An operation needs its argument types, including recursive input objects.
+// Output types are represented by the field and generated invocation selection;
+// copying the entire connected output graph per operation is quadratic in API size.
+function graphqlInputTypes(field: any, types: any): any {
+  const out: any = {}
+  function visit(name: string) {
+    if (!types[name] || Object.prototype.hasOwnProperty.call(out, name)) return
+    const type = types[name]
+    out[name] = type
+    if (type.kind === 'INPUT_OBJECT') {
+      for (const child of Object.values(type.fields || {}) as any[]) visit(child.type)
+    }
+  }
+  for (const arg of field.args || []) visit(arg.type)
+  return out
+}
 
 
 const METHODS = [
@@ -16,6 +31,8 @@ type OperationFacts = {
 }
 
 
+type OperationSelector = { entity: string, op: string }
+
 type ResolvedSpec = {
   version: 1
   kind: string
@@ -24,12 +41,10 @@ type ResolvedSpec = {
   // during parse, so a consumer reading the file itself would miss lookups.
   def: any
 
-  operation(method: string, path: string): OperationFacts | undefined
+  operation(method: string, path: string, selector?: OperationSelector): OperationFacts | undefined
 }
 
 
-// The single definition of a resolved operation, shared by contractTransform
-// and by consumers of the capability, so the two cannot disagree.
 function operationFacts(def: any, point: { method: string, orig: string }): OperationFacts | undefined {
   const path = def?.paths?.[point.orig]
   const method = path?.[String(point.method).toLowerCase()]
@@ -90,20 +105,49 @@ function operationIndex(def: any): { [id: string]: OperationFacts } {
 }
 
 
-function makeResolved(kind: string, def: any): ResolvedSpec {
+function operationGuide(guide: any, method: string, path: string, graphql: boolean,
+  selector?: OperationSelector): any {
+  const matches: any[] = []
+  for (const [entityName, entity] of Object.entries(guide?.entity || {}) as any) {
+    if (selector && selector.entity !== entityName) continue
+    const ops = entity[graphql ? 'field' : 'path']?.[path]?.op || {}
+    for (const [opName, op] of Object.entries(ops) as any) {
+      if (selector && selector.op !== opName) continue
+      if (op.method && op.method.toUpperCase() !== method.toUpperCase()) continue
+      if (op.contract !== undefined || op.live !== undefined) matches.push(op)
+    }
+  }
+  if (matches.length > 1) {
+    throw new Error('Ambiguous operation guide for ' + method + ' ' + path + '; select entity and op')
+  }
+  return matches[0]
+}
+
+function makeResolved(kind: string, def: any, guide: () => any = () => undefined): ResolvedSpec {
   return {
     version: 1,
     kind,
     def,
-    operation: (method: string, path: string) =>
-      operationFacts(def, { method, orig: path }),
+    operation: (method: string, path: string, selector?: OperationSelector) => {
+      const facts = operationFacts(def, { method, orig: path })
+      if (!facts) return undefined
+      const op = operationGuide(guide(), method, path, facts.protocol === 'graphql', selector)
+      for (const key of ['requestBody', 'responses', 'parameters', 'security']) {
+        if (op?.contract?.[key] !== undefined) {
+          facts[key] = op.contract[key]
+          ;(facts.factSources ??= {})[key] = 'guide'
+        }
+      }
+      if (op?.live !== undefined) facts.live = op.live
+      return facts
+    },
   }
 }
 
 
 // Tolerates a missing context: apidef also runs outside a model build.
-function publishResolved(ctx: any, kind: string, def: any): ResolvedSpec {
-  const resolved = makeResolved(kind, def)
+function publishResolved(ctx: any, kind: string, def: any, guide?: () => any): ResolvedSpec {
+  const resolved = makeResolved(kind, def, guide)
   if (null != ctx && 'object' === typeof ctx) {
     ctx.state = ctx.state || {}
     ctx.state.apidef = { ...(ctx.state.apidef || {}), resolved }
@@ -114,7 +158,7 @@ function publishResolved(ctx: any, kind: string, def: any): ResolvedSpec {
 
 function resolvedSpec(carrier: any): ResolvedSpec | undefined {
   if (null == carrier || 'object' !== typeof carrier) return undefined
-  return carrier.state?.apidef?.resolved ??
+  return carrier.resolved ?? carrier.ctx?.resolved ?? carrier.state?.apidef?.resolved ??
     carrier.ctx?.state?.apidef?.resolved ??
     carrier.apidef?.resolved ??
     undefined
@@ -122,6 +166,7 @@ function resolvedSpec(carrier: any): ResolvedSpec | undefined {
 
 
 export type {
+  OperationSelector,
   OperationFacts,
   ResolvedSpec,
 }

@@ -35,7 +35,8 @@
     "repo-publish-quick": "npm run build && npm run test && npm run repo-tag && npm stage publish --registry https://registry.npmjs.org --access=public",
     "repo-publish-quick-dry": "npm run build && npm run test && ( npm stage publish --dry-run --registry https://registry.npmjs.org --access=public || echo \"[dry-run] npm stage publish refused (see npm error above) - usually the version is already published; bump package.json before a real release\" )",
     "repo-release": "npm run repo-publish && npm run repo-tag",
-    "repo-release-dry": "npm run repo-publish-quick-dry && npm run repo-tag-dry"
+    "repo-release-dry": "npm run repo-publish-quick-dry && npm run repo-tag-dry",
+    "prose": "make -C .. scan-prose"
   },
   "license": "MIT",
   "files": [
@@ -47,6 +48,7 @@
   ],
   "devDependencies": {
     "@types/node": "^25.9.5",
+    "@vvago/vale": "3.14.2",
     "graphql": "17.0.2",
     "typescript": "7.0.2"
   },

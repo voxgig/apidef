@@ -43,6 +43,7 @@ const node_test_1 = require("node:test");
 const node_assert_1 = __importDefault(require("node:assert"));
 const utility_1 = require("../dist/utility");
 const field_1 = require("../dist/transform/field");
+const resolved_1 = require("../dist/resolved");
 const jostraca_1 = require("jostraca");
 const graphql01_1 = require("../dist/guide/graphql01");
 const parse_1 = require("../dist/parse");
@@ -530,5 +531,20 @@ function loadTsv(name) {
     (0, node_test_1.test)('null def', () => {
         node_assert_1.default.strictEqual((0, utility_1.specSecuredByDefault)(null), false);
     });
+});
+(0, node_test_1.describe)('tsv-resolved', () => {
+    for (const row of loadTsv('resolved')) {
+        (0, node_test_1.test)(row.name, () => {
+            const def = JSON.parse(row.def);
+            const guide = JSON.parse(row.guide);
+            const resolved = (0, resolved_1.makeResolved)('openapi3', def, () => guide);
+            const read = () => resolved.operation(row.method, row.path, JSON.parse(row.selector) || undefined);
+            if (row.error)
+                node_assert_1.default.throws(read, new RegExp(row.error));
+            else
+                node_assert_1.default.deepStrictEqual(JSON.parse(JSON.stringify(read() ?? null)), JSON.parse(row.expected));
+            node_assert_1.default.equal(JSON.stringify(def), row.def);
+        });
+    }
 });
 //# sourceMappingURL=tsv.test.js.map

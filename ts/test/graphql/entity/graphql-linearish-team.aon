@@ -54,7 +54,7 @@ main: kit: entity: team: {
           contract: {
             id: "POST teams"
             source: "graphql"
-            version: 1
+            version: 2
           }
           graphql: {
             doc: "query TeamList($first: Int, $after: String) { teams(first: $first, after: $after) { nodes { ...TeamFields } pageInfo { endCursor hasNextPage } } } fragment TeamFields on Team { id key name }"
@@ -107,7 +107,7 @@ main: kit: entity: team: {
           contract: {
             id: "POST team"
             source: "graphql"
-            version: 1
+            version: 2
           }
           graphql: {
             doc: "query TeamLoad($id: String!) { team(id: $id) { ...TeamFields } } fragment TeamFields on Team { id key name }"

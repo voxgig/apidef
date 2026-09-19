@@ -94,7 +94,7 @@ const SPEC = {
 });
 // The guide's hint, not a specification fact, so it must survive on the point.
 (0, node_test_1.describe)('live-hint-on-point', () => {
-    (0, node_test_1.test)('a guide live hint lands on the point, not only in the contract', async () => {
+    (0, node_test_1.test)('a guide live hint lands on the point', async () => {
         const point = { method: 'GET', orig: '/things', kind: 'http' };
         const ctx = {
             def: { paths: { '/things': { get: { responses: {} } } } },
@@ -104,8 +104,6 @@ const SPEC = {
         };
         await (0, contract_1.contractTransform)(ctx);
         node_assert_1.default.equal(point.live, true);
-        // The contract carries only its identity now; the serialised copy of the
-        // facts is opt-in.
         node_assert_1.default.equal(point.contract.json, undefined);
         node_assert_1.default.equal(point.contract.id, 'GET /things');
     });
@@ -120,5 +118,23 @@ const SPEC = {
         await (0, contract_1.contractTransform)(ctx);
         node_assert_1.default.equal(point.live, undefined);
     });
+});
+(0, node_test_1.test)('capability reads the current guide after publication', () => {
+    let guide = {};
+    const buildctx = { state: { apidef: { retained: true } } };
+    const resolved = (0, resolved_1.publishResolved)(buildctx, 'openapi3', SPEC, () => guide);
+    guide = { entity: { thing: { path: { '/open': { op: {
+                            load: { method: 'GET', contract: { security: [] }, live: false },
+                        } } } } } };
+    node_assert_1.default.deepEqual(resolved.operation('GET', '/open')?.security, []);
+    node_assert_1.default.equal(resolved.operation('GET', '/open')?.live, false);
+    node_assert_1.default.equal(buildctx.state.apidef.retained, true);
+    node_assert_1.default.equal((0, resolved_1.resolvedSpec)({ ctx: { resolved } }), resolved);
+});
+(0, node_test_1.test)('ModelPoint exposes boolean and object live hints', () => {
+    for (const live of [true, false, { input: { n: 2 } }]) {
+        const point = { live };
+        node_assert_1.default.deepEqual(JSON.parse(JSON.stringify(point)).live, live);
+    }
 });
 //# sourceMappingURL=resolved.test.js.map

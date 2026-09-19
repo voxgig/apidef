@@ -46,7 +46,7 @@ main: kit: entity: moon: {
           contract: {
             id: "POST moonCreate"
             source: "graphql"
-            version: 1
+            version: 2
           }
           graphql: {
             doc: "mutation MoonCreate($input: MoonCreateInput!) { moonCreate(input: $input) { moon { ...MoonFields } success } } fragment MoonFields on Moon { diameter id kind name planet { id } }"
@@ -102,7 +102,7 @@ main: kit: entity: moon: {
           contract: {
             id: "POST moons"
             source: "graphql"
-            version: 1
+            version: 2
           }
           graphql: {
             doc: "query MoonList($planetId: String, $first: Int, $after: String) { moons(planetId: $planetId, first: $first, after: $after) { nodes { ...MoonFields } pageInfo { endCursor hasNextPage } } } fragment MoonFields on Moon { diameter id kind name planet { id } }"
@@ -160,7 +160,7 @@ main: kit: entity: moon: {
           contract: {
             id: "POST moon"
             source: "graphql"
-            version: 1
+            version: 2
           }
           graphql: {
             doc: "query MoonLoad($id: String!) { moon(id: $id) { ...MoonFields } } fragment MoonFields on Moon { diameter id kind name planet { id } }"
@@ -207,7 +207,7 @@ main: kit: entity: moon: {
           contract: {
             id: "POST moonDelete"
             source: "graphql"
-            version: 1
+            version: 2
           }
           graphql: {
             doc: "mutation MoonRemove($id: String!) { moonDelete(id: $id) { moon { ...MoonFields } success } } fragment MoonFields on Moon { diameter id kind name planet { id } }"
@@ -254,7 +254,7 @@ main: kit: entity: moon: {
           contract: {
             id: "POST moonUpdate"
             source: "graphql"
-            version: 1
+            version: 2
           }
           graphql: {
             doc: "mutation MoonUpdate($id: String!, $input: MoonUpdateInput!) { moonUpdate(id: $id, input: $input) { moon { ...MoonFields } success } } fragment MoonFields on Moon { diameter id kind name planet { id } }"

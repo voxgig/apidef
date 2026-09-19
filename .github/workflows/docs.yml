@@ -41,10 +41,9 @@ jobs:
       # package, and an unpinned gate turns someone else's release into a
       # red build on a pull request that touched one word.
       - name: Install Vale
-        env:
-          VALE_VERSION: '3.14.0'
         run: |
           set -euo pipefail
+          VALE_VERSION="$(python3 -c 'import json; print(json.load(open("ts/package.json"))["devDependencies"]["@vvago/vale"])')"
           curl -sSfL -o vale.tar.gz \
             "https://github.com/errata-ai/vale/releases/download/v${VALE_VERSION}/vale_${VALE_VERSION}_Linux_64-bit.tar.gz"
           tar xzf vale.tar.gz vale

@@ -41,7 +41,7 @@ main: kit: entity: planet: {
           contract: {
             id: "POST planetCreate"
             source: "graphql"
-            version: 1
+            version: 2
           }
           graphql: {
             doc: "mutation PlanetCreate($input: PlanetCreateInput!) { planetCreate(input: $input) { planet { ...PlanetFields } success } } fragment PlanetFields on Planet { diameter id kind name }"
@@ -90,7 +90,7 @@ main: kit: entity: planet: {
           contract: {
             id: "POST planets"
             source: "graphql"
-            version: 1
+            version: 2
           }
           graphql: {
             doc: "query PlanetList($filter: PlanetFilter, $first: Int, $after: String) { planets(filter: $filter, first: $first, after: $after) { nodes { ...PlanetFields } pageInfo { endCursor hasNextPage } } } fragment PlanetFields on Planet { diameter id kind name }"
@@ -148,7 +148,7 @@ main: kit: entity: planet: {
           contract: {
             id: "POST planet"
             source: "graphql"
-            version: 1
+            version: 2
           }
           graphql: {
             doc: "query PlanetLoad($id: String!) { planet(id: $id) { ...PlanetFields } } fragment PlanetFields on Planet { diameter id kind name }"
@@ -195,7 +195,7 @@ main: kit: entity: planet: {
           contract: {
             id: "POST planetDelete"
             source: "graphql"
-            version: 1
+            version: 2
           }
           graphql: {
             doc: "mutation PlanetRemove($id: String!) { planetDelete(id: $id) { planet { ...PlanetFields } success } } fragment PlanetFields on Planet { diameter id kind name }"
@@ -256,7 +256,7 @@ main: kit: entity: planet: {
           contract: {
             id: "POST planetForbid"
             source: "graphql"
-            version: 1
+            version: 2
           }
           graphql: {
             doc: "mutation PlanetUpdateForbid($id: String!, $forbid: Boolean!, $why: String) { planetForbid(id: $id, forbid: $forbid, why: $why) { planet { ...PlanetFields } success } } fragment PlanetFields on Planet { diameter id kind name }"
@@ -324,7 +324,7 @@ main: kit: entity: planet: {
           contract: {
             id: "POST planetTerraform"
             source: "graphql"
-            version: 1
+            version: 2
           }
           graphql: {
             doc: "mutation PlanetUpdateTerraform($id: String!, $start: Boolean, $stop: Boolean) { planetTerraform(id: $id, start: $start, stop: $stop) { planet { ...PlanetFields } success } } fragment PlanetFields on Planet { diameter id kind name }"
@@ -377,7 +377,7 @@ main: kit: entity: planet: {
           contract: {
             id: "POST planetUpdate"
             source: "graphql"
-            version: 1
+            version: 2
           }
           graphql: {
             doc: "mutation PlanetUpdate($id: String!, $input: PlanetUpdateInput!) { planetUpdate(id: $id, input: $input) { planet { ...PlanetFields } success } } fragment PlanetFields on Planet { diameter id kind name }"

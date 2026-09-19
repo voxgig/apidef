@@ -57,20 +57,12 @@ test-go:
 clean-go:
 	cd go && go clean
 
-# The prose gate over the reader-facing pages (STYLE-GUIDE.md). Vale runs
-# where it is installed, over the page set tools/check_prose.py prints,
-# so both halves read the same files; check_prose always runs, because it
-# carries the house rules .vale.ini switches Google rules OFF in favour
-# of -- skipping it silently would widen what is allowed.
+# npm installs the pinned Vale binary used by local prose checks.
+VALE = $(CURDIR)/ts/node_modules/@vvago/vale/bin/vale
 scan-prose:
-	@echo "======== scan: prose (vale + check_prose) ========"
-	@if command -v vale >/dev/null 2>&1; then \
-	  vale sync >/dev/null && \
-	  vale --minAlertLevel=error $$(python3 tools/check_prose.py --files); \
-	else \
-	  echo "(vale not installed - skipping the Google/banned-list half;"; \
-	  echo " see .github/workflows/docs.yml for the pinned version)"; \
-	fi
+	@test -x "$(VALE)" || { echo "Vale is missing; run cd ts && npm ci --ignore-scripts=false"; exit 1; }
+	@"$(VALE)" sync
+	@"$(VALE)" --minAlertLevel=error $$(python3 tools/check_prose.py --files)
 	@python3 tools/check_prose.py
 
 

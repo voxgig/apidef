@@ -56,7 +56,7 @@ main: kit: entity: issue: {
           contract: {
             id: "POST issueCreate"
             source: "graphql"
-            version: 1
+            version: 2
           }
           graphql: {
             doc: "mutation IssueCreate($input: IssueCreateInput!) { issueCreate(input: $input) { issue { ...IssueFields } success } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }"
@@ -105,7 +105,7 @@ main: kit: entity: issue: {
           contract: {
             id: "POST issues"
             source: "graphql"
-            version: 1
+            version: 2
           }
           graphql: {
             doc: "query IssueList($filter: IssueFilter, $first: Int, $after: String) { issues(filter: $filter, first: $first, after: $after) { nodes { ...IssueFields } pageInfo { endCursor hasNextPage } } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }"
@@ -163,7 +163,7 @@ main: kit: entity: issue: {
           contract: {
             id: "POST issue"
             source: "graphql"
-            version: 1
+            version: 2
           }
           graphql: {
             doc: "query IssueLoad($id: String!) { issue(id: $id) { ...IssueFields } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }"
@@ -210,7 +210,7 @@ main: kit: entity: issue: {
           contract: {
             id: "POST issueDelete"
             source: "graphql"
-            version: 1
+            version: 2
           }
           graphql: {
             doc: "mutation IssueRemove($id: String!) { issueDelete(id: $id) { issue { ...IssueFields } success } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }"
@@ -257,7 +257,7 @@ main: kit: entity: issue: {
           contract: {
             id: "POST issueArchive"
             source: "graphql"
-            version: 1
+            version: 2
           }
           graphql: {
             doc: "mutation IssueUpdateArchive($id: String!) { issueArchive(id: $id) { issue { ...IssueFields } success } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }"
@@ -300,7 +300,7 @@ main: kit: entity: issue: {
           contract: {
             id: "POST issueUpdate"
             source: "graphql"
-            version: 1
+            version: 2
           }
           graphql: {
             doc: "mutation IssueUpdate($id: String!, $input: IssueUpdateInput!) { issueUpdate(id: $id, input: $input) { issue { ...IssueFields } success } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }"

@@ -38,6 +38,7 @@ type ApiDefResult struct {
 
 // ApiDefContext holds the processing context during API definition generation.
 type ApiDefContext struct {
+	Resolved *ResolvedSpec  `json:"-"`
 	Log      Logger         `json:"-"`
 	Spec     map[string]any `json:"spec,omitempty"`
 	Opts     ApiDefOptions  `json:"opts"`
@@ -117,7 +118,7 @@ type GuideRenameParam struct {
 
 // GuidePathOp represents an operation on a guide path.
 type GuidePathOp struct {
-	Live      map[string]any `json:"live,omitempty"`
+	Live      any            `json:"live,omitempty"`
 	Contract  map[string]any `json:"contract,omitempty"`
 	Method    string         `json:"method"`
 	WhyOp     []string       `json:"why_op,omitempty"`

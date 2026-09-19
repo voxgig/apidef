@@ -3,6 +3,8 @@
 import { test, describe } from 'node:test'
 import assert from 'node:assert'
 
+import type { ModelPoint } from '../dist/model'
+
 import { parse } from '../dist/apidef'
 import { contractTransform } from '../dist/transform/contract'
 import { operationFacts, operationIndex, makeResolved, publishResolved, resolvedSpec }
@@ -112,7 +114,7 @@ describe('resolved', () => {
 // The guide's hint, not a specification fact, so it must survive on the point.
 describe('live-hint-on-point', () => {
 
-  test('a guide live hint lands on the point, not only in the contract', async () => {
+  test('a guide live hint lands on the point', async () => {
     const point: any = { method: 'GET', orig: '/things', kind: 'http' }
     const ctx: any = {
       def: { paths: { '/things': { get: { responses: {} } } } },
@@ -125,8 +127,6 @@ describe('live-hint-on-point', () => {
 
     assert.equal(point.live, true)
 
-    // The contract carries only its identity now; the serialised copy of the
-    // facts is opt-in.
     assert.equal(point.contract.json, undefined)
     assert.equal(point.contract.id, 'GET /things')
   })
@@ -145,4 +145,25 @@ describe('live-hint-on-point', () => {
     assert.equal(point.live, undefined)
   })
 
+})
+
+
+test('capability reads the current guide after publication', () => {
+  let guide: any = {}
+  const buildctx: any = { state: { apidef: { retained: true } } }
+  const resolved = publishResolved(buildctx, 'openapi3', SPEC, () => guide)
+  guide = { entity: { thing: { path: { '/open': { op: {
+    load: { method: 'GET', contract: { security: [] }, live: false },
+  } } } } } }
+  assert.deepEqual(resolved.operation('GET', '/open')?.security, [])
+  assert.equal(resolved.operation('GET', '/open')?.live, false)
+  assert.equal(buildctx.state.apidef.retained, true)
+  assert.equal(resolvedSpec({ ctx: { resolved } }), resolved)
+})
+
+test('ModelPoint exposes boolean and object live hints', () => {
+  for (const live of [true, false, { input: { n: 2 } }]) {
+    const point: Pick<ModelPoint, 'live'> = { live }
+    assert.deepEqual(JSON.parse(JSON.stringify(point)).live, live)
+  }
 })

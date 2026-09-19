@@ -84,7 +84,7 @@ import {
   publishResolved, operationFacts, operationIndex, resolvedSpec,
 } from './resolved'
 
-import type { OperationFacts, ResolvedSpec } from './resolved'
+import type { OperationFacts, OperationSelector, ResolvedSpec } from './resolved'
 
 import { makeEntityBuilder } from './builder/entity'
 import { gcEntityFiles } from './builder/entity/entity'
@@ -227,7 +227,7 @@ function ApiDef(opts: ApiDefOptions) {
       }
 
       ctx.def = def
-      ctx.resolved = publishResolved(spec.buildctx, spec.config?.kind ?? "openapi3", def)
+      ctx.resolved = publishResolved(spec.buildctx, spec.config?.kind ?? "openapi3", def, () => ctx?.guide)
 
       steps.push('parse')
 
@@ -545,6 +545,7 @@ export {
 }
 
 export type {
+  OperationSelector,
   OperationFacts,
   ResolvedSpec,
 }

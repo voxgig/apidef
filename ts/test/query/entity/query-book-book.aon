@@ -36,7 +36,7 @@ main: kit: entity: book: {
           contract: {
             id: "QUERY /api/book"
             source: "openapi3"
-            version: 1
+            version: 2
           }
           method: "QUERY"
           orig: "/api/book"
@@ -73,7 +73,7 @@ main: kit: entity: book: {
           contract: {
             id: "GET /api/book/{book_id}"
             source: "openapi3"
-            version: 1
+            version: 2
           }
           method: "GET"
           orig: "/api/book/{book_id}"

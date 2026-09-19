@@ -658,3 +658,48 @@ func TestRequestEnvelopeProp(t *testing.T) {
 		})
 	}
 }
+
+func TestTsvResolved(t *testing.T) {
+	for _, row := range loadTsv(t, "resolved") {
+		t.Run(row["name"], func(t *testing.T) {
+			var def, guide map[string]any
+			var selector *OperationSelector
+			var expected any
+			for _, pair := range []struct {
+				text   string
+				target any
+			}{
+				{row["def"], &def}, {row["guide"], &guide}, {row["selector"], &selector}, {row["expected"], &expected},
+			} {
+				if err := json.Unmarshal([]byte(pair.text), pair.target); err != nil {
+					t.Fatal(err)
+				}
+			}
+			before, _ := json.Marshal(def)
+			resolved := MakeResolved("openapi3", def, func() map[string]any { return guide })
+			var selection []OperationSelector
+			if selector != nil {
+				selection = append(selection, *selector)
+			}
+			facts, err := resolved.Operation(row["method"], row["path"], selection...)
+			if row["error"] != "" {
+				if err == nil || !strings.Contains(err.Error(), row["error"]) {
+					t.Fatalf("expected %s, got %v", row["error"], err)
+				}
+			} else {
+				if err != nil {
+					t.Fatal(err)
+				}
+				got, _ := json.Marshal(facts)
+				want, _ := json.Marshal(expected)
+				if string(got) != string(want) {
+					t.Fatalf("got %s, want %s", got, want)
+				}
+			}
+			after, _ := json.Marshal(def)
+			if string(before) != string(after) {
+				t.Fatal("definition mutated")
+			}
+		})
+	}
+}
