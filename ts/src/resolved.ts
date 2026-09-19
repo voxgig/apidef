@@ -2,7 +2,22 @@
 
 // See docs/design/resolved-spec-capability.md
 
-import { graphqlInputTypes } from './transform/contract'
+// An operation needs its argument types, including recursive input objects.
+// Output types are represented by the field and generated invocation selection;
+// copying the entire connected output graph per operation is quadratic in API size.
+function graphqlInputTypes(field: any, types: any): any {
+  const out: any = {}
+  function visit(name: string) {
+    if (!types[name] || Object.prototype.hasOwnProperty.call(out, name)) return
+    const type = types[name]
+    out[name] = type
+    if (type.kind === 'INPUT_OBJECT') {
+      for (const child of Object.values(type.fields || {}) as any[]) visit(child.type)
+    }
+  }
+  for (const arg of field.args || []) visit(arg.type)
+  return out
+}
 
 
 const METHODS = [
@@ -28,8 +43,6 @@ type ResolvedSpec = {
 }
 
 
-// The single definition of a resolved operation, shared by contractTransform
-// and by consumers of the capability, so the two cannot disagree.
 function operationFacts(def: any, point: { method: string, orig: string }): OperationFacts | undefined {
   const path = def?.paths?.[point.orig]
   const method = path?.[String(point.method).toLowerCase()]

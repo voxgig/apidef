@@ -29,8 +29,6 @@ guide: entity: &: {
      op: &: {
        # Declarative live input recipes and output/credential bindings.
        live?: {}
-       # Explicit corrections to versioned operation facts.
-       contract?: {}
        active?: boolean
        method: string
 

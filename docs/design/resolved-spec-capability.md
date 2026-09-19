@@ -1,7 +1,7 @@
 # The resolved definition as a declared capability
 
 apidef parses a specification, resolves its `$ref` pointers, normalises its
-path keys and merges its operation facts. Until now that work reached the rest
+path keys and merges its operation facts. Previously that work reached the rest
 of the toolchain only as `point.contract.json` — a per-operation copy of the
 resolved facts, serialised into the model.
 
@@ -36,12 +36,12 @@ be handed the resolved view instead of a serialised copy of it.
 `resolvedSpec(carrier)` reads it back, accepting the build context directly or
 anything carrying one, so a consumer need not know how it was threaded.
 
-## Why `operationFacts` is shared
+## Operation facts
 
-`operationFacts` is the single definition of what a resolved operation is.
-`contractTransform` calls it to build a contract; a consumer calls it to get
-the same facts without one. Both must agree, and sharing the function is the
-only way to guarantee that.
+`operationFacts` defines the resolved operation returned by the capability.
+Point contracts contain only `version`, `id`, and `source`. Neither language
+serialises operation facts into the model, and there is no JSON opt-in.
+Docgen reads its documentation facts directly from the OpenAPI specification.
 
 It exists because a resolved operation is not simply what the specification
 file says at that path:
@@ -63,9 +63,9 @@ in another repository, and the two would drift.
 ## What the capability does not carry
 
 `invocation` — the query document apidef builds for a GraphQL operation — is a
-property of the point, not of the specification, so `contractTransform` adds it
-after calling `operationFacts`. Guide overrides are applied by the transform
-for the same reason: they are the project's edits, not the vendor's document.
+property of the point, exposed as `point.graphql`. The guide's live hint is
+copied to `point.live`. Contract-fact guide overrides were only used for the
+serialised copy and have been removed.
 
 ## Context lifetime
 

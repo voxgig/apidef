@@ -94,7 +94,7 @@ const SPEC = {
 });
 // The guide's hint, not a specification fact, so it must survive on the point.
 (0, node_test_1.describe)('live-hint-on-point', () => {
-    (0, node_test_1.test)('a guide live hint lands on the point, not only in the contract', async () => {
+    (0, node_test_1.test)('a guide live hint lands on the point', async () => {
         const point = { method: 'GET', orig: '/things', kind: 'http' };
         const ctx = {
             def: { paths: { '/things': { get: { responses: {} } } } },
@@ -104,8 +104,6 @@ const SPEC = {
         };
         await (0, contract_1.contractTransform)(ctx);
         node_assert_1.default.equal(point.live, true);
-        // The contract carries only its identity now; the serialised copy of the
-        // facts is opt-in.
         node_assert_1.default.equal(point.contract.json, undefined);
         node_assert_1.default.equal(point.contract.id, 'GET /things');
     });

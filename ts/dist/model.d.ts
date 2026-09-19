@@ -84,7 +84,6 @@ type ModelPoint = {
         version: number;
         id: string;
         source: string;
-        json: string;
     };
     orig: string;
     kind?: PointKind;

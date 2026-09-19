@@ -118,7 +118,6 @@ type GuideRenameParam struct {
 // GuidePathOp represents an operation on a guide path.
 type GuidePathOp struct {
 	Live      map[string]any `json:"live,omitempty"`
-	Contract  map[string]any `json:"contract,omitempty"`
 	Method    string         `json:"method"`
 	WhyOp     []string       `json:"why_op,omitempty"`
 	Transform map[string]any `json:"transform,omitempty"`

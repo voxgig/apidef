@@ -172,26 +172,20 @@ flow: BasicPlanetFlow: {
 
 ## Operation contracts
 
-Each operation point can carry `contract: { version: 1, id, source, json }`.
-The identifier is the HTTP method and original path; `source` identifies
-OpenAPI, Swagger, or GraphQL. The JSON string preserves explicit empty
-security lists, empty request examples, schema keywords, and null values
-through model unification and cleanup.
+Each operation point can carry `contract: { version: 1, id, source }`.
+The identifier is the method and original path; `source` is `openapi3`,
+`swagger2`, or `graphql`. Consumers should reject unknown contract versions.
 
-HTTP facts retain the operation ID, body content and media types, parameter
-schemas, response contracts, and security requirements with their source.
-Swagger body parameters remain body parameters. GraphQL facts retain root
-field arguments, input types, and the modelled invocation. Existing entity
-fields remain available independently. `typesScope: "inputs"` limits the type
-map to the transitive argument types; output selection remains in the
-invocation. Recursive resolved schemas use JSON pointers rooted at the
-contract document, preserving recursion without expanding it indefinitely.
+Contracts contain identity only. Request and response schemas, parameters,
+and security details come from the API specification. JSON contract payloads
+are no longer generated, including when an older caller passes `contractJson`.
+Docgen reads this information directly from the OpenAPI specification.
 
-An operation's `contract` guide entry can replace request, response, parameter,
-or security facts; `factSources` records which values came from the guide.
-An operation's `live` guide entry is copied into these facts. It provides
+An operation's `live` guide entry is copied to `point.live`. It provides
 input recipes and semantic bindings that the definition cannot express.
-Examples are candidates; their presence does not prove that a model name,
-resource ID, or vector is valid against the service. Schema references and
-constraints remain available for consumers to validate or report as
-unsupported. Consumers should reject unknown contract versions.
+GraphQL invocations remain on `point.graphql`, and entity fields remain
+available independently. The `contract` guide entry for overriding JSON
+contract facts has been removed.
+
+See [the contract tests](../../ts/test/contract.test.ts) for identity-only
+output and recursive-schema coverage.

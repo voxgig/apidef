@@ -74,7 +74,7 @@ main: kit: entity: &: {
     input: *'data'
 
     points: [ &: {
-      contract?: { version: number, id: string, source: string, json: string }
+      contract?: { version: number, id: string, source: string }
 
       active: *true
 

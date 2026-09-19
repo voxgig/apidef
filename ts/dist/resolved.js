@@ -8,13 +8,29 @@ exports.makeResolved = makeResolved;
 exports.publishResolved = publishResolved;
 exports.resolvedSpec = resolvedSpec;
 // See docs/design/resolved-spec-capability.md
-const contract_1 = require("./transform/contract");
+// An operation needs its argument types, including recursive input objects.
+// Output types are represented by the field and generated invocation selection;
+// copying the entire connected output graph per operation is quadratic in API size.
+function graphqlInputTypes(field, types) {
+    const out = {};
+    function visit(name) {
+        if (!types[name] || Object.prototype.hasOwnProperty.call(out, name))
+            return;
+        const type = types[name];
+        out[name] = type;
+        if (type.kind === 'INPUT_OBJECT') {
+            for (const child of Object.values(type.fields || {}))
+                visit(child.type);
+        }
+    }
+    for (const arg of field.args || [])
+        visit(arg.type);
+    return out;
+}
 const METHODS = [
     'get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'
 ];
 exports.METHODS = METHODS;
-// The single definition of a resolved operation, shared by contractTransform
-// and by consumers of the capability, so the two cannot disagree.
 function operationFacts(def, point) {
     const path = def?.paths?.[point.orig];
     const method = path?.[String(point.method).toLowerCase()];
@@ -24,7 +40,7 @@ function operationFacts(def, point) {
     const facts = { protocol: graphql ? 'graphql' : 'http' };
     if (graphql) {
         facts.field = graphql;
-        facts.types = (0, contract_1.graphqlInputTypes)(graphql, def.types || {});
+        facts.types = graphqlInputTypes(graphql, def.types || {});
         facts.typesScope = 'inputs';
         return facts;
     }

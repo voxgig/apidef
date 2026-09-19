@@ -112,7 +112,7 @@ describe('resolved', () => {
 // The guide's hint, not a specification fact, so it must survive on the point.
 describe('live-hint-on-point', () => {
 
-  test('a guide live hint lands on the point, not only in the contract', async () => {
+  test('a guide live hint lands on the point', async () => {
     const point: any = { method: 'GET', orig: '/things', kind: 'http' }
     const ctx: any = {
       def: { paths: { '/things': { get: { responses: {} } } } },
@@ -125,8 +125,6 @@ describe('live-hint-on-point', () => {
 
     assert.equal(point.live, true)
 
-    // The contract carries only its identity now; the serialised copy of the
-    // facts is opt-in.
     assert.equal(point.contract.json, undefined)
     assert.equal(point.contract.id, 'GET /things')
   })

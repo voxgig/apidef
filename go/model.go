@@ -56,15 +56,14 @@ type ModelArg struct {
 	Reqd bool   `json:"reqd"`
 }
 
-// ModelPoint represents a point implementation of an operation.
-// ModelContract preserves lossless versioned operation facts.
+// ModelContract identifies the source operation.
 type ModelContract struct {
 	Version int    `json:"version"`
 	ID      string `json:"id"`
 	Source  string `json:"source"`
-	JSON    string `json:"json"`
 }
 
+// ModelPoint represents a point implementation of an operation.
 type ModelPoint struct {
 	Contract  *ModelContract   `json:"contract,omitempty"`
 	Orig      string           `json:"orig"`

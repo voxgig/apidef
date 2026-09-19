@@ -9,12 +9,12 @@ const contract_1 = require("../dist/transform/contract");
 const resolved_1 = require("../dist/resolved");
 const clean_1 = require("../dist/transform/clean");
 for (const method of ['POST', 'QUERY'])
-    (0, node_test_1.test)('lossless point contract ' + method, async () => {
+    (0, node_test_1.test)('point contract contains only identity ' + method, async () => {
         const schema = { type: 'object', additionalProperties: false, properties: {
                 n: { type: 'integer', minimum: 1 }, nested: { type: 'array', minItems: 1, items: { oneOf: [{ type: 'string', enum: ['a', 'b'] }, { type: 'null' }] } }, secret: { type: 'string', writeOnly: true }, id: { type: 'string', readOnly: true },
             }, required: ['n'], example: {}, key$: 'internal' };
         const point = { method, orig: '/operation' };
-        const ctx = { apimodel: { main: { kit: { entity: { item: { name: 'item', op: { create: { name: 'create', points: [point] } } } } } } }, guide: {}, def: {
+        const ctx = { opts: { contractJson: true }, apimodel: { main: { kit: { entity: { item: { name: 'item', op: { create: { name: 'create', points: [point] } } } } } } }, guide: {}, def: {
                 security: [{ bearer: [] }], paths: { '/operation': { [method.toLowerCase()]: {
                             operationId: 'createItem', security: [], requestBody: { required: false, content: { 'application/json': { schema, example: {} } } }, responses: { '201': { content: { 'application/json': { schema } } } },
                         } } },
@@ -22,30 +22,23 @@ for (const method of ['POST', 'QUERY'])
         await (0, contract_1.contractTransform)(ctx);
         await (0, clean_1.cleanTransform)(ctx);
         const contract = ctx.apimodel.main.kit.entity.item.op.create.points[0].contract;
-        strict_1.default.equal(contract.version, 1);
-        strict_1.default.equal(contract.id, method + ' /operation');
-        // Facts come from the capability; the serialised copy is opt-in.
+        strict_1.default.deepEqual(contract, { version: 1, id: method + ' /operation', source: 'openapi3' });
         const facts = (0, resolved_1.operationFacts)(ctx.def, point);
         strict_1.default.deepEqual(facts.security, []);
         strict_1.default.deepEqual(facts.requestBody.content['application/json'].example, {});
         strict_1.default.equal(facts.requestBody.content['application/json'].schema.properties.n.type, 'integer');
-        // `$`-suffixed keys are stripped by the SERIALISER, not by fact gathering.
-        const written = JSON.parse((0, contract_1.contractJSON)(facts));
-        strict_1.default.equal(written.requestBody.content['application/json'].schema.key$, undefined);
         strict_1.default.equal(schema.key$, 'internal', 'Shared schema must stay untouched');
         strict_1.default.deepEqual(facts.requestBody.content['application/json'].schema.properties.n, { minimum: 1, type: 'integer' });
     });
 (0, node_test_1.test)('Swagger body, inherited security and guide recipe remain distinct', async () => {
     const point = { method: 'POST', orig: '/item' };
-    const ctx = { apimodel: { main: { kit: { entity: { item: { name: 'item', op: { create: { name: 'create', points: [point] } } } } } } }, guide: { entity: { item: { path: { '/item': { op: { create: { live: { input: { n: 2 } }, contract: { security: [] } } } } } } } }, def: { swagger: '2.0', consumes: ['application/json'], security: [{ key: [] }], paths: { '/item': { post: { parameters: [{ in: 'body', schema: { type: 'object' } }] } } } } };
+    const ctx = { apimodel: { main: { kit: { entity: { item: { name: 'item', op: { create: { name: 'create', points: [point] } } } } } } }, guide: { entity: { item: { path: { '/item': { op: { create: { live: { input: { n: 2 } } } } } } } } }, def: { swagger: '2.0', consumes: ['application/json'], security: [{ key: [] }], paths: { '/item': { post: { parameters: [{ in: 'body', schema: { type: 'object' } }] } } } } };
     await (0, contract_1.contractTransform)(ctx);
-    const facts = { ...(0, resolved_1.operationFacts)(ctx.def, point), live: point.live,
-        security: [], factSources: { security: 'guide' } };
+    const facts = (0, resolved_1.operationFacts)(ctx.def, point);
     strict_1.default.equal(point.contract.source, 'swagger2');
-    strict_1.default.deepEqual(facts.live.input, { n: 2 });
+    strict_1.default.deepEqual(point.live.input, { n: 2 });
     strict_1.default.equal(facts.securitySource, 'definition');
-    strict_1.default.deepEqual(facts.security, []);
-    strict_1.default.equal(facts.factSources.security, 'guide');
+    strict_1.default.deepEqual(facts.security, [{ key: [] }]);
     strict_1.default.deepEqual(facts.consumes, ['application/json']);
     strict_1.default.equal(facts.requestBody, undefined);
     strict_1.default.equal(facts.parameters[0].in, 'body');
@@ -55,31 +48,42 @@ for (const method of ['POST', 'QUERY'])
         const point = { method: 'POST', orig: 'item', graphql: { doc: root + ' { item }' } };
         const ctx = { apimodel: { main: { kit: { entity: { item: { name: 'item', op: { load: { name: 'load', points: [point] } } } } } } }, def: { [root]: { item: { args: [{ name: 'input', reqd: true, type: 'Input' }] } }, types: { Input: { kind: 'INPUT_OBJECT', fields: { count: { type: 'Int' } } } } } };
         await (0, contract_1.contractTransform)(ctx);
+        strict_1.default.deepEqual(point.contract, { version: 1, id: 'POST item', source: 'graphql' });
+        strict_1.default.equal(point.graphql.doc, root + ' { item }');
         const facts = (0, resolved_1.operationFacts)(ctx.def, point);
         strict_1.default.equal(facts.protocol, 'graphql');
         strict_1.default.equal(facts.field.args[0].type, 'Input');
         strict_1.default.equal(facts.types.Input.fields.count.type, 'Int');
     }
 });
-(0, node_test_1.test)('recursive resolved schemas retain local references without changing shared nodes', () => {
+(0, node_test_1.test)('recursive schemas stay in the definition and the model remains serialisable', async () => {
     const schema = { type: 'object', properties: {} };
     schema.properties.child = schema;
-    const source = { 'a/b~c': schema, second: schema };
-    const facts = JSON.parse((0, contract_1.contractJSON)(source));
-    strict_1.default.deepEqual(facts['a/b~c'].properties.child, { $ref: '#/a~1b~0c' });
-    strict_1.default.deepEqual(facts.second.properties.child, { $ref: '#/second' });
+    const point = { method: 'POST', orig: '/item', contract: { json: 'stale' } };
+    const ctx = {
+        opts: { contractJson: true },
+        def: { paths: { '/item': { post: { requestBody: { schema } } } } },
+        apimodel: { main: { kit: { entity: { item: { name: 'item', op: {
+                                create: { name: 'create', points: [point] },
+                            } } } } } },
+    };
+    await (0, contract_1.contractTransform)(ctx);
+    await (0, clean_1.cleanTransform)(ctx);
+    strict_1.default.deepEqual(point.contract, { version: 1, id: 'POST /item', source: 'openapi3' });
+    strict_1.default.doesNotThrow(() => JSON.stringify(ctx.apimodel));
     strict_1.default.equal(schema.properties.child, schema);
+    strict_1.default.equal((0, resolved_1.operationFacts)(ctx.def, point)?.requestBody.schema, schema);
 });
-(0, node_test_1.test)('large GraphQL output catalogues do not multiply per-operation contract size', () => {
+(0, node_test_1.test)('resolved GraphQL facts include only argument types', () => {
     const types = {
         Input: { kind: 'INPUT_OBJECT', fields: { nested: { type: 'Input' }, value: { type: 'Choice' } } },
         Choice: { kind: 'ENUM', values: ['A', 'B'] },
     };
     for (let i = 0; i < 2000; i++)
         types['Output' + i] = { kind: 'OBJECT', fields: { related: { type: 'Output' + ((i + 1) % 2000) } } };
-    const selected = (0, contract_1.graphqlInputTypes)({ args: [{ type: 'Input' }] }, types);
+    const facts = (0, resolved_1.operationFacts)({ query: { item: { args: [{ type: 'Input' }] } }, types }, { method: 'POST', orig: 'item' });
+    const selected = facts.types;
     strict_1.default.deepEqual(Object.keys(selected).sort(), ['Choice', 'Input']);
     strict_1.default.equal(selected.Input.fields.nested.type, 'Input');
-    strict_1.default.ok((0, contract_1.contractJSON)(selected).length < 300);
 });
 //# sourceMappingURL=contract.test.js.map

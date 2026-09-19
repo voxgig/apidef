@@ -655,7 +655,6 @@ type GuideRenameParam = {
 };
 type GuidePathOp = {
     live?: Record<string, any>;
-    contract?: Record<string, any>;
     method: string;
     optype?: string;
     why_op: string[];
