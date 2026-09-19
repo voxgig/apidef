@@ -110,7 +110,7 @@ main: kit: entity: &: {
 
       # Every arg kind is one shape plus its own `kind` tag.
       args: {
-        &: [ &: %field-args ]
+        &: [ &: $.main.kit.type.field.args ]
         params?: [ &: {
           kind: 'param'
         }]
@@ -158,14 +158,14 @@ main: kit: flow: &: {
 
 
 
-# The shared element shape, applied to every arg array by the `&:` rule
-# above; each array then adds only its own `kind` tag.
-%field-args = {
-  active: *true
-  kind: string
-  name: string
-  orig?: string
-  reqd: boolean
-  type: top
-  example?: top
-}
+main: kit: type: type({
+  field: args: {
+    active: *true
+    kind: string
+    name: string
+    orig?: string
+    reqd: boolean
+    type: top
+    example?: top
+  }
+})
