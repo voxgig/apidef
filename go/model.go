@@ -65,6 +65,7 @@ type ModelContract struct {
 
 // ModelPoint represents a point implementation of an operation.
 type ModelPoint struct {
+	Live      any              `json:"live,omitempty"`
 	Contract  *ModelContract   `json:"contract,omitempty"`
 	Orig      string           `json:"orig"`
 	Method    MethodName       `json:"method"`

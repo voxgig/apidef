@@ -298,7 +298,8 @@ type GuideRenameParam = {
 }
 
 type GuidePathOp = {
-  live?: Record<string, any>
+  live?: boolean | Record<string, any>
+  contract?: Record<string, any>
   method: string
   // GraphQL root-field ops carry the operation type instead of relying on
   // an HTTP verb (points still synthesize method 'POST').

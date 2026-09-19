@@ -133,7 +133,8 @@ type ModelPathSegment = {
 
 
 type ModelPoint = {
-  contract?: { version: number, id: string, source: string }
+  contract?: { version: 2, id: string, source: string }
+  live?: boolean | Record<string, any>
   orig: string
   kind?: PointKind
   graphql?: ModelGraphql

@@ -18,7 +18,7 @@ const contractTransform = async (ctx) => {
                 }
                 // Identity only; facts come from the capability. See
                 // docs/design/resolved-spec-capability.md
-                point.contract = { version: 1, id: point.method + ' ' + point.orig,
+                point.contract = { version: 2, id: point.method + ' ' + point.orig,
                     source: graphql ? 'graphql' : def.swagger ? 'swagger2' : 'openapi3' };
             }
         }

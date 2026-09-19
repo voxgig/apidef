@@ -73,7 +73,7 @@
           "contract": {
             "id": "POST /pet/{petId}/uploadImage",
             "source": "swagger2",
-            "version": 1
+            "version": 2
           },
           "method": "POST",
           "orig": "/pet/{petId}/uploadImage",
@@ -137,7 +137,7 @@
           "contract": {
             "id": "POST /pet/{petId}",
             "source": "swagger2",
-            "version": 1
+            "version": 2
           },
           "method": "POST",
           "orig": "/pet/{petId}",
@@ -181,7 +181,7 @@
           "contract": {
             "id": "POST /pet",
             "source": "swagger2",
-            "version": 1
+            "version": 2
           },
           "method": "POST",
           "orig": "/pet",
@@ -220,7 +220,7 @@
           "contract": {
             "id": "GET /pet/findByStatus",
             "source": "swagger2",
-            "version": 1
+            "version": 2
           },
           "method": "GET",
           "orig": "/pet/findByStatus",
@@ -258,7 +258,7 @@
           "contract": {
             "id": "GET /pet/findByTags",
             "source": "swagger2",
-            "version": 1
+            "version": 2
           },
           "method": "GET",
           "orig": "/pet/findByTags",
@@ -301,7 +301,7 @@
           "contract": {
             "id": "GET /pet/{petId}",
             "source": "swagger2",
-            "version": 1
+            "version": 2
           },
           "method": "GET",
           "orig": "/pet/{petId}",
@@ -357,7 +357,7 @@
           "contract": {
             "id": "DELETE /pet/{petId}",
             "source": "swagger2",
-            "version": 1
+            "version": 2
           },
           "method": "DELETE",
           "orig": "/pet/{petId}",
@@ -405,7 +405,7 @@
           "contract": {
             "id": "PUT /pet",
             "source": "swagger2",
-            "version": 1
+            "version": 2
           },
           "method": "PUT",
           "orig": "/pet",

@@ -131,11 +131,18 @@ func (a *apiDefInstance) Generate(spec map[string]any) (*ApiDefResult, error) {
 	}
 
 	ctx.Def = def
+	buildctx, _ := spec["buildctx"].(map[string]any)
+	config, _ := spec["config"].(map[string]any)
+	kind, _ := config["kind"].(string)
+	if kind == "" {
+		kind = "openapi3"
+	}
+	ctx.Resolved = PublishResolved(buildctx, kind, def, func() map[string]any { return ctx.Guide })
 	steps = append(steps, "parse")
 
 	// Step: guide
 	if guideBool, ok := ctrlStep["guide"].(bool); !ok || !guideBool {
-		return &ApiDefResult{OK: false, Steps: steps, Start: start, End: time.Now().UnixMilli(), Ctrl: ctrl}, nil
+		return &ApiDefResult{OK: false, Steps: steps, Start: start, End: time.Now().UnixMilli(), Ctrl: ctrl, Ctx: ctx}, nil
 	}
 
 	guideModel, err := BuildGuide(ctx)
@@ -159,7 +166,7 @@ func (a *apiDefInstance) Generate(spec map[string]any) (*ApiDefResult, error) {
 	if transBool, ok := ctrlStep["transformers"].(bool); !ok || !transBool {
 		return &ApiDefResult{
 			OK: true, Steps: steps, Start: start, End: time.Now().UnixMilli(),
-			Ctrl: ctrl, Guide: ctx.Guide, ApiModel: ctx.ApiModel,
+			Ctrl: ctrl, Guide: ctx.Guide, ApiModel: ctx.ApiModel, Ctx: ctx,
 		}, nil
 	}
 
@@ -187,7 +194,7 @@ func (a *apiDefInstance) Generate(spec map[string]any) (*ApiDefResult, error) {
 	if builderBool, ok := ctrlStep["builders"].(bool); !ok || !builderBool {
 		return &ApiDefResult{
 			OK: true, Steps: steps, Start: start, End: time.Now().UnixMilli(),
-			Ctrl: ctrl, Guide: ctx.Guide, ApiModel: ctx.ApiModel,
+			Ctrl: ctrl, Guide: ctx.Guide, ApiModel: ctx.ApiModel, Ctx: ctx,
 		}, nil
 	}
 
@@ -205,7 +212,7 @@ func (a *apiDefInstance) Generate(spec map[string]any) (*ApiDefResult, error) {
 	if genBool, ok := ctrlStep["generate"].(bool); !ok || !genBool {
 		return &ApiDefResult{
 			OK: true, Steps: steps, Start: start, End: time.Now().UnixMilli(),
-			Ctrl: ctrl, Guide: ctx.Guide, ApiModel: ctx.ApiModel,
+			Ctrl: ctrl, Guide: ctx.Guide, ApiModel: ctx.ApiModel, Ctx: ctx,
 		}, nil
 	}
 
@@ -263,9 +270,10 @@ func MakeBuild(opts ApiDefOptions) func(model, build map[string]any) (*ApiDefRes
 		}
 
 		return apidef.Generate(map[string]any{
-			"model": model,
-			"build": build,
-			"ctrl":  ctrl,
+			"model":    model,
+			"build":    build,
+			"buildctx": build,
+			"ctrl":     ctrl,
 		})
 	}
 }

@@ -39,7 +39,7 @@ anything carrying one, so a consumer need not know how it was threaded.
 ## Operation facts
 
 `operationFacts` defines the resolved operation returned by the capability.
-Point contracts contain only `version`, `id`, and `source`. Neither language
+Point contracts use version 2 and contain only `version`, `id`, and `source`. Neither language
 serialises operation facts into the model, and there is no JSON opt-in.
 Docgen reads its documentation facts directly from the OpenAPI specification.
 
@@ -64,8 +64,10 @@ in another repository, and the two would drift.
 
 `invocation` — the query document apidef builds for a GraphQL operation — is a
 property of the point, exposed as `point.graphql`. The guide's live hint is
-copied to `point.live`. Contract-fact guide overrides were only used for the
-serialised copy and have been removed.
+copied to `point.live`. The capability applies contract-fact guide overrides at lookup time and
+records `factSources`, leaving the shared parsed definition untouched. A
+selector identifies the guide entity and operation when several entries
+correct the same method and path.
 
 ## Context lifetime
 
@@ -77,3 +79,14 @@ cross-step state, so it is where this goes.
 `publishResolved` tolerates a missing context: apidef is also driven directly
 by tests and by apidef-validate, where there is no model build and nothing to
 publish to.
+
+
+## Go consumers
+
+`PublishResolved` puts a `ResolvedSpec` on the shared build context, and the
+pipeline also exposes it through `ApiDefResult.Ctx.Resolved`, including early
+returns after parsing. `ResolvedSpecFrom` accepts either carrier. `Operation`
+uses `OperationFacts` for merged parameters, inherited security, media types,
+and GraphQL argument types, then applies the current guide. `OperationIndex`
+indexes the uncorrected specification facts. The capability stays in memory;
+point contracts do not serialise its contents.

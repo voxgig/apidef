@@ -46,7 +46,7 @@
           "contract": {
             "id": "POST /api/planet/{planet_id}/terraform",
             "source": "openapi3",
-            "version": 1
+            "version": 2
           },
           "method": "POST",
           "orig": "/api/planet/{planet_id}/terraform",
@@ -84,7 +84,7 @@
           "contract": {
             "id": "POST /api/planet",
             "source": "openapi3",
-            "version": 1
+            "version": 2
           },
           "method": "POST",
           "orig": "/api/planet",
@@ -110,7 +110,7 @@
           "contract": {
             "id": "GET /api/planet",
             "source": "openapi3",
-            "version": 1
+            "version": 2
           },
           "method": "GET",
           "orig": "/api/planet",
@@ -147,7 +147,7 @@
           "contract": {
             "id": "GET /api/planet/{planet_id}",
             "source": "openapi3",
-            "version": 1
+            "version": 2
           },
           "method": "GET",
           "orig": "/api/planet/{planet_id}",
@@ -197,7 +197,7 @@
           "contract": {
             "id": "DELETE /api/planet/{planet_id}",
             "source": "openapi3",
-            "version": 1
+            "version": 2
           },
           "method": "DELETE",
           "orig": "/api/planet/{planet_id}",
@@ -247,7 +247,7 @@
           "contract": {
             "id": "PUT /api/planet/{planet_id}",
             "source": "openapi3",
-            "version": 1
+            "version": 2
           },
           "method": "PUT",
           "orig": "/api/planet/{planet_id}",

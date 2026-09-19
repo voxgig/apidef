@@ -3,6 +3,8 @@
 import { test, describe } from 'node:test'
 import assert from 'node:assert'
 
+import type { ModelPoint } from '../dist/model'
+
 import { parse } from '../dist/apidef'
 import { contractTransform } from '../dist/transform/contract'
 import { operationFacts, operationIndex, makeResolved, publishResolved, resolvedSpec }
@@ -143,4 +145,25 @@ describe('live-hint-on-point', () => {
     assert.equal(point.live, undefined)
   })
 
+})
+
+
+test('capability reads the current guide after publication', () => {
+  let guide: any = {}
+  const buildctx: any = { state: { apidef: { retained: true } } }
+  const resolved = publishResolved(buildctx, 'openapi3', SPEC, () => guide)
+  guide = { entity: { thing: { path: { '/open': { op: {
+    load: { method: 'GET', contract: { security: [] }, live: false },
+  } } } } } }
+  assert.deepEqual(resolved.operation('GET', '/open')?.security, [])
+  assert.equal(resolved.operation('GET', '/open')?.live, false)
+  assert.equal(buildctx.state.apidef.retained, true)
+  assert.equal(resolvedSpec({ ctx: { resolved } }), resolved)
+})
+
+test('ModelPoint exposes boolean and object live hints', () => {
+  for (const live of [true, false, { input: { n: 2 } }]) {
+    const point: Pick<ModelPoint, 'live'> = { live }
+    assert.deepEqual(JSON.parse(JSON.stringify(point)).live, live)
+  }
 })

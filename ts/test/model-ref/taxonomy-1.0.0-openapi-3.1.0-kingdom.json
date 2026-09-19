@@ -77,7 +77,7 @@
           "contract": {
             "id": "POST /{year}/domain/{id}/kingdom",
             "source": "openapi3",
-            "version": 1
+            "version": 2
           },
           "method": "POST",
           "orig": "/{year}/domain/{id}/kingdom",
@@ -156,7 +156,7 @@
           "contract": {
             "id": "GET /{year}/domain/{id}/kingdom",
             "source": "openapi3",
-            "version": 1
+            "version": 2
           },
           "method": "GET",
           "orig": "/{year}/domain/{id}/kingdom",
@@ -219,7 +219,7 @@
           "contract": {
             "id": "GET /{year}/domain/{domain_id}/kingdom/{kingdom_id}",
             "source": "openapi3",
-            "version": 1
+            "version": 2
           },
           "method": "GET",
           "orig": "/{year}/domain/{domain_id}/kingdom/{kingdom_id}",

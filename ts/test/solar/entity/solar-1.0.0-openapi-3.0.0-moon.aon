@@ -58,7 +58,7 @@ main: kit: entity: moon: {
           contract: {
             id: "POST /api/planet/{planet_id}/moon"
             source: "openapi3"
-            version: 1
+            version: 2
           }
           method: "POST"
           orig: "/api/planet/{planet_id}/moon"
@@ -106,7 +106,7 @@ main: kit: entity: moon: {
           contract: {
             id: "GET /api/planet/{planet_id}/moon"
             source: "openapi3"
-            version: 1
+            version: 2
           }
           method: "GET"
           orig: "/api/planet/{planet_id}/moon"
@@ -161,7 +161,7 @@ main: kit: entity: moon: {
           contract: {
             id: "GET /api/planet/{planet_id}/moon/{moon_id}"
             source: "openapi3"
-            version: 1
+            version: 2
           }
           method: "GET"
           orig: "/api/planet/{planet_id}/moon/{moon_id}"
@@ -225,7 +225,7 @@ main: kit: entity: moon: {
           contract: {
             id: "DELETE /api/planet/{planet_id}/moon/{moon_id}"
             source: "openapi3"
-            version: 1
+            version: 2
           }
           method: "DELETE"
           orig: "/api/planet/{planet_id}/moon/{moon_id}"
@@ -289,7 +289,7 @@ main: kit: entity: moon: {
           contract: {
             id: "PUT /api/planet/{planet_id}/moon/{moon_id}"
             source: "openapi3"
-            version: 1
+            version: 2
           }
           method: "PUT"
           orig: "/api/planet/{planet_id}/moon/{moon_id}"

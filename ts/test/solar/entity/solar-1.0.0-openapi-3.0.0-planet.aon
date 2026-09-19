@@ -54,7 +54,7 @@ main: kit: entity: planet: {
           contract: {
             id: "POST /api/planet/{planet_id}/forbid"
             source: "openapi3"
-            version: 1
+            version: 2
           }
           method: "POST"
           orig: "/api/planet/{planet_id}/forbid"
@@ -103,7 +103,7 @@ main: kit: entity: planet: {
           contract: {
             id: "POST /api/planet/{planet_id}/terraform"
             source: "openapi3"
-            version: 1
+            version: 2
           }
           method: "POST"
           orig: "/api/planet/{planet_id}/terraform"
@@ -141,7 +141,7 @@ main: kit: entity: planet: {
           contract: {
             id: "POST /api/planet"
             source: "openapi3"
-            version: 1
+            version: 2
           }
           method: "POST"
           orig: "/api/planet"
@@ -167,7 +167,7 @@ main: kit: entity: planet: {
           contract: {
             id: "GET /api/planet"
             source: "openapi3"
-            version: 1
+            version: 2
           }
           method: "GET"
           orig: "/api/planet"
@@ -204,7 +204,7 @@ main: kit: entity: planet: {
           contract: {
             id: "GET /api/planet/{planet_id}"
             source: "openapi3"
-            version: 1
+            version: 2
           }
           method: "GET"
           orig: "/api/planet/{planet_id}"
@@ -254,7 +254,7 @@ main: kit: entity: planet: {
           contract: {
             id: "DELETE /api/planet/{planet_id}"
             source: "openapi3"
-            version: 1
+            version: 2
           }
           method: "DELETE"
           orig: "/api/planet/{planet_id}"
@@ -304,7 +304,7 @@ main: kit: entity: planet: {
           contract: {
             id: "PUT /api/planet/{planet_id}"
             source: "openapi3"
-            version: 1
+            version: 2
           }
           method: "PUT"
           orig: "/api/planet/{planet_id}"

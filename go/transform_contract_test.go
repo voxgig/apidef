@@ -59,7 +59,7 @@ func TestContractIdentity(t *testing.T) {
 			if _, err := CleanTransform(ctx); err != nil {
 				t.Fatal(err)
 			}
-			want := map[string]any{"version": 1, "id": tc.method + " " + orig, "source": tc.source}
+			want := map[string]any{"version": 2, "id": tc.method + " " + orig, "source": tc.source}
 			if !reflect.DeepEqual(point["contract"], want) {
 				t.Fatalf("contract: got %v, want %v", point["contract"], want)
 			}

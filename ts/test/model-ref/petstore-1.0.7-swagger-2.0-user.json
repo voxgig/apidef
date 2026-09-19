@@ -68,7 +68,7 @@
           "contract": {
             "id": "POST /user",
             "source": "swagger2",
-            "version": 1
+            "version": 2
           },
           "method": "POST",
           "orig": "/user",
@@ -102,7 +102,7 @@
           "contract": {
             "id": "POST /user/createWithArray",
             "source": "swagger2",
-            "version": 1
+            "version": 2
           },
           "method": "POST",
           "orig": "/user/createWithArray",
@@ -140,7 +140,7 @@
           "contract": {
             "id": "POST /user/createWithList",
             "source": "swagger2",
-            "version": 1
+            "version": 2
           },
           "method": "POST",
           "orig": "/user/createWithList",
@@ -190,7 +190,7 @@
           "contract": {
             "id": "GET /user/login",
             "source": "swagger2",
-            "version": 1
+            "version": 2
           },
           "method": "GET",
           "orig": "/user/login",
@@ -229,7 +229,7 @@
           "contract": {
             "id": "GET /user/{username}",
             "source": "swagger2",
-            "version": 1
+            "version": 2
           },
           "method": "GET",
           "orig": "/user/{username}",
@@ -260,7 +260,7 @@
           "contract": {
             "id": "GET /user/logout",
             "source": "swagger2",
-            "version": 1
+            "version": 2
           },
           "method": "GET",
           "orig": "/user/logout",
@@ -300,7 +300,7 @@
           "contract": {
             "id": "DELETE /user/{username}",
             "source": "swagger2",
-            "version": 1
+            "version": 2
           },
           "method": "DELETE",
           "orig": "/user/{username}",
@@ -356,7 +356,7 @@
           "contract": {
             "id": "PUT /user/{username}",
             "source": "swagger2",
-            "version": 1
+            "version": 2
           },
           "method": "PUT",
           "orig": "/user/{username}",

@@ -190,7 +190,7 @@ function ApiDef(opts) {
                 fs.writeFileSync(defpath + '.full.json', fullsrc);
             }
             ctx.def = def;
-            ctx.resolved = (0, resolved_1.publishResolved)(spec.buildctx, spec.config?.kind ?? "openapi3", def);
+            ctx.resolved = (0, resolved_1.publishResolved)(spec.buildctx, spec.config?.kind ?? "openapi3", def, () => ctx?.guide);
             steps.push('parse');
             // Step: guide (derive).
             if (!ctrl.step.guide) {

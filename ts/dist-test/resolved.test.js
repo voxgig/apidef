@@ -119,4 +119,22 @@ const SPEC = {
         node_assert_1.default.equal(point.live, undefined);
     });
 });
+(0, node_test_1.test)('capability reads the current guide after publication', () => {
+    let guide = {};
+    const buildctx = { state: { apidef: { retained: true } } };
+    const resolved = (0, resolved_1.publishResolved)(buildctx, 'openapi3', SPEC, () => guide);
+    guide = { entity: { thing: { path: { '/open': { op: {
+                            load: { method: 'GET', contract: { security: [] }, live: false },
+                        } } } } } };
+    node_assert_1.default.deepEqual(resolved.operation('GET', '/open')?.security, []);
+    node_assert_1.default.equal(resolved.operation('GET', '/open')?.live, false);
+    node_assert_1.default.equal(buildctx.state.apidef.retained, true);
+    node_assert_1.default.equal((0, resolved_1.resolvedSpec)({ ctx: { resolved } }), resolved);
+});
+(0, node_test_1.test)('ModelPoint exposes boolean and object live hints', () => {
+    for (const live of [true, false, { input: { n: 2 } }]) {
+        const point = { live };
+        node_assert_1.default.deepEqual(JSON.parse(JSON.stringify(point)).live, live);
+    }
+});
 //# sourceMappingURL=resolved.test.js.map

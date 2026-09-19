@@ -60,7 +60,7 @@
           "contract": {
             "id": "POST /store/order",
             "source": "swagger2",
-            "version": 1
+            "version": 2
           },
           "method": "POST",
           "orig": "/store/order",
@@ -102,7 +102,7 @@
           "contract": {
             "id": "GET /store/order/{orderId}",
             "source": "swagger2",
-            "version": 1
+            "version": 2
           },
           "method": "GET",
           "orig": "/store/order/{orderId}",

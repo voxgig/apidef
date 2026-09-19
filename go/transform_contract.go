@@ -46,7 +46,7 @@ func ContractTransform(ctx *ApiDefContext) (*TransformResult, error) {
 				if graphql != nil {
 					source = "graphql"
 				}
-				point["contract"] = map[string]any{"version": 1, "id": verb + " " + orig, "source": source}
+				point["contract"] = map[string]any{"version": 2, "id": verb + " " + orig, "source": source}
 			}
 		}
 	}

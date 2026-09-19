@@ -16,7 +16,7 @@ for (const method of ['POST', 'QUERY']) test('point contract contains only ident
   } }
   await contractTransform(ctx); await cleanTransform(ctx)
   const contract = ctx.apimodel.main.kit.entity.item.op.create.points[0].contract
-  assert.deepEqual(contract, { version: 1, id: method + ' /operation', source: 'openapi3' })
+  assert.deepEqual(contract, { version: 2, id: method + ' /operation', source: 'openapi3' })
 
   const facts: any = operationFacts(ctx.def, point)
   assert.deepEqual(facts.security, []); assert.deepEqual(facts.requestBody.content['application/json'].example, {})
@@ -38,7 +38,7 @@ test('GraphQL query and mutation argument facts survive without HTTP assumptions
     const point: any = { method: 'POST', orig: 'item', graphql: { doc: root + ' { item }' } }
     const ctx: any = { apimodel: { main: { kit: { entity: { item: { name: 'item', op: { load: { name: 'load', points: [point] } } } } } } }, def: { [root]: { item: { args: [{ name:'input', reqd:true, type:'Input' }] } }, types: { Input: { kind:'INPUT_OBJECT', fields: { count: { type:'Int' } } } } } }
     await contractTransform(ctx)
-    assert.deepEqual(point.contract, { version: 1, id: 'POST item', source: 'graphql' })
+    assert.deepEqual(point.contract, { version: 2, id: 'POST item', source: 'graphql' })
     assert.equal(point.graphql.doc, root + ' { item }')
     const facts: any = operationFacts(ctx.def, point)
     assert.equal(facts.protocol, 'graphql'); assert.equal(facts.field.args[0].type, 'Input'); assert.equal(facts.types.Input.fields.count.type, 'Int')
@@ -58,7 +58,7 @@ test('recursive schemas stay in the definition and the model remains serialisabl
   }
   await contractTransform(ctx)
   await cleanTransform(ctx)
-  assert.deepEqual(point.contract, { version: 1, id: 'POST /item', source: 'openapi3' })
+  assert.deepEqual(point.contract, { version: 2, id: 'POST /item', source: 'openapi3' })
   assert.doesNotThrow(() => JSON.stringify(ctx.apimodel))
   assert.equal(schema.properties.child, schema)
   assert.equal(operationFacts(ctx.def, point)?.requestBody.schema, schema)

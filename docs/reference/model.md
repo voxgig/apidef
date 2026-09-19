@@ -172,9 +172,11 @@ flow: BasicPlanetFlow: {
 
 ## Operation contracts
 
-Each operation point can carry `contract: { version: 1, id, source }`.
+Each operation point can carry `contract: { version: 2, id, source }`.
 The identifier is the method and original path; `source` is `openapi3`,
-`swagger2`, or `graphql`. Consumers should reject unknown contract versions.
+`swagger2`, or `graphql`. Version 2 identifies the shape without a JSON
+payload; version 1 consumers must migrate. Consumers should reject unknown
+contract versions.
 
 Contracts contain identity only. Request and response schemas, parameters,
 and security details come from the API specification. JSON contract payloads
@@ -184,8 +186,22 @@ Docgen reads this information directly from the OpenAPI specification.
 An operation's `live` guide entry is copied to `point.live`. It provides
 input recipes and semantic bindings that the definition cannot express.
 GraphQL invocations remain on `point.graphql`, and entity fields remain
-available independently. The `contract` guide entry for overriding JSON
-contract facts has been removed.
+available independently. The `contract` guide entry can replace request,
+response, parameter, or security facts through the resolved capability. It does not add facts to
+the point contract.
+
+In TypeScript, `resolvedSpec(result)` or `resolvedSpec(buildctx)` returns the
+capability. Call `operation(method, path)` to read merged specification facts
+with guide corrections and `factSources` attribution. The Go equivalents are
+`ResolvedSpecFrom(result)` and `ResolvedSpec.Operation(method, path)`; the
+latter returns facts and an error. Both use the parsed definition and read the
+current guide. The capability version remains 1, independently of the point
+contract version.
+
+If multiple guide operations correct the same method and path, supply an
+entity and operation selector: `{ entity: "item", op: "load" }` in TypeScript,
+or `OperationSelector{Entity: "item", Op: "load"}` in Go. An ambiguous lookup
+without a selector fails instead of choosing one correction.
 
 See [the contract tests](../../ts/test/contract.test.ts) for identity-only
 output and recursive-schema coverage.

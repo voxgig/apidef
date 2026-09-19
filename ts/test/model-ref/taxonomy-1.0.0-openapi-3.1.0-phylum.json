@@ -91,7 +91,7 @@
           "contract": {
             "id": "GET /{year}/domain/{domain}/kingdom/{kid}/phylum/{itemid}",
             "source": "openapi3",
-            "version": 1
+            "version": 2
           },
           "method": "GET",
           "orig": "/{year}/domain/{domain}/kingdom/{kid}/phylum/{itemid}",

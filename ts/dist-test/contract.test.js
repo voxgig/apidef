@@ -22,7 +22,7 @@ for (const method of ['POST', 'QUERY'])
         await (0, contract_1.contractTransform)(ctx);
         await (0, clean_1.cleanTransform)(ctx);
         const contract = ctx.apimodel.main.kit.entity.item.op.create.points[0].contract;
-        strict_1.default.deepEqual(contract, { version: 1, id: method + ' /operation', source: 'openapi3' });
+        strict_1.default.deepEqual(contract, { version: 2, id: method + ' /operation', source: 'openapi3' });
         const facts = (0, resolved_1.operationFacts)(ctx.def, point);
         strict_1.default.deepEqual(facts.security, []);
         strict_1.default.deepEqual(facts.requestBody.content['application/json'].example, {});
@@ -48,7 +48,7 @@ for (const method of ['POST', 'QUERY'])
         const point = { method: 'POST', orig: 'item', graphql: { doc: root + ' { item }' } };
         const ctx = { apimodel: { main: { kit: { entity: { item: { name: 'item', op: { load: { name: 'load', points: [point] } } } } } } }, def: { [root]: { item: { args: [{ name: 'input', reqd: true, type: 'Input' }] } }, types: { Input: { kind: 'INPUT_OBJECT', fields: { count: { type: 'Int' } } } } } };
         await (0, contract_1.contractTransform)(ctx);
-        strict_1.default.deepEqual(point.contract, { version: 1, id: 'POST item', source: 'graphql' });
+        strict_1.default.deepEqual(point.contract, { version: 2, id: 'POST item', source: 'graphql' });
         strict_1.default.equal(point.graphql.doc, root + ' { item }');
         const facts = (0, resolved_1.operationFacts)(ctx.def, point);
         strict_1.default.equal(facts.protocol, 'graphql');
@@ -69,7 +69,7 @@ for (const method of ['POST', 'QUERY'])
     };
     await (0, contract_1.contractTransform)(ctx);
     await (0, clean_1.cleanTransform)(ctx);
-    strict_1.default.deepEqual(point.contract, { version: 1, id: 'POST /item', source: 'openapi3' });
+    strict_1.default.deepEqual(point.contract, { version: 2, id: 'POST /item', source: 'openapi3' });
     strict_1.default.doesNotThrow(() => JSON.stringify(ctx.apimodel));
     strict_1.default.equal(schema.properties.child, schema);
     strict_1.default.equal((0, resolved_1.operationFacts)(ctx.def, point)?.requestBody.schema, schema);

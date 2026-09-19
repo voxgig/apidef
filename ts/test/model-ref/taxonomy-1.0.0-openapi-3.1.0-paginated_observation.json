@@ -76,7 +76,7 @@
           "contract": {
             "id": "GET /{year}/observation",
             "source": "openapi3",
-            "version": 1
+            "version": 2
           },
           "method": "GET",
           "orig": "/{year}/observation",

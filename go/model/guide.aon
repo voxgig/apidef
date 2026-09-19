@@ -28,7 +28,8 @@ guide: entity: &: {
 
      op: &: {
        # Declarative live input recipes and output/credential bindings.
-       live?: {}
+       live?: boolean | {}
+       contract?: {}
        active?: boolean
        method: string
 
@@ -50,6 +51,8 @@ guide: entity: &: {
     }
 
     op: &: {
+      live?: boolean | {}
+      contract?: {}
       active?: boolean
       method?: string
       optype?: string

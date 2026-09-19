@@ -11,6 +11,10 @@ single most important rule:
 
 The npm package lives in `ts/` (it is the package root); run `npm` there.
 `go/` is the parallel Go project. `make all` from the repo root drives both.
+Run `cd ts && npm ci --ignore-scripts=false` to install development dependencies, including the
+pinned Vale binary. `make scan-prose` uses that binary and fails if it is
+missing. CI reads the Vale version from `ts/package.json`.
+Use `cd ts && npm run prose` to run the prose checks through npm.
 
 ```sh
 # TypeScript: build (-> ts/dist, ts/dist-test) and test

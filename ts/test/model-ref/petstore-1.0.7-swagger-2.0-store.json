@@ -8,7 +8,7 @@
           "contract": {
             "id": "GET /store/inventory",
             "source": "swagger2",
-            "version": 1
+            "version": 2
           },
           "method": "GET",
           "orig": "/store/inventory",
@@ -48,7 +48,7 @@
           "contract": {
             "id": "DELETE /store/order/{orderId}",
             "source": "swagger2",
-            "version": 1
+            "version": 2
           },
           "method": "DELETE",
           "orig": "/store/order/{orderId}",

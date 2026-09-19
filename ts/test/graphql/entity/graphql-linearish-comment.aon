@@ -41,7 +41,7 @@ main: kit: entity: comment: {
           contract: {
             id: "POST commentCreate"
             source: "graphql"
-            version: 1
+            version: 2
           }
           graphql: {
             doc: "mutation CommentCreate($input: CommentCreateInput!) { commentCreate(input: $input) { comment { ...CommentFields } success } } fragment CommentFields on Comment { body createdAt id issue { id } }"
@@ -83,7 +83,7 @@ main: kit: entity: comment: {
           contract: {
             id: "POST commentDelete"
             source: "graphql"
-            version: 1
+            version: 2
           }
           graphql: {
             doc: "mutation CommentRemove($id: String!) { commentDelete(id: $id) { entityId success } }"

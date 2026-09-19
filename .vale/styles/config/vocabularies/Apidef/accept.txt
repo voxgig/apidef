@@ -70,3 +70,5 @@ GitLab(?:'s)?
 # dictionary has neither, and both are the standard terms.
 [Aa]llowlist
 [Dd]enylist
+
+Docgen

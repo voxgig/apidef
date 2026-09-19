@@ -83,7 +83,7 @@
           "contract": {
             "id": "POST /{year}/domain/{did}/revoke",
             "source": "openapi3",
-            "version": 1
+            "version": 2
           },
           "method": "POST",
           "orig": "/{year}/domain/{did}/revoke",
@@ -156,7 +156,7 @@
           "contract": {
             "id": "GET /{year}/domain",
             "source": "openapi3",
-            "version": 1
+            "version": 2
           },
           "method": "GET",
           "orig": "/{year}/domain",
@@ -207,7 +207,7 @@
           "contract": {
             "id": "GET /{year}/domain/{id}",
             "source": "openapi3",
-            "version": 1
+            "version": 2
           },
           "method": "GET",
           "orig": "/{year}/domain/{id}",
@@ -260,7 +260,7 @@
           "contract": {
             "id": "PATCH /{year}/domain/{id}",
             "source": "openapi3",
-            "version": 1
+            "version": 2
           },
           "method": "PATCH",
           "orig": "/{year}/domain/{id}",

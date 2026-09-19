@@ -34,6 +34,8 @@ import {
   inferTypeFromValue,
 } from '../dist/transform/field'
 
+import { makeResolved } from '../dist/resolved'
+
 import { snakify, camelify, kebabify } from 'jostraca'
 
 import { classifyGraphQLField } from '../dist/guide/graphql01'
@@ -625,4 +627,19 @@ describe('spec-secured-by-default', () => {
   test('null def', () => {
     assert.strictEqual(specSecuredByDefault(null), false)
   })
+})
+
+
+describe('tsv-resolved', () => {
+  for (const row of loadTsv('resolved')) {
+    test(row.name, () => {
+      const def = JSON.parse(row.def)
+      const guide = JSON.parse(row.guide)
+      const resolved = makeResolved('openapi3', def, () => guide)
+      const read = () => resolved.operation(row.method, row.path, JSON.parse(row.selector) || undefined)
+      if (row.error) assert.throws(read, new RegExp(row.error))
+      else assert.deepStrictEqual(JSON.parse(JSON.stringify(read() ?? null)), JSON.parse(row.expected))
+      assert.equal(JSON.stringify(def), row.def)
+    })
+  }
 })
