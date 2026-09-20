@@ -1,41 +1,47 @@
 {
-  "fields": [
-    {
-      "name": "complete",
-      "req": false,
-      "type": "`$BOOLEAN`"
+  "fields": {
+    "complete": {
+      "h": "Complete",
+      "n": "complete",
+      "r": false,
+      "t": "`$BOOLEAN`"
     },
-    {
-      "format": "int64",
-      "name": "id",
-      "req": false,
-      "type": "`$INTEGER`"
+    "id": {
+      "fo": "int64",
+      "h": "Id",
+      "n": "id",
+      "r": false,
+      "t": "`$INTEGER`"
     },
-    {
-      "format": "int64",
-      "name": "petId",
-      "req": false,
-      "type": "`$INTEGER`"
+    "petId": {
+      "fo": "int64",
+      "h": "Pet Id",
+      "n": "petId",
+      "r": false,
+      "t": "`$INTEGER`"
     },
-    {
-      "format": "int32",
-      "name": "quantity",
-      "req": false,
-      "type": "`$INTEGER`"
+    "quantity": {
+      "fo": "int32",
+      "h": "Quantity",
+      "n": "quantity",
+      "r": false,
+      "t": "`$INTEGER`"
     },
-    {
-      "format": "date-time",
-      "name": "shipDate",
-      "req": false,
-      "type": "`$STRING`"
+    "shipDate": {
+      "fo": "date-time",
+      "h": "Ship Date",
+      "n": "shipDate",
+      "r": false,
+      "t": "`$STRING`"
     },
-    {
-      "name": "status",
-      "req": false,
-      "short": "Order Status",
-      "type": "`$STRING`"
+    "status": {
+      "h": "Status",
+      "n": "status",
+      "r": false,
+      "sh": "Order Status",
+      "t": "`$STRING`"
     }
-  ],
+  },
   "id": {
     "field": "id",
     "name": "id"

@@ -338,31 +338,31 @@ describe('apidef', () => {
 
     // Planet schema has required: [id, name, kind, diameter]
     const planetFields: Record<string, any> = {}
-    for (const f of planet.fields) { planetFields[f.name] = f }
-    assert.strictEqual(planetFields.id.req, true)
-    assert.strictEqual(planetFields.name.req, true)
-    assert.strictEqual(planetFields.kind.req, true)
-    assert.strictEqual(planetFields.diameter.req, true)
+    for (const f of Object.values(planet.fields) as any[]) { planetFields[f.n] = f }
+    assert.strictEqual(planetFields.id.r, true)
+    assert.strictEqual(planetFields.name.r, true)
+    assert.strictEqual(planetFields.kind.r, true)
+    assert.strictEqual(planetFields.diameter.r, true)
 
     // A property's `description` becomes the field's `short`. Every generated
     // per-entity table has a Description column, and every cell was blank
     // because nothing read this. Only Planet.diameter carries one in the
     // fixture, which is the point: the fields WITHOUT a description must not
     // acquire an invented one.
-    assert.strictEqual(planetFields.diameter.short,
+    assert.strictEqual(planetFields.diameter.sh,
       'Mean equatorial diameter in kilometres.')
-    assert.strictEqual(planetFields.id.short, undefined)
-    assert.strictEqual(planetFields.name.short, undefined)
-    assert.strictEqual(planetFields.kind.short, undefined)
+    assert.strictEqual(planetFields.id.sh, undefined)
+    assert.strictEqual(planetFields.name.sh, undefined)
+    assert.strictEqual(planetFields.kind.sh, undefined)
 
     // Moon schema has required: [id, name, planet_id, kind, diameter]
     const moonFields: Record<string, any> = {}
-    for (const f of moon.fields) { moonFields[f.name] = f }
-    assert.strictEqual(moonFields.id.req, true)
-    assert.strictEqual(moonFields.name.req, true)
-    assert.strictEqual(moonFields.planet_id.req, true)
-    assert.strictEqual(moonFields.kind.req, true)
-    assert.strictEqual(moonFields.diameter.req, true)
+    for (const f of Object.values(moon.fields) as any[]) { moonFields[f.n] = f }
+    assert.strictEqual(moonFields.id.r, true)
+    assert.strictEqual(moonFields.name.r, true)
+    assert.strictEqual(moonFields.planet_id.r, true)
+    assert.strictEqual(moonFields.kind.r, true)
+    assert.strictEqual(moonFields.diameter.r, true)
   })
 
 
@@ -420,7 +420,7 @@ describe('apidef', () => {
     assert.strictEqual(book.op.list.points[0].method, 'QUERY')
 
     // The Book response schema supplies the entity fields...
-    const fieldNames = book.fields.map((f: any) => f.name).sort()
+    const fieldNames = Object.keys(book.fields).sort()
     assert.deepStrictEqual(fieldNames, ['author', 'id', 'title'])
 
     // ...and the QUERY filter body (BookQuery: q, page) must NOT leak into them.
@@ -642,33 +642,33 @@ const SOLAR_MODEL = {
       entity: {
         moon: {
           alias: { field: {} },
-          fields: [
-            {
-              name: 'diameter',
-              req: false,
-              type: '`$NUMBER`',
-              active: true
+          fields: {
+            diameter: {
+              n: 'diameter', h: 'Diameter',
+              r: false,
+              t: '`$NUMBER`',
+              a: true
             },
-            { name: 'id', req: false, type: '`$STRING`', active: true },
-            {
-              name: 'kind',
-              req: false,
-              type: '`$STRING`',
-              active: true
+            id: { n: 'id', h: 'Id', r: false, t: '`$STRING`', a: true },
+            kind: {
+              n: 'kind', h: 'Kind',
+              r: false,
+              t: '`$STRING`',
+              a: true
             },
-            {
-              name: 'name',
-              req: false,
-              type: '`$STRING`',
-              active: true
+            name: {
+              n: 'name', h: 'Name',
+              r: false,
+              t: '`$STRING`',
+              a: true
             },
-            {
-              name: 'planet_id',
-              req: false,
-              type: '`$STRING`',
-              active: true
+            planet_id: {
+              n: 'planet_id', h: 'Planet Id',
+              r: false,
+              t: '`$STRING`',
+              a: true
             }
-          ],
+          },
           id: { field: 'id', name: 'id' },
           name: 'moon',
           op: {
@@ -833,63 +833,63 @@ const SOLAR_MODEL = {
         },
         planet: {
           alias: { field: {} },
-          fields: [
-            {
-              name: 'diameter',
-              req: false,
-              type: '`$NUMBER`',
-              active: true
+          fields: {
+            diameter: {
+              n: 'diameter', h: 'Diameter',
+              r: false,
+              t: '`$NUMBER`',
+              a: true
             },
-            {
-              name: 'forbid',
-              req: false,
-              type: '`$BOOLEAN`',
-              active: true
+            forbid: {
+              n: 'forbid', h: 'Forbid',
+              r: false,
+              t: '`$BOOLEAN`',
+              a: true
             },
-            { name: 'id', req: false, type: '`$STRING`', active: true },
-            {
-              name: 'kind',
-              req: false,
-              type: '`$STRING`',
-              active: true
+            id: { n: 'id', h: 'Id', r: false, t: '`$STRING`', a: true },
+            kind: {
+              n: 'kind', h: 'Kind',
+              r: false,
+              t: '`$STRING`',
+              a: true
             },
-            {
-              name: 'name',
-              req: false,
-              type: '`$STRING`',
-              active: true
+            name: {
+              n: 'name', h: 'Name',
+              r: false,
+              t: '`$STRING`',
+              a: true
             },
-            {
-              name: 'ok',
-              req: false,
-              type: '`$BOOLEAN`',
-              active: true
+            ok: {
+              n: 'ok', h: 'Ok',
+              r: false,
+              t: '`$BOOLEAN`',
+              a: true
             },
-            {
-              name: 'start',
-              req: false,
-              type: '`$BOOLEAN`',
-              active: true
+            start: {
+              n: 'start', h: 'Start',
+              r: false,
+              t: '`$BOOLEAN`',
+              a: true
             },
-            {
-              name: 'state',
-              req: false,
-              type: '`$STRING`',
-              active: true
+            state: {
+              n: 'state', h: 'State',
+              r: false,
+              t: '`$STRING`',
+              a: true
             },
-            {
-              name: 'stop',
-              req: false,
-              type: '`$BOOLEAN`',
-              active: true
+            stop: {
+              n: 'stop', h: 'Stop',
+              r: false,
+              t: '`$BOOLEAN`',
+              a: true
             },
-            {
-              name: 'why',
-              req: false,
-              type: '`$STRING`',
-              active: true
+            why: {
+              n: 'why', h: 'Why',
+              r: false,
+              t: '`$STRING`',
+              a: true
             }
-          ],
+          },
           id: { field: 'id', name: 'id' },
           name: 'planet',
           op: {

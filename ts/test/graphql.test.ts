@@ -105,7 +105,7 @@ describe('graphql', () => {
     assert.equal(bres.ok, true)
 
     const issue = bres.apimodel.main.kit.entity.issue
-    const names = issue.fields.map((f: any) => f.name)
+    const names = Object.keys(issue.fields)
 
     assert.deepStrictEqual(names, [
       'archivedAt', 'createdAt', 'id', 'identifier', 'priority',

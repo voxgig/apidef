@@ -142,7 +142,7 @@ for (const name of Object.keys(entities)) {
   const e = entities[name]
   console.log(`\nentity ${name}`)
   console.log('  ops:   ', Object.keys(e.op).filter(o => e.op[o]))
-  console.log('  fields:', e.fields.map(f => `${f.name}${f.req ? '*' : ''}:${f.type}`))
+  console.log('  fields:', Object.values(e.fields).map(f => `${f.n}${f.r ? '*' : ''}:${f.t}`))
 }
 ```
 

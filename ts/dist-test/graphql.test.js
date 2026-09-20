@@ -108,7 +108,7 @@ async function buildGraphql(step) {
         const bres = await buildGraphql({ generate: false });
         node_assert_1.default.equal(bres.ok, true);
         const issue = bres.apimodel.main.kit.entity.issue;
-        const names = issue.fields.map((f) => f.name);
+        const names = Object.keys(issue.fields);
         node_assert_1.default.deepStrictEqual(names, [
             'archivedAt', 'createdAt', 'id', 'identifier', 'priority',
             'team', 'title',

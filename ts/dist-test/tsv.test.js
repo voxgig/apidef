@@ -547,4 +547,11 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-human-title', () => {
+    for (const row of loadTsv('human-title')) {
+        (0, node_test_1.test)(row.input || 'empty', () => {
+            node_assert_1.default.strictEqual((0, utility_1.humanTitle)(row.input), row.expected);
+        });
+    }
+});
 //# sourceMappingURL=tsv.test.js.map

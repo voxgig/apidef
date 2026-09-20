@@ -40,7 +40,7 @@ const result = await build(
 
 const entities = result.apimodel.main.kit.entity
 // entities.pet.op -> { load, list, create, update, remove }
-// entities.pet.fields -> [ { name:'id', type:'`$STRING`', req:true }, … ]
+// entities.pet.fields -> { id: { n:'id', h:'Id', t:'`$STRING`', r:true }, … }
 ```
 
 A full walk-through is in [the getting-started tutorial](./docs/tutorial/getting-started.md).

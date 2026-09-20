@@ -1068,6 +1068,12 @@ function inferFieldType(name: string, specType: string): string {
 }
 
 
+function humanTitle(name: string): string {
+  return snakify(name).split('_').filter(Boolean)
+    .map(word => word[0].toUpperCase() + word.slice(1)).join(' ')
+}
+
+
 function normalizeFieldName(s: string): string {
   if (null == s || '' === s) return ''
   return s
@@ -1738,6 +1744,7 @@ export {
   ensureMinEntityName,
   inferFieldType,
   normalizeFieldName,
+  humanTitle,
   prefixLeadingDigit,
   debugpath,
   debugpathOn,

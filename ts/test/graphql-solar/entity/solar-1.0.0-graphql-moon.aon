@@ -4,33 +4,38 @@ main: kit: entity: moon: {
 
   alias: field: {}
 
-  fields: [
-    {
-      name: "diameter"
-      req: true
-      type: "`$NUMBER`"
+  fields: {
+    diameter: {
+      h: "Diameter"
+      n: "diameter"
+      r: true
+      t: "`$NUMBER`"
     }
-    {
-      name: "id"
-      req: true
-      type: "`$STRING`"
+    id: {
+      h: "Id"
+      n: "id"
+      r: true
+      t: "`$STRING`"
     }
-    {
-      name: "kind"
-      req: true
-      type: "`$STRING`"
+    kind: {
+      h: "Kind"
+      n: "kind"
+      r: true
+      t: "`$STRING`"
     }
-    {
-      name: "name"
-      req: true
-      type: "`$STRING`"
+    name: {
+      h: "Name"
+      n: "name"
+      r: true
+      t: "`$STRING`"
     }
-    {
-      name: "planet"
-      req: false
-      type: "`$OBJECT`"
+    planet: {
+      h: "Planet"
+      n: "planet"
+      r: false
+      t: "`$OBJECT`"
     }
-  ]
+  }
 
   id: {
     field: "id"

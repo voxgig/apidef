@@ -703,3 +703,13 @@ func TestTsvResolved(t *testing.T) {
 		})
 	}
 }
+
+func TestTsvHumanTitle(t *testing.T) {
+	for _, row := range loadTsv(t, "human-title") {
+		t.Run(row["input"], func(t *testing.T) {
+			if got := HumanTitle(row["input"]); got != row["expected"] {
+				t.Errorf("HumanTitle(%q) = %q, want %q", row["input"], got, row["expected"])
+			}
+		})
+	}
+}

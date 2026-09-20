@@ -226,8 +226,8 @@ func TestValidateModelData(t *testing.T) {
 
 			for _, entName := range entNames {
 				ent := entities[entName]
-				// Strip "active" keys for comparison (Go-only field)
-				clean := stripKeys(ent, "active")
+				// Activation defaults are materialized only by Go.
+				clean := stripEntityDefaults(ent)
 				// Sort map keys deterministically for stable JSON output
 				clean = sortMapKeys(clean)
 
@@ -406,11 +406,11 @@ func structuralEqual(a, b interface{}) bool {
 }
 
 func fieldNames(ent map[string]interface{}) []string {
-	fields, _ := ent["fields"].([]interface{})
+	fields, _ := ent["fields"].(map[string]any)
 	names := make([]string, 0, len(fields))
 	for _, f := range fields {
 		fm, _ := f.(map[string]interface{})
-		if name, ok := fm["name"].(string); ok {
+		if name, ok := fm["n"].(string); ok {
 			names = append(names, name)
 		}
 	}
@@ -438,7 +438,7 @@ func countFields(val interface{}) int {
 	if !ok {
 		return 0
 	}
-	fields, _ := m["fields"].([]interface{})
+	fields, _ := m["fields"].(map[string]any)
 	return len(fields)
 }
 
@@ -520,24 +520,14 @@ func TestValidateModel(t *testing.T) {
 						continue
 					}
 
-					fields, _ := entMap["fields"].([]any)
-					if fields == nil {
-						// Try map-style fields
-						if fm, ok := entMap["fields"].(map[string]any); ok {
-							fields = make([]any, 0, len(fm))
-							for _, v := range fm {
-								fields = append(fields, v)
-							}
-						}
-					}
+					fields, _ := entMap["fields"].(map[string]any)
 
 					refFile := filepath.Join(refModelDir, cn+"-"+entName+".aon")
 					if _, err := os.Stat(refFile); err == nil {
 						refData, _ := os.ReadFile(refFile)
 						refStr := string(refData)
 
-						// Count fields: each field entry in the fields: [] block
-						// starts with "    {" (4-space indent inside the array).
+						// Count immediate entries in the fields map.
 						refFieldCount := 0
 						inFields := false
 						for _, line := range strings.Split(refStr, "\n") {
@@ -545,11 +535,11 @@ func TestValidateModel(t *testing.T) {
 								inFields = true
 								continue
 							}
-							if inFields && line == "  ]" {
+							if inFields && line == "  }" {
 								inFields = false
 								continue
 							}
-							if inFields && strings.HasPrefix(line, "    {") {
+							if inFields && strings.HasPrefix(line, "    ") && !strings.HasPrefix(line, "     ") && strings.HasSuffix(line, ": {") {
 								refFieldCount++
 							}
 						}

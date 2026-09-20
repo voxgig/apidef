@@ -16,7 +16,7 @@ function seg(...parts: string[]) {
 function entity(name: string, path: string[], fields: any[] = [], guide?: any) {
   const ent: any = {
     name,
-    fields,
+    fields: Object.fromEntries(fields.map(f => [f.n, f])),
     op: {
       load: {
         points: [{
@@ -57,7 +57,7 @@ async function run(
 async function runPoints(name: string, paths: string[][], model?: any) {
   const ent: any = {
     name,
-    fields: [],
+    fields: {},
     op: {
       load: {
         points: paths.map((path: string[]) => ({
@@ -191,30 +191,32 @@ describe('composite-identity', () => {
   // all — and an explicit guide correction was silently ignored.
   test('a composite entity with no id field still gets one', async () => {
     const ent = await run('repo', ['repos', '{owner}', '{repo}'],
-      [{ name: 'name', type: '`$STRING`', req: true }])
+      [{ n: 'name', t: '`$STRING`', r: true }])
 
     assert.deepStrictEqual(ent.id.parts, ['owner', 'repo'])
-    const idf = ent.fields.find((f: any) => 'id' === f.name)
-    assert.equal(idf.type, '`$STRING`')
+    const idf = ent.fields.id
+    assert.equal(idf.t, '`$STRING`')
   })
 
 
   test('the API id moves aside rather than being rewritten', async () => {
     const ent = await run('repo', ['repos', '{owner}', '{repo}'], [
       {
-        name: 'id', type: '`$INTEGER`', req: true, format: 'int64',
+        n: 'id', t: '`$INTEGER`', r: true, fo: 'int64',
         op: { list: { req: true, type: '`$INTEGER`' } },
       },
     ], undefined, { name: 'github' })
 
-    const idf = ent.fields.find((f: any) => 'id' === f.name)
-    assert.equal(idf.type, '`$STRING`')
-    assert.equal(idf.format, undefined)
+    const idf = ent.fields.id
+    assert.equal(idf.t, '`$STRING`')
+    assert.equal(idf.fo, undefined)
     assert.equal(idf.op.list.type, undefined)
 
-    const kept = ent.fields.find((f: any) => 'github_id' === f.name)
-    assert.equal(kept.type, '`$INTEGER`')
-    assert.equal(kept.format, 'int64')
+    const kept = ent.fields.github_id
+    assert.equal(kept.t, '`$INTEGER`')
+    assert.equal(kept.h, 'Github Id')
+    assert.equal(idf.h, 'Id')
+    assert.equal(kept.fo, 'int64')
     // AND the per-op metadata, which a shallow copy silently lost: the
     // deletions that clean up `id` ran over a shared `op` object, so the
     // preserved field kept nothing for the one key it exists to keep.
@@ -230,7 +232,7 @@ describe('composite-identity', () => {
     ) {
       const ent: any = {
         name,
-        fields: [],
+        fields: {},
         op: {
           load: {
             points: [{
@@ -331,7 +333,7 @@ describe('composite-identity', () => {
         { entity: { artifact: { id: { composite: false } } } })
 
       assert.equal(ent.id.field, 'id')
-      assert.ok(ent.fields.some((f: any) => 'id' === f.name))
+      assert.ok(Object.prototype.hasOwnProperty.call(ent.fields, 'id'))
     })
 
 

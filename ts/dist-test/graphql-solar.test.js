@@ -99,7 +99,7 @@ async function buildRest() {
         for (const name of ['moon', 'planet']) {
             node_assert_1.default.deepStrictEqual(Object.keys(ents[name].op).sort(), ['create', 'list', 'load', 'remove', 'update'], name + ' ops');
         }
-        node_assert_1.default.deepStrictEqual(ents.planet.fields.map((f) => f.name), ['diameter', 'id', 'kind', 'name']);
+        node_assert_1.default.deepStrictEqual(Object.keys(ents.planet.fields), ['diameter', 'id', 'kind', 'name']);
     });
     (0, node_test_1.test)('rest-graphql-correspondence', async () => {
         const [gres, rres] = await Promise.all([

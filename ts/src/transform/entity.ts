@@ -59,7 +59,7 @@ const entityTransform: Transform = async function(
     const modelent: ModelEntity = {
       name: entname,
       op: {},
-      fields: [],
+      fields: {},
       relations,
     }
 

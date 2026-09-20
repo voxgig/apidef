@@ -12,7 +12,7 @@ function runFieldTransform(entity, def) {
     return (0, field_1.fieldTransform)({ apimodel, def }).then(() => entity.fields);
 }
 function names(fields) {
-    return fields.map((f) => f.name).sort();
+    return Object.keys(fields).sort();
 }
 function planetWithActions() {
     const planet = {
@@ -36,7 +36,7 @@ function planetWithActions() {
     return {
         entity: {
             name: 'planet',
-            fields: [],
+            fields: {},
             op: {
                 load: {
                     name: 'load',
@@ -135,7 +135,7 @@ function installmentByAction(withBody = false) {
     return {
         entity: {
             name: 'installment',
-            fields: [],
+            fields: {},
             op: {
                 list: {
                     name: 'list',
@@ -160,7 +160,7 @@ function commitByMutation() {
     return {
         entity: {
             name: 'commit',
-            fields: [],
+            fields: {},
             op: {
                 create: {
                     name: 'create',
@@ -213,7 +213,7 @@ function commitByMutation() {
         delete entity.op.load;
         const fields = await runFieldTransform(entity, def);
         node_assert_1.default.deepStrictEqual(names(fields), ['diameter', 'id', 'kind', 'name']);
-        node_assert_1.default.strictEqual(fields.find((f) => 'name' === f.name)?.req, true, 'requiredness comes from the plain create body, which is still read');
+        node_assert_1.default.strictEqual(fields.name?.r, true, 'requiredness comes from the plain create body, which is still read');
     });
     (0, node_test_1.test)('an entity without actions is unaffected', async () => {
         const { entity, def } = planetWithActions();

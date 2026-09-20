@@ -13,9 +13,9 @@ function runFieldTransform(entity: any, def: any) {
 }
 
 
-function fieldsByName(fields: any[]) {
+function fieldsByName(fields: Record<string, any>) {
   const out: Record<string, any> = {}
-  for (const f of fields) { out[f.name] = f }
+  for (const f of Object.values(fields)) { out[f.n] = f }
   return out
 }
 
@@ -24,7 +24,7 @@ function loadOnly(schema: any) {
   return {
     entity: {
       name: 'planet',
-      fields: [] as any[],
+      fields: {} as Record<string, any>,
       op: {
         load: {
           name: 'load',
@@ -49,6 +49,44 @@ function loadOnly(schema: any) {
 
 describe('field-spec-facts', () => {
 
+  test('entity fields use compact attributes and preserve schema facts', async () => {
+    const { entity, def } = loadOnly({
+      type: 'object',
+      properties: {
+        id: {
+          key$: 'id', type: 'string', required: true,
+          description: 'Stable identifier. More details.',
+          readOnly: true, writeOnly: true, deprecated: true, format: ' uuid ',
+        },
+      },
+    })
+    const property = def.paths['/planets/{id}'].get.responses[200].content['application/json'].schema.properties.id
+    const before = JSON.stringify(property)
+    const fields = await runFieldTransform(entity, def)
+    assert.deepStrictEqual(fields, { id: {
+      n: 'id', h: 'Id', t: '`$STRING`', r: true, op: {},
+      sh: 'Stable identifier.', ro: true, wo: true, de: true, fo: 'uuid',
+    } })
+    assert.strictEqual(JSON.stringify(property), before)
+  })
+
+
+  test('fields are keyed by wire name with derived titles', async () => {
+    const { entity, def } = loadOnly({
+      type: 'object',
+      properties: Object.fromEntries(['userName', 'created_at', 'constructor', 'active'].map(n =>
+        [n, { key$: n, type: 'string' }])),
+    })
+    const fields = await runFieldTransform(entity, def)
+    assert.strictEqual(Array.isArray(fields), false)
+    assert.deepStrictEqual(Object.keys(fields), ['active', 'constructor', 'created_at', 'userName'])
+    assert.deepStrictEqual(Object.values(fields).map((f: any) => [f.n, f.h]), [
+      ['active', 'Active'], ['constructor', 'Constructor'],
+      ['created_at', 'Created At'], ['userName', 'User Name'],
+    ])
+  })
+
+
   test('the four keywords are carried through', async () => {
     const { entity, def } = loadOnly({
       type: 'object',
@@ -62,11 +100,11 @@ describe('field-spec-facts', () => {
 
     const fields = fieldsByName(await runFieldTransform(entity, def))
 
-    assert.strictEqual(fields.id.readOnly, true,
+    assert.strictEqual(fields.id.ro, true,
       'readOnly is the whole point of this change')
-    assert.strictEqual(fields.secret.writeOnly, true)
-    assert.strictEqual(fields.legacy.deprecated, true)
-    assert.strictEqual(fields.created.format, 'date-time')
+    assert.strictEqual(fields.secret.wo, true)
+    assert.strictEqual(fields.legacy.de, true)
+    assert.strictEqual(fields.created.fo, 'date-time')
   })
 
 
@@ -85,7 +123,7 @@ describe('field-spec-facts', () => {
     const fields = fieldsByName(await runFieldTransform(entity, def))
 
     for (const name of ['plain', 'stated']) {
-      for (const key of ['readOnly', 'writeOnly', 'deprecated', 'format']) {
+      for (const key of ['ro', 'wo', 'de', 'fo']) {
         assert.ok(!(key in fields[name]),
           name + ': ' + key + ' was emitted for a field the spec did not flag')
       }
@@ -106,9 +144,9 @@ describe('field-spec-facts', () => {
 
     const fields = fieldsByName(await runFieldTransform(entity, def))
 
-    assert.ok(!('format' in fields.blank))
-    assert.ok(!('format' in fields.wrong))
-    assert.strictEqual(fields.real.format, 'password',
+    assert.ok(!('fo' in fields.blank))
+    assert.ok(!('fo' in fields.wrong))
+    assert.strictEqual(fields.real.fo, 'password',
       'a real format is trimmed, like short')
   })
 
@@ -116,7 +154,7 @@ describe('field-spec-facts', () => {
   test('an annotation on a later op survives the merge', async () => {
     const entity = {
       name: 'planet',
-      fields: [] as any[],
+      fields: {} as Record<string, any>,
       op: {
         // load comes first in opFieldPrecedence and annotates nothing.
         load: {
@@ -163,17 +201,17 @@ describe('field-spec-facts', () => {
 
     const fields = fieldsByName(await runFieldTransform(entity, def))
 
-    assert.strictEqual(fields.id.readOnly, true,
+    assert.strictEqual(fields.id.ro, true,
       'a later op\'s readOnly must survive the merge')
-    assert.strictEqual(fields.token.writeOnly, true)
-    assert.strictEqual(fields.token.format, 'password')
+    assert.strictEqual(fields.token.wo, true)
+    assert.strictEqual(fields.token.fo, 'password')
   })
 
 
   test('a readOnly response beats a request that omits it', async () => {
     const entity = {
       name: 'planet',
-      fields: [] as any[],
+      fields: {} as Record<string, any>,
       op: {
         load: {
           name: 'load',
@@ -225,7 +263,7 @@ describe('field-spec-facts', () => {
 
     const fields = fieldsByName(await runFieldTransform(entity, def))
 
-    assert.strictEqual(fields.id.readOnly, true,
+    assert.strictEqual(fields.id.ro, true,
       'the restriction lost to a schema that merely omitted it')
   })
 

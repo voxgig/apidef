@@ -30,7 +30,7 @@ const entityTransform = async function (ctx) {
         const modelent = {
             name: entname,
             op: {},
-            fields: [],
+            fields: {},
             relations,
         };
         kit.entity[entname] = modelent;

@@ -282,15 +282,16 @@ func lookupInput(input map[string]any, name string) (any, bool) {
 // back, so a field the client may not send fails the step it was chosen
 // for.
 func firstTextField(ent map[string]any) string {
-	fields, _ := ent["fields"].([]any)
-	for _, f := range fields {
+	fields, _ := ent["fields"].(map[string]any)
+	for _, name := range sortedKeys(fields) {
+		f := fields[name]
 		fm, _ := f.(map[string]any)
 		if fm == nil {
 			continue
 		}
-		ftype, _ := fm["type"].(string)
-		fname, _ := fm["name"].(string)
-		if ro, _ := fm["readOnly"].(bool); ro {
+		ftype, _ := fm["t"].(string)
+		fname, _ := fm["n"].(string)
+		if ro, _ := fm["ro"].(bool); ro {
 			continue
 		}
 		if ftype == "`$STRING`" && fname != "id" {

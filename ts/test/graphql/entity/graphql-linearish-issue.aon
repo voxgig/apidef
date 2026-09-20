@@ -4,43 +4,50 @@ main: kit: entity: issue: {
 
   alias: field: {}
 
-  fields: [
-    {
-      name: "archivedAt"
-      req: false
-      type: "`$ANY`"
+  fields: {
+    archivedAt: {
+      h: "Archived At"
+      n: "archivedAt"
+      r: false
+      t: "`$ANY`"
     }
-    {
-      name: "createdAt"
-      req: true
-      type: "`$ANY`"
+    createdAt: {
+      h: "Created At"
+      n: "createdAt"
+      r: true
+      t: "`$ANY`"
     }
-    {
-      name: "id"
-      req: true
-      type: "`$STRING`"
+    id: {
+      h: "Id"
+      n: "id"
+      r: true
+      t: "`$STRING`"
     }
-    {
-      name: "identifier"
-      req: true
-      type: "`$STRING`"
+    identifier: {
+      h: "Identifier"
+      n: "identifier"
+      r: true
+      t: "`$STRING`"
     }
-    {
-      name: "priority"
-      req: false
-      type: "`$STRING`"
+    priority: {
+      h: "Priority"
+      n: "priority"
+      r: false
+      t: "`$STRING`"
     }
-    {
-      name: "team"
-      req: false
-      type: "`$OBJECT`"
+    team: {
+      h: "Team"
+      n: "team"
+      r: false
+      t: "`$OBJECT`"
     }
-    {
-      name: "title"
-      req: true
-      type: "`$STRING`"
+    title: {
+      h: "Title"
+      n: "title"
+      r: true
+      t: "`$STRING`"
     }
-  ]
+  }
 
   id: {
     field: "id"

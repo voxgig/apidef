@@ -61,17 +61,18 @@ type ModelFieldOp = {
 
 
 type ModelField = {
-  name: string
-  type: any
-  req: boolean
+  n: string
+  h: string
+  t: any
+  r: boolean
   op: Partial<Record<OpName, ModelFieldOp>>
 
-  short?: string
+  sh?: string
 
-  readOnly?: boolean
-  writeOnly?: boolean
-  deprecated?: boolean
-  format?: string
+  ro?: boolean
+  wo?: boolean
+  de?: boolean
+  fo?: string
   union?: {
     count: number
     branches: number
@@ -174,7 +175,7 @@ type ModelEntity = {
   Name?: string
   NAME?: string
   op: ModelOpMap
-  fields: ModelField[]
+  fields: Record<string, ModelField>
   id?: {
     name: string
     field: string

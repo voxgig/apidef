@@ -13,8 +13,8 @@ function runFieldTransform(entity, def) {
 }
 function fieldsByName(fields) {
     const out = {};
-    for (const f of fields) {
-        out[f.name] = f;
+    for (const f of Object.values(fields)) {
+        out[f.n] = f;
     }
     return out;
 }
@@ -27,7 +27,7 @@ function fieldsByName(fields) {
     (0, node_test_1.test)('merge-keeps-first-description', async () => {
         const entity = {
             name: 'planet',
-            fields: [],
+            fields: {},
             op: {
                 // load comes first in opFieldPrecedence, and describes nothing.
                 load: {
@@ -72,8 +72,8 @@ function fieldsByName(fields) {
             },
         };
         const fields = fieldsByName(await runFieldTransform(entity, def));
-        node_assert_1.default.strictEqual(fields.name.short, 'Common name.', 'a later op\'s description must survive the merge, trimmed');
-        node_assert_1.default.strictEqual(fields.id.short, 'Stable identifier.');
+        node_assert_1.default.strictEqual(fields.name.sh, 'Common name.', 'a later op\'s description must survive the merge, trimmed');
+        node_assert_1.default.strictEqual(fields.id.sh, 'Stable identifier.');
     });
     // The reverse: the FIRST description wins, and a later op must not overwrite
     // it. Precedence exists so that load/create describe the entity; without
@@ -81,7 +81,7 @@ function fieldsByName(fields) {
     (0, node_test_1.test)('merge-does-not-overwrite-an-existing-description', async () => {
         const entity = {
             name: 'planet',
-            fields: [],
+            fields: {},
             op: {
                 load: {
                     name: 'load',
@@ -137,13 +137,13 @@ function fieldsByName(fields) {
             },
         };
         const fields = fieldsByName(await runFieldTransform(entity, def));
-        node_assert_1.default.strictEqual(fields.name.short, 'The one that wins.');
+        node_assert_1.default.strictEqual(fields.name.sh, 'The one that wins.');
     });
     (0, node_test_1.test)('graphql-description-reaches-short', async () => {
         const entity = {
             name: 'planet',
             orig$: 'Planet',
-            fields: [],
+            fields: {},
             op: {
                 load: {
                     name: 'load',
@@ -173,8 +173,8 @@ function fieldsByName(fields) {
             },
         };
         const fields = fieldsByName(await runFieldTransform(entity, def));
-        node_assert_1.default.strictEqual(fields.name.short, 'Common name.', 'GqlField.desc must reach ModelField.short, trimmed');
-        node_assert_1.default.strictEqual(fields.id.short, undefined, 'an undescribed GraphQL field must not acquire an invented description');
+        node_assert_1.default.strictEqual(fields.name.sh, 'Common name.', 'GqlField.desc must reach ModelField.sh, trimmed');
+        node_assert_1.default.strictEqual(fields.id.sh, undefined, 'an undescribed GraphQL field must not acquire an invented description');
     });
     (0, node_test_1.test)('short-is-reduced-to-one-capped-line', async () => {
         const bullets = [
@@ -184,7 +184,7 @@ function fieldsByName(fields) {
         ].join('\n');
         const entity = {
             name: 'planet',
-            fields: [],
+            fields: {},
             op: {
                 load: {
                     name: 'load',
@@ -224,12 +224,12 @@ function fieldsByName(fields) {
         };
         const fields = fieldsByName(await runFieldTransform(entity, def));
         for (const name of ['status', 'note', 'long']) {
-            node_assert_1.default.ok(!fields[name].short.includes('\n'), `${name}.short must not contain a newline — it lands in a markdown table cell`);
+            node_assert_1.default.ok(!fields[name].sh.includes('\n'), `${name}.sh must not contain a newline — it lands in a markdown table cell`);
         }
-        node_assert_1.default.strictEqual(fields.status.short, 'The status of the user - `joined`, the user has joined the space - `invited`, the user has been sent an invitation', 'newlines collapse to spaces rather than being dropped or truncating the text');
-        node_assert_1.default.strictEqual(fields.note.short, 'First sentence here.', 'a description with real sentences is cut at the first one');
-        node_assert_1.default.strictEqual(fields.long.short.length, 240, 'an over-long description is capped');
-        node_assert_1.default.ok(fields.long.short.endsWith('\u2026'), 'the cap is marked with an ellipsis rather than cutting silently');
+        node_assert_1.default.strictEqual(fields.status.sh, 'The status of the user - `joined`, the user has joined the space - `invited`, the user has been sent an invitation', 'newlines collapse to spaces rather than being dropped or truncating the text');
+        node_assert_1.default.strictEqual(fields.note.sh, 'First sentence here.', 'a description with real sentences is cut at the first one');
+        node_assert_1.default.strictEqual(fields.long.sh.length, 240, 'an over-long description is capped');
+        node_assert_1.default.ok(fields.long.sh.endsWith('\u2026'), 'the cap is marked with an ellipsis rather than cutting silently');
     });
 });
 //# sourceMappingURL=field-short.test.js.map

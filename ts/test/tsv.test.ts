@@ -6,6 +6,7 @@ import { test, describe } from 'node:test'
 import assert from 'node:assert'
 
 import {
+  humanTitle,
   depluralize,
   canonize,
   canonizeCmpName,
@@ -640,6 +641,15 @@ describe('tsv-resolved', () => {
       if (row.error) assert.throws(read, new RegExp(row.error))
       else assert.deepStrictEqual(JSON.parse(JSON.stringify(read() ?? null)), JSON.parse(row.expected))
       assert.equal(JSON.stringify(def), row.def)
+    })
+  }
+})
+
+
+describe('tsv-human-title', () => {
+  for (const row of loadTsv('human-title')) {
+    test(row.input || 'empty', () => {
+      assert.strictEqual(humanTitle(row.input), row.expected)
     })
   }
 })

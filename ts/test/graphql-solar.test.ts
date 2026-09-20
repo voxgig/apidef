@@ -92,7 +92,7 @@ describe('graphql-solar', () => {
     }
 
     assert.deepStrictEqual(
-      ents.planet.fields.map((f: any) => f.name),
+      Object.keys(ents.planet.fields),
       ['diameter', 'id', 'kind', 'name'])
   })
 

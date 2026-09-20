@@ -31,6 +31,7 @@ exports.specSecuredByDefault = specSecuredByDefault;
 exports.ensureMinEntityName = ensureMinEntityName;
 exports.inferFieldType = inferFieldType;
 exports.normalizeFieldName = normalizeFieldName;
+exports.humanTitle = humanTitle;
 exports.prefixLeadingDigit = prefixLeadingDigit;
 exports.debugpath = debugpath;
 exports.debugpathOn = debugpathOn;
@@ -910,6 +911,10 @@ function inferFieldType(name, specType) {
             return '`$BOOLEAN`';
     }
     return specType;
+}
+function humanTitle(name) {
+    return (0, jostraca_1.snakify)(name).split('_').filter(Boolean)
+        .map(word => word[0].toUpperCase() + word.slice(1)).join(' ');
 }
 function normalizeFieldName(s) {
     if (null == s || '' === s)

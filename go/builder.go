@@ -71,7 +71,7 @@ func entityBuilder(ctx *ApiDefContext) {
 		}
 
 		entityFile := prefix + entityName + ".aon"
-		cleanEntity := stripKeys(entity, "active")
+		cleanEntity := stripEntityDefaults(entity)
 		cleanEntity = stripEmptyRelations(cleanEntity)
 		entityJSONIC := FormatJSONIC(cleanEntity)
 		entityJSONIC = strings.TrimSpace(entityJSONIC)
@@ -93,6 +93,25 @@ func entityBuilder(ctx *ApiDefContext) {
 
 	indexFile := prefix + "entity-index.aon"
 	writeGen(ctx, filepath.Join(entityDir, indexFile), strings.Join(barrel, "\n"))
+}
+
+func stripEntityDefaults(entity any) any {
+	clean := stripKeys(entity, "active")
+	if ent, ok := clean.(map[string]any); ok {
+		source := entity.(map[string]any)
+		fields, ok := source["fields"].(map[string]any)
+		if !ok {
+			return clean
+		}
+		fields = deepCopyMap(fields)
+		ent["fields"] = fields
+		for _, value := range fields {
+			if field, ok := value.(map[string]any); ok && field["a"] == true {
+				delete(field, "a")
+			}
+		}
+	}
+	return clean
 }
 
 // stripKeys recursively removes the named key from all maps.
