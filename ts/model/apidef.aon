@@ -1,149 +1,137 @@
+name?: string # Model name.
+origin?: string # Source definition identifier.
 
-
-name?: string
-
-origin?: string
-
-
-main: kit: info: {
-  title?: string
-  version?: string
-
-  # Short one-line description of the API's purpose, set by the top
-  # transform: the spec's `info.summary` when present, else the first
-  # prose sentence of `info.description` (leading markdown headings
-  # stripped, capped). Downstream doc generators surface it as the SDK's
-  # "what this API is" blurb. Unset when the spec offers no usable prose.
-  summary?: string
-
-  website?: string
-
-  auth?: boolean
-
-  security?: {
-    scheme?: string
-    type?: string
-    in?: string
-    name?: string
-    prefix?: string
+main: kit: info: { # API metadata.
+  title?: string # Human-readable API title.
+  version?: string # API version from the source definition.
+  summary?: string # One-line API summary from the source description.
+  website?: string # API website URL.
+  auth?: boolean # Whether the API declares authentication.
+  security?: { # Authentication scheme.
+    scheme?: string # Scheme identifier in the source definition.
+    type?: string # Authentication mechanism.
+    in?: string # Request location of the credential.
+    name?: string # Credential parameter or header name.
+    prefix?: string # Prefix placed before the credential value.
   }
 }
 
-
-main: kit: entity: &: {
-
-  name: key()
-  active: *true
-
-  id?: {
-    field: string
-    name: string
-
-    parts?: [ &: string ]
-    sep?: string
-
-    from?: &: string
-
+main: kit: entity: &: { # Entities indexed by name.
+  name: key() # Entity name from its map key.
+  active: *true # Whether the entity participates in generation.
+  id?: { # Entity identity.
+    field: string # Model field containing the identity.
+    name: string # Identity property name.
+    parts?: [ &: string ] # Fields combined into a composite identity.
+    sep?: string # Separator between composite identity parts.
+    from?: &: string # Source locations for identity parts.
   }
-
-  fields: { &: %entity-field }
-
-  relations: {
-    ancestors: [ &: [ &: string ] ]
+  fields: { &: %entity-field } # Fields indexed by their names.
+  relations: { # Relationships to other entities.
+    ancestors: [ &: [ &: string ] ] # Ancestor paths for the entity.
   }
-
-  op: &: {
-    name: string
-    input: *'data'
-
-    points: [ &: %op-points ]
+  op: &: { # Operations indexed by name.
+    name: string # Operation name.
+    input: *'data' # Default operation input slot.
+    points: [ &: %op-points ] # Implementations of the operation.
   }
 }
 
-
-main: kit: flow: &: {
-  active: *true
-  name: key()
-
-  param: {}
-
-  step: [ &: %flow-step ]
+main: kit: flow: &: { # Flows indexed by name.
+  active: *true # Whether the flow participates in generation.
+  name: key() # Flow name from its map key.
+  param: {} # Parameters shared by the flow's steps.
+  step: [ &: %flow-step ] # Steps in execution order.
 }
 
-
-
-
-main: kit: type: type({
-  flow-step: %flow-step = {
-    a: *true
-    o: string
-    m: {}
-    d: {}
-    i: {}
-    s: []
-    v: []
+main: kit: type: type({ # Reusable model types.
+  %flow-step: { # One operation invocation in a flow.
+    a: *true # Whether the step is active.
+    o: string # Operation to invoke.
+    m: {} # Values identifying the target instance.
+    d: {} # Record data sent by the step.
+    i: {} # Inputs for references and generated test variables.
+    s: [] # Mutation specifications applied during the step.
+    v: [] # Assertions checked after the step.
   }
 
-  op-points: %op-points = {
-    a: *true
-    k: *'http' | 'graphql'
-    m: GET | PUT | POST | DELETE | PATCH | OPTIONS | HEAD | QUERY
-    o: string
-
-    s: [ &: { lit?: string, var?: string } ]
-    r: { param?: {}, query?: {}, header?: {}, cookie?: {} }
-    t: { req?: top, res?: top }
-
-    # Every arg kind is one shape plus its own `k` tag.
-    g: {
-      &: [ &: %point-args ]
-      params?: [ &: { k: 'param' } ]
-      query?: [ &: { k: 'query' } ]
-      header?: [ &: { k: 'header' } ]
-      cookie?: [ &: { k: 'cookie' } ]
+  %op-points: { # One implementation of an operation.
+    a: *true # Whether the implementation is active.
+    k: *'http' | 'graphql' # Transport kind.
+    m: GET | PUT | POST | DELETE | PATCH | OPTIONS | HEAD | QUERY # Request method.
+    o: string # Original path or source operation identifier.
+    s: [ &: { # Ordered URL path segments.
+      lit?: string # Literal segment text.
+      var?: string # Parameter substituted into the segment.
+    } ]
+    r: { # Parameter renames grouped by request location.
+      param?: {} # Path parameter renames.
+      query?: {} # Query parameter renames.
+      header?: {} # Header parameter renames.
+      cookie?: {} # Cookie parameter renames.
     }
-
-    q: {
-      param?: {}
-      query?: {}
-      header?: {}
-      cookie?: {}
-      '$action'?: string
+    t: { # Request and response transforms.
+      req?: top # Transform applied to request data.
+      res?: top # Transform applied to the response body.
     }
-
-    co?: { version: 2, id: string, source: string }
-    li?: boolean | {}
-    gq?: {
-      optype: 'query' | 'mutation'
-      field: string
-      doc: string
-      vars: [ &: { name: string, from: string, gqltype: string } ]
-      page?: { style: string, nodes: string, cursor: string, more: string }
+    g: { # Arguments grouped by request location.
+      &: [ &: %point-args ] # Shared argument shape.
+      params?: [ &: { k: 'param' } ] # Path arguments, tagged as path parameters.
+      query?: [ &: { k: 'query' } ] # Query arguments, tagged as query parameters.
+      header?: [ &: { k: 'header' } ] # Header arguments, tagged as headers.
+      cookie?: [ &: { k: 'cookie' } ] # Cookie arguments, tagged as cookies.
+    }
+    q: { # Conditions selecting this implementation.
+      param?: {} # Path parameter conditions.
+      query?: {} # Query parameter conditions.
+      header?: {} # Header conditions.
+      cookie?: {} # Cookie conditions.
+      '$action'?: string # Action discriminator for a non-CRUD operation.
+    }
+    co?: { # Identity of the source operation's contract.
+      version: 2 # Contract metadata version.
+      id: string # Source operation identifier.
+      source: string # Source specification format.
+    }
+    li?: boolean | {} # Live-call settings and input bindings.
+    gq?: { # GraphQL invocation details.
+      optype: 'query' | 'mutation' # GraphQL operation kind.
+      field: string # Root GraphQL field to invoke.
+      doc: string # GraphQL document sent to the endpoint.
+      vars: [ &: { # Variables supplied with the document.
+        name: string # GraphQL variable name.
+        from: string # Model input supplying the variable.
+        gqltype: string # GraphQL variable type declaration.
+      } ]
+      page?: { # GraphQL pagination bindings.
+        style: string # Pagination convention.
+        nodes: string # Path to returned records.
+        cursor: string # Path to the next cursor.
+        more: string # Path to the flag indicating more records.
+      }
     }
   }
 
-  entity-field: %entity-field = {
-    n: key()
-    h: string
-    r: boolean
-    t: top
-    a: *true
-
-    sh?: string
-
-    ro?: boolean
-    wo?: boolean
-    de?: boolean
-    fo?: string
+  %entity-field: { # One named entity field.
+    n: key() # Field name from its map key.
+    h: string # Human title derived from the field name.
+    r: boolean # Whether the field is required.
+    t: top # Field validation shape.
+    a: *true # Whether the field is active.
+    sh?: string # Short field description.
+    ro?: boolean # Whether the field is read-only.
+    wo?: boolean # Whether the field is write-only.
+    de?: boolean # Whether the field is deprecated.
+    fo?: string # Format declared by the source schema.
   }
 
-  point-args: %point-args = {
-    a: *true
-    k: string
-    n: string
-    or?: string
-    r: boolean
-    t: top
-    ex?: top
+  %point-args: { # One operation argument.
+    a: *true # Whether the argument is active.
+    k: string # Argument location: path, query, header, or cookie.
+    n: string # Argument name in the model.
+    or?: string # Original argument name in the source definition.
+    r: boolean # Whether the argument is required.
+    t: top # Argument validation shape.
+    ex?: top # Example or default value from the source definition.
   }
 })

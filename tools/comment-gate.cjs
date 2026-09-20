@@ -356,7 +356,8 @@ function checkText(file, text, opts = {}) {
   }
 
   const density = scan.codeLines === 0 ? 0 : commentLines / scan.codeLines
-  if (commentLines > DENSITY_FLOOR_LINES && density > MAX_DENSITY) {
+  if (commentLines > DENSITY_FLOOR_LINES && density > MAX_DENSITY &&
+    !Object.prototype.hasOwnProperty.call(CONFIG.densityExempt || {}, file)) {
     findings.push({
       file,
       line: 1,
