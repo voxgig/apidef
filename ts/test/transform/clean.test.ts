@@ -21,7 +21,17 @@ describe('transform-clean', () => {
     assert.deepStrictEqual(r.ok, true)
     assert.deepStrictEqual(c.apimodel, { a: { x: 1 } })
   })
-
-
+  test('preserves empty entity field maps', async () => {
+    const ctx: any = {
+      apimodel: { main: { kit: { entity: {
+        empty: { name: 'empty', fields: {}, other: {} },
+        populated: { name: 'populated', fields: { id: { n: 'id', h: 'Id' } } },
+      } } } },
+    }
+    await cleanTransform(ctx)
+    assert.deepStrictEqual(ctx.apimodel.main.kit.entity, {
+      empty: { name: 'empty', fields: {} },
+      populated: { name: 'populated', fields: { id: { n: 'id', h: 'Id' } } },
+    })
+  })
 })
-

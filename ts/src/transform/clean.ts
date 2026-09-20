@@ -1,5 +1,6 @@
 
 import type { TransformResult, Transform } from '../transform'
+import { KIT } from '../types'
 
 import { walk, isempty, isnode, ismap, islist } from '@voxgig/struct'
 
@@ -53,6 +54,10 @@ const cleanTransform: Transform = async function(
   )
 
   ctx.apimodel = cur[0]
+
+  for (const entity of Object.values(ctx.apimodel.main?.[KIT]?.entity ?? {}) as any[]) {
+    entity.fields ??= {}
+  }
 
   return { ok: true, msg: 'clean' }
 }

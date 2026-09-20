@@ -783,6 +783,28 @@ func TestCleanTransform(t *testing.T) {
 	}
 }
 
+func TestCleanTransformPreservesEmptyFieldMaps(t *testing.T) {
+	entities := map[string]any{
+		"empty": map[string]any{"name": "empty", "fields": map[string]any{}, "other": map[string]any{}},
+		"populated": map[string]any{"name": "populated", "fields": map[string]any{
+			"id": map[string]any{"n": "id", "h": "Id"},
+		}},
+	}
+	ctx := &ApiDefContext{ApiModel: map[string]any{"main": map[string]any{
+		KIT: map[string]any{"entity": entities},
+	}}}
+	if _, err := CleanTransform(ctx); err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]any{
+		"empty":     map[string]any{"name": "empty", "fields": map[string]any{}},
+		"populated": entities["populated"],
+	}
+	if got := getKit(ctx)["entity"]; !reflect.DeepEqual(got, want) {
+		t.Fatalf("entity fields changed: got %#v, want %#v", got, want)
+	}
+}
+
 func TestFieldShortFromDescription(t *testing.T) {
 	def := map[string]any{
 		"paths": map[string]any{

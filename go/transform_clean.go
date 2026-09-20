@@ -10,6 +10,14 @@ import (
 // CleanTransform removes empty nodes and internal properties from the model.
 func CleanTransform(ctx *ApiDefContext) (*TransformResult, error) {
 	ctx.ApiModel = cleanNode(ctx.ApiModel).(map[string]any)
+	main, _ := ctx.ApiModel["main"].(map[string]any)
+	kit, _ := main[KIT].(map[string]any)
+	entities, _ := kit["entity"].(map[string]any)
+	for _, value := range entities {
+		if entity, ok := value.(map[string]any); ok && entity["fields"] == nil {
+			entity["fields"] = map[string]any{}
+		}
+	}
 	return &TransformResult{OK: true, Msg: "clean"}, nil
 }
 

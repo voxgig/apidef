@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.cleanTransform = void 0;
+const types_1 = require("../types");
 const struct_1 = require("@voxgig/struct");
 const cleanTransform = async function (ctx) {
     const { apimodel } = ctx;
@@ -36,6 +37,9 @@ const cleanTransform = async function (ctx) {
         return v;
     });
     ctx.apimodel = cur[0];
+    for (const entity of Object.values(ctx.apimodel.main?.[types_1.KIT]?.entity ?? {})) {
+        entity.fields ??= {};
+    }
     return { ok: true, msg: 'clean' };
 };
 exports.cleanTransform = cleanTransform;
