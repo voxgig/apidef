@@ -145,15 +145,14 @@ func collectOps(ctx *ApiDefContext, entname string, gent map[string]any, pathsDe
 			}
 
 			mtarget := map[string]any{
-				"o":  p["orig"],
-				"s":  segments,
-				"r":  p["rename"],
-				"m":  p["method"],
-				"g":  map[string]any{},
-				"t":  transform,
-				"q":  map[string]any{"exist": []any{}},
-				"a":  true,
-				"rl": []any{},
+				"o": p["orig"],
+				"s": segments,
+				"r": p["rename"],
+				"m": p["method"],
+				"g": map[string]any{},
+				"t": transform,
+				"q": map[string]any{"exist": []any{}},
+				"a": true,
 			}
 			points = append(points, mtarget)
 		}

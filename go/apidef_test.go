@@ -89,6 +89,11 @@ func TestOperationTransformPropagation(t *testing.T) {
 			t.Fatalf("missing op %q", name)
 		}
 		pt := op["points"].([]any)[0].(map[string]any)
+		for key := range pt {
+			if !strings.Contains("|a|k|m|o|s|g|q|r|t|co|li|gq|", "|"+key+"|") {
+				t.Errorf("unsupported operation point attribute: %s", key)
+			}
+		}
 		tr := pt["t"].(map[string]any)
 		if tr["res"] != want[0] || tr["req"] != want[1] {
 			t.Errorf("%s transform = {res:%v req:%v}, want {res:%q req:%q}",
