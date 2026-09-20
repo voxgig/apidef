@@ -17,6 +17,28 @@ const aontu_1 = require("aontu");
 const REPO = node_path_1.default.resolve(__dirname, '..', '..');
 const MODEL_FILES = ['apidef.aon', 'guide.aon'];
 (0, node_test_1.describe)('model-mirror', () => {
+    (0, node_test_1.test)('op-points and point-args aliases apply compact keys and defaults', () => {
+        const point = {
+            m: 'GET', o: '/widgets/{id}', s: [{ var: 'id' }],
+            g: {
+                params: [{ n: 'id', or: 'widget_id', r: true, t: '`$STRING`' }],
+                query: [{ n: 'limit', r: false, t: '`$NUMBER`', ex: 0, a: false }],
+                header: [{ n: 'trace', r: false, t: '`$STRING`' }],
+                cookie: [{ n: 'session', r: false, t: '`$STRING`' }],
+            },
+            q: { exist: ['id'] }, r: { param: { widget_id: 'id' } },
+            t: { req: '`reqdata`', res: '`body`' },
+            co: { version: 2, id: 'GET /widgets/{id}', source: 'openapi3' }, li: false,
+        };
+        const source = (0, node_fs_1.readFileSync)(node_path_1.default.join(REPO, 'model', 'apidef.aon'), 'utf8') + '\n' +
+            'main:kit:entity:widget:op:load:' + JSON.stringify({ name: 'load', points: [point] });
+        const model = new aontu_1.Aontu().generate(source);
+        const result = model.main.kit.entity.widget.op.load.points[0];
+        node_assert_1.default.deepStrictEqual(result, {
+            ...point, a: true, k: 'http',
+            g: Object.fromEntries(Object.entries(point.g).map(([kind, args]) => [kind, args.map(arg => ({ a: true, ...arg, k: kind === 'params' ? 'param' : kind }))])),
+        });
+    });
     (0, node_test_1.test)('entity-field alias uses compact keys and defaults activation', () => {
         const fields = {
             id: { n: 'id', h: 'Id', r: true, t: '`$STRING`' },

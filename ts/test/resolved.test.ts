@@ -34,37 +34,37 @@ const SPEC = {
 describe('resolved', () => {
 
   test('merges path-level and operation-level parameters', () => {
-    const facts: any = operationFacts(SPEC, { method: 'GET', orig: '/things/{id}' })
+    const facts: any = operationFacts(SPEC, { m: 'GET', o: '/things/{id}' })
     assert.deepEqual(facts.parameters.map((p: any) => p.name), ['id', 'expand'])
   })
 
   test('defaults security from the document and says where it came from', () => {
-    const get: any = operationFacts(SPEC, { method: 'GET', orig: '/things/{id}' })
+    const get: any = operationFacts(SPEC, { m: 'GET', o: '/things/{id}' })
     assert.deepEqual(get.security, [{ apiKeyAuth: [] }])
     assert.equal(get.securitySource, 'definition')
 
     // An operation that overrides with [] needs NO auth — a distinction the
     // model's single resolved `kit.info.security` cannot express.
-    const del: any = operationFacts(SPEC, { method: 'DELETE', orig: '/things/{id}' })
+    const del: any = operationFacts(SPEC, { m: 'DELETE', o: '/things/{id}' })
     assert.deepEqual(del.security, [])
     assert.equal(del.securitySource, 'operation')
   })
 
   test('carries securitySchemes under either specification spelling', () => {
-    const oas3: any = operationFacts(SPEC, { method: 'GET', orig: '/open' })
+    const oas3: any = operationFacts(SPEC, { m: 'GET', o: '/open' })
     assert.deepEqual(Object.keys(oas3.securitySchemes), ['apiKeyAuth'])
 
     const swagger2: any = operationFacts({
       swagger: '2.0',
       securityDefinitions: { basic: { type: 'basic' } },
       paths: { '/x': { get: { responses: {} } } },
-    }, { method: 'GET', orig: '/x' })
+    }, { m: 'GET', o: '/x' })
     assert.deepEqual(Object.keys(swagger2.securitySchemes), ['basic'])
   })
 
   test('is undefined for an operation the definition does not describe', () => {
-    assert.equal(operationFacts(SPEC, { method: 'PUT', orig: '/things/{id}' }), undefined)
-    assert.equal(operationFacts(SPEC, { method: 'GET', orig: '/nope' }), undefined)
+    assert.equal(operationFacts(SPEC, { m: 'PUT', o: '/things/{id}' }), undefined)
+    assert.equal(operationFacts(SPEC, { m: 'GET', o: '/nope' }), undefined)
   })
 
   test('indexes every described operation by method and path', () => {
@@ -115,7 +115,7 @@ describe('resolved', () => {
 describe('live-hint-on-point', () => {
 
   test('a guide live hint lands on the point', async () => {
-    const point: any = { method: 'GET', orig: '/things', kind: 'http' }
+    const point: any = { m: 'GET', o: '/things', k: 'http' }
     const ctx: any = {
       def: { paths: { '/things': { get: { responses: {} } } } },
       apimodel: { main: { kit: { entity: { thing: { name: 'thing',
@@ -125,14 +125,14 @@ describe('live-hint-on-point', () => {
 
     await contractTransform(ctx)
 
-    assert.equal(point.live, true)
+    assert.equal(point.li, true)
 
-    assert.equal(point.contract.json, undefined)
-    assert.equal(point.contract.id, 'GET /things')
+    assert.equal(point.co.json, undefined)
+    assert.equal(point.co.id, 'GET /things')
   })
 
   test('no hint leaves the point alone', async () => {
-    const point: any = { method: 'GET', orig: '/things', kind: 'http' }
+    const point: any = { m: 'GET', o: '/things', k: 'http' }
     const ctx: any = {
       def: { paths: { '/things': { get: { responses: {} } } } },
       apimodel: { main: { kit: { entity: { thing: { name: 'thing',
@@ -142,7 +142,7 @@ describe('live-hint-on-point', () => {
 
     await contractTransform(ctx)
 
-    assert.equal(point.live, undefined)
+    assert.equal(point.li, undefined)
   })
 
 })
@@ -163,7 +163,7 @@ test('capability reads the current guide after publication', () => {
 
 test('ModelPoint exposes boolean and object live hints', () => {
   for (const live of [true, false, { input: { n: 2 } }]) {
-    const point: Pick<ModelPoint, 'live'> = { live }
-    assert.deepEqual(JSON.parse(JSON.stringify(point)).live, live)
+    const point: Pick<ModelPoint, 'li'> = { li: live }
+    assert.deepEqual(JSON.parse(JSON.stringify(point)).li, live)
   }
 })

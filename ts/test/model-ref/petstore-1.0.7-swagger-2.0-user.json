@@ -62,59 +62,59 @@
       "name": "create",
       "points": [
         {
-          "args": {
+          "g": {
             "query": [
               {
-                "kind": "query",
-                "name": "body",
-                "orig": "body",
-                "reqd": true,
-                "type": "`$OBJECT`"
+                "k": "query",
+                "n": "body",
+                "or": "body",
+                "r": true,
+                "t": "`$OBJECT`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "POST /user",
             "source": "swagger2",
             "version": 2
           },
-          "method": "POST",
-          "orig": "/user",
-          "segments": [
+          "m": "POST",
+          "o": "/user",
+          "s": [
             {
               "lit": "user"
             }
           ],
-          "select": {
+          "q": {
             "exist": [
               "body"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }
         },
         {
-          "args": {
+          "g": {
             "query": [
               {
-                "kind": "query",
-                "name": "body",
-                "orig": "body",
-                "reqd": true,
-                "type": "`$ARRAY`"
+                "k": "query",
+                "n": "body",
+                "or": "body",
+                "r": true,
+                "t": "`$ARRAY`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "POST /user/createWithArray",
             "source": "swagger2",
             "version": 2
           },
-          "method": "POST",
-          "orig": "/user/createWithArray",
-          "segments": [
+          "m": "POST",
+          "o": "/user/createWithArray",
+          "s": [
             {
               "lit": "user"
             },
@@ -122,37 +122,37 @@
               "lit": "createWithArray"
             }
           ],
-          "select": {
+          "q": {
             "$action": "create_with_array",
             "exist": [
               "body"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }
         },
         {
-          "args": {
+          "g": {
             "query": [
               {
-                "kind": "query",
-                "name": "body",
-                "orig": "body",
-                "reqd": true,
-                "type": "`$ARRAY`"
+                "k": "query",
+                "n": "body",
+                "or": "body",
+                "r": true,
+                "t": "`$ARRAY`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "POST /user/createWithList",
             "source": "swagger2",
             "version": 2
           },
-          "method": "POST",
-          "orig": "/user/createWithList",
-          "segments": [
+          "m": "POST",
+          "o": "/user/createWithList",
+          "s": [
             {
               "lit": "user"
             },
@@ -160,13 +160,13 @@
               "lit": "createWithList"
             }
           ],
-          "select": {
+          "q": {
             "$action": "create_with_list",
             "exist": [
               "body"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }
@@ -177,32 +177,32 @@
       "name": "load",
       "points": [
         {
-          "args": {
+          "g": {
             "query": [
               {
-                "kind": "query",
-                "name": "password",
-                "orig": "password",
-                "reqd": true,
-                "type": "`$STRING`"
+                "k": "query",
+                "n": "password",
+                "or": "password",
+                "r": true,
+                "t": "`$STRING`"
               },
               {
-                "kind": "query",
-                "name": "username",
-                "orig": "username",
-                "reqd": true,
-                "type": "`$STRING`"
+                "k": "query",
+                "n": "username",
+                "or": "username",
+                "r": true,
+                "t": "`$STRING`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "GET /user/login",
             "source": "swagger2",
             "version": 2
           },
-          "method": "GET",
-          "orig": "/user/login",
-          "segments": [
+          "m": "GET",
+          "o": "/user/login",
+          "s": [
             {
               "lit": "user"
             },
@@ -210,43 +210,43 @@
               "lit": "login"
             }
           ],
-          "select": {
+          "q": {
             "$action": "login",
             "exist": [
               "password",
               "username"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }
         },
         {
-          "args": {
+          "g": {
             "params": [
               {
-                "kind": "param",
-                "name": "id",
-                "orig": "username",
-                "reqd": true,
-                "type": "`$STRING`"
+                "k": "param",
+                "n": "id",
+                "or": "username",
+                "r": true,
+                "t": "`$STRING`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "GET /user/{username}",
             "source": "swagger2",
             "version": 2
           },
-          "method": "GET",
-          "orig": "/user/{username}",
-          "rename": {
+          "m": "GET",
+          "o": "/user/{username}",
+          "r": {
             "param": {
               "username": "id"
             }
           },
-          "segments": [
+          "s": [
             {
               "lit": "user"
             },
@@ -254,25 +254,25 @@
               "var": "id"
             }
           ],
-          "select": {
+          "q": {
             "exist": [
               "id"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }
         },
         {
-          "contract": {
+          "co": {
             "id": "GET /user/logout",
             "source": "swagger2",
             "version": 2
           },
-          "method": "GET",
-          "orig": "/user/logout",
-          "segments": [
+          "m": "GET",
+          "o": "/user/logout",
+          "s": [
             {
               "lit": "user"
             },
@@ -280,10 +280,10 @@
               "lit": "logout"
             }
           ],
-          "select": {
+          "q": {
             "$action": "logout"
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }
@@ -294,30 +294,30 @@
       "name": "remove",
       "points": [
         {
-          "args": {
+          "g": {
             "params": [
               {
-                "kind": "param",
-                "name": "id",
-                "orig": "username",
-                "reqd": true,
-                "type": "`$STRING`"
+                "k": "param",
+                "n": "id",
+                "or": "username",
+                "r": true,
+                "t": "`$STRING`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "DELETE /user/{username}",
             "source": "swagger2",
             "version": 2
           },
-          "method": "DELETE",
-          "orig": "/user/{username}",
-          "rename": {
+          "m": "DELETE",
+          "o": "/user/{username}",
+          "r": {
             "param": {
               "username": "id"
             }
           },
-          "segments": [
+          "s": [
             {
               "lit": "user"
             },
@@ -325,12 +325,12 @@
               "var": "id"
             }
           ],
-          "select": {
+          "q": {
             "exist": [
               "id"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }
@@ -341,39 +341,39 @@
       "name": "update",
       "points": [
         {
-          "args": {
+          "g": {
             "params": [
               {
-                "kind": "param",
-                "name": "id",
-                "orig": "username",
-                "reqd": true,
-                "type": "`$STRING`"
+                "k": "param",
+                "n": "id",
+                "or": "username",
+                "r": true,
+                "t": "`$STRING`"
               }
             ],
             "query": [
               {
-                "kind": "query",
-                "name": "body",
-                "orig": "body",
-                "reqd": true,
-                "type": "`$OBJECT`"
+                "k": "query",
+                "n": "body",
+                "or": "body",
+                "r": true,
+                "t": "`$OBJECT`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "PUT /user/{username}",
             "source": "swagger2",
             "version": 2
           },
-          "method": "PUT",
-          "orig": "/user/{username}",
-          "rename": {
+          "m": "PUT",
+          "o": "/user/{username}",
+          "r": {
             "param": {
               "username": "id"
             }
           },
-          "segments": [
+          "s": [
             {
               "lit": "user"
             },
@@ -381,13 +381,13 @@
               "var": "id"
             }
           ],
-          "select": {
+          "q": {
             "exist": [
               "body",
               "id"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }

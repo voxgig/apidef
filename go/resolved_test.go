@@ -81,7 +81,7 @@ func TestResolvedGenerate(t *testing.T) {
 }
 
 func TestModelPointLiveRoundTrip(t *testing.T) {
-	for _, src := range []string{`{"live":true}`, `{"live":false}`, `{"live":{"input":{"n":2}}}`} {
+	for _, src := range []string{`{"li":true}`, `{"li":false}`, `{"li":{"input":{"n":2}}}`} {
 		var point ModelPoint
 		if err := json.Unmarshal([]byte(src), &point); err != nil {
 			t.Fatal(err)
@@ -93,7 +93,7 @@ func TestModelPointLiveRoundTrip(t *testing.T) {
 		var got, want map[string]any
 		json.Unmarshal(data, &got)
 		json.Unmarshal([]byte(src), &want)
-		if !reflect.DeepEqual(got["live"], want["live"]) {
+		if !reflect.DeepEqual(got["li"], want["li"]) {
 			t.Fatalf("live lost: %s", data)
 		}
 	}

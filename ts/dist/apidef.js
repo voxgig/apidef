@@ -216,7 +216,7 @@ function ApiDef(opts) {
             await (0, top_1.topTransform)(ctx);
             await (0, entity_1.entityTransform)(ctx);
             await (0, operation_1.operationTransform)(ctx);
-            // Must precede args and field: both branch on point.kind === 'graphql'
+            // Must precede args and field: both branch on point.k === 'graphql'
             // and read the graphql block this stamps on.
             await (0, graphql_1.graphqlTransform)(ctx);
             await (0, contract_1.contractTransform)(ctx);

@@ -1,0 +1,103 @@
+{
+  "parameters": [
+    {
+      "name": "petId",
+      "in": "path",
+      "required": true,
+      "schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "limit",
+      "in": "query",
+      "required": true,
+      "example": 0,
+      "schema": {
+        "type": "integer"
+      }
+    },
+    {
+      "name": "filter",
+      "in": "query",
+      "nullable": true,
+      "schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "XTrace",
+      "in": "header",
+      "examples": {
+        "trace": {
+          "value": "abc"
+        }
+      }
+    },
+    {
+      "name": "session",
+      "in": "cookie",
+      "schema": {
+        "type": "boolean",
+        "default": false
+      }
+    }
+  ],
+  "rename": {
+    "param": {
+      "petId": "id"
+    }
+  },
+  "expected": {
+    "params": [
+      {
+        "n": "id",
+        "or": "pet_id",
+        "t": "`$STRING`",
+        "k": "param",
+        "r": true
+      }
+    ],
+    "query": [
+      {
+        "n": "filter",
+        "or": "filter",
+        "t": [
+          "`$ONE`",
+          "`$NULL`",
+          "`$STRING`"
+        ],
+        "k": "query",
+        "r": false
+      },
+      {
+        "n": "limit",
+        "or": "limit",
+        "t": "`$INTEGER`",
+        "k": "query",
+        "r": true,
+        "ex": 0
+      }
+    ],
+    "header": [
+      {
+        "n": "x_trace",
+        "or": "x_trace",
+        "t": "`$ANY`",
+        "k": "header",
+        "r": false,
+        "ex": "abc"
+      }
+    ],
+    "cookie": [
+      {
+        "n": "session",
+        "or": "session",
+        "t": "`$BOOLEAN`",
+        "k": "cookie",
+        "r": false,
+        "ex": false
+      }
+    ]
+  }
+}

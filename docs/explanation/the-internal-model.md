@@ -37,12 +37,12 @@ path + method"; it is:
 ```
 op.create
   └─ points[]            each is one concrete path/method that yields create
-       ├─ orig           the source path, as written in the spec
-       ├─ segments       that path RESOLVED: { lit } / { var }, no braces to parse
-       ├─ method         GET/POST/…
-       ├─ args           parameters to send
-       ├─ select         how to identify the target instance
-       └─ transform      request/response envelope handling
+       ├─ o              the source path, as written in the spec
+       ├─ s              that path RESOLVED: { lit } / { var }, no braces to parse
+       ├─ m              GET/POST/…
+       ├─ g              parameters to send
+       ├─ q              how to identify the target instance
+       └─ t              request/response envelope handling
 ```
 
 Keeping `points[]` plural is what lets the model represent actions, alternate
@@ -50,18 +50,18 @@ routes, and collection-vs-item variants without losing information.
 
 ## Args capture the call signature
 
-Each point's `args.params[]` lists what the caller must supply — typically the
+Each point's `g.params[]` lists what the caller must supply — typically the
 ancestor and item identifiers pulled from the path. Each arg records both its
-canonical `name` (e.g. `id`) and its `orig` wire name (e.g. `planet_id`), plus
-whether it is required (`reqd`) and its inferred `type`. That dual naming is
+canonical `n` (e.g. `id`) and its `or` wire name (e.g. `planet_id`), plus
+whether it is required (`r`) and its inferred `t`. That dual naming is
 why the SDK can present a clean `id` argument while still constructing the
 correct URL.
 
 ## Select describes *which* instance
 
-`select` answers "which records does this point address?". `select.exist`
+`q` answers "which records does this point address?". `q.exist`
 lists the identifiers that must already exist (the ancestor chain and the
-item id); `select.$action` marks an action point. Downstream this becomes the
+item id); `q.$action` marks an action point. Downstream this becomes the
 SDK's routing and pre-condition logic.
 
 ## Fields carry types and per-op overrides

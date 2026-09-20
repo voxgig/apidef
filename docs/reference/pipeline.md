@@ -49,8 +49,8 @@ Nine passes run in this fixed order; each is a file under
 |---|------|--------|
 | 1 | `top` | `kit.info` — title, version, and `servers[]` (URL schemes normalized to `https://` when missing) |
 | 2 | `entity` | `kit.entity[name]` skeletons; ancestor relations; the source path list (`paths$`) |
-| 3 | `operation` | each entity's `op` map (`load`/`list`/`create`/`update`/`remove`/`patch`) and its `points[]`, carrying the guide's `transform` |
-| 4 | `args` | each point's `args.params[]` from path parameters (`name`, `orig`, `reqd`, `type`) |
+| 3 | `operation` | each entity's `op` map (`load`/`list`/`create`/`update`/`remove`/`patch`) and its `points[]`, carrying the guide's transforms in `t` |
+| 4 | `args` | each point's `g.params[]` from path parameters (`n`, `or`, `r`, `t`) |
 | 5 | `select` | each point's `select` — `exist[]` identifiers and `$action` markers |
 | 6 | `field` | each entity's `fields[]` from request/response schemas, with inferred types and per-op `req` overrides |
 | 7 | `flow` | basic CRUD `flow` definitions per entity |

@@ -63,9 +63,9 @@ function resolveBasicEntityFlow(ctx, entity) {
     if (entop.load) {
         const point = findMainLoadPoint(entop.load);
         // Get additional required match properties
-        (0, jostraca_1.each)(point?.args.params, (param) => {
-            if (param.required) {
-                let ancestorName = param.name;
+        (0, jostraca_1.each)(point?.g.params, (param) => {
+            if (param.r) {
+                let ancestorName = param.n;
                 let ancestorEntity = apimodel.main.api.entity[ancestorName];
                 if (null == ancestorEntity) {
                     ancestorName = ancestorName.replace('_id', '');
@@ -75,9 +75,9 @@ function resolveBasicEntityFlow(ctx, entity) {
                     flow.model.param[`${model.NAME}_TEST_${ancestorEntity.NAME}_ENTID`] = {
                         [ancestorEntity.name + '01']: ancestorEntity.NAME + '01'
                     };
-                    am[param.name] =
+                    am[param.n] =
                         `\`dm$=p.${model.NAME}_TEST_${ancestorEntity.NAME}_ENTID.${ancestorEntity.name}01\``;
-                    data[`${(0, utility_1.nom)(apiEntity, 'NAME')}01`][param.name] = ancestorEntity.NAME + '01';
+                    data[`${(0, utility_1.nom)(apiEntity, 'NAME')}01`][param.n] = ancestorEntity.NAME + '01';
                 }
             }
         });
@@ -139,7 +139,7 @@ function resolveBasicEntityFlow(ctx, entity) {
     return flow;
 }
 function findMainLoadPoint(op) {
-    let cands = op.points.filter(a => 'id' === (0, struct_2.getelem)(a.segments, -1)?.var);
+    let cands = op.points.filter(a => 'id' === (0, struct_2.getelem)(a.s, -1)?.var);
     return cands[0];
 }
 function makeUpdateData(name, apiEntity, flow, id) {

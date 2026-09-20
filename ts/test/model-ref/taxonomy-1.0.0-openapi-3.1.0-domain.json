@@ -70,37 +70,37 @@
       "name": "create",
       "points": [
         {
-          "args": {
+          "g": {
             "params": [
               {
-                "kind": "param",
-                "name": "id",
-                "orig": "id",
-                "reqd": true,
-                "type": "`$STRING`"
+                "k": "param",
+                "n": "id",
+                "or": "id",
+                "r": true,
+                "t": "`$STRING`"
               },
               {
-                "kind": "param",
-                "name": "year",
-                "orig": "year",
-                "reqd": true,
-                "type": "`$INTEGER`"
+                "k": "param",
+                "n": "year",
+                "or": "year",
+                "r": true,
+                "t": "`$INTEGER`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "POST /{year}/domain/{did}/revoke",
             "source": "openapi3",
             "version": 2
           },
-          "method": "POST",
-          "orig": "/{year}/domain/{did}/revoke",
-          "rename": {
+          "m": "POST",
+          "o": "/{year}/domain/{did}/revoke",
+          "r": {
             "param": {
               "did": "id"
             }
           },
-          "segments": [
+          "s": [
             {
               "var": "year"
             },
@@ -114,14 +114,14 @@
               "lit": "revoke"
             }
           ],
-          "select": {
+          "q": {
             "$action": "revoke",
             "exist": [
               "id",
               "year"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }
@@ -132,43 +132,43 @@
       "name": "list",
       "points": [
         {
-          "args": {
+          "g": {
             "params": [
               {
-                "kind": "param",
-                "name": "year",
-                "orig": "year",
-                "reqd": true,
-                "type": "`$INTEGER`"
+                "k": "param",
+                "n": "year",
+                "or": "year",
+                "r": true,
+                "t": "`$INTEGER`"
               }
             ],
             "query": [
               {
-                "example": 1,
-                "kind": "query",
-                "name": "page",
-                "orig": "page",
-                "reqd": false,
-                "type": "`$INTEGER`"
+                "ex": 1,
+                "k": "query",
+                "n": "page",
+                "or": "page",
+                "r": false,
+                "t": "`$INTEGER`"
               },
               {
-                "example": 20,
-                "kind": "query",
-                "name": "page_size",
-                "orig": "page_size",
-                "reqd": false,
-                "type": "`$INTEGER`"
+                "ex": 20,
+                "k": "query",
+                "n": "page_size",
+                "or": "page_size",
+                "r": false,
+                "t": "`$INTEGER`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "GET /{year}/domain",
             "source": "openapi3",
             "version": 2
           },
-          "method": "GET",
-          "orig": "/{year}/domain",
-          "segments": [
+          "m": "GET",
+          "o": "/{year}/domain",
+          "s": [
             {
               "var": "year"
             },
@@ -176,14 +176,14 @@
               "lit": "domain"
             }
           ],
-          "select": {
+          "q": {
             "exist": [
               "page",
               "page_size",
               "year"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body.items`"
           }
@@ -194,32 +194,32 @@
       "name": "load",
       "points": [
         {
-          "args": {
+          "g": {
             "params": [
               {
-                "kind": "param",
-                "name": "id",
-                "orig": "id",
-                "reqd": true,
-                "type": "`$STRING`"
+                "k": "param",
+                "n": "id",
+                "or": "id",
+                "r": true,
+                "t": "`$STRING`"
               },
               {
-                "kind": "param",
-                "name": "year",
-                "orig": "year",
-                "reqd": true,
-                "type": "`$INTEGER`"
+                "k": "param",
+                "n": "year",
+                "or": "year",
+                "r": true,
+                "t": "`$INTEGER`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "GET /{year}/domain/{id}",
             "source": "openapi3",
             "version": 2
           },
-          "method": "GET",
-          "orig": "/{year}/domain/{id}",
-          "segments": [
+          "m": "GET",
+          "o": "/{year}/domain/{id}",
+          "s": [
             {
               "var": "year"
             },
@@ -230,13 +230,13 @@
               "var": "id"
             }
           ],
-          "select": {
+          "q": {
             "exist": [
               "id",
               "year"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }
@@ -247,32 +247,32 @@
       "name": "update",
       "points": [
         {
-          "args": {
+          "g": {
             "params": [
               {
-                "kind": "param",
-                "name": "id",
-                "orig": "id",
-                "reqd": true,
-                "type": "`$STRING`"
+                "k": "param",
+                "n": "id",
+                "or": "id",
+                "r": true,
+                "t": "`$STRING`"
               },
               {
-                "kind": "param",
-                "name": "year",
-                "orig": "year",
-                "reqd": true,
-                "type": "`$INTEGER`"
+                "k": "param",
+                "n": "year",
+                "or": "year",
+                "r": true,
+                "t": "`$INTEGER`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "PATCH /{year}/domain/{id}",
             "source": "openapi3",
             "version": 2
           },
-          "method": "PATCH",
-          "orig": "/{year}/domain/{id}",
-          "segments": [
+          "m": "PATCH",
+          "o": "/{year}/domain/{id}",
+          "s": [
             {
               "var": "year"
             },
@@ -283,13 +283,13 @@
               "var": "id"
             }
           ],
-          "select": {
+          "q": {
             "exist": [
               "id",
               "year"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }

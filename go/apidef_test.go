@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -88,7 +89,12 @@ func TestOperationTransformPropagation(t *testing.T) {
 			t.Fatalf("missing op %q", name)
 		}
 		pt := op["points"].([]any)[0].(map[string]any)
-		tr := pt["transform"].(map[string]any)
+		for key := range pt {
+			if !strings.Contains("|a|k|m|o|s|g|q|r|t|co|li|gq|", "|"+key+"|") {
+				t.Errorf("unsupported operation point attribute: %s", key)
+			}
+		}
+		tr := pt["t"].(map[string]any)
 		if tr["res"] != want[0] || tr["req"] != want[1] {
 			t.Errorf("%s transform = {res:%v req:%v}, want {res:%q req:%q}",
 				name, tr["res"], tr["req"], want[0], want[1])
@@ -144,11 +150,11 @@ func TestOperationTransformVerbs(t *testing.T) {
 	}
 	first := pts[0].(map[string]any)
 	second := pts[1].(map[string]any)
-	if first["method"] != "PATCH" || first["orig"] != "/pulls/{id}" {
-		t.Errorf("first update point = %v %v, want PATCH /pulls/{id}", first["method"], first["orig"])
+	if first["m"] != "PATCH" || first["o"] != "/pulls/{id}" {
+		t.Errorf("first update point = %v %v, want PATCH /pulls/{id}", first["m"], first["o"])
 	}
-	if second["method"] != "PUT" || second["orig"] != "/pulls/{id}/merge" {
-		t.Errorf("second update point = %v %v, want PUT /pulls/{id}/merge", second["method"], second["orig"])
+	if second["m"] != "PUT" || second["o"] != "/pulls/{id}/merge" {
+		t.Errorf("second update point = %v %v, want PUT /pulls/{id}/merge", second["m"], second["o"])
 	}
 
 	hist := ctx.Warn.History()
@@ -656,7 +662,7 @@ func TestPointSegmentsEmitted(t *testing.T) {
 			return rerr
 		}
 		src := string(b)
-		nsegments += strings.Count(src, "segments:")
+		nsegments += len(regexp.MustCompile(`(?m)^\s*s:\s*\[`).FindAllString(src, -1))
 		nparts += strings.Count(src, "parts:")
 		if strings.Contains(src, "map[") {
 			t.Errorf("%s: Go map syntax leaked into aontu source", filepath.Base(p))
@@ -836,9 +842,9 @@ func TestFieldShortFromDescription(t *testing.T) {
 	}
 
 	mtarget := map[string]any{
-		"orig":   "/planets",
-		"method": "GET",
-		"kind":   "json",
+		"o": "/planets",
+		"m": "GET",
+		"k": "json",
 	}
 
 	byName := map[string]map[string]any{}
@@ -886,9 +892,9 @@ func TestFieldShortFromRequestBodyDescription(t *testing.T) {
 	}
 
 	mtarget := map[string]any{
-		"orig":   "/planets",
-		"method": "POST",
-		"kind":   "json",
+		"o": "/planets",
+		"m": "POST",
+		"k": "json",
 	}
 
 	byName := map[string]map[string]any{}
@@ -964,13 +970,13 @@ func TestFieldShortSurvivesMerge(t *testing.T) {
 							"load": map[string]any{
 								"name": "load",
 								"points": []any{map[string]any{
-									"orig": "/planets/{id}", "method": "GET", "kind": "json",
+									"o": "/planets/{id}", "m": "GET", "k": "json",
 								}},
 							},
 							"create": map[string]any{
 								"name": "create",
 								"points": []any{map[string]any{
-									"orig": "/planets", "method": "POST", "kind": "json",
+									"o": "/planets", "m": "POST", "k": "json",
 								}},
 							},
 						},
@@ -1028,7 +1034,7 @@ func TestFieldShortIsOneCappedLine(t *testing.T) {
 		},
 	}
 
-	mtarget := map[string]any{"orig": "/planets/{id}", "method": "GET", "kind": "json"}
+	mtarget := map[string]any{"o": "/planets/{id}", "m": "GET", "k": "json"}
 
 	byName := map[string]map[string]any{}
 	for _, f := range resolveOpFields(mtarget, def, "load", "planet") {
@@ -1082,8 +1088,8 @@ func TestArgsTransformNamelessParam(t *testing.T) {
 				"name": "kingdom",
 				"op": map[string]any{"load": map[string]any{
 					"points": []any{map[string]any{
-						"orig": path, "method": "GET",
-						"rename": map[string]any{}, "args": map[string]any{},
+						"o": path, "m": "GET",
+						"r": map[string]any{}, "g": map[string]any{},
 					}},
 				}},
 			}},
@@ -1100,13 +1106,13 @@ func TestArgsTransformNamelessParam(t *testing.T) {
 	opm := kingdom["op"].(map[string]any)
 	load := opm["load"].(map[string]any)
 	point := load["points"].([]any)[0].(map[string]any)
-	args := point["args"].(map[string]any)
+	args := point["g"].(map[string]any)
 
 	for _, kind := range []string{"params", "query", "header", "cookie"} {
 		list, _ := args[kind].([]any)
 		for _, a := range list {
 			am, _ := a.(map[string]any)
-			if safeStr(am["name"]) == "" {
+			if safeStr(am["n"]) == "" {
 				t.Errorf("nameless arg survived in %s: %v", kind, am)
 			}
 		}
@@ -1116,7 +1122,7 @@ func TestArgsTransformNamelessParam(t *testing.T) {
 	if len(params) != 1 {
 		t.Fatalf("params = %d, want 1 (year)", len(params))
 	}
-	if safeStr(params[0].(map[string]any)["name"]) != "year" {
+	if safeStr(params[0].(map[string]any)["n"]) != "year" {
 		t.Errorf("param = %v, want year", params[0])
 	}
 
@@ -1165,7 +1171,7 @@ func TestFieldSpecFactsFromResponse(t *testing.T) {
 		},
 	}
 
-	mtarget := map[string]any{"orig": "/planets/{id}", "method": "GET", "kind": "json"}
+	mtarget := map[string]any{"o": "/planets/{id}", "m": "GET", "k": "json"}
 
 	byName := map[string]map[string]any{}
 	for _, f := range resolveOpFields(mtarget, def, "load", "planet") {
@@ -1231,7 +1237,7 @@ func TestFieldSpecFactsFromRequestBody(t *testing.T) {
 		},
 	}
 
-	mtarget := map[string]any{"orig": "/planets", "method": "POST", "kind": "json"}
+	mtarget := map[string]any{"o": "/planets", "m": "POST", "k": "json"}
 
 	byName := map[string]map[string]any{}
 	for _, f := range resolveOpFields(mtarget, def, "create", "planet") {

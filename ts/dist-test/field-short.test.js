@@ -32,12 +32,12 @@ function fieldsByName(fields) {
                 // load comes first in opFieldPrecedence, and describes nothing.
                 load: {
                     name: 'load',
-                    points: [{ orig: '/planets/{id}', method: 'GET', kind: 'json' }],
+                    points: [{ o: '/planets/{id}', m: 'GET', k: 'json' }],
                 },
                 // create describes both.
                 create: {
                     name: 'create',
-                    points: [{ orig: '/planets', method: 'POST', kind: 'json' }],
+                    points: [{ o: '/planets', m: 'POST', k: 'json' }],
                 },
             },
         };
@@ -85,11 +85,11 @@ function fieldsByName(fields) {
             op: {
                 load: {
                     name: 'load',
-                    points: [{ orig: '/planets/{id}', method: 'GET', kind: 'json' }],
+                    points: [{ o: '/planets/{id}', m: 'GET', k: 'json' }],
                 },
                 list: {
                     name: 'list',
-                    points: [{ orig: '/planets', method: 'GET', kind: 'json' }],
+                    points: [{ o: '/planets', m: 'GET', k: 'json' }],
                 },
             },
         };
@@ -147,7 +147,7 @@ function fieldsByName(fields) {
             op: {
                 load: {
                     name: 'load',
-                    points: [{ kind: 'graphql', graphql: { entityType$: 'Planet' } }],
+                    points: [{ k: 'graphql', gq: { entityType$: 'Planet' } }],
                 },
             },
         };
@@ -188,7 +188,7 @@ function fieldsByName(fields) {
             op: {
                 load: {
                     name: 'load',
-                    points: [{ orig: '/planets/{id}', method: 'GET', kind: 'json' }],
+                    points: [{ o: '/planets/{id}', m: 'GET', k: 'json' }],
                 },
             },
         };

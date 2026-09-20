@@ -126,18 +126,18 @@ function resolveOp(opname, gent) {
             points: opdesc.paths.map((p) => {
                 const segments = p.segments;
                 const mpoint = {
-                    orig: p.orig,
-                    segments,
-                    rename: p.rename,
-                    method: p.method,
-                    args: {},
-                    transform: { ...(p.op?.transform ?? {}) },
-                    select: {
+                    o: p.orig,
+                    s: segments,
+                    r: p.rename,
+                    m: p.method,
+                    g: {},
+                    t: { ...(p.op?.transform ?? {}) },
+                    q: {
                         exist: []
                     }
                 };
-                mpoint.transform.req = mpoint.transform.req ?? '`reqdata`';
-                mpoint.transform.res = mpoint.transform.res ?? '`body`';
+                mpoint.t.req = mpoint.t.req ?? '`reqdata`';
+                mpoint.t.res = mpoint.t.res ?? '`body`';
                 return mpoint;
             })
         };

@@ -12,7 +12,7 @@ const selectTransform = async function (ctx) {
             (0, jostraca_1.each)(mop.points, (mpoint) => {
                 // GraphQL defs have no `paths`; the lookup is only passed through to
                 // an unused parameter, so skip it rather than dereference undefined.
-                const pdef = def.paths?.[mpoint.orig];
+                const pdef = def.paths?.[mpoint.o];
                 resolveSelect(guide, ment, mop, mpoint, pdef);
             });
             if (null != mop.points && 0 < mop.points.length) {
@@ -25,29 +25,29 @@ const selectTransform = async function (ctx) {
 };
 exports.selectTransform = selectTransform;
 function resolveSelect(guide, ment, _mop, mpoint, _pdef) {
-    const select = mpoint.select;
-    const margs = mpoint.args;
+    const select = mpoint.q;
+    const margs = mpoint.g;
     const argkinds = ['params', 'query', 'header', 'cookie'];
     // `exist` names values that must be PRESENT for this point to be chosen.
     // A GraphQL root field exposes its optional arguments (relay's first /
     // after, filters) as params, and requiring those for selection would make
     // list() unusable without supplying every pagination argument. Only
     // required arguments identify a point.
-    const reqdonly = 'graphql' === mpoint.kind;
+    const reqdonly = 'graphql' === mpoint.k;
     argkinds.map((kind) => {
         (0, jostraca_1.each)(margs[kind], (marg) => {
-            if (reqdonly && !marg.reqd) {
+            if (reqdonly && !marg.r) {
                 return;
             }
-            if (!select.exist.includes(marg.name)) {
-                select.exist.push(marg.name);
+            if (!select.exist.includes(marg.n)) {
+                select.exist.push(marg.n);
             }
         });
     });
     select.exist.sort();
     const gent = guide.entity[ment.name];
     // REST guides key entries by path, GraphQL guides by root field.
-    const gpath = gent.path?.[mpoint.orig] ?? gent.field?.[mpoint.orig];
+    const gpath = gent.path?.[mpoint.o] ?? gent.field?.[mpoint.o];
     if (null == gpath) {
         return;
     }
@@ -62,15 +62,15 @@ function sortPoints(_guide, _ment, mop) {
     // Cache joined exist strings to avoid recomputing on every comparison.
     const existCache = new Map();
     for (const pt of mop.points) {
-        existCache.set(pt, pt.select.exist.join('\t'));
+        existCache.set(pt, pt.q.exist.join('\t'));
     }
     mop.points.sort((a, b) => {
         // longest exist len first
-        let order = b.select.exist.length - a.select.exist.length;
+        let order = b.q.exist.length - a.q.exist.length;
         if (0 === order) {
-            if (null != a.select.$action && null != b.select.$action) {
-                order = a.select.$action < b.select.$action ? -1 :
-                    a.select.$action > b.select.$action ? 1 : 0;
+            if (null != a.q.$action && null != b.q.$action) {
+                order = a.q.$action < b.q.$action ? -1 :
+                    a.q.$action > b.q.$action ? 1 : 0;
             }
             if (0 === order) {
                 const a_exist_str = existCache.get(a);

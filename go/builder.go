@@ -98,6 +98,26 @@ func entityBuilder(ctx *ApiDefContext) {
 func stripEntityDefaults(entity any) any {
 	clean := stripKeys(entity, "active")
 	if ent, ok := clean.(map[string]any); ok {
+		op, _ := ent["op"].(map[string]any)
+		for _, value := range op {
+			operation, _ := value.(map[string]any)
+			points, _ := operation["points"].([]any)
+			for _, value := range points {
+				point, _ := value.(map[string]any)
+				if point["a"] == true {
+					delete(point, "a")
+				}
+				args, _ := point["g"].(map[string]any)
+				for _, value := range args {
+					list, _ := value.([]any)
+					for _, value := range list {
+						if arg, ok := value.(map[string]any); ok && arg["a"] == true {
+							delete(arg, "a")
+						}
+					}
+				}
+			}
+		}
 		source := entity.(map[string]any)
 		fields, ok := source["fields"].(map[string]any)
 		if !ok {

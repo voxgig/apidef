@@ -275,12 +275,12 @@ func addressedById(mentMap map[string]any) bool {
 			if ptMap == nil {
 				continue
 			}
-			args, _ := ptMap["args"].(map[string]any)
+			args, _ := ptMap["g"].(map[string]any)
 			if args == nil {
 				continue
 			}
 			for _, p := range argsParamList(args["params"]) {
-				if n, _ := p["name"].(string); "id" == n {
+				if n, _ := p["n"].(string); "id" == n {
 					return true
 				}
 			}
@@ -401,11 +401,11 @@ func compositeIdFrom(
 // pipeline produces: []map[string]any from OperationTransform, and []any from
 // the guide-derived descriptors.
 func pointSegmentMaps(point map[string]any) []map[string]any {
-	if typed, ok := point["segments"].([]map[string]any); ok {
+	if typed, ok := point["s"].([]map[string]any); ok {
 		return typed
 	}
 
-	loose, _ := point["segments"].([]any)
+	loose, _ := point["s"].([]any)
 	out := make([]map[string]any, 0, len(loose))
 	for _, seg := range loose {
 		if segMap, _ := seg.(map[string]any); segMap != nil {
@@ -452,7 +452,7 @@ func identityParams(mentMap map[string]any) []string {
 				continue
 			}
 			// Action points are verbs dispatched by `$action`, not addresses.
-			if sel, ok := ptMap["select"].(map[string]any); ok && sel != nil {
+			if sel, ok := ptMap["q"].(map[string]any); ok && sel != nil {
 				if _, has := sel["$action"]; has {
 					continue
 				}
@@ -608,12 +608,12 @@ func findFieldDefs(mtarget map[string]any, def map[string]any, opname string, en
 
 	// A verb, rather than an address: see the call site in FieldTransform.
 	isAction := false
-	if sel, ok := mtarget["select"].(map[string]any); ok && sel != nil {
+	if sel, ok := mtarget["q"].(map[string]any); ok && sel != nil {
 		_, isAction = sel["$action"]
 	}
 	defPaths, _ := def["paths"].(map[string]any)
-	orig, _ := mtarget["orig"].(string)
-	method, _ := mtarget["method"].(string)
+	orig, _ := mtarget["o"].(string)
+	method, _ := mtarget["m"].(string)
 
 	pathdef, _ := defPaths[orig].(map[string]any)
 	if pathdef == nil {
@@ -1101,7 +1101,7 @@ func partAliases(mentMap map[string]any, part string) []string {
 				continue
 			}
 
-			if rename, ok := ptMap["rename"].(map[string]any); ok {
+			if rename, ok := ptMap["r"].(map[string]any); ok {
 				if param, ok := rename["param"].(map[string]any); ok {
 					for _, orig := range sortedKeys(param) {
 						if to, _ := param[orig].(string); to == part {
@@ -1111,10 +1111,10 @@ func partAliases(mentMap map[string]any, part string) []string {
 				}
 			}
 
-			if args, ok := ptMap["args"].(map[string]any); ok {
+			if args, ok := ptMap["g"].(map[string]any); ok {
 				for _, p := range argsParamList(args["params"]) {
-					if n, _ := p["name"].(string); n == part {
-						if o, _ := p["orig"].(string); "" != o {
+					if n, _ := p["n"].(string); n == part {
+						if o, _ := p["or"].(string); "" != o {
 							add(o)
 						}
 					}
@@ -1299,18 +1299,18 @@ func responseCandidates(mentMap map[string]any, def map[string]any) []map[string
 			if ptMap == nil {
 				continue
 			}
-			if sel, ok := ptMap["select"].(map[string]any); ok && sel != nil {
+			if sel, ok := ptMap["q"].(map[string]any); ok && sel != nil {
 				if _, has := sel["$action"]; has {
 					continue
 				}
 			}
 
-			orig, _ := ptMap["orig"].(string)
+			orig, _ := ptMap["o"].(string)
 			path, _ := paths[orig].(map[string]any)
 			if path == nil {
 				continue
 			}
-			method, _ := path[strings.ToLower(fmt.Sprint(ptMap["method"]))].(map[string]any)
+			method, _ := path[strings.ToLower(fmt.Sprint(ptMap["m"]))].(map[string]any)
 			if method == nil {
 				continue
 			}

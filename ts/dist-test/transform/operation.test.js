@@ -70,7 +70,7 @@ function makeCtx(entname, op) {
         const ops = ctx.apimodel.main[types_1.KIT].entity.pull.op;
         node_assert_1.default.strictEqual(ops.patch, undefined);
         node_assert_1.default.strictEqual(ops.update.name, 'update');
-        node_assert_1.default.deepStrictEqual(ops.update.points.map((p) => [p.method, p.orig]), [
+        node_assert_1.default.deepStrictEqual(ops.update.points.map((p) => [p.m, p.o]), [
             ['PATCH', '/pulls/{id}'],
             ['PUT', '/pulls/{id}/merge'],
         ]);
@@ -79,8 +79,8 @@ function makeCtx(entname, op) {
         const ctx = makeCtx('pull', { patch: { method: 'PATCH' }, update: { method: 'PUT' } });
         await (0, operation_1.operationTransform)(ctx);
         const ops = ctx.apimodel.main[types_1.KIT].entity.pull.op;
-        node_assert_1.default.strictEqual(ops.update.points[0].method, 'PUT');
-        node_assert_1.default.strictEqual(ops.patch.points[0].method, 'PATCH');
+        node_assert_1.default.strictEqual(ops.update.points[0].m, 'PUT');
+        node_assert_1.default.strictEqual(ops.patch.points[0].m, 'PATCH');
     });
 });
 (0, node_test_1.describe)('transform-operation transform propagation', () => {
@@ -91,8 +91,8 @@ function makeCtx(entname, op) {
         });
         await (0, operation_1.operationTransform)(ctx);
         const pt = ctx.apimodel.main[types_1.KIT].entity.pet.op.list.points[0];
-        node_assert_1.default.strictEqual(pt.transform.res, '`body.pet`');
-        node_assert_1.default.strictEqual(pt.transform.req, '`reqdata`'); // req absent -> default
+        node_assert_1.default.strictEqual(pt.t.res, '`body.pet`');
+        node_assert_1.default.strictEqual(pt.t.req, '`reqdata`'); // req absent -> default
     });
     (0, node_test_1.test)('falls back to generic defaults when the op has no transform', async () => {
         const ctx = makeCtx('thing', {
@@ -100,8 +100,8 @@ function makeCtx(entname, op) {
         });
         await (0, operation_1.operationTransform)(ctx);
         const pt = ctx.apimodel.main[types_1.KIT].entity.thing.op.create.points[0];
-        node_assert_1.default.strictEqual(pt.transform.res, '`body`');
-        node_assert_1.default.strictEqual(pt.transform.req, '`reqdata`');
+        node_assert_1.default.strictEqual(pt.t.res, '`body`');
+        node_assert_1.default.strictEqual(pt.t.req, '`reqdata`');
     });
     (0, node_test_1.test)('does not mutate the shared guide op.transform across points', async () => {
         const sharedOp = { method: 'GET', transform: { res: '`body.pet`' } };

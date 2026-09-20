@@ -124,43 +124,43 @@ async function buildGraphql(step) {
         node_assert_1.default.equal(bres.ok, true);
         const ops = bres.apimodel.main.kit.entity.issue.op;
         const load = ops.load.points[0];
-        node_assert_1.default.equal(load.kind, 'graphql');
-        node_assert_1.default.equal(load.method, 'POST');
-        node_assert_1.default.deepStrictEqual(load.segments, undefined);
-        node_assert_1.default.equal(load.graphql.optype, 'query');
-        node_assert_1.default.equal(load.graphql.field, 'issue');
-        node_assert_1.default.equal(load.graphql.doc, 'query IssueLoad($id: String!) { issue(id: $id) { ...IssueFields } }' +
+        node_assert_1.default.equal(load.k, 'graphql');
+        node_assert_1.default.equal(load.m, 'POST');
+        node_assert_1.default.deepStrictEqual(load.s, undefined);
+        node_assert_1.default.equal(load.gq.optype, 'query');
+        node_assert_1.default.equal(load.gq.field, 'issue');
+        node_assert_1.default.equal(load.gq.doc, 'query IssueLoad($id: String!) { issue(id: $id) { ...IssueFields } }' +
             ' fragment IssueFields on Issue' +
             ' { archivedAt createdAt id identifier priority team { id } title }');
-        node_assert_1.default.equal(load.transform.res, '`body.data.issue`');
-        node_assert_1.default.deepStrictEqual(load.graphql.vars, [
+        node_assert_1.default.equal(load.t.res, '`body.data.issue`');
+        node_assert_1.default.deepStrictEqual(load.gq.vars, [
             { name: 'id', from: 'id', gqltype: 'String!' },
         ]);
-        node_assert_1.default.ok(!load.graphql.doc.includes('\n'));
+        node_assert_1.default.ok(!load.gq.doc.includes('\n'));
         const list = ops.list.points[0];
-        node_assert_1.default.equal(list.transform.res, '`body.data.issues.nodes`');
-        node_assert_1.default.deepStrictEqual(list.graphql.page, {
+        node_assert_1.default.equal(list.t.res, '`body.data.issues.nodes`');
+        node_assert_1.default.deepStrictEqual(list.gq.page, {
             style: 'relay',
             nodes: 'nodes',
             cursor: 'pageInfo.endCursor',
             more: 'pageInfo.hasNextPage',
         });
-        node_assert_1.default.ok(list.graphql.doc.includes('pageInfo { endCursor hasNextPage }'));
+        node_assert_1.default.ok(list.gq.doc.includes('pageInfo { endCursor hasNextPage }'));
         // `exist` names values that must be present for a point to be selected.
         // Relay's optional first/after must NOT appear, or list() would demand
         // every pagination argument before it could be chosen.
-        node_assert_1.default.deepStrictEqual(list.select?.exist, undefined);
+        node_assert_1.default.deepStrictEqual(list.q?.exist, undefined);
         const create = ops.create.points[0];
-        node_assert_1.default.equal(create.graphql.optype, 'mutation');
-        node_assert_1.default.equal(create.transform.res, '`body.data.issueCreate.issue`');
+        node_assert_1.default.equal(create.gq.optype, 'mutation');
+        node_assert_1.default.equal(create.t.res, '`body.data.issueCreate.issue`');
         // The command mutation is a second point on update, selected at runtime
         // by $action (the mechanism REST action paths already use).
         const updatePoints = ops.update.points;
         node_assert_1.default.equal(updatePoints.length, 2);
-        const archive = updatePoints.find((p) => 'archive' === p.select?.$action);
+        const archive = updatePoints.find((p) => 'archive' === p.q?.$action);
         node_assert_1.default.ok(null != archive, 'archive action point');
-        node_assert_1.default.equal(archive.graphql.field, 'issueArchive');
-        node_assert_1.default.equal(archive.transform.res, '`body.data.issueArchive.issue`');
+        node_assert_1.default.equal(archive.gq.field, 'issueArchive');
+        node_assert_1.default.equal(archive.t.res, '`body.data.issueArchive.issue`');
     });
     // A GraphQL schema declares no auth and no server URL; both come from
     // build options, and the no-auth signal must NOT be emitted just because
@@ -185,10 +185,10 @@ async function buildGraphql(step) {
         const out = new aontu_1.Aontu().generate(src, { path: modelpath, errs });
         node_assert_1.default.deepStrictEqual(errs.map((e) => String(e).split('\n')[0]), [], 'emitted GraphQL model must unify against model/apidef.aon');
         const point = out.main.kit.entity.issue.op.load.points[0];
-        node_assert_1.default.equal(point.kind, 'graphql');
-        node_assert_1.default.equal(point.method, 'POST');
-        node_assert_1.default.deepStrictEqual(point.segments, []);
-        node_assert_1.default.ok(point.graphql.doc.startsWith('query IssueLoad'));
+        node_assert_1.default.equal(point.k, 'graphql');
+        node_assert_1.default.equal(point.m, 'POST');
+        node_assert_1.default.deepStrictEqual(point.s, []);
+        node_assert_1.default.ok(point.gq.doc.startsWith('query IssueLoad'));
     });
 });
 (0, node_test_1.describe)('graphql-retshape', () => {
@@ -300,11 +300,11 @@ async function buildGraphql(step) {
         const remove = bres.apimodel.main.kit.entity.comment.op.remove;
         node_assert_1.default.ok(null != remove, 'comment gains remove from commentDelete');
         const point = remove.points[0];
-        node_assert_1.default.equal(point.graphql.doc, 'mutation CommentRemove($id: String!)' +
+        node_assert_1.default.equal(point.gq.doc, 'mutation CommentRemove($id: String!)' +
             ' { commentDelete(id: $id) { entityId success } }');
-        node_assert_1.default.ok(!point.graphql.doc.includes('fragment'));
-        node_assert_1.default.ok(!point.graphql.doc.includes('{ id }'));
-        node_assert_1.default.equal(point.transform.res, '`body.data.commentDelete`');
+        node_assert_1.default.ok(!point.gq.doc.includes('fragment'));
+        node_assert_1.default.ok(!point.gq.doc.includes('{ id }'));
+        node_assert_1.default.equal(point.t.res, '`body.data.commentDelete`');
     });
 });
 //# sourceMappingURL=graphql.test.js.map

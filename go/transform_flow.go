@@ -194,7 +194,7 @@ func fillStepMatchFromParams(step, point, input map[string]any, useEntNameForId 
 	if point == nil {
 		return
 	}
-	args, _ := point["args"].(map[string]any)
+	args, _ := point["g"].(map[string]any)
 	if args == nil {
 		return
 	}
@@ -209,7 +209,7 @@ func fillStepMatchFromParams(step, point, input map[string]any, useEntNameForId 
 		if pm == nil {
 			continue
 		}
-		name, _ := pm["name"].(string)
+		name, _ := pm["n"].(string)
 		if step["op"] == "create" && name == "id" {
 			continue
 		}
@@ -225,13 +225,13 @@ func fillStepMatchFromParams(step, point, input map[string]any, useEntNameForId 
 	}
 }
 
-// fillStepDataFromParams writes step.data[param.name] (used by updateStep).
+// fillStepDataFromParams writes step.data[param.n] (used by updateStep).
 // For id param, uses input.id ?? ent.name + "01".
 func fillStepDataFromParams(step, point, input map[string]any, entname string) {
 	if point == nil {
 		return
 	}
-	args, _ := point["args"].(map[string]any)
+	args, _ := point["g"].(map[string]any)
 	if args == nil {
 		return
 	}
@@ -246,7 +246,7 @@ func fillStepDataFromParams(step, point, input map[string]any, entname string) {
 		if pm == nil {
 			continue
 		}
-		name, _ := pm["name"].(string)
+		name, _ := pm["n"].(string)
 		if name == "id" {
 			if v, ok := lookupInput(input, "id"); ok {
 				data["id"] = v
@@ -260,7 +260,7 @@ func fillStepDataFromParams(step, point, input map[string]any, entname string) {
 }
 
 // flowParamValue returns input[name] if present, else name with `_id`
-// removed plus `01` (mirrors TS: param.name.replace(/_id/, ”) + '01').
+// removed plus `01` (mirrors TS: param.n.replace(/_id/, ”) + '01').
 func flowParamValue(name string, input map[string]any) any {
 	if v, ok := lookupInput(input, name); ok {
 		return v

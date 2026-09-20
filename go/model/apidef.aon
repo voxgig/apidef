@@ -56,67 +56,7 @@ main: kit: entity: &: {
     name: string
     input: *'data'
 
-    points: [ &: {
-      contract?: { version: 2, id: string, source: string }
-      live?: boolean | {}
-
-      active: *true
-
-      kind: *'http' | 'graphql'
-
-      method: GET | PUT | POST | DELETE | PATCH | OPTIONS | HEAD
-
-      orig: string
-
-      segments: [ &: {
-        lit?: string
-        var?: string
-      } ]
-
-
-      graphql?: {
-        optype: 'query' | 'mutation'
-        field: string
-        doc: string
-        vars: [ &: {
-          name: string
-          from: string
-          gqltype: string
-        } ]
-        page?: {
-          style: string
-          nodes: string
-          cursor: string
-          more: string
-        }
-      }
-
-      # Every arg kind is one shape plus its own `kind` tag.
-      args: {
-        &: [ &: %point-args ]
-        params?: [ &: {
-          kind: 'param'
-        }]
-        query?: [ &: {
-          kind: 'query'
-        } ]
-        header?: [ &: {
-          kind: 'header'
-        } ]
-        cookie?: [ &: {
-          kind: 'cookie'
-        } ]
-      }
-
-      select: {
-        param?: {}
-        query?: {}
-        header?: {}
-        cookie?: {}
-        '$action'?: string
-      }
-
-    } ]
+    points: [ &: %op-points ]
   }
 }
 
@@ -142,6 +82,44 @@ main: kit: flow: &: {
 
 
 main: kit: type: type({
+  op-points: %op-points = {
+    a: *true
+    k: *'http' | 'graphql'
+    m: GET | PUT | POST | DELETE | PATCH | OPTIONS | HEAD | QUERY
+    o: string
+
+    s: [ &: { lit?: string, var?: string } ]
+    r: { param?: {}, query?: {}, header?: {}, cookie?: {} }
+    t: { req?: top, res?: top }
+
+    # Every arg kind is one shape plus its own `k` tag.
+    g: {
+      &: [ &: %point-args ]
+      params?: [ &: { k: 'param' } ]
+      query?: [ &: { k: 'query' } ]
+      header?: [ &: { k: 'header' } ]
+      cookie?: [ &: { k: 'cookie' } ]
+    }
+
+    q: {
+      param?: {}
+      query?: {}
+      header?: {}
+      cookie?: {}
+      '$action'?: string
+    }
+
+    co?: { version: 2, id: string, source: string }
+    li?: boolean | {}
+    gq?: {
+      optype: 'query' | 'mutation'
+      field: string
+      doc: string
+      vars: [ &: { name: string, from: string, gqltype: string } ]
+      page?: { style: string, nodes: string, cursor: string, more: string }
+    }
+  }
+
   entity-field: %entity-field = {
     n: key()
     h: string
@@ -158,12 +136,12 @@ main: kit: type: type({
   }
 
   point-args: %point-args = {
-    active: *true
-    kind: string
-    name: string
-    orig?: string
-    reqd: boolean
-    type: top
-    example?: top
+    a: *true
+    k: string
+    n: string
+    or?: string
+    r: boolean
+    t: top
+    ex?: top
   }
 })

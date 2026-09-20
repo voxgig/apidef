@@ -14,8 +14,8 @@ type ResolvedSpec = {
     operation(method: string, path: string, selector?: OperationSelector): OperationFacts | undefined;
 };
 declare function operationFacts(def: any, point: {
-    method: string;
-    orig: string;
+    m: string;
+    o: string;
 }): OperationFacts | undefined;
 declare function operationIndex(def: any): {
     [id: string]: OperationFacts;

@@ -42,12 +42,12 @@ main: kit: entity: comment: {
       name: "create"
       points: [
         {
-          contract: {
+          co: {
             id: "POST commentCreate"
             source: "graphql"
             version: 2
           }
-          graphql: {
+          gq: {
             doc: "mutation CommentCreate($input: CommentCreateInput!) { commentCreate(input: $input) { comment { ...CommentFields } success } } fragment CommentFields on Comment { body createdAt id issue { id } }"
             field: "commentCreate"
             optype: "mutation"
@@ -59,10 +59,10 @@ main: kit: entity: comment: {
               }
             ]
           }
-          kind: "graphql"
-          method: "POST"
-          orig: "commentCreate"
-          transform: {
+          k: "graphql"
+          m: "POST"
+          o: "commentCreate"
+          t: {
             req: "`reqdata`"
             res: "`body.data.commentCreate.comment`"
           }
@@ -73,23 +73,23 @@ main: kit: entity: comment: {
       name: "remove"
       points: [
         {
-          args: {
-            params: [
-              {
-                kind: "param"
-                name: "id"
-                orig: "id"
-                reqd: true
-                type: "`$STRING`"
-              }
-            ]
-          }
-          contract: {
+          co: {
             id: "POST commentDelete"
             source: "graphql"
             version: 2
           }
-          graphql: {
+          g: {
+            params: [
+              {
+                k: "param"
+                n: "id"
+                or: "id"
+                r: true
+                t: "`$STRING`"
+              }
+            ]
+          }
+          gq: {
             doc: "mutation CommentRemove($id: String!) { commentDelete(id: $id) { entityId success } }"
             field: "commentDelete"
             optype: "mutation"
@@ -101,15 +101,15 @@ main: kit: entity: comment: {
               }
             ]
           }
-          kind: "graphql"
-          method: "POST"
-          orig: "commentDelete"
-          select: {
+          k: "graphql"
+          m: "POST"
+          o: "commentDelete"
+          q: {
             exist: [
               "id"
             ]
           }
-          transform: {
+          t: {
             req: "`reqdata`"
             res: "`body.data.commentDelete`"
           }

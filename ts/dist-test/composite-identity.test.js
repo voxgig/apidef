@@ -17,9 +17,9 @@ function entity(name, path, fields = [], guide) {
         op: {
             load: {
                 points: [{
-                        orig: '/' + path.join('/'),
-                        method: 'GET',
-                        segments: seg(...path),
+                        o: '/' + path.join('/'),
+                        m: 'GET',
+                        s: seg(...path),
                     }],
             },
         },
@@ -47,9 +47,9 @@ async function runPoints(name, paths, model) {
         op: {
             load: {
                 points: paths.map((path) => ({
-                    orig: '/' + path.join('/'),
-                    method: 'GET',
-                    segments: seg(...path),
+                    o: '/' + path.join('/'),
+                    m: 'GET',
+                    s: seg(...path),
                 })),
             },
         },
@@ -172,9 +172,9 @@ async function runPoints(name, paths, model) {
                 op: {
                     load: {
                         points: [{
-                                orig: '/' + path.join('/'),
-                                method: 'GET',
-                                segments: seg(...path),
+                                o: '/' + path.join('/'),
+                                m: 'GET',
+                                s: seg(...path),
                             }],
                     },
                 },

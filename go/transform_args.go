@@ -36,8 +36,8 @@ func ArgsTransform(ctx *ApiDefContext) (*TransformResult, error) {
 					continue
 				}
 
-				orig, _ := mtarget["orig"].(string)
-				method, _ := mtarget["method"].(string)
+				orig, _ := mtarget["o"].(string)
+				method, _ := mtarget["m"].(string)
 
 				var argdefs []map[string]any
 
@@ -83,11 +83,11 @@ func resolveArgs(
 	ctx *ApiDefContext, entname string, opname string,
 	mtarget map[string]any, argdefs []map[string]any,
 ) {
-	rename, _ := mtarget["rename"].(map[string]any)
-	args, _ := mtarget["args"].(map[string]any)
+	rename, _ := mtarget["r"].(map[string]any)
+	args, _ := mtarget["g"].(map[string]any)
 	if args == nil {
 		args = map[string]any{}
-		mtarget["args"] = args
+		mtarget["g"] = args
 	}
 
 	for _, argdef := range argdefs {
@@ -110,9 +110,9 @@ func resolveArgs(
 					"note": fmt.Sprintf(
 						"Parameter with no name on entity=%s op=%s path=%s is dropped%s"+
 							" A parameter needs a `name`, or a reference that resolves to one.",
-						entname, opname, safeStr(mtarget["orig"]), detail),
+						entname, opname, safeStr(mtarget["o"]), detail),
 					"entity": entname,
-					"path":   mtarget["orig"],
+					"path":   mtarget["o"],
 					"op":     opname,
 				})
 			}
@@ -148,16 +148,16 @@ func resolveArgs(
 		}
 
 		marg := map[string]any{
-			"name":   name,
-			"orig":   orig,
-			"type":   fieldType,
-			"kind":   kind,
-			"reqd":   toBool(argdef["required"]),
-			"active": true,
+			"n":  name,
+			"or": orig,
+			"t":  fieldType,
+			"k":  kind,
+			"r":  toBool(argdef["required"]),
+			"a":  true,
 		}
 
 		if example, has := resolveArgExample(argdef); has {
-			marg["example"] = example
+			marg["ex"] = example
 		}
 
 		argsKey := kind
@@ -172,8 +172,8 @@ func resolveArgs(
 		sort.Slice(kindargs, func(i, j int) bool {
 			ai, _ := kindargs[i].(map[string]any)
 			aj, _ := kindargs[j].(map[string]any)
-			ni, _ := ai["name"].(string)
-			nj, _ := aj["name"].(string)
+			ni, _ := ai["n"].(string)
+			nj, _ := aj["n"].(string)
 			return ni < nj
 		})
 

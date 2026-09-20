@@ -6,6 +6,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const node_test_1 = require("node:test");
 const node_assert_1 = __importDefault(require("node:assert"));
+const node_fs_1 = require("node:fs");
+const node_path_1 = __importDefault(require("node:path"));
 const args_1 = require("../../dist/transform/args");
 const types_1 = require("../../dist/types");
 // A minimal ctx: one entity with one load point on `path`, and a def whose
@@ -22,7 +24,7 @@ function makeCtx(path, parameters) {
                                 load: {
                                     name: 'load',
                                     points: [
-                                        { orig: path, method: 'GET', rename: {}, args: {} },
+                                        { o: path, m: 'GET', r: {}, g: {} },
                                     ],
                                 },
                             },
@@ -41,7 +43,7 @@ function makeCtx(path, parameters) {
 }
 function allargs(ctx) {
     const point = ctx.apimodel.main[types_1.KIT].entity.kingdom.op.load.points[0];
-    return [].concat(point.args.params ?? [], point.args.query ?? [], point.args.header ?? [], point.args.cookie ?? []);
+    return [].concat(point.g.params ?? [], point.g.query ?? [], point.g.header ?? [], point.g.cookie ?? []);
 }
 (0, node_test_1.describe)('transform-args nameless parameters', () => {
     (0, node_test_1.test)('drops a dangling $ref parameter and names it in the warning', async () => {
@@ -53,8 +55,8 @@ function allargs(ctx) {
         ctx.warn = (w) => warnings.push(w);
         await (0, args_1.argsTransform)(ctx);
         const args = allargs(ctx);
-        node_assert_1.default.deepStrictEqual(args.map((a) => a.name), ['year']);
-        node_assert_1.default.strictEqual(args.filter((a) => '' === a.name).length, 0);
+        node_assert_1.default.deepStrictEqual(args.map((a) => a.n), ['year']);
+        node_assert_1.default.strictEqual(args.filter((a) => '' === a.n).length, 0);
         node_assert_1.default.strictEqual(warnings.length, 1);
         node_assert_1.default.strictEqual(warnings[0].entity, 'kingdom');
         node_assert_1.default.strictEqual(warnings[0].op, 'load');
@@ -87,8 +89,16 @@ function allargs(ctx) {
         ctx.warn = () => { };
         await (0, args_1.argsTransform)(ctx);
         const point = ctx.apimodel.main[types_1.KIT].entity.kingdom.op.load.points[0];
-        node_assert_1.default.deepStrictEqual(point.args.query.map((a) => a.name), ['page']);
-        node_assert_1.default.deepStrictEqual(point.args.header.map((a) => a.name), ['x_trace']);
+        node_assert_1.default.deepStrictEqual(point.g.query.map((a) => a.n), ['page']);
+        node_assert_1.default.deepStrictEqual(point.g.header.map((a) => a.n), ['x_trace']);
     });
+});
+(0, node_test_1.test)('compact point arguments preserve renames, order, nullable types and examples', async () => {
+    const fixture = JSON.parse((0, node_fs_1.readFileSync)(node_path_1.default.join(__dirname, '../../test/point-args.json'), 'utf8'));
+    const ctx = makeCtx('/pets/{petId}', fixture.parameters);
+    const point = ctx.apimodel.main[types_1.KIT].entity.kingdom.op.load.points[0];
+    point.r = fixture.rename;
+    await (0, args_1.argsTransform)(ctx);
+    node_assert_1.default.deepStrictEqual(point.g, fixture.expected);
 });
 //# sourceMappingURL=args.test.js.map

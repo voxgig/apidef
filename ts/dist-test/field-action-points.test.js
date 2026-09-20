@@ -41,21 +41,21 @@ function planetWithActions() {
                 load: {
                     name: 'load',
                     points: [
-                        { orig: '/api/planet/{id}', method: 'GET', kind: 'json' },
+                        { o: '/api/planet/{id}', m: 'GET', k: 'json' },
                     ],
                 },
                 create: {
                     name: 'create',
                     points: [
                         {
-                            orig: '/api/planet/{id}/forbid', method: 'POST', kind: 'json',
-                            select: { $action: 'forbid', exist: ['id'] },
+                            o: '/api/planet/{id}/forbid', m: 'POST', k: 'json',
+                            q: { $action: 'forbid', exist: ['id'] },
                         },
                         {
-                            orig: '/api/planet/{id}/terraform', method: 'POST', kind: 'json',
-                            select: { $action: 'terraform', exist: ['id'] },
+                            o: '/api/planet/{id}/terraform', m: 'POST', k: 'json',
+                            q: { $action: 'terraform', exist: ['id'] },
                         },
-                        { orig: '/api/planet', method: 'POST', kind: 'json' },
+                        { o: '/api/planet', m: 'POST', k: 'json' },
                     ],
                 },
             },
@@ -141,10 +141,10 @@ function installmentByAction(withBody = false) {
                     name: 'list',
                     points: [
                         {
-                            orig: '/v2/installments/active',
-                            method: withBody ? 'POST' : 'GET',
-                            kind: 'json',
-                            select: { $action: 'active', exist: [] },
+                            o: '/v2/installments/active',
+                            m: withBody ? 'POST' : 'GET',
+                            k: 'json',
+                            q: { $action: 'active', exist: [] },
                         },
                     ],
                 },
@@ -166,11 +166,11 @@ function commitByMutation() {
                     name: 'create',
                     points: [
                         {
-                            orig: 'createCommitOnBranch',
-                            method: 'POST',
-                            kind: 'graphql',
-                            graphql: { entityType$: 'Commit' },
-                            select: { $action: 'create_commit_on_branch', exist: [] },
+                            o: 'createCommitOnBranch',
+                            m: 'POST',
+                            k: 'graphql',
+                            gq: { entityType$: 'Commit' },
+                            q: { $action: 'create_commit_on_branch', exist: [] },
                         },
                     ],
                 },
@@ -218,7 +218,7 @@ function commitByMutation() {
     (0, node_test_1.test)('an entity without actions is unaffected', async () => {
         const { entity, def } = planetWithActions();
         entity.op.create.points = [
-            { orig: '/api/planet', method: 'POST', kind: 'json' },
+            { o: '/api/planet', m: 'POST', k: 'json' },
         ];
         const fields = await runFieldTransform(entity, def);
         node_assert_1.default.deepStrictEqual(names(fields), ['diameter', 'id', 'kind', 'name']);

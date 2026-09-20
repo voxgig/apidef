@@ -49,46 +49,46 @@
       "name": "create",
       "points": [
         {
-          "args": {
+          "g": {
             "params": [
               {
-                "kind": "param",
-                "name": "id",
-                "orig": "pet_id",
-                "reqd": true,
-                "type": "`$STRING`"
+                "k": "param",
+                "n": "id",
+                "or": "pet_id",
+                "r": true,
+                "t": "`$STRING`"
               }
             ],
             "query": [
               {
-                "kind": "query",
-                "name": "additional_metadata",
-                "orig": "additional_metadata",
-                "reqd": false,
-                "type": "`$ANY`"
+                "k": "query",
+                "n": "additional_metadata",
+                "or": "additional_metadata",
+                "r": false,
+                "t": "`$ANY`"
               },
               {
-                "kind": "query",
-                "name": "file",
-                "orig": "file",
-                "reqd": false,
-                "type": "`$ANY`"
+                "k": "query",
+                "n": "file",
+                "or": "file",
+                "r": false,
+                "t": "`$ANY`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "POST /pet/{petId}/uploadImage",
             "source": "swagger2",
             "version": 2
           },
-          "method": "POST",
-          "orig": "/pet/{petId}/uploadImage",
-          "rename": {
+          "m": "POST",
+          "o": "/pet/{petId}/uploadImage",
+          "r": {
             "param": {
               "petId": "id"
             }
           },
-          "segments": [
+          "s": [
             {
               "lit": "pet"
             },
@@ -99,7 +99,7 @@
               "lit": "uploadImage"
             }
           ],
-          "select": {
+          "q": {
             "$action": "upload_image",
             "exist": [
               "additional_metadata",
@@ -107,52 +107,52 @@
               "id"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }
         },
         {
-          "args": {
+          "g": {
             "params": [
               {
-                "kind": "param",
-                "name": "id",
-                "orig": "pet_id",
-                "reqd": true,
-                "type": "`$STRING`"
+                "k": "param",
+                "n": "id",
+                "or": "pet_id",
+                "r": true,
+                "t": "`$STRING`"
               }
             ],
             "query": [
               {
-                "kind": "query",
-                "name": "name",
-                "orig": "name",
-                "reqd": false,
-                "type": "`$STRING`"
+                "k": "query",
+                "n": "name",
+                "or": "name",
+                "r": false,
+                "t": "`$STRING`"
               },
               {
-                "kind": "query",
-                "name": "status",
-                "orig": "status",
-                "reqd": false,
-                "type": "`$ANY`"
+                "k": "query",
+                "n": "status",
+                "or": "status",
+                "r": false,
+                "t": "`$ANY`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "POST /pet/{petId}",
             "source": "swagger2",
             "version": 2
           },
-          "method": "POST",
-          "orig": "/pet/{petId}",
-          "rename": {
+          "m": "POST",
+          "o": "/pet/{petId}",
+          "r": {
             "param": {
               "petId": "id"
             }
           },
-          "segments": [
+          "s": [
             {
               "lit": "pet"
             },
@@ -160,48 +160,48 @@
               "var": "id"
             }
           ],
-          "select": {
+          "q": {
             "exist": [
               "id",
               "name",
               "status"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }
         },
         {
-          "args": {
+          "g": {
             "query": [
               {
-                "kind": "query",
-                "name": "body",
-                "orig": "body",
-                "reqd": true,
-                "type": "`$OBJECT`"
+                "k": "query",
+                "n": "body",
+                "or": "body",
+                "r": true,
+                "t": "`$OBJECT`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "POST /pet",
             "source": "swagger2",
             "version": 2
           },
-          "method": "POST",
-          "orig": "/pet",
-          "segments": [
+          "m": "POST",
+          "o": "/pet",
+          "s": [
             {
               "lit": "pet"
             }
           ],
-          "select": {
+          "q": {
             "exist": [
               "body"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }
@@ -212,25 +212,25 @@
       "name": "list",
       "points": [
         {
-          "args": {
+          "g": {
             "query": [
               {
-                "kind": "query",
-                "name": "status",
-                "orig": "status",
-                "reqd": true,
-                "type": "`$ANY`"
+                "k": "query",
+                "n": "status",
+                "or": "status",
+                "r": true,
+                "t": "`$ANY`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "GET /pet/findByStatus",
             "source": "swagger2",
             "version": 2
           },
-          "method": "GET",
-          "orig": "/pet/findByStatus",
-          "segments": [
+          "m": "GET",
+          "o": "/pet/findByStatus",
+          "s": [
             {
               "lit": "pet"
             },
@@ -238,37 +238,37 @@
               "lit": "findByStatus"
             }
           ],
-          "select": {
+          "q": {
             "$action": "find_by_status",
             "exist": [
               "status"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }
         },
         {
-          "args": {
+          "g": {
             "query": [
               {
-                "kind": "query",
-                "name": "tag",
-                "orig": "tag",
-                "reqd": true,
-                "type": "`$ANY`"
+                "k": "query",
+                "n": "tag",
+                "or": "tag",
+                "r": true,
+                "t": "`$ANY`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "GET /pet/findByTags",
             "source": "swagger2",
             "version": 2
           },
-          "method": "GET",
-          "orig": "/pet/findByTags",
-          "segments": [
+          "m": "GET",
+          "o": "/pet/findByTags",
+          "s": [
             {
               "lit": "pet"
             },
@@ -276,13 +276,13 @@
               "lit": "findByTags"
             }
           ],
-          "select": {
+          "q": {
             "$action": "find_by_tag",
             "exist": [
               "tag"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }
@@ -293,30 +293,30 @@
       "name": "load",
       "points": [
         {
-          "args": {
+          "g": {
             "params": [
               {
-                "kind": "param",
-                "name": "id",
-                "orig": "pet_id",
-                "reqd": true,
-                "type": "`$STRING`"
+                "k": "param",
+                "n": "id",
+                "or": "pet_id",
+                "r": true,
+                "t": "`$STRING`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "GET /pet/{petId}",
             "source": "swagger2",
             "version": 2
           },
-          "method": "GET",
-          "orig": "/pet/{petId}",
-          "rename": {
+          "m": "GET",
+          "o": "/pet/{petId}",
+          "r": {
             "param": {
               "petId": "id"
             }
           },
-          "segments": [
+          "s": [
             {
               "lit": "pet"
             },
@@ -324,12 +324,12 @@
               "var": "id"
             }
           ],
-          "select": {
+          "q": {
             "exist": [
               "id"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }
@@ -340,39 +340,39 @@
       "name": "remove",
       "points": [
         {
-          "args": {
+          "g": {
             "header": [
               {
-                "kind": "header",
-                "name": "api_key",
-                "orig": "api_key",
-                "reqd": false,
-                "type": "`$ANY`"
+                "k": "header",
+                "n": "api_key",
+                "or": "api_key",
+                "r": false,
+                "t": "`$ANY`"
               }
             ],
             "params": [
               {
-                "kind": "param",
-                "name": "id",
-                "orig": "pet_id",
-                "reqd": true,
-                "type": "`$STRING`"
+                "k": "param",
+                "n": "id",
+                "or": "pet_id",
+                "r": true,
+                "t": "`$STRING`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "DELETE /pet/{petId}",
             "source": "swagger2",
             "version": 2
           },
-          "method": "DELETE",
-          "orig": "/pet/{petId}",
-          "rename": {
+          "m": "DELETE",
+          "o": "/pet/{petId}",
+          "r": {
             "param": {
               "petId": "id"
             }
           },
-          "segments": [
+          "s": [
             {
               "lit": "pet"
             },
@@ -380,13 +380,13 @@
               "var": "id"
             }
           ],
-          "select": {
+          "q": {
             "exist": [
               "api_key",
               "id"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }
@@ -397,35 +397,35 @@
       "name": "update",
       "points": [
         {
-          "args": {
+          "g": {
             "query": [
               {
-                "kind": "query",
-                "name": "body",
-                "orig": "body",
-                "reqd": true,
-                "type": "`$OBJECT`"
+                "k": "query",
+                "n": "body",
+                "or": "body",
+                "r": true,
+                "t": "`$OBJECT`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "PUT /pet",
             "source": "swagger2",
             "version": 2
           },
-          "method": "PUT",
-          "orig": "/pet",
-          "segments": [
+          "m": "PUT",
+          "o": "/pet",
+          "s": [
             {
               "lit": "pet"
             }
           ],
-          "select": {
+          "q": {
             "exist": [
               "body"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }

@@ -52,25 +52,25 @@
       "name": "create",
       "points": [
         {
-          "args": {
+          "g": {
             "query": [
               {
-                "kind": "query",
-                "name": "body",
-                "orig": "body",
-                "reqd": true,
-                "type": "`$OBJECT`"
+                "k": "query",
+                "n": "body",
+                "or": "body",
+                "r": true,
+                "t": "`$OBJECT`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "POST /store/order",
             "source": "swagger2",
             "version": 2
           },
-          "method": "POST",
-          "orig": "/store/order",
-          "segments": [
+          "m": "POST",
+          "o": "/store/order",
+          "s": [
             {
               "lit": "store"
             },
@@ -78,12 +78,12 @@
               "lit": "order"
             }
           ],
-          "select": {
+          "q": {
             "exist": [
               "body"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }
@@ -94,30 +94,30 @@
       "name": "load",
       "points": [
         {
-          "args": {
+          "g": {
             "params": [
               {
-                "kind": "param",
-                "name": "id",
-                "orig": "order_id",
-                "reqd": true,
-                "type": "`$STRING`"
+                "k": "param",
+                "n": "id",
+                "or": "order_id",
+                "r": true,
+                "t": "`$STRING`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "GET /store/order/{orderId}",
             "source": "swagger2",
             "version": 2
           },
-          "method": "GET",
-          "orig": "/store/order/{orderId}",
-          "rename": {
+          "m": "GET",
+          "o": "/store/order/{orderId}",
+          "r": {
             "param": {
               "orderId": "id"
             }
           },
-          "segments": [
+          "s": [
             {
               "lit": "store"
             },
@@ -128,12 +128,12 @@
               "var": "id"
             }
           ],
-          "select": {
+          "q": {
             "exist": [
               "id"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }

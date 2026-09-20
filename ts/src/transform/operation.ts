@@ -184,19 +184,19 @@ function resolveOp(opname: OpName, gent: GuideEntity): undefined | ModelOp {
         const segments = p.segments
 
         const mpoint: ModelPoint = {
-          orig: p.orig,
-          segments,
-          rename: p.rename,
-          method: p.method,
-          args: {},
-          transform: { ...((p as any).op?.transform ?? {}) },
-          select: {
+          o: p.orig,
+          s: segments,
+          r: p.rename,
+          m: p.method,
+          g: {},
+          t: { ...((p as any).op?.transform ?? {}) },
+          q: {
             exist: []
           }
         }
 
-        mpoint.transform.req = mpoint.transform.req ?? '`reqdata`'
-        mpoint.transform.res = mpoint.transform.res ?? '`body`'
+        mpoint.t.req = mpoint.t.req ?? '`reqdata`'
+        mpoint.t.res = mpoint.t.res ?? '`body`'
 
         return mpoint
       })

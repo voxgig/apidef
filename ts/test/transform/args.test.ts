@@ -3,6 +3,8 @@
 
 import { test, describe } from 'node:test'
 import assert from 'node:assert'
+import { readFileSync } from 'node:fs'
+import Path from 'node:path'
 
 
 import {
@@ -29,7 +31,7 @@ function makeCtx(path: string, parameters: any[]): any {
                 load: {
                   name: 'load',
                   points: [
-                    { orig: path, method: 'GET', rename: {}, args: {} },
+                    { o: path, m: 'GET', r: {}, g: {} },
                   ],
                 },
               },
@@ -51,8 +53,8 @@ function makeCtx(path: string, parameters: any[]): any {
 function allargs(ctx: any) {
   const point = ctx.apimodel.main[KIT].entity.kingdom.op.load.points[0]
   return ([] as any[]).concat(
-    point.args.params ?? [], point.args.query ?? [],
-    point.args.header ?? [], point.args.cookie ?? [],
+    point.g.params ?? [], point.g.query ?? [],
+    point.g.header ?? [], point.g.cookie ?? [],
   )
 }
 
@@ -70,8 +72,8 @@ describe('transform-args nameless parameters', () => {
     await argsTransform(ctx)
 
     const args = allargs(ctx)
-    assert.deepStrictEqual(args.map((a: any) => a.name), ['year'])
-    assert.strictEqual(args.filter((a: any) => '' === a.name).length, 0)
+    assert.deepStrictEqual(args.map((a: any) => a.n), ['year'])
+    assert.strictEqual(args.filter((a: any) => '' === a.n).length, 0)
 
     assert.strictEqual(warnings.length, 1)
     assert.strictEqual(warnings[0].entity, 'kingdom')
@@ -113,8 +115,18 @@ describe('transform-args nameless parameters', () => {
     await argsTransform(ctx)
 
     const point = ctx.apimodel.main[KIT].entity.kingdom.op.load.points[0]
-    assert.deepStrictEqual(point.args.query.map((a: any) => a.name), ['page'])
-    assert.deepStrictEqual(point.args.header.map((a: any) => a.name), ['x_trace'])
+    assert.deepStrictEqual(point.g.query.map((a: any) => a.n), ['page'])
+    assert.deepStrictEqual(point.g.header.map((a: any) => a.n), ['x_trace'])
   })
 
+})
+
+
+test('compact point arguments preserve renames, order, nullable types and examples', async () => {
+  const fixture = JSON.parse(readFileSync(Path.join(__dirname, '../../test/point-args.json'), 'utf8'))
+  const ctx = makeCtx('/pets/{petId}', fixture.parameters)
+  const point = ctx.apimodel.main[KIT].entity.kingdom.op.load.points[0]
+  point.r = fixture.rename
+  await argsTransform(ctx)
+  assert.deepStrictEqual(point.g, fixture.expected)
 })

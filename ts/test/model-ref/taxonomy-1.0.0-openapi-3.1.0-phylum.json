@@ -64,53 +64,53 @@
       "name": "load",
       "points": [
         {
-          "args": {
+          "g": {
             "params": [
               {
-                "kind": "param",
-                "name": "domain_id",
-                "orig": "domain",
-                "reqd": true,
-                "type": "`$STRING`"
+                "k": "param",
+                "n": "domain_id",
+                "or": "domain",
+                "r": true,
+                "t": "`$STRING`"
               },
               {
-                "kind": "param",
-                "name": "id",
-                "orig": "itemid",
-                "reqd": true,
-                "type": "`$STRING`"
+                "k": "param",
+                "n": "id",
+                "or": "itemid",
+                "r": true,
+                "t": "`$STRING`"
               },
               {
-                "kind": "param",
-                "name": "kingdom_id",
-                "orig": "kid",
-                "reqd": true,
-                "type": "`$STRING`"
+                "k": "param",
+                "n": "kingdom_id",
+                "or": "kid",
+                "r": true,
+                "t": "`$STRING`"
               },
               {
-                "kind": "param",
-                "name": "year",
-                "orig": "year",
-                "reqd": true,
-                "type": "`$INTEGER`"
+                "k": "param",
+                "n": "year",
+                "or": "year",
+                "r": true,
+                "t": "`$INTEGER`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "GET /{year}/domain/{domain}/kingdom/{kid}/phylum/{itemid}",
             "source": "openapi3",
             "version": 2
           },
-          "method": "GET",
-          "orig": "/{year}/domain/{domain}/kingdom/{kid}/phylum/{itemid}",
-          "rename": {
+          "m": "GET",
+          "o": "/{year}/domain/{domain}/kingdom/{kid}/phylum/{itemid}",
+          "r": {
             "param": {
               "domain": "domain_id",
               "itemid": "id",
               "kid": "kingdom_id"
             }
           },
-          "segments": [
+          "s": [
             {
               "var": "year"
             },
@@ -133,7 +133,7 @@
               "var": "id"
             }
           ],
-          "select": {
+          "q": {
             "exist": [
               "domain_id",
               "id",
@@ -141,7 +141,7 @@
               "year"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }

@@ -47,13 +47,13 @@ func SelectTransform(ctx *ApiDefContext) (*TransformResult, error) {
 }
 
 func resolveSelect(guideEntity map[string]any, entname string, mtarget map[string]any) {
-	selectMap, _ := mtarget["select"].(map[string]any)
+	selectMap, _ := mtarget["q"].(map[string]any)
 	if selectMap == nil {
 		selectMap = map[string]any{"exist": []any{}}
-		mtarget["select"] = selectMap
+		mtarget["q"] = selectMap
 	}
 
-	margs, _ := mtarget["args"].(map[string]any)
+	margs, _ := mtarget["g"].(map[string]any)
 	argKinds := []string{"params", "query", "header", "cookie"}
 
 	exist, _ := selectMap["exist"].([]any)
@@ -71,7 +71,7 @@ func resolveSelect(guideEntity map[string]any, entname string, mtarget map[strin
 			if argMap == nil {
 				continue
 			}
-			name, _ := argMap["name"].(string)
+			name, _ := argMap["n"].(string)
 			if !existSet[name] {
 				exist = append(exist, name)
 				existSet[name] = true
@@ -90,7 +90,7 @@ func resolveSelect(guideEntity map[string]any, entname string, mtarget map[strin
 	// Check for actions
 	gent, _ := guideEntity[entname].(map[string]any)
 	if gent != nil {
-		orig, _ := mtarget["orig"].(string)
+		orig, _ := mtarget["o"].(string)
 		gpaths, _ := gent["path"].(map[string]any)
 		if gpath, ok := gpaths[orig].(map[string]any); ok {
 			if action, ok := gpath["action"].(map[string]any); ok {
@@ -108,8 +108,8 @@ func sortPoints(mop map[string]any) {
 	sort.SliceStable(points, func(i, j int) bool {
 		ai, _ := points[i].(map[string]any)
 		aj, _ := points[j].(map[string]any)
-		si, _ := ai["select"].(map[string]any)
-		sj, _ := aj["select"].(map[string]any)
+		si, _ := ai["q"].(map[string]any)
+		sj, _ := aj["q"].(map[string]any)
 		ei, _ := si["exist"].([]any)
 		ej, _ := sj["exist"].([]any)
 

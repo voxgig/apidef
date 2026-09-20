@@ -50,11 +50,12 @@ type ModelField struct {
 
 // ModelArg represents an operation argument/parameter.
 type ModelArg struct {
-	Name string `json:"name"`
-	Orig string `json:"orig"`
-	Type any    `json:"type"`
-	Kind string `json:"kind"`
-	Reqd bool   `json:"reqd"`
+	Name    string `json:"n"`
+	Orig    string `json:"or,omitempty"`
+	Type    any    `json:"t"`
+	Kind    string `json:"k"`
+	Reqd    bool   `json:"r"`
+	Example any    `json:"ex,omitempty"`
 }
 
 // ModelContract identifies the source operation.
@@ -66,15 +67,15 @@ type ModelContract struct {
 
 // ModelPoint represents a point implementation of an operation.
 type ModelPoint struct {
-	Live      any              `json:"live,omitempty"`
-	Contract  *ModelContract   `json:"contract,omitempty"`
-	Orig      string           `json:"orig"`
-	Method    MethodName       `json:"method"`
-	Segments  []map[string]any `json:"segments"`
-	Rename    map[string]any   `json:"rename,omitempty"`
-	Args      map[string]any   `json:"args,omitempty"`
-	Transform map[string]any   `json:"transform,omitempty"`
-	Select    map[string]any   `json:"select,omitempty"`
+	Live      any              `json:"li,omitempty"`
+	Contract  *ModelContract   `json:"co,omitempty"`
+	Orig      string           `json:"o"`
+	Method    MethodName       `json:"m"`
+	Segments  []map[string]any `json:"s"`
+	Rename    map[string]any   `json:"r,omitempty"`
+	Args      map[string]any   `json:"g,omitempty"`
+	Transform map[string]any   `json:"t,omitempty"`
+	Select    map[string]any   `json:"q,omitempty"`
 }
 
 type ModelOp struct {

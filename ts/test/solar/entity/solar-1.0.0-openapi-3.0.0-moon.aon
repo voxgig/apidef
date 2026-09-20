@@ -49,25 +49,30 @@ main: kit: entity: moon: {
       name: "create"
       points: [
         {
-          args: {
-            params: [
-              {
-                kind: "param"
-                name: "planet_id"
-                orig: "planet_id"
-                reqd: true
-                type: "`$STRING`"
-              }
-            ]
-          }
-          contract: {
+          co: {
             id: "POST /api/planet/{planet_id}/moon"
             source: "openapi3"
             version: 2
           }
-          method: "POST"
-          orig: "/api/planet/{planet_id}/moon"
-          segments: [
+          g: {
+            params: [
+              {
+                k: "param"
+                n: "planet_id"
+                or: "planet_id"
+                r: true
+                t: "`$STRING`"
+              }
+            ]
+          }
+          m: "POST"
+          o: "/api/planet/{planet_id}/moon"
+          q: {
+            exist: [
+              "planet_id"
+            ]
+          }
+          s: [
             {
               lit: "api"
             }
@@ -81,12 +86,7 @@ main: kit: entity: moon: {
               lit: "moon"
             }
           ]
-          select: {
-            exist: [
-              "planet_id"
-            ]
-          }
-          transform: {
+          t: {
             req: "`reqdata`"
             res: "`body`"
           }
@@ -97,25 +97,30 @@ main: kit: entity: moon: {
       name: "list"
       points: [
         {
-          args: {
-            params: [
-              {
-                kind: "param"
-                name: "planet_id"
-                orig: "planet_id"
-                reqd: true
-                type: "`$STRING`"
-              }
-            ]
-          }
-          contract: {
+          co: {
             id: "GET /api/planet/{planet_id}/moon"
             source: "openapi3"
             version: 2
           }
-          method: "GET"
-          orig: "/api/planet/{planet_id}/moon"
-          segments: [
+          g: {
+            params: [
+              {
+                k: "param"
+                n: "planet_id"
+                or: "planet_id"
+                r: true
+                t: "`$STRING`"
+              }
+            ]
+          }
+          m: "GET"
+          o: "/api/planet/{planet_id}/moon"
+          q: {
+            exist: [
+              "planet_id"
+            ]
+          }
+          s: [
             {
               lit: "api"
             }
@@ -129,12 +134,7 @@ main: kit: entity: moon: {
               lit: "moon"
             }
           ]
-          select: {
-            exist: [
-              "planet_id"
-            ]
-          }
-          transform: {
+          t: {
             req: "`reqdata`"
             res: "`body`"
           }
@@ -145,37 +145,43 @@ main: kit: entity: moon: {
       name: "load"
       points: [
         {
-          args: {
-            params: [
-              {
-                kind: "param"
-                name: "id"
-                orig: "moon_id"
-                reqd: true
-                type: "`$STRING`"
-              }
-              {
-                kind: "param"
-                name: "planet_id"
-                orig: "planet_id"
-                reqd: true
-                type: "`$STRING`"
-              }
-            ]
-          }
-          contract: {
+          co: {
             id: "GET /api/planet/{planet_id}/moon/{moon_id}"
             source: "openapi3"
             version: 2
           }
-          method: "GET"
-          orig: "/api/planet/{planet_id}/moon/{moon_id}"
-          rename: {
+          g: {
+            params: [
+              {
+                k: "param"
+                n: "id"
+                or: "moon_id"
+                r: true
+                t: "`$STRING`"
+              }
+              {
+                k: "param"
+                n: "planet_id"
+                or: "planet_id"
+                r: true
+                t: "`$STRING`"
+              }
+            ]
+          }
+          m: "GET"
+          o: "/api/planet/{planet_id}/moon/{moon_id}"
+          q: {
+            exist: [
+              "id"
+              "planet_id"
+            ]
+          }
+          r: {
             param: {
               moon_id: "id"
             }
           }
-          segments: [
+          s: [
             {
               lit: "api"
             }
@@ -192,13 +198,7 @@ main: kit: entity: moon: {
               var: "id"
             }
           ]
-          select: {
-            exist: [
-              "id"
-              "planet_id"
-            ]
-          }
-          transform: {
+          t: {
             req: "`reqdata`"
             res: "`body`"
           }
@@ -209,37 +209,43 @@ main: kit: entity: moon: {
       name: "remove"
       points: [
         {
-          args: {
-            params: [
-              {
-                kind: "param"
-                name: "id"
-                orig: "moon_id"
-                reqd: true
-                type: "`$STRING`"
-              }
-              {
-                kind: "param"
-                name: "planet_id"
-                orig: "planet_id"
-                reqd: true
-                type: "`$STRING`"
-              }
-            ]
-          }
-          contract: {
+          co: {
             id: "DELETE /api/planet/{planet_id}/moon/{moon_id}"
             source: "openapi3"
             version: 2
           }
-          method: "DELETE"
-          orig: "/api/planet/{planet_id}/moon/{moon_id}"
-          rename: {
+          g: {
+            params: [
+              {
+                k: "param"
+                n: "id"
+                or: "moon_id"
+                r: true
+                t: "`$STRING`"
+              }
+              {
+                k: "param"
+                n: "planet_id"
+                or: "planet_id"
+                r: true
+                t: "`$STRING`"
+              }
+            ]
+          }
+          m: "DELETE"
+          o: "/api/planet/{planet_id}/moon/{moon_id}"
+          q: {
+            exist: [
+              "id"
+              "planet_id"
+            ]
+          }
+          r: {
             param: {
               moon_id: "id"
             }
           }
-          segments: [
+          s: [
             {
               lit: "api"
             }
@@ -256,13 +262,7 @@ main: kit: entity: moon: {
               var: "id"
             }
           ]
-          select: {
-            exist: [
-              "id"
-              "planet_id"
-            ]
-          }
-          transform: {
+          t: {
             req: "`reqdata`"
             res: "`body`"
           }
@@ -273,37 +273,43 @@ main: kit: entity: moon: {
       name: "update"
       points: [
         {
-          args: {
-            params: [
-              {
-                kind: "param"
-                name: "id"
-                orig: "moon_id"
-                reqd: true
-                type: "`$STRING`"
-              }
-              {
-                kind: "param"
-                name: "planet_id"
-                orig: "planet_id"
-                reqd: true
-                type: "`$STRING`"
-              }
-            ]
-          }
-          contract: {
+          co: {
             id: "PUT /api/planet/{planet_id}/moon/{moon_id}"
             source: "openapi3"
             version: 2
           }
-          method: "PUT"
-          orig: "/api/planet/{planet_id}/moon/{moon_id}"
-          rename: {
+          g: {
+            params: [
+              {
+                k: "param"
+                n: "id"
+                or: "moon_id"
+                r: true
+                t: "`$STRING`"
+              }
+              {
+                k: "param"
+                n: "planet_id"
+                or: "planet_id"
+                r: true
+                t: "`$STRING`"
+              }
+            ]
+          }
+          m: "PUT"
+          o: "/api/planet/{planet_id}/moon/{moon_id}"
+          q: {
+            exist: [
+              "id"
+              "planet_id"
+            ]
+          }
+          r: {
             param: {
               moon_id: "id"
             }
           }
-          segments: [
+          s: [
             {
               lit: "api"
             }
@@ -320,13 +326,7 @@ main: kit: entity: moon: {
               var: "id"
             }
           ]
-          select: {
-            exist: [
-              "id"
-              "planet_id"
-            ]
-          }
-          transform: {
+          t: {
             req: "`reqdata`"
             res: "`body`"
           }

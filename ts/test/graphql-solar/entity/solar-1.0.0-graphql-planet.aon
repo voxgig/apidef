@@ -42,12 +42,12 @@ main: kit: entity: planet: {
       name: "create"
       points: [
         {
-          contract: {
+          co: {
             id: "POST planetCreate"
             source: "graphql"
             version: 2
           }
-          graphql: {
+          gq: {
             doc: "mutation PlanetCreate($input: PlanetCreateInput!) { planetCreate(input: $input) { planet { ...PlanetFields } success } } fragment PlanetFields on Planet { diameter id kind name }"
             field: "planetCreate"
             optype: "mutation"
@@ -59,10 +59,10 @@ main: kit: entity: planet: {
               }
             ]
           }
-          kind: "graphql"
-          method: "POST"
-          orig: "planetCreate"
-          transform: {
+          k: "graphql"
+          m: "POST"
+          o: "planetCreate"
+          t: {
             req: "`reqdata`"
             res: "`body.data.planetCreate.planet`"
           }
@@ -73,30 +73,30 @@ main: kit: entity: planet: {
       name: "list"
       points: [
         {
-          args: {
-            params: [
-              {
-                kind: "param"
-                name: "after"
-                orig: "after"
-                reqd: false
-                type: "`$STRING`"
-              }
-              {
-                kind: "param"
-                name: "first"
-                orig: "first"
-                reqd: false
-                type: "`$INTEGER`"
-              }
-            ]
-          }
-          contract: {
+          co: {
             id: "POST planets"
             source: "graphql"
             version: 2
           }
-          graphql: {
+          g: {
+            params: [
+              {
+                k: "param"
+                n: "after"
+                or: "after"
+                r: false
+                t: "`$STRING`"
+              }
+              {
+                k: "param"
+                n: "first"
+                or: "first"
+                r: false
+                t: "`$INTEGER`"
+              }
+            ]
+          }
+          gq: {
             doc: "query PlanetList($filter: PlanetFilter, $first: Int, $after: String) { planets(filter: $filter, first: $first, after: $after) { nodes { ...PlanetFields } pageInfo { endCursor hasNextPage } } } fragment PlanetFields on Planet { diameter id kind name }"
             field: "planets"
             optype: "query"
@@ -124,10 +124,10 @@ main: kit: entity: planet: {
               }
             ]
           }
-          kind: "graphql"
-          method: "POST"
-          orig: "planets"
-          transform: {
+          k: "graphql"
+          m: "POST"
+          o: "planets"
+          t: {
             req: "`reqdata`"
             res: "`body.data.planets.nodes`"
           }
@@ -138,23 +138,23 @@ main: kit: entity: planet: {
       name: "load"
       points: [
         {
-          args: {
-            params: [
-              {
-                kind: "param"
-                name: "id"
-                orig: "id"
-                reqd: true
-                type: "`$STRING`"
-              }
-            ]
-          }
-          contract: {
+          co: {
             id: "POST planet"
             source: "graphql"
             version: 2
           }
-          graphql: {
+          g: {
+            params: [
+              {
+                k: "param"
+                n: "id"
+                or: "id"
+                r: true
+                t: "`$STRING`"
+              }
+            ]
+          }
+          gq: {
             doc: "query PlanetLoad($id: String!) { planet(id: $id) { ...PlanetFields } } fragment PlanetFields on Planet { diameter id kind name }"
             field: "planet"
             optype: "query"
@@ -166,15 +166,15 @@ main: kit: entity: planet: {
               }
             ]
           }
-          kind: "graphql"
-          method: "POST"
-          orig: "planet"
-          select: {
+          k: "graphql"
+          m: "POST"
+          o: "planet"
+          q: {
             exist: [
               "id"
             ]
           }
-          transform: {
+          t: {
             req: "`reqdata`"
             res: "`body.data.planet`"
           }
@@ -185,23 +185,23 @@ main: kit: entity: planet: {
       name: "remove"
       points: [
         {
-          args: {
-            params: [
-              {
-                kind: "param"
-                name: "id"
-                orig: "id"
-                reqd: true
-                type: "`$STRING`"
-              }
-            ]
-          }
-          contract: {
+          co: {
             id: "POST planetDelete"
             source: "graphql"
             version: 2
           }
-          graphql: {
+          g: {
+            params: [
+              {
+                k: "param"
+                n: "id"
+                or: "id"
+                r: true
+                t: "`$STRING`"
+              }
+            ]
+          }
+          gq: {
             doc: "mutation PlanetRemove($id: String!) { planetDelete(id: $id) { planet { ...PlanetFields } success } } fragment PlanetFields on Planet { diameter id kind name }"
             field: "planetDelete"
             optype: "mutation"
@@ -213,15 +213,15 @@ main: kit: entity: planet: {
               }
             ]
           }
-          kind: "graphql"
-          method: "POST"
-          orig: "planetDelete"
-          select: {
+          k: "graphql"
+          m: "POST"
+          o: "planetDelete"
+          q: {
             exist: [
               "id"
             ]
           }
-          transform: {
+          t: {
             req: "`reqdata`"
             res: "`body.data.planetDelete.planet`"
           }
@@ -232,37 +232,37 @@ main: kit: entity: planet: {
       name: "update"
       points: [
         {
-          args: {
-            params: [
-              {
-                kind: "param"
-                name: "forbid"
-                orig: "forbid"
-                reqd: true
-                type: "`$BOOLEAN`"
-              }
-              {
-                kind: "param"
-                name: "id"
-                orig: "id"
-                reqd: true
-                type: "`$STRING`"
-              }
-              {
-                kind: "param"
-                name: "why"
-                orig: "why"
-                reqd: false
-                type: "`$STRING`"
-              }
-            ]
-          }
-          contract: {
+          co: {
             id: "POST planetForbid"
             source: "graphql"
             version: 2
           }
-          graphql: {
+          g: {
+            params: [
+              {
+                k: "param"
+                n: "forbid"
+                or: "forbid"
+                r: true
+                t: "`$BOOLEAN`"
+              }
+              {
+                k: "param"
+                n: "id"
+                or: "id"
+                r: true
+                t: "`$STRING`"
+              }
+              {
+                k: "param"
+                n: "why"
+                or: "why"
+                r: false
+                t: "`$STRING`"
+              }
+            ]
+          }
+          gq: {
             doc: "mutation PlanetUpdateForbid($id: String!, $forbid: Boolean!, $why: String) { planetForbid(id: $id, forbid: $forbid, why: $why) { planet { ...PlanetFields } success } } fragment PlanetFields on Planet { diameter id kind name }"
             field: "planetForbid"
             optype: "mutation"
@@ -284,53 +284,53 @@ main: kit: entity: planet: {
               }
             ]
           }
-          kind: "graphql"
-          method: "POST"
-          orig: "planetForbid"
-          select: {
+          k: "graphql"
+          m: "POST"
+          o: "planetForbid"
+          q: {
             "$action": "forbid"
             exist: [
               "forbid"
               "id"
             ]
           }
-          transform: {
+          t: {
             req: "`reqdata`"
             res: "`body.data.planetForbid.planet`"
           }
         }
         {
-          args: {
-            params: [
-              {
-                kind: "param"
-                name: "id"
-                orig: "id"
-                reqd: true
-                type: "`$STRING`"
-              }
-              {
-                kind: "param"
-                name: "start"
-                orig: "start"
-                reqd: false
-                type: "`$BOOLEAN`"
-              }
-              {
-                kind: "param"
-                name: "stop"
-                orig: "stop"
-                reqd: false
-                type: "`$BOOLEAN`"
-              }
-            ]
-          }
-          contract: {
+          co: {
             id: "POST planetTerraform"
             source: "graphql"
             version: 2
           }
-          graphql: {
+          g: {
+            params: [
+              {
+                k: "param"
+                n: "id"
+                or: "id"
+                r: true
+                t: "`$STRING`"
+              }
+              {
+                k: "param"
+                n: "start"
+                or: "start"
+                r: false
+                t: "`$BOOLEAN`"
+              }
+              {
+                k: "param"
+                n: "stop"
+                or: "stop"
+                r: false
+                t: "`$BOOLEAN`"
+              }
+            ]
+          }
+          gq: {
             doc: "mutation PlanetUpdateTerraform($id: String!, $start: Boolean, $stop: Boolean) { planetTerraform(id: $id, start: $start, stop: $stop) { planet { ...PlanetFields } success } } fragment PlanetFields on Planet { diameter id kind name }"
             field: "planetTerraform"
             optype: "mutation"
@@ -352,38 +352,38 @@ main: kit: entity: planet: {
               }
             ]
           }
-          kind: "graphql"
-          method: "POST"
-          orig: "planetTerraform"
-          select: {
+          k: "graphql"
+          m: "POST"
+          o: "planetTerraform"
+          q: {
             "$action": "terraform"
             exist: [
               "id"
             ]
           }
-          transform: {
+          t: {
             req: "`reqdata`"
             res: "`body.data.planetTerraform.planet`"
           }
         }
         {
-          args: {
-            params: [
-              {
-                kind: "param"
-                name: "id"
-                orig: "id"
-                reqd: true
-                type: "`$STRING`"
-              }
-            ]
-          }
-          contract: {
+          co: {
             id: "POST planetUpdate"
             source: "graphql"
             version: 2
           }
-          graphql: {
+          g: {
+            params: [
+              {
+                k: "param"
+                n: "id"
+                or: "id"
+                r: true
+                t: "`$STRING`"
+              }
+            ]
+          }
+          gq: {
             doc: "mutation PlanetUpdate($id: String!, $input: PlanetUpdateInput!) { planetUpdate(id: $id, input: $input) { planet { ...PlanetFields } success } } fragment PlanetFields on Planet { diameter id kind name }"
             field: "planetUpdate"
             optype: "mutation"
@@ -400,15 +400,15 @@ main: kit: entity: planet: {
               }
             ]
           }
-          kind: "graphql"
-          method: "POST"
-          orig: "planetUpdate"
-          select: {
+          k: "graphql"
+          m: "POST"
+          o: "planetUpdate"
+          q: {
             exist: [
               "id"
             ]
           }
-          transform: {
+          t: {
             req: "`reqdata`"
             res: "`body.data.planetUpdate.planet`"
           }

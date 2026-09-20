@@ -36,30 +36,30 @@ main: kit: entity: team: {
       name: "list"
       points: [
         {
-          args: {
-            params: [
-              {
-                kind: "param"
-                name: "after"
-                orig: "after"
-                reqd: false
-                type: "`$STRING`"
-              }
-              {
-                kind: "param"
-                name: "first"
-                orig: "first"
-                reqd: false
-                type: "`$INTEGER`"
-              }
-            ]
-          }
-          contract: {
+          co: {
             id: "POST teams"
             source: "graphql"
             version: 2
           }
-          graphql: {
+          g: {
+            params: [
+              {
+                k: "param"
+                n: "after"
+                or: "after"
+                r: false
+                t: "`$STRING`"
+              }
+              {
+                k: "param"
+                n: "first"
+                or: "first"
+                r: false
+                t: "`$INTEGER`"
+              }
+            ]
+          }
+          gq: {
             doc: "query TeamList($first: Int, $after: String) { teams(first: $first, after: $after) { nodes { ...TeamFields } pageInfo { endCursor hasNextPage } } } fragment TeamFields on Team { id key name }"
             field: "teams"
             optype: "query"
@@ -82,10 +82,10 @@ main: kit: entity: team: {
               }
             ]
           }
-          kind: "graphql"
-          method: "POST"
-          orig: "teams"
-          transform: {
+          k: "graphql"
+          m: "POST"
+          o: "teams"
+          t: {
             req: "`reqdata`"
             res: "`body.data.teams.nodes`"
           }
@@ -96,23 +96,23 @@ main: kit: entity: team: {
       name: "load"
       points: [
         {
-          args: {
-            params: [
-              {
-                kind: "param"
-                name: "id"
-                orig: "id"
-                reqd: true
-                type: "`$STRING`"
-              }
-            ]
-          }
-          contract: {
+          co: {
             id: "POST team"
             source: "graphql"
             version: 2
           }
-          graphql: {
+          g: {
+            params: [
+              {
+                k: "param"
+                n: "id"
+                or: "id"
+                r: true
+                t: "`$STRING`"
+              }
+            ]
+          }
+          gq: {
             doc: "query TeamLoad($id: String!) { team(id: $id) { ...TeamFields } } fragment TeamFields on Team { id key name }"
             field: "team"
             optype: "query"
@@ -124,15 +124,15 @@ main: kit: entity: team: {
               }
             ]
           }
-          kind: "graphql"
-          method: "POST"
-          orig: "team"
-          select: {
+          k: "graphql"
+          m: "POST"
+          o: "team"
+          q: {
             exist: [
               "id"
             ]
           }
-          transform: {
+          t: {
             req: "`reqdata`"
             res: "`body.data.team`"
           }

@@ -48,12 +48,12 @@ main: kit: entity: moon: {
       name: "create"
       points: [
         {
-          contract: {
+          co: {
             id: "POST moonCreate"
             source: "graphql"
             version: 2
           }
-          graphql: {
+          gq: {
             doc: "mutation MoonCreate($input: MoonCreateInput!) { moonCreate(input: $input) { moon { ...MoonFields } success } } fragment MoonFields on Moon { diameter id kind name planet { id } }"
             field: "moonCreate"
             optype: "mutation"
@@ -65,10 +65,10 @@ main: kit: entity: moon: {
               }
             ]
           }
-          kind: "graphql"
-          method: "POST"
-          orig: "moonCreate"
-          transform: {
+          k: "graphql"
+          m: "POST"
+          o: "moonCreate"
+          t: {
             req: "`reqdata`"
             res: "`body.data.moonCreate.moon`"
           }
@@ -79,37 +79,37 @@ main: kit: entity: moon: {
       name: "list"
       points: [
         {
-          args: {
-            params: [
-              {
-                kind: "param"
-                name: "after"
-                orig: "after"
-                reqd: false
-                type: "`$STRING`"
-              }
-              {
-                kind: "param"
-                name: "first"
-                orig: "first"
-                reqd: false
-                type: "`$INTEGER`"
-              }
-              {
-                kind: "param"
-                name: "planet_id"
-                orig: "planet_id"
-                reqd: false
-                type: "`$STRING`"
-              }
-            ]
-          }
-          contract: {
+          co: {
             id: "POST moons"
             source: "graphql"
             version: 2
           }
-          graphql: {
+          g: {
+            params: [
+              {
+                k: "param"
+                n: "after"
+                or: "after"
+                r: false
+                t: "`$STRING`"
+              }
+              {
+                k: "param"
+                n: "first"
+                or: "first"
+                r: false
+                t: "`$INTEGER`"
+              }
+              {
+                k: "param"
+                n: "planet_id"
+                or: "planet_id"
+                r: false
+                t: "`$STRING`"
+              }
+            ]
+          }
+          gq: {
             doc: "query MoonList($planetId: String, $first: Int, $after: String) { moons(planetId: $planetId, first: $first, after: $after) { nodes { ...MoonFields } pageInfo { endCursor hasNextPage } } } fragment MoonFields on Moon { diameter id kind name planet { id } }"
             field: "moons"
             optype: "query"
@@ -137,10 +137,10 @@ main: kit: entity: moon: {
               }
             ]
           }
-          kind: "graphql"
-          method: "POST"
-          orig: "moons"
-          transform: {
+          k: "graphql"
+          m: "POST"
+          o: "moons"
+          t: {
             req: "`reqdata`"
             res: "`body.data.moons.nodes`"
           }
@@ -151,23 +151,23 @@ main: kit: entity: moon: {
       name: "load"
       points: [
         {
-          args: {
-            params: [
-              {
-                kind: "param"
-                name: "id"
-                orig: "id"
-                reqd: true
-                type: "`$STRING`"
-              }
-            ]
-          }
-          contract: {
+          co: {
             id: "POST moon"
             source: "graphql"
             version: 2
           }
-          graphql: {
+          g: {
+            params: [
+              {
+                k: "param"
+                n: "id"
+                or: "id"
+                r: true
+                t: "`$STRING`"
+              }
+            ]
+          }
+          gq: {
             doc: "query MoonLoad($id: String!) { moon(id: $id) { ...MoonFields } } fragment MoonFields on Moon { diameter id kind name planet { id } }"
             field: "moon"
             optype: "query"
@@ -179,15 +179,15 @@ main: kit: entity: moon: {
               }
             ]
           }
-          kind: "graphql"
-          method: "POST"
-          orig: "moon"
-          select: {
+          k: "graphql"
+          m: "POST"
+          o: "moon"
+          q: {
             exist: [
               "id"
             ]
           }
-          transform: {
+          t: {
             req: "`reqdata`"
             res: "`body.data.moon`"
           }
@@ -198,23 +198,23 @@ main: kit: entity: moon: {
       name: "remove"
       points: [
         {
-          args: {
-            params: [
-              {
-                kind: "param"
-                name: "id"
-                orig: "id"
-                reqd: true
-                type: "`$STRING`"
-              }
-            ]
-          }
-          contract: {
+          co: {
             id: "POST moonDelete"
             source: "graphql"
             version: 2
           }
-          graphql: {
+          g: {
+            params: [
+              {
+                k: "param"
+                n: "id"
+                or: "id"
+                r: true
+                t: "`$STRING`"
+              }
+            ]
+          }
+          gq: {
             doc: "mutation MoonRemove($id: String!) { moonDelete(id: $id) { moon { ...MoonFields } success } } fragment MoonFields on Moon { diameter id kind name planet { id } }"
             field: "moonDelete"
             optype: "mutation"
@@ -226,15 +226,15 @@ main: kit: entity: moon: {
               }
             ]
           }
-          kind: "graphql"
-          method: "POST"
-          orig: "moonDelete"
-          select: {
+          k: "graphql"
+          m: "POST"
+          o: "moonDelete"
+          q: {
             exist: [
               "id"
             ]
           }
-          transform: {
+          t: {
             req: "`reqdata`"
             res: "`body.data.moonDelete.moon`"
           }
@@ -245,23 +245,23 @@ main: kit: entity: moon: {
       name: "update"
       points: [
         {
-          args: {
-            params: [
-              {
-                kind: "param"
-                name: "id"
-                orig: "id"
-                reqd: true
-                type: "`$STRING`"
-              }
-            ]
-          }
-          contract: {
+          co: {
             id: "POST moonUpdate"
             source: "graphql"
             version: 2
           }
-          graphql: {
+          g: {
+            params: [
+              {
+                k: "param"
+                n: "id"
+                or: "id"
+                r: true
+                t: "`$STRING`"
+              }
+            ]
+          }
+          gq: {
             doc: "mutation MoonUpdate($id: String!, $input: MoonUpdateInput!) { moonUpdate(id: $id, input: $input) { moon { ...MoonFields } success } } fragment MoonFields on Moon { diameter id kind name planet { id } }"
             field: "moonUpdate"
             optype: "mutation"
@@ -278,15 +278,15 @@ main: kit: entity: moon: {
               }
             ]
           }
-          kind: "graphql"
-          method: "POST"
-          orig: "moonUpdate"
-          select: {
+          k: "graphql"
+          m: "POST"
+          o: "moonUpdate"
+          q: {
             exist: [
               "id"
             ]
           }
-          transform: {
+          t: {
             req: "`reqdata`"
             res: "`body.data.moonUpdate.moon`"
           }
