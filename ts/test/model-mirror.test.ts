@@ -12,6 +12,7 @@ import assert from 'node:assert'
 import { readFileSync } from 'node:fs'
 import Path from 'node:path'
 import { Aontu } from 'aontu'
+import type { ModelEntityFlowStep } from '../src/model'
 
 
 const REPO = Path.resolve(__dirname, '..', '..')
@@ -21,7 +22,7 @@ const MODEL_FILES = ['apidef.aon', 'guide.aon']
 describe('model-mirror', () => {
 
   test('flow-step alias supplies defaults and preserves disabled steps and payload keys', () => {
-    const step = {
+    const step: ModelEntityFlowStep = {
       o: 'update', a: false,
       m: { op: 'payload', active: false }, d: { input: 'payload' },
       i: { ref: 'widget01' },

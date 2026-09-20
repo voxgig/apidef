@@ -162,6 +162,7 @@ type ModelEntityFlowStepSpec = {
     def: Record<string, any>;
 };
 type ModelEntityFlowStep = {
+    a?: boolean;
     o: OpName;
     i: ModelEntityFlowStepInput;
     m: Record<string, any>;

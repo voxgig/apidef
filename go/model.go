@@ -110,10 +110,11 @@ type ModelEntityFlow struct {
 
 // ModelEntityFlowStep represents a single flow step.
 type ModelEntityFlowStep struct {
-	Op    OpName           `json:"o"`
-	Input map[string]any   `json:"i,omitempty"`
-	Match map[string]any   `json:"m,omitempty"`
-	Data  map[string]any   `json:"d,omitempty"`
-	Spec  []map[string]any `json:"s,omitempty"`
-	Valid []map[string]any `json:"v,omitempty"`
+	Active *bool            `json:"a,omitempty"`
+	Op     OpName           `json:"o"`
+	Input  map[string]any   `json:"i,omitempty"`
+	Match  map[string]any   `json:"m,omitempty"`
+	Data   map[string]any   `json:"d,omitempty"`
+	Spec   []map[string]any `json:"s,omitempty"`
+	Valid  []map[string]any `json:"v,omitempty"`
 }

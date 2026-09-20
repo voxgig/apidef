@@ -59,3 +59,21 @@ func TestFlowStepJSONAttributes(t *testing.T) {
 		t.Fatalf("flow JSON mismatch: got %#v, want %#v", actual, expected)
 	}
 }
+
+func TestFlowStepActivationRoundTrip(t *testing.T) {
+	for _, source := range []string{`{"o":"list"}`, `{"a":false,"o":"list"}`, `{"a":true,"o":"list"}`} {
+		t.Run(source, func(t *testing.T) {
+			var step ModelEntityFlowStep
+			if err := json.Unmarshal([]byte(source), &step); err != nil {
+				t.Fatal(err)
+			}
+			data, err := json.Marshal(step)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(data) != source {
+				t.Fatalf("activation changed: got %s, want %s", data, source)
+			}
+		})
+	}
+}
