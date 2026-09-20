@@ -15,5 +15,18 @@ const clean_1 = require("../../dist/transform/clean");
         node_assert_1.default.deepStrictEqual(r.ok, true);
         node_assert_1.default.deepStrictEqual(c.apimodel, { a: { x: 1 } });
     });
+    (0, node_test_1.test)('preserves empty entity field maps', async () => {
+        const ctx = {
+            apimodel: { main: { kit: { entity: {
+                            empty: { name: 'empty', fields: {}, other: {} },
+                            populated: { name: 'populated', fields: { id: { n: 'id', h: 'Id' } } },
+                        } } } },
+        };
+        await (0, clean_1.cleanTransform)(ctx);
+        node_assert_1.default.deepStrictEqual(ctx.apimodel.main.kit.entity, {
+            empty: { name: 'empty', fields: {} },
+            populated: { name: 'populated', fields: { id: { n: 'id', h: 'Id' } } },
+        });
+    });
 });
 //# sourceMappingURL=clean.test.js.map
