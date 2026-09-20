@@ -23,7 +23,7 @@ const MODEL_FILES = ['apidef.aon', 'guide.aon'];
             secret: { n: 'secret', h: 'Secret', r: false, t: '`$STRING`', a: false,
                 sh: 'A secret.', ro: true, wo: true, de: true, fo: 'password' },
         };
-        const source = '@"' + node_path_1.default.join(REPO, 'model', 'apidef.aon') + '"\n' +
+        const source = (0, node_fs_1.readFileSync)(node_path_1.default.join(REPO, 'model', 'apidef.aon'), 'utf8') + '\n' +
             'main:kit:entity:widget:fields:' + JSON.stringify(fields);
         const model = new aontu_1.Aontu().generate(source);
         node_assert_1.default.deepStrictEqual(model.main.kit.entity.widget.fields, { id: { ...fields.id, a: true }, secret: fields.secret });

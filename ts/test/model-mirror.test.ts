@@ -26,7 +26,7 @@ describe('model-mirror', () => {
       secret: { n: 'secret', h: 'Secret', r: false, t: '`$STRING`', a: false,
         sh: 'A secret.', ro: true, wo: true, de: true, fo: 'password' },
     }
-    const source = '@"' + Path.join(REPO, 'model', 'apidef.aon') + '"\n' +
+    const source = readFileSync(Path.join(REPO, 'model', 'apidef.aon'), 'utf8') + '\n' +
       'main:kit:entity:widget:fields:' + JSON.stringify(fields)
     const model = new Aontu().generate(source)
     assert.deepStrictEqual(model.main.kit.entity.widget.fields,
