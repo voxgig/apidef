@@ -29,32 +29,32 @@ const SPEC = {
 };
 (0, node_test_1.describe)('resolved', () => {
     (0, node_test_1.test)('merges path-level and operation-level parameters', () => {
-        const facts = (0, resolved_1.operationFacts)(SPEC, { method: 'GET', orig: '/things/{id}' });
+        const facts = (0, resolved_1.operationFacts)(SPEC, { m: 'GET', o: '/things/{id}' });
         node_assert_1.default.deepEqual(facts.parameters.map((p) => p.name), ['id', 'expand']);
     });
     (0, node_test_1.test)('defaults security from the document and says where it came from', () => {
-        const get = (0, resolved_1.operationFacts)(SPEC, { method: 'GET', orig: '/things/{id}' });
+        const get = (0, resolved_1.operationFacts)(SPEC, { m: 'GET', o: '/things/{id}' });
         node_assert_1.default.deepEqual(get.security, [{ apiKeyAuth: [] }]);
         node_assert_1.default.equal(get.securitySource, 'definition');
         // An operation that overrides with [] needs NO auth — a distinction the
         // model's single resolved `kit.info.security` cannot express.
-        const del = (0, resolved_1.operationFacts)(SPEC, { method: 'DELETE', orig: '/things/{id}' });
+        const del = (0, resolved_1.operationFacts)(SPEC, { m: 'DELETE', o: '/things/{id}' });
         node_assert_1.default.deepEqual(del.security, []);
         node_assert_1.default.equal(del.securitySource, 'operation');
     });
     (0, node_test_1.test)('carries securitySchemes under either specification spelling', () => {
-        const oas3 = (0, resolved_1.operationFacts)(SPEC, { method: 'GET', orig: '/open' });
+        const oas3 = (0, resolved_1.operationFacts)(SPEC, { m: 'GET', o: '/open' });
         node_assert_1.default.deepEqual(Object.keys(oas3.securitySchemes), ['apiKeyAuth']);
         const swagger2 = (0, resolved_1.operationFacts)({
             swagger: '2.0',
             securityDefinitions: { basic: { type: 'basic' } },
             paths: { '/x': { get: { responses: {} } } },
-        }, { method: 'GET', orig: '/x' });
+        }, { m: 'GET', o: '/x' });
         node_assert_1.default.deepEqual(Object.keys(swagger2.securitySchemes), ['basic']);
     });
     (0, node_test_1.test)('is undefined for an operation the definition does not describe', () => {
-        node_assert_1.default.equal((0, resolved_1.operationFacts)(SPEC, { method: 'PUT', orig: '/things/{id}' }), undefined);
-        node_assert_1.default.equal((0, resolved_1.operationFacts)(SPEC, { method: 'GET', orig: '/nope' }), undefined);
+        node_assert_1.default.equal((0, resolved_1.operationFacts)(SPEC, { m: 'PUT', o: '/things/{id}' }), undefined);
+        node_assert_1.default.equal((0, resolved_1.operationFacts)(SPEC, { m: 'GET', o: '/nope' }), undefined);
     });
     (0, node_test_1.test)('indexes every described operation by method and path', () => {
         node_assert_1.default.deepEqual(Object.keys((0, resolved_1.operationIndex)(SPEC)).sort(), ['DELETE /things/{id}', 'GET /open', 'GET /things/{id}']);
@@ -95,7 +95,7 @@ const SPEC = {
 // The guide's hint, not a specification fact, so it must survive on the point.
 (0, node_test_1.describe)('live-hint-on-point', () => {
     (0, node_test_1.test)('a guide live hint lands on the point', async () => {
-        const point = { method: 'GET', orig: '/things', kind: 'http' };
+        const point = { m: 'GET', o: '/things', k: 'http' };
         const ctx = {
             def: { paths: { '/things': { get: { responses: {} } } } },
             apimodel: { main: { kit: { entity: { thing: { name: 'thing',
@@ -103,12 +103,12 @@ const SPEC = {
             guide: { entity: { thing: { path: { '/things': { op: { list: { live: true } } } } } } },
         };
         await (0, contract_1.contractTransform)(ctx);
-        node_assert_1.default.equal(point.live, true);
-        node_assert_1.default.equal(point.contract.json, undefined);
-        node_assert_1.default.equal(point.contract.id, 'GET /things');
+        node_assert_1.default.equal(point.li, true);
+        node_assert_1.default.equal(point.co.json, undefined);
+        node_assert_1.default.equal(point.co.id, 'GET /things');
     });
     (0, node_test_1.test)('no hint leaves the point alone', async () => {
-        const point = { method: 'GET', orig: '/things', kind: 'http' };
+        const point = { m: 'GET', o: '/things', k: 'http' };
         const ctx = {
             def: { paths: { '/things': { get: { responses: {} } } } },
             apimodel: { main: { kit: { entity: { thing: { name: 'thing',
@@ -116,7 +116,7 @@ const SPEC = {
             guide: {},
         };
         await (0, contract_1.contractTransform)(ctx);
-        node_assert_1.default.equal(point.live, undefined);
+        node_assert_1.default.equal(point.li, undefined);
     });
 });
 (0, node_test_1.test)('capability reads the current guide after publication', () => {
@@ -133,8 +133,8 @@ const SPEC = {
 });
 (0, node_test_1.test)('ModelPoint exposes boolean and object live hints', () => {
     for (const live of [true, false, { input: { n: 2 } }]) {
-        const point = { live };
-        node_assert_1.default.deepEqual(JSON.parse(JSON.stringify(point)).live, live);
+        const point = { li: live };
+        node_assert_1.default.deepEqual(JSON.parse(JSON.stringify(point)).li, live);
     }
 });
 //# sourceMappingURL=resolved.test.js.map

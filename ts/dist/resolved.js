@@ -32,9 +32,9 @@ const METHODS = [
 ];
 exports.METHODS = METHODS;
 function operationFacts(def, point) {
-    const path = def?.paths?.[point.orig];
-    const method = path?.[String(point.method).toLowerCase()];
-    const graphql = def?.query?.[point.orig] || def?.mutation?.[point.orig];
+    const path = def?.paths?.[point.o];
+    const method = path?.[String(point.m).toLowerCase()];
+    const graphql = def?.query?.[point.o] || def?.mutation?.[point.o];
     if (!method && !graphql)
         return undefined;
     const facts = { protocol: graphql ? 'graphql' : 'http' };
@@ -59,21 +59,21 @@ function operationFacts(def, point) {
     facts.produces ??= def.produces;
     return facts;
 }
-// Every described operation, keyed 'METHOD path' as `point.contract.id` is.
+// Every described operation, keyed 'METHOD path' as `point.co.id` is.
 function operationIndex(def) {
     const out = {};
     for (const path of Object.keys(def?.paths || {})) {
         for (const method of METHODS) {
             if (null == def.paths[path]?.[method])
                 continue;
-            const facts = operationFacts(def, { method, orig: path });
+            const facts = operationFacts(def, { m: method, o: path });
             if (facts)
                 out[method.toUpperCase() + ' ' + path] = facts;
         }
     }
     for (const kind of ['query', 'mutation']) {
         for (const field of Object.keys(def?.[kind] || {})) {
-            const facts = operationFacts(def, { method: 'POST', orig: field });
+            const facts = operationFacts(def, { m: 'POST', o: field });
             if (facts)
                 out['POST ' + field] = facts;
         }
@@ -106,7 +106,7 @@ function makeResolved(kind, def, guide = () => undefined) {
         kind,
         def,
         operation: (method, path, selector) => {
-            const facts = operationFacts(def, { method, orig: path });
+            const facts = operationFacts(def, { m: method, o: path });
             if (!facts)
                 return undefined;
             const op = operationGuide(guide(), method, path, facts.protocol === 'graphql', selector);

@@ -41,7 +41,7 @@ const argsTransform: Transform = async function(
       each(mop.points, (mpoint: ModelPoint) => {
         const argdefs: ParameterDef[] = []
 
-        if ('graphql' === mpoint.kind) {
+        if ('graphql' === mpoint.k) {
           // GraphQL root-field arguments become 'param' args, so the existing
           // arg machinery (select.exist matching, request typing, test
           // generation) works on them unchanged. Input-object arguments are
@@ -64,10 +64,10 @@ const argsTransform: Transform = async function(
           }
         }
         else {
-          const pathdef: PathDef = def.paths[mpoint.orig]
+          const pathdef: PathDef = def.paths[mpoint.o]
           argdefs.push(...((pathdef as any)?.parameters ?? []))
 
-          const opdef: MethodDef = (pathdef as any)?.[mpoint.method.toLowerCase()]
+          const opdef: MethodDef = (pathdef as any)?.[mpoint.m.toLowerCase()]
           argdefs.push(...(opdef?.parameters ?? []))
         }
 
@@ -85,8 +85,8 @@ const argsTransform: Transform = async function(
 
 // Locate the normalised root-field descriptor a GraphQL point came from.
 function graphqlFieldDef(def: any, mpoint: ModelPoint): any {
-  const field = mpoint.graphql?.field ?? mpoint.orig
-  return 'mutation' === mpoint.graphql?.optype ?
+  const field = mpoint.gq?.field ?? mpoint.o
+  return 'mutation' === mpoint.gq?.optype ?
     def.mutation?.[field] : def.query?.[field]
 }
 
@@ -100,7 +100,7 @@ function gqlScalarType(typeName: string): string | undefined {
 }
 
 
-const ARG_KIND: Record<string, ModelArg["kind"]> = {
+const ARG_KIND: Record<string, ModelArg["k"]> = {
   'query': 'query',
   'header': 'header',
   'path': 'param',
@@ -122,11 +122,11 @@ function resolveArgs(
       const ref = (argdef as any)?.$ref
       ctx?.warn?.({
         note: `Parameter with no name on entity=${ment.name} op=${mop.name}` +
-          ` path=${mpoint.orig} is dropped` +
+          ` path=${mpoint.o} is dropped` +
           (null == ref ? '.' : `: \`$ref\` "${ref}" resolves to nothing.`) +
           ' A parameter needs a `name`, or a reference that resolves to one.',
         entity: ment.name,
-        path: mpoint.orig,
+        path: mpoint.o,
         op: mop.name,
       })
       return
@@ -136,35 +136,35 @@ function resolveArgs(
     // Rename map can be keyed by either the spec original (camelCase) or by
     // the snakified form depending on which path went through heuristic01.
     // Try both before falling through to `orig`.
-    const renameMap = mpoint.rename[kind]
+    const renameMap = mpoint.r[kind]
     const name = renameMap?.[specName] ?? renameMap?.[orig] ?? orig
     const marg: ModelArg = {
-      name,
-      orig,
-      type: inferFieldType(name, validator(argdef.schema?.type)),
-      kind,
-      reqd: !!argdef.required
+      n: name,
+      or: orig,
+      t: inferFieldType(name, validator(argdef.schema?.type)),
+      k: kind,
+      r: !!argdef.required
     }
 
     const example = resolveArgExample(argdef)
     if (undefined !== example) {
-      marg.example = example
+      marg.ex = example
     }
 
     if (argdef.nullable) {
-      marg.type = ['`$ONE`', '`$NULL`', marg.type]
+      marg.t = ['`$ONE`', '`$NULL`', marg.t]
     }
 
-    const argsKey = (marg.kind === 'param' ? 'params' : marg.kind) as keyof typeof mpoint.args
-    let kindargs = (mpoint.args[argsKey] = mpoint.args[argsKey] ?? [])
+    const argsKey = (marg.k === 'param' ? 'params' : marg.k) as keyof typeof mpoint.g
+    let kindargs = (mpoint.g[argsKey] = mpoint.g[argsKey] ?? [])
     kindargs.push(marg)
     touchedKeys.add(argsKey)
   })
 
   // Sort once after all args are collected
-  const cmp = (a: ModelArg, b: ModelArg) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0
+  const cmp = (a: ModelArg, b: ModelArg) => a.n < b.n ? -1 : a.n > b.n ? 1 : 0
   for (const key of touchedKeys) {
-    mpoint.args[key as keyof typeof mpoint.args]?.sort(cmp)
+    mpoint.g[key as keyof typeof mpoint.g]?.sort(cmp)
   }
 }
 

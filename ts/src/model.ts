@@ -81,18 +81,14 @@ type ModelField = {
 }
 
 
-// Operation argument/parameter definition.
-// `example` captures a value the spec advertises (parameter `example`,
-// the first entry of `examples`, or `schema.example`/`schema.default`).
-// Test generators use this for required params in live test setup so the
-// generated request actually satisfies the API contract.
+// `ex` holds an advertised parameter example or schema default.
 type ModelArg = {
-  name: string
-  orig: string
-  type: any
-  kind: ArgKind
-  reqd: boolean
-  example?: any
+  n: string
+  or?: string
+  t: any
+  k: ArgKind
+  r: boolean
+  ex?: any
 }
 
 
@@ -134,30 +130,30 @@ type ModelPathSegment = {
 
 
 type ModelPoint = {
-  contract?: { version: 2, id: string, source: string }
-  live?: boolean | Record<string, any>
-  orig: string
-  kind?: PointKind
-  graphql?: ModelGraphql
-  method: MethodName
-  segments: ModelPathSegment[]
-  rename: Partial<{
+  co?: { version: 2, id: string, source: string }
+  li?: boolean | Record<string, any>
+  o: string
+  k?: PointKind
+  gq?: ModelGraphql
+  m: MethodName
+  s: ModelPathSegment[]
+  r: Partial<{
     param: Record<string, string>
     query: Record<string, string>
     header: Record<string, string>
     cookie: Record<string, string>
   }>
-  args: Partial<{
+  g: Partial<{
     params: ModelArg[]
     query: ModelArg[]
     header: ModelArg[]
     cookie: ModelArg[]
   }>
-  transform: {
+  t: {
     req?: any
     res?: any
   }
-  select: {
+  q: {
     exist: string[]
     $action?: string
   }

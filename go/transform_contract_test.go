@@ -38,7 +38,7 @@ func TestContractIdentity(t *testing.T) {
 					def["swagger"] = "2.0"
 				}
 			}
-			point := map[string]any{"method": tc.method, "orig": orig, "contract": map[string]any{"json": "stale"}}
+			point := map[string]any{"m": tc.method, "o": orig, "co": map[string]any{"json": "stale"}}
 			live := map[string]any{"input": map[string]any{"n": 2}}
 			ctx := &ApiDefContext{
 				Def: def,
@@ -60,11 +60,11 @@ func TestContractIdentity(t *testing.T) {
 				t.Fatal(err)
 			}
 			want := map[string]any{"version": 2, "id": tc.method + " " + orig, "source": tc.source}
-			if !reflect.DeepEqual(point["contract"], want) {
-				t.Fatalf("contract: got %v, want %v", point["contract"], want)
+			if !reflect.DeepEqual(point["co"], want) {
+				t.Fatalf("contract: got %v, want %v", point["co"], want)
 			}
-			if !reflect.DeepEqual(point["live"], live) {
-				t.Fatalf("live hint lost: %v", point["live"])
+			if !reflect.DeepEqual(point["li"], live) {
+				t.Fatalf("live hint lost: %v", point["li"])
 			}
 			if _, err := json.Marshal(ctx.ApiModel); err != nil {
 				t.Fatalf("model contains recursive specification data: %v", err)

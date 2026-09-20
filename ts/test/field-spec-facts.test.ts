@@ -28,7 +28,7 @@ function loadOnly(schema: any) {
       op: {
         load: {
           name: 'load',
-          points: [{ orig: '/planets/{id}', method: 'GET', kind: 'json' }],
+          points: [{ o: '/planets/{id}', m: 'GET', k: 'json' }],
         },
       },
     },
@@ -159,11 +159,11 @@ describe('field-spec-facts', () => {
         // load comes first in opFieldPrecedence and annotates nothing.
         load: {
           name: 'load',
-          points: [{ orig: '/planets/{id}', method: 'GET', kind: 'json' }],
+          points: [{ o: '/planets/{id}', m: 'GET', k: 'json' }],
         },
         create: {
           name: 'create',
-          points: [{ orig: '/planets', method: 'POST', kind: 'json' }],
+          points: [{ o: '/planets', m: 'POST', k: 'json' }],
         },
       },
     }
@@ -215,11 +215,11 @@ describe('field-spec-facts', () => {
       op: {
         load: {
           name: 'load',
-          points: [{ orig: '/planets/{id}', method: 'GET', kind: 'json' }],
+          points: [{ o: '/planets/{id}', m: 'GET', k: 'json' }],
         },
         create: {
           name: 'create',
-          points: [{ orig: '/planets', method: 'POST', kind: 'json' }],
+          points: [{ o: '/planets', m: 'POST', k: 'json' }],
         },
       },
     }

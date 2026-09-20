@@ -221,21 +221,21 @@ describe('apidef', () => {
     // Model: PATCH promoted to update; the merge PUT rides along as an action point.
     const thing = bres.apimodel.main.kit.entity.thing
     assert.strictEqual(thing.op.patch, undefined, 'patch should have been promoted')
-    const update = thing.op.update.points.map((pt: any) => [pt.method, pt.orig, pt.select.$action])
+    const update = thing.op.update.points.map((pt: any) => [pt.m, pt.o, pt.q.$action])
     assert.deepStrictEqual(update, [
       ['PATCH', '/things/{thing_number}', undefined],
       ['PUT', '/things/{thing_number}/merge', 'merge'],
     ])
-    const load = thing.op.load.points.map((pt: any) => [pt.method, pt.orig, pt.select.$action])
+    const load = thing.op.load.points.map((pt: any) => [pt.m, pt.o, pt.q.$action])
     assert.deepStrictEqual(load.sort(), [
       ['GET', '/things/{thing_number}', undefined],
       ['GET', '/things/{thing_number}/merge', 'merge'],
     ])
     // Both item and verb points address the thing by the renamed key.
     for (const pt of [...thing.op.update.points, ...thing.op.load.points]) {
-      const names = (pt.args.params ?? []).map((a: any) => a.name)
+      const names = (pt.g.params ?? []).map((a: any) => a.n)
       assert.ok(names.includes('id') && !names.includes('thing_number'),
-        pt.orig + ' params ' + names.join(','))
+        pt.o + ' params ' + names.join(','))
     }
   })
 
@@ -291,8 +291,8 @@ describe('apidef', () => {
     assert.deepStrictEqual(Object.keys(archive.action ?? {}), ['archive'])
 
     const ea = bres.apimodel.main.kit.entity.email_archive
-    const archivePt = ea.op.update.points.find((pt: any) => pt.orig.endsWith('/archive'))
-    assert.strictEqual(archivePt?.select?.$action, 'archive')
+    const archivePt = ea.op.update.points.find((pt: any) => pt.o.endsWith('/archive'))
+    assert.strictEqual(archivePt?.q?.$action, 'archive')
   })
 
 
@@ -417,7 +417,7 @@ describe('apidef', () => {
 
     // The QUERY method flows through to the model op point.
     const book = bres.apimodel.main.kit.entity.book
-    assert.strictEqual(book.op.list.points[0].method, 'QUERY')
+    assert.strictEqual(book.op.list.points[0].m, 'QUERY')
 
     // The Book response schema supplies the entity fields...
     const fieldNames = Object.keys(book.fields).sort()
@@ -675,25 +675,25 @@ const SOLAR_MODEL = {
             create: {
               points: [
                 {
-                  args: {
+                  g: {
                     params: [
                       {
-                        kind: 'param',
-                        name: 'planet_id',
-                        orig: 'planet_id',
-                        reqd: true,
-                        type: '`$STRING`',
-                        active: true
+                        k: 'param',
+                        n: 'planet_id',
+                        or: 'planet_id',
+                        r: true,
+                        t: '`$STRING`',
+                        a: true
                       }
                     ]
                   },
-                  method: 'POST',
-                  orig: '/api/planet/{planet_id}/moon',
-                  segments: [{ lit: 'api' }, { lit: 'planet' }, { var: 'planet_id' }, { lit: 'moon' }],
-                  select: { exist: ['planet_id'] },
-                  transform: { req: '`reqdata`', res: '`body`' },
-                  active: true,
-                  relations: []
+                  m: 'POST',
+                  o: '/api/planet/{planet_id}/moon',
+                  s: [{ lit: 'api' }, { lit: 'planet' }, { var: 'planet_id' }, { lit: 'moon' }],
+                  q: { exist: ['planet_id'] },
+                  t: { req: '`reqdata`', res: '`body`' },
+                  a: true,
+                  rl: []
                 }
               ],
               name: 'create'
@@ -701,25 +701,25 @@ const SOLAR_MODEL = {
             list: {
               points: [
                 {
-                  args: {
+                  g: {
                     params: [
                       {
-                        kind: 'param',
-                        name: 'planet_id',
-                        orig: 'planet_id',
-                        reqd: true,
-                        type: '`$STRING`',
-                        active: true
+                        k: 'param',
+                        n: 'planet_id',
+                        or: 'planet_id',
+                        r: true,
+                        t: '`$STRING`',
+                        a: true
                       }
                     ]
                   },
-                  method: 'GET',
-                  orig: '/api/planet/{planet_id}/moon',
-                  segments: [{ lit: 'api' }, { lit: 'planet' }, { var: 'planet_id' }, { lit: 'moon' }],
-                  select: { exist: ['planet_id'] },
-                  transform: { req: '`reqdata`', res: '`body`' },
-                  active: true,
-                  relations: []
+                  m: 'GET',
+                  o: '/api/planet/{planet_id}/moon',
+                  s: [{ lit: 'api' }, { lit: 'planet' }, { var: 'planet_id' }, { lit: 'moon' }],
+                  q: { exist: ['planet_id'] },
+                  t: { req: '`reqdata`', res: '`body`' },
+                  a: true,
+                  rl: []
                 }
               ],
               name: 'list'
@@ -727,34 +727,34 @@ const SOLAR_MODEL = {
             load: {
               points: [
                 {
-                  args: {
+                  g: {
                     params: [
                       {
-                        kind: 'param',
-                        name: 'id',
-                        orig: 'moon_id',
-                        reqd: true,
-                        type: '`$STRING`',
-                        active: true
+                        k: 'param',
+                        n: 'id',
+                        or: 'moon_id',
+                        r: true,
+                        t: '`$STRING`',
+                        a: true
                       },
                       {
-                        kind: 'param',
-                        name: 'planet_id',
-                        orig: 'planet_id',
-                        reqd: true,
-                        type: '`$STRING`',
-                        active: true
+                        k: 'param',
+                        n: 'planet_id',
+                        or: 'planet_id',
+                        r: true,
+                        t: '`$STRING`',
+                        a: true
                       }
                     ]
                   },
-                  method: 'GET',
-                  orig: '/api/planet/{planet_id}/moon/{moon_id}',
-                  segments: [{ lit: 'api' }, { lit: 'planet' }, { var: 'planet_id' }, { lit: 'moon' }, { var: 'id' }],
-                  rename: { param: { moon_id: 'id' } },
-                  select: { exist: ['id', 'planet_id'] },
-                  transform: { req: '`reqdata`', res: '`body`' },
-                  active: true,
-                  relations: []
+                  m: 'GET',
+                  o: '/api/planet/{planet_id}/moon/{moon_id}',
+                  s: [{ lit: 'api' }, { lit: 'planet' }, { var: 'planet_id' }, { lit: 'moon' }, { var: 'id' }],
+                  r: { param: { moon_id: 'id' } },
+                  q: { exist: ['id', 'planet_id'] },
+                  t: { req: '`reqdata`', res: '`body`' },
+                  a: true,
+                  rl: []
                 }
               ],
               name: 'load'
@@ -762,33 +762,33 @@ const SOLAR_MODEL = {
             remove: {
               points: [
                 {
-                  args: {
+                  g: {
                     params: [
                       {
-                        kind: 'param',
-                        name: 'id',
-                        orig: 'moon_id',
-                        reqd: true,
-                        type: '`$STRING`',
-                        active: true
+                        k: 'param',
+                        n: 'id',
+                        or: 'moon_id',
+                        r: true,
+                        t: '`$STRING`',
+                        a: true
                       },
                       {
-                        kind: 'param',
-                        name: 'planet_id',
-                        orig: 'planet_id',
-                        reqd: true,
-                        type: '`$STRING`',
-                        active: true
+                        k: 'param',
+                        n: 'planet_id',
+                        or: 'planet_id',
+                        r: true,
+                        t: '`$STRING`',
+                        a: true
                       }
                     ]
                   },
-                  method: 'DELETE',
-                  orig: '/api/planet/{planet_id}/moon/{moon_id}',
-                  segments: [{ lit: 'api' }, { lit: 'planet' }, { var: 'planet_id' }, { lit: 'moon' }, { var: 'id' }],
-                  select: { exist: ['id', 'planet_id'] },
-                  transform: { req: '`reqdata`', res: '`body`' },
-                  active: true,
-                  relations: []
+                  m: 'DELETE',
+                  o: '/api/planet/{planet_id}/moon/{moon_id}',
+                  s: [{ lit: 'api' }, { lit: 'planet' }, { var: 'planet_id' }, { lit: 'moon' }, { var: 'id' }],
+                  q: { exist: ['id', 'planet_id'] },
+                  t: { req: '`reqdata`', res: '`body`' },
+                  a: true,
+                  rl: []
                 }
               ],
               name: 'remove'
@@ -796,33 +796,33 @@ const SOLAR_MODEL = {
             update: {
               points: [
                 {
-                  args: {
+                  g: {
                     params: [
                       {
-                        kind: 'param',
-                        name: 'id',
-                        orig: 'moon_id',
-                        reqd: true,
-                        type: '`$STRING`',
-                        active: true
+                        k: 'param',
+                        n: 'id',
+                        or: 'moon_id',
+                        r: true,
+                        t: '`$STRING`',
+                        a: true
                       },
                       {
-                        kind: 'param',
-                        name: 'planet_id',
-                        orig: 'planet_id',
-                        reqd: true,
-                        type: '`$STRING`',
-                        active: true
+                        k: 'param',
+                        n: 'planet_id',
+                        or: 'planet_id',
+                        r: true,
+                        t: '`$STRING`',
+                        a: true
                       }
                     ]
                   },
-                  method: 'PUT',
-                  orig: '/api/planet/{planet_id}/moon/{moon_id}',
-                  segments: [{ lit: 'api' }, { lit: 'planet' }, { var: 'planet_id' }, { lit: 'moon' }, { var: 'id' }],
-                  select: { exist: ['id', 'planet_id'] },
-                  transform: { req: '`reqdata`', res: '`body`' },
-                  active: true,
-                  relations: []
+                  m: 'PUT',
+                  o: '/api/planet/{planet_id}/moon/{moon_id}',
+                  s: [{ lit: 'api' }, { lit: 'planet' }, { var: 'planet_id' }, { lit: 'moon' }, { var: 'id' }],
+                  q: { exist: ['id', 'planet_id'] },
+                  t: { req: '`reqdata`', res: '`body`' },
+                  a: true,
+                  rl: []
                 }
               ],
               name: 'update'
@@ -896,58 +896,58 @@ const SOLAR_MODEL = {
             create: {
               points: [
                 {
-                  args: {
+                  g: {
                     params: [
                       {
-                        kind: 'param',
-                        name: 'id',
-                        orig: 'planet_id',
-                        reqd: true,
-                        type: '`$STRING`',
-                        active: true
+                        k: 'param',
+                        n: 'id',
+                        or: 'planet_id',
+                        r: true,
+                        t: '`$STRING`',
+                        a: true
                       }
                     ]
                   },
-                  method: 'POST',
-                  orig: '/api/planet/{planet_id}/forbid',
-                  segments: [{ lit: 'api' }, { lit: 'planet' }, { var: 'id' }, { lit: 'forbid' }],
-                  rename: { param: { planet_id: 'id' } },
-                  select: { '$action': 'forbid', exist: ['id'] },
-                  transform: { req: '`reqdata`', res: '`body`' },
-                  active: true,
-                  relations: []
+                  m: 'POST',
+                  o: '/api/planet/{planet_id}/forbid',
+                  s: [{ lit: 'api' }, { lit: 'planet' }, { var: 'id' }, { lit: 'forbid' }],
+                  r: { param: { planet_id: 'id' } },
+                  q: { '$action': 'forbid', exist: ['id'] },
+                  t: { req: '`reqdata`', res: '`body`' },
+                  a: true,
+                  rl: []
                 },
                 {
-                  args: {
+                  g: {
                     params: [
                       {
-                        kind: 'param',
-                        name: 'id',
-                        orig: 'planet_id',
-                        reqd: true,
-                        type: '`$STRING`',
-                        active: true
+                        k: 'param',
+                        n: 'id',
+                        or: 'planet_id',
+                        r: true,
+                        t: '`$STRING`',
+                        a: true
                       }
                     ]
                   },
-                  method: 'POST',
-                  orig: '/api/planet/{planet_id}/terraform',
-                  segments: [{ lit: 'api' }, { lit: 'planet' }, { var: 'id' }, { lit: 'terraform' }],
-                  rename: { param: { planet_id: 'id' } },
-                  select: { '$action': 'terraform', exist: ['id'] },
-                  transform: { req: '`reqdata`', res: '`body`' },
-                  active: true,
-                  relations: []
+                  m: 'POST',
+                  o: '/api/planet/{planet_id}/terraform',
+                  s: [{ lit: 'api' }, { lit: 'planet' }, { var: 'id' }, { lit: 'terraform' }],
+                  r: { param: { planet_id: 'id' } },
+                  q: { '$action': 'terraform', exist: ['id'] },
+                  t: { req: '`reqdata`', res: '`body`' },
+                  a: true,
+                  rl: []
                 },
                 {
-                  method: 'POST',
-                  orig: '/api/planet',
-                  segments: [{ lit: 'api' }, { lit: 'planet' }],
-                  transform: { req: '`reqdata`', res: '`body`' },
-                  active: true,
-                  args: { params: [] },
-                  relations: [],
-                  select: {}
+                  m: 'POST',
+                  o: '/api/planet',
+                  s: [{ lit: 'api' }, { lit: 'planet' }],
+                  t: { req: '`reqdata`', res: '`body`' },
+                  a: true,
+                  g: { params: [] },
+                  rl: [],
+                  q: {}
                 }
               ],
               name: 'create'
@@ -955,14 +955,14 @@ const SOLAR_MODEL = {
             list: {
               points: [
                 {
-                  method: 'GET',
-                  orig: '/api/planet',
-                  segments: [{ lit: 'api' }, { lit: 'planet' }],
-                  transform: { req: '`reqdata`', res: '`body`' },
-                  active: true,
-                  args: { params: [] },
-                  relations: [],
-                  select: {}
+                  m: 'GET',
+                  o: '/api/planet',
+                  s: [{ lit: 'api' }, { lit: 'planet' }],
+                  t: { req: '`reqdata`', res: '`body`' },
+                  a: true,
+                  g: { params: [] },
+                  rl: [],
+                  q: {}
                 }
               ],
               name: 'list'
@@ -970,26 +970,26 @@ const SOLAR_MODEL = {
             load: {
               points: [
                 {
-                  args: {
+                  g: {
                     params: [
                       {
-                        kind: 'param',
-                        name: 'id',
-                        orig: 'planet_id',
-                        reqd: true,
-                        type: '`$STRING`',
-                        active: true
+                        k: 'param',
+                        n: 'id',
+                        or: 'planet_id',
+                        r: true,
+                        t: '`$STRING`',
+                        a: true
                       }
                     ]
                   },
-                  method: 'GET',
-                  orig: '/api/planet/{planet_id}',
-                  segments: [{ lit: 'api' }, { lit: 'planet' }, { var: 'id' }],
-                  rename: { param: { planet_id: 'id' } },
-                  select: { exist: ['id'] },
-                  transform: { req: '`reqdata`', res: '`body`' },
-                  active: true,
-                  relations: []
+                  m: 'GET',
+                  o: '/api/planet/{planet_id}',
+                  s: [{ lit: 'api' }, { lit: 'planet' }, { var: 'id' }],
+                  r: { param: { planet_id: 'id' } },
+                  q: { exist: ['id'] },
+                  t: { req: '`reqdata`', res: '`body`' },
+                  a: true,
+                  rl: []
                 }
               ],
               name: 'load'
@@ -997,25 +997,25 @@ const SOLAR_MODEL = {
             remove: {
               points: [
                 {
-                  args: {
+                  g: {
                     params: [
                       {
-                        kind: 'param',
-                        name: 'id',
-                        orig: 'planet_id',
-                        reqd: true,
-                        type: '`$STRING`',
-                        active: true
+                        k: 'param',
+                        n: 'id',
+                        or: 'planet_id',
+                        r: true,
+                        t: '`$STRING`',
+                        a: true
                       }
                     ]
                   },
-                  method: 'DELETE',
-                  orig: '/api/planet/{planet_id}',
-                  segments: [{ lit: 'api' }, { lit: 'planet' }, { var: 'id' }],
-                  select: { exist: ['id'] },
-                  transform: { req: '`reqdata`', res: '`body`' },
-                  active: true,
-                  relations: []
+                  m: 'DELETE',
+                  o: '/api/planet/{planet_id}',
+                  s: [{ lit: 'api' }, { lit: 'planet' }, { var: 'id' }],
+                  q: { exist: ['id'] },
+                  t: { req: '`reqdata`', res: '`body`' },
+                  a: true,
+                  rl: []
                 }
               ],
               name: 'remove'
@@ -1023,25 +1023,25 @@ const SOLAR_MODEL = {
             update: {
               points: [
                 {
-                  args: {
+                  g: {
                     params: [
                       {
-                        kind: 'param',
-                        name: 'id',
-                        orig: 'planet_id',
-                        reqd: true,
-                        type: '`$STRING`',
-                        active: true
+                        k: 'param',
+                        n: 'id',
+                        or: 'planet_id',
+                        r: true,
+                        t: '`$STRING`',
+                        a: true
                       }
                     ]
                   },
-                  method: 'PUT',
-                  orig: '/api/planet/{planet_id}',
-                  segments: [{ lit: 'api' }, { lit: 'planet' }, { var: 'id' }],
-                  select: { exist: ['id'] },
-                  transform: { req: '`reqdata`', res: '`body`' },
-                  active: true,
-                  relations: []
+                  m: 'PUT',
+                  o: '/api/planet/{planet_id}',
+                  s: [{ lit: 'api' }, { lit: 'planet' }, { var: 'id' }],
+                  q: { exist: ['id'] },
+                  t: { req: '`reqdata`', res: '`body`' },
+                  a: true,
+                  rl: []
                 }
               ],
               name: 'update'

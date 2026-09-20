@@ -118,7 +118,7 @@ const graphqlTransform = async function (ctx) {
         const gent = guide.entity[entname];
         (0, jostraca_1.each)(ment.op, (mop, opname) => {
             (0, jostraca_1.each)(mop.points, (mpoint) => {
-                const rootfield = mpoint.orig;
+                const rootfield = mpoint.o;
                 const gfield = gent?.field?.[rootfield];
                 const optype = gfield?.op?.[opname]?.optype ?? 'query';
                 const fielddef = 'mutation' === optype ?
@@ -162,25 +162,25 @@ const graphqlTransform = async function (ctx) {
                 const actionName = Object.keys(gfield?.action ?? {})[0];
                 const docname = pascal(entname) + pascal(opname) +
                     (null != actionName ? pascal(actionName) : '');
-                mpoint.kind = 'graphql';
-                mpoint.method = 'POST';
-                mpoint.segments = [];
-                mpoint.graphql = {
+                mpoint.k = 'graphql';
+                mpoint.m = 'POST';
+                mpoint.s = [];
+                mpoint.gq = {
                     optype: optype,
                     field: rootfield,
                     doc: renderDoc(docname, optype, rootfield, vars, selection, fragName, entityType, fragFields),
                     vars,
                 };
-                mpoint.graphql.entityType$ = entityType;
+                mpoint.gq.entityType$ = entityType;
                 if ('connection' === ret.kind) {
-                    mpoint.graphql.page = {
+                    mpoint.gq.page = {
                         style: 'relay',
                         nodes: ret.nodes ?? 'nodes',
                         cursor: 'pageInfo.endCursor',
                         more: 'pageInfo.hasNextPage',
                     };
                 }
-                mpoint.transform.res = '`' + respath + '`';
+                mpoint.t.res = '`' + respath + '`';
             });
         });
         msg += ment.name + ' ';

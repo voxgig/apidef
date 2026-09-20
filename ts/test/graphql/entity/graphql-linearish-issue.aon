@@ -60,12 +60,12 @@ main: kit: entity: issue: {
       name: "create"
       points: [
         {
-          contract: {
+          co: {
             id: "POST issueCreate"
             source: "graphql"
             version: 2
           }
-          graphql: {
+          gq: {
             doc: "mutation IssueCreate($input: IssueCreateInput!) { issueCreate(input: $input) { issue { ...IssueFields } success } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }"
             field: "issueCreate"
             optype: "mutation"
@@ -77,10 +77,10 @@ main: kit: entity: issue: {
               }
             ]
           }
-          kind: "graphql"
-          method: "POST"
-          orig: "issueCreate"
-          transform: {
+          k: "graphql"
+          m: "POST"
+          o: "issueCreate"
+          t: {
             req: "`reqdata`"
             res: "`body.data.issueCreate.issue`"
           }
@@ -91,30 +91,30 @@ main: kit: entity: issue: {
       name: "list"
       points: [
         {
-          args: {
-            params: [
-              {
-                kind: "param"
-                name: "after"
-                orig: "after"
-                reqd: false
-                type: "`$STRING`"
-              }
-              {
-                kind: "param"
-                name: "first"
-                orig: "first"
-                reqd: false
-                type: "`$INTEGER`"
-              }
-            ]
-          }
-          contract: {
+          co: {
             id: "POST issues"
             source: "graphql"
             version: 2
           }
-          graphql: {
+          g: {
+            params: [
+              {
+                k: "param"
+                n: "after"
+                or: "after"
+                r: false
+                t: "`$STRING`"
+              }
+              {
+                k: "param"
+                n: "first"
+                or: "first"
+                r: false
+                t: "`$INTEGER`"
+              }
+            ]
+          }
+          gq: {
             doc: "query IssueList($filter: IssueFilter, $first: Int, $after: String) { issues(filter: $filter, first: $first, after: $after) { nodes { ...IssueFields } pageInfo { endCursor hasNextPage } } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }"
             field: "issues"
             optype: "query"
@@ -142,10 +142,10 @@ main: kit: entity: issue: {
               }
             ]
           }
-          kind: "graphql"
-          method: "POST"
-          orig: "issues"
-          transform: {
+          k: "graphql"
+          m: "POST"
+          o: "issues"
+          t: {
             req: "`reqdata`"
             res: "`body.data.issues.nodes`"
           }
@@ -156,23 +156,23 @@ main: kit: entity: issue: {
       name: "load"
       points: [
         {
-          args: {
-            params: [
-              {
-                kind: "param"
-                name: "id"
-                orig: "id"
-                reqd: true
-                type: "`$STRING`"
-              }
-            ]
-          }
-          contract: {
+          co: {
             id: "POST issue"
             source: "graphql"
             version: 2
           }
-          graphql: {
+          g: {
+            params: [
+              {
+                k: "param"
+                n: "id"
+                or: "id"
+                r: true
+                t: "`$STRING`"
+              }
+            ]
+          }
+          gq: {
             doc: "query IssueLoad($id: String!) { issue(id: $id) { ...IssueFields } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }"
             field: "issue"
             optype: "query"
@@ -184,15 +184,15 @@ main: kit: entity: issue: {
               }
             ]
           }
-          kind: "graphql"
-          method: "POST"
-          orig: "issue"
-          select: {
+          k: "graphql"
+          m: "POST"
+          o: "issue"
+          q: {
             exist: [
               "id"
             ]
           }
-          transform: {
+          t: {
             req: "`reqdata`"
             res: "`body.data.issue`"
           }
@@ -203,23 +203,23 @@ main: kit: entity: issue: {
       name: "remove"
       points: [
         {
-          args: {
-            params: [
-              {
-                kind: "param"
-                name: "id"
-                orig: "id"
-                reqd: true
-                type: "`$STRING`"
-              }
-            ]
-          }
-          contract: {
+          co: {
             id: "POST issueDelete"
             source: "graphql"
             version: 2
           }
-          graphql: {
+          g: {
+            params: [
+              {
+                k: "param"
+                n: "id"
+                or: "id"
+                r: true
+                t: "`$STRING`"
+              }
+            ]
+          }
+          gq: {
             doc: "mutation IssueRemove($id: String!) { issueDelete(id: $id) { issue { ...IssueFields } success } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }"
             field: "issueDelete"
             optype: "mutation"
@@ -231,15 +231,15 @@ main: kit: entity: issue: {
               }
             ]
           }
-          kind: "graphql"
-          method: "POST"
-          orig: "issueDelete"
-          select: {
+          k: "graphql"
+          m: "POST"
+          o: "issueDelete"
+          q: {
             exist: [
               "id"
             ]
           }
-          transform: {
+          t: {
             req: "`reqdata`"
             res: "`body.data.issueDelete.issue`"
           }
@@ -250,23 +250,23 @@ main: kit: entity: issue: {
       name: "update"
       points: [
         {
-          args: {
-            params: [
-              {
-                kind: "param"
-                name: "id"
-                orig: "id"
-                reqd: true
-                type: "`$STRING`"
-              }
-            ]
-          }
-          contract: {
+          co: {
             id: "POST issueArchive"
             source: "graphql"
             version: 2
           }
-          graphql: {
+          g: {
+            params: [
+              {
+                k: "param"
+                n: "id"
+                or: "id"
+                r: true
+                t: "`$STRING`"
+              }
+            ]
+          }
+          gq: {
             doc: "mutation IssueUpdateArchive($id: String!) { issueArchive(id: $id) { issue { ...IssueFields } success } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }"
             field: "issueArchive"
             optype: "mutation"
@@ -278,38 +278,38 @@ main: kit: entity: issue: {
               }
             ]
           }
-          kind: "graphql"
-          method: "POST"
-          orig: "issueArchive"
-          select: {
+          k: "graphql"
+          m: "POST"
+          o: "issueArchive"
+          q: {
             "$action": "archive"
             exist: [
               "id"
             ]
           }
-          transform: {
+          t: {
             req: "`reqdata`"
             res: "`body.data.issueArchive.issue`"
           }
         }
         {
-          args: {
-            params: [
-              {
-                kind: "param"
-                name: "id"
-                orig: "id"
-                reqd: true
-                type: "`$STRING`"
-              }
-            ]
-          }
-          contract: {
+          co: {
             id: "POST issueUpdate"
             source: "graphql"
             version: 2
           }
-          graphql: {
+          g: {
+            params: [
+              {
+                k: "param"
+                n: "id"
+                or: "id"
+                r: true
+                t: "`$STRING`"
+              }
+            ]
+          }
+          gq: {
             doc: "mutation IssueUpdate($id: String!, $input: IssueUpdateInput!) { issueUpdate(id: $id, input: $input) { issue { ...IssueFields } success } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }"
             field: "issueUpdate"
             optype: "mutation"
@@ -326,15 +326,15 @@ main: kit: entity: issue: {
               }
             ]
           }
-          kind: "graphql"
-          method: "POST"
-          orig: "issueUpdate"
-          select: {
+          k: "graphql"
+          m: "POST"
+          o: "issueUpdate"
+          q: {
             exist: [
               "id"
             ]
           }
-          transform: {
+          t: {
             req: "`reqdata`"
             res: "`body.data.issueUpdate.issue`"
           }

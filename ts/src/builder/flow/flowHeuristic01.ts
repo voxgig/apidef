@@ -108,9 +108,9 @@ function resolveBasicEntityFlow(ctx: any, entity: any) {
     const point = findMainLoadPoint(entop.load)
 
     // Get additional required match properties
-    each(point?.args.params, (param: any) => {
-      if (param.required) {
-        let ancestorName = param.name
+    each(point?.g.params, (param: any) => {
+      if (param.r) {
+        let ancestorName = param.n
         let ancestorEntity = apimodel.main.api.entity[ancestorName]
 
         if (null == ancestorEntity) {
@@ -122,10 +122,10 @@ function resolveBasicEntityFlow(ctx: any, entity: any) {
           flow.model.param[`${model.NAME}_TEST_${ancestorEntity.NAME}_ENTID`] = {
             [ancestorEntity.name + '01']: ancestorEntity.NAME + '01'
           }
-          am[param.name] =
+          am[param.n] =
             `\`dm$=p.${model.NAME}_TEST_${ancestorEntity.NAME}_ENTID.${ancestorEntity.name}01\``
 
-          data[`${nom(apiEntity, 'NAME')}01`][param.name] = ancestorEntity.NAME + '01'
+          data[`${nom(apiEntity, 'NAME')}01`][param.n] = ancestorEntity.NAME + '01'
         }
       }
     })
@@ -197,7 +197,7 @@ function resolveBasicEntityFlow(ctx: any, entity: any) {
 
 
 function findMainLoadPoint(op: ModelOp): ModelPoint | undefined {
-  let cands = op.points.filter(a => 'id' === getelem(a.segments, -1)?.var)
+  let cands = op.points.filter(a => 'id' === getelem(a.s, -1)?.var)
   return cands[0]
 }
 

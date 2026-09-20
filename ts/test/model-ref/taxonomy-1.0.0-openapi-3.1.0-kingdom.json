@@ -64,37 +64,37 @@
       "name": "create",
       "points": [
         {
-          "args": {
+          "g": {
             "params": [
               {
-                "kind": "param",
-                "name": "domain_id",
-                "orig": "domain_id",
-                "reqd": true,
-                "type": "`$STRING`"
+                "k": "param",
+                "n": "domain_id",
+                "or": "domain_id",
+                "r": true,
+                "t": "`$STRING`"
               },
               {
-                "kind": "param",
-                "name": "year",
-                "orig": "year",
-                "reqd": true,
-                "type": "`$INTEGER`"
+                "k": "param",
+                "n": "year",
+                "or": "year",
+                "r": true,
+                "t": "`$INTEGER`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "POST /{year}/domain/{id}/kingdom",
             "source": "openapi3",
             "version": 2
           },
-          "method": "POST",
-          "orig": "/{year}/domain/{id}/kingdom",
-          "rename": {
+          "m": "POST",
+          "o": "/{year}/domain/{id}/kingdom",
+          "r": {
             "param": {
               "id": "domain_id"
             }
           },
-          "segments": [
+          "s": [
             {
               "var": "year"
             },
@@ -108,13 +108,13 @@
               "lit": "kingdom"
             }
           ],
-          "select": {
+          "q": {
             "exist": [
               "domain_id",
               "year"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }
@@ -125,55 +125,55 @@
       "name": "list",
       "points": [
         {
-          "args": {
+          "g": {
             "params": [
               {
-                "kind": "param",
-                "name": "domain_id",
-                "orig": "id",
-                "reqd": true,
-                "type": "`$STRING`"
+                "k": "param",
+                "n": "domain_id",
+                "or": "id",
+                "r": true,
+                "t": "`$STRING`"
               },
               {
-                "kind": "param",
-                "name": "year",
-                "orig": "year",
-                "reqd": true,
-                "type": "`$INTEGER`"
+                "k": "param",
+                "n": "year",
+                "or": "year",
+                "r": true,
+                "t": "`$INTEGER`"
               }
             ],
             "query": [
               {
-                "example": 1,
-                "kind": "query",
-                "name": "page",
-                "orig": "page",
-                "reqd": false,
-                "type": "`$INTEGER`"
+                "ex": 1,
+                "k": "query",
+                "n": "page",
+                "or": "page",
+                "r": false,
+                "t": "`$INTEGER`"
               },
               {
-                "example": 20,
-                "kind": "query",
-                "name": "page_size",
-                "orig": "page_size",
-                "reqd": false,
-                "type": "`$INTEGER`"
+                "ex": 20,
+                "k": "query",
+                "n": "page_size",
+                "or": "page_size",
+                "r": false,
+                "t": "`$INTEGER`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "GET /{year}/domain/{id}/kingdom",
             "source": "openapi3",
             "version": 2
           },
-          "method": "GET",
-          "orig": "/{year}/domain/{id}/kingdom",
-          "rename": {
+          "m": "GET",
+          "o": "/{year}/domain/{id}/kingdom",
+          "r": {
             "param": {
               "id": "domain_id"
             }
           },
-          "segments": [
+          "s": [
             {
               "var": "year"
             },
@@ -187,7 +187,7 @@
               "lit": "kingdom"
             }
           ],
-          "select": {
+          "q": {
             "exist": [
               "domain_id",
               "page",
@@ -195,7 +195,7 @@
               "year"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body.items`"
           }
@@ -206,37 +206,37 @@
       "name": "load",
       "points": [
         {
-          "args": {
+          "g": {
             "params": [
               {
-                "kind": "param",
-                "name": "domain_id",
-                "orig": "domain_id",
-                "reqd": true,
-                "type": "`$STRING`"
+                "k": "param",
+                "n": "domain_id",
+                "or": "domain_id",
+                "r": true,
+                "t": "`$STRING`"
               },
               {
-                "kind": "param",
-                "name": "year",
-                "orig": "year",
-                "reqd": true,
-                "type": "`$INTEGER`"
+                "k": "param",
+                "n": "year",
+                "or": "year",
+                "r": true,
+                "t": "`$INTEGER`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "GET /{year}/domain/{domain_id}/kingdom/{kingdom_id}",
             "source": "openapi3",
             "version": 2
           },
-          "method": "GET",
-          "orig": "/{year}/domain/{domain_id}/kingdom/{kingdom_id}",
-          "rename": {
+          "m": "GET",
+          "o": "/{year}/domain/{domain_id}/kingdom/{kingdom_id}",
+          "r": {
             "param": {
               "kingdom_id": "id"
             }
           },
-          "segments": [
+          "s": [
             {
               "var": "year"
             },
@@ -253,13 +253,13 @@
               "var": "id"
             }
           ],
-          "select": {
+          "q": {
             "exist": [
               "domain_id",
               "year"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }

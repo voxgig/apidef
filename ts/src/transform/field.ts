@@ -170,7 +170,7 @@ const ID_OPS = ['load', 'update', 'patch', 'remove']
 
 
 function trailingVars(point: any): string[] {
-  const segs = ((point?.segments || []) as any[]).filter((s: any) => null != s)
+  const segs = ((point?.s || []) as any[]).filter((s: any) => null != s)
   const run: string[] = []
 
   for (let i = segs.length - 1; 0 <= i; i--) {
@@ -195,7 +195,7 @@ function identityParams(ment: ModelEntity): string[] {
 
     // Action points are verbs dispatched by `$action`, not addresses.
     for (const pt of (mop.points || [])) {
-      if (null != pt?.select?.['$action']) {
+      if (null != pt?.q?.['$action']) {
         continue
       }
       const run = trailingVars(pt)
@@ -205,7 +205,7 @@ function identityParams(ment: ModelEntity): string[] {
       cands.push({
         run,
         // Segments BEFORE the run: how much parent scope the route needs.
-        scope: ((pt.segments || []).length - run.length),
+        scope: ((pt.s || []).length - run.length),
         own: 'id' === run[run.length - 1] ||
           (ment as any).name + '_id' === run[run.length - 1],
         order: o,
@@ -285,12 +285,12 @@ function responseCandidates(ment: ModelEntity, def: any): any[] {
 
     for (const mpoint of (mop?.points || [])) {
       // An action point's response is not the entity.
-      if (null != mpoint?.select?.['$action']) {
+      if (null != mpoint?.q?.['$action']) {
         continue
       }
 
-      const path = (def?.paths || {})[mpoint?.orig]
-      const method = String(mpoint?.method || '').toLowerCase()
+      const path = (def?.paths || {})[mpoint?.o]
+      const method = String(mpoint?.m || '').toLowerCase()
       const responses = path?.[method]?.responses || {}
 
       for (const code of Object.keys(responses)) {
@@ -380,15 +380,15 @@ function partAliases(ment: ModelEntity, part: string): string[] {
 
   each((ment as any).op, (mop: any) => {
     each(mop?.points, (mpoint: any) => {
-      const rename = mpoint?.rename?.param || {}
+      const rename = mpoint?.r?.param || {}
       for (const orig of Object.keys(rename)) {
         if (String(rename[orig]) === part) {
           names.add(orig)
         }
       }
-      for (const arg of (mpoint?.args?.params || [])) {
-        if (null != arg && arg.name === part && null != arg.orig) {
-          names.add(String(arg.orig))
+      for (const arg of (mpoint?.g?.params || [])) {
+        if (null != arg && arg.n === part && null != arg.or) {
+          names.add(String(arg.or))
         }
       }
     })
@@ -548,8 +548,8 @@ function addressedById(ment: ModelEntity): boolean {
   let found = false
   each((ment as any).op, (mop: any) => {
     each(mop?.points, (mpoint: any) => {
-      each(mpoint?.args?.params, (param: any) => {
-        if (param && 'id' === param.name) {
+      each(mpoint?.g?.params, (param: any) => {
+        if (param && 'id' === param.n) {
           found = true
         }
       })
@@ -628,7 +628,7 @@ function findGraphqlFieldDefs(
   mpoint: ModelPoint,
   def: any
 ): SchemaDef[] {
-  const typeName = (mpoint.graphql as any)?.entityType$ ??
+  const typeName = (mpoint.gq as any)?.entityType$ ??
     (ment as any).orig$ ?? ''
   const gtype = def.types?.[typeName]
 
@@ -695,18 +695,18 @@ function findFieldDefs(
   mpoint: ModelPoint,
   def: any
 ): SchemaDef[] {
-  if ('graphql' === mpoint.kind) {
+  if ('graphql' === mpoint.k) {
     return findGraphqlFieldDefs(ment, mpoint, def)
   }
 
   // A verb, rather than an address: see the call site in the transform.
-  const isAction = null != (mpoint as any)?.select?.['$action']
+  const isAction = null != (mpoint as any)?.q?.['$action']
 
   const fielddefs: SchemaDef[] = []
 
-  const pathdef = def.paths[mpoint.orig]
+  const pathdef = def.paths[mpoint.o]
 
-  const method = mpoint.method.toLowerCase()
+  const method = mpoint.m.toLowerCase()
   const opdef: any = (pathdef as any)?.[method]
 
   if (opdef) {

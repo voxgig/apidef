@@ -13,8 +13,8 @@ func ContractTransform(ctx *ApiDefContext) (*TransformResult, error) {
 			points, _ := op["points"].([]any)
 			for _, pv := range points {
 				point, _ := pv.(map[string]any)
-				orig, _ := point["orig"].(string)
-				verb, _ := point["method"].(string)
+				orig, _ := point["o"].(string)
+				verb, _ := point["m"].(string)
 				path, _ := paths[orig].(map[string]any)
 				method, _ := path[strings.ToLower(verb)].(map[string]any)
 				query, _ := ctx.Def["query"].(map[string]any)
@@ -37,7 +37,7 @@ func ContractTransform(ctx *ApiDefContext) (*TransformResult, error) {
 				goops, _ := gpath["op"].(map[string]any)
 				gop, _ := goops[op["name"].(string)].(map[string]any)
 				if v, ok := gop["live"]; ok {
-					point["live"] = v
+					point["li"] = v
 				}
 				source := "openapi3"
 				if ctx.Def["swagger"] != nil {
@@ -46,7 +46,7 @@ func ContractTransform(ctx *ApiDefContext) (*TransformResult, error) {
 				if graphql != nil {
 					source = "graphql"
 				}
-				point["contract"] = map[string]any{"version": 2, "id": verb + " " + orig, "source": source}
+				point["co"] = map[string]any{"version": 2, "id": verb + " " + orig, "source": source}
 			}
 		}
 	}

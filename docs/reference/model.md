@@ -70,28 +70,37 @@ omission sends a value the server rejects.
 
 ### `ModelPoint`
 
+The shared `%op-points` type defines each item in an operation's `points`
+list. Required attributes use one character; optional metadata uses two.
+
 | field | type | meaning |
 |-------|------|---------|
-| `orig` | `string` | the source path string |
-| `segments` | `PathSegment[]` | the resolved path: `{ lit }` for a literal element, `{ var }` naming one of `args.params`. Renames are already applied, and there is no braced string to parse: the model carries resolved structure, never a template |
-| `method` | `string` | HTTP method |
-| `rename` | `{ param: { [orig]: target } }` | parameter renames applied to this path |
-| `args` | `{ params: ModelArg[] }` | the call arguments |
-| `select` | `{ exist: string[], $action? }` | which instances this point targets |
-| `transform` | `{ req, res }` | request/response envelope handling (defaults `` `reqdata` `` / `` `body` ``) |
-| `relations` | `array` | per-point relation links |
-| `active` | `boolean` | included in output |
+| `a` | `boolean` | included in output; defaults to `true` |
+| `k` | `string` | transport kind; defaults to `http`, or `graphql` |
+| `m` | `string` | HTTP method |
+| `o` | `string` | source path or GraphQL root field |
+| `s` | `PathSegment[]` | resolved path: `{ lit }` for a literal element, `{ var }` naming one of `g.params`; renames are already applied |
+| `r` | `{ param, query, header, cookie }` | argument renames, keyed by original name |
+| `g` | `{ params, query, header, cookie }` | argument lists using `%point-args` |
+| `q` | `{ exist: string[], $action? }` | which instances this point targets |
+| `t` | `{ req, res }` | request/response envelope handling (defaults `` `reqdata` `` / `` `body` ``) |
+| `co` | `object?` | operation contract identity |
+| `li` | `boolean` or `object`, optional | live invocation hint |
+| `gq` | `object?` | GraphQL document, variables, and pagination |
 
 ### `ModelArg`
 
+Required attributes use one character; optional metadata uses two.
+
 | field | type | meaning |
 |-------|------|---------|
-| `kind` | `string` | `'param'` (path parameter) |
-| `name` | `string` | canonical argument name (e.g. `id`) |
-| `orig` | `string` | original wire name (e.g. `planet_id`) |
-| `reqd` | `boolean` | required |
-| `type` | `string` | validator token |
-| `active` | `boolean` | included in output |
+| `k` | `string` | argument kind: `param`, `query`, `header`, or `cookie` |
+| `n` | `string` | canonical argument name (for example, `id`) |
+| `r` | `boolean` | required |
+| `t` | `any` | validator token or validator expression |
+| `a` | `boolean` | included in output; defaults to `true` |
+| `or` | `string?` | original wire name (for example, `planet_id`) |
+| `ex` | `any?` | advertised parameter example or schema default |
 
 ## `ModelEntityFlow`
 
@@ -133,21 +142,21 @@ entity: planet: {
   }
   op: {
     list: { name: list, points: [ {
-      method: GET, orig: "/api/planet"
-      segments: [ { lit: api } { lit: planet } ]
-      args: { params: [] }
-      select: {}
-      transform: { req: `reqdata`, res: `body` }
-      active: true
+      m: GET, o: "/api/planet"
+      s: [ { lit: api } { lit: planet } ]
+      g: { params: [] }
+      q: {}
+      t: { req: `reqdata`, res: `body` }
+      a: true
     } ] }
     load: { name: load, points: [ {
-      method: GET, orig: "/api/planet/{planet_id}"
-      segments: [ { lit: api } { lit: planet } { var: id } ]
-      rename: { param: { planet_id: id } }
-      args: { params: [ { kind: param, name: id, orig: planet_id, reqd: true, type: `$STRING`, active: true } ] }
-      select: { exist: [ id ] }
-      transform: { req: `reqdata`, res: `body` }
-      active: true
+      m: GET, o: "/api/planet/{planet_id}"
+      s: [ { lit: api } { lit: planet } { var: id } ]
+      r: { param: { planet_id: id } }
+      g: { params: [ { k: param, n: id, or: planet_id, r: true, t: `$STRING`, a: true } ] }
+      q: { exist: [ id ] }
+      t: { req: `reqdata`, res: `body` }
+      a: true
     } ] }
     # create / update / remove …
   }
@@ -172,7 +181,7 @@ flow: BasicPlanetFlow: {
 
 ## Operation contracts
 
-Each operation point can carry `contract: { version: 2, id, source }`.
+Each operation point can carry `co: { version: 2, id, source }`.
 The identifier is the method and original path; `source` is `openapi3`,
 `swagger2`, or `graphql`. Version 2 identifies the shape without a JSON
 payload; version 1 consumers must migrate. Consumers should reject unknown
@@ -183,9 +192,9 @@ and security details come from the API specification. JSON contract payloads
 are no longer generated, including when an older caller passes `contractJson`.
 Docgen reads this information directly from the OpenAPI specification.
 
-An operation's `live` guide entry is copied to `point.live`. It provides
+An operation's `live` guide entry is copied to `point.li`. It provides
 input recipes and semantic bindings that the definition cannot express.
-GraphQL invocations remain on `point.graphql`, and entity fields remain
+GraphQL invocations remain on `point.gq`, and entity fields remain
 available independently. The `contract` guide entry can replace request,
 response, parameter, or security facts through the resolved capability. It does not add facts to
 the point contract.

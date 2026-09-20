@@ -32,9 +32,9 @@ func entWithSegments(segments any) map[string]any {
 			"load": map[string]any{
 				"points": []any{
 					map[string]any{
-						"orig":     "/repos/{owner}/{repo}",
-						"method":   "GET",
-						"segments": segments,
+						"o": "/repos/{owner}/{repo}",
+						"m": "GET",
+						"s": segments,
 					},
 				},
 			},
@@ -313,16 +313,16 @@ func TestIdentityParamsPrefersTheRecordsOwnRoute(t *testing.T) {
 			"load": map[string]any{
 				"points": []any{
 					// A sub-resource first, as github's spec orders them.
-					map[string]any{"segments": segTyped(
+					map[string]any{"s": segTyped(
 						lit("repos"), vr("owner"), vr("repo"),
 						lit("attestations"), vr("subject_digest"))},
 					// A verb on the record: shorter, but not an address.
-					map[string]any{"segments": segTyped(
+					map[string]any{"s": segTyped(
 						lit("repos"), vr("owner"), vr("repo"), lit("forks"))},
 					// The record's own route.
-					map[string]any{"segments": segTyped(
+					map[string]any{"s": segTyped(
 						lit("repos"), vr("owner"), vr("repo"))},
-					map[string]any{"segments": segTyped(
+					map[string]any{"s": segTyped(
 						lit("repos"), vr("owner"), vr("repo"),
 						lit("collaborators"), vr("username"))},
 				},
@@ -345,11 +345,11 @@ func TestIdentityParamsFullestKeyAtEqualScope(t *testing.T) {
 		"name": "vulnerability",
 		"op": map[string]any{
 			"load": map[string]any{"points": []any{
-				map[string]any{"segments": segTyped(
+				map[string]any{"s": segTyped(
 					lit("vulnerabilities"), vr("owner"))},
-				map[string]any{"segments": segTyped(
+				map[string]any{"s": segTyped(
 					lit("vulnerabilities"), vr("owner"), vr("repo"))},
-				map[string]any{"segments": segTyped(
+				map[string]any{"s": segTyped(
 					lit("vulnerabilities"), vr("owner"), vr("repo"),
 					vr("package"), vr("identifier"))},
 			}},
@@ -377,12 +377,12 @@ func TestIdentityParamsComparesAcrossOps(t *testing.T) {
 		"name": "project",
 		"op": map[string]any{
 			"load": map[string]any{"points": []any{
-				map[string]any{"segments": segTyped(
+				map[string]any{"s": segTyped(
 					lit("api"), lit("v4"), lit("projects"), vr("id"),
 					lit("uploads"), vr("secret"), vr("filename"))},
 			}},
 			"remove": map[string]any{"points": []any{
-				map[string]any{"segments": segTyped(
+				map[string]any{"s": segTyped(
 					lit("api"), lit("v4"), lit("projects"), vr("id"))},
 			}},
 		},
@@ -403,13 +403,13 @@ func TestIdentityParamsOwnKeyBeatsALongerRun(t *testing.T) {
 	cases := map[string][]map[string]any{
 		// The renamed form, which is what the model normally carries.
 		"renamed": {
-			{"segments": segTyped(lit("gists"), vr("id"))},
-			{"segments": segTyped(lit("gists"), vr("gist_id"), vr("sha"))},
+			{"s": segTyped(lit("gists"), vr("id"))},
+			{"s": segTyped(lit("gists"), vr("gist_id"), vr("sha"))},
 		},
 		// And the unrenamed <entity>_id form.
 		"unrenamed": {
-			{"segments": segTyped(lit("gists"), vr("gist_id"))},
-			{"segments": segTyped(lit("gists"), vr("gist_id"), vr("sha"))},
+			{"s": segTyped(lit("gists"), vr("gist_id"))},
+			{"s": segTyped(lit("gists"), vr("gist_id"), vr("sha"))},
 		},
 	}
 
@@ -434,9 +434,9 @@ func TestIdentityParamsMerelyIdSuffixedPartDoesNotWin(t *testing.T) {
 		"name": "api_insights_summary_stat",
 		"op": map[string]any{
 			"load": map[string]any{"points": []any{
-				map[string]any{"segments": segTyped(
+				map[string]any{"s": segTyped(
 					lit("api-insights"), vr("actor_type"), vr("actor_id"))},
-				map[string]any{"segments": segTyped(
+				map[string]any{"s": segTyped(
 					lit("api-insights"), vr("actor_type"))},
 			}},
 		},
@@ -457,9 +457,9 @@ func TestIdDescriptorOnlyWhenTheEntityHasOne(t *testing.T) {
 		"op": map[string]any{
 			"load": map[string]any{"points": []any{
 				map[string]any{
-					"orig":     "/store/inventory",
-					"method":   "GET",
-					"segments": segTyped(lit("store"), lit("inventory")),
+					"o": "/store/inventory",
+					"m": "GET",
+					"s": segTyped(lit("store"), lit("inventory")),
 				},
 			}},
 		},
@@ -495,11 +495,11 @@ func TestIdDescriptorOnlyWhenTheEntityHasOne(t *testing.T) {
 		"op": map[string]any{
 			"load": map[string]any{"points": []any{
 				map[string]any{
-					"orig":     "/secrets/{id}",
-					"method":   "GET",
-					"segments": segTyped(lit("secrets"), vr("id")),
-					"args": map[string]any{
-						"params": []any{map[string]any{"name": "id"}},
+					"o": "/secrets/{id}",
+					"m": "GET",
+					"s": segTyped(lit("secrets"), vr("id")),
+					"g": map[string]any{
+						"params": []any{map[string]any{"n": "id"}},
 					},
 				},
 			}},
@@ -537,8 +537,8 @@ func TestIdDescriptorOnlyWhenTheEntityHasOne(t *testing.T) {
 // its own path segments, which the rename had already rewritten to `{id}`.
 func TestArgRenameUsesTheSpecName(t *testing.T) {
 	mtarget := map[string]any{
-		"orig": "/pet/{petId}",
-		"rename": map[string]any{
+		"o": "/pet/{petId}",
+		"r": map[string]any{
 			"param": map[string]any{"petId": "id"},
 		},
 	}
@@ -547,17 +547,17 @@ func TestArgRenameUsesTheSpecName(t *testing.T) {
 		{"name": "petId", "in": "path", "required": true},
 	})
 
-	args, _ := mtarget["args"].(map[string]any)
+	args, _ := mtarget["g"].(map[string]any)
 	params, _ := args["params"].([]any)
 	if 1 != len(params) {
 		t.Fatalf("got %d params, want 1: %v", len(params), params)
 	}
 	p, _ := params[0].(map[string]any)
-	if "id" != p["name"] {
-		t.Errorf("param name = %v, want id", p["name"])
+	if "id" != p["n"] {
+		t.Errorf("param name = %v, want id", p["n"])
 	}
-	if "pet_id" != p["orig"] {
-		t.Errorf("param orig = %v, want pet_id", p["orig"])
+	if "pet_id" != p["or"] {
+		t.Errorf("param orig = %v, want pet_id", p["or"])
 	}
 }
 
@@ -597,9 +597,9 @@ func TestIdentityFromResolvesAPartToItsResponseField(t *testing.T) {
 		"op": map[string]any{
 			"load": map[string]any{"points": []any{
 				map[string]any{
-					"orig":     "/repos/{owner}/{repo}",
-					"method":   "GET",
-					"segments": segTyped(lit("repos"), vr("owner"), vr("repo")),
+					"o": "/repos/{owner}/{repo}",
+					"m": "GET",
+					"s": segTyped(lit("repos"), vr("owner"), vr("repo")),
 				},
 			}},
 		},
@@ -650,9 +650,9 @@ func TestIdentityFromLeavesAnUnresolvablePartOut(t *testing.T) {
 		"op": map[string]any{
 			"load": map[string]any{"points": []any{
 				map[string]any{
-					"orig":     "/things/{tenant}/{slug}",
-					"method":   "GET",
-					"segments": segTyped(lit("things"), vr("tenant"), vr("slug")),
+					"o": "/things/{tenant}/{slug}",
+					"m": "GET",
+					"s": segTyped(lit("things"), vr("tenant"), vr("slug")),
 				},
 			}},
 		},
@@ -689,9 +689,9 @@ func TestIdentityFromReadsTheSwagger2Shape(t *testing.T) {
 		"op": map[string]any{
 			"load": map[string]any{"points": []any{
 				map[string]any{
-					"orig":     "/repos/{owner}/{identifier}/",
-					"method":   "GET",
-					"segments": segTyped(lit("repos"), vr("owner"), vr("identifier")),
+					"o": "/repos/{owner}/{identifier}/",
+					"m": "GET",
+					"s": segTyped(lit("repos"), vr("owner"), vr("identifier")),
 				},
 			}},
 		},

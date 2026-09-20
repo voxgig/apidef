@@ -20,6 +20,30 @@ const MODEL_FILES = ['apidef.aon', 'guide.aon']
 
 describe('model-mirror', () => {
 
+  test('op-points and point-args aliases apply compact keys and defaults', () => {
+    const point = {
+      m: 'GET', o: '/widgets/{id}', s: [{ var: 'id' }],
+      g: {
+        params: [{ n: 'id', or: 'widget_id', r: true, t: '`$STRING`' }],
+        query: [{ n: 'limit', r: false, t: '`$NUMBER`', ex: 0, a: false }],
+        header: [{ n: 'trace', r: false, t: '`$STRING`' }],
+        cookie: [{ n: 'session', r: false, t: '`$STRING`' }],
+      },
+      q: { exist: ['id'] }, r: { param: { widget_id: 'id' } },
+      t: { req: '`reqdata`', res: '`body`' },
+      co: { version: 2, id: 'GET /widgets/{id}', source: 'openapi3' }, li: false,
+    }
+    const source = readFileSync(Path.join(REPO, 'model', 'apidef.aon'), 'utf8') + '\n' +
+      'main:kit:entity:widget:op:load:' + JSON.stringify({ name: 'load', points: [point] })
+    const model = new Aontu().generate(source)
+    const result = model.main.kit.entity.widget.op.load.points[0]
+    assert.deepStrictEqual(result, {
+      ...point, a: true, k: 'http',
+      g: Object.fromEntries(Object.entries(point.g).map(([kind, args]) =>
+        [kind, args.map(arg => ({ a: true, ...arg, k: kind === 'params' ? 'param' : kind }))])),
+    })
+  })
+
   test('entity-field alias uses compact keys and defaults activation', () => {
     const fields = {
       id: { n: 'id', h: 'Id', r: true, t: '`$STRING`' },

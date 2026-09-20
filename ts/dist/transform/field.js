@@ -115,7 +115,7 @@ const NESTED_ID_KEYS = ['login', 'slug', 'name', 'key', 'id'];
 // tie-break: identityParams compares candidates from all of them.
 const ID_OPS = ['load', 'update', 'patch', 'remove'];
 function trailingVars(point) {
-    const segs = (point?.segments || []).filter((s) => null != s);
+    const segs = (point?.s || []).filter((s) => null != s);
     const run = [];
     for (let i = segs.length - 1; 0 <= i; i--) {
         if (null == segs[i].var) {
@@ -134,7 +134,7 @@ function identityParams(ment) {
         }
         // Action points are verbs dispatched by `$action`, not addresses.
         for (const pt of (mop.points || [])) {
-            if (null != pt?.select?.['$action']) {
+            if (null != pt?.q?.['$action']) {
                 continue;
             }
             const run = trailingVars(pt);
@@ -144,7 +144,7 @@ function identityParams(ment) {
             cands.push({
                 run,
                 // Segments BEFORE the run: how much parent scope the route needs.
-                scope: ((pt.segments || []).length - run.length),
+                scope: ((pt.s || []).length - run.length),
                 own: 'id' === run[run.length - 1] ||
                     ment.name + '_id' === run[run.length - 1],
                 order: o,
@@ -212,11 +212,11 @@ function responseCandidates(ment, def) {
         const mop = ment.op?.[opname];
         for (const mpoint of (mop?.points || [])) {
             // An action point's response is not the entity.
-            if (null != mpoint?.select?.['$action']) {
+            if (null != mpoint?.q?.['$action']) {
                 continue;
             }
-            const path = (def?.paths || {})[mpoint?.orig];
-            const method = String(mpoint?.method || '').toLowerCase();
+            const path = (def?.paths || {})[mpoint?.o];
+            const method = String(mpoint?.m || '').toLowerCase();
             const responses = path?.[method]?.responses || {};
             for (const code of Object.keys(responses)) {
                 if (!/^2/.test(code)) {
@@ -288,15 +288,15 @@ function partAliases(ment, part) {
     const names = new Set([part]);
     (0, jostraca_1.each)(ment.op, (mop) => {
         (0, jostraca_1.each)(mop?.points, (mpoint) => {
-            const rename = mpoint?.rename?.param || {};
+            const rename = mpoint?.r?.param || {};
             for (const orig of Object.keys(rename)) {
                 if (String(rename[orig]) === part) {
                     names.add(orig);
                 }
             }
-            for (const arg of (mpoint?.args?.params || [])) {
-                if (null != arg && arg.name === part && null != arg.orig) {
-                    names.add(String(arg.orig));
+            for (const arg of (mpoint?.g?.params || [])) {
+                if (null != arg && arg.n === part && null != arg.or) {
+                    names.add(String(arg.or));
                 }
             }
         });
@@ -410,8 +410,8 @@ function addressedById(ment) {
     let found = false;
     (0, jostraca_1.each)(ment.op, (mop) => {
         (0, jostraca_1.each)(mop?.points, (mpoint) => {
-            (0, jostraca_1.each)(mpoint?.args?.params, (param) => {
-                if (param && 'id' === param.name) {
+            (0, jostraca_1.each)(mpoint?.g?.params, (param) => {
+                if (param && 'id' === param.n) {
                     found = true;
                 }
             });
@@ -472,7 +472,7 @@ function resolveOpFields(ment, mop, mpoint, def) {
 // operation using the fragment fail GraphQL validation), plus one id-stub
 // reference per to-one relation.
 function findGraphqlFieldDefs(ment, mpoint, def) {
-    const typeName = mpoint.graphql?.entityType$ ??
+    const typeName = mpoint.gq?.entityType$ ??
         ment.orig$ ?? '';
     const gtype = def.types?.[typeName];
     if (null == gtype) {
@@ -522,14 +522,14 @@ function gqlFieldType(typeName) {
                     undefined;
 }
 function findFieldDefs(ment, mop, mpoint, def) {
-    if ('graphql' === mpoint.kind) {
+    if ('graphql' === mpoint.k) {
         return findGraphqlFieldDefs(ment, mpoint, def);
     }
     // A verb, rather than an address: see the call site in the transform.
-    const isAction = null != mpoint?.select?.['$action'];
+    const isAction = null != mpoint?.q?.['$action'];
     const fielddefs = [];
-    const pathdef = def.paths[mpoint.orig];
-    const method = mpoint.method.toLowerCase();
+    const pathdef = def.paths[mpoint.o];
+    const method = mpoint.m.toLowerCase();
     const opdef = pathdef?.[method];
     if (opdef) {
         const responses = opdef.responses;

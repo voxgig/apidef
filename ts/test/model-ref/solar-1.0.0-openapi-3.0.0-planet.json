@@ -36,30 +36,30 @@
       "name": "create",
       "points": [
         {
-          "args": {
+          "g": {
             "params": [
               {
-                "kind": "param",
-                "name": "id",
-                "orig": "planet_id",
-                "reqd": true,
-                "type": "`$STRING`"
+                "k": "param",
+                "n": "id",
+                "or": "planet_id",
+                "r": true,
+                "t": "`$STRING`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "POST /api/planet/{planet_id}/terraform",
             "source": "openapi3",
             "version": 2
           },
-          "method": "POST",
-          "orig": "/api/planet/{planet_id}/terraform",
-          "rename": {
+          "m": "POST",
+          "o": "/api/planet/{planet_id}/terraform",
+          "r": {
             "param": {
               "planet_id": "id"
             }
           },
-          "segments": [
+          "s": [
             {
               "lit": "api"
             },
@@ -73,26 +73,26 @@
               "lit": "terraform"
             }
           ],
-          "select": {
+          "q": {
             "$action": "terraform",
             "exist": [
               "id"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }
         },
         {
-          "contract": {
+          "co": {
             "id": "POST /api/planet",
             "source": "openapi3",
             "version": 2
           },
-          "method": "POST",
-          "orig": "/api/planet",
-          "segments": [
+          "m": "POST",
+          "o": "/api/planet",
+          "s": [
             {
               "lit": "api"
             },
@@ -100,7 +100,7 @@
               "lit": "planet"
             }
           ],
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }
@@ -111,14 +111,14 @@
       "name": "list",
       "points": [
         {
-          "contract": {
+          "co": {
             "id": "GET /api/planet",
             "source": "openapi3",
             "version": 2
           },
-          "method": "GET",
-          "orig": "/api/planet",
-          "segments": [
+          "m": "GET",
+          "o": "/api/planet",
+          "s": [
             {
               "lit": "api"
             },
@@ -126,7 +126,7 @@
               "lit": "planet"
             }
           ],
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }
@@ -137,30 +137,30 @@
       "name": "load",
       "points": [
         {
-          "args": {
+          "g": {
             "params": [
               {
-                "kind": "param",
-                "name": "id",
-                "orig": "planet_id",
-                "reqd": true,
-                "type": "`$STRING`"
+                "k": "param",
+                "n": "id",
+                "or": "planet_id",
+                "r": true,
+                "t": "`$STRING`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "GET /api/planet/{planet_id}",
             "source": "openapi3",
             "version": 2
           },
-          "method": "GET",
-          "orig": "/api/planet/{planet_id}",
-          "rename": {
+          "m": "GET",
+          "o": "/api/planet/{planet_id}",
+          "r": {
             "param": {
               "planet_id": "id"
             }
           },
-          "segments": [
+          "s": [
             {
               "lit": "api"
             },
@@ -171,12 +171,12 @@
               "var": "id"
             }
           ],
-          "select": {
+          "q": {
             "exist": [
               "id"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }
@@ -187,30 +187,30 @@
       "name": "remove",
       "points": [
         {
-          "args": {
+          "g": {
             "params": [
               {
-                "kind": "param",
-                "name": "id",
-                "orig": "planet_id",
-                "reqd": true,
-                "type": "`$STRING`"
+                "k": "param",
+                "n": "id",
+                "or": "planet_id",
+                "r": true,
+                "t": "`$STRING`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "DELETE /api/planet/{planet_id}",
             "source": "openapi3",
             "version": 2
           },
-          "method": "DELETE",
-          "orig": "/api/planet/{planet_id}",
-          "rename": {
+          "m": "DELETE",
+          "o": "/api/planet/{planet_id}",
+          "r": {
             "param": {
               "planet_id": "id"
             }
           },
-          "segments": [
+          "s": [
             {
               "lit": "api"
             },
@@ -221,12 +221,12 @@
               "var": "id"
             }
           ],
-          "select": {
+          "q": {
             "exist": [
               "id"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }
@@ -237,30 +237,30 @@
       "name": "update",
       "points": [
         {
-          "args": {
+          "g": {
             "params": [
               {
-                "kind": "param",
-                "name": "id",
-                "orig": "planet_id",
-                "reqd": true,
-                "type": "`$STRING`"
+                "k": "param",
+                "n": "id",
+                "or": "planet_id",
+                "r": true,
+                "t": "`$STRING`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "PUT /api/planet/{planet_id}",
             "source": "openapi3",
             "version": 2
           },
-          "method": "PUT",
-          "orig": "/api/planet/{planet_id}",
-          "rename": {
+          "m": "PUT",
+          "o": "/api/planet/{planet_id}",
+          "r": {
             "param": {
               "planet_id": "id"
             }
           },
-          "segments": [
+          "s": [
             {
               "lit": "api"
             },
@@ -271,12 +271,12 @@
               "var": "id"
             }
           ],
-          "select": {
+          "q": {
             "exist": [
               "id"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }

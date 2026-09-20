@@ -12,19 +12,19 @@ import {
 
 
 function isEntityIdParam(point: any, param: any, opname?: string): boolean {
-  if ('id' === param?.name) return true
-  const renameMap = point?.rename?.param
-  if (renameMap && param?.name) {
-    const camel = lcf(camelify(param.name))
+  if ('id' === param?.n) return true
+  const renameMap = point?.r?.param
+  if (renameMap && param?.n) {
+    const camel = lcf(camelify(param.n))
     if ('id' === renameMap[camel]) return true
   }
   if ('update' === opname || 'load' === opname || 'remove' === opname) {
-    const segments: any[] = point?.segments || []
+    const segments: any[] = point?.s || []
     let last: string | null = null
     for (const s of segments) {
       if (null != s?.var) last = s.var
     }
-    if (last && last === param?.name) return true
+    if (last && last === param?.n) return true
   }
   return false
 }
@@ -142,7 +142,7 @@ function newFlowStep(opname: OpName, args: Record<string, any>): ModelEntityFlow
 // rename-to-id is recorded — the literal `id` then represents the entity's
 // own id and createStep should skip it.
 function originalSnakeNameOfRenamedId(point: any): string | null {
-  const renameMap = point?.rename?.param || {}
+  const renameMap = point?.r?.param || {}
   for (const [src, dst] of Object.entries(renameMap)) {
     if ('id' === dst) {
       const srcStr = String(src)
@@ -165,8 +165,8 @@ const createStep: MakeFlowStep = (
     const point = getelem(opmap.create.points, -1)
     const step = newFlowStep('create', args)
 
-    each(point.args.params, (param: any) => {
-      if ('id' === param.name) {
+    each(point.g.params, (param: any) => {
+      if ('id' === param.n) {
         const origName = originalSnakeNameOfRenamedId(point)
         if (origName) {
           step.match[origName] = args.input?.[origName] ?? origName.replace(/_id/, '') + '01'
@@ -175,7 +175,7 @@ const createStep: MakeFlowStep = (
         // (the create call generates it).
         return
       }
-      step.match[param.name] = args.input?.[param.name] ?? param.name.replace(/_id/, '') + '01'
+      step.match[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01'
     })
 
     seedRelatedOpParams(opmap, point, step)
@@ -191,14 +191,14 @@ function seedRelatedOpParams(opmap: any, createPoint: any, step: ModelEntityFlow
     const op = opmap[opname]
     if (!op?.points) continue
     for (const point of op.points) {
-      const params: any[] = point?.args?.params || []
+      const params: any[] = point?.g?.params || []
       for (const param of params) {
-        if (!param?.name) continue
+        if (!param?.n) continue
         if (isEntityIdParam(point, param, opname as any)) continue
-        if (step.match[param.name] !== undefined) continue
-        if ('id' === param.name) continue
-        step.match[param.name] =
-          param.name.replace(/_id/, '') + '01'
+        if (step.match[param.n] !== undefined) continue
+        if ('id' === param.n) continue
+        step.match[param.n] =
+          param.n.replace(/_id/, '') + '01'
       }
     }
   }
@@ -216,15 +216,15 @@ const listStep: MakeFlowStep = (
     const point = getelem(opmap.list.points, -1)
     const step = newFlowStep('list', args)
 
-    each(point.args.params, (param: any) => {
-      if ('id' === param.name) {
+    each(point.g.params, (param: any) => {
+      if ('id' === param.n) {
         const origName = originalSnakeNameOfRenamedId(point)
         if (origName) {
           step.match[origName] = args.input?.[origName] ?? origName.replace(/_id/, '') + '01'
         }
         return
       }
-      step.match[param.name] = args.input?.[param.name] ?? param.name.replace(/_id/, '') + '01'
+      step.match[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01'
     })
 
     flow.step.push(step)
@@ -243,13 +243,13 @@ const updateStep: MakeFlowStep = (
     const point = getelem(opmap.update.points, -1)
     const step = newFlowStep('update', args)
 
-    each(point.args.params, (param: any) => {
+    each(point.g.params, (param: any) => {
       if (isEntityIdParam(point, param, 'update')) {
         // Entity's own id — supplied at test time via the loaded/created
         // entity's id field, not as a separate body parameter. Skip.
         return
       }
-      step.data[param.name] = args.input?.[param.name] ?? param.name.replace(/_id/, '') + '01'
+      step.data[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01'
     })
 
     flow.step.push(step)
@@ -268,12 +268,12 @@ const loadStep: MakeFlowStep = (
     const point = getelem(opmap.load.points, -1)
     const step = newFlowStep('load', args)
 
-    each(point.args.params, (param: any) => {
+    each(point.g.params, (param: any) => {
       if (isEntityIdParam(point, param, 'load')) {
         step.match.id = args.input?.id ?? ent.name + '01'
       }
       else {
-        step.match[param.name] = args.input?.[param.name] ?? param.name.replace(/_id/, '') + '01'
+        step.match[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01'
       }
     })
 
@@ -297,12 +297,12 @@ const removeStep: MakeFlowStep = (
     const point = getelem(opmap.remove.points, -1)
     const step = newFlowStep('remove', args)
 
-    each(point.args.params, (param: any) => {
+    each(point.g.params, (param: any) => {
       if (isEntityIdParam(point, param, 'remove')) {
         step.match.id = args.input?.id ?? ent.name + '01'
       }
       else {
-        step.match[param.name] = args.input?.[param.name] ?? param.name.replace(/_id/, '') + '01'
+        step.match[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01'
       }
     })
 
@@ -314,9 +314,9 @@ const removeStep: MakeFlowStep = (
 function firstTextField(ent: ModelEntity, op?: ModelOp) {
   const paramNames: Record<string, boolean> = {}
   each((op as any)?.points).forEach((pt: any) => {
-    each(pt?.args?.params).forEach((p: any) => {
-      if (p && null != p.name) {
-        paramNames[p.name] = true
+    each(pt?.g?.params).forEach((p: any) => {
+      if (p && null != p.n) {
+        paramNames[p.n] = true
       }
     })
   })

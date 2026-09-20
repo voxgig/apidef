@@ -41,8 +41,8 @@ function markedField(flow: any) {
 // test, so the walk reaches it before `kind`.
 function entityWith(first: any) {
   const point = (orig: string, method: string) => ({
-    orig, method, kind: 'json',
-    args: { params: [{ kind: 'param', name: 'id', reqd: true, type: '`$STRING`' }] },
+    orig, method, k: 'json',
+    g: { params: [{ k: 'param', n: 'id', r: true, t: '`$STRING`' }] },
   })
 
   return {

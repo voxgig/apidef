@@ -5,14 +5,14 @@
       "name": "load",
       "points": [
         {
-          "contract": {
+          "co": {
             "id": "GET /store/inventory",
             "source": "swagger2",
             "version": 2
           },
-          "method": "GET",
-          "orig": "/store/inventory",
-          "segments": [
+          "m": "GET",
+          "o": "/store/inventory",
+          "s": [
             {
               "lit": "store"
             },
@@ -20,10 +20,10 @@
               "lit": "inventory"
             }
           ],
-          "select": {
+          "q": {
             "$action": "inventory"
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }
@@ -34,30 +34,30 @@
       "name": "remove",
       "points": [
         {
-          "args": {
+          "g": {
             "params": [
               {
-                "kind": "param",
-                "name": "order_id",
-                "orig": "order_id",
-                "reqd": true,
-                "type": "`$STRING`"
+                "k": "param",
+                "n": "order_id",
+                "or": "order_id",
+                "r": true,
+                "t": "`$STRING`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "DELETE /store/order/{orderId}",
             "source": "swagger2",
             "version": 2
           },
-          "method": "DELETE",
-          "orig": "/store/order/{orderId}",
-          "rename": {
+          "m": "DELETE",
+          "o": "/store/order/{orderId}",
+          "r": {
             "param": {
               "orderId": "order_id"
             }
           },
-          "segments": [
+          "s": [
             {
               "lit": "store"
             },
@@ -68,12 +68,12 @@
               "var": "order_id"
             }
           ],
-          "select": {
+          "q": {
             "exist": [
               "order_id"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }

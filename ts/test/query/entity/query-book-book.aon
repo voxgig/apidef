@@ -36,14 +36,14 @@ main: kit: entity: book: {
       name: "list"
       points: [
         {
-          contract: {
+          co: {
             id: "QUERY /api/book"
             source: "openapi3"
             version: 2
           }
-          method: "QUERY"
-          orig: "/api/book"
-          segments: [
+          m: "QUERY"
+          o: "/api/book"
+          s: [
             {
               lit: "api"
             }
@@ -51,7 +51,7 @@ main: kit: entity: book: {
               lit: "book"
             }
           ]
-          transform: {
+          t: {
             req: "`reqdata`"
             res: "`body`"
           }
@@ -62,30 +62,35 @@ main: kit: entity: book: {
       name: "load"
       points: [
         {
-          args: {
-            params: [
-              {
-                kind: "param"
-                name: "id"
-                orig: "book_id"
-                reqd: true
-                type: "`$STRING`"
-              }
-            ]
-          }
-          contract: {
+          co: {
             id: "GET /api/book/{book_id}"
             source: "openapi3"
             version: 2
           }
-          method: "GET"
-          orig: "/api/book/{book_id}"
-          rename: {
+          g: {
+            params: [
+              {
+                k: "param"
+                n: "id"
+                or: "book_id"
+                r: true
+                t: "`$STRING`"
+              }
+            ]
+          }
+          m: "GET"
+          o: "/api/book/{book_id}"
+          q: {
+            exist: [
+              "id"
+            ]
+          }
+          r: {
             param: {
               book_id: "id"
             }
           }
-          segments: [
+          s: [
             {
               lit: "api"
             }
@@ -96,12 +101,7 @@ main: kit: entity: book: {
               var: "id"
             }
           ]
-          select: {
-            exist: [
-              "id"
-            ]
-          }
-          transform: {
+          t: {
             req: "`reqdata`"
             res: "`body`"
           }

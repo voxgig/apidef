@@ -119,8 +119,8 @@ async function buildRest() {
                 const out = [];
                 for (const op of Object.values(ents[name].op)) {
                     for (const p of op.points ?? []) {
-                        if (null != p.select?.$action) {
-                            out.push(p.select.$action);
+                        if (null != p.q?.$action) {
+                            out.push(p.q.$action);
                         }
                     }
                 }
@@ -132,7 +132,7 @@ async function buildRest() {
         // command mutation must not be dropped or forced into CRUD.
         node_assert_1.default.deepStrictEqual(Object.values(gents.planet.op)
             .flatMap((op) => op.points ?? [])
-            .map((p) => p.select?.$action)
+            .map((p) => p.q?.$action)
             .filter((a) => null != a).sort(), ['forbid', 'terraform']);
     });
     // Wire data for the baseline: documents complete, single-line, unwrapping
@@ -142,25 +142,25 @@ async function buildRest() {
         node_assert_1.default.equal(bres.ok, true);
         const ops = bres.apimodel.main.kit.entity.planet.op;
         const load = ops.load.points[0];
-        node_assert_1.default.equal(load.kind, 'graphql');
-        node_assert_1.default.equal(load.method, 'POST');
-        node_assert_1.default.equal(load.graphql.doc, 'query PlanetLoad($id: String!) { planet(id: $id) { ...PlanetFields } }' +
+        node_assert_1.default.equal(load.k, 'graphql');
+        node_assert_1.default.equal(load.m, 'POST');
+        node_assert_1.default.equal(load.gq.doc, 'query PlanetLoad($id: String!) { planet(id: $id) { ...PlanetFields } }' +
             ' fragment PlanetFields on Planet' +
             ' { diameter id kind name }');
-        node_assert_1.default.equal(load.transform.res, '`body.data.planet`');
+        node_assert_1.default.equal(load.t.res, '`body.data.planet`');
         const list = ops.list.points[0];
-        node_assert_1.default.equal(list.transform.res, '`body.data.planets.nodes`');
-        node_assert_1.default.equal(list.graphql.page.style, 'relay');
+        node_assert_1.default.equal(list.t.res, '`body.data.planets.nodes`');
+        node_assert_1.default.equal(list.gq.page.style, 'relay');
         // Payload unwrapping: create returns the planet, as REST does.
-        node_assert_1.default.equal(ops.create.points[0].transform.res, '`body.data.planetCreate.planet`');
+        node_assert_1.default.equal(ops.create.points[0].t.res, '`body.data.planetCreate.planet`');
         const updocs = ops.update.points
-            .map((p) => p.graphql.doc.split(/[\s(]/)[1]).sort();
+            .map((p) => p.gq.doc.split(/[\s(]/)[1]).sort();
         node_assert_1.default.deepStrictEqual(updocs, ['PlanetUpdate', 'PlanetUpdateForbid', 'PlanetUpdateTerraform']);
         // The action payload unwraps to the entity, not to the state wrapper.
         const terraform = ops.update.points
-            .find((p) => 'terraform' === p.select?.$action);
+            .find((p) => 'terraform' === p.q?.$action);
         node_assert_1.default.ok(null != terraform);
-        node_assert_1.default.equal(terraform.transform.res, '`body.data.planetTerraform.planet`');
+        node_assert_1.default.equal(terraform.t.res, '`body.data.planetTerraform.planet`');
     });
     // Schema gate: the emitted baseline model must unify against the canonical
     // apidef schema.
@@ -174,7 +174,7 @@ async function buildRest() {
         // Windows paths with POSIX semantics whenever an fs is present).
         const out = new aontu_1.Aontu().generate(src, { path: modelpath, errs });
         node_assert_1.default.deepStrictEqual(errs.map((e) => String(e).split('\n')[0]), [], 'emitted solar GraphQL model must unify against model/apidef.aon');
-        node_assert_1.default.equal(out.main.kit.entity.planet.op.load.points[0].kind, 'graphql');
+        node_assert_1.default.equal(out.main.kit.entity.planet.op.load.points[0].k, 'graphql');
     });
 });
 //# sourceMappingURL=graphql-solar.test.js.map

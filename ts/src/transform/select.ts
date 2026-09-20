@@ -39,7 +39,7 @@ const selectTransform: Transform = async function(
       each(mop.points, (mpoint: ModelPoint) => {
         // GraphQL defs have no `paths`; the lookup is only passed through to
         // an unused parameter, so skip it rather than dereference undefined.
-        const pdef: PathDef = def.paths?.[mpoint.orig]
+        const pdef: PathDef = def.paths?.[mpoint.o]
         resolveSelect(guide, ment, mop, mpoint, pdef)
       })
       if (null != mop.points && 0 < mop.points.length) {
@@ -61,8 +61,8 @@ function resolveSelect(
   mpoint: ModelPoint,
   _pdef: PathDef
 ) {
-  const select: any = mpoint.select
-  const margs: any = mpoint.args
+  const select: any = mpoint.q
+  const margs: any = mpoint.g
 
   const argkinds = ['params', 'query', 'header', 'cookie']
 
@@ -71,15 +71,15 @@ function resolveSelect(
   // after, filters) as params, and requiring those for selection would make
   // list() unusable without supplying every pagination argument. Only
   // required arguments identify a point.
-  const reqdonly = 'graphql' === (mpoint as any).kind
+  const reqdonly = 'graphql' === (mpoint as any).k
 
   argkinds.map((kind: string) => {
     each(margs[kind], (marg: ModelArg) => {
-      if (reqdonly && !marg.reqd) {
+      if (reqdonly && !marg.r) {
         return
       }
-      if (!select.exist.includes(marg.name)) {
-        select.exist.push(marg.name)
+      if (!select.exist.includes(marg.n)) {
+        select.exist.push(marg.n)
       }
     })
   })
@@ -88,7 +88,7 @@ function resolveSelect(
 
   const gent = guide.entity[ment.name]
   // REST guides key entries by path, GraphQL guides by root field.
-  const gpath = gent.path?.[mpoint.orig] ?? (gent as any).field?.[mpoint.orig]
+  const gpath = gent.path?.[mpoint.o] ?? (gent as any).field?.[mpoint.o]
 
   if (null == gpath) {
     return
@@ -113,16 +113,16 @@ function sortPoints(
   // Cache joined exist strings to avoid recomputing on every comparison.
   const existCache = new Map<ModelPoint, string>()
   for (const pt of mop.points) {
-    existCache.set(pt, pt.select.exist.join('\t'))
+    existCache.set(pt, pt.q.exist.join('\t'))
   }
 
   mop.points.sort((a: ModelPoint, b: ModelPoint) => {
     // longest exist len first
-    let order = b.select.exist.length - a.select.exist.length
+    let order = b.q.exist.length - a.q.exist.length
     if (0 === order) {
-      if (null != a.select.$action && null != b.select.$action) {
-        order = a.select.$action < b.select.$action ? -1 :
-          a.select.$action > b.select.$action ? 1 : 0
+      if (null != a.q.$action && null != b.q.$action) {
+        order = a.q.$action < b.q.$action ? -1 :
+          a.q.$action > b.q.$action ? 1 : 0
       }
 
       if (0 === order) {

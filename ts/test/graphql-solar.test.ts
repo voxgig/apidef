@@ -124,8 +124,8 @@ describe('graphql-solar', () => {
         const out: string[] = []
         for (const op of Object.values(ents[name].op) as any[]) {
           for (const p of op.points ?? []) {
-            if (null != p.select?.$action) {
-              out.push(p.select.$action)
+            if (null != p.q?.$action) {
+              out.push(p.q.$action)
             }
           }
         }
@@ -142,7 +142,7 @@ describe('graphql-solar', () => {
     assert.deepStrictEqual(
       (Object.values(gents.planet.op) as any[])
         .flatMap((op: any) => op.points ?? [])
-        .map((p: any) => p.select?.$action)
+        .map((p: any) => p.q?.$action)
         .filter((a: any) => null != a).sort(),
       ['forbid', 'terraform'])
   })
@@ -157,34 +157,34 @@ describe('graphql-solar', () => {
     const ops = bres.apimodel.main.kit.entity.planet.op
 
     const load = ops.load.points[0]
-    assert.equal(load.kind, 'graphql')
-    assert.equal(load.method, 'POST')
+    assert.equal(load.k, 'graphql')
+    assert.equal(load.m, 'POST')
     assert.equal(
-      load.graphql.doc,
+      load.gq.doc,
       'query PlanetLoad($id: String!) { planet(id: $id) { ...PlanetFields } }' +
       ' fragment PlanetFields on Planet' +
       ' { diameter id kind name }')
-    assert.equal(load.transform.res, '`body.data.planet`')
+    assert.equal(load.t.res, '`body.data.planet`')
 
     const list = ops.list.points[0]
-    assert.equal(list.transform.res, '`body.data.planets.nodes`')
-    assert.equal(list.graphql.page.style, 'relay')
+    assert.equal(list.t.res, '`body.data.planets.nodes`')
+    assert.equal(list.gq.page.style, 'relay')
 
     // Payload unwrapping: create returns the planet, as REST does.
     assert.equal(
-      ops.create.points[0].transform.res, '`body.data.planetCreate.planet`')
+      ops.create.points[0].t.res, '`body.data.planetCreate.planet`')
 
     const updocs = ops.update.points
-      .map((p: any) => p.graphql.doc.split(/[\s(]/)[1]).sort()
+      .map((p: any) => p.gq.doc.split(/[\s(]/)[1]).sort()
     assert.deepStrictEqual(
       updocs, ['PlanetUpdate', 'PlanetUpdateForbid', 'PlanetUpdateTerraform'])
 
     // The action payload unwraps to the entity, not to the state wrapper.
     const terraform = ops.update.points
-      .find((p: any) => 'terraform' === p.select?.$action)
+      .find((p: any) => 'terraform' === p.q?.$action)
     assert.ok(null != terraform)
     assert.equal(
-      terraform.transform.res, '`body.data.planetTerraform.planet`')
+      terraform.t.res, '`body.data.planetTerraform.planet`')
   })
 
 
@@ -207,7 +207,7 @@ describe('graphql-solar', () => {
       'emitted solar GraphQL model must unify against model/apidef.aon')
 
     assert.equal(
-      out.main.kit.entity.planet.op.load.points[0].kind, 'graphql')
+      out.main.kit.entity.planet.op.load.points[0].k, 'graphql')
   })
 
 })

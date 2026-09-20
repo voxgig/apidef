@@ -50,8 +50,8 @@ func graphqlInputTypes(field, types map[string]any) map[string]any {
 }
 
 func OperationFacts(def map[string]any, point map[string]any) ResolvedOperation {
-	orig, _ := point["orig"].(string)
-	verb, _ := point["method"].(string)
+	orig, _ := point["o"].(string)
+	verb, _ := point["m"].(string)
 	paths, _ := def["paths"].(map[string]any)
 	path, _ := paths[orig].(map[string]any)
 	method, _ := path[strings.ToLower(verb)].(map[string]any)
@@ -120,7 +120,7 @@ func OperationIndex(def map[string]any) map[string]ResolvedOperation {
 			if item[method] == nil {
 				continue
 			}
-			if facts := OperationFacts(def, map[string]any{"method": method, "orig": path}); facts != nil {
+			if facts := OperationFacts(def, map[string]any{"m": method, "o": path}); facts != nil {
 				out[strings.ToUpper(method)+" "+path] = facts
 			}
 		}
@@ -128,7 +128,7 @@ func OperationIndex(def map[string]any) map[string]ResolvedOperation {
 	for _, kind := range []string{"query", "mutation"} {
 		fields, _ := def[kind].(map[string]any)
 		for _, field := range sortedKeys(fields) {
-			if facts := OperationFacts(def, map[string]any{"method": "POST", "orig": field}); facts != nil {
+			if facts := OperationFacts(def, map[string]any{"m": "POST", "o": field}); facts != nil {
 				out["POST "+field] = facts
 			}
 		}
@@ -183,7 +183,7 @@ func MakeResolved(kind string, def map[string]any, guide ...func() map[string]an
 }
 
 func (r *ResolvedSpec) Operation(method, path string, selection ...OperationSelector) (ResolvedOperation, error) {
-	facts := OperationFacts(r.Def, map[string]any{"method": method, "orig": path})
+	facts := OperationFacts(r.Def, map[string]any{"m": method, "o": path})
 	if facts == nil {
 		return nil, nil
 	}

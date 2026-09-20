@@ -177,7 +177,7 @@ const graphqlTransform: Transform = async function(
 
     each(ment.op, (mop: ModelOp, opname: OpName) => {
       each(mop.points, (mpoint: ModelPoint) => {
-        const rootfield = mpoint.orig
+        const rootfield = mpoint.o
 
         const gfield: GuidePath | undefined = (gent as any)?.field?.[rootfield]
         const optype = (gfield?.op?.[opname] as any)?.optype ?? 'query'
@@ -231,11 +231,11 @@ const graphqlTransform: Transform = async function(
         const docname = pascal(entname) + pascal(opname) +
           (null != actionName ? pascal(actionName) : '')
 
-        mpoint.kind = 'graphql'
-        mpoint.method = 'POST'
-        mpoint.segments = []
+        mpoint.k = 'graphql'
+        mpoint.m = 'POST'
+        mpoint.s = []
 
-        mpoint.graphql = {
+        mpoint.gq = {
           optype: optype as 'query' | 'mutation',
           field: rootfield,
           doc: renderDoc(docname, optype, rootfield, vars, selection,
@@ -246,10 +246,10 @@ const graphqlTransform: Transform = async function(
         // Carried for the field transform, which derives entity fields from
         // the same object type. The `$` suffix makes cleanTransform strip it
         // from the emitted model — it is pipeline state, not wire data.
-        ;(mpoint.graphql as any).entityType$ = entityType
+        ;(mpoint.gq as any).entityType$ = entityType
 
         if ('connection' === ret.kind) {
-          mpoint.graphql.page = {
+          mpoint.gq.page = {
             style: 'relay',
             nodes: ret.nodes ?? 'nodes',
             cursor: 'pageInfo.endCursor',
@@ -257,7 +257,7 @@ const graphqlTransform: Transform = async function(
           }
         }
 
-        mpoint.transform.res = '`' + respath + '`'
+        mpoint.t.res = '`' + respath + '`'
       })
     })
 

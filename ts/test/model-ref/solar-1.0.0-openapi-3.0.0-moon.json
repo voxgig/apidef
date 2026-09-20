@@ -42,25 +42,25 @@
       "name": "create",
       "points": [
         {
-          "args": {
+          "g": {
             "params": [
               {
-                "kind": "param",
-                "name": "planet_id",
-                "orig": "planet_id",
-                "reqd": true,
-                "type": "`$STRING`"
+                "k": "param",
+                "n": "planet_id",
+                "or": "planet_id",
+                "r": true,
+                "t": "`$STRING`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "POST /api/planet/{planet_id}/moon",
             "source": "openapi3",
             "version": 2
           },
-          "method": "POST",
-          "orig": "/api/planet/{planet_id}/moon",
-          "segments": [
+          "m": "POST",
+          "o": "/api/planet/{planet_id}/moon",
+          "s": [
             {
               "lit": "api"
             },
@@ -74,12 +74,12 @@
               "lit": "moon"
             }
           ],
-          "select": {
+          "q": {
             "exist": [
               "planet_id"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }
@@ -90,25 +90,25 @@
       "name": "list",
       "points": [
         {
-          "args": {
+          "g": {
             "params": [
               {
-                "kind": "param",
-                "name": "planet_id",
-                "orig": "planet_id",
-                "reqd": true,
-                "type": "`$STRING`"
+                "k": "param",
+                "n": "planet_id",
+                "or": "planet_id",
+                "r": true,
+                "t": "`$STRING`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "GET /api/planet/{planet_id}/moon",
             "source": "openapi3",
             "version": 2
           },
-          "method": "GET",
-          "orig": "/api/planet/{planet_id}/moon",
-          "segments": [
+          "m": "GET",
+          "o": "/api/planet/{planet_id}/moon",
+          "s": [
             {
               "lit": "api"
             },
@@ -122,12 +122,12 @@
               "lit": "moon"
             }
           ],
-          "select": {
+          "q": {
             "exist": [
               "planet_id"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }
@@ -138,37 +138,37 @@
       "name": "load",
       "points": [
         {
-          "args": {
+          "g": {
             "params": [
               {
-                "kind": "param",
-                "name": "id",
-                "orig": "moon_id",
-                "reqd": true,
-                "type": "`$STRING`"
+                "k": "param",
+                "n": "id",
+                "or": "moon_id",
+                "r": true,
+                "t": "`$STRING`"
               },
               {
-                "kind": "param",
-                "name": "planet_id",
-                "orig": "planet_id",
-                "reqd": true,
-                "type": "`$STRING`"
+                "k": "param",
+                "n": "planet_id",
+                "or": "planet_id",
+                "r": true,
+                "t": "`$STRING`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "GET /api/planet/{planet_id}/moon/{moon_id}",
             "source": "openapi3",
             "version": 2
           },
-          "method": "GET",
-          "orig": "/api/planet/{planet_id}/moon/{moon_id}",
-          "rename": {
+          "m": "GET",
+          "o": "/api/planet/{planet_id}/moon/{moon_id}",
+          "r": {
             "param": {
               "moon_id": "id"
             }
           },
-          "segments": [
+          "s": [
             {
               "lit": "api"
             },
@@ -185,13 +185,13 @@
               "var": "id"
             }
           ],
-          "select": {
+          "q": {
             "exist": [
               "id",
               "planet_id"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }
@@ -202,37 +202,37 @@
       "name": "remove",
       "points": [
         {
-          "args": {
+          "g": {
             "params": [
               {
-                "kind": "param",
-                "name": "id",
-                "orig": "moon_id",
-                "reqd": true,
-                "type": "`$STRING`"
+                "k": "param",
+                "n": "id",
+                "or": "moon_id",
+                "r": true,
+                "t": "`$STRING`"
               },
               {
-                "kind": "param",
-                "name": "planet_id",
-                "orig": "planet_id",
-                "reqd": true,
-                "type": "`$STRING`"
+                "k": "param",
+                "n": "planet_id",
+                "or": "planet_id",
+                "r": true,
+                "t": "`$STRING`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "DELETE /api/planet/{planet_id}/moon/{moon_id}",
             "source": "openapi3",
             "version": 2
           },
-          "method": "DELETE",
-          "orig": "/api/planet/{planet_id}/moon/{moon_id}",
-          "rename": {
+          "m": "DELETE",
+          "o": "/api/planet/{planet_id}/moon/{moon_id}",
+          "r": {
             "param": {
               "moon_id": "id"
             }
           },
-          "segments": [
+          "s": [
             {
               "lit": "api"
             },
@@ -249,13 +249,13 @@
               "var": "id"
             }
           ],
-          "select": {
+          "q": {
             "exist": [
               "id",
               "planet_id"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }
@@ -266,37 +266,37 @@
       "name": "update",
       "points": [
         {
-          "args": {
+          "g": {
             "params": [
               {
-                "kind": "param",
-                "name": "id",
-                "orig": "moon_id",
-                "reqd": true,
-                "type": "`$STRING`"
+                "k": "param",
+                "n": "id",
+                "or": "moon_id",
+                "r": true,
+                "t": "`$STRING`"
               },
               {
-                "kind": "param",
-                "name": "planet_id",
-                "orig": "planet_id",
-                "reqd": true,
-                "type": "`$STRING`"
+                "k": "param",
+                "n": "planet_id",
+                "or": "planet_id",
+                "r": true,
+                "t": "`$STRING`"
               }
             ]
           },
-          "contract": {
+          "co": {
             "id": "PUT /api/planet/{planet_id}/moon/{moon_id}",
             "source": "openapi3",
             "version": 2
           },
-          "method": "PUT",
-          "orig": "/api/planet/{planet_id}/moon/{moon_id}",
-          "rename": {
+          "m": "PUT",
+          "o": "/api/planet/{planet_id}/moon/{moon_id}",
+          "r": {
             "param": {
               "moon_id": "id"
             }
           },
-          "segments": [
+          "s": [
             {
               "lit": "api"
             },
@@ -313,13 +313,13 @@
               "var": "id"
             }
           ],
-          "select": {
+          "q": {
             "exist": [
               "id",
               "planet_id"
             ]
           },
-          "transform": {
+          "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }

@@ -50,12 +50,12 @@ type ModelField = {
     };
 };
 type ModelArg = {
-    name: string;
-    orig: string;
-    type: any;
-    kind: ArgKind;
-    reqd: boolean;
-    example?: any;
+    n: string;
+    or?: string;
+    t: any;
+    k: ArgKind;
+    r: boolean;
+    ex?: any;
 };
 type PointKind = 'http' | 'graphql';
 type ModelGraphqlPage = {
@@ -81,34 +81,34 @@ type ModelPathSegment = {
     var?: string;
 };
 type ModelPoint = {
-    contract?: {
+    co?: {
         version: 2;
         id: string;
         source: string;
     };
-    live?: boolean | Record<string, any>;
-    orig: string;
-    kind?: PointKind;
-    graphql?: ModelGraphql;
-    method: MethodName;
-    segments: ModelPathSegment[];
-    rename: Partial<{
+    li?: boolean | Record<string, any>;
+    o: string;
+    k?: PointKind;
+    gq?: ModelGraphql;
+    m: MethodName;
+    s: ModelPathSegment[];
+    r: Partial<{
         param: Record<string, string>;
         query: Record<string, string>;
         header: Record<string, string>;
         cookie: Record<string, string>;
     }>;
-    args: Partial<{
+    g: Partial<{
         params: ModelArg[];
         query: ModelArg[];
         header: ModelArg[];
         cookie: ModelArg[];
     }>;
-    transform: {
+    t: {
         req?: any;
         res?: any;
     };
-    select: {
+    q: {
         exist: string[];
         $action?: string;
     };

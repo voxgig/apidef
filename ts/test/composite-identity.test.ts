@@ -20,9 +20,9 @@ function entity(name: string, path: string[], fields: any[] = [], guide?: any) {
     op: {
       load: {
         points: [{
-          orig: '/' + path.join('/'),
-          method: 'GET',
-          segments: seg(...path),
+          o: '/' + path.join('/'),
+          m: 'GET',
+          s: seg(...path),
         }],
       },
     },
@@ -61,9 +61,9 @@ async function runPoints(name: string, paths: string[][], model?: any) {
     op: {
       load: {
         points: paths.map((path: string[]) => ({
-          orig: '/' + path.join('/'),
-          method: 'GET',
-          segments: seg(...path),
+          o: '/' + path.join('/'),
+          m: 'GET',
+          s: seg(...path),
         })),
       },
     },
@@ -236,9 +236,9 @@ describe('composite-identity', () => {
         op: {
           load: {
             points: [{
-              orig: '/' + path.join('/'),
-              method: 'GET',
-              segments: seg(...path),
+              o: '/' + path.join('/'),
+              m: 'GET',
+              s: seg(...path),
             }],
           },
         },

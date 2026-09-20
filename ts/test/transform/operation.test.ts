@@ -82,7 +82,7 @@ describe('transform-operation op resolution', () => {
     const ops = ctx.apimodel.main[KIT].entity.pull.op
     assert.strictEqual(ops.patch, undefined)
     assert.strictEqual(ops.update.name, 'update')
-    assert.deepStrictEqual(ops.update.points.map((p: any) => [p.method, p.orig]), [
+    assert.deepStrictEqual(ops.update.points.map((p: any) => [p.m, p.o]), [
       ['PATCH', '/pulls/{id}'],
       ['PUT', '/pulls/{id}/merge'],
     ])
@@ -92,8 +92,8 @@ describe('transform-operation op resolution', () => {
     const ctx = makeCtx('pull', { patch: { method: 'PATCH' }, update: { method: 'PUT' } })
     await operationTransform(ctx)
     const ops = ctx.apimodel.main[KIT].entity.pull.op
-    assert.strictEqual(ops.update.points[0].method, 'PUT')
-    assert.strictEqual(ops.patch.points[0].method, 'PATCH')
+    assert.strictEqual(ops.update.points[0].m, 'PUT')
+    assert.strictEqual(ops.patch.points[0].m, 'PATCH')
   })
 
 })
@@ -108,8 +108,8 @@ describe('transform-operation transform propagation', () => {
     })
     await operationTransform(ctx)
     const pt = ctx.apimodel.main[KIT].entity.pet.op.list.points[0]
-    assert.strictEqual(pt.transform.res, '`body.pet`')
-    assert.strictEqual(pt.transform.req, '`reqdata`') // req absent -> default
+    assert.strictEqual(pt.t.res, '`body.pet`')
+    assert.strictEqual(pt.t.req, '`reqdata`') // req absent -> default
   })
 
   test('falls back to generic defaults when the op has no transform', async () => {
@@ -118,8 +118,8 @@ describe('transform-operation transform propagation', () => {
     })
     await operationTransform(ctx)
     const pt = ctx.apimodel.main[KIT].entity.thing.op.create.points[0]
-    assert.strictEqual(pt.transform.res, '`body`')
-    assert.strictEqual(pt.transform.req, '`reqdata`')
+    assert.strictEqual(pt.t.res, '`body`')
+    assert.strictEqual(pt.t.req, '`reqdata`')
   })
 
   test('does not mutate the shared guide op.transform across points', async () => {

@@ -4,22 +4,22 @@ exports.flowstepTransform = void 0;
 const jostraca_1 = require("jostraca");
 const struct_1 = require("@voxgig/struct");
 function isEntityIdParam(point, param, opname) {
-    if ('id' === param?.name)
+    if ('id' === param?.n)
         return true;
-    const renameMap = point?.rename?.param;
-    if (renameMap && param?.name) {
-        const camel = (0, jostraca_1.lcf)((0, jostraca_1.camelify)(param.name));
+    const renameMap = point?.r?.param;
+    if (renameMap && param?.n) {
+        const camel = (0, jostraca_1.lcf)((0, jostraca_1.camelify)(param.n));
         if ('id' === renameMap[camel])
             return true;
     }
     if ('update' === opname || 'load' === opname || 'remove' === opname) {
-        const segments = point?.segments || [];
+        const segments = point?.s || [];
         let last = null;
         for (const s of segments) {
             if (null != s?.var)
                 last = s.var;
         }
-        if (last && last === param?.name)
+        if (last && last === param?.n)
             return true;
     }
     return false;
@@ -94,7 +94,7 @@ function newFlowStep(opname, args) {
 // rename-to-id is recorded — the literal `id` then represents the entity's
 // own id and createStep should skip it.
 function originalSnakeNameOfRenamedId(point) {
-    const renameMap = point?.rename?.param || {};
+    const renameMap = point?.r?.param || {};
     for (const [src, dst] of Object.entries(renameMap)) {
         if ('id' === dst) {
             const srcStr = String(src);
@@ -109,8 +109,8 @@ const createStep = (opmap, flow, ent, args) => {
         // Use last point as most generic
         const point = (0, struct_1.getelem)(opmap.create.points, -1);
         const step = newFlowStep('create', args);
-        (0, jostraca_1.each)(point.args.params, (param) => {
-            if ('id' === param.name) {
+        (0, jostraca_1.each)(point.g.params, (param) => {
+            if ('id' === param.n) {
                 const origName = originalSnakeNameOfRenamedId(point);
                 if (origName) {
                     step.match[origName] = args.input?.[origName] ?? origName.replace(/_id/, '') + '01';
@@ -119,7 +119,7 @@ const createStep = (opmap, flow, ent, args) => {
                 // (the create call generates it).
                 return;
             }
-            step.match[param.name] = args.input?.[param.name] ?? param.name.replace(/_id/, '') + '01';
+            step.match[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01';
         });
         seedRelatedOpParams(opmap, point, step);
         flow.step.push(step);
@@ -132,18 +132,18 @@ function seedRelatedOpParams(opmap, createPoint, step) {
         if (!op?.points)
             continue;
         for (const point of op.points) {
-            const params = point?.args?.params || [];
+            const params = point?.g?.params || [];
             for (const param of params) {
-                if (!param?.name)
+                if (!param?.n)
                     continue;
                 if (isEntityIdParam(point, param, opname))
                     continue;
-                if (step.match[param.name] !== undefined)
+                if (step.match[param.n] !== undefined)
                     continue;
-                if ('id' === param.name)
+                if ('id' === param.n)
                     continue;
-                step.match[param.name] =
-                    param.name.replace(/_id/, '') + '01';
+                step.match[param.n] =
+                    param.n.replace(/_id/, '') + '01';
             }
         }
     }
@@ -153,15 +153,15 @@ const listStep = (opmap, flow, ent, args) => {
         // Use last point as most generic
         const point = (0, struct_1.getelem)(opmap.list.points, -1);
         const step = newFlowStep('list', args);
-        (0, jostraca_1.each)(point.args.params, (param) => {
-            if ('id' === param.name) {
+        (0, jostraca_1.each)(point.g.params, (param) => {
+            if ('id' === param.n) {
                 const origName = originalSnakeNameOfRenamedId(point);
                 if (origName) {
                     step.match[origName] = args.input?.[origName] ?? origName.replace(/_id/, '') + '01';
                 }
                 return;
             }
-            step.match[param.name] = args.input?.[param.name] ?? param.name.replace(/_id/, '') + '01';
+            step.match[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01';
         });
         flow.step.push(step);
     }
@@ -171,13 +171,13 @@ const updateStep = (opmap, flow, ent, args) => {
         // Use last point as most generic
         const point = (0, struct_1.getelem)(opmap.update.points, -1);
         const step = newFlowStep('update', args);
-        (0, jostraca_1.each)(point.args.params, (param) => {
+        (0, jostraca_1.each)(point.g.params, (param) => {
             if (isEntityIdParam(point, param, 'update')) {
                 // Entity's own id — supplied at test time via the loaded/created
                 // entity's id field, not as a separate body parameter. Skip.
                 return;
             }
-            step.data[param.name] = args.input?.[param.name] ?? param.name.replace(/_id/, '') + '01';
+            step.data[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01';
         });
         flow.step.push(step);
     }
@@ -187,12 +187,12 @@ const loadStep = (opmap, flow, ent, args) => {
         // Use last point as most generic
         const point = (0, struct_1.getelem)(opmap.load.points, -1);
         const step = newFlowStep('load', args);
-        (0, jostraca_1.each)(point.args.params, (param) => {
+        (0, jostraca_1.each)(point.g.params, (param) => {
             if (isEntityIdParam(point, param, 'load')) {
                 step.match.id = args.input?.id ?? ent.name + '01';
             }
             else {
-                step.match[param.name] = args.input?.[param.name] ?? param.name.replace(/_id/, '') + '01';
+                step.match[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01';
             }
         });
         flow.step.push(step);
@@ -207,12 +207,12 @@ const removeStep = (opmap, flow, ent, args) => {
         // Use last point as most generic
         const point = (0, struct_1.getelem)(opmap.remove.points, -1);
         const step = newFlowStep('remove', args);
-        (0, jostraca_1.each)(point.args.params, (param) => {
+        (0, jostraca_1.each)(point.g.params, (param) => {
             if (isEntityIdParam(point, param, 'remove')) {
                 step.match.id = args.input?.id ?? ent.name + '01';
             }
             else {
-                step.match[param.name] = args.input?.[param.name] ?? param.name.replace(/_id/, '') + '01';
+                step.match[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01';
             }
         });
         flow.step.push(step);
@@ -221,9 +221,9 @@ const removeStep = (opmap, flow, ent, args) => {
 function firstTextField(ent, op) {
     const paramNames = {};
     (0, jostraca_1.each)(op?.points).forEach((pt) => {
-        (0, jostraca_1.each)(pt?.args?.params).forEach((p) => {
-            if (p && null != p.name) {
-                paramNames[p.name] = true;
+        (0, jostraca_1.each)(pt?.g?.params).forEach((p) => {
+            if (p && null != p.n) {
+                paramNames[p.n] = true;
             }
         });
     });

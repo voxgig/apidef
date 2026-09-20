@@ -128,50 +128,50 @@ describe('graphql', () => {
     const ops = bres.apimodel.main.kit.entity.issue.op
 
     const load = ops.load.points[0]
-    assert.equal(load.kind, 'graphql')
-    assert.equal(load.method, 'POST')
-    assert.deepStrictEqual(load.segments, undefined)
-    assert.equal(load.graphql.optype, 'query')
-    assert.equal(load.graphql.field, 'issue')
+    assert.equal(load.k, 'graphql')
+    assert.equal(load.m, 'POST')
+    assert.deepStrictEqual(load.s, undefined)
+    assert.equal(load.gq.optype, 'query')
+    assert.equal(load.gq.field, 'issue')
     assert.equal(
-      load.graphql.doc,
+      load.gq.doc,
       'query IssueLoad($id: String!) { issue(id: $id) { ...IssueFields } }' +
       ' fragment IssueFields on Issue' +
       ' { archivedAt createdAt id identifier priority team { id } title }')
-    assert.equal(load.transform.res, '`body.data.issue`')
-    assert.deepStrictEqual(load.graphql.vars, [
+    assert.equal(load.t.res, '`body.data.issue`')
+    assert.deepStrictEqual(load.gq.vars, [
       { name: 'id', from: 'id', gqltype: 'String!' },
     ])
 
-    assert.ok(!load.graphql.doc.includes('\n'))
+    assert.ok(!load.gq.doc.includes('\n'))
 
     const list = ops.list.points[0]
-    assert.equal(list.transform.res, '`body.data.issues.nodes`')
-    assert.deepStrictEqual(list.graphql.page, {
+    assert.equal(list.t.res, '`body.data.issues.nodes`')
+    assert.deepStrictEqual(list.gq.page, {
       style: 'relay',
       nodes: 'nodes',
       cursor: 'pageInfo.endCursor',
       more: 'pageInfo.hasNextPage',
     })
-    assert.ok(list.graphql.doc.includes('pageInfo { endCursor hasNextPage }'))
+    assert.ok(list.gq.doc.includes('pageInfo { endCursor hasNextPage }'))
 
     // `exist` names values that must be present for a point to be selected.
     // Relay's optional first/after must NOT appear, or list() would demand
     // every pagination argument before it could be chosen.
-    assert.deepStrictEqual(list.select?.exist, undefined)
+    assert.deepStrictEqual(list.q?.exist, undefined)
 
     const create = ops.create.points[0]
-    assert.equal(create.graphql.optype, 'mutation')
-    assert.equal(create.transform.res, '`body.data.issueCreate.issue`')
+    assert.equal(create.gq.optype, 'mutation')
+    assert.equal(create.t.res, '`body.data.issueCreate.issue`')
 
     // The command mutation is a second point on update, selected at runtime
     // by $action (the mechanism REST action paths already use).
     const updatePoints = ops.update.points
     assert.equal(updatePoints.length, 2)
-    const archive = updatePoints.find((p: any) => 'archive' === p.select?.$action)
+    const archive = updatePoints.find((p: any) => 'archive' === p.q?.$action)
     assert.ok(null != archive, 'archive action point')
-    assert.equal(archive.graphql.field, 'issueArchive')
-    assert.equal(archive.transform.res, '`body.data.issueArchive.issue`')
+    assert.equal(archive.gq.field, 'issueArchive')
+    assert.equal(archive.t.res, '`body.data.issueArchive.issue`')
   })
 
 
@@ -207,10 +207,10 @@ describe('graphql', () => {
       'emitted GraphQL model must unify against model/apidef.aon')
 
     const point = out.main.kit.entity.issue.op.load.points[0]
-    assert.equal(point.kind, 'graphql')
-    assert.equal(point.method, 'POST')
-    assert.deepStrictEqual(point.segments, [])
-    assert.ok(point.graphql.doc.startsWith('query IssueLoad'))
+    assert.equal(point.k, 'graphql')
+    assert.equal(point.m, 'POST')
+    assert.deepStrictEqual(point.s, [])
+    assert.ok(point.gq.doc.startsWith('query IssueLoad'))
   })
 
 })
@@ -363,14 +363,14 @@ describe('graphql-entityless-payload', () => {
     const point = remove.points[0]
 
     assert.equal(
-      point.graphql.doc,
+      point.gq.doc,
       'mutation CommentRemove($id: String!)' +
       ' { commentDelete(id: $id) { entityId success } }')
 
-    assert.ok(!point.graphql.doc.includes('fragment'))
-    assert.ok(!point.graphql.doc.includes('{ id }'))
+    assert.ok(!point.gq.doc.includes('fragment'))
+    assert.ok(!point.gq.doc.includes('{ id }'))
 
-    assert.equal(point.transform.res, '`body.data.commentDelete`')
+    assert.equal(point.t.res, '`body.data.commentDelete`')
   })
 
 })
