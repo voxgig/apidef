@@ -68,7 +68,18 @@ const entityTransform: Transform = async function(
     msg += guideEntity.name + ' '
   })
 
+  filterEntityAncestors(kit.entity)
   return { ok: true, msg }
+}
+
+function filterEntityAncestors(entities: Record<string, any>) {
+  for (const [name, entity] of Object.entries(entities)) {
+    if (null == entity.relations) continue
+    entity.relations.ancestors = (entity.relations.ancestors ?? [])
+      .map((chain: string[]) => chain.filter(ancestor => ancestor !== name &&
+        Object.prototype.hasOwnProperty.call(entities, ancestor)))
+      .filter((chain: string[]) => 0 < chain.length)
+  }
 }
 
 
@@ -301,6 +312,7 @@ function suffix(p: string[], c: string[]): boolean {
 
 
 export {
+  filterEntityAncestors,
   resolvePathList,
   buildRelations,
   entityTransform,

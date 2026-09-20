@@ -3,6 +3,7 @@
 package apidef
 
 import (
+	"encoding/json"
 	"regexp"
 	"sort"
 	"strings"
@@ -48,7 +49,36 @@ func EntityTransform(ctx *ApiDefContext) (*TransformResult, error) {
 		msg += entname + " "
 	}
 
+	filterEntityAncestors(entityMap)
 	return &TransformResult{OK: true, Msg: msg}, nil
+}
+
+func filterEntityAncestors(entities map[string]any) {
+	for name, value := range entities {
+		entity := value.(map[string]any)
+		relations, ok := entity["relations"].(map[string]any)
+		if !ok {
+			continue
+		}
+		data, _ := json.Marshal(relations["ancestors"])
+		var ancestors [][]string
+		if json.Unmarshal(data, &ancestors) != nil {
+			continue
+		}
+		filtered := [][]string{}
+		for _, chain := range ancestors {
+			kept := []string{}
+			for _, ancestor := range chain {
+				if _, exists := entities[ancestor]; exists && ancestor != name {
+					kept = append(kept, ancestor)
+				}
+			}
+			if len(kept) > 0 {
+				filtered = append(filtered, kept)
+			}
+		}
+		relations["ancestors"] = filtered
+	}
 }
 
 var (
