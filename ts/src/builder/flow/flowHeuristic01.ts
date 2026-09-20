@@ -81,11 +81,11 @@ function resolveBasicEntityFlow(ctx: any, entity: any) {
 
     let num = (i * size(apiEntity.fields) * 10)
     each(apiEntity.fields, (field) => {
-      ent[field.name] =
-        'number' === field.type ? num :
-          'boolean' === field.type ? 0 === num % 2 :
-            'object' === field.type ? {} :
-              'array' === field.type ? [] :
+      ent[field.n] =
+        'number' === field.t ? num :
+          'boolean' === field.t ? 0 === num % 2 :
+            'object' === field.t ? {} :
+              'array' === field.t ? [] :
                 's' + (num.toString(16))
       num++
     })
@@ -207,12 +207,12 @@ function makeUpdateData(name: string, apiEntity: any, flow: any, id: string) {
   const data = flow.model.test.entity[apiEntity.name]
 
   const dataFields =
-    each(apiEntity.field).filter(f => 'id' !== f.name && !f.name.includes('_id'))
-  const stringFields = each(dataFields).filter(f => 'string' === f.type)
+    each(apiEntity.fields).filter(f => 'id' !== f.n && !f.n.includes('_id'))
+  const stringFields = each(dataFields).filter(f => 'string' === f.t)
 
   if (0 < size(stringFields)) {
     const f = stringFields[0]
-    ud[f.name] = data[id][f.name] + '-`$WHEN`'
+    ud[f.n] = data[id][f.n] + '-`$WHEN`'
   }
 
   return ud

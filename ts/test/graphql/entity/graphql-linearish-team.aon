@@ -4,23 +4,26 @@ main: kit: entity: team: {
 
   alias: field: {}
 
-  fields: [
-    {
-      name: "id"
-      req: true
-      type: "`$STRING`"
+  fields: {
+    id: {
+      h: "Id"
+      n: "id"
+      r: true
+      t: "`$STRING`"
     }
-    {
-      name: "key"
-      req: true
-      type: "`$STRING`"
+    key: {
+      h: "Key"
+      n: "key"
+      r: true
+      t: "`$STRING`"
     }
-    {
-      name: "name"
-      req: true
-      type: "`$STRING`"
+    name: {
+      h: "Name"
+      n: "name"
+      r: true
+      t: "`$STRING`"
     }
-  ]
+  }
 
   id: {
     field: "id"

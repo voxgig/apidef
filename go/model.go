@@ -34,17 +34,18 @@ type ModelFieldOp struct {
 
 // ModelField represents an entity field definition.
 type ModelField struct {
-	Name string                   `json:"name"`
-	Type any                      `json:"type"`
-	Req  bool                     `json:"req"`
-	Op   map[OpName]*ModelFieldOp `json:"op,omitempty"`
+	Name       string                   `json:"n"`
+	HumanTitle string                   `json:"h"`
+	Type       any                      `json:"t"`
+	Req        bool                     `json:"r"`
+	Op         map[OpName]*ModelFieldOp `json:"op,omitempty"`
 
-	Short string `json:"short,omitempty"`
+	Short string `json:"sh,omitempty"`
 
-	ReadOnly   bool   `json:"readOnly,omitempty"`
-	WriteOnly  bool   `json:"writeOnly,omitempty"`
-	Deprecated bool   `json:"deprecated,omitempty"`
-	Format     string `json:"format,omitempty"`
+	ReadOnly   bool   `json:"ro,omitempty"`
+	WriteOnly  bool   `json:"wo,omitempty"`
+	Deprecated bool   `json:"de,omitempty"`
+	Format     string `json:"fo,omitempty"`
 }
 
 // ModelArg represents an operation argument/parameter.
@@ -83,11 +84,11 @@ type ModelOp struct {
 
 // ModelEntity represents an entity definition with operations and fields.
 type ModelEntity struct {
-	Name      string               `json:"name"`
-	Op        ModelOpMap           `json:"op"`
-	Fields    []*ModelField        `json:"fields"`
-	ID        *ModelEntityID       `json:"id,omitempty"`
-	Relations ModelEntityRelations `json:"relations"`
+	Name      string                 `json:"name"`
+	Op        ModelOpMap             `json:"op"`
+	Fields    map[string]*ModelField `json:"fields"`
+	ID        *ModelEntityID         `json:"id,omitempty"`
+	Relations ModelEntityRelations   `json:"relations"`
 }
 
 type ModelEntityID struct {

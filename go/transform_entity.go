@@ -37,7 +37,7 @@ func EntityTransform(ctx *ApiDefContext) (*TransformResult, error) {
 		modelent := map[string]any{
 			"name":      entname,
 			"op":        map[string]any{},
-			"fields":    []any{},
+			"fields":    map[string]any{},
 			"relations": relations,
 			"alias":     map[string]any{"field": map[string]any{}},
 			"active":    true,

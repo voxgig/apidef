@@ -7,7 +7,7 @@ import type { TransformResult, Transform } from '../transform'
 import {
   validator, canonizeField, inferFieldType, normalizeFieldName, envelopeProp,
   canonizeCmpName,
-  scanUntaggedUnion, firstSentence,
+  scanUntaggedUnion, firstSentence, humanTitle,
 } from '../utility'
 
 import { KIT } from '../types'
@@ -42,7 +42,6 @@ const fieldTransform: Transform = async function(
 
   each(kit.entity, (ment: ModelEntity, _entname: string) => {
     const fields = ment.fields
-    const seen: any = {}
 
     for (let opname of opFieldPrecedence) {
       const mop = ment.op[opname]
@@ -53,70 +52,63 @@ const fieldTransform: Transform = async function(
           const opfields = resolveOpFields(ment, mop, mpoint, def)
 
           for (let opfield of opfields) {
-            if (!seen[opfield.name]) {
-              fields.push(opfield)
-              seen[opfield.name] = opfield
+            if (!Object.prototype.hasOwnProperty.call(fields, opfield.n)) {
+              fields[opfield.n] = opfield
             }
             else {
-              mergeField(mop, seen[opfield.name], opfield)
+              mergeField(mop, fields[opfield.n], opfield)
             }
           }
         }
       }
     }
 
-    fields.sort((a: ModelField, b: ModelField) => {
-      return a.name < b.name ? -1 : a.name > b.name ? 1 : 0
-    })
 
     const gent = guide?.entity?.[ment.name]
     const composite = compositeId(ment, gent, def)
 
-    const idField = fields.find((f: ModelField) => 'id' === f.name)
+    const idField = fields.id
 
     if (null != composite.parts && null != idField && !scalarStringField(idField)) {
       const idf: any = idField
       const apiname = String((model as any)?.name || 'api')
       const keep = apiname + '_id'
 
-      if (!fields.some((f: ModelField) => f.name === keep)) {
+      if (!Object.prototype.hasOwnProperty.call(fields, keep)) {
         // A DEEP COPY, because the move is followed by deletions on the
         // original. A spread shares the `op` object, so clearing the stale
         // per-op `type` off `id` cleared it off the preserved field too —
         // the preservation preserved nothing for exactly the key it was
         // added to keep.
-        fields.push(JSON.parse(JSON.stringify({ ...idf, name: keep })) as any)
+        fields[keep] = JSON.parse(JSON.stringify({ ...idf, n: keep }))
 
         const alias = ((ment as any).alias = (ment as any).alias || {})
         alias.field = alias.field || {}
         alias.field[keep] = 'id'
       }
 
-      idf.type = '`$STRING`'
-      // The facts that described the moved type go with it: `format: int64`
+      idf.t = '`$STRING`'
+      // The facts that described the moved type go with it: `fo: int64`
       // beside a string, or a per-op `type` override still saying integer,
       // is a model contradicting itself — and the op override is what a
       // generator reads for that op.
-      delete idf.format
+      delete idf.fo
       for (const opname of Object.keys(idf.op || {})) {
         delete idf.op[opname].type
       }
 
-      fields.sort((a: ModelField, b: ModelField) =>
-        a.name < b.name ? -1 : a.name > b.name ? 1 : 0)
     }
 
     if (null != composite.parts && null == idField) {
       // The FIELD as well as the descriptor, for the reason the branch below
       // documents: a model that declares the descriptor without the field
       // makes the generated type disagree with the generated test.
-      fields.push({
-        name: 'id',
-        type: '`$STRING`',
-        req: false,
-      } as any)
-      fields.sort((a: ModelField, b: ModelField) =>
-        a.name < b.name ? -1 : a.name > b.name ? 1 : 0)
+      fields.id = {
+        n: 'id',
+        h: humanTitle('id'),
+        t: '`$STRING`',
+        r: false,
+      } as ModelField
     }
 
     const singleKey = (composite as any).single
@@ -126,29 +118,33 @@ const fieldTransform: Transform = async function(
       // The guide disabled composite; the terminal parameter is the key, and
       // the entity needs the field to carry it for the same reason the
       // composite branch above does.
-      fields.push({
-        name: 'id',
-        type: '`$STRING`',
-        req: false,
-      } as any)
-      fields.sort((a: ModelField, b: ModelField) =>
-        a.name < b.name ? -1 : a.name > b.name ? 1 : 0)
+      fields.id = {
+        n: 'id',
+        h: humanTitle('id'),
+        t: '`$STRING`',
+        r: false,
+      } as ModelField
     }
 
     if (idField || null != composite.parts || null != singleKey) {
       ment.id = { name: 'id', field: 'id', ...composite }
     }
     else if (addressedById(ment)) {
-      fields.push({
-        name: 'id',
-        type: '`$STRING`',
-        req: false,
-      } as any)
-      fields.sort((a: ModelField, b: ModelField) =>
-        a.name < b.name ? -1 : a.name > b.name ? 1 : 0)
+      fields.id = {
+        n: 'id',
+        h: humanTitle('id'),
+        t: '`$STRING`',
+        r: false,
+      } as ModelField
 
       ment.id = { name: 'id', field: 'id', ...composite }
     }
+
+    ment.fields = Object.fromEntries(Object.keys(fields).sort().map(n => {
+      const field = fields[n]
+      field.h = humanTitle(field.n)
+      return [n, field]
+    }))
 
     msg += ment.name + ' '
   })
@@ -482,7 +478,7 @@ function identityFrom(
 // Is this model field declared as a string? A composite id is the parts
 // joined, so the field that holds it has to be one.
 function scalarStringField(f: any): boolean {
-  return String(f?.type || '').toUpperCase().includes('STRING')
+  return String(f?.t || '').toUpperCase().includes('STRING')
 }
 
 
@@ -579,22 +575,23 @@ function resolveOpFields(
     // items -> item, so the SDK read keys the server never sends.
     const name = canonizeField(normalizeFieldName(fieldname))
     const mfield: ModelField = {
-      name,
-      type: inferFieldType(name, validator(fielddef.type)),
-      req: !!fielddef.required,
+      n: name,
+      h: humanTitle(name),
+      t: inferFieldType(name, validator(fielddef.type)),
+      r: !!fielddef.required,
       op: {},
     }
     const fdesc = (fielddef as any).description
     if ('string' === typeof fdesc && '' !== fdesc.trim()) {
       const short = firstSentence(fdesc)
       if ('' !== short) {
-        mfield.short = short
+        mfield.sh = short
       }
     }
 
-    for (const flag of ['readOnly', 'writeOnly', 'deprecated'] as const) {
+    for (const [flag, attr] of [['readOnly', 'ro'], ['writeOnly', 'wo'], ['deprecated', 'de']] as const) {
       if (true === (fielddef as any)[flag]) {
-        mfield[flag] = true
+        mfield[attr] = true
       }
     }
 
@@ -603,7 +600,7 @@ function resolveOpFields(
     // interpreted here. `password` is the one a generator acts on today.
     const ffmt = (fielddef as any).format
     if ('string' === typeof ffmt && '' !== ffmt.trim()) {
-      mfield.format = ffmt.trim()
+      mfield.fo = ffmt.trim()
     }
 
     // Record an untagged union under this field. The field is already typed
@@ -912,18 +909,18 @@ function mergeField(
   existingField: ModelField,
   newField: ModelField
 ) {
-  if (newField.req !== existingField.req) {
+  if (newField.r !== existingField.r) {
     existingField.op[mop.name] = {
-      req: newField.req,
-      type: newField.type,
+      req: newField.r,
+      type: newField.t,
     }
   }
 
-  if (null == existingField.short && null != newField.short) {
-    existingField.short = newField.short
+  if (null == existingField.sh && null != newField.sh) {
+    existingField.sh = newField.sh
   }
 
-  for (const flag of ['readOnly', 'writeOnly', 'deprecated', 'format'] as const) {
+  for (const flag of ['ro', 'wo', 'de', 'fo'] as const) {
     if (null == existingField[flag] && null != newField[flag]) {
       (existingField as any)[flag] = newField[flag]
     }

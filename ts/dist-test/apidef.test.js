@@ -279,32 +279,32 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         const moon = bres.apimodel.main.kit.entity.moon;
         // Planet schema has required: [id, name, kind, diameter]
         const planetFields = {};
-        for (const f of planet.fields) {
-            planetFields[f.name] = f;
+        for (const f of Object.values(planet.fields)) {
+            planetFields[f.n] = f;
         }
-        node_assert_1.default.strictEqual(planetFields.id.req, true);
-        node_assert_1.default.strictEqual(planetFields.name.req, true);
-        node_assert_1.default.strictEqual(planetFields.kind.req, true);
-        node_assert_1.default.strictEqual(planetFields.diameter.req, true);
+        node_assert_1.default.strictEqual(planetFields.id.r, true);
+        node_assert_1.default.strictEqual(planetFields.name.r, true);
+        node_assert_1.default.strictEqual(planetFields.kind.r, true);
+        node_assert_1.default.strictEqual(planetFields.diameter.r, true);
         // A property's `description` becomes the field's `short`. Every generated
         // per-entity table has a Description column, and every cell was blank
         // because nothing read this. Only Planet.diameter carries one in the
         // fixture, which is the point: the fields WITHOUT a description must not
         // acquire an invented one.
-        node_assert_1.default.strictEqual(planetFields.diameter.short, 'Mean equatorial diameter in kilometres.');
-        node_assert_1.default.strictEqual(planetFields.id.short, undefined);
-        node_assert_1.default.strictEqual(planetFields.name.short, undefined);
-        node_assert_1.default.strictEqual(planetFields.kind.short, undefined);
+        node_assert_1.default.strictEqual(planetFields.diameter.sh, 'Mean equatorial diameter in kilometres.');
+        node_assert_1.default.strictEqual(planetFields.id.sh, undefined);
+        node_assert_1.default.strictEqual(planetFields.name.sh, undefined);
+        node_assert_1.default.strictEqual(planetFields.kind.sh, undefined);
         // Moon schema has required: [id, name, planet_id, kind, diameter]
         const moonFields = {};
-        for (const f of moon.fields) {
-            moonFields[f.name] = f;
+        for (const f of Object.values(moon.fields)) {
+            moonFields[f.n] = f;
         }
-        node_assert_1.default.strictEqual(moonFields.id.req, true);
-        node_assert_1.default.strictEqual(moonFields.name.req, true);
-        node_assert_1.default.strictEqual(moonFields.planet_id.req, true);
-        node_assert_1.default.strictEqual(moonFields.kind.req, true);
-        node_assert_1.default.strictEqual(moonFields.diameter.req, true);
+        node_assert_1.default.strictEqual(moonFields.id.r, true);
+        node_assert_1.default.strictEqual(moonFields.name.r, true);
+        node_assert_1.default.strictEqual(moonFields.planet_id.r, true);
+        node_assert_1.default.strictEqual(moonFields.kind.r, true);
+        node_assert_1.default.strictEqual(moonFields.diameter.r, true);
     });
     (0, node_test_1.test)('query-verb-book', async () => {
         // RFC 10008 QUERY verb: a safe, idempotent read carrying its filter in the
@@ -350,7 +350,7 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         const book = bres.apimodel.main.kit.entity.book;
         node_assert_1.default.strictEqual(book.op.list.points[0].method, 'QUERY');
         // The Book response schema supplies the entity fields...
-        const fieldNames = book.fields.map((f) => f.name).sort();
+        const fieldNames = Object.keys(book.fields).sort();
         node_assert_1.default.deepStrictEqual(fieldNames, ['author', 'id', 'title']);
         // ...and the QUERY filter body (BookQuery: q, page) must NOT leak into them.
         node_assert_1.default.ok(!fieldNames.includes('q'), 'filter field q must not leak');
@@ -536,33 +536,33 @@ const SOLAR_MODEL = {
             entity: {
                 moon: {
                     alias: { field: {} },
-                    fields: [
-                        {
-                            name: 'diameter',
-                            req: false,
-                            type: '`$NUMBER`',
-                            active: true
+                    fields: {
+                        diameter: {
+                            n: 'diameter', h: 'Diameter',
+                            r: false,
+                            t: '`$NUMBER`',
+                            a: true
                         },
-                        { name: 'id', req: false, type: '`$STRING`', active: true },
-                        {
-                            name: 'kind',
-                            req: false,
-                            type: '`$STRING`',
-                            active: true
+                        id: { n: 'id', h: 'Id', r: false, t: '`$STRING`', a: true },
+                        kind: {
+                            n: 'kind', h: 'Kind',
+                            r: false,
+                            t: '`$STRING`',
+                            a: true
                         },
-                        {
-                            name: 'name',
-                            req: false,
-                            type: '`$STRING`',
-                            active: true
+                        name: {
+                            n: 'name', h: 'Name',
+                            r: false,
+                            t: '`$STRING`',
+                            a: true
                         },
-                        {
-                            name: 'planet_id',
-                            req: false,
-                            type: '`$STRING`',
-                            active: true
+                        planet_id: {
+                            n: 'planet_id', h: 'Planet Id',
+                            r: false,
+                            t: '`$STRING`',
+                            a: true
                         }
-                    ],
+                    },
                     id: { field: 'id', name: 'id' },
                     name: 'moon',
                     op: {
@@ -727,63 +727,63 @@ const SOLAR_MODEL = {
                 },
                 planet: {
                     alias: { field: {} },
-                    fields: [
-                        {
-                            name: 'diameter',
-                            req: false,
-                            type: '`$NUMBER`',
-                            active: true
+                    fields: {
+                        diameter: {
+                            n: 'diameter', h: 'Diameter',
+                            r: false,
+                            t: '`$NUMBER`',
+                            a: true
                         },
-                        {
-                            name: 'forbid',
-                            req: false,
-                            type: '`$BOOLEAN`',
-                            active: true
+                        forbid: {
+                            n: 'forbid', h: 'Forbid',
+                            r: false,
+                            t: '`$BOOLEAN`',
+                            a: true
                         },
-                        { name: 'id', req: false, type: '`$STRING`', active: true },
-                        {
-                            name: 'kind',
-                            req: false,
-                            type: '`$STRING`',
-                            active: true
+                        id: { n: 'id', h: 'Id', r: false, t: '`$STRING`', a: true },
+                        kind: {
+                            n: 'kind', h: 'Kind',
+                            r: false,
+                            t: '`$STRING`',
+                            a: true
                         },
-                        {
-                            name: 'name',
-                            req: false,
-                            type: '`$STRING`',
-                            active: true
+                        name: {
+                            n: 'name', h: 'Name',
+                            r: false,
+                            t: '`$STRING`',
+                            a: true
                         },
-                        {
-                            name: 'ok',
-                            req: false,
-                            type: '`$BOOLEAN`',
-                            active: true
+                        ok: {
+                            n: 'ok', h: 'Ok',
+                            r: false,
+                            t: '`$BOOLEAN`',
+                            a: true
                         },
-                        {
-                            name: 'start',
-                            req: false,
-                            type: '`$BOOLEAN`',
-                            active: true
+                        start: {
+                            n: 'start', h: 'Start',
+                            r: false,
+                            t: '`$BOOLEAN`',
+                            a: true
                         },
-                        {
-                            name: 'state',
-                            req: false,
-                            type: '`$STRING`',
-                            active: true
+                        state: {
+                            n: 'state', h: 'State',
+                            r: false,
+                            t: '`$STRING`',
+                            a: true
                         },
-                        {
-                            name: 'stop',
-                            req: false,
-                            type: '`$BOOLEAN`',
-                            active: true
+                        stop: {
+                            n: 'stop', h: 'Stop',
+                            r: false,
+                            t: '`$BOOLEAN`',
+                            a: true
                         },
-                        {
-                            name: 'why',
-                            req: false,
-                            type: '`$STRING`',
-                            active: true
+                        why: {
+                            n: 'why', h: 'Why',
+                            r: false,
+                            t: '`$STRING`',
+                            a: true
                         }
-                    ],
+                    },
                     id: { field: 'id', name: 'id' },
                     name: 'planet',
                     op: {

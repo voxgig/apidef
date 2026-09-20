@@ -41,7 +41,7 @@ const flowstepTransform = async function (ctx) {
         updateStep(opmap, flow, ent, {
             input: {
                 ref: ref01,
-                textfield: firsttf?.name,
+                textfield: firsttf?.n,
                 suffix: '_up0',
                 srcdatavar: ref01 + '_data'
             },
@@ -227,7 +227,7 @@ function firstTextField(ent, op) {
             }
         });
     });
-    const fields = (0, jostraca_1.each)(ent.fields);
+    const fields = Object.keys(ent.fields).sort().map(n => ent.fields[n]);
     for (let fI = 0; fI < fields.length; fI++) {
         const field = fields[fI];
         // NOT A readOnly FIELD. The flow writes this one and then asserts the
@@ -235,8 +235,8 @@ function firstTextField(ent, op) {
         // was chosen for. Fields are sorted by name, so which field this lands on
         // is alphabetical accident: solar's planet, once its spec declared the
         // server-assigned `forbidReason`, marked that instead of `kind`.
-        if ('`$STRING`' === field.type && 'id' !== field.name &&
-            true !== field.readOnly && true !== paramNames[field.name]) {
+        if ('`$STRING`' === field.t && 'id' !== field.n &&
+            true !== field.ro && true !== paramNames[field.n]) {
             return field;
         }
     }

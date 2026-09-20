@@ -1,32 +1,37 @@
 {
-  "fields": [
-    {
-      "format": "float",
-      "name": "diameter",
-      "req": true,
-      "type": "`$NUMBER`"
+  "fields": {
+    "diameter": {
+      "fo": "float",
+      "h": "Diameter",
+      "n": "diameter",
+      "r": true,
+      "t": "`$NUMBER`"
     },
-    {
-      "name": "id",
-      "req": true,
-      "type": "`$STRING`"
+    "id": {
+      "h": "Id",
+      "n": "id",
+      "r": true,
+      "t": "`$STRING`"
     },
-    {
-      "name": "kind",
-      "req": true,
-      "type": "`$STRING`"
+    "kind": {
+      "h": "Kind",
+      "n": "kind",
+      "r": true,
+      "t": "`$STRING`"
     },
-    {
-      "name": "name",
-      "req": true,
-      "type": "`$STRING`"
+    "name": {
+      "h": "Name",
+      "n": "name",
+      "r": true,
+      "t": "`$STRING`"
     },
-    {
-      "name": "planet_id",
-      "req": true,
-      "type": "`$STRING`"
+    "planet_id": {
+      "h": "Planet Id",
+      "n": "planet_id",
+      "r": true,
+      "t": "`$STRING`"
     }
-  ],
+  },
   "id": {
     "field": "id",
     "name": "id"

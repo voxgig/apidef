@@ -1,38 +1,44 @@
 {
-  "fields": [
-    {
-      "name": "category",
-      "req": false,
-      "type": "`$OBJECT`"
+  "fields": {
+    "category": {
+      "h": "Category",
+      "n": "category",
+      "r": false,
+      "t": "`$OBJECT`"
     },
-    {
-      "format": "int64",
-      "name": "id",
-      "req": false,
-      "type": "`$INTEGER`"
+    "id": {
+      "fo": "int64",
+      "h": "Id",
+      "n": "id",
+      "r": false,
+      "t": "`$INTEGER`"
     },
-    {
-      "name": "name",
-      "req": true,
-      "type": "`$STRING`"
+    "name": {
+      "h": "Name",
+      "n": "name",
+      "r": true,
+      "t": "`$STRING`"
     },
-    {
-      "name": "photoUrls",
-      "req": true,
-      "type": "`$ARRAY`"
+    "photoUrls": {
+      "h": "Photo Urls",
+      "n": "photoUrls",
+      "r": true,
+      "t": "`$ARRAY`"
     },
-    {
-      "name": "status",
-      "req": false,
-      "short": "pet status in the store",
-      "type": "`$STRING`"
+    "status": {
+      "h": "Status",
+      "n": "status",
+      "r": false,
+      "sh": "pet status in the store",
+      "t": "`$STRING`"
     },
-    {
-      "name": "tags",
-      "req": false,
-      "type": "`$ARRAY`"
+    "tags": {
+      "h": "Tags",
+      "n": "tags",
+      "r": false,
+      "t": "`$ARRAY`"
     }
-  ],
+  },
   "id": {
     "field": "id",
     "name": "id"

@@ -13,9 +13,21 @@ const node_test_1 = require("node:test");
 const node_assert_1 = __importDefault(require("node:assert"));
 const node_fs_1 = require("node:fs");
 const node_path_1 = __importDefault(require("node:path"));
+const aontu_1 = require("aontu");
 const REPO = node_path_1.default.resolve(__dirname, '..', '..');
 const MODEL_FILES = ['apidef.aon', 'guide.aon'];
 (0, node_test_1.describe)('model-mirror', () => {
+    (0, node_test_1.test)('entity-field alias uses compact keys and defaults activation', () => {
+        const fields = {
+            id: { n: 'id', h: 'Id', r: true, t: '`$STRING`' },
+            secret: { n: 'secret', h: 'Secret', r: false, t: '`$STRING`', a: false,
+                sh: 'A secret.', ro: true, wo: true, de: true, fo: 'password' },
+        };
+        const source = (0, node_fs_1.readFileSync)(node_path_1.default.join(REPO, 'model', 'apidef.aon'), 'utf8') + '\n' +
+            'main:kit:entity:widget:fields:' + JSON.stringify(fields);
+        const model = new aontu_1.Aontu().generate(source);
+        node_assert_1.default.deepStrictEqual(model.main.kit.entity.widget.fields, { id: { ...fields.id, a: true }, secret: fields.secret });
+    });
     for (const file of MODEL_FILES) {
         (0, node_test_1.test)(`ts/model/${file} matches canonical model/${file}`, () => {
             const canonical = (0, node_fs_1.readFileSync)(node_path_1.default.join(REPO, 'model', file), 'utf8');

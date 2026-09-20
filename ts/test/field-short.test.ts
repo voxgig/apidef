@@ -13,9 +13,9 @@ function runFieldTransform(entity: any, def: any) {
 }
 
 
-function fieldsByName(fields: any[]) {
+function fieldsByName(fields: Record<string, any>) {
   const out: Record<string, any> = {}
-  for (const f of fields) { out[f.name] = f }
+  for (const f of Object.values(fields)) { out[f.n] = f }
   return out
 }
 
@@ -30,7 +30,7 @@ describe('field-short', () => {
   test('merge-keeps-first-description', async () => {
     const entity = {
       name: 'planet',
-      fields: [] as any[],
+      fields: {} as Record<string, any>,
       op: {
         // load comes first in opFieldPrecedence, and describes nothing.
         load: {
@@ -80,9 +80,9 @@ describe('field-short', () => {
 
     const fields = fieldsByName(await runFieldTransform(entity, def))
 
-    assert.strictEqual(fields.name.short, 'Common name.',
+    assert.strictEqual(fields.name.sh, 'Common name.',
       'a later op\'s description must survive the merge, trimmed')
-    assert.strictEqual(fields.id.short, 'Stable identifier.')
+    assert.strictEqual(fields.id.sh, 'Stable identifier.')
   })
 
 
@@ -92,7 +92,7 @@ describe('field-short', () => {
   test('merge-does-not-overwrite-an-existing-description', async () => {
     const entity = {
       name: 'planet',
-      fields: [] as any[],
+      fields: {} as Record<string, any>,
       op: {
         load: {
           name: 'load',
@@ -151,7 +151,7 @@ describe('field-short', () => {
 
     const fields = fieldsByName(await runFieldTransform(entity, def))
 
-    assert.strictEqual(fields.name.short, 'The one that wins.')
+    assert.strictEqual(fields.name.sh, 'The one that wins.')
   })
 
 
@@ -159,7 +159,7 @@ describe('field-short', () => {
     const entity = {
       name: 'planet',
       orig$: 'Planet',
-      fields: [] as any[],
+      fields: {} as Record<string, any>,
       op: {
         load: {
           name: 'load',
@@ -192,9 +192,9 @@ describe('field-short', () => {
 
     const fields = fieldsByName(await runFieldTransform(entity, def))
 
-    assert.strictEqual(fields.name.short, 'Common name.',
-      'GqlField.desc must reach ModelField.short, trimmed')
-    assert.strictEqual(fields.id.short, undefined,
+    assert.strictEqual(fields.name.sh, 'Common name.',
+      'GqlField.desc must reach ModelField.sh, trimmed')
+    assert.strictEqual(fields.id.sh, undefined,
       'an undescribed GraphQL field must not acquire an invented description')
   })
 
@@ -208,7 +208,7 @@ describe('field-short', () => {
 
     const entity = {
       name: 'planet',
-      fields: [] as any[],
+      fields: {} as Record<string, any>,
       op: {
         load: {
           name: 'load',
@@ -251,20 +251,20 @@ describe('field-short', () => {
     const fields = fieldsByName(await runFieldTransform(entity, def))
 
     for (const name of ['status', 'note', 'long']) {
-      assert.ok(!fields[name].short.includes('\n'),
-        `${name}.short must not contain a newline — it lands in a markdown table cell`)
+      assert.ok(!fields[name].sh.includes('\n'),
+        `${name}.sh must not contain a newline — it lands in a markdown table cell`)
     }
 
-    assert.strictEqual(fields.status.short,
+    assert.strictEqual(fields.status.sh,
       'The status of the user - `joined`, the user has joined the space - `invited`, the user has been sent an invitation',
       'newlines collapse to spaces rather than being dropped or truncating the text')
 
-    assert.strictEqual(fields.note.short, 'First sentence here.',
+    assert.strictEqual(fields.note.sh, 'First sentence here.',
       'a description with real sentences is cut at the first one')
 
-    assert.strictEqual(fields.long.short.length, 240,
+    assert.strictEqual(fields.long.sh.length, 240,
       'an over-long description is capped')
-    assert.ok(fields.long.short.endsWith('\u2026'),
+    assert.ok(fields.long.sh.endsWith('\u2026'),
       'the cap is marked with an ellipsis rather than cutting silently')
   })
 

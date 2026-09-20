@@ -13,8 +13,8 @@ function runFieldTransform(entity: any, def: any) {
 }
 
 
-function names(fields: any[]) {
-  return fields.map((f: any) => f.name).sort()
+function names(fields: Record<string, any>) {
+  return Object.keys(fields).sort()
 }
 
 
@@ -43,7 +43,7 @@ function planetWithActions() {
   return {
     entity: {
       name: 'planet',
-      fields: [] as any[],
+      fields: {} as Record<string, any>,
       op: {
         load: {
           name: 'load',
@@ -149,7 +149,7 @@ function installmentByAction(withBody = false) {
   return {
     entity: {
       name: 'installment',
-      fields: [] as any[],
+      fields: {} as Record<string, any>,
       op: {
         list: {
           name: 'list',
@@ -176,7 +176,7 @@ function commitByMutation() {
   return {
     entity: {
       name: 'commit',
-      fields: [] as any[],
+      fields: {} as Record<string, any>,
       op: {
         create: {
           name: 'create',
@@ -242,7 +242,7 @@ describe('field-action-points', () => {
 
     assert.deepStrictEqual(names(fields), ['diameter', 'id', 'kind', 'name'])
     assert.strictEqual(
-      fields.find((f: any) => 'name' === f.name)?.req, true,
+      fields.name?.r, true,
       'requiredness comes from the plain create body, which is still read')
   })
 

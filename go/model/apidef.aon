@@ -46,7 +46,7 @@ main: kit: entity: &: {
 
   }
 
-  fields: [ &: %entity-field ]
+  fields: { &: %entity-field }
 
   relations: {
     ancestors: [ &: [ &: string ] ]
@@ -93,7 +93,7 @@ main: kit: entity: &: {
 
       # Every arg kind is one shape plus its own `kind` tag.
       args: {
-        &: [ &: $.main.kit.type.point-args ]
+        &: [ &: %point-args ]
         params?: [ &: {
           kind: 'param'
         }]
@@ -143,25 +143,21 @@ main: kit: flow: &: {
 
 main: kit: type: type({
   entity-field: %entity-field = {
-    name: string
-    req: boolean
-    type: top
-    active: *true
+    n: key()
+    h: string
+    r: boolean
+    t: top
+    a: *true
 
-    # The spec's own one-line words for this field, from the property's
-    # `description`. Set only when the spec supplies a non-empty string, so
-    # an absent `short` means "the spec said nothing" rather than "apidef
-    # dropped it". Generated per-entity tables render it as the Description
-    # column. Since 7.2.
-    short?: string
+    sh?: string
 
-    readOnly?: boolean
-    writeOnly?: boolean
-    deprecated?: boolean
-    format?: string
+    ro?: boolean
+    wo?: boolean
+    de?: boolean
+    fo?: string
   }
 
-  point-args: {
+  point-args: %point-args = {
     active: *true
     kind: string
     name: string

@@ -4,23 +4,26 @@ main: kit: entity: book: {
 
   alias: field: {}
 
-  fields: [
-    {
-      name: "author"
-      req: false
-      type: "`$STRING`"
+  fields: {
+    author: {
+      h: "Author"
+      n: "author"
+      r: false
+      t: "`$STRING`"
     }
-    {
-      name: "id"
-      req: true
-      type: "`$STRING`"
+    id: {
+      h: "Id"
+      n: "id"
+      r: true
+      t: "`$STRING`"
     }
-    {
-      name: "title"
-      req: true
-      type: "`$STRING`"
+    title: {
+      h: "Title"
+      n: "title"
+      r: true
+      t: "`$STRING`"
     }
-  ]
+  }
 
   id: {
     field: "id"

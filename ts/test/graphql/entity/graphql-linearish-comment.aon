@@ -4,28 +4,32 @@ main: kit: entity: comment: {
 
   alias: field: {}
 
-  fields: [
-    {
-      name: "body"
-      req: true
-      type: "`$STRING`"
+  fields: {
+    body: {
+      h: "Body"
+      n: "body"
+      r: true
+      t: "`$STRING`"
     }
-    {
-      name: "createdAt"
-      req: true
-      type: "`$ANY`"
+    createdAt: {
+      h: "Created At"
+      n: "createdAt"
+      r: true
+      t: "`$ANY`"
     }
-    {
-      name: "id"
-      req: true
-      type: "`$STRING`"
+    id: {
+      h: "Id"
+      n: "id"
+      r: true
+      t: "`$STRING`"
     }
-    {
-      name: "issue"
-      req: false
-      type: "`$OBJECT`"
+    issue: {
+      h: "Issue"
+      n: "issue"
+      r: false
+      t: "`$OBJECT`"
     }
-  ]
+  }
 
   id: {
     field: "id"

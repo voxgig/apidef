@@ -25,7 +25,7 @@ TypeScript types are in [`ts/src/model.ts`](../../ts/src/model.ts).
 | field | type | meaning |
 |-------|------|---------|
 | `name` | `string` | canonical singular name |
-| `fields` | `ModelField[]` | the data shape |
+| `fields` | `Record<string, ModelField>` | the data shape, keyed by each field's `n` |
 | `op` | `ModelOpMap` | `{ load, list, create, update, remove, patch }` (each `ModelOp` or `undefined`) |
 | `id` | `{ field, name }` | which field identifies an instance |
 | `relations` | `{ ancestors: string[][] }` | ancestor entity chains (nesting) |
@@ -36,16 +36,17 @@ TypeScript types are in [`ts/src/model.ts`](../../ts/src/model.ts).
 
 | field | type | meaning |
 |-------|------|---------|
-| `name` | `string` | canonical field name |
-| `type` | `string` | validator token — `` `$STRING` ``, `` `$NUMBER` ``, `` `$BOOLEAN` ``, `` `$ANY` ``, … |
-| `req` | `boolean` | required (from the schema's `required[]`) |
-| `active` | `boolean` | included in output |
+| `n` | `string` | canonical field name, matching its map key |
+| `h` | `string` | human title derived from `n`, such as `created_at` → `Created At` |
+| `t` | `string` | validator token — `` `$STRING` ``, `` `$NUMBER` ``, `` `$BOOLEAN` ``, `` `$ANY` ``, … |
+| `r` | `boolean` | required (from the schema's `required[]`) |
+| `a` | `boolean` | included in output |
 | `op` | `{ [opname]: { req, type } }` | per-operation overrides when `req`/`type` differ for a specific op |
-| `short` | `string?` | the property's `description`, reduced to one sentence |
-| `readOnly` | `boolean?` | the spec says a client must not send this field |
-| `writeOnly` | `boolean?` | the spec says the field is never returned |
-| `deprecated` | `boolean?` | the spec marks the property deprecated |
-| `format` | `string?` | the property's `format`, verbatim (`date-time`, `password`, …) |
+| `sh` | `string?` | the property's `description`, reduced to one sentence |
+| `ro` | `boolean?` | the spec says a client must not send this field |
+| `wo` | `boolean?` | the spec says the field is never returned |
+| `de` | `boolean?` | the spec marks the property deprecated |
+| `fo` | `string?` | the property's `format`, trimmed (`date-time`, `password`, …) |
 
 The last five are present only when the spec states them, and the three flags
 only when the spec states them **true**. Each defaults to false in OpenAPI, so
@@ -125,12 +126,11 @@ The solar `planet` entity:
 entity: planet: {
   name: planet
   id: { field: id, name: id }
-  fields: [
-    { name: id,       req: false, type: `$STRING`,  active: true }
-    { name: name,     req: false, type: `$STRING`,  active: true }
-    { name: diameter, req: false, type: `$NUMBER`,  active: true }
-    # …
-  ]
+  fields: {
+    id:       { n: id, h: Id, r: false, t: `$STRING`, a: true }
+    name:     { n: name, h: Name, r: false, t: `$STRING`, a: true }
+    diameter: { n: diameter, h: Diameter, r: false, t: `$NUMBER`, a: true }
+  }
   op: {
     list: { name: list, points: [ {
       method: GET, orig: "/api/planet"

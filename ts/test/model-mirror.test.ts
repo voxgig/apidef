@@ -11,6 +11,7 @@ import assert from 'node:assert'
 
 import { readFileSync } from 'node:fs'
 import Path from 'node:path'
+import { Aontu } from 'aontu'
 
 
 const REPO = Path.resolve(__dirname, '..', '..')
@@ -18,6 +19,19 @@ const MODEL_FILES = ['apidef.aon', 'guide.aon']
 
 
 describe('model-mirror', () => {
+
+  test('entity-field alias uses compact keys and defaults activation', () => {
+    const fields = {
+      id: { n: 'id', h: 'Id', r: true, t: '`$STRING`' },
+      secret: { n: 'secret', h: 'Secret', r: false, t: '`$STRING`', a: false,
+        sh: 'A secret.', ro: true, wo: true, de: true, fo: 'password' },
+    }
+    const source = readFileSync(Path.join(REPO, 'model', 'apidef.aon'), 'utf8') + '\n' +
+      'main:kit:entity:widget:fields:' + JSON.stringify(fields)
+    const model = new Aontu().generate(source)
+    assert.deepStrictEqual(model.main.kit.entity.widget.fields,
+      { id: { ...fields.id, a: true }, secret: fields.secret })
+  })
 
   for (const file of MODEL_FILES) {
     test(`ts/model/${file} matches canonical model/${file}`, () => {

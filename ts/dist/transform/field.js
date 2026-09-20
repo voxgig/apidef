@@ -13,7 +13,6 @@ const fieldTransform = async function (ctx) {
     const opFieldPrecedence = ['load', 'create', 'update', 'patch', 'list'];
     (0, jostraca_1.each)(kit.entity, (ment, _entname) => {
         const fields = ment.fields;
-        const seen = {};
         for (let opname of opFieldPrecedence) {
             const mop = ment.op[opname];
             if (mop) {
@@ -21,59 +20,54 @@ const fieldTransform = async function (ctx) {
                 for (let mpoint of mpoints) {
                     const opfields = resolveOpFields(ment, mop, mpoint, def);
                     for (let opfield of opfields) {
-                        if (!seen[opfield.name]) {
-                            fields.push(opfield);
-                            seen[opfield.name] = opfield;
+                        if (!Object.prototype.hasOwnProperty.call(fields, opfield.n)) {
+                            fields[opfield.n] = opfield;
                         }
                         else {
-                            mergeField(mop, seen[opfield.name], opfield);
+                            mergeField(mop, fields[opfield.n], opfield);
                         }
                     }
                 }
             }
         }
-        fields.sort((a, b) => {
-            return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
-        });
         const gent = guide?.entity?.[ment.name];
         const composite = compositeId(ment, gent, def);
-        const idField = fields.find((f) => 'id' === f.name);
+        const idField = fields.id;
         if (null != composite.parts && null != idField && !scalarStringField(idField)) {
             const idf = idField;
             const apiname = String(model?.name || 'api');
             const keep = apiname + '_id';
-            if (!fields.some((f) => f.name === keep)) {
+            if (!Object.prototype.hasOwnProperty.call(fields, keep)) {
                 // A DEEP COPY, because the move is followed by deletions on the
                 // original. A spread shares the `op` object, so clearing the stale
                 // per-op `type` off `id` cleared it off the preserved field too —
                 // the preservation preserved nothing for exactly the key it was
                 // added to keep.
-                fields.push(JSON.parse(JSON.stringify({ ...idf, name: keep })));
+                fields[keep] = JSON.parse(JSON.stringify({ ...idf, n: keep }));
                 const alias = (ment.alias = ment.alias || {});
                 alias.field = alias.field || {};
                 alias.field[keep] = 'id';
             }
-            idf.type = '`$STRING`';
-            // The facts that described the moved type go with it: `format: int64`
+            idf.t = '`$STRING`';
+            // The facts that described the moved type go with it: `fo: int64`
             // beside a string, or a per-op `type` override still saying integer,
             // is a model contradicting itself — and the op override is what a
             // generator reads for that op.
-            delete idf.format;
+            delete idf.fo;
             for (const opname of Object.keys(idf.op || {})) {
                 delete idf.op[opname].type;
             }
-            fields.sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
         }
         if (null != composite.parts && null == idField) {
             // The FIELD as well as the descriptor, for the reason the branch below
             // documents: a model that declares the descriptor without the field
             // makes the generated type disagree with the generated test.
-            fields.push({
-                name: 'id',
-                type: '`$STRING`',
-                req: false,
-            });
-            fields.sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+            fields.id = {
+                n: 'id',
+                h: (0, utility_1.humanTitle)('id'),
+                t: '`$STRING`',
+                r: false,
+            };
         }
         const singleKey = composite.single;
         delete composite.single;
@@ -81,25 +75,30 @@ const fieldTransform = async function (ctx) {
             // The guide disabled composite; the terminal parameter is the key, and
             // the entity needs the field to carry it for the same reason the
             // composite branch above does.
-            fields.push({
-                name: 'id',
-                type: '`$STRING`',
-                req: false,
-            });
-            fields.sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+            fields.id = {
+                n: 'id',
+                h: (0, utility_1.humanTitle)('id'),
+                t: '`$STRING`',
+                r: false,
+            };
         }
         if (idField || null != composite.parts || null != singleKey) {
             ment.id = { name: 'id', field: 'id', ...composite };
         }
         else if (addressedById(ment)) {
-            fields.push({
-                name: 'id',
-                type: '`$STRING`',
-                req: false,
-            });
-            fields.sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+            fields.id = {
+                n: 'id',
+                h: (0, utility_1.humanTitle)('id'),
+                t: '`$STRING`',
+                r: false,
+            };
             ment.id = { name: 'id', field: 'id', ...composite };
         }
+        ment.fields = Object.fromEntries(Object.keys(fields).sort().map(n => {
+            const field = fields[n];
+            field.h = (0, utility_1.humanTitle)(field.n);
+            return [n, field];
+        }));
         msg += ment.name + ' ';
     });
     return { ok: true, msg };
@@ -358,7 +357,7 @@ function identityFrom(ment, parts, def) {
 // Is this model field declared as a string? A composite id is the parts
 // joined, so the field that holds it has to be one.
 function scalarStringField(f) {
-    return String(f?.type || '').toUpperCase().includes('STRING');
+    return String(f?.t || '').toUpperCase().includes('STRING');
 }
 function singleKeyOf(ment, parts) {
     if (0 === parts.length) {
@@ -430,21 +429,22 @@ function resolveOpFields(ment, mop, mpoint, def) {
         // items -> item, so the SDK read keys the server never sends.
         const name = (0, utility_1.canonizeField)((0, utility_1.normalizeFieldName)(fieldname));
         const mfield = {
-            name,
-            type: (0, utility_1.inferFieldType)(name, (0, utility_1.validator)(fielddef.type)),
-            req: !!fielddef.required,
+            n: name,
+            h: (0, utility_1.humanTitle)(name),
+            t: (0, utility_1.inferFieldType)(name, (0, utility_1.validator)(fielddef.type)),
+            r: !!fielddef.required,
             op: {},
         };
         const fdesc = fielddef.description;
         if ('string' === typeof fdesc && '' !== fdesc.trim()) {
             const short = (0, utility_1.firstSentence)(fdesc);
             if ('' !== short) {
-                mfield.short = short;
+                mfield.sh = short;
             }
         }
-        for (const flag of ['readOnly', 'writeOnly', 'deprecated']) {
+        for (const [flag, attr] of [['readOnly', 'ro'], ['writeOnly', 'wo'], ['deprecated', 'de']]) {
             if (true === fielddef[flag]) {
-                mfield[flag] = true;
+                mfield[attr] = true;
             }
         }
         // `format` is an open vocabulary — OpenAPI defines a handful and lets a
@@ -452,7 +452,7 @@ function resolveOpFields(ment, mop, mpoint, def) {
         // interpreted here. `password` is the one a generator acts on today.
         const ffmt = fielddef.format;
         if ('string' === typeof ffmt && '' !== ffmt.trim()) {
-            mfield.format = ffmt.trim();
+            mfield.fo = ffmt.trim();
         }
         // Record an untagged union under this field. The field is already typed
         // openly ($ANY/$ARRAY/$OBJECT) because there is nothing to narrow it to;
@@ -717,16 +717,16 @@ function inferTypeFromValue(value) {
     return 'string';
 }
 function mergeField(mop, existingField, newField) {
-    if (newField.req !== existingField.req) {
+    if (newField.r !== existingField.r) {
         existingField.op[mop.name] = {
-            req: newField.req,
-            type: newField.type,
+            req: newField.r,
+            type: newField.t,
         };
     }
-    if (null == existingField.short && null != newField.short) {
-        existingField.short = newField.short;
+    if (null == existingField.sh && null != newField.sh) {
+        existingField.sh = newField.sh;
     }
-    for (const flag of ['readOnly', 'writeOnly', 'deprecated', 'format']) {
+    for (const flag of ['ro', 'wo', 'de', 'fo']) {
         if (null == existingField[flag] && null != newField[flag]) {
             existingField[flag] = newField[flag];
         }

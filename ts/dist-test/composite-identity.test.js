@@ -13,7 +13,7 @@ function seg(...parts) {
 function entity(name, path, fields = [], guide) {
     const ent = {
         name,
-        fields,
+        fields: Object.fromEntries(fields.map(f => [f.n, f])),
         op: {
             load: {
                 points: [{
@@ -43,7 +43,7 @@ async function run(name, path, fields = [], guide, model) {
 async function runPoints(name, paths, model) {
     const ent = {
         name,
-        fields: [],
+        fields: {},
         op: {
             load: {
                 points: paths.map((path) => ({
@@ -137,25 +137,27 @@ async function runPoints(name, paths, model) {
     // was only built inside the single-id gate, so such an entity got none at
     // all — and an explicit guide correction was silently ignored.
     (0, node_test_1.test)('a composite entity with no id field still gets one', async () => {
-        const ent = await run('repo', ['repos', '{owner}', '{repo}'], [{ name: 'name', type: '`$STRING`', req: true }]);
+        const ent = await run('repo', ['repos', '{owner}', '{repo}'], [{ n: 'name', t: '`$STRING`', r: true }]);
         node_assert_1.default.deepStrictEqual(ent.id.parts, ['owner', 'repo']);
-        const idf = ent.fields.find((f) => 'id' === f.name);
-        node_assert_1.default.equal(idf.type, '`$STRING`');
+        const idf = ent.fields.id;
+        node_assert_1.default.equal(idf.t, '`$STRING`');
     });
     (0, node_test_1.test)('the API id moves aside rather than being rewritten', async () => {
         const ent = await run('repo', ['repos', '{owner}', '{repo}'], [
             {
-                name: 'id', type: '`$INTEGER`', req: true, format: 'int64',
+                n: 'id', t: '`$INTEGER`', r: true, fo: 'int64',
                 op: { list: { req: true, type: '`$INTEGER`' } },
             },
         ], undefined, { name: 'github' });
-        const idf = ent.fields.find((f) => 'id' === f.name);
-        node_assert_1.default.equal(idf.type, '`$STRING`');
-        node_assert_1.default.equal(idf.format, undefined);
+        const idf = ent.fields.id;
+        node_assert_1.default.equal(idf.t, '`$STRING`');
+        node_assert_1.default.equal(idf.fo, undefined);
         node_assert_1.default.equal(idf.op.list.type, undefined);
-        const kept = ent.fields.find((f) => 'github_id' === f.name);
-        node_assert_1.default.equal(kept.type, '`$INTEGER`');
-        node_assert_1.default.equal(kept.format, 'int64');
+        const kept = ent.fields.github_id;
+        node_assert_1.default.equal(kept.t, '`$INTEGER`');
+        node_assert_1.default.equal(kept.h, 'Github Id');
+        node_assert_1.default.equal(idf.h, 'Id');
+        node_assert_1.default.equal(kept.fo, 'int64');
         // AND the per-op metadata, which a shallow copy silently lost: the
         // deletions that clean up `id` ran over a shared `op` object, so the
         // preserved field kept nothing for the one key it exists to keep.
@@ -166,7 +168,7 @@ async function runPoints(name, paths, model) {
         async function withResponse(name, path, properties, guide) {
             const ent = {
                 name,
-                fields: [],
+                fields: {},
                 op: {
                     load: {
                         points: [{
@@ -241,7 +243,7 @@ async function runPoints(name, paths, model) {
         (0, node_test_1.test)('composite:false leaves a single-key descriptor', async () => {
             const ent = await run('artifact', ['artifacts', '{artifact_id}', '{archive_format}'], [], { entity: { artifact: { id: { composite: false } } } });
             node_assert_1.default.equal(ent.id.field, 'id');
-            node_assert_1.default.ok(ent.fields.some((f) => 'id' === f.name));
+            node_assert_1.default.ok(Object.prototype.hasOwnProperty.call(ent.fields, 'id'));
         });
         (0, node_test_1.test)('an explicit parts list wins over the inference', async () => {
             const ent = await run('repo', ['repos', '{owner}', '{repo}'], [], { entity: { repo: { id: { parts: ['a', 'b', 'c'] } } } });

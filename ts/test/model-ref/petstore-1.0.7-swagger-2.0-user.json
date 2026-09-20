@@ -1,49 +1,57 @@
 {
-  "fields": [
-    {
-      "name": "email",
-      "req": false,
-      "type": "`$STRING`"
+  "fields": {
+    "email": {
+      "h": "Email",
+      "n": "email",
+      "r": false,
+      "t": "`$STRING`"
     },
-    {
-      "name": "firstName",
-      "req": false,
-      "type": "`$STRING`"
+    "firstName": {
+      "h": "First Name",
+      "n": "firstName",
+      "r": false,
+      "t": "`$STRING`"
     },
-    {
-      "format": "int64",
-      "name": "id",
-      "req": false,
-      "type": "`$INTEGER`"
+    "id": {
+      "fo": "int64",
+      "h": "Id",
+      "n": "id",
+      "r": false,
+      "t": "`$INTEGER`"
     },
-    {
-      "name": "lastName",
-      "req": false,
-      "type": "`$STRING`"
+    "lastName": {
+      "h": "Last Name",
+      "n": "lastName",
+      "r": false,
+      "t": "`$STRING`"
     },
-    {
-      "name": "password",
-      "req": false,
-      "type": "`$STRING`"
+    "password": {
+      "h": "Password",
+      "n": "password",
+      "r": false,
+      "t": "`$STRING`"
     },
-    {
-      "name": "phone",
-      "req": false,
-      "type": "`$STRING`"
+    "phone": {
+      "h": "Phone",
+      "n": "phone",
+      "r": false,
+      "t": "`$STRING`"
     },
-    {
-      "format": "int32",
-      "name": "userStatus",
-      "req": false,
-      "short": "User Status",
-      "type": "`$INTEGER`"
+    "userStatus": {
+      "fo": "int32",
+      "h": "User Status",
+      "n": "userStatus",
+      "r": false,
+      "sh": "User Status",
+      "t": "`$INTEGER`"
     },
-    {
-      "name": "username",
-      "req": false,
-      "type": "`$STRING`"
+    "username": {
+      "h": "Username",
+      "n": "username",
+      "r": false,
+      "t": "`$STRING`"
     }
-  ],
+  },
   "id": {
     "field": "id",
     "name": "id"

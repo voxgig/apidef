@@ -305,6 +305,18 @@ func partify(s string) []string {
 
 func isUpperASCII(c byte) bool { return c >= 'A' && c <= 'Z' }
 
+func HumanTitle(name string) string {
+	words := strings.Split(Snakify(name), "_")
+	out := make([]string, 0, len(words))
+	for _, word := range words {
+		if word != "" {
+			runes := []rune(word)
+			out = append(out, strings.ToUpper(string(runes[0]))+string(runes[1:]))
+		}
+	}
+	return strings.Join(out, " ")
+}
+
 // Snakify converts a string to snake_case using jostraca-compatible partify.
 func Snakify(s string) string {
 	parts := partify(s)

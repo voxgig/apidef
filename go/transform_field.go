@@ -4,7 +4,6 @@ package apidef
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 )
 
@@ -24,8 +23,10 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 			continue
 		}
 
-		var fields []any
-		seen := map[string]map[string]any{}
+		fields, _ := mentMap["fields"].(map[string]any)
+		if fields == nil {
+			fields = map[string]any{}
+		}
 		opMap, _ := mentMap["op"].(map[string]any)
 
 		for _, opname := range opFieldPrecedence {
@@ -41,13 +42,12 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 				}
 				opfields := resolveOpFields(mtarget, def, opname, entname)
 				for _, opfield := range opfields {
-					name, _ := opfield["name"].(string)
-					if existing, exists := seen[name]; !exists {
-						fields = append(fields, opfield)
-						seen[name] = opfield
+					name, _ := opfield["n"].(string)
+					if existing, exists := fields[name].(map[string]any); !exists {
+						fields[name] = opfield
 					} else {
-						newReq, _ := opfield["req"].(bool)
-						existReq, _ := existing["req"].(bool)
+						newReq, _ := opfield["r"].(bool)
+						existReq, _ := existing["r"].(bool)
 						if newReq != existReq {
 							opOverrides, _ := existing["op"].(map[string]any)
 							if opOverrides == nil {
@@ -56,20 +56,20 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 							}
 							opOverrides[opname] = map[string]any{
 								"req":  newReq,
-								"type": opfield["type"],
+								"type": opfield["t"],
 							}
 						}
 						// Field identity is first-writer-wins, but a
 						// DESCRIPTION is not part of identity: the op that
 						// first names a field is often not the one that
 						// documents it. First non-empty wins.
-						if _, has := existing["short"]; !has {
-							if short, ok := opfield["short"]; ok {
-								existing["short"] = short
+						if _, has := existing["sh"]; !has {
+							if short, ok := opfield["sh"]; ok {
+								existing["sh"] = short
 							}
 						}
 						for _, flag := range []string{
-							"readOnly", "writeOnly", "deprecated", "format",
+							"ro", "wo", "de", "fo",
 						} {
 							if _, has := existing[flag]; !has {
 								if v, ok := opfield[flag]; ok {
@@ -82,15 +82,6 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 			}
 		}
 
-		// Sort fields by name
-		sort.Slice(fields, func(i, j int) bool {
-			fi, _ := fields[i].(map[string]any)
-			fj, _ := fields[j].(map[string]any)
-			ni, _ := fi["name"].(string)
-			nj, _ := fj["name"].(string)
-			return ni < nj
-		})
-
 		mentMap["fields"] = fields
 
 		{
@@ -102,37 +93,15 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 			parts, sep := compositeId(mentMap, gent)
 			singleKey := compositeIdSingle(mentMap, gent)
 
-			fields, _ := mentMap["fields"].([]any)
-			var idField map[string]any
-			for _, fv := range fields {
-				f, _ := fv.(map[string]any)
-				if f == nil {
-					continue
-				}
-				if n, _ := f["name"].(string); "id" == n {
-					idField = f
-					break
-				}
-			}
-
-			sortFields := func(fs []any) []any {
-				sort.Slice(fs, func(i, j int) bool {
-					fi, _ := fs[i].(map[string]any)
-					fj, _ := fs[j].(map[string]any)
-					ni, _ := fi["name"].(string)
-					nj, _ := fj["name"].(string)
-					return ni < nj
-				})
-				return fs
-			}
+			idField, _ := fields["id"].(map[string]any)
 
 			syntheticId := func() {
-				fields = append(fields, map[string]any{
-					"name": "id",
-					"type": "`$STRING`",
-					"req":  false,
-				})
-				mentMap["fields"] = sortFields(fields)
+				fields["id"] = map[string]any{
+					"n": "id",
+					"h": HumanTitle("id"),
+					"t": "`$STRING`",
+					"r": false,
+				}
 			}
 
 			descriptor := func() {
@@ -158,7 +127,6 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 			// generated test.
 			if 1 < len(parts) && idField == nil {
 				syntheticId()
-				fields, _ = mentMap["fields"].([]any)
 			}
 
 			// The guide disabled composite; the terminal parameter is the
@@ -166,7 +134,6 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 			// reason the composite branch does.
 			if idField == nil && "" != singleKey && 1 >= len(parts) {
 				syntheticId()
-				fields, _ = mentMap["fields"].([]any)
 			}
 
 			if idField != nil || 1 < len(parts) || "" != singleKey {
@@ -178,7 +145,6 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 				// without a field makes the generated type disagree with the
 				// generated test.
 				syntheticId()
-				fields, _ = mentMap["fields"].([]any)
 				descriptor()
 			} else {
 				delete(mentMap, "id")
@@ -189,7 +155,7 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 				if idField == nil {
 					// Already pushed above where the descriptor was decided.
 				} else if !strings.Contains(
-					strings.ToUpper(fmt.Sprint(idField["type"])), "STRING") {
+					strings.ToUpper(fmt.Sprint(idField["t"])), "STRING") {
 					apiname := "api"
 					if model, ok := ctx.Model["name"].(string); ok && "" != model {
 						apiname = model
@@ -202,8 +168,8 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 						// the preserved field would lose the very metadata it
 						// exists to keep.
 						moved := deepCopyMap(idField)
-						moved["name"] = keep
-						fields = append(fields, moved)
+						moved["n"] = keep
+						fields[keep] = moved
 
 						alias, _ := mentMap["alias"].(map[string]any)
 						if alias == nil {
@@ -217,18 +183,10 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 						}
 						aliasField[keep] = "id"
 
-						sort.Slice(fields, func(i, j int) bool {
-							fi, _ := fields[i].(map[string]any)
-							fj, _ := fields[j].(map[string]any)
-							ni, _ := fi["name"].(string)
-							nj, _ := fj["name"].(string)
-							return ni < nj
-						})
-						mentMap["fields"] = fields
 					}
 
-					idField["type"] = "`$STRING`"
-					delete(idField, "format")
+					idField["t"] = "`$STRING`"
+					delete(idField, "fo")
 					if opOverrides, ok := idField["op"].(map[string]any); ok {
 						for _, on := range sortedKeys(opOverrides) {
 							if ov, ok := opOverrides[on].(map[string]any); ok {
@@ -240,6 +198,11 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 			}
 		}
 
+		for _, value := range fields {
+			field := value.(map[string]any)
+			field["h"] = HumanTitle(field["n"].(string))
+		}
+
 		msg += entname + " "
 	}
 
@@ -247,15 +210,9 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 }
 
 // hasField reports whether a field of that name is already present.
-func hasField(fields []any, name string) bool {
-	for _, fv := range fields {
-		if f, _ := fv.(map[string]any); f != nil {
-			if n, _ := f["name"].(string); n == name {
-				return true
-			}
-		}
-	}
-	return false
+func hasField(fields map[string]any, name string) bool {
+	_, exists := fields[name]
+	return exists
 }
 
 // deepCopyMap copies a field map and its nested maps, so a later deletion on
@@ -583,21 +540,22 @@ func resolveOpFields(mtarget map[string]any, def map[string]any, opname string, 
 		name := CanonizeField(NormalizeFieldName(fielddef["key$"].(string)))
 		ftype := fielddef["type"]
 		mfield := map[string]any{
-			"name":   name,
-			"type":   InferFieldType(name, Validator(ftype)),
-			"req":    toBool(fielddef["required"]),
-			"active": true,
-			"op":     map[string]any{},
+			"n":  name,
+			"h":  HumanTitle(name),
+			"t":  InferFieldType(name, Validator(ftype)),
+			"r":  toBool(fielddef["required"]),
+			"a":  true,
+			"op": map[string]any{},
 		}
 		if fdesc, ok := fielddef["description"].(string); ok {
 			if trimmed := FirstSentence(fdesc); trimmed != "" {
-				mfield["short"] = trimmed
+				mfield["sh"] = trimmed
 			}
 		}
 
-		for _, flag := range []string{"readOnly", "writeOnly", "deprecated"} {
+		for flag, attr := range map[string]string{"readOnly": "ro", "writeOnly": "wo", "deprecated": "de"} {
 			if b, ok := fielddef[flag].(bool); ok && b {
-				mfield[flag] = true
+				mfield[attr] = true
 			}
 		}
 
@@ -606,7 +564,7 @@ func resolveOpFields(mtarget map[string]any, def map[string]any, opname string, 
 		// than interpreted here.
 		if ffmt, ok := fielddef["format"].(string); ok {
 			if trimmed := strings.TrimSpace(ffmt); trimmed != "" {
-				mfield["format"] = trimmed
+				mfield["fo"] = trimmed
 			}
 		}
 

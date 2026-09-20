@@ -1,57 +1,65 @@
 {
-  "fields": [
-    {
-      "name": "attributes",
-      "req": false,
-      "type": "`$OBJECT`"
+  "fields": {
+    "attributes": {
+      "h": "Attributes",
+      "n": "attributes",
+      "r": false,
+      "t": "`$OBJECT`"
     },
-    {
-      "format": "date-time",
-      "name": "createdAt",
-      "req": false,
-      "type": "`$STRING`"
+    "createdAt": {
+      "fo": "date-time",
+      "h": "Created At",
+      "n": "createdAt",
+      "r": false,
+      "t": "`$STRING`"
     },
-    {
-      "name": "id",
-      "req": true,
-      "short": "URL-safe identifier",
-      "type": "`$STRING`"
+    "id": {
+      "h": "Id",
+      "n": "id",
+      "r": true,
+      "sh": "URL-safe identifier",
+      "t": "`$STRING`"
     },
-    {
-      "name": "name",
+    "name": {
+      "h": "Name",
+      "n": "name",
       "op": {
         "update": {
           "req": false,
           "type": "`$STRING`"
         }
       },
-      "req": true,
-      "type": "`$STRING`"
+      "r": true,
+      "t": "`$STRING`"
     },
-    {
-      "name": "parentId",
-      "req": false,
-      "short": "ID of the parent taxon in the hierarchy",
-      "type": "`$ANY`"
+    "parentId": {
+      "h": "Parent Id",
+      "n": "parentId",
+      "r": false,
+      "sh": "ID of the parent taxon in the hierarchy",
+      "t": "`$ANY`"
     },
-    {
-      "name": "rank",
-      "req": true,
-      "type": "`$STRING`"
+    "rank": {
+      "h": "Rank",
+      "n": "rank",
+      "r": true,
+      "t": "`$STRING`"
     },
-    {
-      "format": "date-time",
-      "name": "updatedAt",
-      "req": false,
-      "type": "`$STRING`"
+    "updatedAt": {
+      "fo": "date-time",
+      "h": "Updated At",
+      "n": "updatedAt",
+      "r": false,
+      "t": "`$STRING`"
     },
-    {
-      "name": "year",
-      "req": false,
-      "short": "Year view this record belongs to",
-      "type": "`$INTEGER`"
+    "year": {
+      "h": "Year",
+      "n": "year",
+      "r": false,
+      "sh": "Year view this record belongs to",
+      "t": "`$INTEGER`"
     }
-  ],
+  },
   "id": {
     "field": "id",
     "name": "id"

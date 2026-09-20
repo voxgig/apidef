@@ -821,10 +821,10 @@ func TestFieldShortFromDescription(t *testing.T) {
 
 	byName := map[string]map[string]any{}
 	for _, f := range resolveOpFields(mtarget, def, "list", "planet") {
-		byName[f["name"].(string)] = f
+		byName[f["n"].(string)] = f
 	}
 
-	if got := byName["name"]["short"]; got != "Common name." {
+	if got := byName["name"]["sh"]; got != "Common name." {
 		t.Errorf("name.short = %v, want %q (trimmed)", got, "Common name.")
 	}
 	for _, fname := range []string{"id", "kind", "mass"} {
@@ -832,9 +832,9 @@ func TestFieldShortFromDescription(t *testing.T) {
 		if !ok {
 			t.Fatalf("missing field %q", fname)
 		}
-		if _, has := f["short"]; has {
+		if _, has := f["sh"]; has {
 			t.Errorf("%s.short = %v, want absent (no usable description in the spec)",
-				fname, f["short"])
+				fname, f["sh"])
 		}
 	}
 }
@@ -871,10 +871,10 @@ func TestFieldShortFromRequestBodyDescription(t *testing.T) {
 
 	byName := map[string]map[string]any{}
 	for _, f := range resolveOpFields(mtarget, def, "create", "planet") {
-		byName[f["name"].(string)] = f
+		byName[f["n"].(string)] = f
 	}
 
-	if got := byName["name"]["short"]; got != "Common name." {
+	if got := byName["name"]["sh"]; got != "Common name." {
 		t.Errorf("name.short = %v, want %q (trimmed)", got, "Common name.")
 	}
 	for _, fname := range []string{"id", "kind"} {
@@ -882,9 +882,9 @@ func TestFieldShortFromRequestBodyDescription(t *testing.T) {
 		if !ok {
 			t.Fatalf("missing field %q", fname)
 		}
-		if _, has := f["short"]; has {
+		if _, has := f["sh"]; has {
 			t.Errorf("%s.short = %v, want absent (no usable description in the spec)",
-				fname, f["short"])
+				fname, f["sh"])
 		}
 	}
 }
@@ -937,7 +937,7 @@ func TestFieldShortSurvivesMerge(t *testing.T) {
 				"entity": map[string]any{
 					"planet": map[string]any{
 						"name":   "planet",
-						"fields": []any{},
+						"fields": map[string]any{},
 						"op": map[string]any{
 							"load": map[string]any{
 								"name": "load",
@@ -964,12 +964,12 @@ func TestFieldShortSurvivesMerge(t *testing.T) {
 
 	ent := apimodel["main"].(map[string]any)["kit"].(map[string]any)["entity"].(map[string]any)["planet"].(map[string]any)
 	byName := map[string]map[string]any{}
-	for _, f := range ent["fields"].([]any) {
+	for _, f := range ent["fields"].(map[string]any) {
 		fm := f.(map[string]any)
-		byName[fm["name"].(string)] = fm
+		byName[fm["n"].(string)] = fm
 	}
 
-	if got := byName["name"]["short"]; got != "Common name." {
+	if got := byName["name"]["sh"]; got != "Common name." {
 		t.Errorf("name.short = %v, want %q — a later op's description must survive the merge", got, "Common name.")
 	}
 }
@@ -1010,11 +1010,11 @@ func TestFieldShortIsOneCappedLine(t *testing.T) {
 
 	byName := map[string]map[string]any{}
 	for _, f := range resolveOpFields(mtarget, def, "load", "planet") {
-		byName[f["name"].(string)] = f
+		byName[f["n"].(string)] = f
 	}
 
 	for _, name := range []string{"status", "note", "long"} {
-		short, _ := byName[name]["short"].(string)
+		short, _ := byName[name]["sh"].(string)
 		if strings.Contains(short, "\n") {
 			t.Errorf("%s.short contains a newline; it lands in a markdown table cell", name)
 		}
@@ -1022,15 +1022,15 @@ func TestFieldShortIsOneCappedLine(t *testing.T) {
 
 	wantStatus := "The status of the user - `joined`, the user has joined the space " +
 		"- `invited`, the user has been sent an invitation"
-	if got := byName["status"]["short"]; got != wantStatus {
+	if got := byName["status"]["sh"]; got != wantStatus {
 		t.Errorf("status.short = %q, want %q", got, wantStatus)
 	}
 
-	if got := byName["note"]["short"]; got != "First sentence here." {
+	if got := byName["note"]["sh"]; got != "First sentence here." {
 		t.Errorf("note.short = %q, want %q", got, "First sentence here.")
 	}
 
-	long, _ := byName["long"]["short"].(string)
+	long, _ := byName["long"]["sh"].(string)
 	if n := len([]rune(long)); n != 240 {
 		t.Errorf("long.short length = %d runes, want 240", n)
 	}
@@ -1147,30 +1147,41 @@ func TestFieldSpecFactsFromResponse(t *testing.T) {
 
 	byName := map[string]map[string]any{}
 	for _, f := range resolveOpFields(mtarget, def, "load", "planet") {
-		byName[f["name"].(string)] = f
+		byName[f["n"].(string)] = f
 	}
 
-	if got := byName["id"]["readOnly"]; got != true {
+	for name, field := range byName {
+		for _, key := range []string{"name", "type", "req", "active", "short", "readOnly", "writeOnly", "deprecated", "format"} {
+			if _, exists := field[key]; exists {
+				t.Errorf("%s has legacy attribute %s", name, key)
+			}
+		}
+		if field["n"] != name || field["a"] != true || field["t"] == nil || field["r"] == nil {
+			t.Errorf("%s: missing compact attributes: %v", name, field)
+		}
+	}
+
+	if got := byName["id"]["ro"]; got != true {
 		t.Errorf("id.readOnly = %v, want true", got)
 	}
-	if got := byName["secret"]["writeOnly"]; got != true {
+	if got := byName["secret"]["wo"]; got != true {
 		t.Errorf("secret.writeOnly = %v, want true", got)
 	}
-	if got := byName["legacy"]["deprecated"]; got != true {
+	if got := byName["legacy"]["de"]; got != true {
 		t.Errorf("legacy.deprecated = %v, want true", got)
 	}
-	if got := byName["created"]["format"]; got != "date-time" {
+	if got := byName["created"]["fo"]; got != "date-time" {
 		t.Errorf("created.format = %v, want %q (trimmed)", got, "date-time")
 	}
 
 	for _, fname := range []string{"plain", "stated"} {
-		for _, key := range []string{"readOnly", "writeOnly", "deprecated", "format"} {
+		for _, key := range []string{"ro", "wo", "de", "fo"} {
 			if _, has := byName[fname][key]; has {
 				t.Errorf("%s.%s was emitted for a field the spec did not flag", fname, key)
 			}
 		}
 	}
-	if _, has := byName["blankfmt"]["format"]; has {
+	if _, has := byName["blankfmt"]["fo"]; has {
 		t.Errorf("blankfmt.format was emitted for a blank format")
 	}
 }
@@ -1202,16 +1213,40 @@ func TestFieldSpecFactsFromRequestBody(t *testing.T) {
 
 	byName := map[string]map[string]any{}
 	for _, f := range resolveOpFields(mtarget, def, "create", "planet") {
-		byName[f["name"].(string)] = f
+		byName[f["n"].(string)] = f
 	}
 
-	if got := byName["id"]["readOnly"]; got != true {
+	if got := byName["id"]["ro"]; got != true {
 		t.Errorf("id.readOnly = %v, want true (the request-body route dropped it)", got)
 	}
-	if got := byName["token"]["writeOnly"]; got != true {
+	if got := byName["token"]["wo"]; got != true {
 		t.Errorf("token.writeOnly = %v, want true", got)
 	}
-	if got := byName["token"]["format"]; got != "password" {
+	if got := byName["token"]["fo"]; got != "password" {
 		t.Errorf("token.format = %v, want %q", got, "password")
+	}
+}
+
+func TestEntityFieldActivationDefaults(t *testing.T) {
+	field := map[string]any{"n": "a", "t": "`$STRING`", "r": true, "a": true}
+	inactive := map[string]any{"n": "hidden", "t": "`$STRING`", "r": false, "a": false}
+	entity := map[string]any{
+		"fields": map[string]any{"a": field, "hidden": inactive, "active": map[string]any{"n": "active", "a": true}},
+		"alias":  map[string]any{"field": map[string]any{"a": "original"}},
+	}
+	clean := stripEntityDefaults(entity).(map[string]any)
+	fields := clean["fields"].(map[string]any)
+	if _, exists := fields["a"].(map[string]any)["a"]; exists {
+		t.Fatal("default activation was emitted")
+	}
+	if fields["hidden"].(map[string]any)["a"] != false || field["a"] != true {
+		t.Fatal("explicit activation or source field changed")
+	}
+	if fields["active"].(map[string]any)["n"] != "active" {
+		t.Fatal("field named active was removed")
+	}
+
+	if !reflect.DeepEqual(clean["alias"], entity["alias"]) {
+		t.Fatal("field alias named a was changed")
 	}
 }

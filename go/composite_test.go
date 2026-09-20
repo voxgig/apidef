@@ -195,11 +195,11 @@ func TestApiIdMovesAsideRatherThanBeingRewritten(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fields, _ := ent["fields"].([]any)
+	fields, _ := ent["fields"].(map[string]any)
 	byName := map[string]map[string]any{}
 	for _, fv := range fields {
 		if f, _ := fv.(map[string]any); f != nil {
-			n, _ := f["name"].(string)
+			n, _ := f["n"].(string)
 			byName[n] = f
 		}
 	}
@@ -210,11 +210,11 @@ func TestApiIdMovesAsideRatherThanBeingRewritten(t *testing.T) {
 	if idf == nil {
 		t.Fatalf("no id field: %v", byName)
 	}
-	if "`$STRING`" != idf["type"] {
-		t.Errorf("id type = %v, want `$STRING`", idf["type"])
+	if "`$STRING`" != idf["t"] {
+		t.Errorf("id type = %v, want `$STRING`", idf["t"])
 	}
-	if _, has := idf["format"]; has {
-		t.Errorf("id kept format %v", idf["format"])
+	if _, has := idf["fo"]; has {
+		t.Errorf("id kept format %v", idf["fo"])
 	}
 	if op, _ := idf["op"].(map[string]any); op != nil {
 		if list, _ := op["list"].(map[string]any); list != nil {
@@ -229,11 +229,11 @@ func TestApiIdMovesAsideRatherThanBeingRewritten(t *testing.T) {
 	if kept == nil {
 		t.Fatalf("the API id was not preserved: %v", byName)
 	}
-	if "`$INTEGER`" != kept["type"] {
-		t.Errorf("github_id type = %v, want `$INTEGER`", kept["type"])
+	if "`$INTEGER`" != kept["t"] {
+		t.Errorf("github_id type = %v, want `$INTEGER`", kept["t"])
 	}
-	if "int64" != kept["format"] {
-		t.Errorf("github_id format = %v, want int64", kept["format"])
+	if "int64" != kept["fo"] {
+		t.Errorf("github_id format = %v, want int64", kept["fo"])
 	}
 
 	// The alias records where it went, so a caller can still find it.
@@ -453,7 +453,7 @@ func TestIdDescriptorOnlyWhenTheEntityHasOne(t *testing.T) {
 	// no `id` param: no descriptor.
 	bare := map[string]any{
 		"name":   "store",
-		"fields": []any{},
+		"fields": map[string]any{},
 		"op": map[string]any{
 			"load": map[string]any{"points": []any{
 				map[string]any{
@@ -491,7 +491,7 @@ func TestIdDescriptorOnlyWhenTheEntityHasOne(t *testing.T) {
 	// type would otherwise disagree with the generated test.
 	addressed := map[string]any{
 		"name":   "secret",
-		"fields": []any{},
+		"fields": map[string]any{},
 		"op": map[string]any{
 			"load": map[string]any{"points": []any{
 				map[string]any{
@@ -525,7 +525,7 @@ func TestIdDescriptorOnlyWhenTheEntityHasOne(t *testing.T) {
 	if id == nil || "id" != id["field"] {
 		t.Errorf("an entity addressed by id got no descriptor: %v", addressed["id"])
 	}
-	fields, _ := addressed["fields"].([]any)
+	fields, _ := addressed["fields"].(map[string]any)
 	if !hasField(fields, "id") {
 		t.Errorf("the descriptor was emitted without the field: %v", fields)
 	}

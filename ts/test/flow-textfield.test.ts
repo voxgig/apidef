@@ -47,13 +47,13 @@ function entityWith(first: any) {
 
   return {
     name: 'planet',
-    fields: [
-      { name: 'diameter', type: '`$NUMBER`', req: true },
+    fields: Object.fromEntries([
+      { n: 'diameter', t: '`$NUMBER`', r: true },
       first,
-      { name: 'id', type: '`$STRING`', req: true },
-      { name: 'kind', type: '`$STRING`', req: true },
-      { name: 'name', type: '`$STRING`', req: true },
-    ],
+      { n: 'id', t: '`$STRING`', r: true },
+      { n: 'kind', t: '`$STRING`', r: true },
+      { n: 'name', t: '`$STRING`', r: true },
+    ].map(f => [f.n, f])),
     id: { name: 'id', field: 'id' },
     op: {
       create: { name: 'create', points: [point('/api/planet', 'POST')] },
@@ -70,7 +70,7 @@ describe('flow-textfield', () => {
 
   test('a readOnly field is not the one the flow marks', async () => {
     const entity = entityWith(
-      { name: 'forbidReason', type: '`$STRING`', req: false, readOnly: true })
+      { n: 'forbidReason', t: '`$STRING`', r: false, ro: true })
 
     const flow = await runFlowstep(entity)
 
@@ -81,7 +81,7 @@ describe('flow-textfield', () => {
 
   test('a writable field in the same position is chosen', async () => {
     const entity = entityWith(
-      { name: 'forbidReason', type: '`$STRING`', req: false })
+      { n: 'forbidReason', t: '`$STRING`', r: false })
 
     const flow = await runFlowstep(entity)
 
@@ -93,10 +93,10 @@ describe('flow-textfield', () => {
   // be an absent textfield rather than a readOnly one.
   test('no writable text field leaves the flow without one', async () => {
     const entity = entityWith(
-      { name: 'forbidReason', type: '`$STRING`', req: false, readOnly: true })
-    for (const f of entity.fields) {
-      if ('`$STRING`' === f.type && 'id' !== f.name) {
-        (f as any).readOnly = true
+      { n: 'forbidReason', t: '`$STRING`', r: false, ro: true })
+    for (const f of Object.values(entity.fields) as any[]) {
+      if ('`$STRING`' === f.t && 'id' !== f.n) {
+        (f as any).ro = true
       }
     }
 
