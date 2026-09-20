@@ -126,12 +126,12 @@ type MakeFlowStep =
 
 function newFlowStep(opname: OpName, args: Record<string, any>): ModelEntityFlowStep {
   return {
-    op: opname,
-    input: args.input ?? {},
-    match: args.match ?? {},
-    data: args.data ?? {},
-    spec: args.spec ?? [],
-    valid: args.valid ?? [],
+    o: opname,
+    i: args.input ?? {},
+    m: args.match ?? {},
+    d: args.data ?? {},
+    s: args.spec ?? [],
+    v: args.valid ?? [],
   }
 }
 
@@ -169,13 +169,13 @@ const createStep: MakeFlowStep = (
       if ('id' === param.n) {
         const origName = originalSnakeNameOfRenamedId(point)
         if (origName) {
-          step.match[origName] = args.input?.[origName] ?? origName.replace(/_id/, '') + '01'
+          step.m[origName] = args.input?.[origName] ?? origName.replace(/_id/, '') + '01'
         }
         // If there's no rename-from, this is genuinely the entity's id — skip
         // (the create call generates it).
         return
       }
-      step.match[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01'
+      step.m[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01'
     })
 
     seedRelatedOpParams(opmap, point, step)
@@ -195,9 +195,9 @@ function seedRelatedOpParams(opmap: any, createPoint: any, step: ModelEntityFlow
       for (const param of params) {
         if (!param?.n) continue
         if (isEntityIdParam(point, param, opname as any)) continue
-        if (step.match[param.n] !== undefined) continue
+        if (step.m[param.n] !== undefined) continue
         if ('id' === param.n) continue
-        step.match[param.n] =
+        step.m[param.n] =
           param.n.replace(/_id/, '') + '01'
       }
     }
@@ -220,11 +220,11 @@ const listStep: MakeFlowStep = (
       if ('id' === param.n) {
         const origName = originalSnakeNameOfRenamedId(point)
         if (origName) {
-          step.match[origName] = args.input?.[origName] ?? origName.replace(/_id/, '') + '01'
+          step.m[origName] = args.input?.[origName] ?? origName.replace(/_id/, '') + '01'
         }
         return
       }
-      step.match[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01'
+      step.m[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01'
     })
 
     flow.step.push(step)
@@ -249,7 +249,7 @@ const updateStep: MakeFlowStep = (
         // entity's id field, not as a separate body parameter. Skip.
         return
       }
-      step.data[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01'
+      step.d[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01'
     })
 
     flow.step.push(step)
@@ -270,10 +270,10 @@ const loadStep: MakeFlowStep = (
 
     each(point.g.params, (param: any) => {
       if (isEntityIdParam(point, param, 'load')) {
-        step.match.id = args.input?.id ?? ent.name + '01'
+        step.m.id = args.input?.id ?? ent.name + '01'
       }
       else {
-        step.match[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01'
+        step.m[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01'
       }
     })
 
@@ -299,10 +299,10 @@ const removeStep: MakeFlowStep = (
 
     each(point.g.params, (param: any) => {
       if (isEntityIdParam(point, param, 'remove')) {
-        step.match.id = args.input?.id ?? ent.name + '01'
+        step.m.id = args.input?.id ?? ent.name + '01'
       }
       else {
-        step.match[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01'
+        step.m[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01'
       }
     })
 

@@ -67,21 +67,23 @@ main: kit: flow: &: {
 
   param: {}
 
-  step: [ &: {
-    active: *true
-    op: string
-    match: {}
-    data: {}
-    input: {}
-    spec: []
-    valid: []
-  } ]
+  step: [ &: %flow-step ]
 }
 
 
 
 
 main: kit: type: type({
+  flow-step: %flow-step = {
+    a: *true
+    o: string
+    m: {}
+    d: {}
+    i: {}
+    s: []
+    v: []
+  }
+
   op-points: %op-points = {
     a: *true
     k: *'http' | 'graphql'

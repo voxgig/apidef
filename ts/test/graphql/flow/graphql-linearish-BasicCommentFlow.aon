@@ -7,24 +7,24 @@ main: kit: flow: BasicCommentFlow:
   name: "BasicCommentFlow",
   step: [
     {
-      input: {
+      i: {
         ref: "comment_ref01"
       }
 
-      op: "create"
+      o: "create"
     }
 
     {
-      input: {
+      i: {
         ref: "comment_ref01",
         suffix: "_rm0"
       }
 
-      match: {
+      m: {
         id: "comment01"
       }
 
-      op: "remove"
+      o: "remove"
     }
   ],
   "key$": "BasicCommentFlow"

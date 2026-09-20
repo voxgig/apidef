@@ -1,0 +1,206 @@
+{
+  "entity": {
+    "name": "widget",
+    "fields": {
+      "name": {
+        "n": "name",
+        "h": "Name",
+        "r": true,
+        "t": "`$STRING`"
+      }
+    },
+    "op": {
+      "create": {
+        "name": "create",
+        "points": [
+          {
+            "g": {
+              "params": [
+                {
+                  "n": "account_id",
+                  "k": "param",
+                  "r": true,
+                  "t": "`$STRING`"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "list": {
+        "name": "list",
+        "points": [
+          {
+            "g": {
+              "params": [
+                {
+                  "n": "account_id",
+                  "k": "param",
+                  "r": true,
+                  "t": "`$STRING`"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "update": {
+        "name": "update",
+        "points": [
+          {
+            "g": {
+              "params": [
+                {
+                  "n": "account_id",
+                  "k": "param",
+                  "r": true,
+                  "t": "`$STRING`"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "load": {
+        "name": "load",
+        "points": [
+          {
+            "g": {
+              "params": [
+                {
+                  "n": "account_id",
+                  "k": "param",
+                  "r": true,
+                  "t": "`$STRING`"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "remove": {
+        "name": "remove",
+        "points": [
+          {
+            "g": {
+              "params": [
+                {
+                  "n": "account_id",
+                  "k": "param",
+                  "r": true,
+                  "t": "`$STRING`"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "steps": [
+    {
+      "o": "create",
+      "i": {
+        "ref": "widget_ref01"
+      },
+      "m": {
+        "account_id": "account01"
+      },
+      "d": {},
+      "s": [],
+      "v": []
+    },
+    {
+      "o": "list",
+      "i": {},
+      "m": {
+        "account_id": "account01"
+      },
+      "d": {},
+      "s": [],
+      "v": [
+        {
+          "apply": "ItemExists",
+          "def": {
+            "ref": "widget_ref01"
+          }
+        }
+      ]
+    },
+    {
+      "o": "update",
+      "i": {
+        "ref": "widget_ref01",
+        "textfield": "name",
+        "suffix": "_up0",
+        "srcdatavar": "widget_ref01_data"
+      },
+      "m": {},
+      "d": {
+        "account_id": "account01"
+      },
+      "s": [
+        {
+          "apply": "TextFieldMark",
+          "def": {
+            "mark": "Mark01-widget_ref01"
+          }
+        }
+      ],
+      "v": []
+    },
+    {
+      "o": "load",
+      "i": {
+        "ref": "widget_ref01",
+        "suffix": "_dt0",
+        "srcdatavar": "widget_ref01_data"
+      },
+      "m": {
+        "account_id": "account01"
+      },
+      "d": {},
+      "s": [],
+      "v": [
+        {
+          "apply": "TextFieldMark",
+          "def": {
+            "mark": "Mark01-widget_ref01"
+          }
+        }
+      ]
+    },
+    {
+      "o": "remove",
+      "i": {
+        "ref": "widget_ref01",
+        "suffix": "_rm0"
+      },
+      "m": {
+        "account_id": "account01"
+      },
+      "d": {},
+      "s": [],
+      "v": []
+    },
+    {
+      "o": "list",
+      "i": {
+        "suffix": "_rt0"
+      },
+      "m": {
+        "account_id": "account01"
+      },
+      "d": {},
+      "s": [],
+      "v": [
+        {
+          "apply": "ItemNotExists",
+          "def": {
+            "ref": "widget_ref01"
+          }
+        }
+      ]
+    }
+  ]
+}

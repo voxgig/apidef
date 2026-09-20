@@ -162,11 +162,12 @@ type ModelEntityFlowStepSpec = {
     def: Record<string, any>;
 };
 type ModelEntityFlowStep = {
-    op: OpName;
-    input: ModelEntityFlowStepInput;
-    match: Record<string, any>;
-    data: Record<string, any>;
-    spec: ModelEntityFlowStepSpec[];
-    valid: ModelEntityFlowStepValidator[];
+    a?: boolean;
+    o: OpName;
+    i: ModelEntityFlowStepInput;
+    m: Record<string, any>;
+    d: Record<string, any>;
+    s: ModelEntityFlowStepSpec[];
+    v: ModelEntityFlowStepValidator[];
 };
 export type { OpName, ArgKind, PointKind, ModelGraphql, ModelGraphqlVar, ModelGraphqlPage, NamesCluster, Model, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelPoint, ModelPathSegment, ModelOp, ModelEntity, ModelEntityFlow, ModelEntityFlowStep, ModelEntityFlowStepInput, ModelEntityFlowStepValidator, ModelEntityFlowStepSpec, };

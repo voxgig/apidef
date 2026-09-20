@@ -12,6 +12,7 @@ import assert from 'node:assert'
 import { readFileSync } from 'node:fs'
 import Path from 'node:path'
 import { Aontu } from 'aontu'
+import type { ModelEntityFlowStep } from '../src/model'
 
 
 const REPO = Path.resolve(__dirname, '..', '..')
@@ -19,6 +20,23 @@ const MODEL_FILES = ['apidef.aon', 'guide.aon']
 
 
 describe('model-mirror', () => {
+
+  test('flow-step alias supplies defaults and preserves disabled steps and payload keys', () => {
+    const step: ModelEntityFlowStep = {
+      o: 'update', a: false,
+      m: { op: 'payload', active: false }, d: { input: 'payload' },
+      i: { ref: 'widget01' },
+      s: [{ apply: 'TextFieldMark', def: { mark: 'mark01' } }],
+      v: [{ apply: 'ItemExists', def: { ref: 'widget01' } }],
+    }
+    const source = readFileSync(Path.join(REPO, 'model', 'apidef.aon'), 'utf8') + '\n' +
+      'main:kit:flow:BasicWidgetFlow:' + JSON.stringify({ step: [{ o: 'list' }, step] })
+    const model = new Aontu().generate(source)
+    assert.deepStrictEqual(model.main.kit.flow.BasicWidgetFlow.step, [
+      { a: true, o: 'list', m: {}, d: {}, i: {}, s: [], v: [] }, step,
+    ])
+  })
+
 
   test('op-points and point-args aliases apply compact keys and defaults', () => {
     const point = {

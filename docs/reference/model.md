@@ -117,15 +117,18 @@ A flow is an ordered, assertable exercise of an entity.
 
 ### `ModelEntityFlowStep`
 
+Flow steps use `%flow-step`, declared in `main.kit.type`. All step attributes
+are required; `a` defaults to `true`.
+
 | field | type | meaning |
 |-------|------|---------|
-| `op` | `string` | the operation to invoke |
-| `input` | `object` | inputs supplied to the op |
-| `data` | `object` | the record data for create/update |
-| `match` | `object` | which instance the step addresses |
-| `valid` | `array` | assertions to run afterward (e.g. `ItemExists`, `TextFieldMark`) |
-| `spec` | `array` | mutation specs applied during the step |
-| `active` | `boolean` | included in output |
+| `o` | `string` | the operation to invoke |
+| `i` | `object` | inputs supplied to the op |
+| `d` | `object` | the record data for create/update |
+| `m` | `object` | which instance the step addresses |
+| `v` | `array` | assertions to run afterward (e.g. `ItemExists`, `TextFieldMark`) |
+| `s` | `array` | mutation specs applied during the step |
+| `a` | `boolean` | included in output |
 
 ## Worked example (abridged)
 
@@ -169,12 +172,12 @@ A corresponding flow:
 flow: BasicPlanetFlow: {
   entity: planet, kind: basic
   step: [
-    { op: create, input: { id: planet_n01 }, data: { id: planet_n01 } }
-    { op: list,   valid: [ { apply: ItemExists, spec: { id: planet_n01 } } ] }
-    { op: update, input: { id: planet_n01 }, spec: [ { apply: TextFieldMark, def: { mark: Mark01-planet_n01 } } ] }
-    { op: load,   match: { id: planet_n01 }, valid: [ { apply: TextFieldMark, def: { mark: Mark01-planet_n01 } } ] }
-    { op: remove, match: { id: planet_n01 } }
-    { op: list,   valid: [ { apply: ItemNotExists, def: { id: planet_n01 } } ] }
+    { o: create, i: { id: planet_n01 }, d: { id: planet_n01 } }
+    { o: list,   v: [ { apply: ItemExists, spec: { id: planet_n01 } } ] }
+    { o: update, i: { id: planet_n01 }, s: [ { apply: TextFieldMark, def: { mark: Mark01-planet_n01 } } ] }
+    { o: load,   m: { id: planet_n01 }, v: [ { apply: TextFieldMark, def: { mark: Mark01-planet_n01 } } ] }
+    { o: remove, m: { id: planet_n01 } }
+    { o: list,   v: [ { apply: ItemNotExists, def: { id: planet_n01 } } ] }
   ]
 }
 ```

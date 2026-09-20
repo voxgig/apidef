@@ -951,58 +951,58 @@ const SOLAR_MODEL = {
                     name: 'BasicMoonFlow',
                     step: [
                         {
-                            data: { id: 'moon_n01', planet_id: 'planet01' },
-                            input: { id: 'moon_n01' },
-                            op: 'create',
-                            active: true,
-                            match: {}
+                            d: { id: 'moon_n01', planet_id: 'planet01' },
+                            i: { id: 'moon_n01' },
+                            o: 'create',
+                            a: true,
+                            m: {}
                         },
                         {
-                            match: { planet_id: 'planet01' },
-                            op: 'list',
-                            valid: [{ apply: 'ItemExists', spec: { id: 'moon_n01' } }],
-                            active: true,
-                            data: {}
+                            m: { planet_id: 'planet01' },
+                            o: 'list',
+                            v: [{ apply: 'ItemExists', spec: { id: 'moon_n01' } }],
+                            a: true,
+                            d: {}
                         },
                         {
-                            data: { id: 'moon_n01', planet_id: 'planet01' },
-                            input: { id: 'moon_n01' },
-                            op: 'update',
-                            spec: [
+                            d: { id: 'moon_n01', planet_id: 'planet01' },
+                            i: { id: 'moon_n01' },
+                            o: 'update',
+                            s: [
                                 {
                                     apply: 'TextFieldMark',
                                     def: { mark: 'Mark01-moon_n01' }
                                 }
                             ],
-                            active: true,
-                            match: {}
+                            a: true,
+                            m: {}
                         },
                         {
-                            input: { id: 'moon_n01' },
-                            match: { id: 'moon_n01', planet_id: 'planet01' },
-                            op: 'load',
-                            valid: [
+                            i: { id: 'moon_n01' },
+                            m: { id: 'moon_n01', planet_id: 'planet01' },
+                            o: 'load',
+                            v: [
                                 {
                                     apply: 'TextFieldMark',
                                     def: { mark: 'Mark01-moon_n01' }
                                 }
                             ],
-                            active: true,
-                            data: {}
+                            a: true,
+                            d: {}
                         },
                         {
-                            input: { id: 'moon_n01' },
-                            match: { id: 'moon_n01', planet_id: 'planet01' },
-                            op: 'remove',
-                            active: true,
-                            data: {}
+                            i: { id: 'moon_n01' },
+                            m: { id: 'moon_n01', planet_id: 'planet01' },
+                            o: 'remove',
+                            a: true,
+                            d: {}
                         },
                         {
-                            match: { planet_id: 'planet01' },
-                            op: 'list',
-                            valid: [{ apply: 'ItemNotExists', def: { id: 'moon_n01' } }],
-                            active: true,
-                            data: {}
+                            m: { planet_id: 'planet01' },
+                            o: 'list',
+                            v: [{ apply: 'ItemNotExists', def: { id: 'moon_n01' } }],
+                            a: true,
+                            d: {}
                         }
                     ],
                     'key$': 'BasicMoonFlow',
@@ -1015,58 +1015,58 @@ const SOLAR_MODEL = {
                     name: 'BasicPlanetFlow',
                     step: [
                         {
-                            data: { id: 'planet_n01' },
-                            input: { id: 'planet_n01' },
-                            op: 'create',
-                            active: true,
-                            match: {}
+                            d: { id: 'planet_n01' },
+                            i: { id: 'planet_n01' },
+                            o: 'create',
+                            a: true,
+                            m: {}
                         },
                         {
-                            op: 'list',
-                            valid: [{ apply: 'ItemExists', spec: { id: 'planet_n01' } }],
-                            active: true,
-                            match: {},
-                            data: {}
+                            o: 'list',
+                            v: [{ apply: 'ItemExists', spec: { id: 'planet_n01' } }],
+                            a: true,
+                            m: {},
+                            d: {}
                         },
                         {
-                            data: { id: 'planet_n01' },
-                            input: { id: 'planet_n01' },
-                            op: 'update',
-                            spec: [
+                            d: { id: 'planet_n01' },
+                            i: { id: 'planet_n01' },
+                            o: 'update',
+                            s: [
                                 {
                                     apply: 'TextFieldMark',
                                     def: { mark: 'Mark01-planet_n01' }
                                 }
                             ],
-                            active: true,
-                            match: {}
+                            a: true,
+                            m: {}
                         },
                         {
-                            input: { id: 'planet_n01' },
-                            match: { id: 'planet_n01' },
-                            op: 'load',
-                            valid: [
+                            i: { id: 'planet_n01' },
+                            m: { id: 'planet_n01' },
+                            o: 'load',
+                            v: [
                                 {
                                     apply: 'TextFieldMark',
                                     def: { mark: 'Mark01-planet_n01' }
                                 }
                             ],
-                            active: true,
-                            data: {}
+                            a: true,
+                            d: {}
                         },
                         {
-                            input: { id: 'planet_n01' },
-                            match: { id: 'planet_n01' },
-                            op: 'remove',
-                            active: true,
-                            data: {}
+                            i: { id: 'planet_n01' },
+                            m: { id: 'planet_n01' },
+                            o: 'remove',
+                            a: true,
+                            d: {}
                         },
                         {
-                            op: 'list',
-                            valid: [{ apply: 'ItemNotExists', def: { id: 'planet_n01' } }],
-                            active: true,
-                            match: {},
-                            data: {}
+                            o: 'list',
+                            v: [{ apply: 'ItemNotExists', def: { id: 'planet_n01' } }],
+                            a: true,
+                            m: {},
+                            d: {}
                         }
                     ],
                     'key$': 'BasicPlanetFlow',

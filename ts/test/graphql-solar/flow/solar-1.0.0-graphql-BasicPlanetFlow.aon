@@ -7,11 +7,11 @@ main: kit: flow: BasicPlanetFlow:
   name: "BasicPlanetFlow",
   step: [
     {
-      input: {
+      i: {
         ref: "planet_ref01"
       }
 
-      match: {
+      m: {
         after: "after01",
         first: "first01",
         forbid: "forbid01",
@@ -20,17 +20,17 @@ main: kit: flow: BasicPlanetFlow:
         why: "why01"
       }
 
-      op: "create"
+      o: "create"
     }
 
     {
-      match: {
+      m: {
         after: "after01",
         first: "first01"
       }
 
-      op: "list",
-      valid: [
+      o: "list",
+      v: [
         {
           apply: "ItemExists",
           def: {
@@ -41,15 +41,15 @@ main: kit: flow: BasicPlanetFlow:
     }
 
     {
-      input: {
+      i: {
         ref: "planet_ref01",
         srcdatavar: "planet_ref01_data",
         suffix: "_up0",
         textfield: "kind"
       }
 
-      op: "update",
-      spec: [
+      o: "update",
+      s: [
         {
           apply: "TextFieldMark",
           def: {
@@ -60,18 +60,18 @@ main: kit: flow: BasicPlanetFlow:
     }
 
     {
-      input: {
+      i: {
         ref: "planet_ref01",
         srcdatavar: "planet_ref01_data",
         suffix: "_dt0"
       }
 
-      match: {
+      m: {
         id: "planet01"
       }
 
-      op: "load",
-      valid: [
+      o: "load",
+      v: [
         {
           apply: "TextFieldMark",
           def: {
@@ -82,30 +82,30 @@ main: kit: flow: BasicPlanetFlow:
     }
 
     {
-      input: {
+      i: {
         ref: "planet_ref01",
         suffix: "_rm0"
       }
 
-      match: {
+      m: {
         id: "planet01"
       }
 
-      op: "remove"
+      o: "remove"
     }
 
     {
-      input: {
+      i: {
         suffix: "_rt0"
       }
 
-      match: {
+      m: {
         after: "after01",
         first: "first01"
       }
 
-      op: "list",
-      valid: [
+      o: "list",
+      v: [
         {
           apply: "ItemNotExists",
           def: {
