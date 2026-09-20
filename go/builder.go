@@ -73,6 +73,7 @@ func entityBuilder(ctx *ApiDefContext) {
 		entityFile := prefix + entityName + ".aon"
 		cleanEntity := stripEntityDefaults(entity)
 		cleanEntity = stripEmptyRelations(cleanEntity)
+		cleanEntity, relations := entityAncestorSource(cleanEntity.(map[string]any))
 		entityJSONIC := FormatJSONIC(cleanEntity)
 		entityJSONIC = strings.TrimSpace(entityJSONIC)
 		if len(entityJSONIC) > 2 && entityJSONIC[0] == '{' && entityJSONIC[len(entityJSONIC)-1] == '}' {
@@ -85,6 +86,7 @@ func entityBuilder(ctx *ApiDefContext) {
 			fmt.Sprintf("main: %s: entity: %s: {\n\n", KIT, entityName) +
 			fmt.Sprintf("  alias: field: %s\n", fieldAliasesSrc) +
 			entityJSONIC +
+			relations +
 			"\n\n}\n"
 
 		writeGen(ctx, filepath.Join(entityDir, entityFile), entitySrc)
@@ -93,6 +95,41 @@ func entityBuilder(ctx *ApiDefContext) {
 
 	indexFile := prefix + "entity-index.aon"
 	writeGen(ctx, filepath.Join(entityDir, indexFile), strings.Join(barrel, "\n"))
+}
+
+func entityAncestorSource(entity map[string]any) (map[string]any, string) {
+	model := make(map[string]any, len(entity))
+	for k, v := range entity {
+		model[k] = v
+	}
+	rel, ok := entity["relations"].(map[string]any)
+	if !ok {
+		return model, ""
+	}
+	other := make(map[string]any, len(rel))
+	for k, v := range rel {
+		if k != "ancestors" {
+			other[k] = v
+		}
+	}
+	delete(model, "relations")
+	if len(other) > 0 {
+		model["relations"] = other
+	}
+	data, _ := json.Marshal(rel["ancestors"])
+	var ancestors [][]string
+	if err := json.Unmarshal(data, &ancestors); err != nil || len(ancestors) == 0 {
+		return model, ""
+	}
+	chains := make([]string, 0, len(ancestors))
+	for _, chain := range ancestors {
+		links := make([]string, 0, len(chain))
+		for _, name := range chain {
+			links = append(links, "path("+jsonString("$.main.kit.entity."+name)+")")
+		}
+		chains = append(chains, "    ["+strings.Join(links, " ")+"]")
+	}
+	return model, "\n  relations: ancestors: [\n" + strings.Join(chains, "\n") + "\n  ]"
 }
 
 func stripEntityDefaults(entity any) any {

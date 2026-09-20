@@ -6,6 +6,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.resolveEntity = resolveEntity;
 exports.gcEntityFiles = gcEntityFiles;
+exports.entityAncestorSource = entityAncestorSource;
 const node_path_1 = __importDefault(require("node:path"));
 const jostraca_1 = require("jostraca");
 const types_1 = require("../../types");
@@ -18,13 +19,15 @@ function resolveEntity(apimodel, opts) {
     const entityFiles = [];
     (0, jostraca_1.each)(kit.entity, ((entity, entityName) => {
         const entityFile = (null == opts.outprefix ? '' : opts.outprefix) + entityName + '.aon';
-        let entityJSONIC = (0, utility_1.formatJSONIC)(entity).trim();
+        const { model, relations } = entityAncestorSource(entity);
+        let entityJSONIC = (0, utility_1.formatJSONIC)(model).trim();
         entityJSONIC = entityJSONIC.substring(1, entityJSONIC.length - 1);
         const fieldAliasesSrc = fieldAliases(entity);
         const entitySrc = `# Entity: ${entity.name}\n\n` +
             `main: ${types_1.KIT}: entity: ${entity.name}: {\n\n` +
             `  alias: field: ${fieldAliasesSrc}\n` +
             entityJSONIC +
+            relations +
             '\n\n}\n';
         entityFiles.push({ name: entityFile, src: entitySrc });
         barrel.push(`@"./${node_path_1.default.basename(entityFile)}"`);
@@ -38,6 +41,19 @@ function resolveEntity(apimodel, opts) {
             (0, jostraca_1.File)({ name: indexFile }, () => (0, jostraca_1.Content)(barrel.join('\n')));
         });
     };
+}
+function entityAncestorSource(entity) {
+    const model = { ...entity };
+    const ancestors = entity.relations?.ancestors ?? [];
+    if (null != entity.relations) {
+        model.relations = { ...entity.relations };
+        delete model.relations.ancestors;
+        if (0 === Object.keys(model.relations).length)
+            delete model.relations;
+    }
+    const chains = ancestors.map(chain => '    [' + chain.map(name => 'path(' + JSON.stringify('$.main.kit.entity.' + name) + ')').join(' ') + ']');
+    return { model, relations: 0 === chains.length ? '' :
+            '\n  relations: ancestors: [\n' + chains.join('\n') + '\n  ]' };
 }
 function gcEntityFiles(fs, log, modelFolder, outprefix, entityNames) {
     const removed = [];

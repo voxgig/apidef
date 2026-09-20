@@ -1,0 +1,17 @@
+[
+  {
+    "entity": {"name":"moon","relations":{"ancestors":[["planet"],["galaxy","planet"]]}},
+    "model": {"name":"moon"},
+    "relations": "\n  relations: ancestors: [\n    [path(\"$.main.kit.entity.planet\")]\n    [path(\"$.main.kit.entity.galaxy\") path(\"$.main.kit.entity.planet\")]\n  ]"
+  },
+  {
+    "entity": {"name":"planet","relations":{"ancestors":[],"custom":true}},
+    "model": {"name":"planet","relations":{"custom":true}},
+    "relations": ""
+  },
+  {
+    "entity": {"name":"planet"},
+    "model": {"name":"planet"},
+    "relations": ""
+  }
+]

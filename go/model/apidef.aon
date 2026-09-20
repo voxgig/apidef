@@ -28,7 +28,11 @@ main: kit: entity: &: { # Entities indexed by name.
   }
   fields: { &: %entity-field } # Fields indexed by their names.
   relations: { # Relationships to other entities.
-    ancestors: [ &: [ &: string ] ] # Ancestor paths for the entity.
+    ancestors: [ &: [ &: # Ordered chains of links to other entities.
+      rel() & path($.main.kit.entity) &
+      re("^\\$\\.main\\.kit\\.entity\\.[^.]+$") &
+      neq(path("$.main.kit.entity." + key(4)))
+    ] ]
   }
   op: &: { # Operations indexed by name.
     name: string # Operation name.
