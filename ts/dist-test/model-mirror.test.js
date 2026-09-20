@@ -17,6 +17,21 @@ const aontu_1 = require("aontu");
 const REPO = node_path_1.default.resolve(__dirname, '..', '..');
 const MODEL_FILES = ['apidef.aon', 'guide.aon'];
 (0, node_test_1.describe)('model-mirror', () => {
+    (0, node_test_1.test)('flow-step alias supplies defaults and preserves disabled steps and payload keys', () => {
+        const step = {
+            o: 'update', a: false,
+            m: { op: 'payload', active: false }, d: { input: 'payload' },
+            i: { ref: 'widget01' },
+            s: [{ apply: 'TextFieldMark', def: { mark: 'mark01' } }],
+            v: [{ apply: 'ItemExists', def: { ref: 'widget01' } }],
+        };
+        const source = (0, node_fs_1.readFileSync)(node_path_1.default.join(REPO, 'model', 'apidef.aon'), 'utf8') + '\n' +
+            'main:kit:flow:BasicWidgetFlow:' + JSON.stringify({ step: [{ o: 'list' }, step] });
+        const model = new aontu_1.Aontu().generate(source);
+        node_assert_1.default.deepStrictEqual(model.main.kit.flow.BasicWidgetFlow.step, [
+            { a: true, o: 'list', m: {}, d: {}, i: {}, s: [], v: [] }, step,
+        ]);
+    });
     (0, node_test_1.test)('op-points and point-args aliases apply compact keys and defaults', () => {
         const point = {
             m: 'GET', o: '/widgets/{id}', s: [{ var: 'id' }],

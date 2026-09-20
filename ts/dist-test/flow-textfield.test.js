@@ -6,6 +6,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const node_test_1 = require("node:test");
 const node_assert_1 = __importDefault(require("node:assert"));
+const node_fs_1 = require("node:fs");
+const node_path_1 = __importDefault(require("node:path"));
 const flowstep_1 = require("../dist/transform/flowstep");
 function runFlowstep(entity) {
     const flow = {
@@ -27,7 +29,7 @@ function runFlowstep(entity) {
 }
 function markedField(flow) {
     for (const step of flow.step) {
-        const tf = step?.input?.textfield;
+        const tf = step?.i?.textfield;
         if (null != tf) {
             return tf;
         }
@@ -37,7 +39,7 @@ function markedField(flow) {
 // test, so the walk reaches it before `kind`.
 function entityWith(first) {
     const point = (orig, method) => ({
-        orig, method, k: 'json',
+        o: orig, m: method, k: 'http',
         g: { params: [{ k: 'param', n: 'id', r: true, t: '`$STRING`' }] },
     });
     return {
@@ -60,6 +62,11 @@ function entityWith(first) {
     };
 }
 (0, node_test_1.describe)('flow-textfield', () => {
+    (0, node_test_1.test)('flow steps match the shared compact-key fixture', async () => {
+        const fixture = JSON.parse((0, node_fs_1.readFileSync)(node_path_1.default.join(__dirname, '..', 'test', 'flow-step.json'), 'utf8'));
+        const flow = await runFlowstep(fixture.entity);
+        node_assert_1.default.deepStrictEqual(flow.step, fixture.steps);
+    });
     (0, node_test_1.test)('a readOnly field is not the one the flow marks', async () => {
         const entity = entityWith({ n: 'forbidReason', t: '`$STRING`', r: false, ro: true });
         const flow = await runFlowstep(entity);

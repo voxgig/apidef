@@ -80,12 +80,12 @@ const flowstepTransform = async function (ctx) {
 exports.flowstepTransform = flowstepTransform;
 function newFlowStep(opname, args) {
     return {
-        op: opname,
-        input: args.input ?? {},
-        match: args.match ?? {},
-        data: args.data ?? {},
-        spec: args.spec ?? [],
-        valid: args.valid ?? [],
+        o: opname,
+        i: args.input ?? {},
+        m: args.match ?? {},
+        d: args.data ?? {},
+        s: args.spec ?? [],
+        v: args.valid ?? [],
     };
 }
 // Reverse-lookup: given a point with rename.param like {spaceId: 'id'} or
@@ -113,13 +113,13 @@ const createStep = (opmap, flow, ent, args) => {
             if ('id' === param.n) {
                 const origName = originalSnakeNameOfRenamedId(point);
                 if (origName) {
-                    step.match[origName] = args.input?.[origName] ?? origName.replace(/_id/, '') + '01';
+                    step.m[origName] = args.input?.[origName] ?? origName.replace(/_id/, '') + '01';
                 }
                 // If there's no rename-from, this is genuinely the entity's id — skip
                 // (the create call generates it).
                 return;
             }
-            step.match[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01';
+            step.m[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01';
         });
         seedRelatedOpParams(opmap, point, step);
         flow.step.push(step);
@@ -138,11 +138,11 @@ function seedRelatedOpParams(opmap, createPoint, step) {
                     continue;
                 if (isEntityIdParam(point, param, opname))
                     continue;
-                if (step.match[param.n] !== undefined)
+                if (step.m[param.n] !== undefined)
                     continue;
                 if ('id' === param.n)
                     continue;
-                step.match[param.n] =
+                step.m[param.n] =
                     param.n.replace(/_id/, '') + '01';
             }
         }
@@ -157,11 +157,11 @@ const listStep = (opmap, flow, ent, args) => {
             if ('id' === param.n) {
                 const origName = originalSnakeNameOfRenamedId(point);
                 if (origName) {
-                    step.match[origName] = args.input?.[origName] ?? origName.replace(/_id/, '') + '01';
+                    step.m[origName] = args.input?.[origName] ?? origName.replace(/_id/, '') + '01';
                 }
                 return;
             }
-            step.match[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01';
+            step.m[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01';
         });
         flow.step.push(step);
     }
@@ -177,7 +177,7 @@ const updateStep = (opmap, flow, ent, args) => {
                 // entity's id field, not as a separate body parameter. Skip.
                 return;
             }
-            step.data[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01';
+            step.d[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01';
         });
         flow.step.push(step);
     }
@@ -189,10 +189,10 @@ const loadStep = (opmap, flow, ent, args) => {
         const step = newFlowStep('load', args);
         (0, jostraca_1.each)(point.g.params, (param) => {
             if (isEntityIdParam(point, param, 'load')) {
-                step.match.id = args.input?.id ?? ent.name + '01';
+                step.m.id = args.input?.id ?? ent.name + '01';
             }
             else {
-                step.match[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01';
+                step.m[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01';
             }
         });
         flow.step.push(step);
@@ -209,10 +209,10 @@ const removeStep = (opmap, flow, ent, args) => {
         const step = newFlowStep('remove', args);
         (0, jostraca_1.each)(point.g.params, (param) => {
             if (isEntityIdParam(point, param, 'remove')) {
-                step.match.id = args.input?.id ?? ent.name + '01';
+                step.m.id = args.input?.id ?? ent.name + '01';
             }
             else {
-                step.match[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01';
+                step.m[param.n] = args.input?.[param.n] ?? param.n.replace(/_id/, '') + '01';
             }
         });
         flow.step.push(step);

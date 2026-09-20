@@ -195,7 +195,7 @@ type ModelEntityFlow = {
 // Per-step input cluster. Test-generators name the variables they emit by
 // reading these slots, falling back to derived defaults. All fields are
 // optional — `newFlowStep` in transform/flowstep.ts guarantees the input
-// object itself exists, so consumers don't need to null-check `step.input`.
+// object itself exists, so consumers don't need to null-check `step.i`.
 type ModelEntityFlowStepInput = {
   ref?: string
   entvar?: string
@@ -224,12 +224,12 @@ type ModelEntityFlowStepSpec = {
 
 
 type ModelEntityFlowStep = {
-  op: OpName
-  input: ModelEntityFlowStepInput
-  match: Record<string, any>
-  data: Record<string, any>
-  spec: ModelEntityFlowStepSpec[]
-  valid: ModelEntityFlowStepValidator[]
+  o: OpName
+  i: ModelEntityFlowStepInput
+  m: Record<string, any>
+  d: Record<string, any>
+  s: ModelEntityFlowStepSpec[]
+  v: ModelEntityFlowStepValidator[]
 }
 
 

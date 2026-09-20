@@ -7,8 +7,8 @@ main: kit: flow: BasicBookFlow:
   name: "BasicBookFlow",
   step: [
     {
-      op: "list",
-      valid: [
+      o: "list",
+      v: [
         {
           apply: "ItemExists",
           def: {
@@ -19,18 +19,18 @@ main: kit: flow: BasicBookFlow:
     }
 
     {
-      input: {
+      i: {
         ref: "book_ref01",
         srcdatavar: "book_ref01_data",
         suffix: "_dt0"
       }
 
-      match: {
+      m: {
         id: "book01"
       }
 
-      op: "load",
-      valid: [
+      o: "load",
+      v: [
         {
           apply: "TextFieldMark",
           def: {

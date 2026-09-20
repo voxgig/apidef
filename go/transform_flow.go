@@ -85,7 +85,7 @@ func FlowstepTransform(ctx *ApiDefContext) (*TransformResult, error) {
 			steps = append(steps, step)
 		}
 
-		// updateStep — gated on update op. Iterates params and writes to step.data
+		// updateStep — gated on update op. Iterates params and writes to step.d
 		// (id → ent.name + "01"; other → input fallback or name without _id + "01").
 		firstTF := firstTextField(ent)
 		if updateOp, ok := opmap["update"].(map[string]any); ok {
@@ -172,12 +172,12 @@ func newFlowStep(opname string, args map[string]any) map[string]any {
 		return def
 	}
 	return map[string]any{
-		"op":    opname,
-		"input": get("input", map[string]any{}),
-		"match": get("match", map[string]any{}),
-		"data":  get("data", map[string]any{}),
-		"spec":  get("spec", []any{}),
-		"valid": get("valid", []any{}),
+		"o": opname,
+		"i": get("input", map[string]any{}),
+		"m": get("match", map[string]any{}),
+		"d": get("data", map[string]any{}),
+		"s": get("spec", []any{}),
+		"v": get("valid", []any{}),
 	}
 }
 
@@ -199,10 +199,10 @@ func fillStepMatchFromParams(step, point, input map[string]any, useEntNameForId 
 		return
 	}
 	params, _ := args["params"].([]any)
-	match, _ := step["match"].(map[string]any)
+	match, _ := step["m"].(map[string]any)
 	if match == nil {
 		match = map[string]any{}
-		step["match"] = match
+		step["m"] = match
 	}
 	for _, p := range params {
 		pm, _ := p.(map[string]any)
@@ -210,7 +210,7 @@ func fillStepMatchFromParams(step, point, input map[string]any, useEntNameForId 
 			continue
 		}
 		name, _ := pm["n"].(string)
-		if step["op"] == "create" && name == "id" {
+		if step["o"] == "create" && name == "id" {
 			continue
 		}
 		if name == "id" && useEntNameForId {
@@ -225,7 +225,7 @@ func fillStepMatchFromParams(step, point, input map[string]any, useEntNameForId 
 	}
 }
 
-// fillStepDataFromParams writes step.data[param.n] (used by updateStep).
+// fillStepDataFromParams writes step.d[param.n] (used by updateStep).
 // For id param, uses input.id ?? ent.name + "01".
 func fillStepDataFromParams(step, point, input map[string]any, entname string) {
 	if point == nil {
@@ -236,10 +236,10 @@ func fillStepDataFromParams(step, point, input map[string]any, entname string) {
 		return
 	}
 	params, _ := args["params"].([]any)
-	data, _ := step["data"].(map[string]any)
+	data, _ := step["d"].(map[string]any)
 	if data == nil {
 		data = map[string]any{}
-		step["data"] = data
+		step["d"] = data
 	}
 	for _, p := range params {
 		pm, _ := p.(map[string]any)

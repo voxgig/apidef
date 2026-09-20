@@ -2,6 +2,8 @@
 
 import { test, describe } from 'node:test'
 import assert from 'node:assert'
+import { readFileSync } from 'node:fs'
+import Path from 'node:path'
 
 import { flowstepTransform } from '../dist/transform/flowstep'
 
@@ -29,7 +31,7 @@ function runFlowstep(entity: any) {
 
 function markedField(flow: any) {
   for (const step of flow.step) {
-    const tf = step?.input?.textfield
+    const tf = step?.i?.textfield
     if (null != tf) {
       return tf
     }
@@ -41,7 +43,7 @@ function markedField(flow: any) {
 // test, so the walk reaches it before `kind`.
 function entityWith(first: any) {
   const point = (orig: string, method: string) => ({
-    orig, method, k: 'json',
+    o: orig, m: method, k: 'http',
     g: { params: [{ k: 'param', n: 'id', r: true, t: '`$STRING`' }] },
   })
 
@@ -67,6 +69,14 @@ function entityWith(first: any) {
 
 
 describe('flow-textfield', () => {
+
+  test('flow steps match the shared compact-key fixture', async () => {
+    const fixture = JSON.parse(readFileSync(
+      Path.join(__dirname, '..', 'test', 'flow-step.json'), 'utf8'))
+    const flow = await runFlowstep(fixture.entity)
+    assert.deepStrictEqual(flow.step, fixture.steps)
+  })
+
 
   test('a readOnly field is not the one the flow marks', async () => {
     const entity = entityWith(
