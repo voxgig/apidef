@@ -197,7 +197,10 @@ make publish V=8.6.0 GOV=0.7.0    # both, one dispatch
 the remote to actually show the pushed SHA, then dispatches `publish.yml`
 pinned to it. The workflow publishes to npm over OIDC and writes BOTH tags —
 `vX.Y.Z` for npm, `go/vX.Y.Z` for the module — in a `tag` job that runs git
-and nothing else.
+and nothing else. This section is the short form; the full description, with
+every guard and the recovery paths, is
+[docs/how-to/release-and-tag.md](./docs/how-to/release-and-tag.md), and the
+Makefile and `.github/workflows/publish.yml` are the mechanism itself.
 
 To drive the dispatch by hand — same mechanism, without the bump:
 
