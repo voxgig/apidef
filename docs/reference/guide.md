@@ -1,7 +1,7 @@
 # Reference: the guide model
 
 The guide is the output of the classification stage (`result.guide`, also
-written as `base-guide.aontu`). It records *which paths belong to which
+written as `base-guide.aon`). It records *which paths belong to which
 entity* and *how each method was classified*, with a `why_*` trace for every
 decision. Types live in [`ts/src/types.ts`](../../ts/src/types.ts) (`Guide`,
 `GuideEntity`, `GuidePath`, `GuidePathOp`, …).

@@ -3,4 +3,5 @@
 # (aontu/jsonic parsers, diff readers, snapshot tests) is line-ending
 # sensitive too; keep the canonical form stable across platforms.
 *.tsv text eol=lf
+*.aon text eol=lf
 *.aontu text eol=lf
