@@ -1,6 +1,6 @@
 {
   "name": "@voxgig/apidef",
-  "version": "8.13.0",
+  "version": "8.14.0",
   "main": "dist/apidef.js",
   "type": "commonjs",
   "types": "dist/apidef.d.ts",
@@ -58,7 +58,7 @@
     "@tabnas/yaml": ">=0.5.1",
     "@voxgig/struct": ">=0",
     "@voxgig/util": ">=0",
-    "aontu": ">=0.68",
+    "aontu": ">=0.71",
     "graphql": ">=0",
     "jostraca": ">=0.31",
     "shape": ">=11"
