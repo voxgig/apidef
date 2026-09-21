@@ -48,6 +48,13 @@ The equivalent from a shell:
 gh workflow run publish.yml --ref main -f go=true
 ```
 
+`make publish` also passes `expect_sha`, the commit it pushed, so the run
+refuses if `main` moved in between. A hand dispatch can pass
+`-f expect_sha=$(git rev-parse HEAD)` for the same guard, once
+`git ls-remote origin main` shows that commit: `git push` returns before the
+ref is visible to every GitHub read path, and a dispatch fired too early
+resolves the commit before it.
+
 **There is no version input, deliberately.** The dispatch releases whatever
 the ref already says, so bump the versions **first**, in a normal reviewed PR:
 
@@ -67,8 +74,9 @@ workflow refuses rather than moving an existing tag.
 
 ## One version series each
 
-npm and the Go module are versioned independently — npm is on 7.x, the Go
-module on 0.x — and sharing a number is not as simple as it sounds, because
+npm and the Go module are versioned independently, each on its own series.
+`ts/package.json` and `go/apidef.go` hold the current numbers, and the two
+have never matched. Sharing a number is not as simple as it sounds, because
 **from v2 on, Go requires the major version in the module path.**
 
 ```
