@@ -28,6 +28,10 @@ the automated scope, as in Aontu. Tracked and unignored new files are checked;
 symlinks, dependency directories, compiled output and Rust build artifacts are
 not. `tools/comment-scope.json` lists any additional exclusions with reasons.
 License notices and compiler, lint, formatting and coverage directives remain.
+The canonical API schema and its package mirrors document every key inline.
+Their exact paths in `densityExempt` bypass only the density limit; all other
+comment checks still apply.
+
 Generator slot and insertion markers (such as `<[SLOT]>`, `#SecretsImport`, and `EJECT-START`/`EJECT-END`)
 are executable tooling directives and are exempt too.
 Aontu models use `#` line comments; quoted strings and multiline backtick values

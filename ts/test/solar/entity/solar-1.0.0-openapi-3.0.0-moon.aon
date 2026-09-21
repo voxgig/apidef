@@ -335,14 +335,9 @@ main: kit: entity: moon: {
     }
   }
 
-  relations: {
-    ancestors: [
-      [
-        "planet"
-      ]
-    ]
-  }
 
-
+  relations: ancestors: [
+    [path("$.main.kit.entity.planet")]
+  ]
 
 }

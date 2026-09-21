@@ -35,7 +35,8 @@ function resolveEntity(
   each(kit.entity, ((entity: any, entityName: string) => {
     const entityFile = (null == opts.outprefix ? '' : opts.outprefix) + entityName + '.aon'
 
-    let entityJSONIC = formatJSONIC(entity).trim()
+    const { model, relations } = entityAncestorSource(entity)
+    let entityJSONIC = formatJSONIC(model).trim()
     entityJSONIC = entityJSONIC.substring(1, entityJSONIC.length - 1)
 
     const fieldAliasesSrc = fieldAliases(entity)
@@ -45,6 +46,7 @@ function resolveEntity(
       `main: ${KIT}: entity: ${entity.name}: {\n\n` +
       `  alias: field: ${fieldAliasesSrc}\n` +
       entityJSONIC +
+      relations +
       '\n\n}\n'
 
     entityFiles.push({ name: entityFile, src: entitySrc })
@@ -63,6 +65,20 @@ function resolveEntity(
       File({ name: indexFile }, () => Content(barrel.join('\n')))
     })
   }
+}
+
+function entityAncestorSource(entity: any): { model: any, relations: string } {
+  const model = { ...entity }
+  const ancestors: string[][] = entity.relations?.ancestors ?? []
+  if (null != entity.relations) {
+    model.relations = { ...entity.relations }
+    delete model.relations.ancestors
+    if (0 === Object.keys(model.relations).length) delete model.relations
+  }
+  const chains = ancestors.map(chain => '    [' + chain.map(name =>
+    'path(' + JSON.stringify('$.main.kit.entity.' + name) + ')').join(' ') + ']')
+  return { model, relations: 0 === chains.length ? '' :
+    '\n  relations: ancestors: [\n' + chains.join('\n') + '\n  ]' }
 }
 
 
@@ -126,4 +142,5 @@ function fieldAliases(_entity: any): string {
 export {
   resolveEntity,
   gcEntityFiles,
+  entityAncestorSource,
 }

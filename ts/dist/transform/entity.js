@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.entityTransform = void 0;
+exports.filterEntityAncestors = filterEntityAncestors;
 exports.resolvePathList = resolvePathList;
 exports.buildRelations = buildRelations;
 exports.mergeCollectionPaths = mergeCollectionPaths;
@@ -36,9 +37,20 @@ const entityTransform = async function (ctx) {
         kit.entity[entname] = modelent;
         msg += guideEntity.name + ' ';
     });
+    filterEntityAncestors(kit.entity);
     return { ok: true, msg };
 };
 exports.entityTransform = entityTransform;
+function filterEntityAncestors(entities) {
+    for (const [name, entity] of Object.entries(entities)) {
+        if (null == entity.relations)
+            continue;
+        entity.relations.ancestors = (entity.relations.ancestors ?? [])
+            .map((chain) => chain.filter(ancestor => ancestor !== name &&
+            Object.prototype.hasOwnProperty.call(entities, ancestor)))
+            .filter((chain) => 0 < chain.length);
+    }
+}
 // Move "/X" paths onto the entity that owns "/X/{id}" or "/X/{id}/sub".
 // Only acts when the path "/X" sits on a different entity than the
 // per-instance paths — leaves correctly-classified APIs alone.

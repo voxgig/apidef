@@ -1,0 +1,12 @@
+{
+  "entities": {
+    "galaxy": {},
+    "planet": {"relations":{"ancestors":[["planet"],["missing"],["galaxy"]]}},
+    "moon": {"relations":{"ancestors":[["missing","planet"],["galaxy","planet","moon"],["toString"]]}}
+  },
+  "expected": {
+    "galaxy": {},
+    "planet": {"relations":{"ancestors":[["galaxy"]]}},
+    "moon": {"relations":{"ancestors":[["planet"],["galaxy","planet"]]}}
+  }
+}

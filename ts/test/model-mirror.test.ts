@@ -21,6 +21,15 @@ const MODEL_FILES = ['apidef.aon', 'guide.aon']
 
 describe('model-mirror', () => {
 
+  test('alias keys preserve the explicit declaration schema', () => {
+    const source = readFileSync(Path.join(REPO, 'model', 'apidef.aon'), 'utf8')
+    const explicit = source.replace(/^(\s*)%([\w-]+):/gm, '$1$2: %$2 =')
+    assert.notStrictEqual(source, explicit)
+    assert.strictEqual(new Aontu().unify(source, { path: 'model-schema.aon' }).canon,
+      new Aontu().unify(explicit, { path: 'model-schema.aon' }).canon)
+  })
+
+
   test('flow-step alias supplies defaults and preserves disabled steps and payload keys', () => {
     const step: ModelEntityFlowStep = {
       o: 'update', a: false,

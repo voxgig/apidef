@@ -28,9 +28,14 @@ TypeScript types are in [`ts/src/model.ts`](../../ts/src/model.ts).
 | `fields` | `Record<string, ModelField>` | the data shape, keyed by each field's `n` |
 | `op` | `ModelOpMap` | `{ load, list, create, update, remove, patch }` (each `ModelOp` or `undefined`) |
 | `id` | `{ field, name }` | which field identifies an instance |
-| `relations` | `{ ancestors: string[][] }` | ancestor entity chains (nesting) |
+| `relations` | `{ ancestors: string[][] }` | ancestor entity chains; generated model files use checked entity paths |
 | `alias` | `{ field: {} }` | field-name aliases (reserved; currently empty) |
 | `active` | `boolean` | included in output |
+
+Generated ancestor links use `path("$.main.kit.entity.planet")`. The schema
+applies `rel()` to each link and rejects missing entities, self-links,
+entity children, and targets outside `main.kit.entity`. The in-memory
+compiler model retains entity names until the file builder renders them.
 
 ### `ModelField`
 
