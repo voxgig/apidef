@@ -154,6 +154,20 @@ function validateOptions(rawOptions: CliOptions): CliOptions {
 }
 
 
+// A name still absolute after Path.relative is on another drive, which the
+// pipeline's <base>/../def join cannot reach.
+function defName(deffolder: string, def: string, path: typeof Path = Path): string {
+  const name = path.relative(deffolder, def)
+
+  if (path.isAbsolute(name)) {
+    throw new Error(
+      'Definition file must be on the same drive as the project folder: ' + def)
+  }
+
+  return name
+}
+
+
 // The pipeline reads the definition at <base>/../def/<model.def> and writes
 // under the output folder; both are <root>/model here, so a definition kept
 // anywhere is named relative to <root>/def.
@@ -171,7 +185,7 @@ function resolveProject(options: CliOptions): CliProject {
     def,
     model: {
       name: options.name,
-      def: Path.relative(Path.join(folder, '..', 'def'), def),
+      def: defName(Path.join(folder, '..', 'def'), def),
     },
     guide: Path.join(guidefolder, outprefix + GUIDE_FILE),
     legacyguide: Path.join(guidefolder, outprefix + LEGACY_GUIDE_FILE),
@@ -299,6 +313,7 @@ export {
   runCli,
   resolveOptions,
   validateOptions,
+  defName,
   resolveProject,
   checkProject,
   usage,

@@ -125,6 +125,17 @@ function captureIO() {
         node_assert_1.default.equal(away.guide, node_path_1.default.join(root, 'model', 'guide', 'guide.aon'));
         node_assert_1.default.equal(node_path_1.default.join(away.folder, '..', 'def', away.model.def), elsewhere);
     });
+    // The definition name the pipeline joins onto <root>/def: relative on the
+    // same drive wherever the file is, refused on another drive.
+    (0, node_test_1.test)('def-name', () => {
+        const W = node_path_1.default.win32;
+        node_assert_1.default.equal((0, cli_1.defName)('C:\\work\\proj\\def', 'C:\\work\\proj\\def\\petstore.yml', W), 'petstore.yml');
+        node_assert_1.default.equal((0, cli_1.defName)('C:\\work\\proj\\def', 'C:\\specs\\v2\\petstore.json', W), '..\\..\\..\\specs\\v2\\petstore.json');
+        node_assert_1.default.throws(() => (0, cli_1.defName)('C:\\work\\proj\\def', 'D:\\specs\\petstore.yml', W), /same drive/);
+        const P = node_path_1.default.posix;
+        node_assert_1.default.equal((0, cli_1.defName)('/work/proj/def', '/work/proj/def/petstore.yml', P), 'petstore.yml');
+        node_assert_1.default.equal((0, cli_1.defName)('/work/proj/def', '/specs/v2/petstore.json', P), '../../../specs/v2/petstore.json');
+    });
     (0, node_test_1.test)('check-project', () => {
         const root = makeProject();
         const options = {

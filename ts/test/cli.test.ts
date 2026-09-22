@@ -10,6 +10,7 @@ import assert from 'node:assert'
 import {
   runCli,
   resolveOptions,
+  defName,
   resolveProject,
   checkProject,
 } from '../dist/cli'
@@ -123,6 +124,24 @@ describe('cli', () => {
     assert.equal(away.guide, Path.join(root, 'model', 'guide', 'guide.aon'))
     assert.equal(
       Path.join(away.folder, '..', 'def', away.model.def), elsewhere)
+  })
+
+
+  // The definition name the pipeline joins onto <root>/def: relative on the
+  // same drive wherever the file is, refused on another drive.
+  test('def-name', () => {
+    const W = Path.win32
+    assert.equal(defName('C:\\work\\proj\\def', 'C:\\work\\proj\\def\\petstore.yml', W),
+      'petstore.yml')
+    assert.equal(defName('C:\\work\\proj\\def', 'C:\\specs\\v2\\petstore.json', W),
+      '..\\..\\..\\specs\\v2\\petstore.json')
+    assert.throws(() => defName('C:\\work\\proj\\def', 'D:\\specs\\petstore.yml', W),
+      /same drive/)
+
+    const P = Path.posix
+    assert.equal(defName('/work/proj/def', '/work/proj/def/petstore.yml', P), 'petstore.yml')
+    assert.equal(defName('/work/proj/def', '/specs/v2/petstore.json', P),
+      '../../../specs/v2/petstore.json')
   })
 
 
