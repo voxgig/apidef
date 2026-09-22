@@ -27,7 +27,7 @@ func EntityTransform(ctx *ApiDefContext) (*TransformResult, error) {
 			continue
 		}
 
-		// `active: false` in guide.aon drops the entity.
+		// `active: false` in guide.aontu drops the entity.
 		if !guideActive(gentMap) {
 			continue
 		}

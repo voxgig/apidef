@@ -29,11 +29,11 @@ the stage it failed after on standard error, and exits `1`.
 ## Before the first run
 
 The CLI writes into `<folder>/model` and needs the guide entry file there
-before it starts, at `<folder>/model/guide/<prefix>guide.aon`:
+before it starts, at `<folder>/model/guide/<prefix>guide.aontu`:
 
 ```jsonic
-@"@voxgig/apidef/model/guide.aon"
-@"./petstore-base-guide.aon"
+@"@voxgig/apidef/model/guide.aontu"
+@"./petstore-base-guide.aontu"
 ```
 
 Without it the CLI stops and prints these two lines for you to save. A

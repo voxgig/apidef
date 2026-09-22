@@ -19,7 +19,7 @@ guide: entity: &: {
 
      # A non-CRUD verb on the path (`action: merge: {}`), declared beside a
      # CRUD op; the op's points then carry `select.$action`. The heuristic
-     # emits these for trailing verbs, and guide.aon may add them.
+     # emits these for trailing verbs, and guide.aontu may add them.
      action?: {}
 
      rename?: {

@@ -66,9 +66,9 @@ async function main() {
     // The overlay IMPORTS the schema and the generated base guide, exactly
     // as apidef-validate's harness writes it. `guide:{}` alone unifies to a
     // guide with no `entity` map, and the transformers then fail on it.
-    Fs.writeFileSync(Path.join(folder, 'guide', cn + '-guide.aon'),
-      '\n@"' + Path.join(TSROOT, 'model', 'guide.aon') + '"\n\n' +
-      '@"' + cn + '-base-guide.aon"\n\nguide:{}\n')
+    Fs.writeFileSync(Path.join(folder, 'guide', cn + '-guide.aontu'),
+      '\n@"' + Path.join(TSROOT, 'model', 'guide.aontu') + '"\n\n' +
+      '@"' + cn + '-base-guide.aontu"\n\nguide:{}\n')
 
     const build = await ApiDef.makeBuild({ folder, outprefix: cn + '-' })
 

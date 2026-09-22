@@ -45,8 +45,8 @@ function makeProject(): string {
 
   Fs.mkdirSync(Path.join(root, 'model', 'guide'), { recursive: true })
   Fs.copyFileSync(
-    Path.join(FIXTURES, 'solar', 'guide', SOLAR_PREFIX + 'guide.aon'),
-    Path.join(root, 'model', 'guide', SOLAR_PREFIX + 'guide.aon'))
+    Path.join(FIXTURES, 'solar', 'guide', SOLAR_PREFIX + 'guide.aontu'),
+    Path.join(root, 'model', 'guide', SOLAR_PREFIX + 'guide.aontu'))
 
   const pkgmodel = Path.join(root, 'node_modules', '@voxgig', 'apidef', 'model')
   Fs.mkdirSync(pkgmodel, { recursive: true })
@@ -104,7 +104,7 @@ describe('cli', () => {
 
 
   // The layout the CLI resolves, pinned: the model folder is <root>/model,
-  // the guide entry file is <root>/model/guide/<prefix>guide.aon, and the
+  // the guide entry file is <root>/model/guide/<prefix>guide.aontu, and the
   // definition is named so that the pipeline's <base>/../def/<def> rule
   // finds it wherever it is.
   test('resolve-project', () => {
@@ -122,9 +122,9 @@ describe('cli', () => {
     assert.equal(project.def, def)
     assert.deepEqual(project.model, { name: 'petstore', def: 'petstore.yml' })
     assert.equal(project.guide,
-      Path.join(root, 'model', 'guide', 'petstore-guide.aon'))
-    assert.equal(project.legacyguide,
       Path.join(root, 'model', 'guide', 'petstore-guide.aontu'))
+    assert.equal(project.legacyguide,
+      Path.join(root, 'model', 'guide', 'petstore-guide.aon'))
     assert.equal(
       Path.join(project.folder, '..', 'def', project.model.def), def)
 
@@ -134,7 +134,7 @@ describe('cli', () => {
       watch: false, debug: 'info', help: false, version: false,
     })
     assert.equal(away.outprefix, '')
-    assert.equal(away.guide, Path.join(root, 'model', 'guide', 'guide.aon'))
+    assert.equal(away.guide, Path.join(root, 'model', 'guide', 'guide.aontu'))
     assert.equal(
       Path.join(away.folder, '..', 'def', away.model.def), elsewhere)
   })
@@ -171,8 +171,8 @@ describe('cli', () => {
     const missing = resolveProject({ ...options, prefix: 'other-' })
     assert.throws(() => checkProject(missing), (err: any) => {
       assert.ok(err.message.includes(
-        Path.join(root, 'model', 'guide', 'other-guide.aon')), err.message)
-      assert.ok(err.message.includes('@"./other-base-guide.aon"'), err.message)
+        Path.join(root, 'model', 'guide', 'other-guide.aontu')), err.message)
+      assert.ok(err.message.includes('@"./other-base-guide.aontu"'), err.message)
       return true
     })
   })
@@ -186,7 +186,7 @@ describe('cli', () => {
     const help = captureIO()
     assert.equal(await runCli(['-h'], help.io), 0)
     assert.ok(help.out[0].startsWith('Usage: voxgig-apidef <name>'))
-    assert.ok(help.out[0].includes('guide.aon'))
+    assert.ok(help.out[0].includes('guide.aontu'))
   })
 
 
@@ -238,7 +238,7 @@ describe('cli', () => {
       'solar', '-f', root, '-d', Path.join(root, 'def', SOLAR_DEF), '-g', 'warn',
     ], noguide.io), 1)
     assert.ok(noguide.err.join('\n').includes(
-      Path.join(root, 'model', 'guide', 'solar-guide.aon')), noguide.err.join('\n'))
+      Path.join(root, 'model', 'guide', 'solar-guide.aontu')), noguide.err.join('\n'))
   })
 
 
@@ -260,19 +260,21 @@ describe('cli', () => {
 
     const model = Path.join(root, 'model')
     for (const file of [
-      'guide/' + SOLAR_PREFIX + 'guide.aon',
-      'guide/' + SOLAR_PREFIX + 'base-guide.aon',
-      'api/' + SOLAR_PREFIX + 'api-info.aon',
-      'entity/' + SOLAR_PREFIX + 'entity-index.aon',
-      'entity/' + SOLAR_PREFIX + 'planet.aon',
-      'entity/' + SOLAR_PREFIX + 'moon.aon',
-      'flow/' + SOLAR_PREFIX + 'flow-index.aon',
+      'guide/' + SOLAR_PREFIX + 'guide.aontu',
+      'guide/' + SOLAR_PREFIX + 'base-guide.aontu',
+      'api/' + SOLAR_PREFIX + 'api-info.aontu',
+      'entity/' + SOLAR_PREFIX + 'entity-index.aontu',
+      'entity/' + SOLAR_PREFIX + 'planet.aontu',
+      'entity/' + SOLAR_PREFIX + 'moon.aontu',
+      'flow/' + SOLAR_PREFIX + 'flow-index.aontu',
     ]) {
       assert.ok(Fs.existsSync(Path.join(model, file)), 'missing ' + file)
     }
 
+    // Nothing is left under the retired extension: the writers emit `.aontu`
+    // and the migration renames what it finds.
     const written = Fs.readdirSync(model, { recursive: true }) as string[]
-    assert.deepEqual(written.filter((f) => f.endsWith('.aontu')), [])
+    assert.deepEqual(written.filter((f) => f.endsWith('.aon')), [])
 
     // An explicit --debug, at any level, also writes the resolved definition.
     assert.deepEqual(Fs.readdirSync(Path.join(root, 'def')).sort(),
@@ -292,7 +294,7 @@ describe('cli', () => {
 
     assert.equal(code, 0, out.join('\n'))
     assert.deepEqual(Fs.readdirSync(Path.join(root, 'def')), [SOLAR_DEF])
-    assert.ok(Fs.existsSync(Path.join(root, 'model', 'entity', SOLAR_PREFIX + 'planet.aon')))
+    assert.ok(Fs.existsSync(Path.join(root, 'model', 'entity', SOLAR_PREFIX + 'planet.aontu')))
   })
 
 
@@ -314,18 +316,18 @@ describe('cli', () => {
   })
 
 
-  // A project created before the rename still carries <prefix>guide.aontu;
-  // the CLI accepts it and the run leaves the migrated .aon in its place.
+  // A project created before the rename still carries <prefix>guide.aon;
+  // the CLI accepts it and the run leaves the migrated .aontu in its place.
   test('run-legacy-guide', async () => {
     const root = makeProject()
     const guidefolder = Path.join(root, 'model', 'guide')
-    const guide = Path.join(guidefolder, SOLAR_PREFIX + 'guide.aon')
-    const legacy = Path.join(guidefolder, SOLAR_PREFIX + 'guide.aontu')
+    const guide = Path.join(guidefolder, SOLAR_PREFIX + 'guide.aontu')
+    const legacy = Path.join(guidefolder, SOLAR_PREFIX + 'guide.aon')
 
     Fs.unlinkSync(guide)
     Fs.writeFileSync(legacy, [
-      '@"@voxgig/apidef/model/guide.aontu"',
-      '@"' + SOLAR_PREFIX + 'base-guide.aontu"',
+      '@"@voxgig/apidef/model/guide.aon"',
+      '@"' + SOLAR_PREFIX + 'base-guide.aon"',
       '',
     ].join('\n'))
 
@@ -336,9 +338,9 @@ describe('cli', () => {
     ], io)
 
     assert.equal(code, 0, out.join('\n'))
-    assert.ok(Fs.existsSync(guide), 'guide.aon not written by the migration')
-    assert.ok(!Fs.existsSync(legacy), 'guide.aontu left behind')
-    assert.ok(Fs.existsSync(Path.join(root, 'model', 'entity', SOLAR_PREFIX + 'planet.aon')))
+    assert.ok(Fs.existsSync(guide), 'guide.aontu not written by the migration')
+    assert.ok(!Fs.existsSync(legacy), 'guide.aon left behind')
+    assert.ok(Fs.existsSync(Path.join(root, 'model', 'entity', SOLAR_PREFIX + 'planet.aontu')))
   })
 
 
@@ -346,13 +348,13 @@ describe('cli', () => {
   test('run-legacy-guide-dotslash', async () => {
     const root = makeProject()
     const guidefolder = Path.join(root, 'model', 'guide')
-    const guide = Path.join(guidefolder, SOLAR_PREFIX + 'guide.aon')
-    const legacy = Path.join(guidefolder, SOLAR_PREFIX + 'guide.aontu')
+    const guide = Path.join(guidefolder, SOLAR_PREFIX + 'guide.aontu')
+    const legacy = Path.join(guidefolder, SOLAR_PREFIX + 'guide.aon')
 
     Fs.unlinkSync(guide)
     Fs.writeFileSync(legacy, [
-      '@"@voxgig/apidef/model/guide.aontu"',
-      '@"./' + SOLAR_PREFIX + 'base-guide.aontu"',
+      '@"@voxgig/apidef/model/guide.aon"',
+      '@"./' + SOLAR_PREFIX + 'base-guide.aon"',
       '',
     ].join('\n'))
 
@@ -363,11 +365,11 @@ describe('cli', () => {
     ], io)
 
     assert.equal(code, 0, out.join('\n'))
-    assert.ok(!Fs.existsSync(legacy), 'guide.aontu left behind')
+    assert.ok(!Fs.existsSync(legacy), 'guide.aon left behind')
     const migrated = Fs.readFileSync(guide, 'utf8')
-    assert.ok(migrated.includes('@"./' + SOLAR_PREFIX + 'base-guide.aon"'), migrated)
-    assert.ok(!migrated.includes('.aontu'), migrated)
-    assert.ok(Fs.existsSync(Path.join(root, 'model', 'entity', SOLAR_PREFIX + 'planet.aon')))
+    assert.ok(migrated.includes('@"./' + SOLAR_PREFIX + 'base-guide.aontu"'), migrated)
+    assert.ok(!migrated.includes('.aon"'), migrated)
+    assert.ok(Fs.existsSync(Path.join(root, 'model', 'entity', SOLAR_PREFIX + 'planet.aontu')))
   })
 
 })

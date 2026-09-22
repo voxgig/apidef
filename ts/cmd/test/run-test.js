@@ -35,7 +35,7 @@ try {
       require.main.paths = fakePaths
     } else {
       // Node SEA: require.main.paths exists but points to executable location.
-      // Prepend cwd-based paths so aontu can find @voxgig/apidef/model/*.aon.
+      // Prepend cwd-based paths so aontu can find @voxgig/apidef/model/*.aontu.
       for (let i = fakePaths.length - 1; i >= 0; i--) {
         if (!require.main.paths.includes(fakePaths[i])) {
           require.main.paths.unshift(fakePaths[i])
@@ -73,7 +73,7 @@ async function run() {
     copyDirSync(Path.join(absFixtures, 'def'), defDir)
 
     // Copy model files into a node_modules-like structure so that aontu's
-    // pkg resolver can find @"@voxgig/apidef/model/*.aon" references.
+    // pkg resolver can find @"@voxgig/apidef/model/*.aontu" references.
     // This is needed for standalone executables where the bundled require.resolve()
     // cannot resolve arbitrary filesystem paths.
     const modelSrc = Path.resolve(absFixtures, '..', '..', 'model')

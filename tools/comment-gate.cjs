@@ -8,7 +8,7 @@ const REPO = Path.join(__dirname, '..')
 const Child = require('node:child_process')
 const CONFIG = require('./comment-scope.json')
 
-const SOURCE_EXTS = ['.ts', '.go', '.rs', '.aon', '.aontu']
+const SOURCE_EXTS = ['.ts', '.go', '.rs', '.aontu']
 const SKIP_DIRS = new Set([
   'node_modules', 'dist', 'dist-test', 'covdata', 'target', 'vendor', '.git',
 ])

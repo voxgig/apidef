@@ -4,12 +4,12 @@ package model
 
 import "embed"
 
-// FS holds the embedded aontu model schemas: apidef.aon and guide.aon.
+// FS holds the embedded aontu model schemas: apidef.aontu and guide.aontu.
 //
-//go:embed apidef.aon guide.aon
+//go:embed apidef.aontu guide.aontu
 var FS embed.FS
 
-// Read returns the contents of an embedded model file (e.g. "apidef.aon").
+// Read returns the contents of an embedded model file (e.g. "apidef.aontu").
 func Read(name string) ([]byte, error) {
 	return FS.ReadFile(name)
 }

@@ -33,7 +33,7 @@ function resolveEntity(
   const entityFiles: { name: string, src: string }[] = []
 
   each(kit.entity, ((entity: any, entityName: string) => {
-    const entityFile = (null == opts.outprefix ? '' : opts.outprefix) + entityName + '.aon'
+    const entityFile = (null == opts.outprefix ? '' : opts.outprefix) + entityName + '.aontu'
 
     const { model, relations } = entityAncestorSource(entity)
     let entityJSONIC = formatJSONIC(model).trim()
@@ -54,7 +54,7 @@ function resolveEntity(
     barrel.push(`@"./${Path.basename(entityFile)}"`)
   }))
 
-  const indexFile = (null == opts.outprefix ? '' : opts.outprefix) + 'entity-index.aon'
+  const indexFile = (null == opts.outprefix ? '' : opts.outprefix) + 'entity-index.aontu'
 
   return function apiEntityBuilder() {
     Folder({ name: 'entity' }, () => {
@@ -94,8 +94,8 @@ function gcEntityFiles(
   const entityFolder = Path.join(modelFolder, 'entity')
 
   const keep = new Set<string>(
-    entityNames.map((name) => prefix + name + '.aon'))
-  keep.add(prefix + 'entity-index.aon')
+    entityNames.map((name) => prefix + name + '.aontu'))
+  keep.add(prefix + 'entity-index.aontu')
 
   let entries: string[] = []
   try {
@@ -106,7 +106,10 @@ function gcEntityFiles(
   }
 
   for (const entry of entries) {
-    if (!entry.endsWith('.aon') && !entry.endsWith('.aontu')) { continue }
+    // BOTH extensions. `.aontu` is the only name this builder writes; `.aon`
+    // is what a project generated before the rename still holds, and those
+    // files are exactly what wants collecting.
+    if (!entry.endsWith('.aontu') && !entry.endsWith('.aon')) { continue }
     if (!entry.startsWith(prefix)) { continue }
     if (keep.has(entry)) { continue }
 

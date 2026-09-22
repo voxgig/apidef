@@ -8,8 +8,8 @@
     "ts/test/graphql-solar": "Generated model/guide output used by golden and CLI tests; preserve byte-exact output."
   },
   "densityExempt": {
-    "model/apidef.aon": "API-model schema: each key carries its purpose beside its declaration.",
-    "ts/model/apidef.aon": "API-model schema: each key carries its purpose beside its declaration.",
-    "go/model/apidef.aon": "API-model schema: each key carries its purpose beside its declaration."
+    "model/apidef.aontu": "API-model schema: each key carries its purpose beside its declaration.",
+    "ts/model/apidef.aontu": "API-model schema: each key carries its purpose beside its declaration.",
+    "go/model/apidef.aontu": "API-model schema: each key carries its purpose beside its declaration."
   }
 }

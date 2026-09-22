@@ -15,13 +15,13 @@ const node_fs_1 = require("node:fs");
 const node_path_1 = __importDefault(require("node:path"));
 const aontu_1 = require("aontu");
 const REPO = node_path_1.default.resolve(__dirname, '..', '..');
-const MODEL_FILES = ['apidef.aon', 'guide.aon'];
+const MODEL_FILES = ['apidef.aontu', 'guide.aontu'];
 (0, node_test_1.describe)('model-mirror', () => {
     (0, node_test_1.test)('alias keys preserve the explicit declaration schema', () => {
-        const source = (0, node_fs_1.readFileSync)(node_path_1.default.join(REPO, 'model', 'apidef.aon'), 'utf8');
+        const source = (0, node_fs_1.readFileSync)(node_path_1.default.join(REPO, 'model', 'apidef.aontu'), 'utf8');
         const explicit = source.replace(/^(\s*)%([\w-]+):/gm, '$1$2: %$2 =');
         node_assert_1.default.notStrictEqual(source, explicit);
-        node_assert_1.default.strictEqual(new aontu_1.Aontu().unify(source, { path: 'model-schema.aon' }).canon, new aontu_1.Aontu().unify(explicit, { path: 'model-schema.aon' }).canon);
+        node_assert_1.default.strictEqual(new aontu_1.Aontu().unify(source, { path: 'model-schema.aontu' }).canon, new aontu_1.Aontu().unify(explicit, { path: 'model-schema.aontu' }).canon);
     });
     (0, node_test_1.test)('flow-step alias supplies defaults and preserves disabled steps and payload keys', () => {
         const step = {
@@ -31,7 +31,7 @@ const MODEL_FILES = ['apidef.aon', 'guide.aon'];
             s: [{ apply: 'TextFieldMark', def: { mark: 'mark01' } }],
             v: [{ apply: 'ItemExists', def: { ref: 'widget01' } }],
         };
-        const source = (0, node_fs_1.readFileSync)(node_path_1.default.join(REPO, 'model', 'apidef.aon'), 'utf8') + '\n' +
+        const source = (0, node_fs_1.readFileSync)(node_path_1.default.join(REPO, 'model', 'apidef.aontu'), 'utf8') + '\n' +
             'main:kit:flow:BasicWidgetFlow:' + JSON.stringify({ step: [{ o: 'list' }, step] });
         const model = new aontu_1.Aontu().generate(source);
         node_assert_1.default.deepStrictEqual(model.main.kit.flow.BasicWidgetFlow.step, [
@@ -51,7 +51,7 @@ const MODEL_FILES = ['apidef.aon', 'guide.aon'];
             t: { req: '`reqdata`', res: '`body`' },
             co: { version: 2, id: 'GET /widgets/{id}', source: 'openapi3' }, li: false,
         };
-        const source = (0, node_fs_1.readFileSync)(node_path_1.default.join(REPO, 'model', 'apidef.aon'), 'utf8') + '\n' +
+        const source = (0, node_fs_1.readFileSync)(node_path_1.default.join(REPO, 'model', 'apidef.aontu'), 'utf8') + '\n' +
             'main:kit:entity:widget:op:load:' + JSON.stringify({ name: 'load', points: [point] });
         const model = new aontu_1.Aontu().generate(source);
         const result = model.main.kit.entity.widget.op.load.points[0];
@@ -66,7 +66,7 @@ const MODEL_FILES = ['apidef.aon', 'guide.aon'];
             secret: { n: 'secret', h: 'Secret', r: false, t: '`$STRING`', a: false,
                 sh: 'A secret.', ro: true, wo: true, de: true, fo: 'password' },
         };
-        const source = (0, node_fs_1.readFileSync)(node_path_1.default.join(REPO, 'model', 'apidef.aon'), 'utf8') + '\n' +
+        const source = (0, node_fs_1.readFileSync)(node_path_1.default.join(REPO, 'model', 'apidef.aontu'), 'utf8') + '\n' +
             'main:kit:entity:widget:fields:' + JSON.stringify(fields);
         const model = new aontu_1.Aontu().generate(source);
         node_assert_1.default.deepStrictEqual(model.main.kit.entity.widget.fields, { id: { ...fields.id, a: true }, secret: fields.secret });

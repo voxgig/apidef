@@ -65,7 +65,7 @@ func BuildGuide(ctx *ApiDefContext) (map[string]any, error) {
 	guideDir := filepath.Join(folder, "guide")
 	os.MkdirAll(guideDir, 0755)
 	prefix := ctx.Opts.OutPrefix
-	baseGuideFile := filepath.Join(guideDir, prefix+"base-guide.aon")
+	baseGuideFile := filepath.Join(guideDir, prefix+"base-guide.aontu")
 	if err := os.WriteFile(baseGuideFile, []byte(guideSrc), 0644); err != nil {
 		return nil, fmt.Errorf("failed to write base guide %s: %w",
 			RelativizePath(baseGuideFile), err)
@@ -88,22 +88,35 @@ func BuildGuide(ctx *ApiDefContext) (map[string]any, error) {
 	return map[string]any{"guide": guideModel}, nil
 }
 
-// checkGuideOverlay fails when <prefix>guide.aon carries customizations
+// guideOverlayPath prefers `.aontu` and falls back to the pre-rename `.aon`.
+// ONE function: its callers disagreed before, so an unmigrated project lost
+// its id overrides to a build that had just inspected the same file.
+func guideOverlayPath(guideDir string, prefix string) string {
+	current := filepath.Join(guideDir, prefix+"guide.aontu")
+	if _, err := os.Stat(current); err == nil {
+		return current
+	}
+
+	legacy := filepath.Join(guideDir, prefix+"guide.aon")
+	if _, err := os.Stat(legacy); err == nil {
+		return legacy
+	}
+
+	return current
+}
+
+// checkGuideOverlay fails when <prefix>guide.aontu carries customizations
 // this port cannot honour. A bare overlay (only comments and the two
 // @-includes) is the common case and is fine — it contributes nothing beyond
 // the base guide, so Go's output matches TS's.
 func checkGuideOverlay(ctx *ApiDefContext, guideDir string, prefix string) error {
-	// BOTH extensions. `.aon` is the current name; `.aontu` is what every
-	// project created before the rename still carries. Reading only `.aon`
-	// would treat a legacy overlay as ABSENT — and an absent overlay is
-	// reported as fine — so unsupported customizations would be silently
-	// accepted instead of refused, which is the opposite of this check.
-	overlayFile := filepath.Join(guideDir, prefix+"guide.aon")
+	// BOTH extensions. `.aontu` is the only name; `.aon` is what a project
+	// created before the rename still carries. Reading only `.aontu` would
+	// treat a legacy overlay as ABSENT — and an absent overlay is reported as
+	// fine — so unsupported customizations would be silently accepted instead
+	// of refused, which is the opposite of this check.
+	overlayFile := guideOverlayPath(guideDir, prefix)
 	src, err := os.ReadFile(overlayFile)
-	if err != nil {
-		overlayFile = filepath.Join(guideDir, prefix+"guide.aontu")
-		src, err = os.ReadFile(overlayFile)
-	}
 	if err != nil {
 		// Absent overlay is not an error here: the TS side surfaces that
 		// through aontu when it tries to resolve the entry file.
@@ -2361,8 +2374,7 @@ func nilOrStr(v any) string {
 func readGuideIdOverrides(guideDir string, prefix string) map[string]map[string]any {
 	out := map[string]map[string]any{}
 
-	path := filepath.Join(guideDir, prefix+"guide.aon")
-	raw, err := os.ReadFile(path)
+	raw, err := os.ReadFile(guideOverlayPath(guideDir, prefix))
 	if err != nil {
 		return out
 	}

@@ -68,7 +68,7 @@ So with `base: '/proj/model'` and `def: 'petstore.yml'`, apidef reads
 proj/
   def/petstore.yml     # input  (base/../def/)
   model/               # output (options.folder), also used as base
-    guide/<prefix>guide.aon   # the guide entry file (see below)
+    guide/<prefix>guide.aontu   # the guide entry file (see below)
 ```
 
 > The spec **must declare at least one server** (`servers[0].url`); the `top`
@@ -79,29 +79,29 @@ proj/
 The classification (guide) stage reads a guide entry file from:
 
 ```
-<options.folder>/guide/<outprefix>guide.aon
+<options.folder>/guide/<outprefix>guide.aontu
 ```
 
 You author this file once. It pulls in apidef's guide schema and the
 heuristic classification that apidef regenerates on every run
-(`<outprefix>base-guide.aon`):
+(`<outprefix>base-guide.aontu`):
 
 ```jsonic
-@"@voxgig/apidef/model/guide.aon"
-@"./<outprefix>base-guide.aon"
+@"@voxgig/apidef/model/guide.aontu"
+@"./<outprefix>base-guide.aontu"
 ```
 
 Within a single run the base-guide is written *before* this file is read, so a
 cold start works in one pass as long as the guide entry file exists. The
-`@voxgig/apidef/model/guide.aon` reference is resolved from `node_modules`,
+`@voxgig/apidef/model/guide.aontu` reference is resolved from `node_modules`,
 so apidef must be installed in the project, and the sibling include carries a
 `./` because aontu reads a bare name as a package. Any classification
 overrides go below the includes; the file is merged, never clobbered, on
 re-runs.
 
-A project from before the `.aon` rename still works: a
-`<outprefix>guide.aontu` entry file is rewritten to `.aon`, with its includes,
-on the first run, and a bare `@"<outprefix>base-guide.aon"` include gains its
+A project from before the `.aontu` rename still works: a
+`<outprefix>guide.aontu` entry file is rewritten to `.aontu`, with its includes,
+on the first run, and a bare `@"<outprefix>base-guide.aontu"` include gains its
 `./` the same way.
 
 ## Control flags (`ctrl.step`)

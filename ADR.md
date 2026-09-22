@@ -18,7 +18,7 @@ ADR-NNN**, so the reasoning that led there stays readable.
 | ADR | Decision | Status |
 |-----|----------|--------|
 | [ADR-001](#adr-001--entity-names-are-singular-always) | Entity names are singular, always | Accepted |
-| [ADR-002](#adr-002--guideaon-is-the-only-correction-surface) | `guide.aon` is the only correction surface | Accepted |
+| [ADR-002](#adr-002--guideaon-is-the-only-correction-surface) | `guide.aontu` is the only correction surface | Accepted |
 | [ADR-003](#adr-003--the-model-carries-resolved-structure-not-templates-to-parse) | The model carries resolved structure, not templates to parse | Accepted |
 
 ---
@@ -32,7 +32,7 @@ ADR-NNN**, so the reasoning that led there stays readable.
 An entity is **one record**. `client.Joke(id).load()` loads a joke, not a
 collection of them, and every downstream artefact reads that way: the Go
 type `Joke`, the TypeScript class `JokeEntity`, the file
-`<slug>-joke.aon`, the test fixture `JokeTestData.json`. A plural name
+`<slug>-joke.aontu`, the test fixture `JokeTestData.json`. A plural name
 makes each of those a lie, and the lie is not local — sdkgen turns the
 entity name into public class names across every one of its two dozen
 targets, so a plural that reaches the model becomes a published API.
@@ -178,7 +178,7 @@ We accept that:
 
 ---
 
-## ADR-002 — `guide.aon` is the only correction surface
+## ADR-002 — `guide.aontu` is the only correction surface
 
 **Status:** Accepted
 
@@ -197,7 +197,7 @@ one is individually reasonable.
 2. **An overlay document** — a separate file of patches applied to the
    spec before parsing, in the shape of the OpenAPI Overlay
    specification.
-3. **`guide.aon`** — the file apidef already generates, already
+3. **`guide.aontu`** — the file apidef already generates, already
    documents as the escape hatch, and already reads back on every run.
 
 The decisive fact is **whose spec it is**. The specs apidef is pointed at
@@ -209,33 +209,33 @@ that only works on specs you control is not a correction surface — it is
 a second way to write the spec, available exactly when you least need it.
 
 The overlay avoids that, and is a real specification with real tooling.
-But it buys the same capability `guide.aon` already has, in a second
+But it buys the same capability `guide.aontu` already has, in a second
 file, with a second syntax, applied at a different pipeline stage — and
 then every correction has two possible homes and a precedence question
-between them. `guide.aon` had `active?: boolean` at entity, path, op and
+between them. `guide.aontu` had `active?: boolean` at entity, path, op and
 field level before this decision was written; what it lacked was code
 that read it, which is a bug, not an argument for a new mechanism.
 
 ### Decision
 
 **All customisation and correction of apidef's inference happens in
-`guide.aon`. apidef reads no vendor extensions (`x-*`) and no overlay
+`guide.aontu`. apidef reads no vendor extensions (`x-*`) and no overlay
 documents, and emits none.**
 
 Heuristics are free to be as clever as the evidence allows, because
-`guide.aon` is always there to overrule them. Two consequences follow,
+`guide.aontu` is always there to overrule them. Two consequences follow,
 and both are load-bearing:
 
 - **A heuristic must never silently DROP anything.** A classification
   that removes an entity has to emit it with `active: false`, not omit
-  it — an entity that is absent from `guide.aon` cannot be switched back
+  it — an entity that is absent from `guide.aontu` cannot be switched back
   on there, which would leave the user with no correction surface at all
   and hand the argument back to the vendor extension. Emit, deactivate,
   explain in a comment.
 - **Generated defaults must be aontu DEFAULTS (`*value`), never concrete
   values.** aontu conflicts two concrete values rather than letting one
-  win, so a concrete `active: false` in the generated `base-guide.aon`
-  would make a user's `active: true` in `guide.aon` fail to unify instead
+  win, so a concrete `active: false` in the generated `base-guide.aontu`
+  would make a user's `active: true` in `guide.aontu` fail to unify instead
   of overriding it. The correction surface only works if what it
   overrides yields.
 
@@ -256,7 +256,7 @@ the exchange survives into the model as facts on
   surface prevents that — which is why the signals are conjunctions
   rather than any-of, and why each deactivation writes a comment saying
   what decided it.
-- **We cannot express anything that has no `guide.aon` representation.**
+- **We cannot express anything that has no `guide.aontu` representation.**
   When a new kind of correction is needed, the guide model grows — that
   is the cost, and it is deliberately paid in the schema rather than in
   a new file format.
@@ -417,7 +417,7 @@ consequence is accepted below.
 - **`parts` must not come back.** Grep for it before adding a path
   representation, the way ADR-002 says to grep for `x-`. A second shape
   for one fact is a reversal of this entry and needs an ADR of its own.
-- The point shape in `model/apidef.aon` declares `segments` and not
+- The point shape in `model/apidef.aontu` declares `segments` and not
   `parts`, so a model carrying the old key fails unification in the
   consumer rather than being silently half-read.
 - A new brace-parsing regular expression in a generated runtime is the

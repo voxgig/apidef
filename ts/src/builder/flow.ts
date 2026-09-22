@@ -43,7 +43,7 @@ async function makeFlowBuilder(ctx: ApiDefContext): Promise<Function> {
       ctx.warn({
         step: 'flow',
         note: 'flow name ' + name + ' collides with another when case is' +
-          ' ignored: file written as ' + filebase[name] + '.aon'
+          ' ignored: file written as ' + filebase[name] + '.aontu'
       })
     }
   }
@@ -59,7 +59,7 @@ async function makeFlowBuilder(ctx: ApiDefContext): Promise<Function> {
         let flowfile =
           Path.join(ctx.opts.folder, 'flow',
             (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) +
-            (filebase[flow.name] || flow.name) + '.aon')
+            (filebase[flow.name] || flow.name) + '.aontu')
 
         let flowModelSrc = formatJsonSrc(JSON.stringify(flow, null, 2))
 
@@ -73,7 +73,7 @@ main: ${KIT}: flow: ${flow.name}:
         File({ name: Path.basename(flowfile) }, () => Content(flowsrc))
       })
 
-      const barrelFile = (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'flow-index.aon'
+      const barrelFile = (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'flow-index.aontu'
 
       const barrelContent = barrel.join('\n')
 

@@ -70,7 +70,7 @@ func entityBuilder(ctx *ApiDefContext) {
 			continue
 		}
 
-		entityFile := prefix + entityName + ".aon"
+		entityFile := prefix + entityName + ".aontu"
 		cleanEntity := stripEntityDefaults(entity)
 		cleanEntity = stripEmptyRelations(cleanEntity)
 		cleanEntity, relations := entityAncestorSource(cleanEntity.(map[string]any))
@@ -93,7 +93,7 @@ func entityBuilder(ctx *ApiDefContext) {
 		barrel = append(barrel, fmt.Sprintf(`@"%s"`, entityFile))
 	}
 
-	indexFile := prefix + "entity-index.aon"
+	indexFile := prefix + "entity-index.aontu"
 	writeGen(ctx, filepath.Join(entityDir, indexFile), strings.Join(barrel, "\n"))
 }
 
@@ -247,7 +247,7 @@ func infoBuilder(ctx *ApiDefContext) {
 	apiDir := filepath.Join(folder, "api")
 	mkdirGen(ctx, apiDir)
 
-	infoFile := prefix + "api-info.aon"
+	infoFile := prefix + "api-info.aontu"
 	modelInfo := map[string]any{
 		"main": map[string]any{
 			KIT: map[string]any{
@@ -297,7 +297,7 @@ func MakeFlowBuilder(ctx *ApiDefContext) (func() error, error) {
 
 			flow["key$"] = flowName
 
-			flowfile := prefix + flowName + ".aon"
+			flowfile := prefix + flowName + ".aontu"
 			entNameMap := map[string]any{"name": flowName}
 			flowModelSrc := FormatJsonSrc(ToJSONOrdered(flow))
 			flowSrc := fmt.Sprintf("# %s\n\nmain: %s: flow: %s:\n%s",
@@ -307,7 +307,7 @@ func MakeFlowBuilder(ctx *ApiDefContext) (func() error, error) {
 			barrel = append(barrel, fmt.Sprintf(`@"%s"`, flowfile))
 		}
 
-		barrelFile := prefix + "flow-index.aon"
+		barrelFile := prefix + "flow-index.aontu"
 		writeGen(ctx, filepath.Join(flowDir, barrelFile), strings.Join(barrel, "\n"))
 		return nil
 	}, nil

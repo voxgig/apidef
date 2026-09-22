@@ -7,7 +7,7 @@ import { entityAncestorSource } from '../dist/builder/entity/entity'
 import { filterEntityAncestors } from '../dist/transform/entity'
 
 const root = Path.resolve(__dirname, '../..')
-const schema = readFileSync(Path.join(root, 'model/apidef.aon'), 'utf8')
+const schema = readFileSync(Path.join(root, 'model/apidef.aontu'), 'utf8')
 
 test('inferred ancestors retain only existing other entities', () => {
   const row = JSON.parse(readFileSync(Path.join(root, 'ts/test/ancestor-targets.json'), 'utf8'))

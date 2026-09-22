@@ -40,7 +40,7 @@ const topTransform = async function(
   // Guarantee at least one sentence of API description. Many specs (e.g. the
   // readme.io-hosted Bluefin APIs) ship a placeholder `info.description` of
   // "." — letterless, useless prose. When the description is empty or has no
-  // letters, synthesise a sentence from the title so the api-info.aon (and
+  // letters, synthesise a sentence from the title so the api-info.aontu (and
   // the docs generated from it) never carry an empty/degenerate description.
   kit.info.description = ensureDescription(kit.info)
 

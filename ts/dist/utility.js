@@ -969,7 +969,7 @@ const CMP_RESULT_VERBS = [
     'get', 'edit', 'resolve', 'rotate', 'search',
 ];
 const CMP_PREFIXES = ['get_', 'post_', 'put_', 'delete_', 'patch_'];
-// A guide node (entity, path or op) is active unless guide.aon explicitly
+// A guide node (entity, path or op) is active unless guide.aontu explicitly
 // says otherwise. `active` has always been declared in the guide model and
 // documented as the escape hatch for a misclassified entity; this is the
 // single place that decides what it means, so entity/flow/operation transforms

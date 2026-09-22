@@ -15,9 +15,9 @@ import { ApiDef } from './apidef'
 
 const Pkg = require('../package.json')
 
-const GUIDE_FILE = 'guide.aon'
-const LEGACY_GUIDE_FILE = 'guide.aontu'
-const BASE_GUIDE_FILE = 'base-guide.aon'
+const GUIDE_FILE = 'guide.aontu'
+const LEGACY_GUIDE_FILE = 'guide.aon'
+const BASE_GUIDE_FILE = 'base-guide.aontu'
 
 const WATCH_INTERVAL_MS = 500
 
@@ -203,8 +203,8 @@ function resolveProject(options: CliOptions): CliProject {
 }
 
 
-// A legacy `.aontu` guide is accepted here because the guide stage migrates
-// it to `.aon` before reading it.
+// A legacy `.aon` guide is accepted here because the guide stage migrates
+// it to `.aontu` before reading it.
 function checkProject(project: CliProject): void {
   if (Fs.existsSync(project.guide) || Fs.existsSync(project.legacyguide)) {
     return

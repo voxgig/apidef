@@ -1,7 +1,7 @@
 # Reference: the guide model
 
 The guide is the output of the classification stage (`result.guide`, also
-written as `base-guide.aon`). It records *which paths belong to which
+written as `base-guide.aontu`). It records *which paths belong to which
 entity* and *how each method was classified*, with a `why_*` trace for every
 decision. Types live in [`ts/src/types.ts`](../../ts/src/types.ts) (`Guide`,
 `GuideEntity`, `GuidePath`, `GuidePathOp`, …).
@@ -86,8 +86,8 @@ entity: moon: {
 
 ## Correcting the guide
 
-`base-guide.aon` is the heuristic's output, and apidef rewrites it on every
-run. Corrections go in the project's own `guide.aon`, the two-line file that
+`base-guide.aontu` is the heuristic's output, and apidef rewrites it on every
+run. Corrections go in the project's own `guide.aontu`, the two-line file that
 includes the base guide: anything written below the includes unifies over the
 heuristic's defaults, and survives regeneration. Never edit the base guide
 itself. An edit there lasts until the next run on a machine without your
@@ -97,8 +97,8 @@ The base guide writes every default as an aontu default (`*GET`, `*"id"`),
 so your concrete value wins. The shapes you can correct:
 
 ```jsonic
-@"@voxgig/apidef/model/guide.aon"
-@"base-guide.aon"
+@"@voxgig/apidef/model/guide.aontu"
+@"base-guide.aontu"
 
 # Switch off an entity the heuristic invented.
 guide: entity: pull_request_merge_result: active: false
@@ -131,8 +131,8 @@ project put a DEFAULT there and invert the rule from a denylist into an
 allowlist:
 
 ```jsonic
-@"@voxgig/apidef/model/guide.aon"
-@"base-guide.aon"
+@"@voxgig/apidef/model/guide.aontu"
+@"base-guide.aontu"
 
 # Default every entity off, then name the ones this SDK covers.
 guide: entity: &: active: *false
