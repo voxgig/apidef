@@ -214,14 +214,22 @@ reset:
 	cd go && go build ./...
 	cd go && go test -v ./...
 
-.PHONY: comments comments-test hooks
+.PHONY: comments comments-test deps deps-test hooks
 comments:
 	node tools/comment-gate.cjs
 
 comments-test:
 	node --test tools/comment-gate.test.cjs
 
+# Dependency sources: a published npm package or a GitHub reference. Only
+# tracked files are judged, so local wiring stays legal until it is staged.
+deps:
+	node tools/dep-gate.cjs
+
+deps-test:
+	node --test tools/dep-gate.test.cjs
+
 hooks:
 	git config core.hooksPath .githooks
 
-test: comments
+test: comments deps

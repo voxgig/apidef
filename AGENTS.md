@@ -19,6 +19,20 @@ Archives are appropriate when testing package contents or installation from a
 packed release. Put those artifacts in a temporary test directory and clean
 up artifacts created by the test afterward; do not scatter them across repos.
 
+`make deps` enforces the committed half of that rule: a committed dependency
+names a published npm package or a GitHub reference, and anything else is a
+finding — `file:`, `link:`, `portal:`, `workspace:`, a bare filesystem path, a
+packed `.tgz`, a git reference to a host other than github.com, an off-registry
+`overrides`, a lockfile resolving from a path or a foreign registry, a Go
+`replace` or a Cargo `path` leaving the repository, a committed `go.work`, a
+symlink escaping the repository, a committed archive, a `.npmrc` pointing
+elsewhere. It judges only what git TRACKS, deliberately, so local wiring stays
+legal right up to the moment it is staged. It runs under `make test`, inside
+`cd ts && npm test`, and in `.githooks/pre-push` (`make hooks` installs the
+hook); `make deps-test` runs the gate's own suite. `tools/dep-gate.json` is the
+allowlist: every entry needs a reason, and the gate reports an entry that has
+stopped matching anything, so the list cannot outlive what it excused.
+
 Context for AI coding agents working **on** this repo or using apidef **as a
 tool**. Human-readable docs are in [`docs/`](./docs/README.md); this file is
 the orientation layer.
