@@ -10,9 +10,10 @@ npx voxgig-apidef <name> [options]
 voxgig-apidef <name> [options]
 ```
 
-The first positional argument is the project **name**. The CLI is a thin
-wrapper over the [library API](./api.md): it calls `ApiDef.makeBuild` against
-a project folder and runs one build.
+The first positional argument is the project **name**, and the only
+positional argument: a second one is refused with the usage text rather than
+ignored. The CLI is a thin wrapper over the [library API](./api.md): it calls
+`ApiDef.makeBuild` against a project folder and runs one build.
 
 ## Options
 
@@ -31,7 +32,8 @@ voxgig-apidef petstore --folder ./petstore --def ./petstore/def/petstore.yml --d
 ```
 
 The exit status is `0` for a build that reached the end and `1` otherwise, so
-a script can gate on it.
+a script can gate on it. The one-line summary of a successful run goes to
+standard output; a failed build and every error go to standard error.
 
 ## Project layout
 

@@ -100,7 +100,7 @@ function resolveOptions(argv) {
             version: { type: 'boolean', short: 'v' },
         }
     });
-    const name = args.positionals[0];
+    const [name, ...extra] = args.positionals;
     return {
         name,
         folder: '' === args.values.folder ? name : args.values.folder,
@@ -110,9 +110,19 @@ function resolveOptions(argv) {
         debug: args.values.debug,
         help: !!args.values.help,
         version: !!args.values.version,
+        extra,
     };
 }
 function validateOptions(rawOptions) {
+    // An absent prefix defaults to <name>- later, an empty one is a valid
+    // choice, an absent debug leaves the library its own default, and `extra`
+    // is not an option at all; the shape rejects all four, so they are taken
+    // out and checked here. A positional after the name is a typo rather than
+    // a spare, and was being dropped without a word.
+    const { prefix, debug, extra, ...shaped } = rawOptions;
+    if (null != extra && 0 < extra.length) {
+        throw new Error('Unexpected extra arguments: ' + extra.join(' ') + '\n\n' + usage());
+    }
     const optShape = (0, shape_1.Shape)({
         name: (0, shape_1.Fault)('The first argument should be the project name.', String),
         folder: String,
@@ -121,10 +131,6 @@ function validateOptions(rawOptions) {
         help: Boolean,
         version: Boolean,
     });
-    // An absent prefix defaults to <name>- later, an empty one is a valid
-    // choice, and an absent debug leaves the library its own default; the
-    // shape rejects all three, so they are validated by hand.
-    const { prefix, debug, ...shaped } = rawOptions;
     if (null != prefix && 'string' !== typeof prefix) {
         throw new Error('The prefix should be a string.');
     }
@@ -187,13 +193,15 @@ function checkProject(project) {
         '  @"@voxgig/apidef/model/' + GUIDE_FILE + '"\n' +
         '  @"./' + project.outprefix + BASE_GUIDE_FILE + '"');
 }
-async function runBuild(project, options) {
+// The closure makeBuild returns memoises the ApiDef instance and its logger,
+// so a watch that reuses it rebuilds the model without rebuilding those.
+async function makeRunBuild(project, options) {
     const build = await apidef_1.ApiDef.makeBuild({
         folder: project.folder,
         outprefix: project.outprefix,
         debug: options.debug,
     });
-    return await build(project.model, { spec: { base: project.folder } }, {});
+    return () => build(project.model, { spec: { base: project.folder } }, {});
 }
 function report(result, project, io) {
     if (result.ok) {
@@ -204,7 +212,7 @@ function report(result, project, io) {
     }
     else {
         const last = result.steps?.[result.steps.length - 1] || 'start';
-        io.log('voxgig-apidef: failed after step ' + last + ': ' +
+        io.error('voxgig-apidef: failed after step ' + last + ': ' +
             (result.err?.message || 'unknown error'));
     }
 }
@@ -247,11 +255,12 @@ async function runCli(argv, io = CONSOLE_IO) {
         options = validateOptions(options);
         const project = resolveProject(options);
         checkProject(project);
-        const result = await runBuild(project, options);
+        const runBuild = await makeRunBuild(project, options);
+        const result = await runBuild();
         report(result, project, io);
         if (options.watch) {
             await watchDef(project, async () => {
-                report(await runBuild(project, options), project, io);
+                report(await runBuild(), project, io);
             }, io);
         }
         return result.ok ? 0 : 1;

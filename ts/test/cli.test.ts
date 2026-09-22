@@ -5,7 +5,7 @@ import * as Fs from 'node:fs'
 import * as Os from 'node:os'
 import Path from 'node:path'
 
-import { test, describe } from 'node:test'
+import { test, describe, after } from 'node:test'
 import assert from 'node:assert'
 
 import {
@@ -26,12 +26,17 @@ const FIXTURES = Path.join(__dirname, '..', 'test')
 const PKG_MODEL = Path.join(__dirname, '..', 'model')
 
 
+const PROJECTS: string[] = []
+
+
 // A throwaway project in the documented layout: <root>/def holds the
 // definition, <root>/model the guide entry file and the generated output.
 // The package model is copied under <root>/node_modules so the guide's
-// package include resolves outside the repository.
+// package include resolves outside the repository. Each is recorded so the
+// suite can remove it again.
 function makeProject(): string {
   const root = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'apidef-cli-'))
+  PROJECTS.push(root)
 
   Fs.mkdirSync(Path.join(root, 'def'))
   Fs.copyFileSync(
@@ -68,6 +73,13 @@ function captureIO() {
 
 
 describe('cli', () => {
+
+  after(() => {
+    for (const root of PROJECTS) {
+      Fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
 
   test('resolve-options', () => {
     const defaults = resolveOptions(['petstore'])
@@ -214,6 +226,12 @@ describe('cli', () => {
     assert.equal(await runCli(['solar', '-d', 'no-such-def.yml'], nofile.io), 1)
     assert.ok(nofile.err.join('\n').includes('Definition file not found'))
 
+    const extra = captureIO()
+    assert.equal(await runCli(['solar', 'petstore', '-d', 'spec.yml'], extra.io), 1)
+    const extramsg = extra.err.join('\n')
+    assert.ok(extramsg.includes('Unexpected extra arguments: petstore'), extramsg)
+    assert.ok(extramsg.includes('Usage: voxgig-apidef'), extramsg)
+
     const root = makeProject()
     const noguide = captureIO()
     assert.equal(await runCli([
@@ -275,6 +293,24 @@ describe('cli', () => {
     assert.equal(code, 0, out.join('\n'))
     assert.deepEqual(Fs.readdirSync(Path.join(root, 'def')), [SOLAR_DEF])
     assert.ok(Fs.existsSync(Path.join(root, 'model', 'entity', SOLAR_PREFIX + 'planet.aon')))
+  })
+
+
+  // A failing build reports on stderr. The ok line is stdout, so a caller
+  // reading it must not be handed a failure on the same stream.
+  test('run-failure', async () => {
+    const root = makeProject()
+    Fs.writeFileSync(Path.join(root, 'def', SOLAR_DEF), 'openapi: 3.0.0\n')
+
+    const { io, out, err } = captureIO()
+    const code = await runCli([
+      'solar', '-f', root, '-d', Path.join(root, 'def', SOLAR_DEF), '-p', SOLAR_PREFIX,
+    ], io)
+
+    assert.equal(code, 1, out.concat(err).join('\n'))
+    assert.deepEqual(out, [])
+    assert.ok(err.join('\n').includes('voxgig-apidef: failed after step'),
+      err.join('\n'))
   })
 
 

@@ -49,12 +49,15 @@ const SOLAR_PREFIX = 'solar-1.0.0-openapi-3.0.0-';
 const SOLAR_DEF = SOLAR_PREFIX + 'def.yaml';
 const FIXTURES = node_path_1.default.join(__dirname, '..', 'test');
 const PKG_MODEL = node_path_1.default.join(__dirname, '..', 'model');
+const PROJECTS = [];
 // A throwaway project in the documented layout: <root>/def holds the
 // definition, <root>/model the guide entry file and the generated output.
 // The package model is copied under <root>/node_modules so the guide's
-// package include resolves outside the repository.
+// package include resolves outside the repository. Each is recorded so the
+// suite can remove it again.
 function makeProject() {
     const root = Fs.mkdtempSync(node_path_1.default.join(Os.tmpdir(), 'apidef-cli-'));
+    PROJECTS.push(root);
     Fs.mkdirSync(node_path_1.default.join(root, 'def'));
     Fs.copyFileSync(node_path_1.default.join(FIXTURES, 'def', SOLAR_DEF), node_path_1.default.join(root, 'def', SOLAR_DEF));
     Fs.mkdirSync(node_path_1.default.join(root, 'model', 'guide'), { recursive: true });
@@ -79,6 +82,11 @@ function captureIO() {
     };
 }
 (0, node_test_1.describe)('cli', () => {
+    (0, node_test_1.after)(() => {
+        for (const root of PROJECTS) {
+            Fs.rmSync(root, { recursive: true, force: true });
+        }
+    });
     (0, node_test_1.test)('resolve-options', () => {
         const defaults = (0, cli_1.resolveOptions)(['petstore']);
         node_assert_1.default.equal(defaults.name, 'petstore');
@@ -190,6 +198,11 @@ function captureIO() {
         const nofile = captureIO();
         node_assert_1.default.equal(await (0, cli_1.runCli)(['solar', '-d', 'no-such-def.yml'], nofile.io), 1);
         node_assert_1.default.ok(nofile.err.join('\n').includes('Definition file not found'));
+        const extra = captureIO();
+        node_assert_1.default.equal(await (0, cli_1.runCli)(['solar', 'petstore', '-d', 'spec.yml'], extra.io), 1);
+        const extramsg = extra.err.join('\n');
+        node_assert_1.default.ok(extramsg.includes('Unexpected extra arguments: petstore'), extramsg);
+        node_assert_1.default.ok(extramsg.includes('Usage: voxgig-apidef'), extramsg);
         const root = makeProject();
         const noguide = captureIO();
         node_assert_1.default.equal(await (0, cli_1.runCli)([
@@ -238,6 +251,19 @@ function captureIO() {
         node_assert_1.default.equal(code, 0, out.join('\n'));
         node_assert_1.default.deepEqual(Fs.readdirSync(node_path_1.default.join(root, 'def')), [SOLAR_DEF]);
         node_assert_1.default.ok(Fs.existsSync(node_path_1.default.join(root, 'model', 'entity', SOLAR_PREFIX + 'planet.aon')));
+    });
+    // A failing build reports on stderr. The ok line is stdout, so a caller
+    // reading it must not be handed a failure on the same stream.
+    (0, node_test_1.test)('run-failure', async () => {
+        const root = makeProject();
+        Fs.writeFileSync(node_path_1.default.join(root, 'def', SOLAR_DEF), 'openapi: 3.0.0\n');
+        const { io, out, err } = captureIO();
+        const code = await (0, cli_1.runCli)([
+            'solar', '-f', root, '-d', node_path_1.default.join(root, 'def', SOLAR_DEF), '-p', SOLAR_PREFIX,
+        ], io);
+        node_assert_1.default.equal(code, 1, out.concat(err).join('\n'));
+        node_assert_1.default.deepEqual(out, []);
+        node_assert_1.default.ok(err.join('\n').includes('voxgig-apidef: failed after step'), err.join('\n'));
     });
     // A project created before the rename still carries <prefix>guide.aontu;
     // the CLI accepts it and the run leaves the migrated .aon in its place.

@@ -8,6 +8,7 @@ type CliOptions = {
     debug?: string;
     help: boolean;
     version: boolean;
+    extra?: string[];
 };
 type CliProject = {
     root: string;
