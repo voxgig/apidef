@@ -6,7 +6,7 @@ passes, each one enriching a shared data structure.
 
 ```
                          ┌─────────────────────────────────────────┐
-  OpenAPI / Swagger ───▶ │  parse → guide → transform* → builder* → generate │ ───▶ model/*.aontu
+  OpenAPI / Swagger ───▶ │  parse → guide → transform* → builder* → generate │ ───▶ model/*.aon
    (YAML or JSON)        └─────────────────────────────────────────┘
                                           │
                                    in-memory apimodel
@@ -26,7 +26,7 @@ early — useful for tests and tooling. The stages, in order:
    belong to which **entity**, classify each method as a CRUD **operation** or
    an **action**, and work out parameter **renames** (e.g. `{pet_id}` → `id`).
    Every decision is recorded with a `why_*` trace. Output: `ctx.guide`, and a
-   human-editable `base-guide.aontu`.
+   human-editable `base-guide.aon`.
 
 3. **transform** — Nine ordered passes turn the guide plus the parsed spec
    into the concrete model: `top` (info/servers), `entity`, `operation`,
@@ -84,7 +84,7 @@ reasoning, and the rules for changing either side, are in
 ## Repository map
 
 ```
-model/     CANONICAL shared aontu model schemas (apidef.aontu, guide.aontu)
+model/     CANONICAL shared aontu model schemas (apidef.aon, guide.aon)
 ts/        canonical TypeScript implementation + npm package (package.json)
   src/       source (parse, guide, transform/*, builder/*, utility, apidef)
   test/      tests + shared *.tsv fixtures + solar/petstore/taxonomy specs

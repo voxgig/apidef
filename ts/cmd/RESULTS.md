@@ -73,8 +73,8 @@ Bun's bundler does NOT handle shebang files (files without `.js` extension
 starting with `#!/usr/bin/env node`). The original `bin/voxgig-apidef` was
 treated as a binary asset instead of being parsed as JavaScript.
 
-**Fix**: Created `cmd/bun/entry.js` — a `.js` copy of the CLI entry point
-that Bun can properly parse and bundle.
+**Fix**: Created `cmd/bun/entry.js` — a `.js` entry point over the same
+`dist/cli.js` as `bin/voxgig-apidef`, which Bun can parse and bundle.
 
 ### Pros
 - Easiest cross-compilation: single `--target` flag

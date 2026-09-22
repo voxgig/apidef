@@ -1,7 +1,8 @@
 # Reference: command-line tool
 
 Installing the package provides a `voxgig-apidef` binary
-([`ts/bin/voxgig-apidef`](../../ts/bin/voxgig-apidef)).
+([`ts/bin/voxgig-apidef`](../../ts/bin/voxgig-apidef), a shim over
+[`ts/src/cli.ts`](../../ts/src/cli.ts)).
 
 ```sh
 npx voxgig-apidef <name> [options]
@@ -10,27 +11,59 @@ voxgig-apidef <name> [options]
 ```
 
 The first positional argument is the project **name**. The CLI is a thin
-wrapper over the [library API](./api.md): it constructs an `ApiDef` instance
-and runs a build against a project folder.
+wrapper over the [library API](./api.md): it calls `ApiDef.makeBuild` against
+a project folder and runs one build.
 
 ## Options
 
 | flag | alias | type | default | meaning |
 |------|-------|------|---------|---------|
 | `--folder` | `-f` | string | the `<name>` argument | project folder root |
-| `--def` | `-d` | string | `''` | path to the spec file (validated to exist) |
-| `--watch` | `-w` | boolean | `false` | watch mode |
-| `--debug` | `-g` | string | `'info'` | log level / debug output |
-| `--help` | `-h` | boolean | — | print help and exit |
-| `--version` | `-v` | boolean | — | print version and exit |
+| `--def` | `-d` | string | — | path to the spec file (required, and checked to exist) |
+| `--prefix` | `-p` | string | `<name>-` | filename prefix for generated files (the library's `outprefix`) |
+| `--watch` | `-w` | boolean | `false` | rebuild whenever the spec file changes |
+| `--debug` | `-g` | string | `'info'` | log level |
+| `--help` | `-h` | boolean | — | print usage and exit |
+| `--version` | `-v` | boolean | — | print the package version and exit |
 
 ```sh
-voxgig-apidef petstore --folder ./petstore --def ./def/petstore.yml --debug debug
+voxgig-apidef petstore --folder ./petstore --def ./petstore/def/petstore.yml --debug debug
 ```
 
-The CLI expects the project folder to contain a `model/` directory with an
-`api.aontu` entry model; it writes generated model files back into the
-project folder.
+The exit status is `0` for a build that reached the end and `1` otherwise, so
+a script can gate on it.
+
+## Project layout
+
+The flags map onto the library's inputs like this:
+
+| library input | value |
+|---|---|
+| `folder` (the output folder) | `<folder>/model` |
+| `build.spec.base` | `<folder>/model` |
+| `outprefix` | `--prefix`, or `<name>-` |
+| `model.def` | `--def`, named relative to `<folder>/def` |
+
+The conventional layout is therefore the one the
+[tutorial](../tutorial/getting-started.md) builds:
+
+```
+petstore/
+  def/petstore.yml               # --def
+  model/
+    guide/petstore-guide.aon     # the guide entry file, written once by you
+```
+
+The guide entry file must exist before the first run, at
+`<folder>/model/guide/<prefix>guide.aon` (see
+[Configuration → The guide file](./configuration.md#the-guide-file)). The CLI
+refuses to start without it and prints the two lines to put in it. A guide
+file from before the `.aon` rename (`<prefix>guide.aontu`) is accepted and
+migrated in place on the first run. The spec file can live anywhere, because
+the CLI names it relative to `<folder>/def`, which is where the library's
+`<base>/../def/<model.def>` rule looks. Generated files are written under
+`<folder>/model`. This layout is pinned by
+[`ts/test/cli.test.ts`](../../ts/test/cli.test.ts).
 
 > **Note.** The library interface (`ApiDef.makeBuild` / `apidef.generate`,
 > see [the API reference](./api.md)) is the primary, fully-exercised way to

@@ -101,14 +101,14 @@ ts/package.json  the npm package manifest (ts/ is the package root)
 ts/model/      mirror of model/ (published as @voxgig/apidef/model/*)
 go/            Go parity port (flat package) + *_test.go
 go/model/      mirror of model/ (go:embed, package model)
-model/         CANONICAL aontu model schemas: apidef.aontu, guide.aontu
+model/         CANONICAL aontu model schemas: apidef.aon, guide.aon
 docs/          full documentation (tutorial / how-to / reference / explanation)
                docs/design/ and docs/review/ are working documents, not pages
 STYLE-GUIDE.md how the reader-facing pages are written; tools/check_prose.py
                and .vale.ini gate them (see "Prose follows STYLE-GUIDE.md")
 ```
 
-The shared aontu model (`apidef.aontu`, `guide.aontu`) is canonical at
+The shared aontu model (`apidef.aon`, `guide.aon`) is canonical at
 top-level `model/` and mirrored into `ts/model/` (for npm) and `go/model/`
 (for the Go module) — each packaging system can only ship files under its own
 root. Edit `model/`, then `make sync-model`; `make check-model` (and the TS
@@ -128,8 +128,8 @@ result.apimodel.main.kit.entity   // { pet: { op, fields, id, relations, … } }
 ```
 
 - **Prerequisites:** the spec must declare `servers[0].url`, and a guide entry
-  file must exist at `<folder>/guide/<outprefix>guide.aontu` (two `@`-includes:
-  `@voxgig/apidef/model/guide.aontu` and `<outprefix>base-guide.aontu`). See
+  file must exist at `<folder>/guide/<outprefix>guide.aon` (two `@`-includes:
+  `@voxgig/apidef/model/guide.aon` and `./<outprefix>base-guide.aon`). See
   [Configuration → The guide file](./docs/reference/configuration.md#the-guide-file).
 - **Spec file path rule:** the spec is read from `<build.spec.base>/../def/<model.def>`,
   **not** verbatim. Output goes to `options.folder`.
@@ -151,7 +151,7 @@ result.apimodel.main.kit.entity   // { pet: { op, fields, id, relations, … } }
   treat inlined schemas as read-only (mutating one leaks to every reference).
 - **Determinism in Go:** map iteration is sorted (`sortedKeys`) to match
   JS insertion order; preserve this when porting.
-- **Fixtures are LF:** `*.tsv`/`*.aontu` are forced to LF (`.gitattributes`).
+- **Fixtures are LF:** `*.tsv`/`*.aon` are forced to LF (`.gitattributes`).
 - **Soft failure:** the pipeline records warnings (`apidef-warnings.txt`)
   rather than aborting; `result.ok`/`result.steps` report how far it got.
 - Commit messages: clear and descriptive; do not include model/tool identifiers.
@@ -197,7 +197,10 @@ make publish V=8.6.0 GOV=0.7.0    # both, one dispatch
 the remote to actually show the pushed SHA, then dispatches `publish.yml`
 pinned to it. The workflow publishes to npm over OIDC and writes BOTH tags —
 `vX.Y.Z` for npm, `go/vX.Y.Z` for the module — in a `tag` job that runs git
-and nothing else.
+and nothing else. This section is the short form; the full description, with
+every guard and the recovery paths, is
+[docs/how-to/release-and-tag.md](./docs/how-to/release-and-tag.md), and the
+Makefile and `.github/workflows/publish.yml` are the mechanism itself.
 
 To drive the dispatch by hand — same mechanism, without the bump:
 
