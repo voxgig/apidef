@@ -68,6 +68,21 @@ Never make Go diverge from TS. If Go looks more correct, fix TS first.
 
 ## Commands
 
+### Check the environment; never assume it
+
+**This repository is worked on from MORE THAN ONE MACHINE, and from ephemeral
+containers whose installed software differs from each other and from any
+developer's workstation.** A toolchain, path, or version present in one is
+routinely absent in the next.
+
+So: never record an inventory of what is installed as though it were a property
+of the repository, and never conclude that something cannot be built, run or
+verified without checking the CURRENT environment first — `command -v <tool>`
+settles it in a second. Equally, a note anywhere in this repository saying a
+tool "was not available" is a fact about the environment that note was written
+in, and never about yours. The list below says what the CODE needs; what you
+have is yours to measure.
+
 ```sh
 cd ts && npm run build      # tsc --build src test  ->  ts/dist, ts/dist-test
 cd ts && npm test           # node --test dist-test/**/*.test.js   (canonical suite)
@@ -79,8 +94,28 @@ make all           # TS build+test AND Go build+test  (run before declaring done
 The npm package lives in `ts/` (run `npm` there); `go/` is the parallel Go
 project. `make all` from the repo root drives both.
 
-Node 24+ (the `shape` peer dep wants it). `go/validate_test.go` golden tests
-read an external `../../apidef-validate` checkout and `t.Skip` without it.
+What the code needs, and what to measure before trusting any of it:
+
+- **Node 24+.** That is the floor CI holds the suite to (`build.yml` runs the
+  matrix on 24.x and latest); `ts/package.json` declares no `engines`, so
+  nothing enforces it locally. The default `node` on a given machine is
+  routinely older than a 24 that is also installed — read `node --version`, and
+  put the 24 you have on `PATH` rather than assuming the default is it.
+- **A Go toolchain matching `go/go.mod`**, which declares `go 1.25.0` and no
+  `toolchain` directive. An older `go` binary still builds while
+  `GOTOOLCHAIN=auto` can fetch that version, and fails where the fetch cannot
+  happen — so `go version` and `go env GOTOOLCHAIN` are the two things to read
+  before blaming the code.
+- **The Vale binary**, for the prose gate. It arrives as the `@vvago/vale`
+  devDependency, so `cd ts && npm ci` installs it; `make scan-prose` exits
+  non-zero when it is missing rather than skipping the Vale half.
+- **`gh`**, for a release dispatch — see "Releasing" for what to do when it is
+  absent, which is not to hand the release back.
+- **An `apidef-validate` checkout**, for the Go golden comparisons in
+  `go/validate_test.go`. They look in `../../apidef-validate/v1` relative to
+  `go/` by default, honour `APIDEF_VALIDATE_DIR` when the checkout is somewhere
+  else, and `t.Skip` when neither resolves — so a plain `go test ./...` stays
+  green without it.
 
 ## Repository map
 
@@ -168,7 +203,8 @@ run in CI (`.github/workflows/docs.yml`) and under `make test`:
 | `vale --minAlertLevel=error $(python3 tools/check_prose.py --files)` | Google's rules plus the banned list, at the levels in `.vale.ini` |
 | `python3 tools/check_prose.py` | the banned list across line wraps, em-dash spacing and ration, first person, no emoji, no citations of a working document, resolving relative links, a complete page set |
 
-`make scan-prose` runs both (Vale where installed). The banned list is
+`make scan-prose` runs both, and FAILS when the Vale binary is missing rather
+than running half of itself — `cd ts && npm ci` installs it. The banned list is
 `.vale/styles/config/vocabularies/Apidef/reject.txt`, read by both gates.
 The page set is the configuration block at the top of
 `tools/check_prose.py`; a new documentation page must be reachable from it
@@ -215,7 +251,7 @@ gh workflow run publish.yml --ref main \
 | --- | --- |
 | `npm run repo-publish` / `repo-publish-quick` from a checkout | Still in `ts/package.json` and still the obvious-looking route, but they publish over a token and bypass OIDC entirely: no provenance, long-lived credential. Emergencies only. |
 | `make publish-go` as the normal Go route | Its own header says "prefer the publish workflow". It commits to the CURRENT branch and tags THAT commit, so from a feature branch it publishes an immutable module version nobody reviewed — and `proxy.golang.org` caches it forever. |
-| Hand the release back as "run this locally yourself" | The release is a dispatch. If a local command is unavailable to you, prepare the commit and dispatch the workflow — do not convert a CI release into a manual one. |
+| Hand the release back as "run this locally yourself" | The release is a dispatch. `gh` is absent from plenty of the environments this repository is worked on from, and that is a fact about the environment rather than about the release: check (`command -v gh`), and where it is missing prepare the commit and dispatch `publish.yml` through the GitHub API or its Actions page instead. Do not convert a CI release into a manual one. |
 | Push a `v*` tag as the normal route | `publish.yml` accepts it, but that path is the FALLBACK for a tag pushed by hand and skips every guard `make publish` runs. |
 
 `--ref main` is a moving target, and `git push` returns BEFORE the ref is
