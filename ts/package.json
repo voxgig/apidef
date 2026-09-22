@@ -54,12 +54,12 @@
   },
   "peerDependencies": {
     "@tabnas/jsonic": ">=0.6.0",
-    "@tabnas/parser": ">=0.8.0",
+    "@tabnas/parser": ">=0.8.0 <0.11.0 || >=0.11.1",
     "@tabnas/yaml": ">=0.5.1",
-    "@voxgig/struct": ">=0",
-    "@voxgig/util": ">=0",
+    "@voxgig/struct": ">=0.2.2",
+    "@voxgig/util": ">=0.5.4",
     "aontu": ">=0.71",
-    "graphql": ">=0",
+    "graphql": ">=16",
     "jostraca": ">=0.31",
     "shape": ">=11"
   },
