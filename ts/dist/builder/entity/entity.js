@@ -18,7 +18,7 @@ function resolveEntity(apimodel, opts) {
     ];
     const entityFiles = [];
     (0, jostraca_1.each)(kit.entity, ((entity, entityName) => {
-        const entityFile = (null == opts.outprefix ? '' : opts.outprefix) + entityName + '.aon';
+        const entityFile = (null == opts.outprefix ? '' : opts.outprefix) + entityName + '.aontu';
         const { model, relations } = entityAncestorSource(entity);
         let entityJSONIC = (0, utility_1.formatJSONIC)(model).trim();
         entityJSONIC = entityJSONIC.substring(1, entityJSONIC.length - 1);
@@ -32,7 +32,7 @@ function resolveEntity(apimodel, opts) {
         entityFiles.push({ name: entityFile, src: entitySrc });
         barrel.push(`@"./${node_path_1.default.basename(entityFile)}"`);
     }));
-    const indexFile = (null == opts.outprefix ? '' : opts.outprefix) + 'entity-index.aon';
+    const indexFile = (null == opts.outprefix ? '' : opts.outprefix) + 'entity-index.aontu';
     return function apiEntityBuilder() {
         (0, jostraca_1.Folder)({ name: 'entity' }, () => {
             (0, jostraca_1.each)(entityFiles, (entityFile) => {
@@ -59,8 +59,8 @@ function gcEntityFiles(fs, log, modelFolder, outprefix, entityNames) {
     const removed = [];
     const prefix = null == outprefix ? '' : outprefix;
     const entityFolder = node_path_1.default.join(modelFolder, 'entity');
-    const keep = new Set(entityNames.map((name) => prefix + name + '.aon'));
-    keep.add(prefix + 'entity-index.aon');
+    const keep = new Set(entityNames.map((name) => prefix + name + '.aontu'));
+    keep.add(prefix + 'entity-index.aontu');
     let entries = [];
     try {
         entries = fs.readdirSync(entityFolder);
@@ -69,7 +69,10 @@ function gcEntityFiles(fs, log, modelFolder, outprefix, entityNames) {
         return removed; // no entity folder yet — nothing to collect
     }
     for (const entry of entries) {
-        if (!entry.endsWith('.aon') && !entry.endsWith('.aontu')) {
+        // BOTH extensions. `.aontu` is the only name this builder writes; `.aon`
+        // is what a project generated before the rename still holds, and those
+        // files are exactly what wants collecting.
+        if (!entry.endsWith('.aontu') && !entry.endsWith('.aon')) {
             continue;
         }
         if (!entry.startsWith(prefix)) {

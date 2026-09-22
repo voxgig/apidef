@@ -130,7 +130,7 @@ func TestReadGuideIdOverrides(t *testing.T) {
 		"  entity: thing: id: sep: ':'\n" +
 		"  entity: other: path: \"/x/{id}\": op: load: method: *GET\n" +
 		"}\n"
-	if err := os.WriteFile(filepath.Join(dir, "guide.aon"), []byte(src), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "guide.aontu"), []byte(src), 0644); err != nil {
 		t.Fatal(err)
 	}
 

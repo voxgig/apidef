@@ -60,5 +60,5 @@ console.log(Object.keys(result.apimodel.main.kit.entity))
 ```
 
 If a name is still wrong, you can also override the classification directly in
-your `guide.aon` — see
+your `guide.aontu` — see
 [Correcting the guide](../reference/guide.md#correcting-the-guide).

@@ -11,7 +11,7 @@ const aontu_1 = require("aontu");
 const entity_1 = require("../dist/builder/entity/entity");
 const entity_2 = require("../dist/transform/entity");
 const root = node_path_1.default.resolve(__dirname, '../..');
-const schema = (0, node_fs_1.readFileSync)(node_path_1.default.join(root, 'model/apidef.aon'), 'utf8');
+const schema = (0, node_fs_1.readFileSync)(node_path_1.default.join(root, 'model/apidef.aontu'), 'utf8');
 (0, node_test_1.test)('inferred ancestors retain only existing other entities', () => {
     const row = JSON.parse((0, node_fs_1.readFileSync)(node_path_1.default.join(root, 'ts/test/ancestor-targets.json'), 'utf8'));
     (0, entity_2.filterEntityAncestors)(row.entities);

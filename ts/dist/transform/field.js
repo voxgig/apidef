@@ -377,7 +377,7 @@ function compositeId(ment, gent, def) {
     if (null != gid && false === gid.composite) {
         return { single: singleKeyOf(ment, identityParams(ment)) };
     }
-    // `from` STATED IN guide.aon WINS PER PART, so a spec can correct one
+    // `from` STATED IN guide.aontu WINS PER PART, so a spec can correct one
     // mapping without restating the others — which matters because the
     // heuristic gets most of them right and the odd one wrong.
     const withFrom = (parts, usesep) => {

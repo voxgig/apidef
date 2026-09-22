@@ -154,10 +154,10 @@ test('CLI and hook reject new models in target directories under either extensio
 
 test('annotated API schemas retain every check except comment density', () => {
   const dense = '# Field purpose.\n\n'.repeat(9) + 'value: true\n'
-  for (const file of ['model/apidef.aon', 'ts/model/apidef.aon', 'go/model/apidef.aon']) {
+  for (const file of ['model/apidef.aontu', 'ts/model/apidef.aontu', 'go/model/apidef.aontu']) {
     assert.ok(!rules(dense, file).includes('dense-file'))
     assert.ok(rules(dense + '# TODO: restore this\n', file).includes('narrative'))
     assert.ok(rules(dense + '# value: true\n', file).includes('commented-code'))
   }
-  assert.ok(rules(dense, 'model/guide.aon').includes('dense-file'))
+  assert.ok(rules(dense, 'model/guide.aontu').includes('dense-file'))
 })

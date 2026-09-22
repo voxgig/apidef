@@ -7,7 +7,7 @@ const types_1 = require("../../types");
 const jostraca_1 = require("jostraca");
 function resolveInfo(apimodel, opts) {
     const kit = apimodel.main[types_1.KIT];
-    const infoFile = (null == opts.outprefix ? '' : opts.outprefix) + 'api-info.aon';
+    const infoFile = (null == opts.outprefix ? '' : opts.outprefix) + 'api-info.aontu';
     const modelInfo = { main: { kit: { info: kit.info } } };
     let modelDefSrc = (0, utility_1.formatJSONIC)(modelInfo).trim();
     modelDefSrc =

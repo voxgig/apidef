@@ -53,14 +53,14 @@ The conventional layout is therefore the one the
 petstore/
   def/petstore.yml               # --def
   model/
-    guide/petstore-guide.aon     # the guide entry file, written once by you
+    guide/petstore-guide.aontu     # the guide entry file, written once by you
 ```
 
 The guide entry file must exist before the first run, at
-`<folder>/model/guide/<prefix>guide.aon` (see
+`<folder>/model/guide/<prefix>guide.aontu` (see
 [Configuration → The guide file](./configuration.md#the-guide-file)). The CLI
 refuses to start without it and prints the two lines to put in it. A guide
-file from before the `.aon` rename (`<prefix>guide.aontu`) is accepted and
+file from before the `.aontu` rename (`<prefix>guide.aontu`) is accepted and
 migrated in place on the first run. The spec file can live anywhere, because
 the CLI names it relative to `<folder>/def`, which is where the library's
 `<base>/../def/<model.def>` rule looks. Generated files are written under

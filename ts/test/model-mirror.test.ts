@@ -16,17 +16,17 @@ import type { ModelEntityFlowStep } from '../src/model'
 
 
 const REPO = Path.resolve(__dirname, '..', '..')
-const MODEL_FILES = ['apidef.aon', 'guide.aon']
+const MODEL_FILES = ['apidef.aontu', 'guide.aontu']
 
 
 describe('model-mirror', () => {
 
   test('alias keys preserve the explicit declaration schema', () => {
-    const source = readFileSync(Path.join(REPO, 'model', 'apidef.aon'), 'utf8')
+    const source = readFileSync(Path.join(REPO, 'model', 'apidef.aontu'), 'utf8')
     const explicit = source.replace(/^(\s*)%([\w-]+):/gm, '$1$2: %$2 =')
     assert.notStrictEqual(source, explicit)
-    assert.strictEqual(new Aontu().unify(source, { path: 'model-schema.aon' }).canon,
-      new Aontu().unify(explicit, { path: 'model-schema.aon' }).canon)
+    assert.strictEqual(new Aontu().unify(source, { path: 'model-schema.aontu' }).canon,
+      new Aontu().unify(explicit, { path: 'model-schema.aontu' }).canon)
   })
 
 
@@ -38,7 +38,7 @@ describe('model-mirror', () => {
       s: [{ apply: 'TextFieldMark', def: { mark: 'mark01' } }],
       v: [{ apply: 'ItemExists', def: { ref: 'widget01' } }],
     }
-    const source = readFileSync(Path.join(REPO, 'model', 'apidef.aon'), 'utf8') + '\n' +
+    const source = readFileSync(Path.join(REPO, 'model', 'apidef.aontu'), 'utf8') + '\n' +
       'main:kit:flow:BasicWidgetFlow:' + JSON.stringify({ step: [{ o: 'list' }, step] })
     const model = new Aontu().generate(source)
     assert.deepStrictEqual(model.main.kit.flow.BasicWidgetFlow.step, [
@@ -60,7 +60,7 @@ describe('model-mirror', () => {
       t: { req: '`reqdata`', res: '`body`' },
       co: { version: 2, id: 'GET /widgets/{id}', source: 'openapi3' }, li: false,
     }
-    const source = readFileSync(Path.join(REPO, 'model', 'apidef.aon'), 'utf8') + '\n' +
+    const source = readFileSync(Path.join(REPO, 'model', 'apidef.aontu'), 'utf8') + '\n' +
       'main:kit:entity:widget:op:load:' + JSON.stringify({ name: 'load', points: [point] })
     const model = new Aontu().generate(source)
     const result = model.main.kit.entity.widget.op.load.points[0]
@@ -77,7 +77,7 @@ describe('model-mirror', () => {
       secret: { n: 'secret', h: 'Secret', r: false, t: '`$STRING`', a: false,
         sh: 'A secret.', ro: true, wo: true, de: true, fo: 'password' },
     }
-    const source = readFileSync(Path.join(REPO, 'model', 'apidef.aon'), 'utf8') + '\n' +
+    const source = readFileSync(Path.join(REPO, 'model', 'apidef.aontu'), 'utf8') + '\n' +
       'main:kit:entity:widget:fields:' + JSON.stringify(fields)
     const model = new Aontu().generate(source)
     assert.deepStrictEqual(model.main.kit.entity.widget.fields,

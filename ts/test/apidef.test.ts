@@ -35,40 +35,40 @@ describe('apidef', () => {
     const dir = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'apidef-guide-'))
     Fs.mkdirSync(Path.join(dir, 'guide'), { recursive: true })
 
-    const legacy = Path.join(dir, 'guide', 'x-guide.aontu')
+    const legacy = Path.join(dir, 'guide', 'x-guide.aon')
     Fs.writeFileSync(legacy, [
-      '@"@voxgig/apidef/model/guide.aontu"',
+      '@"@voxgig/apidef/model/guide.aon"',
       '',
-      '@"x-base-guide.aontu"',
+      '@"x-base-guide.aon"',
       '',
-      '@"./x-base-guide.aontu"',
+      '@"./x-base-guide.aon"',
       '',
-      // A user's OWN include that merely ENDS in base-guide.aontu. Nothing
+      // A user's OWN include that merely ENDS in base-guide.aon. Nothing
       // renamed this file, so rewriting it would point the guide at a path
       // that does not exist — while deleting the original.
-      '@"shared-base-guide.aontu"',
+      '@"shared-base-guide.aon"',
       '',
-      'guide: { entity: { thing: { note: "see guide.aontu notes" } } }',
+      'guide: { entity: { thing: { note: "see guide.aon notes" } } }',
       '',
     ].join('\n'))
 
     migrateLegacyGuide(Fs, dir, 'x-')
 
     assert.ok(!Fs.existsSync(legacy), 'legacy file should be gone')
-    const out = Fs.readFileSync(Path.join(dir, 'guide', 'x-guide.aon'), 'utf8')
+    const out = Fs.readFileSync(Path.join(dir, 'guide', 'x-guide.aontu'), 'utf8')
 
-    assert.ok(out.includes('@"@voxgig/apidef/model/guide.aon"'),
+    assert.ok(out.includes('@"@voxgig/apidef/model/guide.aontu"'),
       'package include not migrated: ' + out)
-    assert.ok(out.includes('@"x-base-guide.aon"'),
+    assert.ok(out.includes('@"x-base-guide.aontu"'),
       'base-guide include not migrated: ' + out)
-    assert.ok(out.includes('@"./x-base-guide.aon"'),
+    assert.ok(out.includes('@"./x-base-guide.aontu"'),
       './ base-guide include not migrated: ' + out)
-    assert.ok(!out.includes('x-base-guide.aontu"'),
+    assert.ok(!out.includes('x-base-guide.aon"'),
       'a base-guide include still names the legacy file: ' + out)
-    assert.ok(out.includes('@"shared-base-guide.aontu"'),
+    assert.ok(out.includes('@"shared-base-guide.aon"'),
       'a user-owned base-guide include was rewritten: ' + out)
 
-    assert.ok(out.includes('note: "see guide.aontu notes"'),
+    assert.ok(out.includes('note: "see guide.aon notes"'),
       'user content was rewritten: ' + out)
   })
 
@@ -453,7 +453,7 @@ describe('apidef', () => {
 
 name: solar
 
-@"@voxgig/apidef/model/apidef.aon"
+@"@voxgig/apidef/model/apidef.aontu"
 
 def: '${outprefix}def.yaml'
 `
@@ -461,7 +461,7 @@ def: '${outprefix}def.yaml'
     const modelSrc = `
 # apidef test: ${outprefix}
 
-@"@voxgig/apidef/model/apidef.aon"
+@"@voxgig/apidef/model/apidef.aontu"
 
 name: solar
 
@@ -480,7 +480,7 @@ def: '${outprefix}def.yaml'
     const bres = await build(modelinit, buildspec, {})
     assert.strictEqual(bres.ok, true)
 
-    const model = aontu.generate(`@"test/solar/solar.aon"`, {
+    const model = aontu.generate(`@"test/solar/solar.aontu"`, {
       base: __dirname + '/..'
     })
 
@@ -493,7 +493,7 @@ def: '${outprefix}def.yaml'
 
     test('`active` has no default, so a project can supply one', () => {
       const src = Fs.readFileSync(
-        PathMod.join(__dirname, '..', '..', 'model', 'guide.aon'), 'utf8')
+        PathMod.join(__dirname, '..', '..', 'model', 'guide.aontu'), 'utf8')
 
       const line = src.split('\n').find((l: string) => /^\s*active\??\s*:/.test(l))
       assert.ok(null != line, 'the guide model must declare `active`')
@@ -506,7 +506,7 @@ def: '${outprefix}def.yaml'
       // Generated on every run, so a builder that started stamping
       // `active: true` would take the allowlist away silently.
       const built = PathMod.join(__dirname, '..', '..', '..', '..',
-        'voxgig-sdk', 'univec-sdk', '.sdk', 'model', 'guide', 'base-guide.aon')
+        'voxgig-sdk', 'univec-sdk', '.sdk', 'model', 'guide', 'base-guide.aontu')
       if (!Fs.existsSync(built)) {
         return   // no sibling checkout here; the unit facts above still hold
       }
@@ -536,46 +536,46 @@ def: '${outprefix}def.yaml'
 
     test('removes generated files for entities no longer derived', () => {
       const dir = tmpModel({
-        'country.aon': GEN('country'),
-        'list_country.aon': GEN('list_country'),   // orphan
-        'entity-index.aon': '# Entity Models\n',
+        'country.aontu': GEN('country'),
+        'list_country.aontu': GEN('list_country'),   // orphan
+        'entity-index.aontu': '# Entity Models\n',
       })
       const removed = gcEntityFiles(Fs, null, dir, undefined, ['country'])
-      assert.deepStrictEqual(removed, ['list_country.aon'])
-      assert.deepStrictEqual(listing(dir), ['country.aon', 'entity-index.aon'])
+      assert.deepStrictEqual(removed, ['list_country.aontu'])
+      assert.deepStrictEqual(listing(dir), ['country.aontu', 'entity-index.aontu'])
     })
 
     test('never touches a file apidef did not write', () => {
       const dir = tmpModel({
-        'country.aon': GEN('country'),
-        'custom.aon': '# my hand-written model fragment\nfoo: 1\n',  // no generated header
+        'country.aontu': GEN('country'),
+        'custom.aontu': '# my hand-written model fragment\nfoo: 1\n',  // no generated header
         'notes.txt': 'not aontu at all',
       })
       const removed = gcEntityFiles(Fs, null, dir, undefined, ['country'])
       assert.deepStrictEqual(removed, [])
-      assert.deepStrictEqual(listing(dir), ['country.aon', 'custom.aon', 'notes.txt'])
+      assert.deepStrictEqual(listing(dir), ['country.aontu', 'custom.aontu', 'notes.txt'])
     })
 
     test('respects outprefix — another def sharing the folder is not collected', () => {
       const dir = tmpModel({
-        'solar-planet.aon': GEN('planet'),
-        'solar-moon.aon': GEN('moon'),             // orphan of the solar def
-        'solar-entity-index.aon': '# Entity Models\n',
-        'lunar-crater.aon': GEN('crater'),         // belongs to a DIFFERENT def
+        'solar-planet.aontu': GEN('planet'),
+        'solar-moon.aontu': GEN('moon'),             // orphan of the solar def
+        'solar-entity-index.aontu': '# Entity Models\n',
+        'lunar-crater.aontu': GEN('crater'),         // belongs to a DIFFERENT def
       })
       const removed = gcEntityFiles(Fs, null, dir, 'solar-', ['planet'])
-      assert.deepStrictEqual(removed, ['solar-moon.aon'])
+      assert.deepStrictEqual(removed, ['solar-moon.aontu'])
       assert.deepStrictEqual(listing(dir),
-        ['lunar-crater.aon', 'solar-entity-index.aon', 'solar-planet.aon'])
+        ['lunar-crater.aontu', 'solar-entity-index.aontu', 'solar-planet.aontu'])
     })
 
     test('keeps the index and the whole current set; missing folder is a no-op', () => {
       const dir = tmpModel({
-        'a.aon': GEN('a'), 'b.aon': GEN('b'),
-        'entity-index.aon': '# Entity Models\n',
+        'a.aontu': GEN('a'), 'b.aontu': GEN('b'),
+        'entity-index.aontu': '# Entity Models\n',
       })
       assert.deepStrictEqual(gcEntityFiles(Fs, null, dir, undefined, ['a', 'b']), [])
-      assert.deepStrictEqual(listing(dir), ['a.aon', 'b.aon', 'entity-index.aon'])
+      assert.deepStrictEqual(listing(dir), ['a.aontu', 'b.aontu', 'entity-index.aontu'])
       // No entity folder at all: return empty, do not throw.
       const empty = Fs.mkdtempSync(PathMod.join(Os.tmpdir(), 'apidef-gc-'))
       assert.deepStrictEqual(gcEntityFiles(Fs, null, empty, undefined, ['a']), [])

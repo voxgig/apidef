@@ -54,9 +54,9 @@ const node_util_1 = require("node:util");
 const shape_1 = require("shape");
 const apidef_1 = require("./apidef");
 const Pkg = require('../package.json');
-const GUIDE_FILE = 'guide.aon';
-const LEGACY_GUIDE_FILE = 'guide.aontu';
-const BASE_GUIDE_FILE = 'base-guide.aon';
+const GUIDE_FILE = 'guide.aontu';
+const LEGACY_GUIDE_FILE = 'guide.aon';
+const BASE_GUIDE_FILE = 'base-guide.aontu';
 const WATCH_INTERVAL_MS = 500;
 const CONSOLE_IO = {
     log: (...args) => console.log(...args),
@@ -182,8 +182,8 @@ function resolveProject(options) {
         legacyguide: node_path_1.default.join(guidefolder, outprefix + LEGACY_GUIDE_FILE),
     };
 }
-// A legacy `.aontu` guide is accepted here because the guide stage migrates
-// it to `.aon` before reading it.
+// A legacy `.aon` guide is accepted here because the guide stage migrates
+// it to `.aontu` before reading it.
 function checkProject(project) {
     if (Fs.existsSync(project.guide) || Fs.existsSync(project.legacyguide)) {
         return;

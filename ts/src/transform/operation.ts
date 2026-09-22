@@ -27,7 +27,7 @@ import type {
 
 // The op names the transform resolves. Anything else under a guide path's
 // `op` map is dropped, and an unknown name (a verb such as `merge`, or a
-// typo) is dropped WITH A WARNING: guide.aon is the only correction surface
+// typo) is dropped WITH A WARNING: guide.aontu is the only correction surface
 // (ADR-002), so a correction that vanishes silently defeats it. A non-CRUD
 // verb is declared as `action: <verb>: {}` beside a CRUD op on the same path.
 const RESOLVED_OPS = ['load', 'list', 'create', 'update', 'remove', 'patch']

@@ -46,27 +46,59 @@ const aontu = new Aontu()
 
 
 
+// A `.aon` entry file is unresolvable: aontu reads only `.aontu` as source.
+// So this renames AND rewrites both includes — a repair, not a convenience.
 function migrateLegacyGuide(fs: any, folder: string, guideprefix: string): boolean {
-  const guidepath = Path.join(folder, 'guide', guideprefix + 'guide.aon')
-  const legacyguide = Path.join(folder, 'guide', guideprefix + 'guide.aontu')
+  const guidepath = Path.join(folder, 'guide', guideprefix + 'guide.aontu')
+  const legacyguide = Path.join(folder, 'guide', guideprefix + 'guide.aon')
 
   if (fs.existsSync(guidepath) || !fs.existsSync(legacyguide)) {
     return false
   }
 
   let migrated = String(fs.readFileSync(legacyguide, 'utf8'))
-    .replace(/@"@voxgig\/apidef\/model\/guide\.aontu"/g,
-      '@"@voxgig/apidef/model/guide.aon"')
+    .replace(/@"@voxgig\/apidef\/model\/guide\.aon"/g,
+      '@"@voxgig/apidef/model/guide.aontu"')
 
   // The sibling include is written bare or with `./`; both name this file.
   for (const dir of ['', './']) {
     migrated = migrated
-      .split('@"' + dir + guideprefix + 'base-guide.aontu"')
-      .join('@"' + dir + guideprefix + 'base-guide.aon"')
+      .split('@"' + dir + guideprefix + 'base-guide.aon"')
+      .join('@"' + dir + guideprefix + 'base-guide.aontu"')
   }
 
   fs.writeFileSync(guidepath, migrated)
   try { fs.unlinkSync(legacyguide) } catch (_err: any) { }
+
+  return true
+}
+
+
+// A `.aontu` entry file may still include a `.aon` sibling, so the rename
+// above never fires for it while its include still names an absent file.
+function migrateLegacyGuideInclude(
+  fs: any, guidepath: string, guideprefix: string
+): boolean {
+  if (!fs.existsSync(guidepath)) {
+    return false
+  }
+
+  const src = String(fs.readFileSync(guidepath, 'utf8'))
+  let migrated = src
+    .replace(/@"@voxgig\/apidef\/model\/guide\.aon"/g,
+      '@"@voxgig/apidef/model/guide.aontu"')
+
+  for (const dir of ['', './']) {
+    migrated = migrated
+      .split('@"' + dir + guideprefix + 'base-guide.aon"')
+      .join('@"' + dir + guideprefix + 'base-guide.aontu"')
+  }
+
+  if (migrated === src) {
+    return false
+  }
+
+  fs.writeFileSync(guidepath, migrated)
 
   return true
 }
@@ -78,7 +110,7 @@ function migrateGuideIncludePrefix(
     return false
   }
 
-  const bare = '@"' + guideprefix + 'base-guide.aon"'
+  const bare = '@"' + guideprefix + 'base-guide.aontu"'
   const src = String(fs.readFileSync(guidepath, 'utf8'))
 
   if (!src.includes(bare)) {
@@ -86,7 +118,7 @@ function migrateGuideIncludePrefix(
   }
 
   fs.writeFileSync(guidepath,
-    src.split(bare).join('@"./' + guideprefix + 'base-guide.aon"'))
+    src.split(bare).join('@"./' + guideprefix + 'base-guide.aontu"'))
 
   return true
 }
@@ -125,16 +157,23 @@ async function buildGuide(ctx: ApiDefContext): Promise<any> {
 
   let src = ''
   const guideprefix = null == ctx.opts.outprefix ? '' : ctx.opts.outprefix
-  let guidepath = Path.join(folder, 'guide', guideprefix + 'guide.aon')
+  let guidepath = Path.join(folder, 'guide', guideprefix + 'guide.aontu')
 
   if (migrateLegacyGuide(ctx.fs, folder, guideprefix)) {
-    log.info({ point: 'migrate-guide', note: 'guide.aontu -> guide.aon' })
+    log.info({ point: 'migrate-guide', note: 'guide.aon -> guide.aontu' })
+  }
+
+  if (migrateLegacyGuideInclude(ctx.fs, guidepath, guideprefix)) {
+    log.info({
+      point: 'migrate-guide-include',
+      note: 'base-guide.aon -> base-guide.aontu'
+    })
   }
 
   if (migrateGuideIncludePrefix(ctx.fs, guidepath, guideprefix)) {
     log.info({
       point: 'migrate-guide-prefix',
-      note: 'base-guide.aon -> ./base-guide.aon'
+      note: 'base-guide.aontu -> ./base-guide.aontu'
     })
   }
 
@@ -154,7 +193,7 @@ async function buildGuide(ctx: ApiDefContext): Promise<any> {
 
   handleErrors(ctx, errs)
 
-  const basepath = Path.join(folder, 'guide', guideprefix + 'base-guide.aon')
+  const basepath = Path.join(folder, 'guide', guideprefix + 'base-guide.aontu')
   for (const checkpath of [guidepath, basepath]) {
     let checksrc = ''
     try {
@@ -178,7 +217,7 @@ async function buildGuide(ctx: ApiDefContext): Promise<any> {
         // back unchanged — so advising its deletion would send a reader in a
         // circle, failing this same check on the next build.
         (checkpath === basepath ?
-          `, or delete ${guideprefix}base-guide.aon to regenerate it from the\n` +
+          `, or delete ${guideprefix}base-guide.aontu to regenerate it from the\n` +
           `specification and re-apply the edit afterwards.` :
           ` in ${relativizePath(checkpath)}.`)))
       break
@@ -371,7 +410,7 @@ async function buildBaseGuide(ctx: ApiDefContext) {
       guideBlocks.push(
         `    # Deactivated by the heuristic` +
         (null == why ? '' : ` (${why})`) + `. Set` +
-        ` \`active: true\` here in guide.aon to generate it as an entity.`)
+        ` \`active: true\` here in guide.aontu to generate it as an entity.`)
       guideBlocks.push(`    active: *false`)
     }
 
@@ -393,7 +432,7 @@ async function buildBaseGuide(ctx: ApiDefContext) {
   ctx.note.guide = { base: guideSrc }
 
   const baseGuideFileName =
-    (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'base-guide.aon'
+    (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'base-guide.aontu'
 
   const jostraca = Jostraca({
     folder: ctx.opts.folder + '/guide',

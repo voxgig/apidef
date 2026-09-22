@@ -61,7 +61,7 @@ function makeProject() {
     Fs.mkdirSync(node_path_1.default.join(root, 'def'));
     Fs.copyFileSync(node_path_1.default.join(FIXTURES, 'def', SOLAR_DEF), node_path_1.default.join(root, 'def', SOLAR_DEF));
     Fs.mkdirSync(node_path_1.default.join(root, 'model', 'guide'), { recursive: true });
-    Fs.copyFileSync(node_path_1.default.join(FIXTURES, 'solar', 'guide', SOLAR_PREFIX + 'guide.aon'), node_path_1.default.join(root, 'model', 'guide', SOLAR_PREFIX + 'guide.aon'));
+    Fs.copyFileSync(node_path_1.default.join(FIXTURES, 'solar', 'guide', SOLAR_PREFIX + 'guide.aontu'), node_path_1.default.join(root, 'model', 'guide', SOLAR_PREFIX + 'guide.aontu'));
     const pkgmodel = node_path_1.default.join(root, 'node_modules', '@voxgig', 'apidef', 'model');
     Fs.mkdirSync(pkgmodel, { recursive: true });
     for (const file of Fs.readdirSync(PKG_MODEL)) {
@@ -107,7 +107,7 @@ function captureIO() {
         node_assert_1.default.equal((0, cli_1.resolveOptions)(['-h']).help, true);
     });
     // The layout the CLI resolves, pinned: the model folder is <root>/model,
-    // the guide entry file is <root>/model/guide/<prefix>guide.aon, and the
+    // the guide entry file is <root>/model/guide/<prefix>guide.aontu, and the
     // definition is named so that the pipeline's <base>/../def/<def> rule
     // finds it wherever it is.
     (0, node_test_1.test)('resolve-project', () => {
@@ -122,8 +122,8 @@ function captureIO() {
         node_assert_1.default.equal(project.outprefix, 'petstore-');
         node_assert_1.default.equal(project.def, def);
         node_assert_1.default.deepEqual(project.model, { name: 'petstore', def: 'petstore.yml' });
-        node_assert_1.default.equal(project.guide, node_path_1.default.join(root, 'model', 'guide', 'petstore-guide.aon'));
-        node_assert_1.default.equal(project.legacyguide, node_path_1.default.join(root, 'model', 'guide', 'petstore-guide.aontu'));
+        node_assert_1.default.equal(project.guide, node_path_1.default.join(root, 'model', 'guide', 'petstore-guide.aontu'));
+        node_assert_1.default.equal(project.legacyguide, node_path_1.default.join(root, 'model', 'guide', 'petstore-guide.aon'));
         node_assert_1.default.equal(node_path_1.default.join(project.folder, '..', 'def', project.model.def), def);
         const elsewhere = node_path_1.default.join(node_path_1.default.dirname(root), 'specs', 'v2', 'petstore.json');
         const away = (0, cli_1.resolveProject)({
@@ -131,7 +131,7 @@ function captureIO() {
             watch: false, debug: 'info', help: false, version: false,
         });
         node_assert_1.default.equal(away.outprefix, '');
-        node_assert_1.default.equal(away.guide, node_path_1.default.join(root, 'model', 'guide', 'guide.aon'));
+        node_assert_1.default.equal(away.guide, node_path_1.default.join(root, 'model', 'guide', 'guide.aontu'));
         node_assert_1.default.equal(node_path_1.default.join(away.folder, '..', 'def', away.model.def), elsewhere);
     });
     // The definition name the pipeline joins onto <root>/def: relative on the
@@ -155,8 +155,8 @@ function captureIO() {
         (0, cli_1.checkProject)((0, cli_1.resolveProject)(options));
         const missing = (0, cli_1.resolveProject)({ ...options, prefix: 'other-' });
         node_assert_1.default.throws(() => (0, cli_1.checkProject)(missing), (err) => {
-            node_assert_1.default.ok(err.message.includes(node_path_1.default.join(root, 'model', 'guide', 'other-guide.aon')), err.message);
-            node_assert_1.default.ok(err.message.includes('@"./other-base-guide.aon"'), err.message);
+            node_assert_1.default.ok(err.message.includes(node_path_1.default.join(root, 'model', 'guide', 'other-guide.aontu')), err.message);
+            node_assert_1.default.ok(err.message.includes('@"./other-base-guide.aontu"'), err.message);
             return true;
         });
     });
@@ -167,7 +167,7 @@ function captureIO() {
         const help = captureIO();
         node_assert_1.default.equal(await (0, cli_1.runCli)(['-h'], help.io), 0);
         node_assert_1.default.ok(help.out[0].startsWith('Usage: voxgig-apidef <name>'));
-        node_assert_1.default.ok(help.out[0].includes('guide.aon'));
+        node_assert_1.default.ok(help.out[0].includes('guide.aontu'));
     });
     // The shims `bin/voxgig-apidef` and `cmd/bun/entry.js` are the only way a
     // user reaches the CLI, and runCli does not go through them: a wrong
@@ -208,7 +208,7 @@ function captureIO() {
         node_assert_1.default.equal(await (0, cli_1.runCli)([
             'solar', '-f', root, '-d', node_path_1.default.join(root, 'def', SOLAR_DEF), '-g', 'warn',
         ], noguide.io), 1);
-        node_assert_1.default.ok(noguide.err.join('\n').includes(node_path_1.default.join(root, 'model', 'guide', 'solar-guide.aon')), noguide.err.join('\n'));
+        node_assert_1.default.ok(noguide.err.join('\n').includes(node_path_1.default.join(root, 'model', 'guide', 'solar-guide.aontu')), noguide.err.join('\n'));
     });
     (0, node_test_1.test)('run-solar', async () => {
         const root = makeProject();
@@ -225,18 +225,20 @@ function captureIO() {
         node_assert_1.default.ok(out[0].includes('entities: moon planet'), out.join('\n'));
         const model = node_path_1.default.join(root, 'model');
         for (const file of [
-            'guide/' + SOLAR_PREFIX + 'guide.aon',
-            'guide/' + SOLAR_PREFIX + 'base-guide.aon',
-            'api/' + SOLAR_PREFIX + 'api-info.aon',
-            'entity/' + SOLAR_PREFIX + 'entity-index.aon',
-            'entity/' + SOLAR_PREFIX + 'planet.aon',
-            'entity/' + SOLAR_PREFIX + 'moon.aon',
-            'flow/' + SOLAR_PREFIX + 'flow-index.aon',
+            'guide/' + SOLAR_PREFIX + 'guide.aontu',
+            'guide/' + SOLAR_PREFIX + 'base-guide.aontu',
+            'api/' + SOLAR_PREFIX + 'api-info.aontu',
+            'entity/' + SOLAR_PREFIX + 'entity-index.aontu',
+            'entity/' + SOLAR_PREFIX + 'planet.aontu',
+            'entity/' + SOLAR_PREFIX + 'moon.aontu',
+            'flow/' + SOLAR_PREFIX + 'flow-index.aontu',
         ]) {
             node_assert_1.default.ok(Fs.existsSync(node_path_1.default.join(model, file)), 'missing ' + file);
         }
+        // Nothing is left under the retired extension: the writers emit `.aontu`
+        // and the migration renames what it finds.
         const written = Fs.readdirSync(model, { recursive: true });
-        node_assert_1.default.deepEqual(written.filter((f) => f.endsWith('.aontu')), []);
+        node_assert_1.default.deepEqual(written.filter((f) => f.endsWith('.aon')), []);
         // An explicit --debug, at any level, also writes the resolved definition.
         node_assert_1.default.deepEqual(Fs.readdirSync(node_path_1.default.join(root, 'def')).sort(), [SOLAR_DEF, SOLAR_DEF + '.full.json']);
     });
@@ -250,7 +252,7 @@ function captureIO() {
         ], io);
         node_assert_1.default.equal(code, 0, out.join('\n'));
         node_assert_1.default.deepEqual(Fs.readdirSync(node_path_1.default.join(root, 'def')), [SOLAR_DEF]);
-        node_assert_1.default.ok(Fs.existsSync(node_path_1.default.join(root, 'model', 'entity', SOLAR_PREFIX + 'planet.aon')));
+        node_assert_1.default.ok(Fs.existsSync(node_path_1.default.join(root, 'model', 'entity', SOLAR_PREFIX + 'planet.aontu')));
     });
     // A failing build reports on stderr. The ok line is stdout, so a caller
     // reading it must not be handed a failure on the same stream.
@@ -265,17 +267,17 @@ function captureIO() {
         node_assert_1.default.deepEqual(out, []);
         node_assert_1.default.ok(err.join('\n').includes('voxgig-apidef: failed after step'), err.join('\n'));
     });
-    // A project created before the rename still carries <prefix>guide.aontu;
-    // the CLI accepts it and the run leaves the migrated .aon in its place.
+    // A project created before the rename still carries <prefix>guide.aon;
+    // the CLI accepts it and the run leaves the migrated .aontu in its place.
     (0, node_test_1.test)('run-legacy-guide', async () => {
         const root = makeProject();
         const guidefolder = node_path_1.default.join(root, 'model', 'guide');
-        const guide = node_path_1.default.join(guidefolder, SOLAR_PREFIX + 'guide.aon');
-        const legacy = node_path_1.default.join(guidefolder, SOLAR_PREFIX + 'guide.aontu');
+        const guide = node_path_1.default.join(guidefolder, SOLAR_PREFIX + 'guide.aontu');
+        const legacy = node_path_1.default.join(guidefolder, SOLAR_PREFIX + 'guide.aon');
         Fs.unlinkSync(guide);
         Fs.writeFileSync(legacy, [
-            '@"@voxgig/apidef/model/guide.aontu"',
-            '@"' + SOLAR_PREFIX + 'base-guide.aontu"',
+            '@"@voxgig/apidef/model/guide.aon"',
+            '@"' + SOLAR_PREFIX + 'base-guide.aon"',
             '',
         ].join('\n'));
         const { io, out } = captureIO();
@@ -284,20 +286,20 @@ function captureIO() {
             '-p', SOLAR_PREFIX, '-g', 'warn',
         ], io);
         node_assert_1.default.equal(code, 0, out.join('\n'));
-        node_assert_1.default.ok(Fs.existsSync(guide), 'guide.aon not written by the migration');
-        node_assert_1.default.ok(!Fs.existsSync(legacy), 'guide.aontu left behind');
-        node_assert_1.default.ok(Fs.existsSync(node_path_1.default.join(root, 'model', 'entity', SOLAR_PREFIX + 'planet.aon')));
+        node_assert_1.default.ok(Fs.existsSync(guide), 'guide.aontu not written by the migration');
+        node_assert_1.default.ok(!Fs.existsSync(legacy), 'guide.aon left behind');
+        node_assert_1.default.ok(Fs.existsSync(node_path_1.default.join(root, 'model', 'entity', SOLAR_PREFIX + 'planet.aontu')));
     });
     // The same, for a legacy guide whose sibling include carries the `./`.
     (0, node_test_1.test)('run-legacy-guide-dotslash', async () => {
         const root = makeProject();
         const guidefolder = node_path_1.default.join(root, 'model', 'guide');
-        const guide = node_path_1.default.join(guidefolder, SOLAR_PREFIX + 'guide.aon');
-        const legacy = node_path_1.default.join(guidefolder, SOLAR_PREFIX + 'guide.aontu');
+        const guide = node_path_1.default.join(guidefolder, SOLAR_PREFIX + 'guide.aontu');
+        const legacy = node_path_1.default.join(guidefolder, SOLAR_PREFIX + 'guide.aon');
         Fs.unlinkSync(guide);
         Fs.writeFileSync(legacy, [
-            '@"@voxgig/apidef/model/guide.aontu"',
-            '@"./' + SOLAR_PREFIX + 'base-guide.aontu"',
+            '@"@voxgig/apidef/model/guide.aon"',
+            '@"./' + SOLAR_PREFIX + 'base-guide.aon"',
             '',
         ].join('\n'));
         const { io, out } = captureIO();
@@ -306,11 +308,11 @@ function captureIO() {
             '-p', SOLAR_PREFIX, '-g', 'warn',
         ], io);
         node_assert_1.default.equal(code, 0, out.join('\n'));
-        node_assert_1.default.ok(!Fs.existsSync(legacy), 'guide.aontu left behind');
+        node_assert_1.default.ok(!Fs.existsSync(legacy), 'guide.aon left behind');
         const migrated = Fs.readFileSync(guide, 'utf8');
-        node_assert_1.default.ok(migrated.includes('@"./' + SOLAR_PREFIX + 'base-guide.aon"'), migrated);
-        node_assert_1.default.ok(!migrated.includes('.aontu'), migrated);
-        node_assert_1.default.ok(Fs.existsSync(node_path_1.default.join(root, 'model', 'entity', SOLAR_PREFIX + 'planet.aon')));
+        node_assert_1.default.ok(migrated.includes('@"./' + SOLAR_PREFIX + 'base-guide.aontu"'), migrated);
+        node_assert_1.default.ok(!migrated.includes('.aon"'), migrated);
+        node_assert_1.default.ok(Fs.existsSync(node_path_1.default.join(root, 'model', 'entity', SOLAR_PREFIX + 'planet.aontu')));
     });
 });
 //# sourceMappingURL=cli.test.js.map

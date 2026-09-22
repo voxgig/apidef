@@ -654,7 +654,7 @@ func TestPointSegmentsEmitted(t *testing.T) {
 
 	nsegments, nparts := 0, 0
 	err = filepath.Walk(tmp, func(p string, fi os.FileInfo, e error) error {
-		if e != nil || fi.IsDir() || !strings.HasSuffix(p, ".aon") {
+		if e != nil || fi.IsDir() || !strings.HasSuffix(p, ".aontu") {
 			return e
 		}
 		b, rerr := os.ReadFile(p)

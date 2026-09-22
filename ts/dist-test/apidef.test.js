@@ -53,31 +53,31 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         const { migrateLegacyGuide } = require('../dist/guide/guide');
         const dir = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'apidef-guide-'));
         Fs.mkdirSync(Path.join(dir, 'guide'), { recursive: true });
-        const legacy = Path.join(dir, 'guide', 'x-guide.aontu');
+        const legacy = Path.join(dir, 'guide', 'x-guide.aon');
         Fs.writeFileSync(legacy, [
-            '@"@voxgig/apidef/model/guide.aontu"',
+            '@"@voxgig/apidef/model/guide.aon"',
             '',
-            '@"x-base-guide.aontu"',
+            '@"x-base-guide.aon"',
             '',
-            '@"./x-base-guide.aontu"',
+            '@"./x-base-guide.aon"',
             '',
-            // A user's OWN include that merely ENDS in base-guide.aontu. Nothing
+            // A user's OWN include that merely ENDS in base-guide.aon. Nothing
             // renamed this file, so rewriting it would point the guide at a path
             // that does not exist — while deleting the original.
-            '@"shared-base-guide.aontu"',
+            '@"shared-base-guide.aon"',
             '',
-            'guide: { entity: { thing: { note: "see guide.aontu notes" } } }',
+            'guide: { entity: { thing: { note: "see guide.aon notes" } } }',
             '',
         ].join('\n'));
         migrateLegacyGuide(Fs, dir, 'x-');
         node_assert_1.default.ok(!Fs.existsSync(legacy), 'legacy file should be gone');
-        const out = Fs.readFileSync(Path.join(dir, 'guide', 'x-guide.aon'), 'utf8');
-        node_assert_1.default.ok(out.includes('@"@voxgig/apidef/model/guide.aon"'), 'package include not migrated: ' + out);
-        node_assert_1.default.ok(out.includes('@"x-base-guide.aon"'), 'base-guide include not migrated: ' + out);
-        node_assert_1.default.ok(out.includes('@"./x-base-guide.aon"'), './ base-guide include not migrated: ' + out);
-        node_assert_1.default.ok(!out.includes('x-base-guide.aontu"'), 'a base-guide include still names the legacy file: ' + out);
-        node_assert_1.default.ok(out.includes('@"shared-base-guide.aontu"'), 'a user-owned base-guide include was rewritten: ' + out);
-        node_assert_1.default.ok(out.includes('note: "see guide.aontu notes"'), 'user content was rewritten: ' + out);
+        const out = Fs.readFileSync(Path.join(dir, 'guide', 'x-guide.aontu'), 'utf8');
+        node_assert_1.default.ok(out.includes('@"@voxgig/apidef/model/guide.aontu"'), 'package include not migrated: ' + out);
+        node_assert_1.default.ok(out.includes('@"x-base-guide.aontu"'), 'base-guide include not migrated: ' + out);
+        node_assert_1.default.ok(out.includes('@"./x-base-guide.aontu"'), './ base-guide include not migrated: ' + out);
+        node_assert_1.default.ok(!out.includes('x-base-guide.aon"'), 'a base-guide include still names the legacy file: ' + out);
+        node_assert_1.default.ok(out.includes('@"shared-base-guide.aon"'), 'a user-owned base-guide include was rewritten: ' + out);
+        node_assert_1.default.ok(out.includes('note: "see guide.aon notes"'), 'user content was rewritten: ' + out);
     });
     (0, node_test_1.test)('fs-injected-flag', async () => {
         const outprefix = 'solar-1.0.0-openapi-3.0.0-';
@@ -376,14 +376,14 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
 
 name: solar
 
-@"@voxgig/apidef/model/apidef.aon"
+@"@voxgig/apidef/model/apidef.aontu"
 
 def: '${outprefix}def.yaml'
 `;
         const modelSrc = `
 # apidef test: ${outprefix}
 
-@"@voxgig/apidef/model/apidef.aon"
+@"@voxgig/apidef/model/apidef.aontu"
 
 name: solar
 
@@ -398,7 +398,7 @@ def: '${outprefix}def.yaml'
         };
         const bres = await build(modelinit, buildspec, {});
         node_assert_1.default.strictEqual(bres.ok, true);
-        const model = aontu.generate(`@"test/solar/solar.aon"`, {
+        const model = aontu.generate(`@"test/solar/solar.aontu"`, {
             base: __dirname + '/..'
         });
         node_assert_1.default.deepStrictEqual(model.main.kit, SOLAR_MODEL.main.kit);
@@ -406,7 +406,7 @@ def: '${outprefix}def.yaml'
     (0, node_test_1.describe)('guide entity allowlist', () => {
         const PathMod = require('node:path');
         (0, node_test_1.test)('`active` has no default, so a project can supply one', () => {
-            const src = Fs.readFileSync(PathMod.join(__dirname, '..', '..', 'model', 'guide.aon'), 'utf8');
+            const src = Fs.readFileSync(PathMod.join(__dirname, '..', '..', 'model', 'guide.aontu'), 'utf8');
             const line = src.split('\n').find((l) => /^\s*active\??\s*:/.test(l));
             node_assert_1.default.ok(null != line, 'the guide model must declare `active`');
             node_assert_1.default.match(String(line), /active\?\s*:\s*boolean\s*$/, 'active must stay OPTIONAL with no default: a default here is the ' +
@@ -415,7 +415,7 @@ def: '${outprefix}def.yaml'
         (0, node_test_1.test)('the base guide writes no `active`, leaving the slot free', () => {
             // Generated on every run, so a builder that started stamping
             // `active: true` would take the allowlist away silently.
-            const built = PathMod.join(__dirname, '..', '..', '..', '..', 'voxgig-sdk', 'univec-sdk', '.sdk', 'model', 'guide', 'base-guide.aon');
+            const built = PathMod.join(__dirname, '..', '..', '..', '..', 'voxgig-sdk', 'univec-sdk', '.sdk', 'model', 'guide', 'base-guide.aontu');
             if (!Fs.existsSync(built)) {
                 return; // no sibling checkout here; the unit facts above still hold
             }
@@ -439,42 +439,42 @@ def: '${outprefix}def.yaml'
         const listing = (dir) => Fs.readdirSync(PathMod.join(dir, 'entity')).sort();
         (0, node_test_1.test)('removes generated files for entities no longer derived', () => {
             const dir = tmpModel({
-                'country.aon': GEN('country'),
-                'list_country.aon': GEN('list_country'), // orphan
-                'entity-index.aon': '# Entity Models\n',
+                'country.aontu': GEN('country'),
+                'list_country.aontu': GEN('list_country'), // orphan
+                'entity-index.aontu': '# Entity Models\n',
             });
             const removed = (0, apidef_1.gcEntityFiles)(Fs, null, dir, undefined, ['country']);
-            node_assert_1.default.deepStrictEqual(removed, ['list_country.aon']);
-            node_assert_1.default.deepStrictEqual(listing(dir), ['country.aon', 'entity-index.aon']);
+            node_assert_1.default.deepStrictEqual(removed, ['list_country.aontu']);
+            node_assert_1.default.deepStrictEqual(listing(dir), ['country.aontu', 'entity-index.aontu']);
         });
         (0, node_test_1.test)('never touches a file apidef did not write', () => {
             const dir = tmpModel({
-                'country.aon': GEN('country'),
-                'custom.aon': '# my hand-written model fragment\nfoo: 1\n', // no generated header
+                'country.aontu': GEN('country'),
+                'custom.aontu': '# my hand-written model fragment\nfoo: 1\n', // no generated header
                 'notes.txt': 'not aontu at all',
             });
             const removed = (0, apidef_1.gcEntityFiles)(Fs, null, dir, undefined, ['country']);
             node_assert_1.default.deepStrictEqual(removed, []);
-            node_assert_1.default.deepStrictEqual(listing(dir), ['country.aon', 'custom.aon', 'notes.txt']);
+            node_assert_1.default.deepStrictEqual(listing(dir), ['country.aontu', 'custom.aontu', 'notes.txt']);
         });
         (0, node_test_1.test)('respects outprefix — another def sharing the folder is not collected', () => {
             const dir = tmpModel({
-                'solar-planet.aon': GEN('planet'),
-                'solar-moon.aon': GEN('moon'), // orphan of the solar def
-                'solar-entity-index.aon': '# Entity Models\n',
-                'lunar-crater.aon': GEN('crater'), // belongs to a DIFFERENT def
+                'solar-planet.aontu': GEN('planet'),
+                'solar-moon.aontu': GEN('moon'), // orphan of the solar def
+                'solar-entity-index.aontu': '# Entity Models\n',
+                'lunar-crater.aontu': GEN('crater'), // belongs to a DIFFERENT def
             });
             const removed = (0, apidef_1.gcEntityFiles)(Fs, null, dir, 'solar-', ['planet']);
-            node_assert_1.default.deepStrictEqual(removed, ['solar-moon.aon']);
-            node_assert_1.default.deepStrictEqual(listing(dir), ['lunar-crater.aon', 'solar-entity-index.aon', 'solar-planet.aon']);
+            node_assert_1.default.deepStrictEqual(removed, ['solar-moon.aontu']);
+            node_assert_1.default.deepStrictEqual(listing(dir), ['lunar-crater.aontu', 'solar-entity-index.aontu', 'solar-planet.aontu']);
         });
         (0, node_test_1.test)('keeps the index and the whole current set; missing folder is a no-op', () => {
             const dir = tmpModel({
-                'a.aon': GEN('a'), 'b.aon': GEN('b'),
-                'entity-index.aon': '# Entity Models\n',
+                'a.aontu': GEN('a'), 'b.aontu': GEN('b'),
+                'entity-index.aontu': '# Entity Models\n',
             });
             node_assert_1.default.deepStrictEqual((0, apidef_1.gcEntityFiles)(Fs, null, dir, undefined, ['a', 'b']), []);
-            node_assert_1.default.deepStrictEqual(listing(dir), ['a.aon', 'b.aon', 'entity-index.aon']);
+            node_assert_1.default.deepStrictEqual(listing(dir), ['a.aontu', 'b.aontu', 'entity-index.aontu']);
             // No entity folder at all: return empty, do not throw.
             const empty = Fs.mkdtempSync(PathMod.join(Os.tmpdir(), 'apidef-gc-'));
             node_assert_1.default.deepStrictEqual((0, apidef_1.gcEntityFiles)(Fs, null, empty, undefined, ['a']), []);
