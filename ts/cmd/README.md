@@ -64,6 +64,6 @@ Cross-compiled builds include the os-arch suffix, e.g. `voxgig-apidef-darwin-arm
 Each subdirectory also has its own standalone `build.sh`:
 
 - `cmd/bun/build.sh` - Bun build with all cross-compilation targets
-- `cmd/deno/build.sh` - Deno compile with npm specifier entry point
+- `cmd/deno/build.sh` - Deno compile over `cmd/deno/main.ts`, a shim over `dist/cli.js` (not yet run; see RESULTS.md)
 - `cmd/node-sea/build.sh` - Node SEA (esbuild bundle + blob injection)
 - `cmd/test/build-and-test.sh` - Build and test all targets, comparing output against a reference Node.js run
