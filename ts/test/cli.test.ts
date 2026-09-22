@@ -1,5 +1,6 @@
 /* Copyright (c) 2026 Voxgig Ltd, MIT License */
 
+import { spawnSync } from 'node:child_process'
 import * as Fs from 'node:fs'
 import * as Os from 'node:os'
 import Path from 'node:path'
@@ -174,6 +175,29 @@ describe('cli', () => {
     assert.equal(await runCli(['-h'], help.io), 0)
     assert.ok(help.out[0].startsWith('Usage: voxgig-apidef <name>'))
     assert.ok(help.out[0].includes('guide.aon'))
+  })
+
+
+  // The shims `bin/voxgig-apidef` and `cmd/bun/entry.js` are the only way a
+  // user reaches the CLI, and runCli does not go through them: a wrong
+  // require path or a missing export shows up nowhere else. Run them.
+  test('entry-points', (t) => {
+    const bin = Path.join(__dirname, '..', 'bin', 'voxgig-apidef')
+    const node = spawnSync(process.execPath, [bin, '-v'], { encoding: 'utf8' })
+    assert.equal(node.status, 0, node.stderr)
+    assert.equal(node.stdout.trim(), Pkg.version)
+
+    // Bun is not installed everywhere. Where it is, its entry point runs the
+    // same CLI. Deno's cannot be run here at all; see cmd/RESULTS.md.
+    if (0 !== spawnSync('bun', ['--version'], { encoding: 'utf8' }).status) {
+      t.diagnostic('bun not found: cmd/bun/entry.js not run')
+      return
+    }
+
+    const entry = Path.join(__dirname, '..', 'cmd', 'bun', 'entry.js')
+    const bun = spawnSync('bun', [entry, '-v'], { encoding: 'utf8' })
+    assert.equal(bun.status, 0, bun.stderr)
+    assert.equal(bun.stdout.trim(), Pkg.version)
   })
 
 

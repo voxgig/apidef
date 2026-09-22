@@ -37,6 +37,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const node_child_process_1 = require("node:child_process");
 const Fs = __importStar(require("node:fs"));
 const Os = __importStar(require("node:os"));
 const node_path_1 = __importDefault(require("node:path"));
@@ -159,6 +160,25 @@ function captureIO() {
         node_assert_1.default.equal(await (0, cli_1.runCli)(['-h'], help.io), 0);
         node_assert_1.default.ok(help.out[0].startsWith('Usage: voxgig-apidef <name>'));
         node_assert_1.default.ok(help.out[0].includes('guide.aon'));
+    });
+    // The shims `bin/voxgig-apidef` and `cmd/bun/entry.js` are the only way a
+    // user reaches the CLI, and runCli does not go through them: a wrong
+    // require path or a missing export shows up nowhere else. Run them.
+    (0, node_test_1.test)('entry-points', (t) => {
+        const bin = node_path_1.default.join(__dirname, '..', 'bin', 'voxgig-apidef');
+        const node = (0, node_child_process_1.spawnSync)(process.execPath, [bin, '-v'], { encoding: 'utf8' });
+        node_assert_1.default.equal(node.status, 0, node.stderr);
+        node_assert_1.default.equal(node.stdout.trim(), Pkg.version);
+        // Bun is not installed everywhere. Where it is, its entry point runs the
+        // same CLI. Deno's cannot be run here at all; see cmd/RESULTS.md.
+        if (0 !== (0, node_child_process_1.spawnSync)('bun', ['--version'], { encoding: 'utf8' }).status) {
+            t.diagnostic('bun not found: cmd/bun/entry.js not run');
+            return;
+        }
+        const entry = node_path_1.default.join(__dirname, '..', 'cmd', 'bun', 'entry.js');
+        const bun = (0, node_child_process_1.spawnSync)('bun', [entry, '-v'], { encoding: 'utf8' });
+        node_assert_1.default.equal(bun.status, 0, bun.stderr);
+        node_assert_1.default.equal(bun.stdout.trim(), Pkg.version);
     });
     (0, node_test_1.test)('bad-options', async () => {
         const noname = captureIO();
