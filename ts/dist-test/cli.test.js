@@ -37,6 +37,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const node_child_process_1 = require("node:child_process");
 const Fs = __importStar(require("node:fs"));
 const Os = __importStar(require("node:os"));
 const node_path_1 = __importDefault(require("node:path"));
@@ -48,12 +49,15 @@ const SOLAR_PREFIX = 'solar-1.0.0-openapi-3.0.0-';
 const SOLAR_DEF = SOLAR_PREFIX + 'def.yaml';
 const FIXTURES = node_path_1.default.join(__dirname, '..', 'test');
 const PKG_MODEL = node_path_1.default.join(__dirname, '..', 'model');
+const PROJECTS = [];
 // A throwaway project in the documented layout: <root>/def holds the
 // definition, <root>/model the guide entry file and the generated output.
 // The package model is copied under <root>/node_modules so the guide's
-// package include resolves outside the repository.
+// package include resolves outside the repository. Each is recorded so the
+// suite can remove it again.
 function makeProject() {
     const root = Fs.mkdtempSync(node_path_1.default.join(Os.tmpdir(), 'apidef-cli-'));
+    PROJECTS.push(root);
     Fs.mkdirSync(node_path_1.default.join(root, 'def'));
     Fs.copyFileSync(node_path_1.default.join(FIXTURES, 'def', SOLAR_DEF), node_path_1.default.join(root, 'def', SOLAR_DEF));
     Fs.mkdirSync(node_path_1.default.join(root, 'model', 'guide'), { recursive: true });
@@ -78,6 +82,11 @@ function captureIO() {
     };
 }
 (0, node_test_1.describe)('cli', () => {
+    (0, node_test_1.after)(() => {
+        for (const root of PROJECTS) {
+            Fs.rmSync(root, { recursive: true, force: true });
+        }
+    });
     (0, node_test_1.test)('resolve-options', () => {
         const defaults = (0, cli_1.resolveOptions)(['petstore']);
         node_assert_1.default.equal(defaults.name, 'petstore');
@@ -85,7 +94,7 @@ function captureIO() {
         node_assert_1.default.equal(defaults.def, '');
         node_assert_1.default.equal(defaults.prefix, undefined);
         node_assert_1.default.equal(defaults.watch, false);
-        node_assert_1.default.equal(defaults.debug, 'info');
+        node_assert_1.default.equal(defaults.debug, undefined);
         const given = (0, cli_1.resolveOptions)([
             'petstore', '-f', 'proj', '-d', 'spec.yml', '-p', 'ps-', '-w', '-g', 'warn'
         ]);
@@ -125,6 +134,17 @@ function captureIO() {
         node_assert_1.default.equal(away.guide, node_path_1.default.join(root, 'model', 'guide', 'guide.aon'));
         node_assert_1.default.equal(node_path_1.default.join(away.folder, '..', 'def', away.model.def), elsewhere);
     });
+    // The definition name the pipeline joins onto <root>/def: relative on the
+    // same drive wherever the file is, refused on another drive.
+    (0, node_test_1.test)('def-name', () => {
+        const W = node_path_1.default.win32;
+        node_assert_1.default.equal((0, cli_1.defName)('C:\\work\\proj\\def', 'C:\\work\\proj\\def\\petstore.yml', W), 'petstore.yml');
+        node_assert_1.default.equal((0, cli_1.defName)('C:\\work\\proj\\def', 'C:\\specs\\v2\\petstore.json', W), '..\\..\\..\\specs\\v2\\petstore.json');
+        node_assert_1.default.throws(() => (0, cli_1.defName)('C:\\work\\proj\\def', 'D:\\specs\\petstore.yml', W), /same drive/);
+        const P = node_path_1.default.posix;
+        node_assert_1.default.equal((0, cli_1.defName)('/work/proj/def', '/work/proj/def/petstore.yml', P), 'petstore.yml');
+        node_assert_1.default.equal((0, cli_1.defName)('/work/proj/def', '/specs/v2/petstore.json', P), '../../../specs/v2/petstore.json');
+    });
     (0, node_test_1.test)('check-project', () => {
         const root = makeProject();
         const options = {
@@ -149,6 +169,25 @@ function captureIO() {
         node_assert_1.default.ok(help.out[0].startsWith('Usage: voxgig-apidef <name>'));
         node_assert_1.default.ok(help.out[0].includes('guide.aon'));
     });
+    // The shims `bin/voxgig-apidef` and `cmd/bun/entry.js` are the only way a
+    // user reaches the CLI, and runCli does not go through them: a wrong
+    // require path or a missing export shows up nowhere else. Run them.
+    (0, node_test_1.test)('entry-points', (t) => {
+        const bin = node_path_1.default.join(__dirname, '..', 'bin', 'voxgig-apidef');
+        const node = (0, node_child_process_1.spawnSync)(process.execPath, [bin, '-v'], { encoding: 'utf8' });
+        node_assert_1.default.equal(node.status, 0, node.stderr);
+        node_assert_1.default.equal(node.stdout.trim(), Pkg.version);
+        // Bun is not installed everywhere. Where it is, its entry point runs the
+        // same CLI. Deno's cannot be run here at all; see cmd/RESULTS.md.
+        if (0 !== (0, node_child_process_1.spawnSync)('bun', ['--version'], { encoding: 'utf8' }).status) {
+            t.diagnostic('bun not found: cmd/bun/entry.js not run');
+            return;
+        }
+        const entry = node_path_1.default.join(__dirname, '..', 'cmd', 'bun', 'entry.js');
+        const bun = (0, node_child_process_1.spawnSync)('bun', [entry, '-v'], { encoding: 'utf8' });
+        node_assert_1.default.equal(bun.status, 0, bun.stderr);
+        node_assert_1.default.equal(bun.stdout.trim(), Pkg.version);
+    });
     (0, node_test_1.test)('bad-options', async () => {
         const noname = captureIO();
         node_assert_1.default.equal(await (0, cli_1.runCli)([], noname.io), 1);
@@ -159,6 +198,11 @@ function captureIO() {
         const nofile = captureIO();
         node_assert_1.default.equal(await (0, cli_1.runCli)(['solar', '-d', 'no-such-def.yml'], nofile.io), 1);
         node_assert_1.default.ok(nofile.err.join('\n').includes('Definition file not found'));
+        const extra = captureIO();
+        node_assert_1.default.equal(await (0, cli_1.runCli)(['solar', 'petstore', '-d', 'spec.yml'], extra.io), 1);
+        const extramsg = extra.err.join('\n');
+        node_assert_1.default.ok(extramsg.includes('Unexpected extra arguments: petstore'), extramsg);
+        node_assert_1.default.ok(extramsg.includes('Usage: voxgig-apidef'), extramsg);
         const root = makeProject();
         const noguide = captureIO();
         node_assert_1.default.equal(await (0, cli_1.runCli)([
@@ -193,6 +237,33 @@ function captureIO() {
         }
         const written = Fs.readdirSync(model, { recursive: true });
         node_assert_1.default.deepEqual(written.filter((f) => f.endsWith('.aontu')), []);
+        // An explicit --debug, at any level, also writes the resolved definition.
+        node_assert_1.default.deepEqual(Fs.readdirSync(node_path_1.default.join(root, 'def')).sort(), [SOLAR_DEF, SOLAR_DEF + '.full.json']);
+    });
+    // Without --debug the library gets no debug option at all, so the
+    // definition folder holds nothing but the definition afterwards.
+    (0, node_test_1.test)('run-default', async () => {
+        const root = makeProject();
+        const { io, out } = captureIO();
+        const code = await (0, cli_1.runCli)([
+            'solar', '-f', root, '-d', node_path_1.default.join(root, 'def', SOLAR_DEF), '-p', SOLAR_PREFIX,
+        ], io);
+        node_assert_1.default.equal(code, 0, out.join('\n'));
+        node_assert_1.default.deepEqual(Fs.readdirSync(node_path_1.default.join(root, 'def')), [SOLAR_DEF]);
+        node_assert_1.default.ok(Fs.existsSync(node_path_1.default.join(root, 'model', 'entity', SOLAR_PREFIX + 'planet.aon')));
+    });
+    // A failing build reports on stderr. The ok line is stdout, so a caller
+    // reading it must not be handed a failure on the same stream.
+    (0, node_test_1.test)('run-failure', async () => {
+        const root = makeProject();
+        Fs.writeFileSync(node_path_1.default.join(root, 'def', SOLAR_DEF), 'openapi: 3.0.0\n');
+        const { io, out, err } = captureIO();
+        const code = await (0, cli_1.runCli)([
+            'solar', '-f', root, '-d', node_path_1.default.join(root, 'def', SOLAR_DEF), '-p', SOLAR_PREFIX,
+        ], io);
+        node_assert_1.default.equal(code, 1, out.concat(err).join('\n'));
+        node_assert_1.default.deepEqual(out, []);
+        node_assert_1.default.ok(err.join('\n').includes('voxgig-apidef: failed after step'), err.join('\n'));
     });
     // A project created before the rename still carries <prefix>guide.aontu;
     // the CLI accepts it and the run leaves the migrated .aon in its place.
@@ -215,6 +286,30 @@ function captureIO() {
         node_assert_1.default.equal(code, 0, out.join('\n'));
         node_assert_1.default.ok(Fs.existsSync(guide), 'guide.aon not written by the migration');
         node_assert_1.default.ok(!Fs.existsSync(legacy), 'guide.aontu left behind');
+        node_assert_1.default.ok(Fs.existsSync(node_path_1.default.join(root, 'model', 'entity', SOLAR_PREFIX + 'planet.aon')));
+    });
+    // The same, for a legacy guide whose sibling include carries the `./`.
+    (0, node_test_1.test)('run-legacy-guide-dotslash', async () => {
+        const root = makeProject();
+        const guidefolder = node_path_1.default.join(root, 'model', 'guide');
+        const guide = node_path_1.default.join(guidefolder, SOLAR_PREFIX + 'guide.aon');
+        const legacy = node_path_1.default.join(guidefolder, SOLAR_PREFIX + 'guide.aontu');
+        Fs.unlinkSync(guide);
+        Fs.writeFileSync(legacy, [
+            '@"@voxgig/apidef/model/guide.aontu"',
+            '@"./' + SOLAR_PREFIX + 'base-guide.aontu"',
+            '',
+        ].join('\n'));
+        const { io, out } = captureIO();
+        const code = await (0, cli_1.runCli)([
+            'solar', '-f', root, '-d', node_path_1.default.join(root, 'def', SOLAR_DEF),
+            '-p', SOLAR_PREFIX, '-g', 'warn',
+        ], io);
+        node_assert_1.default.equal(code, 0, out.join('\n'));
+        node_assert_1.default.ok(!Fs.existsSync(legacy), 'guide.aontu left behind');
+        const migrated = Fs.readFileSync(guide, 'utf8');
+        node_assert_1.default.ok(migrated.includes('@"./' + SOLAR_PREFIX + 'base-guide.aon"'), migrated);
+        node_assert_1.default.ok(!migrated.includes('.aontu'), migrated);
         node_assert_1.default.ok(Fs.existsSync(node_path_1.default.join(root, 'model', 'entity', SOLAR_PREFIX + 'planet.aon')));
     });
 });

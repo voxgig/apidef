@@ -97,9 +97,11 @@ treated as a binary asset instead of being parsed as JavaScript.
 
 **Status: NOT TESTED — Deno not available in this environment**
 
-Build script and Deno-compatible entry point (`cmd/deno/build.sh`,
-`cmd/deno/build/entry.ts`) are prepared but could not be executed because
-Deno was not installable (network restrictions).
+Build script and entry point (`cmd/deno/build.sh`, `cmd/deno/main.ts`) are
+prepared but have not been executed: Deno was not available where they were
+written. `main.ts` is a `createRequire` shim over the same `dist/cli.js` as
+`bin/voxgig-apidef`, so the CLI it runs is the tested one; what remains
+unverified is the packaging.
 
 ### Expected Behavior
 - `deno compile` bundles code + slimmed Deno runtime (`denort`) into a
@@ -111,6 +113,9 @@ Deno was not installable (network restrictions).
 - Deno's Node.js compatibility layer may have issues with the deep
   dependency tree (`@redocly/openapi-core`, `jostraca`, `@voxgig/struct`)
 - `createRequire()` bridge adds a small compatibility risk
+- `deno compile` cannot see a `createRequire` load statically, so the files
+  it must carry (`dist/`, `model/`, `package.json` and the resolved
+  `node_modules`) may need `--include` flags; not confirmed
 - Would need thorough testing of OpenAPI parsing and code generation
 
 

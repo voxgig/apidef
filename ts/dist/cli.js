@@ -41,6 +41,7 @@ exports.main = main;
 exports.runCli = runCli;
 exports.resolveOptions = resolveOptions;
 exports.validateOptions = validateOptions;
+exports.defName = defName;
 exports.resolveProject = resolveProject;
 exports.checkProject = checkProject;
 exports.usage = usage;
@@ -73,7 +74,8 @@ function usage() {
         '  -d, --def <file>      the API definition file (required)',
         '  -p, --prefix <text>   prefix for generated file names (default: <name>-)',
         '  -w, --watch           rebuild when the definition file changes',
-        '  -g, --debug <level>   log level: info (default), debug, warn, error',
+        '  -g, --debug <level>   log level (debug, info, warn, error); also writes',
+        '                        the resolved definition as <def>.full.json',
         '  -h, --help            print this help and exit',
         '  -v, --version         print the package version and exit',
         '',
@@ -93,12 +95,12 @@ function resolveOptions(argv) {
             def: { type: 'string', short: 'd', default: '' },
             prefix: { type: 'string', short: 'p' },
             watch: { type: 'boolean', short: 'w' },
-            debug: { type: 'string', short: 'g', default: 'info' },
+            debug: { type: 'string', short: 'g' },
             help: { type: 'boolean', short: 'h' },
             version: { type: 'boolean', short: 'v' },
         }
     });
-    const name = args.positionals[0];
+    const [name, ...extra] = args.positionals;
     return {
         name,
         folder: '' === args.values.folder ? name : args.values.folder,
@@ -108,23 +110,32 @@ function resolveOptions(argv) {
         debug: args.values.debug,
         help: !!args.values.help,
         version: !!args.values.version,
+        extra,
     };
 }
 function validateOptions(rawOptions) {
+    // An absent prefix defaults to <name>- later, an empty one is a valid
+    // choice, an absent debug leaves the library its own default, and `extra`
+    // is not an option at all; the shape rejects all four, so they are taken
+    // out and checked here. A positional after the name is a typo rather than
+    // a spare, and was being dropped without a word.
+    const { prefix, debug, extra, ...shaped } = rawOptions;
+    if (null != extra && 0 < extra.length) {
+        throw new Error('Unexpected extra arguments: ' + extra.join(' ') + '\n\n' + usage());
+    }
     const optShape = (0, shape_1.Shape)({
         name: (0, shape_1.Fault)('The first argument should be the project name.', String),
         folder: String,
         def: (0, shape_1.Fault)('A definition file is required: --def <file>.', String),
         watch: Boolean,
-        debug: (0, shape_1.One)(String, Boolean),
         help: Boolean,
         version: Boolean,
     });
-    // An absent prefix defaults to <name>- later; an empty one is a valid
-    // choice, and the shape rejects both, so it is validated by hand.
-    const { prefix, ...shaped } = rawOptions;
     if (null != prefix && 'string' !== typeof prefix) {
         throw new Error('The prefix should be a string.');
+    }
+    if (null != debug && 'string' !== typeof debug) {
+        throw new Error('The debug level should be a string.');
     }
     const err = [];
     const options = optShape(shaped, { err });
@@ -132,12 +143,22 @@ function validateOptions(rawOptions) {
         throw new Error(err[0].text);
     }
     options.prefix = prefix;
+    options.debug = debug;
     options.def = node_path_1.default.resolve(options.def);
     const stat = Fs.statSync(options.def, { throwIfNoEntry: false });
     if (null == stat) {
         throw new Error('Definition file not found: ' + options.def);
     }
     return options;
+}
+// A name still absolute after Path.relative is on another drive, which the
+// pipeline's <base>/../def join cannot reach.
+function defName(deffolder, def, path = node_path_1.default) {
+    const name = path.relative(deffolder, def);
+    if (path.isAbsolute(name)) {
+        throw new Error('Definition file must be on the same drive as the project folder: ' + def);
+    }
+    return name;
 }
 // The pipeline reads the definition at <base>/../def/<model.def> and writes
 // under the output folder; both are <root>/model here, so a definition kept
@@ -155,7 +176,7 @@ function resolveProject(options) {
         def,
         model: {
             name: options.name,
-            def: node_path_1.default.relative(node_path_1.default.join(folder, '..', 'def'), def),
+            def: defName(node_path_1.default.join(folder, '..', 'def'), def),
         },
         guide: node_path_1.default.join(guidefolder, outprefix + GUIDE_FILE),
         legacyguide: node_path_1.default.join(guidefolder, outprefix + LEGACY_GUIDE_FILE),
@@ -172,13 +193,15 @@ function checkProject(project) {
         '  @"@voxgig/apidef/model/' + GUIDE_FILE + '"\n' +
         '  @"./' + project.outprefix + BASE_GUIDE_FILE + '"');
 }
-async function runBuild(project, options) {
+// The closure makeBuild returns memoises the ApiDef instance and its logger,
+// so a watch that reuses it rebuilds the model without rebuilding those.
+async function makeRunBuild(project, options) {
     const build = await apidef_1.ApiDef.makeBuild({
         folder: project.folder,
         outprefix: project.outprefix,
         debug: options.debug,
     });
-    return await build(project.model, { spec: { base: project.folder } }, {});
+    return () => build(project.model, { spec: { base: project.folder } }, {});
 }
 function report(result, project, io) {
     if (result.ok) {
@@ -189,7 +212,7 @@ function report(result, project, io) {
     }
     else {
         const last = result.steps?.[result.steps.length - 1] || 'start';
-        io.log('voxgig-apidef: failed after step ' + last + ': ' +
+        io.error('voxgig-apidef: failed after step ' + last + ': ' +
             (result.err?.message || 'unknown error'));
     }
 }
@@ -232,11 +255,12 @@ async function runCli(argv, io = CONSOLE_IO) {
         options = validateOptions(options);
         const project = resolveProject(options);
         checkProject(project);
-        const result = await runBuild(project, options);
+        const runBuild = await makeRunBuild(project, options);
+        const result = await runBuild();
         report(result, project, io);
         if (options.watch) {
             await watchDef(project, async () => {
-                report(await runBuild(project, options), project, io);
+                report(await runBuild(), project, io);
             }, io);
         }
         return result.ok ? 0 : 1;

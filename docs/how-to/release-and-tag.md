@@ -76,8 +76,10 @@ workflow refuses rather than moving an existing tag.
 
 npm and the Go module are versioned independently, each on its own series.
 `ts/package.json` and `go/apidef.go` hold the current numbers, and the two
-have never matched. Sharing a number is not as simple as it sounds, because
-**from v2 on, Go requires the major version in the module path.**
+series are not kept in step — a number in one says nothing about the other,
+and the few that appear in both did so by coincidence rather than by release.
+Sharing a number is not as simple as it sounds, because **from v2 on, Go
+requires the major version in the module path.**
 
 ```
 module github.com/voxgig/apidef/go      # ok for v0.x and v1.x

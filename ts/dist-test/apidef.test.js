@@ -59,6 +59,8 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
             '',
             '@"x-base-guide.aontu"',
             '',
+            '@"./x-base-guide.aontu"',
+            '',
             // A user's OWN include that merely ENDS in base-guide.aontu. Nothing
             // renamed this file, so rewriting it would point the guide at a path
             // that does not exist — while deleting the original.
@@ -72,6 +74,8 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         const out = Fs.readFileSync(Path.join(dir, 'guide', 'x-guide.aon'), 'utf8');
         node_assert_1.default.ok(out.includes('@"@voxgig/apidef/model/guide.aon"'), 'package include not migrated: ' + out);
         node_assert_1.default.ok(out.includes('@"x-base-guide.aon"'), 'base-guide include not migrated: ' + out);
+        node_assert_1.default.ok(out.includes('@"./x-base-guide.aon"'), './ base-guide include not migrated: ' + out);
+        node_assert_1.default.ok(!out.includes('x-base-guide.aontu"'), 'a base-guide include still names the legacy file: ' + out);
         node_assert_1.default.ok(out.includes('@"shared-base-guide.aontu"'), 'a user-owned base-guide include was rewritten: ' + out);
         node_assert_1.default.ok(out.includes('note: "see guide.aontu notes"'), 'user content was rewritten: ' + out);
     });

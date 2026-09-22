@@ -32,7 +32,7 @@ ADR-NNN**, so the reasoning that led there stays readable.
 An entity is **one record**. `client.Joke(id).load()` loads a joke, not a
 collection of them, and every downstream artefact reads that way: the Go
 type `Joke`, the TypeScript class `JokeEntity`, the file
-`<slug>-joke.aontu`, the test fixture `JokeTestData.json`. A plural name
+`<slug>-joke.aon`, the test fixture `JokeTestData.json`. A plural name
 makes each of those a lie, and the lie is not local — sdkgen turns the
 entity name into public class names across every one of its two dozen
 targets, so a plural that reaches the model becomes a published API.

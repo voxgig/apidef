@@ -31,8 +31,8 @@ const result = await apidef.generate(spec)
 | `meta` | `object` | `{}` | arbitrary metadata passed through to the build |
 | `why` | `{ show?: boolean }` | — | include classification `why_*` traces in output |
 
-¹ The CLI defaults `debug` to `'info'`; the library constructor leaves it
-unset unless you pass it.
+¹ The log level when `debug` is unset. The CLI passes `debug` only when
+`--debug` is given, so a plain CLI run writes no `<def>.full.json`.
 
 ## `apidef.generate(spec)` → `Promise<ApiDefResult>`
 

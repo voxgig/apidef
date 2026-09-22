@@ -9,20 +9,22 @@ wrapper over the library, run against a project folder in the layout the
 ```sh
 npx voxgig-apidef petstore \
   --folder ./petstore \
-  --def ./petstore/def/petstore.yml \
-  --debug info
+  --def ./petstore/def/petstore.yml
 ```
 
-- The positional argument (`petstore`) is the project **name**.
+- The positional argument (`petstore`) is the project **name**, and the
+  only positional the CLI takes; a second one is refused with the usage text.
 - `--folder` (`-f`) is the project root; if omitted it defaults to the name.
 - `--def` (`-d`) points at the spec file (required, and checked to exist).
 - `--prefix` (`-p`) sets the filename prefix for generated files; it defaults
   to the name plus a hyphen (`petstore-`).
-- `--debug` (`-g`) sets the log level (`info`, `debug`, …).
+- `--debug` (`-g`) sets the log level (`debug`, `info`, `warn` or `error`);
+  passing it at any level also writes the resolved spec beside the definition
+  file as `<def>.full.json`.
 
 A run that reaches the end prints one line naming the model folder and the
-entities it found, and exits `0`. A build that fails prints the stage it
-failed after and exits `1`.
+entities it found on standard output, and exits `0`. A build that fails prints
+the stage it failed after on standard error, and exits `1`.
 
 ## Before the first run
 
