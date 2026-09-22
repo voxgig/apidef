@@ -217,5 +217,29 @@ function captureIO() {
         node_assert_1.default.ok(!Fs.existsSync(legacy), 'guide.aontu left behind');
         node_assert_1.default.ok(Fs.existsSync(node_path_1.default.join(root, 'model', 'entity', SOLAR_PREFIX + 'planet.aon')));
     });
+    // The same, for a legacy guide whose sibling include carries the `./`.
+    (0, node_test_1.test)('run-legacy-guide-dotslash', async () => {
+        const root = makeProject();
+        const guidefolder = node_path_1.default.join(root, 'model', 'guide');
+        const guide = node_path_1.default.join(guidefolder, SOLAR_PREFIX + 'guide.aon');
+        const legacy = node_path_1.default.join(guidefolder, SOLAR_PREFIX + 'guide.aontu');
+        Fs.unlinkSync(guide);
+        Fs.writeFileSync(legacy, [
+            '@"@voxgig/apidef/model/guide.aontu"',
+            '@"./' + SOLAR_PREFIX + 'base-guide.aontu"',
+            '',
+        ].join('\n'));
+        const { io, out } = captureIO();
+        const code = await (0, cli_1.runCli)([
+            'solar', '-f', root, '-d', node_path_1.default.join(root, 'def', SOLAR_DEF),
+            '-p', SOLAR_PREFIX, '-g', 'warn',
+        ], io);
+        node_assert_1.default.equal(code, 0, out.join('\n'));
+        node_assert_1.default.ok(!Fs.existsSync(legacy), 'guide.aontu left behind');
+        const migrated = Fs.readFileSync(guide, 'utf8');
+        node_assert_1.default.ok(migrated.includes('@"./' + SOLAR_PREFIX + 'base-guide.aon"'), migrated);
+        node_assert_1.default.ok(!migrated.includes('.aontu'), migrated);
+        node_assert_1.default.ok(Fs.existsSync(node_path_1.default.join(root, 'model', 'entity', SOLAR_PREFIX + 'planet.aon')));
+    });
 });
 //# sourceMappingURL=cli.test.js.map

@@ -242,4 +242,33 @@ describe('cli', () => {
     assert.ok(Fs.existsSync(Path.join(root, 'model', 'entity', SOLAR_PREFIX + 'planet.aon')))
   })
 
+
+  // The same, for a legacy guide whose sibling include carries the `./`.
+  test('run-legacy-guide-dotslash', async () => {
+    const root = makeProject()
+    const guidefolder = Path.join(root, 'model', 'guide')
+    const guide = Path.join(guidefolder, SOLAR_PREFIX + 'guide.aon')
+    const legacy = Path.join(guidefolder, SOLAR_PREFIX + 'guide.aontu')
+
+    Fs.unlinkSync(guide)
+    Fs.writeFileSync(legacy, [
+      '@"@voxgig/apidef/model/guide.aontu"',
+      '@"./' + SOLAR_PREFIX + 'base-guide.aontu"',
+      '',
+    ].join('\n'))
+
+    const { io, out } = captureIO()
+    const code = await runCli([
+      'solar', '-f', root, '-d', Path.join(root, 'def', SOLAR_DEF),
+      '-p', SOLAR_PREFIX, '-g', 'warn',
+    ], io)
+
+    assert.equal(code, 0, out.join('\n'))
+    assert.ok(!Fs.existsSync(legacy), 'guide.aontu left behind')
+    const migrated = Fs.readFileSync(guide, 'utf8')
+    assert.ok(migrated.includes('@"./' + SOLAR_PREFIX + 'base-guide.aon"'), migrated)
+    assert.ok(!migrated.includes('.aontu'), migrated)
+    assert.ok(Fs.existsSync(Path.join(root, 'model', 'entity', SOLAR_PREFIX + 'planet.aon')))
+  })
+
 })

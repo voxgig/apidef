@@ -23,11 +23,14 @@ function migrateLegacyGuide(fs, folder, guideprefix) {
     if (fs.existsSync(guidepath) || !fs.existsSync(legacyguide)) {
         return false;
     }
-    const legacysrc = String(fs.readFileSync(legacyguide, 'utf8'));
-    const migrated = legacysrc
-        .replace(/@"@voxgig\/apidef\/model\/guide\.aontu"/g, '@"@voxgig/apidef/model/guide.aon"')
-        .split('@"' + guideprefix + 'base-guide.aontu"')
-        .join('@"' + guideprefix + 'base-guide.aon"');
+    let migrated = String(fs.readFileSync(legacyguide, 'utf8'))
+        .replace(/@"@voxgig\/apidef\/model\/guide\.aontu"/g, '@"@voxgig/apidef/model/guide.aon"');
+    // The sibling include is written bare or with `./`; both name this file.
+    for (const dir of ['', './']) {
+        migrated = migrated
+            .split('@"' + dir + guideprefix + 'base-guide.aontu"')
+            .join('@"' + dir + guideprefix + 'base-guide.aon"');
+    }
     fs.writeFileSync(guidepath, migrated);
     try {
         fs.unlinkSync(legacyguide);

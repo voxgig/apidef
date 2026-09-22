@@ -41,6 +41,8 @@ describe('apidef', () => {
       '',
       '@"x-base-guide.aontu"',
       '',
+      '@"./x-base-guide.aontu"',
+      '',
       // A user's OWN include that merely ENDS in base-guide.aontu. Nothing
       // renamed this file, so rewriting it would point the guide at a path
       // that does not exist — while deleting the original.
@@ -59,6 +61,10 @@ describe('apidef', () => {
       'package include not migrated: ' + out)
     assert.ok(out.includes('@"x-base-guide.aon"'),
       'base-guide include not migrated: ' + out)
+    assert.ok(out.includes('@"./x-base-guide.aon"'),
+      './ base-guide include not migrated: ' + out)
+    assert.ok(!out.includes('x-base-guide.aontu"'),
+      'a base-guide include still names the legacy file: ' + out)
     assert.ok(out.includes('@"shared-base-guide.aontu"'),
       'a user-owned base-guide include was rewritten: ' + out)
 
