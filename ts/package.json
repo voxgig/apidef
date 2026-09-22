@@ -1,6 +1,6 @@
 {
   "name": "@voxgig/apidef",
-  "version": "8.15.1",
+  "version": "8.15.2",
   "main": "dist/apidef.js",
   "type": "commonjs",
   "types": "dist/apidef.d.ts",
@@ -21,7 +21,7 @@
     "voxgig-apidef": "bin/voxgig-apidef"
   },
   "scripts": {
-    "test": "node ../tools/comment-gate.cjs && node --enable-source-maps --test \"dist-test/**/*.test.js\"",
+    "test": "node ../tools/comment-gate.cjs && node ../tools/dep-gate.cjs && node --enable-source-maps --test \"dist-test/**/*.test.js\"",
     "test-some": "node --enable-source-maps --test-name-pattern=\"$TEST_PATTERN\" --test \"dist-test/**/*.test.js\"",
     "watch": "tsc --build src test -w",
     "build": "tsc --build src test",
@@ -58,7 +58,7 @@
     "@tabnas/yaml": ">=0.5.1",
     "@voxgig/struct": ">=0.2.2",
     "@voxgig/util": ">=0.5.4",
-    "aontu": ">=0.71",
+    "aontu": ">=0.71.0 <0.73.0",
     "graphql": ">=16",
     "jostraca": ">=0.31",
     "shape": ">=11"
