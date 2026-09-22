@@ -58,7 +58,7 @@
     "@tabnas/yaml": ">=0.5.1",
     "@voxgig/struct": ">=0.2.2",
     "@voxgig/util": ">=0.5.4",
-    "aontu": ">=0.71",
+    "aontu": ">=0.71.0 <0.73.0",
     "graphql": ">=16",
     "jostraca": ">=0.31",
     "shape": ">=11"
