@@ -85,7 +85,7 @@ function captureIO() {
         node_assert_1.default.equal(defaults.def, '');
         node_assert_1.default.equal(defaults.prefix, undefined);
         node_assert_1.default.equal(defaults.watch, false);
-        node_assert_1.default.equal(defaults.debug, 'info');
+        node_assert_1.default.equal(defaults.debug, undefined);
         const given = (0, cli_1.resolveOptions)([
             'petstore', '-f', 'proj', '-d', 'spec.yml', '-p', 'ps-', '-w', '-g', 'warn'
         ]);
@@ -193,6 +193,20 @@ function captureIO() {
         }
         const written = Fs.readdirSync(model, { recursive: true });
         node_assert_1.default.deepEqual(written.filter((f) => f.endsWith('.aontu')), []);
+        // An explicit --debug, at any level, also writes the resolved definition.
+        node_assert_1.default.deepEqual(Fs.readdirSync(node_path_1.default.join(root, 'def')).sort(), [SOLAR_DEF, SOLAR_DEF + '.full.json']);
+    });
+    // Without --debug the library gets no debug option at all, so the
+    // definition folder holds nothing but the definition afterwards.
+    (0, node_test_1.test)('run-default', async () => {
+        const root = makeProject();
+        const { io, out } = captureIO();
+        const code = await (0, cli_1.runCli)([
+            'solar', '-f', root, '-d', node_path_1.default.join(root, 'def', SOLAR_DEF), '-p', SOLAR_PREFIX,
+        ], io);
+        node_assert_1.default.equal(code, 0, out.join('\n'));
+        node_assert_1.default.deepEqual(Fs.readdirSync(node_path_1.default.join(root, 'def')), [SOLAR_DEF]);
+        node_assert_1.default.ok(Fs.existsSync(node_path_1.default.join(root, 'model', 'entity', SOLAR_PREFIX + 'planet.aon')));
     });
     // A project created before the rename still carries <prefix>guide.aontu;
     // the CLI accepts it and the run leaves the migrated .aon in its place.

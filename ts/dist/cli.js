@@ -73,7 +73,8 @@ function usage() {
         '  -d, --def <file>      the API definition file (required)',
         '  -p, --prefix <text>   prefix for generated file names (default: <name>-)',
         '  -w, --watch           rebuild when the definition file changes',
-        '  -g, --debug <level>   log level: info (default), debug, warn, error',
+        '  -g, --debug <level>   log level (debug, info, warn, error); also writes',
+        '                        the resolved definition as <def>.full.json',
         '  -h, --help            print this help and exit',
         '  -v, --version         print the package version and exit',
         '',
@@ -93,7 +94,7 @@ function resolveOptions(argv) {
             def: { type: 'string', short: 'd', default: '' },
             prefix: { type: 'string', short: 'p' },
             watch: { type: 'boolean', short: 'w' },
-            debug: { type: 'string', short: 'g', default: 'info' },
+            debug: { type: 'string', short: 'g' },
             help: { type: 'boolean', short: 'h' },
             version: { type: 'boolean', short: 'v' },
         }
@@ -116,15 +117,18 @@ function validateOptions(rawOptions) {
         folder: String,
         def: (0, shape_1.Fault)('A definition file is required: --def <file>.', String),
         watch: Boolean,
-        debug: (0, shape_1.One)(String, Boolean),
         help: Boolean,
         version: Boolean,
     });
-    // An absent prefix defaults to <name>- later; an empty one is a valid
-    // choice, and the shape rejects both, so it is validated by hand.
-    const { prefix, ...shaped } = rawOptions;
+    // An absent prefix defaults to <name>- later, an empty one is a valid
+    // choice, and an absent debug leaves the library its own default; the
+    // shape rejects all three, so they are validated by hand.
+    const { prefix, debug, ...shaped } = rawOptions;
     if (null != prefix && 'string' !== typeof prefix) {
         throw new Error('The prefix should be a string.');
+    }
+    if (null != debug && 'string' !== typeof debug) {
+        throw new Error('The debug level should be a string.');
     }
     const err = [];
     const options = optShape(shaped, { err });
@@ -132,6 +136,7 @@ function validateOptions(rawOptions) {
         throw new Error(err[0].text);
     }
     options.prefix = prefix;
+    options.debug = debug;
     options.def = node_path_1.default.resolve(options.def);
     const stat = Fs.statSync(options.def, { throwIfNoEntry: false });
     if (null == stat) {

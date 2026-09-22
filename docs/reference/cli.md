@@ -22,7 +22,7 @@ a project folder and runs one build.
 | `--def` | `-d` | string | — | path to the spec file (required, and checked to exist) |
 | `--prefix` | `-p` | string | `<name>-` | filename prefix for generated files (the library's `outprefix`) |
 | `--watch` | `-w` | boolean | `false` | rebuild whenever the spec file changes |
-| `--debug` | `-g` | string | `'info'` | log level |
+| `--debug` | `-g` | string | — | log level (`debug`, `info`, `warn`, `error`); when given, also writes `<def>.full.json` beside the spec |
 | `--help` | `-h` | boolean | — | print usage and exit |
 | `--version` | `-v` | boolean | — | print the package version and exit |
 

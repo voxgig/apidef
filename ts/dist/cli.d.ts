@@ -4,7 +4,7 @@ type CliOptions = {
     def: string;
     prefix?: string;
     watch: boolean;
-    debug: string | boolean;
+    debug?: string;
     help: boolean;
     version: boolean;
 };

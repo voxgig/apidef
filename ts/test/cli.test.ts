@@ -74,7 +74,7 @@ describe('cli', () => {
     assert.equal(defaults.def, '')
     assert.equal(defaults.prefix, undefined)
     assert.equal(defaults.watch, false)
-    assert.equal(defaults.debug, 'info')
+    assert.equal(defaults.debug, undefined)
 
     const given = resolveOptions([
       'petstore', '-f', 'proj', '-d', 'spec.yml', '-p', 'ps-', '-w', '-g', 'warn'])
@@ -212,6 +212,26 @@ describe('cli', () => {
 
     const written = Fs.readdirSync(model, { recursive: true }) as string[]
     assert.deepEqual(written.filter((f) => f.endsWith('.aontu')), [])
+
+    // An explicit --debug, at any level, also writes the resolved definition.
+    assert.deepEqual(Fs.readdirSync(Path.join(root, 'def')).sort(),
+      [SOLAR_DEF, SOLAR_DEF + '.full.json'])
+  })
+
+
+  // Without --debug the library gets no debug option at all, so the
+  // definition folder holds nothing but the definition afterwards.
+  test('run-default', async () => {
+    const root = makeProject()
+    const { io, out } = captureIO()
+
+    const code = await runCli([
+      'solar', '-f', root, '-d', Path.join(root, 'def', SOLAR_DEF), '-p', SOLAR_PREFIX,
+    ], io)
+
+    assert.equal(code, 0, out.join('\n'))
+    assert.deepEqual(Fs.readdirSync(Path.join(root, 'def')), [SOLAR_DEF])
+    assert.ok(Fs.existsSync(Path.join(root, 'model', 'entity', SOLAR_PREFIX + 'planet.aon')))
   })
 
 

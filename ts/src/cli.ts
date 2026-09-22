@@ -8,7 +8,7 @@ import * as Fs from 'node:fs'
 import Path from 'node:path'
 import { parseArgs } from 'node:util'
 
-import { Shape, Fault, One } from 'shape'
+import { Shape, Fault } from 'shape'
 
 import { ApiDef } from './apidef'
 
@@ -28,7 +28,7 @@ type CliOptions = {
   def: string
   prefix?: string
   watch: boolean
-  debug: string | boolean
+  debug?: string
   help: boolean
   version: boolean
 }
@@ -69,7 +69,8 @@ function usage(): string {
     '  -d, --def <file>      the API definition file (required)',
     '  -p, --prefix <text>   prefix for generated file names (default: <name>-)',
     '  -w, --watch           rebuild when the definition file changes',
-    '  -g, --debug <level>   log level: info (default), debug, warn, error',
+    '  -g, --debug <level>   log level (debug, info, warn, error); also writes',
+    '                        the resolved definition as <def>.full.json',
     '  -h, --help            print this help and exit',
     '  -v, --version         print the package version and exit',
     '',
@@ -91,7 +92,7 @@ function resolveOptions(argv: string[]): CliOptions {
       def: { type: 'string', short: 'd', default: '' },
       prefix: { type: 'string', short: 'p' },
       watch: { type: 'boolean', short: 'w' },
-      debug: { type: 'string', short: 'g', default: 'info' },
+      debug: { type: 'string', short: 'g' },
       help: { type: 'boolean', short: 'h' },
       version: { type: 'boolean', short: 'v' },
     }
@@ -118,16 +119,19 @@ function validateOptions(rawOptions: CliOptions): CliOptions {
     folder: String,
     def: Fault('A definition file is required: --def <file>.', String),
     watch: Boolean,
-    debug: One(String, Boolean),
     help: Boolean,
     version: Boolean,
   })
 
-  // An absent prefix defaults to <name>- later; an empty one is a valid
-  // choice, and the shape rejects both, so it is validated by hand.
-  const { prefix, ...shaped } = rawOptions
+  // An absent prefix defaults to <name>- later, an empty one is a valid
+  // choice, and an absent debug leaves the library its own default; the
+  // shape rejects all three, so they are validated by hand.
+  const { prefix, debug, ...shaped } = rawOptions
   if (null != prefix && 'string' !== typeof prefix) {
     throw new Error('The prefix should be a string.')
+  }
+  if (null != debug && 'string' !== typeof debug) {
+    throw new Error('The debug level should be a string.')
   }
 
   const err: any[] = []
@@ -138,6 +142,7 @@ function validateOptions(rawOptions: CliOptions): CliOptions {
   }
 
   options.prefix = prefix
+  options.debug = debug
 
   options.def = Path.resolve(options.def)
   const stat = Fs.statSync(options.def, { throwIfNoEntry: false })
