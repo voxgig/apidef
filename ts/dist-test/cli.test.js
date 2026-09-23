@@ -157,6 +157,7 @@ function captureIO() {
         node_assert_1.default.throws(() => (0, cli_1.checkProject)(missing), (err) => {
             node_assert_1.default.ok(err.message.includes(node_path_1.default.join(root, 'model', 'guide', 'other-guide.aontu')), err.message);
             node_assert_1.default.ok(err.message.includes('@"./other-base-guide.aontu"'), err.message);
+            node_assert_1.default.ok(err.message.includes('  # Guide entry file: put customizations below the includes.'), err.message);
             return true;
         });
     });
@@ -168,6 +169,7 @@ function captureIO() {
         node_assert_1.default.equal(await (0, cli_1.runCli)(['-h'], help.io), 0);
         node_assert_1.default.ok(help.out[0].startsWith('Usage: voxgig-apidef <name>'));
         node_assert_1.default.ok(help.out[0].includes('guide.aontu'));
+        node_assert_1.default.ok(help.out[0].includes('overwritten on every build'));
     });
     // The shims `bin/voxgig-apidef` and `cmd/bun/entry.js` are the only way a
     // user reaches the CLI, and runCli does not go through them: a wrong

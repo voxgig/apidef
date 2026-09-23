@@ -573,4 +573,11 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-base-guide-header', () => {
+    for (const row of loadTsv('base-guide-header')) {
+        (0, node_test_1.test)(row.prefix || 'no prefix', () => {
+            node_assert_1.default.deepStrictEqual((0, guide_1.baseGuideHeader)(row.prefix), JSON.parse(row.expected));
+        });
+    }
+});
 //# sourceMappingURL=tsv.test.js.map

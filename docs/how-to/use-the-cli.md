@@ -32,11 +32,13 @@ The CLI writes into `<folder>/model` and needs the guide entry file there
 before it starts, at `<folder>/model/guide/<prefix>guide.aontu`:
 
 ```jsonic
+# Guide entry file: put customizations below the includes. The base guide
+# it includes is generated and overwritten on every build.
 @"@voxgig/apidef/model/guide.aontu"
 @"./petstore-base-guide.aontu"
 ```
 
-Without it the CLI stops and prints these two lines for you to save. A
+Without it the CLI stops and prints these lines for you to save. A
 `<prefix>guide.aon` file from an older project is accepted and renamed on
 the first run. See
 [the guide file](../reference/configuration.md#the-guide-file) for what goes

@@ -54,7 +54,9 @@ func writeGuideEntry(folder string, prefix string, entry string) error {
 		return err
 	}
 	if entry == "" {
-		entry = "@\"@voxgig/apidef/model/guide.aontu\"\n\n" +
+		entry = "# Guide entry file: put customizations below the includes. The base guide\n" +
+			"# it includes is generated and overwritten on every build.\n" +
+			"@\"@voxgig/apidef/model/guide.aontu\"\n" +
 			"@\"./" + prefix + "base-guide.aontu\"\n\nguide: {}\n"
 	}
 	return os.WriteFile(filepath.Join(dir, prefix+"guide.aontu"), []byte(entry), 0644)
@@ -176,6 +178,34 @@ func TestGuideOverlayBareMatchesHeuristic(t *testing.T) {
 	}
 }
 
+func TestGuideOverlayBaseGuideOverwritten(t *testing.T) {
+	folder := stageOverlay(t, overlayEntry(`guide: {}`))
+	basePath := filepath.Join(folder, "guide", overlayPrefix+"base-guide.aontu")
+	stale := "<<<<<<< ours\nguide: entity: moon: active: false\n=======\n>>>>>>> theirs\n"
+	if err := os.WriteFile(basePath, []byte(stale), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := runOverlay(folder)
+	if err != nil || !res.OK {
+		t.Fatalf("generate failed: %v", err)
+	}
+
+	base, err := os.ReadFile(basePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(string(base), strings.Join(baseGuideHeader(overlayPrefix), "\n")+"\n") {
+		t.Errorf("base guide lacks its header:\n%s", base)
+	}
+	if strings.Contains(string(base), "<<<<<<<") {
+		t.Errorf("stale base guide survived:\n%s", base)
+	}
+	if got := strings.Join(sortedKeys(overlayEntities(t, res)), ","); got != "moon,planet" {
+		t.Errorf("entities = %s, want moon,planet", got)
+	}
+}
+
 func TestGuideOverlayMissingEntryFails(t *testing.T) {
 	res, err := runOverlay(stageOverlay(t, nil))
 	if err == nil || res.OK {
@@ -187,17 +217,22 @@ func TestGuideOverlayMissingEntryFails(t *testing.T) {
 }
 
 func TestGuideOverlayConflictMarkerFails(t *testing.T) {
-	res, err := runOverlay(stageOverlay(t, overlayEntry(
+	folder := stageOverlay(t, overlayEntry(
 		`<<<<<<< ours`,
 		`guide: entity: moon: active: false`,
 		`=======`,
 		`>>>>>>> theirs`,
-	)))
+	))
+	res, err := runOverlay(folder)
 	if err == nil || res.OK {
 		t.Fatal("expected a conflict marker to fail the build")
 	}
-	if !strings.Contains(err.Error(), "unresolved merge conflict") {
-		t.Errorf("unexpected error: %v", err)
+	entry := filepath.Join(folder, "guide", overlayPrefix+"guide.aontu")
+	want := "@voxgig/apidef: guide: unresolved merge conflict at " + entry + ":3\n" +
+		"  <<<<<<< ours\n" +
+		"Resolve the marked block in " + entry + "."
+	if !strings.Contains(err.Error(), want) {
+		t.Errorf("error = %q, want it to contain %q", err.Error(), want)
 	}
 }
 

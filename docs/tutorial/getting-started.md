@@ -106,14 +106,16 @@ read it.
 Put exactly this in `my-sdk/model/guide/petstore-guide.aontu`:
 
 ```jsonic
+# Guide entry file: put customizations below the includes. The base guide
+# it includes is generated and overwritten on every build.
 @"@voxgig/apidef/model/guide.aontu"
 @"./petstore-base-guide.aontu"
 ```
 
 The prefix (`petstore-`) matches the `outprefix` we set in the next step, and
 the `./` on the second line matters: aontu reads a bare name as a package, so
-a sibling file is always written with it. You write this two-line file once;
-the `base-guide` it includes is regenerated on every run. (Later, you can add overrides below these includes — see
+a sibling file is always written with it. You write this file once; the
+`base-guide` it includes is regenerated and overwritten on every run. (Later, you can add overrides below these includes — see
 [How path classification works](../explanation/classification-heuristics.md).)
 
 ## 5. Generate the model
@@ -196,8 +198,8 @@ model/
 
 These are [`jsonic`](https://github.com/jsonicjs/jsonic) files — a relaxed
 JSON dialect. They are the hand-off point to `sdkgen`, which turns them into
-an actual SDK. apidef *merges* into existing files on re-runs, so edits you
-make are preserved.
+an actual SDK. apidef overwrites these files on every run, so a correction goes
+in `petstore-guide.aontu` rather than in a generated file.
 
 ## Where to next
 

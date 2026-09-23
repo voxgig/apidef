@@ -37,7 +37,7 @@ early — useful for tests and tooling. The stages, in order:
    builder and a flow builder produce in-memory file descriptors.
 
 5. **generate** — Hand the file descriptors to [`jostraca`](https://github.com/voxgig/jostraca),
-   which writes (and three-way merges) the files to disk.
+   which writes the files to disk, overwriting the previous run's output.
 
 The stages are described field-by-field in [Pipeline stages](../reference/pipeline.md).
 
@@ -62,7 +62,7 @@ apidef leans on the wider Voxgig toolchain rather than reinventing it:
   the spec (JSON *and* YAML) and emit the relaxed-JSON model files.
 - **[`jostraca`](https://github.com/voxgig/jostraca)** — the file generator. It
   owns `each`/`getx` iteration helpers, the `Project`/`Folder`/`File`/`Content`
-  builder DSL, and the merge-on-write behavior that preserves hand edits.
+  builder DSL, and the writer that puts the model files on disk.
 - **[`aontu`](https://github.com/aontu-lang/aontu)** — the unification engine. The
   guide stage evaluates the guide entry file with it, in both ports, and
   downstream model resolution uses it to assemble the model apidef writes.

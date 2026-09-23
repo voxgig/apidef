@@ -43,6 +43,7 @@ const Path = __importStar(require("node:path"));
 const node_test_1 = require("node:test");
 const node_assert_1 = __importDefault(require("node:assert"));
 const apidef_1 = require("../dist/apidef");
+const guide_1 = require("../dist/guide/guide");
 const PREFIX = 'solar-1.0.0-openapi-3.0.0-';
 const DEF = PREFIX + 'def.yaml';
 const HEAD = [
@@ -120,21 +121,42 @@ async function run(folder) {
         node_assert_1.default.deepStrictEqual(Object.keys(bres.apimodel.main.kit.entity).sort(), ['moon', 'planet']);
         node_assert_1.default.deepStrictEqual(Object.keys(bres.apimodel.main.kit.entity.planet.op).sort(), ['create', 'list', 'load', 'remove', 'update']);
     });
+    (0, node_test_1.test)('base-guide-overwritten', async () => {
+        const folder = stage(HEAD + 'guide: {}\n');
+        const basepath = Path.join(folder, 'guide', PREFIX + 'base-guide.aontu');
+        Fs.writeFileSync(basepath, [
+            '<<<<<<< ours',
+            'guide: entity: moon: active: false',
+            '=======',
+            '>>>>>>> theirs',
+            '',
+        ].join('\n'));
+        const bres = await run(folder);
+        node_assert_1.default.strictEqual(bres.ok, true, String(bres.err?.message));
+        const base = Fs.readFileSync(basepath, 'utf8');
+        node_assert_1.default.ok(base.startsWith((0, guide_1.baseGuideHeader)(PREFIX).join('\n') + '\n'), base);
+        node_assert_1.default.ok(!base.includes('<<<<<<<'), base);
+        node_assert_1.default.deepStrictEqual(Object.keys(bres.apimodel.main.kit.entity).sort(), ['moon', 'planet']);
+    });
     (0, node_test_1.test)('missing-entry-fails', async () => {
         const bres = await run(stage(null));
         node_assert_1.default.strictEqual(bres.ok, false);
         node_assert_1.default.match(String(bres.err?.message), /guide\.aontu/);
     });
     (0, node_test_1.test)('conflict-marker-fails', async () => {
-        const bres = await run(stage(HEAD + [
+        const folder = stage(HEAD + [
             '<<<<<<< ours',
             'guide: entity: moon: active: false',
             '=======',
             '>>>>>>> theirs',
             '',
-        ].join('\n')));
+        ].join('\n'));
+        const bres = await run(folder);
+        const entry = Path.join(folder, 'guide', PREFIX + 'guide.aontu');
         node_assert_1.default.strictEqual(bres.ok, false);
-        node_assert_1.default.match(String(bres.err?.message), /unresolved merge conflict/);
+        node_assert_1.default.ok(String(bres.err?.message).includes('@voxgig/apidef: guide: unresolved merge conflict at ' + entry + ':3\n' +
+            '  <<<<<<< ours\n' +
+            'Resolve the marked block in ' + entry + '.'), String(bres.err?.message));
     });
     (0, node_test_1.test)('type-error-fails', async () => {
         const bres = await run(stage(HEAD + 'guide: entity: moon: active: "no"\n'));

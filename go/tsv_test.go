@@ -574,6 +574,22 @@ func TestTsvGuideMigrate(t *testing.T) {
 	}
 }
 
+func TestTsvBaseGuideHeader(t *testing.T) {
+	rows := loadTsv(t, "base-guide-header")
+	if len(rows) == 0 {
+		t.Fatal("no base-guide-header rows loaded")
+	}
+	for _, row := range rows {
+		var want []string
+		if err := json.Unmarshal([]byte(row["expected"]), &want); err != nil {
+			t.Fatal(err)
+		}
+		if got := baseGuideHeader(row["prefix"]); !reflect.DeepEqual(got, want) {
+			t.Errorf("baseGuideHeader(%q) = %q, want %q", row["prefix"], got, want)
+		}
+	}
+}
+
 func TestTsvGuideConflict(t *testing.T) {
 	rows := loadTsv(t, "guide-conflict")
 	if len(rows) == 0 {

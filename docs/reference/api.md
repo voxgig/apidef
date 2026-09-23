@@ -80,12 +80,12 @@ The instance is created lazily on first call and reused, so per-model state
 | `steps` | `string[]` | stages that ran (`parse`,`guide`,`transformers`,`builders`,`generate`) |
 | `apimodel` | `object` | the built model (`main.kit.{info,entity,flow}`) — see [model](./model.md) |
 | `guide` | `object` | the classification result — see [guide](./guide.md) |
-| `reload` | `boolean` | true if files were written/merged (downstream re-resolve hint) |
+| `reload` | `boolean` | true if files were written (downstream re-resolve hint) |
 | `start` / `end` | `number` | timestamps (ms) |
 | `ctrl` | `object` | the resolved control flags |
 | `err` | `Error \| null` | populated when `ok` is false |
 | `ctx` | `object` | the full pipeline context (debugging) |
-| `jres` | `object` | the `jostraca` generation result (written/merged file lists) |
+| `jres` | `object` | the `jostraca` generation result (written file lists) |
 
 ## Other exports
 

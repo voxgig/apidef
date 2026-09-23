@@ -29,7 +29,7 @@ Classify `def.paths` into entities, operations, actions, and parameter
 renames, recording `why_*` traces. This stage:
 
 1. runs the heuristic and writes `<outprefix>base-guide.aontu` (the raw
-   classification), validating that every source path/method is accounted for
+   classification, overwriting the previous one), validating that every source path/method is accounted for
    (a mismatch is a `PATH MISMATCH` error);
 2. reads the guide entry file `<folder>/guide/<outprefix>guide.aontu` (which
    you author — it `@`-includes the base-guide plus the guide schema) and
@@ -71,8 +71,10 @@ Nothing is written yet.
 ## Stage 5 — `generate`
 
 Hand the descriptors to `jostraca.generate`, which writes files under
-`options.folder` using **merge-on-write** (`existing: { txt: { merge: true } }`)
-so hand edits survive regeneration. Warnings collected during the run are
+`options.folder` and overwrites what an earlier run left there
+(`existing: { txt: { write: true, merge: false } }`), so a hand edit to a
+generated file does not survive the next run; corrections go in the guide
+entry file. Warnings collected during the run are
 written to `apidef-warnings.txt`, and `result.reload` reports whether anything
 changed on disk.
 

@@ -2,9 +2,9 @@
 
 > **Prerequisites.** Before any of these calls succeed, the project needs
 > (1) a guide entry file at `<folder>/guide/<outprefix>guide.aontu` and
-> (2) a spec that declares `servers[0].url`. The guide file is two lines:
+> (2) a spec that declares `servers[0].url`. The guide file includes
 > `@"@voxgig/apidef/model/guide.aontu"` then
-> `@"./<outprefix>base-guide.aontu"`. See
+> `@"./<outprefix>base-guide.aontu"`, and is where customizations go. See
 > [Configuration → The guide file](../reference/configuration.md#the-guide-file).
 > Every example below assumes this is in place.
 
@@ -91,5 +91,5 @@ const build = await ApiDef.makeBuild({ folder: '/v/model', fs: vol })
 
 `result.steps` records how far the pipeline ran; `result.apimodel`,
 `result.guide`, and `result.jres` hold the model, classification, and the list
-of written/merged files respectively. See the
+of written files respectively. See the
 [API reference](../reference/api.md#apidefresult).

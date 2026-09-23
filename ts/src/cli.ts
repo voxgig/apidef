@@ -11,13 +11,13 @@ import { parseArgs } from 'node:util'
 import { Shape, Fault } from 'shape'
 
 import { ApiDef } from './apidef'
+import { guideEntrySource } from './guide/guide'
 
 
 const Pkg = require('../package.json')
 
 const GUIDE_FILE = 'guide.aontu'
 const LEGACY_GUIDE_FILE = 'guide.aon'
-const BASE_GUIDE_FILE = 'base-guide.aontu'
 
 const WATCH_INTERVAL_MS = 500
 
@@ -78,8 +78,7 @@ function usage(): string {
     'The model is written to <folder>/model, which must already hold the guide',
     'entry file <folder>/model/guide/<prefix>' + GUIDE_FILE + ':',
     '',
-    '  @"@voxgig/apidef/model/' + GUIDE_FILE + '"',
-    '  @"./<prefix>' + BASE_GUIDE_FILE + '"',
+    ...guideEntrySource('<prefix>').map((line) => '  ' + line),
   ].join('\n')
 }
 
@@ -212,9 +211,8 @@ function checkProject(project: CliProject): void {
 
   throw new Error(
     'Guide entry file not found: ' + project.guide + '\n' +
-    'Create it with these two lines:\n' +
-    '  @"@voxgig/apidef/model/' + GUIDE_FILE + '"\n' +
-    '  @"./' + project.outprefix + BASE_GUIDE_FILE + '"')
+    'Create it with these lines:\n' +
+    guideEntrySource(project.outprefix).map((line) => '  ' + line).join('\n'))
 }
 
 

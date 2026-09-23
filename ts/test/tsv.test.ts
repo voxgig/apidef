@@ -45,6 +45,7 @@ import {
   migrateGuideIncludes,
   prefixGuideInclude,
   findConflict,
+  baseGuideHeader,
 } from '../dist/guide/guide'
 
 import {
@@ -678,6 +679,15 @@ describe('tsv-guide-conflict', () => {
   for (const row of loadTsv('guide-conflict')) {
     test(row.name, () => {
       assert.deepStrictEqual(findConflict(JSON.parse(row.src)), JSON.parse(row.expected))
+    })
+  }
+})
+
+
+describe('tsv-base-guide-header', () => {
+  for (const row of loadTsv('base-guide-header')) {
+    test(row.prefix || 'no prefix', () => {
+      assert.deepStrictEqual(baseGuideHeader(row.prefix), JSON.parse(row.expected))
     })
   }
 })

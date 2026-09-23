@@ -173,6 +173,8 @@ describe('cli', () => {
       assert.ok(err.message.includes(
         Path.join(root, 'model', 'guide', 'other-guide.aontu')), err.message)
       assert.ok(err.message.includes('@"./other-base-guide.aontu"'), err.message)
+      assert.ok(err.message.includes(
+        '  # Guide entry file: put customizations below the includes.'), err.message)
       return true
     })
   })
@@ -187,6 +189,7 @@ describe('cli', () => {
     assert.equal(await runCli(['-h'], help.io), 0)
     assert.ok(help.out[0].startsWith('Usage: voxgig-apidef <name>'))
     assert.ok(help.out[0].includes('guide.aontu'))
+    assert.ok(help.out[0].includes('overwritten on every build'))
   })
 
 

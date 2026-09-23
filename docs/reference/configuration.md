@@ -87,6 +87,8 @@ heuristic classification that apidef regenerates on every run
 (`<outprefix>base-guide.aontu`):
 
 ```jsonic
+# Guide entry file: put customizations below the includes. The base guide
+# it includes is generated and overwritten on every build.
 @"@voxgig/apidef/model/guide.aontu"
 @"./<outprefix>base-guide.aontu"
 ```
@@ -97,8 +99,8 @@ cold start works in one pass as long as the guide entry file exists. The
 so apidef must be installed in the project; the Go module serves the same file
 from its embedded copy of the model. The sibling include carries a `./`
 because aontu reads a bare name as a package. Any classification
-overrides go below the includes; the file is merged, never clobbered, on
-re-runs.
+overrides go below the includes. apidef never rewrites this file, apart from
+the migration below, while the base guide is overwritten on every run.
 
 A project from before the `.aontu` rename still works: a
 `<outprefix>guide.aon` entry file is rewritten to `.aontu`, with its includes,

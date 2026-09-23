@@ -2,7 +2,7 @@
 
 import Path from 'node:path'
 
-import { Jostraca, Project, File, Content, each } from 'jostraca'
+import { each } from 'jostraca'
 
 import { Aontu } from 'aontu'
 
@@ -126,6 +126,15 @@ function rewriteGuide(
 
 
 
+function guideConflictMessage(
+  path: string, conflict: { line: number, text: string }
+): string {
+  return `@voxgig/apidef: guide: unresolved merge conflict at ${path}:${conflict.line}\n` +
+    `  ${conflict.text}\n` +
+    `Resolve the marked block in ${path}.`
+}
+
+
 function findConflict(src: string): { line: number, text: string } | null {
   const lines = String(src || '').split('\n')
 
@@ -147,7 +156,7 @@ async function buildGuide(ctx: ApiDefContext): Promise<any> {
   const folder = Path.resolve(ctx.opts.folder)
 
   try {
-    const basejres = await buildBaseGuide(ctx)
+    await buildBaseGuide(ctx)
   }
   catch (err: any) {
     errs.push(err)
@@ -193,35 +202,10 @@ async function buildGuide(ctx: ApiDefContext): Promise<any> {
 
   handleErrors(ctx, errs)
 
-  const basepath = Path.join(folder, 'guide', guideprefix + 'base-guide.aontu')
-  for (const checkpath of [guidepath, basepath]) {
-    let checksrc = ''
-    try {
-      checksrc = checkpath === guidepath ? src : String(ctx.fs.readFileSync(checkpath, 'utf8'))
-    }
-    catch (_err: any) {
-      continue
-    }
-
-    const conflict = findConflict(checksrc)
-    if (null != conflict) {
-      errs.push(new Error(
-        `@voxgig/apidef: guide: unresolved merge conflict at ${
-          relativizePath(checkpath)}:${conflict.line}\n` +
-        `  ${conflict.text}\n` +
-        `A guide is merged, not overwritten, so an edit the regenerated base\n` +
-        `guide contradicts is left for a human to settle. Resolve the marked\n` +
-        `block` +
-        // DELETING ONLY HELPS FOR THE BASE GUIDE. Regeneration rewrites that
-        // file, while the top-level entry guide is the user's own and is read
-        // back unchanged — so advising its deletion would send a reader in a
-        // circle, failing this same check on the next build.
-        (checkpath === basepath ?
-          `, or delete ${guideprefix}base-guide.aontu to regenerate it from the\n` +
-          `specification and re-apply the edit afterwards.` :
-          ` in ${relativizePath(checkpath)}.`)))
-      break
-    }
+  // Only the entry file: the base guide was just rewritten from the spec.
+  const conflict = findConflict(src)
+  if (null != conflict) {
+    errs.push(new Error(guideConflictMessage(relativizePath(guidepath), conflict)))
   }
 
   handleErrors(ctx, errs)
@@ -295,8 +279,10 @@ async function buildBaseGuide(ctx: ApiDefContext) {
     throw new Error('Unknown guide strategy: ' + ctx.opts.strategy)
   }
 
+  const guideprefix = null == ctx.opts.outprefix ? '' : ctx.opts.outprefix
+
   const guideBlocks = [
-    '# Guide',
+    ...baseGuideHeader(guideprefix),
     '',
     'guide: {',
   ]
@@ -431,25 +417,32 @@ async function buildBaseGuide(ctx: ApiDefContext) {
 
   ctx.note.guide = { base: guideSrc }
 
-  const baseGuideFileName =
-    (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'base-guide.aontu'
+  const guidefolder = Path.join(ctx.opts.folder, 'guide')
+  ctx.fs.mkdirSync(guidefolder, { recursive: true })
+  ctx.fs.writeFileSync(Path.join(guidefolder, guideprefix + 'base-guide.aontu'), guideSrc)
+}
 
-  const jostraca = Jostraca({
-    folder: ctx.opts.folder + '/guide',
-    now: ctx.spec.now,
-    fs: () => ctx.fs,
-    log: ctx.log,
-  })
 
-  const root = () => Project({ folder: '.' }, async () => {
-    File({ name: baseGuideFileName }, () => Content(guideSrc))
-  })
+// The entry file a project writes once and owns; the CLI prints it.
+function guideEntrySource(guideprefix: string): string[] {
+  return [
+    '# Guide entry file: put customizations below the includes. The base guide',
+    '# it includes is generated and overwritten on every build.',
+    '@"@voxgig/apidef/model/guide.aontu"',
+    '@"./' + guideprefix + 'base-guide.aontu"',
+  ]
+}
 
-  const jres = await jostraca.generate({
-    existing: { txt: { merge: true } }
-  }, root)
 
-  return jres
+// Written into every base guide, so a reader of the file learns where an
+// edit belongs before making one there.
+function baseGuideHeader(guideprefix: string): string[] {
+  return [
+    '# Generated from the API definition and overwritten on every build: do not',
+    '# edit this file. Put customizations in the guide entry file, which includes',
+    '# this one and overrides its defaults:',
+    '#   ' + guideprefix + 'guide.aontu',
+  ]
 }
 
 
@@ -597,6 +590,9 @@ export {
   migrateGuideIncludes,
   prefixGuideInclude,
   findConflict,
+  guideConflictMessage,
+  baseGuideHeader,
+  guideEntrySource,
   migrateLegacyGuide,
   migrateGuideIncludePrefix,
   buildGuide

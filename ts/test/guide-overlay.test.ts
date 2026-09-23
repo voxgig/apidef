@@ -8,6 +8,7 @@ import { test, describe, after } from 'node:test'
 import assert from 'node:assert'
 
 import { ApiDef } from '../dist/apidef'
+import { baseGuideHeader } from '../dist/guide/guide'
 
 
 const PREFIX = 'solar-1.0.0-openapi-3.0.0-'
@@ -109,6 +110,28 @@ describe('guide-overlay', () => {
   })
 
 
+  test('base-guide-overwritten', async () => {
+    const folder = stage(HEAD + 'guide: {}\n')
+    const basepath = Path.join(folder, 'guide', PREFIX + 'base-guide.aontu')
+    Fs.writeFileSync(basepath, [
+      '<<<<<<< ours',
+      'guide: entity: moon: active: false',
+      '=======',
+      '>>>>>>> theirs',
+      '',
+    ].join('\n'))
+
+    const bres = await run(folder)
+    assert.strictEqual(bres.ok, true, String(bres.err?.message))
+
+    const base = Fs.readFileSync(basepath, 'utf8')
+    assert.ok(base.startsWith(baseGuideHeader(PREFIX).join('\n') + '\n'), base)
+    assert.ok(!base.includes('<<<<<<<'), base)
+    assert.deepStrictEqual(Object.keys(bres.apimodel.main.kit.entity).sort(),
+      ['moon', 'planet'])
+  })
+
+
   test('missing-entry-fails', async () => {
     const bres = await run(stage(null))
     assert.strictEqual(bres.ok, false)
@@ -117,15 +140,20 @@ describe('guide-overlay', () => {
 
 
   test('conflict-marker-fails', async () => {
-    const bres = await run(stage(HEAD + [
+    const folder = stage(HEAD + [
       '<<<<<<< ours',
       'guide: entity: moon: active: false',
       '=======',
       '>>>>>>> theirs',
       '',
-    ].join('\n')))
+    ].join('\n'))
+    const bres = await run(folder)
+    const entry = Path.join(folder, 'guide', PREFIX + 'guide.aontu')
     assert.strictEqual(bres.ok, false)
-    assert.match(String(bres.err?.message), /unresolved merge conflict/)
+    assert.ok(String(bres.err?.message).includes(
+      '@voxgig/apidef: guide: unresolved merge conflict at ' + entry + ':3\n' +
+      '  <<<<<<< ours\n' +
+      'Resolve the marked block in ' + entry + '.'), String(bres.err?.message))
   })
 
 

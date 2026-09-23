@@ -86,12 +86,11 @@ entity: moon: {
 
 ## Correcting the guide
 
-`base-guide.aontu` is the heuristic's output, and apidef rewrites it on every
-run. Corrections go in the project's own `guide.aontu`, the two-line file that
-includes the base guide: anything written below the includes unifies over the
-heuristic's defaults, and survives regeneration. Never edit the base guide
-itself. An edit there lasts until the next run on a machine without your
-merge baseline, which is any fresh clone.
+`base-guide.aontu` is the heuristic's output, and apidef overwrites it on
+every run. Corrections go in the project's own `guide.aontu`, the entry file
+that includes the base guide: anything written below the includes unifies over
+the heuristic's defaults, and survives regeneration. Never edit the base guide
+itself; the next run replaces it, and the file's own header says so.
 
 The base guide writes every default as an aontu default (`*GET`, `*"id"`),
 so your concrete value wins. The shapes you can correct:

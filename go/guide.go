@@ -5,6 +5,7 @@ package apidef
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -94,17 +95,9 @@ func BuildGuide(ctx *ApiDefContext) (map[string]any, error) {
 		return nil, fmt.Errorf("failed to read guide: %w", err)
 	}
 
-	// Only the entry file: the base guide was just overwritten, where the TS
-	// port merges it and so can leave markers there too.
+	// Only the entry file: the base guide was just rewritten from the spec.
 	if conflict := findConflict(string(src)); conflict != nil {
-		return nil, fmt.Errorf(
-			"@voxgig/apidef: guide: unresolved merge conflict at %s:%d\n"+
-				"  %s\n"+
-				"A guide is merged, not overwritten, so an edit the regenerated base\n"+
-				"guide contradicts is left for a human to settle. Resolve the marked\n"+
-				"block in %s.",
-			RelativizePath(guidePath), conflict.Line, conflict.Text,
-			RelativizePath(guidePath))
+		return nil, errors.New(guideConflictMessage(RelativizePath(guidePath), conflict))
 	}
 
 	return evaluateGuide(guideDir, guidePath, string(src))
@@ -187,6 +180,23 @@ func migrateGuideIncludes(src string, prefix string) string {
 func prefixGuideInclude(src string, prefix string) string {
 	return strings.ReplaceAll(src,
 		`@"`+prefix+`base-guide.aontu"`, `@"./`+prefix+`base-guide.aontu"`)
+}
+
+func guideConflictMessage(path string, conflict *guideConflict) string {
+	return fmt.Sprintf("@voxgig/apidef: guide: unresolved merge conflict at %s:%d\n"+
+		"  %s\n"+
+		"Resolve the marked block in %s.", path, conflict.Line, conflict.Text, path)
+}
+
+// Written into every base guide, so a reader of the file learns where an
+// edit belongs before making one there.
+func baseGuideHeader(prefix string) []string {
+	return []string{
+		"# Generated from the API definition and overwritten on every build: do not",
+		"# edit this file. Put customizations in the guide entry file, which includes",
+		"# this one and overrides its defaults:",
+		"#   " + prefix + "guide.aontu",
+	}
 }
 
 type guideConflict struct {
@@ -306,7 +316,8 @@ func guideJSON(v any) string {
 
 func buildGuideSource(ctx *ApiDefContext, baseguide map[string]any) string {
 	var blocks []string
-	blocks = append(blocks, "# Guide", "", "guide: {")
+	blocks = append(blocks, baseGuideHeader(ctx.Opts.OutPrefix)...)
+	blocks = append(blocks, "", "guide: {")
 
 	entity, _ := baseguide["entity"].(map[string]any)
 	metrics, _ := baseguide["metrics"].(map[string]any)
