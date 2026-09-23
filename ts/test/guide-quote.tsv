@@ -1,0 +1,13 @@
+name	input	expected
+plain	"planet"	"\"planet\""
+empty	""	"\"\""
+quote and backslash	"a\"b\\c"	"\"a\\\"b\\\\c\""
+html characters	"<a href=\"x\">&amp;</a>"	"\"<a href=\\\"x\\\">&amp;</a>\""
+named escapes	"\b\f\n\r\t"	"\"\\b\\f\\n\\r\\t\""
+control characters	"\u0000\u0001\u001f"	"\"\\u0000\\u0001\\u001f\""
+delete	"\u007f"	"\"\u007f\""
+line and paragraph separators	"a\u2028b\u2029c"	"\"a\u2028b\u2029c\""
+accented	"\u00e9t\u00e9"	"\"\u00e9t\u00e9\""
+astral	"\ud83d\ude00"	"\"\ud83d\ude00\""
+path template	"/api/planet/{planet_id}"	"\"/api/planet/{planet_id}\""
+backtick path	"`body.items`"	"\"`body.items`\""

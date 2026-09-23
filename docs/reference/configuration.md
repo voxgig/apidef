@@ -96,8 +96,9 @@ heuristic classification that apidef regenerates on every run
 Within a single run the base-guide is written *before* this file is read, so a
 cold start works in one pass as long as the guide entry file exists. The
 `@voxgig/apidef/model/guide.aontu` reference is resolved from `node_modules`,
-so apidef must be installed in the project; the Go module serves the same file
-from its embedded copy of the model. The sibling include carries a `./`
+so apidef must be installed in the project. The Go module serves the same file
+from its embedded copy of the model, to the entry file only: in Go, a file the
+entry includes cannot include the schema itself. The sibling include carries a `./`
 because aontu reads a bare name as a package. Any classification
 overrides go below the includes. apidef never rewrites this file, apart from
 the migration below, while the base guide is overwritten on every run.

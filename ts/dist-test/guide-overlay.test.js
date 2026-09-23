@@ -52,7 +52,7 @@ const HEAD = [
     '',
 ].join('\n');
 const staged = [];
-function stage(entry) {
+function stage(entry, name = PREFIX + 'guide.aontu') {
     const dir = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'apidef-overlay-'));
     staged.push(dir);
     const folder = Path.join(dir, 'model');
@@ -60,13 +60,14 @@ function stage(entry) {
     Fs.mkdirSync(Path.join(dir, 'def'));
     Fs.copyFileSync(Path.join(__dirname, '..', 'test', 'def', DEF), Path.join(dir, 'def', DEF));
     if (null != entry) {
-        Fs.writeFileSync(Path.join(folder, 'guide', PREFIX + 'guide.aontu'), entry);
+        Fs.writeFileSync(Path.join(folder, 'guide', name), entry);
     }
     return folder;
 }
-async function run(folder) {
+async function run(folder, log) {
     const build = await apidef_1.ApiDef.makeBuild({ folder, outprefix: PREFIX });
     return build({ name: 'solar', def: DEF }, {
+        log,
         spec: {
             base: folder,
             buildargs: {
@@ -138,6 +139,86 @@ async function run(folder) {
         node_assert_1.default.ok(!base.includes('<<<<<<<'), base);
         node_assert_1.default.deepStrictEqual(Object.keys(bres.apimodel.main.kit.entity).sort(), ['moon', 'planet']);
     });
+    (0, node_test_1.test)('no-guide-fails', async () => {
+        for (const entry of ['', '# nothing\n', 'foo: 1\n']) {
+            const folder = stage(entry);
+            const bres = await run(folder);
+            node_assert_1.default.strictEqual(bres.ok, false, JSON.stringify(entry));
+            node_assert_1.default.ok(String(bres.err?.message).includes((0, guide_1.missingGuideMessage)(Path.join(folder, 'guide', PREFIX + 'guide.aontu'), PREFIX)), bres.err?.message);
+        }
+    });
+    (0, node_test_1.test)('legacy-entry-migrated', async () => {
+        for (const dir of ['', './']) {
+            const folder = stage([
+                '@"@voxgig/apidef/model/guide.aon"',
+                '@"' + dir + PREFIX + 'base-guide.aon"',
+                'guide: entity: moon: active: false',
+                '',
+            ].join('\n'), PREFIX + 'guide.aon');
+            const bres = await run(folder);
+            node_assert_1.default.strictEqual(bres.ok, true, String(bres.err?.message));
+            const guidedir = Path.join(folder, 'guide');
+            node_assert_1.default.ok(!Fs.existsSync(Path.join(guidedir, PREFIX + 'guide.aon')));
+            const entry = Fs.readFileSync(Path.join(guidedir, PREFIX + 'guide.aontu'), 'utf8');
+            node_assert_1.default.ok(entry.includes('@"@voxgig/apidef/model/guide.aontu"'), entry);
+            node_assert_1.default.ok(entry.includes('@"./' + PREFIX + 'base-guide.aontu"'), entry);
+            node_assert_1.default.deepStrictEqual(Object.keys(bres.apimodel.main.kit.entity), ['planet']);
+        }
+    });
+    (0, node_test_1.test)('legacy-include-migrated', async () => {
+        const folder = stage([
+            '@"@voxgig/apidef/model/guide.aontu"',
+            '@"./' + PREFIX + 'base-guide.aon"',
+            'guide: entity: moon: active: false',
+            '',
+        ].join('\n'));
+        const bres = await run(folder);
+        node_assert_1.default.strictEqual(bres.ok, true, String(bres.err?.message));
+        const entry = Fs.readFileSync(Path.join(folder, 'guide', PREFIX + 'guide.aontu'), 'utf8');
+        node_assert_1.default.ok(entry.includes('@"./' + PREFIX + 'base-guide.aontu"'), entry);
+        node_assert_1.default.deepStrictEqual(Object.keys(bres.apimodel.main.kit.entity), ['planet']);
+    });
+    (0, node_test_1.test)('bare-include-migrated', async () => {
+        const folder = stage([
+            '@"@voxgig/apidef/model/guide.aontu"',
+            '@"' + PREFIX + 'base-guide.aontu"',
+            'guide: entity: moon: active: false',
+            '',
+        ].join('\n'));
+        const bres = await run(folder);
+        node_assert_1.default.strictEqual(bres.ok, true, String(bres.err?.message));
+        const entry = Fs.readFileSync(Path.join(folder, 'guide', PREFIX + 'guide.aontu'), 'utf8');
+        node_assert_1.default.ok(entry.includes('@"./' + PREFIX + 'base-guide.aontu"'), entry);
+        node_assert_1.default.deepStrictEqual(Object.keys(bres.apimodel.main.kit.entity), ['planet']);
+    });
+    (0, node_test_1.test)('schema-include-spellings', async () => {
+        for (const include of [
+            '@\'@voxgig/apidef/model/guide.aontu\'',
+            '@ "@voxgig/apidef/model/guide.aontu"',
+            '@`@voxgig/apidef/model/guide.aontu`',
+            '@\n"@voxgig/apidef/model/guide.aontu"',
+        ]) {
+            const bres = await run(stage([
+                include,
+                '@"./' + PREFIX + 'base-guide.aontu"',
+                'guide: entity: moon: active: false',
+                '',
+            ].join('\n')));
+            node_assert_1.default.strictEqual(bres.ok, true, include + ': ' + String(bres.err?.message));
+            node_assert_1.default.deepStrictEqual(Object.keys(bres.apimodel.main.kit.entity), ['planet']);
+        }
+    });
+    (0, node_test_1.test)('nested-schema-include', async () => {
+        const folder = stage([
+            '@"./shared.aontu"',
+            'guide: entity: moon: active: false',
+            '',
+        ].join('\n'));
+        Fs.writeFileSync(Path.join(folder, 'guide', 'shared.aontu'), HEAD);
+        const bres = await run(folder);
+        node_assert_1.default.strictEqual(bres.ok, true, String(bres.err?.message));
+        node_assert_1.default.deepStrictEqual(Object.keys(bres.apimodel.main.kit.entity), ['planet']);
+    });
     (0, node_test_1.test)('missing-entry-fails', async () => {
         const bres = await run(stage(null));
         node_assert_1.default.strictEqual(bres.ok, false);
@@ -161,7 +242,30 @@ async function run(folder) {
     (0, node_test_1.test)('type-error-fails', async () => {
         const bres = await run(stage(HEAD + 'guide: entity: moon: active: "no"\n'));
         node_assert_1.default.strictEqual(bres.ok, false);
+        node_assert_1.default.match(String(bres.err?.message), /^SUMMARY \(1 errors\): /);
         node_assert_1.default.match(String(bres.err?.message), /no_scalar_unify/);
+        const [aerr] = bres.err.errs();
+        node_assert_1.default.strictEqual(aerr.aontu, true);
+        node_assert_1.default.deepStrictEqual(aerr.errs().map((e) => e.why), ['no_scalar_unify']);
     });
+    for (const [name, line, why, text] of [
+        ['incomplete-value-fails', 'extra: string', 'mapval_no_gen', 'mapval_no_gen'],
+        ['syntax-error-fails', '}}}', 'syntax', 'unexpected character'],
+        ['missing-include-fails', '@"./nope.aontu"', 'multisource_not_found', 'source not found: ./nope.aontu'],
+    ]) {
+        (0, node_test_1.test)(name, async () => {
+            const logged = [];
+            const log = {
+                child: () => log, info() { }, debug() { }, warn() { }, trace() { }, fatal() { },
+                error: (e) => logged.push(e),
+            };
+            const bres = await run(stage(HEAD + line + '\n'), log);
+            node_assert_1.default.strictEqual(bres.ok, false);
+            node_assert_1.default.ok(String(bres.err?.message).startsWith('SUMMARY (1 errors): '), bres.err?.message);
+            node_assert_1.default.ok(String(bres.err?.message).includes(text), bres.err?.message);
+            node_assert_1.default.deepStrictEqual(bres.err.errs()[0].errs().map((e) => e.why), [why]);
+            node_assert_1.default.ok(logged.includes(bres.err));
+        });
+    }
 });
 //# sourceMappingURL=guide-overlay.test.js.map

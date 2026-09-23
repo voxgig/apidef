@@ -135,6 +135,17 @@ function guideConflictMessage(
 }
 
 
+function missingGuideMessage(path: string, guideprefix: string): string {
+  return `@voxgig/apidef: guide: ${path} defines no guide map; it needs the include ` +
+    `@"./${guideprefix}base-guide.aontu".`
+}
+
+
+function isPlainObject(val: any): boolean {
+  return null != val && 'object' === typeof val && !Array.isArray(val)
+}
+
+
 function findConflict(src: string): { line: number, text: string } | null {
   const lines = String(src || '').split('\n')
 
@@ -217,7 +228,7 @@ async function buildGuide(ctx: ApiDefContext): Promise<any> {
 
     const opts: any = {
       path: guidepath,
-      errs,
+      errfs: ctx.fs,
     }
 
     if (ctx.fsInjected) {
@@ -226,7 +237,19 @@ async function buildGuide(ctx: ApiDefContext): Promise<any> {
 
     ctx.work.guideAontuFs = undefined !== opts.fs
 
-    const guideModel = aontu.generate(src, opts)
+    // One AontuError carries every aontu failure, formatted: collect mode
+    // leaves a generation-time failure's message empty.
+    let guideModel: any
+    try {
+      guideModel = aontu.generate(src, opts)
+    }
+    catch (err: any) {
+      errs.push(err)
+    }
+
+    if (0 === errs.length && !isPlainObject(guideModel?.guide)) {
+      errs.push(new Error(missingGuideMessage(relativizePath(guidepath), guideprefix)))
+    }
 
     handleErrors(ctx, errs)
 
@@ -591,6 +614,7 @@ export {
   prefixGuideInclude,
   findConflict,
   guideConflictMessage,
+  missingGuideMessage,
   baseGuideHeader,
   guideEntrySource,
   migrateLegacyGuide,

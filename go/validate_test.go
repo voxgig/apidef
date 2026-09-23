@@ -215,7 +215,7 @@ func TestValidateModelData(t *testing.T) {
 				return
 			}
 
-			tmpDir := stageValidateOverlay(t, validateDir, t.TempDir(), cn)
+			tmpDir := stageGuideEntry(t, t.TempDir(), cn+"-")
 			apidef := NewApiDef(ApiDefOptions{
 				Folder:    tmpDir,
 				OutPrefix: cn + "-",

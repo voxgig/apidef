@@ -580,4 +580,11 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-guide-quote', () => {
+    for (const row of loadTsv('guide-quote')) {
+        (0, node_test_1.test)(row.name, () => {
+            node_assert_1.default.strictEqual(JSON.stringify(JSON.parse(row.input)), JSON.parse(row.expected));
+        });
+    }
+});
 //# sourceMappingURL=tsv.test.js.map

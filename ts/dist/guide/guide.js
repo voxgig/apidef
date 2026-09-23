@@ -7,6 +7,7 @@ exports.migrateGuideIncludes = migrateGuideIncludes;
 exports.prefixGuideInclude = prefixGuideInclude;
 exports.findConflict = findConflict;
 exports.guideConflictMessage = guideConflictMessage;
+exports.missingGuideMessage = missingGuideMessage;
 exports.baseGuideHeader = baseGuideHeader;
 exports.guideEntrySource = guideEntrySource;
 exports.migrateLegacyGuide = migrateLegacyGuide;
@@ -80,6 +81,13 @@ function guideConflictMessage(path, conflict) {
         `  ${conflict.text}\n` +
         `Resolve the marked block in ${path}.`;
 }
+function missingGuideMessage(path, guideprefix) {
+    return `@voxgig/apidef: guide: ${path} defines no guide map; it needs the include ` +
+        `@"./${guideprefix}base-guide.aontu".`;
+}
+function isPlainObject(val) {
+    return null != val && 'object' === typeof val && !Array.isArray(val);
+}
 function findConflict(src) {
     const lines = String(src || '').split('\n');
     for (let i = 0; i < lines.length; i++) {
@@ -140,13 +148,24 @@ async function buildGuide(ctx) {
     if (0 === errs.length) {
         const opts = {
             path: guidepath,
-            errs,
+            errfs: ctx.fs,
         };
         if (ctx.fsInjected) {
             opts.fs = ctx.fs;
         }
         ctx.work.guideAontuFs = undefined !== opts.fs;
-        const guideModel = aontu.generate(src, opts);
+        // One AontuError carries every aontu failure, formatted: collect mode
+        // leaves a generation-time failure's message empty.
+        let guideModel;
+        try {
+            guideModel = aontu.generate(src, opts);
+        }
+        catch (err) {
+            errs.push(err);
+        }
+        if (0 === errs.length && !isPlainObject(guideModel?.guide)) {
+            errs.push(new Error(missingGuideMessage((0, utility_1.relativizePath)(guidepath), guideprefix)));
+        }
         handleErrors(ctx, errs);
         return guideModel;
     }

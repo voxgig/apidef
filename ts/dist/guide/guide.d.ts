@@ -7,6 +7,7 @@ declare function guideConflictMessage(path: string, conflict: {
     line: number;
     text: string;
 }): string;
+declare function missingGuideMessage(path: string, guideprefix: string): string;
 declare function findConflict(src: string): {
     line: number;
     text: string;
@@ -14,4 +15,4 @@ declare function findConflict(src: string): {
 declare function buildGuide(ctx: ApiDefContext): Promise<any>;
 declare function guideEntrySource(guideprefix: string): string[];
 declare function baseGuideHeader(guideprefix: string): string[];
-export { migrateGuideIncludes, prefixGuideInclude, findConflict, guideConflictMessage, baseGuideHeader, guideEntrySource, migrateLegacyGuide, migrateGuideIncludePrefix, buildGuide };
+export { migrateGuideIncludes, prefixGuideInclude, findConflict, guideConflictMessage, missingGuideMessage, baseGuideHeader, guideEntrySource, migrateLegacyGuide, migrateGuideIncludePrefix, buildGuide };

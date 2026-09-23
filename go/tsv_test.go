@@ -590,6 +590,25 @@ func TestTsvBaseGuideHeader(t *testing.T) {
 	}
 }
 
+func TestTsvGuideQuote(t *testing.T) {
+	rows := loadTsv(t, "guide-quote")
+	if len(rows) == 0 {
+		t.Fatal("no guide-quote rows loaded")
+	}
+	for _, row := range rows {
+		var input, want string
+		if err := json.Unmarshal([]byte(row["input"]), &input); err != nil {
+			t.Fatal(err)
+		}
+		if err := json.Unmarshal([]byte(row["expected"]), &want); err != nil {
+			t.Fatal(err)
+		}
+		if got := guideJSON(input); got != want {
+			t.Errorf("%s: guideJSON = %q, want %q", row["name"], got, want)
+		}
+	}
+}
+
 func TestTsvGuideConflict(t *testing.T) {
 	rows := loadTsv(t, "guide-conflict")
 	if len(rows) == 0 {

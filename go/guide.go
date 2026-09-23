@@ -63,7 +63,7 @@ func BuildGuide(ctx *ApiDefContext) (map[string]any, error) {
 	// Build the base guide using heuristic analysis
 	baseguide, err := heuristic01(ctx)
 	if err != nil {
-		return nil, err
+		return nil, &GuideErrors{Errs: []error{err}}
 	}
 
 	// Generate guide JSONIC source
@@ -74,8 +74,8 @@ func BuildGuide(ctx *ApiDefContext) (map[string]any, error) {
 	prefix := ctx.Opts.OutPrefix
 	baseGuideFile := filepath.Join(guideDir, prefix+"base-guide.aontu")
 	if err := os.WriteFile(baseGuideFile, []byte(guideSrc), 0644); err != nil {
-		return nil, fmt.Errorf("failed to write base guide %s: %w",
-			RelativizePath(baseGuideFile), err)
+		return nil, &GuideErrors{Errs: []error{fmt.Errorf("failed to write base guide %s: %w",
+			RelativizePath(baseGuideFile), err)}}
 	}
 
 	guidePath := filepath.Join(guideDir, prefix+"guide.aontu")
@@ -92,16 +92,44 @@ func BuildGuide(ctx *ApiDefContext) (map[string]any, error) {
 
 	src, err := os.ReadFile(guidePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read guide: %w", err)
+		return nil, &GuideErrors{Errs: []error{fmt.Errorf("failed to read guide: %w", err)}}
 	}
 
 	// Only the entry file: the base guide was just rewritten from the spec.
 	if conflict := findConflict(string(src)); conflict != nil {
-		return nil, errors.New(guideConflictMessage(RelativizePath(guidePath), conflict))
+		return nil, &GuideErrors{Errs: []error{
+			errors.New(guideConflictMessage(RelativizePath(guidePath), conflict))}}
 	}
 
-	return evaluateGuide(guideDir, guidePath, string(src))
+	out, err := evaluateGuide(guideDir, guidePath, string(src))
+	if err != nil {
+		return nil, &GuideErrors{Errs: []error{err}}
+	}
+
+	guideModel, _ := out.(map[string]any)
+	if _, ok := guideModel["guide"].(map[string]any); !ok {
+		return nil, &GuideErrors{Errs: []error{
+			errors.New(missingGuideMessage(RelativizePath(guidePath), prefix))}}
+	}
+
+	return guideModel, nil
 }
+
+// GuideErrors is a failed guide stage, in the summary form the TS port's
+// handleErrors throws.
+type GuideErrors struct {
+	Errs []error
+}
+
+func (e *GuideErrors) Error() string {
+	msgs := make([]string, len(e.Errs))
+	for i, err := range e.Errs {
+		msgs[i] = err.Error()
+	}
+	return fmt.Sprintf("SUMMARY (%d errors): %s", len(e.Errs), strings.Join(msgs, " | "))
+}
+
+func (e *GuideErrors) Unwrap() []error { return e.Errs }
 
 // A `.aon` entry file is unresolvable: aontu reads only `.aontu` as source.
 // So this renames AND rewrites both includes — a repair, not a convenience.
@@ -182,6 +210,11 @@ func prefixGuideInclude(src string, prefix string) string {
 		`@"`+prefix+`base-guide.aontu"`, `@"./`+prefix+`base-guide.aontu"`)
 }
 
+func missingGuideMessage(path string, prefix string) string {
+	return "@voxgig/apidef: guide: " + path + " defines no guide map; it needs the include " +
+		"@\"./" + prefix + "base-guide.aontu\"."
+}
+
 func guideConflictMessage(path string, conflict *guideConflict) string {
 	return fmt.Sprintf("@voxgig/apidef: guide: unresolved merge conflict at %s:%d\n"+
 		"  %s\n"+
@@ -237,47 +270,97 @@ func firstUTF16Units(s string, n int) string {
 }
 
 // aontu Go has no package include resolver, so the schema the TS port finds
-// in its own npm package is served from the copy embedded in go/model.
-var modelIncludeRE = regexp.MustCompile(`@"@voxgig/apidef/model/([^"/]+)"`)
+// in its own npm package is served from the copy embedded in go/model. aontu
+// allows whitespace after `@` and a double, single or backtick quote.
+var modelIncludeRE = regexp.MustCompile(`@(\s*)(?:"@voxgig/apidef/model/([^"/]+)"|` +
+	`'@voxgig/apidef/model/([^'/]+)'|` + "`@voxgig/apidef/model/([^`/]+)`)")
 
-func evaluateGuide(guideDir string, guidePath string, src string) (map[string]any, error) {
-	src, cleanup, err := embedModelIncludes(src)
+const modelIncludePrefix = "@voxgig/apidef/model/"
+
+func evaluateGuide(guideDir string, guidePath string, src string) (any, error) {
+	src, embedded, err := embedModelIncludes(src)
 	if err != nil {
 		return nil, err
 	}
-	defer cleanup()
+	defer embedded.cleanup()
 
 	a := aontu.NewWithBase(guideDir)
 	a.File = guidePath
 	out, err := a.Generate(src)
 	if err != nil {
-		return nil, err
+		return nil, embedded.restore(err)
 	}
 
-	guideModel, ok := out.(map[string]any)
-	if !ok {
-		return nil, fmt.Errorf("guide %s does not evaluate to a map",
-			RelativizePath(guidePath))
-	}
-
-	return guideModel, nil
+	return out, nil
 }
 
-func embedModelIncludes(src string) (string, func(), error) {
+// embeddedModel records where the schema copies live and what each rewritten
+// include replaced, so an error can be told in the entry file's own words.
+type embeddedModel struct {
+	dir      string
+	includes map[string]string
+}
+
+func (e *embeddedModel) cleanup() {
+	if e.dir != "" {
+		os.RemoveAll(e.dir)
+	}
+}
+
+func (e *embeddedModel) restore(err error) error {
+	var aerr *aontu.AontuError
+	if !errors.As(err, &aerr) {
+		return err
+	}
+
+	pairs := []string{}
+	for rewritten, original := range e.includes {
+		pairs = append(pairs, rewritten, original)
+	}
+	if e.dir != "" {
+		pairs = append(pairs, filepath.ToSlash(e.dir)+"/", modelIncludePrefix)
+	}
+	replacer := strings.NewReplacer(pairs...)
+
+	restored := *aerr
+	restored.Msg = replacer.Replace(aerr.Msg)
+	if aerr.Details != nil {
+		restored.Details = map[string]string{}
+		for k, v := range aerr.Details {
+			restored.Details[k] = replacer.Replace(v)
+		}
+	}
+
+	if "multisource_not_found" == restored.Code &&
+		strings.Contains(restored.Msg, modelIncludePrefix) {
+		return fmt.Errorf("@voxgig/apidef: guide: the Go port serves %s files only "+
+			"to the guide entry file, which must include them directly: %w",
+			modelIncludePrefix, &restored)
+	}
+
+	return &restored
+}
+
+func embedModelIncludes(src string) (string, *embeddedModel, error) {
+	embedded := &embeddedModel{includes: map[string]string{}}
 	if !modelIncludeRE.MatchString(src) {
-		return src, func() {}, nil
+		return src, embedded, nil
 	}
 
 	dir, err := os.MkdirTemp("", "apidef-model-")
-	if err != nil {
-		return "", func() {}, err
+	if err == nil {
+		dir, err = filepath.Abs(dir)
 	}
-	cleanup := func() { os.RemoveAll(dir) }
+	if err != nil {
+		return "", embedded, err
+	}
+	embedded.dir = dir
 
 	written := map[string]string{}
 	var werr error
 	out := modelIncludeRE.ReplaceAllStringFunc(src, func(include string) string {
-		name := modelIncludeRE.FindStringSubmatch(include)[1]
+		m := modelIncludeRE.FindStringSubmatch(include)
+		name := m[2] + m[3] + m[4]
 		path, ok := written[name]
 		if !ok {
 			data, rerr := model.Read(name)
@@ -290,28 +373,63 @@ func embedModelIncludes(src string) (string, func(), error) {
 			}
 			written[name] = path
 		}
-		return "@" + jsonStringHTMLSafe(filepath.ToSlash(path))
+		rewritten := "@" + m[1] + jsonStringify(filepath.ToSlash(path))
+		embedded.includes[rewritten] = include
+		return rewritten
 	})
 
 	if werr != nil {
-		cleanup()
-		return "", func() {}, werr
+		embedded.cleanup()
+		return "", &embeddedModel{}, werr
 	}
 
-	return out, cleanup, nil
+	return out, embedded, nil
 }
 
-// guideJSON quotes as the TS writer's JSON.stringify does: aontu parses the
-// result, so a Go-only escape such as `\x7f` would not survive.
+// guideJSON quotes as the TS writer's JSON.stringify does, so both ports
+// write the same base-guide bytes.
 func guideJSON(v any) string {
 	if s, ok := v.(string); ok {
-		return jsonStringHTMLSafe(s)
+		return jsonStringify(s)
 	}
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
 	enc.SetEscapeHTML(false)
 	enc.Encode(v)
 	return strings.TrimSuffix(buf.String(), "\n")
+}
+
+// jsonStringify is JSON.stringify for a string, which leaves U+2028 and
+// U+2029 raw where encoding/json escapes them.
+func jsonStringify(s string) string {
+	var b strings.Builder
+	b.WriteByte('"')
+	for _, r := range s {
+		switch r {
+		case '"':
+			b.WriteString(`\"`)
+		case '\\':
+			b.WriteString(`\\`)
+		case '\b':
+			b.WriteString(`\b`)
+		case '\f':
+			b.WriteString(`\f`)
+		case '\n':
+			b.WriteString(`\n`)
+		case '\r':
+			b.WriteString(`\r`)
+		case '\t':
+			b.WriteString(`\t`)
+		default:
+			if r < 0x20 {
+				fmt.Fprintf(&b, `\u%04x`, r)
+			} else {
+				b.WriteRune(r)
+			}
+		}
+	}
+	b.WriteByte('"')
+	return b.String()
 }
 
 func buildGuideSource(ctx *ApiDefContext, baseguide map[string]any) string {

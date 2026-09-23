@@ -154,12 +154,7 @@ func (a *apiDefInstance) Generate(spec map[string]any) (*ApiDefResult, error) {
 		return makeErrorResult(start, steps, ctrl, ctx, err), err
 	}
 
-	// Extract the "guide" key from the guide model result (matching TS: ctx.guide = guideModel.guide)
-	if g, ok := guideModel["guide"].(map[string]any); ok {
-		ctx.Guide = g
-	} else {
-		ctx.Guide = guideModel
-	}
+	ctx.Guide, _ = guideModel["guide"].(map[string]any)
 	steps = append(steps, "guide")
 
 	// Step: transformers

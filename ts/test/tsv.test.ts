@@ -691,3 +691,12 @@ describe('tsv-base-guide-header', () => {
     })
   }
 })
+
+
+describe('tsv-guide-quote', () => {
+  for (const row of loadTsv('guide-quote')) {
+    test(row.name, () => {
+      assert.strictEqual(JSON.stringify(JSON.parse(row.input)), JSON.parse(row.expected))
+    })
+  }
+})
