@@ -182,7 +182,7 @@ func TestGuideVerbOnParent(t *testing.T) {
 
 	ctx := &ApiDefContext{
 		Opts: ApiDefOptions{
-			Folder:    t.TempDir(),
+			Folder:    stageGuideEntry(t, t.TempDir(), "verb-"),
 			OutPrefix: "verb-",
 			Strategy:  "heuristic01",
 		},
@@ -256,7 +256,7 @@ func TestGuideVerbOnParentEdges(t *testing.T) {
 		t.Fatalf("parse failed: %v", err)
 	}
 	ctx := &ApiDefContext{
-		Opts: ApiDefOptions{Folder: t.TempDir(), OutPrefix: "verb-edge-", Strategy: "heuristic01"},
+		Opts: ApiDefOptions{Folder: stageGuideEntry(t, t.TempDir(), "verb-edge-"), OutPrefix: "verb-edge-", Strategy: "heuristic01"},
 		Def:  parsed, Note: map[string]any{}, Warn: MakeWarner("test", nil), Work: map[string]any{},
 	}
 	guideResult, err := BuildGuide(ctx)
@@ -344,7 +344,7 @@ func TestQueryVerb(t *testing.T) {
 
 	ctx := &ApiDefContext{
 		Opts: ApiDefOptions{
-			Folder:    t.TempDir(),
+			Folder:    stageGuideEntry(t, t.TempDir(), "query-book-"),
 			OutPrefix: "query-book-",
 			Strategy:  "heuristic01",
 		},
@@ -634,6 +634,7 @@ func TestPointSegmentsEmitted(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(tmp)
+	stageGuideEntry(t, tmp, "solar-1.0.0-openapi-3.0.0-")
 
 	ad := NewApiDef(ApiDefOptions{
 		Folder:    tmp,

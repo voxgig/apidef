@@ -59,16 +59,16 @@ async function main() {
     const cn = `${name}-${ver}-${spec}`
     const folder = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'apidefref-'))
 
-    // The TS pipeline unifies a guide OVERLAY through aontu and needs the
-    // entry file present; an empty overlay is the no-customization case,
-    // which is what the Go run does (it has no aontu at all).
+    // Both ports unify a guide OVERLAY through aontu and need the entry file
+    // present; an empty overlay is the no-customization case the Go run
+    // compares against.
     Fs.mkdirSync(Path.join(folder, 'guide'), { recursive: true })
     // The overlay IMPORTS the schema and the generated base guide, exactly
     // as apidef-validate's harness writes it. `guide:{}` alone unifies to a
     // guide with no `entity` map, and the transformers then fail on it.
     Fs.writeFileSync(Path.join(folder, 'guide', cn + '-guide.aontu'),
       '\n@"' + Path.join(TSROOT, 'model', 'guide.aontu') + '"\n\n' +
-      '@"' + cn + '-base-guide.aontu"\n\nguide:{}\n')
+      '@"./' + cn + '-base-guide.aontu"\n\nguide:{}\n')
 
     const build = await ApiDef.makeBuild({ folder, outprefix: cn + '-' })
 

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 	"testing"
@@ -544,33 +545,55 @@ servers: [ { url: "https://x.example" } ]
 	})
 }
 
-// An empty overlay is not a customization however it is spelled — matching
-// one textual form flagged the multi-line variant and failed valid builds.
-func TestGuideOverlayCustomizations(t *testing.T) {
-	empty := []string{
-		"",
-		"# just a comment\n",
-		"@\"@voxgig/apidef/model/guide.aontu\"\n@\"x-base-guide.aontu\"\n",
-		"@\"x-base-guide.aontu\"\n\nguide:{}\n",
-		"@\"x-base-guide.aontu\"\n\nguide: {}\n",
-		"@\"x-base-guide.aontu\"\n\nguide: {\n}\n",
-		"# c\n@\"x-base-guide.aontu\"\n\nguide: {\n}\n\n",
+func TestTsvGuideMigrate(t *testing.T) {
+	rows := loadTsv(t, "guide-migrate")
+	if len(rows) == 0 {
+		t.Fatal("no guide-migrate rows loaded")
 	}
-	for _, src := range empty {
-		if got := guideOverlayCustomizations(src); len(got) != 0 {
-			t.Errorf("expected no customizations for %q, got %v", src, got)
+	str := func(t *testing.T, cell string) string {
+		var s string
+		if err := json.Unmarshal([]byte(cell), &s); err != nil {
+			t.Fatalf("bad cell %q: %v", cell, err)
 		}
+		return s
 	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			src := str(t, row["src"])
+			includes := migrateGuideIncludes(src, row["prefix"])
+			if want := str(t, row["includes"]); includes != want {
+				t.Errorf("migrateGuideIncludes = %q, want %q", includes, want)
+			}
+			if got, want := prefixGuideInclude(src, row["prefix"]), str(t, row["prefixed"]); got != want {
+				t.Errorf("prefixGuideInclude = %q, want %q", got, want)
+			}
+			if got, want := prefixGuideInclude(includes, row["prefix"]), str(t, row["both"]); got != want {
+				t.Errorf("both = %q, want %q", got, want)
+			}
+		})
+	}
+}
 
-	custom := []string{
-		"@\"x-base-guide.aontu\"\n\nguide: entity: bar: { active: false }\n",
-		"@\"x-base-guide.aontu\"\n\nguide: entity: yike: hide({})\n",
-		"@\"x-base-guide.aontu\"\n\nguide: {\n  entity: foo: { active: false }\n}\n",
+func TestTsvGuideConflict(t *testing.T) {
+	rows := loadTsv(t, "guide-conflict")
+	if len(rows) == 0 {
+		t.Fatal("no guide-conflict rows loaded")
 	}
-	for _, src := range custom {
-		if got := guideOverlayCustomizations(src); len(got) == 0 {
-			t.Errorf("expected customizations for %q", src)
-		}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var src string
+			if err := json.Unmarshal([]byte(row["src"]), &src); err != nil {
+				t.Fatal(err)
+			}
+			var want *guideConflict
+			if err := json.Unmarshal([]byte(row["expected"]), &want); err != nil {
+				t.Fatal(err)
+			}
+			got := findConflict(src)
+			if !reflect.DeepEqual(got, want) {
+				t.Errorf("findConflict(%q) = %+v, want %+v", src, got, want)
+			}
+		})
 	}
 }
 

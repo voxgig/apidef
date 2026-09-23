@@ -3,6 +3,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.migrateGuideIncludes = migrateGuideIncludes;
+exports.prefixGuideInclude = prefixGuideInclude;
+exports.findConflict = findConflict;
 exports.migrateLegacyGuide = migrateLegacyGuide;
 exports.migrateGuideIncludePrefix = migrateGuideIncludePrefix;
 exports.buildGuide = buildGuide;
@@ -17,6 +20,23 @@ const KONSOLE_LOG = console['log'];
 // Log non-fatal wierdness.
 const dlog = (0, utility_1.getdlog)('apidef', __filename);
 const aontu = new aontu_1.Aontu();
+function migrateGuideIncludes(src, guideprefix) {
+    let migrated = src
+        .replace(/@"@voxgig\/apidef\/model\/guide\.aon"/g, '@"@voxgig/apidef/model/guide.aontu"');
+    // The sibling include is written bare or with `./`; both name this file.
+    for (const dir of ['', './']) {
+        migrated = migrated
+            .split('@"' + dir + guideprefix + 'base-guide.aon"')
+            .join('@"' + dir + guideprefix + 'base-guide.aontu"');
+    }
+    return migrated;
+}
+// aontu refuses a bare sibling include, so it gains the `./` it needs.
+function prefixGuideInclude(src, guideprefix) {
+    return src
+        .split('@"' + guideprefix + 'base-guide.aontu"')
+        .join('@"./' + guideprefix + 'base-guide.aontu"');
+}
 // A `.aon` entry file is unresolvable: aontu reads only `.aontu` as source.
 // So this renames AND rewrites both includes — a repair, not a convenience.
 function migrateLegacyGuide(fs, folder, guideprefix) {
@@ -25,15 +45,7 @@ function migrateLegacyGuide(fs, folder, guideprefix) {
     if (fs.existsSync(guidepath) || !fs.existsSync(legacyguide)) {
         return false;
     }
-    let migrated = String(fs.readFileSync(legacyguide, 'utf8'))
-        .replace(/@"@voxgig\/apidef\/model\/guide\.aon"/g, '@"@voxgig/apidef/model/guide.aontu"');
-    // The sibling include is written bare or with `./`; both name this file.
-    for (const dir of ['', './']) {
-        migrated = migrated
-            .split('@"' + dir + guideprefix + 'base-guide.aon"')
-            .join('@"' + dir + guideprefix + 'base-guide.aontu"');
-    }
-    fs.writeFileSync(guidepath, migrated);
+    fs.writeFileSync(guidepath, migrateGuideIncludes(String(fs.readFileSync(legacyguide, 'utf8')), guideprefix));
     try {
         fs.unlinkSync(legacyguide);
     }
@@ -43,33 +55,21 @@ function migrateLegacyGuide(fs, folder, guideprefix) {
 // A `.aontu` entry file may still include a `.aon` sibling, so the rename
 // above never fires for it while its include still names an absent file.
 function migrateLegacyGuideInclude(fs, guidepath, guideprefix) {
+    return rewriteGuide(fs, guidepath, (src) => migrateGuideIncludes(src, guideprefix));
+}
+function migrateGuideIncludePrefix(fs, guidepath, guideprefix) {
+    return rewriteGuide(fs, guidepath, (src) => prefixGuideInclude(src, guideprefix));
+}
+function rewriteGuide(fs, guidepath, rewrite) {
     if (!fs.existsSync(guidepath)) {
         return false;
     }
     const src = String(fs.readFileSync(guidepath, 'utf8'));
-    let migrated = src
-        .replace(/@"@voxgig\/apidef\/model\/guide\.aon"/g, '@"@voxgig/apidef/model/guide.aontu"');
-    for (const dir of ['', './']) {
-        migrated = migrated
-            .split('@"' + dir + guideprefix + 'base-guide.aon"')
-            .join('@"' + dir + guideprefix + 'base-guide.aontu"');
-    }
+    const migrated = rewrite(src);
     if (migrated === src) {
         return false;
     }
     fs.writeFileSync(guidepath, migrated);
-    return true;
-}
-function migrateGuideIncludePrefix(fs, guidepath, guideprefix) {
-    if (!fs.existsSync(guidepath)) {
-        return false;
-    }
-    const bare = '@"' + guideprefix + 'base-guide.aontu"';
-    const src = String(fs.readFileSync(guidepath, 'utf8'));
-    if (!src.includes(bare)) {
-        return false;
-    }
-    fs.writeFileSync(guidepath, src.split(bare).join('@"./' + guideprefix + 'base-guide.aontu"'));
     return true;
 }
 function findConflict(src) {

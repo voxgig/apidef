@@ -63,8 +63,9 @@ apidef leans on the wider Voxgig toolchain rather than reinventing it:
 - **[`jostraca`](https://github.com/voxgig/jostraca)** — the file generator. It
   owns `each`/`getx` iteration helpers, the `Project`/`Folder`/`File`/`Content`
   builder DSL, and the merge-on-write behavior that preserves hand edits.
-- **[`aontu`](https://github.com/aontu-lang/aontu)** — a unification engine used by
-  downstream model resolution (apidef writes the model; aontu assembles it).
+- **[`aontu`](https://github.com/aontu-lang/aontu)** — the unification engine. The
+  guide stage evaluates the guide entry file with it, in both ports, and
+  downstream model resolution uses it to assemble the model apidef writes.
 - **`shape`** — lightweight structural validation of options and model inputs.
 - **`@voxgig/struct`** / **`@voxgig/util`** — shared data and logging utilities
   (`pino`-based structured logging).

@@ -84,7 +84,7 @@ func TestValidateGuide(t *testing.T) {
 			// Run the heuristic to build a guide
 			ctx := &ApiDefContext{
 				Opts: ApiDefOptions{
-					Folder:    t.TempDir(),
+					Folder:    stageValidateOverlay(t, validateDir, t.TempDir(), cn),
 					OutPrefix: cn + "-",
 					Strategy:  "heuristic01",
 				},
@@ -215,7 +215,7 @@ func TestValidateModelData(t *testing.T) {
 				return
 			}
 
-			tmpDir := t.TempDir()
+			tmpDir := stageValidateOverlay(t, validateDir, t.TempDir(), cn)
 			apidef := NewApiDef(ApiDefOptions{
 				Folder:    tmpDir,
 				OutPrefix: cn + "-",
@@ -486,7 +486,7 @@ func TestValidateModel(t *testing.T) {
 				t.Fatalf("failed to read def: %v", err)
 			}
 
-			tmpDir := t.TempDir()
+			tmpDir := stageValidateOverlay(t, validateDir, t.TempDir(), cn)
 
 			apidef := NewApiDef(ApiDefOptions{
 				Folder:    tmpDir,

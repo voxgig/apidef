@@ -46,6 +46,7 @@ const field_1 = require("../dist/transform/field");
 const resolved_1 = require("../dist/resolved");
 const jostraca_1 = require("jostraca");
 const graphql01_1 = require("../dist/guide/graphql01");
+const guide_1 = require("../dist/guide/guide");
 const parse_1 = require("../dist/parse");
 const clean_1 = require("../dist/transform/clean");
 const transform_1 = require("../dist/transform");
@@ -551,6 +552,24 @@ function loadTsv(name) {
     for (const row of loadTsv('human-title')) {
         (0, node_test_1.test)(row.input || 'empty', () => {
             node_assert_1.default.strictEqual((0, utility_1.humanTitle)(row.input), row.expected);
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-guide-migrate', () => {
+    for (const row of loadTsv('guide-migrate')) {
+        (0, node_test_1.test)(row.name, () => {
+            const src = JSON.parse(row.src);
+            const includes = (0, guide_1.migrateGuideIncludes)(src, row.prefix);
+            node_assert_1.default.strictEqual(includes, JSON.parse(row.includes));
+            node_assert_1.default.strictEqual((0, guide_1.prefixGuideInclude)(src, row.prefix), JSON.parse(row.prefixed));
+            node_assert_1.default.strictEqual((0, guide_1.prefixGuideInclude)(includes, row.prefix), JSON.parse(row.both));
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-guide-conflict', () => {
+    for (const row of loadTsv('guide-conflict')) {
+        (0, node_test_1.test)(row.name, () => {
+            node_assert_1.default.deepStrictEqual((0, guide_1.findConflict)(JSON.parse(row.src)), JSON.parse(row.expected));
         });
     }
 });

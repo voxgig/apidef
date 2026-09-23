@@ -42,6 +42,12 @@ import { snakify, camelify, kebabify } from 'jostraca'
 import { classifyGraphQLField } from '../dist/guide/graphql01'
 
 import {
+  migrateGuideIncludes,
+  prefixGuideInclude,
+  findConflict,
+} from '../dist/guide/guide'
+
+import {
   parse,
 } from '../dist/parse'
 
@@ -650,6 +656,28 @@ describe('tsv-human-title', () => {
   for (const row of loadTsv('human-title')) {
     test(row.input || 'empty', () => {
       assert.strictEqual(humanTitle(row.input), row.expected)
+    })
+  }
+})
+
+
+describe('tsv-guide-migrate', () => {
+  for (const row of loadTsv('guide-migrate')) {
+    test(row.name, () => {
+      const src = JSON.parse(row.src)
+      const includes = migrateGuideIncludes(src, row.prefix)
+      assert.strictEqual(includes, JSON.parse(row.includes))
+      assert.strictEqual(prefixGuideInclude(src, row.prefix), JSON.parse(row.prefixed))
+      assert.strictEqual(prefixGuideInclude(includes, row.prefix), JSON.parse(row.both))
+    })
+  }
+})
+
+
+describe('tsv-guide-conflict', () => {
+  for (const row of loadTsv('guide-conflict')) {
+    test(row.name, () => {
+      assert.deepStrictEqual(findConflict(JSON.parse(row.src)), JSON.parse(row.expected))
     })
   }
 })

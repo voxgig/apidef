@@ -98,7 +98,7 @@ so your concrete value wins. The shapes you can correct:
 
 ```jsonic
 @"@voxgig/apidef/model/guide.aontu"
-@"base-guide.aontu"
+@"./base-guide.aontu"
 
 # Switch off an entity the heuristic invented.
 guide: entity: pull_request_merge_result: active: false
@@ -132,7 +132,7 @@ allowlist:
 
 ```jsonic
 @"@voxgig/apidef/model/guide.aontu"
-@"base-guide.aontu"
+@"./base-guide.aontu"
 
 # Default every entity off, then name the ones this SDK covers.
 guide: entity: &: active: *false

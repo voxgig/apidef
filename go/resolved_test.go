@@ -57,7 +57,7 @@ func TestResolvedGenerate(t *testing.T) {
 	for _, stop := range []string{"guide", "transformers", "builders", "generate"} {
 		t.Run(stop, func(t *testing.T) {
 			buildctx := map[string]any{}
-			result, err := NewApiDef(ApiDefOptions{Folder: t.TempDir()}).Generate(map[string]any{
+			result, err := NewApiDef(ApiDefOptions{Folder: stageGuideEntry(t, t.TempDir(), "")}).Generate(map[string]any{
 				"model":    map[string]any{"name": "test", "def": "test.json"},
 				"build":    map[string]any{"spec": map[string]any{"base": filepath.Join(dir, "model")}},
 				"buildctx": buildctx, "ctrl": map[string]any{"step": map[string]any{stop: false}},

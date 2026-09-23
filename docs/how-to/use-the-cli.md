@@ -37,7 +37,7 @@ before it starts, at `<folder>/model/guide/<prefix>guide.aontu`:
 ```
 
 Without it the CLI stops and prints these two lines for you to save. A
-`<prefix>guide.aontu` file from an older project is accepted and renamed on
+`<prefix>guide.aon` file from an older project is accepted and renamed on
 the first run. See
 [the guide file](../reference/configuration.md#the-guide-file) for what goes
 in it and how to override a classification there.

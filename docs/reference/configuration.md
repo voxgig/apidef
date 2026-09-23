@@ -94,13 +94,14 @@ heuristic classification that apidef regenerates on every run
 Within a single run the base-guide is written *before* this file is read, so a
 cold start works in one pass as long as the guide entry file exists. The
 `@voxgig/apidef/model/guide.aontu` reference is resolved from `node_modules`,
-so apidef must be installed in the project, and the sibling include carries a
-`./` because aontu reads a bare name as a package. Any classification
+so apidef must be installed in the project; the Go module serves the same file
+from its embedded copy of the model. The sibling include carries a `./`
+because aontu reads a bare name as a package. Any classification
 overrides go below the includes; the file is merged, never clobbered, on
 re-runs.
 
 A project from before the `.aontu` rename still works: a
-`<outprefix>guide.aontu` entry file is rewritten to `.aontu`, with its includes,
+`<outprefix>guide.aon` entry file is rewritten to `.aontu`, with its includes,
 on the first run, and a bare `@"<outprefix>base-guide.aontu"` include gains its
 `./` the same way.
 

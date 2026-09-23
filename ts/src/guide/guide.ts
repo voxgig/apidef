@@ -46,17 +46,8 @@ const aontu = new Aontu()
 
 
 
-// A `.aon` entry file is unresolvable: aontu reads only `.aontu` as source.
-// So this renames AND rewrites both includes — a repair, not a convenience.
-function migrateLegacyGuide(fs: any, folder: string, guideprefix: string): boolean {
-  const guidepath = Path.join(folder, 'guide', guideprefix + 'guide.aontu')
-  const legacyguide = Path.join(folder, 'guide', guideprefix + 'guide.aon')
-
-  if (fs.existsSync(guidepath) || !fs.existsSync(legacyguide)) {
-    return false
-  }
-
-  let migrated = String(fs.readFileSync(legacyguide, 'utf8'))
+function migrateGuideIncludes(src: string, guideprefix: string): string {
+  let migrated = src
     .replace(/@"@voxgig\/apidef\/model\/guide\.aon"/g,
       '@"@voxgig/apidef/model/guide.aontu"')
 
@@ -67,7 +58,30 @@ function migrateLegacyGuide(fs: any, folder: string, guideprefix: string): boole
       .join('@"' + dir + guideprefix + 'base-guide.aontu"')
   }
 
-  fs.writeFileSync(guidepath, migrated)
+  return migrated
+}
+
+
+// aontu refuses a bare sibling include, so it gains the `./` it needs.
+function prefixGuideInclude(src: string, guideprefix: string): string {
+  return src
+    .split('@"' + guideprefix + 'base-guide.aontu"')
+    .join('@"./' + guideprefix + 'base-guide.aontu"')
+}
+
+
+// A `.aon` entry file is unresolvable: aontu reads only `.aontu` as source.
+// So this renames AND rewrites both includes — a repair, not a convenience.
+function migrateLegacyGuide(fs: any, folder: string, guideprefix: string): boolean {
+  const guidepath = Path.join(folder, 'guide', guideprefix + 'guide.aontu')
+  const legacyguide = Path.join(folder, 'guide', guideprefix + 'guide.aon')
+
+  if (fs.existsSync(guidepath) || !fs.existsSync(legacyguide)) {
+    return false
+  }
+
+  fs.writeFileSync(guidepath,
+    migrateGuideIncludes(String(fs.readFileSync(legacyguide, 'utf8')), guideprefix))
   try { fs.unlinkSync(legacyguide) } catch (_err: any) { }
 
   return true
@@ -79,46 +93,32 @@ function migrateLegacyGuide(fs: any, folder: string, guideprefix: string): boole
 function migrateLegacyGuideInclude(
   fs: any, guidepath: string, guideprefix: string
 ): boolean {
+  return rewriteGuide(fs, guidepath, (src) => migrateGuideIncludes(src, guideprefix))
+}
+
+
+function migrateGuideIncludePrefix(
+  fs: any, guidepath: string, guideprefix: string
+): boolean {
+  return rewriteGuide(fs, guidepath, (src) => prefixGuideInclude(src, guideprefix))
+}
+
+
+function rewriteGuide(
+  fs: any, guidepath: string, rewrite: (src: string) => string
+): boolean {
   if (!fs.existsSync(guidepath)) {
     return false
   }
 
   const src = String(fs.readFileSync(guidepath, 'utf8'))
-  let migrated = src
-    .replace(/@"@voxgig\/apidef\/model\/guide\.aon"/g,
-      '@"@voxgig/apidef/model/guide.aontu"')
-
-  for (const dir of ['', './']) {
-    migrated = migrated
-      .split('@"' + dir + guideprefix + 'base-guide.aon"')
-      .join('@"' + dir + guideprefix + 'base-guide.aontu"')
-  }
+  const migrated = rewrite(src)
 
   if (migrated === src) {
     return false
   }
 
   fs.writeFileSync(guidepath, migrated)
-
-  return true
-}
-
-function migrateGuideIncludePrefix(
-  fs: any, guidepath: string, guideprefix: string
-): boolean {
-  if (!fs.existsSync(guidepath)) {
-    return false
-  }
-
-  const bare = '@"' + guideprefix + 'base-guide.aontu"'
-  const src = String(fs.readFileSync(guidepath, 'utf8'))
-
-  if (!src.includes(bare)) {
-    return false
-  }
-
-  fs.writeFileSync(guidepath,
-    src.split(bare).join('@"./' + guideprefix + 'base-guide.aontu"'))
 
   return true
 }
@@ -594,6 +594,9 @@ function validateBaseBuide(ctx: ApiDefContext, baseguide: any) {
 
 
 export {
+  migrateGuideIncludes,
+  prefixGuideInclude,
+  findConflict,
   migrateLegacyGuide,
   migrateGuideIncludePrefix,
   buildGuide

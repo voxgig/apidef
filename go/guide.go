@@ -3,6 +3,7 @@
 package apidef
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -10,6 +11,11 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"unicode/utf16"
+
+	aontu "github.com/aontu-lang/aontu/go"
+
+	"github.com/voxgig/apidef/go/model"
 )
 
 // Schema components that occur less than this rate (over total method count) qualify
@@ -71,108 +77,231 @@ func BuildGuide(ctx *ApiDefContext) (map[string]any, error) {
 			RelativizePath(baseGuideFile), err)
 	}
 
-	if err := checkGuideOverlay(ctx, guideDir, prefix); err != nil {
+	guidePath := filepath.Join(guideDir, prefix+"guide.aontu")
+
+	if _, err := migrateLegacyGuide(folder, prefix); err != nil {
+		return nil, err
+	}
+	if _, err := migrateLegacyGuideInclude(guidePath, prefix); err != nil {
+		return nil, err
+	}
+	if _, err := migrateGuideIncludePrefix(guidePath, prefix); err != nil {
 		return nil, err
 	}
 
-	idOverrides := readGuideIdOverrides(guideDir, prefix)
-
-	// Parse guide back into model
-	var guideModel map[string]any
-	if err := json.Unmarshal([]byte(guideToJSON(baseguide)), &guideModel); err != nil {
-		return nil, fmt.Errorf("failed to parse guide model: %w", err)
-	}
-
-	applyGuideIdOverrides(guideModel, idOverrides)
-
-	return map[string]any{"guide": guideModel}, nil
-}
-
-// guideOverlayPath prefers `.aontu` and falls back to the pre-rename `.aon`.
-// ONE function: its callers disagreed before, so an unmigrated project lost
-// its id overrides to a build that had just inspected the same file.
-func guideOverlayPath(guideDir string, prefix string) string {
-	current := filepath.Join(guideDir, prefix+"guide.aontu")
-	if _, err := os.Stat(current); err == nil {
-		return current
-	}
-
-	legacy := filepath.Join(guideDir, prefix+"guide.aon")
-	if _, err := os.Stat(legacy); err == nil {
-		return legacy
-	}
-
-	return current
-}
-
-// checkGuideOverlay fails when <prefix>guide.aontu carries customizations
-// this port cannot honour. A bare overlay (only comments and the two
-// @-includes) is the common case and is fine — it contributes nothing beyond
-// the base guide, so Go's output matches TS's.
-func checkGuideOverlay(ctx *ApiDefContext, guideDir string, prefix string) error {
-	// BOTH extensions. `.aontu` is the only name; `.aon` is what a project
-	// created before the rename still carries. Reading only `.aontu` would
-	// treat a legacy overlay as ABSENT — and an absent overlay is reported as
-	// fine — so unsupported customizations would be silently accepted instead
-	// of refused, which is the opposite of this check.
-	overlayFile := guideOverlayPath(guideDir, prefix)
-	src, err := os.ReadFile(overlayFile)
+	src, err := os.ReadFile(guidePath)
 	if err != nil {
-		// Absent overlay is not an error here: the TS side surfaces that
-		// through aontu when it tries to resolve the entry file.
-		return nil
+		return nil, fmt.Errorf("failed to read guide: %w", err)
 	}
 
-	custom := guideOverlayCustomizations(string(src))
-	if len(custom) == 0 {
-		return nil
+	// Only the entry file: the base guide was just overwritten, where the TS
+	// port merges it and so can leave markers there too.
+	if conflict := findConflict(string(src)); conflict != nil {
+		return nil, fmt.Errorf(
+			"@voxgig/apidef: guide: unresolved merge conflict at %s:%d\n"+
+				"  %s\n"+
+				"A guide is merged, not overwritten, so an edit the regenerated base\n"+
+				"guide contradicts is left for a human to settle. Resolve the marked\n"+
+				"block in %s.",
+			RelativizePath(guidePath), conflict.Line, conflict.Text,
+			RelativizePath(guidePath))
 	}
 
-	return fmt.Errorf(
-		"guide customizations are not supported by the Go port: %s declares %d "+
-			"customization line(s) (first: %q). The TypeScript implementation "+
-			"unifies this overlay via aontu; Go has no aontu, so honouring it is "+
-			"not possible and ignoring it would silently produce a different "+
-			"model. Remove the customizations, or generate this model with the "+
-			"TypeScript implementation",
-		RelativizePath(overlayFile), len(custom), custom[0])
+	return evaluateGuide(guideDir, guidePath, string(src))
 }
 
-var guideIdLineRE = regexp.MustCompile(
-	`^\s*entity:\s*[A-Za-z0-9_]+:\s*id:\s*(parts|sep|composite):`)
+// A `.aon` entry file is unresolvable: aontu reads only `.aontu` as source.
+// So this renames AND rewrites both includes — a repair, not a convenience.
+func migrateLegacyGuide(folder string, prefix string) (bool, error) {
+	guidePath := filepath.Join(folder, "guide", prefix+"guide.aontu")
+	legacyGuide := filepath.Join(folder, "guide", prefix+"guide.aon")
 
-func guideOverlayCustomizations(src string) []string {
-	var out []string
-	for _, line := range strings.Split(src, "\n") {
-		t := strings.TrimSpace(line)
-		if t == "" || strings.HasPrefix(t, "#") || strings.HasPrefix(t, "@") {
-			continue
-		}
-		if guideIdLineRE.MatchString(t) {
-			continue
-		}
-		out = append(out, t)
+	if pathExists(guidePath) || !pathExists(legacyGuide) {
+		return false, nil
 	}
 
-	// Collapse whitespace across the remaining lines; anything that reduces to
-	// nothing, or to an empty `guide` object, contributes no customization.
-	joined := strings.Join(out, "")
-	joined = strings.Map(func(r rune) rune {
-		if r == ' ' || r == '\t' || r == '\r' {
-			return -1
-		}
-		return r
-	}, joined)
-	if joined == "" || joined == "guide:{}" {
-		return nil
+	src, err := os.ReadFile(legacyGuide)
+	if err != nil {
+		return false, err
 	}
+	if err := os.WriteFile(guidePath,
+		[]byte(migrateGuideIncludes(string(src), prefix)), 0644); err != nil {
+		return false, err
+	}
+	os.Remove(legacyGuide)
 
-	return out
+	return true, nil
 }
 
-func guideToJSON(guide map[string]any) string {
-	b, _ := json.Marshal(guide)
-	return string(b)
+// A `.aontu` entry file may still include a `.aon` sibling, so the rename
+// above never fires for it while its include still names an absent file.
+func migrateLegacyGuideInclude(guidePath string, prefix string) (bool, error) {
+	return rewriteGuide(guidePath, func(src string) string {
+		return migrateGuideIncludes(src, prefix)
+	})
+}
+
+func migrateGuideIncludePrefix(guidePath string, prefix string) (bool, error) {
+	return rewriteGuide(guidePath, func(src string) string {
+		return prefixGuideInclude(src, prefix)
+	})
+}
+
+func rewriteGuide(guidePath string, rewrite func(string) string) (bool, error) {
+	if !pathExists(guidePath) {
+		return false, nil
+	}
+
+	src, err := os.ReadFile(guidePath)
+	if err != nil {
+		return false, err
+	}
+
+	migrated := rewrite(string(src))
+	if migrated == string(src) {
+		return false, nil
+	}
+
+	return true, os.WriteFile(guidePath, []byte(migrated), 0644)
+}
+
+func pathExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
+func migrateGuideIncludes(src string, prefix string) string {
+	migrated := strings.ReplaceAll(src,
+		`@"@voxgig/apidef/model/guide.aon"`, `@"@voxgig/apidef/model/guide.aontu"`)
+
+	// The sibling include is written bare or with `./`; both name this file.
+	for _, dir := range []string{"", "./"} {
+		migrated = strings.ReplaceAll(migrated,
+			`@"`+dir+prefix+`base-guide.aon"`, `@"`+dir+prefix+`base-guide.aontu"`)
+	}
+
+	return migrated
+}
+
+// aontu refuses a bare sibling include, so it gains the `./` it needs.
+func prefixGuideInclude(src string, prefix string) string {
+	return strings.ReplaceAll(src,
+		`@"`+prefix+`base-guide.aontu"`, `@"./`+prefix+`base-guide.aontu"`)
+}
+
+type guideConflict struct {
+	Line int    `json:"line"`
+	Text string `json:"text"`
+}
+
+func findConflict(src string) *guideConflict {
+	for i, line := range strings.Split(src, "\n") {
+		if isConflictMarker(line) {
+			return &guideConflict{Line: i + 1, Text: firstUTF16Units(line, 80)}
+		}
+	}
+	return nil
+}
+
+// The TS port matches /^(<{7}|>{7})(?!<|>)/ and /^={7}(?!=)\s*$/; RE2 has no
+// lookahead.
+func isConflictMarker(line string) bool {
+	for _, mark := range []string{"<", ">"} {
+		if strings.HasPrefix(line, strings.Repeat(mark, 7)) {
+			rest := line[7:]
+			return !strings.HasPrefix(rest, "<") && !strings.HasPrefix(rest, ">")
+		}
+	}
+	if strings.HasPrefix(line, "=======") {
+		return "" == strings.Trim(line[7:], jsWhitespace)
+	}
+	return false
+}
+
+func firstUTF16Units(s string, n int) string {
+	units := utf16.Encode([]rune(s))
+	if len(units) <= n {
+		return s
+	}
+	return string(utf16.Decode(units[:n]))
+}
+
+// aontu Go has no package include resolver, so the schema the TS port finds
+// in its own npm package is served from the copy embedded in go/model.
+var modelIncludeRE = regexp.MustCompile(`@"@voxgig/apidef/model/([^"/]+)"`)
+
+func evaluateGuide(guideDir string, guidePath string, src string) (map[string]any, error) {
+	src, cleanup, err := embedModelIncludes(src)
+	if err != nil {
+		return nil, err
+	}
+	defer cleanup()
+
+	a := aontu.NewWithBase(guideDir)
+	a.File = guidePath
+	out, err := a.Generate(src)
+	if err != nil {
+		return nil, err
+	}
+
+	guideModel, ok := out.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("guide %s does not evaluate to a map",
+			RelativizePath(guidePath))
+	}
+
+	return guideModel, nil
+}
+
+func embedModelIncludes(src string) (string, func(), error) {
+	if !modelIncludeRE.MatchString(src) {
+		return src, func() {}, nil
+	}
+
+	dir, err := os.MkdirTemp("", "apidef-model-")
+	if err != nil {
+		return "", func() {}, err
+	}
+	cleanup := func() { os.RemoveAll(dir) }
+
+	written := map[string]string{}
+	var werr error
+	out := modelIncludeRE.ReplaceAllStringFunc(src, func(include string) string {
+		name := modelIncludeRE.FindStringSubmatch(include)[1]
+		path, ok := written[name]
+		if !ok {
+			data, rerr := model.Read(name)
+			if rerr != nil {
+				return include
+			}
+			path = filepath.Join(dir, name)
+			if err := os.WriteFile(path, data, 0644); err != nil && werr == nil {
+				werr = err
+			}
+			written[name] = path
+		}
+		return "@" + jsonStringHTMLSafe(filepath.ToSlash(path))
+	})
+
+	if werr != nil {
+		cleanup()
+		return "", func() {}, werr
+	}
+
+	return out, cleanup, nil
+}
+
+// guideJSON quotes as the TS writer's JSON.stringify does: aontu parses the
+// result, so a Go-only escape such as `\x7f` would not survive.
+func guideJSON(v any) string {
+	if s, ok := v.(string); ok {
+		return jsonStringHTMLSafe(s)
+	}
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+	enc.Encode(v)
+	return strings.TrimSuffix(buf.String(), "\n")
 }
 
 func buildGuideSource(ctx *ApiDefContext, baseguide map[string]any) string {
@@ -207,13 +336,13 @@ func buildGuideSource(ctx *ApiDefContext, baseguide map[string]any) string {
 			if path == nil {
 				continue
 			}
-			blocks = append(blocks, fmt.Sprintf("    path: %q: {", pathstr))
+			blocks = append(blocks, "    path: "+guideJSON(pathstr)+": {")
 
 			// Actions
 			if action, ok := path["action"].(map[string]any); ok && len(action) > 0 {
 				actionNames := sortedKeys(action)
 				for _, actname := range actionNames {
-					blocks = append(blocks, fmt.Sprintf("      action: %q: {}", actname))
+					blocks = append(blocks, "      action: "+guideJSON(actname)+": {}")
 				}
 			}
 
@@ -230,7 +359,7 @@ func buildGuideSource(ctx *ApiDefContext, baseguide map[string]any) string {
 						case map[string]any:
 							target, _ = v["target"].(string)
 						}
-						blocks = append(blocks, fmt.Sprintf("      rename: param: %q: *%q", psrc, target))
+						blocks = append(blocks, "      rename: param: "+guideJSON(psrc)+": *"+guideJSON(target))
 					}
 				}
 			}
@@ -248,8 +377,7 @@ func buildGuideSource(ctx *ApiDefContext, baseguide map[string]any) string {
 
 					if transform, ok := opdef["transform"].(map[string]any); ok {
 						if res := transform["res"]; res != nil {
-							qt, _ := json.Marshal(res)
-							blocks = append(blocks, fmt.Sprintf("      op: %s: transform: res: *(%s)|top", opname, string(qt)))
+							blocks = append(blocks, fmt.Sprintf("      op: %s: transform: res: *(%s)|top", opname, guideJSON(res)))
 						}
 						if reqmap, ok := transform["req"].(map[string]any); ok {
 							for _, bodykey := range sortedKeys(reqmap) {
@@ -257,11 +385,9 @@ func buildGuideSource(ctx *ApiDefContext, baseguide map[string]any) string {
 								if !ok {
 									continue
 								}
-								qk, _ := json.Marshal(bodykey)
-								qv, _ := json.Marshal(source)
 								blocks = append(blocks, fmt.Sprintf(
 									"      op: %s: transform: req: %s: *(%s)|top",
-									opname, string(qk), string(qv)))
+									opname, guideJSON(bodykey), guideJSON(source)))
 							}
 						}
 					}
@@ -2369,73 +2495,4 @@ func nilOrStr(v any) string {
 		return ""
 	}
 	return s
-}
-
-func readGuideIdOverrides(guideDir string, prefix string) map[string]map[string]any {
-	out := map[string]map[string]any{}
-
-	raw, err := os.ReadFile(guideOverlayPath(guideDir, prefix))
-	if err != nil {
-		return out
-	}
-
-	// entity: <name>: id: <key>: <value>
-	// Same shape the refusal check exempts, with the value captured.
-	re := regexp.MustCompile(
-		`(?m)^\s*entity:\s*([A-Za-z0-9_]+):\s*id:\s*(parts|sep|composite):\s*(.+?)\s*$`)
-
-	for _, m := range re.FindAllStringSubmatch(string(raw), -1) {
-		entname, key, value := m[1], m[2], strings.TrimSpace(m[3])
-
-		if out[entname] == nil {
-			out[entname] = map[string]any{}
-		}
-
-		switch key {
-		case "composite":
-			out[entname]["composite"] = "true" == value
-		case "sep":
-			out[entname]["sep"] = strings.Trim(value, `'"`)
-		case "parts":
-			parts := []any{}
-			for _, p := range strings.Split(strings.Trim(value, "[]"), ",") {
-				if p = strings.Trim(strings.TrimSpace(p), `'"`); "" != p {
-					parts = append(parts, p)
-				}
-			}
-			if 0 < len(parts) {
-				out[entname]["parts"] = parts
-			}
-		}
-	}
-
-	return out
-}
-
-// applyGuideIdOverrides merges the scanned id blocks into the guide model the
-// transforms read, so FieldTransform sees what the TS port sees.
-func applyGuideIdOverrides(guideModel map[string]any, overrides map[string]map[string]any) {
-	if 0 == len(overrides) {
-		return
-	}
-
-	entities, _ := guideModel["entity"].(map[string]any)
-	if entities == nil {
-		return
-	}
-
-	for entname, id := range overrides {
-		gent, _ := entities[entname].(map[string]any)
-		if gent == nil {
-			continue
-		}
-		existing, _ := gent["id"].(map[string]any)
-		if existing == nil {
-			existing = map[string]any{}
-			gent["id"] = existing
-		}
-		for k, v := range id {
-			existing[k] = v
-		}
-	}
 }
