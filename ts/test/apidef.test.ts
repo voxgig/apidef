@@ -569,6 +569,20 @@ def: '${outprefix}def.yaml'
         ['lunar-crater.aontu', 'solar-entity-index.aontu', 'solar-planet.aontu'])
     })
 
+    test('collects legacy .aon files, including one named for a kept entity', () => {
+      const dir = tmpModel({
+        'solar-planet.aontu': GEN('planet'),
+        'solar-planet.aon': GEN('planet'),
+        'solar-old.aon': GEN('old'),
+        'solar-notes.aon': '# my notes\n',
+        'solar-entity-index.aontu': '# Entity Models\n',
+      })
+      const removed = gcEntityFiles(Fs, null, dir, 'solar-', ['planet'])
+      assert.deepStrictEqual(removed.sort(), ['solar-old.aon', 'solar-planet.aon'])
+      assert.deepStrictEqual(listing(dir),
+        ['solar-entity-index.aontu', 'solar-notes.aon', 'solar-planet.aontu'])
+    })
+
     test('keeps the index and the whole current set; missing folder is a no-op', () => {
       const dir = tmpModel({
         'a.aontu': GEN('a'), 'b.aontu': GEN('b'),

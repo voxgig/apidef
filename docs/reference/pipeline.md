@@ -80,8 +80,10 @@ changed on disk.
 
 `jostraca` also keeps its own record under `<folder>/.jostraca/`: a meta log of
 the run and a baseline copy of each generated file. The Go port runs this stage
-through the Go module of `jostraca` with the same options, so both ports write
-the same files, and its result carries `Reload` and `Jres`.
+through the Go module of `jostraca` with the same options, and its result
+carries `Reload` and `Jres`. Both ports lay out the same files and keep the
+same `.jostraca/` record. What each file contains comes from the stages before
+this one, so this stage alone does not make the two ports' files identical.
 
 ## Stopping early
 

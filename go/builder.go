@@ -44,6 +44,8 @@ func resolveEntity(ctx *ApiDefContext) Builder {
 		if entity == nil {
 			continue
 		}
+		// jostraca's each() stamps the key on each entity in the TypeScript builder.
+		entity["key$"] = entityName
 
 		entityFile := prefix + entityName + ".aontu"
 		cleanEntity := stripEntityDefaults(entity)

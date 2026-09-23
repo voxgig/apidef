@@ -59,29 +59,50 @@ const FILES = [
     'flow/' + PREFIX + 'flow-index.aontu',
 ];
 const staged = [];
-function stage() {
+// Laid out as a consumer project, with the package installed beside the
+// model, so the package include resolves from any working directory.
+function stage(guide = 'guide: {}') {
     const dir = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'apidef-generate-'));
     staged.push(dir);
     const folder = Path.join(dir, 'model');
     Fs.mkdirSync(Path.join(folder, 'guide'), { recursive: true });
     Fs.mkdirSync(Path.join(dir, 'def'));
     Fs.copyFileSync(Path.join(__dirname, '..', 'test', 'def', DEF), Path.join(dir, 'def', DEF));
+    const installed = Path.join(dir, 'node_modules', '@voxgig', 'apidef', 'model');
+    Fs.mkdirSync(installed, { recursive: true });
+    Fs.copyFileSync(Path.join(__dirname, '..', 'model', 'guide.aontu'), Path.join(installed, 'guide.aontu'));
     Fs.writeFileSync(Path.join(folder, 'guide', PREFIX + 'guide.aontu'), [
         '@"@voxgig/apidef/model/guide.aontu"',
         '@"./' + PREFIX + 'base-guide.aontu"',
         '',
-        'guide: {}',
+        guide,
         '',
     ].join('\n'));
     return folder;
 }
-async function generate(folder) {
+async function generate(folder, def = DEF) {
     const apidef = (0, apidef_1.ApiDef)({ folder, outprefix: PREFIX, pino: (0, pino_1.default)({ level: 'silent' }) });
     return apidef.generate({
-        model: { name: 'solar', def: DEF },
+        model: { name: 'solar', def },
         build: { spec: { base: folder } },
         now: () => NOW,
     });
+}
+// apidef-warnings.txt is written to the working directory, so each run that
+// reads it works from the project's own.
+async function inProject(folder, run) {
+    const cwd = process.cwd();
+    process.chdir(Path.dirname(folder));
+    try {
+        return await run();
+    }
+    finally {
+        process.chdir(cwd);
+    }
+}
+function warnings(folder) {
+    const file = Path.join(Path.dirname(folder), 'apidef-warnings.txt');
+    return Fs.existsSync(file) ? Fs.readFileSync(file, 'utf8') : undefined;
 }
 function rel(folder, files) {
     return files.map((file) => Path.relative(folder, file).split(Path.sep).join('/')).sort();
@@ -100,7 +121,7 @@ function meta(folder) {
     });
     (0, node_test_1.test)('first-run-writes-model-and-bookkeeping', async () => {
         const folder = stage();
-        const res = await generate(folder);
+        const res = await inProject(folder, () => generate(folder));
         node_assert_1.default.strictEqual(res.ok, true, String(res.err?.message));
         node_assert_1.default.strictEqual(res.reload, true);
         node_assert_1.default.deepStrictEqual(rel(folder, res.jres.files.written), [...FILES].sort());
@@ -115,6 +136,13 @@ function meta(folder) {
         }
         node_assert_1.default.strictEqual(read(folder, '.jostraca/.gitignore'), '\njostraca.meta.log\ngenerated\n');
         node_assert_1.default.ok(read(folder, FILES[2]).includes('@"./' + PREFIX + 'moon.aontu"'));
+        node_assert_1.default.strictEqual(read(folder, FILES[6]), [
+            '# Flows\n',
+            '@"./' + PREFIX + 'BasicMoonFlow.aontu"',
+            '@"./' + PREFIX + 'BasicPlanetFlow.aontu"',
+        ].join('\n'));
+        node_assert_1.default.strictEqual(res.apimodel.main.kit.entity.moon.key$, 'moon');
+        node_assert_1.default.strictEqual(warnings(folder), undefined);
     });
     (0, node_test_1.test)('rerun-over-own-output-changes-nothing', async () => {
         const folder = stage();
@@ -146,6 +174,31 @@ function meta(folder) {
         node_assert_1.default.deepStrictEqual(rel(folder, res.jres.files.written), [moon]);
         node_assert_1.default.strictEqual(read(folder, moon), generated);
         node_assert_1.default.strictEqual(Fs.existsSync(Path.join(folder, orphan)), false);
+    });
+    (0, node_test_1.test)('warnings-file-is-written-on-success', async () => {
+        const folder = stage('guide: entity: planet: path: "/api/planet": op: frob: method: "POST"');
+        const res = await inProject(folder, () => generate(folder));
+        node_assert_1.default.strictEqual(res.ok, true, String(res.err?.message));
+        const text = warnings(folder);
+        node_assert_1.default.ok(text?.includes('on entity=planet path=/api/planet is dropped'), text);
+        node_assert_1.default.ok(!text?.includes('!! BUILD FAILED !!'), text);
+    });
+    (0, node_test_1.test)('write-failure-fails-build-and-writes-warnings', async () => {
+        const folder = stage();
+        Fs.writeFileSync(Path.join(folder, 'entity'), 'a file where the entity folder goes\n');
+        const res = await inProject(folder, () => generate(folder));
+        node_assert_1.default.strictEqual(res.ok, false);
+        node_assert_1.default.ok(res.err);
+        node_assert_1.default.deepStrictEqual(res.steps, ['parse', 'guide', 'transformers', 'builders']);
+        node_assert_1.default.ok(warnings(folder)?.includes('!! BUILD FAILED !!'), warnings(folder));
+    });
+    (0, node_test_1.test)('pre-generate-failure-writes-warnings', async () => {
+        const folder = stage();
+        const res = await inProject(folder, () => generate(folder, 'missing-def.yaml'));
+        node_assert_1.default.strictEqual(res.ok, false);
+        node_assert_1.default.ok(res.err);
+        node_assert_1.default.deepStrictEqual(res.steps, []);
+        node_assert_1.default.ok(warnings(folder)?.includes('!! BUILD FAILED !!'), warnings(folder));
     });
 });
 //# sourceMappingURL=generate.test.js.map

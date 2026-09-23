@@ -33,31 +33,57 @@ const FILES = [
 const staged: string[] = []
 
 
-function stage(): string {
+// Laid out as a consumer project, with the package installed beside the
+// model, so the package include resolves from any working directory.
+function stage(guide: string = 'guide: {}'): string {
   const dir = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'apidef-generate-'))
   staged.push(dir)
   const folder = Path.join(dir, 'model')
   Fs.mkdirSync(Path.join(folder, 'guide'), { recursive: true })
   Fs.mkdirSync(Path.join(dir, 'def'))
   Fs.copyFileSync(Path.join(__dirname, '..', 'test', 'def', DEF), Path.join(dir, 'def', DEF))
+  const installed = Path.join(dir, 'node_modules', '@voxgig', 'apidef', 'model')
+  Fs.mkdirSync(installed, { recursive: true })
+  Fs.copyFileSync(Path.join(__dirname, '..', 'model', 'guide.aontu'),
+    Path.join(installed, 'guide.aontu'))
   Fs.writeFileSync(Path.join(folder, 'guide', PREFIX + 'guide.aontu'), [
     '@"@voxgig/apidef/model/guide.aontu"',
     '@"./' + PREFIX + 'base-guide.aontu"',
     '',
-    'guide: {}',
+    guide,
     '',
   ].join('\n'))
   return folder
 }
 
 
-async function generate(folder: string): Promise<any> {
+async function generate(folder: string, def: string = DEF): Promise<any> {
   const apidef = ApiDef({ folder, outprefix: PREFIX, pino: Pino({ level: 'silent' }) })
   return apidef.generate({
-    model: { name: 'solar', def: DEF },
+    model: { name: 'solar', def },
     build: { spec: { base: folder } },
     now: () => NOW,
   })
+}
+
+
+// apidef-warnings.txt is written to the working directory, so each run that
+// reads it works from the project's own.
+async function inProject(folder: string, run: () => Promise<any>): Promise<any> {
+  const cwd = process.cwd()
+  process.chdir(Path.dirname(folder))
+  try {
+    return await run()
+  }
+  finally {
+    process.chdir(cwd)
+  }
+}
+
+
+function warnings(folder: string): string | undefined {
+  const file = Path.join(Path.dirname(folder), 'apidef-warnings.txt')
+  return Fs.existsSync(file) ? Fs.readFileSync(file, 'utf8') : undefined
 }
 
 
@@ -87,7 +113,7 @@ describe('generate', () => {
 
   test('first-run-writes-model-and-bookkeeping', async () => {
     const folder = stage()
-    const res = await generate(folder)
+    const res = await inProject(folder, () => generate(folder))
 
     assert.strictEqual(res.ok, true, String(res.err?.message))
     assert.strictEqual(res.reload, true)
@@ -107,6 +133,14 @@ describe('generate', () => {
 
     assert.strictEqual(read(folder, '.jostraca/.gitignore'), '\njostraca.meta.log\ngenerated\n')
     assert.ok(read(folder, FILES[2]).includes('@"./' + PREFIX + 'moon.aontu"'))
+    assert.strictEqual(read(folder, FILES[6]), [
+      '# Flows\n',
+      '@"./' + PREFIX + 'BasicMoonFlow.aontu"',
+      '@"./' + PREFIX + 'BasicPlanetFlow.aontu"',
+    ].join('\n'))
+
+    assert.strictEqual(res.apimodel.main.kit.entity.moon.key$, 'moon')
+    assert.strictEqual(warnings(folder), undefined)
   })
 
 
@@ -148,6 +182,41 @@ describe('generate', () => {
     assert.deepStrictEqual(rel(folder, res.jres.files.written), [moon])
     assert.strictEqual(read(folder, moon), generated)
     assert.strictEqual(Fs.existsSync(Path.join(folder, orphan)), false)
+  })
+
+
+  test('warnings-file-is-written-on-success', async () => {
+    const folder = stage('guide: entity: planet: path: "/api/planet": op: frob: method: "POST"')
+    const res = await inProject(folder, () => generate(folder))
+
+    assert.strictEqual(res.ok, true, String(res.err?.message))
+    const text = warnings(folder)
+    assert.ok(text?.includes('on entity=planet path=/api/planet is dropped'), text)
+    assert.ok(!text?.includes('!! BUILD FAILED !!'), text)
+  })
+
+
+  test('write-failure-fails-build-and-writes-warnings', async () => {
+    const folder = stage()
+    Fs.writeFileSync(Path.join(folder, 'entity'), 'a file where the entity folder goes\n')
+
+    const res = await inProject(folder, () => generate(folder))
+
+    assert.strictEqual(res.ok, false)
+    assert.ok(res.err)
+    assert.deepStrictEqual(res.steps, ['parse', 'guide', 'transformers', 'builders'])
+    assert.ok(warnings(folder)?.includes('!! BUILD FAILED !!'), warnings(folder))
+  })
+
+
+  test('pre-generate-failure-writes-warnings', async () => {
+    const folder = stage()
+    const res = await inProject(folder, () => generate(folder, 'missing-def.yaml'))
+
+    assert.strictEqual(res.ok, false)
+    assert.ok(res.err)
+    assert.deepStrictEqual(res.steps, [])
+    assert.ok(warnings(folder)?.includes('!! BUILD FAILED !!'), warnings(folder))
   })
 
 })

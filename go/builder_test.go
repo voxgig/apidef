@@ -9,6 +9,8 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	jostraca "github.com/jostraca/jostraca/go"
 )
 
 // Mirrors the entity-gc suite in ts/test/apidef.test.ts and
@@ -90,6 +92,24 @@ func TestGcEntityFilesRespectsOutprefix(t *testing.T) {
 	}
 }
 
+func TestGcEntityFilesCollectsLegacyAon(t *testing.T) {
+	dir := gcModel(t, map[string]string{
+		"solar-planet.aontu":       gcGenerated("planet"),
+		"solar-planet.aon":         gcGenerated("planet"),
+		"solar-old.aon":            gcGenerated("old"),
+		"solar-notes.aon":          "# my notes\n",
+		"solar-entity-index.aontu": "# Entity Models\n",
+	})
+	removed := GcEntityFiles(nil, dir, "solar-", []string{"planet"})
+	if got := sortedCopy(removed); !reflect.DeepEqual(got, []string{"solar-old.aon", "solar-planet.aon"}) {
+		t.Errorf("removed: %v", got)
+	}
+	want := []string{"solar-entity-index.aontu", "solar-notes.aon", "solar-planet.aontu"}
+	if got := gcListing(t, dir); !reflect.DeepEqual(got, want) {
+		t.Errorf("listing: %v", got)
+	}
+}
+
 func TestGcEntityFilesKeepsCurrentSetAndToleratesNoFolder(t *testing.T) {
 	dir := gcModel(t, map[string]string{
 		"a.aontu":            gcGenerated("a"),
@@ -136,5 +156,71 @@ func TestFlowFileBasesHandlesGroupsOfThree(t *testing.T) {
 	}
 	if len(lower) != 3 {
 		t.Errorf("bases collide: %v", got)
+	}
+}
+
+func TestFlowBuilderWritesCaseCollisionsToTheirOwnFiles(t *testing.T) {
+	folder := t.TempDir()
+	ctx := &ApiDefContext{
+		Opts: ApiDefOptions{Folder: folder, OutPrefix: "x-"},
+		ApiModel: map[string]any{"main": map[string]any{KIT: map[string]any{"flow": map[string]any{
+			"BasicStaticIpFlow": map[string]any{"name": "BasicStaticIpFlow"},
+			"BasicStaticIPFlow": map[string]any{"name": "BasicStaticIPFlow"},
+		}}}},
+		Warn: MakeWarner("warning", nil),
+	}
+	builder, err := MakeFlowBuilder(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	write, merge := true, false
+	_, err = jostraca.New(jostraca.WithNow(func() int64 { return 1 })).Generate(jostraca.Options{
+		Folder:   folder,
+		Model:    map[string]any{},
+		Existing: jostraca.Existing{Txt: jostraca.ExistingTxt{Write: &write, Merge: &merge}},
+	}, func(j *jostraca.J) {
+		j.Project(jostraca.ProjectProps{Folder: "."}, func(j *jostraca.J) { builder(j) })
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	flowdir := filepath.Join(folder, "flow")
+	entries, err := os.ReadDir(flowdir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	names := []string{}
+	for _, entry := range entries {
+		names = append(names, entry.Name())
+	}
+	want := []string{"x-BasicStaticIPFlow__1.aontu", "x-BasicStaticIpFlow__2.aontu", "x-flow-index.aontu"}
+	if got := sortedCopy(names); !reflect.DeepEqual(got, want) {
+		t.Errorf("flow files: %v", got)
+	}
+
+	index, _ := os.ReadFile(filepath.Join(flowdir, "x-flow-index.aontu"))
+	wantIndex := "# Flows\n\n" + `@"./x-BasicStaticIPFlow__1.aontu"` + "\n" + `@"./x-BasicStaticIpFlow__2.aontu"`
+	if string(index) != wantIndex {
+		t.Errorf("flow index: %q", index)
+	}
+	second, _ := os.ReadFile(filepath.Join(flowdir, "x-BasicStaticIpFlow__2.aontu"))
+	if !strings.Contains(string(second), "main: kit: flow: BasicStaticIpFlow:") {
+		t.Errorf("second flow file: %s", second)
+	}
+
+	notes := []string{}
+	for _, w := range ctx.Warn.History() {
+		notes = append(notes, w["note"].(string))
+	}
+	wantNotes := []string{
+		"flow name BasicStaticIPFlow collides with another when case is ignored:" +
+			" file written as BasicStaticIPFlow__1.aontu",
+		"flow name BasicStaticIpFlow collides with another when case is ignored:" +
+			" file written as BasicStaticIpFlow__2.aontu",
+	}
+	if !reflect.DeepEqual(notes, wantNotes) {
+		t.Errorf("warnings: %v", notes)
 	}
 }

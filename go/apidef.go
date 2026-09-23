@@ -115,15 +115,24 @@ func (a *apiDefInstance) Generate(spec map[string]any) (*ApiDefResult, error) {
 		Work: map[string]any{},
 	}
 
+	fail := func(err error) (*ApiDefResult, error) {
+		warn.Warn(map[string]any{
+			"err":  err.Error(),
+			"note": "!! BUILD FAILED !! " + err.Error(),
+		})
+		WriteFileWarn(warn, "./apidef-warnings.txt", warningsFileText(warn.History()))
+		return makeErrorResult(start, steps, ctrl, ctx, err), err
+	}
+
 	// Load and parse definition
 	defsrc, err := LoadFile(defpath)
 	if err != nil {
-		return makeErrorResult(start, steps, ctrl, ctx, err), err
+		return fail(err)
 	}
 
 	def, err := Parse("OpenAPI", defsrc, map[string]string{"file": defpath})
 	if err != nil {
-		return makeErrorResult(start, steps, ctrl, ctx, err), err
+		return fail(err)
 	}
 
 	// Write debug file if debug mode
@@ -149,11 +158,10 @@ func (a *apiDefInstance) Generate(spec map[string]any) (*ApiDefResult, error) {
 
 	guideModel, err := BuildGuide(ctx)
 	if err != nil {
-		return makeErrorResult(start, steps, ctrl, ctx, err), err
+		return fail(err)
 	}
 	if guideModel == nil {
-		err := fmt.Errorf("unable to build guide")
-		return makeErrorResult(start, steps, ctrl, ctx, err), err
+		return fail(fmt.Errorf("unable to build guide"))
 	}
 
 	ctx.Guide, _ = guideModel["guide"].(map[string]any)
@@ -182,7 +190,7 @@ func (a *apiDefInstance) Generate(spec map[string]any) (*ApiDefResult, error) {
 
 	for _, t := range transforms {
 		if _, err := t(ctx); err != nil {
-			return makeErrorResult(start, steps, ctrl, ctx, err), err
+			return fail(err)
 		}
 	}
 	steps = append(steps, "transformers")
@@ -197,11 +205,11 @@ func (a *apiDefInstance) Generate(spec map[string]any) (*ApiDefResult, error) {
 
 	entityBuilder, err := MakeEntityBuilder(ctx)
 	if err != nil {
-		return makeErrorResult(start, steps, ctrl, ctx, err), err
+		return fail(err)
 	}
 	flowBuilder, err := MakeFlowBuilder(ctx)
 	if err != nil {
-		return makeErrorResult(start, steps, ctrl, ctx, err), err
+		return fail(err)
 	}
 	steps = append(steps, "builders")
 
@@ -235,12 +243,7 @@ func (a *apiDefInstance) Generate(spec map[string]any) (*ApiDefResult, error) {
 		})
 	})
 	if err != nil {
-		warn.Warn(map[string]any{
-			"err":  err.Error(),
-			"note": "!! BUILD FAILED !! " + err.Error(),
-		})
-		WriteFileWarn(warn, "./apidef-warnings.txt", warningsFileText(warn.History()))
-		return makeErrorResult(start, steps, ctrl, ctx, err), err
+		return fail(err)
 	}
 
 	steps = append(steps, "generate")

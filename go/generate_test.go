@@ -30,8 +30,18 @@ var generateFiles = []string{
 
 func stageGenerate(t *testing.T) string {
 	t.Helper()
+	return stageGenerateGuide(t, "guide: {}")
+}
+
+func stageGenerateGuide(t *testing.T, guide string) string {
+	t.Helper()
 	dir := t.TempDir()
-	folder := stageGuideEntry(t, filepath.Join(dir, "model"), generatePrefix)
+	folder := filepath.Join(dir, "model")
+	entry := "@\"@voxgig/apidef/model/guide.aontu\"\n" +
+		"@\"./" + generatePrefix + "base-guide.aontu\"\n\n" + guide + "\n"
+	if err := writeGuideEntry(folder, generatePrefix, entry); err != nil {
+		t.Fatal(err)
+	}
 	src, err := os.ReadFile(filepath.Join("..", "ts", "test", "def", generateDef))
 	if err != nil {
 		t.Fatal(err)
@@ -45,17 +55,39 @@ func stageGenerate(t *testing.T) string {
 	return folder
 }
 
-func runGenerate(t *testing.T, folder string) *ApiDefResult {
-	t.Helper()
-	res, err := NewApiDef(ApiDefOptions{Folder: folder, OutPrefix: generatePrefix}).Generate(map[string]any{
-		"model": map[string]any{"name": "solar", "def": generateDef},
+func generateDefAt(folder string, def string) (*ApiDefResult, error) {
+	return NewApiDef(ApiDefOptions{Folder: folder, OutPrefix: generatePrefix}).Generate(map[string]any{
+		"model": map[string]any{"name": "solar", "def": def},
 		"build": map[string]any{"spec": map[string]any{"base": folder}},
 		"now":   func() int64 { return generateNow },
 	})
+}
+
+func runGenerate(t *testing.T, folder string) *ApiDefResult {
+	t.Helper()
+	res, err := generateDefAt(folder, generateDef)
 	if err != nil || res == nil || !res.OK {
 		t.Fatalf("generate failed: err=%v res=%+v", err, res)
 	}
 	return res
+}
+
+// inProject moves to the project folder, where apidef-warnings.txt is written.
+func inProject(t *testing.T, folder string) {
+	t.Helper()
+	t.Chdir(filepath.Dir(folder))
+}
+
+func readWarnings(t *testing.T, folder string) (string, bool) {
+	t.Helper()
+	src, err := os.ReadFile(filepath.Join(filepath.Dir(folder), "apidef-warnings.txt"))
+	if os.IsNotExist(err) {
+		return "", false
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(src), true
 }
 
 func relFiles(t *testing.T, folder string, files []string) []string {
@@ -117,6 +149,7 @@ func sortedCopy(list []string) []string {
 
 func TestGenerateFirstRunWritesModelAndBookkeeping(t *testing.T) {
 	folder := stageGenerate(t)
+	inProject(t, folder)
 	res := runGenerate(t, folder)
 
 	if !res.Reload {
@@ -151,6 +184,22 @@ func TestGenerateFirstRunWritesModelAndBookkeeping(t *testing.T) {
 	}
 	if !strings.Contains(readGenerated(t, folder, generateFiles[2]), `@"./`+generatePrefix+`moon.aontu"`) {
 		t.Error("entity index does not include ./moon")
+	}
+	flowIndex := strings.Join([]string{
+		"# Flows\n",
+		`@"./` + generatePrefix + `BasicMoonFlow.aontu"`,
+		`@"./` + generatePrefix + `BasicPlanetFlow.aontu"`,
+	}, "\n")
+	if got := readGenerated(t, folder, generateFiles[6]); got != flowIndex {
+		t.Errorf("flow index: %q", got)
+	}
+
+	entity, _ := getKit(res.Ctx)["entity"].(map[string]any)
+	if moon, _ := entity["moon"].(map[string]any); moon["key$"] != "moon" {
+		t.Errorf("moon key$: %v", moon["key$"])
+	}
+	if text, ok := readWarnings(t, folder); ok {
+		t.Errorf("a clean run wrote apidef-warnings.txt: %s", text)
 	}
 }
 
@@ -218,5 +267,57 @@ func TestGenerateRerunOverwritesHandEditAndCollectsOrphan(t *testing.T) {
 	}
 	if _, err := os.Stat(orphan); !os.IsNotExist(err) {
 		t.Error("orphaned entity file was not collected")
+	}
+}
+
+func TestGenerateWarningsFileIsWrittenOnSuccess(t *testing.T) {
+	folder := stageGenerateGuide(t, `guide: entity: planet: path: "/api/planet": op: frob: method: "POST"`)
+	inProject(t, folder)
+	runGenerate(t, folder)
+
+	text, ok := readWarnings(t, folder)
+	if !ok || !strings.Contains(text, "on entity=planet path=/api/planet is dropped") {
+		t.Errorf("warnings: %q", text)
+	}
+	if strings.Contains(text, "!! BUILD FAILED !!") {
+		t.Errorf("warnings report a failure: %s", text)
+	}
+}
+
+func TestGenerateWriteFailureFailsBuildAndWritesWarnings(t *testing.T) {
+	folder := stageGenerate(t)
+	if err := os.WriteFile(filepath.Join(folder, "entity"),
+		[]byte("a file where the entity folder goes\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	inProject(t, folder)
+
+	res, err := generateDefAt(folder, generateDef)
+
+	if err == nil || res == nil || res.OK || res.Err == nil {
+		t.Fatalf("want a failed build: err=%v res=%+v", err, res)
+	}
+	if want := []string{"parse", "guide", "transformers", "builders"}; !reflect.DeepEqual(res.Steps, want) {
+		t.Errorf("steps: %v", res.Steps)
+	}
+	if text, _ := readWarnings(t, folder); !strings.Contains(text, "!! BUILD FAILED !!") {
+		t.Errorf("warnings: %q", text)
+	}
+}
+
+func TestGeneratePreGenerateFailureWritesWarnings(t *testing.T) {
+	folder := stageGenerate(t)
+	inProject(t, folder)
+
+	res, err := generateDefAt(folder, "missing-def.yaml")
+
+	if err == nil || res == nil || res.OK || res.Err == nil {
+		t.Fatalf("want a failed build: err=%v res=%+v", err, res)
+	}
+	if len(res.Steps) != 0 {
+		t.Errorf("steps: %v", res.Steps)
+	}
+	if text, _ := readWarnings(t, folder); !strings.Contains(text, "!! BUILD FAILED !!") {
+		t.Errorf("warnings: %q", text)
 	}
 }
