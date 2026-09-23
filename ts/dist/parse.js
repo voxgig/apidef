@@ -2,6 +2,7 @@
 /* Copyright (c) 2024-2025 Voxgig, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.parse = parse;
+exports.decycledChild = decycledChild;
 const jsonic_1 = require("@tabnas/jsonic");
 const yaml_1 = require("@tabnas/yaml");
 const utility_1 = require("./utility");
@@ -102,6 +103,12 @@ async function parseOpenAPI(source, _meta) {
     const def = decycle(parsed);
     return def;
 }
+// Edges decycle cut, so the guide can still count through them; a clone has none.
+const DECYCLED = new WeakMap();
+function decycledChild(holder, key) {
+    const cut = DECYCLED.get(holder)?.get(String(key));
+    return undefined === cut ? holder[key] : cut;
+}
 function decycle(root) {
     // Entry path of each node on the current ancestor chain; presence in this
     // map is what identifies a back-edge. Nodes are removed on the way out, so
@@ -128,6 +135,12 @@ function decycle(root) {
                 continue;
             const cyclePath = onPath.get(val);
             if (undefined !== cyclePath) {
+                let cuts = DECYCLED.get(node);
+                if (undefined === cuts) {
+                    cuts = new Map();
+                    DECYCLED.set(node, cuts);
+                }
+                cuts.set(String(key), val);
                 node[key] = `[Circular *${cyclePath.join('.')}]`;
                 continue;
             }

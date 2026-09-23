@@ -302,6 +302,43 @@ describe('apidef', () => {
   })
 
 
+  // One page wrapper serves both collections through a shared response. Counted
+  // per use it is frequent, so each list takes its name from its path.
+  test('guide-shared-wrapper', async () => {
+    const folder = __dirname + '/../test/shared-wrapper'
+
+    const build = await ApiDef.makeBuild({ folder })
+
+    const bres = await build(
+      { name: 'shared-wrapper', def: 'shared-wrapper-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: true,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const entities = bres.apimodel.main.kit.entity
+    const ops = Object.fromEntries(Object.keys(entities).sort()
+      .map((name) => [name, Object.keys(entities[name].op ?? {}).sort()]))
+    assert.deepStrictEqual(ops, {
+      domain: ['list', 'load'],
+      kingdom: ['list', 'load'],
+    })
+  })
+
+
   test('field-required-solar', async () => {
     const outprefix = 'solar-1.0.0-openapi-3.0.0-'
     const folder = __dirname + '/../test/solar'

@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 	"testing"
 )
@@ -790,4 +791,63 @@ func TestTsvHumanTitle(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestTsvRefCount(t *testing.T) {
+	rows := loadTsv(t, "ref-count")
+	if len(rows) == 0 {
+		t.Fatal("no ref-count rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			def, err := Parse("OpenAPI", row["spec"], map[string]string{"file": row["name"]})
+			if err != nil {
+				t.Fatal(err)
+			}
+			var want map[string]int64
+			if err := json.Unmarshal([]byte(row["expected"]), &want); err != nil {
+				t.Fatal(err)
+			}
+			if got := CountRefs(def); !jsonEqual(got, want) {
+				t.Errorf("got %v\nwant %v", got, want)
+			}
+		})
+	}
+}
+
+// Mirrors the TS `find walks a graph, not a tree` cases.
+func TestFindWalksAGraph(t *testing.T) {
+	vals := func(hits []map[string]any) []string {
+		var out []string
+		for _, h := range hits {
+			out = append(out, h["val"].(string))
+		}
+		sort.Strings(out)
+		return out
+	}
+
+	t.Run("a self-referential object terminates", func(t *testing.T) {
+		a := map[string]any{"name": "a"}
+		a["self"] = a
+		if got := vals(Find(a, "name")); !reflect.DeepEqual(got, []string{"a"}) {
+			t.Errorf("got %v, want [a]", got)
+		}
+	})
+
+	t.Run("a cycle through a list terminates, and every match is found once", func(t *testing.T) {
+		parent := map[string]any{"name": "parent"}
+		child := map[string]any{"name": "child", "parent": parent}
+		parent["kids"] = []any{child}
+		if got := vals(Find(parent, "name")); !reflect.DeepEqual(got, []string{"child", "parent"}) {
+			t.Errorf("got %v, want [child parent]", got)
+		}
+	})
+
+	t.Run("two references to one object are not two results", func(t *testing.T) {
+		shared := map[string]any{"name": "shared"}
+		root := map[string]any{"a": shared, "b": shared, "c": map[string]any{"d": shared}}
+		if got := len(Find(root, "name")); got != 1 {
+			t.Errorf("got %d results, want 1", got)
+		}
+	})
 }

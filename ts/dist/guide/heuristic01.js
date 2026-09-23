@@ -8,11 +8,12 @@ const utility_1 = require("../utility");
 const utility_2 = require("../utility");
 const jostraca_2 = require("jostraca");
 const entity_1 = require("../transform/entity");
+const refcount_1 = require("../refcount");
 const KONSOLE_LOG = console['log'];
 // Log non - fatal wierdness.
 const dlog = (0, utility_2.getdlog)('apidef', __filename);
-// Schema components that occur less than this rate(over total method count) qualify
-// as unique entities, not shared schemas
+// A schema whose per-use occurrences, over the method count or over the path
+// count, fall below these rates names an entity rather than a shared shape.
 const IS_ENTCMP_METHOD_RATE = 0.21;
 const IS_ENTCMP_PATH_RATE = 0.41;
 const METHOD_IDOP = {
@@ -175,21 +176,25 @@ function PreparePath(spec) {
     work.pathmap[pathstr] = pathdesc;
 }
 function selectCmpXrefs(_source, spec) {
-    const out = (0, utility_2.find)(spec.ctx.def, 'x-ref')
-        .filter(xref => xref.val.match(/\/(components\/schemas|definitions)\//));
-    return out;
+    const counts = (0, refcount_1.countRefs)(spec.ctx.def);
+    return Object.keys(counts)
+        .sort(refcount_1.byCodePoint)
+        .filter(val => val.match(/\/(components\/schemas|definitions)\//))
+        .map(val => ({ val, count: counts[val] }));
 }
 function MeasureRef(spec) {
     const guide = spec.data.guide;
     const metrics = guide.metrics;
-    let m = spec.node.val.val.match(/\/(components\/schemas|definitions)\/(.+)$/);
+    const xref = spec.node.val;
+    let m = xref.val.match(/\/(components\/schemas|definitions)\/(.+)$/);
     if (m) {
         const name = (0, utility_2.canonizeCmpName)(m[2]);
         if (null == metrics.count.origcmprefs[name]) {
             metrics.count.cmp++;
             metrics.count.origcmprefs[name] = 0;
         }
-        metrics.count.origcmprefs[name]++;
+        metrics.count.origcmprefs[name] =
+            (0, refcount_1.satAdd)(metrics.count.origcmprefs[name], xref.count);
         if (null == metrics.found.cmp[name]) {
             metrics.found.cmp[name] = { orig: m[2] };
         }

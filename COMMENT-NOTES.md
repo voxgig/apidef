@@ -10,4 +10,8 @@ Reference resolution in the TypeScript parser replaces each `$ref` site with a c
 
 Sources: [parse](ts/src/parse.ts), [Go parse](go/parse.go).
 
+The guide's schema rates count component references per use, not per object: a reference reached through a shared response counts once for every route to it, as if every reference were inlined, which is the measure the rate thresholds were calibrated on. The count is a path count over a graph whose nodes are reference labels together with the keys an occurrence overrides, so shared structure is scanned once per node rather than once per use. A reference cycle is cut at the back-edges of a depth-first search that visits successors in code point order, the order Go's byte sort gives, so both ports cut the same edge. The TypeScript parser replaces each cycle's closing edge with a marker string and records the edge in a table the count reads, so the count sees the graph as resolved; the Go parser leaves cycles in place. Counts saturate at one billion, far above any threshold, so a spec whose uses multiply stays finite.
+
+Sources: [count](ts/src/refcount.ts), [Go count](go/refcount.go), [guide](ts/src/guide/heuristic01.ts).
+
 The guide can override inferred composite identity with explicit `id.parts`, or disable inference with `id.composite: false`. An empty parts list is not a reliable opt-out because model resolution can omit it. Edit canonical schemas under `model/` and synchronize the packaging mirrors.

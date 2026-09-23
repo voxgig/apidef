@@ -1,0 +1,13 @@
+{"openapi":"3.0.0","info":{"title":"t","version":"1"},"servers":[{"url":"https://api.example.com"}],
+"paths":{
+ "/domain":{"get":{"operationId":"listDomains","responses":{"200":{"$ref":"#/components/responses/TaxaPage"}}}},
+ "/domain/{id}":{"get":{"operationId":"getDomain","parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"$ref":"#/components/responses/OneTaxon"}}}},
+ "/domain/{id}/kingdom":{"get":{"operationId":"listKingdoms","parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"$ref":"#/components/responses/TaxaPage"}}}},
+ "/domain/{domain_id}/kingdom/{id}":{"get":{"operationId":"getKingdom","parameters":[{"name":"domain_id","in":"path","required":true,"schema":{"type":"string"}},{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"$ref":"#/components/responses/OneTaxon"}}}}},
+"components":{
+ "responses":{
+  "TaxaPage":{"description":"page","content":{"application/json":{"schema":{"$ref":"#/components/schemas/PaginatedTaxa"}}}},
+  "OneTaxon":{"description":"one","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Taxon"}}}}},
+ "schemas":{
+  "Taxon":{"type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"}}},
+  "PaginatedTaxa":{"type":"object","properties":{"items":{"type":"array","items":{"$ref":"#/components/schemas/Taxon"}},"page":{"type":"integer"},"total":{"type":"integer"}}}}}}

@@ -48,6 +48,7 @@ const jostraca_1 = require("jostraca");
 const graphql01_1 = require("../dist/guide/graphql01");
 const guide_1 = require("../dist/guide/guide");
 const parse_1 = require("../dist/parse");
+const refcount_1 = require("../dist/refcount");
 const clean_1 = require("../dist/transform/clean");
 const transform_1 = require("../dist/transform");
 function loadTsv(name) {
@@ -547,6 +548,45 @@ function loadTsv(name) {
             node_assert_1.default.equal(JSON.stringify(def), row.def);
         });
     }
+});
+(0, node_test_1.describe)('tsv-ref-count', () => {
+    const rows = loadTsv('ref-count');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, async () => {
+            const def = await (0, parse_1.parse)('OpenAPI', row.spec, { file: row.name });
+            node_assert_1.default.deepStrictEqual((0, refcount_1.countRefs)(def), JSON.parse(row.expected));
+        });
+    }
+});
+(0, node_test_1.describe)('countRefs terminates on a graph', () => {
+    (0, node_test_1.test)('a plain self-cycle holds no references', () => {
+        const plain = { name: 'p' };
+        plain.self = plain;
+        node_assert_1.default.deepStrictEqual((0, refcount_1.countRefs)({ paths: { '/p': plain } }), {});
+    });
+    (0, node_test_1.test)('a plain cycle is expanded once, so its reference counts once', () => {
+        const plain = { ref: { 'x-ref': '#/components/schemas/A' } };
+        plain.self = plain;
+        const def = { paths: { '/p': plain }, components: { schemas: { A: {} } } };
+        node_assert_1.default.deepStrictEqual((0, refcount_1.countRefs)(def), { '#/components/schemas/A': 1 });
+    });
+    (0, node_test_1.test)('a reference that holds itself counts once', () => {
+        const a = { 'x-ref': '#/components/schemas/A' };
+        a.self = a;
+        const def = { components: { schemas: { A: a } } };
+        node_assert_1.default.deepStrictEqual((0, refcount_1.countRefs)(def), { '#/components/schemas/A': 1 });
+    });
+    (0, node_test_1.test)('a count saturates at the cap', () => {
+        const levels = 40;
+        const schemas = { [`L${levels}`]: { type: 'object' } };
+        for (let i = levels - 1; 0 <= i; i--) {
+            const ref = `#/components/schemas/L${i + 1}`;
+            schemas[`L${i}`] = { properties: { a: { $ref: ref }, b: { $ref: ref } } };
+        }
+        const counts = (0, refcount_1.countRefs)({ components: { schemas } });
+        node_assert_1.default.strictEqual(counts[`#/components/schemas/L${levels}`], refcount_1.REFCOUNT_CAP);
+    });
 });
 (0, node_test_1.describe)('tsv-human-title', () => {
     for (const row of loadTsv('human-title')) {

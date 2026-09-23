@@ -132,6 +132,16 @@ async function parseOpenAPI(source: any, _meta?: any) {
 }
 
 
+// Edges decycle cut, so the guide can still count through them; a clone has none.
+const DECYCLED = new WeakMap<object, Map<string, object>>()
+
+
+function decycledChild(holder: any, key: string | number): any {
+  const cut = DECYCLED.get(holder)?.get(String(key))
+  return undefined === cut ? holder[key] : cut
+}
+
+
 function decycle(root: any) {
   // Entry path of each node on the current ancestor chain; presence in this
   // map is what identifies a back-edge. Nodes are removed on the way out, so
@@ -161,6 +171,12 @@ function decycle(root: any) {
 
       const cyclePath = onPath.get(val)
       if (undefined !== cyclePath) {
+        let cuts = DECYCLED.get(node)
+        if (undefined === cuts) {
+          cuts = new Map()
+          DECYCLED.set(node, cuts)
+        }
+        cuts.set(String(key), val)
         node[key] = `[Circular *${cyclePath.join('.')}]`
         continue
       }
@@ -325,6 +341,7 @@ function validateSource(kind: string, source: any, meta: { file: string }) {
 
 export {
   parse,
+  decycledChild,
 }
 
 

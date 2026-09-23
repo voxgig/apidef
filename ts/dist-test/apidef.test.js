@@ -249,6 +249,33 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         const archivePt = ea.op.update.points.find((pt) => pt.o.endsWith('/archive'));
         node_assert_1.default.strictEqual(archivePt?.q?.$action, 'archive');
     });
+    // One page wrapper serves both collections through a shared response. Counted
+    // per use it is frequent, so each list takes its name from its path.
+    (0, node_test_1.test)('guide-shared-wrapper', async () => {
+        const folder = __dirname + '/../test/shared-wrapper';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'shared-wrapper', def: 'shared-wrapper-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: true,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        const entities = bres.apimodel.main.kit.entity;
+        const ops = Object.fromEntries(Object.keys(entities).sort()
+            .map((name) => [name, Object.keys(entities[name].op ?? {}).sort()]));
+        node_assert_1.default.deepStrictEqual(ops, {
+            domain: ['list', 'load'],
+            kingdom: ['list', 'load'],
+        });
+    });
     (0, node_test_1.test)('field-required-solar', async () => {
         const outprefix = 'solar-1.0.0-openapi-3.0.0-';
         const folder = __dirname + '/../test/solar';

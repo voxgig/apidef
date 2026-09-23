@@ -26,11 +26,10 @@ var validateCases = []validateCase{
 	{"foo", "1.0.0", "openapi-3.1.0", "yaml"},
 }
 
-// Entities the TypeScript reference declares and this port does not. A
-// REGISTER, not a waiver: the comparison requires the missing set to EQUAL
-// the entry, so a new gap fails and a repaired one fails too. The cause for
-// paginated_taxa is in `selectCmpXrefs`, which counts a component reference
-// per inlined use where TypeScript counts one per shared node.
+// Entities the apidef-validate golden base guides declare and this port does
+// not: a REGISTER, not a waiver, since the missing set must EQUAL the entry.
+// Both ports count component references per use, which drops paginated_taxa;
+// the goldens predate that, so the entry closes when they are refreshed.
 var knownGuideDivergence = map[string][]string{
 	"taxonomy-1.0.0-openapi-3.1.0": {"paginated_taxa"},
 }

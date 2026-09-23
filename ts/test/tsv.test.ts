@@ -53,6 +53,11 @@ import {
 } from '../dist/parse'
 
 import {
+  countRefs,
+  REFCOUNT_CAP,
+} from '../dist/refcount'
+
+import {
   cleanTransform,
 } from '../dist/transform/clean'
 
@@ -650,6 +655,53 @@ describe('tsv-resolved', () => {
       assert.equal(JSON.stringify(def), row.def)
     })
   }
+})
+
+
+describe('tsv-ref-count', () => {
+  const rows = loadTsv('ref-count')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, async () => {
+      const def = await parse('OpenAPI', row.spec, { file: row.name })
+      assert.deepStrictEqual(countRefs(def), JSON.parse(row.expected))
+    })
+  }
+})
+
+
+describe('countRefs terminates on a graph', () => {
+
+  test('a plain self-cycle holds no references', () => {
+    const plain: any = { name: 'p' }
+    plain.self = plain
+    assert.deepStrictEqual(countRefs({ paths: { '/p': plain } }), {})
+  })
+
+  test('a plain cycle is expanded once, so its reference counts once', () => {
+    const plain: any = { ref: { 'x-ref': '#/components/schemas/A' } }
+    plain.self = plain
+    const def = { paths: { '/p': plain }, components: { schemas: { A: {} } } }
+    assert.deepStrictEqual(countRefs(def), { '#/components/schemas/A': 1 })
+  })
+
+  test('a reference that holds itself counts once', () => {
+    const a: any = { 'x-ref': '#/components/schemas/A' }
+    a.self = a
+    const def = { components: { schemas: { A: a } } }
+    assert.deepStrictEqual(countRefs(def), { '#/components/schemas/A': 1 })
+  })
+
+  test('a count saturates at the cap', () => {
+    const levels = 40
+    const schemas: any = { [`L${levels}`]: { type: 'object' } }
+    for (let i = levels - 1; 0 <= i; i--) {
+      const ref = `#/components/schemas/L${i + 1}`
+      schemas[`L${i}`] = { properties: { a: { $ref: ref }, b: { $ref: ref } } }
+    }
+    const counts = countRefs({ components: { schemas } })
+    assert.strictEqual(counts[`#/components/schemas/L${levels}`], REFCOUNT_CAP)
+  })
 })
 
 

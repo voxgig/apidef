@@ -52,6 +52,8 @@ var METHOD_CONSIDER_ORDER = map[string]int{
 // xrefRE matches component schema references.
 var xrefRE = regexp.MustCompile(`/(components/schemas|definitions)/(.+)$`)
 
+var cmpXrefRE = regexp.MustCompile(`/(components/schemas|definitions)/`)
+
 // BuildGuide constructs the guide that maps an OpenAPI spec to SDK entities.
 func BuildGuide(ctx *ApiDefContext) (map[string]any, error) {
 	folder := ctx.Opts.Folder
@@ -633,11 +635,13 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 	}
 
 	// Phase 2: MeasureRef - count component schema references
-	cmpXrefs := selectCmpXrefs(def)
+	refCounts := CountRefs(def)
 	origcmprefs, _ := countMap["origcmprefs"].(map[string]int)
 	cmpMap := foundMap["cmp"].(map[string]any)
-	for _, xref := range cmpXrefs {
-		xrefVal, _ := xref["val"].(string)
+	for _, xrefVal := range sortedKeysInt64(refCounts) {
+		if !cmpXrefRE.MatchString(xrefVal) {
+			continue
+		}
 		m := xrefRE.FindStringSubmatch(xrefVal)
 		if m != nil {
 			name := CanonizeCmpName(m[2])
@@ -645,7 +649,7 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 				countMap["cmp"] = toInt(countMap["cmp"]) + 1
 				origcmprefs[name] = 0
 			}
-			origcmprefs[name]++
+			origcmprefs[name] = int(refSatAdd(int64(origcmprefs[name]), refCounts[xrefVal]))
 
 			if _, exists := cmpMap[name]; !exists {
 				cmpMap[name] = map[string]any{"orig": m[2]}
@@ -672,19 +676,6 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 	}
 
 	return guide, nil
-}
-
-// selectCmpXrefs finds all x-ref values that match components/schemas or definitions.
-func selectCmpXrefs(def map[string]any) []map[string]any {
-	xrefs := Find(def, "x-ref")
-	var out []map[string]any
-	for _, xref := range xrefs {
-		val, _ := xref["val"].(string)
-		if strings.Contains(val, "components/schemas") || strings.Contains(val, "definitions") {
-			out = append(out, xref)
-		}
-	}
-	return out
 }
 
 // selectAllMethods collects all path+method combinations, sorted by path then method order.

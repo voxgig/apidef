@@ -66,6 +66,8 @@ import { snakify } from 'jostraca'
 
 import { mergeCollectionPaths } from '../transform/entity'
 
+import { byCodePoint, countRefs, satAdd } from '../refcount'
+
 import type {
   PathMatch
 } from '../utility'
@@ -77,8 +79,8 @@ const KONSOLE_LOG = console['log']
 // Log non - fatal wierdness.
 const dlog = getdlog('apidef', __filename)
 
-// Schema components that occur less than this rate(over total method count) qualify
-// as unique entities, not shared schemas
+// A schema whose per-use occurrences, over the method count or over the path
+// count, fall below these rates names an entity rather than a shared shape.
 const IS_ENTCMP_METHOD_RATE = 0.21
 const IS_ENTCMP_PATH_RATE = 0.41
 
@@ -279,10 +281,11 @@ function PreparePath(spec: TaskSpec) {
 
 
 function selectCmpXrefs(_source: any, spec: TaskSpec) {
-  const out = find(spec.ctx.def, 'x-ref')
-    .filter(xref => xref.val.match(/\/(components\/schemas|definitions)\//))
-
-  return out
+  const counts = countRefs(spec.ctx.def)
+  return Object.keys(counts)
+    .sort(byCodePoint)
+    .filter(val => val.match(/\/(components\/schemas|definitions)\//))
+    .map(val => ({ val, count: counts[val] }))
 }
 
 
@@ -290,14 +293,16 @@ function MeasureRef(spec: TaskSpec) {
   const guide = spec.data.guide
   const metrics = guide.metrics
 
-  let m = spec.node.val.val.match(/\/(components\/schemas|definitions)\/(.+)$/)
+  const xref = spec.node.val
+  let m = xref.val.match(/\/(components\/schemas|definitions)\/(.+)$/)
   if (m) {
     const name = canonizeCmpName(m[2])
     if (null == metrics.count.origcmprefs[name]) {
       metrics.count.cmp++
       metrics.count.origcmprefs[name] = 0
     }
-    metrics.count.origcmprefs[name]++
+    metrics.count.origcmprefs[name] =
+      satAdd(metrics.count.origcmprefs[name], xref.count)
 
     if (null == metrics.found.cmp[name]) {
       metrics.found.cmp[name] = { orig: m[2] }

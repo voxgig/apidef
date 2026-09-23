@@ -48,6 +48,40 @@ that wildly different spellings collapse onto one canonical identifier:
 Nested collections become nested entities with an **ancestor** relationship:
 `moon` records that it lives under `planet`.
 
+## When a schema names the entity
+
+A response that refers to a component schema offers a second name, and the
+two can disagree. The schema might be the entity itself, or it might be a
+shape many entities share: a page wrapper, an error body, an envelope. The
+guide decides by how often the schema is used.
+
+Each reference to a component schema counts once per use, across the whole
+resolved spec. A schema reached through a shared response counts once for
+the response's own definition and once more for every operation that uses
+it, and a schema nested inside it counts again each time the outer one
+does. The guide divides that count by the number of methods and by the
+number of paths. Below 0.21 of the methods, or below 0.41 of the paths, the
+schema is rare enough to name the entity. A schema used more often yields
+to the name the path gives, unless the schema's own name is a literal
+segment of some path in the spec.
+
+A recursive schema would make its own count infinite, so the count follows
+each reference until it returns to a schema already being expanded, and
+stops there. Where a cycle could close at more than one reference, the
+references are visited in name order, which makes the cut the same in the
+TypeScript and Go builds. A count also stops at one billion. A large spec
+can multiply its uses past that, and no rate needs a count anywhere near
+it.
+
+The taxonomy spec is the case that shows why the count is per use. Its
+domain and kingdom collections both answer with one `PaginatedTaxa`
+wrapper, through a shared response. Counted once per schema object, the
+wrapper looked rare, and a `paginated_taxa` entity took both lists away
+from `domain` and `kingdom`. Counted per use it is frequent, so each list
+joins the entity its path names. The `ref-count` rows of the shared
+fixtures pin the counts, and the `guide-shared-wrapper` test pins that
+outcome on a smaller spec of the same shape.
+
 ## Classifying methods into operations
 
 Within an entity, each HTTP method on each path maps to a CRUD operation,

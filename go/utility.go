@@ -804,17 +804,36 @@ func sameLongname(entry any, name string) bool {
 	return ok && ln == name
 }
 
-// Find searches an object tree for all occurrences of a key.
+// Find collects every value held under qkey, visiting each shared or cyclic
+// node once.
 func Find(obj any, qkey string) []map[string]any {
 	var vals []map[string]any
-	vs.Walk(obj, func(key *string, val any, parent any, path []string) any {
-		if key != nil && *key == qkey {
-			vals = append(vals, map[string]any{
-				"key": *key, "val": val, "path": path,
-			})
+	seen := map[refNodeID]bool{}
+	var collect func(o any)
+	collect = func(o any) {
+		id, ok := refIdentity(o)
+		if ok {
+			if seen[id] {
+				return
+			}
+			seen[id] = true
 		}
-		return val
-	})
+		switch n := o.(type) {
+		case []any:
+			for _, v := range n {
+				collect(v)
+			}
+		case map[string]any:
+			for _, k := range sortedKeys(n) {
+				v := n[k]
+				if qkey == k {
+					vals = append(vals, map[string]any{"key": k, "val": v, "path": []string{}})
+				}
+				collect(v)
+			}
+		}
+	}
+	collect(obj)
 	return vals
 }
 
@@ -1368,6 +1387,15 @@ func sortedKeys(m map[string]any) []string {
 }
 
 func sortedKeysBool(m map[string]bool) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func sortedKeysInt64(m map[string]int64) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
 		keys = append(keys, k)
