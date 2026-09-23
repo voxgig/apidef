@@ -543,6 +543,26 @@ servers: [ { url: "https://x.example" } ]
 			t.Fatal("expected an object")
 		}
 	})
+
+	const tree = `components:
+  schemas:
+    Alias: { type: array, items: { $ref: "#/components/schemas/Alias" } }
+`
+	for _, c := range []struct{ name, src string }{
+		{"own-item/paths-first", head + paths + tree},
+		{"own-item/components-first", head + tree + paths},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			s := schemaOf(t, c.src)
+			items, _ := s["items"].(map[string]any)
+			if s["type"] != "array" || items == nil || items["type"] != "array" {
+				t.Fatalf("self-referential item not resolved: keys %v", sortedKeys(s))
+			}
+			if s["x-ref"] != "#/components/schemas/Alias" || items["x-ref"] != "#/components/schemas/Alias" {
+				t.Errorf("x-ref = %v / %v, want #/components/schemas/Alias", s["x-ref"], items["x-ref"])
+			}
+		})
+	}
 }
 
 func TestTsvGuideMigrate(t *testing.T) {

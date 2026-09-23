@@ -78,6 +78,23 @@ servers: [ { url: "https://x.example" } ]
         // Serialisable: the cycle was broken, not left in place.
         node_assert_1.default.deepStrictEqual('string', typeof JSON.stringify(s));
     });
+    const TREE = `components:
+  schemas:
+    Alias: { type: array, items: { $ref: "#/components/schemas/Alias" } }
+`;
+    (0, node_test_1.test)('a schema that is its own item terminates in either document order', async () => {
+        for (const [label, src] of [
+            ['paths-first', HEAD + PATHS + TREE],
+            ['components-first', HEAD + TREE + PATHS],
+        ]) {
+            const s = await schema(src);
+            node_assert_1.default.deepStrictEqual(s.type, 'array', label);
+            node_assert_1.default.deepStrictEqual(s['x-ref'], '#/components/schemas/Alias', label);
+            node_assert_1.default.deepStrictEqual(s.items.type, 'array', label);
+            node_assert_1.default.deepStrictEqual(s.items['x-ref'], '#/components/schemas/Alias', label);
+            node_assert_1.default.match(JSON.stringify(s), /\[Circular \*/, label);
+        }
+    });
     (0, node_test_1.test)('shared components stay shared (no exponential expansion)', async () => {
         const depth = 12, fan = 3;
         const schemas = ['    L0: { type: object, properties: { v: { type: string } } }'];

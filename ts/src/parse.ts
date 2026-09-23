@@ -189,51 +189,60 @@ function refSiblings(node: any): any {
 }
 
 
-function addXRefsAndResolve(obj: any, root: any, visited?: WeakSet<any>) {
+function addXRefsAndResolve(
+  obj: any,
+  root: any,
+  visited: WeakSet<any> = new WeakSet(),
+  expanding: Map<any, any> = new Map(),
+) {
   if (!obj || typeof obj !== 'object') return
-  if (!visited) visited = new WeakSet()
   if (visited.has(obj)) return
   visited.add(obj)
 
-  if (Array.isArray(obj)) {
-    for (let i = 0; i < obj.length; i++) {
-      const item = obj[i]
-      if (item && typeof item === 'object') {
-        if (typeof item.$ref === 'string') {
-          const xref = item.$ref
-          const resolved = resolvePointer(root, xref)
-          if (resolved !== undefined) {
-            obj[i] = { ...resolved, ...refSiblings(item), 'x-ref': xref }
-            addXRefsAndResolve(obj[i], root, visited)
-          } else {
-            item['x-ref'] = xref
-            addXRefsAndResolve(item, root, visited)
-          }
-        } else {
-          addXRefsAndResolve(item, root, visited)
-        }
-      }
-    }
-  } else {
-    for (const key of Object.keys(obj)) {
-      const val = obj[key]
-      if (val && typeof val === 'object') {
-        if (typeof val.$ref === 'string') {
-          const xref = val.$ref
-          const resolved = resolvePointer(root, xref)
-          if (resolved !== undefined) {
-            obj[key] = { ...resolved, ...refSiblings(val), 'x-ref': xref }
-            addXRefsAndResolve(obj[key], root, visited)
-          } else {
-            val['x-ref'] = xref
-            addXRefsAndResolve(val, root, visited)
-          }
-        } else {
-          addXRefsAndResolve(val, root, visited)
-        }
+  const keys: (string | number)[] =
+    Array.isArray(obj) ? Array.from(obj.keys()) : Object.keys(obj)
+
+  for (const key of keys) {
+    const val = obj[key]
+    if (val && typeof val === 'object') {
+      if (typeof val.$ref === 'string') {
+        resolveRefSite(obj, key, root, visited, expanding)
+      } else {
+        addXRefsAndResolve(val, root, visited, expanding)
       }
     }
   }
+}
+
+
+function resolveRefSite(
+  holder: any,
+  key: string | number,
+  root: any,
+  visited: WeakSet<any>,
+  expanding: Map<any, any>,
+) {
+  const site = holder[key]
+
+  const inProgress = expanding.get(site)
+  if (undefined !== inProgress) {
+    holder[key] = inProgress
+    return
+  }
+
+  const xref = site.$ref
+  const resolved = resolvePointer(root, xref)
+  if (resolved === undefined) {
+    site['x-ref'] = xref
+    addXRefsAndResolve(site, root, visited, expanding)
+    return
+  }
+
+  const copy = { ...resolved, ...refSiblings(site), 'x-ref': xref }
+  holder[key] = copy
+  expanding.set(site, copy)
+  addXRefsAndResolve(copy, root, visited, expanding)
+  expanding.delete(site)
 }
 
 
