@@ -200,5 +200,20 @@ function meta(folder) {
         node_assert_1.default.deepStrictEqual(res.steps, []);
         node_assert_1.default.ok(warnings(folder)?.includes('!! BUILD FAILED !!'), warnings(folder));
     });
+    (0, node_test_1.test)('parse-failure-writes-warnings', async () => {
+        const folder = stage();
+        Fs.writeFileSync(Path.join(Path.dirname(folder), 'def', 'bad.yaml'), 'a: [\n  b: }\n');
+        const res = await inProject(folder, () => generate(folder, 'bad.yaml'));
+        node_assert_1.default.strictEqual(res.ok, false);
+        node_assert_1.default.deepStrictEqual(res.steps, []);
+        node_assert_1.default.ok(warnings(folder)?.includes('!! BUILD FAILED !!'), warnings(folder));
+    });
+    (0, node_test_1.test)('guide-failure-writes-warnings', async () => {
+        const folder = stage('@"./nope.aontu"');
+        const res = await inProject(folder, () => generate(folder));
+        node_assert_1.default.strictEqual(res.ok, false);
+        node_assert_1.default.deepStrictEqual(res.steps, ['parse']);
+        node_assert_1.default.ok(warnings(folder)?.includes('!! BUILD FAILED !!'), warnings(folder));
+    });
 });
 //# sourceMappingURL=generate.test.js.map

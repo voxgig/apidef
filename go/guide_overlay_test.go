@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -86,6 +87,18 @@ func stageValidateOverlay(t *testing.T, validateDir string, folder string, cn st
 		t.Fatal(err)
 	}
 	return folder
+}
+
+// runOverlayFailing runs from the project folder, where a failed build writes
+// apidef-warnings.txt, and requires that file to record the failure.
+func runOverlayFailing(t *testing.T, folder string) (*ApiDefResult, error) {
+	t.Helper()
+	inProject(t, folder)
+	res, err := runOverlay(folder)
+	if text, _ := readWarnings(t, folder); !strings.Contains(text, "!! BUILD FAILED !!") {
+		t.Errorf("warnings: %q", text)
+	}
+	return res, err
 }
 
 func runOverlay(folder string) (*ApiDefResult, error) {
@@ -230,16 +243,18 @@ func readOverlayFile(t *testing.T, folder string, name string) string {
 
 func TestGuideOverlayNoGuideFails(t *testing.T) {
 	for _, entry := range []string{"", "# nothing\n", "foo: 1\n"} {
-		folder := stageOverlay(t, &entry)
-		res, err := runOverlay(folder)
-		if err == nil || res.OK {
-			t.Fatalf("%q: expected the build to fail", entry)
-		}
-		want := missingGuideMessage(
-			filepath.Join(folder, "guide", overlayPrefix+"guide.aontu"), overlayPrefix)
-		if !strings.Contains(err.Error(), want) {
-			t.Errorf("%q: error = %q, want it to contain %q", entry, err.Error(), want)
-		}
+		t.Run(strconv.Quote(entry), func(t *testing.T) {
+			folder := stageOverlay(t, &entry)
+			res, err := runOverlayFailing(t, folder)
+			if err == nil || res.OK {
+				t.Fatal("expected the build to fail")
+			}
+			want := missingGuideMessage(RelativizePath(
+				filepath.Join(folder, "guide", overlayPrefix+"guide.aontu")), overlayPrefix)
+			if !strings.Contains(err.Error(), want) {
+				t.Errorf("error = %q, want it to contain %q", err.Error(), want)
+			}
+		})
 	}
 }
 
@@ -338,7 +353,7 @@ func TestGuideOverlayNestedSchemaInclude(t *testing.T) {
 		[]byte(overlayHead), 0644); err != nil {
 		t.Fatal(err)
 	}
-	res, err := runOverlay(folder)
+	res, err := runOverlayFailing(t, folder)
 	if err == nil || res.OK {
 		t.Fatal("expected the nested schema include to fail in Go")
 	}
@@ -362,7 +377,7 @@ func TestGuideOverlayRelativeTmpdir(t *testing.T) {
 }
 
 func TestGuideOverlayMissingEntryFails(t *testing.T) {
-	res, err := runOverlay(stageOverlay(t, nil))
+	res, err := runOverlayFailing(t, stageOverlay(t, nil))
 	if err == nil || res.OK {
 		t.Fatal("expected a missing guide entry file to fail the build")
 	}
@@ -378,11 +393,11 @@ func TestGuideOverlayConflictMarkerFails(t *testing.T) {
 		`=======`,
 		`>>>>>>> theirs`,
 	))
-	res, err := runOverlay(folder)
+	res, err := runOverlayFailing(t, folder)
 	if err == nil || res.OK {
 		t.Fatal("expected a conflict marker to fail the build")
 	}
-	entry := filepath.Join(folder, "guide", overlayPrefix+"guide.aontu")
+	entry := RelativizePath(filepath.Join(folder, "guide", overlayPrefix+"guide.aontu"))
 	want := "@voxgig/apidef: guide: unresolved merge conflict at " + entry + ":3\n" +
 		"  <<<<<<< ours\n" +
 		"Resolve the marked block in " + entry + "."
@@ -392,7 +407,7 @@ func TestGuideOverlayConflictMarkerFails(t *testing.T) {
 }
 
 func TestGuideOverlayTypeErrorFails(t *testing.T) {
-	res, err := runOverlay(stageOverlay(t, overlayEntry(`guide: entity: moon: active: "no"`)))
+	res, err := runOverlayFailing(t, stageOverlay(t, overlayEntry(`guide: entity: moon: active: "no"`)))
 	if err == nil || res.OK {
 		t.Fatal("expected a type error in the overlay to fail the build")
 	}
@@ -421,7 +436,7 @@ func TestGuideOverlayAontuFailuresSummarised(t *testing.T) {
 		{"missing-include", `@"./nope.aontu"`, "multisource_not_found", "source not found: ./nope.aontu"},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			res, err := runOverlay(stageOverlay(t, overlayEntry(c.line)))
+			res, err := runOverlayFailing(t, stageOverlay(t, overlayEntry(c.line)))
 			if err == nil || res.OK {
 				t.Fatal("expected the build to fail")
 			}

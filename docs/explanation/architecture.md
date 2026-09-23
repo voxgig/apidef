@@ -76,10 +76,11 @@ apidef ships **two** complete implementations of the pipeline:
 
 - **`ts/`** — the canonical TypeScript implementation (this is the published
   npm package).
-- **`go/`** — a Go port that reproduces the TypeScript behavior exactly.
+- **`go/`** — a Go port that follows the TypeScript behavior.
 
-They are kept byte-compatible through shared fixtures and golden tests. The
-reasoning, and the rules for changing either side, are in
+Shared fixtures and golden tests pin the behavior the two already share, and a
+difference that is not yet closed is registered in the Go tests rather than
+hidden. The reasoning, and the rules for changing either side, are in
 [The canonical build and the parity port](./canonical-and-parity.md).
 
 ## Repository map

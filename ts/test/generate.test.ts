@@ -219,4 +219,25 @@ describe('generate', () => {
     assert.ok(warnings(folder)?.includes('!! BUILD FAILED !!'), warnings(folder))
   })
 
+
+  test('parse-failure-writes-warnings', async () => {
+    const folder = stage()
+    Fs.writeFileSync(Path.join(Path.dirname(folder), 'def', 'bad.yaml'), 'a: [\n  b: }\n')
+    const res = await inProject(folder, () => generate(folder, 'bad.yaml'))
+
+    assert.strictEqual(res.ok, false)
+    assert.deepStrictEqual(res.steps, [])
+    assert.ok(warnings(folder)?.includes('!! BUILD FAILED !!'), warnings(folder))
+  })
+
+
+  test('guide-failure-writes-warnings', async () => {
+    const folder = stage('@"./nope.aontu"')
+    const res = await inProject(folder, () => generate(folder))
+
+    assert.strictEqual(res.ok, false)
+    assert.deepStrictEqual(res.steps, ['parse'])
+    assert.ok(warnings(folder)?.includes('!! BUILD FAILED !!'), warnings(folder))
+  })
+
 })

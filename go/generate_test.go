@@ -321,3 +321,41 @@ func TestGeneratePreGenerateFailureWritesWarnings(t *testing.T) {
 		t.Errorf("warnings: %q", text)
 	}
 }
+
+func TestGenerateParseFailureWritesWarnings(t *testing.T) {
+	folder := stageGenerate(t)
+	if err := os.WriteFile(filepath.Join(filepath.Dir(folder), "def", "bad.yaml"),
+		[]byte("a: [\n  b: }\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	inProject(t, folder)
+
+	res, err := generateDefAt(folder, "bad.yaml")
+
+	if err == nil || res == nil || res.OK {
+		t.Fatalf("want a failed build: err=%v res=%+v", err, res)
+	}
+	if 0 != len(res.Steps) {
+		t.Errorf("steps: %v", res.Steps)
+	}
+	if text, _ := readWarnings(t, folder); !strings.Contains(text, "!! BUILD FAILED !!") {
+		t.Errorf("warnings: %q", text)
+	}
+}
+
+func TestGenerateGuideFailureWritesWarnings(t *testing.T) {
+	folder := stageGenerateGuide(t, `@"./nope.aontu"`)
+	inProject(t, folder)
+
+	res, err := generateDefAt(folder, generateDef)
+
+	if err == nil || res == nil || res.OK {
+		t.Fatalf("want a failed build: err=%v res=%+v", err, res)
+	}
+	if want := []string{"parse"}; !reflect.DeepEqual(res.Steps, want) {
+		t.Errorf("steps: %v", res.Steps)
+	}
+	if text, _ := readWarnings(t, folder); !strings.Contains(text, "!! BUILD FAILED !!") {
+		t.Errorf("warnings: %q", text)
+	}
+}

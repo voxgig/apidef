@@ -70,8 +70,8 @@ The documentation lives in [`docs/`](./docs/README.md):
 ## Two implementations
 
 apidef ships a canonical **TypeScript** implementation (`ts/`, the published
-package) and a **Go** parity port (`go/`) that reproduces it exactly. TypeScript
-is the source of truth; Go follows. See
+package) and a **Go** parity port (`go/`) that follows it. TypeScript is the
+source of truth; Go follows, and shared fixtures pin what the two share. See
 [the parity explanation](./docs/explanation/canonical-and-parity.md).
 
 ## Build & test
