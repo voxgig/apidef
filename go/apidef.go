@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	jostraca "github.com/jostraca/jostraca/go"
 )
 
 const VERSION = "0.11.0"
@@ -211,29 +213,48 @@ func (a *apiDefInstance) Generate(spec map[string]any) (*ApiDefResult, error) {
 		}, nil
 	}
 
-	// Run builders to generate output files
-	if err := entityBuilder(); err != nil {
-		return makeErrorResult(start, steps, ctrl, ctx, err), err
-	}
-	if err := flowBuilder(); err != nil {
-		return makeErrorResult(start, steps, ctrl, ctx, err), err
-	}
+	builders := []Builder{entityBuilder, flowBuilder}
 
-	// Write warnings if any
-	warnings := warn.History()
-	if len(warnings) > 0 {
-		var warningTexts []string
-		for _, w := range warnings {
-			warningTexts = append(warningTexts, FormatJSONIC(w))
-		}
-		WriteFileWarn(warn, "./apidef-warnings.txt",
-			strings.Join(warningTexts, "\n\n"))
+	jopts := []jostraca.Option{}
+	if now, ok := spec["now"].(func() int64); ok {
+		jopts = append(jopts, jostraca.WithNow(now))
+	}
+	write, merge := true, false
+
+	jres, err := jostraca.New(jopts...).Generate(jostraca.Options{
+		Folder: a.opts.Folder,
+		Model:  map[string]any{},
+		Existing: jostraca.Existing{
+			Txt: jostraca.ExistingTxt{Write: &write, Merge: &merge},
+		},
+	}, func(j *jostraca.J) {
+		j.Project(jostraca.ProjectProps{Folder: "."}, func(j *jostraca.J) {
+			for _, builder := range builders {
+				builder(j)
+			}
+		})
+	})
+	if err != nil {
+		warn.Warn(map[string]any{
+			"err":  err.Error(),
+			"note": "!! BUILD FAILED !! " + err.Error(),
+		})
+		WriteFileWarn(warn, "./apidef-warnings.txt", warningsFileText(warn.History()))
+		return makeErrorResult(start, steps, ctrl, ctx, err), err
 	}
 
 	steps = append(steps, "generate")
 
+	kitEntity, _ := getKit(ctx)["entity"].(map[string]any)
+	GcEntityFiles(ctx.Log, a.opts.Folder, a.opts.OutPrefix, sortedKeys(kitEntity))
+
+	if warnings := warn.History(); len(warnings) > 0 {
+		WriteFileWarn(warn, "./apidef-warnings.txt", warningsFileText(warnings))
+	}
+
 	return &ApiDefResult{
 		OK:       true,
+		Reload:   len(jres.Files.Written) > 0 || len(jres.Files.Merged) > 0,
 		Start:    start,
 		End:      time.Now().UnixMilli(),
 		Steps:    steps,
@@ -241,7 +262,16 @@ func (a *apiDefInstance) Generate(spec map[string]any) (*ApiDefResult, error) {
 		Guide:    ctx.Guide,
 		ApiModel: ctx.ApiModel,
 		Ctx:      ctx,
+		Jres:     &jres,
 	}, nil
+}
+
+func warningsFileText(history []map[string]any) string {
+	texts := make([]string, 0, len(history))
+	for _, w := range history {
+		texts = append(texts, FormatJSONIC(w))
+	}
+	return strings.Join(texts, "\n\n")
 }
 
 // MakeBuild creates a build function from options.

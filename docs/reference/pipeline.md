@@ -78,6 +78,11 @@ entry file. Warnings collected during the run are
 written to `apidef-warnings.txt`, and `result.reload` reports whether anything
 changed on disk.
 
+`jostraca` also keeps its own record under `<folder>/.jostraca/`: a meta log of
+the run and a baseline copy of each generated file. The Go port runs this stage
+through the Go module of `jostraca` with the same options, so both ports write
+the same files, and its result carries `Reload` and `Jres`.
+
 ## Stopping early
 
 Set the corresponding `ctrl.step.*` flag to `false` to stop after the previous

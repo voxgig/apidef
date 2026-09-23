@@ -4,6 +4,7 @@ go 1.25.0
 
 require (
 	github.com/aontu-lang/aontu/go v0.73.0
+	github.com/jostraca/jostraca/go v0.38.0
 	github.com/tabnas/parser/go v0.9.7
 	github.com/tabnas/yaml/go v0.5.7
 	github.com/voxgig/struct/go v0.1.3

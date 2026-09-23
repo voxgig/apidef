@@ -9,62 +9,37 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	jostraca "github.com/jostraca/jostraca/go"
 )
 
-func writeGen(ctx *ApiDefContext, path string, src string) {
-	if err := os.WriteFile(path, []byte(src), 0644); err != nil {
-		warnGen(ctx, "write", path, err)
-	}
-}
+// Builder adds its model files to the component tree of the generate step.
+type Builder func(j *jostraca.J)
 
-// mkdirGen is MkdirAll with the same error reporting.
-func mkdirGen(ctx *ApiDefContext, dir string) {
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		warnGen(ctx, "mkdir", dir, err)
-	}
-}
-
-func warnGen(ctx *ApiDefContext, what string, path string, err error) {
-	if ctx == nil || ctx.Warn == nil {
-		return
-	}
-	ctx.Warn.Warn(map[string]any{
-		"what": what,
-		"path": path,
-		"err":  err.Error(),
-		"note": fmt.Sprintf("builder: %s failed: %s: %s",
-			what, RelativizePath(path), err.Error()),
-	})
+type modelFile struct {
+	name string
+	src  string
 }
 
 // MakeEntityBuilder creates a builder that generates entity definition files.
-func MakeEntityBuilder(ctx *ApiDefContext) (func() error, error) {
-	return func() error {
-		entityBuilder(ctx)
-		infoBuilder(ctx)
-		return nil
+func MakeEntityBuilder(ctx *ApiDefContext) (Builder, error) {
+	entityBuilder := resolveEntity(ctx)
+	infoBuilder := resolveInfo(ctx)
+	return func(j *jostraca.J) {
+		entityBuilder(j)
+		infoBuilder(j)
 	}, nil
 }
 
-func entityBuilder(ctx *ApiDefContext) {
+func resolveEntity(ctx *ApiDefContext) Builder {
 	kit := getKit(ctx)
 	entityMap, _ := kit["entity"].(map[string]any)
-	folder := ctx.Opts.Folder
 	prefix := ctx.Opts.OutPrefix
 
-	entityDir := filepath.Join(folder, "entity")
-	mkdirGen(ctx, entityDir)
-
 	barrel := []string{"# Entity Models\n"}
+	entityFiles := []modelFile{}
 
-	// Sort entity names for deterministic output
-	entnames := make([]string, 0, len(entityMap))
-	for k := range entityMap {
-		entnames = append(entnames, k)
-	}
-	sort.Strings(entnames)
-
-	for _, entityName := range entnames {
+	for _, entityName := range sortedKeys(entityMap) {
 		entity, _ := entityMap[entityName].(map[string]any)
 		if entity == nil {
 			continue
@@ -89,12 +64,79 @@ func entityBuilder(ctx *ApiDefContext) {
 			relations +
 			"\n\n}\n"
 
-		writeGen(ctx, filepath.Join(entityDir, entityFile), entitySrc)
-		barrel = append(barrel, fmt.Sprintf(`@"%s"`, entityFile))
+		entityFiles = append(entityFiles, modelFile{name: entityFile, src: entitySrc})
+		barrel = append(barrel, `@"./`+filepath.Base(entityFile)+`"`)
 	}
 
 	indexFile := prefix + "entity-index.aontu"
-	writeGen(ctx, filepath.Join(entityDir, indexFile), strings.Join(barrel, "\n"))
+	indexSrc := strings.Join(barrel, "\n")
+
+	return func(j *jostraca.J) {
+		j.Folder("entity", func(j *jostraca.J) {
+			for _, entityFile := range entityFiles {
+				j.File(entityFile.name, func(j *jostraca.J) { j.Content(entityFile.src) })
+			}
+			j.File(indexFile, func(j *jostraca.J) { j.Content(indexSrc) })
+		})
+	}
+}
+
+// GcEntityFiles removes generated entity files whose entity the def does not
+// derive, and returns their names. Mirrors gcEntityFiles in
+// ts/src/builder/entity/entity.ts.
+func GcEntityFiles(log Logger, modelFolder string, outprefix string, entityNames []string) []string {
+	removed := []string{}
+	entityFolder := filepath.Join(modelFolder, "entity")
+
+	keep := map[string]bool{outprefix + "entity-index.aontu": true}
+	for _, name := range entityNames {
+		keep[outprefix+name+".aontu"] = true
+	}
+
+	entries, err := os.ReadDir(entityFolder)
+	if err != nil {
+		return removed
+	}
+
+	for _, entry := range entries {
+		name := entry.Name()
+		// `.aon` is what a project generated before the rename still holds.
+		if !strings.HasSuffix(name, ".aontu") && !strings.HasSuffix(name, ".aon") {
+			continue
+		}
+		if !strings.HasPrefix(name, outprefix) || keep[name] {
+			continue
+		}
+
+		file := filepath.Join(entityFolder, name)
+		src, err := os.ReadFile(file)
+		if err == nil && !strings.HasPrefix(string(src), "# Entity: ") {
+			continue
+		}
+		if err == nil {
+			err = os.Remove(file)
+		}
+		if err != nil {
+			if log != nil {
+				log.Warn(map[string]any{
+					"point": "entity-gc-failed", "file": name, "err": err.Error(),
+					"note": "could not gc " + name + ": " + err.Error(),
+				})
+			}
+			continue
+		}
+
+		removed = append(removed, name)
+		if log != nil {
+			log.Info(map[string]any{
+				"point": "entity-gc", "file": name,
+				"note": "removed orphaned entity model file " + name +
+					" (no longer derived from the def)",
+			})
+		}
+	}
+
+	return removed
 }
 
 func entityAncestorSource(entity map[string]any) (map[string]any, string) {
@@ -238,16 +280,11 @@ func buildFieldAliases(entity map[string]any) string {
 	return string(b)
 }
 
-func infoBuilder(ctx *ApiDefContext) {
+func resolveInfo(ctx *ApiDefContext) Builder {
 	kit := getKit(ctx)
 	info, _ := kit["info"].(map[string]any)
-	folder := ctx.Opts.Folder
-	prefix := ctx.Opts.OutPrefix
 
-	apiDir := filepath.Join(folder, "api")
-	mkdirGen(ctx, apiDir)
-
-	infoFile := prefix + "api-info.aontu"
+	infoFile := ctx.Opts.OutPrefix + "api-info.aontu"
 	modelInfo := map[string]any{
 		"main": map[string]any{
 			KIT: map[string]any{
@@ -265,50 +302,85 @@ func infoBuilder(ctx *ApiDefContext) {
 	modelDefSrc = strings.ReplaceAll(modelDefSrc, "\n  ", "\n")
 
 	src := "# API Information\n\n" + modelDefSrc
-	writeGen(ctx, filepath.Join(apiDir, infoFile), src)
+
+	return func(j *jostraca.J) {
+		j.Folder("api", func(j *jostraca.J) {
+			j.File(infoFile, func(j *jostraca.J) { j.Content(src) })
+		})
+	}
 }
 
 // MakeFlowBuilder creates a builder that generates flow definition files.
-func MakeFlowBuilder(ctx *ApiDefContext) (func() error, error) {
+func MakeFlowBuilder(ctx *ApiDefContext) (Builder, error) {
 	kit := getKit(ctx)
 	flows, _ := kit["flow"].(map[string]any)
 
-	return func() error {
-		folder := ctx.Opts.Folder
-		prefix := ctx.Opts.OutPrefix
-
-		flowDir := filepath.Join(folder, "flow")
-		mkdirGen(ctx, flowDir)
-
-		barrel := []string{"# Flows\n"}
-
-		// Sort flow names for deterministic output
-		flownames := make([]string, 0, len(flows))
-		for k := range flows {
-			flownames = append(flownames, k)
+	flownames := []string{}
+	for _, flowName := range sortedKeys(flows) {
+		if flow, _ := flows[flowName].(map[string]any); flow != nil {
+			flow["key$"] = flowName
+			flownames = append(flownames, flowName)
 		}
-		sort.Strings(flownames)
+	}
+	filebase := flowFileBases(flownames)
 
-		for _, flowName := range flownames {
-			flow, _ := flows[flowName].(map[string]any)
-			if flow == nil {
-				continue
+	for _, name := range flownames {
+		if name != filebase[name] && ctx.Warn != nil {
+			ctx.Warn.Warn(map[string]any{
+				"step": "flow",
+				"note": "flow name " + name + " collides with another when case is" +
+					" ignored: file written as " + filebase[name] + ".aontu",
+			})
+		}
+	}
+
+	prefix := ctx.Opts.OutPrefix
+
+	return func(j *jostraca.J) {
+		j.Folder("flow", func(j *jostraca.J) {
+			barrel := []string{"# Flows\n"}
+
+			for _, flowName := range flownames {
+				flow := flows[flowName].(map[string]any)
+
+				flowfile := prefix + filebase[flowName] + ".aontu"
+				entNameMap := map[string]any{"name": flowName}
+				flowModelSrc := FormatJsonSrc(ToJSONOrdered(flow))
+				flowSrc := fmt.Sprintf("# %s\n\nmain: %s: flow: %s:\n%s",
+					Nom(entNameMap, "Name"), KIT, flowName, flowModelSrc)
+
+				barrel = append(barrel, `@"./`+filepath.Base(flowfile)+`"`)
+				j.File(filepath.Base(flowfile), func(j *jostraca.J) { j.Content(flowSrc) })
 			}
 
-			flow["key$"] = flowName
-
-			flowfile := prefix + flowName + ".aontu"
-			entNameMap := map[string]any{"name": flowName}
-			flowModelSrc := FormatJsonSrc(ToJSONOrdered(flow))
-			flowSrc := fmt.Sprintf("# %s\n\nmain: %s: flow: %s:\n%s",
-				Nom(entNameMap, "Name"), KIT, flowName, flowModelSrc)
-
-			writeGen(ctx, filepath.Join(flowDir, flowfile), flowSrc)
-			barrel = append(barrel, fmt.Sprintf(`@"%s"`, flowfile))
-		}
-
-		barrelFile := prefix + "flow-index.aontu"
-		writeGen(ctx, filepath.Join(flowDir, barrelFile), strings.Join(barrel, "\n"))
-		return nil
+			barrelFile := prefix + "flow-index.aontu"
+			barrelSrc := strings.Join(barrel, "\n")
+			j.File(barrelFile, func(j *jostraca.J) { j.Content(barrelSrc) })
+		})
 	}, nil
+}
+
+// flowFileBases gives each flow a file base name that stays unique when case
+// is ignored. Every member of a colliding group is suffixed in sorted order,
+// so none keeps the bare name. Mirrors flowFileBases in ts/src/builder/flow.ts.
+func flowFileBases(names []string) map[string]string {
+	bylower := map[string][]string{}
+	for _, name := range names {
+		lower := strings.ToLower(name)
+		bylower[lower] = append(bylower[lower], name)
+	}
+
+	base := map[string]string{}
+	for _, group := range bylower {
+		sort.Strings(group)
+		if len(group) == 1 {
+			base[group[0]] = group[0]
+			continue
+		}
+		for i, name := range group {
+			base[name] = fmt.Sprintf("%s__%d", name, i+1)
+		}
+	}
+
+	return base
 }

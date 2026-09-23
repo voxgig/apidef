@@ -62,7 +62,7 @@ apidef leans on the wider Voxgig toolchain rather than reinventing it:
   the spec (JSON *and* YAML) and emit the relaxed-JSON model files.
 - **[`jostraca`](https://github.com/voxgig/jostraca)** — the file generator. It
   owns `each`/`getx` iteration helpers, the `Project`/`Folder`/`File`/`Content`
-  builder DSL, and the writer that puts the model files on disk.
+  builder DSL, and the writer that puts the model files on disk, in both ports.
 - **[`aontu`](https://github.com/aontu-lang/aontu)** — the unification engine. The
   guide stage evaluates the guide entry file with it, in both ports, and
   downstream model resolution uses it to assemble the model apidef writes.
