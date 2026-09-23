@@ -70,6 +70,11 @@
       "name": "create",
       "points": [
         {
+          "co": {
+            "id": "POST /{year}/domain/{did}/revoke",
+            "source": "openapi3",
+            "version": 2
+          },
           "g": {
             "params": [
               {
@@ -88,13 +93,15 @@
               }
             ]
           },
-          "co": {
-            "id": "POST /{year}/domain/{did}/revoke",
-            "source": "openapi3",
-            "version": 2
-          },
           "m": "POST",
           "o": "/{year}/domain/{did}/revoke",
+          "q": {
+            "$action": "revoke",
+            "exist": [
+              "id",
+              "year"
+            ]
+          },
           "r": {
             "param": {
               "did": "id"
@@ -114,13 +121,6 @@
               "lit": "revoke"
             }
           ],
-          "q": {
-            "$action": "revoke",
-            "exist": [
-              "id",
-              "year"
-            ]
-          },
           "t": {
             "req": "`reqdata`",
             "res": "`body`"
@@ -132,6 +132,11 @@
       "name": "list",
       "points": [
         {
+          "co": {
+            "id": "GET /{year}/domain",
+            "source": "openapi3",
+            "version": 2
+          },
           "g": {
             "params": [
               {
@@ -161,13 +166,15 @@
               }
             ]
           },
-          "co": {
-            "id": "GET /{year}/domain",
-            "source": "openapi3",
-            "version": 2
-          },
           "m": "GET",
           "o": "/{year}/domain",
+          "q": {
+            "exist": [
+              "page",
+              "page_size",
+              "year"
+            ]
+          },
           "s": [
             {
               "var": "year"
@@ -176,13 +183,6 @@
               "lit": "domain"
             }
           ],
-          "q": {
-            "exist": [
-              "page",
-              "page_size",
-              "year"
-            ]
-          },
           "t": {
             "req": "`reqdata`",
             "res": "`body.items`"
@@ -194,6 +194,11 @@
       "name": "load",
       "points": [
         {
+          "co": {
+            "id": "GET /{year}/domain/{id}",
+            "source": "openapi3",
+            "version": 2
+          },
           "g": {
             "params": [
               {
@@ -212,13 +217,14 @@
               }
             ]
           },
-          "co": {
-            "id": "GET /{year}/domain/{id}",
-            "source": "openapi3",
-            "version": 2
-          },
           "m": "GET",
           "o": "/{year}/domain/{id}",
+          "q": {
+            "exist": [
+              "id",
+              "year"
+            ]
+          },
           "s": [
             {
               "var": "year"
@@ -230,12 +236,6 @@
               "var": "id"
             }
           ],
-          "q": {
-            "exist": [
-              "id",
-              "year"
-            ]
-          },
           "t": {
             "req": "`reqdata`",
             "res": "`body`"
@@ -247,6 +247,11 @@
       "name": "update",
       "points": [
         {
+          "co": {
+            "id": "PATCH /{year}/domain/{id}",
+            "source": "openapi3",
+            "version": 2
+          },
           "g": {
             "params": [
               {
@@ -265,13 +270,14 @@
               }
             ]
           },
-          "co": {
-            "id": "PATCH /{year}/domain/{id}",
-            "source": "openapi3",
-            "version": 2
-          },
           "m": "PATCH",
           "o": "/{year}/domain/{id}",
+          "q": {
+            "exist": [
+              "id",
+              "year"
+            ]
+          },
           "s": [
             {
               "var": "year"
@@ -283,12 +289,6 @@
               "var": "id"
             }
           ],
-          "q": {
-            "exist": [
-              "id",
-              "year"
-            ]
-          },
           "t": {
             "req": "`reqdata`",
             "res": "`body`"

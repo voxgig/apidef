@@ -36,6 +36,11 @@
       "name": "create",
       "points": [
         {
+          "co": {
+            "id": "POST /api/planet/{planet_id}/terraform",
+            "source": "openapi3",
+            "version": 2
+          },
           "g": {
             "params": [
               {
@@ -47,13 +52,14 @@
               }
             ]
           },
-          "co": {
-            "id": "POST /api/planet/{planet_id}/terraform",
-            "source": "openapi3",
-            "version": 2
-          },
           "m": "POST",
           "o": "/api/planet/{planet_id}/terraform",
+          "q": {
+            "$action": "terraform",
+            "exist": [
+              "id"
+            ]
+          },
           "r": {
             "param": {
               "planet_id": "id"
@@ -73,12 +79,6 @@
               "lit": "terraform"
             }
           ],
-          "q": {
-            "$action": "terraform",
-            "exist": [
-              "id"
-            ]
-          },
           "t": {
             "req": "`reqdata`",
             "res": "`body`"
@@ -137,6 +137,11 @@
       "name": "load",
       "points": [
         {
+          "co": {
+            "id": "GET /api/planet/{planet_id}",
+            "source": "openapi3",
+            "version": 2
+          },
           "g": {
             "params": [
               {
@@ -148,13 +153,13 @@
               }
             ]
           },
-          "co": {
-            "id": "GET /api/planet/{planet_id}",
-            "source": "openapi3",
-            "version": 2
-          },
           "m": "GET",
           "o": "/api/planet/{planet_id}",
+          "q": {
+            "exist": [
+              "id"
+            ]
+          },
           "r": {
             "param": {
               "planet_id": "id"
@@ -171,11 +176,6 @@
               "var": "id"
             }
           ],
-          "q": {
-            "exist": [
-              "id"
-            ]
-          },
           "t": {
             "req": "`reqdata`",
             "res": "`body`"
@@ -187,6 +187,11 @@
       "name": "remove",
       "points": [
         {
+          "co": {
+            "id": "DELETE /api/planet/{planet_id}",
+            "source": "openapi3",
+            "version": 2
+          },
           "g": {
             "params": [
               {
@@ -198,13 +203,13 @@
               }
             ]
           },
-          "co": {
-            "id": "DELETE /api/planet/{planet_id}",
-            "source": "openapi3",
-            "version": 2
-          },
           "m": "DELETE",
           "o": "/api/planet/{planet_id}",
+          "q": {
+            "exist": [
+              "id"
+            ]
+          },
           "r": {
             "param": {
               "planet_id": "id"
@@ -221,11 +226,6 @@
               "var": "id"
             }
           ],
-          "q": {
-            "exist": [
-              "id"
-            ]
-          },
           "t": {
             "req": "`reqdata`",
             "res": "`body`"
@@ -237,6 +237,11 @@
       "name": "update",
       "points": [
         {
+          "co": {
+            "id": "PUT /api/planet/{planet_id}",
+            "source": "openapi3",
+            "version": 2
+          },
           "g": {
             "params": [
               {
@@ -248,13 +253,13 @@
               }
             ]
           },
-          "co": {
-            "id": "PUT /api/planet/{planet_id}",
-            "source": "openapi3",
-            "version": 2
-          },
           "m": "PUT",
           "o": "/api/planet/{planet_id}",
+          "q": {
+            "exist": [
+              "id"
+            ]
+          },
           "r": {
             "param": {
               "planet_id": "id"
@@ -271,11 +276,6 @@
               "var": "id"
             }
           ],
-          "q": {
-            "exist": [
-              "id"
-            ]
-          },
           "t": {
             "req": "`reqdata`",
             "res": "`body`"

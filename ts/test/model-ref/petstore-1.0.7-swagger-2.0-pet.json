@@ -49,6 +49,11 @@
       "name": "create",
       "points": [
         {
+          "co": {
+            "id": "POST /pet/{petId}/uploadImage",
+            "source": "swagger2",
+            "version": 2
+          },
           "g": {
             "params": [
               {
@@ -76,13 +81,16 @@
               }
             ]
           },
-          "co": {
-            "id": "POST /pet/{petId}/uploadImage",
-            "source": "swagger2",
-            "version": 2
-          },
           "m": "POST",
           "o": "/pet/{petId}/uploadImage",
+          "q": {
+            "$action": "upload_image",
+            "exist": [
+              "additional_metadata",
+              "file",
+              "id"
+            ]
+          },
           "r": {
             "param": {
               "petId": "id"
@@ -99,20 +107,17 @@
               "lit": "uploadImage"
             }
           ],
-          "q": {
-            "$action": "upload_image",
-            "exist": [
-              "additional_metadata",
-              "file",
-              "id"
-            ]
-          },
           "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }
         },
         {
+          "co": {
+            "id": "POST /pet/{petId}",
+            "source": "swagger2",
+            "version": 2
+          },
           "g": {
             "params": [
               {
@@ -140,13 +145,15 @@
               }
             ]
           },
-          "co": {
-            "id": "POST /pet/{petId}",
-            "source": "swagger2",
-            "version": 2
-          },
           "m": "POST",
           "o": "/pet/{petId}",
+          "q": {
+            "exist": [
+              "id",
+              "name",
+              "status"
+            ]
+          },
           "r": {
             "param": {
               "petId": "id"
@@ -160,19 +167,17 @@
               "var": "id"
             }
           ],
-          "q": {
-            "exist": [
-              "id",
-              "name",
-              "status"
-            ]
-          },
           "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }
         },
         {
+          "co": {
+            "id": "POST /pet",
+            "source": "swagger2",
+            "version": 2
+          },
           "g": {
             "query": [
               {
@@ -184,23 +189,18 @@
               }
             ]
           },
-          "co": {
-            "id": "POST /pet",
-            "source": "swagger2",
-            "version": 2
-          },
           "m": "POST",
           "o": "/pet",
-          "s": [
-            {
-              "lit": "pet"
-            }
-          ],
           "q": {
             "exist": [
               "body"
             ]
           },
+          "s": [
+            {
+              "lit": "pet"
+            }
+          ],
           "t": {
             "req": "`reqdata`",
             "res": "`body`"
@@ -212,6 +212,11 @@
       "name": "list",
       "points": [
         {
+          "co": {
+            "id": "GET /pet/findByStatus",
+            "source": "swagger2",
+            "version": 2
+          },
           "g": {
             "query": [
               {
@@ -223,13 +228,14 @@
               }
             ]
           },
-          "co": {
-            "id": "GET /pet/findByStatus",
-            "source": "swagger2",
-            "version": 2
-          },
           "m": "GET",
           "o": "/pet/findByStatus",
+          "q": {
+            "$action": "find_by_status",
+            "exist": [
+              "status"
+            ]
+          },
           "s": [
             {
               "lit": "pet"
@@ -238,18 +244,17 @@
               "lit": "findByStatus"
             }
           ],
-          "q": {
-            "$action": "find_by_status",
-            "exist": [
-              "status"
-            ]
-          },
           "t": {
             "req": "`reqdata`",
             "res": "`body`"
           }
         },
         {
+          "co": {
+            "id": "GET /pet/findByTags",
+            "source": "swagger2",
+            "version": 2
+          },
           "g": {
             "query": [
               {
@@ -261,13 +266,14 @@
               }
             ]
           },
-          "co": {
-            "id": "GET /pet/findByTags",
-            "source": "swagger2",
-            "version": 2
-          },
           "m": "GET",
           "o": "/pet/findByTags",
+          "q": {
+            "$action": "find_by_tag",
+            "exist": [
+              "tag"
+            ]
+          },
           "s": [
             {
               "lit": "pet"
@@ -276,12 +282,6 @@
               "lit": "findByTags"
             }
           ],
-          "q": {
-            "$action": "find_by_tag",
-            "exist": [
-              "tag"
-            ]
-          },
           "t": {
             "req": "`reqdata`",
             "res": "`body`"
@@ -293,6 +293,11 @@
       "name": "load",
       "points": [
         {
+          "co": {
+            "id": "GET /pet/{petId}",
+            "source": "swagger2",
+            "version": 2
+          },
           "g": {
             "params": [
               {
@@ -304,13 +309,13 @@
               }
             ]
           },
-          "co": {
-            "id": "GET /pet/{petId}",
-            "source": "swagger2",
-            "version": 2
-          },
           "m": "GET",
           "o": "/pet/{petId}",
+          "q": {
+            "exist": [
+              "id"
+            ]
+          },
           "r": {
             "param": {
               "petId": "id"
@@ -324,11 +329,6 @@
               "var": "id"
             }
           ],
-          "q": {
-            "exist": [
-              "id"
-            ]
-          },
           "t": {
             "req": "`reqdata`",
             "res": "`body`"
@@ -340,6 +340,11 @@
       "name": "remove",
       "points": [
         {
+          "co": {
+            "id": "DELETE /pet/{petId}",
+            "source": "swagger2",
+            "version": 2
+          },
           "g": {
             "header": [
               {
@@ -360,13 +365,14 @@
               }
             ]
           },
-          "co": {
-            "id": "DELETE /pet/{petId}",
-            "source": "swagger2",
-            "version": 2
-          },
           "m": "DELETE",
           "o": "/pet/{petId}",
+          "q": {
+            "exist": [
+              "api_key",
+              "id"
+            ]
+          },
           "r": {
             "param": {
               "petId": "id"
@@ -380,12 +386,6 @@
               "var": "id"
             }
           ],
-          "q": {
-            "exist": [
-              "api_key",
-              "id"
-            ]
-          },
           "t": {
             "req": "`reqdata`",
             "res": "`body`"
@@ -397,6 +397,11 @@
       "name": "update",
       "points": [
         {
+          "co": {
+            "id": "PUT /pet",
+            "source": "swagger2",
+            "version": 2
+          },
           "g": {
             "query": [
               {
@@ -408,23 +413,18 @@
               }
             ]
           },
-          "co": {
-            "id": "PUT /pet",
-            "source": "swagger2",
-            "version": 2
-          },
           "m": "PUT",
           "o": "/pet",
-          "s": [
-            {
-              "lit": "pet"
-            }
-          ],
           "q": {
             "exist": [
               "body"
             ]
           },
+          "s": [
+            {
+              "lit": "pet"
+            }
+          ],
           "t": {
             "req": "`reqdata`",
             "res": "`body`"

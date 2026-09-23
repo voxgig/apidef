@@ -64,6 +64,11 @@
       "name": "load",
       "points": [
         {
+          "co": {
+            "id": "GET /{year}/domain/{domain}/kingdom/{kid}/phylum/{itemid}",
+            "source": "openapi3",
+            "version": 2
+          },
           "g": {
             "params": [
               {
@@ -96,13 +101,16 @@
               }
             ]
           },
-          "co": {
-            "id": "GET /{year}/domain/{domain}/kingdom/{kid}/phylum/{itemid}",
-            "source": "openapi3",
-            "version": 2
-          },
           "m": "GET",
           "o": "/{year}/domain/{domain}/kingdom/{kid}/phylum/{itemid}",
+          "q": {
+            "exist": [
+              "domain_id",
+              "id",
+              "kingdom_id",
+              "year"
+            ]
+          },
           "r": {
             "param": {
               "domain": "domain_id",
@@ -133,14 +141,6 @@
               "var": "id"
             }
           ],
-          "q": {
-            "exist": [
-              "domain_id",
-              "id",
-              "kingdom_id",
-              "year"
-            ]
-          },
           "t": {
             "req": "`reqdata`",
             "res": "`body`"
