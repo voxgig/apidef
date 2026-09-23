@@ -29,6 +29,8 @@ const METHOD_IDOP = {
     HEAD: 'head',
     OPTIONS: 'OPTIONS',
 };
+// Tried in order: the first shape a path matches decides how its entity is named.
+const ENTITY_PATH_SHAPES = ['t/p/t/', 't/p/', 'p/t/', 't/', 't/p/p'];
 const METHOD_CONSIDER_ORDER = {
     'GET': 100,
     'QUERY': 150,
@@ -250,7 +252,8 @@ function ResolveEntityComponent(spec) {
     const parts = work.pathmap[pathStr].parts;
     let why_cmp = [];
     let responses = methodDef.responses;
-    let origxrefs = findPotentialSchemaRefs(pathStr, methodName, responses).map(val => ({
+    const opname = methodOpname(methodDef, matchEntityPath(parts), []);
+    let origxrefs = findPotentialSchemaRefs(pathStr, methodName, responses, opname, why_cmp).map(val => ({
         val
     }));
     let cmpxrefs = origxrefs
@@ -378,20 +381,20 @@ function ResolveEntityName(spec) {
     }
     why_path.push(...(ment.why_cmp ?? []));
     let entname;
-    let pm = undefined;
-    if (pm = (0, utility_2.pathMatch)(parts, 't/p/t/')) {
+    const pm = matchEntityPath(parts);
+    if ('t/p/t/' === pm?.expr) {
         entname = entityPathMatch_tpte(data, pm, mdesc, why_path);
     }
-    else if (pm = (0, utility_2.pathMatch)(parts, 't/p/')) {
+    else if ('t/p/' === pm?.expr) {
         entname = entityPathMatch_tpe(data, pm, mdesc, why_path);
     }
-    else if (pm = (0, utility_2.pathMatch)(parts, 'p/t/')) {
+    else if ('p/t/' === pm?.expr) {
         entname = entityPathMatch_pte(data, pm, mdesc, why_path);
     }
-    else if (pm = (0, utility_2.pathMatch)(parts, 't/')) {
+    else if ('t/' === pm?.expr) {
         entname = entityPathMatch_te(data, pm, mdesc, why_path);
     }
-    else if (pm = (0, utility_2.pathMatch)(parts, 't/p/p')) {
+    else if ('t/p/p' === pm?.expr) {
         entname = entityPathMatch_tpp(data, pm, mdesc, why_path);
     }
     else {
@@ -699,7 +702,7 @@ function ResolveOperation(spec) {
         return;
     }
     if ('load' === standard_opname) {
-        const islist = isListResponse(mdesc, pathStr, why_op);
+        const islist = isListResponse(mdesc, ment.pm, pathStr, why_op);
         opname = islist ? 'list' : opname;
     }
     else {
@@ -1148,9 +1151,22 @@ function cmpOccursInPath(data, cmpname) {
     }
     return null != data.work.potentialCmpsFromPaths[cmpname];
 }
-function isListResponse(mdesc, pathStr, why) {
-    const ment = mdesc.MethodEntity;
-    const pm = ment.pm;
+function matchEntityPath(parts) {
+    for (const shape of ENTITY_PATH_SHAPES) {
+        const pm = (0, utility_2.pathMatch)(parts, shape);
+        if (null != pm) {
+            return pm;
+        }
+    }
+    return null;
+}
+// The operation ResolveOperation will assign, needed before the entity is
+// named: whether a response unwraps as an envelope depends on it.
+function methodOpname(mdesc, pm, why) {
+    const opname = METHOD_IDOP[mdesc.method];
+    return 'load' === opname && isListResponse(mdesc, pm, mdesc.path, why) ? 'list' : opname;
+}
+function isListResponse(mdesc, pm, pathStr, why) {
     let islist = false;
     let schema;
     const endParamAnchored = !!(pm && pm.expr.endsWith('p/'));
@@ -1309,7 +1325,7 @@ function makeMethodEntityDesc(desc) {
     };
     return ment;
 }
-function findPotentialSchemaRefs(pathStr, methodName, responses) {
+function findPotentialSchemaRefs(pathStr, methodName, responses, opname, why) {
     const xrefs = [];
     if (null == responses) {
         return xrefs;
@@ -1319,7 +1335,16 @@ function findPotentialSchemaRefs(pathStr, methodName, responses) {
         const schema = getResponseSchema(responses[rescode]);
         if (null != schema) {
             if (null != schema['x-ref']) {
-                xrefs.push(schema['x-ref']);
+                // An envelope component names its wrapping, not the entity: the
+                // component it carries takes its place.
+                const itemref = null == opname ? null : (0, utility_1.envelopeItemRef)(schema, opname);
+                if (null != itemref) {
+                    why.push('envelope=' + cmpRefName(schema['x-ref']));
+                    xrefs.push(itemref);
+                }
+                else {
+                    xrefs.push(schema['x-ref']);
+                }
             }
             else if ('array' === schema.type && null != schema.items?.['x-ref']) {
                 xrefs.push(schema.items?.['x-ref']);
@@ -1328,6 +1353,10 @@ function findPotentialSchemaRefs(pathStr, methodName, responses) {
     }
     (0, utility_2.debugpath)(pathStr, methodName, 'POTENTIAL-SCHEMA-REFS', xrefs);
     return xrefs;
+}
+function cmpRefName(xref) {
+    const m = xref.match(/\/(components\/schemas|definitions)\/(.+)$/);
+    return null == m ? xref : (0, utility_2.canonizeCmpName)(m[2]);
 }
 function hasMethod(def, pathStr, methodName) {
     const pathDef = def?.paths?.[pathStr];

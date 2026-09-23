@@ -1,0 +1,31 @@
+{"openapi":"3.0.0","info":{"title":"t","version":"1"},"servers":[{"url":"https://api.example.com"}],
+"paths":{
+ "/{year}/domain":{"get":{"operationId":"listDomains","parameters":[{"$ref":"#/components/parameters/Year"}],"responses":{"200":{"$ref":"#/components/responses/TaxaPage"}}}},
+ "/{year}/domain/{id}":{
+  "get":{"operationId":"getDomain","parameters":[{"$ref":"#/components/parameters/Year"},{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"$ref":"#/components/responses/OneTaxon"}}},
+  "patch":{"operationId":"updateDomain","parameters":[{"$ref":"#/components/parameters/Year"},{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],"requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/TaxonUpdate"}}}},"responses":{"200":{"$ref":"#/components/responses/OneTaxon"}}}},
+ "/{year}/domain/{id}/kingdom":{
+  "get":{"operationId":"listKingdoms","parameters":[{"$ref":"#/components/parameters/Year"},{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"$ref":"#/components/responses/TaxaPage"}}},
+  "post":{"operationId":"createKingdom","parameters":[{"$ref":"#/components/parameters/Year"},{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],"requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/TaxonUpdate"}}}},"responses":{"201":{"$ref":"#/components/responses/OneTaxon"}}}},
+ "/{year}/domain/{domain_id}/kingdom/{kingdom_id}":{"get":{"operationId":"getKingdom","parameters":[{"$ref":"#/components/parameters/Year"},{"name":"domain_id","in":"path","required":true,"schema":{"type":"string"}},{"name":"kingdom_id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"$ref":"#/components/responses/OneTaxon"}}}},
+ "/{year}/observation":{"get":{"operationId":"listObservations","parameters":[{"$ref":"#/components/parameters/Year"}],"responses":{"200":{"description":"page","content":{"application/json":{"schema":{"$ref":"#/components/schemas/PaginatedObservations"}}}}}}},
+ "/{year}/sample/{id}":{"get":{"operationId":"getSample","parameters":[{"$ref":"#/components/parameters/Year"},{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"one","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ResultEnvelope"}}}}}}},
+ "/{year}/site/{id}":{"get":{"operationId":"getSite","parameters":[{"$ref":"#/components/parameters/Year"},{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"one","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Site"}}}}}}},
+ "/{year}/fossil/{id}":{"get":{"operationId":"getFossil","parameters":[{"$ref":"#/components/parameters/Year"},{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"one","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Fossil"}}}}}}}},
+"components":{
+ "parameters":{
+  "Year":{"name":"year","in":"path","required":true,"schema":{"type":"integer"}}},
+ "responses":{
+  "TaxaPage":{"description":"page","content":{"application/json":{"schema":{"$ref":"#/components/schemas/PaginatedTaxa"}}}},
+  "OneTaxon":{"description":"one","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Taxon"}}}}},
+ "schemas":{
+  "Taxon":{"type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"}}},
+  "TaxonUpdate":{"type":"object","properties":{"name":{"type":"string"}}},
+  "PaginatedTaxa":{"type":"object","properties":{"items":{"type":"array","items":{"$ref":"#/components/schemas/Taxon"}},"page":{"type":"integer"},"pageSize":{"type":"integer"},"total":{"type":"integer"}}},
+  "Observation":{"type":"object","properties":{"id":{"type":"string"},"observedAt":{"type":"string"}}},
+  "PaginatedObservations":{"type":"object","properties":{"items":{"type":"array","items":{"$ref":"#/components/schemas/Observation"}},"page":{"type":"integer"},"pageSize":{"type":"integer"},"total":{"type":"integer"}}},
+  "Sample":{"type":"object","properties":{"id":{"type":"string"},"label":{"type":"string"}}},
+  "ResultEnvelope":{"type":"object","properties":{"data":{"$ref":"#/components/schemas/Sample"}}},
+  "Site":{"type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"}}},
+  "Collector":{"type":"object","properties":{"name":{"type":"string"}}},
+  "Fossil":{"type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"},"collector":{"$ref":"#/components/schemas/Collector"}}}}}}

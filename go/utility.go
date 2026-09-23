@@ -1510,6 +1510,42 @@ func envelopeProp(resprops map[string]any, opname string) string {
 	return key
 }
 
+// envelopeItemRef mirrors ts/src/utility.ts: an envelope has no `id`, and a
+// single-item envelope holds nothing beside the item.
+func envelopeItemRef(schema any, opname string) string {
+	sch, _ := schema.(map[string]any)
+	props, _ := sch["properties"].(map[string]any)
+	key := envelopeProp(props, opname)
+	if key == "" {
+		return ""
+	}
+	if props["id"] != nil {
+		return ""
+	}
+
+	prop, _ := props[key].(map[string]any)
+	islist, _ := propIsList(prop)
+	if !islist && len(props) != 1 {
+		return ""
+	}
+
+	item := prop
+	if islist {
+		item, _ = prop["items"].(map[string]any)
+	}
+	if !isRecordSchema(item) {
+		return ""
+	}
+
+	xref, _ := item["x-ref"].(string)
+	return xref
+}
+
+func isRecordSchema(schema map[string]any) bool {
+	return schema != nil && (schema["properties"] != nil || schema["allOf"] != nil ||
+		safeStr(schema["type"]) == "object")
+}
+
 func propIsList(schema any) (bool, bool) {
 	sch, ok := schema.(map[string]any)
 	if !ok || sch == nil {

@@ -673,6 +673,25 @@ func TestEnvelopeProp(t *testing.T) {
 	}
 }
 
+func TestEnvelopeItemRef(t *testing.T) {
+	rows := loadTsv(t, "envelope-item-ref")
+	if len(rows) == 0 {
+		t.Fatal("no envelope-item-ref rows loaded")
+	}
+	for _, row := range rows {
+		src, opname, want := row["schema"], row["opname"], row["expected"]
+		t.Run(src+" "+opname, func(t *testing.T) {
+			var schema map[string]any
+			if err := json.Unmarshal([]byte(src), &schema); err != nil {
+				t.Fatalf("bad schema %q: %v", src, err)
+			}
+			if got := envelopeItemRef(schema, opname); got != want {
+				t.Errorf("envelopeItemRef(%s, %q) = %q, want %q", src, opname, got, want)
+			}
+		})
+	}
+}
+
 func TestClosedBodyTransform(t *testing.T) {
 	rows := loadTsv(t, "closed-body-transform")
 	if len(rows) == 0 {

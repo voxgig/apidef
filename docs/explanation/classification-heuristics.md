@@ -52,8 +52,23 @@ Nested collections become nested entities with an **ancestor** relationship:
 
 A response that refers to a component schema offers a second name, and the
 two can disagree. The schema might be the entity itself, or it might be a
-shape many entities share: a page wrapper, an error body, an envelope. The
-guide decides by how often the schema is used.
+shape many entities share, such as an error body. The guide decides by how
+often the schema is used. A schema whose name is the path's name, or begins
+with it, agrees with the path, and the path's name stands.
+
+A response schema that is an envelope is judged by what it carries, never
+by its own name. An envelope wraps the record in its one structured
+property: for a list operation, an array of records beside paging fields,
+like `{ items: [Observation], page, pageSize, total }`; for a single-item
+operation, a lone property like `{ data: Item }`. The guide unwraps the
+envelope and applies the rule below to the record's schema, with that
+schema's count and that schema's name. It finds the envelope with the test
+the field transform uses to unwrap a response, so an entity takes its name
+from the record its fields come from. Two further conditions keep a record
+with one nested object from passing for an envelope: an envelope declares
+no `id`, and a single-item envelope holds nothing beside the item. A
+response that spells its envelope inline offers no component name, so the
+rule leaves it alone.
 
 Each reference to a component schema counts once per use in the resolved
 spec, the spec with every `$ref` replaced by the schema it names. A schema
@@ -64,8 +79,10 @@ every reference inside that schema. An alias, a schema that is only a
 use of it counts for the alias alone, and each later link counts only where
 it is written. The guide divides the count by the number of methods and by
 the number of paths, and a schema rare on either measure names the entity.
-A schema used more often yields to the name the path gives, unless the
-schema's own name is a literal segment of some path in the spec. The guide
+The path measure is usually the stricter: it decides unless a spec averages
+about two methods per path or more. A schema used more often yields to the
+name the path gives, unless the schema's own name is a literal segment of
+some path in the spec. The guide
 reference states the rule, with its thresholds, under [Component reference
 counts](../reference/guide.md#component-reference-counts).
 
@@ -77,14 +94,18 @@ the TypeScript and Go builds. A count also has a ceiling: a large spec can
 multiply its uses past any number a build holds exactly, and no rate needs
 a count anywhere near it.
 
-The taxonomy spec is the case that shows why the count is per use. Its
-domain and kingdom collections both answer with one `PaginatedTaxa`
-wrapper, through a shared response. Counted once per schema object, the
-wrapper looked rare, and a `paginated_taxa` entity took both lists away
-from `domain` and `kingdom`. Counted per use it is frequent, so each list
-joins the entity its path names. The `ref-count` rows of the shared
-fixtures pin the counts, and the `guide-shared-wrapper` test pins that
-outcome on a smaller spec of the same shape.
+The taxonomy spec shows both rules. Its domain and kingdom collections
+answer with one `PaginatedTaxa` page, through a shared response, and its
+observation collection, which has no other operation, answers with a
+`PaginatedObservations` page. The guide unwraps each page. `Taxon`,
+counted per use across every response that carries it, is frequent, so
+each list joins the entity its path names, however often the page itself
+is used. `Observation` is rare, and its name agrees with the path, so the
+collection becomes `observation` rather than `paginated_observation`. The
+`envelope-item-ref` and `ref-count` rows of the shared fixtures pin the
+envelope test and the counts, and the `guide-envelope` and
+`guide-shared-wrapper` tests pin those outcomes on smaller specs of the
+same shape.
 
 ## Classifying methods into operations
 

@@ -44,7 +44,7 @@
     "field": "id",
     "name": "id"
   },
-  "name": "paginated_observation",
+  "name": "observation",
   "op": {
     "list": {
       "name": "list",

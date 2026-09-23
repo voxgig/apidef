@@ -339,6 +339,54 @@ describe('apidef', () => {
   })
 
 
+  // An envelope never names its entity; the component it carries is judged
+  // instead. The shared page wrapper is rare here, yet each list keeps its
+  // path's name because the item it carries is frequent. A record with one
+  // nested object is no envelope.
+  test('guide-envelope', async () => {
+    const folder = __dirname + '/../test/envelope'
+
+    const build = await ApiDef.makeBuild({ folder })
+
+    const bres = await build(
+      { name: 'envelope', def: 'envelope-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: true,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const entities = bres.apimodel.main.kit.entity
+    const ops = Object.fromEntries(Object.keys(entities).sort()
+      .map((name) => [name, Object.keys(entities[name].op ?? {}).sort()]))
+    assert.deepStrictEqual(ops, {
+      domain: ['list', 'load', 'update'],
+      fossil: ['load'],
+      kingdom: ['create', 'list', 'load'],
+      observation: ['list'],
+      sample: ['load'],
+      site: ['load'],
+    })
+
+    const listpt = entities.observation.op.list.points[0]
+    assert.strictEqual(listpt.o, '/{year}/observation')
+    assert.ok(null != entities.observation.fields.observedAt,
+      'observation fields not unwrapped: ' + Object.keys(entities.observation.fields))
+  })
+
+
   test('field-required-solar', async () => {
     const outprefix = 'solar-1.0.0-openapi-3.0.0-'
     const folder = __dirname + '/../test/solar'

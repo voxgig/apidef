@@ -14,4 +14,8 @@ The guide's schema rates count component references per use in the resolved spec
 
 Sources: [count](ts/src/refcount.ts), [Go count](go/refcount.go), [guide](ts/src/guide/heuristic01.ts).
 
+A response envelope does not name an entity: the record it carries is judged in its place, found through the same `envelopeProp` test the field transform unwraps with, so a name and the fields beneath it come from one schema. The naming test is narrower than `envelopeProp`, which also accepts a record whose only structured property is one nested object; naming such a record after that object renames real entities, so an envelope must declare no `id`, and a single-item envelope must hold nothing but the item. The operation an envelope is judged for is resolved before the entity is named, from the same path shape `ResolveEntityName` then matches.
+
+Sources: [envelope](ts/src/utility.ts), [guide](ts/src/guide/heuristic01.ts), [Go guide](go/guide.go).
+
 The guide can override inferred composite identity with explicit `id.parts`, or disable inference with `id.composite: false`. An empty parts list is not a reliable opt-out because model resolution can omit it. Edit canonical schemas under `model/` and synchronize the packaging mirrors.

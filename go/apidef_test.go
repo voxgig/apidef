@@ -350,6 +350,54 @@ func TestGuideSharedWrapper(t *testing.T) {
 	}
 }
 
+// Mirrors the TS `guide-envelope` case.
+func TestGuideEnvelope(t *testing.T) {
+	src, err := os.ReadFile("../ts/test/def/envelope-def.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := Parse("OpenAPI", string(src), map[string]string{"file": "envelope-def.json"})
+	if err != nil {
+		t.Fatalf("parse failed: %v", err)
+	}
+	ctx := &ApiDefContext{
+		Opts: ApiDefOptions{Folder: stageGuideEntry(t, t.TempDir(), "envelope-"), OutPrefix: "envelope-", Strategy: "heuristic01"},
+		Def:  parsed, Note: map[string]any{}, Warn: MakeWarner("test", nil), Work: map[string]any{},
+	}
+	guideResult, err := BuildGuide(ctx)
+	if err != nil {
+		t.Fatalf("guide build failed: %v", err)
+	}
+	guide, _ := guideResult["guide"].(map[string]any)
+	entities, _ := guide["entity"].(map[string]any)
+
+	got := map[string]string{}
+	for _, name := range sortedKeys(entities) {
+		ops := map[string]any{}
+		ent, _ := entities[name].(map[string]any)
+		paths, _ := ent["path"].(map[string]any)
+		for _, pd := range paths {
+			pm, _ := pd.(map[string]any)
+			pops, _ := pm["op"].(map[string]any)
+			for op := range pops {
+				ops[op] = true
+			}
+		}
+		got[name] = strings.Join(sortedKeys(ops), "/")
+	}
+	want := map[string]string{
+		"domain":      "list/load/patch",
+		"fossil":      "load",
+		"kingdom":     "create/list/load",
+		"observation": "list",
+		"sample":      "load",
+		"site":        "load",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("entity ops = %v, want %v", got, want)
+	}
+}
+
 // RFC 10008 QUERY verb: a safe, idempotent read carrying its filter in the
 // request body. Mirrors the TS `query-verb-book` case in ts/test/apidef.test.ts.
 // QUERY maps onto load/list; its collection response supplies the entity

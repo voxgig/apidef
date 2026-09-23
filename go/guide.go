@@ -38,6 +38,9 @@ var METHOD_IDOP = map[string]string{
 	"OPTIONS": "OPTIONS",
 }
 
+// Tried in order: the first shape a path matches decides how its entity is named.
+var ENTITY_PATH_SHAPES = []string{"t/p/t/", "t/p/", "p/t/", "t/", "t/p/p"}
+
 var METHOD_CONSIDER_ORDER = map[string]int{
 	"GET":     100,
 	"QUERY":   150,
@@ -756,7 +759,9 @@ func resolveEntityComponent(data map[string]any, mdesc map[string]any) {
 
 	responses, _ := mdesc["responses"].(map[string]any)
 
-	origxrefs := findPotentialSchemaRefs(pathStr, methodName, responses)
+	opname := methodOpname(mdesc, matchEntityPath(parts), &[]string{})
+
+	origxrefs := findPotentialSchemaRefs(pathStr, methodName, responses, opname, &whyCmp)
 	var origxrefMaps []map[string]any
 	for _, val := range origxrefs {
 		origxrefMaps = append(origxrefMaps, map[string]any{"val": val})
@@ -974,17 +979,21 @@ func resolveEntityName(ctx *ApiDefContext, data map[string]any, mdesc map[string
 	}
 
 	var entname string
-	var pm *PathMatchResult
+	pm := matchEntityPath(parts)
+	expr := ""
+	if pm != nil {
+		expr = pm.Expr
+	}
 
-	if pm = PathMatch(parts, "t/p/t/"); pm != nil {
+	if expr == "t/p/t/" {
 		entname = entityPathMatch_tpte(data, pm, mdesc, &whyPath)
-	} else if pm = PathMatch(parts, "t/p/"); pm != nil {
+	} else if expr == "t/p/" {
 		entname = entityPathMatch_tpe(data, pm, mdesc, &whyPath)
-	} else if pm = PathMatch(parts, "p/t/"); pm != nil {
+	} else if expr == "p/t/" {
 		entname = entityPathMatch_pte(data, pm, mdesc, &whyPath)
-	} else if pm = PathMatch(parts, "t/"); pm != nil {
+	} else if expr == "t/" {
 		entname = entityPathMatch_te(data, pm, mdesc, &whyPath)
-	} else if pm = PathMatch(parts, "t/p/p"); pm != nil {
+	} else if expr == "t/p/p" {
 		entname = entityPathMatch_tpp(data, pm, mdesc, &whyPath)
 	} else {
 		entname = inferEntityName(mdesc, parts, &whyPath)
@@ -1428,7 +1437,7 @@ func resolveOperation(data map[string]any, mdesc map[string]any) {
 	standardOpname := opname
 
 	if standardOpname == "load" {
-		islist := isListResponse(mdesc, pathStr, &whyOp)
+		islist := isListResponse(mdesc, getPM(ment), pathStr, &whyOp)
 		if islist {
 			opname = "list"
 		}
@@ -2078,11 +2087,29 @@ func inferEntityName(mdesc map[string]any, parts []string, why *[]string) string
 	return ""
 }
 
-// isListResponse checks if a GET response is a list.
-func isListResponse(mdesc map[string]any, pathStr string, why *[]string) bool {
-	ment, _ := mdesc["MethodEntity"].(map[string]any)
-	pm := getPM(ment)
+func matchEntityPath(parts []string) *PathMatchResult {
+	for _, shape := range ENTITY_PATH_SHAPES {
+		if pm := PathMatch(parts, shape); pm != nil {
+			return pm
+		}
+	}
+	return nil
+}
 
+// methodOpname is the operation resolveOperation will assign, needed before
+// the entity is named: whether a response unwraps as an envelope depends on it.
+func methodOpname(mdesc map[string]any, pm *PathMatchResult, why *[]string) string {
+	methodName, _ := mdesc["method"].(string)
+	pathStr, _ := mdesc["path"].(string)
+	opname := METHOD_IDOP[methodName]
+	if opname == "load" && isListResponse(mdesc, pm, pathStr, why) {
+		return "list"
+	}
+	return opname
+}
+
+// isListResponse checks if a GET response is a list.
+func isListResponse(mdesc map[string]any, pm *PathMatchResult, pathStr string, why *[]string) bool {
 	islist := false
 
 	endParamAnchored := pm != nil && strings.HasSuffix(pm.Expr, "p/")
@@ -2098,17 +2125,11 @@ func isListResponse(mdesc map[string]any, pathStr string, why *[]string) bool {
 	var schema map[string]any
 
 	if responses != nil {
-		// Try 200 then 201
-		for _, code := range []string{"200", "201"} {
-			resdef, ok := responses[code].(map[string]any)
-			if !ok {
-				continue
-			}
-			schema = getResponseSchema(resdef)
-			if schema != nil {
-				break
-			}
+		resdef, ok := responses["200"].(map[string]any)
+		if !ok {
+			resdef, _ = responses["201"].(map[string]any)
 		}
+		schema = getResponseSchema(resdef)
 	}
 
 	if schema == nil {
@@ -2411,7 +2432,8 @@ func makeMethodEntityDesc(desc map[string]any) map[string]any {
 }
 
 // findPotentialSchemaRefs finds x-ref values in responses.
-func findPotentialSchemaRefs(pathStr string, methodName string, responses map[string]any) []string {
+func findPotentialSchemaRefs(pathStr string, methodName string, responses map[string]any,
+	opname string, why *[]string) []string {
 	var xrefs []string
 	if responses == nil {
 		return xrefs
@@ -2427,7 +2449,18 @@ func findPotentialSchemaRefs(pathStr string, methodName string, responses map[st
 			continue
 		}
 		if xref, ok := schema["x-ref"].(string); ok {
-			xrefs = append(xrefs, xref)
+			// An envelope component names its wrapping, not the entity: the
+			// component it carries takes its place.
+			itemref := ""
+			if opname != "" {
+				itemref = envelopeItemRef(schema, opname)
+			}
+			if itemref != "" {
+				*why = append(*why, "envelope="+cmpRefName(xref))
+				xrefs = append(xrefs, itemref)
+			} else {
+				xrefs = append(xrefs, xref)
+			}
 		} else if schemaType, _ := schema["type"].(string); schemaType == "array" {
 			if items, ok := schema["items"].(map[string]any); ok {
 				if xref, ok := items["x-ref"].(string); ok {
@@ -2439,6 +2472,14 @@ func findPotentialSchemaRefs(pathStr string, methodName string, responses map[st
 
 	DebugPath(pathStr, methodName, "POTENTIAL-SCHEMA-REFS", xrefs)
 	return xrefs
+}
+
+func cmpRefName(xref string) string {
+	m := xrefRE.FindStringSubmatch(xref)
+	if m == nil {
+		return xref
+	}
+	return CanonizeCmpName(m[2])
 }
 
 // hasMethod checks if a path has a specific HTTP method.

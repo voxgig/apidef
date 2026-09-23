@@ -8,7 +8,7 @@ import { each } from 'jostraca'
 import { size, merge, getelem, isempty, items, keysof } from '@voxgig/struct'
 
 import {
-  isEntityWrapperProp, envelopeProp, closedBodyTransform,
+  isEntityWrapperProp, envelopeProp, envelopeItemRef, closedBodyTransform,
   authExchangeOp, specSecuredByDefault,
 } from '../utility'
 
@@ -99,6 +99,9 @@ const METHOD_IDOP: Record<string, string> = {
   HEAD: 'head',
   OPTIONS: 'OPTIONS',
 }
+
+// Tried in order: the first shape a path matches decides how its entity is named.
+const ENTITY_PATH_SHAPES = ['t/p/t/', 't/p/', 'p/t/', 't/', 't/p/p']
 
 const METHOD_CONSIDER_ORDER: Record<string, number> = {
   'GET': 100,
@@ -375,9 +378,12 @@ function ResolveEntityComponent(spec: TaskSpec) {
 
   let responses = methodDef.responses
 
-  let origxrefs: any[] = findPotentialSchemaRefs(pathStr, methodName, responses).map(val => ({
-    val
-  }))
+  const opname = methodOpname(methodDef, matchEntityPath(parts), [])
+
+  let origxrefs: any[] = findPotentialSchemaRefs(
+    pathStr, methodName, responses, opname, why_cmp).map(val => ({
+      val
+    }))
 
   let cmpxrefs = origxrefs
     .filter(xref => xref.val.includes('schema') || xref.val.includes('definitions'))
@@ -549,25 +555,25 @@ function ResolveEntityName(spec: TaskSpec) {
 
   let entname
 
-  let pm = undefined
+  const pm = matchEntityPath(parts)
 
-  if (pm = pathMatch(parts, 't/p/t/')) {
+  if ('t/p/t/' === pm?.expr) {
     entname = entityPathMatch_tpte(data, pm, mdesc, why_path)
   }
 
-  else if (pm = pathMatch(parts, 't/p/')) {
+  else if ('t/p/' === pm?.expr) {
     entname = entityPathMatch_tpe(data, pm, mdesc, why_path)
   }
 
-  else if (pm = pathMatch(parts, 'p/t/')) {
+  else if ('p/t/' === pm?.expr) {
     entname = entityPathMatch_pte(data, pm, mdesc, why_path)
   }
 
-  else if (pm = pathMatch(parts, 't/')) {
+  else if ('t/' === pm?.expr) {
     entname = entityPathMatch_te(data, pm, mdesc, why_path)
   }
 
-  else if (pm = pathMatch(parts, 't/p/p')) {
+  else if ('t/p/p' === pm?.expr) {
     entname = entityPathMatch_tpp(data, pm, mdesc, why_path)
   }
 
@@ -1009,7 +1015,7 @@ function ResolveOperation(spec: TaskSpec) {
 
 
   if ('load' === standard_opname) {
-    const islist = isListResponse(mdesc, pathStr, why_op)
+    const islist = isListResponse(mdesc, ment.pm, pathStr, why_op)
     opname = islist ? 'list' : opname
   }
 
@@ -1639,14 +1645,35 @@ function cmpOccursInPath(data: { def: any, work: any }, cmpname: string): boolea
 
 
 
+function matchEntityPath(parts: string[]): PathMatch | null {
+  for (const shape of ENTITY_PATH_SHAPES) {
+    const pm = pathMatch(parts, shape)
+    if (null != pm) {
+      return pm
+    }
+  }
+  return null
+}
+
+
+// The operation ResolveOperation will assign, needed before the entity is
+// named: whether a response unwraps as an envelope depends on it.
+function methodOpname(
+  mdesc: Record<string, any>,
+  pm: PathMatch | null,
+  why: string[]
+): string | undefined {
+  const opname = METHOD_IDOP[mdesc.method]
+  return 'load' === opname && isListResponse(mdesc, pm, mdesc.path, why) ? 'list' : opname
+}
+
+
 function isListResponse(
   mdesc: Record<string, any>,
+  pm: PathMatch | null | undefined,
   pathStr: string,
   why: string[]
 ): boolean {
-  const ment = mdesc.MethodEntity
-  const pm = ment.pm
-
   let islist = false
   let schema
 
@@ -1880,7 +1907,13 @@ function makeMethodEntityDesc(desc: Record<string, any>): MethodEntityDesc {
 }
 
 
-function findPotentialSchemaRefs(pathStr: string, methodName: string, responses: any) {
+function findPotentialSchemaRefs(
+  pathStr: string,
+  methodName: string,
+  responses: any,
+  opname: string | undefined,
+  why: string[],
+) {
   const xrefs: string[] = []
   if (null == responses) {
     return xrefs
@@ -1890,7 +1923,16 @@ function findPotentialSchemaRefs(pathStr: string, methodName: string, responses:
     const schema = getResponseSchema(responses[rescode])
     if (null != schema) {
       if (null != schema['x-ref']) {
-        xrefs.push(schema['x-ref'])
+        // An envelope component names its wrapping, not the entity: the
+        // component it carries takes its place.
+        const itemref = null == opname ? null : envelopeItemRef(schema, opname)
+        if (null != itemref) {
+          why.push('envelope=' + cmpRefName(schema['x-ref']))
+          xrefs.push(itemref)
+        }
+        else {
+          xrefs.push(schema['x-ref'])
+        }
       }
       else if ('array' === schema.type && null != schema.items?.['x-ref']) {
         xrefs.push(schema.items?.['x-ref'])
@@ -1900,6 +1942,12 @@ function findPotentialSchemaRefs(pathStr: string, methodName: string, responses:
 
   debugpath(pathStr, methodName, 'POTENTIAL-SCHEMA-REFS', xrefs)
   return xrefs
+}
+
+
+function cmpRefName(xref: string): string {
+  const m = xref.match(/\/(components\/schemas|definitions)\/(.+)$/)
+  return null == m ? xref : canonizeCmpName(m[2])
 }
 
 

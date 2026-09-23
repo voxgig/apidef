@@ -1,0 +1,22 @@
+schema	opname	expected
+{"type":"object","x-ref":"#/components/schemas/PaginatedObservations","properties":{"items":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/components/schemas/Observation"}},"page":{"type":"integer"},"pageSize":{"type":"integer"},"total":{"type":"integer"}}}	list	#/components/schemas/Observation
+{"type":"object","properties":{"object":{"type":"string","enum":["list"]},"data":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/components/schemas/charge"}},"has_more":{"type":"boolean"},"url":{"type":"string"}}}	list	#/components/schemas/charge
+{"type":"object","properties":{"items":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/components/schemas/Observation"}},"page":{"type":"integer"}}}	load	
+{"type":"object","properties":{"data":{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/components/schemas/Item"}}}	load	#/components/schemas/Item
+{"type":"object","properties":{"data":{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/components/schemas/Item"}}}	create	#/components/schemas/Item
+{"type":"object","properties":{"data":{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/components/schemas/Item"}}}	update	#/components/schemas/Item
+{"type":"object","properties":{"data":{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/components/schemas/Item"}}}	list	
+{"type":"object","properties":{"success":{"type":"boolean"},"data":{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/components/schemas/Item"}}}	load	
+{"type":"object","properties":{"name":{"type":"string"},"owner":{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/components/schemas/User"}}}	create	
+{"type":"object","properties":{"id":{"type":"string"},"labels":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/components/schemas/Label"}}}}	list	
+{"type":"object","properties":{"id":{"type":"string"},"owner":{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/components/schemas/User"}}}	load	
+{"type":"object","properties":{"tags":{"type":"array","items":{"type":"string","x-ref":"#/components/schemas/TagName"}}}}	list	
+{"type":"object","properties":{"insecure_ssl":{"oneOf":[{"type":"string"},{"type":"number"}],"x-ref":"#/components/schemas/InsecureSsl"}}}	load	
+{"type":"object","properties":{"items":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"}}}}}}	list	
+{"type":"object","properties":{"items":{"type":"array","items":{"allOf":[{"type":"object"}],"x-ref":"#/components/schemas/Composed"}}}}	list	#/components/schemas/Composed
+{"type":"object","properties":{"items":{"type":"array","items":{"type":"object","x-ref":"#/components/schemas/Bare"}}}}	list	#/components/schemas/Bare
+{"type":"object","properties":{"items":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/components/schemas/A"}},"more":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/components/schemas/B"}}}}	list	
+{"type":"object","properties":{"items":{"oneOf":[{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/components/schemas/A"}}]}}}	list	
+{"type":"object","properties":{}}	load	
+{"type":"object"}	list	
+{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/components/schemas/A"}}	list	

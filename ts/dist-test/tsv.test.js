@@ -473,6 +473,16 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-envelope-item-ref', () => {
+    const rows = loadTsv('envelope-item-ref');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(`envelopeItemRef(${row.schema}, "${row.opname}") => "${row.expected}"`, () => {
+            const expected = '' === row.expected ? null : row.expected;
+            node_assert_1.default.strictEqual((0, utility_1.envelopeItemRef)(JSON.parse(row.schema), row.opname), expected);
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-closed-body-transform', () => {
     const rows = loadTsv('closed-body-transform');
     for (const row of rows) {

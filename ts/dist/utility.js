@@ -42,6 +42,7 @@ exports.relativizePath = relativizePath;
 exports.getModelPath = getModelPath;
 exports.isEntityWrapperProp = isEntityWrapperProp;
 exports.envelopeProp = envelopeProp;
+exports.envelopeItemRef = envelopeItemRef;
 exports.closedBodyTransform = closedBodyTransform;
 exports.untaggedUnionBranches = untaggedUnionBranches;
 exports.scanUntaggedUnion = scanUntaggedUnion;
@@ -1326,6 +1327,31 @@ function envelopeProp(resprops, opname) {
         return null;
     }
     return key;
+}
+// The component a response envelope carries: the resolved reference of the
+// record envelopeProp unwraps to. Narrower than envelopeProp, since a record
+// with one nested object passes that test too: an envelope has no `id`, and a
+// single-item envelope holds nothing beside the item.
+function envelopeItemRef(schema, opname) {
+    const props = schema?.properties;
+    const key = envelopeProp(props, opname);
+    if (null == key || null != props.id) {
+        return null;
+    }
+    const prop = props[key];
+    const islist = propIsList(prop);
+    if (!islist && 1 !== (0, struct_1.keysof)(props).length) {
+        return null;
+    }
+    const item = islist ? prop.items : prop;
+    if (!isRecordSchema(item)) {
+        return null;
+    }
+    const xref = item['x-ref'];
+    return 'string' === typeof xref && '' !== xref ? xref : null;
+}
+function isRecordSchema(schema) {
+    return null != schema && 'object' === typeof schema && (null != schema.properties || null != schema.allOf || 'object' === schema.type);
 }
 function untaggedUnionBranches(schema) {
     if (null == schema || 'object' !== typeof schema) {

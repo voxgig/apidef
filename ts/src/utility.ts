@@ -1595,6 +1595,39 @@ function envelopeProp(resprops: any, opname: string): string | null {
 }
 
 
+// The component a response envelope carries: the resolved reference of the
+// record envelopeProp unwraps to. Narrower than envelopeProp, since a record
+// with one nested object passes that test too: an envelope has no `id`, and a
+// single-item envelope holds nothing beside the item.
+function envelopeItemRef(schema: any, opname: string): string | null {
+  const props = schema?.properties
+  const key = envelopeProp(props, opname)
+  if (null == key || null != props.id) {
+    return null
+  }
+
+  const prop = props[key]
+  const islist = propIsList(prop)
+  if (!islist && 1 !== keysof(props).length) {
+    return null
+  }
+
+  const item = islist ? prop.items : prop
+  if (!isRecordSchema(item)) {
+    return null
+  }
+
+  const xref = item['x-ref']
+  return 'string' === typeof xref && '' !== xref ? xref : null
+}
+
+
+function isRecordSchema(schema: any): boolean {
+  return null != schema && 'object' === typeof schema && (
+    null != schema.properties || null != schema.allOf || 'object' === schema.type)
+}
+
+
 function untaggedUnionBranches(schema: any): number {
   if (null == schema || 'object' !== typeof schema) {
     return 0
@@ -1757,6 +1790,7 @@ export {
   sortedEntries,
   isEntityWrapperProp,
   envelopeProp,
+  envelopeItemRef,
   closedBodyTransform,
   untaggedUnionBranches,
   scanUntaggedUnion,

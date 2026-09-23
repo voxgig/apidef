@@ -25,6 +25,7 @@ import {
   formatJsonSrc,
   getModelPath,
   envelopeProp,
+  envelopeItemRef,
   closedBodyTransform,
   authExchangeOp,
   specSecuredByDefault,
@@ -558,6 +559,18 @@ describe('tsv-envelope-prop', () => {
       const resprops = JSON.parse(row.resprops)
       const expected = '' === row.expected ? null : row.expected
       assert.deepStrictEqual(envelopeProp(resprops, row.opname), expected)
+    })
+  }
+})
+
+
+describe('tsv-envelope-item-ref', () => {
+  const rows = loadTsv('envelope-item-ref')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(`envelopeItemRef(${row.schema}, "${row.opname}") => "${row.expected}"`, () => {
+      const expected = '' === row.expected ? null : row.expected
+      assert.strictEqual(envelopeItemRef(JSON.parse(row.schema), row.opname), expected)
     })
   }
 })
