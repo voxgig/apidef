@@ -26,15 +26,6 @@ var validateCases = []validateCase{
 	{"foo", "1.0.0", "openapi-3.1.0", "yaml"},
 }
 
-// Entities the TypeScript reference declares and this port does not. A
-// REGISTER, not a waiver: the comparison requires the missing set to EQUAL
-// the entry, so a new gap fails and a repaired one fails too. The cause for
-// paginated_taxa is in `selectCmpXrefs`, which counts a component reference
-// per inlined use where TypeScript counts one per shared node.
-var knownGuideDivergence = map[string][]string{
-	"taxonomy-1.0.0-openapi-3.1.0": {"paginated_taxa"},
-}
-
 func caseName(c validateCase) string {
 	return fmt.Sprintf("%s-%s-%s", c.Name, c.Version, c.Spec)
 }
@@ -123,73 +114,44 @@ func TestValidateGuide(t *testing.T) {
 
 			// Compare entity names with TS reference
 			refGuideFile := filepath.Join(validateDir, "guide", cn+"-base-guide.aontu")
-			if _, err := os.Stat(refGuideFile); err == nil {
-				refGuide, _ := os.ReadFile(refGuideFile)
-				refStr := string(refGuide)
+			refGuide, err := os.ReadFile(refGuideFile)
+			if err != nil {
+				t.Fatalf("read reference guide: %v", err)
+			}
+			refStr := string(refGuide)
 
-				// Extract entity names from reference
-				var refEntities []string
-				for _, line := range strings.Split(refStr, "\n") {
-					line = strings.TrimSpace(line)
-					if strings.HasPrefix(line, "entity:") && strings.HasSuffix(line, "{") {
-						parts := strings.Fields(line)
-						if len(parts) >= 2 {
-							entName := strings.TrimSuffix(parts[1], ":")
-							refEntities = append(refEntities, entName)
-						}
+			// Extract entity names from reference
+			var refEntities []string
+			for _, line := range strings.Split(refStr, "\n") {
+				line = strings.TrimSpace(line)
+				if strings.HasPrefix(line, "entity:") && strings.HasSuffix(line, "{") {
+					parts := strings.Fields(line)
+					if len(parts) >= 2 {
+						entName := strings.TrimSuffix(parts[1], ":")
+						refEntities = append(refEntities, entName)
 					}
 				}
+			}
 
-				var goEntities []string
-				for name := range entities {
-					goEntities = append(goEntities, name)
-				}
+			var goEntities []string
+			for name := range entities {
+				goEntities = append(goEntities, name)
+			}
 
-				t.Logf("%s: TS entities: %v", cn, refEntities)
-				t.Logf("%s: Go entities: %v", cn, goEntities)
+			sort.Strings(refEntities)
+			sort.Strings(goEntities)
+			t.Logf("%s: TS entities: %v", cn, refEntities)
+			t.Logf("%s: Go entities: %v", cn, goEntities)
 
-				// Check that Go found at least the same entities
-				refSet := map[string]bool{}
-				for _, e := range refEntities {
-					refSet[e] = true
-				}
-				for _, e := range goEntities {
-					if !refSet[e] {
-						t.Logf("EXTRA Go entity: %s", e)
-					}
-				}
-				goSet := map[string]bool{}
-				for _, e := range goEntities {
-					goSet[e] = true
-				}
-				var missing []string
-				for _, e := range refEntities {
-					if !goSet[e] {
-						missing = append(missing, e)
-					}
-				}
-				sort.Strings(missing)
-
-				known := append([]string{}, knownGuideDivergence[cn]...)
-				sort.Strings(known)
-
-				if strings.Join(missing, ",") != strings.Join(known, ",") {
-					t.Errorf(
-						"guide entity parity: missing %v, registered %v. A name in "+
-							"missing and not registered is a new gap; a name registered "+
-							"and no longer missing is repaired, so delete its entry from "+
-							"knownGuideDivergence",
-						missing, known)
-				}
+			if strings.Join(goEntities, ",") != strings.Join(refEntities, ",") {
+				t.Errorf("guide entity parity: Go %v, TypeScript %v", goEntities, refEntities)
 			}
 		})
 	}
 }
 
 // TestValidateModelData compares the raw entity model data (as JSON) between
-// Go and a reference snapshot. The reference files are in ts/test/model-ref/.
-// If a reference file doesn't exist, it's created (first run generates baseline).
-// On subsequent runs, Go output must match the reference exactly.
+// Go and the canonical snapshots in ts/test/model-ref/.
 func TestValidateModelData(t *testing.T) {
 	validateDir := os.Getenv("APIDEF_VALIDATE_DIR")
 	if validateDir == "" {

@@ -40,6 +40,7 @@ import { makeResolved } from '../dist/resolved'
 import { snakify, camelify, kebabify } from 'jostraca'
 
 import { classifyGraphQLField } from '../dist/guide/graphql01'
+import { heuristic01 } from '../dist/guide/heuristic01'
 
 import {
   parse,
@@ -650,6 +651,48 @@ describe('tsv-human-title', () => {
   for (const row of loadTsv('human-title')) {
     test(row.input || 'empty', () => {
       assert.strictEqual(humanTitle(row.input), row.expected)
+    })
+  }
+})
+
+
+describe('tsv-find', () => {
+  for (const row of loadTsv('find')) {
+    test(row.name, () => {
+      const nodes = JSON.parse(row.nodes)
+      for (const [from, key, to] of JSON.parse(row.links)) {
+        nodes[from][key] = nodes[to]
+      }
+      for (let call = 0; call < 2; call++) {
+        const found = find(nodes[0], row.key)
+        assert.deepStrictEqual(found.map(r => r.val), JSON.parse(row.expected))
+        for (const result of found) {
+          assert.strictEqual(result.key, row.key)
+          assert.deepStrictEqual(result.path, [])
+        }
+      }
+    })
+  }
+})
+
+
+describe('tsv-component-refs', () => {
+  for (const row of loadTsv('component-refs')) {
+    test(row.name, async () => {
+      const def = await parse('OpenAPI', row.spec, { file: row.name + '.json' })
+      const guide = await heuristic01({
+        def, opts: {}, log: { info() {}, debug() {} }, warn() {},
+      } as any)
+      assert.deepStrictEqual(guide.metrics.count.origcmprefs, JSON.parse(row.refs))
+      assert.strictEqual(guide.metrics.count.path, 3)
+      assert.strictEqual(guide.metrics.count.method, 3)
+      const paths = Object.fromEntries(Object.entries(guide.entity).map(([name, ent]) => {
+        for (const path of Object.values(ent.path)) {
+          assert.strictEqual(path.op.list.method, 'GET')
+        }
+        return [name, Object.keys(ent.path).sort()]
+      }))
+      assert.deepStrictEqual(paths, JSON.parse(row.entities))
     })
   }
 })
