@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -709,6 +710,93 @@ func TestTsvHumanTitle(t *testing.T) {
 		t.Run(row["input"], func(t *testing.T) {
 			if got := HumanTitle(row["input"]); got != row["expected"] {
 				t.Errorf("HumanTitle(%q) = %q, want %q", row["input"], got, row["expected"])
+			}
+		})
+	}
+}
+
+func TestTsvFind(t *testing.T) {
+	for _, row := range loadTsv(t, "find") {
+		t.Run(row["name"], func(t *testing.T) {
+			var nodes, expected []any
+			var links [][]any
+			for _, field := range []struct {
+				source string
+				target any
+			}{
+				{row["nodes"], &nodes}, {row["links"], &links}, {row["expected"], &expected},
+			} {
+				if err := json.Unmarshal([]byte(field.source), field.target); err != nil {
+					t.Fatal(err)
+				}
+			}
+			for _, link := range links {
+				from, to := int(link[0].(float64)), int(link[2].(float64))
+				key := link[1].(string)
+				switch node := nodes[from].(type) {
+				case map[string]any:
+					node[key] = nodes[to]
+				case []any:
+					index, err := strconv.Atoi(key)
+					if err != nil {
+						t.Fatal(err)
+					}
+					node[index] = nodes[to]
+				}
+			}
+			for call := 0; call < 2; call++ {
+				values := []any{}
+				for _, result := range Find(nodes[0], row["key"]) {
+					values = append(values, result["val"])
+					if result["key"] != row["key"] || !jsonEqual(result["path"], []string{}) {
+						t.Errorf("unexpected match metadata: %v", result)
+					}
+				}
+				if !jsonEqual(values, expected) {
+					t.Errorf("got %v, want %v", values, expected)
+				}
+			}
+		})
+	}
+}
+
+func TestTsvComponentRefs(t *testing.T) {
+	for _, row := range loadTsv(t, "component-refs") {
+		t.Run(row["name"], func(t *testing.T) {
+			def, err := Parse("OpenAPI", row["spec"], map[string]string{"file": row["name"] + ".json"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			guide, err := heuristic01(&ApiDefContext{Def: def, Warn: MakeWarner("test", nil)})
+			if err != nil {
+				t.Fatal(err)
+			}
+			var refs map[string]int
+			var expected map[string][]string
+			if err := json.Unmarshal([]byte(row["refs"]), &refs); err != nil {
+				t.Fatal(err)
+			}
+			if err := json.Unmarshal([]byte(row["entities"]), &expected); err != nil {
+				t.Fatal(err)
+			}
+			count := guide["metrics"].(map[string]any)["count"].(map[string]any)
+			if !jsonEqual(count["origcmprefs"], refs) || count["path"] != 3 || count["method"] != 3 {
+				t.Errorf("unexpected counts: %v, want refs %v and 3 paths/methods", count, refs)
+			}
+			paths := map[string][]string{}
+			for name, ent := range guide["entity"].(map[string]any) {
+				entPaths := ent.(map[string]any)["path"].(map[string]any)
+				paths[name] = sortedKeys(entPaths)
+				for _, path := range entPaths {
+					op := path.(map[string]any)["op"].(map[string]any)
+					list, _ := op["list"].(map[string]any)
+					if list["method"] != "GET" {
+						t.Errorf("%s: expected GET list operation, got %v", name, op)
+					}
+				}
+			}
+			if !jsonEqual(paths, expected) {
+				t.Errorf("entity paths: got %v, want %v", paths, expected)
 			}
 		})
 	}

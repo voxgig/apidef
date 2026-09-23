@@ -46,6 +46,7 @@ const field_1 = require("../dist/transform/field");
 const resolved_1 = require("../dist/resolved");
 const jostraca_1 = require("jostraca");
 const graphql01_1 = require("../dist/guide/graphql01");
+const heuristic01_1 = require("../dist/guide/heuristic01");
 const parse_1 = require("../dist/parse");
 const clean_1 = require("../dist/transform/clean");
 const transform_1 = require("../dist/transform");
@@ -551,6 +552,44 @@ function loadTsv(name) {
     for (const row of loadTsv('human-title')) {
         (0, node_test_1.test)(row.input || 'empty', () => {
             node_assert_1.default.strictEqual((0, utility_1.humanTitle)(row.input), row.expected);
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-find', () => {
+    for (const row of loadTsv('find')) {
+        (0, node_test_1.test)(row.name, () => {
+            const nodes = JSON.parse(row.nodes);
+            for (const [from, key, to] of JSON.parse(row.links)) {
+                nodes[from][key] = nodes[to];
+            }
+            for (let call = 0; call < 2; call++) {
+                const found = (0, utility_1.find)(nodes[0], row.key);
+                node_assert_1.default.deepStrictEqual(found.map(r => r.val), JSON.parse(row.expected));
+                for (const result of found) {
+                    node_assert_1.default.strictEqual(result.key, row.key);
+                    node_assert_1.default.deepStrictEqual(result.path, []);
+                }
+            }
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-component-refs', () => {
+    for (const row of loadTsv('component-refs')) {
+        (0, node_test_1.test)(row.name, async () => {
+            const def = await (0, parse_1.parse)('OpenAPI', row.spec, { file: row.name + '.json' });
+            const guide = await (0, heuristic01_1.heuristic01)({
+                def, opts: {}, log: { info() { }, debug() { } }, warn() { },
+            });
+            node_assert_1.default.deepStrictEqual(guide.metrics.count.origcmprefs, JSON.parse(row.refs));
+            node_assert_1.default.strictEqual(guide.metrics.count.path, 3);
+            node_assert_1.default.strictEqual(guide.metrics.count.method, 3);
+            const paths = Object.fromEntries(Object.entries(guide.entity).map(([name, ent]) => {
+                for (const path of Object.values(ent.path)) {
+                    node_assert_1.default.strictEqual(path.op.list.method, 'GET');
+                }
+                return [name, Object.keys(ent.path).sort()];
+            }));
+            node_assert_1.default.deepStrictEqual(paths, JSON.parse(row.entities));
         });
     }
 });

@@ -804,17 +804,43 @@ func sameLongname(entry any, name string) bool {
 	return ok && ln == name
 }
 
-// Find searches an object tree for all occurrences of a key.
+// Find counts each shared container once, matching TypeScript's WeakSet traversal.
 func Find(obj any, qkey string) []map[string]any {
-	var vals []map[string]any
-	vs.Walk(obj, func(key *string, val any, parent any, path []string) any {
-		if key != nil && *key == qkey {
-			vals = append(vals, map[string]any{
-				"key": *key, "val": val, "path": path,
-			})
+	vals := []map[string]any{}
+	type nodeIdentity struct {
+		kind   reflect.Kind
+		ptr    uintptr
+		length int
+	}
+	seen := map[nodeIdentity]bool{}
+	var collect func(any)
+	collect = func(node any) {
+		switch v := node.(type) {
+		case map[string]any:
+			id := nodeIdentity{kind: reflect.Map, ptr: reflect.ValueOf(v).Pointer()}
+			if seen[id] {
+				return
+			}
+			seen[id] = true
+			for _, key := range sortedKeys(v) {
+				if key == qkey {
+					vals = append(vals, map[string]any{"key": key, "val": v[key], "path": []string{}})
+				}
+				collect(v[key])
+			}
+		case []any:
+			// Overlapping slices can share an address without sharing their extent.
+			id := nodeIdentity{kind: reflect.Slice, ptr: reflect.ValueOf(v).Pointer(), length: len(v)}
+			if seen[id] {
+				return
+			}
+			seen[id] = true
+			for _, child := range v {
+				collect(child)
+			}
 		}
-		return val
-	})
+	}
+	collect(obj)
 	return vals
 }
 

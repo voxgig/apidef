@@ -58,14 +58,14 @@
     "field": "id",
     "name": "id"
   },
-  "name": "kingdom",
+  "name": "paginated_taxa",
   "op": {
-    "create": {
-      "name": "create",
+    "list": {
+      "name": "list",
       "points": [
         {
           "co": {
-            "id": "POST /{year}/domain/{id}/kingdom",
+            "id": "GET /{year}/domain/{id}/kingdom",
             "source": "openapi3",
             "version": 2
           },
@@ -74,7 +74,7 @@
               {
                 "k": "param",
                 "n": "domain_id",
-                "or": "domain_id",
+                "or": "id",
                 "r": true,
                 "t": "`$STRING`"
               },
@@ -85,13 +85,33 @@
                 "r": true,
                 "t": "`$INTEGER`"
               }
+            ],
+            "query": [
+              {
+                "ex": 1,
+                "k": "query",
+                "n": "page",
+                "or": "page",
+                "r": false,
+                "t": "`$INTEGER`"
+              },
+              {
+                "ex": 20,
+                "k": "query",
+                "n": "page_size",
+                "or": "page_size",
+                "r": false,
+                "t": "`$INTEGER`"
+              }
             ]
           },
-          "m": "POST",
+          "m": "GET",
           "o": "/{year}/domain/{id}/kingdom",
           "q": {
             "exist": [
               "domain_id",
+              "page",
+              "page_size",
               "year"
             ]
           },
@@ -116,17 +136,12 @@
           ],
           "t": {
             "req": "`reqdata`",
-            "res": "`body`"
+            "res": "`body.items`"
           }
-        }
-      ]
-    },
-    "load": {
-      "name": "load",
-      "points": [
+        },
         {
           "co": {
-            "id": "GET /{year}/domain/{domain_id}/kingdom/{kingdom_id}",
+            "id": "GET /{year}/domain",
             "source": "openapi3",
             "version": 2
           },
@@ -134,32 +149,39 @@
             "params": [
               {
                 "k": "param",
-                "n": "domain_id",
-                "or": "domain_id",
-                "r": true,
-                "t": "`$STRING`"
-              },
-              {
-                "k": "param",
                 "n": "year",
                 "or": "year",
                 "r": true,
                 "t": "`$INTEGER`"
               }
+            ],
+            "query": [
+              {
+                "ex": 1,
+                "k": "query",
+                "n": "page",
+                "or": "page",
+                "r": false,
+                "t": "`$INTEGER`"
+              },
+              {
+                "ex": 20,
+                "k": "query",
+                "n": "page_size",
+                "or": "page_size",
+                "r": false,
+                "t": "`$INTEGER`"
+              }
             ]
           },
           "m": "GET",
-          "o": "/{year}/domain/{domain_id}/kingdom/{kingdom_id}",
+          "o": "/{year}/domain",
           "q": {
             "exist": [
-              "domain_id",
+              "page",
+              "page_size",
               "year"
             ]
-          },
-          "r": {
-            "param": {
-              "kingdom_id": "id"
-            }
           },
           "s": [
             {
@@ -167,20 +189,11 @@
             },
             {
               "lit": "domain"
-            },
-            {
-              "var": "domain_id"
-            },
-            {
-              "lit": "kingdom"
-            },
-            {
-              "var": "id"
             }
           ],
           "t": {
             "req": "`reqdata`",
-            "res": "`body`"
+            "res": "`body.items`"
           }
         }
       ]
