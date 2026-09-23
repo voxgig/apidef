@@ -481,8 +481,20 @@ func TestValidateModel(t *testing.T) {
 				return
 			}
 
-			if _, err := os.ReadFile(defFile); err != nil {
+			defsrc, err := os.ReadFile(defFile)
+			if err != nil {
 				t.Fatalf("failed to read def: %v", err)
+			}
+
+			// Debug mode writes <def>.full.json beside the def it reads, so the
+			// def is staged: the apidef-validate checkout is read, never written.
+			stage := t.TempDir()
+			stagedDef := filepath.Join(stage, "def", cn+"."+c.Format)
+			if err := os.MkdirAll(filepath.Dir(stagedDef), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(stagedDef, defsrc, 0o644); err != nil {
+				t.Fatal(err)
 			}
 
 			tmpDir := stageValidateOverlay(t, validateDir, t.TempDir(), cn)
@@ -501,7 +513,7 @@ func TestValidateModel(t *testing.T) {
 				},
 				"build": map[string]any{
 					"spec": map[string]any{
-						"base": validateDir,
+						"base": filepath.Join(stage, "v1"),
 					},
 				},
 				"ctrl": map[string]any{
@@ -520,6 +532,9 @@ func TestValidateModel(t *testing.T) {
 			}
 			if !result.OK {
 				t.Fatalf("generate not OK: err=%v steps=%v", result.Err, result.Steps)
+			}
+			if full, err := os.ReadFile(stagedDef + ".full.json"); err != nil || 0 == len(full) {
+				t.Errorf("debug mode wrote no parsed def beside %s: %v", stagedDef, err)
 			}
 
 			apimodel := result.ApiModel
