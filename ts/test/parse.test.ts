@@ -186,6 +186,18 @@ paths: {}
   })
 
 
+  test('reads an explicit YAML key as its scalar', async () => {
+    const p0 = await parse('OpenAPI', `openapi: 3.0.0
+info: {title: T, version: '1'}
+paths:
+  ? "/a/{id}/digest"
+  : get: {responses: {'204': {description: none}}}
+  "/b": {get: {responses: {'204': {description: none}}}}
+`, { file: 'f0' })
+    assert.deepStrictEqual(Object.keys(p0.paths).sort(), ['/a/{id}/digest', '/b'])
+  })
+
+
   test('resolves repeated $ref with x-ref preserved', async () => {
     const pm0 = { file: 'f0' }
     const mkop = () => ({
