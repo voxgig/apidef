@@ -271,7 +271,7 @@ the exchange survives into the model as facts on
 
 - `authExchangeOp()` and `specSecuredByDefault()` in `ts/src/utility.ts`
   are the canonical detection, pinned by `ts/test/auth-exchange.tsv`
-  (14 rows, both polarities) through `ts/test/tsv.test.ts`.
+  (16 rows, both polarities) through `ts/test/tsv.test.ts`.
 - `guideActive()` is the single reader of `active`, consumed by the
   entity, path, op and field transforms. A new suppression must route
   through it rather than filtering a list somewhere.

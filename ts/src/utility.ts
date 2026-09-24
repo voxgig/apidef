@@ -1265,12 +1265,13 @@ function requestBodySchema(requestBody: any): any {
 }
 
 
+// Sorted, not definition order, which the Go parser does not keep.
 function schemaProps(schema: any): string[] {
   const props = schema?.properties
   if (null == props || 'object' !== typeof props) {
     return []
   }
-  return Object.keys(props)
+  return sortedKeys(props)
 }
 
 

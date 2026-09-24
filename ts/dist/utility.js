@@ -1067,12 +1067,13 @@ function requestBodySchema(requestBody) {
     }
     return requestBody.content?.['application/json']?.schema ?? null;
 }
+// Sorted, not definition order, which the Go parser does not keep.
 function schemaProps(schema) {
     const props = schema?.properties;
     if (null == props || 'object' !== typeof props) {
         return [];
     }
-    return Object.keys(props);
+    return sortedKeys(props);
 }
 function firstFieldMatch(props, names) {
     const lower = new Map();

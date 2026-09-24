@@ -702,8 +702,6 @@ func requestBodySchema(requestBody any) any {
 	return media["schema"]
 }
 
-// Sorted, where TS reads insertion order: the ports differ only when
-// properties spell one candidate field in different case.
 func schemaProps(schema any) []string {
 	sm, _ := schema.(map[string]any)
 	props, _ := sm["properties"].(map[string]any)

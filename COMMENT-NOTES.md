@@ -34,7 +34,7 @@ Sources: [guide](ts/src/guide/heuristic01.ts), [Go guide](go/guide.go), [fixture
 
 The guide can override inferred composite identity with explicit `id.parts`, or disable inference with `id.composite: false`. An empty parts list is not a reliable opt-out because model resolution can omit it. Edit canonical schemas under `model/` and synchronize the packaging mirrors.
 
-An entity whose every operation is an access-token exchange is emitted with the default `active: *false` and a comment naming the reason, never dropped, so `guide.aontu` can switch it back on. The tally counts only the operations a method resolves to: a method with no CRUD mapping becomes no operation, so it can neither deactivate an entity nor keep one active. Method selection carries each operation's own `security` for this test alone. The Go port reads a schema's properties in sorted order where TypeScript reads insertion order, so the two can pick different fields only when properties spell one candidate field in different case.
+An entity whose every operation is an access-token exchange is emitted with the default `active: *false` and a comment naming the reason, never dropped, so `guide.aontu` can switch it back on. The tally counts only the operations a method resolves to: a method with no CRUD mapping becomes no operation, so it can neither deactivate an entity nor keep one active. Method selection carries each operation's own `security` for this test alone.
 
 Sources: [detection](ts/src/utility.ts), [Go detection](go/utility.go), [guide](ts/src/guide/heuristic01.ts), [Go guide](go/guide.go).
 
