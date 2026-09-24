@@ -48,6 +48,52 @@ guide
 encountered. These power sanity checks (e.g. the `PATH MISMATCH` guard that
 confirms every source method was classified).
 
+### Component reference counts
+
+`metrics.count.origcmprefs` maps each component schema, by its canonical
+name, to the number of times a reference to it is used in the resolved
+spec, and `metrics.count.cmp` is the number of names it holds. A reference
+is a `$ref`, and its label is the pointer it holds
+(`#/components/schemas/Pet`). Only labels under `/components/schemas/` or
+`/definitions/` count here, and labels that share a canonical name add
+together. The count is `countRefs` in
+[`ts/src/refcount.ts`](../../ts/src/refcount.ts):
+
+- The resolved spec is the spec with every `$ref` replaced by the schema it
+  names. A reference counts once per use in it: once where it is written,
+  and once more for each use of a reference whose schema holds it, at any
+  depth.
+- A `$ref` chain resolves to its first label. A use of a schema that is
+  only a `$ref` to another counts for that first label alone, and each
+  later link in the chain counts only where it is written.
+- A reference cycle is cut where a depth-first walk from the root of the
+  spec, taking references in the code-point order of their labels, meets a
+  reference to a schema it is still expanding.
+- A count stops at 1,000,000,000, and so does a sum of counts that share a
+  name.
+
+A schema's method rate is its count divided by `metrics.count.method`, the
+number of operations across all paths, and its path rate is its count
+divided by `metrics.count.path`, the number of paths. A schema is
+infrequent when its method rate is below 0.21 or its path rate is below
+0.41: either comparison is enough, and both are strict. The guide reads the
+rates twice:
+
+- An operation's candidate schemas come from its `200` and `201`
+  responses, each either the response schema or its array items. When
+  there are two, a frequent one drops out unless a literal segment of the
+  operation's own path names it.
+- When the schema chosen for an operation has a name that differs from the
+  entity name the path gives, and does not begin with it, the schema names
+  the entity if it is infrequent, or if its name is a literal segment of
+  some path in the spec. Otherwise the path's name wins.
+
+The rows of [`ts/test/ref-count.tsv`](../../ts/test/ref-count.tsv) pin the
+counts in both builds. In the `alias-chain` row, the paths `/a`, `/b`, and
+`/c` answer with `A`, `B`, and `C`, where `A` is a `$ref` to `B` and `B` a
+`$ref` to `C`. The counts are 1, 2, and 2; replacing each link in turn with
+the schema it names would give 1, 3, and 5.
+
 ## Example
 
 For the solar example, the `moon` entity classifies like this (abridged):

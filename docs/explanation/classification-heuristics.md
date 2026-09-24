@@ -62,19 +62,20 @@ definition and once more for every operation that uses it, and so does
 every reference inside that schema. An alias, a schema that is only a
 `$ref` to another, resolves to the end of its chain under its own name: a
 use of it counts for the alias alone, and each later link counts only where
-it is written. The guide divides that count by the number of methods and by
-the number of paths. Below 0.21 of the methods, or below 0.41 of the paths,
-the schema is rare enough to name the entity. A schema used more often
-yields to the name the path gives, unless the schema's own name is a
-literal segment of some path in the spec.
+it is written. The guide divides the count by the number of methods and by
+the number of paths, and a schema rare on either measure names the entity.
+A schema used more often yields to the name the path gives, unless the
+schema's own name is a literal segment of some path in the spec. The guide
+reference states the rule, with its thresholds, under [Component reference
+counts](../reference/guide.md#component-reference-counts).
 
 A recursive schema would make its own count infinite, so the count follows
 each reference until it returns to a schema already being expanded, and
 stops there. Where a cycle could close at more than one reference, the
-references are visited in name order, which makes the cut the same in the
-TypeScript and Go builds. A count also stops at one billion. A large spec
-can multiply its uses past that, and no rate needs a count anywhere near
-it.
+references are visited in a fixed order, which makes the cut the same in
+the TypeScript and Go builds. A count also has a ceiling: a large spec can
+multiply its uses past any number a build holds exactly, and no rate needs
+a count anywhere near it.
 
 The taxonomy spec is the case that shows why the count is per use. Its
 domain and kingdom collections both answer with one `PaginatedTaxa`
