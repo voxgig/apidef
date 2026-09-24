@@ -1,0 +1,27 @@
+# Generated from the API definition and overwritten on every build: do not
+# edit this file. Put customizations in the guide entry file, which includes
+# this one and overrides its defaults:
+#   guide.aontu
+
+guide: {
+  metrics: count: entity: 2
+  metrics: count: path: 2
+  metrics: count: method: 2
+
+  entity: check: {
+    path: "/things/{thing_id}/2fa/{code}/checks/{check_id}": {
+      rename: param: "check_id": *"id"
+      op: load: method: *GET
+    }
+  }
+
+  entity: file: {
+    path: "/things/{thing_id}/revisions/{recipe_revision}/packages/{package_ref}/revisions/{package_revision}/files/{file_name}": {
+      rename: param: "file_name": *"id"
+      rename: param: "package_ref": *"package_id"
+      rename: param: "recipe_revision": *"revision_id"
+      op: load: method: *GET
+    }
+  }
+
+}

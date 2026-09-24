@@ -57,6 +57,10 @@ var xrefRE = regexp.MustCompile(`/(components/schemas|definitions)/(.+)$`)
 
 var cmpXrefRE = regexp.MustCompile(`/(components/schemas|definitions)/`)
 
+var identifierStartRE = regexp.MustCompile(`^[A-Za-z_]`)
+
+var pathParamRE = regexp.MustCompile(`\{([^}]+)\}`)
+
 // BuildGuide constructs the guide that maps an OpenAPI spec to SDK entities.
 func BuildGuide(ctx *ApiDefContext) (map[string]any, error) {
 	folder := ctx.Opts.Folder
@@ -2371,6 +2375,29 @@ func updateParamRename(
 	newParamName string,
 	why string,
 ) {
+	// A name that cannot be an identifier is not an improvement on the one the
+	// specification gave. See docs/design/derived-names.md
+	if !identifierStartRE.MatchString(newParamName) {
+		return
+	}
+
+	// The clash is with what the path's OTHER parameters end up called: their
+	// rename if they have one, their canonical name if not.
+	for _, other := range sortedKeys(paramRename) {
+		if other != oldParamName && paramRename[other] == newParamName {
+			return
+		}
+	}
+	for _, m := range pathParamRE.FindAllStringSubmatch(path, -1) {
+		other := m[1]
+		if other == oldParamName {
+			continue
+		}
+		if paramRename[other] == nil && Canonize(other) == newParamName {
+			return
+		}
+	}
+
 	existingNewName, _ := paramRename[oldParamName].(string)
 	existingWhy, _ := whyParam[oldParamName].([]string)
 

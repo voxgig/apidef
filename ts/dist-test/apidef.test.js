@@ -208,6 +208,35 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
             node_assert_1.default.ok(names.includes('id') && !names.includes('thing_number'), pt.o + ' params ' + names.join(','));
         }
     });
+    // The Go port pins the same renames in TestGuideRenameGuards.
+    (0, node_test_1.test)('guide-rename-guards', async () => {
+        const folder = __dirname + '/../test/rename-guard';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'rename-guard', def: 'rename-guard-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: false,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        const paths = {};
+        for (const ent of Object.values(bres.guide.entity))
+            Object.assign(paths, ent.path);
+        const renames = (path) => Object.fromEntries(Object.entries(paths[path].rename?.param ?? {})
+            .map(([k, v]) => [k, v?.target ?? v]));
+        // Each `revisions` parent would rename its key to `revision_id`; the later one keeps its name.
+        node_assert_1.default.deepStrictEqual(renames('/things/{thing_id}/revisions/{recipe_revision}' +
+            '/packages/{package_ref}/revisions/{package_revision}/files/{file_name}'), { file_name: 'id', package_ref: 'package_id', recipe_revision: 'revision_id' });
+        // `2fa_id` is not an identifier, so `code` keeps its name.
+        node_assert_1.default.deepStrictEqual(renames('/things/{thing_id}/2fa/{code}/checks/{check_id}'), { check_id: 'id' });
+    });
     (0, node_test_1.test)('guide-verb-on-parent-edges', async () => {
         const folder = __dirname + '/../test/verb-edge';
         const build = await apidef_1.ApiDef.makeBuild({ folder });

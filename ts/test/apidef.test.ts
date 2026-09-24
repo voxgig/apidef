@@ -246,6 +246,46 @@ describe('apidef', () => {
   })
 
 
+  // The Go port pins the same renames in TestGuideRenameGuards.
+  test('guide-rename-guards', async () => {
+    const folder = __dirname + '/../test/rename-guard'
+    const build = await ApiDef.makeBuild({ folder })
+    const bres = await build(
+      { name: 'rename-guard', def: 'rename-guard-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: false,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const paths: any = {}
+    for (const ent of Object.values<any>(bres.guide.entity)) Object.assign(paths, ent.path)
+    const renames = (path: string) =>
+      Object.fromEntries(Object.entries<any>(paths[path].rename?.param ?? {})
+        .map(([k, v]) => [k, v?.target ?? v]))
+
+    // Each `revisions` parent would rename its key to `revision_id`; the later one keeps its name.
+    assert.deepStrictEqual(renames('/things/{thing_id}/revisions/{recipe_revision}' +
+      '/packages/{package_ref}/revisions/{package_revision}/files/{file_name}'),
+      { file_name: 'id', package_ref: 'package_id', recipe_revision: 'revision_id' })
+
+    // `2fa_id` is not an identifier, so `code` keeps its name.
+    assert.deepStrictEqual(renames('/things/{thing_id}/2fa/{code}/checks/{check_id}'),
+      { check_id: 'id' })
+  })
+
+
   test('guide-verb-on-parent-edges', async () => {
     const folder = __dirname + '/../test/verb-edge'
 

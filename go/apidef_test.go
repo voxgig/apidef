@@ -166,6 +166,67 @@ func TestOperationTransformVerbs(t *testing.T) {
 	}
 }
 
+// Mirrors the TS `guide-rename-guards` case.
+func TestGuideRenameGuards(t *testing.T) {
+	src, err := os.ReadFile("../ts/test/def/rename-guard-def.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := Parse("OpenAPI", string(src), map[string]string{"file": "rename-guard-def.json"})
+	if err != nil {
+		t.Fatalf("parse failed: %v", err)
+	}
+	ctx := &ApiDefContext{
+		Opts: ApiDefOptions{
+			Folder:    stageGuideEntry(t, t.TempDir(), "rename-guard-"),
+			OutPrefix: "rename-guard-",
+			Strategy:  "heuristic01",
+		},
+		Def:  parsed,
+		Note: map[string]any{},
+		Warn: MakeWarner("test", nil),
+		Work: map[string]any{},
+	}
+	guideResult, err := BuildGuide(ctx)
+	if err != nil {
+		t.Fatalf("guide build failed: %v", err)
+	}
+	guide, _ := guideResult["guide"].(map[string]any)
+	entities, _ := guide["entity"].(map[string]any)
+	paths := map[string]any{}
+	for _, name := range sortedKeys(entities) {
+		ent, _ := entities[name].(map[string]any)
+		epaths, _ := ent["path"].(map[string]any)
+		for p, pd := range epaths {
+			paths[p] = pd
+		}
+	}
+	renames := func(path string) map[string]any {
+		out := map[string]any{}
+		pd, _ := paths[path].(map[string]any)
+		rename, _ := pd["rename"].(map[string]any)
+		param, _ := rename["param"].(map[string]any)
+		for k, v := range param {
+			if vm, ok := v.(map[string]any); ok {
+				v = vm["target"]
+			}
+			out[k] = v
+		}
+		return out
+	}
+
+	got := renames("/things/{thing_id}/revisions/{recipe_revision}" +
+		"/packages/{package_ref}/revisions/{package_revision}/files/{file_name}")
+	want := map[string]any{"file_name": "id", "package_ref": "package_id", "recipe_revision": "revision_id"}
+	if !jsonEqual(got, want) {
+		t.Errorf("revisions renames = %v, want %v", got, want)
+	}
+	got = renames("/things/{thing_id}/2fa/{code}/checks/{check_id}")
+	if want := (map[string]any{"check_id": "id"}); !jsonEqual(got, want) {
+		t.Errorf("2fa renames = %v, want %v", got, want)
+	}
+}
+
 // A verb on an item selector is an ACTION on the parent entity, even when
 // its response has a schema of its own; the `<parent>_number` key is renamed
 // to `id` on the verb path as on the item path, and a nested collection is

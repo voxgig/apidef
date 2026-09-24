@@ -1,0 +1,31 @@
+{
+  "openapi": "3.0.0",
+  "info": { "title": "Rename clash", "version": "1.0.0" },
+  "servers": [ { "url": "https://api.example.com" } ],
+  "paths": {
+    "/things/{thing_id}/revisions/{recipe_revision}/packages/{package_ref}/revisions/{package_revision}/files/{file_name}": {
+      "get": {
+        "parameters": [
+          { "name": "thing_id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "recipe_revision", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "package_ref", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "package_revision", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "file_name", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "ok", "content": { "application/json": {
+          "schema": { "type": "object", "properties": { "id": { "type": "string" } } } } } } }
+      }
+    },
+    "/things/{thing_id}/2fa/{code}/checks/{check_id}": {
+      "get": {
+        "parameters": [
+          { "name": "thing_id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "code", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "check_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "ok", "content": { "application/json": {
+          "schema": { "type": "object", "properties": { "id": { "type": "string" } } } } } } }
+      }
+    }
+  }
+}
