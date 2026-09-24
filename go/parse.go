@@ -7,9 +7,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
-	"strconv"
 	"strings"
-	"unicode/utf16"
 	"unicode/utf8"
 
 	tabnas "github.com/tabnas/parser/go"
@@ -41,7 +39,7 @@ func parseOpenAPI(source string, meta map[string]string) (map[string]any, error)
 	var parsed map[string]any
 
 	// Use tabnas/yaml to parse (handles both JSON and YAML)
-	result, err := yaml.Parse(joinEscapedPairs(source))
+	result, err := yaml.Parse(source)
 	// tabnas/yaml returns insertion-ordered *tabnas.OrderedMap nodes;
 	// apidef works on plain maps, so flatten them back.
 	result = tabnas.Plainify(result)
@@ -401,48 +399,6 @@ func wellFormedUTF8(s string) string {
 		i += illFormedLen(s[i:])
 	}
 	return b.String()
-}
-
-var escapedHighSurrogateRE = regexp.MustCompile(`\\u[dD][89abAB]`)
-
-// tabnas/yaml decodes each `\u` escape alone, so an escaped surrogate pair
-// reads as two U+FFFD. In strict JSON every escape is inside a string, so the
-// pair can be written as the character it spells before the parse.
-func joinEscapedPairs(source string) string {
-	if !escapedHighSurrogateRE.MatchString(source) || !json.Valid([]byte(source)) {
-		return source
-	}
-	var b strings.Builder
-	inString := false
-	for i := 0; i < len(source); i++ {
-		c := source[i]
-		switch {
-		case c == '"':
-			inString = !inString
-		case inString && c == '\\':
-			if hi, lo, ok := escapedPair(source[i:]); ok {
-				b.WriteRune(utf16.DecodeRune(hi, lo))
-				i += 11
-				continue
-			}
-			b.WriteByte(c)
-			i++
-			c = source[i]
-		}
-		b.WriteByte(c)
-	}
-	return b.String()
-}
-
-func escapedPair(s string) (rune, rune, bool) {
-	if len(s) < 12 || s[1] != 'u' || s[6] != '\\' || s[7] != 'u' {
-		return 0, 0, false
-	}
-	hi, err1 := strconv.ParseUint(s[2:6], 16, 32)
-	lo, err2 := strconv.ParseUint(s[8:12], 16, 32)
-	ok := err1 == nil && err2 == nil && utf16.IsSurrogate(rune(hi)) && hi < 0xDC00 &&
-		0xDC00 <= lo && lo <= 0xDFFF
-	return rune(hi), rune(lo), ok
 }
 
 func illFormedLen(s string) int {
