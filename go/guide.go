@@ -565,8 +565,9 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 		"def":   def,
 		"guide": guide,
 		"work": map[string]any{
-			"pathmap": map[string]any{},
-			"entmap":  map[string]any{},
+			"pathmap":  map[string]any{},
+			"entmap":   map[string]any{},
+			"envelope": map[string]bool{},
 			"entity": map[string]any{
 				"count": map[string]any{
 					"seen":       0,
@@ -664,6 +665,10 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 	allMethods := selectAllMethods(ctx, data)
 
 	for _, mdesc := range allMethods {
+		measureEnvelope(data, mdesc)
+	}
+
+	for _, mdesc := range allMethods {
 		resolveEntityComponent(data, mdesc)
 		resolveEntityName(ctx, data, mdesc)
 		renameParams(ctx, data, mdesc)
@@ -738,6 +743,28 @@ func selectAllMethods(ctx *ApiDefContext, data map[string]any) []map[string]any 
 	return methods
 }
 
+// measureEnvelope mirrors MeasureEnvelope in ts/src/guide/heuristic01.ts.
+func measureEnvelope(data map[string]any, mdesc map[string]any) {
+	work := data["work"].(map[string]any)
+	envelope := work["envelope"].(map[string]bool)
+	pathStr, _ := mdesc["path"].(string)
+	pathmap, _ := work["pathmap"].(map[string]any)
+	pathEntry, _ := pathmap[pathStr].(map[string]any)
+	parts, _ := pathEntry["parts"].([]string)
+	opname := methodOpname(mdesc, matchEntityPath(parts), &[]string{})
+
+	responses, _ := mdesc["responses"].(map[string]any)
+	for _, schema := range successSchemas(responses) {
+		xref, ok := schema["x-ref"].(string)
+		if !ok {
+			continue
+		}
+		unwraps := opname != "" && envelopeItemRef(schema, opname) != ""
+		prior, seen := envelope[xref]
+		envelope[xref] = (!seen || prior) && unwraps
+	}
+}
+
 // resolveEntityComponent finds potential schema refs and determines entity component.
 func resolveEntityComponent(data map[string]any, mdesc map[string]any) {
 	guide := data["guide"].(map[string]any)
@@ -761,7 +788,8 @@ func resolveEntityComponent(data map[string]any, mdesc map[string]any) {
 
 	opname := methodOpname(mdesc, matchEntityPath(parts), &[]string{})
 
-	origxrefs := findPotentialSchemaRefs(pathStr, methodName, responses, opname, &whyCmp)
+	envelope, _ := work["envelope"].(map[string]bool)
+	origxrefs := findPotentialSchemaRefs(pathStr, methodName, responses, opname, envelope, &whyCmp)
 	var origxrefMaps []map[string]any
 	for _, val := range origxrefs {
 		origxrefMaps = append(origxrefMaps, map[string]any{"val": val})
@@ -2233,6 +2261,18 @@ func getRequestBodySchema(requestBody map[string]any) map[string]any {
 	return nil
 }
 
+// successSchemas mirrors ts/src/guide/heuristic01.ts.
+func successSchemas(responses map[string]any) []map[string]any {
+	var schemas []map[string]any
+	for _, rescode := range []string{"200", "201"} {
+		resdef, _ := responses[rescode].(map[string]any)
+		if schema := getResponseSchema(resdef); schema != nil {
+			schemas = append(schemas, schema)
+		}
+	}
+	return schemas
+}
+
 // getResponseSchema extracts schema from a response definition.
 func getResponseSchema(response map[string]any) map[string]any {
 	if response == nil {
@@ -2433,26 +2473,14 @@ func makeMethodEntityDesc(desc map[string]any) map[string]any {
 
 // findPotentialSchemaRefs finds x-ref values in responses.
 func findPotentialSchemaRefs(pathStr string, methodName string, responses map[string]any,
-	opname string, why *[]string) []string {
+	opname string, envelope map[string]bool, why *[]string) []string {
 	var xrefs []string
-	if responses == nil {
-		return xrefs
-	}
-	rescodes := []string{"200", "201"}
-	for _, rescode := range rescodes {
-		resdef, ok := responses[rescode].(map[string]any)
-		if !ok {
-			continue
-		}
-		schema := getResponseSchema(resdef)
-		if schema == nil {
-			continue
-		}
+	for _, schema := range successSchemas(responses) {
 		if xref, ok := schema["x-ref"].(string); ok {
 			// An envelope component names its wrapping, not the entity: the
 			// component it carries takes its place.
 			itemref := ""
-			if opname != "" {
+			if opname != "" && envelope[xref] {
 				itemref = envelopeItemRef(schema, opname)
 			}
 			if itemref != "" {

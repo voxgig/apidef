@@ -58,17 +58,28 @@ with it, agrees with the path, and the path's name stands.
 
 A response schema that is an envelope is judged by what it carries, never
 by its own name. An envelope wraps the record in its one structured
-property: for a list operation, an array of records beside paging fields,
-like `{ items: [Observation], page, pageSize, total }`; for a single-item
-operation, a lone property like `{ data: Item }`. The guide unwraps the
-envelope and applies the rule below to the record's schema, with that
-schema's count and that schema's name. It finds the envelope with the test
-the field transform uses to unwrap a response, so an entity takes its name
-from the record its fields come from. Two further conditions keep a record
-with one nested object from passing for an envelope: an envelope declares
-no `id`, and a single-item envelope holds nothing beside the item. A
-response that spells its envelope inline offers no component name, so the
-rule leaves it alone.
+property: for a list operation, an array of records beside nothing but
+paging, like `{ items: [Observation], page, pageSize, total }`; for a
+single-item operation, a lone property like `{ data: Item }`. The guide
+unwraps the envelope and applies the rule below to the record's schema,
+with that schema's count and that schema's name. It starts from the test
+the field transform uses to unwrap a response, so an entity named after a
+record takes its fields from that record too.
+
+The naming test is narrower than the field transform's, which accepts any
+schema whose only structured property is one list or one nested object.
+An envelope declares no `id`, and a single-item envelope holds nothing
+beside the item. A page holds nothing beside its records but paging: a
+count or total, a page number or size, a limit or offset, a cursor, a next
+or previous link, a has-more flag, or the `object` and `url` of a list
+object. Any other property is data, such as the totals of a test report
+beside its suites or a balance beside a list of errors, and it makes the
+schema a record that keeps its own name. Being an envelope also belongs to
+the schema rather than to one operation. When any operation that answers
+with the schema would not unwrap it, such as a create that returns the
+whole list of members, no operation unwraps it for naming, so the
+operations on one resource stay under one name. A response that spells its
+envelope inline offers no component name, so the rule leaves it alone.
 
 Each reference to a component schema counts once per use in the resolved
 spec, the spec with every `$ref` replaced by the schema it names. A schema

@@ -4,9 +4,24 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 6
-  metrics: count: path: 8
-  metrics: count: method: 10
+  metrics: count: entity: 8
+  metrics: count: path: 10
+  metrics: count: method: 13
+
+  entity: census: {
+    path: "/{year}/census": {
+      op: list: method: *GET
+      op: list: transform: res: *("`body.records`")|top
+    }
+  }
+
+  entity: crew_member: {
+    path: "/{year}/crew/{id}/member": {
+      op: create: method: *POST
+      op: list: method: *GET
+      op: list: transform: res: *("`body.members`")|top
+    }
+  }
 
   entity: domain: {
     path: "/{year}/domain": {

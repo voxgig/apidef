@@ -386,6 +386,8 @@ func TestGuideEnvelope(t *testing.T) {
 		got[name] = strings.Join(sortedKeys(ops), "/")
 	}
 	want := map[string]string{
+		"census":      "list",
+		"crew_member": "create/list",
 		"domain":      "list/load/patch",
 		"fossil":      "load",
 		"kingdom":     "create/list/load",

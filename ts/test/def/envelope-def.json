@@ -11,6 +11,10 @@
  "/{year}/observation":{"get":{"operationId":"listObservations","parameters":[{"$ref":"#/components/parameters/Year"}],"responses":{"200":{"description":"page","content":{"application/json":{"schema":{"$ref":"#/components/schemas/PaginatedObservations"}}}}}}},
  "/{year}/sample/{id}":{"get":{"operationId":"getSample","parameters":[{"$ref":"#/components/parameters/Year"},{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"one","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ResultEnvelope"}}}}}}},
  "/{year}/site/{id}":{"get":{"operationId":"getSite","parameters":[{"$ref":"#/components/parameters/Year"},{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"one","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Site"}}}}}}},
+ "/{year}/census":{"get":{"operationId":"getCensus","parameters":[{"$ref":"#/components/parameters/Year"}],"responses":{"200":{"description":"one","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Census"}}}}}}},
+ "/{year}/crew/{id}/member":{
+  "get":{"operationId":"listCrewMembers","parameters":[{"$ref":"#/components/parameters/Year"},{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"page","content":{"application/json":{"schema":{"$ref":"#/components/schemas/CrewMembers"}}}}}},
+  "post":{"operationId":"addCrewMembers","parameters":[{"$ref":"#/components/parameters/Year"},{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],"requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/CrewMembers"}}}},"responses":{"201":{"description":"added","content":{"application/json":{"schema":{"$ref":"#/components/schemas/CrewMembers"}}}}}}},
  "/{year}/fossil/{id}":{"get":{"operationId":"getFossil","parameters":[{"$ref":"#/components/parameters/Year"},{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"one","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Fossil"}}}}}}}},
 "components":{
  "parameters":{
@@ -27,5 +31,9 @@
   "Sample":{"type":"object","properties":{"id":{"type":"string"},"label":{"type":"string"}}},
   "ResultEnvelope":{"type":"object","properties":{"data":{"$ref":"#/components/schemas/Sample"}}},
   "Site":{"type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"}}},
+  "Specimen":{"type":"object","properties":{"label":{"type":"string"},"tally":{"type":"integer"}}},
+  "Census":{"type":"object","properties":{"surveyed":{"type":"integer"},"total":{"type":"integer"},"records":{"type":"array","items":{"$ref":"#/components/schemas/Specimen"}}}},
+  "CrewMembership":{"type":"object","properties":{"role":{"type":"string"},"user":{"type":"string"}}},
+  "CrewMembers":{"type":"object","properties":{"members":{"type":"array","items":{"$ref":"#/components/schemas/CrewMembership"}}}},
   "Collector":{"type":"object","properties":{"name":{"type":"string"}}},
   "Fossil":{"type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"},"collector":{"$ref":"#/components/schemas/Collector"}}}}}}

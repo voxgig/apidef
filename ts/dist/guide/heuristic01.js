@@ -52,6 +52,7 @@ async function heuristic01(ctx) {
             ]
         },
         { select: selectCmpXrefs, apply: MeasureRef },
+        { select: selectAllMethods, apply: MeasureEnvelope },
         {
             select: selectAllMethods, apply: [
                 ResolveEntityComponent,
@@ -121,6 +122,7 @@ function Prepare(spec) {
         work: {
             pathmap: {},
             entmap: {},
+            envelope: {},
             entity: {
                 count: {
                     seen: 0,
@@ -202,6 +204,22 @@ function MeasureRef(spec) {
         }
     }
 }
+// Being an envelope belongs to the component, not to one operation: it names
+// through the record it carries only when every operation answering with it
+// unwraps it, so the operations on one resource are never split between the
+// record's name and the envelope's.
+function MeasureEnvelope(spec) {
+    const work = spec.data.work;
+    const mdesc = spec.node.val;
+    const opname = methodOpname(mdesc, matchEntityPath(work.pathmap[mdesc.path].parts), []);
+    for (const schema of successSchemas(mdesc.responses)) {
+        const xref = schema['x-ref'];
+        if (null != xref) {
+            const unwraps = null != opname && null != (0, utility_1.envelopeItemRef)(schema, opname);
+            work.envelope[xref] = false !== work.envelope[xref] && unwraps;
+        }
+    }
+}
 function selectAllMethods(_source, spec) {
     const ctx = spec.ctx;
     let caught = { methods: [] };
@@ -253,7 +271,7 @@ function ResolveEntityComponent(spec) {
     let why_cmp = [];
     let responses = methodDef.responses;
     const opname = methodOpname(methodDef, matchEntityPath(parts), []);
-    let origxrefs = findPotentialSchemaRefs(pathStr, methodName, responses, opname, why_cmp).map(val => ({
+    let origxrefs = findPotentialSchemaRefs(pathStr, methodName, responses, opname, work.envelope, why_cmp).map(val => ({
         val
     }));
     let cmpxrefs = origxrefs
@@ -1008,6 +1026,13 @@ function getRequestBodySchema(requestBody) {
     return requestBody?.content?.['application/json']?.schema ??
         requestBody?.schema;
 }
+// The response schemas an operation answers with when it succeeds, in the
+// order they are tried.
+function successSchemas(responses) {
+    return ['200', '201']
+        .map((rescode) => getResponseSchema(responses?.[rescode]))
+        .filter((schema) => null != schema);
+}
 function getResponseSchema(response) {
     return response?.content?.['application/json']?.schema ??
         response?.schema;
@@ -1325,30 +1350,24 @@ function makeMethodEntityDesc(desc) {
     };
     return ment;
 }
-function findPotentialSchemaRefs(pathStr, methodName, responses, opname, why) {
+function findPotentialSchemaRefs(pathStr, methodName, responses, opname, envelope, why) {
     const xrefs = [];
-    if (null == responses) {
-        return xrefs;
-    }
-    const rescodes = ['200', '201'];
-    for (let rescode of rescodes) {
-        const schema = getResponseSchema(responses[rescode]);
-        if (null != schema) {
-            if (null != schema['x-ref']) {
-                // An envelope component names its wrapping, not the entity: the
-                // component it carries takes its place.
-                const itemref = null == opname ? null : (0, utility_1.envelopeItemRef)(schema, opname);
-                if (null != itemref) {
-                    why.push('envelope=' + cmpRefName(schema['x-ref']));
-                    xrefs.push(itemref);
-                }
-                else {
-                    xrefs.push(schema['x-ref']);
-                }
+    for (const schema of successSchemas(responses)) {
+        if (null != schema['x-ref']) {
+            // An envelope component names its wrapping, not the entity: the
+            // component it carries takes its place.
+            const itemref = null == opname || true !== envelope[schema['x-ref']] ? null :
+                (0, utility_1.envelopeItemRef)(schema, opname);
+            if (null != itemref) {
+                why.push('envelope=' + cmpRefName(schema['x-ref']));
+                xrefs.push(itemref);
             }
-            else if ('array' === schema.type && null != schema.items?.['x-ref']) {
-                xrefs.push(schema.items?.['x-ref']);
+            else {
+                xrefs.push(schema['x-ref']);
             }
+        }
+        else if ('array' === schema.type && null != schema.items?.['x-ref']) {
+            xrefs.push(schema.items?.['x-ref']);
         }
     }
     (0, utility_2.debugpath)(pathStr, methodName, 'POTENTIAL-SCHEMA-REFS', xrefs);

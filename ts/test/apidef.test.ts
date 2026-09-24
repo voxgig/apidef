@@ -339,10 +339,11 @@ describe('apidef', () => {
   })
 
 
-  // An envelope never names its entity; the component it carries is judged
-  // instead. The shared page wrapper is rare here, yet each list keeps its
-  // path's name because the item it carries is frequent. A record with one
-  // nested object is no envelope.
+  // An envelope never names its entity; the item it carries is judged instead,
+  // so each list of the rare shared page keeps its path's name. No envelope:
+  // a record with one nested object, a list beside data other than paging
+  // (census), a wrapper some operation answering with it does not unwrap
+  // (crew members, whose create returns the whole list).
   test('guide-envelope', async () => {
     const folder = __dirname + '/../test/envelope'
 
@@ -372,6 +373,8 @@ describe('apidef', () => {
     const ops = Object.fromEntries(Object.keys(entities).sort()
       .map((name) => [name, Object.keys(entities[name].op ?? {}).sort()]))
     assert.deepStrictEqual(ops, {
+      census: ['list'],
+      crew_member: ['create', 'list'],
       domain: ['list', 'load', 'update'],
       fossil: ['load'],
       kingdom: ['create', 'list', 'load'],

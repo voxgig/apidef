@@ -20,3 +20,13 @@ schema	opname	expected
 {"type":"object","properties":{}}	load	
 {"type":"object"}	list	
 {"type":"array","items":{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/components/schemas/A"}}	list	
+{"type":"object","properties":{"Balance":{"type":"number"},"CurrencyIso":{"type":"string"},"ResultCode":{"type":"integer"},"ErrorCodes":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/definitions/Error"}}}}	list	
+{"type":"object","properties":{"count":{"type":"integer"},"uniques":{"type":"integer"},"clones":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/components/schemas/traffic"}}}}	list	
+{"type":"object","properties":{"default_level":{"type":"string","enum":["public","internal"]},"accessible_repositories":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/components/schemas/nullable-simple-repository"}}}}	list	
+{"type":"object","properties":{"total_time":{"type":"integer"},"total_count":{"type":"integer"},"success_count":{"type":"integer"},"test_suites":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/definitions/TestSuiteEntity"}}}}	list	
+{"type":"object","properties":{"reference":{"type":"string"},"revisions":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/definitions/Revision"}}}}	list	
+{"type":"object","properties":{"count":{"type":"integer"},"next":{"type":"string"},"previous":{"type":"string"},"results":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/components/schemas/Pet"}}}}	list	#/components/schemas/Pet
+{"type":"object","properties":{"Items":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/components/schemas/Pet"}},"PageSize":{"type":"integer"},"Total_Count":{"type":"integer"},"next-cursor":{"type":"string"},"has_more":{"type":"boolean"}}}	list	#/components/schemas/Pet
+{"type":"object","properties":{"members":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/definitions/OrganizationTeamMembership"}}}}	list	#/definitions/OrganizationTeamMembership
+{"type":"object","properties":{"members":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/definitions/OrganizationTeamMembership"}}}}	create	
+{"type":"object","properties":{"total":{"type":"integer"},"data":{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/components/schemas/Item"}}}	load	

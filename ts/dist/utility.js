@@ -1328,10 +1328,24 @@ function envelopeProp(resprops, opname) {
     }
     return key;
 }
+// What a page may hold beside its records, compared without case, `_` or
+// `-`. Any other property is data, which makes the component a record.
+const ENVELOPE_PAGING_PROPS = new Set([
+    'count', 'total', 'totalcount', 'totalhits', 'totalitems', 'totalpages',
+    'totalresults', 'page', 'pages', 'pagecount', 'pagenumber', 'pagesize',
+    'perpage', 'limit', 'offset', 'cursor', 'next', 'nextcursor', 'nextpage',
+    'nextpagetoken', 'nexttoken', 'previous', 'prev', 'previouscursor',
+    'prevcursor', 'previouspage', 'prevpage', 'hasmore', 'hasnext',
+    'hasprevious', 'object', 'url',
+]);
+function isEnvelopePagingProp(name) {
+    return ENVELOPE_PAGING_PROPS.has(name.toLowerCase().replace(/[_-]/g, ''));
+}
 // The component a response envelope carries: the resolved reference of the
 // record envelopeProp unwraps to. Narrower than envelopeProp, since a record
-// with one nested object passes that test too: an envelope has no `id`, and a
-// single-item envelope holds nothing beside the item.
+// with one structured property passes that test too: an envelope has no `id`,
+// a page holds nothing beside its records but paging, and a single-item
+// envelope holds nothing beside the item.
 function envelopeItemRef(schema, opname) {
     const props = schema?.properties;
     const key = envelopeProp(props, opname);
@@ -1340,7 +1354,8 @@ function envelopeItemRef(schema, opname) {
     }
     const prop = props[key];
     const islist = propIsList(prop);
-    if (!islist && 1 !== (0, struct_1.keysof)(props).length) {
+    const rest = (0, struct_1.keysof)(props).filter((k) => k !== key);
+    if (islist ? !rest.every(isEnvelopePagingProp) : 0 < rest.length) {
         return null;
     }
     const item = islist ? prop.items : prop;

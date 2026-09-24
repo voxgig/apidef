@@ -1510,8 +1510,26 @@ func envelopeProp(resprops map[string]any, opname string) string {
 	return key
 }
 
-// envelopeItemRef mirrors ts/src/utility.ts: an envelope has no `id`, and a
-// single-item envelope holds nothing beside the item.
+// ENVELOPE_PAGING_PROPS mirrors ts/src/utility.ts.
+var ENVELOPE_PAGING_PROPS = map[string]bool{
+	"count": true, "total": true, "totalcount": true, "totalhits": true, "totalitems": true,
+	"totalpages": true, "totalresults": true, "page": true, "pages": true, "pagecount": true,
+	"pagenumber": true, "pagesize": true, "perpage": true, "limit": true, "offset": true,
+	"cursor": true, "next": true, "nextcursor": true, "nextpage": true, "nextpagetoken": true,
+	"nexttoken": true, "previous": true, "prev": true, "previouscursor": true,
+	"prevcursor": true, "previouspage": true, "prevpage": true, "hasmore": true,
+	"hasnext": true, "hasprevious": true, "object": true, "url": true,
+}
+
+var envelopePagingSepRE = regexp.MustCompile(`[_-]`)
+
+func isEnvelopePagingProp(name string) bool {
+	return ENVELOPE_PAGING_PROPS[envelopePagingSepRE.ReplaceAllString(strings.ToLower(name), "")]
+}
+
+// envelopeItemRef mirrors ts/src/utility.ts: an envelope has no `id`, a page
+// holds nothing beside its records but paging, and a single-item envelope
+// holds nothing beside the item.
 func envelopeItemRef(schema any, opname string) string {
 	sch, _ := schema.(map[string]any)
 	props, _ := sch["properties"].(map[string]any)
@@ -1525,8 +1543,10 @@ func envelopeItemRef(schema any, opname string) string {
 
 	prop, _ := props[key].(map[string]any)
 	islist, _ := propIsList(prop)
-	if !islist && len(props) != 1 {
-		return ""
+	for _, k := range sortedKeys(props) {
+		if k != key && (!islist || !isEnvelopePagingProp(k)) {
+			return ""
+		}
 	}
 
 	item := prop
