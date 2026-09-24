@@ -66,6 +66,32 @@ function writeFileSyncWarn(warn: Warner, fs: any, path: string, text: string) {
 }
 
 
+// Before `.aon` was retired apidef wrote each of its files under that
+// extension, so the `.aon` twin of a file it writes as `.aontu` is its own.
+function removeLegacyAon(fs: any, log: any, file: string): boolean {
+  const legacy = file.replace(/\.aontu$/, '.aon')
+  if (legacy === file || !fs.existsSync(legacy)) {
+    return false
+  }
+
+  try {
+    fs.unlinkSync(legacy)
+    log?.info?.({
+      point: 'legacy-aon', file: legacy,
+      note: 'removed ' + relativizePath(legacy) + ', now written as .aontu',
+    })
+    return true
+  }
+  catch (err: any) {
+    log?.warn?.({
+      point: 'legacy-aon-failed', file: legacy, err,
+      note: 'could not remove ' + relativizePath(legacy) + ': ' + err?.message,
+    })
+    return false
+  }
+}
+
+
 
 function getdlog(
   tagin?: string,
@@ -1817,6 +1843,7 @@ export {
   debugpathOn,
   findPathsWithPrefix,
   writeFileSyncWarn,
+  removeLegacyAon,
   warnOnError,
   relativizePath,
   getModelPath,

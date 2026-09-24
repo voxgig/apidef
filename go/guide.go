@@ -94,6 +94,7 @@ func BuildGuide(ctx *ApiDefContext) (map[string]any, error) {
 		return nil, &GuideErrors{Errs: []error{fmt.Errorf("failed to write base guide %s: %w",
 			RelativizePath(baseGuideFile), err)}}
 	}
+	removeLegacyAon(ctx.Log, baseGuideFile)
 
 	guidePath := filepath.Join(guideDir, prefix+"guide.aontu")
 

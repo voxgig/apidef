@@ -175,6 +175,32 @@ function meta(folder) {
         node_assert_1.default.strictEqual(read(folder, moon), generated);
         node_assert_1.default.strictEqual(Fs.existsSync(Path.join(folder, orphan)), false);
     });
+    // A project generated before `.aon` was retired keeps apidef's `.aon`
+    // files; only the twins of files written now are apidef's to remove.
+    (0, node_test_1.test)('upgrade-removes-legacy-aon-twins', async () => {
+        const folder = stage();
+        const legacy = [
+            'api/' + PREFIX + 'api-info.aon',
+            'entity/' + PREFIX + 'entity-index.aon',
+            'flow/' + PREFIX + 'BasicMoonFlow.aon',
+            'flow/' + PREFIX + 'BasicPlanetFlow.aon',
+            'flow/' + PREFIX + 'flow-index.aon',
+            'guide/' + PREFIX + 'base-guide.aon',
+        ];
+        const kept = [
+            'api/notes.aon',
+            'flow/' + PREFIX + 'BasicCometFlow.aon',
+            'guide/' + PREFIX + 'guide.aon',
+        ];
+        for (const file of [...legacy, ...kept]) {
+            Fs.mkdirSync(Path.dirname(Path.join(folder, file)), { recursive: true });
+            Fs.writeFileSync(Path.join(folder, file), '# old\n');
+        }
+        const res = await generate(folder);
+        node_assert_1.default.strictEqual(res.ok, true, String(res.err?.message));
+        node_assert_1.default.deepStrictEqual(legacy.filter((file) => Fs.existsSync(Path.join(folder, file))), []);
+        node_assert_1.default.deepStrictEqual(kept.filter((file) => Fs.existsSync(Path.join(folder, file))), kept);
+    });
     (0, node_test_1.test)('warnings-file-is-written-on-success', async () => {
         const folder = stage('guide: entity: planet: path: "/api/planet": op: frob: method: "POST"');
         const res = await inProject(folder, () => generate(folder));

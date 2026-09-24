@@ -32,6 +32,7 @@ import {
   debugpathOn,
   formatJSONIC,
   relativizePath,
+  removeLegacyAon,
 } from '../utility'
 
 
@@ -442,7 +443,9 @@ async function buildBaseGuide(ctx: ApiDefContext) {
 
   const guidefolder = Path.join(ctx.opts.folder, 'guide')
   ctx.fs.mkdirSync(guidefolder, { recursive: true })
-  ctx.fs.writeFileSync(Path.join(guidefolder, guideprefix + 'base-guide.aontu'), guideSrc)
+  const basepath = Path.join(guidefolder, guideprefix + 'base-guide.aontu')
+  ctx.fs.writeFileSync(basepath, guideSrc)
+  removeLegacyAon(ctx.fs, ctx.log, basepath)
 }
 
 

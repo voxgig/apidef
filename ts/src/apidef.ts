@@ -60,6 +60,7 @@ import {
   sanitizeSlug,
   slugToPascalCase,
   writeFileSyncWarn,
+  removeLegacyAon,
   relativizePath,
   getModelPath,
   VALID_CANON,
@@ -88,10 +89,24 @@ import type { OperationFacts, OperationSelector, ResolvedSpec } from './resolved
 
 import { makeEntityBuilder } from './builder/entity'
 import { gcEntityFiles } from './builder/entity/entity'
-import { makeFlowBuilder } from './builder/flow'
+import { makeFlowBuilder, flowFileBases } from './builder/flow'
 
 // Log non-fatal wierdness.
 const dlog = getdlog('apidef', __filename)
+
+
+// The model files the builders write besides the entity records.
+function ownModelFiles(apimodel: any, outprefix: string | undefined): string[] {
+  const prefix = null == outprefix ? '' : outprefix
+  const flows = Object.values(apimodel?.main?.[KIT]?.flow ?? {})
+  const bases = flowFileBases(flows.map((flow: any) => String(flow.name)))
+  return [
+    'api/' + prefix + 'api-info.aontu',
+    'entity/' + prefix + 'entity-index.aontu',
+    ...Object.values(bases).map((base) => 'flow/' + prefix + base + '.aontu'),
+    'flow/' + prefix + 'flow-index.aontu',
+  ]
+}
 
 
 function warningsFileText(history: any[]): string {
@@ -339,6 +354,10 @@ function ApiDef(opts: ApiDefOptions) {
       }
       catch (err: any) {
         log.warn({ point: 'entity-gc-failed', err, note: String(err?.message) })
+      }
+
+      for (const file of ownModelFiles(ctx.apimodel, opts.outprefix)) {
+        removeLegacyAon(fs, log, Path.join(opts.folder as string, file))
       }
 
       const hasWarnings = 0 < warn.history.length

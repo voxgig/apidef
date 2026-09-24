@@ -106,7 +106,12 @@ the migration below, while the base guide is overwritten on every run.
 A project from before the `.aontu` rename still works: a
 `<outprefix>guide.aon` entry file is rewritten to `.aontu`, with its includes,
 on the first run, and a bare `@"<outprefix>base-guide.aontu"` include gains its
-`./` the same way.
+`./` the same way. The `.aon` files apidef itself wrote are removed as their
+`.aontu` successors are written: the base guide, `api/<outprefix>api-info.aon`,
+`entity/<outprefix>entity-index.aon`, each current flow file and
+`flow/<outprefix>flow-index.aon`, and an entity record written as `.aon` is
+collected with the orphaned entity files. Other `.aon` files in those folders
+are left alone.
 
 ## Control flags (`ctrl.step`)
 

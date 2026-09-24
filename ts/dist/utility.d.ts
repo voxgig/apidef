@@ -6,6 +6,7 @@ declare function makeWarner(spec: {
     log: Log;
 }): Warner;
 declare function writeFileSyncWarn(warn: Warner, fs: any, path: string, text: string): void;
+declare function removeLegacyAon(fs: any, log: any, file: string): boolean;
 declare function getdlog(tagin?: string, filepath?: string): ((...args: any[]) => void) & {
     tag: string;
     file: string;
@@ -79,4 +80,4 @@ declare function scanUntaggedUnion(schema: any, depth?: number, seen?: Set<any>)
 };
 declare function closedBodyTransform(schema: any): Record<string, string> | null;
 declare function firstSentence(text: string): string;
-export { nom, getdlog, loadFile, formatJsonSrc, depluralize, setCustomPlurals, clearCustomPlurals, find, capture, pathMatch, makeWarner, formatJSONIC, validator, VALID_CANON, CANON_ONE, canonize, canonizeField, canonizeCmpName, stripSchemaNamespace, sanitizeSlug, slugToPascalCase, transliterate, cleanComponentName, guideActive, authExchangeOp, specSecuredByDefault, ensureMinEntityName, inferFieldType, normalizeFieldName, humanTitle, prefixLeadingDigit, debugpath, debugpathOn, findPathsWithPrefix, writeFileSyncWarn, warnOnError, relativizePath, getModelPath, sortedKeys, sortedEntries, isEntityWrapperProp, envelopeProp, envelopeItemRef, closedBodyTransform, untaggedUnionBranches, scanUntaggedUnion, firstSentence, resplitFromCmp, };
+export { nom, getdlog, loadFile, formatJsonSrc, depluralize, setCustomPlurals, clearCustomPlurals, find, capture, pathMatch, makeWarner, formatJSONIC, validator, VALID_CANON, CANON_ONE, canonize, canonizeField, canonizeCmpName, stripSchemaNamespace, sanitizeSlug, slugToPascalCase, transliterate, cleanComponentName, guideActive, authExchangeOp, specSecuredByDefault, ensureMinEntityName, inferFieldType, normalizeFieldName, humanTitle, prefixLeadingDigit, debugpath, debugpathOn, findPathsWithPrefix, writeFileSyncWarn, removeLegacyAon, warnOnError, relativizePath, getModelPath, sortedKeys, sortedEntries, isEntityWrapperProp, envelopeProp, envelopeItemRef, closedBodyTransform, untaggedUnionBranches, scanUntaggedUnion, firstSentence, resplitFromCmp, };

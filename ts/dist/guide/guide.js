@@ -303,7 +303,9 @@ async function buildBaseGuide(ctx) {
     ctx.note.guide = { base: guideSrc };
     const guidefolder = node_path_1.default.join(ctx.opts.folder, 'guide');
     ctx.fs.mkdirSync(guidefolder, { recursive: true });
-    ctx.fs.writeFileSync(node_path_1.default.join(guidefolder, guideprefix + 'base-guide.aontu'), guideSrc);
+    const basepath = node_path_1.default.join(guidefolder, guideprefix + 'base-guide.aontu');
+    ctx.fs.writeFileSync(basepath, guideSrc);
+    (0, utility_1.removeLegacyAon)(ctx.fs, ctx.log, basepath);
 }
 // The entry file a project writes once and owns; the CLI prints it.
 function guideEntrySource(guideprefix) {

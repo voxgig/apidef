@@ -1459,6 +1459,36 @@ func WriteFileWarn(warn Warner, path string, text string) {
 	}
 }
 
+// Before `.aon` was retired apidef wrote each of its files under that
+// extension, so the `.aon` twin of a file it writes as `.aontu` is its own.
+func removeLegacyAon(log Logger, file string) bool {
+	if !strings.HasSuffix(file, ".aontu") {
+		return false
+	}
+	legacy := strings.TrimSuffix(file, ".aontu") + ".aon"
+	if _, err := os.Stat(legacy); err != nil {
+		return false
+	}
+
+	if err := os.Remove(legacy); err != nil {
+		if log != nil {
+			log.Warn(map[string]any{
+				"point": "legacy-aon-failed", "file": legacy, "err": err.Error(),
+				"note": "could not remove " + RelativizePath(legacy) + ": " + err.Error(),
+			})
+		}
+		return false
+	}
+
+	if log != nil {
+		log.Info(map[string]any{
+			"point": "legacy-aon", "file": legacy,
+			"note": "removed " + RelativizePath(legacy) + ", now written as .aontu",
+		})
+	}
+	return true
+}
+
 // FindPathsWithPrefix counts paths that start with a given prefix.
 func FindPathsWithPrefix(ctx *ApiDefContext, pathStr string, strict bool, param bool) int {
 	if !param {

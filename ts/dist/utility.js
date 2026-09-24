@@ -37,6 +37,7 @@ exports.debugpath = debugpath;
 exports.debugpathOn = debugpathOn;
 exports.findPathsWithPrefix = findPathsWithPrefix;
 exports.writeFileSyncWarn = writeFileSyncWarn;
+exports.removeLegacyAon = removeLegacyAon;
 exports.warnOnError = warnOnError;
 exports.relativizePath = relativizePath;
 exports.getModelPath = getModelPath;
@@ -86,6 +87,29 @@ function writeFileSyncWarn(warn, fs, path, text) {
             err,
             note: 'Unable to save file: ' + relativizePath(path)
         });
+    }
+}
+// Before `.aon` was retired apidef wrote each of its files under that
+// extension, so the `.aon` twin of a file it writes as `.aontu` is its own.
+function removeLegacyAon(fs, log, file) {
+    const legacy = file.replace(/\.aontu$/, '.aon');
+    if (legacy === file || !fs.existsSync(legacy)) {
+        return false;
+    }
+    try {
+        fs.unlinkSync(legacy);
+        log?.info?.({
+            point: 'legacy-aon', file: legacy,
+            note: 'removed ' + relativizePath(legacy) + ', now written as .aontu',
+        });
+        return true;
+    }
+    catch (err) {
+        log?.warn?.({
+            point: 'legacy-aon-failed', file: legacy, err,
+            note: 'could not remove ' + relativizePath(legacy) + ': ' + err?.message,
+        });
+        return false;
     }
 }
 function getdlog(tagin, filepath) {
