@@ -212,9 +212,12 @@ the model still knows what the API contains and the next person can see
 exactly what was left out and turn it back on.
 
 `active` is declared `active?: boolean` — OPTIONAL, with no default — and
-the base guide writes no `active` at all. That empty slot is what lets a
-project put a DEFAULT there and invert the rule from a denylist into an
-allowlist:
+the base guide writes it only for an entity the heuristic switches off. An
+entity whose every operation is an access-token exchange (a `POST` that clears
+the spec's `security` and answers with a token) gets the default
+`active: *false`, under a comment naming the reason. Every other entity leaves
+the slot empty, and that is what lets a project put a DEFAULT there and invert
+the rule from a denylist into an allowlist:
 
 ```jsonic
 @"@voxgig/apidef/model/guide.aontu"

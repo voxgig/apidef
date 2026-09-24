@@ -523,6 +523,61 @@ describe('apidef', () => {
   })
 
 
+  // An entity whose every operation is an access-token exchange is emitted
+  // deactivated, never dropped; one exchange among other operations
+  // (session) leaves its entity active. go/apidef_test.go reads the base
+  // guide this writes.
+  test('guide-auth-exchange', async () => {
+    const folder = __dirname + '/../test/auth-exchange'
+
+    const build = await ApiDef.makeBuild({ folder })
+
+    const bres = await build(
+      { name: 'auth-exchange', def: 'auth-exchange-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: true,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const gents = bres.guide.entity
+    assert.deepStrictEqual(Object.keys(gents).sort(), ['session', 'token', 'widget'])
+    assert.strictEqual(gents.token.active, false)
+    assert.notStrictEqual(gents.session.active, false)
+    assert.notStrictEqual(gents.widget.active, false)
+
+    const baseGuide = Fs.readFileSync(folder + '/guide/base-guide.aontu', 'utf8')
+    assert.ok(baseGuide.includes([
+      '  entity: token: {',
+      '    # Deactivated by the heuristic (auth-exchange). Set `active: true`' +
+      ' here in guide.aontu to generate it as an entity.',
+      '    active: *false',
+      '    path: "/auth/token": {',
+    ].join('\n')), baseGuide)
+    assert.strictEqual(baseGuide.split('active: *false').length, 2, baseGuide)
+
+    const entities = bres.apimodel.main.kit.entity
+    const ops = Object.fromEntries(Object.keys(entities).sort()
+      .map((name) => [name, Object.keys(entities[name].op ?? {}).sort()]))
+    assert.deepStrictEqual(ops, {
+      session: ['create', 'load'],
+      widget: ['create', 'list', 'load', 'remove'],
+    })
+  })
+
+
   test('field-required-solar', async () => {
     const outprefix = 'solar-1.0.0-openapi-3.0.0-'
     const folder = __dirname + '/../test/solar'

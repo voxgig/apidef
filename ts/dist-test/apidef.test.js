@@ -409,6 +409,49 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.deepStrictEqual(idOf('/orders/-/{order_id}/refund'), []);
         node_assert_1.default.deepStrictEqual(Object.keys(pathdesc('/orders/-/{order_id}/refund').action ?? {}), []);
     });
+    // An entity whose every operation is an access-token exchange is emitted
+    // deactivated, never dropped; one exchange among other operations
+    // (session) leaves its entity active. go/apidef_test.go reads the base
+    // guide this writes.
+    (0, node_test_1.test)('guide-auth-exchange', async () => {
+        const folder = __dirname + '/../test/auth-exchange';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'auth-exchange', def: 'auth-exchange-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: true,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        const gents = bres.guide.entity;
+        node_assert_1.default.deepStrictEqual(Object.keys(gents).sort(), ['session', 'token', 'widget']);
+        node_assert_1.default.strictEqual(gents.token.active, false);
+        node_assert_1.default.notStrictEqual(gents.session.active, false);
+        node_assert_1.default.notStrictEqual(gents.widget.active, false);
+        const baseGuide = Fs.readFileSync(folder + '/guide/base-guide.aontu', 'utf8');
+        node_assert_1.default.ok(baseGuide.includes([
+            '  entity: token: {',
+            '    # Deactivated by the heuristic (auth-exchange). Set `active: true`' +
+                ' here in guide.aontu to generate it as an entity.',
+            '    active: *false',
+            '    path: "/auth/token": {',
+        ].join('\n')), baseGuide);
+        node_assert_1.default.strictEqual(baseGuide.split('active: *false').length, 2, baseGuide);
+        const entities = bres.apimodel.main.kit.entity;
+        const ops = Object.fromEntries(Object.keys(entities).sort()
+            .map((name) => [name, Object.keys(entities[name].op ?? {}).sort()]));
+        node_assert_1.default.deepStrictEqual(ops, {
+            session: ['create', 'load'],
+            widget: ['create', 'list', 'load', 'remove'],
+        });
+    });
     (0, node_test_1.test)('field-required-solar', async () => {
         const outprefix = 'solar-1.0.0-openapi-3.0.0-';
         const folder = __dirname + '/../test/solar';

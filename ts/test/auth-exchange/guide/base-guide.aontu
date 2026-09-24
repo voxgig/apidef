@@ -1,0 +1,39 @@
+# Generated from the API definition and overwritten on every build: do not
+# edit this file. Put customizations in the guide entry file, which includes
+# this one and overrides its defaults:
+#   guide.aontu
+
+guide: {
+  metrics: count: entity: 3
+  metrics: count: path: 5
+  metrics: count: method: 7
+
+  entity: session: {
+    path: "/session": {
+      op: create: method: *POST
+    }
+    path: "/session/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: token: {
+    # Deactivated by the heuristic (auth-exchange). Set `active: true` here in guide.aontu to generate it as an entity.
+    active: *false
+    path: "/auth/token": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: widget: {
+    path: "/widget": {
+      op: create: method: *POST
+      op: list: method: *GET
+    }
+    path: "/widget/{id}": {
+      op: load: method: *GET
+      op: remove: method: *DELETE
+    }
+  }
+
+}
