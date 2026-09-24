@@ -55,15 +55,18 @@ two can disagree. The schema might be the entity itself, or it might be a
 shape many entities share: a page wrapper, an error body, an envelope. The
 guide decides by how often the schema is used.
 
-Each reference to a component schema counts once per use, across the whole
-resolved spec. A schema reached through a shared response counts once for
-the response's own definition and once more for every operation that uses
-it, and a schema nested inside it counts again each time the outer one
-does. The guide divides that count by the number of methods and by the
-number of paths. Below 0.21 of the methods, or below 0.41 of the paths, the
-schema is rare enough to name the entity. A schema used more often yields
-to the name the path gives, unless the schema's own name is a literal
-segment of some path in the spec.
+Each reference to a component schema counts once per use in the resolved
+spec, the spec with every `$ref` replaced by the schema it names. A schema
+reached through a shared response counts once for the response's own
+definition and once more for every operation that uses it, and so does
+every reference inside that schema. An alias, a schema that is only a
+`$ref` to another, resolves to the end of its chain under its own name: a
+use of it counts for the alias alone, and each later link counts only where
+it is written. The guide divides that count by the number of methods and by
+the number of paths. Below 0.21 of the methods, or below 0.41 of the paths,
+the schema is rare enough to name the entity. A schema used more often
+yields to the name the path gives, unless the schema's own name is a
+literal segment of some path in the spec.
 
 A recursive schema would make its own count infinite, so the count follows
 each reference until it returns to a schema already being expanded, and

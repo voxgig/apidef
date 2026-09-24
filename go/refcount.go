@@ -138,8 +138,9 @@ func refSame(a, b any) bool {
 	return ok && la == lb
 }
 
-// CountRefs counts the occurrences of each reference label per use, as if
-// every reference were inlined, saturating at refCountCap.
+// CountRefs counts the occurrences of each reference label per use in the
+// resolved spec, where a $ref chain resolves to its first label, saturating
+// at refCountCap.
 func CountRefs(def map[string]any) map[string]int64 {
 	targets := map[string]any{}
 	target := func(label string) any {

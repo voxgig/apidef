@@ -71,7 +71,8 @@ function nodeKey(label, over) {
         .map(part => part.replace(/[\0\x01]/g, c => '\0' === c ? '\x01\x01' : '\x01\x02'))
         .join('\0');
 }
-// Occurrences of each reference label per use, as if every reference were inlined.
+// Occurrences of each reference label per use in the resolved spec, where a $ref
+// chain resolves to its first label.
 function countRefs(def) {
     const targets = new Map();
     const target = (label) => {

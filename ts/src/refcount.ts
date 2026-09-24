@@ -85,7 +85,8 @@ function nodeKey(label: string, over: string[]): string {
 }
 
 
-// Occurrences of each reference label per use, as if every reference were inlined.
+// Occurrences of each reference label per use in the resolved spec, where a $ref
+// chain resolves to its first label.
 function countRefs(def: any): Record<string, number> {
   const targets = new Map<string, any>()
   const target = (label: string): any => {
