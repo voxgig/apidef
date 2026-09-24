@@ -11,7 +11,9 @@ import (
 
 const refCountCap int64 = 1_000_000_000
 
-const refCountRoot = "\x00ROOT"
+const refCountRoot = "\x01ROOT"
+
+var refKeyEscaper = strings.NewReplacer("\x00", "\x01\x01", "\x01", "\x01\x02")
 
 type refNodeID struct {
 	ptr uintptr
@@ -99,6 +101,17 @@ func refKidKeys(node any) []string {
 		return keys
 	}
 	return nil
+}
+
+// Parts join on NUL. Escaping NUL and \x01 keeps keys injective and in part
+// order, and an escape never puts 'R' after \x01, so no key equals refCountRoot.
+func refNodeKey(label string, over []string) string {
+	parts := make([]string, 0, 1+len(over))
+	parts = append(parts, refKeyEscaper.Replace(label))
+	for _, k := range over {
+		parts = append(parts, refKeyEscaper.Replace(k))
+	}
+	return strings.Join(parts, "\x00")
 }
 
 func refNonEmpty(v any) bool {
@@ -211,10 +224,7 @@ func CountRefs(def map[string]any) map[string]int64 {
 			}
 			sort.Strings(over)
 
-			node := label
-			if 0 < len(over) {
-				node = label + "\x00" + strings.Join(over, "\x00")
-			}
+			node := refNodeKey(label, over)
 			if _, seen := labelOf[node]; !seen {
 				labelOf[node] = label
 				skipOf[node] = map[string]bool{}

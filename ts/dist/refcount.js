@@ -9,7 +9,7 @@ exports.satMul = satMul;
 const parse_1 = require("./parse");
 const REFCOUNT_CAP = 1_000_000_000;
 exports.REFCOUNT_CAP = REFCOUNT_CAP;
-const ROOT = '\0ROOT';
+const ROOT = '\x01ROOT';
 const INDEX_RE = /^(0|[1-9]\d*)$/;
 function satAdd(a, b) {
     return Math.min(a + b, REFCOUNT_CAP);
@@ -63,6 +63,13 @@ function hasKids(node) {
 function kidKeys(node) {
     return Array.isArray(node) ?
         node.map((_, i) => String(i)) : Object.keys(node);
+}
+// Parts join on '\0'. Escaping '\0' and '\x01' keeps keys injective and in part
+// order, and an escape never puts 'R' after '\x01', so no key equals ROOT.
+function nodeKey(label, over) {
+    return [label, ...over]
+        .map(part => part.replace(/[\0\x01]/g, c => '\0' === c ? '\x01\x01' : '\x01\x02'))
+        .join('\0');
 }
 // Occurrences of each reference label per use, as if every reference were inlined.
 function countRefs(def) {
@@ -135,7 +142,7 @@ function countRefs(def) {
                 stack.push(vk);
             }
             over.sort(byCodePoint);
-            const node = 0 === over.length ? label : label + '\0' + over.join('\0');
+            const node = nodeKey(label, over);
             if (!labelOf.has(node)) {
                 labelOf.set(node, label);
                 skipOf.set(node, new Set(over));
