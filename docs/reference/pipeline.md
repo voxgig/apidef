@@ -8,15 +8,44 @@ passes. Each stage reads and enriches the shared `ctx`.
 
 Source: [`ts/src/parse.ts`](../../ts/src/parse.ts).
 
-- Load the spec text from `<base>/../def/<model.def>`.
+- Load the spec text from `<base>/../def/<model.def>` as UTF-8. Each
+  ill-formed byte sequence reads as one `U+FFFD` per maximal ill-formed
+  subsequence (`ts/test/utf8-decode.tsv`).
 - Reject empty/comment-only source.
-- Parse YAML or JSON via `jsonic` / `@jsonic/yaml`.
+- Parse YAML or JSON via `jsonic` / `@tabnas/yaml`.
+- Replace each lone surrogate in a key or a string, such as an unpaired
+  `\ud800` escape, with `U+FFFD`. Keys this makes equal merge as a repeated
+  key does.
 - Require `openapi` or `swagger` to be present, else throw `Unsupported`.
 - Ensure `components` exists.
+- Remove the quotes an explicit key keeps (`? "/a"`, `? '/a'`) from each
+  `paths` key. A double-quoted key is decoded as a JSON string where it is
+  one; a single-quoted key reads `''` as `'`. A key whose new spelling another
+  key already has, or would also get, keeps its quotes
+  (`ts/test/normalize-path-keys.tsv`).
 - Walk the tree: resolve every `$ref` JSON pointer **in place**, recording the
   original pointer as `x-ref`. Repeated refs to one component share that
   component's nested children — the inlined schema must be treated as
   read-only downstream.
+- Rewrite a colon path parameter to brace form, `/a/:id` to `/a/{id}`, where
+  the path item or one of its operations declares `id` with `in: path`,
+  directly or through a `$ref`. The rewrite runs after resolution, so a
+  pointer names the path as the spec spells it. A rewrite onto a key another
+  path already has, or would also get, is not made
+  (`ts/test/colon-path-keys.tsv`).
+
+A pointer resolves by these rules, pinned by `ts/test/parse-resolve.tsv`:
+
+- A segment names an own key of an object, or an index of an array written as
+  `0` or as digits with no leading zero, below the length. `~1` reads as `/`
+  and `~0` as `~`.
+- A node holding a `$ref` is followed wherever the pointer meets it: at its
+  end, or on the way to a key below it. The node's other keywords win over
+  its target's, so the answer does not depend on which references the walk
+  has already replaced.
+- A pointer that names no object leaves its `$ref` in place, with `x-ref`
+  beside it. That covers a missing key, an index out of range, a string, a
+  list, `null`, and a chain of references that leads back to itself.
 
 Output: `ctx.def`. With `debug` enabled, also writes `<def>.full.json`.
 

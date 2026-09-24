@@ -38,6 +38,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const Fs = __importStar(require("node:fs"));
+const Os = __importStar(require("node:os"));
 const Path = __importStar(require("node:path"));
 const node_test_1 = require("node:test");
 const node_assert_1 = __importDefault(require("node:assert"));
@@ -634,6 +635,52 @@ function loadTsv(name) {
     for (const row of loadTsv('guide-quote')) {
         (0, node_test_1.test)(row.name, () => {
             node_assert_1.default.strictEqual(JSON.stringify(JSON.parse(row.input)), JSON.parse(row.expected));
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-parse-resolve', () => {
+    const rows = loadTsv('parse-resolve');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, async () => {
+            const def = await (0, parse_1.parse)('OpenAPI', JSON.parse(row.spec), { file: row.name });
+            let node = def;
+            for (const part of JSON.parse(row.select)) {
+                node = '#keys' === part ? Object.keys(node).sort() :
+                    null == node || 'object' !== typeof node ? undefined : (0, parse_1.decycledChild)(node, part);
+            }
+            node_assert_1.default.deepStrictEqual(JSON.parse(JSON.stringify(node ?? null)), JSON.parse(row.expected));
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-normalize-path-keys', () => {
+    for (const row of loadTsv('normalize-path-keys')) {
+        (0, node_test_1.test)(row.name, () => {
+            node_assert_1.default.deepStrictEqual((0, parse_1.normalizePathKeys)(JSON.parse(row.keys)), JSON.parse(row.expected));
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-colon-path-keys', () => {
+    for (const row of loadTsv('colon-path-keys')) {
+        (0, node_test_1.test)(row.name, () => {
+            const paths = JSON.parse(row.paths);
+            const next = (0, parse_1.colonPathKeys)(paths);
+            const renamed = {};
+            Object.keys(paths).forEach((path, i) => { renamed[path] = next[i]; });
+            node_assert_1.default.deepStrictEqual(renamed, JSON.parse(row.expected));
+        });
+    }
+});
+// The spec file is read as UTF-8 text; Go decodes it to the same string.
+(0, node_test_1.describe)('tsv-utf8-decode', () => {
+    const dir = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'apidef-utf8-'));
+    (0, node_test_1.after)(() => Fs.rmSync(dir, { recursive: true, force: true }));
+    const log = { error: () => undefined };
+    for (const row of loadTsv('utf8-decode')) {
+        (0, node_test_1.test)(row.name, () => {
+            const file = Path.join(dir, 'def.yaml');
+            Fs.writeFileSync(file, Buffer.from(row.hex, 'hex'));
+            node_assert_1.default.strictEqual((0, utility_1.loadFile)(file, 'def', Fs, log), JSON.parse(row.expected));
         });
     }
 });

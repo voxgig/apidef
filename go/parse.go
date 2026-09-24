@@ -8,7 +8,10 @@ import (
 	"reflect"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
+	"unicode/utf16"
+	"unicode/utf8"
 
 	tabnas "github.com/tabnas/parser/go"
 	yaml "github.com/tabnas/yaml/go"
@@ -20,6 +23,7 @@ var yamlCommentRE = regexp.MustCompile(`(?m)^\s*#.*$`)
 // Parse parses an API definition source into a structured map.
 func Parse(kind string, source string, meta map[string]string) (map[string]any, error) {
 	if kind == "OpenAPI" {
+		source = wellFormedUTF8(source)
 		if err := validateSource(kind, source, meta); err != nil {
 			return nil, err
 		}
@@ -38,7 +42,7 @@ func parseOpenAPI(source string, meta map[string]string) (map[string]any, error)
 	var parsed map[string]any
 
 	// Use tabnas/yaml to parse (handles both JSON and YAML)
-	result, err := yaml.Parse(source)
+	result, err := yaml.Parse(joinEscapedPairs(source))
 	// tabnas/yaml returns insertion-ordered *tabnas.OrderedMap nodes;
 	// apidef works on plain maps, so flatten them back.
 	result = tabnas.Plainify(result)
@@ -77,9 +81,19 @@ func parseOpenAPI(source string, meta map[string]string) (map[string]any, error)
 
 	annotateExamplesOrder(source, parsed)
 
+	if paths, ok := parsed["paths"].(map[string]any); ok {
+		keys := sortedKeys(paths)
+		parsed["paths"] = renameKeys(paths, keys, normalizePathKeys(keys))
+	}
+
 	// Walk the tree: annotate x-ref and resolve $ref in one pass.
 	// Uses object-identity tracking to avoid exponential re-walking.
 	addXRefsAndResolve(parsed, parsed, nil)
+
+	if paths, ok := parsed["paths"].(map[string]any); ok {
+		keys, next := colonPathKeys(paths)
+		parsed["paths"] = renameKeys(paths, keys, next)
+	}
 
 	// Skip Decircular for now — addXRefsAndResolve uses identity tracking
 	// which prevents true circular references from being created.
@@ -178,9 +192,6 @@ func drainObject(dec *json.Decoder) error {
 }
 
 func addXRefsAndResolve(obj any, root map[string]any, visited map[uintptr]bool) {
-	if obj == nil {
-		return
-	}
 	if visited == nil {
 		visited = make(map[uintptr]bool)
 	}
@@ -192,134 +203,275 @@ func addXRefsAndResolve(obj any, root map[string]any, visited map[uintptr]bool) 
 			return
 		}
 		visited[ptr] = true
-
 		for _, key := range sortedKeys(v) {
-			val := v[key]
-			if m, ok := val.(map[string]any); ok {
-				if ref, ok := m["$ref"]; ok {
-					if refStr, ok := ref.(string); ok {
-						resolved := resolvePointer(root, refStr)
-						if resolved != nil {
-							if resolvedMap, ok := resolved.(map[string]any); ok {
-								// Replace ref entry with resolved content in-place.
-								// Copy resolved properties into the existing map,
-								// remove $ref, add x-ref. Children are shared (not copied).
-								delete(m, "$ref")
-								for _, k := range sortedKeys(resolvedMap) {
-									if _, has := m[k]; !has {
-										m[k] = resolvedMap[k]
-									}
-								}
-								m["x-ref"] = refStr
-								addXRefsAndResolve(m, root, visited)
-							}
-						} else {
-							m["x-ref"] = refStr
-							addXRefsAndResolve(m, root, visited)
-						}
-					}
-				} else {
-					addXRefsAndResolve(val, root, visited)
-				}
-			} else {
-				addXRefsAndResolve(val, root, visited)
-			}
+			resolveRefSite(v[key], root, visited)
 		}
 
 	case []any:
 		for _, item := range v {
-			if m, ok := item.(map[string]any); ok {
-				if ref, ok := m["$ref"]; ok {
-					if refStr, ok := ref.(string); ok {
-						resolved := resolvePointer(root, refStr)
-						if resolved != nil {
-							if resolvedMap, ok := resolved.(map[string]any); ok {
-								delete(m, "$ref")
-								for _, k := range sortedKeys(resolvedMap) {
-									if _, has := m[k]; !has {
-										m[k] = resolvedMap[k]
-									}
-								}
-								m["x-ref"] = refStr
-								addXRefsAndResolve(m, root, visited)
-							}
-						} else {
-							m["x-ref"] = refStr
-							addXRefsAndResolve(m, root, visited)
-						}
-					}
-				} else {
-					addXRefsAndResolve(item, root, visited)
-				}
-			} else {
-				addXRefsAndResolve(item, root, visited)
-			}
+			resolveRefSite(item, root, visited)
 		}
 	}
 }
 
-func resolvePointer(root map[string]any, ref string) any {
-	seen := map[string]bool{}
-	var siblings []map[string]any
-	pointer := ref
-
-	for {
-		if !strings.HasPrefix(pointer, "#/") {
-			return nil
-		}
-		if seen[pointer] {
-			return nil
-		}
-		seen[pointer] = true
-
-		parts := strings.Split(pointer[2:], "/")
-		var current any = root
-		for _, part := range parts {
-			part = strings.ReplaceAll(part, "~1", "/")
-			part = strings.ReplaceAll(part, "~0", "~")
-			if m, ok := current.(map[string]any); ok {
-				current = m[part]
-			} else {
-				return nil
+// The site is resolved in place, so its own keywords win and every holder of
+// it sees the answer; its children are shared with the target, not copied.
+func resolveRefSite(val any, root map[string]any, visited map[uintptr]bool) {
+	m, _ := val.(map[string]any)
+	ref, isRef := m["$ref"].(string)
+	if !isRef {
+		addXRefsAndResolve(val, root, visited)
+		return
+	}
+	if resolved := resolvePointer(root, ref); resolved != nil {
+		delete(m, "$ref")
+		for _, k := range sortedKeys(resolved) {
+			if _, has := m[k]; !has {
+				m[k] = resolved[k]
 			}
 		}
+	}
+	m["x-ref"] = ref
+	addXRefsAndResolve(m, root, visited)
+}
 
-		if m, ok := current.(map[string]any); ok {
-			if next, ok := m["$ref"].(string); ok {
-				sib := map[string]any{}
-				for _, k := range sortedKeys(m) {
-					if k == "$ref" {
-						continue
-					}
-					sib[k] = m[k]
+// resolvePointer returns the object a pointer names, following every alias met
+// on the way, so the answer does not depend on which aliases the walk has
+// already resolved. A pointer that names no object, or needs itself, is nil.
+func resolvePointer(root map[string]any, ref string) map[string]any {
+	return resolvePointerIn(root, ref, map[string]bool{})
+}
+
+func resolvePointerIn(root map[string]any, ref string, active map[string]bool) map[string]any {
+	if !strings.HasPrefix(ref, "#/") || active[ref] {
+		return nil
+	}
+	active[ref] = true
+	defer delete(active, ref)
+
+	var node any = root
+	for _, raw := range strings.Split(ref[2:], "/") {
+		part := strings.ReplaceAll(strings.ReplaceAll(raw, "~1", "/"), "~0", "~")
+		kid, ok := refKid(followAlias(root, node, active), part)
+		if !ok {
+			return nil
+		}
+		node = kid
+	}
+	m, _ := followAlias(root, node, active).(map[string]any)
+	return m
+}
+
+// An alias's own keywords win over its target's. Without them the target
+// itself is the answer, so references keep sharing one object.
+func followAlias(root map[string]any, node any, active map[string]bool) any {
+	m, _ := node.(map[string]any)
+	ref, isRef := m["$ref"].(string)
+	if !isRef {
+		return node
+	}
+	target := resolvePointerIn(root, ref, active)
+	if target == nil {
+		return nil
+	}
+	if len(m) == 1 {
+		return target
+	}
+	merged := make(map[string]any, len(target)+len(m))
+	for k, v := range target {
+		merged[k] = v
+	}
+	for k, v := range m {
+		if k != "$ref" {
+			merged[k] = v
+		}
+	}
+	return merged
+}
+
+// @tabnas/yaml keeps the quotes of an explicit key (`? "/a"`, `? '/a'`) in the
+// key. A rename that would collide with another key is not made.
+func normalizePathKeys(keys []string) []string {
+	next := make([]string, len(keys))
+	for i, key := range keys {
+		next[i] = unquotePathKey(key)
+	}
+	return keepDistinct(keys, next)
+}
+
+func unquotePathKey(key string) string {
+	if len(key) < 2 || key[0] != key[len(key)-1] {
+		return key
+	}
+	switch key[0] {
+	case '\'':
+		return strings.ReplaceAll(key[1:len(key)-1], "''", "'")
+	case '"':
+		var decoded string
+		if err := json.Unmarshal([]byte(key), &decoded); err == nil {
+			return decoded
+		}
+		return key[1 : len(key)-1]
+	}
+	return key
+}
+
+func keepDistinct(keys []string, next []string) []string {
+	count := map[string]int{}
+	for i, key := range keys {
+		count[key]++
+		if next[i] != key {
+			count[next[i]]++
+		}
+	}
+	out := make([]string, len(keys))
+	for i, key := range keys {
+		if next[i] != key && 1 < count[next[i]] {
+			out[i] = key
+		} else {
+			out[i] = next[i]
+		}
+	}
+	return out
+}
+
+func renameKeys(m map[string]any, keys []string, next []string) map[string]any {
+	out := make(map[string]any, len(m))
+	for i, key := range keys {
+		out[next[i]] = m[key]
+	}
+	return out
+}
+
+var pathItemMethods = []string{"get", "put", "post", "delete", "options", "head", "patch", "trace"}
+
+// colonPathKeys rewrites `/a/:b/c` to `/a/{b}/c`, for a `:b` the path item or
+// one of its operations declares `in: path`. See docs/design/derived-names.md
+func colonPathKeys(paths map[string]any) ([]string, []string) {
+	keys := sortedKeys(paths)
+	next := make([]string, len(keys))
+	for i, path := range keys {
+		next[i] = path
+		if !strings.Contains(path, "/:") {
+			continue
+		}
+		declared := map[string]bool{}
+		collect := func(params any) {
+			list, _ := params.([]any)
+			for _, p := range list {
+				pm, _ := p.(map[string]any)
+				if name, ok := pm["name"].(string); ok && pm["in"] == "path" {
+					declared[name] = true
 				}
-				if len(sib) > 0 {
-					siblings = append(siblings, sib)
+			}
+		}
+		if item, ok := paths[path].(map[string]any); ok {
+			collect(item["parameters"])
+			for _, method := range pathItemMethods {
+				if op, ok := item[method].(map[string]any); ok {
+					collect(op["parameters"])
 				}
-				pointer = next
+			}
+		}
+		segs := strings.Split(path, "/")
+		for j, seg := range segs {
+			if strings.HasPrefix(seg, ":") && declared[seg[1:]] {
+				segs[j] = "{" + seg[1:] + "}"
+			}
+		}
+		next[i] = strings.Join(segs, "/")
+	}
+	return keys, keepDistinct(keys, next)
+}
+
+// wellFormedUTF8 decodes as Node decodes a spec file: each maximal ill-formed
+// subsequence becomes one U+FFFD.
+func wellFormedUTF8(s string) string {
+	if utf8.ValidString(s) {
+		return s
+	}
+	var b strings.Builder
+	for i := 0; i < len(s); {
+		r, size := utf8.DecodeRuneInString(s[i:])
+		if r != utf8.RuneError || 1 < size {
+			b.WriteString(s[i : i+size])
+			i += size
+			continue
+		}
+		b.WriteRune(utf8.RuneError)
+		i += illFormedLen(s[i:])
+	}
+	return b.String()
+}
+
+var escapedHighSurrogateRE = regexp.MustCompile(`\\u[dD][89abAB]`)
+
+// tabnas/yaml decodes each `\u` escape alone, so an escaped surrogate pair
+// reads as two U+FFFD. In strict JSON every escape is inside a string, so the
+// pair can be written as the character it spells before the parse.
+func joinEscapedPairs(source string) string {
+	if !escapedHighSurrogateRE.MatchString(source) || !json.Valid([]byte(source)) {
+		return source
+	}
+	var b strings.Builder
+	inString := false
+	for i := 0; i < len(source); i++ {
+		c := source[i]
+		switch {
+		case c == '"':
+			inString = !inString
+		case inString && c == '\\':
+			if hi, lo, ok := escapedPair(source[i:]); ok {
+				b.WriteRune(utf16.DecodeRune(hi, lo))
+				i += 11
 				continue
 			}
+			b.WriteByte(c)
+			i++
+			c = source[i]
 		}
-
-		if len(siblings) == 0 {
-			// Return the target itself so multiple references keep sharing
-			// one object; a copy per site would defeat that.
-			return current
-		}
-
-		merged := map[string]any{}
-		if m, ok := current.(map[string]any); ok {
-			for _, k := range sortedKeys(m) {
-				merged[k] = m[k]
-			}
-		}
-		for i := len(siblings) - 1; i >= 0; i-- {
-			for _, k := range sortedKeys(siblings[i]) {
-				merged[k] = siblings[i][k]
-			}
-		}
-		return merged
+		b.WriteByte(c)
 	}
+	return b.String()
+}
+
+func escapedPair(s string) (rune, rune, bool) {
+	if len(s) < 12 || s[1] != 'u' || s[6] != '\\' || s[7] != 'u' {
+		return 0, 0, false
+	}
+	hi, err1 := strconv.ParseUint(s[2:6], 16, 32)
+	lo, err2 := strconv.ParseUint(s[8:12], 16, 32)
+	ok := err1 == nil && err2 == nil && utf16.IsSurrogate(rune(hi)) && hi < 0xDC00 &&
+		0xDC00 <= lo && lo <= 0xDFFF
+	return rune(hi), rune(lo), ok
+}
+
+func illFormedLen(s string) int {
+	need, lo, hi := 0, byte(0x80), byte(0xBF)
+	switch lead := s[0]; {
+	case 0xC2 <= lead && lead <= 0xDF:
+		need = 1
+	case 0xE0 <= lead && lead <= 0xEF:
+		need = 2
+		if lead == 0xE0 {
+			lo = 0xA0
+		} else if lead == 0xED {
+			hi = 0x9F
+		}
+	case 0xF0 <= lead && lead <= 0xF4:
+		need = 3
+		if lead == 0xF0 {
+			lo = 0x90
+		} else if lead == 0xF4 {
+			hi = 0x8F
+		}
+	}
+	n := 1
+	for n <= need && n < len(s) && lo <= s[n] && s[n] <= hi {
+		n++
+		lo, hi = 0x80, 0xBF
+	}
+	return n
 }
 
 func validateSource(kind string, source string, meta map[string]string) error {

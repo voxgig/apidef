@@ -1,0 +1,12 @@
+name	paths	expected
+path and operation parameters	{"/projects/:slug/envs/:env":{"parameters":[{"in":"path","name":"slug"}],"get":{"parameters":[{"in":"path","name":"env"}]}}}	{"/projects/:slug/envs/:env":"/projects/{slug}/envs/{env}"}
+every method counts	{"/a/:x/:y/:z":{"trace":{"parameters":[{"in":"path","name":"x"}]},"options":{"parameters":[{"in":"path","name":"y"}]},"head":{"parameters":[{"in":"path","name":"z"}]}}}	{"/a/:x/:y/:z":"/a/{x}/{y}/{z}"}
+a key that is not a method does not count	{"/a/:x":{"query":{"parameters":[{"in":"path","name":"x"}]}}}	{"/a/:x":"/a/:x"}
+a custom method is not a parameter	{"/users/{id}:activate":{"post":{"parameters":[{"in":"path","name":"id"}]}}}	{"/users/{id}:activate":"/users/{id}:activate"}
+an undeclared colon segment	{"/reports/:latest":{"get":{}}}	{"/reports/:latest":"/reports/:latest"}
+a query parameter does not declare	{"/search/:mode":{"get":{"parameters":[{"in":"query","name":"mode"}]}}}	{"/search/:mode":"/search/:mode"}
+a colon inside a segment	{"/a/b:x":{"get":{"parameters":[{"in":"path","name":"x"}]}}}	{"/a/b:x":"/a/b:x"}
+a bare colon segment	{"/a/:":{"get":{"parameters":[{"in":"path","name":""}]}}}	{"/a/:":"/a/{}"}
+malformed parameters	{"/a/:x":{"parameters":{"in":"path","name":"x"},"get":"x"},"/b/:y":null,"/c/:z":[1]}	{"/a/:x":"/a/:x","/b/:y":"/b/:y","/c/:z":"/c/:z"}
+a rename onto an existing key	{"/a/:id":{"get":{"parameters":[{"in":"path","name":"id"}]}},"/a/{id}":{"put":{}}}	{"/a/:id":"/a/:id","/a/{id}":"/a/{id}"}
+two renames onto one key	{"/b/:id/:x":{"get":{"parameters":[{"in":"path","name":"id"},{"in":"path","name":"x"}]}},"/b/{id}/:x":{"put":{"parameters":[{"in":"path","name":"x"}]}}}	{"/b/:id/:x":"/b/:id/:x","/b/{id}/:x":"/b/{id}/:x"}

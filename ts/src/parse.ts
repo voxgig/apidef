@@ -103,32 +103,105 @@ async function parseOpenAPI(source: any, _meta?: any) {
     )
   }
 
+  if (SURROGATE_RE.test(source)) {
+    parsed = wellFormed(parsed, new Map())
+  }
+
   if (null == parsed.components) {
     parsed.components = {}
   }
 
-  // Normalize path keys: jsonic's YAML parser leaves the surrounding double
-  // quotes IN the key for explicit-key form (`? "..."`). gitlab uses this for
-  // long paths and as a result every downstream split('/') sees a literal
-  // quote character at the head/tail of the path, breaking URL substitution.
-  if (parsed.paths && 'object' === typeof parsed.paths) {
-    const cleaned: Record<string, any> = {}
-    for (const [k, v] of Object.entries(parsed.paths)) {
-      const stripped = k.replace(/^"+|"+$/g, '')
-      cleaned[stripped] = v
-    }
-    parsed.paths = cleaned
+  if (isRecord(parsed.paths)) {
+    parsed.paths = renameKeys(parsed.paths, normalizePathKeys(Object.keys(parsed.paths)))
   }
-
-  // See docs/design/derived-names.md
-  normalizeColonPathParams(parsed, _meta)
 
   // Single-pass: add x-ref properties and resolve $ref pointers together.
   addXRefsAndResolve(parsed, parsed)
 
+  // After resolution, so a pointer into `paths` names the key as written and a
+  // parameter declared by `$ref` counts. See docs/design/derived-names.md
+  normalizeColonPathParams(parsed, _meta)
+
   const def = decycle(parsed)
 
   return def
+}
+
+
+// A surrogate escape, or a raw lone surrogate unit.
+const SURROGATE_RE =
+  /\\(?:u\{?|U)0*[dD][89a-fA-F][0-9a-fA-F]{2}|[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/
+
+const LONE_SURROGATE_RE =
+  /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g
+
+
+function wellFormedString(s: string): string {
+  return s.replace(LONE_SURROGATE_RE, '�')
+}
+
+
+// The Go parser reads a lone surrogate as U+FFFD, and so does every UTF-8
+// writer. Keys it makes equal merge as the parser merges a repeated key.
+function wellFormed(node: any, done: Map<any, any>): any {
+  if ('string' === typeof node) return wellFormedString(node)
+  if (null == node || 'object' !== typeof node) return node
+  if (done.has(node)) return done.get(node)
+
+  if (Array.isArray(node)) {
+    done.set(node, node)
+    for (let i = 0; i < node.length; i++) node[i] = wellFormed(node[i], done)
+    return node
+  }
+
+  const out = Object.create(Object.getPrototypeOf(node))
+  done.set(node, out)
+  for (const key of Object.keys(node)) {
+    const wkey = wellFormedString(key)
+    const val = wellFormed(node[key], done)
+    const prev = Object.prototype.hasOwnProperty.call(out, wkey) ? out[wkey] : undefined
+    out[wkey] = null == prev ? val : Jsonic.util.deep(prev, val)
+  }
+  return out
+}
+
+
+function renameKeys(obj: any, keys: string[]): any {
+  const out = Object.create(Object.getPrototypeOf(obj))
+  Object.keys(obj).forEach((key, i) => { out[keys[i]] = obj[key] })
+  return out
+}
+
+
+// @tabnas/yaml keeps the quotes of an explicit key (`? "/a"`, `? '/a'`) in the
+// key. A rename that would collide with another key is not made.
+function normalizePathKeys(keys: string[]): string[] {
+  return keepDistinct(keys, keys.map(unquotePathKey))
+}
+
+
+function unquotePathKey(key: string): string {
+  if (key.length < 2 || key[0] !== key[key.length - 1]) return key
+  if ("'" === key[0]) return key.slice(1, -1).replace(/''/g, "'")
+  if ('"' !== key[0]) return key
+  try {
+    const decoded = JSON.parse(key)
+    if ('string' === typeof decoded) return wellFormedString(decoded)
+  }
+  catch (_e: any) {
+    // Not a JSON string: an escape only YAML knows, so strip the quotes alone.
+  }
+  return key.slice(1, -1)
+}
+
+
+function keepDistinct(keys: string[], next: string[]): string[] {
+  const count = new Map<string, number>()
+  keys.forEach((key, i) => {
+    count.set(key, (count.get(key) ?? 0) + 1)
+    if (next[i] !== key) count.set(next[i], (count.get(next[i]) ?? 0) + 1)
+  })
+  return keys.map((key, i) => next[i] !== key && 1 < (count.get(next[i]) ?? 0) ? key : next[i])
 }
 
 
@@ -262,61 +335,57 @@ function resolveRefSite(
 }
 
 
-function resolvePointer(root: any, ref: string): any {
-  const seen = new Set<string>()
-  const siblings: any[] = []
-  let current: any = undefined
-  let pointer = ref
+const INDEX_RE = /^(0|[1-9]\d*)$/
 
-  for (; ;) {
-    if (!pointer.startsWith('#/')) return undefined
-    if (seen.has(pointer)) return undefined
-    seen.add(pointer)
 
-    const parts = pointer
-      .substring(2)
-      .split('/')
-      .map(p => p.replace(/~1/g, '/').replace(/~0/g, '~'))
+function isRecord(node: any): boolean {
+  return null != node && 'object' === typeof node && !Array.isArray(node)
+}
 
-    current = root
-    for (const part of parts) {
-      if (current == null || typeof current !== 'object') return undefined
-      current = current[part]
-    }
 
-    // Landed on another alias: follow it. Anything else is the target.
-    if (current != null &&
-      'object' === typeof current &&
-      !Array.isArray(current) &&
-      'string' === typeof current.$ref) {
-      const sib: any = {}
-      let hasSib = false
-      for (const k of Object.keys(current)) {
-        if ('$ref' === k) continue
-        sib[k] = current[k]
-        hasSib = true
-      }
-      if (hasSib) siblings.push(sib)
-      pointer = current.$ref
-      continue
-    }
+function isAlias(node: any): boolean {
+  return isRecord(node) && 'string' === typeof node.$ref
+}
 
-    if (0 === siblings.length) {
-      // No siblings anywhere on the chain: return the target itself, so
-      // multiple references keep sharing one object (see the note on
-      // addXRefsAndResolve — a fresh copy per site would defeat that).
-      return current
-    }
 
-    // Siblings present: a merged view is necessarily a new object. Apply
-    // deepest-first so the outermost alias's keywords win.
-    const merged: any = (null != current && 'object' === typeof current &&
-      !Array.isArray(current)) ? { ...current } : {}
-    for (let i = siblings.length - 1; 0 <= i; i--) {
-      Object.assign(merged, siblings[i])
-    }
-    return merged
+// An own key of an object, or an RFC 6901 index of an array.
+function pointerChild(node: any, part: string): any {
+  if (Array.isArray(node)) {
+    return INDEX_RE.test(part) && Number(part) < node.length ? node[Number(part)] : undefined
   }
+  return isRecord(node) && Object.prototype.hasOwnProperty.call(node, part) ?
+    node[part] : undefined
+}
+
+
+// The object a pointer names, following every alias met on the way, so the
+// answer does not depend on which aliases the walk has already replaced. A
+// pointer that names no object, or needs itself, names nothing.
+function resolvePointer(root: any, ref: string, active: Set<string> = new Set()): any {
+  if (!ref.startsWith('#/') || active.has(ref)) return undefined
+  active.add(ref)
+
+  let node: any = root
+  for (const raw of ref.substring(2).split('/')) {
+    node = pointerChild(followAlias(root, node, active),
+      raw.replace(/~1/g, '/').replace(/~0/g, '~'))
+    if (undefined === node) break
+  }
+  node = followAlias(root, node, active)
+
+  active.delete(ref)
+  return isRecord(node) ? node : undefined
+}
+
+
+// An alias's own keywords win over its target's. Without them the target
+// itself is the answer, so references keep sharing one object.
+function followAlias(root: any, node: any, active: Set<string>): any {
+  if (!isAlias(node)) return node
+  const target = resolvePointer(root, node.$ref, active)
+  if (undefined === target) return undefined
+  const sib = refSiblings(node)
+  return 0 === Object.keys(sib).length ? target : { ...target, ...sib }
 }
 
 
@@ -342,6 +411,8 @@ function validateSource(kind: string, source: any, meta: { file: string }) {
 export {
   parse,
   decycledChild,
+  normalizePathKeys,
+  colonPathKeys,
 }
 
 
@@ -353,19 +424,31 @@ const METHODS = [
 // Rewrite `/a/:b/c` to `/a/{b}/c`, for a `:b` the path or one of its
 // operations declares `in: path`. See docs/design/derived-names.md
 function normalizeColonPathParams(parsed: any, meta?: any) {
-  if (null == parsed.paths || 'object' !== typeof parsed.paths) return
+  if (!isRecord(parsed.paths)) return
 
-  const renamed: string[] = []
-  const out: Record<string, any> = {}
+  const paths = Object.keys(parsed.paths)
+  const next = colonPathKeys(parsed.paths)
+  parsed.paths = renameKeys(parsed.paths, next)
 
-  for (const [path, item] of Object.entries<any>(parsed.paths)) {
-    if (!path.includes('/:')) {
-      out[path] = item
-      continue
-    }
+  const renamed = paths.filter((path, i) => next[i] !== path)
+  if (0 < renamed.length && null != meta?.log?.info) {
+    meta.log.info({
+      point: 'path-colon-params',
+      count: renamed.length,
+      note: 'rewrote ' + renamed.length + ' colon-style path parameter(s) to' +
+        ' OpenAPI brace form, e.g. ' + renamed[0]
+    })
+  }
+}
 
-    // Every `in: path` name this path knows about: the path-level parameters
-    // plus each operation's own.
+
+// Every `in: path` name counts: the path item's parameters and each operation's.
+function colonPathKeys(paths: Record<string, any>): string[] {
+  const keys = Object.keys(paths)
+  return keepDistinct(keys, keys.map((path) => {
+    if (!path.includes('/:')) return path
+
+    const item = paths[path]
     const declared = new Set<string>()
     const collect = (params: any) => {
       if (!Array.isArray(params)) return
@@ -382,22 +465,8 @@ function normalizeColonPathParams(parsed: any, meta?: any) {
       }
     }
 
-    const next = path.split('/').map((seg) =>
+    return path.split('/').map((seg) =>
       seg.startsWith(':') && declared.has(seg.slice(1)) ? '{' + seg.slice(1) + '}' : seg
     ).join('/')
-
-    if (next !== path) renamed.push(path)
-    out[next] = item
-  }
-
-  parsed.paths = out
-
-  if (0 < renamed.length && null != meta?.log?.info) {
-    meta.log.info({
-      point: 'path-colon-params',
-      count: renamed.length,
-      note: 'rewrote ' + renamed.length + ' colon-style path parameter(s) to' +
-        ' OpenAPI brace form, e.g. ' + renamed[0]
-    })
-  }
+  }))
 }

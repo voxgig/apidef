@@ -1,8 +1,9 @@
 /* Copyright (c) 2024-2025 Voxgig Ltd, MIT License */
 
 import * as Fs from 'node:fs'
+import * as Os from 'node:os'
 import * as Path from 'node:path'
-import { test, describe } from 'node:test'
+import { test, describe, after } from 'node:test'
 import assert from 'node:assert'
 
 import {
@@ -30,6 +31,7 @@ import {
   authExchangeOp,
   specSecuredByDefault,
   find,
+  loadFile,
 } from '../dist/utility'
 
 import {
@@ -51,6 +53,9 @@ import {
 
 import {
   parse,
+  decycledChild,
+  normalizePathKeys,
+  colonPathKeys,
 } from '../dist/parse'
 
 import {
@@ -762,6 +767,60 @@ describe('tsv-guide-quote', () => {
   for (const row of loadTsv('guide-quote')) {
     test(row.name, () => {
       assert.strictEqual(JSON.stringify(JSON.parse(row.input)), JSON.parse(row.expected))
+    })
+  }
+})
+
+
+describe('tsv-parse-resolve', () => {
+  const rows = loadTsv('parse-resolve')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, async () => {
+      const def = await parse('OpenAPI', JSON.parse(row.spec), { file: row.name })
+      let node: any = def
+      for (const part of JSON.parse(row.select)) {
+        node = '#keys' === part ? Object.keys(node).sort() :
+          null == node || 'object' !== typeof node ? undefined : decycledChild(node, part)
+      }
+      assert.deepStrictEqual(JSON.parse(JSON.stringify(node ?? null)), JSON.parse(row.expected))
+    })
+  }
+})
+
+
+describe('tsv-normalize-path-keys', () => {
+  for (const row of loadTsv('normalize-path-keys')) {
+    test(row.name, () => {
+      assert.deepStrictEqual(normalizePathKeys(JSON.parse(row.keys)), JSON.parse(row.expected))
+    })
+  }
+})
+
+
+describe('tsv-colon-path-keys', () => {
+  for (const row of loadTsv('colon-path-keys')) {
+    test(row.name, () => {
+      const paths = JSON.parse(row.paths)
+      const next = colonPathKeys(paths)
+      const renamed: Record<string, string> = {}
+      Object.keys(paths).forEach((path, i) => { renamed[path] = next[i] })
+      assert.deepStrictEqual(renamed, JSON.parse(row.expected))
+    })
+  }
+})
+
+
+// The spec file is read as UTF-8 text; Go decodes it to the same string.
+describe('tsv-utf8-decode', () => {
+  const dir = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'apidef-utf8-'))
+  after(() => Fs.rmSync(dir, { recursive: true, force: true }))
+  const log: any = { error: () => undefined }
+  for (const row of loadTsv('utf8-decode')) {
+    test(row.name, () => {
+      const file = Path.join(dir, 'def.yaml')
+      Fs.writeFileSync(file, Buffer.from(row.hex, 'hex'))
+      assert.strictEqual(loadFile(file, 'def', Fs as any, log), JSON.parse(row.expected))
     })
   }
 })
