@@ -109,6 +109,45 @@ some path in the spec. The guide
 reference states the rule, with its thresholds, under [Component reference
 counts](../reference/guide.md#component-reference-counts).
 
+A rate cannot tell a rare record from a rare shape that several resources
+happen to share. GitHub answers its secret and variable writes with one
+empty object, and two branch-protection settings with one flag schema.
+Each schema is rare, so each would name an entity, and five different
+writes would land in `empty_object`. The guide therefore also asks which
+resources answer with a rare schema, and when two or more do, each of their
+routes keeps the name its own path gives: `variable`, `enforce_admin`,
+`required_signature`.
+
+Counting resources by path name alone counts too many. A filtered read
+(`/gists/public`), a selector (`/builds/latest`), an action that returns its
+target (`.../reviews/{id}/dismissals`), a relation (`/users/{u}/subscriptions`)
+and an older spelling of a route (`/bank_accounts/{id}` beside
+`/external_accounts/{id}`) each give the records of one resource a second
+path name. Named after their paths, they split one resource into several
+entities, or put its records into an entity named for another. The schema
+carries the evidence that separates the two cases: a record declares an
+`id`, and a shape that several resources share declares none. A record is
+never shared, however many path names reach it, and its routes keep the
+schema's name as they would with no sharing rule. The envelope rule already
+reads the same evidence: an envelope declares no `id` either.
+
+A shape can still be reached through views and aliases, so neither counts.
+A route beneath a path that names another resource of the same schema is a
+view of that resource, and two item routes with the same parent and the
+same parameters are two spellings of one resource. A name is also withheld
+where taking it would merge two schemas, as when two manifest shapes are
+both reached through `.../digest`, or two routes an SDK could not tell
+apart, as with the two secret writes GitHub offers under one organisation,
+which take the same parameters.
+
+The cost is paid by records with qualified names. `minimal_repository` and
+`api_entities_project` keep them, where the paths' `repository` and
+`project` read better. That is a question about how a qualified schema name
+relates to a path, not about sharing, and the rule leaves it alone. The
+[Shared schemas](../reference/guide.md#shared-schemas) section of the guide
+reference states the rule, and the `shared-routes` rows of the shared
+fixtures pin each clause.
+
 A recursive schema would make its own count infinite, so the count follows
 each reference until it returns to a schema already being expanded, and
 stops there. Where a cycle could close at more than one reference, the
@@ -144,9 +183,30 @@ keyed on whether the path targets a *collection* or a single *item*:
 | item `/planet/{id}` | `PATCH` | `patch` (promoted to `update` if there is no `PUT`) |
 | item `/planet/{id}` | `DELETE` | `remove` |
 
+Only the method keys of a path item are classified: `get`, `put`, `post`,
+`delete`, `options`, `head`, `patch` and `query`. Its `parameters`,
+`servers`, `summary`, `description` and extension keys describe the path, so
+none of them becomes an operation or names an entity.
+
 A single operation can have **several points** — one per path/method that
 produces it — which is why the model keeps `op.<name>.points[]` rather than a
 single path (see [the internal model](./the-internal-model.md)).
+
+## A collection joins its items
+
+The collection and its items can be named apart. An `/apiKeys` path that
+answers with its own `ApiKeys` schema names `api_key`, while
+`/apiKeys/{apiKeyId}` answers with no schema and takes `setting` from its
+tag. Once every method is classified, the collection path moves to the
+entity that holds the item path, so `setting` lists, creates, and removes
+its keys. `api_key` is left with no path, and is removed rather than emitted
+inactive: an entity with no path is not a classification `guide.aontu`
+could switch back on.
+
+The move is part of the heuristic, so it shapes the base guide and nothing
+after it. When the collection is a resource of its own, `guide.aontu` can
+declare `/apiKeys` on `api_key` and switch the path off on `setting`, and
+the model keeps that assignment.
 
 ## Actions: the non-CRUD leftovers
 
@@ -191,6 +251,17 @@ entity — is the entity's identifier. The guide renames it to the canonical
 `id` and records the mapping under `rename.param`, so the generated SDK
 exposes a uniform `id` while the original wire name is preserved for building
 the request URL.
+
+The path decides this on its own. An item operation often answers with a
+schema named for one view of the entity rather than the entity itself:
+GitHub's `GET /orgs/{org}/actions/runner-groups/{runner_group_id}` answers
+with `runner-groups-org`, and `GET /repos/{owner}/{repo}/branches/{branch}`
+with `branch-with-protection`. Letting that name veto the rename withholds
+`id` from exactly those keys. What it would catch instead is rare: a trailing
+parameter that selects a scope rather than the entity, as `{owner}` does in a
+`/repos/{owner}/` path that lists every repository an account owns. That one is
+renamed to `id` too, and [the guide](../reference/guide.md#correcting-the-guide)
+is where to correct it.
 
 ## Every decision is traceable
 

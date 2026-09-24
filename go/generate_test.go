@@ -273,6 +273,45 @@ func TestGenerateRerunOverwritesHandEditAndCollectsOrphan(t *testing.T) {
 	}
 }
 
+func TestGenerateUpgradeRemovesLegacyAonTwins(t *testing.T) {
+	folder := stageGenerate(t)
+	legacy := []string{
+		"api/" + generatePrefix + "api-info.aon",
+		"entity/" + generatePrefix + "entity-index.aon",
+		"flow/" + generatePrefix + "BasicMoonFlow.aon",
+		"flow/" + generatePrefix + "BasicPlanetFlow.aon",
+		"flow/" + generatePrefix + "flow-index.aon",
+		"guide/" + generatePrefix + "base-guide.aon",
+	}
+	kept := []string{
+		"api/notes.aon",
+		"flow/" + generatePrefix + "BasicCometFlow.aon",
+		"guide/" + generatePrefix + "guide.aon",
+	}
+	for _, file := range append(append([]string{}, legacy...), kept...) {
+		path := filepath.Join(folder, filepath.FromSlash(file))
+		if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte("# old\n"), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	runGenerate(t, folder)
+
+	for _, file := range legacy {
+		if _, err := os.Stat(filepath.Join(folder, filepath.FromSlash(file))); !os.IsNotExist(err) {
+			t.Errorf("legacy file %s was not removed", file)
+		}
+	}
+	for _, file := range kept {
+		if _, err := os.Stat(filepath.Join(folder, filepath.FromSlash(file))); err != nil {
+			t.Errorf("file %s was removed: %v", file, err)
+		}
+	}
+}
+
 func TestGenerateWarningsFileIsWrittenOnSuccess(t *testing.T) {
 	folder := stageGenerateGuide(t, `guide: entity: planet: path: "/api/planet": op: frob: method: "POST"`)
 	inProject(t, folder)

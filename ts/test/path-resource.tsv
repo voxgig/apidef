@@ -1,0 +1,22 @@
+path	method	expected
+/planet	GET	planet
+/planets	POST	planet
+/planet/{id}	GET	planet
+/planet/{id}/moon	GET	moon
+/planet/{id}/moons/{mid}	DELETE	moon
+/planet/{id}/terraform	POST
+/planet/{id}/terraform	GET	terraform
+/users/{id}/tags	PUT	tag
+/{year}/observation	GET	observation
+/api/{b}/{c}	GET	api
+/{a}/{b}	GET
+/gists/public	GET	public
+/user/tokens/{slug}/refresh	PUT
+/repos/{owner}/{repo}/gpg/regenerate	POST
+/v2/users/by-product	GET	by_product
+/orgs/{org}/actions/runners/registration-token	POST
+/settings/enforce_admins	POST	enforce_admin
+/applications/{client_id}/token	PATCH
+/applications/{client_id}/token	DELETE
+/search	QUERY	search
+/status	HEAD	status

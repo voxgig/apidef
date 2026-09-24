@@ -128,6 +128,13 @@ paths:
         node_assert_1.default.ok(seen.size < 1000, `parsed spec expanded to ${seen.size} distinct nodes — DAG sharing lost`);
     });
 });
+(0, node_test_1.describe)('parse-escapes', () => {
+    // Go reads this pair as two U+FFFD: see TestYamlEscapedPairDivergence.
+    (0, node_test_1.test)('an escaped pair in a YAML double-quoted scalar is one character', async () => {
+        const def = await (0, parse_1.parse)('OpenAPI', 'openapi: 3.0.0\ninfo: { title: "x\\ud83d\\ude00y", version: "1" }\npaths: {}\n', { file: 'p.yaml' });
+        node_assert_1.default.strictEqual(def.info.title, 'x\u{1F600}y');
+    });
+});
 (0, node_test_1.describe)('parse', () => {
     (0, node_test_1.test)('happy', async () => {
         const pm0 = { file: 'f0' };

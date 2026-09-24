@@ -24,16 +24,12 @@ var validateCases = []validateCase{
 	{"petstore", "1.0.7", "swagger-2.0", "json"},
 	{"taxonomy", "1.0.0", "openapi-3.1.0", "yaml"},
 	{"foo", "1.0.0", "openapi-3.1.0", "yaml"},
+	{"elementdemo", "1.0.0", "openapi-3.0.0", "yaml"},
 }
 
 // Entities the apidef-validate golden base guides declare and this port does
 // not: a REGISTER, not a waiver, since the missing set must EQUAL the entry.
-// Both ports count component references per use, which drops paginated_taxa,
-// and name an entity through a response envelope, which renames
-// paginated_observation to observation. The goldens predate both.
-var knownGuideDivergence = map[string][]string{
-	"taxonomy-1.0.0-openapi-3.1.0": {"paginated_observation", "paginated_taxa"},
-}
+var knownGuideDivergence = map[string][]string{}
 
 func caseName(c validateCase) string {
 	return fmt.Sprintf("%s-%s-%s", c.Name, c.Version, c.Spec)
@@ -129,6 +125,7 @@ func TestValidateGuide(t *testing.T) {
 
 				// Extract entity names from reference
 				var refEntities []string
+				refInactive := []string{}
 				for _, line := range strings.Split(refStr, "\n") {
 					line = strings.TrimSpace(line)
 					if strings.HasPrefix(line, "entity:") && strings.HasSuffix(line, "{") {
@@ -138,6 +135,20 @@ func TestValidateGuide(t *testing.T) {
 							refEntities = append(refEntities, entName)
 						}
 					}
+					if "active: *false" == line && 0 < len(refEntities) {
+						refInactive = append(refInactive, refEntities[len(refEntities)-1])
+					}
+				}
+
+				goInactive := []string{}
+				for _, name := range sortedKeys(entities) {
+					if !guideActive(entities[name]) {
+						goInactive = append(goInactive, name)
+					}
+				}
+				sort.Strings(refInactive)
+				if strings.Join(goInactive, ",") != strings.Join(refInactive, ",") {
+					t.Errorf("guide deactivated entities: Go %v, TS %v", goInactive, refInactive)
 				}
 
 				var goEntities []string

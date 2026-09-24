@@ -692,6 +692,47 @@ func TestEnvelopeItemRef(t *testing.T) {
 	}
 }
 
+func TestPathResource(t *testing.T) {
+	rows := loadTsv(t, "path-resource")
+	if len(rows) == 0 {
+		t.Fatal("no path-resource rows loaded")
+	}
+	for _, row := range rows {
+		path, method, want := row["path"], row["method"], row["expected"]
+		t.Run(method+" "+path, func(t *testing.T) {
+			if got := pathResource(splitAndFilter(path, "/"), method); got != want {
+				t.Errorf("pathResource(%q, %q) = %q, want %q", path, method, got, want)
+			}
+		})
+	}
+}
+
+func TestSharedRoutes(t *testing.T) {
+	rows := loadTsv(t, "shared-routes")
+	if len(rows) == 0 {
+		t.Fatal("no shared-routes rows loaded")
+	}
+	list := func(cell string, sep string) []string {
+		if cell == "" {
+			return []string{}
+		}
+		return strings.Split(cell, sep)
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			routes := []SharingRoute{}
+			for _, route := range list(row["routes"], ";") {
+				f := strings.Split(route, " ")
+				routes = append(routes, SharingRoute{Cmp: f[0], Method: f[1], Path: f[2], Op: f[3]})
+			}
+			got := sharedRoutes(routes, list(row["records"], ","))
+			if want := list(row["expected"], ";"); !reflect.DeepEqual(got, want) {
+				t.Errorf("sharedRoutes = %q, want %q", got, want)
+			}
+		})
+	}
+}
+
 func TestClosedBodyTransform(t *testing.T) {
 	rows := loadTsv(t, "closed-body-transform")
 	if len(rows) == 0 {
@@ -720,6 +761,56 @@ func TestClosedBodyTransform(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestTsvAuthExchange(t *testing.T) {
+	rows := loadTsv(t, "auth-exchange")
+	if len(rows) == 0 {
+		t.Fatal("no auth-exchange rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["note"], func(t *testing.T) {
+			var op map[string]any
+			if err := json.Unmarshal([]byte(row["op"]), &op); err != nil {
+				t.Fatalf("bad op %q: %v", row["op"], err)
+			}
+			var want any
+			if "" != row["expected"] {
+				if err := json.Unmarshal([]byte(row["expected"]), &want); err != nil {
+					t.Fatalf("bad expected %q: %v", row["expected"], err)
+				}
+			}
+
+			found := authExchangeOp(op, "true" == row["secured"])
+			var got any
+			if nil != found {
+				got = found
+			}
+			if !reflect.DeepEqual(got, want) {
+				t.Errorf("authExchangeOp(%s) = %v, want %v", row["note"], got, want)
+			}
+		})
+	}
+}
+
+// Mirrors the TS `spec-secured-by-default` cases.
+func TestSpecSecuredByDefault(t *testing.T) {
+	cases := []struct {
+		name string
+		def  map[string]any
+		want bool
+	}{
+		{"non-empty top-level security", map[string]any{
+			"security": []any{map[string]any{"bearerAuth": []any{}}}}, true},
+		{"empty top-level security", map[string]any{"security": []any{}}, false},
+		{"no top-level security", map[string]any{}, false},
+		{"nil def", nil, false},
+	}
+	for _, c := range cases {
+		if got := specSecuredByDefault(c.def); got != c.want {
+			t.Errorf("%s: specSecuredByDefault = %v, want %v", c.name, got, c.want)
+		}
 	}
 }
 

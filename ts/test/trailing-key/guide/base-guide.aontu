@@ -1,0 +1,51 @@
+# Generated from the API definition and overwritten on every build: do not
+# edit this file. Put customizations in the guide entry file, which includes
+# this one and overrides its defaults:
+#   guide.aontu
+
+guide: {
+  metrics: count: entity: 4
+  metrics: count: path: 6
+  metrics: count: method: 11
+
+  entity: org: {
+    path: "/orgs": {
+      op: list: method: *GET
+    }
+    path: "/orgs/{org_id}": {
+      rename: param: "org_id": *"id"
+      op: load: method: *GET
+      op: patch: method: *PATCH
+    }
+  }
+
+  entity: runner_group: {
+    path: "/orgs/{org}/runner-groups/{runner_group_id}": {
+      rename: param: "org": *"org_id"
+      rename: param: "runner_group_id": *"id"
+      op: load: method: *GET
+      op: patch: method: *PATCH
+    }
+  }
+
+  entity: user: {
+    path: "/user_groups/{id}/users/{uid}": {
+      rename: param: "id": *"user_group_id"
+      rename: param: "uid": *"id"
+      op: create: method: *POST
+      op: remove: method: *DELETE
+    }
+  }
+
+  entity: user_group: {
+    path: "/user_groups": {
+      op: create: method: *POST
+      op: list: method: *GET
+    }
+    path: "/user_groups/{id}": {
+      op: load: method: *GET
+      op: remove: method: *DELETE
+    }
+  }
+
+}

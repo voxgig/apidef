@@ -1,0 +1,13 @@
+{"openapi":"3.0.0","info":{"title":"Keys API","version":"1.0.0"},"servers":[{"url":"https://keys.example.com/api"}],
+"paths":{
+ "/keys":{
+  "get":{"operationId":"listKeys","tags":["Settings"],"responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/Key"}}}}}}},
+  "post":{"operationId":"createKey","tags":["Settings"],"requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/Key"}}}},"responses":{"201":{"description":"Created","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Key"}}}}}}},
+ "/keys/{key_id}":{
+  "delete":{"operationId":"removeKey","tags":["Settings"],"parameters":[{"name":"key_id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"204":{"description":"Removed"}}}}
+},
+"components":{
+ "schemas":{
+  "Key":{"type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"}}}
+ }
+}}

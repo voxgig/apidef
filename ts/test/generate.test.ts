@@ -185,6 +185,36 @@ describe('generate', () => {
   })
 
 
+  // A project generated before `.aon` was retired keeps apidef's `.aon`
+  // files; only the twins of files written now are apidef's to remove.
+  test('upgrade-removes-legacy-aon-twins', async () => {
+    const folder = stage()
+    const legacy = [
+      'api/' + PREFIX + 'api-info.aon',
+      'entity/' + PREFIX + 'entity-index.aon',
+      'flow/' + PREFIX + 'BasicMoonFlow.aon',
+      'flow/' + PREFIX + 'BasicPlanetFlow.aon',
+      'flow/' + PREFIX + 'flow-index.aon',
+      'guide/' + PREFIX + 'base-guide.aon',
+    ]
+    const kept = [
+      'api/notes.aon',
+      'flow/' + PREFIX + 'BasicCometFlow.aon',
+      'guide/' + PREFIX + 'guide.aon',
+    ]
+    for (const file of [...legacy, ...kept]) {
+      Fs.mkdirSync(Path.dirname(Path.join(folder, file)), { recursive: true })
+      Fs.writeFileSync(Path.join(folder, file), '# old\n')
+    }
+
+    const res = await generate(folder)
+
+    assert.strictEqual(res.ok, true, String(res.err?.message))
+    assert.deepStrictEqual(legacy.filter((file) => Fs.existsSync(Path.join(folder, file))), [])
+    assert.deepStrictEqual(kept.filter((file) => Fs.existsSync(Path.join(folder, file))), kept)
+  })
+
+
   test('warnings-file-is-written-on-success', async () => {
     const folder = stage('guide: entity: planet: path: "/api/planet": op: frob: method: "POST"')
     const res = await inProject(folder, () => generate(folder))

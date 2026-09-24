@@ -81,6 +81,18 @@ Object.defineProperty(exports, "gcEntityFiles", { enumerable: true, get: functio
 const flow_2 = require("./builder/flow");
 // Log non-fatal wierdness.
 const dlog = (0, utility_1.getdlog)('apidef', __filename);
+// The model files the builders write besides the entity records.
+function ownModelFiles(apimodel, outprefix) {
+    const prefix = null == outprefix ? '' : outprefix;
+    const flows = Object.values(apimodel?.main?.[types_1.KIT]?.flow ?? {});
+    const bases = (0, flow_2.flowFileBases)(flows.map((flow) => String(flow.name)));
+    return [
+        'api/' + prefix + 'api-info.aontu',
+        'entity/' + prefix + 'entity-index.aontu',
+        ...Object.values(bases).map((base) => 'flow/' + prefix + base + '.aontu'),
+        'flow/' + prefix + 'flow-index.aontu',
+    ];
+}
 function warningsFileText(history) {
     return history
         .map((n) => {
@@ -278,6 +290,9 @@ function ApiDef(opts) {
             }
             catch (err) {
                 log.warn({ point: 'entity-gc-failed', err, note: String(err?.message) });
+            }
+            for (const file of ownModelFiles(ctx.apimodel, opts.outprefix)) {
+                (0, utility_1.removeLegacyAon)(fs, log, node_path_1.default.join(opts.folder, file));
             }
             const hasWarnings = 0 < warn.history.length;
             const endnote = hasWarnings ? `PARTIAL BUILD! There were ${warn.history.length} warnings (see above).` :

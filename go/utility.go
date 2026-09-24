@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -67,7 +68,8 @@ var irregularPlurals = map[string]string{
 	"notices": "notice", "nurses": "nurse", "oases": "oasis", "oboes": "oboe",
 	"pastiches": "pastiche",
 	"pauses":    "pause", "phases": "phase", "phrases": "phrase", "practices": "practice",
-	"premises": "premise", "promises": "promise", "psyches": "psyche", "purses": "purse",
+	"premises": "premise", "promises": "promise", "psyches": "psyche",
+	"purchases": "purchase", "purses": "purse",
 	"releases": "release", "roses": "rose", "people": "person", "phenomena": "phenomenon",
 	"series": "series", "shoes": "shoe", "sources": "source", "species": "species",
 	"teeth":  "tooth",
@@ -76,6 +78,14 @@ var irregularPlurals = map[string]string{
 }
 
 var irregularKeys = sortedByLenDesc(irregularPlurals)
+
+// The stems whose -ves plural comes from -fe (knives) or -f (wolves). The
+// -fe stems match the whole word, since olives is not the plural of olife.
+var fePluralStems = []string{"kni", "li", "wi"}
+var fPluralStems = []string{
+	"cal", "dwar", "el", "hal", "hoo", "lea", "loa", "scar", "shea", "thie",
+	"whar", "wol",
+}
 
 func sortedByLenDesc(m map[string]string) []string {
 	keys := make([]string, 0, len(m))
@@ -158,22 +168,29 @@ func Depluralize(word string) string {
 		}
 	}
 
-	// -ves -> -f or -fe (wolves -> wolf, knives -> knife)
+	// -ves -> -f or -fe only for the words that take it (wolves -> wolf,
+	// knives -> knife); every other -ves plural drops the -s alone
+	// (objectives -> objective).
 	if strings.HasSuffix(lower, "ves") {
 		stem := word[:len(word)-3]
+		lstem := strings.ToLower(stem)
 		dropped := word[len(word)-3:]
 		isUpper := dropped == strings.ToUpper(dropped)
-		switch strings.ToLower(stem) {
-		case "kni", "wi", "li":
+		if slices.Contains(fePluralStems, lstem) {
 			if isUpper {
 				return stem + "FE"
 			}
 			return stem + "fe"
 		}
-		if isUpper {
-			return stem + "F"
+		for _, fstem := range fPluralStems {
+			if strings.HasSuffix(lstem, fstem) {
+				if isUpper {
+					return stem + "F"
+				}
+				return stem + "f"
+			}
 		}
-		return stem + "f"
+		return word[:len(word)-1]
 	}
 
 	// -oes -> -o (potatoes -> potato)
@@ -614,6 +631,97 @@ func guideActive(node any) bool {
 		}
 	}
 	return true
+}
+
+var authTokenFields = []string{
+	"access_token", "accessToken", "access-token",
+	"id_token", "idToken",
+	"token", "jwt",
+}
+
+var authCredentialFields = []string{
+	"refresh_token", "refreshToken", "refresh-token",
+	"client_secret", "clientSecret",
+	"assertion", "grant_type", "grantType",
+	"api_key", "apiKey", "apikey",
+	"password", "code",
+}
+
+// authExchangeOp mirrors authExchangeOp in ts/src/utility.ts: nil, or the
+// response token field and the request credential field (nil when unknown).
+func authExchangeOp(op map[string]any, specSecured bool) map[string]any {
+	if !specSecured {
+		return nil
+	}
+
+	if security, ok := op["security"].([]any); !ok || 0 != len(security) {
+		return nil
+	}
+
+	if method, _ := op["method"].(string); "POST" != strings.ToUpper(method) {
+		return nil
+	}
+
+	response := firstFieldMatch(schemaProps(successResponseSchema(op["responses"])), authTokenFields)
+	if "" == response {
+		return nil
+	}
+
+	var request any
+	if found := firstFieldMatch(schemaProps(requestBodySchema(op["requestBody"])), authCredentialFields); "" != found {
+		request = found
+	}
+
+	return map[string]any{"request": request, "response": response}
+}
+
+func specSecuredByDefault(def map[string]any) bool {
+	security, ok := def["security"].([]any)
+	return ok && 0 < len(security)
+}
+
+func successResponseSchema(responses any) any {
+	rm, _ := responses.(map[string]any)
+	res := rm["200"]
+	if nil == res {
+		res = rm["201"]
+	}
+	resm, _ := res.(map[string]any)
+	if content, ok := resm["content"].(map[string]any); ok {
+		if media, ok := content["application/json"].(map[string]any); ok && nil != media["schema"] {
+			return media["schema"]
+		}
+	}
+	return resm["schema"]
+}
+
+func requestBodySchema(requestBody any) any {
+	rb, _ := requestBody.(map[string]any)
+	content, _ := rb["content"].(map[string]any)
+	media, _ := content["application/json"].(map[string]any)
+	return media["schema"]
+}
+
+func schemaProps(schema any) []string {
+	sm, _ := schema.(map[string]any)
+	props, _ := sm["properties"].(map[string]any)
+	return sortedKeys(props)
+}
+
+func firstFieldMatch(props []string, names []string) string {
+	lower := map[string]string{}
+	for _, p := range props {
+		k := strings.ToLower(p)
+		if _, seen := lower[k]; !seen {
+			lower[k] = p
+		}
+	}
+	for _, name := range names {
+		if hit, ok := lower[strings.ToLower(name)]; ok {
+			return hit
+		}
+	}
+	return ""
 }
 
 func CleanComponentName(name string, isKnownCmp func(string) bool) string {
@@ -1165,7 +1273,7 @@ func formatJSONICValue(val any, indent int, prefix string, lines *[]string, seen
 			}
 			keys = append(keys, k)
 		}
-		sort.Strings(keys)
+		sortUTF16(keys)
 
 		if len(keys) == 0 {
 			*lines = append(*lines, prefix+"{")
@@ -1349,6 +1457,36 @@ func WriteFileWarn(warn Warner, path string, text string) {
 	}
 }
 
+// Before `.aon` was retired apidef wrote each of its files under that
+// extension, so the `.aon` twin of a file it writes as `.aontu` is its own.
+func removeLegacyAon(log Logger, file string) bool {
+	if !strings.HasSuffix(file, ".aontu") {
+		return false
+	}
+	legacy := strings.TrimSuffix(file, ".aontu") + ".aon"
+	if _, err := os.Stat(legacy); err != nil {
+		return false
+	}
+
+	if err := os.Remove(legacy); err != nil {
+		if log != nil {
+			log.Warn(map[string]any{
+				"point": "legacy-aon-failed", "file": legacy, "err": err.Error(),
+				"note": "could not remove " + RelativizePath(legacy) + ": " + err.Error(),
+			})
+		}
+		return false
+	}
+
+	if log != nil {
+		log.Info(map[string]any{
+			"point": "legacy-aon", "file": legacy,
+			"note": "removed " + RelativizePath(legacy) + ", now written as .aontu",
+		})
+	}
+	return true
+}
+
 // FindPathsWithPrefix counts paths that start with a given prefix.
 func FindPathsWithPrefix(ctx *ApiDefContext, pathStr string, strict bool, param bool) int {
 	if !param {
@@ -1382,8 +1520,45 @@ func sortedKeys(m map[string]any) []string {
 	for k := range m {
 		keys = append(keys, k)
 	}
-	sort.Strings(keys)
+	sortUTF16(keys)
 	return keys
+}
+
+// sortUTF16 sorts as JavaScript's default sort does, by UTF-16 code unit.
+func sortUTF16(keys []string) {
+	sort.Slice(keys, func(i, j int) bool { return lessUTF16(keys[i], keys[j]) })
+}
+
+// lessUTF16 is JavaScript's `a < b`: byte order, except that a supplementary
+// character sorts before U+E000..U+FFFF, as its surrogate code units do.
+func lessUTF16(a, b string) bool {
+	n := min(len(a), len(b))
+	i := 0
+	for i < n && a[i] == b[i] {
+		i++
+	}
+	if i == n {
+		return len(a) < len(b)
+	}
+	for 0 < i && (!utf8.RuneStart(a[i]) || !utf8.RuneStart(b[i])) {
+		i--
+	}
+	ra, _ := utf8.DecodeRuneInString(a[i:])
+	rb, _ := utf8.DecodeRuneInString(b[i:])
+	if ra == rb {
+		return a < b
+	}
+	return utf16Rank(ra) < utf16Rank(rb)
+}
+
+func utf16Rank(r rune) rune {
+	switch {
+	case 0x10000 <= r:
+		return r - 0x10000 + 0xD800
+	case 0xE000 <= r:
+		return r + 0x100000
+	}
+	return r
 }
 
 func sortedKeysBool(m map[string]bool) []string {
@@ -1391,10 +1566,11 @@ func sortedKeysBool(m map[string]bool) []string {
 	for k := range m {
 		keys = append(keys, k)
 	}
-	sort.Strings(keys)
+	sortUTF16(keys)
 	return keys
 }
 
+// Code point order, as the TypeScript sorts reference counts.
 func sortedKeysInt64(m map[string]int64) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
@@ -1409,7 +1585,7 @@ func sortedKeysOpmWork(m map[string][]map[string]any) []string {
 	for k := range m {
 		keys = append(keys, k)
 	}
-	sort.Strings(keys)
+	sortUTF16(keys)
 	return keys
 }
 

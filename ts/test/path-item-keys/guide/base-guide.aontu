@@ -1,0 +1,25 @@
+# Generated from the API definition and overwritten on every build: do not
+# edit this file. Put customizations in the guide entry file, which includes
+# this one and overrides its defaults:
+#   guide.aontu
+
+guide: {
+  metrics: count: entity: 2
+  metrics: count: path: 3
+  metrics: count: method: 3
+
+  entity: crate: {
+    path: "/crates/{crate_id}": {
+      rename: param: "crate_id": *"id"
+      op: load: method: *GET
+      op: remove: method: *DELETE
+    }
+  }
+
+  entity: release: {
+    path: "/crates/{crate_id}/versions/{version_id}": {
+      op: load: method: *GET
+    }
+  }
+
+}

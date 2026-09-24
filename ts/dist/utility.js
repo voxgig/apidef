@@ -37,6 +37,7 @@ exports.debugpath = debugpath;
 exports.debugpathOn = debugpathOn;
 exports.findPathsWithPrefix = findPathsWithPrefix;
 exports.writeFileSyncWarn = writeFileSyncWarn;
+exports.removeLegacyAon = removeLegacyAon;
 exports.warnOnError = warnOnError;
 exports.relativizePath = relativizePath;
 exports.getModelPath = getModelPath;
@@ -86,6 +87,29 @@ function writeFileSyncWarn(warn, fs, path, text) {
             err,
             note: 'Unable to save file: ' + relativizePath(path)
         });
+    }
+}
+// Before `.aon` was retired apidef wrote each of its files under that
+// extension, so the `.aon` twin of a file it writes as `.aontu` is its own.
+function removeLegacyAon(fs, log, file) {
+    const legacy = file.replace(/\.aontu$/, '.aon');
+    if (legacy === file || !fs.existsSync(legacy)) {
+        return false;
+    }
+    try {
+        fs.unlinkSync(legacy);
+        log?.info?.({
+            point: 'legacy-aon', file: legacy,
+            note: 'removed ' + relativizePath(legacy) + ', now written as .aontu',
+        });
+        return true;
+    }
+    catch (err) {
+        log?.warn?.({
+            point: 'legacy-aon-failed', file: legacy, err,
+            note: 'could not remove ' + relativizePath(legacy) + ': ' + err?.message,
+        });
+        return false;
     }
 }
 function getdlog(tagin, filepath) {
@@ -167,6 +191,7 @@ const IRREGULARS = Object.assign(Object.create(null), {
     'premises': 'premise',
     'promises': 'promise',
     'psyches': 'psyche',
+    'purchases': 'purchase',
     'purses': 'purse',
     'releases': 'release',
     'roses': 'rose',
@@ -183,6 +208,13 @@ const IRREGULARS = Object.assign(Object.create(null), {
     'women': 'woman',
     'yes': 'yes',
 });
+// The stems whose -ves plural comes from -fe (knives) or -f (wolves). The
+// -fe stems match the whole word, since olives is not the plural of olife.
+const FE_PLURAL_STEMS = ['kni', 'li', 'wi'];
+const F_PLURAL_STEMS = [
+    'cal', 'dwar', 'el', 'hal', 'hoo', 'lea', 'loa', 'scar', 'shea', 'thie',
+    'whar', 'wol',
+];
 // Sorted longest-first so the most specific IRREGULARS suffix wins.
 // Without this, 'women' would be shadowed by 'men' (3 < 5) under
 // insertion-order iteration. Both happen to round-trip correctly
@@ -266,16 +298,21 @@ function depluralize(word) {
             return result;
         }
     }
-    // -ves -> -f or -fe (wolves -> wolf, knives -> knife)
+    // -ves -> -f or -fe only for the words that take it (wolves -> wolf,
+    // knives -> knife); every other -ves plural drops the -s alone
+    // (objectives -> objective).
     if (lower.endsWith('ves')) {
         const stem = word.slice(0, -3);
+        const lstem = stem.toLowerCase();
         const dropped = word.slice(-3);
         const isUpper = dropped === dropped.toUpperCase();
-        // Check if it should be -fe (like knife, wife, life)
-        if (['kni', 'wi', 'li'].includes(stem.toLowerCase())) {
+        if (FE_PLURAL_STEMS.includes(lstem)) {
             return stem + (isUpper ? 'FE' : 'fe');
         }
-        return stem + (isUpper ? 'F' : 'f');
+        if (F_PLURAL_STEMS.some((fstem) => lstem.endsWith(fstem))) {
+            return stem + (isUpper ? 'F' : 'f');
+        }
+        return word.slice(0, -1);
     }
     // -oes -> -o (potatoes -> potato)
     if (lower.endsWith('oes')) {
@@ -1030,12 +1067,13 @@ function requestBodySchema(requestBody) {
     }
     return requestBody.content?.['application/json']?.schema ?? null;
 }
+// Sorted, not definition order, which the Go parser does not keep.
 function schemaProps(schema) {
     const props = schema?.properties;
     if (null == props || 'object' !== typeof props) {
         return [];
     }
-    return Object.keys(props);
+    return sortedKeys(props);
 }
 function firstFieldMatch(props, names) {
     const lower = new Map();

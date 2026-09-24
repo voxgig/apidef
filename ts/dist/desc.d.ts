@@ -38,6 +38,8 @@ type MethodEntityDesc = {
     opname: string;
     why_opname: string[];
     pm?: any;
+    rescmp?: string | null;
+    rescmpoccur?: number;
     verb_on_parent?: string;
 };
 type EntityDesc = {

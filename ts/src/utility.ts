@@ -66,6 +66,32 @@ function writeFileSyncWarn(warn: Warner, fs: any, path: string, text: string) {
 }
 
 
+// Before `.aon` was retired apidef wrote each of its files under that
+// extension, so the `.aon` twin of a file it writes as `.aontu` is its own.
+function removeLegacyAon(fs: any, log: any, file: string): boolean {
+  const legacy = file.replace(/\.aontu$/, '.aon')
+  if (legacy === file || !fs.existsSync(legacy)) {
+    return false
+  }
+
+  try {
+    fs.unlinkSync(legacy)
+    log?.info?.({
+      point: 'legacy-aon', file: legacy,
+      note: 'removed ' + relativizePath(legacy) + ', now written as .aontu',
+    })
+    return true
+  }
+  catch (err: any) {
+    log?.warn?.({
+      point: 'legacy-aon-failed', file: legacy, err,
+      note: 'could not remove ' + relativizePath(legacy) + ': ' + err?.message,
+    })
+    return false
+  }
+}
+
+
 
 function getdlog(
   tagin?: string,
@@ -159,6 +185,7 @@ const IRREGULARS: Record<string, string> = Object.assign(Object.create(null), {
   'premises': 'premise',
   'promises': 'promise',
   'psyches': 'psyche',
+  'purchases': 'purchase',
   'purses': 'purse',
   'releases': 'release',
   'roses': 'rose',
@@ -175,6 +202,15 @@ const IRREGULARS: Record<string, string> = Object.assign(Object.create(null), {
   'women': 'woman',
   'yes': 'yes',
 })
+
+
+// The stems whose -ves plural comes from -fe (knives) or -f (wolves). The
+// -fe stems match the whole word, since olives is not the plural of olife.
+const FE_PLURAL_STEMS = ['kni', 'li', 'wi']
+const F_PLURAL_STEMS = [
+  'cal', 'dwar', 'el', 'hal', 'hoo', 'lea', 'loa', 'scar', 'shea', 'thie',
+  'whar', 'wol',
+]
 
 
 // Sorted longest-first so the most specific IRREGULARS suffix wins.
@@ -274,16 +310,21 @@ function depluralize(word: string): string {
     }
   }
 
-  // -ves -> -f or -fe (wolves -> wolf, knives -> knife)
+  // -ves -> -f or -fe only for the words that take it (wolves -> wolf,
+  // knives -> knife); every other -ves plural drops the -s alone
+  // (objectives -> objective).
   if (lower.endsWith('ves')) {
     const stem = word.slice(0, -3)
+    const lstem = stem.toLowerCase()
     const dropped = word.slice(-3)
     const isUpper = dropped === dropped.toUpperCase()
-    // Check if it should be -fe (like knife, wife, life)
-    if (['kni', 'wi', 'li'].includes(stem.toLowerCase())) {
+    if (FE_PLURAL_STEMS.includes(lstem)) {
       return stem + (isUpper ? 'FE' : 'fe')
     }
-    return stem + (isUpper ? 'F' : 'f')
+    if (F_PLURAL_STEMS.some((fstem) => lstem.endsWith(fstem))) {
+      return stem + (isUpper ? 'F' : 'f')
+    }
+    return word.slice(0, -1)
   }
 
   // -oes -> -o (potatoes -> potato)
@@ -1224,12 +1265,13 @@ function requestBodySchema(requestBody: any): any {
 }
 
 
+// Sorted, not definition order, which the Go parser does not keep.
 function schemaProps(schema: any): string[] {
   const props = schema?.properties
   if (null == props || 'object' !== typeof props) {
     return []
   }
-  return Object.keys(props)
+  return sortedKeys(props)
 }
 
 
@@ -1802,6 +1844,7 @@ export {
   debugpathOn,
   findPathsWithPrefix,
   writeFileSyncWarn,
+  removeLegacyAon,
   warnOnError,
   relativizePath,
   getModelPath,

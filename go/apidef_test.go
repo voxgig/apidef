@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 	"testing"
 )
@@ -166,6 +167,67 @@ func TestOperationTransformVerbs(t *testing.T) {
 	}
 }
 
+// Mirrors the TS `guide-rename-guards` case.
+func TestGuideRenameGuards(t *testing.T) {
+	src, err := os.ReadFile("../ts/test/def/rename-guard-def.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := Parse("OpenAPI", string(src), map[string]string{"file": "rename-guard-def.json"})
+	if err != nil {
+		t.Fatalf("parse failed: %v", err)
+	}
+	ctx := &ApiDefContext{
+		Opts: ApiDefOptions{
+			Folder:    stageGuideEntry(t, t.TempDir(), "rename-guard-"),
+			OutPrefix: "rename-guard-",
+			Strategy:  "heuristic01",
+		},
+		Def:  parsed,
+		Note: map[string]any{},
+		Warn: MakeWarner("test", nil),
+		Work: map[string]any{},
+	}
+	guideResult, err := BuildGuide(ctx)
+	if err != nil {
+		t.Fatalf("guide build failed: %v", err)
+	}
+	guide, _ := guideResult["guide"].(map[string]any)
+	entities, _ := guide["entity"].(map[string]any)
+	paths := map[string]any{}
+	for _, name := range sortedKeys(entities) {
+		ent, _ := entities[name].(map[string]any)
+		epaths, _ := ent["path"].(map[string]any)
+		for p, pd := range epaths {
+			paths[p] = pd
+		}
+	}
+	renames := func(path string) map[string]any {
+		out := map[string]any{}
+		pd, _ := paths[path].(map[string]any)
+		rename, _ := pd["rename"].(map[string]any)
+		param, _ := rename["param"].(map[string]any)
+		for k, v := range param {
+			if vm, ok := v.(map[string]any); ok {
+				v = vm["target"]
+			}
+			out[k] = v
+		}
+		return out
+	}
+
+	got := renames("/things/{thing_id}/revisions/{recipe_revision}" +
+		"/packages/{package_ref}/revisions/{package_revision}/files/{file_name}")
+	want := map[string]any{"file_name": "id", "package_ref": "package_id", "recipe_revision": "revision_id"}
+	if !jsonEqual(got, want) {
+		t.Errorf("revisions renames = %v, want %v", got, want)
+	}
+	got = renames("/things/{thing_id}/2fa/{code}/checks/{check_id}")
+	if want := (map[string]any{"check_id": "id"}); !jsonEqual(got, want) {
+		t.Errorf("2fa renames = %v, want %v", got, want)
+	}
+}
+
 // A verb on an item selector is an ACTION on the parent entity, even when
 // its response has a schema of its own; the `<parent>_number` key is renamed
 // to `id` on the verb path as on the item path, and a nested collection is
@@ -305,6 +367,16 @@ func TestGuideVerbOnParentEdges(t *testing.T) {
 	if got := strings.Join(actionsOf(archive), ","); got != "archive" {
 		t.Errorf("archive actions = %s, want archive", got)
 	}
+	archiveMap, _ := archive.(map[string]any)
+	rename, _ := archiveMap["rename"].(map[string]any)
+	params, _ := rename["param"].(map[string]any)
+	target := params["email_archive_id"]
+	if tm, ok := target.(map[string]any); ok {
+		target = tm["target"]
+	}
+	if target != "id" {
+		t.Errorf("archive renames email_archive_id to %v, want id", target)
+	}
 }
 
 // One page wrapper serves both collections through a shared response. Counted
@@ -401,6 +473,390 @@ func TestGuideEnvelope(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("entity ops = %v, want %v", got, want)
+	}
+}
+
+// Mirrors the TS `guide-trailing-key` case.
+func TestGuideTrailingKey(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "trailing-key-")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, OutPrefix: "trailing-key-", Strategy: "heuristic01"}).
+		Generate(map[string]any{
+			"model": map[string]any{"name": "trailing-key", "def": "trailing-key-def.json"},
+			"build": map[string]any{"spec": map[string]any{"base": "../ts/test/def"}},
+			"ctrl": map[string]any{"step": map[string]any{
+				"parse": true, "guide": true, "transformers": true,
+				"builders": false, "generate": false,
+			}},
+		})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v", err)
+	}
+
+	gents, _ := res.Guide["entity"].(map[string]any)
+	renames := func(ent, path string) map[string]any {
+		e, _ := gents[ent].(map[string]any)
+		paths, _ := e["path"].(map[string]any)
+		pd, _ := paths[path].(map[string]any)
+		rename, _ := pd["rename"].(map[string]any)
+		param, _ := rename["param"].(map[string]any)
+		return param
+	}
+	if got, want := renames("runner_group", "/orgs/{org}/runner-groups/{runner_group_id}"),
+		(map[string]any{"org": "org_id", "runner_group_id": "id"}); !reflect.DeepEqual(got, want) {
+		t.Errorf("runner_group renames = %v, want %v", got, want)
+	}
+	if got, want := renames("user", "/user_groups/{id}/users/{uid}"),
+		(map[string]any{"id": "user_group_id", "uid": "id"}); !reflect.DeepEqual(got, want) {
+		t.Errorf("user renames = %v, want %v", got, want)
+	}
+
+	entities := res.ApiModel["main"].(map[string]any)["kit"].(map[string]any)["entity"].(map[string]any)
+	params := func(ent, op string) []string {
+		e, _ := entities[ent].(map[string]any)
+		opm, _ := e["op"].(map[string]any)
+		o, _ := opm[op].(map[string]any)
+		pts, _ := o["points"].([]any)
+		if len(pts) == 0 {
+			return nil
+		}
+		g, _ := pts[0].(map[string]any)["g"].(map[string]any)
+		list, _ := g["params"].([]any)
+		out := []string{}
+		for _, a := range list {
+			am, _ := a.(map[string]any)
+			out = append(out, safeStr(am["or"])+">"+safeStr(am["n"]))
+		}
+		sort.Strings(out)
+		return out
+	}
+	for _, op := range []string{"load", "update"} {
+		if got, want := params("runner_group", op), []string{"org>org_id", "runner_group_id>id"}; !reflect.DeepEqual(got, want) {
+			t.Errorf("runner_group %s params = %v, want %v", op, got, want)
+		}
+	}
+	for _, op := range []string{"create", "remove"} {
+		if got, want := params("user", op), []string{"id>user_group_id", "uid>id"}; !reflect.DeepEqual(got, want) {
+			t.Errorf("user %s params = %v, want %v", op, got, want)
+		}
+	}
+}
+
+// Mirrors the TS `guide-blank-segment` case.
+func TestGuideBlankSegment(t *testing.T) {
+	src, err := os.ReadFile("../ts/test/def/blank-segment-def.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := Parse("OpenAPI", string(src), map[string]string{"file": "blank-segment-def.json"})
+	if err != nil {
+		t.Fatalf("parse failed: %v", err)
+	}
+	ctx := &ApiDefContext{
+		Opts: ApiDefOptions{Folder: stageGuideEntry(t, t.TempDir(), "blank-segment-"), OutPrefix: "blank-segment-", Strategy: "heuristic01"},
+		Def:  parsed, Note: map[string]any{}, Warn: MakeWarner("test", nil), Work: map[string]any{},
+	}
+	guideResult, err := BuildGuide(ctx)
+	if err != nil {
+		t.Fatalf("guide build failed: %v", err)
+	}
+	guide, _ := guideResult["guide"].(map[string]any)
+	entities, _ := guide["entity"].(map[string]any)
+
+	pathdesc := func(path string) map[string]any {
+		for _, name := range sortedKeys(entities) {
+			ent, _ := entities[name].(map[string]any)
+			paths, _ := ent["path"].(map[string]any)
+			if pd, ok := paths[path].(map[string]any); ok {
+				return pd
+			}
+		}
+		t.Fatalf("no entity holds %s", path)
+		return nil
+	}
+	idOf := func(path string) []string {
+		rename, _ := pathdesc(path)["rename"].(map[string]any)
+		param, _ := rename["param"].(map[string]any)
+		out := []string{}
+		for _, orig := range sortedKeys(param) {
+			if param[orig] == "id" {
+				out = append(out, orig)
+			}
+		}
+		return out
+	}
+
+	for path, want := range map[string][]string{
+		"/orders/-/{order_id}/lines/{line_id}": {"line_id"},
+		"/orders/-/{order}/notes/{note_id}":    {"note_id"},
+		"/orders/-/{order_id}/refund":          {},
+	} {
+		if got := idOf(path); !reflect.DeepEqual(got, want) {
+			t.Errorf("%s renamed to id: %v, want %v", path, got, want)
+		}
+	}
+	action, _ := pathdesc("/orders/-/{order_id}/refund")["action"].(map[string]any)
+	if len(action) != 0 {
+		t.Errorf("refund actions = %v, want none", sortedKeys(action))
+	}
+}
+
+// Mirrors the TS `guide-auth-exchange` case, and writes the base guide that
+// case writes to ts/test/auth-exchange/guide/base-guide.aontu.
+func TestGuideAuthExchange(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "")
+	ad := NewApiDef(ApiDefOptions{Folder: folder, Strategy: "heuristic01"})
+	res, err := ad.Generate(map[string]any{
+		"model": map[string]any{"name": "auth-exchange", "def": "auth-exchange-def.json"},
+		"build": map[string]any{"spec": map[string]any{"base": "../ts/test/auth-exchange"}},
+		"ctrl": map[string]any{"step": map[string]any{
+			"parse": true, "guide": true, "transformers": true,
+			"builders": false, "generate": false,
+		}},
+	})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v res=%+v", err, res)
+	}
+
+	gents, _ := res.Guide["entity"].(map[string]any)
+	if got := strings.Join(sortedKeys(gents), ","); got != "session,token,widget" {
+		t.Fatalf("guide entities = %s", got)
+	}
+	for name, want := range map[string]bool{"session": true, "token": false, "widget": true} {
+		if got := guideActive(gents[name]); got != want {
+			t.Errorf("guide entity %s active = %v, want %v", name, got, want)
+		}
+	}
+
+	want, err := os.ReadFile("../ts/test/auth-exchange/guide/base-guide.aontu")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(filepath.Join(folder, "guide", "base-guide.aontu"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != string(want) {
+		t.Errorf("base guide differs from the TypeScript one:\n%s", string(got))
+	}
+
+	main, _ := res.ApiModel["main"].(map[string]any)
+	kit, _ := main[KIT].(map[string]any)
+	entities, _ := kit["entity"].(map[string]any)
+	ops := map[string]string{}
+	for _, name := range sortedKeys(entities) {
+		ent, _ := entities[name].(map[string]any)
+		op, _ := ent["op"].(map[string]any)
+		ops[name] = strings.Join(sortedKeys(op), "/")
+	}
+	wantOps := map[string]string{"session": "create/load", "widget": "create/list/load/remove"}
+	if !reflect.DeepEqual(ops, wantOps) {
+		t.Errorf("model entity ops = %v, want %v", ops, wantOps)
+	}
+}
+
+// Mirrors the TS `guide-sharing` case.
+func TestGuideSharing(t *testing.T) {
+	src, err := os.ReadFile("../ts/test/def/sharing-def.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := Parse("OpenAPI", string(src), map[string]string{"file": "sharing-def.json"})
+	if err != nil {
+		t.Fatalf("parse failed: %v", err)
+	}
+	ctx := &ApiDefContext{
+		Opts: ApiDefOptions{Folder: stageGuideEntry(t, t.TempDir(), "sharing-"), OutPrefix: "sharing-", Strategy: "heuristic01"},
+		Def:  parsed, Note: map[string]any{}, Warn: MakeWarner("test", nil), Work: map[string]any{},
+	}
+	guideResult, err := BuildGuide(ctx)
+	if err != nil {
+		t.Fatalf("guide build failed: %v", err)
+	}
+	guide, _ := guideResult["guide"].(map[string]any)
+	entities, _ := guide["entity"].(map[string]any)
+
+	got := map[string]string{}
+	for _, name := range sortedKeys(entities) {
+		routes := []string{}
+		ent, _ := entities[name].(map[string]any)
+		paths, _ := ent["path"].(map[string]any)
+		for path, pd := range paths {
+			pm, _ := pd.(map[string]any)
+			ops, _ := pm["op"].(map[string]any)
+			for _, op := range ops {
+				om, _ := op.(map[string]any)
+				routes = append(routes, safeStr(om["method"])+" "+path)
+			}
+		}
+		sort.Strings(routes)
+		got[name] = strings.Join(routes, ", ")
+	}
+	want := map[string]string{
+		"ack":                "PUT /orgs/{org}/actions/secrets/{name}, PUT /orgs/{org}/dependabot/secrets/{name}",
+		"counter":            "GET /stats/daily",
+		"enforce_admin":      "GET /settings/enforce_admins",
+		"job":                "GET /jobs, GET /jobs/{id}, POST /jobs/{id}/rerun",
+		"metric":             "GET /metrics",
+		"memo":               "GET /notes, GET /notes/{id}, GET /users/{uid}/starred_notes",
+		"package_manifest":   "GET /packages/{pid}/digest, GET /packages/{pid}/download_urls",
+		"recipe_manifest":    "GET /recipes/{rid}/digest, GET /recipes/{rid}/download_urls",
+		"removal":            "DELETE /accounts/{aid}/bank_accounts/{id}, DELETE /accounts/{aid}/external_accounts/{id}",
+		"required_signature": "GET /settings/required_signatures",
+		"stat":               "GET /stats",
+		"variable":           "POST /orgs/{org}/actions/variables",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("entity routes = %v, want %v", got, want)
+	}
+
+	job, _ := entities["job"].(map[string]any)
+	jobPaths, _ := job["path"].(map[string]any)
+	rerun, _ := jobPaths["/jobs/{id}/rerun"].(map[string]any)
+	if actions, _ := rerun["action"].(map[string]any); actions["rerun"] == nil {
+		t.Errorf("rerun is not an action on job: %v", rerun)
+	}
+}
+
+// Mirrors the TS `guide-path-item-keys` case, and requires the base guide that
+// case writes to ts/test/path-item-keys/guide/base-guide.aontu.
+func TestGuidePathItemKeys(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, Strategy: "heuristic01"}).Generate(map[string]any{
+		"model": map[string]any{"name": "path-item-keys", "def": "path-item-keys-def.json"},
+		"build": map[string]any{"spec": map[string]any{"base": "../ts/test/path-item-keys"}},
+		"ctrl": map[string]any{"step": map[string]any{
+			"parse": true, "guide": true, "transformers": true,
+			"builders": false, "generate": false,
+		}},
+	})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v res=%+v", err, res)
+	}
+
+	gents, _ := res.Guide["entity"].(map[string]any)
+	if got := strings.Join(sortedKeys(gents), ","); got != "crate,release" {
+		t.Errorf("guide entities = %s, want crate,release", got)
+	}
+
+	want, err := os.ReadFile("../ts/test/path-item-keys/guide/base-guide.aontu")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(filepath.Join(folder, "guide", "base-guide.aontu"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != string(want) {
+		t.Errorf("base guide differs from the TypeScript one:\n%s", string(got))
+	}
+
+	main, _ := res.ApiModel["main"].(map[string]any)
+	kit, _ := main[KIT].(map[string]any)
+	entities, _ := kit["entity"].(map[string]any)
+	ops := map[string]string{}
+	for _, name := range sortedKeys(entities) {
+		ent, _ := entities[name].(map[string]any)
+		op, _ := ent["op"].(map[string]any)
+		ops[name] = strings.Join(sortedKeys(op), "/")
+	}
+	wantOps := map[string]string{"crate": "load/remove", "release": "load"}
+	if !reflect.DeepEqual(ops, wantOps) {
+		t.Errorf("model entity ops = %v, want %v", ops, wantOps)
+	}
+}
+
+// Mirrors the TS `guide-collection-merge` case, and requires the base guide
+// that case writes to ts/test/collection-merge/guide/base-guide.aontu.
+func TestGuideCollectionMerge(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, Strategy: "heuristic01"}).Generate(map[string]any{
+		"model": map[string]any{"name": "collection-merge", "def": "collection-merge-def.json"},
+		"build": map[string]any{"spec": map[string]any{"base": "../ts/test/collection-merge"}},
+		"ctrl": map[string]any{"step": map[string]any{
+			"parse": true, "guide": true, "transformers": true,
+			"builders": false, "generate": false,
+		}},
+	})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v res=%+v", err, res)
+	}
+
+	gents, _ := res.Guide["entity"].(map[string]any)
+	if got := strings.Join(sortedKeys(gents), ","); got != "setting" {
+		t.Errorf("guide entities = %s, want setting", got)
+	}
+	main, _ := res.ApiModel["main"].(map[string]any)
+	kit, _ := main[KIT].(map[string]any)
+	entities, _ := kit["entity"].(map[string]any)
+	if got := strings.Join(sortedKeys(entities), ","); got != "setting" {
+		t.Errorf("model entities = %s, want setting", got)
+	}
+
+	want, err := os.ReadFile("../ts/test/collection-merge/guide/base-guide.aontu")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(filepath.Join(folder, "guide", "base-guide.aontu"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != string(want) {
+		t.Errorf("base guide differs from the TypeScript one:\n%s", string(got))
+	}
+}
+
+// Mirrors the TS `guide-collection-merge-overlay` case.
+func TestGuideCollectionMergeOverlay(t *testing.T) {
+	for _, owner := range []string{"key", "keyring"} {
+		folder := t.TempDir()
+		entry := "@\"@voxgig/apidef/model/guide.aontu\"\n" +
+			"@\"./base-guide.aontu\"\n" +
+			"guide: entity: " + owner + ": path: \"/keys\": op: {\n" +
+			"  create: method: \"POST\"\n" +
+			"  list: method: \"GET\"\n" +
+			"}\n" +
+			"guide: entity: setting: path: \"/keys\": active: false\n"
+		if err := writeGuideEntry(folder, "", entry); err != nil {
+			t.Fatal(err)
+		}
+		res, err := NewApiDef(ApiDefOptions{Folder: folder, Strategy: "heuristic01"}).Generate(map[string]any{
+			"model": map[string]any{"name": "collection-merge", "def": "collection-merge-def.json"},
+			"build": map[string]any{"spec": map[string]any{"base": "../ts/test/collection-merge"}},
+			"ctrl": map[string]any{"step": map[string]any{
+				"parse": true, "guide": true, "transformers": true,
+				"builders": false, "generate": false,
+			}},
+		})
+		if err != nil || res == nil || !res.OK {
+			t.Fatalf("%s: generate failed: err=%v res=%+v", owner, err, res)
+		}
+
+		main, _ := res.ApiModel["main"].(map[string]any)
+		kit, _ := main[KIT].(map[string]any)
+		entities, _ := kit["entity"].(map[string]any)
+		routes := map[string][]string{}
+		for _, name := range sortedKeys(entities) {
+			ent, _ := entities[name].(map[string]any)
+			ops, _ := ent["op"].(map[string]any)
+			list := []string{}
+			for _, opname := range sortedKeys(ops) {
+				op, _ := ops[opname].(map[string]any)
+				pts, _ := op["points"].([]any)
+				for _, p := range pts {
+					pt, _ := p.(map[string]any)
+					list = append(list, opname+" "+safeStr(pt["m"])+" "+safeStr(pt["o"]))
+				}
+			}
+			sort.Strings(list)
+			routes[name] = list
+		}
+		want := map[string][]string{
+			owner:     {"create POST /keys", "list GET /keys"},
+			"setting": {"remove DELETE /keys/{key_id}"},
+		}
+		if !reflect.DeepEqual(routes, want) {
+			t.Errorf("%s: model routes = %v, want %v", owner, routes, want)
+		}
 	}
 }
 

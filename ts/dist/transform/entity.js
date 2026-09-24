@@ -12,9 +12,6 @@ const entityTransform = async function (ctx) {
     const { apimodel, guide } = ctx;
     const kit = apimodel.main[types_1.KIT];
     let msg = '';
-    if (true !== ctx.def?.graphql) {
-        mergeCollectionPaths(guide, ctx.log);
-    }
     (0, jostraca_1.each)(guide.entity, (guideEntity, entname) => {
         if (!(0, utility_1.guideActive)(guideEntity)) {
             ctx.log.debug({ point: 'guide-entity', note: entname, active: false });
@@ -54,8 +51,11 @@ function filterEntityAncestors(entities) {
 // Move "/X" paths onto the entity that owns "/X/{id}" or "/X/{id}/sub".
 // Only acts when the path "/X" sits on a different entity than the
 // per-instance paths — leaves correctly-classified APIs alone.
+// Returns the entities the moves emptied, which are removed.
+// Guide stage only: on the unified guide it would override guide.aontu.
 function mergeCollectionPaths(guide, log) {
     const entities = guide.entity;
+    const emptied = [];
     const rootOwners = {};
     for (const [ename, entity] of Object.entries(entities)) {
         for (const pathStr of Object.keys(entity.path ?? {})) {
@@ -135,7 +135,16 @@ function mergeCollectionPaths(guide, log) {
                 to: owner.ename,
             });
         }
+        if (0 < pathsToMove.length && 0 === Object.keys(entity.path).length) {
+            emptied.push(ename);
+        }
     }
+    // With no path left it names nothing guide.aontu could switch back on.
+    for (const ename of emptied) {
+        delete entities[ename];
+        log?.debug?.({ point: 'merge-collection-drop', entity: ename });
+    }
+    return emptied;
 }
 function resolvePathList(guideEntity, def) {
     const paths$ = [];

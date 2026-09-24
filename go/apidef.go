@@ -251,6 +251,10 @@ func (a *apiDefInstance) Generate(spec map[string]any) (*ApiDefResult, error) {
 	kitEntity, _ := getKit(ctx)["entity"].(map[string]any)
 	GcEntityFiles(ctx.Log, a.opts.Folder, a.opts.OutPrefix, sortedKeys(kitEntity))
 
+	for _, file := range ownModelFiles(ctx, a.opts.OutPrefix) {
+		removeLegacyAon(ctx.Log, filepath.Join(a.opts.Folder, file))
+	}
+
 	if warnings := warn.History(); len(warnings) > 0 {
 		WriteFileWarn(warn, "./apidef-warnings.txt", warningsFileText(warnings))
 	}
@@ -267,6 +271,25 @@ func (a *apiDefInstance) Generate(spec map[string]any) (*ApiDefResult, error) {
 		Ctx:      ctx,
 		Jres:     &jres,
 	}, nil
+}
+
+// ownModelFiles lists the model files the builders write besides the entity
+// records. Mirrors ownModelFiles in ts/src/apidef.ts.
+func ownModelFiles(ctx *ApiDefContext, prefix string) []string {
+	flows, _ := getKit(ctx)["flow"].(map[string]any)
+	flownames := []string{}
+	for _, name := range sortedKeys(flows) {
+		if flow, _ := flows[name].(map[string]any); flow != nil {
+			flownames = append(flownames, name)
+		}
+	}
+	bases := flowFileBases(flownames)
+
+	files := []string{"api/" + prefix + "api-info.aontu", "entity/" + prefix + "entity-index.aontu"}
+	for _, name := range flownames {
+		files = append(files, "flow/"+prefix+bases[name]+".aontu")
+	}
+	return append(files, "flow/"+prefix+"flow-index.aontu")
 }
 
 func warningsFileText(history []map[string]any) string {

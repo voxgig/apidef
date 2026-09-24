@@ -1,0 +1,118 @@
+{
+  "openapi": "3.0.0",
+  "info": { "title": "Trailing Key API", "version": "1.0.0" },
+  "servers": [ { "url": "https://api.example.com" } ],
+  "paths": {
+    "/orgs": {
+      "get": {
+        "operationId": "list-orgs",
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Org" } } } } } }
+      }
+    },
+    "/orgs/{org_id}": {
+      "get": {
+        "operationId": "get-org",
+        "parameters": [ { "name": "org_id", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "$ref": "#/components/schemas/Org" } } } } }
+      },
+      "patch": {
+        "operationId": "update-org",
+        "parameters": [ { "name": "org_id", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "$ref": "#/components/schemas/Org" } } } } }
+      }
+    },
+    "/orgs/{org}/runner-groups/{runner_group_id}": {
+      "get": {
+        "operationId": "get-runner-group-for-org",
+        "summary": "Get a runner group for an organization",
+        "parameters": [
+          { "name": "org", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "runner_group_id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "$ref": "#/components/schemas/RunnerGroupsOrg" } } } } }
+      },
+      "patch": {
+        "operationId": "update-runner-group-for-org",
+        "summary": "Update a runner group for an organization",
+        "parameters": [
+          { "name": "org", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "runner_group_id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "$ref": "#/components/schemas/RunnerGroupsOrg" } } } } }
+      }
+    },
+    "/user_groups": {
+      "get": {
+        "operationId": "list-user-groups",
+        "tags": [ "User groups" ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "type": "array", "items": { "$ref": "#/components/schemas/UserGroup" } } } } } }
+      },
+      "post": {
+        "operationId": "create-user-group",
+        "tags": [ "User groups" ],
+        "responses": { "201": { "description": "Created", "content": { "application/json": {
+          "schema": { "$ref": "#/components/schemas/UserGroup" } } } } }
+      }
+    },
+    "/user_groups/{id}": {
+      "get": {
+        "operationId": "get-user-group",
+        "tags": [ "User groups" ],
+        "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "$ref": "#/components/schemas/UserGroup" } } } } }
+      },
+      "delete": {
+        "operationId": "delete-user-group",
+        "tags": [ "User groups" ],
+        "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "204": { "description": "Deleted" } }
+      }
+    },
+    "/user_groups/{id}/users/{uid}": {
+      "post": {
+        "operationId": "add-user-to-user-group",
+        "summary": "Add a user to a user group",
+        "tags": [ "User groups" ],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Unique identifier of the user group", "schema": { "type": "string" } },
+          { "name": "uid", "in": "path", "required": true, "description": "User Id or email", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "type": "object", "properties": { "success": { "type": "boolean" } } } } } } }
+      },
+      "delete": {
+        "operationId": "remove-user-from-user-group",
+        "summary": "Remove a user from a user group",
+        "tags": [ "User groups" ],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Unique identifier of the user group", "schema": { "type": "string" } },
+          { "name": "uid", "in": "path", "required": true, "description": "User Id or email", "schema": { "type": "string" } }
+        ],
+        "responses": { "204": { "description": "Removed" } }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Org": {
+        "type": "object",
+        "properties": { "id": { "type": "string" }, "login": { "type": "string" } }
+      },
+      "RunnerGroupsOrg": {
+        "type": "object",
+        "properties": { "id": { "type": "integer" }, "name": { "type": "string" }, "visibility": { "type": "string" } }
+      },
+      "UserGroup": {
+        "type": "object",
+        "properties": { "id": { "type": "string" }, "title": { "type": "string" } }
+      }
+    }
+  }
+}

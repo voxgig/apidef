@@ -101,7 +101,9 @@ Rejects on: unknown kind (`/unknown/`), non-string source (`/string/`), empty
 or comment-only source (`/empty/`), malformed JSON/YAML (`/JSON/`, `/syntax/`),
 or a document with neither `openapi` nor `swagger` (`/Unsupported/`). On
 success, returns the parsed object with `components` ensured, every `$ref`
-inlined, and the original pointer preserved as `x-ref`.
+that names an object inlined, and the original pointer preserved as `x-ref`.
+[Pipeline stage 1](./pipeline.md#stage-1--parse) states the pointer rules and
+the path-key rewrites.
 
 ### Utilities
 

@@ -208,6 +208,35 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
             node_assert_1.default.ok(names.includes('id') && !names.includes('thing_number'), pt.o + ' params ' + names.join(','));
         }
     });
+    // The Go port pins the same renames in TestGuideRenameGuards.
+    (0, node_test_1.test)('guide-rename-guards', async () => {
+        const folder = __dirname + '/../test/rename-guard';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'rename-guard', def: 'rename-guard-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: false,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        const paths = {};
+        for (const ent of Object.values(bres.guide.entity))
+            Object.assign(paths, ent.path);
+        const renames = (path) => Object.fromEntries(Object.entries(paths[path].rename?.param ?? {})
+            .map(([k, v]) => [k, v?.target ?? v]));
+        // Each `revisions` parent would rename its key to `revision_id`; the later one keeps its name.
+        node_assert_1.default.deepStrictEqual(renames('/things/{thing_id}/revisions/{recipe_revision}' +
+            '/packages/{package_ref}/revisions/{package_revision}/files/{file_name}'), { file_name: 'id', package_ref: 'package_id', recipe_revision: 'revision_id' });
+        // `2fa_id` is not an identifier, so `code` keeps its name.
+        node_assert_1.default.deepStrictEqual(renames('/things/{thing_id}/2fa/{code}/checks/{check_id}'), { check_id: 'id' });
+    });
     (0, node_test_1.test)('guide-verb-on-parent-edges', async () => {
         const folder = __dirname + '/../test/verb-edge';
         const build = await apidef_1.ApiDef.makeBuild({ folder });
@@ -245,6 +274,8 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         const archive = gents.email_archive?.path['/email-archives/{email_archive_id}/archive'];
         node_assert_1.default.ok(null != archive, 'archive did not join email_archive: ' + Object.keys(gents).join(','));
         node_assert_1.default.deepStrictEqual(Object.keys(archive.action ?? {}), ['archive']);
+        node_assert_1.default.strictEqual(archive.rename.param.email_archive_id?.target
+            ?? archive.rename.param.email_archive_id, 'id');
         const ea = bres.apimodel.main.kit.entity.email_archive;
         const archivePt = ea.op.update.points.find((pt) => pt.o.endsWith('/archive'));
         node_assert_1.default.strictEqual(archivePt?.q?.$action, 'archive');
@@ -319,6 +350,297 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         const listpt = entities.observation.op.list.points[0];
         node_assert_1.default.strictEqual(listpt.o, '/{year}/observation');
         node_assert_1.default.ok(null != entities.observation.fields.observedAt, 'observation fields not unwrapped: ' + Object.keys(entities.observation.fields));
+    });
+    // A trailing parameter under its entity's segment is the entity's key,
+    // whatever the response component is called: a rare component named for
+    // another view of it, or a tag on a write that answers with no component.
+    (0, node_test_1.test)('guide-trailing-key', async () => {
+        const folder = __dirname + '/../test/trailing-key';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'trailing-key', def: 'trailing-key-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: true,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        const gents = bres.guide.entity;
+        node_assert_1.default.deepStrictEqual(gents.runner_group.path['/orgs/{org}/runner-groups/{runner_group_id}'].rename.param, { org: 'org_id', runner_group_id: 'id' });
+        node_assert_1.default.deepStrictEqual(gents.user.path['/user_groups/{id}/users/{uid}'].rename.param, { id: 'user_group_id', uid: 'id' });
+        const entities = bres.apimodel.main.kit.entity;
+        const params = (pt) => (pt.g.params ?? []).map((a) => a.or + '>' + a.n).sort();
+        for (const op of ['load', 'update']) {
+            node_assert_1.default.deepStrictEqual(params(entities.runner_group.op[op].points[0]), ['org>org_id', 'runner_group_id>id'], 'runner_group ' + op);
+        }
+        for (const op of ['create', 'remove']) {
+            node_assert_1.default.deepStrictEqual(params(entities.user.op[op].points[0]), ['id>user_group_id', 'uid>id'], 'user ' + op);
+        }
+    });
+    // A literal that canonizes to nothing (`-`) names no entity and no
+    // component: the key after it is not taken for the entity's own.
+    (0, node_test_1.test)('guide-blank-segment', async () => {
+        const folder = __dirname + '/../test/blank-segment';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'blank-segment', def: 'blank-segment-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: true,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        const pathdesc = (path) => Object.values(bres.guide.entity)
+            .map((ent) => ent.path[path]).find((pd) => null != pd);
+        const idOf = (path) => Object.entries(pathdesc(path).rename?.param ?? {})
+            .filter(([, target]) => 'id' === target).map(([orig]) => orig);
+        node_assert_1.default.deepStrictEqual(idOf('/orders/-/{order_id}/lines/{line_id}'), ['line_id']);
+        node_assert_1.default.deepStrictEqual(idOf('/orders/-/{order}/notes/{note_id}'), ['note_id']);
+        node_assert_1.default.deepStrictEqual(idOf('/orders/-/{order_id}/refund'), []);
+        node_assert_1.default.deepStrictEqual(Object.keys(pathdesc('/orders/-/{order_id}/refund').action ?? {}), []);
+    });
+    // An entity whose every operation is an access-token exchange is emitted
+    // deactivated, never dropped; one exchange among other operations
+    // (session) leaves its entity active. go/apidef_test.go reads the base
+    // guide this writes.
+    (0, node_test_1.test)('guide-auth-exchange', async () => {
+        const folder = __dirname + '/../test/auth-exchange';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'auth-exchange', def: 'auth-exchange-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: true,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        const gents = bres.guide.entity;
+        node_assert_1.default.deepStrictEqual(Object.keys(gents).sort(), ['session', 'token', 'widget']);
+        node_assert_1.default.strictEqual(gents.token.active, false);
+        node_assert_1.default.notStrictEqual(gents.session.active, false);
+        node_assert_1.default.notStrictEqual(gents.widget.active, false);
+        const baseGuide = Fs.readFileSync(folder + '/guide/base-guide.aontu', 'utf8');
+        node_assert_1.default.ok(baseGuide.includes([
+            '  entity: token: {',
+            '    # Deactivated by the heuristic (auth-exchange). Set `active: true`' +
+                ' here in guide.aontu to generate it as an entity.',
+            '    active: *false',
+            '    path: "/auth/token": {',
+        ].join('\n')), baseGuide);
+        node_assert_1.default.strictEqual(baseGuide.split('active: *false').length, 2, baseGuide);
+        const entities = bres.apimodel.main.kit.entity;
+        const ops = Object.fromEntries(Object.keys(entities).sort()
+            .map((name) => [name, Object.keys(entities[name].op ?? {}).sort()]));
+        node_assert_1.default.deepStrictEqual(ops, {
+            session: ['create', 'load'],
+            widget: ['create', 'list', 'load', 'remove'],
+        });
+    });
+    // A rare schema that several resources share yields to each path's name
+    // (flag, counter, ack's variables). Not shared: a record with an id (memo),
+    // a view beneath a co-sharing resource (stats/daily), item aliases (removal),
+    // a name that different schemas would take (the manifests), and routes to
+    // one name that no parameter tells apart (ack's secrets).
+    (0, node_test_1.test)('guide-sharing', async () => {
+        const folder = __dirname + '/../test/sharing';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'sharing', def: 'sharing-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: true,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        const routes = Object.fromEntries(Object.keys(bres.guide.entity).sort()
+            .map((name) => [name, Object.entries(bres.guide.entity[name].path)
+                .flatMap(([path, pd]) => Object.values(pd.op).map((op) => op.method + ' ' + path))
+                .sort()]));
+        node_assert_1.default.deepStrictEqual(routes, {
+            ack: [
+                'PUT /orgs/{org}/actions/secrets/{name}',
+                'PUT /orgs/{org}/dependabot/secrets/{name}',
+            ],
+            counter: ['GET /stats/daily'],
+            enforce_admin: ['GET /settings/enforce_admins'],
+            job: ['GET /jobs', 'GET /jobs/{id}', 'POST /jobs/{id}/rerun'],
+            metric: ['GET /metrics'],
+            memo: ['GET /notes', 'GET /notes/{id}', 'GET /users/{uid}/starred_notes'],
+            package_manifest: ['GET /packages/{pid}/digest', 'GET /packages/{pid}/download_urls'],
+            recipe_manifest: ['GET /recipes/{rid}/digest', 'GET /recipes/{rid}/download_urls'],
+            removal: [
+                'DELETE /accounts/{aid}/bank_accounts/{id}',
+                'DELETE /accounts/{aid}/external_accounts/{id}',
+            ],
+            required_signature: ['GET /settings/required_signatures'],
+            stat: ['GET /stats'],
+            variable: ['POST /orgs/{org}/actions/variables'],
+        });
+        const rerun = bres.apimodel.main.kit.entity.job.op.create.points[0];
+        node_assert_1.default.strictEqual(rerun.q?.$action, 'rerun');
+    });
+    // Asking whether a response schema declares an `id` reads the def and
+    // leaves it as parsed: a node that references share stays one node, which
+    // is what the field transform's union count sees.
+    (0, node_test_1.test)('guide-sharing-reads-def', async () => {
+        const folder = __dirname + '/../test/shared-node';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'shared-node', def: 'shared-node-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: false,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        const reviews = (schema) => schema.properties.reviews.properties;
+        const rule = bres.ctx.def.components.schemas.Rule;
+        const put = bres.ctx.def.paths['/rules/{rule_id}'].put
+            .responses['200'].content['application/json'].schema;
+        for (const schema of [rule, put]) {
+            node_assert_1.default.strictEqual(reviews(schema).dismiss.items.properties.owner, reviews(schema).bypass.items.properties.owner);
+        }
+    });
+    // A path item's parameters, servers, summary, description and extension
+    // keys are not methods, so they name no entity: /mirrors/{mirror_id} holds
+    // no operation at all. go/apidef_test.go reads the base guide this writes.
+    (0, node_test_1.test)('guide-path-item-keys', async () => {
+        const folder = __dirname + '/../test/path-item-keys';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'path-item-keys', def: 'path-item-keys-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: true,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        const routes = Object.fromEntries(Object.keys(bres.guide.entity).sort()
+            .map((name) => [name, Object.entries(bres.guide.entity[name].path)
+                .flatMap(([path, pd]) => Object.values(pd.op).map((op) => op.method + ' ' + path))
+                .sort()]));
+        node_assert_1.default.deepStrictEqual(routes, {
+            crate: ['DELETE /crates/{crate_id}', 'GET /crates/{crate_id}'],
+            release: ['GET /crates/{crate_id}/versions/{version_id}'],
+        });
+        const entities = bres.apimodel.main.kit.entity;
+        node_assert_1.default.deepStrictEqual(Object.keys(entities).sort(), ['crate', 'release']);
+        node_assert_1.default.deepStrictEqual(entities.release.relations.ancestors, [['crate']]);
+    });
+    // The base guide already carries a collection path on the entity that owns
+    // its items: /keys is named for its component, /keys/{key_id} for its tag.
+    // The component's entity, left with no path, is dropped from the guide and
+    // the model. go/apidef_test.go reads the base guide this writes.
+    (0, node_test_1.test)('guide-collection-merge', async () => {
+        const folder = __dirname + '/../test/collection-merge';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'collection-merge', def: 'collection-merge-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: true,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        const routes = Object.fromEntries(Object.keys(bres.guide.entity).sort()
+            .map((name) => [name, Object.entries(bres.guide.entity[name].path ?? {})
+                .flatMap(([path, pd]) => Object.values(pd.op).map((op) => op.method + ' ' + path))
+                .sort()]));
+        node_assert_1.default.deepStrictEqual(routes, {
+            setting: ['DELETE /keys/{key_id}', 'GET /keys', 'POST /keys'],
+        });
+        node_assert_1.default.deepStrictEqual(Object.keys(bres.apimodel.main.kit.entity), ['setting']);
+    });
+    // guide.aontu gives /keys back to the emptied entity, or to a new one, and
+    // the model keeps that assignment. go/apidef_test.go mirrors this case.
+    (0, node_test_1.test)('guide-collection-merge-overlay', async () => {
+        const Os = require('node:os');
+        const Path = require('node:path');
+        const def = 'collection-merge-def.json';
+        for (const owner of ['key', 'keyring']) {
+            const dir = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'apidef-merge-'));
+            const folder = Path.join(dir, 'model');
+            Fs.mkdirSync(Path.join(folder, 'guide'), { recursive: true });
+            Fs.mkdirSync(Path.join(dir, 'def'));
+            Fs.copyFileSync(Path.join(__dirname, '..', 'test', 'def', def), Path.join(dir, 'def', def));
+            Fs.writeFileSync(Path.join(folder, 'guide', 'guide.aontu'), [
+                '@"@voxgig/apidef/model/guide.aontu"',
+                '@"./base-guide.aontu"',
+                'guide: entity: ' + owner + ': path: "/keys": op: {',
+                '  create: method: "POST"',
+                '  list: method: "GET"',
+                '}',
+                'guide: entity: setting: path: "/keys": active: false',
+                '',
+            ].join('\n'));
+            const build = await apidef_1.ApiDef.makeBuild({ folder });
+            const bres = await build({ name: 'collection-merge', def }, {
+                spec: {
+                    base: folder,
+                    buildargs: {
+                        apidef: {
+                            ctrl: { step: {
+                                    parse: true, guide: true, transformers: true,
+                                    builders: false, generate: false,
+                                } }
+                        }
+                    }
+                }
+            }, {});
+            Fs.rmSync(dir, { recursive: true, force: true });
+            node_assert_1.default.ok(bres.ok, owner + ': build failed: ' + bres.err?.message);
+            const entities = bres.apimodel.main.kit.entity;
+            const routes = Object.fromEntries(Object.keys(entities).sort()
+                .map((name) => [name, Object.entries(entities[name].op)
+                    .flatMap(([opname, op]) => op.points.map((pt) => opname + ' ' + pt.m + ' ' + pt.o))
+                    .sort()]));
+            node_assert_1.default.deepStrictEqual(routes, {
+                [owner]: ['create POST /keys', 'list GET /keys'],
+                setting: ['remove DELETE /keys/{key_id}'],
+            }, owner);
+        }
     });
     (0, node_test_1.test)('field-required-solar', async () => {
         const outprefix = 'solar-1.0.0-openapi-3.0.0-';

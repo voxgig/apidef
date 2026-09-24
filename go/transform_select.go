@@ -83,7 +83,7 @@ func resolveSelect(guideEntity map[string]any, entname string, mtarget map[strin
 	sort.Slice(exist, func(i, j int) bool {
 		si, _ := exist[i].(string)
 		sj, _ := exist[j].(string)
-		return si < sj
+		return lessUTF16(si, sj)
 	})
 	selectMap["exist"] = exist
 
@@ -122,11 +122,11 @@ func sortPoints(mop map[string]any) {
 		aaj, _ := sj["$action"].(string)
 		if aai != "" && aaj != "" {
 			if aai != aaj {
-				return aai < aaj
+				return lessUTF16(aai, aaj)
 			}
 		}
 
-		return existStr(ei) < existStr(ej)
+		return lessUTF16(existStr(ei), existStr(ej))
 	})
 }
 

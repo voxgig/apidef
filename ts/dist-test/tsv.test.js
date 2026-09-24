@@ -38,6 +38,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const Fs = __importStar(require("node:fs"));
+const Os = __importStar(require("node:os"));
 const Path = __importStar(require("node:path"));
 const node_test_1 = require("node:test");
 const node_assert_1 = __importDefault(require("node:assert"));
@@ -46,6 +47,7 @@ const field_1 = require("../dist/transform/field");
 const resolved_1 = require("../dist/resolved");
 const jostraca_1 = require("jostraca");
 const graphql01_1 = require("../dist/guide/graphql01");
+const heuristic01_1 = require("../dist/guide/heuristic01");
 const guide_1 = require("../dist/guide/guide");
 const parse_1 = require("../dist/parse");
 const refcount_1 = require("../dist/refcount");
@@ -483,6 +485,31 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-path-resource', () => {
+    const rows = loadTsv('path-resource');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(`pathResource("${row.path}", "${row.method}") => "${row.expected}"`, () => {
+            const parts = row.path.split('/').filter((p) => '' !== p);
+            const expected = '' === row.expected ? null : row.expected;
+            node_assert_1.default.strictEqual((0, heuristic01_1.pathResource)(parts, row.method), expected);
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-shared-routes', () => {
+    const rows = loadTsv('shared-routes');
+    const list = (cell, sep) => '' === cell ? [] : cell.split(sep);
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(`sharedRoutes(${row.name}) => "${row.expected}"`, () => {
+            const routes = list(row.routes, ';').map((route) => {
+                const [cmp, method, path, op] = route.split(' ');
+                return { cmp, method, path, op };
+            });
+            node_assert_1.default.deepStrictEqual((0, heuristic01_1.sharedRoutes)(routes, list(row.records, ',')), list(row.expected, ';'));
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-closed-body-transform', () => {
     const rows = loadTsv('closed-body-transform');
     for (const row of rows) {
@@ -634,6 +661,62 @@ function loadTsv(name) {
     for (const row of loadTsv('guide-quote')) {
         (0, node_test_1.test)(row.name, () => {
             node_assert_1.default.strictEqual(JSON.stringify(JSON.parse(row.input)), JSON.parse(row.expected));
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-parse-resolve', () => {
+    const rows = loadTsv('parse-resolve');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, async () => {
+            const def = await (0, parse_1.parse)('OpenAPI', JSON.parse(row.spec), { file: row.name });
+            let node = def;
+            for (const part of JSON.parse(row.select)) {
+                node = '#keys' === part ? Object.keys(node).sort() :
+                    null == node || 'object' !== typeof node ? undefined : (0, parse_1.decycledChild)(node, part);
+            }
+            node_assert_1.default.deepStrictEqual(JSON.parse(JSON.stringify(node ?? null)), JSON.parse(row.expected));
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-normalize-path-keys', () => {
+    for (const row of loadTsv('normalize-path-keys')) {
+        (0, node_test_1.test)(row.name, () => {
+            node_assert_1.default.deepStrictEqual((0, parse_1.normalizePathKeys)(JSON.parse(row.keys)), JSON.parse(row.expected));
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-colon-path-keys', () => {
+    for (const row of loadTsv('colon-path-keys')) {
+        (0, node_test_1.test)(row.name, () => {
+            const paths = JSON.parse(row.paths);
+            const next = (0, parse_1.colonPathKeys)(paths);
+            const renamed = {};
+            Object.keys(paths).forEach((path, i) => { renamed[path] = next[i]; });
+            node_assert_1.default.deepStrictEqual(renamed, JSON.parse(row.expected));
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-sort-order', () => {
+    for (const row of loadTsv('sort-order')) {
+        (0, node_test_1.test)(row.name, () => {
+            const obj = {};
+            for (const key of JSON.parse(row.keys))
+                obj[key] = 1;
+            node_assert_1.default.deepStrictEqual((0, utility_1.sortedKeys)(obj), JSON.parse(row.expected));
+        });
+    }
+});
+// The spec file is read as UTF-8 text; Go decodes it to the same string.
+(0, node_test_1.describe)('tsv-utf8-decode', () => {
+    const dir = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'apidef-utf8-'));
+    (0, node_test_1.after)(() => Fs.rmSync(dir, { recursive: true, force: true }));
+    const log = { error: () => undefined };
+    for (const row of loadTsv('utf8-decode')) {
+        (0, node_test_1.test)(row.name, () => {
+            const file = Path.join(dir, 'def.yaml');
+            Fs.writeFileSync(file, Buffer.from(row.hex, 'hex'));
+            node_assert_1.default.strictEqual((0, utility_1.loadFile)(file, 'def', Fs, log), JSON.parse(row.expected));
         });
     }
 });

@@ -1,0 +1,16 @@
+{
+  "openapi": "3.0.0",
+  "info": { "title": "Blank Segment API", "version": "1.0.0" },
+  "servers": [ { "url": "https://api.example.com" } ],
+  "paths": {
+    "/orders/-/{order_id}/refund": {
+      "post": { "responses": { "200": { "description": "OK" } } }
+    },
+    "/orders/-/{order_id}/lines/{line_id}": {
+      "get": { "responses": { "200": { "description": "OK" } } }
+    },
+    "/orders/-/{order}/notes/{note_id}": {
+      "get": { "responses": { "200": { "description": "OK" } } }
+    }
+  }
+}

@@ -156,7 +156,7 @@ We accept that:
   `ts/test/tsv.test.ts` and `go/tsv_test.go` both execute. A case added
   only to `ts/test/utility.test.ts` does not exercise the Go port, and
   the two can diverge with the suites green.
-- Its behaviour is pinned by `ts/test/depluralize.tsv` (87 rows) for the
+- Its behaviour is pinned by `ts/test/depluralize.tsv` (106 rows) for the
   regular suffixes and the `IRREGULARS` table, and by
   `ts/test/utility.test.ts` for the `custom.plurals` override. What that
   corpus pins today is the PLURAL inputs — `statuses → status`,
@@ -271,7 +271,7 @@ the exchange survives into the model as facts on
 
 - `authExchangeOp()` and `specSecuredByDefault()` in `ts/src/utility.ts`
   are the canonical detection, pinned by `ts/test/auth-exchange.tsv`
-  (14 rows, both polarities) through `ts/test/tsv.test.ts`.
+  (16 rows, both polarities) through `ts/test/tsv.test.ts`.
 - `guideActive()` is the single reader of `active`, consumed by the
   entity, path, op and field transforms. A new suppression must route
   through it rather than filtering a list somewhere.

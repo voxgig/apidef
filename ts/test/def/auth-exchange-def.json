@@ -1,0 +1,26 @@
+{"openapi":"3.0.0","info":{"title":"Vault API","version":"1.0.0"},"servers":[{"url":"https://vault.example.com/api"}],
+"security":[{"bearerAuth":[]}],
+"paths":{
+ "/auth/token":{
+  "post":{"operationId":"exchangeToken","security":[],"requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/TokenRequest"}}}},"responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"$ref":"#/components/schemas/TokenResponse"}}}}}}},
+ "/session":{
+  "post":{"operationId":"login","security":[],"requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/Login"}}}},"responses":{"201":{"description":"Created","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Session"}}}}}}},
+ "/session/{id}":{
+  "get":{"operationId":"getSession","parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Session"}}}}}}},
+ "/widget":{
+  "get":{"operationId":"listWidgets","responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/Widget"}}}}}}},
+  "post":{"operationId":"createWidget","requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/Widget"}}}},"responses":{"201":{"description":"Created","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Widget"}}}}}}},
+ "/widget/{id}":{
+  "get":{"operationId":"getWidget","parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Widget"}}}}}},
+  "delete":{"operationId":"removeWidget","parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"204":{"description":"Removed"}}}}
+},
+"components":{
+ "securitySchemes":{"bearerAuth":{"type":"http","scheme":"bearer"}},
+ "schemas":{
+  "TokenRequest":{"type":"object","properties":{"refresh_token":{"type":"string"}}},
+  "TokenResponse":{"type":"object","properties":{"access_token":{"type":"string"},"expires_in":{"type":"integer"}}},
+  "Login":{"type":"object","properties":{"username":{"type":"string"},"password":{"type":"string"}}},
+  "Session":{"type":"object","properties":{"id":{"type":"string"},"token":{"type":"string"}}},
+  "Widget":{"type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"}}}
+ }
+}}

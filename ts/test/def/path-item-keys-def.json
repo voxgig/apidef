@@ -1,0 +1,26 @@
+{"openapi":"3.0.0","info":{"title":"Registry API","version":"1.0.0"},"servers":[{"url":"https://registry.example.com/api"}],
+"paths":{
+ "/crates/{crate_id}":{
+  "summary":"One crate",
+  "description":"A crate and its metadata.",
+  "servers":[{"url":"https://crates.example.com/api"}],
+  "parameters":[{"name":"crate_id","in":"path","required":true,"schema":{"type":"string"}}],
+  "x-internal":{"summary":"not an operation","responses":{"200":{"description":"OK"}}},
+  "get":{"operationId":"getCrate","responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Crate"}}}}}},
+  "delete":{"operationId":"removeCrate","responses":{"204":{"description":"Removed"}}}},
+ "/crates/{crate_id}/versions/{version_id}":{
+  "parameters":[
+   {"name":"crate_id","in":"path","required":true,"schema":{"type":"string"}},
+   {"name":"version_id","in":"path","required":true,"schema":{"type":"string"}}],
+  "get":{"operationId":"getRelease","responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Release"}}}}}}},
+ "/mirrors/{mirror_id}":{
+  "summary":"Mirror settings, served elsewhere",
+  "servers":[{"url":"https://mirrors.example.com/api"}],
+  "parameters":[{"name":"mirror_id","in":"path","required":true,"schema":{"type":"string"}}]}
+},
+"components":{
+ "schemas":{
+  "Crate":{"type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"}}},
+  "Release":{"type":"object","properties":{"id":{"type":"string"},"num":{"type":"string"}}}
+ }
+}}

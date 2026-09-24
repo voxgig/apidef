@@ -1,0 +1,13 @@
+name	hex	expected
+valid text	2f612fc3a9f09f9880	"/a/\u00e9\ud83d\ude00"
+a surrogate in three bytes	61eda08062	"a\ufffd\ufffd\ufffdb"
+a low surrogate in three bytes	edb080	"\ufffd\ufffd\ufffd"
+a truncated sequence then ASCII	63e28241	"c\ufffdA"
+a truncated four-byte sequence at the end	f09f98	"\ufffd"
+an overlong two-byte form	c080	"\ufffd\ufffd"
+an overlong three-byte form	e08080	"\ufffd\ufffd\ufffd"
+beyond U+10FFFF	f4908080	"\ufffd\ufffd\ufffd\ufffd"
+a lone continuation byte	80	"\ufffd"
+bytes that never start a sequence	c1f5ff	"\ufffd\ufffd\ufffd"
+a literal replacement character	efbfbd	"\ufffd"
+a lead byte at the end	61c2	"a\ufffd"

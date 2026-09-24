@@ -60,6 +60,9 @@ type MethodEntityDesc = {
   why_opname: string[]
 
   pm?: any
+  // The response component a tag displaced; verbOnParent judges the response.
+  rescmp?: string | null
+  rescmpoccur?: number
   // Set by ResolveEntityName when a write on `.../{id}/<verb>` joined its
   // parent entity (verbOnParent); FindActions then records the verb.
   verb_on_parent?: string
