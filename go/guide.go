@@ -467,6 +467,17 @@ func buildGuideSource(ctx *ApiDefContext, baseguide map[string]any) string {
 		}
 		blocks = append(blocks, fmt.Sprintf("\n  entity: %s: {", entname))
 
+		if active, ok := ent["active"].(bool); ok && !active {
+			why := ""
+			if reason, ok := ent["why_inactive"].(string); ok {
+				why = " (" + reason + ")"
+			}
+			blocks = append(blocks,
+				"    # Deactivated by the heuristic"+why+". Set"+
+					" `active: true` here in guide.aontu to generate it as an entity.",
+				"    active: *false")
+		}
+
 		paths, _ := ent["path"].(map[string]any)
 		pathnames := sortedKeys(paths)
 		for _, pathstr := range pathnames {
@@ -729,6 +740,7 @@ func selectAllMethods(ctx *ApiDefContext, data map[string]any) []map[string]any 
 				"parameters":  mdef["parameters"],
 				"responses":   mdef["responses"],
 				"requestBody": mdef["requestBody"],
+				"security":    mdef["security"],
 			}
 			methods = append(methods, mdesc)
 		}
@@ -1471,6 +1483,12 @@ func resolveOperation(data map[string]any, mdesc map[string]any) {
 	ment["why_opname"] = whyOp
 	ment["why_op"] = whyOp
 
+	entdesc["total_ops"] = toInt(entdesc["total_ops"]) + 1
+	def, _ := data["def"].(map[string]any)
+	if nil != authExchangeOp(mdesc, specSecuredByDefault(def)) {
+		entdesc["authexchange_ops"] = toInt(entdesc["authexchange_ops"]) + 1
+	}
+
 	entPaths, _ := entdesc["path"].(map[string]any)
 	pathEntry, _ := entPaths[pathStr].(map[string]any)
 	if pathEntry == nil {
@@ -1623,11 +1641,19 @@ func buildEntity(data map[string]any, entval any) {
 	entname := safeStr(entdesc["name"])
 	origcmp := safeStr(entdesc["origcmp"])
 
-	entityMap[entname] = map[string]any{
+	guideEntity := map[string]any{
 		"name": entname,
 		"orig": origcmp,
 		"path": path,
 	}
+
+	exchangeOps := toInt(entdesc["authexchange_ops"])
+	if 0 < exchangeOps && exchangeOps == toInt(entdesc["total_ops"]) {
+		guideEntity["active"] = false
+		guideEntity["why_inactive"] = "auth-exchange"
+	}
+
+	entityMap[entname] = guideEntity
 }
 
 // entityPathMatch_tpte handles the t/p/t/ path pattern.

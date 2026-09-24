@@ -723,6 +723,56 @@ func TestClosedBodyTransform(t *testing.T) {
 	}
 }
 
+func TestTsvAuthExchange(t *testing.T) {
+	rows := loadTsv(t, "auth-exchange")
+	if len(rows) == 0 {
+		t.Fatal("no auth-exchange rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["note"], func(t *testing.T) {
+			var op map[string]any
+			if err := json.Unmarshal([]byte(row["op"]), &op); err != nil {
+				t.Fatalf("bad op %q: %v", row["op"], err)
+			}
+			var want any
+			if "" != row["expected"] {
+				if err := json.Unmarshal([]byte(row["expected"]), &want); err != nil {
+					t.Fatalf("bad expected %q: %v", row["expected"], err)
+				}
+			}
+
+			found := authExchangeOp(op, "true" == row["secured"])
+			var got any
+			if nil != found {
+				got = found
+			}
+			if !reflect.DeepEqual(got, want) {
+				t.Errorf("authExchangeOp(%s) = %v, want %v", row["note"], got, want)
+			}
+		})
+	}
+}
+
+// Mirrors the TS `spec-secured-by-default` cases.
+func TestSpecSecuredByDefault(t *testing.T) {
+	cases := []struct {
+		name string
+		def  map[string]any
+		want bool
+	}{
+		{"non-empty top-level security", map[string]any{
+			"security": []any{map[string]any{"bearerAuth": []any{}}}}, true},
+		{"empty top-level security", map[string]any{"security": []any{}}, false},
+		{"no top-level security", map[string]any{}, false},
+		{"nil def", nil, false},
+	}
+	for _, c := range cases {
+		if got := specSecuredByDefault(c.def); got != c.want {
+			t.Errorf("%s: specSecuredByDefault = %v, want %v", c.name, got, c.want)
+		}
+	}
+}
+
 func TestRequestEnvelopeProp(t *testing.T) {
 	rows := loadTsv(t, "request-envelope")
 	if len(rows) == 0 {

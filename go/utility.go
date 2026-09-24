@@ -616,6 +616,99 @@ func guideActive(node any) bool {
 	return true
 }
 
+var authTokenFields = []string{
+	"access_token", "accessToken", "access-token",
+	"id_token", "idToken",
+	"token", "jwt",
+}
+
+var authCredentialFields = []string{
+	"refresh_token", "refreshToken", "refresh-token",
+	"client_secret", "clientSecret",
+	"assertion", "grant_type", "grantType",
+	"api_key", "apiKey", "apikey",
+	"password", "code",
+}
+
+// authExchangeOp mirrors authExchangeOp in ts/src/utility.ts: nil, or the
+// response token field and the request credential field (nil when unknown).
+func authExchangeOp(op map[string]any, specSecured bool) map[string]any {
+	if !specSecured {
+		return nil
+	}
+
+	if security, ok := op["security"].([]any); !ok || 0 != len(security) {
+		return nil
+	}
+
+	if method, _ := op["method"].(string); "POST" != strings.ToUpper(method) {
+		return nil
+	}
+
+	response := firstFieldMatch(schemaProps(successResponseSchema(op["responses"])), authTokenFields)
+	if "" == response {
+		return nil
+	}
+
+	var request any
+	if found := firstFieldMatch(schemaProps(requestBodySchema(op["requestBody"])), authCredentialFields); "" != found {
+		request = found
+	}
+
+	return map[string]any{"request": request, "response": response}
+}
+
+func specSecuredByDefault(def map[string]any) bool {
+	security, ok := def["security"].([]any)
+	return ok && 0 < len(security)
+}
+
+func successResponseSchema(responses any) any {
+	rm, _ := responses.(map[string]any)
+	res := rm["200"]
+	if nil == res {
+		res = rm["201"]
+	}
+	resm, _ := res.(map[string]any)
+	if content, ok := resm["content"].(map[string]any); ok {
+		if media, ok := content["application/json"].(map[string]any); ok && nil != media["schema"] {
+			return media["schema"]
+		}
+	}
+	return resm["schema"]
+}
+
+func requestBodySchema(requestBody any) any {
+	rb, _ := requestBody.(map[string]any)
+	content, _ := rb["content"].(map[string]any)
+	media, _ := content["application/json"].(map[string]any)
+	return media["schema"]
+}
+
+// Sorted, where TS reads insertion order: the ports differ only when
+// properties spell one candidate field in different case.
+func schemaProps(schema any) []string {
+	sm, _ := schema.(map[string]any)
+	props, _ := sm["properties"].(map[string]any)
+	return sortedKeys(props)
+}
+
+func firstFieldMatch(props []string, names []string) string {
+	lower := map[string]string{}
+	for _, p := range props {
+		k := strings.ToLower(p)
+		if _, seen := lower[k]; !seen {
+			lower[k] = p
+		}
+	}
+	for _, name := range names {
+		if hit, ok := lower[strings.ToLower(name)]; ok {
+			return hit
+		}
+	}
+	return ""
+}
+
 func CleanComponentName(name string, isKnownCmp func(string) bool) string {
 	cleaned := name
 	stripped := false

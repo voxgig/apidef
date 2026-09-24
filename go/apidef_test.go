@@ -590,6 +590,60 @@ func TestGuideBlankSegment(t *testing.T) {
 	}
 }
 
+// Mirrors the TS `guide-auth-exchange` case, and writes the base guide that
+// case writes to ts/test/auth-exchange/guide/base-guide.aontu.
+func TestGuideAuthExchange(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "")
+	ad := NewApiDef(ApiDefOptions{Folder: folder, Strategy: "heuristic01"})
+	res, err := ad.Generate(map[string]any{
+		"model": map[string]any{"name": "auth-exchange", "def": "auth-exchange-def.json"},
+		"build": map[string]any{"spec": map[string]any{"base": "../ts/test/auth-exchange"}},
+		"ctrl": map[string]any{"step": map[string]any{
+			"parse": true, "guide": true, "transformers": true,
+			"builders": false, "generate": false,
+		}},
+	})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v res=%+v", err, res)
+	}
+
+	gents, _ := res.Guide["entity"].(map[string]any)
+	if got := strings.Join(sortedKeys(gents), ","); got != "session,token,widget" {
+		t.Fatalf("guide entities = %s", got)
+	}
+	for name, want := range map[string]bool{"session": true, "token": false, "widget": true} {
+		if got := guideActive(gents[name]); got != want {
+			t.Errorf("guide entity %s active = %v, want %v", name, got, want)
+		}
+	}
+
+	want, err := os.ReadFile("../ts/test/auth-exchange/guide/base-guide.aontu")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(filepath.Join(folder, "guide", "base-guide.aontu"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != string(want) {
+		t.Errorf("base guide differs from the TypeScript one:\n%s", string(got))
+	}
+
+	main, _ := res.ApiModel["main"].(map[string]any)
+	kit, _ := main[KIT].(map[string]any)
+	entities, _ := kit["entity"].(map[string]any)
+	ops := map[string]string{}
+	for _, name := range sortedKeys(entities) {
+		ent, _ := entities[name].(map[string]any)
+		op, _ := ent["op"].(map[string]any)
+		ops[name] = strings.Join(sortedKeys(op), "/")
+	}
+	wantOps := map[string]string{"session": "create/load", "widget": "create/list/load/remove"}
+	if !reflect.DeepEqual(ops, wantOps) {
+		t.Errorf("model entity ops = %v, want %v", ops, wantOps)
+	}
+}
+
 // RFC 10008 QUERY verb: a safe, idempotent read carrying its filter in the
 // request body. Mirrors the TS `query-verb-book` case in ts/test/apidef.test.ts.
 // QUERY maps onto load/list; its collection response supplies the entity
