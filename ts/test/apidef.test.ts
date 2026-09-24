@@ -335,6 +335,8 @@ describe('apidef', () => {
     const archive = gents.email_archive?.path['/email-archives/{email_archive_id}/archive']
     assert.ok(null != archive, 'archive did not join email_archive: ' + Object.keys(gents).join(','))
     assert.deepStrictEqual(Object.keys(archive.action ?? {}), ['archive'])
+    assert.strictEqual(archive.rename.param.email_archive_id?.target
+      ?? archive.rename.param.email_archive_id, 'id')
 
     const ea = bres.apimodel.main.kit.entity.email_archive
     const archivePt = ea.op.update.points.find((pt: any) => pt.o.endsWith('/archive'))

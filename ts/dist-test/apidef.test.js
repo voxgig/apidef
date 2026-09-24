@@ -274,6 +274,8 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         const archive = gents.email_archive?.path['/email-archives/{email_archive_id}/archive'];
         node_assert_1.default.ok(null != archive, 'archive did not join email_archive: ' + Object.keys(gents).join(','));
         node_assert_1.default.deepStrictEqual(Object.keys(archive.action ?? {}), ['archive']);
+        node_assert_1.default.strictEqual(archive.rename.param.email_archive_id?.target
+            ?? archive.rename.param.email_archive_id, 'id');
         const ea = bres.apimodel.main.kit.entity.email_archive;
         const archivePt = ea.op.update.points.find((pt) => pt.o.endsWith('/archive'));
         node_assert_1.default.strictEqual(archivePt?.q?.$action, 'archive');

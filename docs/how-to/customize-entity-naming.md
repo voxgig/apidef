@@ -37,6 +37,9 @@ const result = await build(
    `user_widgets → user_widget`.
 2. **Built-in irregular table** — `people → person`, `caches → cache`, etc.
 3. **Suffix rules** — `-ies → -y`, `-oes → -o`, `-es`/`-s` stripping, etc.
+   A `-ves` plural becomes `-f` or `-fe` only for the words that take it
+   (`wolves → wolf`, `knives → knife`); any other drops the `-s` alone
+   (`objectives → objective`).
 
 Casing is reapplied from the input, so `Axes → Axe` and `AXES → AXE`.
 

@@ -367,6 +367,16 @@ func TestGuideVerbOnParentEdges(t *testing.T) {
 	if got := strings.Join(actionsOf(archive), ","); got != "archive" {
 		t.Errorf("archive actions = %s, want archive", got)
 	}
+	archiveMap, _ := archive.(map[string]any)
+	rename, _ := archiveMap["rename"].(map[string]any)
+	params, _ := rename["param"].(map[string]any)
+	target := params["email_archive_id"]
+	if tm, ok := target.(map[string]any); ok {
+		target = tm["target"]
+	}
+	if target != "id" {
+		t.Errorf("archive renames email_archive_id to %v, want id", target)
+	}
 }
 
 // One page wrapper serves both collections through a shared response. Counted

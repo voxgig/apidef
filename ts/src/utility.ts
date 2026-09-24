@@ -159,6 +159,7 @@ const IRREGULARS: Record<string, string> = Object.assign(Object.create(null), {
   'premises': 'premise',
   'promises': 'promise',
   'psyches': 'psyche',
+  'purchases': 'purchase',
   'purses': 'purse',
   'releases': 'release',
   'roses': 'rose',
@@ -175,6 +176,15 @@ const IRREGULARS: Record<string, string> = Object.assign(Object.create(null), {
   'women': 'woman',
   'yes': 'yes',
 })
+
+
+// The stems whose -ves plural comes from -fe (knives) or -f (wolves). The
+// -fe stems match the whole word, since olives is not the plural of olife.
+const FE_PLURAL_STEMS = ['kni', 'li', 'wi']
+const F_PLURAL_STEMS = [
+  'cal', 'dwar', 'el', 'hal', 'hoo', 'lea', 'loa', 'scar', 'shea', 'thie',
+  'whar', 'wol',
+]
 
 
 // Sorted longest-first so the most specific IRREGULARS suffix wins.
@@ -274,16 +284,21 @@ function depluralize(word: string): string {
     }
   }
 
-  // -ves -> -f or -fe (wolves -> wolf, knives -> knife)
+  // -ves -> -f or -fe only for the words that take it (wolves -> wolf,
+  // knives -> knife); every other -ves plural drops the -s alone
+  // (objectives -> objective).
   if (lower.endsWith('ves')) {
     const stem = word.slice(0, -3)
+    const lstem = stem.toLowerCase()
     const dropped = word.slice(-3)
     const isUpper = dropped === dropped.toUpperCase()
-    // Check if it should be -fe (like knife, wife, life)
-    if (['kni', 'wi', 'li'].includes(stem.toLowerCase())) {
+    if (FE_PLURAL_STEMS.includes(lstem)) {
       return stem + (isUpper ? 'FE' : 'fe')
     }
-    return stem + (isUpper ? 'F' : 'f')
+    if (F_PLURAL_STEMS.some((fstem) => lstem.endsWith(fstem))) {
+      return stem + (isUpper ? 'F' : 'f')
+    }
+    return word.slice(0, -1)
   }
 
   // -oes -> -o (potatoes -> potato)

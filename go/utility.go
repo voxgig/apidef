@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -67,7 +68,8 @@ var irregularPlurals = map[string]string{
 	"notices": "notice", "nurses": "nurse", "oases": "oasis", "oboes": "oboe",
 	"pastiches": "pastiche",
 	"pauses":    "pause", "phases": "phase", "phrases": "phrase", "practices": "practice",
-	"premises": "premise", "promises": "promise", "psyches": "psyche", "purses": "purse",
+	"premises": "premise", "promises": "promise", "psyches": "psyche",
+	"purchases": "purchase", "purses": "purse",
 	"releases": "release", "roses": "rose", "people": "person", "phenomena": "phenomenon",
 	"series": "series", "shoes": "shoe", "sources": "source", "species": "species",
 	"teeth":  "tooth",
@@ -76,6 +78,14 @@ var irregularPlurals = map[string]string{
 }
 
 var irregularKeys = sortedByLenDesc(irregularPlurals)
+
+// The stems whose -ves plural comes from -fe (knives) or -f (wolves). The
+// -fe stems match the whole word, since olives is not the plural of olife.
+var fePluralStems = []string{"kni", "li", "wi"}
+var fPluralStems = []string{
+	"cal", "dwar", "el", "hal", "hoo", "lea", "loa", "scar", "shea", "thie",
+	"whar", "wol",
+}
 
 func sortedByLenDesc(m map[string]string) []string {
 	keys := make([]string, 0, len(m))
@@ -158,22 +168,29 @@ func Depluralize(word string) string {
 		}
 	}
 
-	// -ves -> -f or -fe (wolves -> wolf, knives -> knife)
+	// -ves -> -f or -fe only for the words that take it (wolves -> wolf,
+	// knives -> knife); every other -ves plural drops the -s alone
+	// (objectives -> objective).
 	if strings.HasSuffix(lower, "ves") {
 		stem := word[:len(word)-3]
+		lstem := strings.ToLower(stem)
 		dropped := word[len(word)-3:]
 		isUpper := dropped == strings.ToUpper(dropped)
-		switch strings.ToLower(stem) {
-		case "kni", "wi", "li":
+		if slices.Contains(fePluralStems, lstem) {
 			if isUpper {
 				return stem + "FE"
 			}
 			return stem + "fe"
 		}
-		if isUpper {
-			return stem + "F"
+		for _, fstem := range fPluralStems {
+			if strings.HasSuffix(lstem, fstem) {
+				if isUpper {
+					return stem + "F"
+				}
+				return stem + "f"
+			}
 		}
-		return stem + "f"
+		return word[:len(word)-1]
 	}
 
 	// -oes -> -o (potatoes -> potato)

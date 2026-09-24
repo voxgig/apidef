@@ -40,3 +40,6 @@ OAuthURLs	o_auth_url	acronym plural after another capitalised run
 APIKeys	api_key	NOT an acronym plural - API + Keys - and must be unchanged
 HTTPHeaders	http_header	NOT an acronym plural - HTTP + Headers - and must be unchanged
 AWS	aws	trailing capital S is part of the acronym, not a plural
+MarketplacePurchases	marketplace_purchase
+objectives	objective
+KeyResultObjectives	key_result_objective

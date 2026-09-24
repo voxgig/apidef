@@ -375,6 +375,8 @@ function ResolveEntityComponent(spec) {
             }
             else if ((pathStr.includes('/' + ftag + '/') || pathStr.includes('/' + tagdesc.canon + '/'))
                 && out.cmp !== tagdesc.canon) {
+                const rescmp = out.cmp;
+                const rescmpoccur = metrics.count.origcmprefs[out.origcmpref ?? ''] ?? 0;
                 out = makeMethodEntityDesc({
                     ref: 'tag',
                     cmp: tagdesc.canon,
@@ -382,6 +384,8 @@ function ResolveEntityComponent(spec) {
                     why_cmp,
                     entname: tagdesc.canon,
                 });
+                out.rescmp = rescmp;
+                out.rescmpoccur = rescmpoccur;
                 why_cmp.push('tag/path=' + out.cmp);
             }
         }
@@ -904,7 +908,7 @@ function verbOnParent(data, pm, mdesc) {
         return null;
     }
     const ment = mdesc.MethodEntity;
-    if (1 < (ment.cmpoccur ?? 0)) {
+    if (1 < (ment.rescmpoccur ?? ment.cmpoccur ?? 0)) {
         return null;
     }
     const lit = (0, jostraca_2.snakify)((0, struct_1.getelem)(pm, -1));
@@ -912,7 +916,7 @@ function verbOnParent(data, pm, mdesc) {
         return null;
     }
     const verb = (0, utility_2.canonize)((0, struct_1.getelem)(pm, -1));
-    const cmp = String(ment.cmp ?? '');
+    const cmp = String(ment.rescmp ?? ment.cmp ?? '');
     if ('' === verb || cmp === verb || cmp.endsWith('_' + verb)) {
         return null;
     }

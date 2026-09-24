@@ -22,11 +22,12 @@ guide: {
       op: list: method: *GET
     }
     path: "/email-archives/{email_archive_id}": {
+      rename: param: "email_archive_id": *"id"
       op: load: method: *GET
     }
     path: "/email-archives/{email_archive_id}/archive": {
       action: "archive": {}
-      rename: param: "email_archive_id": *"email_archif_id"
+      rename: param: "email_archive_id": *"id"
       op: update: method: *PUT
     }
   }

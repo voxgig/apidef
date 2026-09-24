@@ -966,6 +966,8 @@ func resolveEntityComponent(data map[string]any, mdesc map[string]any) {
 				} else if (strings.Contains(pathStr, "/"+ftag+"/") ||
 					strings.Contains(pathStr, "/"+tagcanon+"/")) &&
 					safeStr(out["cmp"]) != tagcanon {
+					rescmp := safeStr(out["cmp"])
+					rescmpoccur := origcmprefs[safeStr(out["origcmpref"])]
 					out = makeMethodEntityDesc(map[string]any{
 						"ref":     "tag",
 						"cmp":     tagcanon,
@@ -973,6 +975,8 @@ func resolveEntityComponent(data map[string]any, mdesc map[string]any) {
 						"why_cmp": whyCmp,
 						"entname": tagcanon,
 					})
+					out["rescmp"] = rescmp
+					out["rescmpoccur"] = rescmpoccur
 					whyCmp = append(whyCmp, "tag/path="+safeStr(out["cmp"]))
 				}
 			}
@@ -1713,7 +1717,13 @@ func verbOnParent(data map[string]any, pm *PathMatchResult, mdesc map[string]any
 	}
 
 	ment, _ := mdesc["MethodEntity"].(map[string]any)
-	if ment != nil && toInt(ment["cmpoccur"]) > 1 {
+	occur := "cmpoccur"
+	cmpKey := "cmp"
+	if _, ok := ment["rescmp"]; ok {
+		occur = "rescmpoccur"
+		cmpKey = "rescmp"
+	}
+	if ment != nil && toInt(ment[occur]) > 1 {
 		return ""
 	}
 
@@ -1725,7 +1735,7 @@ func verbOnParent(data map[string]any, pm *PathMatchResult, mdesc map[string]any
 	verb := Canonize(getMatchElem(pm, -1))
 	cmp := ""
 	if ment != nil {
-		cmp = safeStr(ment["cmp"])
+		cmp = safeStr(ment[cmpKey])
 	}
 	if verb == "" || cmp == verb || strings.HasSuffix(cmp, "_"+verb) {
 		return ""
