@@ -593,6 +593,55 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         });
         node_assert_1.default.deepStrictEqual(Object.keys(bres.apimodel.main.kit.entity), ['setting']);
     });
+    // guide.aontu gives /keys back to the emptied entity, or to a new one, and
+    // the model keeps that assignment. go/apidef_test.go mirrors this case.
+    (0, node_test_1.test)('guide-collection-merge-overlay', async () => {
+        const Os = require('node:os');
+        const Path = require('node:path');
+        const def = 'collection-merge-def.json';
+        for (const owner of ['key', 'keyring']) {
+            const dir = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'apidef-merge-'));
+            const folder = Path.join(dir, 'model');
+            Fs.mkdirSync(Path.join(folder, 'guide'), { recursive: true });
+            Fs.mkdirSync(Path.join(dir, 'def'));
+            Fs.copyFileSync(Path.join(__dirname, '..', 'test', 'def', def), Path.join(dir, 'def', def));
+            Fs.writeFileSync(Path.join(folder, 'guide', 'guide.aontu'), [
+                '@"@voxgig/apidef/model/guide.aontu"',
+                '@"./base-guide.aontu"',
+                'guide: entity: ' + owner + ': path: "/keys": op: {',
+                '  create: method: "POST"',
+                '  list: method: "GET"',
+                '}',
+                'guide: entity: setting: path: "/keys": active: false',
+                '',
+            ].join('\n'));
+            const build = await apidef_1.ApiDef.makeBuild({ folder });
+            const bres = await build({ name: 'collection-merge', def }, {
+                spec: {
+                    base: folder,
+                    buildargs: {
+                        apidef: {
+                            ctrl: { step: {
+                                    parse: true, guide: true, transformers: true,
+                                    builders: false, generate: false,
+                                } }
+                        }
+                    }
+                }
+            }, {});
+            Fs.rmSync(dir, { recursive: true, force: true });
+            node_assert_1.default.ok(bres.ok, owner + ': build failed: ' + bres.err?.message);
+            const entities = bres.apimodel.main.kit.entity;
+            const routes = Object.fromEntries(Object.keys(entities).sort()
+                .map((name) => [name, Object.entries(entities[name].op)
+                    .flatMap(([opname, op]) => op.points.map((pt) => opname + ' ' + pt.m + ' ' + pt.o))
+                    .sort()]));
+            node_assert_1.default.deepStrictEqual(routes, {
+                [owner]: ['create POST /keys', 'list GET /keys'],
+                setting: ['remove DELETE /keys/{key_id}'],
+            }, owner);
+        }
+    });
     (0, node_test_1.test)('field-required-solar', async () => {
         const outprefix = 'solar-1.0.0-openapi-3.0.0-';
         const folder = __dirname + '/../test/solar';

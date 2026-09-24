@@ -805,6 +805,61 @@ func TestGuideCollectionMerge(t *testing.T) {
 	}
 }
 
+// Mirrors the TS `guide-collection-merge-overlay` case.
+func TestGuideCollectionMergeOverlay(t *testing.T) {
+	for _, owner := range []string{"key", "keyring"} {
+		folder := t.TempDir()
+		entry := "@\"@voxgig/apidef/model/guide.aontu\"\n" +
+			"@\"./base-guide.aontu\"\n" +
+			"guide: entity: " + owner + ": path: \"/keys\": op: {\n" +
+			"  create: method: \"POST\"\n" +
+			"  list: method: \"GET\"\n" +
+			"}\n" +
+			"guide: entity: setting: path: \"/keys\": active: false\n"
+		if err := writeGuideEntry(folder, "", entry); err != nil {
+			t.Fatal(err)
+		}
+		res, err := NewApiDef(ApiDefOptions{Folder: folder, Strategy: "heuristic01"}).Generate(map[string]any{
+			"model": map[string]any{"name": "collection-merge", "def": "collection-merge-def.json"},
+			"build": map[string]any{"spec": map[string]any{"base": "../ts/test/collection-merge"}},
+			"ctrl": map[string]any{"step": map[string]any{
+				"parse": true, "guide": true, "transformers": true,
+				"builders": false, "generate": false,
+			}},
+		})
+		if err != nil || res == nil || !res.OK {
+			t.Fatalf("%s: generate failed: err=%v res=%+v", owner, err, res)
+		}
+
+		main, _ := res.ApiModel["main"].(map[string]any)
+		kit, _ := main[KIT].(map[string]any)
+		entities, _ := kit["entity"].(map[string]any)
+		routes := map[string][]string{}
+		for _, name := range sortedKeys(entities) {
+			ent, _ := entities[name].(map[string]any)
+			ops, _ := ent["op"].(map[string]any)
+			list := []string{}
+			for _, opname := range sortedKeys(ops) {
+				op, _ := ops[opname].(map[string]any)
+				pts, _ := op["points"].([]any)
+				for _, p := range pts {
+					pt, _ := p.(map[string]any)
+					list = append(list, opname+" "+safeStr(pt["m"])+" "+safeStr(pt["o"]))
+				}
+			}
+			sort.Strings(list)
+			routes[name] = list
+		}
+		want := map[string][]string{
+			owner:     {"create POST /keys", "list GET /keys"},
+			"setting": {"remove DELETE /keys/{key_id}"},
+		}
+		if !reflect.DeepEqual(routes, want) {
+			t.Errorf("%s: model routes = %v, want %v", owner, routes, want)
+		}
+	}
+}
+
 // RFC 10008 QUERY verb: a safe, idempotent read carrying its filter in the
 // request body. Mirrors the TS `query-verb-book` case in ts/test/apidef.test.ts.
 // QUERY maps onto load/list; its collection response supplies the entity

@@ -184,14 +184,29 @@ whole spec on [`ts/test/def/sharing-def.json`](../../ts/test/def/sharing-def.jso
 Once every method is classified, a collection path `/X` that sits on one
 entity moves to the entity holding the shallowest item path `/X/{id}`, so
 the list and create operations join the entity that loads the record. The
-move is made before the base guide is written, and again on the unified
-guide for paths that `guide.aontu` adds. An entity the move leaves with no
-path is removed from the guide and the model, and the entity count drops
-with it: it names nothing `guide.aontu` could switch back on, so there is no
-classification to emit with `active: false`. The `guide-collection-merge`
-tests in [`ts/test/apidef.test.ts`](../../ts/test/apidef.test.ts) and
-[`go/apidef_test.go`](../../go/apidef_test.go) pin both steps on
-[`ts/test/def/collection-merge-def.json`](../../ts/test/def/collection-merge-def.json).
+move is part of the heuristic: it shapes the base guide and is not made
+again on the unified guide, so a path that `guide.aontu` assigns to an
+entity stays on that entity. An entity the move leaves with no path is
+removed from the base guide, and the entity count drops with it: it names
+nothing `guide.aontu` could switch back on, so there is no classification to
+emit with `active: false`.
+
+To keep a collection apart from its items, declare its path on the entity
+it belongs to, and switch the path off where the move put it:
+
+```jsonic
+guide: entity: key: path: "/keys": op: {
+  create: method: "POST"
+  list: method: "GET"
+}
+guide: entity: setting: path: "/keys": active: false
+```
+
+The `guide-collection-merge` tests in
+[`ts/test/apidef.test.ts`](../../ts/test/apidef.test.ts) and
+[`go/apidef_test.go`](../../go/apidef_test.go) pin the move on
+[`ts/test/def/collection-merge-def.json`](../../ts/test/def/collection-merge-def.json),
+and the `guide-collection-merge-overlay` tests pin this correction.
 
 ## Example
 

@@ -765,6 +765,66 @@ describe('apidef', () => {
   })
 
 
+  // guide.aontu gives /keys back to the emptied entity, or to a new one, and
+  // the model keeps that assignment. go/apidef_test.go mirrors this case.
+  test('guide-collection-merge-overlay', async () => {
+    const Os = require('node:os')
+    const Path = require('node:path')
+    const def = 'collection-merge-def.json'
+
+    for (const owner of ['key', 'keyring']) {
+      const dir = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'apidef-merge-'))
+      const folder = Path.join(dir, 'model')
+      Fs.mkdirSync(Path.join(folder, 'guide'), { recursive: true })
+      Fs.mkdirSync(Path.join(dir, 'def'))
+      Fs.copyFileSync(Path.join(__dirname, '..', 'test', 'def', def), Path.join(dir, 'def', def))
+      Fs.writeFileSync(Path.join(folder, 'guide', 'guide.aontu'), [
+        '@"@voxgig/apidef/model/guide.aontu"',
+        '@"./base-guide.aontu"',
+        'guide: entity: ' + owner + ': path: "/keys": op: {',
+        '  create: method: "POST"',
+        '  list: method: "GET"',
+        '}',
+        'guide: entity: setting: path: "/keys": active: false',
+        '',
+      ].join('\n'))
+
+      const build = await ApiDef.makeBuild({ folder })
+      const bres = await build(
+        { name: 'collection-merge', def },
+        {
+          spec: {
+            base: folder,
+            buildargs: {
+              apidef: {
+                ctrl: { step: {
+                  parse: true, guide: true, transformers: true,
+                  builders: false, generate: false,
+                } }
+              }
+            }
+          }
+        },
+        {}
+      )
+      Fs.rmSync(dir, { recursive: true, force: true })
+
+      assert.ok(bres.ok, owner + ': build failed: ' + bres.err?.message)
+
+      const entities = bres.apimodel.main.kit.entity
+      const routes = Object.fromEntries(Object.keys(entities).sort()
+        .map((name) => [name, Object.entries(entities[name].op)
+          .flatMap(([opname, op]: [string, any]) =>
+            op.points.map((pt: any) => opname + ' ' + pt.m + ' ' + pt.o))
+          .sort()]))
+      assert.deepStrictEqual(routes, {
+        [owner]: ['create POST /keys', 'list GET /keys'],
+        setting: ['remove DELETE /keys/{key_id}'],
+      }, owner)
+    }
+  })
+
+
   test('field-required-solar', async () => {
     const outprefix = 'solar-1.0.0-openapi-3.0.0-'
     const folder = __dirname + '/../test/solar'

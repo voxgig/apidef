@@ -34,10 +34,6 @@ const entityTransform: Transform = async function(
 
   let msg = ''
 
-  if (true !== ctx.def?.graphql) {
-    mergeCollectionPaths(guide, ctx.log)
-  }
-
   each(guide.entity, (guideEntity: GuideEntity, entname: string) => {
     if (!guideActive(guideEntity)) {
       ctx.log.debug({ point: 'guide-entity', note: entname, active: false })
@@ -87,6 +83,7 @@ function filterEntityAncestors(entities: Record<string, any>) {
 // Only acts when the path "/X" sits on a different entity than the
 // per-instance paths — leaves correctly-classified APIs alone.
 // Returns the entities the moves emptied, which are removed.
+// Guide stage only: on the unified guide it would override guide.aontu.
 function mergeCollectionPaths(guide: any, log?: any): string[] {
   const entities = guide.entity as Record<string, any>
   const emptied: string[] = []

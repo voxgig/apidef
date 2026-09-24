@@ -39,3 +39,5 @@ An entity whose every operation is an access-token exchange is emitted with the 
 Sources: [detection](ts/src/utility.ts), [Go detection](go/utility.go), [guide](ts/src/guide/heuristic01.ts), [Go guide](go/guide.go).
 
 An entity that collection merging leaves with no path is removed, in both ports, rather than emitted with `active: *false`: the owner's explicit call under ADR-002, since an entity with no path is not a classification `guide.aontu` could switch back on. Sources: [merge](ts/src/transform/entity.ts), [Go merge](go/transform_entity.go).
+
+Collection merging runs in the guide stage only; the entity transform takes the unified guide as given, since merging again would move a path `guide.aontu` assigns and delete the entity it re-declares. Sources: [guide](ts/src/guide/heuristic01.ts), [Go guide](go/guide.go).

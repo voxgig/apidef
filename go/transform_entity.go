@@ -18,8 +18,6 @@ func EntityTransform(ctx *ApiDefContext) (*TransformResult, error) {
 	guideEntity, _ := guide["entity"].(map[string]any)
 	msg := ""
 
-	mergeCollectionPaths(guide)
-
 	for _, entname := range sortedKeys(guideEntity) {
 		gent := guideEntity[entname]
 		gentMap, ok := gent.(map[string]any)
@@ -93,7 +91,8 @@ type rootOwner struct {
 
 // mergeCollectionPaths moves "/X" paths onto the entity that owns "/X/{id}"
 // and removes the entities the moves emptied, returning their names. Mirrors
-// mergeCollectionPaths in ts/src/transform/entity.ts.
+// mergeCollectionPaths in ts/src/transform/entity.ts. Guide stage only: on the
+// unified guide it would override guide.aontu.
 func mergeCollectionPaths(guide map[string]any) []string {
 	emptied := []string{}
 	entities, _ := guide["entity"].(map[string]any)
