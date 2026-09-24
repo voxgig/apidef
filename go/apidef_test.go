@@ -1314,6 +1314,24 @@ func TestParse(t *testing.T) {
 	}
 }
 
+// Mirrors the TS `parse` case `reads an explicit YAML key as its scalar`.
+func TestParseExplicitKey(t *testing.T) {
+	result, err := Parse("OpenAPI", "openapi: 3.0.0\n"+
+		"info: {title: T, version: '1'}\n"+
+		"paths:\n"+
+		"  ? \"/a/{id}/digest\"\n"+
+		"  : get: {responses: {'204': {description: none}}}\n"+
+		"  \"/b\": {get: {responses: {'204': {description: none}}}}\n",
+		map[string]string{"file": "test"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	paths, _ := result["paths"].(map[string]any)
+	if got := strings.Join(sortedKeys(paths), " "); got != "/a/{id}/digest /b" {
+		t.Errorf("path keys = %q, want %q", got, "/a/{id}/digest /b")
+	}
+}
+
 func TestCleanTransform(t *testing.T) {
 	ctx := &ApiDefContext{
 		ApiModel: map[string]any{

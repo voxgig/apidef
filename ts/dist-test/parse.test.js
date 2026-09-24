@@ -160,6 +160,16 @@ paths: {}
             components: {}
         });
     });
+    (0, node_test_1.test)('reads an explicit YAML key as its scalar', async () => {
+        const p0 = await (0, parse_1.parse)('OpenAPI', `openapi: 3.0.0
+info: {title: T, version: '1'}
+paths:
+  ? "/a/{id}/digest"
+  : get: {responses: {'204': {description: none}}}
+  "/b": {get: {responses: {'204': {description: none}}}}
+`, { file: 'f0' });
+        node_assert_1.default.deepStrictEqual(Object.keys(p0.paths).sort(), ['/a/{id}/digest', '/b']);
+    });
     (0, node_test_1.test)('resolves repeated $ref with x-ref preserved', async () => {
         const pm0 = { file: 'f0' };
         const mkop = () => ({
