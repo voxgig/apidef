@@ -223,7 +223,7 @@ func (a *apiDefInstance) Generate(spec map[string]any) (*ApiDefResult, error) {
 
 	builders := []Builder{entityBuilder, flowBuilder}
 
-	jopts := []jostraca.Option{}
+	jopts := []jostraca.Option{jostraca.WithLog(jostracaLog{ctx.Log})}
 	if now, ok := spec["now"].(func() int64); ok {
 		jopts = append(jopts, jostraca.WithNow(now))
 	}
@@ -326,5 +326,23 @@ func makeErrorResult(start int64, steps []string, ctrl map[string]any, ctx *ApiD
 		Guide:    ctx.Guide,
 		ApiModel: ctx.ApiModel,
 		Ctx:      ctx,
+	}
+}
+
+// jostracaLog hands jostraca's replayed warnings to apidef's logger, as the
+// TS port passes its own. Without one they are dropped: jostraca's default
+// would print them to stdout.
+type jostracaLog struct{ log Logger }
+
+func (l jostracaLog) Trace(args ...any) { l.forward(Logger.Debug, args) }
+func (l jostracaLog) Debug(args ...any) { l.forward(Logger.Debug, args) }
+func (l jostracaLog) Info(args ...any)  { l.forward(Logger.Info, args) }
+func (l jostracaLog) Warn(args ...any)  { l.forward(Logger.Warn, args) }
+func (l jostracaLog) Error(args ...any) { l.forward(Logger.Error, args) }
+func (l jostracaLog) Fatal(args ...any) { l.forward(Logger.Error, args) }
+
+func (l jostracaLog) forward(level func(Logger, ...any), args []any) {
+	if l.log != nil {
+		level(l.log, args...)
 	}
 }

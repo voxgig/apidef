@@ -4,12 +4,15 @@ package apidef
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
 	"sort"
 	"strings"
 	"testing"
+
+	jostraca "github.com/jostraca/jostraca/go"
 )
 
 // Mirrors ts/test/generate.test.ts.
@@ -358,4 +361,32 @@ func TestGenerateGuideFailureWritesWarnings(t *testing.T) {
 	if text, _ := readWarnings(t, folder); !strings.Contains(text, "!! BUILD FAILED !!") {
 		t.Errorf("warnings: %q", text)
 	}
+}
+
+type levelLog struct{ calls []string }
+
+func (l *levelLog) add(level string, args []any) {
+	l.calls = append(l.calls, level+" "+fmt.Sprint(args...))
+}
+func (l *levelLog) Info(args ...any)  { l.add("info", args) }
+func (l *levelLog) Debug(args ...any) { l.add("debug", args) }
+func (l *levelLog) Warn(args ...any)  { l.add("warn", args) }
+func (l *levelLog) Error(args ...any) { l.add("error", args) }
+
+// jostraca's replayed warnings reach apidef's logger, as TS passes its own,
+// and are dropped rather than printed when there is none.
+func TestJostracaLogForwardsToApidefLogger(t *testing.T) {
+	rec := &levelLog{}
+	var jl jostraca.Log = jostracaLog{rec}
+	jl.Trace("t")
+	jl.Debug("d")
+	jl.Info("i")
+	jl.Warn("w")
+	jl.Error("e")
+	jl.Fatal("f")
+	want := []string{"debug t", "debug d", "info i", "warn w", "error e", "error f"}
+	if !reflect.DeepEqual(rec.calls, want) {
+		t.Fatalf("got %q, want %q", rec.calls, want)
+	}
+	jostracaLog{}.Debug("dropped")
 }
