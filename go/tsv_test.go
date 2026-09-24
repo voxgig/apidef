@@ -692,6 +692,47 @@ func TestEnvelopeItemRef(t *testing.T) {
 	}
 }
 
+func TestPathResource(t *testing.T) {
+	rows := loadTsv(t, "path-resource")
+	if len(rows) == 0 {
+		t.Fatal("no path-resource rows loaded")
+	}
+	for _, row := range rows {
+		path, method, want := row["path"], row["method"], row["expected"]
+		t.Run(method+" "+path, func(t *testing.T) {
+			if got := pathResource(splitAndFilter(path, "/"), method); got != want {
+				t.Errorf("pathResource(%q, %q) = %q, want %q", path, method, got, want)
+			}
+		})
+	}
+}
+
+func TestSharedRoutes(t *testing.T) {
+	rows := loadTsv(t, "shared-routes")
+	if len(rows) == 0 {
+		t.Fatal("no shared-routes rows loaded")
+	}
+	list := func(cell string, sep string) []string {
+		if cell == "" {
+			return []string{}
+		}
+		return strings.Split(cell, sep)
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			routes := []SharingRoute{}
+			for _, route := range list(row["routes"], ";") {
+				f := strings.Split(route, " ")
+				routes = append(routes, SharingRoute{Cmp: f[0], Method: f[1], Path: f[2], Op: f[3]})
+			}
+			got := sharedRoutes(routes, list(row["records"], ","))
+			if want := list(row["expected"], ";"); !reflect.DeepEqual(got, want) {
+				t.Errorf("sharedRoutes = %q, want %q", got, want)
+			}
+		})
+	}
+}
+
 func TestClosedBodyTransform(t *testing.T) {
 	rows := loadTsv(t, "closed-body-transform")
 	if len(rows) == 0 {

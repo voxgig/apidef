@@ -1,0 +1,20 @@
+name	routes	records	expected
+siblings	flag GET /settings/enforce_admins load;flag GET /settings/required_signatures load		flag GET /settings/enforce_admins;flag GET /settings/required_signatures
+one-resource	flag GET /settings/enforce_admins load;flag POST /settings/enforce_admins create
+record	note GET /notes list;note GET /users/{uid}/starred_notes list	note
+not-a-record	note GET /notes list;note GET /users/{uid}/starred_notes list		note GET /notes;note GET /users/{uid}/starred_notes
+other-record	note GET /notes list;note GET /users/{uid}/starred_notes list	job	note GET /notes;note GET /users/{uid}/starred_notes
+view	stat GET /stats load;stat GET /stats/daily load;stat GET /metrics load		stat GET /metrics;stat GET /stats
+view-only	stat GET /stats load;stat GET /stats/daily load
+view-beneath-item	run GET /runs/{rid} load;run GET /runs/{rid}/attempts/{n} load
+alias	removal DELETE /accounts/{aid}/bank_accounts/{id} remove;removal DELETE /accounts/{aid}/external_accounts/{id} remove
+alias-beside-other	removal DELETE /accounts/{aid}/bank_accounts/{id} remove;removal DELETE /accounts/{aid}/external_accounts/{id} remove;removal DELETE /cards/{id} remove		removal DELETE /cards/{id}
+alias-other-parent	removal DELETE /accounts/{aid}/bank_accounts/{id} remove;removal DELETE /customers/{aid}/external_accounts/{id} remove		removal DELETE /accounts/{aid}/bank_accounts/{id};removal DELETE /customers/{aid}/external_accounts/{id}
+sibling-collections	source POST /customers/{cid}/bank_accounts create;source POST /customers/{cid}/cards create		source POST /customers/{cid}/bank_accounts;source POST /customers/{cid}/cards
+collision	recipe GET /recipes/{rid}/digest load;recipe GET /recipes/{rid}/download_urls load;package GET /packages/{pid}/digest load;package GET /packages/{pid}/download_urls load
+collision-one-name	recipe GET /recipes/{rid}/digest load;recipe GET /recipes/{rid}/download_urls load;package GET /packages/{pid}/digest load;package GET /packages/{pid}/manifests load		package GET /packages/{pid}/manifests;recipe GET /recipes/{rid}/download_urls
+duplicate	ack PUT /orgs/{org}/actions/secrets/{name} update;ack PUT /orgs/{org}/dependabot/secrets/{name} update;ack POST /orgs/{org}/actions/variables create		ack POST /orgs/{org}/actions/variables
+distinct-parameters	ack PUT /orgs/{org}/actions/secrets/{name} update;ack PUT /repos/{repo}/actions/secrets/{name} update;ack POST /orgs/{org}/actions/variables create		ack POST /orgs/{org}/actions/variables;ack PUT /orgs/{org}/actions/secrets/{name};ack PUT /repos/{repo}/actions/secrets/{name}
+verb	ack POST /runs/{rid}/rerun create;ack POST /orgs/{org}/actions/variables create
+plural-write	ack POST /runs/{rid}/rerun-failed-jobs create;ack POST /orgs/{org}/actions/variables create		ack POST /orgs/{org}/actions/variables;ack POST /runs/{rid}/rerun-failed-jobs
+no-routes

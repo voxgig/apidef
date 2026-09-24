@@ -1,0 +1,126 @@
+# Generated from the API definition and overwritten on every build: do not
+# edit this file. Put customizations in the guide entry file, which includes
+# this one and overrides its defaults:
+#   guide.aontu
+
+guide: {
+  metrics: count: entity: 12
+  metrics: count: path: 20
+  metrics: count: method: 20
+
+  entity: ack: {
+    path: "/orgs/{org}/actions/secrets/{name}": {
+      rename: param: "org": *"org_id"
+      op: update: method: *PUT
+    }
+    path: "/orgs/{org}/dependabot/secrets/{name}": {
+      rename: param: "org": *"org_id"
+      op: update: method: *PUT
+    }
+  }
+
+  entity: counter: {
+    path: "/stats/daily": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: enforce_admin: {
+    path: "/settings/enforce_admins": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: job: {
+    path: "/jobs": {
+      op: list: method: *GET
+    }
+    path: "/jobs/{id}": {
+      op: load: method: *GET
+    }
+    path: "/jobs/{id}/rerun": {
+      action: "rerun": {}
+      op: create: method: *POST
+    }
+  }
+
+  entity: memo: {
+    path: "/notes": {
+      op: list: method: *GET
+    }
+    path: "/notes/{id}": {
+      op: load: method: *GET
+    }
+    path: "/users/{uid}/starred_notes": {
+      rename: param: "uid": *"user_id"
+      op: list: method: *GET
+    }
+  }
+
+  entity: metric: {
+    path: "/metrics": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: package_manifest: {
+    path: "/packages/{pid}/digest": {
+      action: "digest": {}
+      rename: param: "pid": *"id"
+      op: load: method: *GET
+      op: load: transform: res: *("`body.files`")|top
+    }
+    path: "/packages/{pid}/download_urls": {
+      action: "download_urls": {}
+      rename: param: "pid": *"id"
+      op: load: method: *GET
+      op: load: transform: res: *("`body.files`")|top
+    }
+  }
+
+  entity: recipe_manifest: {
+    path: "/recipes/{rid}/digest": {
+      action: "digest": {}
+      rename: param: "rid": *"id"
+      op: load: method: *GET
+      op: load: transform: res: *("`body.files`")|top
+    }
+    path: "/recipes/{rid}/download_urls": {
+      action: "download_urls": {}
+      rename: param: "rid": *"id"
+      op: load: method: *GET
+      op: load: transform: res: *("`body.files`")|top
+    }
+  }
+
+  entity: removal: {
+    path: "/accounts/{aid}/bank_accounts/{id}": {
+      rename: param: "aid": *"account_id"
+      op: remove: method: *DELETE
+    }
+    path: "/accounts/{aid}/external_accounts/{id}": {
+      rename: param: "aid": *"account_id"
+      op: remove: method: *DELETE
+    }
+  }
+
+  entity: required_signature: {
+    path: "/settings/required_signatures": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: stat: {
+    path: "/stats": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: variable: {
+    path: "/orgs/{org}/actions/variables": {
+      rename: param: "org": *"org_id"
+      op: create: method: *POST
+    }
+  }
+
+}

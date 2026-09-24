@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.heuristic01 = heuristic01;
+exports.pathResource = pathResource;
+exports.sharedRoutes = sharedRoutes;
 const ordu_1 = require("ordu");
 const jostraca_1 = require("jostraca");
 const struct_1 = require("@voxgig/struct");
@@ -31,6 +33,11 @@ const METHOD_IDOP = {
 };
 // Tried in order: the first shape a path matches decides how its entity is named.
 const ENTITY_PATH_SHAPES = ['t/p/t/', 't/p/', 'p/t/', 't/', 't/p/p'];
+// The matched part that gives each shape its name.
+const PATH_NAME_INDEX = {
+    't/p/t/': 2, 't/p/': 0, 'p/t/': 1, 't/': 0, 't/p/p': 0,
+};
+const READ_METHODS = ['GET', 'QUERY', 'HEAD', 'OPTIONS'];
 const METHOD_CONSIDER_ORDER = {
     'GET': 100,
     'QUERY': 150,
@@ -54,6 +61,8 @@ async function heuristic01(ctx) {
         { select: selectCmpXrefs, apply: MeasureRef },
         { select: selectAllMethods, apply: MeasureEnvelope },
         MeasureEnvelopeItems,
+        { select: selectAllMethods, apply: MeasureSharing },
+        MeasureShared,
         {
             select: selectAllMethods, apply: [
                 ResolveEntityComponent,
@@ -124,6 +133,7 @@ function Prepare(spec) {
             pathmap: {},
             entmap: {},
             envelope: {},
+            sharing: { routes: [], records: {}, yields: {} },
             entity: {
                 count: {
                     seen: 0,
@@ -236,6 +246,31 @@ function MeasureEnvelopeItems(spec) {
         if (1 < carriers[envelope[xref]]) {
             envelope[xref] = '';
         }
+    }
+}
+// Records every route whose operation answers with a response component, and
+// whether that component declares an `id`, before any method is named.
+function MeasureSharing(spec) {
+    const work = spec.data.work;
+    const mdesc = spec.node.val;
+    const parts = work.pathmap[mdesc.path].parts;
+    const op = methodOpname(mdesc, matchEntityPath(parts), []) ?? '';
+    const sharing = work.sharing;
+    const xrefs = findPotentialSchemaRefs(mdesc.path, mdesc.method, mdesc.responses, work.envelope, []);
+    for (const xref of xrefs) {
+        const m = xref.match(/\/(components\/schemas|definitions)\/(.+)$/);
+        if (null != m) {
+            const cmp = (0, utility_2.canonizeCmpName)(m[2]);
+            sharing.routes.push({ cmp, method: mdesc.method, path: mdesc.path, op });
+            sharing.records[cmp] = true === sharing.records[cmp] || declaresId(refSchema(spec.data.def, xref));
+        }
+    }
+}
+function MeasureShared(spec) {
+    const sharing = spec.data.work.sharing;
+    const records = Object.keys(sharing.records).filter((cmp) => sharing.records[cmp]);
+    for (const key of sharedRoutes(sharing.routes, records)) {
+        sharing.yields[key] = true;
     }
 }
 function selectAllMethods(_source, spec) {
@@ -854,7 +889,7 @@ function BuildEntity(spec) {
 }
 function entityPathMatch_tpte(data, pm, mdesc, why) {
     const ment = mdesc.MethodEntity;
-    const pathNameIndex = 2;
+    const pathNameIndex = PATH_NAME_INDEX['t/p/t/'];
     why.push('path=t/p/t/');
     const origPathName = pm[pathNameIndex];
     let entname = (0, utility_2.canonize)(origPathName);
@@ -904,7 +939,7 @@ function endsWithCmp(data, pm) {
 }
 function verbOnParent(data, pm, mdesc) {
     const method = mdesc.method;
-    if ('GET' === method || 'QUERY' === method || 'HEAD' === method || 'OPTIONS' === method) {
+    if (READ_METHODS.includes(method)) {
         return null;
     }
     const ment = mdesc.MethodEntity;
@@ -961,7 +996,7 @@ function entityOccursInPath(parts, entname) {
 }
 function entityPathMatch_tpe(data, pm, mdesc, why) {
     const ment = mdesc.MethodEntity;
-    const pathNameIndex = 0;
+    const pathNameIndex = PATH_NAME_INDEX['t/p/'];
     why.push('path=t/p/');
     const origPathName = pm[pathNameIndex];
     let entname = (0, utility_2.canonize)(origPathName);
@@ -976,7 +1011,7 @@ function entityPathMatch_tpe(data, pm, mdesc, why) {
 }
 function entityPathMatch_pte(data, pm, mdesc, why) {
     const ment = mdesc.MethodEntity;
-    const pathNameIndex = 1;
+    const pathNameIndex = PATH_NAME_INDEX['p/t/'];
     why.push('path=p/t/');
     const origPathName = pm[pathNameIndex];
     let entname = (0, utility_2.canonize)(origPathName);
@@ -991,7 +1026,7 @@ function entityPathMatch_pte(data, pm, mdesc, why) {
 }
 function entityPathMatch_te(data, pm, mdesc, why) {
     const ment = mdesc.MethodEntity;
-    const pathNameIndex = 0;
+    const pathNameIndex = PATH_NAME_INDEX['t/'];
     why.push('path=t/');
     const origPathName = pm[pathNameIndex];
     let entname = (0, utility_2.canonize)(origPathName);
@@ -1006,7 +1041,7 @@ function entityPathMatch_te(data, pm, mdesc, why) {
 }
 function entityPathMatch_tpp(data, pm, mdesc, why) {
     const ment = mdesc.MethodEntity;
-    const pathNameIndex = 0;
+    const pathNameIndex = PATH_NAME_INDEX['t/p/p'];
     why.push('path=t/p/p');
     const origPathName = pm[pathNameIndex];
     let entname = (0, utility_2.canonize)(origPathName);
@@ -1122,10 +1157,14 @@ function entityCmpMatch(data, entname, mdesc, why) {
     };
     const cmpInfrequent = (ment.method_rate < IS_ENTCMP_METHOD_RATE
         || ment.path_rate < IS_ENTCMP_PATH_RATE);
+    const cmpShared = true === data.work.sharing.yields[ment.origcmpref + ' ' + mdesc.method + ' ' + mdesc.path];
     if (null != ment.cmp
         && entname != ment.cmp
         && !ment.cmp.startsWith(entname)) {
-        if (cmpInfrequent) {
+        if (cmpInfrequent && cmpShared) {
+            why.push('cmp-shared');
+        }
+        if (cmpInfrequent && !cmpShared) {
             why.push('cmp-primary');
             out.name = ment.cmp;
             out.orig = ment.origcmp;
@@ -1185,6 +1224,123 @@ function matchEntityPath(parts) {
         }
     }
     return null;
+}
+// The resource a method's path names by itself, as its shape names it. A
+// write to a singular trailing literal is a verb on another resource, and
+// names none.
+function pathResource(parts, method) {
+    const pm = matchEntityPath(parts);
+    if (null == pm) {
+        return null;
+    }
+    const last = parts[parts.length - 1];
+    if (!READ_METHODS.includes(method) && !isParam(last)) {
+        const lit = (0, jostraca_2.snakify)(last);
+        if ('' !== lit && (0, utility_2.depluralize)(lit) === lit) {
+            return null;
+        }
+    }
+    return (0, utility_2.canonize)(pm[PATH_NAME_INDEX[pm.expr]]);
+}
+// The routes that keep their own path's name for the component they answer
+// with, each keyed `cmp METHOD path`: those of a component that several
+// resources share, where a record (one that declares an `id`) is never shared.
+function sharedRoutes(routes, records) {
+    const bycmp = {};
+    for (const route of routes) {
+        const parts = route.path.split('/').filter((p) => '' !== p);
+        const resource = pathResource(parts, route.method);
+        if (null != resource && !records.includes(route.cmp)) {
+            (bycmp[route.cmp] = bycmp[route.cmp] ?? []).push({ ...route, parts, resource });
+        }
+    }
+    const taking = [];
+    for (const cmp of Object.keys(bycmp).sort()) {
+        const names = new Set(bycmp[cmp].map((entry) => entry.resource));
+        const counted = bycmp[cmp].filter((entry) => !isSharingView(entry, names));
+        const group = aliasGroups(counted);
+        if (new Set(counted.map((entry) => group[entry.resource])).size < 2) {
+            continue;
+        }
+        const members = {};
+        for (const name of new Set(counted.map((entry) => entry.resource))) {
+            members[group[name]] = (members[group[name]] ?? 0) + 1;
+        }
+        taking.push(...counted.filter((entry) => 1 === members[group[entry.resource]]));
+    }
+    const cmps = {};
+    const routesOf = {};
+    for (const entry of taking) {
+        (cmps[entry.resource] = cmps[entry.resource] ?? new Set()).add(entry.cmp);
+        const key = entry.resource + ' ' + entry.op + ' ' + paramNames(entry.parts);
+        (routesOf[key] = routesOf[key] ?? new Set()).add(entry.path);
+    }
+    const blocked = new Set(Object.keys(cmps).filter((name) => 1 < cmps[name].size));
+    for (const key of Object.keys(routesOf)) {
+        if (1 < routesOf[key].size) {
+            blocked.add(key.split(' ')[0]);
+        }
+    }
+    return taking
+        .filter((entry) => !blocked.has(entry.resource))
+        .map((entry) => entry.cmp + ' ' + entry.method + ' ' + entry.path)
+        .sort();
+}
+// A route beneath a segment that names another of the component's resources
+// is a view of that resource, such as `/builds/latest` of `/builds`.
+function isSharingView(entry, names) {
+    for (let i = 1; i < entry.parts.length; i++) {
+        const name = pathResource(entry.parts.slice(0, i), 'GET');
+        if (null != name && name !== entry.resource && names.has(name)) {
+            return true;
+        }
+    }
+    return false;
+}
+// Item routes under the same parent keyed by the same parameters address the
+// same records, so the resources they name are one: each maps to its group.
+function aliasGroups(entries) {
+    const group = {};
+    const find = (name) => group[name] === name ? name : find(group[name]);
+    for (const entry of entries) {
+        group[entry.resource] = entry.resource;
+    }
+    const first = {};
+    for (const entry of entries) {
+        if (!isParam(entry.parts[entry.parts.length - 1])) {
+            continue;
+        }
+        const pm = matchEntityPath(entry.parts);
+        const parent = entry.parts.slice(0, pm.index + PATH_NAME_INDEX[pm.expr])
+            .map((p) => isParam(p) ? '{}' : p).join('/');
+        const key = parent + ' ' + paramNames(entry.parts);
+        const other = first[key] = first[key] ?? entry.resource;
+        const [a, b] = [find(other), find(entry.resource)].sort();
+        group[b] = a;
+    }
+    for (const name of Object.keys(group)) {
+        group[name] = find(name);
+    }
+    return group;
+}
+function paramNames(parts) {
+    return parts.filter(isParam).sort().join(',');
+}
+// The schema a local `$ref` pointer names in the definition.
+function refSchema(def, xref) {
+    if (!xref.startsWith('#/')) {
+        return undefined;
+    }
+    let node = def;
+    for (const seg of xref.slice(2).split('/')) {
+        const key = seg.replace(/~1/g, '/').replace(/~0/g, '~');
+        node = null != node && 'object' === typeof node && Object.prototype.hasOwnProperty.call(node, key)
+            ? node[key] : undefined;
+    }
+    return node;
+}
+function declaresId(schema) {
+    return null != schema && 'object' === typeof schema && null != resolveSchemaProperties(schema).id;
 }
 // The operation ResolveOperation will assign, needed before the entity is
 // named: whether a response unwraps as an envelope depends on it.

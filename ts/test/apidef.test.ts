@@ -580,6 +580,67 @@ describe('apidef', () => {
   })
 
 
+  // A rare schema that several resources share yields to each path's name
+  // (flag, counter, ack's variables). Not shared: a record with an id (memo),
+  // a view beneath a co-sharing resource (stats/daily), item aliases (removal),
+  // a name that different schemas would take (the manifests), and routes to
+  // one name that no parameter tells apart (ack's secrets).
+  test('guide-sharing', async () => {
+    const folder = __dirname + '/../test/sharing'
+
+    const build = await ApiDef.makeBuild({ folder })
+
+    const bres = await build(
+      { name: 'sharing', def: 'sharing-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: true,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const routes = Object.fromEntries(Object.keys(bres.guide.entity).sort()
+      .map((name) => [name, Object.entries(bres.guide.entity[name].path)
+        .flatMap(([path, pd]: [string, any]) =>
+          Object.values(pd.op).map((op: any) => op.method + ' ' + path))
+        .sort()]))
+    assert.deepStrictEqual(routes, {
+      ack: [
+        'PUT /orgs/{org}/actions/secrets/{name}',
+        'PUT /orgs/{org}/dependabot/secrets/{name}',
+      ],
+      counter: ['GET /stats/daily'],
+      enforce_admin: ['GET /settings/enforce_admins'],
+      job: ['GET /jobs', 'GET /jobs/{id}', 'POST /jobs/{id}/rerun'],
+      metric: ['GET /metrics'],
+      memo: ['GET /notes', 'GET /notes/{id}', 'GET /users/{uid}/starred_notes'],
+      package_manifest: ['GET /packages/{pid}/digest', 'GET /packages/{pid}/download_urls'],
+      recipe_manifest: ['GET /recipes/{rid}/digest', 'GET /recipes/{rid}/download_urls'],
+      removal: [
+        'DELETE /accounts/{aid}/bank_accounts/{id}',
+        'DELETE /accounts/{aid}/external_accounts/{id}',
+      ],
+      required_signature: ['GET /settings/required_signatures'],
+      stat: ['GET /stats'],
+      variable: ['POST /orgs/{org}/actions/variables'],
+    })
+
+    const rerun = bres.apimodel.main.kit.entity.job.op.create.points[0]
+    assert.strictEqual(rerun.q?.$action, 'rerun')
+  })
+
+
   test('field-required-solar', async () => {
     const outprefix = 'solar-1.0.0-openapi-3.0.0-'
     const folder = __dirname + '/../test/solar'

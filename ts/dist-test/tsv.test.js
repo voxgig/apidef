@@ -47,6 +47,7 @@ const field_1 = require("../dist/transform/field");
 const resolved_1 = require("../dist/resolved");
 const jostraca_1 = require("jostraca");
 const graphql01_1 = require("../dist/guide/graphql01");
+const heuristic01_1 = require("../dist/guide/heuristic01");
 const guide_1 = require("../dist/guide/guide");
 const parse_1 = require("../dist/parse");
 const refcount_1 = require("../dist/refcount");
@@ -481,6 +482,31 @@ function loadTsv(name) {
         (0, node_test_1.test)(`envelopeItemRef(${row.schema}, "${row.opname}") => "${row.expected}"`, () => {
             const expected = '' === row.expected ? null : row.expected;
             node_assert_1.default.strictEqual((0, utility_1.envelopeItemRef)(JSON.parse(row.schema), row.opname), expected);
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-path-resource', () => {
+    const rows = loadTsv('path-resource');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(`pathResource("${row.path}", "${row.method}") => "${row.expected}"`, () => {
+            const parts = row.path.split('/').filter((p) => '' !== p);
+            const expected = '' === row.expected ? null : row.expected;
+            node_assert_1.default.strictEqual((0, heuristic01_1.pathResource)(parts, row.method), expected);
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-shared-routes', () => {
+    const rows = loadTsv('shared-routes');
+    const list = (cell, sep) => '' === cell ? [] : cell.split(sep);
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(`sharedRoutes(${row.name}) => "${row.expected}"`, () => {
+            const routes = list(row.routes, ';').map((route) => {
+                const [cmp, method, path, op] = route.split(' ');
+                return { cmp, method, path, op };
+            });
+            node_assert_1.default.deepStrictEqual((0, heuristic01_1.sharedRoutes)(routes, list(row.records, ',')), list(row.expected, ';'));
         });
     }
 });

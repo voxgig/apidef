@@ -109,6 +109,45 @@ some path in the spec. The guide
 reference states the rule, with its thresholds, under [Component reference
 counts](../reference/guide.md#component-reference-counts).
 
+A rate cannot tell a rare record from a rare shape that several resources
+happen to share. GitHub answers its secret and variable writes with one
+empty object, and two branch-protection settings with one flag schema.
+Each schema is rare, so each would name an entity, and five different
+writes would land in `empty_object`. The guide therefore also asks which
+resources answer with a rare schema, and when two or more do, each of their
+routes keeps the name its own path gives: `variable`, `enforce_admin`,
+`required_signature`.
+
+Counting resources by path name alone counts too many. A filtered read
+(`/gists/public`), a selector (`/builds/latest`), an action that returns its
+target (`.../reviews/{id}/dismissals`), a relation (`/users/{u}/subscriptions`)
+and an older spelling of a route (`/bank_accounts/{id}` beside
+`/external_accounts/{id}`) each give the records of one resource a second
+path name. Named after their paths, they split one resource into several
+entities, or put its records into an entity named for another. The schema
+carries the evidence that separates the two cases: a record declares an
+`id`, and a shape that several resources share declares none. A record is
+never shared, however many path names reach it, and its routes keep the
+schema's name as they would with no sharing rule. The envelope rule already
+reads the same evidence: an envelope declares no `id` either.
+
+A shape can still be reached through views and aliases, so neither counts.
+A route beneath a path that names another resource of the same schema is a
+view of that resource, and two item routes with the same parent and the
+same parameters are two spellings of one resource. A name is also withheld
+where taking it would merge two schemas, as when two manifest shapes are
+both reached through `.../digest`, or two routes an SDK could not tell
+apart, as with the two secret writes GitHub offers under one organisation,
+which take the same parameters.
+
+The cost is paid by records with qualified names. `minimal_repository` and
+`api_entities_project` keep them, where the paths' `repository` and
+`project` read better. That is a question about how a qualified schema name
+relates to a path, not about sharing, and the rule leaves it alone. The
+[Shared schemas](../reference/guide.md#shared-schemas) section of the guide
+reference states the rule, and the `shared-routes` rows of the shared
+fixtures pin each clause.
+
 A recursive schema would make its own count infinite, so the count follows
 each reference until it returns to a schema already being expanded, and
 stops there. Where a cycle could close at more than one reference, the

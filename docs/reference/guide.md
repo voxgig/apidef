@@ -86,8 +86,10 @@ rates twice:
   drops out unless a literal segment of the operation's own path names it.
 - When the schema chosen for an operation has a name that differs from the
   entity name the path gives, and does not begin with it, the schema names
-  the entity if it is infrequent, or if its name is a literal segment of
-  some path in the spec. Otherwise the path's name wins.
+  the entity if it is infrequent and the operation's route does not take
+  its own name from it (see [Shared schemas](#shared-schemas)), or if its
+  name is a literal segment of some path in the spec. Otherwise the path's
+  name wins.
 
 Neither reading reaches a parameter rename. The trailing parameter of an
 item path is renamed to `id` from the path alone, whatever schema the
@@ -134,6 +136,48 @@ The rows of
 [`ts/test/apidef.test.ts`](../../ts/test/apidef.test.ts) and
 [`go/apidef_test.go`](../../go/apidef_test.go) pin the decision for the
 whole spec on [`ts/test/def/envelope-def.json`](../../ts/test/def/envelope-def.json).
+
+### Shared schemas
+
+A route is one path and one method. Its resource is the name the path's
+shape gives it, the name the guide would give the entity with no schema at
+all, except that a write whose path ends in a singular literal is a verb
+and names no resource. `pathResource` in
+[`ts/src/guide/heuristic01.ts`](../../ts/src/guide/heuristic01.ts) returns
+it, and the rows of
+[`ts/test/path-resource.tsv`](../../ts/test/path-resource.tsv) pin it in both
+builds.
+
+Before any entity is named, the guide collects, for each response schema,
+the routes whose `200` or `201` response is that schema, or an array of it,
+or an envelope that carries it (see [Response envelopes](#response-envelopes)).
+`sharedRoutes` then decides which of those routes take their own path's
+name:
+
+- A schema that declares an `id` property, directly or through `allOf`, is a
+  record, and no route takes its own name from it.
+- A route is a view, and does not count, when a shorter path made of its
+  leading segments names another resource that answers with the same
+  schema: `/pages/builds/latest` beneath `/pages/builds`.
+- Two routes whose paths end in a parameter are aliases when their paths
+  agree up to the resource's segment, with every parameter compared as the
+  same, and have the same parameter names. Their resources count as one
+  resource, and neither takes its own name.
+- The schema is shared when two or more resources remain. Each remaining
+  route of a shared schema takes its own name, except where two of those
+  routes would take one name for two different schemas, or for one
+  operation through two paths with the same parameter names. No route
+  takes that name.
+
+The literal-segment rule still comes first: when the schema's name is a
+literal segment of some path in the spec, the schema names the entity even
+for a route that would take its own name.
+
+The rows of [`ts/test/shared-routes.tsv`](../../ts/test/shared-routes.tsv)
+pin `sharedRoutes` in both builds, one row for each clause, and the
+`guide-sharing` tests in [`ts/test/apidef.test.ts`](../../ts/test/apidef.test.ts)
+and [`go/apidef_test.go`](../../go/apidef_test.go) pin the decision for the
+whole spec on [`ts/test/def/sharing-def.json`](../../ts/test/def/sharing-def.json).
 
 ## Example
 

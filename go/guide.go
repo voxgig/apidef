@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"unicode/utf16"
@@ -40,6 +41,13 @@ var METHOD_IDOP = map[string]string{
 
 // Tried in order: the first shape a path matches decides how its entity is named.
 var ENTITY_PATH_SHAPES = []string{"t/p/t/", "t/p/", "p/t/", "t/", "t/p/p"}
+
+// The matched part that gives each shape its name.
+var PATH_NAME_INDEX = map[string]int{
+	"t/p/t/": 2, "t/p/": 0, "p/t/": 1, "t/": 0, "t/p/p": 0,
+}
+
+var READ_METHODS = map[string]bool{"GET": true, "QUERY": true, "HEAD": true, "OPTIONS": true}
 
 var METHOD_CONSIDER_ORDER = map[string]int{
 	"GET":     100,
@@ -583,6 +591,10 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 			"pathmap":  map[string]any{},
 			"entmap":   map[string]any{},
 			"envelope": map[string]string{},
+			"sharing": &sharingWork{
+				records: map[string]bool{},
+				yields:  map[string]bool{},
+			},
 			"entity": map[string]any{
 				"count": map[string]any{
 					"seen":       0,
@@ -685,6 +697,11 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 	measureEnvelopeItems(data)
 
 	for _, mdesc := range allMethods {
+		measureSharing(data, mdesc)
+	}
+	measureShared(data)
+
+	for _, mdesc := range allMethods {
 		resolveEntityComponent(data, mdesc)
 		resolveEntityName(ctx, data, mdesc)
 		renameParams(ctx, data, mdesc)
@@ -700,6 +717,56 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 	}
 
 	return guide, nil
+}
+
+// measureSharing mirrors MeasureSharing in ts/src/guide/heuristic01.ts.
+func measureSharing(data map[string]any, mdesc map[string]any) {
+	work := data["work"].(map[string]any)
+	sharing := work["sharing"].(*sharingWork)
+	pathStr, _ := mdesc["path"].(string)
+	methodName, _ := mdesc["method"].(string)
+	op := methodOpname(mdesc, matchEntityPath(pathParts(data, pathStr)), &[]string{})
+
+	envelope := work["envelope"].(map[string]string)
+	responses, _ := mdesc["responses"].(map[string]any)
+	def, _ := data["def"].(map[string]any)
+	for _, xref := range findPotentialSchemaRefs(pathStr, methodName, responses, envelope, &[]string{}) {
+		m := xrefRE.FindStringSubmatch(xref)
+		if m == nil {
+			continue
+		}
+		cmp := CanonizeCmpName(m[2])
+		sharing.routes = append(sharing.routes, SharingRoute{Cmp: cmp, Method: methodName, Path: pathStr, Op: op})
+		sharing.records[cmp] = sharing.records[cmp] || declaresID(refSchema(def, xref))
+	}
+}
+
+// measureShared mirrors MeasureShared in ts/src/guide/heuristic01.ts.
+func measureShared(data map[string]any) {
+	sharing := data["work"].(map[string]any)["sharing"].(*sharingWork)
+	records := []string{}
+	for _, cmp := range sortedKeysBool(sharing.records) {
+		if sharing.records[cmp] {
+			records = append(records, cmp)
+		}
+	}
+	for _, key := range sharedRoutes(sharing.routes, records) {
+		sharing.yields[key] = true
+	}
+}
+
+type sharingWork struct {
+	routes  []SharingRoute
+	records map[string]bool
+	yields  map[string]bool
+}
+
+func pathParts(data map[string]any, pathStr string) []string {
+	work, _ := data["work"].(map[string]any)
+	pathmap, _ := work["pathmap"].(map[string]any)
+	entry, _ := pathmap[pathStr].(map[string]any)
+	parts, _ := entry["parts"].([]string)
+	return parts
 }
 
 // selectAllMethods collects all path+method combinations, sorted by path then method order.
@@ -1667,7 +1734,7 @@ func entityPathMatch_tpte(data map[string]any, pm *PathMatchResult, mdesc map[st
 		ment = makeMethodEntityDesc(map[string]any{})
 	}
 
-	pathNameIndex := 2
+	pathNameIndex := PATH_NAME_INDEX["t/p/t/"]
 
 	*why = append(*why, "path=t/p/t/")
 	origPathName := ""
@@ -1712,7 +1779,7 @@ func entityPathMatch_tpte(data map[string]any, pm *PathMatchResult, mdesc map[st
 
 func verbOnParent(data map[string]any, pm *PathMatchResult, mdesc map[string]any) string {
 	method := safeStr(mdesc["method"])
-	if method == "GET" || method == "QUERY" || method == "HEAD" || method == "OPTIONS" {
+	if READ_METHODS[method] {
 		return ""
 	}
 
@@ -1806,7 +1873,7 @@ func entityPathMatch_tpe(data map[string]any, pm *PathMatchResult, mdesc map[str
 		ment = makeMethodEntityDesc(map[string]any{})
 	}
 
-	pathNameIndex := 0
+	pathNameIndex := PATH_NAME_INDEX["t/p/"]
 
 	*why = append(*why, "path=t/p/")
 	origPathName := ""
@@ -1832,7 +1899,7 @@ func entityPathMatch_pte(data map[string]any, pm *PathMatchResult, mdesc map[str
 		ment = makeMethodEntityDesc(map[string]any{})
 	}
 
-	pathNameIndex := 1
+	pathNameIndex := PATH_NAME_INDEX["p/t/"]
 
 	*why = append(*why, "path=p/t/")
 	origPathName := ""
@@ -1858,7 +1925,7 @@ func entityPathMatch_te(data map[string]any, pm *PathMatchResult, mdesc map[stri
 		ment = makeMethodEntityDesc(map[string]any{})
 	}
 
-	pathNameIndex := 0
+	pathNameIndex := PATH_NAME_INDEX["t/"]
 
 	*why = append(*why, "path=t/")
 	origPathName := ""
@@ -1884,7 +1951,7 @@ func entityPathMatch_tpp(data map[string]any, pm *PathMatchResult, mdesc map[str
 		ment = makeMethodEntityDesc(map[string]any{})
 	}
 
-	pathNameIndex := 0
+	pathNameIndex := PATH_NAME_INDEX["t/p/p"]
 
 	*why = append(*why, "path=t/p/p")
 	origPathName := ""
@@ -1939,11 +2006,20 @@ func entityCmpMatch(data map[string]any, entname string, mdesc map[string]any, w
 	mentCmp := safeStr(ment["cmp"])
 	mentOrigCmp := safeStr(ment["origcmp"])
 
+	pathStr, _ := mdesc["path"].(string)
+	methodName, _ := mdesc["method"].(string)
+	sharing := data["work"].(map[string]any)["sharing"].(*sharingWork)
+	cmpShared := sharing.yields[safeStr(ment["origcmpref"])+" "+methodName+" "+pathStr]
+
 	if mentCmp != "" &&
 		entname != mentCmp &&
 		!strings.HasPrefix(mentCmp, entname) {
 
-		if cmpInfrequent {
+		if cmpInfrequent && cmpShared {
+			*why = append(*why, "cmp-shared")
+		}
+
+		if cmpInfrequent && !cmpShared {
 			*why = append(*why, "cmp-primary")
 			out["name"] = mentCmp
 			out["orig"] = mentOrigCmp
@@ -1961,7 +2037,6 @@ func entityCmpMatch(data map[string]any, entname string, mdesc map[string]any, w
 			*why = append(*why, "path-over-cmp")
 		}
 	} else if mdesc["method"] == "DELETE" && mentCmp == "" {
-		pathStr, _ := mdesc["path"].(string)
 		cmps := findcmps(data, pathStr, []string{"responses"}, true)
 
 		if len(cmps) == 1 {
@@ -1977,8 +2052,6 @@ func entityCmpMatch(data map[string]any, entname string, mdesc map[string]any, w
 		*why = append(*why, "path-primary")
 	}
 
-	pathStr, _ := mdesc["path"].(string)
-	methodName, _ := mdesc["method"].(string)
 	DebugPath(pathStr, methodName, "ENTITY-CMP-NAME",
 		pathStr, methodName, entname+"->", out, *why, ment)
 
@@ -2145,6 +2218,216 @@ func matchEntityPath(parts []string) *PathMatchResult {
 		}
 	}
 	return nil
+}
+
+// pathResource mirrors ts/src/guide/heuristic01.ts: "" when the path names no
+// resource, as for a verb.
+func pathResource(parts []string, method string) string {
+	pm := matchEntityPath(parts)
+	if pm == nil {
+		return ""
+	}
+
+	last := parts[len(parts)-1]
+	if !READ_METHODS[method] && !isParam(last) {
+		lit := Snakify(last)
+		if lit != "" && Depluralize(lit) == lit {
+			return ""
+		}
+	}
+
+	return Canonize(getMatchElem(pm, PATH_NAME_INDEX[pm.Expr]))
+}
+
+// SharingRoute is one route whose operation answers with a response component.
+type SharingRoute struct {
+	Cmp    string
+	Method string
+	Path   string
+	Op     string
+}
+
+type sharingEntry struct {
+	SharingRoute
+	parts    []string
+	resource string
+}
+
+// sharedRoutes mirrors ts/src/guide/heuristic01.ts.
+func sharedRoutes(routes []SharingRoute, records []string) []string {
+	bycmp := map[string][]sharingEntry{}
+	for _, route := range routes {
+		parts := splitAndFilter(route.Path, "/")
+		resource := pathResource(parts, route.Method)
+		if resource != "" && !slices.Contains(records, route.Cmp) {
+			bycmp[route.Cmp] = append(bycmp[route.Cmp], sharingEntry{route, parts, resource})
+		}
+	}
+
+	cmpKeys := make([]string, 0, len(bycmp))
+	for cmp := range bycmp {
+		cmpKeys = append(cmpKeys, cmp)
+	}
+	sort.Strings(cmpKeys)
+
+	taking := []sharingEntry{}
+	for _, cmp := range cmpKeys {
+		names := map[string]bool{}
+		for _, entry := range bycmp[cmp] {
+			names[entry.resource] = true
+		}
+		counted := []sharingEntry{}
+		for _, entry := range bycmp[cmp] {
+			if !isSharingView(entry, names) {
+				counted = append(counted, entry)
+			}
+		}
+		group := aliasGroups(counted)
+		groups := map[string]bool{}
+		for _, entry := range counted {
+			groups[group[entry.resource]] = true
+		}
+		if len(groups) < 2 {
+			continue
+		}
+		members := map[string]int{}
+		seen := map[string]bool{}
+		for _, entry := range counted {
+			if !seen[entry.resource] {
+				seen[entry.resource] = true
+				members[group[entry.resource]]++
+			}
+		}
+		for _, entry := range counted {
+			if members[group[entry.resource]] == 1 {
+				taking = append(taking, entry)
+			}
+		}
+	}
+
+	cmps := map[string]map[string]bool{}
+	routesOf := map[string]map[string]bool{}
+	for _, entry := range taking {
+		if cmps[entry.resource] == nil {
+			cmps[entry.resource] = map[string]bool{}
+		}
+		cmps[entry.resource][entry.Cmp] = true
+		key := entry.resource + " " + entry.Op + " " + paramNames(entry.parts)
+		if routesOf[key] == nil {
+			routesOf[key] = map[string]bool{}
+		}
+		routesOf[key][entry.Path] = true
+	}
+	blocked := map[string]bool{}
+	for name, cs := range cmps {
+		if len(cs) > 1 {
+			blocked[name] = true
+		}
+	}
+	for key, paths := range routesOf {
+		if len(paths) > 1 {
+			blocked[strings.SplitN(key, " ", 2)[0]] = true
+		}
+	}
+
+	out := []string{}
+	for _, entry := range taking {
+		if !blocked[entry.resource] {
+			out = append(out, entry.Cmp+" "+entry.Method+" "+entry.Path)
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
+// isSharingView mirrors ts/src/guide/heuristic01.ts.
+func isSharingView(entry sharingEntry, names map[string]bool) bool {
+	for i := 1; i < len(entry.parts); i++ {
+		name := pathResource(entry.parts[:i], "GET")
+		if name != "" && name != entry.resource && names[name] {
+			return true
+		}
+	}
+	return false
+}
+
+// aliasGroups mirrors ts/src/guide/heuristic01.ts.
+func aliasGroups(entries []sharingEntry) map[string]string {
+	group := map[string]string{}
+	var find func(name string) string
+	find = func(name string) string {
+		if group[name] == name {
+			return name
+		}
+		return find(group[name])
+	}
+	for _, entry := range entries {
+		group[entry.resource] = entry.resource
+	}
+
+	first := map[string]string{}
+	for _, entry := range entries {
+		if !isParam(entry.parts[len(entry.parts)-1]) {
+			continue
+		}
+		pm := matchEntityPath(entry.parts)
+		parent := []string{}
+		for _, p := range entry.parts[:pm.Index+PATH_NAME_INDEX[pm.Expr]] {
+			if isParam(p) {
+				p = "{}"
+			}
+			parent = append(parent, p)
+		}
+		key := strings.Join(parent, "/") + " " + paramNames(entry.parts)
+		other, ok := first[key]
+		if !ok {
+			other = entry.resource
+			first[key] = other
+		}
+		a, b := find(other), find(entry.resource)
+		if b < a {
+			a, b = b, a
+		}
+		group[b] = a
+	}
+
+	for name := range group {
+		group[name] = find(name)
+	}
+	return group
+}
+
+func paramNames(parts []string) string {
+	params := []string{}
+	for _, p := range parts {
+		if isParam(p) {
+			params = append(params, p)
+		}
+	}
+	sort.Strings(params)
+	return strings.Join(params, ",")
+}
+
+// refSchema mirrors ts/src/guide/heuristic01.ts.
+func refSchema(def map[string]any, xref string) map[string]any {
+	if !strings.HasPrefix(xref, "#/") {
+		return nil
+	}
+	var node any = def
+	for _, seg := range strings.Split(xref[2:], "/") {
+		key := strings.ReplaceAll(strings.ReplaceAll(seg, "~1", "/"), "~0", "~")
+		m, ok := node.(map[string]any)
+		if !ok {
+			return nil
+		}
+		node = m[key]
+	}
+	schema, _ := node.(map[string]any)
+	return schema
+}
+
+func declaresID(schema map[string]any) bool {
+	return schema != nil && resolveSchemaProperties(schema)["id"] != nil
 }
 
 // methodOpname is the operation resolveOperation will assign, needed before

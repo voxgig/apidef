@@ -654,6 +654,69 @@ func TestGuideAuthExchange(t *testing.T) {
 	}
 }
 
+// Mirrors the TS `guide-sharing` case.
+func TestGuideSharing(t *testing.T) {
+	src, err := os.ReadFile("../ts/test/def/sharing-def.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := Parse("OpenAPI", string(src), map[string]string{"file": "sharing-def.json"})
+	if err != nil {
+		t.Fatalf("parse failed: %v", err)
+	}
+	ctx := &ApiDefContext{
+		Opts: ApiDefOptions{Folder: stageGuideEntry(t, t.TempDir(), "sharing-"), OutPrefix: "sharing-", Strategy: "heuristic01"},
+		Def:  parsed, Note: map[string]any{}, Warn: MakeWarner("test", nil), Work: map[string]any{},
+	}
+	guideResult, err := BuildGuide(ctx)
+	if err != nil {
+		t.Fatalf("guide build failed: %v", err)
+	}
+	guide, _ := guideResult["guide"].(map[string]any)
+	entities, _ := guide["entity"].(map[string]any)
+
+	got := map[string]string{}
+	for _, name := range sortedKeys(entities) {
+		routes := []string{}
+		ent, _ := entities[name].(map[string]any)
+		paths, _ := ent["path"].(map[string]any)
+		for path, pd := range paths {
+			pm, _ := pd.(map[string]any)
+			ops, _ := pm["op"].(map[string]any)
+			for _, op := range ops {
+				om, _ := op.(map[string]any)
+				routes = append(routes, safeStr(om["method"])+" "+path)
+			}
+		}
+		sort.Strings(routes)
+		got[name] = strings.Join(routes, ", ")
+	}
+	want := map[string]string{
+		"ack":                "PUT /orgs/{org}/actions/secrets/{name}, PUT /orgs/{org}/dependabot/secrets/{name}",
+		"counter":            "GET /stats/daily",
+		"enforce_admin":      "GET /settings/enforce_admins",
+		"job":                "GET /jobs, GET /jobs/{id}, POST /jobs/{id}/rerun",
+		"metric":             "GET /metrics",
+		"memo":               "GET /notes, GET /notes/{id}, GET /users/{uid}/starred_notes",
+		"package_manifest":   "GET /packages/{pid}/digest, GET /packages/{pid}/download_urls",
+		"recipe_manifest":    "GET /recipes/{rid}/digest, GET /recipes/{rid}/download_urls",
+		"removal":            "DELETE /accounts/{aid}/bank_accounts/{id}, DELETE /accounts/{aid}/external_accounts/{id}",
+		"required_signature": "GET /settings/required_signatures",
+		"stat":               "GET /stats",
+		"variable":           "POST /orgs/{org}/actions/variables",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("entity routes = %v, want %v", got, want)
+	}
+
+	job, _ := entities["job"].(map[string]any)
+	jobPaths, _ := job["path"].(map[string]any)
+	rerun, _ := jobPaths["/jobs/{id}/rerun"].(map[string]any)
+	if actions, _ := rerun["action"].(map[string]any); actions["rerun"] == nil {
+		t.Errorf("rerun is not an action on job: %v", rerun)
+	}
+}
+
 // RFC 10008 QUERY verb: a safe, idempotent read carrying its filter in the
 // request body. Mirrors the TS `query-verb-book` case in ts/test/apidef.test.ts.
 // QUERY maps onto load/list; its collection response supplies the entity

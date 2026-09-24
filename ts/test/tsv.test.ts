@@ -45,6 +45,8 @@ import { snakify, camelify, kebabify } from 'jostraca'
 
 import { classifyGraphQLField } from '../dist/guide/graphql01'
 
+import { pathResource, sharedRoutes } from '../dist/guide/heuristic01'
+
 import {
   migrateGuideIncludes,
   prefixGuideInclude,
@@ -577,6 +579,35 @@ describe('tsv-envelope-item-ref', () => {
     test(`envelopeItemRef(${row.schema}, "${row.opname}") => "${row.expected}"`, () => {
       const expected = '' === row.expected ? null : row.expected
       assert.strictEqual(envelopeItemRef(JSON.parse(row.schema), row.opname), expected)
+    })
+  }
+})
+
+
+describe('tsv-path-resource', () => {
+  const rows = loadTsv('path-resource')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(`pathResource("${row.path}", "${row.method}") => "${row.expected}"`, () => {
+      const parts = row.path.split('/').filter((p) => '' !== p)
+      const expected = '' === row.expected ? null : row.expected
+      assert.strictEqual(pathResource(parts, row.method), expected)
+    })
+  }
+})
+
+
+describe('tsv-shared-routes', () => {
+  const rows = loadTsv('shared-routes')
+  const list = (cell: string, sep: string) => '' === cell ? [] : cell.split(sep)
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(`sharedRoutes(${row.name}) => "${row.expected}"`, () => {
+      const routes = list(row.routes, ';').map((route) => {
+        const [cmp, method, path, op] = route.split(' ')
+        return { cmp, method, path, op }
+      })
+      assert.deepStrictEqual(sharedRoutes(routes, list(row.records, ',')), list(row.expected, ';'))
     })
   }
 })
