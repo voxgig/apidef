@@ -91,10 +91,14 @@ type rootOwner struct {
 	depth int
 }
 
-func mergeCollectionPaths(guide map[string]any) {
+// mergeCollectionPaths moves "/X" paths onto the entity that owns "/X/{id}"
+// and removes the entities the moves emptied, returning their names. Mirrors
+// mergeCollectionPaths in ts/src/transform/entity.ts.
+func mergeCollectionPaths(guide map[string]any) []string {
+	emptied := []string{}
 	entities, _ := guide["entity"].(map[string]any)
 	if entities == nil {
-		return
+		return emptied
 	}
 
 	// First pass: collectionRoot -> owning entity. Prefer the owner whose
@@ -190,7 +194,18 @@ func mergeCollectionPaths(guide map[string]any) {
 			}
 			delete(paths, pathStr)
 		}
+
+		if 0 < len(toMove) && 0 == len(paths) {
+			emptied = append(emptied, ename)
+		}
 	}
+
+	// With no path left it names nothing guide.aontu could switch back on.
+	for _, ename := range emptied {
+		delete(entities, ename)
+	}
+
+	return emptied
 }
 
 // mergeSubMap copies missing keys of src[key] into tgt[key], creating the

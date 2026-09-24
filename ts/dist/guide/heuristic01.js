@@ -81,7 +81,7 @@ async function heuristic01(ctx) {
         throw result.err;
     }
     const guide = result.data.guide;
-    (0, entity_1.mergeCollectionPaths)(guide, ctx.log);
+    guide.metrics.count.entity -= (0, entity_1.mergeCollectionPaths)(guide, ctx.log).length;
     const metrics = guide.metrics;
     const entities = Object.values(guide.entity);
     const entityCount = entities.length;

@@ -726,7 +726,8 @@ describe('apidef', () => {
 
   // The base guide already carries a collection path on the entity that owns
   // its items: /keys is named for its component, /keys/{key_id} for its tag.
-  // go/apidef_test.go reads the base guide this writes.
+  // The component's entity, left with no path, is dropped from the guide and
+  // the model. go/apidef_test.go reads the base guide this writes.
   test('guide-collection-merge', async () => {
     const folder = __dirname + '/../test/collection-merge'
 
@@ -740,7 +741,7 @@ describe('apidef', () => {
           buildargs: {
             apidef: {
               ctrl: { step: {
-                parse: true, guide: true, transformers: false,
+                parse: true, guide: true, transformers: true,
                 builders: false, generate: false,
               } }
             }
@@ -758,9 +759,9 @@ describe('apidef', () => {
           Object.values(pd.op).map((op: any) => op.method + ' ' + path))
         .sort()]))
     assert.deepStrictEqual(routes, {
-      key: [],
       setting: ['DELETE /keys/{key_id}', 'GET /keys', 'POST /keys'],
     })
+    assert.deepStrictEqual(Object.keys(bres.apimodel.main.kit.entity), ['setting'])
   })
 
 

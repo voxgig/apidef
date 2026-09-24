@@ -86,8 +86,10 @@ function filterEntityAncestors(entities: Record<string, any>) {
 // Move "/X" paths onto the entity that owns "/X/{id}" or "/X/{id}/sub".
 // Only acts when the path "/X" sits on a different entity than the
 // per-instance paths — leaves correctly-classified APIs alone.
-function mergeCollectionPaths(guide: any, log?: any) {
+// Returns the entities the moves emptied, which are removed.
+function mergeCollectionPaths(guide: any, log?: any): string[] {
   const entities = guide.entity as Record<string, any>
+  const emptied: string[] = []
 
   const rootOwners: Record<string, { ename: string, depth: number }> = {}
 
@@ -169,7 +171,19 @@ function mergeCollectionPaths(guide: any, log?: any) {
         to: owner.ename,
       })
     }
+
+    if (0 < pathsToMove.length && 0 === Object.keys(entity.path).length) {
+      emptied.push(ename)
+    }
   }
+
+  // With no path left it names nothing guide.aontu could switch back on.
+  for (const ename of emptied) {
+    delete entities[ename]
+    log?.debug?.({ point: 'merge-collection-drop', entity: ename })
+  }
+
+  return emptied
 }
 
 

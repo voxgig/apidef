@@ -179,6 +179,20 @@ pin `sharedRoutes` in both builds, one row for each clause, and the
 and [`go/apidef_test.go`](../../go/apidef_test.go) pin the decision for the
 whole spec on [`ts/test/def/sharing-def.json`](../../ts/test/def/sharing-def.json).
 
+### Collection paths
+
+Once every method is classified, a collection path `/X` that sits on one
+entity moves to the entity holding the shallowest item path `/X/{id}`, so
+the list and create operations join the entity that loads the record. The
+move is made before the base guide is written, and again on the unified
+guide for paths that `guide.aontu` adds. An entity the move leaves with no
+path is removed from the guide and the model, and the entity count drops
+with it: it names nothing `guide.aontu` could switch back on, so there is no
+classification to emit with `active: false`. The `guide-collection-merge`
+tests in [`ts/test/apidef.test.ts`](../../ts/test/apidef.test.ts) and
+[`go/apidef_test.go`](../../go/apidef_test.go) pin both steps on
+[`ts/test/def/collection-merge-def.json`](../../ts/test/def/collection-merge-def.json).
+
 ## Example
 
 For the solar example, the `moon` entity classifies like this (abridged):

@@ -4,12 +4,9 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 2
+  metrics: count: entity: 1
   metrics: count: path: 2
   metrics: count: method: 3
-
-  entity: key: {
-  }
 
   entity: setting: {
     path: "/keys": {

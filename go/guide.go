@@ -717,7 +717,7 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 		buildEntity(data, entmap[k])
 	}
 
-	mergeCollectionPaths(guide)
+	countMap["entity"] = toInt(countMap["entity"]) - len(mergeCollectionPaths(guide))
 
 	return guide, nil
 }

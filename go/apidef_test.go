@@ -773,7 +773,7 @@ func TestGuideCollectionMerge(t *testing.T) {
 		"model": map[string]any{"name": "collection-merge", "def": "collection-merge-def.json"},
 		"build": map[string]any{"spec": map[string]any{"base": "../ts/test/collection-merge"}},
 		"ctrl": map[string]any{"step": map[string]any{
-			"parse": true, "guide": true, "transformers": false,
+			"parse": true, "guide": true, "transformers": true,
 			"builders": false, "generate": false,
 		}},
 	})
@@ -782,9 +782,14 @@ func TestGuideCollectionMerge(t *testing.T) {
 	}
 
 	gents, _ := res.Guide["entity"].(map[string]any)
-	key, _ := gents["key"].(map[string]any)
-	if paths, _ := key["path"].(map[string]any); len(paths) != 0 {
-		t.Errorf("key paths = %v, want none", sortedKeys(paths))
+	if got := strings.Join(sortedKeys(gents), ","); got != "setting" {
+		t.Errorf("guide entities = %s, want setting", got)
+	}
+	main, _ := res.ApiModel["main"].(map[string]any)
+	kit, _ := main[KIT].(map[string]any)
+	entities, _ := kit["entity"].(map[string]any)
+	if got := strings.Join(sortedKeys(entities), ","); got != "setting" {
+		t.Errorf("model entities = %s, want setting", got)
 	}
 
 	want, err := os.ReadFile("../ts/test/collection-merge/guide/base-guide.aontu")

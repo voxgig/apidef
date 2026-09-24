@@ -192,6 +192,17 @@ A single operation can have **several points** — one per path/method that
 produces it — which is why the model keeps `op.<name>.points[]` rather than a
 single path (see [the internal model](./the-internal-model.md)).
 
+## A collection joins its items
+
+The collection and its items can be named apart. An `/apiKeys` path that
+answers with its own `ApiKeys` schema names `api_key`, while
+`/apiKeys/{apiKeyId}` answers with no schema and takes `setting` from its
+tag. Once every method is classified, the collection path moves to the
+entity that holds the item path, so `setting` lists, creates, and removes
+its keys. `api_key` is left with no path, and is removed rather than emitted
+inactive: an entity with no path is not a classification `guide.aontu`
+could switch back on.
+
 ## Actions: the non-CRUD leftovers
 
 A trailing literal after an item selector is not another entity — it is an

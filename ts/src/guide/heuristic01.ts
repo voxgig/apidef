@@ -161,7 +161,7 @@ async function heuristic01(ctx: ApiDefContext): Promise<Guide> {
 
   const guide = result.data.guide
 
-  mergeCollectionPaths(guide, ctx.log)
+  guide.metrics.count.entity -= mergeCollectionPaths(guide, ctx.log).length
 
   const metrics = guide.metrics
 

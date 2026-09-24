@@ -565,7 +565,8 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
     });
     // The base guide already carries a collection path on the entity that owns
     // its items: /keys is named for its component, /keys/{key_id} for its tag.
-    // go/apidef_test.go reads the base guide this writes.
+    // The component's entity, left with no path, is dropped from the guide and
+    // the model. go/apidef_test.go reads the base guide this writes.
     (0, node_test_1.test)('guide-collection-merge', async () => {
         const folder = __dirname + '/../test/collection-merge';
         const build = await apidef_1.ApiDef.makeBuild({ folder });
@@ -575,7 +576,7 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
                 buildargs: {
                     apidef: {
                         ctrl: { step: {
-                                parse: true, guide: true, transformers: false,
+                                parse: true, guide: true, transformers: true,
                                 builders: false, generate: false,
                             } }
                     }
@@ -588,9 +589,9 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
                 .flatMap(([path, pd]) => Object.values(pd.op).map((op) => op.method + ' ' + path))
                 .sort()]));
         node_assert_1.default.deepStrictEqual(routes, {
-            key: [],
             setting: ['DELETE /keys/{key_id}', 'GET /keys', 'POST /keys'],
         });
+        node_assert_1.default.deepStrictEqual(Object.keys(bres.apimodel.main.kit.entity), ['setting']);
     });
     (0, node_test_1.test)('field-required-solar', async () => {
         const outprefix = 'solar-1.0.0-openapi-3.0.0-';
