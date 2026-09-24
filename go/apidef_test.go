@@ -388,12 +388,16 @@ func TestGuideEnvelope(t *testing.T) {
 	want := map[string]string{
 		"census":      "list",
 		"crew_member": "create/list",
+		"deposit":     "create",
 		"domain":      "list/load/patch",
 		"fossil":      "load",
 		"kingdom":     "create/list/load",
+		"ledger":      "load",
 		"observation": "list",
+		"package":     "load",
 		"sample":      "load",
 		"site":        "load",
+		"token":       "load",
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("entity ops = %v, want %v", got, want)

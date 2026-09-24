@@ -4,9 +4,9 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 8
-  metrics: count: path: 10
-  metrics: count: method: 13
+  metrics: count: entity: 12
+  metrics: count: path: 14
+  metrics: count: method: 17
 
   entity: census: {
     path: "/{year}/census": {
@@ -20,6 +20,12 @@ guide: {
       op: create: method: *POST
       op: list: method: *GET
       op: list: transform: res: *("`body.members`")|top
+    }
+  }
+
+  entity: deposit: {
+    path: "/{year}/vault": {
+      op: create: method: *POST
     }
   }
 
@@ -54,10 +60,24 @@ guide: {
     }
   }
 
+  entity: ledger: {
+    path: "/{year}/ledger": {
+      op: load: method: *GET
+    }
+  }
+
   entity: observation: {
     path: "/{year}/observation": {
       op: list: method: *GET
       op: list: transform: res: *("`body.items`")|top
+    }
+  }
+
+  entity: package: {
+    path: "/{year}/metrics/package/{owner}": {
+      rename: param: "owner": *"id"
+      op: load: method: *GET
+      op: load: transform: res: *("`body.packages`")|top
     }
   }
 
@@ -71,6 +91,14 @@ guide: {
   entity: site: {
     path: "/{year}/site/{id}": {
       op: load: method: *GET
+    }
+  }
+
+  entity: token: {
+    path: "/{year}/metrics/token/{owner}": {
+      rename: param: "owner": *"id"
+      op: load: method: *GET
+      op: load: transform: res: *("`body.tokens`")|top
     }
   }
 

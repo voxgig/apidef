@@ -15,7 +15,11 @@
  "/{year}/crew/{id}/member":{
   "get":{"operationId":"listCrewMembers","parameters":[{"$ref":"#/components/parameters/Year"},{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"page","content":{"application/json":{"schema":{"$ref":"#/components/schemas/CrewMembers"}}}}}},
   "post":{"operationId":"addCrewMembers","parameters":[{"$ref":"#/components/parameters/Year"},{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],"requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/CrewMembers"}}}},"responses":{"201":{"description":"added","content":{"application/json":{"schema":{"$ref":"#/components/schemas/CrewMembers"}}}}}}},
- "/{year}/fossil/{id}":{"get":{"operationId":"getFossil","parameters":[{"$ref":"#/components/parameters/Year"},{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"one","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Fossil"}}}}}}}},
+ "/{year}/fossil/{id}":{"get":{"operationId":"getFossil","parameters":[{"$ref":"#/components/parameters/Year"},{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"one","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Fossil"}}}}}}},
+ "/{year}/metrics/token/{owner}":{"get":{"operationId":"getTokenMetrics","parameters":[{"$ref":"#/components/parameters/Year"},{"name":"owner","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"one","content":{"application/json":{"schema":{"$ref":"#/components/schemas/TokenMetrics"}}}}}}},
+ "/{year}/metrics/package/{owner}":{"get":{"operationId":"getPackageMetrics","parameters":[{"$ref":"#/components/parameters/Year"},{"name":"owner","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"one","content":{"application/json":{"schema":{"$ref":"#/components/schemas/PackageMetrics"}}}}}}},
+ "/{year}/vault":{"post":{"operationId":"depositRelic","parameters":[{"$ref":"#/components/parameters/Year"}],"responses":{"200":{"description":"queued","content":{"application/json":{"schema":{"type":"object","properties":{"queued":{"type":"boolean"}}}}}},"201":{"description":"deposited","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Deposit"}}}}}}},
+ "/{year}/ledger":{"get":{"operationId":"getLedger","parameters":[{"$ref":"#/components/parameters/Year"}],"responses":{"200":{"description":"export","content":{"text/csv":{"schema":{"type":"string"}}}},"201":{"description":"lines","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/LedgerLine"}}}}}}}}},
 "components":{
  "parameters":{
   "Year":{"name":"year","in":"path","required":true,"schema":{"type":"integer"}}},
@@ -36,4 +40,10 @@
   "CrewMembership":{"type":"object","properties":{"role":{"type":"string"},"user":{"type":"string"}}},
   "CrewMembers":{"type":"object","properties":{"members":{"type":"array","items":{"$ref":"#/components/schemas/CrewMembership"}}}},
   "Collector":{"type":"object","properties":{"name":{"type":"string"}}},
-  "Fossil":{"type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"},"collector":{"$ref":"#/components/schemas/Collector"}}}}}}
+  "Fossil":{"type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"},"collector":{"$ref":"#/components/schemas/Collector"}}},
+  "Metric":{"type":"object","properties":{"downloads":{"type":"integer"},"bandwidth":{"type":"integer"}}},
+  "TokenMetrics":{"type":"object","properties":{"tokens":{"$ref":"#/components/schemas/Metric"}}},
+  "PackageMetrics":{"type":"object","properties":{"packages":{"$ref":"#/components/schemas/Metric"}}},
+  "Relic":{"type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"}}},
+  "Deposit":{"type":"object","properties":{"item":{"$ref":"#/components/schemas/Relic"}}},
+  "LedgerLine":{"type":"object","properties":{"amount":{"type":"number"},"memo":{"type":"string"}}}}}}

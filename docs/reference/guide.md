@@ -80,9 +80,10 @@ infrequent when its method rate is below 0.21 or its path rate is below
 rates twice:
 
 - An operation's candidate schemas come from its `200` and `201`
-  responses, each either the response schema or its array items. When
-  there are two, a frequent one drops out unless a literal segment of the
-  operation's own path names it.
+  responses, each either the response schema or its array items, or for
+  an envelope the record it carries (see [Response
+  envelopes](#response-envelopes)). When there are two, a frequent one
+  drops out unless a literal segment of the operation's own path names it.
 - When the schema chosen for an operation has a name that differs from the
   entity name the path gives, and does not begin with it, the schema names
   the entity if it is infrequent, or if its name is a literal segment of
@@ -93,6 +94,41 @@ counts in both builds. In the `alias-chain` row, the paths `/a`, `/b`, and
 `/c` answer with `A`, `B`, and `C`, where `A` is a `$ref` to `B` and `B` a
 `$ref` to `C`. The counts are 1, 2, and 2; replacing each link in turn with
 the schema it names would give 1, 3, and 5.
+
+### Response envelopes
+
+An envelope is a component schema that wraps one record. When a `200` or
+`201` response schema is an envelope, the component of the record it
+carries is the operation's candidate schema in its place. For one
+operation, `envelopeItemRef` in [`ts/src/utility.ts`](../../ts/src/utility.ts)
+returns that component when all of these hold:
+
+- The schema has exactly one structured property: an array of records when
+  the operation is `list`, and a single record for any other operation.
+- The schema declares no `id`.
+- Beside a single record the schema holds nothing else. Beside an array it
+  holds only paging properties, the names in `ENVELOPE_PAGING_PROPS`
+  compared without case, `_`, or `-`.
+- The record is an object schema (it has `properties` or `allOf`, or its
+  type is `object`) with a component reference.
+
+Whether a component is an envelope is decided once for the whole spec,
+before any entity is named:
+
+- An operation reads its result from its `200` response, or from its `201`
+  when it has no `200`; `transform.res` unwraps that same response. It
+  unwraps a component only there.
+- A component is an envelope only when every operation that answers with it
+  in a `200` or `201` response unwraps it.
+- A component is not an envelope when another envelope carries the same
+  record.
+
+The rows of
+[`ts/test/envelope-item-ref.tsv`](../../ts/test/envelope-item-ref.tsv) pin
+`envelopeItemRef` in both builds, and the `guide-envelope` tests in
+[`ts/test/apidef.test.ts`](../../ts/test/apidef.test.ts) and
+[`go/apidef_test.go`](../../go/apidef_test.go) pin the decision for the
+whole spec on [`ts/test/def/envelope-def.json`](../../ts/test/def/envelope-def.json).
 
 ## Example
 

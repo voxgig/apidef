@@ -278,9 +278,9 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
     });
     // An envelope never names its entity; the item it carries is judged instead,
     // so each list of the rare shared page keeps its path's name. No envelope:
-    // a record with one nested object, a list beside data other than paging
-    // (census), a wrapper some operation answering with it does not unwrap
-    // (crew members, whose create returns the whole list).
+    // a record with one nested object, a list beside other data (census), a
+    // wrapper an operation does not unwrap (crew members, returned whole by a
+    // create; the vault's 201), an item another wrapper carries too (metrics).
     (0, node_test_1.test)('guide-envelope', async () => {
         const folder = __dirname + '/../test/envelope';
         const build = await apidef_1.ApiDef.makeBuild({ folder });
@@ -304,12 +304,17 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.deepStrictEqual(ops, {
             census: ['list'],
             crew_member: ['create', 'list'],
+            deposit: ['create'],
             domain: ['list', 'load', 'update'],
             fossil: ['load'],
             kingdom: ['create', 'list', 'load'],
+            // Its 200 has no JSON schema, and still decides over the 201 list.
+            ledger: ['load'],
             observation: ['list'],
+            package: ['load'],
             sample: ['load'],
             site: ['load'],
+            token: ['load'],
         });
         const listpt = entities.observation.op.list.points[0];
         node_assert_1.default.strictEqual(listpt.o, '/{year}/observation');

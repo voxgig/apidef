@@ -75,11 +75,23 @@ or previous link, a has-more flag, or the `object` and `url` of a list
 object. Any other property is data, such as the totals of a test report
 beside its suites or a balance beside a list of errors, and it makes the
 schema a record that keeps its own name. Being an envelope also belongs to
-the schema rather than to one operation. When any operation that answers
-with the schema would not unwrap it, such as a create that returns the
-whole list of members, no operation unwraps it for naming, so the
-operations on one resource stay under one name. A response that spells its
-envelope inline offers no component name, so the rule leaves it alone.
+the schema rather than to one operation. An operation unwraps only the
+response it reads its result from: its `200`, or its `201` when it has no
+`200`. When any operation that answers with the schema would not unwrap
+it, such as a create that returns the whole list of members, or an
+operation that answers with it only beside a `200` of another shape, no
+operation unwraps it for naming. The operations on one resource then stay
+under one name, and no entity is named after a record that its operations
+never unwrap. A response that spells its envelope inline offers no
+component name, so the rule leaves it alone.
+
+When more than one envelope carries the same record, none of them names
+through it. Two usage reports, one wrapping a metrics record as `tokens`
+and the other as `packages`, are two resources, and their own names are
+what tell them apart. Named after the metrics record, they would merge into
+one entity with a single load, and where both reports take the same owner
+and repository, that load could not choose between them. Each report is
+judged by its own schema instead, as it would be with no envelope rule.
 
 Each reference to a component schema counts once per use in the resolved
 spec, the spec with every `$ref` replaced by the schema it names. A schema

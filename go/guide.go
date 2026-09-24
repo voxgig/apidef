@@ -567,7 +567,7 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 		"work": map[string]any{
 			"pathmap":  map[string]any{},
 			"entmap":   map[string]any{},
-			"envelope": map[string]bool{},
+			"envelope": map[string]string{},
 			"entity": map[string]any{
 				"count": map[string]any{
 					"seen":       0,
@@ -667,6 +667,7 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 	for _, mdesc := range allMethods {
 		measureEnvelope(data, mdesc)
 	}
+	measureEnvelopeItems(data)
 
 	for _, mdesc := range allMethods {
 		resolveEntityComponent(data, mdesc)
@@ -746,7 +747,7 @@ func selectAllMethods(ctx *ApiDefContext, data map[string]any) []map[string]any 
 // measureEnvelope mirrors MeasureEnvelope in ts/src/guide/heuristic01.ts.
 func measureEnvelope(data map[string]any, mdesc map[string]any) {
 	work := data["work"].(map[string]any)
-	envelope := work["envelope"].(map[string]bool)
+	envelope := work["envelope"].(map[string]string)
 	pathStr, _ := mdesc["path"].(string)
 	pathmap, _ := work["pathmap"].(map[string]any)
 	pathEntry, _ := pathmap[pathStr].(map[string]any)
@@ -754,14 +755,34 @@ func measureEnvelope(data map[string]any, mdesc map[string]any) {
 	opname := methodOpname(mdesc, matchEntityPath(parts), &[]string{})
 
 	responses, _ := mdesc["responses"].(map[string]any)
+	unwrapref, _ := getResponseSchema(successResponse(responses))["x-ref"].(string)
 	for _, schema := range successSchemas(responses) {
 		xref, ok := schema["x-ref"].(string)
 		if !ok {
 			continue
 		}
-		unwraps := opname != "" && envelopeItemRef(schema, opname) != ""
-		prior, seen := envelope[xref]
-		envelope[xref] = (!seen || prior) && unwraps
+		itemref := ""
+		if opname != "" && xref == unwrapref {
+			itemref = envelopeItemRef(schema, opname)
+		}
+		if prior, seen := envelope[xref]; seen && prior == "" {
+			itemref = ""
+		}
+		envelope[xref] = itemref
+	}
+}
+
+// measureEnvelopeItems mirrors MeasureEnvelopeItems in ts/src/guide/heuristic01.ts.
+func measureEnvelopeItems(data map[string]any) {
+	envelope := data["work"].(map[string]any)["envelope"].(map[string]string)
+	carriers := map[string]int{}
+	for _, itemref := range envelope {
+		carriers[itemref]++
+	}
+	for xref, itemref := range envelope {
+		if carriers[itemref] > 1 {
+			envelope[xref] = ""
+		}
 	}
 }
 
@@ -786,10 +807,8 @@ func resolveEntityComponent(data map[string]any, mdesc map[string]any) {
 
 	responses, _ := mdesc["responses"].(map[string]any)
 
-	opname := methodOpname(mdesc, matchEntityPath(parts), &[]string{})
-
-	envelope, _ := work["envelope"].(map[string]bool)
-	origxrefs := findPotentialSchemaRefs(pathStr, methodName, responses, opname, envelope, &whyCmp)
+	envelope, _ := work["envelope"].(map[string]string)
+	origxrefs := findPotentialSchemaRefs(pathStr, methodName, responses, envelope, &whyCmp)
 	var origxrefMaps []map[string]any
 	for _, val := range origxrefs {
 		origxrefMaps = append(origxrefMaps, map[string]any{"val": val})
@@ -1537,14 +1556,7 @@ func resolveTransform(data map[string]any, mdesc map[string]any) {
 
 	// Check response schema
 	responses, _ := mdesc["responses"].(map[string]any)
-	var resokdef map[string]any
-	if r200, ok := responses["200"].(map[string]any); ok {
-		resokdef = r200
-	} else if r201, ok := responses["201"].(map[string]any); ok {
-		resokdef = r201
-	}
-
-	resprops := getResponseSchemaProps(resokdef)
+	resprops := getResponseSchemaProps(successResponse(responses))
 	DebugPath(pathStr, methodName, "TRANSFORM-RES", resprops)
 
 	origname := safeStr(entdesc["origname"])
@@ -2153,11 +2165,7 @@ func isListResponse(mdesc map[string]any, pm *PathMatchResult, pathStr string, w
 	var schema map[string]any
 
 	if responses != nil {
-		resdef, ok := responses["200"].(map[string]any)
-		if !ok {
-			resdef, _ = responses["201"].(map[string]any)
-		}
-		schema = getResponseSchema(resdef)
+		schema = getResponseSchema(successResponse(responses))
 	}
 
 	if schema == nil {
@@ -2259,6 +2267,15 @@ func getRequestBodySchema(requestBody map[string]any) map[string]any {
 		return schema
 	}
 	return nil
+}
+
+// successResponse mirrors ts/src/guide/heuristic01.ts.
+func successResponse(responses map[string]any) map[string]any {
+	if r200, ok := responses["200"].(map[string]any); ok {
+		return r200
+	}
+	r201, _ := responses["201"].(map[string]any)
+	return r201
 }
 
 // successSchemas mirrors ts/src/guide/heuristic01.ts.
@@ -2473,17 +2490,13 @@ func makeMethodEntityDesc(desc map[string]any) map[string]any {
 
 // findPotentialSchemaRefs finds x-ref values in responses.
 func findPotentialSchemaRefs(pathStr string, methodName string, responses map[string]any,
-	opname string, envelope map[string]bool, why *[]string) []string {
+	envelope map[string]string, why *[]string) []string {
 	var xrefs []string
 	for _, schema := range successSchemas(responses) {
 		if xref, ok := schema["x-ref"].(string); ok {
 			// An envelope component names its wrapping, not the entity: the
 			// component it carries takes its place.
-			itemref := ""
-			if opname != "" && envelope[xref] {
-				itemref = envelopeItemRef(schema, opname)
-			}
-			if itemref != "" {
+			if itemref := envelope[xref]; itemref != "" {
 				*why = append(*why, "envelope="+cmpRefName(xref))
 				xrefs = append(xrefs, itemref)
 			} else {

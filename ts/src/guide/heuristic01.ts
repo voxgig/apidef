@@ -129,6 +129,7 @@ async function heuristic01(ctx: ApiDefContext): Promise<Guide> {
     },
     { select: selectCmpXrefs, apply: MeasureRef },
     { select: selectAllMethods, apply: MeasureEnvelope },
+    MeasureEnvelopeItems,
     {
       select: selectAllMethods, apply: [
         ResolveEntityComponent,
@@ -319,17 +320,36 @@ function MeasureRef(spec: TaskSpec) {
 // Being an envelope belongs to the component, not to one operation: it names
 // through the record it carries only when every operation answering with it
 // unwraps it, so the operations on one resource are never split between the
-// record's name and the envelope's.
+// record's name and the envelope's. An operation unwraps only the response
+// ResolveTransform reads. The entry is the item's reference, or '' for none.
 function MeasureEnvelope(spec: TaskSpec) {
   const work = spec.data.work
   const mdesc = spec.node.val
   const opname = methodOpname(mdesc, matchEntityPath(work.pathmap[mdesc.path].parts), [])
+  const unwrapref = getResponseSchema(successResponse(mdesc.responses))?.['x-ref']
 
   for (const schema of successSchemas(mdesc.responses)) {
     const xref = schema['x-ref']
     if (null != xref) {
-      const unwraps = null != opname && null != envelopeItemRef(schema, opname)
-      work.envelope[xref] = false !== work.envelope[xref] && unwraps
+      const itemref = null == opname || xref !== unwrapref ? null :
+        envelopeItemRef(schema, opname)
+      work.envelope[xref] = '' === work.envelope[xref] || null == itemref ? '' : itemref
+    }
+  }
+}
+
+
+// An item carried by more than one envelope is named by none of them: the
+// envelopes' own names are then what tell the resources apart.
+function MeasureEnvelopeItems(spec: TaskSpec) {
+  const envelope: Record<string, string> = spec.data.work.envelope
+  const carriers: Record<string, number> = {}
+  for (const itemref of Object.values(envelope)) {
+    carriers[itemref] = (carriers[itemref] ?? 0) + 1
+  }
+  for (const xref of Object.keys(envelope)) {
+    if (1 < carriers[envelope[xref]]) {
+      envelope[xref] = ''
     }
   }
 }
@@ -399,10 +419,8 @@ function ResolveEntityComponent(spec: TaskSpec) {
 
   let responses = methodDef.responses
 
-  const opname = methodOpname(methodDef, matchEntityPath(parts), [])
-
   let origxrefs: any[] = findPotentialSchemaRefs(
-    pathStr, methodName, responses, opname, work.envelope, why_cmp).map(val => ({
+    pathStr, methodName, responses, work.envelope, why_cmp).map(val => ({
       val
     }))
 
@@ -1106,8 +1124,7 @@ function ResolveTransform(spec: TaskSpec) {
     res: undefined,
   }
 
-  const resokdef = mdesc.responses?.[200] || mdesc.responses?.[201]
-  const resprops = getResponseSchema(resokdef)?.properties
+  const resprops = getResponseSchema(successResponse(mdesc.responses))?.properties
   debugpath(pathStr, methodName, 'TRANSFORM-RES', keysof(resprops))
 
   if (resprops) {
@@ -1450,6 +1467,12 @@ function getRequestBodySchema(requestBody: any) {
     requestBody?.schema
 }
 
+// The response an operation's result is read from.
+function successResponse(responses: any): any {
+  return responses?.[200] ?? responses?.[201]
+}
+
+
 // The response schemas an operation answers with when it succeeds, in the
 // order they are tried.
 function successSchemas(responses: any): any[] {
@@ -1714,8 +1737,7 @@ function isListResponse(
     why.push('end-param')
   }
   else {
-    const response = mdesc.responses?.[200] ?? mdesc.responses?.[201]
-    schema = getResponseSchema(response)
+    schema = getResponseSchema(successResponse(mdesc.responses))
 
     if (null == schema) {
       why.push('no-schema')
@@ -1941,8 +1963,7 @@ function findPotentialSchemaRefs(
   pathStr: string,
   methodName: string,
   responses: any,
-  opname: string | undefined,
-  envelope: Record<string, boolean>,
+  envelope: Record<string, string>,
   why: string[],
 ) {
   const xrefs: string[] = []
@@ -1950,9 +1971,8 @@ function findPotentialSchemaRefs(
     if (null != schema['x-ref']) {
       // An envelope component names its wrapping, not the entity: the
       // component it carries takes its place.
-      const itemref = null == opname || true !== envelope[schema['x-ref']] ? null :
-        envelopeItemRef(schema, opname)
-      if (null != itemref) {
+      const itemref = envelope[schema['x-ref']]
+      if ('' !== itemref) {
         why.push('envelope=' + cmpRefName(schema['x-ref']))
         xrefs.push(itemref)
       }
