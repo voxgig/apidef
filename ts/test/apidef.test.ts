@@ -641,6 +641,50 @@ describe('apidef', () => {
   })
 
 
+  // A path item's parameters, servers, summary, description and extension
+  // keys are not methods, so they name no entity: /mirrors/{mirror_id} holds
+  // no operation at all. go/apidef_test.go reads the base guide this writes.
+  test('guide-path-item-keys', async () => {
+    const folder = __dirname + '/../test/path-item-keys'
+
+    const build = await ApiDef.makeBuild({ folder })
+
+    const bres = await build(
+      { name: 'path-item-keys', def: 'path-item-keys-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: true,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const routes = Object.fromEntries(Object.keys(bres.guide.entity).sort()
+      .map((name) => [name, Object.entries(bres.guide.entity[name].path)
+        .flatMap(([path, pd]: [string, any]) =>
+          Object.values(pd.op).map((op: any) => op.method + ' ' + path))
+        .sort()]))
+    assert.deepStrictEqual(routes, {
+      crate: ['DELETE /crates/{crate_id}', 'GET /crates/{crate_id}'],
+      release: ['GET /crates/{crate_id}/versions/{version_id}'],
+    })
+
+    const entities = bres.apimodel.main.kit.entity
+    assert.deepStrictEqual(Object.keys(entities).sort(), ['crate', 'release'])
+    assert.deepStrictEqual(entities.release.relations.ancestors, [['crate']])
+  })
+
+
   test('field-required-solar', async () => {
     const outprefix = 'solar-1.0.0-openapi-3.0.0-'
     const folder = __dirname + '/../test/solar'

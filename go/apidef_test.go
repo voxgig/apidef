@@ -717,6 +717,54 @@ func TestGuideSharing(t *testing.T) {
 	}
 }
 
+// Mirrors the TS `guide-path-item-keys` case, and requires the base guide that
+// case writes to ts/test/path-item-keys/guide/base-guide.aontu.
+func TestGuidePathItemKeys(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, Strategy: "heuristic01"}).Generate(map[string]any{
+		"model": map[string]any{"name": "path-item-keys", "def": "path-item-keys-def.json"},
+		"build": map[string]any{"spec": map[string]any{"base": "../ts/test/path-item-keys"}},
+		"ctrl": map[string]any{"step": map[string]any{
+			"parse": true, "guide": true, "transformers": true,
+			"builders": false, "generate": false,
+		}},
+	})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v res=%+v", err, res)
+	}
+
+	gents, _ := res.Guide["entity"].(map[string]any)
+	if got := strings.Join(sortedKeys(gents), ","); got != "crate,release" {
+		t.Errorf("guide entities = %s, want crate,release", got)
+	}
+
+	want, err := os.ReadFile("../ts/test/path-item-keys/guide/base-guide.aontu")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(filepath.Join(folder, "guide", "base-guide.aontu"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != string(want) {
+		t.Errorf("base guide differs from the TypeScript one:\n%s", string(got))
+	}
+
+	main, _ := res.ApiModel["main"].(map[string]any)
+	kit, _ := main[KIT].(map[string]any)
+	entities, _ := kit["entity"].(map[string]any)
+	ops := map[string]string{}
+	for _, name := range sortedKeys(entities) {
+		ent, _ := entities[name].(map[string]any)
+		op, _ := ent["op"].(map[string]any)
+		ops[name] = strings.Join(sortedKeys(op), "/")
+	}
+	wantOps := map[string]string{"crate": "load/remove", "release": "load"}
+	if !reflect.DeepEqual(ops, wantOps) {
+		t.Errorf("model entity ops = %v, want %v", ops, wantOps)
+	}
+}
+
 // RFC 10008 QUERY verb: a safe, idempotent read carrying its filter in the
 // request body. Mirrors the TS `query-verb-book` case in ts/test/apidef.test.ts.
 // QUERY maps onto load/list; its collection response supplies the entity

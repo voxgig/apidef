@@ -405,6 +405,12 @@ function selectAllMethods(_source: any, spec: TaskSpec): MethodDesc[] {
     for (const [m, mdef] of sortedEntries(pdef)) {
       const method = m.toUpperCase()
 
+      // A path item also holds parameters, servers, summary and the like.
+      if (null == METHOD_CONSIDER_ORDER[method] ||
+        null == mdef || 'object' !== typeof mdef || Array.isArray(mdef)) {
+        continue
+      }
+
       caught.methods.push({
         path,
         method,

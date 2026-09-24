@@ -183,6 +183,11 @@ keyed on whether the path targets a *collection* or a single *item*:
 | item `/planet/{id}` | `PATCH` | `patch` (promoted to `update` if there is no `PUT`) |
 | item `/planet/{id}` | `DELETE` | `remove` |
 
+Only the method keys of a path item are classified: `get`, `put`, `post`,
+`delete`, `options`, `head`, `patch` and `query`. Its `parameters`,
+`servers`, `summary`, `description` and extension keys describe the path, so
+none of them becomes an operation or names an entity.
+
 A single operation can have **several points** — one per path/method that
 produces it — which is why the model keeps `op.<name>.points[]` rather than a
 single path (see [the internal model](./the-internal-model.md)).
