@@ -28,12 +28,7 @@ var validateCases = []validateCase{
 
 // Entities the apidef-validate golden base guides declare and this port does
 // not: a REGISTER, not a waiver, since the missing set must EQUAL the entry.
-// Both ports count component references per use, which drops paginated_taxa,
-// and name an entity through a response envelope, which renames
-// paginated_observation to observation. The goldens predate both.
-var knownGuideDivergence = map[string][]string{
-	"taxonomy-1.0.0-openapi-3.1.0": {"paginated_observation", "paginated_taxa"},
-}
+var knownGuideDivergence = map[string][]string{}
 
 func caseName(c validateCase) string {
 	return fmt.Sprintf("%s-%s-%s", c.Name, c.Version, c.Spec)
