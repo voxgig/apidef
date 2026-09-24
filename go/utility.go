@@ -804,17 +804,36 @@ func sameLongname(entry any, name string) bool {
 	return ok && ln == name
 }
 
-// Find searches an object tree for all occurrences of a key.
+// Find collects every value held under qkey, visiting each shared or cyclic
+// node once.
 func Find(obj any, qkey string) []map[string]any {
 	var vals []map[string]any
-	vs.Walk(obj, func(key *string, val any, parent any, path []string) any {
-		if key != nil && *key == qkey {
-			vals = append(vals, map[string]any{
-				"key": *key, "val": val, "path": path,
-			})
+	seen := map[refNodeID]bool{}
+	var collect func(o any)
+	collect = func(o any) {
+		id, ok := refIdentity(o)
+		if ok {
+			if seen[id] {
+				return
+			}
+			seen[id] = true
 		}
-		return val
-	})
+		switch n := o.(type) {
+		case []any:
+			for _, v := range n {
+				collect(v)
+			}
+		case map[string]any:
+			for _, k := range sortedKeys(n) {
+				v := n[k]
+				if qkey == k {
+					vals = append(vals, map[string]any{"key": k, "val": v, "path": []string{}})
+				}
+				collect(v)
+			}
+		}
+	}
+	collect(obj)
 	return vals
 }
 
@@ -1376,6 +1395,15 @@ func sortedKeysBool(m map[string]bool) []string {
 	return keys
 }
 
+func sortedKeysInt64(m map[string]int64) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
 func sortedKeysOpmWork(m map[string][]map[string]any) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
@@ -1480,6 +1508,62 @@ func envelopeProp(resprops map[string]any, opname string) string {
 	}
 
 	return key
+}
+
+// ENVELOPE_PAGING_PROPS mirrors ts/src/utility.ts.
+var ENVELOPE_PAGING_PROPS = map[string]bool{
+	"count": true, "total": true, "totalcount": true, "totalhits": true, "totalitems": true,
+	"totalpages": true, "totalresults": true, "page": true, "pages": true, "pagecount": true,
+	"pagenumber": true, "pagesize": true, "perpage": true, "limit": true, "offset": true,
+	"cursor": true, "next": true, "nextcursor": true, "nextpage": true, "nextpagetoken": true,
+	"nexttoken": true, "previous": true, "prev": true, "previouscursor": true,
+	"prevcursor": true, "previouspage": true, "prevpage": true, "hasmore": true,
+	"hasnext": true, "hasprevious": true, "object": true, "url": true,
+}
+
+var envelopePagingSepRE = regexp.MustCompile(`[_-]`)
+
+func isEnvelopePagingProp(name string) bool {
+	return ENVELOPE_PAGING_PROPS[envelopePagingSepRE.ReplaceAllString(strings.ToLower(name), "")]
+}
+
+// envelopeItemRef mirrors ts/src/utility.ts: an envelope has no `id`, a page
+// holds nothing beside its records but paging, and a single-item envelope
+// holds nothing beside the item.
+func envelopeItemRef(schema any, opname string) string {
+	sch, _ := schema.(map[string]any)
+	props, _ := sch["properties"].(map[string]any)
+	key := envelopeProp(props, opname)
+	if key == "" {
+		return ""
+	}
+	if props["id"] != nil {
+		return ""
+	}
+
+	prop, _ := props[key].(map[string]any)
+	islist, _ := propIsList(prop)
+	for _, k := range sortedKeys(props) {
+		if k != key && (!islist || !isEnvelopePagingProp(k)) {
+			return ""
+		}
+	}
+
+	item := prop
+	if islist {
+		item, _ = prop["items"].(map[string]any)
+	}
+	if !isRecordSchema(item) {
+		return ""
+	}
+
+	xref, _ := item["x-ref"].(string)
+	return xref
+}
+
+func isRecordSchema(schema map[string]any) bool {
+	return schema != nil && (schema["properties"] != nil || schema["allOf"] != nil ||
+		safeStr(schema["type"]) == "object")
 }
 
 func propIsList(schema any) (bool, bool) {

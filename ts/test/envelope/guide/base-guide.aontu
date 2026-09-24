@@ -1,0 +1,105 @@
+# Generated from the API definition and overwritten on every build: do not
+# edit this file. Put customizations in the guide entry file, which includes
+# this one and overrides its defaults:
+#   guide.aontu
+
+guide: {
+  metrics: count: entity: 12
+  metrics: count: path: 14
+  metrics: count: method: 17
+
+  entity: census: {
+    path: "/{year}/census": {
+      op: list: method: *GET
+      op: list: transform: res: *("`body.records`")|top
+    }
+  }
+
+  entity: crew_member: {
+    path: "/{year}/crew/{id}/member": {
+      op: create: method: *POST
+      op: list: method: *GET
+      op: list: transform: res: *("`body.members`")|top
+    }
+  }
+
+  entity: deposit: {
+    path: "/{year}/vault": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: domain: {
+    path: "/{year}/domain": {
+      op: list: method: *GET
+      op: list: transform: res: *("`body.items`")|top
+    }
+    path: "/{year}/domain/{id}": {
+      op: load: method: *GET
+      op: patch: method: *PATCH
+    }
+  }
+
+  entity: fossil: {
+    path: "/{year}/fossil/{id}": {
+      op: load: method: *GET
+      op: load: transform: res: *("`body.collector`")|top
+    }
+  }
+
+  entity: kingdom: {
+    path: "/{year}/domain/{domain_id}/kingdom/{kingdom_id}": {
+      rename: param: "kingdom_id": *"id"
+      op: load: method: *GET
+    }
+    path: "/{year}/domain/{id}/kingdom": {
+      rename: param: "id": *"domain_id"
+      op: create: method: *POST
+      op: list: method: *GET
+      op: list: transform: res: *("`body.items`")|top
+    }
+  }
+
+  entity: ledger: {
+    path: "/{year}/ledger": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: observation: {
+    path: "/{year}/observation": {
+      op: list: method: *GET
+      op: list: transform: res: *("`body.items`")|top
+    }
+  }
+
+  entity: package: {
+    path: "/{year}/metrics/package/{owner}": {
+      rename: param: "owner": *"id"
+      op: load: method: *GET
+      op: load: transform: res: *("`body.packages`")|top
+    }
+  }
+
+  entity: sample: {
+    path: "/{year}/sample/{id}": {
+      op: load: method: *GET
+      op: load: transform: res: *("`body.data`")|top
+    }
+  }
+
+  entity: site: {
+    path: "/{year}/site/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: token: {
+    path: "/{year}/metrics/token/{owner}": {
+      rename: param: "owner": *"id"
+      op: load: method: *GET
+      op: load: transform: res: *("`body.tokens`")|top
+    }
+  }
+
+}

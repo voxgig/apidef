@@ -1,0 +1,32 @@
+# Generated from the API definition and overwritten on every build: do not
+# edit this file. Put customizations in the guide entry file, which includes
+# this one and overrides its defaults:
+#   guide.aontu
+
+guide: {
+  metrics: count: entity: 2
+  metrics: count: path: 4
+  metrics: count: method: 4
+
+  entity: domain: {
+    path: "/domain": {
+      op: list: method: *GET
+      op: list: transform: res: *("`body.items`")|top
+    }
+    path: "/domain/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: kingdom: {
+    path: "/domain/{domain_id}/kingdom/{id}": {
+      op: load: method: *GET
+    }
+    path: "/domain/{id}/kingdom": {
+      rename: param: "id": *"domain_id"
+      op: list: method: *GET
+      op: list: transform: res: *("`body.items`")|top
+    }
+  }
+
+}

@@ -68,6 +68,9 @@ the `why_*` traces and the entity/op assignments directly.
 | `ENOENT … <prefix>guide.aontu` | missing guide entry file | create it — [the guide file](../reference/configuration.md#the-guide-file) |
 | `no server URL found` | spec has no `servers[0].url` | add a `servers:` entry to the spec |
 | `source not found: @voxgig/apidef/model/...` | package not resolvable from the guide file | install `@voxgig/apidef` in the project |
+| `SUMMARY (1 errors): [aontu/<code>]: …` | the guide entry, or a file it includes, does not unify | the `-->` file and line in the message |
+| `defines no guide map` | the guide entry file lacks its includes | [the guide file](../reference/configuration.md#the-guide-file) |
+| `unresolved merge conflict` | conflict markers left in the guide entry file | the file and line named in the message |
 | `PATH MISMATCH` | a path/method wasn't classified | `<prefix>base-guide.aontu`, the `why_*` traces |
 | wrong entity name | irregular plural | [custom plurals](./customize-entity-naming.md) |
 | `$ref` value missing | bad pointer | `<def>.full.json` |

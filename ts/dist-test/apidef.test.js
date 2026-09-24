@@ -249,6 +249,77 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         const archivePt = ea.op.update.points.find((pt) => pt.o.endsWith('/archive'));
         node_assert_1.default.strictEqual(archivePt?.q?.$action, 'archive');
     });
+    // One page wrapper serves both collections through a shared response. Counted
+    // per use it is frequent, so each list takes its name from its path.
+    (0, node_test_1.test)('guide-shared-wrapper', async () => {
+        const folder = __dirname + '/../test/shared-wrapper';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'shared-wrapper', def: 'shared-wrapper-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: true,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        const entities = bres.apimodel.main.kit.entity;
+        const ops = Object.fromEntries(Object.keys(entities).sort()
+            .map((name) => [name, Object.keys(entities[name].op ?? {}).sort()]));
+        node_assert_1.default.deepStrictEqual(ops, {
+            domain: ['list', 'load'],
+            kingdom: ['list', 'load'],
+        });
+    });
+    // An envelope never names its entity; the item it carries is judged instead,
+    // so each list of the rare shared page keeps its path's name. No envelope:
+    // a record with one nested object, a list beside other data (census), a
+    // wrapper an operation does not unwrap (crew members, returned whole by a
+    // create; the vault's 201), an item another wrapper carries too (metrics).
+    (0, node_test_1.test)('guide-envelope', async () => {
+        const folder = __dirname + '/../test/envelope';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'envelope', def: 'envelope-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: true,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        const entities = bres.apimodel.main.kit.entity;
+        const ops = Object.fromEntries(Object.keys(entities).sort()
+            .map((name) => [name, Object.keys(entities[name].op ?? {}).sort()]));
+        node_assert_1.default.deepStrictEqual(ops, {
+            census: ['list'],
+            crew_member: ['create', 'list'],
+            deposit: ['create'],
+            domain: ['list', 'load', 'update'],
+            fossil: ['load'],
+            kingdom: ['create', 'list', 'load'],
+            // Its 200 has no JSON schema, and still decides over the 201 list.
+            ledger: ['load'],
+            observation: ['list'],
+            package: ['load'],
+            sample: ['load'],
+            site: ['load'],
+            token: ['load'],
+        });
+        const listpt = entities.observation.op.list.points[0];
+        node_assert_1.default.strictEqual(listpt.o, '/{year}/observation');
+        node_assert_1.default.ok(null != entities.observation.fields.observedAt, 'observation fields not unwrapped: ' + Object.keys(entities.observation.fields));
+    });
     (0, node_test_1.test)('field-required-solar', async () => {
         const outprefix = 'solar-1.0.0-openapi-3.0.0-';
         const folder = __dirname + '/../test/solar';
@@ -467,6 +538,18 @@ def: '${outprefix}def.yaml'
             const removed = (0, apidef_1.gcEntityFiles)(Fs, null, dir, 'solar-', ['planet']);
             node_assert_1.default.deepStrictEqual(removed, ['solar-moon.aontu']);
             node_assert_1.default.deepStrictEqual(listing(dir), ['lunar-crater.aontu', 'solar-entity-index.aontu', 'solar-planet.aontu']);
+        });
+        (0, node_test_1.test)('collects legacy .aon files, including one named for a kept entity', () => {
+            const dir = tmpModel({
+                'solar-planet.aontu': GEN('planet'),
+                'solar-planet.aon': GEN('planet'),
+                'solar-old.aon': GEN('old'),
+                'solar-notes.aon': '# my notes\n',
+                'solar-entity-index.aontu': '# Entity Models\n',
+            });
+            const removed = (0, apidef_1.gcEntityFiles)(Fs, null, dir, 'solar-', ['planet']);
+            node_assert_1.default.deepStrictEqual(removed.sort(), ['solar-old.aon', 'solar-planet.aon']);
+            node_assert_1.default.deepStrictEqual(listing(dir), ['solar-entity-index.aontu', 'solar-notes.aon', 'solar-planet.aontu']);
         });
         (0, node_test_1.test)('keeps the index and the whole current set; missing folder is a no-op', () => {
             const dir = tmpModel({

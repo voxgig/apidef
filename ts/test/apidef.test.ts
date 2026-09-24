@@ -302,6 +302,99 @@ describe('apidef', () => {
   })
 
 
+  // One page wrapper serves both collections through a shared response. Counted
+  // per use it is frequent, so each list takes its name from its path.
+  test('guide-shared-wrapper', async () => {
+    const folder = __dirname + '/../test/shared-wrapper'
+
+    const build = await ApiDef.makeBuild({ folder })
+
+    const bres = await build(
+      { name: 'shared-wrapper', def: 'shared-wrapper-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: true,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const entities = bres.apimodel.main.kit.entity
+    const ops = Object.fromEntries(Object.keys(entities).sort()
+      .map((name) => [name, Object.keys(entities[name].op ?? {}).sort()]))
+    assert.deepStrictEqual(ops, {
+      domain: ['list', 'load'],
+      kingdom: ['list', 'load'],
+    })
+  })
+
+
+  // An envelope never names its entity; the item it carries is judged instead,
+  // so each list of the rare shared page keeps its path's name. No envelope:
+  // a record with one nested object, a list beside other data (census), a
+  // wrapper an operation does not unwrap (crew members, returned whole by a
+  // create; the vault's 201), an item another wrapper carries too (metrics).
+  test('guide-envelope', async () => {
+    const folder = __dirname + '/../test/envelope'
+
+    const build = await ApiDef.makeBuild({ folder })
+
+    const bres = await build(
+      { name: 'envelope', def: 'envelope-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: true,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const entities = bres.apimodel.main.kit.entity
+    const ops = Object.fromEntries(Object.keys(entities).sort()
+      .map((name) => [name, Object.keys(entities[name].op ?? {}).sort()]))
+    assert.deepStrictEqual(ops, {
+      census: ['list'],
+      crew_member: ['create', 'list'],
+      deposit: ['create'],
+      domain: ['list', 'load', 'update'],
+      fossil: ['load'],
+      kingdom: ['create', 'list', 'load'],
+      // Its 200 has no JSON schema, and still decides over the 201 list.
+      ledger: ['load'],
+      observation: ['list'],
+      package: ['load'],
+      sample: ['load'],
+      site: ['load'],
+      token: ['load'],
+    })
+
+    const listpt = entities.observation.op.list.points[0]
+    assert.strictEqual(listpt.o, '/{year}/observation')
+    assert.ok(null != entities.observation.fields.observedAt,
+      'observation fields not unwrapped: ' + Object.keys(entities.observation.fields))
+  })
+
+
   test('field-required-solar', async () => {
     const outprefix = 'solar-1.0.0-openapi-3.0.0-'
     const folder = __dirname + '/../test/solar'
@@ -567,6 +660,20 @@ def: '${outprefix}def.yaml'
       assert.deepStrictEqual(removed, ['solar-moon.aontu'])
       assert.deepStrictEqual(listing(dir),
         ['lunar-crater.aontu', 'solar-entity-index.aontu', 'solar-planet.aontu'])
+    })
+
+    test('collects legacy .aon files, including one named for a kept entity', () => {
+      const dir = tmpModel({
+        'solar-planet.aontu': GEN('planet'),
+        'solar-planet.aon': GEN('planet'),
+        'solar-old.aon': GEN('old'),
+        'solar-notes.aon': '# my notes\n',
+        'solar-entity-index.aontu': '# Entity Models\n',
+      })
+      const removed = gcEntityFiles(Fs, null, dir, 'solar-', ['planet'])
+      assert.deepStrictEqual(removed.sort(), ['solar-old.aon', 'solar-planet.aon'])
+      assert.deepStrictEqual(listing(dir),
+        ['solar-entity-index.aontu', 'solar-notes.aon', 'solar-planet.aontu'])
     })
 
     test('keeps the index and the whole current set; missing folder is a no-op', () => {

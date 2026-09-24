@@ -3,6 +3,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.migrateGuideIncludes = migrateGuideIncludes;
+exports.prefixGuideInclude = prefixGuideInclude;
+exports.findConflict = findConflict;
+exports.guideConflictMessage = guideConflictMessage;
+exports.missingGuideMessage = missingGuideMessage;
+exports.baseGuideHeader = baseGuideHeader;
+exports.guideEntrySource = guideEntrySource;
 exports.migrateLegacyGuide = migrateLegacyGuide;
 exports.migrateGuideIncludePrefix = migrateGuideIncludePrefix;
 exports.buildGuide = buildGuide;
@@ -17,6 +24,23 @@ const KONSOLE_LOG = console['log'];
 // Log non-fatal wierdness.
 const dlog = (0, utility_1.getdlog)('apidef', __filename);
 const aontu = new aontu_1.Aontu();
+function migrateGuideIncludes(src, guideprefix) {
+    let migrated = src
+        .replace(/@"@voxgig\/apidef\/model\/guide\.aon"/g, '@"@voxgig/apidef/model/guide.aontu"');
+    // The sibling include is written bare or with `./`; both name this file.
+    for (const dir of ['', './']) {
+        migrated = migrated
+            .split('@"' + dir + guideprefix + 'base-guide.aon"')
+            .join('@"' + dir + guideprefix + 'base-guide.aontu"');
+    }
+    return migrated;
+}
+// aontu refuses a bare sibling include, so it gains the `./` it needs.
+function prefixGuideInclude(src, guideprefix) {
+    return src
+        .split('@"' + guideprefix + 'base-guide.aontu"')
+        .join('@"./' + guideprefix + 'base-guide.aontu"');
+}
 // A `.aon` entry file is unresolvable: aontu reads only `.aontu` as source.
 // So this renames AND rewrites both includes — a repair, not a convenience.
 function migrateLegacyGuide(fs, folder, guideprefix) {
@@ -25,15 +49,7 @@ function migrateLegacyGuide(fs, folder, guideprefix) {
     if (fs.existsSync(guidepath) || !fs.existsSync(legacyguide)) {
         return false;
     }
-    let migrated = String(fs.readFileSync(legacyguide, 'utf8'))
-        .replace(/@"@voxgig\/apidef\/model\/guide\.aon"/g, '@"@voxgig/apidef/model/guide.aontu"');
-    // The sibling include is written bare or with `./`; both name this file.
-    for (const dir of ['', './']) {
-        migrated = migrated
-            .split('@"' + dir + guideprefix + 'base-guide.aon"')
-            .join('@"' + dir + guideprefix + 'base-guide.aontu"');
-    }
-    fs.writeFileSync(guidepath, migrated);
+    fs.writeFileSync(guidepath, migrateGuideIncludes(String(fs.readFileSync(legacyguide, 'utf8')), guideprefix));
     try {
         fs.unlinkSync(legacyguide);
     }
@@ -43,34 +59,34 @@ function migrateLegacyGuide(fs, folder, guideprefix) {
 // A `.aontu` entry file may still include a `.aon` sibling, so the rename
 // above never fires for it while its include still names an absent file.
 function migrateLegacyGuideInclude(fs, guidepath, guideprefix) {
+    return rewriteGuide(fs, guidepath, (src) => migrateGuideIncludes(src, guideprefix));
+}
+function migrateGuideIncludePrefix(fs, guidepath, guideprefix) {
+    return rewriteGuide(fs, guidepath, (src) => prefixGuideInclude(src, guideprefix));
+}
+function rewriteGuide(fs, guidepath, rewrite) {
     if (!fs.existsSync(guidepath)) {
         return false;
     }
     const src = String(fs.readFileSync(guidepath, 'utf8'));
-    let migrated = src
-        .replace(/@"@voxgig\/apidef\/model\/guide\.aon"/g, '@"@voxgig/apidef/model/guide.aontu"');
-    for (const dir of ['', './']) {
-        migrated = migrated
-            .split('@"' + dir + guideprefix + 'base-guide.aon"')
-            .join('@"' + dir + guideprefix + 'base-guide.aontu"');
-    }
+    const migrated = rewrite(src);
     if (migrated === src) {
         return false;
     }
     fs.writeFileSync(guidepath, migrated);
     return true;
 }
-function migrateGuideIncludePrefix(fs, guidepath, guideprefix) {
-    if (!fs.existsSync(guidepath)) {
-        return false;
-    }
-    const bare = '@"' + guideprefix + 'base-guide.aontu"';
-    const src = String(fs.readFileSync(guidepath, 'utf8'));
-    if (!src.includes(bare)) {
-        return false;
-    }
-    fs.writeFileSync(guidepath, src.split(bare).join('@"./' + guideprefix + 'base-guide.aontu"'));
-    return true;
+function guideConflictMessage(path, conflict) {
+    return `@voxgig/apidef: guide: unresolved merge conflict at ${path}:${conflict.line}\n` +
+        `  ${conflict.text}\n` +
+        `Resolve the marked block in ${path}.`;
+}
+function missingGuideMessage(path, guideprefix) {
+    return `@voxgig/apidef: guide: ${path} defines no guide map; it needs the include ` +
+        `@"./${guideprefix}base-guide.aontu".`;
+}
+function isPlainObject(val) {
+    return null != val && 'object' === typeof val && !Array.isArray(val);
 }
 function findConflict(src) {
     const lines = String(src || '').split('\n');
@@ -87,7 +103,7 @@ async function buildGuide(ctx) {
     const errs = [];
     const folder = node_path_1.default.resolve(ctx.opts.folder);
     try {
-        const basejres = await buildBaseGuide(ctx);
+        await buildBaseGuide(ctx);
     }
     catch (err) {
         errs.push(err);
@@ -123,44 +139,33 @@ async function buildGuide(ctx) {
         errs.push(err);
     }
     handleErrors(ctx, errs);
-    const basepath = node_path_1.default.join(folder, 'guide', guideprefix + 'base-guide.aontu');
-    for (const checkpath of [guidepath, basepath]) {
-        let checksrc = '';
-        try {
-            checksrc = checkpath === guidepath ? src : String(ctx.fs.readFileSync(checkpath, 'utf8'));
-        }
-        catch (_err) {
-            continue;
-        }
-        const conflict = findConflict(checksrc);
-        if (null != conflict) {
-            errs.push(new Error(`@voxgig/apidef: guide: unresolved merge conflict at ${(0, utility_1.relativizePath)(checkpath)}:${conflict.line}\n` +
-                `  ${conflict.text}\n` +
-                `A guide is merged, not overwritten, so an edit the regenerated base\n` +
-                `guide contradicts is left for a human to settle. Resolve the marked\n` +
-                `block` +
-                // DELETING ONLY HELPS FOR THE BASE GUIDE. Regeneration rewrites that
-                // file, while the top-level entry guide is the user's own and is read
-                // back unchanged — so advising its deletion would send a reader in a
-                // circle, failing this same check on the next build.
-                (checkpath === basepath ?
-                    `, or delete ${guideprefix}base-guide.aontu to regenerate it from the\n` +
-                        `specification and re-apply the edit afterwards.` :
-                    ` in ${(0, utility_1.relativizePath)(checkpath)}.`)));
-            break;
-        }
+    // Only the entry file: the base guide was just rewritten from the spec.
+    const conflict = findConflict(src);
+    if (null != conflict) {
+        errs.push(new Error(guideConflictMessage((0, utility_1.relativizePath)(guidepath), conflict)));
     }
     handleErrors(ctx, errs);
     if (0 === errs.length) {
         const opts = {
             path: guidepath,
-            errs,
+            errfs: ctx.fs,
         };
         if (ctx.fsInjected) {
             opts.fs = ctx.fs;
         }
         ctx.work.guideAontuFs = undefined !== opts.fs;
-        const guideModel = aontu.generate(src, opts);
+        // One AontuError carries every aontu failure, formatted: collect mode
+        // leaves a generation-time failure's message empty.
+        let guideModel;
+        try {
+            guideModel = aontu.generate(src, opts);
+        }
+        catch (err) {
+            errs.push(err);
+        }
+        if (0 === errs.length && !isPlainObject(guideModel?.guide)) {
+            errs.push(new Error(missingGuideMessage((0, utility_1.relativizePath)(guidepath), guideprefix)));
+        }
         handleErrors(ctx, errs);
         return guideModel;
     }
@@ -197,8 +202,9 @@ async function buildBaseGuide(ctx) {
     else {
         throw new Error('Unknown guide strategy: ' + ctx.opts.strategy);
     }
+    const guideprefix = null == ctx.opts.outprefix ? '' : ctx.opts.outprefix;
     const guideBlocks = [
-        '# Guide',
+        ...baseGuideHeader(guideprefix),
         '',
         'guide: {',
     ];
@@ -295,20 +301,28 @@ async function buildBaseGuide(ctx) {
     guideBlocks.push('', '}');
     const guideSrc = guideBlocks.join('\n');
     ctx.note.guide = { base: guideSrc };
-    const baseGuideFileName = (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'base-guide.aontu';
-    const jostraca = (0, jostraca_1.Jostraca)({
-        folder: ctx.opts.folder + '/guide',
-        now: ctx.spec.now,
-        fs: () => ctx.fs,
-        log: ctx.log,
-    });
-    const root = () => (0, jostraca_1.Project)({ folder: '.' }, async () => {
-        (0, jostraca_1.File)({ name: baseGuideFileName }, () => (0, jostraca_1.Content)(guideSrc));
-    });
-    const jres = await jostraca.generate({
-        existing: { txt: { merge: true } }
-    }, root);
-    return jres;
+    const guidefolder = node_path_1.default.join(ctx.opts.folder, 'guide');
+    ctx.fs.mkdirSync(guidefolder, { recursive: true });
+    ctx.fs.writeFileSync(node_path_1.default.join(guidefolder, guideprefix + 'base-guide.aontu'), guideSrc);
+}
+// The entry file a project writes once and owns; the CLI prints it.
+function guideEntrySource(guideprefix) {
+    return [
+        '# Guide entry file: put customizations below the includes. The base guide',
+        '# it includes is generated and overwritten on every build.',
+        '@"@voxgig/apidef/model/guide.aontu"',
+        '@"./' + guideprefix + 'base-guide.aontu"',
+    ];
+}
+// Written into every base guide, so a reader of the file learns where an
+// edit belongs before making one there.
+function baseGuideHeader(guideprefix) {
+    return [
+        '# Generated from the API definition and overwritten on every build: do not',
+        '# edit this file. Put customizations in the guide entry file, which includes',
+        '# this one and overrides its defaults:',
+        '#   ' + guideprefix + 'guide.aontu',
+    ];
 }
 function validateGraphqlBaseGuide(ctx, baseguide) {
     const covered = {};

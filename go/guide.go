@@ -3,13 +3,20 @@
 package apidef
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
+	"unicode/utf16"
+
+	aontu "github.com/aontu-lang/aontu/go"
+
+	"github.com/voxgig/apidef/go/model"
 )
 
 // Schema components that occur less than this rate (over total method count) qualify
@@ -31,6 +38,9 @@ var METHOD_IDOP = map[string]string{
 	"OPTIONS": "OPTIONS",
 }
 
+// Tried in order: the first shape a path matches decides how its entity is named.
+var ENTITY_PATH_SHAPES = []string{"t/p/t/", "t/p/", "p/t/", "t/", "t/p/p"}
+
 var METHOD_CONSIDER_ORDER = map[string]int{
 	"GET":     100,
 	"QUERY":   150,
@@ -45,6 +55,8 @@ var METHOD_CONSIDER_ORDER = map[string]int{
 // xrefRE matches component schema references.
 var xrefRE = regexp.MustCompile(`/(components/schemas|definitions)/(.+)$`)
 
+var cmpXrefRE = regexp.MustCompile(`/(components/schemas|definitions)/`)
+
 // BuildGuide constructs the guide that maps an OpenAPI spec to SDK entities.
 func BuildGuide(ctx *ApiDefContext) (map[string]any, error) {
 	folder := ctx.Opts.Folder
@@ -56,7 +68,7 @@ func BuildGuide(ctx *ApiDefContext) (map[string]any, error) {
 	// Build the base guide using heuristic analysis
 	baseguide, err := heuristic01(ctx)
 	if err != nil {
-		return nil, err
+		return nil, &GuideErrors{Errs: []error{err}}
 	}
 
 	// Generate guide JSONIC source
@@ -67,117 +79,368 @@ func BuildGuide(ctx *ApiDefContext) (map[string]any, error) {
 	prefix := ctx.Opts.OutPrefix
 	baseGuideFile := filepath.Join(guideDir, prefix+"base-guide.aontu")
 	if err := os.WriteFile(baseGuideFile, []byte(guideSrc), 0644); err != nil {
-		return nil, fmt.Errorf("failed to write base guide %s: %w",
-			RelativizePath(baseGuideFile), err)
+		return nil, &GuideErrors{Errs: []error{fmt.Errorf("failed to write base guide %s: %w",
+			RelativizePath(baseGuideFile), err)}}
 	}
 
-	if err := checkGuideOverlay(ctx, guideDir, prefix); err != nil {
+	guidePath := filepath.Join(guideDir, prefix+"guide.aontu")
+
+	if _, err := migrateLegacyGuide(folder, prefix); err != nil {
+		return nil, err
+	}
+	if _, err := migrateLegacyGuideInclude(guidePath, prefix); err != nil {
+		return nil, err
+	}
+	if _, err := migrateGuideIncludePrefix(guidePath, prefix); err != nil {
 		return nil, err
 	}
 
-	idOverrides := readGuideIdOverrides(guideDir, prefix)
-
-	// Parse guide back into model
-	var guideModel map[string]any
-	if err := json.Unmarshal([]byte(guideToJSON(baseguide)), &guideModel); err != nil {
-		return nil, fmt.Errorf("failed to parse guide model: %w", err)
-	}
-
-	applyGuideIdOverrides(guideModel, idOverrides)
-
-	return map[string]any{"guide": guideModel}, nil
-}
-
-// guideOverlayPath prefers `.aontu` and falls back to the pre-rename `.aon`.
-// ONE function: its callers disagreed before, so an unmigrated project lost
-// its id overrides to a build that had just inspected the same file.
-func guideOverlayPath(guideDir string, prefix string) string {
-	current := filepath.Join(guideDir, prefix+"guide.aontu")
-	if _, err := os.Stat(current); err == nil {
-		return current
-	}
-
-	legacy := filepath.Join(guideDir, prefix+"guide.aon")
-	if _, err := os.Stat(legacy); err == nil {
-		return legacy
-	}
-
-	return current
-}
-
-// checkGuideOverlay fails when <prefix>guide.aontu carries customizations
-// this port cannot honour. A bare overlay (only comments and the two
-// @-includes) is the common case and is fine — it contributes nothing beyond
-// the base guide, so Go's output matches TS's.
-func checkGuideOverlay(ctx *ApiDefContext, guideDir string, prefix string) error {
-	// BOTH extensions. `.aontu` is the only name; `.aon` is what a project
-	// created before the rename still carries. Reading only `.aontu` would
-	// treat a legacy overlay as ABSENT — and an absent overlay is reported as
-	// fine — so unsupported customizations would be silently accepted instead
-	// of refused, which is the opposite of this check.
-	overlayFile := guideOverlayPath(guideDir, prefix)
-	src, err := os.ReadFile(overlayFile)
+	src, err := os.ReadFile(guidePath)
 	if err != nil {
-		// Absent overlay is not an error here: the TS side surfaces that
-		// through aontu when it tries to resolve the entry file.
-		return nil
+		return nil, &GuideErrors{Errs: []error{fmt.Errorf("failed to read guide: %w", err)}}
 	}
 
-	custom := guideOverlayCustomizations(string(src))
-	if len(custom) == 0 {
-		return nil
+	// Only the entry file: the base guide was just rewritten from the spec.
+	if conflict := findConflict(string(src)); conflict != nil {
+		return nil, &GuideErrors{Errs: []error{
+			errors.New(guideConflictMessage(RelativizePath(guidePath), conflict))}}
 	}
 
-	return fmt.Errorf(
-		"guide customizations are not supported by the Go port: %s declares %d "+
-			"customization line(s) (first: %q). The TypeScript implementation "+
-			"unifies this overlay via aontu; Go has no aontu, so honouring it is "+
-			"not possible and ignoring it would silently produce a different "+
-			"model. Remove the customizations, or generate this model with the "+
-			"TypeScript implementation",
-		RelativizePath(overlayFile), len(custom), custom[0])
+	out, err := evaluateGuide(guideDir, guidePath, string(src))
+	if err != nil {
+		return nil, &GuideErrors{Errs: []error{err}}
+	}
+
+	guideModel, _ := out.(map[string]any)
+	if _, ok := guideModel["guide"].(map[string]any); !ok {
+		return nil, &GuideErrors{Errs: []error{
+			errors.New(missingGuideMessage(RelativizePath(guidePath), prefix))}}
+	}
+
+	return guideModel, nil
 }
 
-var guideIdLineRE = regexp.MustCompile(
-	`^\s*entity:\s*[A-Za-z0-9_]+:\s*id:\s*(parts|sep|composite):`)
-
-func guideOverlayCustomizations(src string) []string {
-	var out []string
-	for _, line := range strings.Split(src, "\n") {
-		t := strings.TrimSpace(line)
-		if t == "" || strings.HasPrefix(t, "#") || strings.HasPrefix(t, "@") {
-			continue
-		}
-		if guideIdLineRE.MatchString(t) {
-			continue
-		}
-		out = append(out, t)
-	}
-
-	// Collapse whitespace across the remaining lines; anything that reduces to
-	// nothing, or to an empty `guide` object, contributes no customization.
-	joined := strings.Join(out, "")
-	joined = strings.Map(func(r rune) rune {
-		if r == ' ' || r == '\t' || r == '\r' {
-			return -1
-		}
-		return r
-	}, joined)
-	if joined == "" || joined == "guide:{}" {
-		return nil
-	}
-
-	return out
+// GuideErrors is a failed guide stage, in the summary form the TS port's
+// handleErrors throws.
+type GuideErrors struct {
+	Errs []error
 }
 
-func guideToJSON(guide map[string]any) string {
-	b, _ := json.Marshal(guide)
-	return string(b)
+func (e *GuideErrors) Error() string {
+	msgs := make([]string, len(e.Errs))
+	for i, err := range e.Errs {
+		msgs[i] = err.Error()
+	}
+	return fmt.Sprintf("SUMMARY (%d errors): %s", len(e.Errs), strings.Join(msgs, " | "))
+}
+
+func (e *GuideErrors) Unwrap() []error { return e.Errs }
+
+// A `.aon` entry file is unresolvable: aontu reads only `.aontu` as source.
+// So this renames AND rewrites both includes — a repair, not a convenience.
+func migrateLegacyGuide(folder string, prefix string) (bool, error) {
+	guidePath := filepath.Join(folder, "guide", prefix+"guide.aontu")
+	legacyGuide := filepath.Join(folder, "guide", prefix+"guide.aon")
+
+	if pathExists(guidePath) || !pathExists(legacyGuide) {
+		return false, nil
+	}
+
+	src, err := os.ReadFile(legacyGuide)
+	if err != nil {
+		return false, err
+	}
+	if err := os.WriteFile(guidePath,
+		[]byte(migrateGuideIncludes(string(src), prefix)), 0644); err != nil {
+		return false, err
+	}
+	os.Remove(legacyGuide)
+
+	return true, nil
+}
+
+// A `.aontu` entry file may still include a `.aon` sibling, so the rename
+// above never fires for it while its include still names an absent file.
+func migrateLegacyGuideInclude(guidePath string, prefix string) (bool, error) {
+	return rewriteGuide(guidePath, func(src string) string {
+		return migrateGuideIncludes(src, prefix)
+	})
+}
+
+func migrateGuideIncludePrefix(guidePath string, prefix string) (bool, error) {
+	return rewriteGuide(guidePath, func(src string) string {
+		return prefixGuideInclude(src, prefix)
+	})
+}
+
+func rewriteGuide(guidePath string, rewrite func(string) string) (bool, error) {
+	if !pathExists(guidePath) {
+		return false, nil
+	}
+
+	src, err := os.ReadFile(guidePath)
+	if err != nil {
+		return false, err
+	}
+
+	migrated := rewrite(string(src))
+	if migrated == string(src) {
+		return false, nil
+	}
+
+	return true, os.WriteFile(guidePath, []byte(migrated), 0644)
+}
+
+func pathExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
+func migrateGuideIncludes(src string, prefix string) string {
+	migrated := strings.ReplaceAll(src,
+		`@"@voxgig/apidef/model/guide.aon"`, `@"@voxgig/apidef/model/guide.aontu"`)
+
+	// The sibling include is written bare or with `./`; both name this file.
+	for _, dir := range []string{"", "./"} {
+		migrated = strings.ReplaceAll(migrated,
+			`@"`+dir+prefix+`base-guide.aon"`, `@"`+dir+prefix+`base-guide.aontu"`)
+	}
+
+	return migrated
+}
+
+// aontu refuses a bare sibling include, so it gains the `./` it needs.
+func prefixGuideInclude(src string, prefix string) string {
+	return strings.ReplaceAll(src,
+		`@"`+prefix+`base-guide.aontu"`, `@"./`+prefix+`base-guide.aontu"`)
+}
+
+func missingGuideMessage(path string, prefix string) string {
+	return "@voxgig/apidef: guide: " + path + " defines no guide map; it needs the include " +
+		"@\"./" + prefix + "base-guide.aontu\"."
+}
+
+func guideConflictMessage(path string, conflict *guideConflict) string {
+	return fmt.Sprintf("@voxgig/apidef: guide: unresolved merge conflict at %s:%d\n"+
+		"  %s\n"+
+		"Resolve the marked block in %s.", path, conflict.Line, conflict.Text, path)
+}
+
+// Written into every base guide, so a reader of the file learns where an
+// edit belongs before making one there.
+func baseGuideHeader(prefix string) []string {
+	return []string{
+		"# Generated from the API definition and overwritten on every build: do not",
+		"# edit this file. Put customizations in the guide entry file, which includes",
+		"# this one and overrides its defaults:",
+		"#   " + prefix + "guide.aontu",
+	}
+}
+
+type guideConflict struct {
+	Line int    `json:"line"`
+	Text string `json:"text"`
+}
+
+func findConflict(src string) *guideConflict {
+	for i, line := range strings.Split(src, "\n") {
+		if isConflictMarker(line) {
+			return &guideConflict{Line: i + 1, Text: firstUTF16Units(line, 80)}
+		}
+	}
+	return nil
+}
+
+// The TS port matches /^(<{7}|>{7})(?!<|>)/ and /^={7}(?!=)\s*$/; RE2 has no
+// lookahead.
+func isConflictMarker(line string) bool {
+	for _, mark := range []string{"<", ">"} {
+		if strings.HasPrefix(line, strings.Repeat(mark, 7)) {
+			rest := line[7:]
+			return !strings.HasPrefix(rest, "<") && !strings.HasPrefix(rest, ">")
+		}
+	}
+	if strings.HasPrefix(line, "=======") {
+		return "" == strings.Trim(line[7:], jsWhitespace)
+	}
+	return false
+}
+
+func firstUTF16Units(s string, n int) string {
+	units := utf16.Encode([]rune(s))
+	if len(units) <= n {
+		return s
+	}
+	return string(utf16.Decode(units[:n]))
+}
+
+// aontu Go has no package include resolver, so the schema the TS port finds
+// in its own npm package is served from the copy embedded in go/model. aontu
+// allows whitespace after `@` and a double, single or backtick quote.
+var modelIncludeRE = regexp.MustCompile(`@(\s*)(?:"@voxgig/apidef/model/([^"/]+)"|` +
+	`'@voxgig/apidef/model/([^'/]+)'|` + "`@voxgig/apidef/model/([^`/]+)`)")
+
+const modelIncludePrefix = "@voxgig/apidef/model/"
+
+func evaluateGuide(guideDir string, guidePath string, src string) (any, error) {
+	src, embedded, err := embedModelIncludes(src)
+	if err != nil {
+		return nil, err
+	}
+	defer embedded.cleanup()
+
+	a := aontu.NewWithBase(guideDir)
+	a.File = guidePath
+	out, err := a.Generate(src)
+	if err != nil {
+		return nil, embedded.restore(err)
+	}
+
+	return out, nil
+}
+
+// embeddedModel records where the schema copies live and what each rewritten
+// include replaced, so an error can be told in the entry file's own words.
+type embeddedModel struct {
+	dir      string
+	includes map[string]string
+}
+
+func (e *embeddedModel) cleanup() {
+	if e.dir != "" {
+		os.RemoveAll(e.dir)
+	}
+}
+
+func (e *embeddedModel) restore(err error) error {
+	var aerr *aontu.AontuError
+	if !errors.As(err, &aerr) {
+		return err
+	}
+
+	pairs := []string{}
+	for rewritten, original := range e.includes {
+		pairs = append(pairs, rewritten, original)
+	}
+	if e.dir != "" {
+		pairs = append(pairs, filepath.ToSlash(e.dir)+"/", modelIncludePrefix)
+	}
+	replacer := strings.NewReplacer(pairs...)
+
+	restored := *aerr
+	restored.Msg = replacer.Replace(aerr.Msg)
+	if aerr.Details != nil {
+		restored.Details = map[string]string{}
+		for k, v := range aerr.Details {
+			restored.Details[k] = replacer.Replace(v)
+		}
+	}
+
+	if "multisource_not_found" == restored.Code &&
+		strings.Contains(restored.Msg, modelIncludePrefix) {
+		return fmt.Errorf("@voxgig/apidef: guide: the Go port serves %s files only "+
+			"to the guide entry file, which must include them directly: %w",
+			modelIncludePrefix, &restored)
+	}
+
+	return &restored
+}
+
+func embedModelIncludes(src string) (string, *embeddedModel, error) {
+	embedded := &embeddedModel{includes: map[string]string{}}
+	if !modelIncludeRE.MatchString(src) {
+		return src, embedded, nil
+	}
+
+	dir, err := os.MkdirTemp("", "apidef-model-")
+	if err == nil {
+		dir, err = filepath.Abs(dir)
+	}
+	if err != nil {
+		return "", embedded, err
+	}
+	embedded.dir = dir
+
+	written := map[string]string{}
+	var werr error
+	out := modelIncludeRE.ReplaceAllStringFunc(src, func(include string) string {
+		m := modelIncludeRE.FindStringSubmatch(include)
+		name := m[2] + m[3] + m[4]
+		path, ok := written[name]
+		if !ok {
+			data, rerr := model.Read(name)
+			if rerr != nil {
+				return include
+			}
+			path = filepath.Join(dir, name)
+			if err := os.WriteFile(path, data, 0644); err != nil && werr == nil {
+				werr = err
+			}
+			written[name] = path
+		}
+		rewritten := "@" + m[1] + jsonStringify(filepath.ToSlash(path))
+		embedded.includes[rewritten] = include
+		return rewritten
+	})
+
+	if werr != nil {
+		embedded.cleanup()
+		return "", &embeddedModel{}, werr
+	}
+
+	return out, embedded, nil
+}
+
+// guideJSON quotes as the TS writer's JSON.stringify does, so both ports
+// write the same base-guide bytes.
+func guideJSON(v any) string {
+	if s, ok := v.(string); ok {
+		return jsonStringify(s)
+	}
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+	enc.Encode(v)
+	return strings.TrimSuffix(buf.String(), "\n")
+}
+
+// jsonStringify is JSON.stringify for a string, which leaves U+2028 and
+// U+2029 raw where encoding/json escapes them.
+func jsonStringify(s string) string {
+	var b strings.Builder
+	b.WriteByte('"')
+	for _, r := range s {
+		switch r {
+		case '"':
+			b.WriteString(`\"`)
+		case '\\':
+			b.WriteString(`\\`)
+		case '\b':
+			b.WriteString(`\b`)
+		case '\f':
+			b.WriteString(`\f`)
+		case '\n':
+			b.WriteString(`\n`)
+		case '\r':
+			b.WriteString(`\r`)
+		case '\t':
+			b.WriteString(`\t`)
+		default:
+			if r < 0x20 {
+				fmt.Fprintf(&b, `\u%04x`, r)
+			} else {
+				b.WriteRune(r)
+			}
+		}
+	}
+	b.WriteByte('"')
+	return b.String()
 }
 
 func buildGuideSource(ctx *ApiDefContext, baseguide map[string]any) string {
 	var blocks []string
-	blocks = append(blocks, "# Guide", "", "guide: {")
+	blocks = append(blocks, baseGuideHeader(ctx.Opts.OutPrefix)...)
+	blocks = append(blocks, "", "guide: {")
 
 	entity, _ := baseguide["entity"].(map[string]any)
 	metrics, _ := baseguide["metrics"].(map[string]any)
@@ -207,13 +470,13 @@ func buildGuideSource(ctx *ApiDefContext, baseguide map[string]any) string {
 			if path == nil {
 				continue
 			}
-			blocks = append(blocks, fmt.Sprintf("    path: %q: {", pathstr))
+			blocks = append(blocks, "    path: "+guideJSON(pathstr)+": {")
 
 			// Actions
 			if action, ok := path["action"].(map[string]any); ok && len(action) > 0 {
 				actionNames := sortedKeys(action)
 				for _, actname := range actionNames {
-					blocks = append(blocks, fmt.Sprintf("      action: %q: {}", actname))
+					blocks = append(blocks, "      action: "+guideJSON(actname)+": {}")
 				}
 			}
 
@@ -230,7 +493,7 @@ func buildGuideSource(ctx *ApiDefContext, baseguide map[string]any) string {
 						case map[string]any:
 							target, _ = v["target"].(string)
 						}
-						blocks = append(blocks, fmt.Sprintf("      rename: param: %q: *%q", psrc, target))
+						blocks = append(blocks, "      rename: param: "+guideJSON(psrc)+": *"+guideJSON(target))
 					}
 				}
 			}
@@ -248,8 +511,7 @@ func buildGuideSource(ctx *ApiDefContext, baseguide map[string]any) string {
 
 					if transform, ok := opdef["transform"].(map[string]any); ok {
 						if res := transform["res"]; res != nil {
-							qt, _ := json.Marshal(res)
-							blocks = append(blocks, fmt.Sprintf("      op: %s: transform: res: *(%s)|top", opname, string(qt)))
+							blocks = append(blocks, fmt.Sprintf("      op: %s: transform: res: *(%s)|top", opname, guideJSON(res)))
 						}
 						if reqmap, ok := transform["req"].(map[string]any); ok {
 							for _, bodykey := range sortedKeys(reqmap) {
@@ -257,11 +519,9 @@ func buildGuideSource(ctx *ApiDefContext, baseguide map[string]any) string {
 								if !ok {
 									continue
 								}
-								qk, _ := json.Marshal(bodykey)
-								qv, _ := json.Marshal(source)
 								blocks = append(blocks, fmt.Sprintf(
 									"      op: %s: transform: req: %s: *(%s)|top",
-									opname, string(qk), string(qv)))
+									opname, guideJSON(bodykey), guideJSON(source)))
 							}
 						}
 					}
@@ -305,8 +565,9 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 		"def":   def,
 		"guide": guide,
 		"work": map[string]any{
-			"pathmap": map[string]any{},
-			"entmap":  map[string]any{},
+			"pathmap":  map[string]any{},
+			"entmap":   map[string]any{},
+			"envelope": map[string]string{},
 			"entity": map[string]any{
 				"count": map[string]any{
 					"seen":       0,
@@ -378,11 +639,13 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 	}
 
 	// Phase 2: MeasureRef - count component schema references
-	cmpXrefs := selectCmpXrefs(def)
+	refCounts := CountRefs(def)
 	origcmprefs, _ := countMap["origcmprefs"].(map[string]int)
 	cmpMap := foundMap["cmp"].(map[string]any)
-	for _, xref := range cmpXrefs {
-		xrefVal, _ := xref["val"].(string)
+	for _, xrefVal := range sortedKeysInt64(refCounts) {
+		if !cmpXrefRE.MatchString(xrefVal) {
+			continue
+		}
 		m := xrefRE.FindStringSubmatch(xrefVal)
 		if m != nil {
 			name := CanonizeCmpName(m[2])
@@ -390,7 +653,7 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 				countMap["cmp"] = toInt(countMap["cmp"]) + 1
 				origcmprefs[name] = 0
 			}
-			origcmprefs[name]++
+			origcmprefs[name] = int(refSatAdd(int64(origcmprefs[name]), refCounts[xrefVal]))
 
 			if _, exists := cmpMap[name]; !exists {
 				cmpMap[name] = map[string]any{"orig": m[2]}
@@ -400,6 +663,11 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 
 	// Phase 3: selectAllMethods + process each method
 	allMethods := selectAllMethods(ctx, data)
+
+	for _, mdesc := range allMethods {
+		measureEnvelope(data, mdesc)
+	}
+	measureEnvelopeItems(data)
 
 	for _, mdesc := range allMethods {
 		resolveEntityComponent(data, mdesc)
@@ -417,19 +685,6 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 	}
 
 	return guide, nil
-}
-
-// selectCmpXrefs finds all x-ref values that match components/schemas or definitions.
-func selectCmpXrefs(def map[string]any) []map[string]any {
-	xrefs := Find(def, "x-ref")
-	var out []map[string]any
-	for _, xref := range xrefs {
-		val, _ := xref["val"].(string)
-		if strings.Contains(val, "components/schemas") || strings.Contains(val, "definitions") {
-			out = append(out, xref)
-		}
-	}
-	return out
 }
 
 // selectAllMethods collects all path+method combinations, sorted by path then method order.
@@ -489,6 +744,48 @@ func selectAllMethods(ctx *ApiDefContext, data map[string]any) []map[string]any 
 	return methods
 }
 
+// measureEnvelope mirrors MeasureEnvelope in ts/src/guide/heuristic01.ts.
+func measureEnvelope(data map[string]any, mdesc map[string]any) {
+	work := data["work"].(map[string]any)
+	envelope := work["envelope"].(map[string]string)
+	pathStr, _ := mdesc["path"].(string)
+	pathmap, _ := work["pathmap"].(map[string]any)
+	pathEntry, _ := pathmap[pathStr].(map[string]any)
+	parts, _ := pathEntry["parts"].([]string)
+	opname := methodOpname(mdesc, matchEntityPath(parts), &[]string{})
+
+	responses, _ := mdesc["responses"].(map[string]any)
+	unwrapref, _ := getResponseSchema(successResponse(responses))["x-ref"].(string)
+	for _, schema := range successSchemas(responses) {
+		xref, ok := schema["x-ref"].(string)
+		if !ok {
+			continue
+		}
+		itemref := ""
+		if opname != "" && xref == unwrapref {
+			itemref = envelopeItemRef(schema, opname)
+		}
+		if prior, seen := envelope[xref]; seen && prior == "" {
+			itemref = ""
+		}
+		envelope[xref] = itemref
+	}
+}
+
+// measureEnvelopeItems mirrors MeasureEnvelopeItems in ts/src/guide/heuristic01.ts.
+func measureEnvelopeItems(data map[string]any) {
+	envelope := data["work"].(map[string]any)["envelope"].(map[string]string)
+	carriers := map[string]int{}
+	for _, itemref := range envelope {
+		carriers[itemref]++
+	}
+	for xref, itemref := range envelope {
+		if carriers[itemref] > 1 {
+			envelope[xref] = ""
+		}
+	}
+}
+
 // resolveEntityComponent finds potential schema refs and determines entity component.
 func resolveEntityComponent(data map[string]any, mdesc map[string]any) {
 	guide := data["guide"].(map[string]any)
@@ -510,7 +807,8 @@ func resolveEntityComponent(data map[string]any, mdesc map[string]any) {
 
 	responses, _ := mdesc["responses"].(map[string]any)
 
-	origxrefs := findPotentialSchemaRefs(pathStr, methodName, responses)
+	envelope, _ := work["envelope"].(map[string]string)
+	origxrefs := findPotentialSchemaRefs(pathStr, methodName, responses, envelope, &whyCmp)
 	var origxrefMaps []map[string]any
 	for _, val := range origxrefs {
 		origxrefMaps = append(origxrefMaps, map[string]any{"val": val})
@@ -728,17 +1026,21 @@ func resolveEntityName(ctx *ApiDefContext, data map[string]any, mdesc map[string
 	}
 
 	var entname string
-	var pm *PathMatchResult
+	pm := matchEntityPath(parts)
+	expr := ""
+	if pm != nil {
+		expr = pm.Expr
+	}
 
-	if pm = PathMatch(parts, "t/p/t/"); pm != nil {
+	if expr == "t/p/t/" {
 		entname = entityPathMatch_tpte(data, pm, mdesc, &whyPath)
-	} else if pm = PathMatch(parts, "t/p/"); pm != nil {
+	} else if expr == "t/p/" {
 		entname = entityPathMatch_tpe(data, pm, mdesc, &whyPath)
-	} else if pm = PathMatch(parts, "p/t/"); pm != nil {
+	} else if expr == "p/t/" {
 		entname = entityPathMatch_pte(data, pm, mdesc, &whyPath)
-	} else if pm = PathMatch(parts, "t/"); pm != nil {
+	} else if expr == "t/" {
 		entname = entityPathMatch_te(data, pm, mdesc, &whyPath)
-	} else if pm = PathMatch(parts, "t/p/p"); pm != nil {
+	} else if expr == "t/p/p" {
 		entname = entityPathMatch_tpp(data, pm, mdesc, &whyPath)
 	} else {
 		entname = inferEntityName(mdesc, parts, &whyPath)
@@ -1182,7 +1484,7 @@ func resolveOperation(data map[string]any, mdesc map[string]any) {
 	standardOpname := opname
 
 	if standardOpname == "load" {
-		islist := isListResponse(mdesc, pathStr, &whyOp)
+		islist := isListResponse(mdesc, getPM(ment), pathStr, &whyOp)
 		if islist {
 			opname = "list"
 		}
@@ -1254,14 +1556,7 @@ func resolveTransform(data map[string]any, mdesc map[string]any) {
 
 	// Check response schema
 	responses, _ := mdesc["responses"].(map[string]any)
-	var resokdef map[string]any
-	if r200, ok := responses["200"].(map[string]any); ok {
-		resokdef = r200
-	} else if r201, ok := responses["201"].(map[string]any); ok {
-		resokdef = r201
-	}
-
-	resprops := getResponseSchemaProps(resokdef)
+	resprops := getResponseSchemaProps(successResponse(responses))
 	DebugPath(pathStr, methodName, "TRANSFORM-RES", resprops)
 
 	origname := safeStr(entdesc["origname"])
@@ -1832,11 +2127,29 @@ func inferEntityName(mdesc map[string]any, parts []string, why *[]string) string
 	return ""
 }
 
-// isListResponse checks if a GET response is a list.
-func isListResponse(mdesc map[string]any, pathStr string, why *[]string) bool {
-	ment, _ := mdesc["MethodEntity"].(map[string]any)
-	pm := getPM(ment)
+func matchEntityPath(parts []string) *PathMatchResult {
+	for _, shape := range ENTITY_PATH_SHAPES {
+		if pm := PathMatch(parts, shape); pm != nil {
+			return pm
+		}
+	}
+	return nil
+}
 
+// methodOpname is the operation resolveOperation will assign, needed before
+// the entity is named: whether a response unwraps as an envelope depends on it.
+func methodOpname(mdesc map[string]any, pm *PathMatchResult, why *[]string) string {
+	methodName, _ := mdesc["method"].(string)
+	pathStr, _ := mdesc["path"].(string)
+	opname := METHOD_IDOP[methodName]
+	if opname == "load" && isListResponse(mdesc, pm, pathStr, why) {
+		return "list"
+	}
+	return opname
+}
+
+// isListResponse checks if a GET response is a list.
+func isListResponse(mdesc map[string]any, pm *PathMatchResult, pathStr string, why *[]string) bool {
 	islist := false
 
 	endParamAnchored := pm != nil && strings.HasSuffix(pm.Expr, "p/")
@@ -1852,17 +2165,7 @@ func isListResponse(mdesc map[string]any, pathStr string, why *[]string) bool {
 	var schema map[string]any
 
 	if responses != nil {
-		// Try 200 then 201
-		for _, code := range []string{"200", "201"} {
-			resdef, ok := responses[code].(map[string]any)
-			if !ok {
-				continue
-			}
-			schema = getResponseSchema(resdef)
-			if schema != nil {
-				break
-			}
-		}
+		schema = getResponseSchema(successResponse(responses))
 	}
 
 	if schema == nil {
@@ -1964,6 +2267,27 @@ func getRequestBodySchema(requestBody map[string]any) map[string]any {
 		return schema
 	}
 	return nil
+}
+
+// successResponse mirrors ts/src/guide/heuristic01.ts.
+func successResponse(responses map[string]any) map[string]any {
+	if r200, ok := responses["200"].(map[string]any); ok {
+		return r200
+	}
+	r201, _ := responses["201"].(map[string]any)
+	return r201
+}
+
+// successSchemas mirrors ts/src/guide/heuristic01.ts.
+func successSchemas(responses map[string]any) []map[string]any {
+	var schemas []map[string]any
+	for _, rescode := range []string{"200", "201"} {
+		resdef, _ := responses[rescode].(map[string]any)
+		if schema := getResponseSchema(resdef); schema != nil {
+			schemas = append(schemas, schema)
+		}
+	}
+	return schemas
 }
 
 // getResponseSchema extracts schema from a response definition.
@@ -2165,23 +2489,19 @@ func makeMethodEntityDesc(desc map[string]any) map[string]any {
 }
 
 // findPotentialSchemaRefs finds x-ref values in responses.
-func findPotentialSchemaRefs(pathStr string, methodName string, responses map[string]any) []string {
+func findPotentialSchemaRefs(pathStr string, methodName string, responses map[string]any,
+	envelope map[string]string, why *[]string) []string {
 	var xrefs []string
-	if responses == nil {
-		return xrefs
-	}
-	rescodes := []string{"200", "201"}
-	for _, rescode := range rescodes {
-		resdef, ok := responses[rescode].(map[string]any)
-		if !ok {
-			continue
-		}
-		schema := getResponseSchema(resdef)
-		if schema == nil {
-			continue
-		}
+	for _, schema := range successSchemas(responses) {
 		if xref, ok := schema["x-ref"].(string); ok {
-			xrefs = append(xrefs, xref)
+			// An envelope component names its wrapping, not the entity: the
+			// component it carries takes its place.
+			if itemref := envelope[xref]; itemref != "" {
+				*why = append(*why, "envelope="+cmpRefName(xref))
+				xrefs = append(xrefs, itemref)
+			} else {
+				xrefs = append(xrefs, xref)
+			}
 		} else if schemaType, _ := schema["type"].(string); schemaType == "array" {
 			if items, ok := schema["items"].(map[string]any); ok {
 				if xref, ok := items["x-ref"].(string); ok {
@@ -2193,6 +2513,14 @@ func findPotentialSchemaRefs(pathStr string, methodName string, responses map[st
 
 	DebugPath(pathStr, methodName, "POTENTIAL-SCHEMA-REFS", xrefs)
 	return xrefs
+}
+
+func cmpRefName(xref string) string {
+	m := xrefRE.FindStringSubmatch(xref)
+	if m == nil {
+		return xref
+	}
+	return CanonizeCmpName(m[2])
 }
 
 // hasMethod checks if a path has a specific HTTP method.
@@ -2369,73 +2697,4 @@ func nilOrStr(v any) string {
 		return ""
 	}
 	return s
-}
-
-func readGuideIdOverrides(guideDir string, prefix string) map[string]map[string]any {
-	out := map[string]map[string]any{}
-
-	raw, err := os.ReadFile(guideOverlayPath(guideDir, prefix))
-	if err != nil {
-		return out
-	}
-
-	// entity: <name>: id: <key>: <value>
-	// Same shape the refusal check exempts, with the value captured.
-	re := regexp.MustCompile(
-		`(?m)^\s*entity:\s*([A-Za-z0-9_]+):\s*id:\s*(parts|sep|composite):\s*(.+?)\s*$`)
-
-	for _, m := range re.FindAllStringSubmatch(string(raw), -1) {
-		entname, key, value := m[1], m[2], strings.TrimSpace(m[3])
-
-		if out[entname] == nil {
-			out[entname] = map[string]any{}
-		}
-
-		switch key {
-		case "composite":
-			out[entname]["composite"] = "true" == value
-		case "sep":
-			out[entname]["sep"] = strings.Trim(value, `'"`)
-		case "parts":
-			parts := []any{}
-			for _, p := range strings.Split(strings.Trim(value, "[]"), ",") {
-				if p = strings.Trim(strings.TrimSpace(p), `'"`); "" != p {
-					parts = append(parts, p)
-				}
-			}
-			if 0 < len(parts) {
-				out[entname]["parts"] = parts
-			}
-		}
-	}
-
-	return out
-}
-
-// applyGuideIdOverrides merges the scanned id blocks into the guide model the
-// transforms read, so FieldTransform sees what the TS port sees.
-func applyGuideIdOverrides(guideModel map[string]any, overrides map[string]map[string]any) {
-	if 0 == len(overrides) {
-		return
-	}
-
-	entities, _ := guideModel["entity"].(map[string]any)
-	if entities == nil {
-		return
-	}
-
-	for entname, id := range overrides {
-		gent, _ := entities[entname].(map[string]any)
-		if gent == nil {
-			continue
-		}
-		existing, _ := gent["id"].(map[string]any)
-		if existing == nil {
-			existing = map[string]any{}
-			gent["id"] = existing
-		}
-		for k, v := range id {
-			existing[k] = v
-		}
-	}
 }

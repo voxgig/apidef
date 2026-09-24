@@ -48,6 +48,88 @@ that wildly different spellings collapse onto one canonical identifier:
 Nested collections become nested entities with an **ancestor** relationship:
 `moon` records that it lives under `planet`.
 
+## When a schema names the entity
+
+A response that refers to a component schema offers a second name, and the
+two can disagree. The schema might be the entity itself, or it might be a
+shape many entities share, such as an error body. The guide decides by how
+often the schema is used. A schema whose name is the path's name, or begins
+with it, agrees with the path, and the path's name stands.
+
+A response schema that is an envelope is judged by what it carries, never
+by its own name. An envelope wraps the record in its one structured
+property: for a list operation, an array of records beside nothing but
+paging, like `{ items: [Observation], page, pageSize, total }`; for a
+single-item operation, a lone property like `{ data: Item }`. The guide
+unwraps the envelope and applies the rule below to the record's schema,
+with that schema's count and that schema's name. It starts from the test
+the field transform uses to unwrap a response, so an entity named after a
+record takes its fields from that record too.
+
+The naming test is narrower than the field transform's, which accepts any
+schema whose only structured property is one list or one nested object.
+An envelope declares no `id`, and a single-item envelope holds nothing
+beside the item. A page holds nothing beside its records but paging: a
+count or total, a page number or size, a limit or offset, a cursor, a next
+or previous link, a has-more flag, or the `object` and `url` of a list
+object. Any other property is data, such as the totals of a test report
+beside its suites or a balance beside a list of errors, and it makes the
+schema a record that keeps its own name. Being an envelope also belongs to
+the schema rather than to one operation. An operation unwraps only the
+response it reads its result from: its `200`, or its `201` when it has no
+`200`. When any operation that answers with the schema would not unwrap
+it, such as a create that returns the whole list of members, or an
+operation that answers with it only beside a `200` of another shape, no
+operation unwraps it for naming. The operations on one resource then stay
+under one name, and no entity is named after a record that its operations
+never unwrap. A response that spells its envelope inline offers no
+component name, so the rule leaves it alone.
+
+When more than one envelope carries the same record, none of them names
+through it. Two usage reports, one wrapping a metrics record as `tokens`
+and the other as `packages`, are two resources, and their own names are
+what tell them apart. Named after the metrics record, they would merge into
+one entity with a single load, and where both reports take the same owner
+and repository, that load could not choose between them. Each report is
+judged by its own schema instead, as it would be with no envelope rule.
+
+Each reference to a component schema counts once per use in the resolved
+spec, the spec with every `$ref` replaced by the schema it names. A schema
+reached through a shared response counts once for the response's own
+definition and once more for every operation that uses it, and so does
+every reference inside that schema. An alias, a schema that is only a
+`$ref` to another, resolves to the end of its chain under its own name: a
+use of it counts for the alias alone, and each later link counts only where
+it is written. The guide divides the count by the number of methods and by
+the number of paths, and a schema rare on either measure names the entity.
+The path measure is usually the stricter: it decides unless a spec averages
+about two methods per path or more. A schema used more often yields to the
+name the path gives, unless the schema's own name is a literal segment of
+some path in the spec. The guide
+reference states the rule, with its thresholds, under [Component reference
+counts](../reference/guide.md#component-reference-counts).
+
+A recursive schema would make its own count infinite, so the count follows
+each reference until it returns to a schema already being expanded, and
+stops there. Where a cycle could close at more than one reference, the
+references are visited in a fixed order, which makes the cut the same in
+the TypeScript and Go builds. A count also has a ceiling: a large spec can
+multiply its uses past any number a build holds exactly, and no rate needs
+a count anywhere near it.
+
+The taxonomy spec shows both rules. Its domain and kingdom collections
+answer with one `PaginatedTaxa` page, through a shared response, and its
+observation collection, which has no other operation, answers with a
+`PaginatedObservations` page. The guide unwraps each page. `Taxon`,
+counted per use across every response that carries it, is frequent, so
+each list joins the entity its path names, however often the page itself
+is used. `Observation` is rare, and its name agrees with the path, so the
+collection becomes `observation` rather than `paginated_observation`. The
+`envelope-item-ref` and `ref-count` rows of the shared fixtures pin the
+envelope test and the counts, and the `guide-envelope` and
+`guide-shared-wrapper` tests pin those outcomes on smaller specs of the
+same shape.
+
 ## Classifying methods into operations
 
 Within an entity, each HTTP method on each path maps to a CRUD operation,

@@ -9,9 +9,11 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	jostraca "github.com/jostraca/jostraca/go"
 )
 
-const VERSION = "0.11.0"
+const VERSION = "0.12.0"
 
 // ApiDef creates a new API definition generator with the given options.
 func NewApiDef(opts ApiDefOptions) *apiDefInstance {
@@ -113,15 +115,24 @@ func (a *apiDefInstance) Generate(spec map[string]any) (*ApiDefResult, error) {
 		Work: map[string]any{},
 	}
 
+	fail := func(err error) (*ApiDefResult, error) {
+		warn.Warn(map[string]any{
+			"err":  err.Error(),
+			"note": "!! BUILD FAILED !! " + err.Error(),
+		})
+		WriteFileWarn(warn, "./apidef-warnings.txt", warningsFileText(warn.History()))
+		return makeErrorResult(start, steps, ctrl, ctx, err), err
+	}
+
 	// Load and parse definition
 	defsrc, err := LoadFile(defpath)
 	if err != nil {
-		return makeErrorResult(start, steps, ctrl, ctx, err), err
+		return fail(err)
 	}
 
 	def, err := Parse("OpenAPI", defsrc, map[string]string{"file": defpath})
 	if err != nil {
-		return makeErrorResult(start, steps, ctrl, ctx, err), err
+		return fail(err)
 	}
 
 	// Write debug file if debug mode
@@ -147,19 +158,13 @@ func (a *apiDefInstance) Generate(spec map[string]any) (*ApiDefResult, error) {
 
 	guideModel, err := BuildGuide(ctx)
 	if err != nil {
-		return makeErrorResult(start, steps, ctrl, ctx, err), err
+		return fail(err)
 	}
 	if guideModel == nil {
-		err := fmt.Errorf("unable to build guide")
-		return makeErrorResult(start, steps, ctrl, ctx, err), err
+		return fail(fmt.Errorf("unable to build guide"))
 	}
 
-	// Extract the "guide" key from the guide model result (matching TS: ctx.guide = guideModel.guide)
-	if g, ok := guideModel["guide"].(map[string]any); ok {
-		ctx.Guide = g
-	} else {
-		ctx.Guide = guideModel
-	}
+	ctx.Guide, _ = guideModel["guide"].(map[string]any)
 	steps = append(steps, "guide")
 
 	// Step: transformers
@@ -185,7 +190,7 @@ func (a *apiDefInstance) Generate(spec map[string]any) (*ApiDefResult, error) {
 
 	for _, t := range transforms {
 		if _, err := t(ctx); err != nil {
-			return makeErrorResult(start, steps, ctrl, ctx, err), err
+			return fail(err)
 		}
 	}
 	steps = append(steps, "transformers")
@@ -200,11 +205,11 @@ func (a *apiDefInstance) Generate(spec map[string]any) (*ApiDefResult, error) {
 
 	entityBuilder, err := MakeEntityBuilder(ctx)
 	if err != nil {
-		return makeErrorResult(start, steps, ctrl, ctx, err), err
+		return fail(err)
 	}
 	flowBuilder, err := MakeFlowBuilder(ctx)
 	if err != nil {
-		return makeErrorResult(start, steps, ctrl, ctx, err), err
+		return fail(err)
 	}
 	steps = append(steps, "builders")
 
@@ -216,29 +221,43 @@ func (a *apiDefInstance) Generate(spec map[string]any) (*ApiDefResult, error) {
 		}, nil
 	}
 
-	// Run builders to generate output files
-	if err := entityBuilder(); err != nil {
-		return makeErrorResult(start, steps, ctrl, ctx, err), err
-	}
-	if err := flowBuilder(); err != nil {
-		return makeErrorResult(start, steps, ctrl, ctx, err), err
-	}
+	builders := []Builder{entityBuilder, flowBuilder}
 
-	// Write warnings if any
-	warnings := warn.History()
-	if len(warnings) > 0 {
-		var warningTexts []string
-		for _, w := range warnings {
-			warningTexts = append(warningTexts, FormatJSONIC(w))
-		}
-		WriteFileWarn(warn, "./apidef-warnings.txt",
-			strings.Join(warningTexts, "\n\n"))
+	jopts := []jostraca.Option{jostraca.WithLog(jostracaLog{ctx.Log})}
+	if now, ok := spec["now"].(func() int64); ok {
+		jopts = append(jopts, jostraca.WithNow(now))
+	}
+	write, merge := true, false
+
+	jres, err := jostraca.New(jopts...).Generate(jostraca.Options{
+		Folder: a.opts.Folder,
+		Model:  map[string]any{},
+		Existing: jostraca.Existing{
+			Txt: jostraca.ExistingTxt{Write: &write, Merge: &merge},
+		},
+	}, func(j *jostraca.J) {
+		j.Project(jostraca.ProjectProps{Folder: "."}, func(j *jostraca.J) {
+			for _, builder := range builders {
+				builder(j)
+			}
+		})
+	})
+	if err != nil {
+		return fail(err)
 	}
 
 	steps = append(steps, "generate")
 
+	kitEntity, _ := getKit(ctx)["entity"].(map[string]any)
+	GcEntityFiles(ctx.Log, a.opts.Folder, a.opts.OutPrefix, sortedKeys(kitEntity))
+
+	if warnings := warn.History(); len(warnings) > 0 {
+		WriteFileWarn(warn, "./apidef-warnings.txt", warningsFileText(warnings))
+	}
+
 	return &ApiDefResult{
 		OK:       true,
+		Reload:   len(jres.Files.Written) > 0 || len(jres.Files.Merged) > 0,
 		Start:    start,
 		End:      time.Now().UnixMilli(),
 		Steps:    steps,
@@ -246,7 +265,16 @@ func (a *apiDefInstance) Generate(spec map[string]any) (*ApiDefResult, error) {
 		Guide:    ctx.Guide,
 		ApiModel: ctx.ApiModel,
 		Ctx:      ctx,
+		Jres:     &jres,
 	}, nil
+}
+
+func warningsFileText(history []map[string]any) string {
+	texts := make([]string, 0, len(history))
+	for _, w := range history {
+		texts = append(texts, FormatJSONIC(w))
+	}
+	return strings.Join(texts, "\n\n")
 }
 
 // MakeBuild creates a build function from options.
@@ -298,5 +326,23 @@ func makeErrorResult(start int64, steps []string, ctrl map[string]any, ctx *ApiD
 		Guide:    ctx.Guide,
 		ApiModel: ctx.ApiModel,
 		Ctx:      ctx,
+	}
+}
+
+// jostracaLog hands jostraca's replayed warnings to apidef's logger, as the
+// TS port passes its own. Without one they are dropped: jostraca's default
+// would print them to stdout.
+type jostracaLog struct{ log Logger }
+
+func (l jostracaLog) Trace(args ...any) { l.forward(Logger.Debug, args) }
+func (l jostracaLog) Debug(args ...any) { l.forward(Logger.Debug, args) }
+func (l jostracaLog) Info(args ...any)  { l.forward(Logger.Info, args) }
+func (l jostracaLog) Warn(args ...any)  { l.forward(Logger.Warn, args) }
+func (l jostracaLog) Error(args ...any) { l.forward(Logger.Error, args) }
+func (l jostracaLog) Fatal(args ...any) { l.forward(Logger.Error, args) }
+
+func (l jostracaLog) forward(level func(Logger, ...any), args []any) {
+	if l.log != nil {
+		level(l.log, args...)
 	}
 }

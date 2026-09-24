@@ -44,12 +44,17 @@
     "field": "id",
     "name": "id"
   },
-  "name": "paginated_observation",
+  "name": "observation",
   "op": {
     "list": {
       "name": "list",
       "points": [
         {
+          "co": {
+            "id": "GET /{year}/observation",
+            "source": "openapi3",
+            "version": 2
+          },
           "g": {
             "params": [
               {
@@ -79,13 +84,15 @@
               }
             ]
           },
-          "co": {
-            "id": "GET /{year}/observation",
-            "source": "openapi3",
-            "version": 2
-          },
           "m": "GET",
           "o": "/{year}/observation",
+          "q": {
+            "exist": [
+              "page",
+              "page_size",
+              "year"
+            ]
+          },
           "s": [
             {
               "var": "year"
@@ -94,13 +101,6 @@
               "lit": "observation"
             }
           ],
-          "q": {
-            "exist": [
-              "page",
-              "page_size",
-              "year"
-            ]
-          },
           "t": {
             "req": "`reqdata`",
             "res": "`body.items`"

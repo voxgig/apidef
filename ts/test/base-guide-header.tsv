@@ -1,0 +1,4 @@
+prefix	expected
+	["# Generated from the API definition and overwritten on every build: do not", "# edit this file. Put customizations in the guide entry file, which includes", "# this one and overrides its defaults:", "#   guide.aontu"]
+x-	["# Generated from the API definition and overwritten on every build: do not", "# edit this file. Put customizations in the guide entry file, which includes", "# this one and overrides its defaults:", "#   x-guide.aontu"]
+solar-1.0.0-openapi-3.0.0-	["# Generated from the API definition and overwritten on every build: do not", "# edit this file. Put customizations in the guide entry file, which includes", "# this one and overrides its defaults:", "#   solar-1.0.0-openapi-3.0.0-guide.aontu"]

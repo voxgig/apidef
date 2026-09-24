@@ -2,7 +2,7 @@
 
 import Path from 'node:path'
 
-import { Jostraca, Project, File, Content, each } from 'jostraca'
+import { each } from 'jostraca'
 
 import { Aontu } from 'aontu'
 
@@ -46,17 +46,8 @@ const aontu = new Aontu()
 
 
 
-// A `.aon` entry file is unresolvable: aontu reads only `.aontu` as source.
-// So this renames AND rewrites both includes — a repair, not a convenience.
-function migrateLegacyGuide(fs: any, folder: string, guideprefix: string): boolean {
-  const guidepath = Path.join(folder, 'guide', guideprefix + 'guide.aontu')
-  const legacyguide = Path.join(folder, 'guide', guideprefix + 'guide.aon')
-
-  if (fs.existsSync(guidepath) || !fs.existsSync(legacyguide)) {
-    return false
-  }
-
-  let migrated = String(fs.readFileSync(legacyguide, 'utf8'))
+function migrateGuideIncludes(src: string, guideprefix: string): string {
+  let migrated = src
     .replace(/@"@voxgig\/apidef\/model\/guide\.aon"/g,
       '@"@voxgig/apidef/model/guide.aontu"')
 
@@ -67,7 +58,30 @@ function migrateLegacyGuide(fs: any, folder: string, guideprefix: string): boole
       .join('@"' + dir + guideprefix + 'base-guide.aontu"')
   }
 
-  fs.writeFileSync(guidepath, migrated)
+  return migrated
+}
+
+
+// aontu refuses a bare sibling include, so it gains the `./` it needs.
+function prefixGuideInclude(src: string, guideprefix: string): string {
+  return src
+    .split('@"' + guideprefix + 'base-guide.aontu"')
+    .join('@"./' + guideprefix + 'base-guide.aontu"')
+}
+
+
+// A `.aon` entry file is unresolvable: aontu reads only `.aontu` as source.
+// So this renames AND rewrites both includes — a repair, not a convenience.
+function migrateLegacyGuide(fs: any, folder: string, guideprefix: string): boolean {
+  const guidepath = Path.join(folder, 'guide', guideprefix + 'guide.aontu')
+  const legacyguide = Path.join(folder, 'guide', guideprefix + 'guide.aon')
+
+  if (fs.existsSync(guidepath) || !fs.existsSync(legacyguide)) {
+    return false
+  }
+
+  fs.writeFileSync(guidepath,
+    migrateGuideIncludes(String(fs.readFileSync(legacyguide, 'utf8')), guideprefix))
   try { fs.unlinkSync(legacyguide) } catch (_err: any) { }
 
   return true
@@ -79,20 +93,26 @@ function migrateLegacyGuide(fs: any, folder: string, guideprefix: string): boole
 function migrateLegacyGuideInclude(
   fs: any, guidepath: string, guideprefix: string
 ): boolean {
+  return rewriteGuide(fs, guidepath, (src) => migrateGuideIncludes(src, guideprefix))
+}
+
+
+function migrateGuideIncludePrefix(
+  fs: any, guidepath: string, guideprefix: string
+): boolean {
+  return rewriteGuide(fs, guidepath, (src) => prefixGuideInclude(src, guideprefix))
+}
+
+
+function rewriteGuide(
+  fs: any, guidepath: string, rewrite: (src: string) => string
+): boolean {
   if (!fs.existsSync(guidepath)) {
     return false
   }
 
   const src = String(fs.readFileSync(guidepath, 'utf8'))
-  let migrated = src
-    .replace(/@"@voxgig\/apidef\/model\/guide\.aon"/g,
-      '@"@voxgig/apidef/model/guide.aontu"')
-
-  for (const dir of ['', './']) {
-    migrated = migrated
-      .split('@"' + dir + guideprefix + 'base-guide.aon"')
-      .join('@"' + dir + guideprefix + 'base-guide.aontu"')
-  }
+  const migrated = rewrite(src)
 
   if (migrated === src) {
     return false
@@ -103,27 +123,27 @@ function migrateLegacyGuideInclude(
   return true
 }
 
-function migrateGuideIncludePrefix(
-  fs: any, guidepath: string, guideprefix: string
-): boolean {
-  if (!fs.existsSync(guidepath)) {
-    return false
-  }
 
-  const bare = '@"' + guideprefix + 'base-guide.aontu"'
-  const src = String(fs.readFileSync(guidepath, 'utf8'))
 
-  if (!src.includes(bare)) {
-    return false
-  }
 
-  fs.writeFileSync(guidepath,
-    src.split(bare).join('@"./' + guideprefix + 'base-guide.aontu"'))
-
-  return true
+function guideConflictMessage(
+  path: string, conflict: { line: number, text: string }
+): string {
+  return `@voxgig/apidef: guide: unresolved merge conflict at ${path}:${conflict.line}\n` +
+    `  ${conflict.text}\n` +
+    `Resolve the marked block in ${path}.`
 }
 
 
+function missingGuideMessage(path: string, guideprefix: string): string {
+  return `@voxgig/apidef: guide: ${path} defines no guide map; it needs the include ` +
+    `@"./${guideprefix}base-guide.aontu".`
+}
+
+
+function isPlainObject(val: any): boolean {
+  return null != val && 'object' === typeof val && !Array.isArray(val)
+}
 
 
 function findConflict(src: string): { line: number, text: string } | null {
@@ -147,7 +167,7 @@ async function buildGuide(ctx: ApiDefContext): Promise<any> {
   const folder = Path.resolve(ctx.opts.folder)
 
   try {
-    const basejres = await buildBaseGuide(ctx)
+    await buildBaseGuide(ctx)
   }
   catch (err: any) {
     errs.push(err)
@@ -193,35 +213,10 @@ async function buildGuide(ctx: ApiDefContext): Promise<any> {
 
   handleErrors(ctx, errs)
 
-  const basepath = Path.join(folder, 'guide', guideprefix + 'base-guide.aontu')
-  for (const checkpath of [guidepath, basepath]) {
-    let checksrc = ''
-    try {
-      checksrc = checkpath === guidepath ? src : String(ctx.fs.readFileSync(checkpath, 'utf8'))
-    }
-    catch (_err: any) {
-      continue
-    }
-
-    const conflict = findConflict(checksrc)
-    if (null != conflict) {
-      errs.push(new Error(
-        `@voxgig/apidef: guide: unresolved merge conflict at ${
-          relativizePath(checkpath)}:${conflict.line}\n` +
-        `  ${conflict.text}\n` +
-        `A guide is merged, not overwritten, so an edit the regenerated base\n` +
-        `guide contradicts is left for a human to settle. Resolve the marked\n` +
-        `block` +
-        // DELETING ONLY HELPS FOR THE BASE GUIDE. Regeneration rewrites that
-        // file, while the top-level entry guide is the user's own and is read
-        // back unchanged — so advising its deletion would send a reader in a
-        // circle, failing this same check on the next build.
-        (checkpath === basepath ?
-          `, or delete ${guideprefix}base-guide.aontu to regenerate it from the\n` +
-          `specification and re-apply the edit afterwards.` :
-          ` in ${relativizePath(checkpath)}.`)))
-      break
-    }
+  // Only the entry file: the base guide was just rewritten from the spec.
+  const conflict = findConflict(src)
+  if (null != conflict) {
+    errs.push(new Error(guideConflictMessage(relativizePath(guidepath), conflict)))
   }
 
   handleErrors(ctx, errs)
@@ -233,7 +228,7 @@ async function buildGuide(ctx: ApiDefContext): Promise<any> {
 
     const opts: any = {
       path: guidepath,
-      errs,
+      errfs: ctx.fs,
     }
 
     if (ctx.fsInjected) {
@@ -242,7 +237,19 @@ async function buildGuide(ctx: ApiDefContext): Promise<any> {
 
     ctx.work.guideAontuFs = undefined !== opts.fs
 
-    const guideModel = aontu.generate(src, opts)
+    // One AontuError carries every aontu failure, formatted: collect mode
+    // leaves a generation-time failure's message empty.
+    let guideModel: any
+    try {
+      guideModel = aontu.generate(src, opts)
+    }
+    catch (err: any) {
+      errs.push(err)
+    }
+
+    if (0 === errs.length && !isPlainObject(guideModel?.guide)) {
+      errs.push(new Error(missingGuideMessage(relativizePath(guidepath), guideprefix)))
+    }
 
     handleErrors(ctx, errs)
 
@@ -295,8 +302,10 @@ async function buildBaseGuide(ctx: ApiDefContext) {
     throw new Error('Unknown guide strategy: ' + ctx.opts.strategy)
   }
 
+  const guideprefix = null == ctx.opts.outprefix ? '' : ctx.opts.outprefix
+
   const guideBlocks = [
-    '# Guide',
+    ...baseGuideHeader(guideprefix),
     '',
     'guide: {',
   ]
@@ -431,25 +440,32 @@ async function buildBaseGuide(ctx: ApiDefContext) {
 
   ctx.note.guide = { base: guideSrc }
 
-  const baseGuideFileName =
-    (null == ctx.opts.outprefix ? '' : ctx.opts.outprefix) + 'base-guide.aontu'
+  const guidefolder = Path.join(ctx.opts.folder, 'guide')
+  ctx.fs.mkdirSync(guidefolder, { recursive: true })
+  ctx.fs.writeFileSync(Path.join(guidefolder, guideprefix + 'base-guide.aontu'), guideSrc)
+}
 
-  const jostraca = Jostraca({
-    folder: ctx.opts.folder + '/guide',
-    now: ctx.spec.now,
-    fs: () => ctx.fs,
-    log: ctx.log,
-  })
 
-  const root = () => Project({ folder: '.' }, async () => {
-    File({ name: baseGuideFileName }, () => Content(guideSrc))
-  })
+// The entry file a project writes once and owns; the CLI prints it.
+function guideEntrySource(guideprefix: string): string[] {
+  return [
+    '# Guide entry file: put customizations below the includes. The base guide',
+    '# it includes is generated and overwritten on every build.',
+    '@"@voxgig/apidef/model/guide.aontu"',
+    '@"./' + guideprefix + 'base-guide.aontu"',
+  ]
+}
 
-  const jres = await jostraca.generate({
-    existing: { txt: { merge: true } }
-  }, root)
 
-  return jres
+// Written into every base guide, so a reader of the file learns where an
+// edit belongs before making one there.
+function baseGuideHeader(guideprefix: string): string[] {
+  return [
+    '# Generated from the API definition and overwritten on every build: do not',
+    '# edit this file. Put customizations in the guide entry file, which includes',
+    '# this one and overrides its defaults:',
+    '#   ' + guideprefix + 'guide.aontu',
+  ]
 }
 
 
@@ -594,6 +610,13 @@ function validateBaseBuide(ctx: ApiDefContext, baseguide: any) {
 
 
 export {
+  migrateGuideIncludes,
+  prefixGuideInclude,
+  findConflict,
+  guideConflictMessage,
+  missingGuideMessage,
+  baseGuideHeader,
+  guideEntrySource,
   migrateLegacyGuide,
   migrateGuideIncludePrefix,
   buildGuide

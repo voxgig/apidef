@@ -52,6 +52,11 @@
       "name": "create",
       "points": [
         {
+          "co": {
+            "id": "POST /store/order",
+            "source": "swagger2",
+            "version": 2
+          },
           "g": {
             "query": [
               {
@@ -63,13 +68,13 @@
               }
             ]
           },
-          "co": {
-            "id": "POST /store/order",
-            "source": "swagger2",
-            "version": 2
-          },
           "m": "POST",
           "o": "/store/order",
+          "q": {
+            "exist": [
+              "body"
+            ]
+          },
           "s": [
             {
               "lit": "store"
@@ -78,11 +83,6 @@
               "lit": "order"
             }
           ],
-          "q": {
-            "exist": [
-              "body"
-            ]
-          },
           "t": {
             "req": "`reqdata`",
             "res": "`body`"
@@ -94,6 +94,11 @@
       "name": "load",
       "points": [
         {
+          "co": {
+            "id": "GET /store/order/{orderId}",
+            "source": "swagger2",
+            "version": 2
+          },
           "g": {
             "params": [
               {
@@ -105,13 +110,13 @@
               }
             ]
           },
-          "co": {
-            "id": "GET /store/order/{orderId}",
-            "source": "swagger2",
-            "version": 2
-          },
           "m": "GET",
           "o": "/store/order/{orderId}",
+          "q": {
+            "exist": [
+              "id"
+            ]
+          },
           "r": {
             "param": {
               "orderId": "id"
@@ -128,11 +133,6 @@
               "var": "id"
             }
           ],
-          "q": {
-            "exist": [
-              "id"
-            ]
-          },
           "t": {
             "req": "`reqdata`",
             "res": "`body`"

@@ -47,6 +47,9 @@ func runOnce(validateDir string, c benchCase, step map[string]any, budget time.D
 		return 0, err
 	}
 	defer os.RemoveAll(tmp)
+	if err := writeGuideEntry(tmp, cn+"-", validateOverlay(validateDir, cn)); err != nil {
+		return 0, err
+	}
 
 	apidef := NewApiDef(ApiDefOptions{
 		Folder:    tmp,

@@ -37,7 +37,7 @@ early — useful for tests and tooling. The stages, in order:
    builder and a flow builder produce in-memory file descriptors.
 
 5. **generate** — Hand the file descriptors to [`jostraca`](https://github.com/voxgig/jostraca),
-   which writes (and three-way merges) the files to disk.
+   which writes the files to disk, overwriting the previous run's output.
 
 The stages are described field-by-field in [Pipeline stages](../reference/pipeline.md).
 
@@ -62,9 +62,10 @@ apidef leans on the wider Voxgig toolchain rather than reinventing it:
   the spec (JSON *and* YAML) and emit the relaxed-JSON model files.
 - **[`jostraca`](https://github.com/voxgig/jostraca)** — the file generator. It
   owns `each`/`getx` iteration helpers, the `Project`/`Folder`/`File`/`Content`
-  builder DSL, and the merge-on-write behavior that preserves hand edits.
-- **[`aontu`](https://github.com/aontu-lang/aontu)** — a unification engine used by
-  downstream model resolution (apidef writes the model; aontu assembles it).
+  builder DSL, and the writer that puts the model files on disk, in both ports.
+- **[`aontu`](https://github.com/aontu-lang/aontu)** — the unification engine. The
+  guide stage evaluates the guide entry file with it, in both ports, and
+  downstream model resolution uses it to assemble the model apidef writes.
 - **`shape`** — lightweight structural validation of options and model inputs.
 - **`@voxgig/struct`** / **`@voxgig/util`** — shared data and logging utilities
   (`pino`-based structured logging).
@@ -75,10 +76,11 @@ apidef ships **two** complete implementations of the pipeline:
 
 - **`ts/`** — the canonical TypeScript implementation (this is the published
   npm package).
-- **`go/`** — a Go port that reproduces the TypeScript behavior exactly.
+- **`go/`** — a Go port that follows the TypeScript behavior.
 
-They are kept byte-compatible through shared fixtures and golden tests. The
-reasoning, and the rules for changing either side, are in
+Shared fixtures and golden tests pin the behavior the two already share, and a
+difference that is not yet closed is registered in the Go tests rather than
+hidden. The reasoning, and the rules for changing either side, are in
 [The canonical build and the parity port](./canonical-and-parity.md).
 
 ## Repository map

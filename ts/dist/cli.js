@@ -53,10 +53,10 @@ const node_path_1 = __importDefault(require("node:path"));
 const node_util_1 = require("node:util");
 const shape_1 = require("shape");
 const apidef_1 = require("./apidef");
+const guide_1 = require("./guide/guide");
 const Pkg = require('../package.json');
 const GUIDE_FILE = 'guide.aontu';
 const LEGACY_GUIDE_FILE = 'guide.aon';
-const BASE_GUIDE_FILE = 'base-guide.aontu';
 const WATCH_INTERVAL_MS = 500;
 const CONSOLE_IO = {
     log: (...args) => console.log(...args),
@@ -82,8 +82,7 @@ function usage() {
         'The model is written to <folder>/model, which must already hold the guide',
         'entry file <folder>/model/guide/<prefix>' + GUIDE_FILE + ':',
         '',
-        '  @"@voxgig/apidef/model/' + GUIDE_FILE + '"',
-        '  @"./<prefix>' + BASE_GUIDE_FILE + '"',
+        ...(0, guide_1.guideEntrySource)('<prefix>').map((line) => '  ' + line),
     ].join('\n');
 }
 function resolveOptions(argv) {
@@ -189,9 +188,8 @@ function checkProject(project) {
         return;
     }
     throw new Error('Guide entry file not found: ' + project.guide + '\n' +
-        'Create it with these two lines:\n' +
-        '  @"@voxgig/apidef/model/' + GUIDE_FILE + '"\n' +
-        '  @"./' + project.outprefix + BASE_GUIDE_FILE + '"');
+        'Create it with these lines:\n' +
+        (0, guide_1.guideEntrySource)(project.outprefix).map((line) => '  ' + line).join('\n'));
 }
 // The closure makeBuild returns memoises the ApiDef instance and its logger,
 // so a watch that reuses it rebuilds the model without rebuilding those.

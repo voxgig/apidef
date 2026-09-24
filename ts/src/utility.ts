@@ -1595,6 +1595,58 @@ function envelopeProp(resprops: any, opname: string): string | null {
 }
 
 
+// What a page may hold beside its records, compared without case, `_` or
+// `-`. Any other property is data, which makes the component a record.
+const ENVELOPE_PAGING_PROPS = new Set([
+  'count', 'total', 'totalcount', 'totalhits', 'totalitems', 'totalpages',
+  'totalresults', 'page', 'pages', 'pagecount', 'pagenumber', 'pagesize',
+  'perpage', 'limit', 'offset', 'cursor', 'next', 'nextcursor', 'nextpage',
+  'nextpagetoken', 'nexttoken', 'previous', 'prev', 'previouscursor',
+  'prevcursor', 'previouspage', 'prevpage', 'hasmore', 'hasnext',
+  'hasprevious', 'object', 'url',
+])
+
+
+function isEnvelopePagingProp(name: string): boolean {
+  return ENVELOPE_PAGING_PROPS.has(name.toLowerCase().replace(/[_-]/g, ''))
+}
+
+
+// The component a response envelope carries: the resolved reference of the
+// record envelopeProp unwraps to. Narrower than envelopeProp, since a record
+// with one structured property passes that test too: an envelope has no `id`,
+// a page holds nothing beside its records but paging, and a single-item
+// envelope holds nothing beside the item.
+function envelopeItemRef(schema: any, opname: string): string | null {
+  const props = schema?.properties
+  const key = envelopeProp(props, opname)
+  if (null == key || null != props.id) {
+    return null
+  }
+
+  const prop = props[key]
+  const islist = propIsList(prop)
+  const rest = keysof(props).filter((k: string) => k !== key)
+  if (islist ? !rest.every(isEnvelopePagingProp) : 0 < rest.length) {
+    return null
+  }
+
+  const item = islist ? prop.items : prop
+  if (!isRecordSchema(item)) {
+    return null
+  }
+
+  const xref = item['x-ref']
+  return 'string' === typeof xref && '' !== xref ? xref : null
+}
+
+
+function isRecordSchema(schema: any): boolean {
+  return null != schema && 'object' === typeof schema && (
+    null != schema.properties || null != schema.allOf || 'object' === schema.type)
+}
+
+
 function untaggedUnionBranches(schema: any): number {
   if (null == schema || 'object' !== typeof schema) {
     return 0
@@ -1757,6 +1809,7 @@ export {
   sortedEntries,
   isEntityWrapperProp,
   envelopeProp,
+  envelopeItemRef,
   closedBodyTransform,
   untaggedUnionBranches,
   scanUntaggedUnion,

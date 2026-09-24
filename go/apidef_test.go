@@ -182,7 +182,7 @@ func TestGuideVerbOnParent(t *testing.T) {
 
 	ctx := &ApiDefContext{
 		Opts: ApiDefOptions{
-			Folder:    t.TempDir(),
+			Folder:    stageGuideEntry(t, t.TempDir(), "verb-"),
 			OutPrefix: "verb-",
 			Strategy:  "heuristic01",
 		},
@@ -256,7 +256,7 @@ func TestGuideVerbOnParentEdges(t *testing.T) {
 		t.Fatalf("parse failed: %v", err)
 	}
 	ctx := &ApiDefContext{
-		Opts: ApiDefOptions{Folder: t.TempDir(), OutPrefix: "verb-edge-", Strategy: "heuristic01"},
+		Opts: ApiDefOptions{Folder: stageGuideEntry(t, t.TempDir(), "verb-edge-"), OutPrefix: "verb-edge-", Strategy: "heuristic01"},
 		Def:  parsed, Note: map[string]any{}, Warn: MakeWarner("test", nil), Work: map[string]any{},
 	}
 	guideResult, err := BuildGuide(ctx)
@@ -307,6 +307,103 @@ func TestGuideVerbOnParentEdges(t *testing.T) {
 	}
 }
 
+// One page wrapper serves both collections through a shared response. Counted
+// per use it is frequent, so each list takes its name from its path. Mirrors
+// the TS `guide-shared-wrapper` case.
+func TestGuideSharedWrapper(t *testing.T) {
+	src, err := os.ReadFile("../ts/test/def/shared-wrapper-def.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := Parse("OpenAPI", string(src), map[string]string{"file": "shared-wrapper-def.json"})
+	if err != nil {
+		t.Fatalf("parse failed: %v", err)
+	}
+	ctx := &ApiDefContext{
+		Opts: ApiDefOptions{Folder: stageGuideEntry(t, t.TempDir(), "shared-wrapper-"), OutPrefix: "shared-wrapper-", Strategy: "heuristic01"},
+		Def:  parsed, Note: map[string]any{}, Warn: MakeWarner("test", nil), Work: map[string]any{},
+	}
+	guideResult, err := BuildGuide(ctx)
+	if err != nil {
+		t.Fatalf("guide build failed: %v", err)
+	}
+	guide, _ := guideResult["guide"].(map[string]any)
+	entities, _ := guide["entity"].(map[string]any)
+
+	got := map[string]string{}
+	for _, name := range sortedKeys(entities) {
+		ops := map[string]any{}
+		ent, _ := entities[name].(map[string]any)
+		paths, _ := ent["path"].(map[string]any)
+		for _, pd := range paths {
+			pm, _ := pd.(map[string]any)
+			pops, _ := pm["op"].(map[string]any)
+			for op := range pops {
+				ops[op] = true
+			}
+		}
+		got[name] = strings.Join(sortedKeys(ops), "/")
+	}
+	want := map[string]string{"domain": "list/load", "kingdom": "list/load"}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("entity ops = %v, want %v", got, want)
+	}
+}
+
+// Mirrors the TS `guide-envelope` case.
+func TestGuideEnvelope(t *testing.T) {
+	src, err := os.ReadFile("../ts/test/def/envelope-def.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := Parse("OpenAPI", string(src), map[string]string{"file": "envelope-def.json"})
+	if err != nil {
+		t.Fatalf("parse failed: %v", err)
+	}
+	ctx := &ApiDefContext{
+		Opts: ApiDefOptions{Folder: stageGuideEntry(t, t.TempDir(), "envelope-"), OutPrefix: "envelope-", Strategy: "heuristic01"},
+		Def:  parsed, Note: map[string]any{}, Warn: MakeWarner("test", nil), Work: map[string]any{},
+	}
+	guideResult, err := BuildGuide(ctx)
+	if err != nil {
+		t.Fatalf("guide build failed: %v", err)
+	}
+	guide, _ := guideResult["guide"].(map[string]any)
+	entities, _ := guide["entity"].(map[string]any)
+
+	got := map[string]string{}
+	for _, name := range sortedKeys(entities) {
+		ops := map[string]any{}
+		ent, _ := entities[name].(map[string]any)
+		paths, _ := ent["path"].(map[string]any)
+		for _, pd := range paths {
+			pm, _ := pd.(map[string]any)
+			pops, _ := pm["op"].(map[string]any)
+			for op := range pops {
+				ops[op] = true
+			}
+		}
+		got[name] = strings.Join(sortedKeys(ops), "/")
+	}
+	want := map[string]string{
+		"census":      "list",
+		"crew_member": "create/list",
+		"deposit":     "create",
+		"domain":      "list/load/patch",
+		"fossil":      "load",
+		"kingdom":     "create/list/load",
+		"ledger":      "load",
+		"observation": "list",
+		"package":     "load",
+		"sample":      "load",
+		"site":        "load",
+		"token":       "load",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("entity ops = %v, want %v", got, want)
+	}
+}
+
 // RFC 10008 QUERY verb: a safe, idempotent read carrying its filter in the
 // request body. Mirrors the TS `query-verb-book` case in ts/test/apidef.test.ts.
 // QUERY maps onto load/list; its collection response supplies the entity
@@ -344,7 +441,7 @@ func TestQueryVerb(t *testing.T) {
 
 	ctx := &ApiDefContext{
 		Opts: ApiDefOptions{
-			Folder:    t.TempDir(),
+			Folder:    stageGuideEntry(t, t.TempDir(), "query-book-"),
 			OutPrefix: "query-book-",
 			Strategy:  "heuristic01",
 		},
@@ -634,6 +731,7 @@ func TestPointSegmentsEmitted(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(tmp)
+	stageGuideEntry(t, tmp, "solar-1.0.0-openapi-3.0.0-")
 
 	ad := NewApiDef(ApiDefOptions{
 		Folder:    tmp,

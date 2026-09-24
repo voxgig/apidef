@@ -2,6 +2,8 @@
 
 package apidef
 
+import jostraca "github.com/jostraca/jostraca/go"
+
 // KIT is the central namespace constant for model structures.
 const KIT = "kit"
 
@@ -34,6 +36,10 @@ type ApiDefResult struct {
 	Guide    map[string]any `json:"guide,omitempty"`
 	ApiModel map[string]any `json:"apimodel,omitempty"`
 	Ctx      *ApiDefContext `json:"ctx,omitempty"`
+	Reload   bool           `json:"reload,omitempty"`
+
+	// Jres is the jostraca generation result; its function fields do not encode.
+	Jres *jostraca.Result `json:"-"`
 }
 
 // ApiDefContext holds the processing context during API definition generation.

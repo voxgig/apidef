@@ -25,6 +25,7 @@ import {
   formatJsonSrc,
   getModelPath,
   envelopeProp,
+  envelopeItemRef,
   closedBodyTransform,
   authExchangeOp,
   specSecuredByDefault,
@@ -42,8 +43,20 @@ import { snakify, camelify, kebabify } from 'jostraca'
 import { classifyGraphQLField } from '../dist/guide/graphql01'
 
 import {
+  migrateGuideIncludes,
+  prefixGuideInclude,
+  findConflict,
+  baseGuideHeader,
+} from '../dist/guide/guide'
+
+import {
   parse,
 } from '../dist/parse'
+
+import {
+  countRefs,
+  REFCOUNT_CAP,
+} from '../dist/refcount'
 
 import {
   cleanTransform,
@@ -551,6 +564,18 @@ describe('tsv-envelope-prop', () => {
 })
 
 
+describe('tsv-envelope-item-ref', () => {
+  const rows = loadTsv('envelope-item-ref')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(`envelopeItemRef(${row.schema}, "${row.opname}") => "${row.expected}"`, () => {
+      const expected = '' === row.expected ? null : row.expected
+      assert.strictEqual(envelopeItemRef(JSON.parse(row.schema), row.opname), expected)
+    })
+  }
+})
+
+
 describe('tsv-closed-body-transform', () => {
   const rows = loadTsv('closed-body-transform')
   for (const row of rows) {
@@ -646,10 +671,97 @@ describe('tsv-resolved', () => {
 })
 
 
+describe('tsv-ref-count', () => {
+  const rows = loadTsv('ref-count')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, async () => {
+      const def = await parse('OpenAPI', row.spec, { file: row.name })
+      assert.deepStrictEqual(countRefs(def), JSON.parse(row.expected))
+    })
+  }
+})
+
+
+describe('countRefs terminates on a graph', () => {
+
+  test('a plain self-cycle holds no references', () => {
+    const plain: any = { name: 'p' }
+    plain.self = plain
+    assert.deepStrictEqual(countRefs({ paths: { '/p': plain } }), {})
+  })
+
+  test('a plain cycle is expanded once, so its reference counts once', () => {
+    const plain: any = { ref: { 'x-ref': '#/components/schemas/A' } }
+    plain.self = plain
+    const def = { paths: { '/p': plain }, components: { schemas: { A: {} } } }
+    assert.deepStrictEqual(countRefs(def), { '#/components/schemas/A': 1 })
+  })
+
+  test('a reference that holds itself counts once', () => {
+    const a: any = { 'x-ref': '#/components/schemas/A' }
+    a.self = a
+    const def = { components: { schemas: { A: a } } }
+    assert.deepStrictEqual(countRefs(def), { '#/components/schemas/A': 1 })
+  })
+
+  test('a count saturates at the cap', () => {
+    const levels = 40
+    const schemas: any = { [`L${levels}`]: { type: 'object' } }
+    for (let i = levels - 1; 0 <= i; i--) {
+      const ref = `#/components/schemas/L${i + 1}`
+      schemas[`L${i}`] = { properties: { a: { $ref: ref }, b: { $ref: ref } } }
+    }
+    const counts = countRefs({ components: { schemas } })
+    assert.strictEqual(counts[`#/components/schemas/L${levels}`], REFCOUNT_CAP)
+  })
+})
+
+
 describe('tsv-human-title', () => {
   for (const row of loadTsv('human-title')) {
     test(row.input || 'empty', () => {
       assert.strictEqual(humanTitle(row.input), row.expected)
+    })
+  }
+})
+
+
+describe('tsv-guide-migrate', () => {
+  for (const row of loadTsv('guide-migrate')) {
+    test(row.name, () => {
+      const src = JSON.parse(row.src)
+      const includes = migrateGuideIncludes(src, row.prefix)
+      assert.strictEqual(includes, JSON.parse(row.includes))
+      assert.strictEqual(prefixGuideInclude(src, row.prefix), JSON.parse(row.prefixed))
+      assert.strictEqual(prefixGuideInclude(includes, row.prefix), JSON.parse(row.both))
+    })
+  }
+})
+
+
+describe('tsv-guide-conflict', () => {
+  for (const row of loadTsv('guide-conflict')) {
+    test(row.name, () => {
+      assert.deepStrictEqual(findConflict(JSON.parse(row.src)), JSON.parse(row.expected))
+    })
+  }
+})
+
+
+describe('tsv-base-guide-header', () => {
+  for (const row of loadTsv('base-guide-header')) {
+    test(row.prefix || 'no prefix', () => {
+      assert.deepStrictEqual(baseGuideHeader(row.prefix), JSON.parse(row.expected))
+    })
+  }
+})
+
+
+describe('tsv-guide-quote', () => {
+  for (const row of loadTsv('guide-quote')) {
+    test(row.name, () => {
+      assert.strictEqual(JSON.stringify(JSON.parse(row.input)), JSON.parse(row.expected))
     })
   }
 })

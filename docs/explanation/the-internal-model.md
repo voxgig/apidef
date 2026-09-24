@@ -96,7 +96,8 @@ two into an SDK and its test suite.
 ## Why a separate `jsonic` representation?
 
 After the in-memory model is built, the builders render it to `jsonic` files.
-That on-disk form is the contract with downstream tooling and, crucially, is
-**editable and merge-preserving**: regenerating after a spec change merges
-into your edits rather than clobbering them. The in-memory object is the
-compiler's working state; the `jsonic` files are the durable artifact.
+That on-disk form is the contract with downstream tooling. Every run
+regenerates it and overwrites the previous files, so a correction belongs in
+the guide entry file, `<prefix>guide.aontu`, which apidef reads and never
+rewrites. The in-memory object is the compiler's working state; the `jsonic`
+files are the durable artifact.

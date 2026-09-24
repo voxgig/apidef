@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 	"testing"
 )
@@ -542,35 +544,112 @@ servers: [ { url: "https://x.example" } ]
 			t.Fatal("expected an object")
 		}
 	})
+
+	const tree = `components:
+  schemas:
+    Alias: { type: array, items: { $ref: "#/components/schemas/Alias" } }
+`
+	for _, c := range []struct{ name, src string }{
+		{"own-item/paths-first", head + paths + tree},
+		{"own-item/components-first", head + tree + paths},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			s := schemaOf(t, c.src)
+			items, _ := s["items"].(map[string]any)
+			if s["type"] != "array" || items == nil || items["type"] != "array" {
+				t.Fatalf("self-referential item not resolved: keys %v", sortedKeys(s))
+			}
+			if s["x-ref"] != "#/components/schemas/Alias" || items["x-ref"] != "#/components/schemas/Alias" {
+				t.Errorf("x-ref = %v / %v, want #/components/schemas/Alias", s["x-ref"], items["x-ref"])
+			}
+		})
+	}
 }
 
-// An empty overlay is not a customization however it is spelled — matching
-// one textual form flagged the multi-line variant and failed valid builds.
-func TestGuideOverlayCustomizations(t *testing.T) {
-	empty := []string{
-		"",
-		"# just a comment\n",
-		"@\"@voxgig/apidef/model/guide.aontu\"\n@\"x-base-guide.aontu\"\n",
-		"@\"x-base-guide.aontu\"\n\nguide:{}\n",
-		"@\"x-base-guide.aontu\"\n\nguide: {}\n",
-		"@\"x-base-guide.aontu\"\n\nguide: {\n}\n",
-		"# c\n@\"x-base-guide.aontu\"\n\nguide: {\n}\n\n",
+func TestTsvGuideMigrate(t *testing.T) {
+	rows := loadTsv(t, "guide-migrate")
+	if len(rows) == 0 {
+		t.Fatal("no guide-migrate rows loaded")
 	}
-	for _, src := range empty {
-		if got := guideOverlayCustomizations(src); len(got) != 0 {
-			t.Errorf("expected no customizations for %q, got %v", src, got)
+	str := func(t *testing.T, cell string) string {
+		var s string
+		if err := json.Unmarshal([]byte(cell), &s); err != nil {
+			t.Fatalf("bad cell %q: %v", cell, err)
 		}
+		return s
 	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			src := str(t, row["src"])
+			includes := migrateGuideIncludes(src, row["prefix"])
+			if want := str(t, row["includes"]); includes != want {
+				t.Errorf("migrateGuideIncludes = %q, want %q", includes, want)
+			}
+			if got, want := prefixGuideInclude(src, row["prefix"]), str(t, row["prefixed"]); got != want {
+				t.Errorf("prefixGuideInclude = %q, want %q", got, want)
+			}
+			if got, want := prefixGuideInclude(includes, row["prefix"]), str(t, row["both"]); got != want {
+				t.Errorf("both = %q, want %q", got, want)
+			}
+		})
+	}
+}
 
-	custom := []string{
-		"@\"x-base-guide.aontu\"\n\nguide: entity: bar: { active: false }\n",
-		"@\"x-base-guide.aontu\"\n\nguide: entity: yike: hide({})\n",
-		"@\"x-base-guide.aontu\"\n\nguide: {\n  entity: foo: { active: false }\n}\n",
+func TestTsvBaseGuideHeader(t *testing.T) {
+	rows := loadTsv(t, "base-guide-header")
+	if len(rows) == 0 {
+		t.Fatal("no base-guide-header rows loaded")
 	}
-	for _, src := range custom {
-		if got := guideOverlayCustomizations(src); len(got) == 0 {
-			t.Errorf("expected customizations for %q", src)
+	for _, row := range rows {
+		var want []string
+		if err := json.Unmarshal([]byte(row["expected"]), &want); err != nil {
+			t.Fatal(err)
 		}
+		if got := baseGuideHeader(row["prefix"]); !reflect.DeepEqual(got, want) {
+			t.Errorf("baseGuideHeader(%q) = %q, want %q", row["prefix"], got, want)
+		}
+	}
+}
+
+func TestTsvGuideQuote(t *testing.T) {
+	rows := loadTsv(t, "guide-quote")
+	if len(rows) == 0 {
+		t.Fatal("no guide-quote rows loaded")
+	}
+	for _, row := range rows {
+		var input, want string
+		if err := json.Unmarshal([]byte(row["input"]), &input); err != nil {
+			t.Fatal(err)
+		}
+		if err := json.Unmarshal([]byte(row["expected"]), &want); err != nil {
+			t.Fatal(err)
+		}
+		if got := guideJSON(input); got != want {
+			t.Errorf("%s: guideJSON = %q, want %q", row["name"], got, want)
+		}
+	}
+}
+
+func TestTsvGuideConflict(t *testing.T) {
+	rows := loadTsv(t, "guide-conflict")
+	if len(rows) == 0 {
+		t.Fatal("no guide-conflict rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var src string
+			if err := json.Unmarshal([]byte(row["src"]), &src); err != nil {
+				t.Fatal(err)
+			}
+			var want *guideConflict
+			if err := json.Unmarshal([]byte(row["expected"]), &want); err != nil {
+				t.Fatal(err)
+			}
+			got := findConflict(src)
+			if !reflect.DeepEqual(got, want) {
+				t.Errorf("findConflict(%q) = %+v, want %+v", src, got, want)
+			}
+		})
 	}
 }
 
@@ -589,6 +668,25 @@ func TestEnvelopeProp(t *testing.T) {
 			if got := envelopeProp(props, opname); got != want {
 				t.Errorf("envelopeProp(%s, %q) = %q, want %q",
 					resprops, opname, got, want)
+			}
+		})
+	}
+}
+
+func TestEnvelopeItemRef(t *testing.T) {
+	rows := loadTsv(t, "envelope-item-ref")
+	if len(rows) == 0 {
+		t.Fatal("no envelope-item-ref rows loaded")
+	}
+	for _, row := range rows {
+		src, opname, want := row["schema"], row["opname"], row["expected"]
+		t.Run(src+" "+opname, func(t *testing.T) {
+			var schema map[string]any
+			if err := json.Unmarshal([]byte(src), &schema); err != nil {
+				t.Fatalf("bad schema %q: %v", src, err)
+			}
+			if got := envelopeItemRef(schema, opname); got != want {
+				t.Errorf("envelopeItemRef(%s, %q) = %q, want %q", src, opname, got, want)
 			}
 		})
 	}
@@ -712,4 +810,63 @@ func TestTsvHumanTitle(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestTsvRefCount(t *testing.T) {
+	rows := loadTsv(t, "ref-count")
+	if len(rows) == 0 {
+		t.Fatal("no ref-count rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			def, err := Parse("OpenAPI", row["spec"], map[string]string{"file": row["name"]})
+			if err != nil {
+				t.Fatal(err)
+			}
+			var want map[string]int64
+			if err := json.Unmarshal([]byte(row["expected"]), &want); err != nil {
+				t.Fatal(err)
+			}
+			if got := CountRefs(def); !jsonEqual(got, want) {
+				t.Errorf("got %v\nwant %v", got, want)
+			}
+		})
+	}
+}
+
+// Mirrors the TS `find walks a graph, not a tree` cases.
+func TestFindWalksAGraph(t *testing.T) {
+	vals := func(hits []map[string]any) []string {
+		var out []string
+		for _, h := range hits {
+			out = append(out, h["val"].(string))
+		}
+		sort.Strings(out)
+		return out
+	}
+
+	t.Run("a self-referential object terminates", func(t *testing.T) {
+		a := map[string]any{"name": "a"}
+		a["self"] = a
+		if got := vals(Find(a, "name")); !reflect.DeepEqual(got, []string{"a"}) {
+			t.Errorf("got %v, want [a]", got)
+		}
+	})
+
+	t.Run("a cycle through a list terminates, and every match is found once", func(t *testing.T) {
+		parent := map[string]any{"name": "parent"}
+		child := map[string]any{"name": "child", "parent": parent}
+		parent["kids"] = []any{child}
+		if got := vals(Find(parent, "name")); !reflect.DeepEqual(got, []string{"child", "parent"}) {
+			t.Errorf("got %v, want [child parent]", got)
+		}
+	})
+
+	t.Run("two references to one object are not two results", func(t *testing.T) {
+		shared := map[string]any{"name": "shared"}
+		root := map[string]any{"a": shared, "b": shared, "c": map[string]any{"d": shared}}
+		if got := len(Find(root, "name")); got != 1 {
+			t.Errorf("got %d results, want 1", got)
+		}
+	})
 }

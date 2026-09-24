@@ -59,8 +59,8 @@ petstore/
 The guide entry file must exist before the first run, at
 `<folder>/model/guide/<prefix>guide.aontu` (see
 [Configuration → The guide file](./configuration.md#the-guide-file)). The CLI
-refuses to start without it and prints the two lines to put in it. A guide
-file from before the `.aontu` rename (`<prefix>guide.aontu`) is accepted and
+refuses to start without it and prints the lines to put in it. A guide
+file from before the `.aontu` rename (`<prefix>guide.aon`) is accepted and
 migrated in place on the first run. The spec file can live anywhere, because
 the CLI names it relative to `<folder>/def`, which is where the library's
 `<base>/../def/<model.def>` rule looks. Generated files are written under

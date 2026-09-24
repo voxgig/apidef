@@ -89,6 +89,25 @@ servers: [ { url: "https://x.example" } ]
     assert.deepStrictEqual('string', typeof JSON.stringify(s))
   })
 
+  const TREE = `components:
+  schemas:
+    Alias: { type: array, items: { $ref: "#/components/schemas/Alias" } }
+`
+
+  test('a schema that is its own item terminates in either document order', async () => {
+    for (const [label, src] of [
+      ['paths-first', HEAD + PATHS + TREE],
+      ['components-first', HEAD + TREE + PATHS],
+    ] as [string, string][]) {
+      const s = await schema(src)
+      assert.deepStrictEqual(s.type, 'array', label)
+      assert.deepStrictEqual(s['x-ref'], '#/components/schemas/Alias', label)
+      assert.deepStrictEqual(s.items.type, 'array', label)
+      assert.deepStrictEqual(s.items['x-ref'], '#/components/schemas/Alias', label)
+      assert.match(JSON.stringify(s), /\[Circular \*/, label)
+    }
+  })
+
   test('shared components stay shared (no exponential expansion)', async () => {
     const depth = 12, fan = 3
     const schemas = ['    L0: { type: object, properties: { v: { type: string } } }']

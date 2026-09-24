@@ -8,11 +8,12 @@ const utility_1 = require("../utility");
 const utility_2 = require("../utility");
 const jostraca_2 = require("jostraca");
 const entity_1 = require("../transform/entity");
+const refcount_1 = require("../refcount");
 const KONSOLE_LOG = console['log'];
 // Log non - fatal wierdness.
 const dlog = (0, utility_2.getdlog)('apidef', __filename);
-// Schema components that occur less than this rate(over total method count) qualify
-// as unique entities, not shared schemas
+// A schema whose per-use occurrences, over the method count or over the path
+// count, fall below these rates names an entity rather than a shared shape.
 const IS_ENTCMP_METHOD_RATE = 0.21;
 const IS_ENTCMP_PATH_RATE = 0.41;
 const METHOD_IDOP = {
@@ -28,6 +29,8 @@ const METHOD_IDOP = {
     HEAD: 'head',
     OPTIONS: 'OPTIONS',
 };
+// Tried in order: the first shape a path matches decides how its entity is named.
+const ENTITY_PATH_SHAPES = ['t/p/t/', 't/p/', 'p/t/', 't/', 't/p/p'];
 const METHOD_CONSIDER_ORDER = {
     'GET': 100,
     'QUERY': 150,
@@ -49,6 +52,8 @@ async function heuristic01(ctx) {
             ]
         },
         { select: selectCmpXrefs, apply: MeasureRef },
+        { select: selectAllMethods, apply: MeasureEnvelope },
+        MeasureEnvelopeItems,
         {
             select: selectAllMethods, apply: [
                 ResolveEntityComponent,
@@ -118,6 +123,7 @@ function Prepare(spec) {
         work: {
             pathmap: {},
             entmap: {},
+            envelope: {},
             entity: {
                 count: {
                     seen: 0,
@@ -175,23 +181,60 @@ function PreparePath(spec) {
     work.pathmap[pathstr] = pathdesc;
 }
 function selectCmpXrefs(_source, spec) {
-    const out = (0, utility_2.find)(spec.ctx.def, 'x-ref')
-        .filter(xref => xref.val.match(/\/(components\/schemas|definitions)\//));
-    return out;
+    const counts = (0, refcount_1.countRefs)(spec.ctx.def);
+    return Object.keys(counts)
+        .sort(refcount_1.byCodePoint)
+        .filter(val => val.match(/\/(components\/schemas|definitions)\//))
+        .map(val => ({ val, count: counts[val] }));
 }
 function MeasureRef(spec) {
     const guide = spec.data.guide;
     const metrics = guide.metrics;
-    let m = spec.node.val.val.match(/\/(components\/schemas|definitions)\/(.+)$/);
+    const xref = spec.node.val;
+    let m = xref.val.match(/\/(components\/schemas|definitions)\/(.+)$/);
     if (m) {
         const name = (0, utility_2.canonizeCmpName)(m[2]);
         if (null == metrics.count.origcmprefs[name]) {
             metrics.count.cmp++;
             metrics.count.origcmprefs[name] = 0;
         }
-        metrics.count.origcmprefs[name]++;
+        metrics.count.origcmprefs[name] =
+            (0, refcount_1.satAdd)(metrics.count.origcmprefs[name], xref.count);
         if (null == metrics.found.cmp[name]) {
             metrics.found.cmp[name] = { orig: m[2] };
+        }
+    }
+}
+// Being an envelope belongs to the component, not to one operation: it names
+// through the record it carries only when every operation answering with it
+// unwraps it, so the operations on one resource are never split between the
+// record's name and the envelope's. An operation unwraps only the response
+// ResolveTransform reads. The entry is the item's reference, or '' for none.
+function MeasureEnvelope(spec) {
+    const work = spec.data.work;
+    const mdesc = spec.node.val;
+    const opname = methodOpname(mdesc, matchEntityPath(work.pathmap[mdesc.path].parts), []);
+    const unwrapref = getResponseSchema(successResponse(mdesc.responses))?.['x-ref'];
+    for (const schema of successSchemas(mdesc.responses)) {
+        const xref = schema['x-ref'];
+        if (null != xref) {
+            const itemref = null == opname || xref !== unwrapref ? null :
+                (0, utility_1.envelopeItemRef)(schema, opname);
+            work.envelope[xref] = '' === work.envelope[xref] || null == itemref ? '' : itemref;
+        }
+    }
+}
+// An item carried by more than one envelope is named by none of them: the
+// envelopes' own names are then what tell the resources apart.
+function MeasureEnvelopeItems(spec) {
+    const envelope = spec.data.work.envelope;
+    const carriers = {};
+    for (const itemref of Object.values(envelope)) {
+        carriers[itemref] = (carriers[itemref] ?? 0) + 1;
+    }
+    for (const xref of Object.keys(envelope)) {
+        if (1 < carriers[envelope[xref]]) {
+            envelope[xref] = '';
         }
     }
 }
@@ -245,7 +288,7 @@ function ResolveEntityComponent(spec) {
     const parts = work.pathmap[pathStr].parts;
     let why_cmp = [];
     let responses = methodDef.responses;
-    let origxrefs = findPotentialSchemaRefs(pathStr, methodName, responses).map(val => ({
+    let origxrefs = findPotentialSchemaRefs(pathStr, methodName, responses, work.envelope, why_cmp).map(val => ({
         val
     }));
     let cmpxrefs = origxrefs
@@ -373,20 +416,20 @@ function ResolveEntityName(spec) {
     }
     why_path.push(...(ment.why_cmp ?? []));
     let entname;
-    let pm = undefined;
-    if (pm = (0, utility_2.pathMatch)(parts, 't/p/t/')) {
+    const pm = matchEntityPath(parts);
+    if ('t/p/t/' === pm?.expr) {
         entname = entityPathMatch_tpte(data, pm, mdesc, why_path);
     }
-    else if (pm = (0, utility_2.pathMatch)(parts, 't/p/')) {
+    else if ('t/p/' === pm?.expr) {
         entname = entityPathMatch_tpe(data, pm, mdesc, why_path);
     }
-    else if (pm = (0, utility_2.pathMatch)(parts, 'p/t/')) {
+    else if ('p/t/' === pm?.expr) {
         entname = entityPathMatch_pte(data, pm, mdesc, why_path);
     }
-    else if (pm = (0, utility_2.pathMatch)(parts, 't/')) {
+    else if ('t/' === pm?.expr) {
         entname = entityPathMatch_te(data, pm, mdesc, why_path);
     }
-    else if (pm = (0, utility_2.pathMatch)(parts, 't/p/p')) {
+    else if ('t/p/p' === pm?.expr) {
         entname = entityPathMatch_tpp(data, pm, mdesc, why_path);
     }
     else {
@@ -694,7 +737,7 @@ function ResolveOperation(spec) {
         return;
     }
     if ('load' === standard_opname) {
-        const islist = isListResponse(mdesc, pathStr, why_op);
+        const islist = isListResponse(mdesc, ment.pm, pathStr, why_op);
         opname = islist ? 'list' : opname;
     }
     else {
@@ -743,8 +786,7 @@ function ResolveTransform(spec) {
         req: undefined,
         res: undefined,
     };
-    const resokdef = mdesc.responses?.[200] || mdesc.responses?.[201];
-    const resprops = getResponseSchema(resokdef)?.properties;
+    const resprops = getResponseSchema(successResponse(mdesc.responses))?.properties;
     (0, utility_2.debugpath)(pathStr, methodName, 'TRANSFORM-RES', (0, struct_1.keysof)(resprops));
     if (resprops) {
         if ((0, utility_1.isEntityWrapperProp)(resprops[entdesc.origname])) {
@@ -1000,6 +1042,17 @@ function getRequestBodySchema(requestBody) {
     return requestBody?.content?.['application/json']?.schema ??
         requestBody?.schema;
 }
+// The response an operation's result is read from.
+function successResponse(responses) {
+    return responses?.[200] ?? responses?.[201];
+}
+// The response schemas an operation answers with when it succeeds, in the
+// order they are tried.
+function successSchemas(responses) {
+    return ['200', '201']
+        .map((rescode) => getResponseSchema(responses?.[rescode]))
+        .filter((schema) => null != schema);
+}
 function getResponseSchema(response) {
     return response?.content?.['application/json']?.schema ??
         response?.schema;
@@ -1143,9 +1196,22 @@ function cmpOccursInPath(data, cmpname) {
     }
     return null != data.work.potentialCmpsFromPaths[cmpname];
 }
-function isListResponse(mdesc, pathStr, why) {
-    const ment = mdesc.MethodEntity;
-    const pm = ment.pm;
+function matchEntityPath(parts) {
+    for (const shape of ENTITY_PATH_SHAPES) {
+        const pm = (0, utility_2.pathMatch)(parts, shape);
+        if (null != pm) {
+            return pm;
+        }
+    }
+    return null;
+}
+// The operation ResolveOperation will assign, needed before the entity is
+// named: whether a response unwraps as an envelope depends on it.
+function methodOpname(mdesc, pm, why) {
+    const opname = METHOD_IDOP[mdesc.method];
+    return 'load' === opname && isListResponse(mdesc, pm, mdesc.path, why) ? 'list' : opname;
+}
+function isListResponse(mdesc, pm, pathStr, why) {
     let islist = false;
     let schema;
     const endParamAnchored = !!(pm && pm.expr.endsWith('p/'));
@@ -1154,8 +1220,7 @@ function isListResponse(mdesc, pathStr, why) {
         why.push('end-param');
     }
     else {
-        const response = mdesc.responses?.[200] ?? mdesc.responses?.[201];
-        schema = getResponseSchema(response);
+        schema = getResponseSchema(successResponse(mdesc.responses));
         if (null == schema) {
             why.push('no-schema');
         }
@@ -1304,25 +1369,31 @@ function makeMethodEntityDesc(desc) {
     };
     return ment;
 }
-function findPotentialSchemaRefs(pathStr, methodName, responses) {
+function findPotentialSchemaRefs(pathStr, methodName, responses, envelope, why) {
     const xrefs = [];
-    if (null == responses) {
-        return xrefs;
-    }
-    const rescodes = ['200', '201'];
-    for (let rescode of rescodes) {
-        const schema = getResponseSchema(responses[rescode]);
-        if (null != schema) {
-            if (null != schema['x-ref']) {
+    for (const schema of successSchemas(responses)) {
+        if (null != schema['x-ref']) {
+            // An envelope component names its wrapping, not the entity: the
+            // component it carries takes its place.
+            const itemref = envelope[schema['x-ref']];
+            if ('' !== itemref) {
+                why.push('envelope=' + cmpRefName(schema['x-ref']));
+                xrefs.push(itemref);
+            }
+            else {
                 xrefs.push(schema['x-ref']);
             }
-            else if ('array' === schema.type && null != schema.items?.['x-ref']) {
-                xrefs.push(schema.items?.['x-ref']);
-            }
+        }
+        else if ('array' === schema.type && null != schema.items?.['x-ref']) {
+            xrefs.push(schema.items?.['x-ref']);
         }
     }
     (0, utility_2.debugpath)(pathStr, methodName, 'POTENTIAL-SCHEMA-REFS', xrefs);
     return xrefs;
+}
+function cmpRefName(xref) {
+    const m = xref.match(/\/(components\/schemas|definitions)\/(.+)$/);
+    return null == m ? xref : (0, utility_2.canonizeCmpName)(m[2]);
 }
 function hasMethod(def, pathStr, methodName) {
     const pathDef = def?.paths?.[pathStr];
