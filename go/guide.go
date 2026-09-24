@@ -716,6 +716,8 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 		buildEntity(data, entmap[k])
 	}
 
+	mergeCollectionPaths(guide)
+
 	return guide, nil
 }
 

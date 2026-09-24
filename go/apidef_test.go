@@ -765,6 +765,41 @@ func TestGuidePathItemKeys(t *testing.T) {
 	}
 }
 
+// Mirrors the TS `guide-collection-merge` case, and requires the base guide
+// that case writes to ts/test/collection-merge/guide/base-guide.aontu.
+func TestGuideCollectionMerge(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, Strategy: "heuristic01"}).Generate(map[string]any{
+		"model": map[string]any{"name": "collection-merge", "def": "collection-merge-def.json"},
+		"build": map[string]any{"spec": map[string]any{"base": "../ts/test/collection-merge"}},
+		"ctrl": map[string]any{"step": map[string]any{
+			"parse": true, "guide": true, "transformers": false,
+			"builders": false, "generate": false,
+		}},
+	})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v res=%+v", err, res)
+	}
+
+	gents, _ := res.Guide["entity"].(map[string]any)
+	key, _ := gents["key"].(map[string]any)
+	if paths, _ := key["path"].(map[string]any); len(paths) != 0 {
+		t.Errorf("key paths = %v, want none", sortedKeys(paths))
+	}
+
+	want, err := os.ReadFile("../ts/test/collection-merge/guide/base-guide.aontu")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(filepath.Join(folder, "guide", "base-guide.aontu"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != string(want) {
+		t.Errorf("base guide differs from the TypeScript one:\n%s", string(got))
+	}
+}
+
 // RFC 10008 QUERY verb: a safe, idempotent read carrying its filter in the
 // request body. Mirrors the TS `query-verb-book` case in ts/test/apidef.test.ts.
 // QUERY maps onto load/list; its collection response supplies the entity

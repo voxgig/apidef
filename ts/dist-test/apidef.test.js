@@ -535,6 +535,35 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.deepStrictEqual(Object.keys(entities).sort(), ['crate', 'release']);
         node_assert_1.default.deepStrictEqual(entities.release.relations.ancestors, [['crate']]);
     });
+    // The base guide already carries a collection path on the entity that owns
+    // its items: /keys is named for its component, /keys/{key_id} for its tag.
+    // go/apidef_test.go reads the base guide this writes.
+    (0, node_test_1.test)('guide-collection-merge', async () => {
+        const folder = __dirname + '/../test/collection-merge';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'collection-merge', def: 'collection-merge-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: false,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        const routes = Object.fromEntries(Object.keys(bres.guide.entity).sort()
+            .map((name) => [name, Object.entries(bres.guide.entity[name].path ?? {})
+                .flatMap(([path, pd]) => Object.values(pd.op).map((op) => op.method + ' ' + path))
+                .sort()]));
+        node_assert_1.default.deepStrictEqual(routes, {
+            key: [],
+            setting: ['DELETE /keys/{key_id}', 'GET /keys', 'POST /keys'],
+        });
+    });
     (0, node_test_1.test)('field-required-solar', async () => {
         const outprefix = 'solar-1.0.0-openapi-3.0.0-';
         const folder = __dirname + '/../test/solar';

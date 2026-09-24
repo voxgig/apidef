@@ -685,6 +685,46 @@ describe('apidef', () => {
   })
 
 
+  // The base guide already carries a collection path on the entity that owns
+  // its items: /keys is named for its component, /keys/{key_id} for its tag.
+  // go/apidef_test.go reads the base guide this writes.
+  test('guide-collection-merge', async () => {
+    const folder = __dirname + '/../test/collection-merge'
+
+    const build = await ApiDef.makeBuild({ folder })
+
+    const bres = await build(
+      { name: 'collection-merge', def: 'collection-merge-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: false,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const routes = Object.fromEntries(Object.keys(bres.guide.entity).sort()
+      .map((name) => [name, Object.entries(bres.guide.entity[name].path ?? {})
+        .flatMap(([path, pd]: [string, any]) =>
+          Object.values(pd.op).map((op: any) => op.method + ' ' + path))
+        .sort()]))
+    assert.deepStrictEqual(routes, {
+      key: [],
+      setting: ['DELETE /keys/{key_id}', 'GET /keys', 'POST /keys'],
+    })
+  })
+
+
   test('field-required-solar', async () => {
     const outprefix = 'solar-1.0.0-openapi-3.0.0-'
     const folder = __dirname + '/../test/solar'
