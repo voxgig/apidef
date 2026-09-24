@@ -49,20 +49,6 @@ func TestTsvParseResolve(t *testing.T) {
 	}
 }
 
-// A registered divergence: tabnas/yaml Go decodes each `\u` escape of a pair
-// in a YAML double-quoted scalar alone. Once this fails, the dependency pairs
-// them and the case belongs in parse-resolve.tsv.
-func TestYamlEscapedPairDivergence(t *testing.T) {
-	src := "openapi: 3.0.0\ninfo: { title: \"x\\ud83d\\ude00y\", version: \"1\" }\npaths: {}\n"
-	def, err := Parse("OpenAPI", src, map[string]string{"file": "p.yaml"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got := def["info"].(map[string]any)["title"]; got != "x��y" {
-		t.Errorf("title = %q", got)
-	}
-}
-
 func TestTsvNormalizePathKeys(t *testing.T) {
 	for _, row := range loadTsv(t, "normalize-path-keys") {
 		t.Run(row["name"], func(t *testing.T) {

@@ -65,7 +65,7 @@ files they write carry the same bytes:
 |---|---|---|
 | an ill-formed byte sequence in the spec file | Node decodes it to one `U+FFFD` per maximal ill-formed subsequence | `wellFormedUTF8` in `go/parse.go` decodes it the same way (`ts/test/utf8-decode.tsv`) |
 | a lone surrogate, such as an unpaired `\ud800` escape | replaced with `U+FFFD` once `jsonic` returns | the parser already reads `U+FFFD` |
-| a pair of `\u` escapes that spell one character | the parser reads the character | `@tabnas/yaml` for Go reads two `U+FFFD`, so `joinEscapedPairs` writes each pair in a strict JSON spec as its character before the parse |
+| a pair of `\u` escapes that spell one character | the parser reads the character | the parser reads the character, in JSON and in a YAML double-quoted scalar alike (`ts/test/parse-resolve.tsv`) |
 | sorting strings | `sort()` and `<` compare code units | `sortUTF16` and `lessUTF16` in `go/utility.go` do the same (`ts/test/sort-order.tsv`) |
 
 The sorting rule matters wherever a supplementary character, an emoji for
@@ -79,16 +79,6 @@ Go. A lone surrogate is not a character. TypeScript used to keep it and write
 it as a `\ud800` escape inside every quoted string, and a reader built on
 UTF-8, the Go parser among them, reads that escape back as `U+FFFD`. So the
 model meant one name to the TypeScript tools and another to the Go ones.
-
-One case is still a divergence. A pair escaped inside a YAML double-quoted
-scalar reads as two `U+FFFD` in Go and as one character in TypeScript: the
-repair before the parse is exact only where every escape is known to sit
-inside a string, which is true of strict JSON and not of YAML. The Go test
-`TestYamlEscapedPairDivergence` and the TypeScript suite `parse-escapes` pin
-both sides. The case joins the shared fixtures once the Go dependency pairs
-the escapes itself; its `v0.5.8` release does, but it needs a
-`@tabnas/parser` for Go that the rest of the Go dependency tree does not
-build against yet.
 
 ## Why not generate one from the other?
 

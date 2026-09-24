@@ -141,17 +141,6 @@ paths:
 })
 
 
-describe('parse-escapes', () => {
-  // Go reads this pair as two U+FFFD: see TestYamlEscapedPairDivergence.
-  test('an escaped pair in a YAML double-quoted scalar is one character', async () => {
-    const def: any = await parse('OpenAPI',
-      'openapi: 3.0.0\ninfo: { title: "x\\ud83d\\ude00y", version: "1" }\npaths: {}\n',
-      { file: 'p.yaml' })
-    assert.strictEqual(def.info.title, 'x\u{1F600}y')
-  })
-})
-
-
 describe('parse', () => {
 
   test('happy', async () => {

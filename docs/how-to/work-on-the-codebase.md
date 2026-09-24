@@ -73,7 +73,7 @@ cd ts && TEST_PATTERN='depluralize' npm run test-some
 
 `.github/workflows/build.yml` runs `npm ci && npm run build && npm test` in
 `ts/` on Node 24.x and latest across Linux/macOS/Windows. Local Node may be older; the
-`shape` peer dependency wants Node ≥ 24.
+`aontu` and `@tabnas` peer dependencies declare Node ≥ 24.
 
 The Go golden comparisons (`go/validate_test.go`) read an external
 `../../apidef-validate` checkout and `t.Skip` when it is absent, so a plain
