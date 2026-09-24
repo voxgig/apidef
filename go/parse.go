@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 	"unicode/utf16"
@@ -549,8 +548,8 @@ func writeOrderedMap(buf *strings.Builder, m map[string]any, indent int) {
 			plain = append(plain, k)
 		}
 	}
-	sort.Strings(plain)
-	sort.Strings(dollar)
+	sortUTF16(plain)
+	sortUTF16(dollar)
 	keys := append(plain, dollar...)
 
 	buf.WriteString("{\n")

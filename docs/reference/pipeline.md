@@ -86,6 +86,11 @@ Nine passes run in this fixed order; each is a file under
 | 8 | `flowstep` | the ordered `step[]` of each flow |
 | 9 | `clean` | prune inactive nodes and finalize the model |
 
+Where a stage orders names, it compares them by UTF-16 code unit, as
+JavaScript's `sort()` does, so an emoji sorts before `U+E000` to `U+FFFF`
+(`ts/test/sort-order.tsv`). Reference labels are the exception, ordered by
+code point.
+
 Output: `ctx.apimodel` (see [the internal API model](./model.md)).
 
 ## Stage 4 — `builders`

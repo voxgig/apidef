@@ -58,7 +58,7 @@ deterministic order, or an `x-examples-order` annotation captured during parse.
 ## Text is UTF-16 in one build and UTF-8 in the other
 
 A JavaScript string is a sequence of UTF-16 code units; a Go string is bytes,
-read as UTF-8. Three rules keep a spec's text the same in both builds, so the
+read as UTF-8. Four rules keep a spec's text the same in both builds, so the
 files they write carry the same bytes:
 
 | Where | TypeScript | Go |
@@ -66,6 +66,13 @@ files they write carry the same bytes:
 | an ill-formed byte sequence in the spec file | Node decodes it to one `U+FFFD` per maximal ill-formed subsequence | `wellFormedUTF8` in `go/parse.go` decodes it the same way (`ts/test/utf8-decode.tsv`) |
 | a lone surrogate, such as an unpaired `\ud800` escape | replaced with `U+FFFD` once `jsonic` returns | the parser already reads `U+FFFD` |
 | a pair of `\u` escapes that spell one character | the parser reads the character | `@tabnas/yaml` for Go reads two `U+FFFD`, so `joinEscapedPairs` writes each pair in a strict JSON spec as its character before the parse |
+| sorting strings | `sort()` and `<` compare code units | `sortUTF16` and `lessUTF16` in `go/utility.go` do the same (`ts/test/sort-order.tsv`) |
+
+The sorting rule matters wherever a supplementary character, an emoji for
+instance, meets one in `U+E000` to `U+FFFF`, `U+FFFD` included. By byte, the
+emoji sorts last; by code unit, first. The reference counts are the
+exception, sorted by code point in both builds so that both cut the same
+edge of a reference cycle.
 
 The lone surrogate is the one rule where the TypeScript changed to meet the
 Go. A lone surrogate is not a character. TypeScript used to keep it and write

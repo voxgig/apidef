@@ -671,6 +671,16 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-sort-order', () => {
+    for (const row of loadTsv('sort-order')) {
+        (0, node_test_1.test)(row.name, () => {
+            const obj = {};
+            for (const key of JSON.parse(row.keys))
+                obj[key] = 1;
+            node_assert_1.default.deepStrictEqual((0, utility_1.sortedKeys)(obj), JSON.parse(row.expected));
+        });
+    }
+});
 // The spec file is read as UTF-8 text; Go decodes it to the same string.
 (0, node_test_1.describe)('tsv-utf8-decode', () => {
     const dir = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'apidef-utf8-'));

@@ -1165,7 +1165,7 @@ func formatJSONICValue(val any, indent int, prefix string, lines *[]string, seen
 			}
 			keys = append(keys, k)
 		}
-		sort.Strings(keys)
+		sortUTF16(keys)
 
 		if len(keys) == 0 {
 			*lines = append(*lines, prefix+"{")
@@ -1382,8 +1382,45 @@ func sortedKeys(m map[string]any) []string {
 	for k := range m {
 		keys = append(keys, k)
 	}
-	sort.Strings(keys)
+	sortUTF16(keys)
 	return keys
+}
+
+// sortUTF16 sorts as JavaScript's default sort does, by UTF-16 code unit.
+func sortUTF16(keys []string) {
+	sort.Slice(keys, func(i, j int) bool { return lessUTF16(keys[i], keys[j]) })
+}
+
+// lessUTF16 is JavaScript's `a < b`: byte order, except that a supplementary
+// character sorts before U+E000..U+FFFF, as its surrogate code units do.
+func lessUTF16(a, b string) bool {
+	n := min(len(a), len(b))
+	i := 0
+	for i < n && a[i] == b[i] {
+		i++
+	}
+	if i == n {
+		return len(a) < len(b)
+	}
+	for 0 < i && (!utf8.RuneStart(a[i]) || !utf8.RuneStart(b[i])) {
+		i--
+	}
+	ra, _ := utf8.DecodeRuneInString(a[i:])
+	rb, _ := utf8.DecodeRuneInString(b[i:])
+	if ra == rb {
+		return a < b
+	}
+	return utf16Rank(ra) < utf16Rank(rb)
+}
+
+func utf16Rank(r rune) rune {
+	switch {
+	case 0x10000 <= r:
+		return r - 0x10000 + 0xD800
+	case 0xE000 <= r:
+		return r + 0x100000
+	}
+	return r
 }
 
 func sortedKeysBool(m map[string]bool) []string {
@@ -1391,10 +1428,11 @@ func sortedKeysBool(m map[string]bool) []string {
 	for k := range m {
 		keys = append(keys, k)
 	}
-	sort.Strings(keys)
+	sortUTF16(keys)
 	return keys
 }
 
+// Code point order, as the TypeScript sorts reference counts.
 func sortedKeysInt64(m map[string]int64) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
@@ -1409,7 +1447,7 @@ func sortedKeysOpmWork(m map[string][]map[string]any) []string {
 	for k := range m {
 		keys = append(keys, k)
 	}
-	sort.Strings(keys)
+	sortUTF16(keys)
 	return keys
 }
 

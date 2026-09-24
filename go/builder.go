@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 
 	jostraca "github.com/jostraca/jostraca/go"
@@ -374,7 +373,7 @@ func flowFileBases(names []string) map[string]string {
 
 	base := map[string]string{}
 	for _, group := range bylower {
-		sort.Strings(group)
+		sortUTF16(group)
 		if len(group) == 1 {
 			base[group[0]] = group[0]
 			continue

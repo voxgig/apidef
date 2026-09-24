@@ -32,6 +32,7 @@ import {
   specSecuredByDefault,
   find,
   loadFile,
+  sortedKeys,
 } from '../dist/utility'
 
 import {
@@ -806,6 +807,17 @@ describe('tsv-colon-path-keys', () => {
       const renamed: Record<string, string> = {}
       Object.keys(paths).forEach((path, i) => { renamed[path] = next[i] })
       assert.deepStrictEqual(renamed, JSON.parse(row.expected))
+    })
+  }
+})
+
+
+describe('tsv-sort-order', () => {
+  for (const row of loadTsv('sort-order')) {
+    test(row.name, () => {
+      const obj: Record<string, number> = {}
+      for (const key of JSON.parse(row.keys)) obj[key] = 1
+      assert.deepStrictEqual(sortedKeys(obj), JSON.parse(row.expected))
     })
   }
 })

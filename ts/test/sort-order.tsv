@@ -1,0 +1,7 @@
+name	keys	expected
+ASCII	["b","a","B","_","/a/{id}","/a"]	["/a","/a/{id}","B","_","a","b"]
+a supplementary character before U+E000..U+FFFF	["x\uff01","x\ud83d\ude00","x\ue000"]	["x\ud83d\ude00","x\ue000","x\uff01"]
+a supplementary character before U+FFFD	["\ufffd","\ud83d\ude00"]	["\ud83d\ude00","\ufffd"]
+a supplementary character after U+D7FF	["\ud83d\ude00","\ud7ff"]	["\ud7ff","\ud83d\ude00"]
+supplementary characters by code point	["\ud83d\ude01","\ud83d\ude00","\ud800\udc00","\udbff\udfff"]	["\ud800\udc00","\ud83d\ude00","\ud83d\ude01","\udbff\udfff"]
+a prefix first	["ab","a","a\ud83d\ude00","a\uffff","a\u00e9"]	["a","ab","a\u00e9","a\ud83d\ude00","a\uffff"]

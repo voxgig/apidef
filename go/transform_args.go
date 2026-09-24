@@ -174,7 +174,7 @@ func resolveArgs(
 			aj, _ := kindargs[j].(map[string]any)
 			ni, _ := ai["n"].(string)
 			nj, _ := aj["n"].(string)
-			return ni < nj
+			return lessUTF16(ni, nj)
 		})
 
 		args[argsKey] = kindargs

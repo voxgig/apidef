@@ -734,7 +734,7 @@ func selectAllMethods(ctx *ApiDefContext, data map[string]any) []map[string]any 
 		pi, _ := methods[i]["path"].(string)
 		pj, _ := methods[j]["path"].(string)
 		if pi != pj {
-			return pi < pj
+			return lessUTF16(pi, pj)
 		}
 		mi, _ := methods[i]["method"].(string)
 		mj, _ := methods[j]["method"].(string)
@@ -1779,7 +1779,7 @@ func verbOnParent(data map[string]any, pm *PathMatchResult, mdesc map[string]any
 		for _, n := range names {
 			vals = append(vals, safeStr(owners[n]))
 		}
-		sort.Strings(vals)
+		sortUTF16(vals)
 		if vals[0] != "" {
 			return vals[0]
 		}

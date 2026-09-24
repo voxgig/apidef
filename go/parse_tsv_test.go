@@ -95,6 +95,23 @@ func TestTsvColonPathKeys(t *testing.T) {
 	}
 }
 
+func TestTsvSortOrder(t *testing.T) {
+	for _, row := range loadTsv(t, "sort-order") {
+		t.Run(row["name"], func(t *testing.T) {
+			var keys, want []string
+			unmarshalCol(t, row, "keys", &keys)
+			unmarshalCol(t, row, "expected", &want)
+			m := map[string]any{}
+			for _, k := range keys {
+				m[k] = 1
+			}
+			if got := sortedKeys(m); !jsonEqual(got, want) {
+				t.Errorf("got %q, want %q", got, want)
+			}
+		})
+	}
+}
+
 func TestTsvUtf8Decode(t *testing.T) {
 	for _, row := range loadTsv(t, "utf8-decode") {
 		t.Run(row["name"], func(t *testing.T) {
