@@ -1,0 +1,17 @@
+{"openapi":"3.0.0","info":{"title":"Rules API","version":"1.0.0"},"servers":[{"url":"https://rules.example.com/api"}],
+"paths":{
+ "/rules/{rule_id}":{
+  "get":{"operationId":"getRule","parameters":[{"name":"rule_id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Rule"}}}}}},
+  "put":{"operationId":"setRule","parameters":[{"name":"rule_id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Rule"}}}}}}}
+},
+"components":{
+ "schemas":{
+  "Rule":{"type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"},"limits":{"type":"object","properties":{"max":{"type":"integer"}}},
+   "reviews":{"type":"object","properties":{
+    "dismiss":{"type":"array","items":{"$ref":"#/components/schemas/App"}},
+    "bypass":{"type":"array","items":{"$ref":"#/components/schemas/App"}}}}}},
+  "App":{"type":"object","properties":{"slug":{"type":"string"},"owner":{"oneOf":[{"$ref":"#/components/schemas/User"},{"$ref":"#/components/schemas/Org"}]}}},
+  "User":{"type":"object","properties":{"login":{"type":"string"}}},
+  "Org":{"type":"object","properties":{"name":{"type":"string"}}}
+ }
+}}

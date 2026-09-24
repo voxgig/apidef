@@ -503,6 +503,34 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         const rerun = bres.apimodel.main.kit.entity.job.op.create.points[0];
         node_assert_1.default.strictEqual(rerun.q?.$action, 'rerun');
     });
+    // Asking whether a response schema declares an `id` reads the def and
+    // leaves it as parsed: a node that references share stays one node, which
+    // is what the field transform's union count sees.
+    (0, node_test_1.test)('guide-sharing-reads-def', async () => {
+        const folder = __dirname + '/../test/shared-node';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'shared-node', def: 'shared-node-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: false,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        const reviews = (schema) => schema.properties.reviews.properties;
+        const rule = bres.ctx.def.components.schemas.Rule;
+        const put = bres.ctx.def.paths['/rules/{rule_id}'].put
+            .responses['200'].content['application/json'].schema;
+        for (const schema of [rule, put]) {
+            node_assert_1.default.strictEqual(reviews(schema).dismiss.items.properties.owner, reviews(schema).bypass.items.properties.owner);
+        }
+    });
     // A path item's parameters, servers, summary, description and extension
     // keys are not methods, so they name no entity: /mirrors/{mirror_id} holds
     // no operation at all. go/apidef_test.go reads the base guide this writes.

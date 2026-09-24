@@ -1866,8 +1866,14 @@ function refSchema(def: any, xref: string): any {
 }
 
 
+// Read in place: resolveSchemaProperties merges, and merging rewrites the
+// nodes the def's schemas share.
 function declaresId(schema: any): boolean {
-  return null != schema && 'object' === typeof schema && null != resolveSchemaProperties(schema).id
+  if (null == schema || 'object' !== typeof schema) {
+    return false
+  }
+  const parts = [schema, ...(Array.isArray(schema.allOf) ? schema.allOf : [])]
+  return parts.some((part: any) => null != part?.properties?.id)
 }
 
 

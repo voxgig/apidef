@@ -641,6 +641,45 @@ describe('apidef', () => {
   })
 
 
+  // Asking whether a response schema declares an `id` reads the def and
+  // leaves it as parsed: a node that references share stays one node, which
+  // is what the field transform's union count sees.
+  test('guide-sharing-reads-def', async () => {
+    const folder = __dirname + '/../test/shared-node'
+
+    const build = await ApiDef.makeBuild({ folder })
+
+    const bres = await build(
+      { name: 'shared-node', def: 'shared-node-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: false,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const reviews = (schema: any) => schema.properties.reviews.properties
+    const rule = bres.ctx.def.components.schemas.Rule
+    const put = bres.ctx.def.paths['/rules/{rule_id}'].put
+      .responses['200'].content['application/json'].schema
+    for (const schema of [rule, put]) {
+      assert.strictEqual(reviews(schema).dismiss.items.properties.owner,
+        reviews(schema).bypass.items.properties.owner)
+    }
+  })
+
+
   // A path item's parameters, servers, summary, description and extension
   // keys are not methods, so they name no entity: /mirrors/{mirror_id} holds
   // no operation at all. go/apidef_test.go reads the base guide this writes.

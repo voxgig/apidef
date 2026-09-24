@@ -1344,8 +1344,14 @@ function refSchema(def, xref) {
     }
     return node;
 }
+// Read in place: resolveSchemaProperties merges, and merging rewrites the
+// nodes the def's schemas share.
 function declaresId(schema) {
-    return null != schema && 'object' === typeof schema && null != resolveSchemaProperties(schema).id;
+    if (null == schema || 'object' !== typeof schema) {
+        return false;
+    }
+    const parts = [schema, ...(Array.isArray(schema.allOf) ? schema.allOf : [])];
+    return parts.some((part) => null != part?.properties?.id);
 }
 // The operation ResolveOperation will assign, needed before the entity is
 // named: whether a response unwraps as an envelope depends on it.
