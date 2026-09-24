@@ -1205,8 +1205,6 @@ func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any)
 		return
 	}
 
-	cmpname := safeStr(mdesc["cmp"])
-
 	var origParams []string
 
 	entdescName := safeStr(entdesc["name"])
@@ -1246,9 +1244,8 @@ func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any)
 		if probablyAnId && hasParent && notLastPart {
 
 			// Actually an action
-			if secondLastPart &&
-				((parentName != entdescName && strings.HasPrefix(entdescName, parentName+"_")) ||
-					parentName == cmpname) {
+			if secondLastPart && parentName != entdescName &&
+				strings.HasPrefix(entdescName, parentName+"_") {
 				updateParamRename(ctx, data, pathStr, methodName,
 					paramRename, whyParam, oldParam,
 					"id", "action-parent:"+entdescName)
@@ -1257,10 +1254,6 @@ func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any)
 					updateAction(methodName, oldParam,
 						parts[partI+1], entdesc, pathDescEntry, "action-not-parent")
 				}
-			} else if hasParent && parentName == cmpname {
-				updateParamRename(ctx, data, pathStr, methodName,
-					paramRename, whyParam, oldParam,
-					"id", "id-parent-cmp")
 			} else if hasParent && parentName == entdescName {
 				updateParamRename(ctx, data, pathStr, methodName,
 					paramRename, whyParam, oldParam,
@@ -1292,11 +1285,6 @@ func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any)
 							parts[partI+1], entdesc, pathDescEntry, "end-action")
 					}
 				}
-			} else if hasParent && parentName == cmpname {
-				// Primary ent id not at end
-				updateParamRename(ctx, data, pathStr, methodName,
-					paramRename, whyParam, oldParam,
-					"id", "id-not-last")
 			} else {
 				// Not primary ent
 				newParamName := parentName + "_id"
@@ -1316,7 +1304,7 @@ func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any)
 
 		DebugPath(pathStr, methodName, "RENAME-PARAM", pathStr, methodName, partStr,
 			oldParam, lastPart, secondLastPart, notLastPart, hasParent, parentName,
-			notExactId, probablyAnId, cmpname)
+			notExactId, probablyAnId)
 	}
 
 	applySnakeCaseRename()

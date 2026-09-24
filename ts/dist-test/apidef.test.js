@@ -381,6 +381,34 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
             node_assert_1.default.deepStrictEqual(params(entities.user.op[op].points[0]), ['id>user_group_id', 'uid>id'], 'user ' + op);
         }
     });
+    // A literal that canonizes to nothing (`-`) names no entity and no
+    // component: the key after it is not taken for the entity's own.
+    (0, node_test_1.test)('guide-blank-segment', async () => {
+        const folder = __dirname + '/../test/blank-segment';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'blank-segment', def: 'blank-segment-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: true,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        const pathdesc = (path) => Object.values(bres.guide.entity)
+            .map((ent) => ent.path[path]).find((pd) => null != pd);
+        const idOf = (path) => Object.entries(pathdesc(path).rename?.param ?? {})
+            .filter(([, target]) => 'id' === target).map(([orig]) => orig);
+        node_assert_1.default.deepStrictEqual(idOf('/orders/-/{order_id}/lines/{line_id}'), ['line_id']);
+        node_assert_1.default.deepStrictEqual(idOf('/orders/-/{order}/notes/{note_id}'), ['note_id']);
+        node_assert_1.default.deepStrictEqual(idOf('/orders/-/{order_id}/refund'), []);
+        node_assert_1.default.deepStrictEqual(Object.keys(pathdesc('/orders/-/{order_id}/refund').action ?? {}), []);
+    });
     (0, node_test_1.test)('field-required-solar', async () => {
         const outprefix = 'solar-1.0.0-openapi-3.0.0-';
         const folder = __dirname + '/../test/solar';

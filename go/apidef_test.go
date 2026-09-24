@@ -531,6 +531,65 @@ func TestGuideTrailingKey(t *testing.T) {
 	}
 }
 
+// Mirrors the TS `guide-blank-segment` case.
+func TestGuideBlankSegment(t *testing.T) {
+	src, err := os.ReadFile("../ts/test/def/blank-segment-def.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := Parse("OpenAPI", string(src), map[string]string{"file": "blank-segment-def.json"})
+	if err != nil {
+		t.Fatalf("parse failed: %v", err)
+	}
+	ctx := &ApiDefContext{
+		Opts: ApiDefOptions{Folder: stageGuideEntry(t, t.TempDir(), "blank-segment-"), OutPrefix: "blank-segment-", Strategy: "heuristic01"},
+		Def:  parsed, Note: map[string]any{}, Warn: MakeWarner("test", nil), Work: map[string]any{},
+	}
+	guideResult, err := BuildGuide(ctx)
+	if err != nil {
+		t.Fatalf("guide build failed: %v", err)
+	}
+	guide, _ := guideResult["guide"].(map[string]any)
+	entities, _ := guide["entity"].(map[string]any)
+
+	pathdesc := func(path string) map[string]any {
+		for _, name := range sortedKeys(entities) {
+			ent, _ := entities[name].(map[string]any)
+			paths, _ := ent["path"].(map[string]any)
+			if pd, ok := paths[path].(map[string]any); ok {
+				return pd
+			}
+		}
+		t.Fatalf("no entity holds %s", path)
+		return nil
+	}
+	idOf := func(path string) []string {
+		rename, _ := pathdesc(path)["rename"].(map[string]any)
+		param, _ := rename["param"].(map[string]any)
+		out := []string{}
+		for _, orig := range sortedKeys(param) {
+			if param[orig] == "id" {
+				out = append(out, orig)
+			}
+		}
+		return out
+	}
+
+	for path, want := range map[string][]string{
+		"/orders/-/{order_id}/lines/{line_id}": {"line_id"},
+		"/orders/-/{order}/notes/{note_id}":    {"note_id"},
+		"/orders/-/{order_id}/refund":          {},
+	} {
+		if got := idOf(path); !reflect.DeepEqual(got, want) {
+			t.Errorf("%s renamed to id: %v, want %v", path, got, want)
+		}
+	}
+	action, _ := pathdesc("/orders/-/{order_id}/refund")["action"].(map[string]any)
+	if len(action) != 0 {
+		t.Errorf("refund actions = %v, want none", sortedKeys(action))
+	}
+}
+
 // RFC 10008 QUERY verb: a safe, idempotent read carrying its filter in the
 // request body. Mirrors the TS `query-verb-book` case in ts/test/apidef.test.ts.
 // QUERY maps onto load/list; its collection response supplies the entity

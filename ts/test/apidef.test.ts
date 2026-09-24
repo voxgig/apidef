@@ -484,6 +484,45 @@ describe('apidef', () => {
   })
 
 
+  // A literal that canonizes to nothing (`-`) names no entity and no
+  // component: the key after it is not taken for the entity's own.
+  test('guide-blank-segment', async () => {
+    const folder = __dirname + '/../test/blank-segment'
+
+    const build = await ApiDef.makeBuild({ folder })
+
+    const bres = await build(
+      { name: 'blank-segment', def: 'blank-segment-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: true,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const pathdesc = (path: string) => Object.values(bres.guide.entity)
+      .map((ent: any) => ent.path[path]).find((pd: any) => null != pd)
+    const idOf = (path: string) => Object.entries(pathdesc(path).rename?.param ?? {})
+      .filter(([, target]) => 'id' === target).map(([orig]) => orig)
+
+    assert.deepStrictEqual(idOf('/orders/-/{order_id}/lines/{line_id}'), ['line_id'])
+    assert.deepStrictEqual(idOf('/orders/-/{order}/notes/{note_id}'), ['note_id'])
+    assert.deepStrictEqual(idOf('/orders/-/{order_id}/refund'), [])
+    assert.deepStrictEqual(Object.keys(pathdesc('/orders/-/{order_id}/refund').action ?? {}), [])
+  })
+
+
   test('field-required-solar', async () => {
     const outprefix = 'solar-1.0.0-openapi-3.0.0-'
     const folder = __dirname + '/../test/solar'

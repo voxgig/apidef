@@ -726,8 +726,6 @@ function RenameParams(spec: TaskSpec) {
     return
   }
 
-  const cmpname = mdesc.cmp
-
   const origParams = []
 
   for (let partI = 0; partI < parts.length; partI++) {
@@ -778,14 +776,8 @@ function RenameParams(spec: TaskSpec) {
         // actually an action
         if (
           secondLastPart
-          && (
-            (
-              parentName !== entdesc.name
-              && entdesc.name.startsWith(parentName + '_')
-            )
-            // || parentName === cmp.name
-            || parentName === cmpname
-          )
+          && parentName !== entdesc.name
+          && entdesc.name.startsWith(parentName + '_')
         ) {
           updateParamRename(
             ctx, data, pathStr, methodName, paramRenameCapture, oldParam,
@@ -794,13 +786,6 @@ function RenameParams(spec: TaskSpec) {
 
           updateAction(methodName, oldParam,
             parts[partI + 1], entdesc, pathDesc, 'action-not-parent')
-        }
-
-        else if (hasParent && parentName === cmpname) {
-          updateParamRename(
-            ctx, data, pathStr, methodName, paramRenameCapture, oldParam,
-            'id', 'id-parent-cmp')
-          why.push('id-parent-cmp')
         }
 
         else if (hasParent && parentName === entdesc.name) {
@@ -873,18 +858,6 @@ function RenameParams(spec: TaskSpec) {
           }
         }
 
-        // Primary ent id not at end!
-        else if (
-          hasParent
-          && parentName === cmpname
-        ) {
-          updateParamRename(
-            ctx, data, pathStr, methodName, paramRenameCapture, oldParam,
-            'id', 'id-not-last')
-
-          why.push('id-not-last')
-        }
-
         // Not primary ent.
         else {
           why.push('default')
@@ -922,8 +895,6 @@ function RenameParams(spec: TaskSpec) {
           parentName,
           not_exact_id,
           probably_an_id,
-          cmp: mdesc.cmp,
-          cmpname,
           paramRenameCapture,
           entdesc
         }
