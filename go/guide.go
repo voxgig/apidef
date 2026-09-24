@@ -1119,11 +1119,6 @@ func resolveEntityName(ctx *ApiDefContext, data map[string]any, mdesc map[string
 
 // renameParams renames path parameters to follow ID conventions.
 func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any) {
-	guide := data["guide"].(map[string]any)
-	metricsMap := guide["metrics"].(map[string]any)
-	countMap := metricsMap["count"].(map[string]any)
-	_ = countMap
-
 	ment, _ := mdesc["MethodEntity"].(map[string]any)
 	if ment == nil {
 		return
@@ -1212,10 +1207,6 @@ func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any)
 
 	cmpname := safeStr(mdesc["cmp"])
 
-	uniqschema := toInt(countMap["uniqschema"])
-	considerCmp := cmpname != "" && uniqschema > 0 &&
-		safeFloat(ment["method_rate"]) < IS_ENTCMP_METHOD_RATE
-
 	var origParams []string
 
 	entdescName := safeStr(entdesc["name"])
@@ -1282,19 +1273,11 @@ func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any)
 		} else if lastPart && notExactId &&
 			(!hasParent ||
 				parentName == entdescName ||
-				strings.HasSuffix(entdescName, "_"+parentName)) &&
-			(!considerCmp || cmpname == entdescName) {
+				strings.HasSuffix(entdescName, "_"+parentName)) {
 			// At end, but not called id
 			updateParamRename(ctx, data, pathStr, methodName,
 				paramRename, whyParam, oldParam,
-				"id", fmt.Sprintf("end-id;%s;parent=%v/%s;cmp=%v%s",
-					methodName, hasParent, parentName,
-					considerCmp, func() string {
-						if cmpname == "" {
-							return ""
-						}
-						return "/" + cmpname
-					}()))
+				"id", fmt.Sprintf("end-id;%s;parent=%v/%s", methodName, hasParent, parentName))
 		} else if notLastPart && partI > 1 && hasParent {
 			// Not at end, has preceding non-param part
 
@@ -1333,7 +1316,7 @@ func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any)
 
 		DebugPath(pathStr, methodName, "RENAME-PARAM", pathStr, methodName, partStr,
 			oldParam, lastPart, secondLastPart, notLastPart, hasParent, parentName,
-			notExactId, probablyAnId, considerCmp, cmpname)
+			notExactId, probablyAnId, cmpname)
 	}
 
 	applySnakeCaseRename()

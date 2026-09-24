@@ -349,6 +349,38 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.strictEqual(listpt.o, '/{year}/observation');
         node_assert_1.default.ok(null != entities.observation.fields.observedAt, 'observation fields not unwrapped: ' + Object.keys(entities.observation.fields));
     });
+    // A trailing parameter under its entity's segment is the entity's key,
+    // whatever the response component is called: a rare component named for
+    // another view of it, or a tag on a write that answers with no component.
+    (0, node_test_1.test)('guide-trailing-key', async () => {
+        const folder = __dirname + '/../test/trailing-key';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'trailing-key', def: 'trailing-key-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: true,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        const gents = bres.guide.entity;
+        node_assert_1.default.deepStrictEqual(gents.runner_group.path['/orgs/{org}/runner-groups/{runner_group_id}'].rename.param, { org: 'org_id', runner_group_id: 'id' });
+        node_assert_1.default.deepStrictEqual(gents.user.path['/user_groups/{id}/users/{uid}'].rename.param, { id: 'user_group_id', uid: 'id' });
+        const entities = bres.apimodel.main.kit.entity;
+        const params = (pt) => (pt.g.params ?? []).map((a) => a.or + '>' + a.n).sort();
+        for (const op of ['load', 'update']) {
+            node_assert_1.default.deepStrictEqual(params(entities.runner_group.op[op].points[0]), ['org>org_id', 'runner_group_id>id'], 'runner_group ' + op);
+        }
+        for (const op of ['create', 'remove']) {
+            node_assert_1.default.deepStrictEqual(params(entities.user.op[op].points[0]), ['id>user_group_id', 'uid>id'], 'user ' + op);
+        }
+    });
     (0, node_test_1.test)('field-required-solar', async () => {
         const outprefix = 'solar-1.0.0-openapi-3.0.0-';
         const folder = __dirname + '/../test/solar';

@@ -674,8 +674,6 @@ function ResolveEntityName(spec: TaskSpec) {
 function RenameParams(spec: TaskSpec) {
   const ctx = spec.ctx
   const data = spec.data
-  const guide = data.guide
-  const metrics = guide.metrics
 
   const mdesc = spec.node.val
   const ment = mdesc.MethodEntity
@@ -729,10 +727,6 @@ function RenameParams(spec: TaskSpec) {
   }
 
   const cmpname = mdesc.cmp
-  const considerCmp =
-    null != cmpname &&
-    0 < metrics.count.uniqschema &&
-    mdesc.method_rate < IS_ENTCMP_METHOD_RATE
 
   const origParams = []
 
@@ -839,12 +833,10 @@ function RenameParams(spec: TaskSpec) {
             || entdesc.name.endsWith('_' + parentName)
           )
         )
-        && (!considerCmp || cmpname === entdesc.name)
       ) {
         updateParamRename(
           ctx, data, pathStr, methodName, paramRenameCapture, oldParam,
-          'id', 'end-id;' + methodName + ';parent=' + hasParent + '/' + parentName +
-          ';cmp=' + considerCmp + (null == cmpname ? '' : '/' + cmpname))
+          'id', 'end-id;' + methodName + ';parent=' + hasParent + '/' + parentName)
         why.push('end-id')
       }
 
@@ -930,7 +922,6 @@ function RenameParams(spec: TaskSpec) {
           parentName,
           not_exact_id,
           probably_an_id,
-          considerCmp,
           cmp: mdesc.cmp,
           cmpname,
           paramRenameCapture,

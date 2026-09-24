@@ -192,6 +192,17 @@ entity — is the entity's identifier. The guide renames it to the canonical
 exposes a uniform `id` while the original wire name is preserved for building
 the request URL.
 
+The path decides this on its own. An item operation often answers with a
+schema named for one view of the entity rather than the entity itself:
+GitHub's `GET /orgs/{org}/actions/runner-groups/{runner_group_id}` answers
+with `runner-groups-org`, and `GET /repos/{owner}/{repo}/branches/{branch}`
+with `branch-with-protection`. Letting that name veto the rename withholds
+`id` from exactly those keys. What it would catch instead is rare: a trailing
+parameter that selects a scope rather than the entity, as `{owner}` does in a
+`/repos/{owner}/` path that lists every repository an account owns. That one is
+renamed to `id` too, and [the guide](../reference/guide.md#correcting-the-guide)
+is where to correct it.
+
 ## Every decision is traceable
 
 Heuristics are, by nature, guesses — so the guide never throws a decision away

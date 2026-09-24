@@ -24,4 +24,8 @@ A response envelope does not name an entity: the record it carries is judged in 
 
 Sources: [envelope](ts/src/utility.ts), [guide](ts/src/guide/heuristic01.ts), [Go guide](go/guide.go).
 
+A trailing path parameter under its entity's segment is renamed to `id` from the path alone; the response component has no veto. The component an item operation answers with is routinely named for one view of the entity (`CargoUpstream`, `PushOperation`, `branch-with-protection`), so a guard requiring that name to match the entity withheld `id` from real keys far more often than it caught a parameter naming a scope, such as a namespace `{owner}`, and that case is corrected in the guide.
+
+Sources: [guide](ts/src/guide/heuristic01.ts), [Go guide](go/guide.go).
+
 The guide can override inferred composite identity with explicit `id.parts`, or disable inference with `id.composite: false`. An empty parts list is not a reliable opt-out because model resolution can omit it. Edit canonical schemas under `model/` and synchronize the packaging mirrors.

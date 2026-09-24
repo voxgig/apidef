@@ -89,6 +89,11 @@ rates twice:
   the entity if it is infrequent, or if its name is a literal segment of
   some path in the spec. Otherwise the path's name wins.
 
+Neither reading reaches a parameter rename. The trailing parameter of an
+item path is renamed to `id` from the path alone, whatever schema the
+operation answers with; the `guide-trailing-key` case in
+[`ts/test/apidef.test.ts`](../../ts/test/apidef.test.ts) pins it.
+
 The rows of [`ts/test/ref-count.tsv`](../../ts/test/ref-count.tsv) pin the
 counts in both builds. In the `alias-chain` row, the paths `/a`, `/b`, and
 `/c` answer with `A`, `B`, and `C`, where `A` is a `$ref` to `B` and `B` a

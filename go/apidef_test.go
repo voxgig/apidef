@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 	"testing"
 )
@@ -462,6 +463,71 @@ func TestGuideEnvelope(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("entity ops = %v, want %v", got, want)
+	}
+}
+
+// Mirrors the TS `guide-trailing-key` case.
+func TestGuideTrailingKey(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "trailing-key-")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, OutPrefix: "trailing-key-", Strategy: "heuristic01"}).
+		Generate(map[string]any{
+			"model": map[string]any{"name": "trailing-key", "def": "trailing-key-def.json"},
+			"build": map[string]any{"spec": map[string]any{"base": "../ts/test/def"}},
+			"ctrl": map[string]any{"step": map[string]any{
+				"parse": true, "guide": true, "transformers": true,
+				"builders": false, "generate": false,
+			}},
+		})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v", err)
+	}
+
+	gents, _ := res.Guide["entity"].(map[string]any)
+	renames := func(ent, path string) map[string]any {
+		e, _ := gents[ent].(map[string]any)
+		paths, _ := e["path"].(map[string]any)
+		pd, _ := paths[path].(map[string]any)
+		rename, _ := pd["rename"].(map[string]any)
+		param, _ := rename["param"].(map[string]any)
+		return param
+	}
+	if got, want := renames("runner_group", "/orgs/{org}/runner-groups/{runner_group_id}"),
+		(map[string]any{"org": "org_id", "runner_group_id": "id"}); !reflect.DeepEqual(got, want) {
+		t.Errorf("runner_group renames = %v, want %v", got, want)
+	}
+	if got, want := renames("user", "/user_groups/{id}/users/{uid}"),
+		(map[string]any{"id": "user_group_id", "uid": "id"}); !reflect.DeepEqual(got, want) {
+		t.Errorf("user renames = %v, want %v", got, want)
+	}
+
+	entities := res.ApiModel["main"].(map[string]any)["kit"].(map[string]any)["entity"].(map[string]any)
+	params := func(ent, op string) []string {
+		e, _ := entities[ent].(map[string]any)
+		opm, _ := e["op"].(map[string]any)
+		o, _ := opm[op].(map[string]any)
+		pts, _ := o["points"].([]any)
+		if len(pts) == 0 {
+			return nil
+		}
+		g, _ := pts[0].(map[string]any)["g"].(map[string]any)
+		list, _ := g["params"].([]any)
+		out := []string{}
+		for _, a := range list {
+			am, _ := a.(map[string]any)
+			out = append(out, safeStr(am["or"])+">"+safeStr(am["n"]))
+		}
+		sort.Strings(out)
+		return out
+	}
+	for _, op := range []string{"load", "update"} {
+		if got, want := params("runner_group", op), []string{"org>org_id", "runner_group_id>id"}; !reflect.DeepEqual(got, want) {
+			t.Errorf("runner_group %s params = %v, want %v", op, got, want)
+		}
+	}
+	for _, op := range []string{"create", "remove"} {
+		if got, want := params("user", op), []string{"id>user_group_id", "uid>id"}; !reflect.DeepEqual(got, want) {
+			t.Errorf("user %s params = %v, want %v", op, got, want)
+		}
 	}
 }
 

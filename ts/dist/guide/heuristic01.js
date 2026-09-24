@@ -479,8 +479,6 @@ function ResolveEntityName(spec) {
 function RenameParams(spec) {
     const ctx = spec.ctx;
     const data = spec.data;
-    const guide = data.guide;
-    const metrics = guide.metrics;
     const mdesc = spec.node.val;
     const ment = mdesc.MethodEntity;
     const pathStr = mdesc.path;
@@ -521,9 +519,6 @@ function RenameParams(spec) {
         return;
     }
     const cmpname = mdesc.cmp;
-    const considerCmp = null != cmpname &&
-        0 < metrics.count.uniqschema &&
-        mdesc.method_rate < IS_ENTCMP_METHOD_RATE;
     const origParams = [];
     for (let partI = 0; partI < parts.length; partI++) {
         let partStr = parts[partI];
@@ -591,10 +586,8 @@ function RenameParams(spec) {
                 && not_exact_id
                 && (!hasParent
                     || (parentName === entdesc.name
-                        || entdesc.name.endsWith('_' + parentName)))
-                && (!considerCmp || cmpname === entdesc.name)) {
-                updateParamRename(ctx, data, pathStr, methodName, paramRenameCapture, oldParam, 'id', 'end-id;' + methodName + ';parent=' + hasParent + '/' + parentName +
-                    ';cmp=' + considerCmp + (null == cmpname ? '' : '/' + cmpname));
+                        || entdesc.name.endsWith('_' + parentName)))) {
+                updateParamRename(ctx, data, pathStr, methodName, paramRenameCapture, oldParam, 'id', 'end-id;' + methodName + ';parent=' + hasParent + '/' + parentName);
                 why.push('end-id');
             }
             // Mot at end, has preceding non-param part.
@@ -652,7 +645,6 @@ function RenameParams(spec) {
                 parentName,
                 not_exact_id,
                 probably_an_id,
-                considerCmp,
                 cmp: mdesc.cmp,
                 cmpname,
                 paramRenameCapture,
