@@ -56,12 +56,15 @@ func matchCase(source, target string) string {
 
 var irregularPlurals = map[string]string{
 	"analytics": "analytics", "analyses": "analysis", "appendices": "appendix",
-	"avalanches": "avalanche", "axes": "axis", "caches": "cache", "canoes": "canoe",
+	"avalanches": "avalanche", "axes": "axis", "bases": "base",
+	"caches": "cache", "canoes": "canoe",
 	"cases":    "case",
 	"children": "child", "cliches": "cliche", "courses": "course", "creches": "creche",
 	"crises": "crisis", "criteria": "criterion", "diagnoses": "diagnosis",
-	"doses": "dose", "douches": "douche", "feet": "foot", "furnaces": "furnace",
-	"geese": "goose", "headaches": "headache", "horses": "horse", "hoses": "hose",
+	"doses": "dose", "douches": "douche", "enterprises": "enterprise",
+	"exercises": "exercise", "feet": "foot", "franchises": "franchise",
+	"furnaces": "furnace",
+	"geese":    "goose", "headaches": "headache", "horses": "horse", "hoses": "hose",
 	"houses": "house", "indices": "index", "lens": "lens", "licenses": "license",
 	"matrices": "matrix", "men": "man", "mice": "mouse", "moustaches": "moustache",
 	"movies": "movie", "mustaches": "mustache", "niches": "niche", "noses": "nose",

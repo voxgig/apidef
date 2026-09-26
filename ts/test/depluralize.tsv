@@ -105,3 +105,14 @@ toString	toString
 valueOf	valueOf
 hasOwnProperty	hasOwnProperty
 prototype	prototype
+bases	base
+databases	database
+codebases	codebase
+enterprises	enterprise
+exercises	exercise
+franchises	franchise
+aliases	alias
+classes	class
+subclasses	subclass
+ip_addresses	ip_address
+worldbosses	worldboss
