@@ -1370,7 +1370,22 @@ function envelopeProp(resprops, opname) {
     if (null == islist || islist !== ('list' === opname)) {
         return null;
     }
+    // Beside an `id` or other data, one object is the record's own, such as
+    // Lob's link and its metadata. A single item sits beside status or paging.
+    if (!islist && keys.some((k) => k !== key &&
+        !isEnvelopeStatusProp(k) && !isEnvelopePagingProp(k))) {
+        return null;
+    }
     return key;
+}
+// What a single-item envelope may hold beside its item, compared as the
+// paging names are.
+const ENVELOPE_STATUS_PROPS = new Set([
+    'success', 'status', 'ok', 'message', 'code', 'error', 'errorcode',
+    'errormessage', 'requestid', 'timestamp', 'took', 'version', 'apiversion',
+]);
+function isEnvelopeStatusProp(name) {
+    return ENVELOPE_STATUS_PROPS.has(name.toLowerCase().replace(/[_-]/g, ''));
 }
 // What a page may hold beside its records, compared without case, `_` or
 // `-`. Any other property is data, which makes the component a record.

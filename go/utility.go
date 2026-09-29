@@ -1686,7 +1686,28 @@ func envelopeProp(resprops map[string]any, opname string) string {
 		return ""
 	}
 
+	// Mirrors ts/src/utility.ts: beside an `id` or other data, one object is
+	// the record's own. A single item sits beside status or paging.
+	if !islist {
+		for _, k := range sortedKeys(resprops) {
+			if k != key && !isEnvelopeStatusProp(k) && !isEnvelopePagingProp(k) {
+				return ""
+			}
+		}
+	}
+
 	return key
+}
+
+// ENVELOPE_STATUS_PROPS mirrors ts/src/utility.ts.
+var ENVELOPE_STATUS_PROPS = map[string]bool{
+	"success": true, "status": true, "ok": true, "message": true, "code": true,
+	"error": true, "errorcode": true, "errormessage": true, "requestid": true,
+	"timestamp": true, "took": true, "version": true, "apiversion": true,
+}
+
+func isEnvelopeStatusProp(name string) bool {
+	return ENVELOPE_STATUS_PROPS[envelopePagingSepRE.ReplaceAllString(strings.ToLower(name), "")]
 }
 
 // ENVELOPE_PAGING_PROPS mirrors ts/src/utility.ts.

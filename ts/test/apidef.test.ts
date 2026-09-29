@@ -434,6 +434,9 @@ describe('apidef', () => {
     assert.strictEqual(listpt.o, '/{year}/observation')
     assert.ok(null != entities.observation.fields.observedAt,
       'observation fields not unwrapped: ' + Object.keys(entities.observation.fields))
+
+    // A record with one nested object reads the record, not the object.
+    assert.strictEqual(entities.fossil.op.load.points[0].t.res, '`body`')
   })
 
 

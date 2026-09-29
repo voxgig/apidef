@@ -152,6 +152,16 @@ pin the rule in both builds, and the `guide-allof-envelope` tests pin it
 for the whole spec on
 [`ts/test/def/allof-envelope-def.json`](../../ts/test/def/allof-envelope-def.json).
 
+A single-item operation unwraps its response's one nested object only when
+nothing but status or paging properties sits beside it, such as `success`,
+`status` or `request_id`. An `id`, or any other data, beside the object makes
+the schema the record itself: Lob's link carries an `id`, a `title` and one
+`metadata` object, and a load of it returns the link, not the metadata. A
+list is not held to this rule, since its records are what a caller asks for.
+The added rows of
+[`ts/test/envelope-prop.tsv`](../../ts/test/envelope-prop.tsv) pin it in both
+builds.
+
 ### Shared schemas
 
 A route is one path and one method. Its resource is the name the path's

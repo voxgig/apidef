@@ -350,6 +350,8 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         const listpt = entities.observation.op.list.points[0];
         node_assert_1.default.strictEqual(listpt.o, '/{year}/observation');
         node_assert_1.default.ok(null != entities.observation.fields.observedAt, 'observation fields not unwrapped: ' + Object.keys(entities.observation.fields));
+        // A record with one nested object reads the record, not the object.
+        node_assert_1.default.strictEqual(entities.fossil.op.load.points[0].t.res, '`body`');
     });
     // Lob's shape: a page composed with allOf, whose records are a oneOf, so
     // the fields come from the list example read through the same `data`. A

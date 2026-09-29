@@ -474,6 +474,16 @@ func TestGuideEnvelope(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("entity ops = %v, want %v", got, want)
 	}
+
+	// A record with one nested object reads the record, not the object.
+	fossil, _ := entities["fossil"].(map[string]any)
+	fpaths, _ := fossil["path"].(map[string]any)
+	fpath, _ := fpaths["/{year}/fossil/{id}"].(map[string]any)
+	fops, _ := fpath["op"].(map[string]any)
+	fload, _ := fops["load"].(map[string]any)
+	if tr, ok := fload["transform"]; ok && tr != nil {
+		t.Errorf("fossil load transform = %v, want none", tr)
+	}
 }
 
 // Mirrors the TS `guide-allof-envelope` case.

@@ -26,3 +26,8 @@ resprops	opname	expected
 {"success":{"type":"boolean"},"data":{"type":"array"}}	load	
 {"data":{"type":"object"},"meta":{"type":"object"}}	load	
 {"success":{"type":"boolean"},"count":{"type":"integer"}}	list	
+{"id":{"type":"string"},"title":{"type":"string"},"metadata":{"type":"object"}}	load	
+{"id":{"type":"string"},"metadata":{"type":"object"}}	create	
+{"name":{"type":"string"},"labels":{"type":"object"}}	load	
+{"request_id":{"type":"string"},"result":{"type":"object"}}	update	result
+{"year":{"type":"integer"},"records":{"type":"array","items":{"type":"object"}}}	list	records
