@@ -631,11 +631,21 @@ func findFieldDefs(mtarget map[string]any, def map[string]any, opname string, en
 
 	var fieldSets any
 
+	// The response property the schema was read through, so an example is too.
+	envelope := ""
+
 	if responses != nil {
 		fieldSets = getFieldResponseSchema(responses, "200")
 		if opname == "list" {
-			if unwrapped := unwrapArrayWrapper(fieldSets); unwrapped != nil {
+			unwrapped := unwrapArrayWrapper(fieldSets)
+			if unwrapped == nil {
+				envelope = composedEnvelopeProp(fieldSets, "list")
+			}
+			if unwrapped != nil {
 				fieldSets = unwrapped
+			} else if envelope != "" {
+				prop, _ := mergedProperties(fieldSets)[envelope].(map[string]any)
+				fieldSets = prop["items"]
 			} else {
 				if fromCreated := getFieldResponseSchemaItems(responses, "201"); fromCreated != nil {
 					fieldSets = fromCreated
@@ -646,11 +656,12 @@ func findFieldDefs(mtarget map[string]any, def map[string]any, opname string, en
 		}
 
 		if opname != "list" {
-			if fsmap, ok := fieldSets.(map[string]any); ok {
-				props, _ := fsmap["properties"].(map[string]any)
-				if envelope := envelopeProp(props, opname); envelope != "" {
-					fieldSets = props[envelope]
-				}
+			fsmap, _ := fieldSets.(map[string]any)
+			props, _ := fsmap["properties"].(map[string]any)
+			if envelope = envelopeProp(props, opname); envelope != "" {
+				fieldSets = props[envelope]
+			} else if envelope = composedEnvelopeProp(fieldSets, opname); envelope != "" {
+				fieldSets = mergedProperties(fieldSets)[envelope]
 			}
 		}
 	}
@@ -674,7 +685,7 @@ func findFieldDefs(mtarget map[string]any, def map[string]any, opname string, en
 
 	// Fallback: infer from examples
 	if len(fielddefs) == 0 {
-		exampleFields := inferFieldsFromExamples(opdef)
+		exampleFields := inferFieldsFromExamples(opdef, envelope)
 		fielddefs = append(fielddefs, exampleFields...)
 	}
 
@@ -924,8 +935,8 @@ func extractFields(fieldSets any, fielddefs *[]map[string]any) {
 	}
 }
 
-func inferFieldsFromExamples(opdef map[string]any) []map[string]any {
-	example := findExampleObject(opdef)
+func inferFieldsFromExamples(opdef map[string]any, envelope string) []map[string]any {
+	example := findExampleObject(opdef, envelope)
 	if example == nil {
 		return nil
 	}
@@ -945,7 +956,7 @@ func inferFieldsFromExamples(opdef map[string]any) []map[string]any {
 	return fielddefs
 }
 
-func findExampleObject(opdef map[string]any) any {
+func findExampleObject(opdef map[string]any, envelope string) any {
 	responses, _ := opdef["responses"].(map[string]any)
 	if responses == nil {
 		return nil
@@ -966,7 +977,7 @@ func findExampleObject(opdef map[string]any) any {
 	if content, ok := resdef["content"].(map[string]any); ok {
 		if appjson, ok := content["application/json"].(map[string]any); ok {
 			if example, ok := appjson["example"]; ok {
-				return unwrapExample(example)
+				return unwrapExample(example, envelope)
 			}
 			if examples, ok := appjson["examples"].(map[string]any); ok {
 				order := exampleOrder(examples)
@@ -974,14 +985,14 @@ func findExampleObject(opdef map[string]any) any {
 					v := examples[ek]
 					if vm, ok := v.(map[string]any); ok {
 						if ex, ok := vm["value"]; ok {
-							return unwrapExample(ex)
+							return unwrapExample(ex, envelope)
 						}
 					}
 				}
 			}
 			if schema, ok := appjson["schema"].(map[string]any); ok {
 				if example, ok := schema["example"]; ok {
-					return unwrapExample(example)
+					return unwrapExample(example, envelope)
 				}
 			}
 		}
@@ -989,16 +1000,16 @@ func findExampleObject(opdef map[string]any) any {
 
 	// Swagger 2.0
 	if example, ok := resdef["example"]; ok {
-		return unwrapExample(example)
+		return unwrapExample(example, envelope)
 	}
 	if examples, ok := resdef["examples"].(map[string]any); ok {
 		if appjson, ok := examples["application/json"]; ok {
-			return unwrapExample(appjson)
+			return unwrapExample(appjson, envelope)
 		}
 	}
 	if schema, ok := resdef["schema"].(map[string]any); ok {
 		if example, ok := schema["example"]; ok {
-			return unwrapExample(example)
+			return unwrapExample(example, envelope)
 		}
 	}
 
@@ -1036,7 +1047,22 @@ func exampleOrder(examples map[string]any) []string {
 	return out
 }
 
-func unwrapExample(example any) any {
+// unwrapExample mirrors ts/src/transform/field.ts: through the envelope, then
+// to a list's first item. A scalar where the envelope should be means the
+// example disagrees with it, so it is kept whole.
+func unwrapExample(example any, envelope string) any {
+	if exMap, ok := example.(map[string]any); ok && envelope != "" {
+		switch inner := exMap[envelope].(type) {
+		case map[string]any:
+			if inner != nil {
+				example = inner
+			}
+		case []any:
+			if inner != nil {
+				example = inner
+			}
+		}
+	}
 	if arr, ok := example.([]any); ok {
 		if len(arr) > 0 {
 			return arr[0]

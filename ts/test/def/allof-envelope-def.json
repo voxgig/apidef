@@ -1,0 +1,333 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "allof-envelope",
+    "version": "1"
+  },
+  "servers": [
+    {
+      "url": "https://api.example.com/v1"
+    }
+  ],
+  "paths": {
+    "/addresses": {
+      "get": {
+        "operationId": "addresses_list",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/all_addresses"
+          }
+        }
+      },
+      "post": {
+        "operationId": "address_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/address_editable"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/address"
+          }
+        }
+      }
+    },
+    "/addresses/{adr_id}": {
+      "parameters": [
+        {
+          "in": "path",
+          "name": "adr_id",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "address_retrieve",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/address"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "address_delete",
+        "responses": {
+          "200": {
+            "description": "deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/address_deleted"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/owners/{id}": {
+      "get": {
+        "operationId": "owner_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "owner",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/owner_base"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "settings": {
+                          "type": "object",
+                          "properties": {
+                            "theme": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notes": {
+      "get": {
+        "operationId": "notes_list",
+        "responses": {
+          "200": {
+            "description": "notes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "count": {
+                          "type": "integer"
+                        },
+                        "unread_count": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/note"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "responses": {
+      "all_addresses": {
+        "description": "A page of addresses.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/list"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/address"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "example": {
+              "data": [
+                {
+                  "id": "adr_1",
+                  "name": "HARRY",
+                  "address_line1": "210 KING ST",
+                  "address_line2": null
+                }
+              ],
+              "object": "list",
+              "next_url": null,
+              "previous_url": null,
+              "count": 1
+            }
+          }
+        }
+      },
+      "address": {
+        "description": "An address.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/address"
+            },
+            "example": {
+              "id": "adr_1",
+              "name": "HARRY",
+              "address_line1": "210 KING ST"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "list": {
+        "type": "object",
+        "properties": {
+          "object": {
+            "type": "string"
+          },
+          "next_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "previous_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "count": {
+            "type": "integer"
+          },
+          "total_count": {
+            "type": "integer"
+          }
+        }
+      },
+      "address": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/address_us"
+          },
+          {
+            "$ref": "#/components/schemas/address_intl"
+          }
+        ]
+      },
+      "address_us": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "address_line1": {
+            "type": "string"
+          },
+          "address_zip": {
+            "type": "string"
+          }
+        }
+      },
+      "address_intl": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "address_line1": {
+            "type": "string"
+          },
+          "address_country": {
+            "type": "string"
+          }
+        }
+      },
+      "address_editable": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "address_line1": {
+            "type": "string"
+          },
+          "address_zip": {
+            "type": "string"
+          }
+        }
+      },
+      "address_deleted": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "deleted": {
+            "type": "boolean"
+          }
+        }
+      },
+      "owner_base": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "note": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+schema	opname	expected
+{"allOf":[{"type":"object","properties":{"object":{"type":"string"},"next_url":{"type":"string"},"previous_url":{"type":"string"},"count":{"type":"integer"},"total_count":{"type":"integer"}}},{"type":"object","properties":{"data":{"type":"array","items":{"oneOf":[{"type":"object","properties":{"id":{"type":"string"}}},{"type":"object","properties":{"id":{"type":"string"},"country":{"type":"string"}}}]}}}}]}	list	data
+{"allOf":[{"type":"object","properties":{"object":{"type":"string"},"next_url":{"type":"string"},"previous_url":{"type":"string"},"count":{"type":"integer"},"total_count":{"type":"integer"}}},{"type":"object","properties":{"data":{"type":"array","items":{"oneOf":[{"type":"object","properties":{"id":{"type":"string"}}},{"type":"object","properties":{"id":{"type":"string"},"country":{"type":"string"}}}]}}}}]}	load	
+{"allOf":[{"type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"}}},{"type":"object","properties":{"owner":{"type":"object"}}}]}	load	
+{"allOf":[{"type":"object","properties":{"name":{"type":"string"}}},{"type":"object","properties":{"settings":{"type":"object"}}}]}	load	
+{"allOf":[{"type":"object","properties":{"item":{"type":"object"}}}]}	load	item
+{"allOf":[{"type":"object","properties":{"count":{"type":"integer"},"unread_count":{"type":"integer"}}},{"type":"object","properties":{"data":{"type":"array","items":{"type":"object"}}}}]}	list	data
+{"allOf":[{"type":"object","properties":{"count":{"type":"integer"},"region":{"type":"string"}}},{"type":"object","properties":{"data":{"type":"array","items":{"type":"object"}}}}]}	list	
+{"allOf":[{"allOf":[{"type":"object","properties":{"has_more":{"type":"boolean"}}}]},{"type":"object","properties":{"results":{"type":"array","items":{"type":"object"}}}}]}	list	results
+{"allOf":[{"type":"object","properties":{"success":{"type":"boolean"},"errors":{"type":"array"},"messages":{"type":"array"}}},{"type":"object","properties":{"result":{"type":"object"}}}]}	load	
+{"type":"object","properties":{"data":{"type":"array","items":{"type":"object"}}}}	list	
+{"allOf":[]}	list	

@@ -807,7 +807,8 @@ function ResolveTransform(spec) {
         req: undefined,
         res: undefined,
     };
-    const resprops = getResponseSchema(successResponse(mdesc.responses))?.properties;
+    const resschema = getResponseSchema(successResponse(mdesc.responses));
+    const resprops = resschema?.properties;
     (0, utility_2.debugpath)(pathStr, methodName, 'TRANSFORM-RES', (0, struct_1.keysof)(resprops));
     if (resprops) {
         if ((0, utility_1.isEntityWrapperProp)(resprops[entdesc.origname])) {
@@ -826,6 +827,12 @@ function ResolveTransform(spec) {
             if (null != envelope) {
                 transform.res = '`body.' + envelope + '`';
             }
+        }
+    }
+    if (null == transform.res) {
+        const envelope = (0, utility_1.composedEnvelopeProp)(resschema, opname);
+        if (null != envelope) {
+            transform.res = '`body.' + envelope + '`';
         }
     }
     const reqschema = getRequestBodySchema(mdesc.requestBody);

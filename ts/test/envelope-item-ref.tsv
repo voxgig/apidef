@@ -31,3 +31,5 @@ schema	opname	expected
 {"type":"object","properties":{"members":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/definitions/OrganizationTeamMembership"}}}}	list	#/definitions/OrganizationTeamMembership
 {"type":"object","properties":{"members":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/definitions/OrganizationTeamMembership"}}}}	create	
 {"type":"object","properties":{"total":{"type":"integer"},"data":{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/components/schemas/Item"}}}	load	
+{"type":"object","properties":{"object":{"type":"string"},"next_url":{"type":"string"},"previous_url":{"type":"string"},"count":{"type":"integer"},"data":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/components/schemas/address"}}}}	list	#/components/schemas/address
+{"type":"object","properties":{"prev_url":{"type":"string"},"items":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/components/schemas/note"}}}}	list	#/components/schemas/note

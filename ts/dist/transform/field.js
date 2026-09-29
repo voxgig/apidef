@@ -531,6 +531,8 @@ function findFieldDefs(ment, mop, mpoint, def) {
     const pathdef = def.paths[mpoint.o];
     const method = mpoint.m.toLowerCase();
     const opdef = pathdef?.[method];
+    // The response property the schema was read through, so an example is too.
+    let envelope = null;
     if (opdef) {
         const responses = opdef.responses;
         const requestBody = opdef.requestBody;
@@ -540,8 +542,12 @@ function findFieldDefs(ment, mop, mpoint, def) {
                 (0, jostraca_1.getx)(responses, '200 schema');
             if ('list' == mop.name) {
                 const unwrapped = unwrapArrayWrapper(fieldSets);
+                envelope = null == unwrapped ? (0, utility_1.composedEnvelopeProp)(fieldSets, 'list') : null;
                 if (unwrapped) {
                     fieldSets = unwrapped;
+                }
+                else if (null != envelope) {
+                    fieldSets = (0, utility_1.mergedProperties)(fieldSets)?.[envelope]?.items;
                 }
                 else {
                     const fromCreated = (0, jostraca_1.getx)(responses, '201 content "application/json" schema items') ??
@@ -555,9 +561,16 @@ function findFieldDefs(ment, mop, mpoint, def) {
                     (0, jostraca_1.getx)(responses, '201 schema');
             }
             if ('list' != mop.name) {
-                const envelope = (0, utility_1.envelopeProp)(fieldSets?.properties, mop.name);
+                const props = fieldSets?.properties;
+                envelope = (0, utility_1.envelopeProp)(props, mop.name);
                 if (null != envelope) {
-                    fieldSets = fieldSets.properties[envelope];
+                    fieldSets = props[envelope];
+                }
+                else {
+                    envelope = (0, utility_1.composedEnvelopeProp)(fieldSets, mop.name);
+                    if (null != envelope) {
+                        fieldSets = (0, utility_1.mergedProperties)(fieldSets)?.[envelope];
+                    }
                 }
             }
         }
@@ -604,15 +617,15 @@ function findFieldDefs(ment, mop, mpoint, def) {
     }
     // Fallback: infer fields from example response data when no schema properties found
     if (0 === fielddefs.length && opdef) {
-        const exampleFields = inferFieldsFromExamples(opdef);
+        const exampleFields = inferFieldsFromExamples(opdef, envelope);
         for (const ef of exampleFields) {
             fielddefs.push(ef);
         }
     }
     return fielddefs;
 }
-function inferFieldsFromExamples(opdef) {
-    const example = findExampleObject(opdef);
+function inferFieldsFromExamples(opdef, envelope) {
+    const example = findExampleObject(opdef, envelope);
     if (null == example || 'object' !== typeof example || Array.isArray(example)) {
         return [];
     }
@@ -626,7 +639,7 @@ function inferFieldsFromExamples(opdef) {
     }
     return fielddefs;
 }
-function findExampleObject(opdef) {
+function findExampleObject(opdef, envelope) {
     const responses = opdef.responses;
     if (null == responses)
         return null;
@@ -636,34 +649,42 @@ function findExampleObject(opdef) {
     // OpenAPI 3.x: content.application/json.example
     let example = (0, jostraca_1.getx)(resdef, 'content "application/json" example');
     if (null != example && 'object' === typeof example)
-        return unwrapExample(example);
+        return unwrapExample(example, envelope);
     // OpenAPI 3.x: content.application/json.examples (named examples — take first)
     const examples = (0, jostraca_1.getx)(resdef, 'content "application/json" examples');
     if (null != examples && 'object' === typeof examples) {
         for (const val of Object.values(examples)) {
             const ex = val?.value;
             if (null != ex && 'object' === typeof ex)
-                return unwrapExample(ex);
+                return unwrapExample(ex, envelope);
         }
     }
     // OpenAPI 3.x: content.application/json.schema.example
     example = (0, jostraca_1.getx)(resdef, 'content "application/json" schema example');
     if (null != example && 'object' === typeof example)
-        return unwrapExample(example);
+        return unwrapExample(example, envelope);
     // Swagger 2.0: response.example / response.examples.application/json
     example = resdef.example;
     if (null != example && 'object' === typeof example)
-        return unwrapExample(example);
+        return unwrapExample(example, envelope);
     example = (0, jostraca_1.getx)(resdef, 'examples "application/json"');
     if (null != example && 'object' === typeof example)
-        return unwrapExample(example);
+        return unwrapExample(example, envelope);
     example = (0, jostraca_1.getx)(resdef, 'schema example');
     if (null != example && 'object' === typeof example)
-        return unwrapExample(example);
+        return unwrapExample(example, envelope);
     return null;
 }
-// If the example is a wrapper with a single array property, unwrap to the first item
-function unwrapExample(example) {
+// Through the envelope, then to a list's first item. A scalar where the
+// envelope should be means the example disagrees with it, so it is kept whole.
+function unwrapExample(example, envelope) {
+    if (null != envelope && null != example && 'object' === typeof example &&
+        !Array.isArray(example) && Object.prototype.hasOwnProperty.call(example, envelope)) {
+        const inner = example[envelope];
+        if (null != inner && 'object' === typeof inner) {
+            example = inner;
+        }
+    }
     if (Array.isArray(example)) {
         return example.length > 0 ? example[0] : null;
     }

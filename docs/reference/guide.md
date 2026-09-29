@@ -114,8 +114,9 @@ returns that component when all of these hold:
   the operation is `list`, and a single record for any other operation.
 - The schema declares no `id`.
 - Beside a single record the schema holds nothing else. Beside an array it
-  holds only paging properties, the names in `ENVELOPE_PAGING_PROPS`
-  compared without case, `_`, or `-`.
+  holds only paging properties and counts: the names in
+  `ENVELOPE_PAGING_PROPS`, and names that end in `count`, such as Lob's
+  `scanned_count`, compared without case, `_`, or `-`.
 - The record is an object schema (it has `properties` or `allOf`, or its
   type is `object`) with a component reference.
 
@@ -136,6 +137,31 @@ The rows of
 [`ts/test/apidef.test.ts`](../../ts/test/apidef.test.ts) and
 [`go/apidef_test.go`](../../go/apidef_test.go) pin the decision for the
 whole spec on [`ts/test/def/envelope-def.json`](../../ts/test/def/envelope-def.json).
+
+A response schema composed with `allOf` declares no `properties` of its
+own, so `transform.res` reads the properties of its members together, the
+first declaration of a name winning. It unwraps such a schema only when the
+first three of the preceding rules hold, because most composed schemas are
+records, and the one nested object of a record is its data. Lob's address list,
+`allOf[list, { data: [address] }]`, reads `body.data`. The entity's fields
+then come from the records the envelope holds. When those records are a
+`oneOf` with no properties of their own, the fields come from the response
+example, read through the same property. The rows of
+[`ts/test/composed-envelope-prop.tsv`](../../ts/test/composed-envelope-prop.tsv)
+and [`ts/test/merged-properties.tsv`](../../ts/test/merged-properties.tsv)
+pin the rule in both builds, and the `guide-allof-envelope` tests pin it
+for the whole spec on
+[`ts/test/def/allof-envelope-def.json`](../../ts/test/def/allof-envelope-def.json).
+
+A single-item operation unwraps its response's one nested object only when
+nothing but status or paging properties sits beside it, such as `success`,
+`status` or `request_id`. An `id`, or any other data, beside the object makes
+the schema the record itself: Lob's link carries an `id`, a `title` and one
+`metadata` object, and a load of it returns the link, not the metadata. A
+list is not held to this rule, since its records are what a caller asks for.
+The added rows of
+[`ts/test/envelope-prop.tsv`](../../ts/test/envelope-prop.tsv) pin it in both
+builds.
 
 ### Shared schemas
 

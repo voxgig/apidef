@@ -43,7 +43,6 @@ guide: {
   entity: fossil: {
     path: "/{year}/fossil/{id}": {
       op: load: method: *GET
-      op: load: transform: res: *("`body.collector`")|top
     }
   }
 

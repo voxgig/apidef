@@ -1686,7 +1686,28 @@ func envelopeProp(resprops map[string]any, opname string) string {
 		return ""
 	}
 
+	// Mirrors ts/src/utility.ts: beside an `id` or other data, one object is
+	// the record's own. A single item sits beside status or paging.
+	if !islist {
+		for _, k := range sortedKeys(resprops) {
+			if k != key && !isEnvelopeStatusProp(k) && !isEnvelopePagingProp(k) {
+				return ""
+			}
+		}
+	}
+
 	return key
+}
+
+// ENVELOPE_STATUS_PROPS mirrors ts/src/utility.ts.
+var ENVELOPE_STATUS_PROPS = map[string]bool{
+	"success": true, "status": true, "ok": true, "message": true, "code": true,
+	"error": true, "errorcode": true, "errormessage": true, "requestid": true,
+	"timestamp": true, "took": true, "version": true, "apiversion": true,
+}
+
+func isEnvelopeStatusProp(name string) bool {
+	return ENVELOPE_STATUS_PROPS[envelopePagingSepRE.ReplaceAllString(strings.ToLower(name), "")]
 }
 
 // ENVELOPE_PAGING_PROPS mirrors ts/src/utility.ts.
@@ -1695,9 +1716,10 @@ var ENVELOPE_PAGING_PROPS = map[string]bool{
 	"totalpages": true, "totalresults": true, "page": true, "pages": true, "pagecount": true,
 	"pagenumber": true, "pagesize": true, "perpage": true, "limit": true, "offset": true,
 	"cursor": true, "next": true, "nextcursor": true, "nextpage": true, "nextpagetoken": true,
-	"nexttoken": true, "previous": true, "prev": true, "previouscursor": true,
-	"prevcursor": true, "previouspage": true, "prevpage": true, "hasmore": true,
-	"hasnext": true, "hasprevious": true, "object": true, "url": true,
+	"nexttoken": true, "nexturl": true, "previous": true, "prev": true, "previouscursor": true,
+	"prevcursor": true, "previouspage": true, "prevpage": true, "previousurl": true,
+	"prevurl": true, "hasmore": true, "hasnext": true, "hasprevious": true, "object": true,
+	"url": true,
 }
 
 var envelopePagingSepRE = regexp.MustCompile(`[_-]`)
@@ -1706,27 +1728,25 @@ func isEnvelopePagingProp(name string) bool {
 	return ENVELOPE_PAGING_PROPS[envelopePagingSepRE.ReplaceAllString(strings.ToLower(name), "")]
 }
 
-// envelopeItemRef mirrors ts/src/utility.ts: an envelope has no `id`, a page
-// holds nothing beside its records but paging, and a single-item envelope
-// holds nothing beside the item.
+// isEnvelopePageProp mirrors ts/src/utility.ts: paging, or a count that
+// describes the page.
+func isEnvelopePageProp(name string) bool {
+	return isEnvelopePagingProp(name) ||
+		strings.HasSuffix(envelopePagingSepRE.ReplaceAllString(strings.ToLower(name), ""), "count")
+}
+
+// envelopeItemRef mirrors ts/src/utility.ts: the resolved reference of the
+// record strictEnvelopeProp unwraps to.
 func envelopeItemRef(schema any, opname string) string {
 	sch, _ := schema.(map[string]any)
 	props, _ := sch["properties"].(map[string]any)
-	key := envelopeProp(props, opname)
+	key := strictEnvelopeProp(props, opname)
 	if key == "" {
-		return ""
-	}
-	if props["id"] != nil {
 		return ""
 	}
 
 	prop, _ := props[key].(map[string]any)
 	islist, _ := propIsList(prop)
-	for _, k := range sortedKeys(props) {
-		if k != key && (!islist || !isEnvelopePagingProp(k)) {
-			return ""
-		}
-	}
 
 	item := prop
 	if islist {
@@ -1738,6 +1758,76 @@ func envelopeItemRef(schema any, opname string) string {
 
 	xref, _ := item["x-ref"].(string)
 	return xref
+}
+
+// strictEnvelopeProp mirrors ts/src/utility.ts: an envelope has no `id`, a
+// page holds nothing beside its records but paging, and a single-item
+// envelope holds nothing beside the item.
+func strictEnvelopeProp(props map[string]any, opname string) string {
+	key := envelopeProp(props, opname)
+	if key == "" || props["id"] != nil {
+		return ""
+	}
+
+	islist, _ := propIsList(props[key])
+	for _, k := range sortedKeys(props) {
+		if k != key && (!islist || !isEnvelopePageProp(k)) {
+			return ""
+		}
+	}
+
+	return key
+}
+
+// composedEnvelopeProp mirrors ts/src/utility.ts: the envelope of a schema
+// composed with allOf, held to the strict rules.
+func composedEnvelopeProp(schema any, opname string) string {
+	sch, _ := schema.(map[string]any)
+	if _, ok := sch["allOf"].([]any); !ok {
+		return ""
+	}
+	return strictEnvelopeProp(mergedProperties(sch), opname)
+}
+
+// mergedProperties mirrors ts/src/utility.ts: the properties of a schema and
+// its allOf members, the first declaration of a name winning, without writing
+// to the shared parsed nodes.
+func mergedProperties(schema any) map[string]any {
+	var out map[string]any
+	seen := map[string]bool{}
+
+	var visit func(node any)
+	visit = func(node any) {
+		m, ok := node.(map[string]any)
+		if !ok || m == nil {
+			return
+		}
+		id := fmt.Sprintf("%p", m)
+		if seen[id] {
+			return
+		}
+		seen[id] = true
+
+		if props, ok := m["properties"].(map[string]any); ok {
+			for _, key := range sortedKeys(props) {
+				if out == nil {
+					out = map[string]any{}
+				}
+				if _, has := out[key]; !has {
+					out[key] = props[key]
+				}
+			}
+		}
+
+		if allOf, ok := m["allOf"].([]any); ok {
+			for _, member := range allOf {
+				visit(member)
+			}
+		}
+	}
+
+	visit(schema)
+	return out
 }
 
 func isRecordSchema(schema map[string]any) bool {

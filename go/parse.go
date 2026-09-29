@@ -286,8 +286,8 @@ func followAlias(root map[string]any, node any, active map[string]bool) any {
 	return merged
 }
 
-// @tabnas/yaml keeps the quotes of an explicit key (`? "/a"`, `? '/a'`) in the
-// key. A rename that would collide with another key is not made.
+// A path key that still carries its quotes loses them. A rename that would
+// collide with another key is not made.
 func normalizePathKeys(keys []string) []string {
 	next := make([]string, len(keys))
 	for i, key := range keys {

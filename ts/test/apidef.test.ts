@@ -434,6 +434,54 @@ describe('apidef', () => {
     assert.strictEqual(listpt.o, '/{year}/observation')
     assert.ok(null != entities.observation.fields.observedAt,
       'observation fields not unwrapped: ' + Object.keys(entities.observation.fields))
+
+    // A record with one nested object reads the record, not the object.
+    assert.strictEqual(entities.fossil.op.load.points[0].t.res, '`body`')
+  })
+
+
+  // Lob's shape: a page composed with allOf, whose records are a oneOf, so
+  // the fields come from the list example read through the same `data`. A
+  // composed record keeps its one object (owner), and a page may hold a count
+  // beside its records (notes).
+  test('guide-allof-envelope', async () => {
+    const folder = __dirname + '/../test/allof-envelope'
+
+    const build = await ApiDef.makeBuild({ folder })
+
+    const bres = await build(
+      { name: 'allof-envelope', def: 'allof-envelope-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: true,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const entities = bres.apimodel.main.kit.entity
+    const res = (ent: string, op: string) => entities[ent].op[op].points[0].t.res
+
+    assert.strictEqual(res('address', 'list'), '`body.data`')
+    assert.strictEqual(res('address', 'load'), '`body`')
+    assert.strictEqual(res('address', 'remove'), '`body`')
+    assert.strictEqual(res('owner', 'load'), '`body`')
+    assert.strictEqual(res('note', 'list'), '`body.data`')
+
+    assert.deepStrictEqual(Object.keys(entities.address.fields), [
+      'address_line1', 'address_line2', 'address_zip', 'id', 'name',
+    ])
+    assert.deepStrictEqual(Object.keys(entities.owner.fields), ['id', 'name', 'settings'])
   })
 
 

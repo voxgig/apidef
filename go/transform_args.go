@@ -147,9 +147,11 @@ func resolveArgs(
 			fieldType = []any{"`$ONE`", "`$NULL`", fieldType}
 		}
 
+		// The name the definition gives, which the SDK sends on the wire. The
+		// model name beside it is only what a caller writes.
 		marg := map[string]any{
 			"n":  name,
-			"or": orig,
+			"or": argName,
 			"t":  fieldType,
 			"k":  kind,
 			"r":  toBool(argdef["required"]),
