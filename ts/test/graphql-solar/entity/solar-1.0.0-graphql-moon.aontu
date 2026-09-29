@@ -103,7 +103,7 @@ main: kit: entity: moon: {
               {
                 k: "param"
                 n: "planet_id"
-                or: "planet_id"
+                or: "planetId"
                 r: false
                 t: "`$STRING`"
               }

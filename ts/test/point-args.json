@@ -26,6 +26,16 @@
       }
     },
     {
+      "name": "resourceIds",
+      "in": "query",
+      "schema": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    {
       "name": "XTrace",
       "in": "header",
       "examples": {
@@ -52,7 +62,7 @@
     "params": [
       {
         "n": "id",
-        "or": "pet_id",
+        "or": "petId",
         "t": "`$STRING`",
         "k": "param",
         "r": true
@@ -77,12 +87,19 @@
         "k": "query",
         "r": true,
         "ex": 0
+      },
+      {
+        "n": "resource_id",
+        "or": "resourceIds",
+        "t": "`$ARRAY`",
+        "k": "query",
+        "r": false
       }
     ],
     "header": [
       {
         "n": "x_trace",
-        "or": "x_trace",
+        "or": "XTrace",
         "t": "`$ANY`",
         "k": "header",
         "r": false,

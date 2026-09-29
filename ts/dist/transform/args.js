@@ -91,9 +91,11 @@ function resolveArgs(ctx, ment, mop, mpoint, argdefs) {
         // Try both before falling through to `orig`.
         const renameMap = mpoint.r[kind];
         const name = renameMap?.[specName] ?? renameMap?.[orig] ?? orig;
+        // The name the definition gives, which the SDK sends on the wire. The
+        // model name beside it is only what a caller writes.
         const marg = {
             n: name,
-            or: orig,
+            or: String(argdef.name),
             t: (0, utility_1.inferFieldType)(name, (0, utility_1.validator)(argdef.schema?.type)),
             k: kind,
             r: !!argdef.required

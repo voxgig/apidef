@@ -465,8 +465,8 @@ func TestIdDescriptorOnlyWhenTheEntityHasOne(t *testing.T) {
 }
 
 // A PARAM RENAME IS KEYED BY THE SPEC NAME. petstore renames `petId` to
-// `id`; this port asked the rename map for the SNAKIFIED `pet_id`, found
-// nothing, and named the parameter `pet_id` — disagreeing with TS, and with
+// `id`; this port asked the rename map for the SNAKIFIED form, found
+// nothing, and named the parameter by it — disagreeing with TS, and with
 // its own path segments, which the rename had already rewritten to `{id}`.
 func TestArgRenameUsesTheSpecName(t *testing.T) {
 	mtarget := map[string]any{
@@ -489,8 +489,8 @@ func TestArgRenameUsesTheSpecName(t *testing.T) {
 	if "id" != p["n"] {
 		t.Errorf("param name = %v, want id", p["n"])
 	}
-	if "pet_id" != p["or"] {
-		t.Errorf("param orig = %v, want pet_id", p["or"])
+	if "petId" != p["or"] {
+		t.Errorf("param orig = %v, want petId", p["or"])
 	}
 }
 
