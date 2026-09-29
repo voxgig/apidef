@@ -181,6 +181,71 @@ func resolveArgs(
 
 		args[argsKey] = kindargs
 	}
+
+	// Mirrors ts/src/transform/args.ts: a placeholder the definition declares
+	// no parameter for takes a required string argument, with a warning.
+	if safeStr(mtarget["k"]) != "graphql" {
+		canon := func(wire string) string { return Depluralize(Snakify(NormalizeFieldName(wire))) }
+		params, _ := args["params"].([]any)
+		declared := map[string]bool{}
+		for _, a := range params {
+			am, _ := a.(map[string]any)
+			declared[canon(safeStr(am["or"]))] = true
+		}
+		added := false
+		named := func(name string) bool {
+			for _, a := range params {
+				if am, _ := a.(map[string]any); safeStr(am["n"]) == name {
+					return true
+				}
+			}
+			return false
+		}
+		for _, m := range pathParamRE.FindAllStringSubmatch(safeStr(mtarget["o"]), -1) {
+			wire := m[1]
+			orig := canon(wire)
+			name := orig
+			if kindRename, ok := rename["param"].(map[string]any); ok {
+				for _, key := range []string{wire, NormalizeFieldName(wire), orig} {
+					if rn, ok := kindRename[key].(string); ok && rn != "" {
+						name = rn
+						break
+					}
+				}
+			}
+			// A declared parameter the placeholder is renamed to already fills it.
+			if orig == "" || declared[orig] || named(name) {
+				continue
+			}
+			declared[orig] = true
+			params = append(params, map[string]any{
+				"n": name, "or": wire, "t": InferFieldType(name, Validator("string")),
+				"k": "param", "r": true, "a": true,
+			})
+			added = true
+			if ctx != nil && ctx.Warn != nil {
+				ctx.Warn.Warn(map[string]any{
+					"note": fmt.Sprintf(
+						"Path placeholder {%s} on entity=%s op=%s path=%s has no declared parameter,"+
+							" so it is taken as a required string.",
+						wire, entname, opname, safeStr(mtarget["o"])),
+					"entity": entname,
+					"path":   mtarget["o"],
+					"op":     opname,
+				})
+			}
+		}
+		if added {
+			sort.Slice(params, func(i, j int) bool {
+				ai, _ := params[i].(map[string]any)
+				aj, _ := params[j].(map[string]any)
+				ni, _ := ai["n"].(string)
+				nj, _ := aj["n"].(string)
+				return lessUTF16(ni, nj)
+			})
+			args["params"] = params
+		}
+	}
 }
 
 // toBool mirrors JavaScript's truthy semantics for non-bool values:

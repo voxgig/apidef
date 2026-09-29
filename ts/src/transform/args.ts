@@ -163,6 +163,33 @@ function resolveArgs(
     touchedKeys.add(argsKey)
   })
 
+  // A placeholder the definition declares no parameter for, such as Vapi's
+  // DELETE /call/{id}, still takes a value: it gets a required string
+  // argument under its own name, and a warning.
+  if ('graphql' !== mpoint.k) {
+    const canon = (wire: string) => depluralize(snakify(normalizeFieldName(wire)))
+    const declared = new Set((mpoint.g.params ?? []).map((arg: ModelArg) => canon(String(arg.or))))
+    for (const [, wire] of String(mpoint.o ?? '').matchAll(/\{([^}]+)\}/g)) {
+      const orig = canon(wire)
+      const renameMap = mpoint.r.param
+      const name = renameMap?.[wire] ?? renameMap?.[normalizeFieldName(wire)] ?? renameMap?.[orig] ?? orig
+      // A declared parameter the placeholder is renamed to already fills it.
+      if ('' === orig || declared.has(orig) ||
+        (mpoint.g.params ?? []).some((arg: ModelArg) => arg.n === name)) continue
+      declared.add(orig)
+      const params = (mpoint.g.params = mpoint.g.params ?? [])
+      params.push({ n: name, or: wire, t: inferFieldType(name, validator('string')), k: 'param', r: true })
+      touchedKeys.add('params')
+      ctx?.warn?.({
+        note: `Path placeholder {${wire}} on entity=${ment.name} op=${mop.name}` +
+          ` path=${mpoint.o} has no declared parameter, so it is taken as a required string.`,
+        entity: ment.name,
+        path: mpoint.o,
+        op: mop.name,
+      })
+    }
+  }
+
   // Sort once after all args are collected
   const cmp = (a: ModelArg, b: ModelArg) => a.n < b.n ? -1 : a.n > b.n ? 1 : 0
   for (const key of touchedKeys) {

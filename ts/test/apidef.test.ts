@@ -423,6 +423,8 @@ describe('apidef', () => {
       domain: ['list', 'load', 'update'],
       fossil: ['load'],
       gallery: ['list'],
+      greenhouse: ['create', 'load'],
+      kennel: ['create'],
       kingdom: ['create', 'list', 'load'],
       // Its 200 has no JSON schema, and still decides over the 201 list.
       ledger: ['load'],
@@ -442,6 +444,15 @@ describe('apidef', () => {
 
     // A record with one nested object reads the record, not the object.
     assert.strictEqual(entities.fossil.op.load.points[0].t.res, '`body`')
+
+    // A response that is the entity's own component reads the record, though
+    // one of its properties is named after the entity.
+    assert.strictEqual(entities.greenhouse.op.load.points[0].t.res, '`body`')
+
+    // A body wraps the record under the entity's name only when that is all
+    // it holds.
+    assert.strictEqual(entities.greenhouse.op.create.points[0].t.req, '`reqdata`')
+    assert.deepStrictEqual(entities.kennel.op.create.points[0].t.req, { kennel: '`reqdata`' })
   })
 
 
@@ -487,6 +498,40 @@ describe('apidef', () => {
       'address_line1', 'address_line2', 'address_zip', 'id', 'name',
     ])
     assert.deepStrictEqual(Object.keys(entities.owner.fields), ['id', 'name', 'settings'])
+  })
+
+
+  // A wrapper whose suffix was cleaned away to name the entity is still the
+  // wrapper, so the record is read by the entity's name. The entity's own
+  // component is the record, though one of its properties shares the name.
+  test('guide-wrapper-name', async () => {
+    const folder = __dirname + '/../test/wrapper-name'
+
+    const build = await ApiDef.makeBuild({ folder })
+
+    const bres = await build(
+      { name: 'wrapper-name', def: 'wrapper-name-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: true,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const entities = bres.apimodel.main.kit.entity
+    assert.strictEqual(entities.hive.op.load.points[0].t.res, '`body.hive`')
+    assert.strictEqual(entities.garden.op.load.points[0].t.res, '`body`')
   })
 
 

@@ -4,9 +4,9 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 15
-  metrics: count: path: 18
-  metrics: count: method: 21
+  metrics: count: entity: 17
+  metrics: count: path: 21
+  metrics: count: method: 24
 
   entity: auction: {
     path: "/{year}/auction/{id}": {
@@ -57,6 +57,22 @@ guide: {
     path: "/{year}/gallery": {
       op: list: method: *GET
       op: list: transform: res: *("`body.data`")|top
+    }
+  }
+
+  entity: greenhouse: {
+    path: "/{year}/greenhouse": {
+      op: create: method: *POST
+    }
+    path: "/{year}/greenhouse/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: kennel: {
+    path: "/{year}/kennel": {
+      op: create: method: *POST
+      op: create: transform: req: "kennel": *("`reqdata`")|top
     }
   }
 

@@ -54,15 +54,19 @@ function allargs(ctx) {
         const warnings = [];
         ctx.warn = (w) => warnings.push(w);
         await (0, args_1.argsTransform)(ctx);
+        // The dropped parameter's placeholder still takes a value, as a required
+        // string under its own name.
         const args = allargs(ctx);
-        node_assert_1.default.deepStrictEqual(args.map((a) => a.n), ['year']);
+        node_assert_1.default.deepStrictEqual(args.map((a) => a.n), ['kingdom_id', 'year']);
         node_assert_1.default.strictEqual(args.filter((a) => '' === a.n).length, 0);
-        node_assert_1.default.strictEqual(warnings.length, 1);
+        node_assert_1.default.deepStrictEqual({ or: args[0].or, k: args[0].k, r: args[0].r }, { or: 'kingdom_id', k: 'param', r: true });
+        node_assert_1.default.strictEqual(warnings.length, 2);
         node_assert_1.default.strictEqual(warnings[0].entity, 'kingdom');
         node_assert_1.default.strictEqual(warnings[0].op, 'load');
         node_assert_1.default.strictEqual(warnings[0].path, '/{year}/kingdom/{kingdom_id}');
         node_assert_1.default.match(warnings[0].note, /KingdomId/);
         node_assert_1.default.match(warnings[0].note, /resolves to nothing/);
+        node_assert_1.default.match(warnings[1].note, /\{kingdom_id\} .*has no declared parameter/);
     });
     // Same drop, but there is no reference to name: an inline parameter that
     // simply omits `name`. The note must not promise a `$ref` it has not got.

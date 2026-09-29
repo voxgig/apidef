@@ -830,11 +830,18 @@ function ResolveTransform(spec) {
     const resschema = getResponseSchema(successResponse(mdesc.responses));
     const resprops = resschema?.properties;
     (0, utility_2.debugpath)(pathStr, methodName, 'TRANSFORM-RES', (0, struct_1.keysof)(resprops));
+    // A response that is the component the entity is named from is the record
+    // itself, though one of its properties shares the entity's name, such as
+    // SaladCloud's container group and the container it runs. The entity's cmp
+    // is the name after cleaning, so a UserResponse naming user stays a wrapper.
+    const rescmp = resschema?.['x-ref'];
+    const named = null == rescmp || null == entdesc.cmp ||
+        cmpRefName(rescmp) !== entdesc.cmp;
     if (resprops) {
-        if ((0, utility_1.isEntityWrapperProp)(resprops[entdesc.origname])) {
+        if (named && (0, utility_1.isEntityWrapperProp)(resprops[entdesc.origname])) {
             transform.res = '`body.' + entdesc.origname + '`';
         }
-        else if ((0, utility_1.isEntityWrapperProp)(resprops[entdesc.name])) {
+        else if (named && (0, utility_1.isEntityWrapperProp)(resprops[entdesc.name])) {
             transform.res = '`body.' + entdesc.name + '`';
         }
         else {
@@ -858,11 +865,16 @@ function ResolveTransform(spec) {
     const reqschema = getRequestBodySchema(mdesc.requestBody);
     const reqprops = reqschema?.properties;
     (0, utility_2.debugpath)(pathStr, methodName, 'TRANSFORM-REQ', (0, struct_1.keysof)(reqprops));
+    // A body wraps the record under the entity's name only when that is all it
+    // holds, and it is structured. Otherwise the name is one field of the record,
+    // such as the container in SaladCloud's container group create.
+    const wraps = (name) => (0, utility_1.isEntityWrapperProp)(reqprops?.[name]) &&
+        (0, struct_1.keysof)(reqprops).every((k) => k === name);
     if (reqschema) {
-        if (null != reqprops?.[entdesc.origname]) {
+        if (wraps(entdesc.origname)) {
             transform.req = { [entdesc.origname]: '`reqdata`' };
         }
-        else if (null != reqprops?.[entdesc.name]) {
+        else if (wraps(entdesc.name)) {
             transform.req = { [entdesc.name]: '`reqdata`' };
         }
         else {

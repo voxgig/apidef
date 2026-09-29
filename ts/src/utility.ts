@@ -1624,8 +1624,19 @@ function envelopeProp(resprops: any, opname: string): string | null {
     return null
   }
 
-  const structured = keys.filter((k: string) => isEntityWrapperProp(resprops[k]) &&
-    !(isEnvelopeMetaProp(k) && true !== propIsList(resprops[k])))
+  let structured = keys.filter((k: string) => isEntityWrapperProp(resprops[k]))
+
+  // A page's own metadata object, such as Vapi's `metadata` or Neon's
+  // `pagination`, sits beside its records and is not a second candidate. A
+  // list under such a name is records, such as Maxio's custom field metadata.
+  if ('list' === opname) {
+    const records = structured.filter((k: string) =>
+      !isPageMetaProp(k) || true === propIsList(resprops[k]))
+    if (1 === records.length && isRecordList(resprops[records[0]])) {
+      structured = records
+    }
+  }
+
   if (1 !== structured.length) {
     return null
   }
@@ -1671,6 +1682,7 @@ const ENVELOPE_PAGING_PROPS = new Set([
   'nextpagetoken', 'nexttoken', 'nexturl', 'previous', 'prev',
   'previouscursor', 'prevcursor', 'previouspage', 'prevpage', 'previousurl',
   'prevurl', 'hasmore', 'hasnext', 'hasprevious', 'object', 'url',
+  'currentpage',
 ])
 
 
@@ -1679,23 +1691,44 @@ function isEnvelopePagingProp(name: string): boolean {
 }
 
 
-// Paging, or a count that describes the page, such as the number of Lob's QR
-// codes on the page that were scanned at least once.
-function isEnvelopePageProp(name: string): boolean {
-  return isEnvelopePagingProp(name) || isEnvelopeMetaProp(name) ||
-    name.toLowerCase().replace(/[_-]/g, '').endsWith('count')
+// A list whose items are objects. GitHub's feed holds a list of URL strings
+// beside its links, and a page of strings is not a page of records.
+function isRecordList(prop: any): boolean {
+  return isObjectSchema(true === propIsList(prop) ? prop?.items : null)
 }
 
 
-// A metadata object a page carries beside its records, compared as the
-// paging names are.
-const ENVELOPE_META_PROPS = new Set([
+// An object, or a composition with a branch that is one. A nullable string
+// written as a oneOf is not.
+function isObjectSchema(schema: any): boolean {
+  if (null == schema || 'object' !== typeof schema) {
+    return false
+  }
+  if (null != schema.$ref || null != schema.properties || 'object' === schema.type) {
+    return true
+  }
+  return ['allOf', 'oneOf', 'anyOf'].some((k: string) =>
+    Array.isArray(schema[k]) && schema[k].some(isObjectSchema))
+}
+
+
+// The object a page may carry about itself beside its records, compared as
+// the paging names are.
+const PAGE_META_PROPS = new Set([
   'meta', 'metadata', 'pagination', 'paging', 'pageinfo', 'links',
 ])
 
 
-function isEnvelopeMetaProp(name: string): boolean {
-  return ENVELOPE_META_PROPS.has(name.toLowerCase().replace(/[_-]/g, ''))
+function isPageMetaProp(name: string): boolean {
+  return PAGE_META_PROPS.has(name.toLowerCase().replace(/[_-]/g, ''))
+}
+
+
+// Paging, the page's own metadata, or a count that describes the page, such
+// as the number of Lob's QR codes on the page that were scanned at least once.
+function isEnvelopePageProp(name: string): boolean {
+  return isEnvelopePagingProp(name) || isPageMetaProp(name) ||
+    name.toLowerCase().replace(/[_-]/g, '').endsWith('count')
 }
 
 

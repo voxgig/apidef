@@ -466,6 +466,8 @@ func TestGuideEnvelope(t *testing.T) {
 		"domain":      "list/load/patch",
 		"fossil":      "load",
 		"gallery":     "list",
+		"greenhouse":  "create/load",
+		"kennel":      "create",
 		"kingdom":     "create/list/load",
 		"ledger":      "load",
 		"observation": "list",
@@ -488,6 +490,35 @@ func TestGuideEnvelope(t *testing.T) {
 	fload, _ := fops["load"].(map[string]any)
 	if tr, ok := fload["transform"]; ok && tr != nil {
 		t.Errorf("fossil load transform = %v, want none", tr)
+	}
+
+	// A response that is the entity's own component reads the record, though
+	// one of its properties is named after the entity.
+	greenhouse, _ := entities["greenhouse"].(map[string]any)
+	gpaths, _ := greenhouse["path"].(map[string]any)
+	gpath, _ := gpaths["/{year}/greenhouse/{id}"].(map[string]any)
+	gops, _ := gpath["op"].(map[string]any)
+	gload, _ := gops["load"].(map[string]any)
+	if tr, ok := gload["transform"].(map[string]any); ok && tr["res"] != nil {
+		t.Errorf("greenhouse load transform res = %v, want none", tr["res"])
+	}
+
+	// A body wraps the record under the entity's name only when that is all
+	// it holds.
+	gcpath, _ := gpaths["/{year}/greenhouse"].(map[string]any)
+	gcops, _ := gcpath["op"].(map[string]any)
+	gcreate, _ := gcops["create"].(map[string]any)
+	if tr, ok := gcreate["transform"].(map[string]any); ok && tr["req"] != nil {
+		t.Errorf("greenhouse create transform req = %v, want none", tr["req"])
+	}
+	kennel, _ := entities["kennel"].(map[string]any)
+	kpaths, _ := kennel["path"].(map[string]any)
+	kpath, _ := kpaths["/{year}/kennel"].(map[string]any)
+	kops, _ := kpath["op"].(map[string]any)
+	kcreate, _ := kops["create"].(map[string]any)
+	ktr, _ := kcreate["transform"].(map[string]any)
+	if !reflect.DeepEqual(ktr["req"], map[string]any{"kennel": "`reqdata`"}) {
+		t.Errorf("kennel create transform req = %v, want {kennel: reqdata}", ktr["req"])
 	}
 }
 
@@ -547,6 +578,40 @@ func TestGuideAllofEnvelope(t *testing.T) {
 }
 
 // Mirrors the TS `guide-trailing-key` case.
+// Mirrors the TS `guide-wrapper-name` case.
+func TestGuideWrapperName(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "wrapper-name-")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, OutPrefix: "wrapper-name-", Strategy: "heuristic01"}).
+		Generate(map[string]any{
+			"model": map[string]any{"name": "wrapper-name", "def": "wrapper-name-def.json"},
+			"build": map[string]any{"spec": map[string]any{"base": "../ts/test/def"}},
+			"ctrl": map[string]any{"step": map[string]any{
+				"parse": true, "guide": true, "transformers": true,
+				"builders": false, "generate": false,
+			}},
+		})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v", err)
+	}
+
+	entities, _ := res.Guide["entity"].(map[string]any)
+	loadRes := func(ent, path string) any {
+		e, _ := entities[ent].(map[string]any)
+		paths, _ := e["path"].(map[string]any)
+		pd, _ := paths[path].(map[string]any)
+		ops, _ := pd["op"].(map[string]any)
+		load, _ := ops["load"].(map[string]any)
+		tr, _ := load["transform"].(map[string]any)
+		return tr["res"]
+	}
+	if got := loadRes("hive", "/hives/{id}"); got != "`body.hive`" {
+		t.Errorf("hive load transform res = %v, want body.hive", got)
+	}
+	if got := loadRes("garden", "/gardens/{id}"); got != nil {
+		t.Errorf("garden load transform res = %v, want none", got)
+	}
+}
+
 func TestGuideTrailingKey(t *testing.T) {
 	folder := stageGuideEntry(t, t.TempDir(), "trailing-key-")
 	res, err := NewApiDef(ApiDefOptions{Folder: folder, OutPrefix: "trailing-key-", Strategy: "heuristic01"}).
@@ -1760,23 +1825,32 @@ func TestArgsTransformNamelessParam(t *testing.T) {
 		}
 	}
 
+	// The dropped parameter's placeholder still takes a value, as a required
+	// string under its own name.
 	params, _ := args["params"].([]any)
-	if len(params) != 1 {
-		t.Fatalf("params = %d, want 1 (year)", len(params))
+	if len(params) != 2 {
+		t.Fatalf("params = %d, want 2 (kingdom_id, year)", len(params))
 	}
-	if safeStr(params[0].(map[string]any)["n"]) != "year" {
-		t.Errorf("param = %v, want year", params[0])
+	kid := params[0].(map[string]any)
+	if safeStr(kid["n"]) != "kingdom_id" || safeStr(kid["or"]) != "kingdom_id" || kid["r"] != true {
+		t.Errorf("param = %v, want a required kingdom_id", kid)
+	}
+	if safeStr(params[1].(map[string]any)["n"]) != "year" {
+		t.Errorf("param = %v, want year", params[1])
 	}
 
 	hist := ctx.Warn.History()
-	if len(hist) != 1 {
-		t.Fatalf("warnings = %d, want exactly 1", len(hist))
+	if len(hist) != 2 {
+		t.Fatalf("warnings = %d, want 2", len(hist))
 	}
 	if hist[0]["entity"] != "kingdom" || hist[0]["op"] != "load" {
 		t.Errorf("warning = %v, want entity=kingdom op=load", hist[0])
 	}
 	if !strings.Contains(safeStr(hist[0]["note"]), "KingdomId") {
 		t.Errorf("warning note does not name the missing ref: %v", hist[0]["note"])
+	}
+	if !strings.Contains(safeStr(hist[1]["note"]), "{kingdom_id}") {
+		t.Errorf("warning note does not name the placeholder: %v", hist[1]["note"])
 	}
 }
 

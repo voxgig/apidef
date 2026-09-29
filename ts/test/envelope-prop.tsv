@@ -31,5 +31,10 @@ resprops	opname	expected
 {"name":{"type":"string"},"labels":{"type":"object"}}	load	
 {"request_id":{"type":"string"},"result":{"type":"object"}}	update	result
 {"year":{"type":"integer"},"records":{"type":"array","items":{"type":"object"}}}	list	records
-{"results":{"type":"array"},"meta":{"type":"object"}}	list	results
-{"results":{"type":"array"},"filters":{"type":"object"}}	list	
+{"results":{"type":"array","items":{"$ref":"#/components/schemas/Chat"}},"metadata":{"$ref":"#/components/schemas/PaginationMeta"}}	list	results
+{"branches":{"type":"array","items":{"$ref":"#/components/schemas/Branch"}},"pagination":{"type":"object"}}	list	branches
+{"branches":{"type":"array","items":{"$ref":"#/components/schemas/Branch"}},"annotations":{"type":"object"},"pagination":{"type":"object"}}	list	
+{"data":{"$ref":"#/components/schemas/Chat"},"metadata":{"type":"object"}}	load	
+{"metadata":{"type":"array","items":{"$ref":"#/components/schemas/Metafield"}},"total_count":{"type":"integer"},"current_page":{"type":"integer"}}	list	metadata
+{"values":{"type":"array","items":{"oneOf":[{"type":"string"},{"type":"null"}]}},"metadata":{"type":"object"}}	list	
+{"pets":{"type":"array","items":{"oneOf":[{"$ref":"#/components/schemas/Cat"},{"$ref":"#/components/schemas/Dog"}]}},"metadata":{"type":"object"}}	list	pets

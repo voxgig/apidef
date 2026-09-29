@@ -341,6 +341,8 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
             domain: ['list', 'load', 'update'],
             fossil: ['load'],
             gallery: ['list'],
+            greenhouse: ['create', 'load'],
+            kennel: ['create'],
             kingdom: ['create', 'list', 'load'],
             // Its 200 has no JSON schema, and still decides over the 201 list.
             ledger: ['load'],
@@ -357,6 +359,13 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.ok(null != entities.observation.fields.observedAt, 'observation fields not unwrapped: ' + Object.keys(entities.observation.fields));
         // A record with one nested object reads the record, not the object.
         node_assert_1.default.strictEqual(entities.fossil.op.load.points[0].t.res, '`body`');
+        // A response that is the entity's own component reads the record, though
+        // one of its properties is named after the entity.
+        node_assert_1.default.strictEqual(entities.greenhouse.op.load.points[0].t.res, '`body`');
+        // A body wraps the record under the entity's name only when that is all
+        // it holds.
+        node_assert_1.default.strictEqual(entities.greenhouse.op.create.points[0].t.req, '`reqdata`');
+        node_assert_1.default.deepStrictEqual(entities.kennel.op.create.points[0].t.req, { kennel: '`reqdata`' });
     });
     // Lob's shape: a page composed with allOf, whose records are a oneOf, so
     // the fields come from the list example read through the same `data`. A
@@ -390,6 +399,30 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
             'address_line1', 'address_line2', 'address_zip', 'id', 'name',
         ]);
         node_assert_1.default.deepStrictEqual(Object.keys(entities.owner.fields), ['id', 'name', 'settings']);
+    });
+    // A wrapper whose suffix was cleaned away to name the entity is still the
+    // wrapper, so the record is read by the entity's name. The entity's own
+    // component is the record, though one of its properties shares the name.
+    (0, node_test_1.test)('guide-wrapper-name', async () => {
+        const folder = __dirname + '/../test/wrapper-name';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'wrapper-name', def: 'wrapper-name-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: true,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        const entities = bres.apimodel.main.kit.entity;
+        node_assert_1.default.strictEqual(entities.hive.op.load.points[0].t.res, '`body.hive`');
+        node_assert_1.default.strictEqual(entities.garden.op.load.points[0].t.res, '`body`');
     });
     // A trailing parameter under its entity's segment is the entity's key,
     // whatever the response component is called: a rare component named for
