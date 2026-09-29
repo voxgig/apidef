@@ -540,6 +540,10 @@ function findFieldDefs(ment, mop, mpoint, def) {
         if (responses) {
             fieldSets = (0, jostraca_1.getx)(responses, '200 content "application/json" schema') ??
                 (0, jostraca_1.getx)(responses, '200 schema');
+            if (null == fieldSets && answersOnlyAccepted(responses)) {
+                fieldSets = (0, jostraca_1.getx)(responses, '202 content "application/json" schema') ??
+                    (0, jostraca_1.getx)(responses, '202 schema');
+            }
             if ('list' == mop.name) {
                 const unwrapped = unwrapArrayWrapper(fieldSets);
                 envelope = null == unwrapped ? (0, utility_1.composedEnvelopeProp)(fieldSets, 'list') : null;
@@ -624,6 +628,9 @@ function findFieldDefs(ment, mop, mpoint, def) {
     }
     return fielddefs;
 }
+function answersOnlyAccepted(responses) {
+    return null == responses['200'] && null == responses['201'] && null != responses['202'];
+}
 function inferFieldsFromExamples(opdef, envelope) {
     const example = findExampleObject(opdef, envelope);
     if (null == example || 'object' !== typeof example || Array.isArray(example)) {
@@ -643,7 +650,7 @@ function findExampleObject(opdef, envelope) {
     const responses = opdef.responses;
     if (null == responses)
         return null;
-    const resdef = responses['200'] ?? responses['201'];
+    const resdef = responses['200'] ?? responses['201'] ?? responses['202'];
     if (null == resdef)
         return null;
     // OpenAPI 3.x: content.application/json.example

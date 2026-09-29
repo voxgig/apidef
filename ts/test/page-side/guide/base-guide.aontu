@@ -1,0 +1,63 @@
+# Generated from the API definition and overwritten on every build: do not
+# edit this file. Put customizations in the guide entry file, which includes
+# this one and overrides its defaults:
+#   guide.aontu
+
+guide: {
+  metrics: count: entity: 7
+  metrics: count: path: 8
+  metrics: count: method: 8
+
+  entity: branch: {
+    path: "/branches": {
+      op: list: method: *GET
+      op: list: transform: res: *("`body.branches`")|top
+    }
+  }
+
+  entity: export: {
+    path: "/exports": {
+      op: create: method: *POST
+      op: create: transform: res: *("`body.data`")|top
+    }
+  }
+
+  entity: job: {
+    path: "/jobs": {
+      op: create: method: *POST
+      op: create: transform: res: *("`body.data`")|top
+    }
+    path: "/jobs/{id}": {
+      op: load: method: *GET
+      op: load: transform: res: *("`body.data`")|top
+    }
+  }
+
+  entity: metric: {
+    path: "/metrics": {
+      op: list: method: *GET
+      op: list: transform: res: *("`body.data`")|top
+    }
+  }
+
+  entity: notification: {
+    path: "/notifications": {
+      op: list: method: *GET
+      op: list: transform: res: *("`body.data`")|top
+    }
+  }
+
+  entity: preference: {
+    path: "/preferences": {
+      op: list: method: *GET
+      op: list: transform: res: *("`body.workflows`")|top
+    }
+  }
+
+  entity: rollup: {
+    path: "/rollups": {
+      op: list: method: *GET
+    }
+  }
+
+}

@@ -535,6 +535,53 @@ describe('apidef', () => {
   })
 
 
+  // A page with no data of its own reads its one list of records past a list
+  // of scalars (metric) or an object (notification, preference), composed or
+  // not (branch), while a response with a state of its own is read whole
+  // (rollup). A create that
+  // only an Accepted response answers reads its envelope as the load does.
+  test('guide-page-side', async () => {
+    const folder = __dirname + '/../test/page-side'
+
+    const build = await ApiDef.makeBuild({ folder })
+
+    const bres = await build(
+      { name: 'page-side', def: 'page-side-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: true,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const entities = bres.apimodel.main.kit.entity
+    const res = (ent: string, op: string) => entities[ent]?.op[op]?.points[0].t.res
+    assert.strictEqual(res('metric', 'list'), '`body.data`')
+    assert.strictEqual(res('notification', 'list'), '`body.data`')
+    assert.strictEqual(res('preference', 'list'), '`body.workflows`')
+    assert.strictEqual(res('rollup', 'list'), '`body`')
+    assert.strictEqual(res('branch', 'list'), '`body.branches`')
+    assert.strictEqual(res('job', 'create'), '`body.data`')
+    assert.strictEqual(res('job', 'load'), '`body.data`')
+
+    // With no read beside it, the fields come from the Accepted answer too.
+    assert.strictEqual(res('export', 'create'), '`body.data`')
+    assert.deepStrictEqual(Object.keys(entities.export.fields).sort(),
+      ['format', 'id', 'state', 'url'])
+  })
+
+
   // A trailing parameter under its entity's segment is the entity's key,
   // whatever the response component is called: a rare component named for
   // another view of it, or a tag on a write that answers with no component.
@@ -1111,9 +1158,9 @@ def: '${outprefix}def.yaml'
 
   // A FastAPI document: no servers, a version prefix, trailing slashes,
   // fastapi-pagination pages, a list wrapper holding a meta object, and one
-  // holding an object of its own. Each list joins the record entity its
-  // item route names; the last stays wrapped, since nothing says which key
-  // holds the records. The base URL becomes a server variable.
+  // holding the filters it was read with. Each list joins the record entity
+  // its item route names, and reads its one list of records. The base URL
+  // becomes a server variable.
   test('guide-fastapi', async () => {
     const folder = __dirname + '/../test/fastapi'
 
@@ -1152,7 +1199,7 @@ def: '${outprefix}def.yaml'
     assert.strictEqual(entities.prompt.op.list.points[0].o, '/api/v1/prompts/')
     assert.strictEqual(entities.prompt.op.list.points[0].t.res, '`body.results`')
     assert.strictEqual(entities.tag.op.list.points[0].o, '/api/v1/tags/')
-    assert.strictEqual(entities.tag.op.list.points[0].t.res, '`body`')
+    assert.strictEqual(entities.tag.op.list.points[0].t.res, '`body.data`')
 
     const info = bres.apimodel.main.kit.info
     assert.strictEqual(info.servers[0].url, '{base}')

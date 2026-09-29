@@ -35,6 +35,7 @@ guide: {
   entity: tag: {
     path: "/api/v1/tags/": {
       op: list: method: *GET
+      op: list: transform: res: *("`body.data`")|top
     }
     path: "/api/v1/tags/{tag_id}": {
       rename: param: "tag_id": *"id"

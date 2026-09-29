@@ -1369,6 +1369,15 @@ function envelopeProp(resprops, opname) {
         if (1 === records.length && isRecordList(resprops[records[0]])) {
             structured = records;
         }
+        // A page that holds no data of its own reads its one list of records
+        // past a list of scalars, such as Mux's timeframe, and past an object,
+        // such as the filter Novu's notifications were read with.
+        else if (!holdsOwnData(resprops)) {
+            const lists = records.filter((k) => isRecordList(resprops[k]));
+            if (1 === lists.length) {
+                structured = lists;
+            }
+        }
     }
     if (1 !== structured.length) {
         return null;
@@ -1440,6 +1449,14 @@ function isEnvelopePageProp(name) {
     return isEnvelopePagingProp(name) || isPageMetaProp(name) ||
         name.toLowerCase().replace(/[_-]/g, '').endsWith('count');
 }
+// A property that is neither an object nor a list is scalar, however it is
+// composed, such as a nullable state written as a oneOf. Unless it is status
+// or paging it is the response's own data, such as the state of GitHub's
+// combined status beside the statuses it counts.
+function holdsOwnData(resprops) {
+    return (0, struct_1.keysof)(resprops).some((k) => !isObjectSchema(resprops[k]) &&
+        true !== propIsList(resprops[k]) && !isEnvelopeStatusProp(k) && !isEnvelopePageProp(k));
+}
 // The component a response envelope carries: the resolved reference of the
 // record strictEnvelopeProp unwraps to.
 function envelopeItemRef(schema, opname) {
@@ -1474,12 +1491,18 @@ function strictEnvelopeProp(props, opname) {
 }
 // The envelope of a schema composed with allOf, such as Lob's list,
 // allOf[list, {data: [...]}]. Only the strict rules apply: most composed
-// schemas are records, and a record's one object is its data.
+// schemas are records, and a record's one object is its data. A page with no
+// data of its own is the exception, such as Neon's branches beside their
+// annotations, and reads its one list of records as a plain page does.
 function composedEnvelopeProp(schema, opname) {
     if (null == schema || 'object' !== typeof schema || !Array.isArray(schema.allOf)) {
         return null;
     }
-    return strictEnvelopeProp(mergedProperties(schema), opname);
+    const props = mergedProperties(schema);
+    if ('list' === opname && null != props && !holdsOwnData(props)) {
+        return envelopeProp(props, opname);
+    }
+    return strictEnvelopeProp(props, opname);
 }
 // The properties of a schema and its allOf members; the first declaration of
 // a name wins. Read-only, since parsed nodes are shared between references.
