@@ -4,9 +4,16 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 13
-  metrics: count: path: 16
-  metrics: count: method: 19
+  metrics: count: entity: 15
+  metrics: count: path: 18
+  metrics: count: method: 21
+
+  entity: auction: {
+    path: "/{year}/auction/{id}": {
+      op: load: method: *GET
+      op: load: transform: res: *("`body.data`")|top
+    }
+  }
 
   entity: census: {
     path: "/{year}/census": {
@@ -43,6 +50,13 @@ guide: {
   entity: fossil: {
     path: "/{year}/fossil/{id}": {
       op: load: method: *GET
+    }
+  }
+
+  entity: gallery: {
+    path: "/{year}/gallery": {
+      op: list: method: *GET
+      op: list: transform: res: *("`body.data`")|top
     }
   }
 

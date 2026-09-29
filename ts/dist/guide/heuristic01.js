@@ -134,6 +134,7 @@ function Prepare(spec) {
             entmap: {},
             envelope: {},
             listEnvelope: {},
+            envelopePaths: {},
             sharing: { routes: [], records: {}, yields: {} },
             entity: {
                 count: {
@@ -234,26 +235,38 @@ function MeasureEnvelope(spec) {
             work.envelope[xref] = '' === work.envelope[xref] || null == itemref ? '' : itemref;
             // Only a list unwraps a page, so every unwrapping operation agrees here.
             work.listEnvelope[xref] = 'list' === opname;
+            (work.envelopePaths[xref] = work.envelopePaths[xref] ?? []).push(mdesc.path);
         }
     }
 }
-// An item carried by more than one envelope of one kind is named by none of
-// them: the envelopes' own names are then what tell the resources apart. A
-// page and a single-item envelope of one record are one resource's list and
-// its item, and both name through the record.
+// An item carried by more than one envelope is named by none of them: the
+// envelopes' own names are then what tell the resources apart. A page and one
+// single-item envelope are the exception when a route of the item lies at or
+// beneath a route of the page: those are one resource's list and its item.
 function MeasureEnvelopeItems(spec) {
     const work = spec.data.work;
     const envelope = work.envelope;
-    const carrier = (xref) => (work.listEnvelope[xref] ? 'list ' : 'item ') + envelope[xref];
     const carriers = {};
     for (const xref of Object.keys(envelope)) {
-        carriers[carrier(xref)] = (carriers[carrier(xref)] ?? 0) + 1;
-    }
-    for (const xref of Object.keys(envelope)) {
-        if (1 < carriers[carrier(xref)]) {
-            envelope[xref] = '';
+        if ('' !== envelope[xref]) {
+            (carriers[envelope[xref]] = carriers[envelope[xref]] ?? []).push(xref);
         }
     }
+    for (const xrefs of Object.values(carriers)) {
+        if (1 < xrefs.length && !isPageAndItsItem(work, xrefs)) {
+            xrefs.forEach((xref) => envelope[xref] = '');
+        }
+    }
+}
+function isPageAndItsItem(work, xrefs) {
+    const pages = xrefs.filter((xref) => work.listEnvelope[xref]);
+    const items = xrefs.filter((xref) => !work.listEnvelope[xref]);
+    if (1 !== pages.length || 1 !== items.length) {
+        return false;
+    }
+    const shape = (path) => path.replace(/\{[^}]+\}/g, '{}');
+    const under = work.envelopePaths[pages[0]].map(shape);
+    return work.envelopePaths[items[0]].map(shape).some((path) => under.some((page) => path === page || path.startsWith(page + '/')));
 }
 // Records every route whose operation answers with a response component, and
 // whether that component declares an `id`, before any method is named.
