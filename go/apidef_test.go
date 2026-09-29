@@ -1791,23 +1791,32 @@ func TestArgsTransformNamelessParam(t *testing.T) {
 		}
 	}
 
+	// The dropped parameter's placeholder still takes a value, as a required
+	// string under its own name.
 	params, _ := args["params"].([]any)
-	if len(params) != 1 {
-		t.Fatalf("params = %d, want 1 (year)", len(params))
+	if len(params) != 2 {
+		t.Fatalf("params = %d, want 2 (kingdom_id, year)", len(params))
 	}
-	if safeStr(params[0].(map[string]any)["n"]) != "year" {
-		t.Errorf("param = %v, want year", params[0])
+	kid := params[0].(map[string]any)
+	if safeStr(kid["n"]) != "kingdom_id" || safeStr(kid["or"]) != "kingdom_id" || kid["r"] != true {
+		t.Errorf("param = %v, want a required kingdom_id", kid)
+	}
+	if safeStr(params[1].(map[string]any)["n"]) != "year" {
+		t.Errorf("param = %v, want year", params[1])
 	}
 
 	hist := ctx.Warn.History()
-	if len(hist) != 1 {
-		t.Fatalf("warnings = %d, want exactly 1", len(hist))
+	if len(hist) != 2 {
+		t.Fatalf("warnings = %d, want 2", len(hist))
 	}
 	if hist[0]["entity"] != "kingdom" || hist[0]["op"] != "load" {
 		t.Errorf("warning = %v, want entity=kingdom op=load", hist[0])
 	}
 	if !strings.Contains(safeStr(hist[0]["note"]), "KingdomId") {
 		t.Errorf("warning note does not name the missing ref: %v", hist[0]["note"])
+	}
+	if !strings.Contains(safeStr(hist[1]["note"]), "{kingdom_id}") {
+		t.Errorf("warning note does not name the placeholder: %v", hist[1]["note"])
 	}
 }
 
