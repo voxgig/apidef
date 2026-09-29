@@ -1165,10 +1165,11 @@ function ResolveTransform(spec: TaskSpec) {
 
   // A response that is the component the entity is named from is the record
   // itself, though one of its properties shares the entity's name, such as
-  // SaladCloud's container group and the container it runs.
+  // SaladCloud's container group and the container it runs. The entity's cmp
+  // is the name after cleaning, so a UserResponse naming user stays a wrapper.
   const rescmp = resschema?.['x-ref']
-  const named = null == rescmp || null == entdesc.origcmp ||
-    cmpRefName(rescmp) !== canonizeCmpName(entdesc.origcmp)
+  const named = null == rescmp || null == entdesc.cmp ||
+    cmpRefName(rescmp) !== entdesc.cmp
 
   if (resprops) {
     if (named && isEntityWrapperProp(resprops[entdesc.origname])) {

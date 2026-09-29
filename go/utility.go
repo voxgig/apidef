@@ -1743,16 +1743,28 @@ func isRecordList(prop any) bool {
 	if !islist || sch == nil {
 		return false
 	}
-	items, _ := sch["items"].(map[string]any)
-	if items == nil {
+	return isObjectSchema(sch["items"])
+}
+
+// isObjectSchema mirrors ts/src/utility.ts: an object, or a composition with
+// a branch that is one.
+func isObjectSchema(schema any) bool {
+	sch, _ := schema.(map[string]any)
+	if sch == nil {
 		return false
 	}
-	for _, k := range []string{"$ref", "properties", "allOf", "oneOf", "anyOf"} {
-		if items[k] != nil {
-			return true
+	if sch["$ref"] != nil || sch["properties"] != nil || sch["type"] == "object" {
+		return true
+	}
+	for _, k := range []string{"allOf", "oneOf", "anyOf"} {
+		parts, _ := sch[k].([]any)
+		for _, part := range parts {
+			if isObjectSchema(part) {
+				return true
+			}
 		}
 	}
-	return items["type"] == "object"
+	return false
 }
 
 // PAGE_META_PROPS mirrors ts/src/utility.ts.

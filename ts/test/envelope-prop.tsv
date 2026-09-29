@@ -36,3 +36,5 @@ resprops	opname	expected
 {"branches":{"type":"array","items":{"$ref":"#/components/schemas/Branch"}},"annotations":{"type":"object"},"pagination":{"type":"object"}}	list	
 {"data":{"$ref":"#/components/schemas/Chat"},"metadata":{"type":"object"}}	load	
 {"metadata":{"type":"array","items":{"$ref":"#/components/schemas/Metafield"}},"total_count":{"type":"integer"},"current_page":{"type":"integer"}}	list	metadata
+{"values":{"type":"array","items":{"oneOf":[{"type":"string"},{"type":"null"}]}},"metadata":{"type":"object"}}	list	
+{"pets":{"type":"array","items":{"oneOf":[{"$ref":"#/components/schemas/Cat"},{"$ref":"#/components/schemas/Dog"}]}},"metadata":{"type":"object"}}	list	pets

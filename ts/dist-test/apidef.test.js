@@ -400,6 +400,30 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         ]);
         node_assert_1.default.deepStrictEqual(Object.keys(entities.owner.fields), ['id', 'name', 'settings']);
     });
+    // A wrapper whose suffix was cleaned away to name the entity is still the
+    // wrapper, so the record is read by the entity's name. The entity's own
+    // component is the record, though one of its properties shares the name.
+    (0, node_test_1.test)('guide-wrapper-name', async () => {
+        const folder = __dirname + '/../test/wrapper-name';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'wrapper-name', def: 'wrapper-name-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: true,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        const entities = bres.apimodel.main.kit.entity;
+        node_assert_1.default.strictEqual(entities.hive.op.load.points[0].t.res, '`body.hive`');
+        node_assert_1.default.strictEqual(entities.garden.op.load.points[0].t.res, '`body`');
+    });
     // A trailing parameter under its entity's segment is the entity's key,
     // whatever the response component is called: a rare component named for
     // another view of it, or a tag on a write that answers with no component.

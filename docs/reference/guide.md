@@ -172,7 +172,9 @@ object named in `PAGE_META_PROPS` (`meta`, `metadata`, `pagination`,
 `paging`, `page_info` or `links`) describes the page and is not a second
 candidate, so `{ results, metadata }` reads `body.results`. A list under one
 of those names is still records, and a list of strings is not records, so a
-feed that holds a list of links beside its `_links` stays unread. The rows of
+feed that holds a list of links beside its `_links` stays unread. Nor is a
+list whose items are a `oneOf` of strings and nulls: a composition holds
+records only when one of its branches is an object. The rows of
 [`ts/test/envelope-prop.tsv`](../../ts/test/envelope-prop.tsv) pin it in both
 builds.
 
@@ -180,10 +182,13 @@ A property named after the entity unwraps a response only when the response
 is not the component the entity is named from. That component is the record
 itself: a container group that holds the `container` it runs loads as the
 group, and a commit that holds its git data under `commit` loads as the
-commit. A request body wraps the record under the entity's name only when
-that property is structured and is all the body holds, so a create that
-sends a `name` beside a `container`, or a `title` beside a `key`, sends its
-properties as they are. The `guide-envelope` tests pin both in both builds.
+commit. The component is compared after its wrapper suffix is cleaned away,
+so a `UserResponse` that names the entity `user` is still a wrapper, and a
+`user` beside its `warnings` is read by name. A request body wraps the record
+under the entity's name only when that property is structured and is all the
+body holds, so a create that sends a `name` beside a `container`, or a
+`title` beside a `key`, sends its properties as they are. The `guide-envelope`
+and `guide-wrapper-name` tests pin these in both builds.
 
 ### Shared schemas
 

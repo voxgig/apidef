@@ -578,6 +578,40 @@ func TestGuideAllofEnvelope(t *testing.T) {
 }
 
 // Mirrors the TS `guide-trailing-key` case.
+// Mirrors the TS `guide-wrapper-name` case.
+func TestGuideWrapperName(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "wrapper-name-")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, OutPrefix: "wrapper-name-", Strategy: "heuristic01"}).
+		Generate(map[string]any{
+			"model": map[string]any{"name": "wrapper-name", "def": "wrapper-name-def.json"},
+			"build": map[string]any{"spec": map[string]any{"base": "../ts/test/def"}},
+			"ctrl": map[string]any{"step": map[string]any{
+				"parse": true, "guide": true, "transformers": true,
+				"builders": false, "generate": false,
+			}},
+		})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v", err)
+	}
+
+	entities, _ := res.Guide["entity"].(map[string]any)
+	loadRes := func(ent, path string) any {
+		e, _ := entities[ent].(map[string]any)
+		paths, _ := e["path"].(map[string]any)
+		pd, _ := paths[path].(map[string]any)
+		ops, _ := pd["op"].(map[string]any)
+		load, _ := ops["load"].(map[string]any)
+		tr, _ := load["transform"].(map[string]any)
+		return tr["res"]
+	}
+	if got := loadRes("hive", "/hives/{id}"); got != "`body.hive`" {
+		t.Errorf("hive load transform res = %v, want body.hive", got)
+	}
+	if got := loadRes("garden", "/gardens/{id}"); got != nil {
+		t.Errorf("garden load transform res = %v, want none", got)
+	}
+}
+
 func TestGuideTrailingKey(t *testing.T) {
 	folder := stageGuideEntry(t, t.TempDir(), "trailing-key-")
 	res, err := NewApiDef(ApiDefOptions{Folder: folder, OutPrefix: "trailing-key-", Strategy: "heuristic01"}).

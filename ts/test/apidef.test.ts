@@ -501,6 +501,40 @@ describe('apidef', () => {
   })
 
 
+  // A wrapper whose suffix was cleaned away to name the entity is still the
+  // wrapper, so the record is read by the entity's name. The entity's own
+  // component is the record, though one of its properties shares the name.
+  test('guide-wrapper-name', async () => {
+    const folder = __dirname + '/../test/wrapper-name'
+
+    const build = await ApiDef.makeBuild({ folder })
+
+    const bres = await build(
+      { name: 'wrapper-name', def: 'wrapper-name-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: true,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const entities = bres.apimodel.main.kit.entity
+    assert.strictEqual(entities.hive.op.load.points[0].t.res, '`body.hive`')
+    assert.strictEqual(entities.garden.op.load.points[0].t.res, '`body`')
+  })
+
+
   // A trailing parameter under its entity's segment is the entity's key,
   // whatever the response component is called: a rare component named for
   // another view of it, or a tag on a write that answers with no component.

@@ -1694,10 +1694,21 @@ function isEnvelopePagingProp(name: string): boolean {
 // A list whose items are objects. GitHub's feed holds a list of URL strings
 // beside its links, and a page of strings is not a page of records.
 function isRecordList(prop: any): boolean {
-  const items = true === propIsList(prop) ? prop?.items : null
-  return null != items && 'object' === typeof items && (null != items.$ref ||
-    null != items.properties || null != items.allOf || null != items.oneOf ||
-    null != items.anyOf || 'object' === items.type)
+  return isObjectSchema(true === propIsList(prop) ? prop?.items : null)
+}
+
+
+// An object, or a composition with a branch that is one. A nullable string
+// written as a oneOf is not.
+function isObjectSchema(schema: any): boolean {
+  if (null == schema || 'object' !== typeof schema) {
+    return false
+  }
+  if (null != schema.$ref || null != schema.properties || 'object' === schema.type) {
+    return true
+  }
+  return ['allOf', 'oneOf', 'anyOf'].some((k: string) =>
+    Array.isArray(schema[k]) && schema[k].some(isObjectSchema))
 }
 
 

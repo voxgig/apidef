@@ -1670,13 +1670,13 @@ func resolveTransform(data map[string]any, mdesc map[string]any) {
 	ename := safeStr(entdesc["name"])
 
 	// Mirrors ts/src/guide/heuristic01.ts: a response that is the component the
-	// entity is named from is the record itself, though one of its properties
-	// shares the entity's name.
+	// entity is named from, after cleaning, is the record itself, though one of
+	// its properties shares the entity's name.
 	resref, _ := resschema["x-ref"].(string)
-	entcmp := safeStr(entdesc["origcmp"])
+	entcmp := safeStr(entdesc["cmp"])
 	named := true
 	if m := xrefRE.FindStringSubmatch(resref); m != nil && entcmp != "" {
-		named = CanonizeCmpName(m[2]) != CanonizeCmpName(entcmp)
+		named = CanonizeCmpName(m[2]) != entcmp
 	}
 
 	if resprops != nil {
