@@ -526,7 +526,7 @@ func TestGuideAllofEnvelope(t *testing.T) {
 		{"address", "load", "`body`"},
 		{"address", "remove", "`body`"},
 		{"owner", "load", "`body`"},
-		{"note", "list", "`body`"},
+		{"note", "list", "`body.data`"},
 	} {
 		if got := resOf(c.ent, c.op); got != c.want {
 			t.Errorf("%s %s res = %v, want %s", c.ent, c.op, got, c.want)

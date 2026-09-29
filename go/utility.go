@@ -1728,6 +1728,13 @@ func isEnvelopePagingProp(name string) bool {
 	return ENVELOPE_PAGING_PROPS[envelopePagingSepRE.ReplaceAllString(strings.ToLower(name), "")]
 }
 
+// isEnvelopePageProp mirrors ts/src/utility.ts: paging, or a count that
+// describes the page.
+func isEnvelopePageProp(name string) bool {
+	return isEnvelopePagingProp(name) ||
+		strings.HasSuffix(envelopePagingSepRE.ReplaceAllString(strings.ToLower(name), ""), "count")
+}
+
 // envelopeItemRef mirrors ts/src/utility.ts: the resolved reference of the
 // record strictEnvelopeProp unwraps to.
 func envelopeItemRef(schema any, opname string) string {
@@ -1764,7 +1771,7 @@ func strictEnvelopeProp(props map[string]any, opname string) string {
 
 	islist, _ := propIsList(props[key])
 	for _, k := range sortedKeys(props) {
-		if k != key && (!islist || !isEnvelopePagingProp(k)) {
+		if k != key && (!islist || !isEnvelopePageProp(k)) {
 			return ""
 		}
 	}

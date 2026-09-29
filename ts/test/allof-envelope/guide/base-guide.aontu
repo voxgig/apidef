@@ -24,6 +24,7 @@ guide: {
   entity: note: {
     path: "/notes": {
       op: list: method: *GET
+      op: list: transform: res: *("`body.data`")|top
     }
   }
 

@@ -1400,6 +1400,11 @@ const ENVELOPE_PAGING_PROPS = new Set([
 function isEnvelopePagingProp(name) {
     return ENVELOPE_PAGING_PROPS.has(name.toLowerCase().replace(/[_-]/g, ''));
 }
+// Paging, or a count that describes the page, such as the number of Lob's QR
+// codes on the page that were scanned at least once.
+function isEnvelopePageProp(name) {
+    return isEnvelopePagingProp(name) || name.toLowerCase().replace(/[_-]/g, '').endsWith('count');
+}
 // The component a response envelope carries: the resolved reference of the
 // record strictEnvelopeProp unwraps to.
 function envelopeItemRef(schema, opname) {
@@ -1418,8 +1423,8 @@ function envelopeItemRef(schema, opname) {
 }
 // Narrower than envelopeProp, since a record with one structured property
 // passes that test too: an envelope has no `id`, a page holds nothing beside
-// its records but paging, and a single-item envelope holds nothing beside the
-// item.
+// its records but paging and counts, and a single-item envelope holds nothing
+// beside the item.
 function strictEnvelopeProp(props, opname) {
     const key = envelopeProp(props, opname);
     if (null == key || null != props.id) {
@@ -1427,7 +1432,7 @@ function strictEnvelopeProp(props, opname) {
     }
     const islist = propIsList(props[key]);
     const rest = (0, struct_1.keysof)(props).filter((k) => k !== key);
-    if (islist ? !rest.every(isEnvelopePagingProp) : 0 < rest.length) {
+    if (islist ? !rest.every(isEnvelopePageProp) : 0 < rest.length) {
         return null;
     }
     return key;

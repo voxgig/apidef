@@ -442,8 +442,8 @@ describe('apidef', () => {
 
   // Lob's shape: a page composed with allOf, whose records are a oneOf, so
   // the fields come from the list example read through the same `data`. A
-  // composed record keeps its one object (owner), and a page with a sibling
-  // that is not paging stays whole (notes).
+  // composed record keeps its one object (owner), and a page may hold a count
+  // beside its records (notes).
   test('guide-allof-envelope', async () => {
     const folder = __dirname + '/../test/allof-envelope'
 
@@ -476,7 +476,7 @@ describe('apidef', () => {
     assert.strictEqual(res('address', 'load'), '`body`')
     assert.strictEqual(res('address', 'remove'), '`body`')
     assert.strictEqual(res('owner', 'load'), '`body`')
-    assert.strictEqual(res('note', 'list'), '`body`')
+    assert.strictEqual(res('note', 'list'), '`body.data`')
 
     assert.deepStrictEqual(Object.keys(entities.address.fields), [
       'address_line1', 'address_line2', 'address_zip', 'id', 'name',

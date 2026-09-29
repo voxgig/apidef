@@ -114,8 +114,9 @@ returns that component when all of these hold:
   the operation is `list`, and a single record for any other operation.
 - The schema declares no `id`.
 - Beside a single record the schema holds nothing else. Beside an array it
-  holds only paging properties, the names in `ENVELOPE_PAGING_PROPS`
-  compared without case, `_`, or `-`.
+  holds only paging properties and counts: the names in
+  `ENVELOPE_PAGING_PROPS`, and names that end in `count`, such as Lob's
+  `scanned_count`, compared without case, `_`, or `-`.
 - The record is an object schema (it has `properties` or `allOf`, or its
   type is `object`) with a component reference.
 

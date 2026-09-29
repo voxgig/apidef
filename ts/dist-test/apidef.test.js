@@ -355,8 +355,8 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
     });
     // Lob's shape: a page composed with allOf, whose records are a oneOf, so
     // the fields come from the list example read through the same `data`. A
-    // composed record keeps its one object (owner), and a page with a sibling
-    // that is not paging stays whole (notes).
+    // composed record keeps its one object (owner), and a page may hold a count
+    // beside its records (notes).
     (0, node_test_1.test)('guide-allof-envelope', async () => {
         const folder = __dirname + '/../test/allof-envelope';
         const build = await apidef_1.ApiDef.makeBuild({ folder });
@@ -380,7 +380,7 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.strictEqual(res('address', 'load'), '`body`');
         node_assert_1.default.strictEqual(res('address', 'remove'), '`body`');
         node_assert_1.default.strictEqual(res('owner', 'load'), '`body`');
-        node_assert_1.default.strictEqual(res('note', 'list'), '`body`');
+        node_assert_1.default.strictEqual(res('note', 'list'), '`body.data`');
         node_assert_1.default.deepStrictEqual(Object.keys(entities.address.fields), [
             'address_line1', 'address_line2', 'address_zip', 'id', 'name',
         ]);
