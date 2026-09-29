@@ -585,6 +585,44 @@ describe('apidef', () => {
   })
 
 
+  // A response composed with allOf carries the record under the entity's name
+  // beside its other parts (project), while an entity's own composed component
+  // is the record, though one of its parts shares the entity's name (widget).
+  test('guide-composed-part', async () => {
+    const folder = __dirname + '/../test/composed-part'
+
+    const build = await ApiDef.makeBuild({ folder })
+
+    const bres = await build(
+      { name: 'composed-part', def: 'composed-part-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: true,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const entities = bres.apimodel.main.kit.entity
+    const res = (ent: string, op: string) => entities[ent]?.op[op]?.points[0].t.res
+    assert.strictEqual(res('project', 'create'), '`body.project`')
+    assert.strictEqual(res('project', 'load'), '`body.project`')
+    assert.strictEqual(res('project', 'update'), '`body.project`')
+    assert.strictEqual(res('project', 'remove'), '`body.project`')
+    assert.strictEqual(res('widget', 'load'), '`body`')
+  })
+
+
   // A trailing parameter under its entity's segment is the entity's key,
   // whatever the response component is called: a rare component named for
   // another view of it, or a tag on a write that answers with no component.

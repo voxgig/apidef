@@ -1,0 +1,70 @@
+{
+  "openapi": "3.0.0",
+  "info": { "title": "Composed Part API", "version": "1.0.0" },
+  "servers": [ { "url": "https://api.example.com" } ],
+  "paths": {
+    "/projects": {
+      "post": {
+        "operationId": "create-project",
+        "requestBody": { "content": { "application/json": {
+          "schema": { "type": "object", "properties": { "name": { "type": "string" } } } } } },
+        "responses": { "201": { "description": "Created", "content": { "application/json": {
+          "schema": { "allOf": [
+            { "$ref": "#/components/schemas/ProjectResponse" },
+            { "$ref": "#/components/schemas/OperationsResponse" } ] } } } } }
+      }
+    },
+    "/projects/{project_id}": {
+      "get": {
+        "operationId": "get-project",
+        "parameters": [ { "name": "project_id", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "$ref": "#/components/schemas/ProjectResponse" } } } } }
+      },
+      "patch": {
+        "operationId": "update-project",
+        "parameters": [ { "name": "project_id", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "requestBody": { "content": { "application/json": {
+          "schema": { "type": "object", "properties": { "name": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "allOf": [
+            { "$ref": "#/components/schemas/ProjectResponse" },
+            { "$ref": "#/components/schemas/OperationsResponse" } ] } } } } }
+      },
+      "delete": {
+        "operationId": "delete-project",
+        "parameters": [ { "name": "project_id", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "properties": { "request_id": { "type": "string" } }, "allOf": [
+            { "$ref": "#/components/schemas/ProjectResponse" },
+            { "$ref": "#/components/schemas/OperationsResponse" } ] } } } } }
+      }
+    },
+    "/widgets/{widget_id}": {
+      "get": {
+        "operationId": "get-widget",
+        "parameters": [ { "name": "widget_id", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "$ref": "#/components/schemas/Widget" } } } } }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Project": { "type": "object", "properties": {
+        "id": { "type": "string" }, "name": { "type": "string" } } },
+      "ProjectResponse": { "type": "object", "required": [ "project" ], "properties": {
+        "project": { "$ref": "#/components/schemas/Project" } } },
+      "Operation": { "type": "object", "properties": {
+        "id": { "type": "string" }, "action": { "type": "string" } } },
+      "OperationsResponse": { "type": "object", "properties": {
+        "operations": { "type": "array", "items": { "$ref": "#/components/schemas/Operation" } } } },
+      "WidgetBase": { "type": "object", "properties": {
+        "id": { "type": "string" }, "name": { "type": "string" } } },
+      "Widget": { "allOf": [
+        { "$ref": "#/components/schemas/WidgetBase" },
+        { "type": "object", "properties": {
+          "widget": { "type": "object", "properties": { "colour": { "type": "string" } } } } } ] }
+    }
+  }
+}

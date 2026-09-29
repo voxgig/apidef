@@ -462,6 +462,34 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.strictEqual(res('export', 'create'), '`body.data`');
         node_assert_1.default.deepStrictEqual(Object.keys(entities.export.fields).sort(), ['format', 'id', 'state', 'url']);
     });
+    // A response composed with allOf carries the record under the entity's name
+    // beside its other parts (project), while an entity's own composed component
+    // is the record, though one of its parts shares the entity's name (widget).
+    (0, node_test_1.test)('guide-composed-part', async () => {
+        const folder = __dirname + '/../test/composed-part';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'composed-part', def: 'composed-part-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: true,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        const entities = bres.apimodel.main.kit.entity;
+        const res = (ent, op) => entities[ent]?.op[op]?.points[0].t.res;
+        node_assert_1.default.strictEqual(res('project', 'create'), '`body.project`');
+        node_assert_1.default.strictEqual(res('project', 'load'), '`body.project`');
+        node_assert_1.default.strictEqual(res('project', 'update'), '`body.project`');
+        node_assert_1.default.strictEqual(res('project', 'remove'), '`body.project`');
+        node_assert_1.default.strictEqual(res('widget', 'load'), '`body`');
+    });
     // A trailing parameter under its entity's segment is the entity's key,
     // whatever the response component is called: a rare component named for
     // another view of it, or a tag on a write that answers with no component.

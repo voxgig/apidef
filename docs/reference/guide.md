@@ -207,7 +207,13 @@ itself: a container group that holds the `container` it runs loads as the
 group, and a commit that holds its git data under `commit` loads as the
 commit. The component is compared after its wrapper suffix is cleaned away,
 so a `UserResponse` that names the entity `user` is still a wrapper, and a
-`user` beside its `warnings` is read by name. A request body wraps the record
+`user` beside its `warnings` is read by name. A response composed with `allOf`
+is read by name through its parts, such as Neon's project create,
+`allOf[project, operations, branch, …]`, which reads `body.project`, while an
+entity's own composed component stays the record whatever its parts are
+called. The `guide-composed-part` tests pin both, on
+[`ts/test/def/composed-part-def.json`](../../ts/test/def/composed-part-def.json).
+A request body wraps the record
 under the entity's name only when that property is structured and is all the
 body holds, so a create that sends a `name` beside a `container`, or a
 `title` beside a `key`, sends its properties as they are. The `guide-envelope`

@@ -669,6 +669,48 @@ func TestGuidePageSide(t *testing.T) {
 	}
 }
 
+// Mirrors the TS `guide-composed-part` case.
+func TestGuideComposedPart(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "composed-part-")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, OutPrefix: "composed-part-", Strategy: "heuristic01"}).
+		Generate(map[string]any{
+			"model": map[string]any{"name": "composed-part", "def": "composed-part-def.json"},
+			"build": map[string]any{"spec": map[string]any{"base": "../ts/test/def"}},
+			"ctrl": map[string]any{"step": map[string]any{
+				"parse": true, "guide": true, "transformers": true,
+				"builders": false, "generate": false,
+			}},
+		})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v", err)
+	}
+
+	entities, _ := res.Guide["entity"].(map[string]any)
+	opRes := func(ent, path, opname string) any {
+		e, _ := entities[ent].(map[string]any)
+		paths, _ := e["path"].(map[string]any)
+		pd, _ := paths[path].(map[string]any)
+		ops, _ := pd["op"].(map[string]any)
+		op, _ := ops[opname].(map[string]any)
+		tr, _ := op["transform"].(map[string]any)
+		return tr["res"]
+	}
+	for _, c := range []struct {
+		ent, path, op string
+		want          any
+	}{
+		{"project", "/projects", "create", "`body.project`"},
+		{"project", "/projects/{project_id}", "load", "`body.project`"},
+		{"project", "/projects/{project_id}", "patch", "`body.project`"},
+		{"project", "/projects/{project_id}", "remove", "`body.project`"},
+		{"widget", "/widgets/{widget_id}", "load", nil},
+	} {
+		if got := opRes(c.ent, c.path, c.op); got != c.want {
+			t.Errorf("%s %s transform res = %v, want %v", c.ent, c.op, got, c.want)
+		}
+	}
+}
+
 func TestGuideTrailingKey(t *testing.T) {
 	folder := stageGuideEntry(t, t.TempDir(), "trailing-key-")
 	res, err := NewApiDef(ApiDefOptions{Folder: folder, OutPrefix: "trailing-key-", Strategy: "heuristic01"}).
