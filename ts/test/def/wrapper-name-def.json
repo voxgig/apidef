@@ -1,0 +1,36 @@
+{
+  "openapi": "3.0.0",
+  "info": { "title": "Wrapper Name API", "version": "1.0.0" },
+  "servers": [ { "url": "https://api.example.com" } ],
+  "paths": {
+    "/hives/{id}": {
+      "get": {
+        "operationId": "get-hive",
+        "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "$ref": "#/components/schemas/HiveResponse" } } } } }
+      }
+    },
+    "/gardens/{id}": {
+      "get": {
+        "operationId": "get-garden",
+        "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "$ref": "#/components/schemas/Garden" } } } } }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Hive": { "type": "object", "properties": {
+        "id": { "type": "string" }, "name": { "type": "string" } } },
+      "HiveResponse": { "type": "object", "properties": {
+        "hive": { "$ref": "#/components/schemas/Hive" },
+        "warnings": { "type": "array", "items": { "type": "string" } } } },
+      "Plot": { "type": "object", "properties": { "rows": { "type": "integer" } } },
+      "Garden": { "type": "object", "properties": {
+        "id": { "type": "string" }, "name": { "type": "string" },
+        "garden": { "$ref": "#/components/schemas/Plot" } } }
+    }
+  }
+}

@@ -107,6 +107,12 @@ Required attributes use one character; optional metadata uses two.
 | `or` | `string?` | original wire name (for example, `planet_id`) |
 | `ex` | `any?` | advertised parameter example or schema default |
 
+A parameter with no name, or whose `$ref` resolves to nothing, is dropped with
+a warning. A path placeholder that no declared parameter fills still needs a
+value, so it becomes a required string `param` under its own name, renamed as
+the path's other placeholders are, again with a warning. A placeholder that a
+declared parameter fills under its renamed name is left alone.
+
 ## `ModelEntityFlow`
 
 A flow is an ordered, assertable exercise of an entity.

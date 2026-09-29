@@ -71,16 +71,22 @@ describe('transform-args nameless parameters', () => {
 
     await argsTransform(ctx)
 
+    // The dropped parameter's placeholder still takes a value, as a required
+    // string under its own name.
     const args = allargs(ctx)
-    assert.deepStrictEqual(args.map((a: any) => a.n), ['year'])
+    assert.deepStrictEqual(args.map((a: any) => a.n), ['kingdom_id', 'year'])
     assert.strictEqual(args.filter((a: any) => '' === a.n).length, 0)
+    assert.deepStrictEqual(
+      { or: args[0].or, k: args[0].k, r: args[0].r },
+      { or: 'kingdom_id', k: 'param', r: true })
 
-    assert.strictEqual(warnings.length, 1)
+    assert.strictEqual(warnings.length, 2)
     assert.strictEqual(warnings[0].entity, 'kingdom')
     assert.strictEqual(warnings[0].op, 'load')
     assert.strictEqual(warnings[0].path, '/{year}/kingdom/{kingdom_id}')
     assert.match(warnings[0].note, /KingdomId/)
     assert.match(warnings[0].note, /resolves to nothing/)
+    assert.match(warnings[1].note, /\{kingdom_id\} .*has no declared parameter/)
   })
 
 

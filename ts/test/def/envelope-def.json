@@ -23,6 +23,9 @@
  "/{year}/survey/{id}/close":{"post":{"operationId":"closeSurvey","parameters":[{"$ref":"#/components/parameters/Year"},{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"closed","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SurveyClosed"}}}}}}},
  "/{year}/gallery":{"get":{"operationId":"listGallery","parameters":[{"$ref":"#/components/parameters/Year"}],"responses":{"200":{"description":"page","content":{"application/json":{"schema":{"$ref":"#/components/schemas/GalleryPage"}}}}}}},
  "/{year}/auction/{id}":{"get":{"operationId":"getAuctionLot","parameters":[{"$ref":"#/components/parameters/Year"},{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"one","content":{"application/json":{"schema":{"$ref":"#/components/schemas/AuctionLot"}}}}}}},
+ "/{year}/greenhouse":{"post":{"operationId":"createGreenhouse","parameters":[{"$ref":"#/components/parameters/Year"}],"requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/GreenhouseCreate"}}}},"responses":{"201":{"description":"made","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Greenhouse"}}}}}}},
+ "/{year}/kennel":{"post":{"operationId":"createKennel","parameters":[{"$ref":"#/components/parameters/Year"}],"requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/KennelCreate"}}}},"responses":{"201":{"description":"made","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Kennel"}}}}}}},
+ "/{year}/greenhouse/{id}":{"get":{"operationId":"getGreenhouse","parameters":[{"$ref":"#/components/parameters/Year"},{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"one","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Greenhouse"}}}}}}},
  "/{year}/ledger":{"get":{"operationId":"getLedger","parameters":[{"$ref":"#/components/parameters/Year"}],"responses":{"200":{"description":"export","content":{"text/csv":{"schema":{"type":"string"}}}},"201":{"description":"lines","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/LedgerLine"}}}}}}}}},
 "components":{
  "parameters":{
@@ -56,4 +59,9 @@
   "Artwork":{"type":"object","properties":{"id":{"type":"string"},"title":{"type":"string"}}},
   "GalleryPage":{"type":"object","properties":{"data":{"type":"array","items":{"$ref":"#/components/schemas/Artwork"}},"next":{"type":"string"}}},
   "AuctionLot":{"type":"object","properties":{"data":{"$ref":"#/components/schemas/Artwork"}}},
+  "Plot":{"type":"object","properties":{"soil":{"type":"string"},"area":{"type":"number"}}},
+  "Greenhouse":{"type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"},"greenhouse":{"$ref":"#/components/schemas/Plot"}}},
+  "GreenhouseCreate":{"type":"object","properties":{"name":{"type":"string"},"greenhouse":{"$ref":"#/components/schemas/Plot"}}},
+  "Kennel":{"type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"}}},
+  "KennelCreate":{"type":"object","properties":{"kennel":{"type":"object","properties":{"name":{"type":"string"}}}}},
   "LedgerLine":{"type":"object","properties":{"amount":{"type":"number"},"memo":{"type":"string"}}}}}}
