@@ -1524,14 +1524,16 @@ function getRequestBodySchema(requestBody: any) {
     requestBody?.schema
 }
 
-// The response an operation's result is read from.
+// The response an operation's result is read from, down to an Accepted
+// response when nothing else answers, whose body may be the job it queued.
 function successResponse(responses: any): any {
-  return responses?.[200] ?? responses?.[201]
+  return responses?.[200] ?? responses?.[201] ?? responses?.[202]
 }
 
 
 // The response schemas an operation answers with when it succeeds, in the
-// order they are tried.
+// order they are tried. An Accepted response names nothing, since its body
+// may describe the work rather than the resource.
 function successSchemas(responses: any): any[] {
   return ['200', '201']
     .map((rescode) => getResponseSchema(responses?.[rescode]))

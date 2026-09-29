@@ -10,3 +10,8 @@ schema	opname	expected
 {"allOf":[{"type":"object","properties":{"success":{"type":"boolean"},"errors":{"type":"array"},"messages":{"type":"array"}}},{"type":"object","properties":{"result":{"type":"object"}}}]}	load	
 {"type":"object","properties":{"data":{"type":"array","items":{"type":"object"}}}}	list	
 {"allOf":[]}	list	
+{"allOf":[{"type":"object","properties":{"branches":{"type":"array","items":{"$ref":"#/components/schemas/Branch"}}}},{"type":"object","properties":{"annotations":{"type":"object"}}},{"type":"object","properties":{"pagination":{"type":"object"}}}]}	list	branches
+{"allOf":[{"type":"object","properties":{"projects":{"type":"array","items":{"$ref":"#/components/schemas/Project"}}}},{"type":"object","properties":{"applications":{"type":"object"},"integrations":{"type":"object"}}}]}	list	projects
+{"allOf":[{"type":"object","properties":{"state":{"type":"string"}}},{"type":"object","properties":{"statuses":{"type":"array","items":{"type":"object"}},"repository":{"type":"object"}}}]}	list	
+{"allOf":[{"type":"object","properties":{"id":{"type":"string"}}},{"type":"object","properties":{"members":{"type":"array","items":{"type":"object"}},"owner":{"type":"object"}}}]}	list	
+{"allOf":[{"type":"object","properties":{"name":{"type":"string"}}},{"type":"object","properties":{"settings":{"type":"object"},"tags":{"type":"array","items":{"type":"string"}}}}]}	load	

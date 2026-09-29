@@ -1,0 +1,100 @@
+{
+  "openapi": "3.0.0",
+  "info": { "title": "Page Side API", "version": "1.0.0" },
+  "servers": [ { "url": "https://api.example.com" } ],
+  "paths": {
+    "/metrics": {
+      "get": {
+        "operationId": "list-metrics",
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "type": "object", "properties": {
+            "data": { "type": "array", "items": { "$ref": "#/components/schemas/Metric" } },
+            "total_row_count": { "type": "integer" },
+            "timeframe": { "type": "array", "items": { "type": "integer" } } } } } } } }
+      }
+    },
+    "/notifications": {
+      "get": {
+        "operationId": "list-notifications",
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "type": "object", "properties": {
+            "data": { "type": "array", "items": { "$ref": "#/components/schemas/Notification" } },
+            "hasMore": { "type": "boolean" },
+            "filter": { "type": "object", "properties": { "read": { "type": "boolean" } } } } } } } } }
+      }
+    },
+    "/preferences": {
+      "get": {
+        "operationId": "list-preferences",
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "type": "object", "properties": {
+            "global": { "$ref": "#/components/schemas/Channels" },
+            "workflows": { "type": "array", "items": { "$ref": "#/components/schemas/Preference" } } } } } } } }
+      }
+    },
+    "/rollups": {
+      "get": {
+        "operationId": "list-rollups",
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "type": "object", "properties": {
+            "state": { "type": "string" },
+            "statuses": { "type": "array", "items": { "$ref": "#/components/schemas/Check" } },
+            "repository": { "$ref": "#/components/schemas/Repository" } } } } } } }
+      }
+    },
+    "/branches": {
+      "get": {
+        "operationId": "list-branches",
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "allOf": [
+            { "$ref": "#/components/schemas/BranchesResponse" },
+            { "$ref": "#/components/schemas/AnnotationsResponse" },
+            { "$ref": "#/components/schemas/PaginationResponse" } ] } } } } }
+      }
+    },
+    "/jobs": {
+      "post": {
+        "operationId": "create-job",
+        "requestBody": { "content": { "application/json": {
+          "schema": { "type": "object", "properties": { "input": { "type": "string" } } } } } },
+        "responses": { "202": { "description": "Accepted", "content": { "application/json": {
+          "schema": { "type": "object", "properties": {
+            "data": { "$ref": "#/components/schemas/Job" } } } } } } }
+      }
+    },
+    "/jobs/{id}": {
+      "get": {
+        "operationId": "get-job",
+        "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "type": "object", "properties": {
+            "data": { "$ref": "#/components/schemas/Job" } } } } } } }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Metric": { "type": "object", "properties": {
+        "id": { "type": "string" }, "value": { "type": "number" } } },
+      "Notification": { "type": "object", "properties": {
+        "id": { "type": "string" }, "subject": { "type": "string" } } },
+      "Channels": { "type": "object", "properties": { "email": { "type": "boolean" } } },
+      "Preference": { "type": "object", "properties": {
+        "id": { "type": "string" }, "enabled": { "type": "boolean" } } },
+      "Check": { "type": "object", "properties": {
+        "id": { "type": "string" }, "context": { "type": "string" } } },
+      "Repository": { "type": "object", "properties": {
+        "id": { "type": "string" }, "name": { "type": "string" } } },
+      "Job": { "type": "object", "properties": {
+        "id": { "type": "string" }, "status": { "type": "string" } } },
+      "Branch": { "type": "object", "properties": {
+        "id": { "type": "string" }, "name": { "type": "string" } } },
+      "BranchesResponse": { "type": "object", "properties": {
+        "branches": { "type": "array", "items": { "$ref": "#/components/schemas/Branch" } } } },
+      "AnnotationsResponse": { "type": "object", "properties": {
+        "annotations": { "type": "object", "additionalProperties": { "type": "string" } } } },
+      "PaginationResponse": { "type": "object", "properties": {
+        "pagination": { "type": "object", "properties": { "next": { "type": "string" } } } } }
+    }
+  }
+}
