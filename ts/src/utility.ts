@@ -1742,11 +1742,13 @@ function isEnvelopePageProp(name: string): boolean {
 }
 
 
-// A scalar that is neither status nor paging is the response's own data, such
-// as the state of GitHub's combined status beside the statuses it counts.
+// A property that is neither an object nor a list is scalar, however it is
+// composed, such as a nullable state written as a oneOf. Unless it is status
+// or paging it is the response's own data, such as the state of GitHub's
+// combined status beside the statuses it counts.
 function holdsOwnData(resprops: any): boolean {
-  return keysof(resprops).some((k: string) => !isEntityWrapperProp(resprops[k]) &&
-    !isEnvelopeStatusProp(k) && !isEnvelopePageProp(k))
+  return keysof(resprops).some((k: string) => !isObjectSchema(resprops[k]) &&
+    true !== propIsList(resprops[k]) && !isEnvelopeStatusProp(k) && !isEnvelopePageProp(k))
 }
 
 

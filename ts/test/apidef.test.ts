@@ -574,6 +574,11 @@ describe('apidef', () => {
     assert.strictEqual(res('branch', 'list'), '`body.branches`')
     assert.strictEqual(res('job', 'create'), '`body.data`')
     assert.strictEqual(res('job', 'load'), '`body.data`')
+
+    // With no read beside it, the fields come from the Accepted answer too.
+    assert.strictEqual(res('export', 'create'), '`body.data`')
+    assert.deepStrictEqual(Object.keys(entities.export.fields).sort(),
+      ['format', 'id', 'state', 'url'])
   })
 
 

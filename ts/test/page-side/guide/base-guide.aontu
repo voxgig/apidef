@@ -4,14 +4,21 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 6
-  metrics: count: path: 7
-  metrics: count: method: 7
+  metrics: count: entity: 7
+  metrics: count: path: 8
+  metrics: count: method: 8
 
   entity: branch: {
     path: "/branches": {
       op: list: method: *GET
       op: list: transform: res: *("`body.branches`")|top
+    }
+  }
+
+  entity: export: {
+    path: "/exports": {
+      op: create: method: *POST
+      op: create: transform: res: *("`body.data`")|top
     }
   }
 

@@ -1803,11 +1803,12 @@ func isEnvelopePageProp(name string) bool {
 		strings.HasSuffix(envelopePagingSepRE.ReplaceAllString(strings.ToLower(name), ""), "count")
 }
 
-// holdsOwnData mirrors ts/src/utility.ts: a scalar that is neither status
-// nor paging is the response's own data.
+// holdsOwnData mirrors ts/src/utility.ts: a property that is neither an
+// object nor a list, and neither status nor paging, is the response's own data.
 func holdsOwnData(resprops map[string]any) bool {
 	for k, v := range resprops {
-		if !isEntityWrapperProp(v) && !isEnvelopeStatusProp(k) && !isEnvelopePageProp(k) {
+		islist, _ := propIsList(v)
+		if !isObjectSchema(v) && !islist && !isEnvelopeStatusProp(k) && !isEnvelopePageProp(k) {
 			return true
 		}
 	}

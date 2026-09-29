@@ -52,6 +52,16 @@
             { "$ref": "#/components/schemas/PaginationResponse" } ] } } } } }
       }
     },
+    "/exports": {
+      "post": {
+        "operationId": "create-export",
+        "requestBody": { "content": { "application/json": {
+          "schema": { "type": "object", "properties": { "format": { "type": "string" } } } } } },
+        "responses": { "202": { "description": "Accepted", "content": { "application/json": {
+          "schema": { "type": "object", "properties": {
+            "data": { "$ref": "#/components/schemas/Export" } } } } } } }
+      }
+    },
     "/jobs": {
       "post": {
         "operationId": "create-job",
@@ -85,6 +95,8 @@
         "id": { "type": "string" }, "context": { "type": "string" } } },
       "Repository": { "type": "object", "properties": {
         "id": { "type": "string" }, "name": { "type": "string" } } },
+      "Export": { "type": "object", "properties": {
+        "id": { "type": "string" }, "state": { "type": "string" }, "url": { "type": "string" } } },
       "Job": { "type": "object", "properties": {
         "id": { "type": "string" }, "status": { "type": "string" } } },
       "Branch": { "type": "object", "properties": {

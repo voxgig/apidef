@@ -649,10 +649,20 @@ func TestGuidePageSide(t *testing.T) {
 		{"branch", "/branches", "list", "`body.branches`"},
 		{"job", "/jobs", "create", "`body.data`"},
 		{"job", "/jobs/{id}", "load", "`body.data`"},
+		{"export", "/exports", "create", "`body.data`"},
 	} {
 		if got := opRes(c.ent, c.path, c.op); got != c.want {
 			t.Errorf("%s %s transform res = %v, want %v", c.ent, c.op, got, c.want)
 		}
+	}
+
+	main, _ := res.ApiModel["main"].(map[string]any)
+	kit, _ := main[KIT].(map[string]any)
+	ments, _ := kit["entity"].(map[string]any)
+	export, _ := ments["export"].(map[string]any)
+	fields, _ := export["fields"].(map[string]any)
+	if got, want := strings.Join(sortedKeys(fields), ","), "format,id,state,url"; got != want {
+		t.Errorf("export fields = %s, want %s", got, want)
 	}
 }
 

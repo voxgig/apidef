@@ -721,6 +721,10 @@ function findFieldDefs(
     if (responses) {
       fieldSets = getx(responses, '200 content "application/json" schema') ??
         getx(responses, '200 schema')
+      if (null == fieldSets && answersOnlyAccepted(responses)) {
+        fieldSets = getx(responses, '202 content "application/json" schema') ??
+          getx(responses, '202 schema')
+      }
       if ('list' == mop.name) {
         const unwrapped = unwrapArrayWrapper(fieldSets)
         envelope = null == unwrapped ? composedEnvelopeProp(fieldSets, 'list') : null
@@ -814,6 +818,11 @@ function findFieldDefs(
 }
 
 
+function answersOnlyAccepted(responses: any): boolean {
+  return null == responses['200'] && null == responses['201'] && null != responses['202']
+}
+
+
 function inferFieldsFromExamples(opdef: any, envelope?: string | null): SchemaDef[] {
   const example = findExampleObject(opdef, envelope)
   if (null == example || 'object' !== typeof example || Array.isArray(example)) {
@@ -836,7 +845,7 @@ function findExampleObject(opdef: any, envelope?: string | null): any {
   const responses = opdef.responses
   if (null == responses) return null
 
-  const resdef = responses['200'] ?? responses['201']
+  const resdef = responses['200'] ?? responses['201'] ?? responses['202']
   if (null == resdef) return null
 
   // OpenAPI 3.x: content.application/json.example

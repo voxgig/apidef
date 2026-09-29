@@ -455,6 +455,9 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.strictEqual(res('branch', 'list'), '`body.branches`');
         node_assert_1.default.strictEqual(res('job', 'create'), '`body.data`');
         node_assert_1.default.strictEqual(res('job', 'load'), '`body.data`');
+        // With no read beside it, the fields come from the Accepted answer too.
+        node_assert_1.default.strictEqual(res('export', 'create'), '`body.data`');
+        node_assert_1.default.deepStrictEqual(Object.keys(entities.export.fields).sort(), ['format', 'id', 'state', 'url']);
     });
     // A trailing parameter under its entity's segment is the entity's key,
     // whatever the response component is called: a rare component named for

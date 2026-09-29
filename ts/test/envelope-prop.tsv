@@ -45,3 +45,5 @@ resprops	opname	expected
 {"state":{"type":"string"},"statuses":{"type":"array","items":{"$ref":"#/components/schemas/Status"}},"repository":{"$ref":"#/components/schemas/Repository"}}	list	
 {"data":{"type":"array","items":{"$ref":"#/components/schemas/Article"}},"included":{"type":"array","items":{"$ref":"#/components/schemas/Person"}}}	list	
 {"data":{"$ref":"#/components/schemas/Annotation"},"timeframe":{"type":"array","items":{"type":"integer"}}}	load	
+{"state":{"oneOf":[{"type":"string"},{"type":"null"}]},"statuses":{"type":"array","items":{"$ref":"#/components/schemas/Status"}},"repository":{"$ref":"#/components/schemas/Repository"}}	list	
+{"state":{"type":"string","enum":["open","closed"],"x-ref":"#/components/schemas/State"},"statuses":{"type":"array","items":{"$ref":"#/components/schemas/Status"}},"repository":{"$ref":"#/components/schemas/Repository"}}	list	

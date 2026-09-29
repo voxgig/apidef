@@ -1449,11 +1449,13 @@ function isEnvelopePageProp(name) {
     return isEnvelopePagingProp(name) || isPageMetaProp(name) ||
         name.toLowerCase().replace(/[_-]/g, '').endsWith('count');
 }
-// A scalar that is neither status nor paging is the response's own data, such
-// as the state of GitHub's combined status beside the statuses it counts.
+// A property that is neither an object nor a list is scalar, however it is
+// composed, such as a nullable state written as a oneOf. Unless it is status
+// or paging it is the response's own data, such as the state of GitHub's
+// combined status beside the statuses it counts.
 function holdsOwnData(resprops) {
-    return (0, struct_1.keysof)(resprops).some((k) => !isEntityWrapperProp(resprops[k]) &&
-        !isEnvelopeStatusProp(k) && !isEnvelopePageProp(k));
+    return (0, struct_1.keysof)(resprops).some((k) => !isObjectSchema(resprops[k]) &&
+        true !== propIsList(resprops[k]) && !isEnvelopeStatusProp(k) && !isEnvelopePageProp(k));
 }
 // The component a response envelope carries: the resolved reference of the
 // record strictEnvelopeProp unwraps to.

@@ -67,23 +67,23 @@ the field transform uses to unwrap a response, so an entity named after a
 record takes its fields from that record too.
 
 The naming test is narrower than the field transform's, which accepts any
-schema whose only structured property is one list or one nested object.
-An envelope declares no `id`, and a single-item envelope holds nothing
-beside the item. A page holds nothing beside its records but paging: a
-count or total, a page number or size, a limit or offset, a cursor, a next
-or previous link, a has-more flag, or the `object` and `url` of a list
-object. Any other property is data, such as the totals of a test report
-beside its suites or a balance beside a list of errors, and it makes the
-schema a record that keeps its own name. Being an envelope also belongs to
-the schema rather than to one operation. An operation unwraps only the
-response it reads its result from: its `200`, or its `201` when it has no
-`200`. When any operation that answers with the schema would not unwrap
-it, such as a create that returns the whole list of members, or an
-operation that answers with it only beside a `200` of another shape, no
-operation unwraps it for naming. The operations on one resource then stay
-under one name, and no entity is named after a record that its operations
-never unwrap. A response that spells its envelope inline offers no
-component name, so the rule leaves it alone.
+schema whose only structured property is one list or one nested object. An
+envelope declares no `id`, and a single-item envelope holds nothing beside
+the item. A page holds nothing beside its records but paging: a count or
+total, a page number or size, a limit or offset, a cursor, a next or
+previous link, a has-more flag, or the `object` and `url` of a list object.
+Any other property is data, such as the totals of a test report beside its
+suites or a balance beside a list of errors, and it makes the schema a
+record that keeps its own name. Being an envelope also belongs to the
+schema rather than to one operation. An operation unwraps only the response
+it reads its result from: its `200`, its `201` when it has no `200`, or its
+`202` when it has neither. When any operation that answers with the schema
+would not unwrap it, such as a create that returns the whole list of
+members, or an operation that answers with it only beside a `200` of
+another shape, no operation unwraps it for naming. The operations on one
+resource then stay under one name, and no entity is named after a record
+that its operations never unwrap. A response that spells its envelope
+inline offers no component name, so the rule leaves it alone.
 
 When more than one envelope carries the same record, none of them names
 through it. Two usage reports, one wrapping a metrics record as `tokens`

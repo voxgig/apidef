@@ -636,6 +636,11 @@ func findFieldDefs(mtarget map[string]any, def map[string]any, opname string, en
 
 	if responses != nil {
 		fieldSets = getFieldResponseSchema(responses, "200")
+		// Mirrors ts/src/transform/field.ts: answered only by an Accepted
+		// response, the record is read there.
+		if fieldSets == nil && responses["200"] == nil && responses["201"] == nil {
+			fieldSets = getFieldResponseSchema(responses, "202")
+		}
 		if opname == "list" {
 			unwrapped := unwrapArrayWrapper(fieldSets)
 			if unwrapped == nil {
@@ -963,7 +968,7 @@ func findExampleObject(opdef map[string]any, envelope string) any {
 	}
 
 	var resdef map[string]any
-	for _, code := range []string{"200", "201"} {
+	for _, code := range []string{"200", "201", "202"} {
 		if rd, ok := responses[code].(map[string]any); ok {
 			resdef = rd
 			break

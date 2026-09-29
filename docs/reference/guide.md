@@ -127,7 +127,9 @@ before any entity is named:
 - An operation reads its result from its `200` response, from its `201`
   when it has no `200`, or from its `202` when it has neither, such as the
   job each of Mux's robots queues; `transform.res` unwraps that same
-  response. It unwraps a component only there.
+  response. It unwraps a component only there. An operation that only a
+  `202` answers takes the entity's fields from that answer too, as a
+  `200` would give them.
 - A component is an envelope only when every operation that answers with it
   in a `200` or `201` response unwraps it. A `202` names nothing: it says
   the service accepted the work, and its body may describe the work rather
