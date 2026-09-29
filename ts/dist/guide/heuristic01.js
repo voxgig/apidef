@@ -838,8 +838,9 @@ function ResolveTransform(spec) {
     const named = null == rescmp || null == entdesc.cmp ||
         cmpRefName(rescmp) !== entdesc.cmp;
     // A composed response carries the record as one of its parts, such as the
-    // project in Neon's project create beside its branch and roles.
-    const partprops = resprops ?? (0, utility_2.mergedProperties)(resschema);
+    // project in Neon's project create beside its branch and roles, and may
+    // declare properties of its own beside them.
+    const partprops = (0, utility_2.mergedProperties)(resschema);
     if (named && (0, utility_1.isEntityWrapperProp)(partprops?.[entdesc.origname])) {
         transform.res = '`body.' + entdesc.origname + '`';
     }

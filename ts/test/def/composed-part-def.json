@@ -35,7 +35,7 @@
         "operationId": "delete-project",
         "parameters": [ { "name": "project_id", "in": "path", "required": true, "schema": { "type": "string" } } ],
         "responses": { "200": { "description": "OK", "content": { "application/json": {
-          "schema": { "allOf": [
+          "schema": { "properties": { "request_id": { "type": "string" } }, "allOf": [
             { "$ref": "#/components/schemas/ProjectResponse" },
             { "$ref": "#/components/schemas/OperationsResponse" } ] } } } } }
       }

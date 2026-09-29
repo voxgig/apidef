@@ -1694,11 +1694,8 @@ func resolveTransform(data map[string]any, mdesc map[string]any) {
 	}
 
 	// Mirrors ts/src/guide/heuristic01.ts: a composed response carries the
-	// record as one of its parts.
-	partprops := resprops
-	if partprops == nil {
-		partprops = mergedProperties(resschema)
-	}
+	// record as one of its parts, beside any properties of its own.
+	partprops := mergedProperties(resschema)
 
 	if named && isEntityWrapperProp(partprops[origname]) && origname != "" {
 		transform["res"] = "`body." + origname + "`"
