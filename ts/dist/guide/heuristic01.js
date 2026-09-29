@@ -837,23 +837,24 @@ function ResolveTransform(spec) {
     const rescmp = resschema?.['x-ref'];
     const named = null == rescmp || null == entdesc.cmp ||
         cmpRefName(rescmp) !== entdesc.cmp;
-    if (resprops) {
-        if (named && (0, utility_1.isEntityWrapperProp)(resprops[entdesc.origname])) {
-            transform.res = '`body.' + entdesc.origname + '`';
-        }
-        else if (named && (0, utility_1.isEntityWrapperProp)(resprops[entdesc.name])) {
-            transform.res = '`body.' + entdesc.name + '`';
-        }
-        else {
-            // The wrapper is often named for the CARDINALITY rather than the
-            // entity — `{item: {...}}` from a load, `{items: [...]}` from a list —
-            // which the entity-name rules above cannot see. Left unwrapped, list()
-            // hands back the envelope where the caller expects an array, and the
-            // envelope key is mistaken for a field of the entity.
-            const envelope = (0, utility_1.envelopeProp)(resprops, opname);
-            if (null != envelope) {
-                transform.res = '`body.' + envelope + '`';
-            }
+    // A composed response carries the record as one of its parts, such as the
+    // project in Neon's project create beside its branch and roles.
+    const partprops = resprops ?? (0, utility_2.mergedProperties)(resschema);
+    if (named && (0, utility_1.isEntityWrapperProp)(partprops?.[entdesc.origname])) {
+        transform.res = '`body.' + entdesc.origname + '`';
+    }
+    else if (named && (0, utility_1.isEntityWrapperProp)(partprops?.[entdesc.name])) {
+        transform.res = '`body.' + entdesc.name + '`';
+    }
+    else if (resprops) {
+        // The wrapper is often named for the CARDINALITY rather than the
+        // entity — `{item: {...}}` from a load, `{items: [...]}` from a list —
+        // which the entity-name rules above cannot see. Left unwrapped, list()
+        // hands back the envelope where the caller expects an array, and the
+        // envelope key is mistaken for a field of the entity.
+        const envelope = (0, utility_1.envelopeProp)(resprops, opname);
+        if (null != envelope) {
+            transform.res = '`body.' + envelope + '`';
         }
     }
     if (null == transform.res) {

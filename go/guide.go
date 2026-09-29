@@ -1693,12 +1693,19 @@ func resolveTransform(data map[string]any, mdesc map[string]any) {
 		named = CanonizeCmpName(m[2]) != entcmp
 	}
 
-	if resprops != nil {
-		if named && isEntityWrapperProp(resprops[origname]) && origname != "" {
-			transform["res"] = "`body." + origname + "`"
-		} else if named && isEntityWrapperProp(resprops[ename]) && ename != "" {
-			transform["res"] = "`body." + ename + "`"
-		} else if envelope := envelopeProp(resprops, opname); envelope != "" {
+	// Mirrors ts/src/guide/heuristic01.ts: a composed response carries the
+	// record as one of its parts.
+	partprops := resprops
+	if partprops == nil {
+		partprops = mergedProperties(resschema)
+	}
+
+	if named && isEntityWrapperProp(partprops[origname]) && origname != "" {
+		transform["res"] = "`body." + origname + "`"
+	} else if named && isEntityWrapperProp(partprops[ename]) && ename != "" {
+		transform["res"] = "`body." + ename + "`"
+	} else if resprops != nil {
+		if envelope := envelopeProp(resprops, opname); envelope != "" {
 			transform["res"] = "`body." + envelope + "`"
 		}
 	}
