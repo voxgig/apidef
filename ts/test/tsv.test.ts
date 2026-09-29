@@ -27,6 +27,8 @@ import {
   getModelPath,
   envelopeProp,
   envelopeItemRef,
+  composedEnvelopeProp,
+  mergedProperties,
   closedBodyTransform,
   authExchangeOp,
   specSecuredByDefault,
@@ -37,6 +39,7 @@ import {
 
 import {
   inferTypeFromValue,
+  inferFieldsFromExamples,
 } from '../dist/transform/field'
 
 import { makeResolved } from '../dist/resolved'
@@ -579,6 +582,43 @@ describe('tsv-envelope-item-ref', () => {
     test(`envelopeItemRef(${row.schema}, "${row.opname}") => "${row.expected}"`, () => {
       const expected = '' === row.expected ? null : row.expected
       assert.strictEqual(envelopeItemRef(JSON.parse(row.schema), row.opname), expected)
+    })
+  }
+})
+
+
+describe('tsv-composed-envelope-prop', () => {
+  const rows = loadTsv('composed-envelope-prop')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(`composedEnvelopeProp(${row.schema}, "${row.opname}") => "${row.expected}"`, () => {
+      const expected = '' === row.expected ? null : row.expected
+      assert.strictEqual(composedEnvelopeProp(JSON.parse(row.schema), row.opname), expected)
+    })
+  }
+})
+
+
+describe('tsv-merged-properties', () => {
+  const rows = loadTsv('merged-properties')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(`mergedProperties(${row.schema}) => ${row.expected}`, () => {
+      const got = mergedProperties(JSON.parse(row.schema))
+      const expected = '' === row.expected ? undefined : JSON.parse(row.expected)
+      assert.deepStrictEqual(undefined === got ? undefined : JSON.parse(JSON.stringify(got)), expected)
+    })
+  }
+})
+
+
+describe('tsv-infer-fields-from-examples', () => {
+  const rows = loadTsv('infer-fields-from-examples')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(`inferFieldsFromExamples(${row.opdef}, "${row.envelope}") => ${row.expected}`, () => {
+      const fields = inferFieldsFromExamples(JSON.parse(row.opdef), '' === row.envelope ? null : row.envelope)
+      assert.deepStrictEqual(fields.map((f: any) => f.key$ + ':' + f.type), JSON.parse(row.expected))
     })
   }
 })

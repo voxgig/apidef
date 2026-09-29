@@ -1647,9 +1647,9 @@ const ENVELOPE_PAGING_PROPS = new Set([
   'count', 'total', 'totalcount', 'totalhits', 'totalitems', 'totalpages',
   'totalresults', 'page', 'pages', 'pagecount', 'pagenumber', 'pagesize',
   'perpage', 'limit', 'offset', 'cursor', 'next', 'nextcursor', 'nextpage',
-  'nextpagetoken', 'nexttoken', 'previous', 'prev', 'previouscursor',
-  'prevcursor', 'previouspage', 'prevpage', 'hasmore', 'hasnext',
-  'hasprevious', 'object', 'url',
+  'nextpagetoken', 'nexttoken', 'nexturl', 'previous', 'prev',
+  'previouscursor', 'prevcursor', 'previouspage', 'prevpage', 'previousurl',
+  'prevurl', 'hasmore', 'hasnext', 'hasprevious', 'object', 'url',
 ])
 
 
@@ -1659,31 +1659,85 @@ function isEnvelopePagingProp(name: string): boolean {
 
 
 // The component a response envelope carries: the resolved reference of the
-// record envelopeProp unwraps to. Narrower than envelopeProp, since a record
-// with one structured property passes that test too: an envelope has no `id`,
-// a page holds nothing beside its records but paging, and a single-item
-// envelope holds nothing beside the item.
+// record strictEnvelopeProp unwraps to.
 function envelopeItemRef(schema: any, opname: string): string | null {
   const props = schema?.properties
-  const key = envelopeProp(props, opname)
-  if (null == key || null != props.id) {
+  const key = strictEnvelopeProp(props, opname)
+  if (null == key) {
     return null
   }
 
   const prop = props[key]
-  const islist = propIsList(prop)
-  const rest = keysof(props).filter((k: string) => k !== key)
-  if (islist ? !rest.every(isEnvelopePagingProp) : 0 < rest.length) {
-    return null
-  }
-
-  const item = islist ? prop.items : prop
+  const item = propIsList(prop) ? prop.items : prop
   if (!isRecordSchema(item)) {
     return null
   }
 
   const xref = item['x-ref']
   return 'string' === typeof xref && '' !== xref ? xref : null
+}
+
+
+// Narrower than envelopeProp, since a record with one structured property
+// passes that test too: an envelope has no `id`, a page holds nothing beside
+// its records but paging, and a single-item envelope holds nothing beside the
+// item.
+function strictEnvelopeProp(props: any, opname: string): string | null {
+  const key = envelopeProp(props, opname)
+  if (null == key || null != props.id) {
+    return null
+  }
+
+  const islist = propIsList(props[key])
+  const rest = keysof(props).filter((k: string) => k !== key)
+  if (islist ? !rest.every(isEnvelopePagingProp) : 0 < rest.length) {
+    return null
+  }
+
+  return key
+}
+
+
+// The envelope of a schema composed with allOf, such as Lob's list,
+// allOf[list, {data: [...]}]. Only the strict rules apply: most composed
+// schemas are records, and a record's one object is its data.
+function composedEnvelopeProp(schema: any, opname: string): string | null {
+  if (null == schema || 'object' !== typeof schema || !Array.isArray(schema.allOf)) {
+    return null
+  }
+  return strictEnvelopeProp(mergedProperties(schema), opname)
+}
+
+
+// The properties of a schema and its allOf members; the first declaration of
+// a name wins. Read-only, since parsed nodes are shared between references.
+function mergedProperties(schema: any): Record<string, any> | undefined {
+  let out: Record<string, any> | undefined
+  const seen = new Set<any>()
+
+  const visit = (node: any) => {
+    if (null == node || 'object' !== typeof node || seen.has(node)) {
+      return
+    }
+    seen.add(node)
+
+    const props = node.properties
+    if (null != props && 'object' === typeof props && !Array.isArray(props)) {
+      for (const key of Object.keys(props)) {
+        out = out ?? Object.create(null)
+        if (!(key in out!)) {
+          out![key] = props[key]
+        }
+      }
+    }
+
+    if (Array.isArray(node.allOf)) {
+      node.allOf.forEach(visit)
+    }
+  }
+
+  visit(schema)
+  return out
 }
 
 
@@ -1857,6 +1911,8 @@ export {
   isEntityWrapperProp,
   envelopeProp,
   envelopeItemRef,
+  composedEnvelopeProp,
+  mergedProperties,
   closedBodyTransform,
   untaggedUnionBranches,
   scanUntaggedUnion,

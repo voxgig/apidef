@@ -476,6 +476,61 @@ func TestGuideEnvelope(t *testing.T) {
 	}
 }
 
+// Mirrors the TS `guide-allof-envelope` case.
+func TestGuideAllofEnvelope(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "allof-envelope-")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, OutPrefix: "allof-envelope-", Strategy: "heuristic01"}).
+		Generate(map[string]any{
+			"model": map[string]any{"name": "allof-envelope", "def": "allof-envelope-def.json"},
+			"build": map[string]any{"spec": map[string]any{"base": "../ts/test/def"}},
+			"ctrl": map[string]any{"step": map[string]any{
+				"parse": true, "guide": true, "transformers": true,
+				"builders": false, "generate": false,
+			}},
+		})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v", err)
+	}
+
+	entities := res.ApiModel["main"].(map[string]any)["kit"].(map[string]any)["entity"].(map[string]any)
+	resOf := func(ent, op string) any {
+		e, _ := entities[ent].(map[string]any)
+		opm, _ := e["op"].(map[string]any)
+		o, _ := opm[op].(map[string]any)
+		pts, _ := o["points"].([]any)
+		if len(pts) == 0 {
+			return nil
+		}
+		pt, _ := pts[0].(map[string]any)
+		tr, _ := pt["t"].(map[string]any)
+		return tr["res"]
+	}
+	fieldsOf := func(ent string) []string {
+		e, _ := entities[ent].(map[string]any)
+		fields, _ := e["fields"].(map[string]any)
+		return sortedKeys(fields)
+	}
+
+	for _, c := range []struct{ ent, op, want string }{
+		{"address", "list", "`body.data`"},
+		{"address", "load", "`body`"},
+		{"address", "remove", "`body`"},
+		{"owner", "load", "`body`"},
+		{"note", "list", "`body`"},
+	} {
+		if got := resOf(c.ent, c.op); got != c.want {
+			t.Errorf("%s %s res = %v, want %s", c.ent, c.op, got, c.want)
+		}
+	}
+	if got, want := fieldsOf("address"),
+		[]string{"address_line1", "address_line2", "address_zip", "id", "name"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("address fields = %v, want %v", got, want)
+	}
+	if got, want := fieldsOf("owner"), []string{"id", "name", "settings"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("owner fields = %v, want %v", got, want)
+	}
+}
+
 // Mirrors the TS `guide-trailing-key` case.
 func TestGuideTrailingKey(t *testing.T) {
 	folder := stageGuideEntry(t, t.TempDir(), "trailing-key-")

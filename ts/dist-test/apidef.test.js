@@ -351,6 +351,39 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.strictEqual(listpt.o, '/{year}/observation');
         node_assert_1.default.ok(null != entities.observation.fields.observedAt, 'observation fields not unwrapped: ' + Object.keys(entities.observation.fields));
     });
+    // Lob's shape: a page composed with allOf, whose records are a oneOf, so
+    // the fields come from the list example read through the same `data`. A
+    // composed record keeps its one object (owner), and a page with a sibling
+    // that is not paging stays whole (notes).
+    (0, node_test_1.test)('guide-allof-envelope', async () => {
+        const folder = __dirname + '/../test/allof-envelope';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'allof-envelope', def: 'allof-envelope-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: true,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        const entities = bres.apimodel.main.kit.entity;
+        const res = (ent, op) => entities[ent].op[op].points[0].t.res;
+        node_assert_1.default.strictEqual(res('address', 'list'), '`body.data`');
+        node_assert_1.default.strictEqual(res('address', 'load'), '`body`');
+        node_assert_1.default.strictEqual(res('address', 'remove'), '`body`');
+        node_assert_1.default.strictEqual(res('owner', 'load'), '`body`');
+        node_assert_1.default.strictEqual(res('note', 'list'), '`body`');
+        node_assert_1.default.deepStrictEqual(Object.keys(entities.address.fields), [
+            'address_line1', 'address_line2', 'address_zip', 'id', 'name',
+        ]);
+        node_assert_1.default.deepStrictEqual(Object.keys(entities.owner.fields), ['id', 'name', 'settings']);
+    });
     // A trailing parameter under its entity's segment is the entity's key,
     // whatever the response component is called: a rare component named for
     // another view of it, or a tag on a write that answers with no component.

@@ -437,6 +437,51 @@ describe('apidef', () => {
   })
 
 
+  // Lob's shape: a page composed with allOf, whose records are a oneOf, so
+  // the fields come from the list example read through the same `data`. A
+  // composed record keeps its one object (owner), and a page with a sibling
+  // that is not paging stays whole (notes).
+  test('guide-allof-envelope', async () => {
+    const folder = __dirname + '/../test/allof-envelope'
+
+    const build = await ApiDef.makeBuild({ folder })
+
+    const bres = await build(
+      { name: 'allof-envelope', def: 'allof-envelope-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: true,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const entities = bres.apimodel.main.kit.entity
+    const res = (ent: string, op: string) => entities[ent].op[op].points[0].t.res
+
+    assert.strictEqual(res('address', 'list'), '`body.data`')
+    assert.strictEqual(res('address', 'load'), '`body`')
+    assert.strictEqual(res('address', 'remove'), '`body`')
+    assert.strictEqual(res('owner', 'load'), '`body`')
+    assert.strictEqual(res('note', 'list'), '`body`')
+
+    assert.deepStrictEqual(Object.keys(entities.address.fields), [
+      'address_line1', 'address_line2', 'address_zip', 'id', 'name',
+    ])
+    assert.deepStrictEqual(Object.keys(entities.owner.fields), ['id', 'name', 'settings'])
+  })
+
+
   // A trailing parameter under its entity's segment is the entity's key,
   // whatever the response component is called: a rare component named for
   // another view of it, or a tag on a write that answers with no component.

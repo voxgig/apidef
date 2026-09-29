@@ -692,6 +692,82 @@ func TestEnvelopeItemRef(t *testing.T) {
 	}
 }
 
+func TestComposedEnvelopeProp(t *testing.T) {
+	rows := loadTsv(t, "composed-envelope-prop")
+	if len(rows) == 0 {
+		t.Fatal("no composed-envelope-prop rows loaded")
+	}
+	for _, row := range rows {
+		src, opname, want := row["schema"], row["opname"], row["expected"]
+		t.Run(src+" "+opname, func(t *testing.T) {
+			var schema map[string]any
+			if err := json.Unmarshal([]byte(src), &schema); err != nil {
+				t.Fatalf("bad schema %q: %v", src, err)
+			}
+			if got := composedEnvelopeProp(schema, opname); got != want {
+				t.Errorf("composedEnvelopeProp(%s, %q) = %q, want %q", src, opname, got, want)
+			}
+		})
+	}
+}
+
+func TestMergedProperties(t *testing.T) {
+	rows := loadTsv(t, "merged-properties")
+	if len(rows) == 0 {
+		t.Fatal("no merged-properties rows loaded")
+	}
+	for _, row := range rows {
+		src, want := row["schema"], row["expected"]
+		t.Run(src, func(t *testing.T) {
+			var schema map[string]any
+			if err := json.Unmarshal([]byte(src), &schema); err != nil {
+				t.Fatalf("bad schema %q: %v", src, err)
+			}
+			got := mergedProperties(schema)
+			if want == "" {
+				if got != nil {
+					t.Errorf("mergedProperties(%s) = %v, want none", src, got)
+				}
+				return
+			}
+			var wantVal map[string]any
+			if err := json.Unmarshal([]byte(want), &wantVal); err != nil {
+				t.Fatalf("bad expected %q: %v", want, err)
+			}
+			if !reflect.DeepEqual(got, wantVal) {
+				t.Errorf("mergedProperties(%s) = %v, want %v", src, got, wantVal)
+			}
+		})
+	}
+}
+
+func TestInferFieldsFromExamples(t *testing.T) {
+	rows := loadTsv(t, "infer-fields-from-examples")
+	if len(rows) == 0 {
+		t.Fatal("no infer-fields-from-examples rows loaded")
+	}
+	for _, row := range rows {
+		src, envelope, want := row["opdef"], row["envelope"], row["expected"]
+		t.Run(src+" "+envelope, func(t *testing.T) {
+			var opdef map[string]any
+			if err := json.Unmarshal([]byte(src), &opdef); err != nil {
+				t.Fatalf("bad opdef %q: %v", src, err)
+			}
+			var wantVal []string
+			if err := json.Unmarshal([]byte(want), &wantVal); err != nil {
+				t.Fatalf("bad expected %q: %v", want, err)
+			}
+			got := []string{}
+			for _, f := range inferFieldsFromExamples(opdef, envelope) {
+				got = append(got, f["key$"].(string)+":"+f["type"].(string))
+			}
+			if !reflect.DeepEqual(got, wantVal) {
+				t.Errorf("inferFieldsFromExamples(%s, %q) = %v, want %v", src, envelope, got, wantVal)
+			}
+		})
+	}
+}
+
 func TestPathResource(t *testing.T) {
 	rows := loadTsv(t, "path-resource")
 	if len(rows) == 0 {

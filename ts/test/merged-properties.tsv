@@ -1,0 +1,9 @@
+schema	expected
+{"type":"object","properties":{"a":{"type":"string"}}}	{"a":{"type":"string"}}
+{"allOf":[{"properties":{"a":{"type":"string"}}},{"properties":{"b":{"type":"integer"}}}]}	{"a":{"type":"string"},"b":{"type":"integer"}}
+{"properties":{"a":{"type":"string"}},"allOf":[{"properties":{"a":{"type":"integer"},"b":{"type":"boolean"}}}]}	{"a":{"type":"string"},"b":{"type":"boolean"}}
+{"allOf":[{"properties":{"a":{"type":"string"}}},{"properties":{"a":{"type":"integer"}}}]}	{"a":{"type":"string"}}
+{"allOf":[{"allOf":[{"properties":{"a":{"type":"string"}}}]},{"properties":{"b":{"type":"string"}}}]}	{"a":{"type":"string"},"b":{"type":"string"}}
+{"oneOf":[{"properties":{"a":{"type":"string"}}}]}	
+{"type":"string"}	
+{"allOf":["[Circular *x]",{"properties":{"a":{"type":"string"}}}]}	{"a":{"type":"string"}}

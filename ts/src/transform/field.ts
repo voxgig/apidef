@@ -6,7 +6,7 @@ import type { TransformResult, Transform } from '../transform'
 
 import {
   validator, canonizeField, inferFieldType, normalizeFieldName, envelopeProp,
-  canonizeCmpName,
+  composedEnvelopeProp, mergedProperties, canonizeCmpName,
   scanUntaggedUnion, firstSentence, humanTitle,
 } from '../utility'
 
@@ -709,6 +709,9 @@ function findFieldDefs(
   const method = mpoint.m.toLowerCase()
   const opdef: any = (pathdef as any)?.[method]
 
+  // The response property the schema was read through, so an example is too.
+  let envelope: string | null = null
+
   if (opdef) {
     const responses = opdef.responses
     const requestBody = opdef.requestBody
@@ -720,8 +723,12 @@ function findFieldDefs(
         getx(responses, '200 schema')
       if ('list' == mop.name) {
         const unwrapped = unwrapArrayWrapper(fieldSets)
+        envelope = null == unwrapped ? composedEnvelopeProp(fieldSets, 'list') : null
         if (unwrapped) {
           fieldSets = unwrapped
+        }
+        else if (null != envelope) {
+          fieldSets = mergedProperties(fieldSets)?.[envelope]?.items
         }
         else {
           const fromCreated = getx(responses, '201 content "application/json" schema items') ??
@@ -735,9 +742,16 @@ function findFieldDefs(
       }
 
       if ('list' != mop.name) {
-        const envelope = envelopeProp(fieldSets?.properties, mop.name)
+        const props = fieldSets?.properties
+        envelope = envelopeProp(props, mop.name)
         if (null != envelope) {
-          fieldSets = fieldSets.properties[envelope]
+          fieldSets = props[envelope]
+        }
+        else {
+          envelope = composedEnvelopeProp(fieldSets, mop.name)
+          if (null != envelope) {
+            fieldSets = mergedProperties(fieldSets)?.[envelope]
+          }
         }
       }
     }
@@ -790,7 +804,7 @@ function findFieldDefs(
 
   // Fallback: infer fields from example response data when no schema properties found
   if (0 === fielddefs.length && opdef) {
-    const exampleFields = inferFieldsFromExamples(opdef)
+    const exampleFields = inferFieldsFromExamples(opdef, envelope)
     for (const ef of exampleFields) {
       fielddefs.push(ef)
     }
@@ -800,8 +814,8 @@ function findFieldDefs(
 }
 
 
-function inferFieldsFromExamples(opdef: any): SchemaDef[] {
-  const example = findExampleObject(opdef)
+function inferFieldsFromExamples(opdef: any, envelope?: string | null): SchemaDef[] {
+  const example = findExampleObject(opdef, envelope)
   if (null == example || 'object' !== typeof example || Array.isArray(example)) {
     return []
   }
@@ -818,7 +832,7 @@ function inferFieldsFromExamples(opdef: any): SchemaDef[] {
 }
 
 
-function findExampleObject(opdef: any): any {
+function findExampleObject(opdef: any, envelope?: string | null): any {
   const responses = opdef.responses
   if (null == responses) return null
 
@@ -827,37 +841,45 @@ function findExampleObject(opdef: any): any {
 
   // OpenAPI 3.x: content.application/json.example
   let example = getx(resdef, 'content "application/json" example')
-  if (null != example && 'object' === typeof example) return unwrapExample(example)
+  if (null != example && 'object' === typeof example) return unwrapExample(example, envelope)
 
   // OpenAPI 3.x: content.application/json.examples (named examples — take first)
   const examples = getx(resdef, 'content "application/json" examples')
   if (null != examples && 'object' === typeof examples) {
     for (const val of Object.values(examples)) {
       const ex = (val as any)?.value
-      if (null != ex && 'object' === typeof ex) return unwrapExample(ex)
+      if (null != ex && 'object' === typeof ex) return unwrapExample(ex, envelope)
     }
   }
 
   // OpenAPI 3.x: content.application/json.schema.example
   example = getx(resdef, 'content "application/json" schema example')
-  if (null != example && 'object' === typeof example) return unwrapExample(example)
+  if (null != example && 'object' === typeof example) return unwrapExample(example, envelope)
 
   // Swagger 2.0: response.example / response.examples.application/json
   example = resdef.example
-  if (null != example && 'object' === typeof example) return unwrapExample(example)
+  if (null != example && 'object' === typeof example) return unwrapExample(example, envelope)
 
   example = getx(resdef, 'examples "application/json"')
-  if (null != example && 'object' === typeof example) return unwrapExample(example)
+  if (null != example && 'object' === typeof example) return unwrapExample(example, envelope)
 
   example = getx(resdef, 'schema example')
-  if (null != example && 'object' === typeof example) return unwrapExample(example)
+  if (null != example && 'object' === typeof example) return unwrapExample(example, envelope)
 
   return null
 }
 
 
-// If the example is a wrapper with a single array property, unwrap to the first item
-function unwrapExample(example: any): any {
+// Through the envelope, then to a list's first item. A scalar where the
+// envelope should be means the example disagrees with it, so it is kept whole.
+function unwrapExample(example: any, envelope?: string | null): any {
+  if (null != envelope && null != example && 'object' === typeof example &&
+    !Array.isArray(example) && Object.prototype.hasOwnProperty.call(example, envelope)) {
+    const inner = example[envelope]
+    if (null != inner && 'object' === typeof inner) {
+      example = inner
+    }
+  }
   if (Array.isArray(example)) {
     return example.length > 0 ? example[0] : null
   }

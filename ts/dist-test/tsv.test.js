@@ -485,6 +485,37 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-composed-envelope-prop', () => {
+    const rows = loadTsv('composed-envelope-prop');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(`composedEnvelopeProp(${row.schema}, "${row.opname}") => "${row.expected}"`, () => {
+            const expected = '' === row.expected ? null : row.expected;
+            node_assert_1.default.strictEqual((0, utility_1.composedEnvelopeProp)(JSON.parse(row.schema), row.opname), expected);
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-merged-properties', () => {
+    const rows = loadTsv('merged-properties');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(`mergedProperties(${row.schema}) => ${row.expected}`, () => {
+            const got = (0, utility_1.mergedProperties)(JSON.parse(row.schema));
+            const expected = '' === row.expected ? undefined : JSON.parse(row.expected);
+            node_assert_1.default.deepStrictEqual(undefined === got ? undefined : JSON.parse(JSON.stringify(got)), expected);
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-infer-fields-from-examples', () => {
+    const rows = loadTsv('infer-fields-from-examples');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(`inferFieldsFromExamples(${row.opdef}, "${row.envelope}") => ${row.expected}`, () => {
+            const fields = (0, field_1.inferFieldsFromExamples)(JSON.parse(row.opdef), '' === row.envelope ? null : row.envelope);
+            node_assert_1.default.deepStrictEqual(fields.map((f) => f.key$ + ':' + f.type), JSON.parse(row.expected));
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-path-resource', () => {
     const rows = loadTsv('path-resource');
     (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));

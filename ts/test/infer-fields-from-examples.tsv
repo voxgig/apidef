@@ -1,0 +1,6 @@
+opdef	envelope	expected
+{"responses":{"200":{"content":{"application/json":{"example":{"data":[{"id":"adr_1","count":3}],"object":"list","next_url":null}}}}}}	data	["count:integer","id:string"]
+{"responses":{"200":{"content":{"application/json":{"example":{"data":[{"id":"adr_1"}],"object":"list"}}}}}}		["data:array","object:string"]
+{"responses":{"200":{"content":{"application/json":{"example":{"item":{"id":"x","ok":true}}}}}}}	item	["id:string","ok:boolean"]
+{"responses":{"200":{"content":{"application/json":{"example":{"insecure_ssl":"0","url":"https://x"}}}}}}	insecure_ssl	["insecure_ssl:string","url:string"]
+{"responses":{"200":{"content":{"application/json":{"example":{"id":"x"}}}}}}	data	["id:string"]

@@ -137,6 +137,21 @@ The rows of
 [`go/apidef_test.go`](../../go/apidef_test.go) pin the decision for the
 whole spec on [`ts/test/def/envelope-def.json`](../../ts/test/def/envelope-def.json).
 
+A response schema composed with `allOf` declares no `properties` of its
+own, so `transform.res` reads the properties of its members together, the
+first declaration of a name winning. It unwraps such a schema only when the
+first three of the preceding rules hold, because most composed schemas are
+records, and the one nested object of a record is its data. Lob's address list,
+`allOf[list, { data: [address] }]`, reads `body.data`. The entity's fields
+then come from the records the envelope holds. When those records are a
+`oneOf` with no properties of their own, the fields come from the response
+example, read through the same property. The rows of
+[`ts/test/composed-envelope-prop.tsv`](../../ts/test/composed-envelope-prop.tsv)
+and [`ts/test/merged-properties.tsv`](../../ts/test/merged-properties.tsv)
+pin the rule in both builds, and the `guide-allof-envelope` tests pin it
+for the whole spec on
+[`ts/test/def/allof-envelope-def.json`](../../ts/test/def/allof-envelope-def.json).
+
 ### Shared schemas
 
 A route is one path and one method. Its resource is the name the path's

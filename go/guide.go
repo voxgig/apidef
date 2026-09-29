@@ -1623,7 +1623,8 @@ func resolveTransform(data map[string]any, mdesc map[string]any) {
 
 	// Check response schema
 	responses, _ := mdesc["responses"].(map[string]any)
-	resprops := getResponseSchemaProps(successResponse(responses))
+	resschema := getResponseSchema(successResponse(responses))
+	resprops, _ := resschema["properties"].(map[string]any)
 	DebugPath(pathStr, methodName, "TRANSFORM-RES", resprops)
 
 	origname := safeStr(entdesc["origname"])
@@ -1635,6 +1636,12 @@ func resolveTransform(data map[string]any, mdesc map[string]any) {
 		} else if isEntityWrapperProp(resprops[ename]) && ename != "" {
 			transform["res"] = "`body." + ename + "`"
 		} else if envelope := envelopeProp(resprops, opname); envelope != "" {
+			transform["res"] = "`body." + envelope + "`"
+		}
+	}
+
+	if transform["res"] == nil {
+		if envelope := composedEnvelopeProp(resschema, opname); envelope != "" {
 			transform["res"] = "`body." + envelope + "`"
 		}
 	}
@@ -2603,16 +2610,6 @@ func getResponseSchema(response map[string]any) map[string]any {
 		return schema
 	}
 	return nil
-}
-
-// getResponseSchemaProps gets properties from a response schema.
-func getResponseSchemaProps(response map[string]any) map[string]any {
-	schema := getResponseSchema(response)
-	if schema == nil {
-		return nil
-	}
-	props, _ := schema["properties"].(map[string]any)
-	return props
 }
 
 // getRequestBodySchemaProps gets properties from a request body schema.

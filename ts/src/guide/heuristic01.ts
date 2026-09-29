@@ -8,8 +8,8 @@ import { each } from 'jostraca'
 import { size, merge, getelem, isempty, items, keysof } from '@voxgig/struct'
 
 import {
-  isEntityWrapperProp, envelopeProp, envelopeItemRef, closedBodyTransform,
-  authExchangeOp, specSecuredByDefault,
+  isEntityWrapperProp, envelopeProp, envelopeItemRef, composedEnvelopeProp,
+  closedBodyTransform, authExchangeOp, specSecuredByDefault,
 } from '../utility'
 
 
@@ -1136,7 +1136,8 @@ function ResolveTransform(spec: TaskSpec) {
     res: undefined,
   }
 
-  const resprops = getResponseSchema(successResponse(mdesc.responses))?.properties
+  const resschema = getResponseSchema(successResponse(mdesc.responses))
+  const resprops = resschema?.properties
   debugpath(pathStr, methodName, 'TRANSFORM-RES', keysof(resprops))
 
   if (resprops) {
@@ -1156,6 +1157,13 @@ function ResolveTransform(spec: TaskSpec) {
       if (null != envelope) {
         transform.res = '`body.' + envelope + '`'
       }
+    }
+  }
+
+  if (null == transform.res) {
+    const envelope = composedEnvelopeProp(resschema, opname)
+    if (null != envelope) {
+      transform.res = '`body.' + envelope + '`'
     }
   }
 
