@@ -18,11 +18,12 @@ Source: [`ts/src/parse.ts`](../../ts/src/parse.ts).
   key does.
 - Require `openapi` or `swagger` to be present, else throw `Unsupported`.
 - Ensure `components` exists.
-- Remove the quotes an explicit key keeps (`? "/a"`, `? '/a'`) from each
-  `paths` key. A double-quoted key is decoded as a JSON string where it is
-  one; a single-quoted key reads `''` as `'`. A key whose new spelling another
-  key already has, or would also get, keeps its quotes
-  (`ts/test/normalize-path-keys.tsv`).
+- Remove the quotes a `paths` key still carries. The YAML parser already
+  reads an explicit key (`? "/a"`, `? '/a'`) without them, and merges it with
+  another spelling of the same path, as YAML requires. A double-quoted key is
+  decoded as a JSON string where it is one; a single-quoted key reads `''` as
+  `'`. A key whose new spelling another key already has, or would also get,
+  keeps its quotes (`ts/test/normalize-path-keys.tsv`).
 - Walk the tree: resolve every `$ref` JSON pointer **in place**, recording the
   original pointer as `x-ref`. Repeated refs to one component share that
   component's nested children — the inlined schema must be treated as

@@ -5,8 +5,8 @@ go 1.25.0
 require (
 	github.com/aontu-lang/aontu/go v0.75.0
 	github.com/jostraca/jostraca/go v0.39.0
-	github.com/tabnas/parser/go v0.12.2
-	github.com/tabnas/yaml/go v0.5.8
+	github.com/tabnas/parser/go v0.12.5
+	github.com/tabnas/yaml/go v0.5.12
 	github.com/voxgig/struct/go v0.1.3
 	github.com/voxgig/util/go v0.1.5
 	golang.org/x/text v0.40.0
@@ -23,10 +23,10 @@ require (
 	github.com/tabnas/expr/go v0.5.10 // indirect
 	github.com/tabnas/hoover/go v0.3.9 // indirect
 	github.com/tabnas/ini/go v0.5.9 // indirect
-	github.com/tabnas/json/go v0.5.10 // indirect
+	github.com/tabnas/json/go v0.5.11 // indirect
 	github.com/tabnas/json5/go v0.5.8 // indirect
 	github.com/tabnas/jsonc/go v0.5.7 // indirect
-	github.com/tabnas/jsonic/go v0.7.1 // indirect
+	github.com/tabnas/jsonic/go v0.7.2 // indirect
 	github.com/tabnas/multisource/go v0.5.8 // indirect
 	github.com/tabnas/path/go v0.3.8 // indirect
 	github.com/tabnas/toml/go v0.5.8 // indirect

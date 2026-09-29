@@ -173,8 +173,8 @@ function renameKeys(obj: any, keys: string[]): any {
 }
 
 
-// @tabnas/yaml keeps the quotes of an explicit key (`? "/a"`, `? '/a'`) in the
-// key. A rename that would collide with another key is not made.
+// A path key that still carries its quotes loses them. A rename that would
+// collide with another key is not made.
 function normalizePathKeys(keys: string[]): string[] {
   return keepDistinct(keys, keys.map(unquotePathKey))
 }
