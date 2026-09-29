@@ -1163,11 +1163,18 @@ function ResolveTransform(spec: TaskSpec) {
   const resprops = resschema?.properties
   debugpath(pathStr, methodName, 'TRANSFORM-RES', keysof(resprops))
 
+  // A response that is the component the entity is named from is the record
+  // itself, though one of its properties shares the entity's name, such as
+  // SaladCloud's container group and the container it runs.
+  const rescmp = resschema?.['x-ref']
+  const named = null == rescmp || null == entdesc.origcmp ||
+    cmpRefName(rescmp) !== canonizeCmpName(entdesc.origcmp)
+
   if (resprops) {
-    if (isEntityWrapperProp(resprops[entdesc.origname])) {
+    if (named && isEntityWrapperProp(resprops[entdesc.origname])) {
       transform.res = '`body.' + entdesc.origname + '`'
     }
-    else if (isEntityWrapperProp(resprops[entdesc.name])) {
+    else if (named && isEntityWrapperProp(resprops[entdesc.name])) {
       transform.res = '`body.' + entdesc.name + '`'
     }
     else {
@@ -1193,11 +1200,17 @@ function ResolveTransform(spec: TaskSpec) {
   const reqschema = getRequestBodySchema(mdesc.requestBody)
   const reqprops = reqschema?.properties
   debugpath(pathStr, methodName, 'TRANSFORM-REQ', keysof(reqprops))
+  // A body wraps the record under the entity's name only when that is all it
+  // holds, and it is structured. Otherwise the name is one field of the record,
+  // such as the container in SaladCloud's container group create.
+  const wraps = (name: string) => isEntityWrapperProp(reqprops?.[name]) &&
+    keysof(reqprops).every((k: string) => k === name)
+
   if (reqschema) {
-    if (null != reqprops?.[entdesc.origname]) {
+    if (wraps(entdesc.origname)) {
       transform.req = { [entdesc.origname]: '`reqdata`' }
     }
-    else if (null != reqprops?.[entdesc.name]) {
+    else if (wraps(entdesc.name)) {
       transform.req = { [entdesc.name]: '`reqdata`' }
     }
     else {

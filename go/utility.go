@@ -1674,6 +1674,20 @@ func envelopeProp(resprops map[string]any, opname string) string {
 			structured = append(structured, k)
 		}
 	}
+
+	// Mirrors ts/src/utility.ts: a page's own metadata object is not a second
+	// candidate beside its records, though a list under such a name is records.
+	if opname == "list" {
+		records := make([]string, 0, len(structured))
+		for _, k := range structured {
+			if islist, _ := propIsList(resprops[k]); !isPageMetaProp(k) || islist {
+				records = append(records, k)
+			}
+		}
+		if len(records) == 1 && isRecordList(resprops[records[0]]) {
+			structured = records
+		}
+	}
 	if len(structured) != 1 {
 		return ""
 	}
@@ -1719,7 +1733,36 @@ var ENVELOPE_PAGING_PROPS = map[string]bool{
 	"nexttoken": true, "nexturl": true, "previous": true, "prev": true, "previouscursor": true,
 	"prevcursor": true, "previouspage": true, "prevpage": true, "previousurl": true,
 	"prevurl": true, "hasmore": true, "hasnext": true, "hasprevious": true, "object": true,
-	"url": true,
+	"url": true, "currentpage": true,
+}
+
+// isRecordList mirrors ts/src/utility.ts: a list whose items are objects.
+func isRecordList(prop any) bool {
+	islist, _ := propIsList(prop)
+	sch, _ := prop.(map[string]any)
+	if !islist || sch == nil {
+		return false
+	}
+	items, _ := sch["items"].(map[string]any)
+	if items == nil {
+		return false
+	}
+	for _, k := range []string{"$ref", "properties", "allOf", "oneOf", "anyOf"} {
+		if items[k] != nil {
+			return true
+		}
+	}
+	return items["type"] == "object"
+}
+
+// PAGE_META_PROPS mirrors ts/src/utility.ts.
+var PAGE_META_PROPS = map[string]bool{
+	"meta": true, "metadata": true, "pagination": true, "paging": true, "pageinfo": true,
+	"links": true,
+}
+
+func isPageMetaProp(name string) bool {
+	return PAGE_META_PROPS[envelopePagingSepRE.ReplaceAllString(strings.ToLower(name), "")]
 }
 
 var envelopePagingSepRE = regexp.MustCompile(`[_-]`)
@@ -1728,10 +1771,10 @@ func isEnvelopePagingProp(name string) bool {
 	return ENVELOPE_PAGING_PROPS[envelopePagingSepRE.ReplaceAllString(strings.ToLower(name), "")]
 }
 
-// isEnvelopePageProp mirrors ts/src/utility.ts: paging, or a count that
-// describes the page.
+// isEnvelopePageProp mirrors ts/src/utility.ts: paging, the page's own
+// metadata, or a count that describes the page.
 func isEnvelopePageProp(name string) bool {
-	return isEnvelopePagingProp(name) ||
+	return isEnvelopePagingProp(name) || isPageMetaProp(name) ||
 		strings.HasSuffix(envelopePagingSepRE.ReplaceAllString(strings.ToLower(name), ""), "count")
 }
 

@@ -423,6 +423,8 @@ describe('apidef', () => {
       domain: ['list', 'load', 'update'],
       fossil: ['load'],
       gallery: ['list'],
+      greenhouse: ['create', 'load'],
+      kennel: ['create'],
       kingdom: ['create', 'list', 'load'],
       // Its 200 has no JSON schema, and still decides over the 201 list.
       ledger: ['load'],
@@ -442,6 +444,15 @@ describe('apidef', () => {
 
     // A record with one nested object reads the record, not the object.
     assert.strictEqual(entities.fossil.op.load.points[0].t.res, '`body`')
+
+    // A response that is the entity's own component reads the record, though
+    // one of its properties is named after the entity.
+    assert.strictEqual(entities.greenhouse.op.load.points[0].t.res, '`body`')
+
+    // A body wraps the record under the entity's name only when that is all
+    // it holds.
+    assert.strictEqual(entities.greenhouse.op.create.points[0].t.req, '`reqdata`')
+    assert.deepStrictEqual(entities.kennel.op.create.points[0].t.req, { kennel: '`reqdata`' })
   })
 
 

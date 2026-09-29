@@ -1669,10 +1669,20 @@ func resolveTransform(data map[string]any, mdesc map[string]any) {
 	origname := safeStr(entdesc["origname"])
 	ename := safeStr(entdesc["name"])
 
+	// Mirrors ts/src/guide/heuristic01.ts: a response that is the component the
+	// entity is named from is the record itself, though one of its properties
+	// shares the entity's name.
+	resref, _ := resschema["x-ref"].(string)
+	entcmp := safeStr(entdesc["origcmp"])
+	named := true
+	if m := xrefRE.FindStringSubmatch(resref); m != nil && entcmp != "" {
+		named = CanonizeCmpName(m[2]) != CanonizeCmpName(entcmp)
+	}
+
 	if resprops != nil {
-		if isEntityWrapperProp(resprops[origname]) && origname != "" {
+		if named && isEntityWrapperProp(resprops[origname]) && origname != "" {
 			transform["res"] = "`body." + origname + "`"
-		} else if isEntityWrapperProp(resprops[ename]) && ename != "" {
+		} else if named && isEntityWrapperProp(resprops[ename]) && ename != "" {
 			transform["res"] = "`body." + ename + "`"
 		} else if envelope := envelopeProp(resprops, opname); envelope != "" {
 			transform["res"] = "`body." + envelope + "`"
@@ -1690,10 +1700,16 @@ func resolveTransform(data map[string]any, mdesc map[string]any) {
 	reqprops := getRequestBodySchemaProps(reqBody)
 	DebugPath(pathStr, methodName, "TRANSFORM-REQ", reqprops)
 
+	// Mirrors ts/src/guide/heuristic01.ts: a body wraps the record under the
+	// entity's name only when that is all it holds, and it is structured.
+	wraps := func(name string) bool {
+		return name != "" && isEntityWrapperProp(reqprops[name]) && len(reqprops) == 1
+	}
+
 	if reqschema != nil {
-		if _, ok := reqprops[origname]; ok && origname != "" {
+		if wraps(origname) {
 			transform["req"] = map[string]any{origname: "`reqdata`"}
-		} else if _, ok := reqprops[ename]; ok && ename != "" {
+		} else if wraps(ename) {
 			transform["req"] = map[string]any{ename: "`reqdata`"}
 		} else if body := closedBodyTransform(reqschema); body != nil {
 			transform["req"] = body

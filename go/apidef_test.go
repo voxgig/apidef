@@ -466,6 +466,8 @@ func TestGuideEnvelope(t *testing.T) {
 		"domain":      "list/load/patch",
 		"fossil":      "load",
 		"gallery":     "list",
+		"greenhouse":  "create/load",
+		"kennel":      "create",
 		"kingdom":     "create/list/load",
 		"ledger":      "load",
 		"observation": "list",
@@ -488,6 +490,35 @@ func TestGuideEnvelope(t *testing.T) {
 	fload, _ := fops["load"].(map[string]any)
 	if tr, ok := fload["transform"]; ok && tr != nil {
 		t.Errorf("fossil load transform = %v, want none", tr)
+	}
+
+	// A response that is the entity's own component reads the record, though
+	// one of its properties is named after the entity.
+	greenhouse, _ := entities["greenhouse"].(map[string]any)
+	gpaths, _ := greenhouse["path"].(map[string]any)
+	gpath, _ := gpaths["/{year}/greenhouse/{id}"].(map[string]any)
+	gops, _ := gpath["op"].(map[string]any)
+	gload, _ := gops["load"].(map[string]any)
+	if tr, ok := gload["transform"].(map[string]any); ok && tr["res"] != nil {
+		t.Errorf("greenhouse load transform res = %v, want none", tr["res"])
+	}
+
+	// A body wraps the record under the entity's name only when that is all
+	// it holds.
+	gcpath, _ := gpaths["/{year}/greenhouse"].(map[string]any)
+	gcops, _ := gcpath["op"].(map[string]any)
+	gcreate, _ := gcops["create"].(map[string]any)
+	if tr, ok := gcreate["transform"].(map[string]any); ok && tr["req"] != nil {
+		t.Errorf("greenhouse create transform req = %v, want none", tr["req"])
+	}
+	kennel, _ := entities["kennel"].(map[string]any)
+	kpaths, _ := kennel["path"].(map[string]any)
+	kpath, _ := kpaths["/{year}/kennel"].(map[string]any)
+	kops, _ := kpath["op"].(map[string]any)
+	kcreate, _ := kops["create"].(map[string]any)
+	ktr, _ := kcreate["transform"].(map[string]any)
+	if !reflect.DeepEqual(ktr["req"], map[string]any{"kennel": "`reqdata`"}) {
+		t.Errorf("kennel create transform req = %v, want {kennel: reqdata}", ktr["req"])
 	}
 }
 

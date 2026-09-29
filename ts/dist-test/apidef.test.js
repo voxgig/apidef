@@ -341,6 +341,8 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
             domain: ['list', 'load', 'update'],
             fossil: ['load'],
             gallery: ['list'],
+            greenhouse: ['create', 'load'],
+            kennel: ['create'],
             kingdom: ['create', 'list', 'load'],
             // Its 200 has no JSON schema, and still decides over the 201 list.
             ledger: ['load'],
@@ -357,6 +359,13 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.ok(null != entities.observation.fields.observedAt, 'observation fields not unwrapped: ' + Object.keys(entities.observation.fields));
         // A record with one nested object reads the record, not the object.
         node_assert_1.default.strictEqual(entities.fossil.op.load.points[0].t.res, '`body`');
+        // A response that is the entity's own component reads the record, though
+        // one of its properties is named after the entity.
+        node_assert_1.default.strictEqual(entities.greenhouse.op.load.points[0].t.res, '`body`');
+        // A body wraps the record under the entity's name only when that is all
+        // it holds.
+        node_assert_1.default.strictEqual(entities.greenhouse.op.create.points[0].t.req, '`reqdata`');
+        node_assert_1.default.deepStrictEqual(entities.kennel.op.create.points[0].t.req, { kennel: '`reqdata`' });
     });
     // Lob's shape: a page composed with allOf, whose records are a oneOf, so
     // the fields come from the list example read through the same `data`. A
