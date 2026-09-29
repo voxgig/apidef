@@ -19,6 +19,10 @@
  "/{year}/metrics/token/{owner}":{"get":{"operationId":"getTokenMetrics","parameters":[{"$ref":"#/components/parameters/Year"},{"name":"owner","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"one","content":{"application/json":{"schema":{"$ref":"#/components/schemas/TokenMetrics"}}}}}}},
  "/{year}/metrics/package/{owner}":{"get":{"operationId":"getPackageMetrics","parameters":[{"$ref":"#/components/parameters/Year"},{"name":"owner","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"one","content":{"application/json":{"schema":{"$ref":"#/components/schemas/PackageMetrics"}}}}}}},
  "/{year}/vault":{"post":{"operationId":"depositRelic","parameters":[{"$ref":"#/components/parameters/Year"}],"responses":{"200":{"description":"queued","content":{"application/json":{"schema":{"type":"object","properties":{"queued":{"type":"boolean"}}}}}},"201":{"description":"deposited","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Deposit"}}}}}}},
+ "/{year}/survey":{"get":{"operationId":"listSurveys","parameters":[{"$ref":"#/components/parameters/Year"}],"responses":{"200":{"description":"page","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SurveyPage"}}}}}}},
+ "/{year}/survey/{id}/close":{"post":{"operationId":"closeSurvey","parameters":[{"$ref":"#/components/parameters/Year"},{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"closed","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SurveyClosed"}}}}}}},
+ "/{year}/gallery":{"get":{"operationId":"listGallery","parameters":[{"$ref":"#/components/parameters/Year"}],"responses":{"200":{"description":"page","content":{"application/json":{"schema":{"$ref":"#/components/schemas/GalleryPage"}}}}}}},
+ "/{year}/auction/{id}":{"get":{"operationId":"getAuctionLot","parameters":[{"$ref":"#/components/parameters/Year"},{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"one","content":{"application/json":{"schema":{"$ref":"#/components/schemas/AuctionLot"}}}}}}},
  "/{year}/ledger":{"get":{"operationId":"getLedger","parameters":[{"$ref":"#/components/parameters/Year"}],"responses":{"200":{"description":"export","content":{"text/csv":{"schema":{"type":"string"}}}},"201":{"description":"lines","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/LedgerLine"}}}}}}}}},
 "components":{
  "parameters":{
@@ -46,4 +50,10 @@
   "PackageMetrics":{"type":"object","properties":{"packages":{"$ref":"#/components/schemas/Metric"}}},
   "Relic":{"type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"}}},
   "Deposit":{"type":"object","properties":{"item":{"$ref":"#/components/schemas/Relic"}}},
+  "Tally":{"type":"object","properties":{"id":{"type":"string"},"state":{"type":"string"}}},
+  "SurveyPage":{"type":"object","properties":{"data":{"type":"array","items":{"$ref":"#/components/schemas/Tally"}},"total_row_count":{"type":"integer"}}},
+  "SurveyClosed":{"type":"object","properties":{"data":{"$ref":"#/components/schemas/Tally"}}},
+  "Artwork":{"type":"object","properties":{"id":{"type":"string"},"title":{"type":"string"}}},
+  "GalleryPage":{"type":"object","properties":{"data":{"type":"array","items":{"$ref":"#/components/schemas/Artwork"}},"next":{"type":"string"}}},
+  "AuctionLot":{"type":"object","properties":{"data":{"$ref":"#/components/schemas/Artwork"}}},
   "LedgerLine":{"type":"object","properties":{"amount":{"type":"number"},"memo":{"type":"string"}}}}}}

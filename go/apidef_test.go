@@ -458,18 +458,23 @@ func TestGuideEnvelope(t *testing.T) {
 		got[name] = strings.Join(sortedKeys(ops), "/")
 	}
 	want := map[string]string{
+		// One record, but a page and an item on unrelated routes stay apart.
+		"auction":     "load",
 		"census":      "list",
 		"crew_member": "create/list",
 		"deposit":     "create",
 		"domain":      "list/load/patch",
 		"fossil":      "load",
+		"gallery":     "list",
 		"kingdom":     "create/list/load",
 		"ledger":      "load",
 		"observation": "list",
 		"package":     "load",
 		"sample":      "load",
 		"site":        "load",
-		"token":       "load",
+		// A page and a single item beneath its route are one resource.
+		"tally": "create/list",
+		"token": "load",
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("entity ops = %v, want %v", got, want)

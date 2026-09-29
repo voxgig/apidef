@@ -589,9 +589,11 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 		"def":   def,
 		"guide": guide,
 		"work": map[string]any{
-			"pathmap":  map[string]any{},
-			"entmap":   map[string]any{},
-			"envelope": map[string]string{},
+			"pathmap":       map[string]any{},
+			"entmap":        map[string]any{},
+			"envelope":      map[string]string{},
+			"listEnvelope":  map[string]bool{},
+			"envelopePaths": map[string][]string{},
 			"sharing": &sharingWork{
 				records: map[string]bool{},
 				yields:  map[string]bool{},
@@ -834,6 +836,8 @@ func selectAllMethods(ctx *ApiDefContext, data map[string]any) []map[string]any 
 func measureEnvelope(data map[string]any, mdesc map[string]any) {
 	work := data["work"].(map[string]any)
 	envelope := work["envelope"].(map[string]string)
+	listEnvelope := work["listEnvelope"].(map[string]bool)
+	envelopePaths := work["envelopePaths"].(map[string][]string)
 	pathStr, _ := mdesc["path"].(string)
 	pathmap, _ := work["pathmap"].(map[string]any)
 	pathEntry, _ := pathmap[pathStr].(map[string]any)
@@ -855,21 +859,56 @@ func measureEnvelope(data map[string]any, mdesc map[string]any) {
 			itemref = ""
 		}
 		envelope[xref] = itemref
+		// Only a list unwraps a page, so every unwrapping operation agrees here.
+		listEnvelope[xref] = opname == "list"
+		envelopePaths[xref] = append(envelopePaths[xref], pathStr)
 	}
 }
 
 // measureEnvelopeItems mirrors MeasureEnvelopeItems in ts/src/guide/heuristic01.ts.
 func measureEnvelopeItems(data map[string]any) {
-	envelope := data["work"].(map[string]any)["envelope"].(map[string]string)
-	carriers := map[string]int{}
-	for _, itemref := range envelope {
-		carriers[itemref]++
-	}
+	work := data["work"].(map[string]any)
+	envelope := work["envelope"].(map[string]string)
+	carriers := map[string][]string{}
 	for xref, itemref := range envelope {
-		if carriers[itemref] > 1 {
-			envelope[xref] = ""
+		if itemref != "" {
+			carriers[itemref] = append(carriers[itemref], xref)
 		}
 	}
+	for _, xrefs := range carriers {
+		if len(xrefs) > 1 && !isPageAndItsItem(work, xrefs) {
+			for _, xref := range xrefs {
+				envelope[xref] = ""
+			}
+		}
+	}
+}
+
+// isPageAndItsItem mirrors isPageAndItsItem in ts/src/guide/heuristic01.ts.
+func isPageAndItsItem(work map[string]any, xrefs []string) bool {
+	listEnvelope := work["listEnvelope"].(map[string]bool)
+	envelopePaths := work["envelopePaths"].(map[string][]string)
+	pages, items := []string{}, []string{}
+	for _, xref := range xrefs {
+		if listEnvelope[xref] {
+			pages = append(pages, xref)
+		} else {
+			items = append(items, xref)
+		}
+	}
+	if len(pages) != 1 || len(items) != 1 {
+		return false
+	}
+	for _, path := range envelopePaths[items[0]] {
+		path = pathParamRE.ReplaceAllString(path, "{}")
+		for _, page := range envelopePaths[pages[0]] {
+			page = pathParamRE.ReplaceAllString(page, "{}")
+			if path == page || strings.HasPrefix(path, page+"/") {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // resolveEntityComponent finds potential schema refs and determines entity component.

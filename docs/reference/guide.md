@@ -129,7 +129,10 @@ before any entity is named:
 - A component is an envelope only when every operation that answers with it
   in a `200` or `201` response unwraps it.
 - A component is not an envelope when another envelope carries the same
-  record.
+  record. The exception is one page and one single-item envelope where a
+  route answering with the item lies at or beneath a route answering with
+  the page, with parameter names ignored. Those are one resource's list and
+  its item, and both stay envelopes.
 
 The rows of
 [`ts/test/envelope-item-ref.tsv`](../../ts/test/envelope-item-ref.tsv) pin

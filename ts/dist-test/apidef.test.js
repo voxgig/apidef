@@ -333,11 +333,14 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         const ops = Object.fromEntries(Object.keys(entities).sort()
             .map((name) => [name, Object.keys(entities[name].op ?? {}).sort()]));
         node_assert_1.default.deepStrictEqual(ops, {
+            // One record, but a page and an item on unrelated routes stay apart.
+            auction: ['load'],
             census: ['list'],
             crew_member: ['create', 'list'],
             deposit: ['create'],
             domain: ['list', 'load', 'update'],
             fossil: ['load'],
+            gallery: ['list'],
             kingdom: ['create', 'list', 'load'],
             // Its 200 has no JSON schema, and still decides over the 201 list.
             ledger: ['load'],
@@ -345,6 +348,8 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
             package: ['load'],
             sample: ['load'],
             site: ['load'],
+            // A page and a single item beneath its route are one resource.
+            tally: ['create', 'list'],
             token: ['load'],
         });
         const listpt = entities.observation.op.list.points[0];

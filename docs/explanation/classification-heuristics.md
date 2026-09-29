@@ -93,6 +93,15 @@ one entity with a single load, and where both reports take the same owner
 and repository, that load could not choose between them. Each report is
 judged by its own schema instead, as it would be with no envelope rule.
 
+A page and a single-item envelope can be one resource's list and one of its
+items. A video service lists its jobs as a page of job summaries beside a
+row count, and answers a job's cancel, beneath the same route, with one
+summary. Both name through the summary record, because the routes say they
+are one resource, and the two cannot collide in one operation, because one
+is a list and the other is not. Without that evidence the rule holds: a
+gallery's page of artworks and an auction's single lot stay two resources,
+though both carry the artwork record.
+
 Each reference to a component schema counts once per use in the resolved
 spec, the spec with every `$ref` replaced by the schema it names. A schema
 reached through a shared response counts once for the response's own
