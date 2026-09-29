@@ -18,6 +18,7 @@ type ApiDefOptions struct {
 	Meta      map[string]any `json:"meta,omitempty"`
 	OutPrefix string         `json:"outprefix,omitempty"`
 	Strategy  string         `json:"strategy,omitempty"`
+	Server    string         `json:"server,omitempty"`
 	Why       *WhyOptions    `json:"why,omitempty"`
 }
 

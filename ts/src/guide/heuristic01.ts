@@ -381,7 +381,7 @@ function isPageAndItsItem(work: any, xrefs: string[]): boolean {
   if (1 !== pages.length || 1 !== items.length) {
     return false
   }
-  const shape = (path: string) => path.replace(/\{[^}]+\}/g, '{}')
+  const shape = (path: string) => path.replace(/\{[^}]+\}/g, '{}').replace(/\/+$/, '')
   const under = work.envelopePaths[pages[0]].map(shape)
   return work.envelopePaths[items[0]].map(shape).some((path: string) =>
     under.some((page: string) => path === page || path.startsWith(page + '/')))

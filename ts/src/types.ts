@@ -45,6 +45,7 @@ type ApiDefOptions = {
   // out of band (see docs/design/graphql-ingestion.md).
   endpoint?: string
   auth?: ApiDefAuthOption
+  server?: string
 
   why?: {
     show?: boolean

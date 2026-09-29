@@ -48,19 +48,19 @@ function filterEntityAncestors(entities) {
             .filter((chain) => 0 < chain.length);
     }
 }
-// Move "/X" paths onto the entity that owns "/X/{id}" or "/X/{id}/sub".
-// Only acts when the path "/X" sits on a different entity than the
-// per-instance paths — leaves correctly-classified APIs alone.
-// Returns the entities the moves emptied, which are removed.
-// Guide stage only: on the unified guide it would override guide.aontu.
+// Move a collection path ("/X", "/api/v1/X", a trailing slash allowed) onto
+// the entity owning the item path beneath it ("/X/{id}"), when the two sit
+// on different entities. Returns the entities the moves emptied, which are
+// removed. Guide stage only: on the unified guide it would override
+// guide.aontu.
 function mergeCollectionPaths(guide, log) {
     const entities = guide.entity;
     const emptied = [];
     const rootOwners = {};
     for (const [ename, entity] of Object.entries(entities)) {
         for (const pathStr of Object.keys(entity.path ?? {})) {
-            // Match /A/{...} or /A/{...}/...
-            const m = pathStr.match(/^\/([^\/{}]+)\/\{[^}]+\}(\/.*)?$/);
+            // Match /A/{...} or /A/B/{...}/..., keyed by the literals before the param.
+            const m = pathStr.match(/^((?:\/[^\/{}]+)+)\/\{[^}]+\}(\/.*)?$/);
             if (!m)
                 continue;
             const root = m[1];
@@ -79,18 +79,14 @@ function mergeCollectionPaths(guide, log) {
             continue;
         const pathsToMove = [];
         for (const pathStr of Object.keys(entity.path)) {
-            // Match exactly /X (one literal segment, no params).
-            const m = pathStr.match(/^\/([^\/{}]+)$/);
-            if (!m)
-                continue;
-            const root = m[1];
-            const owner = rootOwners[root];
+            const root = collectionRoot(pathStr);
+            const owner = null == root ? undefined : rootOwners[root];
             if (owner && owner.ename !== ename) {
                 pathsToMove.push(pathStr);
             }
         }
         for (const pathStr of pathsToMove) {
-            const owner = rootOwners[pathStr.slice(1)];
+            const owner = rootOwners[collectionRoot(pathStr)];
             const targetEntity = entities[owner.ename];
             if (targetEntity == null)
                 continue;
@@ -145,6 +141,11 @@ function mergeCollectionPaths(guide, log) {
         log?.debug?.({ point: 'merge-collection-drop', entity: ename });
     }
     return emptied;
+}
+// A path of literals only, less any trailing slash, is a collection path.
+function collectionRoot(pathStr) {
+    const key = pathStr.replace(/\/+$/, '');
+    return /^(?:\/[^\/{}]+)+$/.test(key) ? key : null;
 }
 function resolvePathList(guideEntity, def) {
     const paths$ = [];

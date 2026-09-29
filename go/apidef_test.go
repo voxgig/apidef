@@ -1920,3 +1920,118 @@ func TestEntityFieldActivationDefaults(t *testing.T) {
 		t.Fatal("field alias named a was changed")
 	}
 }
+
+// Mirrors the TS `guide-fastapi` case: no servers, a version prefix, a
+// trailing slash on each collection, fastapi-pagination pages and a list
+// wrapper holding a meta object.
+func TestGuideFastapi(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, Strategy: "heuristic01"}).Generate(map[string]any{
+		"model": map[string]any{"name": "fastapi", "def": "fastapi-def.json"},
+		"build": map[string]any{"spec": map[string]any{"base": "../ts/test/fastapi"}},
+		"ctrl": map[string]any{"step": map[string]any{
+			"parse": true, "guide": true, "transformers": true,
+			"builders": false, "generate": false,
+		}},
+	})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v res=%+v", err, res)
+	}
+
+	main, _ := res.ApiModel["main"].(map[string]any)
+	kit, _ := main[KIT].(map[string]any)
+	entities, _ := kit["entity"].(map[string]any)
+
+	got := map[string]string{}
+	for _, name := range sortedKeys(entities) {
+		ent, _ := entities[name].(map[string]any)
+		ops, _ := ent["op"].(map[string]any)
+		got[name] = strings.Join(sortedKeys(ops), "/")
+	}
+	want := map[string]string{
+		"insight": "create/list/load/remove",
+		"prompt":  "list/load",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("entity ops = %v, want %v", got, want)
+	}
+
+	firstPoint := func(ename string, opname string) map[string]any {
+		ent, _ := entities[ename].(map[string]any)
+		ops, _ := ent["op"].(map[string]any)
+		op, _ := ops[opname].(map[string]any)
+		points, _ := op["points"].([]any)
+		if len(points) == 0 {
+			t.Fatalf("%s.%s has no points", ename, opname)
+		}
+		point, _ := points[0].(map[string]any)
+		return point
+	}
+	if o := firstPoint("insight", "list")["o"]; o != "/api/v1/insights/" {
+		t.Errorf("insight list path = %v, want /api/v1/insights/", o)
+	}
+	tr, _ := firstPoint("insight", "list")["t"].(map[string]any)
+	if tr["res"] != "`body.items`" {
+		t.Errorf("insight list res = %v, want `body.items`", tr["res"])
+	}
+	if o := firstPoint("prompt", "list")["o"]; o != "/api/v1/prompts/" {
+		t.Errorf("prompt list path = %v, want /api/v1/prompts/", o)
+	}
+
+	info, _ := kit["info"].(map[string]any)
+	url, _ := firstServerURL(info)
+	if url != "{base}" {
+		t.Errorf("server url = %q, want {base}", url)
+	}
+	warned := false
+	for _, w := range res.Ctx.Warn.History() {
+		if note, _ := w["note"].(string); strings.Contains(note, "no server URL") {
+			warned = true
+		}
+	}
+	if !warned {
+		t.Errorf("the missing server is not a warning: %v", res.Ctx.Warn.History())
+	}
+
+	wantGuide, err := os.ReadFile("../ts/test/fastapi/guide/base-guide.aontu")
+	if err != nil {
+		t.Fatal(err)
+	}
+	gotGuide, err := os.ReadFile(filepath.Join(folder, "guide", "base-guide.aontu"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(gotGuide) != string(wantGuide) {
+		t.Errorf("base-guide.aontu differs from the TS fixture:\n%s", string(gotGuide))
+	}
+}
+
+// Mirrors the TS `server-option` case.
+func TestServerOption(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "")
+	res, err := NewApiDef(ApiDefOptions{
+		Folder: folder, Strategy: "heuristic01", Server: "https://notebook.example.com/api",
+	}).Generate(map[string]any{
+		"model": map[string]any{"name": "fastapi", "def": "fastapi-def.json"},
+		"build": map[string]any{"spec": map[string]any{"base": "../ts/test/fastapi"}},
+		"ctrl": map[string]any{"step": map[string]any{
+			"parse": true, "guide": true, "transformers": true,
+			"builders": false, "generate": false,
+		}},
+	})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v res=%+v", err, res)
+	}
+	main, _ := res.ApiModel["main"].(map[string]any)
+	kit, _ := main[KIT].(map[string]any)
+	info, _ := kit["info"].(map[string]any)
+	url, _ := firstServerURL(info)
+	if url != "https://notebook.example.com/api" {
+		t.Errorf("server url = %q, want the option", url)
+	}
+	for _, w := range res.Ctx.Warn.History() {
+		if note, _ := w["note"].(string); strings.Contains(note, "no server URL") {
+			t.Errorf("a given server is a warning: %v", note)
+		}
+	}
+}

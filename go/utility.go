@@ -1714,7 +1714,7 @@ func isEnvelopeStatusProp(name string) bool {
 var ENVELOPE_PAGING_PROPS = map[string]bool{
 	"count": true, "total": true, "totalcount": true, "totalhits": true, "totalitems": true,
 	"totalpages": true, "totalresults": true, "page": true, "pages": true, "pagecount": true,
-	"pagenumber": true, "pagesize": true, "perpage": true, "limit": true, "offset": true,
+	"pagenumber": true, "pagesize": true, "size": true, "perpage": true, "limit": true, "offset": true,
 	"cursor": true, "next": true, "nextcursor": true, "nextpage": true, "nextpagetoken": true,
 	"nexttoken": true, "nexturl": true, "previous": true, "prev": true, "previouscursor": true,
 	"prevcursor": true, "previouspage": true, "prevpage": true, "previousurl": true,

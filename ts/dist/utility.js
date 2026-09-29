@@ -1392,7 +1392,7 @@ function isEnvelopeStatusProp(name) {
 const ENVELOPE_PAGING_PROPS = new Set([
     'count', 'total', 'totalcount', 'totalhits', 'totalitems', 'totalpages',
     'totalresults', 'page', 'pages', 'pagecount', 'pagenumber', 'pagesize',
-    'perpage', 'limit', 'offset', 'cursor', 'next', 'nextcursor', 'nextpage',
+    'size', 'perpage', 'limit', 'offset', 'cursor', 'next', 'nextcursor', 'nextpage',
     'nextpagetoken', 'nexttoken', 'nexturl', 'previous', 'prev',
     'previouscursor', 'prevcursor', 'previouspage', 'prevpage', 'previousurl',
     'prevurl', 'hasmore', 'hasnext', 'hasprevious', 'object', 'url',

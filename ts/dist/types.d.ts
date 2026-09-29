@@ -17,6 +17,7 @@ type ApiDefOptions = {
     kind?: DefKind;
     endpoint?: string;
     auth?: ApiDefAuthOption;
+    server?: string;
     why?: {
         show?: boolean;
     };

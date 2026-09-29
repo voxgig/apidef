@@ -80,8 +80,8 @@ func filterEntityAncestors(entities map[string]any) {
 }
 
 var (
-	instancePathRE   = regexp.MustCompile(`^/([^/{}]+)/\{[^}]+\}(/.*)?$`)
-	collectionPathRE = regexp.MustCompile(`^/([^/{}]+)$`)
+	instancePathRE   = regexp.MustCompile(`^((?:/[^/{}]+)+)/\{[^}]+\}(/.*)?$`)
+	collectionPathRE = regexp.MustCompile(`^(?:/[^/{}]+)+$`)
 )
 
 type rootOwner struct {
@@ -143,17 +143,18 @@ func mergeCollectionPaths(guide map[string]any) []string {
 
 		var toMove []string
 		for _, pathStr := range sortedKeys(paths) {
-			m := collectionPathRE.FindStringSubmatch(pathStr)
-			if m == nil {
+			root, ok := collectionRoot(pathStr)
+			if !ok {
 				continue
 			}
-			if owner, ok := rootOwners[m[1]]; ok && owner.ename != ename {
+			if owner, ok := rootOwners[root]; ok && owner.ename != ename {
 				toMove = append(toMove, pathStr)
 			}
 		}
 
 		for _, pathStr := range toMove {
-			owner := rootOwners[strings.TrimPrefix(pathStr, "/")]
+			root, _ := collectionRoot(pathStr)
+			owner := rootOwners[root]
 			target, _ := entities[owner.ename].(map[string]any)
 			if target == nil {
 				continue
@@ -205,6 +206,16 @@ func mergeCollectionPaths(guide map[string]any) []string {
 	}
 
 	return emptied
+}
+
+// collectionRoot mirrors ts/src/transform/entity.ts: a path of literals
+// only, less any trailing slash, is a collection path.
+func collectionRoot(pathStr string) (string, bool) {
+	key := strings.TrimRight(pathStr, "/")
+	if !collectionPathRE.MatchString(key) {
+		return "", false
+	}
+	return key, true
 }
 
 // mergeSubMap copies missing keys of src[key] into tgt[key], creating the

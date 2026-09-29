@@ -836,6 +836,63 @@ def: '${outprefix}def.yaml'
         });
         node_assert_1.default.deepStrictEqual(model.main.kit, SOLAR_MODEL.main.kit);
     });
+    // A FastAPI document: no servers, a version prefix, a trailing slash on
+    // each collection, fastapi-pagination pages (items, total, page, size,
+    // pages) and a list wrapper holding a meta object. Each list joins the
+    // record entity its item route names, and the base URL becomes a server
+    // variable for the SDK's caller to supply.
+    (0, node_test_1.test)('guide-fastapi', async () => {
+        const folder = __dirname + '/../test/fastapi';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'fastapi', def: 'fastapi-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: true,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        const entities = bres.apimodel.main.kit.entity;
+        const ops = Object.fromEntries(Object.keys(entities).sort()
+            .map((name) => [name, Object.keys(entities[name].op ?? {}).sort()]));
+        node_assert_1.default.deepStrictEqual(ops, {
+            insight: ['create', 'list', 'load', 'remove'],
+            prompt: ['list', 'load'],
+        });
+        node_assert_1.default.strictEqual(entities.insight.op.list.points[0].o, '/api/v1/insights/');
+        node_assert_1.default.strictEqual(entities.insight.op.list.points[0].t.res, '`body.items`');
+        node_assert_1.default.strictEqual(entities.prompt.op.list.points[0].o, '/api/v1/prompts/');
+        const info = bres.apimodel.main.kit.info;
+        node_assert_1.default.strictEqual(info.servers[0].url, '{base}');
+        node_assert_1.default.ok(null != info.servers[0].variables?.base, 'the base variable is declared');
+        node_assert_1.default.ok(bres.ctx.warn.history.some((w) => /no server URL/.test(w.note)), 'the missing server is a warning: ' + JSON.stringify(bres.ctx.warn.history));
+    });
+    (0, node_test_1.test)('server-option', async () => {
+        const folder = __dirname + '/../test/fastapi';
+        const build = await apidef_1.ApiDef.makeBuild({ folder, server: 'https://notebook.example.com/api' });
+        const bres = await build({ name: 'fastapi', def: 'fastapi-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: true,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        node_assert_1.default.strictEqual(bres.apimodel.main.kit.info.servers[0].url, 'https://notebook.example.com/api');
+        node_assert_1.default.ok(!bres.ctx.warn.history.some((w) => /no server URL/.test(w.note)), 'a given server is not a warning');
+    });
     (0, node_test_1.describe)('guide entity allowlist', () => {
         const PathMod = require('node:path');
         (0, node_test_1.test)('`active` has no default, so a project can supply one', () => {

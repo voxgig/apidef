@@ -900,9 +900,9 @@ func isPageAndItsItem(work map[string]any, xrefs []string) bool {
 		return false
 	}
 	for _, path := range envelopePaths[items[0]] {
-		path = pathParamRE.ReplaceAllString(path, "{}")
+		path = strings.TrimRight(pathParamRE.ReplaceAllString(path, "{}"), "/")
 		for _, page := range envelopePaths[pages[0]] {
-			page = pathParamRE.ReplaceAllString(page, "{}")
+			page = strings.TrimRight(pathParamRE.ReplaceAllString(page, "{}"), "/")
 			if path == page || strings.HasPrefix(path, page+"/") {
 				return true
 			}

@@ -43,7 +43,9 @@ my-sdk/
 ## 3. Write a tiny spec
 
 Put this in `my-sdk/def/petstore.yml`. Note the `servers` entry — apidef
-requires at least one server URL.
+reads the base URL of the API from it. A spec without one builds too, with
+the base URL left for the SDK's caller to supply (see
+[Configuration](../reference/configuration.md)).
 
 ```yaml
 openapi: 3.0.0
