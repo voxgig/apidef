@@ -59,7 +59,7 @@
               {
                 "k": "param",
                 "n": "id",
-                "or": "pet_id",
+                "or": "petId",
                 "r": true,
                 "t": "`$STRING`"
               }
@@ -68,7 +68,7 @@
               {
                 "k": "query",
                 "n": "additional_metadata",
-                "or": "additional_metadata",
+                "or": "additionalMetadata",
                 "r": false,
                 "t": "`$ANY`"
               },
@@ -123,7 +123,7 @@
               {
                 "k": "param",
                 "n": "id",
-                "or": "pet_id",
+                "or": "petId",
                 "r": true,
                 "t": "`$STRING`"
               }
@@ -260,7 +260,7 @@
               {
                 "k": "query",
                 "n": "tag",
-                "or": "tag",
+                "or": "tags",
                 "r": true,
                 "t": "`$ANY`"
               }
@@ -303,7 +303,7 @@
               {
                 "k": "param",
                 "n": "id",
-                "or": "pet_id",
+                "or": "petId",
                 "r": true,
                 "t": "`$STRING`"
               }
@@ -359,7 +359,7 @@
               {
                 "k": "param",
                 "n": "id",
-                "or": "pet_id",
+                "or": "petId",
                 "r": true,
                 "t": "`$STRING`"
               }
