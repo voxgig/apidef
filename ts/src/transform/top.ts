@@ -97,15 +97,7 @@ const topTransform = async function(
   // and the value isn't a relative path.
   for (const server of (kit.info.servers as any[])) {
     if (!server || 'string' !== typeof server.url) continue
-    const url: string = server.url.trim()
-    if (url === '') continue
-    if (/^[a-z][a-z0-9+.-]*:\/\//i.test(url)) continue
-    if (url.startsWith('//')) {
-      server.url = 'https:' + url
-      continue
-    }
-    if (url.startsWith('/')) continue
-    server.url = 'https://' + url
+    server.url = withScheme(server.url)
   }
 
   // No server named: the `server` option, else a `base` variable the caller fills.
@@ -117,7 +109,7 @@ const topTransform = async function(
     }
     const given = ctx.opts?.server
     if ('string' === typeof given && '' !== given.trim()) {
-      kit.info.servers = [{ url: given.trim() }]
+      kit.info.servers = [{ url: withScheme(given.trim()) }]
     }
     else {
       kit.info.servers = [{
@@ -202,6 +194,15 @@ function resolveSummary(def: any): string | undefined {
   }
   const paragraph = para.join(' ').trim()
   return '' === paragraph ? undefined : firstSentence(paragraph)
+}
+
+
+function withScheme(url: string): string {
+  const u = url.trim()
+  if ('' === u || /^[a-z][a-z0-9+.-]*:\/\//i.test(u)) return url
+  if (u.startsWith('//')) return 'https:' + u
+  if (u.startsWith('/')) return url
+  return 'https://' + u
 }
 
 

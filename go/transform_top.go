@@ -65,7 +65,7 @@ func ensureServer(ctx *ApiDefContext, kit map[string]any) {
 	}
 	given := strings.TrimSpace(ctx.Opts.Server)
 	if given != "" {
-		infoMap["servers"] = []any{map[string]any{"url": given}}
+		infoMap["servers"] = []any{map[string]any{"url": withScheme(given)}}
 		return
 	}
 	infoMap["servers"] = []any{map[string]any{
@@ -80,6 +80,24 @@ func ensureServer(ctx *ApiDefContext, kit map[string]any) {
 				" the server variable `base`; set the `server` build option to fix one",
 		})
 	}
+}
+
+var schemeRE = regexp.MustCompile(`(?i)^[a-z][a-z0-9+.-]*://`)
+
+// withScheme mirrors ts/src/transform/top.ts: https when the URL names no
+// scheme and is not a relative path.
+func withScheme(url string) string {
+	u := strings.TrimSpace(url)
+	if u == "" || schemeRE.MatchString(u) {
+		return url
+	}
+	if strings.HasPrefix(u, "//") {
+		return "https:" + u
+	}
+	if strings.HasPrefix(u, "/") {
+		return url
+	}
+	return "https://" + u
 }
 
 func firstServerURL(infoMap map[string]any) (string, bool) {

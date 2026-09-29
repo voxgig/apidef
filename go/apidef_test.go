@@ -1951,6 +1951,7 @@ func TestGuideFastapi(t *testing.T) {
 	want := map[string]string{
 		"insight": "create/list/load/remove",
 		"prompt":  "list/load",
+		"tag":     "list/load",
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("entity ops = %v, want %v", got, want)
@@ -1976,6 +1977,14 @@ func TestGuideFastapi(t *testing.T) {
 	}
 	if o := firstPoint("prompt", "list")["o"]; o != "/api/v1/prompts/" {
 		t.Errorf("prompt list path = %v, want /api/v1/prompts/", o)
+	}
+	ptr, _ := firstPoint("prompt", "list")["t"].(map[string]any)
+	if ptr["res"] != "`body.results`" {
+		t.Errorf("prompt list res = %v, want `body.results`", ptr["res"])
+	}
+	ttr, _ := firstPoint("tag", "list")["t"].(map[string]any)
+	if ttr["res"] != "`body`" {
+		t.Errorf("tag list res = %v, want `body`", ttr["res"])
 	}
 
 	info, _ := kit["info"].(map[string]any)

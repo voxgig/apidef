@@ -4,9 +4,9 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 2
-  metrics: count: path: 4
-  metrics: count: method: 6
+  metrics: count: entity: 3
+  metrics: count: path: 6
+  metrics: count: method: 8
 
   entity: insight: {
     path: "/api/v1/insights/": {
@@ -24,9 +24,20 @@ guide: {
   entity: prompt: {
     path: "/api/v1/prompts/": {
       op: list: method: *GET
+      op: list: transform: res: *("`body.results`")|top
     }
     path: "/api/v1/prompts/{prompt_id}": {
       rename: param: "prompt_id": *"id"
+      op: load: method: *GET
+    }
+  }
+
+  entity: tag: {
+    path: "/api/v1/tags/": {
+      op: list: method: *GET
+    }
+    path: "/api/v1/tags/{tag_id}": {
+      rename: param: "tag_id": *"id"
       op: load: method: *GET
     }
   }

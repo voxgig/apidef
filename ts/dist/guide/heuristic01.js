@@ -264,7 +264,7 @@ function isPageAndItsItem(work, xrefs) {
     if (1 !== pages.length || 1 !== items.length) {
         return false;
     }
-    const shape = (path) => path.replace(/\{[^}]+\}/g, '{}').replace(/\/+$/, '');
+    const shape = (path) => path.replace(/\{[^}]+\}/g, '{}').replace(/\/+$/, '') || '/';
     const under = work.envelopePaths[pages[0]].map(shape);
     return work.envelopePaths[items[0]].map(shape).some((path) => under.some((page) => path === page || path.startsWith(page + '/')));
 }

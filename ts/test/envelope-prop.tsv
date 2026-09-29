@@ -31,3 +31,5 @@ resprops	opname	expected
 {"name":{"type":"string"},"labels":{"type":"object"}}	load	
 {"request_id":{"type":"string"},"result":{"type":"object"}}	update	result
 {"year":{"type":"integer"},"records":{"type":"array","items":{"type":"object"}}}	list	records
+{"results":{"type":"array"},"meta":{"type":"object"}}	list	results
+{"results":{"type":"array"},"filters":{"type":"object"}}	list	

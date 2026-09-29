@@ -241,6 +241,72 @@
           }
         }
       }
+    },
+    "/api/v1/tags/": {
+      "get": {
+        "summary": "List Tags",
+        "operationId": "list_tags_api_v1_tags__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TagListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tags/{tag_id}": {
+      "get": {
+        "summary": "Get Tag",
+        "operationId": "get_tag_api_v1_tags__tag_id__get",
+        "parameters": [
+          {
+            "name": "tag_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TagSchema"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -402,6 +468,46 @@
           },
           "type": {
             "type": "string"
+          }
+        }
+      },
+      "TagSchema": {
+        "type": "object",
+        "title": "TagSchema",
+        "required": [
+          "id",
+          "label"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "TagListResponse": {
+        "type": "object",
+        "title": "TagListResponse",
+        "required": [
+          "data",
+          "filters"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TagSchema"
+            }
+          },
+          "filters": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string"
+              }
+            }
           }
         }
       }

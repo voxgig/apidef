@@ -1670,9 +1670,13 @@ func envelopeProp(resprops map[string]any, opname string) string {
 
 	structured := make([]string, 0, len(resprops))
 	for _, k := range sortedKeys(resprops) {
-		if isEntityWrapperProp(resprops[k]) {
-			structured = append(structured, k)
+		if !isEntityWrapperProp(resprops[k]) {
+			continue
 		}
+		if islist, known := propIsList(resprops[k]); isEnvelopeMetaProp(k) && !(known && islist) {
+			continue
+		}
+		structured = append(structured, k)
 	}
 	if len(structured) != 1 {
 		return ""
@@ -1731,8 +1735,18 @@ func isEnvelopePagingProp(name string) bool {
 // isEnvelopePageProp mirrors ts/src/utility.ts: paging, or a count that
 // describes the page.
 func isEnvelopePageProp(name string) bool {
-	return isEnvelopePagingProp(name) ||
+	return isEnvelopePagingProp(name) || isEnvelopeMetaProp(name) ||
 		strings.HasSuffix(envelopePagingSepRE.ReplaceAllString(strings.ToLower(name), ""), "count")
+}
+
+// ENVELOPE_META_PROPS mirrors ts/src/utility.ts: a metadata object a page
+// carries beside its records.
+var ENVELOPE_META_PROPS = map[string]bool{
+	"meta": true, "metadata": true, "pagination": true, "paging": true, "pageinfo": true, "links": true,
+}
+
+func isEnvelopeMetaProp(name string) bool {
+	return ENVELOPE_META_PROPS[envelopePagingSepRE.ReplaceAllString(strings.ToLower(name), "")]
 }
 
 // envelopeItemRef mirrors ts/src/utility.ts: the resolved reference of the

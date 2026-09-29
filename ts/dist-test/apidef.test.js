@@ -836,11 +836,11 @@ def: '${outprefix}def.yaml'
         });
         node_assert_1.default.deepStrictEqual(model.main.kit, SOLAR_MODEL.main.kit);
     });
-    // A FastAPI document: no servers, a version prefix, a trailing slash on
-    // each collection, fastapi-pagination pages (items, total, page, size,
-    // pages) and a list wrapper holding a meta object. Each list joins the
-    // record entity its item route names, and the base URL becomes a server
-    // variable for the SDK's caller to supply.
+    // A FastAPI document: no servers, a version prefix, trailing slashes,
+    // fastapi-pagination pages, a list wrapper holding a meta object, and one
+    // holding an object of its own. Each list joins the record entity its
+    // item route names; the last stays wrapped, since nothing says which key
+    // holds the records. The base URL becomes a server variable.
     (0, node_test_1.test)('guide-fastapi', async () => {
         const folder = __dirname + '/../test/fastapi';
         const build = await apidef_1.ApiDef.makeBuild({ folder });
@@ -864,10 +864,14 @@ def: '${outprefix}def.yaml'
         node_assert_1.default.deepStrictEqual(ops, {
             insight: ['create', 'list', 'load', 'remove'],
             prompt: ['list', 'load'],
+            tag: ['list', 'load'],
         });
         node_assert_1.default.strictEqual(entities.insight.op.list.points[0].o, '/api/v1/insights/');
         node_assert_1.default.strictEqual(entities.insight.op.list.points[0].t.res, '`body.items`');
         node_assert_1.default.strictEqual(entities.prompt.op.list.points[0].o, '/api/v1/prompts/');
+        node_assert_1.default.strictEqual(entities.prompt.op.list.points[0].t.res, '`body.results`');
+        node_assert_1.default.strictEqual(entities.tag.op.list.points[0].o, '/api/v1/tags/');
+        node_assert_1.default.strictEqual(entities.tag.op.list.points[0].t.res, '`body`');
         const info = bres.apimodel.main.kit.info;
         node_assert_1.default.strictEqual(info.servers[0].url, '{base}');
         node_assert_1.default.ok(null != info.servers[0].variables?.base, 'the base variable is declared');

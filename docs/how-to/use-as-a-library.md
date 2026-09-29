@@ -1,8 +1,10 @@
 # How to use apidef as a library
 
 > **Prerequisites.** Before any of these calls succeed, the project needs
-> (1) a guide entry file at `<folder>/guide/<outprefix>guide.aontu` and
-> (2) a spec that declares `servers[0].url`. The guide file includes
+> a guide entry file at `<folder>/guide/<outprefix>guide.aontu`. A spec
+> that declares `servers[0].url` gives the SDK its base URL; one that does
+> not takes the `server` option, else leaves the base URL to the SDK's
+> caller as the server variable `base`. The guide file includes
 > `@"@voxgig/apidef/model/guide.aontu"` then
 > `@"./<outprefix>base-guide.aontu"`, and is where customizations go. See
 > [Configuration → The guide file](../reference/configuration.md#the-guide-file).

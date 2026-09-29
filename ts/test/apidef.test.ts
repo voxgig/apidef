@@ -1064,11 +1064,11 @@ def: '${outprefix}def.yaml'
   })
 
 
-  // A FastAPI document: no servers, a version prefix, a trailing slash on
-  // each collection, fastapi-pagination pages (items, total, page, size,
-  // pages) and a list wrapper holding a meta object. Each list joins the
-  // record entity its item route names, and the base URL becomes a server
-  // variable for the SDK's caller to supply.
+  // A FastAPI document: no servers, a version prefix, trailing slashes,
+  // fastapi-pagination pages, a list wrapper holding a meta object, and one
+  // holding an object of its own. Each list joins the record entity its
+  // item route names; the last stays wrapped, since nothing says which key
+  // holds the records. The base URL becomes a server variable.
   test('guide-fastapi', async () => {
     const folder = __dirname + '/../test/fastapi'
 
@@ -1100,10 +1100,14 @@ def: '${outprefix}def.yaml'
     assert.deepStrictEqual(ops, {
       insight: ['create', 'list', 'load', 'remove'],
       prompt: ['list', 'load'],
+      tag: ['list', 'load'],
     })
     assert.strictEqual(entities.insight.op.list.points[0].o, '/api/v1/insights/')
     assert.strictEqual(entities.insight.op.list.points[0].t.res, '`body.items`')
     assert.strictEqual(entities.prompt.op.list.points[0].o, '/api/v1/prompts/')
+    assert.strictEqual(entities.prompt.op.list.points[0].t.res, '`body.results`')
+    assert.strictEqual(entities.tag.op.list.points[0].o, '/api/v1/tags/')
+    assert.strictEqual(entities.tag.op.list.points[0].t.res, '`body`')
 
     const info = bres.apimodel.main.kit.info
     assert.strictEqual(info.servers[0].url, '{base}')
