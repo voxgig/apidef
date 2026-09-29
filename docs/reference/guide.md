@@ -258,9 +258,37 @@ whole spec on [`ts/test/def/sharing-def.json`](../../ts/test/def/sharing-def.jso
 ### Collection paths
 
 Once every method is classified, a collection path `/X` that sits on one
-entity moves to the entity holding the shallowest item path `/X/{id}`, so
-the list and create operations join the entity that loads the record. The
-move is part of the heuristic: it shapes the base guide and is not made
+entity moves to the entity that owns a route beneath it, so the list and
+create operations join the entity that loads the record. A version prefix
+counts as part of `/X`, and a trailing slash is ignored. The owner is the
+first of these:
+
+- An item route, `/X/{id}` or a composite key such as `/X/{owner}/{repo}`,
+  that answers with the same record as the collection. When the item route
+  sits on more than one entity, as when a tag names its delete and the record
+  names its read, the collection joins the read.
+- The nearest item route, whatever record it answers with, since a list
+  often holds a summary of the record its item returns. Among routes equally
+  near, the entity whose name sorts first by code point wins.
+- With no item route at all, a deeper route, such as the verb
+  `/X/{id}/refresh` or the sub-collection `/X/{id}/accounts`, that answers
+  with the same record. A token refresh that returns the token joins the
+  token list, and the accounts of a plan, which are purchases, leave the plan
+  list where it is.
+
+The record a route answers with is the component of its response, of the
+items of an array response, or of the record its envelope carries (see
+[Response envelopes](#response-envelopes)). A component measured as a record
+for naming stays one, so a team that holds only its members is still a team.
+The operations on a collection path join one owner even when they sit on
+different entities, chosen by the record of the first operation in the order
+methods are considered, a read before a write, so a list and its create stay
+together. The `guide-collection-owner`
+tests in [`ts/test/apidef.test.ts`](../../ts/test/apidef.test.ts) and
+[`go/apidef_test.go`](../../go/apidef_test.go) pin the order on
+[`ts/test/def/collection-owner-def.json`](../../ts/test/def/collection-owner-def.json).
+
+The move is part of the heuristic: it shapes the base guide and is not made
 again on the unified guide, so a path that `guide.aontu` assigns to an
 entity stays on that entity. An entity the move leaves with no path is
 removed from the base guide, and the entity count drops with it: it names

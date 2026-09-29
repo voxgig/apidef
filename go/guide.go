@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -719,7 +720,10 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 		buildEntity(data, entmap[k])
 	}
 
-	countMap["entity"] = toInt(countMap["entity"]) - len(mergeCollectionPaths(guide))
+	countMap["entity"] = toInt(countMap["entity"]) - len(mergeCollectionPaths(guide,
+		func(pathStr string, methods []string, collection bool) string {
+			return pathRecordRef(def, pathStr, methods, collection)
+		}))
 
 	return guide, nil
 }
@@ -2662,6 +2666,72 @@ func successSchemas(responses map[string]any) []map[string]any {
 		}
 	}
 	return schemas
+}
+
+// pathRecordRef mirrors ts/src/guide/heuristic01.ts: the record a path
+// answers with, its methods read in the order they are considered.
+func pathRecordRef(def map[string]any, pathStr string, methods []string, collection bool) string {
+	ordered := append([]string(nil), methods...)
+	rank := func(method string) int {
+		if r, ok := METHOD_CONSIDER_ORDER[method]; ok {
+			return r
+		}
+		return math.MaxInt
+	}
+	sort.SliceStable(ordered, func(i, j int) bool {
+		if rank(ordered[i]) != rank(ordered[j]) {
+			return rank(ordered[i]) < rank(ordered[j])
+		}
+		return ordered[i] < ordered[j]
+	})
+	for _, method := range ordered {
+		if ref := routeRecordRef(def, pathStr, method, collection); ref != "" {
+			return ref
+		}
+	}
+	return ""
+}
+
+// routeRecordRef mirrors ts/src/guide/heuristic01.ts: the component of the
+// record a route answers with, a page read only for a collection, or "" when
+// the answer names none.
+func routeRecordRef(def map[string]any, pathStr string, method string, collection bool) string {
+	paths, _ := def["paths"].(map[string]any)
+	pdef, _ := paths[pathStr].(map[string]any)
+	mdef, _ := pdef[strings.ToLower(method)].(map[string]any)
+	responses, _ := mdef["responses"].(map[string]any)
+	schema := getResponseSchema(successResponse(responses))
+	if schema == nil {
+		return ""
+	}
+	if schema["type"] == "array" {
+		items, _ := schema["items"].(map[string]any)
+		ref, _ := items["x-ref"].(string)
+		return ref
+	}
+	xref, _ := schema["x-ref"].(string)
+	props := mergedProperties(schema)
+	opnames := []string{"load"}
+	if collection {
+		opnames = []string{"list", "load"}
+	}
+	for _, opname := range opnames {
+		if props == nil {
+			break
+		}
+		key := envelopeProp(props, opname)
+		if key == "" {
+			continue
+		}
+		record, _ := props[key].(map[string]any)
+		if opname == "list" {
+			record, _ = record["items"].(map[string]any)
+		}
+		if ref, _ := record["x-ref"].(string); ref != "" {
+			return ref
+		}
+	}
+	return xref
 }
 
 // getResponseSchema extracts schema from a response definition.

@@ -81,7 +81,7 @@ async function heuristic01(ctx) {
         throw result.err;
     }
     const guide = result.data.guide;
-    guide.metrics.count.entity -= (0, entity_1.mergeCollectionPaths)(guide, ctx.log).length;
+    guide.metrics.count.entity -= (0, entity_1.mergeCollectionPaths)(guide, ctx.log, (pathStr, methods, collection) => pathRecordRef(ctx.def, pathStr, methods, collection)).length;
     const metrics = guide.metrics;
     const entities = Object.values(guide.entity);
     const entityCount = entities.length;
@@ -1118,6 +1118,44 @@ function successSchemas(responses) {
 function getResponseSchema(response) {
     return response?.content?.['application/json']?.schema ??
         response?.schema;
+}
+// The record a path answers with, read from its methods in the order they are
+// considered, so a read decides before a write.
+function pathRecordRef(def, pathStr, methods, collection) {
+    const rank = (method) => METHOD_CONSIDER_ORDER[method] ?? Number.MAX_SAFE_INTEGER;
+    const ordered = [...methods].sort((a, b) => rank(a) - rank(b) || (0, refcount_1.byCodePoint)(a, b));
+    for (const method of ordered) {
+        const ref = routeRecordRef(def, pathStr, method, collection);
+        if (null != ref) {
+            return ref;
+        }
+    }
+    return null;
+}
+// The component of the record a route answers with: the schema's own, its
+// items', or the one its envelope carries, such as the job summary in Mux's
+// `{ data }`. Only a collection reads a page, so beneath the collection a
+// team that holds nothing but its members is a team. Null when the answer
+// names no component.
+function routeRecordRef(def, pathStr, method, collection) {
+    const schema = getResponseSchema(successResponse(def?.paths?.[pathStr]?.[method.toLowerCase()]?.responses));
+    if (null == schema || 'object' !== typeof schema) {
+        return null;
+    }
+    if ('array' === schema.type) {
+        return schema.items?.['x-ref'] ?? null;
+    }
+    const xref = schema['x-ref'];
+    const props = (0, utility_2.mergedProperties)(schema) ?? {};
+    for (const opname of collection ? ['list', 'load'] : ['load']) {
+        const key = (0, utility_1.envelopeProp)(props, opname);
+        const record = null == key ? null :
+            'list' === opname ? props[key]?.items : props[key];
+        if (null != record?.['x-ref']) {
+            return record['x-ref'];
+        }
+    }
+    return xref ?? null;
 }
 function inferEntityName(mdesc, parts, why) {
     // Try operationId: e.g. "getUser" -> "user", "listProducts" -> "product"

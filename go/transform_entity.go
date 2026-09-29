@@ -82,28 +82,31 @@ func filterEntityAncestors(entities map[string]any) {
 var (
 	instancePathRE   = regexp.MustCompile(`^((?:/[^/{}]+)+)/\{[^}]+\}(/.*)?$`)
 	collectionPathRE = regexp.MustCompile(`^(?:/[^/{}]+)+$`)
+	paramSegmentRE   = regexp.MustCompile(`^\{[^}]+\}$`)
 )
 
+// rootOwner mirrors CollectionOwner in ts/src/transform/entity.ts.
 type rootOwner struct {
 	ename string
 	depth int
+	route string
+	item  bool
 }
 
-// mergeCollectionPaths moves "/X" paths onto the entity that owns "/X/{id}"
-// and removes the entities the moves emptied, returning their names. Mirrors
-// mergeCollectionPaths in ts/src/transform/entity.ts. Guide stage only: on the
-// unified guide it would override guide.aontu.
-func mergeCollectionPaths(guide map[string]any) []string {
+// mergeCollectionPaths moves "/X" paths onto the entity that owns "/X/{id}",
+// or a composite key such as "/X/{owner}/{repo}", and removes the entities
+// the moves emptied, returning their names. Mirrors mergeCollectionPaths in
+// ts/src/transform/entity.ts. Guide stage only: on the unified guide it would
+// override guide.aontu.
+func mergeCollectionPaths(guide map[string]any, recordRef func(pathStr string, methods []string, collection bool) string) []string {
 	emptied := []string{}
 	entities, _ := guide["entity"].(map[string]any)
 	if entities == nil {
 		return emptied
 	}
 
-	// First pass: collectionRoot -> owning entity. Prefer the owner whose
-	// direct-load path is "/X/{id}" with nothing after it, so a nested
-	// sub-resource entity doesn't claim the root.
-	rootOwners := map[string]rootOwner{}
+	// First pass: every route beneath a collection's literals, nearest first.
+	owners := map[string][]rootOwner{}
 	for _, ename := range sortedKeys(entities) {
 		entity, _ := entities[ename].(map[string]any)
 		if entity == nil {
@@ -115,18 +118,119 @@ func mergeCollectionPaths(guide map[string]any) []string {
 			if m == nil {
 				continue
 			}
-			root := m[1]
 			depth := 0
-			if m[2] != "" {
-				for _, seg := range strings.Split(m[2], "/") {
-					if seg != "" {
-						depth++
-					}
+			item := true
+			for _, seg := range strings.Split(m[2], "/") {
+				if seg == "" {
+					continue
+				}
+				depth++
+				if !paramSegmentRE.MatchString(seg) {
+					item = false
 				}
 			}
-			if cur, ok := rootOwners[root]; !ok || depth < cur.depth {
-				rootOwners[root] = rootOwner{ename: ename, depth: depth}
+			owners[m[1]] = append(owners[m[1]], rootOwner{ename: ename, depth: depth, route: pathStr, item: item})
+		}
+	}
+	for _, candidates := range owners {
+		sort.SliceStable(candidates, func(i, j int) bool {
+			a, b := candidates[i], candidates[j]
+			if a.depth != b.depth {
+				return a.depth < b.depth
 			}
+			if a.ename != b.ename {
+				return a.ename < b.ename
+			}
+			return a.route < b.route
+		})
+	}
+
+	methodsOf := func(pathDesc any) []string {
+		pd, _ := pathDesc.(map[string]any)
+		ops, _ := pd["op"].(map[string]any)
+		methods := make([]string, 0, len(ops))
+		for _, k := range sortedKeys(ops) {
+			op, _ := ops[k].(map[string]any)
+			method, _ := op["method"].(string)
+			methods = append(methods, strings.ToUpper(method))
+		}
+		return methods
+	}
+	answers := func(pathStr string, methods []string, collection bool) string {
+		if recordRef == nil {
+			return ""
+		}
+		return recordRef(pathStr, methods, collection)
+	}
+
+	// Mirrors ownerOf in ts/src/transform/entity.ts: the nearest item route,
+	// one that answers with the collection's own record first, or with no
+	// item route, a deeper route that answers with the same record.
+	ownerOf := func(pathStr string, methods []string, candidates []rootOwner) (rootOwner, bool) {
+		mine := answers(pathStr, methods, true)
+		same := func(c rootOwner) bool {
+			if mine == "" {
+				return false
+			}
+			ownerEntity, _ := entities[c.ename].(map[string]any)
+			ownerPaths, _ := ownerEntity["path"].(map[string]any)
+			return mine == answers(c.route, methodsOf(ownerPaths[c.route]), false)
+		}
+		var first *rootOwner
+		for i := range candidates {
+			if !candidates[i].item {
+				continue
+			}
+			if same(candidates[i]) {
+				return candidates[i], true
+			}
+			if first == nil {
+				first = &candidates[i]
+			}
+		}
+		if first != nil {
+			return *first, true
+		}
+		for _, c := range candidates {
+			if same(c) {
+				return c, true
+			}
+		}
+		return rootOwner{}, false
+	}
+
+	// Mirrors ts/src/transform/entity.ts: one owner for every entity's share
+	// of a collection path.
+	shares := map[string][]string{}
+	for _, ename := range sortedKeys(entities) {
+		entity, _ := entities[ename].(map[string]any)
+		paths, _ := entity["path"].(map[string]any)
+		for _, pathStr := range sortedKeys(paths) {
+			if _, ok := collectionRoot(pathStr); ok {
+				shares[pathStr] = append(shares[pathStr], ename)
+			}
+		}
+	}
+	owned := map[string]rootOwner{}
+	sharedPaths := make([]string, 0, len(shares))
+	for pathStr := range shares {
+		sharedPaths = append(sharedPaths, pathStr)
+	}
+	sort.Strings(sharedPaths)
+	for _, pathStr := range sharedPaths {
+		root, _ := collectionRoot(pathStr)
+		candidates, ok := owners[root]
+		if !ok {
+			continue
+		}
+		var methods []string
+		for _, ename := range shares[pathStr] {
+			entity, _ := entities[ename].(map[string]any)
+			paths, _ := entity["path"].(map[string]any)
+			methods = append(methods, methodsOf(paths[pathStr])...)
+		}
+		if owner, ok := ownerOf(pathStr, methods, candidates); ok {
+			owned[pathStr] = owner
 		}
 	}
 
@@ -142,19 +246,16 @@ func mergeCollectionPaths(guide map[string]any) []string {
 		}
 
 		var toMove []string
+		moveTo := map[string]rootOwner{}
 		for _, pathStr := range sortedKeys(paths) {
-			root, ok := collectionRoot(pathStr)
-			if !ok {
-				continue
-			}
-			if owner, ok := rootOwners[root]; ok && owner.ename != ename {
+			if owner, ok := owned[pathStr]; ok && owner.ename != ename {
 				toMove = append(toMove, pathStr)
+				moveTo[pathStr] = owner
 			}
 		}
 
 		for _, pathStr := range toMove {
-			root, _ := collectionRoot(pathStr)
-			owner := rootOwners[root]
+			owner := moveTo[pathStr]
 			target, _ := entities[owner.ename].(map[string]any)
 			if target == nil {
 				continue
