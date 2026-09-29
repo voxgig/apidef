@@ -133,6 +133,7 @@ function Prepare(spec) {
             pathmap: {},
             entmap: {},
             envelope: {},
+            listEnvelope: {},
             sharing: { routes: [], records: {}, yields: {} },
             entity: {
                 count: {
@@ -231,19 +232,25 @@ function MeasureEnvelope(spec) {
             const itemref = null == opname || xref !== unwrapref ? null :
                 (0, utility_1.envelopeItemRef)(schema, opname);
             work.envelope[xref] = '' === work.envelope[xref] || null == itemref ? '' : itemref;
+            // Only a list unwraps a page, so every unwrapping operation agrees here.
+            work.listEnvelope[xref] = 'list' === opname;
         }
     }
 }
-// An item carried by more than one envelope is named by none of them: the
-// envelopes' own names are then what tell the resources apart.
+// An item carried by more than one envelope of one kind is named by none of
+// them: the envelopes' own names are then what tell the resources apart. A
+// page and a single-item envelope of one record are one resource's list and
+// its item, and both name through the record.
 function MeasureEnvelopeItems(spec) {
-    const envelope = spec.data.work.envelope;
+    const work = spec.data.work;
+    const envelope = work.envelope;
+    const carrier = (xref) => (work.listEnvelope[xref] ? 'list ' : 'item ') + envelope[xref];
     const carriers = {};
-    for (const itemref of Object.values(envelope)) {
-        carriers[itemref] = (carriers[itemref] ?? 0) + 1;
+    for (const xref of Object.keys(envelope)) {
+        carriers[carrier(xref)] = (carriers[carrier(xref)] ?? 0) + 1;
     }
     for (const xref of Object.keys(envelope)) {
-        if (1 < carriers[envelope[xref]]) {
+        if (1 < carriers[carrier(xref)]) {
             envelope[xref] = '';
         }
     }

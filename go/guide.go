@@ -589,9 +589,10 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 		"def":   def,
 		"guide": guide,
 		"work": map[string]any{
-			"pathmap":  map[string]any{},
-			"entmap":   map[string]any{},
-			"envelope": map[string]string{},
+			"pathmap":      map[string]any{},
+			"entmap":       map[string]any{},
+			"envelope":     map[string]string{},
+			"listEnvelope": map[string]bool{},
 			"sharing": &sharingWork{
 				records: map[string]bool{},
 				yields:  map[string]bool{},
@@ -834,6 +835,7 @@ func selectAllMethods(ctx *ApiDefContext, data map[string]any) []map[string]any 
 func measureEnvelope(data map[string]any, mdesc map[string]any) {
 	work := data["work"].(map[string]any)
 	envelope := work["envelope"].(map[string]string)
+	listEnvelope := work["listEnvelope"].(map[string]bool)
 	pathStr, _ := mdesc["path"].(string)
 	pathmap, _ := work["pathmap"].(map[string]any)
 	pathEntry, _ := pathmap[pathStr].(map[string]any)
@@ -855,18 +857,28 @@ func measureEnvelope(data map[string]any, mdesc map[string]any) {
 			itemref = ""
 		}
 		envelope[xref] = itemref
+		// Only a list unwraps a page, so every unwrapping operation agrees here.
+		listEnvelope[xref] = opname == "list"
 	}
 }
 
 // measureEnvelopeItems mirrors MeasureEnvelopeItems in ts/src/guide/heuristic01.ts.
 func measureEnvelopeItems(data map[string]any) {
-	envelope := data["work"].(map[string]any)["envelope"].(map[string]string)
-	carriers := map[string]int{}
-	for _, itemref := range envelope {
-		carriers[itemref]++
+	work := data["work"].(map[string]any)
+	envelope := work["envelope"].(map[string]string)
+	listEnvelope := work["listEnvelope"].(map[string]bool)
+	carrier := func(xref string) string {
+		if listEnvelope[xref] {
+			return "list " + envelope[xref]
+		}
+		return "item " + envelope[xref]
 	}
-	for xref, itemref := range envelope {
-		if carriers[itemref] > 1 {
+	carriers := map[string]int{}
+	for xref := range envelope {
+		carriers[carrier(xref)]++
+	}
+	for xref := range envelope {
+		if carriers[carrier(xref)] > 1 {
 			envelope[xref] = ""
 		}
 	}

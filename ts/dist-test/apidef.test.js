@@ -345,6 +345,8 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
             package: ['load'],
             sample: ['load'],
             site: ['load'],
+            // A page and a single-item envelope of one record are one resource.
+            tally: ['create', 'list'],
             token: ['load'],
         });
         const listpt = entities.observation.op.list.points[0];

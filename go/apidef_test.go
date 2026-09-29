@@ -469,7 +469,9 @@ func TestGuideEnvelope(t *testing.T) {
 		"package":     "load",
 		"sample":      "load",
 		"site":        "load",
-		"token":       "load",
+		// A page and a single-item envelope of one record are one resource.
+		"tally": "create/list",
+		"token": "load",
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("entity ops = %v, want %v", got, want)

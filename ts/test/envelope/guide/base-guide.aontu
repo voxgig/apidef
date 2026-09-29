@@ -4,9 +4,9 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 12
-  metrics: count: path: 14
-  metrics: count: method: 17
+  metrics: count: entity: 13
+  metrics: count: path: 16
+  metrics: count: method: 19
 
   entity: census: {
     path: "/{year}/census": {
@@ -90,6 +90,18 @@ guide: {
   entity: site: {
     path: "/{year}/site/{id}": {
       op: load: method: *GET
+    }
+  }
+
+  entity: tally: {
+    path: "/{year}/survey": {
+      op: list: method: *GET
+      op: list: transform: res: *("`body.data`")|top
+    }
+    path: "/{year}/survey/{id}/close": {
+      rename: param: "id": *"survey_id"
+      op: create: method: *POST
+      op: create: transform: res: *("`body.data`")|top
     }
   }
 

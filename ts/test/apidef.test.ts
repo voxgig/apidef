@@ -427,6 +427,8 @@ describe('apidef', () => {
       package: ['load'],
       sample: ['load'],
       site: ['load'],
+      // A page and a single-item envelope of one record are one resource.
+      tally: ['create', 'list'],
       token: ['load'],
     })
 

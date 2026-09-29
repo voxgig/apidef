@@ -85,13 +85,20 @@ under one name, and no entity is named after a record that its operations
 never unwrap. A response that spells its envelope inline offers no
 component name, so the rule leaves it alone.
 
-When more than one envelope carries the same record, none of them names
-through it. Two usage reports, one wrapping a metrics record as `tokens`
-and the other as `packages`, are two resources, and their own names are
-what tell them apart. Named after the metrics record, they would merge into
-one entity with a single load, and where both reports take the same owner
-and repository, that load could not choose between them. Each report is
-judged by its own schema instead, as it would be with no envelope rule.
+When more than one envelope of the same kind carries the same record, none
+of them names through it. Two usage reports, one wrapping a metrics record
+as `tokens` and the other as `packages`, are two resources, and their own
+names are what tell them apart. Named after the metrics record, they would
+merge into one entity with a single load, and where both reports take the
+same owner and repository, that load could not choose between them. Each
+report is judged by its own schema instead, as it would be with no envelope
+rule.
+
+A page and a single-item envelope are not the same kind. A video service
+that lists its jobs as a page of job summaries beside a row count, and
+answers a job's cancel with one summary, shows one resource's list and one
+of its items, so both name through the summary record. The two cannot
+collide in one operation, because one is a list and the other is not.
 
 Each reference to a component schema counts once per use in the resolved
 spec, the spec with every `$ref` replaced by the schema it names. A schema
