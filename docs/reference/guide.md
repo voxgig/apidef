@@ -130,8 +130,8 @@ before any entity is named:
   response. It unwraps a component only there.
 - A component is an envelope only when every operation that answers with it
   in a `200` or `201` response unwraps it. A `202` names nothing: it says
-  the work was accepted, and its body may describe the work rather than the
-  resource.
+  the service accepted the work, and its body may describe the work rather
+  than the resource.
 - A component is not an envelope when another envelope carries the same
   record. The exception is one page and one single-item envelope where a
   route answering with the item lies at or beneath a route answering with
@@ -184,15 +184,15 @@ records only when one of its branches is an object. The rows of
 builds.
 
 A page that holds no data of its own reads its one array of records past
-whatever else is structured beside it. When every scalar beside the records
-is a status, paging or count property, the one array of records is read,
-past a list of scalars, such as Mux's `timeframe`, and past an object, such
-as the `filter` Novu's notifications were read with, the `filters` of a
-FastAPI page, Neon's branch `annotations` or Novu's `global` preferences
-beside the workflows. A scalar of its own makes the response a record that
-holds a list, such as a combined status whose `state` sits beside its
-`statuses`, and it stays unread, as a page with more than one array of
-records does. A page composed with `allOf` reads the same way, such as
+the other structured properties beside it. When every scalar beside the
+records is a status, paging or count property, the list reads the one array
+of records, past a list of scalars, such as Mux's `timeframe`, and past an
+object, such as the `filter` Novu echoes beside its notifications, the
+`filters` of a FastAPI page, Neon's branch `annotations` or Novu's `global`
+preferences beside the workflows. A scalar of its own makes the response a
+record that holds a list, such as a combined status whose `state` sits
+beside its `statuses`, so the list reads it whole, as it reads a page with
+more than one array of records. A page composed with `allOf` reads the same way, such as
 Neon's branch list, `allOf[branches, annotations, pagination]`. The rows of
 [`ts/test/envelope-prop.tsv`](../../ts/test/envelope-prop.tsv) and
 [`ts/test/composed-envelope-prop.tsv`](../../ts/test/composed-envelope-prop.tsv)
