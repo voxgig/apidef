@@ -79,11 +79,11 @@ function filterEntityAncestors(entities: Record<string, any>) {
 }
 
 
-// Move "/X" paths onto the entity that owns "/X/{id}" or "/X/{id}/sub".
-// Only acts when the path "/X" sits on a different entity than the
-// per-instance paths — leaves correctly-classified APIs alone.
-// Returns the entities the moves emptied, which are removed.
-// Guide stage only: on the unified guide it would override guide.aontu.
+// Move a collection path ("/X", "/api/v1/X", a trailing slash allowed) onto
+// the entity owning the item path beneath it ("/X/{id}"), when the two sit
+// on different entities. Returns the entities the moves emptied, which are
+// removed. Guide stage only: on the unified guide it would override
+// guide.aontu.
 function mergeCollectionPaths(guide: any, log?: any): string[] {
   const entities = guide.entity as Record<string, any>
   const emptied: string[] = []
@@ -92,8 +92,8 @@ function mergeCollectionPaths(guide: any, log?: any): string[] {
 
   for (const [ename, entity] of Object.entries(entities)) {
     for (const pathStr of Object.keys(entity.path ?? {})) {
-      // Match /A/{...} or /A/{...}/...
-      const m = pathStr.match(/^\/([^\/{}]+)\/\{[^}]+\}(\/.*)?$/)
+      // Match /A/{...} or /A/B/{...}/..., keyed by the literals before the param.
+      const m = pathStr.match(/^((?:\/[^\/{}]+)+)\/\{[^}]+\}(\/.*)?$/)
       if (!m) continue
       const root = m[1]
       const trailing = m[2] ?? ''
@@ -113,18 +113,15 @@ function mergeCollectionPaths(guide: any, log?: any): string[] {
     const pathsToMove: string[] = []
 
     for (const pathStr of Object.keys(entity.path)) {
-      // Match exactly /X (one literal segment, no params).
-      const m = pathStr.match(/^\/([^\/{}]+)$/)
-      if (!m) continue
-      const root = m[1]
-      const owner = rootOwners[root]
+      const root = collectionRoot(pathStr)
+      const owner = null == root ? undefined : rootOwners[root]
       if (owner && owner.ename !== ename) {
         pathsToMove.push(pathStr)
       }
     }
 
     for (const pathStr of pathsToMove) {
-      const owner = rootOwners[pathStr.slice(1)]
+      const owner = rootOwners[collectionRoot(pathStr) as string]
       const targetEntity = entities[owner.ename]
       if (targetEntity == null) continue
       targetEntity.path = targetEntity.path ?? {}
@@ -183,6 +180,13 @@ function mergeCollectionPaths(guide: any, log?: any): string[] {
   return emptied
 }
 
+
+
+// A path of literals only, less any trailing slash, is a collection path.
+function collectionRoot(pathStr: string): string | null {
+  const key = pathStr.replace(/\/+$/, '')
+  return /^(?:\/[^\/{}]+)+$/.test(key) ? key : null
+}
 
 
 function resolvePathList(guideEntity: GuideEntity, def: { paths: Record<string, any> }) {

@@ -389,6 +389,7 @@ ApiDef.makeBuild = async function (opts) {
                 kind,
                 endpoint: opts.endpoint,
                 auth: opts.auth,
+                server: opts.server,
                 pino: build.log,
                 why: opts.why,
             });

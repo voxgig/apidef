@@ -97,25 +97,30 @@ const topTransform = async function(
   // and the value isn't a relative path.
   for (const server of (kit.info.servers as any[])) {
     if (!server || 'string' !== typeof server.url) continue
-    const url: string = server.url.trim()
-    if (url === '') continue
-    if (/^[a-z][a-z0-9+.-]*:\/\//i.test(url)) continue
-    if (url.startsWith('//')) {
-      server.url = 'https:' + url
-      continue
-    }
-    if (url.startsWith('/')) continue
-    server.url = 'https://' + url
+    server.url = withScheme(server.url)
   }
 
+  // No server named: the `server` option, else a `base` variable the caller fills.
   const firstServerUrl: any = kit.info.servers?.[0]?.url
   if (null == firstServerUrl || '' === String(firstServerUrl).trim()) {
-    throw new Error(
-      true === def.graphql ?
-        'apidef: no endpoint given for GraphQL schema' +
-        ' (the endpoint build option is required).' :
-        'apidef: no server URL found in API definition (servers[0].url is required).'
-    )
+    if (true === def.graphql) {
+      throw new Error('apidef: no endpoint given for GraphQL schema' +
+        ' (the endpoint build option is required).')
+    }
+    const given = ctx.opts?.server
+    if ('string' === typeof given && '' !== given.trim()) {
+      kit.info.servers = [{ url: withScheme(given.trim()) }]
+    }
+    else {
+      kit.info.servers = [{
+        url: '{base}',
+        variables: { base: { description: 'The base URL of the API, which its definition does not name.' } },
+      }]
+      ctx.warn?.({
+        note: 'no server URL in the definition (servers[0].url): the SDK takes it as' +
+          ' the server variable `base`; set the `server` build option to fix one',
+      })
+    }
   }
 
   const summary = resolveSummary(def)
@@ -189,6 +194,15 @@ function resolveSummary(def: any): string | undefined {
   }
   const paragraph = para.join(' ').trim()
   return '' === paragraph ? undefined : firstSentence(paragraph)
+}
+
+
+function withScheme(url: string): string {
+  const u = url.trim()
+  if ('' === u || /^[a-z][a-z0-9+.-]*:\/\//i.test(u)) return url
+  if (u.startsWith('//')) return 'https:' + u
+  if (u.startsWith('/')) return url
+  return 'https://' + u
 }
 
 

@@ -46,7 +46,68 @@ func TopTransform(ctx *ApiDefContext) (*TransformResult, error) {
 		infoMap["servers"] = append(serversList, map[string]any{"url": url})
 	}
 
+	ensureServer(ctx, kit)
+
 	return &TransformResult{OK: true, Msg: "top"}, nil
+}
+
+// ensureServer mirrors ts/src/transform/top.ts: a definition that names no
+// server takes the Server option, else names the URL as the server variable
+// `base` for the SDK's caller to supply.
+func ensureServer(ctx *ApiDefContext, kit map[string]any) {
+	infoMap, _ := kit["info"].(map[string]any)
+	if infoMap == nil {
+		infoMap = map[string]any{}
+		kit["info"] = infoMap
+	}
+	if first, _ := firstServerURL(infoMap); strings.TrimSpace(first) != "" {
+		return
+	}
+	given := strings.TrimSpace(ctx.Opts.Server)
+	if given != "" {
+		infoMap["servers"] = []any{map[string]any{"url": withScheme(given)}}
+		return
+	}
+	infoMap["servers"] = []any{map[string]any{
+		"url": "{base}",
+		"variables": map[string]any{"base": map[string]any{
+			"description": "The base URL of the API, which its definition does not name.",
+		}},
+	}}
+	if ctx.Warn != nil {
+		ctx.Warn.Warn(map[string]any{
+			"note": "no server URL in the definition (servers[0].url): the SDK takes it as" +
+				" the server variable `base`; set the `server` build option to fix one",
+		})
+	}
+}
+
+var schemeRE = regexp.MustCompile(`(?i)^[a-z][a-z0-9+.-]*://`)
+
+// withScheme mirrors ts/src/transform/top.ts: https when the URL names no
+// scheme and is not a relative path.
+func withScheme(url string) string {
+	u := strings.TrimSpace(url)
+	if u == "" || schemeRE.MatchString(u) {
+		return url
+	}
+	if strings.HasPrefix(u, "//") {
+		return "https:" + u
+	}
+	if strings.HasPrefix(u, "/") {
+		return url
+	}
+	return "https://" + u
+}
+
+func firstServerURL(infoMap map[string]any) (string, bool) {
+	servers, _ := infoMap["servers"].([]any)
+	if len(servers) == 0 {
+		return "", false
+	}
+	first, _ := servers[0].(map[string]any)
+	url, ok := first["url"].(string)
+	return url, ok
 }
 
 func getKit(ctx *ApiDefContext) map[string]any {

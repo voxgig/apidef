@@ -72,25 +72,29 @@ const topTransform = async function (ctx) {
     for (const server of kit.info.servers) {
         if (!server || 'string' !== typeof server.url)
             continue;
-        const url = server.url.trim();
-        if (url === '')
-            continue;
-        if (/^[a-z][a-z0-9+.-]*:\/\//i.test(url))
-            continue;
-        if (url.startsWith('//')) {
-            server.url = 'https:' + url;
-            continue;
-        }
-        if (url.startsWith('/'))
-            continue;
-        server.url = 'https://' + url;
+        server.url = withScheme(server.url);
     }
+    // No server named: the `server` option, else a `base` variable the caller fills.
     const firstServerUrl = kit.info.servers?.[0]?.url;
     if (null == firstServerUrl || '' === String(firstServerUrl).trim()) {
-        throw new Error(true === def.graphql ?
-            'apidef: no endpoint given for GraphQL schema' +
-                ' (the endpoint build option is required).' :
-            'apidef: no server URL found in API definition (servers[0].url is required).');
+        if (true === def.graphql) {
+            throw new Error('apidef: no endpoint given for GraphQL schema' +
+                ' (the endpoint build option is required).');
+        }
+        const given = ctx.opts?.server;
+        if ('string' === typeof given && '' !== given.trim()) {
+            kit.info.servers = [{ url: withScheme(given.trim()) }];
+        }
+        else {
+            kit.info.servers = [{
+                    url: '{base}',
+                    variables: { base: { description: 'The base URL of the API, which its definition does not name.' } },
+                }];
+            ctx.warn?.({
+                note: 'no server URL in the definition (servers[0].url): the SDK takes it as' +
+                    ' the server variable `base`; set the `server` build option to fix one',
+            });
+        }
     }
     const summary = resolveSummary(def);
     if (null != summary) {
@@ -154,6 +158,16 @@ function resolveSummary(def) {
     }
     const paragraph = para.join(' ').trim();
     return '' === paragraph ? undefined : (0, utility_1.firstSentence)(paragraph);
+}
+function withScheme(url) {
+    const u = url.trim();
+    if ('' === u || /^[a-z][a-z0-9+.-]*:\/\//i.test(u))
+        return url;
+    if (u.startsWith('//'))
+        return 'https:' + u;
+    if (u.startsWith('/'))
+        return url;
+    return 'https://' + u;
 }
 function resolveWebsite(def, servers) {
     const info = def?.info ?? {};

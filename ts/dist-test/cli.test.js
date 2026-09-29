@@ -260,7 +260,7 @@ function captureIO() {
     // reading it must not be handed a failure on the same stream.
     (0, node_test_1.test)('run-failure', async () => {
         const root = makeProject();
-        Fs.writeFileSync(node_path_1.default.join(root, 'def', SOLAR_DEF), 'openapi: 3.0.0\n');
+        Fs.writeFileSync(node_path_1.default.join(root, 'def', SOLAR_DEF), 'openapi: 3.0.0\npaths: {\n');
         const { io, out, err } = captureIO();
         const code = await (0, cli_1.runCli)([
             'solar', '-f', root, '-d', node_path_1.default.join(root, 'def', SOLAR_DEF), '-p', SOLAR_PREFIX,

@@ -71,8 +71,12 @@ proj/
     guide/<prefix>guide.aontu   # the guide entry file (see below)
 ```
 
-> The spec **must declare at least one server** (`servers[0].url`); the `top`
-> transform treats a missing server URL as a fatal error.
+> A spec with no `servers` entry still builds. The `top` transform takes the
+> base URL from the `server` option given to `makeBuild` (`server:
+> 'https://api.example.com'`), and without one records it as the server
+> variable `base`, which the generated SDK asks its caller to supply, and
+> writes a warning. A document a framework generates, FastAPI for example,
+> names no server unless the app declares one.
 
 ## The guide file
 

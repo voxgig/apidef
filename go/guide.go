@@ -884,6 +884,16 @@ func measureEnvelopeItems(data map[string]any) {
 	}
 }
 
+// pathShape mirrors the shape closure in ts/src/guide/heuristic01.ts: params
+// blanked, a trailing slash dropped, the root kept.
+func pathShape(path string) string {
+	shape := strings.TrimRight(pathParamRE.ReplaceAllString(path, "{}"), "/")
+	if shape == "" {
+		return "/"
+	}
+	return shape
+}
+
 // isPageAndItsItem mirrors isPageAndItsItem in ts/src/guide/heuristic01.ts.
 func isPageAndItsItem(work map[string]any, xrefs []string) bool {
 	listEnvelope := work["listEnvelope"].(map[string]bool)
@@ -900,9 +910,9 @@ func isPageAndItsItem(work map[string]any, xrefs []string) bool {
 		return false
 	}
 	for _, path := range envelopePaths[items[0]] {
-		path = pathParamRE.ReplaceAllString(path, "{}")
+		path = pathShape(path)
 		for _, page := range envelopePaths[pages[0]] {
-			page = pathParamRE.ReplaceAllString(page, "{}")
+			page = pathShape(page)
 			if path == page || strings.HasPrefix(path, page+"/") {
 				return true
 			}

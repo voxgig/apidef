@@ -305,7 +305,7 @@ describe('cli', () => {
   // reading it must not be handed a failure on the same stream.
   test('run-failure', async () => {
     const root = makeProject()
-    Fs.writeFileSync(Path.join(root, 'def', SOLAR_DEF), 'openapi: 3.0.0\n')
+    Fs.writeFileSync(Path.join(root, 'def', SOLAR_DEF), 'openapi: 3.0.0\npaths: {\n')
 
     const { io, out, err } = captureIO()
     const code = await runCli([

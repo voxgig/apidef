@@ -1670,9 +1670,10 @@ func envelopeProp(resprops map[string]any, opname string) string {
 
 	structured := make([]string, 0, len(resprops))
 	for _, k := range sortedKeys(resprops) {
-		if isEntityWrapperProp(resprops[k]) {
-			structured = append(structured, k)
+		if !isEntityWrapperProp(resprops[k]) {
+			continue
 		}
+		structured = append(structured, k)
 	}
 
 	// Mirrors ts/src/utility.ts: a page's own metadata object is not a second
@@ -1728,7 +1729,7 @@ func isEnvelopeStatusProp(name string) bool {
 var ENVELOPE_PAGING_PROPS = map[string]bool{
 	"count": true, "total": true, "totalcount": true, "totalhits": true, "totalitems": true,
 	"totalpages": true, "totalresults": true, "page": true, "pages": true, "pagecount": true,
-	"pagenumber": true, "pagesize": true, "perpage": true, "limit": true, "offset": true,
+	"pagenumber": true, "pagesize": true, "size": true, "perpage": true, "limit": true, "offset": true,
 	"cursor": true, "next": true, "nextcursor": true, "nextpage": true, "nextpagetoken": true,
 	"nexttoken": true, "nexturl": true, "previous": true, "prev": true, "previouscursor": true,
 	"prevcursor": true, "previouspage": true, "prevpage": true, "previousurl": true,
