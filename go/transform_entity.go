@@ -82,28 +82,31 @@ func filterEntityAncestors(entities map[string]any) {
 var (
 	instancePathRE   = regexp.MustCompile(`^((?:/[^/{}]+)+)/\{[^}]+\}(/.*)?$`)
 	collectionPathRE = regexp.MustCompile(`^(?:/[^/{}]+)+$`)
+	paramSegmentRE   = regexp.MustCompile(`^\{[^}]+\}$`)
 )
 
+// rootOwner mirrors CollectionOwner in ts/src/transform/entity.ts.
 type rootOwner struct {
 	ename string
 	depth int
+	route string
+	item  bool
 }
 
-// mergeCollectionPaths moves "/X" paths onto the entity that owns "/X/{id}"
-// and removes the entities the moves emptied, returning their names. Mirrors
-// mergeCollectionPaths in ts/src/transform/entity.ts. Guide stage only: on the
-// unified guide it would override guide.aontu.
-func mergeCollectionPaths(guide map[string]any) []string {
+// mergeCollectionPaths moves "/X" paths onto the entity that owns "/X/{id}",
+// or a composite key such as "/X/{owner}/{repo}", and removes the entities
+// the moves emptied, returning their names. Mirrors mergeCollectionPaths in
+// ts/src/transform/entity.ts. Guide stage only: on the unified guide it would
+// override guide.aontu.
+func mergeCollectionPaths(guide map[string]any, recordRef func(pathStr string, method string) string) []string {
 	emptied := []string{}
 	entities, _ := guide["entity"].(map[string]any)
 	if entities == nil {
 		return emptied
 	}
 
-	// First pass: collectionRoot -> owning entity. Prefer the owner whose
-	// direct-load path is "/X/{id}" with nothing after it, so a nested
-	// sub-resource entity doesn't claim the root.
-	rootOwners := map[string]rootOwner{}
+	// First pass: every route beneath a collection's literals, nearest first.
+	owners := map[string][]rootOwner{}
 	for _, ename := range sortedKeys(entities) {
 		entity, _ := entities[ename].(map[string]any)
 		if entity == nil {
@@ -115,19 +118,94 @@ func mergeCollectionPaths(guide map[string]any) []string {
 			if m == nil {
 				continue
 			}
-			root := m[1]
 			depth := 0
-			if m[2] != "" {
-				for _, seg := range strings.Split(m[2], "/") {
-					if seg != "" {
-						depth++
-					}
+			item := true
+			for _, seg := range strings.Split(m[2], "/") {
+				if seg == "" {
+					continue
+				}
+				depth++
+				if !paramSegmentRE.MatchString(seg) {
+					item = false
 				}
 			}
-			if cur, ok := rootOwners[root]; !ok || depth < cur.depth {
-				rootOwners[root] = rootOwner{ename: ename, depth: depth}
+			owners[m[1]] = append(owners[m[1]], rootOwner{ename: ename, depth: depth, route: pathStr, item: item})
+		}
+	}
+	for _, candidates := range owners {
+		sort.SliceStable(candidates, func(i, j int) bool {
+			a, b := candidates[i], candidates[j]
+			if a.depth != b.depth {
+				return a.depth < b.depth
+			}
+			if a.ename != b.ename {
+				return a.ename < b.ename
+			}
+			return a.route < b.route
+		})
+	}
+
+	// The record a path's operations answer with, a read first.
+	answers := func(pathStr string, pathDesc any) string {
+		if recordRef == nil {
+			return ""
+		}
+		pd, _ := pathDesc.(map[string]any)
+		ops, _ := pd["op"].(map[string]any)
+		methods := make([]string, 0, len(ops))
+		for _, k := range sortedKeys(ops) {
+			op, _ := ops[k].(map[string]any)
+			method, _ := op["method"].(string)
+			methods = append(methods, strings.ToUpper(method))
+		}
+		sort.SliceStable(methods, func(i, j int) bool {
+			if (methods[i] == "GET") != (methods[j] == "GET") {
+				return methods[i] == "GET"
+			}
+			return methods[i] < methods[j]
+		})
+		for _, method := range methods {
+			if ref := recordRef(pathStr, method); ref != "" {
+				return ref
 			}
 		}
+		return ""
+	}
+
+	// Mirrors ownerOf in ts/src/transform/entity.ts: the nearest item route,
+	// one that answers with the collection's own record first, or with no
+	// item route, a deeper route that answers with the same record.
+	ownerOf := func(pathStr string, pathDesc any, candidates []rootOwner) (rootOwner, bool) {
+		mine := answers(pathStr, pathDesc)
+		same := func(c rootOwner) bool {
+			if mine == "" {
+				return false
+			}
+			ownerEntity, _ := entities[c.ename].(map[string]any)
+			ownerPaths, _ := ownerEntity["path"].(map[string]any)
+			return mine == answers(c.route, ownerPaths[c.route])
+		}
+		var first *rootOwner
+		for i := range candidates {
+			if !candidates[i].item {
+				continue
+			}
+			if same(candidates[i]) {
+				return candidates[i], true
+			}
+			if first == nil {
+				first = &candidates[i]
+			}
+		}
+		if first != nil {
+			return *first, true
+		}
+		for _, c := range candidates {
+			if same(c) {
+				return c, true
+			}
+		}
+		return rootOwner{}, false
 	}
 
 	// Second pass: move each "/X" whose root is owned elsewhere.
@@ -142,19 +220,25 @@ func mergeCollectionPaths(guide map[string]any) []string {
 		}
 
 		var toMove []string
+		moveTo := map[string]rootOwner{}
 		for _, pathStr := range sortedKeys(paths) {
 			root, ok := collectionRoot(pathStr)
 			if !ok {
 				continue
 			}
-			if owner, ok := rootOwners[root]; ok && owner.ename != ename {
+			candidates, ok := owners[root]
+			if !ok {
+				continue
+			}
+			owner, ok := ownerOf(pathStr, paths[pathStr], candidates)
+			if ok && owner.ename != ename {
 				toMove = append(toMove, pathStr)
+				moveTo[pathStr] = owner
 			}
 		}
 
 		for _, pathStr := range toMove {
-			root, _ := collectionRoot(pathStr)
-			owner := rootOwners[root]
+			owner := moveTo[pathStr]
 			target, _ := entities[owner.ename].(map[string]any)
 			if target == nil {
 				continue

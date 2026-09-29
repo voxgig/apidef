@@ -54,6 +54,7 @@ import {
   findPathsWithPrefix,
   formatJSONIC,
   getdlog,
+  mergedProperties,
   normalizeFieldName,
   pathMatch,
   resplitFromCmp,
@@ -161,7 +162,8 @@ async function heuristic01(ctx: ApiDefContext): Promise<Guide> {
 
   const guide = result.data.guide
 
-  guide.metrics.count.entity -= mergeCollectionPaths(guide, ctx.log).length
+  guide.metrics.count.entity -= mergeCollectionPaths(guide, ctx.log,
+    (pathStr: string, method: string) => routeRecordRef(ctx.def, pathStr, method)).length
 
   const metrics = guide.metrics
 
@@ -1542,6 +1544,31 @@ function successSchemas(responses: any): any[] {
 function getResponseSchema(response: any) {
   return response?.content?.['application/json']?.schema ??
     response?.schema
+}
+
+
+// The component of the record a route answers with: the schema's own, its
+// items', or the one its envelope carries, such as the job summary in Mux's
+// `{ data }`. Null when the answer names no component.
+function routeRecordRef(def: any, pathStr: string, method: string): string | null {
+  const schema = getResponseSchema(
+    successResponse(def?.paths?.[pathStr]?.[method.toLowerCase()]?.responses))
+  if (null == schema || 'object' !== typeof schema) {
+    return null
+  }
+  if ('array' === schema.type) {
+    return schema.items?.['x-ref'] ?? null
+  }
+  const props = schema.properties ?? mergedProperties(schema)
+  for (const opname of ['list', 'load']) {
+    const key = null == props ? null : envelopeProp(props, opname)
+    const record = null == key ? null :
+      'list' === opname ? props[key]?.items : props[key]
+    if (null != record?.['x-ref']) {
+      return record['x-ref']
+    }
+  }
+  return schema['x-ref'] ?? null
 }
 
 

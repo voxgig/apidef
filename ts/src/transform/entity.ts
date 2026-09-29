@@ -24,6 +24,8 @@ import type {
 
 import { depluralize, guideActive } from '../utility'
 
+import { byCodePoint } from '../refcount'
+
 
 
 const entityTransform: Transform = async function(
@@ -79,49 +81,88 @@ function filterEntityAncestors(entities: Record<string, any>) {
 }
 
 
+type CollectionOwner = {
+  ename: string
+  depth: number
+  route: string
+  item: boolean
+}
+
+
 // Move a collection path ("/X", "/api/v1/X", a trailing slash allowed) onto
-// the entity owning the item path beneath it ("/X/{id}"), when the two sit
-// on different entities. Returns the entities the moves emptied, which are
-// removed. Guide stage only: on the unified guide it would override
-// guide.aontu.
-function mergeCollectionPaths(guide: any, log?: any): string[] {
+// the entity owning the item path beneath it ("/X/{id}", or a composite key
+// such as "/X/{owner}/{repo}"), when the two sit on different entities.
+// Returns the entities the moves emptied, which are removed. Guide stage
+// only: on the unified guide it would override guide.aontu.
+function mergeCollectionPaths(
+  guide: any,
+  log?: any,
+  recordRef?: (pathStr: string, method: string) => string | null,
+): string[] {
   const entities = guide.entity as Record<string, any>
   const emptied: string[] = []
 
-  const rootOwners: Record<string, { ename: string, depth: number }> = {}
+  // Every route beneath a collection's literals, nearest first.
+  const owners: Record<string, CollectionOwner[]> = {}
 
   for (const [ename, entity] of Object.entries(entities)) {
     for (const pathStr of Object.keys(entity.path ?? {})) {
-      // Match /A/{...} or /A/B/{...}/..., keyed by the literals before the param.
       const m = pathStr.match(/^((?:\/[^\/{}]+)+)\/\{[^}]+\}(\/.*)?$/)
       if (!m) continue
-      const root = m[1]
-      const trailing = m[2] ?? ''
-      const depth = trailing === '' ? 0 : trailing.split('/').filter(Boolean).length
+      const rest = (m[2] ?? '').split('/').filter(Boolean)
+      const item = rest.every((seg: string) => /^\{[^}]+\}$/.test(seg))
+      ;(owners[m[1]] = owners[m[1]] ?? []).push({ ename, depth: rest.length, route: pathStr, item })
+    }
+  }
+  for (const candidates of Object.values(owners)) {
+    candidates.sort((a: CollectionOwner, b: CollectionOwner) =>
+      a.depth - b.depth || byCodePoint(a.ename, b.ename) || byCodePoint(a.route, b.route))
+  }
 
-      const cur = rootOwners[root]
-      if (!cur || depth < cur.depth) {
-        rootOwners[root] = { ename, depth }
+  // The record a path's operations answer with, a read first.
+  const answers = (pathStr: string, pathDesc: any): string | null => {
+    const methods = Object.values(pathDesc?.op ?? {})
+      .map((op: any) => String(op?.method ?? '').toUpperCase())
+      .sort((a: string, b: string) =>
+        Number('GET' !== a) - Number('GET' !== b) || byCodePoint(a, b))
+    for (const method of methods) {
+      const ref = recordRef?.(pathStr, method)
+      if (null != ref) {
+        return ref
       }
     }
+    return null
+  }
+
+  // The nearest item route owns the collection, one answering with the
+  // collection's own record first. With no item route, a deeper route owns
+  // it only on the record: a verb such as a token refresh returns the token,
+  // while a sub-collection such as GitHub's plan accounts lists purchases.
+  const ownerOf = (pathStr: string, pathDesc: any, candidates: CollectionOwner[]) => {
+    const mine = answers(pathStr, pathDesc)
+    const same = (c: CollectionOwner) =>
+      null != mine && mine === answers(c.route, entities[c.ename]?.path?.[c.route])
+    const items = candidates.filter((c) => c.item)
+    return items.find(same) ?? items[0] ?? candidates.find(same)
   }
 
   // Second pass: for each entity with a "/X" path, if X has an owner
   // elsewhere, move the path there.
   for (const [ename, entity] of Object.entries(entities)) {
     if (entity.path == null) continue
-    const pathsToMove: string[] = []
+    const pathsToMove: [string, CollectionOwner][] = []
 
     for (const pathStr of Object.keys(entity.path)) {
       const root = collectionRoot(pathStr)
-      const owner = null == root ? undefined : rootOwners[root]
-      if (owner && owner.ename !== ename) {
-        pathsToMove.push(pathStr)
+      const candidates = null == root ? undefined : owners[root]
+      const owner = null == candidates ? undefined :
+        ownerOf(pathStr, entity.path[pathStr], candidates)
+      if (null != owner && owner.ename !== ename) {
+        pathsToMove.push([pathStr, owner])
       }
     }
 
-    for (const pathStr of pathsToMove) {
-      const owner = rootOwners[collectionRoot(pathStr) as string]
+    for (const [pathStr, owner] of pathsToMove) {
       const targetEntity = entities[owner.ename]
       if (targetEntity == null) continue
       targetEntity.path = targetEntity.path ?? {}

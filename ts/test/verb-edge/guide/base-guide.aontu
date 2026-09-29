@@ -9,9 +9,6 @@ guide: {
   metrics: count: method: 9
 
   entity: ack: {
-    path: "/widgets": {
-      op: list: method: *GET
-    }
     path: "/widgets/{id}": {
       op: update: method: *PUT
     }
@@ -40,6 +37,9 @@ guide: {
   }
 
   entity: widget: {
+    path: "/widgets": {
+      op: list: method: *GET
+    }
     path: "/widgets/{id}": {
       op: load: method: *GET
     }

@@ -1,0 +1,106 @@
+{
+  "openapi": "3.0.0",
+  "info": { "title": "Collection Owner API", "version": "1.0.0" },
+  "servers": [ { "url": "https://api.example.com" } ],
+  "paths": {
+    "/plans": {
+      "get": {
+        "operationId": "list-plans",
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Plan" } } } } } }
+      }
+    },
+    "/plans/{plan_id}/accounts": {
+      "get": {
+        "operationId": "list-plan-accounts",
+        "parameters": [ { "name": "plan_id", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Purchase" } } } } } }
+      }
+    },
+    "/jobs": {
+      "get": {
+        "operationId": "list-jobs",
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Job" } } } } } }
+      }
+    },
+    "/jobs/{job_id}/cancel": {
+      "post": {
+        "operationId": "cancel-job",
+        "parameters": [ { "name": "job_id", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "$ref": "#/components/schemas/JobSummary" } } } } }
+      }
+    },
+    "/user": {
+      "get": {
+        "operationId": "get-user",
+        "tags": [ "user" ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "$ref": "#/components/schemas/User" } } } } }
+      }
+    },
+    "/user/tokens": {
+      "get": {
+        "operationId": "list-user-tokens",
+        "tags": [ "user" ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "type": "object", "properties": {
+            "count": { "type": "integer" },
+            "results": { "type": "array", "items": { "$ref": "#/components/schemas/Token" } } } } } } } }
+      }
+    },
+    "/user/tokens/{slug}/refresh": {
+      "put": {
+        "operationId": "refresh-token",
+        "parameters": [ { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "$ref": "#/components/schemas/Token" } } } } }
+      }
+    },
+    "/stars": {
+      "get": {
+        "operationId": "list-stars",
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Repository" } } } } } }
+      }
+    },
+    "/stars/{owner}/{repo}": {
+      "put": {
+        "operationId": "star-repo",
+        "tags": [ "activity" ],
+        "parameters": [
+          { "name": "owner", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "repo", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "204": { "description": "Starred" } }
+      },
+      "delete": {
+        "operationId": "unstar-repo",
+        "tags": [ "activity" ],
+        "parameters": [
+          { "name": "owner", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "repo", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "204": { "description": "Unstarred" } }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Plan": { "type": "object", "properties": {
+        "id": { "type": "string" }, "name": { "type": "string" } } },
+      "Purchase": { "type": "object", "properties": {
+        "id": { "type": "string" }, "plan_id": { "type": "string" } } },
+      "Job": { "type": "object", "properties": {
+        "id": { "type": "string" }, "status": { "type": "string" } } },
+      "JobSummary": { "type": "object", "properties": {
+        "id": { "type": "string" }, "state": { "type": "string" }, "cancelled": { "type": "boolean" } } },
+      "User": { "type": "object", "properties": {
+        "id": { "type": "string" }, "login": { "type": "string" } } },
+      "Token": { "type": "object", "properties": {
+        "slug": { "type": "string" }, "key": { "type": "string" } } },
+      "Repository": { "type": "object", "properties": {
+        "id": { "type": "string" }, "full_name": { "type": "string" } } }
+    }
+  }
+}

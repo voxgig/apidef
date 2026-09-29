@@ -319,6 +319,9 @@ describe('apidef', () => {
     assert.deepStrictEqual(Object.keys(merge.action ?? {}), ['merge'])
     assert.strictEqual(merge.rename.param.widget_number?.target ?? merge.rename.param.widget_number, 'id')
     assert.ok(null == gents.ack?.path['/widgets/{widget_number}/merge'], 'merge wrongly joined ack')
+    // The list joins it too, beside the load that answers with its record.
+    assert.ok(null != gents.widget?.path['/widgets'], 'the list did not join widget')
+    assert.ok(null == gents.ack?.path['/widgets'], 'the list wrongly joined ack')
 
     // A create-only nested collection keeps its entity and its create.
     assert.ok(null != gents.label, 'label entity lost: ' + Object.keys(gents).join(','))
@@ -920,6 +923,53 @@ describe('apidef', () => {
         setting: ['remove DELETE /keys/{key_id}'],
       }, owner)
     }
+  })
+
+
+  // A collection joins the owner of its item route, or of a composite key
+  // (stars). Beneath its item, a route owns it only when both answer with
+  // the same record: a token refresh joins the tokens, while the purchases
+  // of /plans/{plan_id}/accounts and a cancel that answers with a summary
+  // do not. go/apidef_test.go reads the base guide this writes.
+  test('guide-collection-owner', async () => {
+    const folder = __dirname + '/../test/collection-owner'
+
+    const build = await ApiDef.makeBuild({ folder })
+
+    const bres = await build(
+      { name: 'collection-owner', def: 'collection-owner-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: true,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const routes = Object.fromEntries(Object.keys(bres.guide.entity).sort()
+      .map((name) => [name, Object.entries(bres.guide.entity[name].path ?? {})
+        .flatMap(([path, pd]: [string, any]) =>
+          Object.values(pd.op).map((op: any) => op.method + ' ' + path))
+        .sort()]))
+    assert.deepStrictEqual(routes, {
+      activity: ['DELETE /stars/{owner}/{repo}', 'GET /stars', 'PUT /stars/{owner}/{repo}'],
+      job: ['GET /jobs'],
+      job_summary: ['POST /jobs/{job_id}/cancel'],
+      plan: ['GET /plans'],
+      purchase: ['GET /plans/{plan_id}/accounts'],
+      token: ['GET /user/tokens', 'PUT /user/tokens/{slug}/refresh'],
+      user: ['GET /user'],
+    })
   })
 
 

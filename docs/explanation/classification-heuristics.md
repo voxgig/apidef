@@ -212,6 +212,13 @@ its keys. `api_key` is left with no path, and is removed rather than emitted
 inactive: an entity with no path is not a classification `guide.aontu`
 could switch back on.
 
+A route deeper than the item joins on the record alone. With no item route,
+a collection joins a verb such as `/tokens/{slug}/refresh` when the verb
+returns the token the list holds, and stays apart from a sub-collection such
+as `/plans/{plan_id}/accounts`, which lists purchases rather than plans.
+When a tag names the delete of an item and the record names its read, the
+collection joins the read.
+
 The move is part of the heuristic, so it shapes the base guide and nothing
 after it. When the collection is a resource of its own, `guide.aontu` can
 declare `/apiKeys` on `api_key` and switch the path off on `setting`, and

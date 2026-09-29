@@ -719,7 +719,8 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 		buildEntity(data, entmap[k])
 	}
 
-	countMap["entity"] = toInt(countMap["entity"]) - len(mergeCollectionPaths(guide))
+	countMap["entity"] = toInt(countMap["entity"]) - len(mergeCollectionPaths(guide,
+		func(pathStr string, method string) string { return routeRecordRef(def, pathStr, method) }))
 
 	return guide, nil
 }
@@ -2657,6 +2658,46 @@ func successSchemas(responses map[string]any) []map[string]any {
 		}
 	}
 	return schemas
+}
+
+// routeRecordRef mirrors ts/src/guide/heuristic01.ts: the component of the
+// record a route answers with, or "" when the answer names none.
+func routeRecordRef(def map[string]any, pathStr string, method string) string {
+	paths, _ := def["paths"].(map[string]any)
+	pdef, _ := paths[pathStr].(map[string]any)
+	mdef, _ := pdef[strings.ToLower(method)].(map[string]any)
+	responses, _ := mdef["responses"].(map[string]any)
+	schema := getResponseSchema(successResponse(responses))
+	if schema == nil {
+		return ""
+	}
+	if schema["type"] == "array" {
+		items, _ := schema["items"].(map[string]any)
+		ref, _ := items["x-ref"].(string)
+		return ref
+	}
+	props, _ := schema["properties"].(map[string]any)
+	if props == nil {
+		props = mergedProperties(schema)
+	}
+	for _, opname := range []string{"list", "load"} {
+		if props == nil {
+			break
+		}
+		key := envelopeProp(props, opname)
+		if key == "" {
+			continue
+		}
+		record, _ := props[key].(map[string]any)
+		if opname == "list" {
+			record, _ = record["items"].(map[string]any)
+		}
+		if ref, _ := record["x-ref"].(string); ref != "" {
+			return ref
+		}
+	}
+	ref, _ := schema["x-ref"].(string)
+	return ref
 }
 
 // getResponseSchema extracts schema from a response definition.

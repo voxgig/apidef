@@ -351,6 +351,9 @@ func TestGuideVerbOnParentEdges(t *testing.T) {
 	if pathsOf("ack")["/widgets/{widget_number}/merge"] != nil {
 		t.Errorf("merge wrongly joined ack")
 	}
+	if pathsOf("widget")["/widgets"] == nil || pathsOf("ack")["/widgets"] != nil {
+		t.Errorf("the list did not join widget beside its load")
+	}
 
 	labels := pathsOf("label")["/widgets/{id}/labels"]
 	if labels == nil {
@@ -928,6 +931,40 @@ func TestGuideCollectionMerge(t *testing.T) {
 	}
 
 	want, err := os.ReadFile("../ts/test/collection-merge/guide/base-guide.aontu")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(filepath.Join(folder, "guide", "base-guide.aontu"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != string(want) {
+		t.Errorf("base guide differs from the TypeScript one:\n%s", string(got))
+	}
+}
+
+// Mirrors the TS `guide-collection-owner` case, and requires the base guide
+// that case writes to ts/test/collection-owner/guide/base-guide.aontu.
+func TestGuideCollectionOwner(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, Strategy: "heuristic01"}).Generate(map[string]any{
+		"model": map[string]any{"name": "collection-owner", "def": "collection-owner-def.json"},
+		"build": map[string]any{"spec": map[string]any{"base": "../ts/test/collection-owner"}},
+		"ctrl": map[string]any{"step": map[string]any{
+			"parse": true, "guide": true, "transformers": true,
+			"builders": false, "generate": false,
+		}},
+	})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v res=%+v", err, res)
+	}
+
+	gents, _ := res.Guide["entity"].(map[string]any)
+	if got, want := strings.Join(sortedKeys(gents), ","), "activity,job,job_summary,plan,purchase,token,user"; got != want {
+		t.Errorf("guide entities = %s, want %s", got, want)
+	}
+
+	want, err := os.ReadFile("../ts/test/collection-owner/guide/base-guide.aontu")
 	if err != nil {
 		t.Fatal(err)
 	}
