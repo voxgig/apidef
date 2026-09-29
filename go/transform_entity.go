@@ -98,7 +98,7 @@ type rootOwner struct {
 // the moves emptied, returning their names. Mirrors mergeCollectionPaths in
 // ts/src/transform/entity.ts. Guide stage only: on the unified guide it would
 // override guide.aontu.
-func mergeCollectionPaths(guide map[string]any, recordRef func(pathStr string, method string) string) []string {
+func mergeCollectionPaths(guide map[string]any, recordRef func(pathStr string, methods []string, collection bool) string) []string {
 	emptied := []string{}
 	entities, _ := guide["entity"].(map[string]any)
 	if entities == nil {
@@ -145,11 +145,7 @@ func mergeCollectionPaths(guide map[string]any, recordRef func(pathStr string, m
 		})
 	}
 
-	// The record a path's operations answer with, a read first.
-	answers := func(pathStr string, pathDesc any) string {
-		if recordRef == nil {
-			return ""
-		}
+	methodsOf := func(pathDesc any) []string {
 		pd, _ := pathDesc.(map[string]any)
 		ops, _ := pd["op"].(map[string]any)
 		methods := make([]string, 0, len(ops))
@@ -158,32 +154,27 @@ func mergeCollectionPaths(guide map[string]any, recordRef func(pathStr string, m
 			method, _ := op["method"].(string)
 			methods = append(methods, strings.ToUpper(method))
 		}
-		sort.SliceStable(methods, func(i, j int) bool {
-			if (methods[i] == "GET") != (methods[j] == "GET") {
-				return methods[i] == "GET"
-			}
-			return methods[i] < methods[j]
-		})
-		for _, method := range methods {
-			if ref := recordRef(pathStr, method); ref != "" {
-				return ref
-			}
+		return methods
+	}
+	answers := func(pathStr string, methods []string, collection bool) string {
+		if recordRef == nil {
+			return ""
 		}
-		return ""
+		return recordRef(pathStr, methods, collection)
 	}
 
 	// Mirrors ownerOf in ts/src/transform/entity.ts: the nearest item route,
 	// one that answers with the collection's own record first, or with no
 	// item route, a deeper route that answers with the same record.
-	ownerOf := func(pathStr string, pathDesc any, candidates []rootOwner) (rootOwner, bool) {
-		mine := answers(pathStr, pathDesc)
+	ownerOf := func(pathStr string, methods []string, candidates []rootOwner) (rootOwner, bool) {
+		mine := answers(pathStr, methods, true)
 		same := func(c rootOwner) bool {
 			if mine == "" {
 				return false
 			}
 			ownerEntity, _ := entities[c.ename].(map[string]any)
 			ownerPaths, _ := ownerEntity["path"].(map[string]any)
-			return mine == answers(c.route, ownerPaths[c.route])
+			return mine == answers(c.route, methodsOf(ownerPaths[c.route]), false)
 		}
 		var first *rootOwner
 		for i := range candidates {
@@ -208,6 +199,41 @@ func mergeCollectionPaths(guide map[string]any, recordRef func(pathStr string, m
 		return rootOwner{}, false
 	}
 
+	// Mirrors ts/src/transform/entity.ts: one owner for every entity's share
+	// of a collection path.
+	shares := map[string][]string{}
+	for _, ename := range sortedKeys(entities) {
+		entity, _ := entities[ename].(map[string]any)
+		paths, _ := entity["path"].(map[string]any)
+		for _, pathStr := range sortedKeys(paths) {
+			if _, ok := collectionRoot(pathStr); ok {
+				shares[pathStr] = append(shares[pathStr], ename)
+			}
+		}
+	}
+	owned := map[string]rootOwner{}
+	sharedPaths := make([]string, 0, len(shares))
+	for pathStr := range shares {
+		sharedPaths = append(sharedPaths, pathStr)
+	}
+	sort.Strings(sharedPaths)
+	for _, pathStr := range sharedPaths {
+		root, _ := collectionRoot(pathStr)
+		candidates, ok := owners[root]
+		if !ok {
+			continue
+		}
+		var methods []string
+		for _, ename := range shares[pathStr] {
+			entity, _ := entities[ename].(map[string]any)
+			paths, _ := entity["path"].(map[string]any)
+			methods = append(methods, methodsOf(paths[pathStr])...)
+		}
+		if owner, ok := ownerOf(pathStr, methods, candidates); ok {
+			owned[pathStr] = owner
+		}
+	}
+
 	// Second pass: move each "/X" whose root is owned elsewhere.
 	for _, ename := range sortedKeys(entities) {
 		entity, _ := entities[ename].(map[string]any)
@@ -222,16 +248,7 @@ func mergeCollectionPaths(guide map[string]any, recordRef func(pathStr string, m
 		var toMove []string
 		moveTo := map[string]rootOwner{}
 		for _, pathStr := range sortedKeys(paths) {
-			root, ok := collectionRoot(pathStr)
-			if !ok {
-				continue
-			}
-			candidates, ok := owners[root]
-			if !ok {
-				continue
-			}
-			owner, ok := ownerOf(pathStr, paths[pathStr], candidates)
-			if ok && owner.ename != ename {
+			if owner, ok := owned[pathStr]; ok && owner.ename != ename {
 				toMove = append(toMove, pathStr)
 				moveTo[pathStr] = owner
 			}

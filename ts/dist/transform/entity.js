@@ -72,29 +72,36 @@ function mergeCollectionPaths(guide, log, recordRef) {
     for (const candidates of Object.values(owners)) {
         candidates.sort((a, b) => a.depth - b.depth || (0, refcount_1.byCodePoint)(a.ename, b.ename) || (0, refcount_1.byCodePoint)(a.route, b.route));
     }
-    // The record a path's operations answer with, a read first.
-    const answers = (pathStr, pathDesc) => {
-        const methods = Object.values(pathDesc?.op ?? {})
-            .map((op) => String(op?.method ?? '').toUpperCase())
-            .sort((a, b) => Number('GET' !== a) - Number('GET' !== b) || (0, refcount_1.byCodePoint)(a, b));
-        for (const method of methods) {
-            const ref = recordRef?.(pathStr, method);
-            if (null != ref) {
-                return ref;
-            }
-        }
-        return null;
-    };
+    const methodsOf = (pathDesc) => Object.values(pathDesc?.op ?? {})
+        .map((op) => String(op?.method ?? '').toUpperCase());
     // The nearest item route owns the collection, one answering with the
     // collection's own record first. With no item route, a deeper route owns
     // it only on the record: a verb such as a token refresh returns the token,
     // while a sub-collection such as GitHub's plan accounts lists purchases.
-    const ownerOf = (pathStr, pathDesc, candidates) => {
-        const mine = answers(pathStr, pathDesc);
-        const same = (c) => null != mine && mine === answers(c.route, entities[c.ename]?.path?.[c.route]);
+    const ownerOf = (pathStr, methods, candidates) => {
+        const mine = recordRef?.(pathStr, methods, true) ?? null;
+        const same = (c) => null != mine &&
+            mine === recordRef?.(c.route, methodsOf(entities[c.ename]?.path?.[c.route]), false);
         const items = candidates.filter((c) => c.item);
         return items.find(same) ?? items[0] ?? candidates.find(same);
     };
+    // One owner for every entity's share of a collection path, so a list and
+    // a create split between entities land together.
+    const shares = {};
+    for (const [ename, entity] of Object.entries(entities)) {
+        for (const pathStr of Object.keys(entity.path ?? {})) {
+            if (null != collectionRoot(pathStr)) {
+                (shares[pathStr] = shares[pathStr] ?? []).push(ename);
+            }
+        }
+    }
+    const owned = {};
+    for (const [pathStr, enames] of Object.entries(shares)) {
+        const candidates = owners[collectionRoot(pathStr)];
+        if (null != candidates) {
+            owned[pathStr] = ownerOf(pathStr, enames.flatMap((ename) => methodsOf(entities[ename].path[pathStr])), candidates);
+        }
+    }
     // Second pass: for each entity with a "/X" path, if X has an owner
     // elsewhere, move the path there.
     for (const [ename, entity] of Object.entries(entities)) {
@@ -102,10 +109,7 @@ function mergeCollectionPaths(guide, log, recordRef) {
             continue;
         const pathsToMove = [];
         for (const pathStr of Object.keys(entity.path)) {
-            const root = collectionRoot(pathStr);
-            const candidates = null == root ? undefined : owners[root];
-            const owner = null == candidates ? undefined :
-                ownerOf(pathStr, entity.path[pathStr], candidates);
+            const owner = owned[pathStr];
             if (null != owner && owner.ename !== ename) {
                 pathsToMove.push([pathStr, owner]);
             }

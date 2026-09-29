@@ -4,9 +4,9 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 7
-  metrics: count: path: 9
-  metrics: count: method: 10
+  metrics: count: entity: 13
+  metrics: count: path: 17
+  metrics: count: method: 21
 
   entity: activity: {
     path: "/stars": {
@@ -15,6 +15,27 @@ guide: {
     path: "/stars/{owner}/{repo}": {
       op: remove: method: *DELETE
       op: update: method: *PUT
+    }
+  }
+
+  entity: admin: {
+    path: "/shop/gadgets/{gadget_id}": {
+      op: remove: method: *DELETE
+    }
+    path: "/teams/{team_id}": {
+      op: remove: method: *DELETE
+    }
+  }
+
+  entity: gadget: {
+    path: "/shop/gadgets": {
+      action: "gadget": {}
+      op: create: method: *POST
+      op: list: method: *GET
+    }
+    path: "/shop/gadgets/{gadget_id}": {
+      rename: param: "gadget_id": *"id"
+      op: load: method: *GET
     }
   }
 
@@ -32,6 +53,12 @@ guide: {
     }
   }
 
+  entity: org: {
+    path: "/org": {
+      op: load: method: *GET
+    }
+  }
+
   entity: plan: {
     path: "/plans": {
       op: list: method: *GET
@@ -41,6 +68,35 @@ guide: {
   entity: purchase: {
     path: "/plans/{plan_id}/accounts": {
       op: list: method: *GET
+    }
+  }
+
+  entity: report: {
+    path: "/org/reports": {
+      action: "report": {}
+      op: list: method: *GET
+      op: list: transform: res: *("`body.results`")|top
+    }
+    path: "/org/reports/{report_id}/rerun": {
+      action: "rerun": {}
+      rename: param: "report_id": *"id"
+      op: create: method: *POST
+    }
+  }
+
+  entity: shop: {
+    path: "/shop": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: team: {
+    path: "/teams": {
+      op: list: method: *GET
+    }
+    path: "/teams/{team_id}": {
+      rename: param: "team_id": *"id"
+      op: load: method: *GET
     }
   }
 

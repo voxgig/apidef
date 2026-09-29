@@ -926,11 +926,10 @@ describe('apidef', () => {
   })
 
 
-  // A collection joins the owner of its item route, or of a composite key
-  // (stars). Beneath its item, a route owns it only when both answer with
-  // the same record: a token refresh joins the tokens, while the purchases
-  // of /plans/{plan_id}/accounts and a cancel that answers with a summary
-  // do not. go/apidef_test.go reads the base guide this writes.
+  // Each shape docs/reference/guide.md gives for collection paths: item,
+  // composite key, a read before a tag's delete, a verb or composed page on
+  // the same record, other records beneath the item, and a split list and
+  // create. go/apidef_test.go reads the base guide this writes.
   test('guide-collection-owner', async () => {
     const folder = __dirname + '/../test/collection-owner'
 
@@ -963,10 +962,16 @@ describe('apidef', () => {
         .sort()]))
     assert.deepStrictEqual(routes, {
       activity: ['DELETE /stars/{owner}/{repo}', 'GET /stars', 'PUT /stars/{owner}/{repo}'],
+      admin: ['DELETE /shop/gadgets/{gadget_id}', 'DELETE /teams/{team_id}'],
+      gadget: ['GET /shop/gadgets', 'GET /shop/gadgets/{gadget_id}', 'POST /shop/gadgets'],
       job: ['GET /jobs'],
       job_summary: ['POST /jobs/{job_id}/cancel'],
+      org: ['GET /org'],
       plan: ['GET /plans'],
       purchase: ['GET /plans/{plan_id}/accounts'],
+      report: ['GET /org/reports', 'POST /org/reports/{report_id}/rerun'],
+      shop: ['GET /shop'],
+      team: ['GET /teams', 'GET /teams/{team_id}'],
       token: ['GET /user/tokens', 'PUT /user/tokens/{slug}/refresh'],
       user: ['GET /user'],
     })

@@ -960,7 +960,7 @@ func TestGuideCollectionOwner(t *testing.T) {
 	}
 
 	gents, _ := res.Guide["entity"].(map[string]any)
-	if got, want := strings.Join(sortedKeys(gents), ","), "activity,job,job_summary,plan,purchase,token,user"; got != want {
+	if got, want := strings.Join(sortedKeys(gents), ","), "activity,admin,gadget,job,job_summary,org,plan,purchase,report,shop,team,token,user"; got != want {
 		t.Errorf("guide entities = %s, want %s", got, want)
 	}
 

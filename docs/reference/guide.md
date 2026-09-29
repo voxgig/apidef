@@ -255,7 +255,12 @@ first of these:
 
 The record a route answers with is the component of its response, of the
 items of an array response, or of the record its envelope carries (see
-[Response envelopes](#response-envelopes)). The `guide-collection-owner`
+[Response envelopes](#response-envelopes)). A component measured as a record
+for naming stays one, so a team that holds only its members is still a team.
+The operations on a collection path join one owner even when they sit on
+different entities, chosen by the record of the first operation in the order
+methods are considered, a read before a write, so a list and its create stay
+together. The `guide-collection-owner`
 tests in [`ts/test/apidef.test.ts`](../../ts/test/apidef.test.ts) and
 [`go/apidef_test.go`](../../go/apidef_test.go) pin the order on
 [`ts/test/def/collection-owner-def.json`](../../ts/test/def/collection-owner-def.json).

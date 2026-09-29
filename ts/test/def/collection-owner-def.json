@@ -1,106 +1,689 @@
 {
   "openapi": "3.0.0",
-  "info": { "title": "Collection Owner API", "version": "1.0.0" },
-  "servers": [ { "url": "https://api.example.com" } ],
+  "info": {
+    "title": "Collection Owner API",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.example.com"
+    }
+  ],
   "paths": {
     "/plans": {
       "get": {
         "operationId": "list-plans",
-        "responses": { "200": { "description": "OK", "content": { "application/json": {
-          "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Plan" } } } } } }
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Plan"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/plans/{plan_id}/accounts": {
       "get": {
         "operationId": "list-plan-accounts",
-        "parameters": [ { "name": "plan_id", "in": "path", "required": true, "schema": { "type": "string" } } ],
-        "responses": { "200": { "description": "OK", "content": { "application/json": {
-          "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Purchase" } } } } } }
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Purchase"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/jobs": {
       "get": {
         "operationId": "list-jobs",
-        "responses": { "200": { "description": "OK", "content": { "application/json": {
-          "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Job" } } } } } }
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Job"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/jobs/{job_id}/cancel": {
       "post": {
         "operationId": "cancel-job",
-        "parameters": [ { "name": "job_id", "in": "path", "required": true, "schema": { "type": "string" } } ],
-        "responses": { "200": { "description": "OK", "content": { "application/json": {
-          "schema": { "$ref": "#/components/schemas/JobSummary" } } } } }
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobSummary"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/user": {
       "get": {
         "operationId": "get-user",
-        "tags": [ "user" ],
-        "responses": { "200": { "description": "OK", "content": { "application/json": {
-          "schema": { "$ref": "#/components/schemas/User" } } } } }
+        "tags": [
+          "user"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/user/tokens": {
       "get": {
         "operationId": "list-user-tokens",
-        "tags": [ "user" ],
-        "responses": { "200": { "description": "OK", "content": { "application/json": {
-          "schema": { "type": "object", "properties": {
-            "count": { "type": "integer" },
-            "results": { "type": "array", "items": { "$ref": "#/components/schemas/Token" } } } } } } } }
+        "tags": [
+          "user"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Token"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/user/tokens/{slug}/refresh": {
       "put": {
         "operationId": "refresh-token",
-        "parameters": [ { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } } ],
-        "responses": { "200": { "description": "OK", "content": { "application/json": {
-          "schema": { "$ref": "#/components/schemas/Token" } } } } }
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Token"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/stars": {
       "get": {
         "operationId": "list-stars",
-        "responses": { "200": { "description": "OK", "content": { "application/json": {
-          "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Repository" } } } } } }
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Repository"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/stars/{owner}/{repo}": {
       "put": {
         "operationId": "star-repo",
-        "tags": [ "activity" ],
+        "tags": [
+          "activity"
+        ],
         "parameters": [
-          { "name": "owner", "in": "path", "required": true, "schema": { "type": "string" } },
-          { "name": "repo", "in": "path", "required": true, "schema": { "type": "string" } } ],
-        "responses": { "204": { "description": "Starred" } }
+          {
+            "name": "owner",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "repo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Starred"
+          }
+        }
       },
       "delete": {
         "operationId": "unstar-repo",
-        "tags": [ "activity" ],
+        "tags": [
+          "activity"
+        ],
         "parameters": [
-          { "name": "owner", "in": "path", "required": true, "schema": { "type": "string" } },
-          { "name": "repo", "in": "path", "required": true, "schema": { "type": "string" } } ],
-        "responses": { "204": { "description": "Unstarred" } }
+          {
+            "name": "owner",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "repo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Unstarred"
+          }
+        }
+      }
+    },
+    "/teams": {
+      "get": {
+        "operationId": "list-teams",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Team"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/teams/{team_id}": {
+      "get": {
+        "operationId": "get-team",
+        "parameters": [
+          {
+            "name": "team_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Team"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete-team",
+        "tags": [
+          "admin"
+        ],
+        "parameters": [
+          {
+            "name": "team_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          }
+        }
+      }
+    },
+    "/org": {
+      "get": {
+        "operationId": "get-org",
+        "tags": [
+          "org"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Org"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/org/reports": {
+      "get": {
+        "operationId": "list-org-reports",
+        "tags": [
+          "org"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "results": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Report"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/org/reports/{report_id}/rerun": {
+      "post": {
+        "operationId": "rerun-report",
+        "parameters": [
+          {
+            "name": "report_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Report"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/shop": {
+      "get": {
+        "operationId": "get-shop",
+        "tags": [
+          "shop"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Shop"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/shop/gadgets": {
+      "get": {
+        "operationId": "list-gadgets",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Gadget"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "create-gadget",
+        "tags": [
+          "shop"
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GadgetTicket"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/shop/gadgets/{gadget_id}": {
+      "get": {
+        "operationId": "get-gadget",
+        "parameters": [
+          {
+            "name": "gadget_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Gadget"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete-gadget",
+        "tags": [
+          "admin"
+        ],
+        "parameters": [
+          {
+            "name": "gadget_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          }
+        }
       }
     }
   },
   "components": {
     "schemas": {
-      "Plan": { "type": "object", "properties": {
-        "id": { "type": "string" }, "name": { "type": "string" } } },
-      "Purchase": { "type": "object", "properties": {
-        "id": { "type": "string" }, "plan_id": { "type": "string" } } },
-      "Job": { "type": "object", "properties": {
-        "id": { "type": "string" }, "status": { "type": "string" } } },
-      "JobSummary": { "type": "object", "properties": {
-        "id": { "type": "string" }, "state": { "type": "string" }, "cancelled": { "type": "boolean" } } },
-      "User": { "type": "object", "properties": {
-        "id": { "type": "string" }, "login": { "type": "string" } } },
-      "Token": { "type": "object", "properties": {
-        "slug": { "type": "string" }, "key": { "type": "string" } } },
-      "Repository": { "type": "object", "properties": {
-        "id": { "type": "string" }, "full_name": { "type": "string" } } }
+      "Plan": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "Purchase": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "plan_id": {
+            "type": "string"
+          }
+        }
+      },
+      "Job": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "JobSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "cancelled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "login": {
+            "type": "string"
+          }
+        }
+      },
+      "Token": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          }
+        }
+      },
+      "Repository": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "full_name": {
+            "type": "string"
+          }
+        }
+      },
+      "Member": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        }
+      },
+      "Team": {
+        "type": "object",
+        "properties": {
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Member"
+            }
+          }
+        }
+      },
+      "Gadget": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "GadgetTicket": {
+        "type": "object",
+        "properties": {
+          "ticket_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "Org": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "Report": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        }
+      },
+      "Shop": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      }
     }
   }
 }
