@@ -427,6 +427,41 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.strictEqual(entities.hive.op.load.points[0].t.res, '`body.hive`');
         node_assert_1.default.strictEqual(entities.garden.op.load.points[0].t.res, '`body`');
     });
+    // A page with no data of its own reads its one list of records past a list
+    // of scalars (metric) or an object (notification, preference), composed or
+    // not (branch), while a response with a state of its own is read whole
+    // (rollup). A create that
+    // only an Accepted response answers reads its envelope as the load does.
+    (0, node_test_1.test)('guide-page-side', async () => {
+        const folder = __dirname + '/../test/page-side';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'page-side', def: 'page-side-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: true,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        const entities = bres.apimodel.main.kit.entity;
+        const res = (ent, op) => entities[ent]?.op[op]?.points[0].t.res;
+        node_assert_1.default.strictEqual(res('metric', 'list'), '`body.data`');
+        node_assert_1.default.strictEqual(res('notification', 'list'), '`body.data`');
+        node_assert_1.default.strictEqual(res('preference', 'list'), '`body.workflows`');
+        node_assert_1.default.strictEqual(res('rollup', 'list'), '`body`');
+        node_assert_1.default.strictEqual(res('branch', 'list'), '`body.branches`');
+        node_assert_1.default.strictEqual(res('job', 'create'), '`body.data`');
+        node_assert_1.default.strictEqual(res('job', 'load'), '`body.data`');
+        // With no read beside it, the fields come from the Accepted answer too.
+        node_assert_1.default.strictEqual(res('export', 'create'), '`body.data`');
+        node_assert_1.default.deepStrictEqual(Object.keys(entities.export.fields).sort(), ['format', 'id', 'state', 'url']);
+    });
     // A trailing parameter under its entity's segment is the entity's key,
     // whatever the response component is called: a rare component named for
     // another view of it, or a tag on a write that answers with no component.
@@ -915,9 +950,9 @@ def: '${outprefix}def.yaml'
     });
     // A FastAPI document: no servers, a version prefix, trailing slashes,
     // fastapi-pagination pages, a list wrapper holding a meta object, and one
-    // holding an object of its own. Each list joins the record entity its
-    // item route names; the last stays wrapped, since nothing says which key
-    // holds the records. The base URL becomes a server variable.
+    // holding the filters it was read with. Each list joins the record entity
+    // its item route names, and reads its one list of records. The base URL
+    // becomes a server variable.
     (0, node_test_1.test)('guide-fastapi', async () => {
         const folder = __dirname + '/../test/fastapi';
         const build = await apidef_1.ApiDef.makeBuild({ folder });
@@ -948,7 +983,7 @@ def: '${outprefix}def.yaml'
         node_assert_1.default.strictEqual(entities.prompt.op.list.points[0].o, '/api/v1/prompts/');
         node_assert_1.default.strictEqual(entities.prompt.op.list.points[0].t.res, '`body.results`');
         node_assert_1.default.strictEqual(entities.tag.op.list.points[0].o, '/api/v1/tags/');
-        node_assert_1.default.strictEqual(entities.tag.op.list.points[0].t.res, '`body`');
+        node_assert_1.default.strictEqual(entities.tag.op.list.points[0].t.res, '`body.data`');
         const info = bres.apimodel.main.kit.info;
         node_assert_1.default.strictEqual(info.servers[0].url, '{base}');
         node_assert_1.default.ok(null != info.servers[0].variables?.base, 'the base variable is declared');

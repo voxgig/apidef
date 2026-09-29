@@ -1687,6 +1687,18 @@ func envelopeProp(resprops map[string]any, opname string) string {
 		}
 		if len(records) == 1 && isRecordList(resprops[records[0]]) {
 			structured = records
+		} else if !holdsOwnData(resprops) {
+			// Mirrors ts/src/utility.ts: a page with no data of its own reads
+			// its one list of records past a scalar list or an object.
+			lists := make([]string, 0, len(records))
+			for _, k := range records {
+				if isRecordList(resprops[k]) {
+					lists = append(lists, k)
+				}
+			}
+			if len(lists) == 1 {
+				structured = lists
+			}
 		}
 	}
 	if len(structured) != 1 {
@@ -1791,6 +1803,18 @@ func isEnvelopePageProp(name string) bool {
 		strings.HasSuffix(envelopePagingSepRE.ReplaceAllString(strings.ToLower(name), ""), "count")
 }
 
+// holdsOwnData mirrors ts/src/utility.ts: a property that is neither an
+// object nor a list, and neither status nor paging, is the response's own data.
+func holdsOwnData(resprops map[string]any) bool {
+	for k, v := range resprops {
+		islist, _ := propIsList(v)
+		if !isObjectSchema(v) && !islist && !isEnvelopeStatusProp(k) && !isEnvelopePageProp(k) {
+			return true
+		}
+	}
+	return false
+}
+
 // envelopeItemRef mirrors ts/src/utility.ts: the resolved reference of the
 // record strictEnvelopeProp unwraps to.
 func envelopeItemRef(schema any, opname string) string {
@@ -1836,13 +1860,18 @@ func strictEnvelopeProp(props map[string]any, opname string) string {
 }
 
 // composedEnvelopeProp mirrors ts/src/utility.ts: the envelope of a schema
-// composed with allOf, held to the strict rules.
+// composed with allOf, held to the strict rules unless it is a page with no
+// data of its own.
 func composedEnvelopeProp(schema any, opname string) string {
 	sch, _ := schema.(map[string]any)
 	if _, ok := sch["allOf"].([]any); !ok {
 		return ""
 	}
-	return strictEnvelopeProp(mergedProperties(sch), opname)
+	props := mergedProperties(sch)
+	if opname == "list" && props != nil && !holdsOwnData(props) {
+		return envelopeProp(props, opname)
+	}
+	return strictEnvelopeProp(props, opname)
 }
 
 // mergedProperties mirrors ts/src/utility.ts: the properties of a schema and

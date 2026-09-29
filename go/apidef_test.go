@@ -615,6 +615,60 @@ func TestGuideWrapperName(t *testing.T) {
 	}
 }
 
+// Mirrors the TS `guide-page-side` case.
+func TestGuidePageSide(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "page-side-")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, OutPrefix: "page-side-", Strategy: "heuristic01"}).
+		Generate(map[string]any{
+			"model": map[string]any{"name": "page-side", "def": "page-side-def.json"},
+			"build": map[string]any{"spec": map[string]any{"base": "../ts/test/def"}},
+			"ctrl": map[string]any{"step": map[string]any{
+				"parse": true, "guide": true, "transformers": true,
+				"builders": false, "generate": false,
+			}},
+		})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v", err)
+	}
+
+	entities, _ := res.Guide["entity"].(map[string]any)
+	opRes := func(ent, path, opname string) any {
+		e, _ := entities[ent].(map[string]any)
+		paths, _ := e["path"].(map[string]any)
+		pd, _ := paths[path].(map[string]any)
+		ops, _ := pd["op"].(map[string]any)
+		op, _ := ops[opname].(map[string]any)
+		tr, _ := op["transform"].(map[string]any)
+		return tr["res"]
+	}
+	for _, c := range []struct {
+		ent, path, op string
+		want          any
+	}{
+		{"metric", "/metrics", "list", "`body.data`"},
+		{"notification", "/notifications", "list", "`body.data`"},
+		{"preference", "/preferences", "list", "`body.workflows`"},
+		{"rollup", "/rollups", "list", nil},
+		{"branch", "/branches", "list", "`body.branches`"},
+		{"job", "/jobs", "create", "`body.data`"},
+		{"job", "/jobs/{id}", "load", "`body.data`"},
+		{"export", "/exports", "create", "`body.data`"},
+	} {
+		if got := opRes(c.ent, c.path, c.op); got != c.want {
+			t.Errorf("%s %s transform res = %v, want %v", c.ent, c.op, got, c.want)
+		}
+	}
+
+	main, _ := res.ApiModel["main"].(map[string]any)
+	kit, _ := main[KIT].(map[string]any)
+	ments, _ := kit["entity"].(map[string]any)
+	export, _ := ments["export"].(map[string]any)
+	fields, _ := export["fields"].(map[string]any)
+	if got, want := strings.Join(sortedKeys(fields), ","), "format,id,state,url"; got != want {
+		t.Errorf("export fields = %s, want %s", got, want)
+	}
+}
+
 func TestGuideTrailingKey(t *testing.T) {
 	folder := stageGuideEntry(t, t.TempDir(), "trailing-key-")
 	res, err := NewApiDef(ApiDefOptions{Folder: folder, OutPrefix: "trailing-key-", Strategy: "heuristic01"}).
@@ -2033,8 +2087,8 @@ func TestEntityFieldActivationDefaults(t *testing.T) {
 }
 
 // Mirrors the TS `guide-fastapi` case: no servers, a version prefix, a
-// trailing slash on each collection, fastapi-pagination pages and a list
-// wrapper holding a meta object.
+// trailing slash on each collection, fastapi-pagination pages, a list
+// wrapper holding a meta object and one holding the filters it was read with.
 func TestGuideFastapi(t *testing.T) {
 	folder := stageGuideEntry(t, t.TempDir(), "")
 	res, err := NewApiDef(ApiDefOptions{Folder: folder, Strategy: "heuristic01"}).Generate(map[string]any{
@@ -2094,8 +2148,8 @@ func TestGuideFastapi(t *testing.T) {
 		t.Errorf("prompt list res = %v, want `body.results`", ptr["res"])
 	}
 	ttr, _ := firstPoint("tag", "list")["t"].(map[string]any)
-	if ttr["res"] != "`body`" {
-		t.Errorf("tag list res = %v, want `body`", ttr["res"])
+	if ttr["res"] != "`body.data`" {
+		t.Errorf("tag list res = %v, want `body.data`", ttr["res"])
 	}
 
 	info, _ := kit["info"].(map[string]any)

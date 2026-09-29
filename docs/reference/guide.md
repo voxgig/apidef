@@ -124,11 +124,16 @@ returns that component when all of these hold:
 Whether a component is an envelope is decided once for the whole spec,
 before any entity is named:
 
-- An operation reads its result from its `200` response, or from its `201`
-  when it has no `200`; `transform.res` unwraps that same response. It
-  unwraps a component only there.
+- An operation reads its result from its `200` response, from its `201`
+  when it has no `200`, or from its `202` when it has neither, such as the
+  job each of Mux's robots queues; `transform.res` unwraps that same
+  response. It unwraps a component only there. An operation that only a
+  `202` answers takes the entity's fields from that answer too, as a
+  `200` would give them.
 - A component is an envelope only when every operation that answers with it
-  in a `200` or `201` response unwraps it.
+  in a `200` or `201` response unwraps it. A `202` names nothing: it says
+  the service accepted the work, and its body may describe the work rather
+  than the resource.
 - A component is not an envelope when another envelope carries the same
   record. The exception is one page and one single-item envelope where a
   route answering with the item lies at or beneath a route answering with
@@ -146,7 +151,9 @@ A response schema composed with `allOf` declares no `properties` of its
 own, so `transform.res` reads the properties of its members together, the
 first declaration of a name winning. It unwraps such a schema only when the
 first three of the preceding rules hold, because most composed schemas are
-records, and the one nested object of a record is its data. Lob's address list,
+records, and the one nested object of a record is its data. A composed page
+with no data of its own is the exception, and reads its one array of records
+as a plain page does (see below). Lob's address list,
 `allOf[list, { data: [address] }]`, reads `body.data`. The entity's fields
 then come from the records the envelope holds. When those records are a
 `oneOf` with no properties of their own, the fields come from the response
@@ -177,6 +184,22 @@ list whose items are a `oneOf` of strings and nulls: a composition holds
 records only when one of its branches is an object. The rows of
 [`ts/test/envelope-prop.tsv`](../../ts/test/envelope-prop.tsv) pin it in both
 builds.
+
+A page that holds no data of its own reads its one array of records past
+the other structured properties beside it. When every scalar beside the
+records is a status, paging or count property, the list reads the one array
+of records, past a list of scalars, such as Mux's `timeframe`, and past an
+object, such as the `filter` Novu echoes beside its notifications, the
+`filters` of a FastAPI page, Neon's branch `annotations` or Novu's `global`
+preferences beside the workflows. A scalar of its own makes the response a
+record that holds a list, such as a combined status whose `state` sits
+beside its `statuses`, so the list reads it whole, as it reads a page with
+more than one array of records. A page composed with `allOf` reads the same way, such as
+Neon's branch list, `allOf[branches, annotations, pagination]`. The rows of
+[`ts/test/envelope-prop.tsv`](../../ts/test/envelope-prop.tsv) and
+[`ts/test/composed-envelope-prop.tsv`](../../ts/test/composed-envelope-prop.tsv)
+and the `guide-page-side` tests pin it in both builds, on
+[`ts/test/def/page-side-def.json`](../../ts/test/def/page-side-def.json).
 
 A property named after the entity unwraps a response only when the response
 is not the component the entity is named from. That component is the record

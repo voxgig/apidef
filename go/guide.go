@@ -2642,16 +2642,21 @@ func getRequestBodySchema(requestBody map[string]any) map[string]any {
 	return nil
 }
 
-// successResponse mirrors ts/src/guide/heuristic01.ts.
+// successResponse mirrors ts/src/guide/heuristic01.ts, down to an Accepted
+// response when nothing else answers.
 func successResponse(responses map[string]any) map[string]any {
 	if r200, ok := responses["200"].(map[string]any); ok {
 		return r200
 	}
-	r201, _ := responses["201"].(map[string]any)
-	return r201
+	if r201, ok := responses["201"].(map[string]any); ok {
+		return r201
+	}
+	r202, _ := responses["202"].(map[string]any)
+	return r202
 }
 
-// successSchemas mirrors ts/src/guide/heuristic01.ts.
+// successSchemas mirrors ts/src/guide/heuristic01.ts: an Accepted response
+// names nothing.
 func successSchemas(responses map[string]any) []map[string]any {
 	var schemas []map[string]any
 	for _, rescode := range []string{"200", "201"} {
