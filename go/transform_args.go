@@ -158,8 +158,18 @@ func resolveArgs(
 			}
 		}
 
+		// Mirrors ts/src/transform/args.ts: a path argument is named by the
+		// lookup that names its segment, and is required when it fills a placeholder.
+		path := kind == "param"
+		fills := false
+		for _, p := range placeholders {
+			if path && (p == argName || CanonizeParam(p) == orig) {
+				fills = true
+				break
+			}
+		}
 		name := orig
-		if placed {
+		if path {
 			name = ParamName(argName, paramRename)
 		} else if rename != nil {
 			if kindRename, ok := rename[kind].(map[string]any); ok {
@@ -186,7 +196,7 @@ func resolveArgs(
 			"or": argName,
 			"t":  fieldType,
 			"k":  kind,
-			"r":  placed || toBool(argdef["required"]),
+			"r":  fills || toBool(argdef["required"]),
 			"a":  true,
 		}
 

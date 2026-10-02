@@ -158,11 +158,14 @@ function resolveArgs(
         param: argdef.name,
       })
     }
-    // Rename map can be keyed by either the spec original (camelCase) or by
-    // the snakified form depending on which path went through heuristic01.
-    // Try both before falling through to `orig`.
+    // A path argument is named by the lookup that names its segment, so the
+    // two agree under a raw rename key, and one that fills a placeholder is
+    // required, as OpenAPI requires; a GraphQL argument keeps its own flag.
+    // Any other rename map is keyed by the spec original or the snakified form.
+    const path = 'param' === kind
+    const fills = path && placeholders.some((p) => p === argdef.name || canonizeParam(p) === orig)
     const renameMap = mpoint.r[kind]
-    const name = placed ? paramName(argdef.name, mpoint.r.param) :
+    const name = path ? paramName(argdef.name, mpoint.r.param) :
       (renameMap?.[specName] ?? renameMap?.[orig] ?? orig)
     const schema = paramSchema(argdef)
     // The name the definition gives, which the SDK sends on the wire. The
@@ -172,7 +175,7 @@ function resolveArgs(
       or: String(argdef.name),
       t: inferFieldType(name, validator(schema?.type)),
       k: kind,
-      r: placed || !!argdef.required
+      r: fills || !!argdef.required
     }
 
     const example = resolveArgExample(argdef, schema)
