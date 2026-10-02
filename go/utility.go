@@ -620,6 +620,21 @@ var (
 	multiHyphenRE = regexp.MustCompile(`-+`)
 )
 
+func CanonizeParam(name string) string {
+	return Depluralize(Snakify(NormalizeFieldName(name)))
+}
+
+// A guide may key a rename by the definition's spelling, its normalized form
+// or its canonical form.
+func ParamName(wire string, renames map[string]any) string {
+	for _, key := range []string{wire, NormalizeFieldName(wire), CanonizeParam(wire)} {
+		if target, ok := renames[key].(string); ok && target != "" {
+			return target
+		}
+	}
+	return CanonizeParam(wire)
+}
+
 // reCmpVersion splits a trailing _v<N> off a canonized component name.
 var reCmpVersion = regexp.MustCompile(`^(.*)_v(\d+)$`)
 

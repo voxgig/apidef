@@ -68,6 +68,7 @@ the `why_*` traces and the entity/op assignments directly.
 | `ENOENT … <prefix>guide.aontu` | missing guide entry file | create it — [the guide file](../reference/configuration.md#the-guide-file) |
 | `no server URL in the definition` warning | spec has no `servers[0].url` | add a `servers:` entry, pass the `server` option, or supply `base` to the SDK |
 | `have the same selector` warning | points of one operation take the same path parameters, required arguments and action, so only the first is ever chosen | give one of the named paths an `action`, or another entity, in the guide entry file |
+| `` has no `in` `` warning | the definition declares a parameter without its location; apidef takes it as the path parameter its name spells, or else as a query argument | add the `in` to the definition upstream |
 | `source not found: @voxgig/apidef/model/...` | package not resolvable from the guide file | install `@voxgig/apidef` in the project |
 | `SUMMARY (1 errors): [aontu/<code>]: …` | the guide entry, or a file it includes, does not unify | the `-->` file and line in the message |
 | `defines no guide map` | the guide entry file lacks its includes | [the guide file](../reference/configuration.md#the-guide-file) |

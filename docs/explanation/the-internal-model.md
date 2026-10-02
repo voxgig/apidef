@@ -56,7 +56,10 @@ ancestor and item identifiers pulled from the path. Each arg records both its
 canonical `n` (e.g. `id`) and its `or` wire name (e.g. `planet_id`), plus
 whether it is required (`r`) and its inferred `t`. That dual naming is
 why the SDK can present a clean `id` argument while still constructing the
-correct URL.
+correct URL. A placeholder that shares its path element with other text, as
+`{threadId}` does in `{threadId}.json`, stays in that element's `{ lit }`,
+spelled with its argument's `n` (`{thread_id}.json`), the name the SDK fills
+it by.
 
 ## Select describes *which* instance
 

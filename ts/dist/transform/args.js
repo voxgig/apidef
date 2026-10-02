@@ -69,6 +69,7 @@ const ARG_KIND = {
 };
 function resolveArgs(ctx, ment, mop, mpoint, argdefs) {
     const touchedKeys = new Set();
+    const placeholders = [...String(mpoint.o ?? '').matchAll(/\{([^}]+)\}/g)].map((m) => m[1]);
     (0, jostraca_1.each)(argdefs, (argdef) => {
         const specName = (0, utility_1.normalizeFieldName)(argdef.name);
         const orig = (0, utility_1.depluralize)((0, jostraca_1.snakify)(specName));
@@ -85,7 +86,23 @@ function resolveArgs(ctx, ment, mop, mpoint, argdefs) {
             });
             return;
         }
-        const kind = ARG_KIND[argdef.in] ?? 'query';
+        let kind = ARG_KIND[argdef.in] ?? 'query';
+        const where = argdef.in;
+        if ('string' !== typeof where || '' === where) {
+            const placed = placeholders.includes(argdef.name);
+            kind = placed ? 'param' : 'query';
+            ctx?.warn?.({
+                note: `Parameter ${argdef.name} on entity=${ment.name} op=${mop.name}` +
+                    ` path=${mpoint.o} has no \`in\`` +
+                    (placed ? `; it names the path placeholder {${argdef.name}}, so it is taken as` +
+                        ' a path parameter.' : ', so it is taken as a query parameter.') +
+                    ' A parameter needs an `in`.',
+                entity: ment.name,
+                path: mpoint.o,
+                op: mop.name,
+                param: argdef.name,
+            });
+        }
         // Rename map can be keyed by either the spec original (camelCase) or by
         // the snakified form depending on which path went through heuristic01.
         // Try both before falling through to `orig`.
@@ -116,12 +133,11 @@ function resolveArgs(ctx, ment, mop, mpoint, argdefs) {
     // DELETE /call/{id}, still takes a value: it gets a required string
     // argument under its own name, and a warning.
     if ('graphql' !== mpoint.k) {
-        const canon = (wire) => (0, utility_1.depluralize)((0, jostraca_1.snakify)((0, utility_1.normalizeFieldName)(wire)));
-        const declared = new Set((mpoint.g.params ?? []).map((arg) => canon(String(arg.or))));
-        for (const [, wire] of String(mpoint.o ?? '').matchAll(/\{([^}]+)\}/g)) {
-            const orig = canon(wire);
-            const renameMap = mpoint.r.param;
-            const name = renameMap?.[wire] ?? renameMap?.[(0, utility_1.normalizeFieldName)(wire)] ?? renameMap?.[orig] ?? orig;
+        const declared = new Set((mpoint.g.params ?? [])
+            .map((arg) => (0, utility_1.canonizeParam)(String(arg.or))));
+        for (const wire of placeholders) {
+            const orig = (0, utility_1.canonizeParam)(wire);
+            const name = (0, utility_1.paramName)(wire, mpoint.r.param);
             // A declared parameter the placeholder is renamed to already fills it.
             if ('' === orig || declared.has(orig) ||
                 (mpoint.g.params ?? []).some((arg) => arg.n === name))

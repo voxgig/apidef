@@ -381,12 +381,12 @@ func resolvePathList(guideEntity map[string]any, def map[string]any) []map[strin
 		var segments []map[string]any
 		for _, part := range splitPath(orig) {
 			if len(part) < 2 || part[0] != '{' || part[len(part)-1] != '}' {
-				segments = append(segments, map[string]any{"lit": part})
+				segments = append(segments, map[string]any{"lit": nameLitParams(part, paramRename)})
 				continue
 			}
 			raw := part[1 : len(part)-1]
 			if raw == "" || strings.ContainsAny(raw, "{}") {
-				segments = append(segments, map[string]any{"lit": part})
+				segments = append(segments, map[string]any{"lit": nameLitParams(part, paramRename)})
 				continue
 			}
 			name := raw
@@ -431,6 +431,19 @@ func resolvePathList(guideEntity map[string]any, def map[string]any) []map[strin
 	}
 
 	return pathsDesc
+}
+
+var litParamRE = regexp.MustCompile(`\{([^{}]+)\}`)
+
+// The runtimes fill a literal's placeholders by their parameters' model names.
+func nameLitParams(lit string, renames map[string]any) string {
+	return litParamRE.ReplaceAllStringFunc(lit, func(placeholder string) string {
+		name := ParamName(placeholder[1:len(placeholder)-1], renames)
+		if name == "" {
+			return placeholder
+		}
+		return "{" + name + "}"
+	})
 }
 
 // BuildRelations determines entity relationships from path structure.

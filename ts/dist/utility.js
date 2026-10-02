@@ -31,6 +31,8 @@ exports.specSecuredByDefault = specSecuredByDefault;
 exports.ensureMinEntityName = ensureMinEntityName;
 exports.inferFieldType = inferFieldType;
 exports.normalizeFieldName = normalizeFieldName;
+exports.canonizeParam = canonizeParam;
+exports.paramName = paramName;
 exports.humanTitle = humanTitle;
 exports.prefixLeadingDigit = prefixLeadingDigit;
 exports.debugpath = debugpath;
@@ -968,6 +970,21 @@ function normalizeFieldName(s) {
         .replace(/[\[\].]+/g, '_')
         .replace(/_+/g, '_')
         .replace(/^_|_$/g, '');
+}
+function canonizeParam(name) {
+    return depluralize((0, jostraca_1.snakify)(normalizeFieldName(name)));
+}
+// A guide may key a rename by the definition's spelling, its normalized form
+// or its canonical form.
+function paramName(wire, renames) {
+    for (const key of [wire, normalizeFieldName(wire), canonizeParam(wire)]) {
+        const target = null != renames && Object.prototype.hasOwnProperty.call(renames, key) ?
+            renames[key] : undefined;
+        if ('string' === typeof target && '' !== target) {
+            return target;
+        }
+    }
+    return canonizeParam(wire);
 }
 const MIN_ENTITY_NAME_LEN = 3;
 const MAX_ENTITY_NAME_LEN = 67;

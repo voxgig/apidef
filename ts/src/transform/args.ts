@@ -4,7 +4,14 @@ import { each, snakify } from 'jostraca'
 
 import type { TransformResult, Transform } from '../transform'
 
-import { formatJSONIC, depluralize, inferFieldType, normalizeFieldName, validator } from '../utility'
+import {
+  depluralize,
+  canonizeParam,
+  inferFieldType,
+  normalizeFieldName,
+  paramName,
+  validator,
+} from '../utility'
 
 
 import { KIT } from '../types'
@@ -113,6 +120,7 @@ function resolveArgs(
   ment: ModelEntity, mop: ModelOp, mpoint: ModelPoint, argdefs: ParameterDef[]
 ) {
   const touchedKeys = new Set<string>()
+  const placeholders = [...String(mpoint.o ?? '').matchAll(/\{([^}]+)\}/g)].map((m) => m[1])
 
   each(argdefs, (argdef: ParameterDef) => {
     const specName = normalizeFieldName(argdef.name)
@@ -132,7 +140,23 @@ function resolveArgs(
       return
     }
 
-    const kind = ARG_KIND[argdef.in] ?? 'query'
+    let kind = ARG_KIND[argdef.in] ?? 'query'
+    const where: unknown = argdef.in
+    if ('string' !== typeof where || '' === where) {
+      const placed = placeholders.includes(argdef.name)
+      kind = placed ? 'param' : 'query'
+      ctx?.warn?.({
+        note: `Parameter ${argdef.name} on entity=${ment.name} op=${mop.name}` +
+          ` path=${mpoint.o} has no \`in\`` +
+          (placed ? `; it names the path placeholder {${argdef.name}}, so it is taken as` +
+            ' a path parameter.' : ', so it is taken as a query parameter.') +
+          ' A parameter needs an `in`.',
+        entity: ment.name,
+        path: mpoint.o,
+        op: mop.name,
+        param: argdef.name,
+      })
+    }
     // Rename map can be keyed by either the spec original (camelCase) or by
     // the snakified form depending on which path went through heuristic01.
     // Try both before falling through to `orig`.
@@ -167,12 +191,11 @@ function resolveArgs(
   // DELETE /call/{id}, still takes a value: it gets a required string
   // argument under its own name, and a warning.
   if ('graphql' !== mpoint.k) {
-    const canon = (wire: string) => depluralize(snakify(normalizeFieldName(wire)))
-    const declared = new Set((mpoint.g.params ?? []).map((arg: ModelArg) => canon(String(arg.or))))
-    for (const [, wire] of String(mpoint.o ?? '').matchAll(/\{([^}]+)\}/g)) {
-      const orig = canon(wire)
-      const renameMap = mpoint.r.param
-      const name = renameMap?.[wire] ?? renameMap?.[normalizeFieldName(wire)] ?? renameMap?.[orig] ?? orig
+    const declared = new Set((mpoint.g.params ?? [])
+      .map((arg: ModelArg) => canonizeParam(String(arg.or))))
+    for (const wire of placeholders) {
+      const orig = canonizeParam(wire)
+      const name = paramName(wire, mpoint.r.param)
       // A declared parameter the placeholder is renamed to already fills it.
       if ('' === orig || declared.has(orig) ||
         (mpoint.g.params ?? []).some((arg: ModelArg) => arg.n === name)) continue
