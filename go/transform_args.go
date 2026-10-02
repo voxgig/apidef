@@ -171,12 +171,8 @@ func resolveArgs(
 			}
 		}
 
-		var schemaType any
-		if schema, ok := argdef["schema"].(map[string]any); ok {
-			schemaType = schema["type"]
-		}
-
-		var fieldType any = InferFieldType(name, Validator(schemaType))
+		schema := paramSchema(argdef)
+		var fieldType any = InferFieldType(name, Validator(schema["type"]))
 
 		// Handle nullable parameters
 		if toBool(argdef["nullable"]) {
@@ -194,7 +190,7 @@ func resolveArgs(
 			"a":  true,
 		}
 
-		if example, has := resolveArgExample(argdef); has {
+		if example, has := resolveArgExample(argdef, schema); has {
 			marg["ex"] = example
 		}
 
@@ -312,7 +308,29 @@ func toLower(s string) string {
 	return string(result)
 }
 
-func resolveArgExample(argdef map[string]any) (any, bool) {
+// paramSchema mirrors ts/src/transform/args.ts: type facts sit on a Swagger 2
+// parameter itself, and under `schema` in OpenAPI 3.
+func paramSchema(argdef map[string]any) map[string]any {
+	if s, has := argdef["schema"]; has && s != nil {
+		schema, _ := s.(map[string]any)
+		return schema
+	}
+	if argdef["in"] == "formData" {
+		return nil
+	}
+	if argdef["type"] != "file" {
+		return argdef
+	}
+	binary := make(map[string]any, len(argdef)+1)
+	for k, v := range argdef {
+		binary[k] = v
+	}
+	binary["type"] = "string"
+	binary["format"] = "binary"
+	return binary
+}
+
+func resolveArgExample(argdef map[string]any, schema map[string]any) (any, bool) {
 	if v, has := argdef["example"]; has && v != nil {
 		return v, true
 	}
@@ -330,13 +348,11 @@ func resolveArgExample(argdef map[string]any) (any, bool) {
 		}
 	}
 
-	if schema, ok := argdef["schema"].(map[string]any); ok {
-		if v, has := schema["example"]; has && v != nil {
-			return v, true
-		}
-		if v, has := schema["default"]; has && v != nil {
-			return v, true
-		}
+	if v, has := schema["example"]; has && v != nil {
+		return v, true
+	}
+	if v, has := schema["default"]; has && v != nil {
+		return v, true
 	}
 
 	return nil, false

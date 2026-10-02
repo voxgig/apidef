@@ -105,7 +105,7 @@
                 "n": "id",
                 "or": "petId",
                 "r": true,
-                "t": "`$STRING`"
+                "t": "`$INTEGER`"
               }
             ],
             "query": [
@@ -175,7 +175,7 @@
                 "n": "id",
                 "or": "petId",
                 "r": true,
-                "t": "`$STRING`"
+                "t": "`$INTEGER`"
               }
             ],
             "query": [
@@ -259,7 +259,7 @@
                 "n": "status",
                 "or": "status",
                 "r": true,
-                "t": "`$ANY`"
+                "t": "`$ARRAY`"
               }
             ]
           },
@@ -307,7 +307,7 @@
                 "n": "tag",
                 "or": "tags",
                 "r": true,
-                "t": "`$ANY`"
+                "t": "`$ARRAY`"
               }
             ]
           },
@@ -360,7 +360,7 @@
                 "n": "id",
                 "or": "petId",
                 "r": true,
-                "t": "`$STRING`"
+                "t": "`$INTEGER`"
               }
             ]
           },
@@ -417,7 +417,7 @@
                 "n": "api_key",
                 "or": "api_key",
                 "r": false,
-                "t": "`$ANY`"
+                "t": "`$STRING`"
               }
             ],
             "params": [
@@ -426,7 +426,7 @@
                 "n": "id",
                 "or": "petId",
                 "r": true,
-                "t": "`$STRING`"
+                "t": "`$INTEGER`"
               }
             ]
           },

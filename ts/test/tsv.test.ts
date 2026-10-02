@@ -848,6 +848,43 @@ describe('tsv-resolve-args', () => {
 })
 
 
+// A Swagger 2 row's `openapi3` column is the parameter it converts to, which
+// must give the same argument.
+describe('tsv-param-schema', () => {
+  const rows = loadTsv('param-schema')
+  test('has rows', () => assert.ok(0 < rows.length))
+
+  async function argsOf(path: string, parameter: any) {
+    const point: any = {
+      o: path, m: 'GET', r: { param: {} }, g: {}, q: { exist: [] }, t: {},
+    }
+    const warnings: any[] = []
+    await argsTransform({
+      apimodel: { main: { kit: { entity: { widget: {
+        name: 'widget', op: { load: { name: 'load', points: [point] } },
+      } } } } },
+      def: { paths: { [path]: { get: { parameters: [parameter] } } } },
+      warn: (warning: any) => warnings.push(warning),
+    } as any)
+    assert.deepStrictEqual(warnings.map((warning) => warning.note), [])
+    return Object.values(point.g).flat().map((arg: any) => ({
+      n: arg.n, or: arg.or, t: arg.t, k: arg.k, r: arg.r,
+      ...(undefined === arg.ex ? {} : { ex: arg.ex }),
+    }))
+  }
+
+  for (const row of rows) {
+    test(row.name, async () => {
+      const want = [JSON.parse(row.arg)]
+      assert.deepStrictEqual(await argsOf(row.path, JSON.parse(row.parameter)), want)
+      if ('-' !== row.openapi3) {
+        assert.deepStrictEqual(await argsOf(row.path, JSON.parse(row.openapi3)), want)
+      }
+    })
+  }
+})
+
+
 describe('tsv-closed-body-transform', () => {
   const rows = loadTsv('closed-body-transform')
   for (const row of rows) {

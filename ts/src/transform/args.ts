@@ -164,17 +164,18 @@ function resolveArgs(
     const renameMap = mpoint.r[kind]
     const name = placed ? paramName(argdef.name, mpoint.r.param) :
       (renameMap?.[specName] ?? renameMap?.[orig] ?? orig)
+    const schema = paramSchema(argdef)
     // The name the definition gives, which the SDK sends on the wire. The
     // model name beside it is only what a caller writes.
     const marg: ModelArg = {
       n: name,
       or: String(argdef.name),
-      t: inferFieldType(name, validator(argdef.schema?.type)),
+      t: inferFieldType(name, validator(schema?.type)),
       k: kind,
       r: placed || !!argdef.required
     }
 
-    const example = resolveArgExample(argdef)
+    const example = resolveArgExample(argdef, schema)
     if (undefined !== example) {
       marg.ex = example
     }
@@ -223,7 +224,21 @@ function resolveArgs(
 }
 
 
-function resolveArgExample(argdef: any): any {
+// Type facts sit on a Swagger 2 parameter itself, and under `schema` in
+// OpenAPI 3. A formData parameter converts to a body field, not a parameter.
+function paramSchema(argdef: any): any {
+  if (null != argdef?.schema) {
+    return argdef.schema
+  }
+  if ('formData' === argdef?.in) {
+    return undefined
+  }
+  // Swagger 2's file type is a binary string in OpenAPI 3.
+  return 'file' === argdef?.type ? { ...argdef, type: 'string', format: 'binary' } : argdef
+}
+
+
+function resolveArgExample(argdef: any, schema: any): any {
   if (undefined !== argdef?.example) return argdef.example
 
   const examples = argdef?.examples
@@ -235,7 +250,6 @@ function resolveArgExample(argdef: any): any {
     }
   }
 
-  const schema = argdef?.schema
   if (schema) {
     if (undefined !== schema.example) return schema.example
     if (undefined !== schema.default) return schema.default

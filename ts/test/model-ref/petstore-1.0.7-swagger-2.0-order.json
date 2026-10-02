@@ -116,7 +116,7 @@
                 "n": "id",
                 "or": "orderId",
                 "r": true,
-                "t": "`$STRING`"
+                "t": "`$INTEGER`"
               }
             ]
           },
