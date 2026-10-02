@@ -5,8 +5,11 @@ package apidef
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"reflect"
 	"regexp"
+	"sort"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -19,44 +22,47 @@ var yamlCommentRE = regexp.MustCompile(`(?m)^\s*#.*$`)
 
 // Parse parses an API definition source into a structured map.
 func Parse(kind string, source string, meta map[string]string) (map[string]any, error) {
+	def, _, err := parseDefinition(kind, source, meta)
+	return def, err
+}
+
+// parseDefinition also returns the declared order of the security schemes,
+// which the plain maps of the definition lose.
+func parseDefinition(kind string, source string, meta map[string]string) (map[string]any, []string, error) {
 	if kind == "OpenAPI" {
 		source = wellFormedUTF8(source)
 		if err := validateSource(kind, source, meta); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-
-		def, err := parseOpenAPI(source, meta)
-		if err != nil {
-			return nil, err
-		}
-		return def, nil
+		return parseOpenAPI(source, meta)
 	}
-	return nil, fmt.Errorf("@voxgig/apidef: parse: unknown kind: %s (%s)",
+	return nil, nil, fmt.Errorf("@voxgig/apidef: parse: unknown kind: %s (%s)",
 		kind, RelativizePath(meta["file"]))
 }
 
-func parseOpenAPI(source string, meta map[string]string) (map[string]any, error) {
+func parseOpenAPI(source string, meta map[string]string) (map[string]any, []string, error) {
 	var parsed map[string]any
 
 	// Use tabnas/yaml to parse (handles both JSON and YAML)
 	result, err := yaml.Parse(source)
+	schemeOrder := declaredSchemeOrder(result)
 	// tabnas/yaml returns insertion-ordered *tabnas.OrderedMap nodes;
 	// apidef works on plain maps, so flatten them back.
 	result = tabnas.Plainify(result)
 	if err != nil {
 		// Wrap parse errors with context
 		if strings.Contains(err.Error(), "jsonic") {
-			return nil, fmt.Errorf("@voxgig/apidef: parse: syntax: %s (%s)",
+			return nil, nil, fmt.Errorf("@voxgig/apidef: parse: syntax: %s (%s)",
 				err.Error(), RelativizePath(meta["file"]))
 		}
-		return nil, fmt.Errorf("@voxgig/apidef: parse: syntax: %s (%s)",
+		return nil, nil, fmt.Errorf("@voxgig/apidef: parse: syntax: %s (%s)",
 			err.Error(), RelativizePath(meta["file"]))
 	}
 
 	// Validate parsed result is a non-null object
 	m, ok := result.(map[string]any)
 	if !ok || m == nil {
-		return nil, fmt.Errorf(
+		return nil, nil, fmt.Errorf(
 			"@voxgig/apidef: parse: JSON/YAML source must be an object (%s)",
 			RelativizePath(meta["file"]))
 	}
@@ -66,7 +72,7 @@ func parseOpenAPI(source string, meta map[string]string) (map[string]any, error)
 	_, hasOpenAPI := parsed["openapi"]
 	_, hasSwagger := parsed["swagger"]
 	if !hasOpenAPI && !hasSwagger {
-		return nil, fmt.Errorf(
+		return nil, nil, fmt.Errorf(
 			"@voxgig/apidef: parse: Unsupported spec: missing 'openapi' or 'swagger' version field (%s)",
 			RelativizePath(meta["file"]))
 	}
@@ -94,7 +100,50 @@ func parseOpenAPI(source string, meta map[string]string) (map[string]any, error)
 
 	// Skip Decircular for now — addXRefsAndResolve uses identity tracking
 	// which prevents true circular references from being created.
-	return parsed, nil
+	return parsed, schemeOrder, nil
+}
+
+// declaredSchemeOrder reads the scheme names from the ordered parse, in the
+// order the TypeScript's Object.keys gives them.
+func declaredSchemeOrder(root any) []string {
+	doc, _ := root.(*tabnas.OrderedMap)
+	if doc == nil {
+		return nil
+	}
+	var schemes any
+	if components, ok := doc.Vals["components"].(*tabnas.OrderedMap); ok {
+		schemes = components.Vals["securitySchemes"]
+	}
+	if schemes == nil {
+		schemes = doc.Vals["securityDefinitions"]
+	}
+	if ordered, ok := schemes.(*tabnas.OrderedMap); ok {
+		return jsKeyOrder(ordered.Keys)
+	}
+	return nil
+}
+
+// jsKeyOrder puts array index keys first, ascending, as JavaScript orders
+// an object's own keys; the rest keep their order.
+func jsKeyOrder(keys []string) []string {
+	index, rest := []string{}, []string{}
+	for _, key := range keys {
+		if isArrayIndex(key) {
+			index = append(index, key)
+		} else {
+			rest = append(rest, key)
+		}
+	}
+	sort.SliceStable(index, func(i, j int) bool {
+		return len(index[i]) < len(index[j]) ||
+			(len(index[i]) == len(index[j]) && index[i] < index[j])
+	})
+	return append(index, rest...)
+}
+
+func isArrayIndex(key string) bool {
+	n, err := strconv.ParseUint(key, 10, 32)
+	return err == nil && n < math.MaxUint32 && key == strconv.FormatUint(n, 10)
 }
 
 func annotateExamplesOrder(source string, parsed map[string]any) {

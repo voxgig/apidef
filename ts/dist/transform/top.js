@@ -10,6 +10,7 @@ exports.findAuthPrefix = findAuthPrefix;
 const struct_1 = require("@voxgig/struct");
 const types_1 = require("../types");
 const utility_1 = require("../utility");
+const resolved_1 = require("../resolved");
 const topTransform = async function (ctx) {
     const { apimodel, def } = ctx;
     const kit = apimodel.main[types_1.KIT];
@@ -209,18 +210,86 @@ function homepageFromServer(url) {
 function isHttpUrl(v) {
     return 'string' === typeof v && /^https?:\/\//i.test(v.trim());
 }
+// A client sends one credential, so the primary scheme comes from an entry
+// naming a single scheme: the one every secured operation lists first, else
+// the definition's first, else the first declared scheme. Every other entry
+// the operations accept is an alternative, its schemes sent together.
 function resolveSecurity(def) {
-    const schemes = def.components?.securitySchemes ?? def.securityDefinitions ?? {};
-    let schemeName = Array.isArray(def.security) && def.security[0] &&
-        'object' === typeof def.security[0] ?
-        Object.keys(def.security[0])[0] : undefined;
-    if (null == schemeName || null == schemes[schemeName]) {
-        schemeName = Object.keys(schemes)[0];
-    }
+    const defined = def.components?.securitySchemes ?? def.securityDefinitions;
+    const schemes = isObject(defined) ? defined : {};
+    const declared = (name) => Object.prototype.hasOwnProperty.call(schemes, name) && isObject(schemes[name]);
+    const opsecurity = operationSecurity(def);
+    const firsts = new Set(opsecurity.map((reqs) => firstSingleScheme(reqs, declared)));
+    firsts.delete(undefined);
+    const schemeName = (1 === firsts.size ? [...firsts][0] : undefined) ??
+        firstSingleScheme(def.security, declared) ??
+        Object.keys(schemes)[0];
     const scheme = null == schemeName ? null : schemes[schemeName];
-    if (null == scheme || 'object' !== typeof scheme) {
+    if (!isObject(scheme)) {
         return null;
     }
+    const out = describeScheme(def, schemeName, scheme);
+    const alternatives = otherSchemeSets(0 < opsecurity.length ? opsecurity : [def.security], schemeName, declared);
+    if (0 < alternatives.length) {
+        out.alternatives = alternatives.map((names) => names.map((name) => describeScheme(def, name, schemes[name])));
+    }
+    return out;
+}
+function isObject(v) {
+    return null != v && 'object' === typeof v && !Array.isArray(v);
+}
+// Each operation's security list: its own, else the definition's.
+function operationSecurity(def) {
+    const out = [];
+    for (const [, pathItem] of (0, utility_1.sortedEntries)(isObject(def.paths) ? def.paths : {})) {
+        if (!isObject(pathItem))
+            continue;
+        for (const method of resolved_1.METHODS) {
+            const op = pathItem[method];
+            if (!isObject(op))
+                continue;
+            const reqs = Array.isArray(op.security) ? op.security : def.security;
+            if (Array.isArray(reqs))
+                out.push(reqs);
+        }
+    }
+    return out;
+}
+// Sorted, so a set of schemes compares and prints the same in both ports.
+function schemeSet(req) {
+    return isObject(req) ? Object.keys(req).sort() : null;
+}
+function firstSingleScheme(reqs, declared) {
+    if (!Array.isArray(reqs))
+        return undefined;
+    for (const req of reqs) {
+        const names = schemeSet(req);
+        if (null != names && 1 === names.length && declared(names[0])) {
+            return names[0];
+        }
+    }
+    return undefined;
+}
+function otherSchemeSets(lists, primary, declared) {
+    const seen = new Set([JSON.stringify([primary])]);
+    const out = [];
+    for (const reqs of lists) {
+        if (!Array.isArray(reqs))
+            continue;
+        for (const req of reqs) {
+            const names = schemeSet(req);
+            if (null == names || 0 === names.length || !names.every(declared))
+                continue;
+            const key = JSON.stringify(names);
+            if (!seen.has(key)) {
+                seen.add(key);
+                out.push(names);
+            }
+        }
+    }
+    return out;
+}
+function describeScheme(def, schemeName, scheme) {
     const type = String(scheme.type ?? '').toLowerCase();
     const out = {
         scheme: schemeName,

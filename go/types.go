@@ -58,6 +58,8 @@ type ApiDefContext struct {
 	Warn     Warner         `json:"-"`
 	Metrics  *Metrics       `json:"metrics,omitempty"`
 	Work     map[string]any `json:"work,omitempty"`
+
+	SchemeOrder []string `json:"-"`
 }
 
 // Metrics holds counters and found items during processing.

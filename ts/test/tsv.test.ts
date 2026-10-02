@@ -44,6 +44,8 @@ import {
 
 import { makeResolved } from '../dist/resolved'
 
+import { resolveSecurity, findAuthPrefix } from '../dist/transform/top'
+
 import { snakify, camelify, kebabify } from 'jostraca'
 
 import { classifyGraphQLField } from '../dist/guide/graphql01'
@@ -712,6 +714,30 @@ describe('tsv-auth-exchange', () => {
       const secured = 'true' === row.secured
       const expected = '' === row.expected ? null : JSON.parse(row.expected)
       assert.deepStrictEqual(authExchangeOp(op, secured), expected)
+    })
+  }
+})
+
+
+describe('tsv-security', () => {
+  const rows = loadTsv('security')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, async () => {
+      const def = await parse('OpenAPI', row.spec, { file: row.name })
+      assert.deepStrictEqual(resolveSecurity(def), JSON.parse(row.expected))
+    })
+  }
+})
+
+
+describe('tsv-auth-prefix', () => {
+  const rows = loadTsv('auth-prefix')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, () => {
+      assert.strictEqual(findAuthPrefix(JSON.parse(row.text)),
+        '' === row.expected ? null : row.expected)
     })
   }
 })
