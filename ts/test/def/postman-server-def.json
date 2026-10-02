@@ -1,0 +1,10 @@
+{"openapi":"3.0.0","info":{"title":"Card Lookup","version":"1.0.0"},"servers":[{"url":"http://{{base_url}}"}],
+"paths":{
+ "/bin/{id}":{
+  "get":{"operationId":"loadBin","parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],
+   "responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Bin"}}}}}}
+ }
+},
+"components":{"schemas":{
+ "Bin":{"type":"object","properties":{"id":{"type":"string"},"scheme":{"type":"string"},"bank":{"type":"string"}}}
+}}}

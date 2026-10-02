@@ -2401,3 +2401,52 @@ func TestServerOption(t *testing.T) {
 		}
 	}
 }
+
+// Mirrors the TS `postman-server-variable` case.
+func TestPostmanServerVariable(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, "def"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	src, err := os.ReadFile("../ts/test/def/postman-server-def.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "def", "postman-server-def.json"), src, 0644); err != nil {
+		t.Fatal(err)
+	}
+	folder := stageGuideEntry(t, filepath.Join(dir, "model"), "")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, Strategy: "heuristic01"}).Generate(map[string]any{
+		"model": map[string]any{"name": "postman-server", "def": "postman-server-def.json"},
+		"build": map[string]any{"spec": map[string]any{"base": folder}},
+		"ctrl": map[string]any{"step": map[string]any{
+			"parse": true, "guide": true, "transformers": true,
+			"builders": false, "generate": false,
+		}},
+	})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v res=%+v", err, res)
+	}
+	main, _ := res.ApiModel["main"].(map[string]any)
+	kit, _ := main[KIT].(map[string]any)
+	info, _ := kit["info"].(map[string]any)
+	want := []any{map[string]any{
+		"url":       "http://{base_url}",
+		"variables": map[string]any{"base_url": map[string]any{"default": ""}},
+	}}
+	if !jsonEqual(info["servers"], want) {
+		got, _ := json.Marshal(info["servers"])
+		t.Errorf("servers = %s", got)
+	}
+	notes := []string{}
+	for _, w := range res.Ctx.Warn.History() {
+		if note, _ := w["note"].(string); strings.Contains(note, "double braces") {
+			notes = append(notes, note)
+		}
+	}
+	wantNotes := []string{"server URL `http://{{base_url}}` writes its variables in Postman's double" +
+		" braces: taken as `http://{base_url}`"}
+	if !reflect.DeepEqual(notes, wantNotes) {
+		t.Errorf("warnings = %q, want %q", notes, wantNotes)
+	}
+}

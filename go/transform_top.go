@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"maps"
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -49,6 +50,7 @@ func TopTransform(ctx *ApiDefContext) (*TransformResult, error) {
 		infoMap["servers"] = append(serversList, map[string]any{"url": url})
 	}
 
+	normalizeServers(ctx, kit)
 	ensureServer(ctx, kit)
 
 	infoMap, _ := kit["info"].(map[string]any)
@@ -469,6 +471,79 @@ func ensureServer(ctx *ApiDefContext, kit map[string]any) {
 				" the server variable `base`; set the `server` build option to fix one",
 		})
 	}
+}
+
+// normalizeServers mirrors the server loop in ts/src/transform/top.ts. It
+// writes copies, since the list still holds the definition's own servers.
+func normalizeServers(ctx *ApiDefContext, kit map[string]any) {
+	infoMap, _ := kit["info"].(map[string]any)
+	servers, _ := infoMap["servers"].([]any)
+	if servers == nil {
+		return
+	}
+	out := make([]any, len(servers))
+	for i, entry := range servers {
+		out[i] = entry
+		server, _ := entry.(map[string]any)
+		given, ok := server["url"].(string)
+		if !ok {
+			continue
+		}
+		url, names := singleBraces(given)
+		url = withScheme(url)
+		server = maps.Clone(server)
+		server["url"] = url
+		out[i] = server
+		if len(names) == 0 {
+			continue
+		}
+		declareVariables(server, names)
+		if ctx.Warn != nil {
+			ctx.Warn.Warn(map[string]any{
+				"note": "server URL `" + given + "` writes its variables in Postman's double" +
+					" braces: taken as `" + url + "`",
+			})
+		}
+	}
+	infoMap["servers"] = out
+}
+
+var braceRunRE = regexp.MustCompile(`\{+[A-Za-z0-9_]+\}+`)
+var postmanVariableRE = regexp.MustCompile(`^\{\{([A-Za-z0-9_]+)\}\}$`)
+
+// singleBraces mirrors ts/src/transform/top.ts.
+func singleBraces(url string) (string, []string) {
+	names := []string{}
+	out := braceRunRE.ReplaceAllStringFunc(url, func(run string) string {
+		m := postmanVariableRE.FindStringSubmatch(run)
+		if m == nil {
+			return run
+		}
+		if !slices.Contains(names, m[1]) {
+			names = append(names, m[1])
+		}
+		return "{" + m[1] + "}"
+	})
+	return out, names
+}
+
+// declareVariables mirrors ts/src/transform/top.ts.
+func declareVariables(server map[string]any, names []string) {
+	var declared map[string]any
+	switch vars := server["variables"].(type) {
+	case nil:
+		declared = map[string]any{}
+	case map[string]any:
+		declared = maps.Clone(vars)
+	default:
+		return
+	}
+	for _, name := range names {
+		if _, ok := declared[name]; !ok {
+			declared[name] = map[string]any{"default": ""}
+		}
+	}
+	server["variables"] = declared
 }
 
 var schemeRE = regexp.MustCompile(`(?i)^[a-z][a-z0-9+.-]*://`)

@@ -99,7 +99,16 @@ const topTransform = async function(
   // and the value isn't a relative path.
   for (const server of (kit.info.servers as any[])) {
     if (!server || 'string' !== typeof server.url) continue
-    server.url = withScheme(server.url)
+    const given = server.url
+    const braced = singleBraces(given)
+    server.url = withScheme(braced.url)
+    if (0 < braced.names.length) {
+      declareVariables(server, braced.names)
+      ctx.warn?.({
+        note: 'server URL `' + given + '` writes its variables in Postman\'s double' +
+          ' braces: taken as `' + server.url + '`',
+      })
+    }
   }
 
   // No server named: the `server` option, else a `base` variable the caller fills.
@@ -205,6 +214,37 @@ function withScheme(url: string): string {
   if (u.startsWith('//')) return 'https:' + u
   if (u.startsWith('/')) return url
   return 'https://' + u
+}
+
+
+// OpenAPI reads only the inner pair of Postman's `{{name}}` as the variable.
+// Any other run of braces, or a name the SDKs cannot substitute, is kept.
+const BRACE_RUN_RE = /\{+[A-Za-z0-9_]+\}+/g
+const POSTMAN_VARIABLE_RE = /^\{\{([A-Za-z0-9_]+)\}\}$/
+
+
+function singleBraces(url: string): { url: string, names: string[] } {
+  const names: string[] = []
+  const out = url.replace(BRACE_RUN_RE, (run: string) => {
+    const name = POSTMAN_VARIABLE_RE.exec(run)?.[1]
+    if (null == name) return run
+    if (!names.includes(name)) names.push(name)
+    return '{' + name + '}'
+  })
+  return { url: out, names }
+}
+
+
+// An empty default leaves the value to the SDK's caller.
+function declareVariables(server: any, names: string[]) {
+  const declared = null == server.variables ? {} : server.variables
+  if (!isObject(declared)) return
+  const missing = names.filter((name) =>
+    !Object.prototype.hasOwnProperty.call(declared, name))
+  server.variables = {
+    ...declared,
+    ...Object.fromEntries(missing.map((name) => [name, { default: '' }])),
+  }
 }
 
 

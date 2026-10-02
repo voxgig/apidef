@@ -52,7 +52,7 @@ import type {
 import { Aontu } from 'aontu'
 import { argsTransform } from '../dist/transform/args'
 import { resolvePathList } from '../dist/transform/entity'
-import { resolveSecurity, findAuthPrefix } from '../dist/transform/top'
+import { resolveSecurity, findAuthPrefix, topTransform } from '../dist/transform/top'
 
 import { snakify, camelify, kebabify } from 'jostraca'
 
@@ -889,6 +889,25 @@ describe('tsv-security', () => {
     test(row.name, async () => {
       const def = await parse('OpenAPI', row.spec, { file: row.name })
       assert.deepStrictEqual(resolveSecurity(def), JSON.parse(row.expected))
+    })
+  }
+})
+
+
+describe('tsv-servers', () => {
+  const rows = loadTsv('servers')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, async () => {
+      const warnings: any[] = []
+      const apimodel: any = { main: { kit: {} } }
+      await topTransform({
+        apimodel,
+        def: { info: {}, ...JSON.parse(row.def) },
+        warn: (warning: any) => warnings.push(warning),
+      })
+      assert.deepStrictEqual(apimodel.main.kit.info.servers, JSON.parse(row.servers))
+      assert.deepStrictEqual(warnings.map((warning) => warning.note), JSON.parse(row.warnings))
     })
   }
 })
