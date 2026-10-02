@@ -12,6 +12,7 @@ type SharingRoute = {
 };
 declare function sharedRoutes(routes: SharingRoute[], records: string[]): string[];
 declare function distinctRecord(share: any, item: any): boolean;
+declare function distinctShare(def: any, sharePath: string, shareMethods: string[], itemPath: string, itemMethods: string[]): boolean;
 declare function isNameParam(param: string): boolean;
 declare function entityParamNames(paths: Record<string, Record<string, string>>): Record<string, Record<string, string>>;
-export { answeredRefs, distinctRecord, heuristic01, namingRef, namingSchemas, pathResource, sharedRoutes, entityParamNames, isNameParam, };
+export { answeredRefs, distinctRecord, distinctShare, heuristic01, namingRef, namingSchemas, pathResource, sharedRoutes, entityParamNames, isNameParam, };

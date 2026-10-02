@@ -103,11 +103,7 @@ function mergeCollectionPaths(guide, log, recordRef, distinct) {
         }
     }
     // A share answering with its own record, unlike the owner's item's, stays.
-    const apart = (ename, pathStr, owner) => {
-        const mine = recordRef?.(pathStr, methodsOf(entities[ename].path[pathStr]), true) ?? null;
-        const item = recordRef?.(owner.route, methodsOf(entities[owner.ename]?.path?.[owner.route]), false) ?? null;
-        return null != mine && null != item && mine !== item && true === distinct?.(mine, item);
-    };
+    const apart = (ename, pathStr, owner) => true === distinct?.(pathStr, methodsOf(entities[ename].path[pathStr]), owner.route, methodsOf(entities[owner.ename]?.path?.[owner.route]));
     // Second pass: for each entity with a "/X" path, if X has an owner
     // elsewhere, move the path there.
     for (const [ename, entity] of Object.entries(entities)) {

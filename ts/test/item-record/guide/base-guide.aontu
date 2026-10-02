@@ -4,9 +4,9 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 9
-  metrics: count: path: 15
-  metrics: count: method: 21
+  metrics: count: entity: 10
+  metrics: count: path: 17
+  metrics: count: method: 24
 
   entity: activity: {
     path: "/user/starred": {
@@ -95,6 +95,17 @@ guide: {
       op: load: method: *GET
       op: patch: method: *PATCH
       op: patch: transform: res: *("`body.data`")|top
+    }
+  }
+
+  entity: widget: {
+    path: "/widgets": {
+      op: create: method: *POST
+      op: list: method: *GET
+    }
+    path: "/widgets/{widget_id}": {
+      rename: param: "widget_id": *"id"
+      op: load: method: *GET
     }
   }
 

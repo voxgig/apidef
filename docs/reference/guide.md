@@ -323,14 +323,17 @@ first of these:
 
 One entity's share of a collection path stays where it is, though the path
 has an owner, when it answers with a record of its own unlike the record
-the owner's item route answers with. Both components declare an `id`, and
-no more than half of the share's properties are properties of the item's.
+the owner's item route answers with. Both records are read from a `200` or
+`201`, since a `202` may describe the queued work, and both declare an `id`.
+No more than half of the share's properties are properties of the item's.
 GitLab's runner registration, `{id, token, token_expires_at}`, stays apart
 from a runner's details, while a create that answers with the item's fields
-under another name joins. `distinctRecord` in
-[`ts/src/guide/heuristic01.ts`](../../ts/src/guide/heuristic01.ts) is the
+under another name joins, and so does a create that only queues a job.
+`distinctShare` and `distinctRecord` in
+[`ts/src/guide/heuristic01.ts`](../../ts/src/guide/heuristic01.ts) are the
 comparison, and the rows of
-[`ts/test/distinct-record.tsv`](../../ts/test/distinct-record.tsv) pin it in
+[`ts/test/distinct-share.tsv`](../../ts/test/distinct-share.tsv) and
+[`ts/test/distinct-record.tsv`](../../ts/test/distinct-record.tsv) pin them in
 both builds.
 
 An item route can take its collection's entity before the move. A method

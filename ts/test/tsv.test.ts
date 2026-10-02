@@ -54,6 +54,7 @@ import { classifyGraphQLField } from '../dist/guide/graphql01'
 import {
   answeredRefs,
   distinctRecord,
+  distinctShare,
   pathResource,
   sharedRoutes,
   entityParamNames,
@@ -661,6 +662,24 @@ describe('tsv-naming-schemas', () => {
       const refs = namingSchemas(method, paths[path][method.toLowerCase()].responses,
         answered, envelope).map((schema: any) => namingRef(schema, envelope))
       assert.deepStrictEqual(refs, JSON.parse(row.expected))
+    })
+  }
+})
+
+
+describe('tsv-distinct-share', () => {
+  const rows = loadTsv('distinct-share')
+  const route = (cell: string) => {
+    const [methods, path] = cell.split(' ')
+    return { methods: methods.split(','), path }
+  }
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(`distinctShare(${row.name}) => ${row.expected}`, () => {
+      const share = route(row.share)
+      const item = route(row.item)
+      assert.strictEqual(distinctShare(JSON.parse(row.def),
+        share.path, share.methods, item.path, item.methods), 'true' === row.expected)
     })
   }
 })

@@ -231,9 +231,9 @@ When a tag names the delete of an item and the record names its read, the
 collection joins the read.
 
 Two shapes keep a collection's operations apart from an item route they
-would otherwise join. A create that answers with a record of its own,
-declaring its own `id` and sharing no more than half of its properties with
-the item's record, is another resource: GitLab's runner registration answers
+would otherwise join. A create that answers with a record of its own in a
+`200` or `201`, declaring its own `id` and sharing no more than half of its
+properties with the item's record, is another resource: GitLab's runner registration answers
 with a token for the new runner rather than the runner's details, and stays
 apart. A create whose answer is named apart from the item's record still
 joins when it carries that record's fields, because vendors name the answer

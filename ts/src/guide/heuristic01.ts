@@ -166,8 +166,8 @@ async function heuristic01(ctx: ApiDefContext): Promise<Guide> {
   guide.metrics.count.entity -= mergeCollectionPaths(guide, ctx.log,
     (pathStr: string, methods: string[], collection: boolean) =>
       pathRecordRef(ctx.def, pathStr, methods, collection),
-    (shareRef: string, itemRef: string) =>
-      distinctRecord(refSchema(ctx.def, shareRef), refSchema(ctx.def, itemRef))).length
+    (sharePath: string, shareMethods: string[], itemPath: string, itemMethods: string[]) =>
+      distinctShare(ctx.def, sharePath, shareMethods, itemPath, itemMethods)).length
 
   // After the merge, which can move a path onto another entity.
   for (const entity of Object.values(guide.entity) as GuideEntity[]) {
@@ -1693,11 +1693,12 @@ function pathRecordRef(
   pathStr: string,
   methods: string[],
   collection: boolean,
+  accepted: boolean = true,
 ): string | null {
   const rank = (method: string) => METHOD_CONSIDER_ORDER[method] ?? Number.MAX_SAFE_INTEGER
   const ordered = [...methods].sort((a, b) => rank(a) - rank(b) || byCodePoint(a, b))
   for (const method of ordered) {
-    const ref = routeRecordRef(def, pathStr, method, collection)
+    const ref = routeRecordRef(def, pathStr, method, collection, accepted)
     if (null != ref) {
       return ref
     }
@@ -1710,15 +1711,17 @@ function pathRecordRef(
 // items', or the one its envelope carries, such as the job summary in Mux's
 // `{ data }`. Only a collection reads a page, so beneath the collection a
 // team that holds nothing but its members is a team. Null when the answer
-// names no component.
+// names no component, or is Accepted and `accepted` excludes it.
 function routeRecordRef(
   def: any,
   pathStr: string,
   method: string,
   collection: boolean,
+  accepted: boolean = true,
 ): string | null {
-  const schema = getResponseSchema(
-    successResponse(def?.paths?.[pathStr]?.[method.toLowerCase()]?.responses))
+  const responses = def?.paths?.[pathStr]?.[method.toLowerCase()]?.responses
+  const schema = getResponseSchema(accepted ? successResponse(responses) :
+    responses?.[200] ?? responses?.[201])
   if (null == schema || 'object' !== typeof schema) {
     return null
   }
@@ -2116,6 +2119,23 @@ function distinctRecord(share: any, item: any): boolean {
   const theirs = mergedProperties(item) ?? {}
   const common = own.filter((name) => Object.prototype.hasOwnProperty.call(theirs, name))
   return common.length * 2 <= own.length
+}
+
+
+// Whether a collection share answers with a record apart from the one its item
+// route answers with, both read from a 200 or 201: an Accepted body may
+// describe the queued work rather than a resource.
+function distinctShare(
+  def: any,
+  sharePath: string,
+  shareMethods: string[],
+  itemPath: string,
+  itemMethods: string[],
+): boolean {
+  const share = pathRecordRef(def, sharePath, shareMethods, true, false)
+  const item = pathRecordRef(def, itemPath, itemMethods, false, false)
+  return null != share && null != item && share !== item &&
+    distinctRecord(refSchema(def, share), refSchema(def, item))
 }
 
 
@@ -2532,6 +2552,7 @@ function hasMethod(def: any, pathStr: string, methodName: string) {
 export {
   answeredRefs,
   distinctRecord,
+  distinctShare,
   heuristic01,
   namingRef,
   namingSchemas,

@@ -543,6 +543,21 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-distinct-share', () => {
+    const rows = loadTsv('distinct-share');
+    const route = (cell) => {
+        const [methods, path] = cell.split(' ');
+        return { methods: methods.split(','), path };
+    };
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(`distinctShare(${row.name}) => ${row.expected}`, () => {
+            const share = route(row.share);
+            const item = route(row.item);
+            node_assert_1.default.strictEqual((0, heuristic01_1.distinctShare)(JSON.parse(row.def), share.path, share.methods, item.path, item.methods), 'true' === row.expected);
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-distinct-record', () => {
     const rows = loadTsv('distinct-record');
     (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));

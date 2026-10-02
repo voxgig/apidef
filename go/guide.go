@@ -724,10 +724,10 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 
 	countMap["entity"] = toInt(countMap["entity"]) - len(mergeCollectionPaths(guide,
 		func(pathStr string, methods []string, collection bool) string {
-			return pathRecordRef(def, pathStr, methods, collection)
+			return pathRecordRef(def, pathStr, methods, collection, true)
 		},
-		func(shareRef string, itemRef string) bool {
-			return distinctRecord(refSchema(def, shareRef), refSchema(def, itemRef))
+		func(sharePath string, shareMethods []string, itemPath string, itemMethods []string) bool {
+			return distinctShare(def, sharePath, shareMethods, itemPath, itemMethods)
 		}))
 
 	// After the merge, which can move a path onto another entity.
@@ -2570,6 +2570,16 @@ func distinctRecord(share map[string]any, item map[string]any) bool {
 	return common*2 <= len(own)
 }
 
+// distinctShare mirrors ts/src/guide/heuristic01.ts: whether a collection
+// share answers with a record apart from the one its item route answers with,
+// both read from a 200 or 201.
+func distinctShare(def map[string]any, sharePath string, shareMethods []string, itemPath string, itemMethods []string) bool {
+	share := pathRecordRef(def, sharePath, shareMethods, true, false)
+	item := pathRecordRef(def, itemPath, itemMethods, false, false)
+	return share != "" && item != "" && share != item &&
+		distinctRecord(refSchema(def, share), refSchema(def, item))
+}
+
 func declaresID(schema map[string]any) bool {
 	return schema != nil && resolveSchemaProperties(schema)["id"] != nil
 }
@@ -2793,7 +2803,7 @@ func namingRef(schema map[string]any, envelope map[string]string) string {
 
 // pathRecordRef mirrors ts/src/guide/heuristic01.ts: the record a path
 // answers with, its methods read in the order they are considered.
-func pathRecordRef(def map[string]any, pathStr string, methods []string, collection bool) string {
+func pathRecordRef(def map[string]any, pathStr string, methods []string, collection bool, accepted bool) string {
 	ordered := append([]string(nil), methods...)
 	rank := func(method string) int {
 		if r, ok := METHOD_CONSIDER_ORDER[method]; ok {
@@ -2808,7 +2818,7 @@ func pathRecordRef(def map[string]any, pathStr string, methods []string, collect
 		return ordered[i] < ordered[j]
 	})
 	for _, method := range ordered {
-		if ref := routeRecordRef(def, pathStr, method, collection); ref != "" {
+		if ref := routeRecordRef(def, pathStr, method, collection, accepted); ref != "" {
 			return ref
 		}
 	}
@@ -2818,12 +2828,20 @@ func pathRecordRef(def map[string]any, pathStr string, methods []string, collect
 // routeRecordRef mirrors ts/src/guide/heuristic01.ts: the component of the
 // record a route answers with, a page read only for a collection, or "" when
 // the answer names none.
-func routeRecordRef(def map[string]any, pathStr string, method string, collection bool) string {
+func routeRecordRef(def map[string]any, pathStr string, method string, collection bool, accepted bool) string {
 	paths, _ := def["paths"].(map[string]any)
 	pdef, _ := paths[pathStr].(map[string]any)
 	mdef, _ := pdef[strings.ToLower(method)].(map[string]any)
 	responses, _ := mdef["responses"].(map[string]any)
-	schema := getResponseSchema(successResponse(responses))
+	var answer map[string]any
+	if accepted {
+		answer = successResponse(responses)
+	} else if r200, ok := responses["200"].(map[string]any); ok {
+		answer = r200
+	} else {
+		answer, _ = responses["201"].(map[string]any)
+	}
+	schema := getResponseSchema(answer)
 	if schema == nil {
 		return ""
 	}

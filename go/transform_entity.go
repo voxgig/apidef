@@ -98,7 +98,7 @@ type rootOwner struct {
 // the moves emptied, returning their names. Mirrors mergeCollectionPaths in
 // ts/src/transform/entity.ts. Guide stage only: on the unified guide it would
 // override guide.aontu.
-func mergeCollectionPaths(guide map[string]any, recordRef func(pathStr string, methods []string, collection bool) string, distinct func(shareRef string, itemRef string) bool) []string {
+func mergeCollectionPaths(guide map[string]any, recordRef func(pathStr string, methods []string, collection bool) string, distinct func(sharePath string, shareMethods []string, itemPath string, itemMethods []string) bool) []string {
 	emptied := []string{}
 	entities, _ := guide["entity"].(map[string]any)
 	if entities == nil {
@@ -242,11 +242,9 @@ func mergeCollectionPaths(guide map[string]any, recordRef func(pathStr string, m
 		}
 		entity, _ := entities[ename].(map[string]any)
 		paths, _ := entity["path"].(map[string]any)
-		mine := answers(pathStr, methodsOf(paths[pathStr]), true)
 		ownerEntity, _ := entities[owner.ename].(map[string]any)
 		ownerPaths, _ := ownerEntity["path"].(map[string]any)
-		item := answers(owner.route, methodsOf(ownerPaths[owner.route]), false)
-		return mine != "" && item != "" && mine != item && distinct(mine, item)
+		return distinct(pathStr, methodsOf(paths[pathStr]), owner.route, methodsOf(ownerPaths[owner.route]))
 	}
 
 	// Second pass: move each "/X" whose root is owned elsewhere.

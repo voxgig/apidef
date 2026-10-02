@@ -819,6 +819,30 @@ func TestNamingSchemas(t *testing.T) {
 	}
 }
 
+func TestDistinctShare(t *testing.T) {
+	rows := loadTsv(t, "distinct-share")
+	if len(rows) == 0 {
+		t.Fatal("no distinct-share rows loaded")
+	}
+	route := func(cell string) ([]string, string) {
+		f := strings.SplitN(cell, " ", 2)
+		return strings.Split(f[0], ","), f[1]
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var def map[string]any
+			if err := json.Unmarshal([]byte(row["def"]), &def); err != nil {
+				t.Fatalf("bad def %q: %v", row["def"], err)
+			}
+			shareMethods, sharePath := route(row["share"])
+			itemMethods, itemPath := route(row["item"])
+			if got, want := distinctShare(def, sharePath, shareMethods, itemPath, itemMethods), row["expected"] == "true"; got != want {
+				t.Errorf("distinctShare = %v, want %v", got, want)
+			}
+		})
+	}
+}
+
 func TestDistinctRecord(t *testing.T) {
 	rows := loadTsv(t, "distinct-record")
 	if len(rows) == 0 {

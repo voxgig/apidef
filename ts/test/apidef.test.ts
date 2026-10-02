@@ -1072,6 +1072,7 @@ describe('apidef', () => {
         'POST /simulation_runs',
       ],
       thing: ['GET /things/{thing_id}', 'PATCH /things/{thing_id}'],
+      widget: ['GET /widgets', 'GET /widgets/{widget_id}', 'POST /widgets'],
     })
 
     const renames = bres.guide.entity.repository_invitation
