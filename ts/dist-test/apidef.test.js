@@ -427,6 +427,40 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.strictEqual(entities.hive.op.load.points[0].t.res, '`body.hive`');
         node_assert_1.default.strictEqual(entities.garden.op.load.points[0].t.res, '`body`');
     });
+    // A composed scalar is a scalar: an id described in an allOf (thing) or
+    // written as a union (badge) is not an envelope around the record, a
+    // described name is not a wrapper (label), and a described value beside a
+    // page's records does not stop the page from unwrapping them (sample).
+    (0, node_test_1.test)('guide-composed-scalar', async () => {
+        const folder = __dirname + '/../test/composed-scalar';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'composed-scalar', def: 'composed-scalar-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: true,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        const entities = bres.apimodel.main.kit.entity;
+        const point = (ent, op) => entities[ent]?.op[op]?.points[0];
+        node_assert_1.default.strictEqual(point('thing', 'load')?.t.res, '`body`');
+        node_assert_1.default.strictEqual(point('badge', 'load')?.t.res, '`body`');
+        node_assert_1.default.strictEqual(point('label', 'load')?.t.res, '`body`');
+        node_assert_1.default.strictEqual(point('label', 'create')?.t.res, '`body`');
+        node_assert_1.default.strictEqual(point('label', 'create')?.t.req, '`reqdata`');
+        node_assert_1.default.strictEqual(point('sample', 'list')?.t.res, '`body.data`');
+        // The fields are the record's, not those of a value it holds.
+        node_assert_1.default.deepStrictEqual(Object.keys(entities.thing.fields).sort(), ['id', 'status']);
+        node_assert_1.default.deepStrictEqual(Object.keys(entities.badge.fields).sort(), ['id', 'status']);
+        node_assert_1.default.deepStrictEqual(Object.keys(entities.label.fields).sort(), ['color', 'id', 'label']);
+    });
     // A page with no data of its own reads its one list of records past a list
     // of scalars (metric) or an object (notification, preference), composed or
     // not (branch), while a response with a state of its own is read whole

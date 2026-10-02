@@ -673,6 +673,30 @@ func TestEnvelopeProp(t *testing.T) {
 	}
 }
 
+func TestEntityWrapperProp(t *testing.T) {
+	rows := loadTsv(t, "entity-wrapper-prop")
+	if len(rows) == 0 {
+		t.Fatal("no entity-wrapper-prop rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var schema any
+			if err := json.Unmarshal([]byte(row["schema"]), &schema); err != nil {
+				t.Fatalf("bad schema %q: %v", row["schema"], err)
+			}
+			before, _ := json.Marshal(schema)
+			if got, want := isEntityWrapperProp(schema), row["expected"] == "true"; got != want {
+				t.Errorf("isEntityWrapperProp(%s) = %v, want %v", row["schema"], got, want)
+			}
+
+			// A parsed schema is shared between references, so it is left as it was.
+			if after, _ := json.Marshal(schema); string(after) != string(before) {
+				t.Errorf("isEntityWrapperProp changed its argument to %s", after)
+			}
+		})
+	}
+}
+
 func TestEnvelopeItemRef(t *testing.T) {
 	rows := loadTsv(t, "envelope-item-ref")
 	if len(rows) == 0 {

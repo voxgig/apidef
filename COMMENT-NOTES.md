@@ -24,6 +24,10 @@ A response envelope does not name an entity: the record it carries is judged in 
 
 Sources: [envelope](ts/src/utility.ts), [guide](ts/src/guide/heuristic01.ts), [Go guide](go/guide.go).
 
+A response property is a candidate envelope item, or a wrapper under the entity's name, only when it could hold a record. A scalar is data however it is composed: an `allOf` that `collapseScalarAllOf` reads as one scalar, the rule the field transform types a field with, and a `oneOf` or `anyOf` whose branches are scalars or `null`, since a null branch only makes the value nullable. Counted as structured, such a property makes a record that holds an id beside a status read as an envelope around the id, and its load answers with the id. Sharing the field transform's rule keeps the two readings in step: a property a field types as a string is never what a response unwraps to. Any other composition stays structured, such as an `allOf` around an object or a union with an object branch.
+
+Sources: [wrapper](ts/src/utility.ts), [Go wrapper](go/utility.go), [field](ts/src/transform/field.ts).
+
 A trailing path parameter under its entity's segment is renamed to `id` from the path alone; the response component has no veto. The component an item operation answers with is routinely named for one view of the entity (`CargoUpstream`, `PushOperation`, `branch-with-protection`), so a guard requiring that name to match the entity withheld `id` from real keys far more often than it caught a parameter naming a scope, such as a namespace `{owner}`, and that case is corrected in the guide.
 
 Sources: [guide](ts/src/guide/heuristic01.ts), [Go guide](go/guide.go).

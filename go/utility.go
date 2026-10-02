@@ -1968,28 +1968,133 @@ func propIsList(schema any) (bool, bool) {
 	return safeStr(sch["type"]) == "array" || sch["items"] != nil, true
 }
 
+// What an allOf member holds when it only describes. The siblings of a $ref
+// are ignored in OpenAPI 3.0, so a property describes one in an allOf.
+var annotationKeys = map[string]bool{
+	"description": true, "title": true, "example": true, "nullable": true, "deprecated": true,
+}
+
+var scalarTypes = map[string]bool{"string": true, "integer": true, "number": true, "boolean": true}
+
+// An allOf of one scalar and annotations is that scalar, under the
+// annotations and then the property's own keys. Any other allOf is kept.
+func collapseScalarAllOf(property map[string]any) map[string]any {
+	members, ok := property["allOf"].([]any)
+	if !ok {
+		return property
+	}
+
+	var valued []any
+	var notes []map[string]any
+	for _, member := range members {
+		if note, ok := annotation(member); ok {
+			notes = append(notes, note)
+		} else {
+			valued = append(valued, member)
+		}
+	}
+	if len(valued) != 1 {
+		return property
+	}
+	scalar, ok := valued[0].(map[string]any)
+	if !ok || !isScalarSchema(scalar) {
+		return property
+	}
+
+	out := map[string]any{}
+	for k, v := range scalar {
+		out[k] = v
+	}
+	for _, note := range notes {
+		for k, v := range note {
+			out[k] = v
+		}
+	}
+	for k, v := range property {
+		if k != "allOf" {
+			out[k] = v
+		}
+	}
+	return out
+}
+
+func annotation(member any) (map[string]any, bool) {
+	m, ok := member.(map[string]any)
+	if !ok || m == nil {
+		return nil, false
+	}
+	for k := range m {
+		if !annotationKeys[k] {
+			return nil, false
+		}
+	}
+	return m, true
+}
+
+func isScalarSchema(schema map[string]any) bool {
+	for _, k := range []string{"allOf", "oneOf", "anyOf"} {
+		if schema[k] != nil {
+			return false
+		}
+	}
+	var types []any
+	switch t := schema["type"].(type) {
+	case []any:
+		types = t
+	default:
+		types = []any{t}
+	}
+	var named []string
+	for _, t := range types {
+		if s, ok := t.(string); ok && s != "null" {
+			named = append(named, s)
+		} else if !ok {
+			named = append(named, "")
+		}
+	}
+	return len(named) == 1 && scalarTypes[named[0]]
+}
+
 // isEntityWrapperProp reports whether a response property "wraps" the entity:
-// it must be a structured value that could contain the entity (object, array,
-// $ref, or composed allOf/oneOf/anyOf schema). A scalar property (string,
-// integer, number, boolean) that merely shares the entity's name is a field of
-// the entity, not a wrapper. Mirrors ts/src/utility.ts.
+// a structured value that could contain it, such as an object, an array, a
+// $ref, or a composition that could hold one. A scalar that shares the
+// entity's name is a field, however it is composed. Mirrors ts/src/utility.ts.
 func isEntityWrapperProp(propSchema any) bool {
 	prop, ok := propSchema.(map[string]any)
 	if !ok || prop == nil {
 		return false
 	}
+	prop = collapseScalarAllOf(prop)
 	if prop["$ref"] != nil {
 		return true
 	}
 	if prop["properties"] != nil ||
 		prop["items"] != nil ||
 		prop["allOf"] != nil ||
-		prop["oneOf"] != nil ||
-		prop["anyOf"] != nil {
+		holdsStructuredBranch(prop["oneOf"]) ||
+		holdsStructuredBranch(prop["anyOf"]) {
 		return true
 	}
 	t := safeStr(prop["type"])
 	return t == "object" || t == "array"
+}
+
+// A null branch only makes a union of scalars nullable.
+func holdsStructuredBranch(branches any) bool {
+	if branches == nil {
+		return false
+	}
+	list, ok := branches.([]any)
+	if !ok || len(list) == 0 {
+		return true
+	}
+	for _, branch := range list {
+		b, ok := branch.(map[string]any)
+		if !ok || (!isScalarSchema(b) && safeStr(b["type"]) != "null") {
+			return true
+		}
+	}
+	return false
 }
 
 func closedBodyTransform(schema any) map[string]any {

@@ -481,6 +481,18 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-entity-wrapper-prop', () => {
+    const rows = loadTsv('entity-wrapper-prop');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, () => {
+            const schema = JSON.parse(row.schema);
+            node_assert_1.default.strictEqual((0, utility_1.isEntityWrapperProp)(schema), 'true' === row.expected);
+            // A parsed schema is shared between references, so it is left as it was.
+            node_assert_1.default.strictEqual(JSON.stringify(schema), row.schema);
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-envelope-item-ref', () => {
     const rows = loadTsv('envelope-item-ref');
     (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));

@@ -616,6 +616,67 @@ func TestGuideWrapperName(t *testing.T) {
 	}
 }
 
+// Mirrors the TS `guide-composed-scalar` case.
+func TestGuideComposedScalar(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "composed-scalar-")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, OutPrefix: "composed-scalar-", Strategy: "heuristic01"}).
+		Generate(map[string]any{
+			"model": map[string]any{"name": "composed-scalar", "def": "composed-scalar-def.json"},
+			"build": map[string]any{"spec": map[string]any{"base": "../ts/test/def"}},
+			"ctrl": map[string]any{"step": map[string]any{
+				"parse": true, "guide": true, "transformers": true,
+				"builders": false, "generate": false,
+			}},
+		})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v", err)
+	}
+
+	main, _ := res.ApiModel["main"].(map[string]any)
+	kit, _ := main[KIT].(map[string]any)
+	entities, _ := kit["entity"].(map[string]any)
+	pointT := func(ent, opname, key string) any {
+		e, _ := entities[ent].(map[string]any)
+		ops, _ := e["op"].(map[string]any)
+		op, _ := ops[opname].(map[string]any)
+		points, _ := op["points"].([]any)
+		if len(points) == 0 {
+			return nil
+		}
+		point, _ := points[0].(map[string]any)
+		tr, _ := point["t"].(map[string]any)
+		return tr[key]
+	}
+	for _, c := range []struct {
+		ent, op, key string
+		want         any
+	}{
+		{"thing", "load", "res", "`body`"},
+		{"badge", "load", "res", "`body`"},
+		{"label", "load", "res", "`body`"},
+		{"label", "create", "res", "`body`"},
+		{"label", "create", "req", "`reqdata`"},
+		{"sample", "list", "res", "`body.data`"},
+	} {
+		if got := pointT(c.ent, c.op, c.key); got != c.want {
+			t.Errorf("%s %s %s = %v, want %v", c.ent, c.op, c.key, got, c.want)
+		}
+	}
+
+	// The fields are the record's, not those of a value it holds.
+	for ent, want := range map[string]string{
+		"thing": "id,status",
+		"badge": "id,status",
+		"label": "color,id,label",
+	} {
+		e, _ := entities[ent].(map[string]any)
+		fields, _ := e["fields"].(map[string]any)
+		if got := strings.Join(sortedKeys(fields), ","); got != want {
+			t.Errorf("%s fields = %s, want %s", ent, got, want)
+		}
+	}
+}
+
 // Mirrors the TS `guide-page-side` case.
 func TestGuidePageSide(t *testing.T) {
 	folder := stageGuideEntry(t, t.TempDir(), "page-side-")

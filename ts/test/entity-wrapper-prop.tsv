@@ -1,0 +1,18 @@
+name	schema	expected
+scalar-allof-described	{"allOf":[{"type":"string","x-ref":"#/components/schemas/Id"},{"description":"The thing's id."}]}	false
+scalar-allof-nullable-wrapper	{"nullable":true,"description":"ID of the parent taxon.","allOf":[{"type":"string","pattern":"^[A-Za-z0-9_.-]+$","x-ref":"#/components/schemas/Id"}]}	false
+oneof-scalars	{"oneOf":[{"type":"string"},{"type":"integer"}]}	false
+anyof-scalars	{"anyOf":[{"type":"number"},{"type":"boolean"}]}	false
+oneof-nullable-scalar	{"oneOf":[{"type":"string","x-ref":"#/components/schemas/State"},{"type":"null"}]}	false
+control-plain-string	{"type":"string"}	false
+control-object-allof	{"description":"The author of the advisory.","nullable":true,"allOf":[{"title":"Simple User","type":"object","properties":{"login":{"type":"string"}},"x-ref":"#/components/schemas/simple-user"}]}	true
+control-object-allof-members	{"description":"The created repository.","allOf":[{"type":"object","properties":{"id":{"type":"integer"}},"x-ref":"#/components/schemas/repository"},{"type":"object","properties":{"fork":{"type":"boolean"}}}]}	true
+control-allof-several-typed-members	{"allOf":[{"type":"string","x-ref":"#/components/schemas/Sender"},{"type":"string","minLength":3}]}	true
+control-oneof-object-member	{"oneOf":[{"type":"string"},{"type":"object","properties":{"id":{"type":"string"}}}]}	true
+control-anyof-object-member	{"anyOf":[{"type":"integer"},{"type":"object","properties":{"id":{"type":"string"}}}]}	true
+control-oneof-ref-member	{"oneOf":[{"type":"string"},{"$ref":"#/components/schemas/Thing"}]}	true
+control-oneof-array-member	{"oneOf":[{"type":"string"},{"type":"array","items":{"type":"string"}}]}	true
+control-oneof-empty	{"oneOf":[]}	true
+control-array	{"type":"array","items":{"type":"string"}}	true
+control-ref	{"$ref":"#/components/schemas/Thing"}	true
+control-object	{"type":"object"}	true
