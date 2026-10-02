@@ -96,12 +96,17 @@ func resolveSelect(guideEntity map[string]any, entname string, mtarget map[strin
 	})
 	selectMap["exist"] = exist
 
-	// Check for actions
+	// Check for actions. REST guides key entries by path, GraphQL guides by root field.
 	gent, _ := guideEntity[entname].(map[string]any)
 	if gent != nil {
 		orig, _ := mtarget["o"].(string)
 		gpaths, _ := gent["path"].(map[string]any)
-		if gpath, ok := gpaths[orig].(map[string]any); ok {
+		entry := gpaths[orig]
+		if entry == nil {
+			gfields, _ := gent["field"].(map[string]any)
+			entry = gfields[orig]
+		}
+		if gpath, ok := entry.(map[string]any); ok {
 			if action, ok := gpath["action"].(map[string]any); ok {
 				for _, actname := range sortedKeys(action) {
 					selectMap["$action"] = actname
