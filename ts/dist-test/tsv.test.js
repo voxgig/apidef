@@ -755,6 +755,23 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-servers', () => {
+    const rows = loadTsv('servers');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, async () => {
+            const warnings = [];
+            const apimodel = { main: { kit: {} } };
+            await (0, top_1.topTransform)({
+                apimodel,
+                def: { info: {}, ...JSON.parse(row.def) },
+                warn: (warning) => warnings.push(warning),
+            });
+            node_assert_1.default.deepStrictEqual(apimodel.main.kit.info.servers, JSON.parse(row.servers));
+            node_assert_1.default.deepStrictEqual(warnings.map((warning) => warning.note), JSON.parse(row.warnings));
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-auth-prefix', () => {
     const rows = loadTsv('auth-prefix');
     (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));

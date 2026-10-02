@@ -1519,6 +1519,51 @@ def: '${outprefix}def.yaml'
   })
 
 
+  // go/apidef_test.go mirrors this case.
+  test('postman-server-variable', async () => {
+    const Os = require('node:os')
+    const Path = require('node:path')
+    const def = 'postman-server-def.json'
+    const dir = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'apidef-postman-'))
+    const folder = Path.join(dir, 'model')
+    Fs.mkdirSync(Path.join(folder, 'guide'), { recursive: true })
+    Fs.mkdirSync(Path.join(dir, 'def'))
+    Fs.copyFileSync(Path.join(__dirname, '..', 'test', 'def', def), Path.join(dir, 'def', def))
+    Fs.writeFileSync(Path.join(folder, 'guide', 'guide.aontu'),
+      '@"@voxgig/apidef/model/guide.aontu"\n@"./base-guide.aontu"\n')
+
+    const build = await ApiDef.makeBuild({ folder })
+    const bres = await build(
+      { name: 'postman-server', def },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: true,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+    Fs.rmSync(dir, { recursive: true, force: true })
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+    assert.deepStrictEqual(bres.apimodel.main.kit.info.servers, [
+      { url: 'http://{base_url}', variables: { base_url: { default: '' } } },
+    ])
+    assert.deepStrictEqual(
+      bres.ctx.warn.history.map((w: any) => w.note)
+        .filter((note: any) => /double braces/.test(note)),
+      ['server URL `http://{{base_url}}` writes its variables in Postman\'s double' +
+        ' braces: taken as `http://{base_url}`'])
+  })
+
+
   describe('guide entity allowlist', () => {
     const PathMod = require('node:path')
 

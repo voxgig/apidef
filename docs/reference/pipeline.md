@@ -77,7 +77,7 @@ Thirteen passes run in this fixed order; each is a file under
 
 | # | pass | builds |
 |---|------|--------|
-| 1 | `top` | `kit.info` — title, version, and `servers[]` (URL schemes normalized to `https://` when missing) |
+| 1 | `top` | `kit.info` — title, version, and `servers[]` (a URL with no scheme and no leading server variable gets `https://`, and Postman's `{{name}}` becomes `{name}`) |
 | 2 | `entity` | `kit.entity[name]` skeletons; ancestor relations; the source path list (`paths$`) |
 | 3 | `operation` | each entity's `op` map (`load`/`list`/`create`/`update`/`remove`/`patch`) and its `points[]`, carrying the guide's transforms in `t` |
 | 4 | `graphql` | for a GraphQL definition, each point's `k: graphql` and its `gq` document, variables, and pagination |

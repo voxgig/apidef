@@ -1245,6 +1245,49 @@ func TestTsvSecurity(t *testing.T) {
 	}
 }
 
+func TestTsvServers(t *testing.T) {
+	rows := loadTsv(t, "servers")
+	if len(rows) == 0 {
+		t.Fatal("no servers rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			def := map[string]any{"info": map[string]any{}}
+			var fragment map[string]any
+			unmarshalCol(t, row, "def", &fragment)
+			for k, v := range fragment {
+				def[k] = v
+			}
+			warn := MakeWarner("warning", nil)
+			ctx := &ApiDefContext{
+				Def:      def,
+				Warn:     warn,
+				ApiModel: map[string]any{"main": map[string]any{KIT: map[string]any{}}},
+			}
+			if _, err := TopTransform(ctx); err != nil {
+				t.Fatal(err)
+			}
+			info, _ := getKit(ctx)["info"].(map[string]any)
+			var want any
+			unmarshalCol(t, row, "servers", &want)
+			if !jsonEqual(info["servers"], want) {
+				got, _ := json.Marshal(info["servers"])
+				t.Errorf("servers\ngot  %s\nwant %s", got, row["servers"])
+			}
+			notes := []any{}
+			for _, w := range warn.History() {
+				notes = append(notes, w["note"])
+			}
+			var wantNotes any
+			unmarshalCol(t, row, "warnings", &wantNotes)
+			if !jsonEqual(notes, wantNotes) {
+				got, _ := json.Marshal(notes)
+				t.Errorf("warnings\ngot  %s\nwant %s", got, row["warnings"])
+			}
+		})
+	}
+}
+
 func TestTsvAuthPrefix(t *testing.T) {
 	rows := loadTsv(t, "auth-prefix")
 	if len(rows) == 0 {
