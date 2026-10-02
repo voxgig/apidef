@@ -1338,3 +1338,54 @@ func TestResponseBody(t *testing.T) {
 		})
 	}
 }
+
+// The body pass reads a point's media from its own op's guide entry.
+func TestBodyGuide(t *testing.T) {
+	rows := loadTsv(t, "body-guide")
+	if len(rows) == 0 {
+		t.Fatal("no body-guide rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var ent, gent, def map[string]any
+			unmarshalCol(t, row, "entity", &ent)
+			unmarshalCol(t, row, "guide", &gent)
+			unmarshalCol(t, row, "def", &def)
+			name, _ := ent["name"].(string)
+			ctx := &ApiDefContext{
+				ApiModel: map[string]any{"main": map[string]any{
+					KIT: map[string]any{"entity": map[string]any{name: ent}},
+				}},
+				Def:   def,
+				Guide: map[string]any{"entity": map[string]any{name: gent}},
+			}
+			if _, err := BodyTransform(ctx); err != nil {
+				t.Fatal(err)
+			}
+
+			points := map[string]any{}
+			ops, _ := ent["op"].(map[string]any)
+			for opname, op := range ops {
+				list := []any{}
+				opPoints, _ := op.(map[string]any)["points"].([]any)
+				for _, pt := range opPoints {
+					point, _ := pt.(map[string]any)
+					media := map[string]any{}
+					for _, key := range []string{"rb", "rs"} {
+						if body, ok := point[key].(map[string]any); ok {
+							media[key] = body["media"]
+						}
+					}
+					list = append(list, media)
+				}
+				points[opname] = list
+			}
+			var want any
+			unmarshalCol(t, row, "points", &want)
+			if !jsonEqual(points, want) {
+				got, _ := json.Marshal(points)
+				t.Errorf("points\ngot  %s\nwant %s", got, row["points"])
+			}
+		})
+	}
+}

@@ -45,9 +45,9 @@ import {
 import { makeResolved } from '../dist/resolved'
 
 import { selectTransform } from '../dist/transform/select'
-import { requestBody, responseBody } from '../dist/transform/body'
+import { bodyTransform, requestBody, responseBody } from '../dist/transform/body'
 import type {
-  ModelPoint, ModelBody, ModelBodyField, BodyKind, ModelRequestBody,
+  ModelPoint, ModelBody, ModelBodyField, BodyKind,
 } from '../dist/apidef'
 import { Aontu } from 'aontu'
 import { resolveSecurity, findAuthPrefix } from '../dist/transform/top'
@@ -1065,7 +1065,7 @@ describe('tsv-point-body', () => {
       const point: ModelPoint = JSON.parse(row.point)
       const unified: ModelPoint = new Aontu().generate(schema + '\nmain:kit:entity:upload:op:create:' +
         JSON.stringify({ name: 'create', points: [point] })).main.kit.entity.upload.op.create.points[0]
-      const request: ModelRequestBody | undefined = unified.rb
+      const request: ModelBody | undefined = unified.rb
       const response: ModelBody | undefined = unified.rs
       assert.deepStrictEqual(JSON.parse(JSON.stringify({ rb: request, rs: response })),
         JSON.parse(row.expected))
@@ -1087,6 +1087,29 @@ describe('tsv-response-body', () => {
       const media = '' === row.media ? undefined : row.media
       assert.deepStrictEqual(responseBody(JSON.parse(row.def), 'GET', '/x', media) ?? null,
         JSON.parse(row.expected))
+    })
+  }
+})
+
+
+// The body pass reads a point's media from its own op's guide entry.
+describe('tsv-body-guide', () => {
+  const rows = loadTsv('body-guide')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, async () => {
+      const ent = JSON.parse(row.entity)
+      await bodyTransform({
+        apimodel: { main: { kit: { entity: { [ent.name]: ent } } } },
+        def: JSON.parse(row.def),
+        guide: { entity: { [ent.name]: JSON.parse(row.guide) } },
+      } as any)
+      const points = Object.fromEntries(Object.entries(ent.op).map(([name, op]: [string, any]) =>
+        [name, op.points.map((point: ModelPoint) => ({
+          ...(null == point.rb ? {} : { rb: point.rb.media }),
+          ...(null == point.rs ? {} : { rs: point.rs.media }),
+        }))]))
+      assert.deepStrictEqual(points, JSON.parse(row.points))
     })
   }
 })

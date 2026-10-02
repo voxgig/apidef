@@ -56,7 +56,7 @@ func BodyTransform(ctx *ApiDefContext) (*TransformResult, error) {
 				}
 				method, _ := point["m"].(string)
 				path, _ := point["o"].(string)
-				bodyMedia, responseMedia := guideBodyMedia(ctx.Guide, entname, method, path)
+				bodyMedia, responseMedia := guideBodyMedia(ctx.Guide, entname, opname, method, path)
 				if rb := requestBody(ctx.Def, method, path, bodyMedia); rb != nil {
 					point["rb"] = rb
 				}
@@ -71,16 +71,22 @@ func BodyTransform(ctx *ApiDefContext) (*TransformResult, error) {
 	return &TransformResult{OK: true, Msg: msg}, nil
 }
 
-func guideBodyMedia(guide map[string]any, entname string, method string, path string) (string, string) {
+// The entry of the point's own op, as ops can share a path and method.
+// A patch the operation pass promotes to update keeps its entry under patch.
+func guideBodyMedia(guide map[string]any, entname string, opname string, method string, path string) (string, string) {
 	gents, _ := guide["entity"].(map[string]any)
 	gent, _ := gents[entname].(map[string]any)
 	gpaths, _ := gent["path"].(map[string]any)
 	gpath, _ := gpaths[path].(map[string]any)
 	gops, _ := gpath["op"].(map[string]any)
-	for _, opname := range sortedKeys(gops) {
-		gop, _ := gops[opname].(map[string]any)
+	names := []string{opname}
+	if opname == "update" {
+		names = append(names, "patch")
+	}
+	for _, name := range names {
+		gop, _ := gops[name].(map[string]any)
 		gmethod, _ := gop["method"].(string)
-		if guideActive(gop) && strings.ToUpper(gmethod) == strings.ToUpper(method) {
+		if gop != nil && guideActive(gop) && strings.ToUpper(gmethod) == strings.ToUpper(method) {
 			body, _ := gop["body"].(map[string]any)
 			response, _ := gop["response"].(map[string]any)
 			return textOf(body["media"]), textOf(response["media"])

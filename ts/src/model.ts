@@ -151,11 +151,6 @@ type ModelBody = {
 }
 
 
-type RequestBodyKind = BodyKind
-type ModelRequestBodyField = ModelBodyField
-type ModelRequestBody = ModelBody
-
-
 type ModelPoint = {
   co?: { version: 2, id: string, source: string }
   li?: boolean | Record<string, any>
@@ -282,9 +277,6 @@ export type {
   BodyKind,
   ModelBodyField,
   ModelBody,
-  RequestBodyKind,
-  ModelRequestBodyField,
-  ModelRequestBody,
   ModelOp,
   ModelEntity,
   ModelEntityFlow,

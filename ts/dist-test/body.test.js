@@ -48,6 +48,7 @@ const apidef_1 = require("../dist/apidef");
 const DEF = 'request-body-def.json';
 // Alone, the heuristic chooses text/markdown, first in code point order, and JSON.
 const GUIDE = 'guide: entity: render: path: "/renders": op: create: body: media: "text/plain"\n' +
+    'guide: entity: render: path: "/renders/{render_id}": op: patch: body: media: "text/plain"\n' +
     'guide: entity: avatar: path: "/avatars/{avatar_id}": op: load: response: media: "image/png"\n';
 const JSON_BODY = { kind: 'json', media: 'application/json' };
 (0, node_test_1.describe)('body', () => {
@@ -117,6 +118,11 @@ const JSON_BODY = { kind: 'json', media: 'application/json' };
     });
     (0, node_test_1.test)('the guide chooses the media types a body is sent and answered in', () => {
         node_assert_1.default.deepStrictEqual(bodies('render', 'create'), [['/renders', {
+                    kind: 'raw', media: 'text/plain',
+                    alternatives: [{ kind: 'raw', media: 'text/markdown' }],
+                }]]);
+        // The PATCH is promoted to update, and its patch entry still applies.
+        node_assert_1.default.deepStrictEqual(bodies('render', 'update'), [['/renders/{render_id}', {
                     kind: 'raw', media: 'text/plain',
                     alternatives: [{ kind: 'raw', media: 'text/markdown' }],
                 }]]);

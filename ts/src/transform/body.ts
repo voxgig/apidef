@@ -47,12 +47,13 @@ const bodyTransform: Transform = async function(
   let msg = 'body '
 
   for (const entname of sortedKeys(entities)) {
-    for (const mop of Object.values(entities[entname].op ?? {}) as any[]) {
-      for (const mpoint of (mop?.points ?? []) as ModelPoint[]) {
+    const ops = entities[entname].op ?? {}
+    for (const opname of sortedKeys(ops)) {
+      for (const mpoint of (ops[opname]?.points ?? []) as ModelPoint[]) {
         if ('graphql' === mpoint.k) {
           continue
         }
-        const media = guideMedia(guide, entname, mpoint)
+        const media = guideMedia(guide, entname, opname, mpoint)
         const rb = requestBody(def, mpoint.m, mpoint.o, media.body)
         if (null != rb) {
           mpoint.rb = rb
@@ -70,13 +71,20 @@ const bodyTransform: Transform = async function(
 }
 
 
-function guideMedia(guide: any, entname: string, mpoint: ModelPoint): { body?: string, response?: string } {
+// The entry of the point's own op, as ops can share a path and method.
+// A patch the operation pass promotes to update keeps its entry under patch.
+function guideMedia(
+  guide: any,
+  entname: string,
+  opname: string,
+  mpoint: ModelPoint,
+): { body?: string, response?: string } {
   const gops = guide?.entity?.[entname]?.path?.[mpoint.o]?.op ?? {}
-  for (const opname of sortedKeys(gops)) {
-    const gop = gops[opname]
-    if (guideActive(gop) &&
-      String(gop?.method ?? '').toUpperCase() === String(mpoint.m).toUpperCase()) {
-      return { body: textOf(gop?.body?.media), response: textOf(gop?.response?.media) }
+  for (const name of 'update' === opname ? ['update', 'patch'] : [opname]) {
+    const gop = gops[name]
+    if (null != gop && guideActive(gop) &&
+      String(gop.method ?? '').toUpperCase() === String(mpoint.m).toUpperCase()) {
+      return { body: textOf(gop.body?.media), response: textOf(gop.response?.media) }
     }
   }
   return {}

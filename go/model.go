@@ -85,10 +85,6 @@ type ModelBody struct {
 	Alternatives []*ModelBody      `json:"alternatives,omitempty"`
 }
 
-type RequestBodyKind = BodyKind
-type ModelRequestBodyField = ModelBodyField
-type ModelRequestBody = ModelBody
-
 // ModelPoint represents a point implementation of an operation.
 type ModelPoint struct {
 	Live        any              `json:"li,omitempty"`

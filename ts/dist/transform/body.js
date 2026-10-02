@@ -22,12 +22,13 @@ const bodyTransform = async function (ctx) {
     const entities = apimodel.main[types_1.KIT].entity;
     let msg = 'body ';
     for (const entname of (0, utility_1.sortedKeys)(entities)) {
-        for (const mop of Object.values(entities[entname].op ?? {})) {
-            for (const mpoint of (mop?.points ?? [])) {
+        const ops = entities[entname].op ?? {};
+        for (const opname of (0, utility_1.sortedKeys)(ops)) {
+            for (const mpoint of (ops[opname]?.points ?? [])) {
                 if ('graphql' === mpoint.k) {
                     continue;
                 }
-                const media = guideMedia(guide, entname, mpoint);
+                const media = guideMedia(guide, entname, opname, mpoint);
                 const rb = requestBody(def, mpoint.m, mpoint.o, media.body);
                 if (null != rb) {
                     mpoint.rb = rb;
@@ -43,13 +44,15 @@ const bodyTransform = async function (ctx) {
     return { ok: true, msg };
 };
 exports.bodyTransform = bodyTransform;
-function guideMedia(guide, entname, mpoint) {
+// The entry of the point's own op, as ops can share a path and method.
+// A patch the operation pass promotes to update keeps its entry under patch.
+function guideMedia(guide, entname, opname, mpoint) {
     const gops = guide?.entity?.[entname]?.path?.[mpoint.o]?.op ?? {};
-    for (const opname of (0, utility_1.sortedKeys)(gops)) {
-        const gop = gops[opname];
-        if ((0, utility_1.guideActive)(gop) &&
-            String(gop?.method ?? '').toUpperCase() === String(mpoint.m).toUpperCase()) {
-            return { body: textOf(gop?.body?.media), response: textOf(gop?.response?.media) };
+    for (const name of 'update' === opname ? ['update', 'patch'] : [opname]) {
+        const gop = gops[name];
+        if (null != gop && (0, utility_1.guideActive)(gop) &&
+            String(gop.method ?? '').toUpperCase() === String(mpoint.m).toUpperCase()) {
+            return { body: textOf(gop.body?.media), response: textOf(gop.response?.media) };
         }
     }
     return {};

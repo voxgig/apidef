@@ -18,6 +18,7 @@ const DEF = 'request-body-def.json'
 // Alone, the heuristic chooses text/markdown, first in code point order, and JSON.
 const GUIDE =
   'guide: entity: render: path: "/renders": op: create: body: media: "text/plain"\n' +
+  'guide: entity: render: path: "/renders/{render_id}": op: patch: body: media: "text/plain"\n' +
   'guide: entity: avatar: path: "/avatars/{avatar_id}": op: load: response: media: "image/png"\n'
 
 const JSON_BODY = { kind: 'json', media: 'application/json' }
@@ -105,6 +106,11 @@ describe('body', () => {
 
   test('the guide chooses the media types a body is sent and answered in', () => {
     assert.deepStrictEqual(bodies('render', 'create'), [['/renders', {
+      kind: 'raw', media: 'text/plain',
+      alternatives: [{ kind: 'raw', media: 'text/markdown' }],
+    }]])
+    // The PATCH is promoted to update, and its patch entry still applies.
+    assert.deepStrictEqual(bodies('render', 'update'), [['/renders/{render_id}', {
       kind: 'raw', media: 'text/plain',
       alternatives: [{ kind: 'raw', media: 'text/markdown' }],
     }]])

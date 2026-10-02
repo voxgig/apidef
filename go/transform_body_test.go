@@ -11,6 +11,7 @@ func generateRequestBody(t *testing.T) *ApiDefResult {
 	folder := t.TempDir()
 	entry := "@\"@voxgig/apidef/model/guide.aontu\"\n@\"./base-guide.aontu\"\n" +
 		"guide: entity: render: path: \"/renders\": op: create: body: media: \"text/plain\"\n" +
+		"guide: entity: render: path: \"/renders/{render_id}\": op: patch: body: media: \"text/plain\"\n" +
 		"guide: entity: avatar: path: \"/avatars/{avatar_id}\": op: load: response: media: \"image/png\"\n"
 	if err := writeGuideEntry(folder, "", entry); err != nil {
 		t.Fatal(err)
@@ -81,6 +82,11 @@ func TestBodyGuideChoosesMedia(t *testing.T) {
 	if got, want := asJSON(pointBodies(res, "render", "create")),
 		`[["/renders",{"alternatives":[{"kind":"raw","media":"text/markdown"}],"kind":"raw","media":"text/plain"}]]`; got != want {
 		t.Errorf("render.create bodies\ngot  %s\nwant %s", got, want)
+	}
+	// The PATCH is promoted to update, and its patch entry still applies.
+	if got, want := asJSON(pointBodies(res, "render", "update")),
+		`[["/renders/{render_id}",{"alternatives":[{"kind":"raw","media":"text/markdown"}],"kind":"raw","media":"text/plain"}]]`; got != want {
+		t.Errorf("render.update bodies\ngot  %s\nwant %s", got, want)
 	}
 }
 

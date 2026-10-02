@@ -891,4 +891,24 @@ function loadTsv(name) {
         });
     }
 });
+// The body pass reads a point's media from its own op's guide entry.
+(0, node_test_1.describe)('tsv-body-guide', () => {
+    const rows = loadTsv('body-guide');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, async () => {
+            const ent = JSON.parse(row.entity);
+            await (0, body_1.bodyTransform)({
+                apimodel: { main: { kit: { entity: { [ent.name]: ent } } } },
+                def: JSON.parse(row.def),
+                guide: { entity: { [ent.name]: JSON.parse(row.guide) } },
+            });
+            const points = Object.fromEntries(Object.entries(ent.op).map(([name, op]) => [name, op.points.map((point) => ({
+                    ...(null == point.rb ? {} : { rb: point.rb.media }),
+                    ...(null == point.rs ? {} : { rs: point.rs.media }),
+                }))]));
+            node_assert_1.default.deepStrictEqual(points, JSON.parse(row.points));
+        });
+    }
+});
 //# sourceMappingURL=tsv.test.js.map

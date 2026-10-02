@@ -219,10 +219,14 @@ the media type to send, and `response.media` the one to ask for. A declared medi
 included, is chosen with its own schema.
 An undeclared one is classified from the media type alone, so an undeclared
 raw type is binary, and an operation that declares no body gains one.
+An entry corrects its own operation alone, even where two operations share a
+path and method. A `PATCH` promoted to `update` is corrected by its `patch`
+entry.
 
 Each rule is a row in
-[`ts/test/request-body.tsv`](../../ts/test/request-body.tsv) or
-[`ts/test/response-body.tsv`](../../ts/test/response-body.tsv). One point of
+[`ts/test/request-body.tsv`](../../ts/test/request-body.tsv),
+[`ts/test/response-body.tsv`](../../ts/test/response-body.tsv) or
+[`ts/test/body-guide.tsv`](../../ts/test/body-guide.tsv). One point of
 each kind:
 
 ```jsonic

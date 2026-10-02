@@ -95,9 +95,6 @@ type ModelBody = {
     fields?: ModelBodyField[];
     alternatives?: ModelBody[];
 };
-type RequestBodyKind = BodyKind;
-type ModelRequestBodyField = ModelBodyField;
-type ModelRequestBody = ModelBody;
 type ModelPoint = {
     co?: {
         version: 2;
@@ -190,4 +187,4 @@ type ModelEntityFlowStep = {
     s: ModelEntityFlowStepSpec[];
     v: ModelEntityFlowStepValidator[];
 };
-export type { OpName, ArgKind, PointKind, ModelGraphql, ModelGraphqlVar, ModelGraphqlPage, NamesCluster, Model, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelPoint, ModelPathSegment, BodyKind, ModelBodyField, ModelBody, RequestBodyKind, ModelRequestBodyField, ModelRequestBody, ModelOp, ModelEntity, ModelEntityFlow, ModelEntityFlowStep, ModelEntityFlowStepInput, ModelEntityFlowStepValidator, ModelEntityFlowStepSpec, };
+export type { OpName, ArgKind, PointKind, ModelGraphql, ModelGraphqlVar, ModelGraphqlPage, NamesCluster, Model, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelPoint, ModelPathSegment, BodyKind, ModelBodyField, ModelBody, ModelOp, ModelEntity, ModelEntityFlow, ModelEntityFlowStep, ModelEntityFlowStepInput, ModelEntityFlowStepValidator, ModelEntityFlowStepSpec, };

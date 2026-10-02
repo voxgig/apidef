@@ -18,6 +18,6 @@ declare namespace ApiDef {
 export type { ApiDefOptions, };
 export type { PathDef, MethodDef, ServerDef, ServerVariableDef, ParameterDef, SchemaDef, } from './def';
 export type { CmpDesc, BasicMethodDesc, MethodDesc, MethodEntityDesc, EntityDesc, EntityPathDesc, PathDesc, OpDesc, } from './desc';
-export type { OpName, ArgKind, NamesCluster, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelPoint, BodyKind, ModelBodyField, ModelBody, RequestBodyKind, ModelRequestBodyField, ModelRequestBody, ModelOp, ModelEntity, Model, ModelEntityFlow, ModelEntityFlowStep, ModelEntityFlowStepInput, ModelEntityFlowStepValidator, ModelEntityFlowStepSpec, } from './model';
+export type { OpName, ArgKind, NamesCluster, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelPoint, BodyKind, ModelBodyField, ModelBody, ModelOp, ModelEntity, Model, ModelEntityFlow, ModelEntityFlowStep, ModelEntityFlowStepInput, ModelEntityFlowStepValidator, ModelEntityFlowStepSpec, } from './model';
 export { KIT, ApiDef, gcEntityFiles, warningsFileText, parse, formatJSONIC, depluralize, sanitizeSlug, slugToPascalCase, getModelPath, nom, VALID_CANON, CANON_ONE, operationFacts, operationIndex, resolvedSpec, };
 export type { OperationSelector, OperationFacts, ResolvedSpec, };
