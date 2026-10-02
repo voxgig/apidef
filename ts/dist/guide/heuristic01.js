@@ -1,6 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.answeredRefs = answeredRefs;
+exports.distinctRecord = distinctRecord;
+exports.distinctShare = distinctShare;
 exports.heuristic01 = heuristic01;
+exports.namingRef = namingRef;
+exports.namingSchemas = namingSchemas;
 exports.pathResource = pathResource;
 exports.sharedRoutes = sharedRoutes;
 exports.entityParamNames = entityParamNames;
@@ -63,6 +68,7 @@ async function heuristic01(ctx) {
         { select: selectCmpXrefs, apply: MeasureRef },
         { select: selectAllMethods, apply: MeasureEnvelope },
         MeasureEnvelopeItems,
+        MeasureAnswered,
         { select: selectAllMethods, apply: MeasureSharing },
         MeasureShared,
         {
@@ -83,7 +89,7 @@ async function heuristic01(ctx) {
         throw result.err;
     }
     const guide = result.data.guide;
-    guide.metrics.count.entity -= (0, entity_1.mergeCollectionPaths)(guide, ctx.log, (pathStr, methods, collection) => pathRecordRef(ctx.def, pathStr, methods, collection)).length;
+    guide.metrics.count.entity -= (0, entity_1.mergeCollectionPaths)(guide, ctx.log, (pathStr, methods, collection) => pathRecordRef(ctx.def, pathStr, methods, collection), (sharePath, shareMethods, itemPath, itemMethods) => distinctShare(ctx.def, sharePath, shareMethods, itemPath, itemMethods)).length;
     // After the merge, which can move a path onto another entity.
     for (const entity of Object.values(guide.entity)) {
         nameEntityParams(entity);
@@ -142,6 +148,7 @@ function Prepare(spec) {
             listEnvelope: {},
             envelopePaths: {},
             sharing: { routes: [], records: {}, yields: {} },
+            recordResources: {},
             entity: {
                 count: {
                     seen: 0,
@@ -264,6 +271,11 @@ function MeasureEnvelopeItems(spec) {
         }
     }
 }
+// The records some operation answers with in a 200 or 201, read through the
+// envelopes MeasureEnvelopeItems settles.
+function MeasureAnswered(spec) {
+    spec.data.work.answered = answeredRefs(spec.data.def, spec.data.work.envelope);
+}
 function isPageAndItsItem(work, xrefs) {
     const pages = xrefs.filter((xref) => work.listEnvelope[xref]);
     const items = xrefs.filter((xref) => !work.listEnvelope[xref]);
@@ -282,13 +294,18 @@ function MeasureSharing(spec) {
     const parts = work.pathmap[mdesc.path].parts;
     const op = methodOpname(mdesc, matchEntityPath(parts), []) ?? '';
     const sharing = work.sharing;
-    const xrefs = findPotentialSchemaRefs(mdesc.path, mdesc.method, mdesc.responses, work.envelope, []);
+    const resource = pathResource(parts, mdesc.method);
+    const xrefs = findPotentialSchemaRefs(mdesc.path, mdesc.method, mdesc.responses, work.envelope, work.answered, []);
     for (const xref of xrefs) {
         const m = xref.match(/\/(components\/schemas|definitions)\/(.+)$/);
         if (null != m) {
             const cmp = (0, utility_2.canonizeCmpName)(m[2]);
+            const record = declaresId(refSchema(spec.data.def, xref));
             sharing.routes.push({ cmp, method: mdesc.method, path: mdesc.path, op });
-            sharing.records[cmp] = true === sharing.records[cmp] || declaresId(refSchema(spec.data.def, xref));
+            sharing.records[cmp] = true === sharing.records[cmp] || record;
+            if (record && null != resource) {
+                work.recordResources[resource] = true;
+            }
         }
     }
 }
@@ -354,7 +371,7 @@ function ResolveEntityComponent(spec) {
     const parts = work.pathmap[pathStr].parts;
     let why_cmp = [];
     let responses = methodDef.responses;
-    let origxrefs = findPotentialSchemaRefs(pathStr, methodName, responses, work.envelope, why_cmp).map(val => ({
+    let origxrefs = findPotentialSchemaRefs(pathStr, methodName, responses, work.envelope, work.answered, why_cmp).map(val => ({
         val
     }));
     let cmpxrefs = origxrefs
@@ -510,6 +527,11 @@ function ResolveEntityName(spec) {
         }
     }
     entname = (0, utility_2.resplitFromCmp)(entname, ment.cmp, why_path);
+    const collectionEntity = itemOfCollection(data, mdesc, parts);
+    if (null != collectionEntity) {
+        why_path.push('collection-record=' + collectionEntity);
+        entname = collectionEntity;
+    }
     // Keep the pre-truncation name so a truncated-name collision can tell a
     // re-encounter of the SAME origin (merge) from a genuinely different one
     // (numeric suffix) — see ensureMinEntityName.
@@ -541,6 +563,14 @@ function ResolveEntityName(spec) {
     work.pathowner = work.pathowner ?? {};
     work.pathowner[pathStr] = work.pathowner[pathStr] ?? {};
     work.pathowner[pathStr][methodName] = entname;
+    // The entity a path's own record names, where the record carries the name
+    // the path's last segment gives.
+    const last = parts.filter((part) => !isParam(part)).pop();
+    work.recordowner = work.recordowner ?? {};
+    if (null == work.recordowner[pathStr] && isSchemaRef(ment.ref) &&
+        entname === ment.cmp && null != last && entname === (0, utility_2.canonize)(last)) {
+        work.recordowner[pathStr] = entname;
+    }
     // Same guard, same reason: the formatting is the cost, not the call.
     if ((0, utility_2.debugpathOn)()) {
         (0, utility_2.debugpath)(pathStr, methodName, 'RESOLVE-ENTITY-NAME', (0, utility_2.formatJSONIC)({ entdesc, ment }, { hsepd: 0, $: true, color: true }));
@@ -1040,6 +1070,34 @@ function verbOnParent(data, pm, mdesc) {
     }
     return (0, utility_2.canonize)((0, struct_1.getelem)(pm, -3));
 }
+// The entity of an item route's collection, for a method on the item route
+// named by its tag alone, when the route answers nothing and the tag names
+// another resource with a record of its own, which the item's operations
+// would join: the collection's record then names the item too, as GitHub's
+// repository invitations do beside its repositories.
+function itemOfCollection(data, mdesc, parts) {
+    const ment = mdesc.MethodEntity;
+    if ('tag' !== ment.ref || null != ment.rescmp ||
+        true !== data.work.recordResources[ment.cmp]) {
+        return null;
+    }
+    const lits = parts.slice(0, parts.findIndex(isParam));
+    if (0 === lits.length || !parts.slice(lits.length).every(isParam)) {
+        return null;
+    }
+    const answers = Object.entries(data.def?.paths?.[mdesc.path] ?? {})
+        .some(([method, mdef]) => null != METHOD_CONSIDER_ORDER[method.toUpperCase()] &&
+        null != getResponseSchema(successResponse(mdef?.responses)));
+    if (answers) {
+        return null;
+    }
+    const collection = '/' + lits.join('/');
+    return data.work.recordowner?.[collection] ??
+        data.work.recordowner?.[collection + '/'] ?? null;
+}
+function isSchemaRef(ref) {
+    return null != ref && '' !== ref && 'tag' !== ref;
+}
 function isOrigCmp(data, name) {
     return null != data.guide.metrics.count.origcmprefs[name];
 }
@@ -1123,17 +1181,58 @@ function successSchemas(responses) {
         .map((rescode) => getResponseSchema(responses?.[rescode]))
         .filter((schema) => null != schema);
 }
+// A read answered only by an Accepted response is named from it when another
+// operation answers with the same record in a 200 or 201, which shows the
+// record is a resource rather than the work queued.
+function namingSchemas(method, responses, answered, envelope) {
+    const schemas = successSchemas(responses);
+    if (0 === schemas.length && READ_METHODS.includes(method)) {
+        const accepted = getResponseSchema(responses?.[202]);
+        if (true === answered[namingRef(accepted, envelope) ?? '']) {
+            schemas.push(accepted);
+        }
+    }
+    return schemas;
+}
+function answeredRefs(def, envelope) {
+    const answered = {};
+    for (const pathdef of Object.values(def?.paths ?? {})) {
+        for (const [method, mdef] of Object.entries(pathdef ?? {})) {
+            if (null == METHOD_CONSIDER_ORDER[method.toUpperCase()] ||
+                null == mdef || 'object' !== typeof mdef) {
+                continue;
+            }
+            for (const schema of successSchemas(mdef.responses)) {
+                const ref = namingRef(schema, envelope);
+                if (null != ref) {
+                    answered[ref] = true;
+                }
+            }
+        }
+    }
+    return answered;
+}
+// The component a response schema names through: the record an envelope
+// carries, else the schema's own component, else its array items'.
+function namingRef(schema, envelope) {
+    const xref = schema?.['x-ref'];
+    if (null != xref) {
+        const itemref = envelope[xref];
+        return null == itemref || '' === itemref ? xref : itemref;
+    }
+    return 'array' === schema?.type ? schema.items?.['x-ref'] : undefined;
+}
 function getResponseSchema(response) {
     return response?.content?.['application/json']?.schema ??
         response?.schema;
 }
 // The record a path answers with, read from its methods in the order they are
 // considered, so a read decides before a write.
-function pathRecordRef(def, pathStr, methods, collection) {
+function pathRecordRef(def, pathStr, methods, collection, accepted = true) {
     const rank = (method) => METHOD_CONSIDER_ORDER[method] ?? Number.MAX_SAFE_INTEGER;
     const ordered = [...methods].sort((a, b) => rank(a) - rank(b) || (0, refcount_1.byCodePoint)(a, b));
     for (const method of ordered) {
-        const ref = routeRecordRef(def, pathStr, method, collection);
+        const ref = routeRecordRef(def, pathStr, method, collection, accepted);
         if (null != ref) {
             return ref;
         }
@@ -1144,9 +1243,11 @@ function pathRecordRef(def, pathStr, methods, collection) {
 // items', or the one its envelope carries, such as the job summary in Mux's
 // `{ data }`. Only a collection reads a page, so beneath the collection a
 // team that holds nothing but its members is a team. Null when the answer
-// names no component.
-function routeRecordRef(def, pathStr, method, collection) {
-    const schema = getResponseSchema(successResponse(def?.paths?.[pathStr]?.[method.toLowerCase()]?.responses));
+// names no component, or is Accepted and `accepted` excludes it.
+function routeRecordRef(def, pathStr, method, collection, accepted = true) {
+    const responses = def?.paths?.[pathStr]?.[method.toLowerCase()]?.responses;
+    const schema = getResponseSchema(accepted ? successResponse(responses) :
+        responses?.[200] ?? responses?.[201]);
     if (null == schema || 'object' !== typeof schema) {
         return null;
     }
@@ -1431,14 +1532,29 @@ function refSchema(def, xref) {
     }
     return node;
 }
-// Read in place: resolveSchemaProperties merges, and merging rewrites the
-// nodes the def's schemas share.
-function declaresId(schema) {
-    if (null == schema || 'object' !== typeof schema) {
+// Whether a share's record is apart from an item's: both declare an `id`, and
+// the share has no more than half of its properties in common with the item,
+// since a collection's list is routinely a summary of its item's record.
+function distinctRecord(share, item) {
+    if (!declaresId(share) || !declaresId(item)) {
         return false;
     }
-    const parts = [schema, ...(Array.isArray(schema.allOf) ? schema.allOf : [])];
-    return parts.some((part) => null != part?.properties?.id);
+    const own = Object.keys((0, utility_2.mergedProperties)(share) ?? {});
+    const theirs = (0, utility_2.mergedProperties)(item) ?? {};
+    const common = own.filter((name) => Object.prototype.hasOwnProperty.call(theirs, name));
+    return common.length * 2 <= own.length;
+}
+// Whether a collection share answers with a record apart from the one its item
+// route answers with, both read from a 200 or 201: an Accepted body may
+// describe the queued work rather than a resource.
+function distinctShare(def, sharePath, shareMethods, itemPath, itemMethods) {
+    const share = pathRecordRef(def, sharePath, shareMethods, true, false);
+    const item = pathRecordRef(def, itemPath, itemMethods, false, false);
+    return null != share && null != item && share !== item &&
+        distinctRecord(refSchema(def, share), refSchema(def, item));
+}
+function declaresId(schema) {
+    return null != (0, utility_2.mergedProperties)(schema)?.id;
 }
 // The operation ResolveOperation will assign, needed before the entity is
 // named: whether a response unwraps as an envelope depends on it.
@@ -1684,23 +1800,17 @@ function makeMethodEntityDesc(desc) {
     };
     return ment;
 }
-function findPotentialSchemaRefs(pathStr, methodName, responses, envelope, why) {
+function findPotentialSchemaRefs(pathStr, methodName, responses, envelope, answered, why) {
     const xrefs = [];
-    for (const schema of successSchemas(responses)) {
-        if (null != schema['x-ref']) {
-            // An envelope component names its wrapping, not the entity: the
-            // component it carries takes its place.
-            const itemref = envelope[schema['x-ref']];
-            if ('' !== itemref) {
+    for (const schema of namingSchemas(methodName, responses, answered, envelope)) {
+        // An envelope component names its wrapping, not the entity: the
+        // component it carries takes its place.
+        const ref = namingRef(schema, envelope);
+        if (null != ref) {
+            if (null != schema['x-ref'] && ref !== schema['x-ref']) {
                 why.push('envelope=' + cmpRefName(schema['x-ref']));
-                xrefs.push(itemref);
             }
-            else {
-                xrefs.push(schema['x-ref']);
-            }
-        }
-        else if ('array' === schema.type && null != schema.items?.['x-ref']) {
-            xrefs.push(schema.items?.['x-ref']);
+            xrefs.push(ref);
         }
     }
     (0, utility_2.debugpath)(pathStr, methodName, 'POTENTIAL-SCHEMA-REFS', xrefs);

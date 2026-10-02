@@ -1,5 +1,8 @@
 import { ApiDefContext, Guide } from '../types';
 declare function heuristic01(ctx: ApiDefContext): Promise<Guide>;
+declare function namingSchemas(method: string, responses: any, answered: Record<string, boolean>, envelope: Record<string, string>): any[];
+declare function answeredRefs(def: any, envelope: Record<string, string>): Record<string, boolean>;
+declare function namingRef(schema: any, envelope: Record<string, string>): string | undefined;
 declare function pathResource(parts: string[], method: string): string | null;
 type SharingRoute = {
     cmp: string;
@@ -8,6 +11,8 @@ type SharingRoute = {
     op: string;
 };
 declare function sharedRoutes(routes: SharingRoute[], records: string[]): string[];
+declare function distinctRecord(share: any, item: any): boolean;
+declare function distinctShare(def: any, sharePath: string, shareMethods: string[], itemPath: string, itemMethods: string[]): boolean;
 declare function isNameParam(param: string): boolean;
 declare function entityParamNames(paths: Record<string, Record<string, string>>): Record<string, Record<string, string>>;
-export { heuristic01, pathResource, sharedRoutes, entityParamNames, isNameParam, };
+export { answeredRefs, distinctRecord, distinctShare, heuristic01, namingRef, namingSchemas, pathResource, sharedRoutes, entityParamNames, isNameParam, };

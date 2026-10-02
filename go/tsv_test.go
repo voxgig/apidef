@@ -783,6 +783,87 @@ func TestPathResource(t *testing.T) {
 	}
 }
 
+func TestNamingSchemas(t *testing.T) {
+	rows := loadTsv(t, "naming-schemas")
+	if len(rows) == 0 {
+		t.Fatal("no naming-schemas rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var paths map[string]any
+			var envelope map[string]string
+			var want []string
+			if err := json.Unmarshal([]byte(row["paths"]), &paths); err != nil {
+				t.Fatalf("bad paths %q: %v", row["paths"], err)
+			}
+			if err := json.Unmarshal([]byte(row["envelope"]), &envelope); err != nil {
+				t.Fatalf("bad envelope %q: %v", row["envelope"], err)
+			}
+			if err := json.Unmarshal([]byte(row["expected"]), &want); err != nil {
+				t.Fatalf("bad expected %q: %v", row["expected"], err)
+			}
+			route := strings.SplitN(row["route"], " ", 2)
+			method, path := route[0], route[1]
+			answered := answeredRefs(map[string]any{"paths": paths}, envelope)
+			pathdef, _ := paths[path].(map[string]any)
+			mdef, _ := pathdef[strings.ToLower(method)].(map[string]any)
+			responses, _ := mdef["responses"].(map[string]any)
+			got := []string{}
+			for _, schema := range namingSchemas(method, responses, answered, envelope) {
+				got = append(got, namingRef(schema, envelope))
+			}
+			if !reflect.DeepEqual(got, want) {
+				t.Errorf("namingSchemas = %v, want %v", got, want)
+			}
+		})
+	}
+}
+
+func TestDistinctShare(t *testing.T) {
+	rows := loadTsv(t, "distinct-share")
+	if len(rows) == 0 {
+		t.Fatal("no distinct-share rows loaded")
+	}
+	route := func(cell string) ([]string, string) {
+		f := strings.SplitN(cell, " ", 2)
+		return strings.Split(f[0], ","), f[1]
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var def map[string]any
+			if err := json.Unmarshal([]byte(row["def"]), &def); err != nil {
+				t.Fatalf("bad def %q: %v", row["def"], err)
+			}
+			shareMethods, sharePath := route(row["share"])
+			itemMethods, itemPath := route(row["item"])
+			if got, want := distinctShare(def, sharePath, shareMethods, itemPath, itemMethods), row["expected"] == "true"; got != want {
+				t.Errorf("distinctShare = %v, want %v", got, want)
+			}
+		})
+	}
+}
+
+func TestDistinctRecord(t *testing.T) {
+	rows := loadTsv(t, "distinct-record")
+	if len(rows) == 0 {
+		t.Fatal("no distinct-record rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var share, item map[string]any
+			if err := json.Unmarshal([]byte(row["share"]), &share); err != nil {
+				t.Fatalf("bad share %q: %v", row["share"], err)
+			}
+			if err := json.Unmarshal([]byte(row["item"]), &item); err != nil {
+				t.Fatalf("bad item %q: %v", row["item"], err)
+			}
+			if got, want := distinctRecord(share, item), row["expected"] == "true"; got != want {
+				t.Errorf("distinctRecord(%s, %s) = %v, want %v", row["share"], row["item"], got, want)
+			}
+		})
+	}
+}
+
 func TestSharedRoutes(t *testing.T) {
 	rows := loadTsv(t, "shared-routes")
 	if len(rows) == 0 {

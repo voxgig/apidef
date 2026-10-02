@@ -52,10 +52,15 @@ import { snakify, camelify, kebabify } from 'jostraca'
 import { classifyGraphQLField } from '../dist/guide/graphql01'
 
 import {
+  answeredRefs,
+  distinctRecord,
+  distinctShare,
   pathResource,
   sharedRoutes,
   entityParamNames,
   isNameParam,
+  namingRef,
+  namingSchemas,
 } from '../dist/guide/heuristic01'
 
 import {
@@ -640,6 +645,53 @@ describe('tsv-path-resource', () => {
       const parts = row.path.split('/').filter((p) => '' !== p)
       const expected = '' === row.expected ? null : row.expected
       assert.strictEqual(pathResource(parts, row.method), expected)
+    })
+  }
+})
+
+
+describe('tsv-naming-schemas', () => {
+  const rows = loadTsv('naming-schemas')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(`namingSchemas(${row.name})`, () => {
+      const paths = JSON.parse(row.paths)
+      const envelope = JSON.parse(row.envelope)
+      const [method, path] = row.route.split(' ')
+      const answered = answeredRefs({ paths }, envelope)
+      const refs = namingSchemas(method, paths[path][method.toLowerCase()].responses,
+        answered, envelope).map((schema: any) => namingRef(schema, envelope))
+      assert.deepStrictEqual(refs, JSON.parse(row.expected))
+    })
+  }
+})
+
+
+describe('tsv-distinct-share', () => {
+  const rows = loadTsv('distinct-share')
+  const route = (cell: string) => {
+    const [methods, path] = cell.split(' ')
+    return { methods: methods.split(','), path }
+  }
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(`distinctShare(${row.name}) => ${row.expected}`, () => {
+      const share = route(row.share)
+      const item = route(row.item)
+      assert.strictEqual(distinctShare(JSON.parse(row.def),
+        share.path, share.methods, item.path, item.methods), 'true' === row.expected)
+    })
+  }
+})
+
+
+describe('tsv-distinct-record', () => {
+  const rows = loadTsv('distinct-record')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(`distinctRecord(${row.name}) => ${row.expected}`, () => {
+      assert.strictEqual(
+        distinctRecord(JSON.parse(row.share), JSON.parse(row.item)), 'true' === row.expected)
     })
   }
 })

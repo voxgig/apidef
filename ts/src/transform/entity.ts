@@ -98,6 +98,8 @@ function mergeCollectionPaths(
   guide: any,
   log?: any,
   recordRef?: (pathStr: string, methods: string[], collection: boolean) => string | null,
+  distinct?: (sharePath: string, shareMethods: string[],
+    itemPath: string, itemMethods: string[]) => boolean,
 ): string[] {
   const entities = guide.entity as Record<string, any>
   const emptied: string[] = []
@@ -153,6 +155,11 @@ function mergeCollectionPaths(
     }
   }
 
+  // A share answering with its own record, unlike the owner's item's, stays.
+  const apart = (ename: string, pathStr: string, owner: CollectionOwner) =>
+    true === distinct?.(pathStr, methodsOf(entities[ename].path[pathStr]),
+      owner.route, methodsOf(entities[owner.ename]?.path?.[owner.route]))
+
   // Second pass: for each entity with a "/X" path, if X has an owner
   // elsewhere, move the path there.
   for (const [ename, entity] of Object.entries(entities)) {
@@ -161,7 +168,7 @@ function mergeCollectionPaths(
 
     for (const pathStr of Object.keys(entity.path)) {
       const owner = owned[pathStr]
-      if (null != owner && owner.ename !== ename) {
+      if (null != owner && owner.ename !== ename && !apart(ename, pathStr, owner)) {
         pathsToMove.push([pathStr, owner])
       }
     }

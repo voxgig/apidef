@@ -138,6 +138,7 @@ async function heuristic01(ctx: ApiDefContext): Promise<Guide> {
     { select: selectCmpXrefs, apply: MeasureRef },
     { select: selectAllMethods, apply: MeasureEnvelope },
     MeasureEnvelopeItems,
+    MeasureAnswered,
     { select: selectAllMethods, apply: MeasureSharing },
     MeasureShared,
     {
@@ -164,7 +165,9 @@ async function heuristic01(ctx: ApiDefContext): Promise<Guide> {
 
   guide.metrics.count.entity -= mergeCollectionPaths(guide, ctx.log,
     (pathStr: string, methods: string[], collection: boolean) =>
-      pathRecordRef(ctx.def, pathStr, methods, collection)).length
+      pathRecordRef(ctx.def, pathStr, methods, collection),
+    (sharePath: string, shareMethods: string[], itemPath: string, itemMethods: string[]) =>
+      distinctShare(ctx.def, sharePath, shareMethods, itemPath, itemMethods)).length
 
   // After the merge, which can move a path onto another entity.
   for (const entity of Object.values(guide.entity) as GuideEntity[]) {
@@ -234,6 +237,7 @@ function Prepare(spec: TaskSpec) {
       listEnvelope: {},
       envelopePaths: {},
       sharing: { routes: [], records: {}, yields: {} },
+      recordResources: {},
       entity: {
         count: {
           seen: 0,
@@ -383,6 +387,13 @@ function MeasureEnvelopeItems(spec: TaskSpec) {
 }
 
 
+// The records some operation answers with in a 200 or 201, read through the
+// envelopes MeasureEnvelopeItems settles.
+function MeasureAnswered(spec: TaskSpec) {
+  spec.data.work.answered = answeredRefs(spec.data.def, spec.data.work.envelope)
+}
+
+
 function isPageAndItsItem(work: any, xrefs: string[]): boolean {
   const pages = xrefs.filter((xref) => work.listEnvelope[xref])
   const items = xrefs.filter((xref) => !work.listEnvelope[xref])
@@ -405,13 +416,20 @@ function MeasureSharing(spec: TaskSpec) {
   const op = methodOpname(mdesc, matchEntityPath(parts), []) ?? ''
   const sharing = work.sharing
 
-  const xrefs = findPotentialSchemaRefs(mdesc.path, mdesc.method, mdesc.responses, work.envelope, [])
+  const resource = pathResource(parts, mdesc.method)
+
+  const xrefs = findPotentialSchemaRefs(
+    mdesc.path, mdesc.method, mdesc.responses, work.envelope, work.answered, [])
   for (const xref of xrefs) {
     const m = xref.match(/\/(components\/schemas|definitions)\/(.+)$/)
     if (null != m) {
       const cmp = canonizeCmpName(m[2])
+      const record = declaresId(refSchema(spec.data.def, xref))
       sharing.routes.push({ cmp, method: mdesc.method, path: mdesc.path, op })
-      sharing.records[cmp] = true === sharing.records[cmp] || declaresId(refSchema(spec.data.def, xref))
+      sharing.records[cmp] = true === sharing.records[cmp] || record
+      if (record && null != resource) {
+        work.recordResources[resource] = true
+      }
     }
   }
 }
@@ -497,7 +515,7 @@ function ResolveEntityComponent(spec: TaskSpec) {
   let responses = methodDef.responses
 
   let origxrefs: any[] = findPotentialSchemaRefs(
-    pathStr, methodName, responses, work.envelope, why_cmp).map(val => ({
+    pathStr, methodName, responses, work.envelope, work.answered, why_cmp).map(val => ({
       val
     }))
 
@@ -707,6 +725,12 @@ function ResolveEntityName(spec: TaskSpec) {
 
   entname = resplitFromCmp(entname, ment.cmp as string, why_path)
 
+  const collectionEntity = itemOfCollection(data, mdesc, parts)
+  if (null != collectionEntity) {
+    why_path.push('collection-record=' + collectionEntity)
+    entname = collectionEntity
+  }
+
   // Keep the pre-truncation name so a truncated-name collision can tell a
   // re-encounter of the SAME origin (merge) from a genuinely different one
   // (numeric suffix) — see ensureMinEntityName.
@@ -742,6 +766,15 @@ function ResolveEntityName(spec: TaskSpec) {
   work.pathowner = work.pathowner ?? {}
   work.pathowner[pathStr] = work.pathowner[pathStr] ?? {}
   work.pathowner[pathStr][methodName] = entname
+
+  // The entity a path's own record names, where the record carries the name
+  // the path's last segment gives.
+  const last = parts.filter((part: string) => !isParam(part)).pop()
+  work.recordowner = work.recordowner ?? {}
+  if (null == work.recordowner[pathStr] && isSchemaRef(ment.ref) &&
+    entname === ment.cmp && null != last && entname === canonize(last)) {
+    work.recordowner[pathStr] = entname
+  }
 
   // Same guard, same reason: the formatting is the cost, not the call.
   if (debugpathOn()) {
@@ -1428,6 +1461,46 @@ function verbOnParent(
 }
 
 
+// The entity of an item route's collection, for a method on the item route
+// named by its tag alone, when the route answers nothing and the tag names
+// another resource with a record of its own, which the item's operations
+// would join: the collection's record then names the item too, as GitHub's
+// repository invitations do beside its repositories.
+function itemOfCollection(
+  data: { def: any, work: any },
+  mdesc: any,
+  parts: string[],
+): string | null {
+  const ment = mdesc.MethodEntity
+  if ('tag' !== ment.ref || null != ment.rescmp ||
+    true !== data.work.recordResources[ment.cmp]) {
+    return null
+  }
+
+  const lits = parts.slice(0, parts.findIndex(isParam))
+  if (0 === lits.length || !parts.slice(lits.length).every(isParam)) {
+    return null
+  }
+
+  const answers = Object.entries(data.def?.paths?.[mdesc.path] ?? {})
+    .some(([method, mdef]: [string, any]) =>
+      null != METHOD_CONSIDER_ORDER[method.toUpperCase()] &&
+      null != getResponseSchema(successResponse(mdef?.responses)))
+  if (answers) {
+    return null
+  }
+
+  const collection = '/' + lits.join('/')
+  return data.work.recordowner?.[collection] ??
+    data.work.recordowner?.[collection + '/'] ?? null
+}
+
+
+function isSchemaRef(ref: string | undefined): boolean {
+  return null != ref && '' !== ref && 'tag' !== ref
+}
+
+
 function isOrigCmp(data: any, name: string) {
   return null != data.guide.metrics.count.origcmprefs[name]
 }
@@ -1552,6 +1625,61 @@ function successSchemas(responses: any): any[] {
 }
 
 
+// A read answered only by an Accepted response is named from it when another
+// operation answers with the same record in a 200 or 201, which shows the
+// record is a resource rather than the work queued.
+function namingSchemas(
+  method: string,
+  responses: any,
+  answered: Record<string, boolean>,
+  envelope: Record<string, string>,
+): any[] {
+  const schemas = successSchemas(responses)
+  if (0 === schemas.length && READ_METHODS.includes(method)) {
+    const accepted = getResponseSchema(responses?.[202])
+    if (true === answered[namingRef(accepted, envelope) ?? '']) {
+      schemas.push(accepted)
+    }
+  }
+  return schemas
+}
+
+
+function answeredRefs(
+  def: any,
+  envelope: Record<string, string>,
+): Record<string, boolean> {
+  const answered: Record<string, boolean> = {}
+  for (const pathdef of Object.values(def?.paths ?? {}) as any[]) {
+    for (const [method, mdef] of Object.entries(pathdef ?? {}) as [string, any][]) {
+      if (null == METHOD_CONSIDER_ORDER[method.toUpperCase()] ||
+        null == mdef || 'object' !== typeof mdef) {
+        continue
+      }
+      for (const schema of successSchemas(mdef.responses)) {
+        const ref = namingRef(schema, envelope)
+        if (null != ref) {
+          answered[ref] = true
+        }
+      }
+    }
+  }
+  return answered
+}
+
+
+// The component a response schema names through: the record an envelope
+// carries, else the schema's own component, else its array items'.
+function namingRef(schema: any, envelope: Record<string, string>): string | undefined {
+  const xref = schema?.['x-ref']
+  if (null != xref) {
+    const itemref = envelope[xref]
+    return null == itemref || '' === itemref ? xref : itemref
+  }
+  return 'array' === schema?.type ? schema.items?.['x-ref'] : undefined
+}
+
+
 function getResponseSchema(response: any) {
   return response?.content?.['application/json']?.schema ??
     response?.schema
@@ -1565,11 +1693,12 @@ function pathRecordRef(
   pathStr: string,
   methods: string[],
   collection: boolean,
+  accepted: boolean = true,
 ): string | null {
   const rank = (method: string) => METHOD_CONSIDER_ORDER[method] ?? Number.MAX_SAFE_INTEGER
   const ordered = [...methods].sort((a, b) => rank(a) - rank(b) || byCodePoint(a, b))
   for (const method of ordered) {
-    const ref = routeRecordRef(def, pathStr, method, collection)
+    const ref = routeRecordRef(def, pathStr, method, collection, accepted)
     if (null != ref) {
       return ref
     }
@@ -1582,15 +1711,17 @@ function pathRecordRef(
 // items', or the one its envelope carries, such as the job summary in Mux's
 // `{ data }`. Only a collection reads a page, so beneath the collection a
 // team that holds nothing but its members is a team. Null when the answer
-// names no component.
+// names no component, or is Accepted and `accepted` excludes it.
 function routeRecordRef(
   def: any,
   pathStr: string,
   method: string,
   collection: boolean,
+  accepted: boolean = true,
 ): string | null {
-  const schema = getResponseSchema(
-    successResponse(def?.paths?.[pathStr]?.[method.toLowerCase()]?.responses))
+  const responses = def?.paths?.[pathStr]?.[method.toLowerCase()]?.responses
+  const schema = getResponseSchema(accepted ? successResponse(responses) :
+    responses?.[200] ?? responses?.[201])
   if (null == schema || 'object' !== typeof schema) {
     return null
   }
@@ -1977,14 +2108,39 @@ function refSchema(def: any, xref: string): any {
 }
 
 
-// Read in place: resolveSchemaProperties merges, and merging rewrites the
-// nodes the def's schemas share.
-function declaresId(schema: any): boolean {
-  if (null == schema || 'object' !== typeof schema) {
+// Whether a share's record is apart from an item's: both declare an `id`, and
+// the share has no more than half of its properties in common with the item,
+// since a collection's list is routinely a summary of its item's record.
+function distinctRecord(share: any, item: any): boolean {
+  if (!declaresId(share) || !declaresId(item)) {
     return false
   }
-  const parts = [schema, ...(Array.isArray(schema.allOf) ? schema.allOf : [])]
-  return parts.some((part: any) => null != part?.properties?.id)
+  const own = Object.keys(mergedProperties(share) ?? {})
+  const theirs = mergedProperties(item) ?? {}
+  const common = own.filter((name) => Object.prototype.hasOwnProperty.call(theirs, name))
+  return common.length * 2 <= own.length
+}
+
+
+// Whether a collection share answers with a record apart from the one its item
+// route answers with, both read from a 200 or 201: an Accepted body may
+// describe the queued work rather than a resource.
+function distinctShare(
+  def: any,
+  sharePath: string,
+  shareMethods: string[],
+  itemPath: string,
+  itemMethods: string[],
+): boolean {
+  const share = pathRecordRef(def, sharePath, shareMethods, true, false)
+  const item = pathRecordRef(def, itemPath, itemMethods, false, false)
+  return null != share && null != item && share !== item &&
+    distinctRecord(refSchema(def, share), refSchema(def, item))
+}
+
+
+function declaresId(schema: any): boolean {
+  return null != mergedProperties(schema)?.id
 }
 
 
@@ -2346,24 +2502,19 @@ function findPotentialSchemaRefs(
   methodName: string,
   responses: any,
   envelope: Record<string, string>,
+  answered: Record<string, boolean>,
   why: string[],
 ) {
   const xrefs: string[] = []
-  for (const schema of successSchemas(responses)) {
-    if (null != schema['x-ref']) {
-      // An envelope component names its wrapping, not the entity: the
-      // component it carries takes its place.
-      const itemref = envelope[schema['x-ref']]
-      if ('' !== itemref) {
+  for (const schema of namingSchemas(methodName, responses, answered, envelope)) {
+    // An envelope component names its wrapping, not the entity: the
+    // component it carries takes its place.
+    const ref = namingRef(schema, envelope)
+    if (null != ref) {
+      if (null != schema['x-ref'] && ref !== schema['x-ref']) {
         why.push('envelope=' + cmpRefName(schema['x-ref']))
-        xrefs.push(itemref)
       }
-      else {
-        xrefs.push(schema['x-ref'])
-      }
-    }
-    else if ('array' === schema.type && null != schema.items?.['x-ref']) {
-      xrefs.push(schema.items?.['x-ref'])
+      xrefs.push(ref)
     }
   }
 
@@ -2393,7 +2544,12 @@ function hasMethod(def: any, pathStr: string, methodName: string) {
 
 
 export {
+  answeredRefs,
+  distinctRecord,
+  distinctShare,
   heuristic01,
+  namingRef,
+  namingSchemas,
   pathResource,
   sharedRoutes,
   entityParamNames,

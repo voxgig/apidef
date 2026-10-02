@@ -54,7 +54,7 @@ function filterEntityAncestors(entities) {
 // such as "/X/{owner}/{repo}"), when the two sit on different entities.
 // Returns the entities the moves emptied, which are removed. Guide stage
 // only: on the unified guide it would override guide.aontu.
-function mergeCollectionPaths(guide, log, recordRef) {
+function mergeCollectionPaths(guide, log, recordRef, distinct) {
     const entities = guide.entity;
     const emptied = [];
     // Every route beneath a collection's literals, nearest first.
@@ -102,6 +102,8 @@ function mergeCollectionPaths(guide, log, recordRef) {
             owned[pathStr] = ownerOf(pathStr, enames.flatMap((ename) => methodsOf(entities[ename].path[pathStr])), candidates);
         }
     }
+    // A share answering with its own record, unlike the owner's item's, stays.
+    const apart = (ename, pathStr, owner) => true === distinct?.(pathStr, methodsOf(entities[ename].path[pathStr]), owner.route, methodsOf(entities[owner.ename]?.path?.[owner.route]));
     // Second pass: for each entity with a "/X" path, if X has an owner
     // elsewhere, move the path there.
     for (const [ename, entity] of Object.entries(entities)) {
@@ -110,7 +112,7 @@ function mergeCollectionPaths(guide, log, recordRef) {
         const pathsToMove = [];
         for (const pathStr of Object.keys(entity.path)) {
             const owner = owned[pathStr];
-            if (null != owner && owner.ename !== ename) {
+            if (null != owner && owner.ename !== ename && !apart(ename, pathStr, owner)) {
                 pathsToMove.push([pathStr, owner]);
             }
         }

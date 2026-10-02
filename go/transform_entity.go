@@ -98,7 +98,7 @@ type rootOwner struct {
 // the moves emptied, returning their names. Mirrors mergeCollectionPaths in
 // ts/src/transform/entity.ts. Guide stage only: on the unified guide it would
 // override guide.aontu.
-func mergeCollectionPaths(guide map[string]any, recordRef func(pathStr string, methods []string, collection bool) string) []string {
+func mergeCollectionPaths(guide map[string]any, recordRef func(pathStr string, methods []string, collection bool) string, distinct func(sharePath string, shareMethods []string, itemPath string, itemMethods []string) bool) []string {
 	emptied := []string{}
 	entities, _ := guide["entity"].(map[string]any)
 	if entities == nil {
@@ -234,6 +234,19 @@ func mergeCollectionPaths(guide map[string]any, recordRef func(pathStr string, m
 		}
 	}
 
+	// Mirrors ts/src/transform/entity.ts: a share answering with a record of
+	// its own, unlike the record its owner's item answers with, stays apart.
+	apart := func(ename string, pathStr string, owner rootOwner) bool {
+		if distinct == nil {
+			return false
+		}
+		entity, _ := entities[ename].(map[string]any)
+		paths, _ := entity["path"].(map[string]any)
+		ownerEntity, _ := entities[owner.ename].(map[string]any)
+		ownerPaths, _ := ownerEntity["path"].(map[string]any)
+		return distinct(pathStr, methodsOf(paths[pathStr]), owner.route, methodsOf(ownerPaths[owner.route]))
+	}
+
 	// Second pass: move each "/X" whose root is owned elsewhere.
 	for _, ename := range sortedKeys(entities) {
 		entity, _ := entities[ename].(map[string]any)
@@ -248,7 +261,7 @@ func mergeCollectionPaths(guide map[string]any, recordRef func(pathStr string, m
 		var toMove []string
 		moveTo := map[string]rootOwner{}
 		for _, pathStr := range sortedKeys(paths) {
-			if owner, ok := owned[pathStr]; ok && owner.ename != ename {
+			if owner, ok := owned[pathStr]; ok && owner.ename != ename && !apart(ename, pathStr, owner) {
 				toMove = append(toMove, pathStr)
 				moveTo[pathStr] = owner
 			}
