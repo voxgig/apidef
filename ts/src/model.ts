@@ -136,6 +136,7 @@ type ModelRequestBodyField = {
   name: string
   binary?: boolean
   list?: boolean
+  join?: string
   media?: string
 }
 

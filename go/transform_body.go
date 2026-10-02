@@ -26,6 +26,12 @@ type bodyOffer struct {
 	media    string
 	schema   any
 	encoding any
+	swagger  bool
+}
+
+type rankedBody struct {
+	declared string
+	body     map[string]any
 }
 
 // BodyTransform records the request body of each HTTP point that sends more than JSON.
@@ -92,35 +98,42 @@ func requestBody(def map[string]any, method string, path string, media string) m
 	}
 
 	sort.SliceStable(offers, func(i, j int) bool { return lessUTF16(offers[i].media, offers[j].media) })
-	ranked := make([]map[string]any, 0, len(offers))
+	ranked := make([]rankedBody, 0, len(offers))
 	for _, offer := range offers {
-		ranked = append(ranked, describeBody(offer))
+		ranked = append(ranked, rankedBody{
+			declared: strings.ToLower(strings.TrimSpace(offer.media)), body: describeBody(offer)})
 	}
-	sort.SliceStable(ranked, func(i, j int) bool { return bodyBefore(ranked[i], ranked[j]) })
+	sort.SliceStable(ranked, func(i, j int) bool { return bodyBefore(ranked[i].body, ranked[j].body) })
 
 	bodies := []map[string]any{}
 	seen := map[string]bool{}
-	for _, body := range ranked {
-		if bm := body["media"].(string); !seen[bm] {
+	for _, entry := range ranked {
+		if bm := entry.body["media"].(string); !seen[bm] {
 			seen[bm] = true
-			bodies = append(bodies, body)
+			bodies = append(bodies, entry.body)
 		}
 	}
 
+	// A named media type is matched as declared first, so a range keeps its schema.
 	var chosen map[string]any
-	if named := textOf(media); named == "" {
+	if named := strings.ToLower(textOf(media)); named == "" {
 		if 0 < len(bodies) {
 			chosen = bodies[0]
 		}
 	} else {
-		for _, body := range bodies {
-			if strings.ToLower(body["media"].(string)) == strings.ToLower(named) {
-				chosen = body
+		for _, entry := range ranked {
+			if entry.declared == named {
+				chosen = entry.body
 				break
 			}
 		}
+		for _, body := range bodies {
+			if chosen == nil && strings.ToLower(body["media"].(string)) == named {
+				chosen = body
+			}
+		}
 		if chosen == nil {
-			chosen = describeBody(bodyOffer{media: named})
+			chosen = describeBody(bodyOffer{media: textOf(media)})
 		}
 	}
 
@@ -165,15 +178,7 @@ func openapiOffers(opdef map[string]any) []bodyOffer {
 // Swagger declares a body as a `body` parameter or as `formData` parameters,
 // and its media types in `consumes`, the operation's replacing the document's.
 func swaggerOffers(def map[string]any, pathdef map[string]any, opdef map[string]any) []bodyOffer {
-	params := []map[string]any{}
-	for _, list := range []any{pathdef["parameters"], opdef["parameters"]} {
-		items, _ := list.([]any)
-		for _, item := range items {
-			if param, ok := item.(map[string]any); ok && param != nil {
-				params = append(params, param)
-			}
-		}
-	}
+	params := swaggerParams(pathdef, opdef)
 
 	var body map[string]any
 	form := []map[string]any{}
@@ -235,9 +240,39 @@ func swaggerOffers(def map[string]any, pathdef map[string]any, opdef map[string]
 		if schema == nil {
 			schema = other
 		}
-		offers = append(offers, bodyOffer{media: media, schema: schema})
+		offers = append(offers, bodyOffer{media: media, schema: schema, swagger: true})
 	}
 	return offers
+}
+
+// An operation's parameter replaces the path's of the same location and name.
+func swaggerParams(pathdef map[string]any, opdef map[string]any) []map[string]any {
+	key := func(param map[string]any) string {
+		return textOf(param["in"]) + "\u0000" + textOf(param["name"])
+	}
+	own := mapsOf(opdef["parameters"])
+	owned := map[string]bool{}
+	for _, param := range own {
+		owned[key(param)] = true
+	}
+	params := append([]map[string]any{}, own...)
+	for _, param := range mapsOf(pathdef["parameters"]) {
+		if !owned[key(param)] {
+			params = append(params, param)
+		}
+	}
+	return params
+}
+
+func mapsOf(list any) []map[string]any {
+	items, _ := list.([]any)
+	out := []map[string]any{}
+	for _, item := range items {
+		if m, ok := item.(map[string]any); ok && m != nil {
+			out = append(out, m)
+		}
+	}
+	return out
 }
 
 func formHasFile(form []map[string]any) bool {
@@ -251,7 +286,7 @@ func formHasFile(form []map[string]any) bool {
 
 func formProperty(param map[string]any) map[string]any {
 	prop := map[string]any{}
-	for _, key := range []string{"type", "format", "items"} {
+	for _, key := range []string{"type", "format", "items", "collectionFormat"} {
 		if param[key] != nil {
 			prop[key] = param[key]
 		}
@@ -264,7 +299,7 @@ func describeBody(offer bodyOffer) map[string]any {
 	mediaType := mediaEssence(media)
 	major, minor := mediaParts(mediaType)
 
-	if mediaType == jsonMedia || strings.HasSuffix(minor, "+json") {
+	if mediaType == jsonMedia || mediaType == "text/json" || strings.HasSuffix(minor, "+json") {
 		if strings.Contains(mediaType, "*") {
 			media = jsonMedia
 		}
@@ -301,8 +336,12 @@ func withBodyFields(body map[string]any, offer bodyOffer) map[string]any {
 	props := mergedProperties(offer.schema)
 	encoding, _ := offer.encoding.(map[string]any)
 	fields := []any{}
+	arrays, _ := body["kind"].(string)
+	if offer.swagger {
+		arrays = "swagger"
+	}
 	for _, name := range sortedKeys(props) {
-		fields = append(fields, bodyField(name, props[name], encoding[name]))
+		fields = append(fields, bodyField(name, props[name], encoding[name], arrays))
 	}
 	if 0 < len(fields) {
 		body["fields"] = fields
@@ -310,7 +349,7 @@ func withBodyFields(body map[string]any, offer bodyOffer) map[string]any {
 	return body
 }
 
-func bodyField(name string, prop any, encoding any) map[string]any {
+func bodyField(name string, prop any, encoding any, arrays string) map[string]any {
 	list := schemaHasType(prop, "array")
 	item := prop
 	if list {
@@ -322,10 +361,14 @@ func bodyField(name string, prop any, encoding any) map[string]any {
 		(itemMap["format"] == "binary" || itemMap["type"] == "file" || itemMap["contentMediaType"] != nil) {
 		field["binary"] = true
 	}
-	if list {
-		field["list"] = true
-	}
 	enc, _ := encoding.(map[string]any)
+	if list {
+		if join, joined := arrayJoin(prop.(map[string]any), enc, arrays); joined {
+			field["join"] = join
+		} else {
+			field["list"] = true
+		}
+	}
 	media := textOf(enc["contentType"])
 	if media == "" {
 		media = textOf(itemMap["contentMediaType"])
@@ -334,6 +377,43 @@ func bodyField(name string, prop any, encoding any) map[string]any {
 		field["media"] = media
 	}
 	return field
+}
+
+// The delimiter an array's items are joined with, unless each item is sent as
+// a field of its own: Swagger's `collectionFormat` (`csv` unless `multi`), a
+// form's `style` and `explode`, and never for a multipart part.
+func arrayJoin(prop map[string]any, encoding map[string]any, arrays string) (string, bool) {
+	switch arrays {
+	case "swagger":
+		format, ok := prop["collectionFormat"].(string)
+		if !ok {
+			format = "csv"
+		}
+		return delimiter(format), format != "multi"
+	case "form":
+		style, ok := encoding["style"].(string)
+		if !ok {
+			style = "form"
+		}
+		explode, ok := encoding["explode"].(bool)
+		if !ok {
+			explode = style == "form"
+		}
+		return delimiter(style), !explode
+	}
+	return "", false
+}
+
+func delimiter(format string) string {
+	switch format {
+	case "ssv", "spaceDelimited":
+		return " "
+	case "tsv":
+		return "\t"
+	case "pipes", "pipeDelimited":
+		return "|"
+	}
+	return ","
 }
 
 // Bytes unless the schema says text, or the media type is text and the schema typed.

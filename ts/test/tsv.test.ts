@@ -46,6 +46,10 @@ import { makeResolved } from '../dist/resolved'
 
 import { selectTransform } from '../dist/transform/select'
 import { requestBody } from '../dist/transform/body'
+import type {
+  ModelPoint, ModelRequestBody, ModelRequestBodyField, RequestBodyKind,
+} from '../dist/apidef'
+import { Aontu } from 'aontu'
 import { resolveSecurity, findAuthPrefix } from '../dist/transform/top'
 
 import { snakify, camelify, kebabify } from 'jostraca'
@@ -1046,6 +1050,26 @@ describe('tsv-request-body', () => {
       const media = '' === row.media ? undefined : row.media
       assert.deepStrictEqual(requestBody(JSON.parse(row.def), 'POST', '/x', media) ?? null,
         JSON.parse(row.expected))
+    })
+  }
+})
+
+
+// The package root types a point's request body, and the schema keeps it.
+describe('tsv-point-body', () => {
+  const schema = Fs.readFileSync(Path.join(__dirname, '..', '..', 'model', 'apidef.aontu'), 'utf8')
+  const rows = loadTsv('point-body')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, () => {
+      const point: ModelPoint = JSON.parse(row.point)
+      const unified: ModelPoint = new Aontu().generate(schema + '\nmain:kit:entity:upload:op:create:' +
+        JSON.stringify({ name: 'create', points: [point] })).main.kit.entity.upload.op.create.points[0]
+      const body: ModelRequestBody | null = unified.rb ?? null
+      assert.deepStrictEqual(body, JSON.parse(row.expected))
+      const kind: RequestBodyKind | undefined = body?.kind
+      const fields: ModelRequestBodyField[] = body?.fields ?? []
+      assert.deepStrictEqual([kind, fields], [point.rb?.kind, point.rb?.fields ?? []])
     })
   }
 })

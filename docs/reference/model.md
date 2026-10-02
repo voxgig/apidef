@@ -154,20 +154,23 @@ Each `RequestBodyField` names one field of the body:
 |-------|------|---------|
 | `name` | `string` | the field name as the definition spells it, which is the name sent |
 | `binary` | `boolean?` | `true` when the field carries a file |
-| `list` | `boolean?` | `true` when the field is an array, sent once per item |
+| `list` | `boolean?` | `true` when the field is an array sent as one field per item |
+| `join` | `string?` | the delimiter joining an array field's items into one value |
 | `media` | `string?` | the content type the definition declares for the field: its `encoding` entry, else its `contentMediaType` |
 
-As with the field flags, `binary` and `list` are present only when true.
+As with the field flags, `binary` and `list` are present only when true. An
+array field carries `list` or `join`, never both.
 
 **Media types.** An OpenAPI 3 operation's are the keys of
 `requestBody.content`. A Swagger 2 operation with a `body` or `formData`
-parameter takes its own `consumes`, else the document's. When neither
+parameter takes its own `consumes`, else the document's, and an operation's
+parameter replaces the path's of the same location and name. When neither
 declares any, a `body` parameter is `application/json`, `formData` holding a
 `file` is `multipart/form-data`, and other `formData` is
 `application/x-www-form-urlencoded`. Each `formData` parameter is a field of
 the body, and a `type: file` field is binary.
 
-**Kind.** `application/json` and every `+json` type are `json`;
+**Kind.** `application/json`, `text/json`, and every `+json` type are `json`;
 `application/x-www-form-urlencoded` is `form`; every `multipart/` type is
 `multipart`; anything else is `raw`. A range that admits JSON, `*/*` or
 `application/*`, is `json` sent as `application/json`, unless its schema is
@@ -184,6 +187,14 @@ types are `text/*`, `application/xml`, and every `+xml` type. A field is
 binary when its schema, or for a list its items' schema, is `format: binary`
 or `type: file`, or has a `contentMediaType`, and is not encoded text.
 
+**Arrays.** A Swagger 2 array is joined by its `collectionFormat`: `csv`,
+the default, with `,`, `ssv` with a space, `tsv` with a tab, and `pipes` with
+`|`, while `multi` sends one field per item. An OpenAPI 3 form array follows
+its `encoding` entry: `style: form`, the default, repeats unless
+`explode: false` joins it with `,`, and `spaceDelimited` and `pipeDelimited`
+join with a space and `|` unless `explode: true` repeats them. A multipart
+array always sends one part per item.
+
 **Choice.** JSON comes first whenever it is offered, `application/json`
 before the other JSON types, then `multipart`, `form`, and `raw`. Within a
 kind, the order is code point order of the media type. The first is `rb`,
@@ -191,7 +202,8 @@ and the rest are its `alternatives`. Two media types sent as the same one,
 such as `*/*` beside `application/json`, are one.
 
 **Correction.** `body.media` on the operation's entry in `guide.aontu` names
-the media type to send. A declared media type is chosen with its own schema.
+the media type to send. A declared media type, a range such as `multipart/*`
+included, is chosen with its own schema.
 An undeclared one is classified from the media type alone, so an undeclared
 raw type is binary, and an operation that declares no body gains one.
 

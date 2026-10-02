@@ -32,6 +32,7 @@ type Offer = {
   media: string
   schema?: any
   encoding?: any
+  swagger?: boolean
 }
 
 
@@ -93,15 +94,17 @@ function requestBody(
 
   const ranked = offers
     .sort((a, b) => compare(a.media, b.media))
-    .map(describeBody)
-    .sort(byPreference)
-  const bodies = ranked.filter((body, i) =>
-    i === ranked.findIndex((other) => other.media === body.media))
+    .map((offer) => ({ declared: offer.media.trim().toLowerCase(), body: describeBody(offer) }))
+    .sort((a, b) => byPreference(a.body, b.body))
+  const bodies = ranked.map((entry) => entry.body).filter((body, i, all) =>
+    i === all.findIndex((other) => other.media === body.media))
 
-  const named = textOf(media)
+  // A named media type is matched as declared first, so a range keeps its schema.
+  const named = textOf(media)?.toLowerCase()
   const chosen = null == named ? bodies[0] :
-    bodies.find((body) => body.media.toLowerCase() === named.toLowerCase()) ??
-    describeBody({ media: named })
+    ranked.find((entry) => entry.declared === named)?.body ??
+    bodies.find((body) => body.media.toLowerCase() === named) ??
+    describeBody({ media: textOf(media) as string })
 
   if (null == chosen) {
     return undefined
@@ -134,7 +137,7 @@ function openapiOffers(opdef: any): Offer[] {
 // Swagger declares a body as a `body` parameter or as `formData` parameters,
 // and its media types in `consumes`, the operation's replacing the document's.
 function swaggerOffers(def: any, pathdef: any, opdef: any): Offer[] {
-  const params = [...listOf(pathdef?.parameters), ...listOf(opdef.parameters)].filter(isMap)
+  const params = swaggerParams(pathdef, opdef)
   const body = params.find((param) => 'body' === param.in)
   const form = params.filter((param) =>
     'formData' === param.in && 'string' === typeof param.name && '' !== param.name)
@@ -159,13 +162,23 @@ function swaggerOffers(def: any, pathdef: any, opdef: any): Offer[] {
   return consumes.map((media: string) => ({
     media,
     schema: fielded(essence(media)) ? (formSchema ?? bodySchema) : (bodySchema ?? formSchema),
+    swagger: true,
   }))
+}
+
+
+// An operation's parameter replaces the path's of the same location and name.
+function swaggerParams(pathdef: any, opdef: any): any[] {
+  const key = (param: any) => (textOf(param.in) ?? '') + '\u0000' + (textOf(param.name) ?? '')
+  const own = listOf(opdef.parameters).filter(isMap)
+  const owned = new Set(own.map(key))
+  return [...own, ...listOf(pathdef?.parameters).filter(isMap).filter((param) => !owned.has(key(param)))]
 }
 
 
 function formProperty(param: any): any {
   const prop: any = {}
-  for (const key of ['type', 'format', 'items']) {
+  for (const key of ['type', 'format', 'items', 'collectionFormat']) {
     if (null != param[key]) {
       prop[key] = param[key]
     }
@@ -179,7 +192,7 @@ function describeBody(offer: Offer): ModelRequestBody {
   const type = essence(media)
   const [major, minor = ''] = type.split('/')
 
-  if (JSON_MEDIA === type || minor.endsWith('+json')) {
+  if (JSON_MEDIA === type || 'text/json' === type || minor.endsWith('+json')) {
     return { kind: 'json', media: type.includes('*') ? JSON_MEDIA : media }
   }
 
@@ -209,7 +222,7 @@ function describeBody(offer: Offer): ModelRequestBody {
 function withFields(body: ModelRequestBody, offer: Offer): ModelRequestBody {
   const props = mergedProperties(offer.schema)
   const fields = sortedKeys(props).map((name: string) =>
-    bodyField(name, props![name], offer.encoding?.[name]))
+    bodyField(name, props![name], offer.encoding?.[name], offer.swagger ? 'swagger' : body.kind))
   if (0 < fields.length) {
     body.fields = fields
   }
@@ -217,22 +230,51 @@ function withFields(body: ModelRequestBody, offer: Offer): ModelRequestBody {
 }
 
 
-function bodyField(name: string, prop: any, encoding: any): ModelRequestBodyField {
+function bodyField(name: string, prop: any, encoding: any, arrays: string): ModelRequestBodyField {
   const list = hasType(prop, 'array')
   const item = list ? prop.items : prop
   const field: ModelRequestBodyField = { name }
-  if (isMap(item) && !encodedText(item) &&
-    ('binary' === item.format || 'file' === item.type || null != item.contentMediaType)) {
+  if (binarySchema(item) || (isMap(item) && 'file' === item.type)) {
     field.binary = true
   }
   if (list) {
-    field.list = true
+    const join = arrayJoin(prop, encoding, arrays)
+    if (null == join) {
+      field.list = true
+    }
+    else {
+      field.join = join
+    }
   }
   const media = textOf(encoding?.contentType) ?? textOf(isMap(item) ? item.contentMediaType : undefined)
   if (null != media) {
     field.media = media
   }
   return field
+}
+
+
+// The delimiter an array's items are joined with, or undefined when each item
+// is sent as a field of its own: Swagger's `collectionFormat` (`csv` unless
+// `multi`), a form's `style` and `explode`, and always for a multipart part.
+function arrayJoin(prop: any, encoding: any, arrays: string): string | undefined {
+  if ('swagger' === arrays) {
+    const format = 'string' === typeof prop.collectionFormat ? prop.collectionFormat : 'csv'
+    return 'multi' === format ? undefined : delimiter(format)
+  }
+  if ('form' === arrays) {
+    const style = 'string' === typeof encoding?.style ? encoding.style : 'form'
+    const explode = 'boolean' === typeof encoding?.explode ? encoding.explode : 'form' === style
+    return explode ? undefined : delimiter(style)
+  }
+  return undefined
+}
+
+
+function delimiter(format: string): string {
+  return 'ssv' === format || 'spaceDelimited' === format ? ' ' :
+    'tsv' === format ? '\t' :
+      'pipes' === format || 'pipeDelimited' === format ? '|' : ','
 }
 
 

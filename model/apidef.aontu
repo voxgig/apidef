@@ -130,7 +130,8 @@ main: kit: type: type({ # Reusable model types.
     fields?: [ &: { # Fields of a multipart or form body, in code point order.
       name: string # Field name in the body.
       binary?: boolean # Whether the field carries a file.
-      list?: boolean # Whether the field repeats, once per item.
+      list?: boolean # Whether an array field repeats, once per item.
+      join?: string # Delimiter joining an array field's items into one value.
       media?: string # Content type the definition declares for the field.
     } ]
   }

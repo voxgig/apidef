@@ -1278,3 +1278,32 @@ func TestRequestBody(t *testing.T) {
 		})
 	}
 }
+
+// The exported ModelPoint keeps a point's request body through a round trip.
+func TestPointBody(t *testing.T) {
+	rows := loadTsv(t, "point-body")
+	if len(rows) == 0 {
+		t.Fatal("no point-body rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var point ModelPoint
+			if err := json.Unmarshal([]byte(row["point"]), &point); err != nil {
+				t.Fatalf("bad point %q: %v", row["point"], err)
+			}
+			data, err := json.Marshal(point)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var got map[string]any
+			var want any
+			json.Unmarshal(data, &got)
+			if err := json.Unmarshal([]byte(row["expected"]), &want); err != nil {
+				t.Fatalf("bad expected %q: %v", row["expected"], err)
+			}
+			if !reflect.DeepEqual(got["rb"], want) {
+				t.Errorf("rb after a round trip\ngot  %s\nwant %s", asJSON(got["rb"]), asJSON(want))
+			}
+		})
+	}
+}
