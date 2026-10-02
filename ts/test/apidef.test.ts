@@ -1053,6 +1053,8 @@ describe('apidef', () => {
       ],
       ci_runner_detail: ['GET /runners', 'GET /runners/{runner_id}'],
       ci_runner_registration: ['POST /runners'],
+      ci_worker_detail: ['GET /workers', 'GET /workers/{worker_id}'],
+      ci_worker_registration: ['POST /workers'],
       instance: [
         'GET ' + I,
         'GET ' + I + '/{instance_id}',
@@ -1071,6 +1073,12 @@ describe('apidef', () => {
         'GET /simulation_runs/{run_id}',
         'POST /simulation_runs',
       ],
+      team: ['GET /teams/{team_id}'],
+      team_invitation: [
+        'DELETE /user/team_invitations/{invitation_id}',
+        'GET /user/team_invitations',
+        'PATCH /user/team_invitations/{invitation_id}',
+      ],
       thing: ['GET /things/{thing_id}', 'PATCH /things/{thing_id}'],
       widget: ['GET /widgets', 'GET /widgets/{widget_id}', 'POST /widgets'],
     })
@@ -1078,6 +1086,9 @@ describe('apidef', () => {
     const renames = bres.guide.entity.repository_invitation
       .path['/user/repository_invitations/{invitation_id}'].rename.param
     assert.deepStrictEqual({ ...renames }, { invitation_id: 'id' })
+    const teamRenames = bres.guide.entity.team_invitation
+      .path['/user/team_invitations/{invitation_id}'].rename.param
+    assert.deepStrictEqual({ ...teamRenames }, { invitation_id: 'id' })
   })
 
 

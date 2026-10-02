@@ -1055,7 +1055,7 @@ func TestGuideItemRecord(t *testing.T) {
 	}
 
 	gents, _ := res.Guide["entity"].(map[string]any)
-	if got, want := strings.Join(sortedKeys(gents), ","), "activity,ci_runner_detail,ci_runner_registration,instance,repo,report,repository_invitation,simulation_run,thing,widget"; got != want {
+	if got, want := strings.Join(sortedKeys(gents), ","), "activity,ci_runner_detail,ci_runner_registration,ci_worker_detail,ci_worker_registration,instance,repo,report,repository_invitation,simulation_run,team,team_invitation,thing,widget"; got != want {
 		t.Errorf("guide entities = %s, want %s", got, want)
 	}
 

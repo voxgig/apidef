@@ -1553,14 +1553,8 @@ function distinctShare(def, sharePath, shareMethods, itemPath, itemMethods) {
     return null != share && null != item && share !== item &&
         distinctRecord(refSchema(def, share), refSchema(def, item));
 }
-// Read in place: resolveSchemaProperties merges, and merging rewrites the
-// nodes the def's schemas share.
 function declaresId(schema) {
-    if (null == schema || 'object' !== typeof schema) {
-        return false;
-    }
-    const parts = [schema, ...(Array.isArray(schema.allOf) ? schema.allOf : [])];
-    return parts.some((part) => null != part?.properties?.id);
+    return null != (0, utility_2.mergedProperties)(schema)?.id;
 }
 // The operation ResolveOperation will assign, needed before the entity is
 // named: whether a response unwraps as an envelope depends on it.

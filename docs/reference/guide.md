@@ -275,8 +275,8 @@ or an envelope that carries it (see [Response envelopes](#response-envelopes)).
 `sharedRoutes` then decides which of those routes take their own path's
 name:
 
-- A schema that declares an `id` property, directly or through `allOf`, is a
-  record, and no route takes its own name from it.
+- A schema that declares an `id` property, directly or through `allOf` at
+  any depth, is a record, and no route takes its own name from it.
 - A route is a view, and does not count, when a shorter path made of its
   leading segments names another resource that answers with the same
   schema: `/pages/builds/latest` beneath `/pages/builds`.
@@ -324,8 +324,9 @@ first of these:
 One entity's share of a collection path stays where it is, though the path
 has an owner, when it answers with a record of its own unlike the record
 the owner's item route answers with. Both records are read from a `200` or
-`201`, since a `202` may describe the queued work, and both declare an `id`.
-No more than half of the share's properties are properties of the item's.
+`201`, since a `202` may describe the queued work. Both declare an `id`,
+directly or through `allOf` at any depth, and no more than half of the
+share's properties are properties of the item's.
 GitLab's runner registration, `{id, token, token_expires_at}`, stays apart
 from a runner's details, while a create that answers with the item's fields
 under another name joins, and so does a create that only queues a job.
@@ -342,7 +343,8 @@ these hold:
 
 - No method on `/X/{id}` answers with a body.
 - The tag names another resource: some route whose path names that
-  resource answers with a component that declares an `id`.
+  resource answers with a component that declares an `id`, directly or
+  through `allOf` at any depth.
 - The entity of `/X` is named after the record `/X` answers with, and that
   record's name is the one the last segment of `/X` gives.
 

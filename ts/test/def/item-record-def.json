@@ -642,6 +642,168 @@
           }
         }
       }
+    },
+    "/workers": {
+      "get": {
+        "operationId": "list-workers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CiWorker"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "register-worker",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CiWorkerRegistration"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workers/{worker_id}": {
+      "get": {
+        "operationId": "get-worker",
+        "parameters": [
+          {
+            "name": "worker_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CiWorkerDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/teams/{team_id}": {
+      "get": {
+        "operationId": "get-team",
+        "tags": [
+          "teams"
+        ],
+        "parameters": [
+          {
+            "name": "team_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Team"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/team_invitations": {
+      "get": {
+        "operationId": "list-team-invitations",
+        "tags": [
+          "teams"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TeamInvitation"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/team_invitations/{invitation_id}": {
+      "patch": {
+        "operationId": "accept-team-invitation",
+        "tags": [
+          "teams"
+        ],
+        "parameters": [
+          {
+            "name": "invitation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "decline-team-invitation",
+        "tags": [
+          "teams"
+        ],
+        "parameters": [
+          {
+            "name": "invitation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -836,6 +998,131 @@
             "type": "string"
           },
           "status": {
+            "type": "string"
+          }
+        }
+      },
+      "Record": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        }
+      },
+      "Credential": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Record"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "token": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "CiWorkerRegistration": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Credential"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "token_expires_at": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "CiWorker": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "active": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "CiWorkerDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "active": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "ip_address": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          }
+        }
+      },
+      "NamedRecord": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Record"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "Team": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/NamedRecord"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "slug": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "TeamInvitation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "invitee": {
             "type": "string"
           }
         }

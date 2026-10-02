@@ -2139,14 +2139,8 @@ function distinctShare(
 }
 
 
-// Read in place: resolveSchemaProperties merges, and merging rewrites the
-// nodes the def's schemas share.
 function declaresId(schema: any): boolean {
-  if (null == schema || 'object' !== typeof schema) {
-    return false
-  }
-  const parts = [schema, ...(Array.isArray(schema.allOf) ? schema.allOf : [])]
-  return parts.some((part: any) => null != part?.properties?.id)
+  return null != mergedProperties(schema)?.id
 }
 
 

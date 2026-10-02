@@ -2581,7 +2581,7 @@ func distinctShare(def map[string]any, sharePath string, shareMethods []string, 
 }
 
 func declaresID(schema map[string]any) bool {
-	return schema != nil && resolveSchemaProperties(schema)["id"] != nil
+	return mergedProperties(schema)["id"] != nil
 }
 
 // methodOpname is the operation resolveOperation will assign, needed before

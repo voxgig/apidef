@@ -4,9 +4,9 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 10
-  metrics: count: path: 17
-  metrics: count: method: 24
+  metrics: count: entity: 14
+  metrics: count: path: 22
+  metrics: count: method: 31
 
   entity: activity: {
     path: "/user/starred": {
@@ -29,6 +29,21 @@ guide: {
 
   entity: ci_runner_registration: {
     path: "/runners": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: ci_worker_detail: {
+    path: "/workers": {
+      op: list: method: *GET
+    }
+    path: "/workers/{worker_id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: ci_worker_registration: {
+    path: "/workers": {
       op: create: method: *POST
     }
   }
@@ -86,6 +101,24 @@ guide: {
     path: "/simulation_runs/{run_id}": {
       rename: param: "run_id": *"id"
       op: load: method: *GET
+    }
+  }
+
+  entity: team: {
+    path: "/teams/{team_id}": {
+      rename: param: "team_id": *"id"
+      op: load: method: *GET
+    }
+  }
+
+  entity: team_invitation: {
+    path: "/user/team_invitations": {
+      op: list: method: *GET
+    }
+    path: "/user/team_invitations/{invitation_id}": {
+      rename: param: "invitation_id": *"id"
+      op: patch: method: *PATCH
+      op: remove: method: *DELETE
     }
   }
 
