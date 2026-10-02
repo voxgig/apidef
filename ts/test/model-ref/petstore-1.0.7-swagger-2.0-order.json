@@ -75,6 +75,16 @@
               "body"
             ]
           },
+          "rs": {
+            "alternatives": [
+              {
+                "kind": "raw",
+                "media": "application/xml"
+              }
+            ],
+            "kind": "json",
+            "media": "application/json"
+          },
           "s": [
             {
               "lit": "store"
@@ -121,6 +131,16 @@
             "param": {
               "orderId": "id"
             }
+          },
+          "rs": {
+            "alternatives": [
+              {
+                "kind": "raw",
+                "media": "application/xml"
+              }
+            ],
+            "kind": "json",
+            "media": "application/json"
           },
           "s": [
             {

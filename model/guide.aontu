@@ -33,8 +33,11 @@ guide: entity: &: {
        active?: boolean
        method: string
 
-       # The media type a request body is sent as, chosen over the heuristic's.
+       # Media types chosen over the heuristic's: the request body's, and the response's.
        body?: {
+         media?: string
+       }
+       response?: {
          media?: string
        }
 

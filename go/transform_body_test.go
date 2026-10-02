@@ -10,7 +10,9 @@ func generateRequestBody(t *testing.T) *ApiDefResult {
 	t.Helper()
 	folder := t.TempDir()
 	entry := "@\"@voxgig/apidef/model/guide.aontu\"\n@\"./base-guide.aontu\"\n" +
-		"guide: entity: render: path: \"/renders\": op: create: body: media: \"text/plain\"\n"
+		"guide: entity: render: path: \"/renders\": op: create: body: media: \"text/plain\"\n" +
+		"guide: entity: render: path: \"/renders/{render_id}\": op: patch: body: media: \"text/plain\"\n" +
+		"guide: entity: avatar: path: \"/avatars/{avatar_id}\": op: load: response: media: \"image/png\"\n"
 	if err := writeGuideEntry(folder, "", entry); err != nil {
 		t.Fatal(err)
 	}
@@ -28,7 +30,11 @@ func generateRequestBody(t *testing.T) *ApiDefResult {
 	return res
 }
 
-func pointBodies(res *ApiDefResult, entity string, op string) []any {
+func pointBodies(res *ApiDefResult, entity string, op string, key ...string) []any {
+	field := "rb"
+	if 0 < len(key) {
+		field = key[0]
+	}
 	main, _ := res.ApiModel["main"].(map[string]any)
 	kit, _ := main[KIT].(map[string]any)
 	entities, _ := kit["entity"].(map[string]any)
@@ -39,7 +45,7 @@ func pointBodies(res *ApiDefResult, entity string, op string) []any {
 	out := []any{}
 	for _, pt := range points {
 		point, _ := pt.(map[string]any)
-		out = append(out, []any{point["o"], point["rb"]})
+		out = append(out, []any{point["o"], point[field]})
 	}
 	return out
 }
@@ -76,5 +82,33 @@ func TestBodyGuideChoosesMedia(t *testing.T) {
 	if got, want := asJSON(pointBodies(res, "render", "create")),
 		`[["/renders",{"alternatives":[{"kind":"raw","media":"text/markdown"}],"kind":"raw","media":"text/plain"}]]`; got != want {
 		t.Errorf("render.create bodies\ngot  %s\nwant %s", got, want)
+	}
+	// The PATCH is promoted to update, and its patch entry still applies.
+	if got, want := asJSON(pointBodies(res, "render", "update")),
+		`[["/renders/{render_id}",{"alternatives":[{"kind":"raw","media":"text/markdown"}],"kind":"raw","media":"text/plain"}]]`; got != want {
+		t.Errorf("render.update bodies\ngot  %s\nwant %s", got, want)
+	}
+}
+
+func TestBodySuccessResponses(t *testing.T) {
+	res := generateRequestBody(t)
+	jsonBody := `{"kind":"json","media":"application/json"}`
+	for _, entity := range []string{"note", "render", "subscription", "upload"} {
+		for _, op := range []string{"create", "load"} {
+			bodies := pointBodies(res, entity, op, "rs")
+			if got := asJSON(bodies[0].([]any)[1]); len(bodies) != 1 || got != jsonBody {
+				t.Errorf("%s.%s rs: %s", entity, op, asJSON(bodies))
+			}
+		}
+	}
+	if got, want := asJSON(pointBodies(res, "avatar", "create", "rs")), `[["/avatars",`+jsonBody+`]]`; got != want {
+		t.Errorf("avatar.create rs\ngot  %s\nwant %s", got, want)
+	}
+	if got, want := asJSON(pointBodies(res, "note", "remove", "rs")), `[["/notes/{note_id}",null]]`; got != want {
+		t.Errorf("note.remove rs\ngot  %s\nwant %s", got, want)
+	}
+	if got, want := asJSON(pointBodies(res, "avatar", "load", "rs")),
+		`[["/avatars/{avatar_id}",{"alternatives":[`+jsonBody+`],"binary":true,"kind":"raw","media":"image/png"}]]`; got != want {
+		t.Errorf("avatar.load rs\ngot  %s\nwant %s", got, want)
 	}
 }

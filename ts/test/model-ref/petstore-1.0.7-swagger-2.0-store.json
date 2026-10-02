@@ -16,6 +16,10 @@
           "q": {
             "$action": "inventory"
           },
+          "rs": {
+            "kind": "json",
+            "media": "application/json"
+          },
           "s": [
             {
               "lit": "store"

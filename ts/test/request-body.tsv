@@ -32,6 +32,8 @@ dotnet-json-types	{"openapi":"3.1.0","paths":{"/x":{"post":{"requestBody":{"cont
 text-json-alone	{"openapi":"3.1.0","paths":{"/x":{"post":{"requestBody":{"content":{"text/json":{"schema":{"type":"object","properties":{"name":{"type":"string"}}}}}}}}}}		{"kind":"json","media":"text/json"}
 any-range-is-json	{"openapi":"3.1.0","paths":{"/x":{"post":{"requestBody":{"content":{"*/*":{"schema":{"type":"object","properties":{"name":{"type":"string"}}}}}}}}}}		null
 any-range-untyped-is-json	{"openapi":"3.1.0","paths":{"/x":{"post":{"requestBody":{"content":{"*/*":{}}}}}}}		null
+any-range-file	{"openapi":"3.1.0","paths":{"/x":{"post":{"requestBody":{"content":{"*/*":{"schema":{"type":"file"}}}}}}}}		{"kind":"raw","media":"application/octet-stream","binary":true}
+swagger-body-file-under-text	{"swagger":"2.0","paths":{"/x":{"post":{"parameters":[{"name":"data","in":"body","schema":{"type":"file"}}],"consumes":["text/plain"]}}}}		{"kind":"raw","media":"text/plain","binary":true}
 any-range-binary	{"openapi":"3.1.0","paths":{"/x":{"post":{"requestBody":{"content":{"*/*":{"schema":{"type":"string","format":"binary"}}}}}}}}		{"kind":"raw","media":"application/octet-stream","binary":true}
 application-range-binary	{"openapi":"3.1.0","paths":{"/x":{"post":{"requestBody":{"content":{"application/*":{"schema":{"contentMediaType":"application/zip"}}}}}}}}		{"kind":"raw","media":"application/octet-stream","binary":true}
 range-and-json-are-one	{"openapi":"3.1.0","paths":{"/x":{"post":{"requestBody":{"content":{"*/*":{"schema":{"type":"object","properties":{"name":{"type":"string"}}}},"application/json":{"schema":{"type":"object","properties":{"name":{"type":"string"}}}}}}}}}}		null

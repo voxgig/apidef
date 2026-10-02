@@ -3,6 +3,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.bodyTransform = void 0;
 exports.requestBody = requestBody;
+exports.responseBody = responseBody;
 const types_1 = require("../types");
 const utility_1 = require("../utility");
 // JSON first, as generated SDKs send it; then the kinds by what each can carry.
@@ -11,6 +12,7 @@ const JSON_MEDIA = 'application/json';
 const FORM_MEDIA = 'application/x-www-form-urlencoded';
 const MULTIPART_MEDIA = 'multipart/form-data';
 const OCTET_MEDIA = 'application/octet-stream';
+const SUCCESS_RE = /^2(\d\d|xx)$/i;
 const TYPING_KEYS = [
     'type', 'format', 'properties', 'additionalProperties', 'items',
     'allOf', 'anyOf', 'oneOf', 'enum', 'const', 'contentMediaType', 'contentEncoding',
@@ -20,14 +22,20 @@ const bodyTransform = async function (ctx) {
     const entities = apimodel.main[types_1.KIT].entity;
     let msg = 'body ';
     for (const entname of (0, utility_1.sortedKeys)(entities)) {
-        for (const mop of Object.values(entities[entname].op ?? {})) {
-            for (const mpoint of (mop?.points ?? [])) {
+        const ops = entities[entname].op ?? {};
+        for (const opname of (0, utility_1.sortedKeys)(ops)) {
+            for (const mpoint of (ops[opname]?.points ?? [])) {
                 if ('graphql' === mpoint.k) {
                     continue;
                 }
-                const rb = requestBody(def, mpoint.m, mpoint.o, guideMedia(guide, entname, mpoint));
+                const media = guideMedia(guide, entname, opname, mpoint);
+                const rb = requestBody(def, mpoint.m, mpoint.o, media.body);
                 if (null != rb) {
                     mpoint.rb = rb;
+                }
+                const rs = responseBody(def, mpoint.m, mpoint.o, media.response);
+                if (null != rs) {
+                    mpoint.rs = rs;
                 }
             }
         }
@@ -36,16 +44,18 @@ const bodyTransform = async function (ctx) {
     return { ok: true, msg };
 };
 exports.bodyTransform = bodyTransform;
-function guideMedia(guide, entname, mpoint) {
+// The entry of the point's own op, as ops can share a path and method.
+// A patch the operation pass promotes to update keeps its entry under patch.
+function guideMedia(guide, entname, opname, mpoint) {
     const gops = guide?.entity?.[entname]?.path?.[mpoint.o]?.op ?? {};
-    for (const opname of (0, utility_1.sortedKeys)(gops)) {
-        const gop = gops[opname];
-        if ((0, utility_1.guideActive)(gop) &&
-            String(gop?.method ?? '').toUpperCase() === String(mpoint.m).toUpperCase()) {
-            return textOf(gop?.body?.media);
+    for (const name of 'update' === opname ? ['update', 'patch'] : [opname]) {
+        const gop = gops[name];
+        if (null != gop && (0, utility_1.guideActive)(gop) &&
+            String(gop.method ?? '').toUpperCase() === String(mpoint.m).toUpperCase()) {
+            return { body: textOf(gop.body?.media), response: textOf(gop.response?.media) };
         }
     }
-    return undefined;
+    return {};
 }
 // Undefined when the operation sends JSON alone.
 function requestBody(def, method, path, media) {
@@ -54,8 +64,24 @@ function requestBody(def, method, path, media) {
     if (!isMap(opdef)) {
         return undefined;
     }
-    const offers = null != def.swagger ?
-        swaggerOffers(def, pathdef, opdef) : openapiOffers(opdef);
+    const body = chooseBody(null != def.swagger ?
+        swaggerOffers(def, pathdef, opdef) : openapiOffers(opdef), media);
+    if (null == body || ('json' === body.kind && JSON_MEDIA === essence(body.media) &&
+        (body.alternatives ?? []).every((other) => 'json' === other.kind))) {
+        return undefined;
+    }
+    return body;
+}
+// Undefined when no success response declares a body.
+function responseBody(def, method, path, media) {
+    const opdef = def?.paths?.[path]?.[String(method).toLowerCase()];
+    if (!isMap(opdef)) {
+        return undefined;
+    }
+    return chooseBody(null != def.swagger ?
+        swaggerResponseOffers(def, opdef) : openapiResponseOffers(opdef), media);
+}
+function chooseBody(offers, media) {
     const ranked = offers
         .sort((a, b) => compare(a.media, b.media))
         .map((offer) => ({ declared: offer.media.trim().toLowerCase(), body: describeBody(offer) }))
@@ -71,10 +97,6 @@ function requestBody(def, method, path, media) {
         return undefined;
     }
     const alternatives = bodies.filter((body) => body.media !== chosen.media);
-    if ('json' === chosen.kind && JSON_MEDIA === essence(chosen.media) &&
-        alternatives.every((body) => 'json' === body.kind)) {
-        return undefined;
-    }
     return 0 < alternatives.length ? { ...chosen, alternatives } : chosen;
 }
 function openapiOffers(opdef) {
@@ -87,6 +109,16 @@ function openapiOffers(opdef) {
         schema: content[media]?.schema,
         encoding: content[media]?.encoding,
     }));
+}
+// A response's `encoding` is ignored, as OpenAPI applies it to request bodies only.
+function openapiResponseOffers(opdef) {
+    const responses = isMap(opdef.responses) ? opdef.responses : {};
+    return (0, utility_1.sortedKeys)(responses).filter((status) => SUCCESS_RE.test(status))
+        .flatMap((status) => {
+        const content = responses[status]?.content;
+        return isMap(content) ?
+            Object.keys(content).map((media) => ({ media, schema: content[media]?.schema })) : [];
+    });
 }
 // Swagger declares a body as a `body` parameter or as `formData` parameters,
 // and its media types in `consumes`, the operation's replacing the document's.
@@ -120,6 +152,18 @@ function swaggerParams(pathdef, opdef) {
     const own = listOf(opdef.parameters).filter(isMap);
     const owned = new Set(own.map(key));
     return [...own, ...listOf(pathdef?.parameters).filter(isMap).filter((param) => !owned.has(key(param)))];
+}
+// A Swagger response with no schema has no body.
+function swaggerResponseOffers(def, opdef) {
+    const responses = isMap(opdef.responses) ? opdef.responses : {};
+    const status = (0, utility_1.sortedKeys)(responses).find((code) => SUCCESS_RE.test(code) && null != responses[code]?.schema);
+    if (null == status) {
+        return [];
+    }
+    const declared = listOf(Array.isArray(opdef.produces) ? opdef.produces : def.produces)
+        .filter((media) => null != textOf(media));
+    return (0 < declared.length ? declared : [JSON_MEDIA])
+        .map((media) => ({ media, schema: responses[status].schema }));
 }
 function formProperty(param) {
     const prop = {};
@@ -167,7 +211,7 @@ function bodyField(name, prop, encoding, arrays) {
     const list = hasType(prop, 'array');
     const item = list ? prop.items : prop;
     const field = { name };
-    if (binarySchema(item) || (isMap(item) && 'file' === item.type)) {
+    if (binarySchema(item)) {
         field.binary = true;
     }
     if (list) {
@@ -214,7 +258,7 @@ function rawBinary(type, schema) {
 }
 function binarySchema(schema) {
     return isMap(schema) && !encodedText(schema) &&
-        ('binary' === schema.format || null != schema.contentMediaType);
+        ('binary' === schema.format || 'file' === schema.type || null != schema.contentMediaType);
 }
 function encodedText(schema) {
     return isMap(schema) && ('byte' === schema.format || null != schema.contentEncoding);

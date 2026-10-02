@@ -108,7 +108,8 @@ list. Required attributes use one character; optional metadata uses two.
 | `g` | `{ params, query, header, cookie }` | argument lists using `%point-args` |
 | `q` | `{ exist: string[], $action? }` | how a call selects this point: its path parameters and required arguments, and its action |
 | `t` | `{ req, res }` | request/response envelope handling (defaults `` `reqdata` `` / `` `body` ``) |
-| `rb` | `ModelRequestBody?` | the request body's media type and encoding, present only when the body is not JSON alone |
+| `rb` | `ModelBody?` | the request body's media type and encoding, present only when the body is not JSON alone |
+| `rs` | `ModelBody?` | the media types a success response declares, present only when one declares a body |
 | `co` | `object?` | operation contract identity |
 | `li` | `boolean` or `object`, optional | live invocation hint |
 | `gq` | `object?` | GraphQL document, variables, and pagination |
@@ -133,22 +134,25 @@ value, so it becomes a required string `param` under its own name, renamed as
 the path's other placeholders are, again with a warning. A placeholder that a
 declared parameter fills under its renamed name is left alone.
 
-### `ModelRequestBody`
+### `ModelBody`
 
-A point carries `rb` when its operation declares a request body that is not
+`rb`, the request body, and `rs`, the success response, share one shape. A
+point carries `rb` when its operation declares a request body that is not
 JSON alone. When the body would be sent as `application/json` and every other
 media type the operation accepts is JSON too, the point carries none, and its
-body is sent as JSON.
+body is sent as JSON. A point carries `rs` whenever a success response
+declares a body, JSON alone included, so a point without `rs` declares no
+response body at all.
 
 | field | type | meaning |
 |-------|------|---------|
 | `kind` | `string` | how the body is encoded: `json`, `raw`, `multipart`, or `form` |
-| `media` | `string` | the media type the body is sent as, the request's `content-type` |
+| `media` | `string` | the media type of the body: the request's `content-type`, or the type to ask a response for |
 | `binary` | `boolean?` | `true` when a `raw` body is bytes rather than text |
-| `fields` | `RequestBodyField[]?` | the fields of a `multipart` or `form` body, in code point order of `name` |
-| `alternatives` | `ModelRequestBody[]?` | the other media types the operation accepts, in preference order; on `rb` only |
+| `fields` | `ModelBodyField[]?` | the fields of a `multipart` or `form` body, in code point order of `name` |
+| `alternatives` | `ModelBody[]?` | the operation's other media types, in preference order; on `rb` and `rs` only |
 
-Each `RequestBodyField` names one field of the body:
+Each `ModelBodyField` names one field of the body:
 
 | field | type | meaning |
 |-------|------|---------|
@@ -170,6 +174,14 @@ declares any, a `body` parameter is `application/json`, `formData` holding a
 `application/x-www-form-urlencoded`. Each `formData` parameter is a field of
 the body, and a `type: file` field is binary.
 
+A success response is a `2XX` one; `default` and the other statuses do not
+count. An OpenAPI 3 operation's response media types are the keys of every
+success response's `content`. A Swagger 2 operation's are its own
+`produces`, else the document's, else `application/json`, when a success
+response has a `schema`, the first such response by status giving it. A
+response's `encoding` is ignored, as OpenAPI applies it to request bodies
+only.
+
 **Kind.** `application/json`, `text/json`, and every `+json` type are `json`;
 `application/x-www-form-urlencoded` is `form`; every `multipart/` type is
 `multipart`; anything else is `raw`. A range that admits JSON, `*/*` or
@@ -181,11 +193,12 @@ range is sent as `application/json`, and `multipart/*` as
 
 **Binary.** A schema with `format: byte` or a `contentEncoding` is encoded
 text, and never bytes. Otherwise a `raw` body is bytes when its schema is
-absent or constrains nothing, is `format: binary`, or has a
-`contentMediaType`, and also when its media type is not text. The text media
-types are `text/*`, `application/xml`, and every `+xml` type. A field is
-binary when its schema, or for a list its items' schema, is `format: binary`
-or `type: file`, or has a `contentMediaType`, and is not encoded text.
+absent or constrains nothing, is `format: binary` or Swagger's `type: file`,
+or has a `contentMediaType`, and also when its media type is not text. The
+text media types are `text/*`, `application/xml`, and every `+xml` type. A
+field is binary when its schema, or for a list its items' schema, is
+`format: binary` or `type: file`, or has a `contentMediaType`, and is not
+encoded text.
 
 **Arrays.** A Swagger 2 array is joined by its `collectionFormat`: `csv`,
 the default, with `,`, `ssv` with a space, `tsv` with a tab, and `pipes` with
@@ -202,13 +215,18 @@ and the rest are its `alternatives`. Two media types sent as the same one,
 such as `*/*` beside `application/json`, are one.
 
 **Correction.** `body.media` on the operation's entry in `guide.aontu` names
-the media type to send. A declared media type, a range such as `multipart/*`
+the media type to send, and `response.media` the one to ask for. A declared media type, a range such as `multipart/*`
 included, is chosen with its own schema.
 An undeclared one is classified from the media type alone, so an undeclared
 raw type is binary, and an operation that declares no body gains one.
+An entry corrects its own operation alone, even where two operations share a
+path and method. A `PATCH` promoted to `update` is corrected by its `patch`
+entry.
 
 Each rule is a row in
-[`ts/test/request-body.tsv`](../../ts/test/request-body.tsv). One point of
+[`ts/test/request-body.tsv`](../../ts/test/request-body.tsv),
+[`ts/test/response-body.tsv`](../../ts/test/response-body.tsv) or
+[`ts/test/body-guide.tsv`](../../ts/test/body-guide.tsv). One point of
 each kind:
 
 ```jsonic
@@ -232,6 +250,12 @@ rb: { kind: form, media: "application/x-www-form-urlencoded", fields: [
 
 # JSON, sent as before, with XML accepted too
 rb: { kind: json, media: "application/json", alternatives: [ { kind: raw, media: "application/xml" } ] }
+
+# GET /pet/findByStatus answers JSON first, and XML beside it
+rs: { kind: json, media: "application/json", alternatives: [ { kind: raw, media: "application/xml" } ] }
+
+# GET /octocat answers no JSON at all
+rs: { kind: raw, media: "application/octocat-stream", binary: true }
 ```
 
 ## `ModelEntityFlow`

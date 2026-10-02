@@ -65,6 +65,10 @@
               "planet_id": "id"
             }
           },
+          "rs": {
+            "kind": "json",
+            "media": "application/json"
+          },
           "s": [
             {
               "lit": "api"
@@ -92,6 +96,10 @@
           },
           "m": "POST",
           "o": "/api/planet",
+          "rs": {
+            "kind": "json",
+            "media": "application/json"
+          },
           "s": [
             {
               "lit": "api"
@@ -118,6 +126,10 @@
           },
           "m": "GET",
           "o": "/api/planet",
+          "rs": {
+            "kind": "json",
+            "media": "application/json"
+          },
           "s": [
             {
               "lit": "api"
@@ -164,6 +176,10 @@
             "param": {
               "planet_id": "id"
             }
+          },
+          "rs": {
+            "kind": "json",
+            "media": "application/json"
           },
           "s": [
             {
@@ -264,6 +280,10 @@
             "param": {
               "planet_id": "id"
             }
+          },
+          "rs": {
+            "kind": "json",
+            "media": "application/json"
           },
           "s": [
             {
