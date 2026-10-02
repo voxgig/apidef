@@ -45,6 +45,7 @@ import {
 import { makeResolved } from '../dist/resolved'
 
 import { selectTransform } from '../dist/transform/select'
+import { requestBody } from '../dist/transform/body'
 import { resolveSecurity, findAuthPrefix } from '../dist/transform/top'
 
 import { snakify, camelify, kebabify } from 'jostraca'
@@ -980,6 +981,19 @@ describe('tsv-utf8-decode', () => {
       const file = Path.join(dir, 'def.yaml')
       Fs.writeFileSync(file, Buffer.from(row.hex, 'hex'))
       assert.strictEqual(loadFile(file, 'def', Fs as any, log), JSON.parse(row.expected))
+    })
+  }
+})
+
+
+describe('tsv-request-body', () => {
+  const rows = loadTsv('request-body')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, () => {
+      const media = '' === row.media ? undefined : row.media
+      assert.deepStrictEqual(requestBody(JSON.parse(row.def), 'POST', '/x', media) ?? null,
+        JSON.parse(row.expected))
     })
   }
 })

@@ -40,6 +40,7 @@ guide
 | `why_op` | `string[]` | trace of the CRUD classification |
 | `transform.res` | `string` | response envelope unwrap (e.g. `` `body.planet` ``) when the response wraps the entity |
 | `transform.req` | `object` | request envelope wrap when the body wraps the entity |
+| `body.media` | `string` | the media type the request body is sent as; the base guide never writes it, so it is yours to set (see the model's `rb`) |
 
 ### `GuideMetrics`
 
@@ -411,6 +412,10 @@ guide: entity: pull: path: "/repos/{owner}/{repo}/pulls/{pull_number}/merge": {
   rename: param: pull_number: id
   op: update: method: PUT
 }
+
+# Send an upload's body as bytes the API accepts, where the definition
+# declares only `text/plain`.
+guide: entity: upload: path: "/spaces/{space_id}/uploads": op: create: body: media: "application/octet-stream"
 ```
 
 ### Covering a subset of a large API

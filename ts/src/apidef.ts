@@ -74,6 +74,7 @@ import { contractTransform } from './transform/contract'
 import { operationTransform } from './transform/operation'
 import { graphqlTransform } from './transform/graphql'
 import { argsTransform } from './transform/args'
+import { bodyTransform } from './transform/body'
 import { selectTransform } from './transform/select'
 import { fieldTransform } from './transform/field'
 import { casecollideTransform } from './transform/casecollide'
@@ -282,6 +283,7 @@ function ApiDef(opts: ApiDefOptions) {
       await graphqlTransform(ctx)
       await contractTransform(ctx)
       await argsTransform(ctx)
+      await bodyTransform(ctx)
       await selectTransform(ctx)
       await fieldTransform(ctx)
       // Before flowTransform, so no flow is built for an entity it drops.

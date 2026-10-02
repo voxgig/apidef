@@ -80,6 +80,20 @@ type ModelPathSegment = {
     lit?: string;
     var?: string;
 };
+type RequestBodyKind = 'json' | 'raw' | 'multipart' | 'form';
+type ModelRequestBodyField = {
+    name: string;
+    binary?: boolean;
+    list?: boolean;
+    media?: string;
+};
+type ModelRequestBody = {
+    kind: RequestBodyKind;
+    media: string;
+    binary?: boolean;
+    fields?: ModelRequestBodyField[];
+    alternatives?: ModelRequestBody[];
+};
 type ModelPoint = {
     co?: {
         version: 2;
@@ -112,6 +126,7 @@ type ModelPoint = {
         exist: string[];
         $action?: string;
     };
+    rb?: ModelRequestBody;
 };
 type ModelOp = {
     name: OpName;
@@ -170,4 +185,4 @@ type ModelEntityFlowStep = {
     s: ModelEntityFlowStepSpec[];
     v: ModelEntityFlowStepValidator[];
 };
-export type { OpName, ArgKind, PointKind, ModelGraphql, ModelGraphqlVar, ModelGraphqlPage, NamesCluster, Model, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelPoint, ModelPathSegment, ModelOp, ModelEntity, ModelEntityFlow, ModelEntityFlowStep, ModelEntityFlowStepInput, ModelEntityFlowStepValidator, ModelEntityFlowStepSpec, };
+export type { OpName, ArgKind, PointKind, ModelGraphql, ModelGraphqlVar, ModelGraphqlPage, NamesCluster, Model, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelPoint, ModelPathSegment, RequestBodyKind, ModelRequestBodyField, ModelRequestBody, ModelOp, ModelEntity, ModelEntityFlow, ModelEntityFlowStep, ModelEntityFlowStepInput, ModelEntityFlowStepValidator, ModelEntityFlowStepSpec, };

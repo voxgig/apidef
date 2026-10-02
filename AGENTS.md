@@ -63,7 +63,7 @@ apidef compiles an OpenAPI 3 / Swagger 2.0 spec into an internal **API model**
 turns into client SDKs. It *infers* structure OpenAPI leaves implicit: which
 paths form a resource, which methods are CRUD, how params map to identifiers.
 
-Pipeline: `parse → guide → transform×9 → builder → generate`. Entry point:
+Pipeline: `parse → guide → transform×13 → builder → generate`. Entry point:
 [`ts/src/apidef.ts`](./ts/src/apidef.ts).
 
 **Building an SDK end-to-end?** apidef is the *spec → model* step of a larger
@@ -148,7 +148,8 @@ ts/src/        canonical source
   apidef.ts      pipeline entry (ApiDef, makeBuild, generate)
   parse.ts       parse + $ref resolution
   guide/         heuristic path→entity/op classification
-  transform/     9 ordered passes: top,entity,operation,args,select,field,flow,flowstep,clean
+  transform/     13 ordered passes: top,entity,operation,graphql,contract,args,body,
+                 select,field,casecollide,flow,flowstep,clean
   builder/       render model -> aontu files
   utility.ts     pure helpers (depluralize, canonize, validator, formatJSONIC, …)
   types|model|desc|def.ts   shapes & types

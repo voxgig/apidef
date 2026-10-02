@@ -1171,3 +1171,29 @@ func TestFindWalksAGraph(t *testing.T) {
 		}
 	})
 }
+
+func TestRequestBody(t *testing.T) {
+	rows := loadTsv(t, "request-body")
+	if len(rows) == 0 {
+		t.Fatal("no request-body rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var def map[string]any
+			if err := json.Unmarshal([]byte(row["def"]), &def); err != nil {
+				t.Fatalf("bad def %q: %v", row["def"], err)
+			}
+			var got, want any
+			if rb := requestBody(def, "POST", "/x", row["media"]); rb != nil {
+				b, _ := json.Marshal(rb)
+				json.Unmarshal(b, &got)
+			}
+			if err := json.Unmarshal([]byte(row["expected"]), &want); err != nil {
+				t.Fatalf("bad expected %q: %v", row["expected"], err)
+			}
+			if !reflect.DeepEqual(got, want) {
+				t.Errorf("requestBody\ngot  %s\nwant %s", asJSON(got), asJSON(want))
+			}
+		})
+	}
+}

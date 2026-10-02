@@ -108,6 +108,7 @@ list. Required attributes use one character; optional metadata uses two.
 | `g` | `{ params, query, header, cookie }` | argument lists using `%point-args` |
 | `q` | `{ exist: string[], $action? }` | how a call selects this point: its path parameters and required arguments, and its action |
 | `t` | `{ req, res }` | request/response envelope handling (defaults `` `reqdata` `` / `` `body` ``) |
+| `rb` | `ModelRequestBody?` | the request body's media type and encoding, present only when the body is not JSON alone |
 | `co` | `object?` | operation contract identity |
 | `li` | `boolean` or `object`, optional | live invocation hint |
 | `gq` | `object?` | GraphQL document, variables, and pagination |
@@ -131,6 +132,95 @@ a warning. A path placeholder that no declared parameter fills still needs a
 value, so it becomes a required string `param` under its own name, renamed as
 the path's other placeholders are, again with a warning. A placeholder that a
 declared parameter fills under its renamed name is left alone.
+
+### `ModelRequestBody`
+
+A point carries `rb` when its operation declares a request body that is not
+JSON alone. When the body would be sent as `application/json` and every other
+media type the operation accepts is JSON too, the point carries none, and its
+body is sent as JSON.
+
+| field | type | meaning |
+|-------|------|---------|
+| `kind` | `string` | how the body is encoded: `json`, `raw`, `multipart`, or `form` |
+| `media` | `string` | the media type the body is sent as, the request's `content-type` |
+| `binary` | `boolean?` | `true` when a `raw` body is bytes rather than text |
+| `fields` | `RequestBodyField[]?` | the fields of a `multipart` or `form` body, in code point order of `name` |
+| `alternatives` | `ModelRequestBody[]?` | the other media types the operation accepts, in preference order; on `rb` only |
+
+Each `RequestBodyField` names one field of the body:
+
+| field | type | meaning |
+|-------|------|---------|
+| `name` | `string` | the field name as the definition spells it, which is the name sent |
+| `binary` | `boolean?` | `true` when the field carries a file |
+| `list` | `boolean?` | `true` when the field is an array, sent once per item |
+| `media` | `string?` | the content type the definition declares for the field: its `encoding` entry, else its `contentMediaType` |
+
+As with the field flags, `binary` and `list` are present only when true.
+
+**Media types.** An OpenAPI 3 operation's are the keys of
+`requestBody.content`. A Swagger 2 operation with a `body` or `formData`
+parameter takes its own `consumes`, else the document's. When neither
+declares any, a `body` parameter is `application/json`, `formData` holding a
+`file` is `multipart/form-data`, and other `formData` is
+`application/x-www-form-urlencoded`. Each `formData` parameter is a field of
+the body, and a `type: file` field is binary.
+
+**Kind.** `application/json` and every `+json` type are `json`;
+`application/x-www-form-urlencoded` is `form`; every `multipart/` type is
+`multipart`; anything else is `raw`. A range that admits JSON, `*/*` or
+`application/*`, is `json` sent as `application/json`, unless its schema is
+`format: binary` or has a `contentMediaType` and is not encoded text; then
+it is a binary `raw` body sent as `application/octet-stream`. A `+json`
+range is sent as `application/json`, and `multipart/*` as
+`multipart/form-data`.
+
+**Binary.** A schema with `format: byte` or a `contentEncoding` is encoded
+text, and never bytes. Otherwise a `raw` body is bytes when its schema is
+absent or constrains nothing, is `format: binary`, or has a
+`contentMediaType`, and also when its media type is not text. The text media
+types are `text/*`, `application/xml`, and every `+xml` type. A field is
+binary when its schema, or for a list its items' schema, is `format: binary`
+or `type: file`, or has a `contentMediaType`, and is not encoded text.
+
+**Choice.** JSON comes first whenever it is offered, `application/json`
+before the other JSON types, then `multipart`, `form`, and `raw`. Within a
+kind, the order is code point order of the media type. The first is `rb`,
+and the rest are its `alternatives`. Two media types sent as the same one,
+such as `*/*` beside `application/json`, are one.
+
+**Correction.** `body.media` on the operation's entry in `guide.aontu` names
+the media type to send. A declared media type is chosen with its own schema.
+An undeclared one is classified from the media type alone, so an undeclared
+raw type is binary, and an operation that declares no body gains one.
+
+Each rule is a row in
+[`ts/test/request-body.tsv`](../../ts/test/request-body.tsv). One point of
+each kind:
+
+```jsonic
+# POST /repos/{owner}/{repo}/releases/{release_id}/assets
+rb: { kind: raw, media: "application/octet-stream", binary: true }
+
+# POST /markdown/raw, text in either media type
+rb: { kind: raw, media: "text/plain", alternatives: [ { kind: raw, media: "text/x-markdown" } ] }
+
+# A file and a caption
+rb: { kind: multipart, media: "multipart/form-data", fields: [
+  { name: caption }
+  { name: image, binary: true, media: "image/png" }
+] }
+
+# An address and the topics it subscribes to
+rb: { kind: form, media: "application/x-www-form-urlencoded", fields: [
+  { name: email }
+  { name: topics, list: true }
+] }
+
+# JSON, sent as before, with XML accepted too
+rb: { kind: json, media: "application/json", alternatives: [ { kind: raw, media: "application/xml" } ] }
+```
 
 ## `ModelEntityFlow`
 

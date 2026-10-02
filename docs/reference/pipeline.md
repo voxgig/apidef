@@ -1,8 +1,8 @@
 # Reference: pipeline stages
 
 The pipeline is driven from [`ts/src/apidef.ts`](../../ts/src/apidef.ts). It
-has five gated stages; the third stage (`transformers`) is itself nine ordered
-passes. Each stage reads and enriches the shared `ctx`.
+has five gated stages; the third stage (`transformers`) is itself thirteen
+ordered passes. Each stage reads and enriches the shared `ctx`.
 
 ## Stage 1 — `parse`
 
@@ -72,7 +72,7 @@ works in one pass provided the guide entry file exists. Output: `ctx.guide`
 
 ## Stage 3 — `transformers`
 
-Nine passes run in this fixed order; each is a file under
+Thirteen passes run in this fixed order; each is a file under
 [`ts/src/transform/`](../../ts/src/transform/):
 
 | # | pass | builds |
@@ -80,12 +80,16 @@ Nine passes run in this fixed order; each is a file under
 | 1 | `top` | `kit.info` — title, version, and `servers[]` (URL schemes normalized to `https://` when missing) |
 | 2 | `entity` | `kit.entity[name]` skeletons; ancestor relations; the source path list (`paths$`) |
 | 3 | `operation` | each entity's `op` map (`load`/`list`/`create`/`update`/`remove`/`patch`) and its `points[]`, carrying the guide's transforms in `t` |
-| 4 | `args` | each point's `g.params[]` from path parameters (`n`, `or`, `r`, `t`) |
-| 5 | `select` | each point's `select` — `exist[]` identifiers and `$action` markers |
-| 6 | `field` | each entity's `fields[]` from request/response schemas, with inferred types and per-op `req` overrides |
-| 7 | `flow` | basic CRUD `flow` definitions per entity |
-| 8 | `flowstep` | the ordered `step[]` of each flow |
-| 9 | `clean` | prune inactive nodes and finalize the model |
+| 4 | `graphql` | for a GraphQL definition, each point's `k: graphql` and its `gq` document, variables, and pagination |
+| 5 | `contract` | each point's `co` identity, and `li` from the guide's `live` entry |
+| 6 | `args` | each point's `g.params[]` from path parameters (`n`, `or`, `r`, `t`) |
+| 7 | `body` | each point's `rb`, when its request body is not JSON alone |
+| 8 | `select` | each point's `select` — `exist[]` identifiers and `$action` markers |
+| 9 | `field` | each entity's `fields[]` from request/response schemas, with inferred types and per-op `req` overrides |
+| 10 | `casecollide` | drops an entity without operations whose name differs only by case from one with them, since both would generate to one file |
+| 11 | `flow` | basic CRUD `flow` definitions per entity |
+| 12 | `flowstep` | the ordered `step[]` of each flow |
+| 13 | `clean` | prune inactive nodes and finalize the model |
 
 Where a stage orders names, it compares them by UTF-16 code unit, as
 JavaScript's `sort()` does, so an emoji sorts before `U+E000` to `U+FFFF`

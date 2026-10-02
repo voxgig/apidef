@@ -31,7 +31,7 @@ apidef has two implementations: the canonical TypeScript build under `ts/`
 - [Configuration & inputs](./docs/reference/configuration.md): model, build spec, ctrl.step, spec-file path rule
 - [Internal API model](./docs/reference/model.md): entity / op / point / arg / field / flow shapes
 - [Guide model](./docs/reference/guide.md): classification output and why_* traces
-- [Pipeline stages](./docs/reference/pipeline.md): the five stages and nine transform passes
+- [Pipeline stages](./docs/reference/pipeline.md): the five stages and thirteen transform passes
 
 ## Explanation
 - [Architecture overview](./docs/explanation/architecture.md): stages, context, building blocks, two implementations
@@ -43,5 +43,5 @@ apidef has two implementations: the canonical TypeScript build under `ts/`
 - [ts/src/apidef.ts](./ts/src/apidef.ts): pipeline entry point
 - [ts/src/parse.ts](./ts/src/parse.ts): parse + $ref resolution
 - [ts/src/guide/heuristic01.ts](./ts/src/guide/heuristic01.ts): the classification engine
-- [ts/src/transform/](./ts/src/transform/): the nine transform passes
+- [ts/src/transform/](./ts/src/transform/): the thirteen transform passes
 - [ts/src/utility.ts](./ts/src/utility.ts): pure helpers (depluralize, canonize, validator, formatJSONIC)

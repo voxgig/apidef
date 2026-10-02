@@ -660,6 +660,9 @@ type GuidePathOp = {
     method: string;
     optype?: string;
     why_op: string[];
+    body?: {
+        media?: string;
+    };
     transform: {
         req: any;
         res: any;

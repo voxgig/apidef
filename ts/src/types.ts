@@ -306,6 +306,9 @@ type GuidePathOp = {
   // an HTTP verb (points still synthesize method 'POST').
   optype?: string
   why_op: string[]
+  body?: {
+    media?: string
+  }
   transform: {
     req: any
     res: any
