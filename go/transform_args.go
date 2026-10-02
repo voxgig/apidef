@@ -94,6 +94,7 @@ func resolveArgs(
 	for _, m := range pathParamRE.FindAllStringSubmatch(safeStr(mtarget["o"]), -1) {
 		placeholders = append(placeholders, m[1])
 	}
+	paramRename, _ := rename["param"].(map[string]any)
 
 	for _, argdef := range argdefs {
 		argName, _ := argdef["name"].(string)
@@ -128,8 +129,8 @@ func resolveArgs(
 		if kind == "" {
 			kind = "query"
 		}
+		placed := false
 		if argIn == "" {
-			placed := false
 			for _, p := range placeholders {
 				if p == argName {
 					placed = true
@@ -158,7 +159,9 @@ func resolveArgs(
 		}
 
 		name := orig
-		if rename != nil {
+		if placed {
+			name = ParamName(argName, paramRename)
+		} else if rename != nil {
 			if kindRename, ok := rename[kind].(map[string]any); ok {
 				if rn, ok := kindRename[specName].(string); ok && "" != rn {
 					name = rn
@@ -187,7 +190,7 @@ func resolveArgs(
 			"or": argName,
 			"t":  fieldType,
 			"k":  kind,
-			"r":  toBool(argdef["required"]),
+			"r":  placed || toBool(argdef["required"]),
 			"a":  true,
 		}
 
@@ -233,7 +236,6 @@ func resolveArgs(
 			}
 			return false
 		}
-		paramRename, _ := rename["param"].(map[string]any)
 		for _, wire := range placeholders {
 			orig := CanonizeParam(wire)
 			name := ParamName(wire, paramRename)

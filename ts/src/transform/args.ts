@@ -141,9 +141,10 @@ function resolveArgs(
     }
 
     let kind = ARG_KIND[argdef.in] ?? 'query'
+    let placed = false
     const where: unknown = argdef.in
     if ('string' !== typeof where || '' === where) {
-      const placed = placeholders.includes(argdef.name)
+      placed = placeholders.includes(argdef.name)
       kind = placed ? 'param' : 'query'
       ctx?.warn?.({
         note: `Parameter ${argdef.name} on entity=${ment.name} op=${mop.name}` +
@@ -161,7 +162,8 @@ function resolveArgs(
     // the snakified form depending on which path went through heuristic01.
     // Try both before falling through to `orig`.
     const renameMap = mpoint.r[kind]
-    const name = renameMap?.[specName] ?? renameMap?.[orig] ?? orig
+    const name = placed ? paramName(argdef.name, mpoint.r.param) :
+      (renameMap?.[specName] ?? renameMap?.[orig] ?? orig)
     // The name the definition gives, which the SDK sends on the wire. The
     // model name beside it is only what a caller writes.
     const marg: ModelArg = {
@@ -169,7 +171,7 @@ function resolveArgs(
       or: String(argdef.name),
       t: inferFieldType(name, validator(argdef.schema?.type)),
       k: kind,
-      r: !!argdef.required
+      r: placed || !!argdef.required
     }
 
     const example = resolveArgExample(argdef)

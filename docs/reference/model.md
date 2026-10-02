@@ -135,7 +135,8 @@ declared parameter fills under its renamed name is left alone.
 
 A parameter declared with no `in` names no location. One whose name is a
 placeholder of the path, written exactly as the placeholder spells it, is that
-path parameter; any other is a `query` argument. Either way a warning names the
+path parameter: it is required, and it takes the name its placeholder takes in
+`s`. Any other is a `query` argument. Either way a warning names the
 parameter, so the definition can be corrected.
 
 ### `ModelRequestBody`

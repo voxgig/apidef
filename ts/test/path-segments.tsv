@@ -17,3 +17,4 @@ empty-rename-skipped-for-the-next-key	/f/{fooBar}.json	{"fooBar":"","foo_bar":"f
 plural-name	/f/{categories}.csv	{}	[{"lit":"f"},{"lit":"{category}.csv"}]
 no-canonical-name-kept	/f/{_}.json	{}	[{"lit":"f"},{"lit":"{_}.json"}]
 inherited-key-name	/f/{constructor}.json	{}	[{"lit":"f"},{"lit":"{constructor}.json"}]
+raw-rename-key	/files/{file.name}	{"file.name":"id"}	[{"lit":"files"},{"var":"id"}]
