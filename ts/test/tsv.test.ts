@@ -38,6 +38,7 @@ import {
 } from '../dist/utility'
 
 import {
+  fieldTransform,
   inferTypeFromValue,
   inferFieldsFromExamples,
 } from '../dist/transform/field'
@@ -637,6 +638,41 @@ describe('tsv-infer-fields-from-examples', () => {
     test(`inferFieldsFromExamples(${row.opdef}, "${row.envelope}") => ${row.expected}`, () => {
       const fields = inferFieldsFromExamples(JSON.parse(row.opdef), '' === row.envelope ? null : row.envelope)
       assert.deepStrictEqual(fields.map((f: any) => f.key$ + ':' + f.type), JSON.parse(row.expected))
+    })
+  }
+})
+
+
+// The field the transform builds from one property, beside a plain property
+// so that the record is not read as an envelope around it.
+describe('tsv-allof-field', () => {
+  const rows = loadTsv('allof-field')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, async () => {
+      const schema = JSON.parse(row.schema)
+      const members = JSON.stringify(schema.allOf)
+      const ment: any = {
+        name: 'thing',
+        fields: {},
+        op: { load: { name: 'load', points: [{ m: 'GET', o: '/things' }] } },
+      }
+      const def = { paths: { '/things': { get: { responses: { '200': { content: {
+        'application/json': { schema: { type: 'object', properties: {
+          [row.field]: schema, label: { type: 'string' },
+        } } },
+      } } } } } } }
+
+      await fieldTransform({ apimodel: { main: { kit: { entity: { thing: ment } } } }, def } as any)
+
+      const field: any = Object.values(ment.fields).find((f: any) => row.field === f.n)
+      const got = Object.fromEntries(['t', 'fo', 'sh', 'de', 'ro', 'wo']
+        .filter((key: string) => undefined !== field?.[key])
+        .map((key: string) => [key, field[key]]))
+      assert.deepStrictEqual(got, JSON.parse(row.expected))
+
+      // A parsed schema is shared between references, so it is left as it was.
+      assert.strictEqual(JSON.stringify(schema.allOf), members)
     })
   }
 })

@@ -768,6 +768,77 @@ func TestInferFieldsFromExamples(t *testing.T) {
 	}
 }
 
+// The field FieldTransform builds from one property, beside a plain property
+// so that the record is not read as an envelope around it.
+func TestAllOfField(t *testing.T) {
+	rows := loadTsv(t, "allof-field")
+	if len(rows) == 0 {
+		t.Fatal("no allof-field rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var schema map[string]any
+			if err := json.Unmarshal([]byte(row["schema"]), &schema); err != nil {
+				t.Fatalf("bad schema %q: %v", row["schema"], err)
+			}
+			var want any
+			if err := json.Unmarshal([]byte(row["expected"]), &want); err != nil {
+				t.Fatalf("bad expected %q: %v", row["expected"], err)
+			}
+			members, _ := json.Marshal(schema["allOf"])
+
+			ent := map[string]any{
+				"name":   "thing",
+				"fields": map[string]any{},
+				"op": map[string]any{"load": map[string]any{
+					"name":   "load",
+					"points": []any{map[string]any{"m": "GET", "o": "/things"}},
+				}},
+			}
+			record := map[string]any{"type": "object", "properties": map[string]any{
+				row["field"]: schema,
+				"label":      map[string]any{"type": "string"},
+			}}
+			def := map[string]any{"paths": map[string]any{"/things": map[string]any{
+				"get": map[string]any{"responses": map[string]any{"200": map[string]any{
+					"content": map[string]any{"application/json": map[string]any{"schema": record}},
+				}}},
+			}}}
+			apimodel := map[string]any{"main": map[string]any{
+				KIT: map[string]any{"entity": map[string]any{"thing": ent}},
+			}}
+
+			if _, err := FieldTransform(&ApiDefContext{ApiModel: apimodel, Def: def}); err != nil {
+				t.Fatalf("FieldTransform: %v", err)
+			}
+
+			got := map[string]any{}
+			for _, fv := range ent["fields"].(map[string]any) {
+				f, _ := fv.(map[string]any)
+				if f["n"] != row["field"] {
+					continue
+				}
+				for _, k := range []string{"t", "fo", "sh", "de", "ro", "wo"} {
+					if v, ok := f[k]; ok {
+						got[k] = v
+					}
+				}
+			}
+			gotJSON, _ := json.Marshal(got)
+			var gotVal any
+			_ = json.Unmarshal(gotJSON, &gotVal)
+			if !reflect.DeepEqual(gotVal, want) {
+				t.Errorf("field %s = %s, want %s", row["field"], gotJSON, row["expected"])
+			}
+
+			// A parsed schema is shared between references, so it is left as it was.
+			if after, _ := json.Marshal(schema["allOf"]); string(after) != string(members) {
+				t.Errorf("the parsed schema changed: %s, was %s", after, members)
+			}
+		})
+	}
+}
+
 func TestPathResource(t *testing.T) {
 	rows := loadTsv(t, "path-resource")
 	if len(rows) == 0 {
