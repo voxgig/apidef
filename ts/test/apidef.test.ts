@@ -538,6 +538,51 @@ describe('apidef', () => {
   })
 
 
+  // A composed scalar is a scalar: an id described in an allOf (thing) or
+  // written as a union (badge) is not an envelope around the record, a
+  // described name is not a wrapper (label), and a described value beside a
+  // page's records does not stop the page from unwrapping them (sample).
+  test('guide-composed-scalar', async () => {
+    const folder = __dirname + '/../test/composed-scalar'
+
+    const build = await ApiDef.makeBuild({ folder })
+
+    const bres = await build(
+      { name: 'composed-scalar', def: 'composed-scalar-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: true,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const entities = bres.apimodel.main.kit.entity
+    const point = (ent: string, op: string) => entities[ent]?.op[op]?.points[0]
+    assert.strictEqual(point('thing', 'load')?.t.res, '`body`')
+    assert.strictEqual(point('badge', 'load')?.t.res, '`body`')
+    assert.strictEqual(point('label', 'load')?.t.res, '`body`')
+    assert.strictEqual(point('label', 'create')?.t.res, '`body`')
+    assert.strictEqual(point('label', 'create')?.t.req, '`reqdata`')
+    assert.strictEqual(point('sample', 'list')?.t.res, '`body.data`')
+
+    // The fields are the record's, not those of a value it holds.
+    assert.deepStrictEqual(Object.keys(entities.thing.fields).sort(), ['id', 'status'])
+    assert.deepStrictEqual(Object.keys(entities.badge.fields).sort(), ['id', 'status'])
+    assert.deepStrictEqual(Object.keys(entities.label.fields).sort(), ['color', 'id', 'label'])
+  })
+
+
   // A page with no data of its own reads its one list of records past a list
   // of scalars (metric) or an object (notification, preference), composed or
   // not (branch), while a response with a state of its own is read whole

@@ -220,6 +220,23 @@ The added rows of
 [`ts/test/envelope-prop.tsv`](../../ts/test/envelope-prop.tsv) pin it in both
 builds.
 
+A structured property is one that can hold a record: an object, an array, a
+reference, or a composition that could be one. A scalar is data however the
+definition writes it. An `allOf` of one scalar and members that only describe
+it reads as that scalar, as its field does (see
+[`ModelField`](./model.md#modelfield)), and a `oneOf` or `anyOf` whose
+branches are all scalars or `null` reads as a scalar too. So a record that
+holds an `id` written as `allOf[$ref Id, { description }]` beside a `status`
+loads as the record, and a page whose records sit beside such a value unwraps
+them as it would beside a plain string. The same reading decides whether a
+property named after the entity wraps a response or a request body.
+`isEntityWrapperProp` in [`ts/src/utility.ts`](../../ts/src/utility.ts) is the
+rule. The rows of
+[`ts/test/entity-wrapper-prop.tsv`](../../ts/test/entity-wrapper-prop.tsv) and
+[`ts/test/envelope-prop.tsv`](../../ts/test/envelope-prop.tsv) pin it in both
+builds, and the `guide-composed-scalar` tests pin it for the whole spec on
+[`ts/test/def/composed-scalar-def.json`](../../ts/test/def/composed-scalar-def.json).
+
 A list reads past the page's own metadata. Beside an array of records, an
 object named in `PAGE_META_PROPS` (`meta`, `metadata`, `pagination`,
 `paging`, `page_info` or `links`) describes the page and is not a second

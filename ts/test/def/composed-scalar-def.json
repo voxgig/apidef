@@ -1,0 +1,71 @@
+{
+  "openapi": "3.0.0",
+  "info": { "title": "Composed Scalar API", "version": "1.0.0" },
+  "servers": [ { "url": "https://api.example.com" } ],
+  "paths": {
+    "/things/{id}": {
+      "get": {
+        "operationId": "get-thing",
+        "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "$ref": "#/components/schemas/Thing" } } } } }
+      }
+    },
+    "/badges/{id}": {
+      "get": {
+        "operationId": "get-badge",
+        "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "$ref": "#/components/schemas/Badge" } } } } }
+      }
+    },
+    "/samples": {
+      "get": {
+        "operationId": "list-samples",
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "$ref": "#/components/schemas/SamplePage" } } } } }
+      }
+    },
+    "/labels": {
+      "post": {
+        "operationId": "create-label",
+        "requestBody": { "content": { "application/json": {
+          "schema": { "$ref": "#/components/schemas/LabelCreate" } } } },
+        "responses": { "201": { "description": "Created", "content": { "application/json": {
+          "schema": { "$ref": "#/components/schemas/LabelResponse" } } } } }
+      }
+    },
+    "/labels/{id}": {
+      "get": {
+        "operationId": "get-label",
+        "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "$ref": "#/components/schemas/LabelResponse" } } } } }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Id": { "type": "string", "pattern": "^[a-z0-9]+$" },
+      "LabelName": { "type": "string" },
+      "Region": { "type": "string" },
+      "Thing": { "type": "object", "properties": {
+        "id": { "allOf": [ { "$ref": "#/components/schemas/Id" }, { "description": "The thing's id." } ] },
+        "status": { "type": "string" } } },
+      "Badge": { "type": "object", "properties": {
+        "id": { "oneOf": [ { "type": "string" }, { "type": "integer" } ] },
+        "status": { "type": "string" } } },
+      "Sample": { "type": "object", "properties": {
+        "name": { "type": "string" }, "size": { "type": "integer" } } },
+      "SamplePage": { "type": "object", "properties": {
+        "data": { "type": "array", "items": { "$ref": "#/components/schemas/Sample" } },
+        "region": { "allOf": [ { "$ref": "#/components/schemas/Region" },
+          { "description": "The region the page covers." } ] } } },
+      "LabelCreate": { "type": "object", "properties": {
+        "label": { "allOf": [ { "$ref": "#/components/schemas/LabelName" }, { "description": "The label's name." } ] } } },
+      "LabelResponse": { "type": "object", "properties": {
+        "label": { "allOf": [ { "$ref": "#/components/schemas/LabelName" }, { "description": "The label's name." } ] },
+        "color": { "type": "string" } } }
+    }
+  }
+}

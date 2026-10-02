@@ -1,0 +1,39 @@
+# Generated from the API definition and overwritten on every build: do not
+# edit this file. Put customizations in the guide entry file, which includes
+# this one and overrides its defaults:
+#   guide.aontu
+
+guide: {
+  metrics: count: entity: 4
+  metrics: count: path: 5
+  metrics: count: method: 5
+
+  entity: badge: {
+    path: "/badges/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: label: {
+    path: "/labels": {
+      op: create: method: *POST
+    }
+    path: "/labels/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: sample: {
+    path: "/samples": {
+      op: list: method: *GET
+      op: list: transform: res: *("`body.data`")|top
+    }
+  }
+
+  entity: thing: {
+    path: "/things/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+}
