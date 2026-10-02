@@ -870,6 +870,47 @@ func TestTsvAuthExchange(t *testing.T) {
 	}
 }
 
+func TestTsvSecurity(t *testing.T) {
+	rows := loadTsv(t, "security")
+	if len(rows) == 0 {
+		t.Fatal("no security rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			def, err := Parse("OpenAPI", row["spec"], map[string]string{"file": row["name"]})
+			if err != nil {
+				t.Fatal(err)
+			}
+			var want any
+			unmarshalCol(t, row, "expected", &want)
+			var got any
+			if found := resolveSecurity(def); found != nil {
+				got = found
+			}
+			if !jsonEqual(got, want) {
+				b, _ := json.Marshal(got)
+				t.Errorf("got  %s\nwant %s", b, row["expected"])
+			}
+		})
+	}
+}
+
+func TestTsvAuthPrefix(t *testing.T) {
+	rows := loadTsv(t, "auth-prefix")
+	if len(rows) == 0 {
+		t.Fatal("no auth-prefix rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var text string
+			unmarshalCol(t, row, "text", &text)
+			if got := findAuthPrefix(text); got != row["expected"] {
+				t.Errorf("findAuthPrefix(%q) = %q, want %q", text, got, row["expected"])
+			}
+		})
+	}
+}
+
 // Mirrors the TS `spec-secured-by-default` cases.
 func TestSpecSecuredByDefault(t *testing.T) {
 	cases := []struct {

@@ -19,6 +19,25 @@ TypeScript types are in [`ts/src/model.ts`](../../ts/src/model.ts).
 | `title` | `string` | from `spec.info.title` |
 | `version` | `string` | from `spec.info.version` |
 | `servers` | `{ url }[]` | from `spec.servers`; URLs missing a scheme are prefixed `https://` |
+| `auth` | `false` | present only when the spec declares no security |
+| `security` | `{ scheme, type, in, name, prefix }` | the credential the client sends, with `alternatives` and `exchange` when they apply |
+
+### `info.security`
+
+A generated client sends one credential, so `scheme` names a single scheme.
+Each operation's `security` list counts, or the spec's own list when the
+operation has none, and an entry that needs several schemes together is
+skipped. The scheme is the first of:
+
+1. the scheme that every secured operation lists first;
+2. the first single-scheme entry in the spec's top-level `security`;
+3. the first scheme the spec declares, even one no operation applies.
+
+`alternatives` lists every other entry the operations accept, each one an
+array of the schemes sent together, so a pair such as `X-Auth-Email` with
+`X-Auth-Key` sits there beside a bearer token. `exchange` names an
+operation that trades a credential for an access token. Each case is a row
+in `ts/test/security.tsv`.
 
 ## `ModelEntity`
 

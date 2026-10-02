@@ -5,8 +5,11 @@ package apidef
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"reflect"
 	"regexp"
+	"sort"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -35,11 +38,16 @@ func Parse(kind string, source string, meta map[string]string) (map[string]any, 
 		kind, RelativizePath(meta["file"]))
 }
 
+// schemeOrderKey annotates a parsed definition with the declared order of
+// its security schemes, which its plain maps lose.
+const schemeOrderKey = "x-apidef-scheme-order"
+
 func parseOpenAPI(source string, meta map[string]string) (map[string]any, error) {
 	var parsed map[string]any
 
 	// Use tabnas/yaml to parse (handles both JSON and YAML)
 	result, err := yaml.Parse(source)
+	schemeOrder := declaredSchemeOrder(result)
 	// tabnas/yaml returns insertion-ordered *tabnas.OrderedMap nodes;
 	// apidef works on plain maps, so flatten them back.
 	result = tabnas.Plainify(result)
@@ -78,6 +86,11 @@ func parseOpenAPI(source string, meta map[string]string) (map[string]any, error)
 
 	annotateExamplesOrder(source, parsed)
 
+	delete(parsed, schemeOrderKey)
+	if 0 < len(schemeOrder) {
+		parsed[schemeOrderKey] = schemeOrder
+	}
+
 	if paths, ok := parsed["paths"].(map[string]any); ok {
 		keys := sortedKeys(paths)
 		parsed["paths"] = renameKeys(paths, keys, normalizePathKeys(keys))
@@ -95,6 +108,49 @@ func parseOpenAPI(source string, meta map[string]string) (map[string]any, error)
 	// Skip Decircular for now — addXRefsAndResolve uses identity tracking
 	// which prevents true circular references from being created.
 	return parsed, nil
+}
+
+// declaredSchemeOrder reads the scheme names from the ordered parse, in the
+// order the TypeScript's Object.keys gives them.
+func declaredSchemeOrder(root any) []string {
+	doc, _ := root.(*tabnas.OrderedMap)
+	if doc == nil {
+		return nil
+	}
+	var schemes any
+	if components, ok := doc.Vals["components"].(*tabnas.OrderedMap); ok {
+		schemes = components.Vals["securitySchemes"]
+	}
+	if schemes == nil {
+		schemes = doc.Vals["securityDefinitions"]
+	}
+	if ordered, ok := schemes.(*tabnas.OrderedMap); ok {
+		return jsKeyOrder(ordered.Keys)
+	}
+	return nil
+}
+
+// jsKeyOrder puts array index keys first, ascending, as JavaScript orders
+// an object's own keys; the rest keep their order.
+func jsKeyOrder(keys []string) []string {
+	index, rest := []string{}, []string{}
+	for _, key := range keys {
+		if isArrayIndex(key) {
+			index = append(index, key)
+		} else {
+			rest = append(rest, key)
+		}
+	}
+	sort.SliceStable(index, func(i, j int) bool {
+		return len(index[i]) < len(index[j]) ||
+			(len(index[i]) == len(index[j]) && index[i] < index[j])
+	})
+	return append(index, rest...)
+}
+
+func isArrayIndex(key string) bool {
+	n, err := strconv.ParseUint(key, 10, 32)
+	return err == nil && n < math.MaxUint32 && key == strconv.FormatUint(n, 10)
 }
 
 func annotateExamplesOrder(source string, parsed map[string]any) {

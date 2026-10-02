@@ -45,6 +45,7 @@ const node_assert_1 = __importDefault(require("node:assert"));
 const utility_1 = require("../dist/utility");
 const field_1 = require("../dist/transform/field");
 const resolved_1 = require("../dist/resolved");
+const top_1 = require("../dist/transform/top");
 const jostraca_1 = require("jostraca");
 const graphql01_1 = require("../dist/guide/graphql01");
 const heuristic01_1 = require("../dist/guide/heuristic01");
@@ -585,6 +586,25 @@ function loadTsv(name) {
             const secured = 'true' === row.secured;
             const expected = '' === row.expected ? null : JSON.parse(row.expected);
             node_assert_1.default.deepStrictEqual((0, utility_1.authExchangeOp)(op, secured), expected);
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-security', () => {
+    const rows = loadTsv('security');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, async () => {
+            const def = await (0, parse_1.parse)('OpenAPI', row.spec, { file: row.name });
+            node_assert_1.default.deepStrictEqual((0, top_1.resolveSecurity)(def), JSON.parse(row.expected));
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-auth-prefix', () => {
+    const rows = loadTsv('auth-prefix');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, () => {
+            node_assert_1.default.strictEqual((0, top_1.findAuthPrefix)(JSON.parse(row.text)), '' === row.expected ? null : row.expected);
         });
     }
 });

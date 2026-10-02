@@ -7,6 +7,8 @@ import {
   firstSentence, authExchangeOp, specSecuredByDefault, sortedEntries,
 } from '../utility'
 
+import { METHODS } from '../resolved'
+
 import type { TransformResult } from '../transform'
 
 import type {
@@ -250,28 +252,109 @@ function isHttpUrl(v: any): boolean {
 }
 
 
-function resolveSecurity(def: any): Record<string, string> | null {
-  const schemes: Record<string, any> =
-    def.components?.securitySchemes ?? def.securityDefinitions ?? {}
+// A client sends one credential, so the primary scheme comes from an entry
+// naming a single scheme: the one every secured operation lists first, else
+// the definition's first, else the first declared scheme. Every other entry
+// the operations accept is an alternative, its schemes sent together.
+function resolveSecurity(def: any): Record<string, any> | null {
+  const defined = def.components?.securitySchemes ?? def.securityDefinitions
+  const schemes: Record<string, any> = isObject(defined) ? defined : {}
 
-  let schemeName: string | undefined =
-    Array.isArray(def.security) && def.security[0] &&
-      'object' === typeof def.security[0] ?
-      Object.keys(def.security[0])[0] : undefined
+  const declared = (name: string) =>
+    Object.prototype.hasOwnProperty.call(schemes, name) && isObject(schemes[name])
 
-  if (null == schemeName || null == schemes[schemeName]) {
-    schemeName = Object.keys(schemes)[0]
-  }
+  const opsecurity = operationSecurity(def)
+  const firsts = new Set(opsecurity.map((reqs) => firstSingleScheme(reqs, declared)))
+  firsts.delete(undefined)
+
+  const schemeName: string | undefined =
+    (1 === firsts.size ? [...firsts][0] : undefined) ??
+    firstSingleScheme(def.security, declared) ??
+    Object.keys(schemes)[0]
 
   const scheme = null == schemeName ? null : schemes[schemeName]
-  if (null == scheme || 'object' !== typeof scheme) {
+  if (!isObject(scheme)) {
     return null
   }
 
+  const out: Record<string, any> = describeScheme(def, schemeName as string, scheme)
+
+  const alternatives = otherSchemeSets(
+    0 < opsecurity.length ? opsecurity : [def.security], schemeName as string, declared)
+  if (0 < alternatives.length) {
+    out.alternatives = alternatives.map((names) =>
+      names.map((name) => describeScheme(def, name, schemes[name])))
+  }
+
+  return out
+}
+
+
+function isObject(v: any): boolean {
+  return null != v && 'object' === typeof v && !Array.isArray(v)
+}
+
+
+// Each operation's security list: its own, else the definition's.
+function operationSecurity(def: any): any[][] {
+  const out: any[][] = []
+  for (const [, pathItem] of sortedEntries(isObject(def.paths) ? def.paths : {})) {
+    if (!isObject(pathItem)) continue
+    for (const method of METHODS) {
+      const op = pathItem[method]
+      if (!isObject(op)) continue
+      const reqs = Array.isArray(op.security) ? op.security : def.security
+      if (Array.isArray(reqs)) out.push(reqs)
+    }
+  }
+  return out
+}
+
+
+// Sorted, so a set of schemes compares and prints the same in both ports.
+function schemeSet(req: any): string[] | null {
+  return isObject(req) ? Object.keys(req).sort() : null
+}
+
+
+function firstSingleScheme(
+  reqs: any, declared: (name: string) => boolean): string | undefined {
+  if (!Array.isArray(reqs)) return undefined
+  for (const req of reqs) {
+    const names = schemeSet(req)
+    if (null != names && 1 === names.length && declared(names[0])) {
+      return names[0]
+    }
+  }
+  return undefined
+}
+
+
+function otherSchemeSets(
+  lists: any[], primary: string, declared: (name: string) => boolean): string[][] {
+  const seen = new Set([JSON.stringify([primary])])
+  const out: string[][] = []
+  for (const reqs of lists) {
+    if (!Array.isArray(reqs)) continue
+    for (const req of reqs) {
+      const names = schemeSet(req)
+      if (null == names || 0 === names.length || !names.every(declared)) continue
+      const key = JSON.stringify(names)
+      if (!seen.has(key)) {
+        seen.add(key)
+        out.push(names)
+      }
+    }
+  }
+  return out
+}
+
+
+function describeScheme(def: any, schemeName: string, scheme: any): Record<string, string> {
   const type = String(scheme.type ?? '').toLowerCase()
 
   const out: Record<string, string> = {
-    scheme: schemeName as string,
+    scheme: schemeName,
     type: scheme.type ?? '',
     in: scheme.in ?? 'header',
     name: scheme.name ?? 'Authorization',

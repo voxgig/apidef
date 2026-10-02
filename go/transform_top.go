@@ -3,6 +3,8 @@
 package apidef
 
 import (
+	"encoding/json"
+	"maps"
 	"regexp"
 	"strings"
 )
@@ -16,6 +18,7 @@ func TopTransform(ctx *ApiDefContext) (*TransformResult, error) {
 
 	info, _ := def["info"].(map[string]any)
 	if info != nil {
+		info = maps.Clone(info)
 		kit["info"] = info
 		info["description"] = ensureDescription(info)
 	}
@@ -48,7 +51,393 @@ func TopTransform(ctx *ApiDefContext) (*TransformResult, error) {
 
 	ensureServer(ctx, kit)
 
+	infoMap, _ := kit["info"].(map[string]any)
+	if true == def["graphql"] {
+		// A GraphQL schema declares no HTTP auth, so only the auth option sets it.
+		if auth := ctx.Opts.Auth; auth != nil {
+			if auth.Active != nil && !*auth.Active {
+				infoMap["auth"] = false
+			} else {
+				infoMap["security"] = map[string]any{
+					"scheme": optionOr(auth.Scheme, "apikey"),
+					"type":   optionOr(auth.Type, "apiKey"),
+					"in":     optionOr(auth.In, "header"),
+					"name":   optionOr(auth.Name, "Authorization"),
+					"prefix": optionOr(auth.Prefix, ""),
+				}
+			}
+		}
+	} else if !specDeclaresAuth(def) {
+		infoMap["auth"] = false
+	} else if security := resolveSecurity(def); security != nil {
+		if exchange := findAuthExchange(def); exchange != nil {
+			security["exchange"] = exchange
+		}
+		infoMap["security"] = security
+	}
+
 	return &TransformResult{OK: true, Msg: "top"}, nil
+}
+
+func optionOr(v *string, dflt string) string {
+	if v == nil {
+		return dflt
+	}
+	return *v
+}
+
+var operationMethods = []string{"get", "put", "post", "delete", "options", "head", "patch", "trace"}
+
+// resolveSecurity mirrors ts/src/transform/top.ts.
+func resolveSecurity(def map[string]any) map[string]any {
+	schemes := securitySchemes(def)
+	declared := func(name string) bool {
+		_, ok := schemes[name].(map[string]any)
+		return ok
+	}
+
+	opsecurity := operationSecurity(def)
+	firsts := map[string]bool{}
+	for _, reqs := range opsecurity {
+		if name, ok := firstSingleScheme(reqs, declared); ok {
+			firsts[name] = true
+		}
+	}
+
+	name, found := "", false
+	if 1 == len(firsts) {
+		for first := range firsts {
+			name, found = first, true
+		}
+	}
+	if !found {
+		name, found = firstSingleScheme(def["security"], declared)
+	}
+	if !found {
+		name, found = firstDeclared(def, schemes)
+	}
+
+	scheme, _ := schemes[name].(map[string]any)
+	if !found || scheme == nil {
+		return nil
+	}
+
+	out := describeScheme(def, name, scheme)
+
+	lists := opsecurity
+	if 0 == len(lists) {
+		if global, ok := def["security"].([]any); ok {
+			lists = [][]any{global}
+		}
+	}
+	alternatives := []any{}
+	for _, names := range otherSchemeSets(lists, name, declared) {
+		set := make([]any, len(names))
+		for i, other := range names {
+			set[i] = describeScheme(def, other, schemes[other].(map[string]any))
+		}
+		alternatives = append(alternatives, set)
+	}
+	if 0 < len(alternatives) {
+		out["alternatives"] = alternatives
+	}
+
+	return out
+}
+
+func securitySchemes(def map[string]any) map[string]any {
+	components, _ := def["components"].(map[string]any)
+	schemes := components["securitySchemes"]
+	if schemes == nil {
+		schemes = def["securityDefinitions"]
+	}
+	out, _ := schemes.(map[string]any)
+	return out
+}
+
+func operationSecurity(def map[string]any) [][]any {
+	out := [][]any{}
+	paths, _ := def["paths"].(map[string]any)
+	for _, path := range sortedKeys(paths) {
+		item, _ := paths[path].(map[string]any)
+		for _, method := range operationMethods {
+			op, _ := item[method].(map[string]any)
+			if op == nil {
+				continue
+			}
+			reqs, ok := op["security"].([]any)
+			if !ok {
+				reqs, ok = def["security"].([]any)
+			}
+			if ok {
+				out = append(out, reqs)
+			}
+		}
+	}
+	return out
+}
+
+func schemeSet(req any) []string {
+	m, _ := req.(map[string]any)
+	return sortedKeys(m)
+}
+
+func firstSingleScheme(reqs any, declared func(string) bool) (string, bool) {
+	list, _ := reqs.([]any)
+	for _, req := range list {
+		if names := schemeSet(req); 1 == len(names) && declared(names[0]) {
+			return names[0], true
+		}
+	}
+	return "", false
+}
+
+func otherSchemeSets(lists [][]any, primary string, declared func(string) bool) [][]string {
+	key := func(names []string) string {
+		b, _ := json.Marshal(names)
+		return string(b)
+	}
+	seen := map[string]bool{key([]string{primary}): true}
+	out := [][]string{}
+	for _, reqs := range lists {
+		for _, req := range reqs {
+			names := schemeSet(req)
+			if 0 == len(names) || !allDeclared(names, declared) || seen[key(names)] {
+				continue
+			}
+			seen[key(names)] = true
+			out = append(out, names)
+		}
+	}
+	return out
+}
+
+func allDeclared(names []string, declared func(string) bool) bool {
+	for _, name := range names {
+		if !declared(name) {
+			return false
+		}
+	}
+	return true
+}
+
+// firstDeclared is the TypeScript's Object.keys(schemes)[0], in the order
+// Parse recorded; a definition built some other way has none to keep.
+func firstDeclared(def map[string]any, schemes map[string]any) (string, bool) {
+	order, _ := def[schemeOrderKey].([]string)
+	if raw, ok := def[schemeOrderKey].([]any); ok {
+		for _, name := range raw {
+			if s, ok := name.(string); ok {
+				order = append(order, s)
+			}
+		}
+	}
+	for _, name := range order {
+		if _, ok := schemes[name]; ok {
+			return name, true
+		}
+	}
+	if keys := jsKeyOrder(sortedKeys(schemes)); 0 < len(keys) {
+		return keys[0], true
+	}
+	return "", false
+}
+
+func describeScheme(def map[string]any, name string, scheme map[string]any) map[string]any {
+	orDefault := func(v any, dflt string) any {
+		if v == nil {
+			return dflt
+		}
+		return v
+	}
+	lower := func(v any) string {
+		s, _ := v.(string)
+		return strings.ToLower(s)
+	}
+
+	out := map[string]any{
+		"scheme": name,
+		"type":   orDefault(scheme["type"], ""),
+		"in":     orDefault(scheme["in"], "header"),
+		"name":   orDefault(scheme["name"], "Authorization"),
+		"prefix": "",
+	}
+
+	switch lower(scheme["type"]) {
+	case "http":
+		if "basic" == lower(scheme["scheme"]) {
+			out["prefix"] = "Basic"
+		} else {
+			out["prefix"] = "Bearer"
+		}
+	case "basic":
+		out["prefix"] = "Basic"
+	case "oauth2", "openidconnect":
+		out["in"] = "header"
+		out["name"] = "Authorization"
+		out["prefix"] = "Bearer"
+	case "apikey":
+		if "header" == lower(out["in"]) && "authorization" == lower(out["name"]) {
+			prefix := findAuthPrefix(scheme["description"])
+			if "" == prefix {
+				info, _ := def["info"].(map[string]any)
+				prefix = findAuthPrefix(info["description"])
+			}
+			out["prefix"] = prefix
+		}
+	}
+
+	return out
+}
+
+// The TypeScript's \s, and the ASCII-only case folding of its i flag: Go's
+// own \s and (?i) both differ outside ASCII.
+const jsSpaceClass = `\t\n\v\f\r \x{a0}\x{1680}\x{2000}-\x{200a}\x{2028}\x{2029}\x{202f}\x{205f}\x{3000}\x{feff}`
+
+func foldASCII(word string) string {
+	var b strings.Builder
+	for _, c := range word {
+		if 'a' <= c && c <= 'z' {
+			b.WriteString("[" + strings.ToUpper(string(c)) + string(c) + "]")
+		} else {
+			b.WriteString(regexp.QuoteMeta(string(c)))
+		}
+	}
+	return b.String()
+}
+
+var authSchemeWordRE = `\b(` + foldASCII("bearer") + `|` + foldASCII("oauth") + `2?|` +
+	foldASCII("token") + `|` + foldASCII("basic") + `)\b`
+
+var authPrefixExplicitRE = regexp.MustCompile(
+	`Authorization:[ \t]*([A-Za-z][A-Za-z0-9._-]{0,14})[ \t]+` +
+		`(?:<[^>\n]+>|\{[^}\n]+\}|\$[A-Za-z_][A-Za-z0-9_]*|[Yy][Oo][Uu][Rr][A-Za-z0-9_-]*|[A-Za-z0-9._~+/=-]{8,})`)
+
+var authPrefixExampleRE = regexp.MustCompile(
+	`(?:` + foldASCII("example") + `|` + foldASCII("e.g.") + `)[:` + jsSpaceClass + `][^\n]{0,20}?` +
+		authSchemeWordRE + `[ \t]+(?:<[^>\n]+>|\{[^}\n]+\}|[A-Za-z0-9._~+/=-]{6,})`)
+
+var authPrefixNamedRE = regexp.MustCompile(
+	authSchemeWordRE + `[ \t]+(?:` + foldASCII("scheme") + `|` + foldASCII("authentication") +
+		`|` + foldASCII("auth") + `\b|` + foldASCII("credential") + `[Ss]?)`)
+
+// findAuthPrefix mirrors ts/src/transform/top.ts, answering "" for none.
+func findAuthPrefix(v any) string {
+	text, _ := v.(string)
+	if "" == text {
+		return ""
+	}
+	text = utf16Units(text)
+
+	if m := authPrefixExplicitRE.FindStringSubmatch(text); m != nil {
+		return m[1]
+	}
+	if m := authPrefixExampleRE.FindStringSubmatch(text); m != nil {
+		return canonAuthScheme(m[1])
+	}
+	if m := authPrefixNamedRE.FindStringSubmatch(text); m != nil {
+		return canonAuthScheme(m[1])
+	}
+	return ""
+}
+
+// utf16Units widens each supplementary character into a pair of units no
+// pattern matches, so a bounded repeat counts code units as the TypeScript does.
+func utf16Units(text string) string {
+	var b strings.Builder
+	for _, r := range text {
+		if 0xFFFF < r {
+			b.WriteString("")
+		} else {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+func canonAuthScheme(word string) string {
+	w := strings.ToLower(word)
+	switch {
+	case strings.HasPrefix(w, "oauth"):
+		return "OAuth"
+	case "bearer" == w:
+		return "Bearer"
+	case "token" == w:
+		return "Token"
+	case "basic" == w:
+		return "Basic"
+	}
+	return word
+}
+
+// specDeclaresAuth mirrors ts/src/transform/top.ts.
+func specDeclaresAuth(def map[string]any) bool {
+	nonEmpty := func(v any) bool {
+		switch x := v.(type) {
+		case map[string]any:
+			return 0 < len(x)
+		case []any:
+			return 0 < len(x)
+		}
+		return false
+	}
+
+	components, _ := def["components"].(map[string]any)
+	if nonEmpty(components["securitySchemes"]) || nonEmpty(def["securityDefinitions"]) {
+		return true
+	}
+
+	if security, ok := def["security"].([]any); ok && 0 < len(security) {
+		return true
+	}
+
+	paths, _ := def["paths"].(map[string]any)
+	for _, item := range paths {
+		ops, _ := item.(map[string]any)
+		for _, op := range ops {
+			opMap, _ := op.(map[string]any)
+			if security, ok := opMap["security"].([]any); ok && 0 < len(security) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// findAuthExchange mirrors ts/src/transform/top.ts.
+func findAuthExchange(def map[string]any) map[string]any {
+	if !specSecuredByDefault(def) {
+		return nil
+	}
+
+	paths, _ := def["paths"].(map[string]any)
+	for _, path := range sortedKeys(paths) {
+		item, _ := paths[path].(map[string]any)
+		for _, method := range sortedKeys(item) {
+			mdef, _ := item[method].(map[string]any)
+			if mdef == nil {
+				continue
+			}
+			op := maps.Clone(mdef)
+			op["method"] = strings.ToUpper(method)
+			found := authExchangeOp(op, true)
+			if found == nil {
+				continue
+			}
+			out := map[string]any{
+				"path":     strings.TrimLeft(path, "/"),
+				"method":   strings.ToUpper(method),
+				"response": found["response"],
+			}
+			if found["request"] != nil {
+				out["request"] = found["request"]
+			}
+			return out
+		}
+	}
+
+	return nil
 }
 
 // ensureServer mirrors ts/src/transform/top.ts: a definition that names no

@@ -4,6 +4,6 @@ declare function ensureDescription(info: any): string;
 declare function resolveSummary(def: any): string | undefined;
 declare function resolveWebsite(def: any, servers: any[]): string | undefined;
 declare function homepageFromServer(url: any): string | undefined;
-declare function resolveSecurity(def: any): Record<string, string> | null;
+declare function resolveSecurity(def: any): Record<string, any> | null;
 declare function findAuthPrefix(text: unknown): string | null;
 export { topTransform, resolveSecurity, resolveSummary, ensureDescription, resolveWebsite, homepageFromServer, findAuthPrefix, };
