@@ -8,4 +8,6 @@ type SharingRoute = {
     op: string;
 };
 declare function sharedRoutes(routes: SharingRoute[], records: string[]): string[];
-export { heuristic01, pathResource, sharedRoutes, };
+declare function isNameParam(param: string): boolean;
+declare function entityParamNames(paths: Record<string, Record<string, string>>): Record<string, Record<string, string>>;
+export { heuristic01, pathResource, sharedRoutes, entityParamNames, isNameParam, };

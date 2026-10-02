@@ -822,6 +822,53 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
             user: ['GET /user'],
         });
     });
+    // One name for a parameter across an entity's operations: a parent key
+    // keeps the specification's name, a name is never called `<parent>_id`, and
+    // a path that makes a parameter the entity's `id` keeps it. go/apidef_test.go
+    // reads the base guide this writes.
+    (0, node_test_1.test)('guide-param-names', async () => {
+        const folder = __dirname + '/../test/param-names';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'param-names', def: 'param-names-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: true,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        const entities = bres.apimodel.main.kit.entity;
+        const selectors = Object.keys(entities).sort().flatMap((name) => Object.entries(entities[name].op).flatMap(([opname, op]) => op.points.map((pt) => name + '.' + opname + ' ' + pt.m + ' ' + pt.o +
+            ' [' + pt.q.exist.join(',') + ']')))
+            .sort();
+        const C = '/orgs/{organization_name}/projects/{project_name}/containers';
+        node_assert_1.default.deepStrictEqual(selectors, [
+            'container.create POST ' + C + ' [organization_name,project_name]',
+            'container.create POST ' + C + '/{container_name}/start' +
+                ' [container_name,organization_name,project_name]',
+            'container.list GET ' + C + ' [organization_name,project_name]',
+            'container.load GET ' + C + '/{container_name} [id,organization_name,project_name]',
+            'container.remove DELETE ' + C + '/{container_name} [id,organization_name,project_name]',
+            'container.update PATCH ' + C + '/{container_name} [id,organization_name,project_name]',
+            'instance.list GET ' + C + '/{container_name}/instances' +
+                ' [container_name,organization_name,project_name]',
+            'instance.load GET ' + C + '/{container_name}/instances/{instance_id}' +
+                ' [container_name,id,organization_name,project_name]',
+            'instance.update PATCH ' + C + '/{container_name}/instances/{instance_id}' +
+                ' [container_name,id,organization_name,project_name]',
+            'member.list GET /v1/teams/{team_slug}/members [team_slug]',
+            'member.load GET /v1/teams/{team_slug}/members/{username} [id,team_slug]',
+            'member.remove DELETE /v1/teams/{team_slug}/members/{username} [id,team_slug]',
+            'repo.load GET /v1/repos/{owner} [id]',
+            'repo.load GET /v1/repos/{owner}/{name} [name,owner]',
+        ]);
+    });
     (0, node_test_1.test)('field-required-solar', async () => {
         const outprefix = 'solar-1.0.0-openapi-3.0.0-';
         const folder = __dirname + '/../test/solar';

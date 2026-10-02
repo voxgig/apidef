@@ -279,6 +279,26 @@ parameter that selects a scope rather than the entity, as `{owner}` does in a
 renamed to `id` too, and [the guide](../reference/guide.md#correcting-the-guide)
 is where to correct it.
 
+A parameter before another segment keys a parent, such as `{project_name}`
+in SaladCloud's `/projects/{project_name}/containers/{container_group_name}`.
+Its place in the path decides its name, and one parameter sits in different
+places in an entity's paths: second from last in the container list, deeper
+in a container's load. Decided path by path, the list kept `project_name` and
+the load renamed it `project_id`, so a caller passed one value under two
+names. The guide therefore gives each parameter of an entity one name, and
+where its paths disagree that name is the specification's own, in snake
+case. A name is never renamed to an identifier either, because the value is
+a name: `project_id` described a project's name as its identifier.
+
+The entity's own key is left as each path names it. A list keyed by its
+parent can look like an item path: Cloudsmith's `/repos/{owner}/` lists an
+owner's repositories, and the trailing-key rule makes `{owner}` the
+repository's `id` there. Spreading that `id` to the entity's other paths
+would name the owner as the identifier of every repository. So an action
+can still name the entity's key apart from its load, as SaladCloud's
+container start does with `container_group_name`. The
+[guide reference](../reference/guide.md#parameter-renames) states the rules.
+
 ## Every decision is traceable
 
 Heuristics are, by nature, guesses — so the guide never throws a decision away

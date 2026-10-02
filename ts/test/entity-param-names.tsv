@@ -1,0 +1,9 @@
+name	paths	expected
+parent-key-keeps-its-name	{"/orgs/{org}/teams/{team_slug}/members":{"org":"org_id"},"/orgs/{org}/teams/{team_slug}/members/{username}":{"org":"org_id","team_slug":"team_id","username":"id"}}	{"/orgs/{org}/teams/{team_slug}/members":{"org":"org_id"},"/orgs/{org}/teams/{team_slug}/members/{username}":{"org":"org_id","username":"id"}}
+snake-cased-name	{"/v1/projects/{projectKey}/items":{"projectKey":"project_key"},"/v1/projects/{projectKey}/items/{itemId}":{"itemId":"id","projectKey":"project_id"}}	{"/v1/projects/{projectKey}/items":{"projectKey":"project_key"},"/v1/projects/{projectKey}/items/{itemId}":{"itemId":"id","projectKey":"project_key"}}
+every-path-of-a-place	{"/v1/a/{slug}/b":{},"/v1/a/{slug}/b/{bid}":{"bid":"id","slug":"a_id"},"/v1/a/{slug}/b/{bid}/c/{cid}":{"bid":"b_id","cid":"id","slug":"a_id"}}	{"/v1/a/{slug}/b":{},"/v1/a/{slug}/b/{bid}":{"bid":"id"},"/v1/a/{slug}/b/{bid}/c/{cid}":{"bid":"b_id","cid":"id"}}
+agreed	{"/v1/a/{slug}/b":{"slug":"a_id"},"/v1/a/{slug}/b/{bid}":{"bid":"id","slug":"a_id"}}	{"/v1/a/{slug}/b":{"slug":"a_id"},"/v1/a/{slug}/b/{bid}":{"bid":"id","slug":"a_id"}}
+own-id-left-alone	{"/repos/{owner}/":{"owner":"id"},"/repos/{owner}/{identifier}/":{}}	{"/repos/{owner}/":{"owner":"id"},"/repos/{owner}/{identifier}/":{}}
+action-key-left-alone	{"/v1/containers/{name}":{"name":"id"},"/v1/containers/{name}/start":{}}	{"/v1/containers/{name}":{"name":"id"},"/v1/containers/{name}/start":{}}
+different-places	{"/v1/a/{x}/b":{"x":"a_id"},"/v2/a/{x}/b":{}}	{"/v1/a/{x}/b":{"x":"a_id"},"/v2/a/{x}/b":{}}
+name-taken-on-a-path	{"/v1/a/{x}/b/{y}/c":{},"/v1/a/{x}/b/{y}/c/{z}":{"y":"b_id","z":"y"}}	{"/v1/a/{x}/b/{y}/c":{},"/v1/a/{x}/b/{y}/c/{z}":{"y":"b_id","z":"y"}}

@@ -102,6 +102,34 @@ counts in both builds. In the `alias-chain` row, the paths `/a`, `/b`, and
 `$ref` to `C`. The counts are 1, 2, and 2; replacing each link in turn with
 the schema it names would give 1, 3, and 5.
 
+### Parameter renames
+
+`rename.param` maps a path parameter's name in the specification to its name
+in the model. The guide decides each path's renames from where the parameter
+sits in the path, then gives each parameter of an entity one name across the
+entity's paths:
+
+- A parameter that keys the entity itself, such as the trailing parameter
+  under the entity's own segment, is renamed to `id`.
+- A parameter that keys a parent may be renamed after the parent's segment,
+  as `<parent>_id`. A parameter whose own name, in snake case, is `name` or
+  ends in `_name`, such as `project_name` or `projectName`, is never renamed
+  this way.
+- A parameter at the same place in several paths of one entity, with the same
+  segments before it, takes one name in all of them when they disagree: its
+  own name, in snake case. When one of those paths renames it to `id`, each
+  path keeps the name it gave. A path also keeps its name for the parameter
+  where the agreed name is another parameter's name on that path.
+
+`isNameParam` and `entityParamNames` in
+[`ts/src/guide/heuristic01.ts`](../../ts/src/guide/heuristic01.ts) are the
+last two rules. The rows of [`ts/test/name-param.tsv`](../../ts/test/name-param.tsv)
+and [`ts/test/entity-param-names.tsv`](../../ts/test/entity-param-names.tsv)
+pin them in both builds, and the `guide-param-names` tests in
+[`ts/test/apidef.test.ts`](../../ts/test/apidef.test.ts) and
+[`go/apidef_test.go`](../../go/apidef_test.go) pin the outcome for the whole
+spec on [`ts/test/def/param-names-def.json`](../../ts/test/def/param-names-def.json).
+
 ### Response envelopes
 
 An envelope is a component schema that wraps one record. When a `200` or

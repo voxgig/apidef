@@ -809,6 +809,42 @@ func TestSharedRoutes(t *testing.T) {
 	}
 }
 
+func TestEntityParamNames(t *testing.T) {
+	rows := loadTsv(t, "entity-param-names")
+	if len(rows) == 0 {
+		t.Fatal("no entity-param-names rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var paths, want map[string]map[string]string
+			if err := json.Unmarshal([]byte(row["paths"]), &paths); err != nil {
+				t.Fatalf("bad paths %q: %v", row["paths"], err)
+			}
+			if err := json.Unmarshal([]byte(row["expected"]), &want); err != nil {
+				t.Fatalf("bad expected %q: %v", row["expected"], err)
+			}
+			if got := entityParamNames(paths); !reflect.DeepEqual(got, want) {
+				t.Errorf("entityParamNames = %v, want %v", got, want)
+			}
+		})
+	}
+}
+
+func TestNameParam(t *testing.T) {
+	rows := loadTsv(t, "name-param")
+	if len(rows) == 0 {
+		t.Fatal("no name-param rows loaded")
+	}
+	for _, row := range rows {
+		param, want := row["param"], row["expected"] == "true"
+		t.Run(param, func(t *testing.T) {
+			if got := isNameParam(param); got != want {
+				t.Errorf("isNameParam(%q) = %v, want %v", param, got, want)
+			}
+		})
+	}
+}
+
 func TestClosedBodyTransform(t *testing.T) {
 	rows := loadTsv(t, "closed-body-transform")
 	if len(rows) == 0 {
