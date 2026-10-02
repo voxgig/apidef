@@ -290,6 +290,16 @@ An action borrows an op slot rather than owning one: `PUT .../merge` sits in
 path is promoted to `update` and the action points ride along, so a plain
 `update()` reaches the real update and `$action` selects the verb.
 
+Only a literal names an action. An element that holds a placeholder, such as
+`{threadId}.json` in `/{board}/thread/{threadId}.json`, carries a parameter,
+never a verb. A custom method writes its verb after a colon in the last
+element, as `/schedules:count` or `/schedules/{scheduleId}:cancel`, and reads
+as that verb written as a trailing element: `count` and `cancel` become actions
+on `schedule`, and `{scheduleId}` is renamed as on
+`/schedules/{scheduleId}/cancel`. The entity such a path joins is decided from
+the path as written, so a count whose path no tag or schema ties to
+`schedule` stays an entity of its own, as `/messages/count` would.
+
 ## Parameter renames
 
 A path parameter named after its entity — `{planet_id}` on the `planet`

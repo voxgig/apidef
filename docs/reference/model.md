@@ -119,7 +119,7 @@ list. Required attributes use one character; optional metadata uses two.
 | `k` | `string` | transport kind; defaults to `http`, or `graphql` |
 | `m` | `string` | HTTP method |
 | `o` | `string` | source path or GraphQL root field |
-| `s` | `PathSegment[]` | resolved path: `{ lit }` for a literal element, `{ var }` naming one of `g.params`; renames are already applied |
+| `s` | `PathSegment[]` | resolved path: `{ var }` for an element that is one placeholder, naming one of `g.params`, and `{ lit }` for any other element, where a placeholder beside other text takes its argument's `n` (`{thread_id}.json`); renames are already applied |
 | `r` | `{ param, query, header, cookie }` | argument renames, keyed by original name |
 | `g` | `{ params, query, header, cookie }` | argument lists using `%point-args` |
 | `q` | `{ exist: string[], $action? }` | how a call selects this point: its path parameters and required arguments, and its action |
@@ -149,6 +149,12 @@ a warning. A path placeholder that no declared parameter fills still needs a
 value, so it becomes a required string `param` under its own name, renamed as
 the path's other placeholders are, again with a warning. A placeholder that a
 declared parameter fills under its renamed name is left alone.
+
+A parameter declared with no `in` names no location. One whose name is a
+placeholder of the path, written exactly as the placeholder spells it, is that
+path parameter: it is required, and it takes the name its placeholder takes in
+`s`. Any other is a `query` argument. Either way a warning names the
+parameter, so the definition can be corrected.
 
 ### `ModelBody`
 

@@ -48,6 +48,8 @@ const resolved_1 = require("../dist/resolved");
 const select_1 = require("../dist/transform/select");
 const body_1 = require("../dist/transform/body");
 const aontu_1 = require("aontu");
+const args_1 = require("../dist/transform/args");
+const entity_1 = require("../dist/transform/entity");
 const top_1 = require("../dist/transform/top");
 const jostraca_1 = require("jostraca");
 const graphql01_1 = require("../dist/guide/graphql01");
@@ -628,6 +630,52 @@ function loadTsv(name) {
     for (const row of rows) {
         (0, node_test_1.test)(`isNameParam("${row.param}") => ${row.expected}`, () => {
             node_assert_1.default.strictEqual((0, heuristic01_1.isNameParam)(row.param), 'true' === row.expected);
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-verb-parts', () => {
+    const rows = loadTsv('verb-parts');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(`verbParts(${row.name})`, () => {
+            node_assert_1.default.deepStrictEqual((0, heuristic01_1.verbParts)(row.path.split('/').filter((p) => '' !== p)), JSON.parse(row.parts));
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-path-segments', () => {
+    const rows = loadTsv('path-segments');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(`resolvePathList(${row.name})`, () => {
+            const paths = (0, entity_1.resolvePathList)({
+                path: { [row.path]: { rename: { param: JSON.parse(row.rename) } } },
+            }, { paths: {} });
+            node_assert_1.default.deepStrictEqual(paths[0].segments, JSON.parse(row.segments));
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-resolve-args', () => {
+    const rows = loadTsv('resolve-args');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, async () => {
+            const point = {
+                o: row.path, m: 'GET', r: { param: JSON.parse(row.rename) },
+                g: {}, q: { exist: [] }, t: {},
+            };
+            const warnings = [];
+            await (0, args_1.argsTransform)({
+                apimodel: { main: { kit: { entity: { widget: {
+                                    name: 'widget', op: { load: { name: 'load', points: [point] } },
+                                } } } } },
+                def: { paths: { [row.path]: { get: { parameters: JSON.parse(row.parameters) } } } },
+                warn: (warning) => warnings.push(warning),
+            });
+            const args = (kind) => (point.g[kind] ?? [])
+                .map((arg) => ({ n: arg.n, or: arg.or, k: arg.k, r: arg.r }));
+            node_assert_1.default.deepStrictEqual(args('params'), JSON.parse(row.params));
+            node_assert_1.default.deepStrictEqual(args('query'), JSON.parse(row.query));
+            node_assert_1.default.deepStrictEqual(warnings.map((warning) => warning.note), JSON.parse(row.warnings));
         });
     }
 });

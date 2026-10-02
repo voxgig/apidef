@@ -8,3 +8,5 @@ action-key-left-alone	{"/v1/containers/{name}":{"name":"id"},"/v1/containers/{na
 different-places	{"/v1/a/{x}/b":{"x":"a_id"},"/v2/a/{x}/b":{}}	{"/v1/a/{x}/b":{"x":"a_id"},"/v2/a/{x}/b":{}}
 name-taken-on-a-path	{"/v1/a/{x}/b/{y}/c":{},"/v1/a/{x}/b/{y}/c/{z}":{"y":"b_id","z":"y"}}	{"/v1/a/{x}/b/{y}/c":{},"/v1/a/{x}/b/{y}/c/{z}":{"y":"b_id","z":"y"}}
 different-placeholders-stay-apart	{"/projects/{slug}/items":{},"/projects/{project_id}/items/{itemId}":{"itemId":"id"}}	{"/projects/{slug}/items":{},"/projects/{project_id}/items/{itemId}":{"itemId":"id"}}
+custom-method-shares-a-place	{"/v1/projects/{projectKey}/items":{"projectKey":"project_key"},"/v1/projects/{projectKey}:archive":{"projectKey":"project_id"}}	{"/v1/projects/{projectKey}/items":{"projectKey":"project_key"},"/v1/projects/{projectKey}:archive":{"projectKey":"project_key"}}
+custom-method-key-left-alone	{"/v1/containers/{name}":{"name":"id"},"/v1/containers/{name}:start":{}}	{"/v1/containers/{name}":{"name":"id"},"/v1/containers/{name}:start":{}}

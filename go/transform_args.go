@@ -90,6 +90,12 @@ func resolveArgs(
 		mtarget["g"] = args
 	}
 
+	var placeholders []string
+	for _, m := range pathParamRE.FindAllStringSubmatch(safeStr(mtarget["o"]), -1) {
+		placeholders = append(placeholders, m[1])
+	}
+	paramRename, _ := rename["param"].(map[string]any)
+
 	for _, argdef := range argdefs {
 		argName, _ := argdef["name"].(string)
 		argIn, _ := argdef["in"].(string)
@@ -123,9 +129,39 @@ func resolveArgs(
 		if kind == "" {
 			kind = "query"
 		}
+		placed := false
+		if argIn == "" {
+			for _, p := range placeholders {
+				if p == argName {
+					placed = true
+					break
+				}
+			}
+			note := fmt.Sprintf("Parameter %s on entity=%s op=%s path=%s has no `in`",
+				argName, entname, opname, safeStr(mtarget["o"]))
+			if placed {
+				kind = "param"
+				note += fmt.Sprintf("; it names the path placeholder {%s}, so it is taken as"+
+					" a path parameter.", argName)
+			} else {
+				kind = "query"
+				note += ", so it is taken as a query parameter."
+			}
+			if ctx != nil && ctx.Warn != nil {
+				ctx.Warn.Warn(map[string]any{
+					"note":   note + " A parameter needs an `in`.",
+					"entity": entname,
+					"path":   mtarget["o"],
+					"op":     opname,
+					"param":  argName,
+				})
+			}
+		}
 
 		name := orig
-		if rename != nil {
+		if placed {
+			name = ParamName(argName, paramRename)
+		} else if rename != nil {
 			if kindRename, ok := rename[kind].(map[string]any); ok {
 				if rn, ok := kindRename[specName].(string); ok && "" != rn {
 					name = rn
@@ -154,7 +190,7 @@ func resolveArgs(
 			"or": argName,
 			"t":  fieldType,
 			"k":  kind,
-			"r":  toBool(argdef["required"]),
+			"r":  placed || toBool(argdef["required"]),
 			"a":  true,
 		}
 
@@ -185,12 +221,11 @@ func resolveArgs(
 	// Mirrors ts/src/transform/args.ts: a placeholder the definition declares
 	// no parameter for takes a required string argument, with a warning.
 	if safeStr(mtarget["k"]) != "graphql" {
-		canon := func(wire string) string { return Depluralize(Snakify(NormalizeFieldName(wire))) }
 		params, _ := args["params"].([]any)
 		declared := map[string]bool{}
 		for _, a := range params {
 			am, _ := a.(map[string]any)
-			declared[canon(safeStr(am["or"]))] = true
+			declared[CanonizeParam(safeStr(am["or"]))] = true
 		}
 		added := false
 		named := func(name string) bool {
@@ -201,18 +236,9 @@ func resolveArgs(
 			}
 			return false
 		}
-		for _, m := range pathParamRE.FindAllStringSubmatch(safeStr(mtarget["o"]), -1) {
-			wire := m[1]
-			orig := canon(wire)
-			name := orig
-			if kindRename, ok := rename["param"].(map[string]any); ok {
-				for _, key := range []string{wire, NormalizeFieldName(wire), orig} {
-					if rn, ok := kindRename[key].(string); ok && rn != "" {
-						name = rn
-						break
-					}
-				}
-			}
+		for _, wire := range placeholders {
+			orig := CanonizeParam(wire)
+			name := ParamName(wire, paramRename)
 			// A declared parameter the placeholder is renamed to already fills it.
 			if orig == "" || declared[orig] || named(name) {
 				continue

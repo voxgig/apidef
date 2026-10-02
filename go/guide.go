@@ -1359,6 +1359,7 @@ func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any)
 	whyParam := whyRenameMap["why_param"].(map[string]any)
 
 	parts, _ := pathdescEntry["parts"].([]string)
+	parts = verbParts(parts)
 
 	applySnakeCaseRename := func() {
 		for _, part := range parts {
@@ -1532,6 +1533,7 @@ func findActions(data map[string]any, mdesc map[string]any) {
 	pathmapEntry := work["pathmap"].(map[string]any)
 	pathEntry, _ := pathmapEntry[pathStr].(map[string]any)
 	parts, _ := pathEntry["parts"].([]string)
+	parts = verbParts(parts)
 
 	plen := len(parts)
 
@@ -1579,25 +1581,25 @@ func findActions(data map[string]any, mdesc map[string]any) {
 			action = map[string]any{}
 			pathdesc["action"] = action
 		}
-		if action[lastPartCanon] == nil {
+		if action[lastPartCanon] == nil && isVerb(lastPart) {
 			action[lastPartCanon] = map[string]any{
 				"why_action": []string{"ent", safeStr(entdesc["name"]), "verb-on-parent", lastPart, methodName},
 			}
 		}
 	} else if matchesAt(secondLastPartCanon) {
 		// /api/foo/bar where foo is the entity and bar is the action, no id param
-		if !isParam(lastPart) {
+		if isVerb(lastPart) {
 			updateAction(methodName, lastPart, lastPartCanon, entdesc, pathdesc, "no-param")
 		}
 	} else if matchesAt(thirdLastPartCanon) {
 		// /api/foo/{param}/action
-		if isParam(secondLastPart) && !isParam(lastPart) {
+		if isParam(secondLastPart) && isVerb(lastPart) {
 			updateAction(methodName, lastPart, lastPartCanon, entdesc, pathdesc,
 				"ent-param-2nd-last")
 		}
 	} else if matchesAt(fourthLastPartCanon) {
 		// /api/foo/{param}/action/subaction
-		if isParam(thirdLastPart) && !isParam(secondLastPart) && !isParam(lastPart) {
+		if isParam(thirdLastPart) && isVerb(secondLastPart) && isVerb(lastPart) {
 			oldActionName := secondLastPart + "/" + lastPart
 			actionName := secondLastPartCanon + "_" + lastPartCanon
 			updateAction(methodName, oldActionName, actionName, entdesc, pathdesc,
@@ -3011,6 +3013,26 @@ func isNameParam(param string) bool {
 
 var nameParamRE = regexp.MustCompile(`(^|_)name$`)
 
+// A segment holding a placeholder, whole or beside other text, names no verb.
+func isVerb(part string) bool {
+	return !strings.Contains(part, "{")
+}
+
+var customMethodRE = regexp.MustCompile(`^(.+):([A-Za-z][\w-]*)$`)
+
+// A custom method (`/schedules:count`, `/users/{id}:activate`) reads as a
+// trailing verb segment after what it acts on.
+func verbParts(parts []string) []string {
+	if len(parts) == 0 {
+		return parts
+	}
+	m := customMethodRE.FindStringSubmatch(parts[len(parts)-1])
+	if m == nil {
+		return parts
+	}
+	return append(append([]string{}, parts[:len(parts)-1]...), m[1], m[2])
+}
+
 // nameEntityParams mirrors ts/src/guide/heuristic01.ts.
 func nameEntityParams(entity map[string]any) {
 	paths, _ := entity["path"].(map[string]any)
@@ -3070,7 +3092,7 @@ func entityParamNames(paths map[string]map[string]string) map[string]map[string]
 			renames[name] = target
 		}
 		out[pathStr] = renames
-		parts := splitAndFilter(pathStr, "/")
+		parts := verbParts(splitAndFilter(pathStr, "/"))
 		for partI, part := range parts {
 			if isParam(part) {
 				place := strings.Join(parts[:partI+1], "/")

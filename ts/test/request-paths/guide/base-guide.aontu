@@ -1,0 +1,94 @@
+# Generated from the API definition and overwritten on every build: do not
+# edit this file. Put customizations in the guide entry file, which includes
+# this one and overrides its defaults:
+#   guide.aontu
+
+guide: {
+  metrics: count: entity: 7
+  metrics: count: path: 15
+  metrics: count: method: 18
+
+  entity: board: {
+    path: "/boards/{boardId}": {
+      rename: param: "boardId": *"id"
+      op: load: method: *GET
+    }
+    path: "/boards/{boardId}/{fileName}.json": {
+      rename: param: "boardId": *"id"
+      op: update: method: *PUT
+    }
+  }
+
+  entity: message: {
+    path: "/messages": {
+      op: list: method: *GET
+    }
+    path: "/messages/count": {
+      action: "count": {}
+      op: load: method: *GET
+    }
+    path: "/messages/{messageId}": {
+      rename: param: "messageId": *"id"
+      op: load: method: *GET
+    }
+    path: "/messages/{messageId}/cancel": {
+      action: "cancel": {}
+      rename: param: "messageId": *"id"
+      op: create: method: *POST
+    }
+  }
+
+  entity: permission: {
+    path: "/contacts/groups/{groupId}/permissions": {
+      rename: param: "groupId": *"group_id"
+      op: list: method: *GET
+    }
+    path: "/contacts/groups/{groupId}/permissions/{username}": {
+      rename: param: "groupId": *"group_id"
+      rename: param: "username": *"id"
+      op: load: method: *GET
+      op: remove: method: *DELETE
+      op: update: method: *PUT
+    }
+  }
+
+  entity: schedule: {
+    path: "/schedules": {
+      op: list: method: *GET
+      op: remove: method: *DELETE
+    }
+    path: "/schedules/{scheduleId}": {
+      rename: param: "scheduleId": *"id"
+      op: load: method: *GET
+    }
+    path: "/schedules/{scheduleId}:cancel": {
+      action: "cancel": {}
+      rename: param: "scheduleId": *"id"
+      op: create: method: *POST
+    }
+    path: "/schedules:count": {
+      action: "count": {}
+      op: load: method: *GET
+    }
+  }
+
+  entity: state: {
+    path: "/states/{stateAbbreviation}.json": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: thread: {
+    path: "/{board}/thread/{threadId}.json": {
+      op: list: method: *GET
+      op: list: transform: res: *("`body.posts`")|top
+    }
+  }
+
+  entity: world: {
+    path: "/image/world/{worldTileName}{tileX}-{tileY}-0.png": {
+      op: load: method: *GET
+    }
+  }
+
+}

@@ -131,6 +131,11 @@ entity's paths:
   `{project_id}`, are different parameters and keep their own names. One
   route can take a slug where another takes a numeric identifier, so one name
   for both would send the wrong value to one of them.
+- A placeholder that shares its path element with other text, such as
+  `{threadId}` in `{threadId}.json`, leaves the element a literal. It takes the
+  name a rename gives it, or else its own name in snake case (`thread_id`),
+  and the model spells it with that name inside the literal, where an SDK
+  fills it.
 
 `isNameParam` and `entityParamNames` in
 [`ts/src/guide/heuristic01.ts`](../../ts/src/guide/heuristic01.ts) are the
@@ -510,6 +515,13 @@ complete one.
 An action needs a CRUD op beside it on the same path: the op names the slot
 (`load`, `list`, `create`, `update`, `remove`, `patch`) and the action names
 the point within it. An `op` key outside those six is dropped with a warning
-rather than resolved. See
+rather than resolved.
+
+A custom method, a path whose last element ends in `:<verb>` such as
+`/schedules:count` or `/schedules/{scheduleId}:cancel`, reads as its verb
+written as a trailing element: the heuristic emits `action: count: {}` and
+renames `scheduleId` to `id` exactly as it does for `/schedules/count` and
+`/schedules/{scheduleId}/cancel`. The point keeps the path as written, so the
+request still goes to `/schedules:count`. See
 [How path classification works](../explanation/classification-heuristics.md)
 for what the heuristic does on its own.

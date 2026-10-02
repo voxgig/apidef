@@ -3,6 +3,7 @@
 package apidef
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -1072,6 +1073,128 @@ func TestGuideItemRecord(t *testing.T) {
 	}
 }
 
+// Mirrors the TS `guide-request-paths` case: the same points and warnings, and
+// the base guide that case writes to ts/test/request-paths/guide/.
+func TestGuideRequestPaths(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, Strategy: "heuristic01"}).Generate(map[string]any{
+		"model": map[string]any{"name": "request-paths", "def": "request-paths-def.json"},
+		"build": map[string]any{"spec": map[string]any{"base": "../ts/test/request-paths"}},
+		"ctrl": map[string]any{"step": map[string]any{
+			"parse": true, "guide": true, "transformers": true,
+			"builders": false, "generate": false,
+		}},
+	})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v res=%+v", err, res)
+	}
+
+	want, err := os.ReadFile("../ts/test/request-paths/guide/base-guide.aontu")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(filepath.Join(folder, "guide", "base-guide.aontu"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != string(want) {
+		t.Errorf("base guide differs from the TypeScript one:\n%s", string(got))
+	}
+
+	type pointView struct {
+		M string `json:"m"`
+		O string `json:"o"`
+		S []struct {
+			Lit string  `json:"lit"`
+			Var *string `json:"var"`
+		} `json:"s"`
+		G map[string][]struct {
+			N  string `json:"n"`
+			Or string `json:"or"`
+		} `json:"g"`
+		Q struct {
+			Exist  []string `json:"exist"`
+			Action string   `json:"$action"`
+		} `json:"q"`
+	}
+	main, _ := res.ApiModel["main"].(map[string]any)
+	kit, _ := main[KIT].(map[string]any)
+	entities, _ := kit["entity"].(map[string]any)
+	points := []string{}
+	for _, ename := range sortedKeys(entities) {
+		ent, _ := entities[ename].(map[string]any)
+		ops, _ := ent["op"].(map[string]any)
+		for _, opname := range sortedKeys(ops) {
+			mop, _ := ops[opname].(map[string]any)
+			list, _ := mop["points"].([]any)
+			for _, pt := range list {
+				var view pointView
+				if err := json.Unmarshal([]byte(asJSON(pt)), &view); err != nil {
+					t.Fatal(err)
+				}
+				segs := []string{}
+				for _, s := range view.S {
+					if s.Var != nil {
+						segs = append(segs, "<"+*s.Var+">")
+					} else {
+						segs = append(segs, s.Lit)
+					}
+				}
+				args := func(kind string) string {
+					out := []string{}
+					for _, arg := range view.G[kind] {
+						out = append(out, arg.N+":"+arg.Or)
+					}
+					return strings.Join(out, ",")
+				}
+				points = append(points, ename+"."+opname+" "+view.M+" "+view.O+
+					" s="+strings.Join(segs, "/")+" params="+args("params")+" query="+args("query")+
+					" exist="+strings.Join(view.Q.Exist, ",")+" action="+view.Q.Action)
+			}
+		}
+	}
+	if got, want := strings.Join(points, "\n"), strings.Join(requestPathsPoints, "\n"); got != want {
+		t.Errorf("points\ngot\n%s\nwant\n%s", got, want)
+	}
+
+	notes := []string{}
+	for _, w := range res.Ctx.Warn.History() {
+		note, _ := w["note"].(string)
+		notes = append(notes, note)
+	}
+	if got, want := strings.Join(notes, "\n"), strings.Join(requestPathsWarnings, "\n"); got != want {
+		t.Errorf("warnings\ngot\n%s\nwant\n%s", got, want)
+	}
+}
+
+var requestPathsPoints = []string{
+	"board.load GET /boards/{boardId} s=boards/<id> params=id:boardId query= exist=id action=",
+	"board.update PUT /boards/{boardId}/{fileName}.json s=boards/<id>/{file_name}.json params=file_name:fileName,id:boardId query= exist=file_name,id action=",
+	"message.create POST /messages/{messageId}/cancel s=messages/<id>/cancel params=id:messageId query= exist=id action=cancel",
+	"message.list GET /messages s=messages params= query= exist= action=",
+	"message.load GET /messages/{messageId} s=messages/<id> params=id:messageId query= exist=id action=",
+	"message.load GET /messages/count s=messages/count params= query= exist= action=count",
+	"permission.list GET /contacts/groups/{groupId}/permissions s=contacts/groups/<group_id>/permissions params=group_id:groupId query= exist=group_id action=",
+	"permission.load GET /contacts/groups/{groupId}/permissions/{username} s=contacts/groups/<group_id>/permissions/<id> params=group_id:groupId,id:username query=verbose:verbose exist=group_id,id action=",
+	"permission.remove DELETE /contacts/groups/{groupId}/permissions/{username} s=contacts/groups/<group_id>/permissions/<id> params=group_id:groupId,id:username query= exist=group_id,id action=",
+	"permission.update PUT /contacts/groups/{groupId}/permissions/{username} s=contacts/groups/<group_id>/permissions/<id> params=group_id:groupId,id:username query= exist=group_id,id action=",
+	"schedule.create POST /schedules/{scheduleId}:cancel s=schedules/{id}:cancel params=id:scheduleId query= exist=id action=cancel",
+	"schedule.list GET /schedules s=schedules params= query= exist= action=",
+	"schedule.load GET /schedules/{scheduleId} s=schedules/<id> params=id:scheduleId query= exist=id action=",
+	"schedule.load GET /schedules:count s=schedules:count params= query= exist= action=count",
+	"schedule.remove DELETE /schedules s=schedules params= query= exist= action=",
+	"state.load GET /states/{stateAbbreviation}.json s=states/{state_abbreviation}.json params=state_abbreviation:stateAbbreviation query= exist=state_abbreviation action=",
+	"thread.list GET /{board}/thread/{threadId}.json s=<board>/thread/{thread_id}.json params=board:board,thread_id:threadId query= exist=board,thread_id action=",
+	"world.load GET /image/world/{worldTileName}{tileX}-{tileY}-0.png s=image/world/{world_tile_name}{tile_x}-{tile_y}-0.png params=tile_x:tileX,tile_y:tileY,world_tile_name:worldTileName query= exist=tile_x,tile_y,world_tile_name action=",
+}
+
+var requestPathsWarnings = []string{
+	"Parameter username on entity=permission op=load path=/contacts/groups/{groupId}/permissions/{username} has no `in`; it names the path placeholder {username}, so it is taken as a path parameter. A parameter needs an `in`.",
+	"Parameter verbose on entity=permission op=load path=/contacts/groups/{groupId}/permissions/{username} has no `in`, so it is taken as a query parameter. A parameter needs an `in`.",
+	"Parameter username on entity=permission op=remove path=/contacts/groups/{groupId}/permissions/{username} has no `in`; it names the path placeholder {username}, so it is taken as a path parameter. A parameter needs an `in`.",
+	"Parameter username on entity=permission op=update path=/contacts/groups/{groupId}/permissions/{username} has no `in`; it names the path placeholder {username}, so it is taken as a path parameter. A parameter needs an `in`.",
+}
+
 // Mirrors the TS `guide-collection-owner` case, and requires the base guide
 // that case writes to ts/test/collection-owner/guide/base-guide.aontu.
 func TestGuideCollectionOwner(t *testing.T) {
@@ -1469,40 +1592,6 @@ func assertSegments(t *testing.T, paths []map[string]any, want [][]map[string]an
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("segments = %v, want %v", got, want)
 	}
-}
-
-func TestResolvePathListCompoundElement(t *testing.T) {
-	paths := resolvePathList(map[string]any{
-		"path": map[string]any{
-			"/x/{a}.{b}": map[string]any{
-				"rename": map[string]any{"param": map[string]any{"a": "aa", "b": "bb"}},
-			},
-			"/y/{}":     map[string]any{},
-			"/z/pre{c}": map[string]any{},
-		},
-	}, map[string]any{"paths": map[string]any{}})
-
-	assertSegments(t, paths, [][]map[string]any{
-		{{"lit": "x"}, {"lit": "{a}.{b}"}},
-		{{"lit": "y"}, {"lit": "{}"}},
-		{{"lit": "z"}, {"lit": "pre{c}"}},
-	})
-}
-
-func TestResolvePathListPartialElement(t *testing.T) {
-	paths := resolvePathList(map[string]any{
-		"path": map[string]any{
-			"/reports/{id}.json": map[string]any{
-				"rename": map[string]any{"param": map[string]any{"id": "report_id"}},
-			},
-			"/v{version}/items": map[string]any{},
-		},
-	}, map[string]any{"paths": map[string]any{}})
-
-	assertSegments(t, paths, [][]map[string]any{
-		{{"lit": "reports"}, {"lit": "{id}.json"}},
-		{{"lit": "v{version}"}, {"lit": "items"}},
-	})
 }
 
 // End-to-end guard for ADR-003: the emitted model carries typed `segments`

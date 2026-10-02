@@ -190,11 +190,11 @@ function resolvePathList(guideEntity, def) {
             .filter(p => '' != p)
             .map(p => {
             if ('{' !== p[0] || '}' !== p[p.length - 1]) {
-                return { lit: p };
+                return { lit: nameLitParams(p, rename.param) };
             }
             const raw = p.slice(1, -1);
             if ('' === raw || raw.includes('{') || raw.includes('}')) {
-                return { lit: p };
+                return { lit: nameLitParams(p, rename.param) };
             }
             // Renames map the spec's parameter name to the model's. Applied
             // here, on the NAME, rather than by rewriting a braced string.
@@ -214,6 +214,13 @@ function resolvePathList(guideEntity, def) {
     });
     guideEntity.paths$ = paths$;
     return paths$;
+}
+// The runtimes fill a literal's placeholders by their parameters' model names.
+function nameLitParams(lit, renames) {
+    return lit.replace(/\{([^{}]+)\}/g, (placeholder, wire) => {
+        const name = (0, utility_1.paramName)(wire, renames);
+        return '' === name ? placeholder : '{' + name + '}';
+    });
 }
 // Root-field equivalent of resolvePathList for GraphQL guides. A root field
 // has no path to split, so `segments` stays empty (GraphQL points address the

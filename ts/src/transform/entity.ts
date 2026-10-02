@@ -22,7 +22,7 @@ import type {
   ModelEntity,
 } from '../model'
 
-import { depluralize, guideActive } from '../utility'
+import { depluralize, guideActive, paramName } from '../utility'
 
 import { byCodePoint } from '../refcount'
 
@@ -257,11 +257,11 @@ function resolvePathList(guideEntity: GuideEntity, def: { paths: Record<string, 
       .filter(p => '' != p)
       .map(p => {
         if ('{' !== p[0] || '}' !== p[p.length - 1]) {
-          return { lit: p }
+          return { lit: nameLitParams(p, rename.param) }
         }
         const raw = p.slice(1, -1)
         if ('' === raw || raw.includes('{') || raw.includes('}')) {
-          return { lit: p }
+          return { lit: nameLitParams(p, rename.param) }
         }
         // Renames map the spec's parameter name to the model's. Applied
         // here, on the NAME, rather than by rewriting a braced string.
@@ -285,6 +285,15 @@ function resolvePathList(guideEntity: GuideEntity, def: { paths: Record<string, 
     ; (guideEntity as any).paths$ = paths$
 
   return paths$
+}
+
+
+// The runtimes fill a literal's placeholders by their parameters' model names.
+function nameLitParams(lit: string, renames?: Record<string, any>): string {
+  return lit.replace(/\{([^{}]+)\}/g, (placeholder: string, wire: string) => {
+    const name = paramName(wire, renames)
+    return '' === name ? placeholder : '{' + name + '}'
+  })
 }
 
 

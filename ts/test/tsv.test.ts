@@ -51,6 +51,8 @@ import type {
   ModelPoint, ModelBody, ModelBodyField, BodyKind,
 } from '../dist/apidef'
 import { Aontu } from 'aontu'
+import { argsTransform } from '../dist/transform/args'
+import { resolvePathList } from '../dist/transform/entity'
 import { resolveSecurity, findAuthPrefix } from '../dist/transform/top'
 
 import { snakify, camelify, kebabify } from 'jostraca'
@@ -67,6 +69,7 @@ import {
   isNameParam,
   namingRef,
   namingSchemas,
+  verbParts,
 } from '../dist/guide/heuristic01'
 
 import {
@@ -771,6 +774,59 @@ describe('tsv-name-param', () => {
   for (const row of rows) {
     test(`isNameParam("${row.param}") => ${row.expected}`, () => {
       assert.strictEqual(isNameParam(row.param), 'true' === row.expected)
+    })
+  }
+})
+
+
+describe('tsv-verb-parts', () => {
+  const rows = loadTsv('verb-parts')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(`verbParts(${row.name})`, () => {
+      assert.deepStrictEqual(verbParts(row.path.split('/').filter((p) => '' !== p)),
+        JSON.parse(row.parts))
+    })
+  }
+})
+
+
+describe('tsv-path-segments', () => {
+  const rows = loadTsv('path-segments')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(`resolvePathList(${row.name})`, () => {
+      const paths = resolvePathList({
+        path: { [row.path]: { rename: { param: JSON.parse(row.rename) } } },
+      } as any, { paths: {} } as any)
+      assert.deepStrictEqual(paths[0].segments, JSON.parse(row.segments))
+    })
+  }
+})
+
+
+describe('tsv-resolve-args', () => {
+  const rows = loadTsv('resolve-args')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, async () => {
+      const point: any = {
+        o: row.path, m: 'GET', r: { param: JSON.parse(row.rename) },
+        g: {}, q: { exist: [] }, t: {},
+      }
+      const warnings: any[] = []
+      await argsTransform({
+        apimodel: { main: { kit: { entity: { widget: {
+          name: 'widget', op: { load: { name: 'load', points: [point] } },
+        } } } } },
+        def: { paths: { [row.path]: { get: { parameters: JSON.parse(row.parameters) } } } },
+        warn: (warning: any) => warnings.push(warning),
+      } as any)
+      const args = (kind: string) => (point.g[kind] ?? [])
+        .map((arg: any) => ({ n: arg.n, or: arg.or, k: arg.k, r: arg.r }))
+      assert.deepStrictEqual(args('params'), JSON.parse(row.params))
+      assert.deepStrictEqual(args('query'), JSON.parse(row.query))
+      assert.deepStrictEqual(warnings.map((warning) => warning.note), JSON.parse(row.warnings))
     })
   }
 })

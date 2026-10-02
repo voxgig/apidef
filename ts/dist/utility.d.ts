@@ -47,6 +47,8 @@ declare function slugToPascalCase(s: string): string;
 declare function inferFieldType(name: string, specType: string): string;
 declare function humanTitle(name: string): string;
 declare function normalizeFieldName(s: string): string;
+declare function canonizeParam(name: string): string;
+declare function paramName(wire: string, renames?: Record<string, any> | null): string;
 declare function ensureMinEntityName(name: string, existing: Record<string, any>): string;
 declare function guideActive(node: any): boolean;
 declare function authExchangeOp(op: any, specSecured: boolean): {
@@ -82,4 +84,4 @@ declare function scanUntaggedUnion(schema: any, depth?: number, seen?: Set<any>)
 };
 declare function closedBodyTransform(schema: any): Record<string, string> | null;
 declare function firstSentence(text: string): string;
-export { nom, getdlog, loadFile, formatJsonSrc, depluralize, setCustomPlurals, clearCustomPlurals, find, capture, pathMatch, makeWarner, formatJSONIC, validator, VALID_CANON, CANON_ONE, canonize, canonizeField, canonizeCmpName, stripSchemaNamespace, sanitizeSlug, slugToPascalCase, transliterate, cleanComponentName, guideActive, authExchangeOp, specSecuredByDefault, ensureMinEntityName, inferFieldType, normalizeFieldName, humanTitle, prefixLeadingDigit, debugpath, debugpathOn, findPathsWithPrefix, writeFileSyncWarn, removeLegacyAon, warnOnError, relativizePath, getModelPath, sortedKeys, sortedEntries, isEntityWrapperProp, envelopeProp, envelopeItemRef, composedEnvelopeProp, mergedProperties, closedBodyTransform, untaggedUnionBranches, scanUntaggedUnion, firstSentence, resplitFromCmp, };
+export { nom, getdlog, loadFile, formatJsonSrc, depluralize, setCustomPlurals, clearCustomPlurals, find, capture, pathMatch, makeWarner, formatJSONIC, validator, VALID_CANON, CANON_ONE, canonize, canonizeField, canonizeCmpName, stripSchemaNamespace, sanitizeSlug, slugToPascalCase, transliterate, cleanComponentName, guideActive, authExchangeOp, specSecuredByDefault, ensureMinEntityName, inferFieldType, normalizeFieldName, canonizeParam, paramName, humanTitle, prefixLeadingDigit, debugpath, debugpathOn, findPathsWithPrefix, writeFileSyncWarn, removeLegacyAon, warnOnError, relativizePath, getModelPath, sortedKeys, sortedEntries, isEntityWrapperProp, envelopeProp, envelopeItemRef, composedEnvelopeProp, mergedProperties, closedBodyTransform, untaggedUnionBranches, scanUntaggedUnion, firstSentence, resplitFromCmp, };
