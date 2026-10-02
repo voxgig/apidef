@@ -22,25 +22,27 @@ var yamlCommentRE = regexp.MustCompile(`(?m)^\s*#.*$`)
 
 // Parse parses an API definition source into a structured map.
 func Parse(kind string, source string, meta map[string]string) (map[string]any, error) {
-	def, _, err := parseDefinition(kind, source, meta)
-	return def, err
-}
-
-// parseDefinition also returns the declared order of the security schemes,
-// which the plain maps of the definition lose.
-func parseDefinition(kind string, source string, meta map[string]string) (map[string]any, []string, error) {
 	if kind == "OpenAPI" {
 		source = wellFormedUTF8(source)
 		if err := validateSource(kind, source, meta); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
-		return parseOpenAPI(source, meta)
+
+		def, err := parseOpenAPI(source, meta)
+		if err != nil {
+			return nil, err
+		}
+		return def, nil
 	}
-	return nil, nil, fmt.Errorf("@voxgig/apidef: parse: unknown kind: %s (%s)",
+	return nil, fmt.Errorf("@voxgig/apidef: parse: unknown kind: %s (%s)",
 		kind, RelativizePath(meta["file"]))
 }
 
-func parseOpenAPI(source string, meta map[string]string) (map[string]any, []string, error) {
+// schemeOrderKey annotates a parsed definition with the declared order of
+// its security schemes, which its plain maps lose.
+const schemeOrderKey = "x-apidef-scheme-order"
+
+func parseOpenAPI(source string, meta map[string]string) (map[string]any, error) {
 	var parsed map[string]any
 
 	// Use tabnas/yaml to parse (handles both JSON and YAML)
@@ -52,17 +54,17 @@ func parseOpenAPI(source string, meta map[string]string) (map[string]any, []stri
 	if err != nil {
 		// Wrap parse errors with context
 		if strings.Contains(err.Error(), "jsonic") {
-			return nil, nil, fmt.Errorf("@voxgig/apidef: parse: syntax: %s (%s)",
+			return nil, fmt.Errorf("@voxgig/apidef: parse: syntax: %s (%s)",
 				err.Error(), RelativizePath(meta["file"]))
 		}
-		return nil, nil, fmt.Errorf("@voxgig/apidef: parse: syntax: %s (%s)",
+		return nil, fmt.Errorf("@voxgig/apidef: parse: syntax: %s (%s)",
 			err.Error(), RelativizePath(meta["file"]))
 	}
 
 	// Validate parsed result is a non-null object
 	m, ok := result.(map[string]any)
 	if !ok || m == nil {
-		return nil, nil, fmt.Errorf(
+		return nil, fmt.Errorf(
 			"@voxgig/apidef: parse: JSON/YAML source must be an object (%s)",
 			RelativizePath(meta["file"]))
 	}
@@ -72,7 +74,7 @@ func parseOpenAPI(source string, meta map[string]string) (map[string]any, []stri
 	_, hasOpenAPI := parsed["openapi"]
 	_, hasSwagger := parsed["swagger"]
 	if !hasOpenAPI && !hasSwagger {
-		return nil, nil, fmt.Errorf(
+		return nil, fmt.Errorf(
 			"@voxgig/apidef: parse: Unsupported spec: missing 'openapi' or 'swagger' version field (%s)",
 			RelativizePath(meta["file"]))
 	}
@@ -83,6 +85,11 @@ func parseOpenAPI(source string, meta map[string]string) (map[string]any, []stri
 	}
 
 	annotateExamplesOrder(source, parsed)
+
+	delete(parsed, schemeOrderKey)
+	if 0 < len(schemeOrder) {
+		parsed[schemeOrderKey] = schemeOrder
+	}
 
 	if paths, ok := parsed["paths"].(map[string]any); ok {
 		keys := sortedKeys(paths)
@@ -100,7 +107,7 @@ func parseOpenAPI(source string, meta map[string]string) (map[string]any, []stri
 
 	// Skip Decircular for now — addXRefsAndResolve uses identity tracking
 	// which prevents true circular references from being created.
-	return parsed, schemeOrder, nil
+	return parsed, nil
 }
 
 // declaredSchemeOrder reads the scheme names from the ordered parse, in the

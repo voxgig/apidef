@@ -20,6 +20,18 @@ type ApiDefOptions struct {
 	Strategy  string         `json:"strategy,omitempty"`
 	Server    string         `json:"server,omitempty"`
 	Why       *WhyOptions    `json:"why,omitempty"`
+
+	Auth *ApiDefAuthOption `json:"auth,omitempty"`
+}
+
+// ApiDefAuthOption states the credential of a GraphQL schema; a nil field takes its default.
+type ApiDefAuthOption struct {
+	Active *bool   `json:"active,omitempty"`
+	Scheme *string `json:"scheme,omitempty"`
+	Type   *string `json:"type,omitempty"`
+	In     *string `json:"in,omitempty"`
+	Name   *string `json:"name,omitempty"`
+	Prefix *string `json:"prefix,omitempty"`
 }
 
 type WhyOptions struct {
@@ -58,8 +70,6 @@ type ApiDefContext struct {
 	Warn     Warner         `json:"-"`
 	Metrics  *Metrics       `json:"metrics,omitempty"`
 	Work     map[string]any `json:"work,omitempty"`
-
-	SchemeOrder []string `json:"-"`
 }
 
 // Metrics holds counters and found items during processing.

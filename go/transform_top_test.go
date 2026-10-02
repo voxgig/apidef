@@ -10,14 +10,11 @@ import (
 
 // Mirrors the `transform-top security` cases in ts/test/transform/top.test.ts.
 
-func topInfo(t *testing.T, defsrc string) (map[string]any, map[string]any) {
+func topWith(t *testing.T, def map[string]any, opts ApiDefOptions) map[string]any {
 	t.Helper()
-	var def map[string]any
-	if err := json.Unmarshal([]byte(defsrc), &def); err != nil {
-		t.Fatal(err)
-	}
 	ctx := &ApiDefContext{
-		Def: def,
+		Def:  def,
+		Opts: opts,
 		ApiModel: map[string]any{"main": map[string]any{
 			KIT: map[string]any{"info": map[string]any{}},
 		}},
@@ -26,7 +23,16 @@ func topInfo(t *testing.T, defsrc string) (map[string]any, map[string]any) {
 		t.Fatal(err)
 	}
 	info, _ := getKit(ctx)["info"].(map[string]any)
-	return info, def
+	return info
+}
+
+func topInfo(t *testing.T, defsrc string) (map[string]any, map[string]any) {
+	t.Helper()
+	var def map[string]any
+	if err := json.Unmarshal([]byte(defsrc), &def); err != nil {
+		t.Fatal(err)
+	}
+	return topWith(t, def, ApiDefOptions{}), def
 }
 
 func setNames(security map[string]any, key string) [][]string {
@@ -117,5 +123,62 @@ func TestTopSecurityExchangeBesideScheme(t *testing.T) {
 	}
 	if got := sortedKeys(def["info"].(map[string]any)); !reflect.DeepEqual(got, []string{"title"}) {
 		t.Errorf("the definition's info keys = %v, want [title]", got)
+	}
+}
+
+func TestTopSecurityParseKeepsDeclaredOrder(t *testing.T) {
+	def, err := Parse("OpenAPI", `{"openapi":"3.0.0","info":{"title":"t","version":"1"},
+		"paths":{"/x":{"get":{"responses":{"200":{"description":"ok"}}}}},
+		"components":{"securitySchemes":{
+			"zeta":{"type":"http","scheme":"bearer"},
+			"alpha":{"type":"apiKey","in":"query","name":"k"}}}}`,
+		map[string]string{"file": "order.json"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	security, _ := topWith(t, def, ApiDefOptions{})["security"].(map[string]any)
+	if security["scheme"] != "zeta" {
+		t.Errorf("scheme = %v, want zeta, the first declared", security["scheme"])
+	}
+}
+
+func graphqlInfo(t *testing.T, auth *ApiDefAuthOption) map[string]any {
+	t.Helper()
+	var def map[string]any
+	if err := json.Unmarshal([]byte(`{"graphql":true,"info":{"title":"G"},
+		"servers":[{"url":"https://g.example/graphql"}]}`), &def); err != nil {
+		t.Fatal(err)
+	}
+	return topWith(t, def, ApiDefOptions{Auth: auth})
+}
+
+func TestTopSecurityGraphqlUnsetWithoutOption(t *testing.T) {
+	info := graphqlInfo(t, nil)
+	if _, ok := info["auth"]; ok {
+		t.Errorf("auth = %v, want unset", info["auth"])
+	}
+	if _, ok := info["security"]; ok {
+		t.Errorf("security = %v, want unset", info["security"])
+	}
+}
+
+func TestTopSecurityGraphqlAuthOption(t *testing.T) {
+	inactive := false
+	off := graphqlInfo(t, &ApiDefAuthOption{Active: &inactive})
+	if off["auth"] != false {
+		t.Errorf("auth = %v, want false", off["auth"])
+	}
+	if _, ok := off["security"]; ok {
+		t.Errorf("security = %v, want unset", off["security"])
+	}
+
+	name := "X-Key"
+	on := graphqlInfo(t, &ApiDefAuthOption{Name: &name})
+	if _, ok := on["auth"]; ok {
+		t.Errorf("auth = %v, want unset", on["auth"])
+	}
+	want := map[string]any{"scheme": "apikey", "type": "apiKey", "in": "header", "name": "X-Key", "prefix": ""}
+	if !reflect.DeepEqual(on["security"], want) {
+		t.Errorf("security = %v, want %v", on["security"], want)
 	}
 }

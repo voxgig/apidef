@@ -130,7 +130,7 @@ func (a *apiDefInstance) Generate(spec map[string]any) (*ApiDefResult, error) {
 		return fail(err)
 	}
 
-	def, schemeOrder, err := parseDefinition("OpenAPI", defsrc, map[string]string{"file": defpath})
+	def, err := Parse("OpenAPI", defsrc, map[string]string{"file": defpath})
 	if err != nil {
 		return fail(err)
 	}
@@ -142,7 +142,6 @@ func (a *apiDefInstance) Generate(spec map[string]any) (*ApiDefResult, error) {
 	}
 
 	ctx.Def = def
-	ctx.SchemeOrder = schemeOrder
 	buildctx, _ := spec["buildctx"].(map[string]any)
 	config, _ := spec["config"].(map[string]any)
 	kind, _ := config["kind"].(string)

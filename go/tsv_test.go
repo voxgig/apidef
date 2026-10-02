@@ -877,14 +877,14 @@ func TestTsvSecurity(t *testing.T) {
 	}
 	for _, row := range rows {
 		t.Run(row["name"], func(t *testing.T) {
-			def, order, err := parseDefinition("OpenAPI", row["spec"], map[string]string{"file": row["name"]})
+			def, err := Parse("OpenAPI", row["spec"], map[string]string{"file": row["name"]})
 			if err != nil {
 				t.Fatal(err)
 			}
 			var want any
 			unmarshalCol(t, row, "expected", &want)
 			var got any
-			if found := resolveSecurity(def, order); found != nil {
+			if found := resolveSecurity(def); found != nil {
 				got = found
 			}
 			if !jsonEqual(got, want) {

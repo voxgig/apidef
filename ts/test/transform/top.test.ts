@@ -15,6 +15,11 @@ import {
 } from '../../dist/types'
 
 
+import {
+  parse
+} from '../../dist/parse'
+
+
 function makeCtx(def: any): any {
   return {
     apimodel: { main: { [KIT]: {} } },
@@ -192,6 +197,49 @@ describe('transform-top security', () => {
       exchange: { path: 'auth/token', method: 'POST', response: 'access_token' },
     })
     assert.deepStrictEqual(Object.keys(def.info), ['title'])
+  })
+
+  test('the fallback is the first scheme the parsed source declares', async () => {
+    const def = await parse('OpenAPI', JSON.stringify({
+      openapi: '3.0.0', info: { title: 't', version: '1' },
+      paths: { '/x': { get: { responses: { 200: { description: 'ok' } } } } },
+      components: {
+        securitySchemes: {
+          zeta: { type: 'http', scheme: 'bearer' },
+          alpha: { type: 'apiKey', in: 'query', name: 'k' },
+        },
+      },
+    }), { file: 'order.json' })
+    const ctx = makeCtx(def)
+    await topTransform(ctx)
+    assert.strictEqual(ctx.apimodel.main[KIT].info.security.scheme, 'zeta')
+  })
+
+  const graphqlInfo = async (auth?: any) => {
+    const ctx = makeCtx({
+      graphql: true, info: { title: 'G' }, servers: [{ url: 'https://g.example/graphql' }],
+    })
+    if (undefined !== auth) ctx.opts = { auth }
+    await topTransform(ctx)
+    return ctx.apimodel.main[KIT].info
+  }
+
+  test('a GraphQL schema leaves auth unset without the auth option', async () => {
+    const info = await graphqlInfo()
+    assert.strictEqual(info.auth, undefined)
+    assert.strictEqual(info.security, undefined)
+  })
+
+  test('a GraphQL auth option marks the API public or describes its credential', async () => {
+    const off = await graphqlInfo({ active: false })
+    assert.strictEqual(off.auth, false)
+    assert.strictEqual(off.security, undefined)
+
+    const on = await graphqlInfo({ name: 'X-Key' })
+    assert.strictEqual(on.auth, undefined)
+    assert.deepStrictEqual(on.security, {
+      scheme: 'apikey', type: 'apiKey', in: 'header', name: 'X-Key', prefix: '',
+    })
   })
 
 })

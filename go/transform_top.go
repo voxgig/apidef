@@ -52,9 +52,24 @@ func TopTransform(ctx *ApiDefContext) (*TransformResult, error) {
 	ensureServer(ctx, kit)
 
 	infoMap, _ := kit["info"].(map[string]any)
-	if !specDeclaresAuth(def) {
+	if true == def["graphql"] {
+		// A GraphQL schema declares no HTTP auth, so only the auth option sets it.
+		if auth := ctx.Opts.Auth; auth != nil {
+			if auth.Active != nil && !*auth.Active {
+				infoMap["auth"] = false
+			} else {
+				infoMap["security"] = map[string]any{
+					"scheme": optionOr(auth.Scheme, "apikey"),
+					"type":   optionOr(auth.Type, "apiKey"),
+					"in":     optionOr(auth.In, "header"),
+					"name":   optionOr(auth.Name, "Authorization"),
+					"prefix": optionOr(auth.Prefix, ""),
+				}
+			}
+		}
+	} else if !specDeclaresAuth(def) {
 		infoMap["auth"] = false
-	} else if security := resolveSecurity(def, ctx.SchemeOrder); security != nil {
+	} else if security := resolveSecurity(def); security != nil {
 		if exchange := findAuthExchange(def); exchange != nil {
 			security["exchange"] = exchange
 		}
@@ -64,11 +79,17 @@ func TopTransform(ctx *ApiDefContext) (*TransformResult, error) {
 	return &TransformResult{OK: true, Msg: "top"}, nil
 }
 
+func optionOr(v *string, dflt string) string {
+	if v == nil {
+		return dflt
+	}
+	return *v
+}
+
 var operationMethods = []string{"get", "put", "post", "delete", "options", "head", "patch", "trace"}
 
-// resolveSecurity mirrors ts/src/transform/top.ts. order is the declared
-// order of the schemes, which the definition's maps lose.
-func resolveSecurity(def map[string]any, order []string) map[string]any {
+// resolveSecurity mirrors ts/src/transform/top.ts.
+func resolveSecurity(def map[string]any) map[string]any {
 	schemes := securitySchemes(def)
 	declared := func(name string) bool {
 		_, ok := schemes[name].(map[string]any)
@@ -93,7 +114,7 @@ func resolveSecurity(def map[string]any, order []string) map[string]any {
 		name, found = firstSingleScheme(def["security"], declared)
 	}
 	if !found {
-		name, found = firstDeclared(schemes, order)
+		name, found = firstDeclared(def, schemes)
 	}
 
 	scheme, _ := schemes[name].(map[string]any)
@@ -200,8 +221,17 @@ func allDeclared(names []string, declared func(string) bool) bool {
 	return true
 }
 
-// firstDeclared is the TypeScript's Object.keys(schemes)[0].
-func firstDeclared(schemes map[string]any, order []string) (string, bool) {
+// firstDeclared is the TypeScript's Object.keys(schemes)[0], in the order
+// Parse recorded; a definition built some other way has none to keep.
+func firstDeclared(def map[string]any, schemes map[string]any) (string, bool) {
+	order, _ := def[schemeOrderKey].([]string)
+	if raw, ok := def[schemeOrderKey].([]any); ok {
+		for _, name := range raw {
+			if s, ok := name.(string); ok {
+				order = append(order, s)
+			}
+		}
+	}
 	for _, name := range order {
 		if _, ok := schemes[name]; ok {
 			return name, true
