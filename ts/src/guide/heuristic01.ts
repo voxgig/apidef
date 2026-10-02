@@ -166,6 +166,11 @@ async function heuristic01(ctx: ApiDefContext): Promise<Guide> {
     (pathStr: string, methods: string[], collection: boolean) =>
       pathRecordRef(ctx.def, pathStr, methods, collection)).length
 
+  // After the merge, which can move a path onto another entity.
+  for (const entity of Object.values(guide.entity) as GuideEntity[]) {
+    nameEntityParams(entity)
+  }
+
   const metrics = guide.metrics
 
   const entities = Object.values(guide.entity)
@@ -871,7 +876,7 @@ function RenameParams(spec: TaskSpec) {
           why.push('id-parent-ent')
         }
 
-        else {
+        else if (!isNameParam(oldParam)) {
           updateParamRename(
             ctx, data, pathStr, methodName, paramRenameCapture, oldParam,
             parentName + '_id', 'parent:' + parentName)
@@ -939,7 +944,7 @@ function RenameParams(spec: TaskSpec) {
           why.push('default')
 
           let newParamName = parentName + '_id'
-          if (newParamName != oldParam) {
+          if (newParamName != oldParam && !isNameParam(oldParam)) {
             updateParamRename(
               ctx, data, pathStr, methodName, paramRenameCapture, oldParam,
               newParamName, 'not-primary')
@@ -2177,6 +2182,109 @@ function isParam(partStr: string) {
 }
 
 
+// A parameter whose own name says it holds a name, such as `project_name`,
+// which a derived `<parent>_id` would misdescribe.
+function isNameParam(param: string): boolean {
+  return /(^|_)name$/.test(snakify(normalizeFieldName(param)))
+}
+
+
+function nameEntityParams(entity: GuideEntity) {
+  const given: Record<string, Record<string, string>> = {}
+  for (const [pathStr, guidePath] of Object.entries(entity.path ?? {})) {
+    given[pathStr] = {}
+    for (const [param, rename] of Object.entries(guidePath.rename?.param ?? {})) {
+      given[pathStr][param] = rename.target
+    }
+  }
+
+  const named = entityParamNames(given)
+
+  for (const [pathStr, guidePath] of Object.entries(entity.path ?? {})) {
+    guidePath.rename = guidePath.rename ?? { param: {} }
+    const renames = guidePath.rename.param = guidePath.rename.param ?? {}
+    for (const param of Object.keys(renames)) {
+      if (null == named[pathStr][param]) {
+        delete renames[param]
+      }
+    }
+    for (const [param, target] of Object.entries(named[pathStr])) {
+      if (target !== renames[param]?.target) {
+        renames[param] = { target, why_rename: ['entity-param'] }
+      }
+    }
+  }
+}
+
+
+// An entity's paths with the renames of their parameters, given back with one
+// name for each parameter at the same place in several paths: its own name,
+// snake-cased as the paths would, unless some path makes it the entity's `id`.
+function entityParamNames(
+  paths: Record<string, Record<string, string>>
+): Record<string, Record<string, string>> {
+  const out: Record<string, Record<string, string>> = {}
+  const places: Record<string, { pathStr: string, param: string }[]> = {}
+
+  for (const pathStr of Object.keys(paths).sort(byCodePoint)) {
+    out[pathStr] = { ...paths[pathStr] }
+    const parts = pathStr.split('/').filter((p) => '' !== p)
+    parts.forEach((part, partI) => {
+      if (isParam(part)) {
+        const place = parts.slice(0, partI + 1).join('/')
+        ;(places[place] = places[place] ?? []).push({ pathStr, param: part.slice(1, -1) })
+      }
+    })
+  }
+
+  for (const place of Object.keys(places).sort(byCodePoint)) {
+    const uses = places[place]
+    const names = uses.map((use) => out[use.pathStr][use.param] ?? use.param)
+    const param = uses[0].param
+    const snake = depluralize(snakify(normalizeFieldName(param)))
+    const name = names.includes('id') ? null :
+      names.includes(snake) ? snake :
+        names.includes(param) ? param : null
+
+    if (null == name || names.every((n) => n === name)) {
+      continue
+    }
+
+    for (const use of uses) {
+      const renames = out[use.pathStr]
+      if (paramNameTaken(use.pathStr, renames, use.param, name)) {
+        continue
+      }
+      if (name === use.param) {
+        delete renames[use.param]
+      }
+      else {
+        renames[use.param] = name
+      }
+    }
+  }
+
+  return out
+}
+
+
+// As updateParamRename judges a clash: by what the path's other parameters
+// end up called.
+function paramNameTaken(
+  pathStr: string,
+  renames: Record<string, string>,
+  param: string,
+  name: string,
+): boolean {
+  return Object.keys(renames).some((other) =>
+    other !== param && renames[other] === name) ||
+    (pathStr.match(/\{([^}]+)\}/g) || [])
+      .map((seg) => seg.slice(1, -1))
+      .some((other) => other !== param && null == renames[other] &&
+        canonize(other) === name)
+}
+
+
 
 
 function findcmps(
@@ -2288,4 +2396,6 @@ export {
   heuristic01,
   pathResource,
   sharedRoutes,
+  entityParamNames,
+  isNameParam,
 }
