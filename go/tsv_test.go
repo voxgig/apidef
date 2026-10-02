@@ -1102,6 +1102,79 @@ func TestTsvResolveArgs(t *testing.T) {
 	}
 }
 
+// A Swagger 2 row's `openapi3` column is the parameter it converts to, which
+// must give the same argument.
+func TestTsvParamSchema(t *testing.T) {
+	rows := loadTsv(t, "param-schema")
+	if len(rows) == 0 {
+		t.Fatal("no param-schema rows loaded")
+	}
+	argsOf := func(t *testing.T, path string, parameter map[string]any) []any {
+		t.Helper()
+		point := map[string]any{
+			"o": path, "m": "GET", "r": map[string]any{"param": map[string]any{}},
+			"g": map[string]any{}, "q": map[string]any{"exist": []any{}}, "t": map[string]any{},
+		}
+		warn := MakeWarner("warning", nil)
+		ctx := &ApiDefContext{
+			ApiModel: map[string]any{"main": map[string]any{KIT: map[string]any{
+				"entity": map[string]any{"widget": map[string]any{
+					"name": "widget",
+					"op": map[string]any{"load": map[string]any{
+						"name": "load", "points": []any{point},
+					}},
+				}},
+			}}},
+			Def: map[string]any{"paths": map[string]any{path: map[string]any{
+				"get": map[string]any{"parameters": []any{parameter}},
+			}}},
+			Warn: warn,
+		}
+		if _, err := ArgsTransform(ctx); err != nil {
+			t.Fatal(err)
+		}
+		for _, w := range warn.History() {
+			t.Errorf("unexpected warning: %v", w["note"])
+		}
+		args := []any{}
+		g, _ := point["g"].(map[string]any)
+		for _, kind := range sortedKeys(g) {
+			list, _ := g[kind].([]any)
+			for _, a := range list {
+				am, _ := a.(map[string]any)
+				arg := map[string]any{"n": am["n"], "or": am["or"], "t": am["t"], "k": am["k"], "r": am["r"]}
+				if ex, has := am["ex"]; has {
+					arg["ex"] = ex
+				}
+				args = append(args, arg)
+			}
+		}
+		return args
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var parameter map[string]any
+			var arg any
+			unmarshalCol(t, row, "parameter", &parameter)
+			unmarshalCol(t, row, "arg", &arg)
+			want := []any{arg}
+			if got := argsOf(t, row["path"], parameter); !jsonEqual(got, want) {
+				out, _ := json.Marshal(got)
+				t.Errorf("parameter\ngot  %s\nwant [%s]", out, row["arg"])
+			}
+			if row["openapi3"] == "-" {
+				return
+			}
+			var twin map[string]any
+			unmarshalCol(t, row, "openapi3", &twin)
+			if got := argsOf(t, row["path"], twin); !jsonEqual(got, want) {
+				out, _ := json.Marshal(got)
+				t.Errorf("openapi3\ngot  %s\nwant [%s]", out, row["arg"])
+			}
+		})
+	}
+}
+
 func TestClosedBodyTransform(t *testing.T) {
 	rows := loadTsv(t, "closed-body-transform")
 	if len(rows) == 0 {

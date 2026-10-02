@@ -513,13 +513,14 @@ func TestResolveArgExampleSpellings(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		got, has := resolveArgExample(c.argdef)
+		got, has := resolveArgExample(c.argdef, paramSchema(c.argdef))
 		if !has || got != c.want {
 			t.Errorf("%s: got %v (has=%v), want %v", c.name, got, has, c.want)
 		}
 	}
 
-	if _, has := resolveArgExample(map[string]any{"name": "x"}); has {
+	bare := map[string]any{"name": "x"}
+	if _, has := resolveArgExample(bare, paramSchema(bare)); has {
 		t.Errorf("a parameter with no example reported one")
 	}
 }
