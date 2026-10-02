@@ -1039,6 +1039,39 @@ func TestGuideCollectionMerge(t *testing.T) {
 	}
 }
 
+// Mirrors the TS `guide-item-record` case.
+func TestGuideItemRecord(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, Strategy: "heuristic01"}).Generate(map[string]any{
+		"model": map[string]any{"name": "item-record", "def": "item-record-def.json"},
+		"build": map[string]any{"spec": map[string]any{"base": "../ts/test/item-record"}},
+		"ctrl": map[string]any{"step": map[string]any{
+			"parse": true, "guide": true, "transformers": true,
+			"builders": false, "generate": false,
+		}},
+	})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v res=%+v", err, res)
+	}
+
+	gents, _ := res.Guide["entity"].(map[string]any)
+	if got, want := strings.Join(sortedKeys(gents), ","), "activity,ci_runner_detail,ci_runner_registration,ci_worker_detail,ci_worker_registration,instance,repo,report,repository_invitation,simulation_run,team,team_invitation,thing,widget"; got != want {
+		t.Errorf("guide entities = %s, want %s", got, want)
+	}
+
+	want, err := os.ReadFile("../ts/test/item-record/guide/base-guide.aontu")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(filepath.Join(folder, "guide", "base-guide.aontu"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != string(want) {
+		t.Errorf("base guide differs from the TypeScript one:\n%s", string(got))
+	}
+}
+
 // Mirrors the TS `guide-collection-owner` case, and requires the base guide
 // that case writes to ts/test/collection-owner/guide/base-guide.aontu.
 func TestGuideCollectionOwner(t *testing.T) {

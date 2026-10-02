@@ -1,0 +1,145 @@
+# Generated from the API definition and overwritten on every build: do not
+# edit this file. Put customizations in the guide entry file, which includes
+# this one and overrides its defaults:
+#   guide.aontu
+
+guide: {
+  metrics: count: entity: 14
+  metrics: count: path: 22
+  metrics: count: method: 31
+
+  entity: activity: {
+    path: "/user/starred": {
+      op: list: method: *GET
+    }
+    path: "/user/starred/{owner}/{repo}": {
+      op: remove: method: *DELETE
+      op: update: method: *PUT
+    }
+  }
+
+  entity: ci_runner_detail: {
+    path: "/runners": {
+      op: list: method: *GET
+    }
+    path: "/runners/{runner_id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: ci_runner_registration: {
+    path: "/runners": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: ci_worker_detail: {
+    path: "/workers": {
+      op: list: method: *GET
+    }
+    path: "/workers/{worker_id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: ci_worker_registration: {
+    path: "/workers": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: instance: {
+    path: "/clusters/{cluster_name}/instances": {
+      op: list: method: *GET
+    }
+    path: "/clusters/{cluster_name}/instances/{instance_id}": {
+      rename: param: "instance_id": *"id"
+      op: load: method: *GET
+      op: patch: method: *PATCH
+    }
+    path: "/clusters/{cluster_name}/instances/{instance_id}/restart": {
+      action: "restart": {}
+      rename: param: "instance_id": *"id"
+      op: create: method: *POST
+    }
+  }
+
+  entity: repo: {
+    path: "/repos/{repo_id}": {
+      rename: param: "repo_id": *"id"
+      op: load: method: *GET
+    }
+    path: "/repos/{repo_id}/forks": {
+      action: "fork": {}
+      rename: param: "repo_id": *"id"
+      op: create: method: *POST
+    }
+  }
+
+  entity: report: {
+    path: "/exports/{export_id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: repository_invitation: {
+    path: "/user/repository_invitations": {
+      op: list: method: *GET
+    }
+    path: "/user/repository_invitations/{invitation_id}": {
+      rename: param: "invitation_id": *"id"
+      op: patch: method: *PATCH
+      op: remove: method: *DELETE
+    }
+  }
+
+  entity: simulation_run: {
+    path: "/simulation_runs": {
+      op: create: method: *POST
+      op: list: method: *GET
+    }
+    path: "/simulation_runs/{run_id}": {
+      rename: param: "run_id": *"id"
+      op: load: method: *GET
+    }
+  }
+
+  entity: team: {
+    path: "/teams/{team_id}": {
+      rename: param: "team_id": *"id"
+      op: load: method: *GET
+    }
+  }
+
+  entity: team_invitation: {
+    path: "/user/team_invitations": {
+      op: list: method: *GET
+    }
+    path: "/user/team_invitations/{invitation_id}": {
+      rename: param: "invitation_id": *"id"
+      op: patch: method: *PATCH
+      op: remove: method: *DELETE
+    }
+  }
+
+  entity: thing: {
+    path: "/things/{thing_id}": {
+      rename: param: "thing_id": *"id"
+      op: load: method: *GET
+      op: patch: method: *PATCH
+      op: patch: transform: res: *("`body.data`")|top
+    }
+  }
+
+  entity: widget: {
+    path: "/widgets": {
+      op: create: method: *POST
+      op: list: method: *GET
+    }
+    path: "/widgets/{widget_id}": {
+      rename: param: "widget_id": *"id"
+      op: load: method: *GET
+    }
+  }
+
+}

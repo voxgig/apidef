@@ -83,8 +83,13 @@ rates twice:
 - An operation's candidate schemas come from its `200` and `201`
   responses, each either the response schema or its array items, or for
   an envelope the record it carries (see [Response
-  envelopes](#response-envelopes)). When there are two, a frequent one
-  drops out unless a literal segment of the operation's own path names it.
+  envelopes](#response-envelopes)). A read (`GET`, `QUERY`, `HEAD` or
+  `OPTIONS`) with neither takes its `202` schema as the candidate when
+  another operation answers with the same record in a `200` or `201`, both
+  read through their envelopes. The rows of
+  [`ts/test/naming-schemas.tsv`](../../ts/test/naming-schemas.tsv) pin it in
+  both builds. When there are two, a frequent one drops out unless a literal segment of
+  the operation's own path names it.
 - When the schema chosen for an operation has a name that differs from the
   entity name the path gives, and does not begin with it, the schema names
   the entity if it is infrequent and the operation's route does not take
@@ -164,9 +169,11 @@ before any entity is named:
   `202` answers takes the entity's fields from that answer too, as a
   `200` would give them.
 - A component is an envelope only when every operation that answers with it
-  in a `200` or `201` response unwraps it. A `202` names nothing: it says
+  in a `200` or `201` response unwraps it. A `202` does not count: it says
   the service accepted the work, and its body may describe the work rather
-  than the resource.
+  than the resource. It names an entity only for a read whose `202` record
+  another operation answers with in a `200` or `201` (see
+  [Component reference counts](#component-reference-counts)).
 - A component is not an envelope when another envelope carries the same
   record. The exception is one page and one single-item envelope where a
   route answering with the item lies at or beneath a route answering with
@@ -269,8 +276,8 @@ or an envelope that carries it (see [Response envelopes](#response-envelopes)).
 `sharedRoutes` then decides which of those routes take their own path's
 name:
 
-- A schema that declares an `id` property, directly or through `allOf`, is a
-  record, and no route takes its own name from it.
+- A schema that declares an `id` property, directly or through `allOf` at
+  any depth, is a record, and no route takes its own name from it.
 - A route is a view, and does not count, when a shorter path made of its
   leading segments names another resource that answers with the same
   schema: `/pages/builds/latest` beneath `/pages/builds`.
@@ -315,6 +322,38 @@ first of these:
   token list, and the accounts of a plan, which are purchases, leave the plan
   list where it is.
 
+One entity's share of a collection path stays where it is, though the path
+has an owner, when it answers with a record of its own unlike the record
+the owner's item route answers with. Both records are read from a `200` or
+`201`, since a `202` may describe the queued work. Both declare an `id`,
+directly or through `allOf` at any depth, and no more than half of the
+share's properties are properties of the item's.
+GitLab's runner registration, `{id, token, token_expires_at}`, stays apart
+from a runner's details, while a create that answers with the item's fields
+under another name joins, and so does a create that only queues a job.
+`distinctShare` and `distinctRecord` in
+[`ts/src/guide/heuristic01.ts`](../../ts/src/guide/heuristic01.ts) are the
+comparison, and the rows of
+[`ts/test/distinct-share.tsv`](../../ts/test/distinct-share.tsv) and
+[`ts/test/distinct-record.tsv`](../../ts/test/distinct-record.tsv) pin them in
+both builds.
+
+An item route can take its collection's entity before the move. A method
+on `/X/{id}` named only from its tag takes the entity of `/X` when all of
+these hold:
+
+- No method on `/X/{id}` answers with a body.
+- The tag names another resource: some route whose path names that
+  resource answers with a component that declares an `id`, directly or
+  through `allOf` at any depth.
+- The entity of `/X` is named after the record `/X` answers with, and that
+  record's name is the one the last segment of `/X` gives.
+
+GitHub's `/user/repository_invitations/{invitation_id}` answers `204` to
+its accept and decline, and its `repos` tag names the repositories. The
+item route joins `repository_invitation`, the entity of its list, rather
+than the list joining `repo`.
+
 The record a route answers with is the component of its response, of the
 items of an array response, or of the record its envelope carries (see
 [Response envelopes](#response-envelopes)). A component measured as a record
@@ -325,7 +364,10 @@ methods are considered, a read before a write, so a list and its create stay
 together. The `guide-collection-owner`
 tests in [`ts/test/apidef.test.ts`](../../ts/test/apidef.test.ts) and
 [`go/apidef_test.go`](../../go/apidef_test.go) pin the order on
-[`ts/test/def/collection-owner-def.json`](../../ts/test/def/collection-owner-def.json).
+[`ts/test/def/collection-owner-def.json`](../../ts/test/def/collection-owner-def.json),
+and the `guide-item-record` tests pin the two exceptions and the read
+answered only by a `202` on
+[`ts/test/def/item-record-def.json`](../../ts/test/def/item-record-def.json).
 
 The move is part of the heuristic: it shapes the base guide and is not made
 again on the unified guide, so a path that `guide.aontu` assigns to an
