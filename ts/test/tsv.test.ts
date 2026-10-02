@@ -45,6 +45,7 @@ import {
 import { makeResolved } from '../dist/resolved'
 
 import { selectTransform } from '../dist/transform/select'
+import { resolveSecurity, findAuthPrefix } from '../dist/transform/top'
 
 import { snakify, camelify, kebabify } from 'jostraca'
 
@@ -736,6 +737,30 @@ describe('tsv-select', () => {
         [name, op.points.map((point: any) => ({ o: point.o, q: point.q }))]))
       assert.deepStrictEqual(points, JSON.parse(row.points))
       assert.deepStrictEqual(warnings, JSON.parse(row.warnings))
+    })
+  }
+})
+
+
+describe('tsv-security', () => {
+  const rows = loadTsv('security')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, async () => {
+      const def = await parse('OpenAPI', row.spec, { file: row.name })
+      assert.deepStrictEqual(resolveSecurity(def), JSON.parse(row.expected))
+    })
+  }
+})
+
+
+describe('tsv-auth-prefix', () => {
+  const rows = loadTsv('auth-prefix')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, () => {
+      assert.strictEqual(findAuthPrefix(JSON.parse(row.text)),
+        '' === row.expected ? null : row.expected)
     })
   }
 })

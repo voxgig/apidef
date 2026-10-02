@@ -1,0 +1,27 @@
+name	text	expected
+explicit-oauth	"Authorization: OAuth 89a229ce1a8dbcf9"	OAuth
+explicit-curl-token	"-H \"Authorization: token OAUTH-TOKEN\""	token
+explicit-bearer-placeholder	"`Authorization: Bearer <access_token>`"	Bearer
+explicit-braces	"Authorization: Token {{token}}"	Token
+explicit-variable	"Authorization: GenieKey $API_KEY"	GenieKey
+explicit-your	"Authorization: Basic YOUR_CREDENTIALS"	Basic
+bare-credential	"Authorization: 89a229ce1a8dbcf9ff30"	
+bare-placeholder	"Authorization: <api-key>"	
+bare-your	"Authorization: your-api-key"	
+line-break	"Authorization: OAuth\nnext prose line"	
+prose-mention	"the Authorization: header is required here"	
+empty	""	
+named-and-example	"JWT Authorization header using the Bearer scheme.\nExample: Bearer eyJhbGciOiJ..."	Bearer
+example	"Example: Bearer eyJhbGciOiJ9.abc"	Bearer
+named-scheme	"Use the Bearer scheme"	Bearer
+named-authentication	"Basic authentication"	Basic
+eg-token	"e.g. Token 0123456789abcdef"	Token
+oauth2-word	"For example: OAuth2 abcdef123456"	OAuth
+not-a-scheme	"This API is the bearer of good news for developers"	
+no-scheme-word	"Provide your token in the header"	
+window-counts-code-units	"Example: \ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00 Bearer abcdefgh"	
+window-fits-code-units	"Example: \ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00 Bearer abcdefgh"	Bearer
+js-space-nbsp	"Example\u00a0Bearer abcdefgh"	Bearer
+js-space-vtab	"Example\u000bBearer abcdefgh"	Bearer
+kelvin-sign-is-not-k	"Example: To\u212aen abcdefgh"	
+long-s-is-not-s	"Ba\u017fic authentication"	
