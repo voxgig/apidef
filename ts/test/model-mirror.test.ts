@@ -71,21 +71,23 @@ describe('model-mirror', () => {
     })
   })
 
-  test('request-body alias applies to a point and its alternatives', () => {
+  test('body alias applies to a request body, a success response and alternatives', () => {
     const rb = {
       kind: 'multipart', media: 'multipart/form-data',
       fields: [{ name: 'file', binary: true, media: 'image/png' }, { name: 'tags', list: true }],
       alternatives: [{ kind: 'raw', media: 'application/octet-stream', binary: true }],
     }
-    const unify = (body: any) => new Aontu().generate(
+    const rs = { kind: 'json', media: 'application/json', alternatives: [{ kind: 'raw', media: 'image/png', binary: true }] }
+    const unify = (bodies: any) => new Aontu().generate(
       readFileSync(Path.join(REPO, 'model', 'apidef.aontu'), 'utf8') + '\n' +
       'main:kit:entity:upload:op:create:' + JSON.stringify({
-        name: 'create', points: [{ m: 'POST', o: '/uploads', s: [{ lit: 'uploads' }], rb: body }],
-      })).main.kit.entity.upload.op.create.points[0].rb
-    assert.deepStrictEqual(unify(rb), rb)
-    assert.throws(() => unify({ ...rb, kind: 'bytes' }), /rb\.kind/)
-    assert.throws(() => unify({ ...rb, alternatives: [{ kind: 'xml', media: 'a/b' }] }),
-      /rb\.alternatives\.0\.kind/)
+        name: 'create', points: [{ m: 'POST', o: '/uploads', s: [{ lit: 'uploads' }], ...bodies }],
+      })).main.kit.entity.upload.op.create.points[0]
+    const point = unify({ rb, rs })
+    assert.deepStrictEqual([point.rb, point.rs], [rb, rs])
+    assert.throws(() => unify({ rb: { ...rb, kind: 'bytes' } }), /rb\.kind/)
+    assert.throws(() => unify({ rs: { ...rs, alternatives: [{ kind: 'xml', media: 'a/b' }] } }),
+      /rs\.alternatives\.0\.kind/)
   })
 
   test('entity-field alias uses compact keys and defaults activation', () => {

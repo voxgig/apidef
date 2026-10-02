@@ -61,6 +61,24 @@
             }
           }
         }
+      },
+      "delete": {
+        "operationId": "removeNote",
+        "parameters": [
+          {
+            "name": "note_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          }
+        }
       }
     },
     "/uploads": {
@@ -178,6 +196,12 @@
                 "schema": {
                   "$ref": "#/components/schemas/Avatar"
                 }
+              },
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
               }
             }
           }
@@ -292,6 +316,45 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Render"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "patchRender",
+        "parameters": [
+          {
+            "name": "render_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "text/plain": {
+              "schema": {
+                "type": "string"
+              }
+            },
+            "text/markdown": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "OK",

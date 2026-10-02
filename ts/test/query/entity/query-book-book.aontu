@@ -43,6 +43,10 @@ main: kit: entity: book: {
           }
           m: "QUERY"
           o: "/api/book"
+          rs: {
+            kind: "json"
+            media: "application/json"
+          }
           s: [
             {
               lit: "api"
@@ -89,6 +93,10 @@ main: kit: entity: book: {
             param: {
               book_id: "id"
             }
+          }
+          rs: {
+            kind: "json"
+            media: "application/json"
           }
           s: [
             {

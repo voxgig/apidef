@@ -65,6 +65,10 @@
               "planet_id"
             ]
           },
+          "rs": {
+            "kind": "json",
+            "media": "application/json"
+          },
           "s": [
             {
               "lit": "api"
@@ -112,6 +116,10 @@
             "exist": [
               "planet_id"
             ]
+          },
+          "rs": {
+            "kind": "json",
+            "media": "application/json"
           },
           "s": [
             {
@@ -173,6 +181,10 @@
             "param": {
               "moon_id": "id"
             }
+          },
+          "rs": {
+            "kind": "json",
+            "media": "application/json"
           },
           "s": [
             {
@@ -301,6 +313,10 @@
             "param": {
               "moon_id": "id"
             }
+          },
+          "rs": {
+            "kind": "json",
+            "media": "application/json"
           },
           "s": [
             {

@@ -100,6 +100,10 @@
               "id": "domain_id"
             }
           },
+          "rs": {
+            "kind": "json",
+            "media": "application/json"
+          },
           "s": [
             {
               "var": "year"
@@ -179,6 +183,10 @@
               "id": "domain_id"
             }
           },
+          "rs": {
+            "kind": "json",
+            "media": "application/json"
+          },
           "s": [
             {
               "var": "year"
@@ -247,6 +255,10 @@
             "param": {
               "kingdom_id": "id"
             }
+          },
+          "rs": {
+            "kind": "json",
+            "media": "application/json"
           },
           "s": [
             {

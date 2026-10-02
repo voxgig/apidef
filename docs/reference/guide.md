@@ -41,6 +41,7 @@ guide
 | `transform.res` | `string` | response envelope unwrap (e.g. `` `body.planet` ``) when the response wraps the entity |
 | `transform.req` | `object` | request envelope wrap when the body wraps the entity |
 | `body.media` | `string` | the media type the request body is sent as; the base guide never writes it, so it is yours to set (see the model's `rb`) |
+| `response.media` | `string` | the media type to ask a success response for; likewise yours to set (see the model's `rs`) |
 
 ### `GuideMetrics`
 
@@ -463,6 +464,9 @@ guide: entity: pull: path: "/repos/{owner}/{repo}/pulls/{pull_number}/merge": {
 # Send an upload's body as bytes the API accepts, where the definition
 # declares only `text/plain`.
 guide: entity: upload: path: "/spaces/{space_id}/uploads": op: create: body: media: "application/octet-stream"
+
+# Ask for the image an operation answers with, rather than the JSON beside it.
+guide: entity: avatar: path: "/avatars/{avatar_id}": op: load: response: media: "image/png"
 ```
 
 ### Covering a subset of a large API

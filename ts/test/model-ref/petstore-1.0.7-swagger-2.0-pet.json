@@ -221,6 +221,10 @@
             "kind": "multipart",
             "media": "multipart/form-data"
           },
+          "rs": {
+            "kind": "json",
+            "media": "application/json"
+          },
           "s": [
             {
               "lit": "pet"
@@ -267,6 +271,16 @@
               "status"
             ]
           },
+          "rs": {
+            "alternatives": [
+              {
+                "kind": "raw",
+                "media": "application/xml"
+              }
+            ],
+            "kind": "json",
+            "media": "application/json"
+          },
           "s": [
             {
               "lit": "pet"
@@ -304,6 +318,16 @@
             "exist": [
               "tag"
             ]
+          },
+          "rs": {
+            "alternatives": [
+              {
+                "kind": "raw",
+                "media": "application/xml"
+              }
+            ],
+            "kind": "json",
+            "media": "application/json"
           },
           "s": [
             {
@@ -351,6 +375,16 @@
             "param": {
               "petId": "id"
             }
+          },
+          "rs": {
+            "alternatives": [
+              {
+                "kind": "raw",
+                "media": "application/xml"
+              }
+            ],
+            "kind": "json",
+            "media": "application/json"
           },
           "s": [
             {

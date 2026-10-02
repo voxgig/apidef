@@ -107,6 +107,10 @@
               "did": "id"
             }
           },
+          "rs": {
+            "kind": "json",
+            "media": "application/json"
+          },
           "s": [
             {
               "var": "year"
@@ -173,6 +177,10 @@
               "year"
             ]
           },
+          "rs": {
+            "kind": "json",
+            "media": "application/json"
+          },
           "s": [
             {
               "var": "year"
@@ -222,6 +230,10 @@
               "id",
               "year"
             ]
+          },
+          "rs": {
+            "kind": "json",
+            "media": "application/json"
           },
           "s": [
             {
@@ -275,6 +287,10 @@
               "id",
               "year"
             ]
+          },
+          "rs": {
+            "kind": "json",
+            "media": "application/json"
           },
           "s": [
             {
