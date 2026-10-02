@@ -3,6 +3,7 @@
 package apidef
 
 import (
+	"regexp"
 	"sort"
 	"strings"
 )
@@ -16,6 +17,8 @@ const (
 	multipartMedia = "multipart/form-data"
 	octetMedia     = "application/octet-stream"
 )
+
+var successRE = regexp.MustCompile(`(?i)^2(\d\d|xx)$`)
 
 var schemaTypingKeys = []string{
 	"type", "format", "properties", "additionalProperties", "items",
@@ -34,7 +37,8 @@ type rankedBody struct {
 	body     map[string]any
 }
 
-// BodyTransform records the request body of each HTTP point that sends more than JSON.
+// BodyTransform records each HTTP point's request body, when it is more than JSON,
+// and the media types its success response declares.
 func BodyTransform(ctx *ApiDefContext) (*TransformResult, error) {
 	entities, _ := getKit(ctx)["entity"].(map[string]any)
 	msg := "body "
@@ -52,9 +56,12 @@ func BodyTransform(ctx *ApiDefContext) (*TransformResult, error) {
 				}
 				method, _ := point["m"].(string)
 				path, _ := point["o"].(string)
-				rb := requestBody(ctx.Def, method, path, guideBodyMedia(ctx.Guide, entname, method, path))
-				if rb != nil {
+				bodyMedia, responseMedia := guideBodyMedia(ctx.Guide, entname, method, path)
+				if rb := requestBody(ctx.Def, method, path, bodyMedia); rb != nil {
 					point["rb"] = rb
+				}
+				if rs := responseBody(ctx.Def, method, path, responseMedia); rs != nil {
+					point["rs"] = rs
 				}
 			}
 		}
@@ -64,7 +71,7 @@ func BodyTransform(ctx *ApiDefContext) (*TransformResult, error) {
 	return &TransformResult{OK: true, Msg: msg}, nil
 }
 
-func guideBodyMedia(guide map[string]any, entname string, method string, path string) string {
+func guideBodyMedia(guide map[string]any, entname string, method string, path string) (string, string) {
 	gents, _ := guide["entity"].(map[string]any)
 	gent, _ := gents[entname].(map[string]any)
 	gpaths, _ := gent["path"].(map[string]any)
@@ -75,10 +82,11 @@ func guideBodyMedia(guide map[string]any, entname string, method string, path st
 		gmethod, _ := gop["method"].(string)
 		if guideActive(gop) && strings.ToUpper(gmethod) == strings.ToUpper(method) {
 			body, _ := gop["body"].(map[string]any)
-			return textOf(body["media"])
+			response, _ := gop["response"].(map[string]any)
+			return textOf(body["media"]), textOf(response["media"])
 		}
 	}
-	return ""
+	return "", ""
 }
 
 // Nil when the operation sends JSON alone.
@@ -97,6 +105,38 @@ func requestBody(def map[string]any, method string, path string, media string) m
 		offers = openapiOffers(opdef)
 	}
 
+	body := chooseBody(offers, media)
+	if body == nil {
+		return nil
+	}
+	if body["kind"] == "json" && mediaEssence(body["media"].(string)) == jsonMedia {
+		alternatives, _ := body["alternatives"].([]any)
+		allJSON := true
+		for _, other := range alternatives {
+			allJSON = allJSON && other.(map[string]any)["kind"] == "json"
+		}
+		if allJSON {
+			return nil
+		}
+	}
+	return body
+}
+
+// Nil when no success response declares a body.
+func responseBody(def map[string]any, method string, path string, media string) map[string]any {
+	paths, _ := def["paths"].(map[string]any)
+	pathdef, _ := paths[path].(map[string]any)
+	opdef, _ := pathdef[strings.ToLower(method)].(map[string]any)
+	if opdef == nil {
+		return nil
+	}
+	if def["swagger"] != nil {
+		return chooseBody(swaggerResponseOffers(def, opdef), media)
+	}
+	return chooseBody(openapiResponseOffers(opdef), media)
+}
+
+func chooseBody(offers []bodyOffer, media string) map[string]any {
 	sort.SliceStable(offers, func(i, j int) bool { return lessUTF16(offers[i].media, offers[j].media) })
 	ranked := make([]rankedBody, 0, len(offers))
 	for _, offer := range offers {
@@ -142,18 +182,11 @@ func requestBody(def map[string]any, method string, path string, media string) m
 	}
 
 	alternatives := []any{}
-	allJSON := true
 	for _, body := range bodies {
 		if body["media"] != chosen["media"] {
 			alternatives = append(alternatives, body)
-			allJSON = allJSON && body["kind"] == "json"
 		}
 	}
-
-	if chosen["kind"] == "json" && mediaEssence(chosen["media"].(string)) == jsonMedia && allJSON {
-		return nil
-	}
-
 	if 0 == len(alternatives) {
 		return chosen
 	}
@@ -171,6 +204,58 @@ func openapiOffers(opdef map[string]any) []bodyOffer {
 	for _, media := range sortedKeys(content) {
 		mt, _ := content[media].(map[string]any)
 		offers = append(offers, bodyOffer{media: media, schema: mt["schema"], encoding: mt["encoding"]})
+	}
+	return offers
+}
+
+// A response's `encoding` is ignored, as OpenAPI applies it to request bodies only.
+func openapiResponseOffers(opdef map[string]any) []bodyOffer {
+	responses, _ := opdef["responses"].(map[string]any)
+	offers := []bodyOffer{}
+	for _, status := range sortedKeys(responses) {
+		if !successRE.MatchString(status) {
+			continue
+		}
+		response, _ := responses[status].(map[string]any)
+		content, _ := response["content"].(map[string]any)
+		for _, media := range sortedKeys(content) {
+			mt, _ := content[media].(map[string]any)
+			offers = append(offers, bodyOffer{media: media, schema: mt["schema"]})
+		}
+	}
+	return offers
+}
+
+// A Swagger response with no schema has no body.
+func swaggerResponseOffers(def map[string]any, opdef map[string]any) []bodyOffer {
+	responses, _ := opdef["responses"].(map[string]any)
+	var schema any
+	for _, status := range sortedKeys(responses) {
+		response, _ := responses[status].(map[string]any)
+		if successRE.MatchString(status) && response["schema"] != nil {
+			schema = response["schema"]
+			break
+		}
+	}
+	if schema == nil {
+		return nil
+	}
+	declaredList, isList := opdef["produces"].([]any)
+	if !isList {
+		declaredList, _ = def["produces"].([]any)
+	}
+	produces := []string{}
+	for _, media := range declaredList {
+		if text, ok := media.(string); ok && textOf(text) != "" {
+			produces = append(produces, text)
+		}
+	}
+	if 0 == len(produces) {
+		produces = []string{jsonMedia}
+	}
+	offers := []bodyOffer{}
+	for _, media := range produces {
+		offers = append(offers, bodyOffer{media: media, schema: schema})
 	}
 	return offers
 }
@@ -357,8 +442,7 @@ func bodyField(name string, prop any, encoding any, arrays string) map[string]an
 	}
 	itemMap, _ := item.(map[string]any)
 	field := map[string]any{"name": name}
-	if itemMap != nil && !encodedText(itemMap) &&
-		(itemMap["format"] == "binary" || itemMap["type"] == "file" || itemMap["contentMediaType"] != nil) {
+	if binarySchema(itemMap) {
 		field["binary"] = true
 	}
 	enc, _ := encoding.(map[string]any)
@@ -426,7 +510,8 @@ func rawBinary(mediaType string, schema any) bool {
 
 func binarySchema(schema any) bool {
 	m, ok := schema.(map[string]any)
-	return ok && m != nil && !encodedText(m) && (m["format"] == "binary" || m["contentMediaType"] != nil)
+	return ok && m != nil && !encodedText(m) &&
+		(m["format"] == "binary" || m["type"] == "file" || m["contentMediaType"] != nil)
 }
 
 func encodedText(schema any) bool {

@@ -45,9 +45,9 @@ import {
 import { makeResolved } from '../dist/resolved'
 
 import { selectTransform } from '../dist/transform/select'
-import { requestBody } from '../dist/transform/body'
+import { requestBody, responseBody } from '../dist/transform/body'
 import type {
-  ModelPoint, ModelRequestBody, ModelRequestBodyField, RequestBodyKind,
+  ModelPoint, ModelBody, ModelBodyField, BodyKind, ModelRequestBody,
 } from '../dist/apidef'
 import { Aontu } from 'aontu'
 import { resolveSecurity, findAuthPrefix } from '../dist/transform/top'
@@ -1055,7 +1055,7 @@ describe('tsv-request-body', () => {
 })
 
 
-// The package root types a point's request body, and the schema keeps it.
+// The package root types a point's bodies, and the schema keeps them.
 describe('tsv-point-body', () => {
   const schema = Fs.readFileSync(Path.join(__dirname, '..', '..', 'model', 'apidef.aontu'), 'utf8')
   const rows = loadTsv('point-body')
@@ -1065,11 +1065,28 @@ describe('tsv-point-body', () => {
       const point: ModelPoint = JSON.parse(row.point)
       const unified: ModelPoint = new Aontu().generate(schema + '\nmain:kit:entity:upload:op:create:' +
         JSON.stringify({ name: 'create', points: [point] })).main.kit.entity.upload.op.create.points[0]
-      const body: ModelRequestBody | null = unified.rb ?? null
-      assert.deepStrictEqual(body, JSON.parse(row.expected))
-      const kind: RequestBodyKind | undefined = body?.kind
-      const fields: ModelRequestBodyField[] = body?.fields ?? []
-      assert.deepStrictEqual([kind, fields], [point.rb?.kind, point.rb?.fields ?? []])
+      const request: ModelRequestBody | undefined = unified.rb
+      const response: ModelBody | undefined = unified.rs
+      assert.deepStrictEqual(JSON.parse(JSON.stringify({ rb: request, rs: response })),
+        JSON.parse(row.expected))
+      const kinds: BodyKind[] = [request, response].filter((body) => null != body).map((body) => body!.kind)
+      const fields: ModelBodyField[] = [...(request?.fields ?? []), ...(response?.fields ?? [])]
+      assert.deepStrictEqual([kinds, fields], [
+        [point.rb, point.rs].filter((body) => null != body).map((body) => body!.kind),
+        [...(point.rb?.fields ?? []), ...(point.rs?.fields ?? [])]])
+    })
+  }
+})
+
+
+describe('tsv-response-body', () => {
+  const rows = loadTsv('response-body')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, () => {
+      const media = '' === row.media ? undefined : row.media
+      assert.deepStrictEqual(responseBody(JSON.parse(row.def), 'GET', '/x', media) ?? null,
+        JSON.parse(row.expected))
     })
   }
 })

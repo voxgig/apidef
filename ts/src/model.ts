@@ -129,10 +129,10 @@ type ModelPathSegment = {
 }
 
 
-type RequestBodyKind = 'json' | 'raw' | 'multipart' | 'form'
+type BodyKind = 'json' | 'raw' | 'multipart' | 'form'
 
 
-type ModelRequestBodyField = {
+type ModelBodyField = {
   name: string
   binary?: boolean
   list?: boolean
@@ -141,13 +141,19 @@ type ModelRequestBodyField = {
 }
 
 
-type ModelRequestBody = {
-  kind: RequestBodyKind
+// One media type of a request body or a success response.
+type ModelBody = {
+  kind: BodyKind
   media: string
   binary?: boolean
-  fields?: ModelRequestBodyField[]
-  alternatives?: ModelRequestBody[]
+  fields?: ModelBodyField[]
+  alternatives?: ModelBody[]
 }
+
+
+type RequestBodyKind = BodyKind
+type ModelRequestBodyField = ModelBodyField
+type ModelRequestBody = ModelBody
 
 
 type ModelPoint = {
@@ -178,7 +184,8 @@ type ModelPoint = {
     exist: string[]
     $action?: string
   }
-  rb?: ModelRequestBody
+  rb?: ModelBody
+  rs?: ModelBody
 }
 
 
@@ -272,6 +279,9 @@ export type {
   ModelArg,
   ModelPoint,
   ModelPathSegment,
+  BodyKind,
+  ModelBodyField,
+  ModelBody,
   RequestBodyKind,
   ModelRequestBodyField,
   ModelRequestBody,

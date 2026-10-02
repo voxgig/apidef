@@ -663,6 +663,9 @@ type GuidePathOp = {
     body?: {
         media?: string;
     };
+    response?: {
+        media?: string;
+    };
     transform: {
         req: any;
         res: any;

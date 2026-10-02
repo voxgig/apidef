@@ -38,7 +38,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 // A point records its request body when the body is not JSON alone, and the
-// guide chooses the media type the body is sent as.
+// media types its success response declares; the guide chooses either.
 const Fs = __importStar(require("node:fs"));
 const Os = __importStar(require("node:os"));
 const Path = __importStar(require("node:path"));
@@ -46,8 +46,10 @@ const node_test_1 = require("node:test");
 const node_assert_1 = __importDefault(require("node:assert"));
 const apidef_1 = require("../dist/apidef");
 const DEF = 'request-body-def.json';
-// The heuristic alone would choose text/markdown, first in code point order.
-const GUIDE = 'guide: entity: render: path: "/renders": op: create: body: media: "text/plain"\n';
+// Alone, the heuristic chooses text/markdown, first in code point order, and JSON.
+const GUIDE = 'guide: entity: render: path: "/renders": op: create: body: media: "text/plain"\n' +
+    'guide: entity: avatar: path: "/avatars/{avatar_id}": op: load: response: media: "image/png"\n';
+const JSON_BODY = { kind: 'json', media: 'application/json' };
 (0, node_test_1.describe)('body', () => {
     let dir;
     let bres;
@@ -78,8 +80,8 @@ const GUIDE = 'guide: entity: render: path: "/renders": op: create: body: media:
     (0, node_test_1.after)(() => {
         Fs.rmSync(dir, { recursive: true, force: true });
     });
-    const bodies = (entity, op) => bres.apimodel.main.kit.entity[entity].op[op].points
-        .map((point) => [point.o, point.rb ?? null]);
+    const bodies = (entity, op, key = 'rb') => bres.apimodel.main.kit.entity[entity].op[op].points
+        .map((point) => [point.o, point[key] ?? null]);
     (0, node_test_1.test)('a JSON body and a read record nothing', () => {
         node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
         node_assert_1.default.deepStrictEqual(bodies('note', 'create'), [['/notes', null]]);
@@ -104,10 +106,23 @@ const GUIDE = 'guide: entity: render: path: "/renders": op: create: body: media:
                     ],
                 }]]);
     });
-    (0, node_test_1.test)('the guide chooses the media type a body is sent as', () => {
+    (0, node_test_1.test)('a success response records its media types, and a bodiless one none', () => {
+        for (const entity of ['note', 'render', 'subscription', 'upload']) {
+            for (const op of ['create', 'load']) {
+                node_assert_1.default.deepStrictEqual(bodies(entity, op, 'rs').map(([, rs]) => rs), [JSON_BODY]);
+            }
+        }
+        node_assert_1.default.deepStrictEqual(bodies('avatar', 'create', 'rs'), [['/avatars', JSON_BODY]]);
+        node_assert_1.default.deepStrictEqual(bodies('note', 'remove', 'rs'), [['/notes/{note_id}', null]]);
+    });
+    (0, node_test_1.test)('the guide chooses the media types a body is sent and answered in', () => {
         node_assert_1.default.deepStrictEqual(bodies('render', 'create'), [['/renders', {
                     kind: 'raw', media: 'text/plain',
                     alternatives: [{ kind: 'raw', media: 'text/markdown' }],
+                }]]);
+        node_assert_1.default.deepStrictEqual(bodies('avatar', 'load', 'rs'), [['/avatars/{avatar_id}', {
+                    kind: 'raw', media: 'image/png', binary: true,
+                    alternatives: [JSON_BODY],
                 }]]);
     });
 });

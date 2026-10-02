@@ -61,6 +61,24 @@
             }
           }
         }
+      },
+      "delete": {
+        "operationId": "removeNote",
+        "parameters": [
+          {
+            "name": "note_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          }
+        }
       }
     },
     "/uploads": {
@@ -177,6 +195,12 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Avatar"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
                 }
               }
             }

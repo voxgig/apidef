@@ -43,7 +43,8 @@ op.create
        ├─ g              parameters to send
        ├─ q              how to identify the target instance
        ├─ t              request/response envelope handling
-       └─ rb             how the request body is sent, when not as JSON
+       ├─ rb             how the request body is sent, when not as JSON
+       └─ rs             the media types a success response declares
 ```
 
 Keeping `points[]` plural is what lets the model represent actions, alternate
@@ -86,7 +87,16 @@ and a form before a raw body, which carries one value. The other media
 types stay beside the choice as alternatives, for a generator that lets a
 caller pick. Like any inference, the choice can be wrong, and `body.media`
 in `guide.aontu` names another media type, or one the definition left out.
-The rules themselves are in the [model reference](../reference/model.md#modelrequestbody).
+The rules themselves are in the [model reference](../reference/model.md#modelbody).
+
+A success response is recorded the other way round. `rs` is present whenever
+a `2XX` response declares a body, JSON alone included, because a client asks
+for what it accepts, and the two cases a generator has to tell apart are an
+operation that answers JSON, whose client can ask for JSON, and one that
+declares nothing, whose client should not ask for anything. Asking every
+server for JSON would turn a call that works today into a refusal wherever an
+operation answers only an image or a page. The same ranking puts JSON first
+when it is offered, and `response.media` in `guide.aontu` names another type.
 
 ## Fields carry types and per-op overrides
 

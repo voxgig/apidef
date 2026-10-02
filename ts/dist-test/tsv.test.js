@@ -859,7 +859,7 @@ function loadTsv(name) {
         });
     }
 });
-// The package root types a point's request body, and the schema keeps it.
+// The package root types a point's bodies, and the schema keeps them.
 (0, node_test_1.describe)('tsv-point-body', () => {
     const schema = Fs.readFileSync(Path.join(__dirname, '..', '..', 'model', 'apidef.aontu'), 'utf8');
     const rows = loadTsv('point-body');
@@ -869,11 +869,25 @@ function loadTsv(name) {
             const point = JSON.parse(row.point);
             const unified = new aontu_1.Aontu().generate(schema + '\nmain:kit:entity:upload:op:create:' +
                 JSON.stringify({ name: 'create', points: [point] })).main.kit.entity.upload.op.create.points[0];
-            const body = unified.rb ?? null;
-            node_assert_1.default.deepStrictEqual(body, JSON.parse(row.expected));
-            const kind = body?.kind;
-            const fields = body?.fields ?? [];
-            node_assert_1.default.deepStrictEqual([kind, fields], [point.rb?.kind, point.rb?.fields ?? []]);
+            const request = unified.rb;
+            const response = unified.rs;
+            node_assert_1.default.deepStrictEqual(JSON.parse(JSON.stringify({ rb: request, rs: response })), JSON.parse(row.expected));
+            const kinds = [request, response].filter((body) => null != body).map((body) => body.kind);
+            const fields = [...(request?.fields ?? []), ...(response?.fields ?? [])];
+            node_assert_1.default.deepStrictEqual([kinds, fields], [
+                [point.rb, point.rs].filter((body) => null != body).map((body) => body.kind),
+                [...(point.rb?.fields ?? []), ...(point.rs?.fields ?? [])]
+            ]);
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-response-body', () => {
+    const rows = loadTsv('response-body');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, () => {
+            const media = '' === row.media ? undefined : row.media;
+            node_assert_1.default.deepStrictEqual((0, body_1.responseBody)(JSON.parse(row.def), 'GET', '/x', media) ?? null, JSON.parse(row.expected));
         });
     }
 });

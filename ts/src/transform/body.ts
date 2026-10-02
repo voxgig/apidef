@@ -7,20 +7,22 @@ import { KIT } from '../types'
 import { guideActive, mergedProperties, sortedKeys } from '../utility'
 
 import type {
+  BodyKind,
+  ModelBody,
+  ModelBodyField,
   ModelPoint,
-  ModelRequestBody,
-  ModelRequestBodyField,
-  RequestBodyKind,
 } from '../model'
 
 
 // JSON first, as generated SDKs send it; then the kinds by what each can carry.
-const KIND_ORDER: RequestBodyKind[] = ['json', 'multipart', 'form', 'raw']
+const KIND_ORDER: BodyKind[] = ['json', 'multipart', 'form', 'raw']
 
 const JSON_MEDIA = 'application/json'
 const FORM_MEDIA = 'application/x-www-form-urlencoded'
 const MULTIPART_MEDIA = 'multipart/form-data'
 const OCTET_MEDIA = 'application/octet-stream'
+
+const SUCCESS_RE = /^2(\d\d|xx)$/i
 
 const TYPING_KEYS = [
   'type', 'format', 'properties', 'additionalProperties', 'items',
@@ -50,9 +52,14 @@ const bodyTransform: Transform = async function(
         if ('graphql' === mpoint.k) {
           continue
         }
-        const rb = requestBody(def, mpoint.m, mpoint.o, guideMedia(guide, entname, mpoint))
+        const media = guideMedia(guide, entname, mpoint)
+        const rb = requestBody(def, mpoint.m, mpoint.o, media.body)
         if (null != rb) {
           mpoint.rb = rb
+        }
+        const rs = responseBody(def, mpoint.m, mpoint.o, media.response)
+        if (null != rs) {
+          mpoint.rs = rs
         }
       }
     }
@@ -63,16 +70,16 @@ const bodyTransform: Transform = async function(
 }
 
 
-function guideMedia(guide: any, entname: string, mpoint: ModelPoint): string | undefined {
+function guideMedia(guide: any, entname: string, mpoint: ModelPoint): { body?: string, response?: string } {
   const gops = guide?.entity?.[entname]?.path?.[mpoint.o]?.op ?? {}
   for (const opname of sortedKeys(gops)) {
     const gop = gops[opname]
     if (guideActive(gop) &&
       String(gop?.method ?? '').toUpperCase() === String(mpoint.m).toUpperCase()) {
-      return textOf(gop?.body?.media)
+      return { body: textOf(gop?.body?.media), response: textOf(gop?.response?.media) }
     }
   }
-  return undefined
+  return {}
 }
 
 
@@ -82,16 +89,43 @@ function requestBody(
   method: string,
   path: string,
   media?: string,
-): ModelRequestBody | undefined {
+): ModelBody | undefined {
   const pathdef = def?.paths?.[path]
   const opdef = pathdef?.[String(method).toLowerCase()]
   if (!isMap(opdef)) {
     return undefined
   }
 
-  const offers = null != def.swagger ?
-    swaggerOffers(def, pathdef, opdef) : openapiOffers(opdef)
+  const body = chooseBody(null != def.swagger ?
+    swaggerOffers(def, pathdef, opdef) : openapiOffers(opdef), media)
 
+  if (null == body || ('json' === body.kind && JSON_MEDIA === essence(body.media) &&
+    (body.alternatives ?? []).every((other) => 'json' === other.kind))) {
+    return undefined
+  }
+
+  return body
+}
+
+
+// Undefined when no success response declares a body.
+function responseBody(
+  def: any,
+  method: string,
+  path: string,
+  media?: string,
+): ModelBody | undefined {
+  const opdef = def?.paths?.[path]?.[String(method).toLowerCase()]
+  if (!isMap(opdef)) {
+    return undefined
+  }
+
+  return chooseBody(null != def.swagger ?
+    swaggerResponseOffers(def, opdef) : openapiResponseOffers(opdef), media)
+}
+
+
+function chooseBody(offers: Offer[], media?: string): ModelBody | undefined {
   const ranked = offers
     .sort((a, b) => compare(a.media, b.media))
     .map((offer) => ({ declared: offer.media.trim().toLowerCase(), body: describeBody(offer) }))
@@ -111,12 +145,6 @@ function requestBody(
   }
 
   const alternatives = bodies.filter((body) => body.media !== chosen.media)
-
-  if ('json' === chosen.kind && JSON_MEDIA === essence(chosen.media) &&
-    alternatives.every((body) => 'json' === body.kind)) {
-    return undefined
-  }
-
   return 0 < alternatives.length ? { ...chosen, alternatives } : chosen
 }
 
@@ -131,6 +159,18 @@ function openapiOffers(opdef: any): Offer[] {
     schema: content[media]?.schema,
     encoding: content[media]?.encoding,
   }))
+}
+
+
+// A response's `encoding` is ignored, as OpenAPI applies it to request bodies only.
+function openapiResponseOffers(opdef: any): Offer[] {
+  const responses = isMap(opdef.responses) ? opdef.responses : {}
+  return sortedKeys(responses).filter((status) => SUCCESS_RE.test(status))
+    .flatMap((status) => {
+      const content = responses[status]?.content
+      return isMap(content) ?
+        Object.keys(content).map((media) => ({ media, schema: content[media]?.schema })) : []
+    })
 }
 
 
@@ -176,6 +216,21 @@ function swaggerParams(pathdef: any, opdef: any): any[] {
 }
 
 
+// A Swagger response with no schema has no body.
+function swaggerResponseOffers(def: any, opdef: any): Offer[] {
+  const responses = isMap(opdef.responses) ? opdef.responses : {}
+  const status = sortedKeys(responses).find((code) =>
+    SUCCESS_RE.test(code) && null != responses[code]?.schema)
+  if (null == status) {
+    return []
+  }
+  const declared = listOf(Array.isArray(opdef.produces) ? opdef.produces : def.produces)
+    .filter((media) => null != textOf(media))
+  return (0 < declared.length ? declared : [JSON_MEDIA])
+    .map((media: string) => ({ media, schema: responses[status].schema }))
+}
+
+
 function formProperty(param: any): any {
   const prop: any = {}
   for (const key of ['type', 'format', 'items', 'collectionFormat']) {
@@ -187,7 +242,7 @@ function formProperty(param: any): any {
 }
 
 
-function describeBody(offer: Offer): ModelRequestBody {
+function describeBody(offer: Offer): ModelBody {
   const media = offer.media.trim()
   const type = essence(media)
   const [major, minor = ''] = type.split('/')
@@ -211,7 +266,7 @@ function describeBody(offer: Offer): ModelRequestBody {
       { kind: 'json', media: JSON_MEDIA }
   }
 
-  const body: ModelRequestBody = { kind: 'raw', media }
+  const body: ModelBody = { kind: 'raw', media }
   if (rawBinary(type, offer.schema)) {
     body.binary = true
   }
@@ -219,7 +274,7 @@ function describeBody(offer: Offer): ModelRequestBody {
 }
 
 
-function withFields(body: ModelRequestBody, offer: Offer): ModelRequestBody {
+function withFields(body: ModelBody, offer: Offer): ModelBody {
   const props = mergedProperties(offer.schema)
   const fields = sortedKeys(props).map((name: string) =>
     bodyField(name, props![name], offer.encoding?.[name], offer.swagger ? 'swagger' : body.kind))
@@ -230,11 +285,11 @@ function withFields(body: ModelRequestBody, offer: Offer): ModelRequestBody {
 }
 
 
-function bodyField(name: string, prop: any, encoding: any, arrays: string): ModelRequestBodyField {
+function bodyField(name: string, prop: any, encoding: any, arrays: string): ModelBodyField {
   const list = hasType(prop, 'array')
   const item = list ? prop.items : prop
-  const field: ModelRequestBodyField = { name }
-  if (binarySchema(item) || (isMap(item) && 'file' === item.type)) {
+  const field: ModelBodyField = { name }
+  if (binarySchema(item)) {
     field.binary = true
   }
   if (list) {
@@ -289,7 +344,7 @@ function rawBinary(type: string, schema: any): boolean {
 
 function binarySchema(schema: any): boolean {
   return isMap(schema) && !encodedText(schema) &&
-    ('binary' === schema.format || null != schema.contentMediaType)
+    ('binary' === schema.format || 'file' === schema.type || null != schema.contentMediaType)
 }
 
 
@@ -314,7 +369,7 @@ function fielded(type: string): boolean {
 }
 
 
-function byPreference(a: ModelRequestBody, b: ModelRequestBody): number {
+function byPreference(a: ModelBody, b: ModelBody): number {
   return KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) ||
     Number(JSON_MEDIA !== essence(a.media)) - Number(JSON_MEDIA !== essence(b.media)) ||
     compare(a.media, b.media)
@@ -355,4 +410,5 @@ function compare(a: string, b: string): number {
 export {
   bodyTransform,
   requestBody,
+  responseBody,
 }

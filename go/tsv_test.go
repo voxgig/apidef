@@ -1279,7 +1279,7 @@ func TestRequestBody(t *testing.T) {
 	}
 }
 
-// The exported ModelPoint keeps a point's request body through a round trip.
+// The exported ModelPoint keeps a point's bodies through a round trip.
 func TestPointBody(t *testing.T) {
 	rows := loadTsv(t, "point-body")
 	if len(rows) == 0 {
@@ -1295,14 +1295,45 @@ func TestPointBody(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			var got map[string]any
-			var want any
+			var got, want map[string]any
 			json.Unmarshal(data, &got)
 			if err := json.Unmarshal([]byte(row["expected"]), &want); err != nil {
 				t.Fatalf("bad expected %q: %v", row["expected"], err)
 			}
-			if !reflect.DeepEqual(got["rb"], want) {
-				t.Errorf("rb after a round trip\ngot  %s\nwant %s", asJSON(got["rb"]), asJSON(want))
+			bodies := map[string]any{}
+			for _, key := range []string{"rb", "rs"} {
+				if got[key] != nil {
+					bodies[key] = got[key]
+				}
+			}
+			if !reflect.DeepEqual(bodies, want) {
+				t.Errorf("bodies after a round trip\ngot  %s\nwant %s", asJSON(bodies), asJSON(want))
+			}
+		})
+	}
+}
+
+func TestResponseBody(t *testing.T) {
+	rows := loadTsv(t, "response-body")
+	if len(rows) == 0 {
+		t.Fatal("no response-body rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var def map[string]any
+			if err := json.Unmarshal([]byte(row["def"]), &def); err != nil {
+				t.Fatalf("bad def %q: %v", row["def"], err)
+			}
+			var got, want any
+			if rs := responseBody(def, "GET", "/x", row["media"]); rs != nil {
+				b, _ := json.Marshal(rs)
+				json.Unmarshal(b, &got)
+			}
+			if err := json.Unmarshal([]byte(row["expected"]), &want); err != nil {
+				t.Fatalf("bad expected %q: %v", row["expected"], err)
+			}
+			if !reflect.DeepEqual(got, want) {
+				t.Errorf("responseBody\ngot  %s\nwant %s", asJSON(got), asJSON(want))
 			}
 		})
 	}

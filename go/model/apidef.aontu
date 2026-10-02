@@ -96,8 +96,11 @@ main: kit: type: type({ # Reusable model types.
       cookie?: {} # Cookie conditions.
       '$action'?: string # Action discriminator for a non-CRUD operation.
     }
-    rb?: %request-body & { # Request body, when it is not JSON alone.
-      alternatives?: [ &: %request-body ] # Other accepted media types, in preference order.
+    rb?: %body & { # Request body, when it is not JSON alone.
+      alternatives?: [ &: %body ] # Other accepted media types, in preference order.
+    }
+    rs?: %body & { # Success response body, when a success response declares one.
+      alternatives?: [ &: %body ] # Other declared media types, in preference order.
     }
     co?: { # Identity of the source operation's contract.
       version: 2 # Contract metadata version.
@@ -123,9 +126,9 @@ main: kit: type: type({ # Reusable model types.
     }
   }
 
-  %request-body: { # One media type a request body can be sent as.
+  %body: { # One media type of a request body or a success response.
     kind: 'json' | 'raw' | 'multipart' | 'form' # How the body is encoded.
-    media: string # Media type sent as the content type.
+    media: string # Media type sent as the content type, or asked for as accepted.
     binary?: boolean # Whether a raw body is bytes rather than text.
     fields?: [ &: { # Fields of a multipart or form body, in code point order.
       name: string # Field name in the body.

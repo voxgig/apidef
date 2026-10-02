@@ -72,6 +72,10 @@ main: kit: entity: moon: {
               "planet_id"
             ]
           }
+          rs: {
+            kind: "json"
+            media: "application/json"
+          }
           s: [
             {
               lit: "api"
@@ -119,6 +123,10 @@ main: kit: entity: moon: {
             exist: [
               "planet_id"
             ]
+          }
+          rs: {
+            kind: "json"
+            media: "application/json"
           }
           s: [
             {
@@ -180,6 +188,10 @@ main: kit: entity: moon: {
             param: {
               moon_id: "id"
             }
+          }
+          rs: {
+            kind: "json"
+            media: "application/json"
           }
           s: [
             {
@@ -308,6 +320,10 @@ main: kit: entity: moon: {
             param: {
               moon_id: "id"
             }
+          }
+          rs: {
+            kind: "json"
+            media: "application/json"
           }
           s: [
             {
