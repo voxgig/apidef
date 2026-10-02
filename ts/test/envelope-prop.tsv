@@ -47,3 +47,9 @@ resprops	opname	expected
 {"data":{"$ref":"#/components/schemas/Annotation"},"timeframe":{"type":"array","items":{"type":"integer"}}}	load	
 {"state":{"oneOf":[{"type":"string"},{"type":"null"}]},"statuses":{"type":"array","items":{"$ref":"#/components/schemas/Status"}},"repository":{"$ref":"#/components/schemas/Repository"}}	list	
 {"state":{"type":"string","enum":["open","closed"],"x-ref":"#/components/schemas/State"},"statuses":{"type":"array","items":{"$ref":"#/components/schemas/Status"}},"repository":{"$ref":"#/components/schemas/Repository"}}	list	
+{"id":{"allOf":[{"type":"string","x-ref":"#/components/schemas/Id"},{"description":"The thing's id."}]},"status":{"type":"string"}}	load	
+{"id":{"type":"string"},"status":{"type":"string"}}	load	
+{"data":{"description":"The thing.","allOf":[{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/components/schemas/Thing"}]},"status":{"type":"string"}}	load	data
+{"id":{"oneOf":[{"type":"string"},{"type":"integer"}]},"status":{"type":"string"}}	load	
+{"data":{"oneOf":[{"type":"string"},{"type":"object","properties":{"id":{"type":"string"}}}]},"status":{"type":"string"}}	load	data
+{"data":{"type":"array","items":{"$ref":"#/components/schemas/Thing"}},"region":{"allOf":[{"type":"string","x-ref":"#/components/schemas/Region"},{"description":"The region the page covers."}]}}	list	data

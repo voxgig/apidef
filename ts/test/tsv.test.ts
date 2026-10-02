@@ -25,6 +25,7 @@ import {
   nom,
   formatJsonSrc,
   getModelPath,
+  isEntityWrapperProp,
   envelopeProp,
   envelopeItemRef,
   composedEnvelopeProp,
@@ -592,6 +593,21 @@ describe('tsv-envelope-prop', () => {
       const resprops = JSON.parse(row.resprops)
       const expected = '' === row.expected ? null : row.expected
       assert.deepStrictEqual(envelopeProp(resprops, row.opname), expected)
+    })
+  }
+})
+
+
+describe('tsv-entity-wrapper-prop', () => {
+  const rows = loadTsv('entity-wrapper-prop')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, () => {
+      const schema = JSON.parse(row.schema)
+      assert.strictEqual(isEntityWrapperProp(schema), 'true' === row.expected)
+
+      // A parsed schema is shared between references, so it is left as it was.
+      assert.strictEqual(JSON.stringify(schema), row.schema)
     })
   }
 })

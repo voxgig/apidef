@@ -43,6 +43,7 @@ exports.removeLegacyAon = removeLegacyAon;
 exports.warnOnError = warnOnError;
 exports.relativizePath = relativizePath;
 exports.getModelPath = getModelPath;
+exports.collapseScalarAllOf = collapseScalarAllOf;
 exports.isEntityWrapperProp = isEntityWrapperProp;
 exports.envelopeProp = envelopeProp;
 exports.envelopeItemRef = envelopeItemRef;
@@ -1350,27 +1351,63 @@ function getModelPath(model, path, flags) {
     }
     return current;
 }
-// A response property only "wraps" the entity when it is itself a structured
-// value that could contain the entity: an object, an array, a $ref, or a
-// composed (allOf/oneOf/anyOf) schema. A scalar property (string, integer,
-// number, boolean) that merely shares the entity's name is a field of the
-// entity, not a wrapper, so the response must not be unwrapped down to it.
-function isEntityWrapperProp(propSchema) {
-    if (null == propSchema || 'object' !== typeof propSchema) {
+// What an allOf member holds when it only describes. The siblings of a $ref
+// are ignored in OpenAPI 3.0, so a property describes one in an allOf.
+const ANNOTATION_KEYS = new Set(['description', 'title', 'example', 'nullable', 'deprecated']);
+const SCALAR_TYPES = new Set(['string', 'integer', 'number', 'boolean']);
+// An allOf of one scalar and annotations is that scalar, under the
+// annotations and then the property's own keys. Any other allOf is kept.
+function collapseScalarAllOf(property) {
+    const members = property?.allOf;
+    if (!Array.isArray(members)) {
+        return property;
+    }
+    const valued = members.filter((member) => !isAnnotation(member));
+    if (1 !== valued.length || !isScalarSchema(valued[0])) {
+        return property;
+    }
+    const { allOf: _members, ...own } = property;
+    return Object.assign({}, valued[0], ...members.filter(isAnnotation), own);
+}
+function isAnnotation(member) {
+    return null != member && 'object' === typeof member && !Array.isArray(member) &&
+        Object.keys(member).every((key) => ANNOTATION_KEYS.has(key));
+}
+function isScalarSchema(schema) {
+    if (null == schema || 'object' !== typeof schema || Array.isArray(schema) ||
+        null != schema.allOf || null != schema.oneOf || null != schema.anyOf) {
         return false;
     }
-    if (null != propSchema.$ref) {
+    const types = (Array.isArray(schema.type) ? schema.type : [schema.type])
+        .filter((type) => 'null' !== type);
+    return 1 === types.length && SCALAR_TYPES.has(types[0]);
+}
+// A response property only "wraps" the entity when it is a structured value
+// that could contain it: an object, an array, a $ref, or a composition that
+// could hold one. A scalar that shares the entity's name is a field, however
+// it is composed, so the response is not unwrapped down to it.
+function isEntityWrapperProp(propSchema) {
+    const prop = collapseScalarAllOf(propSchema);
+    if (null == prop || 'object' !== typeof prop) {
+        return false;
+    }
+    if (null != prop.$ref) {
         return true;
     }
-    if (null != propSchema.properties ||
-        null != propSchema.items ||
-        null != propSchema.allOf ||
-        null != propSchema.oneOf ||
-        null != propSchema.anyOf) {
+    if (null != prop.properties ||
+        null != prop.items ||
+        null != prop.allOf ||
+        holdsStructuredBranch(prop.oneOf) ||
+        holdsStructuredBranch(prop.anyOf)) {
         return true;
     }
-    const t = propSchema.type;
+    const t = prop.type;
     return 'object' === t || 'array' === t;
+}
+// A null branch only makes a union of scalars nullable.
+function holdsStructuredBranch(branches) {
+    return null != branches && !(Array.isArray(branches) && 0 < branches.length &&
+        branches.every((branch) => isScalarSchema(branch) || 'null' === branch?.type));
 }
 function envelopeProp(resprops, opname) {
     const keys = (0, struct_1.keysof)(resprops);
