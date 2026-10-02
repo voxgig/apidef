@@ -52,11 +52,14 @@ import { snakify, camelify, kebabify } from 'jostraca'
 import { classifyGraphQLField } from '../dist/guide/graphql01'
 
 import {
+  answeredRefs,
   distinctRecord,
   pathResource,
   sharedRoutes,
   entityParamNames,
   isNameParam,
+  namingRef,
+  namingSchemas,
 } from '../dist/guide/heuristic01'
 
 import {
@@ -641,6 +644,23 @@ describe('tsv-path-resource', () => {
       const parts = row.path.split('/').filter((p) => '' !== p)
       const expected = '' === row.expected ? null : row.expected
       assert.strictEqual(pathResource(parts, row.method), expected)
+    })
+  }
+})
+
+
+describe('tsv-naming-schemas', () => {
+  const rows = loadTsv('naming-schemas')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(`namingSchemas(${row.name})`, () => {
+      const paths = JSON.parse(row.paths)
+      const envelope = JSON.parse(row.envelope)
+      const [method, path] = row.route.split(' ')
+      const answered = answeredRefs({ paths }, envelope)
+      const refs = namingSchemas(method, paths[path][method.toLowerCase()].responses,
+        answered, envelope).map((schema: any) => namingRef(schema, envelope))
+      assert.deepStrictEqual(refs, JSON.parse(row.expected))
     })
   }
 })

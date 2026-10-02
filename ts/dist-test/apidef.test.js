@@ -832,6 +832,7 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
                 'GET /simulation_runs/{run_id}',
                 'POST /simulation_runs',
             ],
+            thing: ['GET /things/{thing_id}', 'PATCH /things/{thing_id}'],
         });
         const renames = bres.guide.entity.repository_invitation
             .path['/user/repository_invitations/{invitation_id}'].rename.param;

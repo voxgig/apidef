@@ -595,7 +595,6 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 			"envelope":        map[string]string{},
 			"listEnvelope":    map[string]bool{},
 			"envelopePaths":   map[string][]string{},
-			"answered":        answeredRefs(def),
 			"recordResources": map[string]bool{},
 			"sharing": &sharingWork{
 				records: map[string]bool{},
@@ -701,6 +700,7 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 		measureEnvelope(data, mdesc)
 	}
 	measureEnvelopeItems(data)
+	work["answered"] = answeredRefs(def, work["envelope"].(map[string]string))
 
 	for _, mdesc := range allMethods {
 		measureSharing(data, mdesc)
@@ -2735,21 +2735,21 @@ func successSchemas(responses map[string]any) []map[string]any {
 
 // namingSchemas mirrors ts/src/guide/heuristic01.ts: a read answered only by
 // an Accepted response is named from it when another operation answers with
-// the same component in a 200 or 201.
-func namingSchemas(method string, responses map[string]any, answered map[string]bool) []map[string]any {
+// the same record in a 200 or 201.
+func namingSchemas(method string, responses map[string]any, answered map[string]bool, envelope map[string]string) []map[string]any {
 	schemas := successSchemas(responses)
 	if len(schemas) == 0 && READ_METHODS[method] {
 		accepted, _ := responses["202"].(map[string]any)
-		if schema := getResponseSchema(accepted); schema != nil && answered[schemaRef(schema)] {
+		if schema := getResponseSchema(accepted); schema != nil && answered[namingRef(schema, envelope)] {
 			schemas = append(schemas, schema)
 		}
 	}
 	return schemas
 }
 
-// answeredRefs mirrors ts/src/guide/heuristic01.ts: every component some
-// operation answers with in a 200 or 201.
-func answeredRefs(def map[string]any) map[string]bool {
+// answeredRefs mirrors ts/src/guide/heuristic01.ts: the records some
+// operation answers with in a 200 or 201, read through the envelopes.
+func answeredRefs(def map[string]any, envelope map[string]string) map[string]bool {
 	answered := map[string]bool{}
 	paths, _ := def["paths"].(map[string]any)
 	for _, pathStr := range sortedKeys(paths) {
@@ -2764,7 +2764,7 @@ func answeredRefs(def map[string]any) map[string]bool {
 			}
 			responses, _ := mdef["responses"].(map[string]any)
 			for _, schema := range successSchemas(responses) {
-				if ref := schemaRef(schema); ref != "" {
+				if ref := namingRef(schema, envelope); ref != "" {
 					answered[ref] = true
 				}
 			}
@@ -2773,9 +2773,14 @@ func answeredRefs(def map[string]any) map[string]bool {
 	return answered
 }
 
-func schemaRef(schema map[string]any) string {
-	if ref, ok := schema["x-ref"].(string); ok {
-		return ref
+// namingRef mirrors ts/src/guide/heuristic01.ts: the component a response
+// schema names through.
+func namingRef(schema map[string]any, envelope map[string]string) string {
+	if xref, ok := schema["x-ref"].(string); ok {
+		if itemref := envelope[xref]; itemref != "" {
+			return itemref
+		}
+		return xref
 	}
 	if schemaType, _ := schema["type"].(string); schemaType == "array" {
 		if items, ok := schema["items"].(map[string]any); ok {
@@ -3223,23 +3228,17 @@ func makeMethodEntityDesc(desc map[string]any) map[string]any {
 func findPotentialSchemaRefs(pathStr string, methodName string, responses map[string]any,
 	envelope map[string]string, answered map[string]bool, why *[]string) []string {
 	var xrefs []string
-	for _, schema := range namingSchemas(methodName, responses, answered) {
-		if xref, ok := schema["x-ref"].(string); ok {
-			// An envelope component names its wrapping, not the entity: the
-			// component it carries takes its place.
-			if itemref := envelope[xref]; itemref != "" {
-				*why = append(*why, "envelope="+cmpRefName(xref))
-				xrefs = append(xrefs, itemref)
-			} else {
-				xrefs = append(xrefs, xref)
-			}
-		} else if schemaType, _ := schema["type"].(string); schemaType == "array" {
-			if items, ok := schema["items"].(map[string]any); ok {
-				if xref, ok := items["x-ref"].(string); ok {
-					xrefs = append(xrefs, xref)
-				}
-			}
+	for _, schema := range namingSchemas(methodName, responses, answered, envelope) {
+		// An envelope component names its wrapping, not the entity: the
+		// component it carries takes its place.
+		ref := namingRef(schema, envelope)
+		if ref == "" {
+			continue
 		}
+		if xref, ok := schema["x-ref"].(string); ok && ref != xref {
+			*why = append(*why, "envelope="+cmpRefName(xref))
+		}
+		xrefs = append(xrefs, ref)
 	}
 
 	DebugPath(pathStr, methodName, "POTENTIAL-SCHEMA-REFS", xrefs)

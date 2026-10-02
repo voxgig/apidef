@@ -529,6 +529,20 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-naming-schemas', () => {
+    const rows = loadTsv('naming-schemas');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(`namingSchemas(${row.name})`, () => {
+            const paths = JSON.parse(row.paths);
+            const envelope = JSON.parse(row.envelope);
+            const [method, path] = row.route.split(' ');
+            const answered = (0, heuristic01_1.answeredRefs)({ paths }, envelope);
+            const refs = (0, heuristic01_1.namingSchemas)(method, paths[path][method.toLowerCase()].responses, answered, envelope).map((schema) => (0, heuristic01_1.namingRef)(schema, envelope));
+            node_assert_1.default.deepStrictEqual(refs, JSON.parse(row.expected));
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-distinct-record', () => {
     const rows = loadTsv('distinct-record');
     (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));

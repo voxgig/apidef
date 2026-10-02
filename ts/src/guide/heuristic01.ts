@@ -138,6 +138,7 @@ async function heuristic01(ctx: ApiDefContext): Promise<Guide> {
     { select: selectCmpXrefs, apply: MeasureRef },
     { select: selectAllMethods, apply: MeasureEnvelope },
     MeasureEnvelopeItems,
+    MeasureAnswered,
     { select: selectAllMethods, apply: MeasureSharing },
     MeasureShared,
     {
@@ -230,7 +231,6 @@ function Prepare(spec: TaskSpec) {
     def: spec.ctx.def,
     guide,
     work: {
-      answered: answeredRefs(spec.ctx.def),
       pathmap: {},
       entmap: {},
       envelope: {},
@@ -384,6 +384,13 @@ function MeasureEnvelopeItems(spec: TaskSpec) {
       xrefs.forEach((xref) => envelope[xref] = '')
     }
   }
+}
+
+
+// The records some operation answers with in a 200 or 201, read through the
+// envelopes MeasureEnvelopeItems settles.
+function MeasureAnswered(spec: TaskSpec) {
+  spec.data.work.answered = answeredRefs(spec.data.def, spec.data.work.envelope)
 }
 
 
@@ -1619,17 +1626,18 @@ function successSchemas(responses: any): any[] {
 
 
 // A read answered only by an Accepted response is named from it when another
-// operation answers with the same component in a 200 or 201, which shows the
-// component is a resource rather than the work queued.
+// operation answers with the same record in a 200 or 201, which shows the
+// record is a resource rather than the work queued.
 function namingSchemas(
   method: string,
   responses: any,
   answered: Record<string, boolean>,
+  envelope: Record<string, string>,
 ): any[] {
   const schemas = successSchemas(responses)
   if (0 === schemas.length && READ_METHODS.includes(method)) {
     const accepted = getResponseSchema(responses?.[202])
-    if (true === answered[schemaRef(accepted) ?? '']) {
+    if (true === answered[namingRef(accepted, envelope) ?? '']) {
       schemas.push(accepted)
     }
   }
@@ -1637,8 +1645,10 @@ function namingSchemas(
 }
 
 
-// Every component some operation answers with in a 200 or 201.
-function answeredRefs(def: any): Record<string, boolean> {
+function answeredRefs(
+  def: any,
+  envelope: Record<string, string>,
+): Record<string, boolean> {
   const answered: Record<string, boolean> = {}
   for (const pathdef of Object.values(def?.paths ?? {}) as any[]) {
     for (const [method, mdef] of Object.entries(pathdef ?? {}) as [string, any][]) {
@@ -1647,7 +1657,7 @@ function answeredRefs(def: any): Record<string, boolean> {
         continue
       }
       for (const schema of successSchemas(mdef.responses)) {
-        const ref = schemaRef(schema)
+        const ref = namingRef(schema, envelope)
         if (null != ref) {
           answered[ref] = true
         }
@@ -1658,9 +1668,15 @@ function answeredRefs(def: any): Record<string, boolean> {
 }
 
 
-function schemaRef(schema: any): string | undefined {
-  return schema?.['x-ref'] ??
-    ('array' === schema?.type ? schema.items?.['x-ref'] : undefined)
+// The component a response schema names through: the record an envelope
+// carries, else the schema's own component, else its array items'.
+function namingRef(schema: any, envelope: Record<string, string>): string | undefined {
+  const xref = schema?.['x-ref']
+  if (null != xref) {
+    const itemref = envelope[xref]
+    return null == itemref || '' === itemref ? xref : itemref
+  }
+  return 'array' === schema?.type ? schema.items?.['x-ref'] : undefined
 }
 
 
@@ -2476,21 +2492,15 @@ function findPotentialSchemaRefs(
   why: string[],
 ) {
   const xrefs: string[] = []
-  for (const schema of namingSchemas(methodName, responses, answered)) {
-    if (null != schema['x-ref']) {
-      // An envelope component names its wrapping, not the entity: the
-      // component it carries takes its place.
-      const itemref = envelope[schema['x-ref']]
-      if ('' !== itemref) {
+  for (const schema of namingSchemas(methodName, responses, answered, envelope)) {
+    // An envelope component names its wrapping, not the entity: the
+    // component it carries takes its place.
+    const ref = namingRef(schema, envelope)
+    if (null != ref) {
+      if (null != schema['x-ref'] && ref !== schema['x-ref']) {
         why.push('envelope=' + cmpRefName(schema['x-ref']))
-        xrefs.push(itemref)
       }
-      else {
-        xrefs.push(schema['x-ref'])
-      }
-    }
-    else if ('array' === schema.type && null != schema.items?.['x-ref']) {
-      xrefs.push(schema.items?.['x-ref'])
+      xrefs.push(ref)
     }
   }
 
@@ -2520,8 +2530,11 @@ function hasMethod(def: any, pathStr: string, methodName: string) {
 
 
 export {
+  answeredRefs,
   distinctRecord,
   heuristic01,
+  namingRef,
+  namingSchemas,
   pathResource,
   sharedRoutes,
   entityParamNames,

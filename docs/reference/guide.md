@@ -84,8 +84,10 @@ rates twice:
   an envelope the record it carries (see [Response
   envelopes](#response-envelopes)). A read (`GET`, `QUERY`, `HEAD` or
   `OPTIONS`) with neither takes its `202` schema as the candidate when
-  another operation answers with the same component in a `200` or `201`.
-  When there are two, a frequent one drops out unless a literal segment of
+  another operation answers with the same record in a `200` or `201`, both
+  read through their envelopes. The rows of
+  [`ts/test/naming-schemas.tsv`](../../ts/test/naming-schemas.tsv) pin it in
+  both builds. When there are two, a frequent one drops out unless a literal segment of
   the operation's own path names it.
 - When the schema chosen for an operation has a name that differs from the
   entity name the path gives, and does not begin with it, the schema names
@@ -168,8 +170,8 @@ before any entity is named:
 - A component is an envelope only when every operation that answers with it
   in a `200` or `201` response unwraps it. A `202` does not count: it says
   the service accepted the work, and its body may describe the work rather
-  than the resource. It names an entity only for a read whose `202`
-  component another operation answers with in a `200` or `201` (see
+  than the resource. It names an entity only for a read whose `202` record
+  another operation answers with in a `200` or `201` (see
   [Component reference counts](#component-reference-counts)).
 - A component is not an envelope when another envelope carries the same
   record. The exception is one page and one single-item envelope where a

@@ -1,7 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.answeredRefs = answeredRefs;
 exports.distinctRecord = distinctRecord;
 exports.heuristic01 = heuristic01;
+exports.namingRef = namingRef;
+exports.namingSchemas = namingSchemas;
 exports.pathResource = pathResource;
 exports.sharedRoutes = sharedRoutes;
 exports.entityParamNames = entityParamNames;
@@ -64,6 +67,7 @@ async function heuristic01(ctx) {
         { select: selectCmpXrefs, apply: MeasureRef },
         { select: selectAllMethods, apply: MeasureEnvelope },
         MeasureEnvelopeItems,
+        MeasureAnswered,
         { select: selectAllMethods, apply: MeasureSharing },
         MeasureShared,
         {
@@ -137,7 +141,6 @@ function Prepare(spec) {
         def: spec.ctx.def,
         guide,
         work: {
-            answered: answeredRefs(spec.ctx.def),
             pathmap: {},
             entmap: {},
             envelope: {},
@@ -266,6 +269,11 @@ function MeasureEnvelopeItems(spec) {
             xrefs.forEach((xref) => envelope[xref] = '');
         }
     }
+}
+// The records some operation answers with in a 200 or 201, read through the
+// envelopes MeasureEnvelopeItems settles.
+function MeasureAnswered(spec) {
+    spec.data.work.answered = answeredRefs(spec.data.def, spec.data.work.envelope);
 }
 function isPageAndItsItem(work, xrefs) {
     const pages = xrefs.filter((xref) => work.listEnvelope[xref]);
@@ -1173,20 +1181,19 @@ function successSchemas(responses) {
         .filter((schema) => null != schema);
 }
 // A read answered only by an Accepted response is named from it when another
-// operation answers with the same component in a 200 or 201, which shows the
-// component is a resource rather than the work queued.
-function namingSchemas(method, responses, answered) {
+// operation answers with the same record in a 200 or 201, which shows the
+// record is a resource rather than the work queued.
+function namingSchemas(method, responses, answered, envelope) {
     const schemas = successSchemas(responses);
     if (0 === schemas.length && READ_METHODS.includes(method)) {
         const accepted = getResponseSchema(responses?.[202]);
-        if (true === answered[schemaRef(accepted) ?? '']) {
+        if (true === answered[namingRef(accepted, envelope) ?? '']) {
             schemas.push(accepted);
         }
     }
     return schemas;
 }
-// Every component some operation answers with in a 200 or 201.
-function answeredRefs(def) {
+function answeredRefs(def, envelope) {
     const answered = {};
     for (const pathdef of Object.values(def?.paths ?? {})) {
         for (const [method, mdef] of Object.entries(pathdef ?? {})) {
@@ -1195,7 +1202,7 @@ function answeredRefs(def) {
                 continue;
             }
             for (const schema of successSchemas(mdef.responses)) {
-                const ref = schemaRef(schema);
+                const ref = namingRef(schema, envelope);
                 if (null != ref) {
                     answered[ref] = true;
                 }
@@ -1204,9 +1211,15 @@ function answeredRefs(def) {
     }
     return answered;
 }
-function schemaRef(schema) {
-    return schema?.['x-ref'] ??
-        ('array' === schema?.type ? schema.items?.['x-ref'] : undefined);
+// The component a response schema names through: the record an envelope
+// carries, else the schema's own component, else its array items'.
+function namingRef(schema, envelope) {
+    const xref = schema?.['x-ref'];
+    if (null != xref) {
+        const itemref = envelope[xref];
+        return null == itemref || '' === itemref ? xref : itemref;
+    }
+    return 'array' === schema?.type ? schema.items?.['x-ref'] : undefined;
 }
 function getResponseSchema(response) {
     return response?.content?.['application/json']?.schema ??
@@ -1783,21 +1796,15 @@ function makeMethodEntityDesc(desc) {
 }
 function findPotentialSchemaRefs(pathStr, methodName, responses, envelope, answered, why) {
     const xrefs = [];
-    for (const schema of namingSchemas(methodName, responses, answered)) {
-        if (null != schema['x-ref']) {
-            // An envelope component names its wrapping, not the entity: the
-            // component it carries takes its place.
-            const itemref = envelope[schema['x-ref']];
-            if ('' !== itemref) {
+    for (const schema of namingSchemas(methodName, responses, answered, envelope)) {
+        // An envelope component names its wrapping, not the entity: the
+        // component it carries takes its place.
+        const ref = namingRef(schema, envelope);
+        if (null != ref) {
+            if (null != schema['x-ref'] && ref !== schema['x-ref']) {
                 why.push('envelope=' + cmpRefName(schema['x-ref']));
-                xrefs.push(itemref);
             }
-            else {
-                xrefs.push(schema['x-ref']);
-            }
-        }
-        else if ('array' === schema.type && null != schema.items?.['x-ref']) {
-            xrefs.push(schema.items?.['x-ref']);
+            xrefs.push(ref);
         }
     }
     (0, utility_2.debugpath)(pathStr, methodName, 'POTENTIAL-SCHEMA-REFS', xrefs);

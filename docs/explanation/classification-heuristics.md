@@ -87,8 +87,8 @@ inline offers no component name, so the rule leaves it alone.
 
 An Accepted response names nothing either, because its body may describe
 the work the service queued rather than the resource. A read is the
-exception when another operation answers with the same component in a `200`
-or `201`. SaladCloud answers a container group instance's read with a `202`
+exception when another operation answers with the same record in a `200` or
+`201`, the two compared through any envelope they carry. SaladCloud answers a container group instance's read with a `202`
 carrying the instance, the record its update answers with a `200`, so the
 read joins `container_group_instance`. Named from its tag instead, the read
 made a second entity, `container_group`, for one resource, and the

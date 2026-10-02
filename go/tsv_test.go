@@ -783,6 +783,42 @@ func TestPathResource(t *testing.T) {
 	}
 }
 
+func TestNamingSchemas(t *testing.T) {
+	rows := loadTsv(t, "naming-schemas")
+	if len(rows) == 0 {
+		t.Fatal("no naming-schemas rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var paths map[string]any
+			var envelope map[string]string
+			var want []string
+			if err := json.Unmarshal([]byte(row["paths"]), &paths); err != nil {
+				t.Fatalf("bad paths %q: %v", row["paths"], err)
+			}
+			if err := json.Unmarshal([]byte(row["envelope"]), &envelope); err != nil {
+				t.Fatalf("bad envelope %q: %v", row["envelope"], err)
+			}
+			if err := json.Unmarshal([]byte(row["expected"]), &want); err != nil {
+				t.Fatalf("bad expected %q: %v", row["expected"], err)
+			}
+			route := strings.SplitN(row["route"], " ", 2)
+			method, path := route[0], route[1]
+			answered := answeredRefs(map[string]any{"paths": paths}, envelope)
+			pathdef, _ := paths[path].(map[string]any)
+			mdef, _ := pathdef[strings.ToLower(method)].(map[string]any)
+			responses, _ := mdef["responses"].(map[string]any)
+			got := []string{}
+			for _, schema := range namingSchemas(method, responses, answered, envelope) {
+				got = append(got, namingRef(schema, envelope))
+			}
+			if !reflect.DeepEqual(got, want) {
+				t.Errorf("namingSchemas = %v, want %v", got, want)
+			}
+		})
+	}
+}
+
 func TestDistinctRecord(t *testing.T) {
 	rows := loadTsv(t, "distinct-record")
 	if len(rows) == 0 {

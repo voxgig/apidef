@@ -4,9 +4,9 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 8
-  metrics: count: path: 14
-  metrics: count: method: 19
+  metrics: count: entity: 9
+  metrics: count: path: 15
+  metrics: count: method: 21
 
   entity: activity: {
     path: "/user/starred": {
@@ -86,6 +86,15 @@ guide: {
     path: "/simulation_runs/{run_id}": {
       rename: param: "run_id": *"id"
       op: load: method: *GET
+    }
+  }
+
+  entity: thing: {
+    path: "/things/{thing_id}": {
+      rename: param: "thing_id": *"id"
+      op: load: method: *GET
+      op: patch: method: *PATCH
+      op: patch: transform: res: *("`body.data`")|top
     }
   }
 
