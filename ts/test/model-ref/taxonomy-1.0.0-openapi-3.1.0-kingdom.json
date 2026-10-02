@@ -171,8 +171,6 @@
           "q": {
             "exist": [
               "domain_id",
-              "page",
-              "page_size",
               "year"
             ]
           },

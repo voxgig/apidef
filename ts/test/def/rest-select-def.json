@@ -1,0 +1,67 @@
+{
+  "openapi": "3.0.0",
+  "info": { "title": "Rest Select API", "version": "1.0.0" },
+  "servers": [ { "url": "https://api.example.com" } ],
+  "paths": {
+    "/public/database/{id}/permission": {
+      "get": {
+        "tags": [ "Permission" ],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "apiKey", "in": "query", "deprecated": true, "schema": { "type": "string" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": {
+              "type": "array", "items": { "$ref": "#/components/schemas/Permission" }
+            } } }
+          }
+        }
+      }
+    },
+    "/public/database/{id}/permission/{msisdn}": {
+      "delete": {
+        "tags": [ "Permission" ],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "msisdn", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "apiKey", "in": "query", "deprecated": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "204": { "description": "Deleted" } }
+      }
+    },
+    "/public/database/{id}/permission/permanent/{msisdn}": {
+      "delete": {
+        "tags": [ "Permission" ],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "msisdn", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "apiKey", "in": "query", "deprecated": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "204": { "description": "Deleted" } }
+      }
+    },
+    "/entity-templates/disable": {
+      "put": {
+        "parameters": [ { "name": "reason", "in": "query", "schema": { "type": "string" } } ],
+        "responses": { "204": { "description": "Disabled" } }
+      }
+    },
+    "/iterations/disable": {
+      "put": {
+        "parameters": [ { "name": "reason", "in": "query", "schema": { "type": "string" } } ],
+        "responses": { "204": { "description": "Disabled" } }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Permission": {
+        "type": "object",
+        "properties": { "msisdn": { "type": "string" }, "granted": { "type": "boolean" } }
+      }
+    }
+  }
+}

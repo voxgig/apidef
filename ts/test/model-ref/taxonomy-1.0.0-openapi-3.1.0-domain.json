@@ -170,8 +170,6 @@
           "o": "/{year}/domain",
           "q": {
             "exist": [
-              "page",
-              "page_size",
               "year"
             ]
           },

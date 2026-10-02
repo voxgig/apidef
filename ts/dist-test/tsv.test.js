@@ -45,6 +45,7 @@ const node_assert_1 = __importDefault(require("node:assert"));
 const utility_1 = require("../dist/utility");
 const field_1 = require("../dist/transform/field");
 const resolved_1 = require("../dist/resolved");
+const select_1 = require("../dist/transform/select");
 const jostraca_1 = require("jostraca");
 const graphql01_1 = require("../dist/guide/graphql01");
 const heuristic01_1 = require("../dist/guide/heuristic01");
@@ -585,6 +586,25 @@ function loadTsv(name) {
             const secured = 'true' === row.secured;
             const expected = '' === row.expected ? null : JSON.parse(row.expected);
             node_assert_1.default.deepStrictEqual((0, utility_1.authExchangeOp)(op, secured), expected);
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-select', () => {
+    const rows = loadTsv('select');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, async () => {
+            const ent = JSON.parse(row.entity);
+            const warnings = [];
+            await (0, select_1.selectTransform)({
+                apimodel: { main: { kit: { entity: { [ent.name]: ent } } } },
+                def: {},
+                guide: { entity: { [ent.name]: JSON.parse(row.guide) } },
+                warn: (warning) => warnings.push(warning),
+            });
+            const points = Object.fromEntries(Object.entries(ent.op).map(([name, op]) => [name, op.points.map((point) => ({ o: point.o, q: point.q }))]));
+            node_assert_1.default.deepStrictEqual(points, JSON.parse(row.points));
+            node_assert_1.default.deepStrictEqual(warnings, JSON.parse(row.warnings));
         });
     }
 });

@@ -88,8 +88,6 @@
           "o": "/{year}/observation",
           "q": {
             "exist": [
-              "page",
-              "page_size",
               "year"
             ]
           },

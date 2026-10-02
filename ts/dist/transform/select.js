@@ -17,6 +17,7 @@ const selectTransform = async function (ctx) {
             });
             if (null != mop.points && 0 < mop.points.length) {
                 sortPoints(guide, ment, mop);
+                warnSharedSelectors(ctx, ment, mop);
             }
         });
         msg += ment.name + ' ';
@@ -28,15 +29,15 @@ function resolveSelect(guide, ment, _mop, mpoint, _pdef) {
     const select = mpoint.q;
     const margs = mpoint.g;
     const argkinds = ['params', 'query', 'header', 'cookie'];
-    // `exist` names values that must be PRESENT for this point to be chosen.
-    // A GraphQL root field exposes its optional arguments (relay's first /
-    // after, filters) as params, and requiring those for selection would make
-    // list() unusable without supplying every pagination argument. Only
-    // required arguments identify a point.
-    const reqdonly = 'graphql' === mpoint.k;
+    // `exist` names values that must be PRESENT for this point to be chosen,
+    // so an optional argument would make the point unreachable to a caller
+    // who omits it. A path parameter fills the route and always counts; a
+    // GraphQL root field's arguments are params too, and count only when
+    // required.
+    const graphql = 'graphql' === mpoint.k;
     argkinds.map((kind) => {
         (0, jostraca_1.each)(margs[kind], (marg) => {
-            if (reqdonly && !marg.r) {
+            if (!marg.r && (graphql || 'params' !== kind)) {
                 return;
             }
             if (!select.exist.includes(marg.n)) {
@@ -81,5 +82,31 @@ function sortPoints(_guide, _ment, mop) {
         }
         return order;
     });
+}
+// The first point whose selector matches is chosen, so of the points that
+// share a selector only the first is ever reached.
+function warnSharedSelectors(ctx, ment, mop) {
+    const groups = new Map();
+    for (const mpoint of mop.points) {
+        const key = JSON.stringify([mpoint.q.$action ?? null, mpoint.q.exist]);
+        groups.set(key, [...(groups.get(key) ?? []), mpoint]);
+    }
+    for (const group of groups.values()) {
+        if (group.length < 2)
+            continue;
+        const points = group.map((mpoint) => mpoint.m + ' ' + mpoint.o);
+        const { exist, $action } = group[0].q;
+        ctx.warn?.({
+            note: `Points ${points.slice(0, -1).join(', ')} and ${points[points.length - 1]}` +
+                ` on entity=${ment.name} op=${mop.name} have the same selector` +
+                ` (exist: ${exist.join(',') || 'none'}` +
+                (null == $action ? '' : `; $action: ${$action}`) +
+                `), so only ${points[0]} is ever chosen.` +
+                ' An action or another entity in guide.aontu tells them apart.',
+            entity: ment.name,
+            op: mop.name,
+            points,
+        });
+    }
 }
 //# sourceMappingURL=select.js.map

@@ -50,61 +50,31 @@
       "points": [
         {
           "co": {
-            "id": "POST /pet/{petId}/uploadImage",
+            "id": "POST /pet",
             "source": "swagger2",
             "version": 2
           },
           "g": {
-            "params": [
-              {
-                "k": "param",
-                "n": "id",
-                "or": "petId",
-                "r": true,
-                "t": "`$STRING`"
-              }
-            ],
             "query": [
               {
                 "k": "query",
-                "n": "additional_metadata",
-                "or": "additionalMetadata",
-                "r": false,
-                "t": "`$ANY`"
-              },
-              {
-                "k": "query",
-                "n": "file",
-                "or": "file",
-                "r": false,
-                "t": "`$ANY`"
+                "n": "body",
+                "or": "body",
+                "r": true,
+                "t": "`$OBJECT`"
               }
             ]
           },
           "m": "POST",
-          "o": "/pet/{petId}/uploadImage",
+          "o": "/pet",
           "q": {
-            "$action": "upload_image",
             "exist": [
-              "additional_metadata",
-              "file",
-              "id"
+              "body"
             ]
-          },
-          "r": {
-            "param": {
-              "petId": "id"
-            }
           },
           "s": [
             {
               "lit": "pet"
-            },
-            {
-              "var": "id"
-            },
-            {
-              "lit": "uploadImage"
             }
           ],
           "t": {
@@ -149,9 +119,7 @@
           "o": "/pet/{petId}",
           "q": {
             "exist": [
-              "id",
-              "name",
-              "status"
+              "id"
             ]
           },
           "r": {
@@ -174,31 +142,59 @@
         },
         {
           "co": {
-            "id": "POST /pet",
+            "id": "POST /pet/{petId}/uploadImage",
             "source": "swagger2",
             "version": 2
           },
           "g": {
+            "params": [
+              {
+                "k": "param",
+                "n": "id",
+                "or": "petId",
+                "r": true,
+                "t": "`$STRING`"
+              }
+            ],
             "query": [
               {
                 "k": "query",
-                "n": "body",
-                "or": "body",
-                "r": true,
-                "t": "`$OBJECT`"
+                "n": "additional_metadata",
+                "or": "additionalMetadata",
+                "r": false,
+                "t": "`$ANY`"
+              },
+              {
+                "k": "query",
+                "n": "file",
+                "or": "file",
+                "r": false,
+                "t": "`$ANY`"
               }
             ]
           },
           "m": "POST",
-          "o": "/pet",
+          "o": "/pet/{petId}/uploadImage",
           "q": {
+            "$action": "upload_image",
             "exist": [
-              "body"
+              "id"
             ]
+          },
+          "r": {
+            "param": {
+              "petId": "id"
+            }
           },
           "s": [
             {
               "lit": "pet"
+            },
+            {
+              "var": "id"
+            },
+            {
+              "lit": "uploadImage"
             }
           ],
           "t": {
@@ -369,7 +365,6 @@
           "o": "/pet/{petId}",
           "q": {
             "exist": [
-              "api_key",
               "id"
             ]
           },

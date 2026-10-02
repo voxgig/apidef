@@ -60,9 +60,13 @@ correct URL.
 ## Select describes *which* instance
 
 `q` answers "which records does this point address?". `q.exist`
-lists the identifiers that must already exist (the ancestor chain and the
-item id); `q.$action` marks an action point. Downstream this becomes the
-SDK's routing and pre-condition logic.
+lists the path parameters and required arguments a call must carry for the
+point to be chosen (typically the ancestor chain and the item id). An
+optional argument never counts, since a caller who omits it could not reach
+the point. `q.$action` marks an action point. Downstream this becomes the
+SDK's routing and pre-condition logic: the first point whose selector a
+call meets is chosen, so when points of one operation share a selector,
+only the first can be reached, and apidef records a warning naming them.
 
 ## Fields carry types and per-op overrides
 
