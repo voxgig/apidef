@@ -7,3 +7,4 @@ own-id-left-alone	{"/repos/{owner}/":{"owner":"id"},"/repos/{owner}/{identifier}
 action-key-left-alone	{"/v1/containers/{name}":{"name":"id"},"/v1/containers/{name}/start":{}}	{"/v1/containers/{name}":{"name":"id"},"/v1/containers/{name}/start":{}}
 different-places	{"/v1/a/{x}/b":{"x":"a_id"},"/v2/a/{x}/b":{}}	{"/v1/a/{x}/b":{"x":"a_id"},"/v2/a/{x}/b":{}}
 name-taken-on-a-path	{"/v1/a/{x}/b/{y}/c":{},"/v1/a/{x}/b/{y}/c/{z}":{"y":"b_id","z":"y"}}	{"/v1/a/{x}/b/{y}/c":{},"/v1/a/{x}/b/{y}/c/{z}":{"y":"b_id","z":"y"}}
+different-placeholders-stay-apart	{"/projects/{slug}/items":{},"/projects/{project_id}/items/{itemId}":{"itemId":"id"}}	{"/projects/{slug}/items":{},"/projects/{project_id}/items/{itemId}":{"itemId":"id"}}

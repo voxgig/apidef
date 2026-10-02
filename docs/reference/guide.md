@@ -120,6 +120,10 @@ entity's paths:
   own name, in snake case. When one of those paths renames it to `id`, each
   path keeps the name it gave. A path also keeps its name for the parameter
   where the agreed name is another parameter's name on that path.
+- Placeholders spelt differently at that place, such as `{slug}` and
+  `{project_id}`, are different parameters and keep their own names. One
+  route can take a slug where another takes a numeric identifier, so one name
+  for both would send the wrong value to one of them.
 
 `isNameParam` and `entityParamNames` in
 [`ts/src/guide/heuristic01.ts`](../../ts/src/guide/heuristic01.ts) are the
