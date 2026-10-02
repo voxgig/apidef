@@ -55,6 +55,8 @@ import {
   distinctRecord,
   pathResource,
   sharedRoutes,
+  entityParamNames,
+  isNameParam,
 } from '../dist/guide/heuristic01'
 
 import {
@@ -667,6 +669,28 @@ describe('tsv-shared-routes', () => {
         return { cmp, method, path, op }
       })
       assert.deepStrictEqual(sharedRoutes(routes, list(row.records, ',')), list(row.expected, ';'))
+    })
+  }
+})
+
+
+describe('tsv-entity-param-names', () => {
+  const rows = loadTsv('entity-param-names')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(`entityParamNames(${row.name})`, () => {
+      assert.deepStrictEqual(entityParamNames(JSON.parse(row.paths)), JSON.parse(row.expected))
+    })
+  }
+})
+
+
+describe('tsv-name-param', () => {
+  const rows = loadTsv('name-param')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(`isNameParam("${row.param}") => ${row.expected}`, () => {
+      assert.strictEqual(isNameParam(row.param), 'true' === row.expected)
     })
   }
 })

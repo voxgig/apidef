@@ -1,0 +1,16 @@
+param	expected
+project_name	true
+projectName	true
+ProjectName	true
+project-name	true
+organization_name	true
+container_group_name	true
+name	true
+NAME	true
+username	false
+filename	false
+namespace	false
+names	false
+name_id	false
+team_slug	false
+project_id	false

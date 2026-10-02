@@ -730,6 +730,14 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 			return distinctRecord(refSchema(def, shareRef), refSchema(def, itemRef))
 		}))
 
+	// After the merge, which can move a path onto another entity.
+	entities, _ := guide["entity"].(map[string]any)
+	for _, ename := range sortedKeys(entities) {
+		if entity, ok := entities[ename].(map[string]any); ok {
+			nameEntityParams(entity)
+		}
+	}
+
 	return guide, nil
 }
 
@@ -1433,7 +1441,7 @@ func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any)
 				updateParamRename(ctx, data, pathStr, methodName,
 					paramRename, whyParam, oldParam,
 					"id", "id-parent-ent")
-			} else {
+			} else if !isNameParam(oldParam) {
 				updateParamRename(ctx, data, pathStr, methodName,
 					paramRename, whyParam, oldParam,
 					parentName+"_id", "parent:"+parentName)
@@ -1463,7 +1471,7 @@ func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any)
 			} else {
 				// Not primary ent
 				newParamName := parentName + "_id"
-				if newParamName != oldParam {
+				if newParamName != oldParam && !isNameParam(oldParam) {
 					updateParamRename(ctx, data, pathStr, methodName,
 						paramRename, whyParam, oldParam,
 						newParamName, "not-primary")
@@ -2970,6 +2978,162 @@ func updateParamRename(
 			})
 		}
 	}
+}
+
+// isNameParam mirrors ts/src/guide/heuristic01.ts: a parameter whose own
+// name says it holds a name, which a derived `<parent>_id` would misdescribe.
+func isNameParam(param string) bool {
+	return nameParamRE.MatchString(Snakify(NormalizeFieldName(param)))
+}
+
+var nameParamRE = regexp.MustCompile(`(^|_)name$`)
+
+// nameEntityParams mirrors ts/src/guide/heuristic01.ts.
+func nameEntityParams(entity map[string]any) {
+	paths, _ := entity["path"].(map[string]any)
+	given := map[string]map[string]string{}
+	for _, pathStr := range sortedKeys(paths) {
+		given[pathStr] = map[string]string{}
+		pathMap, _ := paths[pathStr].(map[string]any)
+		renameMap, _ := pathMap["rename"].(map[string]any)
+		param, _ := renameMap["param"].(map[string]any)
+		for _, name := range sortedKeys(param) {
+			if target, ok := param[name].(string); ok {
+				given[pathStr][name] = target
+			}
+		}
+	}
+
+	named := entityParamNames(given)
+
+	for _, pathStr := range sortedKeys(paths) {
+		pathMap, _ := paths[pathStr].(map[string]any)
+		if pathMap == nil {
+			continue
+		}
+		param := map[string]any{}
+		for name, target := range named[pathStr] {
+			param[name] = target
+		}
+		renameMap, _ := pathMap["rename"].(map[string]any)
+		if renameMap == nil {
+			renameMap = map[string]any{}
+			pathMap["rename"] = renameMap
+		}
+		renameMap["param"] = param
+	}
+}
+
+type paramUse struct {
+	pathStr string
+	param   string
+}
+
+// entityParamNames mirrors ts/src/guide/heuristic01.ts: one name for each
+// parameter at the same place in several of an entity's paths.
+func entityParamNames(paths map[string]map[string]string) map[string]map[string]string {
+	out := map[string]map[string]string{}
+	places := map[string][]paramUse{}
+
+	pathStrs := make([]string, 0, len(paths))
+	for pathStr := range paths {
+		pathStrs = append(pathStrs, pathStr)
+	}
+	sort.Strings(pathStrs)
+
+	for _, pathStr := range pathStrs {
+		renames := map[string]string{}
+		for name, target := range paths[pathStr] {
+			renames[name] = target
+		}
+		out[pathStr] = renames
+		parts := splitAndFilter(pathStr, "/")
+		for partI, part := range parts {
+			if isParam(part) {
+				place := strings.Join(parts[:partI+1], "/")
+				places[place] = append(places[place], paramUse{pathStr: pathStr, param: part[1 : len(part)-1]})
+			}
+		}
+	}
+
+	placeKeys := make([]string, 0, len(places))
+	for place := range places {
+		placeKeys = append(placeKeys, place)
+	}
+	sort.Strings(placeKeys)
+
+	for _, place := range placeKeys {
+		uses := places[place]
+		names := make([]string, len(uses))
+		for i, use := range uses {
+			names[i] = use.param
+			if target, ok := out[use.pathStr][use.param]; ok {
+				names[i] = target
+			}
+		}
+		param := uses[0].param
+		snake := Depluralize(Snakify(NormalizeFieldName(param)))
+		name := ""
+		if !containsString(names, "id") {
+			if containsString(names, snake) {
+				name = snake
+			} else if containsString(names, param) {
+				name = param
+			}
+		}
+		if name == "" || allEqual(names, name) {
+			continue
+		}
+
+		for _, use := range uses {
+			renames := out[use.pathStr]
+			if paramNameTaken(use.pathStr, renames, use.param, name) {
+				continue
+			}
+			if name == use.param {
+				delete(renames, use.param)
+			} else {
+				renames[use.param] = name
+			}
+		}
+	}
+
+	return out
+}
+
+// paramNameTaken mirrors ts/src/guide/heuristic01.ts, as updateParamRename
+// judges a clash.
+func paramNameTaken(pathStr string, renames map[string]string, param string, name string) bool {
+	for other, target := range renames {
+		if other != param && target == name {
+			return true
+		}
+	}
+	for _, m := range pathParamRE.FindAllStringSubmatch(pathStr, -1) {
+		other := m[1]
+		if _, renamed := renames[other]; other != param && !renamed && Canonize(other) == name {
+			return true
+		}
+	}
+	return false
+}
+
+func containsString(list []string, s string) bool {
+	for _, item := range list {
+		if item == s {
+			return true
+		}
+	}
+	return false
+}
+
+func allEqual(list []string, s string) bool {
+	for _, item := range list {
+		if item != s {
+			return false
+		}
+	}
+	return true
 }
 
 // findcmps finds component refs under a path.

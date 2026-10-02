@@ -1,0 +1,60 @@
+# Generated from the API definition and overwritten on every build: do not
+# edit this file. Put customizations in the guide entry file, which includes
+# this one and overrides its defaults:
+#   guide.aontu
+
+guide: {
+  metrics: count: entity: 4
+  metrics: count: path: 9
+  metrics: count: method: 14
+
+  entity: container: {
+    path: "/orgs/{organization_name}/projects/{project_name}/containers": {
+      op: create: method: *POST
+      op: list: method: *GET
+    }
+    path: "/orgs/{organization_name}/projects/{project_name}/containers/{container_name}": {
+      rename: param: "container_name": *"id"
+      op: load: method: *GET
+      op: patch: method: *PATCH
+      op: remove: method: *DELETE
+    }
+    path: "/orgs/{organization_name}/projects/{project_name}/containers/{container_name}/start": {
+      action: "start": {}
+      op: create: method: *POST
+    }
+  }
+
+  entity: instance: {
+    path: "/orgs/{organization_name}/projects/{project_name}/containers/{container_name}/instances": {
+      op: list: method: *GET
+    }
+    path: "/orgs/{organization_name}/projects/{project_name}/containers/{container_name}/instances/{instance_id}": {
+      rename: param: "instance_id": *"id"
+      op: load: method: *GET
+      op: patch: method: *PATCH
+    }
+  }
+
+  entity: member: {
+    path: "/v1/teams/{team_slug}/members": {
+      op: list: method: *GET
+    }
+    path: "/v1/teams/{team_slug}/members/{username}": {
+      rename: param: "username": *"id"
+      op: load: method: *GET
+      op: remove: method: *DELETE
+    }
+  }
+
+  entity: repo: {
+    path: "/v1/repos/{owner}": {
+      rename: param: "owner": *"id"
+      op: load: method: *GET
+    }
+    path: "/v1/repos/{owner}/{name}": {
+      op: load: method: *GET
+    }
+  }
+
+}

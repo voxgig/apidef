@@ -552,6 +552,24 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-entity-param-names', () => {
+    const rows = loadTsv('entity-param-names');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(`entityParamNames(${row.name})`, () => {
+            node_assert_1.default.deepStrictEqual((0, heuristic01_1.entityParamNames)(JSON.parse(row.paths)), JSON.parse(row.expected));
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-name-param', () => {
+    const rows = loadTsv('name-param');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(`isNameParam("${row.param}") => ${row.expected}`, () => {
+            node_assert_1.default.strictEqual((0, heuristic01_1.isNameParam)(row.param), 'true' === row.expected);
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-closed-body-transform', () => {
     const rows = loadTsv('closed-body-transform');
     for (const row of rows) {

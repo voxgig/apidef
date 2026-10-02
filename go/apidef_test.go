@@ -1106,6 +1106,34 @@ func TestGuideCollectionOwner(t *testing.T) {
 	}
 }
 
+// Mirrors the TS `guide-param-names` case.
+func TestGuideParamNames(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, Strategy: "heuristic01"}).Generate(map[string]any{
+		"model": map[string]any{"name": "param-names", "def": "param-names-def.json"},
+		"build": map[string]any{"spec": map[string]any{"base": "../ts/test/param-names"}},
+		"ctrl": map[string]any{"step": map[string]any{
+			"parse": true, "guide": true, "transformers": true,
+			"builders": false, "generate": false,
+		}},
+	})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v res=%+v", err, res)
+	}
+
+	want, err := os.ReadFile("../ts/test/param-names/guide/base-guide.aontu")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(filepath.Join(folder, "guide", "base-guide.aontu"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != string(want) {
+		t.Errorf("base guide differs from the TypeScript one:\n%s", string(got))
+	}
+}
+
 // Mirrors the TS `guide-collection-merge-overlay` case.
 func TestGuideCollectionMergeOverlay(t *testing.T) {
 	for _, owner := range []string{"key", "keyring"} {
