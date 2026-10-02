@@ -51,7 +51,11 @@ import { snakify, camelify, kebabify } from 'jostraca'
 
 import { classifyGraphQLField } from '../dist/guide/graphql01'
 
-import { pathResource, sharedRoutes } from '../dist/guide/heuristic01'
+import {
+  distinctRecord,
+  pathResource,
+  sharedRoutes,
+} from '../dist/guide/heuristic01'
 
 import {
   migrateGuideIncludes,
@@ -635,6 +639,18 @@ describe('tsv-path-resource', () => {
       const parts = row.path.split('/').filter((p) => '' !== p)
       const expected = '' === row.expected ? null : row.expected
       assert.strictEqual(pathResource(parts, row.method), expected)
+    })
+  }
+})
+
+
+describe('tsv-distinct-record', () => {
+  const rows = loadTsv('distinct-record')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(`distinctRecord(${row.name}) => ${row.expected}`, () => {
+      assert.strictEqual(
+        distinctRecord(JSON.parse(row.share), JSON.parse(row.item)), 'true' === row.expected)
     })
   }
 })

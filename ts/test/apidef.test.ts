@@ -1011,6 +1011,74 @@ describe('apidef', () => {
   })
 
 
+  // Which entity an item route's methods and a collection's create take
+  // from the records they answer with. go/apidef_test.go reads the base guide
+  // this writes.
+  test('guide-item-record', async () => {
+    const folder = __dirname + '/../test/item-record'
+
+    const build = await ApiDef.makeBuild({ folder })
+
+    const bres = await build(
+      { name: 'item-record', def: 'item-record-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: true,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const routes = Object.fromEntries(Object.keys(bres.guide.entity).sort()
+      .map((name) => [name, Object.entries(bres.guide.entity[name].path ?? {})
+        .flatMap(([path, pd]: [string, any]) =>
+          Object.values(pd.op).map((op: any) => op.method + ' ' + path))
+        .sort()]))
+    const I = '/clusters/{cluster_name}/instances'
+    assert.deepStrictEqual(routes, {
+      activity: [
+        'DELETE /user/starred/{owner}/{repo}',
+        'GET /user/starred',
+        'PUT /user/starred/{owner}/{repo}',
+      ],
+      ci_runner_detail: ['GET /runners', 'GET /runners/{runner_id}'],
+      ci_runner_registration: ['POST /runners'],
+      instance: [
+        'GET ' + I,
+        'GET ' + I + '/{instance_id}',
+        'PATCH ' + I + '/{instance_id}',
+        'POST ' + I + '/{instance_id}/restart',
+      ],
+      repo: ['GET /repos/{repo_id}', 'POST /repos/{repo_id}/forks'],
+      report: ['GET /exports/{export_id}'],
+      repository_invitation: [
+        'DELETE /user/repository_invitations/{invitation_id}',
+        'GET /user/repository_invitations',
+        'PATCH /user/repository_invitations/{invitation_id}',
+      ],
+      simulation_run: [
+        'GET /simulation_runs',
+        'GET /simulation_runs/{run_id}',
+        'POST /simulation_runs',
+      ],
+    })
+
+    const renames = bres.guide.entity.repository_invitation
+      .path['/user/repository_invitations/{invitation_id}'].rename.param
+    assert.deepStrictEqual({ ...renames }, { invitation_id: 'id' })
+  })
+
+
   // Each shape docs/reference/guide.md gives for collection paths: item,
   // composite key, a read before a tag's delete, a verb or composed page on
   // the same record, other records beneath the item, and a split list and

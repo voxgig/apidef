@@ -85,6 +85,17 @@ resource then stay under one name, and no entity is named after a record
 that its operations never unwrap. A response that spells its envelope
 inline offers no component name, so the rule leaves it alone.
 
+An Accepted response names nothing either, because its body may describe
+the work the service queued rather than the resource. A read is the
+exception when another operation answers with the same component in a `200`
+or `201`. SaladCloud answers a container group instance's read with a `202`
+carrying the instance, the record its update answers with a `200`, so the
+read joins `container_group_instance`. Named from its tag instead, the read
+made a second entity, `container_group`, for one resource, and the
+instance's restart, recreate, and reallocate followed it there. A write that
+only a `202` answers still names nothing from it: GitHub's fork and transfer
+answer with the repository they act on, and stay verbs on `repo`.
+
 When more than one envelope carries the same record, none of them names
 through it. Two usage reports, one wrapping a metrics record as `tokens`
 and the other as `packages`, are two resources, and their own names are
@@ -218,6 +229,25 @@ returns the token the list holds, and stays apart from a sub-collection such
 as `/plans/{plan_id}/accounts`, which lists purchases rather than plans.
 When a tag names the delete of an item and the record names its read, the
 collection joins the read.
+
+Two shapes keep a collection's operations apart from an item route they
+would otherwise join. A create that answers with a record of its own,
+declaring its own `id` and sharing no more than half of its properties with
+the item's record, is another resource: GitLab's runner registration answers
+with a token for the new runner rather than the runner's details, and stays
+apart. A create whose answer is named apart from the item's record still
+joins when it carries that record's fields, because vendors name the answer
+to a create apart from the record it creates.
+
+The other shape runs the join the other way. An item route that answers
+nothing and takes its name from a tag can carry another resource's record
+onto the collection's: GitHub's `/user/repository_invitations/{invitation_id}`
+is tagged `repos`, and joining the invitation list to `repo` gave
+repositories the invitation's fields. When the tag names a resource with a
+record of its own, and the list's record carries the list path's own name,
+the item route joins the list's entity, `repository_invitation`, instead. A
+tag that names no resource, such as `Settings` in the earlier example, groups
+operations without a record to mix, and the collection still joins it.
 
 The move is part of the heuristic, so it shapes the base guide and nothing
 after it. When the collection is a resource of its own, `guide.aontu` can

@@ -8,4 +8,5 @@ type SharingRoute = {
     op: string;
 };
 declare function sharedRoutes(routes: SharingRoute[], records: string[]): string[];
-export { heuristic01, pathResource, sharedRoutes, };
+declare function distinctRecord(share: any, item: any): boolean;
+export { distinctRecord, heuristic01, pathResource, sharedRoutes, };

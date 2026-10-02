@@ -529,6 +529,15 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-distinct-record', () => {
+    const rows = loadTsv('distinct-record');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(`distinctRecord(${row.name}) => ${row.expected}`, () => {
+            node_assert_1.default.strictEqual((0, heuristic01_1.distinctRecord)(JSON.parse(row.share), JSON.parse(row.item)), 'true' === row.expected);
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-shared-routes', () => {
     const rows = loadTsv('shared-routes');
     const list = (cell, sep) => '' === cell ? [] : cell.split(sep);

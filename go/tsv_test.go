@@ -783,6 +783,27 @@ func TestPathResource(t *testing.T) {
 	}
 }
 
+func TestDistinctRecord(t *testing.T) {
+	rows := loadTsv(t, "distinct-record")
+	if len(rows) == 0 {
+		t.Fatal("no distinct-record rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var share, item map[string]any
+			if err := json.Unmarshal([]byte(row["share"]), &share); err != nil {
+				t.Fatalf("bad share %q: %v", row["share"], err)
+			}
+			if err := json.Unmarshal([]byte(row["item"]), &item); err != nil {
+				t.Fatalf("bad item %q: %v", row["item"], err)
+			}
+			if got, want := distinctRecord(share, item), row["expected"] == "true"; got != want {
+				t.Errorf("distinctRecord(%s, %s) = %v, want %v", row["share"], row["item"], got, want)
+			}
+		})
+	}
+}
+
 func TestSharedRoutes(t *testing.T) {
 	rows := loadTsv(t, "shared-routes")
 	if len(rows) == 0 {

@@ -590,11 +590,13 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 		"def":   def,
 		"guide": guide,
 		"work": map[string]any{
-			"pathmap":       map[string]any{},
-			"entmap":        map[string]any{},
-			"envelope":      map[string]string{},
-			"listEnvelope":  map[string]bool{},
-			"envelopePaths": map[string][]string{},
+			"pathmap":         map[string]any{},
+			"entmap":          map[string]any{},
+			"envelope":        map[string]string{},
+			"listEnvelope":    map[string]bool{},
+			"envelopePaths":   map[string][]string{},
+			"answered":        answeredRefs(def),
+			"recordResources": map[string]bool{},
 			"sharing": &sharingWork{
 				records: map[string]bool{},
 				yields:  map[string]bool{},
@@ -723,6 +725,9 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 	countMap["entity"] = toInt(countMap["entity"]) - len(mergeCollectionPaths(guide,
 		func(pathStr string, methods []string, collection bool) string {
 			return pathRecordRef(def, pathStr, methods, collection)
+		},
+		func(shareRef string, itemRef string) bool {
+			return distinctRecord(refSchema(def, shareRef), refSchema(def, itemRef))
 		}))
 
 	return guide, nil
@@ -739,14 +744,21 @@ func measureSharing(data map[string]any, mdesc map[string]any) {
 	envelope := work["envelope"].(map[string]string)
 	responses, _ := mdesc["responses"].(map[string]any)
 	def, _ := data["def"].(map[string]any)
-	for _, xref := range findPotentialSchemaRefs(pathStr, methodName, responses, envelope, &[]string{}) {
+	answered := work["answered"].(map[string]bool)
+	recordResources := work["recordResources"].(map[string]bool)
+	resource := pathResource(pathParts(data, pathStr), methodName)
+	for _, xref := range findPotentialSchemaRefs(pathStr, methodName, responses, envelope, answered, &[]string{}) {
 		m := xrefRE.FindStringSubmatch(xref)
 		if m == nil {
 			continue
 		}
 		cmp := CanonizeCmpName(m[2])
+		record := declaresID(refSchema(def, xref))
 		sharing.routes = append(sharing.routes, SharingRoute{Cmp: cmp, Method: methodName, Path: pathStr, Op: op})
-		sharing.records[cmp] = sharing.records[cmp] || declaresID(refSchema(def, xref))
+		sharing.records[cmp] = sharing.records[cmp] || record
+		if record && resource != "" {
+			recordResources[resource] = true
+		}
 	}
 }
 
@@ -947,7 +959,8 @@ func resolveEntityComponent(data map[string]any, mdesc map[string]any) {
 	responses, _ := mdesc["responses"].(map[string]any)
 
 	envelope, _ := work["envelope"].(map[string]string)
-	origxrefs := findPotentialSchemaRefs(pathStr, methodName, responses, envelope, &whyCmp)
+	answered, _ := work["answered"].(map[string]bool)
+	origxrefs := findPotentialSchemaRefs(pathStr, methodName, responses, envelope, answered, &whyCmp)
 	var origxrefMaps []map[string]any
 	for _, val := range origxrefs {
 		origxrefMaps = append(origxrefMaps, map[string]any{"val": val})
@@ -1194,6 +1207,11 @@ func resolveEntityName(ctx *ApiDefContext, data map[string]any, mdesc map[string
 	}
 
 	entmap := work["entmap"].(map[string]any)
+	if collectionEntity := itemOfCollection(data, mdesc, parts); collectionEntity != "" {
+		whyPath = append(whyPath, "collection-record="+collectionEntity)
+		entname = collectionEntity
+	}
+
 	rawEntname := entname
 	entname = EnsureMinEntityName(entname, entmap)
 
@@ -1252,6 +1270,24 @@ func resolveEntityName(ctx *ApiDefContext, data map[string]any, mdesc map[string
 		pathowner[pathStr] = owners
 	}
 	owners[methodName] = entname
+
+	// The entity a path's own record names, where the record carries the
+	// name the path's last segment gives.
+	recordowner, _ := work["recordowner"].(map[string]string)
+	if recordowner == nil {
+		recordowner = map[string]string{}
+		work["recordowner"] = recordowner
+	}
+	last := ""
+	for _, part := range parts {
+		if !isParam(part) {
+			last = part
+		}
+	}
+	if _, seen := recordowner[pathStr]; !seen && isSchemaRef(safeStr(ment["ref"])) &&
+		entname == safeStr(ment["cmp"]) && last != "" && entname == Canonize(last) {
+		recordowner[pathStr] = entname
+	}
 
 	DebugPath(pathStr, methodName, "RESOLVE-ENTITY-NAME", entname)
 }
@@ -2509,6 +2545,23 @@ func refSchema(def map[string]any, xref string) map[string]any {
 	return schema
 }
 
+// distinctRecord mirrors ts/src/guide/heuristic01.ts: whether a share's
+// record is apart from an item's.
+func distinctRecord(share map[string]any, item map[string]any) bool {
+	if !declaresID(share) || !declaresID(item) {
+		return false
+	}
+	own := mergedProperties(share)
+	theirs := mergedProperties(item)
+	common := 0
+	for name := range own {
+		if _, ok := theirs[name]; ok {
+			common++
+		}
+	}
+	return common*2 <= len(own)
+}
+
 func declaresID(schema map[string]any) bool {
 	return schema != nil && resolveSchemaProperties(schema)["id"] != nil
 }
@@ -2670,6 +2723,59 @@ func successSchemas(responses map[string]any) []map[string]any {
 		}
 	}
 	return schemas
+}
+
+// namingSchemas mirrors ts/src/guide/heuristic01.ts: a read answered only by
+// an Accepted response is named from it when another operation answers with
+// the same component in a 200 or 201.
+func namingSchemas(method string, responses map[string]any, answered map[string]bool) []map[string]any {
+	schemas := successSchemas(responses)
+	if len(schemas) == 0 && READ_METHODS[method] {
+		accepted, _ := responses["202"].(map[string]any)
+		if schema := getResponseSchema(accepted); schema != nil && answered[schemaRef(schema)] {
+			schemas = append(schemas, schema)
+		}
+	}
+	return schemas
+}
+
+// answeredRefs mirrors ts/src/guide/heuristic01.ts: every component some
+// operation answers with in a 200 or 201.
+func answeredRefs(def map[string]any) map[string]bool {
+	answered := map[string]bool{}
+	paths, _ := def["paths"].(map[string]any)
+	for _, pathStr := range sortedKeys(paths) {
+		pathdef, _ := paths[pathStr].(map[string]any)
+		for _, method := range sortedKeys(pathdef) {
+			if _, ok := METHOD_CONSIDER_ORDER[strings.ToUpper(method)]; !ok {
+				continue
+			}
+			mdef, _ := pathdef[method].(map[string]any)
+			if mdef == nil {
+				continue
+			}
+			responses, _ := mdef["responses"].(map[string]any)
+			for _, schema := range successSchemas(responses) {
+				if ref := schemaRef(schema); ref != "" {
+					answered[ref] = true
+				}
+			}
+		}
+	}
+	return answered
+}
+
+func schemaRef(schema map[string]any) string {
+	if ref, ok := schema["x-ref"].(string); ok {
+		return ref
+	}
+	if schemaType, _ := schema["type"].(string); schemaType == "array" {
+		if items, ok := schema["items"].(map[string]any); ok {
+			ref, _ := items["x-ref"].(string)
+			return ref
+		}
+	}
+	return ""
 }
 
 // pathRecordRef mirrors ts/src/guide/heuristic01.ts: the record a path
@@ -2951,9 +3057,9 @@ func makeMethodEntityDesc(desc map[string]any) map[string]any {
 
 // findPotentialSchemaRefs finds x-ref values in responses.
 func findPotentialSchemaRefs(pathStr string, methodName string, responses map[string]any,
-	envelope map[string]string, why *[]string) []string {
+	envelope map[string]string, answered map[string]bool, why *[]string) []string {
 	var xrefs []string
-	for _, schema := range successSchemas(responses) {
+	for _, schema := range namingSchemas(methodName, responses, answered) {
 		if xref, ok := schema["x-ref"].(string); ok {
 			// An envelope component names its wrapping, not the entity: the
 			// component it carries takes its place.
@@ -3006,6 +3112,58 @@ func endsWithCmp(data map[string]any, pm *PathMatchResult) bool {
 }
 
 // isOrigCmp checks if a name is an original component reference.
+// itemOfCollection mirrors ts/src/guide/heuristic01.ts: the entity of an
+// item route's collection, for a method on the item route named by its tag
+// alone, when the route answers nothing and the tag names another resource
+// with a record of its own.
+func itemOfCollection(data map[string]any, mdesc map[string]any, parts []string) string {
+	ment, _ := mdesc["MethodEntity"].(map[string]any)
+	work := data["work"].(map[string]any)
+	recordResources, _ := work["recordResources"].(map[string]bool)
+	if ment == nil || safeStr(ment["ref"]) != "tag" || ment["rescmp"] != nil ||
+		!recordResources[safeStr(ment["cmp"])] {
+		return ""
+	}
+
+	nlits := 0
+	for nlits < len(parts) && !isParam(parts[nlits]) {
+		nlits++
+	}
+	if nlits == 0 || nlits == len(parts) {
+		return ""
+	}
+	for _, part := range parts[nlits:] {
+		if !isParam(part) {
+			return ""
+		}
+	}
+
+	def, _ := data["def"].(map[string]any)
+	paths, _ := def["paths"].(map[string]any)
+	pathdef, _ := paths[safeStr(mdesc["path"])].(map[string]any)
+	for _, method := range sortedKeys(pathdef) {
+		if _, ok := METHOD_CONSIDER_ORDER[strings.ToUpper(method)]; !ok {
+			continue
+		}
+		mdef, _ := pathdef[method].(map[string]any)
+		responses, _ := mdef["responses"].(map[string]any)
+		if getResponseSchema(successResponse(responses)) != nil {
+			return ""
+		}
+	}
+
+	recordowner, _ := work["recordowner"].(map[string]string)
+	collection := "/" + strings.Join(parts[:nlits], "/")
+	if entname, ok := recordowner[collection]; ok {
+		return entname
+	}
+	return recordowner[collection+"/"]
+}
+
+func isSchemaRef(ref string) bool {
+	return ref != "" && ref != "tag"
+}
+
 func isOrigCmp(data map[string]any, name string) bool {
 	guide, _ := data["guide"].(map[string]any)
 	if guide == nil {
