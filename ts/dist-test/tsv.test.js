@@ -522,6 +522,36 @@ function loadTsv(name) {
         });
     }
 });
+// The field the transform builds from one property, beside a plain property
+// so that the record is not read as an envelope around it.
+(0, node_test_1.describe)('tsv-allof-field', () => {
+    const rows = loadTsv('allof-field');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, async () => {
+            const schema = JSON.parse(row.schema);
+            const members = JSON.stringify(schema.allOf);
+            const ment = {
+                name: 'thing',
+                fields: {},
+                op: { load: { name: 'load', points: [{ m: 'GET', o: '/things' }] } },
+            };
+            const def = { paths: { '/things': { get: { responses: { '200': { content: {
+                                        'application/json': { schema: { type: 'object', properties: {
+                                                    [row.field]: schema, label: { type: 'string' },
+                                                } } },
+                                    } } } } } } };
+            await (0, field_1.fieldTransform)({ apimodel: { main: { kit: { entity: { thing: ment } } } }, def });
+            const field = Object.values(ment.fields).find((f) => row.field === f.n);
+            const got = Object.fromEntries(['t', 'fo', 'sh', 'de', 'ro', 'wo']
+                .filter((key) => undefined !== field?.[key])
+                .map((key) => [key, field[key]]));
+            node_assert_1.default.deepStrictEqual(got, JSON.parse(row.expected));
+            // A parsed schema is shared between references, so it is left as it was.
+            node_assert_1.default.strictEqual(JSON.stringify(schema.allOf), members);
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-path-resource', () => {
     const rows = loadTsv('path-resource');
     (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));

@@ -102,6 +102,22 @@ that does both contradicts itself, and believing the restriction costs a
 caller one field they might have been able to send, while believing the
 omission sends a value the server rejects.
 
+`t` comes from the property's `type`. OpenAPI 3.0 ignores the siblings of a
+`$ref`, so a definition describes a referenced value by wrapping the `$ref` in
+an `allOf` beside a member that holds only the description. An `allOf` whose
+members are one scalar schema and any number of members holding only
+`description`, `title`, `example`, `nullable` or `deprecated` is read as that
+scalar. A scalar schema has the type `string`, `integer`, `number` or
+`boolean`, alone or listed with `null`, and composes nothing. The field reads
+the schema of the scalar with the describing members laid over it, and the
+property's own keys over those. So it takes the `type` and `format` of the
+scalar, and prefers a description from the property or a describing member
+to the one the scalar carries. A `$ref` to a string with `format: oid`,
+described that way, gives a `` `$STRING` `` field with `fo: oid`. Any other
+`allOf`, such as one of objects, has no `type` of its own, so its field is
+`` `$ANY` `` unless the name says what it holds, such as an id, a count, or a
+flag. `ts/test/allof-field.tsv` pins each case.
+
 ## `ModelOp`
 
 | field | type | meaning |
