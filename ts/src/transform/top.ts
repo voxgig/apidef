@@ -96,7 +96,7 @@ const topTransform = async function(
   // Institute of Chicago lists `api.artic.edu/api/v1` (no
   // https://). Go's net/http barfs on that with "unsupported
   // protocol scheme". Default to https when the URL has no scheme
-  // and the value isn't a relative path.
+  // and is neither a relative path nor opened by a server variable.
   for (const server of (kit.info.servers as any[])) {
     if (!server || 'string' !== typeof server.url) continue
     const given = server.url
@@ -208,12 +208,25 @@ function resolveSummary(def: any): string | undefined {
 }
 
 
+// A server variable that opens the URL stands for its origin, or for its
+// scheme when `://` follows, so its value carries the scheme.
+const LEADING_VARIABLE_RE = /^\{([^{}]+)\}($|[/?#]|:\/\/)/
+const ORIGIN_DESCRIPTION =
+  'The origin of the API, with its scheme, such as https://api.example.com.'
+
+
 function withScheme(url: string): string {
   const u = url.trim()
   if ('' === u || /^[a-z][a-z0-9+.-]*:\/\//i.test(u)) return url
   if (u.startsWith('//')) return 'https:' + u
-  if (u.startsWith('/')) return url
+  if (u.startsWith('/') || LEADING_VARIABLE_RE.test(u)) return url
   return 'https://' + u
+}
+
+
+function originVariable(url: string): string | undefined {
+  const lead = LEADING_VARIABLE_RE.exec(url.trim())
+  return null == lead || '://' === lead[2] ? undefined : lead[1]
 }
 
 
@@ -239,11 +252,13 @@ function singleBraces(url: string): { url: string, names: string[] } {
 function declareVariables(server: any, names: string[]) {
   const declared = null == server.variables ? {} : server.variables
   if (!isObject(declared)) return
+  const origin = originVariable(server.url)
   const missing = names.filter((name) =>
     !Object.prototype.hasOwnProperty.call(declared, name))
   server.variables = {
     ...declared,
-    ...Object.fromEntries(missing.map((name) => [name, { default: '' }])),
+    ...Object.fromEntries(missing.map((name) => [name, origin === name ?
+      { default: '', description: ORIGIN_DESCRIPTION } : { default: '' }])),
   }
 }
 

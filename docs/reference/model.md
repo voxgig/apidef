@@ -26,13 +26,23 @@ TypeScript types are in [`ts/src/model.ts`](../../ts/src/model.ts).
 
 Each entry is the spec's own server, with two normalisations; a spec that
 names no server takes one as [the configuration reference](./configuration.md)
-describes. A URL with no scheme is prefixed `https://`, unless it is a path
-such as `/v1`. A variable written in Postman's double braces becomes the
-OpenAPI variable: `http://{{base_url}}` is `http://{base_url}`, since
-OpenAPI reads only the inner pair as the variable and would keep the outer
-braces in the URL. Each rewritten name that the server's `variables` does
-not declare is added with an empty `default`, so the generated SDK asks its
-caller for the value, and a warning names the URL before and after.
+describes.
+
+A URL with no scheme is prefixed `https://`, as `api.artic.edu/api/v1` is,
+unless it is a path such as `/v1` or begins with a server variable. A
+variable followed by nothing, or by a path, query or fragment, stands for
+the origin, and one followed by `://` for the scheme, so its value carries
+the scheme: `{baseUrl}/v1` stays as written, and the caller passes
+`https://api.example.com`. A variable that is only part of the host, as in
+`{region}.example.com`, keeps the prefix.
+
+A variable written in Postman's double braces becomes the OpenAPI variable:
+`http://{{base_url}}` is `http://{base_url}`, since OpenAPI reads only the
+inner pair as the variable and would keep the outer braces in the URL.
+Each rewritten name that the server's `variables` does not declare is added
+with an empty `default`, so the generated SDK asks its caller for the
+value, and one that stands for the origin is described as the origin with
+its scheme. A warning names the URL before and after.
 
 Only a name of letters, digits and underscores inside exactly two braces is
 rewritten. Any other run of braces, such as `{{{base_url}}}`, `{{base_url}`

@@ -538,18 +538,27 @@ func declareVariables(server map[string]any, names []string) {
 	default:
 		return
 	}
+	url, _ := server["url"].(string)
+	origin := originVariable(url)
 	for _, name := range names {
 		if _, ok := declared[name]; !ok {
-			declared[name] = map[string]any{"default": ""}
+			entry := map[string]any{"default": ""}
+			if name == origin {
+				entry["description"] = originDescription
+			}
+			declared[name] = entry
 		}
 	}
 	server["variables"] = declared
 }
 
 var schemeRE = regexp.MustCompile(`(?i)^[a-z][a-z0-9+.-]*://`)
+var leadingVariableRE = regexp.MustCompile(`^\{([^{}]+)\}($|[/?#]|://)`)
+
+const originDescription = "The origin of the API, with its scheme, such as https://api.example.com."
 
 // withScheme mirrors ts/src/transform/top.ts: https when the URL names no
-// scheme and is not a relative path.
+// scheme and is neither a relative path nor opened by a server variable.
 func withScheme(url string) string {
 	u := strings.TrimSpace(url)
 	if u == "" || schemeRE.MatchString(u) {
@@ -558,10 +567,19 @@ func withScheme(url string) string {
 	if strings.HasPrefix(u, "//") {
 		return "https:" + u
 	}
-	if strings.HasPrefix(u, "/") {
+	if strings.HasPrefix(u, "/") || leadingVariableRE.MatchString(u) {
 		return url
 	}
 	return "https://" + u
+}
+
+// originVariable mirrors ts/src/transform/top.ts.
+func originVariable(url string) string {
+	m := leadingVariableRE.FindStringSubmatch(strings.TrimSpace(url))
+	if m == nil || m[2] == "://" {
+		return ""
+	}
+	return m[1]
 }
 
 func firstServerURL(infoMap map[string]any) (string, bool) {
