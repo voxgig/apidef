@@ -60,6 +60,20 @@ const MODEL_FILES = ['apidef.aontu', 'guide.aontu'];
             g: Object.fromEntries(Object.entries(point.g).map(([kind, args]) => [kind, args.map(arg => ({ a: true, ...arg, k: kind === 'params' ? 'param' : kind }))])),
         });
     });
+    (0, node_test_1.test)('request-body alias applies to a point and its alternatives', () => {
+        const rb = {
+            kind: 'multipart', media: 'multipart/form-data',
+            fields: [{ name: 'file', binary: true, media: 'image/png' }, { name: 'tags', list: true }],
+            alternatives: [{ kind: 'raw', media: 'application/octet-stream', binary: true }],
+        };
+        const unify = (body) => new aontu_1.Aontu().generate((0, node_fs_1.readFileSync)(node_path_1.default.join(REPO, 'model', 'apidef.aontu'), 'utf8') + '\n' +
+            'main:kit:entity:upload:op:create:' + JSON.stringify({
+            name: 'create', points: [{ m: 'POST', o: '/uploads', s: [{ lit: 'uploads' }], rb: body }],
+        })).main.kit.entity.upload.op.create.points[0].rb;
+        node_assert_1.default.deepStrictEqual(unify(rb), rb);
+        node_assert_1.default.throws(() => unify({ ...rb, kind: 'bytes' }), /rb\.kind/);
+        node_assert_1.default.throws(() => unify({ ...rb, alternatives: [{ kind: 'xml', media: 'a/b' }] }), /rb\.alternatives\.0\.kind/);
+    });
     (0, node_test_1.test)('entity-field alias uses compact keys and defaults activation', () => {
         const fields = {
             id: { n: 'id', h: 'Id', r: true, t: '`$STRING`' },

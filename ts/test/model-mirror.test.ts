@@ -71,6 +71,23 @@ describe('model-mirror', () => {
     })
   })
 
+  test('request-body alias applies to a point and its alternatives', () => {
+    const rb = {
+      kind: 'multipart', media: 'multipart/form-data',
+      fields: [{ name: 'file', binary: true, media: 'image/png' }, { name: 'tags', list: true }],
+      alternatives: [{ kind: 'raw', media: 'application/octet-stream', binary: true }],
+    }
+    const unify = (body: any) => new Aontu().generate(
+      readFileSync(Path.join(REPO, 'model', 'apidef.aontu'), 'utf8') + '\n' +
+      'main:kit:entity:upload:op:create:' + JSON.stringify({
+        name: 'create', points: [{ m: 'POST', o: '/uploads', s: [{ lit: 'uploads' }], rb: body }],
+      })).main.kit.entity.upload.op.create.points[0].rb
+    assert.deepStrictEqual(unify(rb), rb)
+    assert.throws(() => unify({ ...rb, kind: 'bytes' }), /rb\.kind/)
+    assert.throws(() => unify({ ...rb, alternatives: [{ kind: 'xml', media: 'a/b' }] }),
+      /rb\.alternatives\.0\.kind/)
+  })
+
   test('entity-field alias uses compact keys and defaults activation', () => {
     const fields = {
       id: { n: 'id', h: 'Id', r: true, t: '`$STRING`' },

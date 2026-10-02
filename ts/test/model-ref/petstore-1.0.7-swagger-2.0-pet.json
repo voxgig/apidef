@@ -72,6 +72,16 @@
               "body"
             ]
           },
+          "rb": {
+            "alternatives": [
+              {
+                "kind": "raw",
+                "media": "application/xml"
+              }
+            ],
+            "kind": "json",
+            "media": "application/json"
+          },
           "s": [
             {
               "lit": "pet"
@@ -126,6 +136,18 @@
             "param": {
               "petId": "id"
             }
+          },
+          "rb": {
+            "fields": [
+              {
+                "name": "name"
+              },
+              {
+                "name": "status"
+              }
+            ],
+            "kind": "form",
+            "media": "application/x-www-form-urlencoded"
           },
           "s": [
             {
@@ -185,6 +207,19 @@
             "param": {
               "petId": "id"
             }
+          },
+          "rb": {
+            "fields": [
+              {
+                "name": "additionalMetadata"
+              },
+              {
+                "binary": true,
+                "name": "file"
+              }
+            ],
+            "kind": "multipart",
+            "media": "multipart/form-data"
           },
           "s": [
             {
@@ -414,6 +449,16 @@
             "exist": [
               "body"
             ]
+          },
+          "rb": {
+            "alternatives": [
+              {
+                "kind": "raw",
+                "media": "application/xml"
+              }
+            ],
+            "kind": "json",
+            "media": "application/json"
           },
           "s": [
             {

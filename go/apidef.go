@@ -181,6 +181,7 @@ func (a *apiDefInstance) Generate(spec map[string]any) (*ApiDefResult, error) {
 		OperationTransform,
 		ContractTransform,
 		ArgsTransform,
+		BodyTransform,
 		SelectTransform,
 		FieldTransform,
 		FlowTransform,

@@ -96,6 +96,9 @@ main: kit: type: type({ # Reusable model types.
       cookie?: {} # Cookie conditions.
       '$action'?: string # Action discriminator for a non-CRUD operation.
     }
+    rb?: %request-body & { # Request body, when it is not JSON alone.
+      alternatives?: [ &: %request-body ] # Other accepted media types, in preference order.
+    }
     co?: { # Identity of the source operation's contract.
       version: 2 # Contract metadata version.
       id: string # Source operation identifier.
@@ -118,6 +121,19 @@ main: kit: type: type({ # Reusable model types.
         more: string # Path to the flag indicating more records.
       }
     }
+  }
+
+  %request-body: { # One media type a request body can be sent as.
+    kind: 'json' | 'raw' | 'multipart' | 'form' # How the body is encoded.
+    media: string # Media type sent as the content type.
+    binary?: boolean # Whether a raw body is bytes rather than text.
+    fields?: [ &: { # Fields of a multipart or form body, in code point order.
+      name: string # Field name in the body.
+      binary?: boolean # Whether the field carries a file.
+      list?: boolean # Whether an array field repeats, once per item.
+      join?: string # Delimiter joining an array field's items into one value.
+      media?: string # Content type the definition declares for the field.
+    } ]
   }
 
   %entity-field: { # One named entity field.

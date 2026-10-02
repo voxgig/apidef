@@ -42,7 +42,8 @@ op.create
        ├─ m              GET/POST/…
        ├─ g              parameters to send
        ├─ q              how to identify the target instance
-       └─ t              request/response envelope handling
+       ├─ t              request/response envelope handling
+       └─ rb             how the request body is sent, when not as JSON
 ```
 
 Keeping `points[]` plural is what lets the model represent actions, alternate
@@ -67,6 +68,25 @@ the point. `q.$action` marks an action point. Downstream this becomes the
 SDK's routing and pre-condition logic: the first point whose selector a
 call meets is chosen, so when points of one operation share a selector,
 only the first can be reached, and apidef records a warning naming them.
+
+## A body that is not JSON says how it is sent
+
+A generated SDK sends a request body as JSON unless the model says
+otherwise, and `rb` is how it says so: a raw upload of bytes, text in a
+named media type, or a form, multipart or URL-encoded, whose fields it lists.
+An operation that accepts nothing but JSON records nothing, so its model is
+unchanged, and a generator that does not read `rb` sends what it always
+sent.
+
+An operation can accept several media types, and an SDK sends one by
+default, so the model chooses. JSON wins whenever it is offered, because
+that keeps every existing SDK's behaviour; past JSON, a multipart body comes
+before a URL-encoded form, since it can carry a file as well as the fields,
+and a form before a raw body, which carries one value. The other media
+types stay beside the choice as alternatives, for a generator that lets a
+caller pick. Like any inference, the choice can be wrong, and `body.media`
+in `guide.aontu` names another media type, or one the definition left out.
+The rules themselves are in the [model reference](../reference/model.md#modelrequestbody).
 
 ## Fields carry types and per-op overrides
 

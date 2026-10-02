@@ -65,17 +65,38 @@ type ModelContract struct {
 	Source  string `json:"source"`
 }
 
+type RequestBodyKind = string
+
+// ModelRequestBodyField is one field of a multipart or form request body.
+type ModelRequestBodyField struct {
+	Name   string `json:"name"`
+	Binary bool   `json:"binary,omitempty"`
+	List   bool   `json:"list,omitempty"`
+	Join   string `json:"join,omitempty"`
+	Media  string `json:"media,omitempty"`
+}
+
+// ModelRequestBody is one media type a request body can be sent as.
+type ModelRequestBody struct {
+	Kind         RequestBodyKind          `json:"kind"`
+	Media        string                   `json:"media"`
+	Binary       bool                     `json:"binary,omitempty"`
+	Fields       []*ModelRequestBodyField `json:"fields,omitempty"`
+	Alternatives []*ModelRequestBody      `json:"alternatives,omitempty"`
+}
+
 // ModelPoint represents a point implementation of an operation.
 type ModelPoint struct {
-	Live      any              `json:"li,omitempty"`
-	Contract  *ModelContract   `json:"co,omitempty"`
-	Orig      string           `json:"o"`
-	Method    MethodName       `json:"m"`
-	Segments  []map[string]any `json:"s"`
-	Rename    map[string]any   `json:"r,omitempty"`
-	Args      map[string]any   `json:"g,omitempty"`
-	Transform map[string]any   `json:"t,omitempty"`
-	Select    map[string]any   `json:"q,omitempty"`
+	Live        any               `json:"li,omitempty"`
+	Contract    *ModelContract    `json:"co,omitempty"`
+	Orig        string            `json:"o"`
+	Method      MethodName        `json:"m"`
+	Segments    []map[string]any  `json:"s"`
+	Rename      map[string]any    `json:"r,omitempty"`
+	Args        map[string]any    `json:"g,omitempty"`
+	Transform   map[string]any    `json:"t,omitempty"`
+	Select      map[string]any    `json:"q,omitempty"`
+	RequestBody *ModelRequestBody `json:"rb,omitempty"`
 }
 
 type ModelOp struct {

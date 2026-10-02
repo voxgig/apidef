@@ -129,6 +129,27 @@ type ModelPathSegment = {
 }
 
 
+type RequestBodyKind = 'json' | 'raw' | 'multipart' | 'form'
+
+
+type ModelRequestBodyField = {
+  name: string
+  binary?: boolean
+  list?: boolean
+  join?: string
+  media?: string
+}
+
+
+type ModelRequestBody = {
+  kind: RequestBodyKind
+  media: string
+  binary?: boolean
+  fields?: ModelRequestBodyField[]
+  alternatives?: ModelRequestBody[]
+}
+
+
 type ModelPoint = {
   co?: { version: 2, id: string, source: string }
   li?: boolean | Record<string, any>
@@ -157,6 +178,7 @@ type ModelPoint = {
     exist: string[]
     $action?: string
   }
+  rb?: ModelRequestBody
 }
 
 
@@ -250,6 +272,9 @@ export type {
   ModelArg,
   ModelPoint,
   ModelPathSegment,
+  RequestBodyKind,
+  ModelRequestBodyField,
+  ModelRequestBody,
   ModelOp,
   ModelEntity,
   ModelEntityFlow,

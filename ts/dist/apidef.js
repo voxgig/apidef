@@ -65,6 +65,7 @@ const contract_1 = require("./transform/contract");
 const operation_1 = require("./transform/operation");
 const graphql_1 = require("./transform/graphql");
 const args_1 = require("./transform/args");
+const body_1 = require("./transform/body");
 const select_1 = require("./transform/select");
 const field_1 = require("./transform/field");
 const casecollide_1 = require("./transform/casecollide");
@@ -233,6 +234,7 @@ function ApiDef(opts) {
             await (0, graphql_1.graphqlTransform)(ctx);
             await (0, contract_1.contractTransform)(ctx);
             await (0, args_1.argsTransform)(ctx);
+            await (0, body_1.bodyTransform)(ctx);
             await (0, select_1.selectTransform)(ctx);
             await (0, field_1.fieldTransform)(ctx);
             // Before flowTransform, so no flow is built for an entity it drops.

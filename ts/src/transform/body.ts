@@ -1,0 +1,358 @@
+/* Copyright (c) 2026 Voxgig Ltd, MIT License */
+
+import type { TransformResult, Transform } from '../transform'
+
+import { KIT } from '../types'
+
+import { guideActive, mergedProperties, sortedKeys } from '../utility'
+
+import type {
+  ModelPoint,
+  ModelRequestBody,
+  ModelRequestBodyField,
+  RequestBodyKind,
+} from '../model'
+
+
+// JSON first, as generated SDKs send it; then the kinds by what each can carry.
+const KIND_ORDER: RequestBodyKind[] = ['json', 'multipart', 'form', 'raw']
+
+const JSON_MEDIA = 'application/json'
+const FORM_MEDIA = 'application/x-www-form-urlencoded'
+const MULTIPART_MEDIA = 'multipart/form-data'
+const OCTET_MEDIA = 'application/octet-stream'
+
+const TYPING_KEYS = [
+  'type', 'format', 'properties', 'additionalProperties', 'items',
+  'allOf', 'anyOf', 'oneOf', 'enum', 'const', 'contentMediaType', 'contentEncoding',
+]
+
+
+type Offer = {
+  media: string
+  schema?: any
+  encoding?: any
+  swagger?: boolean
+}
+
+
+const bodyTransform: Transform = async function(
+  ctx: any,
+): Promise<TransformResult> {
+  const { apimodel, def, guide } = ctx
+  const entities = apimodel.main[KIT].entity
+
+  let msg = 'body '
+
+  for (const entname of sortedKeys(entities)) {
+    for (const mop of Object.values(entities[entname].op ?? {}) as any[]) {
+      for (const mpoint of (mop?.points ?? []) as ModelPoint[]) {
+        if ('graphql' === mpoint.k) {
+          continue
+        }
+        const rb = requestBody(def, mpoint.m, mpoint.o, guideMedia(guide, entname, mpoint))
+        if (null != rb) {
+          mpoint.rb = rb
+        }
+      }
+    }
+    msg += entname + ' '
+  }
+
+  return { ok: true, msg }
+}
+
+
+function guideMedia(guide: any, entname: string, mpoint: ModelPoint): string | undefined {
+  const gops = guide?.entity?.[entname]?.path?.[mpoint.o]?.op ?? {}
+  for (const opname of sortedKeys(gops)) {
+    const gop = gops[opname]
+    if (guideActive(gop) &&
+      String(gop?.method ?? '').toUpperCase() === String(mpoint.m).toUpperCase()) {
+      return textOf(gop?.body?.media)
+    }
+  }
+  return undefined
+}
+
+
+// Undefined when the operation sends JSON alone.
+function requestBody(
+  def: any,
+  method: string,
+  path: string,
+  media?: string,
+): ModelRequestBody | undefined {
+  const pathdef = def?.paths?.[path]
+  const opdef = pathdef?.[String(method).toLowerCase()]
+  if (!isMap(opdef)) {
+    return undefined
+  }
+
+  const offers = null != def.swagger ?
+    swaggerOffers(def, pathdef, opdef) : openapiOffers(opdef)
+
+  const ranked = offers
+    .sort((a, b) => compare(a.media, b.media))
+    .map((offer) => ({ declared: offer.media.trim().toLowerCase(), body: describeBody(offer) }))
+    .sort((a, b) => byPreference(a.body, b.body))
+  const bodies = ranked.map((entry) => entry.body).filter((body, i, all) =>
+    i === all.findIndex((other) => other.media === body.media))
+
+  // A named media type is matched as declared first, so a range keeps its schema.
+  const named = textOf(media)?.toLowerCase()
+  const chosen = null == named ? bodies[0] :
+    ranked.find((entry) => entry.declared === named)?.body ??
+    bodies.find((body) => body.media.toLowerCase() === named) ??
+    describeBody({ media: textOf(media) as string })
+
+  if (null == chosen) {
+    return undefined
+  }
+
+  const alternatives = bodies.filter((body) => body.media !== chosen.media)
+
+  if ('json' === chosen.kind && JSON_MEDIA === essence(chosen.media) &&
+    alternatives.every((body) => 'json' === body.kind)) {
+    return undefined
+  }
+
+  return 0 < alternatives.length ? { ...chosen, alternatives } : chosen
+}
+
+
+function openapiOffers(opdef: any): Offer[] {
+  const content = opdef.requestBody?.content
+  if (!isMap(content)) {
+    return []
+  }
+  return Object.keys(content).map((media) => ({
+    media,
+    schema: content[media]?.schema,
+    encoding: content[media]?.encoding,
+  }))
+}
+
+
+// Swagger declares a body as a `body` parameter or as `formData` parameters,
+// and its media types in `consumes`, the operation's replacing the document's.
+function swaggerOffers(def: any, pathdef: any, opdef: any): Offer[] {
+  const params = swaggerParams(pathdef, opdef)
+  const body = params.find((param) => 'body' === param.in)
+  const form = params.filter((param) =>
+    'formData' === param.in && 'string' === typeof param.name && '' !== param.name)
+
+  if (null == body && 0 === form.length) {
+    return []
+  }
+
+  const bodySchema = null == body ? undefined : (body.schema ?? {})
+  const formSchema = 0 === form.length ? undefined : {
+    type: 'object',
+    properties: Object.fromEntries(form.map((param) => [param.name, formProperty(param)])),
+  }
+
+  const declared = listOf(Array.isArray(opdef.consumes) ? opdef.consumes : def.consumes)
+    .filter((media) => null != textOf(media))
+  const consumes = 0 < declared.length ? declared : [
+    null != body ? JSON_MEDIA :
+      form.some((param) => 'file' === param.type) ? MULTIPART_MEDIA : FORM_MEDIA
+  ]
+
+  return consumes.map((media: string) => ({
+    media,
+    schema: fielded(essence(media)) ? (formSchema ?? bodySchema) : (bodySchema ?? formSchema),
+    swagger: true,
+  }))
+}
+
+
+// An operation's parameter replaces the path's of the same location and name.
+function swaggerParams(pathdef: any, opdef: any): any[] {
+  const key = (param: any) => (textOf(param.in) ?? '') + '\u0000' + (textOf(param.name) ?? '')
+  const own = listOf(opdef.parameters).filter(isMap)
+  const owned = new Set(own.map(key))
+  return [...own, ...listOf(pathdef?.parameters).filter(isMap).filter((param) => !owned.has(key(param)))]
+}
+
+
+function formProperty(param: any): any {
+  const prop: any = {}
+  for (const key of ['type', 'format', 'items', 'collectionFormat']) {
+    if (null != param[key]) {
+      prop[key] = param[key]
+    }
+  }
+  return prop
+}
+
+
+function describeBody(offer: Offer): ModelRequestBody {
+  const media = offer.media.trim()
+  const type = essence(media)
+  const [major, minor = ''] = type.split('/')
+
+  if (JSON_MEDIA === type || 'text/json' === type || minor.endsWith('+json')) {
+    return { kind: 'json', media: type.includes('*') ? JSON_MEDIA : media }
+  }
+
+  if (FORM_MEDIA === type) {
+    return withFields({ kind: 'form', media }, offer)
+  }
+
+  if ('multipart' === major) {
+    return withFields({ kind: 'multipart', media: '*' === minor ? MULTIPART_MEDIA : media }, offer)
+  }
+
+  // A range that admits JSON stays JSON unless its schema is bytes.
+  if ('*' === minor && ('*' === major || 'application' === major)) {
+    return binarySchema(offer.schema) ?
+      { kind: 'raw', media: OCTET_MEDIA, binary: true } :
+      { kind: 'json', media: JSON_MEDIA }
+  }
+
+  const body: ModelRequestBody = { kind: 'raw', media }
+  if (rawBinary(type, offer.schema)) {
+    body.binary = true
+  }
+  return body
+}
+
+
+function withFields(body: ModelRequestBody, offer: Offer): ModelRequestBody {
+  const props = mergedProperties(offer.schema)
+  const fields = sortedKeys(props).map((name: string) =>
+    bodyField(name, props![name], offer.encoding?.[name], offer.swagger ? 'swagger' : body.kind))
+  if (0 < fields.length) {
+    body.fields = fields
+  }
+  return body
+}
+
+
+function bodyField(name: string, prop: any, encoding: any, arrays: string): ModelRequestBodyField {
+  const list = hasType(prop, 'array')
+  const item = list ? prop.items : prop
+  const field: ModelRequestBodyField = { name }
+  if (binarySchema(item) || (isMap(item) && 'file' === item.type)) {
+    field.binary = true
+  }
+  if (list) {
+    const join = arrayJoin(prop, encoding, arrays)
+    if (null == join) {
+      field.list = true
+    }
+    else {
+      field.join = join
+    }
+  }
+  const media = textOf(encoding?.contentType) ?? textOf(isMap(item) ? item.contentMediaType : undefined)
+  if (null != media) {
+    field.media = media
+  }
+  return field
+}
+
+
+// The delimiter an array's items are joined with, or undefined when each item
+// is sent as a field of its own: Swagger's `collectionFormat` (`csv` unless
+// `multi`), a form's `style` and `explode`, and always for a multipart part.
+function arrayJoin(prop: any, encoding: any, arrays: string): string | undefined {
+  if ('swagger' === arrays) {
+    const format = 'string' === typeof prop.collectionFormat ? prop.collectionFormat : 'csv'
+    return 'multi' === format ? undefined : delimiter(format)
+  }
+  if ('form' === arrays) {
+    const style = 'string' === typeof encoding?.style ? encoding.style : 'form'
+    const explode = 'boolean' === typeof encoding?.explode ? encoding.explode : 'form' === style
+    return explode ? undefined : delimiter(style)
+  }
+  return undefined
+}
+
+
+function delimiter(format: string): string {
+  return 'ssv' === format || 'spaceDelimited' === format ? ' ' :
+    'tsv' === format ? '\t' :
+      'pipes' === format || 'pipeDelimited' === format ? '|' : ','
+}
+
+
+// Bytes unless the schema says text, or the media type is text and the schema typed.
+function rawBinary(type: string, schema: any): boolean {
+  if (encodedText(schema)) {
+    return false
+  }
+  return untyped(schema) || binarySchema(schema) || !textMedia(type)
+}
+
+
+function binarySchema(schema: any): boolean {
+  return isMap(schema) && !encodedText(schema) &&
+    ('binary' === schema.format || null != schema.contentMediaType)
+}
+
+
+function encodedText(schema: any): boolean {
+  return isMap(schema) && ('byte' === schema.format || null != schema.contentEncoding)
+}
+
+
+function untyped(schema: any): boolean {
+  return !isMap(schema) || !TYPING_KEYS.some((key) => null != schema[key])
+}
+
+
+function textMedia(type: string): boolean {
+  const [major, minor = ''] = type.split('/')
+  return 'text' === major || 'xml' === minor || minor.endsWith('+xml')
+}
+
+
+function fielded(type: string): boolean {
+  return FORM_MEDIA === type || type.startsWith('multipart/')
+}
+
+
+function byPreference(a: ModelRequestBody, b: ModelRequestBody): number {
+  return KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) ||
+    Number(JSON_MEDIA !== essence(a.media)) - Number(JSON_MEDIA !== essence(b.media)) ||
+    compare(a.media, b.media)
+}
+
+
+function essence(media: string): string {
+  return media.split(';')[0].trim().toLowerCase()
+}
+
+
+function hasType(schema: any, type: string): boolean {
+  return isMap(schema) &&
+    (type === schema.type || (Array.isArray(schema.type) && schema.type.includes(type)))
+}
+
+
+function textOf(val: any): string | undefined {
+  return 'string' === typeof val && '' !== val.trim() ? val.trim() : undefined
+}
+
+
+function listOf(val: any): any[] {
+  return Array.isArray(val) ? val : []
+}
+
+
+function isMap(val: any): boolean {
+  return null != val && 'object' === typeof val && !Array.isArray(val)
+}
+
+
+function compare(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0
+}
+
+
+export {
+  bodyTransform,
+  requestBody,
+}

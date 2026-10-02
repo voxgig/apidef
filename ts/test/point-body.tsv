@@ -1,0 +1,4 @@
+name	point	expected
+raw-binary-body	{"m":"POST","o":"/uploads","s":[{"lit":"uploads"}],"rb":{"kind":"raw","media":"application/octet-stream","binary":true}}	{"kind":"raw","media":"application/octet-stream","binary":true}
+fields-and-alternatives	{"m":"POST","o":"/uploads","s":[{"lit":"uploads"}],"rb":{"kind":"multipart","media":"multipart/form-data","fields":[{"name":"file","binary":true,"media":"image/png"},{"name":"ids","list":true},{"name":"tags","join":"\t"}],"alternatives":[{"kind":"form","media":"application/x-www-form-urlencoded","fields":[{"name":"tags","join":","}]}]}}	{"kind":"multipart","media":"multipart/form-data","fields":[{"name":"file","binary":true,"media":"image/png"},{"name":"ids","list":true},{"name":"tags","join":"\t"}],"alternatives":[{"kind":"form","media":"application/x-www-form-urlencoded","fields":[{"name":"tags","join":","}]}]}
+no-request-body	{"m":"POST","o":"/uploads","s":[{"lit":"uploads"}]}	null

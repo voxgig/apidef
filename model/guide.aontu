@@ -33,6 +33,11 @@ guide: entity: &: {
        active?: boolean
        method: string
 
+       # The media type a request body is sent as, chosen over the heuristic's.
+       body?: {
+         media?: string
+       }
+
        transform?: {
          req?: top
          res?: top

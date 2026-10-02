@@ -46,6 +46,8 @@ const utility_1 = require("../dist/utility");
 const field_1 = require("../dist/transform/field");
 const resolved_1 = require("../dist/resolved");
 const select_1 = require("../dist/transform/select");
+const body_1 = require("../dist/transform/body");
+const aontu_1 = require("aontu");
 const top_1 = require("../dist/transform/top");
 const jostraca_1 = require("jostraca");
 const graphql01_1 = require("../dist/guide/graphql01");
@@ -844,6 +846,34 @@ function loadTsv(name) {
             const file = Path.join(dir, 'def.yaml');
             Fs.writeFileSync(file, Buffer.from(row.hex, 'hex'));
             node_assert_1.default.strictEqual((0, utility_1.loadFile)(file, 'def', Fs, log), JSON.parse(row.expected));
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-request-body', () => {
+    const rows = loadTsv('request-body');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, () => {
+            const media = '' === row.media ? undefined : row.media;
+            node_assert_1.default.deepStrictEqual((0, body_1.requestBody)(JSON.parse(row.def), 'POST', '/x', media) ?? null, JSON.parse(row.expected));
+        });
+    }
+});
+// The package root types a point's request body, and the schema keeps it.
+(0, node_test_1.describe)('tsv-point-body', () => {
+    const schema = Fs.readFileSync(Path.join(__dirname, '..', '..', 'model', 'apidef.aontu'), 'utf8');
+    const rows = loadTsv('point-body');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, () => {
+            const point = JSON.parse(row.point);
+            const unified = new aontu_1.Aontu().generate(schema + '\nmain:kit:entity:upload:op:create:' +
+                JSON.stringify({ name: 'create', points: [point] })).main.kit.entity.upload.op.create.points[0];
+            const body = unified.rb ?? null;
+            node_assert_1.default.deepStrictEqual(body, JSON.parse(row.expected));
+            const kind = body?.kind;
+            const fields = body?.fields ?? [];
+            node_assert_1.default.deepStrictEqual([kind, fields], [point.rb?.kind, point.rb?.fields ?? []]);
         });
     }
 });
