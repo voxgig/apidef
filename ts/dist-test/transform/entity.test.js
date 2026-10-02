@@ -56,37 +56,7 @@ const entity_1 = require("../../dist/transform/entity");
             { lit: 'b' }, { var: 'thing_id' },
         ]);
     });
-    (0, node_test_1.test)('resolvePathList: a compound element is a literal, not a bogus var', () => {
-        const paths = (0, entity_1.resolvePathList)({
-            path: {
-                '/x/{a}.{b}': { rename: { param: { a: 'aa', b: 'bb' } } },
-                '/y/{}': {},
-                '/z/pre{c}': {},
-            }
-        }, { paths: {} });
-        node_assert_1.default.deepStrictEqual(paths.map((p) => p.segments), [
-            [{ lit: 'x' }, { lit: '{a}.{b}' }],
-            [{ lit: 'y' }, { lit: '{}' }],
-            [{ lit: 'z' }, { lit: 'pre{c}' }],
-        ]);
-    });
-    (0, node_test_1.test)('resolvePathList: a partial-element placeholder stays literal (ADR-003 limit)', () => {
-        const paths = (0, entity_1.resolvePathList)({
-            path: {
-                '/reports/{id}.json': { rename: { param: { id: 'report_id' } } },
-                '/v{version}/items': {},
-            }
-        }, { paths: {} });
-        node_assert_1.default.deepStrictEqual(paths.map((p) => p.segments), [
-            [{ lit: 'reports' }, { lit: '{id}.json' }],
-            [{ lit: 'v{version}' }, { lit: 'items' }],
-        ]);
-        const parts = (p) => p.segments.map((s) => null == s.var ? String(s.lit ?? '') : '{' + s.var + '}');
-        node_assert_1.default.deepStrictEqual(paths.map(parts), [
-            ['reports', '{id}.json'],
-            ['v{version}', 'items'],
-        ]);
-    });
+    // A placeholder beside other text in its element: ts/test/path-segments.tsv.
     (0, node_test_1.test)('buildRelations', () => {
         node_assert_1.default.ok(entity_1.buildRelations);
         const r0 = (0, entity_1.buildRelations)({}, [

@@ -926,6 +926,111 @@ func TestNameParam(t *testing.T) {
 	}
 }
 
+func TestTsvVerbParts(t *testing.T) {
+	rows := loadTsv(t, "verb-parts")
+	if len(rows) == 0 {
+		t.Fatal("no verb-parts rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var want []string
+			unmarshalCol(t, row, "parts", &want)
+			if got := verbParts(splitAndFilter(row["path"], "/")); !reflect.DeepEqual(got, want) {
+				t.Errorf("verbParts(%s) = %q, want %q", row["path"], got, want)
+			}
+		})
+	}
+}
+
+func TestTsvPathSegments(t *testing.T) {
+	rows := loadTsv(t, "path-segments")
+	if len(rows) == 0 {
+		t.Fatal("no path-segments rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var rename map[string]any
+			unmarshalCol(t, row, "rename", &rename)
+			paths := resolvePathList(map[string]any{"path": map[string]any{
+				row["path"]: map[string]any{"rename": map[string]any{"param": rename}},
+			}}, map[string]any{"paths": map[string]any{}})
+			var want any
+			unmarshalCol(t, row, "segments", &want)
+			if got := paths[0]["segments"]; !jsonEqual(got, want) {
+				out, _ := json.Marshal(got)
+				t.Errorf("segments\ngot  %s\nwant %s", out, row["segments"])
+			}
+		})
+	}
+}
+
+func TestTsvResolveArgs(t *testing.T) {
+	rows := loadTsv(t, "resolve-args")
+	if len(rows) == 0 {
+		t.Fatal("no resolve-args rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var rename map[string]any
+			var parameters []any
+			unmarshalCol(t, row, "rename", &rename)
+			unmarshalCol(t, row, "parameters", &parameters)
+			point := map[string]any{
+				"o": row["path"], "m": "GET", "r": map[string]any{"param": rename},
+				"g": map[string]any{}, "q": map[string]any{"exist": []any{}}, "t": map[string]any{},
+			}
+			warn := MakeWarner("warning", nil)
+			ctx := &ApiDefContext{
+				ApiModel: map[string]any{"main": map[string]any{KIT: map[string]any{
+					"entity": map[string]any{"widget": map[string]any{
+						"name": "widget",
+						"op": map[string]any{"load": map[string]any{
+							"name": "load", "points": []any{point},
+						}},
+					}},
+				}}},
+				Def: map[string]any{"paths": map[string]any{row["path"]: map[string]any{
+					"get": map[string]any{"parameters": parameters},
+				}}},
+				Warn: warn,
+			}
+			if _, err := ArgsTransform(ctx); err != nil {
+				t.Fatal(err)
+			}
+
+			g, _ := point["g"].(map[string]any)
+			args := func(kind string) []any {
+				out := []any{}
+				list, _ := g[kind].([]any)
+				for _, a := range list {
+					am, _ := a.(map[string]any)
+					out = append(out, map[string]any{"n": am["n"], "or": am["or"], "k": am["k"], "r": am["r"]})
+				}
+				return out
+			}
+			for _, col := range []string{"params", "query"} {
+				var want any
+				unmarshalCol(t, row, col, &want)
+				if got := args(col); !jsonEqual(got, want) {
+					out, _ := json.Marshal(got)
+					t.Errorf("%s\ngot  %s\nwant %s", col, out, row[col])
+				}
+			}
+
+			notes := []any{}
+			for _, w := range warn.History() {
+				notes = append(notes, w["note"])
+			}
+			var want any
+			unmarshalCol(t, row, "warnings", &want)
+			if !jsonEqual(notes, want) {
+				out, _ := json.Marshal(notes)
+				t.Errorf("warnings\ngot  %s\nwant %s", out, row["warnings"])
+			}
+		})
+	}
+}
+
 func TestClosedBodyTransform(t *testing.T) {
 	rows := loadTsv(t, "closed-body-transform")
 	if len(rows) == 0 {

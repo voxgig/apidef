@@ -1092,6 +1092,52 @@ describe('apidef', () => {
   })
 
 
+  // The request each point sends: placeholders beside other text in their
+  // element, a parameter declared without `in`, and custom methods beside
+  // their trailing-verb spelling. go/apidef_test.go reads the base guide this
+  // writes and expects the same points.
+  test('guide-request-paths', async () => {
+    const folder = __dirname + '/../test/request-paths'
+
+    const build = await ApiDef.makeBuild({ folder })
+
+    const bres = await build(
+      { name: 'request-paths', def: 'request-paths-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: true,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const args = (list: any[] | undefined) =>
+      (list ?? []).map((arg: any) => arg.n + ':' + arg.or).join(',')
+    const entities = bres.apimodel.main.kit.entity
+    const points = Object.keys(entities).sort().flatMap((ename) =>
+      Object.keys(entities[ename].op).sort().flatMap((opname) =>
+        (entities[ename].op[opname]?.points ?? []).map((pt: any) =>
+          ename + '.' + opname + ' ' + pt.m + ' ' + pt.o +
+          ' s=' + (pt.s ?? []).map((s: any) => null == s.var ? s.lit : '<' + s.var + '>').join('/') +
+          ' params=' + args(pt.g?.params) + ' query=' + args(pt.g?.query) +
+          ' exist=' + (pt.q?.exist ?? []).join(',') + ' action=' + (pt.q?.$action ?? ''))))
+
+    assert.deepStrictEqual(points, REQUEST_PATHS_POINTS)
+    assert.deepStrictEqual(bres.ctx.warn.history.map((w: any) => w.note),
+      REQUEST_PATHS_WARNINGS)
+  })
+
+
   // Each shape docs/reference/guide.md gives for collection paths: item,
   // composite key, a read before a tag's delete, a verb or composed page on
   // the same record, other records beneath the item, and a split list and
@@ -2190,3 +2236,33 @@ const SOLAR_MODEL = {
   }
 }
 
+
+
+const REQUEST_PATHS_POINTS = [
+  'board.load GET /boards/{boardId} s=boards/<id> params=id:boardId query= exist=id action=',
+  'board.update PUT /boards/{boardId}/{fileName}.json s=boards/<id>/{file_name}.json params=file_name:fileName,id:boardId query= exist=file_name,id action=',
+  'message.create POST /messages/{messageId}/cancel s=messages/<id>/cancel params=id:messageId query= exist=id action=cancel',
+  'message.list GET /messages s=messages params= query= exist= action=',
+  'message.load GET /messages/{messageId} s=messages/<id> params=id:messageId query= exist=id action=',
+  'message.load GET /messages/count s=messages/count params= query= exist= action=count',
+  'permission.list GET /contacts/groups/{groupId}/permissions s=contacts/groups/<group_id>/permissions params=group_id:groupId query= exist=group_id action=',
+  'permission.load GET /contacts/groups/{groupId}/permissions/{username} s=contacts/groups/<group_id>/permissions/<id> params=group_id:groupId,id:username query=verbose:verbose exist=group_id,id action=',
+  'permission.remove DELETE /contacts/groups/{groupId}/permissions/{username} s=contacts/groups/<group_id>/permissions/<id> params=group_id:groupId,id:username query= exist=group_id,id action=',
+  'permission.update PUT /contacts/groups/{groupId}/permissions/{username} s=contacts/groups/<group_id>/permissions/<id> params=group_id:groupId,id:username query= exist=group_id,id action=',
+  'schedule.create POST /schedules/{scheduleId}:cancel s=schedules/{id}:cancel params=id:scheduleId query= exist=id action=cancel',
+  'schedule.list GET /schedules s=schedules params= query= exist= action=',
+  'schedule.load GET /schedules/{scheduleId} s=schedules/<id> params=id:scheduleId query= exist=id action=',
+  'schedule.load GET /schedules:count s=schedules:count params= query= exist= action=count',
+  'schedule.remove DELETE /schedules s=schedules params= query= exist= action=',
+  'state.load GET /states/{stateAbbreviation}.json s=states/{state_abbreviation}.json params=state_abbreviation:stateAbbreviation query= exist=state_abbreviation action=',
+  'thread.list GET /{board}/thread/{threadId}.json s=<board>/thread/{thread_id}.json params=board:board,thread_id:threadId query= exist=board,thread_id action=',
+  'world.load GET /image/world/{worldTileName}{tileX}-{tileY}-0.png s=image/world/{world_tile_name}{tile_x}-{tile_y}-0.png params=tile_x:tileX,tile_y:tileY,world_tile_name:worldTileName query= exist=tile_x,tile_y,world_tile_name action=',
+]
+
+
+const REQUEST_PATHS_WARNINGS = [
+  'Parameter username on entity=permission op=load path=/contacts/groups/{groupId}/permissions/{username} has no `in`; it names the path placeholder {username}, so it is taken as a path parameter. A parameter needs an `in`.',
+  'Parameter verbose on entity=permission op=load path=/contacts/groups/{groupId}/permissions/{username} has no `in`, so it is taken as a query parameter. A parameter needs an `in`.',
+  'Parameter username on entity=permission op=remove path=/contacts/groups/{groupId}/permissions/{username} has no `in`; it names the path placeholder {username}, so it is taken as a path parameter. A parameter needs an `in`.',
+  'Parameter username on entity=permission op=update path=/contacts/groups/{groupId}/permissions/{username} has no `in`; it names the path placeholder {username}, so it is taken as a path parameter. A parameter needs an `in`.',
+]

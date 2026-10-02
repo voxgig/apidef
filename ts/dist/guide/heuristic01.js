@@ -10,6 +10,8 @@ exports.pathResource = pathResource;
 exports.sharedRoutes = sharedRoutes;
 exports.entityParamNames = entityParamNames;
 exports.isNameParam = isNameParam;
+exports.isVerb = isVerb;
+exports.verbParts = verbParts;
 const ordu_1 = require("ordu");
 const jostraca_1 = require("jostraca");
 const struct_1 = require("@voxgig/struct");
@@ -596,7 +598,7 @@ function RenameParams(spec) {
         rename: pathDesc.rename.param = (pathDesc.rename.param ?? {}),
         why: pathDesc.why_rename.why_param = (pathDesc.why_rename.why_param ?? {}),
     };
-    const parts = pathdesc.parts;
+    const parts = verbParts(pathdesc.parts);
     const applySnakeCaseRename = () => {
         for (const part of parts) {
             const m = part.match(/^\{(.+)\}$/);
@@ -753,7 +755,7 @@ function FindActions(spec) {
     const methodName = mdesc.method;
     pathdesc.action = (pathdesc.action ?? {});
     pathdesc.why_action = (pathdesc.why_action ?? {});
-    const parts = spec.data.work.pathmap[pathStr].parts;
+    const parts = verbParts(spec.data.work.pathmap[pathStr].parts);
     const fourthLastPart = parts[parts.length - 4];
     const fourthLastPartCanon = (0, utility_2.canonize)(fourthLastPart);
     const thirdLastPart = parts[parts.length - 3];
@@ -764,15 +766,17 @@ function FindActions(spec) {
     const lastPartCanon = (0, utility_2.canonize)(lastPart);
     const cmp = ment.cmp;
     if (null != ment.verb_on_parent) {
-        pathdesc.action[lastPartCanon] = pathdesc.action[lastPartCanon] ?? {
-            why_action: ['ent', entdesc.name, 'verb-on-parent', lastPart, methodName],
-        };
+        if (isVerb(lastPart)) {
+            pathdesc.action[lastPartCanon] = pathdesc.action[lastPartCanon] ?? {
+                why_action: ['ent', entdesc.name, 'verb-on-parent', lastPart, methodName],
+            };
+        }
     }
     // /api/foo/bar where foo is the entity and bar is the action, no id param
     else if (secondLastPartCanon === cmp
         || secondLastPartCanon === ment.origcmp
         || secondLastPartCanon === entname) {
-        if (!isParam(lastPart)) {
+        if (isVerb(lastPart)) {
             updateAction(methodName, lastPart, lastPartCanon, entdesc, pathdesc, 'no-param');
         }
     }
@@ -780,7 +784,7 @@ function FindActions(spec) {
     else if (thirdLastPartCanon === cmp
         || thirdLastPartCanon === ment.origcmp
         || thirdLastPartCanon === entname) {
-        if (isParam(secondLastPart) && !isParam(lastPart)) {
+        if (isParam(secondLastPart) && isVerb(lastPart)) {
             updateAction(methodName, lastPart, lastPartCanon, entdesc, pathdesc, 'ent-param-2nd-last');
         }
     }
@@ -788,7 +792,7 @@ function FindActions(spec) {
     else if (fourthLastPartCanon === cmp
         || fourthLastPartCanon === ment.origcmp
         || fourthLastPartCanon === entname) {
-        if (isParam(thirdLastPart) && !isParam(secondLastPart) && !isParam(lastPart)) {
+        if (isParam(thirdLastPart) && isVerb(secondLastPart) && isVerb(lastPart)) {
             const oldActionName = secondLastPart + '/' + lastPart;
             const actionName = secondLastPartCanon + '_' + lastPartCanon;
             updateAction(methodName, oldActionName, actionName, entdesc, pathdesc, 'ent-param-3rd-last');
@@ -1682,6 +1686,16 @@ function updateParamRename(ctx, data, path, method, paramRenameCapture, oldParam
 function isParam(partStr) {
     return '{' === partStr[0] && '}' === partStr[partStr.length - 1];
 }
+// A segment holding a placeholder, whole or beside other text, names no verb.
+function isVerb(partStr) {
+    return !String(partStr ?? '').includes('{');
+}
+// A custom method (`/schedules:count`, `/users/{id}:activate`) reads as a
+// trailing verb segment after what it acts on.
+function verbParts(parts) {
+    const m = (parts[parts.length - 1] ?? '').match(/^(.+):([A-Za-z][\w-]*)$/);
+    return null == m ? parts : [...parts.slice(0, -1), m[1], m[2]];
+}
 // A parameter whose own name says it holds a name, such as `project_name`,
 // which a derived `<parent>_id` would misdescribe.
 function isNameParam(param) {
@@ -1719,7 +1733,7 @@ function entityParamNames(paths) {
     const places = {};
     for (const pathStr of Object.keys(paths).sort(refcount_1.byCodePoint)) {
         out[pathStr] = { ...paths[pathStr] };
-        const parts = pathStr.split('/').filter((p) => '' !== p);
+        const parts = verbParts(pathStr.split('/').filter((p) => '' !== p));
         parts.forEach((part, partI) => {
             if (isParam(part)) {
                 const place = parts.slice(0, partI + 1).join('/');

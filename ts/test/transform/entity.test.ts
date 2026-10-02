@@ -74,43 +74,7 @@ describe('transform-entity', () => {
   })
 
 
-  test('resolvePathList: a compound element is a literal, not a bogus var', () => {
-    const paths = resolvePathList({
-      path: {
-        '/x/{a}.{b}': { rename: { param: { a: 'aa', b: 'bb' } } },
-        '/y/{}': {},
-        '/z/pre{c}': {},
-      }
-    } as any, { paths: {} } as any)
-
-    assert.deepStrictEqual(paths.map((p: any) => p.segments), [
-      [{ lit: 'x' }, { lit: '{a}.{b}' }],
-      [{ lit: 'y' }, { lit: '{}' }],
-      [{ lit: 'z' }, { lit: 'pre{c}' }],
-    ])
-  })
-
-
-  test('resolvePathList: a partial-element placeholder stays literal (ADR-003 limit)', () => {
-    const paths = resolvePathList({
-      path: {
-        '/reports/{id}.json': { rename: { param: { id: 'report_id' } } },
-        '/v{version}/items': {},
-      }
-    } as any, { paths: {} } as any)
-
-    assert.deepStrictEqual(paths.map((p: any) => p.segments), [
-      [{ lit: 'reports' }, { lit: '{id}.json' }],
-      [{ lit: 'v{version}' }, { lit: 'items' }],
-    ])
-
-    const parts = (p: any) => p.segments.map((s: any) =>
-      null == s.var ? String(s.lit ?? '') : '{' + s.var + '}')
-    assert.deepStrictEqual(paths.map(parts), [
-      ['reports', '{id}.json'],
-      ['v{version}', 'items'],
-    ])
-  })
+  // A placeholder beside other text in its element: ts/test/path-segments.tsv.
 
 
   test('buildRelations', () => {
