@@ -790,7 +790,8 @@ function findFieldDefs(
     each(fieldSets, (fieldSet: any) => {
       const requiredNames: string[] = Array.isArray(fieldSet?.required)
         ? fieldSet.required : []
-      each(fieldSet?.properties, (property: any) => {
+      each(fieldSet?.properties, (schema: any) => {
+        const property = collapseScalarAllOf(schema)
         // Don't mutate the parsed schema: a $ref-resolved schema is shared
         // across every operation that references it, so flipping
         // `property.required = true` here would leak this operation's
@@ -815,6 +816,48 @@ function findFieldDefs(
   }
 
   return fielddefs
+}
+
+
+// What an allOf member holds when it only describes. The siblings of a $ref
+// are ignored in OpenAPI 3.0, so a property describes one in an allOf.
+const ANNOTATION_KEYS = new Set(['description', 'title', 'example', 'nullable', 'deprecated'])
+
+const SCALAR_TYPES = new Set(['string', 'integer', 'number', 'boolean'])
+
+
+// An allOf of one scalar and annotations is that scalar, under the
+// annotations and then the property's own keys. Any other allOf is kept.
+function collapseScalarAllOf(property: any): any {
+  const members = property?.allOf
+  if (!Array.isArray(members)) {
+    return property
+  }
+
+  const valued = members.filter((member: any) => !isAnnotation(member))
+  if (1 !== valued.length || !isScalarSchema(valued[0])) {
+    return property
+  }
+
+  const { allOf: _members, ...own } = property
+  return Object.assign({}, valued[0], ...members.filter(isAnnotation), own)
+}
+
+
+function isAnnotation(member: any): boolean {
+  return null != member && 'object' === typeof member && !Array.isArray(member) &&
+    Object.keys(member).every((key: string) => ANNOTATION_KEYS.has(key))
+}
+
+
+function isScalarSchema(schema: any): boolean {
+  if (null == schema || 'object' !== typeof schema || Array.isArray(schema) ||
+    null != schema.allOf || null != schema.oneOf || null != schema.anyOf) {
+    return false
+  }
+  const types = (Array.isArray(schema.type) ? schema.type : [schema.type])
+    .filter((type: any) => 'null' !== type)
+  return 1 === types.length && SCALAR_TYPES.has(types[0])
 }
 
 

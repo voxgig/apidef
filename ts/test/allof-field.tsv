@@ -1,0 +1,16 @@
+name	field	schema	expected
+scalar-ref-described	sender	{"allOf":[{"type":"string","x-ref":"#/components/schemas/Sender"},{"description":"The sender the message goes out from."}]}	{"t":"`$STRING`","sh":"The sender the message goes out from."}
+scalar-ref-format-pattern	agent	{"allOf":[{"type":"string","format":"oid","pattern":"[0-9a-fA-F]{24}","example":"0f0f0f0f0f0f0f0f0f0f0f0f","x-ref":"#/components/schemas/Id"},{"description":"RCS sender ID (object ID of the agent or sender the user has access to)."}]}	{"t":"`$STRING`","fo":"oid","sh":"RCS sender ID (object ID of the agent or sender the user has access to)."}
+scalar-ref-nullable-member	retried	{"allOf":[{"nullable":true},{"type":"integer","format":"int32","x-ref":"#/components/schemas/Count"},{"description":"Times the message was retried."}]}	{"t":"`$INTEGER`","fo":"int32","sh":"Times the message was retried."}
+scalar-ref-nullable-wrapper	parent	{"nullable":true,"description":"ID of the parent taxon in the hierarchy.","allOf":[{"type":"string","pattern":"^[A-Za-z0-9_.-]+$","description":"URL-safe identifier.","x-ref":"#/components/schemas/Id"}]}	{"t":"`$STRING`","sh":"ID of the parent taxon in the hierarchy."}
+scalar-ref-type-null	note	{"allOf":[{"type":["string","null"],"x-ref":"#/components/schemas/Note"},{"description":"A note on the message."}]}	{"t":["`$ONE`",["`$STRING`","`$NULL`"]],"sh":"A note on the message."}
+scalar-ref-alone	modified_date	{"allOf":[{"title":"Date time","type":"string","description":"Dates and times are ISO 8601 strings. They may omit the offset.","x-ref":"#/components/schemas/DateTime"}]}	{"t":"`$STRING`","sh":"Dates and times are ISO 8601 strings."}
+scalar-ref-deprecated-over-name	is_urgent	{"allOf":[{"type":"integer","x-ref":"#/components/schemas/Priority"},{"deprecated":true}]}	{"t":"`$INTEGER`","de":true}
+control-several-typed-members	sender	{"allOf":[{"type":"string","x-ref":"#/components/schemas/Sender"},{"type":"string","minLength":3}]}	{"t":"`$ANY`"}
+control-object-members	forkee	{"description":"The created repository.","allOf":[{"type":"object","properties":{"id":{"type":"integer"}},"x-ref":"#/components/schemas/repository"},{"type":"object","properties":{"fork":{"type":"boolean"}}}]}	{"t":"`$ANY`","sh":"The created repository."}
+control-object-ref-described	author	{"readOnly":true,"nullable":true,"description":"The author of the advisory.","allOf":[{"title":"Simple User","type":"object","properties":{"login":{"type":"string"}},"x-ref":"#/components/schemas/simple-user"}]}	{"t":"`$ANY`","sh":"The author of the advisory.","ro":true}
+control-member-not-annotation	code	{"allOf":[{"type":"string","x-ref":"#/components/schemas/Code"},{"readOnly":true}]}	{"t":"`$ANY`"}
+control-name-id	id	{"allOf":[{"type":"string","x-ref":"#/components/schemas/Id"}]}	{"t":"`$STRING`"}
+control-name-count	item_count	{"allOf":[{"type":"integer","x-ref":"#/components/schemas/Count"}]}	{"t":"`$INTEGER`"}
+control-name-flag	is_public	{"allOf":[{"type":"string","x-ref":"#/components/schemas/Flag"}]}	{"t":"`$BOOLEAN`"}
+control-name-id-object	owner_id	{"allOf":[{"type":"object","properties":{"login":{"type":"string"}},"x-ref":"#/components/schemas/owner"}]}	{"t":"`$STRING`"}
