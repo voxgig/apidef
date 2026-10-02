@@ -44,6 +44,7 @@ const selectTransform: Transform = async function(
       })
       if (null != mop.points && 0 < mop.points.length) {
         sortPoints(guide, ment, mop)
+        warnSharedSelectors(ctx, ment, mop)
       }
     })
 
@@ -66,16 +67,16 @@ function resolveSelect(
 
   const argkinds = ['params', 'query', 'header', 'cookie']
 
-  // `exist` names values that must be PRESENT for this point to be chosen.
-  // A GraphQL root field exposes its optional arguments (relay's first /
-  // after, filters) as params, and requiring those for selection would make
-  // list() unusable without supplying every pagination argument. Only
-  // required arguments identify a point.
-  const reqdonly = 'graphql' === (mpoint as any).k
+  // `exist` names values that must be PRESENT for this point to be chosen,
+  // so an optional argument would make the point unreachable to a caller
+  // who omits it. A path parameter fills the route and always counts; a
+  // GraphQL root field's arguments are params too, and count only when
+  // required.
+  const graphql = 'graphql' === (mpoint as any).k
 
   argkinds.map((kind: string) => {
     each(margs[kind], (marg: ModelArg) => {
-      if (reqdonly && !marg.r) {
+      if (!marg.r && (graphql || 'params' !== kind)) {
         return
       }
       if (!select.exist.includes(marg.n)) {
@@ -136,6 +137,34 @@ function sortPoints(
     return order
   })
 }
+
+// The first point whose selector matches is chosen, so of the points that
+// share a selector only the first is ever reached.
+function warnSharedSelectors(ctx: any, ment: ModelEntity, mop: ModelOp) {
+  const groups = new Map<string, ModelPoint[]>()
+  for (const mpoint of mop.points) {
+    const key = JSON.stringify([mpoint.q.$action ?? null, mpoint.q.exist])
+    groups.set(key, [...(groups.get(key) ?? []), mpoint])
+  }
+
+  for (const group of groups.values()) {
+    if (group.length < 2) continue
+    const points = group.map((mpoint) => mpoint.m + ' ' + mpoint.o)
+    const { exist, $action } = group[0].q
+    ctx.warn?.({
+      note: `Points ${points.slice(0, -1).join(', ')} and ${points[points.length - 1]}` +
+        ` on entity=${ment.name} op=${mop.name} have the same selector` +
+        ` (exist: ${exist.join(',') || 'none'}` +
+        (null == $action ? '' : `; $action: ${$action}`) +
+        `), so only ${points[0]} is ever chosen.` +
+        ' An action or another entity in guide.aontu tells them apart.',
+      entity: ment.name,
+      op: mop.name,
+      points,
+    })
+  }
+}
+
 
 export {
   selectTransform,

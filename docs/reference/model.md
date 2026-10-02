@@ -106,7 +106,7 @@ list. Required attributes use one character; optional metadata uses two.
 | `s` | `PathSegment[]` | resolved path: `{ lit }` for a literal element, `{ var }` naming one of `g.params`; renames are already applied |
 | `r` | `{ param, query, header, cookie }` | argument renames, keyed by original name |
 | `g` | `{ params, query, header, cookie }` | argument lists using `%point-args` |
-| `q` | `{ exist: string[], $action? }` | which instances this point targets |
+| `q` | `{ exist: string[], $action? }` | how a call selects this point: its path parameters and required arguments, and its action |
 | `t` | `{ req, res }` | request/response envelope handling (defaults `` `reqdata` `` / `` `body` ``) |
 | `co` | `object?` | operation contract identity |
 | `li` | `boolean` or `object`, optional | live invocation hint |

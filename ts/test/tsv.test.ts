@@ -44,6 +44,7 @@ import {
 
 import { makeResolved } from '../dist/resolved'
 
+import { selectTransform } from '../dist/transform/select'
 import { resolveSecurity, findAuthPrefix } from '../dist/transform/top'
 
 import { snakify, camelify, kebabify } from 'jostraca'
@@ -714,6 +715,28 @@ describe('tsv-auth-exchange', () => {
       const secured = 'true' === row.secured
       const expected = '' === row.expected ? null : JSON.parse(row.expected)
       assert.deepStrictEqual(authExchangeOp(op, secured), expected)
+    })
+  }
+})
+
+
+describe('tsv-select', () => {
+  const rows = loadTsv('select')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, async () => {
+      const ent = JSON.parse(row.entity)
+      const warnings: any[] = []
+      await selectTransform({
+        apimodel: { main: { kit: { entity: { [ent.name]: ent } } } },
+        def: {},
+        guide: { entity: { [ent.name]: JSON.parse(row.guide) } },
+        warn: (warning: any) => warnings.push(warning),
+      } as any)
+      const points = Object.fromEntries(Object.entries(ent.op).map(([name, op]: [string, any]) =>
+        [name, op.points.map((point: any) => ({ o: point.o, q: point.q }))]))
+      assert.deepStrictEqual(points, JSON.parse(row.points))
+      assert.deepStrictEqual(warnings, JSON.parse(row.warnings))
     })
   }
 })

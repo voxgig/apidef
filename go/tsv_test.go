@@ -870,6 +870,63 @@ func TestTsvAuthExchange(t *testing.T) {
 	}
 }
 
+func TestTsvSelect(t *testing.T) {
+	rows := loadTsv(t, "select")
+	if len(rows) == 0 {
+		t.Fatal("no select rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var ent, gent map[string]any
+			unmarshalCol(t, row, "entity", &ent)
+			unmarshalCol(t, row, "guide", &gent)
+			name, _ := ent["name"].(string)
+			warn := MakeWarner("warning", nil)
+			ctx := &ApiDefContext{
+				ApiModel: map[string]any{"main": map[string]any{
+					KIT: map[string]any{"entity": map[string]any{name: ent}},
+				}},
+				Guide: map[string]any{"entity": map[string]any{name: gent}},
+				Warn:  warn,
+			}
+			if _, err := SelectTransform(ctx); err != nil {
+				t.Fatal(err)
+			}
+
+			points := map[string]any{}
+			ops, _ := ent["op"].(map[string]any)
+			for opname, op := range ops {
+				list := []any{}
+				opPoints, _ := op.(map[string]any)["points"].([]any)
+				for _, pt := range opPoints {
+					point, _ := pt.(map[string]any)
+					list = append(list, map[string]any{"o": point["o"], "q": point["q"]})
+				}
+				points[opname] = list
+			}
+			var wantPoints any
+			unmarshalCol(t, row, "points", &wantPoints)
+			if !jsonEqual(points, wantPoints) {
+				got, _ := json.Marshal(points)
+				t.Errorf("points\ngot  %s\nwant %s", got, row["points"])
+			}
+
+			warnings := []any{}
+			for _, w := range warn.History() {
+				warnings = append(warnings, map[string]any{
+					"note": w["note"], "entity": w["entity"], "op": w["op"], "points": w["points"],
+				})
+			}
+			var wantWarnings any
+			unmarshalCol(t, row, "warnings", &wantWarnings)
+			if !jsonEqual(warnings, wantWarnings) {
+				got, _ := json.Marshal(warnings)
+				t.Errorf("warnings\ngot  %s\nwant %s", got, row["warnings"])
+			}
+		})
+	}
+}
+
 func TestTsvSecurity(t *testing.T) {
 	rows := loadTsv(t, "security")
 	if len(rows) == 0 {
