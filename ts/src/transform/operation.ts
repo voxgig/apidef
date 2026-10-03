@@ -1,4 +1,14 @@
-import { guideActive } from '../utility'
+import { bodyRequestTransform, guideActive } from '../utility'
+
+import { arrayBodyField } from '../guide/heuristic01'
+
+import {
+  arrayCarrier, arrayRequestSchema, guideMedia, nullableType, requestSchema, sameType,
+} from './body'
+
+import { routeFieldNames } from './field'
+
+import { routeArgNames } from './args'
 
 
 import { each } from 'jostraca'
@@ -21,6 +31,7 @@ import type {
   ModelOpMap,
   ModelOp,
   ModelPoint,
+  ModelEntity,
 } from '../model'
 
 
@@ -40,7 +51,7 @@ const IGNORED_OPS = ['head', 'options', 'OPTIONS']
 const operationTransform: Transform = async function(
   ctx: any,
 ): Promise<TransformResult> {
-  const { apimodel, guide } = ctx
+  const { apimodel, def, guide } = ctx
   const kit = apimodel.main[KIT]
 
   let msg = 'operation '
@@ -59,12 +70,24 @@ const operationTransform: Transform = async function(
       patch: undefined,
     }
 
-    resolveLoad(opm, gent)
-    resolveList(opm, gent)
-    resolveCreate(opm, gent)
-    resolveUpdate(opm, gent)
-    resolveRemove(opm, gent)
-    resolvePatch(opm, gent)
+    const on = { gent, def, entname, guide }
+    resolveLoad(opm, on)
+    resolveList(opm, on)
+    resolveCreate(opm, on)
+    resolveUpdate(opm, on)
+    resolveRemove(opm, on)
+    resolvePatch(opm, on)
+
+    // After patch has joined update, so each operation's routes are final.
+    for (const mop of Object.values(opm)) {
+      for (const mpoint of mop?.points ?? []) {
+        if (heuristicRequest(on, mop!, mpoint)) {
+          mpoint.t.req = undefined
+        }
+        mpoint.t.req = mpoint.t.req ?? requestDefault(on, kit.entity[entname], opm, mop!, mpoint)
+        mpoint.t.res = mpoint.t.res ?? '`body`'
+      }
+    }
 
     kit.entity[entname].op = opm
 
@@ -118,40 +141,40 @@ function collectOps(ctx: any, gent: GuideEntity) {
 
 
 
-function resolveLoad(opm: ModelOpMap, gent: GuideEntity): undefined | ModelOp {
-  const opdesc = opm.load = resolveOp('load', gent)
+function resolveLoad(opm: ModelOpMap, on: OpEntity): undefined | ModelOp {
+  const opdesc = opm.load = resolveOp('load', on)
   return opdesc
 }
 
 
-function resolveList(opm: ModelOpMap, gent: GuideEntity): undefined | ModelOp {
-  const opdesc = opm.list = resolveOp('list', gent)
+function resolveList(opm: ModelOpMap, on: OpEntity): undefined | ModelOp {
+  const opdesc = opm.list = resolveOp('list', on)
   return opdesc
 }
 
 
-function resolveCreate(opm: ModelOpMap, gent: GuideEntity): undefined | ModelOp {
-  const opdesc = opm.create = resolveOp('create', gent)
+function resolveCreate(opm: ModelOpMap, on: OpEntity): undefined | ModelOp {
+  const opdesc = opm.create = resolveOp('create', on)
   return opdesc
 }
 
 
-function resolveUpdate(opm: ModelOpMap, gent: GuideEntity): undefined | ModelOp {
-  const opdesc = opm.update = resolveOp('update', gent)
+function resolveUpdate(opm: ModelOpMap, on: OpEntity): undefined | ModelOp {
+  const opdesc = opm.update = resolveOp('update', on)
   return opdesc
 }
 
 
-function resolveRemove(opm: ModelOpMap, gent: GuideEntity): undefined | ModelOp {
-  const opdesc = opm.remove = resolveOp('remove', gent)
+function resolveRemove(opm: ModelOpMap, on: OpEntity): undefined | ModelOp {
+  const opdesc = opm.remove = resolveOp('remove', on)
   return opdesc
 }
 
 
-function resolvePatch(opm: ModelOpMap, gent: GuideEntity): undefined | ModelOp {
-  const opdesc = resolveOp('patch', gent)
+function resolvePatch(opm: ModelOpMap, on: OpEntity): undefined | ModelOp {
+  const opdesc = resolveOp('patch', on)
 
-  if (null != opdesc && (null == opm.update || onlyActionPaths(gent, 'update'))) {
+  if (null != opdesc && (null == opm.update || onlyActionPaths(on.gent, 'update'))) {
     if (null != opm.update) {
       opdesc.points.push(...opm.update.points)
     }
@@ -174,9 +197,12 @@ function onlyActionPaths(gent: GuideEntity, opname: OpName): boolean {
 }
 
 
-function resolveOp(opname: OpName, gent: GuideEntity): undefined | ModelOp {
+type OpEntity = { gent: GuideEntity, def: any, entname: string, guide: any }
+
+
+function resolveOp(opname: OpName, on: OpEntity): undefined | ModelOp {
   let mop: undefined | ModelOp = undefined
-  let opdesc = (gent as any).opm$[opname]
+  let opdesc = (on.gent as any).opm$[opname]
   if (opdesc) {
     mop = {
       name: opname,
@@ -195,9 +221,6 @@ function resolveOp(opname: OpName, gent: GuideEntity): undefined | ModelOp {
           }
         }
 
-        mpoint.t.req = mpoint.t.req ?? '`reqdata`'
-        mpoint.t.res = mpoint.t.res ?? '`body`'
-
         return mpoint
       })
     }
@@ -206,6 +229,52 @@ function resolveOp(opname: OpName, gent: GuideEntity): undefined | ModelOp {
 }
 
 
+
+
+// The request transform the heuristic took from the default body, still in
+// place where the guide selects another media type for the point.
+function heuristicRequest(on: OpEntity, mop: ModelOp, mpoint: ModelPoint): boolean {
+  const chosen = guideMedia(on.guide, on.entname, mop.name, mpoint).body
+  if (null == chosen || null == mpoint.t.req) return false
+  const generated = bodyRequestTransform(requestSchema(on.def, mpoint.m, mpoint.o), [on.gent.name])
+  return null != generated && sameTransform(mpoint.t.req, generated)
+}
+
+
+function sameTransform(a: any, b: any): boolean {
+  const canon = (t: any) => 'string' === typeof t ? t :
+    JSON.stringify(Object.keys(t ?? {}).sort().map((k: string) => [k, t[k]]))
+  return canon(a) === canon(b)
+}
+
+
+// An array body is sent from one field of the request data, named for its
+// records, and never for an argument of its operation, a field another route of
+// its entity has, as fields span operations, or a carrier already named for an
+// array of another type. Decided here, not by the guide heuristic, as the
+// guide's media type decides the body.
+function requestDefault(
+  on: OpEntity, ment: ModelEntity, opm: ModelOpMap, mop: ModelOp, mpoint: ModelPoint,
+): any {
+  const media = (opname: string, q: ModelPoint) => guideMedia(on.guide, on.entname, opname, q).body
+  const chosen = media(mop.name, mpoint)
+  const list = arrayRequestSchema(on.def, mpoint.m, mpoint.o, chosen)
+  if (null == list) {
+    return (null == chosen ? undefined :
+      bodyRequestTransform(requestSchema(on.def, mpoint.m, mpoint.o, chosen), [on.gent.name])) ?? '`reqdata`'
+  }
+  const others = mop.points.filter((q) => q !== mpoint)
+  const routes = Object.values(opm).flatMap((op) =>
+    (op?.points ?? []).filter((q) => q !== mpoint).map((q) => ({ opname: op!.name, q })))
+  const taken = [
+    ...mop.points.flatMap((q) => routeArgNames(on.def, q)),
+    ...routes.flatMap(({ opname, q }) => routeFieldNames(ment, opname, q, on.def, media(opname, q))),
+    ...others.map((q) => arrayCarrier(on.def, q, media(mop.name, q)))
+      .filter((carrier) => null != carrier && !sameType(carrier.type, nullableType(list)))
+      .map((carrier) => carrier!.name),
+  ]
+  return '`reqdata.' + arrayBodyField(list, on.entname, taken) + '`'
+}
 
 
 export {

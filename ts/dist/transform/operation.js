@@ -2,6 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.operationTransform = void 0;
 const utility_1 = require("../utility");
+const heuristic01_1 = require("../guide/heuristic01");
+const body_1 = require("./body");
+const field_1 = require("./field");
+const args_1 = require("./args");
 const jostraca_1 = require("jostraca");
 const types_1 = require("../types");
 // The op names the transform resolves. Anything else under a guide path's
@@ -14,7 +18,7 @@ const RESOLVED_OPS = ['load', 'list', 'create', 'update', 'remove', 'patch'];
 // exists for them yet, so they are skipped without a warning.
 const IGNORED_OPS = ['head', 'options', 'OPTIONS'];
 const operationTransform = async function (ctx) {
-    const { apimodel, guide } = ctx;
+    const { apimodel, def, guide } = ctx;
     const kit = apimodel.main[types_1.KIT];
     let msg = 'operation ';
     (0, jostraca_1.each)(guide.entity, (gent, entname) => {
@@ -29,12 +33,23 @@ const operationTransform = async function (ctx) {
             remove: undefined,
             patch: undefined,
         };
-        resolveLoad(opm, gent);
-        resolveList(opm, gent);
-        resolveCreate(opm, gent);
-        resolveUpdate(opm, gent);
-        resolveRemove(opm, gent);
-        resolvePatch(opm, gent);
+        const on = { gent, def, entname, guide };
+        resolveLoad(opm, on);
+        resolveList(opm, on);
+        resolveCreate(opm, on);
+        resolveUpdate(opm, on);
+        resolveRemove(opm, on);
+        resolvePatch(opm, on);
+        // After patch has joined update, so each operation's routes are final.
+        for (const mop of Object.values(opm)) {
+            for (const mpoint of mop?.points ?? []) {
+                if (heuristicRequest(on, mop, mpoint)) {
+                    mpoint.t.req = undefined;
+                }
+                mpoint.t.req = mpoint.t.req ?? requestDefault(on, kit.entity[entname], opm, mop, mpoint);
+                mpoint.t.res = mpoint.t.res ?? '`body`';
+            }
+        }
         kit.entity[entname].op = opm;
         msg += gent.name + ' ';
     });
@@ -77,29 +92,29 @@ function collectOps(ctx, gent) {
         });
     });
 }
-function resolveLoad(opm, gent) {
-    const opdesc = opm.load = resolveOp('load', gent);
+function resolveLoad(opm, on) {
+    const opdesc = opm.load = resolveOp('load', on);
     return opdesc;
 }
-function resolveList(opm, gent) {
-    const opdesc = opm.list = resolveOp('list', gent);
+function resolveList(opm, on) {
+    const opdesc = opm.list = resolveOp('list', on);
     return opdesc;
 }
-function resolveCreate(opm, gent) {
-    const opdesc = opm.create = resolveOp('create', gent);
+function resolveCreate(opm, on) {
+    const opdesc = opm.create = resolveOp('create', on);
     return opdesc;
 }
-function resolveUpdate(opm, gent) {
-    const opdesc = opm.update = resolveOp('update', gent);
+function resolveUpdate(opm, on) {
+    const opdesc = opm.update = resolveOp('update', on);
     return opdesc;
 }
-function resolveRemove(opm, gent) {
-    const opdesc = opm.remove = resolveOp('remove', gent);
+function resolveRemove(opm, on) {
+    const opdesc = opm.remove = resolveOp('remove', on);
     return opdesc;
 }
-function resolvePatch(opm, gent) {
-    const opdesc = resolveOp('patch', gent);
-    if (null != opdesc && (null == opm.update || onlyActionPaths(gent, 'update'))) {
+function resolvePatch(opm, on) {
+    const opdesc = resolveOp('patch', on);
+    if (null != opdesc && (null == opm.update || onlyActionPaths(on.gent, 'update'))) {
         if (null != opm.update) {
             opdesc.points.push(...opm.update.points);
         }
@@ -117,9 +132,9 @@ function onlyActionPaths(gent, opname) {
     return 0 < paths.length &&
         paths.every((p) => 0 < Object.keys(p.action ?? {}).length);
 }
-function resolveOp(opname, gent) {
+function resolveOp(opname, on) {
     let mop = undefined;
-    let opdesc = gent.opm$[opname];
+    let opdesc = on.gent.opm$[opname];
     if (opdesc) {
         mop = {
             name: opname,
@@ -136,12 +151,48 @@ function resolveOp(opname, gent) {
                         exist: []
                     }
                 };
-                mpoint.t.req = mpoint.t.req ?? '`reqdata`';
-                mpoint.t.res = mpoint.t.res ?? '`body`';
                 return mpoint;
             })
         };
     }
     return mop;
+}
+// The request transform the heuristic took from the default body, still in
+// place where the guide selects another media type for the point.
+function heuristicRequest(on, mop, mpoint) {
+    const chosen = (0, body_1.guideMedia)(on.guide, on.entname, mop.name, mpoint).body;
+    if (null == chosen || null == mpoint.t.req)
+        return false;
+    const generated = (0, utility_1.bodyRequestTransform)((0, body_1.requestSchema)(on.def, mpoint.m, mpoint.o), [on.gent.name]);
+    return null != generated && sameTransform(mpoint.t.req, generated);
+}
+function sameTransform(a, b) {
+    const canon = (t) => 'string' === typeof t ? t :
+        JSON.stringify(Object.keys(t ?? {}).sort().map((k) => [k, t[k]]));
+    return canon(a) === canon(b);
+}
+// An array body is sent from one field of the request data, named for its
+// records, and never for an argument of its operation, a field another route of
+// its entity has, as fields span operations, or a carrier already named for an
+// array of another type. Decided here, not by the guide heuristic, as the
+// guide's media type decides the body.
+function requestDefault(on, ment, opm, mop, mpoint) {
+    const media = (opname, q) => (0, body_1.guideMedia)(on.guide, on.entname, opname, q).body;
+    const chosen = media(mop.name, mpoint);
+    const list = (0, body_1.arrayRequestSchema)(on.def, mpoint.m, mpoint.o, chosen);
+    if (null == list) {
+        return (null == chosen ? undefined :
+            (0, utility_1.bodyRequestTransform)((0, body_1.requestSchema)(on.def, mpoint.m, mpoint.o, chosen), [on.gent.name])) ?? '`reqdata`';
+    }
+    const others = mop.points.filter((q) => q !== mpoint);
+    const routes = Object.values(opm).flatMap((op) => (op?.points ?? []).filter((q) => q !== mpoint).map((q) => ({ opname: op.name, q })));
+    const taken = [
+        ...mop.points.flatMap((q) => (0, args_1.routeArgNames)(on.def, q)),
+        ...routes.flatMap(({ opname, q }) => (0, field_1.routeFieldNames)(ment, opname, q, on.def, media(opname, q))),
+        ...others.map((q) => (0, body_1.arrayCarrier)(on.def, q, media(mop.name, q)))
+            .filter((carrier) => null != carrier && !(0, body_1.sameType)(carrier.type, (0, body_1.nullableType)(list)))
+            .map((carrier) => carrier.name),
+    ];
+    return '`reqdata.' + (0, heuristic01_1.arrayBodyField)(list, on.entname, taken) + '`';
 }
 //# sourceMappingURL=operation.js.map

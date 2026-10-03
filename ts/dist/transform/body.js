@@ -2,8 +2,16 @@
 /* Copyright (c) 2026 Voxgig Ltd, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.bodyTransform = void 0;
+exports.guideMedia = guideMedia;
 exports.requestBody = requestBody;
 exports.responseBody = responseBody;
+exports.jsonRequestSchema = jsonRequestSchema;
+exports.requestSchema = requestSchema;
+exports.arrayRequestSchema = arrayRequestSchema;
+exports.arrayCarrier = arrayCarrier;
+exports.nullableType = nullableType;
+exports.sameType = sameType;
+exports.selectedRequestSchema = selectedRequestSchema;
 const types_1 = require("../types");
 const utility_1 = require("../utility");
 // JSON first, as generated SDKs send it; then the kinds by what each can carry.
@@ -59,13 +67,11 @@ function guideMedia(guide, entname, opname, mpoint) {
 }
 // Undefined when the operation sends JSON alone.
 function requestBody(def, method, path, media) {
-    const pathdef = def?.paths?.[path];
-    const opdef = pathdef?.[String(method).toLowerCase()];
-    if (!isMap(opdef)) {
+    const offers = requestOffers(def, method, path);
+    if (null == offers) {
         return undefined;
     }
-    const body = chooseBody(null != def.swagger ?
-        swaggerOffers(def, pathdef, opdef) : openapiOffers(opdef), media);
+    const body = chooseBody(offers, media);
     if (null == body || ('json' === body.kind && JSON_MEDIA === essence(body.media) &&
         (body.alternatives ?? []).every((other) => 'json' === other.kind))) {
         return undefined;
@@ -81,23 +87,37 @@ function responseBody(def, method, path, media) {
     return chooseBody(null != def.swagger ?
         swaggerResponseOffers(def, opdef) : openapiResponseOffers(opdef), media);
 }
+function requestOffers(def, method, path) {
+    const pathdef = def?.paths?.[path];
+    const opdef = pathdef?.[String(method).toLowerCase()];
+    if (!isMap(opdef)) {
+        return undefined;
+    }
+    return null != def.swagger ? swaggerOffers(def, pathdef, opdef) : openapiOffers(opdef);
+}
 function chooseBody(offers, media) {
-    const ranked = offers
-        .sort((a, b) => compare(a.media, b.media))
-        .map((offer) => ({ declared: offer.media.trim().toLowerCase(), body: describeBody(offer) }))
-        .sort((a, b) => byPreference(a.body, b.body));
+    const ranked = rankOffers(offers);
     const bodies = ranked.map((entry) => entry.body).filter((body, i, all) => i === all.findIndex((other) => other.media === body.media));
-    // A named media type is matched as declared first, so a range keeps its schema.
-    const named = textOf(media)?.toLowerCase();
-    const chosen = null == named ? bodies[0] :
-        ranked.find((entry) => entry.declared === named)?.body ??
-            bodies.find((body) => body.media.toLowerCase() === named) ??
-            describeBody({ media: textOf(media) });
+    const chosen = chooseOffer(ranked, media)?.body ??
+        (null == textOf(media) ? undefined : describeBody({ media: textOf(media) }));
     if (null == chosen) {
         return undefined;
     }
     const alternatives = bodies.filter((body) => body.media !== chosen.media);
     return 0 < alternatives.length ? { ...chosen, alternatives } : chosen;
+}
+function rankOffers(offers) {
+    return offers
+        .sort((a, b) => compare(a.media, b.media))
+        .map((offer) => ({ offer, declared: offer.media.trim().toLowerCase(), body: describeBody(offer) }))
+        .sort((a, b) => byPreference(a.body, b.body));
+}
+// A named media type is matched as declared first, so a range keeps its schema.
+function chooseOffer(ranked, media) {
+    const named = textOf(media)?.toLowerCase();
+    return null == named ? ranked[0] :
+        ranked.find((entry) => entry.declared === named) ??
+            ranked.find((entry) => entry.body.media.toLowerCase() === named);
 }
 function openapiOffers(opdef) {
     const content = opdef.requestBody?.content;
@@ -296,5 +316,123 @@ function isMap(val) {
 }
 function compare(a, b) {
     return a < b ? -1 : a > b ? 1 : 0;
+}
+// The schema the body step sends a request body with, when that body is JSON.
+function jsonSchema(offers, media) {
+    const chosen = chooseOffer(rankOffers(offers), media);
+    return 'json' === chosen?.body.kind ? chosen.offer.schema : undefined;
+}
+function jsonRequestSchema(opdef) {
+    return isMap(opdef) ? jsonSchema(openapiOffers(opdef)) : undefined;
+}
+// The JSON schema a point's request body is sent with, under the media type
+// the guide names, else the one the body step prefers.
+function requestSchema(def, method, path, media) {
+    return jsonSchema(requestOffers(def, method, path) ?? [], media);
+}
+// The schema of the request body offered under the media type the guide
+// names, of any kind, else the preferred JSON one.
+function selectedRequestSchema(def, method, path, media) {
+    const offers = requestOffers(def, method, path) ?? [];
+    const named = null == textOf(media) ? undefined : chooseOffer(rankOffers(offers), media);
+    return null == named ? jsonSchema(offers) : named.offer.schema;
+}
+function arrayRequestSchema(def, method, path, media) {
+    return arrayShape(requestSchema(def, method, path, media));
+}
+// An array, or an allOf whose parts make one, or a oneOf or anyOf of one
+// beside any null: each fact from the first part that states it, outermost
+// first, the items from the array's own part first, and null only where the
+// composition admits it.
+function arrayShape(schema) {
+    const parts = [];
+    const visit = (node) => {
+        if (isMap(node) && !parts.includes(node)) {
+            parts.push(node);
+            (Array.isArray(node.allOf) ? node.allOf : []).forEach(visit);
+            for (const one of [node.oneOf, node.anyOf]) {
+                const members = Array.isArray(one) ? one.filter((member) => !nullOnly(member)) : [];
+                if (1 === members.length)
+                    visit(members[0]);
+            }
+        }
+    };
+    visit(schema);
+    const list = parts.find((part) => hasType(part, 'array'));
+    if (null == list || 1 === parts.length) {
+        return list;
+    }
+    const items = list.items ?? parts.find((part) => null != part.items)?.items;
+    const description = parts.find((part) => null != part.description)?.description;
+    const types = [list.type].flat().filter((type) => 'null' !== type);
+    return {
+        ...list,
+        type: 1 === types.length ? types[0] : types,
+        ...(null == items ? {} : { items }),
+        ...(null == description ? {} : { description }),
+        nullable: admitsNull(schema),
+    };
+}
+// Null must pass the schema's own type, const and enum, every allOf part,
+// exactly one oneOf member, and some anyOf member.
+function admitsNull(schema) {
+    if (!isMap(schema))
+        return false;
+    const own = (null == schema.type || hasType(schema, 'null') || true === schema.nullable) &&
+        (!('const' in schema) || null === schema.const) &&
+        (!Array.isArray(schema.enum) || schema.enum.includes(null));
+    return own && listOf(schema.allOf).every(admitsNull) &&
+        (!Array.isArray(schema.oneOf) || 1 === schema.oneOf.filter(admitsNull).length) &&
+        (!Array.isArray(schema.anyOf) || schema.anyOf.some(admitsNull));
+}
+// Only null passes: by its type, or by a const or enum of null alone.
+function nullOnly(schema) {
+    if (!isMap(schema))
+        return false;
+    if ('const' in schema)
+        return null === schema.const;
+    if (Array.isArray(schema.enum))
+        return 0 < schema.enum.length && schema.enum.every((v) => null === v);
+    return [schema.type].flat().every((type) => 'null' === type);
+}
+// A nullable array says so with `nullable` in OpenAPI 3.0, and a type list in 3.1.
+function nullableType(schema) {
+    return true === schema.nullable && !hasType(schema, 'null') ? [schema.type, 'null'].flat() : schema.type;
+}
+const REQDATA_FIELD_RE = /^`reqdata\.([A-Za-z_][A-Za-z0-9_]*)`$/;
+// The field of the request data a point's JSON array body is sent from, when
+// its request transform unwraps one.
+function arrayCarrier(def, mpoint, media) {
+    const req = mpoint.t?.req;
+    const name = 'string' === typeof req ? req.match(REQDATA_FIELD_RE)?.[1] : undefined;
+    const schema = null == name ? undefined : arrayRequestSchema(def, mpoint.m, mpoint.o, media);
+    if (null == name || null == schema) {
+        return undefined;
+    }
+    const decl = requestDecl(def, mpoint.m, mpoint.o);
+    return {
+        name,
+        required: true === decl?.required,
+        type: nullableType(schema),
+        description: textOf(decl?.description) ?? textOf(schema.description),
+    };
+}
+// OpenAPI's request body, or the Swagger parameter that is one.
+function requestDecl(def, method, path) {
+    const pathdef = def?.paths?.[path];
+    const opdef = pathdef?.[String(method).toLowerCase()];
+    if (!isMap(opdef)) {
+        return undefined;
+    }
+    return null != def.swagger ?
+        swaggerParams(pathdef, opdef).find((param) => 'body' === param.in) : opdef.requestBody;
+}
+// Types compare by value, and a type list as the set it is, in one order.
+function sameType(a, b) {
+    return JSON.stringify(typeSet(a)) === JSON.stringify(typeSet(b));
+}
+function typeSet(type) {
+    return !Array.isArray(type) ? type :
+        type.every((member) => 'string' === typeof member) ? [...type].sort() : type.map(typeSet);
 }
 //# sourceMappingURL=body.js.map

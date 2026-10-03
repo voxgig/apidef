@@ -37,6 +37,12 @@ type Offer = {
   swagger?: boolean
 }
 
+type Ranked = {
+  offer: Offer
+  declared: string
+  body: ModelBody
+}
+
 
 const bodyTransform: Transform = async function(
   ctx: any,
@@ -98,14 +104,12 @@ function requestBody(
   path: string,
   media?: string,
 ): ModelBody | undefined {
-  const pathdef = def?.paths?.[path]
-  const opdef = pathdef?.[String(method).toLowerCase()]
-  if (!isMap(opdef)) {
+  const offers = requestOffers(def, method, path)
+  if (null == offers) {
     return undefined
   }
 
-  const body = chooseBody(null != def.swagger ?
-    swaggerOffers(def, pathdef, opdef) : openapiOffers(opdef), media)
+  const body = chooseBody(offers, media)
 
   if (null == body || ('json' === body.kind && JSON_MEDIA === essence(body.media) &&
     (body.alternatives ?? []).every((other) => 'json' === other.kind))) {
@@ -133,20 +137,23 @@ function responseBody(
 }
 
 
+function requestOffers(def: any, method: string, path: string): Offer[] | undefined {
+  const pathdef = def?.paths?.[path]
+  const opdef = pathdef?.[String(method).toLowerCase()]
+  if (!isMap(opdef)) {
+    return undefined
+  }
+  return null != def.swagger ? swaggerOffers(def, pathdef, opdef) : openapiOffers(opdef)
+}
+
+
 function chooseBody(offers: Offer[], media?: string): ModelBody | undefined {
-  const ranked = offers
-    .sort((a, b) => compare(a.media, b.media))
-    .map((offer) => ({ declared: offer.media.trim().toLowerCase(), body: describeBody(offer) }))
-    .sort((a, b) => byPreference(a.body, b.body))
+  const ranked = rankOffers(offers)
   const bodies = ranked.map((entry) => entry.body).filter((body, i, all) =>
     i === all.findIndex((other) => other.media === body.media))
 
-  // A named media type is matched as declared first, so a range keeps its schema.
-  const named = textOf(media)?.toLowerCase()
-  const chosen = null == named ? bodies[0] :
-    ranked.find((entry) => entry.declared === named)?.body ??
-    bodies.find((body) => body.media.toLowerCase() === named) ??
-    describeBody({ media: textOf(media) as string })
+  const chosen = chooseOffer(ranked, media)?.body ??
+    (null == textOf(media) ? undefined : describeBody({ media: textOf(media) as string }))
 
   if (null == chosen) {
     return undefined
@@ -154,6 +161,23 @@ function chooseBody(offers: Offer[], media?: string): ModelBody | undefined {
 
   const alternatives = bodies.filter((body) => body.media !== chosen.media)
   return 0 < alternatives.length ? { ...chosen, alternatives } : chosen
+}
+
+
+function rankOffers(offers: Offer[]): Ranked[] {
+  return offers
+    .sort((a, b) => compare(a.media, b.media))
+    .map((offer) => ({ offer, declared: offer.media.trim().toLowerCase(), body: describeBody(offer) }))
+    .sort((a, b) => byPreference(a.body, b.body))
+}
+
+
+// A named media type is matched as declared first, so a range keeps its schema.
+function chooseOffer(ranked: Ranked[], media?: string): Ranked | undefined {
+  const named = textOf(media)?.toLowerCase()
+  return null == named ? ranked[0] :
+    ranked.find((entry) => entry.declared === named) ??
+    ranked.find((entry) => entry.body.media.toLowerCase() === named)
 }
 
 
@@ -415,8 +439,160 @@ function compare(a: string, b: string): number {
 }
 
 
+// The schema the body step sends a request body with, when that body is JSON.
+function jsonSchema(offers: Offer[], media?: string): any {
+  const chosen = chooseOffer(rankOffers(offers), media)
+  return 'json' === chosen?.body.kind ? chosen.offer.schema : undefined
+}
+
+
+function jsonRequestSchema(opdef: any): any {
+  return isMap(opdef) ? jsonSchema(openapiOffers(opdef)) : undefined
+}
+
+
+// The JSON schema a point's request body is sent with, under the media type
+// the guide names, else the one the body step prefers.
+function requestSchema(def: any, method: string, path: string, media?: string): any {
+  return jsonSchema(requestOffers(def, method, path) ?? [], media)
+}
+
+
+// The schema of the request body offered under the media type the guide
+// names, of any kind, else the preferred JSON one.
+function selectedRequestSchema(def: any, method: string, path: string, media?: string): any {
+  const offers = requestOffers(def, method, path) ?? []
+  const named = null == textOf(media) ? undefined : chooseOffer(rankOffers(offers), media)
+  return null == named ? jsonSchema(offers) : named.offer.schema
+}
+
+
+function arrayRequestSchema(def: any, method: string, path: string, media?: string): any {
+  return arrayShape(requestSchema(def, method, path, media))
+}
+
+
+// An array, or an allOf whose parts make one, or a oneOf or anyOf of one
+// beside any null: each fact from the first part that states it, outermost
+// first, the items from the array's own part first, and null only where the
+// composition admits it.
+function arrayShape(schema: any): any {
+  const parts: any[] = []
+  const visit = (node: any) => {
+    if (isMap(node) && !parts.includes(node)) {
+      parts.push(node)
+      ; (Array.isArray(node.allOf) ? node.allOf : []).forEach(visit)
+      for (const one of [node.oneOf, node.anyOf]) {
+        const members = Array.isArray(one) ? one.filter((member: any) => !nullOnly(member)) : []
+        if (1 === members.length) visit(members[0])
+      }
+    }
+  }
+  visit(schema)
+  const list = parts.find((part) => hasType(part, 'array'))
+  if (null == list || 1 === parts.length) {
+    return list
+  }
+  const items = list.items ?? parts.find((part) => null != part.items)?.items
+  const description = parts.find((part) => null != part.description)?.description
+  const types = [list.type].flat().filter((type: any) => 'null' !== type)
+  return {
+    ...list,
+    type: 1 === types.length ? types[0] : types,
+    ...(null == items ? {} : { items }),
+    ...(null == description ? {} : { description }),
+    nullable: admitsNull(schema),
+  }
+}
+
+
+// Null must pass the schema's own type, const and enum, every allOf part,
+// exactly one oneOf member, and some anyOf member.
+function admitsNull(schema: any): boolean {
+  if (!isMap(schema)) return false
+  const own = (null == schema.type || hasType(schema, 'null') || true === schema.nullable) &&
+    (!('const' in schema) || null === schema.const) &&
+    (!Array.isArray(schema.enum) || schema.enum.includes(null))
+  return own && listOf(schema.allOf).every(admitsNull) &&
+    (!Array.isArray(schema.oneOf) || 1 === schema.oneOf.filter(admitsNull).length) &&
+    (!Array.isArray(schema.anyOf) || schema.anyOf.some(admitsNull))
+}
+
+
+// Only null passes: by its type, or by a const or enum of null alone.
+function nullOnly(schema: any): boolean {
+  if (!isMap(schema)) return false
+  if ('const' in schema) return null === schema.const
+  if (Array.isArray(schema.enum)) return 0 < schema.enum.length && schema.enum.every((v: any) => null === v)
+  return [schema.type].flat().every((type) => 'null' === type)
+}
+
+
+// A nullable array says so with `nullable` in OpenAPI 3.0, and a type list in 3.1.
+function nullableType(schema: any): any {
+  return true === schema.nullable && !hasType(schema, 'null') ? [schema.type, 'null'].flat() : schema.type
+}
+
+
+const REQDATA_FIELD_RE = /^`reqdata\.([A-Za-z_][A-Za-z0-9_]*)`$/
+
+// The field of the request data a point's JSON array body is sent from, when
+// its request transform unwraps one.
+function arrayCarrier(
+  def: any,
+  mpoint: ModelPoint,
+  media?: string,
+): { name: string, required: boolean, type: string | string[], description?: string } | undefined {
+  const req: any = mpoint.t?.req
+  const name = 'string' === typeof req ? req.match(REQDATA_FIELD_RE)?.[1] : undefined
+  const schema = null == name ? undefined : arrayRequestSchema(def, mpoint.m, mpoint.o, media)
+  if (null == name || null == schema) {
+    return undefined
+  }
+  const decl = requestDecl(def, mpoint.m, mpoint.o)
+  return {
+    name,
+    required: true === decl?.required,
+    type: nullableType(schema),
+    description: textOf(decl?.description) ?? textOf(schema.description),
+  }
+}
+
+
+// OpenAPI's request body, or the Swagger parameter that is one.
+function requestDecl(def: any, method: string, path: string): any {
+  const pathdef = def?.paths?.[path]
+  const opdef = pathdef?.[String(method).toLowerCase()]
+  if (!isMap(opdef)) {
+    return undefined
+  }
+  return null != def.swagger ?
+    swaggerParams(pathdef, opdef).find((param) => 'body' === param.in) : opdef.requestBody
+}
+
+
+// Types compare by value, and a type list as the set it is, in one order.
+function sameType(a: any, b: any): boolean {
+  return JSON.stringify(typeSet(a)) === JSON.stringify(typeSet(b))
+}
+
+
+function typeSet(type: any): any {
+  return !Array.isArray(type) ? type :
+    type.every((member: any) => 'string' === typeof member) ? [...type].sort() : type.map(typeSet)
+}
+
+
 export {
   bodyTransform,
+  guideMedia,
   requestBody,
   responseBody,
+  jsonRequestSchema,
+  requestSchema,
+  arrayRequestSchema,
+  arrayCarrier,
+  nullableType,
+  sameType,
+  selectedRequestSchema,
 }

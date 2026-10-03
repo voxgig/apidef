@@ -1,0 +1,312 @@
+# Generated from the API definition and overwritten on every build: do not
+# edit this file. Put customizations in the guide entry file, which includes
+# this one and overrides its defaults:
+#   guide.aontu
+
+guide: {
+  metrics: count: entity: 43
+  metrics: count: path: 54
+  metrics: count: method: 55
+
+  entity: alarm: {
+    path: "/alarms": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: alert: {
+    path: "/alerts": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: batch: {
+    path: "/batches": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: beacon: {
+    path: "/beacons": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: bin: {
+    path: "/bins": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: broadcast: {
+    path: "/broadcasts": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: chip: {
+    path: "/chips": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: crate: {
+    path: "/crates": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: crew: {
+    path: "/crews": {
+      op: create: method: *POST
+      op: create: transform: req: "name": *("`reqdata.name`")|top
+      op: create: transform: req: "size": *("`reqdata.size`")|top
+    }
+  }
+
+  entity: deck: {
+    path: "/decks": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: doc: {
+    path: "/docs/{doc_id}": {
+      rename: param: "doc_id": *"id"
+      op: patch: method: *PATCH
+    }
+    path: "/docs/{doc_id}/archive": {
+      action: "archive": {}
+      rename: param: "doc_id": *"id"
+      op: update: method: *PUT
+    }
+  }
+
+  entity: event: {
+    path: "/events": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: flag: {
+    path: "/flags": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: flock: {
+    path: "/flocks": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: form: {
+    path: "/forms": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: grade: {
+    path: "/classes/{class_id}/grades": {
+      op: create: method: *POST
+    }
+    path: "/grades": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: herd: {
+    path: "/herds": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: hero: {
+    path: "/heroes": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: item: {
+    path: "/items": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: jar: {
+    path: "/jars": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: keg: {
+    path: "/kegs": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: label: {
+    path: "/labels": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: lookup: {
+    path: "/lookups": {
+      op: list: method: *QUERY
+    }
+  }
+
+  entity: mark: {
+    path: "/boards/{board_id}/marks": {
+      op: create: method: *POST
+    }
+    path: "/marks": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: memo: {
+    path: "/desks/{desk_id}/memos": {
+      op: create: method: *POST
+    }
+    path: "/memos": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: message: {
+    path: "/mms/v1/messages": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: note: {
+    path: "/boards/{board_id}/notes": {
+      op: create: method: *POST
+    }
+    path: "/notes": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: notice: {
+    path: "/notices": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: pin: {
+    path: "/pins": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: record: {
+    path: "/records": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: score: {
+    path: "/games/{game_id}/scores": {
+      op: create: method: *POST
+    }
+    path: "/scores": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: series: {
+    path: "/series": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: session: {
+    path: "/sessions": {
+      op: remove: method: *DELETE
+    }
+    path: "/sessions/{session_id}": {
+      rename: param: "session_id": *"id"
+      op: load: method: *GET
+    }
+  }
+
+  entity: shipment: {
+    path: "/shipments": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: tag: {
+    path: "/tags": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: ticket: {
+    path: "/tickets": {
+      op: create: method: *POST
+    }
+    path: "/tickets/{ticket_id}": {
+      rename: param: "ticket_id": *"id"
+      op: update: method: *PUT
+    }
+  }
+
+  entity: todo: {
+    path: "/lists/{list_id}/todos": {
+      op: create: method: *POST
+    }
+    path: "/todos": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: tote: {
+    path: "/totes": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: tub: {
+    path: "/tubs": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: upload: {
+    path: "/uploads": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: user: {
+    path: "/users": {
+      op: create: method: *POST
+      op: list: method: *GET
+    }
+    path: "/users/batch": {
+      action: "batch": {}
+      op: create: method: *POST
+    }
+    path: "/users/{user_id}": {
+      rename: param: "user_id": *"id"
+      op: load: method: *GET
+    }
+  }
+
+  entity: vat: {
+    path: "/vats": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: widget: {
+    path: "/widgets": {
+      op: create: method: *POST
+    }
+  }
+
+}
