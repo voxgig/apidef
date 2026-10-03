@@ -732,8 +732,8 @@ func arrayShape(schema any) map[string]any {
 	return out
 }
 
-// admitsNull mirrors ts/src/transform/body.ts: every allOf part must admit
-// null, and some member of each oneOf or anyOf.
+// admitsNull mirrors ts/src/transform/body.ts: null must pass every allOf
+// part, exactly one oneOf member, and some anyOf member.
 func admitsNull(schema any) bool {
 	m, _ := schema.(map[string]any)
 	if m == nil {
@@ -753,11 +753,13 @@ func admitsNull(schema any) bool {
 		if !isList {
 			continue
 		}
-		some := false
+		count := 0
 		for _, member := range one {
-			some = some || admitsNull(member)
+			if admitsNull(member) {
+				count++
+			}
 		}
-		if !some {
+		if 0 == count || ("oneOf" == key && 1 < count) {
 			return false
 		}
 	}

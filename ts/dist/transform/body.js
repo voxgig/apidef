@@ -373,13 +373,14 @@ function arrayShape(schema) {
         nullable: admitsNull(schema),
     };
 }
-// Every allOf part must admit null, and some member of each oneOf or anyOf.
+// Null must pass every allOf part, exactly one oneOf member, and some anyOf member.
 function admitsNull(schema) {
     if (!isMap(schema))
         return false;
     const own = null == schema.type || hasType(schema, 'null') || true === schema.nullable;
-    return own && (Array.isArray(schema.allOf) ? schema.allOf : []).every(admitsNull) &&
-        [schema.oneOf, schema.anyOf].every((one) => !Array.isArray(one) || one.some(admitsNull));
+    return own && listOf(schema.allOf).every(admitsNull) &&
+        (!Array.isArray(schema.oneOf) || 1 === schema.oneOf.filter(admitsNull).length) &&
+        (!Array.isArray(schema.anyOf) || schema.anyOf.some(admitsNull));
 }
 function nullOnly(schema) {
     const types = [schema?.type].flat();

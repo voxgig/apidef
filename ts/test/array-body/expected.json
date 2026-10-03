@@ -4,6 +4,7 @@
     "alert.create POST /alerts exist=alerts action= req=\"`reqdata.alerts`\"",
     "batch.create POST /batches exist=batch_inputs action= req=\"`reqdata.batch_inputs`\"",
     "beacon.create POST /beacons exist=pings action= req=\"`reqdata.pings`\"",
+    "bin.create POST /bins exist=bins action= req=\"`reqdata.bins`\"",
     "broadcast.create POST /broadcasts exist=sms_messages action= req=\"`reqdata.sms_messages`\"",
     "chip.create POST /chips exist=chips action= req=\"`reqdata.chips`\"",
     "crate.create POST /crates exist=crates action= req=\"`reqdata.crates`\"",
@@ -81,6 +82,12 @@
     },
     "beacon": {
       "pings": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "bin": {
+      "bins": {
         "t": "`$ARRAY`",
         "r": false
       }

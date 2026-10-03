@@ -4,9 +4,9 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 38
-  metrics: count: path: 49
-  metrics: count: method: 50
+  metrics: count: entity: 39
+  metrics: count: path: 50
+  metrics: count: method: 51
 
   entity: alarm: {
     path: "/alarms": {
@@ -28,6 +28,12 @@ guide: {
 
   entity: beacon: {
     path: "/beacons": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: bin: {
+    path: "/bins": {
       op: create: method: *POST
     }
   }

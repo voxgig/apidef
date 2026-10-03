@@ -1086,6 +1086,39 @@
         }
       }
     },
+    "/bins": {
+      "post": {
+        "operationId": "createBins",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": [
+                      "array",
+                      "null"
+                    ],
+                    "items": {
+                      "$ref": "#/components/schemas/Bin"
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No content"
+          }
+        }
+      }
+    },
     "/totes": {
       "post": {
         "operationId": "createTotes",
@@ -1789,6 +1822,17 @@
         }
       },
       "Crate": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "Bin": {
         "type": "object",
         "properties": {
           "id": {
