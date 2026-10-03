@@ -20,9 +20,9 @@ func allofProps(keys ...string) map[string]any {
 	return out
 }
 
-// allofFields runs FieldTransform over one operation on /jobs and returns the
-// entity's field names, each marked with ! when required.
-func allofFields(t *testing.T, opname, method string, response, request any) []string {
+// allofRun runs FieldTransform over one operation on /jobs and returns the
+// entity's fields.
+func allofRun(t *testing.T, opname, method string, response, request any) map[string]any {
 	t.Helper()
 	opdef := map[string]any{"responses": map[string]any{"200": allofJSON(response)}}
 	if request != nil {
@@ -45,8 +45,15 @@ func allofFields(t *testing.T, opname, method string, response, request any) []s
 	if _, err := FieldTransform(&ApiDefContext{ApiModel: apimodel, Def: def}); err != nil {
 		t.Fatalf("FieldTransform: %v", err)
 	}
+	return ent["fields"].(map[string]any)
+}
+
+// allofFields returns the entity's field names, each marked with ! when
+// required.
+func allofFields(t *testing.T, opname, method string, response, request any) []string {
+	t.Helper()
 	var out []string
-	for _, f := range ent["fields"].(map[string]any) {
+	for _, f := range allofRun(t, opname, method, response, request) {
 		fm := f.(map[string]any)
 		name := fm["n"].(string)
 		if r, _ := fm["r"].(bool); r {
@@ -107,5 +114,44 @@ func TestFieldAllOfBesidePropertiesAndRequired(t *testing.T) {
 		})
 	if want := []string{"formats", "id", "name!", "url!"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("fields = %v, want %v", got, want)
+	}
+}
+
+func TestFieldAllOfSiblingRequiresName(t *testing.T) {
+	got := allofFields(t, "create", "POST",
+		map[string]any{"type": "object", "properties": allofProps("id")},
+		map[string]any{"allOf": []any{
+			map[string]any{"type": "object", "properties": allofProps("url", "formats")},
+			map[string]any{"required": []any{"url"}},
+			map[string]any{"allOf": []any{map[string]any{"required": []any{"formats"}}}},
+		}})
+	if want := []string{"formats!", "id", "url!"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("fields = %v, want %v", got, want)
+	}
+}
+
+func TestFieldAllOfDeclaredTwiceIsOneField(t *testing.T) {
+	fields := allofRun(t, "load", "GET", map[string]any{
+		"type": "object",
+		"properties": map[string]any{
+			"payload": map[string]any{"description": "What the job carries."},
+		},
+		"allOf": []any{map[string]any{
+			"type":     "object",
+			"required": []any{"payload"},
+			"properties": map[string]any{
+				"payload": map[string]any{"type": "object", "format": "job-payload"},
+			},
+		}},
+	}, nil)
+	payload, _ := fields["payload"].(map[string]any)
+	got := map[string]any{
+		"t": payload["t"], "r": payload["r"], "sh": payload["sh"], "fo": payload["fo"], "op": payload["op"],
+	}
+	want := map[string]any{
+		"t": "`$OBJECT`", "r": true, "sh": "What the job carries.", "fo": "job-payload", "op": map[string]any{},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("payload = %v, want %v", got, want)
 	}
 }

@@ -60,5 +60,26 @@ function summary(fields) {
         });
         node_assert_1.default.deepStrictEqual(summary(await runFieldTransform(entity, def)), ['formats', 'id', 'name!', 'url!']);
     });
+    (0, node_test_1.test)('a name one allOf member requires is required where a sibling declares it', async () => {
+        const { entity, def } = job('create', 'POST', { type: 'object', properties: props('id') }, { allOf: [
+                { type: 'object', properties: props('url', 'formats') },
+                { required: ['url'] },
+                { allOf: [{ required: ['formats'] }] },
+            ] });
+        node_assert_1.default.deepStrictEqual(summary(await runFieldTransform(entity, def)), ['formats!', 'id', 'url!']);
+    });
+    (0, node_test_1.test)('a property declared beside allOf and in a member is one field with both facts', async () => {
+        const { entity, def } = job('load', 'GET', {
+            type: 'object',
+            properties: { payload: { description: 'What the job carries.' } },
+            allOf: [{
+                    type: 'object',
+                    required: ['payload'],
+                    properties: { payload: { type: 'object', format: 'job-payload' } },
+                }],
+        });
+        const { payload } = await runFieldTransform(entity, def);
+        node_assert_1.default.deepStrictEqual({ t: payload.t, r: payload.r, sh: payload.sh, fo: payload.fo, op: payload.op }, { t: '`$OBJECT`', r: true, sh: 'What the job carries.', fo: 'job-payload', op: {} });
+    });
 });
 //# sourceMappingURL=field-allof.test.js.map

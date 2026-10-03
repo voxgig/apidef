@@ -597,22 +597,7 @@ function findFieldDefs(ment, mop, mpoint, def) {
             fieldSets = [fieldSets];
         }
         (0, jostraca_1.each)(fieldSets, (fieldSet) => {
-            for (const part of propertySets(fieldSet)) {
-                (0, jostraca_1.each)(part.properties, (schema) => {
-                    const property = (0, utility_1.collapseScalarAllOf)(schema);
-                    // Don't mutate the parsed schema: a $ref-resolved schema is shared
-                    // across every operation that references it, so flipping
-                    // `property.required = true` here would leak this operation's
-                    // required[] onto all the others. Derive `required` onto a shallow
-                    // copy instead (matches the Go port, which builds fresh field defs).
-                    if (!property.required && part.required.includes(property.key$)) {
-                        fielddefs.push({ ...property, required: true });
-                    }
-                    else {
-                        fielddefs.push(property);
-                    }
-                });
-            }
+            fielddefs.push(...composedFields(fieldSet));
         });
     }
     // Fallback: infer fields from example response data when no schema properties found
@@ -624,19 +609,46 @@ function findFieldDefs(ment, mop, mpoint, def) {
     }
     return fielddefs;
 }
-// A schema's property maps, its own and each allOf member's, with the
-// required names declared beside them or on a schema composing them.
-function propertySets(schema, required = [], seen = new Set()) {
-    if (null == schema || 'object' !== typeof schema || seen.has(schema)) {
-        return [];
+// A schema and its allOf members describe one object: a name any of them
+// requires is required, and a property declared more than once is one field
+// taking each fact from the first declaration that states it.
+function composedFields(schema) {
+    const parts = [];
+    const seen = new Set();
+    const visit = (node) => {
+        if (null == node || 'object' !== typeof node || seen.has(node)) {
+            return;
+        }
+        seen.add(node);
+        parts.push(node);
+        if (Array.isArray(node.allOf)) {
+            node.allOf.forEach(visit);
+        }
+    };
+    visit(schema);
+    const required = new Set(parts.flatMap((part) => Array.isArray(part.required) ? part.required : []));
+    const decls = Object.create(null);
+    for (const part of parts) {
+        (0, jostraca_1.each)(part.properties, (property) => {
+            (decls[property.key$] = decls[property.key$] ?? []).push((0, utility_1.collapseScalarAllOf)(property));
+        });
     }
-    seen.add(schema);
-    const names = Array.isArray(schema.required) ? required.concat(schema.required) : required;
-    const own = null == schema.properties ? [] : [{ properties: schema.properties, required: names }];
-    const members = Array.isArray(schema.allOf)
-        ? schema.allOf.flatMap((member) => propertySets(member, names, seen))
-        : [];
-    return own.concat(members);
+    return Object.keys(decls).map((name) => {
+        const property = 1 === decls[name].length ? decls[name][0] : mergeDeclarations(decls[name]);
+        // A copy: parsed schemas are shared by every operation referencing them.
+        return !property.required && required.has(name) ? { ...property, required: true } : property;
+    });
+}
+function mergeDeclarations(decls) {
+    const merged = {};
+    for (const decl of decls) {
+        for (const [key, value] of Object.entries(decl)) {
+            if (null == merged[key] && null != value) {
+                merged[key] = value;
+            }
+        }
+    }
+    return merged;
 }
 function answersOnlyAccepted(responses) {
     return null == responses['200'] && null == responses['201'] && null != responses['202'];

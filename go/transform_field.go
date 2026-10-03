@@ -834,82 +834,86 @@ func extractFieldsTopLevel(fieldSets any, fielddefs *[]map[string]any) {
 	}
 }
 
-// propertySet is one property map a schema declares, with the required names
-// that reach it.
-type propertySet struct {
-	props    map[string]any
-	required map[string]bool
-}
-
-// propertySets returns a schema's property maps, its own and each allOf
-// member's, with the required names declared beside them or on a schema
-// composing them.
-func propertySets(schema any, required []string, seen map[string]bool) []propertySet {
-	fs, ok := schema.(map[string]any)
-	if !ok || fs == nil {
-		return nil
+// composedFields mirrors ts/src/transform/field.ts: a schema and its allOf
+// members describe one object, so a name any of them requires is required,
+// and a property declared more than once is one field taking each fact from
+// the first declaration that states it.
+func composedFields(schema any) []map[string]any {
+	var parts []map[string]any
+	seen := map[string]bool{}
+	var visit func(node any)
+	visit = func(node any) {
+		m, ok := node.(map[string]any)
+		if !ok || m == nil {
+			return
+		}
+		id := fmt.Sprintf("%p", m)
+		if seen[id] {
+			return
+		}
+		seen[id] = true
+		parts = append(parts, m)
+		if allOf, ok := m["allOf"].([]any); ok {
+			for _, member := range allOf {
+				visit(member)
+			}
+		}
 	}
-	key := fmt.Sprintf("%p", fs)
-	if seen[key] {
-		return nil
-	}
-	seen[key] = true
+	visit(schema)
 
-	names := required
-	if req, ok := fs["required"].([]any); ok {
-		names = append([]string{}, required...)
-		for _, r := range req {
-			if s, ok := r.(string); ok {
-				names = append(names, s)
+	required := map[string]bool{}
+	for _, part := range parts {
+		if req, ok := part["required"].([]any); ok {
+			for _, r := range req {
+				if s, ok := r.(string); ok {
+					required[s] = true
+				}
 			}
 		}
 	}
 
-	var out []propertySet
-	if props, ok := fs["properties"].(map[string]any); ok && props != nil {
-		set := map[string]bool{}
-		for _, n := range names {
-			set[n] = true
+	var names []string
+	defs := map[string]map[string]any{}
+	for _, part := range parts {
+		props, _ := part["properties"].(map[string]any)
+		for _, name := range sortedKeys(props) {
+			fd, has := defs[name]
+			if !has {
+				fd = map[string]any{"key$": name}
+				defs[name] = fd
+				names = append(names, name)
+			}
+			pm, ok := props[name].(map[string]any)
+			if !ok {
+				continue
+			}
+			pm = collapseScalarAllOf(pm)
+			// Unasserted: a 3.1 nullable field's type is an ARRAY.
+			for _, k := range []string{
+				"type", "required", "description", "readOnly", "writeOnly", "deprecated", "format",
+			} {
+				if _, has := fd[k]; has {
+					continue
+				}
+				if v, ok := pm[k]; ok && v != nil {
+					fd[k] = v
+				}
+			}
 		}
-		out = append(out, propertySet{props: props, required: set})
 	}
-	if allOf, ok := fs["allOf"].([]any); ok {
-		for _, member := range allOf {
-			out = append(out, propertySets(member, names, seen)...)
+
+	out := make([]map[string]any, 0, len(names))
+	for _, name := range names {
+		if required[name] {
+			defs[name]["required"] = true
 		}
+		out = append(out, defs[name])
 	}
 	return out
 }
 
 func extractFields(fieldSet any, fielddefs *[]map[string]any) {
-	for _, part := range propertySets(fieldSet, nil, map[string]bool{}) {
-		for _, name := range sortedKeys(part.props) {
-			prop := part.props[name]
-			fd := map[string]any{"key$": name}
-			if pm, ok := prop.(map[string]any); ok {
-				pm = collapseScalarAllOf(pm)
-				// Unasserted: a 3.1 nullable field's type is an ARRAY.
-				if t, ok := pm["type"]; ok {
-					fd["type"] = t
-				}
-				if r, ok := pm["required"]; ok {
-					fd["required"] = r
-				}
-				if d, ok := pm["description"]; ok {
-					fd["description"] = d
-				}
-				for _, k := range []string{"readOnly", "writeOnly", "deprecated", "format"} {
-					if v, ok := pm[k]; ok {
-						fd[k] = v
-					}
-				}
-			}
-			if part.required[name] {
-				fd["required"] = true
-			}
-			*fielddefs = append(*fielddefs, fd)
-		}
-	}
+	*fielddefs = append(*fielddefs, composedFields(fieldSet)...)
 }
 
 func inferFieldsFromExamples(opdef map[string]any, envelope string) []map[string]any {
