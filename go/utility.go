@@ -236,6 +236,9 @@ var (
 	sibilantRE   = regexp.MustCompile(`(s|x|z|ch|sh)$`)
 )
 
+// oesNouns mirrors ts/src/utility.ts: nouns in -o whose plural takes -es.
+var oesNouns = []string{"echo", "embargo", "hero", "potato", "tomato", "torpedo", "veto"}
+
 // Pluralize mirrors ts/src/utility.ts: the plural of a snake name's last word
 // that Depluralize reads back as the name.
 func Pluralize(word string) string {
@@ -254,7 +257,7 @@ func Pluralize(word string) string {
 	if fSuffixRE.MatchString(lower) {
 		plurals = append(plurals, fSuffixRE.ReplaceAllString(lower, "ves"))
 	}
-	if sibilantRE.MatchString(lower) {
+	if sibilantRE.MatchString(lower) || slices.Contains(oesNouns, lower) {
 		plurals = append(plurals, lower+"es")
 	}
 	plurals = append(plurals, lower+"s")

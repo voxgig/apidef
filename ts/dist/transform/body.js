@@ -9,6 +9,7 @@ exports.jsonRequestSchema = jsonRequestSchema;
 exports.requestSchema = requestSchema;
 exports.arrayRequestSchema = arrayRequestSchema;
 exports.arrayCarrier = arrayCarrier;
+exports.nullableType = nullableType;
 exports.sameType = sameType;
 exports.selectedRequestSchema = selectedRequestSchema;
 const types_1 = require("../types");
@@ -339,9 +340,9 @@ function selectedRequestSchema(def, method, path, media) {
 function arrayRequestSchema(def, method, path, media) {
     return arrayShape(requestSchema(def, method, path, media));
 }
-// An array, or an allOf whose parts make one, or a oneOf or anyOf of one: each
-// fact from the first part that states it, outermost first, the items from
-// the array's own part first.
+// An array, or an allOf whose parts make one, or a oneOf or anyOf of one
+// beside any null: each fact from the first part that states it, outermost
+// first, the items from the array's own part first.
 function arrayShape(schema) {
     const parts = [];
     const visit = (node) => {
@@ -349,8 +350,12 @@ function arrayShape(schema) {
             parts.push(node);
             (Array.isArray(node.allOf) ? node.allOf : []).forEach(visit);
             for (const one of [node.oneOf, node.anyOf]) {
-                if (Array.isArray(one) && 1 === one.length)
-                    visit(one[0]);
+                const members = Array.isArray(one) ? one.filter((member) => !nullOnly(member)) : [];
+                if (1 === members.length) {
+                    if (members.length < one.length)
+                        parts.push({ nullable: true });
+                    visit(members[0]);
+                }
             }
         }
     };
@@ -368,6 +373,10 @@ function arrayShape(schema) {
         ...(null == description ? {} : { description }),
         ...(null == nullable ? {} : { nullable }),
     };
+}
+function nullOnly(schema) {
+    const types = [schema?.type].flat();
+    return isMap(schema) && types.every((type) => 'null' === type);
 }
 // A nullable array says so with `nullable` in OpenAPI 3.0, and a type list in 3.1.
 function nullableType(schema) {

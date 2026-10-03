@@ -231,6 +231,8 @@ const F_PLURAL_STEMS = [
 // insertion-order iteration. Both happen to round-trip correctly
 // today, but the sort makes any future entry safe by construction.
 const IRREGULAR_KEYS = Object.keys(IRREGULARS).sort((a, b) => b.length - a.length);
+// Nouns in -o whose plural takes -es; the rest take -s (photos).
+const OES_NOUNS = ['echo', 'embargo', 'hero', 'potato', 'tomato', 'torpedo', 'veto'];
 function matchCase(source, target) {
     if (source === source.toLowerCase())
         return target.toLowerCase();
@@ -368,7 +370,7 @@ function pluralize(word) {
         ...pluralsOf(IRREGULARS, lower),
         ...(/[^aeiou]y$/.test(lower) ? [lower.slice(0, -1) + 'ies'] : []),
         ...(/fe?$/.test(lower) ? [lower.replace(/fe?$/, 'ves')] : []),
-        ...(/(s|x|z|ch|sh)$/.test(lower) ? [lower + 'es'] : []),
+        ...(/(s|x|z|ch|sh)$/.test(lower) || OES_NOUNS.includes(lower) ? [lower + 'es'] : []),
         lower + 's',
     ].map((plural) => word.slice(0, cut) + matchCase(last, plural));
     return plurals.find((plural) => depluralize(plural) === word) ??

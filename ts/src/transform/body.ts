@@ -472,9 +472,9 @@ function arrayRequestSchema(def: any, method: string, path: string, media?: stri
 }
 
 
-// An array, or an allOf whose parts make one, or a oneOf or anyOf of one: each
-// fact from the first part that states it, outermost first, the items from
-// the array's own part first.
+// An array, or an allOf whose parts make one, or a oneOf or anyOf of one
+// beside any null: each fact from the first part that states it, outermost
+// first, the items from the array's own part first.
 function arrayShape(schema: any): any {
   const parts: any[] = []
   const visit = (node: any) => {
@@ -482,7 +482,11 @@ function arrayShape(schema: any): any {
       parts.push(node)
       ; (Array.isArray(node.allOf) ? node.allOf : []).forEach(visit)
       for (const one of [node.oneOf, node.anyOf]) {
-        if (Array.isArray(one) && 1 === one.length) visit(one[0])
+        const members = Array.isArray(one) ? one.filter((member: any) => !nullOnly(member)) : []
+        if (1 === members.length) {
+          if (members.length < one.length) parts.push({ nullable: true })
+          visit(members[0])
+        }
       }
     }
   }
@@ -500,6 +504,12 @@ function arrayShape(schema: any): any {
     ...(null == description ? {} : { description }),
     ...(null == nullable ? {} : { nullable }),
   }
+}
+
+
+function nullOnly(schema: any): boolean {
+  const types = [schema?.type].flat()
+  return isMap(schema) && types.every((type) => 'null' === type)
 }
 
 
@@ -561,6 +571,7 @@ export {
   requestSchema,
   arrayRequestSchema,
   arrayCarrier,
+  nullableType,
   sameType,
   selectedRequestSchema,
 }

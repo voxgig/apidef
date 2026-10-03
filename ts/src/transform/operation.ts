@@ -2,7 +2,7 @@ import { guideActive } from '../utility'
 
 import { arrayBodyField } from '../guide/heuristic01'
 
-import { arrayCarrier, arrayRequestSchema, guideMedia, sameType } from './body'
+import { arrayCarrier, arrayRequestSchema, guideMedia, nullableType, sameType } from './body'
 
 import { routeFieldNames } from './field'
 
@@ -241,7 +241,7 @@ function requestDefault(on: OpEntity, ment: ModelEntity, mop: ModelOp, mpoint: M
     ...mop.points.flatMap((q) => routeArgNames(on.def, q)),
     ...others.flatMap((q) => routeFieldNames(ment, mop.name, q, on.def, media(q))),
     ...others.map((q) => arrayCarrier(on.def, q, media(q)))
-      .filter((carrier) => null != carrier && !sameType(carrier.type, list.type))
+      .filter((carrier) => null != carrier && !sameType(carrier.type, nullableType(list)))
       .map((carrier) => carrier!.name),
   ]
   return '`reqdata.' + arrayBodyField(list, on.entname, taken) + '`'

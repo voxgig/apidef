@@ -24,3 +24,8 @@ USER		USERS
 datum	{"data":"datum"}	data
 sms_datum	{"data":"datum"}	sms_data
 quiz		quizzes
+hero		heroes
+potato		potatoes
+tomato		tomatoes
+echo		echoes
+super_hero		super_heroes

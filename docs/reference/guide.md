@@ -58,8 +58,10 @@ under that name, in what it sends or in what it answers, the field is
 route already sends an array of another type from that name, such as one that
 may be null beside one that may not. A PATCH route that joins `update` is
 checked against the routes it joins. An array schema wrapped in `allOf`, or
-in a `oneOf` or `anyOf` of one member, counts as an array, with its items
-taken from whichever part states them. A `transform.req` in the guide entry
+in a `oneOf` or `anyOf` of one member beside any `null`, counts as an array,
+with its items taken from whichever part states them; the `null` makes it an
+array that may be null. A noun in `-o` that takes `-es`, such as `hero`, gives
+`heroes`, and the rest take `-s`, such as `photos`. A `transform.req` in the guide entry
 file replaces the default and names the field the model declares.
 `` `reqdata.messages` `` declares `messages`, and `` `reqdata` `` sends the
 input as it is, with no field.

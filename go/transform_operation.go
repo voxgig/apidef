@@ -205,7 +205,7 @@ func requestDefault(ctx *ApiDefContext, entname string, opname string, points []
 	for j, pt := range points {
 		if q, _ := pt.(map[string]any); j != at && q != nil {
 			taken = append(taken, routeFieldNames(q, ctx.Def, opname, entname, media(q))...)
-			if c := arrayCarrier(ctx.Def, q, media(q)); c != nil && !sameType(c.typ, list["type"]) {
+			if c := arrayCarrier(ctx.Def, q, media(q)); c != nil && !sameType(c.typ, nullableType(list)) {
 				taken = append(taken, c.name)
 			}
 		}

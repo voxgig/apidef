@@ -4,9 +4,9 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 28
-  metrics: count: path: 36
-  metrics: count: method: 37
+  metrics: count: entity: 32
+  metrics: count: path: 41
+  metrics: count: method: 42
 
   entity: alarm: {
     path: "/alarms": {
@@ -44,6 +44,12 @@ guide: {
     }
   }
 
+  entity: crate: {
+    path: "/crates": {
+      op: create: method: *POST
+    }
+  }
+
   entity: doc: {
     path: "/docs/{doc_id}": {
       rename: param: "doc_id": *"id"
@@ -70,6 +76,21 @@ guide: {
 
   entity: form: {
     path: "/forms": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: grade: {
+    path: "/classes/{class_id}/grades": {
+      op: create: method: *POST
+    }
+    path: "/grades": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: hero: {
+    path: "/heroes": {
       op: create: method: *POST
     }
   }
@@ -176,6 +197,12 @@ guide: {
       op: create: method: *POST
     }
     path: "/todos": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: tote: {
+    path: "/totes": {
       op: create: method: *POST
     }
   }

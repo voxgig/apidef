@@ -656,8 +656,9 @@ func arrayRequestSchema(def map[string]any, method string, path string, media st
 }
 
 // arrayShape mirrors ts/src/transform/body.ts: an array, or an allOf whose
-// parts make one, each fact from the first part that states it, outermost
-// first, the items from the array's own part first.
+// parts make one, or a oneOf or anyOf of one beside any null, each fact from
+// the first part that states it, outermost first, the items from the array's
+// own part first.
 func arrayShape(schema any) map[string]any {
 	parts := []map[string]any{}
 	seen := map[string]bool{}
@@ -675,8 +676,18 @@ func arrayShape(schema any) map[string]any {
 			visit(member)
 		}
 		for _, key := range []string{"oneOf", "anyOf"} {
-			if one, _ := m[key].([]any); len(one) == 1 {
-				visit(one[0])
+			one, _ := m[key].([]any)
+			members := []any{}
+			for _, member := range one {
+				if !nullOnly(member) {
+					members = append(members, member)
+				}
+			}
+			if len(members) == 1 {
+				if len(members) < len(one) {
+					parts = append(parts, map[string]any{"nullable": true})
+				}
+				visit(members[0])
 			}
 		}
 	}
@@ -716,6 +727,25 @@ func arrayShape(schema any) map[string]any {
 
 // nullableType mirrors ts/src/transform/body.ts: a nullable array says so with
 // nullable in OpenAPI 3.0, and a type list in 3.1.
+func nullOnly(schema any) bool {
+	m, _ := schema.(map[string]any)
+	if m == nil {
+		return false
+	}
+	switch t := m["type"].(type) {
+	case string:
+		return t == "null"
+	case []any:
+		for _, each := range t {
+			if each != "null" {
+				return false
+			}
+		}
+		return true
+	}
+	return false
+}
+
 func nullableType(schema map[string]any) any {
 	if t, ok := schema["type"].(string); ok && schema["nullable"] == true {
 		return []any{t, "null"}

@@ -169,7 +169,7 @@ function requestDefault(on, ment, mop, mpoint) {
         ...mop.points.flatMap((q) => (0, args_1.routeArgNames)(on.def, q)),
         ...others.flatMap((q) => (0, field_1.routeFieldNames)(ment, mop.name, q, on.def, media(q))),
         ...others.map((q) => (0, body_1.arrayCarrier)(on.def, q, media(q)))
-            .filter((carrier) => null != carrier && !(0, body_1.sameType)(carrier.type, list.type))
+            .filter((carrier) => null != carrier && !(0, body_1.sameType)(carrier.type, (0, body_1.nullableType)(list)))
             .map((carrier) => carrier.name),
     ];
     return '`reqdata.' + (0, heuristic01_1.arrayBodyField)(list, on.entname, taken) + '`';

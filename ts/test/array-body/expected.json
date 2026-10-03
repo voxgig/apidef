@@ -6,11 +6,15 @@
     "beacon.create POST /beacons exist=pings action= req=\"`reqdata.pings`\"",
     "broadcast.create POST /broadcasts exist=sms_messages action= req=\"`reqdata.sms_messages`\"",
     "chip.create POST /chips exist=chips action= req=\"`reqdata.chips`\"",
+    "crate.create POST /crates exist=crates action= req=\"`reqdata.crates`\"",
     "doc.update PATCH /docs/{doc_id} exist=doc_change_list,id action= req=\"`reqdata.doc_change_list`\"",
     "doc.update PUT /docs/{doc_id}/archive exist=id action=archive req=\"`reqdata`\"",
     "event.create POST /events exist=events action= req=\"`reqdata.events`\"",
     "flag.create POST /flags exist=flags action= req=\"`reqdata.flags`\"",
     "form.create POST /forms exist= action= req=\"`reqdata`\"",
+    "grade.create POST /classes/{class_id}/grades exist=class_id,grades action= req=\"`reqdata.grades`\"",
+    "grade.create POST /grades exist=grade_list action= req=\"`reqdata.grade_list`\"",
+    "hero.create POST /heroes exist=heroes action= req=\"`reqdata.heroes`\"",
     "item.create POST /items exist=n123_items action= req=\"`reqdata.n123_items`\"",
     "label.create POST /labels exist= action= req=\"`reqdata`\"",
     "lookup.list QUERY /lookups exist=lookups action= req=\"`reqdata.lookups`\"",
@@ -31,6 +35,7 @@
     "tag.create POST /tags exist= action= req=\"`reqdata.tags`\"",
     "todo.create POST /lists/{list_id}/todos exist=list_id,todo_item_list action= req=\"`reqdata.todo_item_list`\"",
     "todo.create POST /todos exist= action= req=\"`reqdata`\"",
+    "tote.create POST /totes exist=totes action= req=\"`reqdata.totes`\"",
     "upload.create POST /uploads exist= action= req=\"`reqdata`\"",
     "user.create POST /users/batch exist=users action=batch req=\"`reqdata.users`\"",
     "user.create POST /users exist= action= req=\"`reqdata`\"",
@@ -89,6 +94,18 @@
         "r": false
       }
     },
+    "crate": {
+      "crates": {
+        "t": [
+          "`$ONE`",
+          [
+            "`$ARRAY`",
+            "`$NULL`"
+          ]
+        ],
+        "r": false
+      }
+    },
     "doc": {
       "doc_change_list": {
         "t": "`$ARRAY`",
@@ -130,6 +147,28 @@
       },
       "title": {
         "t": "`$STRING`",
+        "r": false
+      }
+    },
+    "grade": {
+      "grade_list": {
+        "t": [
+          "`$ONE`",
+          [
+            "`$ARRAY`",
+            "`$NULL`"
+          ]
+        ],
+        "r": false
+      },
+      "grades": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "hero": {
+      "heroes": {
+        "t": "`$ARRAY`",
         "r": false
       }
     },
@@ -295,6 +334,18 @@
       },
       "todo_items": {
         "t": "`$INTEGER`",
+        "r": false
+      }
+    },
+    "tote": {
+      "totes": {
+        "t": [
+          "`$ONE`",
+          [
+            "`$ARRAY`",
+            "`$NULL`"
+          ]
+        ],
         "r": false
       }
     },
