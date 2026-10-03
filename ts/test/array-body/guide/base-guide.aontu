@@ -4,9 +4,9 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 51
-  metrics: count: path: 62
-  metrics: count: method: 63
+  metrics: count: entity: 53
+  metrics: count: path: 64
+  metrics: count: method: 65
 
   entity: alarm: {
     path: "/alarms": {
@@ -247,6 +247,12 @@ guide: {
     }
   }
 
+  entity: roll: {
+    path: "/rolls": {
+      op: create: method: *POST
+    }
+  }
+
   entity: score: {
     path: "/games/{game_id}/scores": {
       op: create: method: *POST
@@ -274,6 +280,12 @@ guide: {
 
   entity: shipment: {
     path: "/shipments": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: spool: {
+    path: "/spools": {
       op: create: method: *POST
     }
   }

@@ -474,10 +474,10 @@ function arrayRequestSchema(def: any, method: string, path: string, media?: stri
 }
 
 
-// An array, or an allOf whose parts make one, or a oneOf or anyOf of one
-// beside any null: each fact from the first part that states it, outermost
-// first, the items from the array's own part first, and null only where the
-// composition admits it.
+// An array, or an allOf whose parts make one, or a oneOf or anyOf of one, or
+// of arrays alone, beside any null: each fact from the first part that states
+// it, outermost first, the items from the array's own part first, and null
+// only where the composition admits it.
 function arrayShape(schema: any): any {
   const parts: any[] = []
   const visit = (node: any) => {
@@ -487,11 +487,12 @@ function arrayShape(schema: any): any {
       for (const one of [node.oneOf, node.anyOf]) {
         const members = Array.isArray(one) ? one.filter((member: any) => !nullOnly(member)) : []
         if (1 === members.length) visit(members[0])
+        else if (1 < members.length && members.every(isArray)) parts.push(unionArray(members))
       }
     }
   }
   visit(schema)
-  const found = parts.find((part) => hasType(part, 'array') || (null == part.type && arrayValued(part)))
+  const found = parts.find(isArray)
   const list = null == found || null != found.type ? found : { ...found, type: 'array' }
   if (null == list || 1 === parts.length) {
     return list
@@ -540,6 +541,19 @@ function nullOnly(schema: any): boolean {
 function arrayValued(schema: any): boolean {
   return Array.isArray(schema.const) ||
     (Array.isArray(schema.enum) && 0 < schema.enum.length && schema.enum.every(Array.isArray))
+}
+
+
+function isArray(schema: any): boolean {
+  return isMap(schema) && (hasType(schema, 'array') || (null == schema.type && arrayValued(schema)))
+}
+
+
+// The items are kept only where every member's items name one component.
+function unionArray(members: any[]): any {
+  const ref = members[0].items?.['x-ref']
+  const one = null != ref && members.every((member) => ref === member.items?.['x-ref'])
+  return { type: 'array', ...(one ? { items: members[0].items } : {}) }
 }
 
 

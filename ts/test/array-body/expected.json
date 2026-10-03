@@ -41,12 +41,14 @@
     "pallet.create POST /pallets exist= action= req={\"pallet\":\"`reqdata`\"}",
     "pin.create POST /pins exist=pins action= req=\"`reqdata.pins`\"",
     "record.create POST /records exist= action= req=\"`reqdata`\"",
+    "roll.create POST /rolls exist=rolls action= req=\"`reqdata.rolls`\"",
     "score.create POST /games/{game_id}/scores exist=game_id,scores action= req=\"`reqdata.scores`\"",
     "score.create POST /scores exist=score_list action= req=\"`reqdata.score_list`\"",
     "series.create POST /series exist=series,series_list action= req=\"`reqdata.series_list`\"",
     "session.load GET /sessions/{session_id} exist=id action= req=\"`reqdata`\"",
     "session.remove DELETE /sessions exist=sessions action= req=\"`reqdata.sessions`\"",
     "shipment.create POST /shipments exist=parcels action= req=\"`reqdata.parcels`\"",
+    "spool.create POST /spools exist=threads action= req=\"`reqdata.threads`\"",
     "stack.create POST /stacks exist=stacks action= req=\"`reqdata.stacks`\"",
     "tag.create POST /tags exist= action= req=\"`reqdata.tags`\"",
     "ticket.create POST /tickets exist=ticket_list action= req=\"`reqdata.ticket_list`\"",
@@ -393,6 +395,12 @@
         "r": false
       }
     },
+    "roll": {
+      "rolls": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
     "score": {
       "score_list": {
         "t": [
@@ -432,6 +440,18 @@
     "shipment": {
       "parcels": {
         "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "spool": {
+      "threads": {
+        "t": [
+          "`$ONE`",
+          [
+            "`$ARRAY`",
+            "`$NULL`"
+          ]
+        ],
         "r": false
       }
     },

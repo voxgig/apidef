@@ -62,7 +62,10 @@ in a `oneOf` or `anyOf` of one member beside any member only null passes (a
 `null` type, a `const` or `enum` of null alone, an `allOf` with such a part,
 or a `oneOf` or `anyOf` of such members), counts as an array, with its items
 taken from whichever part states them. So does a schema with no type whose
-`const` is an array, or whose `enum` values all are. It may be null only where
+`const` is an array, or whose `enum` values all are, and a `oneOf` or `anyOf`
+whose members are all arrays but for those only null passes; its items count
+only where every member's items name one component, so the field is
+otherwise named from the entity. It may be null only where
 the schema's own type, `const` and `enum` admit null, every `allOf` part
 does, exactly one member of a `oneOf` does, and some member of an `anyOf`
 does. A noun in `-o` that takes `-es`, such as `hero`, gives `heroes`,

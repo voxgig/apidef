@@ -664,9 +664,9 @@ func arrayRequestSchema(def map[string]any, method string, path string, media st
 }
 
 // arrayShape mirrors ts/src/transform/body.ts: an array, or an allOf whose
-// parts make one, or a oneOf or anyOf of one beside any null, each fact from
-// the first part that states it, outermost first, the items from the array's
-// own part first.
+// parts make one, or a oneOf or anyOf of one, or of arrays alone, beside any
+// null, each fact from the first part that states it, outermost first, the
+// items from the array's own part first.
 func arrayShape(schema any) map[string]any {
 	parts := []map[string]any{}
 	seen := map[string]bool{}
@@ -693,13 +693,15 @@ func arrayShape(schema any) map[string]any {
 			}
 			if len(members) == 1 {
 				visit(members[0])
+			} else if 1 < len(members) && allArrays(members) {
+				parts = append(parts, unionArray(members))
 			}
 		}
 	}
 	visit(schema)
 	var list map[string]any
 	for _, part := range parts {
-		if schemaHasType(part, "array") || (part["type"] == nil && arrayValued(part)) {
+		if isArraySchema(part) {
 			list = part
 			break
 		}
@@ -879,6 +881,41 @@ func containsNil(list []any) bool {
 		}
 	}
 	return false
+}
+
+func isArraySchema(schema any) bool {
+	m, _ := schema.(map[string]any)
+	return m != nil && (schemaHasType(m, "array") || (m["type"] == nil && arrayValued(m)))
+}
+
+func allArrays(members []any) bool {
+	for _, member := range members {
+		if !isArraySchema(member) {
+			return false
+		}
+	}
+	return true
+}
+
+// unionArray mirrors ts/src/transform/body.ts: the items are kept only where
+// every member's items name one component.
+func unionArray(members []any) map[string]any {
+	out := map[string]any{"type": "array"}
+	first, _ := members[0].(map[string]any)
+	items, _ := first["items"].(map[string]any)
+	ref, _ := items["x-ref"].(string)
+	if ref == "" {
+		return out
+	}
+	for _, member := range members[1:] {
+		m, _ := member.(map[string]any)
+		other, _ := m["items"].(map[string]any)
+		if xref, _ := other["x-ref"].(string); xref != ref {
+			return out
+		}
+	}
+	out["items"] = first["items"]
+	return out
 }
 
 // arrayValued: only arrays pass, by a const, or an enum, of arrays alone.

@@ -1818,6 +1818,76 @@
           }
         }
       }
+    },
+    "/rolls": {
+      "post": {
+        "operationId": "createRolls",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Sheet"
+                    }
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No content"
+          }
+        }
+      }
+    },
+    "/spools": {
+      "post": {
+        "operationId": "createSpools",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Thread"
+                    }
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Thread"
+                    },
+                    "maxItems": 10
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No content"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2456,6 +2526,28 @@
             "$ref": "#/components/schemas/Coil"
           }
         ]
+      },
+      "Sheet": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "Thread": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
       }
     }
   }
