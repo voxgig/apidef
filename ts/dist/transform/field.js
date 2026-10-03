@@ -5,6 +5,7 @@ exports.inferFieldsFromExamples = inferFieldsFromExamples;
 exports.inferTypeFromValue = inferTypeFromValue;
 const jostraca_1 = require("jostraca");
 const utility_1 = require("../utility");
+const body_1 = require("./body");
 const types_1 = require("../types");
 const fieldTransform = async function (ctx) {
     const { apimodel, def, guide, model } = ctx;
@@ -19,12 +20,13 @@ const fieldTransform = async function (ctx) {
                 const mpoints = mop.points;
                 for (let mpoint of mpoints) {
                     const opfields = resolveOpFields(ment, mop, mpoint, def);
+                    const carrier = carrierField(mpoint, def);
                     for (let opfield of opfields) {
                         if (!Object.prototype.hasOwnProperty.call(fields, opfield.n)) {
                             fields[opfield.n] = opfield;
                         }
                         else {
-                            mergeField(mop, fields[opfield.n], opfield);
+                            mergeField(mop, fields[opfield.n], opfield, carrier === opfield.n);
                         }
                     }
                 }
@@ -589,8 +591,7 @@ function findFieldDefs(ment, mop, mpoint, def) {
         if (requestBody && 'query' !== method && !isAction) {
             fieldSets = [
                 fieldSets,
-                (0, jostraca_1.getx)(requestBody, 'content "application/json" schema') ??
-                    (0, jostraca_1.getx)(requestBody, 'schema')
+                (0, body_1.jsonRequestSchema)(opdef) ?? (0, jostraca_1.getx)(requestBody, 'schema')
             ];
         }
         if (fieldSets && (Array.isArray(fieldSets.allOf) || fieldSets.properties)) {
@@ -609,17 +610,25 @@ function findFieldDefs(ment, mop, mpoint, def) {
     }
     // An array body is sent from one field of the request data, and has no
     // properties of its own to contribute. Optional, as the record never holds it.
-    const listfield = 'query' === method || isAction ? undefined :
-        (0, utility_1.arrayRequestField)(opdef?.requestBody, mpoint.t?.req);
+    const listfield = carrierField(mpoint, def);
     if (null != listfield) {
         fielddefs.push({
             key$: listfield,
             type: 'array',
             description: opdef.requestBody.description ??
-                (0, utility_1.arrayRequestSchema)(opdef.requestBody).description,
+                (0, body_1.arrayRequestSchema)(opdef).description,
         });
     }
     return fielddefs;
+}
+// The field a point's JSON array body is sent from. An action's request
+// fields are its own, so it declares none.
+function carrierField(mpoint, def) {
+    if ('graphql' === mpoint.k || null != mpoint.q?.['$action']) {
+        return undefined;
+    }
+    const opdef = def.paths?.[mpoint.o]?.[mpoint.m.toLowerCase()];
+    return (0, body_1.arrayRequestField)(opdef, mpoint.t?.req);
 }
 // A schema and its allOf members describe one object: a name any of them
 // requires is required, and a property declared more than once is one field
@@ -790,8 +799,10 @@ function inferTypeFromValue(value) {
         return 'object';
     return 'string';
 }
-function mergeField(mop, existingField, newField) {
-    if (newField.r !== existingField.r) {
+// A carrier keeps its array type for its operation where it meets a field of
+// another type.
+function mergeField(mop, existingField, newField, carrier = false) {
+    if (newField.r !== existingField.r || (carrier && newField.t !== existingField.t)) {
         existingField.op[mop.name] = {
             req: newField.r,
             type: newField.t,

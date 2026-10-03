@@ -415,8 +415,44 @@ function compare(a: string, b: string): number {
 }
 
 
+// The schema an operation's request body is sent as JSON with, chosen among
+// its JSON media types as the body step chooses.
+function jsonRequestSchema(opdef: any): any {
+  if (!isMap(opdef)) {
+    return undefined
+  }
+  const offers = openapiOffers(opdef)
+    .sort((a, b) => compare(a.media, b.media))
+    .map((offer) => ({ offer, body: describeBody(offer) }))
+    .filter(({ body }) => 'json' === body.kind)
+    .sort((a, b) => byPreference(a.body, b.body))
+  return offers[0]?.offer.schema
+}
+
+
+function arrayRequestSchema(opdef: any): any {
+  const schema = jsonRequestSchema(opdef)
+  return hasType(schema, 'array') ? schema : undefined
+}
+
+
+const REQDATA_FIELD_RE = /^`reqdata\.([A-Za-z_][A-Za-z0-9_]*)`$/
+
+// The field of the request data an array body is sent from, when the point's
+// request transform unwraps one.
+function arrayRequestField(opdef: any, req: any): string | undefined {
+  if (null == arrayRequestSchema(opdef) || 'string' !== typeof req) {
+    return undefined
+  }
+  return req.match(REQDATA_FIELD_RE)?.[1]
+}
+
+
 export {
   bodyTransform,
   requestBody,
   responseBody,
+  jsonRequestSchema,
+  arrayRequestSchema,
+  arrayRequestField,
 }

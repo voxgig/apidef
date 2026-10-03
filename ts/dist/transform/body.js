@@ -4,6 +4,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.bodyTransform = void 0;
 exports.requestBody = requestBody;
 exports.responseBody = responseBody;
+exports.jsonRequestSchema = jsonRequestSchema;
+exports.arrayRequestSchema = arrayRequestSchema;
+exports.arrayRequestField = arrayRequestField;
 const types_1 = require("../types");
 const utility_1 = require("../utility");
 // JSON first, as generated SDKs send it; then the kinds by what each can carry.
@@ -296,5 +299,31 @@ function isMap(val) {
 }
 function compare(a, b) {
     return a < b ? -1 : a > b ? 1 : 0;
+}
+// The schema an operation's request body is sent as JSON with, chosen among
+// its JSON media types as the body step chooses.
+function jsonRequestSchema(opdef) {
+    if (!isMap(opdef)) {
+        return undefined;
+    }
+    const offers = openapiOffers(opdef)
+        .sort((a, b) => compare(a.media, b.media))
+        .map((offer) => ({ offer, body: describeBody(offer) }))
+        .filter(({ body }) => 'json' === body.kind)
+        .sort((a, b) => byPreference(a.body, b.body));
+    return offers[0]?.offer.schema;
+}
+function arrayRequestSchema(opdef) {
+    const schema = jsonRequestSchema(opdef);
+    return hasType(schema, 'array') ? schema : undefined;
+}
+const REQDATA_FIELD_RE = /^`reqdata\.([A-Za-z_][A-Za-z0-9_]*)`$/;
+// The field of the request data an array body is sent from, when the point's
+// request transform unwraps one.
+function arrayRequestField(opdef, req) {
+    if (null == arrayRequestSchema(opdef) || 'string' !== typeof req) {
+        return undefined;
+    }
+    return req.match(REQDATA_FIELD_RE)?.[1];
 }
 //# sourceMappingURL=body.js.map

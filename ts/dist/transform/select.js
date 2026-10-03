@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.selectTransform = void 0;
 const jostraca_1 = require("jostraca");
 const types_1 = require("../types");
-const utility_1 = require("../utility");
+const body_1 = require("./body");
 const selectTransform = async function (ctx) {
     const { apimodel, def, guide } = ctx;
     const kit = apimodel.main[types_1.KIT];
@@ -45,7 +45,7 @@ function resolveSelect(guide, ment, _mop, mpoint, pdef) {
             }
         });
     });
-    const listfield = (0, utility_1.arrayRequestField)(pdef?.[String(mpoint.m).toLowerCase()]?.requestBody, mpoint.t?.req);
+    const listfield = (0, body_1.arrayRequestField)(pdef?.[String(mpoint.m).toLowerCase()], mpoint.t?.req);
     if (null != listfield && !select.exist.includes(listfield)) {
         select.exist.push(listfield);
     }

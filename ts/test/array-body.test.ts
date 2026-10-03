@@ -49,7 +49,11 @@ describe('array-body', () => {
 
     const fields = Object.fromEntries(names.map((ename) =>
       [ename, Object.fromEntries(Object.values(entities[ename].fields)
-        .map((f: any) => [f.n, { t: f.t, r: f.r, ...(null == f.sh ? {} : { sh: f.sh }) }]))]))
+        .map((f: any) => [f.n, {
+          t: f.t, r: f.r,
+          ...(null == f.sh ? {} : { sh: f.sh }),
+          ...(0 === Object.keys(f.op ?? {}).length ? {} : { op: f.op }),
+        }]))]))
     assert.deepStrictEqual(fields, expected.fields)
   })
 })

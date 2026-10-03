@@ -9,8 +9,10 @@ import { size, merge, getelem, isempty, items, keysof } from '@voxgig/struct'
 
 import {
   isEntityWrapperProp, envelopeProp, envelopeItemRef, composedEnvelopeProp,
-  closedBodyTransform, arrayRequestSchema, authExchangeOp, specSecuredByDefault,
+  closedBodyTransform, authExchangeOp, specSecuredByDefault,
 } from '../utility'
+
+import { arrayRequestSchema, jsonRequestSchema } from '../transform/body'
 
 
 import {
@@ -1254,7 +1256,7 @@ function ResolveTransform(spec: TaskSpec) {
   const wraps = (name: string) => isEntityWrapperProp(reqprops?.[name]) &&
     keysof(reqprops).every((k: string) => k === name)
 
-  const listbody = arrayRequestSchema(mdesc.requestBody)
+  const listbody = arrayRequestSchema(mdesc)
 
   if (null != listbody) {
     transform.req = '`reqdata.' + arrayBodyField(listbody, entdesc.name) + '`'
@@ -1612,8 +1614,7 @@ function entityPathMatch_tpp(
 
 
 function getRequestBodySchema(requestBody: any) {
-  return requestBody?.content?.['application/json']?.schema ??
-    requestBody?.schema
+  return jsonRequestSchema({ requestBody }) ?? requestBody?.schema
 }
 
 // The response an operation's result is read from, down to an Accepted

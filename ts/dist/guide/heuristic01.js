@@ -17,6 +17,7 @@ const ordu_1 = require("ordu");
 const jostraca_1 = require("jostraca");
 const struct_1 = require("@voxgig/struct");
 const utility_1 = require("../utility");
+const body_1 = require("../transform/body");
 const utility_2 = require("../utility");
 const jostraca_2 = require("jostraca");
 const entity_1 = require("../transform/entity");
@@ -913,7 +914,7 @@ function ResolveTransform(spec) {
     // such as the container in SaladCloud's container group create.
     const wraps = (name) => (0, utility_1.isEntityWrapperProp)(reqprops?.[name]) &&
         (0, struct_1.keysof)(reqprops).every((k) => k === name);
-    const listbody = (0, utility_1.arrayRequestSchema)(mdesc.requestBody);
+    const listbody = (0, body_1.arrayRequestSchema)(mdesc);
     if (null != listbody) {
         transform.req = '`reqdata.' + arrayBodyField(listbody, entdesc.name) + '`';
     }
@@ -1174,8 +1175,7 @@ function entityPathMatch_tpp(data, pm, mdesc, why) {
     return entname;
 }
 function getRequestBodySchema(requestBody) {
-    return requestBody?.content?.['application/json']?.schema ??
-        requestBody?.schema;
+    return (0, body_1.jsonRequestSchema)({ requestBody }) ?? requestBody?.schema;
 }
 // The response an operation's result is read from, down to an Accepted
 // response when nothing else answers, whose body may be the job it queued.

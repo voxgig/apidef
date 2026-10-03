@@ -191,6 +191,7 @@ const IRREGULARS: Record<string, string> = Object.assign(Object.create(null), {
   'psyches': 'psyche',
   'purchases': 'purchase',
   'purses': 'purse',
+  'quizzes': 'quiz',
   'releases': 'release',
   'roses': 'rose',
   'people': 'person',
@@ -1320,24 +1321,6 @@ function requestBodySchema(requestBody: any): any {
 }
 
 
-function arrayRequestSchema(requestBody: any): any {
-  const schema = requestBodySchema(requestBody)
-  return 'array' === schema?.type ? schema : null
-}
-
-
-const REQDATA_FIELD_RE = /^`reqdata\.([A-Za-z_][A-Za-z0-9_]*)`$/
-
-// The field of the request data an array body is sent from, when the point's
-// request transform unwraps one.
-function arrayRequestField(requestBody: any, req: any): string | undefined {
-  if (null == arrayRequestSchema(requestBody) || 'string' !== typeof req) {
-    return undefined
-  }
-  return req.match(REQDATA_FIELD_RE)?.[1]
-}
-
-
 // Sorted, not definition order, which the Go parser does not keep.
 function schemaProps(schema: any): string[] {
   const props = schema?.properties
@@ -2136,8 +2119,6 @@ export {
   composedEnvelopeProp,
   mergedProperties,
   closedBodyTransform,
-  arrayRequestSchema,
-  arrayRequestField,
   untaggedUnionBranches,
   scanUntaggedUnion,
   firstSentence,

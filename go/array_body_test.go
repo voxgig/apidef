@@ -92,6 +92,9 @@ func TestArrayBody(t *testing.T) {
 			if sh, ok := f["sh"]; ok {
 				view["sh"] = sh
 			}
+			if op, ok := f["op"].(map[string]any); ok && 0 < len(op) {
+				view["op"] = op
+			}
 			fields[ename][f["n"].(string)] = view
 		}
 	}

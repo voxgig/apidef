@@ -212,6 +212,170 @@
           }
         }
       }
+    },
+    "/alerts": {
+      "post": {
+        "operationId": "createAlerts",
+        "requestBody": {
+          "content": {
+            "application/json; charset=utf-8": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AlertRequest"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No content"
+          }
+        }
+      }
+    },
+    "/events": {
+      "post": {
+        "operationId": "createEvents",
+        "requestBody": {
+          "content": {
+            "application/vnd.acme.event+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/EventRequest"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No content"
+          }
+        }
+      }
+    },
+    "/marks": {
+      "post": {
+        "operationId": "createMarks",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "$ref": "#/components/schemas/Mark"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No content"
+          }
+        }
+      }
+    },
+    "/notices": {
+      "post": {
+        "operationId": "createNotices",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Notice"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "notices": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/lookups": {
+      "query": {
+        "operationId": "queryLookups",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Lookup"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/widgets": {
+      "post": {
+        "operationId": "createWidget",
+        "requestBody": {
+          "content": {
+            "application/json; charset=utf-8": {
+              "schema": {
+                "$ref": "#/components/schemas/WidgetInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Widget"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -258,6 +422,71 @@
         }
       },
       "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "AlertRequest": {
+        "type": "object",
+        "properties": {
+          "level": {
+            "type": "string"
+          }
+        }
+      },
+      "EventRequest": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          }
+        }
+      },
+      "Mark": {
+        "type": "object",
+        "properties": {
+          "score": {
+            "type": "integer"
+          }
+        }
+      },
+      "Notice": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          }
+        }
+      },
+      "Lookup": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      },
+      "WidgetInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "secret_code": {
+            "type": "string"
+          }
+        }
+      },
+      "Widget": {
         "type": "object",
         "properties": {
           "id": {

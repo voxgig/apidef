@@ -1772,7 +1772,7 @@ func resolveTransform(data map[string]any, mdesc map[string]any) {
 		return name != "" && isEntityWrapperProp(reqprops[name]) && len(reqprops) == 1
 	}
 
-	if listbody := arrayRequestSchema(reqBody); listbody != nil {
+	if listbody := arrayRequestSchema(mdesc); listbody != nil {
 		transform["req"] = "`reqdata." + arrayBodyField(listbody, ename) + "`"
 	} else if reqschema != nil {
 		if wraps(origname) {
@@ -2710,12 +2710,8 @@ func getRequestBodySchema(requestBody map[string]any) map[string]any {
 	if requestBody == nil {
 		return nil
 	}
-	if content, ok := requestBody["content"].(map[string]any); ok {
-		if appJSON, ok := content["application/json"].(map[string]any); ok {
-			if schema, ok := appJSON["schema"].(map[string]any); ok {
-				return schema
-			}
-		}
+	if schema, ok := jsonRequestSchema(map[string]any{"requestBody": requestBody}).(map[string]any); ok {
+		return schema
 	}
 	if schema, ok := requestBody["schema"].(map[string]any); ok {
 		return schema

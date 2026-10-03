@@ -7,7 +7,7 @@ import type { TransformResult, Transform } from '../transform'
 
 import { KIT } from '../types'
 
-import { arrayRequestField } from '../utility'
+import { arrayRequestField } from './body'
 
 import type {
   KitModel,
@@ -87,7 +87,7 @@ function resolveSelect(
   })
 
   const listfield = arrayRequestField(
-    (pdef as any)?.[String(mpoint.m).toLowerCase()]?.requestBody, mpoint.t?.req)
+    (pdef as any)?.[String(mpoint.m).toLowerCase()], mpoint.t?.req)
   if (null != listfield && !select.exist.includes(listfield)) {
     select.exist.push(listfield)
   }

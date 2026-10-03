@@ -70,7 +70,11 @@ const apidef_1 = require("../dist/apidef");
             ' req=' + JSON.stringify(pt.t?.req))));
         node_assert_1.default.deepStrictEqual(points, expected.points);
         const fields = Object.fromEntries(names.map((ename) => [ename, Object.fromEntries(Object.values(entities[ename].fields)
-                .map((f) => [f.n, { t: f.t, r: f.r, ...(null == f.sh ? {} : { sh: f.sh }) }]))]));
+                .map((f) => [f.n, {
+                    t: f.t, r: f.r,
+                    ...(null == f.sh ? {} : { sh: f.sh }),
+                    ...(0 === Object.keys(f.op ?? {}).length ? {} : { op: f.op }),
+                }]))]));
         node_assert_1.default.deepStrictEqual(fields, expected.fields);
     });
 });

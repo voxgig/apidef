@@ -8,8 +8,9 @@ import {
   validator, canonizeField, inferFieldType, normalizeFieldName, envelopeProp,
   composedEnvelopeProp, mergedProperties, canonizeCmpName,
   scanUntaggedUnion, firstSentence, humanTitle, collapseScalarAllOf,
-  arrayRequestSchema, arrayRequestField,
 } from '../utility'
+
+import { arrayRequestSchema, arrayRequestField, jsonRequestSchema } from './body'
 
 import { KIT } from '../types'
 
@@ -51,13 +52,14 @@ const fieldTransform: Transform = async function(
 
         for (let mpoint of mpoints) {
           const opfields = resolveOpFields(ment, mop, mpoint, def)
+          const carrier = carrierField(mpoint, def)
 
           for (let opfield of opfields) {
             if (!Object.prototype.hasOwnProperty.call(fields, opfield.n)) {
               fields[opfield.n] = opfield
             }
             else {
-              mergeField(mop, fields[opfield.n], opfield)
+              mergeField(mop, fields[opfield.n], opfield, carrier === opfield.n)
             }
           }
         }
@@ -773,8 +775,7 @@ function findFieldDefs(
     if (requestBody && 'query' !== method && !isAction) {
       fieldSets = [
         fieldSets,
-        getx(requestBody, 'content "application/json" schema') ??
-        getx(requestBody, 'schema')
+        jsonRequestSchema(opdef) ?? getx(requestBody, 'schema')
       ]
     }
 
@@ -798,18 +799,28 @@ function findFieldDefs(
 
   // An array body is sent from one field of the request data, and has no
   // properties of its own to contribute. Optional, as the record never holds it.
-  const listfield = 'query' === method || isAction ? undefined :
-    arrayRequestField(opdef?.requestBody, mpoint.t?.req)
+  const listfield = carrierField(mpoint, def)
   if (null != listfield) {
     fielddefs.push({
       key$: listfield,
       type: 'array',
       description: opdef.requestBody.description ??
-        arrayRequestSchema(opdef.requestBody).description,
+        arrayRequestSchema(opdef).description,
     } as SchemaDef)
   }
 
   return fielddefs
+}
+
+
+// The field a point's JSON array body is sent from. An action's request
+// fields are its own, so it declares none.
+function carrierField(mpoint: ModelPoint, def: any): string | undefined {
+  if ('graphql' === mpoint.k || null != (mpoint as any).q?.['$action']) {
+    return undefined
+  }
+  const opdef = def.paths?.[mpoint.o]?.[mpoint.m.toLowerCase()]
+  return arrayRequestField(opdef, mpoint.t?.req)
 }
 
 
@@ -992,12 +1003,15 @@ function inferTypeFromValue(value: any): string {
 }
 
 
+// A carrier keeps its array type for its operation where it meets a field of
+// another type.
 function mergeField(
   mop: ModelOp,
   existingField: ModelField,
-  newField: ModelField
+  newField: ModelField,
+  carrier: boolean = false,
 ) {
-  if (newField.r !== existingField.r) {
+  if (newField.r !== existingField.r || (carrier && newField.t !== existingField.t)) {
     existingField.op[mop.name] = {
       req: newField.r,
       type: newField.t,

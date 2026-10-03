@@ -72,7 +72,7 @@ var irregularPlurals = map[string]string{
 	"pastiches": "pastiche",
 	"pauses":    "pause", "phases": "phase", "phrases": "phrase", "practices": "practice",
 	"premises": "premise", "promises": "promise", "psyches": "psyche",
-	"purchases": "purchase", "purses": "purse",
+	"purchases": "purchase", "purses": "purse", "quizzes": "quiz",
 	"releases": "release", "roses": "rose", "people": "person", "phenomena": "phenomenon",
 	"series": "series", "shoes": "shoe", "sources": "source", "species": "species",
 	"teeth":  "tooth",
@@ -767,29 +767,6 @@ func requestBodySchema(requestBody any) any {
 	content, _ := rb["content"].(map[string]any)
 	media, _ := content["application/json"].(map[string]any)
 	return media["schema"]
-}
-
-func arrayRequestSchema(requestBody any) map[string]any {
-	schema, _ := requestBodySchema(requestBody).(map[string]any)
-	if schema["type"] != "array" {
-		return nil
-	}
-	return schema
-}
-
-var reqdataFieldRE = regexp.MustCompile("^`reqdata\\.([A-Za-z_][A-Za-z0-9_]*)`$")
-
-// arrayRequestField mirrors ts/src/utility.ts: the field of the request data
-// an array body is sent from, when the point's request transform unwraps one.
-func arrayRequestField(requestBody any, req any) string {
-	s, ok := req.(string)
-	if !ok || arrayRequestSchema(requestBody) == nil {
-		return ""
-	}
-	if m := reqdataFieldRE.FindStringSubmatch(s); m != nil {
-		return m[1]
-	}
-	return ""
 }
 
 func schemaProps(schema any) []string {

@@ -51,8 +51,6 @@ exports.envelopeItemRef = envelopeItemRef;
 exports.composedEnvelopeProp = composedEnvelopeProp;
 exports.mergedProperties = mergedProperties;
 exports.closedBodyTransform = closedBodyTransform;
-exports.arrayRequestSchema = arrayRequestSchema;
-exports.arrayRequestField = arrayRequestField;
 exports.untaggedUnionBranches = untaggedUnionBranches;
 exports.scanUntaggedUnion = scanUntaggedUnion;
 exports.firstSentence = firstSentence;
@@ -205,6 +203,7 @@ const IRREGULARS = Object.assign(Object.create(null), {
     'psyches': 'psyche',
     'purchases': 'purchase',
     'purses': 'purse',
+    'quizzes': 'quiz',
     'releases': 'release',
     'roses': 'rose',
     'people': 'person',
@@ -1118,19 +1117,6 @@ function requestBodySchema(requestBody) {
         return null;
     }
     return requestBody.content?.['application/json']?.schema ?? null;
-}
-function arrayRequestSchema(requestBody) {
-    const schema = requestBodySchema(requestBody);
-    return 'array' === schema?.type ? schema : null;
-}
-const REQDATA_FIELD_RE = /^`reqdata\.([A-Za-z_][A-Za-z0-9_]*)`$/;
-// The field of the request data an array body is sent from, when the point's
-// request transform unwraps one.
-function arrayRequestField(requestBody, req) {
-    if (null == arrayRequestSchema(requestBody) || 'string' !== typeof req) {
-        return undefined;
-    }
-    return req.match(REQDATA_FIELD_RE)?.[1];
 }
 // Sorted, not definition order, which the Go parser does not keep.
 function schemaProps(schema) {

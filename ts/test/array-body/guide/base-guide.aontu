@@ -4,14 +4,28 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 5
-  metrics: count: path: 7
-  metrics: count: method: 8
+  metrics: count: entity: 11
+  metrics: count: path: 13
+  metrics: count: method: 14
+
+  entity: alert: {
+    path: "/alerts": {
+      op: create: method: *POST
+      op: create: transform: req: *("`reqdata.alerts`")|top
+    }
+  }
 
   entity: broadcast: {
     path: "/broadcasts": {
       op: create: method: *POST
       op: create: transform: req: *("`reqdata.sms_messages`")|top
+    }
+  }
+
+  entity: event: {
+    path: "/events": {
+      op: create: method: *POST
+      op: create: transform: req: *("`reqdata.events`")|top
     }
   }
 
@@ -22,10 +36,31 @@ guide: {
     }
   }
 
+  entity: lookup: {
+    path: "/lookups": {
+      op: list: method: *QUERY
+      op: list: transform: req: *("`reqdata.lookups`")|top
+    }
+  }
+
+  entity: mark: {
+    path: "/marks": {
+      op: create: method: *POST
+      op: create: transform: req: *("`reqdata.marks`")|top
+    }
+  }
+
   entity: message: {
     path: "/mms/v1/messages": {
       op: create: method: *POST
       op: create: transform: req: *("`reqdata.mms_messages`")|top
+    }
+  }
+
+  entity: notice: {
+    path: "/notices": {
+      op: create: method: *POST
+      op: create: transform: req: *("`reqdata.notices`")|top
     }
   }
 
@@ -49,6 +84,12 @@ guide: {
     path: "/users/{user_id}": {
       rename: param: "user_id": *"id"
       op: load: method: *GET
+    }
+  }
+
+  entity: widget: {
+    path: "/widgets": {
+      op: create: method: *POST
     }
   }
 

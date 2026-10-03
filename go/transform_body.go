@@ -594,3 +594,50 @@ func textOf(val any) string {
 	text, _ := val.(string)
 	return strings.TrimSpace(text)
 }
+
+// jsonRequestSchema mirrors ts/src/transform/body.ts: the schema an
+// operation's request body is sent as JSON with, chosen among its JSON media
+// types as the body step chooses.
+func jsonRequestSchema(opdef map[string]any) any {
+	offers := openapiOffers(opdef)
+	sort.SliceStable(offers, func(i, j int) bool { return lessUTF16(offers[i].media, offers[j].media) })
+	var chosen *bodyOffer
+	var chosenBody map[string]any
+	for i := range offers {
+		body := describeBody(offers[i])
+		if body["kind"] != "json" {
+			continue
+		}
+		if chosen == nil || bodyBefore(body, chosenBody) {
+			chosen, chosenBody = &offers[i], body
+		}
+	}
+	if chosen == nil {
+		return nil
+	}
+	return chosen.schema
+}
+
+func arrayRequestSchema(opdef map[string]any) map[string]any {
+	schema, _ := jsonRequestSchema(opdef).(map[string]any)
+	if !schemaHasType(schema, "array") {
+		return nil
+	}
+	return schema
+}
+
+var reqdataFieldRE = regexp.MustCompile("^`reqdata\\.([A-Za-z_][A-Za-z0-9_]*)`$")
+
+// arrayRequestField mirrors ts/src/transform/body.ts: the field of the request
+// data an array body is sent from, when the point's request transform unwraps
+// one.
+func arrayRequestField(opdef map[string]any, req any) string {
+	s, ok := req.(string)
+	if !ok || arrayRequestSchema(opdef) == nil {
+		return ""
+	}
+	if m := reqdataFieldRE.FindStringSubmatch(s); m != nil {
+		return m[1]
+	}
+	return ""
+}

@@ -57,8 +57,6 @@ declare function authExchangeOp(op: any, specSecured: boolean): {
     response: string;
 } | null;
 declare function specSecuredByDefault(def: any): boolean;
-declare function arrayRequestSchema(requestBody: any): any;
-declare function arrayRequestField(requestBody: any, req: any): string | undefined;
 declare function cleanComponentName(name: string, isKnownCmp?: (canonizedRemainder: string) => boolean): string;
 declare function warnOnError(where: string, warn: Warner, fn: Function, result?: any): any;
 declare function debugpathOn(): boolean;
@@ -88,4 +86,4 @@ declare function scanUntaggedUnion(schema: any, depth?: number, seen?: Set<any>)
 };
 declare function closedBodyTransform(schema: any): Record<string, string> | null;
 declare function firstSentence(text: string): string;
-export { nom, getdlog, loadFile, formatJsonSrc, depluralize, pluralize, setCustomPlurals, clearCustomPlurals, find, capture, pathMatch, makeWarner, formatJSONIC, validator, VALID_CANON, CANON_ONE, canonize, canonizeField, canonizeCmpName, stripSchemaNamespace, sanitizeSlug, slugToPascalCase, transliterate, cleanComponentName, guideActive, authExchangeOp, specSecuredByDefault, ensureMinEntityName, inferFieldType, normalizeFieldName, canonizeParam, paramName, humanTitle, prefixLeadingDigit, debugpath, debugpathOn, findPathsWithPrefix, writeFileSyncWarn, removeLegacyAon, warnOnError, relativizePath, getModelPath, sortedKeys, sortedEntries, collapseScalarAllOf, isEntityWrapperProp, envelopeProp, envelopeItemRef, composedEnvelopeProp, mergedProperties, closedBodyTransform, arrayRequestSchema, arrayRequestField, untaggedUnionBranches, scanUntaggedUnion, firstSentence, resplitFromCmp, };
+export { nom, getdlog, loadFile, formatJsonSrc, depluralize, pluralize, setCustomPlurals, clearCustomPlurals, find, capture, pathMatch, makeWarner, formatJSONIC, validator, VALID_CANON, CANON_ONE, canonize, canonizeField, canonizeCmpName, stripSchemaNamespace, sanitizeSlug, slugToPascalCase, transliterate, cleanComponentName, guideActive, authExchangeOp, specSecuredByDefault, ensureMinEntityName, inferFieldType, normalizeFieldName, canonizeParam, paramName, humanTitle, prefixLeadingDigit, debugpath, debugpathOn, findPathsWithPrefix, writeFileSyncWarn, removeLegacyAon, warnOnError, relativizePath, getModelPath, sortedKeys, sortedEntries, collapseScalarAllOf, isEntityWrapperProp, envelopeProp, envelopeItemRef, composedEnvelopeProp, mergedProperties, closedBodyTransform, untaggedUnionBranches, scanUntaggedUnion, firstSentence, resplitFromCmp, };

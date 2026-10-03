@@ -41,6 +41,7 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 					continue
 				}
 				opfields := resolveOpFields(mtarget, def, opname, entname)
+				carrier := carrierField(mtarget, def)
 				for _, opfield := range opfields {
 					name, _ := opfield["n"].(string)
 					if existing, exists := fields[name].(map[string]any); !exists {
@@ -48,7 +49,10 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 					} else {
 						newReq, _ := opfield["r"].(bool)
 						existReq, _ := existing["r"].(bool)
-						if newReq != existReq {
+						// Mirrors ts/src/transform/field.ts: a carrier keeps its
+						// array type for its operation.
+						retyped := carrier == name && opfield["t"] != existing["t"]
+						if newReq != existReq || retyped {
 							opOverrides, _ := existing["op"].(map[string]any)
 							if opOverrides == nil {
 								opOverrides = map[string]any{}
@@ -696,19 +700,32 @@ func findFieldDefs(mtarget map[string]any, def map[string]any, opname string, en
 
 	// Mirrors ts/src/transform/field.ts: an array body is the one optional
 	// field it is sent from.
-	if t, _ := mtarget["t"].(map[string]any); methodLower != "query" && !isAction {
-		if listfield := arrayRequestField(requestBody, t["req"]); listfield != "" {
-			fd := map[string]any{"key$": listfield, "type": "array"}
-			if desc, ok := requestBody["description"].(string); ok {
-				fd["description"] = desc
-			} else if desc, ok := arrayRequestSchema(requestBody)["description"].(string); ok {
-				fd["description"] = desc
-			}
-			fielddefs = append(fielddefs, fd)
+	if listfield := carrierField(mtarget, def); listfield != "" {
+		fd := map[string]any{"key$": listfield, "type": "array"}
+		if desc, ok := requestBody["description"].(string); ok {
+			fd["description"] = desc
+		} else if desc, ok := arrayRequestSchema(opdef)["description"].(string); ok {
+			fd["description"] = desc
 		}
+		fielddefs = append(fielddefs, fd)
 	}
 
 	return fielddefs
+}
+
+// carrierField mirrors ts/src/transform/field.ts: the field a point's JSON
+// array body is sent from, which an action does not declare.
+func carrierField(mtarget map[string]any, def map[string]any) string {
+	if sel, ok := mtarget["q"].(map[string]any); ok {
+		if _, isAction := sel["$action"]; isAction {
+			return ""
+		}
+	}
+	if mtarget["k"] == "graphql" {
+		return ""
+	}
+	t, _ := mtarget["t"].(map[string]any)
+	return arrayRequestField(pointOpDef(def, mtarget), t["req"])
 }
 
 func unwrapArrayWrapper(schema any) any {
@@ -812,13 +829,11 @@ func getFieldResponseSchema(responses map[string]any, code string) any {
 	return nil
 }
 
+// getFieldRequestBodySchema mirrors ts/src/transform/field.ts: the JSON body
+// schema, chosen as the body step chooses it.
 func getFieldRequestBodySchema(requestBody map[string]any) any {
-	if content, ok := requestBody["content"].(map[string]any); ok {
-		if appjson, ok := content["application/json"].(map[string]any); ok {
-			if schema, ok := appjson["schema"]; ok {
-				return schema
-			}
-		}
+	if schema := jsonRequestSchema(map[string]any{"requestBody": requestBody}); schema != nil {
+		return schema
 	}
 	if schema, ok := requestBody["schema"]; ok {
 		return schema

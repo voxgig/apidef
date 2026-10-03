@@ -1,29 +1,116 @@
 {
   "points": [
+    "alert.create POST /alerts exist=alerts action= req=\"`reqdata.alerts`\"",
     "broadcast.create POST /broadcasts exist=sms_messages action= req=\"`reqdata.sms_messages`\"",
+    "event.create POST /events exist=events action= req=\"`reqdata.events`\"",
     "label.create POST /labels exist= action= req=\"`reqdata`\"",
+    "lookup.list QUERY /lookups exist=lookups action= req=\"`reqdata.lookups`\"",
+    "mark.create POST /marks exist=marks action= req=\"`reqdata.marks`\"",
     "message.create POST /mms/v1/messages exist=messages action= req=\"`reqdata.messages`\"",
+    "notice.create POST /notices exist=notices action= req=\"`reqdata.notices`\"",
     "tag.create POST /tags exist=tags action= req=\"`reqdata.tags`\"",
     "user.create POST /users/batch exist=users action=batch req=\"`reqdata.users`\"",
     "user.create POST /users exist= action= req=\"`reqdata`\"",
     "user.list GET /users exist= action= req=\"`reqdata`\"",
-    "user.load GET /users/{user_id} exist=id action= req=\"`reqdata`\""
+    "user.load GET /users/{user_id} exist=id action= req=\"`reqdata`\"",
+    "widget.create POST /widgets exist= action= req=\"`reqdata`\""
   ],
   "fields": {
+    "alert": {
+      "alerts": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
     "broadcast": {
-      "messages": { "t": "`$ARRAY`", "r": false },
-      "sms_messages": { "t": "`$ARRAY`", "r": false, "sh": "The messages to send." }
+      "messages": {
+        "t": "`$ARRAY`",
+        "r": false
+      },
+      "sms_messages": {
+        "t": "`$ARRAY`",
+        "r": false,
+        "sh": "The messages to send."
+      }
+    },
+    "event": {
+      "events": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
     },
     "label": {},
+    "lookup": {
+      "id": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "lookups": {
+        "t": "`$ARRAY`",
+        "r": false
+      },
+      "value": {
+        "t": "`$STRING`",
+        "r": false
+      }
+    },
+    "mark": {
+      "marks": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
     "message": {
-      "messages": { "t": "`$ARRAY`", "r": false }
+      "messages": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "notice": {
+      "id": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "notices": {
+        "t": "`$STRING`",
+        "r": false,
+        "op": {
+          "create": {
+            "req": false,
+            "type": "`$ARRAY`"
+          }
+        }
+      }
     },
     "tag": {
-      "tags": { "t": "`$ARRAY`", "r": false }
+      "tags": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
     },
     "user": {
-      "id": { "t": "`$STRING`", "r": false },
-      "name": { "t": "`$STRING`", "r": false }
+      "id": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "name": {
+        "t": "`$STRING`",
+        "r": false
+      }
+    },
+    "widget": {
+      "id": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "name": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "secret_code": {
+        "t": "`$STRING`",
+        "r": false
+      }
     }
   }
 }
