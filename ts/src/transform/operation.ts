@@ -2,7 +2,7 @@ import { guideActive } from '../utility'
 
 import { arrayBodyField } from '../guide/heuristic01'
 
-import { arrayRequestSchema, guideMedia } from './body'
+import { arrayCarrier, arrayRequestSchema, guideMedia, sameType } from './body'
 
 import { routeFieldNames } from './field'
 
@@ -225,17 +225,22 @@ function resolveOp(opname: OpName, on: OpEntity): undefined | ModelOp {
 
 
 // An array body is sent from one field of the request data, named for its
-// records, and never for a field another route of the operation has. Decided
-// here rather than by the guide heuristic, as the media type the guide names
-// decides whether the body is an array.
+// records, and never for a field another route of the operation has, nor for
+// a carrier already named for an array of another type. Decided here rather
+// than by the guide heuristic, as the guide's media type decides the body.
 function requestDefault(on: OpEntity, ment: ModelEntity, mop: ModelOp, mpoint: ModelPoint): string {
   const media = (q: ModelPoint) => guideMedia(on.guide, on.entname, mop.name, q).body
   const list = arrayRequestSchema(on.def, mpoint.m, mpoint.o, media(mpoint))
   if (null == list) {
     return '`reqdata`'
   }
-  const taken = mop.points.filter((q) => q !== mpoint)
-    .flatMap((q) => routeFieldNames(ment, mop.name, q, on.def, media(q)))
+  const others = mop.points.filter((q) => q !== mpoint)
+  const taken = [
+    ...others.flatMap((q) => routeFieldNames(ment, mop.name, q, on.def, media(q))),
+    ...others.map((q) => arrayCarrier(on.def, q, media(q)))
+      .filter((carrier) => null != carrier && !sameType(carrier.type, list.type))
+      .map((carrier) => carrier!.name),
+  ]
   return '`reqdata.' + arrayBodyField(list, on.entname, taken) + '`'
 }
 

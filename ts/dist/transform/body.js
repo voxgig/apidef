@@ -9,6 +9,7 @@ exports.jsonRequestSchema = jsonRequestSchema;
 exports.requestSchema = requestSchema;
 exports.arrayRequestSchema = arrayRequestSchema;
 exports.arrayCarrier = arrayCarrier;
+exports.sameType = sameType;
 const types_1 = require("../types");
 const utility_1 = require("../utility");
 // JSON first, as generated SDKs send it; then the kinds by what each can carry.
@@ -380,5 +381,9 @@ function requestDecl(def, method, path) {
     }
     return null != def.swagger ?
         swaggerParams(pathdef, opdef).find((param) => 'body' === param.in) : opdef.requestBody;
+}
+// Types compare by value: a type list is a fresh array each time it is read.
+function sameType(a, b) {
+    return JSON.stringify(a) === JSON.stringify(b);
 }
 //# sourceMappingURL=body.js.map

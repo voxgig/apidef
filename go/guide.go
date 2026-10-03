@@ -3294,8 +3294,13 @@ func cmpRefName(xref string) string {
 // request body is sent from, named for the records it lists, unless another
 // route of the operation sends a field under that name.
 func arrayBodyField(schema map[string]any, entname string, taken []string) string {
-	items, _ := schema["items"].(map[string]any)
-	xref, _ := items["x-ref"].(string)
+	refs := itemRefs(schema["items"], map[string]bool{})
+	slices.Sort(refs)
+	refs = slices.Compact(refs)
+	xref := ""
+	if len(refs) == 1 {
+		xref = refs[0]
+	}
 	record := ""
 	if m := xrefRE.FindStringSubmatch(xref); m != nil && !strings.Contains(m[2], "/") {
 		record = PrefixLeadingDigit(CleanComponentName(CanonizeCmpName(m[2]), nil))
@@ -3311,6 +3316,26 @@ func arrayBodyField(schema map[string]any, entname string, taken []string) strin
 		}
 	}
 	return name
+}
+
+// itemRefs mirrors ts/src/guide/heuristic01.ts: the component the items
+// name, or each one their allOf parts name.
+func itemRefs(items any, seen map[string]bool) []string {
+	m, _ := items.(map[string]any)
+	id := fmt.Sprintf("%p", m)
+	if m == nil || seen[id] {
+		return nil
+	}
+	seen[id] = true
+	if xref, ok := m["x-ref"].(string); ok {
+		return []string{xref}
+	}
+	refs := []string{}
+	parts, _ := m["allOf"].([]any)
+	for _, part := range parts {
+		refs = append(refs, itemRefs(part, seen)...)
+	}
+	return refs
 }
 
 // hasMethod checks if a path has a specific HTTP method.

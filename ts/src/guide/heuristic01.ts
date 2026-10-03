@@ -2551,11 +2551,12 @@ function cmpRefName(xref: string): string {
 
 
 // An array request body is sent from a field named for the records it lists:
-// its items' component, cleaned as an entity's is, else the entity itself. A
-// pointer into a component names a part of it, not a record. A name another
-// route of the operation sends a field under is taken.
+// its items' component, or the one their allOf parts name, cleaned as an
+// entity's is, else the entity itself. A pointer into a component names a
+// part of it, not a record. A name another route of the operation has is taken.
 function arrayBodyField(schema: any, entname: string, taken: string[] = []): string {
-  const cmp = String(schema?.items?.['x-ref'] ?? '').match(CMP_REF_RE)?.[2]
+  const refs = [...new Set(itemRefs(schema?.items, new Set()))]
+  const cmp = String(1 === refs.length ? refs[0] : '').match(CMP_REF_RE)?.[2]
   const cleaned = null == cmp || cmp.includes('/') ? '' :
     prefixLeadingDigit(cleanComponentName(canonizeCmpName(cmp)))
   const record = '' === cleaned ? entname : cleaned
@@ -2564,6 +2565,18 @@ function arrayBodyField(schema: any, entname: string, taken: string[] = []): str
     name = record + '_list' + (1 < n ? n : '')
   }
   return name
+}
+
+
+function itemRefs(items: any, seen: Set<any>): string[] {
+  if (null == items || 'object' !== typeof items || seen.has(items)) {
+    return []
+  }
+  seen.add(items)
+  if ('string' === typeof items['x-ref']) {
+    return [items['x-ref']]
+  }
+  return (Array.isArray(items.allOf) ? items.allOf : []).flatMap((part: any) => itemRefs(part, seen))
 }
 
 

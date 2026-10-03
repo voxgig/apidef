@@ -525,6 +525,12 @@ function requestDecl(def: any, method: string, path: string): any {
 }
 
 
+// Types compare by value: a type list is a fresh array each time it is read.
+function sameType(a: any, b: any): boolean {
+  return JSON.stringify(a) === JSON.stringify(b)
+}
+
+
 export {
   bodyTransform,
   guideMedia,
@@ -534,4 +540,5 @@ export {
   requestSchema,
   arrayRequestSchema,
   arrayCarrier,
+  sameType,
 }

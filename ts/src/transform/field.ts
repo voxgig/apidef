@@ -10,7 +10,7 @@ import {
   scanUntaggedUnion, firstSentence, humanTitle, collapseScalarAllOf,
 } from '../utility'
 
-import { arrayCarrier, guideMedia, requestSchema } from './body'
+import { arrayCarrier, guideMedia, requestSchema, sameType } from './body'
 
 import { KIT } from '../types'
 
@@ -1036,7 +1036,7 @@ function mergeField(
   newField: ModelField,
   carrier: boolean = false,
 ) {
-  if (newField.r !== existingField.r || (carrier && newField.t !== existingField.t)) {
+  if (newField.r !== existingField.r || (carrier && !sameType(newField.t, existingField.t))) {
     existingField.op[mop.name] = {
       req: newField.r,
       type: newField.t,

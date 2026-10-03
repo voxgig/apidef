@@ -154,17 +154,22 @@ function resolveOp(opname, on) {
     return mop;
 }
 // An array body is sent from one field of the request data, named for its
-// records, and never for a field another route of the operation has. Decided
-// here rather than by the guide heuristic, as the media type the guide names
-// decides whether the body is an array.
+// records, and never for a field another route of the operation has, nor for
+// a carrier already named for an array of another type. Decided here rather
+// than by the guide heuristic, as the guide's media type decides the body.
 function requestDefault(on, ment, mop, mpoint) {
     const media = (q) => (0, body_1.guideMedia)(on.guide, on.entname, mop.name, q).body;
     const list = (0, body_1.arrayRequestSchema)(on.def, mpoint.m, mpoint.o, media(mpoint));
     if (null == list) {
         return '`reqdata`';
     }
-    const taken = mop.points.filter((q) => q !== mpoint)
-        .flatMap((q) => (0, field_1.routeFieldNames)(ment, mop.name, q, on.def, media(q)));
+    const others = mop.points.filter((q) => q !== mpoint);
+    const taken = [
+        ...others.flatMap((q) => (0, field_1.routeFieldNames)(ment, mop.name, q, on.def, media(q))),
+        ...others.map((q) => (0, body_1.arrayCarrier)(on.def, q, media(q)))
+            .filter((carrier) => null != carrier && !(0, body_1.sameType)(carrier.type, list.type))
+            .map((carrier) => carrier.name),
+    ];
     return '`reqdata.' + (0, heuristic01_1.arrayBodyField)(list, on.entname, taken) + '`';
 }
 //# sourceMappingURL=operation.js.map

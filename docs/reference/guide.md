@@ -48,17 +48,20 @@ data, so a point whose guide entry sets no `transform.req` gets the model
 `t.req` `` `reqdata.<field>` ``. The body is the one `body.media` names, else
 the JSON media type the body step prefers, so choosing a media type also
 chooses whether the body is an array. The field is the plural of the record
-the items name: their component, cleaned as an entity name is, so
-`SmsMessageRequest` gives `sms_messages`, or else the entity's own name. A
-name that would start with a digit starts with `n`, so `123ItemRequest` gives
-`n123_items`. When another route of the operation has a field under that
-name, in what it sends or in what it answers, the field is `<record>_list`
-instead, so `notes` becomes `note_list`. A PATCH route that joins `update`
-is checked against the routes it joins. An array schema wrapped in `allOf`
-counts as an array, with its items taken from whichever part states them. A
-`transform.req` in the guide entry file replaces the default and names the
-field the model declares. `` `reqdata.messages` `` declares `messages`, and
-`` `reqdata` `` sends the input as it is, with no field.
+the items name: their component, or the one component their `allOf` parts
+name, cleaned as an entity name is, so `SmsMessageRequest` gives
+`sms_messages`, or else the entity's own name. A name that would start with
+a digit starts with `n`, so `123ItemRequest` gives `n123_items`. When another
+route of the operation has a field under that name, in what it sends or in
+what it answers, the field is `<record>_list` instead, so `notes` becomes
+`note_list`. So it is when another route already sends an array of another
+type from that name, such as one that may be null beside one that may not.
+A PATCH route that joins `update` is checked against the routes it joins. An
+array schema wrapped in `allOf` counts as an array, with its items taken from
+whichever part states them. A `transform.req` in the guide entry file
+replaces the default and names the field the model declares.
+`` `reqdata.messages` `` declares `messages`, and `` `reqdata` `` sends the
+input as it is, with no field.
 
 ### `GuideMetrics`
 

@@ -4,6 +4,7 @@ package apidef
 
 import (
 	"fmt"
+	"reflect"
 	"regexp"
 	"sort"
 	"strings"
@@ -694,6 +695,12 @@ func arrayShape(schema any) map[string]any {
 }
 
 var reqdataFieldRE = regexp.MustCompile("^`reqdata\\.([A-Za-z_][A-Za-z0-9_]*)`$")
+
+// sameType mirrors ts/src/transform/body.ts: types compare by value, as a
+// type list is a slice, and slices do not compare directly.
+func sameType(a any, b any) bool {
+	return reflect.DeepEqual(a, b)
+}
 
 type arrayCarrierInfo struct {
 	name        string

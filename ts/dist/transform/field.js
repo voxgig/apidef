@@ -813,7 +813,7 @@ function inferTypeFromValue(value) {
 // A carrier keeps its array type for its operation where it meets a field of
 // another type.
 function mergeField(mop, existingField, newField, carrier = false) {
-    if (newField.r !== existingField.r || (carrier && newField.t !== existingField.t)) {
+    if (newField.r !== existingField.r || (carrier && !(0, body_1.sameType)(newField.t, existingField.t))) {
         existingField.op[mop.name] = {
             req: newField.r,
             type: newField.t,

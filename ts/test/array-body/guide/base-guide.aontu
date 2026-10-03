@@ -4,9 +4,9 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 21
-  metrics: count: path: 27
-  metrics: count: method: 28
+  metrics: count: entity: 23
+  metrics: count: path: 31
+  metrics: count: method: 32
 
   entity: alarm: {
     path: "/alarms": {
@@ -22,6 +22,12 @@ guide: {
 
   entity: batch: {
     path: "/batches": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: beacon: {
+    path: "/beacons": {
       op: create: method: *POST
     }
   }
@@ -75,6 +81,9 @@ guide: {
   }
 
   entity: mark: {
+    path: "/boards/{board_id}/marks": {
+      op: create: method: *POST
+    }
     path: "/marks": {
       op: create: method: *POST
     }
@@ -103,6 +112,15 @@ guide: {
 
   entity: record: {
     path: "/records": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: score: {
+    path: "/games/{game_id}/scores": {
+      op: create: method: *POST
+    }
+    path: "/scores": {
       op: create: method: *POST
     }
   }

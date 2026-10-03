@@ -10,3 +10,5 @@ schema	entity	taken	expected
 {"type":"array","items":{"x-ref":"#/components/schemas/123ItemRequest"}}	item	[]	n123_items
 {"type":"array","items":{"x-ref":"#/components/schemas/Note"}}	note	["notes"]	note_list
 {"type":"array","items":{"x-ref":"#/components/schemas/Note"}}	note	["notes","note_list"]	note_list2
+{"type":"array","items":{"allOf":[{"x-ref":"#/components/schemas/SmsMessageRequest"},{"description":"One message."}]}}	broadcast	[]	sms_messages
+{"type":"array","items":{"allOf":[{"x-ref":"#/components/schemas/SmsMessageRequest"},{"x-ref":"#/components/schemas/MmsMessageRequest"}]}}	broadcast	[]	broadcasts

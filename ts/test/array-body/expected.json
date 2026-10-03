@@ -3,6 +3,7 @@
     "alarm.create POST /alarms exist=alarms action= req=\"`reqdata.alarms`\"",
     "alert.create POST /alerts exist=alerts action= req=\"`reqdata.alerts`\"",
     "batch.create POST /batches exist=batch_inputs action= req=\"`reqdata.batch_inputs`\"",
+    "beacon.create POST /beacons exist=pings action= req=\"`reqdata.pings`\"",
     "broadcast.create POST /broadcasts exist=sms_messages action= req=\"`reqdata.sms_messages`\"",
     "doc.update PATCH /docs/{doc_id} exist=doc_change_list,id action= req=\"`reqdata.doc_change_list`\"",
     "doc.update PUT /docs/{doc_id}/archive exist=id action=archive req=\"`reqdata`\"",
@@ -11,12 +12,15 @@
     "item.create POST /items exist=n123_items action= req=\"`reqdata.n123_items`\"",
     "label.create POST /labels exist= action= req=\"`reqdata`\"",
     "lookup.list QUERY /lookups exist=lookups action= req=\"`reqdata.lookups`\"",
+    "mark.create POST /boards/{board_id}/marks exist=board_id,marks action= req=\"`reqdata.marks`\"",
     "mark.create POST /marks exist=marks action= req=\"`reqdata.marks`\"",
     "message.create POST /mms/v1/messages exist=messages action= req=\"`reqdata.messages`\"",
     "note.create POST /boards/{board_id}/notes exist=board_id,note_list action= req=\"`reqdata.note_list`\"",
     "note.create POST /notes exist= action= req=\"`reqdata`\"",
     "notice.create POST /notices exist=notices action= req=\"`reqdata.notices`\"",
     "record.create POST /records exist= action= req=\"`reqdata`\"",
+    "score.create POST /games/{game_id}/scores exist=game_id,scores action= req=\"`reqdata.scores`\"",
+    "score.create POST /scores exist=score_list action= req=\"`reqdata.score_list`\"",
     "session.load GET /sessions/{session_id} exist=id action= req=\"`reqdata`\"",
     "session.remove DELETE /sessions exist=sessions action= req=\"`reqdata.sessions`\"",
     "shipment.create POST /shipments exist=parcels action= req=\"`reqdata.parcels`\"",
@@ -54,6 +58,12 @@
       },
       "name": {
         "t": "`$STRING`",
+        "r": false
+      }
+    },
+    "beacon": {
+      "pings": {
+        "t": "`$ARRAY`",
         "r": false
       }
     },
@@ -190,6 +200,22 @@
       },
       "title": {
         "t": "`$STRING`",
+        "r": false
+      }
+    },
+    "score": {
+      "score_list": {
+        "t": [
+          "`$ONE`",
+          [
+            "`$ARRAY`",
+            "`$NULL`"
+          ]
+        ],
+        "r": false
+      },
+      "scores": {
+        "t": "`$ARRAY`",
         "r": false
       }
     },

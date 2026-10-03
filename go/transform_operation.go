@@ -177,7 +177,8 @@ func collectOps(ctx *ApiDefContext, entname string, gent map[string]any, pathsDe
 
 // requestDefault mirrors ts/src/transform/operation.ts: an array body is sent
 // from one field of the request data, named for its records, and never for a
-// field another route of the operation has.
+// field another route of the operation has, nor for a carrier already named
+// for an array of another type.
 func requestDefault(ctx *ApiDefContext, entname string, opname string, points []any, at int) string {
 	if ctx == nil {
 		return "`reqdata`"
@@ -199,6 +200,9 @@ func requestDefault(ctx *ApiDefContext, entname string, opname string, points []
 	for j, pt := range points {
 		if q, _ := pt.(map[string]any); j != at && q != nil {
 			taken = append(taken, routeFieldNames(q, ctx.Def, opname, entname, media(q))...)
+			if c := arrayCarrier(ctx.Def, q, media(q)); c != nil && !sameType(c.typ, list["type"]) {
+				taken = append(taken, c.name)
+			}
 		}
 	}
 	return "`reqdata." + arrayBodyField(list, entname, taken) + "`"

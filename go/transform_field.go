@@ -527,7 +527,7 @@ func addOpField(fields map[string]any, opname string, opfield map[string]any, ca
 		existReq, _ := existing["r"].(bool)
 		// Mirrors ts/src/transform/field.ts: a carrier keeps its
 		// array type for its operation.
-		retyped := carrier && opfield["t"] != existing["t"]
+		retyped := carrier && !sameType(opfield["t"], existing["t"])
 		if newReq != existReq || retyped {
 			opOverrides, _ := existing["op"].(map[string]any)
 			if opOverrides == nil {
