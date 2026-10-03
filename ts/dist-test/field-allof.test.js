@@ -1,0 +1,64 @@
+"use strict";
+/* Copyright (c) 2024-2026 Voxgig Ltd, MIT License */
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const node_test_1 = require("node:test");
+const node_assert_1 = __importDefault(require("node:assert"));
+const field_1 = require("../dist/transform/field");
+function runFieldTransform(entity, def) {
+    const apimodel = { main: { kit: { entity: { [entity.name]: entity } } } };
+    return (0, field_1.fieldTransform)({ apimodel, def }).then(() => entity.fields);
+}
+const json = (schema) => ({ content: { 'application/json': { schema } } });
+const prop = (key) => ({ key$: key, type: 'string' });
+const props = (...keys) => Object.fromEntries(keys.map((key) => [key, prop(key)]));
+// One operation on /jobs, with the response and request schemas given.
+function job(opname, method, response, request) {
+    const opdef = { responses: { 200: json(response) } };
+    if (null != request) {
+        opdef.requestBody = json(request);
+    }
+    return {
+        entity: {
+            name: 'job',
+            fields: {},
+            op: { [opname]: { name: opname, points: [{ o: '/jobs', m: method, k: 'json' }] } },
+        },
+        def: { paths: { '/jobs': { [method.toLowerCase()]: opdef } } },
+    };
+}
+function summary(fields) {
+    return Object.keys(fields).sort().map((name) => name + (fields[name].r ? '!' : ''));
+}
+(0, node_test_1.describe)('field-allof', () => {
+    (0, node_test_1.test)('a request schema composed with allOf contributes every member', async () => {
+        const { entity, def } = job('create', 'POST', { type: 'object', properties: props('id') }, { allOf: [
+                { type: 'object', required: ['url'], properties: props('url') },
+                { type: 'object', properties: props('formats') },
+            ] });
+        node_assert_1.default.deepStrictEqual(summary(await runFieldTransform(entity, def)), ['formats', 'id', 'url!']);
+    });
+    (0, node_test_1.test)('a response schema composed with allOf keeps its members beside a request body', async () => {
+        const { entity, def } = job('create', 'POST', { allOf: [{ type: 'object', properties: props('id', 'status') }] }, { type: 'object', properties: props('url') });
+        node_assert_1.default.deepStrictEqual(summary(await runFieldTransform(entity, def)), ['id', 'status', 'url']);
+    });
+    (0, node_test_1.test)('a nested allOf member contributes its fields', async () => {
+        const { entity, def } = job('load', 'GET', { allOf: [
+                { allOf: [{ type: 'object', properties: props('id') }] },
+                { type: 'object', properties: props('status') },
+            ] });
+        node_assert_1.default.deepStrictEqual(summary(await runFieldTransform(entity, def)), ['id', 'status']);
+    });
+    (0, node_test_1.test)('properties and required beside allOf apply to the composed schema', async () => {
+        const { entity, def } = job('create', 'POST', { type: 'object', properties: props('id') }, {
+            type: 'object',
+            required: ['url', 'name'],
+            properties: props('name'),
+            allOf: [{ type: 'object', properties: props('url', 'formats') }],
+        });
+        node_assert_1.default.deepStrictEqual(summary(await runFieldTransform(entity, def)), ['formats', 'id', 'name!', 'url!']);
+    });
+});
+//# sourceMappingURL=field-allof.test.js.map

@@ -815,11 +815,8 @@ func getFieldRequestBodySchema(requestBody map[string]any) any {
 func extractFieldsTopLevel(fieldSets any, fielddefs *[]map[string]any) {
 	switch fs := fieldSets.(type) {
 	case map[string]any:
-		if _, ok := fs["allOf"].([]any); ok {
-			extractFields(fs, fielddefs)
-			return
-		}
-		if _, ok := fs["properties"].(map[string]any); ok {
+		_, composed := fs["allOf"].([]any)
+		if _, ok := fs["properties"].(map[string]any); ok || composed {
 			extractFields(fs, fielddefs)
 			return
 		}
@@ -828,116 +825,89 @@ func extractFieldsTopLevel(fieldSets any, fielddefs *[]map[string]any) {
 			if vm, ok := val.(map[string]any); ok {
 				vm["key$"] = k
 			}
-			extractPropertiesOnly(val, fielddefs)
-		}
-	case []any:
-		for _, item := range fs {
-			extractPropertiesOnly(item, fielddefs)
-		}
-	}
-}
-
-// extractPropertiesOnly mirrors the inner `each(fieldSet?.properties, ...)`:
-// it pulls a single level of properties (and required[]) from the value, but
-// does not descend further. Required[] from the property's own sub-schema is
-// preserved as truthy so $ref-resolved properties keep their `req`.
-func extractPropertiesOnly(fieldSet any, fielddefs *[]map[string]any) {
-	fs, ok := fieldSet.(map[string]any)
-	if !ok || fs == nil {
-		return
-	}
-	props, ok := fs["properties"].(map[string]any)
-	if !ok || props == nil {
-		return
-	}
-	requiredNames := map[string]bool{}
-	if req, ok := fs["required"].([]any); ok {
-		for _, r := range req {
-			if s, ok := r.(string); ok {
-				requiredNames[s] = true
-			}
-		}
-	}
-	for _, name := range sortedKeys(props) {
-		prop := props[name]
-		fd := map[string]any{"key$": name}
-		if pm, ok := prop.(map[string]any); ok {
-			pm = collapseScalarAllOf(pm)
-			if t, ok := pm["type"]; ok {
-				fd["type"] = t
-			}
-			if r, ok := pm["required"]; ok {
-				fd["required"] = r
-			}
-			// Carry `description` for the same reason extractFields does: this
-			// map IS the field def downstream, so a key not copied here is
-			// invisible. This is the route a non-QUERY op's request body takes
-			// (findFieldDefs wraps the schemas in a slice), and omitting it
-			// made Go silently drop descriptions TS kept.
-			if d, ok := pm["description"]; ok {
-				fd["description"] = d
-			}
-			for _, k := range []string{"readOnly", "writeOnly", "deprecated", "format"} {
-				if v, ok := pm[k]; ok {
-					fd[k] = v
-				}
-			}
-		}
-		if requiredNames[name] {
-			fd["required"] = true
-		}
-		*fielddefs = append(*fielddefs, fd)
-	}
-}
-
-func extractFields(fieldSets any, fielddefs *[]map[string]any) {
-	switch fs := fieldSets.(type) {
-	case map[string]any:
-		if allOf, ok := fs["allOf"].([]any); ok {
-			for _, item := range allOf {
-				extractFields(item, fielddefs)
-			}
-			return
-		}
-		if props, ok := fs["properties"].(map[string]any); ok {
-			requiredNames := map[string]bool{}
-			if req, ok := fs["required"].([]any); ok {
-				for _, r := range req {
-					if s, ok := r.(string); ok {
-						requiredNames[s] = true
-					}
-				}
-			}
-			for _, name := range sortedKeys(props) {
-				prop := props[name]
-				fd := map[string]any{"key$": name}
-				if pm, ok := prop.(map[string]any); ok {
-					pm = collapseScalarAllOf(pm)
-					// Unasserted: a 3.1 nullable field's type is an ARRAY.
-					if t, ok := pm["type"]; ok {
-						fd["type"] = t
-					}
-					if r, ok := pm["required"]; ok {
-						fd["required"] = r
-					}
-					if d, ok := pm["description"]; ok {
-						fd["description"] = d
-					}
-					for _, k := range []string{"readOnly", "writeOnly", "deprecated", "format"} {
-						if v, ok := pm[k]; ok {
-							fd[k] = v
-						}
-					}
-				}
-				if requiredNames[name] {
-					fd["required"] = true
-				}
-				*fielddefs = append(*fielddefs, fd)
-			}
+			extractFields(val, fielddefs)
 		}
 	case []any:
 		for _, item := range fs {
 			extractFields(item, fielddefs)
+		}
+	}
+}
+
+// propertySet is one property map a schema declares, with the required names
+// that reach it.
+type propertySet struct {
+	props    map[string]any
+	required map[string]bool
+}
+
+// propertySets returns a schema's property maps, its own and each allOf
+// member's, with the required names declared beside them or on a schema
+// composing them.
+func propertySets(schema any, required []string, seen map[string]bool) []propertySet {
+	fs, ok := schema.(map[string]any)
+	if !ok || fs == nil {
+		return nil
+	}
+	key := fmt.Sprintf("%p", fs)
+	if seen[key] {
+		return nil
+	}
+	seen[key] = true
+
+	names := required
+	if req, ok := fs["required"].([]any); ok {
+		names = append([]string{}, required...)
+		for _, r := range req {
+			if s, ok := r.(string); ok {
+				names = append(names, s)
+			}
+		}
+	}
+
+	var out []propertySet
+	if props, ok := fs["properties"].(map[string]any); ok && props != nil {
+		set := map[string]bool{}
+		for _, n := range names {
+			set[n] = true
+		}
+		out = append(out, propertySet{props: props, required: set})
+	}
+	if allOf, ok := fs["allOf"].([]any); ok {
+		for _, member := range allOf {
+			out = append(out, propertySets(member, names, seen)...)
+		}
+	}
+	return out
+}
+
+func extractFields(fieldSet any, fielddefs *[]map[string]any) {
+	for _, part := range propertySets(fieldSet, nil, map[string]bool{}) {
+		for _, name := range sortedKeys(part.props) {
+			prop := part.props[name]
+			fd := map[string]any{"key$": name}
+			if pm, ok := prop.(map[string]any); ok {
+				pm = collapseScalarAllOf(pm)
+				// Unasserted: a 3.1 nullable field's type is an ARRAY.
+				if t, ok := pm["type"]; ok {
+					fd["type"] = t
+				}
+				if r, ok := pm["required"]; ok {
+					fd["required"] = r
+				}
+				if d, ok := pm["description"]; ok {
+					fd["description"] = d
+				}
+				for _, k := range []string{"readOnly", "writeOnly", "deprecated", "format"} {
+					if v, ok := pm[k]; ok {
+						fd[k] = v
+					}
+				}
+			}
+			if part.required[name] {
+				fd["required"] = true
+			}
+			*fielddefs = append(*fielddefs, fd)
 		}
 	}
 }

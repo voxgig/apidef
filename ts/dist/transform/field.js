@@ -593,31 +593,26 @@ function findFieldDefs(ment, mop, mpoint, def) {
                     (0, jostraca_1.getx)(requestBody, 'schema')
             ];
         }
-        if (fieldSets) {
-            if (Array.isArray(fieldSets.allOf)) {
-                fieldSets = fieldSets.allOf;
-            }
-            else if (fieldSets.properties) {
-                fieldSets = [fieldSets];
-            }
+        if (fieldSets && (Array.isArray(fieldSets.allOf) || fieldSets.properties)) {
+            fieldSets = [fieldSets];
         }
         (0, jostraca_1.each)(fieldSets, (fieldSet) => {
-            const requiredNames = Array.isArray(fieldSet?.required)
-                ? fieldSet.required : [];
-            (0, jostraca_1.each)(fieldSet?.properties, (schema) => {
-                const property = (0, utility_1.collapseScalarAllOf)(schema);
-                // Don't mutate the parsed schema: a $ref-resolved schema is shared
-                // across every operation that references it, so flipping
-                // `property.required = true` here would leak this operation's
-                // required[] onto all the others. Derive `required` onto a shallow
-                // copy instead (matches the Go port, which builds fresh field defs).
-                if (!property.required && requiredNames.includes(property.key$)) {
-                    fielddefs.push({ ...property, required: true });
-                }
-                else {
-                    fielddefs.push(property);
-                }
-            });
+            for (const part of propertySets(fieldSet)) {
+                (0, jostraca_1.each)(part.properties, (schema) => {
+                    const property = (0, utility_1.collapseScalarAllOf)(schema);
+                    // Don't mutate the parsed schema: a $ref-resolved schema is shared
+                    // across every operation that references it, so flipping
+                    // `property.required = true` here would leak this operation's
+                    // required[] onto all the others. Derive `required` onto a shallow
+                    // copy instead (matches the Go port, which builds fresh field defs).
+                    if (!property.required && part.required.includes(property.key$)) {
+                        fielddefs.push({ ...property, required: true });
+                    }
+                    else {
+                        fielddefs.push(property);
+                    }
+                });
+            }
         });
     }
     // Fallback: infer fields from example response data when no schema properties found
@@ -628,6 +623,20 @@ function findFieldDefs(ment, mop, mpoint, def) {
         }
     }
     return fielddefs;
+}
+// A schema's property maps, its own and each allOf member's, with the
+// required names declared beside them or on a schema composing them.
+function propertySets(schema, required = [], seen = new Set()) {
+    if (null == schema || 'object' !== typeof schema || seen.has(schema)) {
+        return [];
+    }
+    seen.add(schema);
+    const names = Array.isArray(schema.required) ? required.concat(schema.required) : required;
+    const own = null == schema.properties ? [] : [{ properties: schema.properties, required: names }];
+    const members = Array.isArray(schema.allOf)
+        ? schema.allOf.flatMap((member) => propertySets(member, names, seen))
+        : [];
+    return own.concat(members);
 }
 function answersOnlyAccepted(responses) {
     return null == responses['200'] && null == responses['201'] && null != responses['202'];
