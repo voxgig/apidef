@@ -13,3 +13,5 @@ schema	entity	taken	expected
 {"type":"array","items":{"allOf":[{"x-ref":"#/components/schemas/SmsMessageRequest"},{"description":"One message."}]}}	broadcast	[]	sms_messages
 {"type":"array","items":{"allOf":[{"x-ref":"#/components/schemas/SmsMessageRequest"},{"x-ref":"#/components/schemas/MmsMessageRequest"}]}}	broadcast	[]	broadcasts
 {"type":"array","items":{"x-ref":"#/components/schemas/HeroRequest"}}	squad	[]	heroes
+{"type":"array","items":{"x-ref":"#/components/schemas/OxRequest"}}	herd	[]	oxen
+{"type":"array","items":{"x-ref":"#/components/schemas/SheepRequest"}}	flock	[]	sheep

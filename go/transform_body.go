@@ -684,9 +684,6 @@ func arrayShape(schema any) map[string]any {
 				}
 			}
 			if len(members) == 1 {
-				if len(members) < len(one) {
-					parts = append(parts, map[string]any{"nullable": true})
-				}
 				visit(members[0])
 			}
 		}
@@ -714,15 +711,64 @@ func arrayShape(schema any) map[string]any {
 			}
 		}
 	}
-	for _, key := range []string{"description", "nullable"} {
-		for _, part := range parts {
-			if part[key] != nil {
-				out[key] = part[key]
-				break
-			}
+	for _, part := range parts {
+		if part["description"] != nil {
+			out["description"] = part["description"]
+			break
 		}
 	}
+	types := []any{}
+	for _, t := range typeList(list["type"]) {
+		if t != "null" {
+			types = append(types, t)
+		}
+	}
+	if len(types) == 1 {
+		out["type"] = types[0]
+	} else {
+		out["type"] = types
+	}
+	out["nullable"] = admitsNull(schema)
 	return out
+}
+
+// admitsNull mirrors ts/src/transform/body.ts: every allOf part must admit
+// null, and some member of each oneOf or anyOf.
+func admitsNull(schema any) bool {
+	m, _ := schema.(map[string]any)
+	if m == nil {
+		return false
+	}
+	if !(m["type"] == nil || schemaHasType(m, "null") || m["nullable"] == true) {
+		return false
+	}
+	parts, _ := m["allOf"].([]any)
+	for _, part := range parts {
+		if !admitsNull(part) {
+			return false
+		}
+	}
+	for _, key := range []string{"oneOf", "anyOf"} {
+		one, isList := m[key].([]any)
+		if !isList {
+			continue
+		}
+		some := false
+		for _, member := range one {
+			some = some || admitsNull(member)
+		}
+		if !some {
+			return false
+		}
+	}
+	return true
+}
+
+func typeList(t any) []any {
+	if list, ok := t.([]any); ok {
+		return list
+	}
+	return []any{t}
 }
 
 // nullableType mirrors ts/src/transform/body.ts: a nullable array says so with
@@ -747,18 +793,43 @@ func nullOnly(schema any) bool {
 }
 
 func nullableType(schema map[string]any) any {
-	if t, ok := schema["type"].(string); ok && schema["nullable"] == true {
-		return []any{t, "null"}
+	if schema["nullable"] == true && !schemaHasType(schema, "null") {
+		return append(append([]any{}, typeList(schema["type"])...), "null")
 	}
 	return schema["type"]
 }
 
 var reqdataFieldRE = regexp.MustCompile("^`reqdata\\.([A-Za-z_][A-Za-z0-9_]*)`$")
 
-// sameType mirrors ts/src/transform/body.ts: types compare by value, as a
-// type list is a slice, and slices do not compare directly.
+// sameType mirrors ts/src/transform/body.ts: types compare by value, and a
+// type list as the set it is, in one order.
 func sameType(a any, b any) bool {
-	return reflect.DeepEqual(a, b)
+	return reflect.DeepEqual(typeSet(a), typeSet(b))
+}
+
+func typeSet(t any) any {
+	list, ok := t.([]any)
+	if !ok {
+		return t
+	}
+	names := []string{}
+	for _, member := range list {
+		name, isName := member.(string)
+		if !isName {
+			out := []any{}
+			for _, each := range list {
+				out = append(out, typeSet(each))
+			}
+			return out
+		}
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	out := []any{}
+	for _, name := range names {
+		out = append(out, name)
+	}
+	return out
 }
 
 type arrayCarrierInfo struct {

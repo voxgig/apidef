@@ -11,15 +11,20 @@
     "doc.update PUT /docs/{doc_id}/archive exist=id action=archive req=\"`reqdata`\"",
     "event.create POST /events exist=events action= req=\"`reqdata.events`\"",
     "flag.create POST /flags exist=flags action= req=\"`reqdata.flags`\"",
+    "flock.create POST /flocks exist=sheep action= req=\"`reqdata.sheep`\"",
     "form.create POST /forms exist= action= req=\"`reqdata`\"",
     "grade.create POST /classes/{class_id}/grades exist=class_id,grades action= req=\"`reqdata.grades`\"",
     "grade.create POST /grades exist=grade_list action= req=\"`reqdata.grade_list`\"",
+    "herd.create POST /herds exist=oxen action= req=\"`reqdata.oxen`\"",
     "hero.create POST /heroes exist=heroes action= req=\"`reqdata.heroes`\"",
     "item.create POST /items exist=n123_items action= req=\"`reqdata.n123_items`\"",
+    "keg.create POST /kegs exist=kegs action= req=\"`reqdata.kegs`\"",
     "label.create POST /labels exist= action= req=\"`reqdata`\"",
     "lookup.list QUERY /lookups exist=lookups action= req=\"`reqdata.lookups`\"",
     "mark.create POST /boards/{board_id}/marks exist=board_id,marks action= req=\"`reqdata.marks`\"",
     "mark.create POST /marks exist=marks action= req=\"`reqdata.marks`\"",
+    "memo.create POST /desks/{desk_id}/memos exist=desk_id,memos action= req=\"`reqdata.memos`\"",
+    "memo.create POST /memos exist=memos action= req=\"`reqdata.memos`\"",
     "message.create POST /mms/v1/messages exist=messages action= req=\"`reqdata.messages`\"",
     "note.create POST /boards/{board_id}/notes exist=board_id,note_list action= req=\"`reqdata.note_list`\"",
     "note.create POST /notes exist= action= req=\"`reqdata`\"",
@@ -43,6 +48,7 @@
     "user.create POST /users exist= action= req=\"`reqdata`\"",
     "user.list GET /users exist= action= req=\"`reqdata`\"",
     "user.load GET /users/{user_id} exist=id action= req=\"`reqdata`\"",
+    "vat.create POST /vats exist=vats action= req=\"`reqdata.vats`\"",
     "widget.create POST /widgets exist= action= req=\"`reqdata`\""
   ],
   "fields": {
@@ -138,6 +144,12 @@
         "r": false
       }
     },
+    "flock": {
+      "sheep": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
     "form": {
       "colour": {
         "t": "`$STRING`",
@@ -168,6 +180,12 @@
         "r": false
       }
     },
+    "herd": {
+      "oxen": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
     "hero": {
       "heroes": {
         "t": "`$ARRAY`",
@@ -176,6 +194,12 @@
     },
     "item": {
       "n123_items": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "keg": {
+      "kegs": {
         "t": "`$ARRAY`",
         "r": false
       }
@@ -197,6 +221,18 @@
     },
     "mark": {
       "marks": {
+        "t": [
+          "`$ONE`",
+          [
+            "`$ARRAY`",
+            "`$NULL`"
+          ]
+        ],
+        "r": false
+      }
+    },
+    "memo": {
+      "memos": {
         "t": [
           "`$ONE`",
           [
@@ -379,6 +415,12 @@
       },
       "name": {
         "t": "`$STRING`",
+        "r": false
+      }
+    },
+    "vat": {
+      "vats": {
+        "t": "`$ARRAY`",
         "r": false
       }
     },

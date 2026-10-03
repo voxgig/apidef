@@ -137,7 +137,7 @@ sends it declares one field for it: the field its `t.req` sends the array
 from. The field takes the array schema's own type, so it is `` `$ARRAY` ``,
 or `` [`$ONE`, [`$ARRAY`, `$NULL`]] `` for a body that may be null, by a type
 list, by OpenAPI 3.0's `nullable`, or by a `oneOf` or `anyOf` of the array and
-`null`. It is never required, because every
+`null`, where every `allOf` part admits null too. It is never required, because every
 field is also part of the record, and no record holds the list. Its `sh` is
 the request body's description, else the array schema's. A remove point
 declares it too, though nothing else a remove sends or answers becomes a

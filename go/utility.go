@@ -55,6 +55,8 @@ func matchCase(source, target string) string {
 }
 
 var irregularPlurals = map[string]string{
+	"aircraft": "aircraft", "deer": "deer", "fish": "fish", "moose": "moose",
+	"oxen": "ox", "sheep": "sheep",
 	"analytics": "analytics", "analyses": "analysis", "appendices": "appendix",
 	"avalanches": "avalanche", "axes": "axis", "bases": "base",
 	"caches": "cache", "canoes": "canoe",

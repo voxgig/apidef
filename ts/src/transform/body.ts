@@ -474,7 +474,8 @@ function arrayRequestSchema(def: any, method: string, path: string, media?: stri
 
 // An array, or an allOf whose parts make one, or a oneOf or anyOf of one
 // beside any null: each fact from the first part that states it, outermost
-// first, the items from the array's own part first.
+// first, the items from the array's own part first, and null only where the
+// composition admits it.
 function arrayShape(schema: any): any {
   const parts: any[] = []
   const visit = (node: any) => {
@@ -483,10 +484,7 @@ function arrayShape(schema: any): any {
       ; (Array.isArray(node.allOf) ? node.allOf : []).forEach(visit)
       for (const one of [node.oneOf, node.anyOf]) {
         const members = Array.isArray(one) ? one.filter((member: any) => !nullOnly(member)) : []
-        if (1 === members.length) {
-          if (members.length < one.length) parts.push({ nullable: true })
-          visit(members[0])
-        }
+        if (1 === members.length) visit(members[0])
       }
     }
   }
@@ -497,13 +495,23 @@ function arrayShape(schema: any): any {
   }
   const items = list.items ?? parts.find((part) => null != part.items)?.items
   const description = parts.find((part) => null != part.description)?.description
-  const nullable = parts.find((part) => null != part.nullable)?.nullable
+  const types = [list.type].flat().filter((type: any) => 'null' !== type)
   return {
     ...list,
+    type: 1 === types.length ? types[0] : types,
     ...(null == items ? {} : { items }),
     ...(null == description ? {} : { description }),
-    ...(null == nullable ? {} : { nullable }),
+    nullable: admitsNull(schema),
   }
+}
+
+
+// Every allOf part must admit null, and some member of each oneOf or anyOf.
+function admitsNull(schema: any): boolean {
+  if (!isMap(schema)) return false
+  const own = null == schema.type || hasType(schema, 'null') || true === schema.nullable
+  return own && (Array.isArray(schema.allOf) ? schema.allOf : []).every(admitsNull) &&
+    [schema.oneOf, schema.anyOf].every((one) => !Array.isArray(one) || one.some(admitsNull))
 }
 
 
@@ -515,7 +523,7 @@ function nullOnly(schema: any): boolean {
 
 // A nullable array says so with `nullable` in OpenAPI 3.0, and a type list in 3.1.
 function nullableType(schema: any): any {
-  return true === schema.nullable && 'string' === typeof schema.type ? [schema.type, 'null'] : schema.type
+  return true === schema.nullable && !hasType(schema, 'null') ? [schema.type, 'null'].flat() : schema.type
 }
 
 
@@ -556,9 +564,15 @@ function requestDecl(def: any, method: string, path: string): any {
 }
 
 
-// Types compare by value: a type list is a fresh array each time it is read.
+// Types compare by value, and a type list as the set it is, in one order.
 function sameType(a: any, b: any): boolean {
-  return JSON.stringify(a) === JSON.stringify(b)
+  return JSON.stringify(typeSet(a)) === JSON.stringify(typeSet(b))
+}
+
+
+function typeSet(type: any): any {
+  return !Array.isArray(type) ? type :
+    type.every((member: any) => 'string' === typeof member) ? [...type].sort() : type.map(typeSet)
 }
 
 
