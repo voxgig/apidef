@@ -459,8 +459,26 @@ function requestSchema(def: any, method: string, path: string, media?: string): 
 
 
 function arrayRequestSchema(def: any, method: string, path: string, media?: string): any {
-  const schema = requestSchema(def, method, path, media)
-  return hasType(schema, 'array') ? schema : undefined
+  return arrayShape(requestSchema(def, method, path, media))
+}
+
+
+// An array, or an allOf whose members make one, with the outer description.
+function arrayShape(schema: any, seen: Set<any> = new Set()): any {
+  if (hasType(schema, 'array')) {
+    return schema
+  }
+  if (!isMap(schema) || seen.has(schema) || !Array.isArray(schema.allOf)) {
+    return undefined
+  }
+  seen.add(schema)
+  for (const member of schema.allOf) {
+    const list = arrayShape(member, seen)
+    if (null != list) {
+      return null == schema.description ? list : { ...list, description: schema.description }
+    }
+  }
+  return undefined
 }
 
 

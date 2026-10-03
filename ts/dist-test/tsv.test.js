@@ -778,8 +778,8 @@ function loadTsv(name) {
 (0, node_test_1.describe)('tsv-array-body-field', () => {
     const rows = loadTsv('array-body-field');
     for (const row of rows) {
-        (0, node_test_1.test)(`arrayBodyField(${row.schema}, ${row.entity})`, () => {
-            node_assert_1.default.deepStrictEqual((0, heuristic01_1.arrayBodyField)(JSON.parse(row.schema), row.entity), row.expected);
+        (0, node_test_1.test)(`arrayBodyField(${row.schema}, ${row.entity}, ${row.taken})`, () => {
+            node_assert_1.default.deepStrictEqual((0, heuristic01_1.arrayBodyField)(JSON.parse(row.schema), row.entity, JSON.parse(row.taken)), row.expected);
         });
     }
 });

@@ -17,5 +17,5 @@ declare function isVerb(partStr: string): boolean;
 declare function verbParts(parts: string[]): string[];
 declare function isNameParam(param: string): boolean;
 declare function entityParamNames(paths: Record<string, Record<string, string>>): Record<string, Record<string, string>>;
-declare function arrayBodyField(schema: any, entname: string): string;
+declare function arrayBodyField(schema: any, entname: string, taken?: string[]): string;
 export { answeredRefs, arrayBodyField, distinctRecord, distinctShare, heuristic01, namingRef, namingSchemas, pathResource, sharedRoutes, entityParamNames, isNameParam, isVerb, verbParts, };

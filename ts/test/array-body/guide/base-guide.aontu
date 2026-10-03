@@ -4,9 +4,15 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 16
-  metrics: count: path: 19
-  metrics: count: method: 20
+  metrics: count: entity: 18
+  metrics: count: path: 22
+  metrics: count: method: 23
+
+  entity: alarm: {
+    path: "/alarms": {
+      op: create: method: *POST
+    }
+  }
 
   entity: alert: {
     path: "/alerts": {
@@ -64,6 +70,15 @@ guide: {
 
   entity: message: {
     path: "/mms/v1/messages": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: note: {
+    path: "/boards/{board_id}/notes": {
+      op: create: method: *POST
+    }
+    path: "/notes": {
       op: create: method: *POST
     }
   }

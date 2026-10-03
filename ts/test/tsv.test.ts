@@ -949,8 +949,9 @@ describe('tsv-param-schema', () => {
 describe('tsv-array-body-field', () => {
   const rows = loadTsv('array-body-field')
   for (const row of rows) {
-    test(`arrayBodyField(${row.schema}, ${row.entity})`, () => {
-      assert.deepStrictEqual(arrayBodyField(JSON.parse(row.schema), row.entity), row.expected)
+    test(`arrayBodyField(${row.schema}, ${row.entity}, ${row.taken})`, () => {
+      assert.deepStrictEqual(
+        arrayBodyField(JSON.parse(row.schema), row.entity, JSON.parse(row.taken)), row.expected)
     })
   }
 })

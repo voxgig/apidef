@@ -1838,12 +1838,18 @@ function cmpRefName(xref) {
 }
 // An array request body is sent from a field named for the records it lists:
 // its items' component, cleaned as an entity's is, else the entity itself. A
-// pointer into a component names a part of it, not a record.
-function arrayBodyField(schema, entname) {
+// pointer into a component names a part of it, not a record. A name another
+// route of the operation sends a field under is taken.
+function arrayBodyField(schema, entname, taken = []) {
     const cmp = String(schema?.items?.['x-ref'] ?? '').match(CMP_REF_RE)?.[2];
-    const record = null == cmp || cmp.includes('/') ? '' :
+    const cleaned = null == cmp || cmp.includes('/') ? '' :
         (0, utility_2.prefixLeadingDigit)((0, utility_2.cleanComponentName)((0, utility_2.canonizeCmpName)(cmp)));
-    return (0, utility_2.pluralize)('' === record ? entname : record);
+    const record = '' === cleaned ? entname : cleaned;
+    let name = (0, utility_2.pluralize)(record);
+    for (let n = 1; taken.includes(name); n++) {
+        name = record + '_list' + (1 < n ? n : '');
+    }
+    return name;
 }
 function hasMethod(def, pathStr, methodName) {
     const pathDef = def?.paths?.[pathStr];

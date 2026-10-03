@@ -2552,12 +2552,18 @@ function cmpRefName(xref: string): string {
 
 // An array request body is sent from a field named for the records it lists:
 // its items' component, cleaned as an entity's is, else the entity itself. A
-// pointer into a component names a part of it, not a record.
-function arrayBodyField(schema: any, entname: string): string {
+// pointer into a component names a part of it, not a record. A name another
+// route of the operation sends a field under is taken.
+function arrayBodyField(schema: any, entname: string, taken: string[] = []): string {
   const cmp = String(schema?.items?.['x-ref'] ?? '').match(CMP_REF_RE)?.[2]
-  const record = null == cmp || cmp.includes('/') ? '' :
+  const cleaned = null == cmp || cmp.includes('/') ? '' :
     prefixLeadingDigit(cleanComponentName(canonizeCmpName(cmp)))
-  return pluralize('' === record ? entname : record)
+  const record = '' === cleaned ? entname : cleaned
+  let name = pluralize(record)
+  for (let n = 1; taken.includes(name); n++) {
+    name = record + '_list' + (1 < n ? n : '')
+  }
+  return name
 }
 
 

@@ -1,5 +1,6 @@
 {
   "points": [
+    "alarm.create POST /alarms exist=alarms action= req=\"`reqdata.alarms`\"",
     "alert.create POST /alerts exist=alerts action= req=\"`reqdata.alerts`\"",
     "batch.create POST /batches exist=batch_inputs action= req=\"`reqdata.batch_inputs`\"",
     "broadcast.create POST /broadcasts exist=sms_messages action= req=\"`reqdata.sms_messages`\"",
@@ -10,6 +11,8 @@
     "lookup.list QUERY /lookups exist=lookups action= req=\"`reqdata.lookups`\"",
     "mark.create POST /marks exist=marks action= req=\"`reqdata.marks`\"",
     "message.create POST /mms/v1/messages exist=messages action= req=\"`reqdata.messages`\"",
+    "note.create POST /boards/{board_id}/notes exist=board_id,note_list action= req=\"`reqdata.note_list`\"",
+    "note.create POST /notes exist= action= req=\"`reqdata`\"",
     "notice.create POST /notices exist=notices action= req=\"`reqdata.notices`\"",
     "record.create POST /records exist= action= req=\"`reqdata`\"",
     "session.load GET /sessions/{session_id} exist=id action= req=\"`reqdata`\"",
@@ -22,6 +25,13 @@
     "widget.create POST /widgets exist= action= req=\"`reqdata`\""
   ],
   "fields": {
+    "alarm": {
+      "alarms": {
+        "t": "`$ARRAY`",
+        "r": false,
+        "sh": "The alarms to raise."
+      }
+    },
     "alert": {
       "alerts": {
         "t": "`$ARRAY`",
@@ -103,6 +113,24 @@
     "message": {
       "messages": {
         "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "note": {
+      "id": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "note_list": {
+        "t": "`$ARRAY`",
+        "r": false
+      },
+      "notes": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "text": {
+        "t": "`$STRING`",
         "r": false
       }
     },

@@ -1,8 +1,8 @@
-import { guideActive } from '../utility'
+import { guideActive, mergedProperties } from '../utility'
 
 import { arrayBodyField } from '../guide/heuristic01'
 
-import { arrayRequestSchema } from './body'
+import { arrayRequestSchema, requestSchema } from './body'
 
 
 import { each } from 'jostraca'
@@ -203,7 +203,7 @@ function resolveOp(opname: OpName, on: OpEntity): undefined | ModelOp {
           }
         }
 
-        mpoint.t.req = mpoint.t.req ?? requestDefault(on, p)
+        mpoint.t.req = mpoint.t.req ?? requestDefault(on, p, opdesc.paths)
         mpoint.t.res = mpoint.t.res ?? '`body`'
 
         return mpoint
@@ -217,11 +217,17 @@ function resolveOp(opname: OpName, on: OpEntity): undefined | ModelOp {
 
 
 // An array body is sent from one field of the request data, named for its
-// records. Decided here rather than by the guide heuristic, as the media type
-// the guide names decides whether the body is an array.
-function requestDefault(on: OpEntity, p: PathDesc): string {
+// records, and never for a field another route of the operation is sent with.
+// Decided here rather than by the guide heuristic, as the media type the guide
+// names decides whether the body is an array.
+function requestDefault(on: OpEntity, p: PathDesc, paths: PathDesc[]): string {
+  const body = (q: PathDesc) => requestSchema(on.def, q.method, q.orig, (q as any).op?.body?.media)
   const list = arrayRequestSchema(on.def, p.method, p.orig, (p as any).op?.body?.media)
-  return null == list ? '`reqdata`' : '`reqdata.' + arrayBodyField(list, on.entname) + '`'
+  if (null == list) {
+    return '`reqdata`'
+  }
+  const taken = paths.filter((q) => q !== p).flatMap((q) => Object.keys(mergedProperties(body(q)) ?? {}))
+  return '`reqdata.' + arrayBodyField(list, on.entname, taken) + '`'
 }
 
 

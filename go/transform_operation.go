@@ -124,7 +124,7 @@ func collectOps(ctx *ApiDefContext, entname string, gent map[string]any, pathsDe
 	for _, opname := range sortedKeysOpmWork(opmWork) {
 		paths := opmWork[opname]
 		points := make([]any, 0)
-		for _, p := range paths {
+		for i, p := range paths {
 			segments, _ := p["segments"].([]map[string]any)
 			if segments == nil {
 				segments = []map[string]any{}
@@ -138,7 +138,7 @@ func collectOps(ctx *ApiDefContext, entname string, gent map[string]any, pathsDe
 				}
 			}
 			if transform["req"] == nil {
-				transform["req"] = requestDefault(ctx, entname, p)
+				transform["req"] = requestDefault(ctx, entname, paths, i)
 			}
 			if transform["res"] == nil {
 				transform["res"] = "`body`"
@@ -167,17 +167,30 @@ func collectOps(ctx *ApiDefContext, entname string, gent map[string]any, pathsDe
 }
 
 // requestDefault mirrors ts/src/transform/operation.ts: an array body is sent
-// from one field of the request data, named for its records.
-func requestDefault(ctx *ApiDefContext, entname string, p map[string]any) string {
+// from one field of the request data, named for its records, and never for a
+// field another route of the operation is sent with.
+func requestDefault(ctx *ApiDefContext, entname string, paths []map[string]any, at int) string {
 	if ctx == nil {
 		return "`reqdata`"
 	}
-	gop, _ := p["op"].(map[string]any)
-	body, _ := gop["body"].(map[string]any)
-	method, _ := p["method"].(string)
-	path, _ := p["orig"].(string)
-	if list := arrayRequestSchema(ctx.Def, method, path, textOf(body["media"])); list != nil {
-		return "`reqdata." + arrayBodyField(list, entname) + "`"
+	body := func(q map[string]any) any {
+		gop, _ := q["op"].(map[string]any)
+		gbody, _ := gop["body"].(map[string]any)
+		method, _ := q["method"].(string)
+		path, _ := q["orig"].(string)
+		return requestSchema(ctx.Def, method, path, textOf(gbody["media"]))
 	}
-	return "`reqdata`"
+	list := arrayShape(body(paths[at]), map[string]bool{})
+	if list == nil {
+		return "`reqdata`"
+	}
+	taken := []string{}
+	for j, q := range paths {
+		if j != at {
+			for key := range mergedProperties(body(q)) {
+				taken = append(taken, key)
+			}
+		}
+	}
+	return "`reqdata." + arrayBodyField(list, entname, taken) + "`"
 }

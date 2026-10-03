@@ -3,6 +3,7 @@
 package apidef
 
 import (
+	"fmt"
 	"regexp"
 	"sort"
 	"strings"
@@ -637,11 +638,41 @@ func requestSchema(def map[string]any, method string, path string, media string)
 }
 
 func arrayRequestSchema(def map[string]any, method string, path string, media string) map[string]any {
-	schema, _ := requestSchema(def, method, path, media).(map[string]any)
-	if !schemaHasType(schema, "array") {
+	return arrayShape(requestSchema(def, method, path, media), map[string]bool{})
+}
+
+// arrayShape mirrors ts/src/transform/body.ts: an array, or an allOf whose
+// members make one, with the outer description.
+func arrayShape(schema any, seen map[string]bool) map[string]any {
+	m, _ := schema.(map[string]any)
+	if m == nil {
 		return nil
 	}
-	return schema
+	if schemaHasType(m, "array") {
+		return m
+	}
+	id := fmt.Sprintf("%p", m)
+	allOf, ok := m["allOf"].([]any)
+	if seen[id] || !ok {
+		return nil
+	}
+	seen[id] = true
+	for _, member := range allOf {
+		list := arrayShape(member, seen)
+		if list == nil {
+			continue
+		}
+		if m["description"] == nil {
+			return list
+		}
+		out := map[string]any{}
+		for key, val := range list {
+			out[key] = val
+		}
+		out["description"] = m["description"]
+		return out
+	}
+	return nil
 }
 
 var reqdataFieldRE = regexp.MustCompile("^`reqdata\\.([A-Za-z_][A-Za-z0-9_]*)`$")

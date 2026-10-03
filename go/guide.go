@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"unicode/utf16"
 
@@ -3290,8 +3291,9 @@ func cmpRefName(xref string) string {
 }
 
 // arrayBodyField mirrors ts/src/guide/heuristic01.ts: the field an array
-// request body is sent from, named for the records it lists.
-func arrayBodyField(schema map[string]any, entname string) string {
+// request body is sent from, named for the records it lists, unless another
+// route of the operation sends a field under that name.
+func arrayBodyField(schema map[string]any, entname string, taken []string) string {
 	items, _ := schema["items"].(map[string]any)
 	xref, _ := items["x-ref"].(string)
 	record := ""
@@ -3301,7 +3303,14 @@ func arrayBodyField(schema map[string]any, entname string) string {
 	if record == "" {
 		record = entname
 	}
-	return Pluralize(record)
+	name := Pluralize(record)
+	for n := 1; slices.Contains(taken, name); n++ {
+		name = record + "_list"
+		if 1 < n {
+			name += strconv.Itoa(n)
+		}
+	}
+	return name
 }
 
 // hasMethod checks if a path has a specific HTTP method.

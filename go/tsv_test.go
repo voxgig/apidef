@@ -1304,14 +1304,18 @@ func TestArrayBodyField(t *testing.T) {
 		t.Fatal("no array-body-field rows loaded")
 	}
 	for _, row := range rows {
-		schemaSrc, entity, expected := row["schema"], row["entity"], row["expected"]
-		t.Run(schemaSrc, func(t *testing.T) {
+		schemaSrc, entity, takenSrc, expected := row["schema"], row["entity"], row["taken"], row["expected"]
+		t.Run(schemaSrc+" "+takenSrc, func(t *testing.T) {
 			var schema map[string]any
 			if err := json.Unmarshal([]byte(schemaSrc), &schema); err != nil {
 				t.Fatalf("bad schema %q: %v", schemaSrc, err)
 			}
-			if got := arrayBodyField(schema, entity); got != expected {
-				t.Errorf("arrayBodyField(%s, %s) = %q, want %q", schemaSrc, entity, got, expected)
+			var taken []string
+			if err := json.Unmarshal([]byte(takenSrc), &taken); err != nil {
+				t.Fatalf("bad taken %q: %v", takenSrc, err)
+			}
+			if got := arrayBodyField(schema, entity, taken); got != expected {
+				t.Errorf("arrayBodyField(%s, %s, %s) = %q, want %q", schemaSrc, entity, takenSrc, got, expected)
 			}
 		})
 	}
