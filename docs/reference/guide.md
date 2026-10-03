@@ -59,8 +59,10 @@ route already sends an array of another type from that name, such as one that
 may be null beside one that may not. A PATCH route that joins `update` is
 checked against the routes it joins. An array schema wrapped in `allOf`, or
 in a `oneOf` or `anyOf` of one member beside any member only null passes (a
-`null` type, or a `const` or `enum` of null alone), counts as an array, with
-its items taken from whichever part states them. It may be null only where
+`null` type, a `const` or `enum` of null alone, an `allOf` with such a part,
+or a `oneOf` or `anyOf` of such members), counts as an array, with its items
+taken from whichever part states them. So does a schema with no type whose
+`const` is an array, or whose `enum` values all are. It may be null only where
 the schema's own type, `const` and `enum` admit null, every `allOf` part
 does, exactly one member of a `oneOf` does, and some member of an `anyOf`
 does. A noun in `-o` that takes `-es`, such as `hero`, gives `heroes`,

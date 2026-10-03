@@ -130,7 +130,8 @@ flag. `ts/test/allof-field.tsv` pins each case.
 
 A point's request body properties become fields from the body its guide's
 `body.media` names, of whatever media type, else from the JSON body the body
-step prefers.
+step prefers. A Swagger 2 `formData` parameter gives a field that is required
+when the parameter is.
 
 A JSON request body that is an array has no properties, so the point that
 sends it declares one field for it: the field its `t.req` sends the array

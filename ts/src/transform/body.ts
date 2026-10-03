@@ -219,9 +219,11 @@ function swaggerOffers(def: any, pathdef: any, opdef: any): Offer[] {
   }
 
   const bodySchema = null == body ? undefined : (body.schema ?? {})
+  const required = form.filter((param) => true === param.required).map((param) => param.name)
   const formSchema = 0 === form.length ? undefined : {
     type: 'object',
     properties: Object.fromEntries(form.map((param) => [param.name, formProperty(param)])),
+    ...(0 < required.length ? { required } : {}),
   }
 
   const declared = listOf(Array.isArray(opdef.consumes) ? opdef.consumes : def.consumes)
@@ -489,7 +491,8 @@ function arrayShape(schema: any): any {
     }
   }
   visit(schema)
-  const list = parts.find((part) => hasType(part, 'array'))
+  const found = parts.find((part) => hasType(part, 'array') || (null == part.type && arrayValued(part)))
+  const list = null == found || null != found.type ? found : { ...found, type: 'array' }
   if (null == list || 1 === parts.length) {
     return list
   }
@@ -519,12 +522,24 @@ function admitsNull(schema: any): boolean {
 }
 
 
-// Only null passes: by its type, or by a const or enum of null alone.
+// Only null passes: by its type, a const or enum of null alone, an allOf part
+// that passes only null, or a oneOf or anyOf every member of which does.
 function nullOnly(schema: any): boolean {
   if (!isMap(schema)) return false
   if ('const' in schema) return null === schema.const
   if (Array.isArray(schema.enum)) return 0 < schema.enum.length && schema.enum.every((v: any) => null === v)
-  return [schema.type].flat().every((type) => 'null' === type)
+  if (listOf(schema.allOf).some(nullOnly)) return true
+  if ([schema.oneOf, schema.anyOf].some((one) => Array.isArray(one) && 0 < one.length && one.every(nullOnly))) {
+    return true
+  }
+  return null != schema.type && [schema.type].flat().every((type) => 'null' === type)
+}
+
+
+// Only arrays pass: by a const, or an enum, of arrays alone.
+function arrayValued(schema: any): boolean {
+  return Array.isArray(schema.const) ||
+    (Array.isArray(schema.enum) && 0 < schema.enum.length && schema.enum.every(Array.isArray))
 }
 
 

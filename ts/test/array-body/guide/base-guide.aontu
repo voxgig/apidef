@@ -4,9 +4,9 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 45
-  metrics: count: path: 56
-  metrics: count: method: 57
+  metrics: count: entity: 51
+  metrics: count: path: 62
+  metrics: count: method: 63
 
   entity: alarm: {
     path: "/alarms": {
@@ -57,6 +57,12 @@ guide: {
     }
   }
 
+  entity: coil: {
+    path: "/coils": {
+      op: create: method: *POST
+    }
+  }
+
   entity: crate: {
     path: "/crates": {
       op: create: method: *POST
@@ -97,6 +103,12 @@ guide: {
 
   entity: flag: {
     path: "/flags": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: flask: {
+    path: "/flasks": {
       op: create: method: *POST
     }
   }
@@ -152,6 +164,12 @@ guide: {
     }
   }
 
+  entity: kit: {
+    path: "/kits": {
+      op: create: method: *POST
+    }
+  }
+
   entity: label: {
     path: "/labels": {
       op: create: method: *POST
@@ -161,6 +179,12 @@ guide: {
   entity: lookup: {
     path: "/lookups": {
       op: list: method: *QUERY
+    }
+  }
+
+  entity: loop: {
+    path: "/loops": {
+      op: create: method: *POST
     }
   }
 
@@ -254,6 +278,12 @@ guide: {
     }
   }
 
+  entity: stack: {
+    path: "/stacks": {
+      op: create: method: *POST
+    }
+  }
+
   entity: tag: {
     path: "/tags": {
       op: create: method: *POST
@@ -314,6 +344,12 @@ guide: {
 
   entity: vat: {
     path: "/vats": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: vial: {
+    path: "/vials": {
       op: create: method: *POST
     }
   }

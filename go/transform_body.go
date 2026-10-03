@@ -313,10 +313,18 @@ func swaggerOffers(def map[string]any, pathdef map[string]any, opdef map[string]
 	}
 	if 0 < len(form) {
 		props := map[string]any{}
+		required := []any{}
 		for _, param := range form {
 			props[param["name"].(string)] = formProperty(param)
+			if param["required"] == true {
+				required = append(required, param["name"])
+			}
 		}
-		formSchema = map[string]any{"type": "object", "properties": props}
+		schema := map[string]any{"type": "object", "properties": props}
+		if 0 < len(required) {
+			schema["required"] = required
+		}
+		formSchema = schema
 	}
 
 	declaredList, isList := opdef["consumes"].([]any)
@@ -691,10 +699,18 @@ func arrayShape(schema any) map[string]any {
 	visit(schema)
 	var list map[string]any
 	for _, part := range parts {
-		if schemaHasType(part, "array") {
+		if schemaHasType(part, "array") || (part["type"] == nil && arrayValued(part)) {
 			list = part
 			break
 		}
+	}
+	if list != nil && list["type"] == nil {
+		typed := map[string]any{}
+		for key, val := range list {
+			typed[key] = val
+		}
+		typed["type"] = "array"
+		list = typed
 	}
 	if list == nil || len(parts) == 1 {
 		return list
@@ -736,10 +752,28 @@ func arrayShape(schema any) map[string]any {
 // type, const and enum, every allOf part, exactly one oneOf member, and some
 // anyOf member.
 func admitsNull(schema any) bool {
+	return admitsNullOn(schema, map[string]bool{})
+}
+
+// enterPart reports whether a part is already on the path down to it. Go keeps
+// a reference cycle that TypeScript's parse cuts to a string, so a part met
+// inside itself counts as that string: no schema at all.
+func enterPart(path map[string]bool, m map[string]any) (string, bool) {
+	id := fmt.Sprintf("%p", m)
+	if m == nil || path[id] {
+		return id, false
+	}
+	path[id] = true
+	return id, true
+}
+
+func admitsNullOn(schema any, path map[string]bool) bool {
 	m, _ := schema.(map[string]any)
-	if m == nil {
+	id, entered := enterPart(path, m)
+	if !entered {
 		return false
 	}
+	defer delete(path, id)
 	if !(m["type"] == nil || schemaHasType(m, "null") || m["nullable"] == true) {
 		return false
 	}
@@ -751,7 +785,7 @@ func admitsNull(schema any) bool {
 	}
 	parts, _ := m["allOf"].([]any)
 	for _, part := range parts {
-		if !admitsNull(part) {
+		if !admitsNullOn(part, path) {
 			return false
 		}
 	}
@@ -762,7 +796,7 @@ func admitsNull(schema any) bool {
 		}
 		count := 0
 		for _, member := range one {
-			if admitsNull(member) {
+			if admitsNullOn(member, path) {
 				count++
 			}
 		}
@@ -780,12 +814,20 @@ func typeList(t any) []any {
 	return []any{t}
 }
 
-// nullOnly: only null passes, by its type, or by a const or enum of null alone.
+// nullOnly: only null passes, by its type, a const or enum of null alone, an
+// allOf part that passes only null, or a oneOf or anyOf every member of which
+// does.
 func nullOnly(schema any) bool {
+	return nullOnlyOn(schema, map[string]bool{})
+}
+
+func nullOnlyOn(schema any, path map[string]bool) bool {
 	m, _ := schema.(map[string]any)
-	if m == nil {
+	id, entered := enterPart(path, m)
+	if !entered {
 		return false
 	}
+	defer delete(path, id)
 	if c, has := m["const"]; has {
 		return c == nil
 	}
@@ -796,6 +838,25 @@ func nullOnly(schema any) bool {
 			}
 		}
 		return 0 < len(enum)
+	}
+	parts, _ := m["allOf"].([]any)
+	for _, part := range parts {
+		if nullOnlyOn(part, path) {
+			return true
+		}
+	}
+	for _, key := range []string{"oneOf", "anyOf"} {
+		one, _ := m[key].([]any)
+		every := 0 < len(one)
+		for _, member := range one {
+			if !nullOnlyOn(member, path) {
+				every = false
+				break
+			}
+		}
+		if every {
+			return true
+		}
 	}
 	switch t := m["type"].(type) {
 	case string:
@@ -818,6 +879,23 @@ func containsNil(list []any) bool {
 		}
 	}
 	return false
+}
+
+// arrayValued: only arrays pass, by a const, or an enum, of arrays alone.
+func arrayValued(schema map[string]any) bool {
+	if _, isList := schema["const"].([]any); isList {
+		return true
+	}
+	enum, isList := schema["enum"].([]any)
+	if !isList || 0 == len(enum) {
+		return false
+	}
+	for _, v := range enum {
+		if _, isList := v.([]any); !isList {
+			return false
+		}
+	}
+	return true
 }
 
 // nullableType mirrors ts/src/transform/body.ts: a nullable array says so with

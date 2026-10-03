@@ -4,7 +4,7 @@
     "member.create POST /members exist=members action= req=\"`reqdata.members`\"",
     "member.load GET /members/{member_id} exist=id action= req=\"`reqdata`\"",
     "member.update PUT /members/{member_id} exist=id action= req=\"`reqdata`\"",
-    "ticket.create POST /tickets exist= action= req=\"`reqdata`\""
+    "ticket.create POST /tickets exist=title action= req=\"`reqdata`\""
   ],
   "fields": {
     "gift": {
@@ -39,7 +39,7 @@
       },
       "title": {
         "t": "`$STRING`",
-        "r": false
+        "r": true
       }
     }
   }
