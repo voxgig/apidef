@@ -603,8 +603,7 @@ function findFieldDefs(ment, mop, mpoint, def, media) {
         // QUERY op come from its response only. Other methods (POST/PUT/PATCH)
         // carry the entity in the body, so merge as usual -- except for an
         // action, whose body is the verb's arguments and never the record.
-        const reqschema = (0, body_1.requestSchema)(def, mpoint.m, mpoint.o, media) ??
-            (0, body_1.requestSchema)(def, mpoint.m, mpoint.o) ?? (0, jostraca_1.getx)(requestBody, 'schema');
+        const reqschema = (0, body_1.selectedRequestSchema)(def, mpoint.m, mpoint.o, media) ?? (0, jostraca_1.getx)(requestBody, 'schema');
         if ((requestBody || null != reqschema) && 'query' !== method && !isAction) {
             fieldSets = [fieldSets, reqschema];
         }

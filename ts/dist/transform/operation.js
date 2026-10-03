@@ -5,6 +5,7 @@ const utility_1 = require("../utility");
 const heuristic01_1 = require("../guide/heuristic01");
 const body_1 = require("./body");
 const field_1 = require("./field");
+const args_1 = require("./args");
 const jostraca_1 = require("jostraca");
 const types_1 = require("../types");
 // The op names the transform resolves. Anything else under a guide path's
@@ -154,9 +155,9 @@ function resolveOp(opname, on) {
     return mop;
 }
 // An array body is sent from one field of the request data, named for its
-// records, and never for a field another route of the operation has, nor for
-// a carrier already named for an array of another type. Decided here rather
-// than by the guide heuristic, as the guide's media type decides the body.
+// records, and never for an argument of its operation, a field another route
+// has, or a carrier already named for an array of another type. Decided here,
+// not by the guide heuristic, as the guide's media type decides the body.
 function requestDefault(on, ment, mop, mpoint) {
     const media = (q) => (0, body_1.guideMedia)(on.guide, on.entname, mop.name, q).body;
     const list = (0, body_1.arrayRequestSchema)(on.def, mpoint.m, mpoint.o, media(mpoint));
@@ -165,6 +166,7 @@ function requestDefault(on, ment, mop, mpoint) {
     }
     const others = mop.points.filter((q) => q !== mpoint);
     const taken = [
+        ...mop.points.flatMap((q) => (0, args_1.routeArgNames)(on.def, q)),
         ...others.flatMap((q) => (0, field_1.routeFieldNames)(ment, mop.name, q, on.def, media(q))),
         ...others.map((q) => (0, body_1.arrayCarrier)(on.def, q, media(q)))
             .filter((carrier) => null != carrier && !(0, body_1.sameType)(carrier.type, list.type))

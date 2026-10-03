@@ -725,10 +725,7 @@ func findFieldDefs(mtarget map[string]any, def map[string]any, opname string, en
 	// entity shape, so it must not contribute entity fields. Fields for a
 	// QUERY op come from its response only. An action's body is likewise the
 	// verb's arguments and never the record.
-	reqSchema := requestSchema(def, method, orig, media)
-	if reqSchema == nil {
-		reqSchema = requestSchema(def, method, orig, "")
-	}
+	reqSchema := selectedRequestSchema(def, method, orig, media)
 	if reqSchema == nil && requestBody != nil {
 		reqSchema = requestBody["schema"]
 	}

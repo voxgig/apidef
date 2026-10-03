@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.argsTransform = void 0;
+exports.routeArgNames = routeArgNames;
 const jostraca_1 = require("jostraca");
 const utility_1 = require("../utility");
 const types_1 = require("../types");
@@ -35,10 +36,7 @@ const argsTransform = async function (ctx) {
                     }
                 }
                 else {
-                    const pathdef = def.paths[mpoint.o];
-                    argdefs.push(...(pathdef?.parameters ?? []));
-                    const opdef = pathdef?.[mpoint.m.toLowerCase()];
-                    argdefs.push(...(opdef?.parameters ?? []));
+                    argdefs.push(...routeArgdefs(def, mpoint));
                 }
                 resolveArgs(ctx, ment, mop, mpoint, argdefs);
             });
@@ -48,6 +46,17 @@ const argsTransform = async function (ctx) {
     return { ok: true, msg };
 };
 exports.argsTransform = argsTransform;
+function routeArgdefs(def, mpoint) {
+    const pathdef = def.paths?.[mpoint.o];
+    const opdef = pathdef?.[mpoint.m.toLowerCase()];
+    return [...(pathdef?.parameters ?? []), ...(opdef?.parameters ?? [])];
+}
+// The names a caller gives a REST route's arguments, as this step names them.
+function routeArgNames(def, mpoint) {
+    const route = { ...mpoint, g: {} };
+    resolveArgs(undefined, { name: '' }, { name: '', points: [] }, route, routeArgdefs(def, mpoint));
+    return Object.values(route.g).flat().map((arg) => arg.n);
+}
 // Locate the normalised root-field descriptor a GraphQL point came from.
 function graphqlFieldDef(def, mpoint) {
     const field = mpoint.gq?.field ?? mpoint.o;

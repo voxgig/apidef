@@ -9,6 +9,7 @@ declare function requestBody(def: any, method: string, path: string, media?: str
 declare function responseBody(def: any, method: string, path: string, media?: string): ModelBody | undefined;
 declare function jsonRequestSchema(opdef: any): any;
 declare function requestSchema(def: any, method: string, path: string, media?: string): any;
+declare function selectedRequestSchema(def: any, method: string, path: string, media?: string): any;
 declare function arrayRequestSchema(def: any, method: string, path: string, media?: string): any;
 declare function arrayCarrier(def: any, mpoint: ModelPoint, media?: string): {
     name: string;
@@ -17,4 +18,4 @@ declare function arrayCarrier(def: any, mpoint: ModelPoint, media?: string): {
     description?: string;
 } | undefined;
 declare function sameType(a: any, b: any): boolean;
-export { bodyTransform, guideMedia, requestBody, responseBody, jsonRequestSchema, requestSchema, arrayRequestSchema, arrayCarrier, sameType, };
+export { bodyTransform, guideMedia, requestBody, responseBody, jsonRequestSchema, requestSchema, arrayRequestSchema, arrayCarrier, sameType, selectedRequestSchema, };

@@ -638,6 +638,19 @@ func requestSchema(def map[string]any, method string, path string, media string)
 	return jsonSchema(offers, media)
 }
 
+// selectedRequestSchema mirrors ts/src/transform/body.ts: the schema of the
+// request body offered under the media type the guide names, of any kind,
+// else the preferred JSON one.
+func selectedRequestSchema(def map[string]any, method string, path string, media string) any {
+	offers, _ := requestOffers(def, method, path)
+	if media != "" {
+		if named := chooseOffer(rankOffers(offers), media); named != nil {
+			return named.offer.schema
+		}
+	}
+	return jsonSchema(offers, "")
+}
+
 func arrayRequestSchema(def map[string]any, method string, path string, media string) map[string]any {
 	return arrayShape(requestSchema(def, method, path, media))
 }
@@ -660,6 +673,11 @@ func arrayShape(schema any) map[string]any {
 		members, _ := m["allOf"].([]any)
 		for _, member := range members {
 			visit(member)
+		}
+		for _, key := range []string{"oneOf", "anyOf"} {
+			if one, _ := m[key].([]any); len(one) == 1 {
+				visit(one[0])
+			}
 		}
 	}
 	visit(schema)
@@ -685,13 +703,24 @@ func arrayShape(schema any) map[string]any {
 			}
 		}
 	}
-	for _, part := range parts {
-		if part["description"] != nil {
-			out["description"] = part["description"]
-			break
+	for _, key := range []string{"description", "nullable"} {
+		for _, part := range parts {
+			if part[key] != nil {
+				out[key] = part[key]
+				break
+			}
 		}
 	}
 	return out
+}
+
+// nullableType mirrors ts/src/transform/body.ts: a nullable array says so with
+// nullable in OpenAPI 3.0, and a type list in 3.1.
+func nullableType(schema map[string]any) any {
+	if t, ok := schema["type"].(string); ok && schema["nullable"] == true {
+		return []any{t, "null"}
+	}
+	return schema["type"]
 }
 
 var reqdataFieldRE = regexp.MustCompile("^`reqdata\\.([A-Za-z_][A-Za-z0-9_]*)`$")
@@ -730,7 +759,7 @@ func arrayCarrier(def map[string]any, mtarget map[string]any, media string) *arr
 	if description == "" {
 		description = textOf(schema["description"])
 	}
-	return &arrayCarrierInfo{name: m[1], required: decl["required"] == true, typ: schema["type"], description: description}
+	return &arrayCarrierInfo{name: m[1], required: decl["required"] == true, typ: nullableType(schema), description: description}
 }
 
 // OpenAPI's request body, or the Swagger parameter that is one.

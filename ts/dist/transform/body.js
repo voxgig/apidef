@@ -10,6 +10,7 @@ exports.requestSchema = requestSchema;
 exports.arrayRequestSchema = arrayRequestSchema;
 exports.arrayCarrier = arrayCarrier;
 exports.sameType = sameType;
+exports.selectedRequestSchema = selectedRequestSchema;
 const types_1 = require("../types");
 const utility_1 = require("../utility");
 // JSON first, as generated SDKs send it; then the kinds by what each can carry.
@@ -328,17 +329,29 @@ function jsonRequestSchema(opdef) {
 function requestSchema(def, method, path, media) {
     return jsonSchema(requestOffers(def, method, path) ?? [], media);
 }
+// The schema of the request body offered under the media type the guide
+// names, of any kind, else the preferred JSON one.
+function selectedRequestSchema(def, method, path, media) {
+    const offers = requestOffers(def, method, path) ?? [];
+    const named = null == textOf(media) ? undefined : chooseOffer(rankOffers(offers), media);
+    return null == named ? jsonSchema(offers) : named.offer.schema;
+}
 function arrayRequestSchema(def, method, path, media) {
     return arrayShape(requestSchema(def, method, path, media));
 }
-// An array, or an allOf whose parts make one: each fact from the first part
-// that states it, outermost first, the items from the array's own part first.
+// An array, or an allOf whose parts make one, or a oneOf or anyOf of one: each
+// fact from the first part that states it, outermost first, the items from
+// the array's own part first.
 function arrayShape(schema) {
     const parts = [];
     const visit = (node) => {
         if (isMap(node) && !parts.includes(node)) {
             parts.push(node);
             (Array.isArray(node.allOf) ? node.allOf : []).forEach(visit);
+            for (const one of [node.oneOf, node.anyOf]) {
+                if (Array.isArray(one) && 1 === one.length)
+                    visit(one[0]);
+            }
         }
     };
     visit(schema);
@@ -348,11 +361,17 @@ function arrayShape(schema) {
     }
     const items = list.items ?? parts.find((part) => null != part.items)?.items;
     const description = parts.find((part) => null != part.description)?.description;
+    const nullable = parts.find((part) => null != part.nullable)?.nullable;
     return {
         ...list,
         ...(null == items ? {} : { items }),
         ...(null == description ? {} : { description }),
+        ...(null == nullable ? {} : { nullable }),
     };
+}
+// A nullable array says so with `nullable` in OpenAPI 3.0, and a type list in 3.1.
+function nullableType(schema) {
+    return true === schema.nullable && 'string' === typeof schema.type ? [schema.type, 'null'] : schema.type;
 }
 const REQDATA_FIELD_RE = /^`reqdata\.([A-Za-z_][A-Za-z0-9_]*)`$/;
 // The field of the request data a point's JSON array body is sent from, when
@@ -368,7 +387,7 @@ function arrayCarrier(def, mpoint, media) {
     return {
         name,
         required: true === decl?.required,
-        type: schema.type,
+        type: nullableType(schema),
         description: textOf(decl?.description) ?? textOf(schema.description),
     };
 }

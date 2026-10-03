@@ -6,6 +6,8 @@ import { arrayCarrier, arrayRequestSchema, guideMedia, sameType } from './body'
 
 import { routeFieldNames } from './field'
 
+import { routeArgNames } from './args'
+
 
 import { each } from 'jostraca'
 
@@ -225,9 +227,9 @@ function resolveOp(opname: OpName, on: OpEntity): undefined | ModelOp {
 
 
 // An array body is sent from one field of the request data, named for its
-// records, and never for a field another route of the operation has, nor for
-// a carrier already named for an array of another type. Decided here rather
-// than by the guide heuristic, as the guide's media type decides the body.
+// records, and never for an argument of its operation, a field another route
+// has, or a carrier already named for an array of another type. Decided here,
+// not by the guide heuristic, as the guide's media type decides the body.
 function requestDefault(on: OpEntity, ment: ModelEntity, mop: ModelOp, mpoint: ModelPoint): string {
   const media = (q: ModelPoint) => guideMedia(on.guide, on.entname, mop.name, q).body
   const list = arrayRequestSchema(on.def, mpoint.m, mpoint.o, media(mpoint))
@@ -236,6 +238,7 @@ function requestDefault(on: OpEntity, ment: ModelEntity, mop: ModelOp, mpoint: M
   }
   const others = mop.points.filter((q) => q !== mpoint)
   const taken = [
+    ...mop.points.flatMap((q) => routeArgNames(on.def, q)),
     ...others.flatMap((q) => routeFieldNames(ment, mop.name, q, on.def, media(q))),
     ...others.map((q) => arrayCarrier(on.def, q, media(q)))
       .filter((carrier) => null != carrier && !sameType(carrier.type, list.type))

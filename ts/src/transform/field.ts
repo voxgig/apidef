@@ -10,7 +10,7 @@ import {
   scanUntaggedUnion, firstSentence, humanTitle, collapseScalarAllOf,
 } from '../utility'
 
-import { arrayCarrier, guideMedia, requestSchema, sameType } from './body'
+import { arrayCarrier, guideMedia, sameType, selectedRequestSchema } from './body'
 
 import { KIT } from '../types'
 
@@ -799,8 +799,7 @@ function findFieldDefs(
     // QUERY op come from its response only. Other methods (POST/PUT/PATCH)
     // carry the entity in the body, so merge as usual -- except for an
     // action, whose body is the verb's arguments and never the record.
-    const reqschema = requestSchema(def, mpoint.m, mpoint.o, media) ??
-      requestSchema(def, mpoint.m, mpoint.o) ?? getx(requestBody, 'schema')
+    const reqschema = selectedRequestSchema(def, mpoint.m, mpoint.o, media) ?? getx(requestBody, 'schema')
     if ((requestBody || null != reqschema) && 'query' !== method && !isAction) {
       fieldSets = [fieldSets, reqschema]
     }
