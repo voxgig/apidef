@@ -132,8 +132,11 @@ A JSON request body that is an array has no properties, so the point that
 sends it declares one field for it: the field its `t.req` sends the array
 from. The field is `` `$ARRAY` `` and never required, because every field is
 also part of the record, and no record holds the list. Its `sh` is the
-request body's description, else the array schema's. A point that is an
-action declares none, as an action's body never describes the record.
+request body's description, else the array schema's. A remove point declares
+it too, though nothing else a remove sends or answers becomes a field. A
+point that is an action declares none, as an action's body never describes
+the record. A Swagger 2 `body` parameter is the request body: its properties
+become fields as an OpenAPI 3 body's do, and it is never an argument.
 
 ## `ModelOp`
 
@@ -156,7 +159,7 @@ list. Required attributes use one character; optional metadata uses two.
 | `s` | `PathSegment[]` | resolved path: `{ var }` for an element that is one placeholder, naming one of `g.params`, and `{ lit }` for any other element, where a placeholder beside other text takes its argument's `n` (`{thread_id}.json`); renames are already applied |
 | `r` | `{ param, query, header, cookie }` | argument renames, keyed by original name |
 | `g` | `{ params, query, header, cookie }` | argument lists using `%point-args` |
-| `q` | `{ exist: string[], $action? }` | how a call selects this point: its path parameters and required arguments, the field a JSON array body is sent from, and its action |
+| `q` | `{ exist: string[], $action? }` | how a call selects this point: its path parameters and required arguments, the field a required JSON array body is sent from, and its action |
 | `t` | `{ req, res }` | request/response envelope handling (defaults `` `reqdata` `` / `` `body` ``, and `` `reqdata.<field>` `` for a JSON array body) |
 | `rb` | `ModelBody?` | the request body's media type and encoding, present only when the body is not JSON alone |
 | `rs` | `ModelBody?` | the media types a success response declares, present only when one declares a body |

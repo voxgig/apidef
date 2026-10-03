@@ -271,10 +271,7 @@ async function buildBaseGuide(ctx) {
                     guideBlocks.push(`      op: ${opname}: transform: res: *${qt(op.transform.res)}|top`);
                 }
                 const reqmap = op.transform.req;
-                if ('string' === typeof reqmap) {
-                    guideBlocks.push(`      op: ${opname}: transform: req: *${qt(reqmap)}|top`);
-                }
-                else if (null != reqmap && 'object' === typeof reqmap) {
+                if (null != reqmap && 'object' === typeof reqmap) {
                     (0, struct_1.items)(reqmap).map(([bodykey, source]) => {
                         if ('string' === typeof source) {
                             guideBlocks.push(`      op: ${opname}: transform: req: ` +

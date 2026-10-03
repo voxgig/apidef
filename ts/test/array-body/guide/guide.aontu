@@ -5,3 +5,6 @@
 
 guide: entity: message: path: "/mms/v1/messages": op: create: transform: req: "`reqdata.messages`"
 guide: entity: label: path: "/labels": op: create: transform: req: "`reqdata`"
+guide: entity: record: path: "/records": op: create: body: media: "application/vnd.acme.record+json"
+guide: entity: batch: path: "/batches": op: create: body: media: "application/vnd.acme.batch-list+json"
+guide: entity: form: path: "/forms": op: create: body: media: "application/x-www-form-urlencoded"

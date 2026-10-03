@@ -37,6 +37,12 @@ type Offer = {
   swagger?: boolean
 }
 
+type Ranked = {
+  offer: Offer
+  declared: string
+  body: ModelBody
+}
+
 
 const bodyTransform: Transform = async function(
   ctx: any,
@@ -98,14 +104,12 @@ function requestBody(
   path: string,
   media?: string,
 ): ModelBody | undefined {
-  const pathdef = def?.paths?.[path]
-  const opdef = pathdef?.[String(method).toLowerCase()]
-  if (!isMap(opdef)) {
+  const offers = requestOffers(def, method, path)
+  if (null == offers) {
     return undefined
   }
 
-  const body = chooseBody(null != def.swagger ?
-    swaggerOffers(def, pathdef, opdef) : openapiOffers(opdef), media)
+  const body = chooseBody(offers, media)
 
   if (null == body || ('json' === body.kind && JSON_MEDIA === essence(body.media) &&
     (body.alternatives ?? []).every((other) => 'json' === other.kind))) {
@@ -133,20 +137,23 @@ function responseBody(
 }
 
 
+function requestOffers(def: any, method: string, path: string): Offer[] | undefined {
+  const pathdef = def?.paths?.[path]
+  const opdef = pathdef?.[String(method).toLowerCase()]
+  if (!isMap(opdef)) {
+    return undefined
+  }
+  return null != def.swagger ? swaggerOffers(def, pathdef, opdef) : openapiOffers(opdef)
+}
+
+
 function chooseBody(offers: Offer[], media?: string): ModelBody | undefined {
-  const ranked = offers
-    .sort((a, b) => compare(a.media, b.media))
-    .map((offer) => ({ declared: offer.media.trim().toLowerCase(), body: describeBody(offer) }))
-    .sort((a, b) => byPreference(a.body, b.body))
+  const ranked = rankOffers(offers)
   const bodies = ranked.map((entry) => entry.body).filter((body, i, all) =>
     i === all.findIndex((other) => other.media === body.media))
 
-  // A named media type is matched as declared first, so a range keeps its schema.
-  const named = textOf(media)?.toLowerCase()
-  const chosen = null == named ? bodies[0] :
-    ranked.find((entry) => entry.declared === named)?.body ??
-    bodies.find((body) => body.media.toLowerCase() === named) ??
-    describeBody({ media: textOf(media) as string })
+  const chosen = chooseOffer(ranked, media)?.body ??
+    (null == textOf(media) ? undefined : describeBody({ media: textOf(media) as string }))
 
   if (null == chosen) {
     return undefined
@@ -154,6 +161,23 @@ function chooseBody(offers: Offer[], media?: string): ModelBody | undefined {
 
   const alternatives = bodies.filter((body) => body.media !== chosen.media)
   return 0 < alternatives.length ? { ...chosen, alternatives } : chosen
+}
+
+
+function rankOffers(offers: Offer[]): Ranked[] {
+  return offers
+    .sort((a, b) => compare(a.media, b.media))
+    .map((offer) => ({ offer, declared: offer.media.trim().toLowerCase(), body: describeBody(offer) }))
+    .sort((a, b) => byPreference(a.body, b.body))
+}
+
+
+// A named media type is matched as declared first, so a range keeps its schema.
+function chooseOffer(ranked: Ranked[], media?: string): Ranked | undefined {
+  const named = textOf(media)?.toLowerCase()
+  return null == named ? ranked[0] :
+    ranked.find((entry) => entry.declared === named) ??
+    ranked.find((entry) => entry.body.media.toLowerCase() === named)
 }
 
 
@@ -415,44 +439,74 @@ function compare(a: string, b: string): number {
 }
 
 
-// The schema an operation's request body is sent as JSON with, chosen among
-// its JSON media types as the body step chooses.
-function jsonRequestSchema(opdef: any): any {
-  if (!isMap(opdef)) {
-    return undefined
-  }
-  const offers = openapiOffers(opdef)
-    .sort((a, b) => compare(a.media, b.media))
-    .map((offer) => ({ offer, body: describeBody(offer) }))
-    .filter(({ body }) => 'json' === body.kind)
-    .sort((a, b) => byPreference(a.body, b.body))
-  return offers[0]?.offer.schema
+// The schema the body step sends a request body with, when that body is JSON.
+function jsonSchema(offers: Offer[], media?: string): any {
+  const chosen = chooseOffer(rankOffers(offers), media)
+  return 'json' === chosen?.body.kind ? chosen.offer.schema : undefined
 }
 
 
-function arrayRequestSchema(opdef: any): any {
-  const schema = jsonRequestSchema(opdef)
+function jsonRequestSchema(opdef: any): any {
+  return isMap(opdef) ? jsonSchema(openapiOffers(opdef)) : undefined
+}
+
+
+// The JSON schema a point's request body is sent with, under the media type
+// the guide names, else the one the body step prefers.
+function requestSchema(def: any, method: string, path: string, media?: string): any {
+  return jsonSchema(requestOffers(def, method, path) ?? [], media)
+}
+
+
+function arrayRequestSchema(def: any, method: string, path: string, media?: string): any {
+  const schema = requestSchema(def, method, path, media)
   return hasType(schema, 'array') ? schema : undefined
 }
 
 
 const REQDATA_FIELD_RE = /^`reqdata\.([A-Za-z_][A-Za-z0-9_]*)`$/
 
-// The field of the request data an array body is sent from, when the point's
-// request transform unwraps one.
-function arrayRequestField(opdef: any, req: any): string | undefined {
-  if (null == arrayRequestSchema(opdef) || 'string' !== typeof req) {
+// The field of the request data a point's JSON array body is sent from, when
+// its request transform unwraps one.
+function arrayCarrier(
+  def: any,
+  mpoint: ModelPoint,
+  media?: string,
+): { name: string, required: boolean, description?: string } | undefined {
+  const req: any = mpoint.t?.req
+  const name = 'string' === typeof req ? req.match(REQDATA_FIELD_RE)?.[1] : undefined
+  const schema = null == name ? undefined : arrayRequestSchema(def, mpoint.m, mpoint.o, media)
+  if (null == name || null == schema) {
     return undefined
   }
-  return req.match(REQDATA_FIELD_RE)?.[1]
+  const decl = requestDecl(def, mpoint.m, mpoint.o)
+  return {
+    name,
+    required: true === decl?.required,
+    description: textOf(decl?.description) ?? textOf(schema.description),
+  }
+}
+
+
+// OpenAPI's request body, or the Swagger parameter that is one.
+function requestDecl(def: any, method: string, path: string): any {
+  const pathdef = def?.paths?.[path]
+  const opdef = pathdef?.[String(method).toLowerCase()]
+  if (!isMap(opdef)) {
+    return undefined
+  }
+  return null != def.swagger ?
+    swaggerParams(pathdef, opdef).find((param) => 'body' === param.in) : opdef.requestBody
 }
 
 
 export {
   bodyTransform,
+  guideMedia,
   requestBody,
   responseBody,
   jsonRequestSchema,
+  requestSchema,
   arrayRequestSchema,
-  arrayRequestField,
+  arrayCarrier,
 }

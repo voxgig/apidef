@@ -914,11 +914,7 @@ function ResolveTransform(spec) {
     // such as the container in SaladCloud's container group create.
     const wraps = (name) => (0, utility_1.isEntityWrapperProp)(reqprops?.[name]) &&
         (0, struct_1.keysof)(reqprops).every((k) => k === name);
-    const listbody = (0, body_1.arrayRequestSchema)(mdesc);
-    if (null != listbody) {
-        transform.req = '`reqdata.' + arrayBodyField(listbody, entdesc.name) + '`';
-    }
-    else if (reqschema) {
+    if (reqschema) {
         if (wraps(entdesc.origname)) {
             transform.req = { [entdesc.origname]: '`reqdata`' };
         }
@@ -1846,7 +1842,7 @@ function cmpRefName(xref) {
 function arrayBodyField(schema, entname) {
     const cmp = String(schema?.items?.['x-ref'] ?? '').match(CMP_REF_RE)?.[2];
     const record = null == cmp || cmp.includes('/') ? '' :
-        (0, utility_2.cleanComponentName)((0, utility_2.canonizeCmpName)(cmp));
+        (0, utility_2.prefixLeadingDigit)((0, utility_2.cleanComponentName)((0, utility_2.canonizeCmpName)(cmp)));
     return (0, utility_2.pluralize)('' === record ? entname : record);
 }
 function hasMethod(def, pathStr, methodName) {

@@ -114,6 +114,7 @@
       "post": {
         "operationId": "createUsers",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -217,6 +218,7 @@
       "post": {
         "operationId": "createAlerts",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json; charset=utf-8": {
               "schema": {
@@ -239,6 +241,7 @@
       "post": {
         "operationId": "createEvents",
         "requestBody": {
+          "required": true,
           "content": {
             "application/vnd.acme.event+json": {
               "schema": {
@@ -261,6 +264,7 @@
       "post": {
         "operationId": "createMarks",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -286,6 +290,7 @@
       "post": {
         "operationId": "createNotices",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -323,6 +328,7 @@
       "query": {
         "operationId": "queryLookups",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -370,6 +376,181 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Widget"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/records": {
+      "post": {
+        "operationId": "createRecords",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/RecordInput"
+                }
+              }
+            },
+            "application/vnd.acme.record+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Record"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/batches": {
+      "post": {
+        "operationId": "createBatches",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchInput"
+              }
+            },
+            "application/vnd.acme.batch-list+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/BatchInput"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Batch"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions": {
+      "delete": {
+        "operationId": "removeSessions",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No content"
+          }
+        }
+      }
+    },
+    "/sessions/{session_id}": {
+      "get": {
+        "operationId": "loadSession",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Session"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/items": {
+      "post": {
+        "operationId": "createItems",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/123ItemRequest"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No content"
+          }
+        }
+      }
+    },
+    "/forms": {
+      "post": {
+        "operationId": "createForm",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FormInput"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/FormInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Form"
                 }
               }
             }
@@ -493,6 +674,91 @@
             "type": "string"
           },
           "name": {
+            "type": "string"
+          }
+        }
+      },
+      "Record": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "BatchInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "integer"
+          }
+        }
+      },
+      "Batch": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "Session": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "device": {
+            "type": "integer"
+          }
+        }
+      },
+      "123ItemRequest": {
+        "type": "object",
+        "properties": {
+          "sku": {
+            "type": "string"
+          }
+        }
+      },
+      "RecordInput": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "draft": {
+            "type": "boolean"
+          }
+        }
+      },
+      "FormInput": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "colour": {
+            "type": "string"
+          }
+        }
+      },
+      "Form": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
             "type": "string"
           }
         }

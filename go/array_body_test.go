@@ -12,10 +12,17 @@ import (
 )
 
 // Mirrors ts/test/array-body.test.ts: the same expectations, and the base
-// guide that case writes to ts/test/array-body/guide/.
+// guides those cases write to ts/test/<name>/guide/.
 func TestArrayBody(t *testing.T) {
+	for _, name := range []string{"array-body", "array-body-swagger"} {
+		t.Run(name, func(t *testing.T) { checkArrayBody(t, name) })
+	}
+}
+
+func checkArrayBody(t *testing.T, name string) {
+	base := "../ts/test/" + name
 	folder := t.TempDir()
-	entry, err := os.ReadFile("../ts/test/array-body/guide/guide.aontu")
+	entry, err := os.ReadFile(base + "/guide/guide.aontu")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -23,8 +30,8 @@ func TestArrayBody(t *testing.T) {
 		t.Fatal(err)
 	}
 	res, err := NewApiDef(ApiDefOptions{Folder: folder, Strategy: "heuristic01"}).Generate(map[string]any{
-		"model": map[string]any{"name": "array-body", "def": "array-body-def.json"},
-		"build": map[string]any{"spec": map[string]any{"base": "../ts/test/array-body"}},
+		"model": map[string]any{"name": name, "def": name + "-def.json"},
+		"build": map[string]any{"spec": map[string]any{"base": base}},
 		"ctrl": map[string]any{"step": map[string]any{
 			"parse": true, "guide": true, "transformers": true,
 			"builders": false, "generate": false,
@@ -34,7 +41,7 @@ func TestArrayBody(t *testing.T) {
 		t.Fatalf("generate failed: err=%v res=%+v", err, res)
 	}
 
-	want, err := os.ReadFile("../ts/test/array-body/guide/base-guide.aontu")
+	want, err := os.ReadFile(base + "/guide/base-guide.aontu")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +57,7 @@ func TestArrayBody(t *testing.T) {
 		Points []string                             `json:"points"`
 		Fields map[string]map[string]map[string]any `json:"fields"`
 	}
-	src, err := os.ReadFile("../ts/test/array-body/expected.json")
+	src, err := os.ReadFile(base + "/expected.json")
 	if err != nil {
 		t.Fatal(err)
 	}

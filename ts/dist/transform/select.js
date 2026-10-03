@@ -8,12 +8,14 @@ const selectTransform = async function (ctx) {
     const { apimodel, def, guide } = ctx;
     const kit = apimodel.main[types_1.KIT];
     let msg = 'select ';
-    (0, jostraca_1.each)(kit.entity, (ment, _entname) => {
-        (0, jostraca_1.each)(ment.op, (mop, _opname) => {
+    (0, jostraca_1.each)(kit.entity, (ment, entname) => {
+        (0, jostraca_1.each)(ment.op, (mop, opname) => {
             (0, jostraca_1.each)(mop.points, (mpoint) => {
-                // GraphQL defs have no `paths`, so their points get no path def.
+                // GraphQL defs have no `paths`; the lookup is only passed through to
+                // an unused parameter, so skip it rather than dereference undefined.
                 const pdef = def.paths?.[mpoint.o];
-                resolveSelect(guide, ment, mop, mpoint, pdef);
+                const carrier = (0, body_1.arrayCarrier)(def, mpoint, (0, body_1.guideMedia)(guide, entname, opname, mpoint).body);
+                resolveSelect(guide, ment, mop, mpoint, pdef, carrier);
             });
             if (null != mop.points && 0 < mop.points.length) {
                 sortPoints(guide, ment, mop);
@@ -25,7 +27,7 @@ const selectTransform = async function (ctx) {
     return { ok: true, msg };
 };
 exports.selectTransform = selectTransform;
-function resolveSelect(guide, ment, _mop, mpoint, pdef) {
+function resolveSelect(guide, ment, _mop, mpoint, _pdef, carrier) {
     const select = mpoint.q;
     const margs = mpoint.g;
     const argkinds = ['params', 'query', 'header', 'cookie'];
@@ -45,9 +47,9 @@ function resolveSelect(guide, ment, _mop, mpoint, pdef) {
             }
         });
     });
-    const listfield = (0, body_1.arrayRequestField)(pdef?.[String(mpoint.m).toLowerCase()], mpoint.t?.req);
-    if (null != listfield && !select.exist.includes(listfield)) {
-        select.exist.push(listfield);
+    // The field an array body is sent from, when the body is required.
+    if (carrier?.required && !select.exist.includes(carrier.name)) {
+        select.exist.push(carrier.name);
     }
     select.exist.sort();
     const gent = guide.entity[ment.name];

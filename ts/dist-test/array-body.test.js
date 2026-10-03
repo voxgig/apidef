@@ -41,41 +41,43 @@ const Fs = __importStar(require("node:fs"));
 const node_test_1 = require("node:test");
 const node_assert_1 = __importDefault(require("node:assert"));
 const apidef_1 = require("../dist/apidef");
-// go/array_body_test.go builds the same definition and checks it against the
-// expectations and the base guide this writes.
+// go/array_body_test.go builds the same definitions and checks them against
+// the expectations and the base guides this writes.
 (0, node_test_1.describe)('array-body', () => {
-    (0, node_test_1.test)('an array request body is sent from one field', async () => {
-        const folder = __dirname + '/../test/array-body';
-        const build = await apidef_1.ApiDef.makeBuild({ folder });
-        const bres = await build({ name: 'array-body', def: 'array-body-def.json' }, {
-            spec: {
-                base: folder,
-                buildargs: {
-                    apidef: {
-                        ctrl: { step: {
-                                parse: true, guide: true, transformers: true,
-                                builders: false, generate: false,
-                            } }
+    for (const name of ['array-body', 'array-body-swagger']) {
+        (0, node_test_1.test)(name + ': an array request body is sent from one field', async () => {
+            const folder = __dirname + '/../test/' + name;
+            const build = await apidef_1.ApiDef.makeBuild({ folder });
+            const bres = await build({ name, def: name + '-def.json' }, {
+                spec: {
+                    base: folder,
+                    buildargs: {
+                        apidef: {
+                            ctrl: { step: {
+                                    parse: true, guide: true, transformers: true,
+                                    builders: false, generate: false,
+                                } }
+                        }
                     }
                 }
-            }
-        }, {});
-        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
-        const expected = JSON.parse(Fs.readFileSync(folder + '/expected.json', 'utf8'));
-        const entities = bres.apimodel.main.kit.entity;
-        const names = Object.keys(entities).sort();
-        const points = names.flatMap((ename) => Object.keys(entities[ename].op).sort().flatMap((opname) => entities[ename].op[opname].points.map((pt) => ename + '.' + opname + ' ' + pt.m + ' ' + pt.o +
-            ' exist=' + (pt.q?.exist ?? []).join(',') +
-            ' action=' + (pt.q?.$action ?? '') +
-            ' req=' + JSON.stringify(pt.t?.req))));
-        node_assert_1.default.deepStrictEqual(points, expected.points);
-        const fields = Object.fromEntries(names.map((ename) => [ename, Object.fromEntries(Object.values(entities[ename].fields)
-                .map((f) => [f.n, {
-                    t: f.t, r: f.r,
-                    ...(null == f.sh ? {} : { sh: f.sh }),
-                    ...(0 === Object.keys(f.op ?? {}).length ? {} : { op: f.op }),
-                }]))]));
-        node_assert_1.default.deepStrictEqual(fields, expected.fields);
-    });
+            }, {});
+            node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+            const expected = JSON.parse(Fs.readFileSync(folder + '/expected.json', 'utf8'));
+            const entities = bres.apimodel.main.kit.entity;
+            const names = Object.keys(entities).sort();
+            const points = names.flatMap((ename) => Object.keys(entities[ename].op).sort().flatMap((opname) => entities[ename].op[opname].points.map((pt) => ename + '.' + opname + ' ' + pt.m + ' ' + pt.o +
+                ' exist=' + (pt.q?.exist ?? []).join(',') +
+                ' action=' + (pt.q?.$action ?? '') +
+                ' req=' + JSON.stringify(pt.t?.req))));
+            node_assert_1.default.deepStrictEqual(points, expected.points);
+            const fields = Object.fromEntries(names.map((ename) => [ename, Object.fromEntries(Object.values(entities[ename].fields)
+                    .map((f) => [f.n, {
+                        t: f.t, r: f.r,
+                        ...(null == f.sh ? {} : { sh: f.sh }),
+                        ...(0 === Object.keys(f.op ?? {}).length ? {} : { op: f.op }),
+                    }]))]));
+            node_assert_1.default.deepStrictEqual(fields, expected.fields);
+        });
+    }
 });
 //# sourceMappingURL=array-body.test.js.map

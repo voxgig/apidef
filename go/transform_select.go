@@ -37,7 +37,10 @@ func SelectTransform(ctx *ApiDefContext) (*TransformResult, error) {
 				if mtarget == nil {
 					continue
 				}
-				resolveSelect(guideEntity, entname, mtarget, pointOpDef(ctx.Def, mtarget))
+				method, _ := mtarget["m"].(string)
+				path, _ := mtarget["o"].(string)
+				media, _ := guideBodyMedia(guide, entname, opkey, method, path)
+				resolveSelect(guideEntity, entname, mtarget, arrayCarrier(ctx.Def, mtarget, media))
 			}
 
 			if len(points) > 0 {
@@ -51,18 +54,7 @@ func SelectTransform(ctx *ApiDefContext) (*TransformResult, error) {
 	return &TransformResult{OK: true, Msg: msg}, nil
 }
 
-// pointOpDef is the operation the definition declares for a point, or nil for
-// a GraphQL point.
-func pointOpDef(def map[string]any, mtarget map[string]any) map[string]any {
-	paths, _ := def["paths"].(map[string]any)
-	orig, _ := mtarget["o"].(string)
-	method, _ := mtarget["m"].(string)
-	pathdef, _ := paths[orig].(map[string]any)
-	opdef, _ := pathdef[toLower(method)].(map[string]any)
-	return opdef
-}
-
-func resolveSelect(guideEntity map[string]any, entname string, mtarget map[string]any, opdef map[string]any) {
+func resolveSelect(guideEntity map[string]any, entname string, mtarget map[string]any, carrier *arrayCarrierInfo) {
 	selectMap, _ := mtarget["q"].(map[string]any)
 	if selectMap == nil {
 		selectMap = map[string]any{"exist": []any{}}
@@ -99,10 +91,10 @@ func resolveSelect(guideEntity map[string]any, entname string, mtarget map[strin
 		}
 	}
 
-	t, _ := mtarget["t"].(map[string]any)
-	if listfield := arrayRequestField(opdef, t["req"]); listfield != "" && !existSet[listfield] {
-		exist = append(exist, listfield)
-		existSet[listfield] = true
+	// The field an array body is sent from, when the body is required.
+	if carrier != nil && carrier.required && !existSet[carrier.name] {
+		exist = append(exist, carrier.name)
+		existSet[carrier.name] = true
 	}
 
 	// Sort exist

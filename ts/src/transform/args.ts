@@ -123,6 +123,11 @@ function resolveArgs(
   const placeholders = [...String(mpoint.o ?? '').matchAll(/\{([^}]+)\}/g)].map((m) => m[1])
 
   each(argdefs, (argdef: ParameterDef) => {
+    // A Swagger body parameter is the request body, which the body step reads.
+    if ('body' === (argdef as any).in) {
+      return
+    }
+
     const specName = normalizeFieldName(argdef.name)
     const orig = depluralize(snakify(specName))
 

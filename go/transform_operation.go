@@ -138,7 +138,7 @@ func collectOps(ctx *ApiDefContext, entname string, gent map[string]any, pathsDe
 				}
 			}
 			if transform["req"] == nil {
-				transform["req"] = "`reqdata`"
+				transform["req"] = requestDefault(ctx, entname, p)
 			}
 			if transform["res"] == nil {
 				transform["res"] = "`body`"
@@ -164,4 +164,20 @@ func collectOps(ctx *ApiDefContext, entname string, gent map[string]any, pathsDe
 	}
 
 	return opm, opmWork
+}
+
+// requestDefault mirrors ts/src/transform/operation.ts: an array body is sent
+// from one field of the request data, named for its records.
+func requestDefault(ctx *ApiDefContext, entname string, p map[string]any) string {
+	if ctx == nil {
+		return "`reqdata`"
+	}
+	gop, _ := p["op"].(map[string]any)
+	body, _ := gop["body"].(map[string]any)
+	method, _ := p["method"].(string)
+	path, _ := p["orig"].(string)
+	if list := arrayRequestSchema(ctx.Def, method, path, textOf(body["media"])); list != nil {
+		return "`reqdata." + arrayBodyField(list, entname) + "`"
+	}
+	return "`reqdata`"
 }

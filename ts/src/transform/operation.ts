@@ -1,5 +1,9 @@
 import { guideActive } from '../utility'
 
+import { arrayBodyField } from '../guide/heuristic01'
+
+import { arrayRequestSchema } from './body'
+
 
 import { each } from 'jostraca'
 
@@ -40,7 +44,7 @@ const IGNORED_OPS = ['head', 'options', 'OPTIONS']
 const operationTransform: Transform = async function(
   ctx: any,
 ): Promise<TransformResult> {
-  const { apimodel, guide } = ctx
+  const { apimodel, def, guide } = ctx
   const kit = apimodel.main[KIT]
 
   let msg = 'operation '
@@ -59,12 +63,13 @@ const operationTransform: Transform = async function(
       patch: undefined,
     }
 
-    resolveLoad(opm, gent)
-    resolveList(opm, gent)
-    resolveCreate(opm, gent)
-    resolveUpdate(opm, gent)
-    resolveRemove(opm, gent)
-    resolvePatch(opm, gent)
+    const on = { gent, def, entname }
+    resolveLoad(opm, on)
+    resolveList(opm, on)
+    resolveCreate(opm, on)
+    resolveUpdate(opm, on)
+    resolveRemove(opm, on)
+    resolvePatch(opm, on)
 
     kit.entity[entname].op = opm
 
@@ -118,40 +123,40 @@ function collectOps(ctx: any, gent: GuideEntity) {
 
 
 
-function resolveLoad(opm: ModelOpMap, gent: GuideEntity): undefined | ModelOp {
-  const opdesc = opm.load = resolveOp('load', gent)
+function resolveLoad(opm: ModelOpMap, on: OpEntity): undefined | ModelOp {
+  const opdesc = opm.load = resolveOp('load', on)
   return opdesc
 }
 
 
-function resolveList(opm: ModelOpMap, gent: GuideEntity): undefined | ModelOp {
-  const opdesc = opm.list = resolveOp('list', gent)
+function resolveList(opm: ModelOpMap, on: OpEntity): undefined | ModelOp {
+  const opdesc = opm.list = resolveOp('list', on)
   return opdesc
 }
 
 
-function resolveCreate(opm: ModelOpMap, gent: GuideEntity): undefined | ModelOp {
-  const opdesc = opm.create = resolveOp('create', gent)
+function resolveCreate(opm: ModelOpMap, on: OpEntity): undefined | ModelOp {
+  const opdesc = opm.create = resolveOp('create', on)
   return opdesc
 }
 
 
-function resolveUpdate(opm: ModelOpMap, gent: GuideEntity): undefined | ModelOp {
-  const opdesc = opm.update = resolveOp('update', gent)
+function resolveUpdate(opm: ModelOpMap, on: OpEntity): undefined | ModelOp {
+  const opdesc = opm.update = resolveOp('update', on)
   return opdesc
 }
 
 
-function resolveRemove(opm: ModelOpMap, gent: GuideEntity): undefined | ModelOp {
-  const opdesc = opm.remove = resolveOp('remove', gent)
+function resolveRemove(opm: ModelOpMap, on: OpEntity): undefined | ModelOp {
+  const opdesc = opm.remove = resolveOp('remove', on)
   return opdesc
 }
 
 
-function resolvePatch(opm: ModelOpMap, gent: GuideEntity): undefined | ModelOp {
-  const opdesc = resolveOp('patch', gent)
+function resolvePatch(opm: ModelOpMap, on: OpEntity): undefined | ModelOp {
+  const opdesc = resolveOp('patch', on)
 
-  if (null != opdesc && (null == opm.update || onlyActionPaths(gent, 'update'))) {
+  if (null != opdesc && (null == opm.update || onlyActionPaths(on.gent, 'update'))) {
     if (null != opm.update) {
       opdesc.points.push(...opm.update.points)
     }
@@ -174,9 +179,12 @@ function onlyActionPaths(gent: GuideEntity, opname: OpName): boolean {
 }
 
 
-function resolveOp(opname: OpName, gent: GuideEntity): undefined | ModelOp {
+type OpEntity = { gent: GuideEntity, def: any, entname: string }
+
+
+function resolveOp(opname: OpName, on: OpEntity): undefined | ModelOp {
   let mop: undefined | ModelOp = undefined
-  let opdesc = (gent as any).opm$[opname]
+  let opdesc = (on.gent as any).opm$[opname]
   if (opdesc) {
     mop = {
       name: opname,
@@ -195,7 +203,7 @@ function resolveOp(opname: OpName, gent: GuideEntity): undefined | ModelOp {
           }
         }
 
-        mpoint.t.req = mpoint.t.req ?? '`reqdata`'
+        mpoint.t.req = mpoint.t.req ?? requestDefault(on, p)
         mpoint.t.res = mpoint.t.res ?? '`body`'
 
         return mpoint
@@ -206,6 +214,15 @@ function resolveOp(opname: OpName, gent: GuideEntity): undefined | ModelOp {
 }
 
 
+
+
+// An array body is sent from one field of the request data, named for its
+// records. Decided here rather than by the guide heuristic, as the media type
+// the guide names decides whether the body is an array.
+function requestDefault(on: OpEntity, p: PathDesc): string {
+  const list = arrayRequestSchema(on.def, p.method, p.orig, (p as any).op?.body?.media)
+  return null == list ? '`reqdata`' : '`reqdata.' + arrayBodyField(list, on.entname) + '`'
+}
 
 
 export {

@@ -71,6 +71,10 @@ function resolveArgs(ctx, ment, mop, mpoint, argdefs) {
     const touchedKeys = new Set();
     const placeholders = [...String(mpoint.o ?? '').matchAll(/\{([^}]+)\}/g)].map((m) => m[1]);
     (0, jostraca_1.each)(argdefs, (argdef) => {
+        // A Swagger body parameter is the request body, which the body step reads.
+        if ('body' === argdef.in) {
+            return;
+        }
         const specName = (0, utility_1.normalizeFieldName)(argdef.name);
         const orig = (0, utility_1.depluralize)((0, jostraca_1.snakify)(specName));
         if ('' === orig) {

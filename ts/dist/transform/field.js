@@ -12,24 +12,27 @@ const fieldTransform = async function (ctx) {
     const kit = apimodel.main[types_1.KIT];
     let msg = 'field ';
     const opFieldPrecedence = ['load', 'create', 'update', 'patch', 'list'];
-    (0, jostraca_1.each)(kit.entity, (ment, _entname) => {
+    (0, jostraca_1.each)(kit.entity, (ment, entname) => {
         const fields = ment.fields;
         for (let opname of opFieldPrecedence) {
             const mop = ment.op[opname];
             if (mop) {
                 const mpoints = mop.points;
                 for (let mpoint of mpoints) {
-                    const opfields = resolveOpFields(ment, mop, mpoint, def);
-                    const carrier = carrierField(mpoint, def);
+                    const media = (0, body_1.guideMedia)(guide, entname, opname, mpoint).body;
+                    const opfields = resolveOpFields(ment, mop, mpoint, def, media);
+                    const carrier = carrierOf(mpoint, def, media)?.name;
                     for (let opfield of opfields) {
-                        if (!Object.prototype.hasOwnProperty.call(fields, opfield.n)) {
-                            fields[opfield.n] = opfield;
-                        }
-                        else {
-                            mergeField(mop, fields[opfield.n], opfield, carrier === opfield.n);
-                        }
+                        addField(fields, mop, opfield, carrier === opfield.n);
                     }
                 }
+            }
+        }
+        // A remove's response is no record, so its carrier is all it adds.
+        for (const mpoint of ment.op.remove?.points ?? []) {
+            const carrier = carrierOf(mpoint, def, (0, body_1.guideMedia)(guide, entname, 'remove', mpoint).body);
+            if (null != carrier) {
+                addField(fields, ment.op.remove, modelField(carrierDef(carrier)), true);
             }
         }
         const gent = guide?.entity?.[ment.name];
@@ -421,52 +424,58 @@ function addressedById(ment) {
     });
     return found;
 }
-function resolveOpFields(ment, mop, mpoint, def) {
-    const mfields = [];
-    const fielddefs = findFieldDefs(ment, mop, mpoint, def);
-    for (let fielddef of fielddefs) {
-        const fieldname = fielddef.key$;
-        // Field names are WIRE identifiers — see canonizeField. Using the
-        // entity-name canonizer here renamed modelType -> model_type and
-        // items -> item, so the SDK read keys the server never sends.
-        const name = (0, utility_1.canonizeField)((0, utility_1.normalizeFieldName)(fieldname));
-        const mfield = {
-            n: name,
-            h: (0, utility_1.humanTitle)(name),
-            t: (0, utility_1.inferFieldType)(name, (0, utility_1.validator)(fielddef.type)),
-            r: !!fielddef.required,
-            op: {},
-        };
-        const fdesc = fielddef.description;
-        if ('string' === typeof fdesc && '' !== fdesc.trim()) {
-            const short = (0, utility_1.firstSentence)(fdesc);
-            if ('' !== short) {
-                mfield.sh = short;
-            }
+function resolveOpFields(ment, mop, mpoint, def, media) {
+    return findFieldDefs(ment, mop, mpoint, def, media).map(modelField);
+}
+function modelField(fielddef) {
+    const fieldname = fielddef.key$;
+    // Field names are WIRE identifiers — see canonizeField. Using the
+    // entity-name canonizer here renamed modelType -> model_type and
+    // items -> item, so the SDK read keys the server never sends.
+    const name = (0, utility_1.canonizeField)((0, utility_1.normalizeFieldName)(fieldname));
+    const mfield = {
+        n: name,
+        h: (0, utility_1.humanTitle)(name),
+        t: (0, utility_1.inferFieldType)(name, (0, utility_1.validator)(fielddef.type)),
+        r: !!fielddef.required,
+        op: {},
+    };
+    const fdesc = fielddef.description;
+    if ('string' === typeof fdesc && '' !== fdesc.trim()) {
+        const short = (0, utility_1.firstSentence)(fdesc);
+        if ('' !== short) {
+            mfield.sh = short;
         }
-        for (const [flag, attr] of [['readOnly', 'ro'], ['writeOnly', 'wo'], ['deprecated', 'de']]) {
-            if (true === fielddef[flag]) {
-                mfield[attr] = true;
-            }
-        }
-        // `format` is an open vocabulary — OpenAPI defines a handful and lets a
-        // spec coin its own — so it is carried as the string it is rather than
-        // interpreted here. `password` is the one a generator acts on today.
-        const ffmt = fielddef.format;
-        if ('string' === typeof ffmt && '' !== ffmt.trim()) {
-            mfield.fo = ffmt.trim();
-        }
-        // Record an untagged union under this field. The field is already typed
-        // openly ($ANY/$ARRAY/$OBJECT) because there is nothing to narrow it to;
-        // this says WHY, so the generated docs can explain the open type instead
-        // of leaving it looking like a modelling failure.
-        const union = (0, utility_1.scanUntaggedUnion)(fielddef);
-        if (null != union) {
-            mfield.union = union;
-        }
-        mfields.push(mfield);
     }
-    return mfields;
+    for (const [flag, attr] of [['readOnly', 'ro'], ['writeOnly', 'wo'], ['deprecated', 'de']]) {
+        if (true === fielddef[flag]) {
+            mfield[attr] = true;
+        }
+    }
+    // `format` is an open vocabulary — OpenAPI defines a handful and lets a
+    // spec coin its own — so it is carried as the string it is rather than
+    // interpreted here. `password` is the one a generator acts on today.
+    const ffmt = fielddef.format;
+    if ('string' === typeof ffmt && '' !== ffmt.trim()) {
+        mfield.fo = ffmt.trim();
+    }
+    // Record an untagged union under this field. The field is already typed
+    // openly ($ANY/$ARRAY/$OBJECT) because there is nothing to narrow it to;
+    // this says WHY, so the generated docs can explain the open type instead
+    // of leaving it looking like a modelling failure.
+    const union = (0, utility_1.scanUntaggedUnion)(fielddef);
+    if (null != union) {
+        mfield.union = union;
+    }
+    return mfield;
+}
+function addField(fields, mop, field, carrier) {
+    if (!Object.prototype.hasOwnProperty.call(fields, field.n)) {
+        fields[field.n] = field;
+    }
+    else {
+        mergeField(mop, fields[field.n], field, carrier);
+    }
 }
 // GraphQL entity fields come straight from the object type: every
 // non-deprecated scalar field, minus any that require arguments (selecting
@@ -523,7 +532,7 @@ function gqlFieldType(typeName) {
                 ('String' === typeName || 'ID' === typeName) ? 'string' :
                     undefined;
 }
-function findFieldDefs(ment, mop, mpoint, def) {
+function findFieldDefs(ment, mop, mpoint, def, media) {
     if ('graphql' === mpoint.k) {
         return findGraphqlFieldDefs(ment, mpoint, def);
     }
@@ -588,11 +597,10 @@ function findFieldDefs(ment, mop, mpoint, def) {
         // QUERY op come from its response only. Other methods (POST/PUT/PATCH)
         // carry the entity in the body, so merge as usual -- except for an
         // action, whose body is the verb's arguments and never the record.
-        if (requestBody && 'query' !== method && !isAction) {
-            fieldSets = [
-                fieldSets,
-                (0, body_1.jsonRequestSchema)(opdef) ?? (0, jostraca_1.getx)(requestBody, 'schema')
-            ];
+        const reqschema = (0, body_1.requestSchema)(def, mpoint.m, mpoint.o, media) ??
+            (0, body_1.requestSchema)(def, mpoint.m, mpoint.o) ?? (0, jostraca_1.getx)(requestBody, 'schema');
+        if ((requestBody || null != reqschema) && 'query' !== method && !isAction) {
+            fieldSets = [fieldSets, reqschema];
         }
         if (fieldSets && (Array.isArray(fieldSets.allOf) || fieldSets.properties)) {
             fieldSets = [fieldSets];
@@ -609,26 +617,23 @@ function findFieldDefs(ment, mop, mpoint, def) {
         }
     }
     // An array body is sent from one field of the request data, and has no
-    // properties of its own to contribute. Optional, as the record never holds it.
-    const listfield = carrierField(mpoint, def);
-    if (null != listfield) {
-        fielddefs.push({
-            key$: listfield,
-            type: 'array',
-            description: opdef.requestBody.description ??
-                (0, body_1.arrayRequestSchema)(opdef).description,
-        });
+    // properties of its own to contribute.
+    const carrier = carrierOf(mpoint, def, media);
+    if (null != carrier) {
+        fielddefs.push(carrierDef(carrier));
     }
     return fielddefs;
 }
-// The field a point's JSON array body is sent from. An action's request
-// fields are its own, so it declares none.
-function carrierField(mpoint, def) {
+// An action's request fields are its own, so it declares no carrier.
+function carrierOf(mpoint, def, media) {
     if ('graphql' === mpoint.k || null != mpoint.q?.['$action']) {
         return undefined;
     }
-    const opdef = def.paths?.[mpoint.o]?.[mpoint.m.toLowerCase()];
-    return (0, body_1.arrayRequestField)(opdef, mpoint.t?.req);
+    return (0, body_1.arrayCarrier)(def, mpoint, media);
+}
+// Optional, as the record never holds it.
+function carrierDef(carrier) {
+    return { key$: carrier.name, type: 'array', description: carrier.description };
 }
 // A schema and its allOf members describe one object: a name any of them
 // requires is required, and a property declared more than once is one field

@@ -12,7 +12,7 @@ import {
   closedBodyTransform, authExchangeOp, specSecuredByDefault,
 } from '../utility'
 
-import { arrayRequestSchema, jsonRequestSchema } from '../transform/body'
+import { jsonRequestSchema } from '../transform/body'
 
 
 import {
@@ -60,6 +60,7 @@ import {
   normalizeFieldName,
   pathMatch,
   pluralize,
+  prefixLeadingDigit,
   resplitFromCmp,
   sortedEntries,
   sortedKeys,
@@ -1256,12 +1257,7 @@ function ResolveTransform(spec: TaskSpec) {
   const wraps = (name: string) => isEntityWrapperProp(reqprops?.[name]) &&
     keysof(reqprops).every((k: string) => k === name)
 
-  const listbody = arrayRequestSchema(mdesc)
-
-  if (null != listbody) {
-    transform.req = '`reqdata.' + arrayBodyField(listbody, entdesc.name) + '`'
-  }
-  else if (reqschema) {
+  if (reqschema) {
     if (wraps(entdesc.origname)) {
       transform.req = { [entdesc.origname]: '`reqdata`' }
     }
@@ -2560,7 +2556,7 @@ function cmpRefName(xref: string): string {
 function arrayBodyField(schema: any, entname: string): string {
   const cmp = String(schema?.items?.['x-ref'] ?? '').match(CMP_REF_RE)?.[2]
   const record = null == cmp || cmp.includes('/') ? '' :
-    cleanComponentName(canonizeCmpName(cmp))
+    prefixLeadingDigit(cleanComponentName(canonizeCmpName(cmp)))
   return pluralize('' === record ? entname : record)
 }
 

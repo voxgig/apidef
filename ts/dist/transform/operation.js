@@ -2,6 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.operationTransform = void 0;
 const utility_1 = require("../utility");
+const heuristic01_1 = require("../guide/heuristic01");
+const body_1 = require("./body");
 const jostraca_1 = require("jostraca");
 const types_1 = require("../types");
 // The op names the transform resolves. Anything else under a guide path's
@@ -14,7 +16,7 @@ const RESOLVED_OPS = ['load', 'list', 'create', 'update', 'remove', 'patch'];
 // exists for them yet, so they are skipped without a warning.
 const IGNORED_OPS = ['head', 'options', 'OPTIONS'];
 const operationTransform = async function (ctx) {
-    const { apimodel, guide } = ctx;
+    const { apimodel, def, guide } = ctx;
     const kit = apimodel.main[types_1.KIT];
     let msg = 'operation ';
     (0, jostraca_1.each)(guide.entity, (gent, entname) => {
@@ -29,12 +31,13 @@ const operationTransform = async function (ctx) {
             remove: undefined,
             patch: undefined,
         };
-        resolveLoad(opm, gent);
-        resolveList(opm, gent);
-        resolveCreate(opm, gent);
-        resolveUpdate(opm, gent);
-        resolveRemove(opm, gent);
-        resolvePatch(opm, gent);
+        const on = { gent, def, entname };
+        resolveLoad(opm, on);
+        resolveList(opm, on);
+        resolveCreate(opm, on);
+        resolveUpdate(opm, on);
+        resolveRemove(opm, on);
+        resolvePatch(opm, on);
         kit.entity[entname].op = opm;
         msg += gent.name + ' ';
     });
@@ -77,29 +80,29 @@ function collectOps(ctx, gent) {
         });
     });
 }
-function resolveLoad(opm, gent) {
-    const opdesc = opm.load = resolveOp('load', gent);
+function resolveLoad(opm, on) {
+    const opdesc = opm.load = resolveOp('load', on);
     return opdesc;
 }
-function resolveList(opm, gent) {
-    const opdesc = opm.list = resolveOp('list', gent);
+function resolveList(opm, on) {
+    const opdesc = opm.list = resolveOp('list', on);
     return opdesc;
 }
-function resolveCreate(opm, gent) {
-    const opdesc = opm.create = resolveOp('create', gent);
+function resolveCreate(opm, on) {
+    const opdesc = opm.create = resolveOp('create', on);
     return opdesc;
 }
-function resolveUpdate(opm, gent) {
-    const opdesc = opm.update = resolveOp('update', gent);
+function resolveUpdate(opm, on) {
+    const opdesc = opm.update = resolveOp('update', on);
     return opdesc;
 }
-function resolveRemove(opm, gent) {
-    const opdesc = opm.remove = resolveOp('remove', gent);
+function resolveRemove(opm, on) {
+    const opdesc = opm.remove = resolveOp('remove', on);
     return opdesc;
 }
-function resolvePatch(opm, gent) {
-    const opdesc = resolveOp('patch', gent);
-    if (null != opdesc && (null == opm.update || onlyActionPaths(gent, 'update'))) {
+function resolvePatch(opm, on) {
+    const opdesc = resolveOp('patch', on);
+    if (null != opdesc && (null == opm.update || onlyActionPaths(on.gent, 'update'))) {
         if (null != opm.update) {
             opdesc.points.push(...opm.update.points);
         }
@@ -117,9 +120,9 @@ function onlyActionPaths(gent, opname) {
     return 0 < paths.length &&
         paths.every((p) => 0 < Object.keys(p.action ?? {}).length);
 }
-function resolveOp(opname, gent) {
+function resolveOp(opname, on) {
     let mop = undefined;
-    let opdesc = gent.opm$[opname];
+    let opdesc = on.gent.opm$[opname];
     if (opdesc) {
         mop = {
             name: opname,
@@ -136,12 +139,19 @@ function resolveOp(opname, gent) {
                         exist: []
                     }
                 };
-                mpoint.t.req = mpoint.t.req ?? '`reqdata`';
+                mpoint.t.req = mpoint.t.req ?? requestDefault(on, p);
                 mpoint.t.res = mpoint.t.res ?? '`body`';
                 return mpoint;
             })
         };
     }
     return mop;
+}
+// An array body is sent from one field of the request data, named for its
+// records. Decided here rather than by the guide heuristic, as the media type
+// the guide names decides whether the body is an array.
+function requestDefault(on, p) {
+    const list = (0, body_1.arrayRequestSchema)(on.def, p.method, p.orig, p.op?.body?.media);
+    return null == list ? '`reqdata`' : '`reqdata.' + (0, heuristic01_1.arrayBodyField)(list, on.entname) + '`';
 }
 //# sourceMappingURL=operation.js.map

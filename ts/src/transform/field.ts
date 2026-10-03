@@ -10,7 +10,7 @@ import {
   scanUntaggedUnion, firstSentence, humanTitle, collapseScalarAllOf,
 } from '../utility'
 
-import { arrayRequestSchema, arrayRequestField, jsonRequestSchema } from './body'
+import { arrayCarrier, guideMedia, requestSchema } from './body'
 
 import { KIT } from '../types'
 
@@ -42,7 +42,7 @@ const fieldTransform: Transform = async function(
 
   const opFieldPrecedence: OpName[] = ['load', 'create', 'update', 'patch', 'list']
 
-  each(kit.entity, (ment: ModelEntity, _entname: string) => {
+  each(kit.entity, (ment: ModelEntity, entname: string) => {
     const fields = ment.fields
 
     for (let opname of opFieldPrecedence) {
@@ -51,18 +51,22 @@ const fieldTransform: Transform = async function(
         const mpoints = mop.points
 
         for (let mpoint of mpoints) {
-          const opfields = resolveOpFields(ment, mop, mpoint, def)
-          const carrier = carrierField(mpoint, def)
+          const media = guideMedia(guide, entname, opname, mpoint).body
+          const opfields = resolveOpFields(ment, mop, mpoint, def, media)
+          const carrier = carrierOf(mpoint, def, media)?.name
 
           for (let opfield of opfields) {
-            if (!Object.prototype.hasOwnProperty.call(fields, opfield.n)) {
-              fields[opfield.n] = opfield
-            }
-            else {
-              mergeField(mop, fields[opfield.n], opfield, carrier === opfield.n)
-            }
+            addField(fields, mop, opfield, carrier === opfield.n)
           }
         }
+      }
+    }
+
+    // A remove's response is no record, so its carrier is all it adds.
+    for (const mpoint of ment.op.remove?.points ?? []) {
+      const carrier = carrierOf(mpoint, def, guideMedia(guide, entname, 'remove', mpoint).body)
+      if (null != carrier) {
+        addField(fields, ment.op.remove as ModelOp, modelField(carrierDef(carrier)), true)
       }
     }
 
@@ -566,58 +570,67 @@ function resolveOpFields(
   ment: ModelEntity,
   mop: ModelOp,
   mpoint: ModelPoint,
-  def: any
+  def: any,
+  media?: string,
 ): ModelField[] {
-  const mfields: ModelField[] = []
-  const fielddefs = findFieldDefs(ment, mop, mpoint, def)
+  return findFieldDefs(ment, mop, mpoint, def, media).map(modelField)
+}
 
-  for (let fielddef of fielddefs) {
-    const fieldname = (fielddef as any).key$ as string
-    // Field names are WIRE identifiers — see canonizeField. Using the
-    // entity-name canonizer here renamed modelType -> model_type and
-    // items -> item, so the SDK read keys the server never sends.
-    const name = canonizeField(normalizeFieldName(fieldname))
-    const mfield: ModelField = {
-      n: name,
-      h: humanTitle(name),
-      t: inferFieldType(name, validator(fielddef.type)),
-      r: !!fielddef.required,
-      op: {},
-    }
-    const fdesc = (fielddef as any).description
-    if ('string' === typeof fdesc && '' !== fdesc.trim()) {
-      const short = firstSentence(fdesc)
-      if ('' !== short) {
-        mfield.sh = short
-      }
-    }
 
-    for (const [flag, attr] of [['readOnly', 'ro'], ['writeOnly', 'wo'], ['deprecated', 'de']] as const) {
-      if (true === (fielddef as any)[flag]) {
-        mfield[attr] = true
-      }
+function modelField(fielddef: SchemaDef): ModelField {
+  const fieldname = (fielddef as any).key$ as string
+  // Field names are WIRE identifiers — see canonizeField. Using the
+  // entity-name canonizer here renamed modelType -> model_type and
+  // items -> item, so the SDK read keys the server never sends.
+  const name = canonizeField(normalizeFieldName(fieldname))
+  const mfield: ModelField = {
+    n: name,
+    h: humanTitle(name),
+    t: inferFieldType(name, validator(fielddef.type)),
+    r: !!fielddef.required,
+    op: {},
+  }
+  const fdesc = (fielddef as any).description
+  if ('string' === typeof fdesc && '' !== fdesc.trim()) {
+    const short = firstSentence(fdesc)
+    if ('' !== short) {
+      mfield.sh = short
     }
-
-    // `format` is an open vocabulary — OpenAPI defines a handful and lets a
-    // spec coin its own — so it is carried as the string it is rather than
-    // interpreted here. `password` is the one a generator acts on today.
-    const ffmt = (fielddef as any).format
-    if ('string' === typeof ffmt && '' !== ffmt.trim()) {
-      mfield.fo = ffmt.trim()
-    }
-
-    // Record an untagged union under this field. The field is already typed
-    // openly ($ANY/$ARRAY/$OBJECT) because there is nothing to narrow it to;
-    // this says WHY, so the generated docs can explain the open type instead
-    // of leaving it looking like a modelling failure.
-    const union = scanUntaggedUnion(fielddef)
-    if (null != union) {
-      mfield.union = union
-    }
-    mfields.push(mfield)
   }
 
-  return mfields
+  for (const [flag, attr] of [['readOnly', 'ro'], ['writeOnly', 'wo'], ['deprecated', 'de']] as const) {
+    if (true === (fielddef as any)[flag]) {
+      mfield[attr] = true
+    }
+  }
+
+  // `format` is an open vocabulary — OpenAPI defines a handful and lets a
+  // spec coin its own — so it is carried as the string it is rather than
+  // interpreted here. `password` is the one a generator acts on today.
+  const ffmt = (fielddef as any).format
+  if ('string' === typeof ffmt && '' !== ffmt.trim()) {
+    mfield.fo = ffmt.trim()
+  }
+
+  // Record an untagged union under this field. The field is already typed
+  // openly ($ANY/$ARRAY/$OBJECT) because there is nothing to narrow it to;
+  // this says WHY, so the generated docs can explain the open type instead
+  // of leaving it looking like a modelling failure.
+  const union = scanUntaggedUnion(fielddef)
+  if (null != union) {
+    mfield.union = union
+  }
+  return mfield
+}
+
+
+function addField(fields: Record<string, ModelField>, mop: ModelOp, field: ModelField, carrier: boolean) {
+  if (!Object.prototype.hasOwnProperty.call(fields, field.n)) {
+    fields[field.n] = field
+  }
+  else {
+    mergeField(mop, fields[field.n], field, carrier)
+  }
 }
 
 
@@ -696,7 +709,8 @@ function findFieldDefs(
   ment: ModelEntity,
   mop: ModelOp,
   mpoint: ModelPoint,
-  def: any
+  def: any,
+  media?: string,
 ): SchemaDef[] {
   if ('graphql' === mpoint.k) {
     return findGraphqlFieldDefs(ment, mpoint, def)
@@ -772,11 +786,10 @@ function findFieldDefs(
     // QUERY op come from its response only. Other methods (POST/PUT/PATCH)
     // carry the entity in the body, so merge as usual -- except for an
     // action, whose body is the verb's arguments and never the record.
-    if (requestBody && 'query' !== method && !isAction) {
-      fieldSets = [
-        fieldSets,
-        jsonRequestSchema(opdef) ?? getx(requestBody, 'schema')
-      ]
+    const reqschema = requestSchema(def, mpoint.m, mpoint.o, media) ??
+      requestSchema(def, mpoint.m, mpoint.o) ?? getx(requestBody, 'schema')
+    if ((requestBody || null != reqschema) && 'query' !== method && !isAction) {
+      fieldSets = [fieldSets, reqschema]
     }
 
 
@@ -798,29 +811,28 @@ function findFieldDefs(
   }
 
   // An array body is sent from one field of the request data, and has no
-  // properties of its own to contribute. Optional, as the record never holds it.
-  const listfield = carrierField(mpoint, def)
-  if (null != listfield) {
-    fielddefs.push({
-      key$: listfield,
-      type: 'array',
-      description: opdef.requestBody.description ??
-        arrayRequestSchema(opdef).description,
-    } as SchemaDef)
+  // properties of its own to contribute.
+  const carrier = carrierOf(mpoint, def, media)
+  if (null != carrier) {
+    fielddefs.push(carrierDef(carrier))
   }
 
   return fielddefs
 }
 
 
-// The field a point's JSON array body is sent from. An action's request
-// fields are its own, so it declares none.
-function carrierField(mpoint: ModelPoint, def: any): string | undefined {
+// An action's request fields are its own, so it declares no carrier.
+function carrierOf(mpoint: ModelPoint, def: any, media?: string) {
   if ('graphql' === mpoint.k || null != (mpoint as any).q?.['$action']) {
     return undefined
   }
-  const opdef = def.paths?.[mpoint.o]?.[mpoint.m.toLowerCase()]
-  return arrayRequestField(opdef, mpoint.t?.req)
+  return arrayCarrier(def, mpoint, media)
+}
+
+
+// Optional, as the record never holds it.
+function carrierDef(carrier: { name: string, description?: string }): SchemaDef {
+  return { key$: carrier.name, type: 'array', description: carrier.description } as SchemaDef
 }
 
 

@@ -100,6 +100,11 @@ func resolveArgs(
 		argName, _ := argdef["name"].(string)
 		argIn, _ := argdef["in"].(string)
 
+		// A Swagger body parameter is the request body, which the body step reads.
+		if argIn == "body" {
+			continue
+		}
+
 		// THE SPEC NAME AS WRITTEN is what the rename map is keyed by; the
 		// snakified form is the user-friendly runtime identifier. Both are
 		// needed, and this port kept only the second.

@@ -7,3 +7,4 @@ schema	entity	expected
 {"type":"array","items":{"type":"string"}}	tag	tags
 {"type":"array","items":{"x-ref":"#/components/schemas/Batch/properties/items/items"}}	order	orders
 {"type":"array"}	send_message	send_messages
+{"type":"array","items":{"x-ref":"#/components/schemas/123ItemRequest"}}	item	n123_items

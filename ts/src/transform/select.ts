@@ -7,7 +7,7 @@ import type { TransformResult, Transform } from '../transform'
 
 import { KIT } from '../types'
 
-import { arrayRequestField } from './body'
+import { arrayCarrier, guideMedia } from './body'
 
 import type {
   KitModel,
@@ -36,12 +36,14 @@ const selectTransform: Transform = async function(
 
   let msg = 'select '
 
-  each(kit.entity, (ment: ModelEntity, _entname: string) => {
-    each(ment.op, (mop: ModelOp, _opname: OpName) => {
+  each(kit.entity, (ment: ModelEntity, entname: string) => {
+    each(ment.op, (mop: ModelOp, opname: OpName) => {
       each(mop.points, (mpoint: ModelPoint) => {
-        // GraphQL defs have no `paths`, so their points get no path def.
+        // GraphQL defs have no `paths`; the lookup is only passed through to
+        // an unused parameter, so skip it rather than dereference undefined.
         const pdef: PathDef = def.paths?.[mpoint.o]
-        resolveSelect(guide, ment, mop, mpoint, pdef)
+        const carrier = arrayCarrier(def, mpoint, guideMedia(guide, entname, opname, mpoint).body)
+        resolveSelect(guide, ment, mop, mpoint, pdef, carrier)
       })
       if (null != mop.points && 0 < mop.points.length) {
         sortPoints(guide, ment, mop)
@@ -61,7 +63,8 @@ function resolveSelect(
   ment: ModelEntity,
   _mop: ModelOp,
   mpoint: ModelPoint,
-  pdef: PathDef
+  _pdef: PathDef,
+  carrier?: { name: string, required: boolean },
 ) {
   const select: any = mpoint.q
   const margs: any = mpoint.g
@@ -86,10 +89,9 @@ function resolveSelect(
     })
   })
 
-  const listfield = arrayRequestField(
-    (pdef as any)?.[String(mpoint.m).toLowerCase()], mpoint.t?.req)
-  if (null != listfield && !select.exist.includes(listfield)) {
-    select.exist.push(listfield)
+  // The field an array body is sent from, when the body is required.
+  if (carrier?.required && !select.exist.includes(carrier.name)) {
+    select.exist.push(carrier.name)
   }
 
   select.exist.sort()

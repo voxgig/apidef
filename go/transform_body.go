@@ -33,6 +33,7 @@ type bodyOffer struct {
 }
 
 type rankedBody struct {
+	offer    bodyOffer
 	declared string
 	body     map[string]any
 }
@@ -97,18 +98,9 @@ func guideBodyMedia(guide map[string]any, entname string, opname string, method 
 
 // Nil when the operation sends JSON alone.
 func requestBody(def map[string]any, method string, path string, media string) map[string]any {
-	paths, _ := def["paths"].(map[string]any)
-	pathdef, _ := paths[path].(map[string]any)
-	opdef, _ := pathdef[strings.ToLower(method)].(map[string]any)
-	if opdef == nil {
+	offers, ok := requestOffers(def, method, path)
+	if !ok {
 		return nil
-	}
-
-	var offers []bodyOffer
-	if def["swagger"] != nil {
-		offers = swaggerOffers(def, pathdef, opdef)
-	} else {
-		offers = openapiOffers(opdef)
 	}
 
 	body := chooseBody(offers, media)
@@ -142,14 +134,21 @@ func responseBody(def map[string]any, method string, path string, media string) 
 	return chooseBody(openapiResponseOffers(opdef), media)
 }
 
-func chooseBody(offers []bodyOffer, media string) map[string]any {
-	sort.SliceStable(offers, func(i, j int) bool { return lessUTF16(offers[i].media, offers[j].media) })
-	ranked := make([]rankedBody, 0, len(offers))
-	for _, offer := range offers {
-		ranked = append(ranked, rankedBody{
-			declared: strings.ToLower(strings.TrimSpace(offer.media)), body: describeBody(offer)})
+func requestOffers(def map[string]any, method string, path string) ([]bodyOffer, bool) {
+	paths, _ := def["paths"].(map[string]any)
+	pathdef, _ := paths[path].(map[string]any)
+	opdef, _ := pathdef[strings.ToLower(method)].(map[string]any)
+	if opdef == nil {
+		return nil, false
 	}
-	sort.SliceStable(ranked, func(i, j int) bool { return bodyBefore(ranked[i].body, ranked[j].body) })
+	if def["swagger"] != nil {
+		return swaggerOffers(def, pathdef, opdef), true
+	}
+	return openapiOffers(opdef), true
+}
+
+func chooseBody(offers []bodyOffer, media string) map[string]any {
+	ranked := rankOffers(offers)
 
 	bodies := []map[string]any{}
 	seen := map[string]bool{}
@@ -160,27 +159,11 @@ func chooseBody(offers []bodyOffer, media string) map[string]any {
 		}
 	}
 
-	// A named media type is matched as declared first, so a range keeps its schema.
 	var chosen map[string]any
-	if named := strings.ToLower(textOf(media)); named == "" {
-		if 0 < len(bodies) {
-			chosen = bodies[0]
-		}
-	} else {
-		for _, entry := range ranked {
-			if entry.declared == named {
-				chosen = entry.body
-				break
-			}
-		}
-		for _, body := range bodies {
-			if chosen == nil && strings.ToLower(body["media"].(string)) == named {
-				chosen = body
-			}
-		}
-		if chosen == nil {
-			chosen = describeBody(bodyOffer{media: textOf(media)})
-		}
+	if entry := chooseOffer(ranked, media); entry != nil {
+		chosen = entry.body
+	} else if textOf(media) != "" {
+		chosen = describeBody(bodyOffer{media: textOf(media)})
 	}
 
 	if chosen == nil {
@@ -201,6 +184,39 @@ func chooseBody(offers []bodyOffer, media string) map[string]any {
 		out[key] = val
 	}
 	return out
+}
+
+func rankOffers(offers []bodyOffer) []rankedBody {
+	sort.SliceStable(offers, func(i, j int) bool { return lessUTF16(offers[i].media, offers[j].media) })
+	ranked := make([]rankedBody, 0, len(offers))
+	for _, offer := range offers {
+		ranked = append(ranked, rankedBody{offer: offer,
+			declared: strings.ToLower(strings.TrimSpace(offer.media)), body: describeBody(offer)})
+	}
+	sort.SliceStable(ranked, func(i, j int) bool { return bodyBefore(ranked[i].body, ranked[j].body) })
+	return ranked
+}
+
+// A named media type is matched as declared first, so a range keeps its schema.
+func chooseOffer(ranked []rankedBody, media string) *rankedBody {
+	named := strings.ToLower(textOf(media))
+	if named == "" {
+		if 0 < len(ranked) {
+			return &ranked[0]
+		}
+		return nil
+	}
+	for i := range ranked {
+		if ranked[i].declared == named {
+			return &ranked[i]
+		}
+	}
+	for i := range ranked {
+		if strings.ToLower(ranked[i].body["media"].(string)) == named {
+			return &ranked[i]
+		}
+	}
+	return nil
 }
 
 func openapiOffers(opdef map[string]any) []bodyOffer {
@@ -595,31 +611,33 @@ func textOf(val any) string {
 	return strings.TrimSpace(text)
 }
 
-// jsonRequestSchema mirrors ts/src/transform/body.ts: the schema an
-// operation's request body is sent as JSON with, chosen among its JSON media
-// types as the body step chooses.
-func jsonRequestSchema(opdef map[string]any) any {
-	offers := openapiOffers(opdef)
-	sort.SliceStable(offers, func(i, j int) bool { return lessUTF16(offers[i].media, offers[j].media) })
-	var chosen *bodyOffer
-	var chosenBody map[string]any
-	for i := range offers {
-		body := describeBody(offers[i])
-		if body["kind"] != "json" {
-			continue
-		}
-		if chosen == nil || bodyBefore(body, chosenBody) {
-			chosen, chosenBody = &offers[i], body
-		}
-	}
-	if chosen == nil {
+// jsonSchema mirrors ts/src/transform/body.ts: the schema the body step
+// sends a request body with, when that body is JSON.
+func jsonSchema(offers []bodyOffer, media string) any {
+	chosen := chooseOffer(rankOffers(offers), media)
+	if chosen == nil || chosen.body["kind"] != "json" {
 		return nil
 	}
-	return chosen.schema
+	return chosen.offer.schema
 }
 
-func arrayRequestSchema(opdef map[string]any) map[string]any {
-	schema, _ := jsonRequestSchema(opdef).(map[string]any)
+func jsonRequestSchema(opdef map[string]any) any {
+	if opdef == nil {
+		return nil
+	}
+	return jsonSchema(openapiOffers(opdef), "")
+}
+
+// requestSchema mirrors ts/src/transform/body.ts: the JSON schema a point's
+// request body is sent with, under the media type the guide names, else the
+// one the body step prefers.
+func requestSchema(def map[string]any, method string, path string, media string) any {
+	offers, _ := requestOffers(def, method, path)
+	return jsonSchema(offers, media)
+}
+
+func arrayRequestSchema(def map[string]any, method string, path string, media string) map[string]any {
+	schema, _ := requestSchema(def, method, path, media).(map[string]any)
 	if !schemaHasType(schema, "array") {
 		return nil
 	}
@@ -628,16 +646,52 @@ func arrayRequestSchema(opdef map[string]any) map[string]any {
 
 var reqdataFieldRE = regexp.MustCompile("^`reqdata\\.([A-Za-z_][A-Za-z0-9_]*)`$")
 
-// arrayRequestField mirrors ts/src/transform/body.ts: the field of the request
-// data an array body is sent from, when the point's request transform unwraps
+type arrayCarrierInfo struct {
+	name        string
+	required    bool
+	description string
+}
+
+// arrayCarrier mirrors ts/src/transform/body.ts: the field of the request data
+// a point's JSON array body is sent from, when its request transform unwraps
 // one.
-func arrayRequestField(opdef map[string]any, req any) string {
-	s, ok := req.(string)
-	if !ok || arrayRequestSchema(opdef) == nil {
-		return ""
+func arrayCarrier(def map[string]any, mtarget map[string]any, media string) *arrayCarrierInfo {
+	t, _ := mtarget["t"].(map[string]any)
+	req, _ := t["req"].(string)
+	m := reqdataFieldRE.FindStringSubmatch(req)
+	if m == nil {
+		return nil
 	}
-	if m := reqdataFieldRE.FindStringSubmatch(s); m != nil {
-		return m[1]
+	method, _ := mtarget["m"].(string)
+	path, _ := mtarget["o"].(string)
+	schema := arrayRequestSchema(def, method, path, media)
+	if schema == nil {
+		return nil
 	}
-	return ""
+	decl := requestDecl(def, method, path)
+	description := textOf(decl["description"])
+	if description == "" {
+		description = textOf(schema["description"])
+	}
+	return &arrayCarrierInfo{name: m[1], required: decl["required"] == true, description: description}
+}
+
+// OpenAPI's request body, or the Swagger parameter that is one.
+func requestDecl(def map[string]any, method string, path string) map[string]any {
+	paths, _ := def["paths"].(map[string]any)
+	pathdef, _ := paths[path].(map[string]any)
+	opdef, _ := pathdef[strings.ToLower(method)].(map[string]any)
+	if opdef == nil {
+		return nil
+	}
+	if def["swagger"] != nil {
+		for _, param := range swaggerParams(pathdef, opdef) {
+			if param["in"] == "body" {
+				return param
+			}
+		}
+		return nil
+	}
+	rb, _ := opdef["requestBody"].(map[string]any)
+	return rb
 }
