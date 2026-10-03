@@ -463,22 +463,28 @@ function arrayRequestSchema(def: any, method: string, path: string, media?: stri
 }
 
 
-// An array, or an allOf whose members make one, with the outer description.
-function arrayShape(schema: any, seen: Set<any> = new Set()): any {
-  if (hasType(schema, 'array')) {
-    return schema
-  }
-  if (!isMap(schema) || seen.has(schema) || !Array.isArray(schema.allOf)) {
-    return undefined
-  }
-  seen.add(schema)
-  for (const member of schema.allOf) {
-    const list = arrayShape(member, seen)
-    if (null != list) {
-      return null == schema.description ? list : { ...list, description: schema.description }
+// An array, or an allOf whose parts make one: each fact from the first part
+// that states it, outermost first, the items from the array's own part first.
+function arrayShape(schema: any): any {
+  const parts: any[] = []
+  const visit = (node: any) => {
+    if (isMap(node) && !parts.includes(node)) {
+      parts.push(node)
+      ; (Array.isArray(node.allOf) ? node.allOf : []).forEach(visit)
     }
   }
-  return undefined
+  visit(schema)
+  const list = parts.find((part) => hasType(part, 'array'))
+  if (null == list || 1 === parts.length) {
+    return list
+  }
+  const items = list.items ?? parts.find((part) => null != part.items)?.items
+  const description = parts.find((part) => null != part.description)?.description
+  return {
+    ...list,
+    ...(null == items ? {} : { items }),
+    ...(null == description ? {} : { description }),
+  }
 }
 
 
@@ -490,7 +496,7 @@ function arrayCarrier(
   def: any,
   mpoint: ModelPoint,
   media?: string,
-): { name: string, required: boolean, description?: string } | undefined {
+): { name: string, required: boolean, type: string | string[], description?: string } | undefined {
   const req: any = mpoint.t?.req
   const name = 'string' === typeof req ? req.match(REQDATA_FIELD_RE)?.[1] : undefined
   const schema = null == name ? undefined : arrayRequestSchema(def, mpoint.m, mpoint.o, media)
@@ -501,6 +507,7 @@ function arrayCarrier(
   return {
     name,
     required: true === decl?.required,
+    type: schema.type,
     description: textOf(decl?.description) ?? textOf(schema.description),
   }
 }

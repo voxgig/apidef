@@ -4,9 +4,9 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 18
-  metrics: count: path: 22
-  metrics: count: method: 23
+  metrics: count: entity: 21
+  metrics: count: path: 27
+  metrics: count: method: 28
 
   entity: alarm: {
     path: "/alarms": {
@@ -29,6 +29,18 @@ guide: {
   entity: broadcast: {
     path: "/broadcasts": {
       op: create: method: *POST
+    }
+  }
+
+  entity: doc: {
+    path: "/docs/{doc_id}": {
+      rename: param: "doc_id": *"id"
+      op: patch: method: *PATCH
+    }
+    path: "/docs/{doc_id}/archive": {
+      action: "archive": {}
+      rename: param: "doc_id": *"id"
+      op: update: method: *PUT
     }
   }
 
@@ -105,8 +117,23 @@ guide: {
     }
   }
 
+  entity: shipment: {
+    path: "/shipments": {
+      op: create: method: *POST
+    }
+  }
+
   entity: tag: {
     path: "/tags": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: todo: {
+    path: "/lists/{list_id}/todos": {
+      op: create: method: *POST
+    }
+    path: "/todos": {
       op: create: method: *POST
     }
   }

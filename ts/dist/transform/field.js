@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.fieldTransform = void 0;
 exports.inferFieldsFromExamples = inferFieldsFromExamples;
 exports.inferTypeFromValue = inferTypeFromValue;
+exports.routeFieldNames = routeFieldNames;
 const jostraca_1 = require("jostraca");
 const utility_1 = require("../utility");
 const body_1 = require("./body");
@@ -427,6 +428,11 @@ function addressedById(ment) {
 function resolveOpFields(ment, mop, mpoint, def, media) {
     return findFieldDefs(ment, mop, mpoint, def, media).map(modelField);
 }
+// The names of a route's fields, read with no action and no carrier of its own.
+function routeFieldNames(ment, opname, mpoint, def, media) {
+    const route = { k: mpoint.k, m: mpoint.m, o: mpoint.o, q: {} };
+    return resolveOpFields(ment, { name: opname }, route, def, media).map((mfield) => mfield.n);
+}
 function modelField(fielddef) {
     const fieldname = fielddef.key$;
     // Field names are WIRE identifiers — see canonizeField. Using the
@@ -633,7 +639,7 @@ function carrierOf(mpoint, def, media) {
 }
 // Optional, as the record never holds it.
 function carrierDef(carrier) {
-    return { key$: carrier.name, type: 'array', description: carrier.description };
+    return { key$: carrier.name, type: carrier.type, description: carrier.description };
 }
 // A schema and its allOf members describe one object: a name any of them
 // requires is required, and a property declared more than once is one field

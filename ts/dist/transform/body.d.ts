@@ -13,6 +13,7 @@ declare function arrayRequestSchema(def: any, method: string, path: string, medi
 declare function arrayCarrier(def: any, mpoint: ModelPoint, media?: string): {
     name: string;
     required: boolean;
+    type: string | string[];
     description?: string;
 } | undefined;
 export { bodyTransform, guideMedia, requestBody, responseBody, jsonRequestSchema, requestSchema, arrayRequestSchema, arrayCarrier, };

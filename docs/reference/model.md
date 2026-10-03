@@ -130,12 +130,13 @@ flag. `ts/test/allof-field.tsv` pins each case.
 
 A JSON request body that is an array has no properties, so the point that
 sends it declares one field for it: the field its `t.req` sends the array
-from. The field is `` `$ARRAY` `` and never required, because every field is
-also part of the record, and no record holds the list. Its `sh` is the
-request body's description, else the array schema's. A remove point declares
-it too, though nothing else a remove sends or answers becomes a field. A
-point that is an action declares none, as an action's body never describes
-the record. A Swagger 2 `body` parameter is the request body: its properties
+from. The field takes the array schema's own type, so it is `` `$ARRAY` ``,
+or `` [`$ONE`, [`$ARRAY`, `$NULL`]] `` for a body that may be null. It is
+never required, because every field is also part of the record, and no
+record holds the list. Its `sh` is the request body's description, else the
+array schema's. A remove point declares it too, though nothing else a remove
+sends or answers becomes a field. A point that is an action declares none,
+as an action's body never describes the record. A Swagger 2 `body` parameter is the request body: its properties
 become fields as an OpenAPI 3 body's do, and it is never an argument.
 
 ## `ModelOp`

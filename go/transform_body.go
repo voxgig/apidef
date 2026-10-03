@@ -638,41 +638,59 @@ func requestSchema(def map[string]any, method string, path string, media string)
 }
 
 func arrayRequestSchema(def map[string]any, method string, path string, media string) map[string]any {
-	return arrayShape(requestSchema(def, method, path, media), map[string]bool{})
+	return arrayShape(requestSchema(def, method, path, media))
 }
 
 // arrayShape mirrors ts/src/transform/body.ts: an array, or an allOf whose
-// members make one, with the outer description.
-func arrayShape(schema any, seen map[string]bool) map[string]any {
-	m, _ := schema.(map[string]any)
-	if m == nil {
-		return nil
-	}
-	if schemaHasType(m, "array") {
-		return m
-	}
-	id := fmt.Sprintf("%p", m)
-	allOf, ok := m["allOf"].([]any)
-	if seen[id] || !ok {
-		return nil
-	}
-	seen[id] = true
-	for _, member := range allOf {
-		list := arrayShape(member, seen)
-		if list == nil {
-			continue
+// parts make one, each fact from the first part that states it, outermost
+// first, the items from the array's own part first.
+func arrayShape(schema any) map[string]any {
+	parts := []map[string]any{}
+	seen := map[string]bool{}
+	var visit func(node any)
+	visit = func(node any) {
+		m, _ := node.(map[string]any)
+		id := fmt.Sprintf("%p", m)
+		if m == nil || seen[id] {
+			return
 		}
-		if m["description"] == nil {
-			return list
+		seen[id] = true
+		parts = append(parts, m)
+		members, _ := m["allOf"].([]any)
+		for _, member := range members {
+			visit(member)
 		}
-		out := map[string]any{}
-		for key, val := range list {
-			out[key] = val
-		}
-		out["description"] = m["description"]
-		return out
 	}
-	return nil
+	visit(schema)
+	var list map[string]any
+	for _, part := range parts {
+		if schemaHasType(part, "array") {
+			list = part
+			break
+		}
+	}
+	if list == nil || len(parts) == 1 {
+		return list
+	}
+	out := map[string]any{}
+	for key, val := range list {
+		out[key] = val
+	}
+	if out["items"] == nil {
+		for _, part := range parts {
+			if part["items"] != nil {
+				out["items"] = part["items"]
+				break
+			}
+		}
+	}
+	for _, part := range parts {
+		if part["description"] != nil {
+			out["description"] = part["description"]
+			break
+		}
+	}
+	return out
 }
 
 var reqdataFieldRE = regexp.MustCompile("^`reqdata\\.([A-Za-z_][A-Za-z0-9_]*)`$")
@@ -680,6 +698,7 @@ var reqdataFieldRE = regexp.MustCompile("^`reqdata\\.([A-Za-z_][A-Za-z0-9_]*)`$"
 type arrayCarrierInfo struct {
 	name        string
 	required    bool
+	typ         any
 	description string
 }
 
@@ -704,7 +723,7 @@ func arrayCarrier(def map[string]any, mtarget map[string]any, media string) *arr
 	if description == "" {
 		description = textOf(schema["description"])
 	}
-	return &arrayCarrierInfo{name: m[1], required: decl["required"] == true, description: description}
+	return &arrayCarrierInfo{name: m[1], required: decl["required"] == true, typ: schema["type"], description: description}
 }
 
 // OpenAPI's request body, or the Swagger parameter that is one.

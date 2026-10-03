@@ -4,6 +4,7 @@ exports.operationTransform = void 0;
 const utility_1 = require("../utility");
 const heuristic01_1 = require("../guide/heuristic01");
 const body_1 = require("./body");
+const field_1 = require("./field");
 const jostraca_1 = require("jostraca");
 const types_1 = require("../types");
 // The op names the transform resolves. Anything else under a guide path's
@@ -31,13 +32,20 @@ const operationTransform = async function (ctx) {
             remove: undefined,
             patch: undefined,
         };
-        const on = { gent, def, entname };
+        const on = { gent, def, entname, guide };
         resolveLoad(opm, on);
         resolveList(opm, on);
         resolveCreate(opm, on);
         resolveUpdate(opm, on);
         resolveRemove(opm, on);
         resolvePatch(opm, on);
+        // After patch has joined update, so each operation's routes are final.
+        for (const mop of Object.values(opm)) {
+            for (const mpoint of mop?.points ?? []) {
+                mpoint.t.req = mpoint.t.req ?? requestDefault(on, kit.entity[entname], mop, mpoint);
+                mpoint.t.res = mpoint.t.res ?? '`body`';
+            }
+        }
         kit.entity[entname].op = opm;
         msg += gent.name + ' ';
     });
@@ -139,8 +147,6 @@ function resolveOp(opname, on) {
                         exist: []
                     }
                 };
-                mpoint.t.req = mpoint.t.req ?? requestDefault(on, p, opdesc.paths);
-                mpoint.t.res = mpoint.t.res ?? '`body`';
                 return mpoint;
             })
         };
@@ -148,16 +154,17 @@ function resolveOp(opname, on) {
     return mop;
 }
 // An array body is sent from one field of the request data, named for its
-// records, and never for a field another route of the operation is sent with.
-// Decided here rather than by the guide heuristic, as the media type the guide
-// names decides whether the body is an array.
-function requestDefault(on, p, paths) {
-    const body = (q) => (0, body_1.requestSchema)(on.def, q.method, q.orig, q.op?.body?.media);
-    const list = (0, body_1.arrayRequestSchema)(on.def, p.method, p.orig, p.op?.body?.media);
+// records, and never for a field another route of the operation has. Decided
+// here rather than by the guide heuristic, as the media type the guide names
+// decides whether the body is an array.
+function requestDefault(on, ment, mop, mpoint) {
+    const media = (q) => (0, body_1.guideMedia)(on.guide, on.entname, mop.name, q).body;
+    const list = (0, body_1.arrayRequestSchema)(on.def, mpoint.m, mpoint.o, media(mpoint));
     if (null == list) {
         return '`reqdata`';
     }
-    const taken = paths.filter((q) => q !== p).flatMap((q) => Object.keys((0, utility_1.mergedProperties)(body(q)) ?? {}));
+    const taken = mop.points.filter((q) => q !== mpoint)
+        .flatMap((q) => (0, field_1.routeFieldNames)(ment, mop.name, q, on.def, media(q)));
     return '`reqdata.' + (0, heuristic01_1.arrayBodyField)(list, on.entname, taken) + '`';
 }
 //# sourceMappingURL=operation.js.map

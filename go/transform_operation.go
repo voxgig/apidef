@@ -39,21 +39,7 @@ func OperationTransform(ctx *ApiDefContext) (*TransformResult, error) {
 		}
 
 		pathsDesc, _ := ment["paths$"].([]map[string]any)
-		opm, opmWork := collectOps(ctx, entname, gentMap, pathsDesc, methodIDOp)
-
-		if patch, ok := opm["patch"].(map[string]any); ok {
-			update, hasUpdate := opm["update"].(map[string]any)
-			if !hasUpdate || onlyActionPaths(opmWork["update"]) {
-				if hasUpdate {
-					pts, _ := patch["points"].([]any)
-					upts, _ := update["points"].([]any)
-					patch["points"] = append(pts, upts...)
-				}
-				patch["name"] = "update"
-				opm["update"] = patch
-				delete(opm, "patch")
-			}
-		}
+		opm, _ := collectOps(ctx, entname, gentMap, pathsDesc, methodIDOp)
 
 		ment["op"] = opm
 		msg += entname + " "
@@ -124,7 +110,7 @@ func collectOps(ctx *ApiDefContext, entname string, gent map[string]any, pathsDe
 	for _, opname := range sortedKeysOpmWork(opmWork) {
 		paths := opmWork[opname]
 		points := make([]any, 0)
-		for i, p := range paths {
+		for _, p := range paths {
 			segments, _ := p["segments"].([]map[string]any)
 			if segments == nil {
 				segments = []map[string]any{}
@@ -137,13 +123,6 @@ func collectOps(ctx *ApiDefContext, entname string, gent map[string]any, pathsDe
 					}
 				}
 			}
-			if transform["req"] == nil {
-				transform["req"] = requestDefault(ctx, entname, paths, i)
-			}
-			if transform["res"] == nil {
-				transform["res"] = "`body`"
-			}
-
 			mtarget := map[string]any{
 				"o": p["orig"],
 				"s": segments,
@@ -163,33 +142,63 @@ func collectOps(ctx *ApiDefContext, entname string, gent map[string]any, pathsDe
 		}
 	}
 
+	if patch, ok := opm["patch"].(map[string]any); ok {
+		update, hasUpdate := opm["update"].(map[string]any)
+		if !hasUpdate || onlyActionPaths(opmWork["update"]) {
+			if hasUpdate {
+				pts, _ := patch["points"].([]any)
+				upts, _ := update["points"].([]any)
+				patch["points"] = append(pts, upts...)
+			}
+			patch["name"] = "update"
+			opm["update"] = patch
+			delete(opm, "patch")
+		}
+	}
+
+	// After patch has joined update, so each operation's routes are final.
+	for _, opname := range sortedKeys(opm) {
+		mop, _ := opm[opname].(map[string]any)
+		name, _ := mop["name"].(string)
+		points, _ := mop["points"].([]any)
+		for i, pt := range points {
+			transform, _ := pt.(map[string]any)["t"].(map[string]any)
+			if transform["req"] == nil {
+				transform["req"] = requestDefault(ctx, entname, name, points, i)
+			}
+			if transform["res"] == nil {
+				transform["res"] = "`body`"
+			}
+		}
+	}
+
 	return opm, opmWork
 }
 
 // requestDefault mirrors ts/src/transform/operation.ts: an array body is sent
 // from one field of the request data, named for its records, and never for a
-// field another route of the operation is sent with.
-func requestDefault(ctx *ApiDefContext, entname string, paths []map[string]any, at int) string {
+// field another route of the operation has.
+func requestDefault(ctx *ApiDefContext, entname string, opname string, points []any, at int) string {
 	if ctx == nil {
 		return "`reqdata`"
 	}
-	body := func(q map[string]any) any {
-		gop, _ := q["op"].(map[string]any)
-		gbody, _ := gop["body"].(map[string]any)
-		method, _ := q["method"].(string)
-		path, _ := q["orig"].(string)
-		return requestSchema(ctx.Def, method, path, textOf(gbody["media"]))
+	media := func(q map[string]any) string {
+		method, _ := q["m"].(string)
+		path, _ := q["o"].(string)
+		body, _ := guideBodyMedia(ctx.Guide, entname, opname, method, path)
+		return body
 	}
-	list := arrayShape(body(paths[at]), map[string]bool{})
+	mpoint, _ := points[at].(map[string]any)
+	method, _ := mpoint["m"].(string)
+	path, _ := mpoint["o"].(string)
+	list := arrayRequestSchema(ctx.Def, method, path, media(mpoint))
 	if list == nil {
 		return "`reqdata`"
 	}
 	taken := []string{}
-	for j, q := range paths {
-		if j != at {
-			for key := range mergedProperties(body(q)) {
-				taken = append(taken, key)
-			}
+	for j, pt := range points {
+		if q, _ := pt.(map[string]any); j != at && q != nil {
+			taken = append(taken, routeFieldNames(q, ctx.Def, opname, entname, media(q))...)
 		}
 	}
 	return "`reqdata." + arrayBodyField(list, entname, taken) + "`"

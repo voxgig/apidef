@@ -1,8 +1,10 @@
-import { guideActive, mergedProperties } from '../utility'
+import { guideActive } from '../utility'
 
 import { arrayBodyField } from '../guide/heuristic01'
 
-import { arrayRequestSchema, requestSchema } from './body'
+import { arrayRequestSchema, guideMedia } from './body'
+
+import { routeFieldNames } from './field'
 
 
 import { each } from 'jostraca'
@@ -25,6 +27,7 @@ import type {
   ModelOpMap,
   ModelOp,
   ModelPoint,
+  ModelEntity,
 } from '../model'
 
 
@@ -63,13 +66,21 @@ const operationTransform: Transform = async function(
       patch: undefined,
     }
 
-    const on = { gent, def, entname }
+    const on = { gent, def, entname, guide }
     resolveLoad(opm, on)
     resolveList(opm, on)
     resolveCreate(opm, on)
     resolveUpdate(opm, on)
     resolveRemove(opm, on)
     resolvePatch(opm, on)
+
+    // After patch has joined update, so each operation's routes are final.
+    for (const mop of Object.values(opm)) {
+      for (const mpoint of mop?.points ?? []) {
+        mpoint.t.req = mpoint.t.req ?? requestDefault(on, kit.entity[entname], mop!, mpoint)
+        mpoint.t.res = mpoint.t.res ?? '`body`'
+      }
+    }
 
     kit.entity[entname].op = opm
 
@@ -179,7 +190,7 @@ function onlyActionPaths(gent: GuideEntity, opname: OpName): boolean {
 }
 
 
-type OpEntity = { gent: GuideEntity, def: any, entname: string }
+type OpEntity = { gent: GuideEntity, def: any, entname: string, guide: any }
 
 
 function resolveOp(opname: OpName, on: OpEntity): undefined | ModelOp {
@@ -203,9 +214,6 @@ function resolveOp(opname: OpName, on: OpEntity): undefined | ModelOp {
           }
         }
 
-        mpoint.t.req = mpoint.t.req ?? requestDefault(on, p, opdesc.paths)
-        mpoint.t.res = mpoint.t.res ?? '`body`'
-
         return mpoint
       })
     }
@@ -217,16 +225,17 @@ function resolveOp(opname: OpName, on: OpEntity): undefined | ModelOp {
 
 
 // An array body is sent from one field of the request data, named for its
-// records, and never for a field another route of the operation is sent with.
-// Decided here rather than by the guide heuristic, as the media type the guide
-// names decides whether the body is an array.
-function requestDefault(on: OpEntity, p: PathDesc, paths: PathDesc[]): string {
-  const body = (q: PathDesc) => requestSchema(on.def, q.method, q.orig, (q as any).op?.body?.media)
-  const list = arrayRequestSchema(on.def, p.method, p.orig, (p as any).op?.body?.media)
+// records, and never for a field another route of the operation has. Decided
+// here rather than by the guide heuristic, as the media type the guide names
+// decides whether the body is an array.
+function requestDefault(on: OpEntity, ment: ModelEntity, mop: ModelOp, mpoint: ModelPoint): string {
+  const media = (q: ModelPoint) => guideMedia(on.guide, on.entname, mop.name, q).body
+  const list = arrayRequestSchema(on.def, mpoint.m, mpoint.o, media(mpoint))
   if (null == list) {
     return '`reqdata`'
   }
-  const taken = paths.filter((q) => q !== p).flatMap((q) => Object.keys(mergedProperties(body(q)) ?? {}))
+  const taken = mop.points.filter((q) => q !== mpoint)
+    .flatMap((q) => routeFieldNames(ment, mop.name, q, on.def, media(q)))
   return '`reqdata.' + arrayBodyField(list, on.entname, taken) + '`'
 }
 

@@ -577,6 +577,19 @@ function resolveOpFields(
 }
 
 
+// The names of a route's fields, read with no action and no carrier of its own.
+function routeFieldNames(
+  ment: ModelEntity,
+  opname: string,
+  mpoint: ModelPoint,
+  def: any,
+  media?: string,
+): string[] {
+  const route = { k: mpoint.k, m: mpoint.m, o: mpoint.o, q: {} } as ModelPoint
+  return resolveOpFields(ment, { name: opname } as ModelOp, route, def, media).map((mfield) => mfield.n)
+}
+
+
 function modelField(fielddef: SchemaDef): ModelField {
   const fieldname = (fielddef as any).key$ as string
   // Field names are WIRE identifiers — see canonizeField. Using the
@@ -831,8 +844,8 @@ function carrierOf(mpoint: ModelPoint, def: any, media?: string) {
 
 
 // Optional, as the record never holds it.
-function carrierDef(carrier: { name: string, description?: string }): SchemaDef {
-  return { key$: carrier.name, type: 'array', description: carrier.description } as SchemaDef
+function carrierDef(carrier: { name: string, type: string | string[], description?: string }): SchemaDef {
+  return { key$: carrier.name, type: carrier.type, description: carrier.description } as SchemaDef
 }
 
 
@@ -1048,4 +1061,5 @@ export {
   fieldTransform,
   inferFieldsFromExamples,
   inferTypeFromValue,
+  routeFieldNames,
 }

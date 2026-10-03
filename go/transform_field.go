@@ -568,6 +568,19 @@ func resolveOpFields(mtarget map[string]any, def map[string]any, opname string, 
 	return mfields
 }
 
+// routeFieldNames mirrors ts/src/transform/field.ts: the names of the fields a
+// route gives its entity, read as for a route without an action, and without
+// the carrier its own request transform names.
+func routeFieldNames(mtarget map[string]any, def map[string]any, opname string, entname string, media string) []string {
+	route := map[string]any{"k": mtarget["k"], "m": mtarget["m"], "o": mtarget["o"], "q": map[string]any{}}
+	names := []string{}
+	for _, mfield := range resolveOpFields(route, def, opname, entname, media) {
+		name, _ := mfield["n"].(string)
+		names = append(names, name)
+	}
+	return names
+}
+
 func modelField(fielddef map[string]any) map[string]any {
 	// Field names are WIRE identifiers — see CanonizeField. Using the
 	// entity-name canonizer here renamed modelType -> model_type and
@@ -759,7 +772,7 @@ func carrierOf(mtarget map[string]any, def map[string]any, media string) *arrayC
 // carrierDef mirrors ts/src/transform/field.ts: optional, as the record never
 // holds it.
 func carrierDef(c *arrayCarrierInfo) map[string]any {
-	fd := map[string]any{"key$": c.name, "type": "array"}
+	fd := map[string]any{"key$": c.name, "type": c.typ}
 	if c.description != "" {
 		fd["description"] = c.description
 	}
