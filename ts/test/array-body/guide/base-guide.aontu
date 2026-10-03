@@ -4,9 +4,9 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 43
-  metrics: count: path: 54
-  metrics: count: method: 55
+  metrics: count: entity: 45
+  metrics: count: path: 56
+  metrics: count: method: 57
 
   entity: alarm: {
     path: "/alarms": {
@@ -17,6 +17,13 @@ guide: {
   entity: alert: {
     path: "/alerts": {
       op: create: method: *POST
+    }
+  }
+
+  entity: bale: {
+    path: "/bales": {
+      op: create: method: *POST
+      op: create: transform: req: "bale": *("`reqdata`")|top
     }
   }
 
@@ -193,6 +200,14 @@ guide: {
   entity: notice: {
     path: "/notices": {
       op: create: method: *POST
+    }
+  }
+
+  entity: pallet: {
+    path: "/pallets": {
+      op: create: method: *POST
+      op: create: transform: req: "name": *("`reqdata.name`")|top
+      op: create: transform: req: "weight": *("`reqdata.weight`")|top
     }
   }
 

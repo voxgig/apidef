@@ -1584,6 +1584,66 @@
           }
         }
       }
+    },
+    "/pallets": {
+      "post": {
+        "operationId": "createPallets",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PalletInput"
+              }
+            },
+            "application/vnd.acme.pallet+json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "pallet": {
+                    "$ref": "#/components/schemas/Pallet"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No content"
+          }
+        }
+      }
+    },
+    "/bales": {
+      "post": {
+        "operationId": "createBales",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "bale": {
+                    "$ref": "#/components/schemas/Bale"
+                  }
+                }
+              }
+            },
+            "application/vnd.acme.bale+json": {
+              "schema": {
+                "$ref": "#/components/schemas/BaleInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No content"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2115,6 +2175,52 @@
         "properties": {
           "id": {
             "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "PalletInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "weight": {
+            "type": "integer"
+          }
+        }
+      },
+      "Pallet": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "weight": {
+            "type": "integer"
+          }
+        }
+      },
+      "BaleInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "size": {
+            "type": "integer"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "Bale": {
+        "type": "object",
+        "properties": {
+          "size": {
+            "type": "integer"
           },
           "label": {
             "type": "string"

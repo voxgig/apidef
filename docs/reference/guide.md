@@ -71,8 +71,8 @@ declares.
 `` `reqdata.messages` `` declares `messages`, and `` `reqdata` `` sends the
 input as it is, with no field. When `body.media` names another media type, a
 `transform.req` the base guide took from the preferred body is taken again
-from the chosen one: the array's field, a closed body's own properties, or
-`` `reqdata` ``.
+from the chosen one: the array's field, the record under the entity's name,
+a closed body's own properties, or `` `reqdata` ``.
 
 ### `GuideMetrics`
 

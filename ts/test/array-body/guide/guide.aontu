@@ -11,3 +11,5 @@ guide: entity: crew: path: "/crews": op: create: body: media: "application/vnd.a
 guide: entity: deck: path: "/decks": op: create: body: media: "application/vnd.acme.deck+json"
 guide: entity: form: path: "/forms": op: create: body: media: "application/x-www-form-urlencoded"
 guide: entity: upload: path: "/uploads": op: create: body: media: "application/x-www-form-urlencoded"
+guide: entity: pallet: path: "/pallets": op: create: body: media: "application/vnd.acme.pallet+json"
+guide: entity: bale: path: "/bales": op: create: body: media: "application/vnd.acme.bale+json"

@@ -2,6 +2,7 @@
   "points": [
     "alarm.create POST /alarms exist=alarms action= req=\"`reqdata.alarms`\"",
     "alert.create POST /alerts exist=alerts action= req=\"`reqdata.alerts`\"",
+    "bale.create POST /bales exist= action= req={\"label\":\"`reqdata.label`\",\"size\":\"`reqdata.size`\"}",
     "batch.create POST /batches exist=batch_inputs action= req=\"`reqdata.batch_inputs`\"",
     "beacon.create POST /beacons exist=pings action= req=\"`reqdata.pings`\"",
     "bin.create POST /bins exist=bins action= req=\"`reqdata.bins`\"",
@@ -33,6 +34,7 @@
     "note.create POST /boards/{board_id}/notes exist=board_id,note_list action= req=\"`reqdata.note_list`\"",
     "note.create POST /notes exist= action= req=\"`reqdata`\"",
     "notice.create POST /notices exist=notices action= req=\"`reqdata.notices`\"",
+    "pallet.create POST /pallets exist= action= req={\"pallet\":\"`reqdata`\"}",
     "pin.create POST /pins exist=pins action= req=\"`reqdata.pins`\"",
     "record.create POST /records exist= action= req=\"`reqdata`\"",
     "score.create POST /games/{game_id}/scores exist=game_id,scores action= req=\"`reqdata.scores`\"",
@@ -67,6 +69,16 @@
     "alert": {
       "alerts": {
         "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "bale": {
+      "label": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "size": {
+        "t": "`$INTEGER`",
         "r": false
       }
     },
@@ -316,6 +328,12 @@
             "type": "`$ARRAY`"
           }
         }
+      }
+    },
+    "pallet": {
+      "pallet": {
+        "t": "`$OBJECT`",
+        "r": false
       }
     },
     "pin": {
