@@ -643,16 +643,24 @@ function mergeDeclarations(decls) {
     const merged = {};
     for (const decl of decls) {
         for (const [key, value] of Object.entries(decl)) {
-            if (!statesFact(merged[key]) && statesFact(value)) {
+            if (!statesFact(key, merged[key]) && statesFact(key, value)) {
                 merged[key] = value;
             }
         }
     }
     return merged;
 }
-// A blank string states nothing, so a later declaration may.
-function statesFact(value) {
-    return null != value && !('string' === typeof value && '' === value.trim());
+const ANNOTATION_FLAGS = ['readOnly', 'writeOnly', 'deprecated'];
+// A blank string states nothing, and nor does a false annotation flag, so a
+// later declaration may.
+function statesFact(key, value) {
+    if (null == value) {
+        return false;
+    }
+    if ('string' === typeof value) {
+        return '' !== value.trim();
+    }
+    return !(false === value && ANNOTATION_FLAGS.includes(key));
 }
 function answersOnlyAccepted(responses) {
     return null == responses['200'] && null == responses['201'] && null != responses['202'];

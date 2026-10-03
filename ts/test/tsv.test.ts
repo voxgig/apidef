@@ -697,6 +697,44 @@ describe('tsv-allof-field', () => {
 })
 
 
+// The fields the transform builds for one operation whose response, and
+// request when it has one, compose their properties with allOf.
+describe('tsv-allof-record', () => {
+  const rows = loadTsv('allof-record')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, async () => {
+      const method = 'load' === row.op ? 'get' : 'post'
+      const body = (src: string) => ({ content: { 'application/json': { schema: JSON.parse(src) } } })
+      const opdef: any = { responses: { 200: body(row.response) } }
+      if ('' !== row.request) {
+        opdef.requestBody = body(row.request)
+      }
+      const ment: any = {
+        name: 'job',
+        fields: {},
+        op: { [row.op]: { name: row.op, points: [{ o: '/jobs', m: method.toUpperCase(), k: 'json' }] } },
+      }
+
+      await fieldTransform({
+        apimodel: { main: { kit: { entity: { job: ment } } } },
+        def: { paths: { '/jobs': { [method]: opdef } } },
+      } as any)
+
+      const got: any = {}
+      for (const name of Object.keys(ment.fields)) {
+        const field = ment.fields[name]
+        got[name] = Object.fromEntries(['t', 'r', 'sh', 'fo', 'ro', 'wo', 'de', 'union', 'op']
+          .filter((key: string) => undefined !== field[key] &&
+            !('op' === key && 0 === Object.keys(field.op).length))
+          .map((key: string) => [key, field[key]]))
+      }
+      assert.deepStrictEqual(got, JSON.parse(row.expected))
+    })
+  }
+})
+
+
 describe('tsv-path-resource', () => {
   const rows = loadTsv('path-resource')
   test('has rows', () => assert.ok(0 < rows.length))

@@ -837,7 +837,7 @@ function mergeDeclarations(decls: any[]): any {
   const merged: any = {}
   for (const decl of decls) {
     for (const [key, value] of Object.entries(decl)) {
-      if (!statesFact(merged[key]) && statesFact(value)) {
+      if (!statesFact(key, merged[key]) && statesFact(key, value)) {
         merged[key] = value
       }
     }
@@ -846,9 +846,18 @@ function mergeDeclarations(decls: any[]): any {
 }
 
 
-// A blank string states nothing, so a later declaration may.
-function statesFact(value: any): boolean {
-  return null != value && !('string' === typeof value && '' === value.trim())
+const ANNOTATION_FLAGS = ['readOnly', 'writeOnly', 'deprecated']
+
+// A blank string states nothing, and nor does a false annotation flag, so a
+// later declaration may.
+function statesFact(key: string, value: any): boolean {
+  if (null == value) {
+    return false
+  }
+  if ('string' === typeof value) {
+    return '' !== value.trim()
+  }
+  return !(false === value && ANNOTATION_FLAGS.includes(key))
 }
 
 

@@ -891,7 +891,7 @@ func composedFields(schema any) []map[string]any {
 			// reads oneOf and anyOf from the field def. Unasserted: a 3.1
 			// nullable field's type is an ARRAY.
 			for k, v := range collapseScalarAllOf(pm) {
-				if !statesFact(fd[k]) && statesFact(v) {
+				if !statesFact(k, fd[k]) && statesFact(k, v) {
 					fd[k] = v
 				}
 			}
@@ -908,11 +908,16 @@ func composedFields(schema any) []map[string]any {
 	return out
 }
 
-// statesFact mirrors TypeScript: a blank string states nothing, so a later
-// declaration may.
-func statesFact(v any) bool {
+var annotationFlags = map[string]bool{"readOnly": true, "writeOnly": true, "deprecated": true}
+
+// statesFact mirrors TypeScript: a blank string states nothing, and nor does a
+// false annotation flag, so a later declaration may.
+func statesFact(k string, v any) bool {
 	if s, ok := v.(string); ok {
 		return strings.TrimSpace(s) != ""
+	}
+	if b, ok := v.(bool); ok && !b && annotationFlags[k] {
+		return false
 	}
 	return v != nil
 }

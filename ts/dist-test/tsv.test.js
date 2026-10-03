@@ -564,6 +564,40 @@ function loadTsv(name) {
         });
     }
 });
+// The fields the transform builds for one operation whose response, and
+// request when it has one, compose their properties with allOf.
+(0, node_test_1.describe)('tsv-allof-record', () => {
+    const rows = loadTsv('allof-record');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, async () => {
+            const method = 'load' === row.op ? 'get' : 'post';
+            const body = (src) => ({ content: { 'application/json': { schema: JSON.parse(src) } } });
+            const opdef = { responses: { 200: body(row.response) } };
+            if ('' !== row.request) {
+                opdef.requestBody = body(row.request);
+            }
+            const ment = {
+                name: 'job',
+                fields: {},
+                op: { [row.op]: { name: row.op, points: [{ o: '/jobs', m: method.toUpperCase(), k: 'json' }] } },
+            };
+            await (0, field_1.fieldTransform)({
+                apimodel: { main: { kit: { entity: { job: ment } } } },
+                def: { paths: { '/jobs': { [method]: opdef } } },
+            });
+            const got = {};
+            for (const name of Object.keys(ment.fields)) {
+                const field = ment.fields[name];
+                got[name] = Object.fromEntries(['t', 'r', 'sh', 'fo', 'ro', 'wo', 'de', 'union', 'op']
+                    .filter((key) => undefined !== field[key] &&
+                    !('op' === key && 0 === Object.keys(field.op).length))
+                    .map((key) => [key, field[key]]));
+            }
+            node_assert_1.default.deepStrictEqual(got, JSON.parse(row.expected));
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-path-resource', () => {
     const rows = loadTsv('path-resource');
     (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
