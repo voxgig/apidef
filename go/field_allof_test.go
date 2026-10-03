@@ -155,3 +155,28 @@ func TestFieldAllOfDeclaredTwiceIsOneField(t *testing.T) {
 		t.Errorf("payload = %v, want %v", got, want)
 	}
 }
+
+func TestFieldAllOfKeepsUnion(t *testing.T) {
+	branch := func(key string) any {
+		return map[string]any{"type": "object", "properties": map[string]any{key: map[string]any{"type": "number"}}}
+	}
+	union := map[string]any{"oneOf": []any{branch("radius"), branch("side")}}
+	id := map[string]any{"type": "string"}
+	for name, response := range map[string]any{
+		"once": map[string]any{"type": "object", "properties": map[string]any{"id": id, "shape": union}},
+		"twice": map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"id":    id,
+				"shape": map[string]any{"description": "One of two shapes."},
+			},
+			"allOf": []any{map[string]any{"type": "object", "properties": map[string]any{"shape": union}}},
+		},
+	} {
+		shape, _ := allofRun(t, "load", "GET", response, nil)["shape"].(map[string]any)
+		got, _ := shape["union"].(map[string]any)
+		if got == nil || got["count"] != 1 || got["branches"] != 2 {
+			t.Errorf("%s: shape union = %v, want one union of 2 branches", name, shape["union"])
+		}
+	}
+}

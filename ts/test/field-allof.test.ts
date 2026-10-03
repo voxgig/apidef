@@ -113,4 +113,24 @@ describe('field-allof', () => {
       { t: payload.t, r: payload.r, sh: payload.sh, fo: payload.fo, op: payload.op },
       { t: '`$OBJECT`', r: true, sh: 'What the job carries.', fo: 'job-payload', op: {} })
   })
+
+  test('a property keeps its union, declared once or beside an annotation', async () => {
+    const branch = (key: string) =>
+      ({ type: 'object', properties: { [key]: { type: 'number' } } })
+    const union = () => ({ oneOf: [branch('radius'), branch('side')] })
+    for (const response of [
+      { type: 'object', properties: { id: { type: 'string' }, shape: union() } },
+      {
+        type: 'object',
+        properties: { id: { type: 'string' }, shape: { description: 'One of two shapes.' } },
+        allOf: [{ type: 'object', properties: { shape: union() } }],
+      },
+    ]) {
+      const { entity, def } = job('load', 'GET', response)
+      const { shape } = await runFieldTransform(entity, def)
+      assert.deepStrictEqual(
+        { count: shape.union?.count, branches: shape.union?.branches },
+        { count: 1, branches: 2 })
+    }
+  })
 })

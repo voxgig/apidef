@@ -887,15 +887,11 @@ func composedFields(schema any) []map[string]any {
 			if !ok {
 				continue
 			}
-			pm = collapseScalarAllOf(pm)
-			// Unasserted: a 3.1 nullable field's type is an ARRAY.
-			for _, k := range []string{
-				"type", "required", "description", "readOnly", "writeOnly", "deprecated", "format",
-			} {
-				if _, has := fd[k]; has {
-					continue
-				}
-				if v, ok := pm[k]; ok && v != nil {
+			// Every key, as TypeScript keeps the whole schema: the union scan
+			// reads oneOf and anyOf from the field def. Unasserted: a 3.1
+			// nullable field's type is an ARRAY.
+			for k, v := range collapseScalarAllOf(pm) {
+				if _, has := fd[k]; !has && v != nil {
 					fd[k] = v
 				}
 			}
