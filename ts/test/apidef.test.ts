@@ -668,6 +668,47 @@ describe('apidef', () => {
   })
 
 
+  // A list reads its records, past an object named for the entity beside
+  // them: a quote beside its episodes, or the competition a page of its
+  // matches repeats. A list under the entity's name, and a load, still
+  // unwrap to it.
+  test('guide-list-records', async () => {
+    const folder = __dirname + '/../test/list-records'
+
+    const build = await ApiDef.makeBuild({ folder })
+
+    const bres = await build(
+      { name: 'list-records', def: 'list-records-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: true,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const entities = bres.apimodel.main.kit.entity
+    const res = (ent: string, op: string, path: string) =>
+      entities[ent]?.op[op]?.points.find((pt: any) => pt.o === path)?.t.res
+    assert.strictEqual(res('quote', 'list', '/quote/random'), '`body.episodes`')
+    assert.strictEqual(res('competition', 'list', '/competitions/{id}/matches'), '`body.matches`')
+    assert.strictEqual(res('scorer', 'list', '/competitions/{id}/scorers'), '`body.scorers`')
+    assert.strictEqual(res('note', 'list', '/notes'), '`body.note`')
+    assert.strictEqual(res('quote', 'load', '/quote/{id}'), '`body.quote`')
+    assert.strictEqual(res('competition', 'load', '/competitions/{id}'), '`body`')
+  })
+
+
   // A trailing parameter under its entity's segment is the entity's key,
   // whatever the response component is called: a rare component named for
   // another view of it, or a tag on a write that answers with no component.

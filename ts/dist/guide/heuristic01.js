@@ -881,10 +881,16 @@ function ResolveTransform(spec) {
     // project in Neon's project create beside its branch and roles, and may
     // declare properties of its own beside them.
     const partprops = (0, utility_2.mergedProperties)(resschema);
-    if (named && (0, utility_1.isEntityWrapperProp)(partprops?.[entdesc.origname])) {
+    // A list reads records, so an object named for the entity does not win over
+    // a list of them beside it, such as the matches beside the competition a
+    // page of them repeats.
+    const records = 'list' === opname && null != resprops ? (0, utility_1.envelopeProp)(resprops, opname) : null;
+    const holdsRecord = (prop) => (0, utility_1.isEntityWrapperProp)(prop) &&
+        (null == records || true === (0, utility_1.propIsList)(prop));
+    if (named && holdsRecord(partprops?.[entdesc.origname])) {
         transform.res = '`body.' + entdesc.origname + '`';
     }
-    else if (named && (0, utility_1.isEntityWrapperProp)(partprops?.[entdesc.name])) {
+    else if (named && holdsRecord(partprops?.[entdesc.name])) {
         transform.res = '`body.' + entdesc.name + '`';
     }
     else if (resprops) {

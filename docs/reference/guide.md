@@ -276,6 +276,14 @@ is read by name through its parts, such as Neon's project create,
 entity's own composed component stays the record whatever its parts are
 called. The `guide-composed-part` tests pin both, on
 [`ts/test/def/composed-part-def.json`](../../ts/test/def/composed-part-def.json).
+A list reads records, so an object named after the entity does not win over
+an array of records beside it. A random quote that answers with
+`{ episodes, quote, meta }` lists `body.episodes` rather than the quote, and a
+competition's matches, `{ count, filters, competition, matches }`, list
+`body.matches`. An array named after the entity is still read by name, and so
+is the object when no array of records sits beside it. The
+`guide-list-records` tests pin both in both builds, on
+[`ts/test/def/list-records-def.json`](../../ts/test/def/list-records-def.json).
 A request body wraps the record
 under the entity's name only when that property is structured and is all the
 body holds, so a create that sends a `name` beside a `container`, or a

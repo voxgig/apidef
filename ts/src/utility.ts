@@ -2083,6 +2083,7 @@ export {
   envelopeProp,
   envelopeItemRef,
   composedEnvelopeProp,
+  propIsList,
   mergedProperties,
   closedBodyTransform,
   untaggedUnionBranches,
