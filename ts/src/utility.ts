@@ -2064,6 +2064,20 @@ function closedBodyTransform(schema: any): Record<string, string> | null {
   return out
 }
 
+// A body wraps the record under the entity's name only when that is all it
+// holds, and it is structured; otherwise the name is one field of the record,
+// such as the container in SaladCloud's container group create. A CLOSED body
+// names every property the server accepts, so the body is those properties,
+// not the whole payload, which also carries the op's path parameters.
+function bodyRequestTransform(schema: any, names: string[]): any {
+  if (null == schema) return undefined
+  const props = schema.properties
+  const wrapped = names.find((name: string) => null != name && '' !== name &&
+    isEntityWrapperProp(props?.[name]) && keysof(props).every((k: string) => k === name))
+  return null != wrapped ? { [wrapped]: '`reqdata`' } : (closedBodyTransform(schema) ?? undefined)
+}
+
+
 function firstSentence(text: string): string {
   const collapsed = text.replace(/\s+/g, ' ').trim()
   const m = collapsed.match(/^(.+?[.!?])(\s|$)/)
@@ -2077,6 +2091,7 @@ function firstSentence(text: string): string {
 
 
 export {
+  bodyRequestTransform,
   nom,
   getdlog,
   loadFile,

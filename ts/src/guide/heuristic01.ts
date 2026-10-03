@@ -9,7 +9,7 @@ import { size, merge, getelem, isempty, items, keysof } from '@voxgig/struct'
 
 import {
   isEntityWrapperProp, envelopeProp, envelopeItemRef, composedEnvelopeProp,
-  closedBodyTransform, authExchangeOp, specSecuredByDefault,
+  bodyRequestTransform, authExchangeOp, specSecuredByDefault,
 } from '../utility'
 
 import { jsonRequestSchema } from '../transform/body'
@@ -1249,33 +1249,8 @@ function ResolveTransform(spec: TaskSpec) {
   }
 
   const reqschema = getRequestBodySchema(mdesc.requestBody)
-  const reqprops = reqschema?.properties
-  debugpath(pathStr, methodName, 'TRANSFORM-REQ', keysof(reqprops))
-  // A body wraps the record under the entity's name only when that is all it
-  // holds, and it is structured. Otherwise the name is one field of the record,
-  // such as the container in SaladCloud's container group create.
-  const wraps = (name: string) => isEntityWrapperProp(reqprops?.[name]) &&
-    keysof(reqprops).every((k: string) => k === name)
-
-  if (reqschema) {
-    if (wraps(entdesc.origname)) {
-      transform.req = { [entdesc.origname]: '`reqdata`' }
-    }
-    else if (wraps(entdesc.name)) {
-      transform.req = { [entdesc.name]: '`reqdata`' }
-    }
-    else {
-      // A CLOSED body schema names every property the server will accept, so
-      // the body is those properties — not the whole request payload. The
-      // payload also carries the op's PATH params (`id` for
-      // `PUT /item/{id}`), and a closed shape rejects the entire request over
-      // that one extra key: every update came back 400 with `invalid-data`.
-      const body = closedBodyTransform(reqschema)
-      if (null != body) {
-        transform.req = body
-      }
-    }
-  }
+  debugpath(pathStr, methodName, 'TRANSFORM-REQ', keysof(reqschema?.properties))
+  transform.req = bodyRequestTransform(reqschema, [entdesc.origname, entdesc.name])
 
   if (!isempty(transform) && null != op[opname]) {
     op[opname].transform = transform

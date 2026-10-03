@@ -1,8 +1,10 @@
-import { guideActive } from '../utility'
+import { bodyRequestTransform, guideActive } from '../utility'
 
 import { arrayBodyField } from '../guide/heuristic01'
 
-import { arrayCarrier, arrayRequestSchema, guideMedia, nullableType, sameType } from './body'
+import {
+  arrayCarrier, arrayRequestSchema, guideMedia, nullableType, requestSchema, sameType,
+} from './body'
 
 import { routeFieldNames } from './field'
 
@@ -79,6 +81,9 @@ const operationTransform: Transform = async function(
     // After patch has joined update, so each operation's routes are final.
     for (const mop of Object.values(opm)) {
       for (const mpoint of mop?.points ?? []) {
+        if (heuristicRequest(on, mop!, mpoint)) {
+          mpoint.t.req = undefined
+        }
         mpoint.t.req = mpoint.t.req ?? requestDefault(on, kit.entity[entname], opm, mop!, mpoint)
         mpoint.t.res = mpoint.t.res ?? '`body`'
       }
@@ -226,6 +231,23 @@ function resolveOp(opname: OpName, on: OpEntity): undefined | ModelOp {
 
 
 
+// The request transform the heuristic took from the default body, still in
+// place where the guide selects another media type for the point.
+function heuristicRequest(on: OpEntity, mop: ModelOp, mpoint: ModelPoint): boolean {
+  const chosen = guideMedia(on.guide, on.entname, mop.name, mpoint).body
+  if (null == chosen || null == mpoint.t.req) return false
+  const generated = bodyRequestTransform(requestSchema(on.def, mpoint.m, mpoint.o), [on.gent.name])
+  return null != generated && sameTransform(mpoint.t.req, generated)
+}
+
+
+function sameTransform(a: any, b: any): boolean {
+  const canon = (t: any) => 'string' === typeof t ? t :
+    JSON.stringify(Object.keys(t ?? {}).sort().map((k: string) => [k, t[k]]))
+  return canon(a) === canon(b)
+}
+
+
 // An array body is sent from one field of the request data, named for its
 // records, and never for an argument of its operation, a field another route of
 // its entity has, as fields span operations, or a carrier already named for an
@@ -233,11 +255,13 @@ function resolveOp(opname: OpName, on: OpEntity): undefined | ModelOp {
 // guide's media type decides the body.
 function requestDefault(
   on: OpEntity, ment: ModelEntity, opm: ModelOpMap, mop: ModelOp, mpoint: ModelPoint,
-): string {
+): any {
   const media = (opname: string, q: ModelPoint) => guideMedia(on.guide, on.entname, opname, q).body
-  const list = arrayRequestSchema(on.def, mpoint.m, mpoint.o, media(mop.name, mpoint))
+  const chosen = media(mop.name, mpoint)
+  const list = arrayRequestSchema(on.def, mpoint.m, mpoint.o, chosen)
   if (null == list) {
-    return '`reqdata`'
+    return (null == chosen ? undefined :
+      bodyRequestTransform(requestSchema(on.def, mpoint.m, mpoint.o, chosen), [on.gent.name])) ?? '`reqdata`'
   }
   const others = mop.points.filter((q) => q !== mpoint)
   const routes = Object.values(opm).flatMap((op) =>

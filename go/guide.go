@@ -1762,23 +1762,10 @@ func resolveTransform(data map[string]any, mdesc map[string]any) {
 
 	reqBody, _ := mdesc["requestBody"].(map[string]any)
 	reqschema := getRequestBodySchema(reqBody)
-	reqprops := getRequestBodySchemaProps(reqBody)
-	DebugPath(pathStr, methodName, "TRANSFORM-REQ", reqprops)
+	DebugPath(pathStr, methodName, "TRANSFORM-REQ", getRequestBodySchemaProps(reqBody))
 
-	// Mirrors ts/src/guide/heuristic01.ts: a body wraps the record under the
-	// entity's name only when that is all it holds, and it is structured.
-	wraps := func(name string) bool {
-		return name != "" && isEntityWrapperProp(reqprops[name]) && len(reqprops) == 1
-	}
-
-	if reqschema != nil {
-		if wraps(origname) {
-			transform["req"] = map[string]any{origname: "`reqdata`"}
-		} else if wraps(ename) {
-			transform["req"] = map[string]any{ename: "`reqdata`"}
-		} else if body := closedBodyTransform(reqschema); body != nil {
-			transform["req"] = body
-		}
+	if req := bodyRequestTransform(reqschema, origname, ename); req != nil {
+		transform["req"] = req
 	}
 
 	hasTransform := transform["req"] != nil || transform["res"] != nil

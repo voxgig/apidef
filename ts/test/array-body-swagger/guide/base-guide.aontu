@@ -4,9 +4,9 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 2
-  metrics: count: path: 3
-  metrics: count: method: 4
+  metrics: count: entity: 3
+  metrics: count: path: 4
+  metrics: count: method: 5
 
   entity: gift: {
     path: "/gifts": {
@@ -22,6 +22,12 @@ guide: {
       rename: param: "member_id": *"id"
       op: load: method: *GET
       op: update: method: *PUT
+    }
+  }
+
+  entity: ticket: {
+    path: "/tickets": {
+      op: create: method: *POST
     }
   }
 

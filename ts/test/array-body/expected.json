@@ -8,6 +8,8 @@
     "broadcast.create POST /broadcasts exist=sms_messages action= req=\"`reqdata.sms_messages`\"",
     "chip.create POST /chips exist=chips action= req=\"`reqdata.chips`\"",
     "crate.create POST /crates exist=crates action= req=\"`reqdata.crates`\"",
+    "crew.create POST /crews exist=crew_inputs action= req=\"`reqdata.crew_inputs`\"",
+    "deck.create POST /decks exist= action= req={\"title\":\"`reqdata.title`\"}",
     "doc.update PATCH /docs/{doc_id} exist=doc_change_list,id action= req=\"`reqdata.doc_change_list`\"",
     "doc.update PUT /docs/{doc_id}/archive exist=id action=archive req=\"`reqdata`\"",
     "event.create POST /events exist=events action= req=\"`reqdata.events`\"",
@@ -19,6 +21,7 @@
     "herd.create POST /herds exist=oxen action= req=\"`reqdata.oxen`\"",
     "hero.create POST /heroes exist=heroes action= req=\"`reqdata.heroes`\"",
     "item.create POST /items exist=n123_items action= req=\"`reqdata.n123_items`\"",
+    "jar.create POST /jars exist=jars action= req=\"`reqdata.jars`\"",
     "keg.create POST /kegs exist=kegs action= req=\"`reqdata.kegs`\"",
     "label.create POST /labels exist= action= req=\"`reqdata`\"",
     "lookup.list QUERY /lookups exist=lookups action= req=\"`reqdata.lookups`\"",
@@ -44,6 +47,7 @@
     "todo.create POST /lists/{list_id}/todos exist=list_id,todo_item_list action= req=\"`reqdata.todo_item_list`\"",
     "todo.create POST /todos exist= action= req=\"`reqdata`\"",
     "tote.create POST /totes exist=totes action= req=\"`reqdata.totes`\"",
+    "tub.create POST /tubs exist=tubs action= req=\"`reqdata.tubs`\"",
     "upload.create POST /uploads exist= action= req=\"`reqdata`\"",
     "user.create POST /users/batch exist=users action=batch req=\"`reqdata.users`\"",
     "user.create POST /users exist= action= req=\"`reqdata`\"",
@@ -118,6 +122,18 @@
             "`$NULL`"
           ]
         ],
+        "r": false
+      }
+    },
+    "crew": {
+      "crew_inputs": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "deck": {
+      "title": {
+        "t": "`$STRING`",
         "r": false
       }
     },
@@ -202,6 +218,18 @@
     "item": {
       "n123_items": {
         "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "jar": {
+      "jars": {
+        "t": [
+          "`$ONE`",
+          [
+            "`$ARRAY`",
+            "`$NULL`"
+          ]
+        ],
         "r": false
       }
     },
@@ -399,6 +427,18 @@
     },
     "tote": {
       "totes": {
+        "t": [
+          "`$ONE`",
+          [
+            "`$ARRAY`",
+            "`$NULL`"
+          ]
+        ],
+        "r": false
+      }
+    },
+    "tub": {
+      "tubs": {
         "t": [
           "`$ONE`",
           [

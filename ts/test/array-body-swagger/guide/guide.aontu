@@ -2,3 +2,5 @@
 # it includes is generated and overwritten on every build.
 @"@voxgig/apidef/model/guide.aontu"
 @"./base-guide.aontu"
+
+guide: entity: ticket: path: "/tickets": op: create: body: media: "application/x-www-form-urlencoded"

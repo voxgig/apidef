@@ -373,18 +373,27 @@ function arrayShape(schema) {
         nullable: admitsNull(schema),
     };
 }
-// Null must pass every allOf part, exactly one oneOf member, and some anyOf member.
+// Null must pass the schema's own type, const and enum, every allOf part,
+// exactly one oneOf member, and some anyOf member.
 function admitsNull(schema) {
     if (!isMap(schema))
         return false;
-    const own = null == schema.type || hasType(schema, 'null') || true === schema.nullable;
+    const own = (null == schema.type || hasType(schema, 'null') || true === schema.nullable) &&
+        (!('const' in schema) || null === schema.const) &&
+        (!Array.isArray(schema.enum) || schema.enum.includes(null));
     return own && listOf(schema.allOf).every(admitsNull) &&
         (!Array.isArray(schema.oneOf) || 1 === schema.oneOf.filter(admitsNull).length) &&
         (!Array.isArray(schema.anyOf) || schema.anyOf.some(admitsNull));
 }
+// Only null passes: by its type, or by a const or enum of null alone.
 function nullOnly(schema) {
-    const types = [schema?.type].flat();
-    return isMap(schema) && types.every((type) => 'null' === type);
+    if (!isMap(schema))
+        return false;
+    if ('const' in schema)
+        return null === schema.const;
+    if (Array.isArray(schema.enum))
+        return 0 < schema.enum.length && schema.enum.every((v) => null === v);
+    return [schema.type].flat().every((type) => 'null' === type);
 }
 // A nullable array says so with `nullable` in OpenAPI 3.0, and a type list in 3.1.
 function nullableType(schema) {

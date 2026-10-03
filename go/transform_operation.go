@@ -2,7 +2,10 @@
 
 package apidef
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 var resolvedOps = map[string]bool{
 	"load": true, "list": true, "create": true, "update": true, "remove": true, "patch": true,
@@ -162,7 +165,11 @@ func collectOps(ctx *ApiDefContext, entname string, gent map[string]any, pathsDe
 		name, _ := mop["name"].(string)
 		points, _ := mop["points"].([]any)
 		for i, pt := range points {
-			transform, _ := pt.(map[string]any)["t"].(map[string]any)
+			mpoint, _ := pt.(map[string]any)
+			transform, _ := mpoint["t"].(map[string]any)
+			if heuristicRequest(ctx, entname, name, mpoint, transform["req"]) {
+				delete(transform, "req")
+			}
 			if transform["req"] == nil {
 				transform["req"] = requestDefault(ctx, entname, opm, name, points, i)
 			}
@@ -180,7 +187,7 @@ func collectOps(ctx *ApiDefContext, entname string, gent map[string]any, pathsDe
 // argument of its operation, a field another route of its entity has, as
 // fields span operations, or a carrier already named for an array of another
 // type.
-func requestDefault(ctx *ApiDefContext, entname string, opm map[string]any, opname string, points []any, at int) string {
+func requestDefault(ctx *ApiDefContext, entname string, opm map[string]any, opname string, points []any, at int) any {
 	if ctx == nil {
 		return "`reqdata`"
 	}
@@ -193,8 +200,14 @@ func requestDefault(ctx *ApiDefContext, entname string, opm map[string]any, opna
 	mpoint, _ := points[at].(map[string]any)
 	method, _ := mpoint["m"].(string)
 	path, _ := mpoint["o"].(string)
-	list := arrayRequestSchema(ctx.Def, method, path, media(opname, mpoint))
+	chosen := media(opname, mpoint)
+	list := arrayRequestSchema(ctx.Def, method, path, chosen)
 	if list == nil {
+		if "" != chosen {
+			if req := bodyRequestTransform(requestSchema(ctx.Def, method, path, chosen), entname); req != nil {
+				return req
+			}
+		}
 		return "`reqdata`"
 	}
 	taken := []string{}
@@ -221,6 +234,35 @@ func requestDefault(ctx *ApiDefContext, entname string, opm map[string]any, opna
 		}
 	}
 	return "`reqdata." + arrayBodyField(list, entname, taken) + "`"
+}
+
+// heuristicRequest mirrors ts/src/transform/operation.ts: the request
+// transform the heuristic took from the default body, still in place where
+// the guide selects another media type for the point.
+func heuristicRequest(ctx *ApiDefContext, entname string, opname string, mpoint map[string]any, req any) bool {
+	if ctx == nil || req == nil {
+		return false
+	}
+	method, _ := mpoint["m"].(string)
+	path, _ := mpoint["o"].(string)
+	if chosen, _ := guideBodyMedia(ctx.Guide, entname, opname, method, path); "" == chosen {
+		return false
+	}
+	generated := bodyRequestTransform(requestSchema(ctx.Def, method, path, ""), entname)
+	return generated != nil && transformKey(req) == transformKey(generated)
+}
+
+// transformKey compares a transform map by its entries, in any order.
+func transformKey(t any) string {
+	if text, isText := t.(string); isText {
+		return text
+	}
+	m, _ := t.(map[string]any)
+	parts := []string{}
+	for _, key := range sortedKeys(m) {
+		parts = append(parts, key+"="+fmt.Sprint(m[key]))
+	}
+	return "{" + strings.Join(parts, ",") + "}"
 }
 
 // samePoint reports whether a and b are one map, as the TypeScript port

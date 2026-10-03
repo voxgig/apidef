@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sortedEntries = exports.sortedKeys = exports.CANON_ONE = exports.VALID_CANON = void 0;
+exports.bodyRequestTransform = bodyRequestTransform;
 exports.nom = nom;
 exports.getdlog = getdlog;
 exports.loadFile = loadFile;
@@ -1708,6 +1709,19 @@ function closedBodyTransform(schema) {
         out[name] = '`reqdata.' + canonize(normalizeFieldName(name)) + '`';
     }
     return out;
+}
+// A body wraps the record under the entity's name only when that is all it
+// holds, and it is structured; otherwise the name is one field of the record,
+// such as the container in SaladCloud's container group create. A CLOSED body
+// names every property the server accepts, so the body is those properties,
+// not the whole payload, which also carries the op's path parameters.
+function bodyRequestTransform(schema, names) {
+    if (null == schema)
+        return undefined;
+    const props = schema.properties;
+    const wrapped = names.find((name) => null != name && '' !== name &&
+        isEntityWrapperProp(props?.[name]) && (0, struct_1.keysof)(props).every((k) => k === name));
+    return null != wrapped ? { [wrapped]: '`reqdata`' } : (closedBodyTransform(schema) ?? undefined);
 }
 function firstSentence(text) {
     const collapsed = text.replace(/\s+/g, ' ').trim();

@@ -453,6 +453,62 @@
         }
       }
     },
+    "/crews": {
+      "post": {
+        "operationId": "createCrews",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrewInput"
+              }
+            },
+            "application/vnd.acme.crew-list+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/CrewInput"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No content"
+          }
+        }
+      }
+    },
+    "/decks": {
+      "post": {
+        "operationId": "createDecks",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/DeckInput"
+                }
+              }
+            },
+            "application/vnd.acme.deck+json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeckInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No content"
+          }
+        }
+      }
+    },
     "/sessions": {
       "delete": {
         "operationId": "removeSessions",
@@ -1119,6 +1175,68 @@
         }
       }
     },
+    "/jars": {
+      "post": {
+        "operationId": "createJars",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Jar"
+                    }
+                  },
+                  {
+                    "const": null
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No content"
+          }
+        }
+      }
+    },
+    "/tubs": {
+      "post": {
+        "operationId": "createTubs",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      null
+                    ]
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Tub"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No content"
+          }
+        }
+      }
+    },
     "/totes": {
       "post": {
         "operationId": "createTotes",
@@ -1609,6 +1727,27 @@
           }
         }
       },
+      "CrewInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          }
+        }
+      },
+      "DeckInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string"
+          }
+        }
+      },
       "Batch": {
         "type": "object",
         "properties": {
@@ -1833,6 +1972,28 @@
         }
       },
       "Bin": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "Jar": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "Tub": {
         "type": "object",
         "properties": {
           "id": {

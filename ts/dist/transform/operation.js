@@ -43,6 +43,9 @@ const operationTransform = async function (ctx) {
         // After patch has joined update, so each operation's routes are final.
         for (const mop of Object.values(opm)) {
             for (const mpoint of mop?.points ?? []) {
+                if (heuristicRequest(on, mop, mpoint)) {
+                    mpoint.t.req = undefined;
+                }
                 mpoint.t.req = mpoint.t.req ?? requestDefault(on, kit.entity[entname], opm, mop, mpoint);
                 mpoint.t.res = mpoint.t.res ?? '`body`';
             }
@@ -154,6 +157,20 @@ function resolveOp(opname, on) {
     }
     return mop;
 }
+// The request transform the heuristic took from the default body, still in
+// place where the guide selects another media type for the point.
+function heuristicRequest(on, mop, mpoint) {
+    const chosen = (0, body_1.guideMedia)(on.guide, on.entname, mop.name, mpoint).body;
+    if (null == chosen || null == mpoint.t.req)
+        return false;
+    const generated = (0, utility_1.bodyRequestTransform)((0, body_1.requestSchema)(on.def, mpoint.m, mpoint.o), [on.gent.name]);
+    return null != generated && sameTransform(mpoint.t.req, generated);
+}
+function sameTransform(a, b) {
+    const canon = (t) => 'string' === typeof t ? t :
+        JSON.stringify(Object.keys(t ?? {}).sort().map((k) => [k, t[k]]));
+    return canon(a) === canon(b);
+}
 // An array body is sent from one field of the request data, named for its
 // records, and never for an argument of its operation, a field another route of
 // its entity has, as fields span operations, or a carrier already named for an
@@ -161,9 +178,11 @@ function resolveOp(opname, on) {
 // guide's media type decides the body.
 function requestDefault(on, ment, opm, mop, mpoint) {
     const media = (opname, q) => (0, body_1.guideMedia)(on.guide, on.entname, opname, q).body;
-    const list = (0, body_1.arrayRequestSchema)(on.def, mpoint.m, mpoint.o, media(mop.name, mpoint));
+    const chosen = media(mop.name, mpoint);
+    const list = (0, body_1.arrayRequestSchema)(on.def, mpoint.m, mpoint.o, chosen);
     if (null == list) {
-        return '`reqdata`';
+        return (null == chosen ? undefined :
+            (0, utility_1.bodyRequestTransform)((0, body_1.requestSchema)(on.def, mpoint.m, mpoint.o, chosen), [on.gent.name])) ?? '`reqdata`';
     }
     const others = mop.points.filter((q) => q !== mpoint);
     const routes = Object.values(opm).flatMap((op) => (op?.points ?? []).filter((q) => q !== mpoint).map((q) => ({ opname: op.name, q })));

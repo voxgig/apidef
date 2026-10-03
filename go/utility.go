@@ -2151,6 +2151,26 @@ func holdsStructuredBranch(branches any) bool {
 	return false
 }
 
+// bodyRequestTransform mirrors ts/src/utility.ts: a body wraps the record
+// under the entity's name only when that is all it holds, else a closed body
+// is its own properties.
+func bodyRequestTransform(schema any, names ...string) any {
+	sch, _ := schema.(map[string]any)
+	if sch == nil {
+		return nil
+	}
+	props, _ := sch["properties"].(map[string]any)
+	for _, name := range names {
+		if name != "" && isEntityWrapperProp(props[name]) && len(props) == 1 {
+			return map[string]any{name: "`reqdata`"}
+		}
+	}
+	if body := closedBodyTransform(schema); body != nil {
+		return body
+	}
+	return nil
+}
+
 func closedBodyTransform(schema any) map[string]any {
 	sch, ok := schema.(map[string]any)
 	if !ok || sch == nil {

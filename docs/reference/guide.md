@@ -58,16 +58,21 @@ a field under that name, in what it sends or in what it answers, the field is
 route already sends an array of another type from that name, such as one that
 may be null beside one that may not. A PATCH route that joins `update` is
 checked against the routes it joins. An array schema wrapped in `allOf`, or
-in a `oneOf` or `anyOf` of one member beside any `null`, counts as an array,
-with its items taken from whichever part states them. It may be null only
-where every `allOf` part admits null and some member of each `oneOf` or
-`anyOf` does. A noun in `-o` that takes `-es`, such as `hero`, gives `heroes`,
+in a `oneOf` or `anyOf` of one member beside any member only null passes (a
+`null` type, or a `const` or `enum` of null alone), counts as an array, with
+its items taken from whichever part states them. It may be null only where
+the schema's own type, `const` and `enum` admit null, every `allOf` part
+does, exactly one member of a `oneOf` does, and some member of an `anyOf`
+does. A noun in `-o` that takes `-es`, such as `hero`, gives `heroes`,
 and the rest take `-s`, such as `photos`; an irregular noun takes its own
 plural, so `ox` gives `oxen` and `sheep` stays `sheep`. A `transform.req` in
 the guide entry file replaces the default and names the field the model
 declares.
 `` `reqdata.messages` `` declares `messages`, and `` `reqdata` `` sends the
-input as it is, with no field.
+input as it is, with no field. When `body.media` names another media type, a
+`transform.req` the base guide took from the preferred body is taken again
+from the chosen one: the array's field, a closed body's own properties, or
+`` `reqdata` ``.
 
 ### `GuideMetrics`
 

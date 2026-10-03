@@ -732,14 +732,21 @@ func arrayShape(schema any) map[string]any {
 	return out
 }
 
-// admitsNull mirrors ts/src/transform/body.ts: null must pass every allOf
-// part, exactly one oneOf member, and some anyOf member.
+// admitsNull mirrors ts/src/transform/body.ts: null must pass the schema's own
+// type, const and enum, every allOf part, exactly one oneOf member, and some
+// anyOf member.
 func admitsNull(schema any) bool {
 	m, _ := schema.(map[string]any)
 	if m == nil {
 		return false
 	}
 	if !(m["type"] == nil || schemaHasType(m, "null") || m["nullable"] == true) {
+		return false
+	}
+	if c, has := m["const"]; has && c != nil {
+		return false
+	}
+	if enum, isList := m["enum"].([]any); isList && !containsNil(enum) {
 		return false
 	}
 	parts, _ := m["allOf"].([]any)
@@ -773,12 +780,22 @@ func typeList(t any) []any {
 	return []any{t}
 }
 
-// nullableType mirrors ts/src/transform/body.ts: a nullable array says so with
-// nullable in OpenAPI 3.0, and a type list in 3.1.
+// nullOnly: only null passes, by its type, or by a const or enum of null alone.
 func nullOnly(schema any) bool {
 	m, _ := schema.(map[string]any)
 	if m == nil {
 		return false
+	}
+	if c, has := m["const"]; has {
+		return c == nil
+	}
+	if enum, isList := m["enum"].([]any); isList {
+		for _, v := range enum {
+			if v != nil {
+				return false
+			}
+		}
+		return 0 < len(enum)
 	}
 	switch t := m["type"].(type) {
 	case string:
@@ -794,6 +811,17 @@ func nullOnly(schema any) bool {
 	return false
 }
 
+func containsNil(list []any) bool {
+	for _, v := range list {
+		if v == nil {
+			return true
+		}
+	}
+	return false
+}
+
+// nullableType mirrors ts/src/transform/body.ts: a nullable array says so with
+// nullable in OpenAPI 3.0, and a type list in 3.1.
 func nullableType(schema map[string]any) any {
 	if schema["nullable"] == true && !schemaHasType(schema, "null") {
 		return append(append([]any{}, typeList(schema["type"])...), "null")
