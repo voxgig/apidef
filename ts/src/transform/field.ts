@@ -778,32 +778,12 @@ function findFieldDefs(
     }
 
 
-    if (fieldSets) {
-      if (Array.isArray(fieldSets.allOf)) {
-        fieldSets = fieldSets.allOf
-      }
-      else if (fieldSets.properties) {
-        fieldSets = [fieldSets]
-      }
+    if (fieldSets && (Array.isArray(fieldSets.allOf) || fieldSets.properties)) {
+      fieldSets = [fieldSets]
     }
 
     each(fieldSets, (fieldSet: any) => {
-      const requiredNames: string[] = Array.isArray(fieldSet?.required)
-        ? fieldSet.required : []
-      each(fieldSet?.properties, (schema: any) => {
-        const property = collapseScalarAllOf(schema)
-        // Don't mutate the parsed schema: a $ref-resolved schema is shared
-        // across every operation that references it, so flipping
-        // `property.required = true` here would leak this operation's
-        // required[] onto all the others. Derive `required` onto a shallow
-        // copy instead (matches the Go port, which builds fresh field defs).
-        if (!property.required && requiredNames.includes(property.key$)) {
-          fielddefs.push({ ...property, required: true })
-        }
-        else {
-          fielddefs.push(property)
-        }
-      })
+      fielddefs.push(...composedFields(fieldSet))
     })
   }
 
@@ -816,6 +796,68 @@ function findFieldDefs(
   }
 
   return fielddefs
+}
+
+
+// A schema and its allOf members describe one object: a name any of them
+// requires is required, and a property declared more than once is one field
+// taking each fact from the first declaration that states it.
+function composedFields(schema: any): any[] {
+  const parts: any[] = []
+  const seen = new Set<any>()
+  const visit = (node: any) => {
+    if (null == node || 'object' !== typeof node || seen.has(node)) {
+      return
+    }
+    seen.add(node)
+    parts.push(node)
+    if (Array.isArray(node.allOf)) {
+      node.allOf.forEach(visit)
+    }
+  }
+  visit(schema)
+
+  const required = new Set(parts.flatMap((part) => Array.isArray(part.required) ? part.required : []))
+  const decls: Record<string, any[]> = Object.create(null)
+  for (const part of parts) {
+    each(part.properties, (property: any) => {
+      (decls[property.key$] = decls[property.key$] ?? []).push(collapseScalarAllOf(property))
+    })
+  }
+
+  return Object.keys(decls).map((name) => {
+    const property = 1 === decls[name].length ? decls[name][0] : mergeDeclarations(decls[name])
+    // A copy: parsed schemas are shared by every operation referencing them.
+    return !property.required && required.has(name) ? { ...property, required: true } : property
+  })
+}
+
+
+function mergeDeclarations(decls: any[]): any {
+  const merged: any = {}
+  for (const decl of decls) {
+    for (const [key, value] of Object.entries(decl)) {
+      if (!statesFact(key, merged[key]) && statesFact(key, value)) {
+        merged[key] = value
+      }
+    }
+  }
+  return merged
+}
+
+
+const ANNOTATION_FLAGS = ['readOnly', 'writeOnly', 'deprecated']
+
+// A blank string states nothing, and nor does a false annotation flag, so a
+// later declaration may.
+function statesFact(key: string, value: any): boolean {
+  if (null == value) {
+    return false
+  }
+  if ('string' === typeof value) {
+    return '' !== value.trim()
+  }
+  return !(false === value && ANNOTATION_FLAGS.includes(key))
 }
 
 

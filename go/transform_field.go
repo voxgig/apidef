@@ -815,11 +815,8 @@ func getFieldRequestBodySchema(requestBody map[string]any) any {
 func extractFieldsTopLevel(fieldSets any, fielddefs *[]map[string]any) {
 	switch fs := fieldSets.(type) {
 	case map[string]any:
-		if _, ok := fs["allOf"].([]any); ok {
-			extractFields(fs, fielddefs)
-			return
-		}
-		if _, ok := fs["properties"].(map[string]any); ok {
+		_, composed := fs["allOf"].([]any)
+		if _, ok := fs["properties"].(map[string]any); ok || composed {
 			extractFields(fs, fielddefs)
 			return
 		}
@@ -828,118 +825,105 @@ func extractFieldsTopLevel(fieldSets any, fielddefs *[]map[string]any) {
 			if vm, ok := val.(map[string]any); ok {
 				vm["key$"] = k
 			}
-			extractPropertiesOnly(val, fielddefs)
-		}
-	case []any:
-		for _, item := range fs {
-			extractPropertiesOnly(item, fielddefs)
-		}
-	}
-}
-
-// extractPropertiesOnly mirrors the inner `each(fieldSet?.properties, ...)`:
-// it pulls a single level of properties (and required[]) from the value, but
-// does not descend further. Required[] from the property's own sub-schema is
-// preserved as truthy so $ref-resolved properties keep their `req`.
-func extractPropertiesOnly(fieldSet any, fielddefs *[]map[string]any) {
-	fs, ok := fieldSet.(map[string]any)
-	if !ok || fs == nil {
-		return
-	}
-	props, ok := fs["properties"].(map[string]any)
-	if !ok || props == nil {
-		return
-	}
-	requiredNames := map[string]bool{}
-	if req, ok := fs["required"].([]any); ok {
-		for _, r := range req {
-			if s, ok := r.(string); ok {
-				requiredNames[s] = true
-			}
-		}
-	}
-	for _, name := range sortedKeys(props) {
-		prop := props[name]
-		fd := map[string]any{"key$": name}
-		if pm, ok := prop.(map[string]any); ok {
-			pm = collapseScalarAllOf(pm)
-			if t, ok := pm["type"]; ok {
-				fd["type"] = t
-			}
-			if r, ok := pm["required"]; ok {
-				fd["required"] = r
-			}
-			// Carry `description` for the same reason extractFields does: this
-			// map IS the field def downstream, so a key not copied here is
-			// invisible. This is the route a non-QUERY op's request body takes
-			// (findFieldDefs wraps the schemas in a slice), and omitting it
-			// made Go silently drop descriptions TS kept.
-			if d, ok := pm["description"]; ok {
-				fd["description"] = d
-			}
-			for _, k := range []string{"readOnly", "writeOnly", "deprecated", "format"} {
-				if v, ok := pm[k]; ok {
-					fd[k] = v
-				}
-			}
-		}
-		if requiredNames[name] {
-			fd["required"] = true
-		}
-		*fielddefs = append(*fielddefs, fd)
-	}
-}
-
-func extractFields(fieldSets any, fielddefs *[]map[string]any) {
-	switch fs := fieldSets.(type) {
-	case map[string]any:
-		if allOf, ok := fs["allOf"].([]any); ok {
-			for _, item := range allOf {
-				extractFields(item, fielddefs)
-			}
-			return
-		}
-		if props, ok := fs["properties"].(map[string]any); ok {
-			requiredNames := map[string]bool{}
-			if req, ok := fs["required"].([]any); ok {
-				for _, r := range req {
-					if s, ok := r.(string); ok {
-						requiredNames[s] = true
-					}
-				}
-			}
-			for _, name := range sortedKeys(props) {
-				prop := props[name]
-				fd := map[string]any{"key$": name}
-				if pm, ok := prop.(map[string]any); ok {
-					pm = collapseScalarAllOf(pm)
-					// Unasserted: a 3.1 nullable field's type is an ARRAY.
-					if t, ok := pm["type"]; ok {
-						fd["type"] = t
-					}
-					if r, ok := pm["required"]; ok {
-						fd["required"] = r
-					}
-					if d, ok := pm["description"]; ok {
-						fd["description"] = d
-					}
-					for _, k := range []string{"readOnly", "writeOnly", "deprecated", "format"} {
-						if v, ok := pm[k]; ok {
-							fd[k] = v
-						}
-					}
-				}
-				if requiredNames[name] {
-					fd["required"] = true
-				}
-				*fielddefs = append(*fielddefs, fd)
-			}
+			extractFields(val, fielddefs)
 		}
 	case []any:
 		for _, item := range fs {
 			extractFields(item, fielddefs)
 		}
 	}
+}
+
+// composedFields mirrors ts/src/transform/field.ts: a schema and its allOf
+// members describe one object, so a name any of them requires is required,
+// and a property declared more than once is one field taking each fact from
+// the first declaration that states it.
+func composedFields(schema any) []map[string]any {
+	var parts []map[string]any
+	seen := map[string]bool{}
+	var visit func(node any)
+	visit = func(node any) {
+		m, ok := node.(map[string]any)
+		if !ok || m == nil {
+			return
+		}
+		id := fmt.Sprintf("%p", m)
+		if seen[id] {
+			return
+		}
+		seen[id] = true
+		parts = append(parts, m)
+		if allOf, ok := m["allOf"].([]any); ok {
+			for _, member := range allOf {
+				visit(member)
+			}
+		}
+	}
+	visit(schema)
+
+	required := map[string]bool{}
+	for _, part := range parts {
+		if req, ok := part["required"].([]any); ok {
+			for _, r := range req {
+				if s, ok := r.(string); ok {
+					required[s] = true
+				}
+			}
+		}
+	}
+
+	var names []string
+	defs := map[string]map[string]any{}
+	for _, part := range parts {
+		props, _ := part["properties"].(map[string]any)
+		for _, name := range sortedKeys(props) {
+			fd, has := defs[name]
+			if !has {
+				fd = map[string]any{"key$": name}
+				defs[name] = fd
+				names = append(names, name)
+			}
+			pm, ok := props[name].(map[string]any)
+			if !ok {
+				continue
+			}
+			// Every key, as TypeScript keeps the whole schema: the union scan
+			// reads oneOf and anyOf from the field def. Unasserted: a 3.1
+			// nullable field's type is an ARRAY.
+			for k, v := range collapseScalarAllOf(pm) {
+				if !statesFact(k, fd[k]) && statesFact(k, v) {
+					fd[k] = v
+				}
+			}
+		}
+	}
+
+	out := make([]map[string]any, 0, len(names))
+	for _, name := range names {
+		if required[name] {
+			defs[name]["required"] = true
+		}
+		out = append(out, defs[name])
+	}
+	return out
+}
+
+var annotationFlags = map[string]bool{"readOnly": true, "writeOnly": true, "deprecated": true}
+
+// statesFact mirrors TypeScript: a blank string states nothing, and nor does a
+// false annotation flag, so a later declaration may.
+func statesFact(k string, v any) bool {
+	if s, ok := v.(string); ok {
+		return strings.TrimSpace(s) != ""
+	}
+	if b, ok := v.(bool); ok && !b && annotationFlags[k] {
+		return false
+	}
+	return v != nil
+}
+
+func extractFields(fieldSet any, fielddefs *[]map[string]any) {
+	*fielddefs = append(*fielddefs, composedFields(fieldSet)...)
 }
 
 func inferFieldsFromExamples(opdef map[string]any, envelope string) []map[string]any {

@@ -863,6 +863,79 @@ func TestAllOfField(t *testing.T) {
 	}
 }
 
+// The fields FieldTransform builds for one operation whose response, and
+// request when it has one, compose their properties with allOf.
+func TestAllOfRecord(t *testing.T) {
+	rows := loadTsv(t, "allof-record")
+	if len(rows) == 0 {
+		t.Fatal("no allof-record rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			body := func(src string) map[string]any {
+				var schema any
+				if err := json.Unmarshal([]byte(src), &schema); err != nil {
+					t.Fatalf("bad schema %q: %v", src, err)
+				}
+				return map[string]any{"content": map[string]any{
+					"application/json": map[string]any{"schema": schema},
+				}}
+			}
+			method := "post"
+			if row["op"] == "load" {
+				method = "get"
+			}
+			opdef := map[string]any{"responses": map[string]any{"200": body(row["response"])}}
+			if row["request"] != "" {
+				opdef["requestBody"] = body(row["request"])
+			}
+			ent := map[string]any{
+				"name":   "job",
+				"fields": map[string]any{},
+				"op": map[string]any{row["op"]: map[string]any{
+					"name":   row["op"],
+					"points": []any{map[string]any{"o": "/jobs", "m": strings.ToUpper(method), "k": "json"}},
+				}},
+			}
+			apimodel := map[string]any{"main": map[string]any{
+				KIT: map[string]any{"entity": map[string]any{"job": ent}},
+			}}
+			def := map[string]any{"paths": map[string]any{"/jobs": map[string]any{method: opdef}}}
+			if _, err := FieldTransform(&ApiDefContext{ApiModel: apimodel, Def: def}); err != nil {
+				t.Fatalf("FieldTransform: %v", err)
+			}
+
+			got := map[string]any{}
+			for name, fv := range ent["fields"].(map[string]any) {
+				f, _ := fv.(map[string]any)
+				summary := map[string]any{}
+				for _, k := range []string{"t", "r", "sh", "fo", "ro", "wo", "de", "union", "op"} {
+					v, ok := f[k]
+					if !ok {
+						continue
+					}
+					if m, isMap := v.(map[string]any); isMap && k == "op" && len(m) == 0 {
+						continue
+					}
+					summary[k] = v
+				}
+				got[name] = summary
+			}
+
+			// Compared as JSON, so that Go's ints and TypeScript's numbers agree.
+			raw, _ := json.Marshal(got)
+			var norm, want any
+			_ = json.Unmarshal(raw, &norm)
+			if err := json.Unmarshal([]byte(row["expected"]), &want); err != nil {
+				t.Fatalf("bad expected %q: %v", row["expected"], err)
+			}
+			if !reflect.DeepEqual(norm, want) {
+				t.Errorf("fields = %s, want %s", raw, row["expected"])
+			}
+		})
+	}
+}
+
 func TestPathResource(t *testing.T) {
 	rows := loadTsv(t, "path-resource")
 	if len(rows) == 0 {
