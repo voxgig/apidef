@@ -3,7 +3,7 @@ import { bodyRequestTransform, guideActive } from '../utility'
 import { arrayBodyField } from '../guide/heuristic01'
 
 import {
-  arrayCarrier, arrayRequestSchema, guideMedia, nullableType, requestSchema, sameType,
+  arrayCarrier, arrayRequestSchema, guideMedia, nullableType, requestDecl, requestSchema, sameType,
 } from './body'
 
 import { routeFieldNames } from './field'
@@ -251,8 +251,8 @@ function sameTransform(a: any, b: any): boolean {
 // An array body is sent from one field of the request data, named for its
 // records, and never for an argument of its operation, a field another route of
 // its entity has, as fields span operations, or a carrier already named for an
-// array of another type. Decided here, not by the guide heuristic, as the
-// guide's media type decides the body.
+// array of another type or requiredness. Decided here, not by the guide
+// heuristic, as the guide's media type decides the body.
 function requestDefault(
   on: OpEntity, ment: ModelEntity, opm: ModelOpMap, mop: ModelOp, mpoint: ModelPoint,
 ): any {
@@ -263,6 +263,7 @@ function requestDefault(
     return (null == chosen ? undefined :
       bodyRequestTransform(requestSchema(on.def, mpoint.m, mpoint.o, chosen), [on.gent.name])) ?? '`reqdata`'
   }
+  const required = true === requestDecl(on.def, mpoint.m, mpoint.o)?.required
   const others = mop.points.filter((q) => q !== mpoint)
   const routes = Object.values(opm).flatMap((op) =>
     (op?.points ?? []).filter((q) => q !== mpoint).map((q) => ({ opname: op!.name, q })))
@@ -270,7 +271,8 @@ function requestDefault(
     ...mop.points.flatMap((q) => routeArgNames(on.def, q)),
     ...routes.flatMap(({ opname, q }) => routeFieldNames(ment, opname, q, on.def, media(opname, q))),
     ...others.map((q) => arrayCarrier(on.def, q, media(mop.name, q)))
-      .filter((carrier) => null != carrier && !sameType(carrier.type, nullableType(list)))
+      .filter((carrier) => null != carrier &&
+        !(sameType(carrier.type, nullableType(list)) && carrier.required === required))
       .map((carrier) => carrier!.name),
   ]
   return '`reqdata.' + arrayBodyField(list, on.entname, taken) + '`'

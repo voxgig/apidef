@@ -174,8 +174,8 @@ function sameTransform(a, b) {
 // An array body is sent from one field of the request data, named for its
 // records, and never for an argument of its operation, a field another route of
 // its entity has, as fields span operations, or a carrier already named for an
-// array of another type. Decided here, not by the guide heuristic, as the
-// guide's media type decides the body.
+// array of another type or requiredness. Decided here, not by the guide
+// heuristic, as the guide's media type decides the body.
 function requestDefault(on, ment, opm, mop, mpoint) {
     const media = (opname, q) => (0, body_1.guideMedia)(on.guide, on.entname, opname, q).body;
     const chosen = media(mop.name, mpoint);
@@ -184,13 +184,15 @@ function requestDefault(on, ment, opm, mop, mpoint) {
         return (null == chosen ? undefined :
             (0, utility_1.bodyRequestTransform)((0, body_1.requestSchema)(on.def, mpoint.m, mpoint.o, chosen), [on.gent.name])) ?? '`reqdata`';
     }
+    const required = true === (0, body_1.requestDecl)(on.def, mpoint.m, mpoint.o)?.required;
     const others = mop.points.filter((q) => q !== mpoint);
     const routes = Object.values(opm).flatMap((op) => (op?.points ?? []).filter((q) => q !== mpoint).map((q) => ({ opname: op.name, q })));
     const taken = [
         ...mop.points.flatMap((q) => (0, args_1.routeArgNames)(on.def, q)),
         ...routes.flatMap(({ opname, q }) => (0, field_1.routeFieldNames)(ment, opname, q, on.def, media(opname, q))),
         ...others.map((q) => (0, body_1.arrayCarrier)(on.def, q, media(mop.name, q)))
-            .filter((carrier) => null != carrier && !(0, body_1.sameType)(carrier.type, (0, body_1.nullableType)(list)))
+            .filter((carrier) => null != carrier &&
+            !((0, body_1.sameType)(carrier.type, (0, body_1.nullableType)(list)) && carrier.required === required))
             .map((carrier) => carrier.name),
     ];
     return '`reqdata.' + (0, heuristic01_1.arrayBodyField)(list, on.entname, taken) + '`';

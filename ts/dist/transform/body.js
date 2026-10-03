@@ -9,6 +9,7 @@ exports.jsonRequestSchema = jsonRequestSchema;
 exports.requestSchema = requestSchema;
 exports.arrayRequestSchema = arrayRequestSchema;
 exports.arrayCarrier = arrayCarrier;
+exports.requestDecl = requestDecl;
 exports.nullableType = nullableType;
 exports.sameType = sameType;
 exports.selectedRequestSchema = selectedRequestSchema;
@@ -356,7 +357,7 @@ function arrayShape(schema) {
                 const members = Array.isArray(one) ? one.filter((member) => !nullOnly(member)) : [];
                 if (1 === members.length)
                     visit(members[0]);
-                else if (1 < members.length && members.every(isArray))
+                else if (1 < members.length && members.every(arrayOnly))
                     parts.push(unionArray(members));
             }
         }
@@ -364,7 +365,7 @@ function arrayShape(schema) {
     visit(schema);
     const found = parts.find(isArray);
     const list = null == found || null != found.type ? found : { ...found, type: 'array' };
-    if (null == list || 1 === parts.length) {
+    if (null == list) {
         return list;
     }
     const items = list.items ?? parts.find((part) => null != part.items)?.items;
@@ -413,6 +414,16 @@ function arrayValued(schema) {
 }
 function isArray(schema) {
     return isMap(schema) && (hasType(schema, 'array') || (null == schema.type && arrayValued(schema)));
+}
+// Only arrays pass, beside any null: a union member that admits a string too is
+// no array.
+function arrayOnly(schema) {
+    if (!isMap(schema))
+        return false;
+    if (arrayValued(schema))
+        return true;
+    const types = null == schema.type ? [] : [schema.type].flat();
+    return types.includes('array') && types.every((type) => 'array' === type || 'null' === type);
 }
 // The items are kept only where every member's items name one component.
 function unionArray(members) {

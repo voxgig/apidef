@@ -186,7 +186,7 @@ func collectOps(ctx *ApiDefContext, entname string, gent map[string]any, pathsDe
 // from one field of the request data, named for its records, and never for an
 // argument of its operation, a field another route of its entity has, as
 // fields span operations, or a carrier already named for an array of another
-// type.
+// type or requiredness.
 func requestDefault(ctx *ApiDefContext, entname string, opm map[string]any, opname string, points []any, at int) any {
 	if ctx == nil {
 		return "`reqdata`"
@@ -226,9 +226,11 @@ func requestDefault(ctx *ApiDefContext, entname string, opm map[string]any, opna
 			}
 		}
 	}
+	required := requestDecl(ctx.Def, method, path)["required"] == true
 	for j, pt := range points {
 		if q, _ := pt.(map[string]any); j != at && q != nil {
-			if c := arrayCarrier(ctx.Def, q, media(opname, q)); c != nil && !sameType(c.typ, nullableType(list)) {
+			c := arrayCarrier(ctx.Def, q, media(opname, q))
+			if c != nil && !(sameType(c.typ, nullableType(list)) && c.required == required) {
 				taken = append(taken, c.name)
 			}
 		}

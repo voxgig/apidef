@@ -56,16 +56,19 @@ argument of the operation has that name, or another route of the entity has
 a field under that name, in what it sends or in what it answers, the field is
 `<record>_list` instead, so `notes` becomes `note_list`. So it is when another
 route already sends an array of another type from that name, such as one that
-may be null beside one that may not. A PATCH route that joins `update` is
+may be null beside one that may not, or sends one from it as a required body
+where this body is optional, or the reverse. A PATCH route that joins `update` is
 checked against the routes it joins. An array schema wrapped in `allOf`, or
 in a `oneOf` or `anyOf` of one member beside any member only null passes (a
 `null` type, a `const` or `enum` of null alone, an `allOf` with such a part,
 or a `oneOf` or `anyOf` of such members), counts as an array, with its items
 taken from whichever part states them. So does a schema with no type whose
 `const` is an array, or whose `enum` values all are, and a `oneOf` or `anyOf`
-whose members are all arrays but for those only null passes; its items count
-only where every member's items name one component, so the field is
-otherwise named from the entity. It may be null only where
+whose members, but for those only null passes, each admit nothing but arrays
+and null; a member whose type list also names another type, such as `string`,
+makes it no array. Its
+items count only where every member's items name one component, so the field
+is otherwise named from the entity. It may be null only where
 the schema's own type, `const` and `enum` admit null, every `allOf` part
 does, exactly one member of a `oneOf` does, and some member of an `anyOf`
 does. A noun in `-o` that takes `-es`, such as `hero`, gives `heroes`,
@@ -77,7 +80,9 @@ declares.
 input as it is, with no field. When `body.media` names another media type, a
 `transform.req` the base guide took from the preferred body is taken again
 from the chosen one: the array's field, the record under the entity's name,
-a closed body's own properties, or `` `reqdata` ``.
+a closed body's own properties, or `` `reqdata` ``. One you set to the same
+value is taken again too, since the guides are unified before the model is
+built and the two cannot be told apart.
 
 ### `GuideMetrics`
 

@@ -18,5 +18,6 @@ declare function arrayCarrier(def: any, mpoint: ModelPoint, media?: string): {
     type: string | string[];
     description?: string;
 } | undefined;
+declare function requestDecl(def: any, method: string, path: string): any;
 declare function sameType(a: any, b: any): boolean;
-export { bodyTransform, guideMedia, requestBody, responseBody, jsonRequestSchema, requestSchema, arrayRequestSchema, arrayCarrier, nullableType, sameType, selectedRequestSchema, };
+export { bodyTransform, guideMedia, requestBody, responseBody, jsonRequestSchema, requestSchema, arrayRequestSchema, arrayCarrier, requestDecl, nullableType, sameType, selectedRequestSchema, };

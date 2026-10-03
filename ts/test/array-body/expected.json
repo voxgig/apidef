@@ -9,11 +9,14 @@
     "broadcast.create POST /broadcasts exist=sms_messages action= req=\"`reqdata.sms_messages`\"",
     "chip.create POST /chips exist=chips action= req=\"`reqdata.chips`\"",
     "coil.create POST /coils exist= action= req=\"`reqdata`\"",
+    "coin.create POST /coins exist=coins action= req=\"`reqdata.coins`\"",
     "crate.create POST /crates exist=crates action= req=\"`reqdata.crates`\"",
     "crew.create POST /crews exist=crew_inputs action= req=\"`reqdata.crew_inputs`\"",
     "deck.create POST /decks exist= action= req={\"title\":\"`reqdata.title`\"}",
     "doc.update PATCH /docs/{doc_id} exist=doc_change_list,id action= req=\"`reqdata.doc_change_list`\"",
     "doc.update PUT /docs/{doc_id}/archive exist=id action=archive req=\"`reqdata`\"",
+    "drum.create POST /boards/{board_id}/drums exist=board_id action= req=\"`reqdata.drums`\"",
+    "drum.create POST /drums exist=drum_list action= req=\"`reqdata.drum_list`\"",
     "event.create POST /events exist=events action= req=\"`reqdata.events`\"",
     "flag.create POST /flags exist=flags action= req=\"`reqdata.flags`\"",
     "flask.create POST /flasks exist=flasks action= req=\"`reqdata.flasks`\"",
@@ -23,6 +26,7 @@
     "grade.create POST /grades exist=grade_list action= req=\"`reqdata.grade_list`\"",
     "herd.create POST /herds exist=oxen action= req=\"`reqdata.oxen`\"",
     "hero.create POST /heroes exist=heroes action= req=\"`reqdata.heroes`\"",
+    "hoop.create POST /hoops exist= action= req=\"`reqdata`\"",
     "item.create POST /items exist=n123_items action= req=\"`reqdata.n123_items`\"",
     "jar.create POST /jars exist=jars action= req=\"`reqdata.jars`\"",
     "keg.create POST /kegs exist=kegs action= req=\"`reqdata.kegs`\"",
@@ -41,6 +45,8 @@
     "pallet.create POST /pallets exist= action= req={\"pallet\":\"`reqdata`\"}",
     "pin.create POST /pins exist=pins action= req=\"`reqdata.pins`\"",
     "record.create POST /records exist= action= req=\"`reqdata`\"",
+    "rim.create POST /rims exist= action= req=\"`reqdata`\"",
+    "ring.create POST /rings exist=rings action= req=\"`reqdata.rings`\"",
     "roll.create POST /rolls exist=rolls action= req=\"`reqdata.rolls`\"",
     "score.create POST /games/{game_id}/scores exist=game_id,scores action= req=\"`reqdata.scores`\"",
     "score.create POST /scores exist=score_list action= req=\"`reqdata.score_list`\"",
@@ -134,6 +140,12 @@
       }
     },
     "coil": {},
+    "coin": {
+      "coins": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
     "crate": {
       "crates": {
         "t": [
@@ -173,6 +185,16 @@
       },
       "title": {
         "t": "`$STRING`",
+        "r": false
+      }
+    },
+    "drum": {
+      "drum_list": {
+        "t": "`$ARRAY`",
+        "r": false
+      },
+      "drums": {
+        "t": "`$ARRAY`",
         "r": false
       }
     },
@@ -248,6 +270,7 @@
         "r": false
       }
     },
+    "hoop": {},
     "item": {
       "n123_items": {
         "t": "`$ARRAY`",
@@ -392,6 +415,13 @@
       },
       "title": {
         "t": "`$STRING`",
+        "r": false
+      }
+    },
+    "rim": {},
+    "ring": {
+      "rings": {
+        "t": "`$ARRAY`",
         "r": false
       }
     },

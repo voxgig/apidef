@@ -1888,6 +1888,193 @@
           }
         }
       }
+    },
+    "/hoops": {
+      "post": {
+        "operationId": "createHoops",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "$ref": "#/components/schemas/Hoop"
+                    }
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Hoop"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No content"
+          }
+        }
+      }
+    },
+    "/rims": {
+      "post": {
+        "operationId": "createRims",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "$ref": "#/components/schemas/Rim"
+                    }
+                  },
+                  {
+                    "type": [
+                      "array",
+                      "null"
+                    ],
+                    "items": {
+                      "$ref": "#/components/schemas/Rim"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No content"
+          }
+        }
+      }
+    },
+    "/rings": {
+      "post": {
+        "operationId": "createRings",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "$ref": "#/components/schemas/Ring"
+                },
+                "const": []
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No content"
+          }
+        }
+      }
+    },
+    "/coins": {
+      "post": {
+        "operationId": "createCoins",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "$ref": "#/components/schemas/Coin"
+                },
+                "enum": [
+                  []
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No content"
+          }
+        }
+      }
+    },
+    "/drums": {
+      "post": {
+        "operationId": "createDrums",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Drum"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No content"
+          }
+        }
+      }
+    },
+    "/boards/{board_id}/drums": {
+      "post": {
+        "operationId": "createBoardDrums",
+        "parameters": [
+          {
+            "name": "board_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Drum"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No content"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2544,6 +2731,46 @@
           "id": {
             "type": "string"
           },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "Hoop": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "Rim": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "Ring": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "Coin": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "Drum": {
+        "type": "object",
+        "properties": {
           "label": {
             "type": "string"
           }

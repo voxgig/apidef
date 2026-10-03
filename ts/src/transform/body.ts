@@ -487,14 +487,14 @@ function arrayShape(schema: any): any {
       for (const one of [node.oneOf, node.anyOf]) {
         const members = Array.isArray(one) ? one.filter((member: any) => !nullOnly(member)) : []
         if (1 === members.length) visit(members[0])
-        else if (1 < members.length && members.every(isArray)) parts.push(unionArray(members))
+        else if (1 < members.length && members.every(arrayOnly)) parts.push(unionArray(members))
       }
     }
   }
   visit(schema)
   const found = parts.find(isArray)
   const list = null == found || null != found.type ? found : { ...found, type: 'array' }
-  if (null == list || 1 === parts.length) {
+  if (null == list) {
     return list
   }
   const items = list.items ?? parts.find((part) => null != part.items)?.items
@@ -546,6 +546,16 @@ function arrayValued(schema: any): boolean {
 
 function isArray(schema: any): boolean {
   return isMap(schema) && (hasType(schema, 'array') || (null == schema.type && arrayValued(schema)))
+}
+
+
+// Only arrays pass, beside any null: a union member that admits a string too is
+// no array.
+function arrayOnly(schema: any): boolean {
+  if (!isMap(schema)) return false
+  if (arrayValued(schema)) return true
+  const types = null == schema.type ? [] : [schema.type].flat()
+  return types.includes('array') && types.every((type: any) => 'array' === type || 'null' === type)
 }
 
 
@@ -621,6 +631,7 @@ export {
   requestSchema,
   arrayRequestSchema,
   arrayCarrier,
+  requestDecl,
   nullableType,
   sameType,
   selectedRequestSchema,

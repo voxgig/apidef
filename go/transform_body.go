@@ -714,7 +714,7 @@ func arrayShape(schema any) map[string]any {
 		typed["type"] = "array"
 		list = typed
 	}
-	if list == nil || len(parts) == 1 {
+	if list == nil {
 		return list
 	}
 	out := map[string]any{}
@@ -890,11 +890,33 @@ func isArraySchema(schema any) bool {
 
 func allArrays(members []any) bool {
 	for _, member := range members {
-		if !isArraySchema(member) {
+		if !arrayOnly(member) {
 			return false
 		}
 	}
 	return true
+}
+
+// arrayOnly mirrors ts/src/transform/body.ts: only arrays pass, beside any
+// null, so a union member that admits a string too is no array.
+func arrayOnly(schema any) bool {
+	m, _ := schema.(map[string]any)
+	if m == nil {
+		return false
+	}
+	if arrayValued(m) {
+		return true
+	}
+	types := typeList(m["type"])
+	array := false
+	for _, t := range types {
+		if t == "array" {
+			array = true
+		} else if t != "null" {
+			return false
+		}
+	}
+	return array
 }
 
 // unionArray mirrors ts/src/transform/body.ts: the items are kept only where
