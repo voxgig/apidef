@@ -164,7 +164,7 @@ func collectOps(ctx *ApiDefContext, entname string, gent map[string]any, pathsDe
 		for i, pt := range points {
 			transform, _ := pt.(map[string]any)["t"].(map[string]any)
 			if transform["req"] == nil {
-				transform["req"] = requestDefault(ctx, entname, name, points, i)
+				transform["req"] = requestDefault(ctx, entname, opm, name, points, i)
 			}
 			if transform["res"] == nil {
 				transform["res"] = "`body`"
@@ -177,22 +177,23 @@ func collectOps(ctx *ApiDefContext, entname string, gent map[string]any, pathsDe
 
 // requestDefault mirrors ts/src/transform/operation.ts: an array body is sent
 // from one field of the request data, named for its records, and never for an
-// argument of its operation, a field another route has, or a carrier already
-// named for an array of another type.
-func requestDefault(ctx *ApiDefContext, entname string, opname string, points []any, at int) string {
+// argument of its operation, a field another route of its entity has, as
+// fields span operations, or a carrier already named for an array of another
+// type.
+func requestDefault(ctx *ApiDefContext, entname string, opm map[string]any, opname string, points []any, at int) string {
 	if ctx == nil {
 		return "`reqdata`"
 	}
-	media := func(q map[string]any) string {
+	media := func(name string, q map[string]any) string {
 		method, _ := q["m"].(string)
 		path, _ := q["o"].(string)
-		body, _ := guideBodyMedia(ctx.Guide, entname, opname, method, path)
+		body, _ := guideBodyMedia(ctx.Guide, entname, name, method, path)
 		return body
 	}
 	mpoint, _ := points[at].(map[string]any)
 	method, _ := mpoint["m"].(string)
 	path, _ := mpoint["o"].(string)
-	list := arrayRequestSchema(ctx.Def, method, path, media(mpoint))
+	list := arrayRequestSchema(ctx.Def, method, path, media(opname, mpoint))
 	if list == nil {
 		return "`reqdata`"
 	}
@@ -202,13 +203,28 @@ func requestDefault(ctx *ApiDefContext, entname string, opname string, points []
 			taken = append(taken, routeArgNames(ctx.Def, q)...)
 		}
 	}
+	for _, key := range sortedKeys(opm) {
+		mop, _ := opm[key].(map[string]any)
+		name, _ := mop["name"].(string)
+		routes, _ := mop["points"].([]any)
+		for _, pt := range routes {
+			if q, _ := pt.(map[string]any); q != nil && !samePoint(q, mpoint) {
+				taken = append(taken, routeFieldNames(q, ctx.Def, name, entname, media(name, q))...)
+			}
+		}
+	}
 	for j, pt := range points {
 		if q, _ := pt.(map[string]any); j != at && q != nil {
-			taken = append(taken, routeFieldNames(q, ctx.Def, opname, entname, media(q))...)
-			if c := arrayCarrier(ctx.Def, q, media(q)); c != nil && !sameType(c.typ, nullableType(list)) {
+			if c := arrayCarrier(ctx.Def, q, media(opname, q)); c != nil && !sameType(c.typ, nullableType(list)) {
 				taken = append(taken, c.name)
 			}
 		}
 	}
 	return "`reqdata." + arrayBodyField(list, entname, taken) + "`"
+}
+
+// samePoint reports whether a and b are one map, as the TypeScript port
+// compares points by reference.
+func samePoint(a map[string]any, b map[string]any) bool {
+	return fmt.Sprintf("%p", a) == fmt.Sprintf("%p", b)
 }

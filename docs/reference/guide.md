@@ -52,8 +52,8 @@ the items name: their component, or the one component their `allOf` parts
 name, cleaned as an entity name is, so `SmsMessageRequest` gives
 `sms_messages`, or else the entity's own name. A name that would start with
 a digit starts with `n`, so `123ItemRequest` gives `n123_items`. When an
-argument of the operation has that name, or another route of it has a field
-under that name, in what it sends or in what it answers, the field is
+argument of the operation has that name, or another route of the entity has
+a field under that name, in what it sends or in what it answers, the field is
 `<record>_list` instead, so `notes` becomes `note_list`. So it is when another
 route already sends an array of another type from that name, such as one that
 may be null beside one that may not. A PATCH route that joins `update` is
@@ -61,8 +61,8 @@ checked against the routes it joins. An array schema wrapped in `allOf`, or
 in a `oneOf` or `anyOf` of one member beside any `null`, counts as an array,
 with its items taken from whichever part states them; the `null` makes it an
 array that may be null. A noun in `-o` that takes `-es`, such as `hero`, gives
-`heroes`, and the rest take `-s`, such as `photos`. A `transform.req` in the guide entry
-file replaces the default and names the field the model declares.
+`heroes`, and the rest take `-s`, such as `photos`. A `transform.req` in the
+guide entry file replaces the default and names the field the model declares.
 `` `reqdata.messages` `` declares `messages`, and `` `reqdata` `` sends the
 input as it is, with no field.
 

@@ -33,6 +33,8 @@
     "session.remove DELETE /sessions exist=sessions action= req=\"`reqdata.sessions`\"",
     "shipment.create POST /shipments exist=parcels action= req=\"`reqdata.parcels`\"",
     "tag.create POST /tags exist= action= req=\"`reqdata.tags`\"",
+    "ticket.create POST /tickets exist=ticket_list action= req=\"`reqdata.ticket_list`\"",
+    "ticket.update PUT /tickets/{ticket_id} exist=id action= req=\"`reqdata`\"",
     "todo.create POST /lists/{list_id}/todos exist=list_id,todo_item_list action= req=\"`reqdata.todo_item_list`\"",
     "todo.create POST /todos exist= action= req=\"`reqdata`\"",
     "tote.create POST /totes exist=totes action= req=\"`reqdata.totes`\"",
@@ -317,6 +319,21 @@
       "tags": {
         "t": "`$ARRAY`",
         "r": false
+      }
+    },
+    "ticket": {
+      "id": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "ticket_list": {
+        "t": "`$ARRAY`",
+        "r": false
+      },
+      "tickets": {
+        "t": "`$INTEGER`",
+        "r": false,
+        "sh": "How many tickets the holder has."
       }
     },
     "todo": {

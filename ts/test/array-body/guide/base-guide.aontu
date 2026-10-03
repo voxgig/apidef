@@ -4,9 +4,9 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 32
-  metrics: count: path: 41
-  metrics: count: method: 42
+  metrics: count: entity: 33
+  metrics: count: path: 43
+  metrics: count: method: 44
 
   entity: alarm: {
     path: "/alarms": {
@@ -189,6 +189,16 @@ guide: {
   entity: tag: {
     path: "/tags": {
       op: create: method: *POST
+    }
+  }
+
+  entity: ticket: {
+    path: "/tickets": {
+      op: create: method: *POST
+    }
+    path: "/tickets/{ticket_id}": {
+      rename: param: "ticket_id": *"id"
+      op: update: method: *PUT
     }
   }
 

@@ -79,7 +79,7 @@ const operationTransform: Transform = async function(
     // After patch has joined update, so each operation's routes are final.
     for (const mop of Object.values(opm)) {
       for (const mpoint of mop?.points ?? []) {
-        mpoint.t.req = mpoint.t.req ?? requestDefault(on, kit.entity[entname], mop!, mpoint)
+        mpoint.t.req = mpoint.t.req ?? requestDefault(on, kit.entity[entname], opm, mop!, mpoint)
         mpoint.t.res = mpoint.t.res ?? '`body`'
       }
     }
@@ -227,20 +227,25 @@ function resolveOp(opname: OpName, on: OpEntity): undefined | ModelOp {
 
 
 // An array body is sent from one field of the request data, named for its
-// records, and never for an argument of its operation, a field another route
-// has, or a carrier already named for an array of another type. Decided here,
-// not by the guide heuristic, as the guide's media type decides the body.
-function requestDefault(on: OpEntity, ment: ModelEntity, mop: ModelOp, mpoint: ModelPoint): string {
-  const media = (q: ModelPoint) => guideMedia(on.guide, on.entname, mop.name, q).body
-  const list = arrayRequestSchema(on.def, mpoint.m, mpoint.o, media(mpoint))
+// records, and never for an argument of its operation, a field another route of
+// its entity has, as fields span operations, or a carrier already named for an
+// array of another type. Decided here, not by the guide heuristic, as the
+// guide's media type decides the body.
+function requestDefault(
+  on: OpEntity, ment: ModelEntity, opm: ModelOpMap, mop: ModelOp, mpoint: ModelPoint,
+): string {
+  const media = (opname: string, q: ModelPoint) => guideMedia(on.guide, on.entname, opname, q).body
+  const list = arrayRequestSchema(on.def, mpoint.m, mpoint.o, media(mop.name, mpoint))
   if (null == list) {
     return '`reqdata`'
   }
   const others = mop.points.filter((q) => q !== mpoint)
+  const routes = Object.values(opm).flatMap((op) =>
+    (op?.points ?? []).filter((q) => q !== mpoint).map((q) => ({ opname: op!.name, q })))
   const taken = [
     ...mop.points.flatMap((q) => routeArgNames(on.def, q)),
-    ...others.flatMap((q) => routeFieldNames(ment, mop.name, q, on.def, media(q))),
-    ...others.map((q) => arrayCarrier(on.def, q, media(q)))
+    ...routes.flatMap(({ opname, q }) => routeFieldNames(ment, opname, q, on.def, media(opname, q))),
+    ...others.map((q) => arrayCarrier(on.def, q, media(mop.name, q)))
       .filter((carrier) => null != carrier && !sameType(carrier.type, nullableType(list)))
       .map((carrier) => carrier!.name),
   ]
