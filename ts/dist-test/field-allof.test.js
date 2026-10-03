@@ -97,5 +97,15 @@ function summary(fields) {
             node_assert_1.default.deepStrictEqual({ count: shape.union?.count, branches: shape.union?.branches }, { count: 1, branches: 2 });
         }
     });
+    (0, node_test_1.test)('a blank fact in one declaration leaves room for a later one', async () => {
+        const { entity, def } = job('load', 'GET', {
+            allOf: [
+                { type: 'object', properties: { id: { type: 'string' }, notes: { type: 'string', description: ' ', format: '' } } },
+                { type: 'object', properties: { notes: { description: 'Free text about the job.', format: 'markdown' } } },
+            ],
+        });
+        const { notes } = await runFieldTransform(entity, def);
+        node_assert_1.default.deepStrictEqual({ sh: notes.sh, fo: notes.fo }, { sh: 'Free text about the job.', fo: 'markdown' });
+    });
 });
 //# sourceMappingURL=field-allof.test.js.map

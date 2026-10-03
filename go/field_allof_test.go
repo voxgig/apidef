@@ -180,3 +180,19 @@ func TestFieldAllOfKeepsUnion(t *testing.T) {
 		}
 	}
 }
+
+func TestFieldAllOfBlankFactLeavesRoom(t *testing.T) {
+	fields := allofRun(t, "load", "GET", map[string]any{"allOf": []any{
+		map[string]any{"type": "object", "properties": map[string]any{
+			"id":    map[string]any{"type": "string"},
+			"notes": map[string]any{"type": "string", "description": " ", "format": ""},
+		}},
+		map[string]any{"type": "object", "properties": map[string]any{
+			"notes": map[string]any{"description": "Free text about the job.", "format": "markdown"},
+		}},
+	}}, nil)
+	notes, _ := fields["notes"].(map[string]any)
+	if notes["sh"] != "Free text about the job." || notes["fo"] != "markdown" {
+		t.Errorf("notes sh = %v, fo = %v, want the second declaration's", notes["sh"], notes["fo"])
+	}
+}

@@ -133,4 +133,15 @@ describe('field-allof', () => {
         { count: 1, branches: 2 })
     }
   })
+
+  test('a blank fact in one declaration leaves room for a later one', async () => {
+    const { entity, def } = job('load', 'GET', {
+      allOf: [
+        { type: 'object', properties: { id: { type: 'string' }, notes: { type: 'string', description: ' ', format: '' } } },
+        { type: 'object', properties: { notes: { description: 'Free text about the job.', format: 'markdown' } } },
+      ],
+    })
+    const { notes } = await runFieldTransform(entity, def)
+    assert.deepStrictEqual({ sh: notes.sh, fo: notes.fo }, { sh: 'Free text about the job.', fo: 'markdown' })
+  })
 })

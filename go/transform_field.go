@@ -891,7 +891,7 @@ func composedFields(schema any) []map[string]any {
 			// reads oneOf and anyOf from the field def. Unasserted: a 3.1
 			// nullable field's type is an ARRAY.
 			for k, v := range collapseScalarAllOf(pm) {
-				if _, has := fd[k]; !has && v != nil {
+				if !statesFact(fd[k]) && statesFact(v) {
 					fd[k] = v
 				}
 			}
@@ -906,6 +906,15 @@ func composedFields(schema any) []map[string]any {
 		out = append(out, defs[name])
 	}
 	return out
+}
+
+// statesFact mirrors TypeScript: a blank string states nothing, so a later
+// declaration may.
+func statesFact(v any) bool {
+	if s, ok := v.(string); ok {
+		return strings.TrimSpace(s) != ""
+	}
+	return v != nil
 }
 
 func extractFields(fieldSet any, fielddefs *[]map[string]any) {

@@ -837,12 +837,18 @@ function mergeDeclarations(decls: any[]): any {
   const merged: any = {}
   for (const decl of decls) {
     for (const [key, value] of Object.entries(decl)) {
-      if (null == merged[key] && null != value) {
+      if (!statesFact(merged[key]) && statesFact(value)) {
         merged[key] = value
       }
     }
   }
   return merged
+}
+
+
+// A blank string states nothing, so a later declaration may.
+function statesFact(value: any): boolean {
+  return null != value && !('string' === typeof value && '' === value.trim())
 }
 
 
