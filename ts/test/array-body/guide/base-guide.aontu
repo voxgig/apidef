@@ -1,0 +1,55 @@
+# Generated from the API definition and overwritten on every build: do not
+# edit this file. Put customizations in the guide entry file, which includes
+# this one and overrides its defaults:
+#   guide.aontu
+
+guide: {
+  metrics: count: entity: 5
+  metrics: count: path: 7
+  metrics: count: method: 8
+
+  entity: broadcast: {
+    path: "/broadcasts": {
+      op: create: method: *POST
+      op: create: transform: req: *("`reqdata.sms_messages`")|top
+    }
+  }
+
+  entity: label: {
+    path: "/labels": {
+      op: create: method: *POST
+      op: create: transform: req: *("`reqdata.labels`")|top
+    }
+  }
+
+  entity: message: {
+    path: "/mms/v1/messages": {
+      op: create: method: *POST
+      op: create: transform: req: *("`reqdata.mms_messages`")|top
+    }
+  }
+
+  entity: tag: {
+    path: "/tags": {
+      op: create: method: *POST
+      op: create: transform: req: *("`reqdata.tags`")|top
+    }
+  }
+
+  entity: user: {
+    path: "/users": {
+      op: create: method: *POST
+      op: list: method: *GET
+    }
+    path: "/users/batch": {
+      action: "batch": {}
+      op: create: method: *POST
+      op: create: transform: req: *("`reqdata.users`")|top
+    }
+    path: "/users/{user_id}": {
+      rename: param: "user_id": *"id"
+      op: load: method: *GET
+    }
+  }
+
+}

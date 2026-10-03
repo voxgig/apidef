@@ -607,6 +607,18 @@ function findFieldDefs(ment, mop, mpoint, def) {
             fielddefs.push(ef);
         }
     }
+    // An array body is sent from one field of the request data, and has no
+    // properties of its own to contribute. Optional, as the record never holds it.
+    const listfield = 'query' === method || isAction ? undefined :
+        (0, utility_1.arrayRequestField)(opdef?.requestBody, mpoint.t?.req);
+    if (null != listfield) {
+        fielddefs.push({
+            key$: listfield,
+            type: 'array',
+            description: opdef.requestBody.description ??
+                (0, utility_1.arrayRequestSchema)(opdef.requestBody).description,
+        });
+    }
     return fielddefs;
 }
 // A schema and its allOf members describe one object: a name any of them

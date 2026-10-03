@@ -111,6 +111,23 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-pluralize', () => {
+    const rows = loadTsv('pluralize');
+    for (const row of rows) {
+        (0, node_test_1.test)(`pluralize("${row.input}") => "${row.expected}"`, () => {
+            if ('' !== row.plurals) {
+                (0, utility_1.setCustomPlurals)(JSON.parse(row.plurals));
+            }
+            try {
+                node_assert_1.default.deepStrictEqual((0, utility_1.pluralize)(row.input), row.expected);
+                node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)(row.expected), row.input);
+            }
+            finally {
+                (0, utility_1.clearCustomPlurals)();
+            }
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-canonize', () => {
     const rows = loadTsv('canonize');
     for (const row of rows) {
@@ -755,6 +772,14 @@ function loadTsv(name) {
             if ('-' !== row.openapi3) {
                 node_assert_1.default.deepStrictEqual(await argsOf(row.path, JSON.parse(row.openapi3)), want);
             }
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-array-body-field', () => {
+    const rows = loadTsv('array-body-field');
+    for (const row of rows) {
+        (0, node_test_1.test)(`arrayBodyField(${row.schema}, ${row.entity})`, () => {
+            node_assert_1.default.deepStrictEqual((0, heuristic01_1.arrayBodyField)(JSON.parse(row.schema), row.entity), row.expected);
         });
     }
 });

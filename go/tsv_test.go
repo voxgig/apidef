@@ -88,6 +88,32 @@ func TestTsvDepluralize(t *testing.T) {
 	}
 }
 
+func TestTsvPluralize(t *testing.T) {
+	rows := loadTsv(t, "pluralize")
+	if len(rows) == 0 {
+		t.Fatal("no pluralize rows loaded")
+	}
+	for _, row := range rows {
+		input, expected := row["input"], row["expected"]
+		t.Run("pluralize("+input+")", func(t *testing.T) {
+			if row["plurals"] != "" {
+				var plurals map[string]any
+				if err := json.Unmarshal([]byte(row["plurals"]), &plurals); err != nil {
+					t.Fatalf("bad plurals %q: %v", row["plurals"], err)
+				}
+				SetCustomPlurals(plurals)
+			}
+			defer ClearCustomPlurals()
+			if got := Pluralize(input); got != expected {
+				t.Errorf("Pluralize(%q) = %q, want %q", input, got, expected)
+			}
+			if got := Depluralize(expected); got != input {
+				t.Errorf("Depluralize(%q) = %q, want %q", expected, got, input)
+			}
+		})
+	}
+}
+
 func TestTsvCanonize(t *testing.T) {
 	rows := loadTsv(t, "canonize")
 	for _, row := range rows {
@@ -1267,6 +1293,25 @@ func TestTsvParamSchema(t *testing.T) {
 			if got := argsOf(t, row["path"], twin); !jsonEqual(got, want) {
 				out, _ := json.Marshal(got)
 				t.Errorf("openapi3\ngot  %s\nwant [%s]", out, row["arg"])
+			}
+		})
+	}
+}
+
+func TestArrayBodyField(t *testing.T) {
+	rows := loadTsv(t, "array-body-field")
+	if len(rows) == 0 {
+		t.Fatal("no array-body-field rows loaded")
+	}
+	for _, row := range rows {
+		schemaSrc, entity, expected := row["schema"], row["entity"], row["expected"]
+		t.Run(schemaSrc, func(t *testing.T) {
+			var schema map[string]any
+			if err := json.Unmarshal([]byte(schemaSrc), &schema); err != nil {
+				t.Fatalf("bad schema %q: %v", schemaSrc, err)
+			}
+			if got := arrayBodyField(schema, entity); got != expected {
+				t.Errorf("arrayBodyField(%s, %s) = %q, want %q", schemaSrc, entity, got, expected)
 			}
 		})
 	}

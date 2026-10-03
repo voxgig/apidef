@@ -37,7 +37,7 @@ func SelectTransform(ctx *ApiDefContext) (*TransformResult, error) {
 				if mtarget == nil {
 					continue
 				}
-				resolveSelect(guideEntity, entname, mtarget)
+				resolveSelect(guideEntity, entname, mtarget, pointRequestBody(ctx.Def, mtarget))
 			}
 
 			if len(points) > 0 {
@@ -51,7 +51,18 @@ func SelectTransform(ctx *ApiDefContext) (*TransformResult, error) {
 	return &TransformResult{OK: true, Msg: msg}, nil
 }
 
-func resolveSelect(guideEntity map[string]any, entname string, mtarget map[string]any) {
+// pointRequestBody is the request body the definition declares for a point,
+// or nil for a GraphQL point.
+func pointRequestBody(def map[string]any, mtarget map[string]any) any {
+	paths, _ := def["paths"].(map[string]any)
+	orig, _ := mtarget["o"].(string)
+	method, _ := mtarget["m"].(string)
+	pathdef, _ := paths[orig].(map[string]any)
+	opdef, _ := pathdef[toLower(method)].(map[string]any)
+	return opdef["requestBody"]
+}
+
+func resolveSelect(guideEntity map[string]any, entname string, mtarget map[string]any, requestBody any) {
 	selectMap, _ := mtarget["q"].(map[string]any)
 	if selectMap == nil {
 		selectMap = map[string]any{"exist": []any{}}
@@ -86,6 +97,12 @@ func resolveSelect(guideEntity map[string]any, entname string, mtarget map[strin
 				existSet[name] = true
 			}
 		}
+	}
+
+	t, _ := mtarget["t"].(map[string]any)
+	if listfield := arrayRequestField(requestBody, t["req"]); listfield != "" && !existSet[listfield] {
+		exist = append(exist, listfield)
+		existSet[listfield] = true
 	}
 
 	// Sort exist

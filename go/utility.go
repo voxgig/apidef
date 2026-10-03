@@ -230,6 +230,55 @@ func Depluralize(word string) string {
 	return word
 }
 
+var (
+	consonantYRE = regexp.MustCompile(`[^aeiou]y$`)
+	fSuffixRE    = regexp.MustCompile(`fe?$`)
+	sibilantRE   = regexp.MustCompile(`(s|x|z|ch|sh)$`)
+)
+
+// Pluralize mirrors ts/src/utility.ts: the plural of a snake name's last word
+// that Depluralize reads back as the name.
+func Pluralize(word string) string {
+	if word == "" {
+		return word
+	}
+
+	cut := strings.LastIndex(word, "_") + 1
+	last := word[cut:]
+	lower := strings.ToLower(last)
+
+	plurals := append(pluralsOf(customPlurals, lower), pluralsOf(irregularPlurals, lower)...)
+	if consonantYRE.MatchString(lower) {
+		plurals = append(plurals, lower[:len(lower)-1]+"ies")
+	}
+	if fSuffixRE.MatchString(lower) {
+		plurals = append(plurals, fSuffixRE.ReplaceAllString(lower, "ves"))
+	}
+	if sibilantRE.MatchString(lower) {
+		plurals = append(plurals, lower+"es")
+	}
+	plurals = append(plurals, lower+"s")
+
+	for i, plural := range plurals {
+		plurals[i] = word[:cut] + matchCase(last, plural)
+		if Depluralize(plurals[i]) == word {
+			return plurals[i]
+		}
+	}
+	return plurals[len(plurals)-1]
+}
+
+func pluralsOf(plurals map[string]string, singular string) []string {
+	out := []string{}
+	for plural, single := range plurals {
+		if strings.ToLower(single) == singular {
+			out = append(out, plural)
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
 // Transliterate removes diacritics from a string.
 func Transliterate(s string) string {
 	result := norm.NFD.String(s)
@@ -718,6 +767,29 @@ func requestBodySchema(requestBody any) any {
 	content, _ := rb["content"].(map[string]any)
 	media, _ := content["application/json"].(map[string]any)
 	return media["schema"]
+}
+
+func arrayRequestSchema(requestBody any) map[string]any {
+	schema, _ := requestBodySchema(requestBody).(map[string]any)
+	if schema["type"] != "array" {
+		return nil
+	}
+	return schema
+}
+
+var reqdataFieldRE = regexp.MustCompile("^`reqdata\\.([A-Za-z_][A-Za-z0-9_]*)`$")
+
+// arrayRequestField mirrors ts/src/utility.ts: the field of the request data
+// an array body is sent from, when the point's request transform unwraps one.
+func arrayRequestField(requestBody any, req any) string {
+	s, ok := req.(string)
+	if !ok || arrayRequestSchema(requestBody) == nil {
+		return ""
+	}
+	if m := reqdataFieldRE.FindStringSubmatch(s); m != nil {
+		return m[1]
+	}
+	return ""
 }
 
 func schemaProps(schema any) []string {

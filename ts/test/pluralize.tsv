@@ -1,0 +1,25 @@
+input	plurals	expected
+user		users
+policy		policies
+day		days
+box		boxes
+address		addresses
+status		statuses
+match		matches
+wish		wishes
+person		people
+sms_person		sms_people
+house		houses
+index		indices
+analysis		analyses
+leaf		leaves
+knife		knives
+chef		chefs
+safe		safes
+photo		photos
+series		series
+sms_message		sms_messages
+User		Users
+USER		USERS
+datum	{"data":"datum"}	data
+sms_datum	{"data":"datum"}	sms_data

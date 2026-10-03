@@ -538,7 +538,9 @@ func buildGuideSource(ctx *ApiDefContext, baseguide map[string]any) string {
 						if res := transform["res"]; res != nil {
 							blocks = append(blocks, fmt.Sprintf("      op: %s: transform: res: *(%s)|top", opname, guideJSON(res)))
 						}
-						if reqmap, ok := transform["req"].(map[string]any); ok {
+						if req, ok := transform["req"].(string); ok {
+							blocks = append(blocks, fmt.Sprintf("      op: %s: transform: req: *(%s)|top", opname, guideJSON(req)))
+						} else if reqmap, ok := transform["req"].(map[string]any); ok {
 							for _, bodykey := range sortedKeys(reqmap) {
 								source, ok := reqmap[bodykey].(string)
 								if !ok {
@@ -1770,7 +1772,9 @@ func resolveTransform(data map[string]any, mdesc map[string]any) {
 		return name != "" && isEntityWrapperProp(reqprops[name]) && len(reqprops) == 1
 	}
 
-	if reqschema != nil {
+	if listbody := arrayRequestSchema(reqBody); listbody != nil {
+		transform["req"] = "`reqdata." + arrayBodyField(listbody, ename) + "`"
+	} else if reqschema != nil {
 		if wraps(origname) {
 			transform["req"] = map[string]any{origname: "`reqdata`"}
 		} else if wraps(ename) {
@@ -3291,6 +3295,21 @@ func cmpRefName(xref string) string {
 		return xref
 	}
 	return CanonizeCmpName(m[2])
+}
+
+// arrayBodyField mirrors ts/src/guide/heuristic01.ts: the field an array
+// request body is sent from, named for the records it lists.
+func arrayBodyField(schema map[string]any, entname string) string {
+	items, _ := schema["items"].(map[string]any)
+	xref, _ := items["x-ref"].(string)
+	record := ""
+	if m := xrefRE.FindStringSubmatch(xref); m != nil && !strings.Contains(m[2], "/") {
+		record = CleanComponentName(CanonizeCmpName(m[2]), nil)
+	}
+	if record == "" {
+		record = entname
+	}
+	return Pluralize(record)
 }
 
 // hasMethod checks if a path has a specific HTTP method.

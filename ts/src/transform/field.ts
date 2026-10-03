@@ -8,6 +8,7 @@ import {
   validator, canonizeField, inferFieldType, normalizeFieldName, envelopeProp,
   composedEnvelopeProp, mergedProperties, canonizeCmpName,
   scanUntaggedUnion, firstSentence, humanTitle, collapseScalarAllOf,
+  arrayRequestSchema, arrayRequestField,
 } from '../utility'
 
 import { KIT } from '../types'
@@ -793,6 +794,19 @@ function findFieldDefs(
     for (const ef of exampleFields) {
       fielddefs.push(ef)
     }
+  }
+
+  // An array body is sent from one field of the request data, and has no
+  // properties of its own to contribute. Optional, as the record never holds it.
+  const listfield = 'query' === method || isAction ? undefined :
+    arrayRequestField(opdef?.requestBody, mpoint.t?.req)
+  if (null != listfield) {
+    fielddefs.push({
+      key$: listfield,
+      type: 'array',
+      description: opdef.requestBody.description ??
+        arrayRequestSchema(opdef.requestBody).description,
+    } as SchemaDef)
   }
 
   return fielddefs

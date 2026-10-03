@@ -39,9 +39,17 @@ guide
 | `method` | `string` | HTTP method (`GET`, `POST`, …) |
 | `why_op` | `string[]` | trace of the CRUD classification |
 | `transform.res` | `string` | response envelope unwrap (e.g. `` `body.planet` ``) when the response wraps the entity |
-| `transform.req` | `object` | request envelope wrap when the body wraps the entity |
+| `transform.req` | `object` or `string` | request envelope wrap when the body wraps the entity, or the field a JSON array body is sent from |
 | `body.media` | `string` | the media type the request body is sent as; the base guide never writes it, so it is yours to set (see the model's `rb`) |
 | `response.media` | `string` | the media type to ask a success response for; likewise yours to set (see the model's `rs`) |
+
+A JSON request body that is an array is sent from one field of the request
+data, so the base guide sets `transform.req` to `` `reqdata.<field>` ``. The
+field is the plural of the record the items name: their component, cleaned
+as an entity name is, so `SmsMessageRequest` gives `sms_messages`, or else
+the entity's own name. A `transform.req` in the guide entry file replaces it
+and names the field the model declares. `` `reqdata.messages` `` declares
+`messages`, and `` `reqdata` `` sends the input as it is, with no field.
 
 ### `GuideMetrics`
 

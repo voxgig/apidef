@@ -9,7 +9,7 @@ import { size, merge, getelem, isempty, items, keysof } from '@voxgig/struct'
 
 import {
   isEntityWrapperProp, envelopeProp, envelopeItemRef, composedEnvelopeProp,
-  closedBodyTransform, authExchangeOp, specSecuredByDefault,
+  closedBodyTransform, arrayRequestSchema, authExchangeOp, specSecuredByDefault,
 } from '../utility'
 
 
@@ -57,6 +57,7 @@ import {
   mergedProperties,
   normalizeFieldName,
   pathMatch,
+  pluralize,
   resplitFromCmp,
   sortedEntries,
   sortedKeys,
@@ -1253,7 +1254,12 @@ function ResolveTransform(spec: TaskSpec) {
   const wraps = (name: string) => isEntityWrapperProp(reqprops?.[name]) &&
     keysof(reqprops).every((k: string) => k === name)
 
-  if (reqschema) {
+  const listbody = arrayRequestSchema(mdesc.requestBody)
+
+  if (null != listbody) {
+    transform.req = '`reqdata.' + arrayBodyField(listbody, entdesc.name) + '`'
+  }
+  else if (reqschema) {
     if (wraps(entdesc.origname)) {
       transform.req = { [entdesc.origname]: '`reqdata`' }
     }
@@ -2539,9 +2545,22 @@ function findPotentialSchemaRefs(
 }
 
 
+const CMP_REF_RE = /\/(components\/schemas|definitions)\/(.+)$/
+
 function cmpRefName(xref: string): string {
-  const m = xref.match(/\/(components\/schemas|definitions)\/(.+)$/)
+  const m = xref.match(CMP_REF_RE)
   return null == m ? xref : canonizeCmpName(m[2])
+}
+
+
+// An array request body is sent from a field named for the records it lists:
+// its items' component, cleaned as an entity's is, else the entity itself. A
+// pointer into a component names a part of it, not a record.
+function arrayBodyField(schema: any, entname: string): string {
+  const cmp = String(schema?.items?.['x-ref'] ?? '').match(CMP_REF_RE)?.[2]
+  const record = null == cmp || cmp.includes('/') ? '' :
+    cleanComponentName(canonizeCmpName(cmp))
+  return pluralize('' === record ? entname : record)
 }
 
 
@@ -2561,6 +2580,7 @@ function hasMethod(def: any, pathStr: string, methodName: string) {
 
 export {
   answeredRefs,
+  arrayBodyField,
   distinctRecord,
   distinctShare,
   heuristic01,

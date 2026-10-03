@@ -368,6 +368,38 @@ function depluralize(word: string): string {
 }
 
 
+// The plural of a snake name's last word that depluralize reads back as the
+// name, so the two cannot disagree.
+function pluralize(word: string): string {
+  if (null == word || '' === word) {
+    return word
+  }
+
+  const cut = word.lastIndexOf('_') + 1
+  const last = word.slice(cut)
+  const lower = last.toLowerCase()
+
+  const plurals = [
+    ...pluralsOf(CUSTOM_PLURALS, lower),
+    ...pluralsOf(IRREGULARS, lower),
+    ...(/[^aeiou]y$/.test(lower) ? [lower.slice(0, -1) + 'ies'] : []),
+    ...(/fe?$/.test(lower) ? [lower.replace(/fe?$/, 'ves')] : []),
+    ...(/(s|x|z|ch|sh)$/.test(lower) ? [lower + 'es'] : []),
+    lower + 's',
+  ].map((plural) => word.slice(0, cut) + matchCase(last, plural))
+
+  return plurals.find((plural) => depluralize(plural) === word) ??
+    plurals[plurals.length - 1]
+}
+
+
+function pluralsOf(plurals: Record<string, string>, singular: string): string[] {
+  return Object.keys(plurals)
+    .filter((plural) => plurals[plural].toLowerCase() === singular)
+    .sort()
+}
+
+
 function find(obj: any, qkey: string): any[] {
   const vals: any[] = []
   const seen = new WeakSet<object>()
@@ -1288,6 +1320,24 @@ function requestBodySchema(requestBody: any): any {
 }
 
 
+function arrayRequestSchema(requestBody: any): any {
+  const schema = requestBodySchema(requestBody)
+  return 'array' === schema?.type ? schema : null
+}
+
+
+const REQDATA_FIELD_RE = /^`reqdata\.([A-Za-z_][A-Za-z0-9_]*)`$/
+
+// The field of the request data an array body is sent from, when the point's
+// request transform unwraps one.
+function arrayRequestField(requestBody: any, req: any): string | undefined {
+  if (null == arrayRequestSchema(requestBody) || 'string' !== typeof req) {
+    return undefined
+  }
+  return req.match(REQDATA_FIELD_RE)?.[1]
+}
+
+
 // Sorted, not definition order, which the Go parser does not keep.
 function schemaProps(schema: any): string[] {
   const props = schema?.properties
@@ -2040,6 +2090,7 @@ export {
   loadFile,
   formatJsonSrc,
   depluralize,
+  pluralize,
   setCustomPlurals,
   clearCustomPlurals,
   find,
@@ -2085,6 +2136,8 @@ export {
   composedEnvelopeProp,
   mergedProperties,
   closedBodyTransform,
+  arrayRequestSchema,
+  arrayRequestField,
   untaggedUnionBranches,
   scanUntaggedUnion,
   firstSentence,

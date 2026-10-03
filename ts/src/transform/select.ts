@@ -7,6 +7,8 @@ import type { TransformResult, Transform } from '../transform'
 
 import { KIT } from '../types'
 
+import { arrayRequestField } from '../utility'
+
 import type {
   KitModel,
   Guide,
@@ -37,8 +39,7 @@ const selectTransform: Transform = async function(
   each(kit.entity, (ment: ModelEntity, _entname: string) => {
     each(ment.op, (mop: ModelOp, _opname: OpName) => {
       each(mop.points, (mpoint: ModelPoint) => {
-        // GraphQL defs have no `paths`; the lookup is only passed through to
-        // an unused parameter, so skip it rather than dereference undefined.
+        // GraphQL defs have no `paths`, so their points get no path def.
         const pdef: PathDef = def.paths?.[mpoint.o]
         resolveSelect(guide, ment, mop, mpoint, pdef)
       })
@@ -60,7 +61,7 @@ function resolveSelect(
   ment: ModelEntity,
   _mop: ModelOp,
   mpoint: ModelPoint,
-  _pdef: PathDef
+  pdef: PathDef
 ) {
   const select: any = mpoint.q
   const margs: any = mpoint.g
@@ -84,6 +85,12 @@ function resolveSelect(
       }
     })
   })
+
+  const listfield = arrayRequestField(
+    (pdef as any)?.[String(mpoint.m).toLowerCase()]?.requestBody, mpoint.t?.req)
+  if (null != listfield && !select.exist.includes(listfield)) {
+    select.exist.push(listfield)
+  }
 
   select.exist.sort()
 

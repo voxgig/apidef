@@ -694,6 +694,20 @@ func findFieldDefs(mtarget map[string]any, def map[string]any, opname string, en
 		fielddefs = append(fielddefs, exampleFields...)
 	}
 
+	// Mirrors ts/src/transform/field.ts: an array body is the one optional
+	// field it is sent from.
+	if t, _ := mtarget["t"].(map[string]any); methodLower != "query" && !isAction {
+		if listfield := arrayRequestField(requestBody, t["req"]); listfield != "" {
+			fd := map[string]any{"key$": listfield, "type": "array"}
+			if desc, ok := requestBody["description"].(string); ok {
+				fd["description"] = desc
+			} else if desc, ok := arrayRequestSchema(requestBody)["description"].(string); ok {
+				fd["description"] = desc
+			}
+			fielddefs = append(fielddefs, fd)
+		}
+	}
+
 	return fielddefs
 }
 

@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.answeredRefs = answeredRefs;
+exports.arrayBodyField = arrayBodyField;
 exports.distinctRecord = distinctRecord;
 exports.distinctShare = distinctShare;
 exports.heuristic01 = heuristic01;
@@ -912,7 +913,11 @@ function ResolveTransform(spec) {
     // such as the container in SaladCloud's container group create.
     const wraps = (name) => (0, utility_1.isEntityWrapperProp)(reqprops?.[name]) &&
         (0, struct_1.keysof)(reqprops).every((k) => k === name);
-    if (reqschema) {
+    const listbody = (0, utility_1.arrayRequestSchema)(mdesc.requestBody);
+    if (null != listbody) {
+        transform.req = '`reqdata.' + arrayBodyField(listbody, entdesc.name) + '`';
+    }
+    else if (reqschema) {
         if (wraps(entdesc.origname)) {
             transform.req = { [entdesc.origname]: '`reqdata`' };
         }
@@ -1830,9 +1835,19 @@ function findPotentialSchemaRefs(pathStr, methodName, responses, envelope, answe
     (0, utility_2.debugpath)(pathStr, methodName, 'POTENTIAL-SCHEMA-REFS', xrefs);
     return xrefs;
 }
+const CMP_REF_RE = /\/(components\/schemas|definitions)\/(.+)$/;
 function cmpRefName(xref) {
-    const m = xref.match(/\/(components\/schemas|definitions)\/(.+)$/);
+    const m = xref.match(CMP_REF_RE);
     return null == m ? xref : (0, utility_2.canonizeCmpName)(m[2]);
+}
+// An array request body is sent from a field named for the records it lists:
+// its items' component, cleaned as an entity's is, else the entity itself. A
+// pointer into a component names a part of it, not a record.
+function arrayBodyField(schema, entname) {
+    const cmp = String(schema?.items?.['x-ref'] ?? '').match(CMP_REF_RE)?.[2];
+    const record = null == cmp || cmp.includes('/') ? '' :
+        (0, utility_2.cleanComponentName)((0, utility_2.canonizeCmpName)(cmp));
+    return (0, utility_2.pluralize)('' === record ? entname : record);
 }
 function hasMethod(def, pathStr, methodName) {
     const pathDef = def?.paths?.[pathStr];

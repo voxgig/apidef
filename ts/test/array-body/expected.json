@@ -1,0 +1,29 @@
+{
+  "points": [
+    "broadcast.create POST /broadcasts exist=sms_messages action= req=\"`reqdata.sms_messages`\"",
+    "label.create POST /labels exist= action= req=\"`reqdata`\"",
+    "message.create POST /mms/v1/messages exist=messages action= req=\"`reqdata.messages`\"",
+    "tag.create POST /tags exist=tags action= req=\"`reqdata.tags`\"",
+    "user.create POST /users/batch exist=users action=batch req=\"`reqdata.users`\"",
+    "user.create POST /users exist= action= req=\"`reqdata`\"",
+    "user.list GET /users exist= action= req=\"`reqdata`\"",
+    "user.load GET /users/{user_id} exist=id action= req=\"`reqdata`\""
+  ],
+  "fields": {
+    "broadcast": {
+      "messages": { "t": "`$ARRAY`", "r": false },
+      "sms_messages": { "t": "`$ARRAY`", "r": false, "sh": "The messages to send." }
+    },
+    "label": {},
+    "message": {
+      "messages": { "t": "`$ARRAY`", "r": false }
+    },
+    "tag": {
+      "tags": { "t": "`$ARRAY`", "r": false }
+    },
+    "user": {
+      "id": { "t": "`$STRING`", "r": false },
+      "name": { "t": "`$STRING`", "r": false }
+    }
+  }
+}

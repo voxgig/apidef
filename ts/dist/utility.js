@@ -9,6 +9,7 @@ exports.getdlog = getdlog;
 exports.loadFile = loadFile;
 exports.formatJsonSrc = formatJsonSrc;
 exports.depluralize = depluralize;
+exports.pluralize = pluralize;
 exports.setCustomPlurals = setCustomPlurals;
 exports.clearCustomPlurals = clearCustomPlurals;
 exports.find = find;
@@ -50,6 +51,8 @@ exports.envelopeItemRef = envelopeItemRef;
 exports.composedEnvelopeProp = composedEnvelopeProp;
 exports.mergedProperties = mergedProperties;
 exports.closedBodyTransform = closedBodyTransform;
+exports.arrayRequestSchema = arrayRequestSchema;
+exports.arrayRequestField = arrayRequestField;
 exports.untaggedUnionBranches = untaggedUnionBranches;
 exports.scanUntaggedUnion = scanUntaggedUnion;
 exports.firstSentence = firstSentence;
@@ -351,6 +354,31 @@ function depluralize(word) {
     }
     // If none of the rules apply, return as is
     return word;
+}
+// The plural of a snake name's last word that depluralize reads back as the
+// name, so the two cannot disagree.
+function pluralize(word) {
+    if (null == word || '' === word) {
+        return word;
+    }
+    const cut = word.lastIndexOf('_') + 1;
+    const last = word.slice(cut);
+    const lower = last.toLowerCase();
+    const plurals = [
+        ...pluralsOf(CUSTOM_PLURALS, lower),
+        ...pluralsOf(IRREGULARS, lower),
+        ...(/[^aeiou]y$/.test(lower) ? [lower.slice(0, -1) + 'ies'] : []),
+        ...(/fe?$/.test(lower) ? [lower.replace(/fe?$/, 'ves')] : []),
+        ...(/(s|x|z|ch|sh)$/.test(lower) ? [lower + 'es'] : []),
+        lower + 's',
+    ].map((plural) => word.slice(0, cut) + matchCase(last, plural));
+    return plurals.find((plural) => depluralize(plural) === word) ??
+        plurals[plurals.length - 1];
+}
+function pluralsOf(plurals, singular) {
+    return Object.keys(plurals)
+        .filter((plural) => plurals[plural].toLowerCase() === singular)
+        .sort();
 }
 function find(obj, qkey) {
     const vals = [];
@@ -1090,6 +1118,19 @@ function requestBodySchema(requestBody) {
         return null;
     }
     return requestBody.content?.['application/json']?.schema ?? null;
+}
+function arrayRequestSchema(requestBody) {
+    const schema = requestBodySchema(requestBody);
+    return 'array' === schema?.type ? schema : null;
+}
+const REQDATA_FIELD_RE = /^`reqdata\.([A-Za-z_][A-Za-z0-9_]*)`$/;
+// The field of the request data an array body is sent from, when the point's
+// request transform unwraps one.
+function arrayRequestField(requestBody, req) {
+    if (null == arrayRequestSchema(requestBody) || 'string' !== typeof req) {
+        return undefined;
+    }
+    return req.match(REQDATA_FIELD_RE)?.[1];
 }
 // Sorted, not definition order, which the Go parser does not keep.
 function schemaProps(schema) {

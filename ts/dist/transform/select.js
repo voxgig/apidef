@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.selectTransform = void 0;
 const jostraca_1 = require("jostraca");
 const types_1 = require("../types");
+const utility_1 = require("../utility");
 const selectTransform = async function (ctx) {
     const { apimodel, def, guide } = ctx;
     const kit = apimodel.main[types_1.KIT];
@@ -10,8 +11,7 @@ const selectTransform = async function (ctx) {
     (0, jostraca_1.each)(kit.entity, (ment, _entname) => {
         (0, jostraca_1.each)(ment.op, (mop, _opname) => {
             (0, jostraca_1.each)(mop.points, (mpoint) => {
-                // GraphQL defs have no `paths`; the lookup is only passed through to
-                // an unused parameter, so skip it rather than dereference undefined.
+                // GraphQL defs have no `paths`, so their points get no path def.
                 const pdef = def.paths?.[mpoint.o];
                 resolveSelect(guide, ment, mop, mpoint, pdef);
             });
@@ -25,7 +25,7 @@ const selectTransform = async function (ctx) {
     return { ok: true, msg };
 };
 exports.selectTransform = selectTransform;
-function resolveSelect(guide, ment, _mop, mpoint, _pdef) {
+function resolveSelect(guide, ment, _mop, mpoint, pdef) {
     const select = mpoint.q;
     const margs = mpoint.g;
     const argkinds = ['params', 'query', 'header', 'cookie'];
@@ -45,6 +45,10 @@ function resolveSelect(guide, ment, _mop, mpoint, _pdef) {
             }
         });
     });
+    const listfield = (0, utility_1.arrayRequestField)(pdef?.[String(mpoint.m).toLowerCase()]?.requestBody, mpoint.t?.req);
+    if (null != listfield && !select.exist.includes(listfield)) {
+        select.exist.push(listfield);
+    }
     select.exist.sort();
     const gent = guide.entity[ment.name];
     // REST guides key entries by path, GraphQL guides by root field.
