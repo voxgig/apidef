@@ -758,6 +758,17 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-build-relations', () => {
+    const rows = loadTsv('build-relations');
+    for (const row of rows) {
+        (0, node_test_1.test)(`buildRelations(${row.paths.slice(0, 60)})`, () => {
+            const paths = JSON.parse(row.paths).map((path) => ({
+                segments: path.split('/').filter((part) => '' !== part).map((part) => part.startsWith('{') ? { var: part.slice(1, -1) } : { lit: part }),
+            }));
+            node_assert_1.default.deepStrictEqual((0, entity_1.buildRelations)({}, paths).ancestors, JSON.parse(row.expected));
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-closed-body-transform', () => {
     const rows = loadTsv('closed-body-transform');
     for (const row of rows) {

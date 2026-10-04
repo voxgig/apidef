@@ -53,7 +53,7 @@ import type {
 } from '../dist/apidef'
 import { Aontu } from 'aontu'
 import { argsTransform } from '../dist/transform/args'
-import { resolvePathList } from '../dist/transform/entity'
+import { buildRelations, resolvePathList } from '../dist/transform/entity'
 import { resolveSecurity, findAuthPrefix, topTransform } from '../dist/transform/top'
 
 import { snakify, camelify, kebabify } from 'jostraca'
@@ -918,6 +918,20 @@ describe('tsv-param-schema', () => {
       if ('-' !== row.openapi3) {
         assert.deepStrictEqual(await argsOf(row.path, JSON.parse(row.openapi3)), want)
       }
+    })
+  }
+})
+
+
+describe('tsv-build-relations', () => {
+  const rows = loadTsv('build-relations')
+  for (const row of rows) {
+    test(`buildRelations(${row.paths.slice(0, 60)})`, () => {
+      const paths = JSON.parse(row.paths).map((path: string) => ({
+        segments: path.split('/').filter((part) => '' !== part).map((part) =>
+          part.startsWith('{') ? { var: part.slice(1, -1) } : { lit: part }),
+      }))
+      assert.deepStrictEqual(buildRelations({}, paths).ancestors, JSON.parse(row.expected))
     })
   }
 })
