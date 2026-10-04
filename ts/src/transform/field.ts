@@ -8,6 +8,7 @@ import {
   validator, canonizeField, inferFieldType, normalizeFieldName, envelopeProp,
   composedEnvelopeProp, mergedProperties, canonizeCmpName,
   scanUntaggedUnion, firstSentence, humanTitle, collapseScalarAllOf,
+  itemEnvelopeOf,
 } from '../utility'
 
 import { KIT } from '../types'
@@ -728,8 +729,10 @@ function findFieldDefs(
       if ('list' == mop.name) {
         const unwrapped = unwrapArrayWrapper(fieldSets)
         envelope = null == unwrapped ? composedEnvelopeProp(fieldSets, 'list') : null
+        const itemkey = itemEnvelopeOf(mpoint.t?.res)
         if (unwrapped) {
-          fieldSets = unwrapped
+          fieldSets = null == itemkey ? unwrapped :
+            mergedProperties(unwrapped)?.[itemkey] ?? unwrapped
         }
         else if (null != envelope) {
           fieldSets = mergedProperties(fieldSets)?.[envelope]?.items

@@ -45,6 +45,9 @@ exports.relativizePath = relativizePath;
 exports.getModelPath = getModelPath;
 exports.collapseScalarAllOf = collapseScalarAllOf;
 exports.isEntityWrapperProp = isEntityWrapperProp;
+exports.itemEnvelopeKey = itemEnvelopeKey;
+exports.itemEnvelopeTransform = itemEnvelopeTransform;
+exports.itemEnvelopeOf = itemEnvelopeOf;
 exports.envelopeProp = envelopeProp;
 exports.envelopeItemRef = envelopeItemRef;
 exports.composedEnvelopeProp = composedEnvelopeProp;
@@ -1408,6 +1411,33 @@ function isEntityWrapperProp(propSchema) {
 function holdsStructuredBranch(branches) {
     return null != branches && !(Array.isArray(branches) && 0 < branches.length &&
         branches.every((branch) => isScalarSchema(branch) || 'null' === branch?.type));
+}
+// The key each item of a list response wraps the record under, where the item
+// holds nothing else, as each item of a Maxio list holds one record under the
+// name of its type.
+function itemEnvelopeKey(schema, names) {
+    if ('array' !== schema?.type) {
+        return null;
+    }
+    const keys = (0, struct_1.keysof)(mergedProperties(schema.items));
+    const key = keys[0];
+    if (1 !== keys.length || !names.includes(key) || !/^[^.`$]+$/.test(key)) {
+        return null;
+    }
+    const prop = collapseScalarAllOf(mergedProperties(schema.items)?.[key]);
+    return isEntityWrapperProp(prop) && 'array' !== prop?.type && null == prop?.items ?
+        key : null;
+}
+// The response transform that answers each item's record under its key.
+function itemEnvelopeTransform(key) {
+    return ['`$EACH`', 'body', { '`$MERGE`': '`.' + key + '`' }];
+}
+// The key of an itemEnvelopeTransform, else null.
+function itemEnvelopeOf(res) {
+    const merge = Array.isArray(res) && 3 === res.length &&
+        '`$EACH`' === res[0] && 'body' === res[1] ? res[2]?.['`$MERGE`'] : null;
+    const m = 'string' === typeof merge ? merge.match(/^`\.([^.`$]+)`$/) : null;
+    return null == m ? null : m[1];
 }
 function envelopeProp(resprops, opname) {
     const keys = (0, struct_1.keysof)(resprops);

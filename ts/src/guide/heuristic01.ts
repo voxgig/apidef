@@ -9,7 +9,8 @@ import { size, merge, getelem, isempty, items, keysof } from '@voxgig/struct'
 
 import {
   isEntityWrapperProp, envelopeProp, envelopeItemRef, composedEnvelopeProp,
-  closedBodyTransform, authExchangeOp, specSecuredByDefault,
+  closedBodyTransform, authExchangeOp, specSecuredByDefault, itemEnvelopeKey,
+  itemEnvelopeTransform,
 } from '../utility'
 
 
@@ -1241,6 +1242,16 @@ function ResolveTransform(spec: TaskSpec) {
     const envelope = composedEnvelopeProp(resschema, opname)
     if (null != envelope) {
       transform.res = '`body.' + envelope + '`'
+    }
+  }
+
+  // An item that is the entity's own component is the record, as above.
+  const itemref = resschema?.items?.['x-ref']
+  if (null == transform.res && 'list' === opname &&
+    (null == itemref || null == entdesc.cmp || cmpRefName(itemref) !== entdesc.cmp)) {
+    const key = itemEnvelopeKey(resschema, [entdesc.origname, entdesc.name])
+    if (null != key) {
+      transform.res = itemEnvelopeTransform(key)
     }
   }
 

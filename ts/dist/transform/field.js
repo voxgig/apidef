@@ -547,8 +547,10 @@ function findFieldDefs(ment, mop, mpoint, def) {
             if ('list' == mop.name) {
                 const unwrapped = unwrapArrayWrapper(fieldSets);
                 envelope = null == unwrapped ? (0, utility_1.composedEnvelopeProp)(fieldSets, 'list') : null;
+                const itemkey = (0, utility_1.itemEnvelopeOf)(mpoint.t?.res);
                 if (unwrapped) {
-                    fieldSets = unwrapped;
+                    fieldSets = null == itemkey ? unwrapped :
+                        (0, utility_1.mergedProperties)(unwrapped)?.[itemkey] ?? unwrapped;
                 }
                 else if (null != envelope) {
                     fieldSets = (0, utility_1.mergedProperties)(fieldSets)?.[envelope]?.items;

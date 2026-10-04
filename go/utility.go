@@ -1678,6 +1678,56 @@ func Merge(val any, maxdepths ...int) any {
 	return vs.Merge(val, maxdepths...)
 }
 
+var itemKeyRE = regexp.MustCompile("^[^.`$]+$")
+var itemMergeRE = regexp.MustCompile("^`\\.([^.`$]+)`$")
+
+// itemEnvelopeKey mirrors ts/src/utility.ts: the key each item of a list
+// response wraps the record under, where the item holds nothing else.
+func itemEnvelopeKey(schema map[string]any, names []string) string {
+	if safeStr(schema["type"]) != "array" {
+		return ""
+	}
+	props := mergedProperties(schema["items"])
+	if len(props) != 1 {
+		return ""
+	}
+	key := ""
+	for k := range props {
+		key = k
+	}
+	if !slices.Contains(names, key) || !itemKeyRE.MatchString(key) {
+		return ""
+	}
+	prop, _ := props[key].(map[string]any)
+	if prop == nil {
+		return ""
+	}
+	prop = collapseScalarAllOf(prop)
+	if isEntityWrapperProp(prop) && safeStr(prop["type"]) != "array" && prop["items"] == nil {
+		return key
+	}
+	return ""
+}
+
+// itemEnvelopeTransform mirrors ts/src/utility.ts.
+func itemEnvelopeTransform(key string) []any {
+	return []any{"`$EACH`", "body", map[string]any{"`$MERGE`": "`." + key + "`"}}
+}
+
+// itemEnvelopeOf mirrors ts/src/utility.ts.
+func itemEnvelopeOf(res any) string {
+	list, ok := res.([]any)
+	if !ok || len(list) != 3 || list[0] != "`$EACH`" || list[1] != "body" {
+		return ""
+	}
+	child, _ := list[2].(map[string]any)
+	merge, _ := child["`$MERGE`"].(string)
+	if m := itemMergeRE.FindStringSubmatch(merge); m != nil {
+		return m[1]
+	}
+	return ""
+}
+
 func envelopeProp(resprops map[string]any, opname string) string {
 	if len(resprops) == 0 {
 		return ""

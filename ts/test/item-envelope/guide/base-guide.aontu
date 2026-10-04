@@ -1,0 +1,31 @@
+# Generated from the API definition and overwritten on every build: do not
+# edit this file. Put customizations in the guide entry file, which includes
+# this one and overrides its defaults:
+#   guide.aontu
+
+guide: {
+  metrics: count: entity: 2
+  metrics: count: path: 4
+  metrics: count: method: 4
+
+  entity: customer: {
+    path: "/customers.json": {
+      op: list: method: *GET
+      op: list: transform: res: *["`$EACH`","body",{"`$MERGE`":"`.customer`"}]|top
+    }
+    path: "/customers/{id}.json": {
+      op: load: method: *GET
+      op: load: transform: res: *("`body.customer`")|top
+    }
+  }
+
+  entity: invoice: {
+    path: "/invoices.json": {
+      op: list: method: *GET
+    }
+    path: "/invoices/{uid}.json": {
+      op: load: method: *GET
+    }
+  }
+
+}

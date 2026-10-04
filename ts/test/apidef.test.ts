@@ -504,6 +504,94 @@ describe('apidef', () => {
   })
 
 
+  // Maxio wraps every record under the name of its type, in lists too, so
+  // each item of a list holds one record. The list reads each item's record
+  // through a struct transform, and the wrapper's key is no field. An item
+  // holding more than the record, as an invoice beside its links, is whole.
+  test('guide-item-envelope', async () => {
+    const folder = __dirname + '/../test/item-envelope'
+
+    const build = await ApiDef.makeBuild({ folder })
+
+    const bres = await build(
+      { name: 'item-envelope', def: 'item-envelope-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: true,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const entities = bres.apimodel.main.kit.entity
+    const res = (ent: string, op: string) => entities[ent].op[op].points[0].t.res
+
+    assert.deepStrictEqual(res('customer', 'list'),
+      ['`$EACH`', 'body', { '`$MERGE`': '`.customer`' }])
+    assert.strictEqual(res('customer', 'load'), '`body.customer`')
+    assert.ok(Fs.readFileSync(folder + '/guide/base-guide.aontu', 'utf8').includes(
+      'op: list: transform: res: *["`$EACH`","body",{"`$MERGE`":"`.customer`"}]|top'))
+    assert.strictEqual(res('invoice', 'list'), '`body`')
+    assert.deepStrictEqual(Object.keys(entities.customer.fields),
+      ['email', 'first_name', 'id', 'last_name'])
+  })
+
+
+  // The list's transform is a default of the base guide, which the entry
+  // guide overrides as it does a path.
+  test('guide-item-envelope-overlay', async () => {
+    const Os = require('node:os')
+    const Path = require('node:path')
+    const def = 'item-envelope-def.json'
+
+    const dir = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'apidef-item-'))
+    const folder = Path.join(dir, 'model')
+    Fs.mkdirSync(Path.join(folder, 'guide'), { recursive: true })
+    Fs.mkdirSync(Path.join(dir, 'def'))
+    Fs.copyFileSync(Path.join(__dirname, '..', 'test', 'def', def), Path.join(dir, 'def', def))
+    Fs.writeFileSync(Path.join(folder, 'guide', 'guide.aontu'), [
+      '@"@voxgig/apidef/model/guide.aontu"',
+      '@"./base-guide.aontu"',
+      'guide: entity: customer: path: "/customers.json": op: list: transform: res: "`body`"',
+      '',
+    ].join('\n'))
+
+    const build = await ApiDef.makeBuild({ folder })
+    const bres = await build(
+      { name: 'item-envelope', def },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: true,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+    Fs.rmSync(dir, { recursive: true, force: true })
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+    assert.strictEqual(
+      bres.apimodel.main.kit.entity.customer.op.list.points[0].t.res, '`body`')
+  })
+
+
   // A wrapper whose suffix was cleaned away to name the entity is still the
   // wrapper, so the record is read by the entity's name. The entity's own
   // component is the record, though one of its properties shares the name.

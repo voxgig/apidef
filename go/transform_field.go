@@ -648,6 +648,14 @@ func findFieldDefs(mtarget map[string]any, def map[string]any, opname string, en
 			}
 			if unwrapped != nil {
 				fieldSets = unwrapped
+				// Mirrors ts/src/transform/field.ts: an item that wraps the record
+				// under one key gives the record's fields.
+				t, _ := mtarget["t"].(map[string]any)
+				if itemkey := itemEnvelopeOf(t["res"]); itemkey != "" {
+					if inner := mergedProperties(unwrapped)[itemkey]; inner != nil {
+						fieldSets = inner
+					}
+				}
 			} else if envelope != "" {
 				prop, _ := mergedProperties(fieldSets)[envelope].(map[string]any)
 				fieldSets = prop["items"]

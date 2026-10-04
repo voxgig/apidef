@@ -904,6 +904,15 @@ function ResolveTransform(spec) {
             transform.res = '`body.' + envelope + '`';
         }
     }
+    // An item that is the entity's own component is the record, as above.
+    const itemref = resschema?.items?.['x-ref'];
+    if (null == transform.res && 'list' === opname &&
+        (null == itemref || null == entdesc.cmp || cmpRefName(itemref) !== entdesc.cmp)) {
+        const key = (0, utility_1.itemEnvelopeKey)(resschema, [entdesc.origname, entdesc.name]);
+        if (null != key) {
+            transform.res = (0, utility_1.itemEnvelopeTransform)(key);
+        }
+    }
     const reqschema = getRequestBodySchema(mdesc.requestBody);
     const reqprops = reqschema?.properties;
     (0, utility_2.debugpath)(pathStr, methodName, 'TRANSFORM-REQ', (0, struct_1.keysof)(reqprops));
