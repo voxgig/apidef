@@ -1272,6 +1272,58 @@ func TestTsvParamSchema(t *testing.T) {
 	}
 }
 
+func TestTsvInfoSummary(t *testing.T) {
+	rows := loadTsv(t, "info-summary")
+	if len(rows) == 0 {
+		t.Fatal("no info-summary rows loaded")
+	}
+	for _, row := range rows {
+		defSrc, wantSrc := row["def"], row["expected"]
+		t.Run(defSrc, func(t *testing.T) {
+			var def map[string]any
+			if err := json.Unmarshal([]byte(defSrc), &def); err != nil {
+				t.Fatalf("bad def %q: %v", defSrc, err)
+			}
+			var want *string
+			if err := json.Unmarshal([]byte(wantSrc), &want); err != nil {
+				t.Fatalf("bad expected %q: %v", wantSrc, err)
+			}
+			got, ok := resolveSummary(def)
+			if (want == nil && ok) || (want != nil && (!ok || got != *want)) {
+				t.Errorf("resolveSummary(%s) = %q (%v), want %s", defSrc, got, ok, wantSrc)
+			}
+		})
+	}
+}
+
+func TestTsvInfoWebsite(t *testing.T) {
+	rows := loadTsv(t, "info-website")
+	if len(rows) == 0 {
+		t.Fatal("no info-website rows loaded")
+	}
+	for _, row := range rows {
+		defSrc, serversSrc, wantSrc := row["def"], row["servers"], row["expected"]
+		t.Run(defSrc+" "+serversSrc, func(t *testing.T) {
+			var def map[string]any
+			if err := json.Unmarshal([]byte(defSrc), &def); err != nil {
+				t.Fatalf("bad def %q: %v", defSrc, err)
+			}
+			var servers []any
+			if err := json.Unmarshal([]byte(serversSrc), &servers); err != nil {
+				t.Fatalf("bad servers %q: %v", serversSrc, err)
+			}
+			var want *string
+			if err := json.Unmarshal([]byte(wantSrc), &want); err != nil {
+				t.Fatalf("bad expected %q: %v", wantSrc, err)
+			}
+			got, ok := resolveWebsite(def, servers)
+			if (want == nil && ok) || (want != nil && (!ok || got != *want)) {
+				t.Errorf("resolveWebsite(%s, %s) = %q (%v), want %s", defSrc, serversSrc, got, ok, wantSrc)
+			}
+		})
+	}
+}
+
 func TestClosedBodyTransform(t *testing.T) {
 	rows := loadTsv(t, "closed-body-transform")
 	if len(rows) == 0 {

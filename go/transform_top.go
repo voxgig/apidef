@@ -5,6 +5,7 @@ package apidef
 import (
 	"encoding/json"
 	"maps"
+	neturl "net/url"
 	"regexp"
 	"slices"
 	"strings"
@@ -54,6 +55,13 @@ func TopTransform(ctx *ApiDefContext) (*TransformResult, error) {
 	ensureServer(ctx, kit)
 
 	infoMap, _ := kit["info"].(map[string]any)
+	if summary, ok := resolveSummary(def); ok {
+		infoMap["summary"] = summary
+	}
+	infoServers, _ := infoMap["servers"].([]any)
+	if website, ok := resolveWebsite(def, infoServers); ok {
+		infoMap["website"] = website
+	}
 	if true == def["graphql"] {
 		// A GraphQL schema declares no HTTP auth, so only the auth option sets it.
 		if auth := ctx.Opts.Auth; auth != nil {
@@ -625,4 +633,97 @@ func ensureDescription(info map[string]any) string {
 		return "The " + title + "."
 	}
 	return "The " + title + " API."
+}
+
+var (
+	summaryHeadingRe = regexp.MustCompile(`^[` + jsWhitespace + `]*#{1,6}[` + jsWhitespace + `]`)
+	summaryRuleRe    = regexp.MustCompile(`^[` + jsWhitespace + `]*(-{2,}|={2,})[` + jsWhitespace + `]*$`)
+	httpURLRe        = regexp.MustCompile(`(?i)^https?://`)
+	serviceHostRe    = regexp.MustCompile(`(?i)^(api|api-[a-z0-9]+|apis|developer|developers|docs?|www)\.`)
+)
+
+func jsTrim(s string) string {
+	return strings.Trim(s, jsWhitespace)
+}
+
+// resolveSummary mirrors ts/src/transform/top.ts.
+func resolveSummary(def map[string]any) (string, bool) {
+	info, _ := def["info"].(map[string]any)
+	if summary, ok := info["summary"].(string); ok {
+		if explicit := jsTrim(summary); explicit != "" && hasLetters(explicit) {
+			return FirstSentence(explicit), true
+		}
+	}
+	desc, _ := info["description"].(string)
+	if jsTrim(desc) == "" || !hasLetters(desc) {
+		return "", false
+	}
+	lines := strings.Split(desc, "\n")
+	i := 0
+	for i < len(lines) && (jsTrim(lines[i]) == "" ||
+		summaryHeadingRe.MatchString(lines[i]) || summaryRuleRe.MatchString(lines[i])) {
+		i++
+	}
+	var para []string
+	for i < len(lines) && jsTrim(lines[i]) != "" && !summaryHeadingRe.MatchString(lines[i]) {
+		para = append(para, jsTrim(lines[i]))
+		i++
+	}
+	paragraph := jsTrim(strings.Join(para, " "))
+	if paragraph == "" {
+		return "", false
+	}
+	return FirstSentence(paragraph), true
+}
+
+// resolveWebsite mirrors ts/src/transform/top.ts.
+func resolveWebsite(def map[string]any, servers []any) (string, bool) {
+	info, _ := def["info"].(map[string]any)
+	external, _ := def["externalDocs"].(map[string]any)
+	if link, ok := external["url"].(string); ok && isHTTPURL(link) {
+		return jsTrim(link), true
+	}
+	logo, _ := info["x-logo"].(map[string]any)
+	if link, ok := logo["href"].(string); ok && isHTTPURL(link) {
+		return jsTrim(link), true
+	}
+	if 0 < len(servers) {
+		server, _ := servers[0].(map[string]any)
+		if home, ok := homepageFromServer(server["url"]); ok {
+			return home, true
+		}
+	}
+	contact, _ := info["contact"].(map[string]any)
+	if link, ok := contact["url"].(string); ok && isHTTPURL(link) {
+		return jsTrim(link), true
+	}
+	if link, ok := info["termsOfService"].(string); ok && isHTTPURL(link) {
+		return jsTrim(link), true
+	}
+	return "", false
+}
+
+func isHTTPURL(link string) bool {
+	return httpURLRe.MatchString(jsTrim(link))
+}
+
+// homepageFromServer mirrors ts/src/transform/top.ts, where the WHATWG URL
+// parser lowercases the scheme and the host.
+func homepageFromServer(v any) (string, bool) {
+	raw, ok := v.(string)
+	if !ok || jsTrim(raw) == "" {
+		return "", false
+	}
+	if !strings.Contains(raw, "://") {
+		raw = "https://" + raw
+	}
+	parsed, err := neturl.Parse(raw)
+	if err != nil {
+		return "", false
+	}
+	host := strings.ToLower(parsed.Hostname())
+	if host == "" || !strings.Contains(host, ".") || strings.ContainsAny(host, "{}") {
+		return "", false
+	}
+	return strings.ToLower(parsed.Scheme) + "://" + serviceHostRe.ReplaceAllString(host, ""), true
 }

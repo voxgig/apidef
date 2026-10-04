@@ -1,0 +1,25 @@
+def	servers	expected
+{"externalDocs":{"url":"https://docs.example.com"},"info":{"x-logo":{"href":"https://logo.example.com"}}}	[{"url":"https://api.example.com"}]	"https://docs.example.com"
+{"info":{"x-logo":{"href":"https://thesmsworks.co.uk"}}}	[{"url":"https://api.thesmsworks.co.uk/v1"}]	"https://thesmsworks.co.uk"
+{"info":{}}	[{"url":"https://{instance}.dreamapply.com/api"}]	null
+{"externalDocs":{"url":"https://help.dreamapply.com/api/"},"info":{}}	[{"url":"https://{instance}.dreamapply.com/api"}]	"https://help.dreamapply.com/api/"
+{"info":{}}	[{"url":"https://api.cloudsmith.io"}]	"https://cloudsmith.io"
+{"info":{"contact":{"url":"https://support.example.com"}}}	[]	"https://support.example.com"
+{"info":{"termsOfService":"https://example.com/terms"}}	[]	"https://example.com/terms"
+{"info":{}}	[]	null
+{"info":{"contact":{"url":"not-a-url"}}}	[]	null
+{"info":{}}	[{"url":"https://api.statuspage.io/v1"}]	"https://statuspage.io"
+{"info":{}}	[{"url":"https://developer.example.com/x"}]	"https://example.com"
+{"info":{}}	[{"url":"https://docs.example.com"}]	"https://example.com"
+{"info":{}}	[{"url":"https://www.example.com"}]	"https://example.com"
+{"info":{}}	[{"url":"https://gitlab.com"}]	"https://gitlab.com"
+{"info":{}}	[{"url":"https://apiary.example.com"}]	"https://apiary.example.com"
+{"info":{}}	[{"url":"api.artic.edu/api/v1"}]	"https://artic.edu"
+{"info":{}}	[{"url":"localhost"}]	null
+{"info":{}}	[{"url":""}]	null
+{"info":{}}	[{"url":"HTTPS://API-EU.Example.COM:8443/v2"}]	"https://example.com"
+{"externalDocs":{"url":"  https://docs.x.io  "},"info":{}}	[]	"https://docs.x.io"
+{"info":{}}	[{"url":"/v1"}]	null
+{"info":{}}	[{"url":"{base}"}]	null
+{"info":{"termsOfService":"HTTP://tos.example.com"}}	[{"url":"http://localhost:8080"}]	"HTTP://tos.example.com"
+{"externalDocs":{"url":"﻿https://docs.bom.example.com"},"info":{}}	[]	"https://docs.bom.example.com"

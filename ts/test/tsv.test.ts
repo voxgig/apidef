@@ -54,7 +54,9 @@ import type {
 import { Aontu } from 'aontu'
 import { argsTransform } from '../dist/transform/args'
 import { resolvePathList } from '../dist/transform/entity'
-import { resolveSecurity, findAuthPrefix, topTransform } from '../dist/transform/top'
+import {
+  resolveSecurity, findAuthPrefix, topTransform, resolveSummary, resolveWebsite,
+} from '../dist/transform/top'
 
 import { snakify, camelify, kebabify } from 'jostraca'
 
@@ -918,6 +920,25 @@ describe('tsv-param-schema', () => {
       if ('-' !== row.openapi3) {
         assert.deepStrictEqual(await argsOf(row.path, JSON.parse(row.openapi3)), want)
       }
+    })
+  }
+})
+
+
+describe('tsv-info-summary', () => {
+  for (const row of loadTsv('info-summary')) {
+    test(`resolveSummary(${row.def.slice(0, 60)})`, () => {
+      assert.strictEqual(resolveSummary(JSON.parse(row.def)) ?? null, JSON.parse(row.expected))
+    })
+  }
+})
+
+
+describe('tsv-info-website', () => {
+  for (const row of loadTsv('info-website')) {
+    test(`resolveWebsite(${row.def.slice(0, 40)}, ${row.servers})`, () => {
+      assert.strictEqual(
+        resolveWebsite(JSON.parse(row.def), JSON.parse(row.servers)) ?? null, JSON.parse(row.expected))
     })
   }
 })
