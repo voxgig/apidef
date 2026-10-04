@@ -6,7 +6,7 @@ import type { TransformResult, Transform } from '../transform'
 
 import {
   validator, canonizeField, inferFieldType, normalizeFieldName, envelopeProp,
-  composedEnvelopeProp, mergedProperties, canonizeCmpName,
+  composedEnvelopeProp, mergedProperties, canonizeCmpName, requestWrapperOf,
   scanUntaggedUnion, firstSentence, humanTitle, collapseScalarAllOf,
 } from '../utility'
 
@@ -770,10 +770,13 @@ function findFieldDefs(
     // carry the entity in the body, so merge as usual -- except for an
     // action, whose body is the verb's arguments and never the record.
     if (requestBody && 'query' !== method && !isAction) {
+      const reqschema = getx(requestBody, 'content "application/json" schema') ??
+        getx(requestBody, 'schema')
+      // A body that sends the record under one key holds its fields there.
+      const reqkey = requestWrapperOf(mpoint.t?.req)
       fieldSets = [
         fieldSets,
-        getx(requestBody, 'content "application/json" schema') ??
-        getx(requestBody, 'schema')
+        null == reqkey ? reqschema : mergedProperties(reqschema)?.[reqkey] ?? reqschema,
       ]
     }
 

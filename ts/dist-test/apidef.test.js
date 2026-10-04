@@ -369,6 +369,8 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         // it holds.
         node_assert_1.default.strictEqual(entities.greenhouse.op.create.points[0].t.req, '`reqdata`');
         node_assert_1.default.deepStrictEqual(entities.kennel.op.create.points[0].t.req, { kennel: '`reqdata`' });
+        // Such a body gives the fields of the record it wraps, not the wrapper.
+        node_assert_1.default.deepStrictEqual(Object.keys(entities.kennel.fields).sort(), ['breed', 'name']);
     });
     // Lob's shape: a page composed with allOf, whose records are a oneOf, so
     // the fields come from the list example read through the same `data`. A

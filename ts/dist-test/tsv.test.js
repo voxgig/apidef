@@ -767,6 +767,14 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-request-wrapper-of', () => {
+    const rows = loadTsv('request-wrapper-of');
+    for (const row of rows) {
+        (0, node_test_1.test)(`requestWrapperOf(${row.req})`, () => {
+            node_assert_1.default.strictEqual((0, utility_1.requestWrapperOf)(JSON.parse(row.req)), JSON.parse(row.expected));
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-request-envelope', () => {
     const rows = loadTsv('request-envelope');
     // The name lookup as ResolveTransform performs it.

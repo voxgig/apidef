@@ -587,10 +587,13 @@ function findFieldDefs(ment, mop, mpoint, def) {
         // carry the entity in the body, so merge as usual -- except for an
         // action, whose body is the verb's arguments and never the record.
         if (requestBody && 'query' !== method && !isAction) {
+            const reqschema = (0, jostraca_1.getx)(requestBody, 'content "application/json" schema') ??
+                (0, jostraca_1.getx)(requestBody, 'schema');
+            // A body that sends the record under one key holds its fields there.
+            const reqkey = (0, utility_1.requestWrapperOf)(mpoint.t?.req);
             fieldSets = [
                 fieldSets,
-                (0, jostraca_1.getx)(requestBody, 'content "application/json" schema') ??
-                    (0, jostraca_1.getx)(requestBody, 'schema')
+                null == reqkey ? reqschema : (0, utility_1.mergedProperties)(reqschema)?.[reqkey] ?? reqschema,
             ];
         }
         if (fieldSets && (Array.isArray(fieldSets.allOf) || fieldSets.properties)) {

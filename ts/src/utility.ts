@@ -2022,6 +2022,16 @@ function closedBodyTransform(schema: any): Record<string, string> | null {
   return out
 }
 
+
+// The key a request transform sends the whole record under, else null.
+function requestWrapperOf(req: any): string | null {
+  if (null == req || 'object' !== typeof req || Array.isArray(req)) {
+    return null
+  }
+  const keys = Object.keys(req)
+  return 1 === keys.length && '`reqdata`' === req[keys[0]] ? keys[0] : null
+}
+
 function firstSentence(text: string): string {
   const collapsed = text.replace(/\s+/g, ' ').trim()
   const m = collapsed.match(/^(.+?[.!?])(\s|$)/)
@@ -2085,6 +2095,7 @@ export {
   composedEnvelopeProp,
   mergedProperties,
   closedBodyTransform,
+  requestWrapperOf,
   untaggedUnionBranches,
   scanUntaggedUnion,
   firstSentence,

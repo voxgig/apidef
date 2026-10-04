@@ -50,6 +50,7 @@ exports.envelopeItemRef = envelopeItemRef;
 exports.composedEnvelopeProp = composedEnvelopeProp;
 exports.mergedProperties = mergedProperties;
 exports.closedBodyTransform = closedBodyTransform;
+exports.requestWrapperOf = requestWrapperOf;
 exports.untaggedUnionBranches = untaggedUnionBranches;
 exports.scanUntaggedUnion = scanUntaggedUnion;
 exports.firstSentence = firstSentence;
@@ -1673,6 +1674,14 @@ function closedBodyTransform(schema) {
         out[name] = '`reqdata.' + canonize(normalizeFieldName(name)) + '`';
     }
     return out;
+}
+// The key a request transform sends the whole record under, else null.
+function requestWrapperOf(req) {
+    if (null == req || 'object' !== typeof req || Array.isArray(req)) {
+        return null;
+    }
+    const keys = Object.keys(req);
+    return 1 === keys.length && '`reqdata`' === req[keys[0]] ? keys[0] : null;
 }
 function firstSentence(text) {
     const collapsed = text.replace(/\s+/g, ' ').trim();
