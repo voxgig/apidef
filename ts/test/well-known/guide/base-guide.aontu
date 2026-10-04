@@ -4,9 +4,9 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 5
-  metrics: count: path: 7
-  metrics: count: method: 7
+  metrics: count: entity: 6
+  metrics: count: path: 9
+  metrics: count: method: 9
 
   entity: agent: {
     path: "/well-known/agent.json": {
@@ -17,6 +17,17 @@ guide: {
   entity: agent_card: {
     path: "/well-known/agent-card.json": {
       op: list: method: *GET
+    }
+  }
+
+  entity: artifact: {
+    path: "/ids/contentIds/{contentId}": {
+      rename: param: "contentId": *"content_id"
+      op: load: method: *GET
+    }
+    path: "/ids/globalIds/{globalId}": {
+      rename: param: "globalId": *"global_id"
+      op: load: method: *GET
     }
   }
 

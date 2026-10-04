@@ -596,7 +596,7 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 			"listEnvelope":    map[string]bool{},
 			"envelopePaths":   map[string][]string{},
 			"recordResources": map[string]bool{},
-			"tagItems":        map[string]map[string]bool{},
+			"tagItems":        map[string]map[string]map[string]bool{},
 			"sharing": &sharingWork{
 				records: map[string]bool{},
 				yields:  map[string]bool{},
@@ -3328,12 +3328,22 @@ func measureTagItems(data map[string]any, mdesc map[string]any) {
 	if collection == "" {
 		return
 	}
-	cmp := safeStr(mdesc["MethodEntity"].(map[string]any)["cmp"])
-	tagItems := work["tagItems"].(map[string]map[string]bool)
-	if tagItems[cmp] == nil {
-		tagItems[cmp] = map[string]bool{}
+	params := []string{}
+	for _, part := range parts {
+		if isParam(part) {
+			params = append(params, CanonizeParam(part[1:len(part)-1]))
+		}
 	}
-	tagItems[cmp][collection] = true
+	sort.Strings(params)
+	cmp := safeStr(mdesc["MethodEntity"].(map[string]any)["cmp"])
+	tagItems := work["tagItems"].(map[string]map[string]map[string]bool)
+	if tagItems[cmp] == nil {
+		tagItems[cmp] = map[string]map[string]bool{}
+	}
+	if tagItems[cmp][collection] == nil {
+		tagItems[cmp][collection] = map[string]bool{}
+	}
+	tagItems[cmp][collection][strings.Join(params, ",")] = true
 }
 
 // tagItemCollection mirrors ts/src/guide/heuristic01.ts: the collection of an
@@ -3396,8 +3406,9 @@ func itemOfCollection(data map[string]any, mdesc map[string]any, parts []string)
 		return name, "collection-record"
 	}
 
-	tagItems, _ := work["tagItems"].(map[string]map[string]bool)
-	if len(tagItems[cmp]) < 2 {
+	tagItems, _ := work["tagItems"].(map[string]map[string]map[string]bool)
+	def, _ := data["def"].(map[string]any)
+	if !tagCollides(def, tagItems[cmp]) {
 		return "", ""
 	}
 
@@ -3410,6 +3421,35 @@ func itemOfCollection(data map[string]any, mdesc map[string]any, parts []string)
 		}
 	}
 	return segment, "collection-segment"
+}
+
+// tagCollides mirrors ts/src/guide/heuristic01.ts.
+func tagCollides(def map[string]any, items map[string]map[string]bool) bool {
+	paths, _ := def["paths"].(map[string]any)
+	seen := map[string]bool{}
+	reads := 0
+	for collection, params := range items {
+		for key := range params {
+			if seen[key] {
+				return true
+			}
+			seen[key] = true
+		}
+		if pathReads(paths[collection]) || pathReads(paths[collection+"/"]) {
+			reads++
+		}
+	}
+	return reads > 1
+}
+
+func pathReads(pathdef any) bool {
+	pd, _ := pathdef.(map[string]any)
+	for method, mdef := range pd {
+		if strings.ToUpper(method) == "GET" && mdef != nil {
+			return true
+		}
+	}
+	return false
 }
 
 func isSchemaRef(ref string) bool {

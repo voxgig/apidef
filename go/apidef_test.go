@@ -613,7 +613,7 @@ func TestGuideWellKnown(t *testing.T) {
 	}
 
 	if got := sortedKeys(entities); !reflect.DeepEqual(got,
-		[]string{"agent", "agent_card", "mcp_tool", "schema", "well_known_agent"}) {
+		[]string{"agent", "agent_card", "artifact", "mcp_tool", "schema", "well_known_agent"}) {
 		t.Errorf("entities = %v", got)
 	}
 	for _, c := range []struct {
@@ -626,6 +626,7 @@ func TestGuideWellKnown(t *testing.T) {
 		{"mcp_tool", "list", []string{"/well-known/mcp-tools"}},
 		{"mcp_tool", "load", []string{"/well-known/mcp-tools/{groupId}/{artifactId}"}},
 		{"schema", "load", []string{"/well-known/schemas/{schemaType}/{version}"}},
+		{"artifact", "load", []string{"/ids/contentIds/{contentId}", "/ids/globalIds/{globalId}"}},
 	} {
 		if got := pathsOf(c.ent, c.op); !reflect.DeepEqual(got, c.want) {
 			t.Errorf("%s %s paths = %v, want %v", c.ent, c.op, got, c.want)

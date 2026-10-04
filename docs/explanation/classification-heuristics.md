@@ -253,12 +253,18 @@ A tag can gather such item routes from several collections, and one entity
 then holds them all, where a generated SDK reaches only the first of two
 points that share a selector. Apicurio Registry tags its well-known agents,
 MCP tools and schemas `WellKnown`, so a load meant for an MCP tool fetched an
-agent card. When a tag that names no resource gathers item routes from two or
-more collections, each item route takes the name the last segment of its
-collection gives: `mcp_tool` for `/well-known/mcp-tools` and `schema` for
-`/well-known/schemas`. A name that an entity outside the collection already
-has takes the tag's name before it. `/well-known/agent.json` names `agent`,
-so the agents become `well_known_agent`, and neither list hides the other.
+agent card. Two of a tag's collections share a selector when their item
+routes take the same parameters, as the agents and MCP tools do, or when
+both collections are read, since each list then selects by nothing. When a
+tag that names no resource gathers two such collections, each item route it
+gathers takes the name the last segment of its collection gives: `mcp_tool`
+for `/well-known/mcp-tools` and `schema` for `/well-known/schemas`. A name
+that an entity outside the collection already has takes the tag's name
+before it. `/well-known/agent.json` names `agent`, so the agents become
+`well_known_agent`, and neither list hides the other. Apicurio's reads of
+artifact content by content ID and by global ID each select by their own
+parameter, so they share no selector and stay on `artifact`, the entity
+their tag names.
 
 The move is part of the heuristic, so it shapes the base guide and nothing
 after it. When the collection is a resource of its own, `guide.aontu` can

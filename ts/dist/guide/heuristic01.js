@@ -370,15 +370,19 @@ function selectAllMethods(_source, spec) {
     work.methods = caught.methods;
     return work.methods;
 }
-// The collections each tag gathers item routes from, before any is named.
+// The collections each tag gathers item routes from, before any is named, with
+// the parameters of each collection's item routes.
 function MeasureTagItems(spec) {
     const work = spec.data.work;
     const mdesc = spec.node.val;
-    const collection = tagItemCollection(spec.data, mdesc, work.pathmap[mdesc.path].parts);
+    const parts = work.pathmap[mdesc.path].parts;
+    const collection = tagItemCollection(spec.data, mdesc, parts);
     if (null != collection) {
         const cmp = mdesc.MethodEntity.cmp;
-        work.tagItems[cmp] = work.tagItems[cmp] ?? {};
-        work.tagItems[cmp][collection] = true;
+        const items = work.tagItems[cmp] = work.tagItems[cmp] ?? {};
+        items[collection] = items[collection] ?? {};
+        items[collection][parts.filter(isParam)
+            .map((part) => (0, utility_2.canonizeParam)(part.slice(1, -1))).sort().join(',')] = true;
     }
 }
 function ResolveEntityComponent(spec) {
@@ -1110,8 +1114,9 @@ function tagItemCollection(data, mdesc, parts) {
 }
 // The entity of a tag-named item route's collection: the collection's record
 // where the tag names another resource with one (GitHub's invitations); where
-// the tag gathers several collections' items (Apicurio's well-known routes),
-// the collection's segment, prefixed with the tag when another entity has it.
+// the routes a tag gathers from several collections would share a selector
+// (Apicurio's well-known routes), the collection's segment, prefixed with the
+// tag when another entity has it.
 function itemOfCollection(data, mdesc, parts) {
     const collection = tagItemCollection(data, mdesc, parts);
     if (null == collection) {
@@ -1123,13 +1128,34 @@ function itemOfCollection(data, mdesc, parts) {
         const name = work.recordowner?.[collection] ?? work.recordowner?.[collection + '/'];
         return null == name ? null : { name, why: 'collection-record' };
     }
-    if (Object.keys(work.tagItems[cmp] ?? {}).length < 2) {
+    if (!tagCollides(data.def, work.tagItems[cmp] ?? {})) {
         return null;
     }
     const segment = (0, utility_2.canonize)(collection.substring(collection.lastIndexOf('/') + 1));
     const held = Object.keys(work.entmap[segment]?.path ?? {})
         .some((path) => !(path + '/').startsWith(collection + '/'));
     return { name: held ? cmp + '_' + segment : segment, why: 'collection-segment' };
+}
+// Two of a tag's collections whose item routes take the same parameters, or
+// that are both read, would share a selector on the tag's entity.
+function tagCollides(def, items) {
+    const seen = {};
+    let reads = 0;
+    for (const [collection, params] of Object.entries(items)) {
+        for (const key of Object.keys(params)) {
+            if (seen[key]) {
+                return true;
+            }
+            seen[key] = true;
+        }
+        if (pathReads(def.paths?.[collection]) || pathReads(def.paths?.[collection + '/'])) {
+            reads++;
+        }
+    }
+    return 1 < reads;
+}
+function pathReads(pathdef) {
+    return Object.entries(pathdef ?? {}).some(([method, mdef]) => 'GET' === method.toUpperCase() && null != mdef);
 }
 function isSchemaRef(ref) {
     return null != ref && '' !== ref && 'tag' !== ref;

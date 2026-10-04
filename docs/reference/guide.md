@@ -378,15 +378,21 @@ item route joins `repository_invitation`, the entity of its list, rather
 than the list joining `repo`.
 
 A method named only from a tag that names no such resource takes the name
-the last segment of `/X` gives instead, when the tag gathers item routes
-that answer with no body from two or more collections. The tag's name comes
-first when an entity with a route outside `/X` has that name already.
-Apicurio Registry tags `/well-known/agents/{groupId}/{artifactId}`,
+the last segment of `/X` gives instead, when the item routes the tag names
+would share a selector. That holds when the tag gathers item routes that
+answer with no body from two collections whose item routes take the same
+parameters, or from two collections that both have a `GET` of their own.
+The tag's name comes first when an entity with a route outside `/X` has
+that name already. Apicurio Registry tags
+`/well-known/agents/{groupId}/{artifactId}`,
 `/well-known/mcp-tools/{groupId}/{artifactId}` and
-`/well-known/schemas/{schemaType}/{version}` `WellKnown`, and none of them
-answers with a body. They take `well_known_agent`, since
-`/well-known/agent.json` names `agent`, then `mcp_tool` and `schema`, and
-each search joins its item route's entity in the move.
+`/well-known/schemas/{schemaType}/{version}` `WellKnown`, none of them
+answers with a body, and the first two take the same parameters. They take
+`well_known_agent`, since `/well-known/agent.json` names `agent`, then
+`mcp_tool` and `schema`, and each search joins its item route's entity in
+the move. Its `/ids/contentIds/{contentId}` and `/ids/globalIds/{globalId}`
+take different parameters and have no `GET` on their collections, so they
+stay on `artifact`, the entity their `Artifacts` tag names.
 
 The record a route answers with is the component of its response, of the
 items of an array response, or of the record its envelope carries (see

@@ -399,6 +399,64 @@
           "required": true
         }
       ]
+    },
+    "/ids/contentIds/{contentId}": {
+      "summary": "Access artifact content utilizing the unique content identifier for that content.",
+      "get": {
+        "tags": [
+          "Artifacts"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ArtifactContent"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        },
+        "operationId": "getContentById",
+        "summary": "Get artifact content by ID"
+      },
+      "parameters": [
+        {
+          "name": "contentId",
+          "schema": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/ids/globalIds/{globalId}": {
+      "summary": "Access artifact content utilizing an artifact version's globally unique identifier.",
+      "get": {
+        "tags": [
+          "Artifacts"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ArtifactContent"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        },
+        "operationId": "getContentByGlobalId",
+        "summary": "Get artifact by global ID"
+      },
+      "parameters": [
+        {
+          "name": "globalId",
+          "schema": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
     }
   },
   "components": {
@@ -810,6 +868,17 @@
             }
           }
         }
+      },
+      "FileContent": {
+        "format": "binary",
+        "type": "string",
+        "x-codegen-inline": true
+      },
+      "ArtifactType": {
+        "description": "",
+        "type": "string",
+        "example": "AVRO",
+        "x-codegen-package": "io.apicurio.registry.types"
       }
     },
     "responses": {
@@ -892,6 +961,23 @@
           }
         },
         "description": "Common response for all operations that can return a `404` error."
+      },
+      "ArtifactContent": {
+        "headers": {
+          "X-Registry-ArtifactType": {
+            "schema": {
+              "$ref": "#/components/schemas/ArtifactType"
+            }
+          }
+        },
+        "content": {
+          "*/*": {
+            "schema": {
+              "$ref": "#/components/schemas/FileContent"
+            }
+          }
+        },
+        "description": "The content of one version of one artifact."
       }
     }
   }

@@ -669,10 +669,10 @@ describe('apidef', () => {
 
 
   // Apicurio tags every /well-known route WellKnown, and its registered agent,
-  // MCP tool and schema reads answer with no component. A tag naming item
-  // routes in several collections names none of them: each takes its
-  // collection's segment, and the agents, whose segment agent.json already
-  // names, take the tag's too, so neither list hides the other.
+  // MCP tool and schema reads answer with no component. The agents and MCP
+  // tools would share a selector, so each item route takes its collection's
+  // segment, and the agents, whose segment agent.json names, take the tag's
+  // too. Its id lookups select by their own parameters and keep their tag.
   test('guide-well-known', async () => {
     const folder = __dirname + '/../test/well-known'
 
@@ -702,7 +702,7 @@ describe('apidef', () => {
     const paths = (ent: string, op: string) =>
       (entities[ent]?.op[op]?.points ?? []).map((pt: any) => pt.o).sort()
     assert.deepStrictEqual(Object.keys(entities).sort(),
-      ['agent', 'agent_card', 'mcp_tool', 'schema', 'well_known_agent'])
+      ['agent', 'agent_card', 'artifact', 'mcp_tool', 'schema', 'well_known_agent'])
     assert.deepStrictEqual(paths('agent', 'list'), ['/well-known/agent.json'])
     assert.deepStrictEqual(paths('well_known_agent', 'list'), ['/well-known/agents'])
     assert.deepStrictEqual(paths('well_known_agent', 'load'),
@@ -712,6 +712,8 @@ describe('apidef', () => {
       ['/well-known/mcp-tools/{groupId}/{artifactId}'])
     assert.deepStrictEqual(paths('schema', 'load'),
       ['/well-known/schemas/{schemaType}/{version}'])
+    assert.deepStrictEqual(paths('artifact', 'load'),
+      ['/ids/contentIds/{contentId}', '/ids/globalIds/{globalId}'])
   })
 
 
