@@ -581,6 +581,58 @@ func TestGuideAllofEnvelope(t *testing.T) {
 	}
 }
 
+// Mirrors the TS `guide-well-known` case.
+func TestGuideWellKnown(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "well-known-")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, OutPrefix: "well-known-", Strategy: "heuristic01"}).
+		Generate(map[string]any{
+			"model": map[string]any{"name": "well-known", "def": "well-known-def.json"},
+			"build": map[string]any{"spec": map[string]any{"base": "../ts/test/def"}},
+			"ctrl": map[string]any{"step": map[string]any{
+				"parse": true, "guide": true, "transformers": true,
+				"builders": false, "generate": false,
+			}},
+		})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v", err)
+	}
+
+	entities := res.ApiModel["main"].(map[string]any)["kit"].(map[string]any)["entity"].(map[string]any)
+	pathsOf := func(ent, op string) []string {
+		out := []string{}
+		e, _ := entities[ent].(map[string]any)
+		opm, _ := e["op"].(map[string]any)
+		o, _ := opm[op].(map[string]any)
+		pts, _ := o["points"].([]any)
+		for _, p := range pts {
+			pt, _ := p.(map[string]any)
+			out = append(out, safeStr(pt["o"]))
+		}
+		sort.Strings(out)
+		return out
+	}
+
+	if got := sortedKeys(entities); !reflect.DeepEqual(got,
+		[]string{"agent", "agent_card", "mcp_tool", "schema", "well_known_agent"}) {
+		t.Errorf("entities = %v", got)
+	}
+	for _, c := range []struct {
+		ent, op string
+		want    []string
+	}{
+		{"agent", "list", []string{"/well-known/agent.json"}},
+		{"well_known_agent", "list", []string{"/well-known/agents"}},
+		{"well_known_agent", "load", []string{"/well-known/agents/{groupId}/{artifactId}"}},
+		{"mcp_tool", "list", []string{"/well-known/mcp-tools"}},
+		{"mcp_tool", "load", []string{"/well-known/mcp-tools/{groupId}/{artifactId}"}},
+		{"schema", "load", []string{"/well-known/schemas/{schemaType}/{version}"}},
+	} {
+		if got := pathsOf(c.ent, c.op); !reflect.DeepEqual(got, c.want) {
+			t.Errorf("%s %s paths = %v, want %v", c.ent, c.op, got, c.want)
+		}
+	}
+}
+
 // Mirrors the TS `guide-trailing-key` case.
 // Mirrors the TS `guide-wrapper-name` case.
 func TestGuideWrapperName(t *testing.T) {

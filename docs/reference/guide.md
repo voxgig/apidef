@@ -377,6 +377,17 @@ its accept and decline, and its `repos` tag names the repositories. The
 item route joins `repository_invitation`, the entity of its list, rather
 than the list joining `repo`.
 
+A method named only from a tag that names no such resource takes the name
+the last segment of `/X` gives instead, when the tag gathers item routes
+that answer with no body from two or more collections. The tag's name comes
+first when an entity with a route outside `/X` has that name already.
+Apicurio Registry tags `/well-known/agents/{groupId}/{artifactId}`,
+`/well-known/mcp-tools/{groupId}/{artifactId}` and
+`/well-known/schemas/{schemaType}/{version}` `WellKnown`, and none of them
+answers with a body. They take `well_known_agent`, since
+`/well-known/agent.json` names `agent`, then `mcp_tool` and `schema`, and
+each search joins its item route's entity in the move.
+
 The record a route answers with is the component of its response, of the
 items of an array response, or of the record its envelope carries (see
 [Response envelopes](#response-envelopes)). A component measured as a record

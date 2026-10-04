@@ -1,0 +1,54 @@
+# Generated from the API definition and overwritten on every build: do not
+# edit this file. Put customizations in the guide entry file, which includes
+# this one and overrides its defaults:
+#   guide.aontu
+
+guide: {
+  metrics: count: entity: 5
+  metrics: count: path: 7
+  metrics: count: method: 7
+
+  entity: agent: {
+    path: "/well-known/agent.json": {
+      op: list: method: *GET
+    }
+  }
+
+  entity: agent_card: {
+    path: "/well-known/agent-card.json": {
+      op: list: method: *GET
+    }
+  }
+
+  entity: mcp_tool: {
+    path: "/well-known/mcp-tools": {
+      op: list: method: *GET
+      op: list: transform: res: *("`body.tools`")|top
+    }
+    path: "/well-known/mcp-tools/{groupId}/{artifactId}": {
+      rename: param: "artifactId": *"artifact_id"
+      rename: param: "groupId": *"group_id"
+      op: load: method: *GET
+    }
+  }
+
+  entity: schema: {
+    path: "/well-known/schemas/{schemaType}/{version}": {
+      rename: param: "schemaType": *"schema_type"
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_agent: {
+    path: "/well-known/agents": {
+      op: list: method: *GET
+      op: list: transform: res: *("`body.agents`")|top
+    }
+    path: "/well-known/agents/{groupId}/{artifactId}": {
+      rename: param: "artifactId": *"artifact_id"
+      rename: param: "groupId": *"group_id"
+      op: load: method: *GET
+    }
+  }
+
+}

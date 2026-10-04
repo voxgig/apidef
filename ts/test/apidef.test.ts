@@ -668,6 +668,53 @@ describe('apidef', () => {
   })
 
 
+  // Apicurio tags every /well-known route WellKnown, and its registered agent,
+  // MCP tool and schema reads answer with no component. A tag naming item
+  // routes in several collections names none of them: each takes its
+  // collection's segment, and the agents, whose segment agent.json already
+  // names, take the tag's too, so neither list hides the other.
+  test('guide-well-known', async () => {
+    const folder = __dirname + '/../test/well-known'
+
+    const build = await ApiDef.makeBuild({ folder })
+
+    const bres = await build(
+      { name: 'well-known', def: 'well-known-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: true,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const entities = bres.apimodel.main.kit.entity
+    const paths = (ent: string, op: string) =>
+      (entities[ent]?.op[op]?.points ?? []).map((pt: any) => pt.o).sort()
+    assert.deepStrictEqual(Object.keys(entities).sort(),
+      ['agent', 'agent_card', 'mcp_tool', 'schema', 'well_known_agent'])
+    assert.deepStrictEqual(paths('agent', 'list'), ['/well-known/agent.json'])
+    assert.deepStrictEqual(paths('well_known_agent', 'list'), ['/well-known/agents'])
+    assert.deepStrictEqual(paths('well_known_agent', 'load'),
+      ['/well-known/agents/{groupId}/{artifactId}'])
+    assert.deepStrictEqual(paths('mcp_tool', 'list'), ['/well-known/mcp-tools'])
+    assert.deepStrictEqual(paths('mcp_tool', 'load'),
+      ['/well-known/mcp-tools/{groupId}/{artifactId}'])
+    assert.deepStrictEqual(paths('schema', 'load'),
+      ['/well-known/schemas/{schemaType}/{version}'])
+  })
+
+
   // A trailing parameter under its entity's segment is the entity's key,
   // whatever the response component is called: a rare component named for
   // another view of it, or a tag on a write that answers with no component.

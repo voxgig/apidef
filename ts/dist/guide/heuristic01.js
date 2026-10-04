@@ -73,9 +73,9 @@ async function heuristic01(ctx) {
         MeasureAnswered,
         { select: selectAllMethods, apply: MeasureSharing },
         MeasureShared,
+        { select: selectAllMethods, apply: [ResolveEntityComponent, MeasureTagItems] },
         {
             select: selectAllMethods, apply: [
-                ResolveEntityComponent,
                 ResolveEntityName,
                 RenameParams,
                 FindActions,
@@ -151,6 +151,7 @@ function Prepare(spec) {
             envelopePaths: {},
             sharing: { routes: [], records: {}, yields: {} },
             recordResources: {},
+            tagItems: {},
             entity: {
                 count: {
                     seen: 0,
@@ -318,8 +319,13 @@ function MeasureShared(spec) {
         sharing.yields[key] = true;
     }
 }
+// One list for every pass, so a method keeps the component resolved for it.
 function selectAllMethods(_source, spec) {
     const ctx = spec.ctx;
+    const work = spec.data.work;
+    if (null != work.methods) {
+        return work.methods;
+    }
     let caught = { methods: [] };
     for (const [path, pdef] of (0, utility_2.sortedEntries)(ctx.def.paths)) {
         for (const [m, mdef] of (0, utility_2.sortedEntries)(pdef)) {
@@ -361,7 +367,19 @@ function selectAllMethods(_source, spec) {
             return 0;
         }
     });
-    return caught.methods || [];
+    work.methods = caught.methods;
+    return work.methods;
+}
+// The collections each tag gathers item routes from, before any is named.
+function MeasureTagItems(spec) {
+    const work = spec.data.work;
+    const mdesc = spec.node.val;
+    const collection = tagItemCollection(spec.data, mdesc, work.pathmap[mdesc.path].parts);
+    if (null != collection) {
+        const cmp = mdesc.MethodEntity.cmp;
+        work.tagItems[cmp] = work.tagItems[cmp] ?? {};
+        work.tagItems[cmp][collection] = true;
+    }
 }
 function ResolveEntityComponent(spec) {
     const guide = spec.data.guide;
@@ -529,10 +547,10 @@ function ResolveEntityName(spec) {
         }
     }
     entname = (0, utility_2.resplitFromCmp)(entname, ment.cmp, why_path);
-    const collectionEntity = itemOfCollection(data, mdesc, parts);
-    if (null != collectionEntity) {
-        why_path.push('collection-record=' + collectionEntity);
-        entname = collectionEntity;
+    const item = itemOfCollection(data, mdesc, parts);
+    if (null != item) {
+        why_path.push(item.why + '=' + item.name);
+        entname = item.name;
     }
     // Keep the pre-truncation name so a truncated-name collision can tell a
     // re-encounter of the SAME origin (merge) from a genuinely different one
@@ -1074,15 +1092,11 @@ function verbOnParent(data, pm, mdesc) {
     }
     return (0, utility_2.canonize)((0, struct_1.getelem)(pm, -3));
 }
-// The entity of an item route's collection, for a method on the item route
-// named by its tag alone, when the route answers nothing and the tag names
-// another resource with a record of its own, which the item's operations
-// would join: the collection's record then names the item too, as GitHub's
-// repository invitations do beside its repositories.
-function itemOfCollection(data, mdesc, parts) {
+// The collection of an item route whose method its tag alone names, when the
+// route answers nothing.
+function tagItemCollection(data, mdesc, parts) {
     const ment = mdesc.MethodEntity;
-    if ('tag' !== ment.ref || null != ment.rescmp ||
-        true !== data.work.recordResources[ment.cmp]) {
+    if (null == ment || 'tag' !== ment.ref || null != ment.rescmp) {
         return null;
     }
     const lits = parts.slice(0, parts.findIndex(isParam));
@@ -1092,12 +1106,30 @@ function itemOfCollection(data, mdesc, parts) {
     const answers = Object.entries(data.def?.paths?.[mdesc.path] ?? {})
         .some(([method, mdef]) => null != METHOD_CONSIDER_ORDER[method.toUpperCase()] &&
         null != getResponseSchema(successResponse(mdef?.responses)));
-    if (answers) {
+    return answers ? null : '/' + lits.join('/');
+}
+// The entity of a tag-named item route's collection: the collection's record
+// where the tag names another resource with one (GitHub's invitations); where
+// the tag gathers several collections' items (Apicurio's well-known routes),
+// the collection's segment, prefixed with the tag when another entity has it.
+function itemOfCollection(data, mdesc, parts) {
+    const collection = tagItemCollection(data, mdesc, parts);
+    if (null == collection) {
         return null;
     }
-    const collection = '/' + lits.join('/');
-    return data.work.recordowner?.[collection] ??
-        data.work.recordowner?.[collection + '/'] ?? null;
+    const work = data.work;
+    const cmp = mdesc.MethodEntity.cmp;
+    if (true === work.recordResources[cmp]) {
+        const name = work.recordowner?.[collection] ?? work.recordowner?.[collection + '/'];
+        return null == name ? null : { name, why: 'collection-record' };
+    }
+    if (Object.keys(work.tagItems[cmp] ?? {}).length < 2) {
+        return null;
+    }
+    const segment = (0, utility_2.canonize)(collection.substring(collection.lastIndexOf('/') + 1));
+    const held = Object.keys(work.entmap[segment]?.path ?? {})
+        .some((path) => !(path + '/').startsWith(collection + '/'));
+    return { name: held ? cmp + '_' + segment : segment, why: 'collection-segment' };
 }
 function isSchemaRef(ref) {
     return null != ref && '' !== ref && 'tag' !== ref;

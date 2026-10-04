@@ -249,6 +249,17 @@ the item route joins the list's entity, `repository_invitation`, instead. A
 tag that names no resource, such as `Settings` in the earlier example, groups
 operations without a record to mix, and the collection still joins it.
 
+A tag can gather such item routes from several collections, and one entity
+then holds them all, where a generated SDK reaches only the first of two
+points that share a selector. Apicurio Registry tags its well-known agents,
+MCP tools and schemas `WellKnown`, so a load meant for an MCP tool fetched an
+agent card. When a tag that names no resource gathers item routes from two or
+more collections, each item route takes the name the last segment of its
+collection gives: `mcp_tool` for `/well-known/mcp-tools` and `schema` for
+`/well-known/schemas`. A name that an entity outside the collection already
+has takes the tag's name before it. `/well-known/agent.json` names `agent`,
+so the agents become `well_known_agent`, and neither list hides the other.
+
 The move is part of the heuristic, so it shapes the base guide and nothing
 after it. When the collection is a resource of its own, `guide.aontu` can
 declare `/apiKeys` on `api_key` and switch the path off on `setting`, and

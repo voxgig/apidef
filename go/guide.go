@@ -596,6 +596,7 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 			"listEnvelope":    map[string]bool{},
 			"envelopePaths":   map[string][]string{},
 			"recordResources": map[string]bool{},
+			"tagItems":        map[string]map[string]bool{},
 			"sharing": &sharingWork{
 				records: map[string]bool{},
 				yields:  map[string]bool{},
@@ -709,6 +710,10 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 
 	for _, mdesc := range allMethods {
 		resolveEntityComponent(data, mdesc)
+		measureTagItems(data, mdesc)
+	}
+
+	for _, mdesc := range allMethods {
 		resolveEntityName(ctx, data, mdesc)
 		renameParams(ctx, data, mdesc)
 		findActions(data, mdesc)
@@ -1215,8 +1220,8 @@ func resolveEntityName(ctx *ApiDefContext, data map[string]any, mdesc map[string
 	}
 
 	entmap := work["entmap"].(map[string]any)
-	if collectionEntity := itemOfCollection(data, mdesc, parts); collectionEntity != "" {
-		whyPath = append(whyPath, "collection-record="+collectionEntity)
+	if collectionEntity, why := itemOfCollection(data, mdesc, parts); collectionEntity != "" {
+		whyPath = append(whyPath, why+"="+collectionEntity)
 		entname = collectionEntity
 	}
 
@@ -3314,17 +3319,28 @@ func endsWithCmp(data map[string]any, pm *PathMatchResult) bool {
 	return isOrigCmp(data, last)
 }
 
-// isOrigCmp checks if a name is an original component reference.
-// itemOfCollection mirrors ts/src/guide/heuristic01.ts: the entity of an
-// item route's collection, for a method on the item route named by its tag
-// alone, when the route answers nothing and the tag names another resource
-// with a record of its own.
-func itemOfCollection(data map[string]any, mdesc map[string]any, parts []string) string {
-	ment, _ := mdesc["MethodEntity"].(map[string]any)
+// measureTagItems mirrors MeasureTagItems in ts/src/guide/heuristic01.ts.
+func measureTagItems(data map[string]any, mdesc map[string]any) {
 	work := data["work"].(map[string]any)
-	recordResources, _ := work["recordResources"].(map[string]bool)
-	if ment == nil || safeStr(ment["ref"]) != "tag" || ment["rescmp"] != nil ||
-		!recordResources[safeStr(ment["cmp"])] {
+	pathDesc, _ := work["pathmap"].(map[string]any)[safeStr(mdesc["path"])].(map[string]any)
+	parts, _ := pathDesc["parts"].([]string)
+	collection := tagItemCollection(data, mdesc, parts)
+	if collection == "" {
+		return
+	}
+	cmp := safeStr(mdesc["MethodEntity"].(map[string]any)["cmp"])
+	tagItems := work["tagItems"].(map[string]map[string]bool)
+	if tagItems[cmp] == nil {
+		tagItems[cmp] = map[string]bool{}
+	}
+	tagItems[cmp][collection] = true
+}
+
+// tagItemCollection mirrors ts/src/guide/heuristic01.ts: the collection of an
+// item route whose method its tag alone names, when the route answers nothing.
+func tagItemCollection(data map[string]any, mdesc map[string]any, parts []string) string {
+	ment, _ := mdesc["MethodEntity"].(map[string]any)
+	if ment == nil || safeStr(ment["ref"]) != "tag" || ment["rescmp"] != nil {
 		return ""
 	}
 
@@ -3354,19 +3370,53 @@ func itemOfCollection(data map[string]any, mdesc map[string]any, parts []string)
 			return ""
 		}
 	}
+	return "/" + strings.Join(parts[:nlits], "/")
+}
 
-	recordowner, _ := work["recordowner"].(map[string]string)
-	collection := "/" + strings.Join(parts[:nlits], "/")
-	if entname, ok := recordowner[collection]; ok {
-		return entname
+// itemOfCollection mirrors ts/src/guide/heuristic01.ts: the entity of a
+// tag-named item route's collection, and the reason recorded for it.
+func itemOfCollection(data map[string]any, mdesc map[string]any, parts []string) (string, string) {
+	collection := tagItemCollection(data, mdesc, parts)
+	if collection == "" {
+		return "", ""
 	}
-	return recordowner[collection+"/"]
+
+	work := data["work"].(map[string]any)
+	cmp := safeStr(mdesc["MethodEntity"].(map[string]any)["cmp"])
+	recordResources, _ := work["recordResources"].(map[string]bool)
+	if recordResources[cmp] {
+		recordowner, _ := work["recordowner"].(map[string]string)
+		name, ok := recordowner[collection]
+		if !ok {
+			name = recordowner[collection+"/"]
+		}
+		if name == "" {
+			return "", ""
+		}
+		return name, "collection-record"
+	}
+
+	tagItems, _ := work["tagItems"].(map[string]map[string]bool)
+	if len(tagItems[cmp]) < 2 {
+		return "", ""
+	}
+
+	segment := Canonize(collection[strings.LastIndex(collection, "/")+1:])
+	entdesc, _ := work["entmap"].(map[string]any)[segment].(map[string]any)
+	entPaths, _ := entdesc["path"].(map[string]any)
+	for path := range entPaths {
+		if !strings.HasPrefix(path+"/", collection+"/") {
+			return cmp + "_" + segment, "collection-segment"
+		}
+	}
+	return segment, "collection-segment"
 }
 
 func isSchemaRef(ref string) bool {
 	return ref != "" && ref != "tag"
 }
 
+// isOrigCmp checks if a name is an original component reference.
 func isOrigCmp(data map[string]any, name string) bool {
 	guide, _ := data["guide"].(map[string]any)
 	if guide == nil {
