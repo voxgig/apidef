@@ -264,4 +264,5 @@ function resolveArgExample(argdef: any, schema: any): any {
 
 export {
   argsTransform,
+  resolveArgExample,
 }

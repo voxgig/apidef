@@ -340,28 +340,27 @@ func paramSchema(argdef map[string]any) map[string]any {
 	return binary
 }
 
+// An example present as null is still the example, as the TS port's
+// undefined check reads it.
 func resolveArgExample(argdef map[string]any, schema map[string]any) (any, bool) {
-	if v, has := argdef["example"]; has && v != nil {
+	if v, has := argdef["example"]; has {
 		return v, true
 	}
 
 	if examples, ok := argdef["examples"].(map[string]any); ok {
-		// SORTED, so "the first one" is the same on both ports: Go map
-		// iteration is randomised and TS reads insertion order, so an
-		// unsorted walk would make this key vary between runs.
-		for _, k := range sortedKeys(examples) {
+		for _, k := range exampleOrder(examples) {
 			if e, ok := examples[k].(map[string]any); ok {
-				if v, has := e["value"]; has && v != nil {
+				if v, has := e["value"]; has {
 					return v, true
 				}
 			}
 		}
 	}
 
-	if v, has := schema["example"]; has && v != nil {
+	if v, has := schema["example"]; has {
 		return v, true
 	}
-	if v, has := schema["default"]; has && v != nil {
+	if v, has := schema["default"]; has {
 		return v, true
 	}
 

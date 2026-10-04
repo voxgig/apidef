@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.argsTransform = void 0;
+exports.resolveArgExample = resolveArgExample;
 const jostraca_1 = require("jostraca");
 const utility_1 = require("../utility");
 const types_1 = require("../types");

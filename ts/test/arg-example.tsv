@@ -1,0 +1,10 @@
+argdef	schema	expected
+{"examples":{"zeta":{"value":"z"},"alpha":{"value":"a"}}}	{}	{"ex":"z"}
+{"examples":{"b":{"value":"bee"},"2":{"value":"two"},"10":{"value":"ten"}}}	{}	{"ex":"two"}
+{"example":null,"examples":{"a":{"value":"x"}}}	{}	{"ex":null}
+{"examples":{"a":{"value":null},"b":{"value":"y"}}}	{}	{"ex":null}
+{"examples":{"a":{"summary":"no value"},"b":{"value":"y"}}}	{}	{"ex":"y"}
+{"example":"e","examples":{"a":{"value":"x"}}}	{}	{"ex":"e"}
+{}	{"example":null,"default":"d"}	{"ex":null}
+{}	{"default":"d"}	{"ex":"d"}
+{}	{}	{}
