@@ -47,25 +47,7 @@ func resolveEntity(ctx *ApiDefContext) Builder {
 		entity["key$"] = entityName
 
 		entityFile := prefix + entityName + ".aontu"
-		cleanEntity := stripEntityDefaults(entity)
-		cleanEntity = stripEmptyRelations(cleanEntity)
-		cleanEntity, relations := entityAncestorSource(cleanEntity.(map[string]any))
-		entityJSONIC := FormatJSONIC(cleanEntity)
-		entityJSONIC = strings.TrimSpace(entityJSONIC)
-		if len(entityJSONIC) > 2 && entityJSONIC[0] == '{' && entityJSONIC[len(entityJSONIC)-1] == '}' {
-			entityJSONIC = entityJSONIC[1 : len(entityJSONIC)-1]
-		}
-
-		fieldAliasesSrc := buildFieldAliases(entity)
-
-		entitySrc := fmt.Sprintf("# Entity: %s\n\n", entityName) +
-			fmt.Sprintf("main: %s: entity: %s: {\n\n", KIT, entityName) +
-			fmt.Sprintf("  alias: field: %s\n", fieldAliasesSrc) +
-			entityJSONIC +
-			relations +
-			"\n\n}\n"
-
-		entityFiles = append(entityFiles, modelFile{name: entityFile, src: entitySrc})
+		entityFiles = append(entityFiles, modelFile{name: entityFile, src: entitySource(entityName, entity)})
 		barrel = append(barrel, `@"./`+filepath.Base(entityFile)+`"`)
 	}
 
@@ -80,6 +62,39 @@ func resolveEntity(ctx *ApiDefContext) Builder {
 			j.File(indexFile, func(j *jostraca.J) { j.Content(indexSrc) })
 		})
 	}
+}
+
+// entitySource is the text of one entity's model file. Empty fields come
+// last: the TS port's clean transform drops them and adds them back.
+func entitySource(entityName string, entity map[string]any) string {
+	cleanEntity := stripEntityDefaults(entity)
+	cleanEntity = stripEmptyRelations(cleanEntity)
+	model, relations := entityAncestorSource(cleanEntity.(map[string]any))
+	fields, _ := model["fields"].(map[string]any)
+	emptyFields := 0 == len(fields)
+	if emptyFields {
+		delete(model, "fields")
+	}
+	entityJSONIC := innerJSONIC(model)
+	if emptyFields {
+		entityJSONIC += strings.TrimPrefix(innerJSONIC(map[string]any{"fields": map[string]any{}}), "\n")
+	}
+
+	return fmt.Sprintf("# Entity: %s\n\n", entityName) +
+		fmt.Sprintf("main: %s: entity: %s: {\n\n", KIT, entityName) +
+		fmt.Sprintf("  alias: field: %s\n", buildFieldAliases(entity)) +
+		entityJSONIC +
+		relations +
+		"\n\n}\n"
+}
+
+// innerJSONIC is a map's JSONIC without its outer braces.
+func innerJSONIC(val map[string]any) string {
+	src := strings.TrimSpace(FormatJSONIC(val))
+	if len(src) > 2 && src[0] == '{' && src[len(src)-1] == '}' {
+		src = src[1 : len(src)-1]
+	}
+	return src
 }
 
 // GcEntityFiles removes generated entity files whose entity the def does not
@@ -176,66 +191,60 @@ func entityAncestorSource(entity map[string]any) (map[string]any, string) {
 }
 
 func stripEntityDefaults(entity any) any {
-	clean := stripKeys(entity, "active")
-	if ent, ok := clean.(map[string]any); ok {
-		op, _ := ent["op"].(map[string]any)
-		for _, value := range op {
-			operation, _ := value.(map[string]any)
-			points, _ := operation["points"].([]any)
-			for _, value := range points {
-				point, _ := value.(map[string]any)
-				if point["a"] == true {
-					delete(point, "a")
-				}
-				args, _ := point["g"].(map[string]any)
-				for _, value := range args {
-					list, _ := value.([]any)
-					for _, value := range list {
-						if arg, ok := value.(map[string]any); ok && arg["a"] == true {
-							delete(arg, "a")
-						}
+	// Only the entity's own active flag: a nested `active` is data, such as a
+	// request property of that name.
+	clean := copyTree(entity)
+	ent, ok := clean.(map[string]any)
+	if !ok {
+		return clean
+	}
+	delete(ent, "active")
+	op, _ := ent["op"].(map[string]any)
+	for _, value := range op {
+		operation, _ := value.(map[string]any)
+		points, _ := operation["points"].([]any)
+		for _, value := range points {
+			point, _ := value.(map[string]any)
+			if point["a"] == true {
+				delete(point, "a")
+			}
+			args, _ := point["g"].(map[string]any)
+			for _, value := range args {
+				list, _ := value.([]any)
+				for _, value := range list {
+					if arg, ok := value.(map[string]any); ok && arg["a"] == true {
+						delete(arg, "a")
 					}
 				}
 			}
 		}
-		source := entity.(map[string]any)
-		fields, ok := source["fields"].(map[string]any)
-		if !ok {
-			return clean
-		}
-		fields = deepCopyMap(fields)
-		ent["fields"] = fields
-		for _, value := range fields {
-			if field, ok := value.(map[string]any); ok && field["a"] == true {
-				delete(field, "a")
-			}
+	}
+	fields, _ := ent["fields"].(map[string]any)
+	for _, value := range fields {
+		if field, ok := value.(map[string]any); ok && field["a"] == true {
+			delete(field, "a")
 		}
 	}
 	return clean
 }
 
-// stripKeys recursively removes the named key from all maps.
-func stripKeys(val any, key string) any {
+// copyTree copies maps and lists all the way down.
+func copyTree(val any) any {
 	switch v := val.(type) {
 	case map[string]any:
 		out := make(map[string]any, len(v))
-		for _, k := range sortedKeys(v) {
-			child := v[k]
-			if k == key {
-				continue
-			}
-			out[k] = stripKeys(child, key)
+		for k, child := range v {
+			out[k] = copyTree(child)
 		}
 		return out
 	case []any:
 		out := make([]any, len(v))
 		for i, child := range v {
-			out[i] = stripKeys(child, key)
+			out[i] = copyTree(child)
 		}
 		return out
-	default:
-		return val
 	}
+	return val
 }
 
 // stripEmptyRelations removes the relations key if ancestors is empty.
