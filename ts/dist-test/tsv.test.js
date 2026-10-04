@@ -45,12 +45,13 @@ const node_assert_1 = __importDefault(require("node:assert"));
 const utility_1 = require("../dist/utility");
 const field_1 = require("../dist/transform/field");
 const resolved_1 = require("../dist/resolved");
+const top_1 = require("../dist/transform/top");
 const select_1 = require("../dist/transform/select");
 const body_1 = require("../dist/transform/body");
 const aontu_1 = require("aontu");
 const args_1 = require("../dist/transform/args");
 const entity_1 = require("../dist/transform/entity");
-const top_1 = require("../dist/transform/top");
+const top_2 = require("../dist/transform/top");
 const jostraca_1 = require("jostraca");
 const graphql01_1 = require("../dist/guide/graphql01");
 const heuristic01_1 = require("../dist/guide/heuristic01");
@@ -830,7 +831,7 @@ function loadTsv(name) {
     for (const row of rows) {
         (0, node_test_1.test)(row.name, async () => {
             const def = await (0, parse_1.parse)('OpenAPI', row.spec, { file: row.name });
-            node_assert_1.default.deepStrictEqual((0, top_1.resolveSecurity)(def), JSON.parse(row.expected));
+            node_assert_1.default.deepStrictEqual((0, top_2.resolveSecurity)(def), JSON.parse(row.expected));
         });
     }
 });
@@ -841,7 +842,7 @@ function loadTsv(name) {
         (0, node_test_1.test)(row.name, async () => {
             const warnings = [];
             const apimodel = { main: { kit: {} } };
-            await (0, top_1.topTransform)({
+            await (0, top_2.topTransform)({
                 apimodel,
                 def: { info: {}, ...JSON.parse(row.def) },
                 warn: (warning) => warnings.push(warning),
@@ -851,12 +852,21 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-info-scalars', () => {
+    const rows = loadTsv('info-scalars');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(`stringifyInfoScalars(${row.input})`, () => {
+            node_assert_1.default.deepStrictEqual((0, top_1.stringifyInfoScalars)(JSON.parse(row.input)), JSON.parse(row.expected));
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-auth-prefix', () => {
     const rows = loadTsv('auth-prefix');
     (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
     for (const row of rows) {
         (0, node_test_1.test)(row.name, () => {
-            node_assert_1.default.strictEqual((0, top_1.findAuthPrefix)(JSON.parse(row.text)), '' === row.expected ? null : row.expected);
+            node_assert_1.default.strictEqual((0, top_2.findAuthPrefix)(JSON.parse(row.text)), '' === row.expected ? null : row.expected);
         });
     }
 });
