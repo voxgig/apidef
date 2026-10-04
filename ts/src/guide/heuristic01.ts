@@ -5,7 +5,7 @@ import type { TaskSpec } from 'ordu'
 
 import { each } from 'jostraca'
 
-import { size, merge, getelem, isempty, items, keysof } from '@voxgig/struct'
+import { size, merge, clone, getelem, isempty, items, keysof } from '@voxgig/struct'
 
 import {
   isEntityWrapperProp, envelopeProp, envelopeItemRef, composedEnvelopeProp,
@@ -2209,18 +2209,20 @@ function isListResponse(
 }
 
 
+// struct's merge rewrites every list element it walks, not just the first, so
+// each schema is cloned: the definition shares one object per $ref target.
 function resolveSchemaProperties(schema: any) {
   let properties: Record<string, any> = {}
 
   // This is definitely heuristic!
   if (schema.allOf) {
     for (let i = schema.allOf.length - 1; -1 < i; --i) {
-      properties = merge([properties, schema.allOf[i].properties || {}])
+      properties = merge([properties, clone(schema.allOf[i].properties || {})])
     }
   }
 
   if (schema.properties) {
-    properties = merge([properties, schema.properties])
+    properties = merge([properties, clone(schema.properties)])
   }
 
   return properties

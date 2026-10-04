@@ -1601,16 +1601,18 @@ function isListResponse(mdesc, pm, pathStr, why) {
     (0, utility_2.debugpath)(pathStr, mdesc.method, 'IS-LIST', islist, why, schema);
     return islist;
 }
+// struct's merge rewrites every list element it walks, not just the first, so
+// each schema is cloned: the definition shares one object per $ref target.
 function resolveSchemaProperties(schema) {
     let properties = {};
     // This is definitely heuristic!
     if (schema.allOf) {
         for (let i = schema.allOf.length - 1; -1 < i; --i) {
-            properties = (0, struct_1.merge)([properties, schema.allOf[i].properties || {}]);
+            properties = (0, struct_1.merge)([properties, (0, struct_1.clone)(schema.allOf[i].properties || {})]);
         }
     }
     if (schema.properties) {
-        properties = (0, struct_1.merge)([properties, schema.properties]);
+        properties = (0, struct_1.merge)([properties, (0, struct_1.clone)(schema.properties)]);
     }
     return properties;
 }
