@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.resolveEntity = resolveEntity;
+exports.entitySource = entitySource;
 exports.gcEntityFiles = gcEntityFiles;
 exports.entityAncestorSource = entityAncestorSource;
 const node_path_1 = __importDefault(require("node:path"));
@@ -19,17 +20,7 @@ function resolveEntity(apimodel, opts) {
     const entityFiles = [];
     (0, jostraca_1.each)(kit.entity, ((entity, entityName) => {
         const entityFile = (null == opts.outprefix ? '' : opts.outprefix) + entityName + '.aontu';
-        const { model, relations } = entityAncestorSource(entity);
-        let entityJSONIC = (0, utility_1.formatJSONIC)(model).trim();
-        entityJSONIC = entityJSONIC.substring(1, entityJSONIC.length - 1);
-        const fieldAliasesSrc = fieldAliases(entity);
-        const entitySrc = `# Entity: ${entity.name}\n\n` +
-            `main: ${types_1.KIT}: entity: ${entity.name}: {\n\n` +
-            `  alias: field: ${fieldAliasesSrc}\n` +
-            entityJSONIC +
-            relations +
-            '\n\n}\n';
-        entityFiles.push({ name: entityFile, src: entitySrc });
+        entityFiles.push({ name: entityFile, src: entitySource(entity) });
         barrel.push(`@"./${node_path_1.default.basename(entityFile)}"`);
     }));
     const indexFile = (null == opts.outprefix ? '' : opts.outprefix) + 'entity-index.aontu';
@@ -41,6 +32,18 @@ function resolveEntity(apimodel, opts) {
             (0, jostraca_1.File)({ name: indexFile }, () => (0, jostraca_1.Content)(barrel.join('\n')));
         });
     };
+}
+// The text of one entity's model file.
+function entitySource(entity) {
+    const { model, relations } = entityAncestorSource(entity);
+    let entityJSONIC = (0, utility_1.formatJSONIC)(model).trim();
+    entityJSONIC = entityJSONIC.substring(1, entityJSONIC.length - 1);
+    return `# Entity: ${entity.name}\n\n` +
+        `main: ${types_1.KIT}: entity: ${entity.name}: {\n\n` +
+        `  alias: field: ${fieldAliases(entity)}\n` +
+        entityJSONIC +
+        relations +
+        '\n\n}\n';
 }
 function entityAncestorSource(entity) {
     const model = { ...entity };

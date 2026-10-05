@@ -1,0 +1,170 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Array bodies, Swagger 2",
+    "version": "1.0.0"
+  },
+  "host": "api.example.com",
+  "basePath": "/",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/members": {
+      "post": {
+        "operationId": "createMembers",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "description": "The members to add.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Member"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Member"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/members/{member_id}": {
+      "get": {
+        "operationId": "loadMember",
+        "parameters": [
+          {
+            "name": "member_id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/Member"
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateMember",
+        "parameters": [
+          {
+            "name": "member_id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/MemberInput"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/Member"
+            }
+          }
+        }
+      }
+    },
+    "/gifts": {
+      "post": {
+        "operationId": "createGifts",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No content"
+          }
+        }
+      }
+    },
+    "/tickets": {
+      "post": {
+        "operationId": "createTicket",
+        "consumes": [
+          "application/x-www-form-urlencoded"
+        ],
+        "parameters": [
+          {
+            "in": "formData",
+            "name": "title",
+            "type": "string",
+            "required": true
+          },
+          {
+            "in": "formData",
+            "name": "priority",
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No content"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Member": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "MemberInput": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "nickname": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

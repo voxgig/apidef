@@ -3,6 +3,8 @@
 package apidef
 
 import (
+	"fmt"
+	"reflect"
 	"regexp"
 	"sort"
 	"strings"
@@ -33,6 +35,7 @@ type bodyOffer struct {
 }
 
 type rankedBody struct {
+	offer    bodyOffer
 	declared string
 	body     map[string]any
 }
@@ -97,18 +100,9 @@ func guideBodyMedia(guide map[string]any, entname string, opname string, method 
 
 // Nil when the operation sends JSON alone.
 func requestBody(def map[string]any, method string, path string, media string) map[string]any {
-	paths, _ := def["paths"].(map[string]any)
-	pathdef, _ := paths[path].(map[string]any)
-	opdef, _ := pathdef[strings.ToLower(method)].(map[string]any)
-	if opdef == nil {
+	offers, ok := requestOffers(def, method, path)
+	if !ok {
 		return nil
-	}
-
-	var offers []bodyOffer
-	if def["swagger"] != nil {
-		offers = swaggerOffers(def, pathdef, opdef)
-	} else {
-		offers = openapiOffers(opdef)
 	}
 
 	body := chooseBody(offers, media)
@@ -142,14 +136,21 @@ func responseBody(def map[string]any, method string, path string, media string) 
 	return chooseBody(openapiResponseOffers(opdef), media)
 }
 
-func chooseBody(offers []bodyOffer, media string) map[string]any {
-	sort.SliceStable(offers, func(i, j int) bool { return lessUTF16(offers[i].media, offers[j].media) })
-	ranked := make([]rankedBody, 0, len(offers))
-	for _, offer := range offers {
-		ranked = append(ranked, rankedBody{
-			declared: strings.ToLower(strings.TrimSpace(offer.media)), body: describeBody(offer)})
+func requestOffers(def map[string]any, method string, path string) ([]bodyOffer, bool) {
+	paths, _ := def["paths"].(map[string]any)
+	pathdef, _ := paths[path].(map[string]any)
+	opdef, _ := pathdef[strings.ToLower(method)].(map[string]any)
+	if opdef == nil {
+		return nil, false
 	}
-	sort.SliceStable(ranked, func(i, j int) bool { return bodyBefore(ranked[i].body, ranked[j].body) })
+	if def["swagger"] != nil {
+		return swaggerOffers(def, pathdef, opdef), true
+	}
+	return openapiOffers(opdef), true
+}
+
+func chooseBody(offers []bodyOffer, media string) map[string]any {
+	ranked := rankOffers(offers)
 
 	bodies := []map[string]any{}
 	seen := map[string]bool{}
@@ -160,27 +161,11 @@ func chooseBody(offers []bodyOffer, media string) map[string]any {
 		}
 	}
 
-	// A named media type is matched as declared first, so a range keeps its schema.
 	var chosen map[string]any
-	if named := strings.ToLower(textOf(media)); named == "" {
-		if 0 < len(bodies) {
-			chosen = bodies[0]
-		}
-	} else {
-		for _, entry := range ranked {
-			if entry.declared == named {
-				chosen = entry.body
-				break
-			}
-		}
-		for _, body := range bodies {
-			if chosen == nil && strings.ToLower(body["media"].(string)) == named {
-				chosen = body
-			}
-		}
-		if chosen == nil {
-			chosen = describeBody(bodyOffer{media: textOf(media)})
-		}
+	if entry := chooseOffer(ranked, media); entry != nil {
+		chosen = entry.body
+	} else if textOf(media) != "" {
+		chosen = describeBody(bodyOffer{media: textOf(media)})
 	}
 
 	if chosen == nil {
@@ -201,6 +186,39 @@ func chooseBody(offers []bodyOffer, media string) map[string]any {
 		out[key] = val
 	}
 	return out
+}
+
+func rankOffers(offers []bodyOffer) []rankedBody {
+	sort.SliceStable(offers, func(i, j int) bool { return lessUTF16(offers[i].media, offers[j].media) })
+	ranked := make([]rankedBody, 0, len(offers))
+	for _, offer := range offers {
+		ranked = append(ranked, rankedBody{offer: offer,
+			declared: strings.ToLower(strings.TrimSpace(offer.media)), body: describeBody(offer)})
+	}
+	sort.SliceStable(ranked, func(i, j int) bool { return bodyBefore(ranked[i].body, ranked[j].body) })
+	return ranked
+}
+
+// A named media type is matched as declared first, so a range keeps its schema.
+func chooseOffer(ranked []rankedBody, media string) *rankedBody {
+	named := strings.ToLower(textOf(media))
+	if named == "" {
+		if 0 < len(ranked) {
+			return &ranked[0]
+		}
+		return nil
+	}
+	for i := range ranked {
+		if ranked[i].declared == named {
+			return &ranked[i]
+		}
+	}
+	for i := range ranked {
+		if strings.ToLower(ranked[i].body["media"].(string)) == named {
+			return &ranked[i]
+		}
+	}
+	return nil
 }
 
 func openapiOffers(opdef map[string]any) []bodyOffer {
@@ -295,10 +313,18 @@ func swaggerOffers(def map[string]any, pathdef map[string]any, opdef map[string]
 	}
 	if 0 < len(form) {
 		props := map[string]any{}
+		required := []any{}
 		for _, param := range form {
 			props[param["name"].(string)] = formProperty(param)
+			if param["required"] == true {
+				required = append(required, param["name"])
+			}
 		}
-		formSchema = map[string]any{"type": "object", "properties": props}
+		schema := map[string]any{"type": "object", "properties": props}
+		if 0 < len(required) {
+			schema["required"] = required
+		}
+		formSchema = schema
 	}
 
 	declaredList, isList := opdef["consumes"].([]any)
@@ -593,4 +619,433 @@ func schemaHasType(schema any, name string) bool {
 func textOf(val any) string {
 	text, _ := val.(string)
 	return strings.TrimSpace(text)
+}
+
+// jsonSchema mirrors ts/src/transform/body.ts: the schema the body step
+// sends a request body with, when that body is JSON.
+func jsonSchema(offers []bodyOffer, media string) any {
+	chosen := chooseOffer(rankOffers(offers), media)
+	if chosen == nil || chosen.body["kind"] != "json" {
+		return nil
+	}
+	return chosen.offer.schema
+}
+
+func jsonRequestSchema(opdef map[string]any) any {
+	if opdef == nil {
+		return nil
+	}
+	return jsonSchema(openapiOffers(opdef), "")
+}
+
+// requestSchema mirrors ts/src/transform/body.ts: the JSON schema a point's
+// request body is sent with, under the media type the guide names, else the
+// one the body step prefers.
+func requestSchema(def map[string]any, method string, path string, media string) any {
+	offers, _ := requestOffers(def, method, path)
+	return jsonSchema(offers, media)
+}
+
+// selectedRequestSchema mirrors ts/src/transform/body.ts: the schema of the
+// request body offered under the media type the guide names, of any kind,
+// else the preferred JSON one.
+func selectedRequestSchema(def map[string]any, method string, path string, media string) any {
+	offers, _ := requestOffers(def, method, path)
+	if media != "" {
+		if named := chooseOffer(rankOffers(offers), media); named != nil {
+			return named.offer.schema
+		}
+	}
+	return jsonSchema(offers, "")
+}
+
+func arrayRequestSchema(def map[string]any, method string, path string, media string) map[string]any {
+	return arrayShape(requestSchema(def, method, path, media))
+}
+
+// arrayShape mirrors ts/src/transform/body.ts: an array, or an allOf whose
+// parts make one, or a oneOf or anyOf of one, or of arrays alone, beside any
+// null, each fact from the first part that states it, outermost first, the
+// items from the array's own part first.
+func arrayShape(schema any) map[string]any {
+	parts := []map[string]any{}
+	seen := map[string]bool{}
+	var visit func(node any)
+	visit = func(node any) {
+		m, _ := node.(map[string]any)
+		id := fmt.Sprintf("%p", m)
+		if m == nil || seen[id] {
+			return
+		}
+		seen[id] = true
+		parts = append(parts, m)
+		members, _ := m["allOf"].([]any)
+		for _, member := range members {
+			visit(member)
+		}
+		for _, key := range []string{"oneOf", "anyOf"} {
+			one, _ := m[key].([]any)
+			members := []any{}
+			for _, member := range one {
+				if !nullOnly(member) {
+					members = append(members, member)
+				}
+			}
+			if len(members) == 1 {
+				visit(members[0])
+			} else if 1 < len(members) && allArrays(members) {
+				parts = append(parts, unionArray(members))
+			}
+		}
+	}
+	visit(schema)
+	var list map[string]any
+	for _, part := range parts {
+		if isArraySchema(part) {
+			list = part
+			break
+		}
+	}
+	if list != nil && list["type"] == nil {
+		typed := map[string]any{}
+		for key, val := range list {
+			typed[key] = val
+		}
+		typed["type"] = "array"
+		list = typed
+	}
+	if list == nil {
+		return list
+	}
+	out := map[string]any{}
+	for key, val := range list {
+		out[key] = val
+	}
+	if out["items"] == nil {
+		for _, part := range parts {
+			if part["items"] != nil {
+				out["items"] = part["items"]
+				break
+			}
+		}
+	}
+	for _, part := range parts {
+		if part["description"] != nil {
+			out["description"] = part["description"]
+			break
+		}
+	}
+	types := []any{}
+	for _, t := range typeList(list["type"]) {
+		if t != "null" {
+			types = append(types, t)
+		}
+	}
+	if len(types) == 1 {
+		out["type"] = types[0]
+	} else {
+		out["type"] = types
+	}
+	out["nullable"] = admitsNull(schema)
+	return out
+}
+
+// admitsNull mirrors ts/src/transform/body.ts: null must pass the schema's own
+// type, const and enum, every allOf part, exactly one oneOf member, and some
+// anyOf member.
+func admitsNull(schema any) bool {
+	return admitsNullOn(schema, map[string]bool{})
+}
+
+// enterPart reports whether a part is already on the path down to it. Go keeps
+// a reference cycle that TypeScript's parse cuts to a string, so a part met
+// inside itself counts as that string: no schema at all.
+func enterPart(path map[string]bool, m map[string]any) (string, bool) {
+	id := fmt.Sprintf("%p", m)
+	if m == nil || path[id] {
+		return id, false
+	}
+	path[id] = true
+	return id, true
+}
+
+func admitsNullOn(schema any, path map[string]bool) bool {
+	m, _ := schema.(map[string]any)
+	id, entered := enterPart(path, m)
+	if !entered {
+		return false
+	}
+	defer delete(path, id)
+	if !(m["type"] == nil || schemaHasType(m, "null") || m["nullable"] == true) {
+		return false
+	}
+	if c, has := m["const"]; has && c != nil {
+		return false
+	}
+	if enum, isList := m["enum"].([]any); isList && !containsNil(enum) {
+		return false
+	}
+	parts, _ := m["allOf"].([]any)
+	for _, part := range parts {
+		if !admitsNullOn(part, path) {
+			return false
+		}
+	}
+	for _, key := range []string{"oneOf", "anyOf"} {
+		one, isList := m[key].([]any)
+		if !isList {
+			continue
+		}
+		count := 0
+		for _, member := range one {
+			if admitsNullOn(member, path) {
+				count++
+			}
+		}
+		if 0 == count || ("oneOf" == key && 1 < count) {
+			return false
+		}
+	}
+	return true
+}
+
+func typeList(t any) []any {
+	if list, ok := t.([]any); ok {
+		return list
+	}
+	return []any{t}
+}
+
+// nullOnly: only null passes, by its type, a const or enum of null alone, an
+// allOf part that passes only null, or a oneOf or anyOf every member of which
+// does.
+func nullOnly(schema any) bool {
+	return nullOnlyOn(schema, map[string]bool{})
+}
+
+func nullOnlyOn(schema any, path map[string]bool) bool {
+	m, _ := schema.(map[string]any)
+	id, entered := enterPart(path, m)
+	if !entered {
+		return false
+	}
+	defer delete(path, id)
+	if c, has := m["const"]; has {
+		return c == nil
+	}
+	if enum, isList := m["enum"].([]any); isList {
+		for _, v := range enum {
+			if v != nil {
+				return false
+			}
+		}
+		return 0 < len(enum)
+	}
+	parts, _ := m["allOf"].([]any)
+	for _, part := range parts {
+		if nullOnlyOn(part, path) {
+			return true
+		}
+	}
+	for _, key := range []string{"oneOf", "anyOf"} {
+		one, _ := m[key].([]any)
+		every := 0 < len(one)
+		for _, member := range one {
+			if !nullOnlyOn(member, path) {
+				every = false
+				break
+			}
+		}
+		if every {
+			return true
+		}
+	}
+	switch t := m["type"].(type) {
+	case string:
+		return t == "null"
+	case []any:
+		for _, each := range t {
+			if each != "null" {
+				return false
+			}
+		}
+		return true
+	}
+	return false
+}
+
+func containsNil(list []any) bool {
+	for _, v := range list {
+		if v == nil {
+			return true
+		}
+	}
+	return false
+}
+
+func isArraySchema(schema any) bool {
+	m, _ := schema.(map[string]any)
+	return m != nil && (schemaHasType(m, "array") || (m["type"] == nil && arrayValued(m)))
+}
+
+func allArrays(members []any) bool {
+	for _, member := range members {
+		if !arrayOnly(member) {
+			return false
+		}
+	}
+	return true
+}
+
+// arrayOnly mirrors ts/src/transform/body.ts: only arrays pass, beside any
+// null, so a union member that admits a string too is no array.
+func arrayOnly(schema any) bool {
+	m, _ := schema.(map[string]any)
+	if m == nil {
+		return false
+	}
+	if arrayValued(m) {
+		return true
+	}
+	types := typeList(m["type"])
+	array := false
+	for _, t := range types {
+		if t == "array" {
+			array = true
+		} else if t != "null" {
+			return false
+		}
+	}
+	return array
+}
+
+// unionArray mirrors ts/src/transform/body.ts: the items are kept only where
+// every member's items name one component.
+func unionArray(members []any) map[string]any {
+	out := map[string]any{"type": "array"}
+	first, _ := members[0].(map[string]any)
+	items, _ := first["items"].(map[string]any)
+	ref, _ := items["x-ref"].(string)
+	if ref == "" {
+		return out
+	}
+	for _, member := range members[1:] {
+		m, _ := member.(map[string]any)
+		other, _ := m["items"].(map[string]any)
+		if xref, _ := other["x-ref"].(string); xref != ref {
+			return out
+		}
+	}
+	out["items"] = first["items"]
+	return out
+}
+
+// arrayValued: only arrays pass, by a const, or an enum, of arrays alone.
+func arrayValued(schema map[string]any) bool {
+	if _, isList := schema["const"].([]any); isList {
+		return true
+	}
+	enum, isList := schema["enum"].([]any)
+	if !isList || 0 == len(enum) {
+		return false
+	}
+	for _, v := range enum {
+		if _, isList := v.([]any); !isList {
+			return false
+		}
+	}
+	return true
+}
+
+// nullableType mirrors ts/src/transform/body.ts: a nullable array says so with
+// nullable in OpenAPI 3.0, and a type list in 3.1.
+func nullableType(schema map[string]any) any {
+	if schema["nullable"] == true && !schemaHasType(schema, "null") {
+		return append(append([]any{}, typeList(schema["type"])...), "null")
+	}
+	return schema["type"]
+}
+
+var reqdataFieldRE = regexp.MustCompile("^`reqdata\\.([A-Za-z_][A-Za-z0-9_]*)`$")
+
+// sameType mirrors ts/src/transform/body.ts: types compare by value, and a
+// type list as the set it is, in one order.
+func sameType(a any, b any) bool {
+	return reflect.DeepEqual(typeSet(a), typeSet(b))
+}
+
+func typeSet(t any) any {
+	list, ok := t.([]any)
+	if !ok {
+		return t
+	}
+	names := []string{}
+	for _, member := range list {
+		name, isName := member.(string)
+		if !isName {
+			out := []any{}
+			for _, each := range list {
+				out = append(out, typeSet(each))
+			}
+			return out
+		}
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	out := []any{}
+	for _, name := range names {
+		out = append(out, name)
+	}
+	return out
+}
+
+type arrayCarrierInfo struct {
+	name        string
+	required    bool
+	typ         any
+	description string
+}
+
+// arrayCarrier mirrors ts/src/transform/body.ts: the field of the request data
+// a point's JSON array body is sent from, when its request transform unwraps
+// one.
+func arrayCarrier(def map[string]any, mtarget map[string]any, media string) *arrayCarrierInfo {
+	t, _ := mtarget["t"].(map[string]any)
+	req, _ := t["req"].(string)
+	m := reqdataFieldRE.FindStringSubmatch(req)
+	if m == nil {
+		return nil
+	}
+	method, _ := mtarget["m"].(string)
+	path, _ := mtarget["o"].(string)
+	schema := arrayRequestSchema(def, method, path, media)
+	if schema == nil {
+		return nil
+	}
+	decl := requestDecl(def, method, path)
+	description := textOf(decl["description"])
+	if description == "" {
+		description = textOf(schema["description"])
+	}
+	return &arrayCarrierInfo{name: m[1], required: decl["required"] == true, typ: nullableType(schema), description: description}
+}
+
+// OpenAPI's request body, or the Swagger parameter that is one.
+func requestDecl(def map[string]any, method string, path string) map[string]any {
+	paths, _ := def["paths"].(map[string]any)
+	pathdef, _ := paths[path].(map[string]any)
+	opdef, _ := pathdef[strings.ToLower(method)].(map[string]any)
+	if opdef == nil {
+		return nil
+	}
+	if def["swagger"] != nil {
+		for _, param := range swaggerParams(pathdef, opdef) {
+			if param["in"] == "body" {
+				return param
+			}
+		}
+		return nil
+	}
+	rb, _ := opdef["requestBody"].(map[string]any)
+	return rb
 }

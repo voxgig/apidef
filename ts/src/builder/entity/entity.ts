@@ -35,21 +35,7 @@ function resolveEntity(
   each(kit.entity, ((entity: any, entityName: string) => {
     const entityFile = (null == opts.outprefix ? '' : opts.outprefix) + entityName + '.aontu'
 
-    const { model, relations } = entityAncestorSource(entity)
-    let entityJSONIC = formatJSONIC(model).trim()
-    entityJSONIC = entityJSONIC.substring(1, entityJSONIC.length - 1)
-
-    const fieldAliasesSrc = fieldAliases(entity)
-
-    const entitySrc =
-      `# Entity: ${entity.name}\n\n` +
-      `main: ${KIT}: entity: ${entity.name}: {\n\n` +
-      `  alias: field: ${fieldAliasesSrc}\n` +
-      entityJSONIC +
-      relations +
-      '\n\n}\n'
-
-    entityFiles.push({ name: entityFile, src: entitySrc })
+    entityFiles.push({ name: entityFile, src: entitySource(entity) })
 
     barrel.push(`@"./${Path.basename(entityFile)}"`)
   }))
@@ -66,6 +52,21 @@ function resolveEntity(
     })
   }
 }
+
+// The text of one entity's model file.
+function entitySource(entity: any): string {
+  const { model, relations } = entityAncestorSource(entity)
+  let entityJSONIC = formatJSONIC(model).trim()
+  entityJSONIC = entityJSONIC.substring(1, entityJSONIC.length - 1)
+
+  return `# Entity: ${entity.name}\n\n` +
+    `main: ${KIT}: entity: ${entity.name}: {\n\n` +
+    `  alias: field: ${fieldAliases(entity)}\n` +
+    entityJSONIC +
+    relations +
+    '\n\n}\n'
+}
+
 
 function entityAncestorSource(entity: any): { model: any, relations: string } {
   const model = { ...entity }
@@ -144,6 +145,7 @@ function fieldAliases(_entity: any): string {
 
 export {
   resolveEntity,
+  entitySource,
   gcEntityFiles,
   entityAncestorSource,
 }

@@ -4,11 +4,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sortedEntries = exports.sortedKeys = exports.CANON_ONE = exports.VALID_CANON = void 0;
+exports.bodyRequestTransform = bodyRequestTransform;
 exports.nom = nom;
 exports.getdlog = getdlog;
 exports.loadFile = loadFile;
 exports.formatJsonSrc = formatJsonSrc;
 exports.depluralize = depluralize;
+exports.pluralize = pluralize;
 exports.setCustomPlurals = setCustomPlurals;
 exports.clearCustomPlurals = clearCustomPlurals;
 exports.find = find;
@@ -51,6 +53,7 @@ exports.composedEnvelopeProp = composedEnvelopeProp;
 exports.propIsList = propIsList;
 exports.mergedProperties = mergedProperties;
 exports.closedBodyTransform = closedBodyTransform;
+exports.requestWrapperOf = requestWrapperOf;
 exports.untaggedUnionBranches = untaggedUnionBranches;
 exports.scanUntaggedUnion = scanUntaggedUnion;
 exports.firstSentence = firstSentence;
@@ -149,6 +152,7 @@ function formatJsonSrc(jsonsrc) {
         .replace(RE_JSON_COMMENT, '\n\n$1# $2 $3');
 }
 const IRREGULARS = Object.assign(Object.create(null), {
+    'aircraft': 'aircraft',
     'analytics': 'analytics',
     'analyses': 'analysis',
     'appendices': 'appendix',
@@ -165,12 +169,14 @@ const IRREGULARS = Object.assign(Object.create(null), {
     'crises': 'crisis',
     'criteria': 'criterion',
     // 'data': 'datum',
+    'deer': 'deer',
     'diagnoses': 'diagnosis',
     'doses': 'dose',
     'douches': 'douche',
     'enterprises': 'enterprise',
     'exercises': 'exercise',
     'feet': 'foot',
+    'fish': 'fish',
     'franchises': 'franchise',
     'furnaces': 'furnace',
     'geese': 'goose',
@@ -184,6 +190,7 @@ const IRREGULARS = Object.assign(Object.create(null), {
     'matrices': 'matrix',
     'men': 'man',
     'mice': 'mouse',
+    'moose': 'moose',
     'moustaches': 'moustache',
     'movies': 'movie',
     'mustaches': 'mustache',
@@ -193,6 +200,7 @@ const IRREGULARS = Object.assign(Object.create(null), {
     'nurses': 'nurse',
     'oases': 'oasis',
     'oboes': 'oboe',
+    'oxen': 'ox',
     'pastiches': 'pastiche',
     'pauses': 'pause',
     'phases': 'phase',
@@ -203,11 +211,13 @@ const IRREGULARS = Object.assign(Object.create(null), {
     'psyches': 'psyche',
     'purchases': 'purchase',
     'purses': 'purse',
+    'quizzes': 'quiz',
     'releases': 'release',
     'roses': 'rose',
     'people': 'person',
     'phenomena': 'phenomenon',
     'series': 'series',
+    'sheep': 'sheep',
     'shoes': 'shoe',
     'sources': 'source',
     'species': 'species',
@@ -230,6 +240,8 @@ const F_PLURAL_STEMS = [
 // insertion-order iteration. Both happen to round-trip correctly
 // today, but the sort makes any future entry safe by construction.
 const IRREGULAR_KEYS = Object.keys(IRREGULARS).sort((a, b) => b.length - a.length);
+// Nouns in -o whose plural takes -es; the rest take -s (photos).
+const OES_NOUNS = ['echo', 'embargo', 'hero', 'potato', 'tomato', 'torpedo', 'veto'];
 function matchCase(source, target) {
     if (source === source.toLowerCase())
         return target.toLowerCase();
@@ -352,6 +364,31 @@ function depluralize(word) {
     }
     // If none of the rules apply, return as is
     return word;
+}
+// The plural of a snake name's last word that depluralize reads back as the
+// name, so the two cannot disagree.
+function pluralize(word) {
+    if (null == word || '' === word) {
+        return word;
+    }
+    const cut = word.lastIndexOf('_') + 1;
+    const last = word.slice(cut);
+    const lower = last.toLowerCase();
+    const plurals = [
+        ...pluralsOf(CUSTOM_PLURALS, lower),
+        ...pluralsOf(IRREGULARS, lower),
+        ...(/[^aeiou]y$/.test(lower) ? [lower.slice(0, -1) + 'ies'] : []),
+        ...(/fe?$/.test(lower) ? [lower.replace(/fe?$/, 'ves')] : []),
+        ...(/(s|x|z|ch|sh)$/.test(lower) || OES_NOUNS.includes(lower) ? [lower + 'es'] : []),
+        lower + 's',
+    ].map((plural) => word.slice(0, cut) + matchCase(last, plural));
+    return plurals.find((plural) => depluralize(plural) === word) ??
+        plurals[plurals.length - 1];
+}
+function pluralsOf(plurals, singular) {
+    return Object.keys(plurals)
+        .filter((plural) => plurals[plural].toLowerCase() === singular)
+        .sort();
 }
 function find(obj, qkey) {
     const vals = [];
@@ -1674,6 +1711,27 @@ function closedBodyTransform(schema) {
         out[name] = '`reqdata.' + canonize(normalizeFieldName(name)) + '`';
     }
     return out;
+}
+// The key a request transform sends the whole record under, else null.
+function requestWrapperOf(req) {
+    if (null == req || 'object' !== typeof req || Array.isArray(req)) {
+        return null;
+    }
+    const keys = Object.keys(req);
+    return 1 === keys.length && '`reqdata`' === req[keys[0]] ? keys[0] : null;
+}
+// A body wraps the record under the entity's name only when that is all it
+// holds, and it is structured; otherwise the name is one field of the record,
+// such as the container in SaladCloud's container group create. A CLOSED body
+// names every property the server accepts, so the body is those properties,
+// not the whole payload, which also carries the op's path parameters.
+function bodyRequestTransform(schema, names) {
+    if (null == schema)
+        return undefined;
+    const props = schema.properties;
+    const wrapped = names.find((name) => null != name && '' !== name &&
+        isEntityWrapperProp(props?.[name]) && (0, struct_1.keysof)(props).every((k) => k === name));
+    return null != wrapped ? { [wrapped]: '`reqdata`' } : (closedBodyTransform(schema) ?? undefined);
 }
 function firstSentence(text) {
     const collapsed = text.replace(/\s+/g, ' ').trim();
