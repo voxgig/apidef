@@ -8,7 +8,7 @@ import { each } from 'jostraca'
 import { size, merge, clone, getelem, isempty, items, keysof } from '@voxgig/struct'
 
 import {
-  isEntityWrapperProp, envelopeProp, envelopeItemRef, composedEnvelopeProp,
+  isEntityWrapperProp, envelopeProp, envelopeItemRef, composedEnvelopeProp, propIsList,
   bodyRequestTransform, authExchangeOp, specSecuredByDefault,
 } from '../utility'
 
@@ -1223,10 +1223,17 @@ function ResolveTransform(spec: TaskSpec) {
   // declare properties of its own beside them.
   const partprops = mergedProperties(resschema)
 
-  if (named && isEntityWrapperProp(partprops?.[entdesc.origname])) {
+  // A list reads records, so an object named for the entity does not win over
+  // a list of them beside it, such as the matches beside the competition a
+  // page of them repeats. The list is found in the same parts the name is.
+  const records = 'list' === opname && null != partprops ? envelopeProp(partprops, opname) : null
+  const holdsRecord = (prop: any) => isEntityWrapperProp(prop) &&
+    (null == records || true === propIsList(prop))
+
+  if (named && holdsRecord(partprops?.[entdesc.origname])) {
     transform.res = '`body.' + entdesc.origname + '`'
   }
-  else if (named && isEntityWrapperProp(partprops?.[entdesc.name])) {
+  else if (named && holdsRecord(partprops?.[entdesc.name])) {
     transform.res = '`body.' + entdesc.name + '`'
   }
   else if (resprops) {

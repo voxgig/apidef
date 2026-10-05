@@ -50,6 +50,7 @@ exports.isEntityWrapperProp = isEntityWrapperProp;
 exports.envelopeProp = envelopeProp;
 exports.envelopeItemRef = envelopeItemRef;
 exports.composedEnvelopeProp = composedEnvelopeProp;
+exports.propIsList = propIsList;
 exports.mergedProperties = mergedProperties;
 exports.closedBodyTransform = closedBodyTransform;
 exports.requestWrapperOf = requestWrapperOf;

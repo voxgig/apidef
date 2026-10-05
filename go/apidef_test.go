@@ -605,6 +605,53 @@ func TestGuideAllofEnvelope(t *testing.T) {
 	}
 }
 
+// Mirrors the TS `guide-list-records` case.
+func TestGuideListRecords(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "list-records-")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, OutPrefix: "list-records-", Strategy: "heuristic01"}).
+		Generate(map[string]any{
+			"model": map[string]any{"name": "list-records", "def": "list-records-def.json"},
+			"build": map[string]any{"spec": map[string]any{"base": "../ts/test/def"}},
+			"ctrl": map[string]any{"step": map[string]any{
+				"parse": true, "guide": true, "transformers": true,
+				"builders": false, "generate": false,
+			}},
+		})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v", err)
+	}
+
+	entities := res.ApiModel["main"].(map[string]any)["kit"].(map[string]any)["entity"].(map[string]any)
+	resOf := func(ent, op, path string) any {
+		e, _ := entities[ent].(map[string]any)
+		opm, _ := e["op"].(map[string]any)
+		o, _ := opm[op].(map[string]any)
+		pts, _ := o["points"].([]any)
+		for _, p := range pts {
+			pt, _ := p.(map[string]any)
+			if pt["o"] == path {
+				tr, _ := pt["t"].(map[string]any)
+				return tr["res"]
+			}
+		}
+		return nil
+	}
+
+	for _, c := range []struct{ ent, op, path, want string }{
+		{"quote", "list", "/quote/random", "`body.episodes`"},
+		{"competition", "list", "/competitions/{id}/matches", "`body.matches`"},
+		{"competition", "list", "/competitions/{id}/teams", "`body.teams`"},
+		{"scorer", "list", "/competitions/{id}/scorers", "`body.scorers`"},
+		{"note", "list", "/notes", "`body.note`"},
+		{"quote", "load", "/quote/{id}", "`body.quote`"},
+		{"competition", "load", "/competitions/{id}", "`body`"},
+	} {
+		if got := resOf(c.ent, c.op, c.path); got != c.want {
+			t.Errorf("%s %s %s res = %v, want %s", c.ent, c.op, c.path, got, c.want)
+		}
+	}
+}
+
 // Mirrors the TS `guide-trailing-key` case.
 // Mirrors the TS `guide-wrapper-name` case.
 func TestGuideWrapperName(t *testing.T) {
