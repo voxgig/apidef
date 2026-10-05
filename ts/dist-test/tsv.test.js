@@ -58,6 +58,7 @@ const guide_1 = require("../dist/guide/guide");
 const parse_1 = require("../dist/parse");
 const refcount_1 = require("../dist/refcount");
 const clean_1 = require("../dist/transform/clean");
+const flowstep_1 = require("../dist/transform/flowstep");
 const transform_1 = require("../dist/transform");
 function loadTsv(name) {
     const filepath = Path.join(__dirname, '..', 'test', name + '.tsv');
@@ -1140,6 +1141,43 @@ function loadTsv(name) {
                     ...(null == point.rs ? {} : { rs: point.rs.media }),
                 }))]));
             node_assert_1.default.deepStrictEqual(points, JSON.parse(row.points));
+        });
+    }
+});
+// A point from its route: the placeholders are its params, in the order the
+// model sorts them, unless the row lists them.
+function flowPoint(spec) {
+    const { path, params, rename } = 'string' === typeof spec ? { path: spec } : spec;
+    const s = path.split('/').filter((part) => '' !== part).map((part) => part.startsWith('{') ? { var: part.slice(1, -1) } : { lit: part });
+    const names = params ?? s.filter((seg) => null != seg.var).map((seg) => seg.var).sort();
+    return {
+        s,
+        g: { params: names.map((n) => ({ n, k: 'param', r: true, t: '`$STRING`' })) },
+        ...(null == rename ? {} : { r: { param: rename } }),
+    };
+}
+(0, node_test_1.describe)('tsv-flow-step', () => {
+    const rows = loadTsv('flow-step');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(`flowstepTransform(${row.ops.slice(0, 60)})`, async () => {
+            const op = Object.fromEntries(Object.entries(JSON.parse(row.ops)).map(([name, points]) => [name, { name, points: points.map(flowPoint) }]));
+            const fields = Object.fromEntries(JSON.parse(row.fields).map((n) => [n, { n, t: '`$STRING`' }]));
+            const flow = { name: 'BasicThingFlow', entity: 'thing', kind: 'basic', step: [] };
+            await (0, flowstep_1.flowstepTransform)({
+                apimodel: { main: { kit: {
+                            entity: { thing: { name: 'thing', fields, op } },
+                            flow: { BasicThingFlow: flow },
+                        } } },
+                guide: {},
+                log: { debug: () => undefined },
+            });
+            node_assert_1.default.deepStrictEqual(flow.step.map((step) => ({
+                o: step.o,
+                ...(0 < Object.keys(step.m).length ? { m: step.m } : {}),
+                ...(0 < Object.keys(step.d).length ? { d: step.d } : {}),
+                ...(null == step.i.textfield ? {} : { tf: step.i.textfield }),
+            })), JSON.parse(row.expected));
         });
     }
 });
