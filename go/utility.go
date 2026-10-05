@@ -2355,3 +2355,72 @@ func FirstSentence(text string) string {
 
 	return out
 }
+
+// stringifyInfoScalars copies a definition's info or servers with every
+// number and boolean written as JavaScript's String writes it, as the TS
+// port's model holds them.
+func stringifyInfoScalars(node any) any {
+	switch v := node.(type) {
+	case map[string]any:
+		out := make(map[string]any, len(v))
+		for k, val := range v {
+			out[k] = stringifyInfoScalars(val)
+		}
+		return out
+	case []any:
+		out := make([]any, len(v))
+		for i, val := range v {
+			out[i] = stringifyInfoScalars(val)
+		}
+		return out
+	case bool:
+		return strconv.FormatBool(v)
+	case float64:
+		return jsNumberString(v)
+	case int:
+		return jsNumberString(float64(v))
+	case int64:
+		return jsNumberString(float64(v))
+	}
+	return node
+}
+
+// jsNumberString is JavaScript's String(number): the shortest digits that
+// read back as the number, written out in full from 1e-6 up to 1e21.
+func jsNumberString(f float64) string {
+	switch {
+	case math.IsNaN(f):
+		return "NaN"
+	case math.IsInf(f, 1):
+		return "Infinity"
+	case math.IsInf(f, -1):
+		return "-Infinity"
+	case 0 == f:
+		return "0"
+	}
+	sign := ""
+	if f < 0 {
+		sign, f = "-", -f
+	}
+	mantissa, exponent, _ := strings.Cut(strconv.FormatFloat(f, 'e', -1, 64), "e")
+	digits := strings.Replace(mantissa, ".", "", 1)
+	k := len(digits)
+	n, _ := strconv.Atoi(exponent)
+	n++
+	switch {
+	case k <= n && n <= 21:
+		return sign + digits + strings.Repeat("0", n-k)
+	case 0 < n && n <= 21:
+		return sign + digits[:n] + "." + digits[n:]
+	case -6 < n && n <= 0:
+		return sign + "0." + strings.Repeat("0", -n) + digits
+	}
+	e := strconv.Itoa(n - 1)
+	if 0 <= n-1 {
+		e = "+" + e
+	}
+	if 1 == k {
+		return sign + digits + "e" + e
+	}
+	return sign + digits[:1] + "." + digits[1:] + "e" + e
+}

@@ -1911,6 +1911,79 @@ func TestCleanTransform(t *testing.T) {
 	}
 }
 
+// A null leaf is kept, as the TS clean keeps null and drops only undefined
+// (mirrors ts/src/transform/clean.ts): a parameter's `ex: null` reaches the
+// model from both ports.
+func TestCleanTransformKeepsNullLeaves(t *testing.T) {
+	ctx := &ApiDefContext{
+		ApiModel: map[string]any{
+			"a": map[string]any{"x": nil, "y": map[string]any{}},
+			"b": []any{nil, 1},
+			"c": nil,
+		},
+	}
+	if _, err := CleanTransform(ctx); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	want := map[string]any{
+		"a": map[string]any{"x": nil},
+		"b": []any{nil, 1},
+		"c": nil,
+	}
+	if !reflect.DeepEqual(ctx.ApiModel, want) {
+		t.Fatalf("null leaves: got %#v, want %#v", ctx.ApiModel, want)
+	}
+}
+
+// An example present as null survives the args and clean steps as `ex: null`,
+// as it does in the TS port.
+func TestArgsTransformNullExampleSurvivesClean(t *testing.T) {
+	path := "/kingdom"
+	ctx := &ApiDefContext{
+		Def: map[string]any{"paths": map[string]any{
+			path: map[string]any{"get": map[string]any{"parameters": []any{
+				map[string]any{
+					"name": "q", "in": "query", "example": nil,
+					"schema": map[string]any{"type": "string", "default": "d"},
+				},
+			}}},
+		}},
+		ApiModel: map[string]any{"main": map[string]any{"kit": map[string]any{
+			"entity": map[string]any{"kingdom": map[string]any{
+				"name": "kingdom",
+				"op": map[string]any{"list": map[string]any{
+					"points": []any{map[string]any{
+						"o": path, "m": "GET",
+						"r": map[string]any{}, "g": map[string]any{},
+					}},
+				}},
+			}},
+		}}},
+		Warn: MakeWarner("test", nil),
+	}
+	if _, err := ArgsTransform(ctx); err != nil {
+		t.Fatalf("args transform failed: %v", err)
+	}
+	if _, err := CleanTransform(ctx); err != nil {
+		t.Fatalf("clean transform failed: %v", err)
+	}
+	kit := getKit(ctx)
+	kingdom := kit["entity"].(map[string]any)["kingdom"].(map[string]any)
+	point := kingdom["op"].(map[string]any)["list"].(map[string]any)["points"].([]any)[0].(map[string]any)
+	query, _ := point["g"].(map[string]any)["query"].([]any)
+	if len(query) != 1 {
+		t.Fatalf("query args = %v, want one", query)
+	}
+	arg := query[0].(map[string]any)
+	ex, has := arg["ex"]
+	if !has || ex != nil {
+		t.Fatalf("arg = %#v, want ex present as null", arg)
+	}
+	if !strings.Contains(FormatJSONIC(map[string]any{"q": arg}), "ex: null") {
+		t.Fatalf("rendered arg %s, want ex: null", FormatJSONIC(map[string]any{"q": arg}))
+	}
+}
+
 func TestCleanTransformPreservesEmptyFieldMaps(t *testing.T) {
 	entities := map[string]any{
 		"empty": map[string]any{"name": "empty", "fields": map[string]any{}, "other": map[string]any{}},

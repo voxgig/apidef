@@ -561,6 +561,7 @@ function stringifyInfoScalars(node: any): any {
 
 export {
   topTransform,
+  stringifyInfoScalars,
   resolveSecurity,
   resolveSummary,
   ensureDescription,
