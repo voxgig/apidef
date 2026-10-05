@@ -38,7 +38,7 @@ guide
 |-------|------|---------|
 | `method` | `string` | HTTP method (`GET`, `POST`, …) |
 | `why_op` | `string[]` | trace of the CRUD classification |
-| `transform.res` | `string` | response envelope unwrap (e.g. `` `body.planet` ``) when the response wraps the entity |
+| `transform.res` | `string` or `list` | response envelope unwrap (e.g. `` `body.planet` ``) when the response wraps the entity, or a struct transform when each item of a list wraps the record (see [Response envelopes](#response-envelopes)) |
 | `transform.req` | `object` or `string` | request envelope wrap when the body wraps the entity; a string names the field a JSON array body is sent from |
 | `body.media` | `string` | the media type the request body is sent as; the base guide never writes it, so it is yours to set (see the model's `rb`) |
 | `response.media` | `string` | the media type to ask a success response for; likewise yours to set (see the model's `rs`) |
@@ -288,6 +288,19 @@ list whose items are a `oneOf` of strings and nulls: a composition holds
 records only when one of its branches is an object. The rows of
 [`ts/test/envelope-prop.tsv`](../../ts/test/envelope-prop.tsv) pin it in both
 builds.
+
+A list whose items each hold nothing but the record, under the entity's
+name, reads the record from each item. Maxio wraps every record under the
+name of its type, so its customer list answers an array of objects that each
+hold one `customer`. `transform.res` is then a struct transform rather than a
+path, ``["`$EACH`", "body", { "`$MERGE`": "`.customer`" }]``, and the
+entity's fields come from the record under that name. An item that holds
+anything beside the record, such as an invoice beside its `links`, is read
+whole, and so is an item that is the entity's own component. The base guide
+writes the transform as a default, so the entry guide can replace it with a
+path. `itemEnvelopeKey` in [`ts/src/utility.ts`](../../ts/src/utility.ts) is
+the rule, and the `guide-item-envelope` tests pin it in both builds on
+[`ts/test/def/item-envelope-def.json`](../../ts/test/def/item-envelope-def.json).
 
 A page that holds no data of its own reads its one array of records past
 the other structured properties beside it. When every scalar beside the

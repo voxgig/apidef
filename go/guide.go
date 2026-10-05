@@ -536,8 +536,13 @@ func buildGuideSource(ctx *ApiDefContext, baseguide map[string]any) string {
 					blocks = append(blocks, fmt.Sprintf("      op: %s: method: *%s", opname, method))
 
 					if transform, ok := opdef["transform"].(map[string]any); ok {
+						// Mirrors ts/src/guide/guide.ts: a list default is written bare.
 						if res := transform["res"]; res != nil {
-							blocks = append(blocks, fmt.Sprintf("      op: %s: transform: res: *(%s)|top", opname, guideJSON(res)))
+							format := "      op: %s: transform: res: *(%s)|top"
+							if _, isStr := res.(string); !isStr {
+								format = "      op: %s: transform: res: *%s|top"
+							}
+							blocks = append(blocks, fmt.Sprintf(format, opname, guideJSON(res)))
 						}
 						if reqmap, ok := transform["req"].(map[string]any); ok {
 							for _, bodykey := range sortedKeys(reqmap) {
@@ -1772,6 +1777,20 @@ func resolveTransform(data map[string]any, mdesc map[string]any) {
 	if transform["res"] == nil {
 		if envelope := composedEnvelopeProp(resschema, opname); envelope != "" {
 			transform["res"] = "`body." + envelope + "`"
+		}
+	}
+
+	// Mirrors ts/src/guide/heuristic01.ts: an item that is the entity's own
+	// component is the record, as above.
+	items, _ := resschema["items"].(map[string]any)
+	itemref, _ := items["x-ref"].(string)
+	itemNamed := true
+	if m := xrefRE.FindStringSubmatch(itemref); m != nil && entcmp != "" {
+		itemNamed = CanonizeCmpName(m[2]) != entcmp
+	}
+	if transform["res"] == nil && opname == "list" && itemNamed {
+		if key := itemEnvelopeKey(resschema, []string{origname, ename}); key != "" {
+			transform["res"] = itemEnvelopeTransform(key)
 		}
 	}
 

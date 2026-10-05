@@ -1728,6 +1728,39 @@ function holdsStructuredBranch(branches: any): boolean {
 }
 
 
+// The key each item of a list response wraps the record under, where the item
+// holds nothing else, as each item of a Maxio list holds one record under the
+// name of its type.
+function itemEnvelopeKey(schema: any, names: string[]): string | null {
+  if ('array' !== schema?.type) {
+    return null
+  }
+  const keys = keysof(mergedProperties(schema.items))
+  const key = keys[0]
+  if (1 !== keys.length || !names.includes(key) || !/^[^.`$]+$/.test(key)) {
+    return null
+  }
+  const prop = collapseScalarAllOf(mergedProperties(schema.items)?.[key])
+  return isEntityWrapperProp(prop) && 'array' !== prop?.type && null == prop?.items ?
+    key : null
+}
+
+
+// The response transform that answers each item's record under its key.
+function itemEnvelopeTransform(key: string): any[] {
+  return ['`$EACH`', 'body', { '`$MERGE`': '`.' + key + '`' }]
+}
+
+
+// The key of an itemEnvelopeTransform, else null.
+function itemEnvelopeOf(res: any): string | null {
+  const merge = Array.isArray(res) && 3 === res.length &&
+    '`$EACH`' === res[0] && 'body' === res[1] ? res[2]?.['`$MERGE`'] : null
+  const m = 'string' === typeof merge ? merge.match(/^`\.([^.`$]+)`$/) : null
+  return null == m ? null : m[1]
+}
+
+
 function envelopeProp(resprops: any, opname: string): string | null {
   const keys = keysof(resprops)
   if (0 === keys.length) {
@@ -2148,6 +2181,9 @@ export {
   sortedEntries,
   collapseScalarAllOf,
   isEntityWrapperProp,
+  itemEnvelopeKey,
+  itemEnvelopeTransform,
+  itemEnvelopeOf,
   envelopeProp,
   envelopeItemRef,
   composedEnvelopeProp,
