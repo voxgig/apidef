@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -76,4 +77,104 @@ func TestFlowStepActivationRoundTrip(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestTsvFlowStep(t *testing.T) {
+	rows := loadTsv(t, "flow-step")
+	if len(rows) == 0 {
+		t.Fatal("no flow-step rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["ops"], func(t *testing.T) {
+			var ops map[string][]any
+			var fieldNames []string
+			var want any
+			unmarshalCol(t, row, "ops", &ops)
+			unmarshalCol(t, row, "fields", &fieldNames)
+			unmarshalCol(t, row, "expected", &want)
+
+			opmap := map[string]any{}
+			for name, specs := range ops {
+				points := []any{}
+				for _, spec := range specs {
+					points = append(points, flowTestPoint(spec))
+				}
+				opmap[name] = map[string]any{"name": name, "points": points}
+			}
+			fields := map[string]any{}
+			for _, name := range fieldNames {
+				fields[name] = map[string]any{"n": name, "t": "`$STRING`"}
+			}
+			flow := map[string]any{"name": "BasicThingFlow", "entity": "thing", "kind": "basic", "step": []any{}}
+			ctx := &ApiDefContext{ApiModel: map[string]any{
+				"main": map[string]any{KIT: map[string]any{
+					"entity": map[string]any{"thing": map[string]any{"name": "thing", "fields": fields, "op": opmap}},
+					"flow":   map[string]any{"BasicThingFlow": flow},
+				}},
+			}}
+			if _, err := FlowstepTransform(ctx); err != nil {
+				t.Fatal(err)
+			}
+
+			got := []any{}
+			steps, _ := flow["step"].([]any)
+			for _, s := range steps {
+				step := s.(map[string]any)
+				shown := map[string]any{"o": step["o"]}
+				if m := step["m"].(map[string]any); len(m) > 0 {
+					shown["m"] = m
+				}
+				if d := step["d"].(map[string]any); len(d) > 0 {
+					shown["d"] = d
+				}
+				if tf, ok := step["i"].(map[string]any)["textfield"]; ok {
+					shown["tf"] = tf
+				}
+				got = append(got, shown)
+			}
+			if !jsonEqual(got, want) {
+				gotJSON, _ := json.Marshal(got)
+				t.Errorf("steps\ngot  %s\nwant %s", gotJSON, row["expected"])
+			}
+		})
+	}
+}
+
+// flowTestPoint builds a point from its route as tsv.test.ts does: the
+// placeholders are its params, sorted, unless the row lists them.
+func flowTestPoint(spec any) map[string]any {
+	desc, _ := spec.(map[string]any)
+	path, _ := spec.(string)
+	if desc != nil {
+		path, _ = desc["path"].(string)
+	}
+	segments := []any{}
+	names := []string{}
+	for _, part := range strings.Split(path, "/") {
+		if part == "" {
+			continue
+		}
+		if strings.HasPrefix(part, "{") {
+			segments = append(segments, map[string]any{"var": part[1 : len(part)-1]})
+			names = append(names, part[1:len(part)-1])
+		} else {
+			segments = append(segments, map[string]any{"lit": part})
+		}
+	}
+	sortUTF16(names)
+	if listed, ok := desc["params"].([]any); ok {
+		names = []string{}
+		for _, n := range listed {
+			names = append(names, n.(string))
+		}
+	}
+	params := []any{}
+	for _, n := range names {
+		params = append(params, map[string]any{"n": n, "k": "param", "r": true, "t": "`$STRING`"})
+	}
+	point := map[string]any{"s": segments, "g": map[string]any{"params": params}}
+	if rename, ok := desc["rename"].(map[string]any); ok {
+		point["r"] = map[string]any{"param": rename}
+	}
+	return point
 }

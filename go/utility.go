@@ -408,6 +408,18 @@ var jsUpperCaser = cases.Upper(language.Und)
 
 func jsUpper(s string) string { return jsUpperCaser.String(s) }
 
+var jsLowerCaser = cases.Lower(language.Und)
+
+// jsLowerFirst is jostraca's lcf: JavaScript's toLowerCase on the first code
+// point alone.
+func jsLowerFirst(s string) string {
+	r, size := utf8.DecodeRuneInString(s)
+	if size == 0 {
+		return s
+	}
+	return jsLowerCaser.String(string(r)) + s[size:]
+}
+
 func Camelify(s string) string {
 	parts := partify(s)
 	var result strings.Builder
