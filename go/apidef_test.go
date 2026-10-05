@@ -612,13 +612,17 @@ func TestGuideWellKnown(t *testing.T) {
 		return out
 	}
 
+	disco := "well_known_discovery_endpoints_for_agents_and_model_context"
 	if got := sortedKeys(entities); !reflect.DeepEqual(got,
-		[]string{"aaa_kit", "agent", "agent_card", "artifact", "cask", "crate", "dbase", "dbn",
-			"dbset", "dsn", "dsx", "dtn", "kiln", "kit", "ledger", "mcp_tool", "oven",
-			"parcel", "pot", "qrs", "qrs_admin_qrs", "qrt", "repo", "schema", "uvn", "vault",
-			"well_known_agent", "well_known_cask", "well_known_crate", "well_known_db",
-			"well_known_dbase", "well_known_ds", "well_known_dt", "well_known_ledger",
-			"well_known_repo", "well_known_uvn", "well_known_xyn", "widget", "xyn"}) {
+		[]string{"aaa_kit", "abc", "agent", "agent_card", "artifact", "bcd", "cask", "crate", "dbase",
+			"dbn", "dbset", "dsn", "dsx", "dtn", "dun", "efn", "efn2", "kiln", "kit", "ledger",
+			"mcp_tool", "oven", "parcel", "pot", "qqn", "qrs", "qrs_admin_qrs", "qrt", "repo",
+			"rrn", "schema", "uvn", "vault", "well_known_agent", "well_known_cask",
+			"well_known_crate", "well_known_db", "well_known_dbase", disco, disco + "2",
+			"well_known_ds", "well_known_dt", "well_known_du", "well_known_ef",
+			"well_known_ledger", "well_known_qq", "well_known_qq2", "well_known_repo",
+			"well_known_rr", "well_known_rr2", "well_known_uvn", "well_known_xyn", "widget",
+			"xyn"}) {
 		t.Errorf("entities = %v", got)
 	}
 	for _, c := range []struct {
@@ -644,6 +648,8 @@ func TestGuideWellKnown(t *testing.T) {
 		{"well_known_ds", "load", []string{"/well-known/ds/{id}"}},
 		{"dtn", "load", []string{"/zzz/dtn"}},
 		{"well_known_dt", "load", []string{"/well-known/dt/{id}"}},
+		{"dun", "load", []string{"/aaa/dun"}},
+		{"well_known_du", "load", []string{"/well-known/du/{id}"}},
 		{"widget", "load", []string{"/zzz/vault/{id}"}},
 		{"widget", "create", []string{"/zzz/vault/{id}/merge"}},
 		{"vault", "load", []string{"/well-known/vault/{id}"}},
@@ -658,6 +664,19 @@ func TestGuideWellKnown(t *testing.T) {
 		{"well_known_xyn", "load", []string{"/well-known/xyn/{id}"}},
 		{"uvn", "load", []string{"/aaa/uv"}},
 		{"well_known_uvn", "load", []string{"/well-known/uvn/{id}"}},
+		{"qqn", "load", []string{"/aaa/qq"}},
+		{"well_known_qq", "load", []string{"/well-known/qq/{id}"}},
+		{"well_known_qq2", "load", []string{"/well-known/v2/qq/{id}"}},
+		{"rrn", "load", []string{"/aaa/rr"}},
+		{"well_known_rr", "load", []string{"/zzz/well_known_rr/{id}"}},
+		{"well_known_rr2", "load", []string{"/well-known/rr/{id}"}},
+		{"efn", "load", []string{"/aaa/efn/{id}"}},
+		{"well_known_ef", "load", []string{"/well-known/ef/{id}"}},
+		{"efn2", "load", []string{"/zzz/efn2/{id}"}},
+		{"abc", "load", []string{"/zzz/abc"}},
+		{"bcd", "load", []string{"/lt/bcd/{id}"}},
+		{disco, "load", []string{"/aaa/" + disco}},
+		{disco + "2", "load", []string{"/lt/abc/{id}"}},
 		{"oven", "load", []string{"/kilns/{id}"}},
 		{"pot", "list", []string{"/zzz/pots"}},
 		{"pot", "load", []string{"/zzz/pots/{id}"}},

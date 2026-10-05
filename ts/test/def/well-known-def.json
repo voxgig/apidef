@@ -1343,6 +1343,272 @@
           }
         }
       }
+    },
+    "/aaa/dun": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "The data unit names."
+          }
+        }
+      }
+    },
+    "/well-known/du/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The data unit."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/aaa/qq": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Qq"
+                }
+              }
+            },
+            "description": "The queue."
+          }
+        }
+      }
+    },
+    "/well-known/qq/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The queue."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/well-known/v2/qq/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The queue, second edition."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/aaa/efn/{id}": {
+      "get": {
+        "tags": [
+          "Aaa"
+        ],
+        "responses": {
+          "200": {
+            "description": "The effect."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/well-known/ef/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The effect."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/zzz/efn2/{id}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "The effect, second edition."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/aaa/rr": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "The rates."
+          }
+        }
+      }
+    },
+    "/well-known/rr/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The rate."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/zzz/well_known_rr/{id}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "The published rate."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/aaa/well_known_discovery_endpoints_for_agents_and_model_context": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "The discovery index."
+          }
+        }
+      }
+    },
+    "/lt/abc/{id}": {
+      "get": {
+        "tags": [
+          "WellKnownDiscoveryEndpointsForAgentsAndModelContextProtocolToolsRegistry"
+        ],
+        "responses": {
+          "200": {
+            "description": "The listing."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/lt/bcd/{id}": {
+      "get": {
+        "tags": [
+          "WellKnownDiscoveryEndpointsForAgentsAndModelContextProtocolToolsRegistry"
+        ],
+        "responses": {
+          "200": {
+            "description": "The listing."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/zzz/abc": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "The listings."
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1841,6 +2107,17 @@
         }
       },
       "Uv": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "Qq": {
         "type": "object",
         "properties": {
           "id": {

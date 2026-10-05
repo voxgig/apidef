@@ -383,13 +383,25 @@ would share a selector. That holds when the tag gathers item routes that
 answer with no body from two collections whose item routes take the same
 parameters, or from two collections that both have a `GET` of their own.
 The tag's name comes first when a route outside `/X` takes that name,
-whether it sorts before the item route or after it. Names compare in the
-form they are stored in, where a name shorter than three characters is
-padded, so `dtn` counts for `dt` and `xy` counts for `xyn`. An item route
-that this rule names counts only once it is named, so of two tags' item
-routes that it names from collections ending in the same segment, the one
-later in path order takes its tag's name. A verb on such an item route, as
-`/X/{id}/merge` is, counts as taking the segment's name. Apicurio Registry tags
+whether it sorts before the item route or after it. When a route outside
+`/X` takes the tag's name as well, the item route takes the tag's name
+followed by the lowest number from 2 that no such route takes. Names
+compare in the form they are stored in. A name shorter than three
+characters is padded, one that starts with a digit takes an `n` first, and
+one longer than 67 characters is cut back to its leading words, each
+numbered when another entity already has that form: `dtn` counts for `dt`,
+`xy` counts for `xyn`, and `efn2` counts for `ef` once another entity has
+`efn`. Where the cut drops the number after the tag's name, the item route
+takes the first number that leaves the stored form as it was.
+An item route that this rule names counts only once it is named, so of two
+tags' item routes that it names from collections ending in the same
+segment, the one later in path order takes its tag's name. A verb on such
+an item route, as `/X/{id}/merge` is, counts as taking the segment's name.
+With `/aaa/qq` named `qq`, `/well-known/qq/{id}` takes `well_known_qq` and
+the later `/well-known/v2/qq/{id}` of the same tag takes `well_known_qq2`.
+With `/aaa/rr` named `rr`, `/well-known/rr/{id}` takes `well_known_rr2`,
+since the later `/zzz/well_known_rr/{id}` is named `well_known_rr`.
+Apicurio Registry tags
 `/well-known/agents/{groupId}/{artifactId}`,
 `/well-known/mcp-tools/{groupId}/{artifactId}` and
 `/well-known/schemas/{schemaType}/{version}` `WellKnown`, none of them

@@ -1166,8 +1166,9 @@ function collectionNaming(data, mdesc, parts, recordowner) {
     return tagCollides(data.def, work.tagItems[cmp] ?? {}) ? { collection } : null;
 }
 // The entity of an item route its collection names: the collection's record,
-// or the collection's segment, prefixed with the tag when a route outside the
-// collection has it.
+// or its segment. A route outside the collection that has the segment puts the
+// tag before it, and one that has that name too a number from 2 after it, up
+// to the first number that leaves the stored form as it was.
 function itemOfCollection(data, mdesc, parts) {
     const naming = collectionNaming(data, mdesc, parts, data.work.recordowner);
     if (null == naming) {
@@ -1178,19 +1179,29 @@ function itemOfCollection(data, mdesc, parts) {
     }
     const collection = naming.collection;
     const segment = (0, utility_2.canonize)(collection.substring(collection.lastIndexOf('/') + 1));
-    const held = segmentHeld(data.work, segment, collection);
-    return {
-        name: held ? mdesc.MethodEntity.cmp + '_' + segment : segment,
-        why: 'collection-segment',
-    };
+    if (!segmentHeld(data.work, segment, collection)) {
+        return { name: segment, why: 'collection-segment' };
+    }
+    const tagged = mdesc.MethodEntity.cmp + '_' + segment;
+    let name = tagged;
+    for (let i = 2; segmentHeld(data.work, name, collection); i++) {
+        const stored = (0, utility_2.ensureMinEntityName)(name, {});
+        name = tagged + i;
+        if ((0, utility_2.ensureMinEntityName)(name, {}) === stored) {
+            break;
+        }
+    }
+    return { name, why: 'collection-segment' };
 }
-// A route outside the collection has the segment's name, as that name or its
-// stored form: one named already, or any by its claim. An item route its
-// collection names makes no claim, so it counts only once named.
-function segmentHeld(work, segment, collection) {
+// A route outside the collection has the name: one named already under the
+// key the name would take now, or one that claims the name, its stored form
+// or that key. An item route its collection names makes no claim, so it
+// counts only once named.
+function segmentHeld(work, name, collection) {
     const outside = (path) => !(path + '/').startsWith(collection + '/');
-    const key = (0, utility_2.ensureMinEntityName)(segment, work.entmap);
-    return [work.entmap[key]?.path, work.claims[segment], work.claims[key]]
+    const key = (0, utility_2.ensureMinEntityName)(name, work.entmap);
+    const stored = (0, utility_2.ensureMinEntityName)(name, {});
+    return [work.entmap[key]?.path, work.claims[name], work.claims[stored], work.claims[key]]
         .some((paths) => Object.keys(paths ?? {}).some(outside));
 }
 // Two of a tag's collections whose item routes take the same parameters, or

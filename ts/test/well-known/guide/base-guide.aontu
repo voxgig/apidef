@@ -4,12 +4,18 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 39
-  metrics: count: path: 48
-  metrics: count: method: 48
+  metrics: count: entity: 54
+  metrics: count: path: 63
+  metrics: count: method: 63
 
   entity: aaa_kit: {
     path: "/aaa/kit/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: abc: {
+    path: "/zzz/abc": {
       op: load: method: *GET
     }
   }
@@ -37,6 +43,12 @@ guide: {
     }
     path: "/ids/globalIds/{globalId}": {
       rename: param: "globalId": *"global_id"
+      op: load: method: *GET
+    }
+  }
+
+  entity: bcd: {
+    path: "/lt/bcd/{id}": {
       op: load: method: *GET
     }
   }
@@ -86,6 +98,24 @@ guide: {
 
   entity: dtn: {
     path: "/zzz/dtn": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: dun: {
+    path: "/aaa/dun": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: efn: {
+    path: "/aaa/efn/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: efn2: {
+    path: "/zzz/efn2/{id}": {
       op: load: method: *GET
     }
   }
@@ -146,6 +176,12 @@ guide: {
     }
   }
 
+  entity: qqn: {
+    path: "/aaa/qq": {
+      op: load: method: *GET
+    }
+  }
+
   entity: qrs: {
     path: "/well-known/qrs/{id}": {
       op: load: method: *GET
@@ -166,6 +202,12 @@ guide: {
 
   entity: repo: {
     path: "/zzz/repo/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: rrn: {
+    path: "/aaa/rr": {
       op: load: method: *GET
     }
   }
@@ -233,6 +275,18 @@ guide: {
     }
   }
 
+  entity: well_known_discovery_endpoints_for_agents_and_model_context: {
+    path: "/aaa/well_known_discovery_endpoints_for_agents_and_model_context": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_discovery_endpoints_for_agents_and_model_context2: {
+    path: "/lt/abc/{id}": {
+      op: load: method: *GET
+    }
+  }
+
   entity: well_known_ds: {
     path: "/well-known/ds/{id}": {
       op: load: method: *GET
@@ -245,14 +299,50 @@ guide: {
     }
   }
 
+  entity: well_known_du: {
+    path: "/well-known/du/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_ef: {
+    path: "/well-known/ef/{id}": {
+      op: load: method: *GET
+    }
+  }
+
   entity: well_known_ledger: {
     path: "/well-known/ledger/{id}": {
       op: load: method: *GET
     }
   }
 
+  entity: well_known_qq: {
+    path: "/well-known/qq/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_qq2: {
+    path: "/well-known/v2/qq/{id}": {
+      op: load: method: *GET
+    }
+  }
+
   entity: well_known_repo: {
     path: "/well-known/repo/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_rr: {
+    path: "/zzz/well_known_rr/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_rr2: {
+    path: "/well-known/rr/{id}": {
       op: load: method: *GET
     }
   }

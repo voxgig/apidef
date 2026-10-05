@@ -268,8 +268,12 @@ and its tag, before it names any. That leaves out the item routes this rule
 names, since this rule is what names them: such a route counts once it is
 named, so of two tags' item routes that this rule names from collections
 ending in the same segment, the later one takes its tag's name, and the two
-still stay apart. A verb on such an item route counts as taking the
-segment's name. Apicurio's reads of
+still stay apart. The tag's name can be taken as well: by a route outside
+the collection that has that name, or, once named, by another collection of
+the same tag that ends in the same segment. The item route then takes a
+number from 2 after it, as `well_known_qq2`, and those stay apart too. A
+verb on such an item route counts as taking the segment's name. Apicurio's
+reads of
 artifact content by content ID and by global ID each select by their own
 parameter, so they share no selector and stay on `artifact`, the entity
 their tag names.

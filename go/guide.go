@@ -3479,19 +3479,28 @@ func itemOfCollection(data map[string]any, mdesc map[string]any, parts []string)
 
 	cmp := safeStr(mdesc["MethodEntity"].(map[string]any)["cmp"])
 	segment := Canonize(collection[strings.LastIndex(collection, "/")+1:])
-	if segmentHeld(work, segment, collection) {
-		return cmp + "_" + segment, "collection-segment"
+	if !segmentHeld(work, segment, collection) {
+		return segment, "collection-segment"
 	}
-	return segment, "collection-segment"
+	tagged := cmp + "_" + segment
+	name := tagged
+	for i := 2; segmentHeld(work, name, collection); i++ {
+		stored := EnsureMinEntityName(name, nil)
+		name = fmt.Sprintf("%s%d", tagged, i)
+		if EnsureMinEntityName(name, nil) == stored {
+			break
+		}
+	}
+	return name, "collection-segment"
 }
 
 // segmentHeld mirrors ts/src/guide/heuristic01.ts.
-func segmentHeld(work map[string]any, segment string, collection string) bool {
+func segmentHeld(work map[string]any, name string, collection string) bool {
 	outside := func(path string) bool {
 		return !strings.HasPrefix(path+"/", collection+"/")
 	}
 	entmap := work["entmap"].(map[string]any)
-	key := EnsureMinEntityName(segment, entmap)
+	key := EnsureMinEntityName(name, entmap)
 	entdesc, _ := entmap[key].(map[string]any)
 	entPaths, _ := entdesc["path"].(map[string]any)
 	for path := range entPaths {
@@ -3500,8 +3509,8 @@ func segmentHeld(work map[string]any, segment string, collection string) bool {
 		}
 	}
 	claims, _ := work["claims"].(map[string]map[string]bool)
-	for _, name := range []string{segment, key} {
-		for path := range claims[name] {
+	for _, claim := range []string{name, EnsureMinEntityName(name, nil), key} {
+		for path := range claims[claim] {
 			if outside(path) {
 				return true
 			}
