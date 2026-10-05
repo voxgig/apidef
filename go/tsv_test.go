@@ -88,6 +88,32 @@ func TestTsvDepluralize(t *testing.T) {
 	}
 }
 
+func TestTsvPluralize(t *testing.T) {
+	rows := loadTsv(t, "pluralize")
+	if len(rows) == 0 {
+		t.Fatal("no pluralize rows loaded")
+	}
+	for _, row := range rows {
+		input, expected := row["input"], row["expected"]
+		t.Run("pluralize("+input+")", func(t *testing.T) {
+			if row["plurals"] != "" {
+				var plurals map[string]any
+				if err := json.Unmarshal([]byte(row["plurals"]), &plurals); err != nil {
+					t.Fatalf("bad plurals %q: %v", row["plurals"], err)
+				}
+				SetCustomPlurals(plurals)
+			}
+			defer ClearCustomPlurals()
+			if got := Pluralize(input); got != expected {
+				t.Errorf("Pluralize(%q) = %q, want %q", input, got, expected)
+			}
+			if got := Depluralize(expected); got != input {
+				t.Errorf("Depluralize(%q) = %q, want %q", expected, got, input)
+			}
+		})
+	}
+}
+
 func TestTsvCanonize(t *testing.T) {
 	rows := loadTsv(t, "canonize")
 	for _, row := range rows {
@@ -1296,6 +1322,41 @@ func TestTsvInfoSummary(t *testing.T) {
 	}
 }
 
+func TestTsvBuildRelations(t *testing.T) {
+	rows := loadTsv(t, "build-relations")
+	if len(rows) == 0 {
+		t.Fatal("no build-relations rows loaded")
+	}
+	for _, row := range rows {
+		pathsSrc, wantSrc := row["paths"], row["expected"]
+		t.Run(pathsSrc, func(t *testing.T) {
+			var paths []string
+			if err := json.Unmarshal([]byte(pathsSrc), &paths); err != nil {
+				t.Fatalf("bad paths %q: %v", pathsSrc, err)
+			}
+			var descs []map[string]any
+			for _, path := range paths {
+				segments := []map[string]any{}
+				for _, part := range strings.Split(path, "/") {
+					if part == "" {
+						continue
+					}
+					if strings.HasPrefix(part, "{") {
+						segments = append(segments, map[string]any{"var": part[1 : len(part)-1]})
+					} else {
+						segments = append(segments, map[string]any{"lit": part})
+					}
+				}
+				descs = append(descs, map[string]any{"segments": segments})
+			}
+			got, _ := json.Marshal(BuildRelations(map[string]any{}, descs)["ancestors"])
+			if string(got) != wantSrc {
+				t.Errorf("BuildRelations(%s) = %s, want %s", pathsSrc, got, wantSrc)
+			}
+		})
+	}
+}
+
 func TestTsvInfoWebsite(t *testing.T) {
 	rows := loadTsv(t, "info-website")
 	if len(rows) == 0 {
@@ -1319,6 +1380,29 @@ func TestTsvInfoWebsite(t *testing.T) {
 			got, ok := resolveWebsite(def, servers)
 			if (want == nil && ok) || (want != nil && (!ok || got != *want)) {
 				t.Errorf("resolveWebsite(%s, %s) = %q (%v), want %s", defSrc, serversSrc, got, ok, wantSrc)
+			}
+		})
+	}
+}
+
+func TestArrayBodyField(t *testing.T) {
+	rows := loadTsv(t, "array-body-field")
+	if len(rows) == 0 {
+		t.Fatal("no array-body-field rows loaded")
+	}
+	for _, row := range rows {
+		schemaSrc, entity, takenSrc, expected := row["schema"], row["entity"], row["taken"], row["expected"]
+		t.Run(schemaSrc+" "+takenSrc, func(t *testing.T) {
+			var schema map[string]any
+			if err := json.Unmarshal([]byte(schemaSrc), &schema); err != nil {
+				t.Fatalf("bad schema %q: %v", schemaSrc, err)
+			}
+			var taken []string
+			if err := json.Unmarshal([]byte(takenSrc), &taken); err != nil {
+				t.Fatalf("bad taken %q: %v", takenSrc, err)
+			}
+			if got := arrayBodyField(schema, entity, taken); got != expected {
+				t.Errorf("arrayBodyField(%s, %s, %s) = %q, want %q", schemaSrc, entity, takenSrc, got, expected)
 			}
 		})
 	}
@@ -1350,6 +1434,30 @@ func TestClosedBodyTransform(t *testing.T) {
 					t.Errorf("closedBodyTransform(%s)[%q] = %v, want %v",
 						schemaSrc, k, got[k], v)
 				}
+			}
+		})
+	}
+}
+
+func TestTsvRequestWrapperOf(t *testing.T) {
+	rows := loadTsv(t, "request-wrapper-of")
+	if len(rows) == 0 {
+		t.Fatal("no request-wrapper-of rows loaded")
+	}
+	for _, row := range rows {
+		reqSrc, wantSrc := row["req"], row["expected"]
+		t.Run(reqSrc, func(t *testing.T) {
+			var req any
+			if err := json.Unmarshal([]byte(reqSrc), &req); err != nil {
+				t.Fatalf("bad req %q: %v", reqSrc, err)
+			}
+			var want *string
+			if err := json.Unmarshal([]byte(wantSrc), &want); err != nil {
+				t.Fatalf("bad expected %q: %v", wantSrc, err)
+			}
+			got := requestWrapperOf(req)
+			if (want == nil && got != "") || (want != nil && *want != got) {
+				t.Errorf("requestWrapperOf(%s) = %q, want %s", reqSrc, got, wantSrc)
 			}
 		})
 	}

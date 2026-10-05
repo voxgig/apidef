@@ -1,0 +1,46 @@
+{
+  "points": [
+    "gift.create POST /gifts exist= action= req=\"`reqdata.gifts`\"",
+    "member.create POST /members exist=members action= req=\"`reqdata.members`\"",
+    "member.load GET /members/{member_id} exist=id action= req=\"`reqdata`\"",
+    "member.update PUT /members/{member_id} exist=id action= req=\"`reqdata`\"",
+    "ticket.create POST /tickets exist=title action= req=\"`reqdata`\""
+  ],
+  "fields": {
+    "gift": {
+      "gifts": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "member": {
+      "id": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "members": {
+        "t": "`$ARRAY`",
+        "r": false,
+        "sh": "The members to add."
+      },
+      "name": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "nickname": {
+        "t": "`$STRING`",
+        "r": false
+      }
+    },
+    "ticket": {
+      "priority": {
+        "t": "`$INTEGER`",
+        "r": false
+      },
+      "title": {
+        "t": "`$STRING`",
+        "r": true
+      }
+    }
+  }
+}
