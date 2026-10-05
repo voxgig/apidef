@@ -9,6 +9,9 @@ import assert from 'node:assert'
 import {
   humanTitle,
   depluralize,
+  pluralize,
+  setCustomPlurals,
+  clearCustomPlurals,
   canonize,
   canonizeCmpName,
   stripSchemaNamespace,
@@ -63,6 +66,7 @@ import { classifyGraphQLField } from '../dist/guide/graphql01'
 
 import {
   answeredRefs,
+  arrayBodyField,
   distinctRecord,
   distinctShare,
   pathResource,
@@ -161,6 +165,25 @@ describe('tsv-depluralize', () => {
   for (const row of rows) {
     test(`depluralize("${row.input}") => "${row.expected}"`, () => {
       assert.deepStrictEqual(depluralize(row.input), row.expected)
+    })
+  }
+})
+
+
+describe('tsv-pluralize', () => {
+  const rows = loadTsv('pluralize')
+  for (const row of rows) {
+    test(`pluralize("${row.input}") => "${row.expected}"`, () => {
+      if ('' !== row.plurals) {
+        setCustomPlurals(JSON.parse(row.plurals))
+      }
+      try {
+        assert.deepStrictEqual(pluralize(row.input), row.expected)
+        assert.deepStrictEqual(depluralize(row.expected), row.input)
+      }
+      finally {
+        clearCustomPlurals()
+      }
     })
   }
 })
@@ -919,6 +942,17 @@ describe('tsv-param-schema', () => {
       if ('-' !== row.openapi3) {
         assert.deepStrictEqual(await argsOf(row.path, JSON.parse(row.openapi3)), want)
       }
+    })
+  }
+})
+
+
+describe('tsv-array-body-field', () => {
+  const rows = loadTsv('array-body-field')
+  for (const row of rows) {
+    test(`arrayBodyField(${row.schema}, ${row.entity}, ${row.taken})`, () => {
+      assert.deepStrictEqual(
+        arrayBodyField(JSON.parse(row.schema), row.entity, JSON.parse(row.taken)), row.expected)
     })
   }
 })
