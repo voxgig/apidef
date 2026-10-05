@@ -73,7 +73,7 @@ async function heuristic01(ctx) {
         MeasureAnswered,
         { select: selectAllMethods, apply: MeasureSharing },
         MeasureShared,
-        { select: selectAllMethods, apply: [ResolveEntityComponent, MeasureTagItems] },
+        { select: selectAllMethods, apply: [ResolveEntityComponent, MeasureTagItems, MeasureClaims] },
         {
             select: selectAllMethods, apply: [
                 ResolveEntityName,
@@ -152,6 +152,7 @@ function Prepare(spec) {
             sharing: { routes: [], records: {}, yields: {} },
             recordResources: {},
             tagItems: {},
+            claims: {},
             entity: {
                 count: {
                     seen: 0,
@@ -383,6 +384,19 @@ function MeasureTagItems(spec) {
         items[collection] = items[collection] ?? {};
         items[collection][parts.filter(isParam)
             .map((part) => (0, utility_2.canonizeParam)(part.slice(1, -1))).sort().join(',')] = true;
+    }
+}
+// The names a route may take, before any is named: its component's or tag's,
+// and the one its last segment gives.
+function MeasureClaims(spec) {
+    const work = spec.data.work;
+    const mdesc = spec.node.val;
+    const last = work.pathmap[mdesc.path].parts.filter((part) => !isParam(part)).pop();
+    for (const name of [mdesc.MethodEntity?.cmp, null == last ? null : (0, utility_2.canonize)(last)]) {
+        if (null != name) {
+            const claims = work.claims[name] = work.claims[name] ?? {};
+            claims[mdesc.path] = true;
+        }
     }
 }
 function ResolveEntityComponent(spec) {
@@ -1116,7 +1130,7 @@ function tagItemCollection(data, mdesc, parts) {
 // where the tag names another resource with one (GitHub's invitations); where
 // the routes a tag gathers from several collections would share a selector
 // (Apicurio's well-known routes), the collection's segment, prefixed with the
-// tag when another entity has it.
+// tag when a route outside the collection has it.
 function itemOfCollection(data, mdesc, parts) {
     const collection = tagItemCollection(data, mdesc, parts);
     if (null == collection) {
@@ -1132,9 +1146,17 @@ function itemOfCollection(data, mdesc, parts) {
         return null;
     }
     const segment = (0, utility_2.canonize)(collection.substring(collection.lastIndexOf('/') + 1));
-    const held = Object.keys(work.entmap[segment]?.path ?? {})
-        .some((path) => !(path + '/').startsWith(collection + '/'));
+    const held = segmentHeld(work, segment, collection);
     return { name: held ? cmp + '_' + segment : segment, why: 'collection-segment' };
+}
+// A route outside the collection has the segment's name: on the entity the
+// name is stored under, once the route is named, and among the claims before
+// that, so the answer holds wherever the route sorts.
+function segmentHeld(work, segment, collection) {
+    const outside = (path) => !(path + '/').startsWith(collection + '/');
+    const entdesc = work.entmap[(0, utility_2.ensureMinEntityName)(segment, work.entmap)];
+    return Object.keys(entdesc?.path ?? {}).some(outside) ||
+        Object.keys(work.claims[segment] ?? {}).some(outside);
 }
 // Two of a tag's collections whose item routes take the same parameters, or
 // that are both read, would share a selector on the tag's entity.

@@ -4,9 +4,9 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 6
-  metrics: count: path: 9
-  metrics: count: method: 9
+  metrics: count: entity: 10
+  metrics: count: path: 15
+  metrics: count: method: 15
 
   entity: agent: {
     path: "/well-known/agent.json": {
@@ -27,6 +27,18 @@ guide: {
     }
     path: "/ids/globalIds/{globalId}": {
       rename: param: "globalId": *"global_id"
+      op: load: method: *GET
+    }
+  }
+
+  entity: dbase: {
+    path: "/zzz/dbase": {
+      op: list: method: *GET
+    }
+  }
+
+  entity: dbn: {
+    path: "/other/db": {
       op: load: method: *GET
     }
   }
@@ -58,6 +70,26 @@ guide: {
     path: "/well-known/agents/{groupId}/{artifactId}": {
       rename: param: "artifactId": *"artifact_id"
       rename: param: "groupId": *"group_id"
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_db: {
+    path: "/well-known/db": {
+      action: "db": {}
+      op: load: method: *GET
+    }
+    path: "/well-known/db/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_dbase: {
+    path: "/well-known/dbase": {
+      action: "dbase": {}
+      op: load: method: *GET
+    }
+    path: "/well-known/dbase/{id}": {
       op: load: method: *GET
     }
   }

@@ -142,7 +142,7 @@ async function heuristic01(ctx: ApiDefContext): Promise<Guide> {
     MeasureAnswered,
     { select: selectAllMethods, apply: MeasureSharing },
     MeasureShared,
-    { select: selectAllMethods, apply: [ResolveEntityComponent, MeasureTagItems] },
+    { select: selectAllMethods, apply: [ResolveEntityComponent, MeasureTagItems, MeasureClaims] },
     {
       select: selectAllMethods, apply: [
         ResolveEntityName,
@@ -240,6 +240,7 @@ function Prepare(spec: TaskSpec) {
       sharing: { routes: [], records: {}, yields: {} },
       recordResources: {},
       tagItems: {},
+      claims: {},
       entity: {
         count: {
           seen: 0,
@@ -519,6 +520,21 @@ function MeasureTagItems(spec: TaskSpec) {
     items[collection] = items[collection] ?? {}
     items[collection][parts.filter(isParam)
       .map((part) => canonizeParam(part.slice(1, -1))).sort().join(',')] = true
+  }
+}
+
+
+// The names a route may take, before any is named: its component's or tag's,
+// and the one its last segment gives.
+function MeasureClaims(spec: TaskSpec) {
+  const work = spec.data.work
+  const mdesc = spec.node.val
+  const last = work.pathmap[mdesc.path].parts.filter((part: string) => !isParam(part)).pop()
+  for (const name of [mdesc.MethodEntity?.cmp, null == last ? null : canonize(last)]) {
+    if (null != name) {
+      const claims = work.claims[name] = work.claims[name] ?? {}
+      claims[mdesc.path] = true
+    }
   }
 }
 
@@ -1517,7 +1533,7 @@ function tagItemCollection(
 // where the tag names another resource with one (GitHub's invitations); where
 // the routes a tag gathers from several collections would share a selector
 // (Apicurio's well-known routes), the collection's segment, prefixed with the
-// tag when another entity has it.
+// tag when a route outside the collection has it.
 function itemOfCollection(
   data: { def: any, work: any },
   mdesc: any,
@@ -1540,9 +1556,19 @@ function itemOfCollection(
   }
 
   const segment = canonize(collection.substring(collection.lastIndexOf('/') + 1))
-  const held = Object.keys(work.entmap[segment]?.path ?? {})
-    .some((path: string) => !(path + '/').startsWith(collection + '/'))
+  const held = segmentHeld(work, segment, collection)
   return { name: held ? cmp + '_' + segment : segment, why: 'collection-segment' }
+}
+
+
+// A route outside the collection has the segment's name: on the entity the
+// name is stored under, once the route is named, and among the claims before
+// that, so the answer holds wherever the route sorts.
+function segmentHeld(work: any, segment: string, collection: string): boolean {
+  const outside = (path: string) => !(path + '/').startsWith(collection + '/')
+  const entdesc = work.entmap[ensureMinEntityName(segment, work.entmap)]
+  return Object.keys(entdesc?.path ?? {}).some(outside) ||
+    Object.keys(work.claims[segment] ?? {}).some(outside)
 }
 
 

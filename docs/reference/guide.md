@@ -382,8 +382,8 @@ the last segment of `/X` gives instead, when the item routes the tag names
 would share a selector. That holds when the tag gathers item routes that
 answer with no body from two collections whose item routes take the same
 parameters, or from two collections that both have a `GET` of their own.
-The tag's name comes first when an entity with a route outside `/X` has
-that name already. Apicurio Registry tags
+The tag's name comes first when a route outside `/X` has that name,
+wherever it sorts. Apicurio Registry tags
 `/well-known/agents/{groupId}/{artifactId}`,
 `/well-known/mcp-tools/{groupId}/{artifactId}` and
 `/well-known/schemas/{schemaType}/{version}` `WellKnown`, none of them

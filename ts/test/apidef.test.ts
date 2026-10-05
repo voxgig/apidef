@@ -668,11 +668,11 @@ describe('apidef', () => {
   })
 
 
-  // Apicurio tags every /well-known route WellKnown, and its registered agent,
-  // MCP tool and schema reads answer with no component. The agents and MCP
-  // tools would share a selector, so each item route takes its collection's
-  // segment, and the agents, whose segment agent.json names, take the tag's
-  // too. Its id lookups select by their own parameters and keep their tag.
+  // Apicurio tags every /well-known route WellKnown; its registered agent, MCP
+  // tool and schema reads answer with no component. The agents and MCP tools
+  // would share a selector, so each item route takes its collection's segment,
+  // after the tag where a route outside it has the name: agent.json, db (held
+  // padded as dbn) and /zzz/dbase, which sorts after. Id lookups keep their tag.
   test('guide-well-known', async () => {
     const folder = __dirname + '/../test/well-known'
 
@@ -702,7 +702,8 @@ describe('apidef', () => {
     const paths = (ent: string, op: string) =>
       (entities[ent]?.op[op]?.points ?? []).map((pt: any) => pt.o).sort()
     assert.deepStrictEqual(Object.keys(entities).sort(),
-      ['agent', 'agent_card', 'artifact', 'mcp_tool', 'schema', 'well_known_agent'])
+      ['agent', 'agent_card', 'artifact', 'dbase', 'dbn', 'mcp_tool', 'schema',
+        'well_known_agent', 'well_known_db', 'well_known_dbase'])
     assert.deepStrictEqual(paths('agent', 'list'), ['/well-known/agent.json'])
     assert.deepStrictEqual(paths('well_known_agent', 'list'), ['/well-known/agents'])
     assert.deepStrictEqual(paths('well_known_agent', 'load'),
@@ -714,6 +715,12 @@ describe('apidef', () => {
       ['/well-known/schemas/{schemaType}/{version}'])
     assert.deepStrictEqual(paths('artifact', 'load'),
       ['/ids/contentIds/{contentId}', '/ids/globalIds/{globalId}'])
+    assert.deepStrictEqual(paths('dbn', 'load'), ['/other/db'])
+    assert.deepStrictEqual(paths('well_known_db', 'load'),
+      ['/well-known/db', '/well-known/db/{id}'])
+    assert.deepStrictEqual(paths('dbase', 'list'), ['/zzz/dbase'])
+    assert.deepStrictEqual(paths('well_known_dbase', 'load'),
+      ['/well-known/dbase', '/well-known/dbase/{id}'])
   })
 
 

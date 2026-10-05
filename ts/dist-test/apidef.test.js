@@ -524,11 +524,11 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.strictEqual(res('project', 'remove'), '`body.project`');
         node_assert_1.default.strictEqual(res('widget', 'load'), '`body`');
     });
-    // Apicurio tags every /well-known route WellKnown, and its registered agent,
-    // MCP tool and schema reads answer with no component. The agents and MCP
-    // tools would share a selector, so each item route takes its collection's
-    // segment, and the agents, whose segment agent.json names, take the tag's
-    // too. Its id lookups select by their own parameters and keep their tag.
+    // Apicurio tags every /well-known route WellKnown; its registered agent, MCP
+    // tool and schema reads answer with no component. The agents and MCP tools
+    // would share a selector, so each item route takes its collection's segment,
+    // after the tag where a route outside it has the name: agent.json, db (held
+    // padded as dbn) and /zzz/dbase, which sorts after. Id lookups keep their tag.
     (0, node_test_1.test)('guide-well-known', async () => {
         const folder = __dirname + '/../test/well-known';
         const build = await apidef_1.ApiDef.makeBuild({ folder });
@@ -548,7 +548,8 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
         const entities = bres.apimodel.main.kit.entity;
         const paths = (ent, op) => (entities[ent]?.op[op]?.points ?? []).map((pt) => pt.o).sort();
-        node_assert_1.default.deepStrictEqual(Object.keys(entities).sort(), ['agent', 'agent_card', 'artifact', 'mcp_tool', 'schema', 'well_known_agent']);
+        node_assert_1.default.deepStrictEqual(Object.keys(entities).sort(), ['agent', 'agent_card', 'artifact', 'dbase', 'dbn', 'mcp_tool', 'schema',
+            'well_known_agent', 'well_known_db', 'well_known_dbase']);
         node_assert_1.default.deepStrictEqual(paths('agent', 'list'), ['/well-known/agent.json']);
         node_assert_1.default.deepStrictEqual(paths('well_known_agent', 'list'), ['/well-known/agents']);
         node_assert_1.default.deepStrictEqual(paths('well_known_agent', 'load'), ['/well-known/agents/{groupId}/{artifactId}']);
@@ -556,6 +557,10 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.deepStrictEqual(paths('mcp_tool', 'load'), ['/well-known/mcp-tools/{groupId}/{artifactId}']);
         node_assert_1.default.deepStrictEqual(paths('schema', 'load'), ['/well-known/schemas/{schemaType}/{version}']);
         node_assert_1.default.deepStrictEqual(paths('artifact', 'load'), ['/ids/contentIds/{contentId}', '/ids/globalIds/{globalId}']);
+        node_assert_1.default.deepStrictEqual(paths('dbn', 'load'), ['/other/db']);
+        node_assert_1.default.deepStrictEqual(paths('well_known_db', 'load'), ['/well-known/db', '/well-known/db/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('dbase', 'list'), ['/zzz/dbase']);
+        node_assert_1.default.deepStrictEqual(paths('well_known_dbase', 'load'), ['/well-known/dbase', '/well-known/dbase/{id}']);
     });
     // A trailing parameter under its entity's segment is the entity's key,
     // whatever the response component is called: a rare component named for

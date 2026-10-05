@@ -259,8 +259,8 @@ both collections are read, since each list then selects by nothing. When a
 tag that names no resource gathers two such collections, each item route it
 gathers takes the name the last segment of its collection gives: `mcp_tool`
 for `/well-known/mcp-tools` and `schema` for `/well-known/schemas`. A name
-that an entity outside the collection already has takes the tag's name
-before it. `/well-known/agent.json` names `agent`, so the agents become
+that a route outside the collection has, wherever it sorts, takes the tag's
+name before it. `/well-known/agent.json` names `agent`, so the agents become
 `well_known_agent`, and neither list hides the other. Apicurio's reads of
 artifact content by content ID and by global ID each select by their own
 parameter, so they share no selector and stay on `artifact`, the entity

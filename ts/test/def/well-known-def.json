@@ -457,6 +457,115 @@
           "required": true
         }
       ]
+    },
+    "/other/db": {
+      "get": {
+        "tags": [
+          "Other"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Db"
+                }
+              }
+            },
+            "description": "The database."
+          }
+        }
+      }
+    },
+    "/well-known/db": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The databases."
+          }
+        }
+      }
+    },
+    "/well-known/db/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The database."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/well-known/dbase": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The database aliases."
+          }
+        }
+      }
+    },
+    "/well-known/dbase/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The database alias."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/zzz/dbase": {
+      "get": {
+        "tags": [
+          "Zzz"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Dbase"
+                  }
+                }
+              }
+            },
+            "description": "The database aliases."
+          }
+        }
+      }
     }
   },
   "components": {
@@ -879,6 +988,28 @@
         "type": "string",
         "example": "AVRO",
         "x-codegen-package": "io.apicurio.registry.types"
+      },
+      "Db": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "Dbase": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
       }
     },
     "responses": {

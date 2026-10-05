@@ -597,6 +597,7 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 			"envelopePaths":   map[string][]string{},
 			"recordResources": map[string]bool{},
 			"tagItems":        map[string]map[string]map[string]bool{},
+			"claims":          map[string]map[string]bool{},
 			"sharing": &sharingWork{
 				records: map[string]bool{},
 				yields:  map[string]bool{},
@@ -711,6 +712,7 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 	for _, mdesc := range allMethods {
 		resolveEntityComponent(data, mdesc)
 		measureTagItems(data, mdesc)
+		measureClaims(data, mdesc)
 	}
 
 	for _, mdesc := range allMethods {
@@ -3346,6 +3348,33 @@ func measureTagItems(data map[string]any, mdesc map[string]any) {
 	tagItems[cmp][collection][strings.Join(params, ",")] = true
 }
 
+// measureClaims mirrors MeasureClaims in ts/src/guide/heuristic01.ts.
+func measureClaims(data map[string]any, mdesc map[string]any) {
+	work := data["work"].(map[string]any)
+	pathStr := safeStr(mdesc["path"])
+	pathDesc, _ := work["pathmap"].(map[string]any)[pathStr].(map[string]any)
+	parts, _ := pathDesc["parts"].([]string)
+	names := []string{}
+	if ment, ok := mdesc["MethodEntity"].(map[string]any); ok {
+		if cmp := safeStr(ment["cmp"]); cmp != "" {
+			names = append(names, cmp)
+		}
+	}
+	for i := len(parts) - 1; 0 <= i; i-- {
+		if !isParam(parts[i]) {
+			names = append(names, Canonize(parts[i]))
+			break
+		}
+	}
+	claims := work["claims"].(map[string]map[string]bool)
+	for _, name := range names {
+		if claims[name] == nil {
+			claims[name] = map[string]bool{}
+		}
+		claims[name][pathStr] = true
+	}
+}
+
 // tagItemCollection mirrors ts/src/guide/heuristic01.ts: the collection of an
 // item route whose method its tag alone names, when the route answers nothing.
 func tagItemCollection(data map[string]any, mdesc map[string]any, parts []string) string {
@@ -3413,14 +3442,32 @@ func itemOfCollection(data map[string]any, mdesc map[string]any, parts []string)
 	}
 
 	segment := Canonize(collection[strings.LastIndex(collection, "/")+1:])
-	entdesc, _ := work["entmap"].(map[string]any)[segment].(map[string]any)
-	entPaths, _ := entdesc["path"].(map[string]any)
-	for path := range entPaths {
-		if !strings.HasPrefix(path+"/", collection+"/") {
-			return cmp + "_" + segment, "collection-segment"
-		}
+	if segmentHeld(work, segment, collection) {
+		return cmp + "_" + segment, "collection-segment"
 	}
 	return segment, "collection-segment"
+}
+
+// segmentHeld mirrors ts/src/guide/heuristic01.ts.
+func segmentHeld(work map[string]any, segment string, collection string) bool {
+	outside := func(path string) bool {
+		return !strings.HasPrefix(path+"/", collection+"/")
+	}
+	entmap := work["entmap"].(map[string]any)
+	entdesc, _ := entmap[EnsureMinEntityName(segment, entmap)].(map[string]any)
+	entPaths, _ := entdesc["path"].(map[string]any)
+	for path := range entPaths {
+		if outside(path) {
+			return true
+		}
+	}
+	claims, _ := work["claims"].(map[string]map[string]bool)
+	for path := range claims[segment] {
+		if outside(path) {
+			return true
+		}
+	}
+	return false
 }
 
 // tagCollides mirrors ts/src/guide/heuristic01.ts.
