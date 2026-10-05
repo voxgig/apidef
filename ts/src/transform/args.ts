@@ -71,11 +71,7 @@ const argsTransform: Transform = async function(
           }
         }
         else {
-          const pathdef: PathDef = def.paths[mpoint.o]
-          argdefs.push(...((pathdef as any)?.parameters ?? []))
-
-          const opdef: MethodDef = (pathdef as any)?.[mpoint.m.toLowerCase()]
-          argdefs.push(...(opdef?.parameters ?? []))
+          argdefs.push(...routeArgdefs(def, mpoint))
         }
 
         resolveArgs(ctx, ment, mop, mpoint, argdefs)
@@ -87,6 +83,22 @@ const argsTransform: Transform = async function(
   })
 
   return { ok: true, msg }
+}
+
+
+function routeArgdefs(def: any, mpoint: ModelPoint): ParameterDef[] {
+  const pathdef: PathDef = def.paths?.[mpoint.o]
+  const opdef: MethodDef = (pathdef as any)?.[mpoint.m.toLowerCase()]
+  return [...((pathdef as any)?.parameters ?? []), ...(opdef?.parameters ?? [])]
+}
+
+
+// The names a caller gives a REST route's arguments, as this step names them.
+function routeArgNames(def: any, mpoint: ModelPoint): string[] {
+  const route = { ...mpoint, g: {} } as ModelPoint
+  resolveArgs(undefined, { name: '' } as ModelEntity, { name: '', points: [] } as unknown as ModelOp, route,
+    routeArgdefs(def, mpoint))
+  return Object.values(route.g).flat().map((arg: any) => arg.n)
 }
 
 
@@ -123,6 +135,11 @@ function resolveArgs(
   const placeholders = [...String(mpoint.o ?? '').matchAll(/\{([^}]+)\}/g)].map((m) => m[1])
 
   each(argdefs, (argdef: ParameterDef) => {
+    // A Swagger body parameter is the request body, which the body step reads.
+    if ('body' === (argdef as any).in) {
+      return
+    }
+
     const specName = normalizeFieldName(argdef.name)
     const orig = depluralize(snakify(specName))
 
@@ -264,4 +281,5 @@ function resolveArgExample(argdef: any, schema: any): any {
 
 export {
   argsTransform,
+  routeArgNames,
 }

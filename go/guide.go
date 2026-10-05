@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"unicode/utf16"
 
@@ -1761,23 +1762,10 @@ func resolveTransform(data map[string]any, mdesc map[string]any) {
 
 	reqBody, _ := mdesc["requestBody"].(map[string]any)
 	reqschema := getRequestBodySchema(reqBody)
-	reqprops := getRequestBodySchemaProps(reqBody)
-	DebugPath(pathStr, methodName, "TRANSFORM-REQ", reqprops)
+	DebugPath(pathStr, methodName, "TRANSFORM-REQ", getRequestBodySchemaProps(reqBody))
 
-	// Mirrors ts/src/guide/heuristic01.ts: a body wraps the record under the
-	// entity's name only when that is all it holds, and it is structured.
-	wraps := func(name string) bool {
-		return name != "" && isEntityWrapperProp(reqprops[name]) && len(reqprops) == 1
-	}
-
-	if reqschema != nil {
-		if wraps(origname) {
-			transform["req"] = map[string]any{origname: "`reqdata`"}
-		} else if wraps(ename) {
-			transform["req"] = map[string]any{ename: "`reqdata`"}
-		} else if body := closedBodyTransform(reqschema); body != nil {
-			transform["req"] = body
-		}
+	if req := bodyRequestTransform(reqschema, origname, ename); req != nil {
+		transform["req"] = req
 	}
 
 	hasTransform := transform["req"] != nil || transform["res"] != nil
@@ -2706,12 +2694,8 @@ func getRequestBodySchema(requestBody map[string]any) map[string]any {
 	if requestBody == nil {
 		return nil
 	}
-	if content, ok := requestBody["content"].(map[string]any); ok {
-		if appJSON, ok := content["application/json"].(map[string]any); ok {
-			if schema, ok := appJSON["schema"].(map[string]any); ok {
-				return schema
-			}
-		}
+	if schema, ok := jsonRequestSchema(map[string]any{"requestBody": requestBody}).(map[string]any); ok {
+		return schema
 	}
 	if schema, ok := requestBody["schema"].(map[string]any); ok {
 		return schema
@@ -3291,6 +3275,54 @@ func cmpRefName(xref string) string {
 		return xref
 	}
 	return CanonizeCmpName(m[2])
+}
+
+// arrayBodyField mirrors ts/src/guide/heuristic01.ts: the field an array
+// request body is sent from, named for the records it lists, unless another
+// route of the operation sends a field under that name.
+func arrayBodyField(schema map[string]any, entname string, taken []string) string {
+	refs := itemRefs(schema["items"], map[string]bool{})
+	slices.Sort(refs)
+	refs = slices.Compact(refs)
+	xref := ""
+	if len(refs) == 1 {
+		xref = refs[0]
+	}
+	record := ""
+	if m := xrefRE.FindStringSubmatch(xref); m != nil && !strings.Contains(m[2], "/") {
+		record = PrefixLeadingDigit(CleanComponentName(CanonizeCmpName(m[2]), nil))
+	}
+	if record == "" {
+		record = entname
+	}
+	name := Pluralize(record)
+	for n := 1; slices.Contains(taken, name); n++ {
+		name = record + "_list"
+		if 1 < n {
+			name += strconv.Itoa(n)
+		}
+	}
+	return name
+}
+
+// itemRefs mirrors ts/src/guide/heuristic01.ts: the component the items
+// name, or each one their allOf parts name.
+func itemRefs(items any, seen map[string]bool) []string {
+	m, _ := items.(map[string]any)
+	id := fmt.Sprintf("%p", m)
+	if m == nil || seen[id] {
+		return nil
+	}
+	seen[id] = true
+	if xref, ok := m["x-ref"].(string); ok {
+		return []string{xref}
+	}
+	refs := []string{}
+	parts, _ := m["allOf"].([]any)
+	for _, part := range parts {
+		refs = append(refs, itemRefs(part, seen)...)
+	}
+	return refs
 }
 
 // hasMethod checks if a path has a specific HTTP method.

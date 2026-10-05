@@ -1,0 +1,606 @@
+{
+  "points": [
+    "alarm.create POST /alarms exist=alarms action= req=\"`reqdata.alarms`\"",
+    "alert.create POST /alerts exist=alerts action= req=\"`reqdata.alerts`\"",
+    "bale.create POST /bales exist= action= req={\"label\":\"`reqdata.label`\",\"size\":\"`reqdata.size`\"}",
+    "batch.create POST /batches exist=batch_inputs action= req=\"`reqdata.batch_inputs`\"",
+    "beacon.create POST /beacons exist=pings action= req=\"`reqdata.pings`\"",
+    "bin.create POST /bins exist=bins action= req=\"`reqdata.bins`\"",
+    "broadcast.create POST /broadcasts exist=sms_messages action= req=\"`reqdata.sms_messages`\"",
+    "chip.create POST /chips exist=chips action= req=\"`reqdata.chips`\"",
+    "coil.create POST /coils exist= action= req=\"`reqdata`\"",
+    "coin.create POST /coins exist=coins action= req=\"`reqdata.coins`\"",
+    "crate.create POST /crates exist=crates action= req=\"`reqdata.crates`\"",
+    "crew.create POST /crews exist=crew_inputs action= req=\"`reqdata.crew_inputs`\"",
+    "deck.create POST /decks exist= action= req={\"title\":\"`reqdata.title`\"}",
+    "doc.update PATCH /docs/{doc_id} exist=doc_change_list,id action= req=\"`reqdata.doc_change_list`\"",
+    "doc.update PUT /docs/{doc_id}/archive exist=id action=archive req=\"`reqdata`\"",
+    "drum.create POST /boards/{board_id}/drums exist=board_id action= req=\"`reqdata.drums`\"",
+    "drum.create POST /drums exist=drum_list action= req=\"`reqdata.drum_list`\"",
+    "event.create POST /events exist=events action= req=\"`reqdata.events`\"",
+    "flag.create POST /flags exist=flags action= req=\"`reqdata.flags`\"",
+    "flask.create POST /flasks exist=flasks action= req=\"`reqdata.flasks`\"",
+    "flock.create POST /flocks exist=sheep action= req=\"`reqdata.sheep`\"",
+    "form.create POST /forms exist= action= req=\"`reqdata`\"",
+    "grade.create POST /classes/{class_id}/grades exist=class_id,grades action= req=\"`reqdata.grades`\"",
+    "grade.create POST /grades exist=grade_list action= req=\"`reqdata.grade_list`\"",
+    "herd.create POST /herds exist=oxen action= req=\"`reqdata.oxen`\"",
+    "hero.create POST /heroes exist=heroes action= req=\"`reqdata.heroes`\"",
+    "hoop.create POST /hoops exist= action= req=\"`reqdata`\"",
+    "item.create POST /items exist=n123_items action= req=\"`reqdata.n123_items`\"",
+    "jar.create POST /jars exist=jars action= req=\"`reqdata.jars`\"",
+    "keg.create POST /kegs exist=kegs action= req=\"`reqdata.kegs`\"",
+    "kit.create POST /kits exist=kits action= req=\"`reqdata.kits`\"",
+    "label.create POST /labels exist= action= req=\"`reqdata`\"",
+    "lookup.list QUERY /lookups exist=lookups action= req=\"`reqdata.lookups`\"",
+    "loop.create POST /loops exist=loops action= req=\"`reqdata.loops`\"",
+    "mark.create POST /boards/{board_id}/marks exist=board_id,marks action= req=\"`reqdata.marks`\"",
+    "mark.create POST /marks exist=marks action= req=\"`reqdata.marks`\"",
+    "memo.create POST /desks/{desk_id}/memos exist=desk_id,memos action= req=\"`reqdata.memos`\"",
+    "memo.create POST /memos exist=memos action= req=\"`reqdata.memos`\"",
+    "message.create POST /mms/v1/messages exist=messages action= req=\"`reqdata.messages`\"",
+    "note.create POST /boards/{board_id}/notes exist=board_id,note_list action= req=\"`reqdata.note_list`\"",
+    "note.create POST /notes exist= action= req=\"`reqdata`\"",
+    "notice.create POST /notices exist=notices action= req=\"`reqdata.notices`\"",
+    "pallet.create POST /pallets exist= action= req={\"pallet\":\"`reqdata`\"}",
+    "pin.create POST /pins exist=pins action= req=\"`reqdata.pins`\"",
+    "record.create POST /records exist= action= req=\"`reqdata`\"",
+    "rim.create POST /rims exist= action= req=\"`reqdata`\"",
+    "ring.create POST /rings exist=rings action= req=\"`reqdata.rings`\"",
+    "roll.create POST /rolls exist=rolls action= req=\"`reqdata.rolls`\"",
+    "score.create POST /games/{game_id}/scores exist=game_id,scores action= req=\"`reqdata.scores`\"",
+    "score.create POST /scores exist=score_list action= req=\"`reqdata.score_list`\"",
+    "series.create POST /series exist=series,series_list action= req=\"`reqdata.series_list`\"",
+    "session.load GET /sessions/{session_id} exist=id action= req=\"`reqdata`\"",
+    "session.remove DELETE /sessions exist=sessions action= req=\"`reqdata.sessions`\"",
+    "shipment.create POST /shipments exist=parcels action= req=\"`reqdata.parcels`\"",
+    "spool.create POST /spools exist=threads action= req=\"`reqdata.threads`\"",
+    "stack.create POST /stacks exist=stacks action= req=\"`reqdata.stacks`\"",
+    "tag.create POST /tags exist= action= req=\"`reqdata.tags`\"",
+    "ticket.create POST /tickets exist=ticket_list action= req=\"`reqdata.ticket_list`\"",
+    "ticket.update PUT /tickets/{ticket_id} exist=id action= req=\"`reqdata`\"",
+    "todo.create POST /lists/{list_id}/todos exist=list_id,todo_item_list action= req=\"`reqdata.todo_item_list`\"",
+    "todo.create POST /todos exist= action= req=\"`reqdata`\"",
+    "tote.create POST /totes exist=totes action= req=\"`reqdata.totes`\"",
+    "tub.create POST /tubs exist=tubs action= req=\"`reqdata.tubs`\"",
+    "upload.create POST /uploads exist= action= req=\"`reqdata`\"",
+    "user.create POST /users/batch exist=users action=batch req=\"`reqdata.users`\"",
+    "user.create POST /users exist= action= req=\"`reqdata`\"",
+    "user.list GET /users exist= action= req=\"`reqdata`\"",
+    "user.load GET /users/{user_id} exist=id action= req=\"`reqdata`\"",
+    "vat.create POST /vats exist=vats action= req=\"`reqdata.vats`\"",
+    "vial.create POST /vials exist=vials action= req=\"`reqdata.vials`\"",
+    "widget.create POST /widgets exist= action= req=\"`reqdata`\""
+  ],
+  "fields": {
+    "alarm": {
+      "alarms": {
+        "t": "`$ARRAY`",
+        "r": false,
+        "sh": "The alarms to raise."
+      }
+    },
+    "alert": {
+      "alerts": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "bale": {
+      "label": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "size": {
+        "t": "`$INTEGER`",
+        "r": false
+      }
+    },
+    "batch": {
+      "batch_inputs": {
+        "t": "`$ARRAY`",
+        "r": false
+      },
+      "id": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "name": {
+        "t": "`$STRING`",
+        "r": false
+      }
+    },
+    "beacon": {
+      "pings": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "bin": {
+      "bins": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "broadcast": {
+      "messages": {
+        "t": "`$ARRAY`",
+        "r": false
+      },
+      "sms_messages": {
+        "t": "`$ARRAY`",
+        "r": false,
+        "sh": "The messages to send."
+      }
+    },
+    "chip": {
+      "chips": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "coil": {},
+    "coin": {
+      "coins": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "crate": {
+      "crates": {
+        "t": [
+          "`$ONE`",
+          [
+            "`$ARRAY`",
+            "`$NULL`"
+          ]
+        ],
+        "r": false
+      }
+    },
+    "crew": {
+      "crew_inputs": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "deck": {
+      "title": {
+        "t": "`$STRING`",
+        "r": false
+      }
+    },
+    "doc": {
+      "doc_change_list": {
+        "t": "`$ARRAY`",
+        "r": false
+      },
+      "doc_changes": {
+        "t": "`$INTEGER`",
+        "r": false
+      },
+      "id": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "title": {
+        "t": "`$STRING`",
+        "r": false
+      }
+    },
+    "drum": {
+      "drum_list": {
+        "t": "`$ARRAY`",
+        "r": false
+      },
+      "drums": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "event": {
+      "events": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "flag": {
+      "flags": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "flask": {
+      "flasks": {
+        "t": [
+          "`$ONE`",
+          [
+            "`$ARRAY`",
+            "`$NULL`"
+          ]
+        ],
+        "r": false
+      }
+    },
+    "flock": {
+      "sheep": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "form": {
+      "colour": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "id": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "title": {
+        "t": "`$STRING`",
+        "r": false
+      }
+    },
+    "grade": {
+      "grade_list": {
+        "t": [
+          "`$ONE`",
+          [
+            "`$ARRAY`",
+            "`$NULL`"
+          ]
+        ],
+        "r": false
+      },
+      "grades": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "herd": {
+      "oxen": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "hero": {
+      "heroes": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "hoop": {},
+    "item": {
+      "n123_items": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "jar": {
+      "jars": {
+        "t": [
+          "`$ONE`",
+          [
+            "`$ARRAY`",
+            "`$NULL`"
+          ]
+        ],
+        "r": false
+      }
+    },
+    "keg": {
+      "kegs": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "kit": {
+      "kits": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "label": {},
+    "lookup": {
+      "id": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "lookups": {
+        "t": "`$ARRAY`",
+        "r": false
+      },
+      "value": {
+        "t": "`$STRING`",
+        "r": false
+      }
+    },
+    "loop": {
+      "loops": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "mark": {
+      "marks": {
+        "t": [
+          "`$ONE`",
+          [
+            "`$ARRAY`",
+            "`$NULL`"
+          ]
+        ],
+        "r": false
+      }
+    },
+    "memo": {
+      "memos": {
+        "t": [
+          "`$ONE`",
+          [
+            "`$ARRAY`",
+            "`$NULL`"
+          ]
+        ],
+        "r": false
+      }
+    },
+    "message": {
+      "messages": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "note": {
+      "id": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "note_list": {
+        "t": "`$ARRAY`",
+        "r": false
+      },
+      "notes": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "text": {
+        "t": "`$STRING`",
+        "r": false
+      }
+    },
+    "notice": {
+      "id": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "notices": {
+        "t": "`$STRING`",
+        "r": false,
+        "op": {
+          "create": {
+            "req": false,
+            "type": "`$ARRAY`"
+          }
+        }
+      }
+    },
+    "pallet": {
+      "pallet": {
+        "t": "`$OBJECT`",
+        "r": false
+      }
+    },
+    "pin": {
+      "pins": {
+        "t": [
+          "`$ONE`",
+          [
+            "`$ARRAY`",
+            "`$NULL`"
+          ]
+        ],
+        "r": false
+      }
+    },
+    "record": {
+      "draft": {
+        "t": "`$BOOLEAN`",
+        "r": false
+      },
+      "id": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "title": {
+        "t": "`$STRING`",
+        "r": false
+      }
+    },
+    "rim": {},
+    "ring": {
+      "rings": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "roll": {
+      "rolls": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "score": {
+      "score_list": {
+        "t": [
+          "`$ONE`",
+          [
+            "`$ARRAY`",
+            "`$NULL`"
+          ]
+        ],
+        "r": false
+      },
+      "scores": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "series": {
+      "series_list": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "session": {
+      "device": {
+        "t": "`$INTEGER`",
+        "r": false
+      },
+      "id": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "sessions": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "shipment": {
+      "parcels": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "spool": {
+      "threads": {
+        "t": [
+          "`$ONE`",
+          [
+            "`$ARRAY`",
+            "`$NULL`"
+          ]
+        ],
+        "r": false
+      }
+    },
+    "stack": {
+      "stacks": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "tag": {
+      "tags": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "ticket": {
+      "id": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "ticket_list": {
+        "t": "`$ARRAY`",
+        "r": false
+      },
+      "tickets": {
+        "t": "`$INTEGER`",
+        "r": false,
+        "sh": "How many tickets the holder has."
+      }
+    },
+    "todo": {
+      "id": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "title": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "todo_item_list": {
+        "t": "`$ARRAY`",
+        "r": false
+      },
+      "todo_items": {
+        "t": "`$INTEGER`",
+        "r": false
+      }
+    },
+    "tote": {
+      "totes": {
+        "t": [
+          "`$ONE`",
+          [
+            "`$ARRAY`",
+            "`$NULL`"
+          ]
+        ],
+        "r": false
+      }
+    },
+    "tub": {
+      "tubs": {
+        "t": [
+          "`$ONE`",
+          [
+            "`$ARRAY`",
+            "`$NULL`"
+          ]
+        ],
+        "r": false
+      }
+    },
+    "upload": {
+      "file_name": {
+        "t": "`$STRING`",
+        "r": false
+      }
+    },
+    "user": {
+      "id": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "name": {
+        "t": "`$STRING`",
+        "r": false
+      }
+    },
+    "vat": {
+      "vats": {
+        "t": "`$ARRAY`",
+        "r": false
+      }
+    },
+    "vial": {
+      "vials": {
+        "t": [
+          "`$ONE`",
+          [
+            "`$ARRAY`",
+            "`$NULL`"
+          ]
+        ],
+        "r": false
+      }
+    },
+    "widget": {
+      "id": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "name": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "secret_code": {
+        "t": "`$STRING`",
+        "r": false
+      }
+    }
+  }
+}
