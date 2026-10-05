@@ -392,11 +392,19 @@ one longer than 67 characters is cut back to its leading words, each
 numbered when another entity already has that form: `dtn` counts for `dt`,
 `xy` counts for `xyn`, and `efn2` counts for `ef` once another entity has
 `efn`. Where the cut drops the number after the tag's name, the item route
-takes the first number that leaves the stored form as it was.
+takes the first number that leaves the stored form as it was. Two item
+routes can then take the same name: those of two collections when a route
+outside `/X` takes the cut name, and those of a second and third collection
+when none does.
 An item route that this rule names counts only once it is named, so of two
 tags' item routes that it names from collections ending in the same
-segment, the one later in path order takes its tag's name. A verb on such
-an item route, as `/X/{id}/merge` is, counts as taking the segment's name.
+segment, the one later in path order takes its tag's name. Where only their
+stored forms meet, the later one takes the next number of that form
+instead: with `/aaa/efn/{id}` named `efn` first, `/well-known/ef/{id}` takes
+`efn2`. A collection nested in another of the same tag does not count
+against it, so `/well-known/nest/{id}` and `/well-known/nest/v2/nest/{id}`
+take one name. A verb on such an item route, as `/X/{id}/merge` is, counts
+as taking the segment's name.
 With `/aaa/qq` named `qq`, `/well-known/qq/{id}` takes `well_known_qq` and
 the later `/well-known/v2/qq/{id}` of the same tag takes `well_known_qq2`.
 With `/aaa/rr` named `rr`, `/well-known/rr/{id}` takes `well_known_rr2`,
