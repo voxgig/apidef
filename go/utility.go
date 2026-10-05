@@ -408,6 +408,18 @@ var jsUpperCaser = cases.Upper(language.Und)
 
 func jsUpper(s string) string { return jsUpperCaser.String(s) }
 
+var jsLowerCaser = cases.Lower(language.Und)
+
+// jsLowerFirst is jostraca's lcf: JavaScript's toLowerCase on the first code
+// point alone.
+func jsLowerFirst(s string) string {
+	r, size := utf8.DecodeRuneInString(s)
+	if size == 0 {
+		return s
+	}
+	return jsLowerCaser.String(string(r)) + s[size:]
+}
+
 func Camelify(s string) string {
 	parts := partify(s)
 	var result strings.Builder
@@ -1348,8 +1360,12 @@ func formatJSONICValue(val any, indent int, prefix string, lines *[]string, seen
 		sortUTF16(keys)
 
 		if len(keys) == 0 {
+			sep := ""
+			if indent > 0 && indent <= 1 {
+				sep = "\n"
+			}
 			*lines = append(*lines, prefix+"{")
-			*lines = append(*lines, indentStr+"}")
+			*lines = append(*lines, indentStr+"}"+sep)
 			return
 		}
 		*lines = append(*lines, prefix+"{")
