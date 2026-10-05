@@ -442,6 +442,52 @@ its accept and decline, and its `repos` tag names the repositories. The
 item route joins `repository_invitation`, the entity of its list, rather
 than the list joining `repo`.
 
+A method named only from a tag that names no such resource takes the name
+the last segment of `/X` gives instead, when the item routes the tag names
+would share a selector. That holds when the tag gathers item routes that
+answer with no body from two collections whose item routes take the same
+parameters, or from two collections that both have a `GET` of their own.
+The tag's name comes first when a route outside `/X` takes that name,
+whether it sorts before the item route or after it. When a route outside
+`/X` takes the tag's name as well, the item route takes the tag's name
+followed by the lowest number from 2 that no such route takes. Names
+compare in the form they are stored in. A name shorter than three
+characters is padded, one that starts with a digit takes an `n` first, and
+one longer than 67 characters is cut back to its leading words, each
+numbered when another entity already has that form: `dtn` counts for `dt`,
+`xy` counts for `xyn`, and `efn2` counts for `ef` once another entity has
+`efn`. Where the cut drops the number after the tag's name, the item route
+takes the first number that leaves the stored form as it was. Two item
+routes can then take the same name: those of two collections when a route
+outside `/X` takes the cut name, and those of a second and third collection
+when none does.
+An item route that this rule names counts only once it is named, so of two
+tags' item routes that it names from collections ending in the same
+segment, the one later in path order takes its tag's name. Where only their
+stored forms meet, the later one takes the next number of that form
+instead: with `/aaa/efn/{id}` named `efn` first, `/well-known/ef/{id}` takes
+`efn2`. A collection nested in another of the same tag does not count
+against it, so `/well-known/nest/{id}` and `/well-known/nest/v2/nest/{id}`
+take one name. A verb on such an item route, as `/X/{id}/merge` is, counts
+as taking the segment's name.
+With `/aaa/qq` named `qq`, `/well-known/qq/{id}` takes `well_known_qq` and
+the later `/well-known/v2/qq/{id}` of the same tag takes `well_known_qq2`.
+With `/aaa/rr` named `rr`, `/well-known/rr/{id}` takes `well_known_rr2`,
+since the later `/zzz/well_known_rr/{id}` is named `well_known_rr`.
+Apicurio Registry tags
+`/well-known/agents/{groupId}/{artifactId}`,
+`/well-known/mcp-tools/{groupId}/{artifactId}` and
+`/well-known/schemas/{schemaType}/{version}` `WellKnown`, none of them
+answers with a body, and the first two take the same parameters. They take
+`well_known_agent`, since `/well-known/agent.json` names `agent`, then
+`mcp_tool` and `schema`, and each search joins its item route's entity in
+the move. Its `/ids/contentIds/{contentId}` and `/ids/globalIds/{globalId}`
+take different parameters and have no `GET` on their collections, so they
+stay on `artifact`, the entity their `Artifacts` tag names. The
+`guide-well-known` tests in [`ts/test/apidef.test.ts`](../../ts/test/apidef.test.ts)
+and [`go/apidef_test.go`](../../go/apidef_test.go) pin each of these cases on
+[`ts/test/def/well-known-def.json`](../../ts/test/def/well-known-def.json).
+
 The record a route answers with is the component of its response, of the
 items of an array response, or of the record its envelope carries (see
 [Response envelopes](#response-envelopes)). A component measured as a record

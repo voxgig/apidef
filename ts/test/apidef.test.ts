@@ -806,6 +806,128 @@ describe('apidef', () => {
   })
 
 
+  // Apicurio tags every /well-known route WellKnown and its agent, MCP tool and
+  // schema reads answer nothing, so each takes its collection's segment, after
+  // the tag where a route outside it, before or after it, has that name or its
+  // stored form, then a number while one has that too. An item route its
+  // collection names counts only once named; a verb on one claims its segment.
+  test('guide-well-known', async () => {
+    const folder = __dirname + '/../test/well-known'
+
+    const build = await ApiDef.makeBuild({ folder })
+
+    const bres = await build(
+      { name: 'well-known', def: 'well-known-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: true,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const entities = bres.apimodel.main.kit.entity
+    const paths = (ent: string, op: string) =>
+      (entities[ent]?.op[op]?.points ?? []).map((pt: any) => pt.o).sort()
+    const disco = 'well_known_discovery_endpoints_for_agents_and_model_context'
+    assert.deepStrictEqual(Object.keys(entities).sort(),
+      ['aaa_kit', 'abc', 'agent', 'agent_card', 'artifact', 'bcd', 'cask', 'crate', 'dbase',
+        'dbn', 'dbset', 'dsn', 'dsx', 'dtn', 'dun', 'efn', 'efn2', 'kiln', 'kit', 'ledger',
+        'mcp_tool', 'oven', 'parcel', 'pot', 'qqn', 'qrs', 'qrs_admin_qrs', 'qrt', 'repo',
+        'rrn', 'schema', 'uvn', 'vault', 'well_known_agent', 'well_known_cask',
+        'well_known_crate', 'well_known_db', 'well_known_dbase', disco, disco + '2',
+        'well_known_ds', 'well_known_dt', 'well_known_du', 'well_known_ef',
+        'well_known_ledger', 'well_known_qq', 'well_known_qq2', 'well_known_repo',
+        'well_known_rr', 'well_known_rr2', 'well_known_uvn', 'well_known_xyn', 'widget',
+        'xyn'])
+    assert.deepStrictEqual(paths('agent', 'list'), ['/well-known/agent.json'])
+    assert.deepStrictEqual(paths('well_known_agent', 'list'), ['/well-known/agents'])
+    assert.deepStrictEqual(paths('well_known_agent', 'load'),
+      ['/well-known/agents/{groupId}/{artifactId}'])
+    assert.deepStrictEqual(paths('mcp_tool', 'list'), ['/well-known/mcp-tools'])
+    assert.deepStrictEqual(paths('mcp_tool', 'load'),
+      ['/well-known/mcp-tools/{groupId}/{artifactId}'])
+    assert.deepStrictEqual(paths('schema', 'load'),
+      ['/well-known/schemas/{schemaType}/{version}'])
+    assert.deepStrictEqual(paths('artifact', 'load'),
+      ['/ids/contentIds/{contentId}', '/ids/globalIds/{globalId}'])
+    assert.deepStrictEqual(paths('dbn', 'load'), ['/other/db'])
+    assert.deepStrictEqual(paths('well_known_db', 'load'),
+      ['/well-known/db', '/well-known/db/{id}'])
+    assert.deepStrictEqual(paths('ledger', 'create'), ['/aaa/ledger/{id}/history'])
+    assert.deepStrictEqual(paths('well_known_ledger', 'load'), ['/well-known/ledger/{id}'])
+    assert.deepStrictEqual(paths('dbase', 'create'), ['/zzz/dbase/{id}/history'])
+    assert.deepStrictEqual(paths('well_known_dbase', 'load'),
+      ['/well-known/dbase', '/well-known/dbase/{id}'])
+    assert.deepStrictEqual(paths('agent_card', 'list'),
+      ['/well-known/agent-card.json', '/zzz/{id}/dbset'])
+    assert.deepStrictEqual(paths('dbset', 'load'), ['/well-known/dbset/{id}'])
+    assert.deepStrictEqual(paths('dsn', 'load'), ['/aaa/ds/{id}'])
+    assert.deepStrictEqual(paths('well_known_ds', 'load'), ['/well-known/ds/{id}'])
+    assert.deepStrictEqual(paths('dtn', 'load'), ['/zzz/dtn'])
+    assert.deepStrictEqual(paths('well_known_dt', 'load'), ['/well-known/dt/{id}'])
+    assert.deepStrictEqual(paths('dun', 'load'), ['/aaa/dun'])
+    assert.deepStrictEqual(paths('well_known_du', 'load'), ['/well-known/du/{id}'])
+    assert.deepStrictEqual(paths('widget', 'load'), ['/zzz/vault/{id}'])
+    assert.deepStrictEqual(paths('widget', 'create'), ['/zzz/vault/{id}/merge'])
+    assert.deepStrictEqual(paths('vault', 'load'), ['/well-known/vault/{id}'])
+    assert.deepStrictEqual(paths('repo', 'load'), ['/zzz/repo/{id}'])
+    assert.deepStrictEqual(paths('well_known_repo', 'load'), ['/well-known/repo/{id}'])
+    assert.deepStrictEqual(paths('cask', 'load'), ['/aaa/cask/{id}'])
+    assert.deepStrictEqual(paths('well_known_cask', 'load'), ['/well-known/cask/{id}'])
+    assert.deepStrictEqual(paths('parcel', 'load'), ['/crates/{id}'])
+    assert.deepStrictEqual(paths('crate', 'load'), ['/zzz/crate/{id}'])
+    assert.deepStrictEqual(paths('well_known_crate', 'load'), ['/well-known/crate/{id}'])
+    assert.deepStrictEqual(paths('xyn', 'load'), ['/zzz/xy'])
+    assert.deepStrictEqual(paths('well_known_xyn', 'load'), ['/well-known/xyn/{id}'])
+    assert.deepStrictEqual(paths('uvn', 'load'), ['/aaa/uv'])
+    assert.deepStrictEqual(paths('well_known_uvn', 'load'), ['/well-known/uvn/{id}'])
+    assert.deepStrictEqual(paths('qqn', 'load'), ['/aaa/qq'])
+    assert.deepStrictEqual(paths('well_known_qq', 'load'), ['/well-known/qq/{id}'])
+    assert.deepStrictEqual(paths('well_known_qq2', 'load'), ['/well-known/v2/qq/{id}'])
+    assert.deepStrictEqual(paths('rrn', 'load'), ['/aaa/rr'])
+    assert.deepStrictEqual(paths('well_known_rr', 'load'), ['/zzz/well_known_rr/{id}'])
+    assert.deepStrictEqual(paths('well_known_rr2', 'load'), ['/well-known/rr/{id}'])
+
+    // Aaa's item route takes efn first, so ef would be stored as efn2, which
+    // a route outside claims.
+    assert.deepStrictEqual(paths('efn', 'load'), ['/aaa/efn/{id}'])
+    assert.deepStrictEqual(paths('well_known_ef', 'load'), ['/well-known/ef/{id}'])
+    assert.deepStrictEqual(paths('efn2', 'load'), ['/zzz/efn2/{id}'])
+
+    // Past the stored length a number is cut off with the rest of the name, so
+    // numbering stops at the first one.
+    assert.deepStrictEqual(paths('abc', 'load'), ['/zzz/abc'])
+    assert.deepStrictEqual(paths('bcd', 'load'), ['/lt/bcd/{id}'])
+    assert.deepStrictEqual(paths(disco, 'load'), ['/aaa/' + disco])
+    assert.deepStrictEqual(paths(disco + '2', 'load'), ['/lt/abc/{id}'])
+
+    // Bare where no route outside has the name: Kiln's item route takes its
+    // collection's record, QrsAdmin's counts only once named, and Aaa's kit
+    // takes its tag, since the verb on WellKnown's kit claims kit.
+    assert.deepStrictEqual(paths('oven', 'load'), ['/kilns/{id}'])
+    assert.deepStrictEqual(paths('pot', 'list'), ['/zzz/pots'])
+    assert.deepStrictEqual(paths('pot', 'load'), ['/zzz/pots/{id}'])
+    assert.deepStrictEqual(paths('kiln', 'load'), ['/well-known/kiln/{id}'])
+    assert.deepStrictEqual(paths('qrs', 'load'), ['/well-known/qrs/{id}'])
+    assert.deepStrictEqual(paths('qrs_admin_qrs', 'load'), ['/zzz/qrs/{id}'])
+    assert.deepStrictEqual(paths('qrt', 'load'), ['/zzz/qrt/{id}'])
+    assert.deepStrictEqual(paths('kit', 'load'), ['/well-known/kit/{id}'])
+    assert.deepStrictEqual(paths('kit', 'create'), ['/well-known/kit/{id}/merge'])
+    assert.deepStrictEqual(paths('aaa_kit', 'load'), ['/aaa/kit/{id}'])
+  })
+
+
   // A trailing parameter under its entity's segment is the entity's key,
   // whatever the response component is called: a rare component named for
   // another view of it, or a tag on a write that answers with no component.

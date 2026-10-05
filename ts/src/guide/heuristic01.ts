@@ -47,6 +47,7 @@ import type {
 import {
   canonize,
   canonizeCmpName,
+  canonizeParam,
   capture,
   cleanComponentName,
   debugpath,
@@ -146,9 +147,10 @@ async function heuristic01(ctx: ApiDefContext): Promise<Guide> {
     MeasureAnswered,
     { select: selectAllMethods, apply: MeasureSharing },
     MeasureShared,
+    { select: selectAllMethods, apply: [ResolveEntityComponent, MeasureTagItems] },
+    { select: selectAllMethods, apply: MeasureClaims },
     {
       select: selectAllMethods, apply: [
-        ResolveEntityComponent,
         ResolveEntityName,
         RenameParams,
         FindActions,
@@ -243,6 +245,12 @@ function Prepare(spec: TaskSpec) {
       envelopePaths: {},
       sharing: { routes: [], records: {}, yields: {} },
       recordResources: {},
+      tagItems: {},
+      claims: {},
+      claimowner: {},
+      claimrecord: {},
+      pathowner: {},
+      recordowner: {},
       entity: {
         count: {
           seen: 0,
@@ -449,8 +457,13 @@ function MeasureShared(spec: TaskSpec) {
 }
 
 
+// One list for every pass, so a method keeps the component resolved for it.
 function selectAllMethods(_source: any, spec: TaskSpec): MethodDesc[] {
   const ctx = spec.ctx
+  const work = spec.data.work
+  if (null != work.methods) {
+    return work.methods
+  }
 
 
   let caught: any = { methods: [] }
@@ -499,7 +512,55 @@ function selectAllMethods(_source: any, spec: TaskSpec): MethodDesc[] {
     }
   })
 
-  return caught.methods || []
+  work.methods = caught.methods
+  return work.methods
+}
+
+
+// The collections each tag gathers item routes from, before any is named, with
+// the parameters of each collection's item routes.
+function MeasureTagItems(spec: TaskSpec) {
+  const work = spec.data.work
+  const mdesc = spec.node.val
+  const parts: string[] = work.pathmap[mdesc.path].parts
+  const collection = tagItemCollection(spec.data, mdesc, parts)
+  if (null != collection) {
+    const cmp = mdesc.MethodEntity.cmp
+    const items = work.tagItems[cmp] = work.tagItems[cmp] ?? {}
+    items[collection] = items[collection] ?? {}
+    items[collection][parts.filter(isParam)
+      .map((part) => canonizeParam(part.slice(1, -1))).sort().join(',')] = true
+  }
+}
+
+
+// The name each route takes by its path and component, and its stored form,
+// found before any route is named so an item route sees one sorting after it.
+// The rules run on copies. A verb takes its parent's claim; an item route its
+// collection names makes none, so a verb on one claims the route's segment.
+function MeasureClaims(spec: TaskSpec) {
+  const data = spec.data
+  const work = data.work
+  const mdesc = spec.node.val
+  const parts: string[] = work.pathmap[mdesc.path].parts
+  if (null != collectionNaming(data, mdesc, parts, work.claimrecord)) {
+    return
+  }
+
+  const ment = { ...(mdesc.MethodEntity ?? makeMethodEntityDesc({})) }
+  const name = pathEntityName(data, { ...mdesc, MethodEntity: ment }, parts,
+    matchEntityPath(parts), work.claimowner, [])
+  if (null != name) {
+    const claim = resplitFromCmp(name, ment.cmp as string, [])
+    const stored = ensureMinEntityName(claim, {})
+    for (const key of [claim, stored]) {
+      const claims = work.claims[key] = work.claims[key] ?? {}
+      claims[mdesc.path] = true
+    }
+    const owners = work.claimowner[mdesc.path] = work.claimowner[mdesc.path] ?? {}
+    owners[mdesc.method] = claim
+    markRecordOwner(work.claimrecord, mdesc.path, parts, ment, stored)
+  }
 }
 
 
@@ -696,44 +757,20 @@ function ResolveEntityName(spec: TaskSpec) {
 
   why_path.push(...(ment.why_cmp ?? []))
 
-  let entname
-
   const pm = matchEntityPath(parts)
 
-  if ('t/p/t/' === pm?.expr) {
-    entname = entityPathMatch_tpte(data, pm, mdesc, why_path)
-  }
-
-  else if ('t/p/' === pm?.expr) {
-    entname = entityPathMatch_tpe(data, pm, mdesc, why_path)
-  }
-
-  else if ('p/t/' === pm?.expr) {
-    entname = entityPathMatch_pte(data, pm, mdesc, why_path)
-  }
-
-  else if ('t/' === pm?.expr) {
-    entname = entityPathMatch_te(data, pm, mdesc, why_path)
-  }
-
-  else if ('t/p/p' === pm?.expr) {
-    entname = entityPathMatch_tpp(data, pm, mdesc, why_path)
-  }
-
-  else {
-    entname = inferEntityName(mdesc, parts, why_path)
-    if (null == entname) {
-      work.entity.count.unresolved++
-      entname = 'entity' + work.entity.count.unresolved
-    }
+  let entname = pathEntityName(data, mdesc, parts, pm, work.pathowner, why_path)
+  if (null == entname) {
+    work.entity.count.unresolved++
+    entname = 'entity' + work.entity.count.unresolved
   }
 
   entname = resplitFromCmp(entname, ment.cmp as string, why_path)
 
-  const collectionEntity = itemOfCollection(data, mdesc, parts)
-  if (null != collectionEntity) {
-    why_path.push('collection-record=' + collectionEntity)
-    entname = collectionEntity
+  const item = itemOfCollection(data, mdesc, parts)
+  if (null != item) {
+    why_path.push(item.why + '=' + item.name)
+    entname = item.name
   }
 
   // Keep the pre-truncation name so a truncated-name collision can tell a
@@ -768,23 +805,61 @@ function ResolveEntityName(spec: TaskSpec) {
   // split across entities by method (a PUT answering with a one-off
   // acknowledgement is named after it), and the parent of a verb is the
   // entity a read of the item returns.
-  work.pathowner = work.pathowner ?? {}
   work.pathowner[pathStr] = work.pathowner[pathStr] ?? {}
   work.pathowner[pathStr][methodName] = entname
 
-  // The entity a path's own record names, where the record carries the name
-  // the path's last segment gives.
-  const last = parts.filter((part: string) => !isParam(part)).pop()
-  work.recordowner = work.recordowner ?? {}
-  if (null == work.recordowner[pathStr] && isSchemaRef(ment.ref) &&
-    entname === ment.cmp && null != last && entname === canonize(last)) {
-    work.recordowner[pathStr] = entname
-  }
+  markRecordOwner(work.recordowner, pathStr, parts, ment, entname)
 
   // Same guard, same reason: the formatting is the cost, not the call.
   if (debugpathOn()) {
     debugpath(pathStr, methodName, 'RESOLVE-ENTITY-NAME',
       formatJSONIC({ entdesc, ment }, { hsepd: 0, $: true, color: true }))
+  }
+}
+
+
+// The name a method's path shape and component give it, or null where neither
+// does. A verb on a parent takes the name pathowner holds for the parent.
+function pathEntityName(
+  data: { def: any, guide: any, work: any },
+  mdesc: any,
+  parts: string[],
+  pm: PathMatch | null,
+  pathowner: Record<string, Record<string, string>>,
+  why: string[],
+): string | null {
+  if ('t/p/t/' === pm?.expr) {
+    return entityPathMatch_tpte(data, pm, mdesc, pathowner, why)
+  }
+  else if ('t/p/' === pm?.expr) {
+    return entityPathMatch_tpe(data, pm, mdesc, why)
+  }
+  else if ('p/t/' === pm?.expr) {
+    return entityPathMatch_pte(data, pm, mdesc, why)
+  }
+  else if ('t/' === pm?.expr) {
+    return entityPathMatch_te(data, pm, mdesc, why)
+  }
+  else if ('t/p/p' === pm?.expr) {
+    return entityPathMatch_tpp(data, pm, mdesc, why)
+  }
+  return inferEntityName(mdesc, parts, why)
+}
+
+
+// The entity a path's own record names, where the record carries the name the
+// path's last segment gives.
+function markRecordOwner(
+  recordowner: Record<string, string>,
+  pathStr: string,
+  parts: string[],
+  ment: Partial<MethodEntityDesc>,
+  entname: string,
+) {
+  const last = parts.filter((part: string) => !isParam(part)).pop()
+  if (null == recordowner[pathStr] && isSchemaRef(ment.ref) &&
+    entname === ment.cmp && null != last && entname === canonize(last)) {
+    recordowner[pathStr] = entname
   }
 }
 
@@ -1335,6 +1410,7 @@ function entityPathMatch_tpte(
   data: { def: any, guide: any, work: any },
   pm: PathMatch,
   mdesc: any,
+  pathowner: Record<string, Record<string, string>>,
   why: string[]
 ) {
   const ment = mdesc.MethodEntity
@@ -1347,7 +1423,7 @@ function entityPathMatch_tpte(
   let ecm = undefined
 
   if (null != ment.cmp) {
-    const parent = verbOnParent(data, pm, mdesc)
+    const parent = verbOnParent(data, pm, mdesc, pathowner)
     if (null != parent) {
       entname = parent
       ment.verb_on_parent = getelem(pm, -1)
@@ -1399,6 +1475,7 @@ function verbOnParent(
   data: { def: any, guide: any, work: any },
   pm: PathMatch,
   mdesc: any,
+  pathowner: Record<string, Record<string, string>>,
 ): null | string {
   const method = mdesc.method
   if (READ_METHODS.includes(method)) {
@@ -1449,7 +1526,7 @@ function verbOnParent(
   // known. The parent is the entity a READ of the item returns: a PUT on
   // the item answering with a one-off acknowledgement is named after that
   // and must not claim the verb. Fall back to any owner, then the literal.
-  const owners = data.work.pathowner?.[itemPath] ?? {}
+  const owners = pathowner[itemPath] ?? {}
   const parent = owners.GET ?? owners.QUERY ??
     Object.values(owners).sort()[0] as undefined | string
   if (null != parent) {
@@ -1460,19 +1537,15 @@ function verbOnParent(
 }
 
 
-// The entity of an item route's collection, for a method on the item route
-// named by its tag alone, when the route answers nothing and the tag names
-// another resource with a record of its own, which the item's operations
-// would join: the collection's record then names the item too, as GitHub's
-// repository invitations do beside its repositories.
-function itemOfCollection(
+// The collection of an item route whose method its tag alone names, when the
+// route answers nothing.
+function tagItemCollection(
   data: { def: any, work: any },
   mdesc: any,
   parts: string[],
 ): string | null {
   const ment = mdesc.MethodEntity
-  if ('tag' !== ment.ref || null != ment.rescmp ||
-    true !== data.work.recordResources[ment.cmp]) {
+  if (null == ment || 'tag' !== ment.ref || null != ment.rescmp) {
     return null
   }
 
@@ -1485,13 +1558,108 @@ function itemOfCollection(
     .some(([method, mdef]: [string, any]) =>
       null != METHOD_CONSIDER_ORDER[method.toUpperCase()] &&
       null != getResponseSchema(successResponse(mdef?.responses)))
-  if (answers) {
+  return answers ? null : '/' + lits.join('/')
+}
+
+
+// The collection that names a tag-named item route, given the record owners
+// known so far: by its record, where the tag names another resource with one
+// (GitHub's invitations), or by its segment, where the routes the tag gathers
+// from several collections would share a selector (Apicurio's well-known
+// routes). Null where the route keeps the name its own path gives.
+function collectionNaming(
+  data: { def: any, work: any },
+  mdesc: any,
+  parts: string[],
+  recordowner: Record<string, string>,
+): { collection: string, record?: string } | null {
+  const collection = tagItemCollection(data, mdesc, parts)
+  if (null == collection) {
     return null
   }
 
-  const collection = '/' + lits.join('/')
-  return data.work.recordowner?.[collection] ??
-    data.work.recordowner?.[collection + '/'] ?? null
+  const work = data.work
+  const cmp = mdesc.MethodEntity.cmp
+  if (true === work.recordResources[cmp]) {
+    const record = recordowner[collection] ?? recordowner[collection + '/']
+    return null == record ? null : { collection, record }
+  }
+
+  return tagCollides(data.def, work.tagItems[cmp] ?? {}) ? { collection } : null
+}
+
+
+// The entity of an item route its collection names: the collection's record,
+// or its segment. A route outside the collection that has the segment puts the
+// tag before it, and one that has that name too a number from 2 after it, up
+// to the first number that leaves the stored form as it was.
+function itemOfCollection(
+  data: { def: any, work: any },
+  mdesc: any,
+  parts: string[],
+): { name: string, why: string } | null {
+  const naming = collectionNaming(data, mdesc, parts, data.work.recordowner)
+  if (null == naming) {
+    return null
+  }
+  if (null != naming.record) {
+    return { name: naming.record, why: 'collection-record' }
+  }
+
+  const collection = naming.collection
+  const segment = canonize(collection.substring(collection.lastIndexOf('/') + 1))
+  if (!segmentHeld(data.work, segment, collection)) {
+    return { name: segment, why: 'collection-segment' }
+  }
+  const tagged = mdesc.MethodEntity.cmp + '_' + segment
+  let name = tagged
+  for (let i = 2; segmentHeld(data.work, name, collection); i++) {
+    const stored = ensureMinEntityName(name, {})
+    name = tagged + i
+    if (ensureMinEntityName(name, {}) === stored) {
+      break
+    }
+  }
+  return { name, why: 'collection-segment' }
+}
+
+
+// A route outside the collection has the name: one named already under the
+// key the name would take now, or one that claims the name, its stored form
+// or that key. An item route its collection names makes no claim, so it
+// counts only once named.
+function segmentHeld(work: any, name: string, collection: string): boolean {
+  const outside = (path: string) => !(path + '/').startsWith(collection + '/')
+  const key = ensureMinEntityName(name, work.entmap)
+  const stored = ensureMinEntityName(name, {})
+  return [work.entmap[key]?.path, work.claims[name], work.claims[stored], work.claims[key]]
+    .some((paths: Record<string, any> | undefined) => Object.keys(paths ?? {}).some(outside))
+}
+
+
+// Two of a tag's collections whose item routes take the same parameters, or
+// that are both read, would share a selector on the tag's entity.
+function tagCollides(def: any, items: Record<string, Record<string, boolean>>): boolean {
+  const seen: Record<string, boolean> = {}
+  let reads = 0
+  for (const [collection, params] of Object.entries(items)) {
+    for (const key of Object.keys(params)) {
+      if (seen[key]) {
+        return true
+      }
+      seen[key] = true
+    }
+    if (pathReads(def.paths?.[collection]) || pathReads(def.paths?.[collection + '/'])) {
+      reads++
+    }
+  }
+  return 1 < reads
+}
+
+
+function pathReads(pathdef: any): boolean {
+  return Object.entries(pathdef ?? {}).some(([method, mdef]: [string, any]) =>
+    'GET' === method.toUpperCase() && null != mdef)
 }
 
 

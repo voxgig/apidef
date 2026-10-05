@@ -249,6 +249,37 @@ the item route joins the list's entity, `repository_invitation`, instead. A
 tag that names no resource, such as `Settings` in the earlier example, groups
 operations without a record to mix, and the collection still joins it.
 
+A tag can gather such item routes from several collections, and one entity
+then holds them all, where a generated SDK reaches only the first of two
+points that share a selector. Apicurio Registry tags its well-known agents,
+MCP tools and schemas `WellKnown`, so a load meant for an MCP tool fetched an
+agent card. Two of a tag's collections share a selector when their item
+routes take the same parameters, as the agents and MCP tools do, or when
+both collections are read, since each list then selects by nothing. When a
+tag that names no resource gathers two such collections, each item route it
+gathers takes the name the last segment of its collection gives: `mcp_tool`
+for `/well-known/mcp-tools` and `schema` for `/well-known/schemas`. A name
+that a route outside the collection takes, wherever it sorts, takes the
+tag's name before it. `/well-known/agent.json` names `agent`, so the agents
+become `well_known_agent`, and neither list hides the other. A route that
+sorts after the item route is not named yet when the item route is, so the
+guide first works out the name each route takes from its path, its record
+and its tag, before it names any. That leaves out the item routes this rule
+names, since this rule is what names them: such a route counts once it is
+named, so of two tags' item routes that this rule names from collections
+ending in the same segment, the later one takes its tag's name, and the two
+still stay apart. The tag's name can be taken as well: by a route outside
+the collection that has that name, or, once named, by another collection of
+the same tag that ends in the same segment. The item route then takes a
+number from 2 after it, as `well_known_qq2`, and those stay apart too,
+except where one collection is nested in another or the tag's name is long
+enough to be cut: [the guide reference](../reference/guide.md) gives both
+cases. A verb on such an item route counts as taking the segment's name. Apicurio's
+reads of
+artifact content by content ID and by global ID each select by their own
+parameter, so they share no selector and stay on `artifact`, the entity
+their tag names.
+
 The move is part of the heuristic, so it shapes the base guide and nothing
 after it. When the collection is a resource of its own, `guide.aontu` can
 declare `/apiKeys` on `api_key` and switch the path off on `setting`, and

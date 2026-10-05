@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"math"
 	"os"
 	"path/filepath"
@@ -602,6 +603,12 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 			"listEnvelope":    map[string]bool{},
 			"envelopePaths":   map[string][]string{},
 			"recordResources": map[string]bool{},
+			"tagItems":        map[string]map[string]map[string]bool{},
+			"claims":          map[string]map[string]bool{},
+			"claimowner":      map[string]any{},
+			"claimrecord":     map[string]string{},
+			"pathowner":       map[string]any{},
+			"recordowner":     map[string]string{},
 			"sharing": &sharingWork{
 				records: map[string]bool{},
 				yields:  map[string]bool{},
@@ -715,6 +722,14 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 
 	for _, mdesc := range allMethods {
 		resolveEntityComponent(data, mdesc)
+		measureTagItems(data, mdesc)
+	}
+
+	for _, mdesc := range allMethods {
+		measureClaims(data, mdesc)
+	}
+
+	for _, mdesc := range allMethods {
 		resolveEntityName(ctx, data, mdesc)
 		renameParams(ctx, data, mdesc)
 		findActions(data, mdesc)
@@ -1195,34 +1210,17 @@ func resolveEntityName(ctx *ApiDefContext, data map[string]any, mdesc map[string
 		whyPath = append(whyPath, wc...)
 	}
 
-	var entname string
 	pm := matchEntityPath(parts)
-	expr := ""
-	if pm != nil {
-		expr = pm.Expr
-	}
-
-	if expr == "t/p/t/" {
-		entname = entityPathMatch_tpte(data, pm, mdesc, &whyPath)
-	} else if expr == "t/p/" {
-		entname = entityPathMatch_tpe(data, pm, mdesc, &whyPath)
-	} else if expr == "p/t/" {
-		entname = entityPathMatch_pte(data, pm, mdesc, &whyPath)
-	} else if expr == "t/" {
-		entname = entityPathMatch_te(data, pm, mdesc, &whyPath)
-	} else if expr == "t/p/p" {
-		entname = entityPathMatch_tpp(data, pm, mdesc, &whyPath)
-	} else {
-		entname = inferEntityName(mdesc, parts, &whyPath)
-		if entname == "" {
-			entityCount["unresolved"] = toInt(entityCount["unresolved"]) + 1
-			entname = fmt.Sprintf("entity%d", toInt(entityCount["unresolved"]))
-		}
+	pathowner := work["pathowner"].(map[string]any)
+	entname, named := pathEntityName(data, mdesc, parts, pm, pathowner, &whyPath)
+	if !named {
+		entityCount["unresolved"] = toInt(entityCount["unresolved"]) + 1
+		entname = fmt.Sprintf("entity%d", toInt(entityCount["unresolved"]))
 	}
 
 	entmap := work["entmap"].(map[string]any)
-	if collectionEntity := itemOfCollection(data, mdesc, parts); collectionEntity != "" {
-		whyPath = append(whyPath, "collection-record="+collectionEntity)
+	if collectionEntity, why := itemOfCollection(data, mdesc, parts); collectionEntity != "" {
+		whyPath = append(whyPath, why+"="+collectionEntity)
 		entname = collectionEntity
 	}
 
@@ -1273,11 +1271,6 @@ func resolveEntityName(ctx *ApiDefContext, data map[string]any, mdesc map[string
 	ment["entname"] = entname
 	ment["pm"] = pm
 
-	pathowner, _ := work["pathowner"].(map[string]any)
-	if pathowner == nil {
-		pathowner = map[string]any{}
-		work["pathowner"] = pathowner
-	}
 	owners, _ := pathowner[pathStr].(map[string]any)
 	if owners == nil {
 		owners = map[string]any{}
@@ -1285,13 +1278,39 @@ func resolveEntityName(ctx *ApiDefContext, data map[string]any, mdesc map[string
 	}
 	owners[methodName] = entname
 
-	// The entity a path's own record names, where the record carries the
-	// name the path's last segment gives.
-	recordowner, _ := work["recordowner"].(map[string]string)
-	if recordowner == nil {
-		recordowner = map[string]string{}
-		work["recordowner"] = recordowner
+	markRecordOwner(work["recordowner"].(map[string]string), pathStr, parts, ment, entname)
+
+	DebugPath(pathStr, methodName, "RESOLVE-ENTITY-NAME", entname)
+}
+
+// pathEntityName mirrors ts/src/guide/heuristic01.ts; named is false where the
+// TS returns null.
+func pathEntityName(data map[string]any, mdesc map[string]any, parts []string,
+	pm *PathMatchResult, pathowner map[string]any, why *[]string) (string, bool) {
+	expr := ""
+	if pm != nil {
+		expr = pm.Expr
 	}
+
+	switch expr {
+	case "t/p/t/":
+		return entityPathMatch_tpte(data, pm, mdesc, pathowner, why), true
+	case "t/p/":
+		return entityPathMatch_tpe(data, pm, mdesc, why), true
+	case "p/t/":
+		return entityPathMatch_pte(data, pm, mdesc, why), true
+	case "t/":
+		return entityPathMatch_te(data, pm, mdesc, why), true
+	case "t/p/p":
+		return entityPathMatch_tpp(data, pm, mdesc, why), true
+	}
+	name := inferEntityName(mdesc, parts, why)
+	return name, name != ""
+}
+
+// markRecordOwner mirrors ts/src/guide/heuristic01.ts.
+func markRecordOwner(recordowner map[string]string, pathStr string, parts []string,
+	ment map[string]any, entname string) {
 	last := ""
 	for _, part := range parts {
 		if !isParam(part) {
@@ -1302,8 +1321,6 @@ func resolveEntityName(ctx *ApiDefContext, data map[string]any, mdesc map[string
 		entname == safeStr(ment["cmp"]) && last != "" && entname == Canonize(last) {
 		recordowner[pathStr] = entname
 	}
-
-	DebugPath(pathStr, methodName, "RESOLVE-ENTITY-NAME", entname)
 }
 
 // renameParams renames path parameters to follow ID conventions.
@@ -1879,7 +1896,8 @@ func buildEntity(data map[string]any, entval any) {
 }
 
 // entityPathMatch_tpte handles the t/p/t/ path pattern.
-func entityPathMatch_tpte(data map[string]any, pm *PathMatchResult, mdesc map[string]any, why *[]string) string {
+func entityPathMatch_tpte(data map[string]any, pm *PathMatchResult, mdesc map[string]any,
+	pathowner map[string]any, why *[]string) string {
 	ment, _ := mdesc["MethodEntity"].(map[string]any)
 	if ment == nil {
 		ment = makeMethodEntityDesc(map[string]any{})
@@ -1895,7 +1913,7 @@ func entityPathMatch_tpte(data map[string]any, pm *PathMatchResult, mdesc map[st
 	entname := Canonize(origPathName)
 
 	if safeStr(ment["cmp"]) != "" {
-		if parent := verbOnParent(data, pm, mdesc); parent != "" {
+		if parent := verbOnParent(data, pm, mdesc, pathowner); parent != "" {
 			entname = parent
 			ment["verb_on_parent"] = getMatchElem(pm, -1)
 			*why = append(*why, "verb-on-parent="+parent)
@@ -1928,7 +1946,8 @@ func entityPathMatch_tpte(data map[string]any, pm *PathMatchResult, mdesc map[st
 	return entname
 }
 
-func verbOnParent(data map[string]any, pm *PathMatchResult, mdesc map[string]any) string {
+func verbOnParent(data map[string]any, pm *PathMatchResult, mdesc map[string]any,
+	pathowner map[string]any) string {
 	method := safeStr(mdesc["method"])
 	if READ_METHODS[method] {
 		return ""
@@ -1994,8 +2013,6 @@ func verbOnParent(data map[string]any, pm *PathMatchResult, mdesc map[string]any
 	// The parent is the entity a READ of the item returns: a PUT on the
 	// item answering with a one-off acknowledgement is named after that and
 	// must not claim the verb. Fall back to any owner, then the literal.
-	work, _ := data["work"].(map[string]any)
-	pathowner, _ := work["pathowner"].(map[string]any)
 	owners, _ := pathowner[itemPath].(map[string]any)
 	if parent := safeStr(owners["GET"]); parent != "" {
 		return parent
@@ -3380,17 +3397,77 @@ func endsWithCmp(data map[string]any, pm *PathMatchResult) bool {
 	return isOrigCmp(data, last)
 }
 
-// isOrigCmp checks if a name is an original component reference.
-// itemOfCollection mirrors ts/src/guide/heuristic01.ts: the entity of an
-// item route's collection, for a method on the item route named by its tag
-// alone, when the route answers nothing and the tag names another resource
-// with a record of its own.
-func itemOfCollection(data map[string]any, mdesc map[string]any, parts []string) string {
-	ment, _ := mdesc["MethodEntity"].(map[string]any)
+// measureTagItems mirrors MeasureTagItems in ts/src/guide/heuristic01.ts.
+func measureTagItems(data map[string]any, mdesc map[string]any) {
 	work := data["work"].(map[string]any)
-	recordResources, _ := work["recordResources"].(map[string]bool)
-	if ment == nil || safeStr(ment["ref"]) != "tag" || ment["rescmp"] != nil ||
-		!recordResources[safeStr(ment["cmp"])] {
+	pathDesc, _ := work["pathmap"].(map[string]any)[safeStr(mdesc["path"])].(map[string]any)
+	parts, _ := pathDesc["parts"].([]string)
+	collection := tagItemCollection(data, mdesc, parts)
+	if collection == "" {
+		return
+	}
+	params := []string{}
+	for _, part := range parts {
+		if isParam(part) {
+			params = append(params, CanonizeParam(part[1:len(part)-1]))
+		}
+	}
+	sort.Strings(params)
+	cmp := safeStr(mdesc["MethodEntity"].(map[string]any)["cmp"])
+	tagItems := work["tagItems"].(map[string]map[string]map[string]bool)
+	if tagItems[cmp] == nil {
+		tagItems[cmp] = map[string]map[string]bool{}
+	}
+	if tagItems[cmp][collection] == nil {
+		tagItems[cmp][collection] = map[string]bool{}
+	}
+	tagItems[cmp][collection][strings.Join(params, ",")] = true
+}
+
+// measureClaims mirrors MeasureClaims in ts/src/guide/heuristic01.ts.
+func measureClaims(data map[string]any, mdesc map[string]any) {
+	work := data["work"].(map[string]any)
+	pathStr := safeStr(mdesc["path"])
+	parts := pathParts(data, pathStr)
+	claimrecord := work["claimrecord"].(map[string]string)
+	if collection, _ := collectionNaming(data, mdesc, parts, claimrecord); collection != "" {
+		return
+	}
+
+	ment, _ := mdesc["MethodEntity"].(map[string]any)
+	if ment == nil {
+		ment = makeMethodEntityDesc(map[string]any{})
+	}
+	view := maps.Clone(mdesc)
+	view["MethodEntity"] = maps.Clone(ment)
+
+	claimowner := work["claimowner"].(map[string]any)
+	name, named := pathEntityName(data, view, parts, matchEntityPath(parts), claimowner, &[]string{})
+	if !named {
+		return
+	}
+	stored := EnsureMinEntityName(name, nil)
+	claims := work["claims"].(map[string]map[string]bool)
+	for _, key := range []string{name, stored} {
+		if claims[key] == nil {
+			claims[key] = map[string]bool{}
+		}
+		claims[key][pathStr] = true
+	}
+	owners, _ := claimowner[pathStr].(map[string]any)
+	if owners == nil {
+		owners = map[string]any{}
+		claimowner[pathStr] = owners
+	}
+	owners[safeStr(mdesc["method"])] = name
+	markRecordOwner(claimrecord, pathStr, parts, ment, stored)
+}
+
+// tagItemCollection mirrors ts/src/guide/heuristic01.ts: the collection of an
+// item route whose method its tag alone names, when the route answers nothing.
+func tagItemCollection(data map[string]any, mdesc map[string]any, parts []string) string {
+	ment, _ := mdesc["MethodEntity"].(map[string]any)
+	if ment == nil || safeStr(ment["ref"]) != "tag" || ment["rescmp"] != nil {
 		return ""
 	}
 
@@ -3420,19 +3497,128 @@ func itemOfCollection(data map[string]any, mdesc map[string]any, parts []string)
 			return ""
 		}
 	}
+	return "/" + strings.Join(parts[:nlits], "/")
+}
 
-	recordowner, _ := work["recordowner"].(map[string]string)
-	collection := "/" + strings.Join(parts[:nlits], "/")
-	if entname, ok := recordowner[collection]; ok {
-		return entname
+// collectionNaming mirrors ts/src/guide/heuristic01.ts; collection is empty
+// where the TS returns null, and record where it names no record.
+func collectionNaming(data map[string]any, mdesc map[string]any, parts []string,
+	recordowner map[string]string) (string, string) {
+	collection := tagItemCollection(data, mdesc, parts)
+	if collection == "" {
+		return "", ""
 	}
-	return recordowner[collection+"/"]
+
+	work := data["work"].(map[string]any)
+	cmp := safeStr(mdesc["MethodEntity"].(map[string]any)["cmp"])
+	recordResources, _ := work["recordResources"].(map[string]bool)
+	if recordResources[cmp] {
+		record, ok := recordowner[collection]
+		if !ok {
+			record = recordowner[collection+"/"]
+		}
+		if record == "" {
+			return "", ""
+		}
+		return collection, record
+	}
+
+	tagItems, _ := work["tagItems"].(map[string]map[string]map[string]bool)
+	def, _ := data["def"].(map[string]any)
+	if !tagCollides(def, tagItems[cmp]) {
+		return "", ""
+	}
+	return collection, ""
+}
+
+// itemOfCollection mirrors ts/src/guide/heuristic01.ts: the entity of an item
+// route its collection names, and the reason recorded for it.
+func itemOfCollection(data map[string]any, mdesc map[string]any, parts []string) (string, string) {
+	work := data["work"].(map[string]any)
+	collection, record := collectionNaming(data, mdesc, parts, work["recordowner"].(map[string]string))
+	if collection == "" {
+		return "", ""
+	}
+	if record != "" {
+		return record, "collection-record"
+	}
+
+	cmp := safeStr(mdesc["MethodEntity"].(map[string]any)["cmp"])
+	segment := Canonize(collection[strings.LastIndex(collection, "/")+1:])
+	if !segmentHeld(work, segment, collection) {
+		return segment, "collection-segment"
+	}
+	tagged := cmp + "_" + segment
+	name := tagged
+	for i := 2; segmentHeld(work, name, collection); i++ {
+		stored := EnsureMinEntityName(name, nil)
+		name = fmt.Sprintf("%s%d", tagged, i)
+		if EnsureMinEntityName(name, nil) == stored {
+			break
+		}
+	}
+	return name, "collection-segment"
+}
+
+// segmentHeld mirrors ts/src/guide/heuristic01.ts.
+func segmentHeld(work map[string]any, name string, collection string) bool {
+	outside := func(path string) bool {
+		return !strings.HasPrefix(path+"/", collection+"/")
+	}
+	entmap := work["entmap"].(map[string]any)
+	key := EnsureMinEntityName(name, entmap)
+	entdesc, _ := entmap[key].(map[string]any)
+	entPaths, _ := entdesc["path"].(map[string]any)
+	for path := range entPaths {
+		if outside(path) {
+			return true
+		}
+	}
+	claims, _ := work["claims"].(map[string]map[string]bool)
+	for _, claim := range []string{name, EnsureMinEntityName(name, nil), key} {
+		for path := range claims[claim] {
+			if outside(path) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// tagCollides mirrors ts/src/guide/heuristic01.ts.
+func tagCollides(def map[string]any, items map[string]map[string]bool) bool {
+	paths, _ := def["paths"].(map[string]any)
+	seen := map[string]bool{}
+	reads := 0
+	for collection, params := range items {
+		for key := range params {
+			if seen[key] {
+				return true
+			}
+			seen[key] = true
+		}
+		if pathReads(paths[collection]) || pathReads(paths[collection+"/"]) {
+			reads++
+		}
+	}
+	return reads > 1
+}
+
+func pathReads(pathdef any) bool {
+	pd, _ := pathdef.(map[string]any)
+	for method, mdef := range pd {
+		if strings.ToUpper(method) == "GET" && mdef != nil {
+			return true
+		}
+	}
+	return false
 }
 
 func isSchemaRef(ref string) bool {
 	return ref != "" && ref != "tag"
 }
 
+// isOrigCmp checks if a name is an original component reference.
 func isOrigCmp(data map[string]any, name string) bool {
 	guide, _ := data["guide"].(map[string]any)
 	if guide == nil {

@@ -1,0 +1,379 @@
+# Generated from the API definition and overwritten on every build: do not
+# edit this file. Put customizations in the guide entry file, which includes
+# this one and overrides its defaults:
+#   guide.aontu
+
+guide: {
+  metrics: count: entity: 54
+  metrics: count: path: 63
+  metrics: count: method: 63
+
+  entity: aaa_kit: {
+    path: "/aaa/kit/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: abc: {
+    path: "/zzz/abc": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: agent: {
+    path: "/well-known/agent.json": {
+      op: list: method: *GET
+    }
+  }
+
+  entity: agent_card: {
+    path: "/well-known/agent-card.json": {
+      op: list: method: *GET
+    }
+    path: "/zzz/{id}/dbset": {
+      rename: param: "id": *"zzz_id"
+      op: list: method: *GET
+    }
+  }
+
+  entity: artifact: {
+    path: "/ids/contentIds/{contentId}": {
+      rename: param: "contentId": *"content_id"
+      op: load: method: *GET
+    }
+    path: "/ids/globalIds/{globalId}": {
+      rename: param: "globalId": *"global_id"
+      op: load: method: *GET
+    }
+  }
+
+  entity: bcd: {
+    path: "/lt/bcd/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: cask: {
+    path: "/aaa/cask/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: crate: {
+    path: "/zzz/crate/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: dbase: {
+    path: "/zzz/dbase/{id}/history": {
+      action: "history": {}
+      op: create: method: *POST
+    }
+  }
+
+  entity: dbn: {
+    path: "/other/db": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: dbset: {
+    path: "/well-known/dbset/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: dsn: {
+    path: "/aaa/ds/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: dsx: {
+    path: "/aaa/dsx/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: dtn: {
+    path: "/zzz/dtn": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: dun: {
+    path: "/aaa/dun": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: efn: {
+    path: "/aaa/efn/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: efn2: {
+    path: "/zzz/efn2/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: kiln: {
+    path: "/well-known/kiln/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: kit: {
+    path: "/well-known/kit/{id}": {
+      op: load: method: *GET
+    }
+    path: "/well-known/kit/{id}/merge": {
+      action: "merge": {}
+      op: create: method: *POST
+    }
+  }
+
+  entity: ledger: {
+    path: "/aaa/ledger/{id}/history": {
+      action: "history": {}
+      op: create: method: *POST
+    }
+  }
+
+  entity: mcp_tool: {
+    path: "/well-known/mcp-tools": {
+      op: list: method: *GET
+      op: list: transform: res: *("`body.tools`")|top
+    }
+    path: "/well-known/mcp-tools/{groupId}/{artifactId}": {
+      rename: param: "artifactId": *"artifact_id"
+      rename: param: "groupId": *"group_id"
+      op: load: method: *GET
+    }
+  }
+
+  entity: oven: {
+    path: "/kilns/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: parcel: {
+    path: "/crates/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: pot: {
+    path: "/zzz/pots": {
+      op: list: method: *GET
+    }
+    path: "/zzz/pots/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: qqn: {
+    path: "/aaa/qq": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: qrs: {
+    path: "/well-known/qrs/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: qrs_admin_qrs: {
+    path: "/zzz/qrs/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: qrt: {
+    path: "/zzz/qrt/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: repo: {
+    path: "/zzz/repo/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: rrn: {
+    path: "/aaa/rr": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: schema: {
+    path: "/well-known/schemas/{schemaType}/{version}": {
+      rename: param: "schemaType": *"schema_type"
+      op: load: method: *GET
+    }
+  }
+
+  entity: uvn: {
+    path: "/aaa/uv": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: vault: {
+    path: "/well-known/vault/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_agent: {
+    path: "/well-known/agents": {
+      op: list: method: *GET
+      op: list: transform: res: *("`body.agents`")|top
+    }
+    path: "/well-known/agents/{groupId}/{artifactId}": {
+      rename: param: "artifactId": *"artifact_id"
+      rename: param: "groupId": *"group_id"
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_cask: {
+    path: "/well-known/cask/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_crate: {
+    path: "/well-known/crate/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_db: {
+    path: "/well-known/db": {
+      action: "db": {}
+      op: load: method: *GET
+    }
+    path: "/well-known/db/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_dbase: {
+    path: "/well-known/dbase": {
+      action: "dbase": {}
+      op: load: method: *GET
+    }
+    path: "/well-known/dbase/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_discovery_endpoints_for_agents_and_model_context: {
+    path: "/aaa/well_known_discovery_endpoints_for_agents_and_model_context": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_discovery_endpoints_for_agents_and_model_context2: {
+    path: "/lt/abc/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_ds: {
+    path: "/well-known/ds/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_dt: {
+    path: "/well-known/dt/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_du: {
+    path: "/well-known/du/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_ef: {
+    path: "/well-known/ef/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_ledger: {
+    path: "/well-known/ledger/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_qq: {
+    path: "/well-known/qq/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_qq2: {
+    path: "/well-known/v2/qq/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_repo: {
+    path: "/well-known/repo/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_rr: {
+    path: "/zzz/well_known_rr/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_rr2: {
+    path: "/well-known/rr/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_uvn: {
+    path: "/well-known/uvn/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_xyn: {
+    path: "/well-known/xyn/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: widget: {
+    path: "/zzz/vault/{id}": {
+      op: load: method: *GET
+    }
+    path: "/zzz/vault/{id}/merge": {
+      action: "merge": {}
+      rename: param: "id": *"vault_id"
+      op: create: method: *POST
+    }
+  }
+
+  entity: xyn: {
+    path: "/zzz/xy": {
+      op: load: method: *GET
+    }
+  }
+
+}

@@ -652,6 +652,119 @@ func TestGuideListRecords(t *testing.T) {
 	}
 }
 
+// Mirrors the TS `guide-well-known` case.
+func TestGuideWellKnown(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "well-known-")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, OutPrefix: "well-known-", Strategy: "heuristic01"}).
+		Generate(map[string]any{
+			"model": map[string]any{"name": "well-known", "def": "well-known-def.json"},
+			"build": map[string]any{"spec": map[string]any{"base": "../ts/test/def"}},
+			"ctrl": map[string]any{"step": map[string]any{
+				"parse": true, "guide": true, "transformers": true,
+				"builders": false, "generate": false,
+			}},
+		})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v", err)
+	}
+
+	entities := res.ApiModel["main"].(map[string]any)["kit"].(map[string]any)["entity"].(map[string]any)
+	pathsOf := func(ent, op string) []string {
+		out := []string{}
+		e, _ := entities[ent].(map[string]any)
+		opm, _ := e["op"].(map[string]any)
+		o, _ := opm[op].(map[string]any)
+		pts, _ := o["points"].([]any)
+		for _, p := range pts {
+			pt, _ := p.(map[string]any)
+			out = append(out, safeStr(pt["o"]))
+		}
+		sort.Strings(out)
+		return out
+	}
+
+	disco := "well_known_discovery_endpoints_for_agents_and_model_context"
+	if got := sortedKeys(entities); !reflect.DeepEqual(got,
+		[]string{"aaa_kit", "abc", "agent", "agent_card", "artifact", "bcd", "cask", "crate", "dbase",
+			"dbn", "dbset", "dsn", "dsx", "dtn", "dun", "efn", "efn2", "kiln", "kit", "ledger",
+			"mcp_tool", "oven", "parcel", "pot", "qqn", "qrs", "qrs_admin_qrs", "qrt", "repo",
+			"rrn", "schema", "uvn", "vault", "well_known_agent", "well_known_cask",
+			"well_known_crate", "well_known_db", "well_known_dbase", disco, disco + "2",
+			"well_known_ds", "well_known_dt", "well_known_du", "well_known_ef",
+			"well_known_ledger", "well_known_qq", "well_known_qq2", "well_known_repo",
+			"well_known_rr", "well_known_rr2", "well_known_uvn", "well_known_xyn", "widget",
+			"xyn"}) {
+		t.Errorf("entities = %v", got)
+	}
+	for _, c := range []struct {
+		ent, op string
+		want    []string
+	}{
+		{"agent", "list", []string{"/well-known/agent.json"}},
+		{"well_known_agent", "list", []string{"/well-known/agents"}},
+		{"well_known_agent", "load", []string{"/well-known/agents/{groupId}/{artifactId}"}},
+		{"mcp_tool", "list", []string{"/well-known/mcp-tools"}},
+		{"mcp_tool", "load", []string{"/well-known/mcp-tools/{groupId}/{artifactId}"}},
+		{"schema", "load", []string{"/well-known/schemas/{schemaType}/{version}"}},
+		{"artifact", "load", []string{"/ids/contentIds/{contentId}", "/ids/globalIds/{globalId}"}},
+		{"dbn", "load", []string{"/other/db"}},
+		{"well_known_db", "load", []string{"/well-known/db", "/well-known/db/{id}"}},
+		{"ledger", "create", []string{"/aaa/ledger/{id}/history"}},
+		{"well_known_ledger", "load", []string{"/well-known/ledger/{id}"}},
+		{"dbase", "create", []string{"/zzz/dbase/{id}/history"}},
+		{"well_known_dbase", "load", []string{"/well-known/dbase", "/well-known/dbase/{id}"}},
+		{"agent_card", "list", []string{"/well-known/agent-card.json", "/zzz/{id}/dbset"}},
+		{"dbset", "load", []string{"/well-known/dbset/{id}"}},
+		{"dsn", "load", []string{"/aaa/ds/{id}"}},
+		{"well_known_ds", "load", []string{"/well-known/ds/{id}"}},
+		{"dtn", "load", []string{"/zzz/dtn"}},
+		{"well_known_dt", "load", []string{"/well-known/dt/{id}"}},
+		{"dun", "load", []string{"/aaa/dun"}},
+		{"well_known_du", "load", []string{"/well-known/du/{id}"}},
+		{"widget", "load", []string{"/zzz/vault/{id}"}},
+		{"widget", "create", []string{"/zzz/vault/{id}/merge"}},
+		{"vault", "load", []string{"/well-known/vault/{id}"}},
+		{"repo", "load", []string{"/zzz/repo/{id}"}},
+		{"well_known_repo", "load", []string{"/well-known/repo/{id}"}},
+		{"cask", "load", []string{"/aaa/cask/{id}"}},
+		{"well_known_cask", "load", []string{"/well-known/cask/{id}"}},
+		{"parcel", "load", []string{"/crates/{id}"}},
+		{"crate", "load", []string{"/zzz/crate/{id}"}},
+		{"well_known_crate", "load", []string{"/well-known/crate/{id}"}},
+		{"xyn", "load", []string{"/zzz/xy"}},
+		{"well_known_xyn", "load", []string{"/well-known/xyn/{id}"}},
+		{"uvn", "load", []string{"/aaa/uv"}},
+		{"well_known_uvn", "load", []string{"/well-known/uvn/{id}"}},
+		{"qqn", "load", []string{"/aaa/qq"}},
+		{"well_known_qq", "load", []string{"/well-known/qq/{id}"}},
+		{"well_known_qq2", "load", []string{"/well-known/v2/qq/{id}"}},
+		{"rrn", "load", []string{"/aaa/rr"}},
+		{"well_known_rr", "load", []string{"/zzz/well_known_rr/{id}"}},
+		{"well_known_rr2", "load", []string{"/well-known/rr/{id}"}},
+		{"efn", "load", []string{"/aaa/efn/{id}"}},
+		{"well_known_ef", "load", []string{"/well-known/ef/{id}"}},
+		{"efn2", "load", []string{"/zzz/efn2/{id}"}},
+		{"abc", "load", []string{"/zzz/abc"}},
+		{"bcd", "load", []string{"/lt/bcd/{id}"}},
+		{disco, "load", []string{"/aaa/" + disco}},
+		{disco + "2", "load", []string{"/lt/abc/{id}"}},
+		{"oven", "load", []string{"/kilns/{id}"}},
+		{"pot", "list", []string{"/zzz/pots"}},
+		{"pot", "load", []string{"/zzz/pots/{id}"}},
+		{"kiln", "load", []string{"/well-known/kiln/{id}"}},
+		{"qrs", "load", []string{"/well-known/qrs/{id}"}},
+		{"qrs_admin_qrs", "load", []string{"/zzz/qrs/{id}"}},
+		{"qrt", "load", []string{"/zzz/qrt/{id}"}},
+		{"kit", "load", []string{"/well-known/kit/{id}"}},
+		{"kit", "create", []string{"/well-known/kit/{id}/merge"}},
+		{"aaa_kit", "load", []string{"/aaa/kit/{id}"}},
+	} {
+		if got := pathsOf(c.ent, c.op); !reflect.DeepEqual(got, c.want) {
+			t.Errorf("%s %s paths = %v, want %v", c.ent, c.op, got, c.want)
+		}
+	}
+}
+
 // Mirrors the TS `guide-trailing-key` case.
 // Mirrors the TS `guide-wrapper-name` case.
 func TestGuideWrapperName(t *testing.T) {

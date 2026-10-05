@@ -1,0 +1,2232 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Well-known",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://registry.example.com/apis/registry/v3"
+    }
+  ],
+  "paths": {
+    "/well-known/agent.json": {
+      "summary": "Get Agent Card.",
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentCard"
+                }
+              }
+            },
+            "description": "The Agent Card."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "getAgentCard",
+        "summary": "Get Agent Card"
+      }
+    },
+    "/well-known/agent-card.json": {
+      "summary": "Get Agent Card (Orchestrate).",
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentCard"
+                }
+              }
+            },
+            "description": "The Agent Card."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "getAgentCardForOrchestrate",
+        "summary": "Get Agent Card (Orchestrate)"
+      }
+    },
+    "/well-known/agents": {
+      "summary": "Search agents.",
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "parameters": [
+          {
+            "name": "offset",
+            "schema": {
+              "default": 0,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          },
+          {
+            "name": "limit",
+            "schema": {
+              "default": 20,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          },
+          {
+            "name": "name",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          },
+          {
+            "name": "skill",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query"
+          },
+          {
+            "name": "capability",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query"
+          },
+          {
+            "name": "inputMode",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query"
+          },
+          {
+            "name": "outputMode",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSearchResults"
+                }
+              }
+            },
+            "description": "Agent search results."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "searchAgents",
+        "summary": "Search agents"
+      }
+    },
+    "/well-known/agents/{groupId}/{artifactId}": {
+      "summary": "Get registered agent card.",
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "parameters": [
+          {
+            "name": "version",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {}
+            },
+            "description": "Agent Card JSON."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "getRegisteredAgentCard",
+        "summary": "Get registered agent card"
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/well-known/mcp-tools": {
+      "summary": "Search MCP tools.",
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "parameters": [
+          {
+            "name": "offset",
+            "schema": {
+              "default": 0,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          },
+          {
+            "name": "limit",
+            "schema": {
+              "default": 20,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          },
+          {
+            "name": "name",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          },
+          {
+            "name": "parameter",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpToolSearchResults"
+                }
+              }
+            },
+            "description": "MCP tool search results."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "searchMcpTools",
+        "summary": "Search MCP tools"
+      }
+    },
+    "/well-known/mcp-tools/{groupId}/{artifactId}": {
+      "summary": "Get registered MCP tool.",
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "parameters": [
+          {
+            "name": "version",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {}
+            },
+            "description": "MCP tool JSON."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "getRegisteredMcpTool",
+        "summary": "Get registered MCP tool"
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/well-known/schemas/{schemaType}/{version}": {
+      "summary": "Get JSON Schema.",
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {}
+            },
+            "description": "The JSON Schema."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "getSchema",
+        "summary": "Get JSON Schema"
+      },
+      "parameters": [
+        {
+          "name": "schemaType",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "version",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/ids/contentIds/{contentId}": {
+      "summary": "Access artifact content utilizing the unique content identifier for that content.",
+      "get": {
+        "tags": [
+          "Artifacts"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ArtifactContent"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        },
+        "operationId": "getContentById",
+        "summary": "Get artifact content by ID"
+      },
+      "parameters": [
+        {
+          "name": "contentId",
+          "schema": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/ids/globalIds/{globalId}": {
+      "summary": "Access artifact content utilizing an artifact version's globally unique identifier.",
+      "get": {
+        "tags": [
+          "Artifacts"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ArtifactContent"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        },
+        "operationId": "getContentByGlobalId",
+        "summary": "Get artifact by global ID"
+      },
+      "parameters": [
+        {
+          "name": "globalId",
+          "schema": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/other/db": {
+      "get": {
+        "tags": [
+          "Other"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Db"
+                }
+              }
+            },
+            "description": "The database."
+          }
+        }
+      }
+    },
+    "/well-known/db": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The databases."
+          }
+        }
+      }
+    },
+    "/well-known/db/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The database."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/well-known/dbase": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The database aliases."
+          }
+        }
+      }
+    },
+    "/well-known/dbase/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The database alias."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/zzz/dbase/{id}/history": {
+      "post": {
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The history entry."
+          }
+        }
+      }
+    },
+    "/aaa/ledger/{id}/history": {
+      "post": {
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The history entry."
+          }
+        }
+      }
+    },
+    "/well-known/ledger/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The ledger."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/zzz/{id}/dbset": {
+      "get": {
+        "tags": [
+          "Zzz"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentCard"
+                }
+              }
+            },
+            "description": "The agent card for the set."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/well-known/dbset/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The database set."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/aaa/ds/{id}": {
+      "get": {
+        "tags": [
+          "Aaa"
+        ],
+        "responses": {
+          "200": {
+            "description": "The data source."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/aaa/dsx/{id}": {
+      "get": {
+        "tags": [
+          "Aaa"
+        ],
+        "responses": {
+          "200": {
+            "description": "The extended data source."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/well-known/ds/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The data source."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/zzz/dtn": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "The data table names."
+          }
+        }
+      }
+    },
+    "/well-known/dt/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The data table."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/zzz/vault/{id}": {
+      "get": {
+        "tags": [
+          "Zzz"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Widget"
+                }
+              }
+            },
+            "description": "The widget in the vault."
+          }
+        }
+      }
+    },
+    "/zzz/vault/{id}/merge": {
+      "post": {
+        "tags": [
+          "Zzz"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MergeResult"
+                }
+              }
+            },
+            "description": "The merge result."
+          }
+        }
+      }
+    },
+    "/well-known/vault/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The vault."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/well-known/repo/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The repository."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/zzz/repo/{id}": {
+      "get": {
+        "tags": [
+          "Repo"
+        ],
+        "responses": {
+          "200": {
+            "description": "The repository."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/well-known/cask/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The cask."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/aaa/cask/{id}": {
+      "get": {
+        "tags": [
+          "Cask"
+        ],
+        "responses": {
+          "200": {
+            "description": "The cask."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/crates/{id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Parcel"
+                }
+              }
+            },
+            "description": "The parcel in the crate."
+          }
+        }
+      }
+    },
+    "/zzz/crate/{id}": {
+      "get": {
+        "tags": [
+          "Crate"
+        ],
+        "responses": {
+          "200": {
+            "description": "The crate."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/well-known/crate/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The crate."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/kilns/{id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Oven"
+                }
+              }
+            },
+            "description": "The oven of the kiln."
+          }
+        }
+      }
+    },
+    "/zzz/pots": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Pot"
+                  }
+                }
+              }
+            },
+            "description": "The pots."
+          }
+        }
+      }
+    },
+    "/zzz/pots/{id}": {
+      "get": {
+        "tags": [
+          "Kiln"
+        ],
+        "responses": {
+          "200": {
+            "description": "The pot."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/well-known/kiln/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The kiln."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/well-known/qrs/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The queue."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/zzz/qrs/{id}": {
+      "get": {
+        "tags": [
+          "QrsAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "The queue."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/zzz/qrt/{id}": {
+      "get": {
+        "tags": [
+          "QrsAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "The queue topic."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/well-known/xyn/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The axis."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/zzz/xy": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Xy"
+                }
+              }
+            },
+            "description": "The axis."
+          }
+        }
+      }
+    },
+    "/well-known/uvn/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The light."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/aaa/uv": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Uv"
+                }
+              }
+            },
+            "description": "The light."
+          }
+        }
+      }
+    },
+    "/aaa/kit/{id}": {
+      "get": {
+        "tags": [
+          "Aaa"
+        ],
+        "responses": {
+          "200": {
+            "description": "The kit."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/well-known/kit/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The kit."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/well-known/kit/{id}/merge": {
+      "post": {
+        "tags": [
+          "WellKnown"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The merge."
+          }
+        }
+      }
+    },
+    "/aaa/dun": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "The data unit names."
+          }
+        }
+      }
+    },
+    "/well-known/du/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The data unit."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/aaa/qq": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Qq"
+                }
+              }
+            },
+            "description": "The queue."
+          }
+        }
+      }
+    },
+    "/well-known/qq/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The queue."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/well-known/v2/qq/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The queue, second edition."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/aaa/efn/{id}": {
+      "get": {
+        "tags": [
+          "Aaa"
+        ],
+        "responses": {
+          "200": {
+            "description": "The effect."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/well-known/ef/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The effect."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/zzz/efn2/{id}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "The effect, second edition."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/aaa/rr": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "The rates."
+          }
+        }
+      }
+    },
+    "/well-known/rr/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The rate."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/zzz/well_known_rr/{id}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "The published rate."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/aaa/well_known_discovery_endpoints_for_agents_and_model_context": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "The discovery index."
+          }
+        }
+      }
+    },
+    "/lt/abc/{id}": {
+      "get": {
+        "tags": [
+          "WellKnownDiscoveryEndpointsForAgentsAndModelContextProtocolToolsRegistry"
+        ],
+        "responses": {
+          "200": {
+            "description": "The listing."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/lt/bcd/{id}": {
+      "get": {
+        "tags": [
+          "WellKnownDiscoveryEndpointsForAgentsAndModelContextProtocolToolsRegistry"
+        ],
+        "responses": {
+          "200": {
+            "description": "The listing."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/zzz/abc": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "The listings."
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AgentCard": {
+        "description": "Represents an A2A Agent Card.",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "protocolVersion": {
+            "type": "string"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/AgentProvider"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/AgentCapabilities"
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentSkill"
+            }
+          },
+          "defaultInputModes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "defaultOutputModes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "supportedInterfaces": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentInterface"
+            }
+          },
+          "securitySchemes": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/AgentSecurityScheme"
+            }
+          },
+          "securityRequirements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentSecurityRequirement"
+            }
+          },
+          "iconUrl": {
+            "type": "string"
+          },
+          "documentationUrl": {
+            "type": "string"
+          },
+          "signatures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentCardSignature"
+            }
+          }
+        }
+      },
+      "AgentProvider": {
+        "description": "Provider of an A2A agent.",
+        "type": "object",
+        "properties": {
+          "organization": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        }
+      },
+      "AgentCapabilities": {
+        "description": "Capabilities of an A2A agent.",
+        "type": "object",
+        "properties": {
+          "streaming": {
+            "type": "boolean"
+          },
+          "pushNotifications": {
+            "type": "boolean"
+          },
+          "extendedAgentCard": {
+            "type": "boolean"
+          },
+          "extensions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentExtension"
+            }
+          }
+        }
+      },
+      "AgentExtension": {
+        "description": "Extension for an A2A agent.",
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "params": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        }
+      },
+      "AgentSkill": {
+        "description": "A skill an A2A agent can perform.",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "examples": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "inputModes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "outputModes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "securityRequirements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentSecurityRequirement"
+            }
+          }
+        }
+      },
+      "AgentSecurityRequirement": {
+        "description": "Security requirement for an A2A agent.",
+        "type": "object",
+        "properties": {
+          "schemes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "AgentInterface": {
+        "description": "Interface endpoint for an A2A agent.",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "protocolBinding": {
+            "type": "string"
+          },
+          "protocolVersion": {
+            "type": "string"
+          },
+          "tenant": {
+            "type": "string"
+          }
+        }
+      },
+      "AgentSecurityScheme": {
+        "description": "Security scheme for an A2A agent.",
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "scheme": {
+            "type": "string"
+          },
+          "bearerFormat": {
+            "type": "string"
+          },
+          "flows": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "oauth2MetadataUrl": {
+            "type": "string"
+          },
+          "openIdConnectUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "AgentCardSignature": {
+        "description": "Signature on an agent card.",
+        "type": "object",
+        "properties": {
+          "protected": {
+            "type": "string"
+          },
+          "signature": {
+            "type": "string"
+          },
+          "header": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        }
+      },
+      "ProblemDetails": {
+        "title": "Root Type for Error",
+        "description": "All error responses, whether `4xx` or `5xx` will include one of these as the response\nbody.",
+        "required": [
+          "title",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "detail": {
+            "description": "A human-readable explanation specific to this occurrence of the problem.",
+            "type": "string"
+          },
+          "type": {
+            "description": "A URI reference [RFC3986] that identifies the problem type.",
+            "type": "string"
+          },
+          "title": {
+            "description": "A short, human-readable summary of the problem type.",
+            "type": "string"
+          },
+          "status": {
+            "format": "int32",
+            "description": "The HTTP status code.",
+            "type": "integer"
+          },
+          "instance": {
+            "description": "A URI reference that identifies the specific occurrence of the problem.",
+            "type": "string"
+          },
+          "name": {
+            "description": "The name of the error (typically a server exception class name).",
+            "type": "string"
+          }
+        },
+        "example": {
+          "status": 500,
+          "name": "NullPointerException",
+          "title": "An error occurred somewhere."
+        }
+      },
+      "AgentSearchResults": {
+        "description": "Search results for agent cards.",
+        "required": [
+          "count",
+          "agents"
+        ],
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "agents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentSearchResult"
+            }
+          }
+        }
+      },
+      "AgentSearchResult": {
+        "description": "Agent card search result.",
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "type": "string"
+          },
+          "artifactId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "supportedInterfaces": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentInterface"
+            }
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/AgentCapabilities"
+          },
+          "createdOn": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "owner": {
+            "type": "string"
+          }
+        }
+      },
+      "McpToolSearchResults": {
+        "description": "Search results for MCP tools.",
+        "required": [
+          "count",
+          "tools"
+        ],
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "tools": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/McpToolSearchResult"
+            }
+          }
+        }
+      },
+      "McpToolSearchResult": {
+        "description": "MCP tool search result.",
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "type": "string"
+          },
+          "artifactId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "createdOn": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "parameters": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "FileContent": {
+        "format": "binary",
+        "type": "string",
+        "x-codegen-inline": true
+      },
+      "ArtifactType": {
+        "description": "",
+        "type": "string",
+        "example": "AVRO",
+        "x-codegen-package": "io.apicurio.registry.types"
+      },
+      "Db": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "Widget": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "MergeResult": {
+        "type": "object",
+        "properties": {
+          "merged": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Parcel": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "Oven": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "Pot": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "Xy": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "Uv": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "Qq": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "examples": {
+              "UnauthorizedExample": {
+                "value": {
+                  "detail": "UnauthorizedException: User is not authenticated.",
+                  "title": "User is not authenticated.",
+                  "status": 401,
+                  "name": "UnauthorizedException"
+                }
+              }
+            }
+          }
+        },
+        "description": "Common response for all operations that can return a `401` error indicating authentication is required."
+      },
+      "Forbidden": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "examples": {
+              "ForbiddenExample": {
+                "value": {
+                  "detail": "ForbiddenException: User is not authorized to perform this operation.",
+                  "title": "User is not authorized to perform this operation.",
+                  "status": 403,
+                  "name": "ForbiddenException"
+                }
+              }
+            }
+          }
+        },
+        "description": "Common response for all operations that can return a `403` error indicating the user is authenticated but not authorized."
+      },
+      "ServerError": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "examples": {
+              "ServerErrorExample": {
+                "value": {
+                  "detail": "StorageException: Lost connection to the database.",
+                  "title": "Lost connection to the database.",
+                  "status": 500,
+                  "name": "StorageException"
+                }
+              }
+            }
+          }
+        },
+        "description": "Common response for all operations that can fail with an unexpected server error."
+      },
+      "NotFound": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "examples": {
+              "NotFoundExample": {
+                "value": {
+                  "detail": "ArtifactNotFoundException: No artifact with ID 'artifact-ID' in group 'group-ID' was found.",
+                  "title": "No artifact with ID 'artifact-ID' in group 'group-ID' was found.",
+                  "status": 404,
+                  "name": "ArtifactNotFoundException"
+                }
+              }
+            }
+          }
+        },
+        "description": "Common response for all operations that can return a `404` error."
+      },
+      "ArtifactContent": {
+        "headers": {
+          "X-Registry-ArtifactType": {
+            "schema": {
+              "$ref": "#/components/schemas/ArtifactType"
+            }
+          }
+        },
+        "content": {
+          "*/*": {
+            "schema": {
+              "$ref": "#/components/schemas/FileContent"
+            }
+          }
+        },
+        "description": "The content of one version of one artifact."
+      }
+    }
+  }
+}
