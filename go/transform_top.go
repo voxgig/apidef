@@ -17,18 +17,17 @@ func TopTransform(ctx *ApiDefContext) (*TransformResult, error) {
 	kit := getKit(ctx)
 	def := ctx.Def
 
-	info, _ := def["info"].(map[string]any)
-	if info != nil {
-		info = maps.Clone(info)
-		kit["info"] = info
-		info["description"] = ensureDescription(info)
+	info, _ := stringifyInfoScalars(def["info"]).(map[string]any)
+	if info == nil {
+		info = map[string]any{}
 	}
-
-	servers, _ := def["servers"]
-	if servers != nil {
-		infoMap := kit["info"].(map[string]any)
-		infoMap["servers"] = servers
+	kit["info"] = info
+	servers, _ := stringifyInfoScalars(def["servers"]).([]any)
+	if servers == nil {
+		servers = []any{}
 	}
+	info["servers"] = servers
+	info["description"] = ensureDescription(info)
 
 	// Swagger 2.0
 	if host, ok := def["host"].(string); ok {

@@ -49,6 +49,7 @@ import {
 } from '../dist/transform/field'
 
 import { makeResolved } from '../dist/resolved'
+import { stringifyInfoScalars } from '../dist/transform/top'
 
 import { selectTransform } from '../dist/transform/select'
 import { bodyTransform, requestBody, responseBody } from '../dist/transform/body'
@@ -1097,6 +1098,17 @@ describe('tsv-servers', () => {
       })
       assert.deepStrictEqual(apimodel.main.kit.info.servers, JSON.parse(row.servers))
       assert.deepStrictEqual(warnings.map((warning) => warning.note), JSON.parse(row.warnings))
+    })
+  }
+})
+
+
+describe('tsv-info-scalars', () => {
+  const rows = loadTsv('info-scalars')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(`stringifyInfoScalars(${row.input})`, () => {
+      assert.deepStrictEqual(stringifyInfoScalars(JSON.parse(row.input)), JSON.parse(row.expected))
     })
   }
 })
