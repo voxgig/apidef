@@ -4,9 +4,15 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 20
-  metrics: count: path: 27
-  metrics: count: method: 27
+  metrics: count: entity: 39
+  metrics: count: path: 48
+  metrics: count: method: 48
+
+  entity: aaa_kit: {
+    path: "/aaa/kit/{id}": {
+      op: load: method: *GET
+    }
+  }
 
   entity: agent: {
     path: "/well-known/agent.json": {
@@ -31,6 +37,18 @@ guide: {
     }
     path: "/ids/globalIds/{globalId}": {
       rename: param: "globalId": *"global_id"
+      op: load: method: *GET
+    }
+  }
+
+  entity: cask: {
+    path: "/aaa/cask/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: crate: {
+    path: "/zzz/crate/{id}": {
       op: load: method: *GET
     }
   }
@@ -72,6 +90,22 @@ guide: {
     }
   }
 
+  entity: kiln: {
+    path: "/well-known/kiln/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: kit: {
+    path: "/well-known/kit/{id}": {
+      op: load: method: *GET
+    }
+    path: "/well-known/kit/{id}/merge": {
+      action: "merge": {}
+      op: create: method: *POST
+    }
+  }
+
   entity: ledger: {
     path: "/aaa/ledger/{id}/history": {
       action: "history": {}
@@ -91,9 +125,60 @@ guide: {
     }
   }
 
+  entity: oven: {
+    path: "/kilns/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: parcel: {
+    path: "/crates/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: pot: {
+    path: "/zzz/pots": {
+      op: list: method: *GET
+    }
+    path: "/zzz/pots/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: qrs: {
+    path: "/well-known/qrs/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: qrs_admin_qrs: {
+    path: "/zzz/qrs/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: qrt: {
+    path: "/zzz/qrt/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: repo: {
+    path: "/zzz/repo/{id}": {
+      op: load: method: *GET
+    }
+  }
+
   entity: schema: {
     path: "/well-known/schemas/{schemaType}/{version}": {
       rename: param: "schemaType": *"schema_type"
+      op: load: method: *GET
+    }
+  }
+
+  entity: uvn: {
+    path: "/aaa/uv": {
       op: load: method: *GET
     }
   }
@@ -112,6 +197,18 @@ guide: {
     path: "/well-known/agents/{groupId}/{artifactId}": {
       rename: param: "artifactId": *"artifact_id"
       rename: param: "groupId": *"group_id"
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_cask: {
+    path: "/well-known/cask/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_crate: {
+    path: "/well-known/crate/{id}": {
       op: load: method: *GET
     }
   }
@@ -154,6 +251,24 @@ guide: {
     }
   }
 
+  entity: well_known_repo: {
+    path: "/well-known/repo/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_uvn: {
+    path: "/well-known/uvn/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_xyn: {
+    path: "/well-known/xyn/{id}": {
+      op: load: method: *GET
+    }
+  }
+
   entity: widget: {
     path: "/zzz/vault/{id}": {
       op: load: method: *GET
@@ -162,6 +277,12 @@ guide: {
       action: "merge": {}
       rename: param: "id": *"vault_id"
       op: create: method: *POST
+    }
+  }
+
+  entity: xyn: {
+    path: "/zzz/xy": {
+      op: load: method: *GET
     }
   }
 

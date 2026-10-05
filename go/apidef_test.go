@@ -613,9 +613,12 @@ func TestGuideWellKnown(t *testing.T) {
 	}
 
 	if got := sortedKeys(entities); !reflect.DeepEqual(got,
-		[]string{"agent", "agent_card", "artifact", "dbase", "dbn", "dbset", "dsn", "dsx", "dtn",
-			"ledger", "mcp_tool", "schema", "vault", "well_known_agent", "well_known_db",
-			"well_known_dbase", "well_known_ds", "well_known_dt", "well_known_ledger", "widget"}) {
+		[]string{"aaa_kit", "agent", "agent_card", "artifact", "cask", "crate", "dbase", "dbn",
+			"dbset", "dsn", "dsx", "dtn", "kiln", "kit", "ledger", "mcp_tool", "oven",
+			"parcel", "pot", "qrs", "qrs_admin_qrs", "qrt", "repo", "schema", "uvn", "vault",
+			"well_known_agent", "well_known_cask", "well_known_crate", "well_known_db",
+			"well_known_dbase", "well_known_ds", "well_known_dt", "well_known_ledger",
+			"well_known_repo", "well_known_uvn", "well_known_xyn", "widget", "xyn"}) {
 		t.Errorf("entities = %v", got)
 	}
 	for _, c := range []struct {
@@ -644,6 +647,27 @@ func TestGuideWellKnown(t *testing.T) {
 		{"widget", "load", []string{"/zzz/vault/{id}"}},
 		{"widget", "create", []string{"/zzz/vault/{id}/merge"}},
 		{"vault", "load", []string{"/well-known/vault/{id}"}},
+		{"repo", "load", []string{"/zzz/repo/{id}"}},
+		{"well_known_repo", "load", []string{"/well-known/repo/{id}"}},
+		{"cask", "load", []string{"/aaa/cask/{id}"}},
+		{"well_known_cask", "load", []string{"/well-known/cask/{id}"}},
+		{"parcel", "load", []string{"/crates/{id}"}},
+		{"crate", "load", []string{"/zzz/crate/{id}"}},
+		{"well_known_crate", "load", []string{"/well-known/crate/{id}"}},
+		{"xyn", "load", []string{"/zzz/xy"}},
+		{"well_known_xyn", "load", []string{"/well-known/xyn/{id}"}},
+		{"uvn", "load", []string{"/aaa/uv"}},
+		{"well_known_uvn", "load", []string{"/well-known/uvn/{id}"}},
+		{"oven", "load", []string{"/kilns/{id}"}},
+		{"pot", "list", []string{"/zzz/pots"}},
+		{"pot", "load", []string{"/zzz/pots/{id}"}},
+		{"kiln", "load", []string{"/well-known/kiln/{id}"}},
+		{"qrs", "load", []string{"/well-known/qrs/{id}"}},
+		{"qrs_admin_qrs", "load", []string{"/zzz/qrs/{id}"}},
+		{"qrt", "load", []string{"/zzz/qrt/{id}"}},
+		{"kit", "load", []string{"/well-known/kit/{id}"}},
+		{"kit", "create", []string{"/well-known/kit/{id}/merge"}},
+		{"aaa_kit", "load", []string{"/aaa/kit/{id}"}},
 	} {
 		if got := pathsOf(c.ent, c.op); !reflect.DeepEqual(got, c.want) {
 			t.Errorf("%s %s paths = %v, want %v", c.ent, c.op, got, c.want)

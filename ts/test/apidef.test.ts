@@ -670,9 +670,9 @@ describe('apidef', () => {
 
   // Apicurio tags every /well-known route WellKnown and its agent, MCP tool and
   // schema reads answer nothing, so each item route takes its collection's
-  // segment, after the tag where an outside route, before or after it, has that
-  // name: agent.json, db, ledger, dbase, another tag's ds (as dsn) and dt (as
-  // dtn). Not dbset or vault: their /zzz routes take other names.
+  // segment, after the tag where a route outside it, before or after it, has
+  // that name or its stored form. An item route its collection names counts
+  // only once named, and a verb on one claims the route's segment.
   test('guide-well-known', async () => {
     const folder = __dirname + '/../test/well-known'
 
@@ -702,9 +702,12 @@ describe('apidef', () => {
     const paths = (ent: string, op: string) =>
       (entities[ent]?.op[op]?.points ?? []).map((pt: any) => pt.o).sort()
     assert.deepStrictEqual(Object.keys(entities).sort(),
-      ['agent', 'agent_card', 'artifact', 'dbase', 'dbn', 'dbset', 'dsn', 'dsx', 'dtn',
-        'ledger', 'mcp_tool', 'schema', 'vault', 'well_known_agent', 'well_known_db',
-        'well_known_dbase', 'well_known_ds', 'well_known_dt', 'well_known_ledger', 'widget'])
+      ['aaa_kit', 'agent', 'agent_card', 'artifact', 'cask', 'crate', 'dbase', 'dbn',
+        'dbset', 'dsn', 'dsx', 'dtn', 'kiln', 'kit', 'ledger', 'mcp_tool', 'oven',
+        'parcel', 'pot', 'qrs', 'qrs_admin_qrs', 'qrt', 'repo', 'schema', 'uvn', 'vault',
+        'well_known_agent', 'well_known_cask', 'well_known_crate', 'well_known_db',
+        'well_known_dbase', 'well_known_ds', 'well_known_dt', 'well_known_ledger',
+        'well_known_repo', 'well_known_uvn', 'well_known_xyn', 'widget', 'xyn'])
     assert.deepStrictEqual(paths('agent', 'list'), ['/well-known/agent.json'])
     assert.deepStrictEqual(paths('well_known_agent', 'list'), ['/well-known/agents'])
     assert.deepStrictEqual(paths('well_known_agent', 'load'),
@@ -734,6 +737,31 @@ describe('apidef', () => {
     assert.deepStrictEqual(paths('widget', 'load'), ['/zzz/vault/{id}'])
     assert.deepStrictEqual(paths('widget', 'create'), ['/zzz/vault/{id}/merge'])
     assert.deepStrictEqual(paths('vault', 'load'), ['/well-known/vault/{id}'])
+    assert.deepStrictEqual(paths('repo', 'load'), ['/zzz/repo/{id}'])
+    assert.deepStrictEqual(paths('well_known_repo', 'load'), ['/well-known/repo/{id}'])
+    assert.deepStrictEqual(paths('cask', 'load'), ['/aaa/cask/{id}'])
+    assert.deepStrictEqual(paths('well_known_cask', 'load'), ['/well-known/cask/{id}'])
+    assert.deepStrictEqual(paths('parcel', 'load'), ['/crates/{id}'])
+    assert.deepStrictEqual(paths('crate', 'load'), ['/zzz/crate/{id}'])
+    assert.deepStrictEqual(paths('well_known_crate', 'load'), ['/well-known/crate/{id}'])
+    assert.deepStrictEqual(paths('xyn', 'load'), ['/zzz/xy'])
+    assert.deepStrictEqual(paths('well_known_xyn', 'load'), ['/well-known/xyn/{id}'])
+    assert.deepStrictEqual(paths('uvn', 'load'), ['/aaa/uv'])
+    assert.deepStrictEqual(paths('well_known_uvn', 'load'), ['/well-known/uvn/{id}'])
+
+    // Bare where no route outside has the name: Kiln's item route takes its
+    // collection's record, QrsAdmin's counts only once named, and Aaa's kit
+    // takes its tag, since the verb on WellKnown's kit claims kit.
+    assert.deepStrictEqual(paths('oven', 'load'), ['/kilns/{id}'])
+    assert.deepStrictEqual(paths('pot', 'list'), ['/zzz/pots'])
+    assert.deepStrictEqual(paths('pot', 'load'), ['/zzz/pots/{id}'])
+    assert.deepStrictEqual(paths('kiln', 'load'), ['/well-known/kiln/{id}'])
+    assert.deepStrictEqual(paths('qrs', 'load'), ['/well-known/qrs/{id}'])
+    assert.deepStrictEqual(paths('qrs_admin_qrs', 'load'), ['/zzz/qrs/{id}'])
+    assert.deepStrictEqual(paths('qrt', 'load'), ['/zzz/qrt/{id}'])
+    assert.deepStrictEqual(paths('kit', 'load'), ['/well-known/kit/{id}'])
+    assert.deepStrictEqual(paths('kit', 'create'), ['/well-known/kit/{id}/merge'])
+    assert.deepStrictEqual(paths('aaa_kit', 'load'), ['/aaa/kit/{id}'])
   })
 
 

@@ -263,11 +263,13 @@ that a route outside the collection takes, wherever it sorts, takes the
 tag's name before it. `/well-known/agent.json` names `agent`, so the agents
 become `well_known_agent`, and neither list hides the other. A route that
 sorts after the item route is not named yet when the item route is, so the
-guide first works out every route's name by the same rules, before it names
-any. The exception is an item route that another tag gathers, since this
-rule is what names it: it counts once it is named, so of two tags'
-collections that end in the same segment, the later one takes its tag's
-name, and the two still stay apart. Apicurio's reads of
+guide first works out the name each route takes from its path, its record
+and its tag, before it names any. That leaves out the item routes this rule
+names, since this rule is what names them: such a route counts once it is
+named, so of two tags' item routes that this rule names from collections
+ending in the same segment, the later one takes its tag's name, and the two
+still stay apart. A verb on such an item route counts as taking the
+segment's name. Apicurio's reads of
 artifact content by content ID and by global ID each select by their own
 parameter, so they share no selector and stay on `artifact`, the entity
 their tag names.

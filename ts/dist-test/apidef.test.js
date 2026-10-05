@@ -526,9 +526,9 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
     });
     // Apicurio tags every /well-known route WellKnown and its agent, MCP tool and
     // schema reads answer nothing, so each item route takes its collection's
-    // segment, after the tag where an outside route, before or after it, has that
-    // name: agent.json, db, ledger, dbase, another tag's ds (as dsn) and dt (as
-    // dtn). Not dbset or vault: their /zzz routes take other names.
+    // segment, after the tag where a route outside it, before or after it, has
+    // that name or its stored form. An item route its collection names counts
+    // only once named, and a verb on one claims the route's segment.
     (0, node_test_1.test)('guide-well-known', async () => {
         const folder = __dirname + '/../test/well-known';
         const build = await apidef_1.ApiDef.makeBuild({ folder });
@@ -548,9 +548,12 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
         const entities = bres.apimodel.main.kit.entity;
         const paths = (ent, op) => (entities[ent]?.op[op]?.points ?? []).map((pt) => pt.o).sort();
-        node_assert_1.default.deepStrictEqual(Object.keys(entities).sort(), ['agent', 'agent_card', 'artifact', 'dbase', 'dbn', 'dbset', 'dsn', 'dsx', 'dtn',
-            'ledger', 'mcp_tool', 'schema', 'vault', 'well_known_agent', 'well_known_db',
-            'well_known_dbase', 'well_known_ds', 'well_known_dt', 'well_known_ledger', 'widget']);
+        node_assert_1.default.deepStrictEqual(Object.keys(entities).sort(), ['aaa_kit', 'agent', 'agent_card', 'artifact', 'cask', 'crate', 'dbase', 'dbn',
+            'dbset', 'dsn', 'dsx', 'dtn', 'kiln', 'kit', 'ledger', 'mcp_tool', 'oven',
+            'parcel', 'pot', 'qrs', 'qrs_admin_qrs', 'qrt', 'repo', 'schema', 'uvn', 'vault',
+            'well_known_agent', 'well_known_cask', 'well_known_crate', 'well_known_db',
+            'well_known_dbase', 'well_known_ds', 'well_known_dt', 'well_known_ledger',
+            'well_known_repo', 'well_known_uvn', 'well_known_xyn', 'widget', 'xyn']);
         node_assert_1.default.deepStrictEqual(paths('agent', 'list'), ['/well-known/agent.json']);
         node_assert_1.default.deepStrictEqual(paths('well_known_agent', 'list'), ['/well-known/agents']);
         node_assert_1.default.deepStrictEqual(paths('well_known_agent', 'load'), ['/well-known/agents/{groupId}/{artifactId}']);
@@ -573,6 +576,30 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.deepStrictEqual(paths('widget', 'load'), ['/zzz/vault/{id}']);
         node_assert_1.default.deepStrictEqual(paths('widget', 'create'), ['/zzz/vault/{id}/merge']);
         node_assert_1.default.deepStrictEqual(paths('vault', 'load'), ['/well-known/vault/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('repo', 'load'), ['/zzz/repo/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('well_known_repo', 'load'), ['/well-known/repo/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('cask', 'load'), ['/aaa/cask/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('well_known_cask', 'load'), ['/well-known/cask/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('parcel', 'load'), ['/crates/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('crate', 'load'), ['/zzz/crate/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('well_known_crate', 'load'), ['/well-known/crate/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('xyn', 'load'), ['/zzz/xy']);
+        node_assert_1.default.deepStrictEqual(paths('well_known_xyn', 'load'), ['/well-known/xyn/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('uvn', 'load'), ['/aaa/uv']);
+        node_assert_1.default.deepStrictEqual(paths('well_known_uvn', 'load'), ['/well-known/uvn/{id}']);
+        // Bare where no route outside has the name: Kiln's item route takes its
+        // collection's record, QrsAdmin's counts only once named, and Aaa's kit
+        // takes its tag, since the verb on WellKnown's kit claims kit.
+        node_assert_1.default.deepStrictEqual(paths('oven', 'load'), ['/kilns/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('pot', 'list'), ['/zzz/pots']);
+        node_assert_1.default.deepStrictEqual(paths('pot', 'load'), ['/zzz/pots/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('kiln', 'load'), ['/well-known/kiln/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('qrs', 'load'), ['/well-known/qrs/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('qrs_admin_qrs', 'load'), ['/zzz/qrs/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('qrt', 'load'), ['/zzz/qrt/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('kit', 'load'), ['/well-known/kit/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('kit', 'create'), ['/well-known/kit/{id}/merge']);
+        node_assert_1.default.deepStrictEqual(paths('aaa_kit', 'load'), ['/aaa/kit/{id}']);
     });
     // A trailing parameter under its entity's segment is the entity's key,
     // whatever the response component is called: a rare component named for

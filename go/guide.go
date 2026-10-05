@@ -600,7 +600,9 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 			"tagItems":        map[string]map[string]map[string]bool{},
 			"claims":          map[string]map[string]bool{},
 			"claimowner":      map[string]any{},
+			"claimrecord":     map[string]string{},
 			"pathowner":       map[string]any{},
+			"recordowner":     map[string]string{},
 			"sharing": &sharingWork{
 				records: map[string]bool{},
 				yields:  map[string]bool{},
@@ -1270,23 +1272,7 @@ func resolveEntityName(ctx *ApiDefContext, data map[string]any, mdesc map[string
 	}
 	owners[methodName] = entname
 
-	// The entity a path's own record names, where the record carries the
-	// name the path's last segment gives.
-	recordowner, _ := work["recordowner"].(map[string]string)
-	if recordowner == nil {
-		recordowner = map[string]string{}
-		work["recordowner"] = recordowner
-	}
-	last := ""
-	for _, part := range parts {
-		if !isParam(part) {
-			last = part
-		}
-	}
-	if _, seen := recordowner[pathStr]; !seen && isSchemaRef(safeStr(ment["ref"])) &&
-		entname == safeStr(ment["cmp"]) && last != "" && entname == Canonize(last) {
-		recordowner[pathStr] = entname
-	}
+	markRecordOwner(work["recordowner"].(map[string]string), pathStr, parts, ment, entname)
 
 	DebugPath(pathStr, methodName, "RESOLVE-ENTITY-NAME", entname)
 }
@@ -1314,6 +1300,21 @@ func pathEntityName(data map[string]any, mdesc map[string]any, parts []string,
 	}
 	name := inferEntityName(mdesc, parts, why)
 	return name, name != ""
+}
+
+// markRecordOwner mirrors ts/src/guide/heuristic01.ts.
+func markRecordOwner(recordowner map[string]string, pathStr string, parts []string,
+	ment map[string]any, entname string) {
+	last := ""
+	for _, part := range parts {
+		if !isParam(part) {
+			last = part
+		}
+	}
+	if _, seen := recordowner[pathStr]; !seen && isSchemaRef(safeStr(ment["ref"])) &&
+		entname == safeStr(ment["cmp"]) && last != "" && entname == Canonize(last) {
+		recordowner[pathStr] = entname
+	}
 }
 
 // renameParams renames path parameters to follow ID conventions.
@@ -3362,7 +3363,8 @@ func measureClaims(data map[string]any, mdesc map[string]any) {
 	work := data["work"].(map[string]any)
 	pathStr := safeStr(mdesc["path"])
 	parts := pathParts(data, pathStr)
-	if tagItemCollection(data, mdesc, parts) != "" {
+	claimrecord := work["claimrecord"].(map[string]string)
+	if collection, _ := collectionNaming(data, mdesc, parts, claimrecord); collection != "" {
 		return
 	}
 
@@ -3378,17 +3380,21 @@ func measureClaims(data map[string]any, mdesc map[string]any) {
 	if !named {
 		return
 	}
+	stored := EnsureMinEntityName(name, nil)
 	claims := work["claims"].(map[string]map[string]bool)
-	if claims[name] == nil {
-		claims[name] = map[string]bool{}
+	for _, key := range []string{name, stored} {
+		if claims[key] == nil {
+			claims[key] = map[string]bool{}
+		}
+		claims[key][pathStr] = true
 	}
-	claims[name][pathStr] = true
 	owners, _ := claimowner[pathStr].(map[string]any)
 	if owners == nil {
 		owners = map[string]any{}
 		claimowner[pathStr] = owners
 	}
 	owners[safeStr(mdesc["method"])] = name
+	markRecordOwner(claimrecord, pathStr, parts, ment, stored)
 }
 
 // tagItemCollection mirrors ts/src/guide/heuristic01.ts: the collection of an
@@ -3428,9 +3434,10 @@ func tagItemCollection(data map[string]any, mdesc map[string]any, parts []string
 	return "/" + strings.Join(parts[:nlits], "/")
 }
 
-// itemOfCollection mirrors ts/src/guide/heuristic01.ts: the entity of a
-// tag-named item route's collection, and the reason recorded for it.
-func itemOfCollection(data map[string]any, mdesc map[string]any, parts []string) (string, string) {
+// collectionNaming mirrors ts/src/guide/heuristic01.ts; collection is empty
+// where the TS returns null, and record where it names no record.
+func collectionNaming(data map[string]any, mdesc map[string]any, parts []string,
+	recordowner map[string]string) (string, string) {
 	collection := tagItemCollection(data, mdesc, parts)
 	if collection == "" {
 		return "", ""
@@ -3440,15 +3447,14 @@ func itemOfCollection(data map[string]any, mdesc map[string]any, parts []string)
 	cmp := safeStr(mdesc["MethodEntity"].(map[string]any)["cmp"])
 	recordResources, _ := work["recordResources"].(map[string]bool)
 	if recordResources[cmp] {
-		recordowner, _ := work["recordowner"].(map[string]string)
-		name, ok := recordowner[collection]
+		record, ok := recordowner[collection]
 		if !ok {
-			name = recordowner[collection+"/"]
+			record = recordowner[collection+"/"]
 		}
-		if name == "" {
+		if record == "" {
 			return "", ""
 		}
-		return name, "collection-record"
+		return collection, record
 	}
 
 	tagItems, _ := work["tagItems"].(map[string]map[string]map[string]bool)
@@ -3456,7 +3462,22 @@ func itemOfCollection(data map[string]any, mdesc map[string]any, parts []string)
 	if !tagCollides(def, tagItems[cmp]) {
 		return "", ""
 	}
+	return collection, ""
+}
 
+// itemOfCollection mirrors ts/src/guide/heuristic01.ts: the entity of an item
+// route its collection names, and the reason recorded for it.
+func itemOfCollection(data map[string]any, mdesc map[string]any, parts []string) (string, string) {
+	work := data["work"].(map[string]any)
+	collection, record := collectionNaming(data, mdesc, parts, work["recordowner"].(map[string]string))
+	if collection == "" {
+		return "", ""
+	}
+	if record != "" {
+		return record, "collection-record"
+	}
+
+	cmp := safeStr(mdesc["MethodEntity"].(map[string]any)["cmp"])
 	segment := Canonize(collection[strings.LastIndex(collection, "/")+1:])
 	if segmentHeld(work, segment, collection) {
 		return cmp + "_" + segment, "collection-segment"

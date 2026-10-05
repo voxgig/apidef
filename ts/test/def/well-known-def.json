@@ -874,6 +874,475 @@
           }
         ]
       }
+    },
+    "/well-known/repo/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The repository."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/zzz/repo/{id}": {
+      "get": {
+        "tags": [
+          "Repo"
+        ],
+        "responses": {
+          "200": {
+            "description": "The repository."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/well-known/cask/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The cask."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/aaa/cask/{id}": {
+      "get": {
+        "tags": [
+          "Cask"
+        ],
+        "responses": {
+          "200": {
+            "description": "The cask."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/crates/{id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Parcel"
+                }
+              }
+            },
+            "description": "The parcel in the crate."
+          }
+        }
+      }
+    },
+    "/zzz/crate/{id}": {
+      "get": {
+        "tags": [
+          "Crate"
+        ],
+        "responses": {
+          "200": {
+            "description": "The crate."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/well-known/crate/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The crate."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/kilns/{id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Oven"
+                }
+              }
+            },
+            "description": "The oven of the kiln."
+          }
+        }
+      }
+    },
+    "/zzz/pots": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Pot"
+                  }
+                }
+              }
+            },
+            "description": "The pots."
+          }
+        }
+      }
+    },
+    "/zzz/pots/{id}": {
+      "get": {
+        "tags": [
+          "Kiln"
+        ],
+        "responses": {
+          "200": {
+            "description": "The pot."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/well-known/kiln/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The kiln."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/well-known/qrs/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The queue."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/zzz/qrs/{id}": {
+      "get": {
+        "tags": [
+          "QrsAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "The queue."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/zzz/qrt/{id}": {
+      "get": {
+        "tags": [
+          "QrsAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "The queue topic."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/well-known/xyn/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The axis."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/zzz/xy": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Xy"
+                }
+              }
+            },
+            "description": "The axis."
+          }
+        }
+      }
+    },
+    "/well-known/uvn/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The light."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/aaa/uv": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Uv"
+                }
+              }
+            },
+            "description": "The light."
+          }
+        }
+      }
+    },
+    "/aaa/kit/{id}": {
+      "get": {
+        "tags": [
+          "Aaa"
+        ],
+        "responses": {
+          "200": {
+            "description": "The kit."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/well-known/kit/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The kit."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/well-known/kit/{id}/merge": {
+      "post": {
+        "tags": [
+          "WellKnown"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The merge."
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1324,6 +1793,61 @@
         "properties": {
           "merged": {
             "type": "boolean"
+          }
+        }
+      },
+      "Parcel": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "Oven": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "Pot": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "Xy": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "Uv": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
           }
         }
       }

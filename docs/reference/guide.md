@@ -383,12 +383,13 @@ would share a selector. That holds when the tag gathers item routes that
 answer with no body from two collections whose item routes take the same
 parameters, or from two collections that both have a `GET` of their own.
 The tag's name comes first when a route outside `/X` takes that name,
-whether it sorts before the item route or after it. A route counts as well
-when its name is the form that name is stored in: a name shorter than three
-characters is padded, so `dtn` counts for `dt`. An item route that another
-tag gathers from its own collection counts only once it is named, so of two
-such collections that end in the same segment, the one later in path order
-takes its tag's name. Apicurio Registry tags
+whether it sorts before the item route or after it. Names compare in the
+form they are stored in, where a name shorter than three characters is
+padded, so `dtn` counts for `dt` and `xy` counts for `xyn`. An item route
+that this rule names counts only once it is named, so of two tags' item
+routes that it names from collections ending in the same segment, the one
+later in path order takes its tag's name. A verb on such an item route, as
+`/X/{id}/merge` is, counts as taking the segment's name. Apicurio Registry tags
 `/well-known/agents/{groupId}/{artifactId}`,
 `/well-known/mcp-tools/{groupId}/{artifactId}` and
 `/well-known/schemas/{schemaType}/{version}` `WellKnown`, none of them
