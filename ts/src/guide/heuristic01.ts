@@ -142,7 +142,8 @@ async function heuristic01(ctx: ApiDefContext): Promise<Guide> {
     MeasureAnswered,
     { select: selectAllMethods, apply: MeasureSharing },
     MeasureShared,
-    { select: selectAllMethods, apply: [ResolveEntityComponent, MeasureTagItems, MeasureClaims] },
+    { select: selectAllMethods, apply: [ResolveEntityComponent, MeasureTagItems] },
+    { select: selectAllMethods, apply: MeasureClaims },
     {
       select: selectAllMethods, apply: [
         ResolveEntityName,
@@ -241,6 +242,8 @@ function Prepare(spec: TaskSpec) {
       recordResources: {},
       tagItems: {},
       claims: {},
+      claimowner: {},
+      pathowner: {},
       entity: {
         count: {
           seen: 0,
@@ -524,17 +527,28 @@ function MeasureTagItems(spec: TaskSpec) {
 }
 
 
-// The names a route may take, before any is named: its component's or tag's,
-// and the one its last segment gives.
+// The name each route takes by its path and component, found before any route
+// is named, so an item route sees one that sorts after it. The rules run on
+// copies, and a verb on a parent takes its parent's claim. An item route a tag
+// gathers is left out, since its collection names it.
 function MeasureClaims(spec: TaskSpec) {
-  const work = spec.data.work
+  const data = spec.data
+  const work = data.work
   const mdesc = spec.node.val
-  const last = work.pathmap[mdesc.path].parts.filter((part: string) => !isParam(part)).pop()
-  for (const name of [mdesc.MethodEntity?.cmp, null == last ? null : canonize(last)]) {
-    if (null != name) {
-      const claims = work.claims[name] = work.claims[name] ?? {}
-      claims[mdesc.path] = true
-    }
+  const parts: string[] = work.pathmap[mdesc.path].parts
+  if (null != tagItemCollection(data, mdesc, parts)) {
+    return
+  }
+
+  const ment = { ...(mdesc.MethodEntity ?? makeMethodEntityDesc({})) }
+  const name = pathEntityName(data, { ...mdesc, MethodEntity: ment }, parts,
+    matchEntityPath(parts), work.claimowner, [])
+  if (null != name) {
+    const claim = resplitFromCmp(name, ment.cmp as string, [])
+    const claims = work.claims[claim] = work.claims[claim] ?? {}
+    claims[mdesc.path] = true
+    const owners = work.claimowner[mdesc.path] = work.claimowner[mdesc.path] ?? {}
+    owners[mdesc.method] = claim
   }
 }
 
@@ -732,36 +746,12 @@ function ResolveEntityName(spec: TaskSpec) {
 
   why_path.push(...(ment.why_cmp ?? []))
 
-  let entname
-
   const pm = matchEntityPath(parts)
 
-  if ('t/p/t/' === pm?.expr) {
-    entname = entityPathMatch_tpte(data, pm, mdesc, why_path)
-  }
-
-  else if ('t/p/' === pm?.expr) {
-    entname = entityPathMatch_tpe(data, pm, mdesc, why_path)
-  }
-
-  else if ('p/t/' === pm?.expr) {
-    entname = entityPathMatch_pte(data, pm, mdesc, why_path)
-  }
-
-  else if ('t/' === pm?.expr) {
-    entname = entityPathMatch_te(data, pm, mdesc, why_path)
-  }
-
-  else if ('t/p/p' === pm?.expr) {
-    entname = entityPathMatch_tpp(data, pm, mdesc, why_path)
-  }
-
-  else {
-    entname = inferEntityName(mdesc, parts, why_path)
-    if (null == entname) {
-      work.entity.count.unresolved++
-      entname = 'entity' + work.entity.count.unresolved
-    }
+  let entname = pathEntityName(data, mdesc, parts, pm, work.pathowner, why_path)
+  if (null == entname) {
+    work.entity.count.unresolved++
+    entname = 'entity' + work.entity.count.unresolved
   }
 
   entname = resplitFromCmp(entname, ment.cmp as string, why_path)
@@ -804,7 +794,6 @@ function ResolveEntityName(spec: TaskSpec) {
   // split across entities by method (a PUT answering with a one-off
   // acknowledgement is named after it), and the parent of a verb is the
   // entity a read of the item returns.
-  work.pathowner = work.pathowner ?? {}
   work.pathowner[pathStr] = work.pathowner[pathStr] ?? {}
   work.pathowner[pathStr][methodName] = entname
 
@@ -822,6 +811,35 @@ function ResolveEntityName(spec: TaskSpec) {
     debugpath(pathStr, methodName, 'RESOLVE-ENTITY-NAME',
       formatJSONIC({ entdesc, ment }, { hsepd: 0, $: true, color: true }))
   }
+}
+
+
+// The name a method's path shape and component give it, or null where neither
+// does. A verb on a parent takes the name pathowner holds for the parent.
+function pathEntityName(
+  data: { def: any, guide: any, work: any },
+  mdesc: any,
+  parts: string[],
+  pm: PathMatch | null,
+  pathowner: Record<string, Record<string, string>>,
+  why: string[],
+): string | null {
+  if ('t/p/t/' === pm?.expr) {
+    return entityPathMatch_tpte(data, pm, mdesc, pathowner, why)
+  }
+  else if ('t/p/' === pm?.expr) {
+    return entityPathMatch_tpe(data, pm, mdesc, why)
+  }
+  else if ('p/t/' === pm?.expr) {
+    return entityPathMatch_pte(data, pm, mdesc, why)
+  }
+  else if ('t/' === pm?.expr) {
+    return entityPathMatch_te(data, pm, mdesc, why)
+  }
+  else if ('t/p/p' === pm?.expr) {
+    return entityPathMatch_tpp(data, pm, mdesc, why)
+  }
+  return inferEntityName(mdesc, parts, why)
 }
 
 
@@ -1379,6 +1397,7 @@ function entityPathMatch_tpte(
   data: { def: any, guide: any, work: any },
   pm: PathMatch,
   mdesc: any,
+  pathowner: Record<string, Record<string, string>>,
   why: string[]
 ) {
   const ment = mdesc.MethodEntity
@@ -1391,7 +1410,7 @@ function entityPathMatch_tpte(
   let ecm = undefined
 
   if (null != ment.cmp) {
-    const parent = verbOnParent(data, pm, mdesc)
+    const parent = verbOnParent(data, pm, mdesc, pathowner)
     if (null != parent) {
       entname = parent
       ment.verb_on_parent = getelem(pm, -1)
@@ -1443,6 +1462,7 @@ function verbOnParent(
   data: { def: any, guide: any, work: any },
   pm: PathMatch,
   mdesc: any,
+  pathowner: Record<string, Record<string, string>>,
 ): null | string {
   const method = mdesc.method
   if (READ_METHODS.includes(method)) {
@@ -1493,7 +1513,7 @@ function verbOnParent(
   // known. The parent is the entity a READ of the item returns: a PUT on
   // the item answering with a one-off acknowledgement is named after that
   // and must not claim the verb. Fall back to any owner, then the literal.
-  const owners = data.work.pathowner?.[itemPath] ?? {}
+  const owners = pathowner[itemPath] ?? {}
   const parent = owners.GET ?? owners.QUERY ??
     Object.values(owners).sort()[0] as undefined | string
   if (null != parent) {
@@ -1561,14 +1581,15 @@ function itemOfCollection(
 }
 
 
-// A route outside the collection has the segment's name: on the entity the
-// name is stored under, once the route is named, and among the claims before
-// that, so the answer holds wherever the route sorts.
+// A route outside the collection takes the segment's name: one named already,
+// on the entity the name is stored under, or any by its claim, under the
+// segment or that stored name. An item route a tag gathers makes no claim, so
+// it counts only once named, when it sorts before.
 function segmentHeld(work: any, segment: string, collection: string): boolean {
   const outside = (path: string) => !(path + '/').startsWith(collection + '/')
-  const entdesc = work.entmap[ensureMinEntityName(segment, work.entmap)]
-  return Object.keys(entdesc?.path ?? {}).some(outside) ||
-    Object.keys(work.claims[segment] ?? {}).some(outside)
+  const key = ensureMinEntityName(segment, work.entmap)
+  return [work.entmap[key]?.path, work.claims[segment], work.claims[key]]
+    .some((paths: Record<string, any> | undefined) => Object.keys(paths ?? {}).some(outside))
 }
 
 

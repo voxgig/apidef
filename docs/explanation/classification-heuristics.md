@@ -259,9 +259,15 @@ both collections are read, since each list then selects by nothing. When a
 tag that names no resource gathers two such collections, each item route it
 gathers takes the name the last segment of its collection gives: `mcp_tool`
 for `/well-known/mcp-tools` and `schema` for `/well-known/schemas`. A name
-that a route outside the collection has, wherever it sorts, takes the tag's
-name before it. `/well-known/agent.json` names `agent`, so the agents become
-`well_known_agent`, and neither list hides the other. Apicurio's reads of
+that a route outside the collection takes, wherever it sorts, takes the
+tag's name before it. `/well-known/agent.json` names `agent`, so the agents
+become `well_known_agent`, and neither list hides the other. A route that
+sorts after the item route is not named yet when the item route is, so the
+guide first works out every route's name by the same rules, before it names
+any. The exception is an item route that another tag gathers, since this
+rule is what names it: it counts once it is named, so of two tags'
+collections that end in the same segment, the later one takes its tag's
+name, and the two still stay apart. Apicurio's reads of
 artifact content by content ID and by global ID each select by their own
 parameter, so they share no selector and stay on `artifact`, the entity
 their tag names.

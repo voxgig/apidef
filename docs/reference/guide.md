@@ -382,8 +382,13 @@ the last segment of `/X` gives instead, when the item routes the tag names
 would share a selector. That holds when the tag gathers item routes that
 answer with no body from two collections whose item routes take the same
 parameters, or from two collections that both have a `GET` of their own.
-The tag's name comes first when a route outside `/X` has that name,
-wherever it sorts. Apicurio Registry tags
+The tag's name comes first when a route outside `/X` takes that name,
+whether it sorts before the item route or after it. A route counts as well
+when its name is the form that name is stored in: a name shorter than three
+characters is padded, so `dtn` counts for `dt`. An item route that another
+tag gathers from its own collection counts only once it is named, so of two
+such collections that end in the same segment, the one later in path order
+takes its tag's name. Apicurio Registry tags
 `/well-known/agents/{groupId}/{artifactId}`,
 `/well-known/mcp-tools/{groupId}/{artifactId}` and
 `/well-known/schemas/{schemaType}/{version}` `WellKnown`, none of them
@@ -392,7 +397,10 @@ answers with a body, and the first two take the same parameters. They take
 `mcp_tool` and `schema`, and each search joins its item route's entity in
 the move. Its `/ids/contentIds/{contentId}` and `/ids/globalIds/{globalId}`
 take different parameters and have no `GET` on their collections, so they
-stay on `artifact`, the entity their `Artifacts` tag names.
+stay on `artifact`, the entity their `Artifacts` tag names. The
+`guide-well-known` tests in [`ts/test/apidef.test.ts`](../../ts/test/apidef.test.ts)
+and [`go/apidef_test.go`](../../go/apidef_test.go) pin each of these cases on
+[`ts/test/def/well-known-def.json`](../../ts/test/def/well-known-def.json).
 
 The record a route answers with is the component of its response, of the
 items of an array response, or of the record its envelope carries (see

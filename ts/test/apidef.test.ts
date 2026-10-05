@@ -668,11 +668,11 @@ describe('apidef', () => {
   })
 
 
-  // Apicurio tags every /well-known route WellKnown; its registered agent, MCP
-  // tool and schema reads answer with no component. The agents and MCP tools
-  // would share a selector, so each item route takes its collection's segment,
-  // after the tag where a route outside it has the name: agent.json, db (held
-  // padded as dbn) and /zzz/dbase, which sorts after. Id lookups keep their tag.
+  // Apicurio tags every /well-known route WellKnown and its agent, MCP tool and
+  // schema reads answer nothing, so each item route takes its collection's
+  // segment, after the tag where an outside route, before or after it, has that
+  // name: agent.json, db, ledger, dbase, another tag's ds (as dsn) and dt (as
+  // dtn). Not dbset or vault: their /zzz routes take other names.
   test('guide-well-known', async () => {
     const folder = __dirname + '/../test/well-known'
 
@@ -702,8 +702,9 @@ describe('apidef', () => {
     const paths = (ent: string, op: string) =>
       (entities[ent]?.op[op]?.points ?? []).map((pt: any) => pt.o).sort()
     assert.deepStrictEqual(Object.keys(entities).sort(),
-      ['agent', 'agent_card', 'artifact', 'dbase', 'dbn', 'mcp_tool', 'schema',
-        'well_known_agent', 'well_known_db', 'well_known_dbase'])
+      ['agent', 'agent_card', 'artifact', 'dbase', 'dbn', 'dbset', 'dsn', 'dsx', 'dtn',
+        'ledger', 'mcp_tool', 'schema', 'vault', 'well_known_agent', 'well_known_db',
+        'well_known_dbase', 'well_known_ds', 'well_known_dt', 'well_known_ledger', 'widget'])
     assert.deepStrictEqual(paths('agent', 'list'), ['/well-known/agent.json'])
     assert.deepStrictEqual(paths('well_known_agent', 'list'), ['/well-known/agents'])
     assert.deepStrictEqual(paths('well_known_agent', 'load'),
@@ -718,9 +719,21 @@ describe('apidef', () => {
     assert.deepStrictEqual(paths('dbn', 'load'), ['/other/db'])
     assert.deepStrictEqual(paths('well_known_db', 'load'),
       ['/well-known/db', '/well-known/db/{id}'])
-    assert.deepStrictEqual(paths('dbase', 'list'), ['/zzz/dbase'])
+    assert.deepStrictEqual(paths('ledger', 'create'), ['/aaa/ledger/{id}/history'])
+    assert.deepStrictEqual(paths('well_known_ledger', 'load'), ['/well-known/ledger/{id}'])
+    assert.deepStrictEqual(paths('dbase', 'create'), ['/zzz/dbase/{id}/history'])
     assert.deepStrictEqual(paths('well_known_dbase', 'load'),
       ['/well-known/dbase', '/well-known/dbase/{id}'])
+    assert.deepStrictEqual(paths('agent_card', 'list'),
+      ['/well-known/agent-card.json', '/zzz/{id}/dbset'])
+    assert.deepStrictEqual(paths('dbset', 'load'), ['/well-known/dbset/{id}'])
+    assert.deepStrictEqual(paths('dsn', 'load'), ['/aaa/ds/{id}'])
+    assert.deepStrictEqual(paths('well_known_ds', 'load'), ['/well-known/ds/{id}'])
+    assert.deepStrictEqual(paths('dtn', 'load'), ['/zzz/dtn'])
+    assert.deepStrictEqual(paths('well_known_dt', 'load'), ['/well-known/dt/{id}'])
+    assert.deepStrictEqual(paths('widget', 'load'), ['/zzz/vault/{id}'])
+    assert.deepStrictEqual(paths('widget', 'create'), ['/zzz/vault/{id}/merge'])
+    assert.deepStrictEqual(paths('vault', 'load'), ['/well-known/vault/{id}'])
   })
 
 

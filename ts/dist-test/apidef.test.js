@@ -524,11 +524,11 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.strictEqual(res('project', 'remove'), '`body.project`');
         node_assert_1.default.strictEqual(res('widget', 'load'), '`body`');
     });
-    // Apicurio tags every /well-known route WellKnown; its registered agent, MCP
-    // tool and schema reads answer with no component. The agents and MCP tools
-    // would share a selector, so each item route takes its collection's segment,
-    // after the tag where a route outside it has the name: agent.json, db (held
-    // padded as dbn) and /zzz/dbase, which sorts after. Id lookups keep their tag.
+    // Apicurio tags every /well-known route WellKnown and its agent, MCP tool and
+    // schema reads answer nothing, so each item route takes its collection's
+    // segment, after the tag where an outside route, before or after it, has that
+    // name: agent.json, db, ledger, dbase, another tag's ds (as dsn) and dt (as
+    // dtn). Not dbset or vault: their /zzz routes take other names.
     (0, node_test_1.test)('guide-well-known', async () => {
         const folder = __dirname + '/../test/well-known';
         const build = await apidef_1.ApiDef.makeBuild({ folder });
@@ -548,8 +548,9 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
         const entities = bres.apimodel.main.kit.entity;
         const paths = (ent, op) => (entities[ent]?.op[op]?.points ?? []).map((pt) => pt.o).sort();
-        node_assert_1.default.deepStrictEqual(Object.keys(entities).sort(), ['agent', 'agent_card', 'artifact', 'dbase', 'dbn', 'mcp_tool', 'schema',
-            'well_known_agent', 'well_known_db', 'well_known_dbase']);
+        node_assert_1.default.deepStrictEqual(Object.keys(entities).sort(), ['agent', 'agent_card', 'artifact', 'dbase', 'dbn', 'dbset', 'dsn', 'dsx', 'dtn',
+            'ledger', 'mcp_tool', 'schema', 'vault', 'well_known_agent', 'well_known_db',
+            'well_known_dbase', 'well_known_ds', 'well_known_dt', 'well_known_ledger', 'widget']);
         node_assert_1.default.deepStrictEqual(paths('agent', 'list'), ['/well-known/agent.json']);
         node_assert_1.default.deepStrictEqual(paths('well_known_agent', 'list'), ['/well-known/agents']);
         node_assert_1.default.deepStrictEqual(paths('well_known_agent', 'load'), ['/well-known/agents/{groupId}/{artifactId}']);
@@ -559,8 +560,19 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.deepStrictEqual(paths('artifact', 'load'), ['/ids/contentIds/{contentId}', '/ids/globalIds/{globalId}']);
         node_assert_1.default.deepStrictEqual(paths('dbn', 'load'), ['/other/db']);
         node_assert_1.default.deepStrictEqual(paths('well_known_db', 'load'), ['/well-known/db', '/well-known/db/{id}']);
-        node_assert_1.default.deepStrictEqual(paths('dbase', 'list'), ['/zzz/dbase']);
+        node_assert_1.default.deepStrictEqual(paths('ledger', 'create'), ['/aaa/ledger/{id}/history']);
+        node_assert_1.default.deepStrictEqual(paths('well_known_ledger', 'load'), ['/well-known/ledger/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('dbase', 'create'), ['/zzz/dbase/{id}/history']);
         node_assert_1.default.deepStrictEqual(paths('well_known_dbase', 'load'), ['/well-known/dbase', '/well-known/dbase/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('agent_card', 'list'), ['/well-known/agent-card.json', '/zzz/{id}/dbset']);
+        node_assert_1.default.deepStrictEqual(paths('dbset', 'load'), ['/well-known/dbset/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('dsn', 'load'), ['/aaa/ds/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('well_known_ds', 'load'), ['/well-known/ds/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('dtn', 'load'), ['/zzz/dtn']);
+        node_assert_1.default.deepStrictEqual(paths('well_known_dt', 'load'), ['/well-known/dt/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('widget', 'load'), ['/zzz/vault/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('widget', 'create'), ['/zzz/vault/{id}/merge']);
+        node_assert_1.default.deepStrictEqual(paths('vault', 'load'), ['/well-known/vault/{id}']);
     });
     // A trailing parameter under its entity's segment is the entity's key,
     // whatever the response component is called: a rare component named for

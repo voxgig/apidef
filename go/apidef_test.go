@@ -613,8 +613,9 @@ func TestGuideWellKnown(t *testing.T) {
 	}
 
 	if got := sortedKeys(entities); !reflect.DeepEqual(got,
-		[]string{"agent", "agent_card", "artifact", "dbase", "dbn", "mcp_tool", "schema",
-			"well_known_agent", "well_known_db", "well_known_dbase"}) {
+		[]string{"agent", "agent_card", "artifact", "dbase", "dbn", "dbset", "dsn", "dsx", "dtn",
+			"ledger", "mcp_tool", "schema", "vault", "well_known_agent", "well_known_db",
+			"well_known_dbase", "well_known_ds", "well_known_dt", "well_known_ledger", "widget"}) {
 		t.Errorf("entities = %v", got)
 	}
 	for _, c := range []struct {
@@ -630,8 +631,19 @@ func TestGuideWellKnown(t *testing.T) {
 		{"artifact", "load", []string{"/ids/contentIds/{contentId}", "/ids/globalIds/{globalId}"}},
 		{"dbn", "load", []string{"/other/db"}},
 		{"well_known_db", "load", []string{"/well-known/db", "/well-known/db/{id}"}},
-		{"dbase", "list", []string{"/zzz/dbase"}},
+		{"ledger", "create", []string{"/aaa/ledger/{id}/history"}},
+		{"well_known_ledger", "load", []string{"/well-known/ledger/{id}"}},
+		{"dbase", "create", []string{"/zzz/dbase/{id}/history"}},
 		{"well_known_dbase", "load", []string{"/well-known/dbase", "/well-known/dbase/{id}"}},
+		{"agent_card", "list", []string{"/well-known/agent-card.json", "/zzz/{id}/dbset"}},
+		{"dbset", "load", []string{"/well-known/dbset/{id}"}},
+		{"dsn", "load", []string{"/aaa/ds/{id}"}},
+		{"well_known_ds", "load", []string{"/well-known/ds/{id}"}},
+		{"dtn", "load", []string{"/zzz/dtn"}},
+		{"well_known_dt", "load", []string{"/well-known/dt/{id}"}},
+		{"widget", "load", []string{"/zzz/vault/{id}"}},
+		{"widget", "create", []string{"/zzz/vault/{id}/merge"}},
+		{"vault", "load", []string{"/well-known/vault/{id}"}},
 	} {
 		if got := pathsOf(c.ent, c.op); !reflect.DeepEqual(got, c.want) {
 			t.Errorf("%s %s paths = %v, want %v", c.ent, c.op, got, c.want)

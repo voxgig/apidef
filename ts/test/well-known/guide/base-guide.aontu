@@ -4,9 +4,9 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 10
-  metrics: count: path: 15
-  metrics: count: method: 15
+  metrics: count: entity: 20
+  metrics: count: path: 27
+  metrics: count: method: 27
 
   entity: agent: {
     path: "/well-known/agent.json": {
@@ -16,6 +16,10 @@ guide: {
 
   entity: agent_card: {
     path: "/well-known/agent-card.json": {
+      op: list: method: *GET
+    }
+    path: "/zzz/{id}/dbset": {
+      rename: param: "id": *"zzz_id"
       op: list: method: *GET
     }
   }
@@ -32,14 +36,46 @@ guide: {
   }
 
   entity: dbase: {
-    path: "/zzz/dbase": {
-      op: list: method: *GET
+    path: "/zzz/dbase/{id}/history": {
+      action: "history": {}
+      op: create: method: *POST
     }
   }
 
   entity: dbn: {
     path: "/other/db": {
       op: load: method: *GET
+    }
+  }
+
+  entity: dbset: {
+    path: "/well-known/dbset/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: dsn: {
+    path: "/aaa/ds/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: dsx: {
+    path: "/aaa/dsx/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: dtn: {
+    path: "/zzz/dtn": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: ledger: {
+    path: "/aaa/ledger/{id}/history": {
+      action: "history": {}
+      op: create: method: *POST
     }
   }
 
@@ -58,6 +94,12 @@ guide: {
   entity: schema: {
     path: "/well-known/schemas/{schemaType}/{version}": {
       rename: param: "schemaType": *"schema_type"
+      op: load: method: *GET
+    }
+  }
+
+  entity: vault: {
+    path: "/well-known/vault/{id}": {
       op: load: method: *GET
     }
   }
@@ -91,6 +133,35 @@ guide: {
     }
     path: "/well-known/dbase/{id}": {
       op: load: method: *GET
+    }
+  }
+
+  entity: well_known_ds: {
+    path: "/well-known/ds/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_dt: {
+    path: "/well-known/dt/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_ledger: {
+    path: "/well-known/ledger/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: widget: {
+    path: "/zzz/vault/{id}": {
+      op: load: method: *GET
+    }
+    path: "/zzz/vault/{id}/merge": {
+      action: "merge": {}
+      rename: param: "id": *"vault_id"
+      op: create: method: *POST
     }
   }
 

@@ -73,7 +73,8 @@ async function heuristic01(ctx) {
         MeasureAnswered,
         { select: selectAllMethods, apply: MeasureSharing },
         MeasureShared,
-        { select: selectAllMethods, apply: [ResolveEntityComponent, MeasureTagItems, MeasureClaims] },
+        { select: selectAllMethods, apply: [ResolveEntityComponent, MeasureTagItems] },
+        { select: selectAllMethods, apply: MeasureClaims },
         {
             select: selectAllMethods, apply: [
                 ResolveEntityName,
@@ -153,6 +154,8 @@ function Prepare(spec) {
             recordResources: {},
             tagItems: {},
             claims: {},
+            claimowner: {},
+            pathowner: {},
             entity: {
                 count: {
                     seen: 0,
@@ -386,17 +389,26 @@ function MeasureTagItems(spec) {
             .map((part) => (0, utility_2.canonizeParam)(part.slice(1, -1))).sort().join(',')] = true;
     }
 }
-// The names a route may take, before any is named: its component's or tag's,
-// and the one its last segment gives.
+// The name each route takes by its path and component, found before any route
+// is named, so an item route sees one that sorts after it. The rules run on
+// copies, and a verb on a parent takes its parent's claim. An item route a tag
+// gathers is left out, since its collection names it.
 function MeasureClaims(spec) {
-    const work = spec.data.work;
+    const data = spec.data;
+    const work = data.work;
     const mdesc = spec.node.val;
-    const last = work.pathmap[mdesc.path].parts.filter((part) => !isParam(part)).pop();
-    for (const name of [mdesc.MethodEntity?.cmp, null == last ? null : (0, utility_2.canonize)(last)]) {
-        if (null != name) {
-            const claims = work.claims[name] = work.claims[name] ?? {};
-            claims[mdesc.path] = true;
-        }
+    const parts = work.pathmap[mdesc.path].parts;
+    if (null != tagItemCollection(data, mdesc, parts)) {
+        return;
+    }
+    const ment = { ...(mdesc.MethodEntity ?? makeMethodEntityDesc({})) };
+    const name = pathEntityName(data, { ...mdesc, MethodEntity: ment }, parts, matchEntityPath(parts), work.claimowner, []);
+    if (null != name) {
+        const claim = (0, utility_2.resplitFromCmp)(name, ment.cmp, []);
+        const claims = work.claims[claim] = work.claims[claim] ?? {};
+        claims[mdesc.path] = true;
+        const owners = work.claimowner[mdesc.path] = work.claimowner[mdesc.path] ?? {};
+        owners[mdesc.method] = claim;
     }
 }
 function ResolveEntityComponent(spec) {
@@ -540,29 +552,11 @@ function ResolveEntityName(spec) {
         ment = mdesc.MethodEntity;
     }
     why_path.push(...(ment.why_cmp ?? []));
-    let entname;
     const pm = matchEntityPath(parts);
-    if ('t/p/t/' === pm?.expr) {
-        entname = entityPathMatch_tpte(data, pm, mdesc, why_path);
-    }
-    else if ('t/p/' === pm?.expr) {
-        entname = entityPathMatch_tpe(data, pm, mdesc, why_path);
-    }
-    else if ('p/t/' === pm?.expr) {
-        entname = entityPathMatch_pte(data, pm, mdesc, why_path);
-    }
-    else if ('t/' === pm?.expr) {
-        entname = entityPathMatch_te(data, pm, mdesc, why_path);
-    }
-    else if ('t/p/p' === pm?.expr) {
-        entname = entityPathMatch_tpp(data, pm, mdesc, why_path);
-    }
-    else {
-        entname = inferEntityName(mdesc, parts, why_path);
-        if (null == entname) {
-            work.entity.count.unresolved++;
-            entname = 'entity' + work.entity.count.unresolved;
-        }
+    let entname = pathEntityName(data, mdesc, parts, pm, work.pathowner, why_path);
+    if (null == entname) {
+        work.entity.count.unresolved++;
+        entname = 'entity' + work.entity.count.unresolved;
     }
     entname = (0, utility_2.resplitFromCmp)(entname, ment.cmp, why_path);
     const item = itemOfCollection(data, mdesc, parts);
@@ -598,7 +592,6 @@ function ResolveEntityName(spec) {
     // split across entities by method (a PUT answering with a one-off
     // acknowledgement is named after it), and the parent of a verb is the
     // entity a read of the item returns.
-    work.pathowner = work.pathowner ?? {};
     work.pathowner[pathStr] = work.pathowner[pathStr] ?? {};
     work.pathowner[pathStr][methodName] = entname;
     // The entity a path's own record names, where the record carries the name
@@ -613,6 +606,26 @@ function ResolveEntityName(spec) {
     if ((0, utility_2.debugpathOn)()) {
         (0, utility_2.debugpath)(pathStr, methodName, 'RESOLVE-ENTITY-NAME', (0, utility_2.formatJSONIC)({ entdesc, ment }, { hsepd: 0, $: true, color: true }));
     }
+}
+// The name a method's path shape and component give it, or null where neither
+// does. A verb on a parent takes the name pathowner holds for the parent.
+function pathEntityName(data, mdesc, parts, pm, pathowner, why) {
+    if ('t/p/t/' === pm?.expr) {
+        return entityPathMatch_tpte(data, pm, mdesc, pathowner, why);
+    }
+    else if ('t/p/' === pm?.expr) {
+        return entityPathMatch_tpe(data, pm, mdesc, why);
+    }
+    else if ('p/t/' === pm?.expr) {
+        return entityPathMatch_pte(data, pm, mdesc, why);
+    }
+    else if ('t/' === pm?.expr) {
+        return entityPathMatch_te(data, pm, mdesc, why);
+    }
+    else if ('t/p/p' === pm?.expr) {
+        return entityPathMatch_tpp(data, pm, mdesc, why);
+    }
+    return inferEntityName(mdesc, parts, why);
 }
 function RenameParams(spec) {
     const ctx = spec.ctx;
@@ -1009,7 +1022,7 @@ function BuildEntity(spec) {
     }
     entityMap[entdesc.name] = guideEntity;
 }
-function entityPathMatch_tpte(data, pm, mdesc, why) {
+function entityPathMatch_tpte(data, pm, mdesc, pathowner, why) {
     const ment = mdesc.MethodEntity;
     const pathNameIndex = PATH_NAME_INDEX['t/p/t/'];
     why.push('path=t/p/t/');
@@ -1017,7 +1030,7 @@ function entityPathMatch_tpte(data, pm, mdesc, why) {
     let entname = (0, utility_2.canonize)(origPathName);
     let ecm = undefined;
     if (null != ment.cmp) {
-        const parent = verbOnParent(data, pm, mdesc);
+        const parent = verbOnParent(data, pm, mdesc, pathowner);
         if (null != parent) {
             entname = parent;
             ment.verb_on_parent = (0, struct_1.getelem)(pm, -1);
@@ -1059,7 +1072,7 @@ function endsWithCmp(data, pm) {
     const last = (0, utility_2.canonize)((0, struct_1.getelem)(pm, -1));
     return isOrigCmp(data, last);
 }
-function verbOnParent(data, pm, mdesc) {
+function verbOnParent(data, pm, mdesc, pathowner) {
     const method = mdesc.method;
     if (READ_METHODS.includes(method)) {
         return null;
@@ -1102,7 +1115,7 @@ function verbOnParent(data, pm, mdesc) {
     // known. The parent is the entity a READ of the item returns: a PUT on
     // the item answering with a one-off acknowledgement is named after that
     // and must not claim the verb. Fall back to any owner, then the literal.
-    const owners = data.work.pathowner?.[itemPath] ?? {};
+    const owners = pathowner[itemPath] ?? {};
     const parent = owners.GET ?? owners.QUERY ??
         Object.values(owners).sort()[0];
     if (null != parent) {
@@ -1149,14 +1162,15 @@ function itemOfCollection(data, mdesc, parts) {
     const held = segmentHeld(work, segment, collection);
     return { name: held ? cmp + '_' + segment : segment, why: 'collection-segment' };
 }
-// A route outside the collection has the segment's name: on the entity the
-// name is stored under, once the route is named, and among the claims before
-// that, so the answer holds wherever the route sorts.
+// A route outside the collection takes the segment's name: one named already,
+// on the entity the name is stored under, or any by its claim, under the
+// segment or that stored name. An item route a tag gathers makes no claim, so
+// it counts only once named, when it sorts before.
 function segmentHeld(work, segment, collection) {
     const outside = (path) => !(path + '/').startsWith(collection + '/');
-    const entdesc = work.entmap[(0, utility_2.ensureMinEntityName)(segment, work.entmap)];
-    return Object.keys(entdesc?.path ?? {}).some(outside) ||
-        Object.keys(work.claims[segment] ?? {}).some(outside);
+    const key = (0, utility_2.ensureMinEntityName)(segment, work.entmap);
+    return [work.entmap[key]?.path, work.claims[segment], work.claims[key]]
+        .some((paths) => Object.keys(paths ?? {}).some(outside));
 }
 // Two of a tag's collections whose item routes take the same parameters, or
 // that are both read, would share a selector on the tag's entity.
