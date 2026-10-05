@@ -799,10 +799,7 @@ func TestInferFieldsFromExamples(t *testing.T) {
 	for _, row := range rows {
 		src, envelope, want := row["opdef"], row["envelope"], row["expected"]
 		t.Run(src+" "+envelope, func(t *testing.T) {
-			var opdef map[string]any
-			if err := json.Unmarshal([]byte(src), &opdef); err != nil {
-				t.Fatalf("bad opdef %q: %v", src, err)
-			}
+			opdef := parseOrdered(t, src)
 			var wantVal []string
 			if err := json.Unmarshal([]byte(want), &wantVal); err != nil {
 				t.Fatalf("bad expected %q: %v", want, err)

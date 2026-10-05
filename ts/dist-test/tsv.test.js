@@ -553,6 +553,16 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-arg-example', () => {
+    const rows = loadTsv('arg-example');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(`resolveArgExample(${row.argdef}, ${row.schema})`, () => {
+            const ex = (0, args_1.resolveArgExample)(JSON.parse(row.argdef), JSON.parse(row.schema));
+            node_assert_1.default.deepStrictEqual(undefined === ex ? {} : { ex }, JSON.parse(row.expected));
+        });
+    }
+});
 // The field the transform builds from one property, beside a plain property
 // so that the record is not read as an envelope around it.
 (0, node_test_1.describe)('tsv-allof-field', () => {

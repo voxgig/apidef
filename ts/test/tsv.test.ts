@@ -57,7 +57,7 @@ import type {
   ModelPoint, ModelBody, ModelBodyField, BodyKind,
 } from '../dist/apidef'
 import { Aontu } from 'aontu'
-import { argsTransform } from '../dist/transform/args'
+import { argsTransform, resolveArgExample } from '../dist/transform/args'
 import { buildRelations, resolvePathList } from '../dist/transform/entity'
 import {
   resolveSecurity, findAuthPrefix, topTransform, resolveSummary, resolveWebsite,
@@ -688,6 +688,18 @@ describe('tsv-infer-fields-from-examples', () => {
     test(`inferFieldsFromExamples(${row.opdef}, "${row.envelope}") => ${row.expected}`, () => {
       const fields = inferFieldsFromExamples(JSON.parse(row.opdef), '' === row.envelope ? null : row.envelope)
       assert.deepStrictEqual(fields.map((f: any) => f.key$ + ':' + f.type), JSON.parse(row.expected))
+    })
+  }
+})
+
+
+describe('tsv-arg-example', () => {
+  const rows = loadTsv('arg-example')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(`resolveArgExample(${row.argdef}, ${row.schema})`, () => {
+      const ex = resolveArgExample(JSON.parse(row.argdef), JSON.parse(row.schema))
+      assert.deepStrictEqual(undefined === ex ? {} : { ex }, JSON.parse(row.expected))
     })
   }
 })

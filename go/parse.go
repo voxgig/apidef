@@ -48,6 +48,7 @@ func parseOpenAPI(source string, meta map[string]string) (map[string]any, error)
 	// Use tabnas/yaml to parse (handles both JSON and YAML)
 	result, err := yaml.Parse(source)
 	schemeOrder := declaredSchemeOrder(result)
+	annotateExamplesOrder(result, "")
 	// tabnas/yaml returns insertion-ordered *tabnas.OrderedMap nodes;
 	// apidef works on plain maps, so flatten them back.
 	result = tabnas.Plainify(result)
@@ -83,8 +84,6 @@ func parseOpenAPI(source string, meta map[string]string) (map[string]any, error)
 	if _, ok := parsed["components"]; !ok {
 		parsed["components"] = map[string]any{}
 	}
-
-	annotateExamplesOrder(source, parsed)
 
 	delete(parsed, schemeOrderKey)
 	if 0 < len(schemeOrder) {
@@ -153,95 +152,34 @@ func isArrayIndex(key string) bool {
 	return err == nil && n < math.MaxUint32 && key == strconv.FormatUint(n, 10)
 }
 
-func annotateExamplesOrder(source string, parsed map[string]any) {
-	trimmed := strings.TrimSpace(source)
-	if len(trimmed) >= 3 && trimmed[0] == 0xEF && trimmed[1] == 0xBB && trimmed[2] == 0xBF {
-		trimmed = strings.TrimSpace(trimmed[3:])
-	}
-	if !strings.HasPrefix(trimmed, "{") {
+// examplesOrderKey annotates a map of named examples with the order its
+// names are declared in, which JavaScript's Object.values keeps and a plain
+// map loses.
+const examplesOrderKey = "x-examples-order"
+
+// annotateExamplesOrder marks each map under an `examples` key with its names
+// in JavaScript's key order. Example payloads are not entered: a map in one
+// is data.
+func annotateExamplesOrder(node any, key string) {
+	if "examples" == key {
+		if named, ok := node.(*tabnas.OrderedMap); ok {
+			named.Vals[examplesOrderKey] = jsKeyOrder(named.Keys)
+		}
 		return
 	}
-	dec := json.NewDecoder(strings.NewReader(source))
-	dec.UseNumber()
-	tok, err := dec.Token()
-	if err != nil {
+	if "example" == key {
 		return
 	}
-	if d, ok := tok.(json.Delim); !ok || d != '{' {
-		return
-	}
-	_ = walkExamplesOrder(dec, parsed, "")
-}
-
-func walkExamplesOrder(dec *json.Decoder, current any, parentKey string) error {
-	m, ok := current.(map[string]any)
-	if !ok {
-		return drainObject(dec)
-	}
-	keys := []string{}
-	for dec.More() {
-		kt, err := dec.Token()
-		if err != nil {
-			return err
+	switch n := node.(type) {
+	case *tabnas.OrderedMap:
+		for _, k := range n.Keys {
+			annotateExamplesOrder(n.Vals[k], k)
 		}
-		key, _ := kt.(string)
-		keys = append(keys, key)
-		child := m[key]
-		if err := walkExamplesValue(dec, child, key); err != nil {
-			return err
+	case []any:
+		for _, item := range n {
+			annotateExamplesOrder(item, "")
 		}
 	}
-	if _, err := dec.Token(); err != nil {
-		return err
-	}
-	if parentKey == "examples" {
-		m["x-examples-order"] = keys
-	}
-	return nil
-}
-
-func walkExamplesValue(dec *json.Decoder, current any, parentKey string) error {
-	tok, err := dec.Token()
-	if err != nil {
-		return err
-	}
-	delim, isDelim := tok.(json.Delim)
-	if !isDelim {
-		return nil
-	}
-	switch delim {
-	case '{':
-		return walkExamplesOrder(dec, current, parentKey)
-	case '[':
-		arr, _ := current.([]any)
-		i := 0
-		for dec.More() {
-			var child any
-			if i < len(arr) {
-				child = arr[i]
-			}
-			if err := walkExamplesValue(dec, child, ""); err != nil {
-				return err
-			}
-			i++
-		}
-		_, err := dec.Token()
-		return err
-	}
-	return nil
-}
-
-func drainObject(dec *json.Decoder) error {
-	for dec.More() {
-		if _, err := dec.Token(); err != nil { // key
-			return err
-		}
-		if err := walkExamplesValue(dec, nil, ""); err != nil {
-			return err
-		}
-	}
-	_, err := dec.Token()
-	return err
 }
 
 func addXRefsAndResolve(obj any, root map[string]any, visited map[uintptr]bool) {

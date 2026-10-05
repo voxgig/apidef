@@ -4,3 +4,8 @@ opdef	envelope	expected
 {"responses":{"200":{"content":{"application/json":{"example":{"item":{"id":"x","ok":true}}}}}}}	item	["id:string","ok:boolean"]
 {"responses":{"200":{"content":{"application/json":{"example":{"insecure_ssl":"0","url":"https://x"}}}}}}	insecure_ssl	["insecure_ssl:string","url:string"]
 {"responses":{"200":{"content":{"application/json":{"example":{"id":"x"}}}}}}	data	["id:string"]
+{"responses":{"200":{"content":{"application/json":{"examples":{"default":{"value":[{"login":"octocat","id":1}]},"alternative":{"value":[{"starred_at":"2020-01-01T00:00:00Z","user":{"login":"octocat"}}]}}}}}}}		["id:integer","login:string"]
+{"responses":{"200":{"content":{"application/json":{"examples":{"b":{"value":{"bee":"x"}},"2":{"value":{"two":"y"}}}}}}}}		["two:string"]
+{"responses":{"200":{"content":{"application/json":{"example":"plain text","examples":{"one":{"value":{"name":"n"}}}}}}}}		["name:string"]
+{"responses":{"200":{"content":{"application/json":{"examples":{"a":{"value":"scalar"},"b":{"value":{"k":1}}}}}}}}		["k:integer"]
+{"responses":{"200":{"example":"x","examples":{"application/json":{"m":true}}}}}		["m:boolean"]
