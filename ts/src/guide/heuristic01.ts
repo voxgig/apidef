@@ -5,13 +5,15 @@ import type { TaskSpec } from 'ordu'
 
 import { each } from 'jostraca'
 
-import { size, merge, getelem, isempty, items, keysof } from '@voxgig/struct'
+import { size, merge, clone, getelem, isempty, items, keysof } from '@voxgig/struct'
 
 import {
   isEntityWrapperProp, envelopeProp, envelopeItemRef, composedEnvelopeProp,
-  closedBodyTransform, authExchangeOp, specSecuredByDefault, itemEnvelopeKey,
+  bodyRequestTransform, authExchangeOp, specSecuredByDefault, itemEnvelopeKey,
   itemEnvelopeTransform,
 } from '../utility'
+
+import { jsonRequestSchema } from '../transform/body'
 
 
 import {
@@ -58,6 +60,8 @@ import {
   mergedProperties,
   normalizeFieldName,
   pathMatch,
+  pluralize,
+  prefixLeadingDigit,
   resplitFromCmp,
   sortedEntries,
   sortedKeys,
@@ -1256,33 +1260,8 @@ function ResolveTransform(spec: TaskSpec) {
   }
 
   const reqschema = getRequestBodySchema(mdesc.requestBody)
-  const reqprops = reqschema?.properties
-  debugpath(pathStr, methodName, 'TRANSFORM-REQ', keysof(reqprops))
-  // A body wraps the record under the entity's name only when that is all it
-  // holds, and it is structured. Otherwise the name is one field of the record,
-  // such as the container in SaladCloud's container group create.
-  const wraps = (name: string) => isEntityWrapperProp(reqprops?.[name]) &&
-    keysof(reqprops).every((k: string) => k === name)
-
-  if (reqschema) {
-    if (wraps(entdesc.origname)) {
-      transform.req = { [entdesc.origname]: '`reqdata`' }
-    }
-    else if (wraps(entdesc.name)) {
-      transform.req = { [entdesc.name]: '`reqdata`' }
-    }
-    else {
-      // A CLOSED body schema names every property the server will accept, so
-      // the body is those properties — not the whole request payload. The
-      // payload also carries the op's PATH params (`id` for
-      // `PUT /item/{id}`), and a closed shape rejects the entire request over
-      // that one extra key: every update came back 400 with `invalid-data`.
-      const body = closedBodyTransform(reqschema)
-      if (null != body) {
-        transform.req = body
-      }
-    }
-  }
+  debugpath(pathStr, methodName, 'TRANSFORM-REQ', keysof(reqschema?.properties))
+  transform.req = bodyRequestTransform(reqschema, [entdesc.origname, entdesc.name])
 
   if (!isempty(transform) && null != op[opname]) {
     op[opname].transform = transform
@@ -1617,8 +1596,7 @@ function entityPathMatch_tpp(
 
 
 function getRequestBodySchema(requestBody: any) {
-  return requestBody?.content?.['application/json']?.schema ??
-    requestBody?.schema
+  return jsonRequestSchema({ requestBody }) ?? requestBody?.schema
 }
 
 // The response an operation's result is read from, down to an Accepted
@@ -2220,18 +2198,20 @@ function isListResponse(
 }
 
 
+// struct's merge rewrites every list element it walks, not just the first, so
+// each schema is cloned: the definition shares one object per $ref target.
 function resolveSchemaProperties(schema: any) {
   let properties: Record<string, any> = {}
 
   // This is definitely heuristic!
   if (schema.allOf) {
     for (let i = schema.allOf.length - 1; -1 < i; --i) {
-      properties = merge([properties, schema.allOf[i].properties || {}])
+      properties = merge([properties, clone(schema.allOf[i].properties || {})])
     }
   }
 
   if (schema.properties) {
-    properties = merge([properties, schema.properties])
+    properties = merge([properties, clone(schema.properties)])
   }
 
   return properties
@@ -2550,9 +2530,41 @@ function findPotentialSchemaRefs(
 }
 
 
+const CMP_REF_RE = /\/(components\/schemas|definitions)\/(.+)$/
+
 function cmpRefName(xref: string): string {
-  const m = xref.match(/\/(components\/schemas|definitions)\/(.+)$/)
+  const m = xref.match(CMP_REF_RE)
   return null == m ? xref : canonizeCmpName(m[2])
+}
+
+
+// An array request body is sent from a field named for the records it lists:
+// its items' component, or the one their allOf parts name, cleaned as an
+// entity's is, else the entity itself. A pointer into a component names a
+// part of it, not a record. A name another route of the operation has is taken.
+function arrayBodyField(schema: any, entname: string, taken: string[] = []): string {
+  const refs = [...new Set(itemRefs(schema?.items, new Set()))]
+  const cmp = String(1 === refs.length ? refs[0] : '').match(CMP_REF_RE)?.[2]
+  const cleaned = null == cmp || cmp.includes('/') ? '' :
+    prefixLeadingDigit(cleanComponentName(canonizeCmpName(cmp)))
+  const record = '' === cleaned ? entname : cleaned
+  let name = pluralize(record)
+  for (let n = 1; taken.includes(name); n++) {
+    name = record + '_list' + (1 < n ? n : '')
+  }
+  return name
+}
+
+
+function itemRefs(items: any, seen: Set<any>): string[] {
+  if (null == items || 'object' !== typeof items || seen.has(items)) {
+    return []
+  }
+  seen.add(items)
+  if ('string' === typeof items['x-ref']) {
+    return [items['x-ref']]
+  }
+  return (Array.isArray(items.allOf) ? items.allOf : []).flatMap((part: any) => itemRefs(part, seen))
 }
 
 
@@ -2572,6 +2584,7 @@ function hasMethod(def: any, pathStr: string, methodName: string) {
 
 export {
   answeredRefs,
+  arrayBodyField,
   distinctRecord,
   distinctShare,
   heuristic01,

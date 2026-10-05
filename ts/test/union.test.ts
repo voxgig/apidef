@@ -2,7 +2,7 @@
 
 
 import { describe, test } from 'node:test'
-import { equal, deepEqual } from 'node:assert'
+import { equal, deepEqual, strictEqual } from 'node:assert'
 
 // Built module, matching the other suites: the compiled test runs from
 // dist-test/, where a ../src path does not resolve.
@@ -10,6 +10,9 @@ import {
   untaggedUnionBranches,
   scanUntaggedUnion,
 } from '../dist/utility'
+
+import { parse } from '../dist/parse'
+import { heuristic01 } from '../dist/guide/heuristic01'
 
 
 describe('untagged-union', () => {
@@ -110,6 +113,58 @@ describe('untagged-union', () => {
       equal(found?.branches, 2)
     })
 
+  })
+
+})
+
+
+const SHARED_UNION_SPEC = `
+openapi: 3.0.0
+info: { title: Shared, version: '1' }
+paths:
+  /thing:
+    get:
+      responses:
+        '200':
+          description: The thing.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Thing' }
+components:
+  schemas:
+    App:
+      type: object
+      properties:
+        owner: { oneOf: [{ type: string }, { type: integer }] }
+    Thing:
+      type: object
+      properties:
+        id: { type: string }
+        a: { type: object, properties: { apps: { type: array, items: { $ref: '#/components/schemas/App' } } } }
+        b: { type: object, properties: { apps: { type: array, items: { $ref: '#/components/schemas/App' } } } }
+`
+
+
+describe('a union the definition shares', () => {
+
+  // The guide reads a response's properties through struct's merge, which
+  // rewrites each list element it walks, so it once gave every reference to
+  // a schema a copy of its own and the union was counted once per copy.
+  test('stays one object, counted once, after the guide has run', async () => {
+    const def = await parse('OpenAPI', SHARED_UNION_SPEC, { file: 'shared-union.yaml' })
+    const thing = def.paths['/thing'].get.responses['200'].content['application/json'].schema
+    const app = (side: string) => thing.properties[side].properties.apps.items
+    strictEqual(app('a').properties, app('b').properties)
+
+    const quiet = () => undefined
+    await heuristic01({
+      def,
+      log: { info: quiet, debug: quiet, warn: quiet, error: quiet },
+      warn: quiet,
+    } as any)
+
+    strictEqual(app('a').properties, app('b').properties)
+    deepEqual(scanUntaggedUnion(thing), { count: 1, branches: 2, depth: 7 })
   })
 
 })

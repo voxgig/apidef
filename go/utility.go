@@ -55,6 +55,8 @@ func matchCase(source, target string) string {
 }
 
 var irregularPlurals = map[string]string{
+	"aircraft": "aircraft", "deer": "deer", "fish": "fish", "moose": "moose",
+	"oxen": "ox", "sheep": "sheep",
 	"analytics": "analytics", "analyses": "analysis", "appendices": "appendix",
 	"avalanches": "avalanche", "axes": "axis", "bases": "base",
 	"caches": "cache", "canoes": "canoe",
@@ -72,7 +74,7 @@ var irregularPlurals = map[string]string{
 	"pastiches": "pastiche",
 	"pauses":    "pause", "phases": "phase", "phrases": "phrase", "practices": "practice",
 	"premises": "premise", "promises": "promise", "psyches": "psyche",
-	"purchases": "purchase", "purses": "purse",
+	"purchases": "purchase", "purses": "purse", "quizzes": "quiz",
 	"releases": "release", "roses": "rose", "people": "person", "phenomena": "phenomenon",
 	"series": "series", "shoes": "shoe", "sources": "source", "species": "species",
 	"teeth":  "tooth",
@@ -230,6 +232,58 @@ func Depluralize(word string) string {
 	return word
 }
 
+var (
+	consonantYRE = regexp.MustCompile(`[^aeiou]y$`)
+	fSuffixRE    = regexp.MustCompile(`fe?$`)
+	sibilantRE   = regexp.MustCompile(`(s|x|z|ch|sh)$`)
+)
+
+// oesNouns mirrors ts/src/utility.ts: nouns in -o whose plural takes -es.
+var oesNouns = []string{"echo", "embargo", "hero", "potato", "tomato", "torpedo", "veto"}
+
+// Pluralize mirrors ts/src/utility.ts: the plural of a snake name's last word
+// that Depluralize reads back as the name.
+func Pluralize(word string) string {
+	if word == "" {
+		return word
+	}
+
+	cut := strings.LastIndex(word, "_") + 1
+	last := word[cut:]
+	lower := strings.ToLower(last)
+
+	plurals := append(pluralsOf(customPlurals, lower), pluralsOf(irregularPlurals, lower)...)
+	if consonantYRE.MatchString(lower) {
+		plurals = append(plurals, lower[:len(lower)-1]+"ies")
+	}
+	if fSuffixRE.MatchString(lower) {
+		plurals = append(plurals, fSuffixRE.ReplaceAllString(lower, "ves"))
+	}
+	if sibilantRE.MatchString(lower) || slices.Contains(oesNouns, lower) {
+		plurals = append(plurals, lower+"es")
+	}
+	plurals = append(plurals, lower+"s")
+
+	for i, plural := range plurals {
+		plurals[i] = word[:cut] + matchCase(last, plural)
+		if Depluralize(plurals[i]) == word {
+			return plurals[i]
+		}
+	}
+	return plurals[len(plurals)-1]
+}
+
+func pluralsOf(plurals map[string]string, singular string) []string {
+	out := []string{}
+	for plural, single := range plurals {
+		if strings.ToLower(single) == singular {
+			out = append(out, plural)
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
 // Transliterate removes diacritics from a string.
 func Transliterate(s string) string {
 	result := norm.NFD.String(s)
@@ -353,6 +407,18 @@ func Snakify(s string) string {
 var jsUpperCaser = cases.Upper(language.Und)
 
 func jsUpper(s string) string { return jsUpperCaser.String(s) }
+
+var jsLowerCaser = cases.Lower(language.Und)
+
+// jsLowerFirst is jostraca's lcf: JavaScript's toLowerCase on the first code
+// point alone.
+func jsLowerFirst(s string) string {
+	r, size := utf8.DecodeRuneInString(s)
+	if size == 0 {
+		return s
+	}
+	return jsLowerCaser.String(string(r)) + s[size:]
+}
 
 func Camelify(s string) string {
 	parts := partify(s)
@@ -1294,8 +1360,12 @@ func formatJSONICValue(val any, indent int, prefix string, lines *[]string, seen
 		sortUTF16(keys)
 
 		if len(keys) == 0 {
+			sep := ""
+			if indent > 0 && indent <= 1 {
+				sep = "\n"
+			}
 			*lines = append(*lines, prefix+"{")
-			*lines = append(*lines, indentStr+"}")
+			*lines = append(*lines, indentStr+"}"+sep)
 			return
 		}
 		*lines = append(*lines, prefix+"{")
@@ -2147,6 +2217,26 @@ func holdsStructuredBranch(branches any) bool {
 	return false
 }
 
+// bodyRequestTransform mirrors ts/src/utility.ts: a body wraps the record
+// under the entity's name only when that is all it holds, else a closed body
+// is its own properties.
+func bodyRequestTransform(schema any, names ...string) any {
+	sch, _ := schema.(map[string]any)
+	if sch == nil {
+		return nil
+	}
+	props, _ := sch["properties"].(map[string]any)
+	for _, name := range names {
+		if name != "" && isEntityWrapperProp(props[name]) && len(props) == 1 {
+			return map[string]any{name: "`reqdata`"}
+		}
+	}
+	if body := closedBodyTransform(schema); body != nil {
+		return body
+	}
+	return nil
+}
+
 func closedBodyTransform(schema any) map[string]any {
 	sch, ok := schema.(map[string]any)
 	if !ok || sch == nil {
@@ -2168,6 +2258,21 @@ func closedBodyTransform(schema any) map[string]any {
 		out[name] = "`reqdata." + Canonize(NormalizeFieldName(name)) + "`"
 	}
 	return out
+}
+
+// requestWrapperOf mirrors ts/src/utility.ts: the key a request transform
+// sends the whole record under, else "".
+func requestWrapperOf(req any) string {
+	m, ok := req.(map[string]any)
+	if !ok || len(m) != 1 {
+		return ""
+	}
+	for key, val := range m {
+		if s, ok := val.(string); ok && s == "`reqdata`" {
+			return key
+		}
+	}
+	return ""
 }
 
 func UntaggedUnionBranches(schema any) int {
