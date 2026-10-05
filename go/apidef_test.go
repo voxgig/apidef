@@ -1899,7 +1899,7 @@ func TestFieldShortFromDescription(t *testing.T) {
 	}
 
 	byName := map[string]map[string]any{}
-	for _, f := range resolveOpFields(mtarget, def, "list", "planet") {
+	for _, f := range resolveOpFields(mtarget, def, "list", "planet", "") {
 		byName[f["n"].(string)] = f
 	}
 
@@ -1949,7 +1949,7 @@ func TestFieldShortFromRequestBodyDescription(t *testing.T) {
 	}
 
 	byName := map[string]map[string]any{}
-	for _, f := range resolveOpFields(mtarget, def, "create", "planet") {
+	for _, f := range resolveOpFields(mtarget, def, "create", "planet", "") {
 		byName[f["n"].(string)] = f
 	}
 
@@ -2088,7 +2088,7 @@ func TestFieldShortIsOneCappedLine(t *testing.T) {
 	mtarget := map[string]any{"o": "/planets/{id}", "m": "GET", "k": "json"}
 
 	byName := map[string]map[string]any{}
-	for _, f := range resolveOpFields(mtarget, def, "load", "planet") {
+	for _, f := range resolveOpFields(mtarget, def, "load", "planet", "") {
 		byName[f["n"].(string)] = f
 	}
 
@@ -2234,7 +2234,7 @@ func TestFieldSpecFactsFromResponse(t *testing.T) {
 	mtarget := map[string]any{"o": "/planets/{id}", "m": "GET", "k": "json"}
 
 	byName := map[string]map[string]any{}
-	for _, f := range resolveOpFields(mtarget, def, "load", "planet") {
+	for _, f := range resolveOpFields(mtarget, def, "load", "planet", "") {
 		byName[f["n"].(string)] = f
 	}
 
@@ -2300,7 +2300,7 @@ func TestFieldSpecFactsFromRequestBody(t *testing.T) {
 	mtarget := map[string]any{"o": "/planets", "m": "POST", "k": "json"}
 
 	byName := map[string]map[string]any{}
-	for _, f := range resolveOpFields(mtarget, def, "create", "planet") {
+	for _, f := range resolveOpFields(mtarget, def, "create", "planet", "") {
 		byName[f["n"].(string)] = f
 	}
 
