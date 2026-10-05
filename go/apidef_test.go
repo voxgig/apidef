@@ -646,7 +646,7 @@ func TestGuideItemEnvelopeOverlay(t *testing.T) {
 	folder := t.TempDir()
 	entry := "@\"@voxgig/apidef/model/guide.aontu\"\n" +
 		"@\"./base-guide.aontu\"\n" +
-		"guide: entity: customer: path: \"/customers.json\": op: list: transform: res: \"`body`\"\n"
+		"guide: entity: customer: path: \"/customers.json\": op: list: transform: res: \"`body.data`\"\n"
 	if err := writeGuideEntry(folder, "", entry); err != nil {
 		t.Fatal(err)
 	}
@@ -662,6 +662,15 @@ func TestGuideItemEnvelopeOverlay(t *testing.T) {
 		t.Fatalf("generate failed: err=%v res=%+v", err, res)
 	}
 
+	baseguide, err := os.ReadFile(filepath.Join(folder, "guide", "base-guide.aontu"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(baseguide),
+		"op: list: transform: res: *[\"`$EACH`\",\"body\",{\"`$MERGE`\":\"`.customer`\"}]|top") {
+		t.Errorf("base guide lacks the list default:\n%s", string(baseguide))
+	}
+
 	entities := res.ApiModel["main"].(map[string]any)["kit"].(map[string]any)["entity"].(map[string]any)
 	customer, _ := entities["customer"].(map[string]any)
 	ops, _ := customer["op"].(map[string]any)
@@ -669,8 +678,8 @@ func TestGuideItemEnvelopeOverlay(t *testing.T) {
 	pts, _ := list["points"].([]any)
 	pt, _ := pts[0].(map[string]any)
 	tr, _ := pt["t"].(map[string]any)
-	if tr["res"] != "`body`" {
-		t.Errorf("customer list res = %#v, want `body`", tr["res"])
+	if tr["res"] != "`body.data`" {
+		t.Errorf("customer list res = %#v, want `body.data`", tr["res"])
 	}
 }
 

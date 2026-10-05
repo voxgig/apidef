@@ -562,7 +562,7 @@ describe('apidef', () => {
     Fs.writeFileSync(Path.join(folder, 'guide', 'guide.aontu'), [
       '@"@voxgig/apidef/model/guide.aontu"',
       '@"./base-guide.aontu"',
-      'guide: entity: customer: path: "/customers.json": op: list: transform: res: "`body`"',
+      'guide: entity: customer: path: "/customers.json": op: list: transform: res: "`body.data`"',
       '',
     ].join('\n'))
 
@@ -584,11 +584,16 @@ describe('apidef', () => {
       },
       {}
     )
+    const basepath = Path.join(folder, 'guide', 'base-guide.aontu')
+    const baseguide = Fs.existsSync(basepath) ? Fs.readFileSync(basepath, 'utf8') : ''
     Fs.rmSync(dir, { recursive: true, force: true })
 
     assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+    assert.ok(baseguide.includes(
+      'op: list: transform: res: *["`$EACH`","body",{"`$MERGE`":"`.customer`"}]|top'),
+      'base guide lacks the list default:\n' + baseguide)
     assert.strictEqual(
-      bres.apimodel.main.kit.entity.customer.op.list.points[0].t.res, '`body`')
+      bres.apimodel.main.kit.entity.customer.op.list.points[0].t.res, '`body.data`')
   })
 
 

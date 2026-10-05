@@ -446,7 +446,7 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         Fs.writeFileSync(Path.join(folder, 'guide', 'guide.aontu'), [
             '@"@voxgig/apidef/model/guide.aontu"',
             '@"./base-guide.aontu"',
-            'guide: entity: customer: path: "/customers.json": op: list: transform: res: "`body`"',
+            'guide: entity: customer: path: "/customers.json": op: list: transform: res: "`body.data`"',
             '',
         ].join('\n'));
         const build = await apidef_1.ApiDef.makeBuild({ folder });
@@ -463,9 +463,12 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
                 }
             }
         }, {});
+        const basepath = Path.join(folder, 'guide', 'base-guide.aontu');
+        const baseguide = Fs.existsSync(basepath) ? Fs.readFileSync(basepath, 'utf8') : '';
         Fs.rmSync(dir, { recursive: true, force: true });
         node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
-        node_assert_1.default.strictEqual(bres.apimodel.main.kit.entity.customer.op.list.points[0].t.res, '`body`');
+        node_assert_1.default.ok(baseguide.includes('op: list: transform: res: *["`$EACH`","body",{"`$MERGE`":"`.customer`"}]|top'), 'base guide lacks the list default:\n' + baseguide);
+        node_assert_1.default.strictEqual(bres.apimodel.main.kit.entity.customer.op.list.points[0].t.res, '`body.data`');
     });
     // A wrapper whose suffix was cleaned away to name the entity is still the
     // wrapper, so the record is read by the entity's name. The entity's own
