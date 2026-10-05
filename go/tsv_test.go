@@ -1298,6 +1298,41 @@ func TestTsvParamSchema(t *testing.T) {
 	}
 }
 
+func TestTsvBuildRelations(t *testing.T) {
+	rows := loadTsv(t, "build-relations")
+	if len(rows) == 0 {
+		t.Fatal("no build-relations rows loaded")
+	}
+	for _, row := range rows {
+		pathsSrc, wantSrc := row["paths"], row["expected"]
+		t.Run(pathsSrc, func(t *testing.T) {
+			var paths []string
+			if err := json.Unmarshal([]byte(pathsSrc), &paths); err != nil {
+				t.Fatalf("bad paths %q: %v", pathsSrc, err)
+			}
+			var descs []map[string]any
+			for _, path := range paths {
+				segments := []map[string]any{}
+				for _, part := range strings.Split(path, "/") {
+					if part == "" {
+						continue
+					}
+					if strings.HasPrefix(part, "{") {
+						segments = append(segments, map[string]any{"var": part[1 : len(part)-1]})
+					} else {
+						segments = append(segments, map[string]any{"lit": part})
+					}
+				}
+				descs = append(descs, map[string]any{"segments": segments})
+			}
+			got, _ := json.Marshal(BuildRelations(map[string]any{}, descs)["ancestors"])
+			if string(got) != wantSrc {
+				t.Errorf("BuildRelations(%s) = %s, want %s", pathsSrc, got, wantSrc)
+			}
+		})
+	}
+}
+
 func TestArrayBodyField(t *testing.T) {
 	rows := loadTsv(t, "array-body-field")
 	if len(rows) == 0 {
