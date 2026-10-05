@@ -1,0 +1,15 @@
+# Guide entry file: put customizations below the includes. The base guide
+# it includes is generated and overwritten on every build.
+@"@voxgig/apidef/model/guide.aontu"
+@"./base-guide.aontu"
+
+guide: entity: message: path: "/mms/v1/messages": op: create: transform: req: "`reqdata.messages`"
+guide: entity: label: path: "/labels": op: create: transform: req: "`reqdata`"
+guide: entity: record: path: "/records": op: create: body: media: "application/vnd.acme.record+json"
+guide: entity: batch: path: "/batches": op: create: body: media: "application/vnd.acme.batch-list+json"
+guide: entity: crew: path: "/crews": op: create: body: media: "application/vnd.acme.crew-list+json"
+guide: entity: deck: path: "/decks": op: create: body: media: "application/vnd.acme.deck+json"
+guide: entity: form: path: "/forms": op: create: body: media: "application/x-www-form-urlencoded"
+guide: entity: upload: path: "/uploads": op: create: body: media: "application/x-www-form-urlencoded"
+guide: entity: pallet: path: "/pallets": op: create: body: media: "application/vnd.acme.pallet+json"
+guide: entity: bale: path: "/bales": op: create: body: media: "application/vnd.acme.bale+json"

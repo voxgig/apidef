@@ -37,7 +37,10 @@ func SelectTransform(ctx *ApiDefContext) (*TransformResult, error) {
 				if mtarget == nil {
 					continue
 				}
-				resolveSelect(guideEntity, entname, mtarget)
+				method, _ := mtarget["m"].(string)
+				path, _ := mtarget["o"].(string)
+				media, _ := guideBodyMedia(guide, entname, opkey, method, path)
+				resolveSelect(guideEntity, entname, mtarget, arrayCarrier(ctx.Def, mtarget, media))
 			}
 
 			if len(points) > 0 {
@@ -51,7 +54,7 @@ func SelectTransform(ctx *ApiDefContext) (*TransformResult, error) {
 	return &TransformResult{OK: true, Msg: msg}, nil
 }
 
-func resolveSelect(guideEntity map[string]any, entname string, mtarget map[string]any) {
+func resolveSelect(guideEntity map[string]any, entname string, mtarget map[string]any, carrier *arrayCarrierInfo) {
 	selectMap, _ := mtarget["q"].(map[string]any)
 	if selectMap == nil {
 		selectMap = map[string]any{"exist": []any{}}
@@ -86,6 +89,12 @@ func resolveSelect(guideEntity map[string]any, entname string, mtarget map[strin
 				existSet[name] = true
 			}
 		}
+	}
+
+	// The field an array body is sent from, when the body is required.
+	if carrier != nil && carrier.required && !existSet[carrier.name] {
+		exist = append(exist, carrier.name)
+		existSet[carrier.name] = true
 	}
 
 	// Sort exist

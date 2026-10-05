@@ -36,32 +36,7 @@ func ArgsTransform(ctx *ApiDefContext) (*TransformResult, error) {
 					continue
 				}
 
-				orig, _ := mtarget["o"].(string)
-				method, _ := mtarget["m"].(string)
-
-				var argdefs []map[string]any
-
-				// Path-level parameters
-				if pathdef, ok := defPaths[orig].(map[string]any); ok {
-					if params, ok := pathdef["parameters"].([]any); ok {
-						for _, p := range params {
-							if pm, ok := p.(map[string]any); ok {
-								argdefs = append(argdefs, pm)
-							}
-						}
-					}
-					// Method-level parameters
-					methodLower := toLower(method)
-					if opdef, ok := pathdef[methodLower].(map[string]any); ok {
-						if params, ok := opdef["parameters"].([]any); ok {
-							for _, p := range params {
-								if pm, ok := p.(map[string]any); ok {
-									argdefs = append(argdefs, pm)
-								}
-							}
-						}
-					}
-				}
+				argdefs := routeArgdefs(defPaths, mtarget)
 
 				resolveArgs(ctx, entname, opkey, mtarget, argdefs)
 			}
@@ -77,6 +52,43 @@ var argKindMap = map[string]string{
 	"header": "header",
 	"path":   "param",
 	"cookie": "cookie",
+}
+
+// routeArgdefs mirrors ts/src/transform/args.ts: a route's path-level and
+// method-level parameters.
+func routeArgdefs(defPaths map[string]any, mtarget map[string]any) []map[string]any {
+	orig, _ := mtarget["o"].(string)
+	method, _ := mtarget["m"].(string)
+	pathdef, _ := defPaths[orig].(map[string]any)
+	opdef, _ := pathdef[toLower(method)].(map[string]any)
+	var argdefs []map[string]any
+	for _, holder := range []map[string]any{pathdef, opdef} {
+		params, _ := holder["parameters"].([]any)
+		for _, p := range params {
+			if pm, ok := p.(map[string]any); ok {
+				argdefs = append(argdefs, pm)
+			}
+		}
+	}
+	return argdefs
+}
+
+// routeArgNames mirrors ts/src/transform/args.ts: the names a caller gives a
+// REST route's arguments, as this step names them.
+func routeArgNames(def map[string]any, mtarget map[string]any) []string {
+	defPaths, _ := def["paths"].(map[string]any)
+	route := map[string]any{"o": mtarget["o"], "m": mtarget["m"], "r": mtarget["r"], "k": mtarget["k"], "g": map[string]any{}}
+	resolveArgs(nil, "", "", route, routeArgdefs(defPaths, mtarget))
+	names := []string{}
+	args, _ := route["g"].(map[string]any)
+	for _, kind := range sortedKeys(args) {
+		list, _ := args[kind].([]any)
+		for _, a := range list {
+			am, _ := a.(map[string]any)
+			names = append(names, safeStr(am["n"]))
+		}
+	}
+	return names
 }
 
 func resolveArgs(
@@ -99,6 +111,11 @@ func resolveArgs(
 	for _, argdef := range argdefs {
 		argName, _ := argdef["name"].(string)
 		argIn, _ := argdef["in"].(string)
+
+		// A Swagger body parameter is the request body, which the body step reads.
+		if argIn == "body" {
+			continue
+		}
 
 		// THE SPEC NAME AS WRITTEN is what the rename map is keyed by; the
 		// snakified form is the user-friendly runtime identifier. Both are
@@ -340,28 +357,27 @@ func paramSchema(argdef map[string]any) map[string]any {
 	return binary
 }
 
+// An example present as null is still the example, as the TS port's
+// undefined check reads it.
 func resolveArgExample(argdef map[string]any, schema map[string]any) (any, bool) {
-	if v, has := argdef["example"]; has && v != nil {
+	if v, has := argdef["example"]; has {
 		return v, true
 	}
 
 	if examples, ok := argdef["examples"].(map[string]any); ok {
-		// SORTED, so "the first one" is the same on both ports: Go map
-		// iteration is randomised and TS reads insertion order, so an
-		// unsorted walk would make this key vary between runs.
-		for _, k := range sortedKeys(examples) {
+		for _, k := range exampleOrder(examples) {
 			if e, ok := examples[k].(map[string]any); ok {
-				if v, has := e["value"]; has && v != nil {
+				if v, has := e["value"]; has {
 					return v, true
 				}
 			}
 		}
 	}
 
-	if v, has := schema["example"]; has && v != nil {
+	if v, has := schema["example"]; has {
 		return v, true
 	}
-	if v, has := schema["default"]; has && v != nil {
+	if v, has := schema["default"]; has {
 		return v, true
 	}
 

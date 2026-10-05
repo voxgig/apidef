@@ -456,6 +456,9 @@ describe('apidef', () => {
     // it holds.
     assert.strictEqual(entities.greenhouse.op.create.points[0].t.req, '`reqdata`')
     assert.deepStrictEqual(entities.kennel.op.create.points[0].t.req, { kennel: '`reqdata`' })
+
+    // Such a body gives the fields of the record it wraps, not the wrapper.
+    assert.deepStrictEqual(Object.keys(entities.kennel.fields).sort(), ['breed', 'name'])
   })
 
 
@@ -501,6 +504,99 @@ describe('apidef', () => {
       'address_line1', 'address_line2', 'address_zip', 'id', 'name',
     ])
     assert.deepStrictEqual(Object.keys(entities.owner.fields), ['id', 'name', 'settings'])
+  })
+
+
+  // Maxio wraps every record under the name of its type, in lists too, so
+  // each item of a list holds one record. The list reads each item's record
+  // through a struct transform, and the wrapper's key is no field. An item
+  // holding more than the record, as an invoice beside its links, is whole.
+  test('guide-item-envelope', async () => {
+    const folder = __dirname + '/../test/item-envelope'
+
+    const build = await ApiDef.makeBuild({ folder })
+
+    const bres = await build(
+      { name: 'item-envelope', def: 'item-envelope-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: true,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const entities = bres.apimodel.main.kit.entity
+    const res = (ent: string, op: string) => entities[ent].op[op].points[0].t.res
+
+    assert.deepStrictEqual(res('customer', 'list'),
+      ['`$EACH`', 'body', { '`$MERGE`': '`.customer`' }])
+    assert.strictEqual(res('customer', 'load'), '`body.customer`')
+    assert.ok(Fs.readFileSync(folder + '/guide/base-guide.aontu', 'utf8').includes(
+      'op: list: transform: res: *["`$EACH`","body",{"`$MERGE`":"`.customer`"}]|top'))
+    assert.strictEqual(res('invoice', 'list'), '`body`')
+    assert.deepStrictEqual(Object.keys(entities.customer.fields),
+      ['email', 'first_name', 'id', 'last_name'])
+  })
+
+
+  // The list's transform is a default of the base guide, which the entry
+  // guide overrides as it does a path.
+  test('guide-item-envelope-overlay', async () => {
+    const Os = require('node:os')
+    const Path = require('node:path')
+    const def = 'item-envelope-def.json'
+
+    const dir = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'apidef-item-'))
+    const folder = Path.join(dir, 'model')
+    Fs.mkdirSync(Path.join(folder, 'guide'), { recursive: true })
+    Fs.mkdirSync(Path.join(dir, 'def'))
+    Fs.copyFileSync(Path.join(__dirname, '..', 'test', 'def', def), Path.join(dir, 'def', def))
+    Fs.writeFileSync(Path.join(folder, 'guide', 'guide.aontu'), [
+      '@"@voxgig/apidef/model/guide.aontu"',
+      '@"./base-guide.aontu"',
+      'guide: entity: customer: path: "/customers.json": op: list: transform: res: "`body.data`"',
+      '',
+    ].join('\n'))
+
+    const build = await ApiDef.makeBuild({ folder })
+    const bres = await build(
+      { name: 'item-envelope', def },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: true,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+    const basepath = Path.join(folder, 'guide', 'base-guide.aontu')
+    const baseguide = Fs.existsSync(basepath) ? Fs.readFileSync(basepath, 'utf8') : ''
+    Fs.rmSync(dir, { recursive: true, force: true })
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+    assert.ok(baseguide.includes(
+      'op: list: transform: res: *["`$EACH`","body",{"`$MERGE`":"`.customer`"}]|top'),
+      'base guide lacks the list default:\n' + baseguide)
+    assert.strictEqual(
+      bres.apimodel.main.kit.entity.customer.op.list.points[0].t.res, '`body.data`')
   })
 
 
@@ -665,6 +761,48 @@ describe('apidef', () => {
     assert.strictEqual(res('project', 'update'), '`body.project`')
     assert.strictEqual(res('project', 'remove'), '`body.project`')
     assert.strictEqual(res('widget', 'load'), '`body`')
+  })
+
+
+  // A list reads its records, past an object named for the entity beside
+  // them: a quote beside its episodes, or the competition a page of its
+  // matches repeats. A list under the entity's name, and a load, still
+  // unwrap to it.
+  test('guide-list-records', async () => {
+    const folder = __dirname + '/../test/list-records'
+
+    const build = await ApiDef.makeBuild({ folder })
+
+    const bres = await build(
+      { name: 'list-records', def: 'list-records-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: true,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const entities = bres.apimodel.main.kit.entity
+    const res = (ent: string, op: string, path: string) =>
+      entities[ent]?.op[op]?.points.find((pt: any) => pt.o === path)?.t.res
+    assert.strictEqual(res('quote', 'list', '/quote/random'), '`body.episodes`')
+    assert.strictEqual(res('competition', 'list', '/competitions/{id}/matches'), '`body.matches`')
+    assert.strictEqual(res('competition', 'list', '/competitions/{id}/teams'), '`body.teams`')
+    assert.strictEqual(res('scorer', 'list', '/competitions/{id}/scorers'), '`body.scorers`')
+    assert.strictEqual(res('note', 'list', '/notes'), '`body.note`')
+    assert.strictEqual(res('quote', 'load', '/quote/{id}'), '`body.quote`')
+    assert.strictEqual(res('competition', 'load', '/competitions/{id}'), '`body`')
   })
 
 

@@ -45,12 +45,13 @@ const node_assert_1 = __importDefault(require("node:assert"));
 const utility_1 = require("../dist/utility");
 const field_1 = require("../dist/transform/field");
 const resolved_1 = require("../dist/resolved");
+const top_1 = require("../dist/transform/top");
 const select_1 = require("../dist/transform/select");
 const body_1 = require("../dist/transform/body");
 const aontu_1 = require("aontu");
 const args_1 = require("../dist/transform/args");
 const entity_1 = require("../dist/transform/entity");
-const top_1 = require("../dist/transform/top");
+const top_2 = require("../dist/transform/top");
 const jostraca_1 = require("jostraca");
 const graphql01_1 = require("../dist/guide/graphql01");
 const heuristic01_1 = require("../dist/guide/heuristic01");
@@ -58,6 +59,7 @@ const guide_1 = require("../dist/guide/guide");
 const parse_1 = require("../dist/parse");
 const refcount_1 = require("../dist/refcount");
 const clean_1 = require("../dist/transform/clean");
+const flowstep_1 = require("../dist/transform/flowstep");
 const transform_1 = require("../dist/transform");
 function loadTsv(name) {
     const filepath = Path.join(__dirname, '..', 'test', name + '.tsv');
@@ -108,6 +110,23 @@ function loadTsv(name) {
     for (const row of rows) {
         (0, node_test_1.test)(`depluralize("${row.input}") => "${row.expected}"`, () => {
             node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)(row.input), row.expected);
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-pluralize', () => {
+    const rows = loadTsv('pluralize');
+    for (const row of rows) {
+        (0, node_test_1.test)(`pluralize("${row.input}") => "${row.expected}"`, () => {
+            if ('' !== row.plurals) {
+                (0, utility_1.setCustomPlurals)(JSON.parse(row.plurals));
+            }
+            try {
+                node_assert_1.default.deepStrictEqual((0, utility_1.pluralize)(row.input), row.expected);
+                node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)(row.expected), row.input);
+            }
+            finally {
+                (0, utility_1.clearCustomPlurals)();
+            }
         });
     }
 });
@@ -534,6 +553,16 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-arg-example', () => {
+    const rows = loadTsv('arg-example');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(`resolveArgExample(${row.argdef}, ${row.schema})`, () => {
+            const ex = (0, args_1.resolveArgExample)(JSON.parse(row.argdef), JSON.parse(row.schema));
+            node_assert_1.default.deepStrictEqual(undefined === ex ? {} : { ex }, JSON.parse(row.expected));
+        });
+    }
+});
 // The field the transform builds from one property, beside a plain property
 // so that the record is not read as an envelope around it.
 (0, node_test_1.describe)('tsv-allof-field', () => {
@@ -758,12 +787,53 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-info-summary', () => {
+    for (const row of loadTsv('info-summary')) {
+        (0, node_test_1.test)(`resolveSummary(${row.def.slice(0, 60)})`, () => {
+            node_assert_1.default.strictEqual((0, top_2.resolveSummary)(JSON.parse(row.def)) ?? null, JSON.parse(row.expected));
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-info-website', () => {
+    for (const row of loadTsv('info-website')) {
+        (0, node_test_1.test)(`resolveWebsite(${row.def.slice(0, 40)}, ${row.servers})`, () => {
+            node_assert_1.default.strictEqual((0, top_2.resolveWebsite)(JSON.parse(row.def), JSON.parse(row.servers)) ?? null, JSON.parse(row.expected));
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-build-relations', () => {
+    const rows = loadTsv('build-relations');
+    for (const row of rows) {
+        (0, node_test_1.test)(`buildRelations(${row.paths.slice(0, 60)})`, () => {
+            const paths = JSON.parse(row.paths).map((path) => ({
+                segments: path.split('/').filter((part) => '' !== part).map((part) => part.startsWith('{') ? { var: part.slice(1, -1) } : { lit: part }),
+            }));
+            node_assert_1.default.deepStrictEqual((0, entity_1.buildRelations)({}, paths).ancestors, JSON.parse(row.expected));
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-array-body-field', () => {
+    const rows = loadTsv('array-body-field');
+    for (const row of rows) {
+        (0, node_test_1.test)(`arrayBodyField(${row.schema}, ${row.entity}, ${row.taken})`, () => {
+            node_assert_1.default.deepStrictEqual((0, heuristic01_1.arrayBodyField)(JSON.parse(row.schema), row.entity, JSON.parse(row.taken)), row.expected);
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-closed-body-transform', () => {
     const rows = loadTsv('closed-body-transform');
     for (const row of rows) {
         (0, node_test_1.test)(`closedBodyTransform(${row.schema})`, () => {
             const got = (0, utility_1.closedBodyTransform)(JSON.parse(row.schema));
             node_assert_1.default.deepStrictEqual(null == got ? null : { ...got }, JSON.parse(row.expected));
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-request-wrapper-of', () => {
+    const rows = loadTsv('request-wrapper-of');
+    for (const row of rows) {
+        (0, node_test_1.test)(`requestWrapperOf(${row.req})`, () => {
+            node_assert_1.default.strictEqual((0, utility_1.requestWrapperOf)(JSON.parse(row.req)), JSON.parse(row.expected));
         });
     }
 });
@@ -830,7 +900,7 @@ function loadTsv(name) {
     for (const row of rows) {
         (0, node_test_1.test)(row.name, async () => {
             const def = await (0, parse_1.parse)('OpenAPI', row.spec, { file: row.name });
-            node_assert_1.default.deepStrictEqual((0, top_1.resolveSecurity)(def), JSON.parse(row.expected));
+            node_assert_1.default.deepStrictEqual((0, top_2.resolveSecurity)(def), JSON.parse(row.expected));
         });
     }
 });
@@ -841,7 +911,7 @@ function loadTsv(name) {
         (0, node_test_1.test)(row.name, async () => {
             const warnings = [];
             const apimodel = { main: { kit: {} } };
-            await (0, top_1.topTransform)({
+            await (0, top_2.topTransform)({
                 apimodel,
                 def: { info: {}, ...JSON.parse(row.def) },
                 warn: (warning) => warnings.push(warning),
@@ -851,12 +921,21 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-info-scalars', () => {
+    const rows = loadTsv('info-scalars');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(`stringifyInfoScalars(${row.input})`, () => {
+            node_assert_1.default.deepStrictEqual((0, top_1.stringifyInfoScalars)(JSON.parse(row.input)), JSON.parse(row.expected));
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-auth-prefix', () => {
     const rows = loadTsv('auth-prefix');
     (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
     for (const row of rows) {
         (0, node_test_1.test)(row.name, () => {
-            node_assert_1.default.strictEqual((0, top_1.findAuthPrefix)(JSON.parse(row.text)), '' === row.expected ? null : row.expected);
+            node_assert_1.default.strictEqual((0, top_2.findAuthPrefix)(JSON.parse(row.text)), '' === row.expected ? null : row.expected);
         });
     }
 });
@@ -1082,6 +1161,43 @@ function loadTsv(name) {
                     ...(null == point.rs ? {} : { rs: point.rs.media }),
                 }))]));
             node_assert_1.default.deepStrictEqual(points, JSON.parse(row.points));
+        });
+    }
+});
+// A point from its route: the placeholders are its params, in the order the
+// model sorts them, unless the row lists them.
+function flowPoint(spec) {
+    const { path, params, rename } = 'string' === typeof spec ? { path: spec } : spec;
+    const s = path.split('/').filter((part) => '' !== part).map((part) => part.startsWith('{') ? { var: part.slice(1, -1) } : { lit: part });
+    const names = params ?? s.filter((seg) => null != seg.var).map((seg) => seg.var).sort();
+    return {
+        s,
+        g: { params: names.map((n) => ({ n, k: 'param', r: true, t: '`$STRING`' })) },
+        ...(null == rename ? {} : { r: { param: rename } }),
+    };
+}
+(0, node_test_1.describe)('tsv-flow-step', () => {
+    const rows = loadTsv('flow-step');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(`flowstepTransform(${row.ops.slice(0, 60)})`, async () => {
+            const op = Object.fromEntries(Object.entries(JSON.parse(row.ops)).map(([name, points]) => [name, { name, points: points.map(flowPoint) }]));
+            const fields = Object.fromEntries(JSON.parse(row.fields).map((n) => [n, { n, t: '`$STRING`' }]));
+            const flow = { name: 'BasicThingFlow', entity: 'thing', kind: 'basic', step: [] };
+            await (0, flowstep_1.flowstepTransform)({
+                apimodel: { main: { kit: {
+                            entity: { thing: { name: 'thing', fields, op } },
+                            flow: { BasicThingFlow: flow },
+                        } } },
+                guide: {},
+                log: { debug: () => undefined },
+            });
+            node_assert_1.default.deepStrictEqual(flow.step.map((step) => ({
+                o: step.o,
+                ...(0 < Object.keys(step.m).length ? { m: step.m } : {}),
+                ...(0 < Object.keys(step.d).length ? { d: step.d } : {}),
+                ...(null == step.i.textfield ? {} : { tf: step.i.textfield }),
+            })), JSON.parse(row.expected));
         });
     }
 });

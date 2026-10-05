@@ -391,9 +391,11 @@ async function buildBaseGuide(ctx: ApiDefContext) {
         if (null != op.optype) {
           guideBlocks.push(`      op: ${opname}: optype: *${op.optype}`)
         }
-        if (null != op.transform.res) {
-          guideBlocks.push(
-            `      op: ${opname}: transform: res: *${qt(op.transform.res)}|top`)
+        // aontu generates a list default only when it is not parenthesized.
+        const res = op.transform.res
+        if (null != res) {
+          guideBlocks.push(`      op: ${opname}: transform: res: ` +
+            `*${'string' === typeof res ? qt(res) : qs(res)}|top`)
         }
         const reqmap: any = op.transform.req
         if (null != reqmap && 'object' === typeof reqmap) {

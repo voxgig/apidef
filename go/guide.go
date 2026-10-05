@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"unicode/utf16"
 
@@ -536,8 +537,13 @@ func buildGuideSource(ctx *ApiDefContext, baseguide map[string]any) string {
 					blocks = append(blocks, fmt.Sprintf("      op: %s: method: *%s", opname, method))
 
 					if transform, ok := opdef["transform"].(map[string]any); ok {
+						// Mirrors ts/src/guide/guide.ts: a list default is written bare.
 						if res := transform["res"]; res != nil {
-							blocks = append(blocks, fmt.Sprintf("      op: %s: transform: res: *(%s)|top", opname, guideJSON(res)))
+							format := "      op: %s: transform: res: *(%s)|top"
+							if _, isStr := res.(string); !isStr {
+								format = "      op: %s: transform: res: *%s|top"
+							}
+							blocks = append(blocks, fmt.Sprintf(format, opname, guideJSON(res)))
 						}
 						if reqmap, ok := transform["req"].(map[string]any); ok {
 							for _, bodykey := range sortedKeys(reqmap) {
@@ -1760,9 +1766,24 @@ func resolveTransform(data map[string]any, mdesc map[string]any) {
 	// record as one of its parts, beside any properties of its own.
 	partprops := mergedProperties(resschema)
 
-	if named && isEntityWrapperProp(partprops[origname]) && origname != "" {
+	// Mirrors ts/src/guide/heuristic01.ts: a list reads records, so an object
+	// named for the entity does not win over a list of them beside it, found
+	// in the same parts the name is.
+	records := ""
+	if opname == "list" && partprops != nil {
+		records = envelopeProp(partprops, opname)
+	}
+	holdsRecord := func(prop any) bool {
+		if !isEntityWrapperProp(prop) {
+			return false
+		}
+		islist, known := propIsList(prop)
+		return records == "" || (known && islist)
+	}
+
+	if named && holdsRecord(partprops[origname]) && origname != "" {
 		transform["res"] = "`body." + origname + "`"
-	} else if named && isEntityWrapperProp(partprops[ename]) && ename != "" {
+	} else if named && holdsRecord(partprops[ename]) && ename != "" {
 		transform["res"] = "`body." + ename + "`"
 	} else if resprops != nil {
 		if envelope := envelopeProp(resprops, opname); envelope != "" {
@@ -1776,25 +1797,26 @@ func resolveTransform(data map[string]any, mdesc map[string]any) {
 		}
 	}
 
-	reqBody, _ := mdesc["requestBody"].(map[string]any)
-	reqschema := getRequestBodySchema(reqBody)
-	reqprops := getRequestBodySchemaProps(reqBody)
-	DebugPath(pathStr, methodName, "TRANSFORM-REQ", reqprops)
-
-	// Mirrors ts/src/guide/heuristic01.ts: a body wraps the record under the
-	// entity's name only when that is all it holds, and it is structured.
-	wraps := func(name string) bool {
-		return name != "" && isEntityWrapperProp(reqprops[name]) && len(reqprops) == 1
+	// Mirrors ts/src/guide/heuristic01.ts: an item that is the entity's own
+	// component is the record, as above.
+	items, _ := resschema["items"].(map[string]any)
+	itemref, _ := items["x-ref"].(string)
+	itemNamed := true
+	if m := xrefRE.FindStringSubmatch(itemref); m != nil && entcmp != "" {
+		itemNamed = CanonizeCmpName(m[2]) != entcmp
+	}
+	if transform["res"] == nil && opname == "list" && itemNamed {
+		if key := itemEnvelopeKey(resschema, []string{origname, ename}); key != "" {
+			transform["res"] = itemEnvelopeTransform(key)
+		}
 	}
 
-	if reqschema != nil {
-		if wraps(origname) {
-			transform["req"] = map[string]any{origname: "`reqdata`"}
-		} else if wraps(ename) {
-			transform["req"] = map[string]any{ename: "`reqdata`"}
-		} else if body := closedBodyTransform(reqschema); body != nil {
-			transform["req"] = body
-		}
+	reqBody, _ := mdesc["requestBody"].(map[string]any)
+	reqschema := getRequestBodySchema(reqBody)
+	DebugPath(pathStr, methodName, "TRANSFORM-REQ", getRequestBodySchemaProps(reqBody))
+
+	if req := bodyRequestTransform(reqschema, origname, ename); req != nil {
+		transform["req"] = req
 	}
 
 	hasTransform := transform["req"] != nil || transform["res"] != nil
@@ -2723,12 +2745,8 @@ func getRequestBodySchema(requestBody map[string]any) map[string]any {
 	if requestBody == nil {
 		return nil
 	}
-	if content, ok := requestBody["content"].(map[string]any); ok {
-		if appJSON, ok := content["application/json"].(map[string]any); ok {
-			if schema, ok := appJSON["schema"].(map[string]any); ok {
-				return schema
-			}
-		}
+	if schema, ok := jsonRequestSchema(map[string]any{"requestBody": requestBody}).(map[string]any); ok {
+		return schema
 	}
 	if schema, ok := requestBody["schema"].(map[string]any); ok {
 		return schema
@@ -3308,6 +3326,54 @@ func cmpRefName(xref string) string {
 		return xref
 	}
 	return CanonizeCmpName(m[2])
+}
+
+// arrayBodyField mirrors ts/src/guide/heuristic01.ts: the field an array
+// request body is sent from, named for the records it lists, unless another
+// route of the operation sends a field under that name.
+func arrayBodyField(schema map[string]any, entname string, taken []string) string {
+	refs := itemRefs(schema["items"], map[string]bool{})
+	slices.Sort(refs)
+	refs = slices.Compact(refs)
+	xref := ""
+	if len(refs) == 1 {
+		xref = refs[0]
+	}
+	record := ""
+	if m := xrefRE.FindStringSubmatch(xref); m != nil && !strings.Contains(m[2], "/") {
+		record = PrefixLeadingDigit(CleanComponentName(CanonizeCmpName(m[2]), nil))
+	}
+	if record == "" {
+		record = entname
+	}
+	name := Pluralize(record)
+	for n := 1; slices.Contains(taken, name); n++ {
+		name = record + "_list"
+		if 1 < n {
+			name += strconv.Itoa(n)
+		}
+	}
+	return name
+}
+
+// itemRefs mirrors ts/src/guide/heuristic01.ts: the component the items
+// name, or each one their allOf parts name.
+func itemRefs(items any, seen map[string]bool) []string {
+	m, _ := items.(map[string]any)
+	id := fmt.Sprintf("%p", m)
+	if m == nil || seen[id] {
+		return nil
+	}
+	seen[id] = true
+	if xref, ok := m["x-ref"].(string); ok {
+		return []string{xref}
+	}
+	refs := []string{}
+	parts, _ := m["allOf"].([]any)
+	for _, part := range parts {
+		refs = append(refs, itemRefs(part, seen)...)
+	}
+	return refs
 }
 
 // hasMethod checks if a path has a specific HTTP method.

@@ -369,6 +369,8 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         // it holds.
         node_assert_1.default.strictEqual(entities.greenhouse.op.create.points[0].t.req, '`reqdata`');
         node_assert_1.default.deepStrictEqual(entities.kennel.op.create.points[0].t.req, { kennel: '`reqdata`' });
+        // Such a body gives the fields of the record it wraps, not the wrapper.
+        node_assert_1.default.deepStrictEqual(Object.keys(entities.kennel.fields).sort(), ['breed', 'name']);
     });
     // Lob's shape: a page composed with allOf, whose records are a oneOf, so
     // the fields come from the list example read through the same `data`. A
@@ -402,6 +404,73 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
             'address_line1', 'address_line2', 'address_zip', 'id', 'name',
         ]);
         node_assert_1.default.deepStrictEqual(Object.keys(entities.owner.fields), ['id', 'name', 'settings']);
+    });
+    // Maxio wraps every record under the name of its type, in lists too, so
+    // each item of a list holds one record. The list reads each item's record
+    // through a struct transform, and the wrapper's key is no field. An item
+    // holding more than the record, as an invoice beside its links, is whole.
+    (0, node_test_1.test)('guide-item-envelope', async () => {
+        const folder = __dirname + '/../test/item-envelope';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'item-envelope', def: 'item-envelope-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: true,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        const entities = bres.apimodel.main.kit.entity;
+        const res = (ent, op) => entities[ent].op[op].points[0].t.res;
+        node_assert_1.default.deepStrictEqual(res('customer', 'list'), ['`$EACH`', 'body', { '`$MERGE`': '`.customer`' }]);
+        node_assert_1.default.strictEqual(res('customer', 'load'), '`body.customer`');
+        node_assert_1.default.ok(Fs.readFileSync(folder + '/guide/base-guide.aontu', 'utf8').includes('op: list: transform: res: *["`$EACH`","body",{"`$MERGE`":"`.customer`"}]|top'));
+        node_assert_1.default.strictEqual(res('invoice', 'list'), '`body`');
+        node_assert_1.default.deepStrictEqual(Object.keys(entities.customer.fields), ['email', 'first_name', 'id', 'last_name']);
+    });
+    // The list's transform is a default of the base guide, which the entry
+    // guide overrides as it does a path.
+    (0, node_test_1.test)('guide-item-envelope-overlay', async () => {
+        const Os = require('node:os');
+        const Path = require('node:path');
+        const def = 'item-envelope-def.json';
+        const dir = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'apidef-item-'));
+        const folder = Path.join(dir, 'model');
+        Fs.mkdirSync(Path.join(folder, 'guide'), { recursive: true });
+        Fs.mkdirSync(Path.join(dir, 'def'));
+        Fs.copyFileSync(Path.join(__dirname, '..', 'test', 'def', def), Path.join(dir, 'def', def));
+        Fs.writeFileSync(Path.join(folder, 'guide', 'guide.aontu'), [
+            '@"@voxgig/apidef/model/guide.aontu"',
+            '@"./base-guide.aontu"',
+            'guide: entity: customer: path: "/customers.json": op: list: transform: res: "`body.data`"',
+            '',
+        ].join('\n'));
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'item-envelope', def }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: true,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        const basepath = Path.join(folder, 'guide', 'base-guide.aontu');
+        const baseguide = Fs.existsSync(basepath) ? Fs.readFileSync(basepath, 'utf8') : '';
+        Fs.rmSync(dir, { recursive: true, force: true });
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        node_assert_1.default.ok(baseguide.includes('op: list: transform: res: *["`$EACH`","body",{"`$MERGE`":"`.customer`"}]|top'), 'base guide lacks the list default:\n' + baseguide);
+        node_assert_1.default.strictEqual(bres.apimodel.main.kit.entity.customer.op.list.points[0].t.res, '`body.data`');
     });
     // A wrapper whose suffix was cleaned away to name the entity is still the
     // wrapper, so the record is read by the entity's name. The entity's own
@@ -523,6 +592,37 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.strictEqual(res('project', 'update'), '`body.project`');
         node_assert_1.default.strictEqual(res('project', 'remove'), '`body.project`');
         node_assert_1.default.strictEqual(res('widget', 'load'), '`body`');
+    });
+    // A list reads its records, past an object named for the entity beside
+    // them: a quote beside its episodes, or the competition a page of its
+    // matches repeats. A list under the entity's name, and a load, still
+    // unwrap to it.
+    (0, node_test_1.test)('guide-list-records', async () => {
+        const folder = __dirname + '/../test/list-records';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'list-records', def: 'list-records-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: true,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        const entities = bres.apimodel.main.kit.entity;
+        const res = (ent, op, path) => entities[ent]?.op[op]?.points.find((pt) => pt.o === path)?.t.res;
+        node_assert_1.default.strictEqual(res('quote', 'list', '/quote/random'), '`body.episodes`');
+        node_assert_1.default.strictEqual(res('competition', 'list', '/competitions/{id}/matches'), '`body.matches`');
+        node_assert_1.default.strictEqual(res('competition', 'list', '/competitions/{id}/teams'), '`body.teams`');
+        node_assert_1.default.strictEqual(res('scorer', 'list', '/competitions/{id}/scorers'), '`body.scorers`');
+        node_assert_1.default.strictEqual(res('note', 'list', '/notes'), '`body.note`');
+        node_assert_1.default.strictEqual(res('quote', 'load', '/quote/{id}'), '`body.quote`');
+        node_assert_1.default.strictEqual(res('competition', 'load', '/competitions/{id}'), '`body`');
     });
     // Apicurio tags every /well-known route WellKnown and its agent, MCP tool and
     // schema reads answer nothing, so each takes its collection's segment, after

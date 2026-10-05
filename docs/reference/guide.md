@@ -38,10 +38,51 @@ guide
 |-------|------|---------|
 | `method` | `string` | HTTP method (`GET`, `POST`, …) |
 | `why_op` | `string[]` | trace of the CRUD classification |
-| `transform.res` | `string` | response envelope unwrap (e.g. `` `body.planet` ``) when the response wraps the entity |
-| `transform.req` | `object` | request envelope wrap when the body wraps the entity |
+| `transform.res` | `string` or `list` | response envelope unwrap (e.g. `` `body.planet` ``) when the response wraps the entity, or a struct transform when each item of a list wraps the record (see [Response envelopes](#response-envelopes)) |
+| `transform.req` | `object` or `string` | request envelope wrap when the body wraps the entity; a string names the field a JSON array body is sent from |
 | `body.media` | `string` | the media type the request body is sent as; the base guide never writes it, so it is yours to set (see the model's `rb`) |
 | `response.media` | `string` | the media type to ask a success response for; likewise yours to set (see the model's `rs`) |
+
+A JSON request body that is an array is sent from one field of the request
+data, so a point whose guide entry sets no `transform.req` gets the model
+`t.req` `` `reqdata.<field>` ``. The body is the one `body.media` names, else
+the JSON media type the body step prefers, so choosing a media type also
+chooses whether the body is an array. The field is the plural of the record
+the items name: their component, or the one component their `allOf` parts
+name, cleaned as an entity name is, so `SmsMessageRequest` gives
+`sms_messages`, or else the entity's own name. A name that would start with
+a digit starts with `n`, so `123ItemRequest` gives `n123_items`. When an
+argument of the operation has that name, or another route of the entity has
+a field under that name, in what it sends or in what it answers, the field is
+`<record>_list` instead, so `notes` becomes `note_list`. So it is when another
+route already sends an array of another type from that name, such as one that
+may be null beside one that may not, or sends one from it as a required body
+where this body is optional, or the reverse. A PATCH route that joins `update` is
+checked against the routes it joins. An array schema wrapped in `allOf`, or
+in a `oneOf` or `anyOf` of one member beside any member only null passes (a
+`null` type, a `const` or `enum` of null alone, an `allOf` with such a part,
+or a `oneOf` or `anyOf` of such members), counts as an array, with its items
+taken from whichever part states them. So does a schema with no type whose
+`const` is an array, or whose `enum` values all are, and a `oneOf` or `anyOf`
+whose members, but for those only null passes, each admit nothing but arrays
+and null; a member whose type list also names another type, such as `string`,
+makes it no array. Its
+items count only where every member's items name one component, so the field
+is otherwise named from the entity. It may be null only where
+the schema's own type, `const` and `enum` admit null, every `allOf` part
+does, exactly one member of a `oneOf` does, and some member of an `anyOf`
+does. A noun in `-o` that takes `-es`, such as `hero`, gives `heroes`,
+and the rest take `-s`, such as `photos`; an irregular noun takes its own
+plural, so `ox` gives `oxen` and `sheep` stays `sheep`. A `transform.req` in
+the guide entry file replaces the default and names the field the model
+declares.
+`` `reqdata.messages` `` declares `messages`, and `` `reqdata` `` sends the
+input as it is, with no field. When `body.media` names another media type, a
+`transform.req` the base guide took from the preferred body is taken again
+from the chosen one: the array's field, the record under the entity's name,
+a closed body's own properties, or `` `reqdata` ``. One you set to the same
+value is taken again too, since the guides are unified before the model is
+built and the two cannot be told apart.
 
 ### `GuideMetrics`
 
@@ -248,6 +289,19 @@ records only when one of its branches is an object. The rows of
 [`ts/test/envelope-prop.tsv`](../../ts/test/envelope-prop.tsv) pin it in both
 builds.
 
+A list whose items each hold nothing but the record, under the entity's
+name, reads the record from each item. Maxio wraps every record under the
+name of its type, so its customer list answers an array of objects that each
+hold one `customer`. `transform.res` is then a struct transform rather than a
+path, ``["`$EACH`", "body", { "`$MERGE`": "`.customer`" }]``, and the
+entity's fields come from the record under that name. An item that holds
+anything beside the record, such as an invoice beside its `links`, is read
+whole, and so is an item that is the entity's own component. The base guide
+writes the transform as a default, so the entry guide can replace it with a
+path. `itemEnvelopeKey` in [`ts/src/utility.ts`](../../ts/src/utility.ts) is
+the rule, and the `guide-item-envelope` tests pin it in both builds on
+[`ts/test/def/item-envelope-def.json`](../../ts/test/def/item-envelope-def.json).
+
 A page that holds no data of its own reads its one array of records past
 the other structured properties beside it. When every scalar beside the
 records is a status, paging or count property, the list reads the one array
@@ -276,6 +330,17 @@ is read by name through its parts, such as Neon's project create,
 entity's own composed component stays the record whatever its parts are
 called. The `guide-composed-part` tests pin both, on
 [`ts/test/def/composed-part-def.json`](../../ts/test/def/composed-part-def.json).
+A list reads records, so an object named after the entity yields to the one
+array of records beside it on a page that holds no data of its own, whether
+the page is flat or composed with `allOf`. A random quote that answers with
+`{ episodes, quote, meta }` lists `body.episodes` rather than the quote, and a
+competition's matches, `{ count, filters, competition, matches }`, list
+`body.matches`, as do its teams when that page is composed from parts. That is
+the whole boundary: an array named after the entity is still read by name, and
+so is the object when the page carries a scalar of its own beside the records,
+other than a status, paging or a count, or more than one array of them. The
+`guide-list-records` tests pin these in both builds, on
+[`ts/test/def/list-records-def.json`](../../ts/test/def/list-records-def.json).
 A request body wraps the record
 under the entity's name only when that property is structured and is all the
 body holds, so a create that sends a `name` beside a `container`, or a

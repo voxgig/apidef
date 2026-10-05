@@ -40,44 +40,30 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 				if mtarget == nil {
 					continue
 				}
-				opfields := resolveOpFields(mtarget, def, opname, entname)
+				media, _ := guideBodyMedia(ctx.Guide, entname, opname, safeStr(mtarget["m"]), safeStr(mtarget["o"]))
+				opfields := resolveOpFields(mtarget, def, opname, entname, media)
+				carrier := ""
+				if c := carrierOf(mtarget, def, media); c != nil {
+					carrier = c.name
+				}
 				for _, opfield := range opfields {
-					name, _ := opfield["n"].(string)
-					if existing, exists := fields[name].(map[string]any); !exists {
-						fields[name] = opfield
-					} else {
-						newReq, _ := opfield["r"].(bool)
-						existReq, _ := existing["r"].(bool)
-						if newReq != existReq {
-							opOverrides, _ := existing["op"].(map[string]any)
-							if opOverrides == nil {
-								opOverrides = map[string]any{}
-								existing["op"] = opOverrides
-							}
-							opOverrides[opname] = map[string]any{
-								"req":  newReq,
-								"type": opfield["t"],
-							}
-						}
-						// Field identity is first-writer-wins, but a
-						// DESCRIPTION is not part of identity: the op that
-						// first names a field is often not the one that
-						// documents it. First non-empty wins.
-						if _, has := existing["sh"]; !has {
-							if short, ok := opfield["sh"]; ok {
-								existing["sh"] = short
-							}
-						}
-						for _, flag := range []string{
-							"ro", "wo", "de", "fo",
-						} {
-							if _, has := existing[flag]; !has {
-								if v, ok := opfield[flag]; ok {
-									existing[flag] = v
-								}
-							}
-						}
-					}
+					addOpField(fields, opname, opfield, carrier == opfield["n"])
+				}
+			}
+		}
+
+		// Mirrors ts/src/transform/field.ts: a remove's response is no record,
+		// so its carrier is all it adds.
+		if remove, ok := opMap["remove"].(map[string]any); ok {
+			points, _ := remove["points"].([]any)
+			for _, pt := range points {
+				mtarget, _ := pt.(map[string]any)
+				if mtarget == nil {
+					continue
+				}
+				media, _ := guideBodyMedia(ctx.Guide, entname, "remove", safeStr(mtarget["m"]), safeStr(mtarget["o"]))
+				if c := carrierOf(mtarget, def, media); c != nil {
+					addOpField(fields, "remove", modelField(carrierDef(c)), true)
 				}
 			}
 		}
@@ -529,59 +515,119 @@ func trailingVars(ptMap map[string]any) []string {
 	return run
 }
 
-func resolveOpFields(mtarget map[string]any, def map[string]any, opname string, entname string) []map[string]any {
+// addOpField adds an operation's field, or merges it into the field of that
+// name, recording what differs for the operation. Mirrors addField and
+// mergeField in ts/src/transform/field.ts.
+func addOpField(fields map[string]any, opname string, opfield map[string]any, carrier bool) {
+	name, _ := opfield["n"].(string)
+	if existing, exists := fields[name].(map[string]any); !exists {
+		fields[name] = opfield
+	} else {
+		newReq, _ := opfield["r"].(bool)
+		existReq, _ := existing["r"].(bool)
+		// Mirrors ts/src/transform/field.ts: a carrier keeps its
+		// array type for its operation.
+		retyped := carrier && !sameType(opfield["t"], existing["t"])
+		if newReq != existReq || retyped {
+			opOverrides, _ := existing["op"].(map[string]any)
+			if opOverrides == nil {
+				opOverrides = map[string]any{}
+				existing["op"] = opOverrides
+			}
+			opOverrides[opname] = map[string]any{
+				"req":  newReq,
+				"type": opfield["t"],
+			}
+		}
+		// Field identity is first-writer-wins, but a
+		// DESCRIPTION is not part of identity: the op that
+		// first names a field is often not the one that
+		// documents it. First non-empty wins.
+		if _, has := existing["sh"]; !has {
+			if short, ok := opfield["sh"]; ok {
+				existing["sh"] = short
+			}
+		}
+		for _, flag := range []string{
+			"ro", "wo", "de", "fo",
+		} {
+			if _, has := existing[flag]; !has {
+				if v, ok := opfield[flag]; ok {
+					existing[flag] = v
+				}
+			}
+		}
+	}
+}
+
+func resolveOpFields(mtarget map[string]any, def map[string]any, opname string, entname string, media string) []map[string]any {
 	var mfields []map[string]any
-	fielddefs := findFieldDefs(mtarget, def, opname, entname)
-
-	for _, fielddef := range fielddefs {
-		// Field names are WIRE identifiers — see CanonizeField. Using the
-		// entity-name canonizer here renamed modelType -> model_type and
-		// items -> item, so the SDK read keys the server never sends.
-		name := CanonizeField(NormalizeFieldName(fielddef["key$"].(string)))
-		ftype := fielddef["type"]
-		mfield := map[string]any{
-			"n":  name,
-			"h":  HumanTitle(name),
-			"t":  InferFieldType(name, Validator(ftype)),
-			"r":  toBool(fielddef["required"]),
-			"a":  true,
-			"op": map[string]any{},
-		}
-		if fdesc, ok := fielddef["description"].(string); ok {
-			if trimmed := FirstSentence(fdesc); trimmed != "" {
-				mfield["sh"] = trimmed
-			}
-		}
-
-		for flag, attr := range map[string]string{"readOnly": "ro", "writeOnly": "wo", "deprecated": "de"} {
-			if b, ok := fielddef[flag].(bool); ok && b {
-				mfield[attr] = true
-			}
-		}
-
-		// `format` is an open vocabulary — OpenAPI defines a handful and lets
-		// a spec coin its own — so it is carried as the string it is rather
-		// than interpreted here.
-		if ffmt, ok := fielddef["format"].(string); ok {
-			if trimmed := strings.TrimSpace(ffmt); trimmed != "" {
-				mfield["fo"] = trimmed
-			}
-		}
-
-		// Record an untagged union under this field. The field is already
-		// typed openly because there is nothing to narrow it to; this says
-		// WHY, so the generated docs can explain the open type instead of
-		// leaving it looking like a modelling failure.
-		if union := ScanUntaggedUnion(fielddef); union != nil {
-			mfield["union"] = map[string]any{
-				"count":    union.Count,
-				"branches": union.Branches,
-				"depth":    union.Depth,
-			}
-		}
-		mfields = append(mfields, mfield)
+	for _, fielddef := range findFieldDefs(mtarget, def, opname, entname, media) {
+		mfields = append(mfields, modelField(fielddef))
 	}
 	return mfields
+}
+
+// routeFieldNames mirrors ts/src/transform/field.ts: the names of the fields a
+// route gives its entity, read as for a route without an action, and without
+// the carrier its own request transform names.
+func routeFieldNames(mtarget map[string]any, def map[string]any, opname string, entname string, media string) []string {
+	route := map[string]any{"k": mtarget["k"], "m": mtarget["m"], "o": mtarget["o"], "q": map[string]any{}}
+	names := []string{}
+	for _, mfield := range resolveOpFields(route, def, opname, entname, media) {
+		name, _ := mfield["n"].(string)
+		names = append(names, name)
+	}
+	return names
+}
+
+func modelField(fielddef map[string]any) map[string]any {
+	// Field names are WIRE identifiers — see CanonizeField. Using the
+	// entity-name canonizer here renamed modelType -> model_type and
+	// items -> item, so the SDK read keys the server never sends.
+	name := CanonizeField(NormalizeFieldName(fielddef["key$"].(string)))
+	ftype := fielddef["type"]
+	mfield := map[string]any{
+		"n":  name,
+		"h":  HumanTitle(name),
+		"t":  InferFieldType(name, Validator(ftype)),
+		"r":  toBool(fielddef["required"]),
+		"a":  true,
+		"op": map[string]any{},
+	}
+	if fdesc, ok := fielddef["description"].(string); ok {
+		if trimmed := FirstSentence(fdesc); trimmed != "" {
+			mfield["sh"] = trimmed
+		}
+	}
+
+	for flag, attr := range map[string]string{"readOnly": "ro", "writeOnly": "wo", "deprecated": "de"} {
+		if b, ok := fielddef[flag].(bool); ok && b {
+			mfield[attr] = true
+		}
+	}
+
+	// `format` is an open vocabulary — OpenAPI defines a handful and lets
+	// a spec coin its own — so it is carried as the string it is rather
+	// than interpreted here.
+	if ffmt, ok := fielddef["format"].(string); ok {
+		if trimmed := strings.TrimSpace(ffmt); trimmed != "" {
+			mfield["fo"] = trimmed
+		}
+	}
+
+	// Record an untagged union under this field. The field is already
+	// typed openly because there is nothing to narrow it to; this says
+	// WHY, so the generated docs can explain the open type instead of
+	// leaving it looking like a modelling failure.
+	if union := ScanUntaggedUnion(fielddef); union != nil {
+		mfield["union"] = map[string]any{
+			"count":    union.Count,
+			"branches": union.Branches,
+			"depth":    union.Depth,
+		}
+	}
+	return mfield
 }
 
 func namesEntity(schema any, entname string) bool {
@@ -603,7 +649,7 @@ func namesEntity(schema any, entname string) bool {
 	return CanonizeCmpName(cmp) == entname
 }
 
-func findFieldDefs(mtarget map[string]any, def map[string]any, opname string, entname string) []map[string]any {
+func findFieldDefs(mtarget map[string]any, def map[string]any, opname string, entname string, media string) []map[string]any {
 	var fielddefs []map[string]any
 
 	// A verb, rather than an address: see the call site in FieldTransform.
@@ -648,6 +694,14 @@ func findFieldDefs(mtarget map[string]any, def map[string]any, opname string, en
 			}
 			if unwrapped != nil {
 				fieldSets = unwrapped
+				// Mirrors ts/src/transform/field.ts: an item that wraps the record
+				// under one key gives the record's fields.
+				t, _ := mtarget["t"].(map[string]any)
+				if itemkey := itemEnvelopeOf(t["res"]); itemkey != "" {
+					if inner := mergedProperties(unwrapped)[itemkey]; inner != nil {
+						fieldSets = inner
+					}
+				}
 			} else if envelope != "" {
 				prop, _ := mergedProperties(fieldSets)[envelope].(map[string]any)
 				fieldSets = prop["items"]
@@ -679,8 +733,18 @@ func findFieldDefs(mtarget map[string]any, def map[string]any, opname string, en
 	// entity shape, so it must not contribute entity fields. Fields for a
 	// QUERY op come from its response only. An action's body is likewise the
 	// verb's arguments and never the record.
-	if requestBody != nil && methodLower != "query" && !isAction {
-		reqSchema := getFieldRequestBodySchema(requestBody)
+	reqSchema := selectedRequestSchema(def, method, orig, media)
+	if reqSchema == nil && requestBody != nil {
+		reqSchema = requestBody["schema"]
+	}
+	if (requestBody != nil || reqSchema != nil) && methodLower != "query" && !isAction {
+		// A body that sends the record under one key holds its fields there.
+		t, _ := mtarget["t"].(map[string]any)
+		if reqkey := requestWrapperOf(t["req"]); reqkey != "" {
+			if inner := mergedProperties(reqSchema)[reqkey]; inner != nil {
+				reqSchema = inner
+			}
+		}
 		fieldSets = []any{fieldSets, reqSchema}
 	}
 
@@ -694,7 +758,37 @@ func findFieldDefs(mtarget map[string]any, def map[string]any, opname string, en
 		fielddefs = append(fielddefs, exampleFields...)
 	}
 
+	// Mirrors ts/src/transform/field.ts: an array body is sent from one field
+	// of the request data, and has no properties of its own to contribute.
+	if c := carrierOf(mtarget, def, media); c != nil {
+		fielddefs = append(fielddefs, carrierDef(c))
+	}
+
 	return fielddefs
+}
+
+// carrierOf mirrors ts/src/transform/field.ts: an action's request fields are
+// its own, so it declares no carrier.
+func carrierOf(mtarget map[string]any, def map[string]any, media string) *arrayCarrierInfo {
+	if sel, ok := mtarget["q"].(map[string]any); ok {
+		if _, isAction := sel["$action"]; isAction {
+			return nil
+		}
+	}
+	if mtarget["k"] == "graphql" {
+		return nil
+	}
+	return arrayCarrier(def, mtarget, media)
+}
+
+// carrierDef mirrors ts/src/transform/field.ts: optional, as the record never
+// holds it.
+func carrierDef(c *arrayCarrierInfo) map[string]any {
+	fd := map[string]any{"key$": c.name, "type": c.typ}
+	if c.description != "" {
+		fd["description"] = c.description
+	}
+	return fd
 }
 
 func unwrapArrayWrapper(schema any) any {
@@ -793,20 +887,6 @@ func getFieldResponseSchema(responses map[string]any, code string) any {
 
 	// Swagger 2.0
 	if schema, ok := resdef["schema"]; ok {
-		return schema
-	}
-	return nil
-}
-
-func getFieldRequestBodySchema(requestBody map[string]any) any {
-	if content, ok := requestBody["content"].(map[string]any); ok {
-		if appjson, ok := content["application/json"].(map[string]any); ok {
-			if schema, ok := appjson["schema"]; ok {
-				return schema
-			}
-		}
-	}
-	if schema, ok := requestBody["schema"]; ok {
 		return schema
 	}
 	return nil
@@ -955,8 +1035,8 @@ func findExampleObject(opdef map[string]any, envelope string) any {
 
 	var resdef map[string]any
 	for _, code := range []string{"200", "201", "202"} {
-		if rd, ok := responses[code].(map[string]any); ok {
-			resdef = rd
+		if rd := responses[code]; rd != nil {
+			resdef, _ = rd.(map[string]any)
 			break
 		}
 	}
@@ -964,56 +1044,51 @@ func findExampleObject(opdef map[string]any, envelope string) any {
 		return nil
 	}
 
-	// OpenAPI 3.x: content.application/json.example
-	if content, ok := resdef["content"].(map[string]any); ok {
-		if appjson, ok := content["application/json"].(map[string]any); ok {
-			if example, ok := appjson["example"]; ok {
-				return unwrapExample(example, envelope)
-			}
-			if examples, ok := appjson["examples"].(map[string]any); ok {
-				order := exampleOrder(examples)
-				for _, ek := range order {
-					v := examples[ek]
-					if vm, ok := v.(map[string]any); ok {
-						if ex, ok := vm["value"]; ok {
-							return unwrapExample(ex, envelope)
-						}
-					}
-				}
-			}
-			if schema, ok := appjson["schema"].(map[string]any); ok {
-				if example, ok := schema["example"]; ok {
-					return unwrapExample(example, envelope)
-				}
+	// OpenAPI 3.x, then Swagger 2.0. Only an object or a list is an example
+	// here; anything else is passed over for the next place to look.
+	content, _ := resdef["content"].(map[string]any)
+	appjson, _ := content["application/json"].(map[string]any)
+	if isExampleObject(appjson["example"]) {
+		return unwrapExample(appjson["example"], envelope)
+	}
+	if examples, ok := appjson["examples"].(map[string]any); ok {
+		for _, name := range exampleOrder(examples) {
+			named, _ := examples[name].(map[string]any)
+			if isExampleObject(named["value"]) {
+				return unwrapExample(named["value"], envelope)
 			}
 		}
+	}
+	if schema, ok := appjson["schema"].(map[string]any); ok && isExampleObject(schema["example"]) {
+		return unwrapExample(schema["example"], envelope)
 	}
 
-	// Swagger 2.0
-	if example, ok := resdef["example"]; ok {
-		return unwrapExample(example, envelope)
+	if isExampleObject(resdef["example"]) {
+		return unwrapExample(resdef["example"], envelope)
 	}
-	if examples, ok := resdef["examples"].(map[string]any); ok {
-		if appjson, ok := examples["application/json"]; ok {
-			return unwrapExample(appjson, envelope)
-		}
+	if examples, ok := resdef["examples"].(map[string]any); ok && isExampleObject(examples["application/json"]) {
+		return unwrapExample(examples["application/json"], envelope)
 	}
-	if schema, ok := resdef["schema"].(map[string]any); ok {
-		if example, ok := schema["example"]; ok {
-			return unwrapExample(example, envelope)
-		}
+	if schema, ok := resdef["schema"].(map[string]any); ok && isExampleObject(schema["example"]) {
+		return unwrapExample(schema["example"], envelope)
 	}
 
 	return nil
 }
 
-// exampleOrder returns the iteration order for an examples map, preferring
-// the `x-examples-order` annotation set by annotateExamplesOrder during
-// parse. The annotation key itself is filtered out so it never participates
-// in iteration. When no annotation is present (e.g. YAML specs), falls back
-// to alphabetical to keep behavior deterministic.
+func isExampleObject(v any) bool {
+	switch v.(type) {
+	case map[string]any, []any:
+		return true
+	}
+	return false
+}
+
+// exampleOrder returns the iteration order for an examples map: the order
+// annotateExamplesOrder recorded when it was parsed, else alphabetical, with
+// the annotation's own key left out.
 func exampleOrder(examples map[string]any) []string {
-	if raw, ok := examples["x-examples-order"]; ok {
+	if raw, ok := examples[examplesOrderKey]; ok {
 		switch o := raw.(type) {
 		case []string:
 			return o
@@ -1030,7 +1105,7 @@ func exampleOrder(examples map[string]any) []string {
 	keys := sortedKeys(examples)
 	out := make([]string, 0, len(keys))
 	for _, k := range keys {
-		if k == "x-examples-order" {
+		if k == examplesOrderKey {
 			continue
 		}
 		out = append(out, k)

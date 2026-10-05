@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.answeredRefs = answeredRefs;
+exports.arrayBodyField = arrayBodyField;
 exports.distinctRecord = distinctRecord;
 exports.distinctShare = distinctShare;
 exports.heuristic01 = heuristic01;
@@ -16,6 +17,7 @@ const ordu_1 = require("ordu");
 const jostraca_1 = require("jostraca");
 const struct_1 = require("@voxgig/struct");
 const utility_1 = require("../utility");
+const body_1 = require("../transform/body");
 const utility_2 = require("../utility");
 const jostraca_2 = require("jostraca");
 const entity_1 = require("../transform/entity");
@@ -938,10 +940,16 @@ function ResolveTransform(spec) {
     // project in Neon's project create beside its branch and roles, and may
     // declare properties of its own beside them.
     const partprops = (0, utility_2.mergedProperties)(resschema);
-    if (named && (0, utility_1.isEntityWrapperProp)(partprops?.[entdesc.origname])) {
+    // A list reads records, so an object named for the entity does not win over
+    // a list of them beside it, such as the matches beside the competition a
+    // page of them repeats. The list is found in the same parts the name is.
+    const records = 'list' === opname && null != partprops ? (0, utility_1.envelopeProp)(partprops, opname) : null;
+    const holdsRecord = (prop) => (0, utility_1.isEntityWrapperProp)(prop) &&
+        (null == records || true === (0, utility_1.propIsList)(prop));
+    if (named && holdsRecord(partprops?.[entdesc.origname])) {
         transform.res = '`body.' + entdesc.origname + '`';
     }
-    else if (named && (0, utility_1.isEntityWrapperProp)(partprops?.[entdesc.name])) {
+    else if (named && holdsRecord(partprops?.[entdesc.name])) {
         transform.res = '`body.' + entdesc.name + '`';
     }
     else if (resprops) {
@@ -961,33 +969,18 @@ function ResolveTransform(spec) {
             transform.res = '`body.' + envelope + '`';
         }
     }
-    const reqschema = getRequestBodySchema(mdesc.requestBody);
-    const reqprops = reqschema?.properties;
-    (0, utility_2.debugpath)(pathStr, methodName, 'TRANSFORM-REQ', (0, struct_1.keysof)(reqprops));
-    // A body wraps the record under the entity's name only when that is all it
-    // holds, and it is structured. Otherwise the name is one field of the record,
-    // such as the container in SaladCloud's container group create.
-    const wraps = (name) => (0, utility_1.isEntityWrapperProp)(reqprops?.[name]) &&
-        (0, struct_1.keysof)(reqprops).every((k) => k === name);
-    if (reqschema) {
-        if (wraps(entdesc.origname)) {
-            transform.req = { [entdesc.origname]: '`reqdata`' };
-        }
-        else if (wraps(entdesc.name)) {
-            transform.req = { [entdesc.name]: '`reqdata`' };
-        }
-        else {
-            // A CLOSED body schema names every property the server will accept, so
-            // the body is those properties — not the whole request payload. The
-            // payload also carries the op's PATH params (`id` for
-            // `PUT /item/{id}`), and a closed shape rejects the entire request over
-            // that one extra key: every update came back 400 with `invalid-data`.
-            const body = (0, utility_1.closedBodyTransform)(reqschema);
-            if (null != body) {
-                transform.req = body;
-            }
+    // An item that is the entity's own component is the record, as above.
+    const itemref = resschema?.items?.['x-ref'];
+    if (null == transform.res && 'list' === opname &&
+        (null == itemref || null == entdesc.cmp || cmpRefName(itemref) !== entdesc.cmp)) {
+        const key = (0, utility_1.itemEnvelopeKey)(resschema, [entdesc.origname, entdesc.name]);
+        if (null != key) {
+            transform.res = (0, utility_1.itemEnvelopeTransform)(key);
         }
     }
+    const reqschema = getRequestBodySchema(mdesc.requestBody);
+    (0, utility_2.debugpath)(pathStr, methodName, 'TRANSFORM-REQ', (0, struct_1.keysof)(reqschema?.properties));
+    transform.req = (0, utility_1.bodyRequestTransform)(reqschema, [entdesc.origname, entdesc.name]);
     if (!(0, struct_1.isempty)(transform) && null != op[opname]) {
         op[opname].transform = transform;
     }
@@ -1295,8 +1288,7 @@ function entityPathMatch_tpp(data, pm, mdesc, why) {
     return entname;
 }
 function getRequestBodySchema(requestBody) {
-    return requestBody?.content?.['application/json']?.schema ??
-        requestBody?.schema;
+    return (0, body_1.jsonRequestSchema)({ requestBody }) ?? requestBody?.schema;
 }
 // The response an operation's result is read from, down to an Accepted
 // response when nothing else answers, whose body may be the job it queued.
@@ -1727,16 +1719,18 @@ function isListResponse(mdesc, pm, pathStr, why) {
     (0, utility_2.debugpath)(pathStr, mdesc.method, 'IS-LIST', islist, why, schema);
     return islist;
 }
+// struct's merge rewrites every list element it walks, not just the first, so
+// each schema is cloned: the definition shares one object per $ref target.
 function resolveSchemaProperties(schema) {
     let properties = {};
     // This is definitely heuristic!
     if (schema.allOf) {
         for (let i = schema.allOf.length - 1; -1 < i; --i) {
-            properties = (0, struct_1.merge)([properties, schema.allOf[i].properties || {}]);
+            properties = (0, struct_1.merge)([properties, (0, struct_1.clone)(schema.allOf[i].properties || {})]);
         }
     }
     if (schema.properties) {
-        properties = (0, struct_1.merge)([properties, schema.properties]);
+        properties = (0, struct_1.merge)([properties, (0, struct_1.clone)(schema.properties)]);
     }
     return properties;
 }
@@ -1956,9 +1950,36 @@ function findPotentialSchemaRefs(pathStr, methodName, responses, envelope, answe
     (0, utility_2.debugpath)(pathStr, methodName, 'POTENTIAL-SCHEMA-REFS', xrefs);
     return xrefs;
 }
+const CMP_REF_RE = /\/(components\/schemas|definitions)\/(.+)$/;
 function cmpRefName(xref) {
-    const m = xref.match(/\/(components\/schemas|definitions)\/(.+)$/);
+    const m = xref.match(CMP_REF_RE);
     return null == m ? xref : (0, utility_2.canonizeCmpName)(m[2]);
+}
+// An array request body is sent from a field named for the records it lists:
+// its items' component, or the one their allOf parts name, cleaned as an
+// entity's is, else the entity itself. A pointer into a component names a
+// part of it, not a record. A name another route of the operation has is taken.
+function arrayBodyField(schema, entname, taken = []) {
+    const refs = [...new Set(itemRefs(schema?.items, new Set()))];
+    const cmp = String(1 === refs.length ? refs[0] : '').match(CMP_REF_RE)?.[2];
+    const cleaned = null == cmp || cmp.includes('/') ? '' :
+        (0, utility_2.prefixLeadingDigit)((0, utility_2.cleanComponentName)((0, utility_2.canonizeCmpName)(cmp)));
+    const record = '' === cleaned ? entname : cleaned;
+    let name = (0, utility_2.pluralize)(record);
+    for (let n = 1; taken.includes(name); n++) {
+        name = record + '_list' + (1 < n ? n : '');
+    }
+    return name;
+}
+function itemRefs(items, seen) {
+    if (null == items || 'object' !== typeof items || seen.has(items)) {
+        return [];
+    }
+    seen.add(items);
+    if ('string' === typeof items['x-ref']) {
+        return [items['x-ref']];
+    }
+    return (Array.isArray(items.allOf) ? items.allOf : []).flatMap((part) => itemRefs(part, seen));
 }
 function hasMethod(def, pathStr, methodName) {
     const pathDef = def?.paths?.[pathStr];

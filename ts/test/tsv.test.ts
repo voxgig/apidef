@@ -9,6 +9,9 @@ import assert from 'node:assert'
 import {
   humanTitle,
   depluralize,
+  pluralize,
+  setCustomPlurals,
+  clearCustomPlurals,
   canonize,
   canonizeCmpName,
   stripSchemaNamespace,
@@ -31,6 +34,7 @@ import {
   composedEnvelopeProp,
   mergedProperties,
   closedBodyTransform,
+  requestWrapperOf,
   authExchangeOp,
   specSecuredByDefault,
   find,
@@ -45,6 +49,7 @@ import {
 } from '../dist/transform/field'
 
 import { makeResolved } from '../dist/resolved'
+import { stringifyInfoScalars } from '../dist/transform/top'
 
 import { selectTransform } from '../dist/transform/select'
 import { bodyTransform, requestBody, responseBody } from '../dist/transform/body'
@@ -52,9 +57,11 @@ import type {
   ModelPoint, ModelBody, ModelBodyField, BodyKind,
 } from '../dist/apidef'
 import { Aontu } from 'aontu'
-import { argsTransform } from '../dist/transform/args'
-import { resolvePathList } from '../dist/transform/entity'
-import { resolveSecurity, findAuthPrefix, topTransform } from '../dist/transform/top'
+import { argsTransform, resolveArgExample } from '../dist/transform/args'
+import { buildRelations, resolvePathList } from '../dist/transform/entity'
+import {
+  resolveSecurity, findAuthPrefix, topTransform, resolveSummary, resolveWebsite,
+} from '../dist/transform/top'
 
 import { snakify, camelify, kebabify } from 'jostraca'
 
@@ -62,6 +69,7 @@ import { classifyGraphQLField } from '../dist/guide/graphql01'
 
 import {
   answeredRefs,
+  arrayBodyField,
   distinctRecord,
   distinctShare,
   pathResource,
@@ -95,6 +103,10 @@ import {
 import {
   cleanTransform,
 } from '../dist/transform/clean'
+
+import {
+  flowstepTransform,
+} from '../dist/transform/flowstep'
 
 
 import {
@@ -160,6 +172,25 @@ describe('tsv-depluralize', () => {
   for (const row of rows) {
     test(`depluralize("${row.input}") => "${row.expected}"`, () => {
       assert.deepStrictEqual(depluralize(row.input), row.expected)
+    })
+  }
+})
+
+
+describe('tsv-pluralize', () => {
+  const rows = loadTsv('pluralize')
+  for (const row of rows) {
+    test(`pluralize("${row.input}") => "${row.expected}"`, () => {
+      if ('' !== row.plurals) {
+        setCustomPlurals(JSON.parse(row.plurals))
+      }
+      try {
+        assert.deepStrictEqual(pluralize(row.input), row.expected)
+        assert.deepStrictEqual(depluralize(row.expected), row.input)
+      }
+      finally {
+        clearCustomPlurals()
+      }
     })
   }
 })
@@ -662,6 +693,18 @@ describe('tsv-infer-fields-from-examples', () => {
 })
 
 
+describe('tsv-arg-example', () => {
+  const rows = loadTsv('arg-example')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(`resolveArgExample(${row.argdef}, ${row.schema})`, () => {
+      const ex = resolveArgExample(JSON.parse(row.argdef), JSON.parse(row.schema))
+      assert.deepStrictEqual(undefined === ex ? {} : { ex }, JSON.parse(row.expected))
+    })
+  }
+})
+
+
 // The field the transform builds from one property, beside a plain property
 // so that the record is not read as an envelope around it.
 describe('tsv-allof-field', () => {
@@ -923,6 +966,48 @@ describe('tsv-param-schema', () => {
 })
 
 
+describe('tsv-info-summary', () => {
+  for (const row of loadTsv('info-summary')) {
+    test(`resolveSummary(${row.def.slice(0, 60)})`, () => {
+      assert.strictEqual(resolveSummary(JSON.parse(row.def)) ?? null, JSON.parse(row.expected))
+    })
+  }
+})
+
+
+describe('tsv-info-website', () => {
+  for (const row of loadTsv('info-website')) {
+    test(`resolveWebsite(${row.def.slice(0, 40)}, ${row.servers})`, () => {
+      assert.strictEqual(
+        resolveWebsite(JSON.parse(row.def), JSON.parse(row.servers)) ?? null, JSON.parse(row.expected))
+    })
+  }
+})
+
+describe('tsv-build-relations', () => {
+  const rows = loadTsv('build-relations')
+  for (const row of rows) {
+    test(`buildRelations(${row.paths.slice(0, 60)})`, () => {
+      const paths = JSON.parse(row.paths).map((path: string) => ({
+        segments: path.split('/').filter((part) => '' !== part).map((part) =>
+          part.startsWith('{') ? { var: part.slice(1, -1) } : { lit: part }),
+      }))
+      assert.deepStrictEqual(buildRelations({}, paths).ancestors, JSON.parse(row.expected))
+    })
+  }
+})
+
+describe('tsv-array-body-field', () => {
+  const rows = loadTsv('array-body-field')
+  for (const row of rows) {
+    test(`arrayBodyField(${row.schema}, ${row.entity}, ${row.taken})`, () => {
+      assert.deepStrictEqual(
+        arrayBodyField(JSON.parse(row.schema), row.entity, JSON.parse(row.taken)), row.expected)
+    })
+  }
+})
+
+
 describe('tsv-closed-body-transform', () => {
   const rows = loadTsv('closed-body-transform')
   for (const row of rows) {
@@ -930,6 +1015,16 @@ describe('tsv-closed-body-transform', () => {
       const got = closedBodyTransform(JSON.parse(row.schema))
       assert.deepStrictEqual(
         null == got ? null : { ...got }, JSON.parse(row.expected))
+    })
+  }
+})
+
+
+describe('tsv-request-wrapper-of', () => {
+  const rows = loadTsv('request-wrapper-of')
+  for (const row of rows) {
+    test(`requestWrapperOf(${row.req})`, () => {
+      assert.strictEqual(requestWrapperOf(JSON.parse(row.req)), JSON.parse(row.expected))
     })
   }
 })
@@ -1035,6 +1130,17 @@ describe('tsv-servers', () => {
       })
       assert.deepStrictEqual(apimodel.main.kit.info.servers, JSON.parse(row.servers))
       assert.deepStrictEqual(warnings.map((warning) => warning.note), JSON.parse(row.warnings))
+    })
+  }
+})
+
+
+describe('tsv-info-scalars', () => {
+  const rows = loadTsv('info-scalars')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(`stringifyInfoScalars(${row.input})`, () => {
+      assert.deepStrictEqual(stringifyInfoScalars(JSON.parse(row.input)), JSON.parse(row.expected))
     })
   }
 })
@@ -1312,6 +1418,50 @@ describe('tsv-body-guide', () => {
           ...(null == point.rs ? {} : { rs: point.rs.media }),
         }))]))
       assert.deepStrictEqual(points, JSON.parse(row.points))
+    })
+  }
+})
+
+
+// A point from its route: the placeholders are its params, in the order the
+// model sorts them, unless the row lists them.
+function flowPoint(spec: any) {
+  const { path, params, rename } = 'string' === typeof spec ? { path: spec } as any : spec
+  const s = path.split('/').filter((part: string) => '' !== part).map((part: string) =>
+    part.startsWith('{') ? { var: part.slice(1, -1) } : { lit: part })
+  const names = params ?? s.filter((seg: any) => null != seg.var).map((seg: any) => seg.var).sort()
+  return {
+    s,
+    g: { params: names.map((n: string) => ({ n, k: 'param', r: true, t: '`$STRING`' })) },
+    ...(null == rename ? {} : { r: { param: rename } }),
+  }
+}
+
+
+describe('tsv-flow-step', () => {
+  const rows = loadTsv('flow-step')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(`flowstepTransform(${row.ops.slice(0, 60)})`, async () => {
+      const op = Object.fromEntries(Object.entries(JSON.parse(row.ops)).map(
+        ([name, points]: [string, any]) => [name, { name, points: points.map(flowPoint) }]))
+      const fields = Object.fromEntries(JSON.parse(row.fields).map(
+        (n: string) => [n, { n, t: '`$STRING`' }]))
+      const flow = { name: 'BasicThingFlow', entity: 'thing', kind: 'basic', step: [] as any[] }
+      await flowstepTransform({
+        apimodel: { main: { kit: {
+          entity: { thing: { name: 'thing', fields, op } },
+          flow: { BasicThingFlow: flow },
+        } } },
+        guide: {},
+        log: { debug: () => undefined },
+      } as any)
+      assert.deepStrictEqual(flow.step.map((step: any) => ({
+        o: step.o,
+        ...(0 < Object.keys(step.m).length ? { m: step.m } : {}),
+        ...(0 < Object.keys(step.d).length ? { d: step.d } : {}),
+        ...(null == step.i.textfield ? {} : { tf: step.i.textfield }),
+      })), JSON.parse(row.expected))
     })
   }
 })
