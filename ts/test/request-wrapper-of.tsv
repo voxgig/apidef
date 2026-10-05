@@ -1,0 +1,11 @@
+req	expected
+{"kennel":"`reqdata`"}	"kennel"
+{"Customer":"`reqdata`"}	"Customer"
+"`reqdata`"	null
+{"title":"`reqdata.title`"}	null
+{"title":"`reqdata.title`","done":"`reqdata.done`"}	null
+{"a":"`reqdata`","b":"`reqdata`"}	null
+{"kennel":"`reqdata.kennel`"}	null
+["`reqdata`"]	null
+{}	null
+null	null

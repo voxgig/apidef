@@ -461,7 +461,7 @@ func BuildRelations(guideEntity any, pathsDesc []map[string]any) map[string]any 
 				lit, isLit := s["lit"].(string)
 				nextVar, isVar := segments[i+1]["var"].(string)
 				if isLit && isVar && nextVar != "id" {
-					ancestors = append(ancestors, lit)
+					ancestors = append(ancestors, Depluralize(Snakify(lit)))
 				}
 			}
 		}
@@ -470,13 +470,13 @@ func BuildRelations(guideEntity any, pathsDesc []map[string]any) map[string]any 
 		}
 	}
 
-	// Sort by length
-	sort.Slice(allAncestors, func(i, j int) bool {
+	// Stable, as the TS port's Array.sort is.
+	sort.SliceStable(allAncestors, func(i, j int) bool {
 		return len(allAncestors[i]) < len(allAncestors[j])
 	})
 
 	// Remove suffixes
-	var filtered [][]string
+	filtered := [][]string{}
 	for j, n := range allAncestors {
 		isSuffix := false
 		for _, p := range allAncestors[j+1:] {

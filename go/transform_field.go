@@ -730,6 +730,13 @@ func findFieldDefs(mtarget map[string]any, def map[string]any, opname string, en
 		reqSchema = requestBody["schema"]
 	}
 	if (requestBody != nil || reqSchema != nil) && methodLower != "query" && !isAction {
+		// A body that sends the record under one key holds its fields there.
+		t, _ := mtarget["t"].(map[string]any)
+		if reqkey := requestWrapperOf(t["req"]); reqkey != "" {
+			if inner := mergedProperties(reqSchema)[reqkey]; inner != nil {
+				reqSchema = inner
+			}
+		}
 		fieldSets = []any{fieldSets, reqSchema}
 	}
 

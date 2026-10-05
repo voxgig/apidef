@@ -2206,6 +2206,21 @@ func closedBodyTransform(schema any) map[string]any {
 	return out
 }
 
+// requestWrapperOf mirrors ts/src/utility.ts: the key a request transform
+// sends the whole record under, else "".
+func requestWrapperOf(req any) string {
+	m, ok := req.(map[string]any)
+	if !ok || len(m) != 1 {
+		return ""
+	}
+	for key, val := range m {
+		if s, ok := val.(string); ok && s == "`reqdata`" {
+			return key
+		}
+	}
+	return ""
+}
+
 func UntaggedUnionBranches(schema any) int {
 	sch, ok := schema.(map[string]any)
 	if !ok || sch == nil {

@@ -1298,6 +1298,41 @@ func TestTsvParamSchema(t *testing.T) {
 	}
 }
 
+func TestTsvBuildRelations(t *testing.T) {
+	rows := loadTsv(t, "build-relations")
+	if len(rows) == 0 {
+		t.Fatal("no build-relations rows loaded")
+	}
+	for _, row := range rows {
+		pathsSrc, wantSrc := row["paths"], row["expected"]
+		t.Run(pathsSrc, func(t *testing.T) {
+			var paths []string
+			if err := json.Unmarshal([]byte(pathsSrc), &paths); err != nil {
+				t.Fatalf("bad paths %q: %v", pathsSrc, err)
+			}
+			var descs []map[string]any
+			for _, path := range paths {
+				segments := []map[string]any{}
+				for _, part := range strings.Split(path, "/") {
+					if part == "" {
+						continue
+					}
+					if strings.HasPrefix(part, "{") {
+						segments = append(segments, map[string]any{"var": part[1 : len(part)-1]})
+					} else {
+						segments = append(segments, map[string]any{"lit": part})
+					}
+				}
+				descs = append(descs, map[string]any{"segments": segments})
+			}
+			got, _ := json.Marshal(BuildRelations(map[string]any{}, descs)["ancestors"])
+			if string(got) != wantSrc {
+				t.Errorf("BuildRelations(%s) = %s, want %s", pathsSrc, got, wantSrc)
+			}
+		})
+	}
+}
+
 func TestArrayBodyField(t *testing.T) {
 	rows := loadTsv(t, "array-body-field")
 	if len(rows) == 0 {
@@ -1347,6 +1382,30 @@ func TestClosedBodyTransform(t *testing.T) {
 					t.Errorf("closedBodyTransform(%s)[%q] = %v, want %v",
 						schemaSrc, k, got[k], v)
 				}
+			}
+		})
+	}
+}
+
+func TestTsvRequestWrapperOf(t *testing.T) {
+	rows := loadTsv(t, "request-wrapper-of")
+	if len(rows) == 0 {
+		t.Fatal("no request-wrapper-of rows loaded")
+	}
+	for _, row := range rows {
+		reqSrc, wantSrc := row["req"], row["expected"]
+		t.Run(reqSrc, func(t *testing.T) {
+			var req any
+			if err := json.Unmarshal([]byte(reqSrc), &req); err != nil {
+				t.Fatalf("bad req %q: %v", reqSrc, err)
+			}
+			var want *string
+			if err := json.Unmarshal([]byte(wantSrc), &want); err != nil {
+				t.Fatalf("bad expected %q: %v", wantSrc, err)
+			}
+			got := requestWrapperOf(req)
+			if (want == nil && got != "") || (want != nil && *want != got) {
+				t.Errorf("requestWrapperOf(%s) = %q, want %s", reqSrc, got, wantSrc)
 			}
 		})
 	}

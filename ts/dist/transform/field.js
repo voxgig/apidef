@@ -598,14 +598,17 @@ function findFieldDefs(ment, mop, mpoint, def, media) {
         if (isAction && !namesEntity(fieldSets, ment)) {
             return fielddefs;
         }
-        // A QUERY (RFC 10008) request body is a filter/query schema, not the
-        // entity shape, so it must not contribute entity fields. Fields for a
-        // QUERY op come from its response only. Other methods (POST/PUT/PATCH)
-        // carry the entity in the body, so merge as usual -- except for an
-        // action, whose body is the verb's arguments and never the record.
+        // A QUERY (RFC 10008) body is a filter, not the entity shape, so a QUERY
+        // op's fields come from its response alone; an action's body is the
+        // verb's arguments, never the record.
         const reqschema = (0, body_1.selectedRequestSchema)(def, mpoint.m, mpoint.o, media) ?? (0, jostraca_1.getx)(requestBody, 'schema');
         if ((requestBody || null != reqschema) && 'query' !== method && !isAction) {
-            fieldSets = [fieldSets, reqschema];
+            // A body that sends the record under one key holds its fields there.
+            const reqkey = (0, utility_1.requestWrapperOf)(mpoint.t?.req);
+            fieldSets = [
+                fieldSets,
+                null == reqkey ? reqschema : (0, utility_1.mergedProperties)(reqschema)?.[reqkey] ?? reqschema,
+            ];
         }
         if (fieldSets && (Array.isArray(fieldSets.allOf) || fieldSets.properties)) {
             fieldSets = [fieldSets];
