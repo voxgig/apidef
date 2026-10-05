@@ -549,6 +549,7 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         const res = (ent, op, path) => entities[ent]?.op[op]?.points.find((pt) => pt.o === path)?.t.res;
         node_assert_1.default.strictEqual(res('quote', 'list', '/quote/random'), '`body.episodes`');
         node_assert_1.default.strictEqual(res('competition', 'list', '/competitions/{id}/matches'), '`body.matches`');
+        node_assert_1.default.strictEqual(res('competition', 'list', '/competitions/{id}/teams'), '`body.teams`');
         node_assert_1.default.strictEqual(res('scorer', 'list', '/competitions/{id}/scorers'), '`body.scorers`');
         node_assert_1.default.strictEqual(res('note', 'list', '/notes'), '`body.note`');
         node_assert_1.default.strictEqual(res('quote', 'load', '/quote/{id}'), '`body.quote`');

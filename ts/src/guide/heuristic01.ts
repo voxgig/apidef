@@ -1221,8 +1221,8 @@ function ResolveTransform(spec: TaskSpec) {
 
   // A list reads records, so an object named for the entity does not win over
   // a list of them beside it, such as the matches beside the competition a
-  // page of them repeats.
-  const records = 'list' === opname && null != resprops ? envelopeProp(resprops, opname) : null
+  // page of them repeats. The list is found in the same parts the name is.
+  const records = 'list' === opname && null != partprops ? envelopeProp(partprops, opname) : null
   const holdsRecord = (prop: any) => isEntityWrapperProp(prop) &&
     (null == records || true === propIsList(prop))
 

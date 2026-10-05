@@ -5,8 +5,8 @@
 
 guide: {
   metrics: count: entity: 4
-  metrics: count: path: 6
-  metrics: count: method: 6
+  metrics: count: path: 7
+  metrics: count: method: 7
 
   entity: competition: {
     path: "/competitions/{id}": {
@@ -16,6 +16,11 @@ guide: {
       action: "match": {}
       op: list: method: *GET
       op: list: transform: res: *("`body.matches`")|top
+    }
+    path: "/competitions/{id}/teams": {
+      action: "team": {}
+      op: list: method: *GET
+      op: list: transform: res: *("`body.teams`")|top
     }
   }
 

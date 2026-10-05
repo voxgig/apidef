@@ -1744,10 +1744,11 @@ func resolveTransform(data map[string]any, mdesc map[string]any) {
 	partprops := mergedProperties(resschema)
 
 	// Mirrors ts/src/guide/heuristic01.ts: a list reads records, so an object
-	// named for the entity does not win over a list of them beside it.
+	// named for the entity does not win over a list of them beside it, found
+	// in the same parts the name is.
 	records := ""
-	if opname == "list" && resprops != nil {
-		records = envelopeProp(resprops, opname)
+	if opname == "list" && partprops != nil {
+		records = envelopeProp(partprops, opname)
 	}
 	holdsRecord := func(prop any) bool {
 		if !isEntityWrapperProp(prop) {

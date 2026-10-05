@@ -702,6 +702,7 @@ describe('apidef', () => {
       entities[ent]?.op[op]?.points.find((pt: any) => pt.o === path)?.t.res
     assert.strictEqual(res('quote', 'list', '/quote/random'), '`body.episodes`')
     assert.strictEqual(res('competition', 'list', '/competitions/{id}/matches'), '`body.matches`')
+    assert.strictEqual(res('competition', 'list', '/competitions/{id}/teams'), '`body.teams`')
     assert.strictEqual(res('scorer', 'list', '/competitions/{id}/scorers'), '`body.scorers`')
     assert.strictEqual(res('note', 'list', '/notes'), '`body.note`')
     assert.strictEqual(res('quote', 'load', '/quote/{id}'), '`body.quote`')

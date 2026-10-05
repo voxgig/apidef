@@ -883,8 +883,8 @@ function ResolveTransform(spec) {
     const partprops = (0, utility_2.mergedProperties)(resschema);
     // A list reads records, so an object named for the entity does not win over
     // a list of them beside it, such as the matches beside the competition a
-    // page of them repeats.
-    const records = 'list' === opname && null != resprops ? (0, utility_1.envelopeProp)(resprops, opname) : null;
+    // page of them repeats. The list is found in the same parts the name is.
+    const records = 'list' === opname && null != partprops ? (0, utility_1.envelopeProp)(partprops, opname) : null;
     const holdsRecord = (prop) => (0, utility_1.isEntityWrapperProp)(prop) &&
         (null == records || true === (0, utility_1.propIsList)(prop));
     if (named && holdsRecord(partprops?.[entdesc.origname])) {

@@ -616,6 +616,7 @@ func TestGuideListRecords(t *testing.T) {
 	for _, c := range []struct{ ent, op, path, want string }{
 		{"quote", "list", "/quote/random", "`body.episodes`"},
 		{"competition", "list", "/competitions/{id}/matches", "`body.matches`"},
+		{"competition", "list", "/competitions/{id}/teams", "`body.teams`"},
 		{"scorer", "list", "/competitions/{id}/scorers", "`body.scorers`"},
 		{"note", "list", "/notes", "`body.note`"},
 		{"quote", "load", "/quote/{id}", "`body.quote`"},
