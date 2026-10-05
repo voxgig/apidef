@@ -1749,9 +1749,24 @@ func resolveTransform(data map[string]any, mdesc map[string]any) {
 	// record as one of its parts, beside any properties of its own.
 	partprops := mergedProperties(resschema)
 
-	if named && isEntityWrapperProp(partprops[origname]) && origname != "" {
+	// Mirrors ts/src/guide/heuristic01.ts: a list reads records, so an object
+	// named for the entity does not win over a list of them beside it, found
+	// in the same parts the name is.
+	records := ""
+	if opname == "list" && partprops != nil {
+		records = envelopeProp(partprops, opname)
+	}
+	holdsRecord := func(prop any) bool {
+		if !isEntityWrapperProp(prop) {
+			return false
+		}
+		islist, known := propIsList(prop)
+		return records == "" || (known && islist)
+	}
+
+	if named && holdsRecord(partprops[origname]) && origname != "" {
 		transform["res"] = "`body." + origname + "`"
-	} else if named && isEntityWrapperProp(partprops[ename]) && ename != "" {
+	} else if named && holdsRecord(partprops[ename]) && ename != "" {
 		transform["res"] = "`body." + ename + "`"
 	} else if resprops != nil {
 		if envelope := envelopeProp(resprops, opname); envelope != "" {

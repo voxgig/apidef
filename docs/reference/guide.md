@@ -330,6 +330,17 @@ is read by name through its parts, such as Neon's project create,
 entity's own composed component stays the record whatever its parts are
 called. The `guide-composed-part` tests pin both, on
 [`ts/test/def/composed-part-def.json`](../../ts/test/def/composed-part-def.json).
+A list reads records, so an object named after the entity yields to the one
+array of records beside it on a page that holds no data of its own, whether
+the page is flat or composed with `allOf`. A random quote that answers with
+`{ episodes, quote, meta }` lists `body.episodes` rather than the quote, and a
+competition's matches, `{ count, filters, competition, matches }`, list
+`body.matches`, as do its teams when that page is composed from parts. That is
+the whole boundary: an array named after the entity is still read by name, and
+so is the object when the page carries a scalar of its own beside the records,
+other than a status, paging or a count, or more than one array of them. The
+`guide-list-records` tests pin these in both builds, on
+[`ts/test/def/list-records-def.json`](../../ts/test/def/list-records-def.json).
 A request body wraps the record
 under the entity's name only when that property is structured and is all the
 body holds, so a create that sends a `name` beside a `container`, or a

@@ -1,0 +1,17 @@
+def	expected
+{"info":{"summary":"A fast SMS API.","description":"x"}}	"A fast SMS API."
+{"info":{"description":"The SMS Works provides a low-cost, reliable SMS API for developers. Pay only for delivered texts."}}	"The SMS Works provides a low-cost, reliable SMS API for developers."
+{"info":{"description":"# Code of Conduct\nPlease don't abuse the API.\n\n# Rate Limiting\nEach token is limited."}}	"Please don't abuse the API."
+{"info":{"description":"The API to the Cloudsmith Service"}}	"The API to the Cloudsmith Service"
+{"info":{}}	null
+{"info":{"description":"   "}}	null
+{}	null
+{"info":{"description":"."}}	null
+{"info":{"summary":".","description":"---"}}	null
+{"info":{"description":"Aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa."}}	"Aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa…"
+{"info":{"description":" Lead with a no-break space. Then more."}}	"Lead with a no-break space."
+{"info":{"description":"## Heading\n---\nAfter the rule. More."}}	"After the rule."
+{"info":{"summary":" ","description":"From the description. Not this."}}	"From the description."
+{"info":{"description":"First line\ncontinues here. Next.\n\nSecond paragraph."}}	"First line continues here."
+{"info":{"description":"﻿After a byte order mark. More."}}	"After a byte order mark."
+{"info":{"description":"# Heading with a no-break space\nThe body. More."}}	"The body."

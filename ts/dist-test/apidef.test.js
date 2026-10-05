@@ -593,6 +593,37 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.strictEqual(res('project', 'remove'), '`body.project`');
         node_assert_1.default.strictEqual(res('widget', 'load'), '`body`');
     });
+    // A list reads its records, past an object named for the entity beside
+    // them: a quote beside its episodes, or the competition a page of its
+    // matches repeats. A list under the entity's name, and a load, still
+    // unwrap to it.
+    (0, node_test_1.test)('guide-list-records', async () => {
+        const folder = __dirname + '/../test/list-records';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'list-records', def: 'list-records-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: true,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        const entities = bres.apimodel.main.kit.entity;
+        const res = (ent, op, path) => entities[ent]?.op[op]?.points.find((pt) => pt.o === path)?.t.res;
+        node_assert_1.default.strictEqual(res('quote', 'list', '/quote/random'), '`body.episodes`');
+        node_assert_1.default.strictEqual(res('competition', 'list', '/competitions/{id}/matches'), '`body.matches`');
+        node_assert_1.default.strictEqual(res('competition', 'list', '/competitions/{id}/teams'), '`body.teams`');
+        node_assert_1.default.strictEqual(res('scorer', 'list', '/competitions/{id}/scorers'), '`body.scorers`');
+        node_assert_1.default.strictEqual(res('note', 'list', '/notes'), '`body.note`');
+        node_assert_1.default.strictEqual(res('quote', 'load', '/quote/{id}'), '`body.quote`');
+        node_assert_1.default.strictEqual(res('competition', 'load', '/competitions/{id}'), '`body`');
+    });
     // A trailing parameter under its entity's segment is the entity's key,
     // whatever the response component is called: a rare component named for
     // another view of it, or a tag on a write that answers with no component.

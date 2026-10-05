@@ -9,6 +9,7 @@ require (
 	github.com/tabnas/yaml/go v0.5.15
 	github.com/voxgig/struct/go v0.1.3
 	github.com/voxgig/util/go v0.1.5
+	golang.org/x/net v0.50.0
 	golang.org/x/text v0.40.0
 )
 

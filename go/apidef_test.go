@@ -605,14 +605,13 @@ func TestGuideAllofEnvelope(t *testing.T) {
 	}
 }
 
-// Mirrors the TS `guide-item-envelope` case, and writes the base guide that
-// case writes to ts/test/item-envelope/guide/base-guide.aontu.
-func TestGuideItemEnvelope(t *testing.T) {
-	folder := stageGuideEntry(t, t.TempDir(), "")
-	res, err := NewApiDef(ApiDefOptions{Folder: folder, Strategy: "heuristic01"}).
+// Mirrors the TS `guide-list-records` case.
+func TestGuideListRecords(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "list-records-")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, OutPrefix: "list-records-", Strategy: "heuristic01"}).
 		Generate(map[string]any{
-			"model": map[string]any{"name": "item-envelope", "def": "item-envelope-def.json"},
-			"build": map[string]any{"spec": map[string]any{"base": "../ts/test/item-envelope"}},
+			"model": map[string]any{"name": "list-records", "def": "list-records-def.json"},
+			"build": map[string]any{"spec": map[string]any{"base": "../ts/test/def"}},
 			"ctrl": map[string]any{"step": map[string]any{
 				"parse": true, "guide": true, "transformers": true,
 				"builders": false, "generate": false,
@@ -622,88 +621,34 @@ func TestGuideItemEnvelope(t *testing.T) {
 		t.Fatalf("generate failed: err=%v", err)
 	}
 
-	wantGuide, err := os.ReadFile("../ts/test/item-envelope/guide/base-guide.aontu")
-	if err != nil {
-		t.Fatal(err)
-	}
-	gotGuide, err := os.ReadFile(filepath.Join(folder, "guide", "base-guide.aontu"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(gotGuide) != string(wantGuide) {
-		t.Errorf("base guide differs from the TypeScript one:\n%s", string(gotGuide))
-	}
-
 	entities := res.ApiModel["main"].(map[string]any)["kit"].(map[string]any)["entity"].(map[string]any)
-	resOf := func(ent, op string) any {
+	resOf := func(ent, op, path string) any {
 		e, _ := entities[ent].(map[string]any)
 		opm, _ := e["op"].(map[string]any)
 		o, _ := opm[op].(map[string]any)
 		pts, _ := o["points"].([]any)
-		if len(pts) == 0 {
-			return nil
+		for _, p := range pts {
+			pt, _ := p.(map[string]any)
+			if pt["o"] == path {
+				tr, _ := pt["t"].(map[string]any)
+				return tr["res"]
+			}
 		}
-		pt, _ := pts[0].(map[string]any)
-		tr, _ := pt["t"].(map[string]any)
-		return tr["res"]
+		return nil
 	}
 
-	want := []any{"`$EACH`", "body", map[string]any{"`$MERGE`": "`.customer`"}}
-	if got := resOf("customer", "list"); !reflect.DeepEqual(got, want) {
-		t.Errorf("customer list res = %#v, want %#v", got, want)
-	}
-	if got := resOf("customer", "load"); got != "`body.customer`" {
-		t.Errorf("customer load res = %v, want `body.customer`", got)
-	}
-	if got := resOf("invoice", "list"); got != "`body`" {
-		t.Errorf("invoice list res = %v, want `body`", got)
-	}
-	customer, _ := entities["customer"].(map[string]any)
-	fields, _ := customer["fields"].(map[string]any)
-	if got, want := sortedKeys(fields), []string{"email", "first_name", "id", "last_name"}; !reflect.DeepEqual(got, want) {
-		t.Errorf("customer fields = %v, want %v", got, want)
-	}
-}
-
-// Mirrors the TS `guide-item-envelope-overlay` case.
-func TestGuideItemEnvelopeOverlay(t *testing.T) {
-	folder := t.TempDir()
-	entry := "@\"@voxgig/apidef/model/guide.aontu\"\n" +
-		"@\"./base-guide.aontu\"\n" +
-		"guide: entity: customer: path: \"/customers.json\": op: list: transform: res: \"`body.data`\"\n"
-	if err := writeGuideEntry(folder, "", entry); err != nil {
-		t.Fatal(err)
-	}
-	res, err := NewApiDef(ApiDefOptions{Folder: folder, Strategy: "heuristic01"}).Generate(map[string]any{
-		"model": map[string]any{"name": "item-envelope", "def": "item-envelope-def.json"},
-		"build": map[string]any{"spec": map[string]any{"base": "../ts/test/item-envelope"}},
-		"ctrl": map[string]any{"step": map[string]any{
-			"parse": true, "guide": true, "transformers": true,
-			"builders": false, "generate": false,
-		}},
-	})
-	if err != nil || res == nil || !res.OK {
-		t.Fatalf("generate failed: err=%v res=%+v", err, res)
-	}
-
-	baseguide, err := os.ReadFile(filepath.Join(folder, "guide", "base-guide.aontu"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(string(baseguide),
-		"op: list: transform: res: *[\"`$EACH`\",\"body\",{\"`$MERGE`\":\"`.customer`\"}]|top") {
-		t.Errorf("base guide lacks the list default:\n%s", string(baseguide))
-	}
-
-	entities := res.ApiModel["main"].(map[string]any)["kit"].(map[string]any)["entity"].(map[string]any)
-	customer, _ := entities["customer"].(map[string]any)
-	ops, _ := customer["op"].(map[string]any)
-	list, _ := ops["list"].(map[string]any)
-	pts, _ := list["points"].([]any)
-	pt, _ := pts[0].(map[string]any)
-	tr, _ := pt["t"].(map[string]any)
-	if tr["res"] != "`body.data`" {
-		t.Errorf("customer list res = %#v, want `body.data`", tr["res"])
+	for _, c := range []struct{ ent, op, path, want string }{
+		{"quote", "list", "/quote/random", "`body.episodes`"},
+		{"competition", "list", "/competitions/{id}/matches", "`body.matches`"},
+		{"competition", "list", "/competitions/{id}/teams", "`body.teams`"},
+		{"scorer", "list", "/competitions/{id}/scorers", "`body.scorers`"},
+		{"note", "list", "/notes", "`body.note`"},
+		{"quote", "load", "/quote/{id}", "`body.quote`"},
+		{"competition", "load", "/competitions/{id}", "`body`"},
+	} {
+		if got := resOf(c.ent, c.op, c.path); got != c.want {
+			t.Errorf("%s %s %s res = %v, want %s", c.ent, c.op, c.path, got, c.want)
+		}
 	}
 }
 
@@ -1966,6 +1911,79 @@ func TestCleanTransform(t *testing.T) {
 	}
 }
 
+// A null leaf is kept, as the TS clean keeps null and drops only undefined
+// (mirrors ts/src/transform/clean.ts): a parameter's `ex: null` reaches the
+// model from both ports.
+func TestCleanTransformKeepsNullLeaves(t *testing.T) {
+	ctx := &ApiDefContext{
+		ApiModel: map[string]any{
+			"a": map[string]any{"x": nil, "y": map[string]any{}},
+			"b": []any{nil, 1},
+			"c": nil,
+		},
+	}
+	if _, err := CleanTransform(ctx); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	want := map[string]any{
+		"a": map[string]any{"x": nil},
+		"b": []any{nil, 1},
+		"c": nil,
+	}
+	if !reflect.DeepEqual(ctx.ApiModel, want) {
+		t.Fatalf("null leaves: got %#v, want %#v", ctx.ApiModel, want)
+	}
+}
+
+// An example present as null survives the args and clean steps as `ex: null`,
+// as it does in the TS port.
+func TestArgsTransformNullExampleSurvivesClean(t *testing.T) {
+	path := "/kingdom"
+	ctx := &ApiDefContext{
+		Def: map[string]any{"paths": map[string]any{
+			path: map[string]any{"get": map[string]any{"parameters": []any{
+				map[string]any{
+					"name": "q", "in": "query", "example": nil,
+					"schema": map[string]any{"type": "string", "default": "d"},
+				},
+			}}},
+		}},
+		ApiModel: map[string]any{"main": map[string]any{"kit": map[string]any{
+			"entity": map[string]any{"kingdom": map[string]any{
+				"name": "kingdom",
+				"op": map[string]any{"list": map[string]any{
+					"points": []any{map[string]any{
+						"o": path, "m": "GET",
+						"r": map[string]any{}, "g": map[string]any{},
+					}},
+				}},
+			}},
+		}}},
+		Warn: MakeWarner("test", nil),
+	}
+	if _, err := ArgsTransform(ctx); err != nil {
+		t.Fatalf("args transform failed: %v", err)
+	}
+	if _, err := CleanTransform(ctx); err != nil {
+		t.Fatalf("clean transform failed: %v", err)
+	}
+	kit := getKit(ctx)
+	kingdom := kit["entity"].(map[string]any)["kingdom"].(map[string]any)
+	point := kingdom["op"].(map[string]any)["list"].(map[string]any)["points"].([]any)[0].(map[string]any)
+	query, _ := point["g"].(map[string]any)["query"].([]any)
+	if len(query) != 1 {
+		t.Fatalf("query args = %v, want one", query)
+	}
+	arg := query[0].(map[string]any)
+	ex, has := arg["ex"]
+	if !has || ex != nil {
+		t.Fatalf("arg = %#v, want ex present as null", arg)
+	}
+	if !strings.Contains(FormatJSONIC(map[string]any{"q": arg}), "ex: null") {
+		t.Fatalf("rendered arg %s, want ex: null", FormatJSONIC(map[string]any{"q": arg}))
+	}
+}
+
 func TestCleanTransformPreservesEmptyFieldMaps(t *testing.T) {
 	entities := map[string]any{
 		"empty": map[string]any{"name": "empty", "fields": map[string]any{}, "other": map[string]any{}},
@@ -2635,5 +2653,107 @@ func TestPostmanServerVariable(t *testing.T) {
 		" braces: taken as `http://{base_url}`"}
 	if !reflect.DeepEqual(notes, wantNotes) {
 		t.Errorf("warnings = %q, want %q", notes, wantNotes)
+	}
+}
+
+// Mirrors the TS `guide-item-envelope` case, and writes the base guide that
+// case writes to ts/test/item-envelope/guide/base-guide.aontu.
+func TestGuideItemEnvelope(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, Strategy: "heuristic01"}).
+		Generate(map[string]any{
+			"model": map[string]any{"name": "item-envelope", "def": "item-envelope-def.json"},
+			"build": map[string]any{"spec": map[string]any{"base": "../ts/test/item-envelope"}},
+			"ctrl": map[string]any{"step": map[string]any{
+				"parse": true, "guide": true, "transformers": true,
+				"builders": false, "generate": false,
+			}},
+		})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v", err)
+	}
+
+	wantGuide, err := os.ReadFile("../ts/test/item-envelope/guide/base-guide.aontu")
+	if err != nil {
+		t.Fatal(err)
+	}
+	gotGuide, err := os.ReadFile(filepath.Join(folder, "guide", "base-guide.aontu"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(gotGuide) != string(wantGuide) {
+		t.Errorf("base guide differs from the TypeScript one:\n%s", string(gotGuide))
+	}
+
+	entities := res.ApiModel["main"].(map[string]any)["kit"].(map[string]any)["entity"].(map[string]any)
+	resOf := func(ent, op string) any {
+		e, _ := entities[ent].(map[string]any)
+		opm, _ := e["op"].(map[string]any)
+		o, _ := opm[op].(map[string]any)
+		pts, _ := o["points"].([]any)
+		if len(pts) == 0 {
+			return nil
+		}
+		pt, _ := pts[0].(map[string]any)
+		tr, _ := pt["t"].(map[string]any)
+		return tr["res"]
+	}
+
+	want := []any{"`$EACH`", "body", map[string]any{"`$MERGE`": "`.customer`"}}
+	if got := resOf("customer", "list"); !reflect.DeepEqual(got, want) {
+		t.Errorf("customer list res = %#v, want %#v", got, want)
+	}
+	if got := resOf("customer", "load"); got != "`body.customer`" {
+		t.Errorf("customer load res = %v, want `body.customer`", got)
+	}
+	if got := resOf("invoice", "list"); got != "`body`" {
+		t.Errorf("invoice list res = %v, want `body`", got)
+	}
+	customer, _ := entities["customer"].(map[string]any)
+	fields, _ := customer["fields"].(map[string]any)
+	if got, want := sortedKeys(fields), []string{"email", "first_name", "id", "last_name"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("customer fields = %v, want %v", got, want)
+	}
+}
+
+// Mirrors the TS `guide-item-envelope-overlay` case.
+func TestGuideItemEnvelopeOverlay(t *testing.T) {
+	folder := t.TempDir()
+	entry := "@\"@voxgig/apidef/model/guide.aontu\"\n" +
+		"@\"./base-guide.aontu\"\n" +
+		"guide: entity: customer: path: \"/customers.json\": op: list: transform: res: \"`body.data`\"\n"
+	if err := writeGuideEntry(folder, "", entry); err != nil {
+		t.Fatal(err)
+	}
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, Strategy: "heuristic01"}).Generate(map[string]any{
+		"model": map[string]any{"name": "item-envelope", "def": "item-envelope-def.json"},
+		"build": map[string]any{"spec": map[string]any{"base": "../ts/test/item-envelope"}},
+		"ctrl": map[string]any{"step": map[string]any{
+			"parse": true, "guide": true, "transformers": true,
+			"builders": false, "generate": false,
+		}},
+	})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v res=%+v", err, res)
+	}
+
+	baseguide, err := os.ReadFile(filepath.Join(folder, "guide", "base-guide.aontu"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(baseguide),
+		"op: list: transform: res: *[\"`$EACH`\",\"body\",{\"`$MERGE`\":\"`.customer`\"}]|top") {
+		t.Errorf("base guide lacks the list default:\n%s", string(baseguide))
+	}
+
+	entities := res.ApiModel["main"].(map[string]any)["kit"].(map[string]any)["entity"].(map[string]any)
+	customer, _ := entities["customer"].(map[string]any)
+	ops, _ := customer["op"].(map[string]any)
+	list, _ := ops["list"].(map[string]any)
+	pts, _ := list["points"].([]any)
+	pt, _ := pts[0].(map[string]any)
+	tr, _ := pt["t"].(map[string]any)
+	if tr["res"] != "`body.data`" {
+		t.Errorf("customer list res = %#v, want `body.data`", tr["res"])
 	}
 }

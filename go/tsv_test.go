@@ -799,10 +799,7 @@ func TestInferFieldsFromExamples(t *testing.T) {
 	for _, row := range rows {
 		src, envelope, want := row["opdef"], row["envelope"], row["expected"]
 		t.Run(src+" "+envelope, func(t *testing.T) {
-			var opdef map[string]any
-			if err := json.Unmarshal([]byte(src), &opdef); err != nil {
-				t.Fatalf("bad opdef %q: %v", src, err)
-			}
+			opdef := parseOrdered(t, src)
 			var wantVal []string
 			if err := json.Unmarshal([]byte(want), &wantVal); err != nil {
 				t.Fatalf("bad expected %q: %v", want, err)
@@ -1298,6 +1295,30 @@ func TestTsvParamSchema(t *testing.T) {
 	}
 }
 
+func TestTsvInfoSummary(t *testing.T) {
+	rows := loadTsv(t, "info-summary")
+	if len(rows) == 0 {
+		t.Fatal("no info-summary rows loaded")
+	}
+	for _, row := range rows {
+		defSrc, wantSrc := row["def"], row["expected"]
+		t.Run(defSrc, func(t *testing.T) {
+			var def map[string]any
+			if err := json.Unmarshal([]byte(defSrc), &def); err != nil {
+				t.Fatalf("bad def %q: %v", defSrc, err)
+			}
+			var want *string
+			if err := json.Unmarshal([]byte(wantSrc), &want); err != nil {
+				t.Fatalf("bad expected %q: %v", wantSrc, err)
+			}
+			got, ok := resolveSummary(def)
+			if (want == nil && ok) || (want != nil && (!ok || got != *want)) {
+				t.Errorf("resolveSummary(%s) = %q (%v), want %s", defSrc, got, ok, wantSrc)
+			}
+		})
+	}
+}
+
 func TestTsvBuildRelations(t *testing.T) {
 	rows := loadTsv(t, "build-relations")
 	if len(rows) == 0 {
@@ -1328,6 +1349,34 @@ func TestTsvBuildRelations(t *testing.T) {
 			got, _ := json.Marshal(BuildRelations(map[string]any{}, descs)["ancestors"])
 			if string(got) != wantSrc {
 				t.Errorf("BuildRelations(%s) = %s, want %s", pathsSrc, got, wantSrc)
+			}
+		})
+	}
+}
+
+func TestTsvInfoWebsite(t *testing.T) {
+	rows := loadTsv(t, "info-website")
+	if len(rows) == 0 {
+		t.Fatal("no info-website rows loaded")
+	}
+	for _, row := range rows {
+		defSrc, serversSrc, wantSrc := row["def"], row["servers"], row["expected"]
+		t.Run(defSrc+" "+serversSrc, func(t *testing.T) {
+			var def map[string]any
+			if err := json.Unmarshal([]byte(defSrc), &def); err != nil {
+				t.Fatalf("bad def %q: %v", defSrc, err)
+			}
+			var servers []any
+			if err := json.Unmarshal([]byte(serversSrc), &servers); err != nil {
+				t.Fatalf("bad servers %q: %v", serversSrc, err)
+			}
+			var want *string
+			if err := json.Unmarshal([]byte(wantSrc), &want); err != nil {
+				t.Fatalf("bad expected %q: %v", wantSrc, err)
+			}
+			got, ok := resolveWebsite(def, servers)
+			if (want == nil && ok) || (want != nil && (!ok || got != *want)) {
+				t.Errorf("resolveWebsite(%s, %s) = %q (%v), want %s", defSrc, serversSrc, got, ok, wantSrc)
 			}
 		})
 	}

@@ -1035,8 +1035,8 @@ func findExampleObject(opdef map[string]any, envelope string) any {
 
 	var resdef map[string]any
 	for _, code := range []string{"200", "201", "202"} {
-		if rd, ok := responses[code].(map[string]any); ok {
-			resdef = rd
+		if rd := responses[code]; rd != nil {
+			resdef, _ = rd.(map[string]any)
 			break
 		}
 	}
@@ -1044,56 +1044,51 @@ func findExampleObject(opdef map[string]any, envelope string) any {
 		return nil
 	}
 
-	// OpenAPI 3.x: content.application/json.example
-	if content, ok := resdef["content"].(map[string]any); ok {
-		if appjson, ok := content["application/json"].(map[string]any); ok {
-			if example, ok := appjson["example"]; ok {
-				return unwrapExample(example, envelope)
-			}
-			if examples, ok := appjson["examples"].(map[string]any); ok {
-				order := exampleOrder(examples)
-				for _, ek := range order {
-					v := examples[ek]
-					if vm, ok := v.(map[string]any); ok {
-						if ex, ok := vm["value"]; ok {
-							return unwrapExample(ex, envelope)
-						}
-					}
-				}
-			}
-			if schema, ok := appjson["schema"].(map[string]any); ok {
-				if example, ok := schema["example"]; ok {
-					return unwrapExample(example, envelope)
-				}
+	// OpenAPI 3.x, then Swagger 2.0. Only an object or a list is an example
+	// here; anything else is passed over for the next place to look.
+	content, _ := resdef["content"].(map[string]any)
+	appjson, _ := content["application/json"].(map[string]any)
+	if isExampleObject(appjson["example"]) {
+		return unwrapExample(appjson["example"], envelope)
+	}
+	if examples, ok := appjson["examples"].(map[string]any); ok {
+		for _, name := range exampleOrder(examples) {
+			named, _ := examples[name].(map[string]any)
+			if isExampleObject(named["value"]) {
+				return unwrapExample(named["value"], envelope)
 			}
 		}
+	}
+	if schema, ok := appjson["schema"].(map[string]any); ok && isExampleObject(schema["example"]) {
+		return unwrapExample(schema["example"], envelope)
 	}
 
-	// Swagger 2.0
-	if example, ok := resdef["example"]; ok {
-		return unwrapExample(example, envelope)
+	if isExampleObject(resdef["example"]) {
+		return unwrapExample(resdef["example"], envelope)
 	}
-	if examples, ok := resdef["examples"].(map[string]any); ok {
-		if appjson, ok := examples["application/json"]; ok {
-			return unwrapExample(appjson, envelope)
-		}
+	if examples, ok := resdef["examples"].(map[string]any); ok && isExampleObject(examples["application/json"]) {
+		return unwrapExample(examples["application/json"], envelope)
 	}
-	if schema, ok := resdef["schema"].(map[string]any); ok {
-		if example, ok := schema["example"]; ok {
-			return unwrapExample(example, envelope)
-		}
+	if schema, ok := resdef["schema"].(map[string]any); ok && isExampleObject(schema["example"]) {
+		return unwrapExample(schema["example"], envelope)
 	}
 
 	return nil
 }
 
-// exampleOrder returns the iteration order for an examples map, preferring
-// the `x-examples-order` annotation set by annotateExamplesOrder during
-// parse. The annotation key itself is filtered out so it never participates
-// in iteration. When no annotation is present (e.g. YAML specs), falls back
-// to alphabetical to keep behavior deterministic.
+func isExampleObject(v any) bool {
+	switch v.(type) {
+	case map[string]any, []any:
+		return true
+	}
+	return false
+}
+
+// exampleOrder returns the iteration order for an examples map: the order
+// annotateExamplesOrder recorded when it was parsed, else alphabetical, with
+// the annotation's own key left out.
 func exampleOrder(examples map[string]any) []string {
-	if raw, ok := examples["x-examples-order"]; ok {
+	if raw, ok := examples[examplesOrderKey]; ok {
 		switch o := raw.(type) {
 		case []string:
 			return o
@@ -1110,7 +1105,7 @@ func exampleOrder(examples map[string]any) []string {
 	keys := sortedKeys(examples)
 	out := make([]string, 0, len(keys))
 	for _, k := range keys {
-		if k == "x-examples-order" {
+		if k == examplesOrderKey {
 			continue
 		}
 		out = append(out, k)

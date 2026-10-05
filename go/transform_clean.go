@@ -31,6 +31,12 @@ func cleanNode(v any) any {
 			if strings.HasSuffix(k, "$") {
 				continue
 			}
+			// A null leaf is a value, as the TS clean keeps null and drops
+			// only undefined: an example present as null stays `ex: null`.
+			if val == nil {
+				result[k] = nil
+				continue
+			}
 			cleaned := cleanNode(val)
 			if cleaned != nil && !isEmptyNode(cleaned) {
 				result[k] = cleaned
@@ -44,6 +50,10 @@ func cleanNode(v any) any {
 	case []any:
 		var result []any
 		for _, val := range node {
+			if val == nil {
+				result = append(result, nil)
+				continue
+			}
 			cleaned := cleanNode(val)
 			if cleaned != nil {
 				result = append(result, cleaned)
