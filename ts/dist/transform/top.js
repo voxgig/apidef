@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.topTransform = void 0;
+exports.stringifyInfoScalars = stringifyInfoScalars;
 exports.resolveSecurity = resolveSecurity;
 exports.resolveSummary = resolveSummary;
 exports.ensureDescription = ensureDescription;

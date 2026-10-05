@@ -28,3 +28,5 @@ postman-scheme-variable	{"servers":[{"url":"{{scheme}}://api.example.com/v1"}]}	
 host-variable-keeps-scheme	{"servers":[{"url":"{region}.example.com/v1"}]}	[{"url":"https://{region}.example.com/v1"}]	[]
 postman-host-variable-keeps-scheme	{"servers":[{"url":"{{region}}.example.com/v1"}]}	[{"url":"https://{region}.example.com/v1","variables":{"region":{"default":""}}}]	["server URL `{{region}}.example.com/v1` writes its variables in Postman's double braces: taken as `https://{region}.example.com/v1`"]
 scheme-kept	{"servers":[{"url":"http://{host}"}]}	[{"url":"http://{host}"}]	[]
+numeric-variables	{"servers":[{"url":"https://api.example.com:{port}/v{major}","variables":{"port":{"default":8080,"enum":[8080,8443]},"major":{"default":1}}}]}	[{"url":"https://api.example.com:{port}/v{major}","variables":{"port":{"default":"8080","enum":["8080","8443"]},"major":{"default":"1"}}}]	[]
+scalar-extensions	{"servers":[{"url":"https://api.example.com","x-weight":2,"x-live":true}]}	[{"url":"https://api.example.com","x-weight":"2","x-live":"true"}]	[]

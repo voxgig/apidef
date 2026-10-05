@@ -49,6 +49,7 @@ import {
 } from '../dist/transform/field'
 
 import { makeResolved } from '../dist/resolved'
+import { stringifyInfoScalars } from '../dist/transform/top'
 
 import { selectTransform } from '../dist/transform/select'
 import { bodyTransform, requestBody, responseBody } from '../dist/transform/body'
@@ -58,7 +59,9 @@ import type {
 import { Aontu } from 'aontu'
 import { argsTransform, resolveArgExample } from '../dist/transform/args'
 import { buildRelations, resolvePathList } from '../dist/transform/entity'
-import { resolveSecurity, findAuthPrefix, topTransform } from '../dist/transform/top'
+import {
+  resolveSecurity, findAuthPrefix, topTransform, resolveSummary, resolveWebsite,
+} from '../dist/transform/top'
 
 import { snakify, camelify, kebabify } from 'jostraca'
 
@@ -963,6 +966,24 @@ describe('tsv-param-schema', () => {
 })
 
 
+describe('tsv-info-summary', () => {
+  for (const row of loadTsv('info-summary')) {
+    test(`resolveSummary(${row.def.slice(0, 60)})`, () => {
+      assert.strictEqual(resolveSummary(JSON.parse(row.def)) ?? null, JSON.parse(row.expected))
+    })
+  }
+})
+
+
+describe('tsv-info-website', () => {
+  for (const row of loadTsv('info-website')) {
+    test(`resolveWebsite(${row.def.slice(0, 40)}, ${row.servers})`, () => {
+      assert.strictEqual(
+        resolveWebsite(JSON.parse(row.def), JSON.parse(row.servers)) ?? null, JSON.parse(row.expected))
+    })
+  }
+})
+
 describe('tsv-build-relations', () => {
   const rows = loadTsv('build-relations')
   for (const row of rows) {
@@ -1109,6 +1130,17 @@ describe('tsv-servers', () => {
       })
       assert.deepStrictEqual(apimodel.main.kit.info.servers, JSON.parse(row.servers))
       assert.deepStrictEqual(warnings.map((warning) => warning.note), JSON.parse(row.warnings))
+    })
+  }
+})
+
+
+describe('tsv-info-scalars', () => {
+  const rows = loadTsv('info-scalars')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(`stringifyInfoScalars(${row.input})`, () => {
+      assert.deepStrictEqual(stringifyInfoScalars(JSON.parse(row.input)), JSON.parse(row.expected))
     })
   }
 })
