@@ -4,6 +4,7 @@ package apidef
 
 import (
 	"encoding/json"
+	"golang.org/x/net/idna"
 	"maps"
 	neturl "net/url"
 	"regexp"
@@ -707,8 +708,29 @@ func isHTTPURL(link string) bool {
 	return httpURLRe.MatchString(jsTrim(link))
 }
 
+// The schemes the WHATWG parser calls special, for which a backslash is a
+// slash.
+var specialSchemeRe = regexp.MustCompile(`(?i)^(https?|wss?|ftp|file):`)
+
+// The host mapping the WHATWG parser applies: UTS 46, non-transitional.
+var idnaHost = idna.New(idna.MapForLookup(), idna.Transitional(false))
+
+// whatwgInput is the preprocessing the WHATWG parser performs before it reads
+// a URL: leading and trailing C0 controls and spaces go, and a tab or a
+// newline goes wherever it sits.
+func whatwgInput(raw string) string {
+	raw = strings.TrimFunc(raw, func(r rune) bool { return r <= ' ' })
+	return strings.Map(func(r rune) rune {
+		if r == '\t' || r == '\n' || r == '\r' {
+			return -1
+		}
+		return r
+	}, raw)
+}
+
 // homepageFromServer mirrors ts/src/transform/top.ts, where the WHATWG URL
-// parser lowercases the scheme and the host.
+// parser preprocesses its input, lowercases the scheme and the host, and
+// writes a non-ASCII host as punycode.
 func homepageFromServer(v any) (string, bool) {
 	raw, ok := v.(string)
 	if !ok || jsTrim(raw) == "" {
@@ -717,6 +739,10 @@ func homepageFromServer(v any) (string, bool) {
 	if !strings.Contains(raw, "://") {
 		raw = "https://" + raw
 	}
+	raw = whatwgInput(raw)
+	if specialSchemeRe.MatchString(raw) {
+		raw = strings.ReplaceAll(raw, `\`, "/")
+	}
 	parsed, err := neturl.Parse(raw)
 	if err != nil {
 		return "", false
@@ -724,6 +750,9 @@ func homepageFromServer(v any) (string, bool) {
 	host := strings.ToLower(parsed.Hostname())
 	if host == "" || !strings.Contains(host, ".") || strings.ContainsAny(host, "{}") {
 		return "", false
+	}
+	if ascii, err := idnaHost.ToASCII(host); err == nil {
+		host = ascii
 	}
 	return strings.ToLower(parsed.Scheme) + "://" + serviceHostRe.ReplaceAllString(host, ""), true
 }

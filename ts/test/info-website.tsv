@@ -23,3 +23,8 @@ def	servers	expected
 {"info":{}}	[{"url":"{base}"}]	null
 {"info":{"termsOfService":"HTTP://tos.example.com"}}	[{"url":"http://localhost:8080"}]	"HTTP://tos.example.com"
 {"externalDocs":{"url":"﻿https://docs.bom.example.com"},"info":{}}	[]	"https://docs.bom.example.com"
+{"info":{}}	[{"url":" https://api.example.com/v1"}]	"https://example.com"
+{"info":{}}	[{"url":"https://api.exa\tmple.com/v1"}]	"https://example.com"
+{"info":{}}	[{"url":"https://api.example.com\\v1"}]	"https://example.com"
+{"info":{}}	[{"url":"https://api.münchen.de/v1"}]	"https://xn--mnchen-3ya.de"
+{"info":{}}	[{"url":"\thttps://api.example.com/v1\n"}]	"https://example.com"
