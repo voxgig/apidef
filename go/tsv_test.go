@@ -1352,6 +1352,30 @@ func TestClosedBodyTransform(t *testing.T) {
 	}
 }
 
+func TestTsvRequestWrapperOf(t *testing.T) {
+	rows := loadTsv(t, "request-wrapper-of")
+	if len(rows) == 0 {
+		t.Fatal("no request-wrapper-of rows loaded")
+	}
+	for _, row := range rows {
+		reqSrc, wantSrc := row["req"], row["expected"]
+		t.Run(reqSrc, func(t *testing.T) {
+			var req any
+			if err := json.Unmarshal([]byte(reqSrc), &req); err != nil {
+				t.Fatalf("bad req %q: %v", reqSrc, err)
+			}
+			var want *string
+			if err := json.Unmarshal([]byte(wantSrc), &want); err != nil {
+				t.Fatalf("bad expected %q: %v", wantSrc, err)
+			}
+			got := requestWrapperOf(req)
+			if (want == nil && got != "") || (want != nil && *want != got) {
+				t.Errorf("requestWrapperOf(%s) = %q, want %s", reqSrc, got, wantSrc)
+			}
+		})
+	}
+}
+
 func TestTsvAuthExchange(t *testing.T) {
 	rows := loadTsv(t, "auth-exchange")
 	if len(rows) == 0 {

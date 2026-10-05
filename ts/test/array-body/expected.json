@@ -387,8 +387,12 @@
       }
     },
     "pallet": {
-      "pallet": {
-        "t": "`$OBJECT`",
+      "name": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "weight": {
+        "t": "`$INTEGER`",
         "r": false
       }
     },

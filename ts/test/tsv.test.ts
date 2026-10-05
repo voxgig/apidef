@@ -34,6 +34,7 @@ import {
   composedEnvelopeProp,
   mergedProperties,
   closedBodyTransform,
+  requestWrapperOf,
   authExchangeOp,
   specSecuredByDefault,
   find,
@@ -964,6 +965,16 @@ describe('tsv-closed-body-transform', () => {
       const got = closedBodyTransform(JSON.parse(row.schema))
       assert.deepStrictEqual(
         null == got ? null : { ...got }, JSON.parse(row.expected))
+    })
+  }
+})
+
+
+describe('tsv-request-wrapper-of', () => {
+  const rows = loadTsv('request-wrapper-of')
+  for (const row of rows) {
+    test(`requestWrapperOf(${row.req})`, () => {
+      assert.strictEqual(requestWrapperOf(JSON.parse(row.req)), JSON.parse(row.expected))
     })
   }
 })
