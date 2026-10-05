@@ -111,6 +111,23 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-pluralize', () => {
+    const rows = loadTsv('pluralize');
+    for (const row of rows) {
+        (0, node_test_1.test)(`pluralize("${row.input}") => "${row.expected}"`, () => {
+            if ('' !== row.plurals) {
+                (0, utility_1.setCustomPlurals)(JSON.parse(row.plurals));
+            }
+            try {
+                node_assert_1.default.deepStrictEqual((0, utility_1.pluralize)(row.input), row.expected);
+                node_assert_1.default.deepStrictEqual((0, utility_1.depluralize)(row.expected), row.input);
+            }
+            finally {
+                (0, utility_1.clearCustomPlurals)();
+            }
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-canonize', () => {
     const rows = loadTsv('canonize');
     for (const row of rows) {
@@ -769,12 +786,28 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-array-body-field', () => {
+    const rows = loadTsv('array-body-field');
+    for (const row of rows) {
+        (0, node_test_1.test)(`arrayBodyField(${row.schema}, ${row.entity}, ${row.taken})`, () => {
+            node_assert_1.default.deepStrictEqual((0, heuristic01_1.arrayBodyField)(JSON.parse(row.schema), row.entity, JSON.parse(row.taken)), row.expected);
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-closed-body-transform', () => {
     const rows = loadTsv('closed-body-transform');
     for (const row of rows) {
         (0, node_test_1.test)(`closedBodyTransform(${row.schema})`, () => {
             const got = (0, utility_1.closedBodyTransform)(JSON.parse(row.schema));
             node_assert_1.default.deepStrictEqual(null == got ? null : { ...got }, JSON.parse(row.expected));
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-request-wrapper-of', () => {
+    const rows = loadTsv('request-wrapper-of');
+    for (const row of rows) {
+        (0, node_test_1.test)(`requestWrapperOf(${row.req})`, () => {
+            node_assert_1.default.strictEqual((0, utility_1.requestWrapperOf)(JSON.parse(row.req)), JSON.parse(row.expected));
         });
     }
 });

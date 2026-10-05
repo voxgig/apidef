@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.answeredRefs = answeredRefs;
+exports.arrayBodyField = arrayBodyField;
 exports.distinctRecord = distinctRecord;
 exports.distinctShare = distinctShare;
 exports.heuristic01 = heuristic01;
@@ -16,6 +17,7 @@ const ordu_1 = require("ordu");
 const jostraca_1 = require("jostraca");
 const struct_1 = require("@voxgig/struct");
 const utility_1 = require("../utility");
+const body_1 = require("../transform/body");
 const utility_2 = require("../utility");
 const jostraca_2 = require("jostraca");
 const entity_1 = require("../transform/entity");
@@ -905,32 +907,8 @@ function ResolveTransform(spec) {
         }
     }
     const reqschema = getRequestBodySchema(mdesc.requestBody);
-    const reqprops = reqschema?.properties;
-    (0, utility_2.debugpath)(pathStr, methodName, 'TRANSFORM-REQ', (0, struct_1.keysof)(reqprops));
-    // A body wraps the record under the entity's name only when that is all it
-    // holds, and it is structured. Otherwise the name is one field of the record,
-    // such as the container in SaladCloud's container group create.
-    const wraps = (name) => (0, utility_1.isEntityWrapperProp)(reqprops?.[name]) &&
-        (0, struct_1.keysof)(reqprops).every((k) => k === name);
-    if (reqschema) {
-        if (wraps(entdesc.origname)) {
-            transform.req = { [entdesc.origname]: '`reqdata`' };
-        }
-        else if (wraps(entdesc.name)) {
-            transform.req = { [entdesc.name]: '`reqdata`' };
-        }
-        else {
-            // A CLOSED body schema names every property the server will accept, so
-            // the body is those properties — not the whole request payload. The
-            // payload also carries the op's PATH params (`id` for
-            // `PUT /item/{id}`), and a closed shape rejects the entire request over
-            // that one extra key: every update came back 400 with `invalid-data`.
-            const body = (0, utility_1.closedBodyTransform)(reqschema);
-            if (null != body) {
-                transform.req = body;
-            }
-        }
-    }
+    (0, utility_2.debugpath)(pathStr, methodName, 'TRANSFORM-REQ', (0, struct_1.keysof)(reqschema?.properties));
+    transform.req = (0, utility_1.bodyRequestTransform)(reqschema, [entdesc.origname, entdesc.name]);
     if (!(0, struct_1.isempty)(transform) && null != op[opname]) {
         op[opname].transform = transform;
     }
@@ -1169,8 +1147,7 @@ function entityPathMatch_tpp(data, pm, mdesc, why) {
     return entname;
 }
 function getRequestBodySchema(requestBody) {
-    return requestBody?.content?.['application/json']?.schema ??
-        requestBody?.schema;
+    return (0, body_1.jsonRequestSchema)({ requestBody }) ?? requestBody?.schema;
 }
 // The response an operation's result is read from, down to an Accepted
 // response when nothing else answers, whose body may be the job it queued.
@@ -1830,9 +1807,36 @@ function findPotentialSchemaRefs(pathStr, methodName, responses, envelope, answe
     (0, utility_2.debugpath)(pathStr, methodName, 'POTENTIAL-SCHEMA-REFS', xrefs);
     return xrefs;
 }
+const CMP_REF_RE = /\/(components\/schemas|definitions)\/(.+)$/;
 function cmpRefName(xref) {
-    const m = xref.match(/\/(components\/schemas|definitions)\/(.+)$/);
+    const m = xref.match(CMP_REF_RE);
     return null == m ? xref : (0, utility_2.canonizeCmpName)(m[2]);
+}
+// An array request body is sent from a field named for the records it lists:
+// its items' component, or the one their allOf parts name, cleaned as an
+// entity's is, else the entity itself. A pointer into a component names a
+// part of it, not a record. A name another route of the operation has is taken.
+function arrayBodyField(schema, entname, taken = []) {
+    const refs = [...new Set(itemRefs(schema?.items, new Set()))];
+    const cmp = String(1 === refs.length ? refs[0] : '').match(CMP_REF_RE)?.[2];
+    const cleaned = null == cmp || cmp.includes('/') ? '' :
+        (0, utility_2.prefixLeadingDigit)((0, utility_2.cleanComponentName)((0, utility_2.canonizeCmpName)(cmp)));
+    const record = '' === cleaned ? entname : cleaned;
+    let name = (0, utility_2.pluralize)(record);
+    for (let n = 1; taken.includes(name); n++) {
+        name = record + '_list' + (1 < n ? n : '');
+    }
+    return name;
+}
+function itemRefs(items, seen) {
+    if (null == items || 'object' !== typeof items || seen.has(items)) {
+        return [];
+    }
+    seen.add(items);
+    if ('string' === typeof items['x-ref']) {
+        return [items['x-ref']];
+    }
+    return (Array.isArray(items.allOf) ? items.allOf : []).flatMap((part) => itemRefs(part, seen));
 }
 function hasMethod(def, pathStr, methodName) {
     const pathDef = def?.paths?.[pathStr];
