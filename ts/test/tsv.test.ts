@@ -34,6 +34,7 @@ import {
   composedEnvelopeProp,
   mergedProperties,
   closedBodyTransform,
+  requestWrapperOf,
   authExchangeOp,
   specSecuredByDefault,
   find,
@@ -56,7 +57,7 @@ import type {
 } from '../dist/apidef'
 import { Aontu } from 'aontu'
 import { argsTransform } from '../dist/transform/args'
-import { resolvePathList } from '../dist/transform/entity'
+import { buildRelations, resolvePathList } from '../dist/transform/entity'
 import { resolveSecurity, findAuthPrefix, topTransform } from '../dist/transform/top'
 
 import { snakify, camelify, kebabify } from 'jostraca'
@@ -946,6 +947,19 @@ describe('tsv-param-schema', () => {
 })
 
 
+describe('tsv-build-relations', () => {
+  const rows = loadTsv('build-relations')
+  for (const row of rows) {
+    test(`buildRelations(${row.paths.slice(0, 60)})`, () => {
+      const paths = JSON.parse(row.paths).map((path: string) => ({
+        segments: path.split('/').filter((part) => '' !== part).map((part) =>
+          part.startsWith('{') ? { var: part.slice(1, -1) } : { lit: part }),
+      }))
+      assert.deepStrictEqual(buildRelations({}, paths).ancestors, JSON.parse(row.expected))
+    })
+  }
+})
+
 describe('tsv-array-body-field', () => {
   const rows = loadTsv('array-body-field')
   for (const row of rows) {
@@ -964,6 +978,16 @@ describe('tsv-closed-body-transform', () => {
       const got = closedBodyTransform(JSON.parse(row.schema))
       assert.deepStrictEqual(
         null == got ? null : { ...got }, JSON.parse(row.expected))
+    })
+  }
+})
+
+
+describe('tsv-request-wrapper-of', () => {
+  const rows = loadTsv('request-wrapper-of')
+  for (const row of rows) {
+    test(`requestWrapperOf(${row.req})`, () => {
+      assert.strictEqual(requestWrapperOf(JSON.parse(row.req)), JSON.parse(row.expected))
     })
   }
 })

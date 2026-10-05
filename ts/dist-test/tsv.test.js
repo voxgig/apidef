@@ -775,6 +775,17 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-build-relations', () => {
+    const rows = loadTsv('build-relations');
+    for (const row of rows) {
+        (0, node_test_1.test)(`buildRelations(${row.paths.slice(0, 60)})`, () => {
+            const paths = JSON.parse(row.paths).map((path) => ({
+                segments: path.split('/').filter((part) => '' !== part).map((part) => part.startsWith('{') ? { var: part.slice(1, -1) } : { lit: part }),
+            }));
+            node_assert_1.default.deepStrictEqual((0, entity_1.buildRelations)({}, paths).ancestors, JSON.parse(row.expected));
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-array-body-field', () => {
     const rows = loadTsv('array-body-field');
     for (const row of rows) {
@@ -789,6 +800,14 @@ function loadTsv(name) {
         (0, node_test_1.test)(`closedBodyTransform(${row.schema})`, () => {
             const got = (0, utility_1.closedBodyTransform)(JSON.parse(row.schema));
             node_assert_1.default.deepStrictEqual(null == got ? null : { ...got }, JSON.parse(row.expected));
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-request-wrapper-of', () => {
+    const rows = loadTsv('request-wrapper-of');
+    for (const row of rows) {
+        (0, node_test_1.test)(`requestWrapperOf(${row.req})`, () => {
+            node_assert_1.default.strictEqual((0, utility_1.requestWrapperOf)(JSON.parse(row.req)), JSON.parse(row.expected));
         });
     }
 });

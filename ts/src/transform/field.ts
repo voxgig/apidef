@@ -6,7 +6,7 @@ import type { TransformResult, Transform } from '../transform'
 
 import {
   validator, canonizeField, inferFieldType, normalizeFieldName, envelopeProp,
-  composedEnvelopeProp, mergedProperties, canonizeCmpName,
+  composedEnvelopeProp, mergedProperties, canonizeCmpName, requestWrapperOf,
   scanUntaggedUnion, firstSentence, humanTitle, collapseScalarAllOf,
 } from '../utility'
 
@@ -794,14 +794,17 @@ function findFieldDefs(
       return fielddefs
     }
 
-    // A QUERY (RFC 10008) request body is a filter/query schema, not the
-    // entity shape, so it must not contribute entity fields. Fields for a
-    // QUERY op come from its response only. Other methods (POST/PUT/PATCH)
-    // carry the entity in the body, so merge as usual -- except for an
-    // action, whose body is the verb's arguments and never the record.
+    // A QUERY (RFC 10008) body is a filter, not the entity shape, so a QUERY
+    // op's fields come from its response alone; an action's body is the
+    // verb's arguments, never the record.
     const reqschema = selectedRequestSchema(def, mpoint.m, mpoint.o, media) ?? getx(requestBody, 'schema')
     if ((requestBody || null != reqschema) && 'query' !== method && !isAction) {
-      fieldSets = [fieldSets, reqschema]
+      // A body that sends the record under one key holds its fields there.
+      const reqkey = requestWrapperOf(mpoint.t?.req)
+      fieldSets = [
+        fieldSets,
+        null == reqkey ? reqschema : mergedProperties(reqschema)?.[reqkey] ?? reqschema,
+      ]
     }
 
 

@@ -63,5 +63,5 @@
   "Greenhouse":{"type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"},"greenhouse":{"$ref":"#/components/schemas/Plot"}}},
   "GreenhouseCreate":{"type":"object","properties":{"name":{"type":"string"},"greenhouse":{"$ref":"#/components/schemas/Plot"}}},
   "Kennel":{"type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"}}},
-  "KennelCreate":{"type":"object","properties":{"kennel":{"type":"object","properties":{"name":{"type":"string"}}}}},
+  "KennelCreate":{"type":"object","properties":{"kennel":{"type":"object","properties":{"name":{"type":"string"},"breed":{"type":"string"}}}}},
   "LedgerLine":{"type":"object","properties":{"amount":{"type":"number"},"memo":{"type":"string"}}}}}}
