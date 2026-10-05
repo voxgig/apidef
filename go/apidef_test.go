@@ -526,6 +526,30 @@ func TestGuideEnvelope(t *testing.T) {
 	}
 }
 
+// Mirrors the TS `guide-envelope` case's kennel fields: a body that sends the
+// record under one key gives the record's fields, not the wrapper.
+func TestEnvelopeWrappedRequestFields(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "envelope-")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, OutPrefix: "envelope-", Strategy: "heuristic01"}).
+		Generate(map[string]any{
+			"model": map[string]any{"name": "envelope", "def": "envelope-def.json"},
+			"build": map[string]any{"spec": map[string]any{"base": "../ts/test/def"}},
+			"ctrl": map[string]any{"step": map[string]any{
+				"parse": true, "guide": true, "transformers": true,
+				"builders": false, "generate": false,
+			}},
+		})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v", err)
+	}
+	entities := res.ApiModel["main"].(map[string]any)["kit"].(map[string]any)["entity"].(map[string]any)
+	kennel, _ := entities["kennel"].(map[string]any)
+	fields, _ := kennel["fields"].(map[string]any)
+	if got, want := sortedKeys(fields), []string{"breed", "name"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("kennel fields = %v, want %v", got, want)
+	}
+}
+
 // Mirrors the TS `guide-allof-envelope` case.
 func TestGuideAllofEnvelope(t *testing.T) {
 	folder := stageGuideEntry(t, t.TempDir(), "allof-envelope-")

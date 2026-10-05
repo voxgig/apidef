@@ -456,6 +456,9 @@ describe('apidef', () => {
     // it holds.
     assert.strictEqual(entities.greenhouse.op.create.points[0].t.req, '`reqdata`')
     assert.deepStrictEqual(entities.kennel.op.create.points[0].t.req, { kennel: '`reqdata`' })
+
+    // Such a body gives the fields of the record it wraps, not the wrapper.
+    assert.deepStrictEqual(Object.keys(entities.kennel.fields).sort(), ['breed', 'name'])
   })
 
 
