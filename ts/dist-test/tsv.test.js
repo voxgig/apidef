@@ -777,6 +777,20 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-info-summary', () => {
+    for (const row of loadTsv('info-summary')) {
+        (0, node_test_1.test)(`resolveSummary(${row.def.slice(0, 60)})`, () => {
+            node_assert_1.default.strictEqual((0, top_2.resolveSummary)(JSON.parse(row.def)) ?? null, JSON.parse(row.expected));
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-info-website', () => {
+    for (const row of loadTsv('info-website')) {
+        (0, node_test_1.test)(`resolveWebsite(${row.def.slice(0, 40)}, ${row.servers})`, () => {
+            node_assert_1.default.strictEqual((0, top_2.resolveWebsite)(JSON.parse(row.def), JSON.parse(row.servers)) ?? null, JSON.parse(row.expected));
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-build-relations', () => {
     const rows = loadTsv('build-relations');
     for (const row of rows) {
