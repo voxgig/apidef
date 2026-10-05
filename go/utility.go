@@ -1360,8 +1360,12 @@ func formatJSONICValue(val any, indent int, prefix string, lines *[]string, seen
 		sortUTF16(keys)
 
 		if len(keys) == 0 {
+			sep := ""
+			if indent > 0 && indent <= 1 {
+				sep = "\n"
+			}
 			*lines = append(*lines, prefix+"{")
-			*lines = append(*lines, indentStr+"}")
+			*lines = append(*lines, indentStr+"}"+sep)
 			return
 		}
 		*lines = append(*lines, prefix+"{")
