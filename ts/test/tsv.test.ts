@@ -57,7 +57,7 @@ import type {
 } from '../dist/apidef'
 import { Aontu } from 'aontu'
 import { argsTransform, resolveArgExample } from '../dist/transform/args'
-import { resolvePathList } from '../dist/transform/entity'
+import { buildRelations, resolvePathList } from '../dist/transform/entity'
 import { resolveSecurity, findAuthPrefix, topTransform } from '../dist/transform/top'
 
 import { snakify, camelify, kebabify } from 'jostraca'
@@ -100,6 +100,10 @@ import {
 import {
   cleanTransform,
 } from '../dist/transform/clean'
+
+import {
+  flowstepTransform,
+} from '../dist/transform/flowstep'
 
 
 import {
@@ -959,6 +963,19 @@ describe('tsv-param-schema', () => {
 })
 
 
+describe('tsv-build-relations', () => {
+  const rows = loadTsv('build-relations')
+  for (const row of rows) {
+    test(`buildRelations(${row.paths.slice(0, 60)})`, () => {
+      const paths = JSON.parse(row.paths).map((path: string) => ({
+        segments: path.split('/').filter((part) => '' !== part).map((part) =>
+          part.startsWith('{') ? { var: part.slice(1, -1) } : { lit: part }),
+      }))
+      assert.deepStrictEqual(buildRelations({}, paths).ancestors, JSON.parse(row.expected))
+    })
+  }
+})
+
 describe('tsv-array-body-field', () => {
   const rows = loadTsv('array-body-field')
   for (const row of rows) {
@@ -1369,6 +1386,50 @@ describe('tsv-body-guide', () => {
           ...(null == point.rs ? {} : { rs: point.rs.media }),
         }))]))
       assert.deepStrictEqual(points, JSON.parse(row.points))
+    })
+  }
+})
+
+
+// A point from its route: the placeholders are its params, in the order the
+// model sorts them, unless the row lists them.
+function flowPoint(spec: any) {
+  const { path, params, rename } = 'string' === typeof spec ? { path: spec } as any : spec
+  const s = path.split('/').filter((part: string) => '' !== part).map((part: string) =>
+    part.startsWith('{') ? { var: part.slice(1, -1) } : { lit: part })
+  const names = params ?? s.filter((seg: any) => null != seg.var).map((seg: any) => seg.var).sort()
+  return {
+    s,
+    g: { params: names.map((n: string) => ({ n, k: 'param', r: true, t: '`$STRING`' })) },
+    ...(null == rename ? {} : { r: { param: rename } }),
+  }
+}
+
+
+describe('tsv-flow-step', () => {
+  const rows = loadTsv('flow-step')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(`flowstepTransform(${row.ops.slice(0, 60)})`, async () => {
+      const op = Object.fromEntries(Object.entries(JSON.parse(row.ops)).map(
+        ([name, points]: [string, any]) => [name, { name, points: points.map(flowPoint) }]))
+      const fields = Object.fromEntries(JSON.parse(row.fields).map(
+        (n: string) => [n, { n, t: '`$STRING`' }]))
+      const flow = { name: 'BasicThingFlow', entity: 'thing', kind: 'basic', step: [] as any[] }
+      await flowstepTransform({
+        apimodel: { main: { kit: {
+          entity: { thing: { name: 'thing', fields, op } },
+          flow: { BasicThingFlow: flow },
+        } } },
+        guide: {},
+        log: { debug: () => undefined },
+      } as any)
+      assert.deepStrictEqual(flow.step.map((step: any) => ({
+        o: step.o,
+        ...(0 < Object.keys(step.m).length ? { m: step.m } : {}),
+        ...(0 < Object.keys(step.d).length ? { d: step.d } : {}),
+        ...(null == step.i.textfield ? {} : { tf: step.i.textfield }),
+      })), JSON.parse(row.expected))
     })
   }
 })
