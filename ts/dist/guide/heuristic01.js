@@ -576,7 +576,11 @@ function ResolveEntityName(spec) {
     // re-encounter of the SAME origin (merge) from a genuinely different one
     // (numeric suffix) — see ensureMinEntityName.
     const rawEntname = entname;
-    entname = (0, utility_2.ensureMinEntityName)(entname, work.entmap);
+    // A numbered stored form, or an entity's own name a verb reads, is kept,
+    // since a cut would drop its number.
+    if (true !== item?.stored && null == work.entmap[entname]) {
+        entname = (0, utility_2.ensureMinEntityName)(entname, work.entmap);
+    }
     const entdesc = work.entmap[entname] = work.entmap[entname] ?? {
         name: entname,
         id: 'N' + ('' + Math.random()).substring(2, 10),
@@ -1160,8 +1164,8 @@ function collectionNaming(data, mdesc, parts, recordowner) {
 }
 // The entity of an item route its collection names: the collection's record,
 // or its segment. A route outside the collection that has the segment puts the
-// tag before it, and one that has that name too a number from 2 after it, up
-// to the first number that leaves the stored form as it was.
+// tag before it, and one that has that name too a number from 2 after the
+// stored form, which a cut would otherwise drop.
 function itemOfCollection(data, mdesc, parts) {
     const naming = collectionNaming(data, mdesc, parts, data.work.recordowner);
     if (null == naming) {
@@ -1170,32 +1174,46 @@ function itemOfCollection(data, mdesc, parts) {
     if (null != naming.record) {
         return { name: naming.record, why: 'collection-record' };
     }
+    const work = data.work;
     const collection = naming.collection;
     const segment = (0, utility_2.canonize)(collection.substring(collection.lastIndexOf('/') + 1));
-    if (!segmentHeld(data.work, segment, collection)) {
-        return { name: segment, why: 'collection-segment' };
-    }
     const tagged = mdesc.MethodEntity.cmp + '_' + segment;
-    let name = tagged;
-    for (let i = 2; segmentHeld(data.work, name, collection); i++) {
-        const stored = (0, utility_2.ensureMinEntityName)(name, {});
-        name = tagged + i;
-        if ((0, utility_2.ensureMinEntityName)(name, {}) === stored) {
-            break;
+    for (const name of [segment, tagged]) {
+        if (!segmentHeld(work, name, collection)) {
+            return { name, why: 'collection-segment' };
         }
     }
-    return { name, why: 'collection-segment' };
+    const stored = (0, utility_2.ensureMinEntityName)(tagged, {});
+    let i = 2;
+    while (keyHeld(work, [stored + i], collection)) {
+        i++;
+    }
+    return { name: stored + i, why: 'collection-segment', stored: true };
 }
-// A route outside the collection has the name: one named already under the
-// key the name would take now, or one that claims the name, its stored form
-// or that key. An item route its collection names makes no claim, so it
-// counts only once named.
+// A route outside the collection has the name: one named already under its
+// stored form or the key it would take now, or one that claims the name, its
+// stored form or that key.
 function segmentHeld(work, name, collection) {
-    const outside = (path) => !(path + '/').startsWith(collection + '/');
-    const key = (0, utility_2.ensureMinEntityName)(name, work.entmap);
-    const stored = (0, utility_2.ensureMinEntityName)(name, {});
-    return [work.entmap[key]?.path, work.claims[name], work.claims[stored], work.claims[key]]
-        .some((paths) => Object.keys(paths ?? {}).some(outside));
+    return keyHeld(work, [name, (0, utility_2.ensureMinEntityName)(name, {}),
+        (0, utility_2.ensureMinEntityName)(name, work.entmap)], collection);
+}
+// A route outside the collection is named under one of the keys or claims one.
+// An item route its collection names makes no claim, so it counts only once
+// named.
+function keyHeld(work, keys, collection) {
+    return keys.some((key) => [work.entmap[key]?.path, work.claims[key]]
+        .some((paths) => Object.keys(paths ?? {}).some((path) => outsideCollection(path, collection))));
+}
+// A route under the collection is its own when it has no parameter or its
+// first parameter follows the collection: one under a collection nested in it
+// is outside.
+function outsideCollection(path, collection) {
+    if (!(path + '/').startsWith(collection + '/')) {
+        return true;
+    }
+    const parts = path.split('/').filter((part) => '' !== part);
+    const first = parts.findIndex(isParam);
+    return -1 < first && collection !== '/' + parts.slice(0, first).join('/');
 }
 // Two of a tag's collections whose item routes take the same parameters, or
 // that are both read, would share a selector on the tag's entity.

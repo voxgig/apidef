@@ -1609,6 +1609,354 @@
           }
         }
       }
+    },
+    "/aaa/nest": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "The nest names."
+          }
+        }
+      }
+    },
+    "/well-known/nest/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The nest."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/well-known/nest/v2/nest/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The nest, second edition."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/well-known/hive/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The hive."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/well-known/hive/v2/hive/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The hive, second edition."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/lt/v2/abc/{id}": {
+      "get": {
+        "tags": [
+          "WellKnownDiscoveryEndpointsForAgentsAndModelContextProtocolToolsRegistry"
+        ],
+        "responses": {
+          "200": {
+            "description": "The listing, second edition."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/lu/abc/{id}": {
+      "get": {
+        "tags": [
+          "ArtifactSearchEndpointsFromGroupsAndVersionsAndBranchesAndRulesAndReferences"
+        ],
+        "responses": {
+          "200": {
+            "description": "The search."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/lu/v2/abc/{id}": {
+      "get": {
+        "tags": [
+          "ArtifactSearchEndpointsFromGroupsAndVersionsAndBranchesAndRulesAndReferences"
+        ],
+        "responses": {
+          "200": {
+            "description": "The search, second edition."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/lu/v3/abc/{id}": {
+      "get": {
+        "tags": [
+          "ArtifactSearchEndpointsFromGroupsAndVersionsAndBranchesAndRulesAndReferences"
+        ],
+        "responses": {
+          "200": {
+            "description": "The search, third edition."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/lv/abc/{id}": {
+      "get": {
+        "tags": [
+          "RegistryAdministrationEndpointsForRoleMappingsAndConfigPropertiesAndDownloads"
+        ],
+        "responses": {
+          "200": {
+            "description": "The role mapping."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/lv/cde/{id}": {
+      "get": {
+        "tags": [
+          "RegistryAdministrationEndpointsForRoleMappingsAndConfigPropertiesAndDownloads"
+        ],
+        "responses": {
+          "200": {
+            "description": "The download."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/zzz/registry_administration_endpoints_for_role_mappings_and_config": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "The configuration."
+          }
+        }
+      }
+    },
+    "/aaa/ghn/{id}": {
+      "get": {
+        "tags": [
+          "Aaa"
+        ],
+        "responses": {
+          "200": {
+            "description": "The ghost."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/well-known/gh/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The ghost record."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/well-known/ij/{id}": {
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "description": "The ink."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/zzz/ijn/{id}": {
+      "get": {
+        "tags": [
+          "Aaa"
+        ],
+        "responses": {
+          "200": {
+            "description": "The ink names."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/lu/v2/abc/{id}/merge": {
+      "post": {
+        "tags": [
+          "ArtifactSearchEndpointsFromGroupsAndVersionsAndBranchesAndRulesAndReferences"
+        ],
+        "responses": {
+          "200": {
+            "description": "The merge."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
     }
   },
   "components": {

@@ -840,16 +840,22 @@ describe('apidef', () => {
     const paths = (ent: string, op: string) =>
       (entities[ent]?.op[op]?.points ?? []).map((pt: any) => pt.o).sort()
     const disco = 'well_known_discovery_endpoints_for_agents_and_model_context'
+    const search = 'artifact_search_endpoints_from_groups_and_versions_and_branches_and'
+    const admin = 'registry_administration_endpoints_for_role_mappings_and_config'
     assert.deepStrictEqual(Object.keys(entities).sort(),
-      ['aaa_kit', 'abc', 'agent', 'agent_card', 'artifact', 'bcd', 'cask', 'crate', 'dbase',
-        'dbn', 'dbset', 'dsn', 'dsx', 'dtn', 'dun', 'efn', 'efn2', 'kiln', 'kit', 'ledger',
-        'mcp_tool', 'oven', 'parcel', 'pot', 'qqn', 'qrs', 'qrs_admin_qrs', 'qrt', 'repo',
-        'rrn', 'schema', 'uvn', 'vault', 'well_known_agent', 'well_known_cask',
-        'well_known_crate', 'well_known_db', 'well_known_dbase', disco, disco + '2',
-        'well_known_ds', 'well_known_dt', 'well_known_du', 'well_known_ef',
-        'well_known_ledger', 'well_known_qq', 'well_known_qq2', 'well_known_repo',
-        'well_known_rr', 'well_known_rr2', 'well_known_uvn', 'well_known_xyn', 'widget',
-        'xyn'])
+      ['aaa_ijn', 'aaa_kit', 'abc', 'agent', 'agent_card', 'artifact', search, search + '2',
+        search + '3', 'bcd', 'cask', 'cde', 'crate', 'dbase', 'dbn', 'dbset', 'dsn', 'dsx',
+        'dtn', 'dun', 'efn', 'efn2', 'ghn', 'hive', 'ijn', 'kiln', 'kit', 'ledger', 'mcp_tool',
+        'nest', 'oven', 'parcel', 'pot', 'qqn', 'qrs', 'qrs_admin_qrs', 'qrt', admin,
+        admin + '2', 'repo', 'rrn', 'schema', 'uvn', 'vault', 'well_known_agent',
+        'well_known_cask', 'well_known_crate', 'well_known_db', 'well_known_dbase', disco,
+        disco + '2', disco + '3', 'well_known_ds', 'well_known_dt', 'well_known_du',
+        'well_known_ef', 'well_known_gh', 'well_known_hive', 'well_known_ledger',
+        'well_known_nest', 'well_known_nest2', 'well_known_qq', 'well_known_qq2',
+        'well_known_repo', 'well_known_rr', 'well_known_rr2', 'well_known_uvn',
+        'well_known_xyn', 'widget', 'xyn'])
+    assert.deepStrictEqual(bres.ctx.warn.history.map((w: any) => w.note)
+      .filter((note: string) => /same selector/.test(note)), [])
     assert.deepStrictEqual(paths('agent', 'list'), ['/well-known/agent.json'])
     assert.deepStrictEqual(paths('well_known_agent', 'list'), ['/well-known/agents'])
     assert.deepStrictEqual(paths('well_known_agent', 'load'),
@@ -899,18 +905,40 @@ describe('apidef', () => {
     assert.deepStrictEqual(paths('well_known_rr', 'load'), ['/zzz/well_known_rr/{id}'])
     assert.deepStrictEqual(paths('well_known_rr2', 'load'), ['/well-known/rr/{id}'])
 
-    // Aaa's item route takes efn first, so ef would be stored as efn2, which
-    // a route outside claims.
+    // Names compare in their stored form: Aaa's item routes take efn and ghn
+    // first, which ef and gh are stored as, so WellKnown's take its name, and
+    // in the other order WellKnown's ij takes ijn first.
     assert.deepStrictEqual(paths('efn', 'load'), ['/aaa/efn/{id}'])
     assert.deepStrictEqual(paths('well_known_ef', 'load'), ['/well-known/ef/{id}'])
     assert.deepStrictEqual(paths('efn2', 'load'), ['/zzz/efn2/{id}'])
+    assert.deepStrictEqual(paths('ghn', 'load'), ['/aaa/ghn/{id}'])
+    assert.deepStrictEqual(paths('well_known_gh', 'load'), ['/well-known/gh/{id}'])
+    assert.deepStrictEqual(paths('ijn', 'load'), ['/well-known/ij/{id}'])
+    assert.deepStrictEqual(paths('aaa_ijn', 'load'), ['/zzz/ijn/{id}'])
 
-    // Past the stored length a number is cut off with the rest of the name, so
-    // numbering stops at the first one.
+    // Past the stored length the number follows the stored form, where a cut
+    // cannot drop it, and a verb on the item route joins it; a cut name stays
+    // with a route claiming it that sorts after the item route.
     assert.deepStrictEqual(paths('abc', 'load'), ['/zzz/abc'])
     assert.deepStrictEqual(paths('bcd', 'load'), ['/lt/bcd/{id}'])
     assert.deepStrictEqual(paths(disco, 'load'), ['/aaa/' + disco])
     assert.deepStrictEqual(paths(disco + '2', 'load'), ['/lt/abc/{id}'])
+    assert.deepStrictEqual(paths(disco + '3', 'load'), ['/lt/v2/abc/{id}'])
+    assert.deepStrictEqual(paths(search, 'load'), ['/lu/abc/{id}'])
+    assert.deepStrictEqual(paths(search + '2', 'load'), ['/lu/v2/abc/{id}'])
+    assert.deepStrictEqual(paths(search + '2', 'create'), ['/lu/v2/abc/{id}/merge'])
+    assert.deepStrictEqual(paths(search + '3', 'load'), ['/lu/v3/abc/{id}'])
+    assert.deepStrictEqual(paths(admin, 'load'), ['/zzz/' + admin])
+    assert.deepStrictEqual(paths(admin + '2', 'load'), ['/lv/abc/{id}'])
+    assert.deepStrictEqual(paths('cde', 'load'), ['/lv/cde/{id}'])
+
+    // A route under a collection nested in another is outside the outer one,
+    // so the nested one, which sorts first, keeps the name it takes.
+    assert.deepStrictEqual(paths('nest', 'load'), ['/aaa/nest'])
+    assert.deepStrictEqual(paths('well_known_nest', 'load'), ['/well-known/nest/v2/nest/{id}'])
+    assert.deepStrictEqual(paths('well_known_nest2', 'load'), ['/well-known/nest/{id}'])
+    assert.deepStrictEqual(paths('hive', 'load'), ['/well-known/hive/v2/hive/{id}'])
+    assert.deepStrictEqual(paths('well_known_hive', 'load'), ['/well-known/hive/{id}'])
 
     // Bare where no route outside has the name: Kiln's item route takes its
     // collection's record, QrsAdmin's counts only once named, and Aaa's kit
