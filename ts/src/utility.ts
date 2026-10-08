@@ -1054,6 +1054,13 @@ function canonizeField(s: string) {
 }
 
 
+// Field names are WIRE identifiers: the entity-name canonizer would rename
+// modelType to model_type and items to item, keys the server never sends.
+function fieldName(prop: string): string {
+  return canonizeField(normalizeFieldName(prop))
+}
+
+
 function stripSchemaNamespace(name: string): string {
   if (null == name || !name.includes('.')) return name
   const segs = name.split('.')
@@ -2153,6 +2160,7 @@ export {
   CANON_ONE,
   canonize,
   canonizeField,
+  fieldName,
   canonizeCmpName,
   stripSchemaNamespace,
   sanitizeSlug,

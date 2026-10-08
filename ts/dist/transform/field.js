@@ -434,11 +434,7 @@ function routeFieldNames(ment, opname, mpoint, def, media) {
     return resolveOpFields(ment, { name: opname }, route, def, media).map((mfield) => mfield.n);
 }
 function modelField(fielddef) {
-    const fieldname = fielddef.key$;
-    // Field names are WIRE identifiers — see canonizeField. Using the
-    // entity-name canonizer here renamed modelType -> model_type and
-    // items -> item, so the SDK read keys the server never sends.
-    const name = (0, utility_1.canonizeField)((0, utility_1.normalizeFieldName)(fieldname));
+    const name = (0, utility_1.fieldName)(fielddef.key$);
     const mfield = {
         n: name,
         h: (0, utility_1.humanTitle)(name),
@@ -603,14 +599,9 @@ function findFieldDefs(ment, mop, mpoint, def, media) {
         // A QUERY (RFC 10008) body is a filter, not the entity shape, so a QUERY
         // op's fields come from its response alone; an action's body is the
         // verb's arguments, never the record.
-        const reqschema = (0, body_1.selectedRequestSchema)(def, mpoint.m, mpoint.o, media) ?? (0, jostraca_1.getx)(requestBody, 'schema');
+        const reqschema = (0, body_1.requestFieldSchema)(def, mpoint, media);
         if ((requestBody || null != reqschema) && 'query' !== method && !isAction) {
-            // A body that sends the record under one key holds its fields there.
-            const reqkey = (0, utility_1.requestWrapperOf)(mpoint.t?.req);
-            fieldSets = [
-                fieldSets,
-                null == reqkey ? reqschema : (0, utility_1.mergedProperties)(reqschema)?.[reqkey] ?? reqschema,
-            ];
+            fieldSets = [fieldSets, reqschema];
         }
         if (fieldSets && (Array.isArray(fieldSets.allOf) || fieldSets.properties)) {
             fieldSets = [fieldSets];

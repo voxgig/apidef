@@ -171,6 +171,7 @@ list. Required attributes use one character; optional metadata uses two.
 | `q` | `{ exist: string[], $action? }` | how a call selects this point: its path parameters and required arguments, the field a required JSON array body is sent from, and its action |
 | `t` | `{ req, res }` | request/response envelope handling (defaults `` `reqdata` `` / `` `body` ``, and `` `reqdata.<field>` `` for a JSON array body) |
 | `rb` | `ModelBody?` | the request body's media type and encoding, present only when the body is not JSON alone |
+| `bf` | `string[]` or `false`, optional | the [properties a JSON request body declares](#request-body-fields), named as the entity's fields are; `false` when it declares none |
 | `rs` | `ModelBody?` | the media types a success response declares, present only when one declares a body |
 | `co` | `object?` | operation contract identity |
 | `li` | `boolean` or `object`, optional | live invocation hint |
@@ -324,6 +325,61 @@ rs: { kind: json, media: "application/json", alternatives: [ { kind: raw, media:
 
 # GET /octocat answers no JSON at all
 rs: { kind: raw, media: "application/octocat-stream", binary: true }
+```
+
+### Request body fields
+
+An entity's `fields` merge every operation's request and response
+properties into one field per name, so a field cannot say whether a request
+sends it. `bf` says so for one point: the names of the properties its JSON
+request body declares, named as the entity's fields are, in code point
+order, each once.
+
+The body is the one a point's fields are read from: the media type
+`body.media` names in `guide.aontu`, else the JSON one the body step
+prefers. A Swagger 2 `body` parameter is that body, as an OpenAPI 3 request
+body is. Its properties include those of every `allOf`, `oneOf` and `anyOf`
+member, so a body that may be one of several objects names the properties
+of each, though the entity's fields read `allOf` members alone. A wrapped
+body, whose `t.req` sends the record under one key, names the record's
+properties. A JSON array has no properties, so an array body names the
+field its `t.req` sends the array from. The names need not be fields of the
+entity: an action's body holds the verb's arguments and a `QUERY` body a
+filter, and neither gives the entity a field.
+
+| the point | `bf` |
+|-----------|------|
+| sends a JSON body that declares properties | their names |
+| sends a JSON body that declares none: an empty or free-form object, a map, a scalar, an array sent whole, or a body with no schema | `false` |
+| declares a request body with no content | `false` |
+| declares no request body, while `guide.aontu` names a JSON `body.media` for it | `false` |
+| sends a body that is not JSON | absent, since `rb` says how it is sent |
+| declares no request body, and the guide names no JSON media for it | absent |
+| is a GraphQL point | absent |
+
+A body that declares nothing is `false` rather than an empty list because
+aontu resolves an optional key holding an empty list to no key at all. An
+absent `bf` records nothing, which is also what a model from an earlier
+apidef says, so a generator falls back to its own rule there.
+
+`bf` lists what the body declares, read-only properties included. An update
+whose body reuses the response schema lists that schema's read-only
+`version`, so a generator that keeps a routed argument in the body checks
+the field's `ro` flag as well as `bf`.
+
+Each case is a row in
+[`ts/test/body-fields.tsv`](../../ts/test/body-fields.tsv). From the
+`petstore` and `solar` definitions:
+
+```jsonic
+# POST /pet, a Swagger 2 body parameter of the Pet schema
+bf: [ category, id, name, photoUrls, status, tags ]
+
+# POST /user/createWithArray, an array of users sent from one field
+bf: [ users ]
+
+# POST /api/planet/{planet_id}/terraform, an action's arguments
+bf: [ start, stop ]
 ```
 
 ## `ModelEntityFlow`

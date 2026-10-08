@@ -180,6 +180,8 @@ type ModelPoint = {
     $action?: string
   }
   rb?: ModelBody
+  // false for none, as aontu drops an optional key holding an empty list.
+  bf?: string[] | false
   rs?: ModelBody
 }
 

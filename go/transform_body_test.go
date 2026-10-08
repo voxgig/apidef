@@ -112,3 +112,23 @@ func TestBodySuccessResponses(t *testing.T) {
 		t.Errorf("avatar.load rs\ngot  %s\nwant %s", got, want)
 	}
 }
+
+func TestBodyFieldsOfPoints(t *testing.T) {
+	res := generateRequestBody(t)
+	if got, want := asJSON(pointBodies(res, "note", "create", "bf")), `[["/notes",["id","text"]]]`; got != want {
+		t.Errorf("note.create bf\ngot  %s\nwant %s", got, want)
+	}
+	for _, entity := range []string{"avatar", "render", "subscription", "upload"} {
+		for _, op := range []string{"create", "load"} {
+			if bodies := pointBodies(res, entity, op, "bf"); len(bodies) != 1 || bodies[0].([]any)[1] != nil {
+				t.Errorf("%s.%s bf: %s", entity, op, asJSON(bodies))
+			}
+		}
+	}
+	if got, want := asJSON(pointBodies(res, "render", "update", "bf")), `[["/renders/{render_id}",null]]`; got != want {
+		t.Errorf("render.update bf\ngot  %s\nwant %s", got, want)
+	}
+	if got, want := asJSON(pointBodies(res, "note", "remove", "bf")), `[["/notes/{note_id}",null]]`; got != want {
+		t.Errorf("note.remove bf\ngot  %s\nwant %s", got, want)
+	}
+}

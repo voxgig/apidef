@@ -2,6 +2,7 @@
 /* Copyright (c) 2026 Voxgig Ltd, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.bodyTransform = void 0;
+exports.bodyFields = bodyFields;
 exports.guideMedia = guideMedia;
 exports.requestBody = requestBody;
 exports.responseBody = responseBody;
@@ -10,6 +11,7 @@ exports.requestSchema = requestSchema;
 exports.arrayRequestSchema = arrayRequestSchema;
 exports.arrayCarrier = arrayCarrier;
 exports.requestDecl = requestDecl;
+exports.requestFieldSchema = requestFieldSchema;
 exports.nullableType = nullableType;
 exports.sameType = sameType;
 exports.selectedRequestSchema = selectedRequestSchema;
@@ -41,6 +43,10 @@ const bodyTransform = async function (ctx) {
                 const rb = requestBody(def, mpoint.m, mpoint.o, media.body);
                 if (null != rb) {
                     mpoint.rb = rb;
+                }
+                const bf = bodyFields(def, mpoint, media.body);
+                if (null != bf) {
+                    mpoint.bf = bf;
                 }
                 const rs = responseBody(def, mpoint.m, mpoint.o, media.response);
                 if (null != rs) {
@@ -339,6 +345,39 @@ function selectedRequestSchema(def, method, path, media) {
     const offers = requestOffers(def, method, path) ?? [];
     const named = null == textOf(media) ? undefined : chooseOffer(rankOffers(offers), media);
     return null == named ? jsonSchema(offers) : named.offer.schema;
+}
+// The request schema a point's fields come from, read through the key a
+// wrapped body sends the record under.
+function requestFieldSchema(def, mpoint, media) {
+    const declared = def?.paths?.[mpoint.o]?.[String(mpoint.m).toLowerCase()]?.requestBody;
+    const schema = selectedRequestSchema(def, mpoint.m, mpoint.o, media) ??
+        (isMap(declared) ? declared.schema : undefined);
+    const wrapper = (0, utility_1.requestWrapperOf)(mpoint.t?.req);
+    return null == wrapper ? schema : (0, utility_1.mergedProperties)(schema)?.[wrapper] ?? schema;
+}
+// The names of the properties a point's JSON body declares, and of the field
+// an array body is sent from, as the entity's fields name them: false for
+// none, undefined for no body or a body that is not JSON.
+function bodyFields(def, mpoint, media) {
+    const sent = chooseBody(requestOffers(def, mpoint.m, mpoint.o) ?? [], media);
+    if (null == sent ? null == requestDecl(def, mpoint.m, mpoint.o) : 'json' !== sent.kind) {
+        return undefined;
+    }
+    const carrier = arrayCarrier(def, mpoint, media)?.name;
+    const names = declaredProperties(requestFieldSchema(def, mpoint, media))
+        .concat(null == carrier ? [] : [carrier])
+        .map(utility_1.fieldName);
+    const unique = [...new Set(names)].sort(compare);
+    return 0 < unique.length ? unique : false;
+}
+// A body that may be one of several objects declares the properties of each.
+function declaredProperties(schema, seen = new Set()) {
+    if (!isMap(schema) || seen.has(schema)) {
+        return [];
+    }
+    seen.add(schema);
+    return (isMap(schema.properties) ? Object.keys(schema.properties) : [])
+        .concat(['allOf', 'oneOf', 'anyOf'].flatMap((key) => listOf(schema[key]).flatMap((member) => declaredProperties(member, seen))));
 }
 function arrayRequestSchema(def, method, path, media) {
     return arrayShape(requestSchema(def, method, path, media));

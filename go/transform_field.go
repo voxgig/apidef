@@ -582,10 +582,7 @@ func routeFieldNames(mtarget map[string]any, def map[string]any, opname string, 
 }
 
 func modelField(fielddef map[string]any) map[string]any {
-	// Field names are WIRE identifiers — see CanonizeField. Using the
-	// entity-name canonizer here renamed modelType -> model_type and
-	// items -> item, so the SDK read keys the server never sends.
-	name := CanonizeField(NormalizeFieldName(fielddef["key$"].(string)))
+	name := fieldName(fielddef["key$"].(string))
 	ftype := fielddef["type"]
 	mfield := map[string]any{
 		"n":  name,
@@ -733,18 +730,8 @@ func findFieldDefs(mtarget map[string]any, def map[string]any, opname string, en
 	// entity shape, so it must not contribute entity fields. Fields for a
 	// QUERY op come from its response only. An action's body is likewise the
 	// verb's arguments and never the record.
-	reqSchema := selectedRequestSchema(def, method, orig, media)
-	if reqSchema == nil && requestBody != nil {
-		reqSchema = requestBody["schema"]
-	}
+	reqSchema := requestFieldSchema(def, mtarget, media)
 	if (requestBody != nil || reqSchema != nil) && methodLower != "query" && !isAction {
-		// A body that sends the record under one key holds its fields there.
-		t, _ := mtarget["t"].(map[string]any)
-		if reqkey := requestWrapperOf(t["req"]); reqkey != "" {
-			if inner := mergedProperties(reqSchema)[reqkey]; inner != nil {
-				reqSchema = inner
-			}
-		}
 		fieldSets = []any{fieldSets, reqSchema}
 	}
 

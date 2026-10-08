@@ -68,7 +68,8 @@ const apidef_1 = require("../dist/apidef");
             const points = names.flatMap((ename) => Object.keys(entities[ename].op).sort().flatMap((opname) => entities[ename].op[opname].points.map((pt) => ename + '.' + opname + ' ' + pt.m + ' ' + pt.o +
                 ' exist=' + (pt.q?.exist ?? []).join(',') +
                 ' action=' + (pt.q?.$action ?? '') +
-                ' req=' + JSON.stringify(pt.t?.req))));
+                ' req=' + JSON.stringify(pt.t?.req) +
+                ' bf=' + JSON.stringify(pt.bf ?? null))));
             node_assert_1.default.deepStrictEqual(points, expected.points);
             const fields = Object.fromEntries(names.map((ename) => [ename, Object.fromEntries(Object.values(entities[ename].fields)
                     .map((f) => [f.n, {

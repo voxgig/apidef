@@ -45,7 +45,8 @@ describe('array-body', () => {
             ename + '.' + opname + ' ' + pt.m + ' ' + pt.o +
             ' exist=' + (pt.q?.exist ?? []).join(',') +
             ' action=' + (pt.q?.$action ?? '') +
-            ' req=' + JSON.stringify(pt.t?.req))))
+            ' req=' + JSON.stringify(pt.t?.req) +
+            ' bf=' + JSON.stringify(pt.bf ?? null))))
       assert.deepStrictEqual(points, expected.points)
 
       const fields = Object.fromEntries(names.map((ename) =>

@@ -60,7 +60,7 @@ describe('body', () => {
     Fs.rmSync(dir, { recursive: true, force: true })
   })
 
-  const bodies = (entity: string, op: string, key: 'rb' | 'rs' = 'rb') =>
+  const bodies = (entity: string, op: string, key: 'rb' | 'bf' | 'rs' = 'rb') =>
     bres.apimodel.main.kit.entity[entity].op[op].points
       .map((point: any) => [point.o, point[key] ?? null])
 
@@ -118,6 +118,17 @@ describe('body', () => {
       kind: 'raw', media: 'image/png', binary: true,
       alternatives: [JSON_BODY],
     }]])
+  })
+
+
+  test('a JSON body names its properties, and no body or one not JSON names none', () => {
+    assert.deepStrictEqual(bodies('note', 'create', 'bf'), [['/notes', ['id', 'text']]])
+    for (const entity of ['avatar', 'render', 'subscription', 'upload']) {
+      assert.deepStrictEqual(bodies(entity, 'create', 'bf').map(([, bf]: any) => bf), [null])
+      assert.deepStrictEqual(bodies(entity, 'load', 'bf').map(([, bf]: any) => bf), [null])
+    }
+    assert.deepStrictEqual(bodies('render', 'update', 'bf'), [['/renders/{render_id}', null]])
+    assert.deepStrictEqual(bodies('note', 'remove', 'bf'), [['/notes/{note_id}', null]])
   })
 
 })

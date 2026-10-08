@@ -50,50 +50,6 @@
       "points": [
         {
           "co": {
-            "id": "POST /pet",
-            "source": "swagger2",
-            "version": 2
-          },
-          "g": {
-            "query": [
-              {
-                "k": "query",
-                "n": "body",
-                "or": "body",
-                "r": true,
-                "t": "`$OBJECT`"
-              }
-            ]
-          },
-          "m": "POST",
-          "o": "/pet",
-          "q": {
-            "exist": [
-              "body"
-            ]
-          },
-          "rb": {
-            "alternatives": [
-              {
-                "kind": "raw",
-                "media": "application/xml"
-              }
-            ],
-            "kind": "json",
-            "media": "application/json"
-          },
-          "s": [
-            {
-              "lit": "pet"
-            }
-          ],
-          "t": {
-            "req": "`reqdata`",
-            "res": "`body`"
-          }
-        },
-        {
-          "co": {
             "id": "POST /pet/{petId}",
             "source": "swagger2",
             "version": 2
@@ -234,6 +190,42 @@
             },
             {
               "lit": "uploadImage"
+            }
+          ],
+          "t": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        },
+        {
+          "bf": [
+            "category",
+            "id",
+            "name",
+            "photoUrls",
+            "status",
+            "tags"
+          ],
+          "co": {
+            "id": "POST /pet",
+            "source": "swagger2",
+            "version": 2
+          },
+          "m": "POST",
+          "o": "/pet",
+          "rb": {
+            "alternatives": [
+              {
+                "kind": "raw",
+                "media": "application/xml"
+              }
+            ],
+            "kind": "json",
+            "media": "application/json"
+          },
+          "s": [
+            {
+              "lit": "pet"
             }
           ],
           "t": {
@@ -461,29 +453,21 @@
       "name": "update",
       "points": [
         {
+          "bf": [
+            "category",
+            "id",
+            "name",
+            "photoUrls",
+            "status",
+            "tags"
+          ],
           "co": {
             "id": "PUT /pet",
             "source": "swagger2",
             "version": 2
           },
-          "g": {
-            "query": [
-              {
-                "k": "query",
-                "n": "body",
-                "or": "body",
-                "r": true,
-                "t": "`$OBJECT`"
-              }
-            ]
-          },
           "m": "PUT",
           "o": "/pet",
-          "q": {
-            "exist": [
-              "body"
-            ]
-          },
           "rb": {
             "alternatives": [
               {

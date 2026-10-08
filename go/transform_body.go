@@ -63,6 +63,9 @@ func BodyTransform(ctx *ApiDefContext) (*TransformResult, error) {
 				if rb := requestBody(ctx.Def, method, path, bodyMedia); rb != nil {
 					point["rb"] = rb
 				}
+				if bf := bodyFields(ctx.Def, point, bodyMedia); bf != nil {
+					point["bf"] = bf
+				}
 				if rs := responseBody(ctx.Def, method, path, responseMedia); rs != nil {
 					point["rs"] = rs
 				}
@@ -657,6 +660,81 @@ func selectedRequestSchema(def map[string]any, method string, path string, media
 		}
 	}
 	return jsonSchema(offers, "")
+}
+
+// requestFieldSchema mirrors ts/src/transform/body.ts: the request schema a
+// point's fields come from, read through the key a wrapped body sends the
+// record under.
+func requestFieldSchema(def map[string]any, mtarget map[string]any, media string) any {
+	method, _ := mtarget["m"].(string)
+	path, _ := mtarget["o"].(string)
+	schema := selectedRequestSchema(def, method, path, media)
+	if schema == nil {
+		paths, _ := def["paths"].(map[string]any)
+		pathdef, _ := paths[path].(map[string]any)
+		opdef, _ := pathdef[strings.ToLower(method)].(map[string]any)
+		declared, _ := opdef["requestBody"].(map[string]any)
+		schema = declared["schema"]
+	}
+	t, _ := mtarget["t"].(map[string]any)
+	if wrapper := requestWrapperOf(t["req"]); wrapper != "" {
+		if inner := mergedProperties(schema)[wrapper]; inner != nil {
+			return inner
+		}
+	}
+	return schema
+}
+
+// bodyFields mirrors ts/src/transform/body.ts: the names of the properties a
+// point's JSON body declares, and of the field an array body is sent from, as
+// the entity's fields name them; false for none, nil for no body or a body
+// that is not JSON.
+func bodyFields(def map[string]any, mtarget map[string]any, media string) any {
+	method, _ := mtarget["m"].(string)
+	path, _ := mtarget["o"].(string)
+	offers, _ := requestOffers(def, method, path)
+	sent := chooseBody(offers, media)
+	if (sent == nil && requestDecl(def, method, path) == nil) || (sent != nil && sent["kind"] != "json") {
+		return nil
+	}
+	names := map[string]bool{}
+	for _, prop := range declaredProperties(requestFieldSchema(def, mtarget, media), map[string]bool{}) {
+		names[fieldName(prop)] = true
+	}
+	if c := arrayCarrier(def, mtarget, media); c != nil {
+		names[fieldName(c.name)] = true
+	}
+	if 0 == len(names) {
+		return false
+	}
+	out := []any{}
+	for _, name := range sortedKeysBool(names) {
+		out = append(out, name)
+	}
+	return out
+}
+
+// declaredProperties mirrors ts/src/transform/body.ts: a body that may be one
+// of several objects declares the properties of each.
+func declaredProperties(schema any, seen map[string]bool) []string {
+	m, _ := schema.(map[string]any)
+	if m == nil || seen[fmt.Sprintf("%p", m)] {
+		return nil
+	}
+	seen[fmt.Sprintf("%p", m)] = true
+	names := []string{}
+	if props, ok := m["properties"].(map[string]any); ok {
+		for name := range props {
+			names = append(names, name)
+		}
+	}
+	for _, key := range []string{"allOf", "oneOf", "anyOf"} {
+		members, _ := m[key].([]any)
+		for _, member := range members {
+			names = append(names, declaredProperties(member, seen)...)
+		}
+	}
+	return names
 }
 
 func arrayRequestSchema(def map[string]any, method string, path string, media string) map[string]any {

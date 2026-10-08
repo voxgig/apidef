@@ -62,62 +62,20 @@
       "name": "create",
       "points": [
         {
-          "co": {
-            "id": "POST /user",
-            "source": "swagger2",
-            "version": 2
-          },
-          "g": {
-            "query": [
-              {
-                "k": "query",
-                "n": "body",
-                "or": "body",
-                "r": true,
-                "t": "`$OBJECT`"
-              }
-            ]
-          },
-          "m": "POST",
-          "o": "/user",
-          "q": {
-            "exist": [
-              "body"
-            ]
-          },
-          "s": [
-            {
-              "lit": "user"
-            }
+          "bf": [
+            "users"
           ],
-          "t": {
-            "req": "`reqdata`",
-            "res": "`body`"
-          }
-        },
-        {
           "co": {
             "id": "POST /user/createWithArray",
             "source": "swagger2",
             "version": 2
-          },
-          "g": {
-            "query": [
-              {
-                "k": "query",
-                "n": "body",
-                "or": "body",
-                "r": true,
-                "t": "`$ARRAY`"
-              }
-            ]
           },
           "m": "POST",
           "o": "/user/createWithArray",
           "q": {
             "$action": "create_with_array",
             "exist": [
-              "body"
+              "users"
             ]
           },
           "s": [
@@ -129,33 +87,25 @@
             }
           ],
           "t": {
-            "req": "`reqdata`",
+            "req": "`reqdata.users`",
             "res": "`body`"
           }
         },
         {
+          "bf": [
+            "users"
+          ],
           "co": {
             "id": "POST /user/createWithList",
             "source": "swagger2",
             "version": 2
-          },
-          "g": {
-            "query": [
-              {
-                "k": "query",
-                "n": "body",
-                "or": "body",
-                "r": true,
-                "t": "`$ARRAY`"
-              }
-            ]
           },
           "m": "POST",
           "o": "/user/createWithList",
           "q": {
             "$action": "create_with_list",
             "exist": [
-              "body"
+              "users"
             ]
           },
           "s": [
@@ -164,6 +114,34 @@
             },
             {
               "lit": "createWithList"
+            }
+          ],
+          "t": {
+            "req": "`reqdata.users`",
+            "res": "`body`"
+          }
+        },
+        {
+          "bf": [
+            "email",
+            "firstName",
+            "id",
+            "lastName",
+            "password",
+            "phone",
+            "userStatus",
+            "username"
+          ],
+          "co": {
+            "id": "POST /user",
+            "source": "swagger2",
+            "version": 2
+          },
+          "m": "POST",
+          "o": "/user",
+          "s": [
+            {
+              "lit": "user"
             }
           ],
           "t": {
@@ -361,6 +339,16 @@
       "name": "update",
       "points": [
         {
+          "bf": [
+            "email",
+            "firstName",
+            "id",
+            "lastName",
+            "password",
+            "phone",
+            "userStatus",
+            "username"
+          ],
           "co": {
             "id": "PUT /user/{username}",
             "source": "swagger2",
@@ -375,22 +363,12 @@
                 "r": true,
                 "t": "`$STRING`"
               }
-            ],
-            "query": [
-              {
-                "k": "query",
-                "n": "body",
-                "or": "body",
-                "r": true,
-                "t": "`$OBJECT`"
-              }
             ]
           },
           "m": "PUT",
           "o": "/user/{username}",
           "q": {
             "exist": [
-              "body",
               "id"
             ]
           },

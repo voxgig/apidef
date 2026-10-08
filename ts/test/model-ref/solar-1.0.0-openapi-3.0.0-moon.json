@@ -42,6 +42,13 @@
       "name": "create",
       "points": [
         {
+          "bf": [
+            "diameter",
+            "id",
+            "kind",
+            "name",
+            "planet_id"
+          ],
           "co": {
             "id": "POST /api/planet/{planet_id}/moon",
             "source": "openapi3",
@@ -278,6 +285,13 @@
       "name": "update",
       "points": [
         {
+          "bf": [
+            "diameter",
+            "id",
+            "kind",
+            "name",
+            "planet_id"
+          ],
           "co": {
             "id": "PUT /api/planet/{planet_id}/moon/{moon_id}",
             "source": "openapi3",

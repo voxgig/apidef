@@ -44,6 +44,7 @@ op.create
        ├─ q              how to identify the target instance
        ├─ t              request/response envelope handling
        ├─ rb             how the request body is sent, when not as JSON
+       ├─ bf             the properties a JSON request body declares
        └─ rs             the media types a success response declares
 ```
 
@@ -109,6 +110,18 @@ than raw OpenAPI types, so downstream validation is uniform. A field's
 `req`-uiredness can differ per operation (required on `create`, optional on
 `update`); when it does, the difference is recorded under the field's `op`
 map rather than flattened away.
+
+One field stands for every property of its name, whichever operation's
+request or response declares it, so the fields alone cannot tell a request
+property from one only a response carries, such as a read-only `version`.
+Each point that sends a JSON body says which names that body holds in `bf`,
+and a generator that keeps a header or query argument in the body as well
+can keep only the names the body declares. A body that reuses the response
+schema declares its read-only properties too, so such a generator also
+leaves out a field marked `ro`. A body that declares no properties is
+`false`, and a point that declares no body, or sends one that is not JSON,
+has no `bf`, unless the guide names a JSON media type for it. The rules are in the
+[model reference](../reference/model.md#request-body-fields).
 
 ## Flows are executable expectations
 

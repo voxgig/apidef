@@ -36,6 +36,10 @@ main: kit: entity: book: {
       name: "list"
       points: [
         {
+          bf: [
+            "page"
+            "q"
+          ]
           co: {
             id: "QUERY /api/book"
             source: "openapi3"

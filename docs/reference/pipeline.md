@@ -83,7 +83,7 @@ Thirteen passes run in this fixed order; each is a file under
 | 4 | `graphql` | for a GraphQL definition, each point's `k: graphql` and its `gq` document, variables, and pagination |
 | 5 | `contract` | each point's `co` identity, and `li` from the guide's `live` entry |
 | 6 | `args` | each point's `g.params[]` from path parameters (`n`, `or`, `r`, `t`) |
-| 7 | `body` | each point's `rb`, when its request body is not JSON alone, and its `rs`, when a success response declares a body |
+| 7 | `body` | each point's `rb`, when its request body is not JSON alone, its `bf`, the properties a JSON request body declares, and its `rs`, when a success response declares a body |
 | 8 | `select` | each point's `select` — `exist[]` identifiers and `$action` markers |
 | 9 | `field` | each entity's `fields[]` from request/response schemas, with inferred types and per-op `req` overrides |
 | 10 | `casecollide` | drops an entity without operations whose name differs only by case from one with them, since both would generate to one file |

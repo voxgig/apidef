@@ -76,6 +76,19 @@ const MODEL_FILES = ['apidef.aontu', 'guide.aontu'];
         node_assert_1.default.throws(() => unify({ rb: { ...rb, kind: 'bytes' } }), /rb\.kind/);
         node_assert_1.default.throws(() => unify({ rs: { ...rs, alternatives: [{ kind: 'xml', media: 'a/b' }] } }), /rs\.alternatives\.0\.kind/);
     });
+    (0, node_test_1.test)('body fields are names or false, as an empty list arrives as no key', () => {
+        const unify = (bf) => new aontu_1.Aontu().generate((0, node_fs_1.readFileSync)(node_path_1.default.join(REPO, 'model', 'apidef.aontu'), 'utf8') + '\n' +
+            'main:kit:entity:note:op:create:' + JSON.stringify({
+            name: 'create',
+            points: [{ m: 'POST', o: '/notes', s: [{ lit: 'notes' }], ...(undefined === bf ? {} : { bf }) }],
+        })).main.kit.entity.note.op.create.points[0];
+        node_assert_1.default.deepStrictEqual(unify(['text', 'title']).bf, ['text', 'title']);
+        node_assert_1.default.strictEqual(unify(false).bf, false);
+        node_assert_1.default.ok(!('bf' in unify(undefined)));
+        node_assert_1.default.ok(!('bf' in unify([])));
+        node_assert_1.default.throws(() => unify(true), /bf/);
+        node_assert_1.default.throws(() => unify([1]), /bf/);
+    });
     (0, node_test_1.test)('entity-field alias uses compact keys and defaults activation', () => {
         const fields = {
             id: { n: 'id', h: 'Id', r: true, t: '`$STRING`' },

@@ -52,29 +52,21 @@
       "name": "create",
       "points": [
         {
+          "bf": [
+            "complete",
+            "id",
+            "petId",
+            "quantity",
+            "shipDate",
+            "status"
+          ],
           "co": {
             "id": "POST /store/order",
             "source": "swagger2",
             "version": 2
           },
-          "g": {
-            "query": [
-              {
-                "k": "query",
-                "n": "body",
-                "or": "body",
-                "r": true,
-                "t": "`$OBJECT`"
-              }
-            ]
-          },
           "m": "POST",
           "o": "/store/order",
-          "q": {
-            "exist": [
-              "body"
-            ]
-          },
           "rs": {
             "alternatives": [
               {

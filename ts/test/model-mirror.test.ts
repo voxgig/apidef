@@ -90,6 +90,21 @@ describe('model-mirror', () => {
       /rs\.alternatives\.0\.kind/)
   })
 
+  test('body fields are names or false, as an empty list arrives as no key', () => {
+    const unify = (bf: any) => new Aontu().generate(
+      readFileSync(Path.join(REPO, 'model', 'apidef.aontu'), 'utf8') + '\n' +
+      'main:kit:entity:note:op:create:' + JSON.stringify({
+        name: 'create',
+        points: [{ m: 'POST', o: '/notes', s: [{ lit: 'notes' }], ...(undefined === bf ? {} : { bf }) }],
+      })).main.kit.entity.note.op.create.points[0]
+    assert.deepStrictEqual(unify(['text', 'title']).bf, ['text', 'title'])
+    assert.strictEqual(unify(false).bf, false)
+    assert.ok(!('bf' in unify(undefined)))
+    assert.ok(!('bf' in unify([])))
+    assert.throws(() => unify(true), /bf/)
+    assert.throws(() => unify([1]), /bf/)
+  })
+
   test('entity-field alias uses compact keys and defaults activation', () => {
     const fields = {
       id: { n: 'id', h: 'Id', r: true, t: '`$STRING`' },

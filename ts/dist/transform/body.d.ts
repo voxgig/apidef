@@ -10,6 +10,8 @@ declare function responseBody(def: any, method: string, path: string, media?: st
 declare function jsonRequestSchema(opdef: any): any;
 declare function requestSchema(def: any, method: string, path: string, media?: string): any;
 declare function selectedRequestSchema(def: any, method: string, path: string, media?: string): any;
+declare function requestFieldSchema(def: any, mpoint: ModelPoint, media?: string): any;
+declare function bodyFields(def: any, mpoint: ModelPoint, media?: string): string[] | false | undefined;
 declare function arrayRequestSchema(def: any, method: string, path: string, media?: string): any;
 declare function nullableType(schema: any): any;
 declare function arrayCarrier(def: any, mpoint: ModelPoint, media?: string): {
@@ -20,4 +22,4 @@ declare function arrayCarrier(def: any, mpoint: ModelPoint, media?: string): {
 } | undefined;
 declare function requestDecl(def: any, method: string, path: string): any;
 declare function sameType(a: any, b: any): boolean;
-export { bodyTransform, guideMedia, requestBody, responseBody, jsonRequestSchema, requestSchema, arrayRequestSchema, arrayCarrier, requestDecl, nullableType, sameType, selectedRequestSchema, };
+export { bodyTransform, bodyFields, guideMedia, requestBody, responseBody, jsonRequestSchema, requestSchema, arrayRequestSchema, arrayCarrier, requestDecl, requestFieldSchema, nullableType, sameType, selectedRequestSchema, };

@@ -4,7 +4,9 @@ import type { TransformResult, Transform } from '../transform'
 
 import { KIT } from '../types'
 
-import { guideActive, mergedProperties, sortedKeys } from '../utility'
+import {
+  fieldName, guideActive, mergedProperties, requestWrapperOf, sortedKeys,
+} from '../utility'
 
 import type {
   BodyKind,
@@ -63,6 +65,10 @@ const bodyTransform: Transform = async function(
         const rb = requestBody(def, mpoint.m, mpoint.o, media.body)
         if (null != rb) {
           mpoint.rb = rb
+        }
+        const bf = bodyFields(def, mpoint, media.body)
+        if (null != bf) {
+          mpoint.bf = bf
         }
         const rs = responseBody(def, mpoint.m, mpoint.o, media.response)
         if (null != rs) {
@@ -469,6 +475,46 @@ function selectedRequestSchema(def: any, method: string, path: string, media?: s
 }
 
 
+// The request schema a point's fields come from, read through the key a
+// wrapped body sends the record under.
+function requestFieldSchema(def: any, mpoint: ModelPoint, media?: string): any {
+  const declared = def?.paths?.[mpoint.o]?.[String(mpoint.m).toLowerCase()]?.requestBody
+  const schema = selectedRequestSchema(def, mpoint.m, mpoint.o, media) ??
+    (isMap(declared) ? declared.schema : undefined)
+  const wrapper = requestWrapperOf(mpoint.t?.req)
+  return null == wrapper ? schema : mergedProperties(schema)?.[wrapper] ?? schema
+}
+
+
+// The names of the properties a point's JSON body declares, and of the field
+// an array body is sent from, as the entity's fields name them: false for
+// none, undefined for no body or a body that is not JSON.
+function bodyFields(def: any, mpoint: ModelPoint, media?: string): string[] | false | undefined {
+  const sent = chooseBody(requestOffers(def, mpoint.m, mpoint.o) ?? [], media)
+  if (null == sent ? null == requestDecl(def, mpoint.m, mpoint.o) : 'json' !== sent.kind) {
+    return undefined
+  }
+  const carrier = arrayCarrier(def, mpoint, media)?.name
+  const names = declaredProperties(requestFieldSchema(def, mpoint, media))
+    .concat(null == carrier ? [] : [carrier])
+    .map(fieldName)
+  const unique = [...new Set(names)].sort(compare)
+  return 0 < unique.length ? unique : false
+}
+
+
+// A body that may be one of several objects declares the properties of each.
+function declaredProperties(schema: any, seen: Set<any> = new Set()): string[] {
+  if (!isMap(schema) || seen.has(schema)) {
+    return []
+  }
+  seen.add(schema)
+  return (isMap(schema.properties) ? Object.keys(schema.properties) : [])
+    .concat(['allOf', 'oneOf', 'anyOf'].flatMap((key) =>
+      listOf(schema[key]).flatMap((member: any) => declaredProperties(member, seen))))
+}
+
+
 function arrayRequestSchema(def: any, method: string, path: string, media?: string): any {
   return arrayShape(requestSchema(def, method, path, media))
 }
@@ -624,6 +670,7 @@ function typeSet(type: any): any {
 
 export {
   bodyTransform,
+  bodyFields,
   guideMedia,
   requestBody,
   responseBody,
@@ -632,6 +679,7 @@ export {
   arrayRequestSchema,
   arrayCarrier,
   requestDecl,
+  requestFieldSchema,
   nullableType,
   sameType,
   selectedRequestSchema,
