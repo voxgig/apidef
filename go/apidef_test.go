@@ -684,17 +684,26 @@ func TestGuideWellKnown(t *testing.T) {
 	}
 
 	disco := "well_known_discovery_endpoints_for_agents_and_model_context"
+	search := "artifact_search_endpoints_from_groups_and_versions_and_branches_and"
+	admin := "registry_administration_endpoints_for_role_mappings_and_config"
 	if got := sortedKeys(entities); !reflect.DeepEqual(got,
-		[]string{"aaa_kit", "abc", "agent", "agent_card", "artifact", "bcd", "cask", "crate", "dbase",
-			"dbn", "dbset", "dsn", "dsx", "dtn", "dun", "efn", "efn2", "kiln", "kit", "ledger",
-			"mcp_tool", "oven", "parcel", "pot", "qqn", "qrs", "qrs_admin_qrs", "qrt", "repo",
-			"rrn", "schema", "uvn", "vault", "well_known_agent", "well_known_cask",
-			"well_known_crate", "well_known_db", "well_known_dbase", disco, disco + "2",
-			"well_known_ds", "well_known_dt", "well_known_du", "well_known_ef",
-			"well_known_ledger", "well_known_qq", "well_known_qq2", "well_known_repo",
-			"well_known_rr", "well_known_rr2", "well_known_uvn", "well_known_xyn", "widget",
-			"xyn"}) {
+		[]string{"aaa_ijn", "aaa_kit", "abc", "agent", "agent_card", "artifact", search, search + "2",
+			search + "3", "bcd", "cask", "cde", "crate", "dbase", "dbn", "dbset", "dsn", "dsx",
+			"dtn", "dun", "efn", "efn2", "ghn", "hive", "ijn", "kiln", "kit", "ledger", "mcp_tool",
+			"nest", "oven", "parcel", "pot", "qqn", "qrs", "qrs_admin_qrs", "qrt", admin,
+			admin + "2", "repo", "rrn", "schema", "uvn", "vault", "well_known_agent",
+			"well_known_cask", "well_known_crate", "well_known_db", "well_known_dbase", disco,
+			disco + "2", disco + "3", "well_known_ds", "well_known_dt", "well_known_du",
+			"well_known_ef", "well_known_gh", "well_known_hive", "well_known_ledger",
+			"well_known_nest", "well_known_nest2", "well_known_qq", "well_known_qq2",
+			"well_known_repo", "well_known_rr", "well_known_rr2", "well_known_uvn",
+			"well_known_xyn", "widget", "xyn"}) {
 		t.Errorf("entities = %v", got)
+	}
+	for _, w := range res.Ctx.Warn.History() {
+		if note := safeStr(w["note"]); strings.Contains(note, "same selector") {
+			t.Errorf("warning: %s", note)
+		}
 	}
 	for _, c := range []struct {
 		ent, op string
@@ -744,10 +753,27 @@ func TestGuideWellKnown(t *testing.T) {
 		{"efn", "load", []string{"/aaa/efn/{id}"}},
 		{"well_known_ef", "load", []string{"/well-known/ef/{id}"}},
 		{"efn2", "load", []string{"/zzz/efn2/{id}"}},
+		{"ghn", "load", []string{"/aaa/ghn/{id}"}},
+		{"well_known_gh", "load", []string{"/well-known/gh/{id}"}},
+		{"ijn", "load", []string{"/well-known/ij/{id}"}},
+		{"aaa_ijn", "load", []string{"/zzz/ijn/{id}"}},
 		{"abc", "load", []string{"/zzz/abc"}},
 		{"bcd", "load", []string{"/lt/bcd/{id}"}},
 		{disco, "load", []string{"/aaa/" + disco}},
 		{disco + "2", "load", []string{"/lt/abc/{id}"}},
+		{disco + "3", "load", []string{"/lt/v2/abc/{id}"}},
+		{search, "load", []string{"/lu/abc/{id}"}},
+		{search + "2", "load", []string{"/lu/v2/abc/{id}"}},
+		{search + "2", "create", []string{"/lu/v2/abc/{id}/merge"}},
+		{search + "3", "load", []string{"/lu/v3/abc/{id}"}},
+		{admin, "load", []string{"/zzz/" + admin}},
+		{admin + "2", "load", []string{"/lv/abc/{id}"}},
+		{"cde", "load", []string{"/lv/cde/{id}"}},
+		{"nest", "load", []string{"/aaa/nest"}},
+		{"well_known_nest", "load", []string{"/well-known/nest/v2/nest/{id}"}},
+		{"well_known_nest2", "load", []string{"/well-known/nest/{id}"}},
+		{"hive", "load", []string{"/well-known/hive/v2/hive/{id}"}},
+		{"well_known_hive", "load", []string{"/well-known/hive/{id}"}},
 		{"oven", "load", []string{"/kilns/{id}"}},
 		{"pot", "list", []string{"/zzz/pots"}},
 		{"pot", "load", []string{"/zzz/pots/{id}"}},

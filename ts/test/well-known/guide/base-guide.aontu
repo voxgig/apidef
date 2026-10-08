@@ -4,9 +4,15 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 54
-  metrics: count: path: 63
-  metrics: count: method: 63
+  metrics: count: entity: 70
+  metrics: count: path: 80
+  metrics: count: method: 80
+
+  entity: aaa_ijn: {
+    path: "/zzz/ijn/{id}": {
+      op: load: method: *GET
+    }
+  }
 
   entity: aaa_kit: {
     path: "/aaa/kit/{id}": {
@@ -47,6 +53,29 @@ guide: {
     }
   }
 
+  entity: artifact_search_endpoints_from_groups_and_versions_and_branches_and: {
+    path: "/lu/abc/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: artifact_search_endpoints_from_groups_and_versions_and_branches_and2: {
+    path: "/lu/v2/abc/{id}": {
+      op: load: method: *GET
+    }
+    path: "/lu/v2/abc/{id}/merge": {
+      action: "merge": {}
+      rename: param: "id": *"abc_id"
+      op: create: method: *POST
+    }
+  }
+
+  entity: artifact_search_endpoints_from_groups_and_versions_and_branches_and3: {
+    path: "/lu/v3/abc/{id}": {
+      op: load: method: *GET
+    }
+  }
+
   entity: bcd: {
     path: "/lt/bcd/{id}": {
       op: load: method: *GET
@@ -55,6 +84,12 @@ guide: {
 
   entity: cask: {
     path: "/aaa/cask/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: cde: {
+    path: "/lv/cde/{id}": {
       op: load: method: *GET
     }
   }
@@ -120,6 +155,24 @@ guide: {
     }
   }
 
+  entity: ghn: {
+    path: "/aaa/ghn/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: hive: {
+    path: "/well-known/hive/v2/hive/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: ijn: {
+    path: "/well-known/ij/{id}": {
+      op: load: method: *GET
+    }
+  }
+
   entity: kiln: {
     path: "/well-known/kiln/{id}": {
       op: load: method: *GET
@@ -151,6 +204,12 @@ guide: {
     path: "/well-known/mcp-tools/{groupId}/{artifactId}": {
       rename: param: "artifactId": *"artifact_id"
       rename: param: "groupId": *"group_id"
+      op: load: method: *GET
+    }
+  }
+
+  entity: nest: {
+    path: "/aaa/nest": {
       op: load: method: *GET
     }
   }
@@ -196,6 +255,18 @@ guide: {
 
   entity: qrt: {
     path: "/zzz/qrt/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: registry_administration_endpoints_for_role_mappings_and_config: {
+    path: "/zzz/registry_administration_endpoints_for_role_mappings_and_config": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: registry_administration_endpoints_for_role_mappings_and_config2: {
+    path: "/lv/abc/{id}": {
       op: load: method: *GET
     }
   }
@@ -287,6 +358,12 @@ guide: {
     }
   }
 
+  entity: well_known_discovery_endpoints_for_agents_and_model_context3: {
+    path: "/lt/v2/abc/{id}": {
+      op: load: method: *GET
+    }
+  }
+
   entity: well_known_ds: {
     path: "/well-known/ds/{id}": {
       op: load: method: *GET
@@ -311,8 +388,32 @@ guide: {
     }
   }
 
+  entity: well_known_gh: {
+    path: "/well-known/gh/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_hive: {
+    path: "/well-known/hive/{id}": {
+      op: load: method: *GET
+    }
+  }
+
   entity: well_known_ledger: {
     path: "/well-known/ledger/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_nest: {
+    path: "/well-known/nest/v2/nest/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: well_known_nest2: {
+    path: "/well-known/nest/{id}": {
       op: load: method: *GET
     }
   }
