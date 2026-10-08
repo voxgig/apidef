@@ -826,6 +826,7 @@ function renderJSONIC(val, hsepd, showd, useColor, maxlines, exclude, c, renderP
 }
 const VALID_CANON = Object.assign(Object.create(null), {
     'string': '`$STRING`',
+    'file': '`$STRING`',
     'number': '`$NUMBER`',
     'integer': '`$INTEGER`',
     'boolean': '`$BOOLEAN`',
@@ -840,7 +841,7 @@ exports.CANON_ONE = CANON_ONE;
 function validator(torig) {
     if ('string' === typeof torig) {
         const tstr = torig.toLowerCase().trim();
-        const canon = VALID_CANON[tstr] ?? 'Any';
+        const canon = VALID_CANON[tstr] ?? '`$ANY`';
         return canon;
     }
     else if (Array.isArray(torig)) {

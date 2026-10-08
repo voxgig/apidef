@@ -621,6 +621,9 @@ function modelField(fielddef: SchemaDef): ModelField {
   if ('string' === typeof ffmt && '' !== ffmt.trim()) {
     mfield.fo = ffmt.trim()
   }
+  else if ('string' === typeof fielddef.type && 'file' === fielddef.type.trim().toLowerCase()) {
+    mfield.fo = 'binary'
+  }
 
   // Record an untagged union under this field. The field is already typed
   // openly ($ANY/$ARRAY/$OBJECT) because there is nothing to narrow it to;

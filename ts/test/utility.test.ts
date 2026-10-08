@@ -873,7 +873,7 @@ describe('utility', () => {
   test('validator normalizes scalar and union types', () => {
     assert.deepStrictEqual(validator('string'), '`$STRING`')
     assert.deepStrictEqual(validator('  Integer '), '`$INTEGER`')
-    assert.deepStrictEqual(validator('weird'), 'Any')
+    assert.deepStrictEqual(validator('weird'), '`$ANY`')
     assert.deepStrictEqual(validator(undefined), '`$ANY`')
     // Array unions map to a $ONE of each member validator.
     assert.deepStrictEqual(validator(['string', 'number']),

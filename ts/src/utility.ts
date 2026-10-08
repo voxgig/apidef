@@ -959,6 +959,7 @@ function renderJSONIC(
 
 const VALID_CANON: Record<string, string> = Object.assign(Object.create(null), {
   'string': '`$STRING`',
+  'file': '`$STRING`',
   'number': '`$NUMBER`',
   'integer': '`$INTEGER`',
   'boolean': '`$BOOLEAN`',
@@ -974,7 +975,7 @@ const CANON_ONE = '`$ONE`'
 function validator(torig: undefined | string | string[]): any {
   if ('string' === typeof torig) {
     const tstr = torig.toLowerCase().trim()
-    const canon = VALID_CANON[tstr] ?? 'Any'
+    const canon = VALID_CANON[tstr] ?? '`$ANY`'
     return canon
   }
   else if (Array.isArray(torig)) {

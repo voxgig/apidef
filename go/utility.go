@@ -591,7 +591,7 @@ func SlugToPascalCase(s string) string {
 // alter Validator behavior (parity with TS, where the exported const binding
 // is not replaceable — a Go exported var or shared map reference would be).
 var validCanon = map[string]string{
-	"string": "`$STRING`", "number": "`$NUMBER`", "integer": "`$INTEGER`",
+	"string": "`$STRING`", "file": "`$STRING`", "number": "`$NUMBER`", "integer": "`$INTEGER`",
 	"boolean": "`$BOOLEAN`", "null": "`$NULL`", "array": "`$ARRAY`",
 	"object": "`$OBJECT`", "any": "`$ANY`",
 }
@@ -613,7 +613,7 @@ func Validator(torig any) any {
 		if canon, ok := validCanon[tstr]; ok {
 			return canon
 		}
-		return "Any"
+		return "`$ANY`"
 	case []any:
 		members := make([]any, 0, len(v))
 		for _, t := range v {

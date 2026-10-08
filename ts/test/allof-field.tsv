@@ -14,3 +14,9 @@ control-name-id	id	{"allOf":[{"type":"string","x-ref":"#/components/schemas/Id"}
 control-name-count	item_count	{"allOf":[{"type":"integer","x-ref":"#/components/schemas/Count"}]}	{"t":"`$INTEGER`"}
 control-name-flag	is_public	{"allOf":[{"type":"string","x-ref":"#/components/schemas/Flag"}]}	{"t":"`$BOOLEAN`"}
 control-name-id-object	owner_id	{"allOf":[{"type":"object","properties":{"login":{"type":"string"}},"x-ref":"#/components/schemas/owner"}]}	{"t":"`$STRING`"}
+file-upload	attachment	{"type":"file"}	{"t":"`$STRING`","fo":"binary"}
+file-upload-format	attachment	{"type":"file","format":"base64"}	{"t":"`$STRING`","fo":"base64"}
+file-upload-blank-format	attachment	{"type":"file","format":" "}	{"t":"`$STRING`","fo":"binary"}
+file-upload-mixed-case	attachment	{"type":"File"}	{"t":"`$STRING`","fo":"binary"}
+unknown-declaration	attachment	{"type":"vendor-type"}	{"t":"`$ANY`"}
+unknown-id-declaration	owner_id	{"type":"vendor-type"}	{"t":"`$STRING`"}
