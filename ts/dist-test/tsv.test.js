@@ -96,6 +96,7 @@ function loadTsv(name) {
         [['string', 'null'], ['`$ONE`', ['`$STRING`', '`$NULL`']]],
         [['integer', 'null', 'boolean'], ['`$ONE`', ['`$INTEGER`', '`$NULL`', '`$BOOLEAN`']]],
         [[], ['`$ONE`', []]],
+        [['file', 'symbol', 'null'], ['`$ONE`', ['`$STRING`', '`$ANY`', '`$NULL`']]],
         ['string', '`$STRING`'],
         [undefined, '`$ANY`'],
     ];

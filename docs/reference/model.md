@@ -128,6 +128,11 @@ described that way, gives a `` `$STRING` `` field with `fo: oid`. Any other
 `` `$ANY` `` unless the name says what it holds, such as an id, a count, or a
 flag. `ts/test/allof-field.tsv` pins each case.
 
+A `type` apidef does not know, such as `symbol`, counts as no type, so the
+field is `` `$ANY` `` unless the name says what it holds. Swagger 2's `file` is
+a binary string, so a field and an argument declared with it are both
+`` `$STRING` ``. `ts/test/validator.tsv` pins each type.
+
 A point's request body properties become fields from the body its guide's
 `body.media` names, of whatever media type, else from the JSON body the body
 step prefers. A Swagger 2 `formData` parameter gives a field that is required

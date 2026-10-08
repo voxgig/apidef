@@ -823,6 +823,7 @@ function renderJSONIC(val, hsepd, showd, useColor, maxlines, exclude, c, renderP
     }
     return lines.join('\n') + '\n';
 }
+const CANON_ANY = '`$ANY`';
 const VALID_CANON = Object.assign(Object.create(null), {
     'string': '`$STRING`',
     'number': '`$NUMBER`',
@@ -831,7 +832,9 @@ const VALID_CANON = Object.assign(Object.create(null), {
     'null': '`$NULL`',
     'array': '`$ARRAY`',
     'object': '`$OBJECT`',
-    'any': '`$ANY`',
+    'any': CANON_ANY,
+    // Swagger 2's file type is a binary string in OpenAPI 3.
+    'file': '`$STRING`',
 });
 exports.VALID_CANON = VALID_CANON;
 const CANON_ONE = '`$ONE`';
@@ -839,14 +842,13 @@ exports.CANON_ONE = CANON_ONE;
 function validator(torig) {
     if ('string' === typeof torig) {
         const tstr = torig.toLowerCase().trim();
-        const canon = VALID_CANON[tstr] ?? 'Any';
-        return canon;
+        return VALID_CANON[tstr] ?? CANON_ANY;
     }
     else if (Array.isArray(torig)) {
         return [CANON_ONE, torig.map((t) => validator(t))];
     }
     else {
-        return '`$ANY`';
+        return CANON_ANY;
     }
 }
 const FILE_EXT_RE = /\.(php|json|txt|png|jpg|jpeg|gif|svg|xml|html|csv|yml|yaml|md)$/i;

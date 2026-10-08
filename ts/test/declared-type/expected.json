@@ -1,0 +1,29 @@
+{
+  "fields": {
+    "upload": {
+      "alert_status": "`$ANY`",
+      "bytes": "`$INTEGER`",
+      "caption": "`$STRING`",
+      "extra": "`$ANY`",
+      "file": "`$STRING`",
+      "height": "`$NUMBER`",
+      "id": "`$STRING`",
+      "meta": "`$OBJECT`",
+      "ratio": "`$NUMBER`",
+      "shared": "`$BOOLEAN`",
+      "tags": "`$ARRAY`",
+      "weight": "`$NUMBER`"
+    }
+  },
+  "args": {
+    "upload.load": {
+      "params": {
+        "id": "`$STRING`"
+      },
+      "query": {
+        "preview": "`$STRING`",
+        "since": "`$ANY`"
+      }
+    }
+  }
+}

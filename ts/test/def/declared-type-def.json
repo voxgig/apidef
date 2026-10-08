@@ -1,0 +1,124 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Declared types, Swagger 2",
+    "version": "1.0.0"
+  },
+  "host": "api.example.com",
+  "basePath": "/",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/uploads": {
+      "post": {
+        "operationId": "createUpload",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UploadInput"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/Upload"
+            }
+          }
+        }
+      }
+    },
+    "/uploads/{upload_id}": {
+      "get": {
+        "operationId": "loadUpload",
+        "parameters": [
+          {
+            "name": "upload_id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "preview",
+            "in": "query",
+            "type": "file"
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "type": "PartialStartDate"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/Upload"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "UploadInput": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "file"
+        },
+        "alert_status": {
+          "type": "symbol"
+        },
+        "weight": {
+          "type": "decimal"
+        },
+        "caption": {
+          "type": "string"
+        }
+      }
+    },
+    "Upload": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "caption": {
+          "type": "string"
+        },
+        "bytes": {
+          "type": "integer"
+        },
+        "ratio": {
+          "type": "number"
+        },
+        "shared": {
+          "type": "boolean"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "meta": {
+          "type": "object"
+        },
+        "extra": {},
+        "height": {}
+      }
+    }
+  }
+}

@@ -440,6 +440,7 @@ func TestValidatorUnion(t *testing.T) {
 		{[]any{"string", "null"}, `["` + "`$ONE`" + `",["` + "`$STRING`" + `","` + "`$NULL`" + `"]]`},
 		{[]any{"integer", "null", "boolean"}, `["` + "`$ONE`" + `",["` + "`$INTEGER`" + `","` + "`$NULL`" + `","` + "`$BOOLEAN`" + `"]]`},
 		{[]any{}, `["` + "`$ONE`" + `",[]]`},
+		{[]any{"file", "symbol", "null"}, `["` + "`$ONE`" + `",["` + "`$STRING`" + `","` + "`$ANY`" + `","` + "`$NULL`" + `"]]`},
 		{"string", `"` + "`$STRING`" + `"`},
 		{nil, `"` + "`$ANY`" + `"`},
 	}

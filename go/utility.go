@@ -587,7 +587,9 @@ func SlugToPascalCase(s string) string {
 var validCanon = map[string]string{
 	"string": "`$STRING`", "number": "`$NUMBER`", "integer": "`$INTEGER`",
 	"boolean": "`$BOOLEAN`", "null": "`$NULL`", "array": "`$ARRAY`",
-	"object": "`$OBJECT`", "any": "`$ANY`",
+	"object": "`$OBJECT`", "any": canonAny,
+	// Swagger 2's file type is a binary string in OpenAPI 3.
+	"file": "`$STRING`",
 }
 
 func ValidCanon() map[string]string {
@@ -600,6 +602,8 @@ func ValidCanon() map[string]string {
 
 const CanonOne = "`$ONE`"
 
+const canonAny = "`$ANY`"
+
 func Validator(torig any) any {
 	switch v := torig.(type) {
 	case string:
@@ -607,7 +611,7 @@ func Validator(torig any) any {
 		if canon, ok := validCanon[tstr]; ok {
 			return canon
 		}
-		return "Any"
+		return canonAny
 	case []any:
 		members := make([]any, 0, len(v))
 		for _, t := range v {
@@ -621,7 +625,7 @@ func Validator(torig any) any {
 		}
 		return []any{CanonOne, members}
 	default:
-		return "`$ANY`"
+		return canonAny
 	}
 }
 

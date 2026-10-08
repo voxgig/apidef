@@ -681,7 +681,8 @@ const utility_1 = require("../dist/utility");
     (0, node_test_1.test)('validator normalizes scalar and union types', () => {
         node_assert_1.default.deepStrictEqual((0, utility_1.validator)('string'), '`$STRING`');
         node_assert_1.default.deepStrictEqual((0, utility_1.validator)('  Integer '), '`$INTEGER`');
-        node_assert_1.default.deepStrictEqual((0, utility_1.validator)('weird'), 'Any');
+        node_assert_1.default.deepStrictEqual((0, utility_1.validator)('weird'), '`$ANY`');
+        node_assert_1.default.deepStrictEqual((0, utility_1.validator)('file'), '`$STRING`');
         node_assert_1.default.deepStrictEqual((0, utility_1.validator)(undefined), '`$ANY`');
         // Array unions map to a $ONE of each member validator.
         node_assert_1.default.deepStrictEqual((0, utility_1.validator)(['string', 'number']), ['`$ONE`', ['`$STRING`', '`$NUMBER`']]);

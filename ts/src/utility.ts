@@ -957,6 +957,8 @@ function renderJSONIC(
 }
 
 
+const CANON_ANY = '`$ANY`'
+
 const VALID_CANON: Record<string, string> = Object.assign(Object.create(null), {
   'string': '`$STRING`',
   'number': '`$NUMBER`',
@@ -965,7 +967,9 @@ const VALID_CANON: Record<string, string> = Object.assign(Object.create(null), {
   'null': '`$NULL`',
   'array': '`$ARRAY`',
   'object': '`$OBJECT`',
-  'any': '`$ANY`',
+  'any': CANON_ANY,
+  // Swagger 2's file type is a binary string in OpenAPI 3.
+  'file': '`$STRING`',
 })
 
 const CANON_ONE = '`$ONE`'
@@ -974,14 +978,13 @@ const CANON_ONE = '`$ONE`'
 function validator(torig: undefined | string | string[]): any {
   if ('string' === typeof torig) {
     const tstr = torig.toLowerCase().trim()
-    const canon = VALID_CANON[tstr] ?? 'Any'
-    return canon
+    return VALID_CANON[tstr] ?? CANON_ANY
   }
   else if (Array.isArray(torig)) {
     return [CANON_ONE, torig.map((t: string) => validator(t))]
   }
   else {
-    return '`$ANY`'
+    return CANON_ANY
   }
 }
 
