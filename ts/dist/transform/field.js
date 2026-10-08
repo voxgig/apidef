@@ -438,7 +438,7 @@ function modelField(fielddef) {
     const mfield = {
         n: name,
         h: (0, utility_1.humanTitle)(name),
-        t: (0, utility_1.inferFieldType)(name, (0, utility_1.validator)(fielddef.type)),
+        t: (0, utility_1.inferFieldType)(name, (0, utility_1.validator)((0, body_1.nullableType)(fielddef))),
         r: !!fielddef.required,
         op: {},
     };

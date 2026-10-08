@@ -583,7 +583,7 @@ func routeFieldNames(mtarget map[string]any, def map[string]any, opname string, 
 
 func modelField(fielddef map[string]any) map[string]any {
 	name := fieldName(fielddef["key$"].(string))
-	ftype := fielddef["type"]
+	ftype := nullableType(fielddef)
 	mfield := map[string]any{
 		"n":  name,
 		"h":  HumanTitle(name),

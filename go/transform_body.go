@@ -1035,10 +1035,9 @@ func arrayValued(schema map[string]any) bool {
 	return true
 }
 
-// nullableType mirrors ts/src/transform/body.ts: a nullable array says so with
-// nullable in OpenAPI 3.0, and a type list in 3.1.
+// The nullable flag adds null once to the declared type.
 func nullableType(schema map[string]any) any {
-	if schema["nullable"] == true && !schemaHasType(schema, "null") {
+	if schema["nullable"] == true && schema["type"] != nil && !schemaHasType(schema, "null") {
 		return append(append([]any{}, typeList(schema["type"])...), "null")
 	}
 	return schema["type"]

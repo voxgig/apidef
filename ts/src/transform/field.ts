@@ -11,7 +11,7 @@ import {
   itemEnvelopeOf,
 } from '../utility'
 
-import { arrayCarrier, guideMedia, requestFieldSchema, sameType } from './body'
+import { arrayCarrier, guideMedia, requestFieldSchema, sameType, nullableType } from './body'
 
 import { KIT } from '../types'
 
@@ -596,7 +596,7 @@ function modelField(fielddef: SchemaDef): ModelField {
   const mfield: ModelField = {
     n: name,
     h: humanTitle(name),
-    t: inferFieldType(name, validator(fielddef.type)),
+    t: inferFieldType(name, validator(nullableType(fielddef))),
     r: !!fielddef.required,
     op: {},
   }
