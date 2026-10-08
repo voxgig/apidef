@@ -352,14 +352,20 @@ filter, and neither gives the entity a field.
 | sends a JSON body that declares properties | their names |
 | sends a JSON body that declares none: an empty or free-form object, a map, a scalar, an array sent whole, or a body with no schema | `false` |
 | declares a request body with no content | `false` |
+| declares no request body, while `guide.aontu` names a JSON `body.media` for it | `false` |
 | sends a body that is not JSON | absent, since `rb` says how it is sent |
-| declares no request body | absent |
+| declares no request body, and the guide names no JSON media for it | absent |
 | is a GraphQL point | absent |
 
 A body that declares nothing is `false` rather than an empty list because
 aontu resolves an optional key holding an empty list to no key at all. An
 absent `bf` records nothing, which is also what a model from an earlier
 apidef says, so a generator falls back to its own rule there.
+
+`bf` lists what the body declares, read-only properties included. An update
+whose body reuses the response schema lists that schema's read-only
+`version`, so a generator that keeps a routed argument in the body checks
+the field's `ro` flag as well as `bf`.
 
 Each case is a row in
 [`ts/test/body-fields.tsv`](../../ts/test/body-fields.tsv). From the
