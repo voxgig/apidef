@@ -612,6 +612,9 @@ func modelField(fielddef map[string]any) map[string]any {
 			mfield["fo"] = trimmed
 		}
 	}
+	if mfield["fo"] == nil && strings.EqualFold(strings.TrimSpace(safeStr(fielddef["type"])), "file") {
+		mfield["fo"] = "binary"
+	}
 
 	// Record an untagged union under this field. The field is already
 	// typed openly because there is nothing to narrow it to; this says

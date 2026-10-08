@@ -92,6 +92,11 @@ function loadTsv(name) {
     }
 });
 (0, node_test_1.describe)('tsv-validator-union', () => {
+    for (const row of loadTsv('validator-declared-union')) {
+        (0, node_test_1.test)('declared union: ' + row.input, () => {
+            node_assert_1.default.deepStrictEqual((0, utility_1.validator)(JSON.parse(row.input)), JSON.parse(row.expected));
+        });
+    }
     const CASES = [
         [['string', 'null'], ['`$ONE`', ['`$STRING`', '`$NULL`']]],
         [['integer', 'null', 'boolean'], ['`$ONE`', ['`$INTEGER`', '`$NULL`', '`$BOOLEAN`']]],

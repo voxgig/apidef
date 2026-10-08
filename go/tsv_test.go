@@ -433,6 +433,28 @@ func TestCleanComponentNameGuarded(t *testing.T) {
 }
 
 func TestValidatorUnion(t *testing.T) {
+	for _, row := range loadTsv(t, "validator-declared-union") {
+		t.Run(row["input"], func(t *testing.T) {
+			var input []any
+			var typed []string
+			var expected any
+			if err := json.Unmarshal([]byte(row["input"]), &input); err != nil {
+				t.Fatal(err)
+			}
+			if err := json.Unmarshal([]byte(row["input"]), &typed); err != nil {
+				t.Fatal(err)
+			}
+			if err := json.Unmarshal([]byte(row["expected"]), &expected); err != nil {
+				t.Fatal(err)
+			}
+			for _, value := range []any{input, typed} {
+				if got := Validator(value); !reflect.DeepEqual(got, expected) {
+					t.Errorf("Validator(%v) = %v, want %v", value, got, expected)
+				}
+			}
+		})
+	}
+
 	cases := []struct {
 		in   any
 		want string
