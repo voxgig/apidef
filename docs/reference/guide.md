@@ -449,31 +449,40 @@ answer with no body from two collections whose item routes take the same
 parameters, or from two collections that both have a `GET` of their own.
 The tag's name comes first when a route outside `/X` takes that name,
 whether it sorts before the item route or after it. When a route outside
-`/X` takes the tag's name as well, the item route takes the tag's name
-followed by the lowest number from 2 that no such route takes. Names
-compare in the form they are stored in. A name shorter than three
-characters is padded, one that starts with a digit takes an `n` first, and
-one longer than 67 characters is cut back to its leading words, each
-numbered when another entity already has that form: `dtn` counts for `dt`,
-`xy` counts for `xyn`, and `efn2` counts for `ef` once another entity has
-`efn`. Where the cut drops the number after the tag's name, the item route
-takes the first number that leaves the stored form as it was. Two item
-routes can then take the same name: those of two collections when a route
-outside `/X` takes the cut name, and those of a second and third collection
-when none does.
+`/X` takes the tag's name as well, the item route takes the stored form of
+the tag's name followed by the lowest number from 2 that no such route
+takes. Names compare in the form they are stored in. A name shorter than
+three characters is padded, one that starts with a digit takes an `n`
+first, and one longer than 67 characters is cut back to its leading words,
+each numbered when another entity already has that form: `dtn` counts for
+`dt`, `xy` counts for `xyn`, and an entity named `efn` counts for `ef`.
+The number follows the cut, so a long tag's item routes keep theirs: the
+`WellKnownDiscoveryEndpointsForAgentsAndModelContextProtocolToolsRegistry`
+tag's name is cut to
+`well_known_discovery_endpoints_for_agents_and_model_context`, which
+`/aaa/well_known_discovery_endpoints_for_agents_and_model_context` takes,
+so `/lt/abc/{id}` and `/lt/v2/abc/{id}` take that name followed by `2` and
+`3`.
+A route under `/X` belongs to it when it has no parameter or its first
+parameter follows `/X`. A route under a collection nested in `/X`, whose
+first parameter follows more literal segments, as in `/X/v2/nest/{id}`,
+counts as outside `/X`.
 An item route that this rule names counts only once it is named, so of two
 tags' item routes that it names from collections ending in the same
-segment, the one later in path order takes its tag's name. Where only their
-stored forms meet, the later one takes the next number of that form
-instead: with `/aaa/efn/{id}` named `efn` first, `/well-known/ef/{id}` takes
-`efn2`. A collection nested in another of the same tag does not count
-against it, so `/well-known/nest/{id}` and `/well-known/nest/v2/nest/{id}`
-take one name. A verb on such an item route, as `/X/{id}/merge` is, counts
-as taking the segment's name.
+segment, or whose names meet only in their stored forms, the one later in
+path order takes its tag's name: with `/aaa/ghn/{id}` named `ghn` first,
+`/well-known/gh/{id}` takes `well_known_gh`, while `/well-known/ij/{id}`
+takes `ijn` before `/zzz/ijn/{id}` of the `Aaa` tag, which takes `aaa_ijn`.
+A verb on such an item route, as `/X/{id}/merge` is, counts as taking the
+segment's name, and joins the item route's entity even where its number
+takes that name past 67 characters.
 With `/aaa/qq` named `qq`, `/well-known/qq/{id}` takes `well_known_qq` and
 the later `/well-known/v2/qq/{id}` of the same tag takes `well_known_qq2`.
 With `/aaa/rr` named `rr`, `/well-known/rr/{id}` takes `well_known_rr2`,
 since the later `/zzz/well_known_rr/{id}` is named `well_known_rr`.
+With `/aaa/nest` named `nest`, `/well-known/nest/v2/nest/{id}` sorts before
+`/well-known/nest/{id}` and takes `well_known_nest`, so the outer one takes
+`well_known_nest2`.
 Apicurio Registry tags
 `/well-known/agents/{groupId}/{artifactId}`,
 `/well-known/mcp-tools/{groupId}/{artifactId}` and

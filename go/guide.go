@@ -1219,13 +1219,16 @@ func resolveEntityName(ctx *ApiDefContext, data map[string]any, mdesc map[string
 	}
 
 	entmap := work["entmap"].(map[string]any)
-	if collectionEntity, why := itemOfCollection(data, mdesc, parts); collectionEntity != "" {
+	collectionEntity, why, stored := itemOfCollection(data, mdesc, parts)
+	if collectionEntity != "" {
 		whyPath = append(whyPath, why+"="+collectionEntity)
 		entname = collectionEntity
 	}
 
 	rawEntname := entname
-	entname = EnsureMinEntityName(entname, entmap)
+	if _, named := entmap[entname]; !stored && !named {
+		entname = EnsureMinEntityName(entname, entmap)
+	}
 
 	// Get or create entity descriptor
 	entdesc, _ := entmap[entname].(map[string]any)
@@ -3532,54 +3535,74 @@ func collectionNaming(data map[string]any, mdesc map[string]any, parts []string,
 }
 
 // itemOfCollection mirrors ts/src/guide/heuristic01.ts: the entity of an item
-// route its collection names, and the reason recorded for it.
-func itemOfCollection(data map[string]any, mdesc map[string]any, parts []string) (string, string) {
+// route its collection names, the reason recorded for it, and whether the name
+// is already in its stored form.
+func itemOfCollection(data map[string]any, mdesc map[string]any, parts []string) (string, string, bool) {
 	work := data["work"].(map[string]any)
 	collection, record := collectionNaming(data, mdesc, parts, work["recordowner"].(map[string]string))
 	if collection == "" {
-		return "", ""
+		return "", "", false
 	}
 	if record != "" {
-		return record, "collection-record"
+		return record, "collection-record", false
 	}
 
 	cmp := safeStr(mdesc["MethodEntity"].(map[string]any)["cmp"])
 	segment := Canonize(collection[strings.LastIndex(collection, "/")+1:])
-	if !segmentHeld(work, segment, collection) {
-		return segment, "collection-segment"
-	}
 	tagged := cmp + "_" + segment
-	name := tagged
-	for i := 2; segmentHeld(work, name, collection); i++ {
-		stored := EnsureMinEntityName(name, nil)
-		name = fmt.Sprintf("%s%d", tagged, i)
-		if EnsureMinEntityName(name, nil) == stored {
-			break
+	for _, name := range []string{segment, tagged} {
+		if !segmentHeld(work, name, collection) {
+			return name, "collection-segment", false
 		}
 	}
-	return name, "collection-segment"
+	stored := EnsureMinEntityName(tagged, nil)
+	i := 2
+	for keyHeld(work, []string{fmt.Sprintf("%s%d", stored, i)}, collection) {
+		i++
+	}
+	return fmt.Sprintf("%s%d", stored, i), "collection-segment", true
 }
 
 // segmentHeld mirrors ts/src/guide/heuristic01.ts.
 func segmentHeld(work map[string]any, name string, collection string) bool {
-	outside := func(path string) bool {
-		return !strings.HasPrefix(path+"/", collection+"/")
-	}
 	entmap := work["entmap"].(map[string]any)
-	key := EnsureMinEntityName(name, entmap)
-	entdesc, _ := entmap[key].(map[string]any)
-	entPaths, _ := entdesc["path"].(map[string]any)
-	for path := range entPaths {
-		if outside(path) {
-			return true
-		}
-	}
+	return keyHeld(work, []string{name, EnsureMinEntityName(name, nil),
+		EnsureMinEntityName(name, entmap)}, collection)
+}
+
+// keyHeld mirrors ts/src/guide/heuristic01.ts.
+func keyHeld(work map[string]any, keys []string, collection string) bool {
+	entmap := work["entmap"].(map[string]any)
 	claims, _ := work["claims"].(map[string]map[string]bool)
-	for _, claim := range []string{name, EnsureMinEntityName(name, nil), key} {
-		for path := range claims[claim] {
-			if outside(path) {
+	for _, key := range keys {
+		entdesc, _ := entmap[key].(map[string]any)
+		entPaths, _ := entdesc["path"].(map[string]any)
+		for path := range entPaths {
+			if outsideCollection(path, collection) {
 				return true
 			}
+		}
+		for path := range claims[key] {
+			if outsideCollection(path, collection) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// outsideCollection mirrors ts/src/guide/heuristic01.ts.
+func outsideCollection(path string, collection string) bool {
+	if !strings.HasPrefix(path+"/", collection+"/") {
+		return true
+	}
+	lits := []string{}
+	for _, part := range strings.Split(path, "/") {
+		if isParam(part) {
+			return "/"+strings.Join(lits, "/") != collection
+		}
+		if part != "" {
+			lits = append(lits, part)
 		}
 	}
 	return false

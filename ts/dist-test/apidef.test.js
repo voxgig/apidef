@@ -649,15 +649,21 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         const entities = bres.apimodel.main.kit.entity;
         const paths = (ent, op) => (entities[ent]?.op[op]?.points ?? []).map((pt) => pt.o).sort();
         const disco = 'well_known_discovery_endpoints_for_agents_and_model_context';
-        node_assert_1.default.deepStrictEqual(Object.keys(entities).sort(), ['aaa_kit', 'abc', 'agent', 'agent_card', 'artifact', 'bcd', 'cask', 'crate', 'dbase',
-            'dbn', 'dbset', 'dsn', 'dsx', 'dtn', 'dun', 'efn', 'efn2', 'kiln', 'kit', 'ledger',
-            'mcp_tool', 'oven', 'parcel', 'pot', 'qqn', 'qrs', 'qrs_admin_qrs', 'qrt', 'repo',
-            'rrn', 'schema', 'uvn', 'vault', 'well_known_agent', 'well_known_cask',
-            'well_known_crate', 'well_known_db', 'well_known_dbase', disco, disco + '2',
-            'well_known_ds', 'well_known_dt', 'well_known_du', 'well_known_ef',
-            'well_known_ledger', 'well_known_qq', 'well_known_qq2', 'well_known_repo',
-            'well_known_rr', 'well_known_rr2', 'well_known_uvn', 'well_known_xyn', 'widget',
-            'xyn']);
+        const search = 'artifact_search_endpoints_from_groups_and_versions_and_branches_and';
+        const admin = 'registry_administration_endpoints_for_role_mappings_and_config';
+        node_assert_1.default.deepStrictEqual(Object.keys(entities).sort(), ['aaa_ijn', 'aaa_kit', 'abc', 'agent', 'agent_card', 'artifact', search, search + '2',
+            search + '3', 'bcd', 'cask', 'cde', 'crate', 'dbase', 'dbn', 'dbset', 'dsn', 'dsx',
+            'dtn', 'dun', 'efn', 'efn2', 'ghn', 'hive', 'ijn', 'kiln', 'kit', 'ledger', 'mcp_tool',
+            'nest', 'oven', 'parcel', 'pot', 'qqn', 'qrs', 'qrs_admin_qrs', 'qrt', admin,
+            admin + '2', 'repo', 'rrn', 'schema', 'uvn', 'vault', 'well_known_agent',
+            'well_known_cask', 'well_known_crate', 'well_known_db', 'well_known_dbase', disco,
+            disco + '2', disco + '3', 'well_known_ds', 'well_known_dt', 'well_known_du',
+            'well_known_ef', 'well_known_gh', 'well_known_hive', 'well_known_ledger',
+            'well_known_nest', 'well_known_nest2', 'well_known_qq', 'well_known_qq2',
+            'well_known_repo', 'well_known_rr', 'well_known_rr2', 'well_known_uvn',
+            'well_known_xyn', 'widget', 'xyn']);
+        node_assert_1.default.deepStrictEqual(bres.ctx.warn.history.map((w) => w.note)
+            .filter((note) => /same selector/.test(note)), []);
         node_assert_1.default.deepStrictEqual(paths('agent', 'list'), ['/well-known/agent.json']);
         node_assert_1.default.deepStrictEqual(paths('well_known_agent', 'list'), ['/well-known/agents']);
         node_assert_1.default.deepStrictEqual(paths('well_known_agent', 'load'), ['/well-known/agents/{groupId}/{artifactId}']);
@@ -699,17 +705,38 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.deepStrictEqual(paths('rrn', 'load'), ['/aaa/rr']);
         node_assert_1.default.deepStrictEqual(paths('well_known_rr', 'load'), ['/zzz/well_known_rr/{id}']);
         node_assert_1.default.deepStrictEqual(paths('well_known_rr2', 'load'), ['/well-known/rr/{id}']);
-        // Aaa's item route takes efn first, so ef would be stored as efn2, which
-        // a route outside claims.
+        // Names compare in their stored form: Aaa's item routes take efn and ghn
+        // first, which ef and gh are stored as, so WellKnown's take its name, and
+        // in the other order WellKnown's ij takes ijn first.
         node_assert_1.default.deepStrictEqual(paths('efn', 'load'), ['/aaa/efn/{id}']);
         node_assert_1.default.deepStrictEqual(paths('well_known_ef', 'load'), ['/well-known/ef/{id}']);
         node_assert_1.default.deepStrictEqual(paths('efn2', 'load'), ['/zzz/efn2/{id}']);
-        // Past the stored length a number is cut off with the rest of the name, so
-        // numbering stops at the first one.
+        node_assert_1.default.deepStrictEqual(paths('ghn', 'load'), ['/aaa/ghn/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('well_known_gh', 'load'), ['/well-known/gh/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('ijn', 'load'), ['/well-known/ij/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('aaa_ijn', 'load'), ['/zzz/ijn/{id}']);
+        // Past the stored length the number follows the stored form, where a cut
+        // cannot drop it, and a verb on the item route joins it; a cut name stays
+        // with a route claiming it that sorts after the item route.
         node_assert_1.default.deepStrictEqual(paths('abc', 'load'), ['/zzz/abc']);
         node_assert_1.default.deepStrictEqual(paths('bcd', 'load'), ['/lt/bcd/{id}']);
         node_assert_1.default.deepStrictEqual(paths(disco, 'load'), ['/aaa/' + disco]);
         node_assert_1.default.deepStrictEqual(paths(disco + '2', 'load'), ['/lt/abc/{id}']);
+        node_assert_1.default.deepStrictEqual(paths(disco + '3', 'load'), ['/lt/v2/abc/{id}']);
+        node_assert_1.default.deepStrictEqual(paths(search, 'load'), ['/lu/abc/{id}']);
+        node_assert_1.default.deepStrictEqual(paths(search + '2', 'load'), ['/lu/v2/abc/{id}']);
+        node_assert_1.default.deepStrictEqual(paths(search + '2', 'create'), ['/lu/v2/abc/{id}/merge']);
+        node_assert_1.default.deepStrictEqual(paths(search + '3', 'load'), ['/lu/v3/abc/{id}']);
+        node_assert_1.default.deepStrictEqual(paths(admin, 'load'), ['/zzz/' + admin]);
+        node_assert_1.default.deepStrictEqual(paths(admin + '2', 'load'), ['/lv/abc/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('cde', 'load'), ['/lv/cde/{id}']);
+        // A route under a collection nested in another is outside the outer one,
+        // so the nested one, which sorts first, keeps the name it takes.
+        node_assert_1.default.deepStrictEqual(paths('nest', 'load'), ['/aaa/nest']);
+        node_assert_1.default.deepStrictEqual(paths('well_known_nest', 'load'), ['/well-known/nest/v2/nest/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('well_known_nest2', 'load'), ['/well-known/nest/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('hive', 'load'), ['/well-known/hive/v2/hive/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('well_known_hive', 'load'), ['/well-known/hive/{id}']);
         // Bare where no route outside has the name: Kiln's item route takes its
         // collection's record, QrsAdmin's counts only once named, and Aaa's kit
         // takes its tag, since the verb on WellKnown's kit claims kit.
