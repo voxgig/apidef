@@ -497,6 +497,12 @@ func CanonizeField(s string) string {
 	return out
 }
 
+// fieldName mirrors ts/src/utility.ts: field names are WIRE identifiers, so
+// the entity-name canonizer, which renames modelType to model_type, is wrong.
+func fieldName(prop string) string {
+	return CanonizeField(NormalizeFieldName(prop))
+}
+
 func StripSchemaNamespace(name string) string {
 	if name == "" || !strings.Contains(name, ".") {
 		return name

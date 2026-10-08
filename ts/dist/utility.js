@@ -21,6 +21,7 @@ exports.formatJSONIC = formatJSONIC;
 exports.validator = validator;
 exports.canonize = canonize;
 exports.canonizeField = canonizeField;
+exports.fieldName = fieldName;
 exports.canonizeCmpName = canonizeCmpName;
 exports.stripSchemaNamespace = stripSchemaNamespace;
 exports.sanitizeSlug = sanitizeSlug;
@@ -903,6 +904,11 @@ function canonizeField(s) {
     const out = transliterate(s).replace(/[^a-zA-Z_0-9]/g, '');
     CANONIZE_FIELD_CACHE.set(s, out);
     return out;
+}
+// Field names are WIRE identifiers: the entity-name canonizer would rename
+// modelType to model_type and items to item, keys the server never sends.
+function fieldName(prop) {
+    return canonizeField(normalizeFieldName(prop));
 }
 function stripSchemaNamespace(name) {
     if (null == name || !name.includes('.'))

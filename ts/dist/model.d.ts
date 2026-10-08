@@ -128,6 +128,7 @@ type ModelPoint = {
         $action?: string;
     };
     rb?: ModelBody;
+    bf?: string[] | false;
     rs?: ModelBody;
 };
 type ModelOp = {

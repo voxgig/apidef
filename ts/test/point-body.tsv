@@ -4,3 +4,6 @@ fields-and-alternatives	{"m":"POST","o":"/uploads","s":[{"lit":"uploads"}],"rb":
 response-body	{"m":"POST","o":"/uploads","s":[{"lit":"uploads"}],"rs":{"kind":"json","media":"application/json","alternatives":[{"kind":"raw","media":"image/png","binary":true}]}}	{"rs":{"kind":"json","media":"application/json","alternatives":[{"kind":"raw","media":"image/png","binary":true}]}}
 request-and-response	{"m":"POST","o":"/uploads","s":[{"lit":"uploads"}],"rb":{"kind":"raw","media":"application/octet-stream","binary":true},"rs":{"kind":"json","media":"application/json"}}	{"rb":{"kind":"raw","media":"application/octet-stream","binary":true},"rs":{"kind":"json","media":"application/json"}}
 no-body	{"m":"POST","o":"/uploads","s":[{"lit":"uploads"}]}	{}
+json-body-fields	{"m":"POST","o":"/notes","s":[{"lit":"notes"}],"bf":["text","title"]}	{"bf":["text","title"]}
+json-body-declares-none	{"m":"POST","o":"/notes","s":[{"lit":"notes"}],"bf":false}	{"bf":false}
+json-body-beside-alternatives	{"m":"POST","o":"/notes","s":[{"lit":"notes"}],"rb":{"kind":"json","media":"application/json","alternatives":[{"kind":"raw","media":"application/xml"}]},"bf":["title"],"rs":{"kind":"json","media":"application/json"}}	{"rb":{"kind":"json","media":"application/json","alternatives":[{"kind":"raw","media":"application/xml"}]},"bf":["title"],"rs":{"kind":"json","media":"application/json"}}

@@ -198,6 +198,14 @@
           }
         },
         {
+          "bf": [
+            "category",
+            "id",
+            "name",
+            "photoUrls",
+            "status",
+            "tags"
+          ],
           "co": {
             "id": "POST /pet",
             "source": "swagger2",
@@ -445,6 +453,14 @@
       "name": "update",
       "points": [
         {
+          "bf": [
+            "category",
+            "id",
+            "name",
+            "photoUrls",
+            "status",
+            "tags"
+          ],
           "co": {
             "id": "PUT /pet",
             "source": "swagger2",

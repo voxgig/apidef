@@ -131,5 +131,14 @@ const JSON_BODY = { kind: 'json', media: 'application/json' };
                     alternatives: [JSON_BODY],
                 }]]);
     });
+    (0, node_test_1.test)('a JSON body names its properties, and no body or one not JSON names none', () => {
+        node_assert_1.default.deepStrictEqual(bodies('note', 'create', 'bf'), [['/notes', ['id', 'text']]]);
+        for (const entity of ['avatar', 'render', 'subscription', 'upload']) {
+            node_assert_1.default.deepStrictEqual(bodies(entity, 'create', 'bf').map(([, bf]) => bf), [null]);
+            node_assert_1.default.deepStrictEqual(bodies(entity, 'load', 'bf').map(([, bf]) => bf), [null]);
+        }
+        node_assert_1.default.deepStrictEqual(bodies('render', 'update', 'bf'), [['/renders/{render_id}', null]]);
+        node_assert_1.default.deepStrictEqual(bodies('note', 'remove', 'bf'), [['/notes/{note_id}', null]]);
+    });
 });
 //# sourceMappingURL=body.test.js.map

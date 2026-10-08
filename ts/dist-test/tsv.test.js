@@ -1112,6 +1112,16 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-body-fields', () => {
+    const rows = loadTsv('body-fields');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, () => {
+            const media = '' === row.media ? undefined : row.media;
+            node_assert_1.default.deepStrictEqual((0, body_1.bodyFields)(JSON.parse(row.def), JSON.parse(row.point), media) ?? null, JSON.parse(row.expected));
+        });
+    }
+});
 // The package root types a point's bodies, and the schema keeps them.
 (0, node_test_1.describe)('tsv-point-body', () => {
     const schema = Fs.readFileSync(Path.join(__dirname, '..', '..', 'model', 'apidef.aontu'), 'utf8');
@@ -1124,7 +1134,8 @@ function loadTsv(name) {
                 JSON.stringify({ name: 'create', points: [point] })).main.kit.entity.upload.op.create.points[0];
             const request = unified.rb;
             const response = unified.rs;
-            node_assert_1.default.deepStrictEqual(JSON.parse(JSON.stringify({ rb: request, rs: response })), JSON.parse(row.expected));
+            const declared = unified.bf;
+            node_assert_1.default.deepStrictEqual(JSON.parse(JSON.stringify({ rb: request, bf: declared, rs: response })), JSON.parse(row.expected));
             const kinds = [request, response].filter((body) => null != body).map((body) => body.kind);
             const fields = [...(request?.fields ?? []), ...(response?.fields ?? [])];
             node_assert_1.default.deepStrictEqual([kinds, fields], [

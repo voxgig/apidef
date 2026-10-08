@@ -62,6 +62,9 @@
       "name": "create",
       "points": [
         {
+          "bf": [
+            "users"
+          ],
           "co": {
             "id": "POST /user/createWithArray",
             "source": "swagger2",
@@ -89,6 +92,9 @@
           }
         },
         {
+          "bf": [
+            "users"
+          ],
           "co": {
             "id": "POST /user/createWithList",
             "source": "swagger2",
@@ -116,6 +122,16 @@
           }
         },
         {
+          "bf": [
+            "email",
+            "firstName",
+            "id",
+            "lastName",
+            "password",
+            "phone",
+            "userStatus",
+            "username"
+          ],
           "co": {
             "id": "POST /user",
             "source": "swagger2",
@@ -323,6 +339,16 @@
       "name": "update",
       "points": [
         {
+          "bf": [
+            "email",
+            "firstName",
+            "id",
+            "lastName",
+            "password",
+            "phone",
+            "userStatus",
+            "username"
+          ],
           "co": {
             "id": "PUT /user/{username}",
             "source": "swagger2",

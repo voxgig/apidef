@@ -87,8 +87,9 @@ func checkArrayBody(t *testing.T, name string) {
 				action, _ := q["$action"].(string)
 				tm, _ := ptm["t"].(map[string]any)
 				req, _ := json.Marshal(tm["req"])
+				bf, _ := json.Marshal(ptm["bf"])
 				points = append(points, ename+"."+opname+" "+ptm["m"].(string)+" "+ptm["o"].(string)+
-					" exist="+strings.Join(exist, ",")+" action="+action+" req="+string(req))
+					" exist="+strings.Join(exist, ",")+" action="+action+" req="+string(req)+" bf="+string(bf))
 			}
 		}
 		fields[ename] = map[string]map[string]any{}

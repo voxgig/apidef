@@ -97,6 +97,7 @@ type ModelPoint struct {
 	Transform   map[string]any   `json:"t,omitempty"`
 	Select      map[string]any   `json:"q,omitempty"`
 	RequestBody *ModelBody       `json:"rb,omitempty"`
+	BodyFields  any              `json:"bf,omitempty"`
 	Response    *ModelBody       `json:"rs,omitempty"`
 }
 

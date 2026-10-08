@@ -1825,6 +1825,25 @@ func TestRequestBody(t *testing.T) {
 	}
 }
 
+func TestBodyFields(t *testing.T) {
+	rows := loadTsv(t, "body-fields")
+	if len(rows) == 0 {
+		t.Fatal("no body-fields rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var def, point map[string]any
+			var want any
+			unmarshalCol(t, row, "def", &def)
+			unmarshalCol(t, row, "point", &point)
+			unmarshalCol(t, row, "expected", &want)
+			if got := bodyFields(def, point, row["media"]); !reflect.DeepEqual(got, want) {
+				t.Errorf("bodyFields\ngot  %s\nwant %s", asJSON(got), asJSON(want))
+			}
+		})
+	}
+}
+
 // The exported ModelPoint keeps a point's bodies through a round trip.
 func TestPointBody(t *testing.T) {
 	rows := loadTsv(t, "point-body")
@@ -1847,7 +1866,7 @@ func TestPointBody(t *testing.T) {
 				t.Fatalf("bad expected %q: %v", row["expected"], err)
 			}
 			bodies := map[string]any{}
-			for _, key := range []string{"rb", "rs"} {
+			for _, key := range []string{"rb", "bf", "rs"} {
 				if got[key] != nil {
 					bodies[key] = got[key]
 				}

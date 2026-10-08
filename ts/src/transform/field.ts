@@ -5,13 +5,13 @@ import { each, getx } from 'jostraca'
 import type { TransformResult, Transform } from '../transform'
 
 import {
-  validator, canonizeField, inferFieldType, normalizeFieldName, envelopeProp,
-  composedEnvelopeProp, mergedProperties, canonizeCmpName, requestWrapperOf,
+  validator, fieldName, inferFieldType, envelopeProp,
+  composedEnvelopeProp, mergedProperties, canonizeCmpName,
   scanUntaggedUnion, firstSentence, humanTitle, collapseScalarAllOf,
   itemEnvelopeOf,
 } from '../utility'
 
-import { arrayCarrier, guideMedia, sameType, selectedRequestSchema } from './body'
+import { arrayCarrier, guideMedia, requestFieldSchema, sameType } from './body'
 
 import { KIT } from '../types'
 
@@ -592,11 +592,7 @@ function routeFieldNames(
 
 
 function modelField(fielddef: SchemaDef): ModelField {
-  const fieldname = (fielddef as any).key$ as string
-  // Field names are WIRE identifiers — see canonizeField. Using the
-  // entity-name canonizer here renamed modelType -> model_type and
-  // items -> item, so the SDK read keys the server never sends.
-  const name = canonizeField(normalizeFieldName(fieldname))
+  const name = fieldName((fielddef as any).key$ as string)
   const mfield: ModelField = {
     n: name,
     h: humanTitle(name),
@@ -800,14 +796,9 @@ function findFieldDefs(
     // A QUERY (RFC 10008) body is a filter, not the entity shape, so a QUERY
     // op's fields come from its response alone; an action's body is the
     // verb's arguments, never the record.
-    const reqschema = selectedRequestSchema(def, mpoint.m, mpoint.o, media) ?? getx(requestBody, 'schema')
+    const reqschema = requestFieldSchema(def, mpoint, media)
     if ((requestBody || null != reqschema) && 'query' !== method && !isAction) {
-      // A body that sends the record under one key holds its fields there.
-      const reqkey = requestWrapperOf(mpoint.t?.req)
-      fieldSets = [
-        fieldSets,
-        null == reqkey ? reqschema : mergedProperties(reqschema)?.[reqkey] ?? reqschema,
-      ]
+      fieldSets = [fieldSets, reqschema]
     }
 
 

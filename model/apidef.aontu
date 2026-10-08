@@ -99,6 +99,7 @@ main: kit: type: type({ # Reusable model types.
     rb?: %body & { # Request body, when it is not JSON alone.
       alternatives?: [ &: %body ] # Other accepted media types, in preference order.
     }
+    bf?: [ &: string ] | false # Property names the JSON request body declares, or false for none.
     rs?: %body & { # Success response body, when a success response declares one.
       alternatives?: [ &: %body ] # Other declared media types, in preference order.
     }
