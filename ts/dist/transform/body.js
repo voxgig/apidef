@@ -470,9 +470,10 @@ function unionArray(members) {
     const one = null != ref && members.every((member) => ref === member.items?.['x-ref']);
     return { type: 'array', ...(one ? { items: members[0].items } : {}) };
 }
-// A nullable array says so with `nullable` in OpenAPI 3.0, and a type list in 3.1.
+// The nullable flag adds null once to the declared type.
 function nullableType(schema) {
-    return true === schema.nullable && !hasType(schema, 'null') ? [schema.type, 'null'].flat() : schema.type;
+    return true === schema.nullable && null != schema.type && !hasType(schema, 'null') ?
+        [schema.type, 'null'].flat() : schema.type;
 }
 const REQDATA_FIELD_RE = /^`reqdata\.([A-Za-z_][A-Za-z0-9_]*)`$/;
 // The field of the request data a point's JSON array body is sent from, when

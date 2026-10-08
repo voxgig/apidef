@@ -583,7 +583,7 @@ func routeFieldNames(mtarget map[string]any, def map[string]any, opname string, 
 
 func modelField(fielddef map[string]any) map[string]any {
 	name := fieldName(fielddef["key$"].(string))
-	ftype := fielddef["type"]
+	ftype := nullableType(fielddef)
 	mfield := map[string]any{
 		"n":  name,
 		"h":  HumanTitle(name),
@@ -957,7 +957,7 @@ func composedFields(schema any) []map[string]any {
 			// Every key, as TypeScript keeps the whole schema: the union scan
 			// reads oneOf and anyOf from the field def. Unasserted: a 3.1
 			// nullable field's type is an ARRAY.
-			for k, v := range collapseScalarAllOf(pm) {
+			for k, v := range fieldSchema(pm) {
 				if !statesFact(k, fd[k]) && statesFact(k, v) {
 					fd[k] = v
 				}
@@ -973,6 +973,39 @@ func composedFields(schema any) []map[string]any {
 		out = append(out, defs[name])
 	}
 	return out
+}
+
+func fieldSchema(property map[string]any) map[string]any {
+	members, composed := property["allOf"].([]any)
+	if !composed {
+		return property
+	}
+	collapsed := collapseScalarAllOf(property)
+	if collapsed["allOf"] != nil {
+		return property
+	}
+	nullable := true
+	parts := []any{property}
+	parts = append(parts, members...)
+	for _, part := range parts {
+		m, _ := part.(map[string]any)
+		if m["type"] != nil && m["nullable"] != true && !schemaHasType(m, "null") {
+			nullable = false
+		}
+	}
+	var types []any
+	for _, typ := range typeList(collapsed["type"]) {
+		if nullable || typ != "null" {
+			types = append(types, typ)
+		}
+	}
+	collapsed["nullable"] = nullable
+	if len(types) == 1 {
+		collapsed["type"] = types[0]
+	} else {
+		collapsed["type"] = types
+	}
+	return collapsed
 }
 
 var annotationFlags = map[string]bool{"readOnly": true, "writeOnly": true, "deprecated": true}
