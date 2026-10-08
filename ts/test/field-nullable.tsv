@@ -12,5 +12,12 @@ null-only	{"type":"null","nullable":true}	"`$NULL`"
 already-nullable	{"type":["string","null"],"nullable":true}	["`$ONE`",["`$STRING`","`$NULL`"]]
 type-list	{"type":["string","integer"],"nullable":true}	["`$ONE`",["`$STRING`","`$INTEGER`","`$NULL`"]]
 no-declared-type	{"nullable":true}	"`$ANY`"
-allof-wrapper	{"nullable":true,"allOf":[{"type":"string"}]}	["`$ONE`",["`$STRING`","`$NULL`"]]
-allof-member	{"allOf":[{"nullable":true},{"type":"integer"}]}	["`$ONE`",["`$INTEGER`","`$NULL`"]]
+allof-wrapper	{"nullable":true,"allOf":[{"type":"string"}]}	"`$STRING`"
+allof-member	{"allOf":[{"nullable":true},{"type":"integer"}]}	"`$INTEGER`"
+allof-typed-nullable-member	{"allOf":[{"type":"string","nullable":true},{"description":"Note"}]}	["`$ONE`",["`$STRING`","`$NULL`"]]
+allof-untyped-false-wrapper	{"nullable":false,"allOf":[{"type":"string","nullable":true}]}	["`$ONE`",["`$STRING`","`$NULL`"]]
+allof-untyped-false-member	{"allOf":[{"type":"string","nullable":true},{"nullable":false}]}	["`$ONE`",["`$STRING`","`$NULL`"]]
+allof-typed-wrapper-excludes-null	{"type":"string","allOf":[{"type":"string","nullable":true}]}	"`$STRING`"
+allof-typed-member-excludes-null	{"type":"string","nullable":true,"allOf":[{"type":"string"}]}	"`$STRING`"
+allof-both-typed-nullable	{"type":"string","nullable":true,"allOf":[{"type":"string","nullable":true}]}	["`$ONE`",["`$STRING`","`$NULL`"]]
+allof-type-list-wrapper-excludes-null	{"type":"string","allOf":[{"type":["string","null"]}]}	"`$STRING`"
