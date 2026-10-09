@@ -15,6 +15,8 @@ object	`$OBJECT`
 any	`$ANY`
 unknown	`$ANY`
 foo	`$ANY`
+symbol	`$ANY`
+PartialStartDate	`$ANY`
 constructor	`$ANY`
 __proto__	`$ANY`
 toString	`$ANY`

@@ -1,0 +1,95 @@
+{
+  "fields": {
+    "document": {
+      "caption": {
+        "t": "`$STRING`"
+      },
+      "file": {
+        "t": "`$STRING`",
+        "fo": "binary"
+      },
+      "thumbnail": {
+        "t": "`$STRING`",
+        "fo": "binary"
+      }
+    },
+    "upload": {
+      "alert_status": {
+        "t": "`$ANY`"
+      },
+      "bytes": {
+        "t": "`$INTEGER`"
+      },
+      "caption": {
+        "t": "`$STRING`"
+      },
+      "extra": {
+        "t": "`$ANY`"
+      },
+      "file": {
+        "t": "`$STRING`",
+        "fo": "binary"
+      },
+      "height": {
+        "t": "`$NUMBER`"
+      },
+      "id": {
+        "t": "`$STRING`"
+      },
+      "meta": {
+        "t": "`$OBJECT`"
+      },
+      "ratio": {
+        "t": "`$NUMBER`"
+      },
+      "shared": {
+        "t": "`$BOOLEAN`"
+      },
+      "tags": {
+        "t": "`$ARRAY`"
+      },
+      "weight": {
+        "t": "`$NUMBER`"
+      }
+    }
+  },
+  "args": {
+    "document.create": {
+      "query": {
+        "caption": "`$ANY`",
+        "file": "`$ANY`",
+        "thumbnail": "`$ANY`"
+      }
+    },
+    "upload.load": {
+      "params": {
+        "id": "`$STRING`"
+      },
+      "query": {
+        "preview": "`$STRING`",
+        "since": "`$ANY`"
+      }
+    }
+  },
+  "bodies": {
+    "document.create": {
+      "kind": "multipart",
+      "media": "multipart/form-data",
+      "fields": [
+        {
+          "name": "caption"
+        },
+        {
+          "name": "file",
+          "binary": true
+        },
+        {
+          "name": "thumbnail",
+          "binary": true
+        }
+      ]
+    },
+    "upload.create": null,
+    "upload.load": null
+  }
+}
