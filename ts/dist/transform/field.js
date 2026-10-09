@@ -461,7 +461,7 @@ function modelField(fielddef) {
     if ('string' === typeof ffmt && '' !== ffmt.trim()) {
         mfield.fo = ffmt.trim();
     }
-    else if ('string' === typeof fielddef.type && 'file' === fielddef.type.trim().toLowerCase()) {
+    else if ((0, utility_1.isFileType)(fielddef.type)) {
         mfield.fo = 'binary';
     }
     // Record an untagged union under this field. The field is already typed

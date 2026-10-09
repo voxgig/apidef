@@ -8,7 +8,7 @@ import {
   validator, fieldName, inferFieldType, envelopeProp,
   composedEnvelopeProp, mergedProperties, canonizeCmpName,
   scanUntaggedUnion, firstSentence, humanTitle, collapseScalarAllOf,
-  itemEnvelopeOf,
+  itemEnvelopeOf, isFileType,
 } from '../utility'
 
 import { arrayCarrier, guideMedia, requestFieldSchema, sameType } from './body'
@@ -621,7 +621,7 @@ function modelField(fielddef: SchemaDef): ModelField {
   if ('string' === typeof ffmt && '' !== ffmt.trim()) {
     mfield.fo = ffmt.trim()
   }
-  else if ('string' === typeof fielddef.type && 'file' === fielddef.type.trim().toLowerCase()) {
+  else if (isFileType(fielddef.type)) {
     mfield.fo = 'binary'
   }
 

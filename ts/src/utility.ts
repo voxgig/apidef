@@ -972,11 +972,20 @@ const VALID_CANON: Record<string, string> = Object.assign(Object.create(null), {
 const CANON_ONE = '`$ONE`'
 
 
+function declaredType(type: string): string {
+  return type.toLowerCase().trim()
+}
+
+
+// Swagger 2's file, a binary string in OpenAPI 3.
+function isFileType(type: unknown): boolean {
+  return 'string' === typeof type && 'file' === declaredType(type)
+}
+
+
 function validator(torig: undefined | string | string[]): any {
   if ('string' === typeof torig) {
-    const tstr = torig.toLowerCase().trim()
-    const canon = VALID_CANON[tstr] ?? '`$ANY`'
-    return canon
+    return VALID_CANON[declaredType(torig)] ?? '`$ANY`'
   }
   else if (Array.isArray(torig)) {
     return [CANON_ONE, torig.map((t: string) => validator(t))]
@@ -2157,6 +2166,7 @@ export {
   makeWarner,
   formatJSONIC,
   validator,
+  isFileType,
   VALID_CANON,
   CANON_ONE,
   canonize,

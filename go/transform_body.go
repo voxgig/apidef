@@ -397,7 +397,7 @@ func mapsOf(list any) []map[string]any {
 
 func formHasFile(form []map[string]any) bool {
 	for _, param := range form {
-		if param["type"] == "file" {
+		if isFileType(param["type"]) {
 			return true
 		}
 	}
@@ -546,7 +546,7 @@ func rawBinary(mediaType string, schema any) bool {
 func binarySchema(schema any) bool {
 	m, ok := schema.(map[string]any)
 	return ok && m != nil && !encodedText(m) &&
-		(m["format"] == "binary" || m["type"] == "file" || m["contentMediaType"] != nil)
+		(m["format"] == "binary" || isFileType(m["type"]) || m["contentMediaType"] != nil)
 }
 
 func encodedText(schema any) bool {

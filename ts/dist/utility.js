@@ -19,6 +19,7 @@ exports.pathMatch = pathMatch;
 exports.makeWarner = makeWarner;
 exports.formatJSONIC = formatJSONIC;
 exports.validator = validator;
+exports.isFileType = isFileType;
 exports.canonize = canonize;
 exports.canonizeField = canonizeField;
 exports.fieldName = fieldName;
@@ -838,11 +839,16 @@ const VALID_CANON = Object.assign(Object.create(null), {
 exports.VALID_CANON = VALID_CANON;
 const CANON_ONE = '`$ONE`';
 exports.CANON_ONE = CANON_ONE;
+function declaredType(type) {
+    return type.toLowerCase().trim();
+}
+// Swagger 2's file, a binary string in OpenAPI 3.
+function isFileType(type) {
+    return 'string' === typeof type && 'file' === declaredType(type);
+}
 function validator(torig) {
     if ('string' === typeof torig) {
-        const tstr = torig.toLowerCase().trim();
-        const canon = VALID_CANON[tstr] ?? '`$ANY`';
-        return canon;
+        return VALID_CANON[declaredType(torig)] ?? '`$ANY`';
     }
     else if (Array.isArray(torig)) {
         return [CANON_ONE, torig.map((t) => validator(t))];

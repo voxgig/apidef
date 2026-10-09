@@ -18,5 +18,9 @@ file-upload	attachment	{"type":"file"}	{"t":"`$STRING`","fo":"binary"}
 file-upload-format	attachment	{"type":"file","format":"base64"}	{"t":"`$STRING`","fo":"base64"}
 file-upload-blank-format	attachment	{"type":"file","format":" "}	{"t":"`$STRING`","fo":"binary"}
 file-upload-mixed-case	attachment	{"type":"File"}	{"t":"`$STRING`","fo":"binary"}
+file-upload-byte-order-mark-trimmed	attachment	{"type":"\ufefffile"}	{"t":"`$STRING`","fo":"binary"}
+file-upload-blank-format-byte-order-mark	attachment	{"type":"file","format":"\ufeff"}	{"t":"`$STRING`","fo":"binary"}
+file-upload-next-line-not-trimmed	attachment	{"type":"file\u0085"}	{"t":"`$ANY`"}
+file-upload-dotted-capital-i-not-file	attachment	{"type":"F\u0130LE"}	{"t":"`$ANY`"}
 unknown-declaration	attachment	{"type":"vendor-type"}	{"t":"`$ANY`"}
 unknown-id-declaration	owner_id	{"type":"vendor-type"}	{"t":"`$STRING`"}

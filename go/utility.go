@@ -606,11 +606,22 @@ func ValidCanon() map[string]string {
 
 const CanonOne = "`$ONE`"
 
+// declaredType lowers and trims a type name as JavaScript does, so a name
+// compares alike in both ports.
+func declaredType(s string) string {
+	return jsTrim(jsLowerCaser.String(s))
+}
+
+// isFileType reports Swagger 2's file, a binary string in OpenAPI 3.
+func isFileType(t any) bool {
+	s, ok := t.(string)
+	return ok && declaredType(s) == "file"
+}
+
 func Validator(torig any) any {
 	switch v := torig.(type) {
 	case string:
-		tstr := strings.ToLower(strings.TrimSpace(v))
-		if canon, ok := validCanon[tstr]; ok {
+		if canon, ok := validCanon[declaredType(v)]; ok {
 			return canon
 		}
 		return "`$ANY`"
