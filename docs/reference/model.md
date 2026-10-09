@@ -89,7 +89,7 @@ compiler model retains entity names until the file builder renders them.
 |-------|------|---------|
 | `n` | `string` | canonical field name, matching its map key |
 | `h` | `string` | human title derived from `n`, such as `created_at` → `Created At` |
-| `t` | `string` | validator token — `` `$STRING` ``, `` `$NUMBER` ``, `` `$BOOLEAN` ``, `` `$ANY` ``, … |
+| `t` | `string` or `array` | validator token — `` `$STRING` ``, `` `$NUMBER` ``, `` `$BOOLEAN` ``, `` `$ANY` ``, …, or a `` `$ONE` `` union of tokens, such as a type that may be null |
 | `r` | `boolean` | required (from the schema's `required[]`) |
 | `a` | `boolean` | included in output |
 | `op` | `{ [opname]: { req, type } }` | per-operation overrides when `req`/`type` differ for a specific op |
@@ -128,6 +128,28 @@ described that way, gives a `` `$STRING` `` field with `fo: oid`. Any other
 `` `$ANY` `` unless the name says what it holds, such as an id, a count, or a
 flag. `ts/test/allof-field.tsv` pins each case.
 
+A field that may be null has the type `` [`$ONE`, [<type>, `$NULL`]] ``. An
+OpenAPI 3.1 type list that names `null` beside one type gives it, in the
+list's order, and so does OpenAPI 3.0's `nullable: true` beside a `type`,
+which adds `` `$NULL` `` after the type. As OpenAPI 3.0.3 defines it,
+`nullable` takes effect only where the same schema declares a `type`, so a
+`nullable` with no `type` beside it adds nothing, with or without an `enum` or
+a `const`. A field reads `nullable` as it reads a type list: an `enum` or a
+`const` that leaves `null` out does not take the null away. An `allOf` read as
+one scalar admits null only when every part that declares a `type` admits it,
+by `nullable: true` or by listing `null`, so a describing member's `nullable`
+adds nothing, and a property whose own `type` leaves `null` out keeps it out.
+`ts/test/field-nullable.tsv` pins each case.
+
+A field typed `` `$ANY` `` takes a type from its name where the name says what
+it holds: an id, or a name such as `url` or `email`, is `` `$STRING` ``, a
+count or a page size `` `$INTEGER` ``, a measure such as `price` or `latitude`
+`` `$NUMBER` ``, and a flag such as `is_open` or `enabled` `` `$BOOLEAN` ``. A
+`` `$STRING` `` named as a flag is `` `$BOOLEAN` `` too. A type that may be
+null is read by its other member and keeps its null, so a string named
+`is_open` that may be null is `` [`$ONE`, [`$BOOLEAN`, `$NULL`]] ``.
+`ts/test/infer-field-type.tsv` pins each name.
+
 A point's request body properties become fields from the body its guide's
 `body.media` names, of whatever media type, else from the JSON body the body
 step prefers. A Swagger 2 `formData` parameter gives a field that is required
@@ -138,14 +160,15 @@ sends it declares one field for it: the field its `t.req` sends the array
 from. The field takes the array schema's own type, so it is `` `$ARRAY` ``,
 or `` [`$ONE`, [`$ARRAY`, `$NULL`]] `` for a body that may be null, by a type
 list, by OpenAPI 3.0's `nullable`, or by a `oneOf` or `anyOf` of the array and
-`null`, where every `allOf` part admits null too. It is never required, because every
-field is also part of the record, and no record holds the list. Its `sh` is
-the request body's description, else the array schema's. A remove point
-declares it too, though nothing else a remove sends or answers becomes a
-field. A point that is an action declares none, as an action's body never
-describes the record. A Swagger 2 `body` parameter is the request body: its
-properties become fields as an OpenAPI 3 body's do, and it is never an
-argument.
+`null`, where null also passes the body's `const` or `enum` and every `allOf`
+part. Unlike a field, a body whose `const` or `enum` leaves `null` out is
+never null. It is never required, because every field is also part of the
+record, and no record holds the list. Its `sh` is the request body's
+description, else the array schema's. A remove point declares it too, though
+nothing else a remove sends or answers becomes a field. A point that is an
+action declares none, as an action's body never describes the record. A
+Swagger 2 `body` parameter is the request body: its properties become fields
+as an OpenAPI 3 body's do, and it is never an argument.
 
 ## `ModelOp`
 
@@ -409,6 +432,13 @@ are required; `a` defaults to `true`.
 | `v` | `array` | assertions to run afterward (e.g. `ItemExists`, `TextFieldMark`) |
 | `s` | `array` | mutation specs applied during the step |
 | `a` | `boolean` | included in output |
+
+The update step writes a mark into one text field, and the load step checks
+that the mark comes back. The update's `i.textfield` names that field: the
+first in name order whose type is a string, `` `$STRING` `` alone or with
+`` `$NULL` ``, other than `id`, a field marked `ro`, and the update's own
+parameters. When the entity has no such field, the step has no `textfield`.
+`ts/test/flow-step.tsv` pins the choice.
 
 ## Worked example (abridged)
 
