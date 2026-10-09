@@ -259,9 +259,20 @@ function loadTsv(name) {
 });
 (0, node_test_1.describe)('tsv-infer-field-type', () => {
     const rows = loadTsv('infer-field-type');
+    // A union is written as JSON, any other type as its token.
+    const typeCell = (cell) => cell.startsWith('[') ? JSON.parse(cell) : cell;
     for (const row of rows) {
-        (0, node_test_1.test)(`inferFieldType("${row.name}", "${row.specType}") => "${row.expected}"`, () => {
-            node_assert_1.default.deepStrictEqual((0, utility_1.inferFieldType)(row.name, row.specType), row.expected);
+        (0, node_test_1.test)(`inferFieldType("${row.name}", ${row.specType}) => ${row.expected}`, () => {
+            node_assert_1.default.deepStrictEqual((0, utility_1.inferFieldType)(row.name, typeCell(row.specType)), typeCell(row.expected));
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-non-null-type', () => {
+    const rows = loadTsv('non-null-type');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(`nonNullType(${row.type}) => ${row.expected}`, () => {
+            node_assert_1.default.deepStrictEqual((0, utility_1.nonNullType)(JSON.parse(row.type)) ?? null, JSON.parse(row.expected));
         });
     }
 });
@@ -1193,7 +1204,8 @@ function flowPoint(spec) {
     for (const row of rows) {
         (0, node_test_1.test)(`flowstepTransform(${row.ops.slice(0, 60)})`, async () => {
             const op = Object.fromEntries(Object.entries(JSON.parse(row.ops)).map(([name, points]) => [name, { name, points: points.map(flowPoint) }]));
-            const fields = Object.fromEntries(JSON.parse(row.fields).map((n) => [n, { n, t: '`$STRING`' }]));
+            // A field is a string unless the row gives its type.
+            const fields = Object.fromEntries(JSON.parse(row.fields).map((field) => 'string' === typeof field ? [field, { n: field, t: '`$STRING`' }] : [field.n, field]));
             const flow = { name: 'BasicThingFlow', entity: 'thing', kind: 'basic', step: [] };
             await (0, flowstep_1.flowstepTransform)({
                 apimodel: { main: { kit: {

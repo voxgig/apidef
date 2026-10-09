@@ -11,7 +11,7 @@ import {
   itemEnvelopeOf,
 } from '../utility'
 
-import { arrayCarrier, guideMedia, requestFieldSchema, sameType } from './body'
+import { arrayCarrier, guideMedia, requestFieldSchema, sameType, nullableType } from './body'
 
 import { KIT } from '../types'
 
@@ -596,7 +596,7 @@ function modelField(fielddef: SchemaDef): ModelField {
   const mfield: ModelField = {
     n: name,
     h: humanTitle(name),
-    t: inferFieldType(name, validator(fielddef.type)),
+    t: inferFieldType(name, validator(nullableType(fielddef))),
     r: !!fielddef.required,
     op: {},
   }
@@ -867,7 +867,7 @@ function composedFields(schema: any): any[] {
   const decls: Record<string, any[]> = Object.create(null)
   for (const part of parts) {
     each(part.properties, (property: any) => {
-      (decls[property.key$] = decls[property.key$] ?? []).push(collapseScalarAllOf(property))
+      (decls[property.key$] = decls[property.key$] ?? []).push(fieldSchema(property))
     })
   }
 
@@ -876,6 +876,20 @@ function composedFields(schema: any): any[] {
     // A copy: parsed schemas are shared by every operation referencing them.
     return !property.required && required.has(name) ? { ...property, required: true } : property
   })
+}
+
+
+function fieldSchema(property: any): any {
+  const collapsed = collapseScalarAllOf(property)
+  if (collapsed === property) {
+    return property
+  }
+  const nullable = [property, ...property.allOf].every((part: any) =>
+    null == part.type || true === part.nullable ||
+    (Array.isArray(part.type) ? part.type : [part.type]).includes('null'))
+  const types = (Array.isArray(collapsed.type) ? collapsed.type : [collapsed.type])
+    .filter((type: any) => nullable || 'null' !== type)
+  return { ...collapsed, nullable, type: 1 === types.length ? types[0] : types }
 }
 
 

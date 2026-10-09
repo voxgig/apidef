@@ -1,0 +1,12 @@
+type	expected
+"`$STRING`"	"`$STRING`"
+"`$ANY`"	"`$ANY`"
+["`$ONE`",["`$STRING`","`$NULL`"]]	"`$STRING`"
+["`$ONE`",["`$NULL`","`$OBJECT`"]]	"`$OBJECT`"
+["`$ONE`",["`$ARRAY`"]]	"`$ARRAY`"
+["`$ONE`",["`$STRING`","`$INTEGER`"]]	null
+["`$ONE`",["`$STRING`","`$INTEGER`","`$NULL`"]]	null
+["`$ONE`",["`$NULL`"]]	null
+["`$ONE`",[]]	null
+["`$ONE`","`$NULL`","`$STRING`"]	null
+null	null

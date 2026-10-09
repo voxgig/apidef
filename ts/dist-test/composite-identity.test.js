@@ -164,6 +164,25 @@ async function runPoints(name, paths, model) {
         node_assert_1.default.equal(kept.op.list.type, '`$INTEGER`');
         node_assert_1.default.equal(ent.alias.field.github_id, 'id');
     });
+    // go/composite_test.go reads the same response.
+    (0, node_test_1.test)('a nullable string id holds the parts where it is', async () => {
+        const path = ['repos', '{owner}', '{repo}'];
+        const ent = {
+            name: 'repo', fields: {},
+            op: { load: { name: 'load', points: [{ o: '/' + path.join('/'), m: 'GET', s: seg(...path) }] } },
+        };
+        const def = { paths: { ['/' + path.join('/')]: { get: { responses: { '200': { content: {
+                                    'application/json': { schema: { type: 'object', properties: {
+                                                id: { type: 'string', nullable: true }, name: { type: 'string' },
+                                            } } },
+                                } } } } } } };
+        await (0, field_1.fieldTransform)({ apimodel: { main: { kit: { entity: { repo: ent } } } }, def,
+            model: { name: 'github' } });
+        node_assert_1.default.deepStrictEqual(ent.id.parts, ['owner', 'repo']);
+        node_assert_1.default.deepStrictEqual(ent.fields.id.t, ['`$ONE`', ['`$STRING`', '`$NULL`']]);
+        node_assert_1.default.equal(ent.fields.github_id, undefined);
+        node_assert_1.default.equal(ent.alias, undefined);
+    });
     (0, node_test_1.describe)('where a part lives in the response', () => {
         async function withResponse(name, path, properties, guide) {
             const ent = {

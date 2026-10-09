@@ -331,9 +331,9 @@ func lookupInput(input map[string]any, name string) (any, bool) {
 }
 
 // firstTextField mirrors TS firstTextField — returns the name of the
-// first $STRING field on the entity that is not the id, not readOnly and
-// not a param of the update. The flow writes this field and then asserts
-// the mark comes back, so a field the client may not send fails the step.
+// first string field, nullable or not, on the entity that is not the id, not
+// readOnly and not a param of the update. The flow writes this field and then
+// asserts the mark comes back, so a field the client may not send fails the step.
 func firstTextField(ent, updateOp map[string]any) string {
 	paramNames := map[string]bool{}
 	points, _ := updateOp["points"].([]any)
@@ -353,7 +353,7 @@ func firstTextField(ent, updateOp map[string]any) string {
 		if fm == nil {
 			continue
 		}
-		ftype, _ := fm["t"].(string)
+		ftype, _ := nonNullType(fm["t"])
 		fname, _ := fm["n"].(string)
 		if ro, _ := fm["ro"].(bool); ro {
 			continue

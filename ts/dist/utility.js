@@ -33,6 +33,7 @@ exports.authExchangeOp = authExchangeOp;
 exports.specSecuredByDefault = specSecuredByDefault;
 exports.ensureMinEntityName = ensureMinEntityName;
 exports.inferFieldType = inferFieldType;
+exports.nonNullType = nonNullType;
 exports.normalizeFieldName = normalizeFieldName;
 exports.canonizeParam = canonizeParam;
 exports.paramName = paramName;
@@ -837,6 +838,7 @@ const VALID_CANON = Object.assign(Object.create(null), {
 exports.VALID_CANON = VALID_CANON;
 const CANON_ONE = '`$ONE`';
 exports.CANON_ONE = CANON_ONE;
+const CANON_NULL = '`$NULL`';
 function validator(torig) {
     if ('string' === typeof torig) {
         const tstr = torig.toLowerCase().trim();
@@ -849,6 +851,18 @@ function validator(torig) {
     else {
         return '`$ANY`';
     }
+}
+// The type a field holds when it is not null: the type itself, or the one
+// member of a union beside `$NULL`. Any other union has none.
+function nonNullType(type) {
+    if ('string' === typeof type) {
+        return type;
+    }
+    if (!Array.isArray(type) || CANON_ONE !== type[0] || !Array.isArray(type[1])) {
+        return undefined;
+    }
+    const members = type[1].filter((member) => CANON_NULL !== member);
+    return 1 === members.length && 'string' === typeof members[0] ? members[0] : undefined;
 }
 const FILE_EXT_RE = /\.(php|json|txt|png|jpg|jpeg|gif|svg|xml|html|csv|yml|yaml|md)$/i;
 function transliterate(s) {
@@ -987,6 +1001,13 @@ const NUMBER_NAME_RE = /^(latitude$|longitude$|lat$|lng$|lon$|price$|amount$|rat
 const STRING_NAME_RE = /^(url$|href$|link$|uri$|email$|name$|title$|description$|slug$|path$|label$|username$|password$|token$|key$)/;
 const ID_NAME_RE = /(_id$|^id$)/;
 function inferFieldType(name, specType) {
+    // A nullable type is inferred by its other member, and keeps its null.
+    const own = nonNullType(specType);
+    if (null != own && own !== specType) {
+        const inferred = inferFieldType(name, own);
+        return inferred === own ? specType :
+            [specType[0], specType[1].map((member) => own === member ? inferred : member)];
+    }
     // Only override $ANY, or $STRING for boolean-patterned names
     if ('`$ANY`' === specType) {
         if (BOOLEAN_NAME_RE.test(name))

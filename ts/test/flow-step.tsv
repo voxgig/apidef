@@ -14,3 +14,7 @@ ops	fields	expected
 {"list":["/things/{id}"]}	[]	[{"o":"list"}]
 {"update":["/l/{label}/things/{id}","/things/{id}"]}	["label","name"]	[{"o":"update","tf":"name"}]
 {"update":["/elements/{element_id}/things/{id}"]}	["element_id","halflife"]	[{"o":"update","d":{"element_id":"element01"},"tf":"halflife"}]
+{"update":["/notes/{id}"]}	[{"n":"body","t":["`$ONE`",["`$STRING`","`$NULL`"]]},"title"]	[{"o":"update","tf":"body"}]
+{"update":["/memos/{id}"]}	[{"n":"body","t":["`$ONE`",["`$NULL`","`$STRING`"]]},"title"]	[{"o":"update","tf":"body"}]
+{"update":["/tags/{id}"]}	[{"n":"body","t":["`$ONE`",["`$STRING`","`$INTEGER`"]]},"title"]	[{"o":"update","tf":"title"}]
+{"update":["/counts/{id}"]}	[{"n":"body","t":["`$ONE`",["`$INTEGER`","`$NULL`"]]},"title"]	[{"o":"update","tf":"title"}]

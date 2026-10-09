@@ -210,12 +210,47 @@ func TestTsvInferFieldType(t *testing.T) {
 	for _, row := range rows {
 		name, specType, expected := row["name"], row["specType"], row["expected"]
 		t.Run("inferFieldType("+name+","+specType+")", func(t *testing.T) {
-			got := InferFieldTypeString(name, specType)
-			if got != expected {
-				t.Errorf("InferFieldType(%q, %q) = %q, want %q", name, specType, got, expected)
+			got := InferFieldType(name, tsvTypeCell(t, specType))
+			if !jsonEqual(got, tsvTypeCell(t, expected)) {
+				t.Errorf("InferFieldType(%q, %s) = %v, want %s", name, specType, got, expected)
 			}
 		})
 	}
+}
+
+func TestTsvNonNullType(t *testing.T) {
+	rows := loadTsv(t, "non-null-type")
+	if len(rows) == 0 {
+		t.Fatal("no non-null-type rows loaded")
+	}
+	for _, row := range rows {
+		t.Run("nonNullType("+row["type"]+")", func(t *testing.T) {
+			var typ, want any
+			unmarshalCol(t, row, "type", &typ)
+			unmarshalCol(t, row, "expected", &want)
+			var got any
+			if own, ok := nonNullType(typ); ok {
+				got = own
+			}
+			if !jsonEqual(got, want) {
+				t.Errorf("nonNullType(%s) = %v, want %s", row["type"], got, row["expected"])
+			}
+		})
+	}
+}
+
+// tsvTypeCell reads a type as tsv.test.ts does: a union is written as JSON,
+// any other type as its token.
+func tsvTypeCell(t *testing.T, cell string) any {
+	t.Helper()
+	if !strings.HasPrefix(cell, "[") {
+		return cell
+	}
+	var union any
+	if err := json.Unmarshal([]byte(cell), &union); err != nil {
+		t.Fatalf("type %s: %v", cell, err)
+	}
+	return union
 }
 
 func TestTsvValidator(t *testing.T) {
