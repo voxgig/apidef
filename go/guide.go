@@ -1219,6 +1219,8 @@ func resolveEntityName(ctx *ApiDefContext, data map[string]any, mdesc map[string
 		entname = fmt.Sprintf("entity%d", toInt(entityCount["unresolved"]))
 	}
 
+	entname = resplitFromCmp(entname, safeStr(ment["cmp"]), &whyPath)
+
 	entmap := work["entmap"].(map[string]any)
 	collectionEntity, why, stored := itemOfCollection(data, mdesc, parts)
 	if collectionEntity != "" {
@@ -3455,9 +3457,11 @@ func measureClaims(data map[string]any, mdesc map[string]any) {
 	if !named {
 		return
 	}
-	stored := EnsureMinEntityName(name, nil)
+	viewMent, _ := view["MethodEntity"].(map[string]any)
+	claim := resplitFromCmp(name, safeStr(viewMent["cmp"]), &[]string{})
+	stored := EnsureMinEntityName(claim, nil)
 	claims := work["claims"].(map[string]map[string]bool)
-	for _, key := range []string{name, stored} {
+	for _, key := range []string{claim, stored} {
 		if claims[key] == nil {
 			claims[key] = map[string]bool{}
 		}
@@ -3468,7 +3472,7 @@ func measureClaims(data map[string]any, mdesc map[string]any) {
 		owners = map[string]any{}
 		claimowner[pathStr] = owners
 	}
-	owners[safeStr(mdesc["method"])] = name
+	owners[safeStr(mdesc["method"])] = claim
 	markRecordOwner(claimrecord, pathStr, parts, ment, stored)
 }
 

@@ -267,6 +267,54 @@ func TestTsvEnsureMinEntityName(t *testing.T) {
 	}
 }
 
+func TestTsvResplitFromCmp(t *testing.T) {
+	rows := loadTsv(t, "resplit-from-cmp")
+	if len(rows) == 0 {
+		t.Fatal("no resplit-from-cmp rows loaded")
+	}
+	for _, row := range rows {
+		entname, cmp, want := row["entname"], row["cmp"], row["expected"]
+		t.Run(entname+"|"+cmp, func(t *testing.T) {
+			if got := resplitFromCmp(entname, cmp, &[]string{}); got != want {
+				t.Errorf("resplitFromCmp(%q, %q) = %q, want %q", entname, cmp, got, want)
+			}
+		})
+	}
+}
+
+func TestTsvEntityNames(t *testing.T) {
+	rows := loadTsv(t, "entity-names")
+	if len(rows) == 0 {
+		t.Fatal("no entity-names rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var want map[string][]string
+			unmarshalCol(t, row, "expected", &want)
+			def, err := Parse("OpenAPI", row["def"], map[string]string{"file": row["name"]})
+			if err != nil {
+				t.Fatal(err)
+			}
+			guide, err := heuristic01(&ApiDefContext{
+				Def: def, Note: map[string]any{}, Warn: MakeWarner("test", nil), Work: map[string]any{},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			entities, _ := guide["entity"].(map[string]any)
+			got := map[string][]string{}
+			for _, name := range sortedKeys(entities) {
+				ent, _ := entities[name].(map[string]any)
+				paths, _ := ent["path"].(map[string]any)
+				got[name] = sortedKeys(paths)
+			}
+			if !reflect.DeepEqual(got, want) {
+				t.Errorf("entities = %v, want %v", got, want)
+			}
+		})
+	}
+}
+
 func TestTsvNom(t *testing.T) {
 	rows := loadTsv(t, "nom")
 	for _, row := range rows {

@@ -79,6 +79,7 @@ import {
   namingRef,
   namingSchemas,
   verbParts,
+  heuristic01,
 } from '../dist/guide/heuristic01'
 
 import {
@@ -405,6 +406,27 @@ describe('tsv-resplit-from-cmp', () => {
     test(`resplitFromCmp("${row.entname}", "${row.cmp}") => "${row.expected}"`, () => {
       assert.deepStrictEqual(
         resplitFromCmp(row.entname, row.cmp, []), row.expected)
+    })
+  }
+})
+
+
+// Each entity the guide heuristic names from a whole spec, with its paths.
+describe('tsv-entity-names', () => {
+  const rows = loadTsv('entity-names')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, async () => {
+      const def = await parse('OpenAPI', row.def, { file: row.name })
+      const quiet = () => undefined
+      const guide = await heuristic01({
+        def,
+        log: { info: quiet, debug: quiet, warn: quiet, error: quiet },
+        warn: quiet,
+      } as any)
+      const names = Object.fromEntries(Object.entries(guide.entity).map(
+        ([name, ent]: [string, any]) => [name, Object.keys(ent.path).sort()]))
+      assert.deepStrictEqual(names, JSON.parse(row.expected))
     })
   }
 })

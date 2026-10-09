@@ -314,6 +314,24 @@ function loadTsv(name) {
         });
     }
 });
+// Each entity the guide heuristic names from a whole spec, with its paths.
+(0, node_test_1.describe)('tsv-entity-names', () => {
+    const rows = loadTsv('entity-names');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, async () => {
+            const def = await (0, parse_1.parse)('OpenAPI', row.def, { file: row.name });
+            const quiet = () => undefined;
+            const guide = await (0, heuristic01_1.heuristic01)({
+                def,
+                log: { info: quiet, debug: quiet, warn: quiet, error: quiet },
+                warn: quiet,
+            });
+            const names = Object.fromEntries(Object.entries(guide.entity).map(([name, ent]) => [name, Object.keys(ent.path).sort()]));
+            node_assert_1.default.deepStrictEqual(names, JSON.parse(row.expected));
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-nom', () => {
     const rows = loadTsv('nom');
     for (const row of rows) {

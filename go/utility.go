@@ -523,6 +523,30 @@ func CanonizeCmpName(orig string) string {
 	return Canonize(StripSchemaNamespace(orig))
 }
 
+// resplitFromCmp mirrors ts/src/utility.ts: a name with no word boundaries
+// borrows the component's, only where the component's leading segments
+// rejoin to exactly that name, so the letters can never change.
+func resplitFromCmp(entname string, cmp string, why *[]string) string {
+	if entname == "" || strings.Contains(entname, "_") ||
+		cmp == "" || !strings.Contains(cmp, "_") {
+		return entname
+	}
+	seg := strings.Split(cmp, "_")
+	acc := ""
+	for i := range seg {
+		acc += seg[i]
+		if acc == entname {
+			split := strings.Join(seg[:i+1], "_")
+			*why = append(*why, "resplit-from-cmp="+split)
+			return split
+		}
+		if len(acc) > len(entname) {
+			return entname
+		}
+	}
+	return entname
+}
+
 var firstLetterRE = regexp.MustCompile(`[a-zA-Z]`)
 
 func PrefixLeadingDigit(s string) string {
