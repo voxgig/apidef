@@ -355,7 +355,7 @@ func firstTextField(ent, updateOp map[string]any) string {
 		}
 		ftype, _ := fm["t"].(string)
 		fname, _ := fm["n"].(string)
-		if ro, _ := fm["ro"].(bool); ro {
+		if ro, _ := fm["ro"].(bool); ro || fm["fo"] == "binary" {
 			continue
 		}
 		if ftype == "`$STRING`" && fname != "id" && !paramNames[fname] {
