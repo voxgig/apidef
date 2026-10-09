@@ -8,6 +8,7 @@ import { getelem } from '@voxgig/struct'
 
 import {
   nom,
+  nonNullType,
 } from '../utility'
 
 
@@ -329,7 +330,7 @@ function firstTextField(ent: ModelEntity, op?: ModelOp) {
     // was chosen for. Fields are sorted by name, so which field this lands on
     // is alphabetical accident: solar's planet, once its spec declared the
     // server-assigned `forbidReason`, marked that instead of `kind`.
-    if ('`$STRING`' === field.t && 'id' !== field.n &&
+    if ('`$STRING`' === nonNullType(field.t) && 'id' !== field.n &&
       true !== field.ro && true !== paramNames[field.n]) {
       return field
     }

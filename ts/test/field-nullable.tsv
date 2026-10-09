@@ -1,4 +1,4 @@
-name	schema	expected
+name	schema	expected	field	at
 nullable-string	{"type":"string","nullable":true}	["`$ONE`",["`$STRING`","`$NULL`"]]
 nullable-integer	{"type":"integer","nullable":true}	["`$ONE`",["`$INTEGER`","`$NULL`"]]
 nullable-number	{"type":"number","nullable":true}	["`$ONE`",["`$NUMBER`","`$NULL`"]]
@@ -21,3 +21,17 @@ allof-typed-wrapper-excludes-null	{"type":"string","allOf":[{"type":"string","nu
 allof-typed-member-excludes-null	{"type":"string","nullable":true,"allOf":[{"type":"string"}]}	"`$STRING`"
 allof-both-typed-nullable	{"type":"string","nullable":true,"allOf":[{"type":"string","nullable":true}]}	["`$ONE`",["`$STRING`","`$NULL`"]]
 allof-type-list-wrapper-excludes-null	{"type":"string","allOf":[{"type":["string","null"]}]}	"`$STRING`"
+flag-name-string	{"type":"string"}	"`$BOOLEAN`"	is_open
+flag-name-nullable-string	{"type":"string","nullable":true}	["`$ONE`",["`$BOOLEAN`","`$NULL`"]]	is_open
+flag-name-type-list	{"type":["string","null"]}	["`$ONE`",["`$BOOLEAN`","`$NULL`"]]	is_open
+flag-name-null-first	{"type":["null","string"]}	["`$ONE`",["`$NULL`","`$BOOLEAN`"]]	is_open
+flag-name-allof-nullable-member	{"allOf":[{"type":"string","nullable":true},{"description":"Open."}]}	["`$ONE`",["`$BOOLEAN`","`$NULL`"]]	is_open
+flag-name-nullable-integer	{"type":"integer","nullable":true}	["`$ONE`",["`$INTEGER`","`$NULL`"]]	is_open
+flag-name-untyped-nullable	{"nullable":true}	"`$BOOLEAN`"	is_open
+untyped-nullable-enum	{"nullable":true,"enum":["a","b"]}	"`$ANY`"
+untyped-nullable-const	{"nullable":true,"const":"a"}	"`$ANY`"
+untyped-nullable-enum-body	{"nullable":true,"enum":[["a"],["b"]]}	"`$ARRAY`"		body
+untyped-nullable-const-body	{"nullable":true,"const":["a"]}	"`$ARRAY`"		body
+nullable-array-body	{"type":"array","items":{"type":"string"},"nullable":true}	["`$ONE`",["`$ARRAY`","`$NULL`"]]		body
+nullable-enum-without-null	{"type":"string","nullable":true,"enum":["a","b"]}	["`$ONE`",["`$STRING`","`$NULL`"]]
+nullable-enum-without-null-body	{"type":"array","nullable":true,"enum":[["a"],["b"]]}	"`$ARRAY`"		body

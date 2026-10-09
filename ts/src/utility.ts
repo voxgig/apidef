@@ -970,6 +970,8 @@ const VALID_CANON: Record<string, string> = Object.assign(Object.create(null), {
 
 const CANON_ONE = '`$ONE`'
 
+const CANON_NULL = '`$NULL`'
+
 
 function validator(torig: undefined | string | string[]): any {
   if ('string' === typeof torig) {
@@ -983,6 +985,20 @@ function validator(torig: undefined | string | string[]): any {
   else {
     return '`$ANY`'
   }
+}
+
+
+// The type a field holds when it is not null: the type itself, or the one
+// member of a union beside `$NULL`. Any other union has none.
+function nonNullType(type: any): string | undefined {
+  if ('string' === typeof type) {
+    return type
+  }
+  if (!Array.isArray(type) || CANON_ONE !== type[0] || !Array.isArray(type[1])) {
+    return undefined
+  }
+  const members = type[1].filter((member: any) => CANON_NULL !== member)
+  return 1 === members.length && 'string' === typeof members[0] ? members[0] : undefined
 }
 
 const FILE_EXT_RE =
@@ -1146,7 +1162,15 @@ const NUMBER_NAME_RE = /^(latitude$|longitude$|lat$|lng$|lon$|price$|amount$|rat
 const STRING_NAME_RE = /^(url$|href$|link$|uri$|email$|name$|title$|description$|slug$|path$|label$|username$|password$|token$|key$)/
 const ID_NAME_RE = /(_id$|^id$)/
 
-function inferFieldType(name: string, specType: string): string {
+function inferFieldType(name: string, specType: any): any {
+  // A nullable type is inferred by its other member, and keeps its null.
+  const own = nonNullType(specType)
+  if (null != own && own !== specType) {
+    const inferred = inferFieldType(name, own)
+    return inferred === own ? specType :
+      [specType[0], specType[1].map((member: any) => own === member ? inferred : member)]
+  }
+
   // Only override $ANY, or $STRING for boolean-patterned names
   if ('`$ANY`' === specType) {
     if (BOOLEAN_NAME_RE.test(name)) return '`$BOOLEAN`'
@@ -2172,6 +2196,7 @@ export {
   specSecuredByDefault,
   ensureMinEntityName,
   inferFieldType,
+  nonNullType,
   normalizeFieldName,
   canonizeParam,
   paramName,

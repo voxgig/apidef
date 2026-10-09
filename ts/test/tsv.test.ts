@@ -21,6 +21,7 @@ import {
   normalizeFieldName,
   cleanComponentName,
   inferFieldType,
+  nonNullType,
   ensureMinEntityName,
   resplitFromCmp,
   prefixLeadingDigit,
@@ -347,9 +348,22 @@ describe('ensure-min-entity-name-longname', () => {
 
 describe('tsv-infer-field-type', () => {
   const rows = loadTsv('infer-field-type')
+  // A union is written as JSON, any other type as its token.
+  const typeCell = (cell: string) => cell.startsWith('[') ? JSON.parse(cell) : cell
   for (const row of rows) {
-    test(`inferFieldType("${row.name}", "${row.specType}") => "${row.expected}"`, () => {
-      assert.deepStrictEqual(inferFieldType(row.name, row.specType), row.expected)
+    test(`inferFieldType("${row.name}", ${row.specType}) => ${row.expected}`, () => {
+      assert.deepStrictEqual(inferFieldType(row.name, typeCell(row.specType)), typeCell(row.expected))
+    })
+  }
+})
+
+
+describe('tsv-non-null-type', () => {
+  const rows = loadTsv('non-null-type')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(`nonNullType(${row.type}) => ${row.expected}`, () => {
+      assert.deepStrictEqual(nonNullType(JSON.parse(row.type)) ?? null, JSON.parse(row.expected))
     })
   }
 })
@@ -1459,8 +1473,9 @@ describe('tsv-flow-step', () => {
     test(`flowstepTransform(${row.ops.slice(0, 60)})`, async () => {
       const op = Object.fromEntries(Object.entries(JSON.parse(row.ops)).map(
         ([name, points]: [string, any]) => [name, { name, points: points.map(flowPoint) }]))
-      const fields = Object.fromEntries(JSON.parse(row.fields).map(
-        (n: string) => [n, { n, t: '`$STRING`' }]))
+      // A field is a string unless the row gives its type.
+      const fields = Object.fromEntries(JSON.parse(row.fields).map((field: any) =>
+        'string' === typeof field ? [field, { n: field, t: '`$STRING`' }] : [field.n, field]))
       const flow = { name: 'BasicThingFlow', entity: 'thing', kind: 'basic', step: [] as any[] }
       await flowstepTransform({
         apimodel: { main: { kit: {
