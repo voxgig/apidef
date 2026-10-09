@@ -152,6 +152,12 @@ describe('tsv-name-parts', () => {
 
 
 describe('tsv-validator-union', () => {
+  for (const row of loadTsv('validator-declared-union')) {
+    test('declared union: ' + row.input, () => {
+      assert.deepStrictEqual(validator(JSON.parse(row.input)), JSON.parse(row.expected))
+    })
+  }
+
   const CASES: [any, any][] = [
     [['string', 'null'], ['`$ONE`', ['`$STRING`', '`$NULL`']]],
     [['integer', 'null', 'boolean'], ['`$ONE`', ['`$INTEGER`', '`$NULL`', '`$BOOLEAN`']]],
@@ -1476,6 +1482,31 @@ describe('tsv-flow-step', () => {
         ...(0 < Object.keys(step.d).length ? { d: step.d } : {}),
         ...(null == step.i.textfield ? {} : { tf: step.i.textfield }),
       })), JSON.parse(row.expected))
+    })
+  }
+})
+
+
+describe('tsv-flow-textfield', () => {
+  const rows = loadTsv('flow-textfield')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, async () => {
+      const op = Object.fromEntries(Object.entries({
+        create: '/things', update: '/things/{id}', load: '/things/{id}',
+      }).map(([name, path]) => [name, { name, points: [flowPoint(path)] }]))
+      const fields = Object.fromEntries(JSON.parse(row.fields).map((f: any) => [f.n, f]))
+      const flow = { name: 'BasicThingFlow', entity: 'thing', kind: 'basic', step: [] as any[] }
+      await flowstepTransform({
+        apimodel: { main: { kit: {
+          entity: { thing: { name: 'thing', fields, op } },
+          flow: { BasicThingFlow: flow },
+        } } },
+        guide: {},
+        log: { debug: () => undefined },
+      } as any)
+      const update = flow.step.find((step: any) => 'update' === step.o)
+      assert.strictEqual(update?.i.textfield ?? null, JSON.parse(row.expected))
     })
   }
 })

@@ -461,6 +461,9 @@ function modelField(fielddef) {
     if ('string' === typeof ffmt && '' !== ffmt.trim()) {
         mfield.fo = ffmt.trim();
     }
+    else if ((0, utility_1.isFileType)(fielddef.type)) {
+        mfield.fo = 'binary';
+    }
     // Record an untagged union under this field. The field is already typed
     // openly ($ANY/$ARRAY/$OBJECT) because there is nothing to narrow it to;
     // this says WHY, so the generated docs can explain the open type instead

@@ -345,7 +345,7 @@ func paramSchema(argdef map[string]any) map[string]any {
 	if argdef["in"] == "formData" {
 		return nil
 	}
-	if argdef["type"] != "file" {
+	if !isFileType(argdef["type"]) {
 		return argdef
 	}
 	binary := make(map[string]any, len(argdef)+1)

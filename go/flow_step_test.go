@@ -140,6 +140,54 @@ func TestTsvFlowStep(t *testing.T) {
 	}
 }
 
+func TestTsvFlowTextField(t *testing.T) {
+	rows := loadTsv(t, "flow-textfield")
+	if len(rows) == 0 {
+		t.Fatal("no flow-textfield rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var list []map[string]any
+			var want any
+			unmarshalCol(t, row, "fields", &list)
+			unmarshalCol(t, row, "expected", &want)
+
+			fields := map[string]any{}
+			for _, f := range list {
+				fields[f["n"].(string)] = f
+			}
+			opmap := map[string]any{}
+			for name, path := range map[string]string{
+				"create": "/things", "update": "/things/{id}", "load": "/things/{id}",
+			} {
+				opmap[name] = map[string]any{"name": name, "points": []any{flowTestPoint(path)}}
+			}
+			flow := map[string]any{"name": "BasicThingFlow", "entity": "thing", "kind": "basic", "step": []any{}}
+			ctx := &ApiDefContext{ApiModel: map[string]any{
+				"main": map[string]any{KIT: map[string]any{
+					"entity": map[string]any{"thing": map[string]any{"name": "thing", "fields": fields, "op": opmap}},
+					"flow":   map[string]any{"BasicThingFlow": flow},
+				}},
+			}}
+			if _, err := FlowstepTransform(ctx); err != nil {
+				t.Fatal(err)
+			}
+
+			var got any
+			steps, _ := flow["step"].([]any)
+			for _, s := range steps {
+				step := s.(map[string]any)
+				if step["o"] == "update" {
+					got = step["i"].(map[string]any)["textfield"]
+				}
+			}
+			if got != want {
+				t.Errorf("textfield = %v, want %v", got, want)
+			}
+		})
+	}
+}
+
 // flowTestPoint builds a point from its route as tsv.test.ts does: the
 // placeholders are its params, sorted, unless the row lists them.
 func flowTestPoint(spec any) map[string]any {

@@ -324,13 +324,13 @@ function firstTextField(ent: ModelEntity, op?: ModelOp) {
   const fields = Object.keys(ent.fields).sort().map(n => ent.fields[n])
   for (let fI = 0; fI < fields.length; fI++) {
     const field = fields[fI]
-    // NOT A readOnly FIELD. The flow writes this one and then asserts the
-    // mark comes back, so a field the client may not send fails the step it
-    // was chosen for. Fields are sorted by name, so which field this lands on
+    // NOT A readOnly FIELD, NOR A FILE. The flow writes this one and then
+    // asserts the mark comes back, which a field the client may not send, or
+    // one holding bytes, never does. Fields are sorted by name, so the choice
     // is alphabetical accident: solar's planet, once its spec declared the
     // server-assigned `forbidReason`, marked that instead of `kind`.
-    if ('`$STRING`' === field.t && 'id' !== field.n &&
-      true !== field.ro && true !== paramNames[field.n]) {
+    if ('`$STRING`' === field.t && 'id' !== field.n && true !== field.ro &&
+      'binary' !== field.fo && true !== paramNames[field.n]) {
       return field
     }
   }

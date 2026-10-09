@@ -92,6 +92,11 @@ function loadTsv(name) {
     }
 });
 (0, node_test_1.describe)('tsv-validator-union', () => {
+    for (const row of loadTsv('validator-declared-union')) {
+        (0, node_test_1.test)('declared union: ' + row.input, () => {
+            node_assert_1.default.deepStrictEqual((0, utility_1.validator)(JSON.parse(row.input)), JSON.parse(row.expected));
+        });
+    }
     const CASES = [
         [['string', 'null'], ['`$ONE`', ['`$STRING`', '`$NULL`']]],
         [['integer', 'null', 'boolean'], ['`$ONE`', ['`$INTEGER`', '`$NULL`', '`$BOOLEAN`']]],
@@ -1209,6 +1214,29 @@ function flowPoint(spec) {
                 ...(0 < Object.keys(step.d).length ? { d: step.d } : {}),
                 ...(null == step.i.textfield ? {} : { tf: step.i.textfield }),
             })), JSON.parse(row.expected));
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-flow-textfield', () => {
+    const rows = loadTsv('flow-textfield');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, async () => {
+            const op = Object.fromEntries(Object.entries({
+                create: '/things', update: '/things/{id}', load: '/things/{id}',
+            }).map(([name, path]) => [name, { name, points: [flowPoint(path)] }]));
+            const fields = Object.fromEntries(JSON.parse(row.fields).map((f) => [f.n, f]));
+            const flow = { name: 'BasicThingFlow', entity: 'thing', kind: 'basic', step: [] };
+            await (0, flowstep_1.flowstepTransform)({
+                apimodel: { main: { kit: {
+                            entity: { thing: { name: 'thing', fields, op } },
+                            flow: { BasicThingFlow: flow },
+                        } } },
+                guide: {},
+                log: { debug: () => undefined },
+            });
+            const update = flow.step.find((step) => 'update' === step.o);
+            node_assert_1.default.strictEqual(update?.i.textfield ?? null, JSON.parse(row.expected));
         });
     }
 });

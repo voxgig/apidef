@@ -608,9 +608,12 @@ func modelField(fielddef map[string]any) map[string]any {
 	// a spec coin its own — so it is carried as the string it is rather
 	// than interpreted here.
 	if ffmt, ok := fielddef["format"].(string); ok {
-		if trimmed := strings.TrimSpace(ffmt); trimmed != "" {
+		if trimmed := jsTrim(ffmt); trimmed != "" {
 			mfield["fo"] = trimmed
 		}
+	}
+	if mfield["fo"] == nil && isFileType(fielddef["type"]) {
+		mfield["fo"] = "binary"
 	}
 
 	// Record an untagged union under this field. The field is already

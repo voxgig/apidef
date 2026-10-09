@@ -8,7 +8,7 @@ import {
   validator, fieldName, inferFieldType, envelopeProp,
   composedEnvelopeProp, mergedProperties, canonizeCmpName,
   scanUntaggedUnion, firstSentence, humanTitle, collapseScalarAllOf,
-  itemEnvelopeOf,
+  itemEnvelopeOf, isFileType,
 } from '../utility'
 
 import { arrayCarrier, guideMedia, requestFieldSchema, sameType } from './body'
@@ -620,6 +620,9 @@ function modelField(fielddef: SchemaDef): ModelField {
   const ffmt = (fielddef as any).format
   if ('string' === typeof ffmt && '' !== ffmt.trim()) {
     mfield.fo = ffmt.trim()
+  }
+  else if (isFileType(fielddef.type)) {
+    mfield.fo = 'binary'
   }
 
   // Record an untagged union under this field. The field is already typed
