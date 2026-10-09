@@ -49,6 +49,9 @@ import {
   canonizeCmpName,
   canonizeParam,
   capture,
+  CMP_REF_RE,
+  cmpRefName,
+  READ_METHODS,
   cleanComponentName,
   debugpath,
   debugpathOn,
@@ -115,7 +118,6 @@ const PATH_NAME_INDEX: Record<string, number> = {
   't/p/t/': 2, 't/p/': 0, 'p/t/': 1, 't/': 0, 't/p/p': 0,
 }
 
-const READ_METHODS = ['GET', 'QUERY', 'HEAD', 'OPTIONS']
 
 const METHOD_CONSIDER_ORDER: Record<string, number> = {
   'GET': 100,
@@ -1596,7 +1598,8 @@ function collectionNaming(
 // The entity of an item route its collection names: the collection's record,
 // or its segment. A route outside the collection that has the segment puts the
 // tag before it, and one that has that name too a number from 2 after the
-// stored form, which a cut would otherwise drop.
+// stored form, which a cut would otherwise drop. The routes a tag names leave
+// it its own name as a segment, which is numbered rather than doubled.
 function itemOfCollection(
   data: { def: any, work: any },
   mdesc: any,
@@ -1612,10 +1615,13 @@ function itemOfCollection(
 
   const work = data.work
   const collection = naming.collection
+  const cmp = mdesc.MethodEntity.cmp
   const segment = canonize(collection.substring(collection.lastIndexOf('/') + 1))
-  const tagged = mdesc.MethodEntity.cmp + '_' + segment
-  for (const name of [segment, tagged]) {
-    if (!segmentHeld(work, name, collection)) {
+  const own = segment === cmp
+  const tagged = own ? segment : cmp + '_' + segment
+  const tagOwn = own ? (path: string) => tagNamesRoute(data, path, cmp) : undefined
+  for (const name of own ? [segment] : [segment, tagged]) {
+    if (!segmentHeld(work, name, collection, name === segment ? tagOwn : undefined)) {
       return { name, why: 'collection-segment' }
     }
   }
@@ -1631,19 +1637,41 @@ function itemOfCollection(
 // A route outside the collection has the name: one named already under its
 // stored form or the key it would take now, or one that claims the name, its
 // stored form or that key.
-function segmentHeld(work: any, name: string, collection: string): boolean {
+function segmentHeld(
+  work: any,
+  name: string,
+  collection: string,
+  exempt?: (path: string) => boolean,
+): boolean {
   return keyHeld(work, [name, ensureMinEntityName(name, {}),
-    ensureMinEntityName(name, work.entmap)], collection)
+    ensureMinEntityName(name, work.entmap)], collection, exempt)
+}
+
+
+// Every method of the route is named by the tag alone, and none is an item
+// route the tag gathers, whose collection may name it apart.
+function tagNamesRoute(data: { def: any, work: any }, path: string, cmp: string): boolean {
+  const parts: string[] = data.work.pathmap[path]?.parts ?? []
+  const methods = (data.work.methods ?? []).filter((mdesc: any) => path === mdesc.path)
+  return 0 < methods.length && methods.every((mdesc: any) =>
+    'tag' === mdesc.MethodEntity?.ref && cmp === mdesc.MethodEntity.cmp &&
+    null == tagItemCollection(data, mdesc, parts))
 }
 
 
 // A route outside the collection is named under one of the keys or claims one.
 // An item route its collection names makes no claim, so it counts only once
 // named.
-function keyHeld(work: any, keys: string[], collection: string): boolean {
+function keyHeld(
+  work: any,
+  keys: string[],
+  collection: string,
+  exempt?: (path: string) => boolean,
+): boolean {
   return keys.some((key) => [work.entmap[key]?.path, work.claims[key]]
     .some((paths: Record<string, any> | undefined) =>
-      Object.keys(paths ?? {}).some((path) => outsideCollection(path, collection))))
+      Object.keys(paths ?? {}).some((path) =>
+        outsideCollection(path, collection) && true !== exempt?.(path))))
 }
 
 
@@ -2313,7 +2341,8 @@ function distinctRecord(share: any, item: any): boolean {
 
 // Whether a collection share answers with a record apart from the one its item
 // route answers with, both read from a 200 or 201: an Accepted body may
-// describe the queued work rather than a resource.
+// describe the queued work rather than a resource. A share that reads stays,
+// since a list's records, however summarised, are the collection's items.
 function distinctShare(
   def: any,
   sharePath: string,
@@ -2321,6 +2350,9 @@ function distinctShare(
   itemPath: string,
   itemMethods: string[],
 ): boolean {
+  if (shareMethods.some((method) => READ_METHODS.includes(method))) {
+    return false
+  }
   const share = pathRecordRef(def, sharePath, shareMethods, true, false)
   const item = pathRecordRef(def, itemPath, itemMethods, false, false)
   return null != share && null != item && share !== item &&
@@ -2728,12 +2760,6 @@ function findPotentialSchemaRefs(
 }
 
 
-const CMP_REF_RE = /\/(components\/schemas|definitions)\/(.+)$/
-
-function cmpRefName(xref: string): string {
-  const m = xref.match(CMP_REF_RE)
-  return null == m ? xref : canonizeCmpName(m[2])
-}
 
 
 // An array request body is sent from a field named for the records it lists:

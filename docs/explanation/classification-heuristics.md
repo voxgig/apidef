@@ -223,6 +223,13 @@ its keys. `api_key` is left with no path, and is removed rather than emitted
 inactive: an entity with no path is not a classification `guide.aontu`
 could switch back on.
 
+The joined entity keeps the owner's name, except where the owner only
+writes and its name extends the one the list's record gives. Roadie's set
+push answers with a push response and names `entity_set_push`, while its
+list of `EntitySet` records names `entity_set`; the push is an operation on
+the set, so the joined entity is `entity_set`. A load names the record it
+returns, so an owner that reads keeps its name.
+
 A route deeper than the item joins on the record alone. With no item route,
 a collection joins a verb such as `/tokens/{slug}/refresh` when the verb
 returns the token the list holds, and stays apart from a sub-collection such
@@ -237,7 +244,9 @@ properties with the item's record, is another resource: GitLab's runner registra
 with a token for the new runner rather than the runner's details, and stays
 apart. A create whose answer is named apart from the item's record still
 joins when it carries that record's fields, because vendors name the answer
-to a create apart from the record it creates.
+to a create apart from the record it creates. A list never stays apart,
+since its records are the collection's items however far they are
+summarised.
 
 The other shape runs the join the other way. An item route that answers
 nothing and takes its name from a tag can carry another resource's record
@@ -261,7 +270,11 @@ gathers takes the name the last segment of its collection gives: `mcp_tool`
 for `/well-known/mcp-tools` and `schema` for `/well-known/schemas`. A name
 that a route outside the collection takes, wherever it sorts, takes the
 tag's name before it. `/well-known/agent.json` names `agent`, so the agents
-become `well_known_agent`, and neither list hides the other. Names compare
+become `well_known_agent`, and neither list hides the other. A segment that
+gives the tag's own name is not taken by the routes the tag names, since
+they already sit on the entity the item route would join: the SMS Works'
+message reads join `message` beside its send, rather than becoming
+`message_message`. Names compare
 as they are stored, so `ef`, padded to `efn`, meets an `efn` taken
 elsewhere. A collection nested inside this one, as `/well-known/nest/v2/nest`
 is inside `/well-known/nest`, is another resource, so its item routes and

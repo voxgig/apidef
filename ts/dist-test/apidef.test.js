@@ -654,8 +654,8 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.deepStrictEqual(Object.keys(entities).sort(), ['aaa_ijn', 'aaa_kit', 'abc', 'agent', 'agent_card', 'artifact', search, search + '2',
             search + '3', 'bcd', 'cask', 'cde', 'crate', 'dbase', 'dbn', 'dbset', 'dsn', 'dsx',
             'dtn', 'dun', 'efn', 'efn2', 'ghn', 'hive', 'ijn', 'kiln', 'kit', 'ledger', 'mcp_tool',
-            'nest', 'oven', 'parcel', 'pot', 'qqn', 'qrs', 'qrs_admin_qrs', 'qrt', admin,
-            admin + '2', 'repo', 'rrn', 'schema', 'uvn', 'vault', 'well_known_agent',
+            'nest', 'note', 'note2', 'oven', 'parcel', 'pot', 'qqn', 'qrs', 'qrs_admin_qrs', 'qrt',
+            admin, admin + '2', 'repo', 'rrn', 'sched', 'schema', 'uvn', 'vault', 'well_known_agent',
             'well_known_cask', 'well_known_crate', 'well_known_db', 'well_known_dbase', disco,
             disco + '2', disco + '3', 'well_known_ds', 'well_known_dt', 'well_known_du',
             'well_known_ef', 'well_known_gh', 'well_known_hive', 'well_known_ledger',
@@ -737,6 +737,15 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.deepStrictEqual(paths('well_known_nest2', 'load'), ['/well-known/nest/{id}']);
         node_assert_1.default.deepStrictEqual(paths('hive', 'load'), ['/well-known/hive/v2/hive/{id}']);
         node_assert_1.default.deepStrictEqual(paths('well_known_hive', 'load'), ['/well-known/hive/{id}']);
+        // A segment that is the tag's own name is not held by the routes the tag
+        // names, so Note's collection keeps note beside its send, and a second
+        // collection with that segment takes a number rather than note_note.
+        node_assert_1.default.deepStrictEqual(paths('note', 'create'), ['/note/send', '/notes']);
+        node_assert_1.default.deepStrictEqual(paths('note', 'load'), ['/notes/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('note', 'remove'), ['/notes/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('note2', 'load'), ['/v2/notes/{id}']);
+        node_assert_1.default.deepStrictEqual(paths('sched', 'load'), ['/notes/sched']);
+        node_assert_1.default.deepStrictEqual(paths('sched', 'remove'), ['/notes/sched/{id}']);
         // Bare where no route outside has the name: Kiln's item route takes its
         // collection's record, QrsAdmin's counts only once named, and Aaa's kit
         // takes its tag, since the verb on WellKnown's kit claims kit.
@@ -1043,8 +1052,8 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         }
     });
     // Which entity an item route's methods and a collection's create take
-    // from the records they answer with. go/apidef_test.go reads the base guide
-    // this writes.
+    // from the records they answer with; a list joins its item however its
+    // summary differs. go/apidef_test.go reads the base guide this writes.
     (0, node_test_1.test)('guide-item-record', async () => {
         const folder = __dirname + '/../test/item-record';
         const build = await apidef_1.ApiDef.makeBuild({ folder });
@@ -1082,6 +1091,11 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
                 'GET ' + I + '/{instance_id}',
                 'PATCH ' + I + '/{instance_id}',
                 'POST ' + I + '/{instance_id}/restart',
+            ],
+            mail_domain_detail: [
+                'GET /mail/v1/domains',
+                'GET /mail/v1/domains/{id}',
+                'POST /mail/v1/domains',
             ],
             repo: ['GET /repos/{repo_id}', 'POST /repos/{repo_id}/forks'],
             report: ['GET /exports/{export_id}'],
@@ -1143,8 +1157,9 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
     });
     // Each shape docs/reference/guide.md gives for collection paths: item,
     // composite key, a read before a tag's delete, a verb or composed page on
-    // the same record, other records beneath the item, and a split list and
-    // create. go/apidef_test.go reads the base guide this writes.
+    // the same record, other records beneath the item, a split list and
+    // create, and an item route that only writes, which takes the name the
+    // list's record gives. go/apidef_test.go reads the base guide this writes.
     (0, node_test_1.test)('guide-collection-owner', async () => {
         const folder = __dirname + '/../test/collection-owner';
         const build = await apidef_1.ApiDef.makeBuild({ folder });
@@ -1169,6 +1184,7 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.deepStrictEqual(routes, {
             activity: ['DELETE /stars/{owner}/{repo}', 'GET /stars', 'PUT /stars/{owner}/{repo}'],
             admin: ['DELETE /shop/gadgets/{gadget_id}', 'DELETE /teams/{team_id}'],
+            catalog_bundle: ['GET /catalog/bundles', 'PUT /catalog/bundles/{bundle_id}'],
             gadget: ['GET /shop/gadgets', 'GET /shop/gadgets/{gadget_id}', 'POST /shop/gadgets'],
             job: ['GET /jobs'],
             job_summary: ['POST /jobs/{job_id}/cancel'],

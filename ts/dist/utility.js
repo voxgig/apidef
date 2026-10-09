@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sortedEntries = exports.sortedKeys = exports.CANON_ONE = exports.VALID_CANON = void 0;
+exports.sortedEntries = exports.sortedKeys = exports.READ_METHODS = exports.CMP_REF_RE = exports.CANON_ONE = exports.VALID_CANON = void 0;
 exports.bodyRequestTransform = bodyRequestTransform;
 exports.nom = nom;
 exports.getdlog = getdlog;
@@ -23,6 +23,7 @@ exports.canonize = canonize;
 exports.canonizeField = canonizeField;
 exports.fieldName = fieldName;
 exports.canonizeCmpName = canonizeCmpName;
+exports.cmpRefName = cmpRefName;
 exports.stripSchemaNamespace = stripSchemaNamespace;
 exports.sanitizeSlug = sanitizeSlug;
 exports.slugToPascalCase = slugToPascalCase;
@@ -928,6 +929,15 @@ function stripSchemaNamespace(name) {
 // ResolveEntityComponent, findcmps) so the metric keys stay consistent.
 function canonizeCmpName(orig) {
     return canonize(stripSchemaNamespace(orig));
+}
+const READ_METHODS = ['GET', 'QUERY', 'HEAD', 'OPTIONS'];
+exports.READ_METHODS = READ_METHODS;
+const CMP_REF_RE = /\/(components\/schemas|definitions)\/(.+)$/;
+exports.CMP_REF_RE = CMP_REF_RE;
+// The canonical name of the component a reference points to.
+function cmpRefName(xref) {
+    const m = xref.match(CMP_REF_RE);
+    return null == m ? xref : canonizeCmpName(m[2]);
 }
 const FIRST_LETTER_RE = /[a-zA-Z]/;
 function prefixLeadingDigit(s) {

@@ -411,11 +411,14 @@ first of these:
   list where it is.
 
 One entity's share of a collection path stays where it is, though the path
-has an owner, when it answers with a record of its own unlike the record
-the owner's item route answers with. Both records are read from a `200` or
-`201`, since a `202` may describe the queued work. Both declare an `id`,
-directly or through `allOf` at any depth, and no more than half of the
-share's properties are properties of the item's.
+has an owner, when it only writes and answers with a record of its own
+unlike the record the owner's item route answers with. Both records are read
+from a `200` or `201`, since a `202` may describe the queued work. Both
+declare an `id`, directly or through `allOf` at any depth, and no more than
+half of the share's properties are properties of the item's. A share that
+reads, such as a list, always joins, however far its records are summarised:
+LINK Mobility's domain list, whose records carry `spf_status` and
+`dkim_status`, joins the domain details that carry `spf` and `dkim`.
 GitLab's runner registration, `{id, token, token_expires_at}`, stays apart
 from a runner's details, while a create that answers with the item's fields
 under another name joins, and so does a create that only queues a job.
@@ -425,6 +428,16 @@ comparison, and the rows of
 [`ts/test/distinct-share.tsv`](../../ts/test/distinct-share.tsv) and
 [`ts/test/distinct-record.tsv`](../../ts/test/distinct-record.tsv) pin them in
 both builds.
+
+The owner's entity takes the name of a share's entity when the share's
+entity is named after the record the share answers with, the owner's name
+is that name followed by more words, and the owner holds nothing but the
+item route and other routes beneath `/X`, none of which reads. Roadie's
+`PUT /api/catalog/roadie-entities/sets/{setId}` answers with an
+`EntitySetPushResponse` and names `entity_set_push`. The set list, named
+`entity_set` after its `EntitySet` records, keeps its name; the push joins
+it. An owner that reads keeps its name, since a load names the record
+it returns: GitLab's runners join `ci_runner_detail`.
 
 An item route can take its collection's entity before the move. A method
 on `/X/{id}` named only from its tag takes the entity of `/X` when all of
@@ -448,7 +461,13 @@ would share a selector. That holds when the tag gathers item routes that
 answer with no body from two collections whose item routes take the same
 parameters, or from two collections that both have a `GET` of their own.
 The tag's name comes first when a route outside `/X` takes that name,
-whether it sorts before the item route or after it. When a route outside
+whether it sorts before the item route or after it. A segment that gives the
+tag's own name is the exception: the routes the tag names take that name
+already, so they leave it to the item route, and a route outside `/X` that
+takes it otherwise numbers the item route rather than doubling the name.
+The SMS Works tags `/message/send` and `/messages/{messageid}` `Messages`,
+so the message reads join `message` beside the send, and a second
+collection whose segment gives `message` takes `message2`. When a route outside
 `/X` takes the tag's name as well, the item route takes the stored form of
 the tag's name followed by the lowest number from 2 that no such route
 takes. Names compare in the form they are stored in. A name shorter than

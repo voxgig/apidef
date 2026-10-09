@@ -804,6 +804,80 @@
           }
         }
       }
+    },
+    "/mail/v1/domains": {
+      "post": {
+        "tags": [
+          "Manage Domains"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MailCreateDomainRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailCreateDomainResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Manage Domains"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailDomainListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mail/v1/domains/{id}": {
+      "get": {
+        "tags": [
+          "Manage Domains"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailDomainDetailsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1124,6 +1198,127 @@
           },
           "invitee": {
             "type": "string"
+          }
+        }
+      },
+      "MailDomain": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "spf_status": {
+            "type": "boolean"
+          },
+          "dmarc_status": {
+            "type": "string"
+          },
+          "return-path_status": {
+            "type": "boolean"
+          },
+          "dkim_status": {
+            "type": "boolean"
+          },
+          "productId": {
+            "type": "string"
+          },
+          "valid": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MailCreateDomainRequest": {
+        "type": "object",
+        "required": [
+          "domain"
+        ],
+        "properties": {
+          "domain": {
+            "type": "string"
+          }
+        }
+      },
+      "MailCreateDomainResponse": {
+        "type": "object",
+        "properties": {
+          "mailDomainId": {
+            "type": "integer"
+          }
+        }
+      },
+      "MailDomainListResponse": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "integer"
+          },
+          "resultsPerPage": {
+            "type": "integer"
+          },
+          "pages": {
+            "type": "integer"
+          },
+          "currentPage": {
+            "type": "integer"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MailDomain"
+            }
+          }
+        }
+      },
+      "MailDomainDetailsResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "dkim": {
+            "type": "object",
+            "properties": {
+              "host": {
+                "type": "string"
+              },
+              "txt": {
+                "type": "string"
+              }
+            }
+          },
+          "spf": {
+            "type": "object",
+            "properties": {
+              "host": {
+                "type": "string"
+              },
+              "txt": {
+                "type": "string"
+              }
+            }
+          },
+          "dmarc": {
+            "type": "string"
+          },
+          "return-path": {
+            "type": "object",
+            "properties": {
+              "host": {
+                "type": "string"
+              },
+              "txt": {
+                "type": "string"
+              }
+            }
+          },
+          "valid": {
+            "type": "boolean"
           }
         }
       }

@@ -4,9 +4,9 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 70
-  metrics: count: path: 80
-  metrics: count: method: 80
+  metrics: count: entity: 73
+  metrics: count: path: 86
+  metrics: count: method: 87
 
   entity: aaa_ijn: {
     path: "/zzz/ijn/{id}": {
@@ -214,6 +214,26 @@ guide: {
     }
   }
 
+  entity: note: {
+    path: "/note/send": {
+      action: "send": {}
+      op: create: method: *POST
+    }
+    path: "/notes": {
+      op: create: method: *POST
+    }
+    path: "/notes/{id}": {
+      op: load: method: *GET
+      op: remove: method: *DELETE
+    }
+  }
+
+  entity: note2: {
+    path: "/v2/notes/{id}": {
+      op: load: method: *GET
+    }
+  }
+
   entity: oven: {
     path: "/kilns/{id}": {
       op: load: method: *GET
@@ -280,6 +300,16 @@ guide: {
   entity: rrn: {
     path: "/aaa/rr": {
       op: load: method: *GET
+    }
+  }
+
+  entity: sched: {
+    path: "/notes/sched": {
+      action: "sched": {}
+      op: load: method: *GET
+    }
+    path: "/notes/sched/{id}": {
+      op: remove: method: *DELETE
     }
   }
 

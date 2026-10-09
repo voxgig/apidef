@@ -48,7 +48,6 @@ const ENTITY_PATH_SHAPES = ['t/p/t/', 't/p/', 'p/t/', 't/', 't/p/p'];
 const PATH_NAME_INDEX = {
     't/p/t/': 2, 't/p/': 0, 'p/t/': 1, 't/': 0, 't/p/p': 0,
 };
-const READ_METHODS = ['GET', 'QUERY', 'HEAD', 'OPTIONS'];
 const METHOD_CONSIDER_ORDER = {
     'GET': 100,
     'QUERY': 150,
@@ -939,7 +938,7 @@ function ResolveTransform(spec) {
     // is the name after cleaning, so a UserResponse naming user stays a wrapper.
     const rescmp = resschema?.['x-ref'];
     const named = null == rescmp || null == entdesc.cmp ||
-        cmpRefName(rescmp) !== entdesc.cmp;
+        (0, utility_2.cmpRefName)(rescmp) !== entdesc.cmp;
     // A composed response carries the record as one of its parts, such as the
     // project in Neon's project create beside its branch and roles, and may
     // declare properties of its own beside them.
@@ -976,7 +975,7 @@ function ResolveTransform(spec) {
     // An item that is the entity's own component is the record, as above.
     const itemref = resschema?.items?.['x-ref'];
     if (null == transform.res && 'list' === opname &&
-        (null == itemref || null == entdesc.cmp || cmpRefName(itemref) !== entdesc.cmp)) {
+        (null == itemref || null == entdesc.cmp || (0, utility_2.cmpRefName)(itemref) !== entdesc.cmp)) {
         const key = (0, utility_1.itemEnvelopeKey)(resschema, [entdesc.origname, entdesc.name]);
         if (null != key) {
             transform.res = (0, utility_1.itemEnvelopeTransform)(key);
@@ -1079,7 +1078,7 @@ function endsWithCmp(data, pm) {
 }
 function verbOnParent(data, pm, mdesc, pathowner) {
     const method = mdesc.method;
-    if (READ_METHODS.includes(method)) {
+    if (utility_2.READ_METHODS.includes(method)) {
         return null;
     }
     const ment = mdesc.MethodEntity;
@@ -1165,7 +1164,8 @@ function collectionNaming(data, mdesc, parts, recordowner) {
 // The entity of an item route its collection names: the collection's record,
 // or its segment. A route outside the collection that has the segment puts the
 // tag before it, and one that has that name too a number from 2 after the
-// stored form, which a cut would otherwise drop.
+// stored form, which a cut would otherwise drop. The routes a tag names leave
+// it its own name as a segment, which is numbered rather than doubled.
 function itemOfCollection(data, mdesc, parts) {
     const naming = collectionNaming(data, mdesc, parts, data.work.recordowner);
     if (null == naming) {
@@ -1176,10 +1176,13 @@ function itemOfCollection(data, mdesc, parts) {
     }
     const work = data.work;
     const collection = naming.collection;
+    const cmp = mdesc.MethodEntity.cmp;
     const segment = (0, utility_2.canonize)(collection.substring(collection.lastIndexOf('/') + 1));
-    const tagged = mdesc.MethodEntity.cmp + '_' + segment;
-    for (const name of [segment, tagged]) {
-        if (!segmentHeld(work, name, collection)) {
+    const own = segment === cmp;
+    const tagged = own ? segment : cmp + '_' + segment;
+    const tagOwn = own ? (path) => tagNamesRoute(data, path, cmp) : undefined;
+    for (const name of own ? [segment] : [segment, tagged]) {
+        if (!segmentHeld(work, name, collection, name === segment ? tagOwn : undefined)) {
             return { name, why: 'collection-segment' };
         }
     }
@@ -1193,16 +1196,24 @@ function itemOfCollection(data, mdesc, parts) {
 // A route outside the collection has the name: one named already under its
 // stored form or the key it would take now, or one that claims the name, its
 // stored form or that key.
-function segmentHeld(work, name, collection) {
+function segmentHeld(work, name, collection, exempt) {
     return keyHeld(work, [name, (0, utility_2.ensureMinEntityName)(name, {}),
-        (0, utility_2.ensureMinEntityName)(name, work.entmap)], collection);
+        (0, utility_2.ensureMinEntityName)(name, work.entmap)], collection, exempt);
+}
+// Every method of the route is named by the tag alone, and none is an item
+// route the tag gathers, whose collection may name it apart.
+function tagNamesRoute(data, path, cmp) {
+    const parts = data.work.pathmap[path]?.parts ?? [];
+    const methods = (data.work.methods ?? []).filter((mdesc) => path === mdesc.path);
+    return 0 < methods.length && methods.every((mdesc) => 'tag' === mdesc.MethodEntity?.ref && cmp === mdesc.MethodEntity.cmp &&
+        null == tagItemCollection(data, mdesc, parts));
 }
 // A route outside the collection is named under one of the keys or claims one.
 // An item route its collection names makes no claim, so it counts only once
 // named.
-function keyHeld(work, keys, collection) {
+function keyHeld(work, keys, collection, exempt) {
     return keys.some((key) => [work.entmap[key]?.path, work.claims[key]]
-        .some((paths) => Object.keys(paths ?? {}).some((path) => outsideCollection(path, collection))));
+        .some((paths) => Object.keys(paths ?? {}).some((path) => outsideCollection(path, collection) && true !== exempt?.(path))));
 }
 // A route under the collection is its own when it has no parameter or its
 // first parameter follows the collection: one under a collection nested in it
@@ -1326,7 +1337,7 @@ function successSchemas(responses) {
 // record is a resource rather than the work queued.
 function namingSchemas(method, responses, answered, envelope) {
     const schemas = successSchemas(responses);
-    if (0 === schemas.length && READ_METHODS.includes(method)) {
+    if (0 === schemas.length && utility_2.READ_METHODS.includes(method)) {
         const accepted = getResponseSchema(responses?.[202]);
         if (true === answered[namingRef(accepted, envelope) ?? '']) {
             schemas.push(accepted);
@@ -1567,7 +1578,7 @@ function pathResource(parts, method) {
         return null;
     }
     const last = parts[parts.length - 1];
-    if (!READ_METHODS.includes(method) && !isParam(last)) {
+    if (!utility_2.READ_METHODS.includes(method) && !isParam(last)) {
         const lit = (0, jostraca_2.snakify)(last);
         if ('' !== lit && (0, utility_2.depluralize)(lit) === lit) {
             return null;
@@ -1686,8 +1697,12 @@ function distinctRecord(share, item) {
 }
 // Whether a collection share answers with a record apart from the one its item
 // route answers with, both read from a 200 or 201: an Accepted body may
-// describe the queued work rather than a resource.
+// describe the queued work rather than a resource. A share that reads stays,
+// since a list's records, however summarised, are the collection's items.
 function distinctShare(def, sharePath, shareMethods, itemPath, itemMethods) {
+    if (shareMethods.some((method) => utility_2.READ_METHODS.includes(method))) {
+        return false;
+    }
     const share = pathRecordRef(def, sharePath, shareMethods, true, false);
     const item = pathRecordRef(def, itemPath, itemMethods, false, false);
     return null != share && null != item && share !== item &&
@@ -1960,7 +1975,7 @@ function findPotentialSchemaRefs(pathStr, methodName, responses, envelope, answe
         const ref = namingRef(schema, envelope);
         if (null != ref) {
             if (null != schema['x-ref'] && ref !== schema['x-ref']) {
-                why.push('envelope=' + cmpRefName(schema['x-ref']));
+                why.push('envelope=' + (0, utility_2.cmpRefName)(schema['x-ref']));
             }
             xrefs.push(ref);
         }
@@ -1968,18 +1983,13 @@ function findPotentialSchemaRefs(pathStr, methodName, responses, envelope, answe
     (0, utility_2.debugpath)(pathStr, methodName, 'POTENTIAL-SCHEMA-REFS', xrefs);
     return xrefs;
 }
-const CMP_REF_RE = /\/(components\/schemas|definitions)\/(.+)$/;
-function cmpRefName(xref) {
-    const m = xref.match(CMP_REF_RE);
-    return null == m ? xref : (0, utility_2.canonizeCmpName)(m[2]);
-}
 // An array request body is sent from a field named for the records it lists:
 // its items' component, or the one their allOf parts name, cleaned as an
 // entity's is, else the entity itself. A pointer into a component names a
 // part of it, not a record. A name another route of the operation has is taken.
 function arrayBodyField(schema, entname, taken = []) {
     const refs = [...new Set(itemRefs(schema?.items, new Set()))];
-    const cmp = String(1 === refs.length ? refs[0] : '').match(CMP_REF_RE)?.[2];
+    const cmp = String(1 === refs.length ? refs[0] : '').match(utility_2.CMP_REF_RE)?.[2];
     const cleaned = null == cmp || cmp.includes('/') ? '' :
         (0, utility_2.prefixLeadingDigit)((0, utility_2.cleanComponentName)((0, utility_2.canonizeCmpName)(cmp)));
     const record = '' === cleaned ? entname : cleaned;

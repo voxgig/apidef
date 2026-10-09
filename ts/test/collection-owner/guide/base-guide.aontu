@@ -4,9 +4,9 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 13
-  metrics: count: path: 17
-  metrics: count: method: 21
+  metrics: count: entity: 14
+  metrics: count: path: 19
+  metrics: count: method: 23
 
   entity: activity: {
     path: "/stars": {
@@ -24,6 +24,15 @@ guide: {
     }
     path: "/teams/{team_id}": {
       op: remove: method: *DELETE
+    }
+  }
+
+  entity: catalog_bundle: {
+    path: "/catalog/bundles": {
+      op: list: method: *GET
+    }
+    path: "/catalog/bundles/{bundle_id}": {
+      op: update: method: *PUT
     }
   }
 

@@ -247,6 +247,80 @@ func mergeCollectionPaths(guide map[string]any, recordRef func(pathStr string, m
 		return distinct(pathStr, methodsOf(paths[pathStr]), owner.route, methodsOf(ownerPaths[owner.route]))
 	}
 
+	namedByRecord := func(ename string, pathStr string) bool {
+		entity, _ := entities[ename].(map[string]any)
+		paths, _ := entity["path"].(map[string]any)
+		ref := answers(pathStr, methodsOf(paths[pathStr]), true)
+		return ref != "" && ename == cmpRefName(ref)
+	}
+	reads := func(ename string) bool {
+		entity, _ := entities[ename].(map[string]any)
+		paths, _ := entity["path"].(map[string]any)
+		for _, pathStr := range sortedKeys(paths) {
+			for _, method := range methodsOf(paths[pathStr]) {
+				if READ_METHODS[method] {
+					return true
+				}
+			}
+		}
+		return false
+	}
+	active := func(ename string) bool {
+		entity, _ := entities[ename].(map[string]any)
+		flag, isBool := entity["active"].(bool)
+		return !isBool || flag
+	}
+
+	// Mirrors ts/src/transform/entity.ts: an owner that reads nothing and holds
+	// nothing but routes beneath the collection, named by extending the name a
+	// share's own record gives it, takes that name.
+	absorbed := map[string]string{}
+	targets := map[string]bool{}
+	absorbOrder := []string{}
+	ownedPaths := make([]string, 0, len(owned))
+	for pathStr := range owned {
+		ownedPaths = append(ownedPaths, pathStr)
+	}
+	sort.Strings(ownedPaths)
+	for _, pathStr := range ownedPaths {
+		owner := owned[pathStr]
+		if _, done := absorbed[owner.ename]; done || targets[owner.ename] {
+			continue
+		}
+		root, _ := collectionRoot(pathStr)
+		enames := append([]string{}, shares[pathStr]...)
+		sort.Strings(enames)
+		for _, share := range enames {
+			ownerEntity, _ := entities[owner.ename].(map[string]any)
+			if strings.HasPrefix(owner.ename, share+"_") && namedByRecord(share, pathStr) &&
+				!apart(share, pathStr, owner) && onlyBeneath(ownerEntity, root) &&
+				!reads(owner.ename) && active(owner.ename) && active(share) {
+				if _, done := absorbed[share]; !done {
+					absorbed[owner.ename] = share
+					targets[share] = true
+					absorbOrder = append(absorbOrder, owner.ename)
+				}
+				break
+			}
+		}
+	}
+	for _, from := range absorbOrder {
+		source, _ := entities[from].(map[string]any)
+		target, _ := entities[absorbed[from]].(map[string]any)
+		paths, _ := source["path"].(map[string]any)
+		for _, pathStr := range sortedKeys(paths) {
+			movePath(paths, target, pathStr)
+		}
+		delete(entities, from)
+		emptied = append(emptied, from)
+	}
+	for pathStr, owner := range owned {
+		if to, ok := absorbed[owner.ename]; ok {
+			owner.ename = to
+			owned[pathStr] = owner
+		}
+	}
+
 	// Second pass: move each "/X" whose root is owned elsewhere.
 	for _, ename := range sortedKeys(entities) {
 		entity, _ := entities[ename].(map[string]any)
@@ -273,40 +347,7 @@ func mergeCollectionPaths(guide map[string]any, recordRef func(pathStr string, m
 			if target == nil {
 				continue
 			}
-			tgtPaths, _ := target["path"].(map[string]any)
-			if tgtPaths == nil {
-				tgtPaths = map[string]any{}
-				target["path"] = tgtPaths
-			}
-
-			srcPath := paths[pathStr]
-			tgtPath, _ := tgtPaths[pathStr].(map[string]any)
-			if tgtPath == nil {
-				tgtPaths[pathStr] = srcPath
-			} else if srcMap, ok := srcPath.(map[string]any); ok {
-				mergeSubMap(srcMap, tgtPath, "op")
-				mergeSubMap(srcMap, tgtPath, "action")
-				if srcRename, ok := srcMap["rename"].(map[string]any); ok {
-					if srcParam, ok := srcRename["param"].(map[string]any); ok {
-						tgtRename, _ := tgtPath["rename"].(map[string]any)
-						if tgtRename == nil {
-							tgtRename = map[string]any{}
-							tgtPath["rename"] = tgtRename
-						}
-						tgtParam, _ := tgtRename["param"].(map[string]any)
-						if tgtParam == nil {
-							tgtParam = map[string]any{}
-							tgtRename["param"] = tgtParam
-						}
-						for _, p := range sortedKeys(srcParam) {
-							if _, exists := tgtParam[p]; !exists {
-								tgtParam[p] = srcParam[p]
-							}
-						}
-					}
-				}
-			}
-			delete(paths, pathStr)
+			movePath(paths, target, pathStr)
 		}
 
 		if 0 < len(toMove) && 0 == len(paths) {
@@ -320,6 +361,57 @@ func mergeCollectionPaths(guide map[string]any, recordRef func(pathStr string, m
 	}
 
 	return emptied
+}
+
+// movePath mirrors ts/src/transform/entity.ts: one path moves onto the
+// target entity, keeping what the target already has.
+func movePath(paths map[string]any, target map[string]any, pathStr string) {
+	tgtPaths, _ := target["path"].(map[string]any)
+	if tgtPaths == nil {
+		tgtPaths = map[string]any{}
+		target["path"] = tgtPaths
+	}
+
+	srcPath := paths[pathStr]
+	tgtPath, _ := tgtPaths[pathStr].(map[string]any)
+	if tgtPath == nil {
+		tgtPaths[pathStr] = srcPath
+	} else if srcMap, ok := srcPath.(map[string]any); ok {
+		mergeSubMap(srcMap, tgtPath, "op")
+		mergeSubMap(srcMap, tgtPath, "action")
+		if srcRename, ok := srcMap["rename"].(map[string]any); ok {
+			if srcParam, ok := srcRename["param"].(map[string]any); ok {
+				tgtRename, _ := tgtPath["rename"].(map[string]any)
+				if tgtRename == nil {
+					tgtRename = map[string]any{}
+					tgtPath["rename"] = tgtRename
+				}
+				tgtParam, _ := tgtRename["param"].(map[string]any)
+				if tgtParam == nil {
+					tgtParam = map[string]any{}
+					tgtRename["param"] = tgtParam
+				}
+				for _, p := range sortedKeys(srcParam) {
+					if _, exists := tgtParam[p]; !exists {
+						tgtParam[p] = srcParam[p]
+					}
+				}
+			}
+		}
+	}
+	delete(paths, pathStr)
+}
+
+// onlyBeneath mirrors ts/src/transform/entity.ts: every path of the entity is
+// the collection or lies beneath it.
+func onlyBeneath(entity map[string]any, root string) bool {
+	paths, _ := entity["path"].(map[string]any)
+	for pathStr := range paths {
+		if root != strings.TrimRight(pathStr, "/") && !strings.HasPrefix(pathStr, root+"/") {
+			return false
+		}
+	}
+	return true
 }
 
 // collectionRoot mirrors ts/src/transform/entity.ts: a path of literals

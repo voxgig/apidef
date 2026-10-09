@@ -1083,6 +1083,18 @@ function canonizeCmpName(orig: string): string {
 }
 
 
+const READ_METHODS = ['GET', 'QUERY', 'HEAD', 'OPTIONS']
+
+
+const CMP_REF_RE = /\/(components\/schemas|definitions)\/(.+)$/
+
+// The canonical name of the component a reference points to.
+function cmpRefName(xref: string): string {
+  const m = xref.match(CMP_REF_RE)
+  return null == m ? xref : canonizeCmpName(m[2])
+}
+
+
 const FIRST_LETTER_RE = /[a-zA-Z]/
 
 
@@ -2162,6 +2174,9 @@ export {
   canonizeField,
   fieldName,
   canonizeCmpName,
+  CMP_REF_RE,
+  cmpRefName,
+  READ_METHODS,
   stripSchemaNamespace,
   sanitizeSlug,
   slugToPascalCase,

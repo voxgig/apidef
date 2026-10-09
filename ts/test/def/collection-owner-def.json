@@ -523,6 +523,69 @@
           }
         }
       }
+    },
+    "/catalog/bundles": {
+      "get": {
+        "operationId": "listCatalogBundles",
+        "tags": [
+          "CatalogBundles"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CatalogBundle"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/catalog/bundles/{bundle_id}": {
+      "put": {
+        "operationId": "pushCatalogBundle",
+        "tags": [
+          "CatalogBundles"
+        ],
+        "parameters": [
+          {
+            "name": "bundle_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CatalogBundlePushRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogBundlePushResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -681,6 +744,55 @@
           },
           "name": {
             "type": "string"
+          }
+        }
+      },
+      "CatalogBundle": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "CatalogBundlePushRequest": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "CatalogBundlePushResponse": {
+        "type": "object",
+        "properties": {
+          "bundle": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string"
+                }
+              }
+            }
           }
         }
       }

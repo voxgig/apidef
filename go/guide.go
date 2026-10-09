@@ -708,6 +708,7 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 
 	// Phase 3: selectAllMethods + process each method
 	allMethods := selectAllMethods(ctx, data)
+	work["methods"] = allMethods
 
 	for _, mdesc := range allMethods {
 		measureEnvelope(data, mdesc)
@@ -2616,8 +2617,13 @@ func distinctRecord(share map[string]any, item map[string]any) bool {
 
 // distinctShare mirrors ts/src/guide/heuristic01.ts: whether a collection
 // share answers with a record apart from the one its item route answers with,
-// both read from a 200 or 201.
+// both read from a 200 or 201; a share that reads is never apart.
 func distinctShare(def map[string]any, sharePath string, shareMethods []string, itemPath string, itemMethods []string) bool {
+	for _, method := range shareMethods {
+		if READ_METHODS[method] {
+			return false
+		}
+	}
 	share := pathRecordRef(def, sharePath, shareMethods, true, false)
 	item := pathRecordRef(def, itemPath, itemMethods, false, false)
 	return share != "" && item != "" && share != item &&
@@ -3550,40 +3556,74 @@ func itemOfCollection(data map[string]any, mdesc map[string]any, parts []string)
 	cmp := safeStr(mdesc["MethodEntity"].(map[string]any)["cmp"])
 	segment := Canonize(collection[strings.LastIndex(collection, "/")+1:])
 	tagged := cmp + "_" + segment
-	for _, name := range []string{segment, tagged} {
-		if !segmentHeld(work, name, collection) {
+	names := []string{segment, tagged}
+	var tagOwn func(path string) bool
+	if segment == cmp {
+		tagged = segment
+		names = []string{segment}
+		tagOwn = func(path string) bool { return tagNamesRoute(data, path, cmp) }
+	}
+	for _, name := range names {
+		exempt := tagOwn
+		if name != segment {
+			exempt = nil
+		}
+		if !segmentHeld(work, name, collection, exempt) {
 			return name, "collection-segment", false
 		}
 	}
 	stored := EnsureMinEntityName(tagged, nil)
 	i := 2
-	for keyHeld(work, []string{fmt.Sprintf("%s%d", stored, i)}, collection) {
+	for keyHeld(work, []string{fmt.Sprintf("%s%d", stored, i)}, collection, nil) {
 		i++
 	}
 	return fmt.Sprintf("%s%d", stored, i), "collection-segment", true
 }
 
 // segmentHeld mirrors ts/src/guide/heuristic01.ts.
-func segmentHeld(work map[string]any, name string, collection string) bool {
+func segmentHeld(work map[string]any, name string, collection string, exempt func(path string) bool) bool {
 	entmap := work["entmap"].(map[string]any)
 	return keyHeld(work, []string{name, EnsureMinEntityName(name, nil),
-		EnsureMinEntityName(name, entmap)}, collection)
+		EnsureMinEntityName(name, entmap)}, collection, exempt)
+}
+
+// tagNamesRoute mirrors ts/src/guide/heuristic01.ts.
+func tagNamesRoute(data map[string]any, path string, cmp string) bool {
+	work := data["work"].(map[string]any)
+	methods, _ := work["methods"].([]map[string]any)
+	parts := pathParts(data, path)
+	found := false
+	for _, mdesc := range methods {
+		if safeStr(mdesc["path"]) != path {
+			continue
+		}
+		found = true
+		ment, _ := mdesc["MethodEntity"].(map[string]any)
+		if ment == nil || safeStr(ment["ref"]) != "tag" || safeStr(ment["cmp"]) != cmp ||
+			tagItemCollection(data, mdesc, parts) != "" {
+			return false
+		}
+	}
+	return found
 }
 
 // keyHeld mirrors ts/src/guide/heuristic01.ts.
-func keyHeld(work map[string]any, keys []string, collection string) bool {
+func keyHeld(work map[string]any, keys []string, collection string, exempt func(path string) bool) bool {
 	entmap := work["entmap"].(map[string]any)
 	claims, _ := work["claims"].(map[string]map[string]bool)
+	held := func(path string) bool {
+		return outsideCollection(path, collection) && (exempt == nil || !exempt(path))
+	}
 	for _, key := range keys {
 		entdesc, _ := entmap[key].(map[string]any)
 		entPaths, _ := entdesc["path"].(map[string]any)
 		for path := range entPaths {
-			if outsideCollection(path, collection) {
+			if held(path) {
 				return true
 			}
 		}
 		for path := range claims[key] {
-			if outsideCollection(path, collection) {
+			if held(path) {
 				return true
 			}
 		}

@@ -4,9 +4,9 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 14
-  metrics: count: path: 22
-  metrics: count: method: 31
+  metrics: count: entity: 15
+  metrics: count: path: 24
+  metrics: count: method: 34
 
   entity: activity: {
     path: "/user/starred": {
@@ -61,6 +61,17 @@ guide: {
       action: "restart": {}
       rename: param: "instance_id": *"id"
       op: create: method: *POST
+    }
+  }
+
+  entity: mail_domain_detail: {
+    path: "/mail/v1/domains": {
+      op: create: method: *POST
+      op: list: method: *GET
+      op: list: transform: res: *("`body.items`")|top
+    }
+    path: "/mail/v1/domains/{id}": {
+      op: load: method: *GET
     }
   }
 

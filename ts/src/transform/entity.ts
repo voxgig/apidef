@@ -22,7 +22,7 @@ import type {
   ModelEntity,
 } from '../model'
 
-import { depluralize, guideActive, paramName } from '../utility'
+import { cmpRefName, depluralize, guideActive, paramName, READ_METHODS } from '../utility'
 
 import { byCodePoint } from '../refcount'
 
@@ -160,6 +160,43 @@ function mergeCollectionPaths(
     true === distinct?.(pathStr, methodsOf(entities[ename].path[pathStr]),
       owner.route, methodsOf(entities[owner.ename]?.path?.[owner.route]))
 
+  const namedByRecord = (ename: string, pathStr: string) => {
+    const ref = recordRef?.(pathStr, methodsOf(entities[ename].path[pathStr]), true)
+    return null != ref && ename === cmpRefName(ref)
+  }
+
+  // An owner that reads nothing, holds only routes beneath the collection,
+  // and extends the name a share's own record gives, takes that name.
+  const absorbed: Record<string, string> = {}
+  for (const pathStr of Object.keys(owned).sort(byCodePoint)) {
+    const owner = owned[pathStr]
+    if (null == owner || null != absorbed[owner.ename] ||
+      Object.values(absorbed).includes(owner.ename)) continue
+    const ename = shares[pathStr].slice().sort(byCodePoint).find((share: string) =>
+      owner.ename.startsWith(share + '_') && namedByRecord(share, pathStr) &&
+      !apart(share, pathStr, owner) &&
+      onlyBeneath(entities[owner.ename], collectionRoot(pathStr) as string) &&
+      !Object.values(entities[owner.ename].path).some((pd: any) =>
+        methodsOf(pd).some((method: string) => READ_METHODS.includes(method))) &&
+      false !== entities[owner.ename].active && false !== entities[share].active)
+    if (null != ename && null == absorbed[ename]) {
+      absorbed[owner.ename] = ename
+    }
+  }
+  for (const [from, to] of Object.entries(absorbed)) {
+    for (const pathStr of Object.keys(entities[from].path)) {
+      movePath(entities[from], entities[to], pathStr)
+    }
+    delete entities[from]
+    emptied.push(from)
+    log?.debug?.({ point: 'merge-collection-absorb', from, to })
+  }
+  for (const [pathStr, owner] of Object.entries(owned)) {
+    if (null != owner && null != absorbed[owner.ename]) {
+      owned[pathStr] = { ...owner, ename: absorbed[owner.ename] }
+    }
+  }
+
   // Second pass: for each entity with a "/X" path, if X has an owner
   // elsewhere, move the path there.
   for (const [ename, entity] of Object.entries(entities)) {
@@ -176,40 +213,7 @@ function mergeCollectionPaths(
     for (const [pathStr, owner] of pathsToMove) {
       const targetEntity = entities[owner.ename]
       if (targetEntity == null) continue
-      targetEntity.path = targetEntity.path ?? {}
-      const srcPath = entity.path[pathStr]
-      const tgtPath = targetEntity.path[pathStr]
-      if (tgtPath == null) {
-        targetEntity.path[pathStr] = srcPath
-      }
-      else {
-        if (srcPath?.op) {
-          tgtPath.op = tgtPath.op ?? {}
-          for (const opname of Object.keys(srcPath.op)) {
-            if (tgtPath.op[opname] == null) {
-              tgtPath.op[opname] = srcPath.op[opname]
-            }
-          }
-        }
-        if (srcPath?.action) {
-          tgtPath.action = tgtPath.action ?? {}
-          for (const aname of Object.keys(srcPath.action)) {
-            if (tgtPath.action[aname] == null) {
-              tgtPath.action[aname] = srcPath.action[aname]
-            }
-          }
-        }
-        if (srcPath?.rename?.param) {
-          tgtPath.rename = tgtPath.rename ?? {}
-          tgtPath.rename.param = tgtPath.rename.param ?? {}
-          for (const p of Object.keys(srcPath.rename.param)) {
-            if (tgtPath.rename.param[p] == null) {
-              tgtPath.rename.param[p] = srcPath.rename.param[p]
-            }
-          }
-        }
-      }
-      delete entity.path[pathStr]
+      movePath(entity, targetEntity, pathStr)
       log?.debug?.({
         point: 'merge-collection-path',
         path: pathStr,
@@ -232,6 +236,51 @@ function mergeCollectionPaths(
   return emptied
 }
 
+
+
+// Move one path onto the target entity, keeping what the target already has.
+function movePath(entity: any, targetEntity: any, pathStr: string) {
+  targetEntity.path = targetEntity.path ?? {}
+  const srcPath = entity.path[pathStr]
+  const tgtPath = targetEntity.path[pathStr]
+  if (tgtPath == null) {
+    targetEntity.path[pathStr] = srcPath
+  }
+  else {
+    if (srcPath?.op) {
+      tgtPath.op = tgtPath.op ?? {}
+      for (const opname of Object.keys(srcPath.op)) {
+        if (tgtPath.op[opname] == null) {
+          tgtPath.op[opname] = srcPath.op[opname]
+        }
+      }
+    }
+    if (srcPath?.action) {
+      tgtPath.action = tgtPath.action ?? {}
+      for (const aname of Object.keys(srcPath.action)) {
+        if (tgtPath.action[aname] == null) {
+          tgtPath.action[aname] = srcPath.action[aname]
+        }
+      }
+    }
+    if (srcPath?.rename?.param) {
+      tgtPath.rename = tgtPath.rename ?? {}
+      tgtPath.rename.param = tgtPath.rename.param ?? {}
+      for (const p of Object.keys(srcPath.rename.param)) {
+        if (tgtPath.rename.param[p] == null) {
+          tgtPath.rename.param[p] = srcPath.rename.param[p]
+        }
+      }
+    }
+  }
+  delete entity.path[pathStr]
+}
+
+
+function onlyBeneath(entity: any, root: string): boolean {
+  return Object.keys(entity?.path ?? {}).every((pathStr: string) =>
+    root === pathStr.replace(/\/+$/, '') || pathStr.startsWith(root + '/'))
+}
 
 
 // A path of literals only, less any trailing slash, is a collection path.

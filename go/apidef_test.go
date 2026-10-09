@@ -690,8 +690,8 @@ func TestGuideWellKnown(t *testing.T) {
 		[]string{"aaa_ijn", "aaa_kit", "abc", "agent", "agent_card", "artifact", search, search + "2",
 			search + "3", "bcd", "cask", "cde", "crate", "dbase", "dbn", "dbset", "dsn", "dsx",
 			"dtn", "dun", "efn", "efn2", "ghn", "hive", "ijn", "kiln", "kit", "ledger", "mcp_tool",
-			"nest", "oven", "parcel", "pot", "qqn", "qrs", "qrs_admin_qrs", "qrt", admin,
-			admin + "2", "repo", "rrn", "schema", "uvn", "vault", "well_known_agent",
+			"nest", "note", "note2", "oven", "parcel", "pot", "qqn", "qrs", "qrs_admin_qrs", "qrt",
+			admin, admin + "2", "repo", "rrn", "sched", "schema", "uvn", "vault", "well_known_agent",
 			"well_known_cask", "well_known_crate", "well_known_db", "well_known_dbase", disco,
 			disco + "2", disco + "3", "well_known_ds", "well_known_dt", "well_known_du",
 			"well_known_ef", "well_known_gh", "well_known_hive", "well_known_ledger",
@@ -774,6 +774,12 @@ func TestGuideWellKnown(t *testing.T) {
 		{"well_known_nest2", "load", []string{"/well-known/nest/{id}"}},
 		{"hive", "load", []string{"/well-known/hive/v2/hive/{id}"}},
 		{"well_known_hive", "load", []string{"/well-known/hive/{id}"}},
+		{"note", "create", []string{"/note/send", "/notes"}},
+		{"note", "load", []string{"/notes/{id}"}},
+		{"note", "remove", []string{"/notes/{id}"}},
+		{"note2", "load", []string{"/v2/notes/{id}"}},
+		{"sched", "load", []string{"/notes/sched"}},
+		{"sched", "remove", []string{"/notes/sched/{id}"}},
 		{"oven", "load", []string{"/kilns/{id}"}},
 		{"pot", "list", []string{"/zzz/pots"}},
 		{"pot", "load", []string{"/zzz/pots/{id}"}},
@@ -1327,7 +1333,7 @@ func TestGuideItemRecord(t *testing.T) {
 	}
 
 	gents, _ := res.Guide["entity"].(map[string]any)
-	if got, want := strings.Join(sortedKeys(gents), ","), "activity,ci_runner_detail,ci_runner_registration,ci_worker_detail,ci_worker_registration,instance,repo,report,repository_invitation,simulation_run,team,team_invitation,thing,widget"; got != want {
+	if got, want := strings.Join(sortedKeys(gents), ","), "activity,ci_runner_detail,ci_runner_registration,ci_worker_detail,ci_worker_registration,instance,mail_domain_detail,repo,report,repository_invitation,simulation_run,team,team_invitation,thing,widget"; got != want {
 		t.Errorf("guide entities = %s, want %s", got, want)
 	}
 
@@ -1483,7 +1489,7 @@ func TestGuideCollectionOwner(t *testing.T) {
 	}
 
 	gents, _ := res.Guide["entity"].(map[string]any)
-	if got, want := strings.Join(sortedKeys(gents), ","), "activity,admin,gadget,job,job_summary,org,plan,purchase,report,shop,team,token,user"; got != want {
+	if got, want := strings.Join(sortedKeys(gents), ","), "activity,admin,catalog_bundle,gadget,job,job_summary,org,plan,purchase,report,shop,team,token,user"; got != want {
 		t.Errorf("guide entities = %s, want %s", got, want)
 	}
 
