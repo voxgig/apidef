@@ -15,6 +15,7 @@ import {
   entityName,
   resolveEntityName,
 } from '../dist/guide/graphql01'
+import { buildVars } from '../dist/transform/graphql'
 
 
 const OUTPREFIX = 'graphql-linearish-'
@@ -160,9 +161,19 @@ describe('graphql', () => {
     // every pagination argument before it could be chosen.
     assert.deepStrictEqual(list.q?.exist, undefined)
 
+    // A query's sole input object is a filter, read from its own name.
+    assert.deepStrictEqual(list.gq.vars, [
+      { name: 'filter', from: 'filter', gqltype: 'IssueFilter' },
+      { name: 'first', from: 'first', gqltype: 'Int' },
+      { name: 'after', from: 'after', gqltype: 'String' },
+    ])
+
     const create = ops.create.points[0]
     assert.equal(create.gq.optype, 'mutation')
     assert.equal(create.t.res, '`body.data.issueCreate.issue`')
+    assert.deepStrictEqual(create.gq.vars, [
+      { name: 'input', from: '', gqltype: 'IssueCreateInput!' },
+    ])
 
     // The command mutation is a second point on update, selected at runtime
     // by $action (the mechanism REST action paths already use).
@@ -213,6 +224,71 @@ describe('graphql', () => {
     assert.ok(point.gq.doc.startsWith('query IssueLoad'))
   })
 
+})
+
+
+// Linear's shapes: each variable is read from the request field the caller
+// sets, named as the args step names the point's parameters.
+describe('graphql-vars', () => {
+  const types: any = {
+    IssueUpdateInput: { name: 'IssueUpdateInput', kind: 'INPUT_OBJECT', fields: {} },
+    TeamFilter: { name: 'TeamFilter', kind: 'INPUT_OBJECT', fields: {} },
+    IssueFilter: { name: 'IssueFilter', kind: 'INPUT_OBJECT', fields: {} },
+    IssueSort: { name: 'IssueSort', kind: 'INPUT_OBJECT', fields: {} },
+  }
+  const arg = (name: string, type: string, gqltype: string) => ({ name, type, gqltype })
+  const vars = (args: any[], optype: string, renames?: any) =>
+    buildVars({ args }, { types }, optype, renames)
+
+  test('issueUpdate: the mutation input object is the request', () => {
+    assert.deepStrictEqual(vars([
+      arg('id', 'String', 'String!'),
+      arg('input', 'IssueUpdateInput', 'IssueUpdateInput!'),
+    ], 'mutation'), [
+      { name: 'id', from: 'id', gqltype: 'String!' },
+      { name: 'input', from: '', gqltype: 'IssueUpdateInput!' },
+    ])
+  })
+
+  test('issueAddLabel: a renamed argument is read by its parameter name', () => {
+    assert.deepStrictEqual(vars([
+      arg('id', 'String', 'String!'),
+      arg('labelId', 'String', 'String!'),
+    ], 'mutation'), [
+      { name: 'id', from: 'id', gqltype: 'String!' },
+      { name: 'labelId', from: 'label_id', gqltype: 'String!' },
+    ])
+  })
+
+  test('a guide rename names the parameter a variable is read from', () => {
+    assert.deepStrictEqual(vars([
+      arg('labelId', 'String', 'String!'),
+    ], 'mutation', { labelId: 'tag' }), [
+      { name: 'labelId', from: 'tag', gqltype: 'String!' },
+    ])
+  })
+
+  test('teams: a query filter is read from its own name', () => {
+    assert.deepStrictEqual(vars([
+      arg('filter', 'TeamFilter', 'TeamFilter'),
+      arg('first', 'Int', 'Int'),
+      arg('includeArchived', 'Boolean', 'Boolean'),
+    ], 'query'), [
+      { name: 'filter', from: 'filter', gqltype: 'TeamFilter' },
+      { name: 'first', from: 'first', gqltype: 'Int' },
+      { name: 'includeArchived', from: 'include_archived', gqltype: 'Boolean' },
+    ])
+  })
+
+  test('several input objects are each read from their own name', () => {
+    assert.deepStrictEqual(vars([
+      arg('filter', 'IssueFilter', 'IssueFilter'),
+      arg('sort', 'IssueSort', '[IssueSort!]'),
+    ], 'mutation'), [
+      { name: 'filter', from: 'filter', gqltype: 'IssueFilter' },
+      { name: 'sort', from: 'sort', gqltype: '[IssueSort!]' },
+    ])
+  })
 })
 
 

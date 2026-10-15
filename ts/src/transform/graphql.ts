@@ -19,6 +19,8 @@ import type {
 
 import { deriveRetShape } from '../guide/graphql01'
 
+import { paramName } from '../utility'
+
 
 const REL_STUB = '{ id }'
 
@@ -92,24 +94,31 @@ function payloadScalarFields(typeName: string, def: any): string[] {
 }
 
 
-function buildVars(fielddef: any, def: any): ModelGraphqlVar[] {
+function buildVars(
+  fielddef: any,
+  def: any,
+  optype: string,
+  renames?: Record<string, any>,
+): ModelGraphqlVar[] {
   const args = fielddef?.args ?? []
 
-  // The whole-request-body binding is the SINGLE-entity-input convention
-  // (issueCreate(input: IssueCreateInput!)). A field taking several input
-  // objects — items(filter: Filter, orderBy: OrderBy) — must bind each from
-  // its own argument, or they all receive the same value and at least one
-  // fails input validation.
+  // The whole-request-body binding is the SINGLE-entity-input convention of a
+  // mutation (issueCreate(input: IssueCreateInput!)). A query's input object
+  // is a filter beside its other arguments, and a field taking several input
+  // objects — items(filter: Filter, orderBy: OrderBy) — binds each from its
+  // own argument, or they all receive the same value.
   const inputs = args.filter((a: any) => {
     const atype = def.types?.[a.type]
     return null != atype && 'INPUT_OBJECT' === atype.kind
   })
-  const soleInput = 1 === inputs.length ? inputs[0].name : undefined
+  const soleInput = 'mutation' === optype && 1 === inputs.length ? inputs[0].name : undefined
 
   return args.map((arg: any) => {
+    // A scalar argument is read from the parameter the args step names for it.
     const v: any = {
       name: arg.name,
-      from: arg.name === soleInput ? '' : arg.name,
+      from: arg.name === soleInput ? '' :
+        inputs.includes(arg) ? arg.name : paramName(arg.name, renames),
       gqltype: arg.gqltype,
     }
     if (undefined !== arg.deflt) {
@@ -196,7 +205,7 @@ const graphqlTransform: Transform = async function(
         const fragName = pascal(entname) + 'Fields'
         const fragSpread = 0 < fragFields.length ? '{ ...' + fragName + ' }' : '{ id }'
 
-        const vars = buildVars(fielddef, def)
+        const vars = buildVars(fielddef, def, optype, mpoint.r?.param)
 
         let selection = fragSpread
         let respath = 'body.data.' + rootfield
@@ -272,4 +281,5 @@ export {
   graphqlTransform,
   selectionFields,
   renderDoc,
+  buildVars,
 }

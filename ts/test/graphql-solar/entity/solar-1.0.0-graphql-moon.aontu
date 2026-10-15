@@ -121,7 +121,7 @@ main: kit: entity: moon: {
             }
             vars: [
               {
-                from: "planetId"
+                from: "planet_id"
                 gqltype: "String"
                 name: "planetId"
               }

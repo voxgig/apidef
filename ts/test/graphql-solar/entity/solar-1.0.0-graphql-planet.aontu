@@ -108,7 +108,7 @@ main: kit: entity: planet: {
             }
             vars: [
               {
-                from: ""
+                from: "filter"
                 gqltype: "PlanetFilter"
                 name: "filter"
               }

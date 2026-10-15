@@ -44,6 +44,7 @@ const node_assert_1 = __importDefault(require("node:assert"));
 const aontu_1 = require("aontu");
 const apidef_1 = require("../dist/apidef");
 const graphql01_1 = require("../dist/guide/graphql01");
+const graphql_1 = require("../dist/transform/graphql");
 const OUTPREFIX = 'graphql-linearish-';
 const FOLDER = Path.join(__dirname, '..', 'test', 'graphql');
 const ENDPOINT = 'https://api.example.test/graphql';
@@ -150,9 +151,18 @@ async function buildGraphql(step) {
         // Relay's optional first/after must NOT appear, or list() would demand
         // every pagination argument before it could be chosen.
         node_assert_1.default.deepStrictEqual(list.q?.exist, undefined);
+        // A query's sole input object is a filter, read from its own name.
+        node_assert_1.default.deepStrictEqual(list.gq.vars, [
+            { name: 'filter', from: 'filter', gqltype: 'IssueFilter' },
+            { name: 'first', from: 'first', gqltype: 'Int' },
+            { name: 'after', from: 'after', gqltype: 'String' },
+        ]);
         const create = ops.create.points[0];
         node_assert_1.default.equal(create.gq.optype, 'mutation');
         node_assert_1.default.equal(create.t.res, '`body.data.issueCreate.issue`');
+        node_assert_1.default.deepStrictEqual(create.gq.vars, [
+            { name: 'input', from: '', gqltype: 'IssueCreateInput!' },
+        ]);
         // The command mutation is a second point on update, selected at runtime
         // by $action (the mechanism REST action paths already use).
         const updatePoints = ops.update.points;
@@ -189,6 +199,63 @@ async function buildGraphql(step) {
         node_assert_1.default.equal(point.m, 'POST');
         node_assert_1.default.deepStrictEqual(point.s, []);
         node_assert_1.default.ok(point.gq.doc.startsWith('query IssueLoad'));
+    });
+});
+// Linear's shapes: each variable is read from the request field the caller
+// sets, named as the args step names the point's parameters.
+(0, node_test_1.describe)('graphql-vars', () => {
+    const types = {
+        IssueUpdateInput: { name: 'IssueUpdateInput', kind: 'INPUT_OBJECT', fields: {} },
+        TeamFilter: { name: 'TeamFilter', kind: 'INPUT_OBJECT', fields: {} },
+        IssueFilter: { name: 'IssueFilter', kind: 'INPUT_OBJECT', fields: {} },
+        IssueSort: { name: 'IssueSort', kind: 'INPUT_OBJECT', fields: {} },
+    };
+    const arg = (name, type, gqltype) => ({ name, type, gqltype });
+    const vars = (args, optype, renames) => (0, graphql_1.buildVars)({ args }, { types }, optype, renames);
+    (0, node_test_1.test)('issueUpdate: the mutation input object is the request', () => {
+        node_assert_1.default.deepStrictEqual(vars([
+            arg('id', 'String', 'String!'),
+            arg('input', 'IssueUpdateInput', 'IssueUpdateInput!'),
+        ], 'mutation'), [
+            { name: 'id', from: 'id', gqltype: 'String!' },
+            { name: 'input', from: '', gqltype: 'IssueUpdateInput!' },
+        ]);
+    });
+    (0, node_test_1.test)('issueAddLabel: a renamed argument is read by its parameter name', () => {
+        node_assert_1.default.deepStrictEqual(vars([
+            arg('id', 'String', 'String!'),
+            arg('labelId', 'String', 'String!'),
+        ], 'mutation'), [
+            { name: 'id', from: 'id', gqltype: 'String!' },
+            { name: 'labelId', from: 'label_id', gqltype: 'String!' },
+        ]);
+    });
+    (0, node_test_1.test)('a guide rename names the parameter a variable is read from', () => {
+        node_assert_1.default.deepStrictEqual(vars([
+            arg('labelId', 'String', 'String!'),
+        ], 'mutation', { labelId: 'tag' }), [
+            { name: 'labelId', from: 'tag', gqltype: 'String!' },
+        ]);
+    });
+    (0, node_test_1.test)('teams: a query filter is read from its own name', () => {
+        node_assert_1.default.deepStrictEqual(vars([
+            arg('filter', 'TeamFilter', 'TeamFilter'),
+            arg('first', 'Int', 'Int'),
+            arg('includeArchived', 'Boolean', 'Boolean'),
+        ], 'query'), [
+            { name: 'filter', from: 'filter', gqltype: 'TeamFilter' },
+            { name: 'first', from: 'first', gqltype: 'Int' },
+            { name: 'includeArchived', from: 'include_archived', gqltype: 'Boolean' },
+        ]);
+    });
+    (0, node_test_1.test)('several input objects are each read from their own name', () => {
+        node_assert_1.default.deepStrictEqual(vars([
+            arg('filter', 'IssueFilter', 'IssueFilter'),
+            arg('sort', 'IssueSort', '[IssueSort!]'),
+        ], 'mutation'), [
+            { name: 'filter', from: 'filter', gqltype: 'IssueFilter' },
+            { name: 'sort', from: 'sort', gqltype: '[IssueSort!]' },
+        ]);
     });
 });
 (0, node_test_1.describe)('graphql-retshape', () => {

@@ -4,9 +4,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.graphqlTransform = void 0;
 exports.selectionFields = selectionFields;
 exports.renderDoc = renderDoc;
+exports.buildVars = buildVars;
 const jostraca_1 = require("jostraca");
 const types_1 = require("../types");
 const graphql01_1 = require("../guide/graphql01");
+const utility_1 = require("../utility");
 const REL_STUB = '{ id }';
 function pascal(s) {
     return s.replace(/(^|[_-])([a-z])/g, (_m, _p, c) => c.toUpperCase());
@@ -61,22 +63,24 @@ function payloadScalarFields(typeName, def) {
     }
     return out.sort();
 }
-function buildVars(fielddef, def) {
+function buildVars(fielddef, def, optype, renames) {
     const args = fielddef?.args ?? [];
-    // The whole-request-body binding is the SINGLE-entity-input convention
-    // (issueCreate(input: IssueCreateInput!)). A field taking several input
-    // objects — items(filter: Filter, orderBy: OrderBy) — must bind each from
-    // its own argument, or they all receive the same value and at least one
-    // fails input validation.
+    // The whole-request-body binding is the SINGLE-entity-input convention of a
+    // mutation (issueCreate(input: IssueCreateInput!)). A query's input object
+    // is a filter beside its other arguments, and a field taking several input
+    // objects — items(filter: Filter, orderBy: OrderBy) — binds each from its
+    // own argument, or they all receive the same value.
     const inputs = args.filter((a) => {
         const atype = def.types?.[a.type];
         return null != atype && 'INPUT_OBJECT' === atype.kind;
     });
-    const soleInput = 1 === inputs.length ? inputs[0].name : undefined;
+    const soleInput = 'mutation' === optype && 1 === inputs.length ? inputs[0].name : undefined;
     return args.map((arg) => {
+        // A scalar argument is read from the parameter the args step names for it.
         const v = {
             name: arg.name,
-            from: arg.name === soleInput ? '' : arg.name,
+            from: arg.name === soleInput ? '' :
+                inputs.includes(arg) ? arg.name : (0, utility_1.paramName)(arg.name, renames),
             gqltype: arg.gqltype,
         };
         if (undefined !== arg.deflt) {
@@ -131,7 +135,7 @@ const graphqlTransform = async function (ctx) {
                 const fragFields = selectionFields(entityType, def);
                 const fragName = pascal(entname) + 'Fields';
                 const fragSpread = 0 < fragFields.length ? '{ ...' + fragName + ' }' : '{ id }';
-                const vars = buildVars(fielddef, def);
+                const vars = buildVars(fielddef, def, optype, mpoint.r?.param);
                 let selection = fragSpread;
                 let respath = 'body.data.' + rootfield;
                 if ('connection' === ret.kind) {

@@ -126,7 +126,7 @@ main: kit: entity: issue: {
             }
             vars: [
               {
-                from: ""
+                from: "filter"
                 gqltype: "IssueFilter"
                 name: "filter"
               }

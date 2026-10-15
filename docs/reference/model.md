@@ -209,6 +209,13 @@ Required attributes use one character; optional metadata uses two.
 | `or` | `string?` | original wire name (for example, `planet_id`) |
 | `ex` | `any?` | advertised parameter example or schema default |
 
+A GraphQL point's `gq.vars` binds each of its root field's arguments, by
+`name`, to the request field `from` names. A scalar argument is read from its
+parameter's `n`, so `labelId` is read from `label_id`. The input object of a
+mutation that takes only one, such as `issueCreate(input:)`, is the whole
+request, written `from: ""`. Any other input object, a query's `filter`
+among them, is read from the field of its own name.
+
 A parameter with no name, or whose `$ref` resolves to nothing, is dropped with
 a warning. A path placeholder that no declared parameter fills still needs a
 value, so it becomes a required string `param` under its own name, renamed as
