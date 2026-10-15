@@ -5,7 +5,7 @@ import type { TransformResult, Transform } from '../transform'
 import { KIT } from '../types'
 
 import {
-  fieldName, guideActive, mergedProperties, requestWrapperOf, sortedKeys,
+  fieldName, guideActive, isFileType, mergedProperties, requestWrapperOf, sortedKeys,
 } from '../utility'
 
 import type {
@@ -236,7 +236,7 @@ function swaggerOffers(def: any, pathdef: any, opdef: any): Offer[] {
     .filter((media) => null != textOf(media))
   const consumes = 0 < declared.length ? declared : [
     null != body ? JSON_MEDIA :
-      form.some((param) => 'file' === param.type) ? MULTIPART_MEDIA : FORM_MEDIA
+      form.some((param) => isFileType(param.type)) ? MULTIPART_MEDIA : FORM_MEDIA
   ]
 
   return consumes.map((media: string) => ({
@@ -384,7 +384,7 @@ function rawBinary(type: string, schema: any): boolean {
 
 function binarySchema(schema: any): boolean {
   return isMap(schema) && !encodedText(schema) &&
-    ('binary' === schema.format || 'file' === schema.type || null != schema.contentMediaType)
+    ('binary' === schema.format || isFileType(schema.type) || null != schema.contentMediaType)
 }
 
 

@@ -1,0 +1,3 @@
+input	expected
+["file","null"]	["`$ONE`",["`$STRING`","`$NULL`"]]
+["vendor-type","null"]	["`$ONE`",["`$ANY`","`$NULL`"]]

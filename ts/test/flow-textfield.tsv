@@ -1,0 +1,5 @@
+name	fields	expected
+first-string-by-name	[{"n":"kind","t":"`$STRING`"},{"n":"avatar","t":"`$STRING`"}]	"avatar"
+read-only-passed-over	[{"n":"avatar","t":"`$STRING`","ro":true},{"n":"kind","t":"`$STRING`"}]	"kind"
+binary-passed-over	[{"n":"avatar","t":"`$STRING`","fo":"binary"},{"n":"avatar_url","t":"`$STRING`"}]	"avatar_url"
+binary-only-leaves-none	[{"n":"file","t":"`$STRING`","fo":"binary"},{"n":"size","t":"`$INTEGER`"}]	null

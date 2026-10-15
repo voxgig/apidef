@@ -13,11 +13,18 @@ null	`$NULL`
 array	`$ARRAY`
 object	`$OBJECT`
 any	`$ANY`
-unknown	Any
-foo	Any
-constructor	Any
-__proto__	Any
-toString	Any
-valueOf	Any
-hasOwnProperty	Any
-prototype	Any
+unknown	`$ANY`
+foo	`$ANY`
+symbol	`$ANY`
+PartialStartDate	`$ANY`
+constructor	`$ANY`
+__proto__	`$ANY`
+toString	`$ANY`
+valueOf	`$ANY`
+hasOwnProperty	`$ANY`
+prototype	`$ANY`
+file	`$STRING`
+File	`$STRING`
+FILE	`$STRING`
+ file 	`$STRING`
+	`$ANY`

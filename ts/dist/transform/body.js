@@ -167,7 +167,7 @@ function swaggerOffers(def, pathdef, opdef) {
         .filter((media) => null != textOf(media));
     const consumes = 0 < declared.length ? declared : [
         null != body ? JSON_MEDIA :
-            form.some((param) => 'file' === param.type) ? MULTIPART_MEDIA : FORM_MEDIA
+            form.some((param) => (0, utility_1.isFileType)(param.type)) ? MULTIPART_MEDIA : FORM_MEDIA
     ];
     return consumes.map((media) => ({
         media,
@@ -287,7 +287,7 @@ function rawBinary(type, schema) {
 }
 function binarySchema(schema) {
     return isMap(schema) && !encodedText(schema) &&
-        ('binary' === schema.format || 'file' === schema.type || null != schema.contentMediaType);
+        ('binary' === schema.format || (0, utility_1.isFileType)(schema.type) || null != schema.contentMediaType);
 }
 function encodedText(schema) {
     return isMap(schema) && ('byte' === schema.format || null != schema.contentEncoding);

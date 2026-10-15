@@ -190,8 +190,7 @@ function paramSchema(argdef) {
     if ('formData' === argdef?.in) {
         return undefined;
     }
-    // Swagger 2's file type is a binary string in OpenAPI 3.
-    return 'file' === argdef?.type ? { ...argdef, type: 'string', format: 'binary' } : argdef;
+    return (0, utility_1.isFileType)(argdef?.type) ? { ...argdef, type: 'string', format: 'binary' } : argdef;
 }
 function resolveArgExample(argdef, schema) {
     if (undefined !== argdef?.example)

@@ -8,6 +8,7 @@ import {
   depluralize,
   canonizeParam,
   inferFieldType,
+  isFileType,
   normalizeFieldName,
   paramName,
   validator,
@@ -253,8 +254,7 @@ function paramSchema(argdef: any): any {
   if ('formData' === argdef?.in) {
     return undefined
   }
-  // Swagger 2's file type is a binary string in OpenAPI 3.
-  return 'file' === argdef?.type ? { ...argdef, type: 'string', format: 'binary' } : argdef
+  return isFileType(argdef?.type) ? { ...argdef, type: 'string', format: 'binary' } : argdef
 }
 
 

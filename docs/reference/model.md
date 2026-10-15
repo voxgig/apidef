@@ -97,13 +97,19 @@ compiler model retains entity names until the file builder renders them.
 | `ro` | `boolean?` | the spec says a client must not send this field |
 | `wo` | `boolean?` | the spec says the field is never returned |
 | `de` | `boolean?` | the spec marks the property deprecated |
-| `fo` | `string?` | the property's `format`, trimmed (`date-time`, `password`, …) |
+| `fo` | `string?` | the property's `format`, trimmed (`date-time`, `password`, …), or `binary` for Swagger 2's `type: file` |
 
 The last five are present only when the spec states them, and the three flags
 only when the spec states them **true**. Each defaults to false in OpenAPI, so
 an absent key and an explicit `false` carry the same information.
 That distinction matters: an absent key means the spec said nothing, never
 that apidef dropped it.
+
+Swagger 2's `type: file` states its format in the type. OpenAPI 3 writes a
+file as `type: string` with `format: binary`, and a Swagger 2 file is
+recorded as that equivalent: a `` `$STRING` `` field with `fo: binary`,
+unless the property states a `format` of its own. Without `fo` the field
+would read as text. `ts/test/allof-field.tsv` pins each case.
 
 Where two schemas for one field disagree — a response marking a field
 `readOnly` and a request body listing it as ordinary — the first declaration
@@ -112,21 +118,26 @@ that does both contradicts itself, and believing the restriction costs a
 caller one field they might have been able to send, while believing the
 omission sends a value the server rejects.
 
-`t` comes from the property's `type`. OpenAPI 3.0 ignores the siblings of a
-`$ref`, so a definition describes a referenced value by wrapping the `$ref` in
-an `allOf` beside a member that holds only the description. An `allOf` whose
-members are one scalar schema and any number of members holding only
-`description`, `title`, `example`, `nullable` or `deprecated` is read as that
-scalar. A scalar schema has the type `string`, `integer`, `number` or
-`boolean`, alone or listed with `null`, and composes nothing. The field reads
-the schema of the scalar with the describing members laid over it, and the
-property's own keys over those. So it takes the `type` and `format` of the
-scalar, and prefers a description from the property or a describing member
-to the one the scalar carries. A `$ref` to a string with `format: oid`,
-described that way, gives a `` `$STRING` `` field with `fo: oid`. Any other
-`allOf`, such as one of objects, has no `type` of its own, so its field is
-`` `$ANY` `` unless the name says what it holds, such as an id, a count, or a
-flag. `ts/test/allof-field.tsv` pins each case.
+`t` comes from the property's `type`, trimmed and read in any letter case, so
+`File` is Swagger 2's `file`. A type apidef does not know, such as `symbol`,
+counts as no type, so the field is `` `$ANY` `` unless the name says what it
+holds. `ts/test/validator.tsv` pins each type.
+
+OpenAPI 3.0 ignores the siblings of a `$ref`, so a definition describes a
+referenced value by wrapping the `$ref` in an `allOf` beside a member that
+holds only the description. An `allOf` whose members are one scalar schema
+and any number of members holding only `description`, `title`, `example`,
+`nullable` or `deprecated` is read as that scalar. A scalar schema has the
+type `string`, `integer`, `number` or `boolean`, alone or listed with `null`,
+and composes nothing. The field reads the schema of the scalar with the
+describing members laid over it, and the property's own keys over those. So
+it takes the `type` and `format` of the scalar, and prefers a description
+from the property or a describing member to the one the scalar carries. A
+`$ref` to a string with `format: oid`, described that way, gives a
+`` `$STRING` `` field with `fo: oid`. Any other `allOf`, such as one of
+objects, has no `type` of its own, so its field is `` `$ANY` `` unless the
+name says what it holds, such as an id, a count, or a flag.
+`ts/test/allof-field.tsv` pins each case.
 
 A point's request body properties become fields from the body its guide's
 `body.media` names, of whatever media type, else from the JSON body the body
@@ -203,6 +214,22 @@ path parameter: it is required, and it takes the name its placeholder takes in
 `s`. Any other is a `query` argument. Either way a warning names the
 parameter, so the definition can be corrected.
 
+An argument's `t` comes from its parameter's `schema`, or for a Swagger 2
+parameter from the parameter itself, read as a field's `type` is. A Swagger 2
+`type: file` outside a form is a binary string, so its argument is
+`` `$STRING` ``, and a type apidef does not know is `` `$ANY` `` unless the
+name says what it holds.
+
+A Swagger 2 `formData` parameter is a field of the request body, and the type
+it declares is read there: by `rb`, and by the entity's fields where its form
+is the body they come from. It also stays among the `query` arguments, where
+apidef reads no type for it, so it is `` `$ANY` `` unless its name says what
+it holds. A required `formData` file is therefore a required `` `$ANY` ``
+argument, a binary field of `rb`, and a `` `$STRING` `` field with
+`fo: binary` wherever its form gives the entity its fields.
+`ts/test/param-schema.tsv` pins each argument, and
+`ts/test/declared-type.test.ts` one parameter in all three places.
+
 ### `ModelBody`
 
 `rb`, the request body, and `rs`, the success response, share one shape. A
@@ -255,10 +282,10 @@ only.
 `application/x-www-form-urlencoded` is `form`; every `multipart/` type is
 `multipart`; anything else is `raw`. A range that admits JSON, `*/*` or
 `application/*`, is `json` sent as `application/json`, unless its schema is
-`format: binary` or has a `contentMediaType` and is not encoded text; then
-it is a binary `raw` body sent as `application/octet-stream`. A `+json`
-range is sent as `application/json`, and `multipart/*` as
-`multipart/form-data`.
+`format: binary` or `type: file`, or has a `contentMediaType`, and is not
+encoded text; then it is a binary `raw` body sent as
+`application/octet-stream`. A `+json` range is sent as `application/json`,
+and `multipart/*` as `multipart/form-data`.
 
 **Binary.** A schema with `format: byte` or a `contentEncoding` is encoded
 text, and never bytes. Otherwise a `raw` body is bytes when its schema is
@@ -267,7 +294,8 @@ or has a `contentMediaType`, and also when its media type is not text. The
 text media types are `text/*`, `application/xml`, and every `+xml` type. A
 field is binary when its schema, or for a list its items' schema, is
 `format: binary` or `type: file`, or has a `contentMediaType`, and is not
-encoded text.
+encoded text. Swagger's `file` is read as `t` reads a type: trimmed, in any
+letter case. So is the `file` that makes a `formData` body multipart.
 
 **Arrays.** A Swagger 2 array is joined by its `collectionFormat`: `csv`,
 the default, with `,`, `ssv` with a space, `tsv` with a tab, and `pipes` with
