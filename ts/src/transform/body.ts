@@ -613,9 +613,10 @@ function unionArray(members: any[]): any {
 }
 
 
-// A nullable array says so with `nullable` in OpenAPI 3.0, and a type list in 3.1.
+// The nullable flag adds null once to the declared type.
 function nullableType(schema: any): any {
-  return true === schema.nullable && !hasType(schema, 'null') ? [schema.type, 'null'].flat() : schema.type
+  return true === schema.nullable && null != schema.type && !hasType(schema, 'null') ?
+    [schema.type, 'null'].flat() : schema.type
 }
 
 

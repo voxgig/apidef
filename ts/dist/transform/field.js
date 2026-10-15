@@ -438,7 +438,7 @@ function modelField(fielddef) {
     const mfield = {
         n: name,
         h: (0, utility_1.humanTitle)(name),
-        t: (0, utility_1.inferFieldType)(name, (0, utility_1.validator)(fielddef.type)),
+        t: (0, utility_1.inferFieldType)(name, (0, utility_1.validator)((0, body_1.nullableType)(fielddef))),
         r: !!fielddef.required,
         op: {},
     };
@@ -657,7 +657,7 @@ function composedFields(schema) {
     const decls = Object.create(null);
     for (const part of parts) {
         (0, jostraca_1.each)(part.properties, (property) => {
-            (decls[property.key$] = decls[property.key$] ?? []).push((0, utility_1.collapseScalarAllOf)(property));
+            (decls[property.key$] = decls[property.key$] ?? []).push(fieldSchema(property));
         });
     }
     return Object.keys(decls).map((name) => {
@@ -665,6 +665,17 @@ function composedFields(schema) {
         // A copy: parsed schemas are shared by every operation referencing them.
         return !property.required && required.has(name) ? { ...property, required: true } : property;
     });
+}
+function fieldSchema(property) {
+    const collapsed = (0, utility_1.collapseScalarAllOf)(property);
+    if (collapsed === property) {
+        return property;
+    }
+    const nullable = [property, ...property.allOf].every((part) => null == part.type || true === part.nullable ||
+        (Array.isArray(part.type) ? part.type : [part.type]).includes('null'));
+    const types = (Array.isArray(collapsed.type) ? collapsed.type : [collapsed.type])
+        .filter((type) => nullable || 'null' !== type);
+    return { ...collapsed, nullable, type: 1 === types.length ? types[0] : types };
 }
 function mergeDeclarations(decls) {
     const merged = {};
