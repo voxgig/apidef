@@ -26,10 +26,10 @@ swagger2-file-any-case-outside-form	/widgets	{"name":"preview","in":"query","typ
 swagger2-unknown-type	/widgets	{"name":"since","in":"query","type":"PartialStartDate"}	{"name":"since","in":"query","schema":{"type":"PartialStartDate"}}	{"n":"since","or":"since","t":"`$ANY`","k":"query","r":false}
 swagger2-unknown-type-named-id	/widgets	{"name":"owner_id","in":"query","type":"vendor-type"}	{"name":"owner_id","in":"query","schema":{"type":"vendor-type"}}	{"n":"owner_id","or":"owner_id","t":"`$STRING`","k":"query","r":false}
 swagger2-x-example-not-read	/widgets	{"name":"tag_name","in":"query","type":"string","x-example":"v1.0"}	-	{"n":"tag_name","or":"tag_name","t":"`$STRING`","k":"query","r":false}
-swagger2-formdata-untyped	/widgets	{"name":"status","in":"formData","type":"string"}	-	{"n":"status","or":"status","t":"`$ANY`","k":"query","r":false}
-swagger2-formdata-file-untyped	/widgets	{"name":"attachment","in":"formData","type":"file"}	-	{"n":"attachment","or":"attachment","t":"`$ANY`","k":"query","r":false}
-swagger2-formdata-file-any-case-untyped	/widgets	{"name":"attachment","in":"formData","type":"File"}	-	{"n":"attachment","or":"attachment","t":"`$ANY`","k":"query","r":false}
-swagger2-formdata-file-required	/widgets	{"name":"file","in":"formData","type":"file","required":true}	-	{"n":"file","or":"file","t":"`$ANY`","k":"query","r":true}
+swagger2-formdata-no-argument	/widgets	{"name":"status","in":"formData","type":"string"}	-	null
+swagger2-formdata-file-no-argument	/widgets	{"name":"attachment","in":"formData","type":"file"}	-	null
+swagger2-formdata-file-any-case-no-argument	/widgets	{"name":"attachment","in":"formData","type":"File"}	-	null
+swagger2-formdata-required-no-argument	/widgets	{"name":"file","in":"formData","type":"file","required":true}	-	null
 openapi3-unchanged	/widgets	{"name":"tag_name","in":"query","schema":{"type":"string","default":"main"}}	-	{"n":"tag_name","or":"tag_name","t":"`$STRING`","k":"query","r":false,"ex":"main"}
 both-forms-schema-wins	/widgets	{"name":"revision","in":"query","type":"integer","default":5,"schema":{"type":"string","default":"head"}}	-	{"n":"revision","or":"revision","t":"`$STRING`","k":"query","r":false,"ex":"head"}
 both-forms-empty-schema-wins	/widgets	{"name":"revision","in":"query","type":"integer","default":5,"schema":{}}	-	{"n":"revision","or":"revision","t":"`$ANY`","k":"query","r":false}

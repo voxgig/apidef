@@ -993,7 +993,7 @@ describe('tsv-resolve-args', () => {
 
 
 // A Swagger 2 row's `openapi3` column is the parameter it converts to, which
-// must give the same argument.
+// must give the same argument. An `arg` of null is no argument at all.
 describe('tsv-param-schema', () => {
   const rows = loadTsv('param-schema')
   test('has rows', () => assert.ok(0 < rows.length))
@@ -1019,7 +1019,8 @@ describe('tsv-param-schema', () => {
 
   for (const row of rows) {
     test(row.name, async () => {
-      const want = [JSON.parse(row.arg)]
+      const arg = JSON.parse(row.arg)
+      const want = null == arg ? [] : [arg]
       assert.deepStrictEqual(await argsOf(row.path, JSON.parse(row.parameter)), want)
       if ('-' !== row.openapi3) {
         assert.deepStrictEqual(await argsOf(row.path, JSON.parse(row.openapi3)), want)

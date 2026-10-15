@@ -642,13 +642,6 @@ func jsonSchema(offers []bodyOffer, media string) any {
 	return chosen.offer.schema
 }
 
-func jsonRequestSchema(opdef map[string]any) any {
-	if opdef == nil {
-		return nil
-	}
-	return jsonSchema(openapiOffers(opdef), "")
-}
-
 // requestSchema mirrors ts/src/transform/body.ts: the JSON schema a point's
 // request body is sent with, under the media type the guide names, else the
 // one the body step prefers.
@@ -658,16 +651,20 @@ func requestSchema(def map[string]any, method string, path string, media string)
 }
 
 // selectedRequestSchema mirrors ts/src/transform/body.ts: the schema of the
-// request body offered under the media type the guide names, of any kind,
-// else the preferred JSON one.
+// request body offered under the media type the guide names, else of the one
+// the body step prefers, of any kind.
 func selectedRequestSchema(def map[string]any, method string, path string, media string) any {
 	offers, _ := requestOffers(def, method, path)
+	ranked := rankOffers(offers)
 	if media != "" {
-		if named := chooseOffer(rankOffers(offers), media); named != nil {
+		if named := chooseOffer(ranked, media); named != nil {
 			return named.offer.schema
 		}
 	}
-	return jsonSchema(offers, "")
+	if chosen := chooseOffer(ranked, ""); chosen != nil {
+		return chosen.offer.schema
+	}
+	return nil
 }
 
 // requestFieldSchema mirrors ts/src/transform/body.ts: the request schema a

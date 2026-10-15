@@ -54,13 +54,6 @@
     }
   },
   "args": {
-    "document.create": {
-      "query": {
-        "caption": "`$ANY`",
-        "file": "`$ANY`",
-        "thumbnail": "`$ANY`"
-      }
-    },
     "upload.load": {
       "params": {
         "id": "`$STRING`"

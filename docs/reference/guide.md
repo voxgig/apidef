@@ -345,7 +345,11 @@ A request body wraps the record
 under the entity's name only when that property is structured and is all the
 body holds, so a create that sends a `name` beside a `container`, or a
 `title` beside a `key`, sends its properties as they are. The `guide-envelope`
-and `guide-wrapper-name` tests pin these in both builds.
+and `guide-wrapper-name` tests pin these in both builds. A Swagger 2 `body`
+parameter is the request body these rules read, as an OpenAPI 3
+`requestBody` is, and
+[`ts/test/swagger-twin.test.ts`](../../ts/test/swagger-twin.test.ts) builds
+one definition written both ways.
 
 ### Shared schemas
 

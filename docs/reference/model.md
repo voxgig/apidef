@@ -146,9 +146,10 @@ name says what it holds, such as an id, a count, or a flag.
 `ts/test/allof-field.tsv` pins each case.
 
 A point's request body properties become fields from the body its guide's
-`body.media` names, of whatever media type, else from the JSON body the body
-step prefers. A Swagger 2 `formData` parameter gives a field that is required
-when the parameter is.
+`body.media` names, else from the body the body step prefers, of whatever
+media type: an operation that takes only a form or a multipart body gives the
+entity that form's fields. A Swagger 2 `formData` parameter gives a field that
+is required when the parameter is.
 
 A JSON request body that is an array has no properties, so the point that
 sends it declares one field for it: the field its `t.req` sends the array
@@ -226,15 +227,16 @@ parameter from the parameter itself, read as a field's `type` is. A Swagger 2
 `` `$STRING` ``, and a type apidef does not know is `` `$ANY` `` unless the
 name says what it holds.
 
-A Swagger 2 `formData` parameter is a field of the request body, and the type
-it declares is read there: by `rb`, and by the entity's fields where its form
-is the body they come from. It also stays among the `query` arguments, where
-apidef reads no type for it, so it is `` `$ANY` `` unless its name says what
-it holds. A required `formData` file is therefore a required `` `$ANY` ``
-argument, a binary field of `rb`, and a `` `$STRING` `` field with
-`fo: binary` wherever its form gives the entity its fields.
-`ts/test/param-schema.tsv` pins each argument, and
-`ts/test/declared-type.test.ts` one parameter in all three places.
+A Swagger 2 `formData` parameter is a field of the request body, as a `body`
+parameter is the body itself, so neither is ever an argument, and neither
+joins a point's `q.exist`. The type a `formData` parameter declares is read
+by `rb`, and by the entity's fields where its form is the body they come
+from. A required `formData` file is therefore a binary field of `rb`, and a
+`` `$STRING` `` field with `fo: binary` wherever its form gives the entity
+its fields. `ts/test/param-schema.tsv` pins each parameter,
+`ts/test/declared-type.test.ts` one file in both places, and
+`ts/test/swagger-twin.test.ts` a Swagger 2 definition that builds the model
+its OpenAPI 3 twin does.
 
 ### `ModelBody`
 
@@ -371,8 +373,8 @@ request body declares, named as the entity's fields are, in code point
 order, each once.
 
 The body is the one a point's fields are read from: the media type
-`body.media` names in `guide.aontu`, else the JSON one the body step
-prefers. A Swagger 2 `body` parameter is that body, as an OpenAPI 3 request
+`body.media` names in `guide.aontu`, else the one the body step prefers.
+Only a JSON body has `bf`. A Swagger 2 `body` parameter is that body, as an OpenAPI 3 request
 body is. Its properties include those of every `allOf`, `oneOf` and `anyOf`
 member, so a body that may be one of several objects names the properties
 of each, though the entity's fields read `allOf` members alone. A wrapped

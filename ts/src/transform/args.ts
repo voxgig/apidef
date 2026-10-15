@@ -136,8 +136,8 @@ function resolveArgs(
   const placeholders = [...String(mpoint.o ?? '').matchAll(/\{([^}]+)\}/g)].map((m) => m[1])
 
   each(argdefs, (argdef: ParameterDef) => {
-    // A Swagger body parameter is the request body, which the body step reads.
-    if ('body' === (argdef as any).in) {
+    // A Swagger body or formData parameter is the request body, which the body step reads.
+    if ('body' === (argdef as any).in || 'formData' === (argdef as any).in) {
       return
     }
 
@@ -246,13 +246,10 @@ function resolveArgs(
 
 
 // Type facts sit on a Swagger 2 parameter itself, and under `schema` in
-// OpenAPI 3. A formData parameter converts to a body field, not a parameter.
+// OpenAPI 3.
 function paramSchema(argdef: any): any {
   if (null != argdef?.schema) {
     return argdef.schema
-  }
-  if ('formData' === argdef?.in) {
-    return undefined
   }
   return isFileType(argdef?.type) ? { ...argdef, type: 'string', format: 'binary' } : argdef
 }

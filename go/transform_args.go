@@ -112,8 +112,8 @@ func resolveArgs(
 		argName, _ := argdef["name"].(string)
 		argIn, _ := argdef["in"].(string)
 
-		// A Swagger body parameter is the request body, which the body step reads.
-		if argIn == "body" {
+		// A Swagger body or formData parameter is the request body, which the body step reads.
+		if argIn == "body" || argIn == "formData" {
 			continue
 		}
 
@@ -341,9 +341,6 @@ func paramSchema(argdef map[string]any) map[string]any {
 	if s, has := argdef["schema"]; has && s != nil {
 		schema, _ := s.(map[string]any)
 		return schema
-	}
-	if argdef["in"] == "formData" {
-		return nil
 	}
 	if !isFileType(argdef["type"]) {
 		return argdef

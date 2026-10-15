@@ -13,7 +13,7 @@ import {
   itemEnvelopeTransform,
 } from '../utility'
 
-import { jsonRequestSchema } from '../transform/body'
+import { requestSchema } from '../transform/body'
 
 
 import {
@@ -1347,7 +1347,7 @@ function ResolveTransform(spec: TaskSpec) {
     }
   }
 
-  const reqschema = getRequestBodySchema(mdesc.requestBody)
+  const reqschema = getRequestBodySchema(spec.data.def, mdesc)
   debugpath(pathStr, methodName, 'TRANSFORM-REQ', keysof(reqschema?.properties))
   transform.req = bodyRequestTransform(reqschema, [entdesc.origname, entdesc.name])
 
@@ -1821,8 +1821,9 @@ function entityPathMatch_tpp(
 }
 
 
-function getRequestBodySchema(requestBody: any) {
-  return jsonRequestSchema({ requestBody }) ?? requestBody?.schema
+// The JSON body a method sends, a Swagger 2 body parameter included.
+function getRequestBodySchema(def: any, mdesc: any) {
+  return requestSchema(def, mdesc.method, mdesc.path) ?? mdesc.requestBody?.schema
 }
 
 // The response an operation's result is read from, down to an Accepted
@@ -2006,8 +2007,7 @@ function probableEntityMethod(
   pm: PathMatch,
   why: string[]
 ) {
-  const request = mdesc.requestBody
-  const reqSchema = getRequestBodySchema(request)
+  const reqSchema = getRequestBodySchema(data.def, mdesc)
 
   const response = mdesc.responses?.['201'] || mdesc.responses?.['200']
   const resSchema = getResponseSchema(response)

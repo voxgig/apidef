@@ -459,11 +459,6 @@ function jsonSchema(offers: Offer[], media?: string): any {
 }
 
 
-function jsonRequestSchema(opdef: any): any {
-  return isMap(opdef) ? jsonSchema(openapiOffers(opdef)) : undefined
-}
-
-
 // The JSON schema a point's request body is sent with, under the media type
 // the guide names, else the one the body step prefers.
 function requestSchema(def: any, method: string, path: string, media?: string): any {
@@ -472,11 +467,11 @@ function requestSchema(def: any, method: string, path: string, media?: string): 
 
 
 // The schema of the request body offered under the media type the guide
-// names, of any kind, else the preferred JSON one.
+// names, else of the one the body step prefers, of any kind.
 function selectedRequestSchema(def: any, method: string, path: string, media?: string): any {
-  const offers = requestOffers(def, method, path) ?? []
-  const named = null == textOf(media) ? undefined : chooseOffer(rankOffers(offers), media)
-  return null == named ? jsonSchema(offers) : named.offer.schema
+  const ranked = rankOffers(requestOffers(def, method, path) ?? [])
+  const named = null == textOf(media) ? undefined : chooseOffer(ranked, media)
+  return (named ?? chooseOffer(ranked))?.offer.schema
 }
 
 
@@ -679,7 +674,6 @@ export {
   guideMedia,
   requestBody,
   responseBody,
-  jsonRequestSchema,
   requestSchema,
   arrayRequestSchema,
   arrayCarrier,

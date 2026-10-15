@@ -6,7 +6,6 @@ exports.bodyFields = bodyFields;
 exports.guideMedia = guideMedia;
 exports.requestBody = requestBody;
 exports.responseBody = responseBody;
-exports.jsonRequestSchema = jsonRequestSchema;
 exports.requestSchema = requestSchema;
 exports.arrayRequestSchema = arrayRequestSchema;
 exports.arrayCarrier = arrayCarrier;
@@ -334,20 +333,17 @@ function jsonSchema(offers, media) {
     const chosen = chooseOffer(rankOffers(offers), media);
     return 'json' === chosen?.body.kind ? chosen.offer.schema : undefined;
 }
-function jsonRequestSchema(opdef) {
-    return isMap(opdef) ? jsonSchema(openapiOffers(opdef)) : undefined;
-}
 // The JSON schema a point's request body is sent with, under the media type
 // the guide names, else the one the body step prefers.
 function requestSchema(def, method, path, media) {
     return jsonSchema(requestOffers(def, method, path) ?? [], media);
 }
 // The schema of the request body offered under the media type the guide
-// names, of any kind, else the preferred JSON one.
+// names, else of the one the body step prefers, of any kind.
 function selectedRequestSchema(def, method, path, media) {
-    const offers = requestOffers(def, method, path) ?? [];
-    const named = null == textOf(media) ? undefined : chooseOffer(rankOffers(offers), media);
-    return null == named ? jsonSchema(offers) : named.offer.schema;
+    const ranked = rankOffers(requestOffers(def, method, path) ?? []);
+    const named = null == textOf(media) ? undefined : chooseOffer(ranked, media);
+    return (named ?? chooseOffer(ranked))?.offer.schema;
 }
 // The request schema a point's fields come from, read through the key a
 // wrapped body sends the record under.

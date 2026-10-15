@@ -4,7 +4,7 @@
     "member.create POST /members exist=members action= req=\"`reqdata.members`\" bf=[\"members\"]",
     "member.load GET /members/{member_id} exist=id action= req=\"`reqdata`\" bf=null",
     "member.update PUT /members/{member_id} exist=id action= req=\"`reqdata`\" bf=[\"name\",\"nickname\"]",
-    "ticket.create POST /tickets exist=title action= req=\"`reqdata`\" bf=null"
+    "ticket.create POST /tickets exist= action= req=\"`reqdata`\" bf=null"
   ],
   "fields": {
     "gift": {

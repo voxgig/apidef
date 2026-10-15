@@ -1356,7 +1356,7 @@ func TestTsvResolveArgs(t *testing.T) {
 }
 
 // A Swagger 2 row's `openapi3` column is the parameter it converts to, which
-// must give the same argument.
+// must give the same argument. An `arg` of null is no argument at all.
 func TestTsvParamSchema(t *testing.T) {
 	rows := loadTsv(t, "param-schema")
 	if len(rows) == 0 {
@@ -1410,7 +1410,10 @@ func TestTsvParamSchema(t *testing.T) {
 			var arg any
 			unmarshalCol(t, row, "parameter", &parameter)
 			unmarshalCol(t, row, "arg", &arg)
-			want := []any{arg}
+			want := []any{}
+			if arg != nil {
+				want = []any{arg}
+			}
 			if got := argsOf(t, row["path"], parameter); !jsonEqual(got, want) {
 				out, _ := json.Marshal(got)
 				t.Errorf("parameter\ngot  %s\nwant [%s]", out, row["arg"])

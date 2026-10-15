@@ -1,0 +1,47 @@
+# Generated from the API definition and overwritten on every build: do not
+# edit this file. Put customizations in the guide entry file, which includes
+# this one and overrides its defaults:
+#   swagger-guide.aontu
+
+guide: {
+  metrics: count: entity: 3
+  metrics: count: path: 6
+  metrics: count: method: 8
+
+  entity: note: {
+    path: "/notes": {
+      op: create: method: *POST
+      op: create: transform: req: "text": *("`reqdata.text`")|top
+      op: create: transform: req: "title": *("`reqdata.title`")|top
+    }
+    path: "/notes/{note_id}": {
+      rename: param: "note_id": *"id"
+      op: load: method: *GET
+    }
+  }
+
+  entity: ticket: {
+    path: "/tickets": {
+      op: create: method: *POST
+    }
+  }
+
+  entity: widget: {
+    path: "/widgets": {
+      op: create: method: *POST
+      op: list: method: *GET
+    }
+    path: "/widgets/{widget_id}": {
+      rename: param: "widget_id": *"id"
+      op: load: method: *GET
+      op: update: method: *PUT
+      op: update: transform: req: "widget": *("`reqdata`")|top
+    }
+    path: "/widgets/{widget_id}/image": {
+      action: "image": {}
+      rename: param: "widget_id": *"id"
+      op: create: method: *POST
+    }
+  }
+
+}

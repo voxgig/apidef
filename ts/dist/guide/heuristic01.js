@@ -981,7 +981,7 @@ function ResolveTransform(spec) {
             transform.res = (0, utility_1.itemEnvelopeTransform)(key);
         }
     }
-    const reqschema = getRequestBodySchema(mdesc.requestBody);
+    const reqschema = getRequestBodySchema(spec.data.def, mdesc);
     (0, utility_2.debugpath)(pathStr, methodName, 'TRANSFORM-REQ', (0, struct_1.keysof)(reqschema?.properties));
     transform.req = (0, utility_1.bodyRequestTransform)(reqschema, [entdesc.origname, entdesc.name]);
     if (!(0, struct_1.isempty)(transform) && null != op[opname]) {
@@ -1316,8 +1316,9 @@ function entityPathMatch_tpp(data, pm, mdesc, why) {
     }
     return entname;
 }
-function getRequestBodySchema(requestBody) {
-    return (0, body_1.jsonRequestSchema)({ requestBody }) ?? requestBody?.schema;
+// The JSON body a method sends, a Swagger 2 body parameter included.
+function getRequestBodySchema(def, mdesc) {
+    return (0, body_1.requestSchema)(def, mdesc.method, mdesc.path) ?? mdesc.requestBody?.schema;
 }
 // The response an operation's result is read from, down to an Accepted
 // response when nothing else answers, whose body may be the job it queued.
@@ -1449,8 +1450,7 @@ function inferEntityName(mdesc, parts, why) {
     return null;
 }
 function probableEntityMethod(data, mdesc, pm, why) {
-    const request = mdesc.requestBody;
-    const reqSchema = getRequestBodySchema(request);
+    const reqSchema = getRequestBodySchema(data.def, mdesc);
     const response = mdesc.responses?.['201'] || mdesc.responses?.['200'];
     const resSchema = getResponseSchema(response);
     const noResponse = null == resSchema && null != mdesc.responses?.['204'];

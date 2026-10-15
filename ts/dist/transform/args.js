@@ -81,8 +81,8 @@ function resolveArgs(ctx, ment, mop, mpoint, argdefs) {
     const touchedKeys = new Set();
     const placeholders = [...String(mpoint.o ?? '').matchAll(/\{([^}]+)\}/g)].map((m) => m[1]);
     (0, jostraca_1.each)(argdefs, (argdef) => {
-        // A Swagger body parameter is the request body, which the body step reads.
-        if ('body' === argdef.in) {
+        // A Swagger body or formData parameter is the request body, which the body step reads.
+        if ('body' === argdef.in || 'formData' === argdef.in) {
             return;
         }
         const specName = (0, utility_1.normalizeFieldName)(argdef.name);
@@ -182,13 +182,10 @@ function resolveArgs(ctx, ment, mop, mpoint, argdefs) {
     }
 }
 // Type facts sit on a Swagger 2 parameter itself, and under `schema` in
-// OpenAPI 3. A formData parameter converts to a body field, not a parameter.
+// OpenAPI 3.
 function paramSchema(argdef) {
     if (null != argdef?.schema) {
         return argdef.schema;
-    }
-    if ('formData' === argdef?.in) {
-        return undefined;
     }
     return (0, utility_1.isFileType)(argdef?.type) ? { ...argdef, type: 'string', format: 'binary' } : argdef;
 }

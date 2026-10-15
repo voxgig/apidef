@@ -1817,9 +1817,10 @@ func resolveTransform(data map[string]any, mdesc map[string]any) {
 		}
 	}
 
-	reqBody, _ := mdesc["requestBody"].(map[string]any)
-	reqschema := getRequestBodySchema(reqBody)
-	DebugPath(pathStr, methodName, "TRANSFORM-REQ", getRequestBodySchemaProps(reqBody))
+	def, _ := data["def"].(map[string]any)
+	reqschema := getRequestBodySchema(def, mdesc)
+	reqprops, _ := reqschema["properties"].(map[string]any)
+	DebugPath(pathStr, methodName, "TRANSFORM-REQ", reqprops)
 
 	if req := bodyRequestTransform(reqschema, origname, ename); req != nil {
 		transform["req"] = req
@@ -2234,8 +2235,8 @@ func entityCmpMatch(data map[string]any, entname string, mdesc map[string]any, w
 
 // probableEntityMethod determines if a method is probably an entity method.
 func probableEntityMethod(data map[string]any, mdesc map[string]any, ment map[string]any, pm *PathMatchResult, why *[]string) bool {
-	requestBody, _ := mdesc["requestBody"].(map[string]any)
-	reqSchema := getRequestBodySchema(requestBody)
+	def, _ := data["def"].(map[string]any)
+	reqSchema := getRequestBodySchema(def, mdesc)
 
 	responses, _ := mdesc["responses"].(map[string]any)
 	var resSchema map[string]any
@@ -2751,14 +2752,15 @@ func resolveSchemaProperties(schema map[string]any) map[string]any {
 	return out
 }
 
-// getRequestBodySchema extracts schema from request body.
-func getRequestBodySchema(requestBody map[string]any) map[string]any {
-	if requestBody == nil {
-		return nil
-	}
-	if schema, ok := jsonRequestSchema(map[string]any{"requestBody": requestBody}).(map[string]any); ok {
+// getRequestBodySchema is the JSON body a method sends, a Swagger 2 body
+// parameter included.
+func getRequestBodySchema(def map[string]any, mdesc map[string]any) map[string]any {
+	method, _ := mdesc["method"].(string)
+	path, _ := mdesc["path"].(string)
+	if schema, ok := requestSchema(def, method, path, "").(map[string]any); ok {
 		return schema
 	}
+	requestBody, _ := mdesc["requestBody"].(map[string]any)
 	if schema, ok := requestBody["schema"].(map[string]any); ok {
 		return schema
 	}
@@ -2939,16 +2941,6 @@ func getResponseSchema(response map[string]any) map[string]any {
 		return schema
 	}
 	return nil
-}
-
-// getRequestBodySchemaProps gets properties from a request body schema.
-func getRequestBodySchemaProps(requestBody map[string]any) map[string]any {
-	schema := getRequestBodySchema(requestBody)
-	if schema == nil {
-		return nil
-	}
-	props, _ := schema["properties"].(map[string]any)
-	return props
 }
 
 // updateAction adds an action to an entity path descriptor.

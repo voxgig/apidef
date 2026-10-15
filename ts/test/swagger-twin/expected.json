@@ -1,0 +1,66 @@
+{
+  "points": [
+    "note.create POST /notes args= exist= req={\"text\":\"`reqdata.text`\",\"title\":\"`reqdata.title`\"} rb= bf=[\"text\",\"title\"]",
+    "note.load GET /notes/{note_id} args=param:id exist=id req=\"`reqdata`\" rb= bf=null",
+    "ticket.create POST /tickets args= exist= req=\"`reqdata`\" rb=form bf=null",
+    "widget.create POST /widgets/{widget_id}/image args=param:id exist=id req=\"`reqdata`\" rb=multipart bf=null",
+    "widget.create POST /widgets args= exist= req=\"`reqdata`\" rb= bf=[\"name\",\"secret_code\"]",
+    "widget.list GET /widgets args= exist= req=\"`reqdata`\" rb= bf=null",
+    "widget.load GET /widgets/{widget_id} args=param:id exist=id req=\"`reqdata`\" rb= bf=null",
+    "widget.update PUT /widgets/{widget_id} args=param:id exist=id req={\"widget\":\"`reqdata`\"} rb= bf=[\"name\",\"secret_code\"]"
+  ],
+  "fields": {
+    "note": {
+      "id": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "text": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "title": {
+        "t": "`$STRING`",
+        "r": false
+      }
+    },
+    "ticket": {
+      "id": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "notify": {
+        "t": "`$BOOLEAN`",
+        "r": false
+      },
+      "priority": {
+        "t": "`$INTEGER`",
+        "r": false
+      },
+      "title": {
+        "t": "`$STRING`",
+        "r": false,
+        "op": {
+          "create": {
+            "req": true,
+            "type": "`$STRING`"
+          }
+        }
+      }
+    },
+    "widget": {
+      "id": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "name": {
+        "t": "`$STRING`",
+        "r": false
+      },
+      "secret_code": {
+        "t": "`$STRING`",
+        "r": false
+      }
+    }
+  }
+}
