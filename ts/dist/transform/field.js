@@ -820,11 +820,20 @@ function mergeField(mop, existingField, newField, carrier = false) {
     if (null == existingField.sh && null != newField.sh) {
         existingField.sh = newField.sh;
     }
-    for (const flag of ['ro', 'wo', 'de', 'fo']) {
+    for (const flag of ['ro', 'wo', 'de']) {
         if (null == existingField[flag] && null != newField[flag]) {
             existingField[flag] = newField[flag];
         }
     }
+    // A format describes its own type, so another type's format would mislabel the field.
+    if (null == existingField.fo && null != newField.fo &&
+        (0, body_1.sameType)(ownType(existingField.t), ownType(newField.t))) {
+        existingField.fo = newField.fo;
+    }
     return existingField;
+}
+// The type beside a nullable union's `$NULL`, else the type itself.
+function ownType(type) {
+    return (0, utility_1.nonNullType)(type) ?? type;
 }
 //# sourceMappingURL=field.js.map

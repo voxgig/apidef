@@ -673,6 +673,32 @@ func ValidatorString(torig any) string {
 	return CanonOne
 }
 
+// nonNullType is the type a field holds when it is not null: the type itself,
+// or the one member of a union beside `$NULL`. Any other union has none.
+func nonNullType(t any) (string, bool) {
+	if s, ok := t.(string); ok {
+		return s, true
+	}
+	union, _ := t.([]any)
+	if len(union) < 2 || union[0] != CanonOne {
+		return "", false
+	}
+	members, ok := union[1].([]any)
+	if !ok {
+		return "", false
+	}
+	var own any
+	count := 0
+	for _, member := range members {
+		if member != validCanon["null"] {
+			own = member
+			count++
+		}
+	}
+	s, ok := own.(string)
+	return s, ok && 1 == count
+}
+
 func InferFieldType(name string, specType any) any {
 	if specType == "`$ANY`" {
 		if booleanNameRE.MatchString(name) {

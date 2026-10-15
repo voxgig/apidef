@@ -118,6 +118,12 @@ that does both contradicts itself, and believing the restriction costs a
 caller one field they might have been able to send, while believing the
 omission sends a value the server rejects.
 
+`fo` is the exception: a format describes the type it is declared on, so a
+field takes `fo` only from a declaration of its own type, and a type that
+allows null counts as the type beside the null. A number first declared
+without a format gains none from a request that sends it as a `date`
+string. `ts/test/field-merge.tsv` pins each case.
+
 `t` comes from the property's `type`, trimmed and read in any letter case, so
 `File` is Swagger 2's `file`. A type apidef does not know, such as `symbol`,
 counts as no type, so the field is `` `$ANY` `` unless the name says what it

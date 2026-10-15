@@ -20,6 +20,7 @@ exports.makeWarner = makeWarner;
 exports.formatJSONIC = formatJSONIC;
 exports.validator = validator;
 exports.isFileType = isFileType;
+exports.nonNullType = nonNullType;
 exports.canonize = canonize;
 exports.canonizeField = canonizeField;
 exports.fieldName = fieldName;
@@ -840,6 +841,7 @@ const VALID_CANON = Object.assign(Object.create(null), {
 exports.VALID_CANON = VALID_CANON;
 const CANON_ONE = '`$ONE`';
 exports.CANON_ONE = CANON_ONE;
+const CANON_NULL = '`$NULL`';
 function declaredType(type) {
     return type.toLowerCase().trim();
 }
@@ -857,6 +859,18 @@ function validator(torig) {
     else {
         return '`$ANY`';
     }
+}
+// The type a field holds when it is not null: the type itself, or the one
+// member of a union beside `$NULL`. Any other union has none.
+function nonNullType(type) {
+    if ('string' === typeof type) {
+        return type;
+    }
+    if (!Array.isArray(type) || CANON_ONE !== type[0] || !Array.isArray(type[1])) {
+        return undefined;
+    }
+    const members = type[1].filter((member) => CANON_NULL !== member);
+    return 1 === members.length && 'string' === typeof members[0] ? members[0] : undefined;
 }
 const FILE_EXT_RE = /\.(php|json|txt|png|jpg|jpeg|gif|svg|xml|html|csv|yml|yaml|md)$/i;
 function transliterate(s) {

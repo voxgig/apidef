@@ -956,6 +956,69 @@ func TestAllOfField(t *testing.T) {
 	}
 }
 
+// One field declared by a load's response and then by a create's request,
+// the order FieldTransform reads them in.
+func TestFieldMerge(t *testing.T) {
+	rows := loadTsv(t, "field-merge")
+	if len(rows) == 0 {
+		t.Fatal("no field-merge rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			record := func(src string) map[string]any {
+				var schema any
+				if err := json.Unmarshal([]byte(src), &schema); err != nil {
+					t.Fatalf("bad schema %q: %v", src, err)
+				}
+				return map[string]any{"content": map[string]any{"application/json": map[string]any{
+					"schema": map[string]any{"type": "object", "properties": map[string]any{
+						"value": schema, "label": map[string]any{"type": "string"},
+					}},
+				}}}
+			}
+			ent := map[string]any{
+				"name":   "thing",
+				"fields": map[string]any{},
+				"op": map[string]any{
+					"load": map[string]any{"name": "load", "points": []any{
+						map[string]any{"o": "/things", "m": "GET", "k": "json"},
+					}},
+					"create": map[string]any{"name": "create", "points": []any{
+						map[string]any{"o": "/things", "m": "POST", "k": "json"},
+					}},
+				},
+			}
+			def := map[string]any{"paths": map[string]any{"/things": map[string]any{
+				"get":  map[string]any{"responses": map[string]any{"200": record(row["load"])}},
+				"post": map[string]any{"requestBody": record(row["create"])},
+			}}}
+			apimodel := map[string]any{"main": map[string]any{
+				KIT: map[string]any{"entity": map[string]any{"thing": ent}},
+			}}
+			if _, err := FieldTransform(&ApiDefContext{ApiModel: apimodel, Def: def}); err != nil {
+				t.Fatalf("FieldTransform: %v", err)
+			}
+
+			field, _ := ent["fields"].(map[string]any)["value"].(map[string]any)
+			got := map[string]any{}
+			for _, k := range []string{"t", "fo", "ro", "wo", "de"} {
+				if v, ok := field[k]; ok {
+					got[k] = v
+				}
+			}
+			raw, _ := json.Marshal(got)
+			var norm, want any
+			_ = json.Unmarshal(raw, &norm)
+			if err := json.Unmarshal([]byte(row["expected"]), &want); err != nil {
+				t.Fatalf("bad expected %q: %v", row["expected"], err)
+			}
+			if !reflect.DeepEqual(norm, want) {
+				t.Errorf("field = %s, want %s", raw, row["expected"])
+			}
+		})
+	}
+}
+
 // The fields FieldTransform builds for one operation whose response, and
 // request when it has one, compose their properties with allOf.
 func TestAllOfRecord(t *testing.T) {

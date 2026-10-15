@@ -8,7 +8,7 @@ import {
   validator, fieldName, inferFieldType, envelopeProp,
   composedEnvelopeProp, mergedProperties, canonizeCmpName,
   scanUntaggedUnion, firstSentence, humanTitle, collapseScalarAllOf,
-  itemEnvelopeOf, isFileType,
+  itemEnvelopeOf, isFileType, nonNullType,
 } from '../utility'
 
 import { arrayCarrier, guideMedia, requestFieldSchema, sameType } from './body'
@@ -1046,13 +1046,25 @@ function mergeField(
     existingField.sh = newField.sh
   }
 
-  for (const flag of ['ro', 'wo', 'de', 'fo'] as const) {
+  for (const flag of ['ro', 'wo', 'de'] as const) {
     if (null == existingField[flag] && null != newField[flag]) {
-      (existingField as any)[flag] = newField[flag]
+      existingField[flag] = newField[flag]
     }
   }
 
+  // A format describes its own type, so another type's format would mislabel the field.
+  if (null == existingField.fo && null != newField.fo &&
+    sameType(ownType(existingField.t), ownType(newField.t))) {
+    existingField.fo = newField.fo
+  }
+
   return existingField
+}
+
+
+// The type beside a nullable union's `$NULL`, else the type itself.
+function ownType(type: any): any {
+  return nonNullType(type) ?? type
 }
 
 

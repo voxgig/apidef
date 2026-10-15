@@ -549,7 +549,7 @@ func addOpField(fields map[string]any, opname string, opfield map[string]any, ca
 			}
 		}
 		for _, flag := range []string{
-			"ro", "wo", "de", "fo",
+			"ro", "wo", "de",
 		} {
 			if _, has := existing[flag]; !has {
 				if v, ok := opfield[flag]; ok {
@@ -557,7 +557,21 @@ func addOpField(fields map[string]any, opname string, opfield map[string]any, ca
 				}
 			}
 		}
+		// A format describes its own type, so another type's format would mislabel the field.
+		if _, has := existing["fo"]; !has {
+			if v, ok := opfield["fo"]; ok && sameType(ownType(existing["t"]), ownType(opfield["t"])) {
+				existing["fo"] = v
+			}
+		}
 	}
+}
+
+// ownType is the type beside a nullable union's `$NULL`, else the type itself.
+func ownType(t any) any {
+	if own, ok := nonNullType(t); ok {
+		return own
+	}
+	return t
 }
 
 func resolveOpFields(mtarget map[string]any, def map[string]any, opname string, entname string, media string) []map[string]any {

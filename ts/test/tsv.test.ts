@@ -806,6 +806,41 @@ describe('tsv-allof-record', () => {
 })
 
 
+// One field declared by a load's response and then by a create's request,
+// the order the field transform reads them in.
+describe('tsv-field-merge', () => {
+  const rows = loadTsv('field-merge')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, async () => {
+      const record = (src: string) => ({ content: { 'application/json': { schema: {
+        type: 'object', properties: { value: JSON.parse(src), label: { type: 'string' } },
+      } } } })
+      const ment: any = {
+        name: 'thing',
+        fields: {},
+        op: {
+          load: { name: 'load', points: [{ o: '/things', m: 'GET', k: 'json' }] },
+          create: { name: 'create', points: [{ o: '/things', m: 'POST', k: 'json' }] },
+        },
+      }
+      const def = { paths: { '/things': {
+        get: { responses: { 200: record(row.load) } },
+        post: { requestBody: record(row.create) },
+      } } }
+
+      await fieldTransform({ apimodel: { main: { kit: { entity: { thing: ment } } } }, def } as any)
+
+      const field = ment.fields.value
+      const got = Object.fromEntries(['t', 'fo', 'ro', 'wo', 'de']
+        .filter((key: string) => undefined !== field?.[key])
+        .map((key: string) => [key, field[key]]))
+      assert.deepStrictEqual(got, JSON.parse(row.expected))
+    })
+  }
+})
+
+
 describe('tsv-path-resource', () => {
   const rows = loadTsv('path-resource')
   test('has rows', () => assert.ok(0 < rows.length))

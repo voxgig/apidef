@@ -971,6 +971,8 @@ const VALID_CANON: Record<string, string> = Object.assign(Object.create(null), {
 
 const CANON_ONE = '`$ONE`'
 
+const CANON_NULL = '`$NULL`'
+
 
 function declaredType(type: string): string {
   return type.toLowerCase().trim()
@@ -993,6 +995,19 @@ function validator(torig: undefined | string | string[]): any {
   else {
     return '`$ANY`'
   }
+}
+
+// The type a field holds when it is not null: the type itself, or the one
+// member of a union beside `$NULL`. Any other union has none.
+function nonNullType(type: any): string | undefined {
+  if ('string' === typeof type) {
+    return type
+  }
+  if (!Array.isArray(type) || CANON_ONE !== type[0] || !Array.isArray(type[1])) {
+    return undefined
+  }
+  const members = type[1].filter((member: any) => CANON_NULL !== member)
+  return 1 === members.length && 'string' === typeof members[0] ? members[0] : undefined
 }
 
 const FILE_EXT_RE =
@@ -2179,6 +2194,7 @@ export {
   formatJSONIC,
   validator,
   isFileType,
+  nonNullType,
   VALID_CANON,
   CANON_ONE,
   canonize,
