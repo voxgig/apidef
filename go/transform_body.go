@@ -397,11 +397,19 @@ func mapsOf(list any) []map[string]any {
 
 func formHasFile(form []map[string]any) bool {
 	for _, param := range form {
-		if isFileType(param["type"]) {
+		if sendsFile(param) {
 			return true
 		}
 	}
 	return false
+}
+
+func sendsFile(param map[string]any) bool {
+	if isFileType(param["type"]) {
+		return true
+	}
+	items, _ := param["items"].(map[string]any)
+	return schemaHasType(param, "array") && isFileType(items["type"])
 }
 
 func formProperty(param map[string]any) map[string]any {
@@ -482,7 +490,7 @@ func bodyField(name string, prop any, encoding any, arrays string) map[string]an
 	}
 	enc, _ := encoding.(map[string]any)
 	if list {
-		if join, joined := arrayJoin(prop.(map[string]any), enc, arrays); joined {
+		if join, joined := arrayJoin(prop.(map[string]any), enc, arrays); joined && field["binary"] == nil {
 			field["join"] = join
 		} else {
 			field["list"] = true

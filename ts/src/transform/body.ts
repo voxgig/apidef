@@ -236,7 +236,7 @@ function swaggerOffers(def: any, pathdef: any, opdef: any): Offer[] {
     .filter((media) => null != textOf(media))
   const consumes = 0 < declared.length ? declared : [
     null != body ? JSON_MEDIA :
-      form.some((param) => isFileType(param.type)) ? MULTIPART_MEDIA : FORM_MEDIA
+      form.some(sendsFile) ? MULTIPART_MEDIA : FORM_MEDIA
   ]
 
   return consumes.map((media: string) => ({
@@ -244,6 +244,11 @@ function swaggerOffers(def: any, pathdef: any, opdef: any): Offer[] {
     schema: fielded(essence(media)) ? (formSchema ?? bodySchema) : (bodySchema ?? formSchema),
     swagger: true,
   }))
+}
+
+
+function sendsFile(param: any): boolean {
+  return isFileType(param.type) || (hasType(param, 'array') && isFileType(param.items?.type))
 }
 
 
@@ -333,7 +338,7 @@ function bodyField(name: string, prop: any, encoding: any, arrays: string): Mode
     field.binary = true
   }
   if (list) {
-    const join = arrayJoin(prop, encoding, arrays)
+    const join = field.binary ? undefined : arrayJoin(prop, encoding, arrays)
     if (null == join) {
       field.list = true
     }

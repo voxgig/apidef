@@ -266,7 +266,7 @@ array field carries `list` or `join`, never both.
 parameter takes its own `consumes`, else the document's, and an operation's
 parameter replaces the path's of the same location and name. When neither
 declares any, a `body` parameter is `application/json`, `formData` holding a
-`file` is `multipart/form-data`, and other `formData` is
+`file`, or an array of files, is `multipart/form-data`, and other `formData` is
 `application/x-www-form-urlencoded`. Each `formData` parameter is a field of
 the body, and a `type: file` field is binary.
 
@@ -303,7 +303,8 @@ the default, with `,`, `ssv` with a space, `tsv` with a tab, and `pipes` with
 its `encoding` entry: `style: form`, the default, repeats unless
 `explode: false` joins it with `,`, and `spaceDelimited` and `pipeDelimited`
 join with a space and `|` unless `explode: true` repeats them. A multipart
-array always sends one part per item.
+array always sends one part per item, and so does an array of binary items,
+whatever its `collectionFormat` or `encoding` says.
 
 **Choice.** JSON comes first whenever it is offered, `application/json`
 before the other JSON types, then `multipart`, `form`, and `raw`. Within a

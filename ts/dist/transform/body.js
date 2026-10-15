@@ -167,13 +167,16 @@ function swaggerOffers(def, pathdef, opdef) {
         .filter((media) => null != textOf(media));
     const consumes = 0 < declared.length ? declared : [
         null != body ? JSON_MEDIA :
-            form.some((param) => (0, utility_1.isFileType)(param.type)) ? MULTIPART_MEDIA : FORM_MEDIA
+            form.some(sendsFile) ? MULTIPART_MEDIA : FORM_MEDIA
     ];
     return consumes.map((media) => ({
         media,
         schema: fielded(essence(media)) ? (formSchema ?? bodySchema) : (bodySchema ?? formSchema),
         swagger: true,
     }));
+}
+function sendsFile(param) {
+    return (0, utility_1.isFileType)(param.type) || (hasType(param, 'array') && (0, utility_1.isFileType)(param.items?.type));
 }
 // An operation's parameter replaces the path's of the same location and name.
 function swaggerParams(pathdef, opdef) {
@@ -244,7 +247,7 @@ function bodyField(name, prop, encoding, arrays) {
         field.binary = true;
     }
     if (list) {
-        const join = arrayJoin(prop, encoding, arrays);
+        const join = field.binary ? undefined : arrayJoin(prop, encoding, arrays);
         if (null == join) {
             field.list = true;
         }
