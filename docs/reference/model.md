@@ -381,20 +381,20 @@ order, each once.
 
 The body is the one a point's fields are read from: the media type
 `body.media` names in `guide.aontu`, else the one the body step prefers.
-Only a JSON body has `bf`. A Swagger 2 `body` parameter is that body, as an OpenAPI 3 request
-body is. Its properties include those of every `allOf`, `oneOf` and `anyOf`
-member, so a body that may be one of several objects names the properties
-of each, though the entity's fields read `allOf` members alone. A wrapped
-body, whose `t.req` sends the record under one key, names the record's
-properties. A JSON array has no properties, so an array body names the
-field its `t.req` sends the array from. The names need not be fields of the
-entity: an action's body holds the verb's arguments and a `QUERY` body a
-filter, and neither gives the entity a field.
+Only a JSON body has `bf`. A Swagger 2 `body` parameter is that body, as an
+OpenAPI 3 request body is. Its properties include those of every `allOf`,
+`oneOf` and `anyOf` member, so a body that may be one of several objects
+names the properties of each, though the entity's fields read `allOf`
+members alone. A wrapped body, whose `t.req` sends the record under one key,
+names the record's properties. A JSON array has no properties, so an array
+body names the field its `t.req` sends the array from. The names need not be
+fields of the entity: an action's body holds the verb's arguments and a
+`QUERY` body a filter, and neither gives the entity a field.
 
 | the point | `bf` |
 |-----------|------|
-| sends a JSON body that declares properties | their names |
-| sends a JSON body that declares none: an empty or free-form object, a map, a scalar, an array sent whole, or a body with no schema | `false` |
+| sends a JSON body that declares properties | their names, less the read-only ones |
+| sends a JSON body that declares none: an empty or free-form object, a map, a scalar, an array sent whole, a body with no schema, or one whose properties are all read-only | `false` |
 | declares a request body with no content | `false` |
 | declares no request body, while `guide.aontu` names a JSON `body.media` for it | `false` |
 | sends a body that is not JSON | absent, since `rb` says how it is sent |
@@ -406,10 +406,13 @@ aontu resolves an optional key holding an empty list to no key at all. An
 absent `bf` records nothing, which is also what a model from an earlier
 apidef says, so a generator falls back to its own rule there.
 
-`bf` lists what the body declares, read-only properties included. An update
-whose body reuses the response schema lists that schema's read-only
-`version`, so a generator that keeps a routed argument in the body checks
-the field's `ro` flag as well as `bf`.
+`bf` leaves out each property the request body itself marks `readOnly`, in
+any of its members, since a client never sends one. An update whose body
+reuses the response schema leaves out that schema's read-only `version`,
+while an update whose own body declares `version` writable lists it, though
+the load response marks it read-only and the entity's field carries `ro`.
+So `bf` alone says what a point sends, and a field's merged `ro` matters only
+for a point without `bf`.
 
 Each case is a row in
 [`ts/test/body-fields.tsv`](../../ts/test/body-fields.tsv). From the

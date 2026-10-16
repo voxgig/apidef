@@ -370,13 +370,19 @@ function bodyFields(def, mpoint, media) {
     return 0 < unique.length ? unique : false;
 }
 // A body that may be one of several objects declares the properties of each.
-function declaredProperties(schema, seen = new Set()) {
+// One the body marks readOnly anywhere is never sent, so it is left out.
+function declaredProperties(schema) {
+    const declared = propertyDeclarations(schema, new Set());
+    const readOnly = new Set(declared.filter(([, prop]) => true === prop?.readOnly).map(([name]) => name));
+    return declared.map(([name]) => name).filter((name) => !readOnly.has(name));
+}
+function propertyDeclarations(schema, seen) {
     if (!isMap(schema) || seen.has(schema)) {
         return [];
     }
     seen.add(schema);
-    return (isMap(schema.properties) ? Object.keys(schema.properties) : [])
-        .concat(['allOf', 'oneOf', 'anyOf'].flatMap((key) => listOf(schema[key]).flatMap((member) => declaredProperties(member, seen))));
+    return (isMap(schema.properties) ? Object.entries(schema.properties) : [])
+        .concat(['allOf', 'oneOf', 'anyOf'].flatMap((key) => listOf(schema[key]).flatMap((member) => propertyDeclarations(member, seen))));
 }
 function arrayRequestSchema(def, method, path, media) {
     return arrayShape(requestSchema(def, method, path, media));

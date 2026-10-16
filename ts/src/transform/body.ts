@@ -504,14 +504,22 @@ function bodyFields(def: any, mpoint: ModelPoint, media?: string): string[] | fa
 
 
 // A body that may be one of several objects declares the properties of each.
-function declaredProperties(schema: any, seen: Set<any> = new Set()): string[] {
+// One the body marks readOnly anywhere is never sent, so it is left out.
+function declaredProperties(schema: any): string[] {
+  const declared = propertyDeclarations(schema, new Set())
+  const readOnly = new Set(declared.filter(([, prop]) => true === prop?.readOnly).map(([name]) => name))
+  return declared.map(([name]) => name).filter((name) => !readOnly.has(name))
+}
+
+
+function propertyDeclarations(schema: any, seen: Set<any>): [string, any][] {
   if (!isMap(schema) || seen.has(schema)) {
     return []
   }
   seen.add(schema)
-  return (isMap(schema.properties) ? Object.keys(schema.properties) : [])
+  return (isMap(schema.properties) ? Object.entries(schema.properties) as [string, any][] : [])
     .concat(['allOf', 'oneOf', 'anyOf'].flatMap((key) =>
-      listOf(schema[key]).flatMap((member: any) => declaredProperties(member, seen))))
+      listOf(schema[key]).flatMap((member: any) => propertyDeclarations(member, seen))))
 }
 
 

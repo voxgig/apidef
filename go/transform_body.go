@@ -703,7 +703,7 @@ func bodyFields(def map[string]any, mtarget map[string]any, media string) any {
 		return nil
 	}
 	names := map[string]bool{}
-	for _, prop := range declaredProperties(requestFieldSchema(def, mtarget, media), map[string]bool{}) {
+	for _, prop := range declaredProperties(requestFieldSchema(def, mtarget, media)) {
 		names[fieldName(prop)] = true
 	}
 	if c := arrayCarrier(def, mtarget, media); c != nil {
@@ -720,26 +720,50 @@ func bodyFields(def map[string]any, mtarget map[string]any, media string) any {
 }
 
 // declaredProperties mirrors ts/src/transform/body.ts: a body that may be one
-// of several objects declares the properties of each.
-func declaredProperties(schema any, seen map[string]bool) []string {
+// of several objects declares the properties of each. One the body marks
+// readOnly anywhere is never sent, so it is left out.
+func declaredProperties(schema any) []string {
+	names := []string{}
+	readOnly := map[string]bool{}
+	for _, decl := range propertyDeclarations(schema, map[string]bool{}) {
+		names = append(names, decl.name)
+		if prop, _ := decl.prop.(map[string]any); prop["readOnly"] == true {
+			readOnly[decl.name] = true
+		}
+	}
+	out := []string{}
+	for _, name := range names {
+		if !readOnly[name] {
+			out = append(out, name)
+		}
+	}
+	return out
+}
+
+type propertyDeclaration struct {
+	name string
+	prop any
+}
+
+func propertyDeclarations(schema any, seen map[string]bool) []propertyDeclaration {
 	m, _ := schema.(map[string]any)
 	if m == nil || seen[fmt.Sprintf("%p", m)] {
 		return nil
 	}
 	seen[fmt.Sprintf("%p", m)] = true
-	names := []string{}
+	decls := []propertyDeclaration{}
 	if props, ok := m["properties"].(map[string]any); ok {
-		for name := range props {
-			names = append(names, name)
+		for name, prop := range props {
+			decls = append(decls, propertyDeclaration{name, prop})
 		}
 	}
 	for _, key := range []string{"allOf", "oneOf", "anyOf"} {
 		members, _ := m[key].([]any)
 		for _, member := range members {
-			names = append(names, declaredProperties(member, seen)...)
+			decls = append(decls, propertyDeclarations(member, seen)...)
 		}
 	}
-	return names
+	return decls
 }
 
 func arrayRequestSchema(def map[string]any, method string, path string, media string) map[string]any {
