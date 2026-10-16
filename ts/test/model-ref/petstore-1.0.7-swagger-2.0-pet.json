@@ -16,6 +16,12 @@
     "name": {
       "h": "Name",
       "n": "name",
+      "op": {
+        "create": {
+          "req": false,
+          "type": "`$STRING`"
+        }
+      },
       "r": true,
       "t": "`$STRING`"
     },
@@ -62,22 +68,6 @@
                 "or": "petId",
                 "r": true,
                 "t": "`$INTEGER`"
-              }
-            ],
-            "query": [
-              {
-                "k": "query",
-                "n": "name",
-                "or": "name",
-                "r": false,
-                "t": "`$STRING`"
-              },
-              {
-                "k": "query",
-                "n": "status",
-                "or": "status",
-                "r": false,
-                "t": "`$ANY`"
               }
             ]
           },
@@ -132,22 +122,6 @@
                 "or": "petId",
                 "r": true,
                 "t": "`$INTEGER`"
-              }
-            ],
-            "query": [
-              {
-                "k": "query",
-                "n": "additional_metadata",
-                "or": "additionalMetadata",
-                "r": false,
-                "t": "`$ANY`"
-              },
-              {
-                "k": "query",
-                "n": "file",
-                "or": "file",
-                "r": false,
-                "t": "`$ANY`"
               }
             ]
           },
