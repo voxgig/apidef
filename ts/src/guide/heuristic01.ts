@@ -216,9 +216,12 @@ function ShowNode(spec: TaskSpec) {
 
 
 function Prepare(spec: TaskSpec) {
+  // Keyed by names from the definition, so no key may find an Object.prototype member.
+  const named = () => Object.create(null)
+
   const guide: Guide = {
     control: {},
-    entity: {},
+    entity: named(),
     metrics: {
       count: {
         path: 0,
@@ -227,11 +230,11 @@ function Prepare(spec: TaskSpec) {
         tag: 0,
         cmp: 0,
         entity: 0,
-        origcmprefs: {},
+        origcmprefs: named(),
       },
       found: {
-        tag: {},
-        cmp: {},
+        tag: named(),
+        cmp: named(),
       }
     },
   }
@@ -240,19 +243,19 @@ function Prepare(spec: TaskSpec) {
     def: spec.ctx.def,
     guide,
     work: {
-      pathmap: {},
-      entmap: {},
-      envelope: {},
-      listEnvelope: {},
-      envelopePaths: {},
-      sharing: { routes: [], records: {}, yields: {} },
-      recordResources: {},
-      tagItems: {},
-      claims: {},
-      claimowner: {},
-      claimrecord: {},
-      pathowner: {},
-      recordowner: {},
+      pathmap: named(),
+      entmap: named(),
+      envelope: named(),
+      listEnvelope: named(),
+      envelopePaths: named(),
+      sharing: { routes: [], records: named(), yields: named() },
+      recordResources: named(),
+      tagItems: named(),
+      claims: named(),
+      claimowner: named(),
+      claimrecord: named(),
+      pathowner: named(),
+      recordowner: named(),
       entity: {
         count: {
           seen: 0,
@@ -388,7 +391,7 @@ function MeasureEnvelope(spec: TaskSpec) {
 function MeasureEnvelopeItems(spec: TaskSpec) {
   const work = spec.data.work
   const envelope: Record<string, string> = work.envelope
-  const carriers: Record<string, string[]> = {}
+  const carriers: Record<string, string[]> = Object.create(null)
   for (const xref of Object.keys(envelope)) {
     if ('' !== envelope[xref]) {
       (carriers[envelope[xref]] = carriers[envelope[xref]] ?? []).push(xref)
@@ -1691,7 +1694,7 @@ function outsideCollection(path: string, collection: string): boolean {
 // Two of a tag's collections whose item routes take the same parameters, or
 // that are both read, would share a selector on the tag's entity.
 function tagCollides(def: any, items: Record<string, Record<string, boolean>>): boolean {
-  const seen: Record<string, boolean> = {}
+  const seen: Record<string, boolean> = Object.create(null)
   let reads = 0
   for (const [collection, params] of Object.entries(items)) {
     for (const key of Object.keys(params)) {
@@ -1867,7 +1870,7 @@ function answeredRefs(
   def: any,
   envelope: Record<string, string>,
 ): Record<string, boolean> {
-  const answered: Record<string, boolean> = {}
+  const answered: Record<string, boolean> = Object.create(null)
   for (const pathdef of Object.values(def?.paths ?? {}) as any[]) {
     for (const [method, mdef] of Object.entries(pathdef ?? {}) as [string, any][]) {
       if (null == METHOD_CONSIDER_ORDER[method.toUpperCase()] ||
@@ -2159,7 +2162,7 @@ function entityCmpMatch(
 
 function cmpOccursInPath(data: { def: any, work: any }, cmpname: string): boolean {
   if (null == data.work.potentialCmpsFromPaths) {
-    data.work.potentialCmpsFromPaths = {}
+    data.work.potentialCmpsFromPaths = Object.create(null)
     each(data.def.paths, (_pathdef: PathDef, pathstr: string) => {
       const parts: string[] = data.work.pathmap[pathstr].parts
 
@@ -2217,7 +2220,7 @@ type SharingEntry = SharingRoute & { parts: string[], resource: string }
 // with, each keyed `cmp METHOD path`: those of a component that several
 // resources share, where a record (one that declares an `id`) is never shared.
 function sharedRoutes(routes: SharingRoute[], records: string[]): string[] {
-  const bycmp: Record<string, SharingEntry[]> = {}
+  const bycmp: Record<string, SharingEntry[]> = Object.create(null)
   for (const route of routes) {
     const parts = route.path.split('/').filter((p) => '' !== p)
     const resource = pathResource(parts, route.method)
@@ -2234,15 +2237,15 @@ function sharedRoutes(routes: SharingRoute[], records: string[]): string[] {
     if (new Set(counted.map((entry) => group[entry.resource])).size < 2) {
       continue
     }
-    const members: Record<string, number> = {}
+    const members: Record<string, number> = Object.create(null)
     for (const name of new Set(counted.map((entry) => entry.resource))) {
       members[group[name]] = (members[group[name]] ?? 0) + 1
     }
     taking.push(...counted.filter((entry) => 1 === members[group[entry.resource]]))
   }
 
-  const cmps: Record<string, Set<string>> = {}
-  const routesOf: Record<string, Set<string>> = {}
+  const cmps: Record<string, Set<string>> = Object.create(null)
+  const routesOf: Record<string, Set<string>> = Object.create(null)
   for (const entry of taking) {
     (cmps[entry.resource] = cmps[entry.resource] ?? new Set()).add(entry.cmp)
     const key = entry.resource + ' ' + entry.op + ' ' + paramNames(entry.parts)
@@ -2278,13 +2281,13 @@ function isSharingView(entry: SharingEntry, names: Set<string>): boolean {
 // Item routes under the same parent keyed by the same parameters address the
 // same records, so the resources they name are one: each maps to its group.
 function aliasGroups(entries: SharingEntry[]): Record<string, string> {
-  const group: Record<string, string> = {}
+  const group: Record<string, string> = Object.create(null)
   const find = (name: string): string => group[name] === name ? name : find(group[name])
   for (const entry of entries) {
     group[entry.resource] = entry.resource
   }
 
-  const first: Record<string, string> = {}
+  const first: Record<string, string> = Object.create(null)
   for (const entry of entries) {
     if (!isParam(entry.parts[entry.parts.length - 1])) {
       continue
