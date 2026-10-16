@@ -183,7 +183,7 @@ function resolveSummary(def: any): string | undefined {
     return firstSentence(explicit)
   }
 
-  const desc = 'string' === typeof info.description ? info.description : ''
+  const desc = 'string' === typeof info.description ? htmlText(info.description) : ''
   if ('' === desc.trim() || !hasLetters(desc)) {
     return undefined
   }
@@ -205,6 +205,46 @@ function resolveSummary(def: any): string | undefined {
   }
   const paragraph = para.join(' ').trim()
   return '' === paragraph ? undefined : firstSentence(paragraph)
+}
+
+
+const HTML_BLOCK = 'address|article|aside|blockquote|br|dd|div|dl|dt|figcaption|figure|footer|' +
+  'header|hr|li|main|nav|ol|p|pre|section|table|tbody|td|tfoot|th|thead|tr|ul'
+const HTML_INLINE = 'a|abbr|b|big|cite|code|em|font|i|img|kbd|mark|q|s|samp|small|span|' +
+  'strong|sub|sup|tt|u|var'
+const HTML_COMMENT_RE = /<!--[\s\S]*?(-->|$)/g
+const HTML_HEADING_RE = /<h([1-6])([ \t\n\r\f][^<>]*)?>([\s\S]*?)<\/h[1-6][ \t\n\r\f]*>/gi
+const HTML_BLOCK_RE =
+  new RegExp('<\\/?(' + HTML_BLOCK + '|h[1-6])([ \\t\\n\\r\\f][^<>]*)?\\/?>', 'gi')
+const HTML_INLINE_RE =
+  new RegExp('<\\/?(' + HTML_INLINE + ')([ \\t\\n\\r\\f][^<>]*)?\\/?>', 'gi')
+const HTML_ENTITY_RE = /&(#x[0-9a-f]{1,6}|#[0-9]{1,7}|amp|lt|gt|quot|apos|nbsp);/gi
+const HTML_ENTITIES: Record<string, string> = {
+  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: '\u00a0',
+}
+
+
+// HTML as the text the summary reads: a heading on a line of its own as a
+// markdown heading, a block element as a paragraph break, other markup gone.
+// Only HTML tag names count, so a generic such as List<String> is kept.
+function htmlText(text: string): string {
+  return text
+    .replace(HTML_COMMENT_RE, '')
+    .replace(HTML_HEADING_RE, (_m, level, _attrs, inner) =>
+      '\n\n' + '#'.repeat(Number(level)) + ' ' +
+      inner.replace(HTML_BLOCK_RE, ' ').replace(HTML_INLINE_RE, '').replace(/\s+/g, ' ').trim() +
+      '\n\n')
+    .replace(HTML_BLOCK_RE, '\n\n')
+    .replace(HTML_INLINE_RE, '')
+    .replace(HTML_ENTITY_RE, (entity, name) => {
+      const key = name.toLowerCase()
+      if ('#' !== key[0]) {
+        return HTML_ENTITIES[key]
+      }
+      const code = 'x' === key[1] ? parseInt(key.slice(2), 16) : parseInt(key.slice(1), 10)
+      return 0 < code && code <= 0x10ffff && (code < 0xd800 || 0xdfff < code) ?
+        String.fromCodePoint(code) : entity
+    })
 }
 
 

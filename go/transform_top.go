@@ -9,6 +9,7 @@ import (
 	neturl "net/url"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -655,6 +656,7 @@ func resolveSummary(def map[string]any) (string, bool) {
 		}
 	}
 	desc, _ := info["description"].(string)
+	desc = htmlText(desc)
 	if jsTrim(desc) == "" || !hasLetters(desc) {
 		return "", false
 	}
@@ -674,6 +676,57 @@ func resolveSummary(def map[string]any) (string, bool) {
 		return "", false
 	}
 	return FirstSentence(paragraph), true
+}
+
+const (
+	htmlBlockTags = "address|article|aside|blockquote|br|dd|div|dl|dt|figcaption|figure|footer|" +
+		"header|hr|li|main|nav|ol|p|pre|section|table|tbody|td|tfoot|th|thead|tr|ul"
+	htmlInlineTags = "a|abbr|b|big|cite|code|em|font|i|img|kbd|mark|q|s|samp|small|span|" +
+		"strong|sub|sup|tt|u|var"
+)
+
+var (
+	htmlCommentRe = regexp.MustCompile(`<!--[\s\S]*?(-->|$)`)
+	htmlHeadingRe = regexp.MustCompile(`(?i)<h([1-6])([ \t\n\r\f][^<>]*)?>([\s\S]*?)</h[1-6][ \t\n\r\f]*>`)
+	htmlBlockRe   = regexp.MustCompile(`(?i)</?(` + htmlBlockTags + `|h[1-6])([ \t\n\r\f][^<>]*)?/?>`)
+	htmlInlineRe  = regexp.MustCompile(`(?i)</?(` + htmlInlineTags + `)([ \t\n\r\f][^<>]*)?/?>`)
+	htmlEntityRe  = regexp.MustCompile(`(?i)&(#x[0-9a-f]{1,6}|#[0-9]{1,7}|amp|lt|gt|quot|apos|nbsp);`)
+	htmlEntities  = map[string]string{
+		"amp": "&", "lt": "<", "gt": ">", "quot": "\"", "apos": "'", "nbsp": "\u00a0",
+	}
+)
+
+// htmlText mirrors ts/src/transform/top.ts: HTML as the text the summary
+// reads, a heading on a line of its own as a markdown heading, a block
+// element as a paragraph break, other markup gone.
+func htmlText(text string) string {
+	text = htmlCommentRe.ReplaceAllString(text, "")
+	text = htmlHeadingRe.ReplaceAllStringFunc(text, func(m string) string {
+		parts := htmlHeadingRe.FindStringSubmatch(m)
+		level := int(parts[1][0] - '0')
+		inner := htmlInlineRe.ReplaceAllString(htmlBlockRe.ReplaceAllString(parts[3], " "), "")
+		inner = jsTrim(jsWhitespaceRun.ReplaceAllString(inner, " "))
+		return "\n\n" + strings.Repeat("#", level) + " " + inner + "\n\n"
+	})
+	text = htmlBlockRe.ReplaceAllString(text, "\n\n")
+	text = htmlInlineRe.ReplaceAllString(text, "")
+	return htmlEntityRe.ReplaceAllStringFunc(text, func(entity string) string {
+		key := strings.ToLower(entity[1 : len(entity)-1])
+		if key[0] != '#' {
+			return htmlEntities[key]
+		}
+		var code int64
+		var err error
+		if key[1] == 'x' {
+			code, err = strconv.ParseInt(key[2:], 16, 64)
+		} else {
+			code, err = strconv.ParseInt(key[1:], 10, 64)
+		}
+		if err != nil || code <= 0 || 0x10ffff < code || (0xd800 <= code && code <= 0xdfff) {
+			return entity
+		}
+		return string(rune(code))
+	})
 }
 
 // resolveWebsite mirrors ts/src/transform/top.ts.

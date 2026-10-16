@@ -2467,7 +2467,11 @@ func FirstSentence(text string) string {
 	const max = 240
 	units := utf16.Encode([]rune(out))
 	if len(units) > max {
-		out = strings.TrimRight(string(utf16.Decode(units[:max-1])), jsWhitespace) + "\u2026"
+		cut := string(utf16.Decode(units[:max-1]))
+		if space := strings.LastIndex(cut, " "); 0 < space {
+			cut = cut[:space]
+		}
+		out = strings.TrimRight(cut, jsWhitespace) + "\u2026"
 	}
 
 	return out

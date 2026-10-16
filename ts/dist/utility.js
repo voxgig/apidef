@@ -1806,7 +1806,9 @@ function firstSentence(text) {
     let out = m ? m[1] : collapsed;
     const MAX = 240;
     if (out.length > MAX) {
-        out = out.slice(0, MAX - 1).trimEnd() + '\u2026';
+        const cut = out.slice(0, MAX - 1);
+        const space = cut.lastIndexOf(' ');
+        out = (0 < space ? cut.slice(0, space) : cut).trimEnd() + '\u2026';
     }
     return out;
 }
