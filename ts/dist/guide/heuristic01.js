@@ -64,7 +64,7 @@ async function heuristic01(ctx) {
         {
             select: 'def.paths', apply: [
                 MeasurePath,
-                { select: '', apply: MeasureMethod },
+                { select: selectPathItemMembers, apply: MeasureMethod },
                 PreparePath
             ]
         },
@@ -175,6 +175,9 @@ function MeasurePath(spec) {
     const guide = spec.data.guide;
     const metrics = guide.metrics;
     const pathdef = spec.node.val;
+    if (!isPathItem(spec.node.key, pathdef)) {
+        return;
+    }
     metrics.count.path++;
     metrics.count.method += ((pathdef.get ? 1 : 0) +
         (pathdef.post ? 1 : 0) +
@@ -209,6 +212,9 @@ function PreparePath(spec) {
     const work = spec.data.work;
     const pathstr = spec.node.key;
     const pathdef = spec.node.val;
+    if (!isPathItem(pathstr, pathdef)) {
+        return;
+    }
     const pathdesc = {
         path: pathstr,
         def: pathdef,
@@ -216,6 +222,15 @@ function PreparePath(spec) {
         op: {}
     };
     work.pathmap[pathstr] = pathdesc;
+}
+// A vendor extension beside the paths is no path, as apidef reads no `x-` key.
+function isPathItem(key, pathdef) {
+    return !String(key).startsWith('x-') &&
+        null != pathdef && 'object' === typeof pathdef && !Array.isArray(pathdef);
+}
+function selectPathItemMembers(pathdef, spec) {
+    return isPathItem(spec.node.key, pathdef) ?
+        (0, utility_2.sortedKeys)(pathdef).map((key) => pathdef[key]) : [];
 }
 function selectCmpXrefs(_source, spec) {
     const counts = (0, refcount_1.countRefs)(spec.ctx.def);
@@ -337,6 +352,9 @@ function selectAllMethods(_source, spec) {
     }
     let caught = { methods: [] };
     for (const [path, pdef] of (0, utility_2.sortedEntries)(ctx.def.paths)) {
+        if (!isPathItem(path, pdef)) {
+            continue;
+        }
         for (const [m, mdef] of (0, utility_2.sortedEntries)(pdef)) {
             const method = m.toUpperCase();
             // A path item also holds parameters, servers, summary and the like.

@@ -634,7 +634,7 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 	for _, pathstr := range sortedKeys(paths) {
 		pathdef := paths[pathstr]
 		pathdefMap, _ := pathdef.(map[string]any)
-		if pathdefMap == nil {
+		if !isPathItem(pathstr, pathdef) {
 			continue
 		}
 
@@ -820,6 +820,13 @@ func pathParts(data map[string]any, pathStr string) []string {
 	return parts
 }
 
+// isPathItem mirrors ts/src/guide/heuristic01.ts: a vendor extension beside
+// the paths is no path, as apidef reads no `x-` key.
+func isPathItem(key string, pathdef any) bool {
+	m, ok := pathdef.(map[string]any)
+	return ok && m != nil && !strings.HasPrefix(key, "x-")
+}
+
 // selectAllMethods collects all path+method combinations, sorted by path then method order.
 func selectAllMethods(ctx *ApiDefContext, data map[string]any) []map[string]any {
 	def := ctx.Def
@@ -830,7 +837,7 @@ func selectAllMethods(ctx *ApiDefContext, data map[string]any) []map[string]any 
 	for _, pathstr := range sortedKeys(paths) {
 		pathdef := paths[pathstr]
 		pdef, _ := pathdef.(map[string]any)
-		if pdef == nil {
+		if !isPathItem(pathstr, pathdef) {
 			continue
 		}
 		for _, mkey := range sortedKeys(pdef) {

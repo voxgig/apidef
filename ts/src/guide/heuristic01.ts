@@ -139,7 +139,7 @@ async function heuristic01(ctx: ApiDefContext): Promise<Guide> {
     {
       select: 'def.paths', apply: [
         MeasurePath,
-        { select: '', apply: MeasureMethod },
+        { select: selectPathItemMembers, apply: MeasureMethod },
         PreparePath
       ]
     },
@@ -273,6 +273,10 @@ function MeasurePath(spec: TaskSpec) {
   const metrics = guide.metrics
   const pathdef = spec.node.val
 
+  if (!isPathItem(spec.node.key, pathdef)) {
+    return
+  }
+
   metrics.count.path++
 
   metrics.count.method += (
@@ -317,6 +321,10 @@ function PreparePath(spec: TaskSpec) {
   const pathstr = spec.node.key
   const pathdef = spec.node.val
 
+  if (!isPathItem(pathstr, pathdef)) {
+    return
+  }
+
   const pathdesc = {
     path: pathstr,
     def: pathdef,
@@ -325,6 +333,19 @@ function PreparePath(spec: TaskSpec) {
   }
 
   work.pathmap[pathstr] = pathdesc
+}
+
+
+// A vendor extension beside the paths is no path, as apidef reads no `x-` key.
+function isPathItem(key: string, pathdef: any): boolean {
+  return !String(key).startsWith('x-') &&
+    null != pathdef && 'object' === typeof pathdef && !Array.isArray(pathdef)
+}
+
+
+function selectPathItemMembers(pathdef: any, spec: TaskSpec) {
+  return isPathItem(spec.node.key, pathdef) ?
+    sortedKeys(pathdef).map((key: string) => pathdef[key]) : []
 }
 
 
@@ -474,6 +495,9 @@ function selectAllMethods(_source: any, spec: TaskSpec): MethodDesc[] {
   let caught: any = { methods: [] }
 
   for (const [path, pdef] of sortedEntries(ctx.def.paths)) {
+    if (!isPathItem(path, pdef)) {
+      continue
+    }
     for (const [m, mdef] of sortedEntries(pdef)) {
       const method = m.toUpperCase()
 

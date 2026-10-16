@@ -438,6 +438,29 @@ describe('tsv-entity-names', () => {
 })
 
 
+// The paths the guide counts: a vendor extension beside them is no path.
+describe('tsv-path-metrics', () => {
+  const rows = loadTsv('path-metrics')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, async () => {
+      const def = await parse('OpenAPI', row.def, { file: row.name })
+      const quiet = () => undefined
+      const guide = await heuristic01({
+        def,
+        log: { info: quiet, debug: quiet, warn: quiet, error: quiet },
+        warn: quiet,
+      } as any)
+      const count = guide.metrics.count
+      assert.deepStrictEqual(
+        { count: { path: count.path, method: count.method, tag: count.tag },
+          entity: Object.keys(guide.entity).sort() },
+        JSON.parse(row.expected))
+    })
+  }
+})
+
+
 describe('tsv-nom', () => {
   const rows = loadTsv('nom')
   for (const row of rows) {

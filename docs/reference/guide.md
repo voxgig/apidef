@@ -89,7 +89,10 @@ built and the two cannot be told apart.
 `metrics.count` totals `entity`, `path`, `method`, `tag`, `cmp`, and
 `origcmprefs`; `metrics.found` records the components (`cmp`) and tags (`tag`)
 encountered. These power sanity checks (e.g. the `PATH MISMATCH` guard that
-confirms every source method was classified).
+confirms every source method was classified). A vendor extension key under
+`paths`, such as `x-codegen-contextRoot`, is no path, so it is neither counted
+nor classified; [`ts/test/path-metrics.tsv`](../../ts/test/path-metrics.tsv)
+pins it in both builds.
 
 ### Component reference counts
 

@@ -282,6 +282,41 @@ func TestTsvResplitFromCmp(t *testing.T) {
 	}
 }
 
+// The paths the guide counts: a vendor extension beside them is no path.
+func TestTsvPathMetrics(t *testing.T) {
+	rows := loadTsv(t, "path-metrics")
+	if len(rows) == 0 {
+		t.Fatal("no path-metrics rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var want any
+			unmarshalCol(t, row, "expected", &want)
+			def, err := Parse("OpenAPI", row["def"], map[string]string{"file": row["name"]})
+			if err != nil {
+				t.Fatal(err)
+			}
+			guide, err := heuristic01(&ApiDefContext{
+				Def: def, Note: map[string]any{}, Warn: MakeWarner("test", nil), Work: map[string]any{},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			metrics, _ := guide["metrics"].(map[string]any)
+			count, _ := metrics["count"].(map[string]any)
+			entities, _ := guide["entity"].(map[string]any)
+			got := map[string]any{
+				"count": map[string]any{"path": count["path"], "method": count["method"], "tag": count["tag"]},
+				"entity": sortedKeys(entities),
+			}
+			if !jsonEqual(got, want) {
+				out, _ := json.Marshal(got)
+				t.Errorf("got %s, want %s", out, row["expected"])
+			}
+		})
+	}
+}
+
 func TestTsvEntityNames(t *testing.T) {
 	rows := loadTsv(t, "entity-names")
 	if len(rows) == 0 {
