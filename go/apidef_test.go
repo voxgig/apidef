@@ -1317,6 +1317,75 @@ func TestGuideCollectionMerge(t *testing.T) {
 	}
 }
 
+// Mirrors the TS `guide-version-actions` case, and requires the base guide
+// that case writes to ts/test/version-actions/guide/base-guide.aontu.
+func TestGuideVersionActions(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, Strategy: "heuristic01"}).Generate(map[string]any{
+		"model": map[string]any{"name": "version-actions", "def": "version-actions-def.json"},
+		"build": map[string]any{"spec": map[string]any{"base": "../ts/test/version-actions"}},
+		"ctrl": map[string]any{"step": map[string]any{
+			"parse": true, "guide": true, "transformers": true,
+			"builders": false, "generate": false,
+		}},
+	})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v res=%+v", err, res)
+	}
+
+	gents, _ := res.Guide["entity"].(map[string]any)
+	if got := strings.Join(sortedKeys(gents), ","); got != "thing" {
+		t.Errorf("guide entities = %s, want thing", got)
+	}
+
+	want, err := os.ReadFile("../ts/test/version-actions/guide/base-guide.aontu")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(filepath.Join(folder, "guide", "base-guide.aontu"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != string(want) {
+		t.Errorf("base guide differs from the TypeScript one:\n%s", string(got))
+	}
+}
+
+// Mirrors the TS `guide-subresource-fold` case, and requires the base guide
+// that case writes to ts/test/subresource-fold/guide/base-guide.aontu.
+func TestGuideSubresourceFold(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, Strategy: "heuristic01"}).Generate(map[string]any{
+		"model": map[string]any{"name": "subresource-fold", "def": "subresource-fold-def.json"},
+		"build": map[string]any{"spec": map[string]any{"base": "../ts/test/subresource-fold"}},
+		"ctrl": map[string]any{"step": map[string]any{
+			"parse": true, "guide": true, "transformers": true,
+			"builders": false, "generate": false,
+		}},
+	})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v res=%+v", err, res)
+	}
+
+	gents, _ := res.Guide["entity"].(map[string]any)
+	want := "call_route,call_route_allowed_caller,call_route_option"
+	if got := strings.Join(sortedKeys(gents), ","); got != want {
+		t.Errorf("guide entities = %s, want %s", got, want)
+	}
+
+	wantGuide, err := os.ReadFile("../ts/test/subresource-fold/guide/base-guide.aontu")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(filepath.Join(folder, "guide", "base-guide.aontu"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != string(wantGuide) {
+		t.Errorf("base guide differs from the TypeScript one:\n%s", string(got))
+	}
+}
+
 // Mirrors the TS `guide-item-record` case.
 func TestGuideItemRecord(t *testing.T) {
 	folder := stageGuideEntry(t, t.TempDir(), "")

@@ -741,6 +741,7 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 	// Phase 4: BuildEntity
 	entmap := work["entmap"].(map[string]any)
 	for _, k := range sortedKeys(entmap) {
+		versionActions(entmap[k])
 		buildEntity(data, entmap[k])
 	}
 
@@ -866,6 +867,7 @@ func selectAllMethods(ctx *ApiDefContext, data map[string]any) []map[string]any 
 				"responses":   mdef["responses"],
 				"requestBody": mdef["requestBody"],
 				"security":    mdef["security"],
+				"deprecated":  mdef["deprecated"] == true,
 			}
 			methods = append(methods, mdesc)
 		}
@@ -1220,7 +1222,10 @@ func resolveEntityName(ctx *ApiDefContext, data map[string]any, mdesc map[string
 
 	pm := matchEntityPath(parts)
 	pathowner := work["pathowner"].(map[string]any)
-	entname, named := pathEntityName(data, mdesc, parts, pm, pathowner, &whyPath)
+	entname, named := samePathOwner(work, mdesc, &whyPath)
+	if !named {
+		entname, named = pathEntityName(data, mdesc, parts, pm, pathowner, &whyPath)
+	}
 	if !named {
 		entityCount["unresolved"] = toInt(entityCount["unresolved"]) + 1
 		entname = fmt.Sprintf("entity%d", toInt(entityCount["unresolved"]))
@@ -1294,6 +1299,135 @@ func resolveEntityName(ctx *ApiDefContext, data map[string]any, mdesc map[string
 	markRecordOwner(work["recordowner"].(map[string]string), pathStr, parts, ment, entname)
 
 	DebugPath(pathStr, methodName, "RESOLVE-ENTITY-NAME", entname)
+}
+
+// samePathOwner mirrors samePathOwner in ts/src/guide/heuristic01.ts: a
+// method named only from its tag, as a DELETE answering 204 is, joins the
+// entity a read of the same path resolved to when that read carries the same
+// tag. named is false where the TS returns null.
+func samePathOwner(work map[string]any, mdesc map[string]any, why *[]string) (string, bool) {
+	ment, _ := mdesc["MethodEntity"].(map[string]any)
+	pathStr, _ := mdesc["path"].(string)
+	pathowner, _ := work["pathowner"].(map[string]any)
+	owners, _ := pathowner[pathStr].(map[string]any)
+	if owners == nil || ment == nil || safeStr(ment["ref"]) != "tag" {
+		return "", false
+	}
+	tags := anyStrings(mdesc["tags"])
+	methods, _ := work["methods"].([]map[string]any)
+	for _, method := range []string{"GET", "QUERY", "PUT", "PATCH"} {
+		entname := safeStr(owners[method])
+		if entname == "" {
+			continue
+		}
+		for _, read := range methods {
+			if safeStr(read["path"]) != pathStr || safeStr(read["method"]) != method {
+				continue
+			}
+			for _, tag := range anyStrings(read["tags"]) {
+				for _, own := range tags {
+					if own == tag {
+						*why = append(*why, "same-path-tag="+entname+"/"+method)
+						return entname, true
+					}
+				}
+			}
+		}
+	}
+	return "", false
+}
+
+func anyStrings(v any) []string {
+	items, _ := v.([]any)
+	out := []string{}
+	for _, item := range items {
+		if s, ok := item.(string); ok {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+var reVersionSegment = regexp.MustCompile(`/v(\d+)(/|$)`)
+
+var reVersionSuffix = regexp.MustCompile(`_v\d+$`)
+
+// versionActions mirrors VersionActions in ts/src/guide/heuristic01.ts: of a
+// route an API keeps in several versions, the highest version with an
+// operation the spec does not deprecate is the route, and each other version
+// becomes an action named for it, or suffixes the action its path has.
+func versionActions(entval any) {
+	entdesc, _ := entval.(map[string]any)
+	entPaths, _ := entdesc["path"].(map[string]any)
+	if entPaths == nil {
+		return
+	}
+
+	type member struct {
+		path    string
+		version int
+	}
+	groups := map[string][]member{}
+	var keys []string
+	for _, pathStr := range sortedKeys(entPaths) {
+		loc := reVersionSegment.FindStringSubmatchIndex(pathStr)
+		if loc == nil {
+			continue
+		}
+		key := pathStr[:loc[0]] + "/v" + pathStr[loc[4]:loc[5]] + pathStr[loc[1]:]
+		version, _ := strconv.Atoi(pathStr[loc[2]:loc[3]])
+		if _, seen := groups[key]; !seen {
+			keys = append(keys, key)
+		}
+		groups[key] = append(groups[key], member{pathStr, version})
+	}
+
+	for _, key := range keys {
+		members := groups[key]
+		if len(members) < 2 {
+			continue
+		}
+		var live []member
+		for _, m := range members {
+			pathdesc, _ := entPaths[m.path].(map[string]any)
+			if toInt(pathdesc["deprecated_ops"]) < toInt(pathdesc["ops"]) {
+				live = append(live, m)
+			}
+		}
+		pool := members
+		if 0 < len(live) {
+			pool = live
+		}
+		route := pool[0]
+		for _, m := range pool[1:] {
+			if m.version > route.version {
+				route = m
+			}
+		}
+
+		for _, m := range members {
+			if m == route {
+				continue
+			}
+			pathdesc, _ := entPaths[m.path].(map[string]any)
+			vname := "v" + strconv.Itoa(m.version)
+			why := []string{"ent", safeStr(entdesc["name"]), "version", vname, "behind", route.path}
+			actions, _ := pathdesc["action"].(map[string]any)
+			next := map[string]any{}
+			names := sortedKeys(actions)
+			for _, actname := range names {
+				act, _ := actions[actname].(map[string]any)
+				prior, _ := act["why_action"].([]string)
+				next[actname+"_"+vname] = map[string]any{
+					"why_action": append(append([]string{}, prior...), why...),
+				}
+			}
+			if 0 == len(names) {
+				next[vname] = map[string]any{"why_action": why}
+			}
+			pathdesc["action"] = next
+		}
+	}
 }
 
 // pathEntityName mirrors ts/src/guide/heuristic01.ts; named is false where the
@@ -1703,6 +1837,13 @@ func resolveOperation(data map[string]any, mdesc map[string]any) {
 	if pathEntry == nil {
 		return
 	}
+	pathEntry["ops"] = toInt(pathEntry["ops"]) + 1
+	deprecated := 0
+	if mdesc["deprecated"] == true {
+		deprecated = 1
+	}
+	pathEntry["deprecated_ops"] = toInt(pathEntry["deprecated_ops"]) + deprecated
+
 	op, _ := pathEntry["op"].(map[string]any)
 	if op == nil {
 		op = map[string]any{}
@@ -2193,6 +2334,11 @@ func entityCmpMatch(data map[string]any, entname string, mdesc map[string]any, w
 	sharing := data["work"].(map[string]any)["sharing"].(*sharingWork)
 	cmpShared := sharing.yields[safeStr(ment["origcmpref"])+" "+methodName+" "+pathStr]
 
+	// CallRouteOptionV2 answering /call_routes/{id}/options/{id}: the record
+	// names the path's resource, qualified by its parent and versioned.
+	unversioned := reVersionSuffix.ReplaceAllString(mentCmp, "")
+	qualifies := unversioned != mentCmp && strings.HasSuffix(unversioned, "_"+entname)
+
 	if mentCmp != "" &&
 		entname != mentCmp &&
 		!strings.HasPrefix(mentCmp, entname) {
@@ -2201,7 +2347,13 @@ func entityCmpMatch(data map[string]any, entname string, mdesc map[string]any, w
 			*why = append(*why, "cmp-shared")
 		}
 
-		if cmpInfrequent && !cmpShared {
+		if qualifies {
+			*why = append(*why, "cmp-qualifies-path")
+			out["name"] = unversioned
+			out["orig"] = mentOrigCmp
+			out["cmpish"] = true
+			out["pathish"] = false
+		} else if cmpInfrequent && !cmpShared {
 			*why = append(*why, "cmp-primary")
 			out["name"] = mentCmp
 			out["orig"] = mentOrigCmp

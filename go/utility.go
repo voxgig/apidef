@@ -928,7 +928,10 @@ func CleanComponentName(name string, isKnownCmp func(string) bool) string {
 			before := strings.Join(parts[:vI], "_")
 			var cands []string
 			if after != "" {
-				cands = []string{Canonize(Depluralize(after)), Canonize(Depluralize(before + "_" + after))}
+				// The namespace is the collection (CallRoutes), the record its
+				// item (CallRouteAllowedCaller), so the namespace is tried singular too.
+				cands = []string{Canonize(Depluralize(after)), Canonize(Depluralize(before + "_" + after)),
+					Canonize(Depluralize(before) + "_" + Depluralize(after))}
 			} else if before != "" {
 				cands = []string{Canonize(Depluralize(before))}
 			}
