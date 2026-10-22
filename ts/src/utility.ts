@@ -1440,8 +1440,11 @@ function cleanComponentName(
     if (vI >= 0) {
       const after = parts.slice(vI + 1).join('_')
       const before = parts.slice(0, vI).join('_')
+      // The namespace is the collection (CallRoutes), the record its item
+      // (CallRouteAllowedCaller), so the namespace is tried singular too.
       const cands = after
-        ? [canonize(depluralize(after)), canonize(depluralize(before + '_' + after))]
+        ? [canonize(depluralize(after)), canonize(depluralize(before + '_' + after)),
+          canonize(depluralize(before) + '_' + depluralize(after))]
         : [canonize(depluralize(before))]
       for (const cand of cands) {
         if (cand.length >= 3 && knownWithVersion(cand, version)) {

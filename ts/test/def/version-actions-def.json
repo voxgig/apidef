@@ -1,0 +1,296 @@
+{
+ "openapi": "3.0.0",
+ "info": {
+  "title": "Versions API",
+  "version": "1.0.0"
+ },
+ "servers": [
+  {
+   "url": "https://versions.example.com/api"
+  }
+ ],
+ "paths": {
+  "/v1/things": {
+   "get": {
+    "operationId": "Things V1#List",
+    "deprecated": true,
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Things"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "operationId": "Things V1#Create",
+    "deprecated": true,
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Thing"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Thing"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v2/things": {
+   "get": {
+    "operationId": "Things V2#List",
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Things"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "operationId": "Things V2#Create",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Thing"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Thing"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/things/{id}": {
+   "get": {
+    "operationId": "Things V1#Show",
+    "deprecated": true,
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Thing"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v2/things/{id}": {
+   "get": {
+    "operationId": "Things V2#Show",
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Thing"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "operationId": "Things V2#Delete",
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Removed"
+     }
+    }
+   }
+  },
+  "/v3/things/{id}": {
+   "get": {
+    "operationId": "Things V3#Show",
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Thing"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "operationId": "Things V3#Delete",
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Removed"
+     }
+    }
+   }
+  },
+  "/v2/things/{id}/actions/archive": {
+   "post": {
+    "operationId": "Things V2#Archive",
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Thing"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v3/things/{id}/actions/archive": {
+   "post": {
+    "operationId": "Things V3#Archive",
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Thing"
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "Thing": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     }
+    }
+   },
+   "Things": {
+    "type": "object",
+    "properties": {
+     "things": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Thing"
+      }
+     }
+    }
+   }
+  }
+ }
+}

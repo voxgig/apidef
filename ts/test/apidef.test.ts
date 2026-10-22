@@ -1296,6 +1296,81 @@ describe('apidef', () => {
 
   // guide.aontu gives /keys back to the emptied entity, or to a new one, and
   // the model keeps that assignment. go/apidef_test.go mirrors this case.
+  // An API that keeps older versions of a route beside the current one. The
+  // highest version with an operation that is not deprecated is the route;
+  // each other version is an action named for it, so it stays reachable.
+  test('guide-version-actions', async () => {
+    const folder = __dirname + '/../test/version-actions'
+    const build = await ApiDef.makeBuild({ folder })
+    const bres = await build(
+      { name: 'version-actions', def: 'version-actions-def.json' },
+      { spec: { base: folder, buildargs: { apidef: { ctrl: { step: {
+        parse: true, guide: true, transformers: true, builders: false, generate: false,
+      } } } } } },
+      {}
+    )
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const thing = bres.guide.entity.thing
+    const actions = Object.fromEntries(Object.keys(thing.path).sort()
+      .map((path) => [path, Object.keys(thing.path[path].action ?? {}).sort()]))
+    assert.deepStrictEqual(actions, {
+      '/v1/things': ['v1'],
+      '/v1/things/{id}': ['v1'],
+      '/v2/things': [],
+      '/v2/things/{id}': ['v2'],
+      '/v2/things/{id}/actions/archive': ['action_archive_v2'],
+      '/v3/things/{id}': [],
+      '/v3/things/{id}/actions/archive': ['action_archive'],
+    })
+
+    const points = (op: string) => bres.apimodel.main.kit.entity.thing.op[op].points
+      .map((p: any) => (p.q?.$action ?? '-') + ' ' + p.co.id).sort()
+    assert.deepStrictEqual(points('load'),
+      ['- GET /v3/things/{id}', 'v1 GET /v1/things/{id}', 'v2 GET /v2/things/{id}'])
+    assert.deepStrictEqual(points('list'), ['- GET /v2/things', 'v1 GET /v1/things'])
+    assert.deepStrictEqual(points('remove'),
+      ['- DELETE /v3/things/{id}', 'v2 DELETE /v2/things/{id}'])
+  })
+
+
+  // A sub-resource's envelopes (CallRoutesShowAllowedCallerResultV2) fold to
+  // its record (CallRouteAllowedCallerV2), and the DELETE that answers with
+  // nothing joins the entity that reads its path, rather than its tag.
+  test('guide-subresource-fold', async () => {
+    const folder = __dirname + '/../test/subresource-fold'
+    const build = await ApiDef.makeBuild({ folder })
+    const bres = await build(
+      { name: 'subresource-fold', def: 'subresource-fold-def.json' },
+      { spec: { base: folder, buildargs: { apidef: { ctrl: { step: {
+        parse: true, guide: true, transformers: true, builders: false, generate: false,
+      } } } } } },
+      {}
+    )
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const routes = Object.fromEntries(Object.keys(bres.guide.entity).sort()
+      .map((name) => [name, Object.entries(bres.guide.entity[name].path ?? {})
+        .flatMap(([path, pd]: [string, any]) =>
+          Object.values(pd.op).map((op: any) => op.method + ' ' + path))
+        .sort()]))
+    assert.deepStrictEqual(routes, {
+      call_route: ['GET /v2/call_routes', 'GET /v2/call_routes/{id}'],
+      call_route_allowed_caller: [
+        'DELETE /v2/call_routes/{call_route_id}/allowed_callers/{id}',
+        'GET /v2/call_routes/{call_route_id}/allowed_callers',
+        'GET /v2/call_routes/{call_route_id}/allowed_callers/{id}',
+        'POST /v2/call_routes/{call_route_id}/allowed_callers',
+        'PUT /v2/call_routes/{call_route_id}/allowed_callers/{id}',
+      ],
+      call_route_option: [
+        'DELETE /v2/call_routes/{call_route_id}/options/{id}',
+        'GET /v2/call_routes/{call_route_id}/options/{id}',
+      ],
+    })
+  })
+
+
   test('guide-collection-merge-overlay', async () => {
     const Os = require('node:os')
     const Path = require('node:path')

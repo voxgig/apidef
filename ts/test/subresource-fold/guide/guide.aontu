@@ -1,0 +1,4 @@
+# Guide entry file: put customizations below the includes. The base guide
+# it includes is generated and overwritten on every build.
+@"@voxgig/apidef/model/guide.aontu"
+@"./base-guide.aontu"

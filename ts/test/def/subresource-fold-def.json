@@ -1,0 +1,417 @@
+{
+ "openapi": "3.0.0",
+ "info": {
+  "title": "Routes API",
+  "version": "1.0.0"
+ },
+ "servers": [
+  {
+   "url": "https://routes.example.com/api"
+  }
+ ],
+ "paths": {
+  "/v2/call_routes": {
+   "get": {
+    "operationId": "Call Routes V2#List",
+    "tags": [
+     "Call Routes V2"
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CallRoutesListResultV2"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v2/call_routes/{id}": {
+   "get": {
+    "operationId": "Call Routes V2#Show",
+    "tags": [
+     "Call Routes V2"
+    ],
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CallRoutesShowResultV2"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v2/call_routes/{call_route_id}/allowed_callers": {
+   "get": {
+    "operationId": "Call Routes V2#ListAllowedCallers",
+    "tags": [
+     "Call Routes V2"
+    ],
+    "parameters": [
+     {
+      "name": "call_route_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CallRoutesListAllowedCallersResultV2"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "operationId": "Call Routes V2#CreateAllowedCaller",
+    "tags": [
+     "Call Routes V2"
+    ],
+    "parameters": [
+     {
+      "name": "call_route_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CallRoutesCreateAllowedCallerPayloadV2"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CallRoutesCreateAllowedCallerResultV2"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v2/call_routes/{call_route_id}/allowed_callers/{id}": {
+   "get": {
+    "operationId": "Call Routes V2#ShowAllowedCaller",
+    "tags": [
+     "Call Routes V2"
+    ],
+    "parameters": [
+     {
+      "name": "call_route_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CallRoutesShowAllowedCallerResultV2"
+        }
+       }
+      }
+     }
+    }
+   },
+   "put": {
+    "operationId": "Call Routes V2#UpdateAllowedCaller",
+    "tags": [
+     "Call Routes V2"
+    ],
+    "parameters": [
+     {
+      "name": "call_route_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CallRoutesCreateAllowedCallerPayloadV2"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CallRoutesUpdateAllowedCallerResultV2"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "operationId": "Call Routes V2#DestroyAllowedCaller",
+    "tags": [
+     "Call Routes V2"
+    ],
+    "parameters": [
+     {
+      "name": "call_route_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Removed"
+     }
+    }
+   }
+  },
+  "/v2/call_routes/{call_route_id}/options/{id}": {
+   "get": {
+    "operationId": "Call Routes V2#ShowOption",
+    "tags": [
+     "Call Routes V2"
+    ],
+    "parameters": [
+     {
+      "name": "call_route_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CallRoutesShowOptionResultV2"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "operationId": "Call Routes V2#DestroyOption",
+    "tags": [
+     "Call Routes V2"
+    ],
+    "parameters": [
+     {
+      "name": "call_route_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Removed"
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "CallRouteV2": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     }
+    }
+   },
+   "CallRouteAllowedCallerV2": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "number": {
+      "type": "string"
+     }
+    }
+   },
+   "CallRouteOptionV2": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "label": {
+      "type": "string"
+     }
+    }
+   },
+   "CallRoutesListResultV2": {
+    "type": "object",
+    "properties": {
+     "call_routes": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/CallRouteV2"
+      }
+     }
+    }
+   },
+   "CallRoutesShowResultV2": {
+    "type": "object",
+    "properties": {
+     "call_route": {
+      "$ref": "#/components/schemas/CallRouteV2"
+     }
+    }
+   },
+   "CallRoutesListAllowedCallersResultV2": {
+    "type": "object",
+    "properties": {
+     "allowed_callers": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/CallRouteAllowedCallerV2"
+      }
+     }
+    }
+   },
+   "CallRoutesCreateAllowedCallerResultV2": {
+    "type": "object",
+    "properties": {
+     "allowed_caller": {
+      "$ref": "#/components/schemas/CallRouteAllowedCallerV2"
+     }
+    }
+   },
+   "CallRoutesShowAllowedCallerResultV2": {
+    "type": "object",
+    "properties": {
+     "allowed_caller": {
+      "$ref": "#/components/schemas/CallRouteAllowedCallerV2"
+     }
+    }
+   },
+   "CallRoutesUpdateAllowedCallerResultV2": {
+    "type": "object",
+    "properties": {
+     "allowed_caller": {
+      "$ref": "#/components/schemas/CallRouteAllowedCallerV2"
+     }
+    }
+   },
+   "CallRoutesCreateAllowedCallerPayloadV2": {
+    "type": "object",
+    "properties": {
+     "number": {
+      "type": "string"
+     }
+    }
+   },
+   "CallRoutesShowOptionResultV2": {
+    "type": "object",
+    "properties": {
+     "option": {
+      "$ref": "#/components/schemas/CallRouteOptionV2"
+     }
+    }
+   }
+  }
+ }
+}

@@ -86,7 +86,7 @@ async function heuristic01(ctx) {
                 // ShowNode,
             ]
         },
-        { select: 'work.entmap', apply: BuildEntity }
+        { select: 'work.entmap', apply: [VersionActions, BuildEntity] }
     ]);
     const result = analysis.execSync(ctx, {});
     if (result.err) {
@@ -374,6 +374,7 @@ function selectAllMethods(_source, spec) {
                 // Carried so authExchangeOp can see a per-operation `security: []`.
                 // Everything downstream ignores it.
                 security: mdef.security,
+                deprecated: true === mdef.deprecated,
             });
         }
     }
@@ -580,7 +581,8 @@ function ResolveEntityName(spec) {
     }
     why_path.push(...(ment.why_cmp ?? []));
     const pm = matchEntityPath(parts);
-    let entname = pathEntityName(data, mdesc, parts, pm, work.pathowner, why_path);
+    let entname = samePathOwner(mdesc, work, why_path)
+        ?? pathEntityName(data, mdesc, parts, pm, work.pathowner, why_path);
     if (null == entname) {
         work.entity.count.unresolved++;
         entname = 'entity' + work.entity.count.unresolved;
@@ -630,6 +632,27 @@ function ResolveEntityName(spec) {
     if ((0, utility_2.debugpathOn)()) {
         (0, utility_2.debugpath)(pathStr, methodName, 'RESOLVE-ENTITY-NAME', (0, utility_2.formatJSONIC)({ entdesc, ment }, { hsepd: 0, $: true, color: true }));
     }
+}
+// A method named only from its tag, as a DELETE answering 204 is, joins the
+// entity a read of the same path resolved to when that read carries the same
+// tag: the tag then groups the path's routes and names no other resource. A
+// tag the read does not carry, Admin on the delete of a team, keeps its name.
+function samePathOwner(mdesc, work, why) {
+    const ment = mdesc.MethodEntity;
+    const owner = work.pathowner[mdesc.path];
+    if (null == owner || 'tag' !== ment?.ref) {
+        return null;
+    }
+    const tags = mdesc.tags ?? [];
+    for (const method of ['GET', 'QUERY', 'PUT', 'PATCH']) {
+        const entname = owner[method];
+        const read = work.methods.find((m) => m.path === mdesc.path && m.method === method);
+        if (null != entname && (read?.tags ?? []).some((tag) => tags.includes(tag))) {
+            why.push('same-path-tag=' + entname + '/' + method);
+            return entname;
+        }
+    }
+    return null;
 }
 // The name a method's path shape and component give it, or null where neither
 // does. A verb on a parent takes the name pathowner holds for the parent.
@@ -917,7 +940,10 @@ function ResolveOperation(spec) {
     if (null != (0, utility_1.authExchangeOp)(mdesc, (0, utility_1.specSecuredByDefault)(spec.data.def))) {
         entdesc.authexchange_ops = (entdesc.authexchange_ops ?? 0) + 1;
     }
-    const op = entdesc.path[pathStr].op;
+    const pathdesc = entdesc.path[pathStr];
+    pathdesc.ops = (pathdesc.ops ?? 0) + 1;
+    pathdesc.deprecated_ops = (pathdesc.deprecated_ops ?? 0) + (true === mdesc.deprecated ? 1 : 0);
+    const op = pathdesc.op;
     const opdef = {
         method: methodName,
         why_op: why_op.join(';')
@@ -1006,6 +1032,53 @@ function ResolveTransform(spec) {
     transform.req = (0, utility_1.bodyRequestTransform)(reqschema, [entdesc.origname, entdesc.name]);
     if (!(0, struct_1.isempty)(transform) && null != op[opname]) {
         op[opname].transform = transform;
+    }
+}
+// An API that keeps older versions of a route beside the current one gives
+// every version the same selector, so only the first would ever be reached.
+// The highest version with an operation the spec does not deprecate is the
+// route; each other version becomes an action named for it (v1, v2), or
+// suffixes the action its path already has, so it stays reachable.
+function VersionActions(spec) {
+    const entdesc = spec.node.val;
+    const groups = {};
+    for (const pathStr of (0, utility_2.sortedKeys)(entdesc.path)) {
+        const vm = pathStr.match(/\/v(\d+)(?=\/|$)/);
+        if (null == vm) {
+            continue;
+        }
+        const key = pathStr.replace(/\/v\d+(?=\/|$)/, '/v');
+        groups[key] = groups[key] ?? [];
+        groups[key].push({ path: pathStr, version: Number(vm[1]) });
+    }
+    for (const members of Object.values(groups)) {
+        if (members.length < 2) {
+            continue;
+        }
+        const live = members.filter((m) => {
+            const pathdesc = entdesc.path[m.path];
+            return (pathdesc.deprecated_ops ?? 0) < (pathdesc.ops ?? 0);
+        });
+        const route = (0 < live.length ? live : members)
+            .reduce((a, b) => b.version > a.version ? b : a);
+        for (const m of members) {
+            if (m === route) {
+                continue;
+            }
+            const pathdesc = entdesc.path[m.path];
+            const vname = 'v' + m.version;
+            const why = ['ent', entdesc.name, 'version', vname, 'behind', route.path];
+            const actions = pathdesc.action ?? {};
+            pathdesc.action = {};
+            for (const actname of (0, utility_2.sortedKeys)(actions)) {
+                pathdesc.action[actname + '_' + vname] = {
+                    why_action: [...actions[actname].why_action, ...why],
+                };
+            }
+            if (0 === (0, utility_2.sortedKeys)(actions).length) {
+                pathdesc.action[vname] = { why_action: why };
+            }
+        }
     }
 }
 function BuildEntity(spec) {
@@ -1522,13 +1595,24 @@ function entityCmpMatch(data, entname, mdesc, why) {
     const cmpInfrequent = (ment.method_rate < IS_ENTCMP_METHOD_RATE
         || ment.path_rate < IS_ENTCMP_PATH_RATE);
     const cmpShared = true === data.work.sharing.yields[ment.origcmpref + ' ' + mdesc.method + ' ' + mdesc.path];
+    // CallRouteOptionV2 answering /call_routes/{id}/options/{id}: the record
+    // names the path's resource, qualified by its parent and versioned.
+    const unversioned = (ment.cmp ?? '').replace(/_v\d+$/, '');
+    const qualifies = unversioned !== ment.cmp && unversioned.endsWith('_' + entname);
     if (null != ment.cmp
         && entname != ment.cmp
         && !ment.cmp.startsWith(entname)) {
         if (cmpInfrequent && cmpShared) {
             why.push('cmp-shared');
         }
-        if (cmpInfrequent && !cmpShared) {
+        if (qualifies) {
+            why.push('cmp-qualifies-path');
+            out.name = unversioned;
+            out.orig = ment.origcmp;
+            out.cmpish = true;
+            out.pathish = false;
+        }
+        else if (cmpInfrequent && !cmpShared) {
             why.push('cmp-primary');
             out.name = ment.cmp;
             out.orig = ment.origcmp;

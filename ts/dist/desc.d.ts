@@ -15,6 +15,7 @@ type MethodDesc = {
     path: string;
     method: string;
     summary: string;
+    deprecated?: boolean;
     tags: string[];
     parameters: any[];
     responses: Record<string, any>;
@@ -65,6 +66,8 @@ type EntityPathDesc = {
     why_action: Record<string, string[]>;
     why_ent: string[];
     why_path: string[];
+    ops?: number;
+    deprecated_ops?: number;
 };
 type PathSegment = {
     lit?: string;

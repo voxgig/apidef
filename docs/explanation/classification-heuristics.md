@@ -348,6 +348,13 @@ on `schedule`, and `{scheduleId}` is renamed as on
 the path as written, so a count whose path no tag or schema ties to
 `schedule` stays an entity of its own, as `/messages/count` would.
 
+A route an API keeps in several versions, `/v1/things/{id}` beside
+`/v2/things/{id}` and `/v3/things/{id}`, would give every version the same
+selector, so only one could ever be reached. The highest version with an
+operation the spec does not deprecate is the route. Each older version
+becomes an action named for it, `v1`, or suffixes the action its path already
+has, `archive_v2`, so `$action` still reaches it.
+
 ## Parameter renames
 
 A path parameter named after its entity — `{planet_id}` on the `planet`

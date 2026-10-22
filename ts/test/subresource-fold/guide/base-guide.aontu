@@ -1,0 +1,47 @@
+# Generated from the API definition and overwritten on every build: do not
+# edit this file. Put customizations in the guide entry file, which includes
+# this one and overrides its defaults:
+#   guide.aontu
+
+guide: {
+  metrics: count: entity: 3
+  metrics: count: path: 5
+  metrics: count: method: 9
+
+  entity: call_route: {
+    path: "/v2/call_routes": {
+      op: list: method: *GET
+      op: list: transform: res: *("`body.call_routes`")|top
+    }
+    path: "/v2/call_routes/{id}": {
+      op: load: method: *GET
+      op: load: transform: res: *("`body.call_route`")|top
+    }
+  }
+
+  entity: call_route_allowed_caller: {
+    path: "/v2/call_routes/{call_route_id}/allowed_callers": {
+      rename: param: "call_route_id": *"id"
+      op: create: method: *POST
+      op: create: transform: res: *("`body.allowed_caller`")|top
+      op: list: method: *GET
+      op: list: transform: res: *("`body.allowed_callers`")|top
+    }
+    path: "/v2/call_routes/{call_route_id}/allowed_callers/{id}": {
+      op: load: method: *GET
+      op: load: transform: res: *("`body.allowed_caller`")|top
+      op: remove: method: *DELETE
+      op: update: method: *PUT
+      op: update: transform: res: *("`body.allowed_caller`")|top
+    }
+  }
+
+  entity: call_route_option: {
+    path: "/v2/call_routes/{call_route_id}/options/{id}": {
+      op: load: method: *GET
+      op: load: transform: res: *("`body.option`")|top
+      op: remove: method: *DELETE
+    }
+  }
+
+}
