@@ -789,16 +789,34 @@ function ResolveEntityName(spec: TaskSpec) {
 
   const pm = matchEntityPath(parts)
 
-  let entname = samePathOwner(mdesc, work, why_path)
-    ?? pathEntityName(data, mdesc, parts, pm, work.pathowner, why_path)
+  // A join counts only where it changes the entity the shape gives, so a path
+  // the shape already names keeps the shape's reasons and actions.
+  const verb_on_parent = ment.verb_on_parent
+  const why_shape: string[] = []
+  const shaped = pathEntityName(data, mdesc, parts, pm, work.pathowner, why_shape)
+  const item = itemOfCollection(data, mdesc, parts)
+  const owner = null == item ? samePathOwner(mdesc, work) : null
+  const cmp = ment.cmp as string
+
+  let entname: string | null = shaped
+  if (null != owner && (null == shaped ||
+    resplitFromCmp(owner.entname, cmp, []) !== resplitFromCmp(shaped, cmp, []))) {
+    ment.verb_on_parent = verb_on_parent
+    ment.same_path = owner.entname
+    why_path.push('same-path-tag=' + owner.entname + '/' + owner.method)
+    entname = owner.entname
+  }
+  else {
+    why_path.push(...why_shape)
+  }
+
   if (null == entname) {
     work.entity.count.unresolved++
     entname = 'entity' + work.entity.count.unresolved
   }
 
-  entname = resplitFromCmp(entname, ment.cmp as string, why_path)
+  entname = resplitFromCmp(entname, cmp, why_path)
 
-  const item = itemOfCollection(data, mdesc, parts)
   if (null != item) {
     why_path.push(item.why + '=' + item.name)
     entname = item.name
@@ -860,8 +878,7 @@ function ResolveEntityName(spec: TaskSpec) {
 function samePathOwner(
   mdesc: MethodDesc,
   work: any,
-  why: string[],
-): string | null {
+): { entname: string, method: string } | null {
   const ment = mdesc.MethodEntity
   const owner = work.pathowner[mdesc.path]
   if (null == owner || 'tag' !== ment?.ref) {
@@ -873,8 +890,7 @@ function samePathOwner(
     const read = work.methods.find((m: MethodDesc) =>
       m.path === mdesc.path && m.method === method)
     if (null != entname && (read?.tags ?? []).some((tag: string) => tags.includes(tag))) {
-      why.push('same-path-tag=' + entname + '/' + method)
-      return entname
+      return { entname, method }
     }
   }
   return null
@@ -1182,6 +1198,12 @@ function FindActions(spec: TaskSpec) {
 
   pathdesc.action = (pathdesc.action ?? {})
   pathdesc.why_action = (pathdesc.why_action ?? {})
+
+  // The read the method joined has already found the path's actions; the
+  // method's own tag names no resource on this path.
+  if (null != ment.same_path) {
+    return
+  }
 
   const parts = verbParts(spec.data.work.pathmap[pathStr].parts)
 

@@ -446,6 +446,17 @@ item route and other routes beneath `/X`, none of which reads. Roadie's
 it. An owner that reads keeps its name, since a load names the record
 it returns: GitLab's runners join `ci_runner_detail`.
 
+A method named only from its tag joins the entity a read of its own path
+resolved to, when the read carries the same tag. The read is the path's
+`GET`, else its `QUERY`, `PUT` or `PATCH`. GitHub's
+`DELETE /repos/{owner}/{repo}/labels/{name}` joins `label`, the entity of
+the `GET` on that path, rather than staying with the other routes of the
+`issues` tag. The read keeps what it found on the path, actions included:
+GitHub's `PATCH /organizations/{org}/dependabot/repository-access` joins
+`dependabot_repository_access_detail` as an operation, not as a
+`repository_access` action. A tag the read does not carry keeps its own
+name.
+
 An item route can take its collection's entity before the move. A method
 on `/X/{id}` named only from its tag takes the entity of `/X` when all of
 these hold:

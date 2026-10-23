@@ -151,6 +151,56 @@
           }
         }
       ]
+    },
+    "remove": {
+      "name": "remove",
+      "points": [
+        {
+          "co": {
+            "id": "DELETE /store/order/{orderId}",
+            "source": "swagger2",
+            "version": 2
+          },
+          "g": {
+            "params": [
+              {
+                "k": "param",
+                "n": "id",
+                "or": "orderId",
+                "r": true,
+                "t": "`$INTEGER`"
+              }
+            ]
+          },
+          "m": "DELETE",
+          "o": "/store/order/{orderId}",
+          "q": {
+            "exist": [
+              "id"
+            ]
+          },
+          "r": {
+            "param": {
+              "orderId": "id"
+            }
+          },
+          "s": [
+            {
+              "lit": "store"
+            },
+            {
+              "lit": "order"
+            },
+            {
+              "var": "id"
+            }
+          ],
+          "t": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
     }
   }
 }

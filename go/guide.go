@@ -1222,19 +1222,42 @@ func resolveEntityName(ctx *ApiDefContext, data map[string]any, mdesc map[string
 
 	pm := matchEntityPath(parts)
 	pathowner := work["pathowner"].(map[string]any)
-	entname, named := samePathOwner(work, mdesc, &whyPath)
-	if !named {
-		entname, named = pathEntityName(data, mdesc, parts, pm, pathowner, &whyPath)
+
+	// A join counts only where it changes the entity the shape gives, so a
+	// path the shape already names keeps the shape's reasons and actions.
+	verbOnParent, hadVerbOnParent := ment["verb_on_parent"]
+	whyShape := []string{}
+	shaped, shapedNamed := pathEntityName(data, mdesc, parts, pm, pathowner, &whyShape)
+	collectionEntity, why, stored := itemOfCollection(data, mdesc, parts)
+	cmp := safeStr(ment["cmp"])
+
+	entname, named := shaped, shapedNamed
+	ownerName, ownerMethod, joined := "", "", false
+	if collectionEntity == "" {
+		ownerName, ownerMethod, joined = samePathOwner(work, mdesc)
 	}
+	if joined && (!shapedNamed ||
+		resplitFromCmp(ownerName, cmp, &[]string{}) != resplitFromCmp(shaped, cmp, &[]string{})) {
+		if hadVerbOnParent {
+			ment["verb_on_parent"] = verbOnParent
+		} else {
+			delete(ment, "verb_on_parent")
+		}
+		ment["same_path"] = ownerName
+		whyPath = append(whyPath, "same-path-tag="+ownerName+"/"+ownerMethod)
+		entname, named = ownerName, true
+	} else {
+		whyPath = append(whyPath, whyShape...)
+	}
+
 	if !named {
 		entityCount["unresolved"] = toInt(entityCount["unresolved"]) + 1
 		entname = fmt.Sprintf("entity%d", toInt(entityCount["unresolved"]))
 	}
 
-	entname = resplitFromCmp(entname, safeStr(ment["cmp"]), &whyPath)
+	entname = resplitFromCmp(entname, cmp, &whyPath)
 
 	entmap := work["entmap"].(map[string]any)
-	collectionEntity, why, stored := itemOfCollection(data, mdesc, parts)
 	if collectionEntity != "" {
 		whyPath = append(whyPath, why+"="+collectionEntity)
 		entname = collectionEntity
@@ -1304,14 +1327,15 @@ func resolveEntityName(ctx *ApiDefContext, data map[string]any, mdesc map[string
 // samePathOwner mirrors samePathOwner in ts/src/guide/heuristic01.ts: a
 // method named only from its tag, as a DELETE answering 204 is, joins the
 // entity a read of the same path resolved to when that read carries the same
-// tag. named is false where the TS returns null.
-func samePathOwner(work map[string]any, mdesc map[string]any, why *[]string) (string, bool) {
+// tag. It returns the entity and the read's method; joined is false where
+// the TS returns null.
+func samePathOwner(work map[string]any, mdesc map[string]any) (entity string, method string, joined bool) {
 	ment, _ := mdesc["MethodEntity"].(map[string]any)
 	pathStr, _ := mdesc["path"].(string)
 	pathowner, _ := work["pathowner"].(map[string]any)
 	owners, _ := pathowner[pathStr].(map[string]any)
 	if owners == nil || ment == nil || safeStr(ment["ref"]) != "tag" {
-		return "", false
+		return "", "", false
 	}
 	tags := anyStrings(mdesc["tags"])
 	methods, _ := work["methods"].([]map[string]any)
@@ -1327,14 +1351,13 @@ func samePathOwner(work map[string]any, mdesc map[string]any, why *[]string) (st
 			for _, tag := range anyStrings(read["tags"]) {
 				for _, own := range tags {
 					if own == tag {
-						*why = append(*why, "same-path-tag="+entname+"/"+method)
-						return entname, true
+						return entname, method, true
 					}
 				}
 			}
 		}
 	}
-	return "", false
+	return "", "", false
 }
 
 func anyStrings(v any) []string {
@@ -1698,6 +1721,12 @@ func findActions(data map[string]any, mdesc map[string]any) {
 	}
 	if pathdesc["why_action"] == nil {
 		pathdesc["why_action"] = map[string]any{}
+	}
+
+	// The read the method joined has already found the path's actions; the
+	// method's own tag names no resource on this path.
+	if safeStr(ment["same_path"]) != "" {
+		return
 	}
 
 	pathmapEntry := work["pathmap"].(map[string]any)

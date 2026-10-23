@@ -1386,6 +1386,41 @@ func TestGuideSubresourceFold(t *testing.T) {
 	}
 }
 
+// Mirrors the TS `guide-same-path-join` case: a tag-named method that joins
+// its path's read leaves the read's actions alone.
+func TestGuideSamePathJoin(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, Strategy: "heuristic01"}).Generate(map[string]any{
+		"model": map[string]any{"name": "same-path-join", "def": "same-path-join-def.json"},
+		"build": map[string]any{"spec": map[string]any{"base": "../ts/test/same-path-join"}},
+		"ctrl": map[string]any{"step": map[string]any{
+			"parse": true, "guide": true, "transformers": true,
+			"builders": false, "generate": false,
+		}},
+	})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v res=%+v", err, res)
+	}
+
+	gents, _ := res.Guide["entity"].(map[string]any)
+	want := "secret,vault_repository_access_detail,widget"
+	if got := strings.Join(sortedKeys(gents), ","); got != want {
+		t.Errorf("guide entities = %s, want %s", got, want)
+	}
+
+	wantGuide, err := os.ReadFile("../ts/test/same-path-join/guide/base-guide.aontu")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(filepath.Join(folder, "guide", "base-guide.aontu"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != string(wantGuide) {
+		t.Errorf("base guide differs from the TypeScript one:\n%s", string(got))
+	}
+}
+
 // Mirrors the TS `guide-item-record` case.
 func TestGuideItemRecord(t *testing.T) {
 	folder := stageGuideEntry(t, t.TempDir(), "")

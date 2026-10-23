@@ -1,0 +1,270 @@
+{
+ "openapi": "3.0.0",
+ "info": {
+  "title": "Vault API",
+  "version": "1.0.0"
+ },
+ "servers": [
+  {
+   "url": "https://vault.example.com"
+  }
+ ],
+ "paths": {
+  "/orgs/{org}/vault/repository-access": {
+   "get": {
+    "operationId": "vault/get-repository-access",
+    "tags": [
+     "vault"
+    ],
+    "parameters": [
+     {
+      "name": "org",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/VaultRepositoryAccessDetails"
+        }
+       }
+      }
+     }
+    }
+   },
+   "patch": {
+    "operationId": "vault/update-repository-access",
+    "tags": [
+     "vault"
+    ],
+    "parameters": [
+     {
+      "name": "org",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "repository_ids": {
+          "type": "array",
+          "items": {
+           "type": "integer"
+          }
+         }
+        }
+       }
+      }
+     }
+    },
+    "responses": {
+     "204": {
+      "description": "No Content"
+     }
+    }
+   }
+  },
+  "/orgs/{org}/vault/secrets": {
+   "get": {
+    "operationId": "vault/list-secrets",
+    "tags": [
+     "vault"
+    ],
+    "parameters": [
+     {
+      "name": "org",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/VaultSecret"
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/orgs/{org}/vault/secrets/{secret_name}": {
+   "get": {
+    "operationId": "vault/get-secret",
+    "tags": [
+     "vault"
+    ],
+    "parameters": [
+     {
+      "name": "org",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "secret_name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/VaultSecret"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "operationId": "vault/delete-secret",
+    "tags": [
+     "vault"
+    ],
+    "parameters": [
+     {
+      "name": "org",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "secret_name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "No Content"
+     }
+    }
+   }
+  },
+  "/widgets/{widget_id}": {
+   "get": {
+    "operationId": "widget/get",
+    "tags": [
+     "widget"
+    ],
+    "parameters": [
+     {
+      "name": "widget_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Widget"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "operationId": "widget/delete",
+    "tags": [
+     "widget"
+    ],
+    "parameters": [
+     {
+      "name": "widget_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "No Content"
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "VaultRepositoryAccessDetails": {
+    "type": "object",
+    "properties": {
+     "default_level": {
+      "type": "string"
+     },
+     "repository_count": {
+      "type": "integer"
+     }
+    }
+   },
+   "VaultSecret": {
+    "type": "object",
+    "properties": {
+     "name": {
+      "type": "string"
+     },
+     "created_at": {
+      "type": "string"
+     }
+    }
+   },
+   "Widget": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "label": {
+      "type": "string"
+     }
+    }
+   }
+  }
+ }
+}

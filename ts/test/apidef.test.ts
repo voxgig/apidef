@@ -1371,6 +1371,76 @@ describe('apidef', () => {
   })
 
 
+  test('guide-same-path-join', async () => {
+    const Os = require('node:os')
+    const Path = require('node:path')
+    const def = 'same-path-join-def.json'
+    const step = {
+      parse: true, guide: true, transformers: true, builders: false, generate: false,
+    }
+    const folder = __dirname + '/../test/same-path-join'
+    const build = await ApiDef.makeBuild({ folder })
+    const bres = await build(
+      { name: 'same-path-join', def },
+      { spec: { base: folder, buildargs: { apidef: { ctrl: { step } } } } },
+      {}
+    )
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const access = '/orgs/{org}/vault/repository-access'
+    const routes = Object.fromEntries(Object.keys(bres.guide.entity).sort()
+      .map((name) => [name, Object.entries(bres.guide.entity[name].path ?? {})
+        .flatMap(([path, pd]: [string, any]) =>
+          Object.values(pd.op).map((op: any) => op.method + ' ' + path))
+        .sort()]))
+    assert.deepStrictEqual(routes, {
+      secret: [
+        'DELETE /orgs/{org}/vault/secrets/{secret_name}',
+        'GET /orgs/{org}/vault/secrets',
+        'GET /orgs/{org}/vault/secrets/{secret_name}',
+      ],
+      vault_repository_access_detail: ['GET ' + access, 'PATCH ' + access],
+      widget: ['DELETE /widgets/{widget_id}', 'GET /widgets/{widget_id}'],
+    })
+    assert.deepStrictEqual(
+      bres.guide.entity.vault_repository_access_detail.path[access].action ?? {}, {})
+
+    const detail = bres.apimodel.main.kit.entity.vault_repository_access_detail
+    assert.deepStrictEqual(Object.keys(detail.fields).sort(),
+      ['default_level', 'repository_count', 'repository_ids'])
+    for (const op of Object.values(detail.op) as any[]) {
+      for (const pt of op.points) {
+        assert.equal(pt.q?.$action, undefined, pt.m + ' ' + pt.o)
+      }
+    }
+
+    // A join is noted only where it changed the entity: the widget's own tag
+    // already names the DELETE's entity.
+    const dir = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'apidef-join-'))
+    const whyFolder = Path.join(dir, 'model')
+    Fs.mkdirSync(Path.join(whyFolder, 'guide'), { recursive: true })
+    Fs.mkdirSync(Path.join(dir, 'def'))
+    Fs.copyFileSync(Path.join(__dirname, '..', 'test', 'def', def), Path.join(dir, 'def', def))
+    Fs.copyFileSync(Path.join(folder, 'guide', 'guide.aontu'),
+      Path.join(whyFolder, 'guide', 'guide.aontu'))
+    const whyBuild = await ApiDef.makeBuild({ folder: whyFolder, why: { show: true } })
+    const whyRes = await whyBuild(
+      { name: 'same-path-join', def },
+      { spec: { base: whyFolder, buildargs: { apidef: { ctrl: { step } } } } },
+      {}
+    )
+    const whyGuide = Fs.readFileSync(Path.join(whyFolder, 'guide', 'base-guide.aontu'), 'utf8')
+    Fs.rmSync(dir, { recursive: true, force: true })
+    assert.ok(whyRes.ok, 'why build failed: ' + whyRes.err?.message)
+
+    const pathLine = (path: string) =>
+      whyGuide.split('\n').find((line: string) => line.includes('path: "' + path + '"')) ?? ''
+    assert.match(pathLine(access), /same-path-tag=vault_repository_access_detail\/GET/)
+    assert.match(pathLine('/orgs/{org}/vault/secrets/{secret_name}'), /same-path-tag=secret\/GET/)
+    assert.doesNotMatch(pathLine('/widgets/{widget_id}'), /same-path-tag/)
+  })
+
+
   test('guide-collection-merge-overlay', async () => {
     const Os = require('node:os')
     const Path = require('node:path')

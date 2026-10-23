@@ -34,63 +34,6 @@
           }
         }
       ]
-    },
-    "remove": {
-      "name": "remove",
-      "points": [
-        {
-          "co": {
-            "id": "DELETE /store/order/{orderId}",
-            "source": "swagger2",
-            "version": 2
-          },
-          "g": {
-            "params": [
-              {
-                "k": "param",
-                "n": "order_id",
-                "or": "orderId",
-                "r": true,
-                "t": "`$INTEGER`"
-              }
-            ]
-          },
-          "m": "DELETE",
-          "o": "/store/order/{orderId}",
-          "q": {
-            "exist": [
-              "order_id"
-            ]
-          },
-          "r": {
-            "param": {
-              "orderId": "order_id"
-            }
-          },
-          "s": [
-            {
-              "lit": "store"
-            },
-            {
-              "lit": "order"
-            },
-            {
-              "var": "order_id"
-            }
-          ],
-          "t": {
-            "req": "`reqdata`",
-            "res": "`body`"
-          }
-        }
-      ]
     }
-  },
-  "relations": {
-    "ancestors": [
-      [
-        "order"
-      ]
-    ]
   }
 }

@@ -581,14 +581,30 @@ function ResolveEntityName(spec) {
     }
     why_path.push(...(ment.why_cmp ?? []));
     const pm = matchEntityPath(parts);
-    let entname = samePathOwner(mdesc, work, why_path)
-        ?? pathEntityName(data, mdesc, parts, pm, work.pathowner, why_path);
+    // A join counts only where it changes the entity the shape gives, so a path
+    // the shape already names keeps the shape's reasons and actions.
+    const verb_on_parent = ment.verb_on_parent;
+    const why_shape = [];
+    const shaped = pathEntityName(data, mdesc, parts, pm, work.pathowner, why_shape);
+    const item = itemOfCollection(data, mdesc, parts);
+    const owner = null == item ? samePathOwner(mdesc, work) : null;
+    const cmp = ment.cmp;
+    let entname = shaped;
+    if (null != owner && (null == shaped ||
+        (0, utility_2.resplitFromCmp)(owner.entname, cmp, []) !== (0, utility_2.resplitFromCmp)(shaped, cmp, []))) {
+        ment.verb_on_parent = verb_on_parent;
+        ment.same_path = owner.entname;
+        why_path.push('same-path-tag=' + owner.entname + '/' + owner.method);
+        entname = owner.entname;
+    }
+    else {
+        why_path.push(...why_shape);
+    }
     if (null == entname) {
         work.entity.count.unresolved++;
         entname = 'entity' + work.entity.count.unresolved;
     }
-    entname = (0, utility_2.resplitFromCmp)(entname, ment.cmp, why_path);
-    const item = itemOfCollection(data, mdesc, parts);
+    entname = (0, utility_2.resplitFromCmp)(entname, cmp, why_path);
     if (null != item) {
         why_path.push(item.why + '=' + item.name);
         entname = item.name;
@@ -637,7 +653,7 @@ function ResolveEntityName(spec) {
 // entity a read of the same path resolved to when that read carries the same
 // tag: the tag then groups the path's routes and names no other resource. A
 // tag the read does not carry, Admin on the delete of a team, keeps its name.
-function samePathOwner(mdesc, work, why) {
+function samePathOwner(mdesc, work) {
     const ment = mdesc.MethodEntity;
     const owner = work.pathowner[mdesc.path];
     if (null == owner || 'tag' !== ment?.ref) {
@@ -648,8 +664,7 @@ function samePathOwner(mdesc, work, why) {
         const entname = owner[method];
         const read = work.methods.find((m) => m.path === mdesc.path && m.method === method);
         if (null != entname && (read?.tags ?? []).some((tag) => tags.includes(tag))) {
-            why.push('same-path-tag=' + entname + '/' + method);
-            return entname;
+            return { entname, method };
         }
     }
     return null;
@@ -860,6 +875,11 @@ function FindActions(spec) {
     const methodName = mdesc.method;
     pathdesc.action = (pathdesc.action ?? {});
     pathdesc.why_action = (pathdesc.why_action ?? {});
+    // The read the method joined has already found the path's actions; the
+    // method's own tag names no resource on this path.
+    if (null != ment.same_path) {
+        return;
+    }
     const parts = verbParts(spec.data.work.pathmap[pathStr].parts);
     const fourthLastPart = parts[parts.length - 4];
     const fourthLastPartCanon = (0, utility_2.canonize)(fourthLastPart);
