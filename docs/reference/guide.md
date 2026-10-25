@@ -256,10 +256,17 @@ for the whole spec on
 
 A single-item operation unwraps its response's one nested object only when
 nothing but status or paging properties sits beside it, such as `success`,
-`status` or `request_id`. An `id`, or any other data, beside the object makes
-the schema the record itself: Lob's link carries an `id`, a `title` and one
-`metadata` object, and a load of it returns the link, not the metadata. A
-list is not held to this rule, since its records are what a caller asks for.
+`status` or `request_id`, or the item's own metadata: an object named in
+`ITEM_META_PROPS` (`meta`, `metadata` or `links`) is not a second candidate
+beside a single item, as it is not beside a page's records, so
+`{ data, meta }` loads `body.data`. Paging metadata, such as `pagination` or
+`page_info`, makes the response a page, so a create that answers GitHub's
+attestations by digest beside their `page_info` reads it whole. An `id`, or
+any other data, beside the object makes the schema the record itself: Lob's
+link carries an `id`, a `title` and one `metadata` object, and a load of it
+returns the link, not the metadata. A list under a metadata name is records,
+and beside a single item it is a second candidate. A list is not held to
+this rule, since its records are what a caller asks for.
 The added rows of
 [`ts/test/envelope-prop.tsv`](../../ts/test/envelope-prop.tsv) pin it in both
 builds.
@@ -314,8 +321,15 @@ object, such as the `filter` Novu echoes beside its notifications, the
 preferences beside the workflows. A scalar of its own makes the response a
 record that holds a list, such as a combined status whose `state` sits
 beside its `statuses`, so the list reads it whole, as it reads a page with
-more than one array of records. A page composed with `allOf` reads the same way, such as
-Neon's branch list, `allOf[branches, annotations, pagination]`. The rows of
+more than one array of records. A page that says where it is in the paging
+is the exception: beside a property named in `PAGE_POSITION_PROPS`, such as
+`page`, `next_cursor` or `has_more`, the one array of records is read past
+scalars of its own too, so a timeline that answers
+`{ node, total, page, pages, results, license, sampled, cap }` lists
+`body.results`. A count, a total, a page size or a `url` is not a position,
+so a combined status that counts its statuses still reads whole. A page
+composed with `allOf` reads its records only when it holds no data of its
+own, such as Neon's branch list, `allOf[branches, annotations, pagination]`. The rows of
 [`ts/test/envelope-prop.tsv`](../../ts/test/envelope-prop.tsv) and
 [`ts/test/composed-envelope-prop.tsv`](../../ts/test/composed-envelope-prop.tsv)
 and the `guide-page-side` tests pin it in both builds, on
@@ -341,7 +355,8 @@ competition's matches, `{ count, filters, competition, matches }`, list
 `body.matches`, as do its teams when that page is composed from parts. That is
 the whole boundary: an array named after the entity is still read by name, and
 so is the object when the page carries a scalar of its own beside the records,
-other than a status, paging or a count, or more than one array of them. The
+other than a status, paging or a count, on a page that does not say where it
+is in the paging, or more than one array of them. The
 `guide-list-records` tests pin these in both builds, on
 [`ts/test/def/list-records-def.json`](../../ts/test/def/list-records-def.json).
 A request body wraps the record

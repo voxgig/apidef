@@ -80,6 +80,33 @@
           "schema": { "type": "object", "properties": {
             "data": { "$ref": "#/components/schemas/Job" } } } } } } }
       }
+    },
+    "/timeline": {
+      "get": {
+        "operationId": "list-timeline",
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "type": "object", "properties": {
+            "node": { "type": "object", "properties": { "id": { "type": "string" } } },
+            "total": { "type": "integer" },
+            "page": { "type": "integer" },
+            "pages": { "type": "integer" },
+            "results": { "type": "array", "items": { "type": "object", "properties": {
+              "id": { "type": "string" }, "date": { "type": "string" } } } },
+            "license": { "type": "object", "properties": { "name": { "type": "string" } } },
+            "sampled": { "type": "boolean" },
+            "cap": { "type": "integer" } } } } } } }
+      }
+    },
+    "/documents/{id}": {
+      "get": {
+        "operationId": "get-document",
+        "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "type": "object", "properties": {
+            "data": { "$ref": "#/components/schemas/Document" },
+            "meta": { "type": "object", "properties": {
+              "generated_at": { "type": "string" } } } } } } } } }
+      }
     }
   },
   "components": {
@@ -99,6 +126,8 @@
         "id": { "type": "string" }, "state": { "type": "string" }, "url": { "type": "string" } } },
       "Job": { "type": "object", "properties": {
         "id": { "type": "string" }, "status": { "type": "string" } } },
+      "Document": { "type": "object", "properties": {
+        "id": { "type": "string" }, "title": { "type": "string" } } },
       "Branch": { "type": "object", "properties": {
         "id": { "type": "string" }, "name": { "type": "string" } } },
       "BranchesResponse": { "type": "object", "properties": {

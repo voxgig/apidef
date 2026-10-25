@@ -1892,9 +1892,10 @@ func envelopeProp(resprops map[string]any, opname string) string {
 		}
 		if len(records) == 1 && isRecordList(resprops[records[0]]) {
 			structured = records
-		} else if !holdsOwnData(resprops) {
-			// Mirrors ts/src/utility.ts: a page with no data of its own reads
-			// its one list of records past a scalar list or an object.
+		} else if !holdsOwnData(resprops) || holdsPagePosition(resprops) {
+			// Mirrors ts/src/utility.ts: a page with no data of its own, or one
+			// that says where it is in the paging, reads its one list of records
+			// past a scalar list, an object or a scalar of its own.
 			lists := make([]string, 0, len(records))
 			for _, k := range records {
 				if isRecordList(resprops[k]) {
@@ -1904,6 +1905,18 @@ func envelopeProp(resprops map[string]any, opname string) string {
 			if len(lists) == 1 {
 				structured = lists
 			}
+		}
+	} else {
+		// Mirrors ts/src/utility.ts: a single item may carry the metadata
+		// object a page does.
+		items := make([]string, 0, len(structured))
+		for _, k := range structured {
+			if !isItemMetaProp(resprops, k) {
+				items = append(items, k)
+			}
+		}
+		if len(items) == 1 {
+			structured = items
 		}
 	}
 	if len(structured) != 1 {
@@ -1919,10 +1932,12 @@ func envelopeProp(resprops map[string]any, opname string) string {
 	}
 
 	// Mirrors ts/src/utility.ts: beside an `id` or other data, one object is
-	// the record's own. A single item sits beside status or paging.
+	// the record's own. A single item sits beside status, paging or its
+	// metadata.
 	if !islist {
 		for _, k := range sortedKeys(resprops) {
-			if k != key && !isEnvelopeStatusProp(k) && !isEnvelopePagingProp(k) {
+			if k != key && !isItemMetaProp(resprops, k) &&
+				!isEnvelopeStatusProp(k) && !isEnvelopePagingProp(k) {
 				return ""
 			}
 		}
@@ -1993,6 +2008,38 @@ var PAGE_META_PROPS = map[string]bool{
 
 func isPageMetaProp(name string) bool {
 	return PAGE_META_PROPS[envelopePagingSepRE.ReplaceAllString(strings.ToLower(name), "")]
+}
+
+// ITEM_META_PROPS mirrors ts/src/utility.ts: the page metadata a single item
+// may carry too.
+var ITEM_META_PROPS = map[string]bool{"meta": true, "metadata": true, "links": true}
+
+// isItemMetaProp mirrors ts/src/utility.ts: a list under a metadata name is
+// records, as it is on a page.
+func isItemMetaProp(resprops map[string]any, name string) bool {
+	islist, _ := propIsList(resprops[name])
+	return ITEM_META_PROPS[envelopePagingSepRE.ReplaceAllString(strings.ToLower(name), "")] && !islist
+}
+
+// PAGE_POSITION_PROPS mirrors ts/src/utility.ts: the paging names that say
+// where a page is, rather than how many records there are.
+var PAGE_POSITION_PROPS = map[string]bool{
+	"page": true, "pages": true, "pagenumber": true, "currentpage": true, "totalpages": true,
+	"offset": true, "cursor": true, "next": true, "nextcursor": true, "nextpage": true,
+	"nextpagetoken": true, "nexttoken": true, "nexturl": true, "previous": true, "prev": true,
+	"previouscursor": true, "prevcursor": true, "previouspage": true, "prevpage": true,
+	"previousurl": true, "prevurl": true, "hasmore": true, "hasnext": true, "hasprevious": true,
+}
+
+func holdsPagePosition(resprops map[string]any) bool {
+	for k, v := range resprops {
+		islist, _ := propIsList(v)
+		if PAGE_POSITION_PROPS[envelopePagingSepRE.ReplaceAllString(strings.ToLower(k), "")] &&
+			!isObjectSchema(v) && !islist {
+			return true
+		}
+	}
+	return false
 }
 
 var envelopePagingSepRE = regexp.MustCompile(`[_-]`)

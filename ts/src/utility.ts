@@ -1828,12 +1828,23 @@ function envelopeProp(resprops: any, opname: string): string | null {
 
     // A page that holds no data of its own reads its one list of records
     // past a list of scalars, such as Mux's timeframe, and past an object,
-    // such as the filter Novu's notifications were read with.
-    else if (!holdsOwnData(resprops)) {
+    // such as the filter Novu's notifications were read with. A page that
+    // says where it is in the paging reads it past scalars of its own too,
+    // such as whether Edgepedia's timeline was sampled.
+    else if (!holdsOwnData(resprops) || holdsPagePosition(resprops)) {
       const lists = records.filter((k: string) => isRecordList(resprops[k]))
       if (1 === lists.length) {
         structured = lists
       }
+    }
+  }
+
+  // A single item may carry the same metadata object a page does, such as
+  // the `meta` beside each of Open Mindfulness's records.
+  else {
+    const items = structured.filter((k: string) => !isItemMetaProp(resprops, k))
+    if (1 === items.length) {
+      structured = items
     }
   }
 
@@ -1850,8 +1861,9 @@ function envelopeProp(resprops: any, opname: string): string | null {
   }
 
   // Beside an `id` or other data, one object is the record's own, such as
-  // Lob's link and its metadata. A single item sits beside status or paging.
-  if (!islist && keys.some((k: string) => k !== key &&
+  // Lob's link and its metadata. A single item sits beside status, paging or
+  // its metadata.
+  if (!islist && keys.some((k: string) => k !== key && !isItemMetaProp(resprops, k) &&
     !isEnvelopeStatusProp(k) && !isEnvelopePagingProp(k))) {
     return null
   }
@@ -1921,6 +1933,36 @@ const PAGE_META_PROPS = new Set([
 
 function isPageMetaProp(name: string): boolean {
   return PAGE_META_PROPS.has(name.toLowerCase().replace(/[_-]/g, ''))
+}
+
+
+// The page metadata a single item may carry too. Paging beside an object makes
+// it a page, such as GitHub's attestations by digest beside their page info.
+const ITEM_META_PROPS = new Set(['meta', 'metadata', 'links'])
+
+
+// A list under a metadata name is records, as it is on a page.
+function isItemMetaProp(resprops: any, name: string): boolean {
+  return ITEM_META_PROPS.has(name.toLowerCase().replace(/[_-]/g, '')) &&
+    true !== propIsList(resprops[name])
+}
+
+
+// The paging names that say where a page is, rather than how many records
+// there are, so a record that counts what it lists does not pass for a page.
+const PAGE_POSITION_PROPS = new Set([
+  'page', 'pages', 'pagenumber', 'currentpage', 'totalpages', 'offset',
+  'cursor', 'next', 'nextcursor', 'nextpage', 'nextpagetoken', 'nexttoken',
+  'nexturl', 'previous', 'prev', 'previouscursor', 'prevcursor',
+  'previouspage', 'prevpage', 'previousurl', 'prevurl', 'hasmore', 'hasnext',
+  'hasprevious',
+])
+
+
+function holdsPagePosition(resprops: any): boolean {
+  return keysof(resprops).some((k: string) =>
+    PAGE_POSITION_PROPS.has(k.toLowerCase().replace(/[_-]/g, '')) &&
+    !isObjectSchema(resprops[k]) && true !== propIsList(resprops[k]))
 }
 
 

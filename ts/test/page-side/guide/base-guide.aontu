@@ -4,14 +4,21 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 7
-  metrics: count: path: 8
-  metrics: count: method: 8
+  metrics: count: entity: 9
+  metrics: count: path: 10
+  metrics: count: method: 10
 
   entity: branch: {
     path: "/branches": {
       op: list: method: *GET
       op: list: transform: res: *("`body.branches`")|top
+    }
+  }
+
+  entity: document: {
+    path: "/documents/{id}": {
+      op: load: method: *GET
+      op: load: transform: res: *("`body.data`")|top
     }
   }
 
@@ -57,6 +64,13 @@ guide: {
   entity: rollup: {
     path: "/rollups": {
       op: list: method: *GET
+    }
+  }
+
+  entity: timeline: {
+    path: "/timeline": {
+      op: list: method: *GET
+      op: list: transform: res: *("`body.results`")|top
     }
   }
 

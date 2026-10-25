@@ -24,7 +24,7 @@ resprops	opname	expected
 {"success":{"type":"boolean"},"data":{"type":"object"}}	load	data
 {"status":{"type":"string"},"result":{"$ref":"#/x"}}	load	result
 {"success":{"type":"boolean"},"data":{"type":"array"}}	load	
-{"data":{"type":"object"},"meta":{"type":"object"}}	load	
+{"data":{"type":"object"},"meta":{"type":"object"}}	load	data
 {"success":{"type":"boolean"},"count":{"type":"integer"}}	list	
 {"id":{"type":"string"},"title":{"type":"string"},"metadata":{"type":"object"}}	load	
 {"id":{"type":"string"},"metadata":{"type":"object"}}	create	
@@ -34,7 +34,7 @@ resprops	opname	expected
 {"results":{"type":"array","items":{"$ref":"#/components/schemas/Chat"}},"metadata":{"$ref":"#/components/schemas/PaginationMeta"}}	list	results
 {"branches":{"type":"array","items":{"$ref":"#/components/schemas/Branch"}},"pagination":{"type":"object"}}	list	branches
 {"branches":{"type":"array","items":{"$ref":"#/components/schemas/Branch"}},"annotations":{"type":"object"},"pagination":{"type":"object"}}	list	branches
-{"data":{"$ref":"#/components/schemas/Chat"},"metadata":{"type":"object"}}	load	
+{"data":{"$ref":"#/components/schemas/Chat"},"metadata":{"type":"object"}}	load	data
 {"metadata":{"type":"array","items":{"$ref":"#/components/schemas/Metafield"}},"total_count":{"type":"integer"},"current_page":{"type":"integer"}}	list	metadata
 {"values":{"type":"array","items":{"oneOf":[{"type":"string"},{"type":"null"}]}},"metadata":{"type":"object"}}	list	
 {"pets":{"type":"array","items":{"oneOf":[{"$ref":"#/components/schemas/Cat"},{"$ref":"#/components/schemas/Dog"}]}},"metadata":{"type":"object"}}	list	pets
@@ -53,3 +53,17 @@ resprops	opname	expected
 {"id":{"oneOf":[{"type":"string"},{"type":"integer"}]},"status":{"type":"string"}}	load	
 {"data":{"oneOf":[{"type":"string"},{"type":"object","properties":{"id":{"type":"string"}}}]},"status":{"type":"string"}}	load	data
 {"data":{"type":"array","items":{"$ref":"#/components/schemas/Thing"}},"region":{"allOf":[{"type":"string","x-ref":"#/components/schemas/Region"},{"description":"The region the page covers."}]}}	list	data
+{"data":{"$ref":"#/components/schemas/Practice"},"meta":{"type":"object"}}	create	data
+{"data":{"$ref":"#/components/schemas/Practice"},"meta":{"type":"object"},"success":{"type":"boolean"}}	load	data
+{"id":{"type":"string"},"data":{"$ref":"#/components/schemas/Practice"},"meta":{"type":"object"}}	load	
+{"data":{"$ref":"#/components/schemas/Practice"},"meta":{"type":"object"},"source":{"type":"object"}}	load	
+{"data":{"$ref":"#/components/schemas/Practice"},"meta":{"type":"array","items":{"$ref":"#/components/schemas/Note"}}}	load	
+{"data":{"type":"array","items":{"$ref":"#/components/schemas/Practice"}},"meta":{"type":"object"}}	load	
+{"node":{"type":"object"},"total":{"type":"integer"},"page":{"type":"integer"},"pages":{"type":"integer"},"results":{"type":"array","items":{"type":"object"}},"license":{"type":"object"},"sampled":{"type":"boolean"},"cap":{"type":"integer"}}	list	results
+{"query":{"type":"string"},"next_cursor":{"type":"string"},"results":{"type":"array","items":{"$ref":"#/x"}},"source":{"type":"object"}}	list	results
+{"state":{"type":"string"},"sha":{"type":"string"},"total_count":{"type":"integer"},"statuses":{"type":"array","items":{"$ref":"#/components/schemas/Status"}},"repository":{"$ref":"#/components/schemas/Repository"},"url":{"type":"string"}}	list	
+{"title":{"type":"string"},"pages":{"type":"array","items":{"$ref":"#/components/schemas/Page"}},"index":{"type":"object"}}	list	
+{"page":{"type":"integer"},"primary":{"type":"array","items":{"$ref":"#/x"}},"general":{"type":"array","items":{"$ref":"#/x"}},"region":{"type":"string"}}	list	
+{"attestations_subject_digests":{"type":"object"},"page_info":{"type":"object"}}	create	
+{"data":{"$ref":"#/components/schemas/Practice"},"pagination":{"type":"object"}}	load	
+{"data":{"$ref":"#/components/schemas/Practice"},"links":{"type":"object"}}	load	data

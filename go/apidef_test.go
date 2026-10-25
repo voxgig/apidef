@@ -931,6 +931,8 @@ func TestGuidePageSide(t *testing.T) {
 		{"job", "/jobs", "create", "`body.data`"},
 		{"job", "/jobs/{id}", "load", "`body.data`"},
 		{"export", "/exports", "create", "`body.data`"},
+		{"timeline", "/timeline", "list", "`body.results`"},
+		{"document", "/documents/{id}", "load", "`body.data`"},
 	} {
 		if got := opRes(c.ent, c.path, c.op); got != c.want {
 			t.Errorf("%s %s transform res = %v, want %v", c.ent, c.op, got, c.want)
@@ -940,10 +942,15 @@ func TestGuidePageSide(t *testing.T) {
 	main, _ := res.ApiModel["main"].(map[string]any)
 	kit, _ := main[KIT].(map[string]any)
 	ments, _ := kit["entity"].(map[string]any)
-	export, _ := ments["export"].(map[string]any)
-	fields, _ := export["fields"].(map[string]any)
-	if got, want := strings.Join(sortedKeys(fields), ","), "format,id,state,url"; got != want {
-		t.Errorf("export fields = %s, want %s", got, want)
+	for ent, want := range map[string]string{
+		"export":   "format,id,state,url",
+		"document": "id,title",
+	} {
+		e, _ := ments[ent].(map[string]any)
+		fields, _ := e["fields"].(map[string]any)
+		if got := strings.Join(sortedKeys(fields), ","); got != want {
+			t.Errorf("%s fields = %s, want %s", ent, got, want)
+		}
 	}
 }
 
