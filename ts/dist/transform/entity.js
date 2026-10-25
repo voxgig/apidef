@@ -5,6 +5,7 @@ exports.filterEntityAncestors = filterEntityAncestors;
 exports.resolvePathList = resolvePathList;
 exports.buildRelations = buildRelations;
 exports.mergeCollectionPaths = mergeCollectionPaths;
+exports.mergeFoldedEntities = mergeFoldedEntities;
 const jostraca_1 = require("jostraca");
 const types_1 = require("../types");
 const utility_1 = require("../utility");
@@ -172,6 +173,47 @@ function mergeCollectionPaths(guide, log, recordRef, distinct) {
         log?.debug?.({ point: 'merge-collection-drop', entity: ename });
     }
     return emptied;
+}
+// Names that fold together name one resource twice, as a schema (`UseCase`)
+// and a path segment (`/usecases`) do. Each active member's paths move to the
+// spelling with the most words, unless the two hold one operation on one
+// path; casecollideTransform then reports the pair. Guide stage only.
+function mergeFoldedEntities(guide, log) {
+    const entities = guide.entity;
+    const groups = Object.create(null);
+    for (const ename of Object.keys(entities).sort(refcount_1.byCodePoint)) {
+        const entity = entities[ename];
+        if (null != entity && 'object' === typeof entity && false !== entity.active) {
+            (groups[(0, utility_1.foldName)(ename)] = groups[(0, utility_1.foldName)(ename)] ?? []).push(ename);
+        }
+    }
+    const words = (ename) => ename.split('_').filter(Boolean).length;
+    const merged = [];
+    for (const fold of Object.keys(groups).sort(refcount_1.byCodePoint)) {
+        const [to, ...rest] = groups[fold].slice()
+            .sort((a, b) => words(b) - words(a) || (0, refcount_1.byCodePoint)(a, b));
+        for (const from of rest) {
+            if (opsMeet(entities[from], entities[to])) {
+                continue;
+            }
+            const paths = Object.keys(entities[from].path ?? {}).sort(refcount_1.byCodePoint);
+            for (const pathStr of paths) {
+                movePath(entities[from], entities[to], pathStr);
+            }
+            delete entities[from];
+            merged.push(from);
+            log?.info?.({
+                point: 'entity-fold-merge', from, to, paths,
+                note: `entity ${from} merged into ${to}: the names differ only in ` +
+                    `case or underscores, which PHP and case-insensitive file systems ` +
+                    `cannot tell apart.`
+            });
+        }
+    }
+    return merged;
+}
+function opsMeet(entity, target) {
+    return Object.keys(entity?.path ?? {}).some((pathStr) => Object.keys(entity.path[pathStr]?.op ?? {}).some((opname) => null != target?.path?.[pathStr]?.op?.[opname]));
 }
 // Move one path onto the target entity, keeping what the target already has.
 function movePath(entity, targetEntity, pathStr) {

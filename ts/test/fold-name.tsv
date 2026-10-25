@@ -1,0 +1,15 @@
+input	expected
+use_case	usecase
+usecase	usecase
+UseCase	usecase
+opt_out	optout
+Opt_Out	optout
+static_ip	staticip
+a_b_c	abc
+ab_c	abc
+v2_item	v2item
+n3ds_session	n3dssession
+user	user
+opt-out	optout
+HTTPHeaders	httpheaders
+__x__	x

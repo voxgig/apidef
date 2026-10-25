@@ -94,6 +94,7 @@ async function heuristic01(ctx) {
     }
     const guide = result.data.guide;
     guide.metrics.count.entity -= (0, entity_1.mergeCollectionPaths)(guide, ctx.log, (pathStr, methods, collection) => pathRecordRef(ctx.def, pathStr, methods, collection), (sharePath, shareMethods, itemPath, itemMethods) => distinctShare(ctx.def, sharePath, shareMethods, itemPath, itemMethods)).length;
+    guide.metrics.count.entity -= (0, entity_1.mergeFoldedEntities)(guide, ctx.log).length;
     // After the merge, which can move a path onto another entity.
     for (const entity of Object.values(guide.entity)) {
         nameEntityParams(entity);

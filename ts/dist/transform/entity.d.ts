@@ -4,10 +4,11 @@ import type { PathDesc } from '../desc';
 declare const entityTransform: Transform;
 declare function filterEntityAncestors(entities: Record<string, any>): void;
 declare function mergeCollectionPaths(guide: any, log?: any, recordRef?: (pathStr: string, methods: string[], collection: boolean) => string | null, distinct?: (sharePath: string, shareMethods: string[], itemPath: string, itemMethods: string[]) => boolean): string[];
+declare function mergeFoldedEntities(guide: any, log?: any): string[];
 declare function resolvePathList(guideEntity: GuideEntity, def: {
     paths: Record<string, any>;
 }): PathDesc[];
 declare function buildRelations(guideEntity: any, paths$: PathDesc[]): {
     ancestors: any[];
 };
-export { filterEntityAncestors, resolvePathList, buildRelations, entityTransform, mergeCollectionPaths, };
+export { filterEntityAncestors, resolvePathList, buildRelations, entityTransform, mergeCollectionPaths, mergeFoldedEntities, };

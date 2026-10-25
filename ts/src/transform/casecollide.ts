@@ -1,9 +1,11 @@
-import { each, camelify } from 'jostraca'
+import { each } from 'jostraca'
 
 import type { TransformResult, Transform } from '../transform'
 
 import { KIT } from '../types'
 import type { KitModel } from '../types'
+
+import { foldName } from '../utility'
 
 
 // See docs/design/derived-names.md
@@ -22,9 +24,9 @@ const casecollideTransform: Transform = async function(
   const { apimodel, guide } = ctx
   const kit: KitModel = apimodel.main[KIT]
 
-  const bylower: { [lower: string]: string[] } = {}
+  const bylower: { [lower: string]: string[] } = Object.create(null)
   each(kit.entity, (_entity: any, entname: string) => {
-    const lower = String(camelify(entname)).toLowerCase()
+    const lower = foldName(entname)
     bylower[lower] = bylower[lower] || []
     bylower[lower].push(entname)
   })

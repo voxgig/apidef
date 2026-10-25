@@ -52,9 +52,10 @@ function run(entity, guide) {
         const { ctx, logged } = await run({
             thing: { name: 'thing', op: { list: { method: 'GET' } } },
             spare: { name: 'spare', op: {} },
+            constructor: { name: 'constructor', op: {} },
         });
         // Only colliding entities are in scope here.
-        node_assert_1.default.deepEqual(Object.keys(ctx.apimodel.main.kit.entity).sort(), ['spare', 'thing']);
+        node_assert_1.default.deepEqual(Object.keys(ctx.apimodel.main.kit.entity).sort(), ['constructor', 'spare', 'thing']);
         node_assert_1.default.equal(logged.length, 0);
     });
     (0, node_test_1.test)('a group of three keeps every entity that has operations', async () => {

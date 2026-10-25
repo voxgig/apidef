@@ -23,6 +23,7 @@ import {
   inferFieldType,
   ensureMinEntityName,
   resplitFromCmp,
+  foldName,
   prefixLeadingDigit,
   validator,
   nom,
@@ -218,6 +219,16 @@ describe('tsv-prefix-leading-digit', () => {
   for (const row of rows) {
     test(`prefixLeadingDigit("${row.input}") => "${row.expected}"`, () => {
       assert.deepStrictEqual(prefixLeadingDigit(row.input), row.expected)
+    })
+  }
+})
+
+
+describe('tsv-fold-name', () => {
+  const rows = loadTsv('fold-name')
+  for (const row of rows) {
+    test(`foldName("${row.input}") => "${row.expected}"`, () => {
+      assert.deepStrictEqual(foldName(row.input), row.expected)
     })
   }
 })

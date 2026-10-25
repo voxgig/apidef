@@ -22,7 +22,9 @@ import type {
   ModelEntity,
 } from '../model'
 
-import { cmpRefName, depluralize, guideActive, paramName, READ_METHODS } from '../utility'
+import {
+  cmpRefName, depluralize, foldName, guideActive, paramName, READ_METHODS,
+} from '../utility'
 
 import { byCodePoint } from '../refcount'
 
@@ -238,6 +240,54 @@ function mergeCollectionPaths(
 
 
 
+// Names that fold together name one resource twice, as a schema (`UseCase`)
+// and a path segment (`/usecases`) do. Each active member's paths move to the
+// spelling with the most words, unless the two hold one operation on one
+// path; casecollideTransform then reports the pair. Guide stage only.
+function mergeFoldedEntities(guide: any, log?: any): string[] {
+  const entities = guide.entity as Record<string, any>
+  const groups: Record<string, string[]> = Object.create(null)
+  for (const ename of Object.keys(entities).sort(byCodePoint)) {
+    const entity = entities[ename]
+    if (null != entity && 'object' === typeof entity && false !== entity.active) {
+      (groups[foldName(ename)] = groups[foldName(ename)] ?? []).push(ename)
+    }
+  }
+
+  const words = (ename: string) => ename.split('_').filter(Boolean).length
+  const merged: string[] = []
+  for (const fold of Object.keys(groups).sort(byCodePoint)) {
+    const [to, ...rest] = groups[fold].slice()
+      .sort((a, b) => words(b) - words(a) || byCodePoint(a, b))
+    for (const from of rest) {
+      if (opsMeet(entities[from], entities[to])) {
+        continue
+      }
+      const paths = Object.keys(entities[from].path ?? {}).sort(byCodePoint)
+      for (const pathStr of paths) {
+        movePath(entities[from], entities[to], pathStr)
+      }
+      delete entities[from]
+      merged.push(from)
+      log?.info?.({
+        point: 'entity-fold-merge', from, to, paths,
+        note: `entity ${from} merged into ${to}: the names differ only in ` +
+          `case or underscores, which PHP and case-insensitive file systems ` +
+          `cannot tell apart.`
+      })
+    }
+  }
+  return merged
+}
+
+
+function opsMeet(entity: any, target: any): boolean {
+  return Object.keys(entity?.path ?? {}).some((pathStr: string) =>
+    Object.keys(entity.path[pathStr]?.op ?? {}).some((opname: string) =>
+      null != target?.path?.[pathStr]?.op?.[opname]))
+}
+
+
 // Move one path onto the target entity, keeping what the target already has.
 function movePath(entity: any, targetEntity: any, pathStr: string) {
   targetEntity.path = targetEntity.path ?? {}
@@ -442,4 +492,5 @@ export {
   buildRelations,
   entityTransform,
   mergeCollectionPaths,
+  mergeFoldedEntities,
 }

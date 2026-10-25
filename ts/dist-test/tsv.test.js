@@ -151,6 +151,14 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-fold-name', () => {
+    const rows = loadTsv('fold-name');
+    for (const row of rows) {
+        (0, node_test_1.test)(`foldName("${row.input}") => "${row.expected}"`, () => {
+            node_assert_1.default.deepStrictEqual((0, utility_1.foldName)(row.input), row.expected);
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-sanitize-slug', () => {
     const rows = loadTsv('sanitize-slug');
     for (const row of rows) {

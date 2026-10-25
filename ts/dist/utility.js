@@ -40,6 +40,7 @@ exports.normalizeFieldName = normalizeFieldName;
 exports.canonizeParam = canonizeParam;
 exports.paramName = paramName;
 exports.humanTitle = humanTitle;
+exports.foldName = foldName;
 exports.prefixLeadingDigit = prefixLeadingDigit;
 exports.debugpath = debugpath;
 exports.debugpathOn = debugpathOn;
@@ -959,6 +960,11 @@ exports.CMP_REF_RE = CMP_REF_RE;
 function cmpRefName(xref) {
     const m = xref.match(CMP_REF_RE);
     return null == m ? xref : canonizeCmpName(m[2]);
+}
+// Entity names with one key meet as one class in PHP and one file on a
+// case-insensitive file system: `use_case` and `usecase` are `usecase`.
+function foldName(name) {
+    return String((0, jostraca_1.camelify)(name)).toLowerCase();
 }
 const FIRST_LETTER_RE = /[a-zA-Z]/;
 function prefixLeadingDigit(s) {

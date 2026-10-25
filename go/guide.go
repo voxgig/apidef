@@ -753,6 +753,8 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 			return distinctShare(def, sharePath, shareMethods, itemPath, itemMethods)
 		}))
 
+	countMap["entity"] = toInt(countMap["entity"]) - len(mergeFoldedEntities(guide))
+
 	// After the merge, which can move a path onto another entity.
 	entities, _ := guide["entity"].(map[string]any)
 	for _, ename := range sortedKeys(entities) {

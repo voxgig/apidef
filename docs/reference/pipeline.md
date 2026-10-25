@@ -65,6 +65,12 @@ renames, recording `why_*` traces. This stage:
    you author — it `@`-includes the base-guide plus the guide schema) and
    resolves it with `aontu`.
 
+The heuristic merges entities whose names differ only in case or
+underscores, such as `use_case` from a schema and `usecase` from a path,
+because PHP and case-insensitive file systems cannot tell them apart. The
+spelling with the most words keeps every path, unless both entities hold the
+same operation on one path.
+
 Because step 1 writes the base-guide before step 2 reads it, a cold start
 works in one pass provided the guide entry file exists. Output: `ctx.guide`
 (the resolved guide — see [the guide model](./guide.md)). See
@@ -86,7 +92,7 @@ Thirteen passes run in this fixed order; each is a file under
 | 7 | `body` | each point's `rb`, when its request body is not JSON alone, its `bf`, the properties a JSON request body declares, and its `rs`, when a success response declares a body |
 | 8 | `select` | each point's `select` — `exist[]` identifiers and `$action` markers |
 | 9 | `field` | each entity's `fields[]` from request/response schemas, with inferred types and per-op `req` overrides |
-| 10 | `casecollide` | drops an entity without operations whose name differs only by case from one with them, since both would generate to one file |
+| 10 | `casecollide` | for a pair the guide stage could not merge, drops an entity without operations whose name differs only by case from one with them, since both would generate to one file, and warns when both carry operations |
 | 11 | `flow` | basic CRUD `flow` definitions per entity |
 | 12 | `flowstep` | the ordered `step[]` of each flow |
 | 13 | `clean` | prune inactive nodes and finalize the model |

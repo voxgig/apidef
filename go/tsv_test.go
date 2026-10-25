@@ -140,6 +140,18 @@ func TestTsvPrefixLeadingDigit(t *testing.T) {
 	}
 }
 
+func TestTsvFoldName(t *testing.T) {
+	rows := loadTsv(t, "fold-name")
+	for _, row := range rows {
+		input, expected := row["input"], row["expected"]
+		t.Run("foldName("+input+")", func(t *testing.T) {
+			if got := FoldName(input); got != expected {
+				t.Errorf("FoldName(%q) = %q, want %q", input, got, expected)
+			}
+		})
+	}
+}
+
 func TestTsvSanitizeSlug(t *testing.T) {
 	rows := loadTsv(t, "sanitize-slug")
 	for _, row := range rows {

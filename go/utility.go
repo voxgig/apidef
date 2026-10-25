@@ -547,6 +547,11 @@ func resplitFromCmp(entname string, cmp string, why *[]string) string {
 	return entname
 }
 
+// FoldName mirrors foldName in ts/src/utility.ts.
+func FoldName(name string) string {
+	return jsLowerCaser.String(Camelify(name))
+}
+
 var firstLetterRE = regexp.MustCompile(`[a-zA-Z]`)
 
 func PrefixLeadingDigit(s string) string {

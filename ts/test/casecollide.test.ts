@@ -65,12 +65,13 @@ describe('casecollide', () => {
     const { ctx, logged } = await run({
       thing: { name: 'thing', op: { list: { method: 'GET' } } },
       spare: { name: 'spare', op: {} },
+      constructor: { name: 'constructor', op: {} },
     })
 
     // Only colliding entities are in scope here.
     assert.deepEqual(
       Object.keys((ctx.apimodel.main.kit as any).entity).sort(),
-      ['spare', 'thing'])
+      ['constructor', 'spare', 'thing'])
     assert.equal(logged.length, 0)
   })
 

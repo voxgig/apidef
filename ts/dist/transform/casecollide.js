@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.casecollideTransform = void 0;
 const jostraca_1 = require("jostraca");
 const types_1 = require("../types");
+const utility_1 = require("../utility");
 // See docs/design/derived-names.md
 function deepempty(v) {
     if (null == v)
@@ -17,9 +18,9 @@ function deepempty(v) {
 const casecollideTransform = async function (ctx) {
     const { apimodel, guide } = ctx;
     const kit = apimodel.main[types_1.KIT];
-    const bylower = {};
+    const bylower = Object.create(null);
     (0, jostraca_1.each)(kit.entity, (_entity, entname) => {
-        const lower = String((0, jostraca_1.camelify)(entname)).toLowerCase();
+        const lower = (0, utility_1.foldName)(entname);
         bylower[lower] = bylower[lower] || [];
         bylower[lower].push(entname);
     });

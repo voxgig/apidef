@@ -1120,6 +1120,13 @@ function cmpRefName(xref: string): string {
 }
 
 
+// Entity names with one key meet as one class in PHP and one file on a
+// case-insensitive file system: `use_case` and `usecase` are `usecase`.
+function foldName(name: string): string {
+  return String(camelify(name)).toLowerCase()
+}
+
+
 const FIRST_LETTER_RE = /[a-zA-Z]/
 
 
@@ -2265,6 +2272,7 @@ export {
   canonizeParam,
   paramName,
   humanTitle,
+  foldName,
   prefixLeadingDigit,
   debugpath,
   debugpathOn,

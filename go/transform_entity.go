@@ -363,6 +363,79 @@ func mergeCollectionPaths(guide map[string]any, recordRef func(pathStr string, m
 	return emptied
 }
 
+// mergeFoldedEntities mirrors ts/src/transform/entity.ts: the paths of each
+// active entity whose name folds to another's move to the spelling with the
+// most words, unless the two hold one operation on one path.
+func mergeFoldedEntities(guide map[string]any) []string {
+	merged := []string{}
+	entities, _ := guide["entity"].(map[string]any)
+	groups := map[string][]string{}
+	for _, ename := range sortedKeys(entities) {
+		entity, ok := entities[ename].(map[string]any)
+		if !ok || entity["active"] == false {
+			continue
+		}
+		fold := FoldName(ename)
+		groups[fold] = append(groups[fold], ename)
+	}
+
+	words := func(ename string) int {
+		n := 0
+		for _, w := range strings.Split(ename, "_") {
+			if w != "" {
+				n++
+			}
+		}
+		return n
+	}
+	folds := make([]string, 0, len(groups))
+	for fold := range groups {
+		folds = append(folds, fold)
+	}
+	sort.Strings(folds)
+	for _, fold := range folds {
+		group := append([]string{}, groups[fold]...)
+		sort.SliceStable(group, func(i, j int) bool {
+			if wi, wj := words(group[i]), words(group[j]); wi != wj {
+				return wi > wj
+			}
+			return group[i] < group[j]
+		})
+		to := group[0]
+		for _, from := range group[1:] {
+			source, _ := entities[from].(map[string]any)
+			target, _ := entities[to].(map[string]any)
+			if opsMeet(source, target) {
+				continue
+			}
+			srcPaths, _ := source["path"].(map[string]any)
+			for _, pathStr := range sortedKeys(srcPaths) {
+				movePath(srcPaths, target, pathStr)
+			}
+			delete(entities, from)
+			merged = append(merged, from)
+		}
+	}
+	return merged
+}
+
+func opsMeet(entity map[string]any, target map[string]any) bool {
+	paths, _ := entity["path"].(map[string]any)
+	tgtPaths, _ := target["path"].(map[string]any)
+	for _, pathStr := range sortedKeys(paths) {
+		srcPath, _ := paths[pathStr].(map[string]any)
+		tgtPath, _ := tgtPaths[pathStr].(map[string]any)
+		srcOps, _ := srcPath["op"].(map[string]any)
+		tgtOps, _ := tgtPath["op"].(map[string]any)
+		for opname := range srcOps {
+			if tgtOps[opname] != nil {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // movePath mirrors ts/src/transform/entity.ts: one path moves onto the
 // target entity, keeping what the target already has.
 func movePath(paths map[string]any, target map[string]any, pathStr string) {

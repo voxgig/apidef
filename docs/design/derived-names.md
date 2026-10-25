@@ -30,9 +30,30 @@ apidef's own flow files hit the quieter version of this — the second write
 replaced the first and the model came out with one flow fewer than it had
 entities, surfacing much later as a missing `main.kit.flow.*` path.
 
-`casecollideTransform` drops a colliding entity that carries no operations,
-logging the drop. Where both carry operations it warns instead: dropping either
-would silently remove operations from the SDK, which is worse than a build that
+Names that collide this way almost always name one resource twice: once from
+a schema, which keeps the word boundary, and once from a path segment, which
+has lost it. The guide stage merges them (`mergeFoldedEntities`, after
+`mergeCollectionPaths`): every active entity whose name folds to the same key
+(`foldName`: camel form, lowercased) hands its paths to the spelling with the
+most words, then the lowest in code-point order, so `use_case` keeps them and
+`usecase` is gone. The merged paths stay visible in the base guide, where
+`guide.aontu` can move one back.
+
+deduped's static JSON API shows why the collection merge alone is not enough:
+`/usecases/{id}.json` is named for its `UseCase` schema and `/usecases.json`
+for its segment, and the `.json` suffix hides from `mergeCollectionPaths` that
+one is the item of the other. Left apart, sdkgen renamed `usecase` to
+`usecase2` in the model it generates from, so every README and class said
+`Usecase2` while the model on disk still said `usecase`, and the publishing
+gate, which reads that model, called the entity a phantom. A rule applied
+after apidef cannot reach everything that reads apidef's output.
+
+The merge is refused when the two hold the same operation on the same path,
+since one of them would be lost, and an inactive entity takes no part, so a
+merge cannot undo a deactivation. `casecollideTransform` then sees the pair:
+it drops a colliding entity that carries no operations, logging the drop, and
+where both carry operations it warns instead, because dropping either would
+silently remove operations from the SDK, which is worse than a build that
 fails loudly.
 
 Flow file names are disambiguated positionally, because `snakify` does not

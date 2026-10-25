@@ -74,7 +74,7 @@ import {
 
 import { snakify } from 'jostraca'
 
-import { mergeCollectionPaths } from '../transform/entity'
+import { mergeCollectionPaths, mergeFoldedEntities } from '../transform/entity'
 
 import { byCodePoint, countRefs, satAdd } from '../refcount'
 
@@ -177,6 +177,8 @@ async function heuristic01(ctx: ApiDefContext): Promise<Guide> {
       pathRecordRef(ctx.def, pathStr, methods, collection),
     (sharePath: string, shareMethods: string[], itemPath: string, itemMethods: string[]) =>
       distinctShare(ctx.def, sharePath, shareMethods, itemPath, itemMethods)).length
+
+  guide.metrics.count.entity -= mergeFoldedEntities(guide, ctx.log).length
 
   // After the merge, which can move a path onto another entity.
   for (const entity of Object.values(guide.entity) as GuideEntity[]) {

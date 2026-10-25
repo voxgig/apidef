@@ -1,0 +1,14 @@
+{"openapi":"3.0.0","info":{"title":"Use Cases API","version":"1.0.0"},"servers":[{"url":"https://cases.example.com/api"}],
+"paths":{
+ "/usecases.json":{
+  "get":{"operationId":"listUseCases","responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"count":{"type":"integer"},"items":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"},"title":{"type":"string"}}}}}}}}}}}},
+ "/usecases/{id}.json":{
+  "get":{"operationId":"getUseCase","parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"$ref":"#/components/schemas/UseCase"}}}}}}},
+ "/repos.json":{
+  "get":{"operationId":"listRepos","responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"count":{"type":"integer"},"items":{"type":"array","items":{"type":"object","properties":{"slug":{"type":"string"}}}}}}}}}}}}
+},
+"components":{
+ "schemas":{
+  "UseCase":{"type":"object","properties":{"id":{"type":"string"},"title":{"type":"string"},"steps":{"type":"array","items":{"type":"string"}}}}
+ }
+}}
