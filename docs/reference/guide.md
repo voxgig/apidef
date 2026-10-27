@@ -181,6 +181,17 @@ entity's paths:
   and the model spells it with that name inside the literal, where an SDK
   fills it.
 
+A parameter renamed to `id` still names the field the record keeps its key
+in. When an entity's item paths take that one parameter alone, under one
+name, and the records they return carry a scalar field of that name, the
+model's `id` descriptor reads the key from that field: `/devices/{slug}`
+answering `{ "slug": "pixel-8", ... }` gives `id: { field: slug, name: id }`,
+and the entity gains no `id` field of its own. The call still passes `id`, and
+the request still fills `{slug}`. A record carrying an unrelated `id` beside
+the slug keeps it as an ordinary field. The rows of
+[`ts/test/single-identity.tsv`](../../ts/test/single-identity.tsv) pin the
+rule in both builds.
+
 `isNameParam` and `entityParamNames` in
 [`ts/src/guide/heuristic01.ts`](../../ts/src/guide/heuristic01.ts) are the
 last two rules. The rows of [`ts/test/name-param.tsv`](../../ts/test/name-param.tsv)
@@ -656,6 +667,10 @@ guide: entity: upload: path: "/spaces/{space_id}/uploads": op: create: body: med
 
 # Ask for the image an operation answers with, rather than the JSON beside it.
 guide: entity: avatar: path: "/avatars/{avatar_id}": op: load: response: media: "image/png"
+
+# Read an issue's key from its `key` field, where the definition leaves the
+# record untyped. A dotted path, such as `owner.login`, is kept as `from`.
+guide: entity: issue: id: from: id: "key"
 ```
 
 ### Covering a subset of a large API

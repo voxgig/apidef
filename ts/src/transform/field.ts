@@ -122,7 +122,10 @@ const fieldTransform: Transform = async function(
     const singleKey = (composite as any).single
     delete (composite as any).single
 
-    if (null == idField && null != singleKey && null == composite.parts) {
+    const single = null == composite.parts ? singleIdentity(ment, gent?.id, def) : {}
+    const keyed = null != single.field
+
+    if (null == idField && null != singleKey && null == composite.parts && !keyed) {
       // The guide disabled composite; the terminal parameter is the key, and
       // the entity needs the field to carry it for the same reason the
       // composite branch above does.
@@ -134,8 +137,8 @@ const fieldTransform: Transform = async function(
       } as ModelField
     }
 
-    if (idField || null != composite.parts || null != singleKey) {
-      ment.id = { name: 'id', field: 'id', ...composite }
+    if (idField || null != composite.parts || null != singleKey || keyed) {
+      ment.id = { name: 'id', field: 'id', ...composite, ...single }
     }
     else if (addressedById(ment)) {
       fields.id = {
@@ -145,7 +148,7 @@ const fieldTransform: Transform = async function(
         r: false,
       } as ModelField
 
-      ment.id = { name: 'id', field: 'id', ...composite }
+      ment.id = { name: 'id', field: 'id', ...composite, ...single }
     }
 
     ment.fields = Object.fromEntries(Object.keys(fields).sort().map(n => {
@@ -418,9 +421,7 @@ function resolvePart(
   }
 
   const prop = (name: string) => resolveRef(props[name], def)
-  const scalar = (p: any) =>
-    null != p && 'object' !== String(p.type) && 'array' !== String(p.type) &&
-    null == p.properties && null == p.items
+  const scalar = scalarSchema
 
   for (const name of aliases) {
     if (scalar(prop(name))) {
@@ -546,6 +547,75 @@ function compositeId(
 
   const parts = identityParams(ment)
   return 1 < parts.length ? withFrom(parts, sep) : {}
+}
+
+
+// Where a single-part identity lives in the record. A field name becomes the
+// descriptor's `field`; a dotted path cannot, so it stays a `from`.
+function singleIdentity(
+  ment: ModelEntity,
+  gid?: any,
+  def?: any,
+): { field?: string, from?: Record<string, string> } {
+  const say = null != gid?.from && 'object' === typeof gid.from ? gid.from.id : undefined
+  if (null != say && '' !== String(say)) {
+    const where = String(say)
+    return where.includes('.') ? { from: { id: where } } : { field: where }
+  }
+
+  const parts = identityParams(ment)
+  const wire = itemWireNames(ment)
+  if (1 !== parts.length || 'id' !== parts[0] || 1 !== wire.length ||
+    'id' === wire[0] || '' === wire[0]) {
+    return {}
+  }
+
+  const name = fieldName(wire[0])
+  const returned = responseCandidates(ment, def ?? {})
+    .some((props: any) => scalarSchema(resolveRef(props[wire[0]], def)))
+
+  return returned && identityScalar((ment.fields as any)?.[name]) ? { field: name } : {}
+}
+
+
+// The wire names of the `id` parameter on the routes that address one record
+// by it, with '' for a route that takes other parameters too.
+function itemWireNames(ment: ModelEntity): string[] {
+  const names = new Set<string>()
+
+  for (const opname of ID_OPS) {
+    for (const pt of ((ment as any).op?.[opname]?.points || [])) {
+      if (null != pt?.q?.['$action']) {
+        continue
+      }
+      const run = trailingVars(pt)
+      if ('id' !== run[run.length - 1]) {
+        continue
+      }
+      const vars = ((pt.s || []) as any[]).filter((s: any) => null != s?.var)
+      if (1 !== vars.length) {
+        names.add('')
+        continue
+      }
+      const param = (pt.g?.params || []).find((p: any) => 'id' === p?.n)
+      const renamed = Object.keys(pt.r?.param || {}).find((k: string) => 'id' === pt.r.param[k])
+      names.add(String(param?.or ?? renamed ?? 'id'))
+    }
+  }
+
+  return [...names]
+}
+
+
+function scalarSchema(p: any): boolean {
+  return null != p && 'object' !== String(p.type) && 'array' !== String(p.type) &&
+    null == p.properties && null == p.items
+}
+
+
+function identityScalar(f: any): boolean {
+  const t = String(f?.t || '').toUpperCase()
+  return /STRING|INTEGER|NUMBER/.test(t) && !/OBJECT|ARRAY|MAP|LIST/.test(t)
 }
 
 
@@ -1073,4 +1143,5 @@ export {
   inferFieldsFromExamples,
   inferTypeFromValue,
   routeFieldNames,
+  singleIdentity,
 }

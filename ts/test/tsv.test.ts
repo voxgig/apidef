@@ -842,6 +842,43 @@ describe('tsv-allof-record', () => {
 
 // One field declared by a load's response and then by a create's request,
 // the order the field transform reads them in.
+describe('tsv-single-identity', () => {
+  const rows = loadTsv('single-identity')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, async () => {
+      const ment: any = { name: 'thing', fields: {}, op: {} }
+      const paths: any = {}
+      for (const route of row.routes.split(';')) {
+        const [opname, method, path] = route.split(' ')
+        const elems = path.split('/').filter((e: string) => '' !== e)
+        const last = elems.length - 1
+        const wire = (e: string) => e.slice(1, -1)
+        const point: any = {
+          o: path, m: method, k: 'http',
+          s: elems.map((e: string, i: number) => !e.startsWith('{') ? { lit: e } :
+            { var: i === last ? 'id' : wire(e) }),
+          g: { params: elems.filter((e: string) => e.startsWith('{')).map((e: string) =>
+            ({ n: e === elems[last] ? 'id' : wire(e), or: wire(e), k: 'param' })) },
+          r: { param: 'id' === wire(elems[last]) ? {} : { [wire(elems[last])]: 'id' } },
+        }
+        ment.op[opname] = { name: opname, points: [...(ment.op[opname]?.points || []), point] }
+        paths[path] = { ...(paths[path] || {}), [method.toLowerCase()]: { responses: { 200: {
+          content: { 'application/json': { schema: { type: 'object', properties: JSON.parse(row.record) } } },
+        } } } }
+      }
+      const guide = { entity: { thing: { id: JSON.parse(row.guide) } } }
+
+      await fieldTransform({ apimodel: { main: { kit: { entity: { thing: ment } } } },
+        def: { paths }, guide } as any)
+
+      assert.deepStrictEqual(ment.id, JSON.parse(row.expected))
+      assert.strictEqual(null != ment.fields.id, 'true' === row.idfield)
+    })
+  }
+})
+
+
 describe('tsv-field-merge', () => {
   const rows = loadTsv('field-merge')
   test('has rows', () => assert.ok(0 < rows.length))

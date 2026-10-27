@@ -53,7 +53,7 @@
     }
   },
   "id": {
-    "field": "id",
+    "field": "username",
     "name": "id"
   },
   "name": "user",

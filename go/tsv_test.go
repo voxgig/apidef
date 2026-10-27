@@ -1066,6 +1066,104 @@ func TestFieldMerge(t *testing.T) {
 	}
 }
 
+// Mirrors tsv-single-identity in ts/test/tsv.test.ts: each route's last
+// parameter is the entity's renamed `id`.
+func TestSingleIdentity(t *testing.T) {
+	rows := loadTsv(t, "single-identity")
+	if len(rows) == 0 {
+		t.Fatal("no single-identity rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var record, gid, want map[string]any
+			for _, c := range []struct {
+				src string
+				dst *map[string]any
+			}{{row["record"], &record}, {row["guide"], &gid}, {row["expected"], &want}} {
+				if err := json.Unmarshal([]byte(c.src), c.dst); err != nil {
+					t.Fatalf("bad JSON %q: %v", c.src, err)
+				}
+			}
+
+			ops := map[string]any{}
+			paths := map[string]any{}
+			for _, route := range strings.Split(row["routes"], ";") {
+				spec := strings.Split(route, " ")
+				opname, method, path := spec[0], spec[1], spec[2]
+				var elems []string
+				for _, e := range strings.Split(path, "/") {
+					if "" != e {
+						elems = append(elems, e)
+					}
+				}
+				last := len(elems) - 1
+				wire := func(e string) string { return e[1 : len(e)-1] }
+				segs := []any{}
+				params := []any{}
+				for i, e := range elems {
+					if !strings.HasPrefix(e, "{") {
+						segs = append(segs, map[string]any{"lit": e})
+						continue
+					}
+					n := wire(e)
+					if i == last {
+						n = "id"
+					}
+					segs = append(segs, map[string]any{"var": n})
+					params = append(params, map[string]any{"n": n, "or": wire(e), "k": "param"})
+				}
+				rename := map[string]any{}
+				if "id" != wire(elems[last]) {
+					rename[wire(elems[last])] = "id"
+				}
+				point := map[string]any{
+					"o": path, "m": method, "k": "http", "s": segs,
+					"g": map[string]any{"params": params},
+					"r": map[string]any{"param": rename},
+				}
+				mop, _ := ops[opname].(map[string]any)
+				if mop == nil {
+					mop = map[string]any{"name": opname, "points": []any{}}
+					ops[opname] = mop
+				}
+				mop["points"] = append(mop["points"].([]any), point)
+				pathdef, _ := paths[path].(map[string]any)
+				if pathdef == nil {
+					pathdef = map[string]any{}
+					paths[path] = pathdef
+				}
+				pathdef[strings.ToLower(method)] = map[string]any{"responses": map[string]any{
+					"200": map[string]any{"content": map[string]any{"application/json": map[string]any{
+						"schema": map[string]any{"type": "object", "properties": record},
+					}}},
+				}}
+			}
+
+			ent := map[string]any{"name": "thing", "fields": map[string]any{}, "op": ops}
+			apimodel := map[string]any{"main": map[string]any{
+				KIT: map[string]any{"entity": map[string]any{"thing": ent}},
+			}}
+			guide := map[string]any{"entity": map[string]any{"thing": map[string]any{"id": gid}}}
+			if _, err := FieldTransform(&ApiDefContext{
+				ApiModel: apimodel, Def: map[string]any{"paths": paths}, Guide: guide,
+			}); err != nil {
+				t.Fatalf("FieldTransform: %v", err)
+			}
+
+			raw, _ := json.Marshal(ent["id"])
+			var got any
+			_ = json.Unmarshal(raw, &got)
+			if !reflect.DeepEqual(got, any(want)) {
+				t.Errorf("id = %s, want %s", raw, row["expected"])
+			}
+			_, hasId := ent["fields"].(map[string]any)["id"]
+			if hasId != ("true" == row["idfield"]) {
+				t.Errorf("fields.id present = %v, want %s", hasId, row["idfield"])
+			}
+		})
+	}
+}
+
 // The fields FieldTransform builds for one operation whose response, and
 // request when it has one, compose their properties with allOf.
 func TestAllOfRecord(t *testing.T) {

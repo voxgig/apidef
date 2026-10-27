@@ -81,6 +81,16 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 
 			idField, _ := fields["id"].(map[string]any)
 
+			single := map[string]any{}
+			if 1 >= len(parts) {
+				var gid map[string]any
+				if gent != nil {
+					gid, _ = gent["id"].(map[string]any)
+				}
+				single = singleIdentity(mentMap, gid, ctx.Def)
+			}
+			_, keyed := single["field"]
+
 			syntheticId := func() {
 				fields["id"] = map[string]any{
 					"n": "id",
@@ -103,6 +113,9 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 						id["from"] = from
 					}
 				}
+				for _, k := range sortedKeys(single) {
+					id[k] = single[k]
+				}
 				mentMap["id"] = id
 			}
 
@@ -118,11 +131,11 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 			// The guide disabled composite; the terminal parameter is the
 			// key, and the entity needs the field to carry it for the same
 			// reason the composite branch does.
-			if idField == nil && "" != singleKey && 1 >= len(parts) {
+			if idField == nil && "" != singleKey && 1 >= len(parts) && !keyed {
 				syntheticId()
 			}
 
-			if idField != nil || 1 < len(parts) || "" != singleKey {
+			if idField != nil || 1 < len(parts) || "" != singleKey || keyed {
 				descriptor()
 			} else if addressedById(mentMap) {
 				// ADDRESSABLE BY ID WITHOUT DECLARING ONE AS A FIELD — the
@@ -381,6 +394,142 @@ func compositeIdFrom(
 	}
 
 	return out
+}
+
+// singleIdentity mirrors ts/src/transform/field.ts: where a single-part
+// identity lives in the record. A field name becomes the descriptor's `field`;
+// a dotted path cannot, so it stays a `from`.
+func singleIdentity(
+	mentMap map[string]any, gid map[string]any, def map[string]any,
+) map[string]any {
+	if from, ok := gid["from"].(map[string]any); ok && from != nil {
+		if say, ok := from["id"]; ok && say != nil && "" != fmt.Sprint(say) {
+			where := fmt.Sprint(say)
+			if strings.Contains(where, ".") {
+				return map[string]any{"from": map[string]any{"id": where}}
+			}
+			return map[string]any{"field": where}
+		}
+	}
+
+	parts := identityParams(mentMap)
+	wire := itemWireNames(mentMap)
+	if 1 != len(parts) || "id" != parts[0] || 1 != len(wire) ||
+		"id" == wire[0] || "" == wire[0] {
+		return map[string]any{}
+	}
+
+	name := fieldName(wire[0])
+	returned := false
+	for _, props := range responseCandidates(mentMap, def) {
+		if scalarSchema(resolveRef(props[wire[0]], def)) {
+			returned = true
+			break
+		}
+	}
+
+	fields, _ := mentMap["fields"].(map[string]any)
+	field, _ := fields[name].(map[string]any)
+	if returned && identityScalar(field) {
+		return map[string]any{"field": name}
+	}
+
+	return map[string]any{}
+}
+
+// itemWireNames lists the wire names of the `id` parameter on the routes that
+// address one record by it, with "" for a route that takes other parameters
+// too.
+func itemWireNames(mentMap map[string]any) []string {
+	opMap, _ := mentMap["op"].(map[string]any)
+	var names []string
+	seen := map[string]bool{}
+	add := func(n string) {
+		if !seen[n] {
+			seen[n] = true
+			names = append(names, n)
+		}
+	}
+
+	for _, opname := range IdOps {
+		mop, _ := opMap[opname].(map[string]any)
+		if mop == nil {
+			continue
+		}
+		points, _ := mop["points"].([]any)
+		for _, pt := range points {
+			ptMap, _ := pt.(map[string]any)
+			if ptMap == nil {
+				continue
+			}
+			if sel, ok := ptMap["q"].(map[string]any); ok && sel != nil {
+				if _, has := sel["$action"]; has {
+					continue
+				}
+			}
+			run := trailingVars(ptMap)
+			if 0 == len(run) || "id" != run[len(run)-1] {
+				continue
+			}
+			vars := 0
+			for _, seg := range pointSegmentMaps(ptMap) {
+				if v, has := seg["var"]; has && v != nil {
+					vars++
+				}
+			}
+			if 1 != vars {
+				add("")
+				continue
+			}
+			wire, found := "", false
+			if args, ok := ptMap["g"].(map[string]any); ok {
+				for _, p := range argsParamList(args["params"]) {
+					if n, _ := p["n"].(string); "id" == n {
+						if o, ok := p["or"]; ok && o != nil {
+							wire, found = fmt.Sprint(o), true
+						}
+						break
+					}
+				}
+			}
+			if !found {
+				if rename, ok := ptMap["r"].(map[string]any); ok {
+					param, _ := rename["param"].(map[string]any)
+					for _, orig := range sortedKeys(param) {
+						if to, _ := param[orig].(string); "id" == to {
+							wire, found = orig, true
+							break
+						}
+					}
+				}
+			}
+			if !found {
+				wire = "id"
+			}
+			add(wire)
+		}
+	}
+
+	return names
+}
+
+func scalarSchema(p map[string]any) bool {
+	if p == nil {
+		return false
+	}
+	t := fmt.Sprint(p["type"])
+	if "object" == t || "array" == t {
+		return false
+	}
+	return p["properties"] == nil && p["items"] == nil
+}
+
+func identityScalar(f map[string]any) bool {
+	t := strings.ToUpper(fmt.Sprint(f["t"]))
+	return (strings.Contains(t, "STRING") || strings.Contains(t, "INTEGER") ||
+		strings.Contains(t, "NUMBER")) &&
+		!strings.Contains(t, "OBJECT") && !strings.Contains(t, "ARRAY") &&
+		!strings.Contains(t, "MAP") && !strings.Contains(t, "LIST")
 }
 
 // pointSegmentMaps reads a point's path segments, accepting both shapes the
@@ -1234,16 +1383,7 @@ func resolvePart(
 		return resolveRef(props[name], def)
 	}
 
-	scalar := func(p map[string]any) bool {
-		if p == nil {
-			return false
-		}
-		t := fmt.Sprint(p["type"])
-		if "object" == t || "array" == t {
-			return false
-		}
-		return p["properties"] == nil && p["items"] == nil
-	}
+	scalar := scalarSchema
 
 	for _, name := range aliases {
 		if scalar(prop(name)) {

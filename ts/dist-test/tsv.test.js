@@ -679,6 +679,38 @@ function loadTsv(name) {
 });
 // One field declared by a load's response and then by a create's request,
 // the order the field transform reads them in.
+(0, node_test_1.describe)('tsv-single-identity', () => {
+    const rows = loadTsv('single-identity');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, async () => {
+            const ment = { name: 'thing', fields: {}, op: {} };
+            const paths = {};
+            for (const route of row.routes.split(';')) {
+                const [opname, method, path] = route.split(' ');
+                const elems = path.split('/').filter((e) => '' !== e);
+                const last = elems.length - 1;
+                const wire = (e) => e.slice(1, -1);
+                const point = {
+                    o: path, m: method, k: 'http',
+                    s: elems.map((e, i) => !e.startsWith('{') ? { lit: e } :
+                        { var: i === last ? 'id' : wire(e) }),
+                    g: { params: elems.filter((e) => e.startsWith('{')).map((e) => ({ n: e === elems[last] ? 'id' : wire(e), or: wire(e), k: 'param' })) },
+                    r: { param: 'id' === wire(elems[last]) ? {} : { [wire(elems[last])]: 'id' } },
+                };
+                ment.op[opname] = { name: opname, points: [...(ment.op[opname]?.points || []), point] };
+                paths[path] = { ...(paths[path] || {}), [method.toLowerCase()]: { responses: { 200: {
+                                content: { 'application/json': { schema: { type: 'object', properties: JSON.parse(row.record) } } },
+                            } } } };
+            }
+            const guide = { entity: { thing: { id: JSON.parse(row.guide) } } };
+            await (0, field_1.fieldTransform)({ apimodel: { main: { kit: { entity: { thing: ment } } } },
+                def: { paths }, guide });
+            node_assert_1.default.deepStrictEqual(ment.id, JSON.parse(row.expected));
+            node_assert_1.default.strictEqual(null != ment.fields.id, 'true' === row.idfield);
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-field-merge', () => {
     const rows = loadTsv('field-merge');
     (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
