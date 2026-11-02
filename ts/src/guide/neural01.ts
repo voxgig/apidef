@@ -173,6 +173,9 @@ type Work = {
   entmap: Record<string, Ent>
   unresolved: number
   pathLiterals: Record<string, boolean>
+  litPathCounts: Record<string, number>
+  childCounts: Record<string, number>
+  verbRoutes: Record<string, { itemPath?: string, extended: boolean }>
 }
 
 
@@ -274,13 +277,22 @@ const NAME_NET: Net = makeNet(
     },
     cmp_qualifies: { b: -3, w: { shaped: 1, cmp_avail: 1, cmp_ne_path: 1, cmp_qualifies: 1 } },
     cmp_primary: {
-      b: -3, w: { shaped: 1, cmp_avail: 1, cmp_ne_path: 1, cmp_infrequent: 1, cmp_shared: -1 },
+      b: -3,
+      w: {
+        shaped: 1, cmp_avail: 1, cmp_ne_path: 1, cmp_infrequent: 1, cmp_shared: -1, cmp_qualifies: -1,
+      },
     },
-    cmp_in_path: { b: -3, w: { shaped: 1, cmp_avail: 1, cmp_ne_path: 1, cmp_in_path: 1 } },
+    cmp_in_path: {
+      b: -3, w: { shaped: 1, cmp_avail: 1, cmp_ne_path: 1, cmp_in_path: 1, cmp_qualifies: -1 },
+    },
     delete_cmp: { b: -3, w: { shaped: 1, m_delete: 1, cmp_avail: -1, delcmp_avail: 1, probable: 1 } },
-    tpt_last_cmp: { b: -2, w: { shape_tpt: 1, cmp_avail: -1, probable: 1, last_is_cmp: 1 } },
-    tpt_last_child: { b: -2, w: { shape_tpt: 1, cmp_avail: -1, probable: 1, path_has_children: 1 } },
-    tpt_part: { b: -1, w: { shape_tpt: 1, cmp_avail: -1, probable: 1 } },
+    tpt_last_cmp: {
+      b: -2, w: { shape_tpt: 1, cmp_avail: -1, probable: 1, last_is_cmp: 1, delcmp_avail: -1 },
+    },
+    tpt_last_child: {
+      b: -2, w: { shape_tpt: 1, cmp_avail: -1, probable: 1, path_has_children: 1, delcmp_avail: -1 },
+    },
+    tpt_part: { b: -1, w: { shape_tpt: 1, cmp_avail: -1, probable: 1, delcmp_avail: -1 } },
     tpt_act: { b: 0, w: { shape_tpt: 1, cmp_avail: -1, probable: -1 } },
     none_opid: { b: 0, w: { shaped: -1, opid_avail: 1 } },
     none_title: { b: 0, w: { shaped: -1, title_avail: 1 } },
@@ -765,10 +777,56 @@ function probableFeatures(work: Work, route: Route, pm: PathMatch): Vec {
   x.nores = bit(null == resSchema && null != route.responses?.['204'])
   x.has_body = bit(null != getRequestBodySchema(work.def, route))
   x.ends_p_slash = bit(pm.expr.endsWith('/p/'))
-  const last = pm[pm.length - 1]
-  x.lit_in_other_paths = bit(1 < sortedKeys(work.def.paths)
-    .filter((path) => path.includes('/' + last + '/')).length)
+  // Only the POST gate reads it, and it scans every path.
+  if ('POST' === route.method && 1 === x.has_body && 0 === x.ends_p_slash) {
+    x.lit_in_other_paths = bit(1 < litPathCount(work, pm[pm.length - 1]))
+  }
   return x
+}
+
+
+function litPathCount(work: Work, lit: string): number {
+  let count = work.litPathCounts[lit]
+  if (null == count) {
+    const needle = '/' + lit + '/'
+    count = Object.keys(work.def.paths ?? {}).filter((path) => path.includes(needle)).length
+    work.litPathCounts[lit] = count
+  }
+  return count
+}
+
+
+function childPathCount(work: Work, path: string): number {
+  let count = work.childCounts[path]
+  if (null == count) {
+    count = findPathsWithPrefix({ def: work.def }, path, { strict: true })
+    work.childCounts[path] = count
+  }
+  return count
+}
+
+
+// The item route a verb path hangs off, and whether any path extends the
+// verb, compared with parameters normalised.
+function verbRoute(work: Work, path: string): { itemPath?: string, extended: boolean } {
+  let found = work.verbRoutes[path]
+  if (null == found) {
+    const normalize = (p: string) => p.replace(/\{[^}]+\}/g, '{}')
+    const itemNorm = normalize(path.replace(/\/[^/]+$/, ''))
+    const prefix = normalize(path) + '/'
+    found = { extended: false }
+    for (const p of Object.keys(work.def.paths ?? {})) {
+      const pn = normalize(p)
+      if (pn === itemNorm) {
+        found.itemPath = p
+      }
+      else if (pn.startsWith(prefix)) {
+        found.extended = true
+      }
+    }
+    work.verbRoutes[path] = found
+  }
+  return found
 }
 
 
@@ -995,7 +1053,7 @@ function nameFeatures(
       x.cmp_shared = bit(true === work.sharing.yields[cmp.origcmpref + ' ' + route.method + ' ' + route.path])
       x.cmp_in_path = bit(true === work.pathLiterals[cmp.cmp])
     }
-    else if ('DELETE' === route.method) {
+    else if ('DELETE' === route.method && 1 === x.probable) {
       const cmps = uniqueResponseCmps(def, route.path)
       x.delcmp_avail = bit(1 === cmps.length)
       sources.DELCMP = 1 === cmps.length ? cmps[0].cmp : null
@@ -1008,7 +1066,9 @@ function nameFeatures(
       sources.ACT = canonize(pm[pm.length - 3])
       sources.PART = sources.ACT + '_' + pathName
       x.last_is_cmp = bit(null != metrics.count.origcmprefs[lastCanon])
-      x.path_has_children = bit(0 < findPathsWithPrefix({ def }, pm.path, { strict: true }))
+      if (null == cmp && 1 === x.probable) {
+        x.path_has_children = bit(0 < childPathCount(work, pm.path))
+      }
 
       if (null != cmp) {
         x.cmp_occur_le1 = bit((cmp.rescmpoccur ?? cmp.cmpoccur ?? 0) <= 1)
@@ -1017,25 +1077,16 @@ function nameFeatures(
         const c = String(cmp.rescmp ?? cmp.cmp ?? '')
         x.cmp_not_verb = bit('' !== lastCanon && c !== lastCanon && !c.endsWith('_' + lastCanon))
 
-        const normalize = (p: string) => p.replace(/\{[^}]+\}/g, '{}')
-        const itemNorm = normalize(pm.path.replace(/\/[^/]+$/, ''))
-        const prefix = normalize(pm.path) + '/'
-        let itemPath: string | undefined = undefined
-        let extended = false
-        for (const p of Object.keys(def.paths ?? {})) {
-          const pn = normalize(p)
-          if (pn === itemNorm) {
-            itemPath = p
-          }
-          else if (pn.startsWith(prefix)) {
-            extended = true
-          }
+        // The scan over every path waits for the cheap conditions of the gate.
+        if (1 === x.m_write && 1 === x.cmp_occur_le1 && 1 === x.last_lit_singular &&
+          1 === x.cmp_not_verb) {
+          const { itemPath, extended } = verbRoute(work, pm.path)
+          x.item_route_exists = bit(null != itemPath)
+          x.route_not_extended = bit(!extended)
+          const held = null == itemPath ? {} : (owners[itemPath] ?? {})
+          sources.PARENT = held.GET ?? held.QUERY ??
+            (Object.values(held).sort()[0] as string | undefined) ?? sources.ACT
         }
-        x.item_route_exists = bit(null != itemPath)
-        x.route_not_extended = bit(!extended)
-        const held = null == itemPath ? {} : (owners[itemPath] ?? {})
-        sources.PARENT = held.GET ?? held.QUERY ??
-          (Object.values(held).sort()[0] as string | undefined) ?? sources.ACT
       }
     }
   }
@@ -1610,6 +1661,9 @@ async function neural01(ctx: ApiDefContext): Promise<Guide> {
     entmap: named(),
     unresolved: 0,
     pathLiterals: named(),
+    litPathCounts: named(),
+    childCounts: named(),
+    verbRoutes: named(),
   }
 
   measureMetrics(work)

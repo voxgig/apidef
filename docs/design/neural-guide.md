@@ -160,7 +160,7 @@ operation, the actions, the renames, and the transforms:
 
 | Definitions | Routes | Agree |
 |---|---|---|
-| 40 | 480 | 480 |
+| 42 | 490 | 490 |
 
 `ts/test/neural.test.ts` pins that agreement, the solar guide, and the
 verb-on-parent spec, and checks that the traces name the deciding units.
@@ -174,6 +174,16 @@ run of the name network over every route with the claims maps in place of
 the resolved owners, then `itemSegmentName` and `keyHeld`), and the network
 only gates it, through `coll_record` and `coll_segment`. That is the shape
 the design predicts: the network decides, the decoder derives.
+
+A read-out that sums gates is not an `if`/`else if` chain: two later gates
+firing together can outscore an earlier one, as `cmp_primary` and
+`cmp_in_path` once outscored `cmp_qualifies`, and the two `LAST` gates
+once outscored `delete_cmp`. The rule is that a gate for a later branch
+takes the earlier branch's deciding feature as a negative input, so the
+branches stay exclusive and the weights need no ordering of their own;
+`name-net-precedence` in the tests pins each pair, and the
+`qualified-cmp` and `delete-cmp` definitions pin them against the
+heuristic.
 
 ## Known divergences from `heuristic01`
 

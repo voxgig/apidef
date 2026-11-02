@@ -135,6 +135,31 @@ describe('nn', () => {
   })
 
 
+  // The read-out encodes the heuristic's if/else-if order: a branch's gate
+  // beats any number of gates for the branches below it.
+  test('name-net-precedence', () => {
+    const name = (x: Record<string, number>) => decide(NETS.name, x).cls
+    const cmp = { shaped: 1, shape_tp: 1, cmp_avail: 1, cmp_ne_path: 1 }
+    assert.strictEqual(name({ ...cmp, cmp_qualifies: 1, cmp_infrequent: 1, cmp_in_path: 1 }), 'CMPQ')
+    assert.strictEqual(name({ ...cmp, cmp_infrequent: 1, cmp_in_path: 1 }), 'CMP')
+    assert.strictEqual(name({ ...cmp, cmp_infrequent: 1, cmp_shared: 1 }), 'PATH')
+    assert.strictEqual(name({ ...cmp, cmp_infrequent: 1, cmp_shared: 1, cmp_in_path: 1 }), 'CMP')
+    assert.strictEqual(name({ ...cmp }), 'PATH')
+
+    const tpt = { shaped: 1, shape_tpt: 1, probable: 1 }
+    const del = { ...tpt, m_delete: 1, m_write: 1, delcmp_avail: 1 }
+    assert.strictEqual(name({ ...del, last_is_cmp: 1, path_has_children: 1 }), 'DELCMP')
+    assert.strictEqual(name({ ...tpt, last_is_cmp: 1, path_has_children: 1 }), 'LAST')
+    assert.strictEqual(name({ ...tpt, path_has_children: 1 }), 'LAST')
+    assert.strictEqual(name(tpt), 'PART')
+    assert.strictEqual(name({ shaped: 1, shape_tpt: 1 }), 'ACT')
+    assert.strictEqual(name({ shaped: 1, shape_tpt: 1, cmp_avail: 1, cmp_from_tag: 1, same_path_avail: 1 }),
+      'SAMEPATH')
+    assert.strictEqual(name({ opid_avail: 1, title_avail: 1, seg_avail: 1 }), 'OPID')
+    assert.strictEqual(name({}), 'NONE')
+  })
+
+
   test('strategy-nets-are-well-formed', () => {
     for (const [name, net] of Object.entries(NETS)) {
       assert.strictEqual(net.layers.length, 2, name)

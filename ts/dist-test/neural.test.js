@@ -146,6 +146,27 @@ function routes(guide) {
         node_assert_1.default.strictEqual(no.cls, 'NO');
         node_assert_1.default.deepStrictEqual(no.evidence, []);
     });
+    // The read-out encodes the heuristic's if/else-if order: a branch's gate
+    // beats any number of gates for the branches below it.
+    (0, node_test_1.test)('name-net-precedence', () => {
+        const name = (x) => (0, nn_1.decide)(neural01_1.NETS.name, x).cls;
+        const cmp = { shaped: 1, shape_tp: 1, cmp_avail: 1, cmp_ne_path: 1 };
+        node_assert_1.default.strictEqual(name({ ...cmp, cmp_qualifies: 1, cmp_infrequent: 1, cmp_in_path: 1 }), 'CMPQ');
+        node_assert_1.default.strictEqual(name({ ...cmp, cmp_infrequent: 1, cmp_in_path: 1 }), 'CMP');
+        node_assert_1.default.strictEqual(name({ ...cmp, cmp_infrequent: 1, cmp_shared: 1 }), 'PATH');
+        node_assert_1.default.strictEqual(name({ ...cmp, cmp_infrequent: 1, cmp_shared: 1, cmp_in_path: 1 }), 'CMP');
+        node_assert_1.default.strictEqual(name({ ...cmp }), 'PATH');
+        const tpt = { shaped: 1, shape_tpt: 1, probable: 1 };
+        const del = { ...tpt, m_delete: 1, m_write: 1, delcmp_avail: 1 };
+        node_assert_1.default.strictEqual(name({ ...del, last_is_cmp: 1, path_has_children: 1 }), 'DELCMP');
+        node_assert_1.default.strictEqual(name({ ...tpt, last_is_cmp: 1, path_has_children: 1 }), 'LAST');
+        node_assert_1.default.strictEqual(name({ ...tpt, path_has_children: 1 }), 'LAST');
+        node_assert_1.default.strictEqual(name(tpt), 'PART');
+        node_assert_1.default.strictEqual(name({ shaped: 1, shape_tpt: 1 }), 'ACT');
+        node_assert_1.default.strictEqual(name({ shaped: 1, shape_tpt: 1, cmp_avail: 1, cmp_from_tag: 1, same_path_avail: 1 }), 'SAMEPATH');
+        node_assert_1.default.strictEqual(name({ opid_avail: 1, title_avail: 1, seg_avail: 1 }), 'OPID');
+        node_assert_1.default.strictEqual(name({}), 'NONE');
+    });
     (0, node_test_1.test)('strategy-nets-are-well-formed', () => {
         for (const [name, net] of Object.entries(neural01_1.NETS)) {
             node_assert_1.default.strictEqual(net.layers.length, 2, name);
