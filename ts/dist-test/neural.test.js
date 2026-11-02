@@ -51,21 +51,28 @@ const { buildGuideWeights } = require('../build/nn-weights.js');
 const REPO = Path.resolve(__dirname, '..', '..');
 const WEIGHTS = Path.join(__dirname, '..', 'nn', 'guide.safetensors');
 const NETS = (0, neural01_1.guideNets)();
+// The real corpus, found as the Go goldens find it: an apidef-validate
+// checkout beside this one, or the v1 folder APIDEF_VALIDATE_DIR names.
+const VALIDATE = process.env.APIDEF_VALIDATE_DIR ?? Path.join(REPO, '..', 'apidef-validate', 'v1');
+const VALIDATE_DEFS = Path.join(VALIDATE, '..', 'def');
+const validateDefs = Fs.existsSync(VALIDATE_DEFS) ? Fs.readdirSync(VALIDATE_DEFS)
+    .filter((f) => /\.(json|yaml)$/.test(f) && !f.endsWith('.full.json') && !f.includes('graphql'))
+    .sort() : [];
 const DEFDIR = Path.join(__dirname, '..', 'test', 'def');
 const SILENT = (0, util_1.Pino)({ level: 'silent' });
 const staged = [];
-function stage(def) {
+function stage(def, srcdir = DEFDIR) {
     const dir = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'apidef-neural-'));
     staged.push(dir);
     const folder = Path.join(dir, 'model');
     Fs.mkdirSync(Path.join(folder, 'guide'), { recursive: true });
     Fs.mkdirSync(Path.join(dir, 'def'));
-    Fs.copyFileSync(Path.join(DEFDIR, def), Path.join(dir, 'def', def));
+    Fs.copyFileSync(Path.join(srcdir, def), Path.join(dir, 'def', def));
     Fs.writeFileSync(Path.join(folder, 'guide', 'guide.aontu'), '@"@voxgig/apidef/model/guide.aontu"\n@"./base-guide.aontu"\n');
     return folder;
 }
-async function run(def, strategy, why) {
-    const folder = stage(def);
+async function run(def, strategy, why, srcdir) {
+    const folder = stage(def, srcdir);
     const build = await apidef_1.ApiDef.makeBuild({ folder, strategy, why: { show: true === why } });
     const bres = await build({ name: 'neural', def }, {
         log: SILENT,
@@ -328,6 +335,15 @@ function file(header, data) {
         node_assert_1.default.strictEqual(bres.ok, false);
         node_assert_1.default.ok(String(bres.err?.message).includes('Unknown guide strategy: neural02'));
     });
+    async function assertParity(def, srcdir) {
+        const h = await run(def, 'heuristic01', false, srcdir);
+        const n = await run(def, 'neural01', false, srcdir);
+        node_assert_1.default.strictEqual(h.bres.ok, true, def + ': ' + String(h.bres.err?.message));
+        node_assert_1.default.strictEqual(n.bres.ok, true, def + ': ' + String(n.bres.err?.message));
+        node_assert_1.default.deepStrictEqual(routes(n.bres.guide), routes(h.bres.guide), def);
+        node_assert_1.default.deepStrictEqual(Object.keys(n.bres.guide.entity).sort(), Object.keys(h.bres.guide.entity).sort(), def);
+        node_assert_1.default.deepStrictEqual(n.bres.guide.metrics.count, h.bres.guide.metrics.count, def);
+    }
     // The whole corpus, route by route, against the canonical heuristic.
     (0, node_test_1.test)('agrees-with-heuristic01-on-the-corpus', async () => {
         const defs = Fs.readdirSync(DEFDIR)
@@ -335,13 +351,14 @@ function file(header, data) {
             .sort();
         node_assert_1.default.ok(30 < defs.length, 'corpus: ' + defs.length);
         for (const def of defs) {
-            const h = await run(def, 'heuristic01');
-            const n = await run(def, 'neural01');
-            node_assert_1.default.strictEqual(h.bres.ok, true, def + ': ' + String(h.bres.err?.message));
-            node_assert_1.default.strictEqual(n.bres.ok, true, def + ': ' + String(n.bres.err?.message));
-            node_assert_1.default.deepStrictEqual(routes(n.bres.guide), routes(h.bres.guide), def);
-            node_assert_1.default.deepStrictEqual(Object.keys(n.bres.guide.entity).sort(), Object.keys(h.bres.guide.entity).sort(), def);
-            node_assert_1.default.deepStrictEqual(n.bres.guide.metrics.count, h.bres.guide.metrics.count, def);
+            await assertParity(def);
+        }
+    });
+    (0, node_test_1.test)('agrees-with-heuristic01-on-apidef-validate', {
+        skip: 0 === validateDefs.length ? 'no apidef-validate definitions at ' + VALIDATE_DEFS : false,
+    }, async () => {
+        for (const def of validateDefs) {
+            await assertParity(def, VALIDATE_DEFS);
         }
     });
 });

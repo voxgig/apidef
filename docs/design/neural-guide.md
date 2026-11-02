@@ -203,12 +203,24 @@ The comparison harness builds every OpenAPI definition under `ts/test/def/`
 with both strategies and compares, route by route, the entity, the
 operation, the actions, the renames, and the transforms:
 
-| Definitions | Routes | Agree |
-|---|---|---|
-| 42 | 490 | 490 |
+| Corpus | Definitions | Routes | Agree |
+|---|---|---|---|
+| `ts/test/def` | 42 | 490 | 490 |
+| `apidef-validate` (GitHub, GitLab, Cloudsmith, Contentful and the rest) | 15 | 3,244 | 3,244 |
 
 `ts/test/neural.test.ts` pins that agreement, the solar guide, and the
 verb-on-parent spec, and checks that the traces name the deciding units.
+The `apidef-validate` sweep runs whenever that checkout is found beside this
+one or through `APIDEF_VALIDATE_DIR`, as the Go goldens are found, and is
+skipped otherwise. `sdkgen-validate` validates the same fifteen definitions,
+by name, so the row covers both.
+
+The guide stage costs the same under either strategy: within a few
+milliseconds per definition on the test corpus, and within a tenth on a
+synthetic definition of a thousand paths, where parsing takes thirty times
+longer than either. The whole-definition scans are memoised, so the net is
+a little quicker than the heuristic on GitHub's definition, the largest
+real one.
 
 The tag-collected item routes were the one family the first cut left out,
 and they accounted for every disagreement (60 routes in `item-record` and
