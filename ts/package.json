@@ -41,6 +41,7 @@
   "license": "MIT",
   "files": [
     "model",
+    "nn",
     "src",
     "dist",
     "bin",

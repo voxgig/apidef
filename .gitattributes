@@ -4,3 +4,6 @@
 # sensitive too; keep the canonical form stable across platforms.
 *.tsv text eol=lf
 *.aontu text eol=lf
+
+# Network weights are a binary container; never normalise or diff them.
+*.safetensors binary

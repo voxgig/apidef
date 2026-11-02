@@ -107,8 +107,10 @@ the placeholder looks like an identifier or like a name.
 
 `ts/src/guide/nn.ts` holds the arithmetic: `dense()` builds a layer from
 weight rows written against feature *names*, `forward()` applies the
-layers, `softmax()` and `argmax()` read the result. A hidden unit is a
-gate. With a rectified linear activation:
+layers, `softmax()` and `argmax()` read the result. The rows themselves
+are authored in `ts/build/nn-weights.js`, which writes them to the weights
+file the strategy reads (see below). A hidden unit is a gate. With a
+rectified linear activation:
 
 | Gate | Weights | Bias |
 |---|---|---|
@@ -143,11 +145,54 @@ units that contributed most to it, so `base-guide.aontu` still says what
 decided each classification and `guide.aontu` remains the correction
 surface (ADR-002).
 
+### The weights file
+
+The strategy never reads the authored tables. It reads
+`nn/guide.safetensors`, through the `ts/nn/` mirror that ships in the npm
+package, on the first build that selects it. The file is a safetensors
+container: an 8-byte little-endian header length, a JSON header, then the
+tensor bytes. Each network contributes four `F32` tensors named as a state
+dict names them, so a trainer that builds the same two-layer module writes
+the file with its own save call:
+
+```
+name.hidden.weight   [units, features]
+name.hidden.bias     [units]
+name.out.weight      [classes, units]
+name.out.bias        [classes]
+```
+
+The names the arithmetic needs are in the header's metadata, as JSON
+strings: `nets` lists the networks in order, and each network has
+`<net>.features`, `<net>.hidden`, `<net>.classes` and `<net>.activation`.
+`format` is `apidef-guide-nn/1`, and a loader refuses any other value.
+
+`ts/src/guide/safetensors.ts` is the container codec (reads every dtype,
+writes the fixed-width ones), and `loadNets` and `saveNets` in `nn.ts` map
+between the container and the networks. `nn/` is canonical and is mirrored
+into `ts/nn/` and `go/nn/` by `make sync-nn`, the way `model/` is mirrored;
+`make nn` regenerates the file from the authored tables and syncs it, and
+`make check-nn`, under `make all`, fails on a mirror that drifted or a
+file the tables no longer produce. The TypeScript suite pins the same two
+facts, so CI holds them on every platform.
+
+Two rules hold once the weights are trained rather than written. Both
+ports compute in float64, since JavaScript has nothing narrower, and both
+sum a row in the same order, because floating-point addition is not
+associative and a one-bit difference in a logit can flip a near tie. With
+integer weights neither can bite, which is one more reason to keep the
+hand-written tables integral.
+
+The standalone executables under `ts/cmd/` bundle the script alone and
+resolve their includes from the project they run in, so a build they run
+cannot select `neural01` until the weights file is bundled beside them.
+
 ## Go parity
 
 `neural01` is implemented in TypeScript only, as `graphql01` is. The arithmetic
-is a page of loops, the weights are data, and every feature reads a value
-the Go port already computes in `go/guide.go`, so a port is mechanical. It
+is a page of loops, the weights are a file that `go/nn` already embeds, and
+every feature reads a value the Go port already computes in `go/guide.go`,
+so a port is mechanical. It
 is a precondition for the strategy ever becoming the default, since the Go
 build would otherwise produce a different model from the same definition.
 Nothing in this change moves the default.
@@ -208,7 +253,9 @@ set or the weights, found by adding the definition to the corpus.
 
 The weights are the training surface. A corpus of definitions with the
 guides a person corrected in `guide.aontu` is a labelled set, and the
-feature extractor is already the input encoder. Training would replace the
-gate weights with fitted ones and keep everything else, which is the reason
-to prefer named features and a dense read-out over a rule engine even while
-the weights are set by hand.
+feature extractor is already the input encoder. Training would write
+`nn/guide.safetensors` in place of the authored tables and keep everything
+else, which is the reason to prefer named features, a dense read-out and a
+standard weights container over a rule engine even while the weights are
+set by hand. When that happens, the tables and the check that the file
+matches them retire together.

@@ -17,7 +17,9 @@ read from the definition and normalized as below. Select it with the
 `strategy` option. It agrees with `heuristic01` on every definition in the
 test corpus, and its `why_*` traces name the network unit that decided
 each classification, so a wrong default is corrected in `guide.aontu` the
-same way.
+same way. The weights are a safetensors file, `nn/guide.safetensors`, so
+a trained set can replace the hand-set one without a change to the
+pipeline.
 
 ## Paths are split into parts
 

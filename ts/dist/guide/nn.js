@@ -1,6 +1,7 @@
 "use strict";
 /* Copyright (c) 2026 Voxgig, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.WEIGHTS_FORMAT = void 0;
 exports.dense = dense;
 exports.relu = relu;
 exports.apply = apply;
@@ -11,6 +12,14 @@ exports.argmax = argmax;
 exports.makeNet = makeNet;
 exports.decide = decide;
 exports.explain = explain;
+exports.netsToTensors = netsToTensors;
+exports.netsFromTensors = netsFromTensors;
+exports.saveNets = saveNets;
+exports.loadNets = loadNets;
+// Dense inference over named features, for weights written by hand: a unit
+// is a bias and a sparse row keyed by input name, so a typo in a row is an
+// error rather than a silent zero.
+const safetensors_1 = require("./safetensors");
 function dense(inputs, units, act) {
     const index = Object.create(null);
     inputs.forEach((name, i) => index[name] = i);
@@ -97,6 +106,100 @@ function decide(net, x) {
         .sort((a, b) => b.amount - a.amount || (a.unit < b.unit ? -1 : 1))
         .slice(0, 3);
     return { cls: net.classes[index], index, p, logits, hidden, evidence };
+}
+// The weights file: one tensor per layer parameter, named as a state dict
+// names them, with the feature, unit and class names in the metadata.
+const WEIGHTS_FORMAT = 'apidef-guide-nn/1';
+exports.WEIGHTS_FORMAT = WEIGHTS_FORMAT;
+const WEIGHTS_DTYPE = 'F32';
+function netsToTensors(nets) {
+    const metadata = {
+        format: WEIGHTS_FORMAT,
+        nets: JSON.stringify(Object.keys(nets)),
+    };
+    const tensors = {};
+    for (const [name, net] of Object.entries(nets)) {
+        if (2 !== net.layers.length) {
+            throw new Error('nn: network ' + name + ' is not two layers');
+        }
+        const [hidden, out] = net.layers;
+        metadata[name + '.features'] = JSON.stringify(net.features);
+        metadata[name + '.hidden'] = JSON.stringify(hidden.outputs);
+        metadata[name + '.classes'] = JSON.stringify(out.outputs);
+        metadata[name + '.activation'] = hidden.act;
+        for (const [key, layer] of [['hidden', hidden], ['out', out]]) {
+            tensors[name + '.' + key + '.weight'] = {
+                dtype: WEIGHTS_DTYPE,
+                shape: [layer.outputs.length, layer.inputs.length],
+                data: layer.w.flat(),
+            };
+            tensors[name + '.' + key + '.bias'] = {
+                dtype: WEIGHTS_DTYPE,
+                shape: [layer.outputs.length],
+                data: [...layer.b],
+            };
+        }
+    }
+    return { metadata, tensors };
+}
+function metaList(metadata, key) {
+    let list = undefined;
+    try {
+        list = JSON.parse(metadata[key] ?? '');
+    }
+    catch (_err) { }
+    if (!Array.isArray(list) || !list.every((v) => 'string' === typeof v)) {
+        throw new Error('nn: weights metadata ' + key + ' is not a list of names');
+    }
+    return list;
+}
+function tensorLayer(st, name, inputs, outputs, act) {
+    const weight = st.tensors[name + '.weight'];
+    const bias = st.tensors[name + '.bias'];
+    if (null == weight || null == bias) {
+        throw new Error('nn: weights lack tensor ' + name);
+    }
+    const rows = outputs.length;
+    const cols = inputs.length;
+    if (2 !== weight.shape.length || rows !== weight.shape[0] || cols !== weight.shape[1] ||
+        1 !== bias.shape.length || rows !== bias.shape[0]) {
+        throw new Error('nn: tensor ' + name + ' does not fit ' + rows + ' units over ' + cols + ' inputs');
+    }
+    const w = [];
+    for (let j = 0; j < rows; j++) {
+        w.push(weight.data.slice(j * cols, (j + 1) * cols));
+    }
+    return { inputs, outputs, w, b: [...bias.data], act };
+}
+function netsFromTensors(st) {
+    if (WEIGHTS_FORMAT !== st.metadata.format) {
+        throw new Error('nn: weights format is ' + st.metadata.format + ', not ' + WEIGHTS_FORMAT);
+    }
+    const nets = {};
+    for (const name of metaList(st.metadata, 'nets')) {
+        const features = metaList(st.metadata, name + '.features');
+        const hidden = metaList(st.metadata, name + '.hidden');
+        const classes = metaList(st.metadata, name + '.classes');
+        const act = st.metadata[name + '.activation'];
+        if ('relu' !== act) {
+            throw new Error('nn: network ' + name + ' has activation ' + act + ', not relu');
+        }
+        nets[name] = {
+            features,
+            layers: [
+                tensorLayer(st, name + '.hidden', features, hidden, 'relu'),
+                tensorLayer(st, name + '.out', hidden, classes, 'linear'),
+            ],
+            classes,
+        };
+    }
+    return nets;
+}
+function saveNets(nets) {
+    return (0, safetensors_1.serializeSafetensors)(netsToTensors(nets));
+}
+function loadNets(bytes) {
+    return netsFromTensors((0, safetensors_1.parseSafetensors)(bytes));
 }
 // A one-line record of a decision for a why trace.
 function explain(label, d) {

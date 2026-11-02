@@ -45,5 +45,7 @@ apidef has two implementations: the canonical TypeScript build under `ts/`
 - [ts/src/guide/heuristic01.ts](./ts/src/guide/heuristic01.ts): the classification engine
 - [ts/src/guide/neural01.ts](./ts/src/guide/neural01.ts): the same classification by hand-weighted networks (`strategy: 'neural01'`)
 - [ts/src/guide/nn.ts](./ts/src/guide/nn.ts): dense inference over named features
+- [ts/src/guide/safetensors.ts](./ts/src/guide/safetensors.ts): the weights container codec
+- [nn/guide.safetensors](./nn/guide.safetensors): the guide networks' weights, written by ts/build/nn-weights.js
 - [ts/src/transform/](./ts/src/transform/): the thirteen transform passes
 - [ts/src/utility.ts](./ts/src/utility.ts): pure helpers (depluralize, canonize, validator, formatJSONIC)

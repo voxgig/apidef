@@ -10,8 +10,18 @@ import assert from 'node:assert'
 import { Pino } from '@voxgig/util'
 
 import { ApiDef } from '../dist/apidef'
-import { dense, forward, makeNet, decide, softmax, argmax, explain } from '../dist/guide/nn'
-import { NETS } from '../dist/guide/neural01'
+import {
+  dense, forward, makeNet, decide, softmax, argmax, explain, saveNets, loadNets, WEIGHTS_FORMAT,
+} from '../dist/guide/nn'
+import { parseSafetensors, serializeSafetensors } from '../dist/guide/safetensors'
+import type { SafeTensors } from '../dist/guide/safetensors'
+import { guideNets, GUIDE_NETS } from '../dist/guide/neural01'
+
+const { buildGuideWeights } = require('../build/nn-weights.js')
+
+const WEIGHTS = Path.join(__dirname, '..', 'nn', 'guide.safetensors')
+
+const NETS = guideNets()
 
 
 const DEFDIR = Path.join(__dirname, '..', 'test', 'def')
@@ -78,6 +88,82 @@ function routes(guide: any): Record<string, any> {
   }
   return out
 }
+
+
+// A file from a header object and raw tensor bytes, as a tool would write it.
+function file(header: any, data: number[]): Uint8Array {
+  const json = new TextEncoder().encode(JSON.stringify(header))
+  const out = new Uint8Array(8 + json.length + data.length)
+  new DataView(out.buffer).setBigUint64(0, BigInt(json.length), true)
+  out.set(json, 8)
+  out.set(data, 8 + json.length)
+  return out
+}
+
+
+describe('safetensors', () => {
+
+  test('round-trip', () => {
+    const st: SafeTensors = {
+      metadata: { format: 'test/1', names: '["a","b"]' },
+      tensors: {
+        w: { dtype: 'F32', shape: [2, 3], data: [1, -2, 0.5, 0, 3, -0.25] },
+        b: { dtype: 'F64', shape: [2], data: [0.1, -7] },
+        i: { dtype: 'I64', shape: [3], data: [1, -2, 3] },
+        c: { dtype: 'I32', shape: [2], data: [2147483647, -5] },
+        s: { dtype: 'I16', shape: [1], data: [-300] },
+        y: { dtype: 'I8', shape: [2], data: [-1, 127] },
+        u: { dtype: 'U8', shape: [1], data: [200] },
+        k: { dtype: 'BOOL', shape: [2], data: [1, 0] },
+        e: { dtype: 'F32', shape: [0], data: [] },
+      },
+    }
+    const bytes = serializeSafetensors(st)
+    const hlen = Number(new DataView(bytes.buffer).getBigUint64(0, true))
+    assert.strictEqual(hlen % 8, 0)
+    assert.deepStrictEqual(parseSafetensors(bytes), st)
+    assert.deepStrictEqual(serializeSafetensors(parseSafetensors(bytes)), bytes)
+    assert.deepStrictEqual(parseSafetensors(serializeSafetensors({ metadata: {}, tensors: {} })),
+      { metadata: {}, tensors: {} })
+  })
+
+
+  test('half-precision-reads', () => {
+    const bytes = file({
+      h: { dtype: 'F16', shape: [4], data_offsets: [0, 8] },
+      g: { dtype: 'BF16', shape: [2], data_offsets: [8, 12] },
+    }, [0x00, 0x3c, 0x00, 0xc1, 0x00, 0x38, 0x01, 0x00, 0x80, 0x3f, 0x00, 0xc0])
+    const st = parseSafetensors(bytes)
+    assert.deepStrictEqual(st.tensors.h.data, [1, -2.5, 0.5, 2 ** -24])
+    assert.deepStrictEqual(st.tensors.g.data, [1, -2])
+  })
+
+
+  test('rejects-malformed', () => {
+    const one = { dtype: 'F32', shape: [1], data_offsets: [0, 4] }
+    const four = [0, 0, 0x80, 0x3f]
+    assert.throws(() => parseSafetensors(new Uint8Array(4)), /shorter/)
+    assert.throws(() => parseSafetensors(file({ a: one }, [])), /range exceeds the file/)
+    assert.throws(() => parseSafetensors(file({ a: one }, four).subarray(0, 9)),
+      /header length \d+ exceeds the file/)
+    assert.throws(() => parseSafetensors(file({ a: { ...one, dtype: 'F128' } }, four)), /unknown dtype/)
+    assert.throws(() => parseSafetensors(file({ a: { ...one, shape: [-1] } }, four)), /invalid shape/)
+    assert.throws(() => parseSafetensors(file({ a: { ...one, data_offsets: [4, 0] } }, four)),
+      /invalid data offsets/)
+    assert.throws(() => parseSafetensors(file({ a: one, b: { ...one, data_offsets: [8, 12] } },
+      [...four, ...four, ...four])), /does not follow/)
+    assert.throws(() => parseSafetensors(file({ a: { ...one, shape: [2] } }, four)),
+      /does not match its shape/)
+    assert.throws(() => parseSafetensors(file({ a: one }, [...four, 0])), /do not fill/)
+    assert.throws(() => parseSafetensors(file({ __metadata__: { n: 1 }, a: one }, four)),
+      /not a string/)
+    assert.throws(() => parseSafetensors(file([1], [])), /not an object/)
+    assert.throws(() => serializeSafetensors({ metadata: {}, tensors: {
+      a: { dtype: 'F32', shape: [2], data: [1] } } }), /1 values for shape/)
+    assert.throws(() => serializeSafetensors({ metadata: {}, tensors: {
+      a: { dtype: 'F16', shape: [1], data: [1] } } }), /not supported/)
+  })
+})
 
 
 describe('nn', () => {
@@ -157,6 +243,50 @@ describe('nn', () => {
       'SAMEPATH')
     assert.strictEqual(name({ opid_avail: 1, title_avail: 1, seg_avail: 1 }), 'OPID')
     assert.strictEqual(name({}), 'NONE')
+  })
+
+
+  test('nets-round-trip', () => {
+    const nets = {
+      tiny: makeNet(['x', 'y'], {
+        both: { b: -1, w: { x: 1, y: 1 } },
+        either: { b: 0, w: { x: 1, y: 1 } },
+      }, {
+        YES: { b: 0, w: { both: 4, either: 1 } },
+        NO: { b: 1, w: {} },
+      }),
+    }
+    const back = loadNets(saveNets(nets))
+    assert.deepStrictEqual(back, nets)
+    assert.strictEqual(decide(back.tiny, { x: 1, y: 1 }).cls, 'YES')
+
+    assert.throws(() => loadNets(serializeSafetensors({ metadata: { format: 'other/1' }, tensors: {} })),
+      /format is other\/1/)
+    assert.throws(() => loadNets(serializeSafetensors({ metadata: {
+      format: WEIGHTS_FORMAT, nets: '["t"]', 't.features': '["x"]', 't.hidden': '["h"]',
+      't.classes': '["A"]', 't.activation': 'relu',
+    }, tensors: {} })), /lack tensor t.hidden/)
+  })
+
+
+  // The shipped file is what the authored tables write, byte for byte.
+  test('guide-weights-match-authored-tables', () => {
+    assert.strictEqual(
+      Buffer.compare(Fs.readFileSync(WEIGHTS), Buffer.from(buildGuideWeights())), 0,
+      'nn/guide.safetensors differs from ts/build/nn-weights.js (run: make nn)')
+  })
+
+
+  test('guide-weights-file', () => {
+    const st = parseSafetensors(Fs.readFileSync(WEIGHTS))
+    assert.strictEqual(st.metadata.format, WEIGHTS_FORMAT)
+    assert.deepStrictEqual(JSON.parse(st.metadata.nets), GUIDE_NETS)
+    for (const [name, tensor] of Object.entries(st.tensors)) {
+      assert.strictEqual(tensor.dtype, 'F32', name)
+      assert.ok(tensor.data.every((v) => Number.isInteger(2 * v)), name)
+    }
+    assert.deepStrictEqual(st.tensors['name.hidden.weight'].shape,
+      [NETS.name.layers[0].outputs.length, NETS.name.features.length])
   })
 
 

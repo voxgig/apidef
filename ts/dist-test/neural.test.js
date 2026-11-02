@@ -45,7 +45,11 @@ const node_assert_1 = __importDefault(require("node:assert"));
 const util_1 = require("@voxgig/util");
 const apidef_1 = require("../dist/apidef");
 const nn_1 = require("../dist/guide/nn");
+const safetensors_1 = require("../dist/guide/safetensors");
 const neural01_1 = require("../dist/guide/neural01");
+const { buildGuideWeights } = require('../build/nn-weights.js');
+const WEIGHTS = Path.join(__dirname, '..', 'nn', 'guide.safetensors');
+const NETS = (0, neural01_1.guideNets)();
 const DEFDIR = Path.join(__dirname, '..', 'test', 'def');
 const SILENT = (0, util_1.Pino)({ level: 'silent' });
 const staged = [];
@@ -101,6 +105,69 @@ function routes(guide) {
     }
     return out;
 }
+// A file from a header object and raw tensor bytes, as a tool would write it.
+function file(header, data) {
+    const json = new TextEncoder().encode(JSON.stringify(header));
+    const out = new Uint8Array(8 + json.length + data.length);
+    new DataView(out.buffer).setBigUint64(0, BigInt(json.length), true);
+    out.set(json, 8);
+    out.set(data, 8 + json.length);
+    return out;
+}
+(0, node_test_1.describe)('safetensors', () => {
+    (0, node_test_1.test)('round-trip', () => {
+        const st = {
+            metadata: { format: 'test/1', names: '["a","b"]' },
+            tensors: {
+                w: { dtype: 'F32', shape: [2, 3], data: [1, -2, 0.5, 0, 3, -0.25] },
+                b: { dtype: 'F64', shape: [2], data: [0.1, -7] },
+                i: { dtype: 'I64', shape: [3], data: [1, -2, 3] },
+                c: { dtype: 'I32', shape: [2], data: [2147483647, -5] },
+                s: { dtype: 'I16', shape: [1], data: [-300] },
+                y: { dtype: 'I8', shape: [2], data: [-1, 127] },
+                u: { dtype: 'U8', shape: [1], data: [200] },
+                k: { dtype: 'BOOL', shape: [2], data: [1, 0] },
+                e: { dtype: 'F32', shape: [0], data: [] },
+            },
+        };
+        const bytes = (0, safetensors_1.serializeSafetensors)(st);
+        const hlen = Number(new DataView(bytes.buffer).getBigUint64(0, true));
+        node_assert_1.default.strictEqual(hlen % 8, 0);
+        node_assert_1.default.deepStrictEqual((0, safetensors_1.parseSafetensors)(bytes), st);
+        node_assert_1.default.deepStrictEqual((0, safetensors_1.serializeSafetensors)((0, safetensors_1.parseSafetensors)(bytes)), bytes);
+        node_assert_1.default.deepStrictEqual((0, safetensors_1.parseSafetensors)((0, safetensors_1.serializeSafetensors)({ metadata: {}, tensors: {} })), { metadata: {}, tensors: {} });
+    });
+    (0, node_test_1.test)('half-precision-reads', () => {
+        const bytes = file({
+            h: { dtype: 'F16', shape: [4], data_offsets: [0, 8] },
+            g: { dtype: 'BF16', shape: [2], data_offsets: [8, 12] },
+        }, [0x00, 0x3c, 0x00, 0xc1, 0x00, 0x38, 0x01, 0x00, 0x80, 0x3f, 0x00, 0xc0]);
+        const st = (0, safetensors_1.parseSafetensors)(bytes);
+        node_assert_1.default.deepStrictEqual(st.tensors.h.data, [1, -2.5, 0.5, 2 ** -24]);
+        node_assert_1.default.deepStrictEqual(st.tensors.g.data, [1, -2]);
+    });
+    (0, node_test_1.test)('rejects-malformed', () => {
+        const one = { dtype: 'F32', shape: [1], data_offsets: [0, 4] };
+        const four = [0, 0, 0x80, 0x3f];
+        node_assert_1.default.throws(() => (0, safetensors_1.parseSafetensors)(new Uint8Array(4)), /shorter/);
+        node_assert_1.default.throws(() => (0, safetensors_1.parseSafetensors)(file({ a: one }, [])), /range exceeds the file/);
+        node_assert_1.default.throws(() => (0, safetensors_1.parseSafetensors)(file({ a: one }, four).subarray(0, 9)), /header length \d+ exceeds the file/);
+        node_assert_1.default.throws(() => (0, safetensors_1.parseSafetensors)(file({ a: { ...one, dtype: 'F128' } }, four)), /unknown dtype/);
+        node_assert_1.default.throws(() => (0, safetensors_1.parseSafetensors)(file({ a: { ...one, shape: [-1] } }, four)), /invalid shape/);
+        node_assert_1.default.throws(() => (0, safetensors_1.parseSafetensors)(file({ a: { ...one, data_offsets: [4, 0] } }, four)), /invalid data offsets/);
+        node_assert_1.default.throws(() => (0, safetensors_1.parseSafetensors)(file({ a: one, b: { ...one, data_offsets: [8, 12] } }, [...four, ...four, ...four])), /does not follow/);
+        node_assert_1.default.throws(() => (0, safetensors_1.parseSafetensors)(file({ a: { ...one, shape: [2] } }, four)), /does not match its shape/);
+        node_assert_1.default.throws(() => (0, safetensors_1.parseSafetensors)(file({ a: one }, [...four, 0])), /do not fill/);
+        node_assert_1.default.throws(() => (0, safetensors_1.parseSafetensors)(file({ __metadata__: { n: 1 }, a: one }, four)), /not a string/);
+        node_assert_1.default.throws(() => (0, safetensors_1.parseSafetensors)(file([1], [])), /not an object/);
+        node_assert_1.default.throws(() => (0, safetensors_1.serializeSafetensors)({ metadata: {}, tensors: {
+                a: { dtype: 'F32', shape: [2], data: [1] }
+            } }), /1 values for shape/);
+        node_assert_1.default.throws(() => (0, safetensors_1.serializeSafetensors)({ metadata: {}, tensors: {
+                a: { dtype: 'F16', shape: [1], data: [1] }
+            } }), /not supported/);
+    });
+});
 (0, node_test_1.describe)('nn', () => {
     (0, node_test_1.test)('dense-rejects-unknown-input', () => {
         node_assert_1.default.throws(() => (0, nn_1.dense)(['a'], { u: { b: 0, w: { nope: 1 } } }, 'relu'), /unknown input nope/);
@@ -149,7 +216,7 @@ function routes(guide) {
     // The read-out encodes the heuristic's if/else-if order: a branch's gate
     // beats any number of gates for the branches below it.
     (0, node_test_1.test)('name-net-precedence', () => {
-        const name = (x) => (0, nn_1.decide)(neural01_1.NETS.name, x).cls;
+        const name = (x) => (0, nn_1.decide)(NETS.name, x).cls;
         const cmp = { shaped: 1, shape_tp: 1, cmp_avail: 1, cmp_ne_path: 1 };
         node_assert_1.default.strictEqual(name({ ...cmp, cmp_qualifies: 1, cmp_infrequent: 1, cmp_in_path: 1 }), 'CMPQ');
         node_assert_1.default.strictEqual(name({ ...cmp, cmp_infrequent: 1, cmp_in_path: 1 }), 'CMP');
@@ -167,8 +234,41 @@ function routes(guide) {
         node_assert_1.default.strictEqual(name({ opid_avail: 1, title_avail: 1, seg_avail: 1 }), 'OPID');
         node_assert_1.default.strictEqual(name({}), 'NONE');
     });
+    (0, node_test_1.test)('nets-round-trip', () => {
+        const nets = {
+            tiny: (0, nn_1.makeNet)(['x', 'y'], {
+                both: { b: -1, w: { x: 1, y: 1 } },
+                either: { b: 0, w: { x: 1, y: 1 } },
+            }, {
+                YES: { b: 0, w: { both: 4, either: 1 } },
+                NO: { b: 1, w: {} },
+            }),
+        };
+        const back = (0, nn_1.loadNets)((0, nn_1.saveNets)(nets));
+        node_assert_1.default.deepStrictEqual(back, nets);
+        node_assert_1.default.strictEqual((0, nn_1.decide)(back.tiny, { x: 1, y: 1 }).cls, 'YES');
+        node_assert_1.default.throws(() => (0, nn_1.loadNets)((0, safetensors_1.serializeSafetensors)({ metadata: { format: 'other/1' }, tensors: {} })), /format is other\/1/);
+        node_assert_1.default.throws(() => (0, nn_1.loadNets)((0, safetensors_1.serializeSafetensors)({ metadata: {
+                format: nn_1.WEIGHTS_FORMAT, nets: '["t"]', 't.features': '["x"]', 't.hidden': '["h"]',
+                't.classes': '["A"]', 't.activation': 'relu',
+            }, tensors: {} })), /lack tensor t.hidden/);
+    });
+    // The shipped file is what the authored tables write, byte for byte.
+    (0, node_test_1.test)('guide-weights-match-authored-tables', () => {
+        node_assert_1.default.strictEqual(Buffer.compare(Fs.readFileSync(WEIGHTS), Buffer.from(buildGuideWeights())), 0, 'nn/guide.safetensors differs from ts/build/nn-weights.js (run: make nn)');
+    });
+    (0, node_test_1.test)('guide-weights-file', () => {
+        const st = (0, safetensors_1.parseSafetensors)(Fs.readFileSync(WEIGHTS));
+        node_assert_1.default.strictEqual(st.metadata.format, nn_1.WEIGHTS_FORMAT);
+        node_assert_1.default.deepStrictEqual(JSON.parse(st.metadata.nets), neural01_1.GUIDE_NETS);
+        for (const [name, tensor] of Object.entries(st.tensors)) {
+            node_assert_1.default.strictEqual(tensor.dtype, 'F32', name);
+            node_assert_1.default.ok(tensor.data.every((v) => Number.isInteger(2 * v)), name);
+        }
+        node_assert_1.default.deepStrictEqual(st.tensors['name.hidden.weight'].shape, [NETS.name.layers[0].outputs.length, NETS.name.features.length]);
+    });
     (0, node_test_1.test)('strategy-nets-are-well-formed', () => {
-        for (const [name, net] of Object.entries(neural01_1.NETS)) {
+        for (const [name, net] of Object.entries(NETS)) {
             node_assert_1.default.strictEqual(net.layers.length, 2, name);
             node_assert_1.default.ok(0 < net.classes.length, name);
             const d = (0, nn_1.decide)(net, {});

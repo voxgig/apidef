@@ -77,3 +77,4 @@ Novu(?:'s)?
 [Dd]enylist
 
 Docgen
+safetensors

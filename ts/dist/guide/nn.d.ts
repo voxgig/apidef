@@ -1,3 +1,4 @@
+import type { SafeTensors } from './safetensors';
 type Vec = Record<string, number>;
 type Unit = {
     b: number;
@@ -36,6 +37,11 @@ declare function softmax(logits: number[]): number[];
 declare function argmax(v: number[]): number;
 declare function makeNet(features: string[], hidden: Record<string, Unit>, out: Record<string, Unit>): Net;
 declare function decide(net: Net, x: Vec): Decision;
+declare const WEIGHTS_FORMAT = "apidef-guide-nn/1";
+declare function netsToTensors(nets: Record<string, Net>): SafeTensors;
+declare function netsFromTensors(st: SafeTensors): Record<string, Net>;
+declare function saveNets(nets: Record<string, Net>): Uint8Array;
+declare function loadNets(bytes: Uint8Array): Record<string, Net>;
 declare function explain(label: string, d: Decision): string;
-export { dense, relu, apply, vector, forward, softmax, argmax, makeNet, decide, explain, };
+export { dense, relu, apply, vector, forward, softmax, argmax, makeNet, decide, explain, netsToTensors, netsFromTensors, saveNets, loadNets, WEIGHTS_FORMAT, };
 export type { Vec, Unit, Activation, Layer, Net, Decision, };

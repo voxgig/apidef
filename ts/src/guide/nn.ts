@@ -4,6 +4,10 @@
 // is a bias and a sparse row keyed by input name, so a typo in a row is an
 // error rather than a silent zero.
 
+import { parseSafetensors, serializeSafetensors } from './safetensors'
+
+import type { SafeTensors, Tensor } from './safetensors'
+
 
 type Vec = Record<string, number>
 
@@ -157,6 +161,122 @@ function decide(net: Net, x: Vec): Decision {
 }
 
 
+// The weights file: one tensor per layer parameter, named as a state dict
+// names them, with the feature, unit and class names in the metadata.
+const WEIGHTS_FORMAT = 'apidef-guide-nn/1'
+
+const WEIGHTS_DTYPE = 'F32'
+
+
+function netsToTensors(nets: Record<string, Net>): SafeTensors {
+  const metadata: Record<string, string> = {
+    format: WEIGHTS_FORMAT,
+    nets: JSON.stringify(Object.keys(nets)),
+  }
+  const tensors: Record<string, Tensor> = {}
+
+  for (const [name, net] of Object.entries(nets)) {
+    if (2 !== net.layers.length) {
+      throw new Error('nn: network ' + name + ' is not two layers')
+    }
+    const [hidden, out] = net.layers
+    metadata[name + '.features'] = JSON.stringify(net.features)
+    metadata[name + '.hidden'] = JSON.stringify(hidden.outputs)
+    metadata[name + '.classes'] = JSON.stringify(out.outputs)
+    metadata[name + '.activation'] = hidden.act
+    for (const [key, layer] of [['hidden', hidden], ['out', out]] as [string, Layer][]) {
+      tensors[name + '.' + key + '.weight'] = {
+        dtype: WEIGHTS_DTYPE,
+        shape: [layer.outputs.length, layer.inputs.length],
+        data: layer.w.flat(),
+      }
+      tensors[name + '.' + key + '.bias'] = {
+        dtype: WEIGHTS_DTYPE,
+        shape: [layer.outputs.length],
+        data: [...layer.b],
+      }
+    }
+  }
+
+  return { metadata, tensors }
+}
+
+
+function metaList(metadata: Record<string, string>, key: string): string[] {
+  let list: any = undefined
+  try {
+    list = JSON.parse(metadata[key] ?? '')
+  }
+  catch (_err: any) { }
+  if (!Array.isArray(list) || !list.every((v) => 'string' === typeof v)) {
+    throw new Error('nn: weights metadata ' + key + ' is not a list of names')
+  }
+  return list
+}
+
+
+function tensorLayer(
+  st: SafeTensors,
+  name: string,
+  inputs: string[],
+  outputs: string[],
+  act: Activation,
+): Layer {
+  const weight = st.tensors[name + '.weight']
+  const bias = st.tensors[name + '.bias']
+  if (null == weight || null == bias) {
+    throw new Error('nn: weights lack tensor ' + name)
+  }
+  const rows = outputs.length
+  const cols = inputs.length
+  if (2 !== weight.shape.length || rows !== weight.shape[0] || cols !== weight.shape[1] ||
+    1 !== bias.shape.length || rows !== bias.shape[0]) {
+    throw new Error('nn: tensor ' + name + ' does not fit ' + rows + ' units over ' + cols + ' inputs')
+  }
+  const w: number[][] = []
+  for (let j = 0; j < rows; j++) {
+    w.push(weight.data.slice(j * cols, (j + 1) * cols))
+  }
+  return { inputs, outputs, w, b: [...bias.data], act }
+}
+
+
+function netsFromTensors(st: SafeTensors): Record<string, Net> {
+  if (WEIGHTS_FORMAT !== st.metadata.format) {
+    throw new Error('nn: weights format is ' + st.metadata.format + ', not ' + WEIGHTS_FORMAT)
+  }
+  const nets: Record<string, Net> = {}
+  for (const name of metaList(st.metadata, 'nets')) {
+    const features = metaList(st.metadata, name + '.features')
+    const hidden = metaList(st.metadata, name + '.hidden')
+    const classes = metaList(st.metadata, name + '.classes')
+    const act = st.metadata[name + '.activation']
+    if ('relu' !== act) {
+      throw new Error('nn: network ' + name + ' has activation ' + act + ', not relu')
+    }
+    nets[name] = {
+      features,
+      layers: [
+        tensorLayer(st, name + '.hidden', features, hidden, 'relu'),
+        tensorLayer(st, name + '.out', hidden, classes, 'linear'),
+      ],
+      classes,
+    }
+  }
+  return nets
+}
+
+
+function saveNets(nets: Record<string, Net>): Uint8Array {
+  return serializeSafetensors(netsToTensors(nets))
+}
+
+
+function loadNets(bytes: Uint8Array): Record<string, Net> {
+  return netsFromTensors(parseSafetensors(bytes))
+}
+
+
 // A one-line record of a decision for a why trace.
 function explain(label: string, d: Decision): string {
   const ev = d.evidence.map((e) => e.unit + '=' + e.amount.toFixed(1)).join(',')
@@ -176,6 +296,11 @@ export {
   makeNet,
   decide,
   explain,
+  netsToTensors,
+  netsFromTensors,
+  saveNets,
+  loadNets,
+  WEIGHTS_FORMAT,
 }
 
 export type {
