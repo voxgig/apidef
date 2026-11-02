@@ -48,6 +48,7 @@ const nn_1 = require("../dist/guide/nn");
 const safetensors_1 = require("../dist/guide/safetensors");
 const neural01_1 = require("../dist/guide/neural01");
 const { buildGuideWeights } = require('../build/nn-weights.js');
+const REPO = Path.resolve(__dirname, '..', '..');
 const WEIGHTS = Path.join(__dirname, '..', 'nn', 'guide.safetensors');
 const NETS = (0, neural01_1.guideNets)();
 const DEFDIR = Path.join(__dirname, '..', 'test', 'def');
@@ -256,6 +257,15 @@ function file(header, data) {
     // The shipped file is what the authored tables write, byte for byte.
     (0, node_test_1.test)('guide-weights-match-authored-tables', () => {
         node_assert_1.default.strictEqual(Buffer.compare(Fs.readFileSync(WEIGHTS), Buffer.from(buildGuideWeights())), 0, 'nn/guide.safetensors differs from ts/build/nn-weights.js (run: make nn)');
+    });
+    // nn/ is canonical; ts/nn/ ships in the npm package and go/nn/ is embedded
+    // in the Go module. Checked here so CI holds it, as it does for the model.
+    (0, node_test_1.test)('guide-weights-mirrors', () => {
+        const canonical = Fs.readFileSync(Path.join(REPO, 'nn', 'guide.safetensors'));
+        for (const root of ['ts', 'go']) {
+            const mirror = Fs.readFileSync(Path.join(REPO, root, 'nn', 'guide.safetensors'));
+            node_assert_1.default.strictEqual(Buffer.compare(canonical, mirror), 0, root + '/nn/guide.safetensors drifted from nn/guide.safetensors (run: make sync-nn)');
+        }
     });
     (0, node_test_1.test)('guide-weights-file', () => {
         const st = (0, safetensors_1.parseSafetensors)(Fs.readFileSync(WEIGHTS));

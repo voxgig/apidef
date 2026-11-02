@@ -19,6 +19,8 @@ import { guideNets, GUIDE_NETS } from '../dist/guide/neural01'
 
 const { buildGuideWeights } = require('../build/nn-weights.js')
 
+const REPO = Path.resolve(__dirname, '..', '..')
+
 const WEIGHTS = Path.join(__dirname, '..', 'nn', 'guide.safetensors')
 
 const NETS = guideNets()
@@ -274,6 +276,18 @@ describe('nn', () => {
     assert.strictEqual(
       Buffer.compare(Fs.readFileSync(WEIGHTS), Buffer.from(buildGuideWeights())), 0,
       'nn/guide.safetensors differs from ts/build/nn-weights.js (run: make nn)')
+  })
+
+
+  // nn/ is canonical; ts/nn/ ships in the npm package and go/nn/ is embedded
+  // in the Go module. Checked here so CI holds it, as it does for the model.
+  test('guide-weights-mirrors', () => {
+    const canonical = Fs.readFileSync(Path.join(REPO, 'nn', 'guide.safetensors'))
+    for (const root of ['ts', 'go']) {
+      const mirror = Fs.readFileSync(Path.join(REPO, root, 'nn', 'guide.safetensors'))
+      assert.strictEqual(Buffer.compare(canonical, mirror), 0,
+        root + '/nn/guide.safetensors drifted from nn/guide.safetensors (run: make sync-nn)')
+    }
   })
 
 
