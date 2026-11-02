@@ -9,6 +9,16 @@ This page explains the ideas. For the exact output shape see
 [The guide model](../reference/guide.md); for the resulting API model see
 [The internal API model](../reference/model.md).
 
+A second strategy, `neural01`, makes the same decisions another way. Each
+classification of a route is a small network over named facts about the
+route, such as its method, its path shape, and what its response carries,
+with weights set by hand rather than learned, and the entity name is still
+read from the definition and normalized as below. Select it with the
+`strategy` option. It agrees with `heuristic01` on every definition in the
+test corpus, and its `why_*` traces name the network unit that decided
+each classification, so a wrong default is corrected in `guide.aontu` the
+same way.
+
 ## Paths are split into parts
 
 A path like `/api/planet/{planet_id}/moon/{moon_id}` becomes the parts

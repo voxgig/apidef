@@ -40,7 +40,7 @@ cd ts && TEST_PATTERN='depluralize' npm run test-some
 |------|------|
 | pipeline entry | `ts/src/apidef.ts` |
 | parse + `$ref` resolve | `ts/src/parse.ts` |
-| classification | `ts/src/guide/{guide,heuristic01}.ts` |
+| classification | `ts/src/guide/{guide,heuristic01,neural01}.ts` |
 | transforms (9 passes) | `ts/src/transform/*.ts` |
 | builders | `ts/src/builder/**` |
 | pure helpers | `ts/src/utility.ts` |
