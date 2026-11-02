@@ -220,7 +220,11 @@ milliseconds per definition on the test corpus, and within a tenth on a
 synthetic definition of a thousand paths, where parsing takes thirty times
 longer than either. The whole-definition scans are memoised, so the net is
 a little quicker than the heuristic on GitHub's definition, the largest
-real one.
+real one, and the gap widens with size: on a synthetic definition of four
+thousand paths the guide stage takes 7.1 s under the net and 11.6 s under
+the heuristic, after a parse of 431 s. Both grow faster than the path
+count, in the relational passes they share, so a large definition's time
+is the parser's first and the guide's second.
 
 The tag-collected item routes were the one family the first cut left out,
 and they accounted for every disagreement (60 routes in `item-record` and
