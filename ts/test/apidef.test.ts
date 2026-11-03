@@ -1018,6 +1018,69 @@ describe('apidef', () => {
   })
 
 
+  // A trailing parameter whose route answers a page of records filters a
+  // list, and keeps its own name on every route of its path, unless another
+  // route lists the component it answers with. A parameter before the segment
+  // its entity is named for keys the parent.
+  test('guide-page-param', async () => {
+    const folder = __dirname + '/../test/page-param'
+
+    const build = await ApiDef.makeBuild({ folder })
+
+    const bres = await build(
+      { name: 'page-param', def: 'page-param-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: true,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const entities = bres.apimodel.main.kit.entity
+    const points = (ent: string) => Object.keys(entities[ent].op).sort().flatMap((op: string) =>
+      entities[ent].op[op].points.map((pt: any) => [op, pt.m, pt.o, pt.t.res,
+        (pt.g?.params ?? []).map((a: any) => a.or + '>' + a.n).sort().join(',')].join(' ')))
+
+    assert.deepStrictEqual(points('press_release'),
+      ['list GET /press-releases/{currency} `body.data` currency>currency'])
+    assert.deepStrictEqual(points('article'), ['list GET /news/{tagId} `body` tagId>tag_id'])
+    assert.deepStrictEqual(points('agent'), ['list GET /agents/{id} `body` id>id'])
+    assert.deepStrictEqual(points('data'),
+      ['list GET /boxes/{boxId}/data/{sensorId} `body` boxId>box_id,sensorId>sensor_id'])
+    assert.deepStrictEqual(points('repo'), [
+      'create POST /repos/{owner} `body` owner>owner',
+      'list GET /repos/{owner} `body.items` owner>owner',
+    ])
+    assert.deepStrictEqual(points('team'), ['load GET /teams/{teamId} `body` teamId>id'])
+    assert.deepStrictEqual(points('crew'),
+      ['list GET /crews `body` ', 'load GET /crews/{crewId} `body` crewId>id'])
+    assert.deepStrictEqual(points('restaurant_menu'),
+      ['load GET /restaurants/{id}/menu `body` id>restaurant_id'])
+    assert.deepStrictEqual(points('user_profile'), [
+      'load GET /users/{userId}/profile `body` userId>user_id',
+      'update PUT /users/{userId}/profile `body` userId>user_id',
+    ])
+    assert.deepStrictEqual(points('id_info'), ['load GET /id/{id}/info `body` id>id'])
+
+    for (const ent of ['press_release', 'data', 'repo', 'restaurant_menu', 'user_profile']) {
+      assert.strictEqual(entities[ent].id, undefined, ent)
+    }
+    assert.deepStrictEqual(entities.team.id, { name: 'id', field: 'id' })
+    assert.deepStrictEqual(Object.keys(entities.press_release.fields), ['date', 'title', 'url'])
+  })
+
+
   // A literal that canonizes to nothing (`-`) names no entity and no
   // component: the key after it is not taken for the entity's own.
   test('guide-blank-segment', async () => {
@@ -1690,8 +1753,8 @@ describe('apidef', () => {
 
   // One name for a parameter across an entity's operations: a parent key
   // keeps the specification's name, a name is never called `<parent>_id`, and
-  // a path that makes a parameter the entity's `id` keeps it. go/apidef_test.go
-  // reads the base guide this writes.
+  // a read answering a page of an owner's records lists them by the owner.
+  // go/apidef_test.go reads the base guide this writes.
   test('guide-param-names', async () => {
     const folder = __dirname + '/../test/param-names'
 
@@ -1742,7 +1805,7 @@ describe('apidef', () => {
       'member.list GET /v1/teams/{team_slug}/members [team_slug]',
       'member.load GET /v1/teams/{team_slug}/members/{username} [id,team_slug]',
       'member.remove DELETE /v1/teams/{team_slug}/members/{username} [id,team_slug]',
-      'repo.load GET /v1/repos/{owner} [id]',
+      'repo.list GET /v1/repos/{owner} [owner]',
       'repo.load GET /v1/repos/{owner}/{name} [name,owner]',
     ])
   })

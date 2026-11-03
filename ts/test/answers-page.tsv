@@ -1,0 +1,16 @@
+name	schema	expected
+list-of-records	{"type":"array","items":{"type":"object","properties":{"value":{"type":"string"},"count":{"type":"integer"}}}}	true
+list-of-scalars	{"type":"array","items":{"type":"string"}}	false
+list-of-lists	{"type":"array","items":{"type":"array","items":{"type":"object","properties":{"value":{"type":"string"},"count":{"type":"integer"}}}}}	false
+records-under-data	{"type":"object","properties":{"data":{"type":"array","items":{"type":"object","properties":{"value":{"type":"string"},"count":{"type":"integer"}}}}}}	true
+records-beside-paging	{"type":"object","properties":{"count":{"type":"integer"},"offset":{"type":"integer"},"recordings":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"},"title":{"type":"string"}}}}}}	true
+records-beside-status	{"type":"object","properties":{"success":{"type":"boolean"},"results":{"type":"array","items":{"type":"object","properties":{"value":{"type":"string"},"count":{"type":"integer"}}}}}}	true
+records-beside-page-metadata	{"type":"object","properties":{"pagination":{"type":"object","properties":{"next":{"type":"string"}}},"data":{"type":"array","items":{"type":"object","properties":{"value":{"type":"string"},"count":{"type":"integer"}}}}}}	true
+records-in-a-composed-page	{"allOf":[{"type":"object","properties":{"total":{"type":"integer"}}},{"type":"object","properties":{"items":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"},"title":{"type":"string"}}}}}}]}	true
+an-id-beside-the-list	{"type":"object","properties":{"id":{"type":"string"},"items":{"type":"array","items":{"type":"object","properties":{"value":{"type":"string"},"count":{"type":"integer"}}}}}}	false
+own-data-beside-the-list	{"type":"object","properties":{"last_updated":{"type":"string"},"lots":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"},"title":{"type":"string"}}}}}}	false
+two-lists-of-records	{"type":"object","properties":{"primary":{"type":"array","items":{"type":"object","properties":{"value":{"type":"string"},"count":{"type":"integer"}}}},"general":{"type":"array","items":{"type":"object","properties":{"value":{"type":"string"},"count":{"type":"integer"}}}}}}	false
+one-item-under-data	{"type":"object","properties":{"data":{"type":"object","properties":{"id":{"type":"string"},"title":{"type":"string"}}}}}	false
+a-record	{"type":"object","properties":{"id":{"type":"string"},"title":{"type":"string"}}}	false
+a-nullable-list-is-not-read-as-one	{"type":"object","properties":{"count":{"type":"integer"},"data":{"anyOf":[{"type":"array","items":{"type":"object","properties":{"value":{"type":"string"},"count":{"type":"integer"}}}},{"type":"null"}]}}}	false
+nothing	{}	false

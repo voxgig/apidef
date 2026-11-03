@@ -72,6 +72,7 @@ async function heuristic01(ctx) {
         { select: selectAllMethods, apply: MeasureEnvelope },
         MeasureEnvelopeItems,
         MeasureAnswered,
+        MeasureListed,
         { select: selectAllMethods, apply: MeasureSharing },
         MeasureShared,
         { select: selectAllMethods, apply: [ResolveEntityComponent, MeasureTagItems] },
@@ -153,6 +154,7 @@ function Prepare(spec) {
             entmap: named(),
             envelope: named(),
             listEnvelope: named(),
+            listed: named(),
             envelopePaths: named(),
             sharing: { routes: [], records: named(), yields: named() },
             recordResources: named(),
@@ -303,6 +305,10 @@ function MeasureEnvelopeItems(spec) {
 // envelopes MeasureEnvelopeItems settles.
 function MeasureAnswered(spec) {
     spec.data.work.answered = answeredRefs(spec.data.def, spec.data.work.envelope);
+}
+// The components some operation answers with as the records of a page.
+function MeasureListed(spec) {
+    spec.data.work.listed = listedRefs(spec.data.def);
 }
 function isPageAndItsItem(work, xrefs) {
     const pages = xrefs.filter((xref) => work.listEnvelope[xref]);
@@ -742,6 +748,8 @@ function RenameParams(spec) {
         return;
     }
     const origParams = [];
+    // A path whose read answers a page has a trailing parameter that filters it.
+    const listed = pathAnswersPage(pathdesc.def, pathStr, ment.pm, work.listed);
     for (let partI = 0; partI < parts.length; partI++) {
         let partStr = parts[partI];
         if (isParam(partStr)) {
@@ -777,8 +785,20 @@ function RenameParams(spec) {
                 && hasParent
                 && notLastPart) {
                 why.push('maybe-parent');
-                // actually an action
+                // An entity named for the parent and the segment after the parameter
+                // is a resource of the parent, so the parameter is the parent's key.
                 if (secondLastPart
+                    && 'id' !== parentName
+                    && parentName !== entdesc.name
+                    && entdesc.name.startsWith(parentName + '_')
+                    && entdesc.name.endsWith((0, utility_2.canonize)(parts[partI + 1]))) {
+                    if (!isNameParam(oldParam)) {
+                        updateParamRename(ctx, data, pathStr, methodName, paramRenameCapture, oldParam, parentName + '_id', 'parent-resource:' + parentName);
+                        why.push('parent-resource');
+                    }
+                }
+                // actually an action
+                else if (secondLastPart
                     && parentName !== entdesc.name
                     && entdesc.name.startsWith(parentName + '_')) {
                     updateParamRename(ctx, data, pathStr, methodName, paramRenameCapture, oldParam, 'id', 'action-parent:' + entdesc.name);
@@ -800,6 +820,7 @@ function RenameParams(spec) {
             // .../ent/{not-id}
             else if (lastPart
                 && not_exact_id
+                && !listed
                 && (!hasParent
                     || (parentName === entdesc.name
                         || entdesc.name.endsWith('_' + parentName)))) {
@@ -944,7 +965,7 @@ function ResolveOperation(spec) {
         return;
     }
     if ('load' === standard_opname) {
-        const islist = isListResponse(mdesc, ment.pm, pathStr, why_op);
+        const islist = isListResponse(mdesc, ment.pm, pathStr, why_op, work.listed);
         opname = islist ? 'list' : opname;
     }
     else {
@@ -1478,6 +1499,24 @@ function answeredRefs(def, envelope) {
     }
     return answered;
 }
+function listedRefs(def) {
+    const listed = Object.create(null);
+    for (const pathdef of Object.values(def?.paths ?? {})) {
+        for (const [method, mdef] of Object.entries(pathdef ?? {})) {
+            if (null == METHOD_CONSIDER_ORDER[method.toUpperCase()] ||
+                null == mdef || 'object' !== typeof mdef) {
+                continue;
+            }
+            for (const schema of successSchemas(mdef.responses)) {
+                const ref = (0, utility_1.pageRecords)(schema)?.items?.['x-ref'];
+                if ('string' === typeof ref) {
+                    listed[ref] = true;
+                }
+            }
+        }
+    }
+    return listed;
+}
 // The component a response schema names through: the record an envelope
 // carries, else the schema's own component, else its array items'.
 function namingRef(schema, envelope) {
@@ -1838,17 +1877,29 @@ function declaresId(schema) {
 }
 // The operation ResolveOperation will assign, needed before the entity is
 // named: whether a response unwraps as an envelope depends on it.
-function methodOpname(mdesc, pm, why) {
+function methodOpname(mdesc, pm, why, listed) {
     const opname = METHOD_IDOP[mdesc.method];
-    return 'load' === opname && isListResponse(mdesc, pm, mdesc.path, why) ? 'list' : opname;
+    return 'load' === opname && isListResponse(mdesc, pm, mdesc.path, why, listed) ? 'list' : opname;
 }
-function isListResponse(mdesc, pm, pathStr, why) {
+function pathAnswersPage(pathdef, pathStr, pm, listed) {
+    return ['GET', 'QUERY'].some((method) => {
+        const opdef = pathdef?.[method.toLowerCase()];
+        return null != opdef && 'list' === methodOpname({ method, path: pathStr, responses: opdef.responses }, pm, [], listed);
+    });
+}
+// A trailing parameter addresses one record, unless the route answers a page
+// of records that the parameter filters; a component that some route lists
+// is a record, whatever it holds. Resources are named with every trailing
+// parameter read as a key, so the naming passes give no `listed`.
+function isListResponse(mdesc, pm, pathStr, why, listed) {
     let islist = false;
     let schema;
     const endParamAnchored = !!(pm && pm.expr.endsWith('p/'));
     const endParamBare = !!(pm && !endParamAnchored && pm.expr.endsWith('p'));
     if (endParamAnchored) {
-        why.push('end-param');
+        schema = null == listed ? null : getResponseSchema(successResponse(mdesc.responses));
+        islist = (0, utility_1.answersPage)(schema) && true !== listed?.[schema['x-ref']];
+        why.push(islist ? 'end-param-page' : 'end-param');
     }
     else {
         schema = getResponseSchema(successResponse(mdesc.responses));

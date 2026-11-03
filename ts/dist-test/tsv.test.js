@@ -582,6 +582,15 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-answers-page', () => {
+    const rows = loadTsv('answers-page');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, () => {
+            node_assert_1.default.strictEqual((0, utility_1.answersPage)(JSON.parse(row.schema)), 'true' === row.expected);
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-merged-properties', () => {
     const rows = loadTsv('merged-properties');
     (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));

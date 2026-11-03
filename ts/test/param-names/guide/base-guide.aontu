@@ -49,8 +49,7 @@ guide: {
 
   entity: repo: {
     path: "/v1/repos/{owner}": {
-      rename: param: "owner": *"id"
-      op: load: method: *GET
+      op: list: method: *GET
     }
     path: "/v1/repos/{owner}/{name}": {
       op: load: method: *GET

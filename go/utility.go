@@ -2131,6 +2131,46 @@ func composedEnvelopeProp(schema any, opname string) string {
 	return strictEnvelopeProp(props, opname)
 }
 
+// pageRecords mirrors ts/src/utility.ts: the list of records a page response
+// holds, the response itself or the one list a list unwraps beside nothing but
+// status, paging and page metadata; nil when it answers no page.
+func pageRecords(schema any) map[string]any {
+	sch, _ := schema.(map[string]any)
+	if sch == nil {
+		return nil
+	}
+	if islist, known := propIsList(sch); known && islist {
+		if isRecordList(sch) {
+			return sch
+		}
+		return nil
+	}
+
+	key := ""
+	if own, ok := sch["properties"].(map[string]any); ok && own != nil {
+		key = envelopeProp(own, "list")
+	}
+	if key == "" {
+		key = composedEnvelopeProp(sch, "list")
+	}
+	props := mergedProperties(sch)
+	if key == "" || props == nil || props["id"] != nil || !isRecordList(props[key]) {
+		return nil
+	}
+
+	for _, k := range sortedKeys(props) {
+		if k != key && !isEnvelopePageProp(k) && !isEnvelopeStatusProp(k) {
+			return nil
+		}
+	}
+	records, _ := props[key].(map[string]any)
+	return records
+}
+
+func answersPage(schema any) bool {
+	return pageRecords(schema) != nil
+}
+
 // mergedProperties mirrors ts/src/utility.ts: the properties of a schema and
 // its allOf members, the first declaration of a name winning, without writing
 // to the shared parsed nodes.

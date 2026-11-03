@@ -795,6 +795,52 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
             node_assert_1.default.deepStrictEqual(params(entities.user.op[op].points[0]), ['id>user_group_id', 'uid>id'], 'user ' + op);
         }
     });
+    // A trailing parameter whose route answers a page of records filters a
+    // list, and keeps its own name on every route of its path, unless another
+    // route lists the component it answers with. A parameter before the segment
+    // its entity is named for keys the parent.
+    (0, node_test_1.test)('guide-page-param', async () => {
+        const folder = __dirname + '/../test/page-param';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'page-param', def: 'page-param-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: true,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        const entities = bres.apimodel.main.kit.entity;
+        const points = (ent) => Object.keys(entities[ent].op).sort().flatMap((op) => entities[ent].op[op].points.map((pt) => [op, pt.m, pt.o, pt.t.res,
+            (pt.g?.params ?? []).map((a) => a.or + '>' + a.n).sort().join(',')].join(' ')));
+        node_assert_1.default.deepStrictEqual(points('press_release'), ['list GET /press-releases/{currency} `body.data` currency>currency']);
+        node_assert_1.default.deepStrictEqual(points('article'), ['list GET /news/{tagId} `body` tagId>tag_id']);
+        node_assert_1.default.deepStrictEqual(points('agent'), ['list GET /agents/{id} `body` id>id']);
+        node_assert_1.default.deepStrictEqual(points('data'), ['list GET /boxes/{boxId}/data/{sensorId} `body` boxId>box_id,sensorId>sensor_id']);
+        node_assert_1.default.deepStrictEqual(points('repo'), [
+            'create POST /repos/{owner} `body` owner>owner',
+            'list GET /repos/{owner} `body.items` owner>owner',
+        ]);
+        node_assert_1.default.deepStrictEqual(points('team'), ['load GET /teams/{teamId} `body` teamId>id']);
+        node_assert_1.default.deepStrictEqual(points('crew'), ['list GET /crews `body` ', 'load GET /crews/{crewId} `body` crewId>id']);
+        node_assert_1.default.deepStrictEqual(points('restaurant_menu'), ['load GET /restaurants/{id}/menu `body` id>restaurant_id']);
+        node_assert_1.default.deepStrictEqual(points('user_profile'), [
+            'load GET /users/{userId}/profile `body` userId>user_id',
+            'update PUT /users/{userId}/profile `body` userId>user_id',
+        ]);
+        node_assert_1.default.deepStrictEqual(points('id_info'), ['load GET /id/{id}/info `body` id>id']);
+        for (const ent of ['press_release', 'data', 'repo', 'restaurant_menu', 'user_profile']) {
+            node_assert_1.default.strictEqual(entities[ent].id, undefined, ent);
+        }
+        node_assert_1.default.deepStrictEqual(entities.team.id, { name: 'id', field: 'id' });
+        node_assert_1.default.deepStrictEqual(Object.keys(entities.press_release.fields), ['date', 'title', 'url']);
+    });
     // A literal that canonizes to nothing (`-`) names no entity and no
     // component: the key after it is not taken for the entity's own.
     (0, node_test_1.test)('guide-blank-segment', async () => {
@@ -1311,8 +1357,8 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
     });
     // One name for a parameter across an entity's operations: a parent key
     // keeps the specification's name, a name is never called `<parent>_id`, and
-    // a path that makes a parameter the entity's `id` keeps it. go/apidef_test.go
-    // reads the base guide this writes.
+    // a read answering a page of an owner's records lists them by the owner.
+    // go/apidef_test.go reads the base guide this writes.
     (0, node_test_1.test)('guide-param-names', async () => {
         const folder = __dirname + '/../test/param-names';
         const build = await apidef_1.ApiDef.makeBuild({ folder });
@@ -1352,7 +1398,7 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
             'member.list GET /v1/teams/{team_slug}/members [team_slug]',
             'member.load GET /v1/teams/{team_slug}/members/{username} [id,team_slug]',
             'member.remove DELETE /v1/teams/{team_slug}/members/{username} [id,team_slug]',
-            'repo.load GET /v1/repos/{owner} [id]',
+            'repo.list GET /v1/repos/{owner} [owner]',
             'repo.load GET /v1/repos/{owner}/{name} [name,owner]',
         ]);
     });

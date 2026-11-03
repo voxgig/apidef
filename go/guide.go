@@ -715,6 +715,7 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 	}
 	measureEnvelopeItems(data)
 	work["answered"] = answeredRefs(def, work["envelope"].(map[string]string))
+	work["listed"] = listedRefs(def)
 
 	for _, mdesc := range allMethods {
 		measureSharing(data, mdesc)
@@ -1588,6 +1589,11 @@ func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any)
 
 	entdescName := safeStr(entdesc["name"])
 
+	// A path whose read answers a page has a trailing parameter that filters it.
+	pathdefMap, _ := pathdescEntry["def"].(map[string]any)
+	listedRecords, _ := work["listed"].(map[string]bool)
+	listed := pathAnswersPage(pathdefMap, pathStr, getPM(ment), listedRecords)
+
 	for partI := 0; partI < len(parts); partI++ {
 		partStr := parts[partI]
 
@@ -1622,9 +1628,19 @@ func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any)
 		// Id-like not at end, and after a possible entname.
 		if probablyAnId && hasParent && notLastPart {
 
-			// Actually an action
-			if secondLastPart && parentName != entdescName &&
+			if secondLastPart && "id" != parentName && parentName != entdescName &&
+				strings.HasPrefix(entdescName, parentName+"_") &&
+				strings.HasSuffix(entdescName, Canonize(parts[partI+1])) {
+				// An entity named for the parent and the segment after the
+				// parameter is a resource of the parent, keyed by the parent.
+				if !isNameParam(oldParam) {
+					updateParamRename(ctx, data, pathStr, methodName,
+						paramRename, whyParam, oldParam,
+						parentName+"_id", "parent-resource:"+parentName)
+				}
+			} else if secondLastPart && parentName != entdescName &&
 				strings.HasPrefix(entdescName, parentName+"_") {
+				// Actually an action
 				updateParamRename(ctx, data, pathStr, methodName,
 					paramRename, whyParam, oldParam,
 					"id", "action-parent:"+entdescName)
@@ -1642,7 +1658,7 @@ func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any)
 					paramRename, whyParam, oldParam,
 					parentName+"_id", "parent:"+parentName)
 			}
-		} else if lastPart && notExactId &&
+		} else if lastPart && notExactId && !listed &&
 			(!hasParent ||
 				parentName == entdescName ||
 				strings.HasSuffix(entdescName, "_"+parentName)) {
@@ -1845,7 +1861,8 @@ func resolveOperation(data map[string]any, mdesc map[string]any) {
 	standardOpname := opname
 
 	if standardOpname == "load" {
-		islist := isListResponse(mdesc, getPM(ment), pathStr, &whyOp)
+		listedRecords, _ := work["listed"].(map[string]bool)
+		islist := isListResponse(mdesc, getPM(ment), pathStr, &whyOp, listedRecords)
 		if islist {
 			opname = "list"
 		}
@@ -2829,24 +2846,52 @@ func declaresID(schema map[string]any) bool {
 
 // methodOpname is the operation resolveOperation will assign, needed before
 // the entity is named: whether a response unwraps as an envelope depends on it.
-func methodOpname(mdesc map[string]any, pm *PathMatchResult, why *[]string) string {
+func methodOpname(mdesc map[string]any, pm *PathMatchResult, why *[]string, listed ...map[string]bool) string {
 	methodName, _ := mdesc["method"].(string)
 	pathStr, _ := mdesc["path"].(string)
 	opname := METHOD_IDOP[methodName]
-	if opname == "load" && isListResponse(mdesc, pm, pathStr, why) {
+	if opname == "load" && isListResponse(mdesc, pm, pathStr, why, listed...) {
 		return "list"
 	}
 	return opname
 }
 
-// isListResponse checks if a GET response is a list.
-func isListResponse(mdesc map[string]any, pm *PathMatchResult, pathStr string, why *[]string) bool {
+// pathAnswersPage mirrors ts/src/guide/heuristic01.ts: a read of the path
+// answers a page of records.
+func pathAnswersPage(pathdef map[string]any, pathStr string, pm *PathMatchResult, listed map[string]bool) bool {
+	for _, method := range []string{"GET", "QUERY"} {
+		opdef, _ := pathdef[strings.ToLower(method)].(map[string]any)
+		if opdef == nil {
+			continue
+		}
+		mdesc := map[string]any{"method": method, "path": pathStr, "responses": opdef["responses"]}
+		if "list" == methodOpname(mdesc, pm, &[]string{}, listed) {
+			return true
+		}
+	}
+	return false
+}
+
+// isListResponse mirrors ts/src/guide/heuristic01.ts: a trailing parameter
+// addresses one record, unless the route answers a page of records that the
+// parameter filters; a component some route lists is a record. The naming
+// passes give no `listed`.
+func isListResponse(mdesc map[string]any, pm *PathMatchResult, pathStr string, why *[]string, listed ...map[string]bool) bool {
 	islist := false
 
 	endParamAnchored := pm != nil && strings.HasSuffix(pm.Expr, "p/")
 	endParamBare := pm != nil && !endParamAnchored && strings.HasSuffix(pm.Expr, "p")
 
 	if endParamAnchored {
+		if 0 < len(listed) && listed[0] != nil {
+			responses, _ := mdesc["responses"].(map[string]any)
+			schema := getResponseSchema(successResponse(responses))
+			xref, _ := schema["x-ref"].(string)
+			if responses != nil && answersPage(schema) && !listed[0][xref] {
+				*why = append(*why, "end-param-page")
+				return true
+			}
+		}
 		*why = append(*why, "end-param")
 		return false
 	}
@@ -2995,6 +3040,33 @@ func namingSchemas(method string, responses map[string]any, answered map[string]
 		}
 	}
 	return schemas
+}
+
+// listedRefs mirrors ts/src/guide/heuristic01.ts: the components some
+// operation answers with as the records of a page.
+func listedRefs(def map[string]any) map[string]bool {
+	listed := map[string]bool{}
+	paths, _ := def["paths"].(map[string]any)
+	for _, pathStr := range sortedKeys(paths) {
+		pathdef, _ := paths[pathStr].(map[string]any)
+		for _, method := range sortedKeys(pathdef) {
+			if _, ok := METHOD_CONSIDER_ORDER[strings.ToUpper(method)]; !ok {
+				continue
+			}
+			mdef, _ := pathdef[method].(map[string]any)
+			if mdef == nil {
+				continue
+			}
+			responses, _ := mdef["responses"].(map[string]any)
+			for _, schema := range successSchemas(responses) {
+				items, _ := pageRecords(schema)["items"].(map[string]any)
+				if ref, ok := items["x-ref"].(string); ok {
+					listed[ref] = true
+				}
+			}
+		}
+	}
+	return listed
 }
 
 // answeredRefs mirrors ts/src/guide/heuristic01.ts: the records some

@@ -1,0 +1,101 @@
+# Generated from the API definition and overwritten on every build: do not
+# edit this file. Put customizations in the guide entry file, which includes
+# this one and overrides its defaults:
+#   guide.aontu
+
+guide: {
+  metrics: count: entity: 12
+  metrics: count: path: 14
+  metrics: count: method: 16
+
+  entity: agent: {
+    path: "/agents/{id}": {
+      op: list: method: *GET
+    }
+  }
+
+  entity: article: {
+    path: "/news/{tagId}": {
+      rename: param: "tagId": *"tag_id"
+      op: list: method: *GET
+    }
+  }
+
+  entity: box: {
+    path: "/boxes": {
+      op: list: method: *GET
+    }
+    path: "/boxes/{boxId}": {
+      rename: param: "boxId": *"id"
+      op: load: method: *GET
+    }
+  }
+
+  entity: crew: {
+    path: "/crews": {
+      op: list: method: *GET
+    }
+    path: "/crews/{crewId}": {
+      rename: param: "crewId": *"id"
+      op: load: method: *GET
+    }
+  }
+
+  entity: data: {
+    path: "/boxes/{boxId}/data/{sensorId}": {
+      rename: param: "boxId": *"box_id"
+      rename: param: "sensorId": *"sensor_id"
+      op: list: method: *GET
+    }
+  }
+
+  entity: id_info: {
+    path: "/id/{id}/info": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: press_release: {
+    path: "/press-releases/{currency}": {
+      op: list: method: *GET
+      op: list: transform: res: *("`body.data`")|top
+    }
+  }
+
+  entity: repo: {
+    path: "/repos/{owner}": {
+      op: create: method: *POST
+      op: list: method: *GET
+      op: list: transform: res: *("`body.items`")|top
+    }
+  }
+
+  entity: restaurant: {
+    path: "/restaurants/{id}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: restaurant_menu: {
+    path: "/restaurants/{id}/menu": {
+      rename: param: "id": *"restaurant_id"
+      op: load: method: *GET
+    }
+  }
+
+  entity: team: {
+    path: "/teams/{teamId}": {
+      rename: param: "teamId": *"id"
+      op: load: method: *GET
+    }
+  }
+
+  entity: user_profile: {
+    path: "/users/{userId}/profile": {
+      rename: param: "userId": *"user_id"
+      op: load: method: *GET
+      op: update: method: *PUT
+    }
+  }
+
+}

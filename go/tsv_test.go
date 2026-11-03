@@ -859,6 +859,25 @@ func TestEnvelopeItemRef(t *testing.T) {
 	}
 }
 
+// Mirrors tsv-answers-page in ts/test/tsv.test.ts.
+func TestAnswersPage(t *testing.T) {
+	rows := loadTsv(t, "answers-page")
+	if len(rows) == 0 {
+		t.Fatal("no answers-page rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var schema map[string]any
+			if err := json.Unmarshal([]byte(row["schema"]), &schema); err != nil {
+				t.Fatalf("bad schema %q: %v", row["schema"], err)
+			}
+			if got := answersPage(schema); got != ("true" == row["expected"]) {
+				t.Errorf("answersPage(%s) = %v, want %s", row["schema"], got, row["expected"])
+			}
+		})
+	}
+}
+
 func TestComposedEnvelopeProp(t *testing.T) {
 	rows := loadTsv(t, "composed-envelope-prop")
 	if len(rows) == 0 {

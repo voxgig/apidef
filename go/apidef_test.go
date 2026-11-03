@@ -4,6 +4,7 @@ package apidef
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -890,6 +891,84 @@ func TestGuideComposedScalar(t *testing.T) {
 		if got := strings.Join(sortedKeys(fields), ","); got != want {
 			t.Errorf("%s fields = %s, want %s", ent, got, want)
 		}
+	}
+}
+
+// Mirrors the TS `guide-page-param` case.
+func TestGuidePageParam(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "page-param-")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, OutPrefix: "page-param-", Strategy: "heuristic01"}).
+		Generate(map[string]any{
+			"model": map[string]any{"name": "page-param", "def": "page-param-def.json"},
+			"build": map[string]any{"spec": map[string]any{"base": "../ts/test/def"}},
+			"ctrl": map[string]any{"step": map[string]any{
+				"parse": true, "guide": true, "transformers": true,
+				"builders": false, "generate": false,
+			}},
+		})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v", err)
+	}
+
+	main, _ := res.ApiModel["main"].(map[string]any)
+	kit, _ := main[KIT].(map[string]any)
+	entities, _ := kit["entity"].(map[string]any)
+	points := func(ent string) []string {
+		e, _ := entities[ent].(map[string]any)
+		ops, _ := e["op"].(map[string]any)
+		var out []string
+		for _, opname := range sortedKeys(ops) {
+			op, _ := ops[opname].(map[string]any)
+			pts, _ := op["points"].([]any)
+			for _, p := range pts {
+				pt, _ := p.(map[string]any)
+				tr, _ := pt["t"].(map[string]any)
+				var params []string
+				if g, ok := pt["g"].(map[string]any); ok {
+					for _, a := range argsParamList(g["params"]) {
+						params = append(params, fmt.Sprint(a["or"])+">"+fmt.Sprint(a["n"]))
+					}
+				}
+				sort.Strings(params)
+				out = append(out, strings.Join([]string{opname, fmt.Sprint(pt["m"]), fmt.Sprint(pt["o"]),
+					fmt.Sprint(tr["res"]), strings.Join(params, ",")}, " "))
+			}
+		}
+		return out
+	}
+
+	for ent, want := range map[string][]string{
+		"press_release": {"list GET /press-releases/{currency} `body.data` currency>currency"},
+		"article":       {"list GET /news/{tagId} `body` tagId>tag_id"},
+		"agent":         {"list GET /agents/{id} `body` id>id"},
+		"data":          {"list GET /boxes/{boxId}/data/{sensorId} `body` boxId>box_id,sensorId>sensor_id"},
+		"repo": {"create POST /repos/{owner} `body` owner>owner",
+			"list GET /repos/{owner} `body.items` owner>owner"},
+		"team":            {"load GET /teams/{teamId} `body` teamId>id"},
+		"crew":            {"list GET /crews `body` ", "load GET /crews/{crewId} `body` crewId>id"},
+		"restaurant_menu": {"load GET /restaurants/{id}/menu `body` id>restaurant_id"},
+		"user_profile": {"load GET /users/{userId}/profile `body` userId>user_id",
+			"update PUT /users/{userId}/profile `body` userId>user_id"},
+		"id_info": {"load GET /id/{id}/info `body` id>id"},
+	} {
+		if got := points(ent); !reflect.DeepEqual(got, want) {
+			t.Errorf("%s points = %q, want %q", ent, got, want)
+		}
+	}
+
+	for _, ent := range []string{"press_release", "data", "repo", "restaurant_menu", "user_profile"} {
+		if e, _ := entities[ent].(map[string]any); e["id"] != nil {
+			t.Errorf("%s id = %v, want none", ent, e["id"])
+		}
+	}
+	team, _ := entities["team"].(map[string]any)
+	if got := team["id"]; !reflect.DeepEqual(got, map[string]any{"name": "id", "field": "id"}) {
+		t.Errorf("team id = %v, want field id", got)
+	}
+	pr, _ := entities["press_release"].(map[string]any)
+	prFields, _ := pr["fields"].(map[string]any)
+	if got := strings.Join(sortedKeys(prFields), ","); got != "date,title,url" {
+		t.Errorf("press_release fields = %s, want date,title,url", got)
 	}
 }
 

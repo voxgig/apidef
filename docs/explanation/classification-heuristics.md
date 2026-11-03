@@ -203,6 +203,18 @@ keyed on whether the path targets a *collection* or a single *item*:
 | item `/planet/{id}` | `PATCH` | `patch` (promoted to `update` if there is no `PUT`) |
 | item `/planet/{id}` | `DELETE` | `remove` |
 
+The shape is a default the answer can overrule. A `GET` on an item path
+that answers a page of records is a `list`: a central-bank feed's
+`/v1/press-releases/{currency}` answers the press releases of one currency,
+and none of them carries the currency. Read as a load, the route gave the
+press release an identity no record could match. The page test is strict,
+since an item's own record often holds a list: a page holds its one list of
+records beside nothing but status, paging and its own metadata, and a list
+beside an `id`, or beside data the response owns, stays a record. The rule
+reads what the route answers and not what the parameter is called, so a
+route that answers its one record wrapped in a list, as TheAudioDB's
+lookup routes do, is a list too, which is how an SDK can read that record.
+
 Only the method keys of a path item are classified: `get`, `put`, `post`,
 `delete`, `options`, `head`, `patch` and `query`. Its `parameters`,
 `servers`, `summary`, `description` and extension keys describe the path, so
@@ -368,11 +380,21 @@ schema named for one view of the entity rather than the entity itself:
 GitHub's `GET /orgs/{org}/actions/runner-groups/{runner_group_id}` answers
 with `runner-groups-org`, and `GET /repos/{owner}/{repo}/branches/{branch}`
 with `branch-with-protection`. Letting that name veto the rename withholds
-`id` from exactly those keys. What it would catch instead is rare: a trailing
-parameter that selects a scope rather than the entity, as `{owner}` does in a
-`/repos/{owner}/` path that lists every repository an account owns. That one is
-renamed to `id` too, and [the guide](../reference/guide.md#correcting-the-guide)
-is where to correct it.
+`id` from exactly those keys. What it would catch instead is a trailing
+parameter that selects a scope rather than the entity, as `{owner}` does in
+Cloudsmith's `/repos/{owner}/`, which lists every repository an account owns.
+The answer catches that one: a page of repositories makes the path's read a
+list, and no route on the path, its create included, renames `{owner}` to
+`id`. A scope whose read answers something other than a page is still
+renamed, and [the guide](../reference/guide.md#correcting-the-guide) is where
+to correct it.
+
+A parameter before the last segment keys the parent when the entity is
+named for both segments. A restaurant directory's `/restaurants/{id}/menu`
+is the menu of one restaurant: read as the menu's own key, `{id}` gave every
+menu the restaurant's identifier and an identity check no menu could pass.
+The parameter is `restaurant_id`, and the menu, a singleton of its parent,
+has no key of its own.
 
 A parameter before another segment keys a parent, such as `{project_name}`
 in SaladCloud's `/projects/{project_name}/containers/{container_group_name}`.
@@ -385,13 +407,13 @@ where its paths disagree that name is the specification's own, in snake
 case. A name is never renamed to an identifier either, because the value is
 a name: `project_id` described a project's name as its identifier.
 
-The entity's own key is left as each path names it. A list keyed by its
-parent can look like an item path: Cloudsmith's `/repos/{owner}/` lists an
-owner's repositories, and the trailing-key rule makes `{owner}` the
-repository's `id` there. Spreading that `id` to the entity's other paths
-would name the owner as the identifier of every repository. So an action
-can still name the entity's key apart from its load, as SaladCloud's
-container start does with `container_group_name`. The
+The entity's own key is left as each path names it. A path keyed by a
+parent can still look like an item path whose read answers no page, and the
+trailing-key rule then makes the parent's parameter the entity's `id` there.
+Spreading that `id` to the entity's other paths would name the parent as the
+identifier of every record. So an action can still name the entity's key
+apart from its load, as SaladCloud's container start does with
+`container_group_name`. The
 [guide reference](../reference/guide.md#parameter-renames) states the rules.
 
 ## Every decision is traceable

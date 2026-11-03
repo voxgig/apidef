@@ -21,7 +21,6 @@ guide: {
 
   entity: call_route_allowed_caller: {
     path: "/v2/call_routes/{call_route_id}/allowed_callers": {
-      rename: param: "call_route_id": *"id"
       op: create: method: *POST
       op: create: transform: res: *("`body.allowed_caller`")|top
       op: list: method: *GET

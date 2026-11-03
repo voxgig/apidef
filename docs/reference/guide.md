@@ -162,10 +162,27 @@ entity's paths:
 
 - A parameter that keys the entity itself, such as the trailing parameter
   under the entity's own segment, is renamed to `id`.
+- A trailing parameter of a path whose `GET` answers a page of records keys
+  no record, on any route of that path. The read is the entity's `list`,
+  filtered by the parameter, which keeps its own name in snake case:
+  `/press-releases/{currency}` answering `{ "count": 2, "data": [...] }` takes
+  `currency`. A page is a list of records, or one list of them beside nothing
+  but status, paging and the page's own metadata, and the list unwraps it
+  (`` `body.data` ``). A list of scalars, a list that may be null, and a list
+  beside an `id` or other data of the response's own are not pages, so those
+  routes stay loads. So does a route answering a component that another route
+  answers with as the records of a page: `/teams/{team_id}` answering the
+  `Team` that `/teams` lists is a load, though a `Team` holds only its list of
+  members.
 - A parameter that keys a parent may be renamed after the parent's segment,
   as `<parent>_id`. A parameter whose own name, in snake case, is `name` or
   ends in `_name`, such as `project_name` or `projectName`, is never renamed
   this way.
+- A parameter before the last segment, on an entity named for the segment
+  before it and the last one, keys the parent: `{id}` in
+  `/restaurants/{id}/menu` on `restaurant_menu` becomes `restaurant_id`, and
+  the entity has no key of its own there. A parent segment spelt `id`, as in
+  `/id/{id}/info`, keeps the parameter `id`.
 - A parameter at the same place in several paths of one entity, with the same
   segments before it, takes one name in all of them when they disagree: its
   own name, in snake case. When one of those paths renames it to `id`, each
@@ -200,6 +217,10 @@ pin them in both builds, and the `guide-param-names` tests in
 [`ts/test/apidef.test.ts`](../../ts/test/apidef.test.ts) and
 [`go/apidef_test.go`](../../go/apidef_test.go) pin the outcome for the whole
 spec on [`ts/test/def/param-names-def.json`](../../ts/test/def/param-names-def.json).
+`answersPage` in [`ts/src/utility.ts`](../../ts/src/utility.ts) is the page
+test, pinned by [`ts/test/answers-page.tsv`](../../ts/test/answers-page.tsv),
+and the `guide-page-param` tests pin the page and parent rules on
+[`ts/test/def/page-param-def.json`](../../ts/test/def/page-param-def.json).
 
 ### Response envelopes
 

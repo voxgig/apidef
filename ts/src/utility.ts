@@ -2048,6 +2048,36 @@ function composedEnvelopeProp(schema: any, opname: string): string | null {
 }
 
 
+// The list of records a page response holds: the response itself when it is
+// a list of records, else the one list of them a list unwraps, beside nothing
+// but status, paging and the page's own metadata. An `id` beside the list
+// makes the response a record that holds one, and answers no page.
+function pageRecords(schema: any): any {
+  if (null == schema || 'object' !== typeof schema) {
+    return null
+  }
+  if (true === propIsList(schema)) {
+    return isRecordList(schema) ? schema : null
+  }
+
+  const own = schema.properties
+  const key = (null != own ? envelopeProp(own, 'list') : null) ??
+    composedEnvelopeProp(schema, 'list')
+  const props = mergedProperties(schema)
+  if (null == key || null == props || null != props.id || !isRecordList(props[key])) {
+    return null
+  }
+
+  return keysof(props).every((k: string) =>
+    k === key || isEnvelopePageProp(k) || isEnvelopeStatusProp(k)) ? props[key] : null
+}
+
+
+function answersPage(schema: any): boolean {
+  return null != pageRecords(schema)
+}
+
+
 // The properties of a schema and its allOf members; the first declaration of
 // a name wins. Read-only, since parsed nodes are shared between references.
 function mergedProperties(schema: any): Record<string, any> | undefined {
@@ -2292,6 +2322,8 @@ export {
   envelopeProp,
   envelopeItemRef,
   composedEnvelopeProp,
+  pageRecords,
+  answersPage,
   propIsList,
   mergedProperties,
   closedBodyTransform,

@@ -33,6 +33,7 @@ import {
   envelopeProp,
   envelopeItemRef,
   composedEnvelopeProp,
+  answersPage,
   mergedProperties,
   closedBodyTransform,
   requestWrapperOf,
@@ -725,6 +726,17 @@ describe('tsv-composed-envelope-prop', () => {
     test(`composedEnvelopeProp(${row.schema}, "${row.opname}") => "${row.expected}"`, () => {
       const expected = '' === row.expected ? null : row.expected
       assert.strictEqual(composedEnvelopeProp(JSON.parse(row.schema), row.opname), expected)
+    })
+  }
+})
+
+
+describe('tsv-answers-page', () => {
+  const rows = loadTsv('answers-page')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, () => {
+      assert.strictEqual(answersPage(JSON.parse(row.schema)), 'true' === row.expected)
     })
   }
 })

@@ -24,6 +24,7 @@ guide: {
 
   entity: crew_member: {
     path: "/{year}/crew/{id}/member": {
+      rename: param: "id": *"crew_id"
       op: create: method: *POST
       op: list: method: *GET
       op: list: transform: res: *("`body.members`")|top
