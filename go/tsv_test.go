@@ -1094,11 +1094,13 @@ func TestSingleIdentity(t *testing.T) {
 	}
 	for _, row := range rows {
 		t.Run(row["name"], func(t *testing.T) {
-			var record, gid, want map[string]any
+			var record, gid, want, records map[string]any
+			var wantFields []string
 			for _, c := range []struct {
 				src string
-				dst *map[string]any
-			}{{row["record"], &record}, {row["guide"], &gid}, {row["expected"], &want}} {
+				dst any
+			}{{row["record"], &record}, {row["guide"], &gid}, {row["expected"], &want},
+				{row["routerecords"], &records}, {row["fields"], &wantFields}} {
 				if err := json.Unmarshal([]byte(c.src), c.dst); err != nil {
 					t.Fatalf("bad JSON %q: %v", c.src, err)
 				}
@@ -1132,7 +1134,7 @@ func TestSingleIdentity(t *testing.T) {
 					params = append(params, map[string]any{"n": n, "or": wire(e), "k": "param"})
 				}
 				rename := map[string]any{}
-				if "id" != wire(elems[last]) {
+				if strings.HasPrefix(elems[last], "{") && "id" != wire(elems[last]) {
 					rename[wire(elems[last])] = "id"
 				}
 				point := map[string]any{
@@ -1151,9 +1153,13 @@ func TestSingleIdentity(t *testing.T) {
 					pathdef = map[string]any{}
 					paths[path] = pathdef
 				}
+				properties := record
+				if own, ok := records[method+" "+path].(map[string]any); ok {
+					properties = own
+				}
 				pathdef[strings.ToLower(method)] = map[string]any{"responses": map[string]any{
 					"200": map[string]any{"content": map[string]any{"application/json": map[string]any{
-						"schema": map[string]any{"type": "object", "properties": record},
+						"schema": map[string]any{"type": "object", "properties": properties},
 					}}},
 				}}
 			}
@@ -1175,9 +1181,18 @@ func TestSingleIdentity(t *testing.T) {
 			if !reflect.DeepEqual(got, any(want)) {
 				t.Errorf("id = %s, want %s", raw, row["expected"])
 			}
-			_, hasId := ent["fields"].(map[string]any)["id"]
+			fields, _ := ent["fields"].(map[string]any)
+			_, hasId := fields["id"]
 			if hasId != ("true" == row["idfield"]) {
 				t.Errorf("fields.id present = %v, want %s", hasId, row["idfield"])
+			}
+			if got := sortedKeys(fields); !reflect.DeepEqual(got, wantFields) {
+				t.Errorf("fields = %v, want %v", got, wantFields)
+			}
+			for _, name := range sortedKeys(fields) {
+				if n := fields[name].(map[string]any)["n"]; n != name {
+					t.Errorf("fields.%s.n = %v", name, n)
+				}
 			}
 		})
 	}

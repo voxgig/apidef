@@ -2,7 +2,7 @@ import type { Transform } from '../transform';
 import type { SchemaDef } from '../def';
 import type { ModelEntity, ModelPoint } from '../model';
 declare const fieldTransform: Transform;
-declare function singleIdentity(ment: ModelEntity, gid?: any, def?: any): {
+declare function singleIdentity(ment: ModelEntity, gid?: any, def?: any, wires?: Record<string, Set<string>>): {
     field?: string;
     from?: Record<string, string>;
 };

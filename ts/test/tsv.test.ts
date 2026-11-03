@@ -861,22 +861,25 @@ describe('tsv-single-identity', () => {
     test(row.name, async () => {
       const ment: any = { name: 'thing', fields: {}, op: {} }
       const paths: any = {}
+      const records = JSON.parse(row.routerecords)
       for (const route of row.routes.split(';')) {
         const [opname, method, path] = route.split(' ')
         const elems = path.split('/').filter((e: string) => '' !== e)
         const last = elems.length - 1
         const wire = (e: string) => e.slice(1, -1)
+        const keyed = elems[last].startsWith('{') && 'id' !== wire(elems[last])
         const point: any = {
           o: path, m: method, k: 'http',
           s: elems.map((e: string, i: number) => !e.startsWith('{') ? { lit: e } :
             { var: i === last ? 'id' : wire(e) }),
           g: { params: elems.filter((e: string) => e.startsWith('{')).map((e: string) =>
             ({ n: e === elems[last] ? 'id' : wire(e), or: wire(e), k: 'param' })) },
-          r: { param: 'id' === wire(elems[last]) ? {} : { [wire(elems[last])]: 'id' } },
+          r: { param: keyed ? { [wire(elems[last])]: 'id' } : {} },
         }
         ment.op[opname] = { name: opname, points: [...(ment.op[opname]?.points || []), point] }
+        const properties = records[method + ' ' + path] ?? JSON.parse(row.record)
         paths[path] = { ...(paths[path] || {}), [method.toLowerCase()]: { responses: { 200: {
-          content: { 'application/json': { schema: { type: 'object', properties: JSON.parse(row.record) } } },
+          content: { 'application/json': { schema: { type: 'object', properties } } },
         } } } }
       }
       const guide = { entity: { thing: { id: JSON.parse(row.guide) } } }
@@ -886,6 +889,10 @@ describe('tsv-single-identity', () => {
 
       assert.deepStrictEqual(ment.id, JSON.parse(row.expected))
       assert.strictEqual(null != ment.fields.id, 'true' === row.idfield)
+      assert.deepStrictEqual(Object.keys(ment.fields), JSON.parse(row.fields))
+      for (const name of Object.keys(ment.fields)) {
+        assert.strictEqual(ment.fields[name].n, name)
+      }
     })
   }
 })

@@ -205,9 +205,24 @@ model's `id` descriptor reads the key from that field: `/devices/{slug}`
 answering `{ "slug": "pixel-8", ... }` gives `id: { field: slug, name: id }`,
 and the entity gains no `id` field of its own. The call still passes `id`, and
 the request still fills `{slug}`. A record carrying an unrelated `id` beside
-the slug keeps it as an ordinary field. The rows of
-[`ts/test/single-identity.tsv`](../../ts/test/single-identity.tsv) pin the
-rule in both builds.
+the slug keeps it as an ordinary field.
+
+The records read are the ones the item paths return, through the envelope
+the operation unwraps: the loads' records where a load declares one, else
+those of the updates, else every record the entity answers with. A field
+only a listed record carries, or one inside an object the record holds, such
+as `team.abbr`, is not the key.
+
+A record that carries no such field and no `id` is keyed by the one
+identifier it declares among `_id`, `<entity>_id` and `<entity>Id`, when the
+item paths' parameter is an identifier itself: `id`, or a name ending in
+`_id`, `-id`, `Id` or `ID`. `/boxes/{boxId}` answering
+`{ "_id": "5a0c...", ... }` gives `id: { field: _id, name: id }`, and the
+field keeps its underscore, `_id`, though other field names lose a leading
+underscore. A record declaring two of them, or a path whose parameter is not
+an identifier, such as `/cats/{tag}`, keeps `id`. The rows of
+[`ts/test/single-identity.tsv`](../../ts/test/single-identity.tsv) pin these
+rules in both builds.
 
 `isNameParam` and `entityParamNames` in
 [`ts/src/guide/heuristic01.ts`](../../ts/src/guide/heuristic01.ts) are the
@@ -219,7 +234,7 @@ pin them in both builds, and the `guide-param-names` tests in
 spec on [`ts/test/def/param-names-def.json`](../../ts/test/def/param-names-def.json).
 `answersPage` in [`ts/src/utility.ts`](../../ts/src/utility.ts) is the page
 test, pinned by [`ts/test/answers-page.tsv`](../../ts/test/answers-page.tsv),
-and the `guide-page-param` tests pin the page and parent rules on
+and the `guide-page-param` tests pin the page, parent and `_id` rules on
 [`ts/test/def/page-param-def.json`](../../ts/test/def/page-param-def.json).
 
 ### Response envelopes

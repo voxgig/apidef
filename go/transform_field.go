@@ -4,6 +4,7 @@ package apidef
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 )
 
@@ -28,6 +29,7 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 			fields = map[string]any{}
 		}
 		opMap, _ := mentMap["op"].(map[string]any)
+		wires := map[string]map[string]bool{}
 
 		for _, opname := range opFieldPrecedence {
 			mop, ok := opMap[opname].(map[string]any)
@@ -41,12 +43,17 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 					continue
 				}
 				media, _ := guideBodyMedia(ctx.Guide, entname, opname, safeStr(mtarget["m"]), safeStr(mtarget["o"]))
-				opfields := resolveOpFields(mtarget, def, opname, entname, media)
 				carrier := ""
 				if c := carrierOf(mtarget, def, media); c != nil {
 					carrier = c.name
 				}
-				for _, opfield := range opfields {
+				for _, fielddef := range findFieldDefs(mtarget, def, opname, entname, media) {
+					opfield := modelField(fielddef)
+					n, _ := opfield["n"].(string)
+					if wires[n] == nil {
+						wires[n] = map[string]bool{}
+					}
+					wires[n][fmt.Sprint(fielddef["key$"])] = true
 					addOpField(fields, opname, opfield, carrier == opfield["n"])
 				}
 			}
@@ -87,9 +94,33 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 				if gent != nil {
 					gid, _ = gent["id"].(map[string]any)
 				}
-				single = singleIdentity(mentMap, gid, ctx.Def)
+				single = singleIdentity(mentMap, gid, ctx.Def, wires)
 			}
 			_, keyed := single["field"]
+
+			// Mirrors ts/src/transform/field.ts: a key read from `_id` keeps
+			// its underscore as the field's name, unless another property
+			// shares the field.
+			if keywire, ok := single["field"].(string); ok {
+				keyname := fieldName(keywire)
+				if moved, has := fields[keyname].(map[string]any); has && keyname != keywire {
+					sole := true
+					for w := range wires[keyname] {
+						if w != keywire {
+							sole = false
+						}
+					}
+					if sole {
+						copied := map[string]any{}
+						for k, v := range moved {
+							copied[k] = v
+						}
+						copied["n"] = keywire
+						fields[keywire] = copied
+						delete(fields, keyname)
+					}
+				}
+			}
 
 			syntheticId := func() {
 				fields["id"] = map[string]any{
@@ -398,9 +429,11 @@ func compositeIdFrom(
 
 // singleIdentity mirrors ts/src/transform/field.ts: where a single-part
 // identity lives in the record. A field name becomes the descriptor's `field`;
-// a dotted path cannot, so it stays a `from`.
+// a dotted path cannot, so it stays a `from`. A field counts only at the top
+// of the records itemRecords reads.
 func singleIdentity(
 	mentMap map[string]any, gid map[string]any, def map[string]any,
+	wires map[string]map[string]bool,
 ) map[string]any {
 	if from, ok := gid["from"].(map[string]any); ok && from != nil {
 		if say, ok := from["id"]; ok && say != nil && "" != fmt.Sprint(say) {
@@ -414,27 +447,75 @@ func singleIdentity(
 
 	parts := identityParams(mentMap)
 	wire := itemWireNames(mentMap)
-	if 1 != len(parts) || "id" != parts[0] || 1 != len(wire) ||
-		"id" == wire[0] || "" == wire[0] {
+	if 1 != len(parts) || "id" != parts[0] || 1 != len(wire) || "" == wire[0] {
 		return map[string]any{}
 	}
 
-	name := fieldName(wire[0])
-	returned := false
-	for _, props := range responseCandidates(mentMap, def) {
-		if scalarSchema(resolveRef(props[wire[0]], def)) {
-			returned = true
-			break
+	records := itemRecords(mentMap, def)
+	fields, _ := mentMap["fields"].(map[string]any)
+	carries := func(key string) bool {
+		field, _ := fields[fieldName(key)].(map[string]any)
+		if !identityScalar(field) {
+			return false
 		}
+		for _, props := range records {
+			if scalarSchema(resolveRef(props[key], def)) {
+				return true
+			}
+		}
+		return false
 	}
 
-	fields, _ := mentMap["fields"].(map[string]any)
-	field, _ := fields[name].(map[string]any)
-	if returned && identityScalar(field) {
-		return map[string]any{"field": name}
+	if "id" != wire[0] && carries(wire[0]) {
+		return map[string]any{"field": fieldName(wire[0])}
+	}
+
+	// A record keyed by no field the path names, and holding no `id`, is keyed
+	// by the one identifier it declares, when the path's parameter is one too.
+	var declared []string
+	if !carries("id") && identifierParam.MatchString(wire[0]) {
+		name, _ := mentMap["name"].(string)
+		for _, key := range identityKeys(name) {
+			if !carries(key) {
+				continue
+			}
+			sole := true
+			for w := range wires[fieldName(key)] {
+				if w != key {
+					sole = false
+				}
+			}
+			if sole {
+				declared = append(declared, key)
+			}
+		}
+	}
+	if 1 == len(declared) {
+		return map[string]any{"field": declared[0]}
 	}
 
 	return map[string]any{}
+}
+
+var identifierParam = regexp.MustCompile(`(^|[_-])[iI][dD]$|[a-z0-9](Id|ID)$`)
+
+var identitySnakePart = regexp.MustCompile(`_([a-z0-9])`)
+
+// identityKeys mirrors ts/src/transform/field.ts: the wire names a record
+// conventionally keeps its own identifier under.
+func identityKeys(entname string) []string {
+	camel := identitySnakePart.ReplaceAllStringFunc(entname, func(m string) string {
+		return strings.ToUpper(m[1:])
+	})
+	var keys []string
+	seen := map[string]bool{}
+	for _, key := range []string{"_id", entname + "_id", camel + "Id"} {
+		if !seen[key] {
+			seen[key] = true
+			keys = append(keys, key)
+		}
+	}
+	return keys
 }
 
 // itemWireNames lists the wire names of the `id` parameter on the routes that
@@ -1466,6 +1547,33 @@ func resolveRef(schema any, def map[string]any) map[string]any {
 }
 
 func responseCandidates(mentMap map[string]any, def map[string]any) []map[string]any {
+	return answeredProps(mentMap, def, []string{"load", "list", "update", "create"},
+		func(map[string]any) bool { return true }, true)
+}
+
+// itemRecords mirrors ts/src/transform/field.ts: the records the routes
+// addressing one record by `id` answer with, the loads' wherever a load
+// declares one, else every record the entity answers with.
+func itemRecords(mentMap map[string]any, def map[string]any) []map[string]any {
+	keyed := func(pt map[string]any) bool {
+		run := trailingVars(pt)
+		return 0 < len(run) && "id" == run[len(run)-1]
+	}
+	for _, opnames := range [][]string{{"load"}, {"update", "patch"}} {
+		if records := answeredProps(mentMap, def, opnames, keyed, false); 0 < len(records) {
+			return records
+		}
+	}
+	return responseCandidates(mentMap, def)
+}
+
+// answeredProps mirrors ts/src/transform/field.ts: the property maps the ops'
+// points answer with and each envelope's item; `whole` keeps the envelope's
+// own map beside its item.
+func answeredProps(
+	mentMap map[string]any, def map[string]any, opnames []string,
+	keep func(map[string]any) bool, whole bool,
+) []map[string]any {
 	var out []map[string]any
 	seen := map[string]bool{}
 
@@ -1506,24 +1614,23 @@ func responseCandidates(mentMap map[string]any, def map[string]any) []map[string
 
 	add := func(schema any, opname string) {
 		for _, props := range propsOf(schema) {
-			out = append(out, props)
-
-			envelope := envelopeProp(props, opname)
-			if "" == envelope {
-				continue
+			var inner map[string]any
+			if envelope := envelopeProp(props, opname); "" != envelope {
+				inner = resolveRef(props[envelope], def)
 			}
-			inner := resolveRef(props[envelope], def)
-			if inner == nil {
-				continue
+			if whole || inner == nil {
+				out = append(out, props)
 			}
-			out = append(out, propsOf(inner)...)
+			if inner != nil {
+				out = append(out, propsOf(inner)...)
+			}
 		}
 	}
 
 	opMap, _ := mentMap["op"].(map[string]any)
 	paths, _ := def["paths"].(map[string]any)
 
-	for _, opname := range []string{"load", "list", "update", "create"} {
+	for _, opname := range opnames {
 		mop, _ := opMap[opname].(map[string]any)
 		if mop == nil {
 			continue
@@ -1539,6 +1646,9 @@ func responseCandidates(mentMap map[string]any, def map[string]any) []map[string
 				if _, has := sel["$action"]; has {
 					continue
 				}
+			}
+			if !keep(ptMap) {
+				continue
 			}
 
 			orig, _ := ptMap["o"].(string)

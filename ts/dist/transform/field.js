@@ -16,15 +16,17 @@ const fieldTransform = async function (ctx) {
     const opFieldPrecedence = ['load', 'create', 'update', 'patch', 'list'];
     (0, jostraca_1.each)(kit.entity, (ment, entname) => {
         const fields = ment.fields;
+        const wires = Object.create(null);
         for (let opname of opFieldPrecedence) {
             const mop = ment.op[opname];
             if (mop) {
                 const mpoints = mop.points;
                 for (let mpoint of mpoints) {
                     const media = (0, body_1.guideMedia)(guide, entname, opname, mpoint).body;
-                    const opfields = resolveOpFields(ment, mop, mpoint, def, media);
                     const carrier = carrierOf(mpoint, def, media)?.name;
-                    for (let opfield of opfields) {
+                    for (const fielddef of findFieldDefs(ment, mop, mpoint, def, media)) {
+                        const opfield = modelField(fielddef);
+                        (wires[opfield.n] = wires[opfield.n] ?? new Set()).add(String(fielddef.key$));
                         addField(fields, mop, opfield, carrier === opfield.n);
                     }
                 }
@@ -78,8 +80,16 @@ const fieldTransform = async function (ctx) {
         }
         const singleKey = composite.single;
         delete composite.single;
-        const single = null == composite.parts ? singleIdentity(ment, gent?.id, def) : {};
+        const single = null == composite.parts ? singleIdentity(ment, gent?.id, def, wires) : {};
         const keyed = null != single.field;
+        // `_id` keeps the underscore a field name drops, unless a property shares it.
+        const keywire = single.field;
+        const keyname = keyed ? (0, utility_1.fieldName)(keywire) : undefined;
+        if (null != keyname && keyname !== keywire && null != fields[keyname] &&
+            [...(wires[keyname] ?? [])].every((w) => w === keywire)) {
+            fields[keywire] = { ...fields[keyname], n: keywire };
+            delete fields[keyname];
+        }
         if (null == idField && null != singleKey && null == composite.parts && !keyed) {
             // The guide disabled composite; the terminal parameter is the key, and
             // the entity needs the field to carry it for the same reason the
@@ -178,6 +188,22 @@ function identityParams(ment) {
     return null == best ? [] : best.run;
 }
 function responseCandidates(ment, def) {
+    return answeredProps(ment, def, ['load', 'list', 'update', 'create'], () => true, true);
+}
+// The records the routes addressing one record by `id` answer with, through
+// their envelopes, else every record the entity answers with.
+function itemRecords(ment, def) {
+    const keyed = (pt) => 'id' === trailingVars(pt).slice(-1)[0];
+    for (const opnames of [['load'], ['update', 'patch']]) {
+        const records = answeredProps(ment, def, opnames, keyed, false);
+        if (0 < records.length) {
+            return records;
+        }
+    }
+    return responseCandidates(ment, def);
+}
+// What the ops' points answer with; `whole` keeps an envelope beside its item.
+function answeredProps(ment, def, opnames, keep, whole) {
     const out = [];
     const seen = new Set();
     // Every property map this schema describes, expanding allOf.
@@ -202,26 +228,22 @@ function responseCandidates(ment, def) {
     };
     const add = (schema, opname) => {
         for (const props of propsOf(schema)) {
-            out.push(props);
             // One level in, but ONLY through the envelope property.
             const envelope = (0, utility_1.envelopeProp)(props, opname);
-            if (null == envelope) {
-                continue;
+            const inner = null == envelope ? null : resolveRef(props[envelope], def);
+            if (whole || null == inner) {
+                out.push(props);
             }
-            const inner = resolveRef(props[envelope], def);
-            if (null == inner) {
-                continue;
-            }
-            for (const innerProps of propsOf(inner)) {
-                out.push(innerProps);
+            if (null != inner) {
+                out.push(...propsOf(inner));
             }
         }
     };
-    for (const opname of ['load', 'list', 'update', 'create']) {
+    for (const opname of opnames) {
         const mop = ment.op?.[opname];
         for (const mpoint of (mop?.points || [])) {
             // An action point's response is not the entity.
-            if (null != mpoint?.q?.['$action']) {
+            if (null != mpoint?.q?.['$action'] || !keep(mpoint)) {
                 continue;
             }
             const path = (def?.paths || {})[mpoint?.o];
@@ -412,8 +434,9 @@ function compositeId(ment, gent, def) {
     return 1 < parts.length ? withFrom(parts, sep) : {};
 }
 // Where a single-part identity lives in the record. A field name becomes the
-// descriptor's `field`; a dotted path cannot, so it stays a `from`.
-function singleIdentity(ment, gid, def) {
+// descriptor's `field`; a dotted path cannot, so it stays a `from`. A field
+// counts only at the top of the records `itemRecords` reads.
+function singleIdentity(ment, gid, def, wires) {
     const say = null != gid?.from && 'object' === typeof gid.from ? gid.from.id : undefined;
     if (null != say && '' !== String(say)) {
         const where = String(say);
@@ -421,14 +444,27 @@ function singleIdentity(ment, gid, def) {
     }
     const parts = identityParams(ment);
     const wire = itemWireNames(ment);
-    if (1 !== parts.length || 'id' !== parts[0] || 1 !== wire.length ||
-        'id' === wire[0] || '' === wire[0]) {
+    if (1 !== parts.length || 'id' !== parts[0] || 1 !== wire.length || '' === wire[0]) {
         return {};
     }
-    const name = (0, utility_1.fieldName)(wire[0]);
-    const returned = responseCandidates(ment, def ?? {})
-        .some((props) => scalarSchema(resolveRef(props[wire[0]], def)));
-    return returned && identityScalar(ment.fields?.[name]) ? { field: name } : {};
+    const records = itemRecords(ment, def ?? {});
+    const carries = (key) => identityScalar(ment.fields?.[(0, utility_1.fieldName)(key)]) &&
+        records.some((props) => scalarSchema(resolveRef(props[key], def)));
+    if ('id' !== wire[0] && carries(wire[0])) {
+        return { field: (0, utility_1.fieldName)(wire[0]) };
+    }
+    // A record holding no `id` is keyed by the one identifier it declares, when
+    // the path's own parameter is an identifier too.
+    const declared = carries('id') || !IDENTIFIER_PARAM.test(wire[0]) ? [] :
+        identityKeys(ment.name).filter((key) => carries(key) &&
+            [...(wires?.[(0, utility_1.fieldName)(key)] ?? [key])].every((w) => w === key));
+    return 1 === declared.length ? { field: declared[0] } : {};
+}
+const IDENTIFIER_PARAM = /(^|[_-])[iI][dD]$|[a-z0-9](Id|ID)$/;
+// The wire names a record conventionally keeps its own identifier under.
+function identityKeys(entname) {
+    const camel = entname.replace(/_([a-z0-9])/g, (_m, c) => c.toUpperCase());
+    return [...new Set(['_id', entname + '_id', camel + 'Id'])];
 }
 // The wire names of the `id` parameter on the routes that address one record
 // by it, with '' for a route that takes other parameters too.

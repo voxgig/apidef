@@ -45,6 +45,7 @@ const fieldTransform: Transform = async function(
 
   each(kit.entity, (ment: ModelEntity, entname: string) => {
     const fields = ment.fields
+    const wires: Record<string, Set<string>> = Object.create(null)
 
     for (let opname of opFieldPrecedence) {
       const mop = ment.op[opname]
@@ -53,10 +54,11 @@ const fieldTransform: Transform = async function(
 
         for (let mpoint of mpoints) {
           const media = guideMedia(guide, entname, opname, mpoint).body
-          const opfields = resolveOpFields(ment, mop, mpoint, def, media)
           const carrier = carrierOf(mpoint, def, media)?.name
 
-          for (let opfield of opfields) {
+          for (const fielddef of findFieldDefs(ment, mop, mpoint, def, media)) {
+            const opfield = modelField(fielddef)
+            ;(wires[opfield.n] = wires[opfield.n] ?? new Set()).add(String((fielddef as any).key$))
             addField(fields, mop, opfield, carrier === opfield.n)
           }
         }
@@ -122,8 +124,17 @@ const fieldTransform: Transform = async function(
     const singleKey = (composite as any).single
     delete (composite as any).single
 
-    const single = null == composite.parts ? singleIdentity(ment, gent?.id, def) : {}
+    const single = null == composite.parts ? singleIdentity(ment, gent?.id, def, wires) : {}
     const keyed = null != single.field
+
+    // `_id` keeps the underscore a field name drops, unless a property shares it.
+    const keywire = single.field as string
+    const keyname = keyed ? fieldName(keywire) : undefined
+    if (null != keyname && keyname !== keywire && null != fields[keyname] &&
+      [...(wires[keyname] ?? [])].every((w: string) => w === keywire)) {
+      fields[keywire] = { ...fields[keyname], n: keywire }
+      delete fields[keyname]
+    }
 
     if (null == idField && null != singleKey && null == composite.parts && !keyed) {
       // The guide disabled composite; the terminal parameter is the key, and
@@ -244,6 +255,32 @@ function identityParams(ment: ModelEntity): string[] {
 }
 
 function responseCandidates(ment: ModelEntity, def: any): any[] {
+  return answeredProps(ment, def, ['load', 'list', 'update', 'create'], () => true, true)
+}
+
+
+// The records the routes addressing one record by `id` answer with, through
+// their envelopes, else every record the entity answers with.
+function itemRecords(ment: ModelEntity, def: any): any[] {
+  const keyed = (pt: any) => 'id' === trailingVars(pt).slice(-1)[0]
+  for (const opnames of [['load'], ['update', 'patch']]) {
+    const records = answeredProps(ment, def, opnames, keyed, false)
+    if (0 < records.length) {
+      return records
+    }
+  }
+  return responseCandidates(ment, def)
+}
+
+
+// What the ops' points answer with; `whole` keeps an envelope beside its item.
+function answeredProps(
+  ment: ModelEntity,
+  def: any,
+  opnames: string[],
+  keep: (pt: any) => boolean,
+  whole: boolean,
+): any[] {
   const out: any[] = []
   const seen = new Set<any>()
 
@@ -274,29 +311,25 @@ function responseCandidates(ment: ModelEntity, def: any): any[] {
 
   const add = (schema: any, opname: string) => {
     for (const props of propsOf(schema)) {
-      out.push(props)
-
       // One level in, but ONLY through the envelope property.
       const envelope = envelopeProp(props, opname)
-      if (null == envelope) {
-        continue
+      const inner = null == envelope ? null : resolveRef(props[envelope], def)
+
+      if (whole || null == inner) {
+        out.push(props)
       }
-      const inner = resolveRef(props[envelope], def)
-      if (null == inner) {
-        continue
-      }
-      for (const innerProps of propsOf(inner)) {
-        out.push(innerProps)
+      if (null != inner) {
+        out.push(...propsOf(inner))
       }
     }
   }
 
-  for (const opname of ['load', 'list', 'update', 'create']) {
+  for (const opname of opnames) {
     const mop = (ment as any).op?.[opname]
 
     for (const mpoint of (mop?.points || [])) {
       // An action point's response is not the entity.
-      if (null != mpoint?.q?.['$action']) {
+      if (null != mpoint?.q?.['$action'] || !keep(mpoint)) {
         continue
       }
 
@@ -551,11 +584,13 @@ function compositeId(
 
 
 // Where a single-part identity lives in the record. A field name becomes the
-// descriptor's `field`; a dotted path cannot, so it stays a `from`.
+// descriptor's `field`; a dotted path cannot, so it stays a `from`. A field
+// counts only at the top of the records `itemRecords` reads.
 function singleIdentity(
   ment: ModelEntity,
   gid?: any,
   def?: any,
+  wires?: Record<string, Set<string>>,
 ): { field?: string, from?: Record<string, string> } {
   const say = null != gid?.from && 'object' === typeof gid.from ? gid.from.id : undefined
   if (null != say && '' !== String(say)) {
@@ -565,16 +600,35 @@ function singleIdentity(
 
   const parts = identityParams(ment)
   const wire = itemWireNames(ment)
-  if (1 !== parts.length || 'id' !== parts[0] || 1 !== wire.length ||
-    'id' === wire[0] || '' === wire[0]) {
+  if (1 !== parts.length || 'id' !== parts[0] || 1 !== wire.length || '' === wire[0]) {
     return {}
   }
 
-  const name = fieldName(wire[0])
-  const returned = responseCandidates(ment, def ?? {})
-    .some((props: any) => scalarSchema(resolveRef(props[wire[0]], def)))
+  const records = itemRecords(ment, def ?? {})
+  const carries = (key: string) => identityScalar((ment.fields as any)?.[fieldName(key)]) &&
+    records.some((props: any) => scalarSchema(resolveRef(props[key], def)))
 
-  return returned && identityScalar((ment.fields as any)?.[name]) ? { field: name } : {}
+  if ('id' !== wire[0] && carries(wire[0])) {
+    return { field: fieldName(wire[0]) }
+  }
+
+  // A record holding no `id` is keyed by the one identifier it declares, when
+  // the path's own parameter is an identifier too.
+  const declared = carries('id') || !IDENTIFIER_PARAM.test(wire[0]) ? [] :
+    identityKeys(ment.name).filter((key: string) => carries(key) &&
+      [...(wires?.[fieldName(key)] ?? [key])].every((w: string) => w === key))
+
+  return 1 === declared.length ? { field: declared[0] } : {}
+}
+
+
+const IDENTIFIER_PARAM = /(^|[_-])[iI][dD]$|[a-z0-9](Id|ID)$/
+
+
+// The wire names a record conventionally keeps its own identifier under.
+function identityKeys(entname: string): string[] {
+  const camel = entname.replace(/_([a-z0-9])/g, (_m: string, c: string) => c.toUpperCase())
+  return [...new Set(['_id', entname + '_id', camel + 'Id'])]
 }
 
 

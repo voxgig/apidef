@@ -1021,7 +1021,8 @@ describe('apidef', () => {
   // A trailing parameter whose route answers a page of records filters a
   // list, and keeps its own name on every route of its path, unless another
   // route lists the component it answers with. A parameter before the segment
-  // its entity is named for keys the parent.
+  // its entity is named for keys the parent. A record that declares `_id` and
+  // no `id` is keyed by `_id`.
   test('guide-page-param', async () => {
     const folder = __dirname + '/../test/page-param'
 
@@ -1076,6 +1077,8 @@ describe('apidef', () => {
     for (const ent of ['press_release', 'data', 'repo', 'restaurant_menu', 'user_profile']) {
       assert.strictEqual(entities[ent].id, undefined, ent)
     }
+    assert.deepStrictEqual(entities.box.id, { name: 'id', field: '_id' })
+    assert.deepStrictEqual(Object.keys(entities.box.fields), ['_id', 'name'])
     assert.deepStrictEqual(entities.team.id, { name: 'id', field: 'id' })
     assert.deepStrictEqual(Object.keys(entities.press_release.fields), ['date', 'title', 'url'])
   })

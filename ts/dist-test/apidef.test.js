@@ -798,7 +798,8 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
     // A trailing parameter whose route answers a page of records filters a
     // list, and keeps its own name on every route of its path, unless another
     // route lists the component it answers with. A parameter before the segment
-    // its entity is named for keys the parent.
+    // its entity is named for keys the parent. A record that declares `_id` and
+    // no `id` is keyed by `_id`.
     (0, node_test_1.test)('guide-page-param', async () => {
         const folder = __dirname + '/../test/page-param';
         const build = await apidef_1.ApiDef.makeBuild({ folder });
@@ -838,6 +839,8 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         for (const ent of ['press_release', 'data', 'repo', 'restaurant_menu', 'user_profile']) {
             node_assert_1.default.strictEqual(entities[ent].id, undefined, ent);
         }
+        node_assert_1.default.deepStrictEqual(entities.box.id, { name: 'id', field: '_id' });
+        node_assert_1.default.deepStrictEqual(Object.keys(entities.box.fields), ['_id', 'name']);
         node_assert_1.default.deepStrictEqual(entities.team.id, { name: 'id', field: 'id' });
         node_assert_1.default.deepStrictEqual(Object.keys(entities.press_release.fields), ['date', 'title', 'url']);
     });

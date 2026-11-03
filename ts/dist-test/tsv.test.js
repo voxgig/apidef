@@ -695,21 +695,24 @@ function loadTsv(name) {
         (0, node_test_1.test)(row.name, async () => {
             const ment = { name: 'thing', fields: {}, op: {} };
             const paths = {};
+            const records = JSON.parse(row.routerecords);
             for (const route of row.routes.split(';')) {
                 const [opname, method, path] = route.split(' ');
                 const elems = path.split('/').filter((e) => '' !== e);
                 const last = elems.length - 1;
                 const wire = (e) => e.slice(1, -1);
+                const keyed = elems[last].startsWith('{') && 'id' !== wire(elems[last]);
                 const point = {
                     o: path, m: method, k: 'http',
                     s: elems.map((e, i) => !e.startsWith('{') ? { lit: e } :
                         { var: i === last ? 'id' : wire(e) }),
                     g: { params: elems.filter((e) => e.startsWith('{')).map((e) => ({ n: e === elems[last] ? 'id' : wire(e), or: wire(e), k: 'param' })) },
-                    r: { param: 'id' === wire(elems[last]) ? {} : { [wire(elems[last])]: 'id' } },
+                    r: { param: keyed ? { [wire(elems[last])]: 'id' } : {} },
                 };
                 ment.op[opname] = { name: opname, points: [...(ment.op[opname]?.points || []), point] };
+                const properties = records[method + ' ' + path] ?? JSON.parse(row.record);
                 paths[path] = { ...(paths[path] || {}), [method.toLowerCase()]: { responses: { 200: {
-                                content: { 'application/json': { schema: { type: 'object', properties: JSON.parse(row.record) } } },
+                                content: { 'application/json': { schema: { type: 'object', properties } } },
                             } } } };
             }
             const guide = { entity: { thing: { id: JSON.parse(row.guide) } } };
@@ -717,6 +720,10 @@ function loadTsv(name) {
                 def: { paths }, guide });
             node_assert_1.default.deepStrictEqual(ment.id, JSON.parse(row.expected));
             node_assert_1.default.strictEqual(null != ment.fields.id, 'true' === row.idfield);
+            node_assert_1.default.deepStrictEqual(Object.keys(ment.fields), JSON.parse(row.fields));
+            for (const name of Object.keys(ment.fields)) {
+                node_assert_1.default.strictEqual(ment.fields[name].n, name);
+            }
         });
     }
 });

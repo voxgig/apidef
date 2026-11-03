@@ -1,14 +1,28 @@
-name	routes	record	guide	expected	idfield
-slug-record-without-id	load GET /devices/{slug}	{"slug":{"type":"string"},"name":{"type":"string"}}	{}	{"name":"id","field":"slug"}	false
-slug-beside-an-unrelated-id	load GET /articles/{slug}	{"id":{"type":"integer"},"slug":{"type":"string"}}	{}	{"name":"id","field":"slug"}	true
-integer-key	load GET /years/{year}	{"year":{"type":"integer"},"events":{"type":"array","items":{"type":"string"}}}	{}	{"name":"id","field":"year"}	false
-camel-case-key	load GET /tags/{tagId}	{"tagId":{"type":"string"},"label":{"type":"string"}}	{}	{"name":"id","field":"tagId"}	false
-record-in-an-envelope	load GET /operators/{slug}	{"data":{"type":"object","properties":{"slug":{"type":"string"},"name":{"type":"string"}}}}	{}	{"name":"id","field":"slug"}	false
-record-names-it-id	load GET /devices/{id}	{"id":{"type":"string"},"slug":{"type":"string"}}	{}	{"name":"id","field":"id"}	true
-record-lacks-the-key	load GET /devices/{slug}	{"name":{"type":"string"}}	{}	{"name":"id","field":"id"}	true
-key-is-an-object	load GET /devices/{owner}	{"owner":{"type":"object","properties":{"login":{"type":"string"}}}}	{}	{"name":"id","field":"id"}	true
-two-keys-for-one-record	load GET /devices/{slug};remove DELETE /devices/{uuid}	{"slug":{"type":"string"},"uuid":{"type":"string"}}	{}	{"name":"id","field":"id"}	true
-scoped-by-a-parent	load GET /orgs/{org}/devices/{slug}	{"slug":{"type":"string"}}	{}	{"name":"id","field":"id"}	true
-stated-field	load GET /issues/{key}	{"title":{"type":"string"}}	{"from":{"id":"key"}}	{"name":"id","field":"key"}	false
-stated-field-wins	load GET /articles/{slug}	{"id":{"type":"integer"},"slug":{"type":"string"},"uid":{"type":"string"}}	{"from":{"id":"uid"}}	{"name":"id","field":"uid"}	true
-stated-path	load GET /repos/{repo}	{"name":{"type":"string"}}	{"from":{"id":"owner.login"}}	{"name":"id","field":"id","from":{"id":"owner.login"}}	true
+name	routes	record	guide	expected	idfield	routerecords	fields
+slug-record-without-id	load GET /devices/{slug}	{"slug":{"type":"string"},"name":{"type":"string"}}	{}	{"name":"id","field":"slug"}	false	{}	["name","slug"]
+slug-beside-an-unrelated-id	load GET /articles/{slug}	{"id":{"type":"integer"},"slug":{"type":"string"}}	{}	{"name":"id","field":"slug"}	true	{}	["id","slug"]
+integer-key	load GET /years/{year}	{"year":{"type":"integer"},"events":{"type":"array","items":{"type":"string"}}}	{}	{"name":"id","field":"year"}	false	{}	["events","year"]
+camel-case-key	load GET /tags/{tagId}	{"tagId":{"type":"string"},"label":{"type":"string"}}	{}	{"name":"id","field":"tagId"}	false	{}	["label","tagId"]
+record-in-an-envelope	load GET /operators/{slug}	{"data":{"type":"object","properties":{"slug":{"type":"string"},"name":{"type":"string"}}}}	{}	{"name":"id","field":"slug"}	false	{}	["name","slug"]
+record-names-it-id	load GET /devices/{id}	{"id":{"type":"string"},"slug":{"type":"string"}}	{}	{"name":"id","field":"id"}	true	{}	["id","slug"]
+record-lacks-the-key	load GET /devices/{slug}	{"name":{"type":"string"}}	{}	{"name":"id","field":"id"}	true	{}	["id","name"]
+key-is-an-object	load GET /devices/{owner}	{"owner":{"type":"object","properties":{"login":{"type":"string"}}}}	{}	{"name":"id","field":"id"}	true	{}	["id","login"]
+two-keys-for-one-record	load GET /devices/{slug};remove DELETE /devices/{uuid}	{"slug":{"type":"string"},"uuid":{"type":"string"}}	{}	{"name":"id","field":"id"}	true	{}	["id","slug","uuid"]
+scoped-by-a-parent	load GET /orgs/{org}/devices/{slug}	{"slug":{"type":"string"}}	{}	{"name":"id","field":"id"}	true	{}	["id","slug"]
+stated-field	load GET /issues/{key}	{"title":{"type":"string"}}	{"from":{"id":"key"}}	{"name":"id","field":"key"}	false	{}	["title"]
+stated-field-wins	load GET /articles/{slug}	{"id":{"type":"integer"},"slug":{"type":"string"},"uid":{"type":"string"}}	{"from":{"id":"uid"}}	{"name":"id","field":"uid"}	true	{}	["id","slug","uid"]
+stated-path	load GET /repos/{repo}	{"name":{"type":"string"}}	{"from":{"id":"owner.login"}}	{"name":"id","field":"id","from":{"id":"owner.login"}}	true	{}	["id","name"]
+listed-key-missing-from-the-item	list GET /teams;load GET /teams/{abbr}	{"season":{"type":"integer"},"team":{"type":"object","properties":{"abbr":{"type":"string"}}}}	{}	{"name":"id","field":"id"}	true	{"GET /teams":{"teams":{"type":"array","items":{"type":"object","properties":{"abbr":{"type":"string"},"name":{"type":"string"}}}}}}	["abbr","id","name","season","team"]
+listed-key-only-inside-the-item	list GET /companies;load GET /companies/{slug}	{"data":{"type":"object","properties":{"company":{"type":"object","properties":{"slug":{"type":"string"}}},"hiring":{"type":"object","properties":{"open":{"type":"integer"}}}}}}	{}	{"name":"id","field":"id"}	true	{"GET /companies":{"data":{"type":"array","items":{"type":"object","properties":{"slug":{"type":"string"},"name":{"type":"string"}}}}}}	["company","hiring","id","name","slug"]
+key-in-the-item-and-the-list	list GET /teams;load GET /teams/{abbr}	{"abbr":{"type":"string"},"season":{"type":"integer"}}	{}	{"name":"id","field":"abbr"}	false	{"GET /teams":{"teams":{"type":"array","items":{"type":"object","properties":{"abbr":{"type":"string"},"name":{"type":"string"}}}}}}	["abbr","name","season"]
+record-keyed-by-underscore-id	load GET /boxes/{boxId}	{"_id":{"type":"string"},"name":{"type":"string"}}	{}	{"name":"id","field":"_id"}	false	{}	["_id","name"]
+underscore-id-on-an-id-route	load GET /boxes/{id};remove DELETE /boxes/{id}	{"_id":{"type":"string"},"name":{"type":"string"}}	{}	{"name":"id","field":"_id"}	false	{}	["_id","name"]
+record-keyed-by-entity-id	load GET /things/{id}	{"thing_id":{"type":"string"},"name":{"type":"string"}}	{}	{"name":"id","field":"thing_id"}	false	{}	["name","thing_id"]
+record-keyed-by-camel-entity-id	load GET /things/{thing_id}	{"thingId":{"type":"integer"},"label":{"type":"string"}}	{}	{"name":"id","field":"thingId"}	false	{}	["label","thingId"]
+underscore-id-beside-an-id	load GET /boxes/{boxId}	{"_id":{"type":"string"},"id":{"type":"string"}}	{}	{"name":"id","field":"id"}	true	{}	["id"]
+two-identifiers-declared	load GET /boxes/{boxId}	{"_id":{"type":"string"},"thing_id":{"type":"string"}}	{}	{"name":"id","field":"id"}	true	{}	["id","thing_id"]
+underscore-id-the-list-shares	list GET /boxes;load GET /boxes/{boxId}	{"_id":{"type":"string"},"name":{"type":"string"}}	{}	{"name":"id","field":"_id"}	false	{"GET /boxes":{"boxes":{"type":"array","items":{"type":"object","properties":{"_id":{"type":"string"},"name":{"type":"string"}}}}}}	["_id","name"]
+underscore-id-beside-a-listed-id	list GET /boxes;load GET /boxes/{boxId}	{"_id":{"type":"string"},"name":{"type":"string"}}	{}	{"name":"id","field":"id"}	true	{"GET /boxes":{"boxes":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"}}}}}}	["id","name"]
+key-in-the-list-of-a-remove	list GET /domains;remove DELETE /domains/{domain}	{"domains":{"type":"array","items":{"type":"object","properties":{"domain":{"type":"string"},"verified":{"type":"boolean"}}}}}	{}	{"name":"id","field":"domain"}	false	{}	["domain","verified"]
+identifier-the-route-does-not-name	load GET /things/{platformKey}	{"thingId":{"type":"string"},"key":{"type":"string"}}	{}	{"name":"id","field":"id"}	true	{}	["id","key","thingId"]
+underscore-id-the-route-does-not-name	load GET /cats/{tag}	{"_id":{"type":"string"},"tags":{"type":"array","items":{"type":"string"}}}	{}	{"name":"id","field":"id"}	true	{}	["id","tags"]

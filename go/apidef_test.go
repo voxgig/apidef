@@ -961,6 +961,14 @@ func TestGuidePageParam(t *testing.T) {
 			t.Errorf("%s id = %v, want none", ent, e["id"])
 		}
 	}
+	box, _ := entities["box"].(map[string]any)
+	if got := box["id"]; !reflect.DeepEqual(got, map[string]any{"name": "id", "field": "_id"}) {
+		t.Errorf("box id = %v, want field _id", got)
+	}
+	boxFields, _ := box["fields"].(map[string]any)
+	if got := strings.Join(sortedKeys(boxFields), ","); got != "_id,name" {
+		t.Errorf("box fields = %s, want _id,name", got)
+	}
 	team, _ := entities["team"].(map[string]any)
 	if got := team["id"]; !reflect.DeepEqual(got, map[string]any{"name": "id", "field": "id"}) {
 		t.Errorf("team id = %v, want field id", got)
