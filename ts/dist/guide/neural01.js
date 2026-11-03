@@ -196,8 +196,10 @@ function measureMetrics(work) {
                 }
             }
         }
+        // As the heuristic reads literals: an element holding a placeholder, whole
+        // or beside other text, names no component.
         for (const part of path.split('/')) {
-            if ('' !== part && !isParam(part)) {
+            if ('' !== part && '{' !== part[0]) {
                 work.pathLiterals[(0, utility_1.canonize)(part)] = true;
             }
         }
