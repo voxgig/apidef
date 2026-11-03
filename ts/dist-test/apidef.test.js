@@ -1001,12 +1001,12 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
                 .flatMap(([path, pd]) => Object.values(pd.op).map((op) => op.method + ' ' + path))
                 .sort()]));
         node_assert_1.default.deepStrictEqual(routes, {
-            setting: ['DELETE /keys/{key_id}', 'GET /keys', 'POST /keys'],
+            key: ['DELETE /keys/{key_id}', 'GET /keys', 'POST /keys'],
         });
-        node_assert_1.default.deepStrictEqual(Object.keys(bres.apimodel.main.kit.entity), ['setting']);
+        node_assert_1.default.deepStrictEqual(Object.keys(bres.apimodel.main.kit.entity), ['key']);
     });
-    // guide.aontu gives /keys back to the emptied entity, or to a new one, and
-    // the model keeps that assignment. go/apidef_test.go mirrors this case.
+    // guide.aontu gives /keys back to the entity its record named, emptied by
+    // the merge, or to a new one. go/apidef_test.go mirrors this case.
     // An API that keeps older versions of a route beside the current one. The
     // highest version with an operation that is not deprecated is the route;
     // each other version is an action named for it, so it stays reachable.
@@ -1119,7 +1119,7 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         const Os = require('node:os');
         const Path = require('node:path');
         const def = 'collection-merge-def.json';
-        for (const owner of ['key', 'keyring']) {
+        for (const owner of ['api_key', 'keyring']) {
             const dir = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'apidef-merge-'));
             const folder = Path.join(dir, 'model');
             Fs.mkdirSync(Path.join(folder, 'guide'), { recursive: true });
@@ -1132,7 +1132,7 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
                 '  create: method: "POST"',
                 '  list: method: "GET"',
                 '}',
-                'guide: entity: setting: path: "/keys": active: false',
+                'guide: entity: key: path: "/keys": active: false',
                 '',
             ].join('\n'));
             const build = await apidef_1.ApiDef.makeBuild({ folder });
@@ -1158,7 +1158,7 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
                     .sort()]));
             node_assert_1.default.deepStrictEqual(routes, {
                 [owner]: ['create POST /keys', 'list GET /keys'],
-                setting: ['remove DELETE /keys/{key_id}'],
+                key: ['remove DELETE /keys/{key_id}'],
             }, owner);
         }
     });
@@ -1188,7 +1188,7 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
                 .sort()]));
         const I = '/clusters/{cluster_name}/instances';
         node_assert_1.default.deepStrictEqual(routes, {
-            activity: [
+            starred: [
                 'DELETE /user/starred/{owner}/{repo}',
                 'GET /user/starred',
                 'PUT /user/starred/{owner}/{repo}',
@@ -1209,7 +1209,7 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
                 'POST /mail/v1/domains',
             ],
             repo: ['GET /repos/{repo_id}', 'POST /repos/{repo_id}/forks'],
-            report: ['GET /exports/{export_id}'],
+            export: ['GET /exports/{export_id}'],
             repository_invitation: [
                 'DELETE /user/repository_invitations/{invitation_id}',
                 'GET /user/repository_invitations',
@@ -1293,18 +1293,19 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
                 .flatMap(([path, pd]) => Object.values(pd.op).map((op) => op.method + ' ' + path))
                 .sort()]));
         node_assert_1.default.deepStrictEqual(routes, {
-            activity: ['DELETE /stars/{owner}/{repo}', 'GET /stars', 'PUT /stars/{owner}/{repo}'],
-            admin: ['DELETE /shop/gadgets/{gadget_id}', 'DELETE /teams/{team_id}'],
+            star: ['DELETE /stars/{owner}/{repo}', 'GET /stars', 'PUT /stars/{owner}/{repo}'],
             catalog_bundle: ['GET /catalog/bundles', 'PUT /catalog/bundles/{bundle_id}'],
-            gadget: ['GET /shop/gadgets', 'GET /shop/gadgets/{gadget_id}', 'POST /shop/gadgets'],
-            job: ['GET /jobs'],
-            job_summary: ['POST /jobs/{job_id}/cancel'],
+            gadget: [
+                'DELETE /shop/gadgets/{gadget_id}', 'GET /shop/gadgets', 'GET /shop/gadgets/{gadget_id}',
+                'POST /shop/gadgets',
+            ],
+            job: ['GET /jobs', 'POST /jobs/{job_id}/cancel'],
             org: ['GET /org'],
             plan: ['GET /plans'],
             purchase: ['GET /plans/{plan_id}/accounts'],
             report: ['GET /org/reports', 'POST /org/reports/{report_id}/rerun'],
             shop: ['GET /shop'],
-            team: ['GET /teams', 'GET /teams/{team_id}'],
+            team: ['DELETE /teams/{team_id}', 'GET /teams', 'GET /teams/{team_id}'],
             token: ['GET /user/tokens', 'PUT /user/tokens/{slug}/refresh'],
             user: ['GET /user'],
         });

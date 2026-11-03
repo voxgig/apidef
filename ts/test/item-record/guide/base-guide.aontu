@@ -8,16 +8,6 @@ guide: {
   metrics: count: path: 24
   metrics: count: method: 34
 
-  entity: activity: {
-    path: "/user/starred": {
-      op: list: method: *GET
-    }
-    path: "/user/starred/{owner}/{repo}": {
-      op: remove: method: *DELETE
-      op: update: method: *PUT
-    }
-  }
-
   entity: ci_runner_detail: {
     path: "/runners": {
       op: list: method: *GET
@@ -45,6 +35,13 @@ guide: {
   entity: ci_worker_registration: {
     path: "/workers": {
       op: create: method: *POST
+    }
+  }
+
+  entity: export: {
+    path: "/exports/{export_id}": {
+      rename: param: "export_id": *"id"
+      op: load: method: *GET
     }
   }
 
@@ -87,12 +84,6 @@ guide: {
     }
   }
 
-  entity: report: {
-    path: "/exports/{export_id}": {
-      op: load: method: *GET
-    }
-  }
-
   entity: repository_invitation: {
     path: "/user/repository_invitations": {
       op: list: method: *GET
@@ -112,6 +103,16 @@ guide: {
     path: "/simulation_runs/{run_id}": {
       rename: param: "run_id": *"id"
       op: load: method: *GET
+    }
+  }
+
+  entity: starred: {
+    path: "/user/starred": {
+      op: list: method: *GET
+    }
+    path: "/user/starred/{owner}/{repo}": {
+      op: remove: method: *DELETE
+      op: update: method: *PUT
     }
   }
 

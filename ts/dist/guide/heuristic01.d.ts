@@ -1,10 +1,15 @@
 import { ApiDefContext, Guide } from '../types';
 import type { PathMatch } from '../utility';
 declare function heuristic01(ctx: ApiDefContext): Promise<Guide>;
+declare function pathNoun(pm: PathMatch, parts: string[], why: string[]): string;
+declare function tagNamesLiteral(parts: string[], tag: string): boolean;
 declare function namingSchemas(method: string, responses: any, answered: Record<string, boolean>, envelope: Record<string, string>): any[];
 declare function answeredRefs(def: any, envelope: Record<string, string>): Record<string, boolean>;
 declare function namingRef(schema: any, envelope: Record<string, string>): string | undefined;
 declare function pathRecordRef(def: any, pathStr: string, methods: string[], collection: boolean, accepted?: boolean): string | null;
+declare function keyParamOf(def: any, pathStr: string, work: {
+    childKeys?: Record<string, string>;
+}): string | null;
 declare function matchEntityPath(parts: string[]): PathMatch | null;
 declare function pathResource(parts: string[], method: string): string | null;
 type SharingRoute = {
@@ -21,4 +26,4 @@ declare function verbParts(parts: string[]): string[];
 declare function isNameParam(param: string): boolean;
 declare function entityParamNames(paths: Record<string, Record<string, string>>): Record<string, Record<string, string>>;
 declare function arrayBodyField(schema: any, entname: string, taken?: string[]): string;
-export { answeredRefs, arrayBodyField, distinctRecord, distinctShare, heuristic01, matchEntityPath, namingRef, namingSchemas, pathRecordRef, pathResource, sharedRoutes, entityParamNames, isNameParam, isVerb, verbParts, };
+export { answeredRefs, arrayBodyField, distinctRecord, distinctShare, heuristic01, keyParamOf, matchEntityPath, pathNoun, tagNamesLiteral, namingRef, namingSchemas, pathRecordRef, pathResource, sharedRoutes, entityParamNames, isNameParam, isVerb, verbParts, };

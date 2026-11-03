@@ -4,28 +4,9 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 14
+  metrics: count: entity: 12
   metrics: count: path: 19
   metrics: count: method: 23
-
-  entity: activity: {
-    path: "/stars": {
-      op: list: method: *GET
-    }
-    path: "/stars/{owner}/{repo}": {
-      op: remove: method: *DELETE
-      op: update: method: *PUT
-    }
-  }
-
-  entity: admin: {
-    path: "/shop/gadgets/{gadget_id}": {
-      op: remove: method: *DELETE
-    }
-    path: "/teams/{team_id}": {
-      op: remove: method: *DELETE
-    }
-  }
 
   entity: catalog_bundle: {
     path: "/catalog/bundles": {
@@ -45,6 +26,7 @@ guide: {
     path: "/shop/gadgets/{gadget_id}": {
       rename: param: "gadget_id": *"id"
       op: load: method: *GET
+      op: remove: method: *DELETE
     }
   }
 
@@ -52,9 +34,6 @@ guide: {
     path: "/jobs": {
       op: list: method: *GET
     }
-  }
-
-  entity: job_summary: {
     path: "/jobs/{job_id}/cancel": {
       action: "cancel": {}
       rename: param: "job_id": *"id"
@@ -99,6 +78,16 @@ guide: {
     }
   }
 
+  entity: star: {
+    path: "/stars": {
+      op: list: method: *GET
+    }
+    path: "/stars/{owner}/{repo}": {
+      op: remove: method: *DELETE
+      op: update: method: *PUT
+    }
+  }
+
   entity: team: {
     path: "/teams": {
       op: list: method: *GET
@@ -106,6 +95,7 @@ guide: {
     path: "/teams/{team_id}": {
       rename: param: "team_id": *"id"
       op: load: method: *GET
+      op: remove: method: *DELETE
     }
   }
 

@@ -98,7 +98,8 @@ const NAME_NET = makeNet(
     'delcmp_avail', 'cmp_occur_le1', 'last_lit_singular', 'cmp_not_verb',
     'item_route_exists', 'route_not_extended', 'last_is_cmp', 'path_has_children',
     'same_path_avail', 'opid_avail', 'title_avail', 'seg_avail',
-    'tag_item_route', 'tag_cmp_is_record', 'collrec_avail', 'tag_collides'],
+    'tag_item_route', 'tag_cmp_is_record', 'collrec_avail', 'tag_collides',
+    'cmp_names_key', 'tag_name_avail', 'cmp_differs', 'cmp_foreign_tag'],
   {
     shaped: { b: 0, w: { shaped: 1 } },
     coll_record: {
@@ -115,15 +116,28 @@ const NAME_NET = makeNet(
         cmp_not_verb: 1, item_route_exists: 1, route_not_extended: 1,
       },
     },
-    cmp_qualifies: { b: -3, w: { shaped: 1, cmp_avail: 1, cmp_ne_path: 1, cmp_qualifies: 1 } },
+    cmp_qualifies: {
+      b: -3,
+      w: {
+        shaped: 1, cmp_avail: 1, cmp_ne_path: 1, cmp_qualifies: 1, cmp_foreign_tag: -1, cmp_names_key: -1,
+      },
+    },
+    cmp_key: {
+      b: -3, w: { shaped: 1, cmp_avail: 1, cmp_differs: 1, cmp_names_key: 1, cmp_foreign_tag: -1 },
+    },
     cmp_primary: {
       b: -3,
       w: {
         shaped: 1, cmp_avail: 1, cmp_ne_path: 1, cmp_infrequent: 1, cmp_shared: -1, cmp_qualifies: -1,
+        cmp_names_key: -1, cmp_foreign_tag: -1,
       },
     },
     cmp_in_path: {
-      b: -3, w: { shaped: 1, cmp_avail: 1, cmp_ne_path: 1, cmp_in_path: 1, cmp_qualifies: -1 },
+      b: -3,
+      w: {
+        shaped: 1, cmp_avail: 1, cmp_ne_path: 1, cmp_in_path: 1, cmp_qualifies: -1, cmp_names_key: -1,
+        cmp_foreign_tag: -1,
+      },
     },
     delete_cmp: { b: -3, w: { shaped: 1, m_delete: 1, cmp_avail: -1, delcmp_avail: 1, probable: 1 } },
     tpt_last_cmp: {
@@ -137,6 +151,7 @@ const NAME_NET = makeNet(
     none_opid: { b: 0, w: { shaped: -1, opid_avail: 1 } },
     none_title: { b: 0, w: { shaped: -1, title_avail: 1 } },
     none_seg: { b: 0, w: { shaped: -1, seg_avail: 1 } },
+    none_tag: { b: 0, w: { shaped: -1, tag_name_avail: 1 } },
   },
   {
     COLLREC: { b: 0, w: { coll_record: 30 } },
@@ -144,7 +159,7 @@ const NAME_NET = makeNet(
     SAMEPATH: { b: 0, w: { same_path: 20 } },
     PARENT: { b: 0, w: { vop: 10 } },
     CMPQ: { b: 0, w: { cmp_qualifies: 6 } },
-    CMP: { b: 0, w: { cmp_primary: 5, cmp_in_path: 4 } },
+    CMP: { b: 0, w: { cmp_key: 7, cmp_primary: 5, cmp_in_path: 4 } },
     DELCMP: { b: 0, w: { delete_cmp: 5 } },
     LAST: { b: 0, w: { tpt_last_cmp: 4, tpt_last_child: 4 } },
     PART: { b: 0, w: { tpt_part: 3 } },
@@ -153,6 +168,7 @@ const NAME_NET = makeNet(
     OPID: { b: 0, w: { none_opid: 6 } },
     TITLE: { b: 0, w: { none_title: 5 } },
     SEG: { b: 0, w: { none_seg: 4 } },
+    TAG: { b: 0, w: { none_tag: 3 } },
     NONE: { b: 0.5, w: {} },
   },
 )

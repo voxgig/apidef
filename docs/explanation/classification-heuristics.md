@@ -224,14 +224,29 @@ A single operation can have **several points** — one per path/method that
 produces it — which is why the model keeps `op.<name>.points[]` rather than a
 single path (see [the internal model](./the-internal-model.md)).
 
+## A tag names a route only where the path cannot
+
+A route with no response component takes its name from a tag only when
+the tag names a literal of the path, as `things` does on
+`PUT /things/{id}/merge`, or when the path has no usable literal at all.
+A tag foreign to the path groups routes by module or audience, `Settings`
+on `/keys/{key_id}` or `Admin` on `DELETE /teams/{team_id}`, and the path's
+own noun names them: `key` and `team`. A literal that names an identifier,
+such as `contentIds` in Apicurio's `/ids/contentIds/{contentId}`, keys a
+resource rather than naming one, so there the tag still names, and the
+reads stay on `artifact`. A trailing literal that is a verb, `send` in
+`/message/send`, names the noun before it, and the verb becomes an action
+of `message`; so does the verb after a colon in a custom method, as
+`count` in `/schedules:count` acts on `schedule`.
+
 ## A collection joins its items
 
-The collection and its items can be named apart. An `/apiKeys` path that
+The collection and its items can be named apart. A `/keys` path that
 answers with its own `ApiKeys` schema names `api_key`, while
-`/apiKeys/{apiKeyId}` answers with no schema and takes `setting` from its
-tag. Once every method is classified, the collection path moves to the
-entity that holds the item path, so `setting` lists, creates, and removes
-its keys. `api_key` is left with no path, and is removed rather than emitted
+`/keys/{key_id}` answers with no schema and takes `key` from its path.
+Once every method is classified, the collection path moves to the entity
+that holds the item path, so `key` lists, creates, and removes its keys.
+`api_key` is left with no path, and is removed rather than emitted
 inactive: an entity with no path is not a classification `guide.aontu`
 could switch back on.
 
@@ -266,9 +281,7 @@ onto the collection's: GitHub's `/user/repository_invitations/{invitation_id}`
 is tagged `repos`, and joining the invitation list to `repo` gave
 repositories the invitation's fields. When the tag names a resource with a
 record of its own, and the list's record carries the list path's own name,
-the item route joins the list's entity, `repository_invitation`, instead. A
-tag that names no resource, such as `Settings` in the earlier example, groups
-operations without a record to mix, and the collection still joins it.
+the item route joins the list's entity, `repository_invitation`, instead.
 
 A tag can gather such item routes from several collections, and one entity
 then holds them all, where a generated SDK reaches only the first of two
@@ -311,8 +324,8 @@ names.
 
 The move is part of the heuristic, so it shapes the base guide and nothing
 after it. When the collection is a resource of its own, `guide.aontu` can
-declare `/apiKeys` on `api_key` and switch the path off on `setting`, and
-the model keeps that assignment.
+declare `/keys` on `api_key` and switch the path off on `key`, and the
+model keeps that assignment.
 
 ## Actions: the non-CRUD leftovers
 

@@ -339,9 +339,10 @@ function resolveCmp(work, route) {
     for (const xref of cmpxrefs) {
         xref.cmp = (0, utility_1.cleanComponentName)(xref.cmp, (n) => null != metrics.count.origcmprefs[n]);
     }
-    const kept = cmpxrefs.filter((xref) => {
+    const unwrapped = cmpxrefs.flatMap((xref) => unwrapCmp(metrics, xref, why));
+    const kept = unwrapped.filter((xref) => {
         const d = (0, nn_1.decide)(guideNets().cmpKeep, {
-            single: bit(cmpxrefs.length <= 1),
+            single: bit(unwrapped.length <= 1),
             in_path: bit(lowerpath.includes('/' + xref.cmp + '/')),
             occurs: bit(route.parts.some((p) => '{' !== p[0] && (0, utility_1.canonize)(p.toLowerCase()) === xref.cmp)),
             infrequent: bit(infrequent(metrics, xref.origcmpref)),
@@ -442,10 +443,31 @@ function verbRoute(work, path) {
     }
     return found;
 }
+// A wrapper names the component it wraps, or nothing: the candidate is
+// replaced or dropped.
+function unwrapCmp(metrics, xref, why) {
+    const inner = (0, utility_1.wrapperOf)(xref.cmp, Object.keys(metrics.found.cmp));
+    if (null == inner) {
+        return [xref];
+    }
+    why.push('wrapper=' + xref.cmp + ('' === inner ? '' : '>' + inner));
+    if ('' === inner) {
+        return [];
+    }
+    const orig = metrics.found.cmp[inner]?.orig ?? inner;
+    const out = { ...xref, cmp: inner, origcmp: orig };
+    if (null != xref.val) {
+        out.val = xref.val.replace(/[^/]+$/, orig);
+    }
+    if (null != xref.origcmpref) {
+        out.origcmpref = inner;
+    }
+    return [out];
+}
 // Every component a response of any of the path's methods names.
-function uniqueResponseCmps(def, path) {
+function uniqueResponseCmps(work, path, why) {
     const names = new Set();
-    for (const mdef of Object.values(def.paths?.[path] ?? {})) {
+    for (const mdef of Object.values(work.def.paths?.[path] ?? {})) {
         for (const found of (0, utility_1.find)(mdef?.responses, 'x-ref')) {
             const m = String(found.val).match(/\/(components\/schemas|definitions)\/(.+)$/);
             if (null != m) {
@@ -453,7 +475,8 @@ function uniqueResponseCmps(def, path) {
             }
         }
     }
-    return Array.from(names).map((n) => ({ cmp: (0, utility_1.canonizeCmpName)(n), origcmp: n }));
+    return Array.from(names).map((n) => ({ cmp: (0, utility_1.canonizeCmpName)(n), origcmp: n }))
+        .flatMap((found) => unwrapCmp(work.guide.metrics, found, why));
 }
 // The collection of an item route whose method its tag alone names, when the
 // route answers nothing.
@@ -592,13 +615,17 @@ function nameFeatures(work, route, owners, recordowner, why) {
     x.cmp_from_tag = bit('tag' === cmp?.ref);
     if (null != pm) {
         x[SHAPE_FEATURES[pm.expr]] = 1;
-        const pathName = (0, utility_1.canonize)(pm[PATH_NAME_INDEX[pm.expr]]);
+        const pathName = (0, heuristic01_1.pathNoun)(pm, route.parts, why);
+        const verbish = pathName !== (0, utility_1.canonize)(pm[PATH_NAME_INDEX[pm.expr]]);
         sources.PATH = pathName;
+        x.cmp_foreign_tag = bit('tag' === cmp?.ref && !(0, heuristic01_1.tagNamesLiteral)(route.parts, cmp.cmp) &&
+            !/(^|_)ids?$/.test(pathName));
         const probable = (0, nn_1.decide)(guideNets().probable, probableFeatures(work, route, pm));
         x.probable = bit('YES' === probable.cls);
         why.push((0, nn_1.explain)('probable', probable));
         if (null != cmp) {
             sources.CMP = cmp.cmp;
+            x.cmp_differs = bit(cmp.cmp !== pathName);
             x.cmp_ne_path = bit(cmp.cmp !== pathName && !cmp.cmp.startsWith(pathName));
             const unversioned = cmp.cmp.replace(/_v\d+$/, '');
             x.cmp_qualifies = bit(unversioned !== cmp.cmp && unversioned.endsWith('_' + pathName));
@@ -607,9 +634,11 @@ function nameFeatures(work, route, owners, recordowner, why) {
                 cmp.path_rate < IS_ENTCMP_PATH_RATE);
             x.cmp_shared = bit(true === work.sharing.yields[cmp.origcmpref + ' ' + route.method + ' ' + route.path]);
             x.cmp_in_path = bit(true === work.pathLiterals[cmp.cmp]);
+            const key = (0, heuristic01_1.keyParamOf)(def, route.path, work);
+            x.cmp_names_key = bit(null != key && (0, utility_1.canonizeParam)(key) === cmp.cmp);
         }
         else if ('DELETE' === route.method && 1 === x.probable) {
-            const cmps = uniqueResponseCmps(def, route.path);
+            const cmps = uniqueResponseCmps(work, route.path, why);
             x.delcmp_avail = bit(1 === cmps.length);
             sources.DELCMP = 1 === cmps.length ? cmps[0].cmp : null;
         }
@@ -618,7 +647,7 @@ function nameFeatures(work, route, owners, recordowner, why) {
             const lastCanon = (0, utility_1.canonize)(last);
             sources.LAST = lastCanon;
             sources.ACT = (0, utility_1.canonize)(pm[pm.length - 3]);
-            sources.PART = sources.ACT + '_' + pathName;
+            sources.PART = verbish ? pathName : sources.ACT + '_' + pathName;
             x.last_is_cmp = bit(null != metrics.count.origcmprefs[lastCanon]);
             if (null == cmp && 1 === x.probable) {
                 x.path_has_children = bit(0 < childPathCount(work, pm.path));
@@ -658,6 +687,10 @@ function nameFeatures(work, route, owners, recordowner, why) {
                     break;
                 }
             }
+        }
+        if ('tag' === cmp?.ref && 3 <= cmp.cmp.length) {
+            x.tag_name_avail = 1;
+            sources.TAG = cmp.cmp;
         }
     }
     const owner = samePathOwner(work, route);

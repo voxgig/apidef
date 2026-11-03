@@ -231,8 +231,9 @@ The analysts also model `virtual` entities, named from the content of
 inline responses, and `protocol` structures, neither of which the guide
 names from; the maintainer ruled that the score counts routes on
 `resource`, `embedded` and `command` entities only. On those, 545 of 792
-routes (69 percent) share the analysts' name, and that is the figure the
-suite's floor guards.
+routes (69 percent) shared the analysts' name before the rulings below,
+and 593 (75 percent, 446 exact) after the first four of them; that is the
+figure the suite's floor guards.
 
 Twelve definitions agree on every route. The net and the heuristic agree
 with each other on all sixty (the sweep found one divergence, a placeholder
@@ -278,7 +279,13 @@ rulings, each the rule to implement, and the first intended divergences
 from `heuristic01`:
 
 1. **Tags.** The last collection literal names the entity whenever the
-   path has one; a tag names only a route with no usable literal.
+   path has one; a tag names only a route with no usable literal. In the
+   implementation a tag that names a literal of the path is itself a path
+   noun and keeps naming (the `things` tag on `/things/{id}/merge`, which
+   is how verb routes reach their parent); a literal naming an identifier
+   (`contentIds`) keys rather than names, so the tag stands; and a trailing
+   verb literal, or the verb after a custom method's colon, names the noun
+   before it and becomes an action.
 2. **Wrappers.** A component whose name contains another component's
    name, or whose only structured property is a reference, is a wrapper
    and never names an entity: name from the wrapped component when there

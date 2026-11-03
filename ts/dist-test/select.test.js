@@ -93,7 +93,7 @@ const DEF = 'rest-select-def.json';
             .filter((warning) => /same selector/.test(warning.note))
             .map((warning) => [warning.entity, warning.op, warning.points]);
         node_assert_1.default.deepStrictEqual(shared, [
-            ['disable', 'update', ['PUT /entity-templates/disable', 'PUT /iterations/disable']],
+            ['iteration', 'update', ['PUT /iterations/disable', 'PUT /iterations:disable']],
         ]);
     });
 });

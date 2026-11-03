@@ -1013,6 +1013,9 @@ function nonNullType(type: any): string | undefined {
 const FILE_EXT_RE =
   /\.(php|json|txt|png|jpg|jpeg|gif|svg|xml|html|csv|yml|yaml|md)$/i
 
+// A placeholder standing for the extension, as in `lists.{format}`.
+const PLACEHOLDER_EXT_RE = /\.\{[^}]*\}$/
+
 function transliterate(s: string): string {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 }
@@ -1029,6 +1032,7 @@ function canonize(s: string) {
   if (undefined !== cached) return cached
   const deacronymed = transliterate(s)
     .replace(FILE_EXT_RE, '')
+    .replace(PLACEHOLDER_EXT_RE, '')
     .replace(ACRONYM_PLURAL_RE, (_m, run) => run[0] + run.slice(1).toLowerCase() + 's')
   const out = depluralize(snakify(deacronymed))
     .replace(/[^a-zA-Z_0-9]/g, '')
@@ -1283,6 +1287,59 @@ function ensureMinEntityName(
   }
 
   return padded
+}
+
+
+const WRAPPER_WORDS = [
+  'response', 'result', 'ok', 'envelope', 'wrapper', 'payload', 'page', 'paginated',
+  'list', 'collection', 'data', 'body', 'output', 'reply',
+]
+
+// The component a wrapper-shaped name wraps: a name whose words beside a
+// contained component's name are all wrapper words, or that opens with a
+// multi-word run holding a wrapper word that other components share and that
+// names no component itself. Null for a name that is no wrapper, '' for a
+// wrapper of nothing nameable.
+function wrapperOf(name: string, known: string[]): string | null {
+  const words = name.split('_').filter((w) => '' !== w)
+
+  let inner: string | null = null
+  let at = -1
+  for (const k of known) {
+    const kw = k.split('_').filter((w) => '' !== w)
+    if (k === name || 0 === kw.length || (null != inner && kw.length <= inner.split('_').length)) {
+      continue
+    }
+    for (let i = 0; i + kw.length <= words.length; i++) {
+      if (kw.every((w, j) => w === words[i + j])) {
+        inner = k
+        at = i
+        break
+      }
+    }
+  }
+
+  if (null != inner) {
+    const kw = inner.split('_').length
+    const rest = [...words.slice(0, at), ...words.slice(at + kw)]
+    if (0 < rest.length && rest.every((w) => WRAPPER_WORDS.includes(w))) {
+      return inner
+    }
+  }
+
+  const unversioned = known.map((k) => k.replace(/_v\d+$/, ''))
+  for (let n = words.length - 1; 2 <= n; n--) {
+    const prefix = words.slice(0, n).join('_')
+    if (unversioned.includes(prefix)) {
+      break
+    }
+    const members = known.filter((k) => k !== name && k.startsWith(prefix + '_')).length
+    if (2 <= members && words.slice(0, n).some((w) => WRAPPER_WORDS.includes(w))) {
+      return inner ?? ''
+    }
+  }
+
+  return null
 }
 
 
@@ -2263,6 +2320,7 @@ export {
   slugToPascalCase,
   transliterate,
   cleanComponentName,
+  wrapperOf,
   guideActive,
   authExchangeOp,
   specSecuredByDefault,
