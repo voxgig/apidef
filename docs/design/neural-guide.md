@@ -227,6 +227,13 @@ an entity, with a role. Scored route by route, with names compared after
 |---|---|---|---|
 | 948 | 452 (48%) | 645 (68%) | 712 (75%) |
 
+The analysts also model `virtual` entities, named from the content of
+inline responses, and `protocol` structures, neither of which the guide
+names from; the maintainer ruled that the score counts routes on
+`resource`, `embedded` and `command` entities only. On those, 545 of 792
+routes (69 percent) share the analysts' name, and that is the figure the
+suite's floor guards.
+
 Twelve definitions agree on every route. The net and the heuristic agree
 with each other on all sixty (the sweep found one divergence, a placeholder
 element counted as a literal, since fixed), so these are the heuristic's
@@ -260,9 +267,9 @@ network lacks:
   content (`AuthenticatorInventory`) are named here from the path or tag.
 
 The suite scores the corpus when it is checked out beside this one or
-`API_ENTITY_CORPUS_DIR` names it, and holds a floor of 65 percent on the
-relaxed match, so a change that loses ground fails and one that gains it
-shows in the test's diagnostic line.
+`API_ENTITY_CORPUS_DIR` names it, over those three kinds, and holds a floor
+of 65 percent on the relaxed match, so a change that loses ground fails and
+one that gains it shows in the test's diagnostic line.
 
 ### Rulings
 

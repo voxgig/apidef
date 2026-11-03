@@ -60,8 +60,10 @@ const validateDefs = Fs.existsSync(VALIDATE_DEFS) ? Fs.readdirSync(VALIDATE_DEFS
     .filter((f) => /\.(json|yaml)$/.test(f) && !f.endsWith('.full.json') && !f.includes('graphql'))
     .sort() : [];
 // The manual corpus, metsitaba/api-entity-corpus, checked out beside this one
-// or named by API_ENTITY_CORPUS_DIR: each operation the analysts put on an
-// entity, scored by whether the guide's entity shares that entity's name.
+// or named by API_ENTITY_CORPUS_DIR: each operation the analysts put on a
+// resource, embedded or command entity, scored by whether the guide's entity
+// shares that entity's name. Virtual and protocol entities are the analysts'
+// readings of content the guide never names from, and are left out.
 const CORPUS = process.env.API_ENTITY_CORPUS_DIR ?? Path.join(REPO, '..', 'api-entity-corpus');
 const CORPUS_BATCH = Path.join(CORPUS, 'batches', 'batch-01');
 const CORPUS_MANIFEST = Path.join(CORPUS_BATCH, 'manifest.json');
@@ -71,6 +73,7 @@ const corpusApis = Fs.existsSync(CORPUS_MANIFEST) ?
 // as a run of whole words (contact for student_contact), that a change may
 // not fall below.
 const CORPUS_FLOOR = 0.65;
+const CORPUS_KINDS = ['resource', 'embedded', 'command'];
 function sharesName(a, b) {
     const wa = a.split('_').filter(Boolean);
     const wb = b.split('_').filter(Boolean);
@@ -390,6 +393,9 @@ function file(header, data) {
             // A route the analysts put on several entities agrees through any of them.
             const named = {};
             for (const ent of doc.entities ?? []) {
+                if (!CORPUS_KINDS.includes(ent.kind)) {
+                    continue;
+                }
                 for (const op of ent.operations ?? []) {
                     const key = op.path + ' ' + String(op.method).toUpperCase();
                     (named[key] = named[key] ?? []).push((0, utility_1.canonize)(ent.name));
