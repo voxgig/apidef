@@ -1301,14 +1301,14 @@ func TestGuideCollectionMerge(t *testing.T) {
 	}
 
 	gents, _ := res.Guide["entity"].(map[string]any)
-	if got := strings.Join(sortedKeys(gents), ","); got != "setting" {
-		t.Errorf("guide entities = %s, want setting", got)
+	if got := strings.Join(sortedKeys(gents), ","); got != "key" {
+		t.Errorf("guide entities = %s, want key", got)
 	}
 	main, _ := res.ApiModel["main"].(map[string]any)
 	kit, _ := main[KIT].(map[string]any)
 	entities, _ := kit["entity"].(map[string]any)
-	if got := strings.Join(sortedKeys(entities), ","); got != "setting" {
-		t.Errorf("model entities = %s, want setting", got)
+	if got := strings.Join(sortedKeys(entities), ","); got != "key" {
+		t.Errorf("model entities = %s, want key", got)
 	}
 
 	want, err := os.ReadFile("../ts/test/collection-merge/guide/base-guide.aontu")
@@ -1444,7 +1444,7 @@ func TestGuideItemRecord(t *testing.T) {
 	}
 
 	gents, _ := res.Guide["entity"].(map[string]any)
-	if got, want := strings.Join(sortedKeys(gents), ","), "activity,ci_runner_detail,ci_runner_registration,ci_worker_detail,ci_worker_registration,instance,mail_domain_detail,repo,report,repository_invitation,simulation_run,team,team_invitation,thing,widget"; got != want {
+	if got, want := strings.Join(sortedKeys(gents), ","), "ci_runner_detail,ci_runner_registration,ci_worker_detail,ci_worker_registration,export,instance,mail_domain_detail,repo,repository_invitation,simulation_run,starred,team,team_invitation,thing,widget"; got != want {
 		t.Errorf("guide entities = %s, want %s", got, want)
 	}
 
@@ -1600,7 +1600,7 @@ func TestGuideCollectionOwner(t *testing.T) {
 	}
 
 	gents, _ := res.Guide["entity"].(map[string]any)
-	if got, want := strings.Join(sortedKeys(gents), ","), "activity,admin,catalog_bundle,gadget,job,job_summary,org,plan,purchase,report,shop,team,token,user"; got != want {
+	if got, want := strings.Join(sortedKeys(gents), ","), "catalog_bundle,gadget,job,org,plan,purchase,report,shop,star,team,token,user"; got != want {
 		t.Errorf("guide entities = %s, want %s", got, want)
 	}
 
@@ -1647,7 +1647,7 @@ func TestGuideParamNames(t *testing.T) {
 
 // Mirrors the TS `guide-collection-merge-overlay` case.
 func TestGuideCollectionMergeOverlay(t *testing.T) {
-	for _, owner := range []string{"key", "keyring"} {
+	for _, owner := range []string{"api_key", "keyring"} {
 		folder := t.TempDir()
 		entry := "@\"@voxgig/apidef/model/guide.aontu\"\n" +
 			"@\"./base-guide.aontu\"\n" +
@@ -1655,7 +1655,7 @@ func TestGuideCollectionMergeOverlay(t *testing.T) {
 			"  create: method: \"POST\"\n" +
 			"  list: method: \"GET\"\n" +
 			"}\n" +
-			"guide: entity: setting: path: \"/keys\": active: false\n"
+			"guide: entity: key: path: \"/keys\": active: false\n"
 		if err := writeGuideEntry(folder, "", entry); err != nil {
 			t.Fatal(err)
 		}
@@ -1691,8 +1691,8 @@ func TestGuideCollectionMergeOverlay(t *testing.T) {
 			routes[name] = list
 		}
 		want := map[string][]string{
-			owner:     {"create POST /keys", "list GET /keys"},
-			"setting": {"remove DELETE /keys/{key_id}"},
+			owner: {"create POST /keys", "list GET /keys"},
+			"key": {"remove DELETE /keys/{key_id}"},
 		}
 		if !reflect.DeepEqual(routes, want) {
 			t.Errorf("%s: model routes = %v, want %v", owner, routes, want)

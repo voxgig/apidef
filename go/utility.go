@@ -32,7 +32,9 @@ var (
 	stringNameRE  = regexp.MustCompile(`^(url$|href$|link$|uri$|email$|name$|title$|description$|slug$|path$|label$|username$|password$|token$|key$)`)
 	idNameRE      = regexp.MustCompile(`(_id$|^id$)`)
 	fileExtRE     = regexp.MustCompile(`(?i)\.(php|json|txt|png|jpg|jpeg|gif|svg|xml|html|csv|yml|yaml|md)$`)
-	nonAlphaNumRE = regexp.MustCompile(`[^a-zA-Z_0-9]`)
+	// A placeholder standing for the extension, as in `lists.{format}`.
+	placeholderExtRE = regexp.MustCompile(`\.\{[^}]*\}$`)
+	nonAlphaNumRE    = regexp.MustCompile(`[^a-zA-Z_0-9]`)
 	// RE2 has no lookahead, so the "not followed by a letter" half of the
 	// TypeScript pattern is checked in deacronymPlural.
 	acronymPluralRE = regexp.MustCompile(`([A-Z]{2,})s`)
@@ -481,6 +483,7 @@ func Canonize(s string) string {
 	}
 	out := Transliterate(s)
 	out = fileExtRE.ReplaceAllString(out, "")
+	out = placeholderExtRE.ReplaceAllString(out, "")
 	out = deacronymPlural(out)
 	out = Snakify(out)
 	out = Depluralize(out)
@@ -878,6 +881,88 @@ func firstFieldMatch(props []string, names []string) string {
 		}
 	}
 	return ""
+}
+
+var wrapperWords = map[string]bool{
+	"response": true, "result": true, "ok": true, "envelope": true, "wrapper": true,
+	"payload": true, "page": true, "paginated": true, "list": true, "collection": true,
+	"data": true, "body": true, "output": true, "reply": true,
+}
+
+// WrapperOf mirrors wrapperOf in ts/src/utility.ts: the component a
+// wrapper-shaped name wraps, "" for a wrapper of nothing nameable, and false
+// for a name that is no wrapper.
+func WrapperOf(name string, known []string) (string, bool) {
+	words := splitAndFilter(name, "_")
+
+	inner := ""
+	hasInner := false
+	at := -1
+	for _, k := range known {
+		kw := splitAndFilter(k, "_")
+		if k == name || len(kw) == 0 || (hasInner && len(kw) <= len(strings.Split(inner, "_"))) {
+			continue
+		}
+		for i := 0; i+len(kw) <= len(words); i++ {
+			match := true
+			for j, w := range kw {
+				if w != words[i+j] {
+					match = false
+					break
+				}
+			}
+			if match {
+				inner = k
+				hasInner = true
+				at = i
+				break
+			}
+		}
+	}
+
+	if hasInner {
+		kw := len(strings.Split(inner, "_"))
+		rest := append(append([]string{}, words[:at]...), words[at+kw:]...)
+		allWrapper := 0 < len(rest)
+		for _, w := range rest {
+			if !wrapperWords[w] {
+				allWrapper = false
+				break
+			}
+		}
+		if allWrapper {
+			return inner, true
+		}
+	}
+
+	unversioned := map[string]bool{}
+	for _, k := range known {
+		unversioned[reVersionSuffix.ReplaceAllString(k, "")] = true
+	}
+	for n := len(words) - 1; 2 <= n; n-- {
+		prefix := strings.Join(words[:n], "_")
+		if unversioned[prefix] {
+			break
+		}
+		members := 0
+		for _, k := range known {
+			if k != name && strings.HasPrefix(k, prefix+"_") {
+				members++
+			}
+		}
+		wrapperWord := false
+		for _, w := range words[:n] {
+			if wrapperWords[w] {
+				wrapperWord = true
+				break
+			}
+		}
+		if 2 <= members && wrapperWord {
+			return inner, true
+		}
+	}
+
+	return "", false
 }
 
 func CleanComponentName(name string, isKnownCmp func(string) bool) string {

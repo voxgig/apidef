@@ -1,0 +1,14 @@
+name	known	expected
+pet_response	pet,pet_response,store	pet
+pet_list_response	pet,pet_list_response	pet
+paginated_pet_list	paginated_pet_list,pet	pet
+data_pet	data_pet,pet	pet
+pet_store	pet,pet_store	null
+page_of_pet	page_of_pet,pet	null
+response_envelope	data,response_envelope	null
+api_response_pet	api_response_order,api_response_pet,api_response_user,order,pet,user	pet
+api_response_error	api_response_order,api_response_pet,api_response_user,order,pet,user	
+call_route_response_v1	call_route,call_route_response_v1,call_route_response_v2,call_route_response_v3	null
+list_response_v1	list_response_v1,list_response_v2,list_response_v3	null
+user_profile_response	user,user_profile,user_profile_response	user_profile
+result	result,thing	null

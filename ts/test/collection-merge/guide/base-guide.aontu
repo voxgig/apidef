@@ -8,12 +8,13 @@ guide: {
   metrics: count: path: 2
   metrics: count: method: 3
 
-  entity: setting: {
+  entity: key: {
     path: "/keys": {
       op: create: method: *POST
       op: list: method: *GET
     }
     path: "/keys/{key_id}": {
+      rename: param: "key_id": *"id"
       op: remove: method: *DELETE
     }
   }

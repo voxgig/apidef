@@ -43,3 +43,7 @@ AWS	aws	trailing capital S is part of the acronym, not a plural
 MarketplacePurchases	marketplace_purchase
 objectives	objective
 KeyResultObjectives	key_result_objective
+lists.{format}	list
+names.{format}	name
+reviews.{format}	review
+report.{ext}.json	report

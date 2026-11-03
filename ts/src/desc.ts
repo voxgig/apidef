@@ -67,6 +67,8 @@ type MethodEntityDesc = {
   // Set by ResolveEntityName when a write on `.../{id}/<verb>` joined its
   // parent entity (verbOnParent); FindActions then records the verb.
   verb_on_parent?: string
+  view_on_parent?: boolean
+  post_read?: boolean
   // The entity a tag-named method joined by samePathOwner.
   same_path?: string
 }
