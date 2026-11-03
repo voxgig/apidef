@@ -14,6 +14,7 @@ import {
   dense, forward, makeNet, decide, softmax, argmax, explain, saveNets, loadNets, WEIGHTS_FORMAT,
 } from '../dist/guide/nn'
 import { parseSafetensors, serializeSafetensors } from '../dist/guide/safetensors'
+import { canonize } from '../dist/utility'
 import type { SafeTensors } from '../dist/guide/safetensors'
 import { guideNets, GUIDE_NETS } from '../dist/guide/neural01'
 
@@ -32,6 +33,33 @@ const VALIDATE_DEFS = Path.join(VALIDATE, '..', 'def')
 const validateDefs = Fs.existsSync(VALIDATE_DEFS) ? Fs.readdirSync(VALIDATE_DEFS)
   .filter((f) => /\.(json|yaml)$/.test(f) && !f.endsWith('.full.json') && !f.includes('graphql'))
   .sort() : []
+
+// The manual corpus, metsitaba/api-entity-corpus, checked out beside this one
+// or named by API_ENTITY_CORPUS_DIR: each operation the analysts put on an
+// entity, scored by whether the guide's entity shares that entity's name.
+const CORPUS = process.env.API_ENTITY_CORPUS_DIR ?? Path.join(REPO, '..', 'api-entity-corpus')
+const CORPUS_BATCH = Path.join(CORPUS, 'batches', 'batch-01')
+const CORPUS_MANIFEST = Path.join(CORPUS_BATCH, 'manifest.json')
+const corpusApis: any[] = Fs.existsSync(CORPUS_MANIFEST) ?
+  JSON.parse(Fs.readFileSync(CORPUS_MANIFEST, 'utf8')).apis : []
+
+// The share of routes on which the guide's entity shares the analysts' name,
+// as a run of whole words (contact for student_contact), that a change may
+// not fall below.
+const CORPUS_FLOOR = 0.65
+
+
+function sharesName(a: string, b: string): boolean {
+  const wa = a.split('_').filter(Boolean)
+  const wb = b.split('_').filter(Boolean)
+  const [s, l] = wa.length <= wb.length ? [wa, wb] : [wb, wa]
+  for (let i = 0; 0 < s.length && i + s.length <= l.length; i++) {
+    if (s.every((w, j) => w === l[i + j])) {
+      return true
+    }
+  }
+  return false
+}
 
 
 const DEFDIR = Path.join(__dirname, '..', 'test', 'def')
@@ -399,6 +427,41 @@ describe('neural01', () => {
     for (const def of defs) {
       await assertParity(def)
     }
+  })
+
+
+  test('scores-against-api-entity-corpus', {
+    skip: 0 === corpusApis.length ? 'no api-entity-corpus manifest at ' + CORPUS_MANIFEST : false,
+  }, async (t) => {
+    let scored = 0
+    let agreed = 0
+    for (const api of corpusApis) {
+      const doc = JSON.parse(Fs.readFileSync(Path.join(CORPUS_BATCH, api.entitiesFile), 'utf8'))
+      const { bres } = await run(Path.basename(api.specFile), 'neural01', false,
+        Path.join(CORPUS_BATCH, Path.dirname(api.specFile)))
+      assert.strictEqual(bres.ok, true, api.name + ': ' + String(bres.err?.message))
+      // A route the analysts put on several entities agrees through any of them.
+      const named: Record<string, string[]> = {}
+      for (const ent of doc.entities ?? []) {
+        for (const op of ent.operations ?? []) {
+          const key = op.path + ' ' + String(op.method).toUpperCase()
+          ;(named[key] = named[key] ?? []).push(canonize(ent.name))
+        }
+      }
+      const got = routes(bres.guide)
+      for (const [key, names] of Object.entries(named)) {
+        if (null == got[key]) {
+          continue
+        }
+        scored++
+        agreed += names.some((name) => sharesName(name, got[key].entity)) ? 1 : 0
+      }
+    }
+    const rate = agreed / Math.max(1, scored)
+    t.diagnostic('api-entity-corpus: ' + agreed + ' of ' + scored + ' routes share the analysts\' ' +
+      'entity name (' + (100 * rate).toFixed(1) + '%)')
+    assert.ok(CORPUS_FLOOR <= rate, 'api-entity-corpus agreement ' + (100 * rate).toFixed(1) +
+      '% is below the floor of ' + (100 * CORPUS_FLOOR) + '%')
   })
 
 

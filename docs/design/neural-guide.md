@@ -215,6 +215,55 @@ one or through `APIDEF_VALIDATE_DIR`, as the Go goldens are found, and is
 skipped otherwise. `sdkgen-validate` validates the same fifteen definitions,
 by name, so the row covers both.
 
+### The manual corpus
+
+`metsitaba/api-entity-corpus` pairs sixty apis.guru definitions (781 paths,
+961 operations) with hand-made entity documents that put each operation on
+an entity, with a role. Scored route by route, with names compared after
+`canonize()` and a relaxed match that lets `contact` stand for
+`student_contact`:
+
+| Routes on an entity | Same entity, exact | Same entity, relaxed | Same role |
+|---|---|---|---|
+| 948 | 452 (48%) | 645 (68%) | 712 (75%) |
+
+Twelve definitions agree on every route. The net and the heuristic agree
+with each other on all sixty (the sweep found one divergence, a placeholder
+element counted as a literal, since fixed), so these are the heuristic's
+scores as much as the net's, and the corpus is the first measure either has
+had against a reading that is not its own. The guide also names more
+entities than the analysts do (mean precision 0.53, recall 0.81 over
+resource entities): the surplus is tags, verbs and wrappers that became
+entities. The disagreements fall into families, and each is a feature the
+network lacks:
+
+- **Module and verb tags.** A route with no response component takes its
+  tag's name, and tags such as `PDF`, `History`, `Publishing`, `Search`
+  and `Retrieve` become entities where the analysts read the path noun
+  (`Folder`, `Message`, `Location`). The largest family.
+- **Generic response wrappers in small definitions.** `ResponseOk_NoneType_`
+  names a delete, because a wrapper the suffix list does not know is
+  infrequent in a definition of fourteen operations.
+- **A short literal beside a component that names the key.** `/b/{bucket}`
+  becomes `bnt`, the padded literal, though the component `Bucket` and the
+  key parameter agree; the parameter's name is a signal nothing reads.
+- **A placeholder file extension.** `/lists.{format}` becomes
+  `listsformat`; the literal's `.{param}` tail is not stripped as `.json`
+  is.
+- **Commands and RPC paths.** `/#Action=AssumeRole` is named for its
+  literal where the analysts name the request body; a convention apidef
+  has no kind for, so a difference rather than a defect.
+- **Projections of a parent.** `/teachers/{id}/grade_levels`, an array of
+  strings, is a sub-entity here and a read of the teacher there; an array
+  of scalars is a field, not a collection.
+- **Virtual entities.** Inline responses the analysts name from their
+  content (`AuthenticatorInventory`) are named here from the path or tag.
+
+The suite scores the corpus when it is checked out beside this one or
+`API_ENTITY_CORPUS_DIR` names it, and holds a floor of 65 percent on the
+relaxed match, so a change that loses ground fails and one that gains it
+shows in the test's diagnostic line.
+
 The guide stage costs the same under either strategy: within a few
 milliseconds per definition on the test corpus, and within a tenth on a
 synthetic definition of a thousand paths, where parsing takes thirty times
