@@ -264,6 +264,35 @@ The suite scores the corpus when it is checked out beside this one or
 relaxed match, so a change that loses ground fails and one that gains it
 shows in the test's diagnostic line.
 
+### Rulings
+
+Each family was put to the maintainer with the routes that show it. The
+rulings, each the rule to implement, and the first intended divergences
+from `heuristic01`:
+
+1. **Tags.** The last collection literal names the entity whenever the
+   path has one; a tag names only a route with no usable literal.
+2. **Wrappers.** A component whose name contains another component's
+   name, or whose only structured property is a reference, is a wrapper
+   and never names an entity: name from the wrapped component when there
+   is one, else from the path.
+3. **Key parameter.** When an item route's key parameter canonicalises to
+   a component's name, that component names the entity over the literal.
+4. **Placeholder extensions.** A literal ending in `.{param}` names as the
+   part before the dot; the parameter stays an argument of the operation.
+5. **Sub-reads.** A GET on `.../{id}/<singular literal>` whose response
+   declares no id joins the parent as a load action; one whose response
+   declares an id stays its own entity.
+6. **Projections.** A nested route answering with an array of scalars
+   joins the parent as a load action; only arrays of objects or references
+   make a collection.
+7. **Commands.** A POST with a body component and no collection noun in
+   its path is named from the body component with its affixes stripped;
+   the literal names only when there is no body component.
+8. **POST reads.** A POST whose literal starts with a read verb (list,
+   search, get, find, query) and whose response is a collection is the
+   entity's list operation, with the body as the filter.
+
 The guide stage costs the same under either strategy: within a few
 milliseconds per definition on the test corpus, and within a tenth on a
 synthetic definition of a thousand paths, where parsing takes thirty times
