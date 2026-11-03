@@ -315,6 +315,18 @@ function loadTsv(name) {
         });
     }
 });
+// The known names are sorted by code point, as both guides sort them before
+// asking, so the fixture cannot depend on discovery order.
+(0, node_test_1.describe)('tsv-wrapper-of', () => {
+    const rows = loadTsv('wrapper-of');
+    for (const row of rows) {
+        (0, node_test_1.test)(`wrapperOf("${row.name}", "${row.known}") => "${row.expected}"`, () => {
+            const known = row.known.split(',').sort();
+            const want = 'null' === row.expected ? null : row.expected;
+            node_assert_1.default.deepStrictEqual((0, utility_1.wrapperOf)(row.name, known), want);
+        });
+    }
+});
 // A path segment carries no word boundaries; the component name does. This
 // borrows the boundaries back, and ONLY the boundaries -- an exact
 // concatenation match is required, so no row here can produce a name whose

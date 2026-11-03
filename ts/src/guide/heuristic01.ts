@@ -2431,7 +2431,7 @@ function unwrapCmp<T extends { cmp: string, origcmp: string, val?: string, origc
   xref: T,
   why: string[],
 ): T[] {
-  const inner = wrapperOf(xref.cmp, Object.keys(metrics.found.cmp))
+  const inner = wrapperOf(xref.cmp, Object.keys(metrics.found.cmp).sort())
   if (null == inner) {
     return [xref]
   }

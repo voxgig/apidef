@@ -275,8 +275,8 @@ one that gains it shows in the test's diagnostic line.
 ### Rulings
 
 Each family was put to the maintainer with the routes that show it. The
-rulings, each the rule to implement, and the first intended divergences
-from `heuristic01`:
+rulings, each the rule to implement in both strategies, since the ruling
+was that `heuristic01` changes too and the Go port follows it rule by rule:
 
 1. **Tags.** The last collection literal names the entity whenever the
    path has one; a tag names only a route with no usable literal. In the
@@ -306,6 +306,18 @@ from `heuristic01`:
 8. **POST reads.** A POST whose literal starts with a read verb (list,
    search, get, find, query) and whose response is a collection is the
    entity's list operation, with the body as the filter.
+
+Rulings 1 to 4 are in: in `heuristic01`, in `neural01` (the name network
+gained `cmp_names_key`, `tag_name_avail`, `cmp_differs` and
+`cmp_foreign_tag`, with gates that take the earlier branch's deciding
+feature as a negative input) and in `go/guide.go`, where `pathNoun`,
+`tagNamesLiteral`, `keyParamOf`, `unwrapCmp` and `WrapperOf` are the
+functions the TypeScript names. One fixture per ruling in `ts/test/def/`
+pins the owner of every route under both strategies
+(`ts/test/rulings.test.ts`) and under the Go port (`go/rulings_test.go`),
+and `ts/test/wrapper-of.tsv` is the wrapper rule's shared contract. They
+took the manual corpus from 545 to 593 of 792 routes (446 exact). Rulings
+5 to 8 are next.
 
 The guide stage costs the same under either strategy: within a few
 milliseconds per definition on the test corpus, and within a tenth on a

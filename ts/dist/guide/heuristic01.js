@@ -1784,7 +1784,7 @@ function childKeyIndex(def) {
 // A wrapper names the component it wraps, or nothing: the candidate is
 // replaced or dropped. The replacement keeps the candidate's other fields.
 function unwrapCmp(metrics, xref, why) {
-    const inner = (0, utility_2.wrapperOf)(xref.cmp, Object.keys(metrics.found.cmp));
+    const inner = (0, utility_2.wrapperOf)(xref.cmp, Object.keys(metrics.found.cmp).sort());
     if (null == inner) {
         return [xref];
     }
