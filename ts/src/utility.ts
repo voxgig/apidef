@@ -2348,6 +2348,7 @@ export {
   itemEnvelopeTransform,
   itemEnvelopeOf,
   envelopeProp,
+  strictEnvelopeProp,
   envelopeItemRef,
   composedEnvelopeProp,
   propIsList,

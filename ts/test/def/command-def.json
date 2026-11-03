@@ -1,0 +1,218 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "command",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://example.com"
+    }
+  ],
+  "paths": {
+    "/#Action=AssumeRole": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssumeRoleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssumeRoleResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/keys": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Key"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/keys/{keyName}/requestToken": {
+      "post": {
+        "parameters": [
+          {
+            "name": "keyName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/account": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AssumeRoleRequest": {
+        "type": "object",
+        "properties": {
+          "RoleArn": {
+            "type": "string"
+          },
+          "RoleSessionName": {
+            "type": "string"
+          }
+        }
+      },
+      "AssumeRoleResponse": {
+        "type": "object",
+        "properties": {
+          "Credentials": {
+            "type": "object",
+            "properties": {
+              "AccessKeyId": {
+                "type": "string"
+              },
+              "SecretAccessKey": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "Key": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "TokenRequest": {
+        "type": "object",
+        "properties": {
+          "keyName": {
+            "type": "string"
+          },
+          "ttl": {
+            "type": "integer"
+          }
+        }
+      },
+      "TokenDetails": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "expires": {
+            "type": "integer"
+          }
+        }
+      },
+      "Account": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "AccountInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

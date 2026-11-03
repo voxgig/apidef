@@ -72,6 +72,19 @@ var verbWords = map[string]bool{
 // A literal that names an identifier keys a resource rather than naming one.
 var idLiteralRE = regexp.MustCompile(`(^|_)ids?$`)
 
+// A literal opening with one of these reads, whatever the method.
+var readVerbs = []string{"list", "search", "get", "find", "query"}
+
+// The shapes whose naming literal ends the path.
+var literalLastShapes = map[string]bool{"t/p/t/": true, "t/": true, "p/t/": true}
+
+// Stripped from a command's body component to name the command.
+var commandSuffixes = []string{
+	"_request", "_input", "_payload", "_body", "_params", "_parameters", "_command", "_dto",
+}
+
+var payloadScalarTypes = map[string]bool{"string": true, "number": true, "integer": true, "boolean": true}
+
 var lastSegRE = regexp.MustCompile(`[^/]+$`)
 
 var READ_METHODS = map[string]bool{"GET": true, "QUERY": true, "HEAD": true, "OPTIONS": true}
@@ -1486,7 +1499,28 @@ func versionActions(entval any) {
 
 // pathEntityName mirrors ts/src/guide/heuristic01.ts; named is false where the
 // TS returns null.
+// The name a method's path shape and component give it, or false where
+// neither does; a POST that reads or commands is named for what it reads or
+// sends.
 func pathEntityName(data map[string]any, mdesc map[string]any, parts []string,
+	pm *PathMatchResult, pathowner map[string]any, why *[]string) (string, bool) {
+	shaped, ok := shapeEntityName(data, mdesc, parts, pm, pathowner, why)
+	if pm == nil || !ok {
+		return shaped, ok
+	}
+	if read, isRead := postRead(mdesc, pm, parts, why); isRead {
+		if read == "" {
+			return shaped, ok
+		}
+		return read, true
+	}
+	if command := commandName(data, mdesc, pm, parts, why); command != "" {
+		return command, true
+	}
+	return shaped, ok
+}
+
+func shapeEntityName(data map[string]any, mdesc map[string]any, parts []string,
 	pm *PathMatchResult, pathowner map[string]any, why *[]string) (string, bool) {
 	expr := ""
 	if pm != nil {
@@ -1874,10 +1908,16 @@ func resolveOperation(data map[string]any, mdesc map[string]any) {
 	standardOpname := opname
 
 	if standardOpname == "load" {
-		islist := isListResponse(mdesc, getPM(ment), pathStr, &whyOp)
-		if islist {
+		view := safeBool(ment["view_on_parent"])
+		if !view && isListResponse(mdesc, getPM(ment), pathStr, &whyOp) {
 			opname = "list"
 		}
+		if view {
+			whyOp = append(whyOp, "view")
+		}
+	} else if standardOpname == "create" && safeBool(ment["post_read"]) {
+		opname = "list"
+		whyOp = append(whyOp, "post-read")
 	} else {
 		whyOp = append(whyOp, "not-load")
 	}
@@ -2161,7 +2201,12 @@ func entityPathMatch_tpte(data map[string]any, pm *PathMatchResult, mdesc map[st
 	entname := pathNoun(pm, parts, why)
 	verbish := entname != Canonize(origPathName)
 
-	if safeStr(ment["cmp"]) != "" {
+	if view := viewOnParent(data, pm, mdesc, pathowner); view != "" {
+		entname = view
+		ment["verb_on_parent"] = getMatchElem(pm, -1)
+		ment["view_on_parent"] = true
+		*why = append(*why, "view-on-parent="+view)
+	} else if safeStr(ment["cmp"]) != "" {
 		if parent := verbOnParent(data, pm, mdesc, pathowner); parent != "" {
 			entname = parent
 			ment["verb_on_parent"] = getMatchElem(pm, -1)
@@ -2229,41 +2274,43 @@ func verbOnParent(data map[string]any, pm *PathMatchResult, mdesc map[string]any
 		return ""
 	}
 
-	def, _ := data["def"].(map[string]any)
-	defPaths, _ := def["paths"].(map[string]any)
-	if defPaths == nil {
-		return ""
-	}
-
-	idx := strings.LastIndex(pm.Path, "/")
-	if idx <= 0 {
-		return ""
-	}
-
-	// Paths compare with parameters normalised: the item path may spell its
-	// key `{id}` where the verb path spells it `{thing_number}`.
-	paramRE := regexp.MustCompile(`\{[^}]+\}`)
-	itemNorm := paramRE.ReplaceAllString(pm.Path[:idx], "{}")
-	prefix := paramRE.ReplaceAllString(pm.Path, "{}") + "/"
-
-	itemPath := ""
-	for _, p := range sortedKeys(defPaths) {
-		pn := paramRE.ReplaceAllString(p, "{}")
-		if pn == itemNorm {
-			itemPath = p
-		} else if strings.HasPrefix(pn, prefix) {
-			// A leaf: no path continues past the verb. Compared on a segment
-			// boundary, so `/merge` is not "extended" by `/merge-async`.
-			return ""
-		}
-	}
+	itemPath := leafItemRoute(data, pm)
 	if itemPath == "" {
 		return ""
 	}
+	return itemOwner(pm, itemPath, pathowner)
+}
 
-	// The parent is the entity a READ of the item returns: a PUT on the
-	// item answering with a one-off acknowledgement is named after that and
-	// must not claim the verb. Fall back to any owner, then the literal.
+// The item route a verb path hangs off, or "" when a path extends the verb.
+// Paths compare with parameters normalised: the item path may spell its key
+// `{id}` where the verb path spells it `{thing_number}`.
+func leafItemRoute(data map[string]any, pm *PathMatchResult) string {
+	def, _ := data["def"].(map[string]any)
+	defPaths, _ := def["paths"].(map[string]any)
+	idx := strings.LastIndex(pm.Path, "/")
+	if defPaths == nil || idx <= 0 {
+		return ""
+	}
+	itemNorm := pathParamRE.ReplaceAllString(pm.Path[:idx], "{}")
+	prefix := pathParamRE.ReplaceAllString(pm.Path, "{}") + "/"
+	itemPath := ""
+	for _, p := range sortedKeys(defPaths) {
+		pn := pathParamRE.ReplaceAllString(p, "{}")
+		if pn == itemNorm {
+			itemPath = p
+		} else if strings.HasPrefix(pn, prefix) {
+			// On a segment boundary, so `/merge` is not extended by `/merge-async`.
+			return ""
+		}
+	}
+	return itemPath
+}
+
+// Methods resolve in path order, so the item path's owners are already
+// known. The parent is the entity a READ of the item returns: a PUT on the
+// item answering with a one-off acknowledgement is named after that and must
+// not claim the verb. Fall back to any owner, then the literal.
+func itemOwner(pm *PathMatchResult, itemPath string, pathowner map[string]any) string {
 	owners, _ := pathowner[itemPath].(map[string]any)
 	if parent := safeStr(owners["GET"]); parent != "" {
 		return parent
@@ -2283,6 +2330,155 @@ func verbOnParent(data map[string]any, pm *PathMatchResult, mdesc map[string]any
 	}
 
 	return Canonize(getMatchElem(pm, -3))
+}
+
+// A read of a literal under the item key that answers with no record of its
+// own, an object declaring no id or an array of scalars, is a view of the
+// item: the parent takes it as a load action.
+func viewOnParent(data map[string]any, pm *PathMatchResult, mdesc map[string]any,
+	pathowner map[string]any) string {
+	if !READ_METHODS[safeStr(mdesc["method"])] {
+		return ""
+	}
+	lit := Snakify(getMatchElem(pm, -1))
+	responses, _ := mdesc["responses"].(map[string]any)
+	scalars, record := responsePayload(getResponseSchema(successResponse(responses)))
+	if lit == "" || (!scalars && (Depluralize(lit) != lit || record)) {
+		return ""
+	}
+	itemPath := leafItemRoute(data, pm)
+	if itemPath == "" {
+		return ""
+	}
+	return itemOwner(pm, itemPath, pathowner)
+}
+
+// What a response carries past its envelopes: whether it reaches an array of
+// scalars, and whether the record it reaches declares an id.
+func responsePayload(schema map[string]any) (bool, bool) {
+	node := schema
+	array := false
+	for depth := 0; node != nil && depth < 8; depth++ {
+		if safeStr(node["type"]) == "array" {
+			array = true
+			node, _ = node["items"].(map[string]any)
+			continue
+		}
+		props := mergedProperties(node)
+		if props == nil {
+			break
+		}
+		if id, ok := props["id"]; ok && id != nil {
+			return false, true
+		}
+		env := strictEnvelopeProp(props, "list")
+		if env == "" {
+			env = strictEnvelopeProp(props, "load")
+		}
+		if env == "" {
+			break
+		}
+		node, _ = props[env].(map[string]any)
+	}
+	scalar := node != nil && payloadScalarTypes[safeStr(node["type"])] && mergedProperties(node) == nil
+	return array && scalar, false
+}
+
+// A POST addressed to a singular literal that names no component, with no
+// item route above it to be a verb on or beneath it to be a collection, is a
+// command: its body component names it.
+func commandName(data map[string]any, mdesc map[string]any, pm *PathMatchResult,
+	parts []string, why *[]string) string {
+	ment, _ := mdesc["MethodEntity"].(map[string]any)
+	if safeStr(mdesc["method"]) != "POST" || safeStr(ment["verb_on_parent"]) != "" ||
+		!literalLastShapes[pm.Expr] {
+		return ""
+	}
+	last := getMatchElem(pm, -1)
+	lit := Snakify(last)
+	def, _ := data["def"].(map[string]any)
+	work, _ := data["work"].(map[string]any)
+	scratch := []string{}
+	if lit == "" || Depluralize(lit) != lit || pathNoun(pm, parts, &scratch) != Canonize(last) ||
+		isOrigCmp(data, Canonize(last)) || keyParamOf(def, safeStr(mdesc["path"]), work) != "" ||
+		(pm.Expr == "t/p/t/" && leafItemRoute(data, pm) != "") || readsRecord(data, safeStr(mdesc["path"])) {
+		return ""
+	}
+	name := commandBodyName(data, mdesc)
+	if name != "" {
+		*why = append(*why, "command="+name)
+	}
+	return name
+}
+
+// A path whose read answers with a record is a resource, not a command.
+func readsRecord(data map[string]any, pathStr string) bool {
+	def, _ := data["def"].(map[string]any)
+	paths, _ := def["paths"].(map[string]any)
+	pathDef, _ := paths[pathStr].(map[string]any)
+	mdef, _ := pathDef["get"].(map[string]any)
+	if mdef == nil {
+		return false
+	}
+	responses, _ := mdef["responses"].(map[string]any)
+	_, record := responsePayload(getResponseSchema(successResponse(responses)))
+	return record
+}
+
+// The name a command's body component gives, its affixes stripped. A body
+// that is no object, such as an upload, names nothing.
+func commandBodyName(data map[string]any, mdesc map[string]any) string {
+	def, _ := data["def"].(map[string]any)
+	body := getRequestBodySchema(def, mdesc)
+	xref, ok := body["x-ref"].(string)
+	if !ok || mergedProperties(body) == nil {
+		return ""
+	}
+	name := CleanComponentName(CanonizeCmpName(cmpRefName(xref)), func(n string) bool {
+		return isOrigCmp(data, n)
+	})
+	for stripped := true; stripped; {
+		stripped = false
+		for _, sfx := range commandSuffixes {
+			if strings.HasSuffix(name, sfx) && len(sfx) < len(name) {
+				name = name[:len(name)-len(sfx)]
+				stripped = true
+				break
+			}
+		}
+	}
+	return name
+}
+
+// A POST whose literal opens with a read verb and answers with a collection
+// lists the noun the literal names, the body its filter; "" keeps the shape's
+// name where the literal is the verb alone.
+func postRead(mdesc map[string]any, pm *PathMatchResult, parts []string, why *[]string) (string, bool) {
+	if safeStr(mdesc["method"]) != "POST" || len(parts) == 0 {
+		return "", false
+	}
+	verbs := verbParts(parts)
+	last := verbs[len(verbs)-1]
+	lit := Snakify(last)
+	verb := ""
+	for _, v := range readVerbs {
+		if lit == v || strings.HasPrefix(lit, v+"_") {
+			verb = v
+			break
+		}
+	}
+	scratch := []string{}
+	if verb == "" || isParam(last) || !isListResponse(mdesc, pm, safeStr(mdesc["path"]), &scratch) {
+		return "", false
+	}
+	if ment, _ := mdesc["MethodEntity"].(map[string]any); ment != nil {
+		ment["post_read"] = true
+	}
+	*why = append(*why, "post-read="+verb)
+	if len(lit) <= len(verb)+1 {
+		return "", true
+	}
+	return Canonize(lit[len(verb)+1:]), true
 }
 
 // entityPathMatch_tpe handles the t/p/ path pattern.

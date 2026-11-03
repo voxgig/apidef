@@ -66,6 +66,12 @@ import {
   keyParamOf,
   pathNoun,
   tagNamesLiteral,
+  commandBodyName,
+  readsRecord,
+  responsePayload,
+  isListResponse,
+  LITERAL_LAST_SHAPES,
+  READ_VERBS,
 } from './heuristic01'
 
 import { decide, explain, loadNets } from './nn'
@@ -120,6 +126,8 @@ type Route = {
   entname?: string
   same_path?: string
   verb_on_parent?: string
+  view_on_parent?: boolean
+  post_read?: boolean
 }
 
 type Cmp = {
@@ -389,6 +397,8 @@ function opFeatures(route: Route): Vec {
     const props = resolveSchemaProperties(schema)
     x.res_array_prop = bit(Object.values(props).some((prop: any) => 'array' === prop?.type))
   }
+  x.view = bit(true === route.view_on_parent)
+  x.post_read = bit(true === route.post_read)
   return x
 }
 
@@ -872,6 +882,46 @@ function nameFeatures(
     sources.PATH = pathName
     x.cmp_foreign_tag = bit('tag' === cmp?.ref && !tagNamesLiteral(route.parts, cmp.cmp) &&
       !/(^|_)ids?$/.test(pathName))
+    x.m_post = bit('POST' === route.method)
+    x.verbish = bit(verbish)
+    x.lit_last = bit(LITERAL_LAST_SHAPES.includes(pm.expr))
+    const last = pm[pm.length - 1]
+    const lastCanon = canonize(last)
+    const lit = isParam(last) ? '' : snakify(last)
+    x.last_lit_singular = bit('' !== lit && depluralize(lit) === lit)
+    x.last_is_cmp = bit(null != metrics.count.origcmprefs[lastCanon])
+
+    const verbs = verbParts(route.parts)
+    const lastVerb = snakify(verbs[verbs.length - 1])
+    const readVerb = READ_VERBS.find((v) => lastVerb === v || lastVerb.startsWith(v + '_'))
+    x.post_read = bit(1 === x.m_post && null != readVerb && !isParam(verbs[verbs.length - 1]) &&
+      isListResponse(route, pm, route.path, []))
+    if (1 === x.post_read) {
+      const noun = lastVerb.slice((readVerb as string).length + 1)
+      x.read_noun_avail = bit('' !== noun)
+      sources.NOUN = '' === noun ? null : canonize(noun)
+    }
+
+    // The scans over every path and the body read wait for the cheap
+    // conditions of the gates that read them.
+    const parentOf = (itemPath: string | undefined) => {
+      const held = null == itemPath ? {} : (owners[itemPath] ?? {})
+      return held.GET ?? held.QUERY ?? (Object.values(held).sort()[0] as string | undefined) ??
+        canonize(pm[pm.length - 3])
+    }
+    if (1 === x.m_post && 1 === x.lit_last && 1 === x.last_lit_singular && 0 === x.verbish &&
+      0 === x.last_is_cmp && 0 === x.post_read) {
+      const body = commandBodyName({ def, guide: work.guide }, route)
+      x.body_cmp_avail = bit(null != body)
+      sources.BODY = body
+      if (null != body) {
+        x.item_beneath = bit(null != keyParamOf(def, route.path, work))
+        x.same_path_record = bit(readsRecord({ def }, route.path))
+        if ('t/p/t/' === pm.expr) {
+          x.item_route_exists = bit(null != verbRoute(work, pm.path).itemPath)
+        }
+      }
+    }
 
     const probable = decide(guideNets().probable, probableFeatures(work, route, pm))
     x.probable = bit('YES' === probable.cls)
@@ -898,32 +948,36 @@ function nameFeatures(
     }
 
     if ('t/p/t/' === pm.expr) {
-      const last = pm[pm.length - 1]
-      const lastCanon = canonize(last)
       sources.LAST = lastCanon
       sources.ACT = canonize(pm[pm.length - 3])
       sources.PART = verbish ? pathName : sources.ACT + '_' + pathName
-      x.last_is_cmp = bit(null != metrics.count.origcmprefs[lastCanon])
       if (null == cmp && 1 === x.probable) {
         x.path_has_children = bit(0 < childPathCount(work, pm.path))
       }
 
+      if (0 === x.m_write) {
+        const payload = responsePayload(getResponseSchema(successResponse(route.responses)))
+        x.res_record = bit(payload.record)
+        x.res_scalars = bit(payload.scalars)
+        if ((1 === x.last_lit_singular && 0 === x.res_record) || 1 === x.res_scalars) {
+          const { itemPath, extended } = verbRoute(work, pm.path)
+          x.item_route_exists = bit(null != itemPath)
+          x.route_not_extended = bit(!extended)
+          sources.PARENT = parentOf(itemPath)
+        }
+      }
+
       if (null != cmp) {
         x.cmp_occur_le1 = bit((cmp.rescmpoccur ?? cmp.cmpoccur ?? 0) <= 1)
-        const lit = snakify(last)
-        x.last_lit_singular = bit('' !== lit && depluralize(lit) === lit)
         const c = String(cmp.rescmp ?? cmp.cmp ?? '')
         x.cmp_not_verb = bit('' !== lastCanon && c !== lastCanon && !c.endsWith('_' + lastCanon))
 
-        // The scan over every path waits for the cheap conditions of the gate.
         if (1 === x.m_write && 1 === x.cmp_occur_le1 && 1 === x.last_lit_singular &&
           1 === x.cmp_not_verb) {
           const { itemPath, extended } = verbRoute(work, pm.path)
           x.item_route_exists = bit(null != itemPath)
           x.route_not_extended = bit(!extended)
-          const held = null == itemPath ? {} : (owners[itemPath] ?? {})
-          sources.PARENT = held.GET ?? held.QUERY ??
-            (Object.values(held).sort()[0] as string | undefined) ?? sources.ACT
+          sources.PARENT = parentOf(itemPath)
         }
       }
     }
@@ -1017,7 +1071,10 @@ function resolveName(work: Work, route: Route) {
 
   if ('PARENT' === d.cls && null != route.pm) {
     route.verb_on_parent = route.pm[route.pm.length - 1]
+    route.view_on_parent = fired(guideNets().name, d, 'view_singular') ||
+      fired(guideNets().name, d, 'view_scalars')
   }
+  route.post_read = 1 === x.post_read
 
   why.push(explain('name', d))
   const why_path = why
@@ -1528,6 +1585,7 @@ async function neural01(ctx: ApiDefContext): Promise<Guide> {
 
   for (const route of work.routes) {
     resolveName(work, route)
+    resolveOp(route)
     const ent = work.entmap[route.entname as string]
     renameParams(ctx, route, ent)
     if (null == route.same_path) {

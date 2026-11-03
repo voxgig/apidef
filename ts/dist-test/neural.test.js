@@ -268,6 +268,31 @@ function file(header, data) {
         node_assert_1.default.strictEqual(name({ shaped: 1, shape_tpt: 1, cmp_avail: 1, cmp_from_tag: 1, same_path_avail: 1 }), 'SAMEPATH');
         node_assert_1.default.strictEqual(name({ opid_avail: 1, title_avail: 1, seg_avail: 1 }), 'OPID');
         node_assert_1.default.strictEqual(name({}), 'NONE');
+        const view = { ...tpt, last_lit_singular: 1, item_route_exists: 1, route_not_extended: 1 };
+        node_assert_1.default.strictEqual(name(view), 'PARENT');
+        node_assert_1.default.strictEqual(name({ ...view, res_record: 1 }), 'PART');
+        node_assert_1.default.strictEqual(name({ ...view, res_record: 1, res_scalars: 1 }), 'PARENT');
+        node_assert_1.default.strictEqual(name({ ...view, m_write: 1 }), 'PART');
+        node_assert_1.default.strictEqual(name({ ...view, cmp_avail: 1, cmp_ne_path: 1, cmp_infrequent: 1 }), 'PARENT');
+        const post = { shaped: 1, shape_t: 1, m_post: 1, m_write: 1, lit_last: 1, last_lit_singular: 1 };
+        const command = { ...post, body_cmp_avail: 1, cmp_avail: 1, cmp_ne_path: 1, cmp_infrequent: 1 };
+        node_assert_1.default.strictEqual(name(command), 'BODY');
+        node_assert_1.default.strictEqual(name({ ...command, cmp_in_path: 1 }), 'BODY');
+        node_assert_1.default.strictEqual(name({ ...command, last_is_cmp: 1 }), 'CMP');
+        node_assert_1.default.strictEqual(name({ ...command, verbish: 1 }), 'CMP');
+        node_assert_1.default.strictEqual(name({ ...command, item_beneath: 1 }), 'CMP');
+        node_assert_1.default.strictEqual(name({ ...command, item_route_exists: 1 }), 'CMP');
+        node_assert_1.default.strictEqual(name({ ...command, same_path_record: 1 }), 'CMP');
+        node_assert_1.default.strictEqual(name({ ...command, post_read: 1, read_noun_avail: 1 }), 'NOUN');
+        node_assert_1.default.strictEqual(name({ ...command, post_read: 1 }), 'CMP');
+        node_assert_1.default.strictEqual(name({ ...post, post_read: 1, read_noun_avail: 1, cmp_avail: 1, cmp_ne_path: 1,
+            cmp_qualifies: 1 }), 'NOUN');
+        const op = (x) => (0, nn_1.decide)(NETS.op, x).cls;
+        node_assert_1.default.strictEqual(op({ m_get: 1, res_array: 1 }), 'list');
+        node_assert_1.default.strictEqual(op({ m_get: 1, res_array: 1, view: 1 }), 'load');
+        node_assert_1.default.strictEqual(op({ m_get: 1, res_array_prop: 1, view: 1 }), 'load');
+        node_assert_1.default.strictEqual(op({ m_post: 1 }), 'create');
+        node_assert_1.default.strictEqual(op({ m_post: 1, post_read: 1 }), 'list');
     });
     (0, node_test_1.test)('nets-round-trip', () => {
         const nets = {

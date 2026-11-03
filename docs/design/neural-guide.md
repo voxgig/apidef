@@ -205,7 +205,7 @@ operation, the actions, the renames, and the transforms:
 
 | Corpus | Definitions | Routes | Agree |
 |---|---|---|---|
-| `ts/test/def` | 42 | 490 | 490 |
+| `ts/test/def` | 53 | 550 | 550 |
 | `apidef-validate` (GitHub, GitLab, Cloudsmith, Contentful and the rest) | 15 | 3,244 | 3,244 |
 
 `ts/test/neural.test.ts` pins that agreement, the solar guide, and the
@@ -232,8 +232,9 @@ inline responses, and `protocol` structures, neither of which the guide
 names from; the maintainer ruled that the score counts routes on
 `resource`, `embedded` and `command` entities only. On those, 545 of 792
 routes (69 percent) shared the analysts' name before the rulings below,
-and 593 (75 percent, 446 exact) after the first four of them; that is the
-figure the suite's floor guards.
+593 (75 percent, 446 exact) after the first four of them and 601 (76
+percent, 448 exact) after all eight; that is the figure the suite's floor
+guards.
 
 Twelve definitions agree on every route. The net and the heuristic agree
 with each other on all sixty (the sweep found one divergence, a placeholder
@@ -307,17 +308,36 @@ was that `heuristic01` changes too and the Go port follows it rule by rule:
    search, get, find, query) and whose response is a collection is the
    entity's list operation, with the body as the filter.
 
-Rulings 1 to 4 are in: in `heuristic01`, in `neural01` (the name network
-gained `cmp_names_key`, `tag_name_avail`, `cmp_differs` and
-`cmp_foreign_tag`, with gates that take the earlier branch's deciding
-feature as a negative input) and in `go/guide.go`, where `pathNoun`,
-`tagNamesLiteral`, `keyParamOf`, `unwrapCmp` and `WrapperOf` are the
-functions the TypeScript names. One fixture per ruling in `ts/test/def/`
-pins the owner of every route under both strategies
+All eight are in: in `heuristic01`, in `neural01` and in `go/guide.go`,
+where `pathNoun`, `tagNamesLiteral`, `keyParamOf`, `unwrapCmp`,
+`WrapperOf`, `viewOnParent`, `responsePayload`, `commandName` and
+`postRead` are the functions the TypeScript names. One fixture per ruling
+in `ts/test/def/` pins the owner of every route under both strategies
 (`ts/test/rulings.test.ts`) and under the Go port (`go/rulings_test.go`),
-and `ts/test/wrapper-of.tsv` is the wrapper rule's shared contract. They
-took the manual corpus from 545 to 593 of 792 routes (446 exact). Rulings
-5 to 8 are next.
+and `ts/test/wrapper-of.tsv` is the wrapper rule's shared contract.
+
+For the first four the name network gained `cmp_names_key`,
+`tag_name_avail`, `cmp_differs` and `cmp_foreign_tag`. For the last four
+it gained `res_record`, `res_scalars`, `m_post`, `verbish`, `lit_last`,
+`body_cmp_avail`, `item_beneath`, `same_path_record`, `post_read` and
+`read_noun_avail`, with four gates: `view_singular` and `view_scalars`
+(class `PARENT`, beside the verb gate), `command` (class `BODY`) and
+`read_noun` (class `NOUN`). The command class scores above the sum of the
+component gates, as the parent class does, since the heuristic applies the
+rule after the component rules and overrides them; the two are exclusive
+by their inputs. The operation network gained `view` and `post_read`, and
+is decided a second time once the name has told a view and a POST read
+apart, the first decision serving the envelope measurement as the
+heuristic's pre-naming operation does.
+
+The rulings took the manual corpus from 545 to 601 of 792 routes (448
+exact, 614 with the same role), the first four to 593 and the last four
+the rest: the listed POST read, the grade levels projection, the file
+content view, the graphhopper and pdfbroker commands. The rulings as worded
+leave some of the cited routes where they were: Clever's district status
+declares an id, so it stays a sub-resource, and Google's bucket ACL
+collections have item routes beneath them, so the literal names them
+rather than the body.
 
 The guide stage costs the same under either strategy: within a few
 milliseconds per definition on the test corpus, and within a tenth on a

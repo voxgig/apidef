@@ -65,15 +65,21 @@ const CMP_SOURCE_NET = makeNet(
 
 const OP_NET = makeNet(
   ['m_get', 'm_query', 'm_post', 'm_put', 'm_patch', 'm_delete', 'm_head', 'm_options',
-    'end_param_anchored', 'end_param_bare', 'res_array', 'res_array_prop'],
+    'end_param_anchored', 'end_param_bare', 'res_array', 'res_array_prop', 'view', 'post_read'],
   {
     read: { b: 0, w: { m_get: 1, m_query: 1 } },
-    list_array: { b: -1, w: { m_get: 1, m_query: 1, end_param_anchored: -1, res_array: 1 } },
+    list_array: {
+      b: -1, w: { m_get: 1, m_query: 1, end_param_anchored: -1, res_array: 1, view: -1 },
+    },
     list_prop: {
       b: -1,
-      w: { m_get: 1, m_query: 1, end_param_anchored: -1, end_param_bare: -1, res_array_prop: 1 },
+      w: {
+        m_get: 1, m_query: 1, end_param_anchored: -1, end_param_bare: -1, res_array_prop: 1,
+        view: -1,
+      },
     },
-    post: { b: 0, w: { m_post: 1 } },
+    post: { b: 0, w: { m_post: 1, post_read: -1 } },
+    post_list: { b: -1, w: { m_post: 1, post_read: 1 } },
     put: { b: 0, w: { m_put: 1 } },
     patch: { b: 0, w: { m_patch: 1 } },
     delete: { b: 0, w: { m_delete: 1 } },
@@ -81,7 +87,7 @@ const OP_NET = makeNet(
     options: { b: 0, w: { m_options: 1 } },
   },
   {
-    list: { b: 0, w: { list_array: 5, list_prop: 5 } },
+    list: { b: 0, w: { list_array: 5, list_prop: 5, post_list: 5 } },
     load: { b: 0, w: { read: 3 } },
     create: { b: 0, w: { post: 5 } },
     update: { b: 0, w: { put: 5 } },
@@ -99,7 +105,9 @@ const NAME_NET = makeNet(
     'item_route_exists', 'route_not_extended', 'last_is_cmp', 'path_has_children',
     'same_path_avail', 'opid_avail', 'title_avail', 'seg_avail',
     'tag_item_route', 'tag_cmp_is_record', 'collrec_avail', 'tag_collides',
-    'cmp_names_key', 'tag_name_avail', 'cmp_differs', 'cmp_foreign_tag'],
+    'cmp_names_key', 'tag_name_avail', 'cmp_differs', 'cmp_foreign_tag',
+    'm_post', 'verbish', 'lit_last', 'body_cmp_avail', 'item_beneath', 'same_path_record',
+    'post_read', 'read_noun_avail', 'res_record', 'res_scalars'],
   {
     shaped: { b: 0, w: { shaped: 1 } },
     coll_record: {
@@ -116,6 +124,25 @@ const NAME_NET = makeNet(
         cmp_not_verb: 1, item_route_exists: 1, route_not_extended: 1,
       },
     },
+    view_singular: {
+      b: -3,
+      w: {
+        shape_tpt: 1, m_write: -1, last_lit_singular: 1, res_record: -1, item_route_exists: 1,
+        route_not_extended: 1,
+      },
+    },
+    view_scalars: {
+      b: -3,
+      w: { shape_tpt: 1, m_write: -1, res_scalars: 1, item_route_exists: 1, route_not_extended: 1 },
+    },
+    command: {
+      b: -3,
+      w: {
+        m_post: 1, lit_last: 1, last_lit_singular: 1, body_cmp_avail: 1, verbish: -1, last_is_cmp: -1,
+        item_beneath: -1, item_route_exists: -1, same_path_record: -1, post_read: -1,
+      },
+    },
+    read_noun: { b: -2, w: { shaped: 1, post_read: 1, read_noun_avail: 1 } },
     cmp_qualifies: {
       b: -3,
       w: {
@@ -157,7 +184,9 @@ const NAME_NET = makeNet(
     COLLREC: { b: 0, w: { coll_record: 30 } },
     COLLSEG: { b: 0, w: { coll_segment: 30 } },
     SAMEPATH: { b: 0, w: { same_path: 20 } },
-    PARENT: { b: 0, w: { vop: 10 } },
+    NOUN: { b: 0, w: { read_noun: 11 } },
+    PARENT: { b: 0, w: { vop: 10, view_singular: 10, view_scalars: 10 } },
+    BODY: { b: 0, w: { command: 10 } },
     CMPQ: { b: 0, w: { cmp_qualifies: 6 } },
     CMP: { b: 0, w: { cmp_key: 7, cmp_primary: 5, cmp_in_path: 4 } },
     DELCMP: { b: 0, w: { delete_cmp: 5 } },

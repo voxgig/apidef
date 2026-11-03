@@ -8,7 +8,8 @@ import { each } from 'jostraca'
 import { size, merge, clone, getelem, isempty, items, keysof } from '@voxgig/struct'
 
 import {
-  isEntityWrapperProp, envelopeProp, envelopeItemRef, composedEnvelopeProp, propIsList,
+  isEntityWrapperProp, envelopeProp, strictEnvelopeProp, envelopeItemRef, composedEnvelopeProp,
+  propIsList,
   bodyRequestTransform, authExchangeOp, specSecuredByDefault, itemEnvelopeKey,
   itemEnvelopeTransform,
 } from '../utility'
@@ -130,6 +131,19 @@ const VERB_WORDS = new Set([
 
 // A literal that names an identifier keys a resource rather than naming one.
 const ID_LITERAL_RE = /(^|_)ids?$/
+
+// A literal opening with one of these reads, whatever the method.
+const READ_VERBS = ['list', 'search', 'get', 'find', 'query']
+
+// The shapes whose naming literal ends the path.
+const LITERAL_LAST_SHAPES = ['t/p/t/', 't/', 'p/t/']
+
+// Stripped from a command's body component to name the command.
+const COMMAND_SUFFIXES = [
+  '_request', '_input', '_payload', '_body', '_params', '_parameters', '_command', '_dto',
+]
+
+const SCALAR_TYPES = new Set(['string', 'number', 'integer', 'boolean'])
 
 // The matched part that gives each shape its name.
 const PATH_NAME_INDEX: Record<string, number> = {
@@ -918,8 +932,29 @@ function samePathOwner(
 
 
 // The name a method's path shape and component give it, or null where neither
-// does. A verb on a parent takes the name pathowner holds for the parent.
+// does; a POST that reads or commands is named for what it reads or sends.
 function pathEntityName(
+  data: { def: any, guide: any, work: any },
+  mdesc: any,
+  parts: string[],
+  pm: PathMatch | null,
+  pathowner: Record<string, Record<string, string>>,
+  why: string[],
+): string | null {
+  const shaped = shapeEntityName(data, mdesc, parts, pm, pathowner, why)
+  if (null == pm || null == shaped) {
+    return shaped
+  }
+  const read = postRead(mdesc, pm, parts, why)
+  if (null != read) {
+    return '' === read ? shaped : read
+  }
+  return commandName(data, mdesc, pm, parts, why) ?? shaped
+}
+
+
+// A verb on a parent takes the name pathowner holds for the parent.
+function shapeEntityName(
   data: { def: any, guide: any, work: any },
   mdesc: any,
   parts: string[],
@@ -1317,11 +1352,17 @@ function ResolveOperation(spec: TaskSpec) {
 
 
   if ('load' === standard_opname) {
-    const islist = isListResponse(mdesc, ment.pm, pathStr, why_op)
+    const islist = true !== ment.view_on_parent && isListResponse(mdesc, ment.pm, pathStr, why_op)
     opname = islist ? 'list' : opname
+    if (true === ment.view_on_parent) {
+      why_op.push('view')
+    }
   }
 
-
+  else if ('create' === standard_opname && true === ment.post_read) {
+    opname = 'list'
+    why_op.push('post-read')
+  }
 
   else {
     why_op.push('not-load')
@@ -1615,7 +1656,15 @@ function entityPathMatch_tpte(
   const verbish = entname !== canonize(origPathName)
   let ecm = undefined
 
-  if (null != ment.cmp) {
+  const view = viewOnParent(data, pm, mdesc, pathowner)
+  if (null != view) {
+    entname = view
+    ment.verb_on_parent = getelem(pm, -1)
+    ment.view_on_parent = true
+    why.push('view-on-parent=' + view)
+  }
+
+  else if (null != ment.cmp) {
     const parent = verbOnParent(data, pm, mdesc, pathowner)
     if (null != parent) {
       entname = parent
@@ -1694,42 +1743,182 @@ function verbOnParent(
     return null
   }
 
-  const defpaths = data.def?.paths ?? {}
+  const itemPath = leafItemRoute(data, pm)
+  return null == itemPath ? null : itemOwner(pm, itemPath, pathowner)
+}
 
-  // Paths compare with parameters normalised: the item path may spell its
-  // key `{id}` where the verb path spells it `{thing_number}`.
+
+// The item route a verb path hangs off, or null when a path extends the
+// verb. Paths compare with parameters normalised: the item path may spell
+// its key `{id}` where the verb path spells it `{thing_number}`.
+function leafItemRoute(data: { def: any }, pm: PathMatch): string | null {
   const normalize = (p: string) => p.replace(/\{[^}]+\}/g, '{}')
   const itemNorm = normalize(pm.path.replace(/\/[^/]+$/, ''))
   const prefix = normalize(pm.path) + '/'
-
-  let itemPath: undefined | string = undefined
-  for (const p of Object.keys(defpaths)) {
+  let itemPath: string | null = null
+  for (const p of Object.keys(data.def?.paths ?? {})) {
     const pn = normalize(p)
     if (pn === itemNorm) {
       itemPath = p
     }
-    // A leaf: no path continues past the verb. Compared on a segment
-    // boundary, so `/merge` is not "extended" by `/merge-async`.
+    // On a segment boundary, so `/merge` is not extended by `/merge-async`.
     else if (pn.startsWith(prefix)) {
       return null
     }
   }
-  if (null == itemPath) {
-    return null
-  }
+  return itemPath
+}
 
-  // Methods resolve in path order, so the item path's owners are already
-  // known. The parent is the entity a READ of the item returns: a PUT on
-  // the item answering with a one-off acknowledgement is named after that
-  // and must not claim the verb. Fall back to any owner, then the literal.
+
+// Methods resolve in path order, so the item path's owners are already
+// known. The parent is the entity a READ of the item returns: a PUT on the
+// item answering with a one-off acknowledgement is named after that and must
+// not claim the verb. Fall back to any owner, then the literal.
+function itemOwner(
+  pm: PathMatch,
+  itemPath: string,
+  pathowner: Record<string, Record<string, string>>,
+): string {
   const owners = pathowner[itemPath] ?? {}
   const parent = owners.GET ?? owners.QUERY ??
     Object.values(owners).sort()[0] as undefined | string
-  if (null != parent) {
-    return parent
-  }
+  return parent ?? canonize(getelem(pm, -3))
+}
 
-  return canonize(getelem(pm, -3))
+
+// A read of a literal under the item key that answers with no record of its
+// own, an object declaring no id or an array of scalars, is a view of the
+// item: the parent takes it as a load action.
+function viewOnParent(
+  data: { def: any },
+  pm: PathMatch,
+  mdesc: any,
+  pathowner: Record<string, Record<string, string>>,
+): null | string {
+  if (!READ_METHODS.includes(mdesc.method)) {
+    return null
+  }
+  const lit = snakify(getelem(pm, -1))
+  const payload = responsePayload(getResponseSchema(successResponse(mdesc.responses)))
+  if ('' === lit || (!payload.scalars && (depluralize(lit) !== lit || payload.record))) {
+    return null
+  }
+  const itemPath = leafItemRoute(data, pm)
+  return null == itemPath ? null : itemOwner(pm, itemPath, pathowner)
+}
+
+
+// What a response carries past its envelopes: whether it reaches an array of
+// scalars, and whether the record it reaches declares an id.
+function responsePayload(schema: any): { scalars: boolean, record: boolean } {
+  let node = schema
+  let array = false
+  for (let depth = 0; null != node && 'object' === typeof node && depth < 8; depth++) {
+    if ('array' === node.type) {
+      array = true
+      node = node.items
+      continue
+    }
+    const props = mergedProperties(node)
+    if (null == props) {
+      break
+    }
+    if (null != props.id) {
+      return { scalars: false, record: true }
+    }
+    const env = strictEnvelopeProp(props, 'list') ?? strictEnvelopeProp(props, 'load')
+    if (null == env) {
+      break
+    }
+    node = props[env]
+  }
+  const scalar = null != node && 'object' === typeof node &&
+    SCALAR_TYPES.has(node.type) && null == mergedProperties(node)
+  return { scalars: array && scalar, record: false }
+}
+
+
+// A POST addressed to a singular literal that names no component, with no
+// item route above it to be a verb on or beneath it to be a collection, is a
+// command: its body component names it.
+function commandName(
+  data: { def: any, guide: any, work: any },
+  mdesc: any,
+  pm: PathMatch,
+  parts: string[],
+  why: string[],
+): string | null {
+  const ment = mdesc.MethodEntity
+  if ('POST' !== mdesc.method || null != ment.verb_on_parent ||
+    !LITERAL_LAST_SHAPES.includes(pm.expr)) {
+    return null
+  }
+  const last = getelem(pm, -1)
+  const lit = snakify(last)
+  if ('' === lit || depluralize(lit) !== lit || pathNoun(pm, parts, []) !== canonize(last) ||
+    isOrigCmp(data, canonize(last)) || null != keyParamOf(data.def, mdesc.path, data.work) ||
+    ('t/p/t/' === pm.expr && null != leafItemRoute(data, pm)) || readsRecord(data, mdesc.path)) {
+    return null
+  }
+  const name = commandBodyName(data, mdesc)
+  if (null != name) {
+    why.push('command=' + name)
+  }
+  return name
+}
+
+
+// A path whose read answers with a record is a resource, not a command.
+function readsRecord(data: { def: any }, pathStr: string): boolean {
+  const mdef = data.def?.paths?.[pathStr]?.get
+  return null != mdef && responsePayload(getResponseSchema(successResponse(mdef.responses))).record
+}
+
+
+// The name a command's body component gives, its affixes stripped. A body
+// that is no object, such as an upload, names nothing.
+function commandBodyName(data: { def: any, guide: any }, mdesc: any): string | null {
+  const body = getRequestBodySchema(data.def, mdesc)
+  const xref = body?.['x-ref']
+  if ('string' !== typeof xref || null == mergedProperties(body)) {
+    return null
+  }
+  let name = cleanComponentName(canonizeCmpName(cmpRefName(xref)),
+    (n: string) => null != data.guide.metrics.count.origcmprefs[n])
+  for (;;) {
+    const suffix = COMMAND_SUFFIXES.find((sfx) => name.endsWith(sfx) && sfx.length < name.length)
+    if (null == suffix) {
+      break
+    }
+    name = name.slice(0, -suffix.length)
+  }
+  return '' === name ? null : name
+}
+
+
+// A POST whose literal opens with a read verb and answers with a collection
+// lists the noun the literal names, the body its filter; '' keeps the shape's
+// name where the literal is the verb alone.
+function postRead(
+  mdesc: any,
+  pm: PathMatch,
+  parts: string[],
+  why: string[],
+): string | null {
+  if ('POST' !== mdesc.method) {
+    return null
+  }
+  const verbs = verbParts(parts)
+  const last = verbs[verbs.length - 1]
+  const lit = snakify(last)
+  const verb = READ_VERBS.find((v) => lit === v || lit.startsWith(v + '_'))
+  if (null == verb || isParam(last) || !isListResponse(mdesc, pm, mdesc.path, [])) {
+    return null
+  }
+  mdesc.MethodEntity.post_read = true
+  why.push('post-read=' + verb)
+  const noun = lit.slice(verb.length + 1)
+  return '' === noun ? '' : canonize(noun)
 }
 
 
@@ -3105,6 +3294,12 @@ function hasMethod(def: any, pathStr: string, methodName: string) {
 export {
   answeredRefs,
   arrayBodyField,
+  commandBodyName,
+  readsRecord,
+  responsePayload,
+  isListResponse,
+  LITERAL_LAST_SHAPES,
+  READ_VERBS,
   distinctRecord,
   distinctShare,
   heuristic01,

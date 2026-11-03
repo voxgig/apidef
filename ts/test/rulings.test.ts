@@ -86,7 +86,7 @@ const RULINGS: { def: string, expect: Record<string, string> }[] = [
       'POST /templates': 'template create',
       'GET /templates/{id}': 'template load',
       'DELETE /templates/{id}': 'template remove',
-      'GET /templates/{id}/file': 'template_file load',
+      'GET /templates/{id}/file': 'template load file',
     },
   },
   {
@@ -107,6 +107,43 @@ const RULINGS: { def: string, expect: Record<string, string> }[] = [
       'GET /lists.{format}': 'list list',
       'GET /lists/names.{format}': 'name list',
       'GET /reviews.{format}': 'review list',
+    },
+  },
+  {
+    def: 'sub-read-def.json',
+    expect: {
+      'GET /districts': 'district list',
+      'GET /districts/{id}': 'district load',
+      'GET /districts/{id}/status': 'district load status',
+      'GET /districts/{id}/profile': 'profile load',
+    },
+  },
+  {
+    def: 'projection-def.json',
+    expect: {
+      'GET /teachers': 'teacher list',
+      'GET /teachers/{id}': 'teacher load',
+      'GET /teachers/{id}/grade_levels': 'teacher load grade_level',
+      'GET /teachers/{id}/students': 'student list',
+    },
+  },
+  {
+    def: 'command-def.json',
+    expect: {
+      'POST /#Action=AssumeRole': 'assume_role create',
+      'GET /keys': 'key list',
+      'POST /keys/{keyName}/requestToken': 'token create',
+      'GET /account': 'account load',
+      'POST /account': 'account create',
+    },
+  },
+  {
+    def: 'post-read-def.json',
+    expect: {
+      'POST /listRecurringDetails': 'recurring_detail list',
+      'GET /things': 'thing list',
+      'POST /things/search': 'thing list search',
+      'POST /things/count': 'thing create count',
     },
   },
 ]

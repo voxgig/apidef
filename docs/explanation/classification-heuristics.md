@@ -224,6 +224,13 @@ A single operation can have **several points** — one per path/method that
 produces it — which is why the model keeps `op.<name>.points[]` rather than a
 single path (see [the internal model](./the-internal-model.md)).
 
+A `POST` whose last literal opens with a read verb, `list`, `search`, `get`,
+`find` or `query`, and that answers with a collection is the entity's `list`
+operation rather than a `create`: the body is the filter, as a `QUERY` body
+is. Adyen's `POST /listRecurringDetails` lists `recurring_detail`, named for
+the noun after the verb, and `POST /things/search` is a `list` of `thing`
+with `search` as its action.
+
 ## A tag names a route only where the path cannot
 
 A route with no response component takes its name from a tag only when
@@ -238,6 +245,18 @@ reads stay on `artifact`. A trailing literal that is a verb, `send` in
 `/message/send`, names the noun before it, and the verb becomes an action
 of `message`; so does the verb after a colon in a custom method, as
 `count` in `/schedules:count` acts on `schedule`.
+
+## A command is named for its body
+
+A `POST` addressed to a singular literal that names no component, with no
+item route it could be a verb on and none beneath it to be a collection, is
+a command, and its request body component names it with its affixes
+stripped. AWS STS's `POST /#Action=AssumeRole` sends an `AssumeRoleRequest`
+and is `assume_role`; Ably's `POST /keys/{keyName}/requestToken` sends a
+`TokenRequest` and is `token`. The literal names only when the body is no
+component, or no object, such as an upload. A path whose read answers with
+a record keeps the literal: `POST /account` beside a `GET /account` that
+answers an `Account` is the account's `create`.
 
 ## A collection joins its items
 
@@ -344,10 +363,18 @@ when six things hold: the method writes, the response component occurs
 nowhere else in the spec, the literal is singular, that literal is not the
 name of the component's own member shape, the item selector
 (`.../pulls/{pull_number}`) is a path of the spec, and nothing extends the
-verb's path. A `GET` on such a path is a sub-resource read, and a literal
-with paths beneath it is a collection, so both keep the component rule. The
-verb joins the entity a read of the item returns, however the two paths
-spell the key.
+verb's path. A literal with paths beneath it is a collection and keeps the
+component rule. The verb joins the entity a read of the item returns,
+however the two paths spell the key.
+
+A `GET` on such a path is a view of the item when it answers with no record
+of its own: an object that declares no `id`, as OpenAI's
+`/files/{file_id}/content` does, or an array of scalars, as Clever's
+`/teachers/{id}/grade_levels` does with its strings. The parent takes the
+view as a `load` action, `content` on `file` and `grade_level` on `teacher`,
+and the array of scalars is a field of the parent rather than a collection.
+A read whose response declares an `id` of its own, or whose items do, is a
+sub-resource and keeps the component rule.
 
 Plurality decides first, and on its own. A verb reads as one instruction —
 `merge`, `revoke`, `resend_confirmation` — where a plural literal names a

@@ -285,6 +285,34 @@ describe('nn', () => {
       'SAMEPATH')
     assert.strictEqual(name({ opid_avail: 1, title_avail: 1, seg_avail: 1 }), 'OPID')
     assert.strictEqual(name({}), 'NONE')
+
+    const view = { ...tpt, last_lit_singular: 1, item_route_exists: 1, route_not_extended: 1 }
+    assert.strictEqual(name(view), 'PARENT')
+    assert.strictEqual(name({ ...view, res_record: 1 }), 'PART')
+    assert.strictEqual(name({ ...view, res_record: 1, res_scalars: 1 }), 'PARENT')
+    assert.strictEqual(name({ ...view, m_write: 1 }), 'PART')
+    assert.strictEqual(name({ ...view, cmp_avail: 1, cmp_ne_path: 1, cmp_infrequent: 1 }), 'PARENT')
+
+    const post = { shaped: 1, shape_t: 1, m_post: 1, m_write: 1, lit_last: 1, last_lit_singular: 1 }
+    const command = { ...post, body_cmp_avail: 1, cmp_avail: 1, cmp_ne_path: 1, cmp_infrequent: 1 }
+    assert.strictEqual(name(command), 'BODY')
+    assert.strictEqual(name({ ...command, cmp_in_path: 1 }), 'BODY')
+    assert.strictEqual(name({ ...command, last_is_cmp: 1 }), 'CMP')
+    assert.strictEqual(name({ ...command, verbish: 1 }), 'CMP')
+    assert.strictEqual(name({ ...command, item_beneath: 1 }), 'CMP')
+    assert.strictEqual(name({ ...command, item_route_exists: 1 }), 'CMP')
+    assert.strictEqual(name({ ...command, same_path_record: 1 }), 'CMP')
+    assert.strictEqual(name({ ...command, post_read: 1, read_noun_avail: 1 }), 'NOUN')
+    assert.strictEqual(name({ ...command, post_read: 1 }), 'CMP')
+    assert.strictEqual(name({ ...post, post_read: 1, read_noun_avail: 1, cmp_avail: 1, cmp_ne_path: 1,
+      cmp_qualifies: 1 }), 'NOUN')
+
+    const op = (x: Record<string, number>) => decide(NETS.op, x).cls
+    assert.strictEqual(op({ m_get: 1, res_array: 1 }), 'list')
+    assert.strictEqual(op({ m_get: 1, res_array: 1, view: 1 }), 'load')
+    assert.strictEqual(op({ m_get: 1, res_array_prop: 1, view: 1 }), 'load')
+    assert.strictEqual(op({ m_post: 1 }), 'create')
+    assert.strictEqual(op({ m_post: 1, post_read: 1 }), 'list')
   })
 
 

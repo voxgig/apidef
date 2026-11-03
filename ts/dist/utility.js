@@ -57,6 +57,7 @@ exports.itemEnvelopeKey = itemEnvelopeKey;
 exports.itemEnvelopeTransform = itemEnvelopeTransform;
 exports.itemEnvelopeOf = itemEnvelopeOf;
 exports.envelopeProp = envelopeProp;
+exports.strictEnvelopeProp = strictEnvelopeProp;
 exports.envelopeItemRef = envelopeItemRef;
 exports.composedEnvelopeProp = composedEnvelopeProp;
 exports.propIsList = propIsList;
