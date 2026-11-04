@@ -270,6 +270,74 @@ func TestTsvInferTypeFromValue(t *testing.T) {
 	}
 }
 
+func TestTsvListedRecords(t *testing.T) {
+	for _, row := range loadTsv(t, "listed-records") {
+		t.Run(row["resprops"], func(t *testing.T) {
+			var props map[string]any
+			var example any
+			unmarshalCol(t, row, "resprops", &props)
+			unmarshalCol(t, row, "example", &example)
+			if got := envelopePropWith(props, "list", example); got != row["expected"] {
+				t.Errorf("envelopePropWith(list) = %q, want %q", got, row["expected"])
+			}
+		})
+	}
+}
+
+// A list over an object reads records and says which it dropped; one holding
+// none reads the whole body and says so.
+func TestTsvListBody(t *testing.T) {
+	rows := loadTsv(t, "list-body")
+	if len(rows) == 0 {
+		t.Fatal("no list-body rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			def, err := Parse("OpenAPI", row["def"], map[string]string{"file": row["name"]})
+			if err != nil {
+				t.Fatal(err)
+			}
+			warn := MakeWarner("test", nil)
+			guide, err := heuristic01(&ApiDefContext{
+				Def: def, Note: map[string]any{}, Warn: warn, Work: map[string]any{},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			res := map[string]any{}
+			entities, _ := guide["entity"].(map[string]any)
+			for _, ename := range sortedKeys(entities) {
+				ent, _ := entities[ename].(map[string]any)
+				paths, _ := ent["path"].(map[string]any)
+				for _, p := range sortedKeys(paths) {
+					pathdesc, _ := paths[p].(map[string]any)
+					ops, _ := pathdesc["op"].(map[string]any)
+					for _, opname := range sortedKeys(ops) {
+						op, _ := ops[opname].(map[string]any)
+						transform, _ := op["transform"].(map[string]any)
+						res[ename+"."+opname] = transform["res"]
+					}
+				}
+			}
+			notes := []any{}
+			for _, w := range warn.History() {
+				notes = append(notes, w["note"])
+			}
+			var wantRes, wantNotes any
+			unmarshalCol(t, row, "res", &wantRes)
+			unmarshalCol(t, row, "warnings", &wantNotes)
+			if !jsonEqual(res, wantRes) {
+				got, _ := json.Marshal(res)
+				t.Errorf("res\ngot  %s\nwant %s", got, row["res"])
+			}
+			if !jsonEqual(notes, wantNotes) {
+				got, _ := json.Marshal(notes)
+				t.Errorf("warnings\ngot  %s\nwant %s", got, row["warnings"])
+			}
+		})
+	}
+}
+
 func TestTsvOperationVerb(t *testing.T) {
 	for _, row := range loadTsv(t, "operation-verb") {
 		t.Run(row["input"], func(t *testing.T) {

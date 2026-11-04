@@ -42,11 +42,11 @@ resprops	opname	expected
 {"data":{"type":"array","items":{"$ref":"#/components/schemas/Breakdown"}},"meta":{"type":"object"},"timeframe":{"type":"array","items":{"type":"integer"}}}	list	data
 {"data":{"type":"array","items":{"$ref":"#/components/schemas/Notification"}},"hasMore":{"type":"boolean"},"filter":{"type":"object"}}	list	data
 {"global":{"$ref":"#/components/schemas/Channels"},"workflows":{"type":"array","items":{"$ref":"#/components/schemas/Preference"}}}	list	workflows
-{"state":{"type":"string"},"statuses":{"type":"array","items":{"$ref":"#/components/schemas/Status"}},"repository":{"$ref":"#/components/schemas/Repository"}}	list	
-{"data":{"type":"array","items":{"$ref":"#/components/schemas/Article"}},"included":{"type":"array","items":{"$ref":"#/components/schemas/Person"}}}	list	
+{"state":{"type":"string"},"statuses":{"type":"array","items":{"$ref":"#/components/schemas/Status"}},"repository":{"$ref":"#/components/schemas/Repository"}}	list	statuses
+{"data":{"type":"array","items":{"$ref":"#/components/schemas/Article"}},"included":{"type":"array","items":{"$ref":"#/components/schemas/Person"}}}	list	data
 {"data":{"$ref":"#/components/schemas/Annotation"},"timeframe":{"type":"array","items":{"type":"integer"}}}	load	
-{"state":{"oneOf":[{"type":"string"},{"type":"null"}]},"statuses":{"type":"array","items":{"$ref":"#/components/schemas/Status"}},"repository":{"$ref":"#/components/schemas/Repository"}}	list	
-{"state":{"type":"string","enum":["open","closed"],"x-ref":"#/components/schemas/State"},"statuses":{"type":"array","items":{"$ref":"#/components/schemas/Status"}},"repository":{"$ref":"#/components/schemas/Repository"}}	list	
+{"state":{"oneOf":[{"type":"string"},{"type":"null"}]},"statuses":{"type":"array","items":{"$ref":"#/components/schemas/Status"}},"repository":{"$ref":"#/components/schemas/Repository"}}	list	statuses
+{"state":{"type":"string","enum":["open","closed"],"x-ref":"#/components/schemas/State"},"statuses":{"type":"array","items":{"$ref":"#/components/schemas/Status"}},"repository":{"$ref":"#/components/schemas/Repository"}}	list	statuses
 {"id":{"allOf":[{"type":"string","x-ref":"#/components/schemas/Id"},{"description":"The thing's id."}]},"status":{"type":"string"}}	load	
 {"id":{"type":"string"},"status":{"type":"string"}}	load	
 {"data":{"description":"The thing.","allOf":[{"type":"object","properties":{"id":{"type":"string"}},"x-ref":"#/components/schemas/Thing"}]},"status":{"type":"string"}}	load	data
@@ -61,9 +61,9 @@ resprops	opname	expected
 {"data":{"type":"array","items":{"$ref":"#/components/schemas/Practice"}},"meta":{"type":"object"}}	load	
 {"node":{"type":"object"},"total":{"type":"integer"},"page":{"type":"integer"},"pages":{"type":"integer"},"results":{"type":"array","items":{"type":"object"}},"license":{"type":"object"},"sampled":{"type":"boolean"},"cap":{"type":"integer"}}	list	results
 {"query":{"type":"string"},"next_cursor":{"type":"string"},"results":{"type":"array","items":{"$ref":"#/x"}},"source":{"type":"object"}}	list	results
-{"state":{"type":"string"},"sha":{"type":"string"},"total_count":{"type":"integer"},"statuses":{"type":"array","items":{"$ref":"#/components/schemas/Status"}},"repository":{"$ref":"#/components/schemas/Repository"},"url":{"type":"string"}}	list	
-{"title":{"type":"string"},"pages":{"type":"array","items":{"$ref":"#/components/schemas/Page"}},"index":{"type":"object"}}	list	
-{"page":{"type":"integer"},"primary":{"type":"array","items":{"$ref":"#/x"}},"general":{"type":"array","items":{"$ref":"#/x"}},"region":{"type":"string"}}	list	
+{"state":{"type":"string"},"sha":{"type":"string"},"total_count":{"type":"integer"},"statuses":{"type":"array","items":{"$ref":"#/components/schemas/Status"}},"repository":{"$ref":"#/components/schemas/Repository"},"url":{"type":"string"}}	list	statuses
+{"title":{"type":"string"},"pages":{"type":"array","items":{"$ref":"#/components/schemas/Page"}},"index":{"type":"object"}}	list	pages
+{"page":{"type":"integer"},"primary":{"type":"array","items":{"$ref":"#/x"}},"general":{"type":"array","items":{"$ref":"#/x"}},"region":{"type":"string"}}	list	general
 {"attestations_subject_digests":{"type":"object"},"page_info":{"type":"object"}}	create	
 {"data":{"$ref":"#/components/schemas/Practice"},"pagination":{"type":"object"}}	load	
 {"data":{"$ref":"#/components/schemas/Practice"},"links":{"type":"object"}}	load	data

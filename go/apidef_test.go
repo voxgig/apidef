@@ -1013,7 +1013,7 @@ func TestGuidePageSide(t *testing.T) {
 		{"metric", "/metrics", "list", "`body.data`"},
 		{"notification", "/notifications", "list", "`body.data`"},
 		{"preference", "/preferences", "list", "`body.workflows`"},
-		{"rollup", "/rollups", "list", nil},
+		{"rollup", "/rollups", "list", "`body.statuses`"},
 		{"branch", "/branches", "list", "`body.branches`"},
 		{"job", "/jobs", "create", "`body.data`"},
 		{"job", "/jobs/{id}", "load", "`body.data`"},

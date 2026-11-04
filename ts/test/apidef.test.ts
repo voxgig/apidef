@@ -681,7 +681,7 @@ describe('apidef', () => {
 
   // A page with no data of its own reads its one list of records past a list
   // of scalars (metric) or an object (notification, preference), composed or
-  // not (branch), while a response with a state of its own is read whole
+  // not (branch), and so does one with a state of its own beside its one list
   // (rollup). A create that
   // only an Accepted response answers reads its envelope as the load does.
   test('guide-page-side', async () => {
@@ -714,7 +714,7 @@ describe('apidef', () => {
     assert.strictEqual(res('metric', 'list'), '`body.data`')
     assert.strictEqual(res('notification', 'list'), '`body.data`')
     assert.strictEqual(res('preference', 'list'), '`body.workflows`')
-    assert.strictEqual(res('rollup', 'list'), '`body`')
+    assert.strictEqual(res('rollup', 'list'), '`body.statuses`')
     assert.strictEqual(res('branch', 'list'), '`body.branches`')
     assert.strictEqual(res('job', 'create'), '`body.data`')
     assert.strictEqual(res('job', 'load'), '`body.data`')

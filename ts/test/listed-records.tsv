@@ -1,0 +1,8 @@
+resprops	example	expected
+{"primary":{"type":"array","items":{"type":"object","x-ref":"#/components/schemas/Deadline"}},"general":{"type":"array","items":{"type":"object","x-ref":"#/components/schemas/Deadline"}}}	{"primary":[{"state":"TX"}],"general":[]}	primary
+{"primary":{"type":"array","items":{"type":"object","x-ref":"#/components/schemas/Deadline"}},"general":{"type":"array","items":{"type":"object","x-ref":"#/components/schemas/Deadline"}}}	{"primary":[{"state":"TX"}],"general":[{"state":"CA"}]}	general
+{"primary":{"type":"array","items":{"type":"object","x-ref":"#/components/schemas/Deadline"}},"general":{"type":"array","items":{"type":"object","x-ref":"#/components/schemas/Deadline"}}}	null	general
+{"users":{"type":"array","items":{"type":"object","x-ref":"#/components/schemas/User"}},"groups":{"type":"array","items":{"type":"object","x-ref":"#/components/schemas/Group"}}}	{"users":[{"id":"u"}],"groups":[]}	groups
+{"errors":{"type":"array","items":{"type":"object","x-ref":"#/components/schemas/Item"}},"results":{"type":"array","items":{"type":"object","x-ref":"#/components/schemas/Item"}}}	null	results
+{"name":{"type":"string"},"items":{"type":"array","items":{"type":"object","x-ref":"#/components/schemas/Item"}}}	null	items
+{"tags":{"type":"array","items":{"type":"string"}},"name":{"type":"string"}}	null	tags

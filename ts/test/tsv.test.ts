@@ -419,6 +419,47 @@ describe('tsv-infer-type-from-value', () => {
 })
 
 
+describe('tsv-listed-records', () => {
+  for (const row of loadTsv('listed-records')) {
+    test(`envelopeProp(${row.resprops}, list, ${row.example})`, () => {
+      const example = JSON.parse(row.example) ?? undefined
+      assert.deepStrictEqual(
+        envelopeProp(JSON.parse(row.resprops), 'list', example) ?? '', row.expected)
+    })
+  }
+})
+
+
+// A list over an object reads records and says which it dropped; one holding
+// none reads the whole body and says so.
+describe('tsv-list-body', () => {
+  const rows = loadTsv('list-body')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, async () => {
+      const def = await parse('OpenAPI', row.def, { file: row.name })
+      const warnings: string[] = []
+      const quiet = () => undefined
+      const guide = await heuristic01({
+        def,
+        log: { info: quiet, debug: quiet, warn: quiet, error: quiet },
+        warn: (warning: any) => warnings.push(warning.note),
+      } as any)
+      const res: any = {}
+      for (const [ename, ent] of Object.entries<any>(guide.entity)) {
+        for (const pathdesc of Object.values<any>(ent.path)) {
+          for (const [opname, op] of Object.entries<any>(pathdesc.op)) {
+            res[ename + '.' + opname] = op.transform?.res ?? null
+          }
+        }
+      }
+      assert.deepStrictEqual(res, JSON.parse(row.res))
+      assert.deepStrictEqual(warnings, JSON.parse(row.warnings))
+    })
+  }
+})
+
+
 describe('tsv-operation-verb', () => {
   for (const row of loadTsv('operation-verb')) {
     test(`stripOperationVerb(canonize(${row.input}))`, () => {

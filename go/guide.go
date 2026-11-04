@@ -741,7 +741,7 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 		renameParams(ctx, data, mdesc)
 		findActions(data, mdesc)
 		resolveOperation(data, mdesc)
-		resolveTransform(data, mdesc)
+		resolveTransform(ctx, data, mdesc)
 	}
 
 	// Phase 4: BuildEntity
@@ -1919,7 +1919,47 @@ func resolveOperation(data map[string]any, mdesc map[string]any) {
 }
 
 // resolveTransform analyzes req/res schemas for transforms.
-func resolveTransform(data map[string]any, mdesc map[string]any) {
+var bodyKeyRE = regexp.MustCompile("^`body\\.([^.`]+)`$")
+
+// warnListBody mirrors ts/src/guide/heuristic01.ts: a list that reads a whole
+// object, or drops lists of records beside the one it reads, is named.
+func warnListBody(ctx *ApiDefContext, where string, res any, props map[string]any) {
+	if len(props) == 0 || ctx == nil || ctx.Warn == nil {
+		return
+	}
+	if res == nil {
+		ctx.Warn.Warn(map[string]any{
+			"note": "list " + where + " reads its whole body, an object holding no list of" +
+				" records: declare what it lists in guide.aontu",
+		})
+		return
+	}
+	s, _ := res.(string)
+	m := bodyKeyRE.FindStringSubmatch(s)
+	if m == nil {
+		return
+	}
+	lists := recordLists(props)
+	var dropped []string
+	for _, k := range lists {
+		if k != m[1] {
+			dropped = append(dropped, "`"+k+"`")
+		}
+	}
+	if 0 < len(dropped) {
+		ctx.Warn.Warn(map[string]any{
+			"note": "list " + where + " reads `body." + m[1] + "` and drops " +
+				strings.Join(dropped, ", ") + ": declare the one it reads in guide.aontu",
+		})
+	} else if slices.Contains(lists, m[1]) && m[1] != singleEnvelope(props, "list") {
+		ctx.Warn.Warn(map[string]any{
+			"note": "list " + where + " reads `body." + m[1] + "`, beside data of the object" +
+				" it is in: declare what it lists in guide.aontu",
+		})
+	}
+}
+
+func resolveTransform(ctx *ApiDefContext, data map[string]any, mdesc map[string]any) {
 	ment, _ := mdesc["MethodEntity"].(map[string]any)
 	if ment == nil {
 		return
@@ -1976,9 +2016,13 @@ func resolveTransform(data map[string]any, mdesc map[string]any) {
 	// Mirrors ts/src/guide/heuristic01.ts: a list reads records, so an object
 	// named for the entity does not win over a list of them beside it, found
 	// in the same parts the name is.
+	var example any
+	if opname == "list" {
+		example = findExampleObject(mdesc, "")
+	}
 	records := ""
 	if opname == "list" && partprops != nil {
-		records = envelopeProp(partprops, opname)
+		records = envelopePropWith(partprops, opname, example)
 	}
 	holdsRecord := func(prop any) bool {
 		if !isEntityWrapperProp(prop) {
@@ -1992,8 +2036,11 @@ func resolveTransform(data map[string]any, mdesc map[string]any) {
 		transform["res"] = "`body." + origname + "`"
 	} else if named && holdsRecord(partprops[ename]) && ename != "" {
 		transform["res"] = "`body." + ename + "`"
+	} else if opname == "list" && named && ename != "" &&
+		slices.Contains(recordLists(partprops), Pluralize(ename)) {
+		transform["res"] = "`body." + Pluralize(ename) + "`"
 	} else if resprops != nil {
-		if envelope := envelopeProp(resprops, opname); envelope != "" {
+		if envelope := envelopePropWith(resprops, opname, example); envelope != "" {
 			transform["res"] = "`body." + envelope + "`"
 		}
 	}
@@ -2016,6 +2063,10 @@ func resolveTransform(data map[string]any, mdesc map[string]any) {
 		if key := itemEnvelopeKey(resschema, []string{origname, ename}); key != "" {
 			transform["res"] = itemEnvelopeTransform(key)
 		}
+	}
+
+	if opname == "list" {
+		warnListBody(ctx, strings.ToUpper(methodName)+" "+pathStr, transform["res"], partprops)
 	}
 
 	def, _ := data["def"].(map[string]any)

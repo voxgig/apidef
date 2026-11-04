@@ -1194,6 +1194,7 @@ function ownType(type: any): any {
 
 export {
   fieldTransform,
+  findExampleObject,
   inferFieldsFromExamples,
   inferTypeFromValue,
   routeFieldNames,

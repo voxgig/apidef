@@ -532,7 +532,7 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
     });
     // A page with no data of its own reads its one list of records past a list
     // of scalars (metric) or an object (notification, preference), composed or
-    // not (branch), while a response with a state of its own is read whole
+    // not (branch), and so does one with a state of its own beside its one list
     // (rollup). A create that
     // only an Accepted response answers reads its envelope as the load does.
     (0, node_test_1.test)('guide-page-side', async () => {
@@ -557,7 +557,7 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.strictEqual(res('metric', 'list'), '`body.data`');
         node_assert_1.default.strictEqual(res('notification', 'list'), '`body.data`');
         node_assert_1.default.strictEqual(res('preference', 'list'), '`body.workflows`');
-        node_assert_1.default.strictEqual(res('rollup', 'list'), '`body`');
+        node_assert_1.default.strictEqual(res('rollup', 'list'), '`body.statuses`');
         node_assert_1.default.strictEqual(res('branch', 'list'), '`body.branches`');
         node_assert_1.default.strictEqual(res('job', 'create'), '`body.data`');
         node_assert_1.default.strictEqual(res('job', 'load'), '`body.data`');

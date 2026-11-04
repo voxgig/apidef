@@ -58,6 +58,8 @@ exports.itemEnvelopeKey = itemEnvelopeKey;
 exports.itemEnvelopeTransform = itemEnvelopeTransform;
 exports.itemEnvelopeOf = itemEnvelopeOf;
 exports.envelopeProp = envelopeProp;
+exports.recordLists = recordLists;
+exports.singleEnvelope = singleEnvelope;
 exports.envelopeItemRef = envelopeItemRef;
 exports.composedEnvelopeProp = composedEnvelopeProp;
 exports.pageRecords = pageRecords;
@@ -1605,7 +1607,36 @@ function itemEnvelopeOf(res) {
     const m = 'string' === typeof merge ? merge.match(/^`\.([^.`$]+)`$/) : null;
     return null == m ? null : m[1];
 }
-function envelopeProp(resprops, opname) {
+// A list over an object reads its records, never the object: its one envelope,
+// else its one list of records beside other data, else the first of several.
+function envelopeProp(resprops, opname, example) {
+    const key = singleEnvelope(resprops, opname);
+    return null == key && 'list' === opname ? listedRecords(resprops, example) : key;
+}
+// The lists of records an object holds, in name order.
+function recordLists(resprops) {
+    return (0, struct_1.keysof)(resprops).filter((k) => isRecordList(resprops[k]));
+}
+// Lists of one item schema are categories of one record, such as dedline's
+// primary and general deadlines: the one the definition's example fills is
+// read, as its example is counted. Otherwise the first by name is, past one
+// holding errors or messages.
+function listedRecords(resprops, example) {
+    const lists = recordLists(resprops);
+    if (lists.length < 2) {
+        return lists[0] ?? null;
+    }
+    const refs = new Set(lists.map((k) => resprops[k]?.items?.['x-ref']));
+    if (1 === refs.size && null != [...refs][0]) {
+        const filled = lists.filter((k) => Array.isArray(example?.[k]) && 0 < example[k].length);
+        if (1 === filled.length) {
+            return filled[0];
+        }
+    }
+    const status = (k) => isEnvelopeStatusProp(k) || isEnvelopeStatusProp(k.replace(/s$/i, ''));
+    return lists.find((k) => !isPageMetaProp(k) && !status(k)) ?? lists[0];
+}
+function singleEnvelope(resprops, opname) {
     const keys = (0, struct_1.keysof)(resprops);
     if (0 === keys.length) {
         return null;

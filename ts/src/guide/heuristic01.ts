@@ -9,11 +9,14 @@ import { size, merge, clone, getelem, isempty, items, keysof } from '@voxgig/str
 
 import {
   isEntityWrapperProp, envelopeProp, envelopeItemRef, composedEnvelopeProp, propIsList,
+  recordLists,
+  singleEnvelope,
   bodyRequestTransform, authExchangeOp, specSecuredByDefault, itemEnvelopeKey,
   itemEnvelopeTransform, answersPage, pageRecords,
 } from '../utility'
 
 import { requestSchema } from '../transform/body'
+import { findExampleObject } from '../transform/field'
 
 
 import {
@@ -1379,6 +1382,36 @@ function ResolveOperation(spec: TaskSpec) {
 }
 
 
+// A list that reads a whole object, or drops lists of records beside the one
+// it reads, is named so its definition's author can declare it in guide.aontu.
+function warnListBody(ctx: any, where: string, res: any, props: any) {
+  if (null == props || 0 === keysof(props).length) return
+  if (null == res) {
+    ctx?.warn?.({
+      note: 'list ' + where + ' reads its whole body, an object holding no list of' +
+        ' records: declare what it lists in guide.aontu',
+    })
+    return
+  }
+  const read = 'string' === typeof res ? res.match(/^`body\.([^.`]+)`$/)?.[1] : undefined
+  const lists = recordLists(props)
+  const dropped = null == read ? [] : lists.filter((k: string) => k !== read)
+  if (0 < dropped.length) {
+    ctx?.warn?.({
+      note: 'list ' + where + ' reads `body.' + read + '` and drops ' +
+        dropped.map((k: string) => '`' + k + '`').join(', ') +
+        ': declare the one it reads in guide.aontu',
+    })
+  }
+  else if (null != read && lists.includes(read) && read !== singleEnvelope(props, 'list')) {
+    ctx?.warn?.({
+      note: 'list ' + where + ' reads `body.' + read + '`, beside data of the object' +
+        ' it is in: declare what it lists in guide.aontu',
+    })
+  }
+}
+
+
 function ResolveTransform(spec: TaskSpec) {
   const mdesc = spec.node.val
   const ment = mdesc.MethodEntity
@@ -1423,7 +1456,9 @@ function ResolveTransform(spec: TaskSpec) {
   // A list reads records, so an object named for the entity does not win over
   // a list of them beside it, such as the matches beside the competition a
   // page of them repeats. The list is found in the same parts the name is.
-  const records = 'list' === opname && null != partprops ? envelopeProp(partprops, opname) : null
+  const example = 'list' === opname ? findExampleObject(mdesc, null) : null
+  const records = 'list' === opname && null != partprops ?
+    envelopeProp(partprops, opname, example) : null
   const holdsRecord = (prop: any) => isEntityWrapperProp(prop) &&
     (null == records || true === propIsList(prop))
 
@@ -1433,13 +1468,17 @@ function ResolveTransform(spec: TaskSpec) {
   else if (named && holdsRecord(partprops?.[entdesc.name])) {
     transform.res = '`body.' + entdesc.name + '`'
   }
+  else if ('list' === opname && named &&
+    recordLists(partprops ?? {}).includes(pluralize(entdesc.name))) {
+    transform.res = '`body.' + pluralize(entdesc.name) + '`'
+  }
   else if (resprops) {
     // The wrapper is often named for the CARDINALITY rather than the
     // entity — `{item: {...}}` from a load, `{items: [...]}` from a list —
     // which the entity-name rules above cannot see. Left unwrapped, list()
     // hands back the envelope where the caller expects an array, and the
     // envelope key is mistaken for a field of the entity.
-    const envelope = envelopeProp(resprops, opname)
+    const envelope = envelopeProp(resprops, opname, example)
     if (null != envelope) {
       transform.res = '`body.' + envelope + '`'
     }
@@ -1460,6 +1499,10 @@ function ResolveTransform(spec: TaskSpec) {
     if (null != key) {
       transform.res = itemEnvelopeTransform(key)
     }
+  }
+
+  if ('list' === opname) {
+    warnListBody(spec.ctx, methodName + ' ' + pathStr, transform.res, partprops)
   }
 
   const reqschema = getRequestBodySchema(spec.data.def, mdesc)

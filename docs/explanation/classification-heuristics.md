@@ -127,6 +127,18 @@ is a list and the other is not. Without that evidence the rule holds: a
 gallery's page of artworks and an auction's single lot stay two resources,
 though both carry the artwork record.
 
+A list always reads records rather than the object they arrive in. An object
+holding one list of records beside data of its own, such as a parent beside
+its children, is read through that list. When it holds several, a list named
+for the entity wins. Lists that share one item schema are categories of one
+record, so the list reads the one the definition's example fills, as an SDK's
+definition test counts it. Otherwise it reads the first by name that is not
+named for errors or messages. Each list
+that drops other lists of records is reported with a warning that names
+them, and so is a list whose object holds no list of records, which reads
+its whole body. A guide entry that sets the operation's transform settles
+either case.
+
 Each reference to a component schema counts once per use in the resolved
 spec, the spec with every `$ref` replaced by the schema it names. A schema
 reached through a shared response counts once for the response's own

@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fieldTransform = void 0;
+exports.findExampleObject = findExampleObject;
 exports.inferFieldsFromExamples = inferFieldsFromExamples;
 exports.inferTypeFromValue = inferTypeFromValue;
 exports.routeFieldNames = routeFieldNames;

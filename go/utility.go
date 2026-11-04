@@ -1914,7 +1914,79 @@ func itemEnvelopeOf(res any) string {
 	return ""
 }
 
+// envelopeProp mirrors ts/src/utility.ts: a list over an object reads its
+// records, never the object.
 func envelopeProp(resprops map[string]any, opname string) string {
+	return envelopePropWith(resprops, opname, nil)
+}
+
+func envelopePropWith(resprops map[string]any, opname string, example any) string {
+	key := singleEnvelope(resprops, opname)
+	if key == "" && opname == "list" {
+		return listedRecords(resprops, example)
+	}
+	return key
+}
+
+// recordLists are the lists of records an object holds, in name order.
+func recordLists(resprops map[string]any) []string {
+	var out []string
+	for _, k := range sortedKeys(resprops) {
+		if isRecordList(resprops[k]) {
+			out = append(out, k)
+		}
+	}
+	return out
+}
+
+// listedRecords mirrors ts/src/utility.ts: lists of one item schema read the
+// one the example fills, else the first by name past errors or messages.
+func listedRecords(resprops map[string]any, example any) string {
+	lists := recordLists(resprops)
+	if len(lists) == 0 {
+		return ""
+	}
+	if len(lists) == 1 {
+		return lists[0]
+	}
+
+	ref, same := "", true
+	for i, k := range lists {
+		prop, _ := resprops[k].(map[string]any)
+		items, _ := prop["items"].(map[string]any)
+		r, _ := items["x-ref"].(string)
+		if i == 0 {
+			ref = r
+		} else if r != ref {
+			same = false
+		}
+	}
+	if same && ref != "" {
+		ex, _ := example.(map[string]any)
+		var filled []string
+		for _, k := range lists {
+			if arr, ok := ex[k].([]any); ok && 0 < len(arr) {
+				filled = append(filled, k)
+			}
+		}
+		if len(filled) == 1 {
+			return filled[0]
+		}
+	}
+
+	for _, k := range lists {
+		single := k
+		if strings.HasSuffix(strings.ToLower(k), "s") {
+			single = k[:len(k)-1]
+		}
+		if !isPageMetaProp(k) && !isEnvelopeStatusProp(k) && !isEnvelopeStatusProp(single) {
+			return k
+		}
+	}
+	return lists[0]
+}
+
+func singleEnvelope(resprops map[string]any, opname string) string {
 	if len(resprops) == 0 {
 		return ""
 	}

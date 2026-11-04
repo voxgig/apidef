@@ -18,6 +18,7 @@ const jostraca_1 = require("jostraca");
 const struct_1 = require("@voxgig/struct");
 const utility_1 = require("../utility");
 const body_1 = require("../transform/body");
+const field_1 = require("../transform/field");
 const utility_2 = require("../utility");
 const jostraca_2 = require("jostraca");
 const entity_1 = require("../transform/entity");
@@ -1001,6 +1002,35 @@ function ResolveOperation(spec) {
     }
     (0, utility_2.debugpath)(pathStr, methodName, 'ResolveOperation', standard_opname, opname, why_op, op);
 }
+// A list that reads a whole object, or drops lists of records beside the one
+// it reads, is named so its definition's author can declare it in guide.aontu.
+function warnListBody(ctx, where, res, props) {
+    if (null == props || 0 === (0, struct_1.keysof)(props).length)
+        return;
+    if (null == res) {
+        ctx?.warn?.({
+            note: 'list ' + where + ' reads its whole body, an object holding no list of' +
+                ' records: declare what it lists in guide.aontu',
+        });
+        return;
+    }
+    const read = 'string' === typeof res ? res.match(/^`body\.([^.`]+)`$/)?.[1] : undefined;
+    const lists = (0, utility_1.recordLists)(props);
+    const dropped = null == read ? [] : lists.filter((k) => k !== read);
+    if (0 < dropped.length) {
+        ctx?.warn?.({
+            note: 'list ' + where + ' reads `body.' + read + '` and drops ' +
+                dropped.map((k) => '`' + k + '`').join(', ') +
+                ': declare the one it reads in guide.aontu',
+        });
+    }
+    else if (null != read && lists.includes(read) && read !== (0, utility_1.singleEnvelope)(props, 'list')) {
+        ctx?.warn?.({
+            note: 'list ' + where + ' reads `body.' + read + '`, beside data of the object' +
+                ' it is in: declare what it lists in guide.aontu',
+        });
+    }
+}
 function ResolveTransform(spec) {
     const mdesc = spec.node.val;
     const ment = mdesc.MethodEntity;
@@ -1034,7 +1064,9 @@ function ResolveTransform(spec) {
     // A list reads records, so an object named for the entity does not win over
     // a list of them beside it, such as the matches beside the competition a
     // page of them repeats. The list is found in the same parts the name is.
-    const records = 'list' === opname && null != partprops ? (0, utility_1.envelopeProp)(partprops, opname) : null;
+    const example = 'list' === opname ? (0, field_1.findExampleObject)(mdesc, null) : null;
+    const records = 'list' === opname && null != partprops ?
+        (0, utility_1.envelopeProp)(partprops, opname, example) : null;
     const holdsRecord = (prop) => (0, utility_1.isEntityWrapperProp)(prop) &&
         (null == records || true === (0, utility_1.propIsList)(prop));
     if (named && holdsRecord(partprops?.[entdesc.origname])) {
@@ -1043,13 +1075,17 @@ function ResolveTransform(spec) {
     else if (named && holdsRecord(partprops?.[entdesc.name])) {
         transform.res = '`body.' + entdesc.name + '`';
     }
+    else if ('list' === opname && named &&
+        (0, utility_1.recordLists)(partprops ?? {}).includes((0, utility_2.pluralize)(entdesc.name))) {
+        transform.res = '`body.' + (0, utility_2.pluralize)(entdesc.name) + '`';
+    }
     else if (resprops) {
         // The wrapper is often named for the CARDINALITY rather than the
         // entity — `{item: {...}}` from a load, `{items: [...]}` from a list —
         // which the entity-name rules above cannot see. Left unwrapped, list()
         // hands back the envelope where the caller expects an array, and the
         // envelope key is mistaken for a field of the entity.
-        const envelope = (0, utility_1.envelopeProp)(resprops, opname);
+        const envelope = (0, utility_1.envelopeProp)(resprops, opname, example);
         if (null != envelope) {
             transform.res = '`body.' + envelope + '`';
         }
@@ -1068,6 +1104,9 @@ function ResolveTransform(spec) {
         if (null != key) {
             transform.res = (0, utility_1.itemEnvelopeTransform)(key);
         }
+    }
+    if ('list' === opname) {
+        warnListBody(spec.ctx, methodName + ' ' + pathStr, transform.res, partprops);
     }
     const reqschema = getRequestBodySchema(spec.data.def, mdesc);
     (0, utility_2.debugpath)(pathStr, methodName, 'TRANSFORM-REQ', (0, struct_1.keysof)(reqschema?.properties));

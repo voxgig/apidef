@@ -87,7 +87,9 @@ declare function isEntityWrapperProp(propSchema: any): boolean;
 declare function itemEnvelopeKey(schema: any, names: string[]): string | null;
 declare function itemEnvelopeTransform(key: string): any[];
 declare function itemEnvelopeOf(res: any): string | null;
-declare function envelopeProp(resprops: any, opname: string): string | null;
+declare function envelopeProp(resprops: any, opname: string, example?: any): string | null;
+declare function recordLists(resprops: any): string[];
+declare function singleEnvelope(resprops: any, opname: string): string | null;
 declare function envelopeItemRef(schema: any, opname: string): string | null;
 declare function composedEnvelopeProp(schema: any, opname: string): string | null;
 declare function pageRecords(schema: any): any;
@@ -104,4 +106,4 @@ declare function closedBodyTransform(schema: any): Record<string, string> | null
 declare function requestWrapperOf(req: any): string | null;
 declare function bodyRequestTransform(schema: any, names: string[]): any;
 declare function firstSentence(text: string): string;
-export { bodyRequestTransform, nom, getdlog, loadFile, formatJsonSrc, depluralize, pluralize, setCustomPlurals, clearCustomPlurals, find, capture, pathMatch, makeWarner, formatJSONIC, validator, isFileType, nonNullType, VALID_CANON, CANON_ONE, canonize, canonizeField, fieldName, canonizeCmpName, CMP_REF_RE, cmpRefName, READ_METHODS, stripSchemaNamespace, sanitizeSlug, slugToPascalCase, transliterate, cleanComponentName, guideActive, authExchangeOp, specSecuredByDefault, ensureMinEntityName, inferFieldType, normalizeFieldName, canonizeParam, paramName, humanTitle, foldName, prefixLeadingDigit, guardPrototypeName, stripOperationVerb, debugpath, debugpathOn, findPathsWithPrefix, writeFileSyncWarn, removeLegacyAon, warnOnError, relativizePath, getModelPath, sortedKeys, sortedEntries, collapseScalarAllOf, isEntityWrapperProp, itemEnvelopeKey, itemEnvelopeTransform, itemEnvelopeOf, envelopeProp, envelopeItemRef, composedEnvelopeProp, pageRecords, answersPage, propIsList, mergedProperties, closedBodyTransform, requestWrapperOf, untaggedUnionBranches, scanUntaggedUnion, firstSentence, resplitFromCmp, };
+export { bodyRequestTransform, nom, getdlog, loadFile, formatJsonSrc, depluralize, pluralize, setCustomPlurals, clearCustomPlurals, find, capture, pathMatch, makeWarner, formatJSONIC, validator, isFileType, nonNullType, VALID_CANON, CANON_ONE, canonize, canonizeField, fieldName, canonizeCmpName, CMP_REF_RE, cmpRefName, READ_METHODS, stripSchemaNamespace, sanitizeSlug, slugToPascalCase, transliterate, cleanComponentName, guideActive, authExchangeOp, specSecuredByDefault, ensureMinEntityName, inferFieldType, normalizeFieldName, canonizeParam, paramName, humanTitle, foldName, prefixLeadingDigit, guardPrototypeName, stripOperationVerb, debugpath, debugpathOn, findPathsWithPrefix, writeFileSyncWarn, removeLegacyAon, warnOnError, relativizePath, getModelPath, sortedKeys, sortedEntries, collapseScalarAllOf, isEntityWrapperProp, itemEnvelopeKey, itemEnvelopeTransform, itemEnvelopeOf, envelopeProp, recordLists, singleEnvelope, envelopeItemRef, composedEnvelopeProp, pageRecords, answersPage, propIsList, mergedProperties, closedBodyTransform, requestWrapperOf, untaggedUnionBranches, scanUntaggedUnion, firstSentence, resplitFromCmp, };

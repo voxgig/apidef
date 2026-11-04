@@ -319,6 +319,42 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-listed-records', () => {
+    for (const row of loadTsv('listed-records')) {
+        (0, node_test_1.test)(`envelopeProp(${row.resprops}, list, ${row.example})`, () => {
+            const example = JSON.parse(row.example) ?? undefined;
+            node_assert_1.default.deepStrictEqual((0, utility_1.envelopeProp)(JSON.parse(row.resprops), 'list', example) ?? '', row.expected);
+        });
+    }
+});
+// A list over an object reads records and says which it dropped; one holding
+// none reads the whole body and says so.
+(0, node_test_1.describe)('tsv-list-body', () => {
+    const rows = loadTsv('list-body');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, async () => {
+            const def = await (0, parse_1.parse)('OpenAPI', row.def, { file: row.name });
+            const warnings = [];
+            const quiet = () => undefined;
+            const guide = await (0, heuristic01_1.heuristic01)({
+                def,
+                log: { info: quiet, debug: quiet, warn: quiet, error: quiet },
+                warn: (warning) => warnings.push(warning.note),
+            });
+            const res = {};
+            for (const [ename, ent] of Object.entries(guide.entity)) {
+                for (const pathdesc of Object.values(ent.path)) {
+                    for (const [opname, op] of Object.entries(pathdesc.op)) {
+                        res[ename + '.' + opname] = op.transform?.res ?? null;
+                    }
+                }
+            }
+            node_assert_1.default.deepStrictEqual(res, JSON.parse(row.res));
+            node_assert_1.default.deepStrictEqual(warnings, JSON.parse(row.warnings));
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-operation-verb', () => {
     for (const row of loadTsv('operation-verb')) {
         (0, node_test_1.test)(`stripOperationVerb(canonize(${row.input}))`, () => {

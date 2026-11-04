@@ -1905,7 +1905,45 @@ function itemEnvelopeOf(res: any): string | null {
 }
 
 
-function envelopeProp(resprops: any, opname: string): string | null {
+// A list over an object reads its records, never the object: its one envelope,
+// else its one list of records beside other data, else the first of several.
+function envelopeProp(resprops: any, opname: string, example?: any): string | null {
+  const key = singleEnvelope(resprops, opname)
+  return null == key && 'list' === opname ? listedRecords(resprops, example) : key
+}
+
+
+// The lists of records an object holds, in name order.
+function recordLists(resprops: any): string[] {
+  return keysof(resprops).filter((k: string) => isRecordList(resprops[k]))
+}
+
+
+// Lists of one item schema are categories of one record, such as dedline's
+// primary and general deadlines: the one the definition's example fills is
+// read, as its example is counted. Otherwise the first by name is, past one
+// holding errors or messages.
+function listedRecords(resprops: any, example?: any): string | null {
+  const lists = recordLists(resprops)
+  if (lists.length < 2) {
+    return lists[0] ?? null
+  }
+
+  const refs = new Set(lists.map((k: string) => resprops[k]?.items?.['x-ref']))
+  if (1 === refs.size && null != [...refs][0]) {
+    const filled = lists.filter((k: string) =>
+      Array.isArray(example?.[k]) && 0 < example[k].length)
+    if (1 === filled.length) {
+      return filled[0]
+    }
+  }
+
+  const status = (k: string) => isEnvelopeStatusProp(k) || isEnvelopeStatusProp(k.replace(/s$/i, ''))
+  return lists.find((k: string) => !isPageMetaProp(k) && !status(k)) ?? lists[0]
+}
+
+
+function singleEnvelope(resprops: any, opname: string): string | null {
   const keys = keysof(resprops)
   if (0 === keys.length) {
     return null
@@ -2412,6 +2450,8 @@ export {
   itemEnvelopeTransform,
   itemEnvelopeOf,
   envelopeProp,
+  recordLists,
+  singleEnvelope,
   envelopeItemRef,
   composedEnvelopeProp,
   pageRecords,
