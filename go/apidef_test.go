@@ -980,6 +980,87 @@ func TestGuidePageParam(t *testing.T) {
 	}
 }
 
+// Mirrors the TS `guide-filter-param` case.
+func TestGuideFilterParam(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "filter-param-")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, OutPrefix: "filter-param-", Strategy: "heuristic01"}).
+		Generate(map[string]any{
+			"model": map[string]any{"name": "filter-param", "def": "filter-param-def.json"},
+			"build": map[string]any{"spec": map[string]any{"base": "../ts/test/def"}},
+			"ctrl": map[string]any{"step": map[string]any{
+				"parse": true, "guide": true, "transformers": true,
+				"builders": false, "generate": false,
+			}},
+		})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v", err)
+	}
+
+	main, _ := res.ApiModel["main"].(map[string]any)
+	kit, _ := main[KIT].(map[string]any)
+	entities, _ := kit["entity"].(map[string]any)
+	points := func(ent string) []string {
+		e, _ := entities[ent].(map[string]any)
+		ops, _ := e["op"].(map[string]any)
+		var out []string
+		for _, opname := range sortedKeys(ops) {
+			op, _ := ops[opname].(map[string]any)
+			pts, _ := op["points"].([]any)
+			for _, p := range pts {
+				pt, _ := p.(map[string]any)
+				var params []string
+				if g, ok := pt["g"].(map[string]any); ok {
+					for _, a := range argsParamList(g["params"]) {
+						params = append(params, fmt.Sprint(a["or"])+">"+fmt.Sprint(a["n"]))
+					}
+				}
+				sort.Strings(params)
+				out = append(out, strings.Join([]string{opname, fmt.Sprint(pt["m"]), fmt.Sprint(pt["o"]),
+					strings.Join(params, ",")}, " "))
+			}
+		}
+		return out
+	}
+
+	for ent, want := range map[string][]string{
+		"catalogue": {"load GET /catalogue/{currency} currency>currency"},
+		"region":    {"load GET /regions/{country} country>country"},
+		"quote":     {"load GET /random/quote/{category} category>category"},
+		"joke":      {"load GET /random/joke/{category} category>category"},
+		"label":     {"load GET /labels/{lang} lang>id"},
+		"team":      {"load GET /teams/{teamId} teamId>id"},
+	} {
+		if got := points(ent); !reflect.DeepEqual(got, want) {
+			t.Errorf("%s points = %q, want %q", ent, got, want)
+		}
+	}
+
+	for ent, want := range map[string]string{
+		"catalogue": "name,unit",
+		"region":    "name,population",
+		"quote":     "author,text",
+		"joke":      "category,id,joke",
+	} {
+		e, _ := entities[ent].(map[string]any)
+		fields, _ := e["fields"].(map[string]any)
+		if got := strings.Join(sortedKeys(fields), ","); got != want {
+			t.Errorf("%s fields = %s, want %s", ent, got, want)
+		}
+	}
+	for _, ent := range []string{"catalogue", "region", "quote"} {
+		e, _ := entities[ent].(map[string]any)
+		if id, has := e["id"]; has {
+			t.Errorf("%s id = %v, want none", ent, id)
+		}
+	}
+	for _, ent := range []string{"joke", "team"} {
+		e, _ := entities[ent].(map[string]any)
+		if id, _ := e["id"].(map[string]any); id["field"] != "id" {
+			t.Errorf("%s id = %v, want field id", ent, id)
+		}
+	}
+}
+
 // Mirrors the TS `guide-page-side` case.
 func TestGuidePageSide(t *testing.T) {
 	folder := stageGuideEntry(t, t.TempDir(), "page-side-")
@@ -1020,6 +1101,8 @@ func TestGuidePageSide(t *testing.T) {
 		{"export", "/exports", "create", "`body.data`"},
 		{"timeline", "/timeline", "list", "`body.results`"},
 		{"document", "/documents/{id}", "load", "`body.data`"},
+		{"character", "/characters", "list", "`body.data`"},
+		{"character", "/characters/{id}", "load", "`body.data`"},
 	} {
 		if got := opRes(c.ent, c.path, c.op); got != c.want {
 			t.Errorf("%s %s transform res = %v, want %v", c.ent, c.op, got, c.want)
@@ -1030,14 +1113,19 @@ func TestGuidePageSide(t *testing.T) {
 	kit, _ := main[KIT].(map[string]any)
 	ments, _ := kit["entity"].(map[string]any)
 	for ent, want := range map[string]string{
-		"export":   "format,id,state,url",
-		"document": "id,title",
+		"export":    "format,id,state,url",
+		"document":  "id,title",
+		"character": "_id,name",
 	} {
 		e, _ := ments[ent].(map[string]any)
 		fields, _ := e["fields"].(map[string]any)
 		if got := strings.Join(sortedKeys(fields), ","); got != want {
 			t.Errorf("%s fields = %s, want %s", ent, got, want)
 		}
+	}
+	character, _ := ments["character"].(map[string]any)
+	if got, _ := character["id"].(map[string]any); got["field"] != "_id" {
+		t.Errorf("character id = %v, want field _id", got)
 	}
 }
 

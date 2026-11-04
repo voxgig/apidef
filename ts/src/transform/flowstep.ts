@@ -321,6 +321,8 @@ function firstTextField(ent: ModelEntity, op?: ModelOp) {
     })
   })
 
+  const identity = identityFields(ent)
+
   const fields = Object.keys(ent.fields).sort().map(n => ent.fields[n])
   for (let fI = 0; fI < fields.length; fI++) {
     const field = fields[fI]
@@ -329,11 +331,32 @@ function firstTextField(ent: ModelEntity, op?: ModelOp) {
     // one holding bytes, never does. Fields are sorted by name, so the choice
     // is alphabetical accident: solar's planet, once its spec declared the
     // server-assigned `forbidReason`, marked that instead of `kind`.
-    if ('`$STRING`' === field.t && 'id' !== field.n && true !== field.ro &&
+    if ('`$STRING`' === field.t && true !== identity[field.n] && true !== field.ro &&
       'binary' !== field.fo && true !== paramNames[field.n]) {
       return field
     }
   }
+}
+
+
+// The fields holding the record's identity, which a mark would overwrite: `id`,
+// the identity field, each composite part, and each record field a part is
+// read from.
+function identityFields(ent: ModelEntity): Record<string, boolean> {
+  const out: Record<string, boolean> = { id: true }
+  const id: any = ent.id
+  if (null != id?.field) {
+    out[id.field] = true
+  }
+  for (const part of (Array.isArray(id?.parts) ? id.parts : [])) {
+    out[part] = true
+  }
+  for (const where of Object.values(id?.from ?? {})) {
+    if (!String(where).includes('.')) {
+      out[String(where)] = true
+    }
+  }
+  return out
 }
 
 export {

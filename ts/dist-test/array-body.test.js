@@ -76,6 +76,7 @@ const apidef_1 = require("../dist/apidef");
                         t: f.t, r: f.r,
                         ...(null == f.sh ? {} : { sh: f.sh }),
                         ...(0 === Object.keys(f.op ?? {}).length ? {} : { op: f.op }),
+                        ...(true === f.syn ? { syn: true } : {}),
                     }]))]));
             node_assert_1.default.deepStrictEqual(fields, expected.fields);
         });

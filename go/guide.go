@@ -1589,10 +1589,12 @@ func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any)
 
 	entdescName := safeStr(entdesc["name"])
 
-	// A path whose read answers a page has a trailing parameter that filters it.
+	// A trailing parameter filters a path whose read answers a page of
+	// records or a map of them, and picks the record a random route answers.
 	pathdefMap, _ := pathdescEntry["def"].(map[string]any)
 	listedRecords, _ := work["listed"].(map[string]bool)
-	listed := pathAnswersPage(pathdefMap, pathStr, getPM(ment), listedRecords)
+	filtered := pathAnswersPage(pathdefMap, pathStr, getPM(ment), listedRecords) ||
+		pathAnswersRecordMap(pathdefMap) || randomRoute(parts)
 
 	for partI := 0; partI < len(parts); partI++ {
 		partStr := parts[partI]
@@ -1658,7 +1660,7 @@ func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any)
 					paramRename, whyParam, oldParam,
 					parentName+"_id", "parent:"+parentName)
 			}
-		} else if lastPart && notExactId && !listed &&
+		} else if lastPart && notExactId && !filtered &&
 			(!hasParent ||
 				parentName == entdescName ||
 				strings.HasSuffix(entdescName, "_"+parentName)) {
@@ -2866,6 +2868,37 @@ func pathAnswersPage(pathdef map[string]any, pathStr string, pm *PathMatchResult
 		}
 		mdesc := map[string]any{"method": method, "path": pathStr, "responses": opdef["responses"]}
 		if "list" == methodOpname(mdesc, pm, &[]string{}, listed) {
+			return true
+		}
+	}
+	return false
+}
+
+// pathAnswersRecordMap mirrors ts/src/guide/heuristic01.ts: a read of the
+// path answers a map of records.
+func pathAnswersRecordMap(pathdef map[string]any) bool {
+	for _, method := range []string{"get", "query"} {
+		opdef, _ := pathdef[method].(map[string]any)
+		if opdef == nil {
+			continue
+		}
+		responses, _ := opdef["responses"].(map[string]any)
+		if answersRecordMap(getResponseSchema(successResponse(responses))) {
+			return true
+		}
+	}
+	return false
+}
+
+// randomRoute mirrors ts/src/guide/heuristic01.ts: a literal `random` segment
+// before the trailing parameter.
+func randomRoute(parts []string) bool {
+	last := len(parts) - 1
+	if last < 1 || !isParam(parts[last]) {
+		return false
+	}
+	for _, part := range parts[:last] {
+		if !isParam(part) && "random" == strings.ToLower(part) {
 			return true
 		}
 	}

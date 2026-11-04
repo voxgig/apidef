@@ -1,0 +1,13 @@
+name	schema	expected
+map-of-refs	{"type":"object","additionalProperties":{"$ref":"#/components/schemas/Item"}}	true
+map-of-inline-records	{"type":"object","additionalProperties":{"type":"object","properties":{"name":{"type":"string"}}}}	true
+map-without-type	{"additionalProperties":{"type":"object","properties":{"name":{"type":"string"}}}}	true
+map-of-composed-records	{"type":"object","additionalProperties":{"allOf":[{"$ref":"#/components/schemas/Item"},{"description":"One entry."}]}}	true
+map-of-scalars	{"type":"object","additionalProperties":{"type":"string"}}	false
+map-of-lists	{"type":"object","additionalProperties":{"type":"array","items":{"$ref":"#/components/schemas/Item"}}}	false
+open-object	{"type":"object","additionalProperties":true}	false
+closed-object	{"type":"object","additionalProperties":false}	false
+record-with-properties	{"type":"object","properties":{"count":{"type":"integer"}},"additionalProperties":{"$ref":"#/components/schemas/Item"}}	false
+composed-record-with-properties	{"allOf":[{"type":"object","properties":{"id":{"type":"string"}}}],"additionalProperties":{"$ref":"#/components/schemas/Item"}}	false
+list	{"type":"array","items":{"type":"object","additionalProperties":{"$ref":"#/components/schemas/Item"}}}	false
+no-entries	{"type":"object"}	false

@@ -591,6 +591,15 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-answers-record-map', () => {
+    const rows = loadTsv('answers-record-map');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, () => {
+            node_assert_1.default.strictEqual((0, utility_1.answersRecordMap)(JSON.parse(row.schema)), 'true' === row.expected);
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-merged-properties', () => {
     const rows = loadTsv('merged-properties');
     (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
@@ -1352,9 +1361,10 @@ function flowPoint(spec) {
             }).map(([name, path]) => [name, { name, points: [flowPoint(path)] }]));
             const fields = Object.fromEntries(JSON.parse(row.fields).map((f) => [f.n, f]));
             const flow = { name: 'BasicThingFlow', entity: 'thing', kind: 'basic', step: [] };
+            const id = '' === row.id ? undefined : JSON.parse(row.id);
             await (0, flowstep_1.flowstepTransform)({
                 apimodel: { main: { kit: {
-                            entity: { thing: { name: 'thing', fields, op } },
+                            entity: { thing: { name: 'thing', fields, op, id } },
                             flow: { BasicThingFlow: flow },
                         } } },
                 guide: {},

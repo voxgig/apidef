@@ -878,6 +878,25 @@ func TestAnswersPage(t *testing.T) {
 	}
 }
 
+// Mirrors tsv-answers-record-map in ts/test/tsv.test.ts.
+func TestAnswersRecordMap(t *testing.T) {
+	rows := loadTsv(t, "answers-record-map")
+	if len(rows) == 0 {
+		t.Fatal("no answers-record-map rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var schema any
+			if err := json.Unmarshal([]byte(row["schema"]), &schema); err != nil {
+				t.Fatalf("bad schema %q: %v", row["schema"], err)
+			}
+			if got := answersRecordMap(schema); got != ("true" == row["expected"]) {
+				t.Errorf("answersRecordMap(%s) = %v, want %s", row["schema"], got, row["expected"])
+			}
+		})
+	}
+}
+
 func TestComposedEnvelopeProp(t *testing.T) {
 	rows := loadTsv(t, "composed-envelope-prop")
 	if len(rows) == 0 {

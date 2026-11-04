@@ -1,0 +1,69 @@
+{
+  "openapi": "3.0.0",
+  "info": { "title": "Filter Param API", "version": "1.0.0" },
+  "servers": [ { "url": "https://api.example.com" } ],
+  "paths": {
+    "/catalogue/{currency}": {
+      "get": {
+        "operationId": "get-catalogue",
+        "parameters": [ { "name": "currency", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "$ref": "#/components/schemas/CatalogueResponse" } } } } }
+      }
+    },
+    "/regions/{country}": {
+      "get": {
+        "operationId": "get-regions",
+        "parameters": [ { "name": "country", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "type": "object", "additionalProperties": { "type": "object", "properties": {
+            "name": { "type": "string" }, "population": { "type": "integer" } } } } } } } }
+      }
+    },
+    "/labels/{lang}": {
+      "get": {
+        "operationId": "get-labels",
+        "parameters": [ { "name": "lang", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "type": "object", "additionalProperties": { "type": "string" } } } } } }
+      }
+    },
+    "/random/quote/{category}": {
+      "get": {
+        "operationId": "random-quote",
+        "parameters": [ { "name": "category", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "type": "object", "properties": {
+            "text": { "type": "string" }, "author": { "type": "string" } } } } } } }
+      }
+    },
+    "/random/joke/{category}": {
+      "get": {
+        "operationId": "random-joke",
+        "parameters": [ { "name": "category", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "$ref": "#/components/schemas/Joke" } } } } }
+      }
+    },
+    "/teams/{teamId}": {
+      "get": {
+        "operationId": "get-team",
+        "parameters": [ { "name": "teamId", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "$ref": "#/components/schemas/Team" } } } } }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CatalogueItem": { "type": "object", "properties": {
+        "name": { "type": "string" }, "unit": { "type": "string" } } },
+      "CatalogueResponse": { "type": "object",
+        "additionalProperties": { "$ref": "#/components/schemas/CatalogueItem" } },
+      "Joke": { "type": "object", "properties": {
+        "id": { "type": "integer" }, "category": { "type": "string" }, "joke": { "type": "string" } } },
+      "Team": { "type": "object", "properties": {
+        "id": { "type": "string" }, "name": { "type": "string" } } }
+    }
+  }
+}

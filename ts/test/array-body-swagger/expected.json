@@ -10,7 +10,8 @@
     "gift": {
       "gifts": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "member": {
@@ -21,7 +22,8 @@
       "members": {
         "t": "`$ARRAY`",
         "r": false,
-        "sh": "The members to add."
+        "sh": "The members to add.",
+        "syn": true
       },
       "name": {
         "t": "`$STRING`",

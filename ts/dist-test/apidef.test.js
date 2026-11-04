@@ -564,6 +564,11 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.strictEqual(res('timeline', 'list'), '`body.results`');
         node_assert_1.default.strictEqual(res('document', 'load'), '`body.data`');
         node_assert_1.default.deepStrictEqual(Object.keys(entities.document.fields).sort(), ['id', 'title']);
+        // An `info` object beside one record is its metadata, as `meta` is.
+        node_assert_1.default.strictEqual(res('character', 'list'), '`body.data`');
+        node_assert_1.default.strictEqual(res('character', 'load'), '`body.data`');
+        node_assert_1.default.deepStrictEqual(Object.keys(entities.character.fields).sort(), ['_id', 'name']);
+        node_assert_1.default.deepStrictEqual(entities.character.id, { name: 'id', field: '_id' });
         // With no read beside it, the fields come from the Accepted answer too.
         node_assert_1.default.strictEqual(res('export', 'create'), '`body.data`');
         node_assert_1.default.deepStrictEqual(Object.keys(entities.export.fields).sort(), ['format', 'id', 'state', 'url']);
@@ -843,6 +848,44 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.deepStrictEqual(Object.keys(entities.box.fields), ['_id', 'name']);
         node_assert_1.default.deepStrictEqual(entities.team.id, { name: 'id', field: 'id' });
         node_assert_1.default.deepStrictEqual(Object.keys(entities.press_release.fields), ['date', 'title', 'url']);
+    });
+    // A trailing parameter filters a map of records, and picks the record a
+    // random route answers: it keys nothing, so no `id` is added for it.
+    (0, node_test_1.test)('guide-filter-param', async () => {
+        const folder = __dirname + '/../test/filter-param';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'filter-param', def: 'filter-param-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: true,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        const entities = bres.apimodel.main.kit.entity;
+        const points = (ent) => Object.keys(entities[ent].op).sort().flatMap((op) => entities[ent].op[op].points.map((pt) => [op, pt.m, pt.o,
+            (pt.g?.params ?? []).map((a) => a.or + '>' + a.n).sort().join(',')].join(' ')));
+        node_assert_1.default.deepStrictEqual(points('catalogue'), ['load GET /catalogue/{currency} currency>currency']);
+        node_assert_1.default.deepStrictEqual(points('region'), ['load GET /regions/{country} country>country']);
+        node_assert_1.default.deepStrictEqual(points('quote'), ['load GET /random/quote/{category} category>category']);
+        node_assert_1.default.deepStrictEqual(points('joke'), ['load GET /random/joke/{category} category>category']);
+        node_assert_1.default.deepStrictEqual(points('label'), ['load GET /labels/{lang} lang>id']);
+        node_assert_1.default.deepStrictEqual(points('team'), ['load GET /teams/{teamId} teamId>id']);
+        for (const ent of ['catalogue', 'region', 'quote']) {
+            node_assert_1.default.strictEqual(entities[ent].id, undefined, ent);
+        }
+        node_assert_1.default.deepStrictEqual(Object.keys(entities.catalogue.fields), ['name', 'unit']);
+        node_assert_1.default.deepStrictEqual(Object.keys(entities.region.fields), ['name', 'population']);
+        node_assert_1.default.deepStrictEqual(Object.keys(entities.quote.fields), ['author', 'text']);
+        node_assert_1.default.deepStrictEqual(entities.joke.id, { name: 'id', field: 'id' });
+        node_assert_1.default.deepStrictEqual(Object.keys(entities.joke.fields), ['category', 'id', 'joke']);
+        node_assert_1.default.deepStrictEqual(entities.team.id, { name: 'id', field: 'id' });
     });
     // A literal that canonizes to nothing (`-`) names no entity and no
     // component: the key after it is not taken for the entity's own.

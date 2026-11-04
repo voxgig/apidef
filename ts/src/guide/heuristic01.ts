@@ -10,7 +10,7 @@ import { size, merge, clone, getelem, isempty, items, keysof } from '@voxgig/str
 import {
   isEntityWrapperProp, envelopeProp, envelopeItemRef, composedEnvelopeProp, propIsList,
   bodyRequestTransform, authExchangeOp, specSecuredByDefault, itemEnvelopeKey,
-  itemEnvelopeTransform, answersPage, pageRecords,
+  itemEnvelopeTransform, answersPage, pageRecords, answersRecordMap,
 } from '../utility'
 
 import { requestSchema } from '../transform/body'
@@ -1011,8 +1011,10 @@ function RenameParams(spec: TaskSpec) {
 
   const origParams = []
 
-  // A path whose read answers a page has a trailing parameter that filters it.
-  const listed = pathAnswersPage(pathdesc.def, pathStr, ment.pm, work.listed)
+  // A trailing parameter filters a path whose read answers a page of records
+  // or a map of them, and picks the record a random route answers.
+  const filtered = pathAnswersPage(pathdesc.def, pathStr, ment.pm, work.listed) ||
+    pathAnswersRecordMap(pathdesc.def) || randomRoute(parts)
 
   for (let partI = 0; partI < parts.length; partI++) {
     let partStr = parts[partI]
@@ -1115,7 +1117,7 @@ function RenameParams(spec: TaskSpec) {
       else if (
         lastPart
         && not_exact_id
-        && !listed
+        && !filtered
         && (!hasParent
           || (
             parentName === entdesc.name
@@ -2587,6 +2589,20 @@ function pathAnswersPage(
     return null != opdef && 'list' === methodOpname(
       { method, path: pathStr, responses: opdef.responses }, pm, [], listed)
   })
+}
+
+
+function pathAnswersRecordMap(pathdef: any): boolean {
+  return ['get', 'query'].some((method: string) => null != pathdef?.[method] &&
+    answersRecordMap(getResponseSchema(successResponse(pathdef[method].responses))))
+}
+
+
+// A literal `random` segment before the trailing parameter.
+function randomRoute(parts: string[]): boolean {
+  const last = parts.length - 1
+  return 0 < last && isParam(parts[last]) && parts.slice(0, last)
+    .some((part: string) => !isParam(part) && 'random' === part.toLowerCase())
 }
 
 

@@ -107,6 +107,28 @@
             "meta": { "type": "object", "properties": {
               "generated_at": { "type": "string" } } } } } } } } }
       }
+    },
+    "/characters": {
+      "get": {
+        "operationId": "list-characters",
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "type": "object", "properties": {
+            "info": { "type": "object", "properties": {
+              "count": { "type": "integer" }, "totalPages": { "type": "integer" },
+              "nextPage": { "type": "string" } } },
+            "data": { "type": "array", "items": { "$ref": "#/components/schemas/Character" } } } } } } } }
+      }
+    },
+    "/characters/{id}": {
+      "get": {
+        "operationId": "get-character",
+        "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "type": "object", "properties": {
+            "info": { "type": "object", "properties": {
+              "count": { "type": "integer" } } },
+            "data": { "$ref": "#/components/schemas/Character" } } } } } } }
+      }
     }
   },
   "components": {
@@ -128,6 +150,8 @@
         "id": { "type": "string" }, "status": { "type": "string" } } },
       "Document": { "type": "object", "properties": {
         "id": { "type": "string" }, "title": { "type": "string" } } },
+      "Character": { "type": "object", "properties": {
+        "_id": { "type": "integer" }, "name": { "type": "string" } } },
       "Branch": { "type": "object", "properties": {
         "id": { "type": "string" }, "name": { "type": "string" } } },
       "BranchesResponse": { "type": "object", "properties": {
