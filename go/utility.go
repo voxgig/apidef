@@ -2171,6 +2171,26 @@ func answersPage(schema any) bool {
 	return pageRecords(schema) != nil
 }
 
+// answersRecordMap mirrors ts/src/utility.ts: an object whose entries are
+// records under keys of the API's choosing, with no properties of its own.
+func answersRecordMap(schema any) bool {
+	sch, _ := schema.(map[string]any)
+	if sch == nil {
+		return false
+	}
+	if t, has := sch["type"]; has && t != nil && t != "object" {
+		return false
+	}
+	if 0 < len(mergedProperties(sch)) {
+		return false
+	}
+	entry := sch["additionalProperties"]
+	if islist, known := propIsList(entry); known && islist {
+		return false
+	}
+	return isObjectSchema(entry)
+}
+
 // mergedProperties mirrors ts/src/utility.ts: the properties of a schema and
 // its allOf members, the first declaration of a name winning, without writing
 // to the shared parsed nodes.

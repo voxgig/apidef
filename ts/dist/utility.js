@@ -60,6 +60,7 @@ exports.envelopeItemRef = envelopeItemRef;
 exports.composedEnvelopeProp = composedEnvelopeProp;
 exports.pageRecords = pageRecords;
 exports.answersPage = answersPage;
+exports.answersRecordMap = answersRecordMap;
 exports.propIsList = propIsList;
 exports.mergedProperties = mergedProperties;
 exports.closedBodyTransform = closedBodyTransform;
@@ -1729,6 +1730,17 @@ function pageRecords(schema) {
 }
 function answersPage(schema) {
     return null != pageRecords(schema);
+}
+// An object whose entries are records under keys of the API's choosing, with
+// no properties of its own, such as FXMacroData's catalogue by indicator slug.
+function answersRecordMap(schema) {
+    if (null == schema || 'object' !== typeof schema || Array.isArray(schema) ||
+        (null != schema.type && 'object' !== schema.type) ||
+        0 < (0, struct_1.keysof)(mergedProperties(schema)).length) {
+        return false;
+    }
+    const entry = schema.additionalProperties;
+    return true !== propIsList(entry) && isObjectSchema(entry);
 }
 // The properties of a schema and its allOf members; the first declaration of
 // a name wins. Read-only, since parsed nodes are shared between references.

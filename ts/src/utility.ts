@@ -2079,6 +2079,19 @@ function answersPage(schema: any): boolean {
 }
 
 
+// An object whose entries are records under keys of the API's choosing, with
+// no properties of its own, such as FXMacroData's catalogue by indicator slug.
+function answersRecordMap(schema: any): boolean {
+  if (null == schema || 'object' !== typeof schema || Array.isArray(schema) ||
+    (null != schema.type && 'object' !== schema.type) ||
+    0 < keysof(mergedProperties(schema)).length) {
+    return false
+  }
+  const entry = schema.additionalProperties
+  return true !== propIsList(entry) && isObjectSchema(entry)
+}
+
+
 // The properties of a schema and its allOf members; the first declaration of
 // a name wins. Read-only, since parsed nodes are shared between references.
 function mergedProperties(schema: any): Record<string, any> | undefined {
@@ -2325,6 +2338,7 @@ export {
   composedEnvelopeProp,
   pageRecords,
   answersPage,
+  answersRecordMap,
   propIsList,
   mergedProperties,
   closedBodyTransform,

@@ -34,6 +34,7 @@ import {
   envelopeItemRef,
   composedEnvelopeProp,
   answersPage,
+  answersRecordMap,
   mergedProperties,
   closedBodyTransform,
   requestWrapperOf,
@@ -737,6 +738,17 @@ describe('tsv-answers-page', () => {
   for (const row of rows) {
     test(row.name, () => {
       assert.strictEqual(answersPage(JSON.parse(row.schema)), 'true' === row.expected)
+    })
+  }
+})
+
+
+describe('tsv-answers-record-map', () => {
+  const rows = loadTsv('answers-record-map')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, () => {
+      assert.strictEqual(answersRecordMap(JSON.parse(row.schema)), 'true' === row.expected)
     })
   }
 })

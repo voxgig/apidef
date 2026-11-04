@@ -174,6 +174,17 @@ entity's paths:
   answers with as the records of a page: `/teams/{team_id}` answering the
   `Team` that `/teams` lists is a load, though a `Team` holds only its list of
   members.
+- A trailing parameter keys no record either when the path's `GET` answers a
+  map of records, or when a literal `random` segment comes before it. A map
+  is an object with no properties of its own whose `additionalProperties` is
+  a record, such as `/v1/data_catalogue/{currency}` answering catalogue
+  entries under indicator slugs. `/random/category/{category}` answers one
+  record chosen at random from a category. The route stays a `load`, and the
+  parameter keeps its own name in snake case, so it adds no `id` field. An
+  entity whose record declares an identity, such as a numeric `id`, keeps
+  that identity; the route is just not keyed by it. A map of scalars is not
+  a map of records, so `/labels/{lang}` answering strings still renames
+  `{lang}` to `id`.
 - A parameter that keys a parent may be renamed after the parent's segment,
   as `<parent>_id`. A parameter whose own name, in snake case, is `name` or
   ends in `_name`, such as `project_name` or `projectName`, is never renamed
