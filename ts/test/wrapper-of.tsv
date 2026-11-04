@@ -12,3 +12,7 @@ call_route_response_v1	call_route,call_route_response_v1,call_route_response_v2,
 list_response_v1	list_response_v1,list_response_v2,list_response_v3	null
 user_profile_response	user,user_profile,user_profile_response	user_profile
 result	result,thing	null
+student_contacts_for_student_response	student,student_contact,student_contacts_for_student_response	student_contact
+contacts_for_student_response	contact,student	contact
+things_for_user_response	things_for_user_response,user	null
+for_response	for_response,thing	null

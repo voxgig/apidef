@@ -88,7 +88,11 @@ function isPathItem(key, pathdef) {
         null != pathdef && 'object' === typeof pathdef && !Array.isArray(pathdef);
 }
 function isParam(part) {
-    return null != part && '{' === part[0] && '}' === part[part.length - 1];
+    if (null == part) {
+        return false;
+    }
+    const p = part.replace(/^\./, '').replace(/\}\.[A-Za-z0-9]+$/, '}');
+    return '{' === p[0] && '}' === p[p.length - 1];
 }
 function getResponseSchema(response) {
     return response?.content?.['application/json']?.schema ?? response?.schema;
@@ -145,7 +149,7 @@ function collectRoutes(def) {
         if (!isPathItem(path, pdef)) {
             continue;
         }
-        const parts = path.split('/').filter((p) => '' !== p);
+        const parts = (0, utility_1.pathParts)(path);
         for (const [m, mdef] of (0, utility_1.sortedEntries)(pdef)) {
             const method = m.toUpperCase();
             if (null == METHOD_CONSIDER_ORDER[method] ||
@@ -192,15 +196,15 @@ function measureMetrics(work) {
             for (const tag of tags) {
                 if ('string' === typeof tag && 0 < tag.length && !metrics.found.tag[tag]) {
                     metrics.count.tag++;
-                    metrics.found.tag[tag] = { name: tag, canon: (0, utility_1.canonize)(tag) };
+                    metrics.found.tag[tag] = { name: tag, canon: (0, utility_1.literalName)(tag) };
                 }
             }
         }
         // As the heuristic reads literals: an element holding a placeholder, whole
         // or beside other text, names no component.
-        for (const part of path.split('/')) {
+        for (const part of (0, utility_1.pathParts)(path)) {
             if ('' !== part && '{' !== part[0]) {
-                work.pathLiterals[(0, utility_1.canonize)(part)] = true;
+                work.pathLiterals[(0, utility_1.literalName)(part)] = true;
             }
         }
     }
@@ -346,7 +350,7 @@ function resolveCmp(work, route) {
         const d = (0, nn_1.decide)(guideNets().cmpKeep, {
             single: bit(unwrapped.length <= 1),
             in_path: bit(lowerpath.includes('/' + xref.cmp + '/')),
-            occurs: bit(route.parts.some((p) => '{' !== p[0] && (0, utility_1.canonize)(p.toLowerCase()) === xref.cmp)),
+            occurs: bit(route.parts.some((p) => '{' !== p[0] && (0, utility_1.literalName)(p.toLowerCase()) === xref.cmp)),
             infrequent: bit(infrequent(metrics, xref.origcmpref)),
         });
         why.push((0, nn_1.explain)('cmp:' + xref.cmp, d));
@@ -506,7 +510,7 @@ function measureTagItems(work, route) {
     const items = work.tagItems[cmp] = work.tagItems[cmp] ?? {};
     items[collection] = items[collection] ?? {};
     items[collection][route.parts.filter(isParam)
-        .map((part) => (0, utility_1.canonizeParam)(part.slice(1, -1))).sort().join(',')] = true;
+        .map((part) => (0, utility_1.canonizeParam)((0, utility_1.paramOf)(part))).sort().join(',')] = true;
 }
 function pathReads(pathdef) {
     return Object.entries(pathdef ?? {}).some(([method, mdef]) => 'GET' === method.toUpperCase() && null != mdef);
@@ -533,7 +537,7 @@ function outsideCollection(path, collection) {
     if (!(path + '/').startsWith(collection + '/')) {
         return true;
     }
-    const parts = path.split('/').filter((part) => '' !== part);
+    const parts = (0, utility_1.pathParts)(path);
     const first = parts.findIndex(isParam);
     return -1 < first && collection !== '/' + parts.slice(0, first).join('/');
 }
@@ -553,7 +557,7 @@ function tagNamesRoute(work, path, cmp) {
 // segment, the tag before it, or a number after the stored form.
 function itemSegmentName(work, route, collection) {
     const cmp = route.cmp.cmp;
-    const segment = (0, utility_1.canonize)(collection.substring(collection.lastIndexOf('/') + 1));
+    const segment = (0, utility_1.literalName)(collection.substring(collection.lastIndexOf('/') + 1));
     const own = segment === cmp;
     const tagged = own ? segment : cmp + '_' + segment;
     const tagOwn = own ? (path) => tagNamesRoute(work, path, cmp) : undefined;
@@ -573,7 +577,7 @@ function markRecordOwner(recordowner, route, entname) {
     const cmp = route.cmp;
     const last = route.parts.filter((part) => !isParam(part)).pop();
     if (null == recordowner[route.path] && null != cmp && 'tag' !== cmp.ref && '' !== cmp.ref &&
-        entname === cmp.cmp && null != last && entname === (0, utility_1.canonize)(last)) {
+        entname === cmp.cmp && null != last && entname === (0, utility_1.literalName)(last)) {
         recordowner[route.path] = entname;
     }
 }
@@ -615,18 +619,46 @@ function nameFeatures(work, route, owners, recordowner, why) {
     x.m_write = bit(!utility_1.READ_METHODS.includes(route.method));
     x.cmp_avail = bit(null != cmp);
     x.cmp_from_tag = bit('tag' === cmp?.ref);
+    let viewAction = null;
+    if (0 === x.m_write) {
+        let key = -1;
+        route.parts.forEach((part, i) => {
+            if (isParam(part)) {
+                key = i;
+            }
+        });
+        if (0 <= key && key < route.parts.length - 1 && !/version/i.test(route.parts[key])) {
+            x.view_key = 1;
+            const tail = route.parts.slice(key + 1);
+            x.tail_singular = bit(tail.every((part) => {
+                const lit = (0, jostraca_1.snakify)(part);
+                return '' !== lit && (0, utility_1.depluralize)(lit) === lit;
+            }));
+            const payload = (0, heuristic01_1.responsePayload)(getResponseSchema(successResponse(route.responses)));
+            x.res_record = bit(payload.record);
+            x.res_scalars = bit(payload.scalars);
+            // The scan over every path waits for the cheap conditions of the gates.
+            if ((1 === x.tail_singular && 0 === x.res_record) || 1 === x.res_scalars) {
+                x.route_not_extended = bit(0 === childPathCount(work, route.path));
+                const parent = (0, heuristic01_1.itemAbove)({ def, work }, route.parts, key, owners);
+                x.view_parent_avail = bit(null != parent);
+                sources.PARENT = parent;
+                viewAction = tail.map(utility_1.literalName).join('_');
+            }
+        }
+    }
     if (null != pm) {
         x[SHAPE_FEATURES[pm.expr]] = 1;
         const pathName = (0, heuristic01_1.pathNoun)(pm, route.parts, why);
-        const verbish = pathName !== (0, utility_1.canonize)(pm[PATH_NAME_INDEX[pm.expr]]);
+        const verbish = pathName !== (0, utility_1.literalName)(pm[PATH_NAME_INDEX[pm.expr]]);
         sources.PATH = pathName;
-        x.cmp_foreign_tag = bit('tag' === cmp?.ref && !(0, heuristic01_1.tagNamesLiteral)(route.parts, cmp.cmp) &&
-            !/(^|_)ids?$/.test(pathName));
+        x.cmp_foreign_tag = bit('tag' === cmp?.ref && cmp.cmp !== pathName &&
+            !/(^|_)ids?$/.test(pathName) && !(0, heuristic01_1.tagHolds)({ def }, route.parts, route.path, cmp.cmp));
         x.m_post = bit('POST' === route.method);
         x.verbish = bit(verbish);
         x.lit_last = bit(heuristic01_1.LITERAL_LAST_SHAPES.includes(pm.expr));
         const last = pm[pm.length - 1];
-        const lastCanon = (0, utility_1.canonize)(last);
+        const lastCanon = (0, utility_1.literalName)(last);
         const lit = isParam(last) ? '' : (0, jostraca_1.snakify)(last);
         x.last_lit_singular = bit('' !== lit && (0, utility_1.depluralize)(lit) === lit);
         x.last_is_cmp = bit(null != metrics.count.origcmprefs[lastCanon]);
@@ -638,14 +670,14 @@ function nameFeatures(work, route, owners, recordowner, why) {
         if (1 === x.post_read) {
             const noun = lastVerb.slice(readVerb.length + 1);
             x.read_noun_avail = bit('' !== noun);
-            sources.NOUN = '' === noun ? null : (0, utility_1.canonize)(noun);
+            sources.NOUN = '' === noun ? null : (0, utility_1.literalName)(noun);
         }
         // The scans over every path and the body read wait for the cheap
         // conditions of the gates that read them.
         const parentOf = (itemPath) => {
             const held = null == itemPath ? {} : (owners[itemPath] ?? {});
             return held.GET ?? held.QUERY ?? Object.values(held).sort()[0] ??
-                (0, utility_1.canonize)(pm[pm.length - 3]);
+                (0, utility_1.literalName)(pm[pm.length - 3]);
         };
         if (1 === x.m_post && 1 === x.lit_last && 1 === x.last_lit_singular && 0 === x.verbish &&
             0 === x.last_is_cmp && 0 === x.post_read) {
@@ -660,9 +692,20 @@ function nameFeatures(work, route, owners, recordowner, why) {
                 }
             }
         }
+        if (0 === x.m_write) {
+            const twin = (0, heuristic01_1.commandTwin)({ def, guide: work.guide, work }, route, pm, route.parts, []);
+            x.twin_cmd_avail = bit(null != twin);
+            sources.TWIN = twin;
+        }
         const probable = (0, nn_1.decide)(guideNets().probable, probableFeatures(work, route, pm));
         x.probable = bit('YES' === probable.cls);
         why.push((0, nn_1.explain)('probable', probable));
+        if (null != cmp || 1 === x.probable) {
+            const record = (0, heuristic01_1.recordOf)({ def, guide: work.guide, work }, route.path);
+            x.record_avail = bit(null != record && record.cmp !== pathName &&
+                !(0, heuristic01_1.wrapsLiteral)(record.cmp, pathName));
+            sources.REC = record?.cmp ?? null;
+        }
         if (null != cmp) {
             sources.CMP = cmp.cmp;
             x.cmp_differs = bit(cmp.cmp !== pathName);
@@ -684,21 +727,10 @@ function nameFeatures(work, route, owners, recordowner, why) {
         }
         if ('t/p/t/' === pm.expr) {
             sources.LAST = lastCanon;
-            sources.ACT = (0, utility_1.canonize)(pm[pm.length - 3]);
+            sources.ACT = (0, utility_1.literalName)(pm[pm.length - 3]);
             sources.PART = verbish ? pathName : sources.ACT + '_' + pathName;
             if (null == cmp && 1 === x.probable) {
                 x.path_has_children = bit(0 < childPathCount(work, pm.path));
-            }
-            if (0 === x.m_write) {
-                const payload = (0, heuristic01_1.responsePayload)(getResponseSchema(successResponse(route.responses)));
-                x.res_record = bit(payload.record);
-                x.res_scalars = bit(payload.scalars);
-                if ((1 === x.last_lit_singular && 0 === x.res_record) || 1 === x.res_scalars) {
-                    const { itemPath, extended } = verbRoute(work, pm.path);
-                    x.item_route_exists = bit(null != itemPath);
-                    x.route_not_extended = bit(!extended);
-                    sources.PARENT = parentOf(itemPath);
-                }
             }
             if (null != cmp) {
                 x.cmp_occur_le1 = bit((cmp.rescmpoccur ?? cmp.cmpoccur ?? 0) <= 1);
@@ -715,6 +747,10 @@ function nameFeatures(work, route, owners, recordowner, why) {
         }
     }
     else {
+        const param = route.parts.find(isParam)?.match(/\{([^}]+)\}/);
+        const pnoun = null == param ? '' : (0, utility_1.paramNoun)(param[1]);
+        x.param_avail = bit(3 <= pnoun.length);
+        sources.PARAM = pnoun;
         const opid = (0, utility_1.canonize)(route.operationId ?? '');
         x.opid_avail = bit(3 <= opid.length);
         sources.OPID = opid;
@@ -723,7 +759,7 @@ function nameFeatures(work, route, owners, recordowner, why) {
         sources.TITLE = title;
         for (let i = route.parts.length - 1; 0 <= i; i--) {
             if (!isParam(route.parts[i])) {
-                const seg = (0, utility_1.canonize)(route.parts[i]);
+                const seg = (0, utility_1.literalName)(route.parts[i]);
                 if (3 <= seg.length) {
                     x.seg_avail = 1;
                     sources.SEG = seg;
@@ -739,7 +775,7 @@ function nameFeatures(work, route, owners, recordowner, why) {
     const owner = samePathOwner(work, route);
     x.same_path_avail = bit(null != owner);
     sources.SAMEPATH = owner?.entname ?? null;
-    return { x, sources, collection };
+    return { x, sources, collection, viewAction };
 }
 // The name each route takes by its path and component, found before any
 // route is named, so an item route sees one sorting after it.
@@ -766,7 +802,7 @@ function measureClaims(work, route) {
 }
 function resolveName(work, route) {
     const why = [...route.why_cmp];
-    const { x, sources, collection } = nameFeatures(work, route, work.pathowner, work.recordowner, why);
+    const { x, sources, collection, viewAction } = nameFeatures(work, route, work.pathowner, work.recordowner, why);
     const cmp = route.cmp?.cmp ?? '';
     let d = (0, nn_1.decide)(guideNets().name, x);
     let entname = sources[d.cls] ?? null;
@@ -790,10 +826,11 @@ function resolveName(work, route) {
             route.same_path = entname ?? undefined;
         }
     }
-    if ('PARENT' === d.cls && null != route.pm) {
-        route.verb_on_parent = route.pm[route.pm.length - 1];
+    if ('PARENT' === d.cls) {
+        route.verb_on_parent = route.parts[route.parts.length - 1];
         route.view_on_parent = fired(guideNets().name, d, 'view_singular') ||
             fired(guideNets().name, d, 'view_scalars');
+        route.view_action = route.view_on_parent && null != viewAction ? viewAction : undefined;
     }
     route.post_read = 1 === x.post_read;
     why.push((0, nn_1.explain)('name', d));
@@ -851,7 +888,7 @@ function applyRename(ctx, path, method, capture, oldParamName, newParamName, why
         return;
     }
     const otherParams = (path.match(/\{([^}]+)\}/g) || [])
-        .map((seg) => seg.slice(1, -1))
+        .map((seg) => (0, utility_1.paramOf)(seg))
         .filter((name) => name !== oldParamName);
     const takenBy = Object.keys(capture.rename)
         .find((other) => other !== oldParamName && capture.rename[other] === newParamName) ??
@@ -888,17 +925,17 @@ function applyRename(ctx, path, method, capture, oldParamName, newParamName, why
     }
 }
 function updateAction(method, oldParam, actionName, ent, pathdesc, why) {
-    if (!ent.name.endsWith((0, utility_1.canonize)(actionName)) && null == pathdesc.action[actionName]) {
+    if (!ent.name.endsWith((0, utility_1.literalName)(actionName)) && null == pathdesc.action[actionName]) {
         pathdesc.action[actionName] = {
             why_action: ['ent', ent.name, why, oldParam, method],
         };
     }
 }
 function paramFeatures(route, ent, parts, i) {
-    const old = parts[i].slice(1, -1);
+    const old = (0, utility_1.paramOf)(parts[i]);
     const n = parts.length;
     const hasParent = 0 < i && !isParam(parts[i - 1]);
-    const parentName = hasParent ? (0, utility_1.canonize)(parts[i - 1]) : null;
+    const parentName = hasParent ? (0, utility_1.literalName)(parts[i - 1]) : null;
     const E = ent.name;
     return {
         pp_shape: bit(null != (0, utility_1.pathMatch)(route.path, 'p/p/')),
@@ -914,7 +951,7 @@ function paramFeatures(route, ent, parts, i) {
         ent_starts_parent: bit(hasParent && parentName !== E && E.startsWith(parentName + '_')),
         ent_ends_parent: bit(hasParent && E.endsWith('_' + parentName)),
         name_param: bit((0, heuristic01_1.isNameParam)(old)),
-        canon_eq_ent: bit((0, utility_1.canonize)(parts[i]) === E),
+        canon_eq_ent: bit((0, utility_1.literalName)(parts[i]) === E),
         snake_differs: bit((0, utility_1.depluralize)((0, jostraca_1.snakify)((0, utility_1.normalizeFieldName)(old))) !== old),
         parent_id_differs: bit(hasParent && parentName + '_id' !== old),
     };
@@ -930,9 +967,9 @@ function renameParams(ctx, route, ent) {
         if (!isParam(parts[i])) {
             continue;
         }
-        const old = parts[i].slice(1, -1);
+        const old = (0, utility_1.paramOf)(parts[i]);
         capture.why[old] = capture.why[old] ?? [];
-        const parentName = 0 < i && !isParam(parts[i - 1]) ? (0, utility_1.canonize)(parts[i - 1]) : '';
+        const parentName = 0 < i && !isParam(parts[i - 1]) ? (0, utility_1.literalName)(parts[i - 1]) : '';
         const d = (0, nn_1.decide)(guideNets().param, paramFeatures(route, ent, parts, i));
         const why = (0, nn_1.explain)('param', d);
         if ('ID' === d.cls) {
@@ -959,7 +996,7 @@ function renameParams(ctx, route, ent) {
         if (!isParam(part)) {
             continue;
         }
-        const old = part.slice(1, -1);
+        const old = (0, utility_1.paramOf)(part);
         const snake = (0, utility_1.depluralize)((0, jostraca_1.snakify)((0, utility_1.normalizeFieldName)(old)));
         if (snake !== old && undefined === capture.rename[old]) {
             capture.why[old] = capture.why[old] ?? [];
@@ -975,12 +1012,12 @@ function findActions(route, ent) {
     const n = parts.length;
     const at = (k) => parts[n - k];
     const isEnt = (part) => {
-        const canon = (0, utility_1.canonize)(part);
+        const canon = (0, utility_1.literalName)(part);
         return canon === cmp || canon === origcmp || canon === ent.name;
     };
     const last = at(1);
-    const lastCanon = (0, utility_1.canonize)(last);
-    const l2Canon = (0, utility_1.canonize)(at(2));
+    const lastCanon = (0, utility_1.literalName)(last);
+    const l2Canon = (0, utility_1.literalName)(at(2));
     const compound = l2Canon + '_' + lastCanon;
     const d = (0, nn_1.decide)(guideNets().action, {
         same_path: bit(null != route.same_path),
@@ -992,13 +1029,14 @@ function findActions(route, ent) {
         l2_param: bit(isParam(at(2))),
         l3_param: bit(isParam(at(3))),
         l2_verb: bit((0, heuristic01_1.isVerb)(at(2))),
-        ent_endswith_last: bit(ent.name.endsWith((0, utility_1.canonize)(lastCanon))),
-        ent_endswith_compound: bit(ent.name.endsWith((0, utility_1.canonize)(compound))),
+        ent_endswith_last: bit(ent.name.endsWith((0, utility_1.literalName)(lastCanon))),
+        ent_endswith_compound: bit(ent.name.endsWith((0, utility_1.literalName)(compound))),
     });
     pathdesc.why_path.push((0, nn_1.explain)('action', d));
     if ('LAST' === d.cls) {
         if (fired(guideNets().action, d, 'act_vop')) {
-            pathdesc.action[lastCanon] = pathdesc.action[lastCanon] ?? {
+            const name = route.view_action ?? lastCanon;
+            pathdesc.action[name] = pathdesc.action[name] ?? {
                 why_action: ['ent', ent.name, 'verb-on-parent', last, route.method],
             };
         }

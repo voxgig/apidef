@@ -19,7 +19,6 @@ guide: {
 
   entity: gadget: {
     path: "/shop/gadgets": {
-      action: "gadget": {}
       op: create: method: *POST
       op: list: method: *GET
     }
@@ -38,6 +37,16 @@ guide: {
       action: "cancel": {}
       rename: param: "job_id": *"id"
       op: create: method: *POST
+    }
+  }
+
+  entity: member: {
+    path: "/teams": {
+      op: list: method: *GET
+    }
+    path: "/teams/{team_id}": {
+      op: load: method: *GET
+      op: remove: method: *DELETE
     }
   }
 
@@ -61,7 +70,6 @@ guide: {
 
   entity: report: {
     path: "/org/reports": {
-      action: "report": {}
       op: list: method: *GET
       op: list: transform: res: *("`body.results`")|top
     }
@@ -88,20 +96,8 @@ guide: {
     }
   }
 
-  entity: team: {
-    path: "/teams": {
-      op: list: method: *GET
-    }
-    path: "/teams/{team_id}": {
-      rename: param: "team_id": *"id"
-      op: load: method: *GET
-      op: remove: method: *DELETE
-    }
-  }
-
   entity: token: {
     path: "/user/tokens": {
-      action: "token": {}
       op: list: method: *GET
       op: list: transform: res: *("`body.results`")|top
     }

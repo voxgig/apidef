@@ -478,19 +478,27 @@ resolved to, when the read carries the same tag. The read is the path's
 `DELETE /repos/{owner}/{repo}/labels/{name}` joins `label`, the entity of
 the `GET` on that path, rather than staying with the other routes of the
 `issues` tag. The read keeps what it found on the path, actions included:
-GitHub's `PATCH /organizations/{org}/dependabot/repository-access` joins
-`dependabot_repository_access_detail` as an operation, not as a
-`repository_access` action. A tag names a route only when it names a
-literal of the path or the path has no usable literal; a tag foreign to the
-path yields to the path's noun, a literal naming an identifier (`ids`,
-`contentIds`) keys rather than names, and a trailing verb, or the verb after
-a custom method's colon, names the noun before it, and becomes an action.
-A `GET` under an item key that answers no record of its own, an object
-without an `id` or an array of scalars, joins the item as a `load` action.
+a tag-only `PATCH` on a path whose `GET` is a view of its parent joins the
+parent under the same action. A tag names a route only when it names the
+path's own noun, or an earlier literal where the route is a leaf selector
+or a view of that literal's resource, or the path has no usable literal; a
+tag foreign to the path yields to the path's noun, a literal naming an
+identifier (`ids`, `contentIds`) keys rather than names, a trailing module
+word (`ProductsApi`) is dropped, and a trailing verb, or the verb after a
+custom method's colon, names the noun before it, and becomes an action.
+A `GET` beneath an item key that answers no record of its own, an object
+without an `id` or an array of scalars, with every literal after the key
+singular, joins the nearest resource up the path as a `load` action named
+for those literals. The record an item route answers with names the item and
+its collection, unless its name wraps the literal's or several collections
+share it. A placeholder fused to a literal, a placeholder-only part and a
+query string are read as a parameter, a parameter, and nothing.
 A `POST` whose literal opens with a read verb and that answers a collection
 is the `list`, with the body as its filter. A `POST` to a singular literal
 that names no component, with no item route it could be a verb on and none
-beneath it, is a command named for its body component.
+beneath it, is a command named for its body component, read under any
+media type and through a `oneOf`; a `GET` on a command's path is the
+command's load.
 
 An item route can take its collection's entity before the move. A method
 on `/X/{id}` named only from its tag takes the entity of `/X` when all of

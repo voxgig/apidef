@@ -146,6 +146,83 @@ const RULINGS: { def: string, expect: Record<string, string> }[] = [
       'POST /things/count': 'thing create count',
     },
   },
+  {
+    def: 'module-affix-def.json',
+    expect: {
+      'GET /v1/ProductsApi': 'product list',
+      'POST /v1/ProductsApi': 'product create',
+      'GET /v1/ProductsApi/{serial}': 'product load',
+      'DELETE /v1/ProductsApi/{serial}': 'product remove',
+      'POST /v1/ProductsApi/Find': 'product list find',
+      'GET /v1/KeysApi/Current/{serial}': 'key load',
+    },
+  },
+  {
+    def: 'prefix-tag-def.json',
+    expect: {
+      'GET /push/deviceRegistrations': 'device_registration list',
+      'POST /push/deviceRegistrations': 'device_registration create',
+      'GET /push/deviceRegistrations/{device_id}': 'device_registration load',
+      'DELETE /push/deviceRegistrations/{device_id}': 'device_registration remove',
+      'GET /gifs': 'gif list',
+      'GET /gifs/{gif_id}': 'gif load',
+      'GET /gifs/random': 'gif load random',
+      'GET /user/{user_id}/followers': 'user load follower',
+    },
+  },
+  {
+    def: 'body-media-def.json',
+    expect: {
+      'POST /#Action=AssumeRole': 'assume_role create',
+      'GET /#Action=AssumeRole': 'assume_role load',
+      'GET /keys': 'key list',
+      'POST /keys/{keyName}/requestToken': 'token create',
+      'POST /authn/{service_id}/{account}/authenticate': 'authenticate create',
+    },
+  },
+  {
+    def: 'path-syntax-def.json',
+    expect: {
+      'GET /api/articles{mediaTypeExtension}': 'article list',
+      'GET /{pageName}{mediaTypeExtension}': 'page load',
+      'GET /search/nearbySearch/.{ext}': 'nearby_search load',
+      'GET /templates': 'template list',
+      'GET /templates/{id}': 'template load',
+      'POST /templates?desc=html': 'template create',
+    },
+  },
+  {
+    def: 'record-name-def.json',
+    expect: {
+      'GET /b/{bucket}': 'bucket load',
+      'GET /b/{bucket}/acl': 'bucket_access_control list',
+      'POST /b/{bucket}/acl': 'bucket_access_control create',
+      'GET /b/{bucket}/acl/{entity}': 'bucket_access_control load',
+      'PUT /b/{bucket}/acl/{entity}': 'bucket_access_control update',
+      'DELETE /b/{bucket}/acl/{entity}': 'bucket_access_control remove',
+      'GET /hotels/{hotelId}/rateplans': 'rateplan list',
+      'GET /hotels/{hotelId}/rateplans/{code}': 'rateplan load',
+    },
+  },
+  {
+    def: 'deep-view-def.json',
+    expect: {
+      'GET /companies': 'company list',
+      'GET /companies/{companyId}': 'company load',
+      'GET /meta/companies/{companyId}/sync/commerce/status': 'company load sync_commerce_status',
+      'GET /authn-gcp/{account}/status': 'authn_gcp load status',
+      'GET /servers/{server_id}/statistics': 'server_statistic list',
+    },
+  },
+  {
+    def: 'embedded-def.json',
+    expect: {
+      'GET /students/{id}': 'student load',
+      'GET /students/{id}/contacts': 'student_contact list',
+      'GET /word.json/{word}': 'word load',
+      'GET /word.json/{word}/definitions': 'word list definition',
+    },
+  },
 ]
 
 

@@ -1,0 +1,241 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "body-media",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://example.com"
+    }
+  ],
+  "paths": {
+    "/#Action=AssumeRole": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "text/xml": {
+              "schema": {
+                "$ref": "#/components/schemas/AssumeRoleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssumeRoleResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssumeRoleResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "RoleArn",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/keys": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Key"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/keys/{keyName}/requestToken": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/TokenRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/SignedTokenRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenDetails"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "keyName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/authn/{service_id}/{account}/authenticate": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "text/plain": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "service_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "account",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AssumeRoleRequest": {
+        "type": "object",
+        "properties": {
+          "RoleArn": {
+            "type": "string"
+          },
+          "RoleSessionName": {
+            "type": "string"
+          }
+        }
+      },
+      "AssumeRoleResponse": {
+        "type": "object",
+        "properties": {
+          "Credentials": {
+            "type": "object",
+            "properties": {
+              "AccessKeyId": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "Key": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "TokenRequest": {
+        "type": "object",
+        "properties": {
+          "keyName": {
+            "type": "string"
+          },
+          "ttl": {
+            "type": "integer"
+          }
+        }
+      },
+      "SignedTokenRequest": {
+        "type": "object",
+        "properties": {
+          "keyName": {
+            "type": "string"
+          },
+          "mac": {
+            "type": "string"
+          }
+        }
+      },
+      "TokenDetails": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "expires": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  }
+}

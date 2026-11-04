@@ -205,7 +205,7 @@ operation, the actions, the renames, and the transforms:
 
 | Corpus | Definitions | Routes | Agree |
 |---|---|---|---|
-| `ts/test/def` | 53 | 550 | 550 |
+| `ts/test/def` | 60 | 599 | 599 |
 | `apidef-validate` (GitHub, GitLab, Cloudsmith, Contentful and the rest) | 15 | 3,244 | 3,244 |
 
 `ts/test/neural.test.ts` pins that agreement, the solar guide, and the
@@ -232,9 +232,9 @@ inline responses, and `protocol` structures, neither of which the guide
 names from; the maintainer ruled that the score counts routes on
 `resource`, `embedded` and `command` entities only. On those, 545 of 792
 routes (69 percent) shared the analysts' name before the rulings below,
-593 (75 percent, 446 exact) after the first four of them and 601 (76
-percent, 448 exact) after all eight; that is the figure the suite's floor
-guards.
+593 (75 percent, 446 exact) after the first four of them, 601 (76
+percent, 448 exact) after all eight and 668 (84 percent, 494 exact) after
+the second round of eight; that is the figure the suite's floor guards.
 
 Twelve definitions agree on every route. The net and the heuristic agree
 with each other on all sixty (the sweep found one divergence, a placeholder
@@ -387,6 +387,28 @@ families again and put to the maintainer, who ruled on each:
     described Surevoip's `GET /areacodes` as an unrecognised envelope; the
     route in fact declares no response schema at all, so no envelope rule
     reaches it.)
+
+Rulings 9 to 16 are in, in both strategies and the Go port, with one
+fixture each. Two refinements were needed where the rulings as worded
+moved routes they did not mean to. The tag rule keeps a tag that names a
+literal above the path's noun where the route is a leaf selector or a view
+of that literal's resource (Giphy's `/gifs/random`, Medium's
+`/user/{user_id}/followers`, Keyserv's `/v1/KeysApi/Current/{serial}`),
+since dropping every such tag lost more routes than the prefix tags
+gained. The record rule names only where one collection's item routes
+answer the record, since a record several collections share, such as the
+taxonomy fixture's `Taxon` over `domain` and `kingdom`, would otherwise
+merge them into one entity; Google's `ObjectAccessControl` therefore keeps
+its two literals. A version parameter is not an item key for the view
+rule, a custom method on a key (`{id}:cancel`) names the collection before
+it, and `save` joined the verb words.
+
+The name network gained `param_avail`, `twin_cmd_avail`, `record_avail`,
+`view_key`, `tail_singular` and `view_parent_avail`, with the gates `twin`,
+`cmp_record` and `none_param`, and the view gates rewritten over any
+depth. The two override classes, `TWIN` and `REC`, take the component
+gates away by negative inputs rather than outscoring their sum. The corpus
+moved from 601 to 668 of 792 routes (494 exact, 615 with the same role).
 
 The guide stage costs the same under either strategy: within a few
 milliseconds per definition on the test corpus, and within a tenth on a

@@ -463,9 +463,10 @@ func TestGuideEnvelope(t *testing.T) {
 	}
 	want := map[string]string{
 		// One record, but a page and an item on unrelated routes stay apart.
-		"auction":     "load",
+		"artwork":     "load",
 		"census":      "list",
-		"crew_member": "create/list",
+		"crew":        "load",
+		"crew_member": "create",
 		"deposit":     "create",
 		"domain":      "list/load/patch",
 		"fossil":      "load",
@@ -697,7 +698,7 @@ func TestGuideWellKnown(t *testing.T) {
 			"well_known_ef", "well_known_gh", "well_known_hive", "well_known_ledger",
 			"well_known_nest", "well_known_nest2", "well_known_qq", "well_known_qq2",
 			"well_known_repo", "well_known_rr", "well_known_rr2", "well_known_uvn",
-			"well_known_xyn", "widget", "xyn"}) {
+			"well_known_xyn", "widget", "xyn", "zzz"}) {
 		t.Errorf("entities = %v", got)
 	}
 	for _, w := range res.Ctx.Warn.History() {
@@ -722,7 +723,8 @@ func TestGuideWellKnown(t *testing.T) {
 		{"well_known_ledger", "load", []string{"/well-known/ledger/{id}"}},
 		{"dbase", "create", []string{"/zzz/dbase/{id}/history"}},
 		{"well_known_dbase", "load", []string{"/well-known/dbase", "/well-known/dbase/{id}"}},
-		{"agent_card", "list", []string{"/well-known/agent-card.json", "/zzz/{id}/dbset"}},
+		{"agent_card", "list", []string{"/well-known/agent-card.json"}},
+		{"zzz", "load", []string{"/zzz/{id}/dbset"}},
 		{"dbset", "load", []string{"/well-known/dbset/{id}"}},
 		{"dsn", "load", []string{"/aaa/ds/{id}"}},
 		{"well_known_ds", "load", []string{"/well-known/ds/{id}"}},
@@ -1217,8 +1219,10 @@ func TestGuideSharing(t *testing.T) {
 		"job":                "GET /jobs, GET /jobs/{id}, POST /jobs/{id}/rerun",
 		"metric":             "GET /metrics",
 		"memo":               "GET /notes, GET /notes/{id}, GET /users/{uid}/starred_notes",
-		"package_manifest":   "GET /packages/{pid}/digest, GET /packages/{pid}/download_urls",
-		"recipe_manifest":    "GET /recipes/{rid}/digest, GET /recipes/{rid}/download_urls",
+		"package":            "GET /packages/{pid}/digest",
+		"package_manifest":   "GET /packages/{pid}/download_urls",
+		"recipe":             "GET /recipes/{rid}/digest",
+		"recipe_manifest":    "GET /recipes/{rid}/download_urls",
 		"removal":            "DELETE /accounts/{aid}/bank_accounts/{id}, DELETE /accounts/{aid}/external_accounts/{id}",
 		"required_signature": "GET /settings/required_signatures",
 		"stat":               "GET /stats",
@@ -1410,7 +1414,7 @@ func TestGuideSamePathJoin(t *testing.T) {
 	}
 
 	gents, _ := res.Guide["entity"].(map[string]any)
-	want := "secret,vault_repository_access_detail,widget"
+	want := "org,secret,widget"
 	if got := strings.Join(sortedKeys(gents), ","); got != want {
 		t.Errorf("guide entities = %s, want %s", got, want)
 	}
@@ -1557,7 +1561,7 @@ func TestGuideRequestPaths(t *testing.T) {
 
 var requestPathsPoints = []string{
 	"board.load GET /boards/{boardId} s=boards/<id> params=id:boardId query= exist=id action=",
-	"board.update PUT /boards/{boardId}/{fileName}.json s=boards/<id>/{file_name}.json params=file_name:fileName,id:boardId query= exist=file_name,id action=",
+	"board.update PUT /boards/{boardId}/{fileName}.json s=boards/<board_id>/{file_name}.json params=board_id:boardId,file_name:fileName query= exist=board_id,file_name action=",
 	"message.create POST /messages/{messageId}/cancel s=messages/<id>/cancel params=id:messageId query= exist=id action=cancel",
 	"message.list GET /messages s=messages params= query= exist= action=",
 	"message.load GET /messages/{messageId} s=messages/<id> params=id:messageId query= exist=id action=",
@@ -1571,8 +1575,8 @@ var requestPathsPoints = []string{
 	"schedule.load GET /schedules/{scheduleId} s=schedules/<id> params=id:scheduleId query= exist=id action=",
 	"schedule.load GET /schedules:count s=schedules:count params= query= exist= action=count",
 	"schedule.remove DELETE /schedules s=schedules params= query= exist= action=",
-	"state.load GET /states/{stateAbbreviation}.json s=states/{state_abbreviation}.json params=state_abbreviation:stateAbbreviation query= exist=state_abbreviation action=",
-	"thread.list GET /{board}/thread/{threadId}.json s=<board>/thread/{thread_id}.json params=board:board,thread_id:threadId query= exist=board,thread_id action=",
+	"state.load GET /states/{stateAbbreviation}.json s=states/{id}.json params=id:stateAbbreviation query= exist=id action=",
+	"thread.load GET /{board}/thread/{threadId}.json s=<board>/thread/{id}.json params=board:board,id:threadId query= exist=board,id action=",
 	"world.load GET /image/world/{worldTileName}{tileX}-{tileY}-0.png s=image/world/{world_tile_name}{tile_x}-{tile_y}-0.png params=tile_x:tileX,tile_y:tileY,world_tile_name:worldTileName query= exist=tile_x,tile_y,world_tile_name action=",
 }
 
@@ -1600,7 +1604,7 @@ func TestGuideCollectionOwner(t *testing.T) {
 	}
 
 	gents, _ := res.Guide["entity"].(map[string]any)
-	if got, want := strings.Join(sortedKeys(gents), ","), "catalog_bundle,gadget,job,org,plan,purchase,report,shop,star,team,token,user"; got != want {
+	if got, want := strings.Join(sortedKeys(gents), ","), "catalog_bundle,gadget,job,member,org,plan,purchase,report,shop,star,token,user"; got != want {
 		t.Errorf("guide entities = %s, want %s", got, want)
 	}
 

@@ -40,6 +40,16 @@ Reading the parts left to right, the guide recognizes the familiar REST
 shapes: a *collection* segment (`planet`) optionally followed by an *item*
 selector (`{planet_id}`), optionally nested (`moon`, `{moon_id}`).
 
+A placeholder fused to a literal is not part of the name:
+Healthcare.gov's `/api/articles{mediaTypeExtension}` names `article`. A
+part that is only placeholders, or an extension placeholder such as
+TomTom's `/.{ext}`, is a parameter rather than a literal, and so is a
+placeholder with an extension, `{api}.json`. A route with no literal at
+all is named for its first parameter's noun, so
+`/{pageName}{mediaTypeExtension}` is `page`. A query string in a path, as
+in FormAPI's `/templates?desc=html`, is cut away before anything reads
+the path.
+
 ## Naming an entity
 
 The entity name is taken from the last collection literal, then normalized so
@@ -246,6 +256,22 @@ reads stay on `artifact`. A trailing literal that is a verb, `send` in
 of `message`; so does the verb after a colon in a custom method, as
 `count` in `/schedules:count` acts on `schedule`.
 
+A tag that names a literal earlier in the path than its own noun keeps
+naming only where the route is a selector or a view of that literal's
+resource: a leaf ending in a literal, as Giphy's `/gifs/random` under the `gifs` tag
+or Medium's `/user/{user_id}/followers` under `User`, or a route ending in
+a key whose literal is singular, as Keyserv's
+`/v1/KeysApi/Current/{serial}`. A collection with items beneath it names
+itself whatever tag it carries: Ably's
+`/push/deviceRegistrations/{device_id}` is `device_registration`, not
+`push`, and Google's `/projects/{projectId}/hmacKeys` is `hmac_key`.
+
+A literal's trailing module word, `api`, `controller`, `service`,
+`resource` or `endpoint`, is not part of the name when another word
+remains: Keyserv's `/v1/ProductsApi` names `product`, and its
+`SubscriptionsApi/Enable` is `subscription` with the action `enable`. A
+tag is read the same way.
+
 ## A command is named for its body
 
 A `POST` addressed to a singular literal that names no component, with no
@@ -257,6 +283,27 @@ and is `assume_role`; Ably's `POST /keys/{keyName}/requestToken` sends a
 component, or no object, such as an upload. A path whose read answers with
 a record keeps the literal: `POST /account` beside a `GET /account` that
 answers an `Account` is the account's `create`.
+
+The body is read under whatever media type the definition offers, XML and
+form bodies included, and a `oneOf` body is read through its first member.
+A read on a command's path is the command's load: STS's
+`GET /#Action=AssumeRole`, which sends the same fields as query
+parameters, joins `assume_role` beside the `POST`.
+
+## A record names its item and its collection
+
+The record an item route answers with names the item and its collection,
+whatever its frequency, when its name is not the literal's: Google's
+`/b/{bucket}/acl/{entity}` answers a `BucketAccessControl` that declares
+an `id`, so the ACL routes are `bucket_access_control`. A record name that
+holds the literal's words, `ExtendedRateplanEntry` around `rateplans`, is
+a wrapper of the literal, which keeps naming, and a record that several
+collections' item routes share names none of them: Google's
+`ObjectAccessControl`, answered by both `/b/{bucket}/defaultObjectAcl` and
+`/b/{bucket}/o/{object}/acl`, leaves each collection its own literal, so
+the two stay apart in the model. A one-member wrapper named for its noun
+and its parent, Clever's `StudentContactsForStudentResponse`, wraps the
+noun it names: `student_contact`.
 
 ## A collection joins its items
 
@@ -367,14 +414,19 @@ verb's path. A literal with paths beneath it is a collection and keeps the
 component rule. The verb joins the entity a read of the item returns,
 however the two paths spell the key.
 
-A `GET` on such a path is a view of the item when it answers with no record
-of its own: an object that declares no `id`, as OpenAI's
-`/files/{file_id}/content` does, or an array of scalars, as Clever's
-`/teachers/{id}/grade_levels` does with its strings. The parent takes the
-view as a `load` action, `content` on `file` and `grade_level` on `teacher`,
-and the array of scalars is a field of the parent rather than a collection.
-A read whose response declares an `id` of its own, or whose items do, is a
-sub-resource and keeps the component rule.
+A `GET` beneath an item key is a view of the item when it answers with no
+record of its own and every literal after the key is singular: an object
+that declares no `id`, as OpenAI's `/files/{file_id}/content` does, or an
+array of scalars, as Clever's `/teachers/{id}/grade_levels` does with its
+strings. The nearest resource up the path takes the view as a `load`
+action named for the literals after the key: `content` on `file`,
+`grade_level` on `teacher`, and `sync_commerce_status` on `company` for
+Codat's `/meta/companies/{companyId}/sync/commerce/status`, where the
+noun before the key names because no item route precedes the view. A
+version parameter is no item key. A read whose response declares an `id` of its
+own, or whose items do, is a sub-resource and keeps the component rule,
+and a plural read answering an array of id-less objects stays a
+collection.
 
 Plurality decides first, and on its own. A verb reads as one instruction —
 `merge`, `revoke`, `resend_confirmation` — where a plural literal names a

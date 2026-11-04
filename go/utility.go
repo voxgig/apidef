@@ -32,8 +32,9 @@ var (
 	stringNameRE  = regexp.MustCompile(`^(url$|href$|link$|uri$|email$|name$|title$|description$|slug$|path$|label$|username$|password$|token$|key$)`)
 	idNameRE      = regexp.MustCompile(`(_id$|^id$)`)
 	fileExtRE     = regexp.MustCompile(`(?i)\.(php|json|txt|png|jpg|jpeg|gif|svg|xml|html|csv|yml|yaml|md)$`)
-	// A placeholder standing for the extension, as in `lists.{format}`.
-	placeholderExtRE = regexp.MustCompile(`\.\{[^}]*\}$`)
+	// Trailing placeholders, dotted or fused, as in `lists.{format}` and
+	// `articles{mediaTypeExtension}`.
+	placeholderExtRE = regexp.MustCompile(`(\.?\{[^}]*\})+$`)
 	nonAlphaNumRE    = regexp.MustCompile(`[^a-zA-Z_0-9]`)
 	// RE2 has no lookahead, so the "not followed by a letter" half of the
 	// TypeScript pattern is checked in deacronymPlural.
@@ -895,6 +896,23 @@ var wrapperWords = map[string]bool{
 func WrapperOf(name string, known []string) (string, bool) {
 	words := splitAndFilter(name, "_")
 
+	// A name of the form noun-for-parent-response wraps the noun.
+	forAt := -1
+	for i, w := range words {
+		if w == "for" {
+			forAt = i
+			break
+		}
+	}
+	if 0 < forAt && forAt < len(words)-1 && wrapperWords[words[len(words)-1]] {
+		held := Depluralize(strings.Join(words[:forAt], "_"))
+		for _, k := range known {
+			if k == held {
+				return held, true
+			}
+		}
+	}
+
 	inner := ""
 	hasInner := false
 	at := -1
@@ -1307,8 +1325,57 @@ func PathMatch(path any, expr string) *PathMatchResult {
 	return nil
 }
 
+var paramExtRE = regexp.MustCompile(`\}\.[A-Za-z0-9]+$`)
+
+// A placeholder, with or without the dot an extension placeholder keeps and
+// the extension a placeholder carries, as `.{ext}` and `{api}.json`.
 func isParam(partStr string) bool {
-	return len(partStr) > 0 && partStr[0] == '{' && partStr[len(partStr)-1] == '}'
+	part := paramExtRE.ReplaceAllString(strings.TrimPrefix(partStr, "."), "}")
+	return len(part) > 0 && part[0] == '{' && part[len(part)-1] == '}'
+}
+
+// A trailing word that names a module rather than a resource.
+var moduleWords = map[string]bool{
+	"api": true, "controller": true, "service": true, "resource": true, "endpoint": true,
+}
+
+// LiteralName mirrors literalName in ts/src/utility.ts: the entity name a
+// path literal gives, less a trailing module word when another word remains.
+func LiteralName(part string) string {
+	name := Canonize(part)
+	at := strings.LastIndex(name, "_")
+	if 0 < at && moduleWords[name[at+1:]] {
+		return Depluralize(name[:at])
+	}
+	return name
+}
+
+var paramOfRE = regexp.MustCompile(`\{([^}]+)\}`)
+
+// ParamOf mirrors paramOf in ts/src/utility.ts: the name a placeholder part
+// carries, as `{id}.json` carries id, "" for none.
+func ParamOf(part string) string {
+	m := paramOfRE.FindStringSubmatch(part)
+	if m == nil {
+		return ""
+	}
+	return m[1]
+}
+
+var queryStringRE = regexp.MustCompile(`\?.*$`)
+
+// PathParts mirrors pathParts in ts/src/utility.ts: the parts of a path, its
+// query string cut away.
+func PathParts(pathStr string) []string {
+	return splitAndFilter(queryStringRE.ReplaceAllString(pathStr, ""), "/")
+}
+
+var paramNounSuffixRE = regexp.MustCompile(`_(name|id|key|code|slug|number|uuid)$`)
+
+// ParamNoun mirrors paramNoun in ts/src/utility.ts: the noun a parameter is
+// named for, as `pageName` is page.
+func ParamNoun(name string) string {
+	return paramNounSuffixRE.ReplaceAllString(CanonizeParam(name), "")
 }
 
 // RelativizePath makes a path relative to the current working directory.

@@ -268,12 +268,22 @@ function file(header, data) {
         node_assert_1.default.strictEqual(name({ shaped: 1, shape_tpt: 1, cmp_avail: 1, cmp_from_tag: 1, same_path_avail: 1 }), 'SAMEPATH');
         node_assert_1.default.strictEqual(name({ opid_avail: 1, title_avail: 1, seg_avail: 1 }), 'OPID');
         node_assert_1.default.strictEqual(name({}), 'NONE');
-        const view = { ...tpt, last_lit_singular: 1, item_route_exists: 1, route_not_extended: 1 };
+        const view = { view_key: 1, tail_singular: 1, route_not_extended: 1, view_parent_avail: 1 };
         node_assert_1.default.strictEqual(name(view), 'PARENT');
-        node_assert_1.default.strictEqual(name({ ...view, res_record: 1 }), 'PART');
+        node_assert_1.default.strictEqual(name({ ...view, res_record: 1 }), 'NONE');
         node_assert_1.default.strictEqual(name({ ...view, res_record: 1, res_scalars: 1 }), 'PARENT');
-        node_assert_1.default.strictEqual(name({ ...view, m_write: 1 }), 'PART');
-        node_assert_1.default.strictEqual(name({ ...view, cmp_avail: 1, cmp_ne_path: 1, cmp_infrequent: 1 }), 'PARENT');
+        node_assert_1.default.strictEqual(name({ ...view, m_write: 1 }), 'NONE');
+        node_assert_1.default.strictEqual(name({ ...view, ...tpt, record_avail: 1, cmp_avail: 1, cmp_ne_path: 1,
+            cmp_infrequent: 1 }), 'PARENT');
+        const rec = {
+            shaped: 1, shape_tp: 1, record_avail: 1, cmp_avail: 1, cmp_ne_path: 1, cmp_infrequent: 1,
+            cmp_in_path: 1,
+        };
+        node_assert_1.default.strictEqual(name(rec), 'REC');
+        node_assert_1.default.strictEqual(name({ ...rec, cmp_differs: 1, cmp_names_key: 1 }), 'CMP');
+        node_assert_1.default.strictEqual(name({ ...rec, twin_cmd_avail: 1 }), 'TWIN');
+        node_assert_1.default.strictEqual(name({ ...tpt, record_avail: 1, last_is_cmp: 1, path_has_children: 1 }), 'REC');
+        node_assert_1.default.strictEqual(name({ param_avail: 1, opid_avail: 1, title_avail: 1 }), 'PARAM');
         const post = { shaped: 1, shape_t: 1, m_post: 1, m_write: 1, lit_last: 1, last_lit_singular: 1 };
         const command = { ...post, body_cmp_avail: 1, cmp_avail: 1, cmp_ne_path: 1, cmp_infrequent: 1 };
         node_assert_1.default.strictEqual(name(command), 'BODY');

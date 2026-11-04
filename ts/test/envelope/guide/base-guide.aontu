@@ -4,11 +4,11 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 17
+  metrics: count: entity: 18
   metrics: count: path: 21
   metrics: count: method: 24
 
-  entity: auction: {
+  entity: artwork: {
     path: "/{year}/auction/{id}": {
       op: load: method: *GET
       op: load: transform: res: *("`body.data`")|top
@@ -22,11 +22,16 @@ guide: {
     }
   }
 
+  entity: crew: {
+    path: "/{year}/crew/{id}/member": {
+      action: "member": {}
+      op: load: method: *GET
+    }
+  }
+
   entity: crew_member: {
     path: "/{year}/crew/{id}/member": {
       op: create: method: *POST
-      op: list: method: *GET
-      op: list: transform: res: *("`body.members`")|top
     }
   }
 

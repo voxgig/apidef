@@ -66,8 +66,10 @@ var verbWords = map[string]bool{
 	"invite": true, "accept": true, "decline": true, "notify": true, "ping": true, "count": true,
 	"exists": true, "preview": true, "render": true, "generate": true, "calculate": true,
 	"compute": true, "convert": true, "process": true, "trigger": true, "dispatch": true,
-	"apply": true, "revoke": true, "grant": true,
+	"apply": true, "revoke": true, "grant": true, "save": true,
 }
+
+var versionParamRE = regexp.MustCompile(`(?i)version`)
 
 // A literal that names an identifier keys a resource rather than naming one.
 var idLiteralRE = regexp.MustCompile(`(^|_)ids?$`)
@@ -702,7 +704,7 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 							countMap["tag"] = toInt(countMap["tag"]) + 1
 							tagMap[tagStr] = map[string]any{
 								"name":  tagStr,
-								"canon": Canonize(tagStr),
+								"canon": LiteralName(tagStr),
 							}
 						}
 					}
@@ -711,7 +713,7 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 		}
 
 		// PreparePath
-		parts := splitAndFilter(pathstr, "/")
+		parts := PathParts(pathstr)
 		pathmap[pathstr] = map[string]any{
 			"path":  pathstr,
 			"def":   pathdefMap,
@@ -1504,6 +1506,15 @@ func versionActions(entval any) {
 // sends.
 func pathEntityName(data map[string]any, mdesc map[string]any, parts []string,
 	pm *PathMatchResult, pathowner map[string]any, why *[]string) (string, bool) {
+	if parent, action, ok := viewOfItem(data, mdesc, parts, pathowner); ok {
+		if ment, _ := mdesc["MethodEntity"].(map[string]any); ment != nil {
+			ment["verb_on_parent"] = parts[len(parts)-1]
+			ment["view_on_parent"] = true
+			ment["view_action"] = action
+		}
+		*why = append(*why, "view-of-item="+parent)
+		return parent, true
+	}
 	shaped, ok := shapeEntityName(data, mdesc, parts, pm, pathowner, why)
 	if pm == nil || !ok {
 		return shaped, ok
@@ -1516,6 +1527,9 @@ func pathEntityName(data map[string]any, mdesc map[string]any, parts []string,
 	}
 	if command := commandName(data, mdesc, pm, parts, why); command != "" {
 		return command, true
+	}
+	if twin := commandTwin(data, mdesc, pm, parts, why); twin != "" {
+		return twin, true
 	}
 	return shaped, ok
 }
@@ -1553,7 +1567,7 @@ func markRecordOwner(recordowner map[string]string, pathStr string, parts []stri
 		}
 	}
 	if _, seen := recordowner[pathStr]; !seen && isSchemaRef(safeStr(ment["ref"])) &&
-		entname == safeStr(ment["cmp"]) && last != "" && entname == Canonize(last) {
+		entname == safeStr(ment["cmp"]) && last != "" && entname == LiteralName(last) {
 		recordowner[pathStr] = entname
 	}
 }
@@ -1624,7 +1638,7 @@ func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any)
 			if !isParam(part) {
 				continue
 			}
-			placeholder := strings.Trim(part, "{}")
+			placeholder := ParamOf(part)
 			snake := Depluralize(Snakify(NormalizeFieldName(placeholder)))
 			if snake == placeholder {
 				continue
@@ -1658,9 +1672,9 @@ func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any)
 			continue
 		}
 
-		origParams = append(origParams, strings.Trim(partStr, "{}"+"*"))
+		origParams = append(origParams, strings.ReplaceAll(ParamOf(partStr), "*", ""))
 
-		oldParam := partStr[1 : len(partStr)-1]
+		oldParam := ParamOf(partStr)
 
 		if whyParam[oldParam] == nil {
 			whyParam[oldParam] = []string{}
@@ -1672,7 +1686,7 @@ func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any)
 		hasParent := partI > 0 && !isParam(parts[partI-1])
 		parentName := ""
 		if hasParent {
-			parentName = Canonize(parts[partI-1])
+			parentName = LiteralName(parts[partI-1])
 		}
 		notExactId := oldParam != "id"
 		probablyAnId := strings.HasSuffix(oldParam, "id") ||
@@ -1717,7 +1731,7 @@ func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any)
 			// Not at end, has preceding non-param part
 
 			if secondLastPart {
-				if oldParam != "id" && Canonize(partStr) == entdescName {
+				if oldParam != "id" && LiteralName(partStr) == entdescName {
 					updateParamRename(ctx, data, pathStr, methodName,
 						paramRename, whyParam, oldParam,
 						"id", "end-action")
@@ -1812,19 +1826,19 @@ func findActions(data map[string]any, mdesc map[string]any) {
 
 	if plen >= 4 {
 		fourthLastPart = parts[plen-4]
-		fourthLastPartCanon = Canonize(fourthLastPart)
+		fourthLastPartCanon = LiteralName(fourthLastPart)
 	}
 	if plen >= 3 {
 		thirdLastPart = parts[plen-3]
-		thirdLastPartCanon = Canonize(thirdLastPart)
+		thirdLastPartCanon = LiteralName(thirdLastPart)
 	}
 	if plen >= 2 {
 		secondLastPart = parts[plen-2]
-		secondLastPartCanon = Canonize(secondLastPart)
+		secondLastPartCanon = LiteralName(secondLastPart)
 	}
 	if plen >= 1 {
 		lastPart = parts[plen-1]
-		lastPartCanon = Canonize(lastPart)
+		lastPartCanon = LiteralName(lastPart)
 	}
 
 	cmp := safeStr(ment["cmp"])
@@ -1845,8 +1859,12 @@ func findActions(data map[string]any, mdesc map[string]any) {
 			action = map[string]any{}
 			pathdesc["action"] = action
 		}
-		if action[lastPartCanon] == nil && isVerb(lastPart) {
-			action[lastPartCanon] = map[string]any{
+		name := safeStr(ment["view_action"])
+		if name == "" {
+			name = lastPartCanon
+		}
+		if action[name] == nil && isVerb(lastPart) {
+			action[name] = map[string]any{
 				"why_action": []string{"ent", safeStr(entdesc["name"]), "verb-on-parent", lastPart, methodName},
 			}
 		}
@@ -2156,31 +2174,51 @@ func buildEntity(data map[string]any, entval any) {
 // names message.
 func pathNoun(pm *PathMatchResult, parts []string, why *[]string) string {
 	at := pm.Index + PATH_NAME_INDEX[pm.Expr]
-	if m := customMethodRE.FindStringSubmatch(parts[at]); m != nil {
-		*why = append(*why, "noun-before-method="+m[1])
-		return Canonize(m[1])
+	custom := customMethodRE.FindStringSubmatch(parts[at])
+	if custom != nil && !isParam(custom[1]) {
+		*why = append(*why, "noun-before-method="+custom[1])
+		return LiteralName(custom[1])
 	}
-	name := Canonize(parts[at])
+	name := LiteralName(parts[at])
 	lit := Snakify(parts[at])
-	if verbWords[name] && Depluralize(lit) == lit {
+	if custom != nil || (verbWords[name] && Depluralize(lit) == lit) {
 		for i := at - 1; 0 <= i; i-- {
 			if !isParam(parts[i]) {
 				*why = append(*why, "noun-before-verb="+parts[i])
-				return Canonize(parts[i])
+				return LiteralName(parts[i])
 			}
 		}
 	}
 	return name
 }
 
-// A tag that names a literal of the path is a path noun itself.
-func tagNamesLiteral(parts []string, tag string) bool {
-	for _, part := range verbParts(parts) {
-		if !isParam(part) && Canonize(part) == tag {
-			return true
+// A tag keeps naming a route whose noun it is not when it names a literal
+// before the naming literal and the route is a leaf, or ends with a key
+// whose literal is singular: a selector or a view of the tag's resource.
+func tagHolds(data map[string]any, parts []string, pathStr string, tag string) bool {
+	pm := matchEntityPath(parts)
+	if pm == nil {
+		return false
+	}
+	at := pm.Index + PATH_NAME_INDEX[pm.Expr]
+	if at > len(parts) {
+		at = len(parts)
+	}
+	before := false
+	for _, part := range parts[:at] {
+		if !isParam(part) && LiteralName(part) == tag {
+			before = true
+			break
 		}
 	}
-	return false
+	if !before {
+		return false
+	}
+	if isParam(parts[len(parts)-1]) {
+		lit := Snakify(parts[at])
+		return lit != "" && Depluralize(lit) == lit
+	}
+	return findPathsWithPrefixFromData(data, pathStr, true) == 0
 }
 
 func entityPathMatch_tpte(data map[string]any, pm *PathMatchResult, mdesc map[string]any,
@@ -2199,14 +2237,9 @@ func entityPathMatch_tpte(data map[string]any, pm *PathMatchResult, mdesc map[st
 		origPathName = pm.Matches[pathNameIndex]
 	}
 	entname := pathNoun(pm, parts, why)
-	verbish := entname != Canonize(origPathName)
+	verbish := entname != LiteralName(origPathName)
 
-	if view := viewOnParent(data, pm, mdesc, pathowner); view != "" {
-		entname = view
-		ment["verb_on_parent"] = getMatchElem(pm, -1)
-		ment["view_on_parent"] = true
-		*why = append(*why, "view-on-parent="+view)
-	} else if safeStr(ment["cmp"]) != "" {
+	if safeStr(ment["cmp"]) != "" {
 		if parent := verbOnParent(data, pm, mdesc, pathowner); parent != "" {
 			entname = parent
 			ment["verb_on_parent"] = getMatchElem(pm, -1)
@@ -2222,21 +2255,21 @@ func entityPathMatch_tpte(data map[string]any, pm *PathMatchResult, mdesc map[st
 			entname = safeStr(ecm["name"])
 			*why = append(*why, "prob-ent="+safeStr(ecm["orig"]))
 		} else if endsWithCmp(data, pm) {
-			entname = Canonize(getMatchElem(pm, -1))
+			entname = LiteralName(getMatchElem(pm, -1))
 			*why = append(*why, "prob-ent-last="+safeStr(ecm["orig"]))
 		} else if findPathsWithPrefixFromData(data, pm.Path, true) > 0 {
-			entname = Canonize(getMatchElem(pm, -1))
+			entname = LiteralName(getMatchElem(pm, -1))
 			*why = append(*why, "prob-ent-prefix="+safeStr(ecm["orig"]))
 		} else if verbish {
 			*why = append(*why, "prob-ent-noun")
 		} else {
-			entname = Canonize(getMatchElem(pm, -3)) + "_" + entname
+			entname = LiteralName(getMatchElem(pm, -3)) + "_" + entname
 			*why = append(*why, "prob-ent-part")
 		}
 	} else {
 		// Probably an entity action suffix
 		*why = append(*why, "prob-ent-act")
-		entname = Canonize(getMatchElem(pm, -3))
+		entname = LiteralName(getMatchElem(pm, -3))
 	}
 
 	return entname
@@ -2312,6 +2345,14 @@ func leafItemRoute(data map[string]any, pm *PathMatchResult) string {
 // not claim the verb. Fall back to any owner, then the literal.
 func itemOwner(pm *PathMatchResult, itemPath string, pathowner map[string]any) string {
 	owners, _ := pathowner[itemPath].(map[string]any)
+	if parent := ownerOf(owners); parent != "" {
+		return parent
+	}
+	return LiteralName(getMatchElem(pm, -3))
+}
+
+// The entity a read of a path returns, else any owner, else "".
+func ownerOf(owners map[string]any) string {
 	if parent := safeStr(owners["GET"]); parent != "" {
 		return parent
 	}
@@ -2324,38 +2365,93 @@ func itemOwner(pm *PathMatchResult, itemPath string, pathowner map[string]any) s
 			vals = append(vals, safeStr(owners[n]))
 		}
 		sortUTF16(vals)
-		if vals[0] != "" {
-			return vals[0]
-		}
+		return vals[0]
 	}
-
-	return Canonize(getMatchElem(pm, -3))
+	return ""
 }
 
-// A read of a literal under the item key that answers with no record of its
-// own, an object declaring no id or an array of scalars, is a view of the
-// item: the parent takes it as a load action.
-func viewOnParent(data map[string]any, pm *PathMatchResult, mdesc map[string]any,
-	pathowner map[string]any) string {
+// A read whose literals after the item key are singular and whose response
+// declares no record of its own, or is an array of scalars, is a view of
+// the item: the nearest resource above takes it as a load action.
+func viewOfItem(data map[string]any, mdesc map[string]any, parts []string,
+	pathowner map[string]any) (string, string, bool) {
 	if !READ_METHODS[safeStr(mdesc["method"])] {
-		return ""
+		return "", "", false
 	}
-	lit := Snakify(getMatchElem(pm, -1))
+	key := -1
+	for i, part := range parts {
+		if isParam(part) {
+			key = i
+		}
+	}
+	if key < 0 || len(parts)-1 == key || versionParamRE.MatchString(parts[key]) {
+		return "", "", false
+	}
+	tail := parts[key+1:]
+	singular := true
+	for _, part := range tail {
+		lit := Snakify(part)
+		if lit == "" || Depluralize(lit) != lit {
+			singular = false
+			break
+		}
+	}
 	responses, _ := mdesc["responses"].(map[string]any)
-	scalars, record := responsePayload(getResponseSchema(successResponse(responses)))
-	if lit == "" || (!scalars && (Depluralize(lit) != lit || record)) {
-		return ""
+	scalars, record, _ := responsePayload(getResponseSchema(successResponse(responses)))
+	if (!scalars && (!singular || record)) ||
+		findPathsWithPrefixFromData(data, safeStr(mdesc["path"]), true) > 0 {
+		return "", "", false
 	}
-	itemPath := leafItemRoute(data, pm)
-	if itemPath == "" {
-		return ""
+	parent := itemAbove(data, parts, key, pathowner)
+	if parent == "" {
+		return "", "", false
 	}
-	return itemOwner(pm, itemPath, pathowner)
+	names := make([]string, 0, len(tail))
+	for _, part := range tail {
+		names = append(names, LiteralName(part))
+	}
+	return parent, strings.Join(names, "_"), true
+}
+
+// The entity of the item route a view hangs off, the entity a read of it
+// returns, else the noun before the key.
+func itemAbove(data map[string]any, parts []string, key int, pathowner map[string]any) string {
+	if itemPath := pathNamed(data, "/"+strings.Join(parts[:key+1], "/")); itemPath != "" {
+		owners, _ := pathowner[itemPath].(map[string]any)
+		if parent := ownerOf(owners); parent != "" {
+			return parent
+		}
+	}
+	if 0 < key && !isParam(parts[key-1]) {
+		return LiteralName(parts[key-1])
+	}
+	return ""
+}
+
+// The path of the definition that is the given path with its parameters
+// normalised, or "".
+func pathNamed(data map[string]any, pathStr string) string {
+	work, _ := data["work"].(map[string]any)
+	normPaths, _ := work["normPaths"].(map[string]string)
+	if normPaths == nil {
+		normPaths = map[string]string{}
+		def, _ := data["def"].(map[string]any)
+		paths, _ := def["paths"].(map[string]any)
+		for _, p := range sortedKeys(paths) {
+			if _, has := normPaths[normalizeParams(p)]; !has {
+				normPaths[normalizeParams(p)] = p
+			}
+		}
+		if work != nil {
+			work["normPaths"] = normPaths
+		}
+	}
+	return normPaths[normalizeParams(pathStr)]
 }
 
 // What a response carries past its envelopes: whether it reaches an array of
-// scalars, and whether the record it reaches declares an id.
-func responsePayload(schema map[string]any) (bool, bool) {
+// scalars, and whether the record it reaches declares an id, with that record.
+func responsePayload(schema map[string]any) (bool, bool, map[string]any) {
 	node := schema
 	array := false
 	for depth := 0; node != nil && depth < 8; depth++ {
@@ -2369,7 +2465,7 @@ func responsePayload(schema map[string]any) (bool, bool) {
 			break
 		}
 		if id, ok := props["id"]; ok && id != nil {
-			return false, true
+			return false, true, node
 		}
 		env := strictEnvelopeProp(props, "list")
 		if env == "" {
@@ -2381,7 +2477,117 @@ func responsePayload(schema map[string]any) (bool, bool) {
 		node, _ = props[env].(map[string]any)
 	}
 	scalar := node != nil && payloadScalarTypes[safeStr(node["type"])] && mergedProperties(node) == nil
-	return array && scalar, false
+	return array && scalar, false, node
+}
+
+var cmpRefNameRE = regexp.MustCompile(`/(components/schemas|definitions)/(.+)$`)
+
+// The record component the item route of a path answers with, the path's own
+// when it ends with a parameter, else the item route beneath it: "" for none.
+func recordOf(data map[string]any, pathStr string) (string, string) {
+	work, _ := data["work"].(map[string]any)
+	records, _ := work["itemRecords"].(map[string][]string)
+	if records == nil {
+		records = map[string][]string{}
+		if work != nil {
+			work["itemRecords"] = records
+		}
+	}
+	if found, has := records[pathStr]; has {
+		return found[0], found[1]
+	}
+	parts := PathParts(pathStr)
+	itemPath := ""
+	if 0 < len(parts) && isParam(parts[len(parts)-1]) {
+		itemPath = pathStr
+	} else {
+		itemPath = pathNamed(data, pathStr+"/{}")
+	}
+	found := []string{"", ""}
+	orig := ""
+	if itemPath != "" {
+		orig = itemRecordRef(data, itemPath)
+	}
+	if orig != "" && len(itemRecordRoutes(data)[orig]) == 1 {
+		cmp := CleanComponentName(CanonizeCmpName(orig), func(n string) bool {
+			return isOrigCmp(data, n)
+		})
+		found = []string{cmp, orig}
+	}
+	records[pathStr] = found
+	return found[0], found[1]
+}
+
+// The component an item route's read answers with when it declares an id.
+func itemRecordRef(data map[string]any, itemPath string) string {
+	def, _ := data["def"].(map[string]any)
+	paths, _ := def["paths"].(map[string]any)
+	pathDef, _ := paths[itemPath].(map[string]any)
+	read, _ := pathDef["get"].(map[string]any)
+	responses, _ := read["responses"].(map[string]any)
+	_, record, node := responsePayload(getResponseSchema(successResponse(responses)))
+	if !record {
+		return ""
+	}
+	xref, _ := node["x-ref"].(string)
+	m := cmpRefNameRE.FindStringSubmatch(xref)
+	if m == nil {
+		return ""
+	}
+	return m[2]
+}
+
+// The collections whose item routes answer each record, by the item path
+// with its parameters normalised: a record shared by several names none.
+func itemRecordRoutes(data map[string]any) map[string]map[string]bool {
+	work, _ := data["work"].(map[string]any)
+	routes, _ := work["itemRecordRoutes"].(map[string]map[string]bool)
+	if routes == nil {
+		routes = map[string]map[string]bool{}
+		def, _ := data["def"].(map[string]any)
+		paths, _ := def["paths"].(map[string]any)
+		for _, p := range sortedKeys(paths) {
+			parts := PathParts(p)
+			if 0 < len(parts) && isParam(parts[len(parts)-1]) {
+				if orig := itemRecordRef(data, p); orig != "" {
+					if routes[orig] == nil {
+						routes[orig] = map[string]bool{}
+					}
+					routes[orig][normalizeParams(p)] = true
+				}
+			}
+		}
+		if work != nil {
+			work["itemRecordRoutes"] = routes
+		}
+	}
+	return routes
+}
+
+// Whether a component's name holds the literal's words in a row, compared
+// singular: such a name wraps the literal and the literal keeps naming.
+func wrapsLiteral(cmp string, lit string) bool {
+	cw := strings.Split(cmp, "_")
+	lw := strings.Split(lit, "_")
+	for i := range cw {
+		cw[i] = Depluralize(cw[i])
+	}
+	for i := range lw {
+		lw[i] = Depluralize(lw[i])
+	}
+	for i := 0; i+len(lw) <= len(cw); i++ {
+		match := true
+		for j, w := range lw {
+			if w != cw[i+j] {
+				match = false
+				break
+			}
+		}
+		if match {
+			return true
+		}
+	}
+	return false
 }
 
 // A POST addressed to a singular literal that names no component, with no
@@ -2399,8 +2605,8 @@ func commandName(data map[string]any, mdesc map[string]any, pm *PathMatchResult,
 	def, _ := data["def"].(map[string]any)
 	work, _ := data["work"].(map[string]any)
 	scratch := []string{}
-	if lit == "" || Depluralize(lit) != lit || pathNoun(pm, parts, &scratch) != Canonize(last) ||
-		isOrigCmp(data, Canonize(last)) || keyParamOf(def, safeStr(mdesc["path"]), work) != "" ||
+	if lit == "" || Depluralize(lit) != lit || pathNoun(pm, parts, &scratch) != LiteralName(last) ||
+		isOrigCmp(data, LiteralName(last)) || keyParamOf(def, safeStr(mdesc["path"]), work) != "" ||
 		(pm.Expr == "t/p/t/" && leafItemRoute(data, pm) != "") || readsRecord(data, safeStr(mdesc["path"])) {
 		return ""
 	}
@@ -2421,17 +2627,34 @@ func readsRecord(data map[string]any, pathStr string) bool {
 		return false
 	}
 	responses, _ := mdef["responses"].(map[string]any)
-	_, record := responsePayload(getResponseSchema(successResponse(responses)))
+	_, record, _ := responsePayload(getResponseSchema(successResponse(responses)))
 	return record
 }
 
-// The name a command's body component gives, its affixes stripped. A body
-// that is no object, such as an upload, names nothing.
+// The name a command's body component gives under any media type, the first
+// member of a oneOf, its affixes stripped. A body that is no object, such as
+// an upload, names nothing.
 func commandBodyName(data map[string]any, mdesc map[string]any) string {
 	def, _ := data["def"].(map[string]any)
-	body := getRequestBodySchema(def, mdesc)
-	xref, ok := body["x-ref"].(string)
-	if !ok || mergedProperties(body) == nil {
+	body, _ := selectedRequestSchema(def, safeStr(mdesc["method"]), safeStr(mdesc["path"]), "").(map[string]any)
+	if body == nil {
+		requestBody, _ := mdesc["requestBody"].(map[string]any)
+		body, _ = requestBody["schema"].(map[string]any)
+	}
+	member := body
+	if oneOf, ok := body["oneOf"].([]any); ok {
+		member = nil
+		if 0 < len(oneOf) {
+			member, _ = oneOf[0].(map[string]any)
+		}
+	} else if anyOf, ok := body["anyOf"].([]any); ok {
+		member = nil
+		if 0 < len(anyOf) {
+			member, _ = anyOf[0].(map[string]any)
+		}
+	}
+	xref, ok := member["x-ref"].(string)
+	if !ok || mergedProperties(member) == nil {
 		return ""
 	}
 	name := CleanComponentName(CanonizeCmpName(cmpRefName(xref)), func(n string) bool {
@@ -2446,6 +2669,28 @@ func commandBodyName(data map[string]any, mdesc map[string]any) string {
 				break
 			}
 		}
+	}
+	return name
+}
+
+// A read on a command's path is the command's load.
+func commandTwin(data map[string]any, mdesc map[string]any, pm *PathMatchResult,
+	parts []string, why *[]string) string {
+	def, _ := data["def"].(map[string]any)
+	paths, _ := def["paths"].(map[string]any)
+	pathDef, _ := paths[safeStr(mdesc["path"])].(map[string]any)
+	post, _ := pathDef["post"].(map[string]any)
+	if !READ_METHODS[safeStr(mdesc["method"])] || post == nil {
+		return ""
+	}
+	twin := map[string]any{
+		"method": "POST", "path": mdesc["path"], "responses": post["responses"],
+		"MethodEntity": map[string]any{},
+	}
+	scratch := []string{}
+	name := commandName(data, twin, pm, parts, &scratch)
+	if name != "" {
+		*why = append(*why, "command-twin="+name)
 	}
 	return name
 }
@@ -2478,7 +2723,7 @@ func postRead(mdesc map[string]any, pm *PathMatchResult, parts []string, why *[]
 	if len(lit) <= len(verb)+1 {
 		return "", true
 	}
-	return Canonize(lit[len(verb)+1:]), true
+	return LiteralName(lit[len(verb)+1:]), true
 }
 
 // entityPathMatch_tpe handles the t/p/ path pattern.
@@ -2567,7 +2812,7 @@ func entityOccursInPath(parts []string, entname string) bool {
 		if len(p) == 0 || p[0] == '{' {
 			continue
 		}
-		if Canonize(strings.ToLower(p)) == entname {
+		if LiteralName(strings.ToLower(p)) == entname {
 			return true
 		}
 	}
@@ -2609,6 +2854,8 @@ func entityCmpMatch(data map[string]any, entname string, mdesc map[string]any, w
 
 	mentRef := safeStr(ment["ref"])
 
+	recCmp, recOrig := recordOf(data, pathStr)
+
 	// The key parameter names the component, whatever the literal beside it:
 	// `/b/{bucket}` answering with a Bucket.
 	if mentCmp != "" &&
@@ -2620,6 +2867,14 @@ func entityCmpMatch(data map[string]any, entname string, mdesc map[string]any, w
 		out["orig"] = mentOrigCmp
 		out["cmpish"] = true
 		out["pathish"] = false
+	} else if recCmp != "" && recCmp != entname && !wrapsLiteral(recCmp, entname) {
+		// The record an item route answers names the item and its collection,
+		// whatever its frequency, unless the record's name wraps the literal's.
+		*why = append(*why, "cmp-record="+recOrig)
+		out["name"] = recCmp
+		out["orig"] = recOrig
+		out["cmpish"] = true
+		out["pathish"] = false
 	} else if mentCmp != "" &&
 		entname != mentCmp &&
 		!strings.HasPrefix(mentCmp, entname) {
@@ -2628,9 +2883,9 @@ func entityCmpMatch(data map[string]any, entname string, mdesc map[string]any, w
 			*why = append(*why, "cmp-shared")
 		}
 
-		// A tag foreign to the path groups routes; the path's own noun names them.
-		if mentRef == "tag" && !tagNamesLiteral(pathParts(data, pathStr), mentCmp) &&
-			!idLiteralRE.MatchString(entname) {
+		// A tag that is not the path's own noun groups routes; the noun names them.
+		if mentRef == "tag" && !idLiteralRE.MatchString(entname) &&
+			!tagHolds(data, pathParts(data, pathStr), pathStr, mentCmp) {
 			*why = append(*why, "path-over-tag")
 		} else if qualifies {
 			*why = append(*why, "cmp-qualifies-path")
@@ -2694,14 +2949,14 @@ func keyParamNames(data map[string]any, mdesc map[string]any, cmp string) bool {
 // The name of the parameter that keys a route's records: its own trailing
 // parameter, or the one the item route directly beneath a collection takes.
 func keyParamOf(def map[string]any, pathStr string, work map[string]any) string {
-	parts := splitPath(pathStr)
+	parts := PathParts(pathStr)
 	pm := matchEntityPath(parts)
 	if pm == nil {
 		return ""
 	}
 	last := parts[len(parts)-1]
 	if strings.HasSuffix(pm.Expr, "p/") && isParam(last) {
-		return last[1 : len(last)-1]
+		return ParamOf(last)
 	}
 	if isParam(last) {
 		return ""
@@ -2724,7 +2979,7 @@ func childKeyIndex(def map[string]any) map[string]string {
 	index := map[string]string{}
 	paths, _ := def["paths"].(map[string]any)
 	for _, p := range sortedKeys(paths) {
-		parts := splitPath(p)
+		parts := PathParts(p)
 		last := ""
 		if 0 < len(parts) {
 			last = parts[len(parts)-1]
@@ -2732,7 +2987,7 @@ func childKeyIndex(def map[string]any) map[string]string {
 		if 1 < len(parts) && isParam(last) {
 			parent := normalizeParams("/" + strings.Join(parts[:len(parts)-1], "/"))
 			if _, ok := index[parent]; !ok {
-				index[parent] = last[1 : len(last)-1]
+				index[parent] = ParamOf(last)
 			}
 		}
 	}
@@ -2879,7 +3134,7 @@ func cmpOccursInPath(data map[string]any, cmpname string) bool {
 			parts, _ := entry["parts"].([]string)
 			for _, p := range parts {
 				if len(p) > 0 && p[0] != '{' {
-					potentialCmps[Canonize(p)] = true
+					potentialCmps[LiteralName(p)] = true
 				}
 			}
 		}
@@ -2891,6 +3146,17 @@ func cmpOccursInPath(data map[string]any, cmpname string) bool {
 
 // inferEntityName tries to infer entity name from operationId, response title, or path.
 func inferEntityName(mdesc map[string]any, parts []string, why *[]string) string {
+	// A route with no literal is named for its first parameter's noun.
+	for _, part := range parts {
+		if isParam(part) {
+			if noun := ParamNoun(ParamOf(part)); 3 <= len(noun) {
+				*why = append(*why, "infer-param")
+				return noun
+			}
+			break
+		}
+	}
+
 	// Try operationId
 	if opId, ok := mdesc["operationId"].(string); ok && opId != "" {
 		opid := Canonize(opId)
@@ -2926,7 +3192,7 @@ func inferEntityName(mdesc map[string]any, parts []string, why *[]string) string
 	// Try last non-param path segment
 	for i := len(parts) - 1; i >= 0; i-- {
 		if !isParam(parts[i]) {
-			seg := Canonize(parts[i])
+			seg := LiteralName(parts[i])
 			if len(seg) >= 3 {
 				*why = append(*why, "infer-path-seg")
 				return seg
@@ -2969,7 +3235,7 @@ func pathResource(parts []string, method string) string {
 		}
 	}
 
-	return Canonize(getMatchElem(pm, PATH_NAME_INDEX[pm.Expr]))
+	return LiteralName(getMatchElem(pm, PATH_NAME_INDEX[pm.Expr]))
 }
 
 // SharingRoute is one route whose operation answers with a response component.
@@ -2990,7 +3256,7 @@ type sharingEntry struct {
 func sharedRoutes(routes []SharingRoute, records []string) []string {
 	bycmp := map[string][]sharingEntry{}
 	for _, route := range routes {
-		parts := splitAndFilter(route.Path, "/")
+		parts := PathParts(route.Path)
 		resource := pathResource(parts, route.Method)
 		if resource != "" && !slices.Contains(records, route.Cmp) {
 			bycmp[route.Cmp] = append(bycmp[route.Cmp], sharingEntry{route, parts, resource})
@@ -3513,7 +3779,7 @@ func updateAction(
 	entName := safeStr(entityDesc["name"])
 
 	// Entity not already encoding action
-	if strings.HasSuffix(entName, Canonize(actionName)) {
+	if strings.HasSuffix(entName, LiteralName(actionName)) {
 		return
 	}
 
@@ -3688,11 +3954,11 @@ func entityParamNames(paths map[string]map[string]string) map[string]map[string]
 			renames[name] = target
 		}
 		out[pathStr] = renames
-		parts := verbParts(splitAndFilter(pathStr, "/"))
+		parts := verbParts(PathParts(pathStr))
 		for partI, part := range parts {
 			if isParam(part) {
 				place := strings.Join(parts[:partI+1], "/")
-				places[place] = append(places[place], paramUse{pathStr: pathStr, param: part[1 : len(part)-1]})
+				places[place] = append(places[place], paramUse{pathStr: pathStr, param: ParamOf(part)})
 			}
 		}
 	}
@@ -3954,7 +4220,7 @@ func hasMethod(def map[string]any, pathStr string, methodName string) bool {
 
 // endsWithCmp checks if the last match element is an original component.
 func endsWithCmp(data map[string]any, pm *PathMatchResult) bool {
-	last := Canonize(getMatchElem(pm, -1))
+	last := LiteralName(getMatchElem(pm, -1))
 	return isOrigCmp(data, last)
 }
 
@@ -3970,7 +4236,7 @@ func measureTagItems(data map[string]any, mdesc map[string]any) {
 	params := []string{}
 	for _, part := range parts {
 		if isParam(part) {
-			params = append(params, CanonizeParam(part[1:len(part)-1]))
+			params = append(params, CanonizeParam(ParamOf(part)))
 		}
 	}
 	sort.Strings(params)
@@ -4108,7 +4374,7 @@ func itemOfCollection(data map[string]any, mdesc map[string]any, parts []string)
 	}
 
 	cmp := safeStr(mdesc["MethodEntity"].(map[string]any)["cmp"])
-	segment := Canonize(collection[strings.LastIndex(collection, "/")+1:])
+	segment := LiteralName(collection[strings.LastIndex(collection, "/")+1:])
 	tagged := cmp + "_" + segment
 	names := []string{segment, tagged}
 	var tagOwn func(path string) bool

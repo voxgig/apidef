@@ -419,9 +419,10 @@ describe('apidef', () => {
       .map((name) => [name, Object.keys(entities[name].op ?? {}).sort()]))
     assert.deepStrictEqual(ops, {
       // One record, but a page and an item on unrelated routes stay apart.
-      auction: ['load'],
+      artwork: ['load'],
       census: ['list'],
-      crew_member: ['create', 'list'],
+      crew: ['load'],
+      crew_member: ['create'],
       deposit: ['create'],
       domain: ['list', 'load', 'update'],
       fossil: ['load'],
@@ -856,7 +857,7 @@ describe('apidef', () => {
         'well_known_ef', 'well_known_gh', 'well_known_hive', 'well_known_ledger',
         'well_known_nest', 'well_known_nest2', 'well_known_qq', 'well_known_qq2',
         'well_known_repo', 'well_known_rr', 'well_known_rr2', 'well_known_uvn',
-        'well_known_xyn', 'widget', 'xyn'])
+        'well_known_xyn', 'widget', 'xyn', 'zzz'])
     assert.deepStrictEqual(bres.ctx.warn.history.map((w: any) => w.note)
       .filter((note: string) => /same selector/.test(note)), [])
     assert.deepStrictEqual(paths('agent', 'list'), ['/well-known/agent.json'])
@@ -879,7 +880,8 @@ describe('apidef', () => {
     assert.deepStrictEqual(paths('well_known_dbase', 'load'),
       ['/well-known/dbase', '/well-known/dbase/{id}'])
     assert.deepStrictEqual(paths('agent_card', 'list'),
-      ['/well-known/agent-card.json', '/zzz/{id}/dbset'])
+      ['/well-known/agent-card.json'])
+    assert.deepStrictEqual(paths('zzz', 'load'), ['/zzz/{id}/dbset'])
     assert.deepStrictEqual(paths('dbset', 'load'), ['/well-known/dbset/{id}'])
     assert.deepStrictEqual(paths('dsn', 'load'), ['/aaa/ds/{id}'])
     assert.deepStrictEqual(paths('well_known_ds', 'load'), ['/well-known/ds/{id}'])
@@ -1157,8 +1159,10 @@ describe('apidef', () => {
       job: ['GET /jobs', 'GET /jobs/{id}', 'POST /jobs/{id}/rerun'],
       metric: ['GET /metrics'],
       memo: ['GET /notes', 'GET /notes/{id}', 'GET /users/{uid}/starred_notes'],
-      package_manifest: ['GET /packages/{pid}/digest', 'GET /packages/{pid}/download_urls'],
-      recipe_manifest: ['GET /recipes/{rid}/digest', 'GET /recipes/{rid}/download_urls'],
+      package: ['GET /packages/{pid}/digest'],
+      package_manifest: ['GET /packages/{pid}/download_urls'],
+      recipe: ['GET /recipes/{rid}/digest'],
+      recipe_manifest: ['GET /recipes/{rid}/download_urls'],
       removal: [
         'DELETE /accounts/{aid}/bank_accounts/{id}',
         'DELETE /accounts/{aid}/external_accounts/{id}',
@@ -1402,18 +1406,17 @@ describe('apidef', () => {
         'GET /orgs/{org}/vault/secrets',
         'GET /orgs/{org}/vault/secrets/{secret_name}',
       ],
-      vault_repository_access_detail: ['GET ' + access, 'PATCH ' + access],
+      org: ['GET ' + access, 'PATCH ' + access],
       widget: ['DELETE /widgets/{widget_id}', 'GET /widgets/{widget_id}'],
     })
     assert.deepStrictEqual(
-      bres.guide.entity.vault_repository_access_detail.path[access].action ?? {}, {})
+      Object.keys(bres.guide.entity.org.path[access].action ?? {}), ['vault_repository_access'])
 
-    const detail = bres.apimodel.main.kit.entity.vault_repository_access_detail
-    assert.deepStrictEqual(Object.keys(detail.fields).sort(),
-      ['default_level', 'repository_count', 'repository_ids'])
-    for (const op of Object.values(detail.op) as any[]) {
+    const org = bres.apimodel.main.kit.entity.org
+    assert.deepStrictEqual(Object.keys(org.fields).sort(), ['id'])
+    for (const op of Object.values(org.op) as any[]) {
       for (const pt of op.points) {
-        assert.equal(pt.q?.$action, undefined, pt.m + ' ' + pt.o)
+        assert.equal(pt.q?.$action, 'vault_repository_access', pt.m + ' ' + pt.o)
       }
     }
 
@@ -1438,8 +1441,11 @@ describe('apidef', () => {
 
     const pathLine = (path: string) =>
       whyGuide.split('\n').find((line: string) => line.includes('path: "' + path + '"')) ?? ''
-    assert.match(pathLine(access), /same-path-tag=vault_repository_access_detail\/GET/)
-    assert.match(pathLine('/orgs/{org}/vault/secrets/{secret_name}'), /same-path-tag=secret\/GET/)
+    assert.match(pathLine(access), /same-path-tag=org\/GET/)
+    // The vault tag is foreign to the secrets item, so the path noun names the
+    // DELETE before any join could.
+    assert.match(pathLine('/orgs/{org}/vault/secrets/{secret_name}'), /path-over-tag/)
+    assert.doesNotMatch(pathLine('/orgs/{org}/vault/secrets/{secret_name}'), /same-path-tag/)
     assert.doesNotMatch(pathLine('/widgets/{widget_id}'), /same-path-tag/)
   })
 
@@ -1682,7 +1688,7 @@ describe('apidef', () => {
       purchase: ['GET /plans/{plan_id}/accounts'],
       report: ['GET /org/reports', 'POST /org/reports/{report_id}/rerun'],
       shop: ['GET /shop'],
-      team: ['DELETE /teams/{team_id}', 'GET /teams', 'GET /teams/{team_id}'],
+      member: ['DELETE /teams/{team_id}', 'GET /teams', 'GET /teams/{team_id}'],
       token: ['GET /user/tokens', 'PUT /user/tokens/{slug}/refresh'],
       user: ['GET /user'],
     })
@@ -2784,7 +2790,7 @@ const SOLAR_MODEL = {
 
 const REQUEST_PATHS_POINTS = [
   'board.load GET /boards/{boardId} s=boards/<id> params=id:boardId query= exist=id action=',
-  'board.update PUT /boards/{boardId}/{fileName}.json s=boards/<id>/{file_name}.json params=file_name:fileName,id:boardId query= exist=file_name,id action=',
+  'board.update PUT /boards/{boardId}/{fileName}.json s=boards/<board_id>/{file_name}.json params=board_id:boardId,file_name:fileName query= exist=board_id,file_name action=',
   'message.create POST /messages/{messageId}/cancel s=messages/<id>/cancel params=id:messageId query= exist=id action=cancel',
   'message.list GET /messages s=messages params= query= exist= action=',
   'message.load GET /messages/{messageId} s=messages/<id> params=id:messageId query= exist=id action=',
@@ -2798,8 +2804,8 @@ const REQUEST_PATHS_POINTS = [
   'schedule.load GET /schedules/{scheduleId} s=schedules/<id> params=id:scheduleId query= exist=id action=',
   'schedule.load GET /schedules:count s=schedules:count params= query= exist= action=count',
   'schedule.remove DELETE /schedules s=schedules params= query= exist= action=',
-  'state.load GET /states/{stateAbbreviation}.json s=states/{state_abbreviation}.json params=state_abbreviation:stateAbbreviation query= exist=state_abbreviation action=',
-  'thread.list GET /{board}/thread/{threadId}.json s=<board>/thread/{thread_id}.json params=board:board,thread_id:threadId query= exist=board,thread_id action=',
+  'state.load GET /states/{stateAbbreviation}.json s=states/{id}.json params=id:stateAbbreviation query= exist=id action=',
+  'thread.load GET /{board}/thread/{threadId}.json s=<board>/thread/{id}.json params=board:board,id:threadId query= exist=board,id action=',
   'world.load GET /image/world/{worldTileName}{tileX}-{tileY}-0.png s=image/world/{world_tile_name}{tile_x}-{tile_y}-0.png params=tile_x:tileX,tile_y:tileY,world_tile_name:worldTileName query= exist=tile_x,tile_y,world_tile_name action=',
 ]
 

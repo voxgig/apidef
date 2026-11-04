@@ -44,12 +44,12 @@ describe('fold-merge', () => {
 
     assert.deepStrictEqual(routes(bres.guide.entity), {
       repo: ['list /repos.json'],
-      use_case: ['list /usecases.json', 'list /usecases/{id}.json'],
+      use_case: ['list /usecases.json', 'load /usecases/{id}.json'],
     })
     assert.deepStrictEqual(Object.keys(bres.apimodel.main.kit.entity).sort(),
       ['repo', 'use_case'])
     assert.deepStrictEqual(bres.apimodel.main.kit.entity.use_case.op.list.points
-      .map((p: any) => p.o).sort(), ['/usecases.json', '/usecases/{id}.json'])
+      .map((p: any) => p.o).sort(), ['/usecases.json'])
   })
 
 

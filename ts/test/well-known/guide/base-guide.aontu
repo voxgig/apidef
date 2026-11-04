@@ -4,7 +4,7 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 73
+  metrics: count: entity: 74
   metrics: count: path: 86
   metrics: count: method: 87
 
@@ -34,10 +34,6 @@ guide: {
 
   entity: agent_card: {
     path: "/well-known/agent-card.json": {
-      op: list: method: *GET
-    }
-    path: "/zzz/{id}/dbset": {
-      rename: param: "id": *"zzz_id"
       op: list: method: *GET
     }
   }
@@ -305,7 +301,6 @@ guide: {
 
   entity: sched: {
     path: "/notes/sched": {
-      action: "sched": {}
       op: load: method: *GET
     }
     path: "/notes/sched/{id}": {
@@ -368,7 +363,6 @@ guide: {
 
   entity: well_known_dbase: {
     path: "/well-known/dbase": {
-      action: "dbase": {}
       op: load: method: *GET
     }
     path: "/well-known/dbase/{id}": {
@@ -503,6 +497,13 @@ guide: {
 
   entity: xyn: {
     path: "/zzz/xy": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: zzz: {
+    path: "/zzz/{id}/dbset": {
+      action: "dbset": {}
       op: load: method: *GET
     }
   }

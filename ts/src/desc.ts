@@ -68,6 +68,7 @@ type MethodEntityDesc = {
   // parent entity (verbOnParent); FindActions then records the verb.
   verb_on_parent?: string
   view_on_parent?: boolean
+  view_action?: string
   post_read?: boolean
   // The entity a tag-named method joined by samePathOwner.
   same_path?: string

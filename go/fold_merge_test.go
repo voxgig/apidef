@@ -65,7 +65,7 @@ func TestGuideFoldMerge(t *testing.T) {
 	gents, _ := res.Guide["entity"].(map[string]any)
 	want := map[string][]string{
 		"repo":     {"list /repos.json"},
-		"use_case": {"list /usecases.json", "list /usecases/{id}.json"},
+		"use_case": {"list /usecases.json", "load /usecases/{id}.json"},
 	}
 	if got := foldRoutes(gents); !reflect.DeepEqual(got, want) {
 		t.Errorf("guide routes = %v, want %v", got, want)

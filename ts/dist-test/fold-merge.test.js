@@ -33,11 +33,11 @@ function entity(name, path, extra = {}) {
         node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
         node_assert_1.default.deepStrictEqual(routes(bres.guide.entity), {
             repo: ['list /repos.json'],
-            use_case: ['list /usecases.json', 'list /usecases/{id}.json'],
+            use_case: ['list /usecases.json', 'load /usecases/{id}.json'],
         });
         node_assert_1.default.deepStrictEqual(Object.keys(bres.apimodel.main.kit.entity).sort(), ['repo', 'use_case']);
         node_assert_1.default.deepStrictEqual(bres.apimodel.main.kit.entity.use_case.op.list.points
-            .map((p) => p.o).sort(), ['/usecases.json', '/usecases/{id}.json']);
+            .map((p) => p.o).sort(), ['/usecases.json']);
     });
     (0, node_test_1.test)('the spelling with the most words keeps every path', () => {
         const guide = { entity: {

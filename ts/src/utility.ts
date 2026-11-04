@@ -628,7 +628,7 @@ function pathMatch(path: string | string[], expr: string):
     return null
   }
 
-  const parts = (Array.isArray(path) ? path : path.split('/')).filter(p => '' !== p)
+  const parts = Array.isArray(path) ? path.filter(p => '' !== p) : pathParts(path)
   const res: any = []
   res.index = -1
   res.expr = expr
@@ -709,8 +709,48 @@ function pathMatch(path: string | string[], expr: string):
 }
 
 
+// A placeholder, with or without the dot an extension placeholder keeps and
+// the extension a placeholder carries, as `.{ext}` and `{api}.json`.
 function isParam(partStr: string) {
-  return null != partStr && '{' === partStr[0] && '}' === partStr[partStr.length - 1]
+  if (null == partStr) {
+    return false
+  }
+  const part = partStr.replace(/^\./, '').replace(/\}\.[A-Za-z0-9]+$/, '}')
+  return '{' === part[0] && '}' === part[part.length - 1]
+}
+
+
+// A trailing word that names a module rather than a resource.
+const MODULE_WORDS = ['api', 'controller', 'service', 'resource', 'endpoint']
+
+// The entity name a path literal gives: canonized, less a trailing module
+// word when another word remains, as `ProductsApi` names product.
+function literalName(part: string): string {
+  const name = canonize(part)
+  const at = name.lastIndexOf('_')
+  return 0 < at && MODULE_WORDS.includes(name.slice(at + 1)) ?
+    depluralize(name.slice(0, at)) : name
+}
+
+
+// The name a placeholder part carries, as `{id}.json` carries id: '' for none.
+function paramOf(part: string): string {
+  const m = part.match(/\{([^}]+)\}/)
+  return null == m ? '' : m[1]
+}
+
+
+// The parts of a path, its query string cut away.
+function pathParts(pathStr: string): string[] {
+  return pathStr.replace(/\?.*$/, '').split('/').filter((p) => '' !== p)
+}
+
+
+const PARAM_NOUN_SUFFIX_RE = /_(name|id|key|code|slug|number|uuid)$/
+
+// The noun a parameter is named for, as `pageName` is page.
+function paramNoun(name: string): string {
+  return canonizeParam(name).replace(PARAM_NOUN_SUFFIX_RE, '')
 }
 
 
@@ -1013,8 +1053,9 @@ function nonNullType(type: any): string | undefined {
 const FILE_EXT_RE =
   /\.(php|json|txt|png|jpg|jpeg|gif|svg|xml|html|csv|yml|yaml|md)$/i
 
-// A placeholder standing for the extension, as in `lists.{format}`.
-const PLACEHOLDER_EXT_RE = /\.\{[^}]*\}$/
+// Trailing placeholders, dotted or fused, as in `lists.{format}` and
+// `articles{mediaTypeExtension}`.
+const PLACEHOLDER_EXT_RE = /(\.?\{[^}]*\})+$/
 
 function transliterate(s: string): string {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -1302,6 +1343,15 @@ const WRAPPER_WORDS = [
 // wrapper of nothing nameable.
 function wrapperOf(name: string, known: string[]): string | null {
   const words = name.split('_').filter((w) => '' !== w)
+
+  // A name of the form noun-for-parent-response wraps the noun.
+  const forAt = words.indexOf('for')
+  if (0 < forAt && forAt < words.length - 1 && WRAPPER_WORDS.includes(words[words.length - 1])) {
+    const held = depluralize(words.slice(0, forAt).join('_'))
+    if (known.includes(held)) {
+      return held
+    }
+  }
 
   let inner: string | null = null
   let at = -1
@@ -2321,6 +2371,10 @@ export {
   transliterate,
   cleanComponentName,
   wrapperOf,
+  literalName,
+  paramOf,
+  pathParts,
+  paramNoun,
   guideActive,
   authExchangeOp,
   specSecuredByDefault,

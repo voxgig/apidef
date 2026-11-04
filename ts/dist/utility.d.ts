@@ -26,6 +26,10 @@ type PathMatch = (string[] & {
     path: string;
 });
 declare function pathMatch(path: string | string[], expr: string): null | PathMatch;
+declare function literalName(part: string): string;
+declare function paramOf(part: string): string;
+declare function pathParts(pathStr: string): string[];
+declare function paramNoun(name: string): string;
 declare function formatJSONIC(val?: any, opts?: {
     hsepd?: number;
     $?: boolean;
@@ -101,4 +105,4 @@ declare function closedBodyTransform(schema: any): Record<string, string> | null
 declare function requestWrapperOf(req: any): string | null;
 declare function bodyRequestTransform(schema: any, names: string[]): any;
 declare function firstSentence(text: string): string;
-export { bodyRequestTransform, nom, getdlog, loadFile, formatJsonSrc, depluralize, pluralize, setCustomPlurals, clearCustomPlurals, find, capture, pathMatch, makeWarner, formatJSONIC, validator, isFileType, nonNullType, VALID_CANON, CANON_ONE, canonize, canonizeField, fieldName, canonizeCmpName, CMP_REF_RE, cmpRefName, READ_METHODS, stripSchemaNamespace, sanitizeSlug, slugToPascalCase, transliterate, cleanComponentName, wrapperOf, guideActive, authExchangeOp, specSecuredByDefault, ensureMinEntityName, inferFieldType, normalizeFieldName, canonizeParam, paramName, humanTitle, foldName, prefixLeadingDigit, debugpath, debugpathOn, findPathsWithPrefix, writeFileSyncWarn, removeLegacyAon, warnOnError, relativizePath, getModelPath, sortedKeys, sortedEntries, collapseScalarAllOf, isEntityWrapperProp, itemEnvelopeKey, itemEnvelopeTransform, itemEnvelopeOf, envelopeProp, strictEnvelopeProp, envelopeItemRef, composedEnvelopeProp, propIsList, mergedProperties, closedBodyTransform, requestWrapperOf, untaggedUnionBranches, scanUntaggedUnion, firstSentence, resplitFromCmp, };
+export { bodyRequestTransform, nom, getdlog, loadFile, formatJsonSrc, depluralize, pluralize, setCustomPlurals, clearCustomPlurals, find, capture, pathMatch, makeWarner, formatJSONIC, validator, isFileType, nonNullType, VALID_CANON, CANON_ONE, canonize, canonizeField, fieldName, canonizeCmpName, CMP_REF_RE, cmpRefName, READ_METHODS, stripSchemaNamespace, sanitizeSlug, slugToPascalCase, transliterate, cleanComponentName, wrapperOf, literalName, paramOf, pathParts, paramNoun, guideActive, authExchangeOp, specSecuredByDefault, ensureMinEntityName, inferFieldType, normalizeFieldName, canonizeParam, paramName, humanTitle, foldName, prefixLeadingDigit, debugpath, debugpathOn, findPathsWithPrefix, writeFileSyncWarn, removeLegacyAon, warnOnError, relativizePath, getModelPath, sortedKeys, sortedEntries, collapseScalarAllOf, isEntityWrapperProp, itemEnvelopeKey, itemEnvelopeTransform, itemEnvelopeOf, envelopeProp, strictEnvelopeProp, envelopeItemRef, composedEnvelopeProp, propIsList, mergedProperties, closedBodyTransform, requestWrapperOf, untaggedUnionBranches, scanUntaggedUnion, firstSentence, resplitFromCmp, };

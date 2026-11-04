@@ -27,6 +27,10 @@ import {
   sortedKeys,
   find,
   wrapperOf,
+  literalName,
+  paramOf,
+  pathParts,
+  paramNoun,
   READ_METHODS,
   cmpRefName,
   mergedProperties,
@@ -65,9 +69,13 @@ import {
   matchEntityPath,
   keyParamOf,
   pathNoun,
-  tagNamesLiteral,
   commandBodyName,
+  commandTwin,
+  itemAbove,
   readsRecord,
+  recordOf,
+  tagHolds,
+  wrapsLiteral,
   responsePayload,
   isListResponse,
   LITERAL_LAST_SHAPES,
@@ -127,6 +135,7 @@ type Route = {
   same_path?: string
   verb_on_parent?: string
   view_on_parent?: boolean
+  view_action?: string
   post_read?: boolean
 }
 
@@ -192,6 +201,9 @@ type Work = {
   childCounts: Record<string, number>
   childKeys?: Record<string, string>
   verbRoutes: Record<string, { itemPath?: string, extended: boolean }>
+  normPaths?: Record<string, string>
+  itemRecords?: Record<string, { cmp: string, orig: string } | null>
+  itemRecordRoutes?: Record<string, Set<string>>
 }
 
 
@@ -223,7 +235,11 @@ function isPathItem(key: string, pathdef: any): boolean {
 
 
 function isParam(part: string | undefined): boolean {
-  return null != part && '{' === part[0] && '}' === part[part.length - 1]
+  if (null == part) {
+    return false
+  }
+  const p = part.replace(/^\./, '').replace(/\}\.[A-Za-z0-9]+$/, '}')
+  return '{' === p[0] && '}' === p[p.length - 1]
 }
 
 
@@ -300,7 +316,7 @@ function collectRoutes(def: any): Route[] {
     if (!isPathItem(path, pdef)) {
       continue
     }
-    const parts = path.split('/').filter((p: string) => '' !== p)
+    const parts = pathParts(path)
     for (const [m, mdef] of sortedEntries(pdef)) {
       const method = m.toUpperCase()
       if (null == METHOD_CONSIDER_ORDER[method] ||
@@ -352,15 +368,15 @@ function measureMetrics(work: Work) {
       for (const tag of tags) {
         if ('string' === typeof tag && 0 < tag.length && !metrics.found.tag[tag]) {
           metrics.count.tag++
-          metrics.found.tag[tag] = { name: tag, canon: canonize(tag) } as any
+          metrics.found.tag[tag] = { name: tag, canon: literalName(tag) } as any
         }
       }
     }
     // As the heuristic reads literals: an element holding a placeholder, whole
     // or beside other text, names no component.
-    for (const part of path.split('/')) {
+    for (const part of pathParts(path)) {
       if ('' !== part && '{' !== part[0]) {
-        work.pathLiterals[canonize(part)] = true
+        work.pathLiterals[literalName(part)] = true
       }
     }
   }
@@ -529,7 +545,7 @@ function resolveCmp(work: Work, route: Route) {
     const d = decide(guideNets().cmpKeep, {
       single: bit(unwrapped.length <= 1),
       in_path: bit(lowerpath.includes('/' + xref.cmp + '/')),
-      occurs: bit(route.parts.some((p) => '{' !== p[0] && canonize(p.toLowerCase()) === xref.cmp)),
+      occurs: bit(route.parts.some((p) => '{' !== p[0] && literalName(p.toLowerCase()) === xref.cmp)),
       infrequent: bit(infrequent(metrics, xref.origcmpref as string)),
     })
     why.push(explain('cmp:' + xref.cmp, d))
@@ -716,7 +732,7 @@ function measureTagItems(work: Work, route: Route) {
   const items = work.tagItems[cmp] = work.tagItems[cmp] ?? {}
   items[collection] = items[collection] ?? {}
   items[collection][route.parts.filter(isParam)
-    .map((part) => canonizeParam(part.slice(1, -1))).sort().join(',')] = true
+    .map((part) => canonizeParam(paramOf(part))).sort().join(',')] = true
 }
 
 
@@ -750,7 +766,7 @@ function outsideCollection(path: string, collection: string): boolean {
   if (!(path + '/').startsWith(collection + '/')) {
     return true
   }
-  const parts = path.split('/').filter((part) => '' !== part)
+  const parts = pathParts(path)
   const first = parts.findIndex(isParam)
   return -1 < first && collection !== '/' + parts.slice(0, first).join('/')
 }
@@ -791,7 +807,7 @@ function tagNamesRoute(work: Work, path: string, cmp: string): boolean {
 // segment, the tag before it, or a number after the stored form.
 function itemSegmentName(work: Work, route: Route, collection: string): { name: string, stored: boolean } {
   const cmp = (route.cmp as Cmp).cmp
-  const segment = canonize(collection.substring(collection.lastIndexOf('/') + 1))
+  const segment = literalName(collection.substring(collection.lastIndexOf('/') + 1))
   const own = segment === cmp
   const tagged = own ? segment : cmp + '_' + segment
   const tagOwn = own ? (path: string) => tagNamesRoute(work, path, cmp) : undefined
@@ -817,7 +833,7 @@ function markRecordOwner(
   const cmp = route.cmp
   const last = route.parts.filter((part) => !isParam(part)).pop()
   if (null == recordowner[route.path] && null != cmp && 'tag' !== cmp.ref && '' !== cmp.ref &&
-    entname === cmp.cmp && null != last && entname === canonize(last)) {
+    entname === cmp.cmp && null != last && entname === literalName(last)) {
     recordowner[route.path] = entname
   }
 }
@@ -850,7 +866,7 @@ function nameFeatures(
   owners: Record<string, Record<string, string>>,
   recordowner: Record<string, string>,
   why: string[],
-): { x: Vec, sources: NameSources, collection: string | null } {
+): { x: Vec, sources: NameSources, collection: string | null, viewAction: string | null } {
   const def = work.def
   const metrics = work.guide.metrics
   const pm = route.pm
@@ -875,18 +891,47 @@ function nameFeatures(
   x.cmp_avail = bit(null != cmp)
   x.cmp_from_tag = bit('tag' === cmp?.ref)
 
+  let viewAction: string | null = null
+  if (0 === x.m_write) {
+    let key = -1
+    route.parts.forEach((part, i) => {
+      if (isParam(part)) {
+        key = i
+      }
+    })
+    if (0 <= key && key < route.parts.length - 1 && !/version/i.test(route.parts[key])) {
+      x.view_key = 1
+      const tail = route.parts.slice(key + 1)
+      x.tail_singular = bit(tail.every((part) => {
+        const lit = snakify(part)
+        return '' !== lit && depluralize(lit) === lit
+      }))
+      const payload = responsePayload(getResponseSchema(successResponse(route.responses)))
+      x.res_record = bit(payload.record)
+      x.res_scalars = bit(payload.scalars)
+      // The scan over every path waits for the cheap conditions of the gates.
+      if ((1 === x.tail_singular && 0 === x.res_record) || 1 === x.res_scalars) {
+        x.route_not_extended = bit(0 === childPathCount(work, route.path))
+        const parent = itemAbove({ def, work }, route.parts, key, owners)
+        x.view_parent_avail = bit(null != parent)
+        sources.PARENT = parent
+        viewAction = tail.map(literalName).join('_')
+      }
+    }
+  }
+
   if (null != pm) {
     x[SHAPE_FEATURES[pm.expr]] = 1
     const pathName = pathNoun(pm, route.parts, why)
-    const verbish = pathName !== canonize(pm[PATH_NAME_INDEX[pm.expr]])
+    const verbish = pathName !== literalName(pm[PATH_NAME_INDEX[pm.expr]])
     sources.PATH = pathName
-    x.cmp_foreign_tag = bit('tag' === cmp?.ref && !tagNamesLiteral(route.parts, cmp.cmp) &&
-      !/(^|_)ids?$/.test(pathName))
+    x.cmp_foreign_tag = bit('tag' === cmp?.ref && cmp.cmp !== pathName &&
+      !/(^|_)ids?$/.test(pathName) && !tagHolds({ def }, route.parts, route.path, cmp.cmp))
     x.m_post = bit('POST' === route.method)
     x.verbish = bit(verbish)
     x.lit_last = bit(LITERAL_LAST_SHAPES.includes(pm.expr))
     const last = pm[pm.length - 1]
-    const lastCanon = canonize(last)
+    const lastCanon = literalName(last)
     const lit = isParam(last) ? '' : snakify(last)
     x.last_lit_singular = bit('' !== lit && depluralize(lit) === lit)
     x.last_is_cmp = bit(null != metrics.count.origcmprefs[lastCanon])
@@ -899,7 +944,7 @@ function nameFeatures(
     if (1 === x.post_read) {
       const noun = lastVerb.slice((readVerb as string).length + 1)
       x.read_noun_avail = bit('' !== noun)
-      sources.NOUN = '' === noun ? null : canonize(noun)
+      sources.NOUN = '' === noun ? null : literalName(noun)
     }
 
     // The scans over every path and the body read wait for the cheap
@@ -907,7 +952,7 @@ function nameFeatures(
     const parentOf = (itemPath: string | undefined) => {
       const held = null == itemPath ? {} : (owners[itemPath] ?? {})
       return held.GET ?? held.QUERY ?? (Object.values(held).sort()[0] as string | undefined) ??
-        canonize(pm[pm.length - 3])
+        literalName(pm[pm.length - 3])
     }
     if (1 === x.m_post && 1 === x.lit_last && 1 === x.last_lit_singular && 0 === x.verbish &&
       0 === x.last_is_cmp && 0 === x.post_read) {
@@ -922,10 +967,22 @@ function nameFeatures(
         }
       }
     }
+    if (0 === x.m_write) {
+      const twin = commandTwin({ def, guide: work.guide, work }, route, pm, route.parts, [])
+      x.twin_cmd_avail = bit(null != twin)
+      sources.TWIN = twin
+    }
 
     const probable = decide(guideNets().probable, probableFeatures(work, route, pm))
     x.probable = bit('YES' === probable.cls)
     why.push(explain('probable', probable))
+
+    if (null != cmp || 1 === x.probable) {
+      const record = recordOf({ def, guide: work.guide, work }, route.path)
+      x.record_avail = bit(null != record && record.cmp !== pathName &&
+        !wrapsLiteral(record.cmp, pathName))
+      sources.REC = record?.cmp ?? null
+    }
 
     if (null != cmp) {
       sources.CMP = cmp.cmp
@@ -949,22 +1006,10 @@ function nameFeatures(
 
     if ('t/p/t/' === pm.expr) {
       sources.LAST = lastCanon
-      sources.ACT = canonize(pm[pm.length - 3])
+      sources.ACT = literalName(pm[pm.length - 3])
       sources.PART = verbish ? pathName : sources.ACT + '_' + pathName
       if (null == cmp && 1 === x.probable) {
         x.path_has_children = bit(0 < childPathCount(work, pm.path))
-      }
-
-      if (0 === x.m_write) {
-        const payload = responsePayload(getResponseSchema(successResponse(route.responses)))
-        x.res_record = bit(payload.record)
-        x.res_scalars = bit(payload.scalars)
-        if ((1 === x.last_lit_singular && 0 === x.res_record) || 1 === x.res_scalars) {
-          const { itemPath, extended } = verbRoute(work, pm.path)
-          x.item_route_exists = bit(null != itemPath)
-          x.route_not_extended = bit(!extended)
-          sources.PARENT = parentOf(itemPath)
-        }
       }
 
       if (null != cmp) {
@@ -983,6 +1028,10 @@ function nameFeatures(
     }
   }
   else {
+    const param = route.parts.find(isParam)?.match(/\{([^}]+)\}/)
+    const pnoun = null == param ? '' : paramNoun(param[1])
+    x.param_avail = bit(3 <= pnoun.length)
+    sources.PARAM = pnoun
     const opid = canonize(route.operationId ?? '')
     x.opid_avail = bit(3 <= opid.length)
     sources.OPID = opid
@@ -992,7 +1041,7 @@ function nameFeatures(
     sources.TITLE = title
     for (let i = route.parts.length - 1; 0 <= i; i--) {
       if (!isParam(route.parts[i])) {
-        const seg = canonize(route.parts[i])
+        const seg = literalName(route.parts[i])
         if (3 <= seg.length) {
           x.seg_avail = 1
           sources.SEG = seg
@@ -1010,7 +1059,7 @@ function nameFeatures(
   x.same_path_avail = bit(null != owner)
   sources.SAMEPATH = owner?.entname ?? null
 
-  return { x, sources, collection }
+  return { x, sources, collection, viewAction }
 }
 
 
@@ -1041,7 +1090,8 @@ function measureClaims(work: Work, route: Route) {
 
 function resolveName(work: Work, route: Route) {
   const why: string[] = [...route.why_cmp]
-  const { x, sources, collection } = nameFeatures(work, route, work.pathowner, work.recordowner, why)
+  const { x, sources, collection, viewAction } =
+    nameFeatures(work, route, work.pathowner, work.recordowner, why)
   const cmp = route.cmp?.cmp ?? ''
 
   let d = decide(guideNets().name, x)
@@ -1069,10 +1119,11 @@ function resolveName(work: Work, route: Route) {
     }
   }
 
-  if ('PARENT' === d.cls && null != route.pm) {
-    route.verb_on_parent = route.pm[route.pm.length - 1]
+  if ('PARENT' === d.cls) {
+    route.verb_on_parent = route.parts[route.parts.length - 1]
     route.view_on_parent = fired(guideNets().name, d, 'view_singular') ||
       fired(guideNets().name, d, 'view_scalars')
+    route.view_action = route.view_on_parent && null != viewAction ? viewAction : undefined
   }
   route.post_read = 1 === x.post_read
 
@@ -1155,7 +1206,7 @@ function applyRename(
   }
 
   const otherParams = (path.match(/\{([^}]+)\}/g) || [])
-    .map((seg) => seg.slice(1, -1))
+    .map((seg) => paramOf(seg))
     .filter((name) => name !== oldParamName)
 
   const takenBy =
@@ -1206,7 +1257,7 @@ function updateAction(
   pathdesc: EntPath,
   why: string,
 ) {
-  if (!ent.name.endsWith(canonize(actionName)) && null == pathdesc.action[actionName]) {
+  if (!ent.name.endsWith(literalName(actionName)) && null == pathdesc.action[actionName]) {
     pathdesc.action[actionName] = {
       why_action: ['ent', ent.name, why, oldParam, method],
     }
@@ -1215,10 +1266,10 @@ function updateAction(
 
 
 function paramFeatures(route: Route, ent: Ent, parts: string[], i: number): Vec {
-  const old = parts[i].slice(1, -1)
+  const old = paramOf(parts[i])
   const n = parts.length
   const hasParent = 0 < i && !isParam(parts[i - 1])
-  const parentName = hasParent ? canonize(parts[i - 1]) : null
+  const parentName = hasParent ? literalName(parts[i - 1]) : null
   const E = ent.name
   return {
     pp_shape: bit(null != pathMatch(route.path, 'p/p/')),
@@ -1234,7 +1285,7 @@ function paramFeatures(route: Route, ent: Ent, parts: string[], i: number): Vec 
     ent_starts_parent: bit(hasParent && parentName !== E && E.startsWith(parentName + '_')),
     ent_ends_parent: bit(hasParent && E.endsWith('_' + parentName)),
     name_param: bit(isNameParam(old)),
-    canon_eq_ent: bit(canonize(parts[i]) === E),
+    canon_eq_ent: bit(literalName(parts[i]) === E),
     snake_differs: bit(depluralize(snakify(normalizeFieldName(old))) !== old),
     parent_id_differs: bit(hasParent && parentName + '_id' !== old),
   }
@@ -1253,9 +1304,9 @@ function renameParams(ctx: ApiDefContext, route: Route, ent: Ent) {
     if (!isParam(parts[i])) {
       continue
     }
-    const old = parts[i].slice(1, -1)
+    const old = paramOf(parts[i])
     capture.why[old] = capture.why[old] ?? []
-    const parentName = 0 < i && !isParam(parts[i - 1]) ? canonize(parts[i - 1]) : ''
+    const parentName = 0 < i && !isParam(parts[i - 1]) ? literalName(parts[i - 1]) : ''
 
     const d = decide(guideNets().param, paramFeatures(route, ent, parts, i))
     const why = explain('param', d)
@@ -1287,7 +1338,7 @@ function renameParams(ctx: ApiDefContext, route: Route, ent: Ent) {
     if (!isParam(part)) {
       continue
     }
-    const old = part.slice(1, -1)
+    const old = paramOf(part)
     const snake = depluralize(snakify(normalizeFieldName(old)))
     if (snake !== old && undefined === capture.rename[old]) {
       capture.why[old] = capture.why[old] ?? []
@@ -1307,12 +1358,12 @@ function findActions(route: Route, ent: Ent) {
 
   const at = (k: number) => parts[n - k]
   const isEnt = (part: string | undefined) => {
-    const canon = canonize(part as string)
+    const canon = literalName(part as string)
     return canon === cmp || canon === origcmp || canon === ent.name
   }
   const last = at(1)
-  const lastCanon = canonize(last)
-  const l2Canon = canonize(at(2))
+  const lastCanon = literalName(last)
+  const l2Canon = literalName(at(2))
   const compound = l2Canon + '_' + lastCanon
 
   const d = decide(guideNets().action, {
@@ -1325,14 +1376,15 @@ function findActions(route: Route, ent: Ent) {
     l2_param: bit(isParam(at(2))),
     l3_param: bit(isParam(at(3))),
     l2_verb: bit(isVerb(at(2))),
-    ent_endswith_last: bit(ent.name.endsWith(canonize(lastCanon))),
-    ent_endswith_compound: bit(ent.name.endsWith(canonize(compound))),
+    ent_endswith_last: bit(ent.name.endsWith(literalName(lastCanon))),
+    ent_endswith_compound: bit(ent.name.endsWith(literalName(compound))),
   })
   pathdesc.why_path.push(explain('action', d))
 
   if ('LAST' === d.cls) {
     if (fired(guideNets().action, d, 'act_vop')) {
-      pathdesc.action[lastCanon] = pathdesc.action[lastCanon] ?? {
+      const name = route.view_action ?? lastCanon
+      pathdesc.action[name] = pathdesc.action[name] ?? {
         why_action: ['ent', ent.name, 'verb-on-parent', last, route.method],
       }
     }
