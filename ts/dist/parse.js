@@ -227,7 +227,7 @@ function refSiblings(node) {
     }
     return out;
 }
-function addXRefsAndResolve(obj, root, visited = new WeakSet(), expanding = new Map()) {
+function addXRefsAndResolve(obj, root, visited = new WeakSet()) {
     if (!obj || typeof obj !== 'object')
         return;
     if (visited.has(obj))
@@ -238,33 +238,34 @@ function addXRefsAndResolve(obj, root, visited = new WeakSet(), expanding = new 
         const val = obj[key];
         if (val && typeof val === 'object') {
             if (typeof val.$ref === 'string') {
-                resolveRefSite(obj, key, root, visited, expanding);
+                resolveRefSite(val, root, visited);
             }
             else {
-                addXRefsAndResolve(val, root, visited, expanding);
+                addXRefsAndResolve(val, root, visited);
             }
         }
     }
 }
-function resolveRefSite(holder, key, root, visited, expanding) {
-    const site = holder[key];
-    const inProgress = expanding.get(site);
-    if (undefined !== inProgress) {
-        holder[key] = inProgress;
-        return;
-    }
+// Resolved in place, as in go/parse.go: the site's own keywords win and the
+// target's children stay shared, so each target is walked once.
+function resolveRefSite(site, root, visited) {
     const xref = site.$ref;
     const resolved = resolvePointer(root, xref);
-    if (resolved === undefined) {
-        site['x-ref'] = xref;
-        addXRefsAndResolve(site, root, visited, expanding);
-        return;
+    if (undefined !== resolved) {
+        replaceOwnKeys(site, { ...resolved, ...refSiblings(site), 'x-ref': xref });
     }
-    const copy = { ...resolved, ...refSiblings(site), 'x-ref': xref };
-    holder[key] = copy;
-    expanding.set(site, copy);
-    addXRefsAndResolve(copy, root, visited, expanding);
-    expanding.delete(site);
+    else {
+        site['x-ref'] = xref;
+    }
+    addXRefsAndResolve(site, root, visited);
+}
+// Defined, not assigned, so a key named __proto__ stays data.
+function replaceOwnKeys(obj, src) {
+    for (const k of Object.keys(obj))
+        delete obj[k];
+    for (const k of Object.keys(src)) {
+        Object.defineProperty(obj, k, { value: src[k], writable: true, enumerable: true, configurable: true });
+    }
 }
 const INDEX_RE = /^(0|[1-9]\d*)$/;
 function isRecord(node) {

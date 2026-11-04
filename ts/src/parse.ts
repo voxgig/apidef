@@ -282,7 +282,6 @@ function addXRefsAndResolve(
   obj: any,
   root: any,
   visited: WeakSet<any> = new WeakSet(),
-  expanding: Map<any, any> = new Map(),
 ) {
   if (!obj || typeof obj !== 'object') return
   if (visited.has(obj)) return
@@ -295,43 +294,37 @@ function addXRefsAndResolve(
     const val = obj[key]
     if (val && typeof val === 'object') {
       if (typeof val.$ref === 'string') {
-        resolveRefSite(obj, key, root, visited, expanding)
+        resolveRefSite(val, root, visited)
       } else {
-        addXRefsAndResolve(val, root, visited, expanding)
+        addXRefsAndResolve(val, root, visited)
       }
     }
   }
 }
 
 
-function resolveRefSite(
-  holder: any,
-  key: string | number,
-  root: any,
-  visited: WeakSet<any>,
-  expanding: Map<any, any>,
-) {
-  const site = holder[key]
-
-  const inProgress = expanding.get(site)
-  if (undefined !== inProgress) {
-    holder[key] = inProgress
-    return
-  }
-
+// Resolved in place, as in go/parse.go: the site's own keywords win and the
+// target's children stay shared, so each target is walked once.
+function resolveRefSite(site: any, root: any, visited: WeakSet<any>) {
   const xref = site.$ref
   const resolved = resolvePointer(root, xref)
-  if (resolved === undefined) {
-    site['x-ref'] = xref
-    addXRefsAndResolve(site, root, visited, expanding)
-    return
+  if (undefined !== resolved) {
+    replaceOwnKeys(site, { ...resolved, ...refSiblings(site), 'x-ref': xref })
   }
+  else {
+    site['x-ref'] = xref
+  }
+  addXRefsAndResolve(site, root, visited)
+}
 
-  const copy = { ...resolved, ...refSiblings(site), 'x-ref': xref }
-  holder[key] = copy
-  expanding.set(site, copy)
-  addXRefsAndResolve(copy, root, visited, expanding)
-  expanding.delete(site)
+
+// Defined, not assigned, so a key named __proto__ stays data.
+function replaceOwnKeys(obj: any, src: any) {
+  for (const k of Object.keys(obj)) delete obj[k]
+  for (const k of Object.keys(src)) {
+    Object.defineProperty(obj, k,
+      { value: src[k], writable: true, enumerable: true, configurable: true })
+  }
 }
 
 
