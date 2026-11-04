@@ -1,0 +1,14 @@
+source	size
+"a: 1\nb: [x, y]\n"	15
+"base: &b\n  x: 1\n  y: 2\none: *b\ntwo: *b\n"	73
+"base: &b {x: 1, y: [1, 2]}\none: *b\n"	55
+"list:\n  - &it\n    x: 1\n  - *it\n  - *it\n"	65
+"- name: &a\n    x: 1\n- ref: *a\n- ref: *a\n"	64
+"k: &a\n- 1\n- 2\nother: *a\n"	35
+"a: \"x *y &z\"\nb: '*q'\nc: |\n  *notalias &no\n# *comment\nd: x*y\n"	60
+"a: &s hello\nb: *s\n"	26
+"a: &s first\na2: &s second\nb: *s\n"	41
+"a: &n {x: \"café\"}\nb: *n\r\nc: *n\r\n"	63
+"l0: &l0 [\"lol\",\"lol\",\"lol\",\"lol\",\"lol\",\"lol\",\"lol\",\"lol\",\"lol\"]\nl1: &l1 [*l0,*l0,*l0,*l0,*l0,*l0,*l0,*l0,*l0]\nl2: &l2 [*l1,*l1,*l1,*l1,*l1,*l1,*l1,*l1,*l1]\nl3: &l3 [*l2,*l2,*l2,*l2,*l2,*l2,*l2,*l2,*l2]\n"	52582
+"l0: &l0\n  a: lol\n  b: lol\nl1: &l1\n  k0: *l0\n  k1: *l0\n  k2: *l0\n  k3: *l0\n  k4: *l0\n  k5: *l0\n  k6: *l0\n  k7: *l0\n  k8: *l0\nl2: &l2\n  k0: *l1\n  k1: *l1\n  k2: *l1\n  k3: *l1\n  k4: *l1\n  k5: *l1\n  k6: *l1\n  k7: *l1\n  k8: *l1\nl3: &l3\n  k0: *l2\n  k1: *l2\n  k2: *l2\n  k3: *l2\n  k4: *l2\n  k5: *l2\n  k6: *l2\n  k7: *l2\n  k8: *l2\nl4: &l4\n  k0: *l3\n  k1: *l3\n  k2: *l3\n  k3: *l3\n  k4: *l3\n  k5: *l3\n  k6: *l3\n  k7: *l3\n  k8: *l3\n"	249070
+"l0: &l0 [\"lol\",\"lol\",\"lol\",\"lol\",\"lol\",\"lol\",\"lol\",\"lol\",\"lol\"]\nl1: &l1 [*l0,*l0,*l0,*l0,*l0,*l0,*l0,*l0,*l0]\nl2: &l2 [*l1,*l1,*l1,*l1,*l1,*l1,*l1,*l1,*l1]\nl3: &l3 [*l2,*l2,*l2,*l2,*l2,*l2,*l2,*l2,*l2]\nl4: &l4 [*l3,*l3,*l3,*l3,*l3,*l3,*l3,*l3,*l3]\nl5: &l5 [*l4,*l4,*l4,*l4,*l4,*l4,*l4,*l4,*l4]\n"	4259823

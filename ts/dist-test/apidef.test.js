@@ -532,7 +532,7 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
     });
     // A page with no data of its own reads its one list of records past a list
     // of scalars (metric) or an object (notification, preference), composed or
-    // not (branch), while a response with a state of its own is read whole
+    // not (branch), and so does one with a state of its own beside its one list
     // (rollup). A create that
     // only an Accepted response answers reads its envelope as the load does.
     (0, node_test_1.test)('guide-page-side', async () => {
@@ -557,7 +557,7 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.strictEqual(res('metric', 'list'), '`body.data`');
         node_assert_1.default.strictEqual(res('notification', 'list'), '`body.data`');
         node_assert_1.default.strictEqual(res('preference', 'list'), '`body.workflows`');
-        node_assert_1.default.strictEqual(res('rollup', 'list'), '`body`');
+        node_assert_1.default.strictEqual(res('rollup', 'list'), '`body.statuses`');
         node_assert_1.default.strictEqual(res('branch', 'list'), '`body.branches`');
         node_assert_1.default.strictEqual(res('job', 'create'), '`body.data`');
         node_assert_1.default.strictEqual(res('job', 'load'), '`body.data`');
@@ -631,6 +631,9 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.strictEqual(res('note', 'list', '/notes'), '`body.note`');
         node_assert_1.default.strictEqual(res('quote', 'load', '/quote/{id}'), '`body.quote`');
         node_assert_1.default.strictEqual(res('competition', 'load', '/competitions/{id}'), '`body`');
+        // Its fields are the records it reads, not the lists beside them.
+        node_assert_1.default.strictEqual(res('user', 'list', '/users'), '`body.users`');
+        node_assert_1.default.deepStrictEqual(Object.keys(entities.user.fields).sort(), ['email', 'id', 'name']);
     });
     // Apicurio tags every /well-known route WellKnown and its agent, MCP tool and
     // schema reads answer nothing, so each takes its collection's segment, after
@@ -1117,9 +1120,9 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
             '/v1/things/{id}': ['v1'],
             '/v2/things': [],
             '/v2/things/{id}': ['v2'],
-            '/v2/things/{id}/actions/archive': ['action_archive_v2'],
+            '/v2/things/{id}/actions/archive': ['archive_v2'],
             '/v3/things/{id}': [],
-            '/v3/things/{id}/actions/archive': ['action_archive'],
+            '/v3/things/{id}/actions/archive': ['archive'],
         });
         const points = (op) => bres.apimodel.main.kit.entity.thing.op[op].points
             .map((p) => (p.q?.$action ?? '-') + ' ' + p.co.id).sort();
@@ -2404,7 +2407,7 @@ const REQUEST_PATHS_POINTS = [
     'schedule.load GET /schedules/{scheduleId} s=schedules/<id> params=id:scheduleId query= exist=id action=',
     'schedule.load GET /schedules:count s=schedules:count params= query= exist= action=count',
     'schedule.remove DELETE /schedules s=schedules params= query= exist= action=',
-    'state.load GET /states/{stateAbbreviation}.json s=states/{state_abbreviation}.json params=state_abbreviation:stateAbbreviation query= exist=state_abbreviation action=',
+    'state.load GET /states/{stateAbbreviation}.json s=states/{id}.json params=id:stateAbbreviation query= exist=id action=',
     'thread.list GET /{board}/thread/{threadId}.json s=<board>/thread/{thread_id}.json params=board:board,thread_id:threadId query= exist=board,thread_id action=',
     'world.load GET /image/world/{worldTileName}{tileX}-{tileY}-0.png s=image/world/{world_tile_name}{tile_x}-{tile_y}-0.png params=tile_x:tileX,tile_y:tileY,world_tile_name:worldTileName query= exist=tile_x,tile_y,world_tile_name action=',
 ];

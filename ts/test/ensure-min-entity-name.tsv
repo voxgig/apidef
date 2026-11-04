@@ -12,3 +12,6 @@ valid_name	valid_name
 ok	okn
 3ds_session	n3ds_session
 3DSSession	N3DSSession
+constructor	constructor_item
+toString	toString_item
+constructor_item	constructor_item

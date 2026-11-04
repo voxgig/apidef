@@ -18,6 +18,7 @@ const jostraca_1 = require("jostraca");
 const struct_1 = require("@voxgig/struct");
 const utility_1 = require("../utility");
 const body_1 = require("../transform/body");
+const field_1 = require("../transform/field");
 const utility_2 = require("../utility");
 const jostraca_2 = require("jostraca");
 const entity_1 = require("../transform/entity");
@@ -221,7 +222,7 @@ function PreparePath(spec) {
     const pathdesc = {
         path: pathstr,
         def: pathdef,
-        parts: pathstr.split('/').filter((p) => '' != p),
+        parts: (0, utility_2.guideParts)(pathstr),
         op: {}
     };
     work.pathmap[pathstr] = pathdesc;
@@ -595,6 +596,7 @@ function ResolveEntityName(spec) {
     const shaped = pathEntityName(data, mdesc, parts, pm, work.pathowner, why_shape);
     const item = itemOfCollection(data, mdesc, parts);
     const owner = null == item ? samePathOwner(mdesc, work) : null;
+    const parent = null == item && null == owner ? collectionOwner(mdesc, parts, work) : null;
     const cmp = ment.cmp;
     let entname = shaped;
     if (null != owner && (null == shaped ||
@@ -603,6 +605,10 @@ function ResolveEntityName(spec) {
         ment.same_path = owner.entname;
         why_path.push('same-path-tag=' + owner.entname + '/' + owner.method);
         entname = owner.entname;
+    }
+    else if (null != parent && parent !== cmp) {
+        why_path.push('collection-tag=' + parent);
+        entname = parent;
     }
     else {
         why_path.push(...why_shape);
@@ -675,6 +681,21 @@ function samePathOwner(mdesc, work) {
         }
     }
     return null;
+}
+// A method named only from its tag, on a verb route beneath an item, joins the
+// entity that owns the item's collection, so its verb becomes that entity's
+// action: samePathOwner's rule, one level deeper.
+function collectionOwner(mdesc, parts, work) {
+    const first = parts.findIndex(isParam);
+    if ('tag' !== mdesc.MethodEntity?.ref || first < 1 || first === parts.length - 1 ||
+        parts.slice(first + 1).some(isParam)) {
+        return null;
+    }
+    const collection = '/' + parts.slice(0, first).join('/');
+    const path = Object.keys(work.pathowner).sort(refcount_1.byCodePoint)
+        .find((p) => collection === (0, utility_2.guidePath)(p));
+    const owners = null == path ? {} : work.pathowner[path];
+    return owners.GET ?? owners.QUERY ?? owners.POST ?? null;
 }
 // The name a method's path shape and component give it, or null where neither
 // does. A verb on a parent takes the name pathowner holds for the parent.
@@ -943,7 +964,9 @@ function FindActions(spec) {
         || fourthLastPartCanon === entname) {
         if (isParam(thirdLastPart) && isVerb(secondLastPart) && isVerb(lastPart)) {
             const oldActionName = secondLastPart + '/' + lastPart;
-            const actionName = secondLastPartCanon + '_' + lastPartCanon;
+            // `actions` only gathers the verbs: /{id}/actions/cancel is cancel.
+            const actionName = 'action' === secondLastPartCanon ? lastPartCanon :
+                secondLastPartCanon + '_' + lastPartCanon;
             updateAction(methodName, oldActionName, actionName, entdesc, pathdesc, 'ent-param-3rd-last');
         }
     }
@@ -1003,6 +1026,35 @@ function ResolveOperation(spec) {
     }
     (0, utility_2.debugpath)(pathStr, methodName, 'ResolveOperation', standard_opname, opname, why_op, op);
 }
+// A list that reads a whole object, or drops lists of records beside the one
+// it reads, is named so its definition's author can declare it in guide.aontu.
+function warnListBody(ctx, where, res, props) {
+    if (null == props || 0 === (0, struct_1.keysof)(props).length)
+        return;
+    if (null == res) {
+        ctx?.warn?.({
+            note: 'list ' + where + ' reads its whole body, an object holding no list of' +
+                ' records: declare what it lists in guide.aontu',
+        });
+        return;
+    }
+    const read = 'string' === typeof res ? res.match(/^`body\.([^.`]+)`$/)?.[1] : undefined;
+    const lists = (0, utility_1.recordLists)(props);
+    const dropped = null == read ? [] : lists.filter((k) => k !== read);
+    if (0 < dropped.length) {
+        ctx?.warn?.({
+            note: 'list ' + where + ' reads `body.' + read + '` and drops ' +
+                dropped.map((k) => '`' + k + '`').join(', ') +
+                ': declare the one it reads in guide.aontu',
+        });
+    }
+    else if (null != read && lists.includes(read) && read !== (0, utility_1.singleEnvelope)(props, 'list')) {
+        ctx?.warn?.({
+            note: 'list ' + where + ' reads `body.' + read + '`, beside data of the object' +
+                ' it is in: declare what it lists in guide.aontu',
+        });
+    }
+}
 function ResolveTransform(spec) {
     const mdesc = spec.node.val;
     const ment = mdesc.MethodEntity;
@@ -1014,9 +1066,9 @@ function ResolveTransform(spec) {
     const methodName = mdesc.method;
     const opname = ment.opname;
     const op = pathdesc.op;
-    // Only specify transforms if they are not defaults
+    // Only specify transforms if they are not defaults. The request transform
+    // is the operation step's, read from the body the guide names.
     const transform = {
-        req: undefined,
         res: undefined,
     };
     const resschema = getResponseSchema(successResponse(mdesc.responses));
@@ -1036,7 +1088,9 @@ function ResolveTransform(spec) {
     // A list reads records, so an object named for the entity does not win over
     // a list of them beside it, such as the matches beside the competition a
     // page of them repeats. The list is found in the same parts the name is.
-    const records = 'list' === opname && null != partprops ? (0, utility_1.envelopeProp)(partprops, opname) : null;
+    const example = 'list' === opname ? (0, field_1.findExampleObject)(mdesc, null) : null;
+    const records = 'list' === opname && null != partprops ?
+        (0, utility_1.envelopeProp)(partprops, opname, example) : null;
     const holdsRecord = (prop) => (0, utility_1.isEntityWrapperProp)(prop) &&
         (null == records || true === (0, utility_1.propIsList)(prop));
     if (named && holdsRecord(partprops?.[entdesc.origname])) {
@@ -1045,13 +1099,17 @@ function ResolveTransform(spec) {
     else if (named && holdsRecord(partprops?.[entdesc.name])) {
         transform.res = '`body.' + entdesc.name + '`';
     }
+    else if ('list' === opname && named &&
+        (0, utility_1.recordLists)(partprops ?? {}).includes((0, utility_2.pluralize)(entdesc.name))) {
+        transform.res = '`body.' + (0, utility_2.pluralize)(entdesc.name) + '`';
+    }
     else if (resprops) {
         // The wrapper is often named for the CARDINALITY rather than the
         // entity — `{item: {...}}` from a load, `{items: [...]}` from a list —
         // which the entity-name rules above cannot see. Left unwrapped, list()
         // hands back the envelope where the caller expects an array, and the
         // envelope key is mistaken for a field of the entity.
-        const envelope = (0, utility_1.envelopeProp)(resprops, opname);
+        const envelope = (0, utility_1.envelopeProp)(resprops, opname, example);
         if (null != envelope) {
             transform.res = '`body.' + envelope + '`';
         }
@@ -1071,9 +1129,9 @@ function ResolveTransform(spec) {
             transform.res = (0, utility_1.itemEnvelopeTransform)(key);
         }
     }
-    const reqschema = getRequestBodySchema(spec.data.def, mdesc);
-    (0, utility_2.debugpath)(pathStr, methodName, 'TRANSFORM-REQ', (0, struct_1.keysof)(reqschema?.properties));
-    transform.req = (0, utility_1.bodyRequestTransform)(reqschema, [entdesc.origname, entdesc.name]);
+    if ('list' === opname) {
+        warnListBody(spec.ctx, methodName + ' ' + pathStr, transform.res, partprops);
+    }
     if (!(0, struct_1.isempty)(transform) && null != op[opname]) {
         op[opname].transform = transform;
     }
@@ -1356,10 +1414,10 @@ function keyHeld(work, keys, collection, exempt) {
 // first parameter follows the collection: one under a collection nested in it
 // is outside.
 function outsideCollection(path, collection) {
-    if (!(path + '/').startsWith(collection + '/')) {
+    if (!((0, utility_2.guidePath)(path) + '/').startsWith(collection + '/')) {
         return true;
     }
-    const parts = path.split('/').filter((part) => '' !== part);
+    const parts = (0, utility_2.guideParts)(path);
     const first = parts.findIndex(isParam);
     return -1 < first && collection !== '/' + parts.slice(0, first).join('/');
 }
@@ -1574,9 +1632,8 @@ function routeRecordRef(def, pathStr, method, collection, accepted = true) {
     return xref ?? null;
 }
 function inferEntityName(mdesc, parts, why) {
-    // Try operationId: e.g. "getUser" -> "user", "listProducts" -> "product"
     if (mdesc.operationId) {
-        const opid = (0, utility_2.canonize)(mdesc.operationId);
+        const opid = (0, utility_2.stripOperationVerb)((0, utility_2.canonize)(mdesc.operationId));
         if (opid.length >= 3) {
             why.push('infer-opid');
             return opid;
@@ -1758,7 +1815,7 @@ function pathResource(parts, method) {
 function sharedRoutes(routes, records) {
     const bycmp = Object.create(null);
     for (const route of routes) {
-        const parts = route.path.split('/').filter((p) => '' !== p);
+        const parts = (0, utility_2.guideParts)(route.path);
         const resource = pathResource(parts, route.method);
         if (null != resource && !records.includes(route.cmp)) {
             (bycmp[route.cmp] = bycmp[route.cmp] ?? []).push({ ...route, parts, resource });
@@ -2074,7 +2131,7 @@ function entityParamNames(paths) {
     const places = {};
     for (const pathStr of Object.keys(paths).sort(refcount_1.byCodePoint)) {
         out[pathStr] = { ...paths[pathStr] };
-        const parts = verbParts(pathStr.split('/').filter((p) => '' !== p));
+        const parts = verbParts((0, utility_2.guideParts)(pathStr));
         parts.forEach((part, partI) => {
             if (isParam(part)) {
                 const place = parts.slice(0, partI + 1).join('/');

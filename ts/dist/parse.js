@@ -1,6 +1,7 @@
 "use strict";
 /* Copyright (c) 2024-2025 Voxgig, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.IGNORED_HEADERS_KEY = void 0;
 exports.parse = parse;
 exports.decycledChild = decycledChild;
 exports.normalizePathKeys = normalizePathKeys;
@@ -8,6 +9,7 @@ exports.colonPathKeys = colonPathKeys;
 const jsonic_1 = require("@tabnas/jsonic");
 const yaml_1 = require("@tabnas/yaml");
 const utility_1 = require("./utility");
+const yamlalias_1 = require("./yamlalias");
 const graphql_1 = require("./parse/graphql");
 // NOTE: @tabnas/yaml types its Plugin against @tabnas/parser, while
 // Jsonic.use expects @tabnas/jsonic's own (structurally identical) Plugin
@@ -19,6 +21,7 @@ const RE_HAS_CONTENT = /^\s*[^#\s]/m;
 async function parse(kind, source, meta) {
     if ('OpenAPI' === kind) {
         validateSource(kind, source, meta);
+        validateAliases(kind, source, meta);
         try {
             const def = await parseOpenAPI(source, meta);
             return def;
@@ -97,8 +100,42 @@ async function parseOpenAPI(source, _meta) {
     // After resolution, so a pointer into `paths` names the key as written and a
     // parameter declared by `$ref` counts. See docs/design/derived-names.md
     normalizeColonPathParams(parsed, _meta);
+    dropIgnoredHeaders(parsed);
     const def = decycle(parsed);
     return def;
+}
+// In an OpenAPI 3 definition, a header parameter named Accept, Content-Type or
+// Authorization is ignored: responses, the request body and the security
+// schemes say those. Each dropped one is recorded for a warning.
+const IGNORED_HEADERS = ['accept', 'content-type', 'authorization'];
+const IGNORED_HEADERS_KEY = 'x-apidef-ignored-headers';
+exports.IGNORED_HEADERS_KEY = IGNORED_HEADERS_KEY;
+function dropIgnoredHeaders(parsed) {
+    delete parsed[IGNORED_HEADERS_KEY];
+    if (!String(parsed.openapi ?? '').startsWith('3') || !isRecord(parsed.paths))
+        return;
+    const dropped = [];
+    const kept = (list, path, method) => list.filter((param) => {
+        const ignored = isRecord(param) && 'header' === param.in && 'string' === typeof param.name &&
+            IGNORED_HEADERS.includes(param.name.toLowerCase());
+        if (ignored)
+            dropped.push({ path, ...(method ? { method: method.toUpperCase() } : {}), name: param.name });
+        return !ignored;
+    });
+    for (const path of Object.keys(parsed.paths).sort()) {
+        const item = parsed.paths[path];
+        if (!isRecord(item))
+            continue;
+        if (Array.isArray(item.parameters))
+            item.parameters = kept(item.parameters, path);
+        for (const method of METHODS) {
+            const op = item[method];
+            if (isRecord(op) && Array.isArray(op.parameters))
+                op.parameters = kept(op.parameters, path, method);
+        }
+    }
+    if (0 < dropped.length)
+        parsed[IGNORED_HEADERS_KEY] = dropped;
 }
 // A surrogate escape, or a raw lone surrogate unit.
 const SURROGATE_RE = /\\(?:u\{?|U)0*[dD][89a-fA-F][0-9a-fA-F]{2}|[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
@@ -227,7 +264,7 @@ function refSiblings(node) {
     }
     return out;
 }
-function addXRefsAndResolve(obj, root, visited = new WeakSet(), expanding = new Map()) {
+function addXRefsAndResolve(obj, root, visited = new WeakSet()) {
     if (!obj || typeof obj !== 'object')
         return;
     if (visited.has(obj))
@@ -238,33 +275,34 @@ function addXRefsAndResolve(obj, root, visited = new WeakSet(), expanding = new 
         const val = obj[key];
         if (val && typeof val === 'object') {
             if (typeof val.$ref === 'string') {
-                resolveRefSite(obj, key, root, visited, expanding);
+                resolveRefSite(val, root, visited);
             }
             else {
-                addXRefsAndResolve(val, root, visited, expanding);
+                addXRefsAndResolve(val, root, visited);
             }
         }
     }
 }
-function resolveRefSite(holder, key, root, visited, expanding) {
-    const site = holder[key];
-    const inProgress = expanding.get(site);
-    if (undefined !== inProgress) {
-        holder[key] = inProgress;
-        return;
-    }
+// Resolved in place, as in go/parse.go: the site's own keywords win and the
+// target's children stay shared, so each target is walked once.
+function resolveRefSite(site, root, visited) {
     const xref = site.$ref;
     const resolved = resolvePointer(root, xref);
-    if (resolved === undefined) {
-        site['x-ref'] = xref;
-        addXRefsAndResolve(site, root, visited, expanding);
-        return;
+    if (undefined !== resolved) {
+        replaceOwnKeys(site, { ...resolved, ...refSiblings(site), 'x-ref': xref });
     }
-    const copy = { ...resolved, ...refSiblings(site), 'x-ref': xref };
-    holder[key] = copy;
-    expanding.set(site, copy);
-    addXRefsAndResolve(copy, root, visited, expanding);
-    expanding.delete(site);
+    else {
+        site['x-ref'] = xref;
+    }
+    addXRefsAndResolve(site, root, visited);
+}
+// Defined, not assigned, so a key named __proto__ stays data.
+function replaceOwnKeys(obj, src) {
+    for (const k of Object.keys(obj))
+        delete obj[k];
+    for (const k of Object.keys(src)) {
+        Object.defineProperty(obj, k, { value: src[k], writable: true, enumerable: true, configurable: true });
+    }
 }
 const INDEX_RE = /^(0|[1-9]\d*)$/;
 function isRecord(node) {
@@ -308,6 +346,15 @@ function followAlias(root, node, active) {
         return undefined;
     const sib = refSiblings(node);
     return 0 === Object.keys(sib).length ? target : { ...target, ...sib };
+}
+function validateAliases(kind, source, meta) {
+    const size = (0, yamlalias_1.yamlAliasedSize)(source);
+    const limit = (0, yamlalias_1.yamlAliasLimit)(source);
+    if (limit < size) {
+        throw new Error(`@voxgig/apidef: parse: ${kind}: YAML aliases would expand the source to` +
+            ` about ${size} bytes, past the limit of ${limit}` +
+            ` (${(0, utility_1.relativizePath)(meta.file)})`);
+    }
 }
 function validateSource(kind, source, meta) {
     if (typeof source !== 'string') {

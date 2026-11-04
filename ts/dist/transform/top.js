@@ -12,6 +12,7 @@ const struct_1 = require("@voxgig/struct");
 const types_1 = require("../types");
 const utility_1 = require("../utility");
 const resolved_1 = require("../resolved");
+const parse_1 = require("../parse");
 const topTransform = async function (ctx) {
     const { apimodel, def } = ctx;
     const kit = apimodel.main[types_1.KIT];
@@ -106,6 +107,13 @@ const topTransform = async function (ctx) {
                     ' the server variable `base`; set the `server` build option to fix one',
             });
         }
+    }
+    for (const ignored of def[parse_1.IGNORED_HEADERS_KEY] ?? []) {
+        ctx.warn?.({
+            note: 'header parameter `' + ignored.name + '` of ' +
+                (null == ignored.method ? '' : ignored.method + ' ') + ignored.path +
+                ' ignored: OpenAPI ignores Accept, Content-Type and Authorization header parameters',
+        });
     }
     const summary = resolveSummary(def);
     if (null != summary) {

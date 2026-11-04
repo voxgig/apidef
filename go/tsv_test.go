@@ -4,13 +4,17 @@ package apidef
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
+
+	aontu "github.com/aontu-lang/aontu/go"
 )
 
 type tsvRow = map[string]string
@@ -266,6 +270,96 @@ func TestTsvInferTypeFromValue(t *testing.T) {
 	}
 }
 
+func TestTsvListedRecords(t *testing.T) {
+	for _, row := range loadTsv(t, "listed-records") {
+		t.Run(row["resprops"], func(t *testing.T) {
+			var props map[string]any
+			var example any
+			unmarshalCol(t, row, "resprops", &props)
+			unmarshalCol(t, row, "example", &example)
+			if got := envelopePropWith(props, "list", example); got != row["expected"] {
+				t.Errorf("envelopePropWith(list) = %q, want %q", got, row["expected"])
+			}
+		})
+	}
+}
+
+// A list over an object reads records and says which it dropped; one holding
+// none reads the whole body and says so.
+func TestTsvListBody(t *testing.T) {
+	rows := loadTsv(t, "list-body")
+	if len(rows) == 0 {
+		t.Fatal("no list-body rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			def, err := Parse("OpenAPI", row["def"], map[string]string{"file": row["name"]})
+			if err != nil {
+				t.Fatal(err)
+			}
+			warn := MakeWarner("test", nil)
+			guide, err := heuristic01(&ApiDefContext{
+				Def: def, Note: map[string]any{}, Warn: warn, Work: map[string]any{},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			res := map[string]any{}
+			entities, _ := guide["entity"].(map[string]any)
+			for _, ename := range sortedKeys(entities) {
+				ent, _ := entities[ename].(map[string]any)
+				paths, _ := ent["path"].(map[string]any)
+				for _, p := range sortedKeys(paths) {
+					pathdesc, _ := paths[p].(map[string]any)
+					ops, _ := pathdesc["op"].(map[string]any)
+					for _, opname := range sortedKeys(ops) {
+						op, _ := ops[opname].(map[string]any)
+						transform, _ := op["transform"].(map[string]any)
+						res[ename+"."+opname] = transform["res"]
+					}
+				}
+			}
+			notes := []any{}
+			for _, w := range warn.History() {
+				notes = append(notes, w["note"])
+			}
+			var wantRes, wantNotes any
+			unmarshalCol(t, row, "res", &wantRes)
+			unmarshalCol(t, row, "warnings", &wantNotes)
+			if !jsonEqual(res, wantRes) {
+				got, _ := json.Marshal(res)
+				t.Errorf("res\ngot  %s\nwant %s", got, row["res"])
+			}
+			if !jsonEqual(notes, wantNotes) {
+				got, _ := json.Marshal(notes)
+				t.Errorf("warnings\ngot  %s\nwant %s", got, row["warnings"])
+			}
+		})
+	}
+}
+
+func TestTsvGuideParts(t *testing.T) {
+	for _, row := range loadTsv(t, "guide-parts") {
+		t.Run(row["input"], func(t *testing.T) {
+			var want []string
+			unmarshalCol(t, row, "expected", &want)
+			if got := guideParts(row["input"]); !reflect.DeepEqual(got, want) {
+				t.Errorf("guideParts(%q) = %v, want %v", row["input"], got, want)
+			}
+		})
+	}
+}
+
+func TestTsvOperationVerb(t *testing.T) {
+	for _, row := range loadTsv(t, "operation-verb") {
+		t.Run(row["input"], func(t *testing.T) {
+			if got := StripOperationVerb(Canonize(row["input"])); got != row["expected"] {
+				t.Errorf("StripOperationVerb(Canonize(%q)) = %q, want %q", row["input"], got, row["expected"])
+			}
+		})
+	}
+}
+
 func TestTsvEnsureMinEntityName(t *testing.T) {
 	rows := loadTsv(t, "ensure-min-entity-name")
 	for _, row := range rows {
@@ -318,7 +412,7 @@ func TestTsvPathMetrics(t *testing.T) {
 			count, _ := metrics["count"].(map[string]any)
 			entities, _ := guide["entity"].(map[string]any)
 			got := map[string]any{
-				"count": map[string]any{"path": count["path"], "method": count["method"], "tag": count["tag"]},
+				"count":  map[string]any{"path": count["path"], "method": count["method"], "tag": count["tag"]},
 				"entity": sortedKeys(entities),
 			}
 			if !jsonEqual(got, want) {
@@ -362,6 +456,61 @@ func TestTsvEntityNames(t *testing.T) {
 	}
 }
 
+func TestTsvGuideRoutes(t *testing.T) {
+	rows := loadTsv(t, "guide-routes")
+	if len(rows) == 0 {
+		t.Fatal("no guide-routes rows loaded")
+	}
+	keys := func(v any) []string {
+		m, _ := v.(map[string]any)
+		return append([]string{}, sortedKeys(m)...)
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var want map[string]any
+			unmarshalCol(t, row, "expected", &want)
+			def, err := Parse("OpenAPI", row["def"], map[string]string{"file": row["name"]})
+			if err != nil {
+				t.Fatal(err)
+			}
+			guide, err := heuristic01(&ApiDefContext{
+				Def: def, Note: map[string]any{}, Warn: MakeWarner("test", nil), Work: map[string]any{},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			entities, _ := guide["entity"].(map[string]any)
+			got := map[string]any{}
+			for _, name := range sortedKeys(entities) {
+				ent, _ := entities[name].(map[string]any)
+				paths, _ := ent["path"].(map[string]any)
+				routes := map[string]any{}
+				for _, path := range sortedKeys(paths) {
+					pd, _ := paths[path].(map[string]any)
+					rename := map[string]any{}
+					if r, ok := pd["rename"].(map[string]any); ok {
+						params, _ := r["param"].(map[string]any)
+						for k, v := range params {
+							if m, ok := v.(map[string]any); ok {
+								v = m["target"]
+							}
+							rename[k] = v
+						}
+					}
+					routes[path] = map[string]any{
+						"op": keys(pd["op"]), "action": keys(pd["action"]), "rename": rename,
+					}
+				}
+				got[name] = routes
+			}
+			if !jsonEqual(got, want) {
+				out, _ := json.Marshal(got)
+				t.Errorf("got %s, want %s", out, row["expected"])
+			}
+		})
+	}
+}
+
 func TestTsvNom(t *testing.T) {
 	rows := loadTsv(t, "nom")
 	for _, row := range rows {
@@ -375,6 +524,38 @@ func TestTsvNom(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestTsvYamlAliasedSize(t *testing.T) {
+	for _, row := range loadTsv(t, "yaml-aliased-size") {
+		var src string
+		var want float64
+		if err := json.Unmarshal([]byte(row["source"]), &src); err != nil {
+			t.Fatalf("source %s: %v", row["source"], err)
+		}
+		if err := json.Unmarshal([]byte(row["size"]), &want); err != nil {
+			t.Fatalf("size %s: %v", row["size"], err)
+		}
+		t.Run("yamlAliasedSize("+row["source"]+")", func(t *testing.T) {
+			if got := yamlAliasedSize(src); got != want {
+				t.Errorf("yamlAliasedSize(%q) = %.0f, want %.0f", src, got, want)
+			}
+		})
+	}
+
+	t.Run("a definition whose aliases expand past the limit is refused before parsing", func(t *testing.T) {
+		src := "openapi: 3.0.3\ninfo: {title: t, version: \"1\"}\npaths: {}\n" +
+			"l0: &l0 [\"lol\",\"lol\",\"lol\",\"lol\",\"lol\",\"lol\",\"lol\",\"lol\",\"lol\"]\n"
+		for i := 1; i <= 7; i++ {
+			refs := strings.TrimSuffix(strings.Repeat("*l"+strconv.Itoa(i-1)+",", 9), ",")
+			src += "l" + strconv.Itoa(i) + ": &l" + strconv.Itoa(i) + " [" + refs + "]\n"
+		}
+		_, err := Parse("OpenAPI", src, map[string]string{"file": "bomb.yaml"})
+		re := regexp.MustCompile(`YAML aliases would expand the source to about \d+ bytes, past the limit of 1000000`)
+		if err == nil || !re.MatchString(err.Error()) {
+			t.Fatalf("want the alias limit refusal, got %v", err)
+		}
+	})
 }
 
 func TestTsvParseErrors(t *testing.T) {
@@ -423,6 +604,35 @@ func TestTsvFormatJsonSrc(t *testing.T) {
 			got := FormatJsonSrc(input)
 			if got != expected {
 				t.Errorf("FormatJsonSrc(%q) = %q, want %q", input, got, expected)
+			}
+		})
+	}
+}
+
+// Each model file must read back as the value written: a string cannot end
+// early, and a key ending in _COMMENT is data.
+func TestTsvFormatJSONIC(t *testing.T) {
+	for _, row := range loadTsv(t, "format-jsonic") {
+		var input, readback any
+		var expected string
+		for col, dst := range map[string]any{"input": &input, "expected": &expected, "readback": &readback} {
+			if err := json.Unmarshal([]byte(row[col]), dst); err != nil {
+				t.Fatalf("%s %s: %v", col, row[col], err)
+			}
+		}
+		t.Run("FormatJSONIC("+row["input"]+")", func(t *testing.T) {
+			got := FormatJSONIC(input)
+			if got != expected {
+				t.Fatalf("FormatJSONIC(%s) = %q, want %q", row["input"], got, expected)
+			}
+			back, err := aontu.New().Generate(got)
+			if err != nil {
+				t.Fatalf("aontu read back %q: %v", got, err)
+			}
+			gotJSON, _ := json.Marshal(back)
+			wantJSON, _ := json.Marshal(readback)
+			if string(gotJSON) != string(wantJSON) {
+				t.Errorf("read back %s, want %s", gotJSON, wantJSON)
 			}
 		})
 	}
@@ -504,6 +714,7 @@ func TestCleanComponentNameGuarded(t *testing.T) {
 	known := map[string]bool{
 		"beneficiary": true, "merchant_token": true, "transaction": true,
 		"payout": true, "user_invite": true, "role": true,
+		"subscriber": true, "dns_record": true, "asset": true, "alert": true,
 	}
 	isKnown := func(n string) bool { return known[n] }
 	cases := [][2]string{
@@ -516,6 +727,19 @@ func TestCleanComponentNameGuarded(t *testing.T) {
 		{"landing_page", "landing_page"},
 		{"static_page", "static_page"},
 		{"generic_page_response", "generic_page"},
+		{"subscriber_response_dto", "subscriber"},
+		{"subscriber_dto", "subscriber"},
+		{"dns_record_response_collection", "dns_record"},
+		{"dns_record_collection", "dns_record"},
+		{"dns_record_response_single", "dns_record"},
+		{"dns_record_single", "dns_record"},
+		{"list_asset_response", "asset"},
+		{"list_assets", "asset"},
+		{"agent_response_dto", "agent_response_dto"},
+		{"list_price", "list_price"},
+		{"alerts_add_tags_result", "alert"},
+		{"alerts_list_tags_result", "alert"},
+		{"widgets_add_parts_result", "widgets_add_parts_result"},
 	}
 	for _, c := range cases {
 		input, expected := c[0], c[1]
@@ -1941,6 +2165,73 @@ func TestTsvServers(t *testing.T) {
 			}
 			var wantNotes any
 			unmarshalCol(t, row, "warnings", &wantNotes)
+			if !jsonEqual(notes, wantNotes) {
+				got, _ := json.Marshal(notes)
+				t.Errorf("warnings\ngot  %s\nwant %s", got, row["warnings"])
+			}
+		})
+	}
+}
+
+func TestTsvIgnoredHeaders(t *testing.T) {
+	rows := loadTsv(t, "ignored-headers")
+	if len(rows) == 0 {
+		t.Fatal("no ignored-headers rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			def, err := Parse("OpenAPI", row["spec"], map[string]string{"file": row["name"]})
+			if err != nil {
+				t.Fatal(err)
+			}
+			names := func(list any) []any {
+				out := []any{}
+				items, _ := list.([]any)
+				for _, p := range items {
+					param, _ := p.(map[string]any)
+					out = append(out, fmt.Sprint(param["in"])+":"+fmt.Sprint(param["name"]))
+				}
+				return out
+			}
+			params := map[string]any{}
+			paths, _ := def["paths"].(map[string]any)
+			for path, entry := range paths {
+				item, _ := entry.(map[string]any)
+				params[path] = names(item["parameters"])
+				for _, method := range []string{"get", "put", "post", "delete", "patch"} {
+					if op, ok := item[method].(map[string]any); ok {
+						params[strings.ToUpper(method)+" "+path] = names(op["parameters"])
+					}
+				}
+			}
+			var wantParams, wantIgnored, wantNotes any
+			unmarshalCol(t, row, "parameters", &wantParams)
+			unmarshalCol(t, row, "ignored", &wantIgnored)
+			unmarshalCol(t, row, "warnings", &wantNotes)
+			if !jsonEqual(params, wantParams) {
+				got, _ := json.Marshal(params)
+				t.Errorf("parameters\ngot  %s\nwant %s", got, row["parameters"])
+			}
+			if !jsonEqual(def[ignoredHeadersKey], wantIgnored) {
+				got, _ := json.Marshal(def[ignoredHeadersKey])
+				t.Errorf("ignored\ngot  %s\nwant %s", got, row["ignored"])
+			}
+
+			warn := MakeWarner("warning", nil)
+			ctx := &ApiDefContext{
+				Def:      def,
+				Warn:     warn,
+				ApiModel: map[string]any{"main": map[string]any{KIT: map[string]any{}}},
+			}
+			if _, err := TopTransform(ctx); err != nil {
+				t.Fatal(err)
+			}
+			notes := []any{}
+			for _, w := range warn.History() {
+				if note, _ := w["note"].(string); strings.HasPrefix(note, "header parameter") {
+					notes = append(notes, note)
+				}
+			}
 			if !jsonEqual(notes, wantNotes) {
 				got, _ := json.Marshal(notes)
 				t.Errorf("warnings\ngot  %s\nwant %s", got, row["warnings"])

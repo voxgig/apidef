@@ -54,6 +54,7 @@ func TopTransform(ctx *ApiDefContext) (*TransformResult, error) {
 
 	normalizeServers(ctx, kit)
 	ensureServer(ctx, kit)
+	warnIgnoredHeaders(ctx, def)
 
 	infoMap, _ := kit["info"].(map[string]any)
 	if summary, ok := resolveSummary(def); ok {
@@ -478,6 +479,27 @@ func ensureServer(ctx *ApiDefContext, kit map[string]any) {
 		ctx.Warn.Warn(map[string]any{
 			"note": "no server URL in the definition (servers[0].url): the SDK takes it as" +
 				" the server variable `base`; set the `server` build option to fix one",
+		})
+	}
+}
+
+// warnIgnoredHeaders mirrors ts/src/transform/top.ts.
+func warnIgnoredHeaders(ctx *ApiDefContext, def map[string]any) {
+	ignored, _ := def[ignoredHeadersKey].([]any)
+	if ctx.Warn == nil {
+		return
+	}
+	for _, entry := range ignored {
+		rec, _ := entry.(map[string]any)
+		name, _ := rec["name"].(string)
+		path, _ := rec["path"].(string)
+		where := path
+		if method, ok := rec["method"].(string); ok {
+			where = method + " " + path
+		}
+		ctx.Warn.Warn(map[string]any{
+			"note": "header parameter `" + name + "` of " + where +
+				" ignored: OpenAPI ignores Accept, Content-Type and Authorization header parameters",
 		})
 	}
 }

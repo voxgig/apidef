@@ -57,6 +57,7 @@ const graphql01_1 = require("../dist/guide/graphql01");
 const heuristic01_1 = require("../dist/guide/heuristic01");
 const guide_1 = require("../dist/guide/guide");
 const parse_1 = require("../dist/parse");
+const yamlalias_1 = require("../dist/yamlalias");
 const refcount_1 = require("../dist/refcount");
 const clean_1 = require("../dist/transform/clean");
 const flowstep_1 = require("../dist/transform/flowstep");
@@ -220,7 +221,7 @@ function loadTsv(name) {
 // checker-less behavior: guarded suffixes do NOT strip).
 (0, node_test_1.describe)('clean-component-name-guarded', () => {
     const known = new Set(['beneficiary', 'merchant_token', 'transaction',
-        'payout', 'user_invite', 'role']);
+        'payout', 'user_invite', 'role', 'subscriber', 'dns_record', 'asset', 'alert']);
     const isKnown = (n) => known.has(n);
     const CASES = [
         // wrapper convention: remainder is a known schema -> fold
@@ -234,6 +235,21 @@ function loadTsv(name) {
         ['landing_page', 'landing_page'],
         ['static_page', 'static_page'],
         ['generic_page_response', 'generic_page'],
+        // DTO and collection wrappers, and a list wrapper, of a known schema
+        ['subscriber_response_dto', 'subscriber'],
+        ['subscriber_dto', 'subscriber'],
+        ['dns_record_response_collection', 'dns_record'],
+        ['dns_record_collection', 'dns_record'],
+        ['dns_record_response_single', 'dns_record'],
+        ['dns_record_single', 'dns_record'],
+        ['list_asset_response', 'asset'],
+        ['list_assets', 'asset'],
+        ['agent_response_dto', 'agent_response_dto'],
+        ['list_price', 'list_price'],
+        // a result wrapper names its namespace when its object names nothing known
+        ['alerts_add_tags_result', 'alert'],
+        ['alerts_list_tags_result', 'alert'],
+        ['widgets_add_parts_result', 'widgets_add_parts_result'],
     ];
     for (const [input, expected] of CASES) {
         (0, node_test_1.test)(`cleanComponentName("${input}", known) => "${expected}"`, () => {
@@ -307,6 +323,56 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-listed-records', () => {
+    for (const row of loadTsv('listed-records')) {
+        (0, node_test_1.test)(`envelopeProp(${row.resprops}, list, ${row.example})`, () => {
+            const example = JSON.parse(row.example) ?? undefined;
+            node_assert_1.default.deepStrictEqual((0, utility_1.envelopeProp)(JSON.parse(row.resprops), 'list', example) ?? '', row.expected);
+        });
+    }
+});
+// A list over an object reads records and says which it dropped; one holding
+// none reads the whole body and says so.
+(0, node_test_1.describe)('tsv-list-body', () => {
+    const rows = loadTsv('list-body');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, async () => {
+            const def = await (0, parse_1.parse)('OpenAPI', row.def, { file: row.name });
+            const warnings = [];
+            const quiet = () => undefined;
+            const guide = await (0, heuristic01_1.heuristic01)({
+                def,
+                log: { info: quiet, debug: quiet, warn: quiet, error: quiet },
+                warn: (warning) => warnings.push(warning.note),
+            });
+            const res = {};
+            for (const [ename, ent] of Object.entries(guide.entity)) {
+                for (const pathdesc of Object.values(ent.path)) {
+                    for (const [opname, op] of Object.entries(pathdesc.op)) {
+                        res[ename + '.' + opname] = op.transform?.res ?? null;
+                    }
+                }
+            }
+            node_assert_1.default.deepStrictEqual(res, JSON.parse(row.res));
+            node_assert_1.default.deepStrictEqual(warnings, JSON.parse(row.warnings));
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-guide-parts', () => {
+    for (const row of loadTsv('guide-parts')) {
+        (0, node_test_1.test)(`guideParts(${row.input})`, () => {
+            node_assert_1.default.deepStrictEqual((0, utility_1.guideParts)(row.input), JSON.parse(row.expected));
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-operation-verb', () => {
+    for (const row of loadTsv('operation-verb')) {
+        (0, node_test_1.test)(`stripOperationVerb(canonize(${row.input}))`, () => {
+            node_assert_1.default.deepStrictEqual((0, utility_1.stripOperationVerb)((0, utility_1.canonize)(row.input)), row.expected);
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-ensure-min-entity-name', () => {
     const rows = loadTsv('ensure-min-entity-name');
     for (const row of rows) {
@@ -345,6 +411,36 @@ function loadTsv(name) {
         });
     }
 });
+// Each route the guide heuristic places, with its operations, actions and
+// parameter renames.
+(0, node_test_1.describe)('tsv-guide-routes', () => {
+    const rows = loadTsv('guide-routes');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, async () => {
+            const def = await (0, parse_1.parse)('OpenAPI', row.def, { file: row.name });
+            const quiet = () => undefined;
+            const guide = await (0, heuristic01_1.heuristic01)({
+                def,
+                log: { info: quiet, debug: quiet, warn: quiet, error: quiet },
+                warn: quiet,
+            });
+            const routes = {};
+            for (const [name, ent] of Object.entries(guide.entity)) {
+                routes[name] = {};
+                for (const [path, pd] of Object.entries(ent.path)) {
+                    routes[name][path] = {
+                        op: Object.keys(pd.op ?? {}).sort(),
+                        action: Object.keys(pd.action ?? {}).sort(),
+                        rename: Object.fromEntries(Object.entries(pd.rename?.param ?? {})
+                            .map(([k, v]) => [k, v?.target ?? v])),
+                    };
+                }
+            }
+            node_assert_1.default.deepStrictEqual(routes, JSON.parse(row.expected));
+        });
+    }
+});
 // The paths the guide counts: a vendor extension beside them is no path.
 (0, node_test_1.describe)('tsv-path-metrics', () => {
     const rows = loadTsv('path-metrics');
@@ -380,6 +476,36 @@ function loadTsv(name) {
             node_assert_1.default.deepStrictEqual((0, utility_1.formatJsonSrc)(row.input), row.expected);
         });
     }
+});
+// Each model file must read back as the value written: a string cannot end
+// early, and a key ending in _COMMENT is data.
+(0, node_test_1.describe)('tsv-format-jsonic', () => {
+    for (const row of loadTsv('format-jsonic')) {
+        (0, node_test_1.test)(`formatJSONIC(${row.input})`, () => {
+            const written = (0, utility_1.formatJSONIC)(JSON.parse(row.input), { comments: false });
+            node_assert_1.default.deepStrictEqual(written, JSON.parse(row.expected));
+            node_assert_1.default.deepStrictEqual(new aontu_1.Aontu().generate(written), JSON.parse(row.readback));
+        });
+    }
+    (0, node_test_1.test)('a comment stays on its line', () => {
+        const written = (0, utility_1.formatJSONIC)({ a: 1, a_COMMENT: 'note\ninjected: true' });
+        node_assert_1.default.deepStrictEqual(written, '{\n  a: 1  # note injected: true\n}\n');
+        node_assert_1.default.deepStrictEqual(new aontu_1.Aontu().generate(written), { a: 1 });
+    });
+});
+(0, node_test_1.describe)('tsv-yaml-aliased-size', () => {
+    for (const row of loadTsv('yaml-aliased-size')) {
+        (0, node_test_1.test)(`yamlAliasedSize(${row.source})`, () => {
+            node_assert_1.default.deepStrictEqual((0, yamlalias_1.yamlAliasedSize)(JSON.parse(row.source)), Number(row.size));
+        });
+    }
+    (0, node_test_1.test)('a definition whose aliases expand past the limit is refused before parsing', async () => {
+        let src = 'openapi: 3.0.3\ninfo: {title: t, version: "1"}\npaths: {}\n' +
+            'l0: &l0 ["lol","lol","lol","lol","lol","lol","lol","lol","lol"]\n';
+        for (let i = 1; i <= 7; i++)
+            src += `l${i}: &l${i} [${Array(9).fill('*l' + (i - 1)).join(',')}]\n`;
+        await node_assert_1.default.rejects((0, parse_1.parse)('OpenAPI', src, { file: 'bomb.yaml' }), /YAML aliases would expand the source to about \d+ bytes, past the limit of 1000000/);
+    });
 });
 (0, node_test_1.describe)('tsv-parse-errors', () => {
     const rows = loadTsv('parse-errors');
@@ -1057,6 +1183,31 @@ function loadTsv(name) {
             });
             node_assert_1.default.deepStrictEqual(apimodel.main.kit.info.servers, JSON.parse(row.servers));
             node_assert_1.default.deepStrictEqual(warnings.map((warning) => warning.note), JSON.parse(row.warnings));
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-ignored-headers', () => {
+    const rows = loadTsv('ignored-headers');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, async () => {
+            const def = await (0, parse_1.parse)('OpenAPI', row.spec, { file: row.name });
+            const names = (list) => (list ?? []).map((p) => p.in + ':' + p.name);
+            const params = {};
+            for (const [path, item] of Object.entries(def.paths)) {
+                params[path] = names(item.parameters);
+                for (const method of ['get', 'put', 'post', 'delete', 'patch']) {
+                    if (null != item[method])
+                        params[method.toUpperCase() + ' ' + path] = names(item[method].parameters);
+                }
+            }
+            node_assert_1.default.deepStrictEqual(params, JSON.parse(row.parameters));
+            node_assert_1.default.deepStrictEqual(def['x-apidef-ignored-headers'] ?? null, JSON.parse(row.ignored));
+            const warnings = [];
+            await (0, top_2.topTransform)({
+                apimodel: { main: { kit: {} } }, def, warn: (warning) => warnings.push(warning),
+            });
+            node_assert_1.default.deepStrictEqual(warnings.map((warning) => warning.note).filter((n) => n.startsWith('header parameter')), JSON.parse(row.warnings));
         });
     }
 });

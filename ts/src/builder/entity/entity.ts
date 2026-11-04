@@ -56,7 +56,7 @@ function resolveEntity(
 // The text of one entity's model file.
 function entitySource(entity: any): string {
   const { model, relations } = entityAncestorSource(entity)
-  let entityJSONIC = formatJSONIC(model).trim()
+  let entityJSONIC = formatJSONIC(model, { comments: false }).trim()
   entityJSONIC = entityJSONIC.substring(1, entityJSONIC.length - 1)
 
   return `# Entity: ${entity.name}\n\n` +

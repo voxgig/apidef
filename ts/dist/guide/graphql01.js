@@ -216,12 +216,15 @@ function nameEntityType(fieldName, types) {
 function rawEntityName(typeName) {
     return (0, utility_1.depluralize)((0, utility_1.canonize)((0, utility_1.normalizeFieldName)(typeName)));
 }
+function guardedName(raw) {
+    return (0, utility_1.guardPrototypeName)((0, utility_1.prefixLeadingDigit)(raw));
+}
 function entityName(typeName) {
-    return (0, utility_1.prefixLeadingDigit)(rawEntityName(typeName));
+    return guardedName(rawEntityName(typeName));
 }
 function resolveEntityName(typeName, entities) {
     const raw = rawEntityName(typeName);
-    const base = (0, utility_1.prefixLeadingDigit)(raw);
+    const base = guardedName(raw);
     const guarded = base !== raw;
     let out = base;
     for (let i = 2; null != entities[out]; i++) {
@@ -229,7 +232,7 @@ function resolveEntityName(typeName, entities) {
         if (held.orig === typeName)
             return out;
         const heldRaw = rawEntityName(held.orig);
-        if (guarded === ((0, utility_1.prefixLeadingDigit)(heldRaw) !== heldRaw))
+        if (guarded === (guardedName(heldRaw) !== heldRaw))
             return out;
         out = base + i;
     }

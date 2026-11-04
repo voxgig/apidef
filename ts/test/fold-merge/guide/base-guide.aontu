@@ -21,8 +21,7 @@ guide: {
       op: list: transform: res: *("`body.items`")|top
     }
     path: "/usecases/{id}.json": {
-      op: list: method: *GET
-      op: list: transform: res: *("`body.steps`")|top
+      op: load: method: *GET
     }
   }
 

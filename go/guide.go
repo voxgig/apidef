@@ -426,31 +426,36 @@ func jsonStringify(s string) string {
 	var b strings.Builder
 	b.WriteByte('"')
 	for _, r := range s {
-		switch r {
-		case '"':
-			b.WriteString(`\"`)
-		case '\\':
-			b.WriteString(`\\`)
-		case '\b':
-			b.WriteString(`\b`)
-		case '\f':
-			b.WriteString(`\f`)
-		case '\n':
-			b.WriteString(`\n`)
-		case '\r':
-			b.WriteString(`\r`)
-		case '\t':
-			b.WriteString(`\t`)
-		default:
-			if r < 0x20 {
-				fmt.Fprintf(&b, `\u%04x`, r)
-			} else {
-				b.WriteRune(r)
-			}
-		}
+		writeJSONRune(&b, r)
 	}
 	b.WriteByte('"')
 	return b.String()
+}
+
+// writeJSONRune writes r as JSON.stringify writes it inside a string.
+func writeJSONRune(b *strings.Builder, r rune) {
+	switch r {
+	case '"':
+		b.WriteString(`\"`)
+	case '\\':
+		b.WriteString(`\\`)
+	case '\b':
+		b.WriteString(`\b`)
+	case '\f':
+		b.WriteString(`\f`)
+	case '\n':
+		b.WriteString(`\n`)
+	case '\r':
+		b.WriteString(`\r`)
+	case '\t':
+		b.WriteString(`\t`)
+	default:
+		if r < 0x20 {
+			fmt.Fprintf(b, `\u%04x`, r)
+		} else {
+			b.WriteRune(r)
+		}
+	}
 }
 
 func buildGuideSource(ctx *ApiDefContext, baseguide map[string]any) string {
@@ -544,17 +549,6 @@ func buildGuideSource(ctx *ApiDefContext, baseguide map[string]any) string {
 								format = "      op: %s: transform: res: *%s|top"
 							}
 							blocks = append(blocks, fmt.Sprintf(format, opname, guideJSON(res)))
-						}
-						if reqmap, ok := transform["req"].(map[string]any); ok {
-							for _, bodykey := range sortedKeys(reqmap) {
-								source, ok := reqmap[bodykey].(string)
-								if !ok {
-									continue
-								}
-								blocks = append(blocks, fmt.Sprintf(
-									"      op: %s: transform: req: %s: *(%s)|top",
-									opname, guideJSON(bodykey), guideJSON(source)))
-							}
 						}
 					}
 				}
@@ -674,7 +668,7 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 		}
 
 		// PreparePath
-		parts := splitAndFilter(pathstr, "/")
+		parts := guideParts(pathstr)
 		pathmap[pathstr] = map[string]any{
 			"path":  pathstr,
 			"def":   pathdefMap,
@@ -736,7 +730,7 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 		renameParams(ctx, data, mdesc)
 		findActions(data, mdesc)
 		resolveOperation(data, mdesc)
-		resolveTransform(data, mdesc)
+		resolveTransform(ctx, data, mdesc)
 	}
 
 	// Phase 4: BuildEntity
@@ -1239,6 +1233,10 @@ func resolveEntityName(ctx *ApiDefContext, data map[string]any, mdesc map[string
 	if collectionEntity == "" {
 		ownerName, ownerMethod, joined = samePathOwner(work, mdesc)
 	}
+	parentName := ""
+	if collectionEntity == "" && !joined {
+		parentName = collectionOwner(work, mdesc, parts)
+	}
 	if joined && (!shapedNamed ||
 		resplitFromCmp(ownerName, cmp, &[]string{}) != resplitFromCmp(shaped, cmp, &[]string{})) {
 		if hadVerbOnParent {
@@ -1249,6 +1247,9 @@ func resolveEntityName(ctx *ApiDefContext, data map[string]any, mdesc map[string
 		ment["same_path"] = ownerName
 		whyPath = append(whyPath, "same-path-tag="+ownerName+"/"+ownerMethod)
 		entname, named = ownerName, true
+	} else if parentName != "" && parentName != cmp {
+		whyPath = append(whyPath, "collection-tag="+parentName)
+		entname, named = parentName, true
 	} else {
 		whyPath = append(whyPath, whyShape...)
 	}
@@ -1325,6 +1326,33 @@ func resolveEntityName(ctx *ApiDefContext, data map[string]any, mdesc map[string
 	markRecordOwner(work["recordowner"].(map[string]string), pathStr, parts, ment, entname)
 
 	DebugPath(pathStr, methodName, "RESOLVE-ENTITY-NAME", entname)
+}
+
+// collectionOwner mirrors ts/src/guide/heuristic01.ts: a method named only
+// from its tag, on a verb route beneath an item, joins the entity that owns
+// the item's collection.
+func collectionOwner(work map[string]any, mdesc map[string]any, parts []string) string {
+	ment, _ := mdesc["MethodEntity"].(map[string]any)
+	first := slices.IndexFunc(parts, isParam)
+	if ment == nil || safeStr(ment["ref"]) != "tag" || first < 1 || first == len(parts)-1 ||
+		slices.ContainsFunc(parts[first+1:], isParam) {
+		return ""
+	}
+	collection := "/" + strings.Join(parts[:first], "/")
+	pathowner, _ := work["pathowner"].(map[string]any)
+	for _, path := range sortedKeys(pathowner) {
+		if guidePath(path) != collection {
+			continue
+		}
+		owners, _ := pathowner[path].(map[string]any)
+		for _, method := range []string{"GET", "QUERY", "POST"} {
+			if name := safeStr(owners[method]); name != "" {
+				return name
+			}
+		}
+		return ""
+	}
+	return ""
 }
 
 // samePathOwner mirrors samePathOwner in ts/src/guide/heuristic01.ts: a
@@ -1820,7 +1848,11 @@ func findActions(data map[string]any, mdesc map[string]any) {
 		// /api/foo/{param}/action/subaction
 		if isParam(thirdLastPart) && isVerb(secondLastPart) && isVerb(lastPart) {
 			oldActionName := secondLastPart + "/" + lastPart
+			// `actions` only gathers the verbs: /{id}/actions/cancel is cancel.
 			actionName := secondLastPartCanon + "_" + lastPartCanon
+			if secondLastPartCanon == "action" {
+				actionName = lastPartCanon
+			}
 			updateAction(methodName, oldActionName, actionName, entdesc, pathdesc,
 				"ent-param-3rd-last")
 		}
@@ -1916,7 +1948,47 @@ func resolveOperation(data map[string]any, mdesc map[string]any) {
 }
 
 // resolveTransform analyzes req/res schemas for transforms.
-func resolveTransform(data map[string]any, mdesc map[string]any) {
+var bodyKeyRE = regexp.MustCompile("^`body\\.([^.`]+)`$")
+
+// warnListBody mirrors ts/src/guide/heuristic01.ts: a list that reads a whole
+// object, or drops lists of records beside the one it reads, is named.
+func warnListBody(ctx *ApiDefContext, where string, res any, props map[string]any) {
+	if len(props) == 0 || ctx == nil || ctx.Warn == nil {
+		return
+	}
+	if res == nil {
+		ctx.Warn.Warn(map[string]any{
+			"note": "list " + where + " reads its whole body, an object holding no list of" +
+				" records: declare what it lists in guide.aontu",
+		})
+		return
+	}
+	s, _ := res.(string)
+	m := bodyKeyRE.FindStringSubmatch(s)
+	if m == nil {
+		return
+	}
+	lists := recordLists(props)
+	var dropped []string
+	for _, k := range lists {
+		if k != m[1] {
+			dropped = append(dropped, "`"+k+"`")
+		}
+	}
+	if 0 < len(dropped) {
+		ctx.Warn.Warn(map[string]any{
+			"note": "list " + where + " reads `body." + m[1] + "` and drops " +
+				strings.Join(dropped, ", ") + ": declare the one it reads in guide.aontu",
+		})
+	} else if slices.Contains(lists, m[1]) && m[1] != singleEnvelope(props, "list") {
+		ctx.Warn.Warn(map[string]any{
+			"note": "list " + where + " reads `body." + m[1] + "`, beside data of the object" +
+				" it is in: declare what it lists in guide.aontu",
+		})
+	}
+}
+
+func resolveTransform(ctx *ApiDefContext, data map[string]any, mdesc map[string]any) {
 	ment, _ := mdesc["MethodEntity"].(map[string]any)
 	if ment == nil {
 		return
@@ -1942,8 +2014,9 @@ func resolveTransform(data map[string]any, mdesc map[string]any) {
 	opname := safeStr(ment["opname"])
 	op, _ := pathdesc["op"].(map[string]any)
 
+	// The request transform is the operation step's, read from the body the
+	// guide names.
 	transform := map[string]any{
-		"req": nil,
 		"res": nil,
 	}
 
@@ -1973,9 +2046,13 @@ func resolveTransform(data map[string]any, mdesc map[string]any) {
 	// Mirrors ts/src/guide/heuristic01.ts: a list reads records, so an object
 	// named for the entity does not win over a list of them beside it, found
 	// in the same parts the name is.
+	var example any
+	if opname == "list" {
+		example = findExampleObject(mdesc, "")
+	}
 	records := ""
 	if opname == "list" && partprops != nil {
-		records = envelopeProp(partprops, opname)
+		records = envelopePropWith(partprops, opname, example)
 	}
 	holdsRecord := func(prop any) bool {
 		if !isEntityWrapperProp(prop) {
@@ -1989,8 +2066,11 @@ func resolveTransform(data map[string]any, mdesc map[string]any) {
 		transform["res"] = "`body." + origname + "`"
 	} else if named && holdsRecord(partprops[ename]) && ename != "" {
 		transform["res"] = "`body." + ename + "`"
+	} else if opname == "list" && named && ename != "" &&
+		slices.Contains(recordLists(partprops), Pluralize(ename)) {
+		transform["res"] = "`body." + Pluralize(ename) + "`"
 	} else if resprops != nil {
-		if envelope := envelopeProp(resprops, opname); envelope != "" {
+		if envelope := envelopePropWith(resprops, opname, example); envelope != "" {
 			transform["res"] = "`body." + envelope + "`"
 		}
 	}
@@ -2015,17 +2095,11 @@ func resolveTransform(data map[string]any, mdesc map[string]any) {
 		}
 	}
 
-	def, _ := data["def"].(map[string]any)
-	reqschema := getRequestBodySchema(def, mdesc)
-	reqprops, _ := reqschema["properties"].(map[string]any)
-	DebugPath(pathStr, methodName, "TRANSFORM-REQ", reqprops)
-
-	if req := bodyRequestTransform(reqschema, origname, ename); req != nil {
-		transform["req"] = req
+	if opname == "list" {
+		warnListBody(ctx, strings.ToUpper(methodName)+" "+pathStr, transform["res"], partprops)
 	}
 
-	hasTransform := transform["req"] != nil || transform["res"] != nil
-	if hasTransform && op != nil && op[opname] != nil {
+	if transform["res"] != nil && op != nil && op[opname] != nil {
 		opEntry, _ := op[opname].(map[string]any)
 		if opEntry != nil {
 			opEntry["transform"] = transform
@@ -2551,7 +2625,7 @@ func cmpOccursInPath(data map[string]any, cmpname string) bool {
 func inferEntityName(mdesc map[string]any, parts []string, why *[]string) string {
 	// Try operationId
 	if opId, ok := mdesc["operationId"].(string); ok && opId != "" {
-		opid := Canonize(opId)
+		opid := StripOperationVerb(Canonize(opId))
 		if len(opid) >= 3 {
 			*why = append(*why, "infer-opid")
 			return opid
@@ -2641,7 +2715,7 @@ type sharingEntry struct {
 func sharedRoutes(routes []SharingRoute, records []string) []string {
 	bycmp := map[string][]sharingEntry{}
 	for _, route := range routes {
-		parts := splitAndFilter(route.Path, "/")
+		parts := guideParts(route.Path)
 		resource := pathResource(parts, route.Method)
 		if resource != "" && !slices.Contains(records, route.Cmp) {
 			bycmp[route.Cmp] = append(bycmp[route.Cmp], sharingEntry{route, parts, resource})
@@ -3425,7 +3499,7 @@ func entityParamNames(paths map[string]map[string]string) map[string]map[string]
 			renames[name] = target
 		}
 		out[pathStr] = renames
-		parts := verbParts(splitAndFilter(pathStr, "/"))
+		parts := verbParts(guideParts(pathStr))
 		for partI, part := range parts {
 			if isParam(part) {
 				place := strings.Join(parts[:partI+1], "/")
@@ -3924,11 +3998,11 @@ func keyHeld(work map[string]any, keys []string, collection string, exempt func(
 
 // outsideCollection mirrors ts/src/guide/heuristic01.ts.
 func outsideCollection(path string, collection string) bool {
-	if !strings.HasPrefix(path+"/", collection+"/") {
+	if !strings.HasPrefix(guidePath(path)+"/", collection+"/") {
 		return true
 	}
 	lits := []string{}
-	for _, part := range strings.Split(path, "/") {
+	for _, part := range guideParts(path) {
 		if isParam(part) {
 			return "/"+strings.Join(lits, "/") != collection
 		}

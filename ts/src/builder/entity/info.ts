@@ -33,7 +33,7 @@ function resolveInfo(
 
   const modelInfo = { main: { kit: { info: kit.info } } }
 
-  let modelDefSrc = formatJSONIC(modelInfo).trim()
+  let modelDefSrc = formatJSONIC(modelInfo, { comments: false }).trim()
 
   modelDefSrc =
     '# API Information\n\n' +

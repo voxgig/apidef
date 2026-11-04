@@ -167,9 +167,6 @@ func collectOps(ctx *ApiDefContext, entname string, gent map[string]any, pathsDe
 		for i, pt := range points {
 			mpoint, _ := pt.(map[string]any)
 			transform, _ := mpoint["t"].(map[string]any)
-			if heuristicRequest(ctx, entname, name, mpoint, transform["req"]) {
-				delete(transform, "req")
-			}
 			if transform["req"] == nil {
 				transform["req"] = requestDefault(ctx, entname, opm, name, points, i)
 			}
@@ -182,11 +179,11 @@ func collectOps(ctx *ApiDefContext, entname string, gent map[string]any, pathsDe
 	return opm, opmWork
 }
 
-// requestDefault mirrors ts/src/transform/operation.ts: an array body is sent
-// from one field of the request data, named for its records, and never for an
-// argument of its operation, a field another route of its entity has, as
-// fields span operations, or a carrier already named for an array of another
-// type or requiredness.
+// requestDefault mirrors ts/src/transform/operation.ts: the request transform
+// of a point whose guide sets none, read from the body the guide names. An
+// object wraps the record under the entity's name or sends a closed body's own
+// properties; an array is sent from a field named for its records, clear of
+// the names its operation and entity already use.
 func requestDefault(ctx *ApiDefContext, entname string, opm map[string]any, opname string, points []any, at int) any {
 	if ctx == nil {
 		return "`reqdata`"
@@ -203,10 +200,8 @@ func requestDefault(ctx *ApiDefContext, entname string, opm map[string]any, opna
 	chosen := media(opname, mpoint)
 	list := arrayRequestSchema(ctx.Def, method, path, chosen)
 	if list == nil {
-		if "" != chosen {
-			if req := bodyRequestTransform(requestSchema(ctx.Def, method, path, chosen), entname); req != nil {
-				return req
-			}
+		if req := bodyRequestTransform(objectSchema(ctx.Def, method, path, chosen), entname); req != nil {
+			return req
 		}
 		return "`reqdata`"
 	}
@@ -238,33 +233,24 @@ func requestDefault(ctx *ApiDefContext, entname string, opm map[string]any, opna
 	return "`reqdata." + arrayBodyField(list, entname, taken) + "`"
 }
 
-// heuristicRequest mirrors ts/src/transform/operation.ts: the request
-// transform the heuristic took from the default body, still in place where
-// the guide selects another media type for the point.
-func heuristicRequest(ctx *ApiDefContext, entname string, opname string, mpoint map[string]any, req any) bool {
-	if ctx == nil || req == nil {
-		return false
+// objectSchema mirrors ts/src/transform/operation.ts: the object body a point
+// sends, under the media type the guide names, else the preferred one, else a
+// schema declared on the request body itself.
+func objectSchema(def map[string]any, method string, path string, chosen string) any {
+	if schema := requestSchema(def, method, path, chosen); schema != nil {
+		return schema
 	}
-	method, _ := mpoint["m"].(string)
-	path, _ := mpoint["o"].(string)
-	if chosen, _ := guideBodyMedia(ctx.Guide, entname, opname, method, path); "" == chosen {
-		return false
+	if chosen != "" {
+		return nil
 	}
-	generated := bodyRequestTransform(requestSchema(ctx.Def, method, path, ""), entname)
-	return generated != nil && transformKey(req) == transformKey(generated)
-}
-
-// transformKey compares a transform map by its entries, in any order.
-func transformKey(t any) string {
-	if text, isText := t.(string); isText {
-		return text
+	paths, _ := def["paths"].(map[string]any)
+	pathdef, _ := paths[path].(map[string]any)
+	opdef, _ := pathdef[strings.ToLower(method)].(map[string]any)
+	requestBody, _ := opdef["requestBody"].(map[string]any)
+	if schema, ok := requestBody["schema"].(map[string]any); ok {
+		return schema
 	}
-	m, _ := t.(map[string]any)
-	parts := []string{}
-	for _, key := range sortedKeys(m) {
-		parts = append(parts, key+"="+fmt.Sprint(m[key]))
-	}
-	return "{" + strings.Join(parts, ",") + "}"
+	return nil
 }
 
 // samePoint reports whether a and b are one map, as the TypeScript port

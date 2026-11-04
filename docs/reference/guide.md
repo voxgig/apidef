@@ -39,7 +39,7 @@ guide
 | `method` | `string` | HTTP method (`GET`, `POST`, …) |
 | `why_op` | `string[]` | trace of the CRUD classification |
 | `transform.res` | `string` or `list` | response envelope unwrap (e.g. `` `body.planet` ``) when the response wraps the entity, or a struct transform when each item of a list wraps the record (see [Response envelopes](#response-envelopes)) |
-| `transform.req` | `object` or `string` | request envelope wrap when the body wraps the entity; a string names the field a JSON array body is sent from |
+| `transform.req` | `object` or `string` | request envelope wrap when the body wraps the entity; a string names the field a JSON array body is sent from. The base guide never writes it, so it is yours to set (see the model's `t.req`) |
 | `body.media` | `string` | the media type the request body is sent as; the base guide never writes it, so it is yours to set (see the model's `rb`) |
 | `response.media` | `string` | the media type to ask a success response for; likewise yours to set (see the model's `rs`) |
 
@@ -77,12 +77,13 @@ plural, so `ox` gives `oxen` and `sheep` stays `sheep`. A `transform.req` in
 the guide entry file replaces the default and names the field the model
 declares.
 `` `reqdata.messages` `` declares `messages`, and `` `reqdata` `` sends the
-input as it is, with no field. When `body.media` names another media type, a
-`transform.req` the base guide took from the preferred body is taken again
-from the chosen one: the array's field, the record under the entity's name,
-a closed body's own properties, or `` `reqdata` ``. One you set to the same
-value is taken again too, since the guides are unified before the model is
-built and the two cannot be told apart.
+input as it is, with no field. The base guide writes no `transform.req`, so
+every one in the unified guide is one you set, and it stands whatever media
+type `body.media` names. A point with none takes one from the body it sends,
+the one `body.media` names or else the preferred one: the array's field, the
+record under the entity's name when that is all the body holds, a closed
+body's own properties, or `` `reqdata` ``. The model's `t.req` shows the one
+taken.
 
 ### `GuideMetrics`
 

@@ -4,6 +4,7 @@ import { Jsonic } from '@tabnas/jsonic'
 import { Yaml } from '@tabnas/yaml'
 
 import { relativizePath } from './utility'
+import { yamlAliasedSize, yamlAliasLimit } from './yamlalias'
 
 import { parseGraphQL } from './parse/graphql'
 
@@ -22,6 +23,7 @@ async function parse(kind: string, source: any, meta: { file: string }) {
   if ('OpenAPI' === kind) {
 
     validateSource(kind, source, meta)
+    validateAliases(kind, source, meta)
 
     try {
       const def = await parseOpenAPI(source, meta)
@@ -121,10 +123,43 @@ async function parseOpenAPI(source: any, _meta?: any) {
   // After resolution, so a pointer into `paths` names the key as written and a
   // parameter declared by `$ref` counts. See docs/design/derived-names.md
   normalizeColonPathParams(parsed, _meta)
+  dropIgnoredHeaders(parsed)
 
   const def = decycle(parsed)
 
   return def
+}
+
+
+// In an OpenAPI 3 definition, a header parameter named Accept, Content-Type or
+// Authorization is ignored: responses, the request body and the security
+// schemes say those. Each dropped one is recorded for a warning.
+const IGNORED_HEADERS = ['accept', 'content-type', 'authorization']
+const IGNORED_HEADERS_KEY = 'x-apidef-ignored-headers'
+
+function dropIgnoredHeaders(parsed: any) {
+  delete parsed[IGNORED_HEADERS_KEY]
+  if (!String(parsed.openapi ?? '').startsWith('3') || !isRecord(parsed.paths)) return
+
+  const dropped: { path: string, method?: string, name: string }[] = []
+  const kept = (list: any[], path: string, method?: string) => list.filter((param: any) => {
+    const ignored = isRecord(param) && 'header' === param.in && 'string' === typeof param.name &&
+      IGNORED_HEADERS.includes(param.name.toLowerCase())
+    if (ignored) dropped.push({ path, ...(method ? { method: method.toUpperCase() } : {}), name: param.name })
+    return !ignored
+  })
+
+  for (const path of Object.keys(parsed.paths).sort()) {
+    const item = parsed.paths[path]
+    if (!isRecord(item)) continue
+    if (Array.isArray(item.parameters)) item.parameters = kept(item.parameters, path)
+    for (const method of METHODS) {
+      const op = item[method]
+      if (isRecord(op) && Array.isArray(op.parameters)) op.parameters = kept(op.parameters, path, method)
+    }
+  }
+
+  if (0 < dropped.length) parsed[IGNORED_HEADERS_KEY] = dropped
 }
 
 
@@ -282,7 +317,6 @@ function addXRefsAndResolve(
   obj: any,
   root: any,
   visited: WeakSet<any> = new WeakSet(),
-  expanding: Map<any, any> = new Map(),
 ) {
   if (!obj || typeof obj !== 'object') return
   if (visited.has(obj)) return
@@ -295,43 +329,37 @@ function addXRefsAndResolve(
     const val = obj[key]
     if (val && typeof val === 'object') {
       if (typeof val.$ref === 'string') {
-        resolveRefSite(obj, key, root, visited, expanding)
+        resolveRefSite(val, root, visited)
       } else {
-        addXRefsAndResolve(val, root, visited, expanding)
+        addXRefsAndResolve(val, root, visited)
       }
     }
   }
 }
 
 
-function resolveRefSite(
-  holder: any,
-  key: string | number,
-  root: any,
-  visited: WeakSet<any>,
-  expanding: Map<any, any>,
-) {
-  const site = holder[key]
-
-  const inProgress = expanding.get(site)
-  if (undefined !== inProgress) {
-    holder[key] = inProgress
-    return
-  }
-
+// Resolved in place, as in go/parse.go: the site's own keywords win and the
+// target's children stay shared, so each target is walked once.
+function resolveRefSite(site: any, root: any, visited: WeakSet<any>) {
   const xref = site.$ref
   const resolved = resolvePointer(root, xref)
-  if (resolved === undefined) {
-    site['x-ref'] = xref
-    addXRefsAndResolve(site, root, visited, expanding)
-    return
+  if (undefined !== resolved) {
+    replaceOwnKeys(site, { ...resolved, ...refSiblings(site), 'x-ref': xref })
   }
+  else {
+    site['x-ref'] = xref
+  }
+  addXRefsAndResolve(site, root, visited)
+}
 
-  const copy = { ...resolved, ...refSiblings(site), 'x-ref': xref }
-  holder[key] = copy
-  expanding.set(site, copy)
-  addXRefsAndResolve(copy, root, visited, expanding)
-  expanding.delete(site)
+
+// Defined, not assigned, so a key named __proto__ stays data.
+function replaceOwnKeys(obj: any, src: any) {
+  for (const k of Object.keys(obj)) delete obj[k]
+  for (const k of Object.keys(src)) {
+    Object.defineProperty(obj, k,
+      { value: src[k], writable: true, enumerable: true, configurable: true })
+  }
 }
 
 
@@ -389,6 +417,19 @@ function followAlias(root: any, node: any, active: Set<string>): any {
 }
 
 
+function validateAliases(kind: string, source: string, meta: { file: string }) {
+  const size = yamlAliasedSize(source)
+  const limit = yamlAliasLimit(source)
+  if (limit < size) {
+    throw new Error(
+      `@voxgig/apidef: parse: ${kind}: YAML aliases would expand the source to` +
+      ` about ${size} bytes, past the limit of ${limit}` +
+      ` (${relativizePath(meta.file)})`
+    )
+  }
+}
+
+
 function validateSource(kind: string, source: any, meta: { file: string }) {
   if (typeof source !== 'string') {
     throw new Error(
@@ -413,6 +454,7 @@ export {
   decycledChild,
   normalizePathKeys,
   colonPathKeys,
+  IGNORED_HEADERS_KEY,
 }
 
 

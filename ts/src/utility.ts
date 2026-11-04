@@ -29,11 +29,6 @@ const sortedKeys = (obj: any): string[] => Object.keys(obj ?? {}).sort()
 const sortedEntries = (obj: any): [string, any][] =>
   Object.entries(obj ?? {}).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
 
-// Pre-compiled regex patterns for formatJsonSrc to avoid recompilation per call.
-const RE_JSON_KEY = /"([a-zA-Z_][a-zA-Z_0-9]*)": /g
-const RE_JSON_TRAILING_BRACE = /},/g
-const RE_JSON_COMMENT = /\n(\s*)([a-zA-Z_][a-zA-Z_0-9]*)_COMMENT:\s*"(.*)",/g
-
 const RE_BARE_KEY = /^[A-Za-z_][_A-Za-z0-9]*$/
 const isBareKey = (k: string) => RE_BARE_KEY.test(k)
 const quoteKey = (k: string) => (isBareKey(k) ? k : JSON.stringify(k))
@@ -128,11 +123,38 @@ function loadFile(path: string, what: string, fs: FsUtil, log: Log) {
 }
 
 
+// Unquotes bare keys and breaks the line after `},`, only outside strings, so
+// no string value is rewritten.
 function formatJsonSrc(jsonsrc: string) {
-  return jsonsrc
-    .replace(RE_JSON_KEY, '$1: ')
-    .replace(RE_JSON_TRAILING_BRACE, '}\n')
-    .replace(RE_JSON_COMMENT, '\n\n$1# $2 $3')
+  let out = ''
+  let i = 0
+  while (i < jsonsrc.length) {
+    const ch = jsonsrc[i]
+    if ('"' === ch) {
+      let end = i + 1
+      while (end < jsonsrc.length && '"' !== jsonsrc[end]) {
+        end += '\\' === jsonsrc[end] ? 2 : 1
+      }
+      const body = jsonsrc.substring(i + 1, end)
+      if (': ' === jsonsrc.substring(end + 1, end + 3) && isBareKey(body)) {
+        out += body + ': '
+        i = end + 3
+      }
+      else {
+        out += jsonsrc.substring(i, end + 1)
+        i = end + 1
+      }
+    }
+    else if ('}' === ch && ',' === jsonsrc[i + 1]) {
+      out += '}\n'
+      i += 2
+    }
+    else {
+      out += ch
+      i++
+    }
+  }
+  return out
 }
 
 
@@ -722,6 +744,7 @@ function formatJSONIC(
     color?: boolean
     maxlines?: number,
     exclude?: string[],
+    comments?: boolean,
   }): string {
 
   if (undefined === val) return ''
@@ -731,6 +754,7 @@ function formatJSONIC(
   const useColor = opts?.color ?? false
   const maxlines = opts?.maxlines ?? Number.MAX_VALUE
   const exclude = opts?.exclude ?? []
+  const comments = opts?.comments ?? true
 
   // ANSI color codes
   const colors = {
@@ -751,13 +775,8 @@ function formatJSONIC(
     if (v === null) return c('null', 'null')
     const t = typeof v
     switch (t) {
-      case 'string': return c('string', !v.includes('\n') ? JSON.stringify(v) :
-        '`' + JSON.stringify(v)
-          .substring(1)
-          .replace(/\\n/g, '\n')
-          .replace(/\\"/g, '"')
-          .replace(/`/g, '\\`')
-          .replace(/"$/, '`'))
+      case 'string': return c('string',
+        !v.includes('\n') ? JSON.stringify(v) : backtickString(v))
       case 'number': return c('number', Number.isFinite(v) ? String(v) : 'null')
       case 'boolean': return c('boolean', v ? 'true' : 'false')
       case 'bigint': return c('string', JSON.stringify(v.toString()))
@@ -769,15 +788,44 @@ function formatJSONIC(
     }
   }
 
-  const renderComment = (c: any): string | null => {
+  const commentText = (c: any): string | null => {
     if (c == null) return null
     if (Array.isArray(c) && c.every(x => typeof x === 'string')) return c.join('; ')
     if (typeof c === 'string') return c
     try { return JSON.stringify(c) } catch { return String(c) }
   }
 
+  // A comment runs to the end of its line, so a line break in it would start
+  // source.
+  const renderComment = (c: any): string | null => {
+    const text = comments ? commentText(c) : null
+    return null == text ? null : text.replace(RE_LINE_BREAKS, ' ')
+  }
+
   return renderJSONIC(val, hsepd, showd, useColor, maxlines, exclude, c,
-    renderPrimitive, renderComment, false)
+    renderPrimitive, renderComment, comments, false)
+}
+
+
+const RE_LINE_BREAKS = /[\r\n\u2028\u2029]+/g
+
+
+// Its JSON escapes, read in order so an escaped backslash never starts
+// another, with a newline and a quote written as themselves.
+function backtickString(s: string): string {
+  const json = JSON.stringify(s)
+  let out = '`'
+  for (let i = 1; i < json.length - 1; i++) {
+    const ch = json[i]
+    if ('\\' === ch) {
+      const esc = json[++i]
+      out += 'n' === esc ? '\n' : '"' === esc ? '"' : '\\' + esc
+    }
+    else {
+      out += '`' === ch ? '\\`' : ch
+    }
+  }
+  return out + '`'
 }
 
 
@@ -791,6 +839,7 @@ function renderJSONIC(
   c: (color: any, text: string) => string,
   renderPrimitive: (v: any) => string,
   renderComment: (c: any) => string | null,
+  comments: boolean,
   decircularized: boolean,
 ): string {
 
@@ -874,7 +923,7 @@ function renderJSONIC(
         }
         if (undefined !== flat) {
           return renderJSONIC(flat, hsepd, showd, useColor, maxlines, exclude, c,
-            renderPrimitive, renderComment, true)
+            renderPrimitive, renderComment, comments, true)
         }
       }
       // decircular did not resolve it, so render a marker rather than
@@ -919,7 +968,7 @@ function renderJSONIC(
       keys.unshift('name', 'message', 'stack')
     }
 
-    const printableKeys = keys.filter(k => !k.endsWith('_COMMENT') &&
+    const printableKeys = keys.filter(k => !(comments && k.endsWith('_COMMENT')) &&
       (showd || !k.endsWith('$')))
 
     if (printableKeys.length === 0) {
@@ -1130,6 +1179,49 @@ function foldName(name: string): string {
 const FIRST_LETTER_RE = /[a-zA-Z]/
 
 
+// Formats a route segment may name beside its resource, or alone.
+const FORMAT_EXTENSIONS = new Set([
+  'json', 'xml', 'csv', 'tsv', 'yaml', 'yml', 'txt', 'html', 'htm', 'rss',
+  'atom', 'jsonl', 'ndjson', 'geojson',
+])
+
+// A route segment as the guide reads it: {id}.json is {id}, repos.json and
+// data.{format} are repos and data, and a format alone (json) names nothing.
+function guideSegment(seg: string): string | null {
+  const held = seg.match(/^(\{[^}]+\})\.(?:[A-Za-z0-9]+|\{[^}]+\})$/)
+  if (null != held) return held[1]
+  const named = seg.match(/^([^{}.]+)\.([A-Za-z0-9]+|\{[^}]+\})$/)
+  if (null != named && ('{' === named[2][0] || FORMAT_EXTENSIONS.has(named[2].toLowerCase()))) {
+    return named[1]
+  }
+  return FORMAT_EXTENSIONS.has(seg.toLowerCase()) ? null : seg
+}
+
+// The guide's parts of a route; a route of formats alone keeps them.
+function guideParts(path: string): string[] {
+  const parts = path.split('/').filter((p: string) => '' !== p)
+  const kept = parts.map(guideSegment).filter((p): p is string => null != p)
+  return 0 === kept.length ? parts : kept
+}
+
+function guidePath(path: string): string {
+  return '/' + guideParts(path).join('/')
+}
+
+
+// aontu cannot unify a spread with a key Object.prototype owns, so no entity
+// is given one of these names. Listed, not read, so both ports agree.
+const PROTOTYPE_NAMES = new Set([
+  'constructor', '__defineGetter__', '__defineSetter__', 'hasOwnProperty',
+  '__lookupGetter__', '__lookupSetter__', 'isPrototypeOf',
+  'propertyIsEnumerable', 'toString', 'valueOf', '__proto__', 'toLocaleString',
+])
+
+function guardPrototypeName(s: string): string {
+  return PROTOTYPE_NAMES.has(s) ? s + '_item' : s
+}
+
+
 function prefixLeadingDigit(s: string): string {
   if (null == s || '' === s) return s
   const first = s.charCodeAt(0)
@@ -1262,7 +1354,7 @@ function ensureMinEntityName(
     padded = truncated || parts[0].substring(0, MAX_ENTITY_NAME_LEN)
   }
 
-  padded = prefixLeadingDigit(padded)
+  padded = guardPrototypeName(prefixLeadingDigit(padded))
   if (padded.length < MIN_ENTITY_NAME_LEN) {
     const padding = 'nt'.substring(0, MIN_ENTITY_NAME_LEN - padded.length)
     padded = padded + padding
@@ -1289,14 +1381,32 @@ function ensureMinEntityName(
 // Unconditional suffixes: framework noise, always stripped.
 const CMP_SUFFIXES = ['_rest_controller', '_controller', '_response', '_request']
 
-const CMP_GUARDED_SUFFIXES = ['_create_response', '_update_response', '_page_response', '_page']
+// Longest first: the first suffix a name ends with is the only one tried.
+const CMP_GUARDED_SUFFIXES = [
+  '_create_response', '_update_response', '_page_response',
+  '_response_collection', '_response_single', '_response_dto',
+  '_collection', '_single', '_dto', '_page',
+]
 
 const CMP_RESULT_VERBS = [
   'list', 'create', 'show', 'update', 'delete', 'remove',
-  'get', 'edit', 'resolve', 'rotate', 'search',
+  'get', 'edit', 'resolve', 'rotate', 'search', 'add',
 ]
 
 const CMP_PREFIXES = ['get_', 'post_', 'put_', 'delete_', 'patch_']
+
+const OPERATION_VERBS = [
+  ...CMP_RESULT_VERBS, 'post', 'put', 'patch', 'fetch', 'find', 'retrieve', 'read', 'add',
+]
+
+// An operationId leads with its action, so get_service_status names
+// service_status. The verb stays when what follows is too short to name one.
+function stripOperationVerb(opid: string): string {
+  const cut = opid.indexOf('_')
+  if (cut < 0) return opid
+  const rest = opid.substring(cut + 1)
+  return OPERATION_VERBS.includes(opid.substring(0, cut)) && 3 <= rest.length ? rest : opid
+}
 
 // A guide node (entity, path or op) is active unless guide.aontu explicitly
 // says otherwise. `active` has always been declared in the guide model and
@@ -1451,7 +1561,7 @@ function cleanComponentName(
       // (CallRouteAllowedCaller), so the namespace is tried singular too.
       const cands = after
         ? [canonize(depluralize(after)), canonize(depluralize(before + '_' + after)),
-          canonize(depluralize(before) + '_' + depluralize(after))]
+          canonize(depluralize(before) + '_' + depluralize(after)), canonize(depluralize(before))]
         : [canonize(depluralize(before))]
       for (const cand of cands) {
         if (cand.length >= 3 && knownWithVersion(cand, version)) {
@@ -1484,6 +1594,15 @@ function cleanComponentName(
         cleaned = canonize(parts.slice(0, parts.length - suffixParts).join('_'))
         break
       }
+    }
+  }
+
+  // A list wrapper names its records: list_asset is asset, when asset is known.
+  if (null != isKnownCmp && cleaned.startsWith('list_')) {
+    const remainder = canonize(cleaned.substring('list_'.length))
+    if (remainder.length >= 3 && knownWithVersion(remainder, version)) {
+      cleaned = remainder
+      stripped = true
     }
   }
 
@@ -1815,7 +1934,43 @@ function itemEnvelopeOf(res: any): string | null {
 }
 
 
-function envelopeProp(resprops: any, opname: string): string | null {
+// A list over an object reads its records, never the object: its one envelope,
+// else its one list of records beside other data, else the first of several.
+function envelopeProp(resprops: any, opname: string, example?: any): string | null {
+  const key = singleEnvelope(resprops, opname)
+  return null == key && 'list' === opname ? listedRecords(resprops, example) : key
+}
+
+
+function recordLists(resprops: any): string[] {
+  return keysof(resprops).filter((k: string) => isRecordList(resprops[k]))
+}
+
+
+// Lists of one item schema are categories of one record: the one the example
+// fills is read, as the example is counted. Otherwise the first by name is,
+// past one holding errors or messages.
+function listedRecords(resprops: any, example?: any): string | null {
+  const lists = recordLists(resprops)
+  if (lists.length < 2) {
+    return lists[0] ?? null
+  }
+
+  const refs = new Set(lists.map((k: string) => resprops[k]?.items?.['x-ref']))
+  if (1 === refs.size && null != [...refs][0]) {
+    const filled = lists.filter((k: string) =>
+      Array.isArray(example?.[k]) && 0 < example[k].length)
+    if (1 === filled.length) {
+      return filled[0]
+    }
+  }
+
+  const status = (k: string) => isEnvelopeStatusProp(k) || isEnvelopeStatusProp(k.replace(/s$/i, ''))
+  return lists.find((k: string) => !isPageMetaProp(k) && !status(k)) ?? lists[0]
+}
+
+
+function singleEnvelope(resprops: any, opname: string): string | null {
   const keys = keysof(resprops)
   if (0 === keys.length) {
     return null
@@ -2318,6 +2473,10 @@ export {
   humanTitle,
   foldName,
   prefixLeadingDigit,
+  guardPrototypeName,
+  guideParts,
+  guidePath,
+  stripOperationVerb,
   debugpath,
   debugpathOn,
   findPathsWithPrefix,
@@ -2334,6 +2493,8 @@ export {
   itemEnvelopeTransform,
   itemEnvelopeOf,
   envelopeProp,
+  recordLists,
+  singleEnvelope,
   envelopeItemRef,
   composedEnvelopeProp,
   pageRecords,

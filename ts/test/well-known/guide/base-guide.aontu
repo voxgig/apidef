@@ -29,16 +29,19 @@ guide: {
   entity: agent: {
     path: "/well-known/agent.json": {
       op: list: method: *GET
+      op: list: transform: res: *("`body.securityRequirements`")|top
     }
   }
 
   entity: agent_card: {
     path: "/well-known/agent-card.json": {
       op: list: method: *GET
+      op: list: transform: res: *("`body.securityRequirements`")|top
     }
     path: "/zzz/{id}/dbset": {
       rename: param: "id": *"zzz_id"
       op: list: method: *GET
+      op: list: transform: res: *("`body.securityRequirements`")|top
     }
   }
 

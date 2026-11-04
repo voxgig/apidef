@@ -3,8 +3,6 @@
 package apidef
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -552,6 +550,68 @@ func FoldName(name string) string {
 	return jsLowerCaser.String(Camelify(name))
 }
 
+// formatExtensions are the formats a route segment may name beside its
+// resource, or alone.
+var formatExtensions = map[string]bool{
+	"json": true, "xml": true, "csv": true, "tsv": true, "yaml": true, "yml": true,
+	"txt": true, "html": true, "htm": true, "rss": true, "atom": true, "jsonl": true,
+	"ndjson": true, "geojson": true,
+}
+
+var heldSegmentRE = regexp.MustCompile(`^(\{[^}]+\})\.(?:[A-Za-z0-9]+|\{[^}]+\})$`)
+var namedSegmentRE = regexp.MustCompile(`^([^{}.]+)\.([A-Za-z0-9]+|\{[^}]+\})$`)
+
+// guideSegment mirrors ts/src/utility.ts: a route segment as the guide
+// classifies and names it, and false for a format alone, which names nothing.
+func guideSegment(seg string) (string, bool) {
+	if m := heldSegmentRE.FindStringSubmatch(seg); m != nil {
+		return m[1], true
+	}
+	if m := namedSegmentRE.FindStringSubmatch(seg); m != nil &&
+		(strings.HasPrefix(m[2], "{") || formatExtensions[strings.ToLower(m[2])]) {
+		return m[1], true
+	}
+	if formatExtensions[strings.ToLower(seg)] {
+		return "", false
+	}
+	return seg, true
+}
+
+// guideParts mirrors ts/src/utility.ts: a route of formats alone keeps them.
+func guideParts(path string) []string {
+	parts := splitAndFilter(path, "/")
+	kept := []string{}
+	for _, part := range parts {
+		if seg, ok := guideSegment(part); ok {
+			kept = append(kept, seg)
+		}
+	}
+	if len(kept) == 0 {
+		return parts
+	}
+	return kept
+}
+
+func guidePath(path string) string {
+	return "/" + strings.Join(guideParts(path), "/")
+}
+
+// prototypeNames are the names Object.prototype owns in TypeScript: aontu cannot
+// unify a spread with one as a key, so no entity is given one.
+var prototypeNames = map[string]bool{
+	"constructor": true, "__defineGetter__": true, "__defineSetter__": true,
+	"hasOwnProperty": true, "__lookupGetter__": true, "__lookupSetter__": true,
+	"isPrototypeOf": true, "propertyIsEnumerable": true, "toString": true,
+	"valueOf": true, "__proto__": true, "toLocaleString": true,
+}
+
+func GuardPrototypeName(s string) string {
+	if prototypeNames[s] {
+		return s + "_item"
+	}
+	return s
+}
+
 var firstLetterRE = regexp.MustCompile(`[a-zA-Z]`)
 
 func PrefixLeadingDigit(s string) string {
@@ -880,18 +940,41 @@ func firstFieldMatch(props []string, names []string) string {
 	return ""
 }
 
+var cmpResultVerbs = []string{
+	"list", "create", "show", "update", "delete", "remove",
+	"get", "edit", "resolve", "rotate", "search", "add",
+}
+
+var operationVerbs = append(append([]string{}, cmpResultVerbs...),
+	"post", "put", "patch", "fetch", "find", "retrieve", "read", "add")
+
+// StripOperationVerb mirrors ts/src/utility.ts: an operationId leads with its
+// action, so get_service_status names service_status.
+func StripOperationVerb(opid string) string {
+	cut := strings.Index(opid, "_")
+	if cut < 0 {
+		return opid
+	}
+	rest := opid[cut+1:]
+	if slices.Contains(operationVerbs, opid[:cut]) && 3 <= len(rest) {
+		return rest
+	}
+	return opid
+}
+
 func CleanComponentName(name string, isKnownCmp func(string) bool) string {
 	cleaned := name
 	stripped := false
 	// Order matters: longer suffixes first — '_page_response' and
 	// '_create_response' also end with '_response'.
-	guarded := []string{"_create_response", "_update_response", "_page_response", "_page"}
+	guarded := []string{
+		"_create_response", "_update_response", "_page_response",
+		"_response_collection", "_response_single", "_response_dto",
+		"_collection", "_single", "_dto", "_page",
+	}
 	suffixes := []string{"_rest_controller", "_controller", "_response", "_request"}
 	prefixes := []string{"get_", "post_", "put_", "delete_", "patch_"}
-	resultVerbs := []string{
-		"list", "create", "show", "update", "delete", "remove",
-		"get", "edit", "resolve", "rotate", "search",
-	}
+	resultVerbs := cmpResultVerbs
 
 	// Version-tolerant known-schema probe: APIs that version their schemas
 	// name the base type SeverityV1 / IncidentV2, so a guard asking only for
@@ -936,7 +1019,7 @@ func CleanComponentName(name string, isKnownCmp func(string) bool) string {
 				// The namespace is the collection (CallRoutes), the record its
 				// item (CallRouteAllowedCaller), so the namespace is tried singular too.
 				cands = []string{Canonize(Depluralize(after)), Canonize(Depluralize(before + "_" + after)),
-					Canonize(Depluralize(before) + "_" + Depluralize(after))}
+					Canonize(Depluralize(before) + "_" + Depluralize(after)), Canonize(Depluralize(before))}
 			} else if before != "" {
 				cands = []string{Canonize(Depluralize(before))}
 			}
@@ -975,6 +1058,15 @@ func CleanComponentName(name string, isKnownCmp func(string) bool) string {
 				}
 				break
 			}
+		}
+	}
+
+	// A list wrapper names its records: list_asset is asset, when asset is known.
+	if isKnownCmp != nil && strings.HasPrefix(cleaned, "list_") {
+		remainder := Canonize(strings.TrimPrefix(cleaned, "list_"))
+		if len(remainder) >= 3 && knownWithVersion(remainder) {
+			cleaned = remainder
+			stripped = true
 		}
 	}
 
@@ -1027,7 +1119,7 @@ func EnsureMinEntityName(name string, existing map[string]any) string {
 		}
 	}
 
-	padded = PrefixLeadingDigit(padded)
+	padded = GuardPrototypeName(PrefixLeadingDigit(padded))
 	if len(padded) < minEntityNameLen {
 		padding := "nt"
 		if minEntityNameLen-len(padded) < len(padding) {
@@ -1334,8 +1426,7 @@ func quoteKey(k string) string {
 	if isBareKey(k) {
 		return k
 	}
-	b, _ := json.Marshal(k)
-	return string(b)
+	return jsonStringify(k)
 }
 
 func formatJSONICValue(val any, indent int, prefix string, lines *[]string, seen map[uintptr]bool) {
@@ -1426,8 +1517,7 @@ func formatJSONICValue(val any, indent int, prefix string, lines *[]string, seen
 	case map[string]any:
 		keys := make([]string, 0, len(v))
 		for k := range v {
-			// Exclude keys ending in $ or _COMMENT
-			if strings.HasSuffix(k, "$") || strings.HasSuffix(k, "_COMMENT") {
+			if strings.HasSuffix(k, "$") {
 				continue
 			}
 			keys = append(keys, k)
@@ -1483,32 +1573,29 @@ func formatJSONICValue(val any, indent int, prefix string, lines *[]string, seen
 }
 
 func jsonString(s string) string {
-	if strings.ContainsAny(s, "\n\r") {
-		raw := jsonStringHTMLSafe(s)
-		body := raw[1 : len(raw)-1]
-		body = strings.ReplaceAll(body, "\\n", "\n")
-		body = strings.ReplaceAll(body, "\\\"", "\"")
-		body = strings.ReplaceAll(body, "`", "\\`")
-		return "`" + body + "`"
+	if strings.Contains(s, "\n") {
+		return backtickString(s)
 	}
-	return jsonStringHTMLSafe(s)
+	return jsonStringify(s)
 }
 
-// jsonStringHTMLSafe runs json.Marshal-equivalent encoding without
-// HTML-escaping (`<` / `>` / `&` / ` ` etc.).
-func jsonStringHTMLSafe(s string) string {
-	var buf bytes.Buffer
-	enc := json.NewEncoder(&buf)
-	enc.SetEscapeHTML(false)
-	if err := enc.Encode(s); err != nil {
-		b, _ := json.Marshal(s)
-		return string(b)
+// backtickString is the multiline form: the JSON escapes, with a newline and
+// a quote written as themselves and a backtick escaped.
+func backtickString(s string) string {
+	var b strings.Builder
+	b.WriteByte('`')
+	for _, r := range s {
+		switch r {
+		case '\n', '"':
+			b.WriteRune(r)
+		case '`':
+			b.WriteString("\\`")
+		default:
+			writeJSONRune(&b, r)
+		}
 	}
-	out := buf.Bytes()
-	if len(out) > 0 && out[len(out)-1] == '\n' {
-		out = out[:len(out)-1]
-	}
-	return string(out)
+	b.WriteByte('`')
+	return b.String()
 }
 
 // LoadFile reads a file and returns its contents.
@@ -1873,7 +1960,79 @@ func itemEnvelopeOf(res any) string {
 	return ""
 }
 
+// envelopeProp mirrors ts/src/utility.ts: a list over an object reads its
+// records, never the object.
 func envelopeProp(resprops map[string]any, opname string) string {
+	return envelopePropWith(resprops, opname, nil)
+}
+
+func envelopePropWith(resprops map[string]any, opname string, example any) string {
+	key := singleEnvelope(resprops, opname)
+	if key == "" && opname == "list" {
+		return listedRecords(resprops, example)
+	}
+	return key
+}
+
+// recordLists are the lists of records an object holds, in name order.
+func recordLists(resprops map[string]any) []string {
+	var out []string
+	for _, k := range sortedKeys(resprops) {
+		if isRecordList(resprops[k]) {
+			out = append(out, k)
+		}
+	}
+	return out
+}
+
+// listedRecords mirrors ts/src/utility.ts: lists of one item schema read the
+// one the example fills, else the first by name past errors or messages.
+func listedRecords(resprops map[string]any, example any) string {
+	lists := recordLists(resprops)
+	if len(lists) == 0 {
+		return ""
+	}
+	if len(lists) == 1 {
+		return lists[0]
+	}
+
+	ref, same := "", true
+	for i, k := range lists {
+		prop, _ := resprops[k].(map[string]any)
+		items, _ := prop["items"].(map[string]any)
+		r, _ := items["x-ref"].(string)
+		if i == 0 {
+			ref = r
+		} else if r != ref {
+			same = false
+		}
+	}
+	if same && ref != "" {
+		ex, _ := example.(map[string]any)
+		var filled []string
+		for _, k := range lists {
+			if arr, ok := ex[k].([]any); ok && 0 < len(arr) {
+				filled = append(filled, k)
+			}
+		}
+		if len(filled) == 1 {
+			return filled[0]
+		}
+	}
+
+	for _, k := range lists {
+		single := k
+		if strings.HasSuffix(strings.ToLower(k), "s") {
+			single = k[:len(k)-1]
+		}
+		if !isPageMetaProp(k) && !isEnvelopeStatusProp(k) && !isEnvelopeStatusProp(single) {
+			return k
+		}
+	}
+	return lists[0]
+}
+
+func singleEnvelope(resprops map[string]any, opname string) string {
 	if len(resprops) == 0 {
 		return ""
 	}

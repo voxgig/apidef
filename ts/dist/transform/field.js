@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fieldTransform = void 0;
+exports.findExampleObject = findExampleObject;
 exports.inferFieldsFromExamples = inferFieldsFromExamples;
 exports.inferTypeFromValue = inferTypeFromValue;
 exports.routeFieldNames = routeFieldNames;
@@ -648,7 +649,7 @@ function findFieldDefs(ment, mop, mpoint, def, media) {
                     (0, jostraca_1.getx)(responses, '202 schema');
             }
             if ('list' == mop.name) {
-                const unwrapped = unwrapArrayWrapper(fieldSets);
+                const unwrapped = transformRecords(fieldSets, mpoint.t?.res) ?? unwrapArrayWrapper(fieldSets);
                 envelope = null == unwrapped ? (0, utility_1.composedEnvelopeProp)(fieldSets, 'list') : null;
                 const itemkey = (0, utility_1.itemEnvelopeOf)(mpoint.t?.res);
                 if (unwrapped) {
@@ -849,6 +850,14 @@ function unwrapExample(example, envelope) {
         return example.length > 0 ? example[0] : null;
     }
     return example;
+}
+// The records a list's response transform reads from one property of the body,
+// so its fields follow the list it chose among several.
+function transformRecords(schema, res) {
+    const m = 'string' === typeof res ? res.match(/^`body\.([^`.]+)`$/) : null;
+    const items = null == m ? null : (0, utility_1.mergedProperties)(schema)?.[m[1]]?.items;
+    return null != items && 'object' === typeof items &&
+        (null != items.properties || Array.isArray(items.allOf)) ? items : null;
 }
 function unwrapArrayWrapper(schema) {
     if (null == schema || 'object' !== typeof schema)

@@ -219,4 +219,34 @@ paths:
 `, pm0), /source is empty/);
     });
 });
+(0, node_test_1.describe)('parse-ref-sharing', () => {
+    // Each schema holds nine $refs to the next, declared before what they name.
+    // A copy per site multiplied the work by nine at every level.
+    (0, node_test_1.test)('a target is resolved once however many sites name it', async () => {
+        const depth = 5;
+        const schemas = { ['S' + depth]: { type: 'string' } };
+        for (let i = 0; i < depth; i++) {
+            const s = { type: 'object' };
+            for (let j = 0; j < 9; j++)
+                s['k' + j] = { $ref: '#/components/schemas/S' + (i + 1) };
+            schemas['S' + i] = s;
+        }
+        const spec = {
+            openapi: '3.0.3', info: { title: 't', version: '1' },
+            servers: [{ url: 'https://x.example' }], paths: {}, components: { schemas },
+        };
+        const def = await (0, parse_1.parse)('OpenAPI', JSON.stringify(spec), { file: 'shared.json' });
+        const seen = new Set();
+        const walk = (v) => {
+            if (null == v || 'object' !== typeof v || seen.has(v))
+                return;
+            seen.add(v);
+            Object.values(v).forEach(walk);
+        };
+        walk(def);
+        node_assert_1.default.ok(seen.size < 200, 'objects after resolution: ' + seen.size);
+        const leaf = def.components.schemas.S0.k0.k1.k2.k3.k4;
+        node_assert_1.default.deepStrictEqual(leaf, { type: 'string', 'x-ref': '#/components/schemas/S5' });
+    });
+});
 //# sourceMappingURL=parse.test.js.map

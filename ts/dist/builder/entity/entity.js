@@ -36,7 +36,7 @@ function resolveEntity(apimodel, opts) {
 // The text of one entity's model file.
 function entitySource(entity) {
     const { model, relations } = entityAncestorSource(entity);
-    let entityJSONIC = (0, utility_1.formatJSONIC)(model).trim();
+    let entityJSONIC = (0, utility_1.formatJSONIC)(model, { comments: false }).trim();
     entityJSONIC = entityJSONIC.substring(1, entityJSONIC.length - 1);
     return `# Entity: ${entity.name}\n\n` +
         `main: ${types_1.KIT}: entity: ${entity.name}: {\n\n` +

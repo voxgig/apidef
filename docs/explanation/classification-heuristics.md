@@ -19,6 +19,14 @@ A path like `/api/planet/{planet_id}/moon/{moon_id}` becomes the parts
 
 Segments wrapped in `{…}` are **parameters**; the rest are **literals**.
 
+A format a segment carries is set aside: a placeholder with an extension
+(`{id}.json`, `{name}.{format}`) is read as the placeholder, a literal with
+one (`repos.json`, `data.{format}`) as the literal, and a format alone
+(`json`) is skipped. So `/repos/{slug}.json` is the item route of
+`/repos.json`, and `/series/{code}/json` the item route of `/series`. The
+model keeps each segment as written, so a request still goes to
+`/repos/acme.json`.
+
 These string parts belong to the GUIDE step alone — the classifier's own
 working view of the path. They are not what the MODEL carries: a point's
 path is emitted as a typed `segments` vector with the braces already
@@ -44,6 +52,20 @@ that wildly different spellings collapse onto one canonical identifier:
   to match what follows: `3ds_session` becomes `n3ds_session`, `3DSecure`
   becomes `N3DSecure`. Field names are exempt, because they have to keep
   matching the keys the server sends.
+- **avoid a prototype name** — the model language cannot unify a spread with
+  a key every object already owns, such as `constructor`, so such a name gains
+  `_item`: a `constructors` collection names the entity `constructor_item`.
+
+A path with no collection literal, such as `/`, `/{id}` or `/{org}/{id}`,
+takes its name from the first of these that gives at least three letters:
+
+1. the operation's `operationId`, without a leading verb: `get_service_status`
+   names `service_status`, and `getUser` names `user`;
+2. the title of its 200 or 201 response schema;
+3. its last segment that is not a parameter.
+
+So renaming the `operationId` of such a path renames its entity in every
+generated SDK. A guide entry fixes the name whatever the definition says.
 
 Nested collections become nested entities with an **ancestor** relationship:
 `moon` records that it lives under `planet`.
@@ -112,6 +134,18 @@ are one resource, and the two cannot collide in one operation, because one
 is a list and the other is not. Without that evidence the rule holds: a
 gallery's page of artworks and an auction's single lot stay two resources,
 though both carry the artwork record.
+
+A list always reads records rather than the object they arrive in. An object
+holding one list of records beside data of its own, such as a parent beside
+its children, is read through that list. When it holds several, a list named
+for the entity wins. Lists that share one item schema are categories of one
+record, so the list reads the one the definition's example fills, as an SDK's
+definition test counts it. Otherwise it reads the first by name that is not
+named for errors or messages. Each list
+that drops other lists of records is reported with a warning that names
+them, and so is a list whose object holds no list of records, which reads
+its whole body. A guide entry that sets the operation's transform settles
+either case.
 
 Each reference to a component schema counts once per use in the resolved
 spec, the spec with every `$ref` replaced by the schema it names. A schema
@@ -359,6 +393,17 @@ on `schedule`, and `{scheduleId}` is renamed as on
 `/schedules/{scheduleId}/cancel`. The entity such a path joins is decided from
 the path as written, so a count whose path no tag or schema ties to
 `schedule` stays an entity of its own, as `/messages/count` would.
+
+A verb route named only from its tag joins the entity that owns its
+collection. incident.io tags `POST /v2/escalations/{escalation_id}/actions/respond`
+with `Escalations V2`, which names no resource, and the route answers nothing.
+Its collection, `/v2/escalations`, belongs to `escalation`, so `respond`
+becomes an action on `escalation` and `{escalation_id}` is renamed to `id`.
+An `actions` element only gathers the verbs: `/{id}/actions/cancel` names the
+action `cancel`, not `action_cancel`. A result wrapper names the resource
+before its verb when the words after the verb name nothing the spec defines:
+`AlertsAddTagsResultV2` names `alert`, so `POST /v2/alerts/{id}/actions/add_tags`
+joins `alert` as the action `add_tag`.
 
 A route an API keeps in several versions, `/v1/things/{id}` beside
 `/v2/things/{id}` and `/v3/things/{id}`, would give every version the same

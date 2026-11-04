@@ -15,6 +15,7 @@ guide: {
     }
     path: "/boards/{boardId}/{fileName}.json": {
       rename: param: "boardId": *"id"
+      rename: param: "fileName": *"file_name"
       op: update: method: *PUT
     }
   }
@@ -74,12 +75,14 @@ guide: {
 
   entity: state: {
     path: "/states/{stateAbbreviation}.json": {
+      rename: param: "stateAbbreviation": *"id"
       op: load: method: *GET
     }
   }
 
   entity: thread: {
     path: "/{board}/thread/{threadId}.json": {
+      rename: param: "threadId": *"thread_id"
       op: list: method: *GET
       op: list: transform: res: *("`body.posts`")|top
     }

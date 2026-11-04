@@ -13,3 +13,5 @@ guide: entity: form: path: "/forms": op: create: body: media: "application/x-www
 guide: entity: upload: path: "/uploads": op: create: body: media: "application/x-www-form-urlencoded"
 guide: entity: pallet: path: "/pallets": op: create: body: media: "application/vnd.acme.pallet+json"
 guide: entity: bale: path: "/bales": op: create: body: media: "application/vnd.acme.bale+json"
+guide: entity: raft: path: "/rafts": op: create: body: media: "application/vnd.acme.raft-list+json"
+guide: entity: raft: path: "/rafts": op: create: transform: req: { name: "`reqdata.name`", size: "`reqdata.size`" }

@@ -8,5 +8,6 @@ declare function singleIdentity(ment: ModelEntity, gid?: any, def?: any, wires?:
 };
 declare function routeFieldNames(ment: ModelEntity, opname: string, mpoint: ModelPoint, def: any, media?: string): string[];
 declare function inferFieldsFromExamples(opdef: any, envelope?: string | null): SchemaDef[];
+declare function findExampleObject(opdef: any, envelope?: string | null): any;
 declare function inferTypeFromValue(value: any): string;
-export { fieldTransform, inferFieldsFromExamples, inferTypeFromValue, routeFieldNames, singleIdentity, };
+export { fieldTransform, findExampleObject, inferFieldsFromExamples, inferTypeFromValue, routeFieldNames, singleIdentity, };

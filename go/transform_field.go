@@ -941,7 +941,11 @@ func findFieldDefs(mtarget map[string]any, def map[string]any, opname string, en
 			fieldSets = getFieldResponseSchema(responses, "202")
 		}
 		if opname == "list" {
-			unwrapped := unwrapArrayWrapper(fieldSets)
+			tr, _ := mtarget["t"].(map[string]any)
+			unwrapped := transformRecords(fieldSets, tr["res"])
+			if unwrapped == nil {
+				unwrapped = unwrapArrayWrapper(fieldSets)
+			}
 			if unwrapped == nil {
 				envelope = composedEnvelopeProp(fieldSets, "list")
 			}
@@ -1033,6 +1037,30 @@ func carrierDef(c *arrayCarrierInfo) map[string]any {
 	}
 	return fd
 }
+
+// transformRecords mirrors ts/src/transform/field.ts: the records a list's
+// response transform reads from one property of the body.
+func transformRecords(schema any, res any) any {
+	text, _ := res.(string)
+	m := bodyPropRE.FindStringSubmatch(text)
+	if m == nil {
+		return nil
+	}
+	prop, _ := mergedProperties(schema)[m[1]].(map[string]any)
+	items, _ := prop["items"].(map[string]any)
+	if items == nil {
+		return nil
+	}
+	if items["properties"] != nil {
+		return items
+	}
+	if _, ok := items["allOf"].([]any); ok {
+		return items
+	}
+	return nil
+}
+
+var bodyPropRE = regexp.MustCompile("^`body\\.([^`.]+)`$")
 
 func unwrapArrayWrapper(schema any) any {
 	m, ok := schema.(map[string]any)

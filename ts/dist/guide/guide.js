@@ -219,7 +219,8 @@ async function buildBaseGuide(ctx) {
             `paths=${metrics.count.path} methods=${metrics.count.method})`
     });
     validateBaseBuide(ctx, baseguide);
-    const sw = (s) => ctx.opts.why?.show ? s : '';
+    // A why comment interpolates names from the definition; keep it on its line.
+    const sw = (s) => ctx.opts.why?.show ? s.replace(/[\r\n\u2028\u2029]+/g, ' ') : '';
     const qs = (v) => JSON.stringify(v);
     const qt = (v) => '(' + qs(v) + ')';
     guideBlocks.push(`  metrics: count: entity: ${metrics.count.entity}
@@ -272,15 +273,6 @@ async function buildBaseGuide(ctx) {
                 if (null != res) {
                     guideBlocks.push(`      op: ${opname}: transform: res: ` +
                         `*${'string' === typeof res ? qt(res) : qs(res)}|top`);
-                }
-                const reqmap = op.transform.req;
-                if (null != reqmap && 'object' === typeof reqmap) {
-                    (0, struct_1.items)(reqmap).map(([bodykey, source]) => {
-                        if ('string' === typeof source) {
-                            guideBlocks.push(`      op: ${opname}: transform: req: ` +
-                                `${qs(bodykey)}: *${qt(source)}|top`);
-                        }
-                    });
                 }
             });
             guideBlocks.push(`    }`);

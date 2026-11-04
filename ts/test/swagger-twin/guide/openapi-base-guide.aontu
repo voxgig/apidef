@@ -11,8 +11,6 @@ guide: {
   entity: note: {
     path: "/notes": {
       op: create: method: *POST
-      op: create: transform: req: "text": *("`reqdata.text`")|top
-      op: create: transform: req: "title": *("`reqdata.title`")|top
     }
     path: "/notes/{note_id}": {
       rename: param: "note_id": *"id"
@@ -35,7 +33,6 @@ guide: {
       rename: param: "widget_id": *"id"
       op: load: method: *GET
       op: update: method: *PUT
-      op: update: transform: req: "widget": *("`reqdata`")|top
     }
     path: "/widgets/{widget_id}/image": {
       action: "image": {}

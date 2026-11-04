@@ -328,7 +328,8 @@ async function buildBaseGuide(ctx: ApiDefContext) {
 
   validateBaseBuide(ctx, baseguide)
 
-  const sw = (s: string) => ctx.opts.why?.show ? s : ''
+  // A why comment interpolates names from the definition; keep it on its line.
+  const sw = (s: string) => ctx.opts.why?.show ? s.replace(/[\r\n\u2028\u2029]+/g, ' ') : ''
   const qs = (v: any) => JSON.stringify(v)
   const qt = (v: any) => '(' + qs(v) + ')'
 
@@ -396,15 +397,6 @@ async function buildBaseGuide(ctx: ApiDefContext) {
         if (null != res) {
           guideBlocks.push(`      op: ${opname}: transform: res: ` +
             `*${'string' === typeof res ? qt(res) : qs(res)}|top`)
-        }
-        const reqmap: any = op.transform.req
-        if (null != reqmap && 'object' === typeof reqmap) {
-          items(reqmap).map(([bodykey, source]: [string, any]) => {
-            if ('string' === typeof source) {
-              guideBlocks.push(`      op: ${opname}: transform: req: ` +
-                `${qs(bodykey)}: *${qt(source)}|top`)
-            }
-          })
         }
       })
 

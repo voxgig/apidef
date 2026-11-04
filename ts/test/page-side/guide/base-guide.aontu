@@ -75,6 +75,7 @@ guide: {
   entity: rollup: {
     path: "/rollups": {
       op: list: method: *GET
+      op: list: transform: res: *("`body.statuses`")|top
     }
   }
 

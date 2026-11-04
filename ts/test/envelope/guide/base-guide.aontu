@@ -73,7 +73,6 @@ guide: {
   entity: kennel: {
     path: "/{year}/kennel": {
       op: create: method: *POST
-      op: create: transform: req: "kennel": *("`reqdata`")|top
     }
   }
 

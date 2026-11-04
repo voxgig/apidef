@@ -28,6 +28,9 @@ import {
   validator,
   nom,
   formatJsonSrc,
+  formatJSONIC,
+  stripOperationVerb,
+  guideParts,
   getModelPath,
   isEntityWrapperProp,
   envelopeProp,
@@ -98,6 +101,8 @@ import {
   normalizePathKeys,
   colonPathKeys,
 } from '../dist/parse'
+
+import { yamlAliasedSize } from '../dist/yamlalias'
 
 import {
   countRefs,
@@ -311,7 +316,7 @@ describe('tsv-canonize-cmp-name', () => {
 // checker-less behavior: guarded suffixes do NOT strip).
 describe('clean-component-name-guarded', () => {
   const known = new Set(['beneficiary', 'merchant_token', 'transaction',
-    'payout', 'user_invite', 'role'])
+    'payout', 'user_invite', 'role', 'subscriber', 'dns_record', 'asset', 'alert'])
   const isKnown = (n: string) => known.has(n)
   const CASES: [string, string][] = [
     // wrapper convention: remainder is a known schema -> fold
@@ -325,6 +330,21 @@ describe('clean-component-name-guarded', () => {
     ['landing_page', 'landing_page'],
     ['static_page', 'static_page'],
     ['generic_page_response', 'generic_page'],
+    // DTO and collection wrappers, and a list wrapper, of a known schema
+    ['subscriber_response_dto', 'subscriber'],
+    ['subscriber_dto', 'subscriber'],
+    ['dns_record_response_collection', 'dns_record'],
+    ['dns_record_collection', 'dns_record'],
+    ['dns_record_response_single', 'dns_record'],
+    ['dns_record_single', 'dns_record'],
+    ['list_asset_response', 'asset'],
+    ['list_assets', 'asset'],
+    ['agent_response_dto', 'agent_response_dto'],
+    ['list_price', 'list_price'],
+    // a result wrapper names its namespace when its object names nothing known
+    ['alerts_add_tags_result', 'alert'],
+    ['alerts_list_tags_result', 'alert'],
+    ['widgets_add_parts_result', 'widgets_add_parts_result'],
   ]
   for (const [input, expected] of CASES) {
     test(`cleanComponentName("${input}", known) => "${expected}"`, () => {
@@ -405,6 +425,65 @@ describe('tsv-infer-type-from-value', () => {
 })
 
 
+describe('tsv-listed-records', () => {
+  for (const row of loadTsv('listed-records')) {
+    test(`envelopeProp(${row.resprops}, list, ${row.example})`, () => {
+      const example = JSON.parse(row.example) ?? undefined
+      assert.deepStrictEqual(
+        envelopeProp(JSON.parse(row.resprops), 'list', example) ?? '', row.expected)
+    })
+  }
+})
+
+
+// A list over an object reads records and says which it dropped; one holding
+// none reads the whole body and says so.
+describe('tsv-list-body', () => {
+  const rows = loadTsv('list-body')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, async () => {
+      const def = await parse('OpenAPI', row.def, { file: row.name })
+      const warnings: string[] = []
+      const quiet = () => undefined
+      const guide = await heuristic01({
+        def,
+        log: { info: quiet, debug: quiet, warn: quiet, error: quiet },
+        warn: (warning: any) => warnings.push(warning.note),
+      } as any)
+      const res: any = {}
+      for (const [ename, ent] of Object.entries<any>(guide.entity)) {
+        for (const pathdesc of Object.values<any>(ent.path)) {
+          for (const [opname, op] of Object.entries<any>(pathdesc.op)) {
+            res[ename + '.' + opname] = op.transform?.res ?? null
+          }
+        }
+      }
+      assert.deepStrictEqual(res, JSON.parse(row.res))
+      assert.deepStrictEqual(warnings, JSON.parse(row.warnings))
+    })
+  }
+})
+
+
+describe('tsv-guide-parts', () => {
+  for (const row of loadTsv('guide-parts')) {
+    test(`guideParts(${row.input})`, () => {
+      assert.deepStrictEqual(guideParts(row.input), JSON.parse(row.expected))
+    })
+  }
+})
+
+
+describe('tsv-operation-verb', () => {
+  for (const row of loadTsv('operation-verb')) {
+    test(`stripOperationVerb(canonize(${row.input}))`, () => {
+      assert.deepStrictEqual(stripOperationVerb(canonize(row.input)), row.expected)
+    })
+  }
+})
+
+
 describe('tsv-ensure-min-entity-name', () => {
   const rows = loadTsv('ensure-min-entity-name')
   for (const row of rows) {
@@ -451,6 +530,38 @@ describe('tsv-entity-names', () => {
 })
 
 
+// Each route the guide heuristic places, with its operations, actions and
+// parameter renames.
+describe('tsv-guide-routes', () => {
+  const rows = loadTsv('guide-routes')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, async () => {
+      const def = await parse('OpenAPI', row.def, { file: row.name })
+      const quiet = () => undefined
+      const guide = await heuristic01({
+        def,
+        log: { info: quiet, debug: quiet, warn: quiet, error: quiet },
+        warn: quiet,
+      } as any)
+      const routes: any = {}
+      for (const [name, ent] of Object.entries(guide.entity) as [string, any][]) {
+        routes[name] = {}
+        for (const [path, pd] of Object.entries(ent.path) as [string, any][]) {
+          routes[name][path] = {
+            op: Object.keys(pd.op ?? {}).sort(),
+            action: Object.keys(pd.action ?? {}).sort(),
+            rename: Object.fromEntries(Object.entries(pd.rename?.param ?? {})
+              .map(([k, v]: [string, any]) => [k, v?.target ?? v])),
+          }
+        }
+      }
+      assert.deepStrictEqual(routes, JSON.parse(row.expected))
+    })
+  }
+})
+
+
 // The paths the guide counts: a vendor extension beside them is no path.
 describe('tsv-path-metrics', () => {
   const rows = loadTsv('path-metrics')
@@ -492,6 +603,42 @@ describe('tsv-format-json-src', () => {
       assert.deepStrictEqual(formatJsonSrc(row.input), row.expected)
     })
   }
+})
+
+
+// Each model file must read back as the value written: a string cannot end
+// early, and a key ending in _COMMENT is data.
+describe('tsv-format-jsonic', () => {
+  for (const row of loadTsv('format-jsonic')) {
+    test(`formatJSONIC(${row.input})`, () => {
+      const written = formatJSONIC(JSON.parse(row.input), { comments: false })
+      assert.deepStrictEqual(written, JSON.parse(row.expected))
+      assert.deepStrictEqual(new Aontu().generate(written), JSON.parse(row.readback))
+    })
+  }
+
+  test('a comment stays on its line', () => {
+    const written = formatJSONIC({ a: 1, a_COMMENT: 'note\ninjected: true' })
+    assert.deepStrictEqual(written, '{\n  a: 1  # note injected: true\n}\n')
+    assert.deepStrictEqual(new Aontu().generate(written), { a: 1 })
+  })
+})
+
+
+describe('tsv-yaml-aliased-size', () => {
+  for (const row of loadTsv('yaml-aliased-size')) {
+    test(`yamlAliasedSize(${row.source})`, () => {
+      assert.deepStrictEqual(yamlAliasedSize(JSON.parse(row.source)), Number(row.size))
+    })
+  }
+
+  test('a definition whose aliases expand past the limit is refused before parsing', async () => {
+    let src = 'openapi: 3.0.3\ninfo: {title: t, version: "1"}\npaths: {}\n' +
+      'l0: &l0 ["lol","lol","lol","lol","lol","lol","lol","lol","lol"]\n'
+    for (let i = 1; i <= 7; i++) src += `l${i}: &l${i} [${Array(9).fill('*l' + (i - 1)).join(',')}]\n`
+    await assert.rejects(parse('OpenAPI', src, { file: 'bomb.yaml' }),
+      /YAML aliases would expand the source to about \d+ bytes, past the limit of 1000000/)
+  })
 })
 
 
@@ -1296,6 +1443,35 @@ describe('tsv-servers', () => {
       })
       assert.deepStrictEqual(apimodel.main.kit.info.servers, JSON.parse(row.servers))
       assert.deepStrictEqual(warnings.map((warning) => warning.note), JSON.parse(row.warnings))
+    })
+  }
+})
+
+
+describe('tsv-ignored-headers', () => {
+  const rows = loadTsv('ignored-headers')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, async () => {
+      const def = await parse('OpenAPI', row.spec, { file: row.name })
+      const names = (list: any) => (list ?? []).map((p: any) => p.in + ':' + p.name)
+      const params: any = {}
+      for (const [path, item] of Object.entries<any>(def.paths)) {
+        params[path] = names(item.parameters)
+        for (const method of ['get', 'put', 'post', 'delete', 'patch']) {
+          if (null != item[method]) params[method.toUpperCase() + ' ' + path] = names(item[method].parameters)
+        }
+      }
+      assert.deepStrictEqual(params, JSON.parse(row.parameters))
+      assert.deepStrictEqual(def['x-apidef-ignored-headers'] ?? null, JSON.parse(row.ignored))
+
+      const warnings: any[] = []
+      await topTransform({
+        apimodel: { main: { kit: {} } }, def, warn: (warning: any) => warnings.push(warning),
+      })
+      assert.deepStrictEqual(
+        warnings.map((warning) => warning.note).filter((n: string) => n.startsWith('header parameter')),
+        JSON.parse(row.warnings))
     })
   }
 })

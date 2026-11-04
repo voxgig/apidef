@@ -27,6 +27,9 @@ func Parse(kind string, source string, meta map[string]string) (map[string]any, 
 		if err := validateSource(kind, source, meta); err != nil {
 			return nil, err
 		}
+		if err := validateAliases(kind, source, meta); err != nil {
+			return nil, err
+		}
 
 		def, err := parseOpenAPI(source, meta)
 		if err != nil {
@@ -104,9 +107,70 @@ func parseOpenAPI(source string, meta map[string]string) (map[string]any, error)
 		parsed["paths"] = renameKeys(paths, keys, next)
 	}
 
+	dropIgnoredHeaders(parsed)
+
 	// Skip Decircular for now — addXRefsAndResolve uses identity tracking
 	// which prevents true circular references from being created.
 	return parsed, nil
+}
+
+// ignoredHeadersKey records the header parameters dropIgnoredHeaders removed,
+// for the top transform to warn about.
+const ignoredHeadersKey = "x-apidef-ignored-headers"
+
+var ignoredHeaders = map[string]bool{"accept": true, "content-type": true, "authorization": true}
+
+// dropIgnoredHeaders mirrors ts/src/parse.ts: in an OpenAPI 3 definition, a
+// header parameter named Accept, Content-Type or Authorization is ignored.
+func dropIgnoredHeaders(parsed map[string]any) {
+	delete(parsed, ignoredHeadersKey)
+	version := ""
+	if v, ok := parsed["openapi"]; ok && v != nil {
+		version = fmt.Sprint(v)
+	}
+	paths, ok := parsed["paths"].(map[string]any)
+	if !strings.HasPrefix(version, "3") || !ok {
+		return
+	}
+
+	var dropped []any
+	kept := func(list []any, path string, method string) []any {
+		out := make([]any, 0, len(list))
+		for _, entry := range list {
+			param, _ := entry.(map[string]any)
+			name, isName := param["name"].(string)
+			if param != nil && param["in"] == "header" && isName && ignoredHeaders[strings.ToLower(name)] {
+				rec := map[string]any{"path": path, "name": name}
+				if method != "" {
+					rec["method"] = strings.ToUpper(method)
+				}
+				dropped = append(dropped, rec)
+				continue
+			}
+			out = append(out, entry)
+		}
+		return out
+	}
+
+	for _, path := range sortedKeys(paths) {
+		item, _ := paths[path].(map[string]any)
+		if item == nil {
+			continue
+		}
+		if list, ok := item["parameters"].([]any); ok {
+			item["parameters"] = kept(list, path, "")
+		}
+		for _, method := range pathItemMethods {
+			op, _ := item[method].(map[string]any)
+			if list, ok := op["parameters"].([]any); ok {
+				op["parameters"] = kept(list, path, method)
+			}
+		}
+	}
+
+	if 0 < len(dropped) {
+		parsed[ignoredHeadersKey] = dropped
+	}
 }
 
 // declaredSchemeOrder reads the scheme names from the ordered parse, in the
@@ -423,6 +487,17 @@ func illFormedLen(s string) int {
 	return n
 }
 
+func validateAliases(kind string, source string, meta map[string]string) error {
+	size := yamlAliasedSize(source)
+	limit := yamlAliasLimit(source)
+	if limit < size {
+		return fmt.Errorf("@voxgig/apidef: parse: %s: YAML aliases would expand the source to"+
+			" about %.0f bytes, past the limit of %.0f (%s)",
+			kind, size, limit, RelativizePath(meta["file"]))
+	}
+	return nil
+}
+
 func validateSource(kind string, source string, meta map[string]string) error {
 	if source == "" {
 		return fmt.Errorf("@voxgig/apidef: parse: %s: source must be a string (%s)",
@@ -436,15 +511,40 @@ func validateSource(kind string, source string, meta map[string]string) error {
 	return nil
 }
 
-// FormatJsonSrc converts JSON source to JSONIC-style format.
+// FormatJsonSrc unquotes bare keys and breaks the line after `},`, only
+// outside strings, so no string value is rewritten.
 func FormatJsonSrc(jsonsrc string) string {
-	reKey := regexp.MustCompile(`"([a-zA-Z_][a-zA-Z_0-9]*)": `)
-	reBrace := regexp.MustCompile(`},`)
-	reComment := regexp.MustCompile(`\n(\s*)([a-zA-Z_][a-zA-Z_0-9]*)_COMMENT:\s*"(.*)",`)
-	out := reKey.ReplaceAllString(jsonsrc, "$1: ")
-	out = reBrace.ReplaceAllString(out, "}\n")
-	out = reComment.ReplaceAllString(out, "\n\n$1# $2 $3")
-	return out
+	var b strings.Builder
+	n := len(jsonsrc)
+	for i := 0; i < n; {
+		switch ch := jsonsrc[i]; {
+		case ch == '"':
+			end := i + 1
+			for end < n && jsonsrc[end] != '"' {
+				if jsonsrc[end] == '\\' {
+					end += 2
+				} else {
+					end++
+				}
+			}
+			end = min(end, n)
+			body := jsonsrc[i+1 : end]
+			if strings.HasPrefix(jsonsrc[min(end+1, n):], ": ") && isBareKey(body) {
+				b.WriteString(body + ": ")
+				i = end + 3
+			} else {
+				b.WriteString(jsonsrc[i:min(end+1, n)])
+				i = end + 1
+			}
+		case ch == '}' && i+1 < n && jsonsrc[i+1] == ',':
+			b.WriteString("}\n")
+			i += 2
+		default:
+			b.WriteByte(ch)
+			i++
+		}
+	}
+	return b.String()
 }
 
 // ToJSON serialises a value to a JSON string, handling circular references.
