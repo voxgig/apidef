@@ -4,6 +4,7 @@ import { Jsonic } from '@tabnas/jsonic'
 import { Yaml } from '@tabnas/yaml'
 
 import { relativizePath } from './utility'
+import { yamlAliasedSize, yamlAliasLimit } from './yamlalias'
 
 import { parseGraphQL } from './parse/graphql'
 
@@ -22,6 +23,7 @@ async function parse(kind: string, source: any, meta: { file: string }) {
   if ('OpenAPI' === kind) {
 
     validateSource(kind, source, meta)
+    validateAliases(kind, source, meta)
 
     try {
       const def = await parseOpenAPI(source, meta)
@@ -379,6 +381,19 @@ function followAlias(root: any, node: any, active: Set<string>): any {
   if (undefined === target) return undefined
   const sib = refSiblings(node)
   return 0 === Object.keys(sib).length ? target : { ...target, ...sib }
+}
+
+
+function validateAliases(kind: string, source: string, meta: { file: string }) {
+  const size = yamlAliasedSize(source)
+  const limit = yamlAliasLimit(source)
+  if (limit < size) {
+    throw new Error(
+      `@voxgig/apidef: parse: ${kind}: YAML aliases would expand the source to` +
+      ` about ${size} bytes, past the limit of ${limit}` +
+      ` (${relativizePath(meta.file)})`
+    )
+  }
 }
 
 

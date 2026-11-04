@@ -27,6 +27,9 @@ func Parse(kind string, source string, meta map[string]string) (map[string]any, 
 		if err := validateSource(kind, source, meta); err != nil {
 			return nil, err
 		}
+		if err := validateAliases(kind, source, meta); err != nil {
+			return nil, err
+		}
 
 		def, err := parseOpenAPI(source, meta)
 		if err != nil {
@@ -421,6 +424,17 @@ func illFormedLen(s string) int {
 		lo, hi = 0x80, 0xBF
 	}
 	return n
+}
+
+func validateAliases(kind string, source string, meta map[string]string) error {
+	size := yamlAliasedSize(source)
+	limit := yamlAliasLimit(source)
+	if limit < size {
+		return fmt.Errorf("@voxgig/apidef: parse: %s: YAML aliases would expand the source to"+
+			" about %.0f bytes, past the limit of %.0f (%s)",
+			kind, size, limit, RelativizePath(meta["file"]))
+	}
+	return nil
 }
 
 func validateSource(kind string, source string, meta map[string]string) error {

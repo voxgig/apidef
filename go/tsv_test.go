@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -377,6 +378,38 @@ func TestTsvNom(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestTsvYamlAliasedSize(t *testing.T) {
+	for _, row := range loadTsv(t, "yaml-aliased-size") {
+		var src string
+		var want float64
+		if err := json.Unmarshal([]byte(row["source"]), &src); err != nil {
+			t.Fatalf("source %s: %v", row["source"], err)
+		}
+		if err := json.Unmarshal([]byte(row["size"]), &want); err != nil {
+			t.Fatalf("size %s: %v", row["size"], err)
+		}
+		t.Run("yamlAliasedSize("+row["source"]+")", func(t *testing.T) {
+			if got := yamlAliasedSize(src); got != want {
+				t.Errorf("yamlAliasedSize(%q) = %.0f, want %.0f", src, got, want)
+			}
+		})
+	}
+
+	t.Run("a definition whose aliases expand past the limit is refused before parsing", func(t *testing.T) {
+		src := "openapi: 3.0.3\ninfo: {title: t, version: \"1\"}\npaths: {}\n" +
+			"l0: &l0 [\"lol\",\"lol\",\"lol\",\"lol\",\"lol\",\"lol\",\"lol\",\"lol\",\"lol\"]\n"
+		for i := 1; i <= 7; i++ {
+			refs := strings.TrimSuffix(strings.Repeat("*l"+strconv.Itoa(i-1)+",", 9), ",")
+			src += "l" + strconv.Itoa(i) + ": &l" + strconv.Itoa(i) + " [" + refs + "]\n"
+		}
+		_, err := Parse("OpenAPI", src, map[string]string{"file": "bomb.yaml"})
+		re := regexp.MustCompile(`YAML aliases would expand the source to about \d+ bytes, past the limit of 1000000`)
+		if err == nil || !re.MatchString(err.Error()) {
+			t.Fatalf("want the alias limit refusal, got %v", err)
+		}
+	})
 }
 
 func TestTsvParseErrors(t *testing.T) {

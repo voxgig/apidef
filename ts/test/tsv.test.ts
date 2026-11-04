@@ -99,6 +99,8 @@ import {
   colonPathKeys,
 } from '../dist/parse'
 
+import { yamlAliasedSize } from '../dist/yamlalias'
+
 import {
   countRefs,
   REFCOUNT_CAP,
@@ -510,6 +512,23 @@ describe('tsv-format-jsonic', () => {
     const written = formatJSONIC({ a: 1, a_COMMENT: 'note\ninjected: true' })
     assert.deepStrictEqual(written, '{\n  a: 1  # note injected: true\n}\n')
     assert.deepStrictEqual(new Aontu().generate(written), { a: 1 })
+  })
+})
+
+
+describe('tsv-yaml-aliased-size', () => {
+  for (const row of loadTsv('yaml-aliased-size')) {
+    test(`yamlAliasedSize(${row.source})`, () => {
+      assert.deepStrictEqual(yamlAliasedSize(JSON.parse(row.source)), Number(row.size))
+    })
+  }
+
+  test('a definition whose aliases expand past the limit is refused before parsing', async () => {
+    let src = 'openapi: 3.0.3\ninfo: {title: t, version: "1"}\npaths: {}\n' +
+      'l0: &l0 ["lol","lol","lol","lol","lol","lol","lol","lol","lol"]\n'
+    for (let i = 1; i <= 7; i++) src += `l${i}: &l${i} [${Array(9).fill('*l' + (i - 1)).join(',')}]\n`
+    await assert.rejects(parse('OpenAPI', src, { file: 'bomb.yaml' }),
+      /YAML aliases would expand the source to about \d+ bytes, past the limit of 1000000/)
   })
 })
 

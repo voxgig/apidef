@@ -57,6 +57,7 @@ const graphql01_1 = require("../dist/guide/graphql01");
 const heuristic01_1 = require("../dist/guide/heuristic01");
 const guide_1 = require("../dist/guide/guide");
 const parse_1 = require("../dist/parse");
+const yamlalias_1 = require("../dist/yamlalias");
 const refcount_1 = require("../dist/refcount");
 const clean_1 = require("../dist/transform/clean");
 const flowstep_1 = require("../dist/transform/flowstep");
@@ -395,6 +396,20 @@ function loadTsv(name) {
         const written = (0, utility_1.formatJSONIC)({ a: 1, a_COMMENT: 'note\ninjected: true' });
         node_assert_1.default.deepStrictEqual(written, '{\n  a: 1  # note injected: true\n}\n');
         node_assert_1.default.deepStrictEqual(new aontu_1.Aontu().generate(written), { a: 1 });
+    });
+});
+(0, node_test_1.describe)('tsv-yaml-aliased-size', () => {
+    for (const row of loadTsv('yaml-aliased-size')) {
+        (0, node_test_1.test)(`yamlAliasedSize(${row.source})`, () => {
+            node_assert_1.default.deepStrictEqual((0, yamlalias_1.yamlAliasedSize)(JSON.parse(row.source)), Number(row.size));
+        });
+    }
+    (0, node_test_1.test)('a definition whose aliases expand past the limit is refused before parsing', async () => {
+        let src = 'openapi: 3.0.3\ninfo: {title: t, version: "1"}\npaths: {}\n' +
+            'l0: &l0 ["lol","lol","lol","lol","lol","lol","lol","lol","lol"]\n';
+        for (let i = 1; i <= 7; i++)
+            src += `l${i}: &l${i} [${Array(9).fill('*l' + (i - 1)).join(',')}]\n`;
+        await node_assert_1.default.rejects((0, parse_1.parse)('OpenAPI', src, { file: 'bomb.yaml' }), /YAML aliases would expand the source to about \d+ bytes, past the limit of 1000000/);
     });
 });
 (0, node_test_1.describe)('tsv-parse-errors', () => {

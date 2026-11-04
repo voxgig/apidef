@@ -8,6 +8,7 @@ exports.colonPathKeys = colonPathKeys;
 const jsonic_1 = require("@tabnas/jsonic");
 const yaml_1 = require("@tabnas/yaml");
 const utility_1 = require("./utility");
+const yamlalias_1 = require("./yamlalias");
 const graphql_1 = require("./parse/graphql");
 // NOTE: @tabnas/yaml types its Plugin against @tabnas/parser, while
 // Jsonic.use expects @tabnas/jsonic's own (structurally identical) Plugin
@@ -19,6 +20,7 @@ const RE_HAS_CONTENT = /^\s*[^#\s]/m;
 async function parse(kind, source, meta) {
     if ('OpenAPI' === kind) {
         validateSource(kind, source, meta);
+        validateAliases(kind, source, meta);
         try {
             const def = await parseOpenAPI(source, meta);
             return def;
@@ -309,6 +311,15 @@ function followAlias(root, node, active) {
         return undefined;
     const sib = refSiblings(node);
     return 0 === Object.keys(sib).length ? target : { ...target, ...sib };
+}
+function validateAliases(kind, source, meta) {
+    const size = (0, yamlalias_1.yamlAliasedSize)(source);
+    const limit = (0, yamlalias_1.yamlAliasLimit)(source);
+    if (limit < size) {
+        throw new Error(`@voxgig/apidef: parse: ${kind}: YAML aliases would expand the source to` +
+            ` about ${size} bytes, past the limit of ${limit}` +
+            ` (${(0, utility_1.relativizePath)(meta.file)})`);
+    }
 }
 function validateSource(kind, source, meta) {
     if (typeof source !== 'string') {
