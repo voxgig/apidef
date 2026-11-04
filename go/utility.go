@@ -2015,9 +2015,9 @@ func isPageMetaProp(name string) bool {
 	return PAGE_META_PROPS[envelopePagingSepRE.ReplaceAllString(strings.ToLower(name), "")]
 }
 
-// ITEM_META_PROPS mirrors ts/src/utility.ts: the page metadata a single item
-// may carry too.
-var ITEM_META_PROPS = map[string]bool{"meta": true, "metadata": true, "links": true}
+// ITEM_META_PROPS mirrors ts/src/utility.ts: the metadata a single item may
+// carry.
+var ITEM_META_PROPS = map[string]bool{"meta": true, "metadata": true, "links": true, "info": true}
 
 // isItemMetaProp mirrors ts/src/utility.ts: a list under a metadata name is
 // records, as it is on a page.

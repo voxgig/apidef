@@ -564,6 +564,11 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.strictEqual(res('timeline', 'list'), '`body.results`');
         node_assert_1.default.strictEqual(res('document', 'load'), '`body.data`');
         node_assert_1.default.deepStrictEqual(Object.keys(entities.document.fields).sort(), ['id', 'title']);
+        // An `info` object beside one record is its metadata, as `meta` is.
+        node_assert_1.default.strictEqual(res('character', 'list'), '`body.data`');
+        node_assert_1.default.strictEqual(res('character', 'load'), '`body.data`');
+        node_assert_1.default.deepStrictEqual(Object.keys(entities.character.fields).sort(), ['_id', 'name']);
+        node_assert_1.default.deepStrictEqual(entities.character.id, { name: 'id', field: '_id' });
         // With no read beside it, the fields come from the Accepted answer too.
         node_assert_1.default.strictEqual(res('export', 'create'), '`body.data`');
         node_assert_1.default.deepStrictEqual(Object.keys(entities.export.fields).sort(), ['format', 'id', 'state', 'url']);

@@ -304,9 +304,10 @@ for the whole spec on
 A single-item operation unwraps its response's one nested object only when
 nothing but status or paging properties sits beside it, such as `success`,
 `status` or `request_id`, or the item's own metadata: an object named in
-`ITEM_META_PROPS` (`meta`, `metadata` or `links`) is not a second candidate
-beside a single item, as it is not beside a page's records, so
-`{ data, meta }` loads `body.data`. Paging metadata, such as `pagination` or
+`ITEM_META_PROPS` (`meta`, `metadata`, `links` or `info`) is not a second
+candidate beside a single item, as it is not beside a page's records, so
+`{ data, meta }` loads `body.data`, and so does a Disney character's
+`{ info: { count }, data }`. Paging metadata, such as `pagination` or
 `page_info`, makes the response a page, so a create that answers GitHub's
 attestations by digest beside their `page_info` reads it whole. An `id`, or
 any other data, beside the object makes the schema the record itself: Lob's

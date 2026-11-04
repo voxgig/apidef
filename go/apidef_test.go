@@ -1020,6 +1020,8 @@ func TestGuidePageSide(t *testing.T) {
 		{"export", "/exports", "create", "`body.data`"},
 		{"timeline", "/timeline", "list", "`body.results`"},
 		{"document", "/documents/{id}", "load", "`body.data`"},
+		{"character", "/characters", "list", "`body.data`"},
+		{"character", "/characters/{id}", "load", "`body.data`"},
 	} {
 		if got := opRes(c.ent, c.path, c.op); got != c.want {
 			t.Errorf("%s %s transform res = %v, want %v", c.ent, c.op, got, c.want)
@@ -1030,14 +1032,19 @@ func TestGuidePageSide(t *testing.T) {
 	kit, _ := main[KIT].(map[string]any)
 	ments, _ := kit["entity"].(map[string]any)
 	for ent, want := range map[string]string{
-		"export":   "format,id,state,url",
-		"document": "id,title",
+		"export":    "format,id,state,url",
+		"document":  "id,title",
+		"character": "_id,name",
 	} {
 		e, _ := ments[ent].(map[string]any)
 		fields, _ := e["fields"].(map[string]any)
 		if got := strings.Join(sortedKeys(fields), ","); got != want {
 			t.Errorf("%s fields = %s, want %s", ent, got, want)
 		}
+	}
+	character, _ := ments["character"].(map[string]any)
+	if got, _ := character["id"].(map[string]any); got["field"] != "_id" {
+		t.Errorf("character id = %v, want field _id", got)
 	}
 }
 

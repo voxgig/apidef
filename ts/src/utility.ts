@@ -1943,9 +1943,10 @@ function isPageMetaProp(name: string): boolean {
 }
 
 
-// The page metadata a single item may carry too. Paging beside an object makes
-// it a page, such as GitHub's attestations by digest beside their page info.
-const ITEM_META_PROPS = new Set(['meta', 'metadata', 'links'])
+// The metadata a single item may carry, such as the `info` beside a Disney
+// character. Paging beside an object makes it a page, such as GitHub's
+// attestations by digest beside their page info.
+const ITEM_META_PROPS = new Set(['meta', 'metadata', 'links', 'info'])
 
 
 // A list under a metadata name is records, as it is on a page.

@@ -722,6 +722,12 @@ describe('apidef', () => {
     assert.strictEqual(res('document', 'load'), '`body.data`')
     assert.deepStrictEqual(Object.keys(entities.document.fields).sort(), ['id', 'title'])
 
+    // An `info` object beside one record is its metadata, as `meta` is.
+    assert.strictEqual(res('character', 'list'), '`body.data`')
+    assert.strictEqual(res('character', 'load'), '`body.data`')
+    assert.deepStrictEqual(Object.keys(entities.character.fields).sort(), ['_id', 'name'])
+    assert.deepStrictEqual(entities.character.id, { name: 'id', field: '_id' })
+
     // With no read beside it, the fields come from the Accepted answer too.
     assert.strictEqual(res('export', 'create'), '`body.data`')
     assert.deepStrictEqual(Object.keys(entities.export.fields).sort(),
