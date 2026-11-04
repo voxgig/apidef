@@ -2554,7 +2554,7 @@ func cmpOccursInPath(data map[string]any, cmpname string) bool {
 func inferEntityName(mdesc map[string]any, parts []string, why *[]string) string {
 	// Try operationId
 	if opId, ok := mdesc["operationId"].(string); ok && opId != "" {
-		opid := Canonize(opId)
+		opid := StripOperationVerb(Canonize(opId))
 		if len(opid) >= 3 {
 			*why = append(*why, "infer-opid")
 			return opid

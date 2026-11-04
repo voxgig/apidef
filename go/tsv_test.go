@@ -270,6 +270,16 @@ func TestTsvInferTypeFromValue(t *testing.T) {
 	}
 }
 
+func TestTsvOperationVerb(t *testing.T) {
+	for _, row := range loadTsv(t, "operation-verb") {
+		t.Run(row["input"], func(t *testing.T) {
+			if got := StripOperationVerb(Canonize(row["input"])); got != row["expected"] {
+				t.Errorf("StripOperationVerb(Canonize(%q)) = %q, want %q", row["input"], got, row["expected"])
+			}
+		})
+	}
+}
+
 func TestTsvEnsureMinEntityName(t *testing.T) {
 	rows := loadTsv(t, "ensure-min-entity-name")
 	for _, row := range rows {
@@ -569,6 +579,7 @@ func TestCleanComponentNameGuarded(t *testing.T) {
 	known := map[string]bool{
 		"beneficiary": true, "merchant_token": true, "transaction": true,
 		"payout": true, "user_invite": true, "role": true,
+		"subscriber": true, "dns_record": true, "asset": true,
 	}
 	isKnown := func(n string) bool { return known[n] }
 	cases := [][2]string{
@@ -581,6 +592,16 @@ func TestCleanComponentNameGuarded(t *testing.T) {
 		{"landing_page", "landing_page"},
 		{"static_page", "static_page"},
 		{"generic_page_response", "generic_page"},
+		{"subscriber_response_dto", "subscriber"},
+		{"subscriber_dto", "subscriber"},
+		{"dns_record_response_collection", "dns_record"},
+		{"dns_record_collection", "dns_record"},
+		{"dns_record_response_single", "dns_record"},
+		{"dns_record_single", "dns_record"},
+		{"list_asset_response", "asset"},
+		{"list_assets", "asset"},
+		{"agent_response_dto", "agent_response_dto"},
+		{"list_price", "list_price"},
 	}
 	for _, c := range cases {
 		input, expected := c[0], c[1]

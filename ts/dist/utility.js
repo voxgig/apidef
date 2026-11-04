@@ -43,6 +43,7 @@ exports.humanTitle = humanTitle;
 exports.foldName = foldName;
 exports.prefixLeadingDigit = prefixLeadingDigit;
 exports.guardPrototypeName = guardPrototypeName;
+exports.stripOperationVerb = stripOperationVerb;
 exports.debugpath = debugpath;
 exports.debugpathOn = debugpathOn;
 exports.findPathsWithPrefix = findPathsWithPrefix;
@@ -1165,12 +1166,29 @@ function ensureMinEntityName(name, existing) {
 }
 // Unconditional suffixes: framework noise, always stripped.
 const CMP_SUFFIXES = ['_rest_controller', '_controller', '_response', '_request'];
-const CMP_GUARDED_SUFFIXES = ['_create_response', '_update_response', '_page_response', '_page'];
+// Longest first: the first suffix a name ends with is the only one tried.
+const CMP_GUARDED_SUFFIXES = [
+    '_create_response', '_update_response', '_page_response',
+    '_response_collection', '_response_single', '_response_dto',
+    '_collection', '_single', '_dto', '_page',
+];
 const CMP_RESULT_VERBS = [
     'list', 'create', 'show', 'update', 'delete', 'remove',
     'get', 'edit', 'resolve', 'rotate', 'search',
 ];
 const CMP_PREFIXES = ['get_', 'post_', 'put_', 'delete_', 'patch_'];
+const OPERATION_VERBS = [
+    ...CMP_RESULT_VERBS, 'post', 'put', 'patch', 'fetch', 'find', 'retrieve', 'read', 'add',
+];
+// An operationId leads with its action, so get_service_status names
+// service_status. The verb stays when what follows is too short to name one.
+function stripOperationVerb(opid) {
+    const cut = opid.indexOf('_');
+    if (cut < 0)
+        return opid;
+    const rest = opid.substring(cut + 1);
+    return OPERATION_VERBS.includes(opid.substring(0, cut)) && 3 <= rest.length ? rest : opid;
+}
 // A guide node (entity, path or op) is active unless guide.aontu explicitly
 // says otherwise. `active` has always been declared in the guide model and
 // documented as the escape hatch for a misclassified entity; this is the
@@ -1324,6 +1342,14 @@ function cleanComponentName(name, isKnownCmp) {
                 cleaned = canonize(parts.slice(0, parts.length - suffixParts).join('_'));
                 break;
             }
+        }
+    }
+    // A list wrapper names its records: list_asset is asset, when asset is known.
+    if (null != isKnownCmp && cleaned.startsWith('list_')) {
+        const remainder = canonize(cleaned.substring('list_'.length));
+        if (remainder.length >= 3 && knownWithVersion(remainder, version)) {
+            cleaned = remainder;
+            stripped = true;
         }
     }
     // Nothing stripped it: restore the version suffix removed above.

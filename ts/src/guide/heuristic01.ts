@@ -66,6 +66,7 @@ import {
   pathMatch,
   pluralize,
   prefixLeadingDigit,
+  stripOperationVerb,
   resplitFromCmp,
   sortedEntries,
   sortedKeys,
@@ -2152,9 +2153,8 @@ function inferEntityName(
   why: string[],
 ): string | null {
 
-  // Try operationId: e.g. "getUser" -> "user", "listProducts" -> "product"
   if (mdesc.operationId) {
-    const opid = canonize(mdesc.operationId)
+    const opid = stripOperationVerb(canonize(mdesc.operationId))
     if (opid.length >= 3) {
       why.push('infer-opid')
       return opid

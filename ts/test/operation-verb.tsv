@@ -1,0 +1,10 @@
+input	expected
+getUser	user
+listProducts	product
+get_service_status	service_status
+get	get
+getAll	all
+deletePet	pet
+readMe	read_me
+addresses	address
+widgetById	widget_by_id

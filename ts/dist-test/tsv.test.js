@@ -221,7 +221,7 @@ function loadTsv(name) {
 // checker-less behavior: guarded suffixes do NOT strip).
 (0, node_test_1.describe)('clean-component-name-guarded', () => {
     const known = new Set(['beneficiary', 'merchant_token', 'transaction',
-        'payout', 'user_invite', 'role']);
+        'payout', 'user_invite', 'role', 'subscriber', 'dns_record', 'asset']);
     const isKnown = (n) => known.has(n);
     const CASES = [
         // wrapper convention: remainder is a known schema -> fold
@@ -235,6 +235,17 @@ function loadTsv(name) {
         ['landing_page', 'landing_page'],
         ['static_page', 'static_page'],
         ['generic_page_response', 'generic_page'],
+        // DTO and collection wrappers, and a list wrapper, of a known schema
+        ['subscriber_response_dto', 'subscriber'],
+        ['subscriber_dto', 'subscriber'],
+        ['dns_record_response_collection', 'dns_record'],
+        ['dns_record_collection', 'dns_record'],
+        ['dns_record_response_single', 'dns_record'],
+        ['dns_record_single', 'dns_record'],
+        ['list_asset_response', 'asset'],
+        ['list_assets', 'asset'],
+        ['agent_response_dto', 'agent_response_dto'],
+        ['list_price', 'list_price'],
     ];
     for (const [input, expected] of CASES) {
         (0, node_test_1.test)(`cleanComponentName("${input}", known) => "${expected}"`, () => {
@@ -305,6 +316,13 @@ function loadTsv(name) {
                 input = JSON.parse(row.input);
             }
             node_assert_1.default.deepStrictEqual((0, field_1.inferTypeFromValue)(input), row.expected);
+        });
+    }
+});
+(0, node_test_1.describe)('tsv-operation-verb', () => {
+    for (const row of loadTsv('operation-verb')) {
+        (0, node_test_1.test)(`stripOperationVerb(canonize(${row.input}))`, () => {
+            node_assert_1.default.deepStrictEqual((0, utility_1.stripOperationVerb)((0, utility_1.canonize)(row.input)), row.expected);
         });
     }
 });

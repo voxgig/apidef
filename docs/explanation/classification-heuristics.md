@@ -44,6 +44,20 @@ that wildly different spellings collapse onto one canonical identifier:
   to match what follows: `3ds_session` becomes `n3ds_session`, `3DSecure`
   becomes `N3DSecure`. Field names are exempt, because they have to keep
   matching the keys the server sends.
+- **avoid a prototype name** — the model language cannot unify a spread with
+  a key every object already owns, such as `constructor`, so such a name gains
+  `_item`: a `constructors` collection names the entity `constructor_item`.
+
+A path with no collection literal, such as `/`, `/{id}` or `/{org}/{id}`,
+takes its name from the first of these that gives at least three letters:
+
+1. the operation's `operationId`, without a leading verb: `get_service_status`
+   names `service_status`, and `getUser` names `user`;
+2. the title of its 200 or 201 response schema;
+3. its last segment that is not a parameter.
+
+So renaming the `operationId` of such a path renames its entity in every
+generated SDK. A guide entry fixes the name whatever the definition says.
 
 Nested collections become nested entities with an **ancestor** relationship:
 `moon` records that it lives under `planet`.

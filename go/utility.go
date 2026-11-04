@@ -894,18 +894,41 @@ func firstFieldMatch(props []string, names []string) string {
 	return ""
 }
 
+var cmpResultVerbs = []string{
+	"list", "create", "show", "update", "delete", "remove",
+	"get", "edit", "resolve", "rotate", "search",
+}
+
+var operationVerbs = append(append([]string{}, cmpResultVerbs...),
+	"post", "put", "patch", "fetch", "find", "retrieve", "read", "add")
+
+// StripOperationVerb mirrors ts/src/utility.ts: an operationId leads with its
+// action, so get_service_status names service_status.
+func StripOperationVerb(opid string) string {
+	cut := strings.Index(opid, "_")
+	if cut < 0 {
+		return opid
+	}
+	rest := opid[cut+1:]
+	if slices.Contains(operationVerbs, opid[:cut]) && 3 <= len(rest) {
+		return rest
+	}
+	return opid
+}
+
 func CleanComponentName(name string, isKnownCmp func(string) bool) string {
 	cleaned := name
 	stripped := false
 	// Order matters: longer suffixes first — '_page_response' and
 	// '_create_response' also end with '_response'.
-	guarded := []string{"_create_response", "_update_response", "_page_response", "_page"}
+	guarded := []string{
+		"_create_response", "_update_response", "_page_response",
+		"_response_collection", "_response_single", "_response_dto",
+		"_collection", "_single", "_dto", "_page",
+	}
 	suffixes := []string{"_rest_controller", "_controller", "_response", "_request"}
 	prefixes := []string{"get_", "post_", "put_", "delete_", "patch_"}
-	resultVerbs := []string{
-		"list", "create", "show", "update", "delete", "remove",
-		"get", "edit", "resolve", "rotate", "search",
-	}
+	resultVerbs := cmpResultVerbs
 
 	// Version-tolerant known-schema probe: APIs that version their schemas
 	// name the base type SeverityV1 / IncidentV2, so a guard asking only for
@@ -989,6 +1012,15 @@ func CleanComponentName(name string, isKnownCmp func(string) bool) string {
 				}
 				break
 			}
+		}
+	}
+
+	// A list wrapper names its records: list_asset is asset, when asset is known.
+	if isKnownCmp != nil && strings.HasPrefix(cleaned, "list_") {
+		remainder := Canonize(strings.TrimPrefix(cleaned, "list_"))
+		if len(remainder) >= 3 && knownWithVersion(remainder) {
+			cleaned = remainder
+			stripped = true
 		}
 	}
 

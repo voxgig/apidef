@@ -1572,9 +1572,8 @@ function routeRecordRef(def, pathStr, method, collection, accepted = true) {
     return xref ?? null;
 }
 function inferEntityName(mdesc, parts, why) {
-    // Try operationId: e.g. "getUser" -> "user", "listProducts" -> "product"
     if (mdesc.operationId) {
-        const opid = (0, utility_2.canonize)(mdesc.operationId);
+        const opid = (0, utility_2.stripOperationVerb)((0, utility_2.canonize)(mdesc.operationId));
         if (opid.length >= 3) {
             why.push('infer-opid');
             return opid;
