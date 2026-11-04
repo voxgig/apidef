@@ -217,7 +217,10 @@ request, written `from: ""`. Any other input object, a query's `filter`
 among them, is read from the field of its own name.
 
 A parameter with no name, or whose `$ref` resolves to nothing, is dropped with
-a warning. A path placeholder that no declared parameter fills still needs a
+a warning. So is a header parameter named `Accept`, `Content-Type` or
+`Authorization`, in any case, in an OpenAPI 3 definition, which the OpenAPI
+specification says to ignore: the responses, the request body, and the
+security schemes declare those. A Swagger 2 definition keeps them. A path placeholder that no declared parameter fills still needs a
 value, so it becomes a required string `param` under its own name, renamed as
 the path's other placeholders are, again with a warning. A placeholder that a
 declared parameter fills under its renamed name is left alone.

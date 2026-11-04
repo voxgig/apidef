@@ -4,6 +4,7 @@ package apidef
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -1986,6 +1987,73 @@ func TestTsvServers(t *testing.T) {
 			}
 			var wantNotes any
 			unmarshalCol(t, row, "warnings", &wantNotes)
+			if !jsonEqual(notes, wantNotes) {
+				got, _ := json.Marshal(notes)
+				t.Errorf("warnings\ngot  %s\nwant %s", got, row["warnings"])
+			}
+		})
+	}
+}
+
+func TestTsvIgnoredHeaders(t *testing.T) {
+	rows := loadTsv(t, "ignored-headers")
+	if len(rows) == 0 {
+		t.Fatal("no ignored-headers rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			def, err := Parse("OpenAPI", row["spec"], map[string]string{"file": row["name"]})
+			if err != nil {
+				t.Fatal(err)
+			}
+			names := func(list any) []any {
+				out := []any{}
+				items, _ := list.([]any)
+				for _, p := range items {
+					param, _ := p.(map[string]any)
+					out = append(out, fmt.Sprint(param["in"])+":"+fmt.Sprint(param["name"]))
+				}
+				return out
+			}
+			params := map[string]any{}
+			paths, _ := def["paths"].(map[string]any)
+			for path, entry := range paths {
+				item, _ := entry.(map[string]any)
+				params[path] = names(item["parameters"])
+				for _, method := range []string{"get", "put", "post", "delete", "patch"} {
+					if op, ok := item[method].(map[string]any); ok {
+						params[strings.ToUpper(method)+" "+path] = names(op["parameters"])
+					}
+				}
+			}
+			var wantParams, wantIgnored, wantNotes any
+			unmarshalCol(t, row, "parameters", &wantParams)
+			unmarshalCol(t, row, "ignored", &wantIgnored)
+			unmarshalCol(t, row, "warnings", &wantNotes)
+			if !jsonEqual(params, wantParams) {
+				got, _ := json.Marshal(params)
+				t.Errorf("parameters\ngot  %s\nwant %s", got, row["parameters"])
+			}
+			if !jsonEqual(def[ignoredHeadersKey], wantIgnored) {
+				got, _ := json.Marshal(def[ignoredHeadersKey])
+				t.Errorf("ignored\ngot  %s\nwant %s", got, row["ignored"])
+			}
+
+			warn := MakeWarner("warning", nil)
+			ctx := &ApiDefContext{
+				Def:      def,
+				Warn:     warn,
+				ApiModel: map[string]any{"main": map[string]any{KIT: map[string]any{}}},
+			}
+			if _, err := TopTransform(ctx); err != nil {
+				t.Fatal(err)
+			}
+			notes := []any{}
+			for _, w := range warn.History() {
+				if note, _ := w["note"].(string); strings.HasPrefix(note, "header parameter") {
+					notes = append(notes, note)
+				}
+			}
 			if !jsonEqual(notes, wantNotes) {
 				got, _ := json.Marshal(notes)
 				t.Errorf("warnings\ngot  %s\nwant %s", got, row["warnings"])

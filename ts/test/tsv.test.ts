@@ -1328,6 +1328,35 @@ describe('tsv-servers', () => {
 })
 
 
+describe('tsv-ignored-headers', () => {
+  const rows = loadTsv('ignored-headers')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, async () => {
+      const def = await parse('OpenAPI', row.spec, { file: row.name })
+      const names = (list: any) => (list ?? []).map((p: any) => p.in + ':' + p.name)
+      const params: any = {}
+      for (const [path, item] of Object.entries<any>(def.paths)) {
+        params[path] = names(item.parameters)
+        for (const method of ['get', 'put', 'post', 'delete', 'patch']) {
+          if (null != item[method]) params[method.toUpperCase() + ' ' + path] = names(item[method].parameters)
+        }
+      }
+      assert.deepStrictEqual(params, JSON.parse(row.parameters))
+      assert.deepStrictEqual(def['x-apidef-ignored-headers'] ?? null, JSON.parse(row.ignored))
+
+      const warnings: any[] = []
+      await topTransform({
+        apimodel: { main: { kit: {} } }, def, warn: (warning: any) => warnings.push(warning),
+      })
+      assert.deepStrictEqual(
+        warnings.map((warning) => warning.note).filter((n: string) => n.startsWith('header parameter')),
+        JSON.parse(row.warnings))
+    })
+  }
+})
+
+
 describe('tsv-info-scalars', () => {
   const rows = loadTsv('info-scalars')
   test('has rows', () => assert.ok(0 < rows.length))

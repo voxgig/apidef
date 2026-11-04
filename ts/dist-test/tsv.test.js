@@ -1082,6 +1082,31 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-ignored-headers', () => {
+    const rows = loadTsv('ignored-headers');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, async () => {
+            const def = await (0, parse_1.parse)('OpenAPI', row.spec, { file: row.name });
+            const names = (list) => (list ?? []).map((p) => p.in + ':' + p.name);
+            const params = {};
+            for (const [path, item] of Object.entries(def.paths)) {
+                params[path] = names(item.parameters);
+                for (const method of ['get', 'put', 'post', 'delete', 'patch']) {
+                    if (null != item[method])
+                        params[method.toUpperCase() + ' ' + path] = names(item[method].parameters);
+                }
+            }
+            node_assert_1.default.deepStrictEqual(params, JSON.parse(row.parameters));
+            node_assert_1.default.deepStrictEqual(def['x-apidef-ignored-headers'] ?? null, JSON.parse(row.ignored));
+            const warnings = [];
+            await (0, top_2.topTransform)({
+                apimodel: { main: { kit: {} } }, def, warn: (warning) => warnings.push(warning),
+            });
+            node_assert_1.default.deepStrictEqual(warnings.map((warning) => warning.note).filter((n) => n.startsWith('header parameter')), JSON.parse(row.warnings));
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-info-scalars', () => {
     const rows = loadTsv('info-scalars');
     (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));

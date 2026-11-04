@@ -123,10 +123,43 @@ async function parseOpenAPI(source: any, _meta?: any) {
   // After resolution, so a pointer into `paths` names the key as written and a
   // parameter declared by `$ref` counts. See docs/design/derived-names.md
   normalizeColonPathParams(parsed, _meta)
+  dropIgnoredHeaders(parsed)
 
   const def = decycle(parsed)
 
   return def
+}
+
+
+// In an OpenAPI 3 definition, a header parameter named Accept, Content-Type or
+// Authorization is ignored: responses, the request body and the security
+// schemes say those. Each dropped one is recorded for a warning.
+const IGNORED_HEADERS = ['accept', 'content-type', 'authorization']
+const IGNORED_HEADERS_KEY = 'x-apidef-ignored-headers'
+
+function dropIgnoredHeaders(parsed: any) {
+  delete parsed[IGNORED_HEADERS_KEY]
+  if (!String(parsed.openapi ?? '').startsWith('3') || !isRecord(parsed.paths)) return
+
+  const dropped: { path: string, method?: string, name: string }[] = []
+  const kept = (list: any[], path: string, method?: string) => list.filter((param: any) => {
+    const ignored = isRecord(param) && 'header' === param.in && 'string' === typeof param.name &&
+      IGNORED_HEADERS.includes(param.name.toLowerCase())
+    if (ignored) dropped.push({ path, ...(method ? { method: method.toUpperCase() } : {}), name: param.name })
+    return !ignored
+  })
+
+  for (const path of Object.keys(parsed.paths).sort()) {
+    const item = parsed.paths[path]
+    if (!isRecord(item)) continue
+    if (Array.isArray(item.parameters)) item.parameters = kept(item.parameters, path)
+    for (const method of METHODS) {
+      const op = item[method]
+      if (isRecord(op) && Array.isArray(op.parameters)) op.parameters = kept(op.parameters, path, method)
+    }
+  }
+
+  if (0 < dropped.length) parsed[IGNORED_HEADERS_KEY] = dropped
 }
 
 
@@ -421,6 +454,7 @@ export {
   decycledChild,
   normalizePathKeys,
   colonPathKeys,
+  IGNORED_HEADERS_KEY,
 }
 
 

@@ -1,6 +1,7 @@
 "use strict";
 /* Copyright (c) 2024-2025 Voxgig, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.IGNORED_HEADERS_KEY = void 0;
 exports.parse = parse;
 exports.decycledChild = decycledChild;
 exports.normalizePathKeys = normalizePathKeys;
@@ -99,8 +100,42 @@ async function parseOpenAPI(source, _meta) {
     // After resolution, so a pointer into `paths` names the key as written and a
     // parameter declared by `$ref` counts. See docs/design/derived-names.md
     normalizeColonPathParams(parsed, _meta);
+    dropIgnoredHeaders(parsed);
     const def = decycle(parsed);
     return def;
+}
+// In an OpenAPI 3 definition, a header parameter named Accept, Content-Type or
+// Authorization is ignored: responses, the request body and the security
+// schemes say those. Each dropped one is recorded for a warning.
+const IGNORED_HEADERS = ['accept', 'content-type', 'authorization'];
+const IGNORED_HEADERS_KEY = 'x-apidef-ignored-headers';
+exports.IGNORED_HEADERS_KEY = IGNORED_HEADERS_KEY;
+function dropIgnoredHeaders(parsed) {
+    delete parsed[IGNORED_HEADERS_KEY];
+    if (!String(parsed.openapi ?? '').startsWith('3') || !isRecord(parsed.paths))
+        return;
+    const dropped = [];
+    const kept = (list, path, method) => list.filter((param) => {
+        const ignored = isRecord(param) && 'header' === param.in && 'string' === typeof param.name &&
+            IGNORED_HEADERS.includes(param.name.toLowerCase());
+        if (ignored)
+            dropped.push({ path, ...(method ? { method: method.toUpperCase() } : {}), name: param.name });
+        return !ignored;
+    });
+    for (const path of Object.keys(parsed.paths).sort()) {
+        const item = parsed.paths[path];
+        if (!isRecord(item))
+            continue;
+        if (Array.isArray(item.parameters))
+            item.parameters = kept(item.parameters, path);
+        for (const method of METHODS) {
+            const op = item[method];
+            if (isRecord(op) && Array.isArray(op.parameters))
+                op.parameters = kept(op.parameters, path, method);
+        }
+    }
+    if (0 < dropped.length)
+        parsed[IGNORED_HEADERS_KEY] = dropped;
 }
 // A surrogate escape, or a raw lone surrogate unit.
 const SURROGATE_RE = /\\(?:u\{?|U)0*[dD][89a-fA-F][0-9a-fA-F]{2}|[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;

@@ -8,6 +8,7 @@ import {
 } from '../utility'
 
 import { METHODS } from '../resolved'
+import { IGNORED_HEADERS_KEY } from '../parse'
 
 import type { TransformResult } from '../transform'
 
@@ -132,6 +133,14 @@ const topTransform = async function(
           ' the server variable `base`; set the `server` build option to fix one',
       })
     }
+  }
+
+  for (const ignored of def[IGNORED_HEADERS_KEY] ?? []) {
+    ctx.warn?.({
+      note: 'header parameter `' + ignored.name + '` of ' +
+        (null == ignored.method ? '' : ignored.method + ' ') + ignored.path +
+        ' ignored: OpenAPI ignores Accept, Content-Type and Authorization header parameters',
+    })
   }
 
   const summary = resolveSummary(def)

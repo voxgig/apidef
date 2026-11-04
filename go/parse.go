@@ -107,9 +107,70 @@ func parseOpenAPI(source string, meta map[string]string) (map[string]any, error)
 		parsed["paths"] = renameKeys(paths, keys, next)
 	}
 
+	dropIgnoredHeaders(parsed)
+
 	// Skip Decircular for now — addXRefsAndResolve uses identity tracking
 	// which prevents true circular references from being created.
 	return parsed, nil
+}
+
+// ignoredHeadersKey records the header parameters dropIgnoredHeaders removed,
+// for the top transform to warn about.
+const ignoredHeadersKey = "x-apidef-ignored-headers"
+
+var ignoredHeaders = map[string]bool{"accept": true, "content-type": true, "authorization": true}
+
+// dropIgnoredHeaders mirrors ts/src/parse.ts: in an OpenAPI 3 definition, a
+// header parameter named Accept, Content-Type or Authorization is ignored.
+func dropIgnoredHeaders(parsed map[string]any) {
+	delete(parsed, ignoredHeadersKey)
+	version := ""
+	if v, ok := parsed["openapi"]; ok && v != nil {
+		version = fmt.Sprint(v)
+	}
+	paths, ok := parsed["paths"].(map[string]any)
+	if !strings.HasPrefix(version, "3") || !ok {
+		return
+	}
+
+	var dropped []any
+	kept := func(list []any, path string, method string) []any {
+		out := make([]any, 0, len(list))
+		for _, entry := range list {
+			param, _ := entry.(map[string]any)
+			name, isName := param["name"].(string)
+			if param != nil && param["in"] == "header" && isName && ignoredHeaders[strings.ToLower(name)] {
+				rec := map[string]any{"path": path, "name": name}
+				if method != "" {
+					rec["method"] = strings.ToUpper(method)
+				}
+				dropped = append(dropped, rec)
+				continue
+			}
+			out = append(out, entry)
+		}
+		return out
+	}
+
+	for _, path := range sortedKeys(paths) {
+		item, _ := paths[path].(map[string]any)
+		if item == nil {
+			continue
+		}
+		if list, ok := item["parameters"].([]any); ok {
+			item["parameters"] = kept(list, path, "")
+		}
+		for _, method := range pathItemMethods {
+			op, _ := item[method].(map[string]any)
+			if list, ok := op["parameters"].([]any); ok {
+				op["parameters"] = kept(list, path, method)
+			}
+		}
+	}
+
+	if 0 < len(dropped) {
+		parsed[ignoredHeadersKey] = dropped
+	}
 }
 
 // declaredSchemeOrder reads the scheme names from the ordered parse, in the
