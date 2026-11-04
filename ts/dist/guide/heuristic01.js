@@ -769,8 +769,10 @@ function RenameParams(spec) {
         return;
     }
     const origParams = [];
-    // A path whose read answers a page has a trailing parameter that filters it.
-    const listed = pathAnswersPage(pathdesc.def, pathStr, ment.pm, work.listed);
+    // A trailing parameter filters a path whose read answers a page of records
+    // or a map of them, and picks the record a random route answers.
+    const filtered = pathAnswersPage(pathdesc.def, pathStr, ment.pm, work.listed) ||
+        pathAnswersRecordMap(pathdesc.def) || randomRoute(parts);
     for (let partI = 0; partI < parts.length; partI++) {
         let partStr = parts[partI];
         if (isParam(partStr)) {
@@ -841,7 +843,7 @@ function RenameParams(spec) {
             // .../ent/{not-id}
             else if (lastPart
                 && not_exact_id
-                && !listed
+                && !filtered
                 && (!hasParent
                     || (parentName === entdesc.name
                         || entdesc.name.endsWith('_' + parentName)))) {
@@ -1943,6 +1945,16 @@ function pathAnswersPage(pathdef, pathStr, pm, listed) {
         const opdef = pathdef?.[method.toLowerCase()];
         return null != opdef && 'list' === methodOpname({ method, path: pathStr, responses: opdef.responses }, pm, [], listed);
     });
+}
+function pathAnswersRecordMap(pathdef) {
+    return ['get', 'query'].some((method) => null != pathdef?.[method] &&
+        (0, utility_1.answersRecordMap)(getResponseSchema(successResponse(pathdef[method].responses))));
+}
+// A literal `random` segment before the trailing parameter.
+function randomRoute(parts) {
+    const last = parts.length - 1;
+    return 0 < last && isParam(parts[last]) && parts.slice(0, last)
+        .some((part) => !isParam(part) && 'random' === part.toLowerCase());
 }
 // A trailing parameter addresses one record, unless the route answers a page
 // of records that the parameter filters; a component that some route lists

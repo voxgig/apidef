@@ -78,13 +78,15 @@
       "alarms": {
         "t": "`$ARRAY`",
         "r": false,
-        "sh": "The alarms to raise."
+        "sh": "The alarms to raise.",
+        "syn": true
       }
     },
     "alert": {
       "alerts": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "bale": {
@@ -100,7 +102,8 @@
     "batch": {
       "batch_inputs": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       },
       "id": {
         "t": "`$STRING`",
@@ -114,13 +117,15 @@
     "beacon": {
       "pings": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "bin": {
       "bins": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "broadcast": {
@@ -131,20 +136,23 @@
       "sms_messages": {
         "t": "`$ARRAY`",
         "r": false,
-        "sh": "The messages to send."
+        "sh": "The messages to send.",
+        "syn": true
       }
     },
     "chip": {
       "chips": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "coil": {},
     "coin": {
       "coins": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "crate": {
@@ -156,13 +164,15 @@
             "`$NULL`"
           ]
         ],
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "crew": {
       "crew_inputs": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "deck": {
@@ -174,7 +184,8 @@
     "doc": {
       "doc_change_list": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       },
       "doc_changes": {
         "t": "`$INTEGER`",
@@ -192,23 +203,27 @@
     "drum": {
       "drum_list": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       },
       "drums": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "event": {
       "events": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "flag": {
       "flags": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "flask": {
@@ -220,13 +235,15 @@
             "`$NULL`"
           ]
         ],
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "flock": {
       "sheep": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "form": {
@@ -252,30 +269,35 @@
             "`$NULL`"
           ]
         ],
-        "r": false
+        "r": false,
+        "syn": true
       },
       "grades": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "herd": {
       "oxen": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "hero": {
       "heroes": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "hoop": {},
     "item": {
       "n123_items": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "jar": {
@@ -287,19 +309,22 @@
             "`$NULL`"
           ]
         ],
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "keg": {
       "kegs": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "kit": {
       "kits": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "label": {},
@@ -310,7 +335,8 @@
       },
       "lookups": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       },
       "value": {
         "t": "`$STRING`",
@@ -320,7 +346,8 @@
     "loop": {
       "loops": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "mark": {
@@ -332,7 +359,8 @@
             "`$NULL`"
           ]
         ],
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "memo": {
@@ -344,7 +372,8 @@
             "`$NULL`"
           ]
         ],
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "message": {
@@ -360,7 +389,8 @@
       },
       "note_list": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       },
       "notes": {
         "t": "`$STRING`",
@@ -406,7 +436,8 @@
             "`$NULL`"
           ]
         ],
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "raft": {},
@@ -428,13 +459,15 @@
     "ring": {
       "rings": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "roll": {
       "rolls": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "score": {
@@ -446,17 +479,20 @@
             "`$NULL`"
           ]
         ],
-        "r": false
+        "r": false,
+        "syn": true
       },
       "scores": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "series": {
       "series_list": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "session": {
@@ -470,13 +506,15 @@
       },
       "sessions": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "shipment": {
       "parcels": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "spool": {
@@ -488,19 +526,22 @@
             "`$NULL`"
           ]
         ],
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "stack": {
       "stacks": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "tag": {
       "tags": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "ticket": {
@@ -510,7 +551,8 @@
       },
       "ticket_list": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       },
       "tickets": {
         "t": "`$INTEGER`",
@@ -529,7 +571,8 @@
       },
       "todo_item_list": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       },
       "todo_items": {
         "t": "`$INTEGER`",
@@ -545,7 +588,8 @@
             "`$NULL`"
           ]
         ],
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "tub": {
@@ -557,7 +601,8 @@
             "`$NULL`"
           ]
         ],
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "upload": {
@@ -579,7 +624,8 @@
     "vat": {
       "vats": {
         "t": "`$ARRAY`",
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "vial": {
@@ -591,7 +637,8 @@
             "`$NULL`"
           ]
         ],
-        "r": false
+        "r": false,
+        "syn": true
       }
     },
     "widget": {

@@ -46,6 +46,7 @@ type ModelField struct {
 	WriteOnly  bool   `json:"wo,omitempty"`
 	Deprecated bool   `json:"de,omitempty"`
 	Format     string `json:"fo,omitempty"`
+	Synthetic  bool   `json:"syn,omitempty"`
 }
 
 // ModelArg represents an operation argument/parameter.

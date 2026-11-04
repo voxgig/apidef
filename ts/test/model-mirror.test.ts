@@ -110,12 +110,15 @@ describe('model-mirror', () => {
       id: { n: 'id', h: 'Id', r: true, t: '`$STRING`' },
       secret: { n: 'secret', h: 'Secret', r: false, t: '`$STRING`', a: false,
         sh: 'A secret.', ro: true, wo: true, de: true, fo: 'password' },
+      ref: { n: 'ref', h: 'Ref', r: false, t: '`$STRING`', syn: true },
     }
-    const source = readFileSync(Path.join(REPO, 'model', 'apidef.aontu'), 'utf8') + '\n' +
-      'main:kit:entity:widget:fields:' + JSON.stringify(fields)
+    const schema = readFileSync(Path.join(REPO, 'model', 'apidef.aontu'), 'utf8') + '\n'
+    const source = schema + 'main:kit:entity:widget:fields:' + JSON.stringify(fields)
     const model = new Aontu().generate(source)
     assert.deepStrictEqual(model.main.kit.entity.widget.fields,
-      { id: { ...fields.id, a: true }, secret: fields.secret })
+      { id: { ...fields.id, a: true }, secret: fields.secret, ref: { ...fields.ref, a: true } })
+    assert.throws(() => new Aontu().generate(schema + 'main:kit:entity:widget:fields:' +
+      JSON.stringify({ ref: { ...fields.ref, syn: 'yes' } })))
   })
 
   for (const file of MODEL_FILES) {

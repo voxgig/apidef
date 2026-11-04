@@ -37,6 +37,7 @@ import {
   envelopeItemRef,
   composedEnvelopeProp,
   answersPage,
+  answersRecordMap,
   mergedProperties,
   closedBodyTransform,
   requestWrapperOf,
@@ -884,6 +885,17 @@ describe('tsv-answers-page', () => {
   for (const row of rows) {
     test(row.name, () => {
       assert.strictEqual(answersPage(JSON.parse(row.schema)), 'true' === row.expected)
+    })
+  }
+})
+
+
+describe('tsv-answers-record-map', () => {
+  const rows = loadTsv('answers-record-map')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, () => {
+      assert.strictEqual(answersRecordMap(JSON.parse(row.schema)), 'true' === row.expected)
     })
   }
 })
@@ -1821,9 +1833,10 @@ describe('tsv-flow-textfield', () => {
       }).map(([name, path]) => [name, { name, points: [flowPoint(path)] }]))
       const fields = Object.fromEntries(JSON.parse(row.fields).map((f: any) => [f.n, f]))
       const flow = { name: 'BasicThingFlow', entity: 'thing', kind: 'basic', step: [] as any[] }
+      const id = '' === row.id ? undefined : JSON.parse(row.id)
       await flowstepTransform({
         apimodel: { main: { kit: {
-          entity: { thing: { name: 'thing', fields, op } },
+          entity: { thing: { name: 'thing', fields, op, id } },
           flow: { BasicThingFlow: flow },
         } } },
         guide: {},

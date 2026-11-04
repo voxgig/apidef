@@ -67,3 +67,10 @@ resprops	opname	expected
 {"attestations_subject_digests":{"type":"object"},"page_info":{"type":"object"}}	create	
 {"data":{"$ref":"#/components/schemas/Practice"},"pagination":{"type":"object"}}	load	
 {"data":{"$ref":"#/components/schemas/Practice"},"links":{"type":"object"}}	load	data
+{"info":{"type":"object","properties":{"count":{"type":"integer"}}},"data":{"$ref":"#/components/schemas/Character"}}	load	data
+{"info":{"type":"object"},"data":{"$ref":"#/components/schemas/Character"}}	update	data
+{"id":{"type":"integer"},"info":{"type":"object"},"data":{"$ref":"#/components/schemas/Character"}}	load	
+{"id":{"type":"integer"},"info":{"type":"object"}}	load	
+{"data":{"$ref":"#/components/schemas/Character"},"info":{"type":"array","items":{"$ref":"#/components/schemas/Note"}}}	load	
+{"info":{"type":"object"},"results":{"type":"array","items":{"$ref":"#/components/schemas/Character"}}}	load	
+{"info":{"$ref":"#/components/schemas/PaginationInfo"},"data":{"type":"array","items":{"$ref":"#/components/schemas/Character"}}}	list	data

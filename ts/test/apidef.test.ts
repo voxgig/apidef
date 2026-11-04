@@ -722,6 +722,12 @@ describe('apidef', () => {
     assert.strictEqual(res('document', 'load'), '`body.data`')
     assert.deepStrictEqual(Object.keys(entities.document.fields).sort(), ['id', 'title'])
 
+    // An `info` object beside one record is its metadata, as `meta` is.
+    assert.strictEqual(res('character', 'list'), '`body.data`')
+    assert.strictEqual(res('character', 'load'), '`body.data`')
+    assert.deepStrictEqual(Object.keys(entities.character.fields).sort(), ['_id', 'name'])
+    assert.deepStrictEqual(entities.character.id, { name: 'id', field: '_id' })
+
     // With no read beside it, the fields come from the Accepted answer too.
     assert.strictEqual(res('export', 'create'), '`body.data`')
     assert.deepStrictEqual(Object.keys(entities.export.fields).sort(),
@@ -1081,6 +1087,57 @@ describe('apidef', () => {
     assert.deepStrictEqual(Object.keys(entities.box.fields), ['_id', 'name'])
     assert.deepStrictEqual(entities.team.id, { name: 'id', field: 'id' })
     assert.deepStrictEqual(Object.keys(entities.press_release.fields), ['date', 'title', 'url'])
+  })
+
+
+  // A trailing parameter filters a map of records, and picks the record a
+  // random route answers: it keys nothing, so no `id` is added for it.
+  test('guide-filter-param', async () => {
+    const folder = __dirname + '/../test/filter-param'
+
+    const build = await ApiDef.makeBuild({ folder })
+
+    const bres = await build(
+      { name: 'filter-param', def: 'filter-param-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: true,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const entities = bres.apimodel.main.kit.entity
+    const points = (ent: string) => Object.keys(entities[ent].op).sort().flatMap((op: string) =>
+      entities[ent].op[op].points.map((pt: any) => [op, pt.m, pt.o,
+        (pt.g?.params ?? []).map((a: any) => a.or + '>' + a.n).sort().join(',')].join(' ')))
+
+    assert.deepStrictEqual(points('catalogue'), ['load GET /catalogue/{currency} currency>currency'])
+    assert.deepStrictEqual(points('region'), ['load GET /regions/{country} country>country'])
+    assert.deepStrictEqual(points('quote'), ['load GET /random/quote/{category} category>category'])
+    assert.deepStrictEqual(points('joke'), ['load GET /random/joke/{category} category>category'])
+    assert.deepStrictEqual(points('label'), ['load GET /labels/{lang} lang>id'])
+    assert.deepStrictEqual(points('team'), ['load GET /teams/{teamId} teamId>id'])
+
+    for (const ent of ['catalogue', 'region', 'quote']) {
+      assert.strictEqual(entities[ent].id, undefined, ent)
+    }
+    assert.deepStrictEqual(Object.keys(entities.catalogue.fields), ['name', 'unit'])
+    assert.deepStrictEqual(Object.keys(entities.region.fields), ['name', 'population'])
+    assert.deepStrictEqual(Object.keys(entities.quote.fields), ['author', 'text'])
+    assert.deepStrictEqual(entities.joke.id, { name: 'id', field: 'id' })
+    assert.deepStrictEqual(Object.keys(entities.joke.fields), ['category', 'id', 'joke'])
+    assert.deepStrictEqual(entities.team.id, { name: 'id', field: 'id' })
   })
 
 

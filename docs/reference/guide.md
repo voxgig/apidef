@@ -175,6 +175,17 @@ entity's paths:
   answers with as the records of a page: `/teams/{team_id}` answering the
   `Team` that `/teams` lists is a load, though a `Team` holds only its list of
   members.
+- A trailing parameter keys no record either when the path's `GET` answers a
+  map of records, or when a literal `random` segment comes before it. A map
+  is an object with no properties of its own whose `additionalProperties` is
+  a record, such as `/v1/data_catalogue/{currency}` answering catalogue
+  entries under indicator slugs. `/random/category/{category}` answers one
+  record chosen at random from a category. The route stays a `load`, and the
+  parameter keeps its own name in snake case, so it adds no `id` field. An
+  entity whose record declares an identity, such as a numeric `id`, keeps
+  that identity; the route is just not keyed by it. A map of scalars is not
+  a map of records, so `/labels/{lang}` answering strings still renames
+  `{lang}` to `id`.
 - A parameter that keys a parent may be renamed after the parent's segment,
   as `<parent>_id`. A parameter whose own name, in snake case, is `name` or
   ends in `_name`, such as `project_name` or `projectName`, is never renamed
@@ -305,9 +316,10 @@ for the whole spec on
 A single-item operation unwraps its response's one nested object only when
 nothing but status or paging properties sits beside it, such as `success`,
 `status` or `request_id`, or the item's own metadata: an object named in
-`ITEM_META_PROPS` (`meta`, `metadata` or `links`) is not a second candidate
-beside a single item, as it is not beside a page's records, so
-`{ data, meta }` loads `body.data`. Paging metadata, such as `pagination` or
+`ITEM_META_PROPS` (`meta`, `metadata`, `links` or `info`) is not a second
+candidate beside a single item, as it is not beside a page's records, so
+`{ data, meta }` loads `body.data`, and so does a Disney character's
+`{ info: { count }, data }`. Paging metadata, such as `pagination` or
 `page_info`, makes the response a page, so a create that answers GitHub's
 attestations by digest beside their `page_info` reads it whole. An `id`, or
 any other data, beside the object makes the schema the record itself: Lob's

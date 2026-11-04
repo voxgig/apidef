@@ -124,10 +124,11 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 
 			syntheticId := func() {
 				fields["id"] = map[string]any{
-					"n": "id",
-					"h": HumanTitle("id"),
-					"t": "`$STRING`",
-					"r": false,
+					"n":   "id",
+					"h":   HumanTitle("id"),
+					"t":   "`$STRING`",
+					"r":   false,
+					"syn": true,
 				}
 			}
 
@@ -778,6 +779,10 @@ func addOpField(fields map[string]any, opname string, opfield map[string]any, ca
 				existing["sh"] = short
 			}
 		}
+		// A property declaring the field makes it the record's own.
+		if syn, _ := opfield["syn"].(bool); !syn {
+			delete(existing, "syn")
+		}
 		for _, flag := range []string{
 			"ro", "wo", "de",
 		} {
@@ -870,6 +875,10 @@ func modelField(fielddef map[string]any) map[string]any {
 			"branches": union.Branches,
 			"depth":    union.Depth,
 		}
+	}
+
+	if syn, _ := fielddef["syn$"].(bool); syn {
+		mfield["syn"] = true
 	}
 	return mfield
 }
@@ -1015,10 +1024,10 @@ func carrierOf(mtarget map[string]any, def map[string]any, media string) *arrayC
 	return arrayCarrier(def, mtarget, media)
 }
 
-// carrierDef mirrors ts/src/transform/field.ts: optional, as the record never
-// holds it.
+// carrierDef mirrors ts/src/transform/field.ts: optional and synthetic, as the
+// record never holds it.
 func carrierDef(c *arrayCarrierInfo) map[string]any {
-	fd := map[string]any{"key$": c.name, "type": c.typ}
+	fd := map[string]any{"key$": c.name, "type": c.typ, "syn$": true}
 	if c.description != "" {
 		fd["description"] = c.description
 	}

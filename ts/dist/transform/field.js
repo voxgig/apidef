@@ -72,12 +72,7 @@ const fieldTransform = async function (ctx) {
             // The FIELD as well as the descriptor, for the reason the branch below
             // documents: a model that declares the descriptor without the field
             // makes the generated type disagree with the generated test.
-            fields.id = {
-                n: 'id',
-                h: (0, utility_1.humanTitle)('id'),
-                t: '`$STRING`',
-                r: false,
-            };
+            fields.id = syntheticIdField();
         }
         const singleKey = composite.single;
         delete composite.single;
@@ -95,23 +90,13 @@ const fieldTransform = async function (ctx) {
             // The guide disabled composite; the terminal parameter is the key, and
             // the entity needs the field to carry it for the same reason the
             // composite branch above does.
-            fields.id = {
-                n: 'id',
-                h: (0, utility_1.humanTitle)('id'),
-                t: '`$STRING`',
-                r: false,
-            };
+            fields.id = syntheticIdField();
         }
         if (idField || null != composite.parts || null != singleKey || keyed) {
             ment.id = { name: 'id', field: 'id', ...composite, ...single };
         }
         else if (addressedById(ment)) {
-            fields.id = {
-                n: 'id',
-                h: (0, utility_1.humanTitle)('id'),
-                t: '`$STRING`',
-                r: false,
-            };
+            fields.id = syntheticIdField();
             ment.id = { name: 'id', field: 'id', ...composite, ...single };
         }
         ment.fields = Object.fromEntries(Object.keys(fields).sort().map(n => {
@@ -124,6 +109,15 @@ const fieldTransform = async function (ctx) {
     return { ok: true, msg };
 };
 exports.fieldTransform = fieldTransform;
+function syntheticIdField() {
+    return {
+        n: 'id',
+        h: (0, utility_1.humanTitle)('id'),
+        t: '`$STRING`',
+        r: false,
+        syn: true,
+    };
+}
 const ID_SEP = '/';
 // Subfields that conventionally carry the identifying value of a nested
 // object, in preference order. github's repo `owner` is a user object whose
@@ -563,6 +557,9 @@ function modelField(fielddef) {
     if (null != union) {
         mfield.union = union;
     }
+    if (true === fielddef.syn$) {
+        mfield.syn = true;
+    }
     return mfield;
 }
 function addField(fields, mop, field, carrier) {
@@ -726,9 +723,11 @@ function carrierOf(mpoint, def, media) {
     }
     return (0, body_1.arrayCarrier)(def, mpoint, media);
 }
-// Optional, as the record never holds it.
+// Optional and synthetic, as the record never holds it.
 function carrierDef(carrier) {
-    return { key$: carrier.name, type: carrier.type, description: carrier.description };
+    return {
+        key$: carrier.name, type: carrier.type, description: carrier.description, syn$: true,
+    };
 }
 // A schema and its allOf members describe one object: a name any of them
 // requires is required, and a property declared more than once is one field
@@ -910,6 +909,10 @@ function mergeField(mop, existingField, newField, carrier = false) {
     }
     if (null == existingField.sh && null != newField.sh) {
         existingField.sh = newField.sh;
+    }
+    // A property declaring the field makes it the record's own.
+    if (true !== newField.syn) {
+        delete existingField.syn;
     }
     for (const flag of ['ro', 'wo', 'de']) {
         if (null == existingField[flag] && null != newField[flag]) {

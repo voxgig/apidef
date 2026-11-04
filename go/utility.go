@@ -2174,9 +2174,9 @@ func isPageMetaProp(name string) bool {
 	return PAGE_META_PROPS[envelopePagingSepRE.ReplaceAllString(strings.ToLower(name), "")]
 }
 
-// ITEM_META_PROPS mirrors ts/src/utility.ts: the page metadata a single item
-// may carry too.
-var ITEM_META_PROPS = map[string]bool{"meta": true, "metadata": true, "links": true}
+// ITEM_META_PROPS mirrors ts/src/utility.ts: the metadata a single item may
+// carry.
+var ITEM_META_PROPS = map[string]bool{"meta": true, "metadata": true, "links": true, "info": true}
 
 // isItemMetaProp mirrors ts/src/utility.ts: a list under a metadata name is
 // records, as it is on a page.
@@ -2328,6 +2328,26 @@ func pageRecords(schema any) map[string]any {
 
 func answersPage(schema any) bool {
 	return pageRecords(schema) != nil
+}
+
+// answersRecordMap mirrors ts/src/utility.ts: an object whose entries are
+// records under keys of the API's choosing, with no properties of its own.
+func answersRecordMap(schema any) bool {
+	sch, _ := schema.(map[string]any)
+	if sch == nil {
+		return false
+	}
+	if t, has := sch["type"]; has && t != nil && t != "object" {
+		return false
+	}
+	if 0 < len(mergedProperties(sch)) {
+		return false
+	}
+	entry := sch["additionalProperties"]
+	if islist, known := propIsList(entry); known && islist {
+		return false
+	}
+	return isObjectSchema(entry)
 }
 
 // mergedProperties mirrors ts/src/utility.ts: the properties of a schema and

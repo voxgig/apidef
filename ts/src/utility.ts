@@ -2098,9 +2098,10 @@ function isPageMetaProp(name: string): boolean {
 }
 
 
-// The page metadata a single item may carry too. Paging beside an object makes
-// it a page, such as GitHub's attestations by digest beside their page info.
-const ITEM_META_PROPS = new Set(['meta', 'metadata', 'links'])
+// The metadata a single item may carry, such as the `info` beside a Disney
+// character. Paging beside an object makes it a page, such as GitHub's
+// attestations by digest beside their page info.
+const ITEM_META_PROPS = new Set(['meta', 'metadata', 'links', 'info'])
 
 
 // A list under a metadata name is records, as it is on a page.
@@ -2230,6 +2231,19 @@ function pageRecords(schema: any): any {
 
 function answersPage(schema: any): boolean {
   return null != pageRecords(schema)
+}
+
+
+// An object whose entries are records under keys of the API's choosing, with
+// no properties of its own, such as FXMacroData's catalogue by indicator slug.
+function answersRecordMap(schema: any): boolean {
+  if (null == schema || 'object' !== typeof schema || Array.isArray(schema) ||
+    (null != schema.type && 'object' !== schema.type) ||
+    0 < keysof(mergedProperties(schema)).length) {
+    return false
+  }
+  const entry = schema.additionalProperties
+  return true !== propIsList(entry) && isObjectSchema(entry)
 }
 
 
@@ -2485,6 +2499,7 @@ export {
   composedEnvelopeProp,
   pageRecords,
   answersPage,
+  answersRecordMap,
   propIsList,
   mergedProperties,
   closedBodyTransform,

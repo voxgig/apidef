@@ -113,12 +113,7 @@ const fieldTransform: Transform = async function(
       // The FIELD as well as the descriptor, for the reason the branch below
       // documents: a model that declares the descriptor without the field
       // makes the generated type disagree with the generated test.
-      fields.id = {
-        n: 'id',
-        h: humanTitle('id'),
-        t: '`$STRING`',
-        r: false,
-      } as ModelField
+      fields.id = syntheticIdField()
     }
 
     const singleKey = (composite as any).single
@@ -140,24 +135,14 @@ const fieldTransform: Transform = async function(
       // The guide disabled composite; the terminal parameter is the key, and
       // the entity needs the field to carry it for the same reason the
       // composite branch above does.
-      fields.id = {
-        n: 'id',
-        h: humanTitle('id'),
-        t: '`$STRING`',
-        r: false,
-      } as ModelField
+      fields.id = syntheticIdField()
     }
 
     if (idField || null != composite.parts || null != singleKey || keyed) {
       ment.id = { name: 'id', field: 'id', ...composite, ...single }
     }
     else if (addressedById(ment)) {
-      fields.id = {
-        n: 'id',
-        h: humanTitle('id'),
-        t: '`$STRING`',
-        r: false,
-      } as ModelField
+      fields.id = syntheticIdField()
 
       ment.id = { name: 'id', field: 'id', ...composite, ...single }
     }
@@ -174,6 +159,17 @@ const fieldTransform: Transform = async function(
   return { ok: true, msg }
 }
 
+
+
+function syntheticIdField(): ModelField {
+  return {
+    n: 'id',
+    h: humanTitle('id'),
+    t: '`$STRING`',
+    r: false,
+    syn: true,
+  } as ModelField
+}
 
 
 const ID_SEP = '/'
@@ -757,6 +753,10 @@ function modelField(fielddef: SchemaDef): ModelField {
   if (null != union) {
     mfield.union = union
   }
+
+  if (true === (fielddef as any).syn$) {
+    mfield.syn = true
+  }
   return mfield
 }
 
@@ -966,9 +966,11 @@ function carrierOf(mpoint: ModelPoint, def: any, media?: string) {
 }
 
 
-// Optional, as the record never holds it.
+// Optional and synthetic, as the record never holds it.
 function carrierDef(carrier: { name: string, type: string | string[], description?: string }): SchemaDef {
-  return { key$: carrier.name, type: carrier.type, description: carrier.description } as SchemaDef
+  return {
+    key$: carrier.name, type: carrier.type, description: carrier.description, syn$: true,
+  } as SchemaDef
 }
 
 
@@ -1168,6 +1170,11 @@ function mergeField(
 
   if (null == existingField.sh && null != newField.sh) {
     existingField.sh = newField.sh
+  }
+
+  // A property declaring the field makes it the record's own.
+  if (true !== newField.syn) {
+    delete existingField.syn
   }
 
   for (const flag of ['ro', 'wo', 'de'] as const) {

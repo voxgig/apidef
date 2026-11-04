@@ -430,9 +430,15 @@ parameter that selects a scope rather than the entity, as `{owner}` does in
 Cloudsmith's `/repos/{owner}/`, which lists every repository an account owns.
 The answer catches that one: a page of repositories makes the path's read a
 list, and no route on the path, its create included, renames `{owner}` to
-`id`. A scope whose read answers something other than a page is still
-renamed, and [the guide](../reference/guide.md#correcting-the-guide) is where
-to correct it.
+`id`. A map of records is a scope too: FXMacroData's
+`/v1/data_catalogue/{currency}` answers the catalogue entries of one
+currency under indicator slugs, so `{currency}` is no entry's key. So is the
+parameter of a random route: `/random/category/{category}` answers a
+different record on each call, and none of them equals the category. Neither
+is renamed, and neither adds an `id` the record never returns. A scope whose
+read answers anything else is still renamed, and
+[the guide](../reference/guide.md#correcting-the-guide) is where to correct
+it.
 
 A parameter before the last segment keys the parent when the entity is
 named for both segments. A restaurant directory's `/restaurants/{id}/menu`
