@@ -812,6 +812,10 @@ describe('apidef', () => {
     assert.strictEqual(res('note', 'list', '/notes'), '`body.note`')
     assert.strictEqual(res('quote', 'load', '/quote/{id}'), '`body.quote`')
     assert.strictEqual(res('competition', 'load', '/competitions/{id}'), '`body`')
+
+    // Its fields are the records it reads, not the lists beside them.
+    assert.strictEqual(res('user', 'list', '/users'), '`body.users`')
+    assert.deepStrictEqual(Object.keys(entities.user.fields).sort(), ['email', 'id', 'name'])
   })
 
 

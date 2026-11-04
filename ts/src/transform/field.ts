@@ -880,7 +880,7 @@ function findFieldDefs(
           getx(responses, '202 schema')
       }
       if ('list' == mop.name) {
-        const unwrapped = unwrapArrayWrapper(fieldSets)
+        const unwrapped = transformRecords(fieldSets, mpoint.t?.res) ?? unwrapArrayWrapper(fieldSets)
         envelope = null == unwrapped ? composedEnvelopeProp(fieldSets, 'list') : null
         const itemkey = itemEnvelopeOf(mpoint.t?.res)
         if (unwrapped) {
@@ -1111,6 +1111,16 @@ function unwrapExample(example: any, envelope?: string | null): any {
     return example.length > 0 ? example[0] : null
   }
   return example
+}
+
+
+// The records a list's response transform reads from one property of the body,
+// so its fields follow the list it chose among several.
+function transformRecords(schema: any, res: any): any {
+  const m = 'string' === typeof res ? res.match(/^`body\.([^`.]+)`$/) : null
+  const items = null == m ? null : mergedProperties(schema)?.[m[1]]?.items
+  return null != items && 'object' === typeof items &&
+    (null != items.properties || Array.isArray(items.allOf)) ? items : null
 }
 
 

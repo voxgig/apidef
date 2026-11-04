@@ -661,10 +661,18 @@ func TestGuideListRecords(t *testing.T) {
 		{"note", "list", "/notes", "`body.note`"},
 		{"quote", "load", "/quote/{id}", "`body.quote`"},
 		{"competition", "load", "/competitions/{id}", "`body`"},
+		{"user", "list", "/users", "`body.users`"},
 	} {
 		if got := resOf(c.ent, c.op, c.path); got != c.want {
 			t.Errorf("%s %s %s res = %v, want %s", c.ent, c.op, c.path, got, c.want)
 		}
+	}
+
+	// Its fields are the records it reads, not the lists beside them.
+	user, _ := entities["user"].(map[string]any)
+	fields, _ := user["fields"].(map[string]any)
+	if got, want := sortedKeys(fields), []string{"email", "id", "name"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("user fields = %v, want %v", got, want)
 	}
 }
 

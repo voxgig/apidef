@@ -631,6 +631,9 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.strictEqual(res('note', 'list', '/notes'), '`body.note`');
         node_assert_1.default.strictEqual(res('quote', 'load', '/quote/{id}'), '`body.quote`');
         node_assert_1.default.strictEqual(res('competition', 'load', '/competitions/{id}'), '`body`');
+        // Its fields are the records it reads, not the lists beside them.
+        node_assert_1.default.strictEqual(res('user', 'list', '/users'), '`body.users`');
+        node_assert_1.default.deepStrictEqual(Object.keys(entities.user.fields).sort(), ['email', 'id', 'name']);
     });
     // Apicurio tags every /well-known route WellKnown and its agent, MCP tool and
     // schema reads answer nothing, so each takes its collection's segment, after

@@ -4,9 +4,9 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 4
-  metrics: count: path: 7
-  metrics: count: method: 7
+  metrics: count: entity: 5
+  metrics: count: path: 8
+  metrics: count: method: 8
 
   entity: competition: {
     path: "/competitions/{id}": {
@@ -48,6 +48,13 @@ guide: {
       rename: param: "id": *"competition_id"
       op: list: method: *GET
       op: list: transform: res: *("`body.scorers`")|top
+    }
+  }
+
+  entity: user: {
+    path: "/users": {
+      op: list: method: *GET
+      op: list: transform: res: *("`body.users`")|top
     }
   }
 
