@@ -4,37 +4,18 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 15
+  metrics: count: entity: 13
   metrics: count: path: 24
   metrics: count: method: 34
 
-  entity: ci_runner_detail: {
-    path: "/runners": {
-      op: list: method: *GET
-    }
-    path: "/runners/{runner_id}": {
-      op: load: method: *GET
-    }
-  }
-
-  entity: ci_runner_registration: {
-    path: "/runners": {
+  entity: domain: {
+    path: "/mail/v1/domains": {
       op: create: method: *POST
-    }
-  }
-
-  entity: ci_worker_detail: {
-    path: "/workers": {
       op: list: method: *GET
+      op: list: transform: res: *("`body.items`")|top
     }
-    path: "/workers/{worker_id}": {
+    path: "/mail/v1/domains/{id}": {
       op: load: method: *GET
-    }
-  }
-
-  entity: ci_worker_registration: {
-    path: "/workers": {
-      op: create: method: *POST
     }
   }
 
@@ -61,17 +42,6 @@ guide: {
     }
   }
 
-  entity: mail_domain_detail: {
-    path: "/mail/v1/domains": {
-      op: create: method: *POST
-      op: list: method: *GET
-      op: list: transform: res: *("`body.items`")|top
-    }
-    path: "/mail/v1/domains/{id}": {
-      op: load: method: *GET
-    }
-  }
-
   entity: repo: {
     path: "/repos/{repo_id}": {
       rename: param: "repo_id": *"id"
@@ -92,6 +62,17 @@ guide: {
       rename: param: "invitation_id": *"id"
       op: patch: method: *PATCH
       op: remove: method: *DELETE
+    }
+  }
+
+  entity: runner: {
+    path: "/runners": {
+      op: create: method: *POST
+      op: list: method: *GET
+    }
+    path: "/runners/{runner_id}": {
+      rename: param: "runner_id": *"id"
+      op: load: method: *GET
     }
   }
 
@@ -150,6 +131,17 @@ guide: {
     }
     path: "/widgets/{widget_id}": {
       rename: param: "widget_id": *"id"
+      op: load: method: *GET
+    }
+  }
+
+  entity: worker: {
+    path: "/workers": {
+      op: create: method: *POST
+      op: list: method: *GET
+    }
+    path: "/workers/{worker_id}": {
+      rename: param: "worker_id": *"id"
       op: load: method: *GET
     }
   }

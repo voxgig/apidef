@@ -6,6 +6,7 @@ exports.arrayBodyField = arrayBodyField;
 exports.commandBodyName = commandBodyName;
 exports.commandTwin = commandTwin;
 exports.itemAbove = itemAbove;
+exports.pathQualified = pathQualified;
 exports.readsRecord = readsRecord;
 exports.recordOf = recordOf;
 exports.responsePayload = responsePayload;
@@ -1433,7 +1434,7 @@ function recordOf(data, pathStr) {
     let found = null;
     const orig = null == itemPath ? null : itemRecordRef(data, itemPath);
     if (null != orig && 1 === itemRecordRoutes(data)[orig].size) {
-        const cmp = (0, utility_2.cleanComponentName)((0, utility_2.canonizeCmpName)(orig), (n) => null != data.guide.metrics.count.origcmprefs[n]);
+        const cmp = (0, utility_2.cleanComponentName)((0, utility_2.canonizeCmpName)(orig), (n) => null != data.guide.metrics.count.origcmprefs[n]).replace(/_v\d+$/, '');
         found = { cmp, orig };
     }
     work.itemRecords[pathStr] = found;
@@ -1462,6 +1463,16 @@ function itemRecordRoutes(data) {
         }
     }
     return work.itemRecordRoutes;
+}
+// A record named for a literal of the path and the naming literal, as
+// `call_route_allowed_caller` under `/call_routes/{id}/allowed_callers`, is
+// qualified rather than wrapped.
+function pathQualified(parts, cmp, lit) {
+    if (!cmp.endsWith('_' + lit)) {
+        return false;
+    }
+    const prefix = cmp.slice(0, -(lit.length + 1));
+    return parts.some((part) => !isParam(part) && (0, utility_1.literalName)(part) === prefix);
 }
 // Whether a component's name holds the literal's words in a row, compared
 // singular: such a name wraps the literal and the literal keeps naming.
@@ -1940,6 +1951,9 @@ function entityCmpMatch(data, entname, mdesc, why) {
     const unversioned = (ment.cmp ?? '').replace(/_v\d+$/, '');
     const qualifies = unversioned !== ment.cmp && unversioned.endsWith('_' + entname);
     const record = recordOf(data, mdesc.path);
+    const recordWraps = null != record && record.cmp !== entname &&
+        wrapsLiteral(record.cmp, entname) &&
+        !pathQualified(data.work.pathmap[mdesc.path].parts, record.cmp, entname);
     // The key parameter names the component, whatever the literal beside it:
     // `/b/{bucket}` answering with a Bucket.
     if (null != ment.cmp
@@ -1956,7 +1970,7 @@ function entityCmpMatch(data, entname, mdesc, why) {
     // whatever its frequency, unless the record's name wraps the literal's.
     else if (null != record
         && record.cmp !== entname
-        && !wrapsLiteral(record.cmp, entname)) {
+        && !recordWraps) {
         why.push('cmp-record=' + record.orig);
         out.name = record.cmp;
         out.orig = record.orig;
@@ -1981,6 +1995,10 @@ function entityCmpMatch(data, entname, mdesc, why) {
             out.cmpish = true;
             out.pathish = false;
         }
+        // A record that wraps the literal's words is the literal's own shape.
+        else if (recordWraps) {
+            why.push('path-over-wrapper=' + record.orig);
+        }
         else if (cmpInfrequent && !cmpShared) {
             why.push('cmp-primary');
             out.name = ment.cmp;
@@ -2002,7 +2020,8 @@ function entityCmpMatch(data, entname, mdesc, why) {
         }
     }
     else if ('DELETE' === mdesc.method
-        && null == ment.cmp) {
+        && null == ment.cmp
+        && !recordWraps) {
         let cmps = findcmps(data, mdesc.path, ['responses'], { uniq: true })
             .flatMap((found) => unwrapCmp(data.guide.metrics, found, why));
         if (1 === cmps.length) {

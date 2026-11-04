@@ -904,7 +904,7 @@ func WrapperOf(name string, known []string) (string, bool) {
 			break
 		}
 	}
-	if 0 < forAt && forAt < len(words)-1 && wrapperWords[words[len(words)-1]] {
+	if 0 < forAt && forAt < len(words)-1 {
 		held := Depluralize(strings.Join(words[:forAt], "_"))
 		for _, k := range known {
 			if k == held {

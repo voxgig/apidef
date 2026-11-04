@@ -1900,7 +1900,7 @@ function recordOf(
   const orig = null == itemPath ? null : itemRecordRef(data, itemPath)
   if (null != orig && 1 === itemRecordRoutes(data)[orig].size) {
     const cmp = cleanComponentName(canonizeCmpName(orig),
-      (n: string) => null != data.guide.metrics.count.origcmprefs[n])
+      (n: string) => null != data.guide.metrics.count.origcmprefs[n]).replace(/_v\d+$/, '')
     found = { cmp, orig }
   }
   work.itemRecords[pathStr] = found
@@ -1933,6 +1933,18 @@ function itemRecordRoutes(data: { def: any, work: any }): Record<string, Set<str
     }
   }
   return work.itemRecordRoutes
+}
+
+
+// A record named for a literal of the path and the naming literal, as
+// `call_route_allowed_caller` under `/call_routes/{id}/allowed_callers`, is
+// qualified rather than wrapped.
+function pathQualified(parts: string[], cmp: string, lit: string): boolean {
+  if (!cmp.endsWith('_' + lit)) {
+    return false
+  }
+  const prefix = cmp.slice(0, -(lit.length + 1))
+  return parts.some((part) => !isParam(part) && literalName(part) === prefix)
 }
 
 
@@ -2620,6 +2632,9 @@ function entityCmpMatch(
   const qualifies = unversioned !== ment.cmp && unversioned.endsWith('_' + entname)
 
   const record = recordOf(data, mdesc.path)
+  const recordWraps = null != record && record.cmp !== entname &&
+    wrapsLiteral(record.cmp, entname) &&
+    !pathQualified(data.work.pathmap[mdesc.path].parts, record.cmp, entname)
 
   // The key parameter names the component, whatever the literal beside it:
   // `/b/{bucket}` answering with a Bucket.
@@ -2641,7 +2656,7 @@ function entityCmpMatch(
   else if (
     null != record
     && record.cmp !== entname
-    && !wrapsLiteral(record.cmp, entname)
+    && !recordWraps
   ) {
     why.push('cmp-record=' + record.orig)
     out.name = record.cmp
@@ -2671,6 +2686,10 @@ function entityCmpMatch(
       out.cmpish = true
       out.pathish = false
     }
+    // A record that wraps the literal's words is the literal's own shape.
+    else if (recordWraps) {
+      why.push('path-over-wrapper=' + record.orig)
+    }
     else if (cmpInfrequent && !cmpShared) {
       why.push('cmp-primary')
       out.name = ment.cmp
@@ -2695,6 +2714,7 @@ function entityCmpMatch(
   else if (
     'DELETE' === mdesc.method
     && null == ment.cmp
+    && !recordWraps
   ) {
     let cmps: { cmp: string, origcmp: string }[] =
       findcmps(data, mdesc.path, ['responses'], { uniq: true })
@@ -3478,6 +3498,7 @@ export {
   commandBodyName,
   commandTwin,
   itemAbove,
+  pathQualified,
   readsRecord,
   recordOf,
   responsePayload,

@@ -14,5 +14,6 @@ user_profile_response	user,user_profile,user_profile_response	user_profile
 result	result,thing	null
 student_contacts_for_student_response	student,student_contact,student_contacts_for_student_response	student_contact
 contacts_for_student_response	contact,student	contact
+student_contacts_for_student	student,student_contact	student_contact
 things_for_user_response	things_for_user_response,user	null
 for_response	for_response,thing	null

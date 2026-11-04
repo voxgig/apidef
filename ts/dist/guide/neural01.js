@@ -702,8 +702,10 @@ function nameFeatures(work, route, owners, recordowner, why) {
         why.push((0, nn_1.explain)('probable', probable));
         if (null != cmp || 1 === x.probable) {
             const record = (0, heuristic01_1.recordOf)({ def, guide: work.guide, work }, route.path);
-            x.record_avail = bit(null != record && record.cmp !== pathName &&
-                !(0, heuristic01_1.wrapsLiteral)(record.cmp, pathName));
+            const wraps = null != record && record.cmp !== pathName &&
+                (0, heuristic01_1.wrapsLiteral)(record.cmp, pathName) && !(0, heuristic01_1.pathQualified)(route.parts, record.cmp, pathName);
+            x.record_avail = bit(null != record && record.cmp !== pathName && !wraps);
+            x.record_wraps = bit(wraps);
             sources.REC = record?.cmp ?? null;
         }
         if (null != cmp) {

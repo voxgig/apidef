@@ -233,7 +233,7 @@ names from; the maintainer ruled that the score counts routes on
 `resource`, `embedded` and `command` entities only. On those, 545 of 792
 routes (69 percent) shared the analysts' name before the rulings below,
 593 (75 percent, 446 exact) after the first four of them, 601 (76
-percent, 448 exact) after all eight and 668 (84 percent, 494 exact) after
+percent, 448 exact) after all eight and 669 (84 percent, 499 exact) after
 the second round of eight; that is the figure the suite's floor guards.
 
 Twelve definitions agree on every route. The net and the heuristic agree
@@ -408,7 +408,12 @@ The name network gained `param_avail`, `twin_cmd_avail`, `record_avail`,
 `cmp_record` and `none_param`, and the view gates rewritten over any
 depth. The two override classes, `TWIN` and `REC`, take the component
 gates away by negative inputs rather than outscoring their sum. The corpus
-moved from 601 to 668 of 792 routes (494 exact, 615 with the same role).
+moved from 601 to 669 of 792 routes (499 exact, 615 with the same role).
+A record that wraps the literal's words lets the literal name only after
+the qualified-name rule has had its turn, and a record named for a literal
+of the path and the naming literal, `CallRouteAllowedCaller` under
+`/call_routes/{id}/allowed_callers`, is qualified rather than wrapped; the
+`ForX` wrapper is also recognised once its response word is cleaned away.
 
 The guide stage costs the same under either strategy: within a few
 milliseconds per definition on the test corpus, and within a tenth on a

@@ -108,7 +108,7 @@ const NAME_NET = makeNet(
     'cmp_names_key', 'tag_name_avail', 'cmp_differs', 'cmp_foreign_tag',
     'm_post', 'verbish', 'lit_last', 'body_cmp_avail', 'item_beneath', 'same_path_record',
     'post_read', 'read_noun_avail', 'res_record', 'res_scalars', 'param_avail', 'twin_cmd_avail',
-    'record_avail', 'view_key', 'tail_singular', 'view_parent_avail'],
+    'record_avail', 'record_wraps', 'view_key', 'tail_singular', 'view_parent_avail'],
   {
     shaped: { b: 0, w: { shaped: 1 } },
     coll_record: {
@@ -167,20 +167,20 @@ const NAME_NET = makeNet(
       b: -3,
       w: {
         shaped: 1, cmp_avail: 1, cmp_ne_path: 1, cmp_infrequent: 1, cmp_shared: -1, cmp_qualifies: -1,
-        cmp_names_key: -1, cmp_foreign_tag: -1, record_avail: -1, twin_cmd_avail: -1,
+        cmp_names_key: -1, cmp_foreign_tag: -1, record_avail: -1, record_wraps: -1, twin_cmd_avail: -1,
       },
     },
     cmp_in_path: {
       b: -3,
       w: {
         shaped: 1, cmp_avail: 1, cmp_ne_path: 1, cmp_in_path: 1, cmp_qualifies: -1, cmp_names_key: -1,
-        cmp_foreign_tag: -1, record_avail: -1, twin_cmd_avail: -1,
+        cmp_foreign_tag: -1, record_avail: -1, record_wraps: -1, twin_cmd_avail: -1,
       },
     },
     delete_cmp: {
       b: -3,
       w: {
-        shaped: 1, m_delete: 1, cmp_avail: -1, delcmp_avail: 1, probable: 1, record_avail: -1,
+        shaped: 1, m_delete: 1, cmp_avail: -1, delcmp_avail: 1, probable: 1, record_avail: -1, record_wraps: -1,
         twin_cmd_avail: -1,
       },
     },

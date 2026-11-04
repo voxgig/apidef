@@ -1548,17 +1548,17 @@ describe('apidef', () => {
         'GET /user/starred',
         'PUT /user/starred/{owner}/{repo}',
       ],
-      ci_runner_detail: ['GET /runners', 'GET /runners/{runner_id}'],
-      ci_runner_registration: ['POST /runners'],
-      ci_worker_detail: ['GET /workers', 'GET /workers/{worker_id}'],
-      ci_worker_registration: ['POST /workers'],
+      // A record that wraps the literal's words, CiRunnerDetail around runner,
+      // leaves the literal naming, so the registration joins it.
+      runner: ['GET /runners', 'GET /runners/{runner_id}', 'POST /runners'],
+      worker: ['GET /workers', 'GET /workers/{worker_id}', 'POST /workers'],
       instance: [
         'GET ' + I,
         'GET ' + I + '/{instance_id}',
         'PATCH ' + I + '/{instance_id}',
         'POST ' + I + '/{instance_id}/restart',
       ],
-      mail_domain_detail: [
+      domain: [
         'GET /mail/v1/domains',
         'GET /mail/v1/domains/{id}',
         'POST /mail/v1/domains',

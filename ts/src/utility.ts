@@ -1344,9 +1344,10 @@ const WRAPPER_WORDS = [
 function wrapperOf(name: string, known: string[]): string | null {
   const words = name.split('_').filter((w) => '' !== w)
 
-  // A name of the form noun-for-parent-response wraps the noun.
+  // A name of the form noun-for-parent-response, or noun-for-parent once the
+  // response suffix is cleaned away, wraps the noun.
   const forAt = words.indexOf('for')
-  if (0 < forAt && forAt < words.length - 1 && WRAPPER_WORDS.includes(words[words.length - 1])) {
+  if (0 < forAt && forAt < words.length - 1) {
     const held = depluralize(words.slice(0, forAt).join('_'))
     if (known.includes(held)) {
       return held

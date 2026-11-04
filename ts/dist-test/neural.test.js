@@ -282,6 +282,7 @@ function file(header, data) {
         node_assert_1.default.strictEqual(name(rec), 'REC');
         node_assert_1.default.strictEqual(name({ ...rec, cmp_differs: 1, cmp_names_key: 1 }), 'CMP');
         node_assert_1.default.strictEqual(name({ ...rec, twin_cmd_avail: 1 }), 'TWIN');
+        node_assert_1.default.strictEqual(name({ ...rec, record_avail: 0, record_wraps: 1 }), 'PATH');
         node_assert_1.default.strictEqual(name({ ...tpt, record_avail: 1, last_is_cmp: 1, path_has_children: 1 }), 'REC');
         node_assert_1.default.strictEqual(name({ param_avail: 1, opid_avail: 1, title_avail: 1 }), 'PARAM');
         const post = { shaped: 1, shape_t: 1, m_post: 1, m_write: 1, lit_last: 1, last_lit_singular: 1 };

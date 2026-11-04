@@ -2512,7 +2512,7 @@ func recordOf(data map[string]any, pathStr string) (string, string) {
 		cmp := CleanComponentName(CanonizeCmpName(orig), func(n string) bool {
 			return isOrigCmp(data, n)
 		})
-		found = []string{cmp, orig}
+		found = []string{reVersionSuffix.ReplaceAllString(cmp, ""), orig}
 	}
 	records[pathStr] = found
 	return found[0], found[1]
@@ -2562,6 +2562,22 @@ func itemRecordRoutes(data map[string]any) map[string]map[string]bool {
 		}
 	}
 	return routes
+}
+
+// A record named for a literal of the path and the naming literal, as
+// `call_route_allowed_caller` under `/call_routes/{id}/allowed_callers`, is
+// qualified rather than wrapped.
+func pathQualified(parts []string, cmp string, lit string) bool {
+	if !strings.HasSuffix(cmp, "_"+lit) {
+		return false
+	}
+	prefix := cmp[:len(cmp)-len(lit)-1]
+	for _, part := range parts {
+		if !isParam(part) && LiteralName(part) == prefix {
+			return true
+		}
+	}
+	return false
 }
 
 // Whether a component's name holds the literal's words in a row, compared
@@ -2855,6 +2871,8 @@ func entityCmpMatch(data map[string]any, entname string, mdesc map[string]any, w
 	mentRef := safeStr(ment["ref"])
 
 	recCmp, recOrig := recordOf(data, pathStr)
+	recordWraps := recCmp != "" && recCmp != entname && wrapsLiteral(recCmp, entname) &&
+		!pathQualified(pathParts(data, pathStr), recCmp, entname)
 
 	// The key parameter names the component, whatever the literal beside it:
 	// `/b/{bucket}` answering with a Bucket.
@@ -2867,7 +2885,7 @@ func entityCmpMatch(data map[string]any, entname string, mdesc map[string]any, w
 		out["orig"] = mentOrigCmp
 		out["cmpish"] = true
 		out["pathish"] = false
-	} else if recCmp != "" && recCmp != entname && !wrapsLiteral(recCmp, entname) {
+	} else if recCmp != "" && recCmp != entname && !recordWraps {
 		// The record an item route answers names the item and its collection,
 		// whatever its frequency, unless the record's name wraps the literal's.
 		*why = append(*why, "cmp-record="+recOrig)
@@ -2893,6 +2911,9 @@ func entityCmpMatch(data map[string]any, entname string, mdesc map[string]any, w
 			out["orig"] = mentOrigCmp
 			out["cmpish"] = true
 			out["pathish"] = false
+		} else if recordWraps {
+			// A record that wraps the literal's words is the literal's own shape.
+			*why = append(*why, "path-over-wrapper="+recOrig)
 		} else if cmpInfrequent && !cmpShared {
 			*why = append(*why, "cmp-primary")
 			out["name"] = mentCmp
@@ -2910,7 +2931,7 @@ func entityCmpMatch(data map[string]any, entname string, mdesc map[string]any, w
 		} else {
 			*why = append(*why, "path-over-cmp")
 		}
-	} else if mdesc["method"] == "DELETE" && mentCmp == "" {
+	} else if mdesc["method"] == "DELETE" && mentCmp == "" && !recordWraps {
 		cmpFound := foundCmps(data)
 		var cmps []map[string]any
 		for _, found := range findcmps(data, pathStr, []string{"responses"}, true) {

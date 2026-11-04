@@ -301,6 +301,7 @@ describe('nn', () => {
     assert.strictEqual(name(rec), 'REC')
     assert.strictEqual(name({ ...rec, cmp_differs: 1, cmp_names_key: 1 }), 'CMP')
     assert.strictEqual(name({ ...rec, twin_cmd_avail: 1 }), 'TWIN')
+    assert.strictEqual(name({ ...rec, record_avail: 0, record_wraps: 1 }), 'PATH')
     assert.strictEqual(name({ ...tpt, record_avail: 1, last_is_cmp: 1, path_has_children: 1 }), 'REC')
     assert.strictEqual(name({ param_avail: 1, opid_avail: 1, title_avail: 1 }), 'PARAM')
 

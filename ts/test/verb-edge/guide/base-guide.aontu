@@ -4,15 +4,9 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 5
+  metrics: count: entity: 4
   metrics: count: path: 8
   metrics: count: method: 9
-
-  entity: ack: {
-    path: "/widgets/{id}": {
-      op: update: method: *PUT
-    }
-  }
 
   entity: email_archive: {
     path: "/email-archives": {
@@ -42,6 +36,7 @@ guide: {
     }
     path: "/widgets/{id}": {
       op: load: method: *GET
+      op: update: method: *PUT
     }
     path: "/widgets/{widget_number}/merge": {
       action: "merge": {}

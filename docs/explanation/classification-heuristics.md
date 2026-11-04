@@ -296,8 +296,11 @@ The record an item route answers with names the item and its collection,
 whatever its frequency, when its name is not the literal's: Google's
 `/b/{bucket}/acl/{entity}` answers a `BucketAccessControl` that declares
 an `id`, so the ACL routes are `bucket_access_control`. A record name that
-holds the literal's words, `ExtendedRateplanEntry` around `rateplans`, is
-a wrapper of the literal, which keeps naming, and a record that several
+holds the literal's words, `ExtendedRateplanEntry` around `rateplans` or
+`CiRunnerDetail` around `runners`, is a wrapper of the literal, which keeps
+naming, unless the record is named for a literal of the path and the
+naming literal, as `CallRouteAllowedCaller` is under
+`/call_routes/{id}/allowed_callers`; and a record that several
 collections' item routes share names none of them: Google's
 `ObjectAccessControl`, answered by both `/b/{bucket}/defaultObjectAcl` and
 `/b/{bucket}/o/{object}/acl`, leaves each collection its own literal, so

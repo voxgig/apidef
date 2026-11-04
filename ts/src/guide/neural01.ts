@@ -72,6 +72,7 @@ import {
   commandBodyName,
   commandTwin,
   itemAbove,
+  pathQualified,
   readsRecord,
   recordOf,
   tagHolds,
@@ -979,8 +980,10 @@ function nameFeatures(
 
     if (null != cmp || 1 === x.probable) {
       const record = recordOf({ def, guide: work.guide, work }, route.path)
-      x.record_avail = bit(null != record && record.cmp !== pathName &&
-        !wrapsLiteral(record.cmp, pathName))
+      const wraps = null != record && record.cmp !== pathName &&
+        wrapsLiteral(record.cmp, pathName) && !pathQualified(route.parts, record.cmp, pathName)
+      x.record_avail = bit(null != record && record.cmp !== pathName && !wraps)
+      x.record_wraps = bit(wraps)
       sources.REC = record?.cmp ?? null
     }
 
