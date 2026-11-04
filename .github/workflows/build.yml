@@ -9,6 +9,9 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: read
+
 # Opt the JavaScript runner actions (checkout, setup-node, ...) onto
 # Node 24 internals now rather than waiting for the 2026-06-02
 # default switchover. Silences the "Node.js 20 actions are
