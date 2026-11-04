@@ -339,6 +339,55 @@ declares an id, so it stays a sub-resource, and Google's bucket ACL
 collections have item routes beneath them, so the literal names them
 rather than the body.
 
+The 191 routes still disagreeing after the eight were grouped into
+families again and put to the maintainer, who ruled on each:
+
+9. **Module affixes.** A literal whose last word is `api`, `controller`,
+   `service`, `resource` or `endpoint`, with a remainder, names by the
+   remainder: `ProductsApi` is `product`, `SubscriptionsApi/Enable` is
+   `subscription` with the action `enable`. A literal that is only such a
+   word keeps it.
+10. **Prefix tags.** A tag keeps naming only when it names the literal the
+    path itself would name, the collection or the noun before a verb. A
+    tag naming a literal above that, `push` on
+    `/push/deviceRegistrations/{device_id}` or `projects` on
+    `/projects/{projectId}/hmacKeys`, is foreign and yields to the path
+    noun: `device_registration`, `hmac_key`.
+11. **Body media types.** The command rule reads the body schema under any
+    media type and takes the first member of a `oneOf`; a `GET` on the same
+    path as a command joins the command as its load. AWS STS's
+    `/#Action=AssumeRole`, sent as XML, is `assume_role` for both methods;
+    Ably's token request is `token`. Conjur's plain-text `authenticate`
+    routes have no component and keep the literal.
+12. **Path syntax.** A `{param}` fused to a literal is dropped from the name
+    (`articles{mediaTypeExtension}` is `article`); a part that is only
+    placeholders, or only an extension placeholder (`.{ext}`), is a
+    parameter rather than a literal, and a route with no literal at all is
+    named from its first parameter's noun (`pageName` gives `page`); a query
+    string is cut from the path before anything reads it
+    (`/templates?desc=html` is `template`).
+13. **Record names.** When the item route under a collection answers with a
+    component that declares an id and whose name is not the literal's, the
+    component names both the item and the collection:
+    `bucket_access_control` for `/b/{bucket}/acl`. A component name that
+    contains the literal's words, `ExtendedRateplanEntry` around
+    `rateplan`, is a wrapper of the literal, which keeps naming.
+14. **Deeper views.** A `GET` whose path holds an item key, whose literals
+    after that key are singular, and whose response declares no id joins
+    the entity of the nearest item route above it as a load action named
+    for the trailing literals (`sync_commerce_status`); with no item route
+    above, the noun before the key names (`company`). An array of id-less
+    objects still makes a collection.
+15. **Embedded reads.** Plural reads under a key that answer id-less objects
+    stay actions on the parent, as Wordnik's are; the wrapper rule learns
+    the `<Noun>For<Parent>Response` affix, so
+    `StudentContactsForStudentResponse` names `student_contact`.
+16. **Roles.** Operations stay method-driven: a verb route keeps the CRUD
+    slot its method gives, with the action selecting it. (The question
+    described Surevoip's `GET /areacodes` as an unrecognised envelope; the
+    route in fact declares no response schema at all, so no envelope rule
+    reaches it.)
+
 The guide stage costs the same under either strategy: within a few
 milliseconds per definition on the test corpus, and within a tenth on a
 synthetic definition of a thousand paths, where parsing takes thirty times
