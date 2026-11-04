@@ -93,6 +93,7 @@ compiler model retains entity names until the file builder renders them.
 | `r` | `boolean` | required (from the schema's `required[]`) |
 | `a` | `boolean` | included in output |
 | `op` | `{ [opname]: { req, type } }` | per-operation overrides when `req`/`type` differ for a specific op |
+| `syn` | `boolean?` | apidef added the field, and no schema property declares it |
 | `sh` | `string?` | the property's `description`, reduced to one sentence |
 | `ro` | `boolean?` | the spec says a client must not send this field |
 | `wo` | `boolean?` | the spec says the field is never returned |
@@ -104,6 +105,15 @@ only when the spec states them **true**. Each defaults to false in OpenAPI, so
 an absent key and an explicit `false` carry the same information.
 That distinction matters: an absent key means the spec said nothing, never
 that apidef dropped it.
+
+`syn` is `true` on a field apidef adds itself: the `` `$STRING` `` `id` an
+entity needs to carry an identity no record declares (a composite identity,
+or a record addressed by an `id` parameter), and the field an array request
+body is sent from. A field read from a response example is not synthetic, as
+the example shows the record holding it, and a field any schema property
+declares loses the mark. A consumer reads `syn` to tell a field the record
+returns from one it never does, such as when deciding whether a load can
+check the identity of the record it answers.
 
 Swagger 2's `type: file` states its format in the type. OpenAPI 3 writes a
 file as `type: string` with `format: binary`, and a Swagger 2 file is

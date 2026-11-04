@@ -151,6 +151,7 @@ main: kit: type: type({ # Reusable model types.
     wo?: boolean # Whether the field is write-only.
     de?: boolean # Whether the field is deprecated.
     fo?: string # Format declared by the source schema.
+    syn?: boolean # Whether apidef added the field with no schema property declaring it.
   }
 
   %point-args: { # One operation argument.

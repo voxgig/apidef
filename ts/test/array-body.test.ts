@@ -55,6 +55,7 @@ describe('array-body', () => {
             t: f.t, r: f.r,
             ...(null == f.sh ? {} : { sh: f.sh }),
             ...(0 === Object.keys(f.op ?? {}).length ? {} : { op: f.op }),
+            ...(true === f.syn ? { syn: true } : {}),
           }]))]))
       assert.deepStrictEqual(fields, expected.fields)
     })

@@ -94,11 +94,14 @@ const MODEL_FILES = ['apidef.aontu', 'guide.aontu'];
             id: { n: 'id', h: 'Id', r: true, t: '`$STRING`' },
             secret: { n: 'secret', h: 'Secret', r: false, t: '`$STRING`', a: false,
                 sh: 'A secret.', ro: true, wo: true, de: true, fo: 'password' },
+            ref: { n: 'ref', h: 'Ref', r: false, t: '`$STRING`', syn: true },
         };
-        const source = (0, node_fs_1.readFileSync)(node_path_1.default.join(REPO, 'model', 'apidef.aontu'), 'utf8') + '\n' +
-            'main:kit:entity:widget:fields:' + JSON.stringify(fields);
+        const schema = (0, node_fs_1.readFileSync)(node_path_1.default.join(REPO, 'model', 'apidef.aontu'), 'utf8') + '\n';
+        const source = schema + 'main:kit:entity:widget:fields:' + JSON.stringify(fields);
         const model = new aontu_1.Aontu().generate(source);
-        node_assert_1.default.deepStrictEqual(model.main.kit.entity.widget.fields, { id: { ...fields.id, a: true }, secret: fields.secret });
+        node_assert_1.default.deepStrictEqual(model.main.kit.entity.widget.fields, { id: { ...fields.id, a: true }, secret: fields.secret, ref: { ...fields.ref, a: true } });
+        node_assert_1.default.throws(() => new aontu_1.Aontu().generate(schema + 'main:kit:entity:widget:fields:' +
+            JSON.stringify({ ref: { ...fields.ref, syn: 'yes' } })));
     });
     for (const file of MODEL_FILES) {
         (0, node_test_1.test)(`ts/model/${file} matches canonical model/${file}`, () => {

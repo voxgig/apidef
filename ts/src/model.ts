@@ -73,6 +73,7 @@ type ModelField = {
   wo?: boolean
   de?: boolean
   fo?: string
+  syn?: boolean
   union?: {
     count: number
     branches: number

@@ -103,6 +103,9 @@ func checkArrayBody(t *testing.T, name string) {
 			if op, ok := f["op"].(map[string]any); ok && 0 < len(op) {
 				view["op"] = op
 			}
+			if syn, _ := f["syn"].(bool); syn {
+				view["syn"] = true
+			}
 			fields[ename][f["n"].(string)] = view
 		}
 	}
