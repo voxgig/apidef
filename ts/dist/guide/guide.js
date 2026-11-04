@@ -219,7 +219,8 @@ async function buildBaseGuide(ctx) {
             `paths=${metrics.count.path} methods=${metrics.count.method})`
     });
     validateBaseBuide(ctx, baseguide);
-    const sw = (s) => ctx.opts.why?.show ? s : '';
+    // A why comment interpolates names from the definition; keep it on its line.
+    const sw = (s) => ctx.opts.why?.show ? s.replace(/[\r\n\u2028\u2029]+/g, ' ') : '';
     const qs = (v) => JSON.stringify(v);
     const qt = (v) => '(' + qs(v) + ')';
     guideBlocks.push(`  metrics: count: entity: ${metrics.count.entity}

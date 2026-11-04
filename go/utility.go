@@ -3,8 +3,6 @@
 package apidef
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -1334,8 +1332,7 @@ func quoteKey(k string) string {
 	if isBareKey(k) {
 		return k
 	}
-	b, _ := json.Marshal(k)
-	return string(b)
+	return jsonStringify(k)
 }
 
 func formatJSONICValue(val any, indent int, prefix string, lines *[]string, seen map[uintptr]bool) {
@@ -1426,8 +1423,7 @@ func formatJSONICValue(val any, indent int, prefix string, lines *[]string, seen
 	case map[string]any:
 		keys := make([]string, 0, len(v))
 		for k := range v {
-			// Exclude keys ending in $ or _COMMENT
-			if strings.HasSuffix(k, "$") || strings.HasSuffix(k, "_COMMENT") {
+			if strings.HasSuffix(k, "$") {
 				continue
 			}
 			keys = append(keys, k)
@@ -1483,32 +1479,29 @@ func formatJSONICValue(val any, indent int, prefix string, lines *[]string, seen
 }
 
 func jsonString(s string) string {
-	if strings.ContainsAny(s, "\n\r") {
-		raw := jsonStringHTMLSafe(s)
-		body := raw[1 : len(raw)-1]
-		body = strings.ReplaceAll(body, "\\n", "\n")
-		body = strings.ReplaceAll(body, "\\\"", "\"")
-		body = strings.ReplaceAll(body, "`", "\\`")
-		return "`" + body + "`"
+	if strings.Contains(s, "\n") {
+		return backtickString(s)
 	}
-	return jsonStringHTMLSafe(s)
+	return jsonStringify(s)
 }
 
-// jsonStringHTMLSafe runs json.Marshal-equivalent encoding without
-// HTML-escaping (`<` / `>` / `&` / ` ` etc.).
-func jsonStringHTMLSafe(s string) string {
-	var buf bytes.Buffer
-	enc := json.NewEncoder(&buf)
-	enc.SetEscapeHTML(false)
-	if err := enc.Encode(s); err != nil {
-		b, _ := json.Marshal(s)
-		return string(b)
+// backtickString is the multiline form: the JSON escapes, with a newline and
+// a quote written as themselves and a backtick escaped.
+func backtickString(s string) string {
+	var b strings.Builder
+	b.WriteByte('`')
+	for _, r := range s {
+		switch r {
+		case '\n', '"':
+			b.WriteRune(r)
+		case '`':
+			b.WriteString("\\`")
+		default:
+			writeJSONRune(&b, r)
+		}
 	}
-	out := buf.Bytes()
-	if len(out) > 0 && out[len(out)-1] == '\n' {
-		out = out[:len(out)-1]
-	}
-	return string(out)
+	b.WriteByte('`')
+	return b.String()
 }
 
 // LoadFile reads a file and returns its contents.

@@ -1,2 +1,4 @@
 input	expected
 {"name": "foo"}	{name: "foo"}
+{"a": "x},y"}	{a: "x},y"}
+{"a": "\"b\": 1"}	{a: "\"b\": 1"}

@@ -32,6 +32,7 @@ declare function formatJSONIC(val?: any, opts?: {
     color?: boolean;
     maxlines?: number;
     exclude?: string[];
+    comments?: boolean;
 }): string;
 declare const VALID_CANON: Record<string, string>;
 declare const CANON_ONE = "`$ONE`";

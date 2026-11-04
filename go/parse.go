@@ -436,15 +436,40 @@ func validateSource(kind string, source string, meta map[string]string) error {
 	return nil
 }
 
-// FormatJsonSrc converts JSON source to JSONIC-style format.
+// FormatJsonSrc unquotes bare keys and breaks the line after `},`, only
+// outside strings, so no string value is rewritten.
 func FormatJsonSrc(jsonsrc string) string {
-	reKey := regexp.MustCompile(`"([a-zA-Z_][a-zA-Z_0-9]*)": `)
-	reBrace := regexp.MustCompile(`},`)
-	reComment := regexp.MustCompile(`\n(\s*)([a-zA-Z_][a-zA-Z_0-9]*)_COMMENT:\s*"(.*)",`)
-	out := reKey.ReplaceAllString(jsonsrc, "$1: ")
-	out = reBrace.ReplaceAllString(out, "}\n")
-	out = reComment.ReplaceAllString(out, "\n\n$1# $2 $3")
-	return out
+	var b strings.Builder
+	n := len(jsonsrc)
+	for i := 0; i < n; {
+		switch ch := jsonsrc[i]; {
+		case ch == '"':
+			end := i + 1
+			for end < n && jsonsrc[end] != '"' {
+				if jsonsrc[end] == '\\' {
+					end += 2
+				} else {
+					end++
+				}
+			}
+			end = min(end, n)
+			body := jsonsrc[i+1 : end]
+			if strings.HasPrefix(jsonsrc[min(end+1, n):], ": ") && isBareKey(body) {
+				b.WriteString(body + ": ")
+				i = end + 3
+			} else {
+				b.WriteString(jsonsrc[i:min(end+1, n)])
+				i = end + 1
+			}
+		case ch == '}' && i+1 < n && jsonsrc[i+1] == ',':
+			b.WriteString("}\n")
+			i += 2
+		default:
+			b.WriteByte(ch)
+			i++
+		}
+	}
+	return b.String()
 }
 
 // ToJSON serialises a value to a JSON string, handling circular references.

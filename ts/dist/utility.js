@@ -78,10 +78,6 @@ const sortedKeys = (obj) => Object.keys(obj ?? {}).sort();
 exports.sortedKeys = sortedKeys;
 const sortedEntries = (obj) => Object.entries(obj ?? {}).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0);
 exports.sortedEntries = sortedEntries;
-// Pre-compiled regex patterns for formatJsonSrc to avoid recompilation per call.
-const RE_JSON_KEY = /"([a-zA-Z_][a-zA-Z_0-9]*)": /g;
-const RE_JSON_TRAILING_BRACE = /},/g;
-const RE_JSON_COMMENT = /\n(\s*)([a-zA-Z_][a-zA-Z_0-9]*)_COMMENT:\s*"(.*)",/g;
 const RE_BARE_KEY = /^[A-Za-z_][_A-Za-z0-9]*$/;
 const isBareKey = (k) => RE_BARE_KEY.test(k);
 const quoteKey = (k) => (isBareKey(k) ? k : JSON.stringify(k));
@@ -155,11 +151,38 @@ function loadFile(path, what, fs, log) {
         throw err;
     }
 }
+// Unquotes bare keys and breaks the line after `},`, only outside strings, so
+// no string value is rewritten.
 function formatJsonSrc(jsonsrc) {
-    return jsonsrc
-        .replace(RE_JSON_KEY, '$1: ')
-        .replace(RE_JSON_TRAILING_BRACE, '}\n')
-        .replace(RE_JSON_COMMENT, '\n\n$1# $2 $3');
+    let out = '';
+    let i = 0;
+    while (i < jsonsrc.length) {
+        const ch = jsonsrc[i];
+        if ('"' === ch) {
+            let end = i + 1;
+            while (end < jsonsrc.length && '"' !== jsonsrc[end]) {
+                end += '\\' === jsonsrc[end] ? 2 : 1;
+            }
+            const body = jsonsrc.substring(i + 1, end);
+            if (': ' === jsonsrc.substring(end + 1, end + 3) && isBareKey(body)) {
+                out += body + ': ';
+                i = end + 3;
+            }
+            else {
+                out += jsonsrc.substring(i, end + 1);
+                i = end + 1;
+            }
+        }
+        else if ('}' === ch && ',' === jsonsrc[i + 1]) {
+            out += '}\n';
+            i += 2;
+        }
+        else {
+            out += ch;
+            i++;
+        }
+    }
+    return out;
 }
 const IRREGULARS = Object.assign(Object.create(null), {
     'aircraft': 'aircraft',
@@ -659,6 +682,7 @@ function formatJSONIC(val, opts) {
     const useColor = opts?.color ?? false;
     const maxlines = opts?.maxlines ?? Number.MAX_VALUE;
     const exclude = opts?.exclude ?? [];
+    const comments = opts?.comments ?? true;
     // ANSI color codes
     const colors = {
         reset: '\x1b[0m',
@@ -676,13 +700,7 @@ function formatJSONIC(val, opts) {
             return c('null', 'null');
         const t = typeof v;
         switch (t) {
-            case 'string': return c('string', !v.includes('\n') ? JSON.stringify(v) :
-                '`' + JSON.stringify(v)
-                    .substring(1)
-                    .replace(/\\n/g, '\n')
-                    .replace(/\\"/g, '"')
-                    .replace(/`/g, '\\`')
-                    .replace(/"$/, '`'));
+            case 'string': return c('string', !v.includes('\n') ? JSON.stringify(v) : backtickString(v));
             case 'number': return c('number', Number.isFinite(v) ? String(v) : 'null');
             case 'boolean': return c('boolean', v ? 'true' : 'false');
             case 'bigint': return c('string', JSON.stringify(v.toString()));
@@ -693,7 +711,7 @@ function formatJSONIC(val, opts) {
             default: return JSON.stringify(v);
         }
     };
-    const renderComment = (c) => {
+    const commentText = (c) => {
         if (c == null)
             return null;
         if (Array.isArray(c) && c.every(x => typeof x === 'string'))
@@ -707,9 +725,34 @@ function formatJSONIC(val, opts) {
             return String(c);
         }
     };
-    return renderJSONIC(val, hsepd, showd, useColor, maxlines, exclude, c, renderPrimitive, renderComment, false);
+    // A comment runs to the end of its line, so a line break in it would start
+    // source.
+    const renderComment = (c) => {
+        const text = comments ? commentText(c) : null;
+        return null == text ? null : text.replace(RE_LINE_BREAKS, ' ');
+    };
+    return renderJSONIC(val, hsepd, showd, useColor, maxlines, exclude, c, renderPrimitive, renderComment, comments, false);
 }
-function renderJSONIC(val, hsepd, showd, useColor, maxlines, exclude, c, renderPrimitive, renderComment, decircularized) {
+const RE_LINE_BREAKS = /[\r\n\u2028\u2029]+/g;
+// The backtick form of a multiline string: its JSON escapes, read in order so
+// an escaped backslash is never taken as the start of another escape, with a
+// newline and a quote written as themselves and a backtick escaped.
+function backtickString(s) {
+    const json = JSON.stringify(s);
+    let out = '`';
+    for (let i = 1; i < json.length - 1; i++) {
+        const ch = json[i];
+        if ('\\' === ch) {
+            const esc = json[++i];
+            out += 'n' === esc ? '\n' : '"' === esc ? '"' : '\\' + esc;
+        }
+        else {
+            out += '`' === ch ? '\\`' : ch;
+        }
+    }
+    return out + '`';
+}
+function renderJSONIC(val, hsepd, showd, useColor, maxlines, exclude, c, renderPrimitive, renderComment, comments, decircularized) {
     const space = '  ';
     const seen = new WeakSet();
     let stack = new Array(32);
@@ -760,7 +803,7 @@ function renderJSONIC(val, hsepd, showd, useColor, maxlines, exclude, c, renderP
                     flat = undefined;
                 }
                 if (undefined !== flat) {
-                    return renderJSONIC(flat, hsepd, showd, useColor, maxlines, exclude, c, renderPrimitive, renderComment, true);
+                    return renderJSONIC(flat, hsepd, showd, useColor, maxlines, exclude, c, renderPrimitive, renderComment, comments, true);
                 }
             }
             // decircular did not resolve it, so render a marker rather than
@@ -800,7 +843,7 @@ function renderJSONIC(val, hsepd, showd, useColor, maxlines, exclude, c, renderP
         if (v instanceof Error) {
             keys.unshift('name', 'message', 'stack');
         }
-        const printableKeys = keys.filter(k => !k.endsWith('_COMMENT') &&
+        const printableKeys = keys.filter(k => !(comments && k.endsWith('_COMMENT')) &&
             (showd || !k.endsWith('$')));
         if (printableKeys.length === 0) {
             lines.push(`${linePrefix}${c('bracket', '{')}${commentSuffix}`);

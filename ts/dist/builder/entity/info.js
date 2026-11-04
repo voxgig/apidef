@@ -9,7 +9,7 @@ function resolveInfo(apimodel, opts) {
     const kit = apimodel.main[types_1.KIT];
     const infoFile = (null == opts.outprefix ? '' : opts.outprefix) + 'api-info.aontu';
     const modelInfo = { main: { kit: { info: kit.info } } };
-    let modelDefSrc = (0, utility_1.formatJSONIC)(modelInfo).trim();
+    let modelDefSrc = (0, utility_1.formatJSONIC)(modelInfo, { comments: false }).trim();
     modelDefSrc =
         '# API Information\n\n' +
             modelDefSrc.substring(1, modelDefSrc.length - 1).replace(/\n  /g, '\n');

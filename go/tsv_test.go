@@ -11,6 +11,8 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	aontu "github.com/aontu-lang/aontu/go"
 )
 
 type tsvRow = map[string]string
@@ -423,6 +425,35 @@ func TestTsvFormatJsonSrc(t *testing.T) {
 			got := FormatJsonSrc(input)
 			if got != expected {
 				t.Errorf("FormatJsonSrc(%q) = %q, want %q", input, got, expected)
+			}
+		})
+	}
+}
+
+// Each model file must read back as the value written: a string cannot end
+// early, and a key ending in _COMMENT is data.
+func TestTsvFormatJSONIC(t *testing.T) {
+	for _, row := range loadTsv(t, "format-jsonic") {
+		var input, readback any
+		var expected string
+		for col, dst := range map[string]any{"input": &input, "expected": &expected, "readback": &readback} {
+			if err := json.Unmarshal([]byte(row[col]), dst); err != nil {
+				t.Fatalf("%s %s: %v", col, row[col], err)
+			}
+		}
+		t.Run("FormatJSONIC("+row["input"]+")", func(t *testing.T) {
+			got := FormatJSONIC(input)
+			if got != expected {
+				t.Fatalf("FormatJSONIC(%s) = %q, want %q", row["input"], got, expected)
+			}
+			back, err := aontu.New().Generate(got)
+			if err != nil {
+				t.Fatalf("aontu read back %q: %v", got, err)
+			}
+			gotJSON, _ := json.Marshal(back)
+			wantJSON, _ := json.Marshal(readback)
+			if string(gotJSON) != string(wantJSON) {
+				t.Errorf("read back %s, want %s", gotJSON, wantJSON)
 			}
 		})
 	}

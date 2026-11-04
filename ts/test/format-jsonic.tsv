@@ -1,0 +1,14 @@
+input	expected	readback
+{"d":"line1\nline2\\"}	"{\n  d: `line1\nline2\\\\`\n}\n"	{"d":"line1\nline2\\"}
+{"d":"C:\\new\nx"}	"{\n  d: `C:\\\\new\nx`\n}\n"	{"d":"C:\\new\nx"}
+{"d":"a\n`b` \\` c"}	"{\n  d: `a\n\\`b\\` \\\\\\` c`\n}\n"	{"d":"a\n`b` \\` c"}
+{"d":"say \"hi\"\nthen \\\"this\\\""}	"{\n  d: `say \"hi\"\nthen \\\\\"this\\\\\"`\n}\n"	{"d":"say \"hi\"\nthen \\\"this\\\""}
+{"d":"a\tb\r\nc"}	"{\n  d: `a\\tb\\r\nc`\n}\n"	{"d":"a\tb\r\nc"}
+{"d":"x\u0001y\nz"}	"{\n  d: `x\\u0001y\nz`\n}\n"	{"d":"x\u0001y\nz"}
+{"d":"one\u2028two\nthree","e":"one\u2028two"}	"{\n  d: `one\u2028two\nthree`\n  e: \"one\u2028two\"\n}\n"	{"d":"one\u2028two\nthree","e":"one\u2028two"}
+{"id":"x1","id_COMMENT":"c\ninjected: { pwned: true }"}	"{\n  id: \"x1\"\n  id_COMMENT: `c\ninjected: { pwned: true }`\n}\n"	{"id":"x1","id_COMMENT":"c\ninjected: { pwned: true }"}
+{"a$":1,"b":2}	"{\n  b: 2\n}\n"	{"b":2}
+{"<a&b>":"<x&y>"}	"{\n  \"<a&b>\": \"<x&y>\"\n}\n"	{"<a&b>":"<x&y>"}
+{"d":"plain \\ backslash","e":"ends with backslash\\"}	"{\n  d: \"plain \\\\ backslash\"\n  e: \"ends with backslash\\\\\"\n}\n"	{"d":"plain \\ backslash","e":"ends with backslash\\"}
+{"o":{"m":"a\nb\\","n":"c\nd"}}	"{\n  o: {\n    m: `a\nb\\\\`\n    n: `c\nd`\n  }\n\n}\n"	{"o":{"m":"a\nb\\","n":"c\nd"}}
+{"description":"a\nb\\","title":"\n}}}\nmain: kit: { x: 1 }\n#"}	"{\n  description: `a\nb\\\\`\n  title: `\n}}}\nmain: kit: { x: 1 }\n#`\n}\n"	{"description":"a\nb\\","title":"\n}}}\nmain: kit: { x: 1 }\n#"}

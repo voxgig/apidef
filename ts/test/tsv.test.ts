@@ -28,6 +28,7 @@ import {
   validator,
   nom,
   formatJsonSrc,
+  formatJSONIC,
   getModelPath,
   isEntityWrapperProp,
   envelopeProp,
@@ -491,6 +492,25 @@ describe('tsv-format-json-src', () => {
       assert.deepStrictEqual(formatJsonSrc(row.input), row.expected)
     })
   }
+})
+
+
+// Each model file must read back as the value written: a string cannot end
+// early, and a key ending in _COMMENT is data.
+describe('tsv-format-jsonic', () => {
+  for (const row of loadTsv('format-jsonic')) {
+    test(`formatJSONIC(${row.input})`, () => {
+      const written = formatJSONIC(JSON.parse(row.input), { comments: false })
+      assert.deepStrictEqual(written, JSON.parse(row.expected))
+      assert.deepStrictEqual(new Aontu().generate(written), JSON.parse(row.readback))
+    })
+  }
+
+  test('a comment stays on its line', () => {
+    const written = formatJSONIC({ a: 1, a_COMMENT: 'note\ninjected: true' })
+    assert.deepStrictEqual(written, '{\n  a: 1  # note injected: true\n}\n')
+    assert.deepStrictEqual(new Aontu().generate(written), { a: 1 })
+  })
 })
 
 

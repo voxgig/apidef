@@ -426,31 +426,36 @@ func jsonStringify(s string) string {
 	var b strings.Builder
 	b.WriteByte('"')
 	for _, r := range s {
-		switch r {
-		case '"':
-			b.WriteString(`\"`)
-		case '\\':
-			b.WriteString(`\\`)
-		case '\b':
-			b.WriteString(`\b`)
-		case '\f':
-			b.WriteString(`\f`)
-		case '\n':
-			b.WriteString(`\n`)
-		case '\r':
-			b.WriteString(`\r`)
-		case '\t':
-			b.WriteString(`\t`)
-		default:
-			if r < 0x20 {
-				fmt.Fprintf(&b, `\u%04x`, r)
-			} else {
-				b.WriteRune(r)
-			}
-		}
+		writeJSONRune(&b, r)
 	}
 	b.WriteByte('"')
 	return b.String()
+}
+
+// writeJSONRune writes r as JSON.stringify writes it inside a string.
+func writeJSONRune(b *strings.Builder, r rune) {
+	switch r {
+	case '"':
+		b.WriteString(`\"`)
+	case '\\':
+		b.WriteString(`\\`)
+	case '\b':
+		b.WriteString(`\b`)
+	case '\f':
+		b.WriteString(`\f`)
+	case '\n':
+		b.WriteString(`\n`)
+	case '\r':
+		b.WriteString(`\r`)
+	case '\t':
+		b.WriteString(`\t`)
+	default:
+		if r < 0x20 {
+			fmt.Fprintf(b, `\u%04x`, r)
+		} else {
+			b.WriteRune(r)
+		}
+	}
 }
 
 func buildGuideSource(ctx *ApiDefContext, baseguide map[string]any) string {

@@ -381,6 +381,22 @@ function loadTsv(name) {
         });
     }
 });
+// Each model file must read back as the value written: a string cannot end
+// early, and a key ending in _COMMENT is data.
+(0, node_test_1.describe)('tsv-format-jsonic', () => {
+    for (const row of loadTsv('format-jsonic')) {
+        (0, node_test_1.test)(`formatJSONIC(${row.input})`, () => {
+            const written = (0, utility_1.formatJSONIC)(JSON.parse(row.input), { comments: false });
+            node_assert_1.default.deepStrictEqual(written, JSON.parse(row.expected));
+            node_assert_1.default.deepStrictEqual(new aontu_1.Aontu().generate(written), JSON.parse(row.readback));
+        });
+    }
+    (0, node_test_1.test)('a comment stays on its line', () => {
+        const written = (0, utility_1.formatJSONIC)({ a: 1, a_COMMENT: 'note\ninjected: true' });
+        node_assert_1.default.deepStrictEqual(written, '{\n  a: 1  # note injected: true\n}\n');
+        node_assert_1.default.deepStrictEqual(new aontu_1.Aontu().generate(written), { a: 1 });
+    });
+});
 (0, node_test_1.describe)('tsv-parse-errors', () => {
     const rows = loadTsv('parse-errors');
     for (const row of rows) {
