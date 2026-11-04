@@ -30,7 +30,7 @@ guide: {
       op: remove: method: *DELETE
     }
     path: "/v2/things/{id}/actions/archive": {
-      action: "action_archive_v2": {}
+      action: "archive_v2": {}
       op: create: method: *POST
     }
     path: "/v3/things/{id}": {
@@ -38,7 +38,7 @@ guide: {
       op: remove: method: *DELETE
     }
     path: "/v3/things/{id}/actions/archive": {
-      action: "action_archive": {}
+      action: "archive": {}
       op: create: method: *POST
     }
   }

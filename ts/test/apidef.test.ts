@@ -1388,9 +1388,9 @@ describe('apidef', () => {
       '/v1/things/{id}': ['v1'],
       '/v2/things': [],
       '/v2/things/{id}': ['v2'],
-      '/v2/things/{id}/actions/archive': ['action_archive_v2'],
+      '/v2/things/{id}/actions/archive': ['archive_v2'],
       '/v3/things/{id}': [],
-      '/v3/things/{id}/actions/archive': ['action_archive'],
+      '/v3/things/{id}/actions/archive': ['archive'],
     })
 
     const points = (op: string) => bres.apimodel.main.kit.entity.thing.op[op].points

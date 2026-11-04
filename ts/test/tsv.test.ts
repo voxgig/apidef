@@ -315,7 +315,7 @@ describe('tsv-canonize-cmp-name', () => {
 // checker-less behavior: guarded suffixes do NOT strip).
 describe('clean-component-name-guarded', () => {
   const known = new Set(['beneficiary', 'merchant_token', 'transaction',
-    'payout', 'user_invite', 'role', 'subscriber', 'dns_record', 'asset'])
+    'payout', 'user_invite', 'role', 'subscriber', 'dns_record', 'asset', 'alert'])
   const isKnown = (n: string) => known.has(n)
   const CASES: [string, string][] = [
     // wrapper convention: remainder is a known schema -> fold
@@ -340,6 +340,10 @@ describe('clean-component-name-guarded', () => {
     ['list_assets', 'asset'],
     ['agent_response_dto', 'agent_response_dto'],
     ['list_price', 'list_price'],
+    // a result wrapper names its namespace when its object names nothing known
+    ['alerts_add_tags_result', 'alert'],
+    ['alerts_list_tags_result', 'alert'],
+    ['widgets_add_parts_result', 'widgets_add_parts_result'],
   ]
   for (const [input, expected] of CASES) {
     test(`cleanComponentName("${input}", known) => "${expected}"`, () => {
@@ -520,6 +524,38 @@ describe('tsv-entity-names', () => {
       const names = Object.fromEntries(Object.entries(guide.entity).map(
         ([name, ent]: [string, any]) => [name, Object.keys(ent.path).sort()]))
       assert.deepStrictEqual(names, JSON.parse(row.expected))
+    })
+  }
+})
+
+
+// Each route the guide heuristic places, with its operations, actions and
+// parameter renames.
+describe('tsv-guide-routes', () => {
+  const rows = loadTsv('guide-routes')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, async () => {
+      const def = await parse('OpenAPI', row.def, { file: row.name })
+      const quiet = () => undefined
+      const guide = await heuristic01({
+        def,
+        log: { info: quiet, debug: quiet, warn: quiet, error: quiet },
+        warn: quiet,
+      } as any)
+      const routes: any = {}
+      for (const [name, ent] of Object.entries(guide.entity) as [string, any][]) {
+        routes[name] = {}
+        for (const [path, pd] of Object.entries(ent.path) as [string, any][]) {
+          routes[name][path] = {
+            op: Object.keys(pd.op ?? {}).sort(),
+            action: Object.keys(pd.action ?? {}).sort(),
+            rename: Object.fromEntries(Object.entries(pd.rename?.param ?? {})
+              .map(([k, v]: [string, any]) => [k, v?.target ?? v])),
+          }
+        }
+      }
+      assert.deepStrictEqual(routes, JSON.parse(row.expected))
     })
   }
 })

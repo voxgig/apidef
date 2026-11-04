@@ -1244,6 +1244,10 @@ func resolveEntityName(ctx *ApiDefContext, data map[string]any, mdesc map[string
 	if collectionEntity == "" {
 		ownerName, ownerMethod, joined = samePathOwner(work, mdesc)
 	}
+	parentName := ""
+	if collectionEntity == "" && !joined {
+		parentName = collectionOwner(work, mdesc, parts)
+	}
 	if joined && (!shapedNamed ||
 		resplitFromCmp(ownerName, cmp, &[]string{}) != resplitFromCmp(shaped, cmp, &[]string{})) {
 		if hadVerbOnParent {
@@ -1254,6 +1258,9 @@ func resolveEntityName(ctx *ApiDefContext, data map[string]any, mdesc map[string
 		ment["same_path"] = ownerName
 		whyPath = append(whyPath, "same-path-tag="+ownerName+"/"+ownerMethod)
 		entname, named = ownerName, true
+	} else if parentName != "" && parentName != cmp {
+		whyPath = append(whyPath, "collection-tag="+parentName)
+		entname, named = parentName, true
 	} else {
 		whyPath = append(whyPath, whyShape...)
 	}
@@ -1330,6 +1337,33 @@ func resolveEntityName(ctx *ApiDefContext, data map[string]any, mdesc map[string
 	markRecordOwner(work["recordowner"].(map[string]string), pathStr, parts, ment, entname)
 
 	DebugPath(pathStr, methodName, "RESOLVE-ENTITY-NAME", entname)
+}
+
+// collectionOwner mirrors ts/src/guide/heuristic01.ts: a method named only
+// from its tag, on a verb route beneath an item, joins the entity that owns
+// the item's collection.
+func collectionOwner(work map[string]any, mdesc map[string]any, parts []string) string {
+	ment, _ := mdesc["MethodEntity"].(map[string]any)
+	first := slices.IndexFunc(parts, isParam)
+	if ment == nil || safeStr(ment["ref"]) != "tag" || first < 1 || first == len(parts)-1 ||
+		slices.ContainsFunc(parts[first+1:], isParam) {
+		return ""
+	}
+	collection := "/" + strings.Join(parts[:first], "/")
+	pathowner, _ := work["pathowner"].(map[string]any)
+	for _, path := range sortedKeys(pathowner) {
+		if guidePath(path) != collection {
+			continue
+		}
+		owners, _ := pathowner[path].(map[string]any)
+		for _, method := range []string{"GET", "QUERY", "POST"} {
+			if name := safeStr(owners[method]); name != "" {
+				return name
+			}
+		}
+		return ""
+	}
+	return ""
 }
 
 // samePathOwner mirrors samePathOwner in ts/src/guide/heuristic01.ts: a
@@ -1823,7 +1857,11 @@ func findActions(data map[string]any, mdesc map[string]any) {
 		// /api/foo/{param}/action/subaction
 		if isParam(thirdLastPart) && isVerb(secondLastPart) && isVerb(lastPart) {
 			oldActionName := secondLastPart + "/" + lastPart
+			// `actions` only gathers the verbs: /{id}/actions/cancel is cancel.
 			actionName := secondLastPartCanon + "_" + lastPartCanon
+			if secondLastPartCanon == "action" {
+				actionName = lastPartCanon
+			}
 			updateAction(methodName, oldActionName, actionName, entdesc, pathdesc,
 				"ent-param-3rd-last")
 		}

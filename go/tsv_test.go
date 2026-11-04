@@ -412,7 +412,7 @@ func TestTsvPathMetrics(t *testing.T) {
 			count, _ := metrics["count"].(map[string]any)
 			entities, _ := guide["entity"].(map[string]any)
 			got := map[string]any{
-				"count": map[string]any{"path": count["path"], "method": count["method"], "tag": count["tag"]},
+				"count":  map[string]any{"path": count["path"], "method": count["method"], "tag": count["tag"]},
 				"entity": sortedKeys(entities),
 			}
 			if !jsonEqual(got, want) {
@@ -451,6 +451,61 @@ func TestTsvEntityNames(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, want) {
 				t.Errorf("entities = %v, want %v", got, want)
+			}
+		})
+	}
+}
+
+func TestTsvGuideRoutes(t *testing.T) {
+	rows := loadTsv(t, "guide-routes")
+	if len(rows) == 0 {
+		t.Fatal("no guide-routes rows loaded")
+	}
+	keys := func(v any) []string {
+		m, _ := v.(map[string]any)
+		return append([]string{}, sortedKeys(m)...)
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var want map[string]any
+			unmarshalCol(t, row, "expected", &want)
+			def, err := Parse("OpenAPI", row["def"], map[string]string{"file": row["name"]})
+			if err != nil {
+				t.Fatal(err)
+			}
+			guide, err := heuristic01(&ApiDefContext{
+				Def: def, Note: map[string]any{}, Warn: MakeWarner("test", nil), Work: map[string]any{},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			entities, _ := guide["entity"].(map[string]any)
+			got := map[string]any{}
+			for _, name := range sortedKeys(entities) {
+				ent, _ := entities[name].(map[string]any)
+				paths, _ := ent["path"].(map[string]any)
+				routes := map[string]any{}
+				for _, path := range sortedKeys(paths) {
+					pd, _ := paths[path].(map[string]any)
+					rename := map[string]any{}
+					if r, ok := pd["rename"].(map[string]any); ok {
+						params, _ := r["param"].(map[string]any)
+						for k, v := range params {
+							if m, ok := v.(map[string]any); ok {
+								v = m["target"]
+							}
+							rename[k] = v
+						}
+					}
+					routes[path] = map[string]any{
+						"op": keys(pd["op"]), "action": keys(pd["action"]), "rename": rename,
+					}
+				}
+				got[name] = routes
+			}
+			if !jsonEqual(got, want) {
+				out, _ := json.Marshal(got)
+				t.Errorf("got %s, want %s", out, row["expected"])
 			}
 		})
 	}
@@ -659,7 +714,7 @@ func TestCleanComponentNameGuarded(t *testing.T) {
 	known := map[string]bool{
 		"beneficiary": true, "merchant_token": true, "transaction": true,
 		"payout": true, "user_invite": true, "role": true,
-		"subscriber": true, "dns_record": true, "asset": true,
+		"subscriber": true, "dns_record": true, "asset": true, "alert": true,
 	}
 	isKnown := func(n string) bool { return known[n] }
 	cases := [][2]string{
@@ -682,6 +737,9 @@ func TestCleanComponentNameGuarded(t *testing.T) {
 		{"list_assets", "asset"},
 		{"agent_response_dto", "agent_response_dto"},
 		{"list_price", "list_price"},
+		{"alerts_add_tags_result", "alert"},
+		{"alerts_list_tags_result", "alert"},
+		{"widgets_add_parts_result", "widgets_add_parts_result"},
 	}
 	for _, c := range cases {
 		input, expected := c[0], c[1]

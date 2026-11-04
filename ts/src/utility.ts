@@ -1390,7 +1390,7 @@ const CMP_GUARDED_SUFFIXES = [
 
 const CMP_RESULT_VERBS = [
   'list', 'create', 'show', 'update', 'delete', 'remove',
-  'get', 'edit', 'resolve', 'rotate', 'search',
+  'get', 'edit', 'resolve', 'rotate', 'search', 'add',
 ]
 
 const CMP_PREFIXES = ['get_', 'post_', 'put_', 'delete_', 'patch_']
@@ -1561,7 +1561,7 @@ function cleanComponentName(
       // (CallRouteAllowedCaller), so the namespace is tried singular too.
       const cands = after
         ? [canonize(depluralize(after)), canonize(depluralize(before + '_' + after)),
-          canonize(depluralize(before) + '_' + depluralize(after))]
+          canonize(depluralize(before) + '_' + depluralize(after)), canonize(depluralize(before))]
         : [canonize(depluralize(before))]
       for (const cand of cands) {
         if (cand.length >= 3 && knownWithVersion(cand, version)) {

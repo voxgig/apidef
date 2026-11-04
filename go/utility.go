@@ -942,7 +942,7 @@ func firstFieldMatch(props []string, names []string) string {
 
 var cmpResultVerbs = []string{
 	"list", "create", "show", "update", "delete", "remove",
-	"get", "edit", "resolve", "rotate", "search",
+	"get", "edit", "resolve", "rotate", "search", "add",
 }
 
 var operationVerbs = append(append([]string{}, cmpResultVerbs...),
@@ -1019,7 +1019,7 @@ func CleanComponentName(name string, isKnownCmp func(string) bool) string {
 				// The namespace is the collection (CallRoutes), the record its
 				// item (CallRouteAllowedCaller), so the namespace is tried singular too.
 				cands = []string{Canonize(Depluralize(after)), Canonize(Depluralize(before + "_" + after)),
-					Canonize(Depluralize(before) + "_" + Depluralize(after))}
+					Canonize(Depluralize(before) + "_" + Depluralize(after)), Canonize(Depluralize(before))}
 			} else if before != "" {
 				cands = []string{Canonize(Depluralize(before))}
 			}

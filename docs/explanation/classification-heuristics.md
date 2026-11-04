@@ -394,6 +394,17 @@ on `schedule`, and `{scheduleId}` is renamed as on
 the path as written, so a count whose path no tag or schema ties to
 `schedule` stays an entity of its own, as `/messages/count` would.
 
+A verb route named only from its tag joins the entity that owns its
+collection. incident.io tags `POST /v2/escalations/{escalation_id}/actions/respond`
+with `Escalations V2`, which names no resource, and the route answers nothing.
+Its collection, `/v2/escalations`, belongs to `escalation`, so `respond`
+becomes an action on `escalation` and `{escalation_id}` is renamed to `id`.
+An `actions` element only gathers the verbs: `/{id}/actions/cancel` names the
+action `cancel`, not `action_cancel`. A result wrapper names the resource
+before its verb when the words after the verb name nothing the spec defines:
+`AlertsAddTagsResultV2` names `alert`, so `POST /v2/alerts/{id}/actions/add_tags`
+joins `alert` as the action `add_tag`.
+
 A route an API keeps in several versions, `/v1/things/{id}` beside
 `/v2/things/{id}` and `/v3/things/{id}`, would give every version the same
 selector, so only one could ever be reached. The highest version with an

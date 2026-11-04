@@ -221,7 +221,7 @@ function loadTsv(name) {
 // checker-less behavior: guarded suffixes do NOT strip).
 (0, node_test_1.describe)('clean-component-name-guarded', () => {
     const known = new Set(['beneficiary', 'merchant_token', 'transaction',
-        'payout', 'user_invite', 'role', 'subscriber', 'dns_record', 'asset']);
+        'payout', 'user_invite', 'role', 'subscriber', 'dns_record', 'asset', 'alert']);
     const isKnown = (n) => known.has(n);
     const CASES = [
         // wrapper convention: remainder is a known schema -> fold
@@ -246,6 +246,10 @@ function loadTsv(name) {
         ['list_assets', 'asset'],
         ['agent_response_dto', 'agent_response_dto'],
         ['list_price', 'list_price'],
+        // a result wrapper names its namespace when its object names nothing known
+        ['alerts_add_tags_result', 'alert'],
+        ['alerts_list_tags_result', 'alert'],
+        ['widgets_add_parts_result', 'widgets_add_parts_result'],
     ];
     for (const [input, expected] of CASES) {
         (0, node_test_1.test)(`cleanComponentName("${input}", known) => "${expected}"`, () => {
@@ -404,6 +408,36 @@ function loadTsv(name) {
             });
             const names = Object.fromEntries(Object.entries(guide.entity).map(([name, ent]) => [name, Object.keys(ent.path).sort()]));
             node_assert_1.default.deepStrictEqual(names, JSON.parse(row.expected));
+        });
+    }
+});
+// Each route the guide heuristic places, with its operations, actions and
+// parameter renames.
+(0, node_test_1.describe)('tsv-guide-routes', () => {
+    const rows = loadTsv('guide-routes');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, async () => {
+            const def = await (0, parse_1.parse)('OpenAPI', row.def, { file: row.name });
+            const quiet = () => undefined;
+            const guide = await (0, heuristic01_1.heuristic01)({
+                def,
+                log: { info: quiet, debug: quiet, warn: quiet, error: quiet },
+                warn: quiet,
+            });
+            const routes = {};
+            for (const [name, ent] of Object.entries(guide.entity)) {
+                routes[name] = {};
+                for (const [path, pd] of Object.entries(ent.path)) {
+                    routes[name][path] = {
+                        op: Object.keys(pd.op ?? {}).sort(),
+                        action: Object.keys(pd.action ?? {}).sort(),
+                        rename: Object.fromEntries(Object.entries(pd.rename?.param ?? {})
+                            .map(([k, v]) => [k, v?.target ?? v])),
+                    };
+                }
+            }
+            node_assert_1.default.deepStrictEqual(routes, JSON.parse(row.expected));
         });
     }
 });

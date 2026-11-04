@@ -1074,9 +1074,9 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
             '/v1/things/{id}': ['v1'],
             '/v2/things': [],
             '/v2/things/{id}': ['v2'],
-            '/v2/things/{id}/actions/archive': ['action_archive_v2'],
+            '/v2/things/{id}/actions/archive': ['archive_v2'],
             '/v3/things/{id}': [],
-            '/v3/things/{id}/actions/archive': ['action_archive'],
+            '/v3/things/{id}/actions/archive': ['archive'],
         });
         const points = (op) => bres.apimodel.main.kit.entity.thing.op[op].points
             .map((p) => (p.q?.$action ?? '-') + ' ' + p.co.id).sort();

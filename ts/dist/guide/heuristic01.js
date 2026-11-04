@@ -596,6 +596,7 @@ function ResolveEntityName(spec) {
     const shaped = pathEntityName(data, mdesc, parts, pm, work.pathowner, why_shape);
     const item = itemOfCollection(data, mdesc, parts);
     const owner = null == item ? samePathOwner(mdesc, work) : null;
+    const parent = null == item && null == owner ? collectionOwner(mdesc, parts, work) : null;
     const cmp = ment.cmp;
     let entname = shaped;
     if (null != owner && (null == shaped ||
@@ -604,6 +605,10 @@ function ResolveEntityName(spec) {
         ment.same_path = owner.entname;
         why_path.push('same-path-tag=' + owner.entname + '/' + owner.method);
         entname = owner.entname;
+    }
+    else if (null != parent && parent !== cmp) {
+        why_path.push('collection-tag=' + parent);
+        entname = parent;
     }
     else {
         why_path.push(...why_shape);
@@ -676,6 +681,21 @@ function samePathOwner(mdesc, work) {
         }
     }
     return null;
+}
+// A method named only from its tag, on a verb route beneath an item, joins the
+// entity that owns the item's collection, so its verb becomes that entity's
+// action: samePathOwner's rule, one level deeper.
+function collectionOwner(mdesc, parts, work) {
+    const first = parts.findIndex(isParam);
+    if ('tag' !== mdesc.MethodEntity?.ref || first < 1 || first === parts.length - 1 ||
+        parts.slice(first + 1).some(isParam)) {
+        return null;
+    }
+    const collection = '/' + parts.slice(0, first).join('/');
+    const path = Object.keys(work.pathowner).sort(refcount_1.byCodePoint)
+        .find((p) => collection === (0, utility_2.guidePath)(p));
+    const owners = null == path ? {} : work.pathowner[path];
+    return owners.GET ?? owners.QUERY ?? owners.POST ?? null;
 }
 // The name a method's path shape and component give it, or null where neither
 // does. A verb on a parent takes the name pathowner holds for the parent.
@@ -942,7 +962,9 @@ function FindActions(spec) {
         || fourthLastPartCanon === entname) {
         if (isParam(thirdLastPart) && isVerb(secondLastPart) && isVerb(lastPart)) {
             const oldActionName = secondLastPart + '/' + lastPart;
-            const actionName = secondLastPartCanon + '_' + lastPartCanon;
+            // `actions` only gathers the verbs: /{id}/actions/cancel is cancel.
+            const actionName = 'action' === secondLastPartCanon ? lastPartCanon :
+                secondLastPartCanon + '_' + lastPartCanon;
             updateAction(methodName, oldActionName, actionName, entdesc, pathdesc, 'ent-param-3rd-last');
         }
     }
