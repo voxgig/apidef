@@ -163,9 +163,15 @@ func TestTsvFlowTextField(t *testing.T) {
 				opmap[name] = map[string]any{"name": name, "points": []any{flowTestPoint(path)}}
 			}
 			flow := map[string]any{"name": "BasicThingFlow", "entity": "thing", "kind": "basic", "step": []any{}}
+			ent := map[string]any{"name": "thing", "fields": fields, "op": opmap}
+			if "" != row["id"] {
+				var id map[string]any
+				unmarshalCol(t, row, "id", &id)
+				ent["id"] = id
+			}
 			ctx := &ApiDefContext{ApiModel: map[string]any{
 				"main": map[string]any{KIT: map[string]any{
-					"entity": map[string]any{"thing": map[string]any{"name": "thing", "fields": fields, "op": opmap}},
+					"entity": map[string]any{"thing": ent},
 					"flow":   map[string]any{"BasicThingFlow": flow},
 				}},
 			}}

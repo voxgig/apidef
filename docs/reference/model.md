@@ -457,6 +457,13 @@ are required; `a` defaults to `true`.
 | `s` | `array` | mutation specs applied during the step |
 | `a` | `boolean` | included in output |
 
+The update step names the field it marks in `i.textfield`: the first
+`` `$STRING` `` field by name that a client may send and that holds no file.
+It is never a parameter of the update, and never a field that holds the
+record's identity: `id`, the identity's `field`, a composite part, or the
+record field a part is read from. Without such a field the step marks none.
+`ts/test/flow-textfield.tsv` pins each case.
+
 ## Worked example (abridged)
 
 The solar `planet` entity:

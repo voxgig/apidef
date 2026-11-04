@@ -1,5 +1,9 @@
-name	fields	expected
+name	fields	expected	id
 first-string-by-name	[{"n":"kind","t":"`$STRING`"},{"n":"avatar","t":"`$STRING`"}]	"avatar"
 read-only-passed-over	[{"n":"avatar","t":"`$STRING`","ro":true},{"n":"kind","t":"`$STRING`"}]	"kind"
 binary-passed-over	[{"n":"avatar","t":"`$STRING`","fo":"binary"},{"n":"avatar_url","t":"`$STRING`"}]	"avatar_url"
 binary-only-leaves-none	[{"n":"file","t":"`$STRING`","fo":"binary"},{"n":"size","t":"`$INTEGER`"}]	null
+identity-field-passed-over	[{"n":"_id","t":"`$STRING`"},{"n":"description","t":"`$STRING`"},{"n":"name","t":"`$STRING`"}]	"description"	{"name":"id","field":"_id"}
+composite-parts-passed-over	[{"n":"name","t":"`$STRING`"},{"n":"owner","t":"`$STRING`"},{"n":"repo","t":"`$STRING`"},{"n":"topic","t":"`$STRING`"}]	"topic"	{"name":"id","field":"id","parts":["owner","repo"],"sep":"/","from":{"owner":"owner.login","repo":"name"}}
+identity-only-leaves-none	[{"n":"_id","t":"`$STRING`"},{"n":"size","t":"`$INTEGER`"}]	null	{"name":"id","field":"_id"}
+no-identity-marks-id-field-never	[{"n":"id","t":"`$STRING`"},{"n":"name","t":"`$STRING`"}]	"name"	

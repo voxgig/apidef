@@ -1645,9 +1645,10 @@ describe('tsv-flow-textfield', () => {
       }).map(([name, path]) => [name, { name, points: [flowPoint(path)] }]))
       const fields = Object.fromEntries(JSON.parse(row.fields).map((f: any) => [f.n, f]))
       const flow = { name: 'BasicThingFlow', entity: 'thing', kind: 'basic', step: [] as any[] }
+      const id = '' === row.id ? undefined : JSON.parse(row.id)
       await flowstepTransform({
         apimodel: { main: { kit: {
-          entity: { thing: { name: 'thing', fields, op } },
+          entity: { thing: { name: 'thing', fields, op, id } },
           flow: { BasicThingFlow: flow },
         } } },
         guide: {},

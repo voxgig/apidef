@@ -2,7 +2,10 @@
 
 package apidef
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 // FlowTransform creates basic flow definitions for entities.
 func FlowTransform(ctx *ApiDefContext) (*TransformResult, error) {
@@ -346,6 +349,8 @@ func firstTextField(ent, updateOp map[string]any) string {
 		}
 	}
 
+	identity := identityFields(ent)
+
 	fields, _ := ent["fields"].(map[string]any)
 	for _, name := range sortedKeys(fields) {
 		f := fields[name]
@@ -358,9 +363,44 @@ func firstTextField(ent, updateOp map[string]any) string {
 		if ro, _ := fm["ro"].(bool); ro || fm["fo"] == "binary" {
 			continue
 		}
-		if ftype == "`$STRING`" && fname != "id" && !paramNames[fname] {
+		if ftype == "`$STRING`" && !identity[fname] && !paramNames[fname] {
 			return fname
 		}
 	}
 	return ""
+}
+
+// identityFields mirrors ts/src/transform/flowstep.ts: the fields holding the
+// record's identity, which a mark would overwrite.
+func identityFields(ent map[string]any) map[string]bool {
+	out := map[string]bool{"id": true}
+	id, _ := ent["id"].(map[string]any)
+	if field, ok := id["field"].(string); ok {
+		out[field] = true
+	}
+	switch parts := id["parts"].(type) {
+	case []any:
+		for _, p := range parts {
+			out[fmt.Sprint(p)] = true
+		}
+	case []string:
+		for _, p := range parts {
+			out[p] = true
+		}
+	}
+	switch from := id["from"].(type) {
+	case map[string]any:
+		for _, w := range from {
+			if where := fmt.Sprint(w); !strings.Contains(where, ".") {
+				out[where] = true
+			}
+		}
+	case map[string]string:
+		for _, where := range from {
+			if !strings.Contains(where, ".") {
+				out[where] = true
+			}
+		}
+	}
+	return out
 }

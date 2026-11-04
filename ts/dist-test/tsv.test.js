@@ -1352,9 +1352,10 @@ function flowPoint(spec) {
             }).map(([name, path]) => [name, { name, points: [flowPoint(path)] }]));
             const fields = Object.fromEntries(JSON.parse(row.fields).map((f) => [f.n, f]));
             const flow = { name: 'BasicThingFlow', entity: 'thing', kind: 'basic', step: [] };
+            const id = '' === row.id ? undefined : JSON.parse(row.id);
             await (0, flowstep_1.flowstepTransform)({
                 apimodel: { main: { kit: {
-                            entity: { thing: { name: 'thing', fields, op } },
+                            entity: { thing: { name: 'thing', fields, op, id } },
                             flow: { BasicThingFlow: flow },
                         } } },
                 guide: {},
