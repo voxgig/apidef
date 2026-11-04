@@ -42,6 +42,7 @@ exports.paramName = paramName;
 exports.humanTitle = humanTitle;
 exports.foldName = foldName;
 exports.prefixLeadingDigit = prefixLeadingDigit;
+exports.guardPrototypeName = guardPrototypeName;
 exports.debugpath = debugpath;
 exports.debugpathOn = debugpathOn;
 exports.findPathsWithPrefix = findPathsWithPrefix;
@@ -1012,6 +1013,16 @@ function foldName(name) {
     return String((0, jostraca_1.camelify)(name)).toLowerCase();
 }
 const FIRST_LETTER_RE = /[a-zA-Z]/;
+// aontu cannot unify a spread with a key Object.prototype owns, so no entity
+// is given one of these names. Listed, not read, so both ports agree.
+const PROTOTYPE_NAMES = new Set([
+    'constructor', '__defineGetter__', '__defineSetter__', 'hasOwnProperty',
+    '__lookupGetter__', '__lookupSetter__', 'isPrototypeOf',
+    'propertyIsEnumerable', 'toString', 'valueOf', '__proto__', 'toLocaleString',
+]);
+function guardPrototypeName(s) {
+    return PROTOTYPE_NAMES.has(s) ? s + '_item' : s;
+}
 function prefixLeadingDigit(s) {
     if (null == s || '' === s)
         return s;
@@ -1132,7 +1143,7 @@ function ensureMinEntityName(name, existing) {
         }
         padded = truncated || parts[0].substring(0, MAX_ENTITY_NAME_LEN);
     }
-    padded = prefixLeadingDigit(padded);
+    padded = guardPrototypeName(prefixLeadingDigit(padded));
     if (padded.length < MIN_ENTITY_NAME_LEN) {
         const padding = 'nt'.substring(0, MIN_ENTITY_NAME_LEN - padded.length);
         padded = padded + padding;

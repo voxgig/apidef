@@ -17,6 +17,7 @@ import {
   depluralize,
   normalizeFieldName,
   prefixLeadingDigit,
+  guardPrototypeName,
 } from '../utility'
 
 
@@ -351,8 +352,13 @@ function rawEntityName(typeName: string): string {
 }
 
 
+function guardedName(raw: string): string {
+  return guardPrototypeName(prefixLeadingDigit(raw))
+}
+
+
 function entityName(typeName: string): string {
-  return prefixLeadingDigit(rawEntityName(typeName))
+  return guardedName(rawEntityName(typeName))
 }
 
 
@@ -361,7 +367,7 @@ function resolveEntityName(
   entities: Record<string, GuideEntity>,
 ): string {
   const raw = rawEntityName(typeName)
-  const base = prefixLeadingDigit(raw)
+  const base = guardedName(raw)
   const guarded = base !== raw
 
   let out = base
@@ -369,7 +375,7 @@ function resolveEntityName(
     const held = entities[out]
     if (held.orig === typeName) return out
     const heldRaw = rawEntityName(held.orig)
-    if (guarded === (prefixLeadingDigit(heldRaw) !== heldRaw)) return out
+    if (guarded === (guardedName(heldRaw) !== heldRaw)) return out
     out = base + i
   }
 

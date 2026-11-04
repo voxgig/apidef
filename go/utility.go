@@ -550,6 +550,22 @@ func FoldName(name string) string {
 	return jsLowerCaser.String(Camelify(name))
 }
 
+// prototypeNames are the names Object.prototype owns in TypeScript: aontu cannot
+// unify a spread with one as a key, so no entity is given one.
+var prototypeNames = map[string]bool{
+	"constructor": true, "__defineGetter__": true, "__defineSetter__": true,
+	"hasOwnProperty": true, "__lookupGetter__": true, "__lookupSetter__": true,
+	"isPrototypeOf": true, "propertyIsEnumerable": true, "toString": true,
+	"valueOf": true, "__proto__": true, "toLocaleString": true,
+}
+
+func GuardPrototypeName(s string) string {
+	if prototypeNames[s] {
+		return s + "_item"
+	}
+	return s
+}
+
 var firstLetterRE = regexp.MustCompile(`[a-zA-Z]`)
 
 func PrefixLeadingDigit(s string) string {
@@ -1025,7 +1041,7 @@ func EnsureMinEntityName(name string, existing map[string]any) string {
 		}
 	}
 
-	padded = PrefixLeadingDigit(padded)
+	padded = GuardPrototypeName(PrefixLeadingDigit(padded))
 	if len(padded) < minEntityNameLen {
 		padding := "nt"
 		if minEntityNameLen-len(padded) < len(padding) {

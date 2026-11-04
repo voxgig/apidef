@@ -1180,6 +1180,19 @@ function foldName(name: string): string {
 const FIRST_LETTER_RE = /[a-zA-Z]/
 
 
+// aontu cannot unify a spread with a key Object.prototype owns, so no entity
+// is given one of these names. Listed, not read, so both ports agree.
+const PROTOTYPE_NAMES = new Set([
+  'constructor', '__defineGetter__', '__defineSetter__', 'hasOwnProperty',
+  '__lookupGetter__', '__lookupSetter__', 'isPrototypeOf',
+  'propertyIsEnumerable', 'toString', 'valueOf', '__proto__', 'toLocaleString',
+])
+
+function guardPrototypeName(s: string): string {
+  return PROTOTYPE_NAMES.has(s) ? s + '_item' : s
+}
+
+
 function prefixLeadingDigit(s: string): string {
   if (null == s || '' === s) return s
   const first = s.charCodeAt(0)
@@ -1312,7 +1325,7 @@ function ensureMinEntityName(
     padded = truncated || parts[0].substring(0, MAX_ENTITY_NAME_LEN)
   }
 
-  padded = prefixLeadingDigit(padded)
+  padded = guardPrototypeName(prefixLeadingDigit(padded))
   if (padded.length < MIN_ENTITY_NAME_LEN) {
     const padding = 'nt'.substring(0, MIN_ENTITY_NAME_LEN - padded.length)
     padded = padded + padding
@@ -2354,6 +2367,7 @@ export {
   humanTitle,
   foldName,
   prefixLeadingDigit,
+  guardPrototypeName,
   debugpath,
   debugpathOn,
   findPathsWithPrefix,
