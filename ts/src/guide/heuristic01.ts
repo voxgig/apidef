@@ -11,7 +11,7 @@ import {
   isEntityWrapperProp, envelopeProp, envelopeItemRef, composedEnvelopeProp, propIsList,
   recordLists,
   singleEnvelope,
-  bodyRequestTransform, authExchangeOp, specSecuredByDefault, itemEnvelopeKey,
+  authExchangeOp, specSecuredByDefault, itemEnvelopeKey,
   itemEnvelopeTransform, answersPage, pageRecords,
 } from '../utility'
 
@@ -1456,9 +1456,9 @@ function ResolveTransform(spec: TaskSpec) {
 
   const op = pathdesc.op
 
-  // Only specify transforms if they are not defaults
+  // Only specify transforms if they are not defaults. The request transform
+  // is the operation step's, read from the body the guide names.
   const transform: Record<string, any> = {
-    req: undefined,
     res: undefined,
   }
 
@@ -1530,10 +1530,6 @@ function ResolveTransform(spec: TaskSpec) {
   if ('list' === opname) {
     warnListBody(spec.ctx, methodName + ' ' + pathStr, transform.res, partprops)
   }
-
-  const reqschema = getRequestBodySchema(spec.data.def, mdesc)
-  debugpath(pathStr, methodName, 'TRANSFORM-REQ', keysof(reqschema?.properties))
-  transform.req = bodyRequestTransform(reqschema, [entdesc.origname, entdesc.name])
 
   if (!isempty(transform) && null != op[opname]) {
     op[opname].transform = transform

@@ -508,27 +508,20 @@ func TestGuideEnvelope(t *testing.T) {
 		t.Errorf("greenhouse load transform res = %v, want none", tr["res"])
 	}
 
-	// A body wraps the record under the entity's name only when that is all
-	// it holds.
-	gcpath, _ := gpaths["/{year}/greenhouse"].(map[string]any)
-	gcops, _ := gcpath["op"].(map[string]any)
-	gcreate, _ := gcops["create"].(map[string]any)
-	if tr, ok := gcreate["transform"].(map[string]any); ok && tr["req"] != nil {
-		t.Errorf("greenhouse create transform req = %v, want none", tr["req"])
-	}
+	// The guide writes no request transform: the operation step decides it.
 	kennel, _ := entities["kennel"].(map[string]any)
 	kpaths, _ := kennel["path"].(map[string]any)
 	kpath, _ := kpaths["/{year}/kennel"].(map[string]any)
 	kops, _ := kpath["op"].(map[string]any)
 	kcreate, _ := kops["create"].(map[string]any)
-	ktr, _ := kcreate["transform"].(map[string]any)
-	if !reflect.DeepEqual(ktr["req"], map[string]any{"kennel": "`reqdata`"}) {
-		t.Errorf("kennel create transform req = %v, want {kennel: reqdata}", ktr["req"])
+	if tr, ok := kcreate["transform"].(map[string]any); ok && tr["req"] != nil {
+		t.Errorf("kennel create guide transform req = %v, want none", tr["req"])
 	}
 }
 
-// Mirrors the TS `guide-envelope` case's kennel fields: a body that sends the
-// record under one key gives the record's fields, not the wrapper.
+// Mirrors the TS `guide-envelope` case's request transforms and kennel fields:
+// a body that sends the record under one key gives the record's fields, not the
+// wrapper.
 func TestEnvelopeWrappedRequestFields(t *testing.T) {
 	folder := stageGuideEntry(t, t.TempDir(), "envelope-")
 	res, err := NewApiDef(ApiDefOptions{Folder: folder, OutPrefix: "envelope-", Strategy: "heuristic01"}).
@@ -544,6 +537,28 @@ func TestEnvelopeWrappedRequestFields(t *testing.T) {
 		t.Fatalf("generate failed: err=%v", err)
 	}
 	entities := res.ApiModel["main"].(map[string]any)["kit"].(map[string]any)["entity"].(map[string]any)
+	reqOf := func(ent string) any {
+		e, _ := entities[ent].(map[string]any)
+		opm, _ := e["op"].(map[string]any)
+		o, _ := opm["create"].(map[string]any)
+		pts, _ := o["points"].([]any)
+		if len(pts) == 0 {
+			return nil
+		}
+		pt, _ := pts[0].(map[string]any)
+		tr, _ := pt["t"].(map[string]any)
+		return tr["req"]
+	}
+
+	// A body wraps the record under the entity's name only when that is all
+	// it holds.
+	if got := reqOf("greenhouse"); got != "`reqdata`" {
+		t.Errorf("greenhouse create req = %v, want reqdata", got)
+	}
+	if got := reqOf("kennel"); !reflect.DeepEqual(got, map[string]any{"kennel": "`reqdata`"}) {
+		t.Errorf("kennel create req = %v, want {kennel: reqdata}", got)
+	}
+
 	kennel, _ := entities["kennel"].(map[string]any)
 	fields, _ := kennel["fields"].(map[string]any)
 	if got, want := sortedKeys(fields), []string{"breed", "name"}; !reflect.DeepEqual(got, want) {

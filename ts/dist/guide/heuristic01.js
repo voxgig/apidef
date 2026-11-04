@@ -1064,9 +1064,9 @@ function ResolveTransform(spec) {
     const methodName = mdesc.method;
     const opname = ment.opname;
     const op = pathdesc.op;
-    // Only specify transforms if they are not defaults
+    // Only specify transforms if they are not defaults. The request transform
+    // is the operation step's, read from the body the guide names.
     const transform = {
-        req: undefined,
         res: undefined,
     };
     const resschema = getResponseSchema(successResponse(mdesc.responses));
@@ -1130,9 +1130,6 @@ function ResolveTransform(spec) {
     if ('list' === opname) {
         warnListBody(spec.ctx, methodName + ' ' + pathStr, transform.res, partprops);
     }
-    const reqschema = getRequestBodySchema(spec.data.def, mdesc);
-    (0, utility_2.debugpath)(pathStr, methodName, 'TRANSFORM-REQ', (0, struct_1.keysof)(reqschema?.properties));
-    transform.req = (0, utility_1.bodyRequestTransform)(reqschema, [entdesc.origname, entdesc.name]);
     if (!(0, struct_1.isempty)(transform) && null != op[opname]) {
         op[opname].transform = transform;
     }

@@ -2075,6 +2075,34 @@
           }
         }
       }
+    },
+    "/rafts": {
+      "post": {
+        "operationId": "createRafts",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RaftInput"
+              }
+            },
+            "application/vnd.acme.raft-list+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/RaftInput"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No content"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2773,6 +2801,18 @@
         "properties": {
           "label": {
             "type": "string"
+          }
+        }
+      },
+      "RaftInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
           }
         }
       }

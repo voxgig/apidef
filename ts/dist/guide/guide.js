@@ -274,15 +274,6 @@ async function buildBaseGuide(ctx) {
                     guideBlocks.push(`      op: ${opname}: transform: res: ` +
                         `*${'string' === typeof res ? qt(res) : qs(res)}|top`);
                 }
-                const reqmap = op.transform.req;
-                if (null != reqmap && 'object' === typeof reqmap) {
-                    (0, struct_1.items)(reqmap).map(([bodykey, source]) => {
-                        if ('string' === typeof source) {
-                            guideBlocks.push(`      op: ${opname}: transform: req: ` +
-                                `${qs(bodykey)}: *${qt(source)}|top`);
-                        }
-                    });
-                }
             });
             guideBlocks.push(`    }`);
         }

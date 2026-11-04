@@ -44,6 +44,7 @@
     "notice.create POST /notices exist=notices action= req=\"`reqdata.notices`\" bf=[\"notices\"]",
     "pallet.create POST /pallets exist= action= req={\"pallet\":\"`reqdata`\"} bf=[\"name\",\"weight\"]",
     "pin.create POST /pins exist=pins action= req=\"`reqdata.pins`\" bf=[\"pins\"]",
+    "raft.create POST /rafts exist= action= req={\"name\":\"`reqdata.name`\",\"size\":\"`reqdata.size`\"} bf=false",
     "record.create POST /records exist= action= req=\"`reqdata`\" bf=[\"draft\",\"title\"]",
     "rim.create POST /rims exist= action= req=\"`reqdata`\" bf=false",
     "ring.create POST /rings exist=rings action= req=\"`reqdata.rings`\" bf=[\"rings\"]",
@@ -408,6 +409,7 @@
         "r": false
       }
     },
+    "raft": {},
     "record": {
       "draft": {
         "t": "`$BOOLEAN`",

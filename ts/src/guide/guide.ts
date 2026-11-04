@@ -398,15 +398,6 @@ async function buildBaseGuide(ctx: ApiDefContext) {
           guideBlocks.push(`      op: ${opname}: transform: res: ` +
             `*${'string' === typeof res ? qt(res) : qs(res)}|top`)
         }
-        const reqmap: any = op.transform.req
-        if (null != reqmap && 'object' === typeof reqmap) {
-          items(reqmap).map(([bodykey, source]: [string, any]) => {
-            if ('string' === typeof source) {
-              guideBlocks.push(`      op: ${opname}: transform: req: ` +
-                `${qs(bodykey)}: *${qt(source)}|top`)
-            }
-          })
-        }
       })
 
       guideBlocks.push(`    }`)

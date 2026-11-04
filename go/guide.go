@@ -550,17 +550,6 @@ func buildGuideSource(ctx *ApiDefContext, baseguide map[string]any) string {
 							}
 							blocks = append(blocks, fmt.Sprintf(format, opname, guideJSON(res)))
 						}
-						if reqmap, ok := transform["req"].(map[string]any); ok {
-							for _, bodykey := range sortedKeys(reqmap) {
-								source, ok := reqmap[bodykey].(string)
-								if !ok {
-									continue
-								}
-								blocks = append(blocks, fmt.Sprintf(
-									"      op: %s: transform: req: %s: *(%s)|top",
-									opname, guideJSON(bodykey), guideJSON(source)))
-							}
-						}
 					}
 				}
 			}
@@ -2023,8 +2012,9 @@ func resolveTransform(ctx *ApiDefContext, data map[string]any, mdesc map[string]
 	opname := safeStr(ment["opname"])
 	op, _ := pathdesc["op"].(map[string]any)
 
+	// The request transform is the operation step's, read from the body the
+	// guide names.
 	transform := map[string]any{
-		"req": nil,
 		"res": nil,
 	}
 
@@ -2107,17 +2097,7 @@ func resolveTransform(ctx *ApiDefContext, data map[string]any, mdesc map[string]
 		warnListBody(ctx, strings.ToUpper(methodName)+" "+pathStr, transform["res"], partprops)
 	}
 
-	def, _ := data["def"].(map[string]any)
-	reqschema := getRequestBodySchema(def, mdesc)
-	reqprops, _ := reqschema["properties"].(map[string]any)
-	DebugPath(pathStr, methodName, "TRANSFORM-REQ", reqprops)
-
-	if req := bodyRequestTransform(reqschema, origname, ename); req != nil {
-		transform["req"] = req
-	}
-
-	hasTransform := transform["req"] != nil || transform["res"] != nil
-	if hasTransform && op != nil && op[opname] != nil {
+	if transform["res"] != nil && op != nil && op[opname] != nil {
 		opEntry, _ := op[opname].(map[string]any)
 		if opEntry != nil {
 			opEntry["transform"] = transform

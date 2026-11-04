@@ -43,9 +43,6 @@ const operationTransform = async function (ctx) {
         // After patch has joined update, so each operation's routes are final.
         for (const mop of Object.values(opm)) {
             for (const mpoint of mop?.points ?? []) {
-                if (heuristicRequest(on, mop, mpoint)) {
-                    mpoint.t.req = undefined;
-                }
                 mpoint.t.req = mpoint.t.req ?? requestDefault(on, kit.entity[entname], opm, mop, mpoint);
                 mpoint.t.res = mpoint.t.res ?? '`body`';
             }
@@ -157,32 +154,17 @@ function resolveOp(opname, on) {
     }
     return mop;
 }
-// The request transform the heuristic took from the default body, still in
-// place where the guide selects another media type for the point.
-function heuristicRequest(on, mop, mpoint) {
-    const chosen = (0, body_1.guideMedia)(on.guide, on.entname, mop.name, mpoint).body;
-    if (null == chosen || null == mpoint.t.req)
-        return false;
-    const generated = (0, utility_1.bodyRequestTransform)((0, body_1.requestSchema)(on.def, mpoint.m, mpoint.o), [on.gent.name]);
-    return null != generated && sameTransform(mpoint.t.req, generated);
-}
-function sameTransform(a, b) {
-    const canon = (t) => 'string' === typeof t ? t :
-        JSON.stringify(Object.keys(t ?? {}).sort().map((k) => [k, t[k]]));
-    return canon(a) === canon(b);
-}
-// An array body is sent from one field of the request data, named for its
-// records, and never for an argument of its operation, a field another route of
-// its entity has, as fields span operations, or a carrier already named for an
-// array of another type or requiredness. Decided here, not by the guide
-// heuristic, as the guide's media type decides the body.
+// The request transform of a point whose guide sets none, read from the body
+// the guide names: an object wraps the record under the entity's name or sends
+// a closed body's own properties; an array is sent from a field named for its
+// records, never for an argument, another route's field, or a carrier already
+// named for an array of another type or requiredness.
 function requestDefault(on, ment, opm, mop, mpoint) {
     const media = (opname, q) => (0, body_1.guideMedia)(on.guide, on.entname, opname, q).body;
     const chosen = media(mop.name, mpoint);
     const list = (0, body_1.arrayRequestSchema)(on.def, mpoint.m, mpoint.o, chosen);
     if (null == list) {
-        return (null == chosen ? undefined :
-            (0, utility_1.bodyRequestTransform)((0, body_1.requestSchema)(on.def, mpoint.m, mpoint.o, chosen), [on.gent.name])) ?? '`reqdata`';
+        return (0, utility_1.bodyRequestTransform)(objectSchema(on.def, mpoint, chosen), [on.gent.name]) ?? '`reqdata`';
     }
     const required = true === (0, body_1.requestDecl)(on.def, mpoint.m, mpoint.o)?.required;
     const others = mop.points.filter((q) => q !== mpoint);
@@ -196,5 +178,12 @@ function requestDefault(on, ment, opm, mop, mpoint) {
             .map((carrier) => carrier.name),
     ];
     return '`reqdata.' + (0, heuristic01_1.arrayBodyField)(list, on.entname, taken) + '`';
+}
+// The object body a point sends: under the media type the guide names, else
+// the preferred one, else a schema declared on the request body itself.
+function objectSchema(def, mpoint, chosen) {
+    const declared = def?.paths?.[mpoint.o]?.[String(mpoint.m).toLowerCase()]?.requestBody;
+    return (0, body_1.requestSchema)(def, mpoint.m, mpoint.o, chosen) ??
+        (null == chosen && null != declared && 'object' === typeof declared ? declared.schema : undefined);
 }
 //# sourceMappingURL=operation.js.map
