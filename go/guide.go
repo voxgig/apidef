@@ -679,7 +679,7 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 		}
 
 		// PreparePath
-		parts := splitAndFilter(pathstr, "/")
+		parts := guideParts(pathstr)
 		pathmap[pathstr] = map[string]any{
 			"path":  pathstr,
 			"def":   pathdefMap,
@@ -2695,7 +2695,7 @@ type sharingEntry struct {
 func sharedRoutes(routes []SharingRoute, records []string) []string {
 	bycmp := map[string][]sharingEntry{}
 	for _, route := range routes {
-		parts := splitAndFilter(route.Path, "/")
+		parts := guideParts(route.Path)
 		resource := pathResource(parts, route.Method)
 		if resource != "" && !slices.Contains(records, route.Cmp) {
 			bycmp[route.Cmp] = append(bycmp[route.Cmp], sharingEntry{route, parts, resource})
@@ -3448,7 +3448,7 @@ func entityParamNames(paths map[string]map[string]string) map[string]map[string]
 			renames[name] = target
 		}
 		out[pathStr] = renames
-		parts := verbParts(splitAndFilter(pathStr, "/"))
+		parts := verbParts(guideParts(pathStr))
 		for partI, part := range parts {
 			if isParam(part) {
 				place := strings.Join(parts[:partI+1], "/")
@@ -3947,11 +3947,11 @@ func keyHeld(work map[string]any, keys []string, collection string, exempt func(
 
 // outsideCollection mirrors ts/src/guide/heuristic01.ts.
 func outsideCollection(path string, collection string) bool {
-	if !strings.HasPrefix(path+"/", collection+"/") {
+	if !strings.HasPrefix(guidePath(path)+"/", collection+"/") {
 		return true
 	}
 	lits := []string{}
-	for _, part := range strings.Split(path, "/") {
+	for _, part := range guideParts(path) {
 		if isParam(part) {
 			return "/"+strings.Join(lits, "/") != collection
 		}

@@ -30,6 +30,7 @@ import {
   formatJsonSrc,
   formatJSONIC,
   stripOperationVerb,
+  guideParts,
   getModelPath,
   isEntityWrapperProp,
   envelopeProp,
@@ -455,6 +456,15 @@ describe('tsv-list-body', () => {
       }
       assert.deepStrictEqual(res, JSON.parse(row.res))
       assert.deepStrictEqual(warnings, JSON.parse(row.warnings))
+    })
+  }
+})
+
+
+describe('tsv-guide-parts', () => {
+  for (const row of loadTsv('guide-parts')) {
+    test(`guideParts(${row.input})`, () => {
+      assert.deepStrictEqual(guideParts(row.input), JSON.parse(row.expected))
     })
   }
 })

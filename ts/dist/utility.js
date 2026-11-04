@@ -43,6 +43,8 @@ exports.humanTitle = humanTitle;
 exports.foldName = foldName;
 exports.prefixLeadingDigit = prefixLeadingDigit;
 exports.guardPrototypeName = guardPrototypeName;
+exports.guideParts = guideParts;
+exports.guidePath = guidePath;
 exports.stripOperationVerb = stripOperationVerb;
 exports.debugpath = debugpath;
 exports.debugpathOn = debugpathOn;
@@ -738,9 +740,8 @@ function formatJSONIC(val, opts) {
     return renderJSONIC(val, hsepd, showd, useColor, maxlines, exclude, c, renderPrimitive, renderComment, comments, false);
 }
 const RE_LINE_BREAKS = /[\r\n\u2028\u2029]+/g;
-// The backtick form of a multiline string: its JSON escapes, read in order so
-// an escaped backslash is never taken as the start of another escape, with a
-// newline and a quote written as themselves and a backtick escaped.
+// Its JSON escapes, read in order so an escaped backslash never starts
+// another, with a newline and a quote written as themselves.
 function backtickString(s) {
     const json = JSON.stringify(s);
     let out = '`';
@@ -1016,6 +1017,32 @@ function foldName(name) {
     return String((0, jostraca_1.camelify)(name)).toLowerCase();
 }
 const FIRST_LETTER_RE = /[a-zA-Z]/;
+// Formats a route segment may name beside its resource, or alone.
+const FORMAT_EXTENSIONS = new Set([
+    'json', 'xml', 'csv', 'tsv', 'yaml', 'yml', 'txt', 'html', 'htm', 'rss',
+    'atom', 'jsonl', 'ndjson', 'geojson',
+]);
+// A route segment as the guide reads it: {id}.json is {id}, repos.json and
+// data.{format} are repos and data, and a format alone (json) names nothing.
+function guideSegment(seg) {
+    const held = seg.match(/^(\{[^}]+\})\.(?:[A-Za-z0-9]+|\{[^}]+\})$/);
+    if (null != held)
+        return held[1];
+    const named = seg.match(/^([^{}.]+)\.([A-Za-z0-9]+|\{[^}]+\})$/);
+    if (null != named && ('{' === named[2][0] || FORMAT_EXTENSIONS.has(named[2].toLowerCase()))) {
+        return named[1];
+    }
+    return FORMAT_EXTENSIONS.has(seg.toLowerCase()) ? null : seg;
+}
+// The guide's parts of a route; a route of formats alone keeps them.
+function guideParts(path) {
+    const parts = path.split('/').filter((p) => '' !== p);
+    const kept = parts.map(guideSegment).filter((p) => null != p);
+    return 0 === kept.length ? parts : kept;
+}
+function guidePath(path) {
+    return '/' + guideParts(path).join('/');
+}
 // aontu cannot unify a spread with a key Object.prototype owns, so no entity
 // is given one of these names. Listed, not read, so both ports agree.
 const PROTOTYPE_NAMES = new Set([
@@ -1613,14 +1640,12 @@ function envelopeProp(resprops, opname, example) {
     const key = singleEnvelope(resprops, opname);
     return null == key && 'list' === opname ? listedRecords(resprops, example) : key;
 }
-// The lists of records an object holds, in name order.
 function recordLists(resprops) {
     return (0, struct_1.keysof)(resprops).filter((k) => isRecordList(resprops[k]));
 }
-// Lists of one item schema are categories of one record, such as dedline's
-// primary and general deadlines: the one the definition's example fills is
-// read, as its example is counted. Otherwise the first by name is, past one
-// holding errors or messages.
+// Lists of one item schema are categories of one record: the one the example
+// fills is read, as the example is counted. Otherwise the first by name is,
+// past one holding errors or messages.
 function listedRecords(resprops, example) {
     const lists = recordLists(resprops);
     if (lists.length < 2) {

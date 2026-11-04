@@ -1658,7 +1658,7 @@ var requestPathsPoints = []string{
 	"schedule.load GET /schedules/{scheduleId} s=schedules/<id> params=id:scheduleId query= exist=id action=",
 	"schedule.load GET /schedules:count s=schedules:count params= query= exist= action=count",
 	"schedule.remove DELETE /schedules s=schedules params= query= exist= action=",
-	"state.load GET /states/{stateAbbreviation}.json s=states/{state_abbreviation}.json params=state_abbreviation:stateAbbreviation query= exist=state_abbreviation action=",
+	"state.load GET /states/{stateAbbreviation}.json s=states/{id}.json params=id:stateAbbreviation query= exist=id action=",
 	"thread.list GET /{board}/thread/{threadId}.json s=<board>/thread/{thread_id}.json params=board:board,thread_id:threadId query= exist=board,thread_id action=",
 	"world.load GET /image/world/{worldTileName}{tileX}-{tileY}-0.png s=image/world/{world_tile_name}{tile_x}-{tile_y}-0.png params=tile_x:tileX,tile_y:tileY,world_tile_name:worldTileName query= exist=tile_x,tile_y,world_tile_name action=",
 }

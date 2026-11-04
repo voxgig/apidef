@@ -70,6 +70,8 @@ import {
   pluralize,
   prefixLeadingDigit,
   stripOperationVerb,
+  guideParts,
+  guidePath,
   resplitFromCmp,
   sortedEntries,
   sortedKeys,
@@ -336,7 +338,7 @@ function PreparePath(spec: TaskSpec) {
   const pathdesc = {
     path: pathstr,
     def: pathdef,
-    parts: pathstr.split('/').filter((p: string) => '' != p),
+    parts: guideParts(pathstr),
     op: {}
   }
 
@@ -1889,10 +1891,10 @@ function keyHeld(
 // first parameter follows the collection: one under a collection nested in it
 // is outside.
 function outsideCollection(path: string, collection: string): boolean {
-  if (!(path + '/').startsWith(collection + '/')) {
+  if (!(guidePath(path) + '/').startsWith(collection + '/')) {
     return true
   }
-  const parts = path.split('/').filter((part) => '' !== part)
+  const parts = guideParts(path)
   const first = parts.findIndex(isParam)
   return -1 < first && collection !== '/' + parts.slice(0, first).join('/')
 }
@@ -2460,7 +2462,7 @@ type SharingEntry = SharingRoute & { parts: string[], resource: string }
 function sharedRoutes(routes: SharingRoute[], records: string[]): string[] {
   const bycmp: Record<string, SharingEntry[]> = Object.create(null)
   for (const route of routes) {
-    const parts = route.path.split('/').filter((p) => '' !== p)
+    const parts = guideParts(route.path)
     const resource = pathResource(parts, route.method)
     if (null != resource && !records.includes(route.cmp)) {
       (bycmp[route.cmp] = bycmp[route.cmp] ?? []).push({ ...route, parts, resource })
@@ -2884,7 +2886,7 @@ function entityParamNames(
 
   for (const pathStr of Object.keys(paths).sort(byCodePoint)) {
     out[pathStr] = { ...paths[pathStr] }
-    const parts = verbParts(pathStr.split('/').filter((p) => '' !== p))
+    const parts = verbParts(guideParts(pathStr))
     parts.forEach((part, partI) => {
       if (isParam(part)) {
         const place = parts.slice(0, partI + 1).join('/')

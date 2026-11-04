@@ -1,0 +1,12 @@
+input	expected
+/usecases.json	["usecases"]
+/usecases/{id}.json	["usecases","{id}"]
+/repos/{slug}.json	["repos","{slug}"]
+/{board}/thread/{threadId}.json	["{board}","thread","{threadId}"]
+/assets/i18n/{lang}.json	["assets","i18n","{lang}"]
+/tesseract/data.{extension}	["tesseract","data"]
+/files/{name}.{format}	["files","{name}"]
+/series/{code}/json	["series","{code}"]
+/json	["json"]
+/v1.0/items	["v1.0","items"]
+/report.pdf	["report.pdf"]

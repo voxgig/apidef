@@ -28,8 +28,8 @@ function entity(name: string, path: Record<string, string[]>, extra: any = {}) {
 describe('fold-merge', () => {
 
   // `/usecases/{id}.json` is named for its component, UseCase, and
-  // `/usecases.json` for its segment. go/apidef_test.go reads the base guide
-  // this writes.
+  // `/usecases.json` for its segment; the item route is the collection's load.
+  // go/apidef_test.go reads the base guide this writes.
   test('guide-fold-merge', async () => {
     const folder = __dirname + '/../test/fold-merge'
     const build = await ApiDef.makeBuild({ folder })
@@ -44,12 +44,14 @@ describe('fold-merge', () => {
 
     assert.deepStrictEqual(routes(bres.guide.entity), {
       repo: ['list /repos.json'],
-      use_case: ['list /usecases.json', 'list /usecases/{id}.json'],
+      use_case: ['list /usecases.json', 'load /usecases/{id}.json'],
     })
     assert.deepStrictEqual(Object.keys(bres.apimodel.main.kit.entity).sort(),
       ['repo', 'use_case'])
     assert.deepStrictEqual(bres.apimodel.main.kit.entity.use_case.op.list.points
-      .map((p: any) => p.o).sort(), ['/usecases.json', '/usecases/{id}.json'])
+      .map((p: any) => p.o).sort(), ['/usecases.json'])
+    assert.deepStrictEqual(bres.apimodel.main.kit.entity.use_case.op.load.points
+      .map((p: any) => p.o).sort(), ['/usecases/{id}.json'])
   })
 
 

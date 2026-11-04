@@ -338,6 +338,18 @@ func TestTsvListBody(t *testing.T) {
 	}
 }
 
+func TestTsvGuideParts(t *testing.T) {
+	for _, row := range loadTsv(t, "guide-parts") {
+		t.Run(row["input"], func(t *testing.T) {
+			var want []string
+			unmarshalCol(t, row, "expected", &want)
+			if got := guideParts(row["input"]); !reflect.DeepEqual(got, want) {
+				t.Errorf("guideParts(%q) = %v, want %v", row["input"], got, want)
+			}
+		})
+	}
+}
+
 func TestTsvOperationVerb(t *testing.T) {
 	for _, row := range loadTsv(t, "operation-verb") {
 		t.Run(row["input"], func(t *testing.T) {

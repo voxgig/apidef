@@ -19,6 +19,14 @@ A path like `/api/planet/{planet_id}/moon/{moon_id}` becomes the parts
 
 Segments wrapped in `{…}` are **parameters**; the rest are **literals**.
 
+A format a segment carries is set aside: a placeholder with an extension
+(`{id}.json`, `{name}.{format}`) is read as the placeholder, a literal with
+one (`repos.json`, `data.{format}`) as the literal, and a format alone
+(`json`) is skipped. So `/repos/{slug}.json` is the item route of
+`/repos.json`, and `/series/{code}/json` the item route of `/series`. The
+model keeps each segment as written, so a request still goes to
+`/repos/acme.json`.
+
 These string parts belong to the GUIDE step alone — the classifier's own
 working view of the path. They are not what the MODEL carries: a point's
 path is emitted as a typed `segments` vector with the braces already

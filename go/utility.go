@@ -550,6 +550,52 @@ func FoldName(name string) string {
 	return jsLowerCaser.String(Camelify(name))
 }
 
+// formatExtensions are the formats a route segment may name beside its
+// resource, or alone.
+var formatExtensions = map[string]bool{
+	"json": true, "xml": true, "csv": true, "tsv": true, "yaml": true, "yml": true,
+	"txt": true, "html": true, "htm": true, "rss": true, "atom": true, "jsonl": true,
+	"ndjson": true, "geojson": true,
+}
+
+var heldSegmentRE = regexp.MustCompile(`^(\{[^}]+\})\.(?:[A-Za-z0-9]+|\{[^}]+\})$`)
+var namedSegmentRE = regexp.MustCompile(`^([^{}.]+)\.([A-Za-z0-9]+|\{[^}]+\})$`)
+
+// guideSegment mirrors ts/src/utility.ts: a route segment as the guide
+// classifies and names it, and false for a format alone, which names nothing.
+func guideSegment(seg string) (string, bool) {
+	if m := heldSegmentRE.FindStringSubmatch(seg); m != nil {
+		return m[1], true
+	}
+	if m := namedSegmentRE.FindStringSubmatch(seg); m != nil &&
+		(strings.HasPrefix(m[2], "{") || formatExtensions[strings.ToLower(m[2])]) {
+		return m[1], true
+	}
+	if formatExtensions[strings.ToLower(seg)] {
+		return "", false
+	}
+	return seg, true
+}
+
+// guideParts mirrors ts/src/utility.ts: a route of formats alone keeps them.
+func guideParts(path string) []string {
+	parts := splitAndFilter(path, "/")
+	kept := []string{}
+	for _, part := range parts {
+		if seg, ok := guideSegment(part); ok {
+			kept = append(kept, seg)
+		}
+	}
+	if len(kept) == 0 {
+		return parts
+	}
+	return kept
+}
+
+func guidePath(path string) string {
+	return "/" + strings.Join(guideParts(path), "/")
+}
+
 // prototypeNames are the names Object.prototype owns in TypeScript: aontu cannot
 // unify a spread with one as a key, so no entity is given one.
 var prototypeNames = map[string]bool{

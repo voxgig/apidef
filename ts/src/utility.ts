@@ -810,9 +810,8 @@ function formatJSONIC(
 const RE_LINE_BREAKS = /[\r\n\u2028\u2029]+/g
 
 
-// The backtick form of a multiline string: its JSON escapes, read in order so
-// an escaped backslash is never taken as the start of another escape, with a
-// newline and a quote written as themselves and a backtick escaped.
+// Its JSON escapes, read in order so an escaped backslash never starts
+// another, with a newline and a quote written as themselves.
 function backtickString(s: string): string {
   const json = JSON.stringify(s)
   let out = '`'
@@ -1178,6 +1177,36 @@ function foldName(name: string): string {
 
 
 const FIRST_LETTER_RE = /[a-zA-Z]/
+
+
+// Formats a route segment may name beside its resource, or alone.
+const FORMAT_EXTENSIONS = new Set([
+  'json', 'xml', 'csv', 'tsv', 'yaml', 'yml', 'txt', 'html', 'htm', 'rss',
+  'atom', 'jsonl', 'ndjson', 'geojson',
+])
+
+// A route segment as the guide reads it: {id}.json is {id}, repos.json and
+// data.{format} are repos and data, and a format alone (json) names nothing.
+function guideSegment(seg: string): string | null {
+  const held = seg.match(/^(\{[^}]+\})\.(?:[A-Za-z0-9]+|\{[^}]+\})$/)
+  if (null != held) return held[1]
+  const named = seg.match(/^([^{}.]+)\.([A-Za-z0-9]+|\{[^}]+\})$/)
+  if (null != named && ('{' === named[2][0] || FORMAT_EXTENSIONS.has(named[2].toLowerCase()))) {
+    return named[1]
+  }
+  return FORMAT_EXTENSIONS.has(seg.toLowerCase()) ? null : seg
+}
+
+// The guide's parts of a route; a route of formats alone keeps them.
+function guideParts(path: string): string[] {
+  const parts = path.split('/').filter((p: string) => '' !== p)
+  const kept = parts.map(guideSegment).filter((p): p is string => null != p)
+  return 0 === kept.length ? parts : kept
+}
+
+function guidePath(path: string): string {
+  return '/' + guideParts(path).join('/')
+}
 
 
 // aontu cannot unify a spread with a key Object.prototype owns, so no entity
@@ -1913,16 +1942,14 @@ function envelopeProp(resprops: any, opname: string, example?: any): string | nu
 }
 
 
-// The lists of records an object holds, in name order.
 function recordLists(resprops: any): string[] {
   return keysof(resprops).filter((k: string) => isRecordList(resprops[k]))
 }
 
 
-// Lists of one item schema are categories of one record, such as dedline's
-// primary and general deadlines: the one the definition's example fills is
-// read, as its example is counted. Otherwise the first by name is, past one
-// holding errors or messages.
+// Lists of one item schema are categories of one record: the one the example
+// fills is read, as the example is counted. Otherwise the first by name is,
+// past one holding errors or messages.
 function listedRecords(resprops: any, example?: any): string | null {
   const lists = recordLists(resprops)
   if (lists.length < 2) {
@@ -2433,6 +2460,8 @@ export {
   foldName,
   prefixLeadingDigit,
   guardPrototypeName,
+  guideParts,
+  guidePath,
   stripOperationVerb,
   debugpath,
   debugpathOn,

@@ -222,7 +222,7 @@ function PreparePath(spec) {
     const pathdesc = {
         path: pathstr,
         def: pathdef,
-        parts: pathstr.split('/').filter((p) => '' != p),
+        parts: (0, utility_2.guideParts)(pathstr),
         op: {}
     };
     work.pathmap[pathstr] = pathdesc;
@@ -1393,10 +1393,10 @@ function keyHeld(work, keys, collection, exempt) {
 // first parameter follows the collection: one under a collection nested in it
 // is outside.
 function outsideCollection(path, collection) {
-    if (!(path + '/').startsWith(collection + '/')) {
+    if (!((0, utility_2.guidePath)(path) + '/').startsWith(collection + '/')) {
         return true;
     }
-    const parts = path.split('/').filter((part) => '' !== part);
+    const parts = (0, utility_2.guideParts)(path);
     const first = parts.findIndex(isParam);
     return -1 < first && collection !== '/' + parts.slice(0, first).join('/');
 }
@@ -1794,7 +1794,7 @@ function pathResource(parts, method) {
 function sharedRoutes(routes, records) {
     const bycmp = Object.create(null);
     for (const route of routes) {
-        const parts = route.path.split('/').filter((p) => '' !== p);
+        const parts = (0, utility_2.guideParts)(route.path);
         const resource = pathResource(parts, route.method);
         if (null != resource && !records.includes(route.cmp)) {
             (bycmp[route.cmp] = bycmp[route.cmp] ?? []).push({ ...route, parts, resource });
@@ -2100,7 +2100,7 @@ function entityParamNames(paths) {
     const places = {};
     for (const pathStr of Object.keys(paths).sort(refcount_1.byCodePoint)) {
         out[pathStr] = { ...paths[pathStr] };
-        const parts = verbParts(pathStr.split('/').filter((p) => '' !== p));
+        const parts = verbParts((0, utility_2.guideParts)(pathStr));
         parts.forEach((part, partI) => {
             if (isParam(part)) {
                 const place = parts.slice(0, partI + 1).join('/');

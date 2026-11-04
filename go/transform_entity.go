@@ -114,7 +114,7 @@ func mergeCollectionPaths(guide map[string]any, recordRef func(pathStr string, m
 		}
 		paths, _ := entity["path"].(map[string]any)
 		for _, pathStr := range sortedKeys(paths) {
-			m := instancePathRE.FindStringSubmatch(pathStr)
+			m := instancePathRE.FindStringSubmatch(guidePath(pathStr))
 			if m == nil {
 				continue
 			}
@@ -480,7 +480,7 @@ func movePath(paths map[string]any, target map[string]any, pathStr string) {
 func onlyBeneath(entity map[string]any, root string) bool {
 	paths, _ := entity["path"].(map[string]any)
 	for pathStr := range paths {
-		if root != strings.TrimRight(pathStr, "/") && !strings.HasPrefix(pathStr, root+"/") {
+		if gp := guidePath(pathStr); root != gp && !strings.HasPrefix(gp, root+"/") {
 			return false
 		}
 	}
@@ -490,7 +490,7 @@ func onlyBeneath(entity map[string]any, root string) bool {
 // collectionRoot mirrors ts/src/transform/entity.ts: a path of literals
 // only, less any trailing slash, is a collection path.
 func collectionRoot(pathStr string) (string, bool) {
-	key := strings.TrimRight(pathStr, "/")
+	key := guidePath(pathStr)
 	if !collectionPathRE.MatchString(key) {
 		return "", false
 	}

@@ -62,7 +62,7 @@ function mergeCollectionPaths(guide, log, recordRef, distinct) {
     const owners = {};
     for (const [ename, entity] of Object.entries(entities)) {
         for (const pathStr of Object.keys(entity.path ?? {})) {
-            const m = pathStr.match(/^((?:\/[^\/{}]+)+)\/\{[^}]+\}(\/.*)?$/);
+            const m = (0, utility_1.guidePath)(pathStr).match(/^((?:\/[^\/{}]+)+)\/\{[^}]+\}(\/.*)?$/);
             if (!m)
                 continue;
             const rest = (m[2] ?? '').split('/').filter(Boolean);
@@ -253,11 +253,11 @@ function movePath(entity, targetEntity, pathStr) {
     delete entity.path[pathStr];
 }
 function onlyBeneath(entity, root) {
-    return Object.keys(entity?.path ?? {}).every((pathStr) => root === pathStr.replace(/\/+$/, '') || pathStr.startsWith(root + '/'));
+    return Object.keys(entity?.path ?? {}).map(utility_1.guidePath).every((pathStr) => root === pathStr || pathStr.startsWith(root + '/'));
 }
 // A path of literals only, less any trailing slash, is a collection path.
 function collectionRoot(pathStr) {
-    const key = pathStr.replace(/\/+$/, '');
+    const key = (0, utility_1.guidePath)(pathStr);
     return /^(?:\/[^\/{}]+)+$/.test(key) ? key : null;
 }
 function resolvePathList(guideEntity, def) {

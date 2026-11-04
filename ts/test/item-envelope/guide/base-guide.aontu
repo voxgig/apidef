@@ -24,6 +24,7 @@ guide: {
       op: list: method: *GET
     }
     path: "/invoices/{uid}.json": {
+      rename: param: "uid": *"id"
       op: load: method: *GET
     }
   }

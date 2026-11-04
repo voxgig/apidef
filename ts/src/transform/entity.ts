@@ -23,7 +23,7 @@ import type {
 } from '../model'
 
 import {
-  cmpRefName, depluralize, foldName, guideActive, paramName, READ_METHODS,
+  cmpRefName, depluralize, foldName, guideActive, guidePath, paramName, READ_METHODS,
 } from '../utility'
 
 import { byCodePoint } from '../refcount'
@@ -111,7 +111,7 @@ function mergeCollectionPaths(
 
   for (const [ename, entity] of Object.entries(entities)) {
     for (const pathStr of Object.keys(entity.path ?? {})) {
-      const m = pathStr.match(/^((?:\/[^\/{}]+)+)\/\{[^}]+\}(\/.*)?$/)
+      const m = guidePath(pathStr).match(/^((?:\/[^\/{}]+)+)\/\{[^}]+\}(\/.*)?$/)
       if (!m) continue
       const rest = (m[2] ?? '').split('/').filter(Boolean)
       const item = rest.every((seg: string) => /^\{[^}]+\}$/.test(seg))
@@ -328,14 +328,14 @@ function movePath(entity: any, targetEntity: any, pathStr: string) {
 
 
 function onlyBeneath(entity: any, root: string): boolean {
-  return Object.keys(entity?.path ?? {}).every((pathStr: string) =>
-    root === pathStr.replace(/\/+$/, '') || pathStr.startsWith(root + '/'))
+  return Object.keys(entity?.path ?? {}).map(guidePath).every((pathStr: string) =>
+    root === pathStr || pathStr.startsWith(root + '/'))
 }
 
 
 // A path of literals only, less any trailing slash, is a collection path.
 function collectionRoot(pathStr: string): string | null {
-  const key = pathStr.replace(/\/+$/, '')
+  const key = guidePath(pathStr)
   return /^(?:\/[^\/{}]+)+$/.test(key) ? key : null
 }
 

@@ -355,6 +355,13 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-guide-parts', () => {
+    for (const row of loadTsv('guide-parts')) {
+        (0, node_test_1.test)(`guideParts(${row.input})`, () => {
+            node_assert_1.default.deepStrictEqual((0, utility_1.guideParts)(row.input), JSON.parse(row.expected));
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-operation-verb', () => {
     for (const row of loadTsv('operation-verb')) {
         (0, node_test_1.test)(`stripOperationVerb(canonize(${row.input}))`, () => {
