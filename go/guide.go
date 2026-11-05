@@ -1329,8 +1329,8 @@ func resolveEntityName(ctx *ApiDefContext, data map[string]any, mdesc map[string
 }
 
 // collectionOwner mirrors ts/src/guide/heuristic01.ts: a method named only
-// from its tag, on a verb route beneath an item, joins the entity that owns
-// the item's collection.
+// from its tag, on a verb route of singular words beneath an item, joins the
+// entity that owns the item's collection when it is named for it.
 func collectionOwner(work map[string]any, mdesc map[string]any, parts []string) string {
 	ment, _ := mdesc["MethodEntity"].(map[string]any)
 	first := slices.IndexFunc(parts, isParam)
@@ -1338,8 +1338,16 @@ func collectionOwner(work map[string]any, mdesc map[string]any, parts []string) 
 		slices.ContainsFunc(parts[first+1:], isParam) {
 		return ""
 	}
+	verb := parts[first+1:]
+	if len(verb) == 2 && Canonize(verb[0]) == "action" {
+		verb = verb[1:]
+	}
+	if len(verb) > 2 || !allSingular(verb) {
+		return ""
+	}
 	collection := "/" + strings.Join(parts[:first], "/")
 	pathowner, _ := work["pathowner"].(map[string]any)
+	owner := ""
 	for _, path := range sortedKeys(pathowner) {
 		if guidePath(path) != collection {
 			continue
@@ -1347,12 +1355,32 @@ func collectionOwner(work map[string]any, mdesc map[string]any, parts []string) 
 		owners, _ := pathowner[path].(map[string]any)
 		for _, method := range []string{"GET", "QUERY", "POST"} {
 			if name := safeStr(owners[method]); name != "" {
-				return name
+				owner = name
+				break
 			}
 		}
+		break
+	}
+	if owner != Canonize(parts[first-1]) {
 		return ""
 	}
-	return ""
+	return owner
+}
+
+func allSingular(parts []string) bool {
+	for _, part := range parts {
+		if !isSingular(part) {
+			return false
+		}
+	}
+	return true
+}
+
+// isSingular mirrors ts/src/guide/heuristic01.ts: a literal that names one
+// thing rather than a collection.
+func isSingular(part string) bool {
+	lit := Snakify(part)
+	return lit != "" && Depluralize(lit) == lit
 }
 
 // samePathOwner mirrors samePathOwner in ts/src/guide/heuristic01.ts: a
@@ -1957,9 +1985,12 @@ func warnListBody(ctx *ApiDefContext, where string, res any, props map[string]an
 		return
 	}
 	if res == nil {
+		what := "an object holding no list of records"
+		if len(recordLists(props)) > 0 {
+			what = "the one record its definition declares"
+		}
 		ctx.Warn.Warn(map[string]any{
-			"note": "list " + where + " reads its whole body, an object holding no list of" +
-				" records: declare what it lists in guide.aontu",
+			"note": "list " + where + " reads its whole body, " + what + ": declare what it lists in guide.aontu",
 		})
 		return
 	}
@@ -2070,7 +2101,12 @@ func resolveTransform(ctx *ApiDefContext, data map[string]any, mdesc map[string]
 		slices.Contains(recordLists(partprops), Pluralize(ename)) {
 		transform["res"] = "`body." + Pluralize(ename) + "`"
 	} else if resprops != nil {
-		if envelope := envelopePropWith(resprops, opname, example); envelope != "" {
+		envelope := envelopePropWith(resprops, opname, example)
+		if m := xrefRE.FindStringSubmatch(resref); m != nil &&
+			(entcmp != "" && CanonizeCmpName(m[2]) == entcmp || CanonizeCmpName(m[2]) == ename) {
+			envelope = singleEnvelope(resprops, opname)
+		}
+		if envelope != "" {
 			transform["res"] = "`body." + envelope + "`"
 		}
 	}
@@ -2243,8 +2279,7 @@ func verbOnParent(data map[string]any, pm *PathMatchResult, mdesc map[string]any
 		return ""
 	}
 
-	lit := Snakify(getMatchElem(pm, -1))
-	if lit == "" || Depluralize(lit) != lit {
+	if !isSingular(getMatchElem(pm, -1)) {
 		return ""
 	}
 
@@ -2687,11 +2722,8 @@ func pathResource(parts []string, method string) string {
 	}
 
 	last := parts[len(parts)-1]
-	if !READ_METHODS[method] && !isParam(last) {
-		lit := Snakify(last)
-		if lit != "" && Depluralize(lit) == lit {
-			return ""
-		}
+	if !READ_METHODS[method] && !isParam(last) && isSingular(last) {
+		return ""
 	}
 
 	return Canonize(getMatchElem(pm, PATH_NAME_INDEX[pm.Expr]))
