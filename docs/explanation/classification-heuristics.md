@@ -141,11 +141,13 @@ its children, is read through that list. When it holds several, a list named
 for the entity wins. Lists that share one item schema are categories of one
 record, so the list reads the one the definition's example fills, as an SDK's
 definition test counts it. Otherwise it reads the first by name that is not
-named for errors or messages. Each list
-that drops other lists of records is reported with a warning that names
-them, and so is a list whose object holds no list of records, which reads
-its whole body. A guide entry that sets the operation's transform settles
-either case.
+named for errors or messages. The entity's own record is not such an
+object, whatever lists it holds: GitLab declares one `API_Entities_Member`
+for `/groups/{id}/billable_members`, which answers with an array of members,
+so the list reads its whole body rather than a member's `custom_attributes`.
+Each list that drops other lists of records is reported with a warning that
+names them, and so is a list that reads its whole body. A guide entry that
+sets the operation's transform settles either case.
 
 Each reference to a component schema counts once per use in the resolved
 spec, the spec with every `$ref` replaced by the schema it names. A schema
@@ -400,7 +402,18 @@ with `Escalations V2`, which names no resource, and the route answers nothing.
 Its collection, `/v2/escalations`, belongs to `escalation`, so `respond`
 becomes an action on `escalation` and `{escalation_id}` is renamed to `id`.
 An `actions` element only gathers the verbs: `/{id}/actions/cancel` names the
-action `cancel`, not `action_cancel`. A result wrapper names the resource
+action `cancel`, not `action_cancel`.
+
+The route joins only as a verb the entity can take as an action. One or two
+singular words follow the item, behind an optional `actions`, and the entity
+is named for the collection. A plural word names a sub-collection, so
+Contentful's `/spaces/{space_id}/api_keys` stays `api_key` and
+`/pages/{page_id}/subscribers/reactivate` stays on `subscriber`. GitLab's
+`/projects` belongs to an entity named from its `API_Entities_BasicProjectDetails`
+schema, so `/projects/{id}/avatar` keeps its own entity rather than becoming an
+operation the project cannot tell apart from its own read.
+
+A result wrapper names the resource
 before its verb when the words after the verb name nothing the spec defines:
 `AlertsAddTagsResultV2` names `alert`, so `POST /v2/alerts/{id}/actions/add_tags`
 joins `alert` as the action `add_tag`.

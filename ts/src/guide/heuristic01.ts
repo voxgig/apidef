@@ -920,18 +920,26 @@ function samePathOwner(
 
 // A method named only from its tag, on a verb route beneath an item, joins the
 // entity that owns the item's collection, so its verb becomes that entity's
-// action: samePathOwner's rule, one level deeper.
+// action. The verb is a singular word or a pair of them, behind an optional
+// `actions`, and the entity is named for the collection; a plural word is a
+// sub-collection.
 function collectionOwner(mdesc: MethodDesc, parts: string[], work: any): string | null {
   const first = parts.findIndex(isParam)
   if ('tag' !== mdesc.MethodEntity?.ref || first < 1 || first === parts.length - 1 ||
     parts.slice(first + 1).some(isParam)) {
     return null
   }
+  const words = parts.slice(first + 1)
+  const verb = 2 === words.length && 'action' === canonize(words[0]) ? words.slice(1) : words
+  if (2 < verb.length || !verb.every(isSingular)) {
+    return null
+  }
   const collection = '/' + parts.slice(0, first).join('/')
   const path = Object.keys(work.pathowner).sort(byCodePoint)
     .find((p: string) => collection === guidePath(p))
   const owners = null == path ? {} : work.pathowner[path]
-  return owners.GET ?? owners.QUERY ?? owners.POST ?? null
+  const owner = owners.GET ?? owners.QUERY ?? owners.POST ?? null
+  return owner === canonize(parts[first - 1]) ? owner : null
 }
 
 
@@ -1415,9 +1423,10 @@ function ResolveOperation(spec: TaskSpec) {
 function warnListBody(ctx: any, where: string, res: any, props: any) {
   if (null == props || 0 === keysof(props).length) return
   if (null == res) {
+    const what = 0 < recordLists(props).length ? 'the one record its definition declares' :
+      'an object holding no list of records'
     ctx?.warn?.({
-      note: 'list ' + where + ' reads its whole body, an object holding no list of' +
-        ' records: declare what it lists in guide.aontu',
+      note: 'list ' + where + ' reads its whole body, ' + what + ': declare what it lists in guide.aontu',
     })
     return
   }
@@ -1501,12 +1510,12 @@ function ResolveTransform(spec: TaskSpec) {
     transform.res = '`body.' + pluralize(entdesc.name) + '`'
   }
   else if (resprops) {
-    // The wrapper is often named for the CARDINALITY rather than the
-    // entity — `{item: {...}}` from a load, `{items: [...]}` from a list —
-    // which the entity-name rules above cannot see. Left unwrapped, list()
-    // hands back the envelope where the caller expects an array, and the
-    // envelope key is mistaken for a field of the entity.
-    const envelope = envelopeProp(resprops, opname, example)
+    // The wrapper is often named for the CARDINALITY rather than the entity,
+    // `{item: {...}}` from a load or `{items: [...]}` from a list, which the
+    // rules above cannot see. The entity's own record is never a page,
+    // whatever lists it holds, though a list route may declare it.
+    const own = null != rescmp && [entdesc.cmp, entdesc.name].includes(cmpRefName(rescmp))
+    const envelope = own ? singleEnvelope(resprops, opname) : envelopeProp(resprops, opname, example)
     if (null != envelope) {
       transform.res = '`body.' + envelope + '`'
     }
@@ -1727,8 +1736,7 @@ function verbOnParent(
     return null
   }
 
-  const lit = snakify(getelem(pm, -1))
-  if ('' === lit || depluralize(lit) !== lit) {
+  if (!isSingular(getelem(pm, -1))) {
     return null
   }
 
@@ -2462,11 +2470,8 @@ function pathResource(parts: string[], method: string): string | null {
   }
 
   const last = parts[parts.length - 1]
-  if (!READ_METHODS.includes(method) && !isParam(last)) {
-    const lit = snakify(last)
-    if ('' !== lit && depluralize(lit) === lit) {
-      return null
-    }
+  if (!READ_METHODS.includes(method) && !isParam(last) && isSingular(last)) {
+    return null
   }
 
   return canonize(pm[PATH_NAME_INDEX[pm.expr]])
@@ -2859,6 +2864,13 @@ function updateParamRename(
 
 function isParam(partStr: string) {
   return '{' === partStr[0] && '}' === partStr[partStr.length - 1]
+}
+
+
+// A literal that names one thing rather than a collection.
+function isSingular(part: string): boolean {
+  const lit = snakify(part)
+  return '' !== lit && depluralize(lit) === lit
 }
 
 
