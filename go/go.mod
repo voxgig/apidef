@@ -3,11 +3,11 @@ module github.com/voxgig/apidef/go
 go 1.25.0
 
 require (
-	github.com/aontu-lang/aontu/go v0.75.0
+	github.com/aontu-lang/aontu/go v0.76.1
 	github.com/jostraca/jostraca/go v0.41.0
 	github.com/tabnas/parser/go v0.12.5
 	github.com/tabnas/yaml/go v0.5.15
-	github.com/voxgig/struct/go v0.1.3
+	github.com/voxgig/struct/go v0.1.6
 	github.com/voxgig/util/go v0.1.5
 	golang.org/x/net v0.50.0
 	golang.org/x/text v0.40.0
@@ -31,6 +31,7 @@ require (
 	github.com/tabnas/multisource/go v0.5.8 // indirect
 	github.com/tabnas/path/go v0.3.8 // indirect
 	github.com/tabnas/toml/go v0.5.8 // indirect
+	github.com/voxgig/struct/go/testutil v0.0.0-20261019150956-a7790de45bb1 // indirect
 	golang.org/x/mod v0.37.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 )
