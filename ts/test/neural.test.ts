@@ -302,6 +302,8 @@ describe('nn', () => {
     assert.strictEqual(name({ ...rec, cmp_differs: 1, cmp_names_key: 1 }), 'CMP')
     assert.strictEqual(name({ ...rec, twin_cmd_avail: 1 }), 'TWIN')
     assert.strictEqual(name({ ...rec, record_avail: 0, record_wraps: 1 }), 'PATH')
+    assert.strictEqual(name({ ...cmp, cmp_infrequent: 1, cmp_in_path: 1, cmp_wraps: 1 }), 'PATH')
+    assert.strictEqual(name({ ...cmp, cmp_infrequent: 1, cmp_qualifies: 1, cmp_wraps: 1 }), 'CMPQ')
     assert.strictEqual(name({ ...tpt, record_avail: 1, last_is_cmp: 1, path_has_children: 1 }), 'REC')
     assert.strictEqual(name({ param_avail: 1, opid_avail: 1, title_avail: 1 }), 'PARAM')
 
@@ -318,6 +320,37 @@ describe('nn', () => {
     assert.strictEqual(name({ ...command, post_read: 1 }), 'CMP')
     assert.strictEqual(name({ ...post, post_read: 1, read_noun_avail: 1, cmp_avail: 1, cmp_ne_path: 1,
       cmp_qualifies: 1 }), 'NOUN')
+
+    // A verb on the resource up the path precedes a view, a verb on a parent,
+    // a command and a read noun.
+    assert.strictEqual(name({ ...view, verb_avail: 1 }), 'VERB')
+    assert.strictEqual(name({ ...tpt, cmp_avail: 1, cmp_ne_path: 1, cmp_infrequent: 1, verb_avail: 1 }),
+      'VERB')
+    assert.strictEqual(name({ ...command, verb_avail: 1 }), 'VERB')
+    assert.strictEqual(name({ ...command, post_read: 1, read_noun_avail: 1, verb_avail: 1 }), 'VERB')
+
+    // A trailing verb's noun names over the component and the shape's parts.
+    const vnoun = { ...cmp, cmp_infrequent: 1, cmp_in_path: 1, verb_noun: 1 }
+    assert.strictEqual(name(vnoun), 'PATH')
+    assert.strictEqual(name({ ...vnoun, record_avail: 1 }), 'PATH')
+    assert.strictEqual(name({ ...vnoun, cmp_differs: 1, cmp_names_key: 1 }), 'PATH')
+    assert.strictEqual(name({ ...tpt, verb_noun: 1, last_is_cmp: 1, path_has_children: 1 }), 'VNOUN')
+    assert.strictEqual(name({ ...tpt, verb_noun: 1, cmp_avail: 1, cmp_ne_path: 1, cmp_infrequent: 1 }),
+      'VNOUN')
+    assert.strictEqual(name({ ...view, ...tpt, verb_noun: 1 }), 'PARENT')
+
+    // A short literal names nothing: its key, parameter, tag, then the shape;
+    // a view of the item still joins it.
+    const short = { ...cmp, cmp_infrequent: 1, cmp_in_path: 1, short_lit: 1 }
+    assert.strictEqual(name(short), 'CMP')
+    assert.strictEqual(name({ ...short, tag_name_avail: 1 }), 'TAG')
+    assert.strictEqual(name({ ...short, tag_name_avail: 1, title_avail: 1 }), 'TITLE')
+    assert.strictEqual(name({ ...short, title_avail: 1, opid_avail: 1 }), 'OPID')
+    assert.strictEqual(name({ ...short, opid_avail: 1, param_avail: 1 }), 'PARAM')
+    assert.strictEqual(name({ ...short, param_avail: 1, key_noun_avail: 1 }), 'KEY')
+    assert.strictEqual(name({ ...short, key_noun_avail: 1, ...view, view_avail: 1 }), 'PARENT')
+    assert.strictEqual(name({ ...command, short_lit: 1 }), 'CMP')
+    assert.strictEqual(name({ ...command, post_read: 1, read_noun_avail: 1, short_lit: 1 }), 'CMP')
 
     const op = (x: Record<string, number>) => decide(NETS.op, x).cls
     assert.strictEqual(op({ m_get: 1, res_array: 1 }), 'list')
@@ -435,8 +468,8 @@ describe('neural01', () => {
   test('traces-name-the-deciding-units', async () => {
     const { bres, base } = await run('verb-def.json', 'neural01', true)
     assert.strictEqual(bres.ok, true, String(bres.err?.message))
-    assert.ok(base.includes('nn:name=PARENT('), base)
-    assert.ok(base.includes('[vop='), base)
+    assert.ok(base.includes('nn:name=VNOUN('), base)
+    assert.ok(base.includes('[verb_noun_tpt='), base)
     assert.ok(base.includes('nn:op=list('), base)
     assert.ok(base.includes('nn:param=ID('), base)
     assert.ok(base.includes('nn:action=LAST('), base)

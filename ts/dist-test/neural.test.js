@@ -283,6 +283,8 @@ function file(header, data) {
         node_assert_1.default.strictEqual(name({ ...rec, cmp_differs: 1, cmp_names_key: 1 }), 'CMP');
         node_assert_1.default.strictEqual(name({ ...rec, twin_cmd_avail: 1 }), 'TWIN');
         node_assert_1.default.strictEqual(name({ ...rec, record_avail: 0, record_wraps: 1 }), 'PATH');
+        node_assert_1.default.strictEqual(name({ ...cmp, cmp_infrequent: 1, cmp_in_path: 1, cmp_wraps: 1 }), 'PATH');
+        node_assert_1.default.strictEqual(name({ ...cmp, cmp_infrequent: 1, cmp_qualifies: 1, cmp_wraps: 1 }), 'CMPQ');
         node_assert_1.default.strictEqual(name({ ...tpt, record_avail: 1, last_is_cmp: 1, path_has_children: 1 }), 'REC');
         node_assert_1.default.strictEqual(name({ param_avail: 1, opid_avail: 1, title_avail: 1 }), 'PARAM');
         const post = { shaped: 1, shape_t: 1, m_post: 1, m_write: 1, lit_last: 1, last_lit_singular: 1 };
@@ -298,6 +300,32 @@ function file(header, data) {
         node_assert_1.default.strictEqual(name({ ...command, post_read: 1 }), 'CMP');
         node_assert_1.default.strictEqual(name({ ...post, post_read: 1, read_noun_avail: 1, cmp_avail: 1, cmp_ne_path: 1,
             cmp_qualifies: 1 }), 'NOUN');
+        // A verb on the resource up the path precedes a view, a verb on a parent,
+        // a command and a read noun.
+        node_assert_1.default.strictEqual(name({ ...view, verb_avail: 1 }), 'VERB');
+        node_assert_1.default.strictEqual(name({ ...tpt, cmp_avail: 1, cmp_ne_path: 1, cmp_infrequent: 1, verb_avail: 1 }), 'VERB');
+        node_assert_1.default.strictEqual(name({ ...command, verb_avail: 1 }), 'VERB');
+        node_assert_1.default.strictEqual(name({ ...command, post_read: 1, read_noun_avail: 1, verb_avail: 1 }), 'VERB');
+        // A trailing verb's noun names over the component and the shape's parts.
+        const vnoun = { ...cmp, cmp_infrequent: 1, cmp_in_path: 1, verb_noun: 1 };
+        node_assert_1.default.strictEqual(name(vnoun), 'PATH');
+        node_assert_1.default.strictEqual(name({ ...vnoun, record_avail: 1 }), 'PATH');
+        node_assert_1.default.strictEqual(name({ ...vnoun, cmp_differs: 1, cmp_names_key: 1 }), 'PATH');
+        node_assert_1.default.strictEqual(name({ ...tpt, verb_noun: 1, last_is_cmp: 1, path_has_children: 1 }), 'VNOUN');
+        node_assert_1.default.strictEqual(name({ ...tpt, verb_noun: 1, cmp_avail: 1, cmp_ne_path: 1, cmp_infrequent: 1 }), 'VNOUN');
+        node_assert_1.default.strictEqual(name({ ...view, ...tpt, verb_noun: 1 }), 'PARENT');
+        // A short literal names nothing: its key, parameter, tag, then the shape;
+        // a view of the item still joins it.
+        const short = { ...cmp, cmp_infrequent: 1, cmp_in_path: 1, short_lit: 1 };
+        node_assert_1.default.strictEqual(name(short), 'CMP');
+        node_assert_1.default.strictEqual(name({ ...short, tag_name_avail: 1 }), 'TAG');
+        node_assert_1.default.strictEqual(name({ ...short, tag_name_avail: 1, title_avail: 1 }), 'TITLE');
+        node_assert_1.default.strictEqual(name({ ...short, title_avail: 1, opid_avail: 1 }), 'OPID');
+        node_assert_1.default.strictEqual(name({ ...short, opid_avail: 1, param_avail: 1 }), 'PARAM');
+        node_assert_1.default.strictEqual(name({ ...short, param_avail: 1, key_noun_avail: 1 }), 'KEY');
+        node_assert_1.default.strictEqual(name({ ...short, key_noun_avail: 1, ...view, view_avail: 1 }), 'PARENT');
+        node_assert_1.default.strictEqual(name({ ...command, short_lit: 1 }), 'CMP');
+        node_assert_1.default.strictEqual(name({ ...command, post_read: 1, read_noun_avail: 1, short_lit: 1 }), 'CMP');
         const op = (x) => (0, nn_1.decide)(NETS.op, x).cls;
         node_assert_1.default.strictEqual(op({ m_get: 1, res_array: 1 }), 'list');
         node_assert_1.default.strictEqual(op({ m_get: 1, res_array: 1, view: 1 }), 'load');
@@ -387,8 +415,8 @@ function file(header, data) {
     (0, node_test_1.test)('traces-name-the-deciding-units', async () => {
         const { bres, base } = await run('verb-def.json', 'neural01', true);
         node_assert_1.default.strictEqual(bres.ok, true, String(bres.err?.message));
-        node_assert_1.default.ok(base.includes('nn:name=PARENT('), base);
-        node_assert_1.default.ok(base.includes('[vop='), base);
+        node_assert_1.default.ok(base.includes('nn:name=VNOUN('), base);
+        node_assert_1.default.ok(base.includes('[verb_noun_tpt='), base);
         node_assert_1.default.ok(base.includes('nn:op=list('), base);
         node_assert_1.default.ok(base.includes('nn:param=ID('), base);
         node_assert_1.default.ok(base.includes('nn:action=LAST('), base);

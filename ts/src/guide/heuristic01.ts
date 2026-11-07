@@ -126,7 +126,7 @@ const VERB_WORDS = new Set([
   'copy', 'rename', 'merge', 'split', 'assign', 'unassign', 'attach', 'detach', 'invite',
   'accept', 'decline', 'notify', 'ping', 'count', 'exists', 'preview', 'render', 'generate',
   'calculate', 'compute', 'convert', 'process', 'trigger', 'dispatch', 'apply', 'revoke',
-  'grant', 'save',
+  'grant', 'save', 'lock', 'test', 'inject', 'analyze',
 ])
 
 // A literal that names an identifier keys a resource rather than naming one.
@@ -558,11 +558,15 @@ function selectAllMethods(_source: any, spec: TaskSpec): MethodDesc[] {
     }
   }
 
+  // Parents resolve before their children whatever the keys are called, so
+  // the paths compare with their parameters normalised first.
   caught.methods.sort((a: any, b: any) => {
-    if (a.path < b.path) {
+    const an = normalizeParams(a.path)
+    const bn = normalizeParams(b.path)
+    if (an < bn || (an === bn && a.path < b.path)) {
       return -1
     }
-    else if (a.path > b.path) {
+    else if (an > bn || (an === bn && a.path > b.path)) {
       return 1
     }
     else if (METHOD_CONSIDER_ORDER[a.method] < METHOD_CONSIDER_ORDER[b.method]) {
@@ -942,6 +946,15 @@ function pathEntityName(
   pathowner: Record<string, Record<string, string>>,
   why: string[],
 ): string | null {
+  const verb = verbOfItem(data, mdesc, parts, pathowner)
+  if (null != verb) {
+    const ment = mdesc.MethodEntity
+    ment.verb_on_parent = parts[parts.length - 1]
+    ment.view_on_parent = READ_METHODS.includes(mdesc.method)
+    ment.view_action = verb.action
+    why.push('verb-of-item=' + verb.parent)
+    return verb.parent
+  }
   const view = viewOfItem(data, mdesc, parts, pathowner)
   if (null != view) {
     const ment = mdesc.MethodEntity
@@ -950,6 +963,19 @@ function pathEntityName(
     ment.view_action = view.action
     why.push('view-of-item=' + view.parent)
     return view.parent
+  }
+  // A short literal names nothing: the route's key, else what a route with
+  // no literal is named by, else the padded literal.
+  if (null != pm && shortLiteral(pm)) {
+    why.push('short-literal')
+    const key = keyParamOf(data.def, mdesc.path, data.work)
+    const noun = null == key || /version/i.test(key) ? '' : paramNoun(key)
+    if (3 <= noun.length) {
+      why.push('infer-key=' + key)
+      return noun
+    }
+    return inferEntityName(mdesc, parts.filter(isParam), why) ??
+      shapeEntityName(data, mdesc, parts, pm, pathowner, why)
   }
   const shaped = shapeEntityName(data, mdesc, parts, pm, pathowner, why)
   if (null == pm || null == shaped) {
@@ -1328,6 +1354,12 @@ function FindActions(spec: TaskSpec) {
     }
   }
 
+  if (null != ment.collection_action) {
+    pathdesc.action[ment.collection_action] = pathdesc.action[ment.collection_action] ?? {
+      why_action: ['ent', entdesc.name, 'collection', ment.collection_action, methodName],
+    }
+  }
+
   debugpath(pathStr, methodName, 'FIND-ACTIONS', cmp, parts, pathdesc.action, pathdesc.why_action)
 
   // return pathdesc.action
@@ -1660,7 +1692,14 @@ function entityPathMatch_tpte(
   const verbish = entname !== literalName(origPathName)
   let ecm = undefined
 
-  if (null != ment.cmp) {
+  // A verb's response is its result: the resource before the verb names.
+  if (verbish && 'tag' !== ment.ref) {
+    entname = itemAbove(data, parts, lastKey(parts), pathowner) ?? entname
+    ment.verb_on_parent = getelem(pm, -1)
+    why.push('verb-noun=' + entname)
+  }
+
+  else if (null != ment.cmp) {
     const parent = verbOnParent(data, pm, mdesc, pathowner)
     if (null != parent) {
       entname = parent
@@ -1687,9 +1726,6 @@ function entityPathMatch_tpte(
     else if (0 < findPathsWithPrefix(data, pm.path, { strict: true })) {
       entname = literalName(getelem(pm, -1))
       why.push('prob-ent-prefix=' + ecm.orig)
-    }
-    else if (verbish) {
-      why.push('prob-ent-noun')
     }
     else {
       entname = literalName(getelem(pm, -3)) + '_' + entname
@@ -1838,6 +1874,73 @@ function itemAbove(
 }
 
 
+// The index of the last parameter of a path, or -1.
+function lastKey(parts: string[]): number {
+  let key = -1
+  parts.forEach((part, i) => {
+    if (isParam(part)) {
+      key = i
+    }
+  })
+  return key
+}
+
+
+// A literal opening with a verb word is a verb on the nearest resource up
+// the path: a collection of its own between the key and the verb, else the
+// key's resource. The action is named for the literals after that resource.
+// A bare verb right after the key is left to the shape rules.
+function verbOfItem(
+  data: { def: any, work: any },
+  mdesc: any,
+  parts: string[],
+  pathowner: Record<string, Record<string, string>>,
+): { parent: string, action: string } | null {
+  const last = parts[parts.length - 1]
+  if (null == last || isParam(last)) {
+    return null
+  }
+  const words = canonize(last).split('_')
+  const key = lastKey(parts)
+  const bare = 1 === words.length
+  if (!VERB_WORDS.has(words[0]) || key < 0 || /version/i.test(parts[key]) ||
+    (bare && (key === parts.length - 2 || depluralize(snakify(last)) !== snakify(last))) ||
+    0 < findPathsWithPrefix(data, mdesc.path, { strict: true })) {
+    return null
+  }
+  const keyParent = itemAbove(data, parts, key, pathowner)
+  for (let i = parts.length - 2; key < i; i--) {
+    const lit = snakify(parts[i])
+    if (depluralize(lit) === lit) {
+      continue
+    }
+    const route = pathNamed(data, '/' + parts.slice(0, i + 1).join('/'))
+    const owners = null == route ? {} : (pathowner[route] ?? {})
+    const owner = owners.GET ?? owners.QUERY ?? Object.values(owners).sort()[0]
+    if (null != owner && owner !== keyParent) {
+      return { parent: owner, action: verbActionName(parts.slice(i + 1)) }
+    }
+  }
+  return null == keyParent ? null : { parent: keyParent, action: verbActionName(parts.slice(key + 1)) }
+}
+
+
+// The verb keeps its own spelling, plural and all; the literals before it
+// are path nouns.
+function verbActionName(literals: string[]): string {
+  const last = literals.length - 1
+  return literals
+    .map((lit, i) => i < last ? literalName(lit) : snakify(lit).replace(/[^a-zA-Z0-9_]/g, ''))
+    .join('_')
+}
+
+
+// A literal too short for a word names nothing.
+function shortLiteral(pm: PathMatch): boolean {
+  return canonize(pm[PATH_NAME_INDEX[pm.expr]]).replace(/_/g, '').length < 3
+}
+
+
 // The path of the definition that is the given path with its parameters
 // normalised, or null.
 function pathNamed(data: { def: any, work: any }, pathStr: string): string | null {
@@ -1887,7 +1990,7 @@ function responsePayload(schema: any): { scalars: boolean, record: boolean, node
 function recordOf(
   data: { def: any, guide: any, work: any },
   pathStr: string,
-): { cmp: string, orig: string } | null {
+): { cmp: string, orig: string, shared: boolean } | null {
   const work = data.work
   work.itemRecords = work.itemRecords ?? Object.create(null)
   if (pathStr in work.itemRecords) {
@@ -1896,12 +1999,12 @@ function recordOf(
   const parts = pathParts(pathStr)
   const itemPath = isParam(parts[parts.length - 1]) ? pathStr :
     pathNamed(data, pathStr + '/{}')
-  let found: { cmp: string, orig: string } | null = null
+  let found: { cmp: string, orig: string, shared: boolean } | null = null
   const orig = null == itemPath ? null : itemRecordRef(data, itemPath)
-  if (null != orig && 1 === itemRecordRoutes(data)[orig].size) {
+  if (null != orig) {
     const cmp = cleanComponentName(canonizeCmpName(orig),
       (n: string) => null != data.guide.metrics.count.origcmprefs[n]).replace(/_v\d+$/, '')
-    found = { cmp, orig }
+    found = { cmp, orig, shared: 1 < itemRecordRoutes(data)[orig].size }
   }
   work.itemRecords[pathStr] = found
   return found
@@ -1919,7 +2022,8 @@ function itemRecordRef(data: { def: any }, itemPath: string): string | null {
 
 
 // The collections whose item routes answer each record, by the item path
-// with its parameters normalised: a record shared by several names none.
+// with its parameters normalised: a record shared by several names them all,
+// and each collection's literal becomes its action.
 function itemRecordRoutes(data: { def: any, work: any }): Record<string, Set<string>> {
   const work = data.work
   if (null == work.itemRecordRoutes) {
@@ -2264,7 +2368,10 @@ function entityPathMatch_tpe(
   why.push('path=t/p/')
   let entname = pathNoun(pm, data.work.pathmap[mdesc.path].parts, why)
 
-  if (null != ment.cmp || probableEntityMethod(data, mdesc, pm, why)) {
+  if (entname !== literalName(pm[PATH_NAME_INDEX[pm.expr]]) && 'tag' !== ment.ref) {
+    why.push('verb-noun=' + entname)
+  }
+  else if (null != ment.cmp || probableEntityMethod(data, mdesc, pm, why)) {
     let ecm = entityCmpMatch(data, entname, mdesc, why)
     entname = ecm.name
   }
@@ -2284,7 +2391,10 @@ function entityPathMatch_pte(
   why.push('path=p/t/')
   let entname = pathNoun(pm, data.work.pathmap[mdesc.path].parts, why)
 
-  if (null != ment.cmp || probableEntityMethod(data, mdesc, pm, why)) {
+  if (entname !== literalName(pm[PATH_NAME_INDEX[pm.expr]]) && 'tag' !== ment.ref) {
+    why.push('verb-noun=' + entname)
+  }
+  else if (null != ment.cmp || probableEntityMethod(data, mdesc, pm, why)) {
     let ecm = entityCmpMatch(data, entname, mdesc, why)
     entname = ecm.name
   }
@@ -2304,7 +2414,10 @@ function entityPathMatch_te(
   why.push('path=t/')
   let entname = pathNoun(pm, data.work.pathmap[mdesc.path].parts, why)
 
-  if (null != ment.cmp || probableEntityMethod(data, mdesc, pm, why)) {
+  if (entname !== literalName(pm[PATH_NAME_INDEX[pm.expr]]) && 'tag' !== ment.ref) {
+    why.push('verb-noun=' + entname)
+  }
+  else if (null != ment.cmp || probableEntityMethod(data, mdesc, pm, why)) {
     let ecm = entityCmpMatch(data, entname, mdesc, why)
     entname = ecm.name
   }
@@ -2324,7 +2437,10 @@ function entityPathMatch_tpp(
   why.push('path=t/p/p')
   let entname = pathNoun(pm, data.work.pathmap[mdesc.path].parts, why)
 
-  if (null != ment.cmp || probableEntityMethod(data, mdesc, pm, why)) {
+  if (entname !== literalName(pm[PATH_NAME_INDEX[pm.expr]]) && 'tag' !== ment.ref) {
+    why.push('verb-noun=' + entname)
+  }
+  else if (null != ment.cmp || probableEntityMethod(data, mdesc, pm, why)) {
     let ecm = entityCmpMatch(data, entname, mdesc, why)
     entname = ecm.name
   }
@@ -2481,9 +2597,10 @@ function inferEntityName(
   why: string[],
 ): string | null {
 
-  // A route with no literal is named for its first parameter's noun.
-  const param = parts.find(isParam)?.match(/\{([^}]+)\}/)
-  const noun = null == param ? '' : paramNoun(param[1])
+  // A route with no literal is named for its first parameter's noun, a
+  // version aside.
+  const keys = parts.filter((part) => isParam(part) && !/version/i.test(part))
+  const noun = 0 < keys.length ? paramNoun(paramOf(keys[0])) : ''
   if (3 <= noun.length) {
     why.push('infer-param')
     return noun
@@ -2632,9 +2749,11 @@ function entityCmpMatch(
   const qualifies = unversioned !== ment.cmp && unversioned.endsWith('_' + entname)
 
   const record = recordOf(data, mdesc.path)
+  const parts: string[] = data.work.pathmap[mdesc.path].parts
   const recordWraps = null != record && record.cmp !== entname &&
-    wrapsLiteral(record.cmp, entname) &&
-    !pathQualified(data.work.pathmap[mdesc.path].parts, record.cmp, entname)
+    wrapsLiteral(record.cmp, entname) && !pathQualified(parts, record.cmp, entname)
+  const cmpWraps = null != ment.cmp && 'tag' !== ment.ref && ment.cmp !== entname &&
+    wrapsLiteral(ment.cmp, entname) && !pathQualified(parts, ment.cmp, entname)
 
   // The key parameter names the component, whatever the literal beside it:
   // `/b/{bucket}` answering with a Bucket.
@@ -2663,6 +2782,10 @@ function entityCmpMatch(
     out.orig = record.orig
     out.cmpish = true
     out.pathish = false
+    if (record.shared) {
+      ment.collection_action = entname
+      why.push('collection-action=' + entname)
+    }
   }
 
   else if (
@@ -2686,9 +2809,9 @@ function entityCmpMatch(
       out.cmpish = true
       out.pathish = false
     }
-    // A record that wraps the literal's words is the literal's own shape.
-    else if (recordWraps) {
-      why.push('path-over-wrapper=' + record.orig)
+    // A component that wraps the literal's words is the literal's own shape.
+    else if (recordWraps || cmpWraps) {
+      why.push('path-over-wrapper=' + (recordWraps ? record.orig : ment.origcmp))
     }
     else if (cmpInfrequent && !cmpShared) {
       why.push('cmp-primary')
@@ -3240,6 +3363,9 @@ function updateParamRename(
 
 
 function isParam(partStr: string) {
+  if (null == partStr) {
+    return false
+  }
   const part = partStr.replace(/^\./, '').replace(/\}\.[A-Za-z0-9]+$/, '}')
   return '{' === part[0] && '}' === part[part.length - 1]
 }
@@ -3522,4 +3648,7 @@ export {
   isNameParam,
   isVerb,
   verbParts,
+  verbOfItem,
+  shortLiteral,
+  normalizeParams,
 }

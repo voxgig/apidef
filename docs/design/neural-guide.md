@@ -205,7 +205,7 @@ operation, the actions, the renames, and the transforms:
 
 | Corpus | Definitions | Routes | Agree |
 |---|---|---|---|
-| `ts/test/def` | 60 | 599 | 599 |
+| `ts/test/def` | 62 | 625 | 625 |
 | `apidef-validate` (GitHub, GitLab, Cloudsmith, Contentful and the rest) | 15 | 3,244 | 3,244 |
 
 `ts/test/neural.test.ts` pins that agreement, the solar guide, and the
@@ -233,11 +233,12 @@ names from; the maintainer ruled that the score counts routes on
 `resource`, `embedded` and `command` entities only. On those, 545 of 792
 routes (69 percent) shared the analysts' name before the rulings below,
 593 (75 percent, 446 exact) after the first four of them, 601 (76
-percent, 448 exact) after all eight and 669 (84 percent, 499 exact) after
-the second round of eight; that is the figure the suite's floor guards.
+percent, 448 exact) after all eight, 669 (84 percent, 499 exact) after
+the second round of eight and 688 (87 percent, 529 exact) after the third
+round of four; that is the figure the suite's floor guards.
 
 Twelve definitions agree on every route. The net and the heuristic agree
-with each other on all sixty (the sweep found one divergence, a placeholder
+with each other on all sixty-two (the sweep found one divergence, a placeholder
 element counted as a literal, since fixed), so these are the heuristic's
 scores as much as the net's, and the corpus is the first measure either has
 had against a reading that is not its own. The guide also names more
@@ -419,13 +420,14 @@ literal above the path's noun where the route is a leaf selector or a view
 of that literal's resource (Giphy's `/gifs/random`, Medium's
 `/user/{user_id}/followers`, Keyserv's `/v1/KeysApi/Current/{serial}`),
 since dropping every such tag lost more routes than the prefix tags
-gained. The record rule names only where one collection's item routes
-answer the record, since a record several collections share, such as the
-taxonomy fixture's `Taxon` over `domain` and `kingdom`, would otherwise
-merge them into one entity; Google's `ObjectAccessControl` therefore keeps
-its two literals. A version parameter is not an item key for the view
-rule, a custom method on a key (`{id}:cancel`) names the collection before
-it, and `save` joined the verb words.
+gained. The record rule at first named only where one collection's item
+routes answered the record, since a record several collections share, such
+as the taxonomy fixture's `Taxon` over `domain` and `kingdom`, would
+otherwise merge them into one entity; ruling 17 later settled that merge
+as the intent, with `$action` telling the paths apart. A version parameter
+is not an item key for the view rule, a custom method on a key
+(`{id}:cancel`) names the collection before it, and `save` joined the verb
+words.
 
 The name network gained `param_avail`, `twin_cmd_avail`, `record_avail`,
 `view_key`, `tail_singular` and `view_parent_avail`, with the gates `twin`,
@@ -438,6 +440,37 @@ the qualified-name rule has had its turn, and a record named for a literal
 of the path and the naming literal, `CallRouteAllowedCaller` under
 `/call_routes/{id}/allowed_callers`, is qualified rather than wrapped; the
 `ForX` wrapper is also recognised once its response word is cleaned away.
+
+Rulings 17 to 20 are in, in both strategies and the Go port, with one
+fixture each (`shared-record`, `verb-result`, `verb-phrase` and
+`short-literal`). Three refinements were needed. The verb rule precedes the
+view rule, so a verb phrase keeps its own spelling (`iam_test_permissions`
+rather than the view's singular `iam_test_permission`); a plural
+collection of its own between the key and the verb takes the verb
+(`rateplan` with `count`), where a singular sub-resource such as Google's
+`iam` does not, as the ruling's examples require; and the short-literal
+fallback reads the key the route's shape gives first (`object` for
+`/b/{bucket}/o`), then the sources a literal-less route has from its
+parameters alone, since the preceding literal (`aaa` for `/aaa/uv`) is no
+name. Two further changes came with them: a response component that holds
+the literal's words, OpenAI's `CreateCompletionResponse` around
+`completions`, is a wrapper too and the literal names; and an item route
+whose literal name the collection's own record extends joins the collection
+under the record's name (`catalog_bundle`), where the merge knew only the
+other direction before. A trailing `s` after a digit is kept by the
+depluralizer, so Conjur's `authn-k8s` names `authn_k8s`.
+
+The name network gained `verb_avail`, `verb_noun`, `short_lit`,
+`key_noun_avail`, `view_avail` and `cmp_wraps`, with the gates `verb_item`
+(class `VERB`, above every shaped class), `verb_noun_tpt` (class `VNOUN`)
+and the five `short_*` gates, which lift the literal-less classes above the
+shaped ones with `KEY` first and `TAG` last. The component and shape gates
+take `verb_noun` as a negative input, the view gates `verb_avail`, and the
+short gates `view_avail`, so a view of the item still precedes a short
+literal as the heuristic orders them; the command, twin and read-noun
+gates take `short_lit`, since the heuristic's short-literal branch returns
+before those rules. The corpus moved from 669 to 688 of 792 routes (529
+exact, 621 with the same role).
 
 The guide stage costs the same under either strategy: within a few
 milliseconds per definition on the test corpus, and within a tenth on a

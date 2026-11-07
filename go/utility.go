@@ -227,8 +227,9 @@ func Depluralize(word string) string {
 		return word[:len(word)-2]
 	}
 
+	// A trailing s after a digit is part of a numeronym (k8s), not a plural.
 	if strings.HasSuffix(lower, "s") && !strings.HasSuffix(lower, "ss") &&
-		!strings.HasSuffix(lower, "us") && len(word) > 3 {
+		!strings.HasSuffix(lower, "us") && !numeronymRE.MatchString(lower) && len(word) > 3 {
 		return word[:len(word)-1]
 	}
 
@@ -1326,6 +1327,8 @@ func PathMatch(path any, expr string) *PathMatchResult {
 }
 
 var paramExtRE = regexp.MustCompile(`\}\.[A-Za-z0-9]+$`)
+
+var numeronymRE = regexp.MustCompile(`[0-9]s$`)
 
 // A placeholder, with or without the dot an extension placeholder keeps and
 // the extension a placeholder carries, as `.{ext}` and `{api}.json`.

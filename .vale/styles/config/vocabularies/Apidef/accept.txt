@@ -85,3 +85,6 @@ STS(?:'s)?
 
 Docgen
 safetensors
+Hetras(?:'s)?
+Conjur(?:'s)?
+numeronym

@@ -8,6 +8,14 @@ declare function itemAbove(data: {
     def: any;
     work: any;
 }, parts: string[], key: number, pathowner: Record<string, Record<string, string>>): string | null;
+declare function verbOfItem(data: {
+    def: any;
+    work: any;
+}, mdesc: any, parts: string[], pathowner: Record<string, Record<string, string>>): {
+    parent: string;
+    action: string;
+} | null;
+declare function shortLiteral(pm: PathMatch): boolean;
 declare function responsePayload(schema: any): {
     scalars: boolean;
     record: boolean;
@@ -20,6 +28,7 @@ declare function recordOf(data: {
 }, pathStr: string): {
     cmp: string;
     orig: string;
+    shared: boolean;
 } | null;
 declare function pathQualified(parts: string[], cmp: string, lit: string): boolean;
 declare function wrapsLiteral(cmp: string, lit: string): boolean;
@@ -45,6 +54,7 @@ declare function tagHolds(data: {
 declare function keyParamOf(def: any, pathStr: string, work: {
     childKeys?: Record<string, string>;
 }): string | null;
+declare function normalizeParams(pathStr: string): string;
 declare function matchEntityPath(parts: string[]): PathMatch | null;
 declare function pathResource(parts: string[], method: string): string | null;
 type SharingRoute = {
@@ -62,4 +72,4 @@ declare function verbParts(parts: string[]): string[];
 declare function isNameParam(param: string): boolean;
 declare function entityParamNames(paths: Record<string, Record<string, string>>): Record<string, Record<string, string>>;
 declare function arrayBodyField(schema: any, entname: string, taken?: string[]): string;
-export { answeredRefs, arrayBodyField, commandBodyName, commandTwin, itemAbove, pathQualified, readsRecord, recordOf, responsePayload, tagHolds, wrapsLiteral, isListResponse, LITERAL_LAST_SHAPES, READ_VERBS, distinctRecord, distinctShare, heuristic01, keyParamOf, matchEntityPath, pathNoun, namingRef, namingSchemas, pathRecordRef, pathResource, sharedRoutes, entityParamNames, isNameParam, isVerb, verbParts, };
+export { answeredRefs, arrayBodyField, commandBodyName, commandTwin, itemAbove, pathQualified, readsRecord, recordOf, responsePayload, tagHolds, wrapsLiteral, isListResponse, LITERAL_LAST_SHAPES, READ_VERBS, distinctRecord, distinctShare, heuristic01, keyParamOf, matchEntityPath, pathNoun, namingRef, namingSchemas, pathRecordRef, pathResource, sharedRoutes, entityParamNames, isNameParam, isVerb, verbParts, verbOfItem, shortLiteral, normalizeParams, };

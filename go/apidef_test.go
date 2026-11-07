@@ -420,7 +420,8 @@ func TestGuideSharedWrapper(t *testing.T) {
 		}
 		got[name] = strings.Join(sortedKeys(ops), "/")
 	}
-	want := map[string]string{"domain": "list/load", "kingdom": "list/load"}
+	// One record answered by several collections is one entity.
+	want := map[string]string{"taxon": "list/load"}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("entity ops = %v, want %v", got, want)
 	}
@@ -468,12 +469,10 @@ func TestGuideEnvelope(t *testing.T) {
 		"crew":        "load",
 		"crew_member": "create",
 		"deposit":     "create",
-		"domain":      "list/load/patch",
 		"fossil":      "load",
 		"gallery":     "list",
 		"greenhouse":  "create/load",
 		"kennel":      "create",
-		"kingdom":     "create/list/load",
 		"ledger":      "load",
 		"observation": "list",
 		"package":     "load",
@@ -481,6 +480,8 @@ func TestGuideEnvelope(t *testing.T) {
 		"site":        "load",
 		// A page and a single item beneath its route are one resource.
 		"tally": "create/list",
+		// The record several collections answer, each collection an action.
+		"taxon": "create/list/load/patch",
 		"token": "load",
 	}
 	if !reflect.DeepEqual(got, want) {
@@ -1219,10 +1220,8 @@ func TestGuideSharing(t *testing.T) {
 		"job":                "GET /jobs, GET /jobs/{id}, POST /jobs/{id}/rerun",
 		"metric":             "GET /metrics",
 		"memo":               "GET /notes, GET /notes/{id}, GET /users/{uid}/starred_notes",
-		"package":            "GET /packages/{pid}/digest",
-		"package_manifest":   "GET /packages/{pid}/download_urls",
-		"recipe":             "GET /recipes/{rid}/digest",
-		"recipe_manifest":    "GET /recipes/{rid}/download_urls",
+		"package":            "GET /packages/{pid}/digest, GET /packages/{pid}/download_urls",
+		"recipe":             "GET /recipes/{rid}/digest, GET /recipes/{rid}/download_urls",
 		"removal":            "DELETE /accounts/{aid}/bank_accounts/{id}, DELETE /accounts/{aid}/external_accounts/{id}",
 		"required_signature": "GET /settings/required_signatures",
 		"stat":               "GET /stats",

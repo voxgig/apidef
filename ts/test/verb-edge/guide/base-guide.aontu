@@ -8,6 +8,13 @@ guide: {
   metrics: count: path: 8
   metrics: count: method: 9
 
+  entity: access_key: {
+    path: "/widgets/{id}/access_keys": {
+      rename: param: "id": *"widget_id"
+      op: create: method: *POST
+    }
+  }
+
   entity: email_archive: {
     path: "/email-archives": {
       op: list: method: *GET
@@ -42,13 +49,6 @@ guide: {
       action: "merge": {}
       rename: param: "widget_number": *"id"
       op: update: method: *PUT
-    }
-  }
-
-  entity: widget_access_key_set: {
-    path: "/widgets/{id}/access_keys": {
-      action: "access_keys": {}
-      op: create: method: *POST
     }
   }
 

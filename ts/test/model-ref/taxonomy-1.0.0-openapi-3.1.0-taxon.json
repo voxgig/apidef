@@ -1,0 +1,621 @@
+{
+  "fields": {
+    "attributes": {
+      "h": "Attributes",
+      "n": "attributes",
+      "r": false,
+      "t": "`$OBJECT`"
+    },
+    "createdAt": {
+      "fo": "date-time",
+      "h": "Created At",
+      "n": "createdAt",
+      "r": false,
+      "t": "`$STRING`"
+    },
+    "id": {
+      "h": "Id",
+      "n": "id",
+      "r": true,
+      "sh": "URL-safe identifier",
+      "t": "`$STRING`"
+    },
+    "name": {
+      "h": "Name",
+      "n": "name",
+      "r": true,
+      "t": "`$STRING`"
+    },
+    "parentId": {
+      "h": "Parent Id",
+      "n": "parentId",
+      "r": false,
+      "sh": "ID of the parent taxon in the hierarchy",
+      "t": "`$STRING`"
+    },
+    "rank": {
+      "h": "Rank",
+      "n": "rank",
+      "r": true,
+      "t": "`$STRING`"
+    },
+    "updatedAt": {
+      "fo": "date-time",
+      "h": "Updated At",
+      "n": "updatedAt",
+      "r": false,
+      "t": "`$STRING`"
+    },
+    "year": {
+      "h": "Year",
+      "n": "year",
+      "r": false,
+      "sh": "Year view this record belongs to",
+      "t": "`$INTEGER`"
+    }
+  },
+  "id": {
+    "field": "id",
+    "name": "id"
+  },
+  "name": "taxon",
+  "op": {
+    "create": {
+      "name": "create",
+      "points": [
+        {
+          "co": {
+            "id": "POST /{year}/domain/{did}/revoke",
+            "source": "openapi3",
+            "version": 2
+          },
+          "g": {
+            "params": [
+              {
+                "k": "param",
+                "n": "domain_id",
+                "or": "did",
+                "r": true,
+                "t": "`$STRING`"
+              },
+              {
+                "k": "param",
+                "n": "id",
+                "or": "id",
+                "r": true,
+                "t": "`$STRING`"
+              },
+              {
+                "k": "param",
+                "n": "year",
+                "or": "year",
+                "r": true,
+                "t": "`$INTEGER`"
+              }
+            ]
+          },
+          "m": "POST",
+          "o": "/{year}/domain/{did}/revoke",
+          "q": {
+            "$action": "revoke",
+            "exist": [
+              "domain_id",
+              "id",
+              "year"
+            ]
+          },
+          "r": {
+            "param": {
+              "did": "domain_id"
+            }
+          },
+          "rs": {
+            "kind": "json",
+            "media": "application/json"
+          },
+          "s": [
+            {
+              "var": "year"
+            },
+            {
+              "lit": "domain"
+            },
+            {
+              "var": "domain_id"
+            },
+            {
+              "lit": "revoke"
+            }
+          ],
+          "t": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        },
+        {
+          "bf": [
+            "attributes",
+            "name"
+          ],
+          "co": {
+            "id": "POST /{year}/domain/{id}/kingdom",
+            "source": "openapi3",
+            "version": 2
+          },
+          "g": {
+            "params": [
+              {
+                "k": "param",
+                "n": "domain_id",
+                "or": "domain_id",
+                "r": true,
+                "t": "`$STRING`"
+              },
+              {
+                "k": "param",
+                "n": "year",
+                "or": "year",
+                "r": true,
+                "t": "`$INTEGER`"
+              }
+            ]
+          },
+          "m": "POST",
+          "o": "/{year}/domain/{id}/kingdom",
+          "q": {
+            "$action": "kingdom",
+            "exist": [
+              "domain_id",
+              "year"
+            ]
+          },
+          "r": {
+            "param": {
+              "id": "domain_id"
+            }
+          },
+          "rs": {
+            "kind": "json",
+            "media": "application/json"
+          },
+          "s": [
+            {
+              "var": "year"
+            },
+            {
+              "lit": "domain"
+            },
+            {
+              "var": "domain_id"
+            },
+            {
+              "lit": "kingdom"
+            }
+          ],
+          "t": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    },
+    "list": {
+      "name": "list",
+      "points": [
+        {
+          "co": {
+            "id": "GET /{year}/domain/{id}/kingdom",
+            "source": "openapi3",
+            "version": 2
+          },
+          "g": {
+            "params": [
+              {
+                "k": "param",
+                "n": "domain_id",
+                "or": "id",
+                "r": true,
+                "t": "`$STRING`"
+              },
+              {
+                "k": "param",
+                "n": "year",
+                "or": "year",
+                "r": true,
+                "t": "`$INTEGER`"
+              }
+            ],
+            "query": [
+              {
+                "ex": 1,
+                "k": "query",
+                "n": "page",
+                "or": "page",
+                "r": false,
+                "t": "`$INTEGER`"
+              },
+              {
+                "ex": 20,
+                "k": "query",
+                "n": "page_size",
+                "or": "pageSize",
+                "r": false,
+                "t": "`$INTEGER`"
+              }
+            ]
+          },
+          "m": "GET",
+          "o": "/{year}/domain/{id}/kingdom",
+          "q": {
+            "$action": "kingdom",
+            "exist": [
+              "domain_id",
+              "year"
+            ]
+          },
+          "r": {
+            "param": {
+              "id": "domain_id"
+            }
+          },
+          "rs": {
+            "kind": "json",
+            "media": "application/json"
+          },
+          "s": [
+            {
+              "var": "year"
+            },
+            {
+              "lit": "domain"
+            },
+            {
+              "var": "domain_id"
+            },
+            {
+              "lit": "kingdom"
+            }
+          ],
+          "t": {
+            "req": "`reqdata`",
+            "res": "`body.items`"
+          }
+        },
+        {
+          "co": {
+            "id": "GET /{year}/domain",
+            "source": "openapi3",
+            "version": 2
+          },
+          "g": {
+            "params": [
+              {
+                "k": "param",
+                "n": "year",
+                "or": "year",
+                "r": true,
+                "t": "`$INTEGER`"
+              }
+            ],
+            "query": [
+              {
+                "ex": 1,
+                "k": "query",
+                "n": "page",
+                "or": "page",
+                "r": false,
+                "t": "`$INTEGER`"
+              },
+              {
+                "ex": 20,
+                "k": "query",
+                "n": "page_size",
+                "or": "pageSize",
+                "r": false,
+                "t": "`$INTEGER`"
+              }
+            ]
+          },
+          "m": "GET",
+          "o": "/{year}/domain",
+          "q": {
+            "$action": "domain",
+            "exist": [
+              "year"
+            ]
+          },
+          "rs": {
+            "kind": "json",
+            "media": "application/json"
+          },
+          "s": [
+            {
+              "var": "year"
+            },
+            {
+              "lit": "domain"
+            }
+          ],
+          "t": {
+            "req": "`reqdata`",
+            "res": "`body.items`"
+          }
+        }
+      ]
+    },
+    "load": {
+      "name": "load",
+      "points": [
+        {
+          "co": {
+            "id": "GET /{year}/domain/{domain}/kingdom/{kid}/phylum/{itemid}",
+            "source": "openapi3",
+            "version": 2
+          },
+          "g": {
+            "params": [
+              {
+                "k": "param",
+                "n": "domain_id",
+                "or": "domain",
+                "r": true,
+                "t": "`$STRING`"
+              },
+              {
+                "k": "param",
+                "n": "itemid",
+                "or": "itemid",
+                "r": true,
+                "t": "`$ANY`"
+              },
+              {
+                "k": "param",
+                "n": "kingdom_id",
+                "or": "kid",
+                "r": true,
+                "t": "`$STRING`"
+              },
+              {
+                "k": "param",
+                "n": "year",
+                "or": "year",
+                "r": true,
+                "t": "`$INTEGER`"
+              }
+            ]
+          },
+          "m": "GET",
+          "o": "/{year}/domain/{domain}/kingdom/{kid}/phylum/{itemid}",
+          "q": {
+            "$action": "phylum",
+            "exist": [
+              "domain_id",
+              "itemid",
+              "kingdom_id",
+              "year"
+            ]
+          },
+          "r": {
+            "param": {
+              "domain": "domain_id",
+              "kid": "kingdom_id"
+            }
+          },
+          "rs": {
+            "kind": "json",
+            "media": "application/json"
+          },
+          "s": [
+            {
+              "var": "year"
+            },
+            {
+              "lit": "domain"
+            },
+            {
+              "var": "domain_id"
+            },
+            {
+              "lit": "kingdom"
+            },
+            {
+              "var": "kingdom_id"
+            },
+            {
+              "lit": "phylum"
+            },
+            {
+              "var": "itemid"
+            }
+          ],
+          "t": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        },
+        {
+          "co": {
+            "id": "GET /{year}/domain/{domain_id}/kingdom/{kingdom_id}",
+            "source": "openapi3",
+            "version": 2
+          },
+          "g": {
+            "params": [
+              {
+                "k": "param",
+                "n": "domain_id",
+                "or": "domain_id",
+                "r": true,
+                "t": "`$STRING`"
+              },
+              {
+                "k": "param",
+                "n": "kingdom_id",
+                "or": "kingdom_id",
+                "r": true,
+                "t": "`$STRING`"
+              },
+              {
+                "k": "param",
+                "n": "year",
+                "or": "year",
+                "r": true,
+                "t": "`$INTEGER`"
+              }
+            ]
+          },
+          "m": "GET",
+          "o": "/{year}/domain/{domain_id}/kingdom/{kingdom_id}",
+          "q": {
+            "$action": "kingdom",
+            "exist": [
+              "domain_id",
+              "kingdom_id",
+              "year"
+            ]
+          },
+          "rs": {
+            "kind": "json",
+            "media": "application/json"
+          },
+          "s": [
+            {
+              "var": "year"
+            },
+            {
+              "lit": "domain"
+            },
+            {
+              "var": "domain_id"
+            },
+            {
+              "lit": "kingdom"
+            },
+            {
+              "var": "kingdom_id"
+            }
+          ],
+          "t": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        },
+        {
+          "co": {
+            "id": "GET /{year}/domain/{id}",
+            "source": "openapi3",
+            "version": 2
+          },
+          "g": {
+            "params": [
+              {
+                "k": "param",
+                "n": "id",
+                "or": "id",
+                "r": true,
+                "t": "`$STRING`"
+              },
+              {
+                "k": "param",
+                "n": "year",
+                "or": "year",
+                "r": true,
+                "t": "`$INTEGER`"
+              }
+            ]
+          },
+          "m": "GET",
+          "o": "/{year}/domain/{id}",
+          "q": {
+            "$action": "domain",
+            "exist": [
+              "id",
+              "year"
+            ]
+          },
+          "rs": {
+            "kind": "json",
+            "media": "application/json"
+          },
+          "s": [
+            {
+              "var": "year"
+            },
+            {
+              "lit": "domain"
+            },
+            {
+              "var": "id"
+            }
+          ],
+          "t": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    },
+    "update": {
+      "name": "update",
+      "points": [
+        {
+          "bf": [
+            "attributes",
+            "name"
+          ],
+          "co": {
+            "id": "PATCH /{year}/domain/{id}",
+            "source": "openapi3",
+            "version": 2
+          },
+          "g": {
+            "params": [
+              {
+                "k": "param",
+                "n": "id",
+                "or": "id",
+                "r": true,
+                "t": "`$STRING`"
+              },
+              {
+                "k": "param",
+                "n": "year",
+                "or": "year",
+                "r": true,
+                "t": "`$INTEGER`"
+              }
+            ]
+          },
+          "m": "PATCH",
+          "o": "/{year}/domain/{id}",
+          "q": {
+            "$action": "domain",
+            "exist": [
+              "id",
+              "year"
+            ]
+          },
+          "rs": {
+            "kind": "json",
+            "media": "application/json"
+          },
+          "s": [
+            {
+              "var": "year"
+            },
+            {
+              "lit": "domain"
+            },
+            {
+              "var": "id"
+            }
+          ],
+          "t": {
+            "req": "`reqdata`",
+            "res": "`body`"
+          }
+        }
+      ]
+    }
+  }
+}

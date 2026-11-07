@@ -116,3 +116,5 @@ classes	class
 subclasses	subclass
 ip_addresses	ip_address
 worldbosses	worldboss
+k8s	k8s
+authn_k8s	authn_k8s

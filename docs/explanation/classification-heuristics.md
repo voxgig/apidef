@@ -60,12 +60,21 @@ that wildly different spellings collapse onto one canonical identifier:
 - **depluralize** — collection paths are plural, entities are singular, so
   `planets` → `planet`, `moons` → `moon`. English pluralization is irregular,
   so a curated table handles the exceptions (see
-  [Customize entity naming](../how-to/customize-entity-naming.md)).
+  [Customize entity naming](../how-to/customize-entity-naming.md)); a
+  trailing `s` after a digit is part of a numeronym, so `k8s` stays `k8s`.
 - **guard the first character** — no target language accepts an identifier
   that starts with a digit, so a name that does gets an `n` in front, cased
   to match what follows: `3ds_session` becomes `n3ds_session`, `3DSecure`
   becomes `N3DSecure`. Field names are exempt, because they have to keep
   matching the keys the server sends.
+
+A literal of one or two letters is too short for a word and names nothing.
+Such a route is named as one with no literal would be: by the noun of the
+key its shape gives, `page` for Healthcare.gov's
+`/es/{pageName}{mediaTypeExtension}`, `query` for TomTom's
+`/search/{versionNumber}/s/{query}.{ext}` and `object` for Google's
+`/b/{bucket}/o`; else by its parameters, operation id, response title or
+tag; else by the literal padded to three letters, `dbn` for a bare `/db`.
 
 Nested collections become nested entities with an **ancestor** relationship:
 `moon` records that it lives under `planet`.
@@ -300,13 +309,20 @@ holds the literal's words, `ExtendedRateplanEntry` around `rateplans` or
 `CiRunnerDetail` around `runners`, is a wrapper of the literal, which keeps
 naming, unless the record is named for a literal of the path and the
 naming literal, as `CallRouteAllowedCaller` is under
-`/call_routes/{id}/allowed_callers`; and a record that several
-collections' item routes share names none of them: Google's
-`ObjectAccessControl`, answered by both `/b/{bucket}/defaultObjectAcl` and
-`/b/{bucket}/o/{object}/acl`, leaves each collection its own literal, so
-the two stay apart in the model. A one-member wrapper named for its noun
-and its parent, Clever's `StudentContactsForStudentResponse`, wraps the
-noun it names: `student_contact`.
+`/call_routes/{id}/allowed_callers`. So is a response component that holds
+the literal's words, OpenAI's `CreateCompletionResponse` around
+`completions`: the literal names, and the component shapes the result. A
+one-member wrapper named for its noun and its parent, Clever's
+`StudentContactsForStudentResponse`, wraps the noun it names:
+`student_contact`.
+
+A record that several collections' item routes share is one semantic
+entity, and names them all: Google's `ObjectAccessControl`, answered by
+both `/b/{bucket}/defaultObjectAcl/{entity}` and
+`/b/{bucket}/o/{object}/acl/{entity}`, names `object_access_control` for
+both collections. Each collection whose literal is not the entity's name
+carries that literal as an action, `default_object_acl` and `acl` here, so
+`$action` selects the path and no route is lost in the merge.
 
 ## A collection joins its items
 
@@ -405,17 +421,37 @@ the model as points with a `select.$action` marker, so downstream tooling can
 generate a method like `planet.terraform(...)` rather than inventing a bogus
 entity.
 
-A verb that answers with a schema of its own is still a verb. GitHub's
+A verb that answers with a schema of its own is still a verb: its response
+is its result, not an entity. GitHub's
 `PUT /repos/{owner}/{repo}/pulls/{pull_number}/merge` returns a
 `pull-request-merge-result`, and naming an entity after it would leave
-`merge` unreachable from `pull`. The heuristic keeps the verb on the parent
-when six things hold: the method writes, the response component occurs
-nowhere else in the spec, the literal is singular, that literal is not the
-name of the component's own member shape, the item selector
+`merge` unreachable from `pull`; Hetras's `GET /hotels/{hotelId}/rateplans/$count`
+answers a `TotalCount` and is the action `count` on `rateplan`. A trailing
+verb word, or the verb after a custom method's colon, names the noun before
+it whatever it answers with, and joins the entity a read of the item
+returns, however the two paths spell the key.
+
+A singular literal that is no verb word is a verb on the parent too when
+six things hold: the method writes, the response component occurs nowhere
+else in the spec, the literal is singular, that literal is not the name of
+the component's own member shape, the item selector
 (`.../pulls/{pull_number}`) is a path of the spec, and nothing extends the
 verb's path. A literal with paths beneath it is a collection and keeps the
-component rule. The verb joins the entity a read of the item returns,
-however the two paths spell the key.
+component rule.
+
+A literal that opens with a verb word and continues is a verb as well, on
+the nearest resource up the path. Google's `POST /b/{bucket}/lockRetentionPolicy`
+is the action `lock_retention_policy` on `bucket`, and
+`GET /b/{bucket}/iam/testPermissions` is `iam_test_permissions` on
+`bucket`: the literals after the key name the action, the path nouns in
+singular and the verb in its own spelling. Conjur's
+`POST /authn-k8s/{service_id}/inject_client_cert` acts on `authn_k8s`. A
+plural collection of its own between the key and the verb takes the verb
+instead, so `/things/{id}/labels/archive` is `archive` on `label` where
+`/things/{id}/actions/archive`, with no `actions` route, is
+`action_archive` on `thing`; a singular sub-resource such as Google's
+`iam` does not. A bare verb word right after the key follows the preceding
+rules.
 
 A `GET` beneath an item key is a view of the item when it answers with no
 record of its own and every literal after the key is singular: an object

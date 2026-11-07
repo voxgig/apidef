@@ -292,7 +292,8 @@ func mergeCollectionPaths(guide map[string]any, recordRef func(pathStr string, m
 		sort.Strings(enames)
 		for _, share := range enames {
 			ownerEntity, _ := entities[owner.ename].(map[string]any)
-			if strings.HasPrefix(owner.ename, share+"_") && namedByRecord(share, pathStr) &&
+			if (strings.HasPrefix(owner.ename, share+"_") || strings.HasSuffix(share, "_"+owner.ename)) &&
+				namedByRecord(share, pathStr) &&
 				!apart(share, pathStr, owner) && onlyBeneath(ownerEntity, root) &&
 				!reads(owner.ename) && active(owner.ename) && active(share) {
 				if _, done := absorbed[share]; !done {

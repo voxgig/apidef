@@ -81,6 +81,9 @@ import {
   isListResponse,
   LITERAL_LAST_SHAPES,
   READ_VERBS,
+  verbOfItem,
+  shortLiteral,
+  normalizeParams,
 } from './heuristic01'
 
 import { decide, explain, loadNets } from './nn'
@@ -137,6 +140,7 @@ type Route = {
   verb_on_parent?: string
   view_on_parent?: boolean
   view_action?: string
+  collection_action?: string
   post_read?: boolean
 }
 
@@ -342,7 +346,13 @@ function collectRoutes(def: any): Route[] {
     }
   }
 
-  routes.sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 :
+  // Parents resolve before their children whatever the keys are called.
+  const byPath = (a: Route, b: Route) => {
+    const an = normalizeParams(a.path)
+    const bn = normalizeParams(b.path)
+    return an < bn ? -1 : an > bn ? 1 : a.path < b.path ? -1 : a.path > b.path ? 1 : 0
+  }
+  routes.sort((a, b) => byPath(a, b) ||
     METHOD_CONSIDER_ORDER[a.method] - METHOD_CONSIDER_ORDER[b.method])
 
   return routes
@@ -867,7 +877,10 @@ function nameFeatures(
   owners: Record<string, Record<string, string>>,
   recordowner: Record<string, string>,
   why: string[],
-): { x: Vec, sources: NameSources, collection: string | null, viewAction: string | null } {
+): {
+  x: Vec, sources: NameSources, collection: string | null, viewAction: string | null,
+  verbAction: string | null, recordShared: boolean,
+} {
   const def = work.def
   const metrics = work.guide.metrics
   const pm = route.pm
@@ -892,14 +905,50 @@ function nameFeatures(
   x.cmp_avail = bit(null != cmp)
   x.cmp_from_tag = bit('tag' === cmp?.ref)
 
+  let key = -1
+  route.parts.forEach((part, i) => {
+    if (isParam(part)) {
+      key = i
+    }
+  })
+
+  const verb = verbOfItem({ def, work }, route, route.parts, owners)
+  x.verb_avail = bit(null != verb)
+  sources.VERB = verb?.parent ?? null
+  const verbAction = verb?.action ?? null
+
+  // The sources a route with no literal is named by; a short literal names
+  // nothing, so such a route reads them from its parameters alone.
+  const noneSources = (parts: string[]) => {
+    const keys = parts.filter((part) => isParam(part) && !/version/i.test(part))
+    const pnoun = 0 < keys.length ? paramNoun(paramOf(keys[0])) : ''
+    x.param_avail = bit(3 <= pnoun.length)
+    sources.PARAM = pnoun
+    const opid = canonize(route.operationId ?? '')
+    x.opid_avail = bit(3 <= opid.length)
+    sources.OPID = opid
+    const title = canonize(getResponseSchema(
+      route.responses?.[200] ?? route.responses?.[201])?.title ?? '')
+    x.title_avail = bit(3 <= title.length)
+    sources.TITLE = title
+    for (let i = parts.length - 1; 0 <= i; i--) {
+      if (!isParam(parts[i])) {
+        const seg = literalName(parts[i])
+        if (3 <= seg.length) {
+          x.seg_avail = 1
+          sources.SEG = seg
+          break
+        }
+      }
+    }
+    if ('tag' === cmp?.ref && 3 <= cmp.cmp.length) {
+      x.tag_name_avail = 1
+      sources.TAG = cmp.cmp
+    }
+  }
+
   let viewAction: string | null = null
   if (0 === x.m_write) {
-    let key = -1
-    route.parts.forEach((part, i) => {
-      if (isParam(part)) {
-        key = i
-      }
-    })
     if (0 <= key && key < route.parts.length - 1 && !/version/i.test(route.parts[key])) {
       x.view_key = 1
       const tail = route.parts.slice(key + 1)
@@ -915,12 +964,14 @@ function nameFeatures(
         x.route_not_extended = bit(0 === childPathCount(work, route.path))
         const parent = itemAbove({ def, work }, route.parts, key, owners)
         x.view_parent_avail = bit(null != parent)
+        x.view_avail = bit(1 === x.route_not_extended && 1 === x.view_parent_avail)
         sources.PARENT = parent
         viewAction = tail.map(literalName).join('_')
       }
     }
   }
 
+  let recordShared = false
   if (null != pm) {
     x[SHAPE_FEATURES[pm.expr]] = 1
     const pathName = pathNoun(pm, route.parts, why)
@@ -930,6 +981,18 @@ function nameFeatures(
       !/(^|_)ids?$/.test(pathName) && !tagHolds({ def }, route.parts, route.path, cmp.cmp))
     x.m_post = bit('POST' === route.method)
     x.verbish = bit(verbish)
+    x.verb_noun = bit(verbish && 'tag' !== cmp?.ref)
+    if (1 === x.verb_noun && 't/p/t/' === pm.expr) {
+      sources.VNOUN = itemAbove({ def, work }, route.parts, key, owners) ?? pathName
+    }
+    x.short_lit = bit(shortLiteral(pm))
+    if (1 === x.short_lit) {
+      const keyParam = keyParamOf(def, route.path, work)
+      const knoun = null == keyParam || /version/i.test(keyParam) ? '' : paramNoun(keyParam)
+      x.key_noun_avail = bit(3 <= knoun.length)
+      sources.KEY = knoun
+      noneSources(route.parts.filter(isParam))
+    }
     x.lit_last = bit(LITERAL_LAST_SHAPES.includes(pm.expr))
     const last = pm[pm.length - 1]
     const lastCanon = literalName(last)
@@ -984,6 +1047,7 @@ function nameFeatures(
         wrapsLiteral(record.cmp, pathName) && !pathQualified(route.parts, record.cmp, pathName)
       x.record_avail = bit(null != record && record.cmp !== pathName && !wraps)
       x.record_wraps = bit(wraps)
+      recordShared = true === record?.shared
       sources.REC = record?.cmp ?? null
     }
 
@@ -998,8 +1062,10 @@ function nameFeatures(
         cmp.path_rate < IS_ENTCMP_PATH_RATE)
       x.cmp_shared = bit(true === work.sharing.yields[cmp.origcmpref + ' ' + route.method + ' ' + route.path])
       x.cmp_in_path = bit(true === work.pathLiterals[cmp.cmp])
-      const key = keyParamOf(def, route.path, work)
-      x.cmp_names_key = bit(null != key && canonizeParam(key) === cmp.cmp)
+      x.cmp_wraps = bit('tag' !== cmp.ref && cmp.cmp !== pathName &&
+        wrapsLiteral(cmp.cmp, pathName) && !pathQualified(route.parts, cmp.cmp, pathName))
+      const keyParam = keyParamOf(def, route.path, work)
+      x.cmp_names_key = bit(null != keyParam && canonizeParam(keyParam) === cmp.cmp)
     }
     else if ('DELETE' === route.method && 1 === x.probable) {
       const cmps = uniqueResponseCmps(work, route.path, why)
@@ -1031,38 +1097,14 @@ function nameFeatures(
     }
   }
   else {
-    const param = route.parts.find(isParam)?.match(/\{([^}]+)\}/)
-    const pnoun = null == param ? '' : paramNoun(param[1])
-    x.param_avail = bit(3 <= pnoun.length)
-    sources.PARAM = pnoun
-    const opid = canonize(route.operationId ?? '')
-    x.opid_avail = bit(3 <= opid.length)
-    sources.OPID = opid
-    const title = canonize(getResponseSchema(
-      route.responses?.[200] ?? route.responses?.[201])?.title ?? '')
-    x.title_avail = bit(3 <= title.length)
-    sources.TITLE = title
-    for (let i = route.parts.length - 1; 0 <= i; i--) {
-      if (!isParam(route.parts[i])) {
-        const seg = literalName(route.parts[i])
-        if (3 <= seg.length) {
-          x.seg_avail = 1
-          sources.SEG = seg
-          break
-        }
-      }
-    }
-    if ('tag' === cmp?.ref && 3 <= cmp.cmp.length) {
-      x.tag_name_avail = 1
-      sources.TAG = cmp.cmp
-    }
+    noneSources(route.parts)
   }
 
   const owner = samePathOwner(work, route)
   x.same_path_avail = bit(null != owner)
   sources.SAMEPATH = owner?.entname ?? null
 
-  return { x, sources, collection, viewAction }
+  return { x, sources, collection, viewAction, verbAction, recordShared }
 }
 
 
@@ -1093,7 +1135,7 @@ function measureClaims(work: Work, route: Route) {
 
 function resolveName(work: Work, route: Route) {
   const why: string[] = [...route.why_cmp]
-  const { x, sources, collection, viewAction } =
+  const { x, sources, collection, viewAction, verbAction, recordShared } =
     nameFeatures(work, route, work.pathowner, work.recordowner, why)
   const cmp = route.cmp?.cmp ?? ''
 
@@ -1127,6 +1169,17 @@ function resolveName(work: Work, route: Route) {
     route.view_on_parent = fired(guideNets().name, d, 'view_singular') ||
       fired(guideNets().name, d, 'view_scalars')
     route.view_action = route.view_on_parent && null != viewAction ? viewAction : undefined
+  }
+  else if ('VERB' === d.cls) {
+    route.verb_on_parent = route.parts[route.parts.length - 1]
+    route.view_on_parent = 0 === x.m_write
+    route.view_action = verbAction ?? undefined
+  }
+  else if ('VNOUN' === d.cls) {
+    route.verb_on_parent = route.parts[route.parts.length - 1]
+  }
+  if (recordShared && fired(guideNets().name, d, 'cmp_record')) {
+    route.collection_action = sources.PATH ?? undefined
   }
   route.post_read = 1 === x.post_read
 
@@ -1398,6 +1451,12 @@ function findActions(route: Route, ent: Ent) {
   }
   else if ('COMPOUND' === d.cls) {
     updateAction(route.method, at(2) + '/' + last, compound, ent, pathdesc, 'ent-param-3rd-last')
+  }
+
+  if (null != route.collection_action) {
+    pathdesc.action[route.collection_action] = pathdesc.action[route.collection_action] ?? {
+      why_action: ['ent', ent.name, 'collection', route.collection_action, route.method],
+    }
   }
 }
 

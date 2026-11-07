@@ -66,7 +66,8 @@ var verbWords = map[string]bool{
 	"invite": true, "accept": true, "decline": true, "notify": true, "ping": true, "count": true,
 	"exists": true, "preview": true, "render": true, "generate": true, "calculate": true,
 	"compute": true, "convert": true, "process": true, "trigger": true, "dispatch": true,
-	"apply": true, "revoke": true, "grant": true, "save": true,
+	"apply": true, "revoke": true, "grant": true, "save": true, "test": true, "inject": true,
+	"analyze": true,
 }
 
 var versionParamRE = regexp.MustCompile(`(?i)version`)
@@ -914,9 +915,15 @@ func selectAllMethods(ctx *ApiDefContext, data map[string]any) []map[string]any 
 		}
 	}
 
+	// Parents resolve before their children whatever the keys are called, so
+	// the paths compare with their parameters normalised first.
 	sort.Slice(methods, func(i, j int) bool {
 		pi, _ := methods[i]["path"].(string)
 		pj, _ := methods[j]["path"].(string)
+		ni, nj := normalizeParams(pi), normalizeParams(pj)
+		if ni != nj {
+			return lessUTF16(ni, nj)
+		}
 		if pi != pj {
 			return lessUTF16(pi, pj)
 		}
@@ -1506,6 +1513,15 @@ func versionActions(entval any) {
 // sends.
 func pathEntityName(data map[string]any, mdesc map[string]any, parts []string,
 	pm *PathMatchResult, pathowner map[string]any, why *[]string) (string, bool) {
+	if parent, action, ok := verbOfItem(data, mdesc, parts, pathowner); ok {
+		if ment, _ := mdesc["MethodEntity"].(map[string]any); ment != nil {
+			ment["verb_on_parent"] = parts[len(parts)-1]
+			ment["view_on_parent"] = READ_METHODS[safeStr(mdesc["method"])]
+			ment["view_action"] = action
+		}
+		*why = append(*why, "verb-of-item="+parent)
+		return parent, true
+	}
 	if parent, action, ok := viewOfItem(data, mdesc, parts, pathowner); ok {
 		if ment, _ := mdesc["MethodEntity"].(map[string]any); ment != nil {
 			ment["verb_on_parent"] = parts[len(parts)-1]
@@ -1514,6 +1530,32 @@ func pathEntityName(data map[string]any, mdesc map[string]any, parts []string,
 		}
 		*why = append(*why, "view-of-item="+parent)
 		return parent, true
+	}
+	// A short literal names nothing: the route's key, else what a route with
+	// no literal is named by, else the padded literal.
+	if pm != nil && shortLiteral(pm) {
+		*why = append(*why, "short-literal")
+		def, _ := data["def"].(map[string]any)
+		work, _ := data["work"].(map[string]any)
+		key := keyParamOf(def, safeStr(mdesc["path"]), work)
+		noun := ""
+		if key != "" && !versionParamRE.MatchString(key) {
+			noun = ParamNoun(key)
+		}
+		if 3 <= len(noun) {
+			*why = append(*why, "infer-key="+key)
+			return noun, true
+		}
+		params := []string{}
+		for _, part := range parts {
+			if isParam(part) {
+				params = append(params, part)
+			}
+		}
+		if name := inferEntityName(mdesc, params, why); name != "" {
+			return name, true
+		}
+		return shapeEntityName(data, mdesc, parts, pm, pathowner, why)
 	}
 	shaped, ok := shapeEntityName(data, mdesc, parts, pm, pathowner, why)
 	if pm == nil || !ok {
@@ -1889,6 +1931,15 @@ func findActions(data map[string]any, mdesc map[string]any) {
 		}
 	}
 
+	if collection := safeStr(ment["collection_action"]); collection != "" {
+		action, _ := pathdesc["action"].(map[string]any)
+		if action[collection] == nil {
+			action[collection] = map[string]any{
+				"why_action": []string{"ent", safeStr(entdesc["name"]), "collection", collection, methodName},
+			}
+		}
+	}
+
 	DebugPath(pathStr, methodName, "FIND-ACTIONS", cmp, parts, pathdesc["action"], pathdesc["why_action"])
 }
 
@@ -2239,7 +2290,14 @@ func entityPathMatch_tpte(data map[string]any, pm *PathMatchResult, mdesc map[st
 	entname := pathNoun(pm, parts, why)
 	verbish := entname != LiteralName(origPathName)
 
-	if safeStr(ment["cmp"]) != "" {
+	// A verb's response is its result: the resource before the verb names.
+	if verbish && safeStr(ment["ref"]) != "tag" {
+		if parent := itemAbove(data, parts, lastKey(parts), pathowner); parent != "" {
+			entname = parent
+		}
+		ment["verb_on_parent"] = getMatchElem(pm, -1)
+		*why = append(*why, "verb-noun="+entname)
+	} else if safeStr(ment["cmp"]) != "" {
 		if parent := verbOnParent(data, pm, mdesc, pathowner); parent != "" {
 			entname = parent
 			ment["verb_on_parent"] = getMatchElem(pm, -1)
@@ -2260,8 +2318,6 @@ func entityPathMatch_tpte(data map[string]any, pm *PathMatchResult, mdesc map[st
 		} else if findPathsWithPrefixFromData(data, pm.Path, true) > 0 {
 			entname = LiteralName(getMatchElem(pm, -1))
 			*why = append(*why, "prob-ent-prefix="+safeStr(ecm["orig"]))
-		} else if verbish {
-			*why = append(*why, "prob-ent-noun")
 		} else {
 			entname = LiteralName(getMatchElem(pm, -3)) + "_" + entname
 			*why = append(*why, "prob-ent-part")
@@ -2428,6 +2484,78 @@ func itemAbove(data map[string]any, parts []string, key int, pathowner map[strin
 	return ""
 }
 
+// The index of the last parameter of a path, or -1.
+func lastKey(parts []string) int {
+	key := -1
+	for i, part := range parts {
+		if isParam(part) {
+			key = i
+		}
+	}
+	return key
+}
+
+// A literal opening with a verb word is a verb on the nearest resource up
+// the path: a collection of its own between the key and the verb, else the
+// key's resource. The action is named for the literals after that resource.
+// A bare verb right after the key is left to the shape rules.
+func verbOfItem(data map[string]any, mdesc map[string]any, parts []string,
+	pathowner map[string]any) (string, string, bool) {
+	if len(parts) == 0 || isParam(parts[len(parts)-1]) {
+		return "", "", false
+	}
+	last := parts[len(parts)-1]
+	words := strings.Split(Canonize(last), "_")
+	key := lastKey(parts)
+	bare := len(words) == 1
+	lit := Snakify(last)
+	if !verbWords[words[0]] || key < 0 || versionParamRE.MatchString(parts[key]) ||
+		(bare && (key == len(parts)-2 || Depluralize(lit) != lit)) ||
+		findPathsWithPrefixFromData(data, safeStr(mdesc["path"]), true) > 0 {
+		return "", "", false
+	}
+	keyParent := itemAbove(data, parts, key, pathowner)
+	for i := len(parts) - 2; key < i; i-- {
+		between := Snakify(parts[i])
+		if Depluralize(between) == between {
+			continue
+		}
+		route := pathNamed(data, "/"+strings.Join(parts[:i+1], "/"))
+		if route == "" {
+			continue
+		}
+		owners, _ := pathowner[route].(map[string]any)
+		if owner := ownerOf(owners); owner != "" && owner != keyParent {
+			return owner, verbActionName(parts[i+1:]), true
+		}
+	}
+	if keyParent == "" {
+		return "", "", false
+	}
+	return keyParent, verbActionName(parts[key+1:]), true
+}
+
+var verbSpellingRE = regexp.MustCompile(`[^a-zA-Z0-9_]`)
+
+// The verb keeps its own spelling, plural and all; the literals before it
+// are path nouns.
+func verbActionName(literals []string) string {
+	names := make([]string, 0, len(literals))
+	for i, lit := range literals {
+		if i < len(literals)-1 {
+			names = append(names, LiteralName(lit))
+		} else {
+			names = append(names, verbSpellingRE.ReplaceAllString(Snakify(lit), ""))
+		}
+	}
+	return strings.Join(names, "_")
+}
+
+// A literal too short for a word names nothing.
+func shortLiteral(pm *PathMatchResult) bool {
+	return len(strings.ReplaceAll(Canonize(pm.Matches[PATH_NAME_INDEX[pm.Expr]]), "_", "")) < 3
+}
+
 // The path of the definition that is the given path with its parameters
 // normalised, or "".
 func pathNamed(data map[string]any, pathStr string) string {
@@ -2484,7 +2612,7 @@ var cmpRefNameRE = regexp.MustCompile(`/(components/schemas|definitions)/(.+)$`)
 
 // The record component the item route of a path answers with, the path's own
 // when it ends with a parameter, else the item route beneath it: "" for none.
-func recordOf(data map[string]any, pathStr string) (string, string) {
+func recordOf(data map[string]any, pathStr string) (string, string, bool) {
 	work, _ := data["work"].(map[string]any)
 	records, _ := work["itemRecords"].(map[string][]string)
 	if records == nil {
@@ -2494,7 +2622,7 @@ func recordOf(data map[string]any, pathStr string) (string, string) {
 		}
 	}
 	if found, has := records[pathStr]; has {
-		return found[0], found[1]
+		return found[0], found[1], found[2] != ""
 	}
 	parts := PathParts(pathStr)
 	itemPath := ""
@@ -2503,19 +2631,23 @@ func recordOf(data map[string]any, pathStr string) (string, string) {
 	} else {
 		itemPath = pathNamed(data, pathStr+"/{}")
 	}
-	found := []string{"", ""}
+	found := []string{"", "", ""}
 	orig := ""
 	if itemPath != "" {
 		orig = itemRecordRef(data, itemPath)
 	}
-	if orig != "" && len(itemRecordRoutes(data)[orig]) == 1 {
+	if orig != "" {
 		cmp := CleanComponentName(CanonizeCmpName(orig), func(n string) bool {
 			return isOrigCmp(data, n)
 		})
-		found = []string{reVersionSuffix.ReplaceAllString(cmp, ""), orig}
+		shared := ""
+		if 1 < len(itemRecordRoutes(data)[orig]) {
+			shared = "shared"
+		}
+		found = []string{reVersionSuffix.ReplaceAllString(cmp, ""), orig, shared}
 	}
 	records[pathStr] = found
-	return found[0], found[1]
+	return found[0], found[1], found[2] != ""
 }
 
 // The component an item route's read answers with when it declares an id.
@@ -2752,7 +2884,9 @@ func entityPathMatch_tpe(data map[string]any, pm *PathMatchResult, mdesc map[str
 	*why = append(*why, "path=t/p/")
 	entname := pathNoun(pm, pathParts(data, safeStr(mdesc["path"])), why)
 
-	if safeStr(ment["cmp"]) != "" || probableEntityMethod(data, mdesc, ment, pm, why) {
+	if entname != LiteralName(pm.Matches[PATH_NAME_INDEX[pm.Expr]]) && safeStr(ment["ref"]) != "tag" {
+		*why = append(*why, "verb-noun="+entname)
+	} else if safeStr(ment["cmp"]) != "" || probableEntityMethod(data, mdesc, ment, pm, why) {
 		ecm := entityCmpMatch(data, entname, mdesc, why)
 		entname = safeStr(ecm["name"])
 	} else {
@@ -2772,7 +2906,9 @@ func entityPathMatch_pte(data map[string]any, pm *PathMatchResult, mdesc map[str
 	*why = append(*why, "path=p/t/")
 	entname := pathNoun(pm, pathParts(data, safeStr(mdesc["path"])), why)
 
-	if safeStr(ment["cmp"]) != "" || probableEntityMethod(data, mdesc, ment, pm, why) {
+	if entname != LiteralName(pm.Matches[PATH_NAME_INDEX[pm.Expr]]) && safeStr(ment["ref"]) != "tag" {
+		*why = append(*why, "verb-noun="+entname)
+	} else if safeStr(ment["cmp"]) != "" || probableEntityMethod(data, mdesc, ment, pm, why) {
 		ecm := entityCmpMatch(data, entname, mdesc, why)
 		entname = safeStr(ecm["name"])
 	} else {
@@ -2792,7 +2928,9 @@ func entityPathMatch_te(data map[string]any, pm *PathMatchResult, mdesc map[stri
 	*why = append(*why, "path=t/")
 	entname := pathNoun(pm, pathParts(data, safeStr(mdesc["path"])), why)
 
-	if safeStr(ment["cmp"]) != "" || probableEntityMethod(data, mdesc, ment, pm, why) {
+	if entname != LiteralName(pm.Matches[PATH_NAME_INDEX[pm.Expr]]) && safeStr(ment["ref"]) != "tag" {
+		*why = append(*why, "verb-noun="+entname)
+	} else if safeStr(ment["cmp"]) != "" || probableEntityMethod(data, mdesc, ment, pm, why) {
 		ecm := entityCmpMatch(data, entname, mdesc, why)
 		entname = safeStr(ecm["name"])
 	} else {
@@ -2812,7 +2950,9 @@ func entityPathMatch_tpp(data map[string]any, pm *PathMatchResult, mdesc map[str
 	*why = append(*why, "path=t/p/p")
 	entname := pathNoun(pm, pathParts(data, safeStr(mdesc["path"])), why)
 
-	if safeStr(ment["cmp"]) != "" || probableEntityMethod(data, mdesc, ment, pm, why) {
+	if entname != LiteralName(pm.Matches[PATH_NAME_INDEX[pm.Expr]]) && safeStr(ment["ref"]) != "tag" {
+		*why = append(*why, "verb-noun="+entname)
+	} else if safeStr(ment["cmp"]) != "" || probableEntityMethod(data, mdesc, ment, pm, why) {
 		ecm := entityCmpMatch(data, entname, mdesc, why)
 		entname = safeStr(ecm["name"])
 	} else {
@@ -2870,9 +3010,12 @@ func entityCmpMatch(data map[string]any, entname string, mdesc map[string]any, w
 
 	mentRef := safeStr(ment["ref"])
 
-	recCmp, recOrig := recordOf(data, pathStr)
+	recCmp, recOrig, recShared := recordOf(data, pathStr)
+	parts := pathParts(data, pathStr)
 	recordWraps := recCmp != "" && recCmp != entname && wrapsLiteral(recCmp, entname) &&
-		!pathQualified(pathParts(data, pathStr), recCmp, entname)
+		!pathQualified(parts, recCmp, entname)
+	cmpWraps := mentCmp != "" && mentRef != "tag" && mentCmp != entname &&
+		wrapsLiteral(mentCmp, entname) && !pathQualified(parts, mentCmp, entname)
 
 	// The key parameter names the component, whatever the literal beside it:
 	// `/b/{bucket}` answering with a Bucket.
@@ -2893,6 +3036,10 @@ func entityCmpMatch(data map[string]any, entname string, mdesc map[string]any, w
 		out["orig"] = recOrig
 		out["cmpish"] = true
 		out["pathish"] = false
+		if recShared {
+			ment["collection_action"] = entname
+			*why = append(*why, "collection-action="+entname)
+		}
 	} else if mentCmp != "" &&
 		entname != mentCmp &&
 		!strings.HasPrefix(mentCmp, entname) {
@@ -2911,9 +3058,13 @@ func entityCmpMatch(data map[string]any, entname string, mdesc map[string]any, w
 			out["orig"] = mentOrigCmp
 			out["cmpish"] = true
 			out["pathish"] = false
-		} else if recordWraps {
-			// A record that wraps the literal's words is the literal's own shape.
-			*why = append(*why, "path-over-wrapper="+recOrig)
+		} else if recordWraps || cmpWraps {
+			// A component that wraps the literal's words is the literal's own shape.
+			wrapper := mentOrigCmp
+			if recordWraps {
+				wrapper = recOrig
+			}
+			*why = append(*why, "path-over-wrapper="+wrapper)
 		} else if cmpInfrequent && !cmpShared {
 			*why = append(*why, "cmp-primary")
 			out["name"] = mentCmp
@@ -3167,9 +3318,10 @@ func cmpOccursInPath(data map[string]any, cmpname string) bool {
 
 // inferEntityName tries to infer entity name from operationId, response title, or path.
 func inferEntityName(mdesc map[string]any, parts []string, why *[]string) string {
-	// A route with no literal is named for its first parameter's noun.
+	// A route with no literal is named for its first parameter's noun, a
+	// version aside.
 	for _, part := range parts {
-		if isParam(part) {
+		if isParam(part) && !versionParamRE.MatchString(part) {
 			if noun := ParamNoun(ParamOf(part)); 3 <= len(noun) {
 				*why = append(*why, "infer-param")
 				return noun

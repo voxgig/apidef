@@ -110,14 +110,16 @@ function mergeCollectionPaths(guide, log, recordRef, distinct) {
         return null != ref && ename === (0, utility_1.cmpRefName)(ref);
     };
     // An owner that reads nothing, holds only routes beneath the collection,
-    // and extends the name a share's own record gives, takes that name.
+    // and extends the name a share's own record gives, or is extended by it,
+    // takes that name.
     const absorbed = {};
     for (const pathStr of Object.keys(owned).sort(refcount_1.byCodePoint)) {
         const owner = owned[pathStr];
         if (null == owner || null != absorbed[owner.ename] ||
             Object.values(absorbed).includes(owner.ename))
             continue;
-        const ename = shares[pathStr].slice().sort(refcount_1.byCodePoint).find((share) => owner.ename.startsWith(share + '_') && namedByRecord(share, pathStr) &&
+        const ename = shares[pathStr].slice().sort(refcount_1.byCodePoint).find((share) => (owner.ename.startsWith(share + '_') || share.endsWith('_' + owner.ename)) &&
+            namedByRecord(share, pathStr) &&
             !apart(share, pathStr, owner) &&
             onlyBeneath(entities[owner.ename], collectionRoot(pathStr)) &&
             !Object.values(entities[owner.ename].path).some((pd) => methodsOf(pd).some((method) => utility_1.READ_METHODS.includes(method))) &&

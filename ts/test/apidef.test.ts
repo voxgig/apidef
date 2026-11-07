@@ -328,7 +328,8 @@ describe('apidef', () => {
     assert.deepStrictEqual(Object.keys(gents.label.path['/widgets/{id}/labels'].op), ['create'])
     assert.ok(null == gents.widget.path['/widgets/{id}/labels'], 'labels wrongly became a verb on widget')
 
-    const aks = gents.widget_access_key_set
+    // Its response component wraps the literal's words, so the literal names.
+    const aks = gents.access_key
     assert.ok(null != aks, 'access_keys entity lost: ' + Object.keys(gents).join(','))
     assert.deepStrictEqual(Object.keys(aks.path['/widgets/{id}/access_keys'].op), ['create'])
     assert.ok(null == gents.widget.path['/widgets/{id}/access_keys'],
@@ -377,10 +378,24 @@ describe('apidef', () => {
     const entities = bres.apimodel.main.kit.entity
     const ops = Object.fromEntries(Object.keys(entities).sort()
       .map((name) => [name, Object.keys(entities[name].op ?? {}).sort()]))
+    // One record answered by several collections is one entity; the literal
+    // of each collection is the action that picks its path.
     assert.deepStrictEqual(ops, {
-      domain: ['list', 'load'],
-      kingdom: ['list', 'load'],
+      taxon: ['list', 'load'],
     })
+    const actions = Object.fromEntries(Object.keys(bres.guide.entity.taxon.path).sort()
+      .map((path) => [path, Object.keys(bres.guide.entity.taxon.path[path].action ?? {}).sort()]))
+    assert.deepStrictEqual(actions, {
+      '/domain': ['domain'],
+      '/domain/{domain_id}/kingdom/{id}': ['kingdom'],
+      '/domain/{id}': ['domain'],
+      '/domain/{id}/kingdom': ['kingdom'],
+    })
+    const points = (op: string) => entities.taxon.op[op].points
+      .map((p: any) => (p.q?.$action ?? '-') + ' ' + p.co.id).sort()
+    assert.deepStrictEqual(points('load'),
+      ['domain GET /domain/{id}', 'kingdom GET /domain/{domain_id}/kingdom/{id}'])
+    assert.deepStrictEqual(points('list'), ['domain GET /domain', 'kingdom GET /domain/{id}/kingdom'])
   })
 
 
@@ -424,12 +439,10 @@ describe('apidef', () => {
       crew: ['load'],
       crew_member: ['create'],
       deposit: ['create'],
-      domain: ['list', 'load', 'update'],
       fossil: ['load'],
       gallery: ['list'],
       greenhouse: ['create', 'load'],
       kennel: ['create'],
-      kingdom: ['create', 'list', 'load'],
       // Its 200 has no JSON schema, and still decides over the 201 list.
       ledger: ['load'],
       observation: ['list'],
@@ -438,6 +451,8 @@ describe('apidef', () => {
       site: ['load'],
       // A page and a single item beneath its route are one resource.
       tally: ['create', 'list'],
+      // The record several collections answer, each collection an action.
+      taxon: ['create', 'list', 'load', 'update'],
       token: ['load'],
     })
 
@@ -1159,10 +1174,10 @@ describe('apidef', () => {
       job: ['GET /jobs', 'GET /jobs/{id}', 'POST /jobs/{id}/rerun'],
       metric: ['GET /metrics'],
       memo: ['GET /notes', 'GET /notes/{id}', 'GET /users/{uid}/starred_notes'],
-      package: ['GET /packages/{pid}/digest'],
-      package_manifest: ['GET /packages/{pid}/download_urls'],
-      recipe: ['GET /recipes/{rid}/digest'],
-      recipe_manifest: ['GET /recipes/{rid}/download_urls'],
+      // A literal opening with a verb word is a verb on the resource up the
+      // path, whatever component it answers with.
+      package: ['GET /packages/{pid}/digest', 'GET /packages/{pid}/download_urls'],
+      recipe: ['GET /recipes/{rid}/digest', 'GET /recipes/{rid}/download_urls'],
       removal: [
         'DELETE /accounts/{aid}/bank_accounts/{id}',
         'DELETE /accounts/{aid}/external_accounts/{id}',
@@ -1174,6 +1189,9 @@ describe('apidef', () => {
 
     const rerun = bres.apimodel.main.kit.entity.job.op.create.points[0]
     assert.strictEqual(rerun.q?.$action, 'rerun')
+    assert.deepStrictEqual(
+      Object.keys(bres.guide.entity.package.path['/packages/{pid}/download_urls'].action),
+      ['download_urls'])
   })
 
 

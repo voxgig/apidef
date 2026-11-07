@@ -13,6 +13,7 @@ guide: {
       op: list: method: *GET
     }
     path: "/catalog/bundles/{bundle_id}": {
+      rename: param: "bundle_id": *"id"
       op: update: method: *PUT
     }
   }

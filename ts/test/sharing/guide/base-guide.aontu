@@ -4,7 +4,7 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 14
+  metrics: count: entity: 12
   metrics: count: path: 20
   metrics: count: method: 20
 
@@ -70,9 +70,6 @@ guide: {
       op: load: method: *GET
       op: load: transform: res: *("`body.files`")|top
     }
-  }
-
-  entity: package_manifest: {
     path: "/packages/{pid}/download_urls": {
       action: "download_urls": {}
       rename: param: "pid": *"id"
@@ -88,9 +85,6 @@ guide: {
       op: load: method: *GET
       op: load: transform: res: *("`body.files`")|top
     }
-  }
-
-  entity: recipe_manifest: {
     path: "/recipes/{rid}/download_urls": {
       action: "download_urls": {}
       rename: param: "rid": *"id"

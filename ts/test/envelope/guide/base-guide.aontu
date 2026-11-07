@@ -4,7 +4,7 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 18
+  metrics: count: entity: 17
   metrics: count: path: 21
   metrics: count: method: 24
 
@@ -41,17 +41,6 @@ guide: {
     }
   }
 
-  entity: domain: {
-    path: "/{year}/domain": {
-      op: list: method: *GET
-      op: list: transform: res: *("`body.items`")|top
-    }
-    path: "/{year}/domain/{id}": {
-      op: load: method: *GET
-      op: patch: method: *PATCH
-    }
-  }
-
   entity: fossil: {
     path: "/{year}/fossil/{id}": {
       op: load: method: *GET
@@ -78,19 +67,6 @@ guide: {
     path: "/{year}/kennel": {
       op: create: method: *POST
       op: create: transform: req: "kennel": *("`reqdata`")|top
-    }
-  }
-
-  entity: kingdom: {
-    path: "/{year}/domain/{domain_id}/kingdom/{kingdom_id}": {
-      rename: param: "kingdom_id": *"id"
-      op: load: method: *GET
-    }
-    path: "/{year}/domain/{id}/kingdom": {
-      rename: param: "id": *"domain_id"
-      op: create: method: *POST
-      op: list: method: *GET
-      op: list: transform: res: *("`body.items`")|top
     }
   }
 
@@ -137,6 +113,30 @@ guide: {
       rename: param: "id": *"survey_id"
       op: create: method: *POST
       op: create: transform: res: *("`body.data`")|top
+    }
+  }
+
+  entity: taxon: {
+    path: "/{year}/domain": {
+      action: "domain": {}
+      op: list: method: *GET
+      op: list: transform: res: *("`body.items`")|top
+    }
+    path: "/{year}/domain/{domain_id}/kingdom/{kingdom_id}": {
+      action: "kingdom": {}
+      op: load: method: *GET
+    }
+    path: "/{year}/domain/{id}": {
+      action: "domain": {}
+      op: load: method: *GET
+      op: patch: method: *PATCH
+    }
+    path: "/{year}/domain/{id}/kingdom": {
+      action: "kingdom": {}
+      rename: param: "id": *"domain_id"
+      op: create: method: *POST
+      op: list: method: *GET
+      op: list: transform: res: *("`body.items`")|top
     }
   }
 

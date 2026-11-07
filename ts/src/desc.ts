@@ -69,6 +69,7 @@ type MethodEntityDesc = {
   verb_on_parent?: string
   view_on_parent?: boolean
   view_action?: string
+  collection_action?: string
   post_read?: boolean
   // The entity a tag-named method joined by samePathOwner.
   same_path?: string

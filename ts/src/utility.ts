@@ -365,9 +365,11 @@ function depluralize(word: string): string {
     return word.slice(0, -2)
   }
 
+  // A trailing s after a digit is part of a numeronym (k8s), not a plural.
   if (lower.endsWith('s') &&
     !lower.endsWith('ss') &&
     !lower.endsWith('us') &&
+    !/[0-9]s$/.test(lower) &&
     word.length > 3
   ) {
     return word.slice(0, -1)

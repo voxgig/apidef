@@ -195,6 +195,61 @@ func TestRulings(t *testing.T) {
 				"GET /word.json/{word}/definitions": "word list definition",
 			},
 		},
+		{
+			def: "shared-record-def.json",
+			expect: map[string]string{
+				"GET /b/{bucket}":                              "bucket load",
+				"GET /b/{bucket}/o/{object}":                   "object load",
+				"GET /b/{bucket}/defaultObjectAcl":             "object_access_control list default_object_acl",
+				"POST /b/{bucket}/defaultObjectAcl":            "object_access_control create default_object_acl",
+				"GET /b/{bucket}/defaultObjectAcl/{entity}":    "object_access_control load default_object_acl",
+				"DELETE /b/{bucket}/defaultObjectAcl/{entity}": "object_access_control remove default_object_acl",
+				"GET /b/{bucket}/o/{object}/acl":               "object_access_control list acl",
+				"POST /b/{bucket}/o/{object}/acl":              "object_access_control create acl",
+				"GET /b/{bucket}/o/{object}/acl/{entity}":      "object_access_control load acl",
+				"PUT /b/{bucket}/o/{object}/acl/{entity}":      "object_access_control update acl",
+			},
+		},
+		{
+			def: "verb-result-def.json",
+			expect: map[string]string{
+				"GET /hotels/{hotelId}/rateplans":        "rateplan list",
+				"GET /hotels/{hotelId}/rateplans/{code}": "rateplan load",
+				"GET /hotels/{hotelId}/rateplans/$count": "rateplan load count",
+				"GET /hotels/{hotelId}/rooms":            "room list",
+				"GET /hotels/{hotelId}/rooms/$count":     "room load count",
+				"GET /jobs/{id}":                         "job load",
+				"POST /jobs/{id}/cancel":                 "job create cancel",
+			},
+		},
+		{
+			def: "verb-phrase-def.json",
+			expect: map[string]string{
+				"GET /b/{bucket}":                                 "bucket load",
+				"POST /b/{bucket}/lockRetentionPolicy":            "bucket create lock_retention_policy",
+				"GET /b/{bucket}/iam":                             "policy load",
+				"GET /b/{bucket}/iam/testPermissions":             "bucket load iam_test_permissions",
+				"GET /b/{bucket}/o/{object}":                      "object load",
+				"GET /b/{bucket}/o/{object}/iam":                  "policy load",
+				"GET /b/{bucket}/o/{object}/iam/testPermissions":  "object load iam_test_permissions",
+				"POST /authn-k8s/{service_id}/inject_client_cert": "authn_k8s create inject_client_cert",
+				"GET /things/{id}":                                "thing load",
+				"POST /things/{id}/actions/archive":               "thing create action_archive",
+				"GET /things/{id}/labels":                         "label list",
+				"POST /things/{id}/labels":                        "label create",
+				"POST /things/{id}/labels/archive":                "label create archive",
+			},
+		},
+		{
+			def: "short-literal-def.json",
+			expect: map[string]string{
+				"GET /es/{pageName}{mediaTypeExtension}":      "page load",
+				"GET /search/{versionNumber}/s/{query}.{ext}": "query load",
+				"GET /x/db":         "database load",
+				"GET /misc/qq":      "qqn load",
+				"GET /misc/qq/{id}": "qqn load",
+			},
+		},
 	}
 
 	for _, ruling := range rulings {

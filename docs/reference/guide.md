@@ -485,14 +485,23 @@ or a view of that literal's resource, or the path has no usable literal; a
 tag foreign to the path yields to the path's noun, a literal naming an
 identifier (`ids`, `contentIds`) keys rather than names, a trailing module
 word (`ProductsApi`) is dropped, and a trailing verb, or the verb after a
-custom method's colon, names the noun before it, and becomes an action.
+custom method's colon, names the noun before it whatever it answers with,
+and becomes an action. A literal opening with a verb word is a verb on the
+nearest resource up the path, a plural collection of its own between the
+key and the verb or else the key's resource, and the action is named for
+the literals after that resource, the verb in its own spelling. A literal
+of fewer than three letters names nothing: the route is named by the noun
+of its key, else as a route with no literal is, else by the padded literal.
 A `GET` beneath an item key that answers no record of its own, an object
 without an `id` or an array of scalars, with every literal after the key
 singular, joins the nearest resource up the path as a `load` action named
 for those literals. The record an item route answers with names the item and
-its collection, unless its name wraps the literal's or several collections
-share it. A placeholder fused to a literal, a placeholder-only part and a
-query string are read as a parameter, a parameter, and nothing.
+its collection, unless its name wraps the literal's, as does a response
+component that holds the literal's words; a record several collections
+share names them all, and each collection's literal becomes its action, so
+`$action` selects the path. A placeholder fused to a literal, a
+placeholder-only part and a query string are read as a parameter, a
+parameter, and nothing.
 A `POST` whose literal opens with a read verb and that answers a collection
 is the `list`, with the body as its filter. A `POST` to a singular literal
 that names no component, with no item route it could be a verb on and none

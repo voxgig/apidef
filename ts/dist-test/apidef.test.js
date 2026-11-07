@@ -269,7 +269,8 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.ok(null != gents.label, 'label entity lost: ' + Object.keys(gents).join(','));
         node_assert_1.default.deepStrictEqual(Object.keys(gents.label.path['/widgets/{id}/labels'].op), ['create']);
         node_assert_1.default.ok(null == gents.widget.path['/widgets/{id}/labels'], 'labels wrongly became a verb on widget');
-        const aks = gents.widget_access_key_set;
+        // Its response component wraps the literal's words, so the literal names.
+        const aks = gents.access_key;
         node_assert_1.default.ok(null != aks, 'access_keys entity lost: ' + Object.keys(gents).join(','));
         node_assert_1.default.deepStrictEqual(Object.keys(aks.path['/widgets/{id}/access_keys'].op), ['create']);
         node_assert_1.default.ok(null == gents.widget.path['/widgets/{id}/access_keys'], 'a plural collection wrongly became a verb on widget');
@@ -305,10 +306,23 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         const entities = bres.apimodel.main.kit.entity;
         const ops = Object.fromEntries(Object.keys(entities).sort()
             .map((name) => [name, Object.keys(entities[name].op ?? {}).sort()]));
+        // One record answered by several collections is one entity; the literal
+        // of each collection is the action that picks its path.
         node_assert_1.default.deepStrictEqual(ops, {
-            domain: ['list', 'load'],
-            kingdom: ['list', 'load'],
+            taxon: ['list', 'load'],
         });
+        const actions = Object.fromEntries(Object.keys(bres.guide.entity.taxon.path).sort()
+            .map((path) => [path, Object.keys(bres.guide.entity.taxon.path[path].action ?? {}).sort()]));
+        node_assert_1.default.deepStrictEqual(actions, {
+            '/domain': ['domain'],
+            '/domain/{domain_id}/kingdom/{id}': ['kingdom'],
+            '/domain/{id}': ['domain'],
+            '/domain/{id}/kingdom': ['kingdom'],
+        });
+        const points = (op) => entities.taxon.op[op].points
+            .map((p) => (p.q?.$action ?? '-') + ' ' + p.co.id).sort();
+        node_assert_1.default.deepStrictEqual(points('load'), ['domain GET /domain/{id}', 'kingdom GET /domain/{domain_id}/kingdom/{id}']);
+        node_assert_1.default.deepStrictEqual(points('list'), ['domain GET /domain', 'kingdom GET /domain/{id}/kingdom']);
     });
     // An envelope never names its entity; the item it carries is judged instead,
     // so each list of the rare shared page keeps its path's name. No envelope:
@@ -342,12 +356,10 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
             crew: ['load'],
             crew_member: ['create'],
             deposit: ['create'],
-            domain: ['list', 'load', 'update'],
             fossil: ['load'],
             gallery: ['list'],
             greenhouse: ['create', 'load'],
             kennel: ['create'],
-            kingdom: ['create', 'list', 'load'],
             // Its 200 has no JSON schema, and still decides over the 201 list.
             ledger: ['load'],
             observation: ['list'],
@@ -356,6 +368,8 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
             site: ['load'],
             // A page and a single item beneath its route are one resource.
             tally: ['create', 'list'],
+            // The record several collections answer, each collection an action.
+            taxon: ['create', 'list', 'load', 'update'],
             token: ['load'],
         });
         const listpt = entities.observation.op.list.points[0];
@@ -904,10 +918,10 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
             job: ['GET /jobs', 'GET /jobs/{id}', 'POST /jobs/{id}/rerun'],
             metric: ['GET /metrics'],
             memo: ['GET /notes', 'GET /notes/{id}', 'GET /users/{uid}/starred_notes'],
-            package: ['GET /packages/{pid}/digest'],
-            package_manifest: ['GET /packages/{pid}/download_urls'],
-            recipe: ['GET /recipes/{rid}/digest'],
-            recipe_manifest: ['GET /recipes/{rid}/download_urls'],
+            // A literal opening with a verb word is a verb on the resource up the
+            // path, whatever component it answers with.
+            package: ['GET /packages/{pid}/digest', 'GET /packages/{pid}/download_urls'],
+            recipe: ['GET /recipes/{rid}/digest', 'GET /recipes/{rid}/download_urls'],
             removal: [
                 'DELETE /accounts/{aid}/bank_accounts/{id}',
                 'DELETE /accounts/{aid}/external_accounts/{id}',
@@ -918,6 +932,7 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         });
         const rerun = bres.apimodel.main.kit.entity.job.op.create.points[0];
         node_assert_1.default.strictEqual(rerun.q?.$action, 'rerun');
+        node_assert_1.default.deepStrictEqual(Object.keys(bres.guide.entity.package.path['/packages/{pid}/download_urls'].action), ['download_urls']);
     });
     // Asking whether a response schema declares an `id` reads the def and
     // leaves it as parsed: a node that references share stays one node, which
