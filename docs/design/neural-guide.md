@@ -388,6 +388,30 @@ families again and put to the maintainer, who ruled on each:
     route in fact declares no response schema at all, so no envelope rule
     reaches it.)
 
+The routes still disagreeing after sixteen were grouped a third time, and
+the maintainer ruled:
+
+17. **Shared records.** A record that several collections' item routes
+    answer names one entity, since the identity of a semantic entity is
+    preserved, and the `$action` selector tells the paths apart: each
+    collection whose literal is not the entity's name carries its literal
+    as an action. Google's `ObjectAccessControl` names
+    `object_access_control` for both `defaultObjectAcl` and `o/{object}/acl`.
+18. **Verb results.** A trailing verb, or the verb after a custom method's
+    colon, always names the noun before it and becomes its action; its
+    response component shapes the action's result only. Hetras's
+    `rateplans/$count`, answering a `TotalCount`, is `rateplan` with the
+    action `count`.
+19. **Verb phrases.** A literal whose first word is a verb word is a verb
+    on the nearest resource up the path, named for the literals after that
+    resource's key as the view rule names: `bucket` with the actions
+    `lock_retention_policy` and `iam_test_permissions`. The verb words gain
+    `lock`, `test`, `inject` and `analyze`.
+20. **Short literals.** A literal of fewer than three letters names
+    nothing; the route is named as one with no literal would be, by its
+    first parameter's noun, else its tag, else the padded literal as before.
+    Healthcare.gov's `/es/{pageName}{mediaTypeExtension}` is `page`.
+
 Rulings 9 to 16 are in, in both strategies and the Go port, with one
 fixture each. Two refinements were needed where the rulings as worded
 moved routes they did not mean to. The tag rule keeps a tag that names a
