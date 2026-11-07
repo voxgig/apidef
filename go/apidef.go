@@ -13,7 +13,7 @@ import (
 	jostraca "github.com/jostraca/jostraca/go"
 )
 
-const VERSION = "0.26.1"
+const VERSION = "0.26.2"
 
 // ApiDef creates a new API definition generator with the given options.
 func NewApiDef(opts ApiDefOptions) *apiDefInstance {
