@@ -55,3 +55,12 @@ foo	`$STRING`	`$STRING`
 bar	`$NUMBER`	`$NUMBER`
 baz	`$INTEGER`	`$INTEGER`
 qux	`$BOOLEAN`	`$BOOLEAN`
+is_blocked	["`$ONE`",["`$STRING`","`$NULL`"]]	["`$ONE`",["`$BOOLEAN`","`$NULL`"]]
+enabled	["`$ONE`",["`$NULL`","`$STRING`"]]	["`$ONE`",["`$NULL`","`$BOOLEAN`"]]
+user_id	["`$ONE`",["`$ANY`","`$NULL`"]]	["`$ONE`",["`$STRING`","`$NULL`"]]
+total_count	["`$ONE`",["`$ANY`","`$NULL`"]]	["`$ONE`",["`$INTEGER`","`$NULL`"]]
+foo	["`$ONE`",["`$STRING`","`$NULL`"]]	["`$ONE`",["`$STRING`","`$NULL`"]]
+is_blocked	["`$ONE`",["`$INTEGER`","`$NULL`"]]	["`$ONE`",["`$INTEGER`","`$NULL`"]]
+is_blocked	["`$ONE`",["`$STRING`","`$INTEGER`"]]	["`$ONE`",["`$STRING`","`$INTEGER`"]]
+is_blocked	["`$ONE`",["`$STRING`","`$INTEGER`","`$NULL`"]]	["`$ONE`",["`$STRING`","`$INTEGER`","`$NULL`"]]
+is_blocked	["`$ONE`",["`$NULL`"]]	["`$ONE`",["`$NULL`"]]

@@ -765,6 +765,24 @@ func nonNullType(t any) (string, bool) {
 }
 
 func InferFieldType(name string, specType any) any {
+	// A nullable type is inferred by its other member, and keeps its null.
+	if own, ok := nonNullType(specType); ok {
+		if union, isUnion := specType.([]any); isUnion {
+			inferred := InferFieldType(name, own)
+			if inferred == own {
+				return specType
+			}
+			members := []any{}
+			for _, member := range union[1].([]any) {
+				if member == own {
+					member = inferred
+				}
+				members = append(members, member)
+			}
+			return []any{union[0], members}
+		}
+	}
+
 	if specType == "`$ANY`" {
 		if booleanNameRE.MatchString(name) {
 			return "`$BOOLEAN`"
@@ -789,8 +807,7 @@ func InferFieldType(name string, specType any) any {
 	return specType
 }
 
-// InferFieldTypeString is InferFieldType for the string-only call sites and
-// the shared TSV fixtures.
+// InferFieldTypeString is InferFieldType for a caller holding one token.
 func InferFieldTypeString(name string, specType string) string {
 	if s, ok := InferFieldType(name, specType).(string); ok {
 		return s
