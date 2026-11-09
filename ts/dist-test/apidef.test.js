@@ -915,6 +915,44 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
             node_assert_1.default.strictEqual(route[point], want, point);
         }
     });
+    // A list keeps its page's total, cursor, has-more flag and next link beside
+    // the records it reads, through the guide; an aggregate object has no page.
+    (0, node_test_1.test)('guide-page-meta', async () => {
+        const folder = __dirname + '/../test/page-meta';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const bres = await build({ name: 'page-meta', def: 'page-meta-def.json' }, {
+            spec: {
+                base: folder,
+                buildargs: {
+                    apidef: {
+                        ctrl: { step: {
+                                parse: true, guide: true, transformers: true,
+                                builders: false, generate: false,
+                            } }
+                    }
+                }
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        const entities = bres.apimodel.main.kit.entity;
+        const read = (ent, op) => entities[ent].op[op].points
+            .map((pt) => ({ res: pt.t.res, page: pt.t.page ?? null }));
+        node_assert_1.default.deepStrictEqual(read('email', 'list'), [{ res: '`body.data`',
+                page: { cursor: '`body.next_cursor`', more: '`body.has_more`' } }]);
+        node_assert_1.default.deepStrictEqual(read('form', 'list'), [{ res: '`body.items`',
+                page: { total: '`body.total`', more: '`body.hasMore`' } }]);
+        node_assert_1.default.deepStrictEqual(read('result', 'list'), [{ res: '`body.results`',
+                page: { total: '`body.count`', next: '`body.next`' } }]);
+        node_assert_1.default.deepStrictEqual(read('entry', 'list'), [{ res: '`body.entries`',
+                page: { total: '`body.total`' } }]);
+        node_assert_1.default.deepStrictEqual(read('order', 'list'), [{ res: '`body.data`', page: {
+                    total: '`body.meta.total`', cursor: '`body.meta.next_cursor`', next: '`body.links.next`'
+                } }]);
+        node_assert_1.default.deepStrictEqual(read('node', 'list'), [{ res: '`body.nodes`', page: {
+                    cursor: '`body.pageInfo.endCursor`', more: '`body.pageInfo.hasNextPage`'
+                } }]);
+        node_assert_1.default.deepStrictEqual(read('stat', 'load'), [{ res: '`body`', page: null }]);
+    });
     // A literal that canonizes to nothing (`-`) names no entity and no
     // component: the key after it is not taken for the entity's own.
     (0, node_test_1.test)('guide-blank-segment', async () => {

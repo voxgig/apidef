@@ -81,6 +81,12 @@ main: kit: type: type({ # Reusable model types.
     t: { # Request and response transforms.
       req?: top # Transform applied to request data.
       res?: top # Transform applied to the response body.
+      page?: { # Where a list's page keeps its metadata, read from the response body.
+        total?: string # The total number of records.
+        cursor?: string # The cursor that fetches the next page.
+        more?: string # Whether a next page exists.
+        next?: string # The link to the next page.
+      }
     }
     g: { # Arguments grouped by request location.
       &: [ &: %point-args ] # Shared argument shape.

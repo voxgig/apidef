@@ -2347,6 +2347,72 @@ func answersPage(schema any) bool {
 	return pageRecords(schema) != nil
 }
 
+// pageRoles mirrors ts/src/utility.ts PAGE_ROLES: the names that hold each
+// part of a page's metadata, preferred first.
+var pageRoles = []struct {
+	role  string
+	names []string
+}{
+	{"total", []string{"total", "totalcount", "totalresults", "totalitems", "totalhits", "count"}},
+	{"cursor", []string{"nextcursor", "cursor", "nextpagetoken", "nexttoken", "endcursor"}},
+	{"more", []string{"hasmore", "hasnext", "hasnextpage"}},
+	{"next", []string{"next", "nexturl", "nextlink", "nextpageurl"}},
+}
+
+// pageTransform mirrors ts/src/utility.ts: where a page keeps its total, the
+// cursor or link to the page after it, and whether there is one, as body
+// paths; nil when it keeps none of them.
+func pageTransform(props map[string]any, records string) map[string]any {
+	if props == nil {
+		return nil
+	}
+	type level struct {
+		prefix string
+		props  map[string]any
+	}
+	levels := []level{{"", props}}
+	for _, k := range sortedKeys(props) {
+		if k == records || !isPageMetaProp(k) {
+			continue
+		}
+		if meta := mergedProperties(props[k]); meta != nil {
+			levels = append(levels, level{k + ".", meta})
+		}
+	}
+	ownData := holdsOwnData(props)
+	find := func(name string) string {
+		for _, lv := range levels {
+			if name == "count" && lv.prefix == "" && ownData {
+				continue
+			}
+			for _, k := range sortedKeys(lv.props) {
+				if lv.prefix == "" && k == records {
+					continue
+				}
+				islist, _ := propIsList(lv.props[k])
+				if name == envelopePagingSepRE.ReplaceAllString(strings.ToLower(k), "") &&
+					!isObjectSchema(lv.props[k]) && !islist {
+					return "`body." + lv.prefix + k + "`"
+				}
+			}
+		}
+		return ""
+	}
+	page := map[string]any{}
+	for _, r := range pageRoles {
+		for _, name := range r.names {
+			if path := find(name); path != "" {
+				page[r.role] = path
+				break
+			}
+		}
+	}
+	if len(page) == 0 {
+		return nil
+	}
+	return page
+}
+
 // answersRecordMap mirrors ts/src/utility.ts: an object whose entries are
 // records under keys of the API's choosing, with no properties of its own.
 func answersRecordMap(schema any) bool {

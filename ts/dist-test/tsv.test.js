@@ -737,6 +737,15 @@ function loadTsv(name) {
         });
     }
 });
+(0, node_test_1.describe)('tsv-page-transform', () => {
+    const rows = loadTsv('page-transform');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, () => {
+            node_assert_1.default.deepStrictEqual((0, utility_1.pageTransform)(JSON.parse(row.props), row.records) ?? null, JSON.parse(row.page));
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-merged-properties', () => {
     const rows = loadTsv('merged-properties');
     (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));

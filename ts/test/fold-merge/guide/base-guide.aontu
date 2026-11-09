@@ -12,6 +12,7 @@ guide: {
     path: "/repos.json": {
       op: list: method: *GET
       op: list: transform: res: *("`body.items`")|top
+      op: list: transform: page: total: *("`body.count`")|top
     }
   }
 
@@ -19,6 +20,7 @@ guide: {
     path: "/usecases.json": {
       op: list: method: *GET
       op: list: transform: res: *("`body.items`")|top
+      op: list: transform: page: total: *("`body.count`")|top
     }
     path: "/usecases/{id}.json": {
       op: load: method: *GET

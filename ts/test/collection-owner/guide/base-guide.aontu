@@ -85,6 +85,7 @@ guide: {
       action: "report": {}
       op: list: method: *GET
       op: list: transform: res: *("`body.results`")|top
+      op: list: transform: page: total: *("`body.count`")|top
     }
     path: "/org/reports/{report_id}/rerun": {
       action: "rerun": {}
@@ -114,6 +115,7 @@ guide: {
       action: "token": {}
       op: list: method: *GET
       op: list: transform: res: *("`body.results`")|top
+      op: list: transform: page: total: *("`body.count`")|top
     }
     path: "/user/tokens/{slug}/refresh": {
       action: "refresh": {}

@@ -44,6 +44,12 @@ guide: entity: &: {
        transform?: {
          req?: top
          res?: top
+         page?: {
+           total?: string
+           cursor?: string
+           more?: string
+           next?: string
+         }
        }
      }
   }

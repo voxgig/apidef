@@ -200,6 +200,7 @@ guide: {
     path: "/well-known/mcp-tools": {
       op: list: method: *GET
       op: list: transform: res: *("`body.tools`")|top
+      op: list: transform: page: total: *("`body.count`")|top
     }
     path: "/well-known/mcp-tools/{groupId}/{artifactId}": {
       rename: param: "artifactId": *"artifact_id"
@@ -336,6 +337,7 @@ guide: {
     path: "/well-known/agents": {
       op: list: method: *GET
       op: list: transform: res: *("`body.agents`")|top
+      op: list: transform: page: total: *("`body.count`")|top
     }
     path: "/well-known/agents/{groupId}/{artifactId}": {
       rename: param: "artifactId": *"artifact_id"

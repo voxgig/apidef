@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sortedEntries = exports.sortedKeys = exports.READ_METHODS = exports.CMP_REF_RE = exports.CANON_ONE = exports.VALID_CANON = void 0;
+exports.PAGE_ROLES = exports.sortedEntries = exports.sortedKeys = exports.READ_METHODS = exports.CMP_REF_RE = exports.CANON_ONE = exports.VALID_CANON = void 0;
 exports.bodyRequestTransform = bodyRequestTransform;
 exports.nom = nom;
 exports.getdlog = getdlog;
@@ -65,6 +65,7 @@ exports.singleEnvelope = singleEnvelope;
 exports.envelopeItemRef = envelopeItemRef;
 exports.composedEnvelopeProp = composedEnvelopeProp;
 exports.pageRecords = pageRecords;
+exports.pageTransform = pageTransform;
 exports.answersPage = answersPage;
 exports.answersRecordMap = answersRecordMap;
 exports.propIsList = propIsList;
@@ -1870,6 +1871,52 @@ function pageRecords(schema) {
         return null;
     }
     return (0, struct_1.keysof)(props).every((k) => k === key || isEnvelopePageProp(k) || isEnvelopeStatusProp(k)) ? props[key] : null;
+}
+// The names that hold each part of a page's metadata, preferred first.
+const PAGE_ROLES = [
+    ['total', ['total', 'totalcount', 'totalresults', 'totalitems', 'totalhits', 'count']],
+    ['cursor', ['nextcursor', 'cursor', 'nextpagetoken', 'nexttoken', 'endcursor']],
+    ['more', ['hasmore', 'hasnext', 'hasnextpage']],
+    ['next', ['next', 'nexturl', 'nextlink', 'nextpageurl']],
+];
+exports.PAGE_ROLES = PAGE_ROLES;
+// Where a page keeps its total, the cursor or link to the next page, and
+// whether there is one: beside the records, else in the page's metadata.
+function pageTransform(props, records) {
+    if (null == props || 'object' !== typeof props) {
+        return undefined;
+    }
+    const levels = [['', props]];
+    for (const k of (0, struct_1.keysof)(props)) {
+        const meta = k !== records && isPageMetaProp(k) ? mergedProperties(props[k]) : undefined;
+        if (null != meta) {
+            levels.push([k + '.', meta]);
+        }
+    }
+    // A `count` beside data of its own counts that data, as GitHub's traffic does.
+    const ownData = holdsOwnData(props);
+    const find = (name) => {
+        for (const [prefix, level] of levels) {
+            if ('count' === name && '' === prefix && ownData) {
+                continue;
+            }
+            const key = (0, struct_1.keysof)(level).find((k) => ('' !== prefix || k !== records) &&
+                name === k.toLowerCase().replace(/[_-]/g, '') &&
+                !isObjectSchema(level[k]) && true !== propIsList(level[k]));
+            if (null != key) {
+                return '`body.' + prefix + key + '`';
+            }
+        }
+        return undefined;
+    };
+    const page = {};
+    for (const [role, names] of PAGE_ROLES) {
+        const path = names.map(find).find((found) => null != found);
+        if (null != path) {
+            page[role] = path;
+        }
+    }
+    return 0 < (0, struct_1.keysof)(page).length ? page : undefined;
 }
 function answersPage(schema) {
     return null != pageRecords(schema);

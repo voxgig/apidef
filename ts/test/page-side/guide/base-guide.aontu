@@ -12,6 +12,7 @@ guide: {
     path: "/branches": {
       op: list: method: *GET
       op: list: transform: res: *("`body.branches`")|top
+      op: list: transform: page: next: *("`body.pagination.next`")|top
     }
   }
 
@@ -62,6 +63,7 @@ guide: {
     path: "/notifications": {
       op: list: method: *GET
       op: list: transform: res: *("`body.data`")|top
+      op: list: transform: page: more: *("`body.hasMore`")|top
     }
   }
 
@@ -83,6 +85,7 @@ guide: {
     path: "/timeline": {
       op: list: method: *GET
       op: list: transform: res: *("`body.results`")|top
+      op: list: transform: page: total: *("`body.total`")|top
     }
   }
 

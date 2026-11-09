@@ -12,7 +12,7 @@ import {
   recordLists,
   singleEnvelope,
   authExchangeOp, specSecuredByDefault, itemEnvelopeKey,
-  itemEnvelopeTransform, answersPage, pageRecords, answersRecordMap,
+  itemEnvelopeTransform, answersPage, pageRecords, answersRecordMap, pageTransform,
 } from '../utility'
 
 import { requestSchema } from '../transform/body'
@@ -1542,6 +1542,14 @@ function ResolveTransform(spec: TaskSpec) {
 
   if ('list' === opname) {
     warnListBody(spec.ctx, methodName + ' ' + pathStr, transform.res, partprops)
+
+    // The page a list reads its records from keeps its metadata beside them.
+    const reads = String(transform.res ?? '').match(/^`body\.([^`.]+)`$/)?.[1]
+    const page = null != reads && true === propIsList(partprops?.[reads]) ?
+      pageTransform(partprops, reads) : undefined
+    if (null != page) {
+      transform.page = page
+    }
   }
 
   if (!isempty(transform) && null != op[opname]) {

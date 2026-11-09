@@ -16,11 +16,13 @@ guide: {
       action: "match": {}
       op: list: method: *GET
       op: list: transform: res: *("`body.matches`")|top
+      op: list: transform: page: total: *("`body.count`")|top
     }
     path: "/competitions/{id}/teams": {
       action: "team": {}
       op: list: method: *GET
       op: list: transform: res: *("`body.teams`")|top
+      op: list: transform: page: total: *("`body.count`")|top
     }
   }
 
@@ -28,6 +30,7 @@ guide: {
     path: "/notes": {
       op: list: method: *GET
       op: list: transform: res: *("`body.note`")|top
+      op: list: transform: page: total: *("`body.total`")|top
     }
   }
 
@@ -48,6 +51,7 @@ guide: {
       rename: param: "id": *"competition_id"
       op: list: method: *GET
       op: list: transform: res: *("`body.scorers`")|top
+      op: list: transform: page: total: *("`body.count`")|top
     }
   }
 

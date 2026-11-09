@@ -95,6 +95,15 @@ type ModelArg = {
 }
 
 
+// Where a list's page keeps its metadata, as body paths beside `t.res`.
+type ModelPage = {
+  total?: string
+  cursor?: string
+  more?: string
+  next?: string
+}
+
+
 // Transport a point speaks. 'http' is the default and covers every
 // OpenAPI-derived point; 'graphql' points carry a `graphql` block instead
 // of relying on method+path (they synthesize method 'POST' and empty
@@ -177,6 +186,7 @@ type ModelPoint = {
   t: {
     req?: any
     res?: any
+    page?: ModelPage
   }
   q: {
     exist: string[]
@@ -278,6 +288,7 @@ export type {
   ModelField,
   ModelArg,
   ModelPoint,
+  ModelPage,
   ModelPathSegment,
   BodyKind,
   ModelBodyField,

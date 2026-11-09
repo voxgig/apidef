@@ -1142,6 +1142,13 @@ function ResolveTransform(spec) {
     }
     if ('list' === opname) {
         warnListBody(spec.ctx, methodName + ' ' + pathStr, transform.res, partprops);
+        // The page a list reads its records from keeps its metadata beside them.
+        const reads = String(transform.res ?? '').match(/^`body\.([^`.]+)`$/)?.[1];
+        const page = null != reads && true === (0, utility_1.propIsList)(partprops?.[reads]) ?
+            (0, utility_1.pageTransform)(partprops, reads) : undefined;
+        if (null != page) {
+            transform.page = page;
+        }
     }
     if (!(0, struct_1.isempty)(transform) && null != op[opname]) {
         op[opname].transform = transform;

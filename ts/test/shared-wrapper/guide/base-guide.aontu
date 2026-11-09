@@ -12,6 +12,7 @@ guide: {
     path: "/domain": {
       op: list: method: *GET
       op: list: transform: res: *("`body.items`")|top
+      op: list: transform: page: total: *("`body.total`")|top
     }
     path: "/domain/{id}": {
       op: load: method: *GET
@@ -26,6 +27,7 @@ guide: {
       rename: param: "id": *"domain_id"
       op: list: method: *GET
       op: list: transform: res: *("`body.items`")|top
+      op: list: transform: page: total: *("`body.total`")|top
     }
   }
 

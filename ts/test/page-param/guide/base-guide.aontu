@@ -59,6 +59,7 @@ guide: {
     path: "/press-releases/{currency}": {
       op: list: method: *GET
       op: list: transform: res: *("`body.data`")|top
+      op: list: transform: page: total: *("`body.count`")|top
     }
   }
 
@@ -67,6 +68,7 @@ guide: {
       op: create: method: *POST
       op: list: method: *GET
       op: list: transform: res: *("`body.items`")|top
+      op: list: transform: page: total: *("`body.total`")|top
     }
   }
 
