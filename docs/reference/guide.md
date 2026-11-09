@@ -457,9 +457,11 @@ the page is flat or composed with `allOf`. A random quote that answers with
 competition's matches, `{ count, filters, competition, matches }`, list
 `body.matches`, as do its teams when that page is composed from parts. That is
 the whole boundary: an array named after the entity is still read by name, and
-so is the object when the page carries a scalar of its own beside the records,
-other than a status, paging or a count, on a page that does not say where it
-is in the paging, or more than one array of them. The
+so is the object when the route ends in its name, as `/users/{id}/user-role`
+does beside the courses assigned to the user, or when the page carries a
+scalar of its own beside the records, other than a status, paging or a count,
+on a page that does not say where it is in the paging, or more than one array
+of them. The
 `guide-list-records` tests pin these in both builds, on
 [`ts/test/def/list-records-def.json`](../../ts/test/def/list-records-def.json).
 A request body wraps the record

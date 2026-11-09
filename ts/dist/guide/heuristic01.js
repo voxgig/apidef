@@ -1098,16 +1098,19 @@ function ResolveTransform(spec) {
     const partprops = (0, utility_2.mergedProperties)(resschema);
     // A list reads records, so an object named for the entity does not win over
     // a list of them beside it, such as the matches beside the competition a
-    // page of them repeats. The list is found in the same parts the name is.
+    // page of them repeats, unless the route ends in the object's name, as
+    // `/users/{id}/user-role` does. The list is found in the parts the name is.
     const example = 'list' === opname ? (0, field_1.findExampleObject)(mdesc, null) : null;
     const records = 'list' === opname && null != partprops ?
         (0, utility_1.envelopeProp)(partprops, opname, example) : null;
-    const holdsRecord = (prop) => (0, utility_1.isEntityWrapperProp)(prop) &&
-        (null == records || true === (0, utility_1.propIsList)(prop));
-    if (named && holdsRecord(partprops?.[entdesc.origname])) {
+    const last = String(pathStr).split('/').filter((part) => '' !== part).pop() ?? '';
+    const holdsRecord = (prop, key) => (0, utility_1.isEntityWrapperProp)(prop) &&
+        (null == records || true === (0, utility_1.propIsList)(prop) ||
+            ('' !== last && !isParam(last) && (0, utility_2.canonize)(last) === (0, utility_2.canonize)(key)));
+    if (named && holdsRecord(partprops?.[entdesc.origname], entdesc.origname)) {
         transform.res = '`body.' + entdesc.origname + '`';
     }
-    else if (named && holdsRecord(partprops?.[entdesc.name])) {
+    else if (named && holdsRecord(partprops?.[entdesc.name], entdesc.name)) {
         transform.res = '`body.' + entdesc.name + '`';
     }
     else if ('list' === opname && named &&
