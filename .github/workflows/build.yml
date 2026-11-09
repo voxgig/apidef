@@ -46,4 +46,18 @@ jobs:
     - run: npm ci
     - run: npm run build --if-present
     - run: npm test
+    # Once per OS: Go reads paths in each OS's own form.
+    - name: Use Go
+      if: matrix.node-version == '24.x'
+      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+      with:
+        go-version-file: go/go.mod
+        cache-dependency-path: go/go.sum
+    - name: Build and test Go
+      if: matrix.node-version == '24.x'
+      working-directory: go
+      run: |
+        go version
+        go build ./...
+        go test ./... -count=1
 

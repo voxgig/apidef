@@ -339,7 +339,9 @@ func (e *embeddedModel) restore(err error) error {
 		pairs = append(pairs, rewritten, original)
 	}
 	if e.dir != "" {
-		pairs = append(pairs, filepath.ToSlash(e.dir)+"/", modelIncludePrefix)
+		for _, form := range dirForms(e.dir) {
+			pairs = append(pairs, form, modelIncludePrefix)
+		}
 	}
 	replacer := strings.NewReplacer(pairs...)
 
@@ -360,6 +362,22 @@ func (e *embeddedModel) restore(err error) error {
 	}
 
 	return &restored
+}
+
+// dirForms are the ways an error may spell a directory: with forward slashes,
+// with the OS separator, escaped inside a JSON string, and with its symlinks
+// and short names resolved, as Windows and macOS temporary paths have them.
+func dirForms(dir string) []string {
+	dirs := []string{dir}
+	if real, err := filepath.EvalSymlinks(dir); err == nil && real != dir {
+		dirs = append(dirs, real)
+	}
+	forms := []string{}
+	for _, d := range dirs {
+		native := d + string(filepath.Separator)
+		forms = append(forms, filepath.ToSlash(d)+"/", native, strings.ReplaceAll(native, `\`, `\\`))
+	}
+	return forms
 }
 
 func embedModelIncludes(src string) (string, *embeddedModel, error) {

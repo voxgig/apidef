@@ -451,3 +451,32 @@ func TestGuideOverlayAontuFailuresSummarised(t *testing.T) {
 		})
 	}
 }
+
+// An error that cites the schema copy by its resolved path, as a symlinked or
+// short-named temporary directory gives it, still names the schema as written.
+func TestEmbeddedModelRestoreResolvedDir(t *testing.T) {
+	base := t.TempDir()
+	real := filepath.Join(base, "real")
+	if err := os.MkdirAll(filepath.Join(real, "apidef-model-1"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(base, "link")
+	if err := os.Symlink(real, link); err != nil {
+		t.Skip("symlinks unavailable here:", err)
+	}
+	e := &embeddedModel{dir: filepath.Join(link, "apidef-model-1"), includes: map[string]string{}}
+	resolved, err := filepath.EvalSymlinks(e.dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, cited := range []string{
+		filepath.ToSlash(resolved) + "/guide.aontu",
+		resolved + string(filepath.Separator) + "guide.aontu",
+		filepath.ToSlash(e.dir) + "/guide.aontu",
+	} {
+		got := e.restore(&aontu.AontuError{Code: "no_scalar_unify", Msg: "cannot unify at " + cited}).Error()
+		if strings.Contains(got, "apidef-model-") || !strings.Contains(got, modelIncludePrefix+"guide.aontu") {
+			t.Errorf("cited %s: error = %q", cited, got)
+		}
+	}
+}
