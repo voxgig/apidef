@@ -154,18 +154,22 @@
             "query": [
               {
                 "ex": 1,
+                "explode": true,
                 "k": "query",
                 "n": "page",
                 "or": "page",
                 "r": false,
+                "style": "form",
                 "t": "`$INTEGER`"
               },
               {
                 "ex": 20,
+                "explode": true,
                 "k": "query",
                 "n": "page_size",
                 "or": "pageSize",
                 "r": false,
+                "style": "form",
                 "t": "`$INTEGER`"
               }
             ]

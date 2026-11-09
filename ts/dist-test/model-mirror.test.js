@@ -43,9 +43,9 @@ const MODEL_FILES = ['apidef.aontu', 'guide.aontu'];
             m: 'GET', o: '/widgets/{id}', s: [{ var: 'id' }],
             g: {
                 params: [{ n: 'id', or: 'widget_id', r: true, t: '`$STRING`' }],
-                query: [{ n: 'limit', r: false, t: '`$NUMBER`', ex: 0, a: false }],
-                header: [{ n: 'trace', r: false, t: '`$STRING`' }],
-                cookie: [{ n: 'session', r: false, t: '`$STRING`' }],
+                query: [{ n: 'limit', r: false, t: '`$NUMBER`', ex: 0, a: false, style: 'form', explode: false }],
+                header: [{ n: 'trace', r: false, t: '`$STRING`', style: 'simple', explode: false }],
+                cookie: [{ n: 'session', r: false, t: '`$STRING`', style: 'form', explode: true }],
             },
             q: { exist: ['id'] }, r: { param: { widget_id: 'id' } },
             t: { req: '`reqdata`', res: '`body`' },
@@ -59,6 +59,10 @@ const MODEL_FILES = ['apidef.aontu', 'guide.aontu'];
             ...point, a: true, k: 'http',
             g: Object.fromEntries(Object.entries(point.g).map(([kind, args]) => [kind, args.map(arg => ({ a: true, ...arg, k: kind === 'params' ? 'param' : kind }))])),
         });
+        const unifyArg = (arg) => new aontu_1.Aontu().generate((0, node_fs_1.readFileSync)(node_path_1.default.join(REPO, 'model', 'apidef.aontu'), 'utf8') + '\n' +
+            'main:kit:entity:widget:op:load:' + JSON.stringify({ name: 'load', points: [{ ...point, g: { query: [arg] } }] }));
+        node_assert_1.default.throws(() => unifyArg({ n: 'limit', r: false, t: '`$NUMBER`', explode: 'no' }), /explode/);
+        node_assert_1.default.throws(() => unifyArg({ n: 'limit', r: false, t: '`$NUMBER`', style: true }), /style/);
     });
     (0, node_test_1.test)('body alias applies to a request body, a success response and alternatives', () => {
         const rb = {

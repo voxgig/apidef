@@ -162,5 +162,7 @@ main: kit: type: type({ # Reusable model types.
     r: boolean # Whether the argument is required.
     t: top # Argument validation shape.
     ex?: top # Example or default value from the source definition.
+    style?: string # How a query, header, or cookie argument sends a list or map.
+    explode?: boolean # Whether each item of a list or map is sent as its own entry.
   }
 })

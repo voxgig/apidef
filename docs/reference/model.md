@@ -230,7 +230,8 @@ list. Required attributes use one character; optional metadata uses two.
 
 ### `ModelArg`
 
-Required attributes use one character; optional metadata uses two.
+Required attributes use one character; optional metadata uses two, except
+`style` and `explode`, which keep their OpenAPI names.
 
 | field | type | meaning |
 |-------|------|---------|
@@ -241,6 +242,8 @@ Required attributes use one character; optional metadata uses two.
 | `a` | `boolean` | included in output; defaults to `true` |
 | `or` | `string?` | original wire name (for example, `planet_id`) |
 | `ex` | `any?` | advertised parameter example or schema default |
+| `style` | `string?` | how a `query`, `header`, or `cookie` argument sends a list or a map, such as `form`, `simple`, or `deepObject` |
+| `explode` | `boolean?` | whether each item of that list or map is sent as its own entry |
 
 A GraphQL point's `gq.vars` binds each of its root field's arguments, by
 `name`, to the request field `from` names. A scalar argument is read from its
@@ -269,6 +272,25 @@ parameter from the parameter itself, read as a field's `type` is. A Swagger 2
 `type: file` outside a form is a binary string, so its argument is
 `` `$STRING` ``, and a type apidef does not know is `` `$ANY` `` unless the
 name says what it holds.
+
+A `query`, `header`, or `cookie` argument always records `style` and
+`explode`, so a consumer needs no table of defaults. They are the
+parameter's own where it declares them. Otherwise `style` is `form` for a
+query or a cookie and `simple` for a header, and `explode` is `true` for
+`form` alone. A Swagger 2 array declares a `collectionFormat` instead, and
+`csv` when it states none:
+
+| `collectionFormat` | `style` | `explode` |
+|---|---|---|
+| `csv` | `form`, or `simple` for a header | `false` |
+| `ssv` | `spaceDelimited` | `false` |
+| `pipes` | `pipeDelimited` | `false` |
+| `tsv` | `tabDelimited`, which OpenAPI 3 has no style for | `false` |
+| `multi` | `form` | `true` |
+
+A `param` argument records neither. Nor does one whose parameter declares
+`content` instead of a `schema`, since its media type says how it is sent.
+`ts/test/arg-style.tsv` pins each case in both ports.
 
 A Swagger 2 `formData` parameter is a field of the request body, as a `body`
 parameter is the body itself, so neither is ever an argument, and neither

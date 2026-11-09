@@ -52,9 +52,9 @@ describe('model-mirror', () => {
       m: 'GET', o: '/widgets/{id}', s: [{ var: 'id' }],
       g: {
         params: [{ n: 'id', or: 'widget_id', r: true, t: '`$STRING`' }],
-        query: [{ n: 'limit', r: false, t: '`$NUMBER`', ex: 0, a: false }],
-        header: [{ n: 'trace', r: false, t: '`$STRING`' }],
-        cookie: [{ n: 'session', r: false, t: '`$STRING`' }],
+        query: [{ n: 'limit', r: false, t: '`$NUMBER`', ex: 0, a: false, style: 'form', explode: false }],
+        header: [{ n: 'trace', r: false, t: '`$STRING`', style: 'simple', explode: false }],
+        cookie: [{ n: 'session', r: false, t: '`$STRING`', style: 'form', explode: true }],
       },
       q: { exist: ['id'] }, r: { param: { widget_id: 'id' } },
       t: { req: '`reqdata`', res: '`body`' },
@@ -69,6 +69,11 @@ describe('model-mirror', () => {
       g: Object.fromEntries(Object.entries(point.g).map(([kind, args]) =>
         [kind, args.map(arg => ({ a: true, ...arg, k: kind === 'params' ? 'param' : kind }))])),
     })
+    const unifyArg = (arg: any) => new Aontu().generate(
+      readFileSync(Path.join(REPO, 'model', 'apidef.aontu'), 'utf8') + '\n' +
+      'main:kit:entity:widget:op:load:' + JSON.stringify({ name: 'load', points: [{ ...point, g: { query: [arg] } }] }))
+    assert.throws(() => unifyArg({ n: 'limit', r: false, t: '`$NUMBER`', explode: 'no' }), /explode/)
+    assert.throws(() => unifyArg({ n: 'limit', r: false, t: '`$NUMBER`', style: true }), /style/)
   })
 
   test('body alias applies to a request body, a success response and alternatives', () => {

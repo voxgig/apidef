@@ -1888,6 +1888,69 @@ func TestTsvParamSchema(t *testing.T) {
 	}
 }
 
+// Mirrors the TS `tsv-arg-style` suite.
+func TestTsvArgStyle(t *testing.T) {
+	rows := loadTsv(t, "arg-style")
+	if len(rows) == 0 {
+		t.Fatal("no arg-style rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var parameter map[string]any
+			var style, explode any
+			unmarshalCol(t, row, "parameter", &parameter)
+			unmarshalCol(t, row, "style", &style)
+			unmarshalCol(t, row, "explode", &explode)
+			path := "/widgets"
+			if parameter["in"] == "path" {
+				path = "/widgets/{id}"
+			}
+			point := map[string]any{
+				"o": path, "m": "GET", "r": map[string]any{"param": map[string]any{}},
+				"g": map[string]any{}, "q": map[string]any{"exist": []any{}}, "t": map[string]any{},
+			}
+			def := map[string]any{"paths": map[string]any{path: map[string]any{
+				"get": map[string]any{"parameters": []any{parameter}},
+			}}}
+			if row["swagger"] == "true" {
+				def["swagger"] = "2.0"
+			} else {
+				def["openapi"] = "3.0.0"
+			}
+			ctx := &ApiDefContext{
+				ApiModel: map[string]any{"main": map[string]any{KIT: map[string]any{
+					"entity": map[string]any{"widget": map[string]any{
+						"name": "widget",
+						"op": map[string]any{"load": map[string]any{
+							"name": "load", "points": []any{point},
+						}},
+					}},
+				}}},
+				Def:  def,
+				Warn: MakeWarner("warning", nil),
+			}
+			if _, err := ArgsTransform(ctx); err != nil {
+				t.Fatal(err)
+			}
+			args := []map[string]any{}
+			g, _ := point["g"].(map[string]any)
+			for _, kind := range sortedKeys(g) {
+				list, _ := g[kind].([]any)
+				for _, a := range list {
+					am, _ := a.(map[string]any)
+					args = append(args, am)
+				}
+			}
+			if len(args) != 1 {
+				t.Fatalf("args = %v, want one", args)
+			}
+			if got := []any{args[0]["style"], args[0]["explode"]}; !reflect.DeepEqual(got, []any{style, explode}) {
+				t.Errorf("style, explode = %v, want %v, %v", got, style, explode)
+			}
+		})
+	}
+}
+
 func TestTsvInfoSummary(t *testing.T) {
 	rows := loadTsv(t, "info-summary")
 	if len(rows) == 0 {
