@@ -220,7 +220,7 @@ list. Required attributes use one character; optional metadata uses two.
 | `r` | `{ param, query, header, cookie }` | argument renames, keyed by original name |
 | `g` | `{ params, query, header, cookie }` | argument lists using `%point-args` |
 | `q` | `{ exist: string[], $action? }` | how a call selects this point: its path parameters and required arguments, the field a required JSON array body is sent from, and its action |
-| `t` | `{ req, res }` | request/response envelope handling (defaults `` `reqdata` `` / `` `body` ``, and `` `reqdata.<field>` `` for a JSON array body) |
+| `t` | `{ req, res, page? }` | request/response envelope handling (defaults `` `reqdata` `` / `` `body` ``, and `` `reqdata.<field>` `` for a JSON array body); a list's `page` holds body paths to its page's `total`, `cursor`, `more` flag and `next` link, as the guide's `transform.page` names them |
 | `rb` | `ModelBody?` | the request body's media type and encoding, present only when the body is not JSON alone |
 | `bf` | `string[]` or `false`, optional | the [properties a JSON request body declares](#request-body-fields), named as the entity's fields are; `false` when it declares none |
 | `rs` | `ModelBody?` | the media types a success response declares, present only when one declares a body |

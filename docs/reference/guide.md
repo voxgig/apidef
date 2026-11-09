@@ -40,6 +40,7 @@ guide
 | `why_op` | `string[]` | trace of the CRUD classification |
 | `transform.res` | `string` or `list` | response envelope unwrap (e.g. `` `body.planet` ``) when the response wraps the entity, or a struct transform when each item of a list wraps the record (see [Response envelopes](#response-envelopes)) |
 | `transform.req` | `object` or `string` | request envelope wrap when the body wraps the entity; a string names the field a JSON array body is sent from. The base guide never writes it, so it is yours to set (see the model's `t.req`) |
+| `transform.page` | `object` | where a list's page keeps its `total`, `cursor`, `more` flag and `next` link, each a body path beside the records `transform.res` reads (see [Response envelopes](#response-envelopes)) |
 | `body.media` | `string` | the media type the request body is sent as; the base guide never writes it, so it is yours to set (see the model's `rb`) |
 | `response.media` | `string` | the media type to ask a success response for; likewise yours to set (see the model's `rs`) |
 
@@ -407,6 +408,35 @@ own, such as Neon's branch list, `allOf[branches, annotations, pagination]`. The
 [`ts/test/composed-envelope-prop.tsv`](../../ts/test/composed-envelope-prop.tsv)
 and the `guide-page-side` tests pin it in both builds, on
 [`ts/test/def/page-side-def.json`](../../ts/test/def/page-side-def.json).
+
+A list that reads its records from a page also names, in `transform.page`,
+where the page keeps its metadata, so a generated SDK can read the total and
+fetch the page after. Each role is a body path, written only when the page
+holds it:
+
+| role | names, preferred first |
+|---|---|
+| `total` | `total`, `total_count`, `total_results`, `total_items`, `total_hits`, `count` |
+| `cursor` | `next_cursor`, `cursor`, `next_page_token`, `next_token`, `end_cursor` |
+| `more` | `has_more`, `has_next`, `has_next_page` |
+| `next` | `next`, `next_url`, `next_link`, `next_page_url` |
+
+A name matches in any case, with or without `_` or `-`, so `hasMore` is the
+`more` flag. A role is a scalar beside the records, else one inside the
+page's own metadata, one level down: `meta`, `metadata`, `pagination`,
+`paging`, `pageInfo` or `links`. A preferred name wins over a closer one, so
+`meta.total` is the total beside a `count`. A `count` beside the records is
+the total only when the response holds no data of its own there: GitHub's
+clone traffic counts clones beside its `uniques`, not the entries it lists.
+A page
+`{ data, next_cursor, has_more }` gives
+``{ cursor: "`body.next_cursor`", more: "`body.has_more`" }``. The base
+guide writes each role as a default of its own, so the entry guide can
+correct one and keep the rest. `pageTransform` in
+[`ts/src/utility.ts`](../../ts/src/utility.ts) is the rule, and the rows of
+[`ts/test/page-transform.tsv`](../../ts/test/page-transform.tsv) and the
+`guide-page-meta` tests pin it in both builds, on
+[`ts/test/def/page-meta-def.json`](../../ts/test/def/page-meta-def.json).
 
 A property named after the entity unwraps a response only when the response
 is not the component the entity is named from. That component is the record

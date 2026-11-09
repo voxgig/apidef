@@ -60,6 +60,12 @@ type ModelArg = {
     style?: string;
     explode?: boolean;
 };
+type ModelPage = {
+    total?: string;
+    cursor?: string;
+    more?: string;
+    next?: string;
+};
 type PointKind = 'http' | 'graphql';
 type ModelGraphqlPage = {
     style: string;
@@ -125,6 +131,7 @@ type ModelPoint = {
     t: {
         req?: any;
         res?: any;
+        page?: ModelPage;
     };
     q: {
         exist: string[];
@@ -191,4 +198,4 @@ type ModelEntityFlowStep = {
     s: ModelEntityFlowStepSpec[];
     v: ModelEntityFlowStepValidator[];
 };
-export type { OpName, ArgKind, PointKind, ModelGraphql, ModelGraphqlVar, ModelGraphqlPage, NamesCluster, Model, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelPoint, ModelPathSegment, BodyKind, ModelBodyField, ModelBody, ModelOp, ModelEntity, ModelEntityFlow, ModelEntityFlowStep, ModelEntityFlowStepInput, ModelEntityFlowStepValidator, ModelEntityFlowStepSpec, };
+export type { OpName, ArgKind, PointKind, ModelGraphql, ModelGraphqlVar, ModelGraphqlPage, NamesCluster, Model, ModelEntityRelations, ModelOpMap, ModelFieldOp, ModelField, ModelArg, ModelPoint, ModelPage, ModelPathSegment, BodyKind, ModelBodyField, ModelBody, ModelOp, ModelEntity, ModelEntityFlow, ModelEntityFlowStep, ModelEntityFlowStepInput, ModelEntityFlowStepValidator, ModelEntityFlowStepSpec, };

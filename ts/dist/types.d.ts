@@ -669,6 +669,7 @@ type GuidePathOp = {
     transform: {
         req: any;
         res: any;
+        page?: Record<string, string>;
     };
 };
 export { KIT, OpenControlShape, OpenModelShape, OpenBuildShape, };

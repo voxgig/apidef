@@ -2238,6 +2238,62 @@ function pageRecords(schema: any): any {
 }
 
 
+// The names that hold each part of a page's metadata, preferred first.
+const PAGE_ROLES: [string, string[]][] = [
+  ['total', ['total', 'totalcount', 'totalresults', 'totalitems', 'totalhits', 'count']],
+  ['cursor', ['nextcursor', 'cursor', 'nextpagetoken', 'nexttoken', 'endcursor']],
+  ['more', ['hasmore', 'hasnext', 'hasnextpage']],
+  ['next', ['next', 'nexturl', 'nextlink', 'nextpageurl']],
+]
+
+
+function isPageRoleName(name: string): boolean {
+  const norm = name.toLowerCase().replace(/[_-]/g, '')
+  return PAGE_ROLES.some(([, names]) => names.includes(norm))
+}
+
+
+// Where a page keeps its total, the cursor or link to the next page, and
+// whether there is one: beside the records, else in the page's metadata.
+function pageTransform(props: any, records: string): Record<string, string> | undefined {
+  if (null == props || 'object' !== typeof props) {
+    return undefined
+  }
+  const levels: [string, any][] = [['', props]]
+  for (const k of keysof(props)) {
+    const meta = k !== records && isPageMetaProp(k) ? mergedProperties(props[k]) : undefined
+    if (null != meta) {
+      levels.push([k + '.', meta])
+    }
+  }
+  // A `count` beside data of its own counts that data, as GitHub's traffic does.
+  const ownData = holdsOwnData(Object.fromEntries(
+    Object.entries(props).filter(([k]) => !isPageRoleName(k))))
+  const find = (name: string): string | undefined => {
+    for (const [prefix, level] of levels) {
+      if ('count' === name && '' === prefix && ownData) {
+        continue
+      }
+      const key = keysof(level).find((k: string) => ('' !== prefix || k !== records) &&
+        name === k.toLowerCase().replace(/[_-]/g, '') &&
+        !isObjectSchema(level[k]) && false === propIsList(level[k]))
+      if (null != key) {
+        return '`body.' + prefix + key + '`'
+      }
+    }
+    return undefined
+  }
+  const page: Record<string, string> = {}
+  for (const [role, names] of PAGE_ROLES) {
+    const path = names.map(find).find((found) => null != found)
+    if (null != path) {
+      page[role] = path
+    }
+  }
+  return 0 < keysof(page).length ? page : undefined
+}
+
+
 function answersPage(schema: any): boolean {
   return null != pageRecords(schema)
 }
@@ -2507,6 +2563,8 @@ export {
   envelopeItemRef,
   composedEnvelopeProp,
   pageRecords,
+  pageTransform,
+  PAGE_ROLES,
   answersPage,
   answersRecordMap,
   propIsList,

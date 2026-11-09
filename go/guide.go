@@ -568,6 +568,14 @@ func buildGuideSource(ctx *ApiDefContext, baseguide map[string]any) string {
 							}
 							blocks = append(blocks, fmt.Sprintf(format, opname, guideJSON(res)))
 						}
+						// Mirrors ts/src/guide/guide.ts: a role at a time.
+						page, _ := transform["page"].(map[string]any)
+						for _, r := range pageRoles {
+							if read, ok := page[r.role].(string); ok {
+								blocks = append(blocks, fmt.Sprintf("      op: %s: transform: page: %s: *(%s)|top",
+									opname, r.role, guideJSON(read)))
+							}
+						}
 					}
 				}
 			}
@@ -2153,6 +2161,17 @@ func resolveTransform(ctx *ApiDefContext, data map[string]any, mdesc map[string]
 
 	if opname == "list" {
 		warnListBody(ctx, strings.ToUpper(methodName)+" "+pathStr, transform["res"], partprops)
+
+		// Mirrors ts/src/guide/heuristic01.ts: the page a list reads its
+		// records from keeps its metadata beside them.
+		res, _ := transform["res"].(string)
+		if m := bodyKeyRE.FindStringSubmatch(res); m != nil {
+			if islist, _ := propIsList(partprops[m[1]]); islist {
+				if page := pageTransform(partprops, m[1]); page != nil {
+					transform["page"] = page
+				}
+			}
+		}
 	}
 
 	if transform["res"] != nil && op != nil && op[opname] != nil {

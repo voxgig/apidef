@@ -1156,6 +1156,24 @@ func TestAnswersRecordMap(t *testing.T) {
 	}
 }
 
+// Mirrors tsv-page-transform in ts/test/tsv.test.ts.
+func TestTsvPageTransform(t *testing.T) {
+	rows := loadTsv(t, "page-transform")
+	if len(rows) == 0 {
+		t.Fatal("no page-transform rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var props, want map[string]any
+			unmarshalCol(t, row, "props", &props)
+			unmarshalCol(t, row, "page", &want)
+			if got := pageTransform(props, row["records"]); !reflect.DeepEqual(got, want) {
+				t.Errorf("pageTransform = %v, want %s", got, row["page"])
+			}
+		})
+	}
+}
+
 func TestComposedEnvelopeProp(t *testing.T) {
 	rows := loadTsv(t, "composed-envelope-prop")
 	if len(rows) == 0 {

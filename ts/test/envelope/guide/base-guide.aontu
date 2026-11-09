@@ -19,6 +19,7 @@ guide: {
     path: "/{year}/census": {
       op: list: method: *GET
       op: list: transform: res: *("`body.records`")|top
+      op: list: transform: page: total: *("`body.total`")|top
     }
   }
 
@@ -41,6 +42,7 @@ guide: {
     path: "/{year}/domain": {
       op: list: method: *GET
       op: list: transform: res: *("`body.items`")|top
+      op: list: transform: page: total: *("`body.total`")|top
     }
     path: "/{year}/domain/{id}": {
       op: load: method: *GET
@@ -58,6 +60,7 @@ guide: {
     path: "/{year}/gallery": {
       op: list: method: *GET
       op: list: transform: res: *("`body.data`")|top
+      op: list: transform: page: next: *("`body.next`")|top
     }
   }
 
@@ -86,6 +89,7 @@ guide: {
       op: create: method: *POST
       op: list: method: *GET
       op: list: transform: res: *("`body.items`")|top
+      op: list: transform: page: total: *("`body.total`")|top
     }
   }
 
@@ -99,6 +103,7 @@ guide: {
     path: "/{year}/observation": {
       op: list: method: *GET
       op: list: transform: res: *("`body.items`")|top
+      op: list: transform: page: total: *("`body.total`")|top
     }
   }
 

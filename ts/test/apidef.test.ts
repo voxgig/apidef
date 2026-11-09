@@ -1171,6 +1171,53 @@ describe('apidef', () => {
   })
 
 
+  // A list keeps its page's total, cursor, has-more flag and next link beside
+  // the records it reads, through the guide; an aggregate object has no page.
+  test('guide-page-meta', async () => {
+    const folder = __dirname + '/../test/page-meta'
+
+    const build = await ApiDef.makeBuild({ folder })
+
+    const bres = await build(
+      { name: 'page-meta', def: 'page-meta-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: true,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const entities = bres.apimodel.main.kit.entity
+    const read = (ent: string, op: string) => entities[ent].op[op].points
+      .map((pt: any) => ({ res: pt.t.res, page: pt.t.page ?? null }))
+
+    assert.deepStrictEqual(read('email', 'list'), [{ res: '`body.data`',
+      page: { cursor: '`body.next_cursor`', more: '`body.has_more`' } }])
+    assert.deepStrictEqual(read('form', 'list'), [{ res: '`body.items`',
+      page: { total: '`body.total`', more: '`body.hasMore`' } }])
+    assert.deepStrictEqual(read('result', 'list'), [{ res: '`body.results`',
+      page: { total: '`body.count`', next: '`body.next`' } }])
+    assert.deepStrictEqual(read('entry', 'list'), [{ res: '`body.entries`',
+      page: { total: '`body.total`' } }])
+    assert.deepStrictEqual(read('order', 'list'), [{ res: '`body.data`', page: {
+      total: '`body.meta.total`', cursor: '`body.meta.next_cursor`', next: '`body.links.next`' } }])
+    assert.deepStrictEqual(read('node', 'list'), [{ res: '`body.nodes`', page: {
+      cursor: '`body.pageInfo.endCursor`', more: '`body.pageInfo.hasNextPage`' } }])
+    assert.deepStrictEqual(read('stat', 'load'), [{ res: '`body`', page: null }])
+  })
+
+
   // A literal that canonizes to nothing (`-`) names no entity and no
   // component: the key after it is not taken for the entity's own.
   test('guide-blank-segment', async () => {

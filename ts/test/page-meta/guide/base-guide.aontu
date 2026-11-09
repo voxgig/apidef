@@ -1,0 +1,71 @@
+# Generated from the API definition and overwritten on every build: do not
+# edit this file. Put customizations in the guide entry file, which includes
+# this one and overrides its defaults:
+#   guide.aontu
+
+guide: {
+  metrics: count: entity: 7
+  metrics: count: path: 7
+  metrics: count: method: 7
+
+  entity: email: {
+    path: "/emails": {
+      op: list: method: *GET
+      op: list: transform: res: *("`body.data`")|top
+      op: list: transform: page: cursor: *("`body.next_cursor`")|top
+      op: list: transform: page: more: *("`body.has_more`")|top
+    }
+  }
+
+  entity: entry: {
+    path: "/entries": {
+      op: list: method: *GET
+      op: list: transform: res: *("`body.entries`")|top
+      op: list: transform: page: total: *("`body.total`")|top
+    }
+  }
+
+  entity: form: {
+    path: "/forms": {
+      op: list: method: *GET
+      op: list: transform: res: *("`body.items`")|top
+      op: list: transform: page: total: *("`body.total`")|top
+      op: list: transform: page: more: *("`body.hasMore`")|top
+    }
+  }
+
+  entity: node: {
+    path: "/nodes": {
+      op: list: method: *GET
+      op: list: transform: res: *("`body.nodes`")|top
+      op: list: transform: page: cursor: *("`body.pageInfo.endCursor`")|top
+      op: list: transform: page: more: *("`body.pageInfo.hasNextPage`")|top
+    }
+  }
+
+  entity: order: {
+    path: "/orders": {
+      op: list: method: *GET
+      op: list: transform: res: *("`body.data`")|top
+      op: list: transform: page: total: *("`body.meta.total`")|top
+      op: list: transform: page: cursor: *("`body.meta.next_cursor`")|top
+      op: list: transform: page: next: *("`body.links.next`")|top
+    }
+  }
+
+  entity: result: {
+    path: "/results": {
+      op: list: method: *GET
+      op: list: transform: res: *("`body.results`")|top
+      op: list: transform: page: total: *("`body.count`")|top
+      op: list: transform: page: next: *("`body.next`")|top
+    }
+  }
+
+  entity: stat: {
+    path: "/stats": {
+      op: load: method: *GET
+    }
+  }
+
+}

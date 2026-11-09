@@ -108,6 +108,9 @@
             }
           ],
           "t": {
+            "page": {
+              "total": "`body.total`"
+            },
             "req": "`reqdata`",
             "res": "`body.items`"
           }

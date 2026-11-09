@@ -1126,6 +1126,69 @@ func TestGuideFilterParam(t *testing.T) {
 	}
 }
 
+// Mirrors the TS `guide-page-meta` case.
+func TestGuidePageMeta(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "page-meta-")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, OutPrefix: "page-meta-", Strategy: "heuristic01"}).
+		Generate(map[string]any{
+			"model": map[string]any{"name": "page-meta", "def": "page-meta-def.json"},
+			"build": map[string]any{"spec": map[string]any{"base": "../ts/test/def"}},
+			"ctrl": map[string]any{"step": map[string]any{
+				"parse": true, "guide": true, "transformers": true,
+				"builders": false, "generate": false,
+			}},
+		})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v", err)
+	}
+
+	main, _ := res.ApiModel["main"].(map[string]any)
+	kit, _ := main[KIT].(map[string]any)
+	entities, _ := kit["entity"].(map[string]any)
+	read := func(ent, opname string) []any {
+		e, _ := entities[ent].(map[string]any)
+		ops, _ := e["op"].(map[string]any)
+		op, _ := ops[opname].(map[string]any)
+		pts, _ := op["points"].([]any)
+		out := []any{}
+		for _, p := range pts {
+			pt, _ := p.(map[string]any)
+			tr, _ := pt["t"].(map[string]any)
+			out = append(out, map[string]any{"res": tr["res"], "page": tr["page"]})
+		}
+		return out
+	}
+	page := func(res string, page map[string]any) []any {
+		var want any
+		if page != nil {
+			want = page
+		}
+		return []any{map[string]any{"res": res, "page": want}}
+	}
+
+	for _, c := range []struct {
+		ent, op string
+		want    []any
+	}{
+		{"email", "list", page("`body.data`", map[string]any{
+			"cursor": "`body.next_cursor`", "more": "`body.has_more`"})},
+		{"form", "list", page("`body.items`", map[string]any{
+			"total": "`body.total`", "more": "`body.hasMore`"})},
+		{"result", "list", page("`body.results`", map[string]any{
+			"total": "`body.count`", "next": "`body.next`"})},
+		{"entry", "list", page("`body.entries`", map[string]any{"total": "`body.total`"})},
+		{"order", "list", page("`body.data`", map[string]any{
+			"total": "`body.meta.total`", "cursor": "`body.meta.next_cursor`", "next": "`body.links.next`"})},
+		{"node", "list", page("`body.nodes`", map[string]any{
+			"cursor": "`body.pageInfo.endCursor`", "more": "`body.pageInfo.hasNextPage`"})},
+		{"stat", "load", page("`body`", nil)},
+	} {
+		if got := read(c.ent, c.op); !jsonEqual(got, c.want) {
+			t.Errorf("%s %s = %v, want %v", c.ent, c.op, got, c.want)
+		}
+	}
+}
+
 // Mirrors the TS `guide-page-side` case.
 func TestGuidePageSide(t *testing.T) {
 	folder := stageGuideEntry(t, t.TempDir(), "page-side-")

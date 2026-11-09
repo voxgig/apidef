@@ -315,6 +315,7 @@ type GuidePathOp = {
   transform: {
     req: any
     res: any
+    page?: Record<string, string>
   }
 }
 
