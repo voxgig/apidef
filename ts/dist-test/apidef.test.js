@@ -631,6 +631,10 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.strictEqual(res('note', 'list', '/notes'), '`body.note`');
         node_assert_1.default.strictEqual(res('quote', 'load', '/quote/{id}'), '`body.quote`');
         node_assert_1.default.strictEqual(res('competition', 'load', '/competitions/{id}'), '`body`');
+        // A route that ends in the object's name answers that object, beside any
+        // lists of other records.
+        node_assert_1.default.strictEqual(res('user_role', 'list', '/users/{id}/user-role'), '`body.user_role`');
+        node_assert_1.default.strictEqual(res('user_role', 'list', '/user-roles'), '`body.data`');
         // Its fields are the records it reads, not the lists beside them.
         node_assert_1.default.strictEqual(res('user', 'list', '/users'), '`body.users`');
         node_assert_1.default.deepStrictEqual(Object.keys(entities.user.fields).sort(), ['email', 'id', 'name']);

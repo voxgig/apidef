@@ -316,6 +316,64 @@
           }
         }
       }
+    },
+    "/user-roles": {
+      "get": {
+        "tags": [
+          "User roles"
+        ],
+        "operationId": "list-user-roles",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/UserRole"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{id}/user-role": {
+      "get": {
+        "tags": [
+          "User roles"
+        ],
+        "operationId": "get-user-role",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRoleUserResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -477,6 +535,51 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Group"
+            }
+          }
+        }
+      },
+      "UserRole": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "access_level": {
+            "type": "string"
+          }
+        }
+      },
+      "Course": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "UserRoleUserResponse": {
+        "type": "object",
+        "properties": {
+          "user_role": {
+            "$ref": "#/components/schemas/UserRole"
+          },
+          "assigned_courses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Course"
+            }
+          },
+          "assigned_group_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
             }
           }
         }

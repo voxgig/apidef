@@ -813,6 +813,11 @@ describe('apidef', () => {
     assert.strictEqual(res('quote', 'load', '/quote/{id}'), '`body.quote`')
     assert.strictEqual(res('competition', 'load', '/competitions/{id}'), '`body`')
 
+    // A route that ends in the object's name answers that object, beside any
+    // lists of other records.
+    assert.strictEqual(res('user_role', 'list', '/users/{id}/user-role'), '`body.user_role`')
+    assert.strictEqual(res('user_role', 'list', '/user-roles'), '`body.data`')
+
     // Its fields are the records it reads, not the lists beside them.
     assert.strictEqual(res('user', 'list', '/users'), '`body.users`')
     assert.deepStrictEqual(Object.keys(entities.user.fields).sort(), ['email', 'id', 'name'])

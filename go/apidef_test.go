@@ -662,6 +662,8 @@ func TestGuideListRecords(t *testing.T) {
 		{"quote", "load", "/quote/{id}", "`body.quote`"},
 		{"competition", "load", "/competitions/{id}", "`body`"},
 		{"user", "list", "/users", "`body.users`"},
+		{"user_role", "list", "/users/{id}/user-role", "`body.user_role`"},
+		{"user_role", "list", "/user-roles", "`body.data`"},
 	} {
 		if got := resOf(c.ent, c.op, c.path); got != c.want {
 			t.Errorf("%s %s %s res = %v, want %s", c.ent, c.op, c.path, got, c.want)

@@ -2113,17 +2113,25 @@ func resolveTransform(ctx *ApiDefContext, data map[string]any, mdesc map[string]
 	if opname == "list" && partprops != nil {
 		records = envelopePropWith(partprops, opname, example)
 	}
-	holdsRecord := func(prop any) bool {
+	// Unless the route ends in the object's name.
+	lastPart := ""
+	for _, part := range strings.Split(pathStr, "/") {
+		if part != "" {
+			lastPart = part
+		}
+	}
+	holdsRecord := func(prop any, key string) bool {
 		if !isEntityWrapperProp(prop) {
 			return false
 		}
 		islist, known := propIsList(prop)
-		return records == "" || (known && islist)
+		return records == "" || (known && islist) ||
+			(lastPart != "" && !isParam(lastPart) && Canonize(lastPart) == Canonize(key))
 	}
 
-	if named && holdsRecord(partprops[origname]) && origname != "" {
+	if named && holdsRecord(partprops[origname], origname) && origname != "" {
 		transform["res"] = "`body." + origname + "`"
-	} else if named && holdsRecord(partprops[ename]) && ename != "" {
+	} else if named && holdsRecord(partprops[ename], ename) && ename != "" {
 		transform["res"] = "`body." + ename + "`"
 	} else if opname == "list" && named && ename != "" &&
 		slices.Contains(recordLists(partprops), Pluralize(ename)) {
