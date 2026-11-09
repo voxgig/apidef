@@ -46,4 +46,12 @@ jobs:
     - run: npm ci
     - run: npm run build --if-present
     - run: npm test
+    # Once per OS: Go reads paths in each OS's own form.
+    - name: Build and test Go
+      if: matrix.node-version == '24.x'
+      working-directory: go
+      run: |
+        go version
+        go build ./...
+        go test ./... -count=1
 

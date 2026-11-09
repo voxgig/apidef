@@ -213,8 +213,7 @@ jobs:
           npm run build
           npm test
 
-      # build.yml does not cover Go on pushes or PRs, so this is the only
-      # automated gate between a Go change and a tagged module release.
+      # build.yml tests Go on pushes and PRs; this tests the commit released.
       - name: Build and test Go
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.go }}
         working-directory: go
