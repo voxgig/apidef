@@ -9,6 +9,7 @@ const types_1 = require("../types");
 const argsTransform = async function (ctx) {
     const { apimodel, def } = ctx;
     const kit = apimodel.main[types_1.KIT];
+    const swagger = null != def?.swagger;
     let msg = 'args ';
     (0, jostraca_1.each)(kit.entity, (ment, entname) => {
         (0, jostraca_1.each)(ment.op, (mop, opname) => {
@@ -39,7 +40,7 @@ const argsTransform = async function (ctx) {
                 else {
                     argdefs.push(...routeArgdefs(def, mpoint));
                 }
-                resolveArgs(ctx, ment, mop, mpoint, argdefs);
+                resolveArgs(ctx, ment, mop, mpoint, argdefs, swagger);
             });
         });
         msg += ment.name + ' ';
@@ -55,7 +56,7 @@ function routeArgdefs(def, mpoint) {
 // The names a caller gives a REST route's arguments, as this step names them.
 function routeArgNames(def, mpoint) {
     const route = { ...mpoint, g: {} };
-    resolveArgs(undefined, { name: '' }, { name: '', points: [] }, route, routeArgdefs(def, mpoint));
+    resolveArgs(undefined, { name: '' }, { name: '', points: [] }, route, routeArgdefs(def, mpoint), null != def?.swagger);
     return Object.values(route.g).flat().map((arg) => arg.n);
 }
 // Locate the normalised root-field descriptor a GraphQL point came from.
@@ -77,7 +78,7 @@ const ARG_KIND = {
     'path': 'param',
     'cookie': 'cookie',
 };
-function resolveArgs(ctx, ment, mop, mpoint, argdefs) {
+function resolveArgs(ctx, ment, mop, mpoint, argdefs, swagger) {
     const touchedKeys = new Set();
     const placeholders = [...String(mpoint.o ?? '').matchAll(/\{([^}]+)\}/g)].map((m) => m[1]);
     (0, jostraca_1.each)(argdefs, (argdef) => {
@@ -144,6 +145,11 @@ function resolveArgs(ctx, ment, mop, mpoint, argdefs) {
         if (argdef.nullable) {
             marg.t = ['`$ONE`', '`$NULL`', marg.t];
         }
+        const sent = path ? undefined : argSerialization(argdef, kind, swagger);
+        if (null != sent) {
+            marg.style = sent.style;
+            marg.explode = sent.explode;
+        }
         const argsKey = (marg.k === 'param' ? 'params' : marg.k);
         let kindargs = (mpoint.g[argsKey] = mpoint.g[argsKey] ?? []);
         kindargs.push(marg);
@@ -180,6 +186,27 @@ function resolveArgs(ctx, ment, mop, mpoint, argdefs) {
     for (const key of touchedKeys) {
         mpoint.g[key]?.sort(cmp);
     }
+}
+// The OpenAPI style for each Swagger collection format, where `tsv` has none.
+const SWAGGER_STYLE = {
+    ssv: 'spaceDelimited', pipes: 'pipeDelimited', tsv: 'tabDelimited',
+};
+// How a query, header or cookie argument sends a list or a map: as declared,
+// else as its location does, where only a form explodes. A Swagger array
+// declares a collection format instead, `csv` unless stated. A parameter with
+// `content` is sent as its media type says, so it has neither.
+function argSerialization(argdef, kind, swagger) {
+    const location = 'header' === kind ? 'simple' : 'form';
+    if (swagger && 'array' === argdef.type) {
+        const format = 'string' === typeof argdef.collectionFormat ? argdef.collectionFormat : 'csv';
+        return 'multi' === format ? { style: 'form', explode: true } :
+            { style: SWAGGER_STYLE[format] ?? location, explode: false };
+    }
+    if (null == argdef.schema && null != argdef.content) {
+        return undefined;
+    }
+    const style = 'string' === typeof argdef.style && '' !== argdef.style ? argdef.style : location;
+    return { style, explode: 'boolean' === typeof argdef.explode ? argdef.explode : 'form' === style };
 }
 // Type facts sit on a Swagger 2 parameter itself, and under `schema` in
 // OpenAPI 3.

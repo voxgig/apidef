@@ -15,6 +15,7 @@ func ArgsTransform(ctx *ApiDefContext) (*TransformResult, error) {
 
 	msg := "args "
 	defPaths, _ := def["paths"].(map[string]any)
+	swagger := def["swagger"] != nil
 
 	for _, entname := range sortedKeys(entityMap) {
 		ment := entityMap[entname]
@@ -38,7 +39,7 @@ func ArgsTransform(ctx *ApiDefContext) (*TransformResult, error) {
 
 				argdefs := routeArgdefs(defPaths, mtarget)
 
-				resolveArgs(ctx, entname, opkey, mtarget, argdefs)
+				resolveArgs(ctx, entname, opkey, mtarget, argdefs, swagger)
 			}
 		}
 		msg += entname + " "
@@ -78,7 +79,7 @@ func routeArgdefs(defPaths map[string]any, mtarget map[string]any) []map[string]
 func routeArgNames(def map[string]any, mtarget map[string]any) []string {
 	defPaths, _ := def["paths"].(map[string]any)
 	route := map[string]any{"o": mtarget["o"], "m": mtarget["m"], "r": mtarget["r"], "k": mtarget["k"], "g": map[string]any{}}
-	resolveArgs(nil, "", "", route, routeArgdefs(defPaths, mtarget))
+	resolveArgs(nil, "", "", route, routeArgdefs(defPaths, mtarget), def["swagger"] != nil)
 	names := []string{}
 	args, _ := route["g"].(map[string]any)
 	for _, kind := range sortedKeys(args) {
@@ -93,7 +94,7 @@ func routeArgNames(def map[string]any, mtarget map[string]any) []string {
 
 func resolveArgs(
 	ctx *ApiDefContext, entname string, opname string,
-	mtarget map[string]any, argdefs []map[string]any,
+	mtarget map[string]any, argdefs []map[string]any, swagger bool,
 ) {
 	rename, _ := mtarget["r"].(map[string]any)
 	args, _ := mtarget["g"].(map[string]any)
@@ -221,6 +222,13 @@ func resolveArgs(
 			marg["ex"] = example
 		}
 
+		if !path {
+			if style, explode, sent := argSerialization(argdef, kind, swagger); sent {
+				marg["style"] = style
+				marg["explode"] = explode
+			}
+		}
+
 		argsKey := kind
 		if kind == "param" {
 			argsKey = "params"
@@ -333,6 +341,46 @@ func toLower(s string) string {
 		}
 	}
 	return string(result)
+}
+
+// The OpenAPI style for each Swagger collection format, where `tsv` has none.
+var swaggerStyle = map[string]string{
+	"ssv": "spaceDelimited", "pipes": "pipeDelimited", "tsv": "tabDelimited",
+}
+
+// argSerialization mirrors ts/src/transform/args.ts: the style and explode a
+// query, header or cookie argument sends a list or a map with, and false for a
+// parameter with `content`, which its media type serializes.
+func argSerialization(argdef map[string]any, kind string, swagger bool) (string, bool, bool) {
+	location := "form"
+	if kind == "header" {
+		location = "simple"
+	}
+	if swagger && argdef["type"] == "array" {
+		format, ok := argdef["collectionFormat"].(string)
+		if !ok {
+			format = "csv"
+		}
+		if format == "multi" {
+			return "form", true, true
+		}
+		if style, has := swaggerStyle[format]; has {
+			return style, false, true
+		}
+		return location, false, true
+	}
+	if argdef["schema"] == nil && argdef["content"] != nil {
+		return "", false, false
+	}
+	style, _ := argdef["style"].(string)
+	if style == "" {
+		style = location
+	}
+	explode, ok := argdef["explode"].(bool)
+	if !ok {
+		explode = style == "form"
+	}
+	return style, explode, true
 }
 
 // paramSchema mirrors ts/src/transform/args.ts: type facts sit on a Swagger 2

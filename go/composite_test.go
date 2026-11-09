@@ -526,7 +526,7 @@ func TestArgRenameUsesTheSpecName(t *testing.T) {
 
 	resolveArgs(nil, "pet", "load", mtarget, []map[string]any{
 		{"name": "petId", "in": "path", "required": true},
-	})
+	}, false)
 
 	args, _ := mtarget["g"].(map[string]any)
 	params, _ := args["params"].([]any)

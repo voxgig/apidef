@@ -221,10 +221,12 @@
           "g": {
             "query": [
               {
+                "explode": true,
                 "k": "query",
                 "n": "status",
                 "or": "status",
                 "r": true,
+                "style": "form",
                 "t": "`$ARRAY`"
               }
             ]
@@ -269,10 +271,12 @@
           "g": {
             "query": [
               {
+                "explode": true,
                 "k": "query",
                 "n": "tag",
                 "or": "tags",
                 "r": true,
+                "style": "form",
                 "t": "`$ARRAY`"
               }
             ]
@@ -379,10 +383,12 @@
           "g": {
             "header": [
               {
+                "explode": false,
                 "k": "header",
                 "n": "api_key",
                 "or": "api_key",
                 "r": false,
+                "style": "simple",
                 "t": "`$STRING`"
               }
             ],

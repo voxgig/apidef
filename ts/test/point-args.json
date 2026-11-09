@@ -78,7 +78,9 @@
           "`$STRING`"
         ],
         "k": "query",
-        "r": false
+        "r": false,
+        "style": "form",
+        "explode": true
       },
       {
         "n": "limit",
@@ -86,14 +88,18 @@
         "t": "`$INTEGER`",
         "k": "query",
         "r": true,
-        "ex": 0
+        "ex": 0,
+        "style": "form",
+        "explode": true
       },
       {
         "n": "resource_id",
         "or": "resourceIds",
         "t": "`$ARRAY`",
         "k": "query",
-        "r": false
+        "r": false,
+        "style": "form",
+        "explode": true
       }
     ],
     "header": [
@@ -103,7 +109,9 @@
         "t": "`$ANY`",
         "k": "header",
         "r": false,
-        "ex": "abc"
+        "ex": "abc",
+        "style": "simple",
+        "explode": false
       }
     ],
     "cookie": [
@@ -113,7 +121,9 @@
         "t": "`$BOOLEAN`",
         "k": "cookie",
         "r": false,
-        "ex": false
+        "ex": false,
+        "style": "form",
+        "explode": true
       }
     ]
   }

@@ -21,7 +21,7 @@ func TestCompactPointArgs(t *testing.T) {
 		t.Fatal(err)
 	}
 	point := map[string]any{"r": fixture.Rename, "o": "/pets/{petId}"}
-	resolveArgs(nil, "pet", "load", point, fixture.Parameters)
+	resolveArgs(nil, "pet", "load", point, fixture.Parameters, false)
 	entity := map[string]any{"op": map[string]any{"load": map[string]any{"points": []any{point}}}}
 	clean := stripEntityDefaults(entity).(map[string]any)
 	result := clean["op"].(map[string]any)["load"].(map[string]any)["points"].([]any)[0].(map[string]any)

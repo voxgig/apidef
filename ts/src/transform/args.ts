@@ -40,6 +40,7 @@ const argsTransform: Transform = async function(
 ): Promise<TransformResult> {
   const { apimodel, def } = ctx
   const kit: KitModel = apimodel.main[KIT]
+  const swagger = null != def?.swagger
 
   let msg = 'args '
 
@@ -75,7 +76,7 @@ const argsTransform: Transform = async function(
           argdefs.push(...routeArgdefs(def, mpoint))
         }
 
-        resolveArgs(ctx, ment, mop, mpoint, argdefs)
+        resolveArgs(ctx, ment, mop, mpoint, argdefs, swagger)
       })
 
     })
@@ -98,7 +99,7 @@ function routeArgdefs(def: any, mpoint: ModelPoint): ParameterDef[] {
 function routeArgNames(def: any, mpoint: ModelPoint): string[] {
   const route = { ...mpoint, g: {} } as ModelPoint
   resolveArgs(undefined, { name: '' } as ModelEntity, { name: '', points: [] } as unknown as ModelOp, route,
-    routeArgdefs(def, mpoint))
+    routeArgdefs(def, mpoint), null != def?.swagger)
   return Object.values(route.g).flat().map((arg: any) => arg.n)
 }
 
@@ -130,7 +131,8 @@ const ARG_KIND: Record<string, ModelArg["k"]> = {
 
 function resolveArgs(
   ctx: any,
-  ment: ModelEntity, mop: ModelOp, mpoint: ModelPoint, argdefs: ParameterDef[]
+  ment: ModelEntity, mop: ModelOp, mpoint: ModelPoint, argdefs: ParameterDef[],
+  swagger: boolean,
 ) {
   const touchedKeys = new Set<string>()
   const placeholders = [...String(mpoint.o ?? '').matchAll(/\{([^}]+)\}/g)].map((m) => m[1])
@@ -205,6 +207,12 @@ function resolveArgs(
       marg.t = ['`$ONE`', '`$NULL`', marg.t]
     }
 
+    const sent = path ? undefined : argSerialization(argdef, kind, swagger)
+    if (null != sent) {
+      marg.style = sent.style
+      marg.explode = sent.explode
+    }
+
     const argsKey = (marg.k === 'param' ? 'params' : marg.k) as keyof typeof mpoint.g
     let kindargs = (mpoint.g[argsKey] = mpoint.g[argsKey] ?? [])
     kindargs.push(marg)
@@ -242,6 +250,32 @@ function resolveArgs(
   for (const key of touchedKeys) {
     mpoint.g[key as keyof typeof mpoint.g]?.sort(cmp)
   }
+}
+
+
+// The OpenAPI style for each Swagger collection format, where `tsv` has none.
+const SWAGGER_STYLE: Record<string, string> = {
+  ssv: 'spaceDelimited', pipes: 'pipeDelimited', tsv: 'tabDelimited',
+}
+
+
+// How a query, header or cookie argument sends a list or a map: as declared,
+// else as its location does, where only a form explodes. A Swagger array
+// declares a collection format instead, `csv` unless stated. A parameter with
+// `content` is sent as its media type says, so it has neither.
+function argSerialization(argdef: any, kind: string, swagger: boolean):
+  { style: string, explode: boolean } | undefined {
+  const location = 'header' === kind ? 'simple' : 'form'
+  if (swagger && 'array' === argdef.type) {
+    const format = 'string' === typeof argdef.collectionFormat ? argdef.collectionFormat : 'csv'
+    return 'multi' === format ? { style: 'form', explode: true } :
+      { style: SWAGGER_STYLE[format] ?? location, explode: false }
+  }
+  if (null == argdef.schema && null != argdef.content) {
+    return undefined
+  }
+  const style = 'string' === typeof argdef.style && '' !== argdef.style ? argdef.style : location
+  return { style, explode: 'boolean' === typeof argdef.explode ? argdef.explode : 'form' === style }
 }
 
 

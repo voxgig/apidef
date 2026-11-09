@@ -1293,6 +1293,35 @@ describe('tsv-param-schema', () => {
 })
 
 
+// The style and explode an argument is sent with: as declared, as its location
+// does, or as a Swagger 2 array's collection format says. Null for neither.
+describe('tsv-arg-style', () => {
+  const rows = loadTsv('arg-style')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, async () => {
+      const parameter = JSON.parse(row.parameter)
+      const path = 'path' === parameter.in ? '/widgets/{id}' : '/widgets'
+      const point: any = { o: path, m: 'GET', r: { param: {} }, g: {}, q: { exist: [] }, t: {} }
+      await argsTransform({
+        apimodel: { main: { kit: { entity: { widget: {
+          name: 'widget', op: { load: { name: 'load', points: [point] } },
+        } } } } },
+        def: {
+          ...(JSON.parse(row.swagger) ? { swagger: '2.0' } : { openapi: '3.0.0' }),
+          paths: { [path]: { get: { parameters: [parameter] } } },
+        },
+        warn: () => undefined,
+      } as any)
+      const args: any[] = Object.values(point.g).flat()
+      assert.strictEqual(args.length, 1)
+      assert.deepStrictEqual([args[0].style ?? null, args[0].explode ?? null],
+        [JSON.parse(row.style), JSON.parse(row.explode)])
+    })
+  }
+})
+
+
 describe('tsv-info-summary', () => {
   for (const row of loadTsv('info-summary')) {
     test(`resolveSummary(${row.def.slice(0, 60)})`, () => {

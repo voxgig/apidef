@@ -1063,6 +1063,32 @@ function loadTsv(name) {
         });
     }
 });
+// The style and explode an argument is sent with: as declared, as its location
+// does, or as a Swagger 2 array's collection format says. Null for neither.
+(0, node_test_1.describe)('tsv-arg-style', () => {
+    const rows = loadTsv('arg-style');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, async () => {
+            const parameter = JSON.parse(row.parameter);
+            const path = 'path' === parameter.in ? '/widgets/{id}' : '/widgets';
+            const point = { o: path, m: 'GET', r: { param: {} }, g: {}, q: { exist: [] }, t: {} };
+            await (0, args_1.argsTransform)({
+                apimodel: { main: { kit: { entity: { widget: {
+                                    name: 'widget', op: { load: { name: 'load', points: [point] } },
+                                } } } } },
+                def: {
+                    ...(JSON.parse(row.swagger) ? { swagger: '2.0' } : { openapi: '3.0.0' }),
+                    paths: { [path]: { get: { parameters: [parameter] } } },
+                },
+                warn: () => undefined,
+            });
+            const args = Object.values(point.g).flat();
+            node_assert_1.default.strictEqual(args.length, 1);
+            node_assert_1.default.deepStrictEqual([args[0].style ?? null, args[0].explode ?? null], [JSON.parse(row.style), JSON.parse(row.explode)]);
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-info-summary', () => {
     for (const row of loadTsv('info-summary')) {
         (0, node_test_1.test)(`resolveSummary(${row.def.slice(0, 60)})`, () => {

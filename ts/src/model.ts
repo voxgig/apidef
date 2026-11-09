@@ -90,6 +90,8 @@ type ModelArg = {
   k: ArgKind
   r: boolean
   ex?: any
+  style?: string
+  explode?: boolean
 }
 
 
