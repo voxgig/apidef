@@ -1046,6 +1046,7 @@ function validator(torig: undefined | string | string[]): any {
   }
 }
 
+
 // The type a field holds when it is not null: the type itself, or the one
 // member of a union beside `$NULL`. Any other union has none.
 function nonNullType(type: any): string | undefined {
@@ -1282,7 +1283,15 @@ const NUMBER_NAME_RE = /^(latitude$|longitude$|lat$|lng$|lon$|price$|amount$|rat
 const STRING_NAME_RE = /^(url$|href$|link$|uri$|email$|name$|title$|description$|slug$|path$|label$|username$|password$|token$|key$)/
 const ID_NAME_RE = /(_id$|^id$)/
 
-function inferFieldType(name: string, specType: string): string {
+function inferFieldType(name: string, specType: any): any {
+  // A nullable type is inferred by its other member, and keeps its null.
+  const own = nonNullType(specType)
+  if (null != own && own !== specType) {
+    const inferred = inferFieldType(name, own)
+    return inferred === own ? specType :
+      [specType[0], specType[1].map((member: any) => own === member ? inferred : member)]
+  }
+
   // Only override $ANY, or $STRING for boolean-patterned names
   if ('`$ANY`' === specType) {
     if (BOOLEAN_NAME_RE.test(name)) return '`$BOOLEAN`'

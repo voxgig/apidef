@@ -205,6 +205,54 @@ func TestApiIdMovesAsideRatherThanBeingRewritten(t *testing.T) {
 	}
 }
 
+// Mirrors ts/test/composite-identity.test.ts: a string that may be null holds
+// the joined parts where it is.
+func TestNullableStringIdHoldsThePartsWhereItIs(t *testing.T) {
+	ent := entWithSegments(segTyped(lit("repos"), vr("owner"), vr("repo")))
+	ent["id"] = map[string]any{"name": "id", "field": "id"}
+	ctx := &ApiDefContext{
+		Model: map[string]any{"name": "github"},
+		ApiModel: map[string]any{"main": map[string]any{
+			KIT: map[string]any{"entity": map[string]any{"repo": ent}},
+		}},
+		Def: map[string]any{"paths": map[string]any{
+			"/repos/{owner}/{repo}": map[string]any{
+				"get": map[string]any{"responses": map[string]any{
+					"200": map[string]any{"content": map[string]any{
+						"application/json": map[string]any{"schema": map[string]any{
+							"type": "object",
+							"properties": map[string]any{
+								"id":   map[string]any{"type": "string", "nullable": true},
+								"name": map[string]any{"type": "string"},
+							},
+						}},
+					}},
+				}},
+			},
+		}},
+	}
+
+	if _, err := FieldTransform(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	id, _ := ent["id"].(map[string]any)
+	if !jsonEqual(id["parts"], []any{"owner", "repo"}) {
+		t.Errorf("id parts = %v, want [owner repo]", id["parts"])
+	}
+	fields, _ := ent["fields"].(map[string]any)
+	idf, _ := fields["id"].(map[string]any)
+	if !jsonEqual(idf["t"], []any{"`$ONE`", []any{"`$STRING`", "`$NULL`"}}) {
+		t.Errorf("id type = %v, want the nullable string", idf["t"])
+	}
+	if _, moved := fields["github_id"]; moved {
+		t.Errorf("the nullable string id was moved aside: %v", fields["github_id"])
+	}
+	if _, has := ent["alias"]; has {
+		t.Errorf("alias = %v, want none", ent["alias"])
+	}
+}
+
 // A SHALLOW COPY SHARES NESTED MAPS. The move is followed by deletions on the
 // original — clearing the stale per-op `type` off `id` — so a shallow copy
 // left the preserved field holding nothing for the one key it exists to keep.

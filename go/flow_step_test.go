@@ -87,10 +87,10 @@ func TestTsvFlowStep(t *testing.T) {
 	for _, row := range rows {
 		t.Run(row["ops"], func(t *testing.T) {
 			var ops map[string][]any
-			var fieldNames []string
+			var fieldDecls []any
 			var want any
 			unmarshalCol(t, row, "ops", &ops)
-			unmarshalCol(t, row, "fields", &fieldNames)
+			unmarshalCol(t, row, "fields", &fieldDecls)
 			unmarshalCol(t, row, "expected", &want)
 
 			opmap := map[string]any{}
@@ -101,9 +101,14 @@ func TestTsvFlowStep(t *testing.T) {
 				}
 				opmap[name] = map[string]any{"name": name, "points": points}
 			}
+			// A field is a string unless the row gives its type.
 			fields := map[string]any{}
-			for _, name := range fieldNames {
-				fields[name] = map[string]any{"n": name, "t": "`$STRING`"}
+			for _, decl := range fieldDecls {
+				if name, ok := decl.(string); ok {
+					fields[name] = map[string]any{"n": name, "t": "`$STRING`"}
+				} else if field, ok := decl.(map[string]any); ok {
+					fields[field["n"].(string)] = field
+				}
 			}
 			flow := map[string]any{"name": "BasicThingFlow", "entity": "thing", "kind": "basic", "step": []any{}}
 			ctx := &ApiDefContext{ApiModel: map[string]any{

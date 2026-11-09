@@ -225,6 +225,29 @@ describe('composite-identity', () => {
   })
 
 
+  // go/composite_test.go reads the same response.
+  test('a nullable string id holds the parts where it is', async () => {
+    const path = ['repos', '{owner}', '{repo}']
+    const ent: any = {
+      name: 'repo', fields: {},
+      op: { load: { name: 'load', points: [{ o: '/' + path.join('/'), m: 'GET', s: seg(...path) }] } },
+    }
+    const def = { paths: { ['/' + path.join('/')]: { get: { responses: { '200': { content: {
+      'application/json': { schema: { type: 'object', properties: {
+        id: { type: 'string', nullable: true }, name: { type: 'string' },
+      } } },
+    } } } } } } }
+
+    await fieldTransform({ apimodel: { main: { kit: { entity: { repo: ent } } } }, def,
+      model: { name: 'github' } } as any)
+
+    assert.deepStrictEqual(ent.id.parts, ['owner', 'repo'])
+    assert.deepStrictEqual(ent.fields.id.t, ['`$ONE`', ['`$STRING`', '`$NULL`']])
+    assert.equal(ent.fields.github_id, undefined)
+    assert.equal(ent.alias, undefined)
+  })
+
+
   describe('where a part lives in the response', () => {
 
     async function withResponse(

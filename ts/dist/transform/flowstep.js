@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.flowstepTransform = void 0;
 const jostraca_1 = require("jostraca");
 const struct_1 = require("@voxgig/struct");
+const utility_1 = require("../utility");
 function isEntityIdParam(point, param, opname) {
     if ('id' === param?.n)
         return true;
@@ -236,7 +237,7 @@ function firstTextField(ent, op) {
         // one holding bytes, never does. Fields are sorted by name, so the choice
         // is alphabetical accident: solar's planet, once its spec declared the
         // server-assigned `forbidReason`, marked that instead of `kind`.
-        if ('`$STRING`' === field.t && true !== identity[field.n] && true !== field.ro &&
+        if ('`$STRING`' === (0, utility_1.nonNullType)(field.t) && true !== identity[field.n] && true !== field.ro &&
             'binary' !== field.fo && true !== paramNames[field.n]) {
             return field;
         }

@@ -56,7 +56,7 @@ declare function guardPrototypeName(s: string): string;
 declare function prefixLeadingDigit(s: string): string;
 declare function sanitizeSlug(s: string): string;
 declare function slugToPascalCase(s: string): string;
-declare function inferFieldType(name: string, specType: string): string;
+declare function inferFieldType(name: string, specType: any): any;
 declare function humanTitle(name: string): string;
 declare function normalizeFieldName(s: string): string;
 declare function canonizeParam(name: string): string;
