@@ -1142,6 +1142,32 @@ describe('apidef', () => {
     assert.deepStrictEqual(entities.joke.id, { name: 'id', field: 'id' })
     assert.deepStrictEqual(Object.keys(entities.joke.fields), ['category', 'id', 'joke'])
     assert.deepStrictEqual(entities.team.id, { name: 'id', field: 'id' })
+
+    // A classifier or a lookup verb picks the record without keying it, on a
+    // path that only reads; the record keeps an identity it declares.
+    const route: Record<string, string> = {}
+    for (const ent of Object.values(entities) as any[]) {
+      for (const [op, opdef] of Object.entries(ent.op) as [string, any][]) {
+        for (const pt of opdef.points) {
+          route[pt.m + ' ' + pt.o] = [op, (pt.g?.params ?? [])
+            .map((a: any) => a.or + '>' + a.n).sort().join(','), 'id=' + (ent.id?.field ?? '-')].join(' ')
+        }
+      }
+    }
+    for (const [point, want] of [
+      ['GET /riddle/{category}', 'load category>category id=id'],
+      ['GET /cat/{tag}', 'load tag>tag id=id'],
+      ['GET /emoji/{group-name}', 'load group-name>group_name id=-'],
+      ['GET /api/find/{name}', 'load name>name id=id'],
+      ['GET /movies/search/{query}', 'load query>query id=-'],
+      ['GET /pokemon/{name}', 'load name>id id=name'],
+      ['GET /categories/{category}', 'load category>id id=id'],
+      ['GET /settings/{type}', 'load type>id id=type'],
+      ['PUT /settings/{type}', 'update type>id id=type'],
+      ['GET /members/lookup/{member_id}', 'load member_id>id id=id'],
+    ]) {
+      assert.strictEqual(route[point], want, point)
+    }
   })
 
 

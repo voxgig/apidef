@@ -52,6 +52,94 @@
         "responses": { "200": { "description": "OK", "content": { "application/json": {
           "schema": { "$ref": "#/components/schemas/Team" } } } } }
       }
+    },
+    "/riddle/{category}": {
+      "get": {
+        "operationId": "riddle-by-category",
+        "parameters": [ { "name": "category", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "$ref": "#/components/schemas/Riddle" } } } } }
+      }
+    },
+    "/cat/{tag}": {
+      "get": {
+        "operationId": "cat-by-tag",
+        "parameters": [ { "name": "tag", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "type": "object", "properties": {
+            "_id": { "type": "string" }, "mimetype": { "type": "string" },
+            "tags": { "type": "array", "items": { "type": "string" } } } } } } } }
+      }
+    },
+    "/emoji/{group-name}": {
+      "get": {
+        "operationId": "emoji-by-group",
+        "parameters": [ { "name": "group-name", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "type": "object", "properties": {
+            "name": { "type": "string" }, "group": { "type": "string" } } } } } } }
+      }
+    },
+    "/api/find/{name}": {
+      "get": {
+        "operationId": "find-anime",
+        "parameters": [ { "name": "name", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "type": "object", "properties": {
+            "exist": { "type": "boolean" }, "id": { "type": "integer" }, "ep": { "type": "integer" } } } } } } }
+      }
+    },
+    "/movies/search/{query}": {
+      "get": {
+        "operationId": "search-movie",
+        "parameters": [ { "name": "query", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "type": "object", "properties": {
+            "title": { "type": "string" }, "year": { "type": "integer" } } } } } } }
+      }
+    },
+    "/pokemon/{name}": {
+      "get": {
+        "operationId": "get-pokemon",
+        "parameters": [ { "name": "name", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "type": "object", "properties": {
+            "name": { "type": "string" }, "height": { "type": "integer" } } } } } } }
+      }
+    },
+    "/categories/{category}": {
+      "get": {
+        "operationId": "get-category",
+        "parameters": [ { "name": "category", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "type": "object", "properties": {
+            "name": { "type": "string" }, "count": { "type": "integer" } } } } } } }
+      }
+    },
+    "/settings/{type}": {
+      "get": {
+        "operationId": "get-setting",
+        "parameters": [ { "name": "type", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "$ref": "#/components/schemas/Setting" } } } } }
+      },
+      "put": {
+        "operationId": "put-setting",
+        "parameters": [ { "name": "type", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "requestBody": { "content": { "application/json": {
+          "schema": { "$ref": "#/components/schemas/Setting" } } } },
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "$ref": "#/components/schemas/Setting" } } } } }
+      }
+    },
+    "/members/lookup/{member_id}": {
+      "get": {
+        "operationId": "lookup-member",
+        "parameters": [ { "name": "member_id", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": {
+          "schema": { "type": "object", "properties": {
+            "id": { "type": "string" }, "email": { "type": "string" } } } } } } }
+      }
     }
   },
   "components": {
@@ -63,7 +151,11 @@
       "Joke": { "type": "object", "properties": {
         "id": { "type": "integer" }, "category": { "type": "string" }, "joke": { "type": "string" } } },
       "Team": { "type": "object", "properties": {
-        "id": { "type": "string" }, "name": { "type": "string" } } }
+        "id": { "type": "string" }, "name": { "type": "string" } } },
+      "Riddle": { "type": "object", "properties": {
+        "id": { "type": "integer" }, "category": { "type": "string" }, "riddle": { "type": "string" } } },
+      "Setting": { "type": "object", "properties": {
+        "type": { "type": "string" }, "value": { "type": "string" } } }
     }
   }
 }

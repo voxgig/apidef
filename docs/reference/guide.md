@@ -186,6 +186,19 @@ entity's paths:
   that identity; the route is just not keyed by it. A map of scalars is not
   a map of records, so `/labels/{lang}` answering strings still renames
   `{lang}` to `id`.
+- On a path with no `PUT`, `PATCH`, `DELETE` or `POST`, a trailing parameter
+  keys no record either when it names a value that many records share, or
+  follows a lookup verb, and the route stays a `load` as a random one does.
+  A shared value is a parameter whose name, in snake case and without a
+  `_name` suffix, is `category`, `tag`, `type`, `group`, `genre` or `kind`,
+  singular or plural: `/joke/{category}`, `/cat/{tag}` and
+  `/emoji/{group-name}`. A path whose entity or last segment names that
+  value is a collection of it, so `/categories/{category}` still renames
+  `{category}` to `id`. A lookup verb is a segment just before the parameter
+  whose first word is `find`, `search` or `lookup`, as in
+  `/api/find/{name}`, and a parameter after one whose name ends in `id` is
+  still a key. Any other name is a key, so `/pokemon/{name}` renames
+  `{name}` to `id`.
 - A parameter that keys a parent may be renamed after the parent's segment,
   as `<parent>_id`. A parameter whose own name, in snake case, is `name` or
   ends in `_name`, such as `project_name` or `projectName`, is never renamed

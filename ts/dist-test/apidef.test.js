@@ -889,6 +889,31 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.deepStrictEqual(entities.joke.id, { name: 'id', field: 'id' });
         node_assert_1.default.deepStrictEqual(Object.keys(entities.joke.fields), ['category', 'id', 'joke']);
         node_assert_1.default.deepStrictEqual(entities.team.id, { name: 'id', field: 'id' });
+        // A classifier or a lookup verb picks the record without keying it, on a
+        // path that only reads; the record keeps an identity it declares.
+        const route = {};
+        for (const ent of Object.values(entities)) {
+            for (const [op, opdef] of Object.entries(ent.op)) {
+                for (const pt of opdef.points) {
+                    route[pt.m + ' ' + pt.o] = [op, (pt.g?.params ?? [])
+                            .map((a) => a.or + '>' + a.n).sort().join(','), 'id=' + (ent.id?.field ?? '-')].join(' ');
+                }
+            }
+        }
+        for (const [point, want] of [
+            ['GET /riddle/{category}', 'load category>category id=id'],
+            ['GET /cat/{tag}', 'load tag>tag id=id'],
+            ['GET /emoji/{group-name}', 'load group-name>group_name id=-'],
+            ['GET /api/find/{name}', 'load name>name id=id'],
+            ['GET /movies/search/{query}', 'load query>query id=-'],
+            ['GET /pokemon/{name}', 'load name>id id=name'],
+            ['GET /categories/{category}', 'load category>id id=id'],
+            ['GET /settings/{type}', 'load type>id id=type'],
+            ['PUT /settings/{type}', 'update type>id id=type'],
+            ['GET /members/lookup/{member_id}', 'load member_id>id id=id'],
+        ]) {
+            node_assert_1.default.strictEqual(route[point], want, point);
+        }
     });
     // A literal that canonizes to nothing (`-`) names no entity and no
     // component: the key after it is not taken for the entity's own.

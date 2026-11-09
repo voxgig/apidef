@@ -4,12 +4,38 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 6
-  metrics: count: path: 6
-  metrics: count: method: 6
+  metrics: count: entity: 15
+  metrics: count: path: 15
+  metrics: count: method: 16
+
+  entity: cat: {
+    path: "/cat/{tag}": {
+      op: load: method: *GET
+    }
+  }
 
   entity: catalogue: {
     path: "/catalogue/{currency}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: category: {
+    path: "/categories/{category}": {
+      rename: param: "category": *"id"
+      op: load: method: *GET
+    }
+  }
+
+  entity: emoji: {
+    path: "/emoji/{group-name}": {
+      rename: param: "group-name": *"group_name"
+      op: load: method: *GET
+    }
+  }
+
+  entity: find: {
+    path: "/api/find/{name}": {
       op: load: method: *GET
     }
   }
@@ -27,6 +53,20 @@ guide: {
     }
   }
 
+  entity: lookup: {
+    path: "/members/lookup/{member_id}": {
+      rename: param: "member_id": *"id"
+      op: load: method: *GET
+    }
+  }
+
+  entity: pokemon: {
+    path: "/pokemon/{name}": {
+      rename: param: "name": *"id"
+      op: load: method: *GET
+    }
+  }
+
   entity: quote: {
     path: "/random/quote/{category}": {
       op: load: method: *GET
@@ -36,6 +76,26 @@ guide: {
   entity: region: {
     path: "/regions/{country}": {
       op: load: method: *GET
+    }
+  }
+
+  entity: riddle: {
+    path: "/riddle/{category}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: search: {
+    path: "/movies/search/{query}": {
+      op: load: method: *GET
+    }
+  }
+
+  entity: setting: {
+    path: "/settings/{type}": {
+      rename: param: "type": *"id"
+      op: load: method: *GET
+      op: update: method: *PUT
     }
   }
 
