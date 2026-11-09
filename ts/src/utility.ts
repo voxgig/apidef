@@ -2247,6 +2247,12 @@ const PAGE_ROLES: [string, string[]][] = [
 ]
 
 
+function isPageRoleName(name: string): boolean {
+  const norm = name.toLowerCase().replace(/[_-]/g, '')
+  return PAGE_ROLES.some(([, names]) => names.includes(norm))
+}
+
+
 // Where a page keeps its total, the cursor or link to the next page, and
 // whether there is one: beside the records, else in the page's metadata.
 function pageTransform(props: any, records: string): Record<string, string> | undefined {
@@ -2261,7 +2267,8 @@ function pageTransform(props: any, records: string): Record<string, string> | un
     }
   }
   // A `count` beside data of its own counts that data, as GitHub's traffic does.
-  const ownData = holdsOwnData(props)
+  const ownData = holdsOwnData(Object.fromEntries(
+    Object.entries(props).filter(([k]) => !isPageRoleName(k))))
   const find = (name: string): string | undefined => {
     for (const [prefix, level] of levels) {
       if ('count' === name && '' === prefix && ownData) {
@@ -2269,7 +2276,7 @@ function pageTransform(props: any, records: string): Record<string, string> | un
       }
       const key = keysof(level).find((k: string) => ('' !== prefix || k !== records) &&
         name === k.toLowerCase().replace(/[_-]/g, '') &&
-        !isObjectSchema(level[k]) && true !== propIsList(level[k]))
+        !isObjectSchema(level[k]) && false === propIsList(level[k]))
       if (null != key) {
         return '`body.' + prefix + key + '`'
       }

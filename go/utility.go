@@ -2359,6 +2359,18 @@ var pageRoles = []struct {
 	{"next", []string{"next", "nexturl", "nextlink", "nextpageurl"}},
 }
 
+func isPageRoleName(name string) bool {
+	norm := envelopePagingSepRE.ReplaceAllString(strings.ToLower(name), "")
+	for _, r := range pageRoles {
+		for _, n := range r.names {
+			if n == norm {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // pageTransform mirrors ts/src/utility.ts: where a page keeps its total, the
 // cursor or link to the page after it, and whether there is one, as body
 // paths; nil when it keeps none of them.
@@ -2379,7 +2391,13 @@ func pageTransform(props map[string]any, records string) map[string]any {
 			levels = append(levels, level{k + ".", meta})
 		}
 	}
-	ownData := holdsOwnData(props)
+	rest := map[string]any{}
+	for k, v := range props {
+		if !isPageRoleName(k) {
+			rest[k] = v
+		}
+	}
+	ownData := holdsOwnData(rest)
 	find := func(name string) string {
 		for _, lv := range levels {
 			if name == "count" && lv.prefix == "" && ownData {
@@ -2389,9 +2407,9 @@ func pageTransform(props map[string]any, records string) map[string]any {
 				if lv.prefix == "" && k == records {
 					continue
 				}
-				islist, _ := propIsList(lv.props[k])
+				islist, known := propIsList(lv.props[k])
 				if name == envelopePagingSepRE.ReplaceAllString(strings.ToLower(k), "") &&
-					!isObjectSchema(lv.props[k]) && !islist {
+					!isObjectSchema(lv.props[k]) && known && !islist {
 					return "`body." + lv.prefix + k + "`"
 				}
 			}
