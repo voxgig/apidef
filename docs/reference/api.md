@@ -72,6 +72,12 @@ The build function signature is `build(model, build, ctx)`:
 The instance is created lazily on first call and reused, so per-model state
 (custom plurals) is installed and cleared on each `generate`.
 
+The build function reads `model` and writes nothing to it. A build that
+writes a file returns `reload: true`, and the pipeline then compiles its
+model again from disk, so anything added to the model in memory would reach
+the compiled model only on a run that wrote no file. The result is the same
+compiled model whether a run wrote files or not.
+
 ## `ApiDefResult`
 
 | field | type | meaning |

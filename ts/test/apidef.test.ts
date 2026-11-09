@@ -1171,6 +1171,27 @@ describe('apidef', () => {
   })
 
 
+  // The build reloads its model after a run that writes a file, so a
+  // generation leaves the model it is given as it found it.
+  test('generate-leaves-the-model', async () => {
+    const folder = __dirname + '/../test/filter-param'
+    const build = await ApiDef.makeBuild({ folder })
+    const model = { name: 'filter-param', def: 'filter-param-def.json' }
+
+    const bres = await build(model, {
+      spec: {
+        base: folder,
+        buildargs: { apidef: { ctrl: { step: {
+          parse: true, guide: true, transformers: true, builders: false, generate: false,
+        } } } },
+      }
+    }, {})
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+    assert.deepStrictEqual(model, { name: 'filter-param', def: 'filter-param-def.json' })
+  })
+
+
   // A list keeps its page's total, cursor, has-more flag and next link beside
   // the records it reads, through the guide; an aggregate object has no page.
   test('guide-page-meta', async () => {

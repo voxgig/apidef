@@ -120,7 +120,10 @@ function ApiDef(opts) {
         let jres = undefined;
         try {
             ctrl = (0, types_1.OpenControlShape)(spec.ctrl || {});
-            const model = (0, types_1.OpenModelShape)(spec.model || {});
+            // A copy, as the build reloads its own model after a run that writes a
+            // file, so what this step added to it reached the compiled model only
+            // on a run that wrote nothing.
+            const model = (0, types_1.OpenModelShape)(modelInput(spec.model));
             const build = (0, types_1.OpenBuildShape)(spec.build || {});
             // Step: parse (API spec).
             if (!ctrl.step.parse) {
@@ -351,6 +354,17 @@ function ApiDef(opts) {
     }
     return {
         generate,
+    };
+}
+// What a generation reads of the build's model.
+function modelInput(given) {
+    return {
+        name: given?.name,
+        def: given?.def,
+        main: {
+            [types_1.KIT]: { info: given?.main?.[types_1.KIT]?.info },
+            custom: { plurals: given?.main?.custom?.plurals },
+        },
     };
 }
 // Sniff the input format from the definition file name. GraphQL schemas use

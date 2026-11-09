@@ -144,7 +144,10 @@ function ApiDef(opts: ApiDefOptions) {
     try {
       ctrl = OpenControlShape(spec.ctrl || {}) as Control
 
-      const model: Model = OpenModelShape(spec.model || {})
+      // A copy, as the build reloads its own model after a run that writes a
+      // file, so what this step added to it reached the compiled model only
+      // on a run that wrote nothing.
+      const model: Model = OpenModelShape(modelInput(spec.model))
       const build: Build = OpenBuildShape(spec.build || {})
 
       // Step: parse (API spec).
@@ -429,6 +432,19 @@ function ApiDef(opts: ApiDefOptions) {
 
   return {
     generate,
+  }
+}
+
+
+// What a generation reads of the build's model.
+function modelInput(given: any): any {
+  return {
+    name: given?.name,
+    def: given?.def,
+    main: {
+      [KIT]: { info: given?.main?.[KIT]?.info },
+      custom: { plurals: given?.main?.custom?.plurals },
+    },
   }
 }
 
