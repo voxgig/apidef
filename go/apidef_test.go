@@ -1126,6 +1126,27 @@ func TestGuideFilterParam(t *testing.T) {
 	}
 }
 
+// Mirrors the TS `generate-leaves-the-model` case.
+func TestGenerateLeavesTheModel(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "filter-param-")
+	model := map[string]any{"name": "filter-param", "def": "filter-param-def.json"}
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, OutPrefix: "filter-param-", Strategy: "heuristic01"}).
+		Generate(map[string]any{
+			"model": model,
+			"build": map[string]any{"spec": map[string]any{"base": "../ts/test/def"}},
+			"ctrl": map[string]any{"step": map[string]any{
+				"parse": true, "guide": true, "transformers": true,
+				"builders": false, "generate": false,
+			}},
+		})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v", err)
+	}
+	if want := map[string]any{"name": "filter-param", "def": "filter-param-def.json"}; !reflect.DeepEqual(model, want) {
+		t.Errorf("model = %v, want %v", model, want)
+	}
+}
+
 // Mirrors the TS `guide-page-meta` case.
 func TestGuidePageMeta(t *testing.T) {
 	folder := stageGuideEntry(t, t.TempDir(), "page-meta-")

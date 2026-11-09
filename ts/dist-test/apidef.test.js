@@ -915,6 +915,23 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
             node_assert_1.default.strictEqual(route[point], want, point);
         }
     });
+    // The build reloads its model after a run that writes a file, so a
+    // generation leaves the model it is given as it found it.
+    (0, node_test_1.test)('generate-leaves-the-model', async () => {
+        const folder = __dirname + '/../test/filter-param';
+        const build = await apidef_1.ApiDef.makeBuild({ folder });
+        const model = { name: 'filter-param', def: 'filter-param-def.json' };
+        const bres = await build(model, {
+            spec: {
+                base: folder,
+                buildargs: { apidef: { ctrl: { step: {
+                                parse: true, guide: true, transformers: true, builders: false, generate: false,
+                            } } } },
+            }
+        }, {});
+        node_assert_1.default.ok(bres.ok, 'build failed: ' + bres.err?.message);
+        node_assert_1.default.deepStrictEqual(model, { name: 'filter-param', def: 'filter-param-def.json' });
+    });
     // A list keeps its page's total, cursor, has-more flag and next link beside
     // the records it reads, through the guide; an aggregate object has no page.
     (0, node_test_1.test)('guide-page-meta', async () => {
