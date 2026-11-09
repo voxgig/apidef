@@ -453,6 +453,19 @@ read answers anything else is still renamed, and
 [the guide](../reference/guide.md#correcting-the-guide) is where to correct
 it.
 
+A route need not say `random` to answer a different record on each call.
+In a joke API, `/joke/{category}` answers a random joke of the category it
+is given, and in a cat-picture API, `/cat/{tag}` answers a random cat with
+the tag. Many records share a category or a tag, so neither parameter is a
+key. A lookup verb says the same: in an anime API, `/api/find/{name}` looks
+a show up by name and answers its numeric `id`, the record's identity. The
+parameter's name is all the path offers here, so the reading stays narrow.
+It needs a path that only reads, since a parameter that a `PUT` or `DELETE`
+addresses is a key, whatever its name. It also needs a path that is not a
+collection of the shared value itself, as `/categories/{category}` is. The
+shared values are a short list, and a name such as `/pokemon/{name}` stays a
+key.
+
 A parameter before the last segment keys the parent when the entity is
 named for both segments. A restaurant directory's `/restaurants/{id}/menu`
 is the menu of one restaurant: read as the menu's own key, `{id}` gave every

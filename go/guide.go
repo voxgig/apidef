@@ -1664,11 +1664,13 @@ func renameParams(ctx *ApiDefContext, data map[string]any, mdesc map[string]any)
 	entdescName := safeStr(entdesc["name"])
 
 	// A trailing parameter filters a path whose read answers a page of
-	// records or a map of them, and picks the record a random route answers.
+	// records or a map of them, and picks the record a random, classifier or
+	// lookup route answers.
 	pathdefMap, _ := pathdescEntry["def"].(map[string]any)
 	listedRecords, _ := work["listed"].(map[string]bool)
 	filtered := pathAnswersPage(pathdefMap, pathStr, getPM(ment), listedRecords) ||
-		pathAnswersRecordMap(pathdefMap) || randomRoute(parts)
+		pathAnswersRecordMap(pathdefMap) || randomRoute(parts) ||
+		selectorRoute(parts, pathdefMap, entdescName)
 
 	for partI := 0; partI < len(parts); partI++ {
 		partStr := parts[partI]
@@ -3027,6 +3029,37 @@ func randomRoute(parts []string) bool {
 		}
 	}
 	return false
+}
+
+// Values that many records share, so a parameter holding one keys none.
+var classifierWords = map[string]bool{
+	"category": true, "tag": true, "type": true, "group": true, "genre": true, "kind": true,
+}
+
+var lookupVerbs = map[string]bool{"find": true, "search": true, "lookup": true}
+
+// selectorRoute mirrors ts/src/guide/heuristic01.ts: on a path that only
+// reads, a trailing parameter named for a classifier, unless the collection is
+// of those values, or one after a lookup verb that is not an id.
+func selectorRoute(parts []string, pathdef map[string]any, entname string) bool {
+	last := len(parts) - 1
+	if last < 1 || !isParam(parts[last]) || isParam(parts[last-1]) {
+		return false
+	}
+	for _, method := range []string{"put", "patch", "delete", "post"} {
+		if pathdef[method] != nil {
+			return false
+		}
+	}
+	param := Snakify(NormalizeFieldName(parts[last][1 : len(parts[last])-1]))
+	before := parts[last-1]
+	classifier := Depluralize(strings.TrimSuffix(param, "_name"))
+	if classifierWords[classifier] {
+		return classifier != Canonize(before) && classifier != entname &&
+			!strings.HasSuffix(entname, "_"+classifier)
+	}
+	return lookupVerbs[strings.Split(Snakify(before), "_")[0]] &&
+		!strings.HasSuffix(strings.ToLower(param), "id")
 }
 
 // isListResponse mirrors ts/src/guide/heuristic01.ts: a trailing parameter

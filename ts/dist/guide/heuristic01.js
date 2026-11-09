@@ -778,9 +778,11 @@ function RenameParams(spec) {
     }
     const origParams = [];
     // A trailing parameter filters a path whose read answers a page of records
-    // or a map of them, and picks the record a random route answers.
+    // or a map of them, and picks the record a random, classifier or lookup
+    // route answers.
     const filtered = pathAnswersPage(pathdesc.def, pathStr, ment.pm, work.listed) ||
-        pathAnswersRecordMap(pathdesc.def) || randomRoute(parts);
+        pathAnswersRecordMap(pathdesc.def) || randomRoute(parts) ||
+        selectorRoute(parts, pathdesc.def, entdesc.name);
     for (let partI = 0; partI < parts.length; partI++) {
         let partStr = parts[partI];
         if (isParam(partStr)) {
@@ -1960,6 +1962,27 @@ function randomRoute(parts) {
     const last = parts.length - 1;
     return 0 < last && isParam(parts[last]) && parts.slice(0, last)
         .some((part) => !isParam(part) && 'random' === part.toLowerCase());
+}
+// Values that many records share, so a parameter holding one keys none.
+const CLASSIFIERS = ['category', 'tag', 'type', 'group', 'genre', 'kind'];
+const LOOKUP_VERBS = ['find', 'search', 'lookup'];
+// On a path that only reads, a trailing parameter named for a classifier
+// (`/joke/{category}`), unless the collection is of those values, or one
+// after a lookup verb (`/find/{name}`) that is not an id.
+function selectorRoute(parts, pathdef, entname) {
+    const last = parts.length - 1;
+    if (last < 1 || !isParam(parts[last]) || isParam(parts[last - 1]) ||
+        ['put', 'patch', 'delete', 'post'].some((method) => null != pathdef?.[method])) {
+        return false;
+    }
+    const param = (0, jostraca_2.snakify)((0, utility_2.normalizeFieldName)(parts[last].substring(1, parts[last].length - 1)));
+    const before = parts[last - 1];
+    const classifier = (0, utility_2.depluralize)(param.replace(/_name$/, ''));
+    if (CLASSIFIERS.includes(classifier)) {
+        return classifier !== (0, utility_2.canonize)(before) && classifier !== entname &&
+            !entname.endsWith('_' + classifier);
+    }
+    return LOOKUP_VERBS.includes((0, jostraca_2.snakify)(before).split('_')[0]) && !/id$/i.test(param);
 }
 // A trailing parameter addresses one record, unless the route answers a page
 // of records that the parameter filters; a component that some route lists

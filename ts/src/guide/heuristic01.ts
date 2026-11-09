@@ -1048,9 +1048,11 @@ function RenameParams(spec: TaskSpec) {
   const origParams = []
 
   // A trailing parameter filters a path whose read answers a page of records
-  // or a map of them, and picks the record a random route answers.
+  // or a map of them, and picks the record a random, classifier or lookup
+  // route answers.
   const filtered = pathAnswersPage(pathdesc.def, pathStr, ment.pm, work.listed) ||
-    pathAnswersRecordMap(pathdesc.def) || randomRoute(parts)
+    pathAnswersRecordMap(pathdesc.def) || randomRoute(parts) ||
+    selectorRoute(parts, pathdesc.def, entdesc.name)
 
   for (let partI = 0; partI < parts.length; partI++) {
     let partStr = parts[partI]
@@ -2673,6 +2675,32 @@ function randomRoute(parts: string[]): boolean {
   const last = parts.length - 1
   return 0 < last && isParam(parts[last]) && parts.slice(0, last)
     .some((part: string) => !isParam(part) && 'random' === part.toLowerCase())
+}
+
+
+// Values that many records share, so a parameter holding one keys none.
+const CLASSIFIERS = ['category', 'tag', 'type', 'group', 'genre', 'kind']
+
+const LOOKUP_VERBS = ['find', 'search', 'lookup']
+
+
+// On a path that only reads, a trailing parameter named for a classifier
+// (`/joke/{category}`), unless the collection is of those values, or one
+// after a lookup verb (`/find/{name}`) that is not an id.
+function selectorRoute(parts: string[], pathdef: any, entname: string): boolean {
+  const last = parts.length - 1
+  if (last < 1 || !isParam(parts[last]) || isParam(parts[last - 1]) ||
+    ['put', 'patch', 'delete', 'post'].some((method: string) => null != pathdef?.[method])) {
+    return false
+  }
+  const param = snakify(normalizeFieldName(parts[last].substring(1, parts[last].length - 1)))
+  const before = parts[last - 1]
+  const classifier = depluralize(param.replace(/_name$/, ''))
+  if (CLASSIFIERS.includes(classifier)) {
+    return classifier !== canonize(before) && classifier !== entname &&
+      !entname.endsWith('_' + classifier)
+  }
+  return LOOKUP_VERBS.includes(snakify(before).split('_')[0]) && !/id$/i.test(param)
 }
 
 

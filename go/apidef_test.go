@@ -1082,6 +1082,48 @@ func TestGuideFilterParam(t *testing.T) {
 			t.Errorf("%s id = %v, want field id", ent, id)
 		}
 	}
+
+	route := map[string]string{}
+	for _, name := range sortedKeys(entities) {
+		e, _ := entities[name].(map[string]any)
+		idField := "-"
+		if id, ok := e["id"].(map[string]any); ok {
+			idField = fmt.Sprint(id["field"])
+		}
+		ops, _ := e["op"].(map[string]any)
+		for _, opname := range sortedKeys(ops) {
+			op, _ := ops[opname].(map[string]any)
+			pts, _ := op["points"].([]any)
+			for _, p := range pts {
+				pt, _ := p.(map[string]any)
+				var params []string
+				if g, ok := pt["g"].(map[string]any); ok {
+					for _, a := range argsParamList(g["params"]) {
+						params = append(params, fmt.Sprint(a["or"])+">"+fmt.Sprint(a["n"]))
+					}
+				}
+				sort.Strings(params)
+				route[fmt.Sprint(pt["m"])+" "+fmt.Sprint(pt["o"])] =
+					opname + " " + strings.Join(params, ",") + " id=" + idField
+			}
+		}
+	}
+	for _, row := range [][2]string{
+		{"GET /riddle/{category}", "load category>category id=id"},
+		{"GET /cat/{tag}", "load tag>tag id=id"},
+		{"GET /emoji/{group-name}", "load group-name>group_name id=-"},
+		{"GET /api/find/{name}", "load name>name id=id"},
+		{"GET /movies/search/{query}", "load query>query id=-"},
+		{"GET /pokemon/{name}", "load name>id id=name"},
+		{"GET /categories/{category}", "load category>id id=id"},
+		{"GET /settings/{type}", "load type>id id=type"},
+		{"PUT /settings/{type}", "update type>id id=type"},
+		{"GET /members/lookup/{member_id}", "load member_id>id id=id"},
+	} {
+		if got := route[row[0]]; got != row[1] {
+			t.Errorf("%s = %q, want %q", row[0], got, row[1])
+		}
+	}
 }
 
 // Mirrors the TS `guide-page-side` case.
