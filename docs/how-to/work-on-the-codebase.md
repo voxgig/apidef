@@ -47,13 +47,13 @@ cd ts && TEST_PATTERN='depluralize' npm run test-some
 | types / model shapes | `ts/src/{types,model,desc,def}.ts` |
 | Go port | `go/*.go` (flat package) |
 | guide network weights | `nn/guide.safetensors`, authored in `ts/build/nn-weights.js` |
-| shared fixtures | `ts/test/*.tsv` |
+| shared fixtures | `test/*.tsv` |
 | golden snapshots | `ts/test/model-ref/*.json` |
 
 ## When you change behavior
 
 1. **Edit the TypeScript** in `ts/src/…` and add/extend a test.
-2. **Update shared fixtures** in `ts/test/*.tsv` if a pure-function behavior
+2. **Update shared fixtures** in `test/*.tsv` if a pure-function behavior
    changed — both languages execute these (`ts/test/tsv.test.ts` and
    `go/tsv_test.go`).
 3. **Mirror into Go.** Find the matching code via the `// Mirrors src/...`
@@ -68,8 +68,11 @@ cd ts && TEST_PATTERN='depluralize' npm run test-some
 
 ## Adding a test
 
-- Pure functions: add a row to the relevant `ts/test/*.tsv` (covers TS *and*
+- Pure functions: add a row to the relevant `test/*.tsv` (covers TS *and*
   Go automatically).
+- New pure-function table: a `<name>.tsv` in the top-level `test/`, loaded
+  by both `ts/test/tsv.test.ts` and `go/tsv_test.go`. A table only the
+  TypeScript suite runs stays in `ts/test/` until Go runs it too.
 - TS unit/integration: a `*.test.ts` under `ts/test/` (mirror the
   `makeCtx`-style pattern in `ts/test/transform/*.test.ts`).
 - Go: a `*_test.go` in `go/`.

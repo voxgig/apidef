@@ -93,7 +93,7 @@ taken.
 encountered. These power sanity checks (e.g. the `PATH MISMATCH` guard that
 confirms every source method was classified). A vendor extension key under
 `paths`, such as `x-codegen-contextRoot`, is no path, so it is neither counted
-nor classified; [`ts/test/path-metrics.tsv`](../../ts/test/path-metrics.tsv)
+nor classified; [`test/path-metrics.tsv`](../../test/path-metrics.tsv)
 pins it in both builds.
 
 ### Component reference counts
@@ -134,7 +134,7 @@ rates twice:
   `OPTIONS`) with neither takes its `202` schema as the candidate when
   another operation answers with the same record in a `200` or `201`, both
   read through their envelopes. The rows of
-  [`ts/test/naming-schemas.tsv`](../../ts/test/naming-schemas.tsv) pin it in
+  [`test/naming-schemas.tsv`](../../test/naming-schemas.tsv) pin it in
   both builds. When there are two, a frequent one drops out unless a literal segment of
   the operation's own path names it.
 - When the schema chosen for an operation has a name that differs from the
@@ -149,7 +149,7 @@ item path is renamed to `id` from the path alone, whatever schema the
 operation answers with; the `guide-trailing-key` case in
 [`ts/test/apidef.test.ts`](../../ts/test/apidef.test.ts) pins it.
 
-The rows of [`ts/test/ref-count.tsv`](../../ts/test/ref-count.tsv) pin the
+The rows of [`test/ref-count.tsv`](../../test/ref-count.tsv) pin the
 counts in both builds. In the `alias-chain` row, the paths `/a`, `/b`, and
 `/c` answer with `A`, `B`, and `C`, where `A` is a `$ref` to `B` and `B` a
 `$ref` to `C`. The counts are 1, 2, and 2; replacing each link in turn with
@@ -248,19 +248,19 @@ item paths' parameter is an identifier itself: `id`, or a name ending in
 field keeps its underscore, `_id`, though other field names lose a leading
 underscore. A record declaring two of them, or a path whose parameter is not
 an identifier, such as `/cats/{tag}`, keeps `id`. The rows of
-[`ts/test/single-identity.tsv`](../../ts/test/single-identity.tsv) pin these
+[`test/single-identity.tsv`](../../test/single-identity.tsv) pin these
 rules in both builds.
 
 `isNameParam` and `entityParamNames` in
 [`ts/src/guide/heuristic01.ts`](../../ts/src/guide/heuristic01.ts) are the
-last two rules. The rows of [`ts/test/name-param.tsv`](../../ts/test/name-param.tsv)
-and [`ts/test/entity-param-names.tsv`](../../ts/test/entity-param-names.tsv)
+last two rules. The rows of [`test/name-param.tsv`](../../test/name-param.tsv)
+and [`test/entity-param-names.tsv`](../../test/entity-param-names.tsv)
 pin them in both builds, and the `guide-param-names` tests in
 [`ts/test/apidef.test.ts`](../../ts/test/apidef.test.ts) and
 [`go/apidef_test.go`](../../go/apidef_test.go) pin the outcome for the whole
 spec on [`ts/test/def/param-names-def.json`](../../ts/test/def/param-names-def.json).
 `answersPage` in [`ts/src/utility.ts`](../../ts/src/utility.ts) is the page
-test, pinned by [`ts/test/answers-page.tsv`](../../ts/test/answers-page.tsv),
+test, pinned by [`test/answers-page.tsv`](../../test/answers-page.tsv),
 and the `guide-page-param` tests pin the page, parent and `_id` rules on
 [`ts/test/def/page-param-def.json`](../../ts/test/def/page-param-def.json).
 
@@ -305,7 +305,7 @@ before any entity is named:
   its item, and both stay envelopes.
 
 The rows of
-[`ts/test/envelope-item-ref.tsv`](../../ts/test/envelope-item-ref.tsv) pin
+[`test/envelope-item-ref.tsv`](../../test/envelope-item-ref.tsv) pin
 `envelopeItemRef` in both builds, and the `guide-envelope` tests in
 [`ts/test/apidef.test.ts`](../../ts/test/apidef.test.ts) and
 [`go/apidef_test.go`](../../go/apidef_test.go) pin the decision for the
@@ -322,8 +322,8 @@ as a plain page does (see below). Lob's address list,
 then come from the records the envelope holds. When those records are a
 `oneOf` with no properties of their own, the fields come from the response
 example, read through the same property. The rows of
-[`ts/test/composed-envelope-prop.tsv`](../../ts/test/composed-envelope-prop.tsv)
-and [`ts/test/merged-properties.tsv`](../../ts/test/merged-properties.tsv)
+[`test/composed-envelope-prop.tsv`](../../test/composed-envelope-prop.tsv)
+and [`test/merged-properties.tsv`](../../test/merged-properties.tsv)
 pin the rule in both builds, and the `guide-allof-envelope` tests pin it
 for the whole spec on
 [`ts/test/def/allof-envelope-def.json`](../../ts/test/def/allof-envelope-def.json).
@@ -343,7 +343,7 @@ returns the link, not the metadata. A list under a metadata name is records,
 and beside a single item it is a second candidate. A list is not held to
 this rule, since its records are what a caller asks for.
 The added rows of
-[`ts/test/envelope-prop.tsv`](../../ts/test/envelope-prop.tsv) pin it in both
+[`test/envelope-prop.tsv`](../../test/envelope-prop.tsv) pin it in both
 builds.
 
 A structured property is one that can hold a record: an object, an array, a
@@ -358,8 +358,8 @@ them as it would beside a plain string. The same reading decides whether a
 property named after the entity wraps a response or a request body.
 `isEntityWrapperProp` in [`ts/src/utility.ts`](../../ts/src/utility.ts) is the
 rule. The rows of
-[`ts/test/entity-wrapper-prop.tsv`](../../ts/test/entity-wrapper-prop.tsv) and
-[`ts/test/envelope-prop.tsv`](../../ts/test/envelope-prop.tsv) pin it in both
+[`test/entity-wrapper-prop.tsv`](../../test/entity-wrapper-prop.tsv) and
+[`test/envelope-prop.tsv`](../../test/envelope-prop.tsv) pin it in both
 builds, and the `guide-composed-scalar` tests pin it for the whole spec on
 [`ts/test/def/composed-scalar-def.json`](../../ts/test/def/composed-scalar-def.json).
 
@@ -371,7 +371,7 @@ of those names is still records, and a list of strings is not records, so a
 feed that holds a list of links beside its `_links` stays unread. Nor is a
 list whose items are a `oneOf` of strings and nulls: a composition holds
 records only when one of its branches is an object. The rows of
-[`ts/test/envelope-prop.tsv`](../../ts/test/envelope-prop.tsv) pin it in both
+[`test/envelope-prop.tsv`](../../test/envelope-prop.tsv) pin it in both
 builds.
 
 A list whose items each hold nothing but the record, under the entity's
@@ -405,8 +405,8 @@ scalars of its own too, so a timeline that answers
 so a combined status that counts its statuses still reads whole. A page
 composed with `allOf` reads its records only when it holds no data of its
 own, such as Neon's branch list, `allOf[branches, annotations, pagination]`. The rows of
-[`ts/test/envelope-prop.tsv`](../../ts/test/envelope-prop.tsv) and
-[`ts/test/composed-envelope-prop.tsv`](../../ts/test/composed-envelope-prop.tsv)
+[`test/envelope-prop.tsv`](../../test/envelope-prop.tsv) and
+[`test/composed-envelope-prop.tsv`](../../test/composed-envelope-prop.tsv)
 and the `guide-page-side` tests pin it in both builds, on
 [`ts/test/def/page-side-def.json`](../../ts/test/def/page-side-def.json).
 
@@ -435,7 +435,7 @@ A page
 guide writes each role as a default of its own, so the entry guide can
 correct one and keep the rest. `pageTransform` in
 [`ts/src/utility.ts`](../../ts/src/utility.ts) is the rule, and the rows of
-[`ts/test/page-transform.tsv`](../../ts/test/page-transform.tsv) and the
+[`test/page-transform.tsv`](../../test/page-transform.tsv) and the
 `guide-page-meta` tests pin it in both builds, on
 [`ts/test/def/page-meta-def.json`](../../ts/test/def/page-meta-def.json).
 
@@ -483,7 +483,7 @@ all, except that a write whose path ends in a singular literal is a verb
 and names no resource. `pathResource` in
 [`ts/src/guide/heuristic01.ts`](../../ts/src/guide/heuristic01.ts) returns
 it, and the rows of
-[`ts/test/path-resource.tsv`](../../ts/test/path-resource.tsv) pin it in both
+[`test/path-resource.tsv`](../../test/path-resource.tsv) pin it in both
 builds.
 
 Before any entity is named, the guide collects, for each response schema,
@@ -511,7 +511,7 @@ The literal-segment rule still comes first: when the schema's name is a
 literal segment of some path in the spec, the schema names the entity even
 for a route that would take its own name.
 
-The rows of [`ts/test/shared-routes.tsv`](../../ts/test/shared-routes.tsv)
+The rows of [`test/shared-routes.tsv`](../../test/shared-routes.tsv)
 pin `sharedRoutes` in both builds, one row for each clause, and the
 `guide-sharing` tests in [`ts/test/apidef.test.ts`](../../ts/test/apidef.test.ts)
 and [`go/apidef_test.go`](../../go/apidef_test.go) pin the decision for the
@@ -553,8 +553,8 @@ under another name joins, and so does a create that only queues a job.
 `distinctShare` and `distinctRecord` in
 [`ts/src/guide/heuristic01.ts`](../../ts/src/guide/heuristic01.ts) are the
 comparison, and the rows of
-[`ts/test/distinct-share.tsv`](../../ts/test/distinct-share.tsv) and
-[`ts/test/distinct-record.tsv`](../../ts/test/distinct-record.tsv) pin them in
+[`test/distinct-share.tsv`](../../test/distinct-share.tsv) and
+[`test/distinct-record.tsv`](../../test/distinct-record.tsv) pin them in
 both builds.
 
 The owner's entity takes the name of a share's entity when the share's

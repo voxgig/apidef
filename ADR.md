@@ -152,11 +152,11 @@ We accept that:
   rule. `Depluralize()` in `go/utility.go` is a parity port of it, with
   its own `irregularPlurals` table — not a second rule. A change to
   `IRREGULARS` or to the rule chain is not done until it has been made in
-  both, and pinned in `ts/test/depluralize.tsv`, the shared fixture that
+  both, and pinned in `test/depluralize.tsv`, the shared fixture that
   `ts/test/tsv.test.ts` and `go/tsv_test.go` both execute. A case added
   only to `ts/test/utility.test.ts` does not exercise the Go port, and
   the two can diverge with the suites green.
-- Its behaviour is pinned by `ts/test/depluralize.tsv` (106 rows) for the
+- Its behaviour is pinned by `test/depluralize.tsv` (106 rows) for the
   regular suffixes and the `IRREGULARS` table, and by
   `ts/test/utility.test.ts` for the `custom.plurals` override. What that
   corpus pins today is the PLURAL inputs — `statuses → status`,
@@ -270,7 +270,7 @@ the exchange survives into the model as facts on
 ### Enforcement
 
 - `authExchangeOp()` and `specSecuredByDefault()` in `ts/src/utility.ts`
-  are the canonical detection, pinned by `ts/test/auth-exchange.tsv`
+  are the canonical detection, pinned by `test/auth-exchange.tsv`
   (16 rows, both polarities) through `ts/test/tsv.test.ts`.
 - `guideActive()` is the single reader of `active`, consumed by the
   entity, path, op and field transforms. A new suppression must route
@@ -360,7 +360,7 @@ cannot drop their regex until the model can express a partial-element
 placeholder. Doing that means a segment carrying a list of pieces rather than
 one `lit`/`var`, which nests the 99% case to serve the 1% — a trade to weigh
 when the migration is actually scheduled, not before. Until then the limit is
-pinned by `ts/test/path-segments.tsv`, which both ports run.
+pinned by `test/path-segments.tsv`, which both ports run.
 
 Two things make option 2 wrong rather than merely redundant.
 

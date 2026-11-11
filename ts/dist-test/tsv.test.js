@@ -62,8 +62,10 @@ const refcount_1 = require("../dist/refcount");
 const clean_1 = require("../dist/transform/clean");
 const flowstep_1 = require("../dist/transform/flowstep");
 const transform_1 = require("../dist/transform");
-function loadTsv(name) {
-    const filepath = Path.join(__dirname, '..', 'test', name + '.tsv');
+const SHARED_TSV_DIR = Path.join(__dirname, '..', '..', 'test');
+const TS_ONLY_TSV_DIR = Path.join(__dirname, '..', 'test');
+function loadTsv(name, dir = SHARED_TSV_DIR) {
+    const filepath = Path.join(dir, name + '.tsv');
     const text = Fs.readFileSync(filepath, 'utf8');
     const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
     const headers = lines[0].split('\t');
@@ -1175,7 +1177,7 @@ function loadTsv(name) {
     }
 });
 (0, node_test_1.describe)('tsv-graphql-classify', () => {
-    const rows = loadTsv('graphql-classify');
+    const rows = loadTsv('graphql-classify', TS_ONLY_TSV_DIR);
     for (const row of rows) {
         (0, node_test_1.test)(`graphql classify ${row.name}`, () => {
             const sig = JSON.parse(row.in);

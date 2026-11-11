@@ -47,7 +47,7 @@ its scheme. A warning names the URL before and after.
 Only a name of letters, digits and underscores inside exactly two braces is
 rewritten. Any other run of braces, such as `{{{base_url}}}`, `{{base_url}`
 or `{{base-url}}`, stays as written, and so does a variable already in
-single braces. Each case is a row in `ts/test/servers.tsv`.
+single braces. Each case is a row in `test/servers.tsv`.
 
 ### `info.security`
 
@@ -64,7 +64,7 @@ skipped. The scheme is the first of:
 array of the schemes sent together, so a pair such as `X-Auth-Email` with
 `X-Auth-Key` sits there beside a bearer token. `exchange` names an
 operation that trades a credential for an access token. Each case is a row
-in `ts/test/security.tsv`.
+in `test/security.tsv`.
 
 ## `ModelEntity`
 
@@ -119,7 +119,7 @@ Swagger 2's `type: file` states its format in the type. OpenAPI 3 writes a
 file as `type: string` with `format: binary`, and a Swagger 2 file is
 recorded as that equivalent: a `` `$STRING` `` field with `fo: binary`,
 unless the property states a `format` of its own. Without `fo` the field
-would read as text. `ts/test/allof-field.tsv` pins each case.
+would read as text. `test/allof-field.tsv` pins each case.
 
 Where two schemas for one field disagree — a response marking a field
 `readOnly` and a request body listing it as ordinary — the first declaration
@@ -132,12 +132,12 @@ omission sends a value the server rejects.
 field takes `fo` only from a declaration of its own type, and a type that
 allows null counts as the type beside the null. A number first declared
 without a format gains none from a request that sends it as a `date`
-string. `ts/test/field-merge.tsv` pins each case.
+string. `test/field-merge.tsv` pins each case.
 
 `t` comes from the property's `type`, trimmed and read in any letter case, so
 `File` is Swagger 2's `file`. A type apidef does not know, such as `symbol`,
 counts as no type, so the field is `` `$ANY` `` unless the name says what it
-holds. `ts/test/validator.tsv` pins each type.
+holds. `test/validator.tsv` pins each type.
 
 OpenAPI 3.0 ignores the siblings of a `$ref`, so a definition describes a
 referenced value by wrapping the `$ref` in an `allOf` beside a member that
@@ -153,7 +153,7 @@ from the property or a describing member to the one the scalar carries. A
 `` `$STRING` `` field with `fo: oid`. Any other `allOf`, such as one of
 objects, has no `type` of its own, so its field is `` `$ANY` `` unless the
 name says what it holds, such as an id, a count, or a flag.
-`ts/test/allof-field.tsv` pins each case.
+`test/allof-field.tsv` pins each case.
 
 A field that may be null has the type `` [`$ONE`, [<type>, `$NULL`]] ``. An
 OpenAPI 3.1 type list that names `null` beside one type gives it, in the
@@ -166,7 +166,7 @@ a `const`. A field reads `nullable` as it reads a type list: an `enum` or a
 one scalar admits null only when every part that declares a `type` admits it,
 by `nullable: true` or by listing `null`, so a describing member's `nullable`
 adds nothing, and a property whose own `type` leaves `null` out keeps it out.
-`ts/test/field-nullable.tsv` pins each case.
+`test/field-nullable.tsv` pins each case.
 
 A field typed `` `$ANY` `` takes a type from its name where the name says what
 it holds: an id, or a name such as `url` or `email`, is `` `$STRING` ``, a
@@ -175,7 +175,7 @@ count or a page size `` `$INTEGER` ``, a measure such as `price` or `latitude`
 `` `$STRING` `` named as a flag is `` `$BOOLEAN` `` too. A type that may be
 null is read by its other member and keeps its null, so a string named
 `is_open` that may be null is `` [`$ONE`, [`$BOOLEAN`, `$NULL`]] ``.
-`ts/test/infer-field-type.tsv` pins each name.
+`test/infer-field-type.tsv` pins each name.
 
 A point's request body properties become fields from the body its guide's
 `body.media` names, else from the body the body step prefers, of whatever
@@ -290,7 +290,7 @@ query or a cookie and `simple` for a header, and `explode` is `true` for
 
 A `param` argument records neither. Nor does one whose parameter declares
 `content` instead of a `schema`, since its media type says how it is sent.
-`ts/test/arg-style.tsv` pins each case in both ports.
+`test/arg-style.tsv` pins each case in both ports.
 
 A Swagger 2 `formData` parameter is a field of the request body, as a `body`
 parameter is the body itself, so neither is ever an argument, and neither
@@ -298,7 +298,7 @@ joins a point's `q.exist`. The type a `formData` parameter declares is read
 by `rb`, and by the entity's fields where its form is the body they come
 from. A required `formData` file is therefore a binary field of `rb`, and a
 `` `$STRING` `` field with `fo: binary` wherever its form gives the entity
-its fields. `ts/test/param-schema.tsv` pins each parameter,
+its fields. `test/param-schema.tsv` pins each parameter,
 `ts/test/declared-type.test.ts` one file in both places, and
 `ts/test/swagger-twin.test.ts` a Swagger 2 definition that builds the model
 its OpenAPI 3 twin does.
@@ -395,9 +395,9 @@ path and method. A `PATCH` promoted to `update` is corrected by its `patch`
 entry.
 
 Each rule is a row in
-[`ts/test/request-body.tsv`](../../ts/test/request-body.tsv),
-[`ts/test/response-body.tsv`](../../ts/test/response-body.tsv) or
-[`ts/test/body-guide.tsv`](../../ts/test/body-guide.tsv). One point of
+[`test/request-body.tsv`](../../test/request-body.tsv),
+[`test/response-body.tsv`](../../test/response-body.tsv) or
+[`test/body-guide.tsv`](../../test/body-guide.tsv). One point of
 each kind:
 
 ```jsonic
@@ -473,7 +473,7 @@ So `bf` alone says what a point sends, and a field's merged `ro` matters only
 for a point without `bf`.
 
 Each case is a row in
-[`ts/test/body-fields.tsv`](../../ts/test/body-fields.tsv). From the
+[`test/body-fields.tsv`](../../test/body-fields.tsv). From the
 `petstore` and `solar` definitions:
 
 ```jsonic
@@ -520,8 +520,8 @@ by name whose type is a string, `` `$STRING` `` alone or with `` `$NULL` ``,
 that a client may send and that holds no file. It is never a parameter of the
 update, and never a field that holds the record's identity: `id`, the
 identity's `field`, a composite part, or the record field a part is read
-from. Without such a field the step marks none. `ts/test/flow-textfield.tsv`
-and `ts/test/flow-step.tsv` pin each case.
+from. Without such a field the step marks none. `test/flow-textfield.tsv`
+and `test/flow-step.tsv` pin each case.
 
 ## Worked example (abridged)
 

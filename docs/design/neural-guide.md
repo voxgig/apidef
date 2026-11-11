@@ -257,7 +257,7 @@ where `pathNoun`, `tagNamesLiteral`, `keyParamOf`, `unwrapCmp`,
 `postRead` are the functions the TypeScript names. One fixture per ruling
 in `ts/test/def/` pins the owner of every route under both strategies
 (`ts/test/rulings.test.ts`) and under the Go port (`go/rulings_test.go`),
-and `ts/test/wrapper-of.tsv` is the wrapper rule's shared contract.
+and `test/wrapper-of.tsv` is the wrapper rule's shared contract.
 
 For the first four the name network gained `cmp_names_key`,
 `tag_name_avail`, `cmp_differs` and `cmp_foreign_tag`. For the last four
