@@ -78,10 +78,13 @@ that drives it.
 port that must reproduce it exactly.** When changing behavior:
 
 1. Change `ts/src/...` first; add/extend a test.
-2. Update shared fixtures `ts/test/*.tsv` if a pure function changed. BOTH
+2. Update shared fixtures `test/*.tsv` if a pure function changed. BOTH
    languages execute every row — the TypeScript suite through
    `ts/test/tsv.test.ts`, the Go suite through `go/tsv_test.go` — which is
-   what makes a fixture the shared contract rather than one language's test.
+   what makes a fixture the shared contract rather than one language's test,
+   and why it lives in the top-level `test/` rather than under either
+   language. A table only one suite runs stays with that suite's tests
+   (`ts/test/graphql-classify.tsv`, until Go ports `classifyGraphQLField`).
 3. Mirror the change into `go/...`; corresponding filenames and shared
    tests identify the matching implementation. Follow COMMENT-POLICY.md
    when a surprising difference needs a short explanation.
@@ -153,7 +156,7 @@ ts/src/        canonical source
   builder/       render model -> aontu files
   utility.ts     pure helpers (depluralize, canonize, validator, formatJSONIC, …)
   types|model|desc|def.ts   shapes & types
-ts/test/       *.test.ts, shared *.tsv fixtures, solar/petstore/taxonomy specs, model-ref/ goldens
+ts/test/       *.test.ts, solar/petstore/taxonomy specs, model-ref/ goldens, TS-only *.tsv
 ts/dist*/      built JS (committed, published)
 ts/bin/        voxgig-apidef CLI
 ts/cmd/        standalone-executable packaging (node-sea / deno / bun)
@@ -162,6 +165,7 @@ ts/model/      mirror of model/ (published as @voxgig/apidef/model/*)
 go/            Go parity port (flat package) + *_test.go
 go/model/      mirror of model/ (go:embed, package model)
 model/         CANONICAL aontu model schemas: apidef.aontu, guide.aontu
+test/          shared *.tsv fixtures, one table per pure function, run by BOTH suites
 docs/          full documentation (tutorial / how-to / reference / explanation)
                docs/design/ and docs/review/ are working documents, not pages
 STYLE-GUIDE.md how the reader-facing pages are written; tools/check_prose.py

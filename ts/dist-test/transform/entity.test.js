@@ -56,7 +56,7 @@ const entity_1 = require("../../dist/transform/entity");
             { lit: 'b' }, { var: 'thing_id' },
         ]);
     });
-    // A placeholder beside other text in its element: ts/test/path-segments.tsv.
+    // A placeholder beside other text in its element: test/path-segments.tsv.
     (0, node_test_1.test)('buildRelations', () => {
         node_assert_1.default.ok(entity_1.buildRelations);
         const r0 = (0, entity_1.buildRelations)({}, [

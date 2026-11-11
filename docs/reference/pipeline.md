@@ -10,7 +10,7 @@ Source: [`ts/src/parse.ts`](../../ts/src/parse.ts).
 
 - Load the spec text from `<base>/../def/<model.def>` as UTF-8. Each
   ill-formed byte sequence reads as one `U+FFFD` per maximal ill-formed
-  subsequence (`ts/test/utf8-decode.tsv`).
+  subsequence (`test/utf8-decode.tsv`).
 - Reject empty/comment-only source.
 - Parse YAML or JSON via `jsonic` / `@tabnas/yaml`.
 - Replace each lone surrogate in a key or a string, such as an unpaired
@@ -23,7 +23,7 @@ Source: [`ts/src/parse.ts`](../../ts/src/parse.ts).
   another spelling of the same path, as YAML requires. A double-quoted key is
   decoded as a JSON string where it is one; a single-quoted key reads `''` as
   `'`. A key whose new spelling another key already has, or would also get,
-  keeps its quotes (`ts/test/normalize-path-keys.tsv`).
+  keeps its quotes (`test/normalize-path-keys.tsv`).
 - Walk the tree: resolve every `$ref` JSON pointer **in place**, recording the
   original pointer as `x-ref`. Repeated refs to one component share that
   component's nested children — the inlined schema must be treated as
@@ -33,9 +33,9 @@ Source: [`ts/src/parse.ts`](../../ts/src/parse.ts).
   directly or through a `$ref`. The rewrite runs after resolution, so a
   pointer names the path as the spec spells it. A rewrite onto a key another
   path already has, or would also get, is not made
-  (`ts/test/colon-path-keys.tsv`).
+  (`test/colon-path-keys.tsv`).
 
-A pointer resolves by these rules, pinned by `ts/test/parse-resolve.tsv`:
+A pointer resolves by these rules, pinned by `test/parse-resolve.tsv`:
 
 - A segment names an own key of an object, or an index of an array written as
   `0` or as digits with no leading zero, below the length. `~1` reads as `/`
@@ -99,7 +99,7 @@ Thirteen passes run in this fixed order; each is a file under
 
 Where a stage orders names, it compares them by UTF-16 code unit, as
 JavaScript's `sort()` does, so an emoji sorts before `U+E000` to `U+FFFF`
-(`ts/test/sort-order.tsv`). Reference labels are the exception, ordered by
+(`test/sort-order.tsv`). Reference labels are the exception, ordered by
 code point.
 
 Output: `ctx.apimodel` (see [the internal API model](./model.md)).

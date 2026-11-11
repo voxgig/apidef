@@ -8,7 +8,7 @@ const strict_1 = __importDefault(require("node:assert/strict"));
 const node_fs_1 = require("node:fs");
 const node_path_1 = require("node:path");
 const field_1 = require("../dist/transform/field");
-const lines = (0, node_fs_1.readFileSync)((0, node_path_1.join)(__dirname, '../test/field-nullable.tsv'), 'utf8').trim().split(/\r?\n/);
+const lines = (0, node_fs_1.readFileSync)((0, node_path_1.join)(__dirname, '../../test/field-nullable.tsv'), 'utf8').trim().split(/\r?\n/);
 const rows = lines.slice(1).map(line => line.split('\t'));
 // A schema is a record's property, read by every operation, unless its row
 // puts it at `body`: a JSON request body, sent from one field.
