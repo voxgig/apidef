@@ -11,7 +11,7 @@ const node_path_1 = __importDefault(require("node:path"));
 const entity_1 = require("../dist/builder/entity/entity");
 // Read as tsv.test.ts reads its rows: a header, then tab-separated cells.
 function rows(name) {
-    const lines = (0, node_fs_1.readFileSync)(node_path_1.default.join(__dirname, '..', 'test', name + '.tsv'), 'utf8')
+    const lines = (0, node_fs_1.readFileSync)(node_path_1.default.join(__dirname, '..', '..', 'test', name + '.tsv'), 'utf8')
         .split(/\r?\n/).filter((line) => '' !== line.trim());
     const head = lines[0].split('\t');
     return lines.slice(1).map((line) => {

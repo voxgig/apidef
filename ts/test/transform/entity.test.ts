@@ -74,7 +74,7 @@ describe('transform-entity', () => {
   })
 
 
-  // A placeholder beside other text in its element: ts/test/path-segments.tsv.
+  // A placeholder beside other text in its element: test/path-segments.tsv.
 
 
   test('buildRelations', () => {

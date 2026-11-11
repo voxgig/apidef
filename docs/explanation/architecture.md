@@ -87,9 +87,10 @@ hidden. The reasoning, and the rules for changing either side, are in
 
 ```
 model/     CANONICAL shared aontu model schemas (apidef.aontu, guide.aontu)
+test/      shared *.tsv fixtures, run by both implementations
 ts/        canonical TypeScript implementation + npm package (package.json)
   src/       source (parse, guide, transform/*, builder/*, utility, apidef)
-  test/      tests + shared *.tsv fixtures + solar/petstore/taxonomy specs
+  test/      tests + solar/petstore/taxonomy specs
   dist/      built JS + .d.ts (committed, published)
   model/     mirror of /model (published as @voxgig/apidef/model/*)
   bin/       the voxgig-apidef CLI entry point

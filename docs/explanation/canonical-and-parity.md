@@ -18,7 +18,7 @@ This direction is deliberate and one-way. When behavior changes:
 1. **Change the TypeScript first** (`ts/src/...`). Decide what is correct
    there, with tests.
 2. **Then bring Go into parity** (`go/...`) so it produces identical output.
-3. **Keep the shared fixtures correct for both** (`ts/test/*.tsv`).
+3. **Keep the shared fixtures correct for both** (`test/*.tsv`).
 
 Never "fix" the Go side in a way that diverges from TypeScript. If Go appears
 more correct, the fix belongs in TypeScript first; Go follows.
@@ -31,9 +31,10 @@ Three mechanisms keep the two implementations in step:
 
 The pure functions — pluralization, canonicalization, slug handling, type
 inference, validator mapping — are tested from the *same* tab-separated tables
-in `ts/test/*.tsv`. The TypeScript suite runs them via `ts/test/tsv.test.ts`;
+in `test/*.tsv`, at the top of the repository because they belong to neither
+implementation. The TypeScript suite runs them via `ts/test/tsv.test.ts`;
 the Go suite runs the very same files via `go/tsv_test.go` (which reads
-`../ts/test/<name>.tsv`). A behavior change must update the table once, and
+`../test/<name>.tsv`). A behavior change must update the table once, and
 both languages are then checked against it.
 
 ### 2. Golden model snapshots
@@ -63,10 +64,10 @@ files they write carry the same bytes:
 
 | Where | TypeScript | Go |
 |---|---|---|
-| an ill-formed byte sequence in the spec file | Node decodes it to one `U+FFFD` per maximal ill-formed subsequence | `wellFormedUTF8` in `go/parse.go` decodes it the same way (`ts/test/utf8-decode.tsv`) |
+| an ill-formed byte sequence in the spec file | Node decodes it to one `U+FFFD` per maximal ill-formed subsequence | `wellFormedUTF8` in `go/parse.go` decodes it the same way (`test/utf8-decode.tsv`) |
 | a lone surrogate, such as an unpaired `\ud800` escape | replaced with `U+FFFD` once `jsonic` returns | the parser already reads `U+FFFD` |
-| a pair of `\u` escapes that spell one character | the parser reads the character | the parser reads the character, in JSON and in a YAML double-quoted scalar alike (`ts/test/parse-resolve.tsv`) |
-| sorting strings | `sort()` and `<` compare code units | `sortUTF16` and `lessUTF16` in `go/utility.go` do the same (`ts/test/sort-order.tsv`) |
+| a pair of `\u` escapes that spell one character | the parser reads the character | the parser reads the character, in JSON and in a YAML double-quoted scalar alike (`test/parse-resolve.tsv`) |
+| sorting strings | `sort()` and `<` compare code units | `sortUTF16` and `lessUTF16` in `go/utility.go` do the same (`test/sort-order.tsv`) |
 
 The sorting rule matters wherever a supplementary character, an emoji for
 instance, meets one in `U+E000` to `U+FFFF`, `U+FFFD` included. By byte, the

@@ -128,8 +128,11 @@ import {
 
 type TsvRow = Record<string, string>
 
-function loadTsv(name: string): TsvRow[] {
-  const filepath = Path.join(__dirname, '..', 'test', name + '.tsv')
+const SHARED_TSV_DIR = Path.join(__dirname, '..', '..', 'test')
+const TS_ONLY_TSV_DIR = Path.join(__dirname, '..', 'test')
+
+function loadTsv(name: string, dir: string = SHARED_TSV_DIR): TsvRow[] {
+  const filepath = Path.join(dir, name + '.tsv')
   const text = Fs.readFileSync(filepath, 'utf8')
   const lines = text.split(/\r?\n/).filter(line => line.trim() !== '')
   const headers = lines[0].split('\t')
@@ -1420,7 +1423,7 @@ describe('tsv-request-envelope', () => {
 
 
 describe('tsv-graphql-classify', () => {
-  const rows = loadTsv('graphql-classify')
+  const rows = loadTsv('graphql-classify', TS_ONLY_TSV_DIR)
 
   for (const row of rows) {
     test(`graphql classify ${row.name}`, () => {

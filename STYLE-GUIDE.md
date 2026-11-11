@@ -139,7 +139,7 @@ is closed.
 
 | Linkable | Because |
 |---|---|
-| source and tests: `ts/src/`, `go/`, the shared fixtures `ts/test/*.tsv`, the goldens `ts/test/model-ref/` | code is the thing a claim is pinned to |
+| source and tests: `ts/src/`, `go/`, the shared fixtures `test/*.tsv`, the goldens `ts/test/model-ref/` | code is the thing a claim is pinned to |
 | the canonical model schemas under `model/` | a specification of the shape the pages describe |
 | `.github/workflows/` and `ts/cmd/` | the release workflow and the packaging scripts are what the how-to pages describe, and a reader can act on them |
 | this guide | normative rather than exploratory, and it names the working documents in order to ban them |
@@ -177,7 +177,7 @@ phrases. Ten habits, with the register they apply in:
    model in memory, skip to…"). "We" appears only in the tutorial, walking
    through code together. "I" appears nowhere.
 8. **Show that the code is real.** A pure function's behaviour is a row in
-   `ts/test/<name>.tsv`, run by both suites, and the model a spec produces
+   `test/<name>.tsv`, run by both suites, and the model a spec produces
    is a golden under `ts/test/model-ref/`. The examples on these pages are
    not executed by a gate, so a claim that has a test names it, and a
    listing shown as output is what the named spec produced: the tutorial's
@@ -395,7 +395,7 @@ The rest:
   **parity port**; **parity** is the property, and a **divergence** is a
   documented, pinned difference between the two. Never "reference
   implementation": the shared fixtures and the goldens are the reference.
-- **the shared fixtures** — `ts/test/*.tsv`, one table per pure function,
+- **the shared fixtures** — `test/*.tsv`, one table per pure function,
   run by both suites; say **a row** for one case. **The goldens** are the
   reference models under `ts/test/model-ref/`.
 - **stage** and **pass** — the five stages are the `ctrl.step` keys

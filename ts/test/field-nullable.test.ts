@@ -5,7 +5,7 @@ import { join } from 'node:path'
 
 import { fieldTransform } from '../dist/transform/field'
 
-const lines = readFileSync(join(__dirname, '../test/field-nullable.tsv'), 'utf8').trim().split(/\r?\n/)
+const lines = readFileSync(join(__dirname, '../../test/field-nullable.tsv'), 'utf8').trim().split(/\r?\n/)
 const rows = lines.slice(1).map(line => line.split('\t'))
 
 // A schema is a record's property, read by every operation, unless its row
