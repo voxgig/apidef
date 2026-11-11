@@ -8,14 +8,15 @@ import { each } from 'jostraca'
 import { size, merge, clone, getelem, isempty, items, keysof } from '@voxgig/struct'
 
 import {
-  isEntityWrapperProp, envelopeProp, envelopeItemRef, composedEnvelopeProp, propIsList,
-  recordLists,
-  singleEnvelope,
+  isEntityWrapperProp, envelopeProp, strictEnvelopeProp, envelopeItemRef, composedEnvelopeProp,
+  propIsList, literalName, paramOf, paramNoun, recordLists, singleEnvelope,
   authExchangeOp, specSecuredByDefault, itemEnvelopeKey,
   itemEnvelopeTransform, answersPage, pageRecords, answersRecordMap, pageTransform,
+  responseSchema, rangeResponse, cmpNamespace, wordBreaks,
+  PARAM_NOUN_SUFFIX_RE,
 } from '../utility'
 
-import { requestSchema } from '../transform/body'
+import { requestSchema, selectedRequestSchema } from '../transform/body'
 import { findExampleObject } from '../transform/field'
 
 
@@ -51,6 +52,7 @@ import {
   canonize,
   canonizeCmpName,
   canonizeParam,
+  wrapperOf,
   capture,
   CMP_REF_RE,
   cmpRefName,
@@ -80,7 +82,7 @@ import {
 
 import { snakify } from 'jostraca'
 
-import { mergeCollectionPaths, mergeFoldedEntities } from '../transform/entity'
+import { mergeCollectionPaths, mergeCommandEntities, mergeFoldedEntities } from '../transform/entity'
 
 import { byCodePoint, countRefs, satAdd } from '../refcount'
 
@@ -118,6 +120,45 @@ const METHOD_IDOP: Record<string, string> = {
 
 // Tried in order: the first shape a path matches decides how its entity is named.
 const ENTITY_PATH_SHAPES = ['t/p/t/', 't/p/', 'p/t/', 't/', 't/p/p']
+
+// A trailing literal that is one of these is a verb on the noun before it.
+const VERB_WORDS = new Set([
+  'send', 'resend', 'get', 'fetch', 'list', 'create', 'add', 'update', 'edit', 'delete',
+  'remove', 'search', 'find', 'query', 'lookup', 'check', 'validate', 'verify', 'submit',
+  'cancel', 'approve', 'reject', 'publish', 'unpublish', 'archive', 'unarchive', 'restore',
+  'run', 'execute', 'start', 'stop', 'pause', 'resume', 'retry', 'refresh', 'reset', 'sync',
+  'import', 'export', 'upload', 'download', 'login', 'logout', 'register', 'subscribe',
+  'unsubscribe', 'activate', 'deactivate', 'enable', 'disable', 'lock', 'unlock', 'move',
+  'copy', 'rename', 'merge', 'split', 'assign', 'unassign', 'attach', 'detach', 'invite',
+  'accept', 'decline', 'notify', 'ping', 'count', 'exists', 'preview', 'render', 'generate',
+  'calculate', 'compute', 'convert', 'process', 'trigger', 'dispatch', 'apply', 'revoke',
+  'grant', 'save', 'lock', 'test', 'inject', 'analyze',
+])
+
+// A literal that names an identifier keys a resource rather than naming one.
+const ID_LITERAL_RE = /(^|_)ids?$/
+
+// Literals that name no resource of their own.
+const GENERIC_WORDS = ['history', 'list', 'result']
+
+// A key that identifies a resource rather than naming an item.
+const ID_KEY_RE = /_(id|key|uuid)$/
+
+// The words that open an operationId's tail after its object.
+const OPID_TAIL_WORDS = ['via', 'by', 'with']
+
+// A literal opening with one of these reads, whatever the method.
+const READ_VERBS = ['list', 'search', 'get', 'find', 'query']
+
+// The shapes whose naming literal ends the path.
+const LITERAL_LAST_SHAPES = ['t/p/t/', 't/', 'p/t/']
+
+// Stripped from a command's body component to name the command.
+const COMMAND_SUFFIXES = [
+  '_request', '_input', '_payload', '_body', '_params', '_parameters', '_command', '_dto',
+]
+
+const SCALAR_TYPES = new Set(['string', 'number', 'integer', 'boolean'])
 
 // The matched part that gives each shape its name.
 const PATH_NAME_INDEX: Record<string, number> = {
@@ -186,6 +227,7 @@ async function heuristic01(ctx: ApiDefContext): Promise<Guide> {
       distinctShare(ctx.def, sharePath, shareMethods, itemPath, itemMethods)).length
 
   guide.metrics.count.entity -= mergeFoldedEntities(guide, ctx.log).length
+  guide.metrics.count.entity -= mergeCommandEntities(guide, ctx.log).length
 
   // After the merge, which can move a path onto another entity.
   for (const entity of Object.values(guide.entity) as GuideEntity[]) {
@@ -252,6 +294,8 @@ function Prepare(spec: TaskSpec) {
     def: spec.ctx.def,
     guide,
     work: {
+      cmpNamespace: cmpNamespace(spec.ctx.def),
+      wordBreaks: wordBreaks(spec.ctx.def),
       pathmap: named(),
       entmap: named(),
       envelope: named(),
@@ -317,7 +361,7 @@ function MeasureMethod(spec: TaskSpec) {
           metrics.count.tag++
           metrics.found.tag[tag] = {
             name: tag,
-            canon: canonize(tag),
+            canon: literalName(tag),
           }
         }
       }
@@ -399,7 +443,8 @@ function MeasureEnvelope(spec: TaskSpec) {
   const work = spec.data.work
   const mdesc = spec.node.val
   const opname = methodOpname(mdesc, matchEntityPath(work.pathmap[mdesc.path].parts), [])
-  const unwrapref = getResponseSchema(successResponse(mdesc.responses))?.['x-ref']
+  const unwrapref = null != singletonOf(spec.data, mdesc.path) ? null :
+    getResponseSchema(successResponse(mdesc.responses))?.['x-ref']
 
   for (const schema of successSchemas(mdesc.responses)) {
     const xref = schema['x-ref']
@@ -540,11 +585,15 @@ function selectAllMethods(_source: any, spec: TaskSpec): MethodDesc[] {
     }
   }
 
+  // Parents resolve before their children whatever the keys are called, so
+  // the paths compare with their parameters normalised first.
   caught.methods.sort((a: any, b: any) => {
-    if (a.path < b.path) {
+    const an = normalizeParams(a.path)
+    const bn = normalizeParams(b.path)
+    if (an < bn || (an === bn && a.path < b.path)) {
       return -1
     }
-    else if (a.path > b.path) {
+    else if (an > bn || (an === bn && a.path > b.path)) {
       return 1
     }
     else if (METHOD_CONSIDER_ORDER[a.method] < METHOD_CONSIDER_ORDER[b.method]) {
@@ -575,7 +624,7 @@ function MeasureTagItems(spec: TaskSpec) {
     const items = work.tagItems[cmp] = work.tagItems[cmp] ?? {}
     items[collection] = items[collection] ?? {}
     items[collection][parts.filter(isParam)
-      .map((part) => canonizeParam(part.slice(1, -1))).sort().join(',')] = true
+      .map((part) => canonizeParam(paramOf(part))).sort().join(',')] = true
   }
 }
 
@@ -597,7 +646,7 @@ function MeasureClaims(spec: TaskSpec) {
   const name = pathEntityName(data, { ...mdesc, MethodEntity: ment }, parts,
     matchEntityPath(parts), work.claimowner, [])
   if (null != name) {
-    const claim = resplitFromCmp(name, ment.cmp as string, [])
+    const claim = resplitFromCmp(name, ment.cmp as string, [], work.wordBreaks)
     const stored = ensureMinEntityName(claim, {})
     for (const key of [claim, stored]) {
       const claims = work.claims[key] = work.claims[key] ?? {}
@@ -656,10 +705,10 @@ function ResolveEntityComponent(spec: TaskSpec) {
       // Guarded wrapper-suffix stripping folds e.g. BeneficiaryPageResponse
       // into beneficiary — but only when the remainder is itself a schema
       // measured by MeasureRef (keys are canonizeCmpName, pre-clean).
-      xref.cmp = cleanComponentName(xref.cmp,
-        (n: string) => null != metrics.count.origcmprefs[n])
+      xref.cmp = cleanCmp(spec.data, xref.cmp)
       return xref
     })
+    .flatMap((xref) => unwrapCmp(metrics, xref, why_cmp))
 
   let goodxrefs = cleanxrefs
     .filter(xref => {
@@ -817,7 +866,8 @@ function ResolveEntityName(spec: TaskSpec) {
 
   let entname: string | null = shaped
   if (null != owner && (null == shaped ||
-    resplitFromCmp(owner.entname, cmp, []) !== resplitFromCmp(shaped, cmp, []))) {
+    resplitFromCmp(owner.entname, cmp, [], work.wordBreaks) !==
+    resplitFromCmp(shaped, cmp, [], work.wordBreaks))) {
     ment.verb_on_parent = verb_on_parent
     ment.same_path = owner.entname
     why_path.push('same-path-tag=' + owner.entname + '/' + owner.method)
@@ -836,7 +886,7 @@ function ResolveEntityName(spec: TaskSpec) {
     entname = 'entity' + work.entity.count.unresolved
   }
 
-  entname = resplitFromCmp(entname, cmp, why_path)
+  entname = resplitFromCmp(entname, cmp, why_path, work.wordBreaks)
 
   if (null != item) {
     why_path.push(item.why + '=' + item.name)
@@ -894,8 +944,7 @@ function ResolveEntityName(spec: TaskSpec) {
 
 // A method named only from its tag, as a DELETE answering 204 is, joins the
 // entity a read of the same path resolved to when that read carries the same
-// tag: the tag then groups the path's routes and names no other resource. A
-// tag the read does not carry, Admin on the delete of a team, keeps its name.
+// tag: the tag then groups the path's routes and names no other resource.
 function samePathOwner(
   mdesc: MethodDesc,
   work: any,
@@ -915,6 +964,16 @@ function samePathOwner(
     }
   }
   return null
+}
+
+
+// A component's name cleaned of its affixes and the definition's namespace;
+// a measured component counts as known with or without the namespace.
+function cleanCmp(data: { guide: any, work: any }, name: string): string {
+  const refs = data.guide.metrics.count.origcmprefs
+  const ns: string | null = data.work.cmpNamespace ?? null
+  return cleanComponentName(name,
+    (n: string) => null != refs[n] || (null != ns && null != refs[ns + '_' + n]), ns)
 }
 
 
@@ -944,8 +1003,125 @@ function collectionOwner(mdesc: MethodDesc, parts: string[], work: any): string 
 
 
 // The name a method's path shape and component give it, or null where neither
-// does. A verb on a parent takes the name pathowner holds for the parent.
+// does; a read that views an item joins it, and a POST that reads or commands
+// is named for what it reads or sends.
 function pathEntityName(
+  data: { def: any, guide: any, work: any },
+  mdesc: any,
+  parts: string[],
+  pm: PathMatch | null,
+  pathowner: Record<string, Record<string, string>>,
+  why: string[],
+): string | null {
+  const link = relationshipOf(data, parts, pathowner)
+  if (null != link) {
+    const ment = mdesc.MethodEntity
+    ment.verb_on_parent = parts[parts.length - 1]
+    ment.view_on_parent = READ_METHODS.includes(mdesc.method)
+    ment.view_action = link.action
+    why.push('relationship=' + link.parent)
+    return link.parent
+  }
+  const single = singletonOf(data, mdesc.path)
+  if (null != single) {
+    const name = cleanCmp(data, canonizeCmpName(cmpRefName(single)))
+    mdesc.MethodEntity.singleton = true
+    why.push('singleton=' + name)
+    return name
+  }
+  const verb = verbOfItem(data, mdesc, parts, pathowner)
+  if (null != verb) {
+    const ment = mdesc.MethodEntity
+    ment.verb_on_parent = parts[parts.length - 1]
+    ment.view_on_parent = READ_METHODS.includes(mdesc.method)
+    ment.view_action = verb.action
+    why.push('verb-of-item=' + verb.parent)
+    return verb.parent
+  }
+  const view = viewOfItem(data, mdesc, parts, pathowner)
+  if (null != view) {
+    const ment = mdesc.MethodEntity
+    ment.verb_on_parent = parts[parts.length - 1]
+    ment.view_on_parent = true
+    ment.view_action = view.action
+    why.push('view-of-item=' + view.parent)
+    return view.parent
+  }
+  const write = subWriteOfItem(data, mdesc, parts, pathowner)
+  if (null != write) {
+    const ment = mdesc.MethodEntity
+    ment.verb_on_parent = parts[parts.length - 1]
+    ment.view_action = write.action
+    why.push('sub-write=' + write.parent)
+    return write.parent
+  }
+  const variant = variantOfCollection(data, mdesc, parts, pathowner)
+  if (null != variant) {
+    const ment = mdesc.MethodEntity
+    ment.verb_on_parent = parts[parts.length - 1]
+    ment.view_action = variant.action
+    why.push('variant=' + variant.parent)
+    return variant.parent
+  }
+  const keyed = keyNounOf(data, mdesc, parts)
+  if (null != keyed) {
+    const ment = mdesc.MethodEntity
+    ment.verb_on_parent = parts[parts.length - 1]
+    ment.view_on_parent = READ_METHODS.includes(mdesc.method)
+    ment.view_action = keyed.action
+    why.push('key-noun=' + keyed.parent)
+    return keyed.parent
+  }
+  const queued = asyncResultOf(data, mdesc, parts)
+  if (null != queued) {
+    const ment = mdesc.MethodEntity
+    ment.verb_on_parent = parts[parts.length - 1]
+    ment.view_action = queued.action
+    why.push('async-result=' + queued.parent)
+    return queued.parent
+  }
+  // A short literal names nothing: the component the route answers, else
+  // the route's key, else what a route with no literal is named by, else the
+  // padded literal.
+  if (null != pm && shortLiteral(pm)) {
+    why.push('short-literal')
+    const answered = answeredCmp(mdesc)
+    if (null != answered) {
+      why.push('answers=' + answered)
+      return answered
+    }
+    const key = keyParamOf(data.def, mdesc.path, data.work)
+    const noun = null == key || /version/i.test(key) ? '' : paramNoun(key)
+    if (3 <= noun.length) {
+      why.push('infer-key=' + key)
+      return noun
+    }
+    return inferEntityName(mdesc, parts.filter(isParam), why) ??
+      shapeEntityName(data, mdesc, parts, pm, pathowner, why)
+  }
+  // A read whose literal is a lone verb or a generic word is named for what
+  // it answers; a write stays a command.
+  if (null != pm && READ_METHODS.includes(mdesc.method) && nounless(pm, parts)) {
+    const answered = answeredCmp(mdesc)
+    if (null != answered) {
+      why.push('nounless;answers=' + answered)
+      return answered
+    }
+  }
+  const shaped = shapeEntityName(data, mdesc, parts, pm, pathowner, why)
+  if (null == pm || null == shaped) {
+    return shaped
+  }
+  const read = postRead(mdesc, pm, parts, why)
+  if (null != read) {
+    return '' === read ? shaped : read
+  }
+  return commandName(data, mdesc, pm, parts, why) ?? commandTwin(data, mdesc, pm, parts, why) ?? shaped
+}
+
+
+// A verb on a parent takes the name pathowner holds for the parent.
+function shapeEntityName(
   data: { def: any, guide: any, work: any },
   mdesc: any,
   parts: string[],
@@ -983,7 +1159,7 @@ function markRecordOwner(
 ) {
   const last = parts.filter((part: string) => !isParam(part)).pop()
   if (null == recordowner[pathStr] && isSchemaRef(ment.ref) &&
-    entname === ment.cmp && null != last && entname === canonize(last)) {
+    entname === ment.cmp && null != last && entname === literalName(last)) {
     recordowner[pathStr] = entname
   }
 }
@@ -1023,9 +1199,8 @@ function RenameParams(spec: TaskSpec) {
 
   const applySnakeCaseRename = () => {
     for (const part of parts) {
-      const m = part.match(/^\{(.+)\}$/)
-      if (!m) continue
-      const placeholder = m[1]
+      if (!isParam(part)) continue
+      const placeholder = paramOf(part)
       const snake = depluralize(snakify(normalizeFieldName(placeholder)))
       if (snake !== placeholder && paramRenameCapture.rename[placeholder] === undefined) {
         paramRenameCapture.why[placeholder] = (paramRenameCapture.why[placeholder] ?? [])
@@ -1058,18 +1233,18 @@ function RenameParams(spec: TaskSpec) {
     let partStr = parts[partI]
 
     if (isParam(partStr)) {
-      origParams.push(partStr.replace(/[\}\{\*]/g, ''))
+      origParams.push(paramOf(partStr).replace(/\*/g, ''))
 
       const why = []
 
-      const oldParam = partStr.substring(1, partStr.length - 1)
+      const oldParam = paramOf(partStr)
       paramRenameCapture.why[oldParam] = (paramRenameCapture.why[oldParam] ?? [])
 
       const lastPart = partI === parts.length - 1
       const secondLastPart = partI === parts.length - 2
       const notLastPart = partI < parts.length - 1
       const hasParent = 0 < partI && !isParam(parts[partI - 1])
-      const parentName = hasParent ? canonize(parts[partI - 1]) : null
+      const parentName = hasParent ? literalName(parts[partI - 1]) : null
       const not_exact_id = 'id' !== oldParam
       const probably_an_id =
         oldParam.endsWith('id')
@@ -1160,6 +1335,7 @@ function RenameParams(spec: TaskSpec) {
           || (
             parentName === entdesc.name
             || entdesc.name.endsWith('_' + parentName)
+            || verbAfterNoun(parts, partI, entdesc.name)
           )
         )
       ) {
@@ -1187,7 +1363,7 @@ function RenameParams(spec: TaskSpec) {
           if (
             'id' !== oldParam
             // && fixEntName(partStr) === entdesc.name
-            && canonize(partStr) === entdesc.name
+            && literalName(partStr) === entdesc.name
           ) {
             updateParamRename(
               ctx, data, pathStr, methodName, paramRenameCapture, oldParam,
@@ -1279,22 +1455,28 @@ function FindActions(spec: TaskSpec) {
   const parts = verbParts(spec.data.work.pathmap[pathStr].parts)
 
   const fourthLastPart = parts[parts.length - 4]
-  const fourthLastPartCanon = canonize(fourthLastPart)
+  const fourthLastPartCanon = literalName(fourthLastPart)
   const thirdLastPart = parts[parts.length - 3]
-  const thirdLastPartCanon = canonize(thirdLastPart)
+  const thirdLastPartCanon = literalName(thirdLastPart)
   const secondLastPart = parts[parts.length - 2]
-  const secondLastPartCanon = canonize(secondLastPart)
+  const secondLastPartCanon = literalName(secondLastPart)
   const lastPart = parts[parts.length - 1]
-  const lastPartCanon = canonize(lastPart)
+  const lastPartCanon = literalName(lastPart)
 
   const cmp = ment.cmp
 
   if (null != ment.verb_on_parent) {
-    if (isVerb(lastPart)) {
-      pathdesc.action[lastPartCanon] = pathdesc.action[lastPartCanon] ?? {
+    if (isVerb(lastPart) || null != ment.view_action) {
+      const name = ment.view_action ?? lastPartCanon
+      pathdesc.action[name] = pathdesc.action[name] ?? {
         why_action: ['ent', entdesc.name, 'verb-on-parent', lastPart, methodName],
       }
     }
+  }
+
+  // A route its record names ends in its collection's literal, not an action.
+  else if (true === ment.record_named) {
+    // The collection_action below still applies.
   }
 
   // /api/foo/bar where foo is the entity and bar is the action, no id param
@@ -1334,6 +1516,17 @@ function FindActions(spec: TaskSpec) {
       updateAction(methodName, oldActionName, actionName, entdesc, pathdesc,
         'ent-param-3rd-last')
     }
+
+    //  /api/foo/{parent}/{param}/action
+    else if (isParam(thirdLastPart) && isParam(secondLastPart) && isVerb(lastPart)) {
+      updateAction(methodName, lastPart, lastPartCanon, entdesc, pathdesc, 'ent-keys-2nd-last')
+    }
+  }
+
+  if (null != ment.collection_action) {
+    pathdesc.action[ment.collection_action] = pathdesc.action[ment.collection_action] ?? {
+      why_action: ['ent', entdesc.name, 'collection', ment.collection_action, methodName],
+    }
   }
 
   debugpath(pathStr, methodName, 'FIND-ACTIONS', cmp, parts, pathdesc.action, pathdesc.why_action)
@@ -1370,11 +1563,18 @@ function ResolveOperation(spec: TaskSpec) {
 
 
   if ('load' === standard_opname) {
-    const islist = isListResponse(mdesc, ment.pm, pathStr, why_op, work.listed)
+    const islist = true !== ment.view_on_parent && true !== ment.singleton &&
+      isListResponse(mdesc, ment.pm, pathStr, why_op, work.listed)
     opname = islist ? 'list' : opname
+    if (true === ment.view_on_parent) {
+      why_op.push('view')
+    }
   }
 
-
+  else if ('create' === standard_opname && true === ment.post_read) {
+    opname = 'list'
+    why_op.push('post-read')
+  }
 
   else {
     why_op.push('not-load')
@@ -1543,6 +1743,11 @@ function ResolveTransform(spec: TaskSpec) {
     }
   }
 
+  // A singleton is read whole.
+  if (true === ment.singleton) {
+    transform.res = undefined
+  }
+
   if ('list' === opname) {
     warnListBody(spec.ctx, methodName + ' ' + pathStr, transform.res, partprops)
 
@@ -1668,6 +1873,30 @@ function BuildEntity(spec: TaskSpec) {
 
 
 
+// The noun the shape's literal gives: the literal before a custom method's
+// colon, or the noun before the literal when it is a verb, as `/message/send`
+// names message.
+function pathNoun(pm: PathMatch, parts: string[], why: string[]): string {
+  const at = pm.index + PATH_NAME_INDEX[pm.expr]
+  const custom = parts[at].match(CUSTOM_METHOD_RE)
+  if (null != custom && !isParam(custom[1])) {
+    why.push('noun-before-method=' + custom[1])
+    return literalName(custom[1])
+  }
+  const name = literalName(parts[at])
+  const lit = snakify(parts[at])
+  if (null != custom || (VERB_WORDS.has(name) && depluralize(lit) === lit)) {
+    for (let i = at - 1; 0 <= i; i--) {
+      if (!isParam(parts[i])) {
+        why.push('noun-before-verb=' + parts[i])
+        return literalName(parts[i])
+      }
+    }
+  }
+  return name
+}
+
+
 function entityPathMatch_tpte(
   data: { def: any, guide: any, work: any },
   pm: PathMatch,
@@ -1678,13 +1907,22 @@ function entityPathMatch_tpte(
   const ment = mdesc.MethodEntity
 
   const pathNameIndex = PATH_NAME_INDEX['t/p/t/']
+  const parts: string[] = data.work.pathmap[mdesc.path].parts
 
   why.push('path=t/p/t/')
   const origPathName = pm[pathNameIndex]
-  let entname = canonize(origPathName)
+  let entname = pathNoun(pm, parts, why)
+  const verbish = entname !== literalName(origPathName)
   let ecm = undefined
 
-  if (null != ment.cmp) {
+  // A verb's response is its result: the resource before the verb names.
+  if (verbish && 'tag' !== ment.ref) {
+    entname = itemAbove(data, parts, lastKey(parts), pathowner) ?? entname
+    ment.verb_on_parent = getelem(pm, -1)
+    why.push('verb-noun=' + entname)
+  }
+
+  else if (null != ment.cmp) {
     const parent = verbOnParent(data, pm, mdesc, pathowner)
     if (null != parent) {
       entname = parent
@@ -1705,15 +1943,15 @@ function entityPathMatch_tpte(
       why.push('prob-ent=' + ecm.orig)
     }
     else if (endsWithCmp(data, pm)) {
-      entname = canonize(getelem(pm, -1))
+      entname = literalName(getelem(pm, -1))
       why.push('prob-ent-last=' + ecm.orig)
     }
     else if (0 < findPathsWithPrefix(data, pm.path, { strict: true })) {
-      entname = canonize(getelem(pm, -1))
+      entname = literalName(getelem(pm, -1))
       why.push('prob-ent-prefix=' + ecm.orig)
     }
     else {
-      entname = canonize(getelem(pm, -3)) + '_' + entname
+      entname = literalName(getelem(pm, -3)) + '_' + entname
       why.push('prob-ent-part')
     }
   }
@@ -1721,14 +1959,14 @@ function entityPathMatch_tpte(
   // Probably an entity action suffix
   else {
     why.push('prob-ent-act')
-    entname = canonize(getelem(pm, -3))
+    entname = literalName(getelem(pm, -3))
   }
 
   return entname
 }
 
 function endsWithCmp(data: any, pm: PathMatch) {
-  const last = canonize(getelem(pm, -1))
+  const last = literalName(getelem(pm, -1))
   return isOrigCmp(data, last)
 }
 
@@ -1759,42 +1997,685 @@ function verbOnParent(
     return null
   }
 
-  const defpaths = data.def?.paths ?? {}
+  const itemPath = leafItemRoute(data, pm)
+  return null == itemPath ? null : itemOwner(pm, itemPath, pathowner)
+}
 
-  // Paths compare with parameters normalised: the item path may spell its
-  // key `{id}` where the verb path spells it `{thing_number}`.
+
+// The item route a verb path hangs off, or null when a path extends the
+// verb. Paths compare with parameters normalised: the item path may spell
+// its key `{id}` where the verb path spells it `{thing_number}`.
+function leafItemRoute(data: { def: any }, pm: PathMatch): string | null {
   const normalize = (p: string) => p.replace(/\{[^}]+\}/g, '{}')
   const itemNorm = normalize(pm.path.replace(/\/[^/]+$/, ''))
   const prefix = normalize(pm.path) + '/'
-
-  let itemPath: undefined | string = undefined
-  for (const p of Object.keys(defpaths)) {
+  let itemPath: string | null = null
+  for (const p of Object.keys(data.def?.paths ?? {})) {
     const pn = normalize(p)
     if (pn === itemNorm) {
       itemPath = p
     }
-    // A leaf: no path continues past the verb. Compared on a segment
-    // boundary, so `/merge` is not "extended" by `/merge-async`.
+    // On a segment boundary, so `/merge` is not extended by `/merge-async`.
     else if (pn.startsWith(prefix)) {
       return null
     }
   }
-  if (null == itemPath) {
-    return null
-  }
+  return itemPath
+}
 
-  // Methods resolve in path order, so the item path's owners are already
-  // known. The parent is the entity a READ of the item returns: a PUT on
-  // the item answering with a one-off acknowledgement is named after that
-  // and must not claim the verb. Fall back to any owner, then the literal.
+
+// Methods resolve in path order, so the item path's owners are already
+// known. The parent is the entity a READ of the item returns: a PUT on the
+// item answering with a one-off acknowledgement is named after that and must
+// not claim the verb. Fall back to any owner, then the literal.
+function itemOwner(
+  pm: PathMatch,
+  itemPath: string,
+  pathowner: Record<string, Record<string, string>>,
+): string {
   const owners = pathowner[itemPath] ?? {}
   const parent = owners.GET ?? owners.QUERY ??
     Object.values(owners).sort()[0] as undefined | string
-  if (null != parent) {
-    return parent
-  }
+  return parent ?? literalName(getelem(pm, -3))
+}
 
-  return canonize(getelem(pm, -3))
+
+// A read whose literals after the item key are singular and whose response
+// declares no record of its own, or is an array of scalars, is a view of
+// the item: the nearest resource above takes it as a load action.
+function viewOfItem(
+  data: { def: any, work: any },
+  mdesc: any,
+  parts: string[],
+  pathowner: Record<string, Record<string, string>>,
+): { parent: string, action: string } | null {
+  if (!READ_METHODS.includes(mdesc.method)) {
+    return null
+  }
+  let key = -1
+  for (let i = 0; i < parts.length; i++) {
+    if (isParam(parts[i])) {
+      key = i
+    }
+  }
+  if (key < 0 || parts.length - 1 === key || /version/i.test(parts[key])) {
+    return null
+  }
+  const tail = parts.slice(key + 1)
+  const singular = tail.every((part) => {
+    const lit = snakify(part)
+    return '' !== lit && depluralize(lit) === lit
+  })
+  const schema = getResponseSchema(successResponse(mdesc.responses))
+  const payload = responsePayload(schema)
+  if ((!payload.scalars &&
+    (!singular || payload.record || namedRecord(schema, parts[parts.length - 1]))) ||
+    0 < findPathsWithPrefix(data, mdesc.path, { strict: true })) {
+    return null
+  }
+  const parent = itemAbove(data, parts, key, pathowner)
+  return null == parent ? null : { parent, action: tail.map(literalName).join('_') }
+}
+
+
+// A response holding a record under the name its route ends in answers that
+// record, as `/users/{id}/user-role` answers its `user_role`.
+function namedRecord(schema: any, last: string): boolean {
+  const props = mergedProperties(schema)
+  if (null == props || null == last || isParam(last)) {
+    return false
+  }
+  const key = Object.keys(props).find((k: string) => canonize(k) === canonize(last))
+  return null != key && responsePayload(props[key]).record
+}
+
+
+// A key after a verb word that follows the entity's own noun keys the entity,
+// as `/members/lookup/{member_id}` keys member.
+function verbAfterNoun(parts: string[], at: number, entname: string): boolean {
+  const verb = parts[at - 1]
+  if (at < 2 || null == verb || isParam(verb) || !VERB_WORDS.has(literalName(verb)) ||
+    depluralize(snakify(verb)) !== snakify(verb)) {
+    return false
+  }
+  for (let i = at - 2; 0 <= i; i--) {
+    if (!isParam(parts[i])) {
+      return literalName(parts[i]) === entname
+    }
+  }
+  return false
+}
+
+
+// A `/relationships/<name>` route links the resource before it: that
+// resource's entity, with the relationship as the action, or null.
+function relationshipOf(
+  data: { def: any, work: any },
+  parts: string[],
+  pathowner: Record<string, Record<string, string>>,
+): { parent: string, action: string } | null {
+  const at = parts.length - 2
+  if (at < 1 || 'relationship' !== literalName(parts[at]) || isParam(parts[at + 1]) ||
+    !isParam(parts[at - 1])) {
+    return null
+  }
+  const parent = itemAbove(data, parts, at - 1, pathowner)
+  return null == parent ? null : { parent, action: verbActionName([parts[at + 1]]) }
+}
+
+
+// A read of a singular literal followed by an identifier key named for
+// another noun, answering no record or page of its own, views that noun's item: the
+// noun, with the path's literals as the action, or null. A name key names an
+// item of the literal itself.
+function keyNounOf(
+  data: { def: any, work: any },
+  mdesc: any,
+  parts: string[],
+): { parent: string, action: string } | null {
+  const key = parts.length - 1
+  const keyName = isParam(parts[key]) ? paramOf(parts[key]) : null
+  const lit = key < 1 || isParam(parts[key - 1]) ? '' : snakify(parts[key - 1])
+  if (!READ_METHODS.includes(mdesc.method) || null == keyName || '' === lit ||
+    depluralize(lit) !== lit || /version/i.test(keyName) ||
+    !ID_KEY_RE.test(canonizeParam(keyName)) ||
+    null != pathNamed(data, '/' + parts.slice(0, key).join('/'))) {
+    return null
+  }
+  const noun = paramNoun(keyName)
+  const schema = getResponseSchema(successResponse(mdesc.responses))
+  if (noun.length < 3 || literalName(parts[key - 1]).split('_').includes(noun) ||
+    responsePayload(schema).record ||
+    (answersPage(schema) && true !== data.work.listed?.[schema['x-ref']])) {
+    return null
+  }
+  let from = key - 1
+  while (0 < from && !isParam(parts[from - 1])) {
+    from--
+  }
+  const literals = parts.slice(from, key).filter((part) => !/^v\d+$/i.test(part))
+  return { parent: noun, action: literals.map(literalName).join('_') }
+}
+
+
+// A POST answered by an empty Accepted response creates what the route that
+// reads its results answers with: `/report/render` beside
+// `/report/renderResults/{resultId}`. That record's name, with the noun the
+// verb acts on as the action, or null.
+function asyncResultOf(
+  data: { def: any, guide: any, work: any },
+  mdesc: any,
+  parts: string[],
+): { parent: string, action: string } | null {
+  const responses = mdesc.responses
+  const last = parts[parts.length - 1]
+  if ('POST' !== mdesc.method || null == responses?.['202'] || null != responses?.['200'] ||
+    null != responses?.['201'] || null != getResponseSchema(responses['202']) ||
+    null == last || isParam(last)) {
+    return null
+  }
+  const verb = literalName(last)
+  const prefix = '/' + parts.slice(0, -1).join('/')
+  for (const p of sortedKeys(data.def?.paths ?? {})) {
+    const rest = guideParts(p).slice(parts.length - 1)
+    if (!(guidePath(p) + '/').startsWith(prefix + '/') || guideParts(p).length !== parts.length + 1 ||
+      !isParam(rest[1]) || !literalName(rest[0]).startsWith(verb + '_')) {
+      continue
+    }
+    const read = getResponseSchema(successResponse(data.def.paths[p]?.get?.responses))
+    const xref = read?.['x-ref']
+    if ('string' === typeof xref) {
+      const before = parts[parts.length - 2]
+      const noun = null == before ? verb : isParam(before) ?
+        literalName(parts[parts.length - 3] ?? '') : literalName(before)
+      return { parent: cleanCmp(data, cmpRefName(xref)), action: '' === noun ? verb : noun }
+    }
+  }
+  return null
+}
+
+
+// A sub-path under an item key that a read answers with a component and a
+// write sends or answers with the same one is a resource of its own: the
+// component's reference, or null.
+function singletonOf(data: { def: any, work: any }, pathStr: string): string | null {
+  const work = data.work
+  work.singletons = work.singletons ?? Object.create(null)
+  if (pathStr in work.singletons) {
+    return work.singletons[pathStr]
+  }
+  let found: string | null = null
+  const parts = guideParts(pathStr)
+  const pathdef = data.def?.paths?.[pathStr]
+  const key = lastKey(parts)
+  if (0 <= key && key < parts.length - 1 && !/version/i.test(parts[key]) && null != pathdef &&
+    0 === findPathsWithPrefix(data, pathStr, { strict: true })) {
+    const read = getResponseSchema(successResponse((pathdef.get ?? pathdef.query)?.responses))
+    const ref = 'array' === read?.type ? null : read?.['x-ref']
+    if ('string' === typeof ref && ['put', 'patch', 'post'].some((m) =>
+      null != pathdef[m] && (
+        ref === getResponseSchema(successResponse(pathdef[m].responses))?.['x-ref'] ||
+        ref === selectedRequestSchema(data.def, m.toUpperCase(), pathStr)?.['x-ref']))) {
+      found = ref
+    }
+  }
+  work.singletons[pathStr] = found
+  return found
+}
+
+
+// A write to a singular literal right after an item key, on a path nothing
+// reads or extends, whose body declares no id, updates the item: the item's
+// entity and the literal as the action, or null.
+function subWriteOfItem(
+  data: { def: any, work: any },
+  mdesc: any,
+  parts: string[],
+  pathowner: Record<string, Record<string, string>>,
+): { parent: string, action: string } | null {
+  const pathdef = data.def?.paths?.[mdesc.path]
+  const last = parts[parts.length - 1]
+  const lit = null == last || isParam(last) ? '' : snakify(last)
+  const key = parts.length - 2
+  if (!['PUT', 'PATCH'].includes(mdesc.method) || '' === lit || depluralize(lit) !== lit ||
+    key < 0 || !isParam(parts[key]) || /version/i.test(parts[key]) ||
+    null != pathdef?.get || null != pathdef?.query ||
+    0 < findPathsWithPrefix(data, mdesc.path, { strict: true })) {
+    return null
+  }
+  const body = selectedRequestSchema(data.def, mdesc.method, mdesc.path) ?? mdesc.requestBody?.schema
+  if (null == body || responsePayload(body).record) {
+    return null
+  }
+  const parent = itemAbove(data, parts, key, pathowner)
+  return null == parent ? null : { parent, action: literalName(last) }
+}
+
+
+// The entity of the item route a view hangs off, the entity a read of it
+// returns, else the noun before the key.
+function itemAbove(
+  data: { def: any, work: any },
+  parts: string[],
+  key: number,
+  pathowner: Record<string, Record<string, string>>,
+): string | null {
+  const itemPath = pathNamed(data, '/' + parts.slice(0, key + 1).join('/'))
+  if (null != itemPath) {
+    const owners = pathowner[itemPath] ?? {}
+    const parent = owners.GET ?? owners.QUERY ?? Object.values(owners).sort()[0]
+    if (null != parent) {
+      return parent
+    }
+  }
+  return 0 < key && !isParam(parts[key - 1]) ? literalName(parts[key - 1]) : null
+}
+
+
+// The index of the last parameter of a path, or -1.
+function lastKey(parts: string[]): number {
+  let key = -1
+  parts.forEach((part, i) => {
+    if (isParam(part)) {
+      key = i
+    }
+  })
+  return key
+}
+
+
+// A literal opening with a verb word is a verb on the nearest resource up
+// the path: a collection of its own between the key and the verb, else the
+// key's resource. The action is named for the literals after that resource.
+// A bare verb right after the key is left to the shape rules.
+function verbOfItem(
+  data: { def: any, work: any },
+  mdesc: any,
+  parts: string[],
+  pathowner: Record<string, Record<string, string>>,
+): { parent: string, action: string } | null {
+  const last = parts[parts.length - 1]
+  if (null == last || isParam(last)) {
+    return null
+  }
+  const words = canonize(last).split('_')
+  const key = lastKey(parts)
+  const bare = 1 === words.length
+  if (!VERB_WORDS.has(words[0]) || (key < 0 && bare) || (0 <= key && /version/i.test(parts[key])) ||
+    (bare && (key === parts.length - 2 || depluralize(snakify(last)) !== snakify(last))) ||
+    0 < findPathsWithPrefix(data, mdesc.path, { strict: true })) {
+    return null
+  }
+  const keyParent = itemAbove(data, parts, key, pathowner)
+  for (let i = parts.length - 2; key < i; i--) {
+    const lit = snakify(parts[i])
+    if (depluralize(lit) === lit) {
+      continue
+    }
+    const route = pathNamed(data, '/' + parts.slice(0, i + 1).join('/'))
+    const owners = null == route ? {} : (pathowner[route] ?? {})
+    const owner = owners.GET ?? owners.QUERY ?? Object.values(owners).sort()[0]
+    if (null != owner && owner !== keyParent) {
+      return { parent: owner, action: verbActionName(parts.slice(i + 1)) }
+    }
+  }
+  return null == keyParent ? null : { parent: keyParent, action: verbActionName(parts.slice(key + 1)) }
+}
+
+
+// The verb keeps its own spelling, plural and all; the literals before it
+// are path nouns, and an `actions` element only gathers the verb after it.
+function verbActionName(literals: string[]): string {
+  const at = literals.length - 2
+  const kept = 0 <= at && 'action' === literalName(literals[at]) ?
+    [...literals.slice(0, at), literals[at + 1]] : literals
+  const last = kept.length - 1
+  return kept
+    .map((lit, i) => i < last ? literalName(lit) : snakify(lit).replace(/[^a-zA-Z0-9_]/g, ''))
+    .join('_')
+}
+
+
+// A literal too short for a word names nothing.
+function shortLiteral(pm: PathMatch): boolean {
+  return canonize(pm[PATH_NAME_INDEX[pm.expr]]).replace(/_/g, '').length < 3
+}
+
+
+// The naming literal is a generic word, or a verb word with no literal
+// before it in the path.
+function nounless(pm: PathMatch, parts: string[]): boolean {
+  const at = pm.index + PATH_NAME_INDEX[pm.expr]
+  const name = literalName(parts[at])
+  return GENERIC_WORDS.includes(name) ||
+    (VERB_WORDS.has(name) && parts.slice(0, at).every((part) => isParam(part)))
+}
+
+
+// The component a route answers with, cleaned, when no tag stands for it.
+function answeredCmp(mdesc: any): string | null {
+  const ment = mdesc.MethodEntity
+  const cmp = 'tag' === ment?.ref ? null : ment?.cmp
+  return 'string' === typeof cmp && 3 <= cmp.replace(/_/g, '').length ? cmp : null
+}
+
+
+// The object an operationId names after its leading verb, less a tail that
+// opens with via, by or with: getting an access token via a provider names
+// access_token.
+function opidObject(opid: any): string | null {
+  const words = 'string' === typeof opid ? canonize(opid).split('_').filter((w) => '' !== w) : []
+  if (words.length < 2 || !VERB_WORDS.has(words[0])) {
+    return null
+  }
+  const tail = words.findIndex((word, i) => 1 < i && OPID_TAIL_WORDS.includes(word))
+  const name = canonize(words.slice(1, tail < 0 ? words.length : tail).join('_'))
+  return name.replace(/_/g, '').length < 3 ? null : name
+}
+
+
+// The path of the definition that is the given path with its parameters
+// normalised, or null.
+function pathNamed(data: { def: any, work: any }, pathStr: string): string | null {
+  const work = data.work
+  if (null == work.normPaths) {
+    work.normPaths = Object.create(null)
+    for (const p of Object.keys(data.def?.paths ?? {})) {
+      work.normPaths[normalizeParams(p)] = work.normPaths[normalizeParams(p)] ?? p
+    }
+  }
+  return work.normPaths[normalizeParams(pathStr)] ?? null
+}
+
+
+// What a response carries past its envelopes: whether it reaches an array of
+// scalars, and whether the record it reaches declares an id, with that record.
+function responsePayload(schema: any): { scalars: boolean, record: boolean, node: any } {
+  let node = schema
+  let array = false
+  for (let depth = 0; null != node && 'object' === typeof node && depth < 8; depth++) {
+    if ('array' === node.type) {
+      array = true
+      node = node.items
+      continue
+    }
+    const props = mergedProperties(node)
+    if (null == props) {
+      break
+    }
+    if (null != props.id) {
+      return { scalars: false, record: true, node }
+    }
+    const env = strictEnvelopeProp(props, 'list') ?? strictEnvelopeProp(props, 'load')
+    if (null == env) {
+      break
+    }
+    node = props[env]
+  }
+  const scalar = null != node && 'object' === typeof node &&
+    SCALAR_TYPES.has(node.type) && null == mergedProperties(node)
+  return { scalars: array && scalar, record: false, node }
+}
+
+
+// The record component the item route of a path answers with, the path's own
+// when it ends with a parameter, else the item route beneath it: null for none.
+function recordOf(
+  data: { def: any, guide: any, work: any },
+  pathStr: string,
+): { cmp: string, orig: string, shared: boolean } | null {
+  const work = data.work
+  work.itemRecords = work.itemRecords ?? Object.create(null)
+  if (pathStr in work.itemRecords) {
+    return work.itemRecords[pathStr]
+  }
+  const parts = guideParts(pathStr)
+  const itemPath = isParam(parts[parts.length - 1]) ? pathStr :
+    pathNamed(data, pathStr + '/{}')
+  let found: { cmp: string, orig: string, shared: boolean } | null = null
+  const orig = null == itemPath ? null : itemRecordRef(data, itemPath)
+  if (null != orig) {
+    const cmp = cleanCmp(data, canonizeCmpName(orig)).replace(/_v\d+$/, '')
+    found = { cmp, orig, shared: 1 < itemRecordRoutes(data)[orig].size }
+  }
+  work.itemRecords[pathStr] = found
+  return found
+}
+
+
+// The component an item route's read answers with when it declares an id.
+function itemRecordRef(data: { def: any }, itemPath: string): string | null {
+  const read = data.def?.paths?.[itemPath]?.get
+  const schema = getResponseSchema(successResponse(read?.responses))
+  const payload = responsePayload(schema)
+  const xref = (payload.record ? payload.node :
+    recordNode(schema, paramOf(guideParts(itemPath).slice(-1)[0] ?? '')))?.['x-ref']
+  const m = 'string' === typeof xref ? xref.match(/\/(components\/schemas|definitions)\/(.+)$/) : null
+  return null == m ? null : m[2]
+}
+
+
+// The record an item's read answers with: an object declaring an `id` or the
+// field its route's key names, read through a one-record envelope.
+function recordNode(schema: any, keyName: string | null): any {
+  const key = null == keyName ? null : canonizeParam(keyName)
+  let node = schema
+  for (let depth = 0; null != node && 'object' === typeof node && depth < 8; depth++) {
+    const props = mergedProperties(node)
+    if (null == props) {
+      return null
+    }
+    if (null != props.id || (null != key && Object.keys(props).some((p) => canonizeParam(p) === key))) {
+      return node
+    }
+    const env = envelopeProp(props, 'load')
+    if (null == env) {
+      return null
+    }
+    node = props[env]
+  }
+  return null
+}
+
+
+// A read on a literal right after a collection that answers the collection's
+// own record is a variant of its list: the collection's entity and the
+// literal as the action, or null.
+function variantOfCollection(
+  data: { def: any, guide: any, work: any },
+  mdesc: any,
+  parts: string[],
+  pathowner: Record<string, Record<string, string>>,
+): { parent: string, action: string } | null {
+  const last = parts[parts.length - 1]
+  if (!READ_METHODS.includes(mdesc.method) || parts.length < 2 || null == last ||
+    isParam(last) || isParam(parts[parts.length - 2])) {
+    return null
+  }
+  const collection = pathNamed(data, '/' + parts.slice(0, -1).join('/'))
+  const record = null == collection ? null : recordOf(data, collection)
+  if (null == record) {
+    return null
+  }
+  let node = getResponseSchema(successResponse(mdesc.responses))
+  const props = 'array' === node?.type ? null : mergedProperties(node)
+  const env = null == props ? null : envelopeProp(props, 'list')
+  node = null == env || null == props ? node : props[env]
+  const xref = 'array' === node?.type ? node.items?.['x-ref'] : null
+  if ('string' !== typeof xref || xref.match(CMP_REF_RE)?.[2] !== record.orig) {
+    return null
+  }
+  const owners = pathowner[collection as string] ?? {}
+  const parent = owners.GET ?? owners.QUERY ?? record.cmp
+  return { parent, action: literalName(last) }
+}
+
+
+// The collections whose item routes answer each record, by the item path
+// with its parameters normalised: a record shared by several names them all,
+// and each collection's literal becomes its action.
+function itemRecordRoutes(data: { def: any, work: any }): Record<string, Set<string>> {
+  const work = data.work
+  if (null == work.itemRecordRoutes) {
+    work.itemRecordRoutes = Object.create(null)
+    for (const p of Object.keys(data.def?.paths ?? {})) {
+      const parts = guideParts(p)
+      const orig = 0 < parts.length && isParam(parts[parts.length - 1]) ? itemRecordRef(data, p) : null
+      if (null != orig) {
+        (work.itemRecordRoutes[orig] = work.itemRecordRoutes[orig] ?? new Set()).add(normalizeParams(p))
+      }
+    }
+  }
+  return work.itemRecordRoutes
+}
+
+
+// A record named for a literal of the path and the naming literal, as
+// `call_route_allowed_caller` under `/call_routes/{id}/allowed_callers`, is
+// qualified rather than wrapped.
+function pathQualified(parts: string[], cmp: string, lit: string): boolean {
+  if (!cmp.endsWith('_' + lit)) {
+    return false
+  }
+  const prefix = cmp.slice(0, -(lit.length + 1))
+  return parts.some((part) => !isParam(part) && literalName(part) === prefix)
+}
+
+
+// Whether a component's name holds the literal's words in a row, compared
+// singular: such a name wraps the literal and the literal keeps naming.
+function wrapsLiteral(cmp: string, lit: string): boolean {
+  const cw = cmp.split('_').map((w) => depluralize(w))
+  const lw = lit.split('_').map((w) => depluralize(w))
+  for (let i = 0; i + lw.length <= cw.length; i++) {
+    if (lw.every((w, j) => w === cw[i + j])) {
+      return true
+    }
+  }
+  return false
+}
+
+
+// A POST addressed to a singular literal that names no component, with no
+// item route above it to be a verb on or beneath it to be a collection, is a
+// command: its body component names it.
+function commandName(
+  data: { def: any, guide: any, work: any },
+  mdesc: any,
+  pm: PathMatch,
+  parts: string[],
+  why: string[],
+): string | null {
+  const ment = mdesc.MethodEntity
+  if ('POST' !== mdesc.method || null != ment.verb_on_parent ||
+    !LITERAL_LAST_SHAPES.includes(pm.expr)) {
+    return null
+  }
+  const last = getelem(pm, -1)
+  const lit = snakify(last)
+  if ('' === lit || depluralize(lit) !== lit || pathNoun(pm, parts, []) !== literalName(last) ||
+    isOrigCmp(data, literalName(last)) || null != keyParamOf(data.def, mdesc.path, data.work) ||
+    ('t/p/t/' === pm.expr && null != leafItemRoute(data, pm)) || readsRecord(data, mdesc.path)) {
+    return null
+  }
+  const source = commandSource(data, mdesc)
+  if (null != source) {
+    why.push(('body' === source.from ? 'command=' : 'command-opid=') + source.name)
+  }
+  return source?.name ?? null
+}
+
+
+// What names a command: its body component, else, when no response component
+// names it either, the object of its operationId.
+function commandSource(
+  data: { def: any, guide: any, work: any },
+  mdesc: any,
+): { name: string, from: 'body' | 'opid' } | null {
+  const body = commandBodyName(data, mdesc)
+  if (null != body) {
+    return { name: body, from: 'body' }
+  }
+  const responded = getResponseSchema(successResponse(mdesc.responses))
+  const object = null == namingRef(responded, data.work.envelope) ? opidObject(mdesc.operationId) : null
+  return null == object ? null : { name: object, from: 'opid' }
+}
+
+
+// A path whose read answers with a record is a resource, not a command.
+function readsRecord(data: { def: any }, pathStr: string): boolean {
+  const mdef = data.def?.paths?.[pathStr]?.get
+  return null != mdef && responsePayload(getResponseSchema(successResponse(mdef.responses))).record
+}
+
+
+// The name a command's body component gives under any media type, the first
+// member of a oneOf, its affixes stripped. A body that is no object, such as
+// an upload, names nothing.
+function commandBodyName(data: { def: any, guide: any, work: any }, mdesc: any): string | null {
+  const body = selectedRequestSchema(data.def, mdesc.method, mdesc.path) ?? mdesc.requestBody?.schema
+  const member = Array.isArray(body?.oneOf) ? body.oneOf[0] :
+    Array.isArray(body?.anyOf) ? body.anyOf[0] : body
+  const xref = member?.['x-ref']
+  if ('string' !== typeof xref || null == mergedProperties(member)) {
+    return null
+  }
+  let name = cleanCmp(data, canonizeCmpName(cmpRefName(xref)))
+  for (;;) {
+    const suffix = COMMAND_SUFFIXES.find((sfx) => name.endsWith(sfx) && sfx.length < name.length)
+    if (null == suffix) {
+      break
+    }
+    name = name.slice(0, -suffix.length)
+  }
+  return name.replace(/_/g, '').length < 3 ? null : name
+}
+
+
+// A read on a command's path is the command's load.
+function commandTwin(
+  data: { def: any, guide: any, work: any },
+  mdesc: any,
+  pm: PathMatch,
+  parts: string[],
+  why: string[],
+): string | null {
+  const post = data.def?.paths?.[mdesc.path]?.post
+  if (!READ_METHODS.includes(mdesc.method) || null == post || 'object' !== typeof post) {
+    return null
+  }
+  const twin = { method: 'POST', path: mdesc.path, responses: post.responses, MethodEntity: {} }
+  const name = commandName(data, twin, pm, parts, [])
+  if (null != name) {
+    why.push('command-twin=' + name)
+  }
+  return name
+}
+
+
+// A POST whose literal opens with a read verb and answers with a collection
+// lists the noun the literal names, the body its filter; '' keeps the shape's
+// name where the literal is the verb alone.
+function postRead(
+  mdesc: any,
+  pm: PathMatch,
+  parts: string[],
+  why: string[],
+): string | null {
+  if ('POST' !== mdesc.method) {
+    return null
+  }
+  const verbs = verbParts(parts)
+  const last = verbs[verbs.length - 1]
+  const lit = snakify(last)
+  const verb = READ_VERBS.find((v) => lit === v || lit.startsWith(v + '_'))
+  if (null == verb || isParam(last) || !isListResponse(mdesc, pm, mdesc.path, [])) {
+    return null
+  }
+  mdesc.MethodEntity.post_read = true
+  why.push('post-read=' + verb)
+  const noun = lit.slice(verb.length + 1)
+  return '' === noun ? '' : literalName(noun)
 }
 
 
@@ -1871,7 +2752,7 @@ function itemOfCollection(
   const work = data.work
   const collection = naming.collection
   const cmp = mdesc.MethodEntity.cmp
-  const segment = canonize(collection.substring(collection.lastIndexOf('/') + 1))
+  const segment = literalName(collection.substring(collection.lastIndexOf('/') + 1))
   const own = segment === cmp
   const tagged = own ? segment : cmp + '_' + segment
   const tagOwn = own ? (path: string) => tagNamesRoute(data, path, cmp) : undefined
@@ -1980,7 +2861,7 @@ function isOrigCmp(data: any, name: string) {
 
 
 function entityOccursInPath(parts: string[], entname: string) {
-  return parts.some(p => p[0] !== '{' && canonize(p.toLowerCase()) === entname)
+  return parts.some(p => p[0] !== '{' && literalName(p.toLowerCase()) === entname)
 }
 
 
@@ -1989,13 +2870,13 @@ function entityPathMatch_tpe(
   pm: PathMatch, mdesc: any, why: string[]
 ) {
   const ment = mdesc.MethodEntity
-  const pathNameIndex = PATH_NAME_INDEX['t/p/']
-
   why.push('path=t/p/')
-  const origPathName = pm[pathNameIndex]
-  let entname = canonize(origPathName)
+  let entname = pathNoun(pm, data.work.pathmap[mdesc.path].parts, why)
 
-  if (null != ment.cmp || probableEntityMethod(data, mdesc, pm, why)) {
+  if (entname !== literalName(pm[PATH_NAME_INDEX[pm.expr]]) && 'tag' !== ment.ref) {
+    why.push('verb-noun=' + entname)
+  }
+  else if (null != ment.cmp || probableEntityMethod(data, mdesc, pm, why)) {
     let ecm = entityCmpMatch(data, entname, mdesc, why)
     entname = ecm.name
   }
@@ -2012,13 +2893,13 @@ function entityPathMatch_pte(
   pm: PathMatch, mdesc: any, why: string[]
 ) {
   const ment = mdesc.MethodEntity
-  const pathNameIndex = PATH_NAME_INDEX['p/t/']
-
   why.push('path=p/t/')
-  const origPathName = pm[pathNameIndex]
-  let entname = canonize(origPathName)
+  let entname = pathNoun(pm, data.work.pathmap[mdesc.path].parts, why)
 
-  if (null != ment.cmp || probableEntityMethod(data, mdesc, pm, why)) {
+  if (entname !== literalName(pm[PATH_NAME_INDEX[pm.expr]]) && 'tag' !== ment.ref) {
+    why.push('verb-noun=' + entname)
+  }
+  else if (null != ment.cmp || probableEntityMethod(data, mdesc, pm, why)) {
     let ecm = entityCmpMatch(data, entname, mdesc, why)
     entname = ecm.name
   }
@@ -2035,13 +2916,13 @@ function entityPathMatch_te(
   pm: PathMatch, mdesc: any, why: string[]
 ) {
   const ment = mdesc.MethodEntity
-  const pathNameIndex = PATH_NAME_INDEX['t/']
-
   why.push('path=t/')
-  const origPathName = pm[pathNameIndex]
-  let entname = canonize(origPathName)
+  let entname = pathNoun(pm, data.work.pathmap[mdesc.path].parts, why)
 
-  if (null != ment.cmp || probableEntityMethod(data, mdesc, pm, why)) {
+  if (entname !== literalName(pm[PATH_NAME_INDEX[pm.expr]]) && 'tag' !== ment.ref) {
+    why.push('verb-noun=' + entname)
+  }
+  else if (null != ment.cmp || probableEntityMethod(data, mdesc, pm, why)) {
     let ecm = entityCmpMatch(data, entname, mdesc, why)
     entname = ecm.name
   }
@@ -2058,13 +2939,13 @@ function entityPathMatch_tpp(
   pm: PathMatch, mdesc: any, why: string[]
 ) {
   const ment = mdesc.MethodEntity
-  const pathNameIndex = PATH_NAME_INDEX['t/p/p']
-
   why.push('path=t/p/p')
-  const origPathName = pm[pathNameIndex]
-  let entname = canonize(origPathName)
+  let entname = pathNoun(pm, data.work.pathmap[mdesc.path].parts, why)
 
-  if (null != ment.cmp || probableEntityMethod(data, mdesc, pm, why)) {
+  if (entname !== literalName(pm[PATH_NAME_INDEX[pm.expr]]) && 'tag' !== ment.ref) {
+    why.push('verb-noun=' + entname)
+  }
+  else if (null != ment.cmp || probableEntityMethod(data, mdesc, pm, why)) {
     let ecm = entityCmpMatch(data, entname, mdesc, why)
     entname = ecm.name
   }
@@ -2084,7 +2965,7 @@ function getRequestBodySchema(def: any, mdesc: any) {
 // The response an operation's result is read from, down to an Accepted
 // response when nothing else answers, whose body may be the job it queued.
 function successResponse(responses: any): any {
-  return responses?.[200] ?? responses?.[201] ?? responses?.[202]
+  return responses?.[200] ?? responses?.[201] ?? responses?.[202] ?? rangeResponse(responses)
 }
 
 
@@ -2092,8 +2973,8 @@ function successResponse(responses: any): any {
 // order they are tried. An Accepted response names nothing, since its body
 // may describe the work rather than the resource.
 function successSchemas(responses: any): any[] {
-  return ['200', '201']
-    .map((rescode) => getResponseSchema(responses?.[rescode]))
+  return [responses?.['200'], responses?.['201'], rangeResponse(responses)]
+    .map((response) => getResponseSchema(response))
     .filter((schema) => null != schema)
 }
 
@@ -2174,8 +3055,7 @@ function namingRef(schema: any, envelope: Record<string, string>): string | unde
 
 
 function getResponseSchema(response: any) {
-  return response?.content?.['application/json']?.schema ??
-    response?.schema
+  return responseSchema(response)
 }
 
 
@@ -2214,7 +3094,7 @@ function routeRecordRef(
 ): string | null {
   const responses = def?.paths?.[pathStr]?.[method.toLowerCase()]?.responses
   const schema = getResponseSchema(accepted ? successResponse(responses) :
-    responses?.[200] ?? responses?.[201])
+    responses?.[200] ?? responses?.[201] ?? rangeResponse(responses))
   if (null == schema || 'object' !== typeof schema) {
     return null
   }
@@ -2241,6 +3121,20 @@ function inferEntityName(
   why: string[],
 ): string | null {
 
+  // A route with no literal is named for the component it answers, else
+  // for its first parameter's noun, a version aside.
+  const answered = answeredCmp(mdesc)
+  if (null != answered) {
+    why.push('infer-answers=' + answered)
+    return answered
+  }
+  const keys = parts.filter((part) => isParam(part) && !/version/i.test(part))
+  const noun = 0 < keys.length ? paramNoun(paramOf(keys[0])) : ''
+  if (3 <= noun.length) {
+    why.push('infer-param')
+    return noun
+  }
+
   if (mdesc.operationId) {
     const opid = stripOperationVerb(canonize(mdesc.operationId))
     if (opid.length >= 3) {
@@ -2250,7 +3144,8 @@ function inferEntityName(
   }
 
   // Try response schema title
-  const response = mdesc.responses?.[200] ?? mdesc.responses?.[201]
+  const response = mdesc.responses?.[200] ?? mdesc.responses?.[201] ??
+    rangeResponse(mdesc.responses)
   const resSchema = getResponseSchema(response)
   if (resSchema?.title) {
     const title = canonize(resSchema.title)
@@ -2263,12 +3158,19 @@ function inferEntityName(
   // Try last non-param path segment
   for (let i = parts.length - 1; i >= 0; i--) {
     if (!isParam(parts[i])) {
-      const seg = canonize(parts[i])
+      const seg = literalName(parts[i])
       if (seg.length >= 3) {
         why.push('infer-path-seg')
         return seg
       }
     }
+  }
+
+  // A tag names only a route with no usable literal.
+  const tag = mdesc.MethodEntity?.cmp
+  if ('tag' === mdesc.MethodEntity?.ref && 'string' === typeof tag && 3 <= tag.length) {
+    why.push('infer-tag')
+    return tag
   }
 
   return null
@@ -2283,7 +3185,8 @@ function probableEntityMethod(
 ) {
   const reqSchema = getRequestBodySchema(data.def, mdesc)
 
-  const response = mdesc.responses?.['201'] || mdesc.responses?.['200']
+  const response = mdesc.responses?.['201'] || mdesc.responses?.['200'] ||
+    rangeResponse(mdesc.responses)
   const resSchema = getResponseSchema(response)
   const noResponse = null == resSchema && null != mdesc.responses?.['204']
 
@@ -2375,7 +3278,48 @@ function entityCmpMatch(
   const unversioned = (ment.cmp ?? '').replace(/_v\d+$/, '')
   const qualifies = unversioned !== ment.cmp && unversioned.endsWith('_' + entname)
 
+  const record = recordOf(data, mdesc.path)
+  const parts: string[] = data.work.pathmap[mdesc.path].parts
+  const recordWraps = null != record && record.cmp !== entname &&
+    wrapsLiteral(record.cmp, entname) && !pathQualified(parts, record.cmp, entname)
+  const cmpWraps = null != ment.cmp && 'tag' !== ment.ref && ment.cmp !== entname &&
+    wrapsLiteral(ment.cmp, entname) && !pathQualified(parts, ment.cmp, entname)
+
+  // The key parameter names the component, whatever the literal beside it:
+  // `/s/{shelf}` answering with a Shelf.
   if (
+    null != ment.cmp
+    && entname != ment.cmp
+    && 'tag' !== ment.ref
+    && keyParamNames(data, mdesc, ment.cmp)
+  ) {
+    why.push('cmp-names-key')
+    out.name = ment.cmp
+    out.orig = ment.origcmp
+    out.cmpish = true
+    out.pathish = false
+  }
+
+  // The record an item route answers names the item and its collection,
+  // whatever its frequency, unless the record's name wraps the literal's.
+  else if (
+    null != record
+    && record.cmp !== entname
+    && !recordWraps
+  ) {
+    why.push('cmp-record=' + record.orig)
+    out.name = record.cmp
+    out.orig = record.orig
+    out.cmpish = true
+    out.pathish = false
+    ment.record_named = true
+    if (record.shared) {
+      ment.collection_action = entname
+      why.push('collection-action=' + entname)
+    }
+  }
+
+  else if (
     null != ment.cmp
     && entname != ment.cmp
     && !ment.cmp.startsWith(entname)
@@ -2384,12 +3328,21 @@ function entityCmpMatch(
       why.push('cmp-shared')
     }
 
-    if (qualifies) {
+    // A tag that is not the path's own noun groups routes; the noun names them.
+    if ('tag' === ment.ref && !ID_LITERAL_RE.test(entname) &&
+      !tagHolds(data, data.work.pathmap[mdesc.path].parts, mdesc.path, ment.cmp)) {
+      why.push('path-over-tag')
+    }
+    else if (qualifies) {
       why.push('cmp-qualifies-path')
       out.name = unversioned
       out.orig = ment.origcmp
       out.cmpish = true
       out.pathish = false
+    }
+    // A component that wraps the literal's words is the literal's own shape.
+    else if (recordWraps || cmpWraps) {
+      why.push('path-over-wrapper=' + (recordWraps ? record.orig : ment.origcmp))
     }
     else if (cmpInfrequent && !cmpShared) {
       why.push('cmp-primary')
@@ -2415,9 +3368,11 @@ function entityCmpMatch(
   else if (
     'DELETE' === mdesc.method
     && null == ment.cmp
+    && !recordWraps
   ) {
     let cmps: { cmp: string, origcmp: string }[] =
       findcmps(data, mdesc.path, ['responses'], { uniq: true })
+        .flatMap((found) => unwrapCmp(data.guide.metrics, found, why))
 
     if (1 === cmps.length) {
       out.name = cmps[0].cmp
@@ -2443,6 +3398,117 @@ function entityCmpMatch(
 }
 
 
+// A tag keeps naming a route whose noun it is not when it names a literal
+// before the naming literal and the route is a leaf, or ends with a key
+// whose literal is singular: a selector or a view of the tag's resource.
+function tagHolds(data: { def: any }, parts: string[], pathStr: string, tag: string): boolean {
+  const pm = matchEntityPath(parts)
+  if (null == pm) {
+    return false
+  }
+  const at = pm.index + PATH_NAME_INDEX[pm.expr]
+  const tagAt = parts.slice(0, at).findIndex((part) => !isParam(part) && literalName(part) === tag)
+  if (tagAt < 0) {
+    return false
+  }
+  const lit = snakify(parts[at])
+  const singular = '' !== lit && depluralize(lit) === lit
+  if (isParam(parts[parts.length - 1])) {
+    return singular
+  }
+  if (0 < findPathsWithPrefix(data, pathStr, { strict: true })) {
+    return false
+  }
+  // Beneath a key a leaf views the keyed resource, unless it is a singular
+  // sub-read answering an id of its own rather than projecting the literal;
+  // without one it is a selector, or what the tag's verb acts over.
+  if (parts.slice(0, at).some((part) => isParam(part))) {
+    const schema = getResponseSchema(successResponse(data.def?.paths?.[pathStr]?.get?.responses))
+    const name = literalName(parts[at])
+    const projects = Object.keys(mergedProperties(schema) ?? {}).some((prop) =>
+      canonize(prop) === name || canonize(prop).startsWith(name + '_'))
+    return !(singular && 'array' !== schema?.type && !projects && responsePayload(schema).record)
+  }
+  return singular || VERB_WORDS.has(literalName(parts[tagAt]))
+}
+
+
+// The key parameter names the component, as a bucket's key does beside the
+// literal b, and a collection through the item route beneath it.
+function keyParamNames(data: { def: any, work: any }, mdesc: any, cmp: string): boolean {
+  const key = keyParamOf(data.def, mdesc.path, data.work)
+  return null != key && canonizeParam(key) === cmp
+}
+
+
+// The name of the parameter that keys a route's records: its own trailing
+// parameter, or the one the item route directly beneath a collection takes.
+function keyParamOf(def: any, pathStr: string, work: { childKeys?: Record<string, string> }): string | null {
+  const parts = guideParts(pathStr)
+  const pm = matchEntityPath(parts)
+  if (null == pm) {
+    return null
+  }
+  const last = parts[parts.length - 1]
+  if ((pm.expr.endsWith('p/') || 't/p/p' === pm.expr) && isParam(last)) {
+    return paramOf(last)
+  }
+  if (isParam(last)) {
+    return null
+  }
+  work.childKeys = work.childKeys ?? childKeyIndex(def)
+  return work.childKeys[normalizeParams(pathStr)] ?? null
+}
+
+
+function normalizeParams(pathStr: string): string {
+  return guidePath(pathStr).replace(/\{[^}]+\}/g, '{}')
+}
+
+
+// The parameter each path takes directly beneath it, keyed by the path with
+// its parameters normalised.
+function childKeyIndex(def: any): Record<string, string> {
+  const index: Record<string, string> = Object.create(null)
+  for (const p of Object.keys(def?.paths ?? {}).sort()) {
+    const parts = guideParts(p)
+    const last = parts[parts.length - 1]
+    if (1 < parts.length && isParam(last)) {
+      const parent = normalizeParams('/' + parts.slice(0, -1).join('/'))
+      index[parent] = index[parent] ?? paramOf(last)
+    }
+  }
+  return index
+}
+
+
+// A wrapper names the component it wraps, or nothing: the candidate is
+// replaced or dropped. The replacement keeps the candidate's other fields.
+function unwrapCmp<T extends { cmp: string, origcmp: string, val?: string, origcmpref?: string }>(
+  metrics: GuideMetrics,
+  xref: T,
+  why: string[],
+): T[] {
+  const inner = wrapperOf(xref.cmp, Object.keys(metrics.found.cmp).sort())
+  if (null == inner) {
+    return [xref]
+  }
+  why.push('wrapper=' + xref.cmp + ('' === inner ? '' : '>' + inner))
+  if ('' === inner) {
+    return []
+  }
+  const orig = (metrics.found.cmp[inner] as any)?.orig ?? inner
+  const out = { ...xref, cmp: inner, origcmp: orig }
+  if (null != xref.val) {
+    out.val = xref.val.replace(/[^/]+$/, orig)
+  }
+  if (null != xref.origcmpref) {
+    out.origcmpref = inner
+  }
+  return [out]
+}
+
+
 function cmpOccursInPath(data: { def: any, work: any }, cmpname: string): boolean {
   if (null == data.work.potentialCmpsFromPaths) {
     data.work.potentialCmpsFromPaths = Object.create(null)
@@ -2451,7 +3517,7 @@ function cmpOccursInPath(data: { def: any, work: any }, cmpname: string): boolea
 
       parts
         .filter(p => !p.startsWith('{'))
-        .map(p => data.work.potentialCmpsFromPaths[canonize(p)] = true)
+        .map(p => data.work.potentialCmpsFromPaths[literalName(p)] = true)
     })
   }
 
@@ -2487,7 +3553,7 @@ function pathResource(parts: string[], method: string): string | null {
     return null
   }
 
-  return canonize(pm[PATH_NAME_INDEX[pm.expr]])
+  return literalName(pm[PATH_NAME_INDEX[pm.expr]])
 }
 
 
@@ -2809,7 +3875,7 @@ function updateAction(
 ) {
   if (
     // Entity not already encoding action.
-    !entityDesc.name.endsWith(canonize(actionName))
+    !entityDesc.name.endsWith(literalName(actionName))
     && null == pathdesc.action[actionName]
   ) {
     pathdesc.action[actionName] = {
@@ -2851,7 +3917,7 @@ function updateParamRename(
   // The clash is with what the path's OTHER parameters end up called: their
   // rename if they have one, their canonical name if not.
   const otherParams = (path.match(/\{([^}]+)\}/g) || [])
-    .map((seg) => seg.slice(1, -1))
+    .map((seg) => paramOf(seg))
     .filter((name) => name !== oldParamName)
 
   const takenBy =
@@ -2902,7 +3968,11 @@ function updateParamRename(
 
 
 function isParam(partStr: string) {
-  return '{' === partStr[0] && '}' === partStr[partStr.length - 1]
+  if (null == partStr) {
+    return false
+  }
+  const part = partStr.replace(/^\./, '').replace(/\}\.[A-Za-z0-9]+$/, '}')
+  return '{' === part[0] && '}' === part[part.length - 1]
 }
 
 
@@ -2919,10 +3989,12 @@ function isVerb(partStr: string): boolean {
 }
 
 
+const CUSTOM_METHOD_RE = /^(.+):([A-Za-z][\w-]*)$/
+
 // A custom method (`/schedules:count`, `/users/{id}:activate`) reads as a
 // trailing verb segment after what it acts on.
 function verbParts(parts: string[]): string[] {
-  const m = (parts[parts.length - 1] ?? '').match(/^(.+):([A-Za-z][\w-]*)$/)
+  const m = (parts[parts.length - 1] ?? '').match(CUSTOM_METHOD_RE)
   return null == m ? parts : [...parts.slice(0, -1), m[1], m[2]]
 }
 
@@ -2977,7 +4049,7 @@ function entityParamNames(
     parts.forEach((part, partI) => {
       if (isParam(part)) {
         const place = parts.slice(0, partI + 1).join('/')
-        ;(places[place] = places[place] ?? []).push({ pathStr, param: part.slice(1, -1) })
+        ;(places[place] = places[place] ?? []).push({ pathStr, param: paramOf(part) })
       }
     })
   }
@@ -3024,7 +4096,7 @@ function paramNameTaken(
   return Object.keys(renames).some((other) =>
     other !== param && renames[other] === name) ||
     (pathStr.match(/\{([^}]+)\}/g) || [])
-      .map((seg) => seg.slice(1, -1))
+      .map((seg) => paramOf(seg))
       .some((other) => other !== param && null == renames[other] &&
         canonize(other) === name)
 }
@@ -3160,16 +4232,53 @@ function hasMethod(def: any, pathStr: string, methodName: string) {
 
 export {
   answeredRefs,
+  collectionOwner,
+  listedRefs,
+  pathAnswersPage,
+  pathAnswersRecordMap,
+  randomRoute,
+  selectorRoute,
+  namedRecord,
+  verbAfterNoun,
+  warnListBody,
   arrayBodyField,
+  commandBodyName,
+  commandTwin,
+  itemAbove,
+  pathQualified,
+  readsRecord,
+  recordOf,
+  responsePayload,
+  tagHolds,
+  wrapsLiteral,
+  isListResponse,
+  LITERAL_LAST_SHAPES,
+  READ_VERBS,
   distinctRecord,
   distinctShare,
   heuristic01,
+  keyParamOf,
+  matchEntityPath,
+  pathNoun,
   namingRef,
   namingSchemas,
+  pathRecordRef,
   pathResource,
   sharedRoutes,
   entityParamNames,
   isNameParam,
   isVerb,
   verbParts,
+  verbOfItem,
+  shortLiteral,
+  normalizeParams,
+  cleanCmp,
+  commandSource,
+  relationshipOf,
+  singletonOf,
+  subWriteOfItem,
+  variantOfCollection,
+  keyNounOf,
+  asyncResultOf,
+  nounless,
 }

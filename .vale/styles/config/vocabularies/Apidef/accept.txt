@@ -77,3 +77,7 @@ Novu(?:'s)?
 [Dd]enylist
 
 Docgen
+safetensors
+numeronym
+namespace
+Statuspage(?:'s)?

@@ -30,7 +30,10 @@ var (
 	stringNameRE  = regexp.MustCompile(`^(url$|href$|link$|uri$|email$|name$|title$|description$|slug$|path$|label$|username$|password$|token$|key$)`)
 	idNameRE      = regexp.MustCompile(`(_id$|^id$)`)
 	fileExtRE     = regexp.MustCompile(`(?i)\.(php|json|txt|png|jpg|jpeg|gif|svg|xml|html|csv|yml|yaml|md)$`)
-	nonAlphaNumRE = regexp.MustCompile(`[^a-zA-Z_0-9]`)
+	// Trailing placeholders, dotted or fused, as in `pets.{format}` and
+	// `notes{fileExtension}`.
+	placeholderExtRE = regexp.MustCompile(`(\.?\{[^}]*\})+$`)
+	nonAlphaNumRE    = regexp.MustCompile(`[^a-zA-Z_0-9]`)
 	// RE2 has no lookahead, so the "not followed by a letter" half of the
 	// TypeScript pattern is checked in deacronymPlural.
 	acronymPluralRE = regexp.MustCompile(`([A-Z]{2,})s`)
@@ -222,8 +225,9 @@ func Depluralize(word string) string {
 		return word[:len(word)-2]
 	}
 
+	// A trailing s after a digit is part of a numeronym (k8s), not a plural.
 	if strings.HasSuffix(lower, "s") && !strings.HasSuffix(lower, "ss") &&
-		!strings.HasSuffix(lower, "us") && len(word) > 3 {
+		!strings.HasSuffix(lower, "us") && !numeronymRE.MatchString(lower) && len(word) > 3 {
 		return word[:len(word)-1]
 	}
 
@@ -479,6 +483,7 @@ func Canonize(s string) string {
 	}
 	out := Transliterate(s)
 	out = fileExtRE.ReplaceAllString(out, "")
+	out = placeholderExtRE.ReplaceAllString(out, "")
 	out = deacronymPlural(out)
 	out = Snakify(out)
 	out = Depluralize(out)
@@ -525,24 +530,205 @@ func CanonizeCmpName(orig string) string {
 // borrows the component's, only where the component's leading segments
 // rejoin to exactly that name, so the letters can never change.
 func resplitFromCmp(entname string, cmp string, why *[]string) string {
-	if entname == "" || strings.Contains(entname, "_") ||
-		cmp == "" || !strings.Contains(cmp, "_") {
+	return resplitFromCmpIn(entname, cmp, why, nil)
+}
+
+// resplitFromCmpIn mirrors resplitFromCmp in ts/src/utility.ts with the
+// definition's word breaks, read when the component gives none.
+func resplitFromCmpIn(entname string, cmp string, why *[]string, breaks map[string]string) string {
+	if entname == "" || strings.Contains(entname, "_") {
 		return entname
 	}
-	seg := strings.Split(cmp, "_")
-	acc := ""
-	for i := range seg {
-		acc += seg[i]
-		if acc == entname {
-			split := strings.Join(seg[:i+1], "_")
-			*why = append(*why, "resplit-from-cmp="+split)
-			return split
-		}
-		if len(acc) > len(entname) {
-			return entname
+	if cmp != "" && strings.Contains(cmp, "_") {
+		seg := strings.Split(cmp, "_")
+		acc := ""
+		for i := 0; i < len(seg) && len(acc) < len(entname); i++ {
+			acc += seg[i]
+			if acc == entname {
+				split := strings.Join(seg[:i+1], "_")
+				*why = append(*why, "resplit-from-cmp="+split)
+				return split
+			}
 		}
 	}
+	if split, ok := breaks[entname]; ok {
+		*why = append(*why, "word-break="+split)
+		return split
+	}
 	return entname
+}
+
+// WordBreaks mirrors wordBreaks in ts/src/utility.ts.
+func WordBreaks(def map[string]any) map[string]string {
+	names := []string{}
+	if tags, ok := def["tags"].([]any); ok {
+		for _, tag := range tags {
+			tm, _ := tag.(map[string]any)
+			name, _ := tm["name"].(string)
+			names = append(names, Canonize(name))
+		}
+	}
+	paths, _ := def["paths"].(map[string]any)
+	for _, p := range sortedKeys(paths) {
+		pathdef, _ := paths[p].(map[string]any)
+		for _, m := range sortedKeys(pathdef) {
+			opdef, ok := pathdef[m].(map[string]any)
+			if !ok {
+				continue
+			}
+			if tags, ok := opdef["tags"].([]any); ok {
+				for _, tag := range tags {
+					names = append(names, Canonize(fmt.Sprint(tag)))
+				}
+			}
+			if opid, ok := opdef["operationId"].(string); ok {
+				names = append(names, Canonize(opid))
+			}
+		}
+	}
+	for _, name := range sortedKeys(schemasOf(def)) {
+		names = append(names, CanonizeCmpName(name))
+	}
+	found := map[string][]string{}
+	for _, name := range names {
+		words := []string{}
+		for _, word := range strings.Split(name, "_") {
+			if word != "" {
+				words = append(words, word)
+			}
+		}
+		for i := 0; i < len(words); i++ {
+			for j := i + 2; j <= len(words); j++ {
+				run := append(append([]string{}, words[i:j-1]...), Depluralize(words[j-1]))
+				key := strings.Join(run, "")
+				found[key] = append(found[key], strings.Join(run, "_"))
+			}
+		}
+	}
+	breaks := map[string]string{}
+	for key, splits := range found {
+		sorted := append([]string{}, splits...)
+		sort.Strings(sorted)
+		breaks[key] = sorted[0]
+	}
+	return breaks
+}
+
+// schemasOf is a definition's component schemas, OpenAPI 3 or Swagger 2.
+func schemasOf(def map[string]any) map[string]any {
+	if components, ok := def["components"].(map[string]any); ok {
+		if schemas, ok := components["schemas"].(map[string]any); ok {
+			return schemas
+		}
+	}
+	definitions, _ := def["definitions"].(map[string]any)
+	return definitions
+}
+
+// CmpNamespace mirrors cmpNamespace in ts/src/utility.ts, "" for none.
+func CmpNamespace(def map[string]any) string {
+	names := [][]string{}
+	for _, name := range sortedKeys(schemasOf(def)) {
+		words := []string{}
+		for _, word := range strings.Split(CanonizeCmpName(name), "_") {
+			if word != "" {
+				words = append(words, word)
+			}
+		}
+		names = append(names, words)
+	}
+	run := []string{}
+	shared := 0
+	for {
+		at := len(run)
+		tally := map[string]int{}
+		for _, words := range names {
+			if at+1 < len(words) {
+				holds := true
+				for i, word := range run {
+					if words[i] != word {
+						holds = false
+						break
+					}
+				}
+				if holds {
+					tally[words[at]]++
+				}
+			}
+		}
+		next := ""
+		keys := make([]string, 0, len(tally))
+		for word := range tally {
+			keys = append(keys, word)
+		}
+		sort.Strings(keys)
+		for _, word := range keys {
+			if (at == 0 && len(names) < 2*tally[word]) || (at != 0 && shared == tally[word]) {
+				next = word
+				break
+			}
+		}
+		if next == "" {
+			break
+		}
+		run = append(run, next)
+		shared = tally[next]
+	}
+	joined := strings.Join(run, "_")
+	if shared < 2 {
+		return ""
+	}
+	for _, word := range run {
+		if wrapperWords[word] {
+			return ""
+		}
+	}
+	for _, words := range names {
+		if strings.Join(words, "_") == joined {
+			return ""
+		}
+	}
+	held := make([]string, len(run))
+	for i, word := range run {
+		held[i] = Depluralize(word)
+	}
+	paths, _ := def["paths"].(map[string]any)
+	for _, p := range sortedKeys(paths) {
+		for _, part := range guideParts(p) {
+			if isParam(part) {
+				continue
+			}
+			words := strings.Split(LiteralName(part), "_")
+			for i := range words {
+				words[i] = Depluralize(words[i])
+			}
+			for i := 0; i+len(held) <= len(words); i++ {
+				match := true
+				for j, word := range held {
+					if words[i+j] != word {
+						match = false
+						break
+					}
+				}
+				if match {
+					return ""
+				}
+			}
+		}
+	}
+	return joined
+}
+
+// StripNamespace mirrors stripNamespace in ts/src/utility.ts.
+func StripNamespace(name string, namespace string) string {
+	if namespace == "" || !strings.HasPrefix(name, namespace+"_") {
+		return name
+	}
+	rest := name[len(namespace)+1:]
+	if len(strings.ReplaceAll(rest, "_", "")) < 3 {
+		return name
+	}
+	return rest
 }
 
 // FoldName mirrors foldName in ts/src/utility.ts.
@@ -577,9 +763,10 @@ func guideSegment(seg string) (string, bool) {
 	return seg, true
 }
 
-// guideParts mirrors ts/src/utility.ts: a route of formats alone keeps them.
+// guideParts mirrors ts/src/utility.ts: the query string is cut away, and a
+// route of formats alone keeps them.
 func guideParts(path string) []string {
-	parts := splitAndFilter(path, "/")
+	parts := splitAndFilter(queryStringRE.ReplaceAllString(path, ""), "/")
 	kept := []string{}
 	for _, part := range parts {
 		if seg, ok := guideSegment(part); ok {
@@ -920,12 +1107,64 @@ func successResponseSchema(responses any) any {
 		res = rm["201"]
 	}
 	resm, _ := res.(map[string]any)
-	if content, ok := resm["content"].(map[string]any); ok {
-		if media, ok := content["application/json"].(map[string]any); ok && nil != media["schema"] {
-			return media["schema"]
+	if resm == nil {
+		resm = RangeResponse(rm)
+	}
+	if schema := ResponseSchema(resm); schema != nil {
+		return schema
+	}
+	return nil
+}
+
+var jsonMediaRE = regexp.MustCompile(`(?i)^[^/;]+/([^;]*\+)?json\s*(;.*)?$`)
+
+// JSONContent mirrors jsonContent in ts/src/utility.ts.
+func JSONContent(content map[string]any) map[string]any {
+	if content == nil {
+		return nil
+	}
+	if media, ok := content["application/json"].(map[string]any); ok {
+		return media
+	}
+	for _, media := range sortedKeys(content) {
+		if jsonMediaRE.MatchString(media) {
+			found, _ := content[media].(map[string]any)
+			return found
 		}
 	}
-	return resm["schema"]
+	anyType, _ := content["*/*"].(map[string]any)
+	schema, _ := anyType["schema"].(map[string]any)
+	if schema != nil && schema["type"] == "string" && schema["format"] == "binary" {
+		return nil
+	}
+	return anyType
+}
+
+// ResponseSchema mirrors responseSchema in ts/src/utility.ts.
+func ResponseSchema(response map[string]any) map[string]any {
+	if response == nil {
+		return nil
+	}
+	content, _ := response["content"].(map[string]any)
+	if media := JSONContent(content); media != nil {
+		if schema, ok := media["schema"].(map[string]any); ok {
+			return schema
+		}
+	}
+	schema, _ := response["schema"].(map[string]any)
+	return schema
+}
+
+// RangeResponse mirrors rangeResponse in ts/src/utility.ts.
+func RangeResponse(responses map[string]any) map[string]any {
+	if responses == nil || responses["200"] != nil || responses["201"] != nil || responses["202"] != nil {
+		return nil
+	}
+	if found, ok := responses["2XX"].(map[string]any); ok {
+		return found
+	}
+	found, _ := responses["2xx"].(map[string]any)
+	return found
 }
 
 func requestBodySchema(requestBody any) any {
@@ -957,6 +1196,105 @@ func firstFieldMatch(props []string, names []string) string {
 	return ""
 }
 
+var wrapperWords = map[string]bool{
+	"response": true, "result": true, "ok": true, "envelope": true, "wrapper": true,
+	"payload": true, "page": true, "paginated": true, "list": true, "collection": true,
+	"data": true, "body": true, "output": true, "reply": true,
+}
+
+// WrapperOf mirrors wrapperOf in ts/src/utility.ts: the component a
+// wrapper-shaped name wraps, "" for a wrapper of nothing nameable, and false
+// for a name that is no wrapper.
+func WrapperOf(name string, known []string) (string, bool) {
+	words := splitAndFilter(name, "_")
+
+	// A name of the form noun-for-parent-response wraps the noun.
+	forAt := -1
+	for i, w := range words {
+		if w == "for" {
+			forAt = i
+			break
+		}
+	}
+	if 0 < forAt && forAt < len(words)-1 {
+		held := Depluralize(strings.Join(words[:forAt], "_"))
+		for _, k := range known {
+			if k == held {
+				return held, true
+			}
+		}
+	}
+
+	inner := ""
+	hasInner := false
+	at := -1
+	for _, k := range known {
+		kw := splitAndFilter(k, "_")
+		if k == name || len(kw) == 0 || (hasInner && len(kw) <= len(strings.Split(inner, "_"))) {
+			continue
+		}
+		for i := 0; i+len(kw) <= len(words); i++ {
+			match := true
+			for j, w := range kw {
+				if w != words[i+j] {
+					match = false
+					break
+				}
+			}
+			if match {
+				inner = k
+				hasInner = true
+				at = i
+				break
+			}
+		}
+	}
+
+	if hasInner {
+		kw := len(strings.Split(inner, "_"))
+		rest := append(append([]string{}, words[:at]...), words[at+kw:]...)
+		allWrapper := 0 < len(rest)
+		for _, w := range rest {
+			if !wrapperWords[w] {
+				allWrapper = false
+				break
+			}
+		}
+		if allWrapper {
+			return inner, true
+		}
+	}
+
+	unversioned := map[string]bool{}
+	for _, k := range known {
+		unversioned[reVersionSuffix.ReplaceAllString(k, "")] = true
+	}
+	for n := len(words) - 1; 2 <= n; n-- {
+		prefix := strings.Join(words[:n], "_")
+		if unversioned[prefix] {
+			break
+		}
+		members := 0
+		for _, k := range known {
+			if k != name && strings.HasPrefix(k, prefix+"_") {
+				members++
+			}
+		}
+		wrapperWord := false
+		for _, w := range words[:n] {
+			if wrapperWords[w] {
+				wrapperWord = true
+				break
+			}
+		}
+		if 2 <= members && wrapperWord {
+			return inner, true
+		}
+	}
+
+	return "", false
+}
+
 var cmpResultVerbs = []string{
 	"list", "create", "show", "update", "delete", "remove",
 	"get", "edit", "resolve", "rotate", "search", "add",
@@ -980,7 +1318,13 @@ func StripOperationVerb(opid string) string {
 }
 
 func CleanComponentName(name string, isKnownCmp func(string) bool) string {
-	cleaned := name
+	return cleanComponentNameIn(name, isKnownCmp, "")
+}
+
+// cleanComponentNameIn mirrors cleanComponentName in ts/src/utility.ts with
+// the definition's namespace.
+func cleanComponentNameIn(name string, isKnownCmp func(string) bool, namespace string) string {
+	cleaned := StripNamespace(name, namespace)
 	stripped := false
 	// Order matters: longer suffixes first — '_page_response' and
 	// '_create_response' also end with '_response'.
@@ -1230,11 +1574,7 @@ func PathMatch(path any, expr string) *PathMatchResult {
 			}
 		}
 	case string:
-		for _, p := range strings.Split(v, "/") {
-			if p != "" {
-				parts = append(parts, p)
-			}
-		}
+		parts = guideParts(v)
 	default:
 		return nil
 	}
@@ -1331,8 +1671,53 @@ func PathMatch(path any, expr string) *PathMatchResult {
 	return nil
 }
 
+var paramExtRE = regexp.MustCompile(`\}\.[A-Za-z0-9]+$`)
+
+var numeronymRE = regexp.MustCompile(`[0-9]s$`)
+
+// A placeholder, with or without the dot an extension placeholder keeps and
+// the extension a placeholder carries, as `.{ext}` and `{api}.json`.
 func isParam(partStr string) bool {
-	return len(partStr) > 0 && partStr[0] == '{' && partStr[len(partStr)-1] == '}'
+	part := paramExtRE.ReplaceAllString(strings.TrimPrefix(partStr, "."), "}")
+	return len(part) > 0 && part[0] == '{' && part[len(part)-1] == '}'
+}
+
+// A trailing word that names a module rather than a resource.
+var moduleWords = map[string]bool{
+	"api": true, "controller": true, "service": true, "resource": true, "endpoint": true,
+}
+
+// LiteralName mirrors literalName in ts/src/utility.ts: the entity name a
+// path literal gives, less a trailing module word when another word remains.
+func LiteralName(part string) string {
+	name := Canonize(part)
+	at := strings.LastIndex(name, "_")
+	if 0 < at && moduleWords[name[at+1:]] {
+		return Depluralize(name[:at])
+	}
+	return name
+}
+
+var paramOfRE = regexp.MustCompile(`\{([^}]+)\}`)
+
+// ParamOf mirrors paramOf in ts/src/utility.ts: the name a placeholder part
+// carries, as `{id}.json` carries id, "" for none.
+func ParamOf(part string) string {
+	m := paramOfRE.FindStringSubmatch(part)
+	if m == nil {
+		return ""
+	}
+	return m[1]
+}
+
+var queryStringRE = regexp.MustCompile(`\?.*$`)
+
+var paramNounSuffixRE = regexp.MustCompile(`_(name|id|key|code|slug|number|uuid)$`)
+
+// ParamNoun mirrors paramNoun in ts/src/utility.ts: the noun a parameter is
+// named for, as `sheetName` is sheet.
+func ParamNoun(name string) string {
+	return paramNounSuffixRE.ReplaceAllString(CanonizeParam(name), "")
 }
 
 // RelativizePath makes a path relative to the current working directory.

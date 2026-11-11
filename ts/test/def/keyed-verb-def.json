@@ -1,0 +1,184 @@
+{
+ "openapi": "3.0.0",
+ "info": {
+  "title": "keyed-verb",
+  "version": "1.0.0"
+ },
+ "servers": [
+  {
+   "url": "https://example.com"
+  }
+ ],
+ "paths": {
+  "/v3/notes/{bookId}": {
+   "get": {
+    "tags": [
+     "Notes"
+    ],
+    "operationId": "Notes_GetAll",
+    "parameters": [
+     {
+      "name": "bookId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/NotesResult"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v3/notes/{bookId}/{id}": {
+   "get": {
+    "tags": [
+     "Notes"
+    ],
+    "operationId": "Notes_Get",
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "bookId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Note"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v3/notes/{bookId}/{id}/_pin": {
+   "post": {
+    "tags": [
+     "Notes"
+    ],
+    "operationId": "Notes_Pin",
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "bookId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok"
+     }
+    }
+   }
+  },
+  "/v3/notes/{bookId}/{id}/_mute": {
+   "post": {
+    "tags": [
+     "Notes"
+    ],
+    "operationId": "Notes_Mute",
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "bookId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok"
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "Note": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "title": {
+      "type": "string"
+     }
+    }
+   },
+   "NoteOverview": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "title": {
+      "type": "string"
+     }
+    }
+   },
+   "NotesResult": {
+    "type": "object",
+    "properties": {
+     "notes": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/NoteOverview"
+      }
+     },
+     "total": {
+      "type": "integer"
+     }
+    }
+   }
+  }
+ }
+}

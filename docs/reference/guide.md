@@ -198,15 +198,16 @@ entity's paths:
   `{category}` to `id`. A lookup verb is a segment just before the parameter
   whose first word is `find`, `search` or `lookup`, as in
   `/api/find/{name}`, and a parameter after one whose name ends in `id` is
-  still a key. Any other name is a key, so `/pokemon/{name}` renames
-  `{name}` to `id`.
+  still a key: `/members/lookup/{member_id}`, named `member` for the noun
+  before the verb, renames `{member_id}` to `id`. Any other name is a key,
+  so `/pokemon/{name}` renames `{name}` to `id`.
 - A parameter that keys a parent may be renamed after the parent's segment,
   as `<parent>_id`. A parameter whose own name, in snake case, is `name` or
   ends in `_name`, such as `project_name` or `projectName`, is never renamed
   this way.
 - A parameter before the last segment, on an entity named for the segment
   before it and the last one, keys the parent: `{id}` in
-  `/restaurants/{id}/menu` on `restaurant_menu` becomes `restaurant_id`, and
+  `/owners/{id}/pets` on `owner_pet` becomes `owner_id`, and
   the entity has no key of its own there. A parent segment spelt `id`, as in
   `/id/{id}/info`, keeps the parameter `id`.
 - A parameter at the same place in several paths of one entity, with the same
@@ -572,10 +573,57 @@ resolved to, when the read carries the same tag. The read is the path's
 `DELETE /repos/{owner}/{repo}/labels/{name}` joins `label`, the entity of
 the `GET` on that path, rather than staying with the other routes of the
 `issues` tag. The read keeps what it found on the path, actions included:
-GitHub's `PATCH /organizations/{org}/dependabot/repository-access` joins
-`dependabot_repository_access_detail` as an operation, not as a
-`repository_access` action. A tag the read does not carry keeps its own
-name.
+a tag-only `PATCH` on a path whose `GET` is a view of its parent joins the
+parent under the same action. A tag names a route only when it names the
+path's own noun, or an earlier literal where the route is a leaf selector
+or a view of that literal's resource, or the path has no usable literal; a
+tag foreign to the path yields to the path's noun, a literal naming an
+identifier (`ids`, `contentIds`) keys rather than names, a trailing module
+word (`GadgetsApi`) is dropped, and a trailing verb, or the verb after a
+custom method's colon, names the noun before it whatever it answers with,
+and becomes an action. A literal opening with a verb word is a verb on the
+nearest resource up the path, a plural collection of its own between the
+key and the verb or else the key's resource, and the action is named for
+the literals after that resource, the verb in its own spelling. A literal
+of fewer than three letters names nothing: the route is named for the
+component it answers with, else by the noun of its key, else as a route
+with no literal is, else by the padded literal. A route with no literal,
+and a read whose literal is a lone verb word or a generic word (`history`,
+`list`, `results`), is named for the component it answers with first. A
+literal written as one word takes the word breaks a tag, an operation id or
+a component name spells for the same letters. A leading word run that more
+than half of the components share is a namespace and names nothing. A
+response is read under any JSON media type, then `*/*` unless it declares
+binary content, and a `2XX` code answers for the codes a definition does
+not name. A command neither its body nor its response names is named for
+its operation id's object. A sub-path read and written with one component
+is a resource of its own, read whole; a `PUT` or `PATCH` to a singular
+literal right after an item key, whose body declares no `id`, updates the
+item. A relationships route is an action on the resource before it, a
+`POST` answered by an empty `202` creates what its results route reads,
+and a read of a singular literal before an identifier key named for
+another noun views that noun's item.
+A `GET` beneath an item key that answers no record of its own, an object
+without an `id` or an array of scalars, with every literal after the key
+singular, joins the nearest resource up the path as a `load` action named
+for those literals. An object that holds a record under the name the route
+ends in answers that record: `/users/{id}/user-role` reads its `user_role`. The record an item route answers with names the item and
+its collection, unless its name wraps the literal's, as does a response
+component that holds the literal's words; a record several collections
+share names them all, and each collection's literal becomes its action, so
+`$action` selects the path. A record declares an id through an `id` field
+or the field its item route's key names, and is read through an envelope
+that carries one record beside its metadata; a read on a literal right
+after a collection, answering that collection's record, is a variant of its
+list. A placeholder fused to a literal, a
+placeholder-only part and a query string are read as a parameter, a
+parameter, and nothing.
+A `POST` whose literal opens with a read verb and that answers a collection
+is the `list`, with the body as its filter. A `POST` to a singular literal
+that names no component, with no item route it could be a verb on and none
+beneath it, is a command named for its body component, read under any
+media type and through a `oneOf`; a `GET` on a command's path is the
+command's load.
 
 An item route can take its collection's entity before the move. A method
 on `/X/{id}` named only from its tag takes the entity of `/X` when all of
@@ -680,11 +728,11 @@ To keep a collection apart from its items, declare its path on the entity
 it belongs to, and switch the path off where the move put it:
 
 ```jsonic
-guide: entity: key: path: "/keys": op: {
+guide: entity: api_key: path: "/keys": op: {
   create: method: "POST"
   list: method: "GET"
 }
-guide: entity: setting: path: "/keys": active: false
+guide: entity: key: path: "/keys": active: false
 ```
 
 The `guide-collection-merge` tests in
@@ -692,6 +740,41 @@ The `guide-collection-merge` tests in
 [`go/apidef_test.go`](../../go/apidef_test.go) pin the move on
 [`ts/test/def/collection-merge-def.json`](../../ts/test/def/collection-merge-def.json),
 and the `guide-collection-merge-overlay` tests pin this correction.
+
+### Command routes
+
+After the collection move and the merge of names that fold together, an
+entity whose one route only writes (`create`, `update`, `patch` or
+`remove`), to a literal right beneath a route another active entity holds,
+is a command on that entity. The route moves there, and the literal,
+snake-cased as written, becomes its action unless the route carries one
+already. The moved route takes the renames of its parent route, whose
+parameters it shares. The owner is the entity that reads the parent route,
+else the first by code point.
+
+The route stays where it is when its last element holds a placeholder,
+when it has no parent route, or when an entity that is no such command
+also holds it, as a `GET` beside the write does. Commands that share one
+route move together, and a command beneath another moves where that one
+went. An entity the move empties is removed, as the collection move
+removes one, and the base guide records the action's reason as
+`command` with the entity the route left:
+
+```jsonic
+guide: entity: doc: path: "/api/doc/mdconvert": {  # ent=doc;...
+  action: "mdconvert": {}  # ent;doc;command;mdconvert
+  op: create: method: *POST
+}
+```
+
+To keep a command an entity of its own, declare its route on that entity,
+then switch the path off on the owner. `mergeCommandEntities` in
+[`ts/src/transform/entity.ts`](../../ts/src/transform/entity.ts) is the
+move, the `command-merge` tests in
+[`ts/test/fold-merge.test.ts`](../../ts/test/fold-merge.test.ts) and
+[`go/fold_merge_test.go`](../../go/fold_merge_test.go) pin its guards, and
+[`ts/test/def/command-action-def.json`](../../ts/test/def/command-action-def.json)
+pins it end to end in both builds.
 
 ## Example
 

@@ -1,0 +1,336 @@
+{
+ "openapi": "3.0.0",
+ "info": {
+  "title": "ruling-gaps",
+  "version": "1.0.0"
+ },
+ "servers": [
+  {
+   "url": "https://example.com"
+  }
+ ],
+ "paths": {
+  "/catalog/{vendor}/{plugin}.json": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Plugin"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "vendor",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "plugin",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "tags": [
+     "Plugins"
+    ]
+   }
+  },
+  "/LedgerLinks": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "items": {
+           "type": "array",
+           "items": {
+            "$ref": "#/components/schemas/LedgerLink"
+           }
+          }
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/LedgerLinks/{id}": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/LedgerLink"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ]
+   }
+  },
+  "/LedgerLinks/ArchiveEntries": {
+   "post": {
+    "responses": {
+     "202": {
+      "description": "ok"
+     }
+    },
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "items": {
+          "type": "string"
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/alerts/topics": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "type": "string"
+         }
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "Alerts"
+    ]
+   }
+  },
+  "/search/notes": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "id": {
+            "type": "string"
+           },
+           "title": {
+            "type": "string"
+           }
+          }
+         }
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "Search"
+    ]
+   }
+  },
+  "/journal/{journal_id}": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Journal"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "journal_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "tags": [
+     "Journal"
+    ]
+   }
+  },
+  "/journal/{journal_id}/digest": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "id": {
+           "type": "string"
+          },
+          "name": {
+           "type": "string"
+          },
+          "subscribers": {
+           "type": "string"
+          }
+         }
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "journal_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "tags": [
+     "Journal"
+    ]
+   }
+  },
+  "/journal/{journal_id}/following": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "id": {
+           "type": "string"
+          },
+          "following": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           }
+          }
+         }
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "journal_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "tags": [
+     "Journal"
+    ]
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "Plugin": {
+    "type": "object",
+    "properties": {
+     "added": {
+      "type": "string"
+     },
+     "preferred": {
+      "type": "string"
+     }
+    }
+   },
+   "LedgerLink": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "accountName": {
+      "type": "string"
+     }
+    }
+   },
+   "Journal": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     }
+    }
+   }
+  }
+ },
+ "tags": [
+  {
+   "name": "Plugins"
+  },
+  {
+   "name": "Alerts"
+  },
+  {
+   "name": "Search"
+  },
+  {
+   "name": "Journal"
+  }
+ ]
+}

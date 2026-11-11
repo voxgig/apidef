@@ -308,8 +308,8 @@ func TestGuideVerbOnParent(t *testing.T) {
 
 // Edges of the verb-on-parent rule; mirrors the TS `guide-verb-on-parent-edges`
 // case: key spelled differently on the verb path, a one-off PUT answer on the
-// item path, a create-only nested collection, and a verb that suffixes its
-// parent's name.
+// item path, create-only nested collections that join the item as commands,
+// and a verb that suffixes its parent's name.
 func TestGuideVerbOnParentEdges(t *testing.T) {
 	src, err := os.ReadFile("../ts/test/def/verb-edge-def.json")
 	if err != nil {
@@ -357,12 +357,17 @@ func TestGuideVerbOnParentEdges(t *testing.T) {
 		t.Errorf("the list did not join widget beside its load")
 	}
 
-	labels := pathsOf("label")["/widgets/{id}/labels"]
-	if labels == nil {
-		t.Fatalf("label entity lost: %v", sortedKeys(entities))
+	for _, lit := range []string{"labels", "access_keys"} {
+		pd := pathsOf("widget")["/widgets/{id}/"+lit]
+		if pd == nil {
+			t.Fatalf("%s did not join widget: %v", lit, sortedKeys(entities))
+		}
+		if got := strings.Join(actionsOf(pd), ","); got != lit {
+			t.Errorf("%s actions = %s, want %s", lit, got, lit)
+		}
 	}
-	if pathsOf("widget")["/widgets/{id}/labels"] != nil {
-		t.Errorf("labels wrongly became a verb on widget")
+	if entities["label"] != nil || entities["access_key"] != nil {
+		t.Errorf("a write-only nested collection kept an entity: %v", sortedKeys(entities))
 	}
 
 	archive := pathsOf("email_archive")["/email-archives/{email_archive_id}/archive"]
@@ -421,7 +426,8 @@ func TestGuideSharedWrapper(t *testing.T) {
 		}
 		got[name] = strings.Join(sortedKeys(ops), "/")
 	}
-	want := map[string]string{"domain": "list/load", "kingdom": "list/load"}
+	// One record answered by several collections is one entity.
+	want := map[string]string{"taxon": "list/load"}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("entity ops = %v, want %v", got, want)
 	}
@@ -464,16 +470,15 @@ func TestGuideEnvelope(t *testing.T) {
 	}
 	want := map[string]string{
 		// One record, but a page and an item on unrelated routes stay apart.
-		"auction":     "load",
-		"census":      "list",
-		"crew_member": "create/list",
+		"artwork": "load",
+		"census":  "list",
+		// A sub-path read and written whole is a resource of its own.
+		"crew_member": "create/load",
 		"deposit":     "create",
-		"domain":      "list/load/patch",
 		"fossil":      "load",
 		"gallery":     "list",
 		"greenhouse":  "create/load",
 		"kennel":      "create",
-		"kingdom":     "create/list/load",
 		"ledger":      "load",
 		"observation": "list",
 		"package":     "load",
@@ -481,6 +486,8 @@ func TestGuideEnvelope(t *testing.T) {
 		"site":        "load",
 		// A page and a single item beneath its route are one resource.
 		"tally": "create/list",
+		// The record several collections answer, each collection an action.
+		"taxon": "create/list/load/patch",
 		"token": "load",
 	}
 	if !reflect.DeepEqual(got, want) {
@@ -723,7 +730,7 @@ func TestGuideWellKnown(t *testing.T) {
 			"well_known_ef", "well_known_gh", "well_known_hive", "well_known_ledger",
 			"well_known_nest", "well_known_nest2", "well_known_qq", "well_known_qq2",
 			"well_known_repo", "well_known_rr", "well_known_rr2", "well_known_uvn",
-			"well_known_xyn", "widget", "xyn"}) {
+			"well_known_xyn", "widget", "xyn", "zzz"}) {
 		t.Errorf("entities = %v", got)
 	}
 	for _, w := range res.Ctx.Warn.History() {
@@ -748,7 +755,8 @@ func TestGuideWellKnown(t *testing.T) {
 		{"well_known_ledger", "load", []string{"/well-known/ledger/{id}"}},
 		{"dbase", "create", []string{"/zzz/dbase/{id}/history"}},
 		{"well_known_dbase", "load", []string{"/well-known/dbase", "/well-known/dbase/{id}"}},
-		{"agent_card", "list", []string{"/well-known/agent-card.json", "/zzz/{id}/dbset"}},
+		{"agent_card", "list", []string{"/well-known/agent-card.json"}},
+		{"zzz", "load", []string{"/zzz/{id}/dbset"}},
 		{"dbset", "load", []string{"/well-known/dbset/{id}"}},
 		{"dsn", "load", []string{"/aaa/ds/{id}"}},
 		{"well_known_ds", "load", []string{"/well-known/ds/{id}"}},
@@ -969,9 +977,11 @@ func TestGuidePageParam(t *testing.T) {
 		"data":          {"list GET /boxes/{boxId}/data/{sensorId} `body` boxId>box_id,sensorId>sensor_id"},
 		"repo": {"create POST /repos/{owner} `body` owner>owner",
 			"list GET /repos/{owner} `body.items` owner>owner"},
-		"team":            {"load GET /teams/{teamId} `body` teamId>id"},
-		"crew":            {"list GET /crews `body` ", "load GET /crews/{crewId} `body` crewId>id"},
-		"restaurant_menu": {"load GET /restaurants/{id}/menu `body` id>restaurant_id"},
+		"team": {"load GET /teams/{teamId} `body` teamId>id"},
+		"crew": {"list GET /crews `body` ", "load GET /crews/{crewId} `body` crewId>id"},
+		// The menu answers no record of its own, so it is a view of the restaurant.
+		"restaurant": {"load GET /restaurants/{id} `body` id>id",
+			"load GET /restaurants/{id}/menu `body` id>id"},
 		"user_profile": {"load GET /users/{userId}/profile `body` userId>user_id",
 			"update PUT /users/{userId}/profile `body` userId>user_id"},
 		"id_info": {"load GET /id/{id}/info `body` id>id"},
@@ -981,7 +991,7 @@ func TestGuidePageParam(t *testing.T) {
 		}
 	}
 
-	for _, ent := range []string{"press_release", "data", "repo", "restaurant_menu", "user_profile"} {
+	for _, ent := range []string{"press_release", "data", "repo", "user_profile"} {
 		if e, _ := entities[ent].(map[string]any); e["id"] != nil {
 			t.Errorf("%s id = %v, want none", ent, e["id"])
 		}
@@ -1543,8 +1553,8 @@ func TestGuideSharing(t *testing.T) {
 		"job":                "GET /jobs, GET /jobs/{id}, POST /jobs/{id}/rerun",
 		"metric":             "GET /metrics",
 		"memo":               "GET /notes, GET /notes/{id}, GET /users/{uid}/starred_notes",
-		"package_manifest":   "GET /packages/{pid}/digest, GET /packages/{pid}/download_urls",
-		"recipe_manifest":    "GET /recipes/{rid}/digest, GET /recipes/{rid}/download_urls",
+		"package":            "GET /packages/{pid}/digest, GET /packages/{pid}/download_urls",
+		"recipe":             "GET /recipes/{rid}/digest, GET /recipes/{rid}/download_urls",
 		"removal":            "DELETE /accounts/{aid}/bank_accounts/{id}, DELETE /accounts/{aid}/external_accounts/{id}",
 		"required_signature": "GET /settings/required_signatures",
 		"stat":               "GET /stats",
@@ -1627,14 +1637,14 @@ func TestGuideCollectionMerge(t *testing.T) {
 	}
 
 	gents, _ := res.Guide["entity"].(map[string]any)
-	if got := strings.Join(sortedKeys(gents), ","); got != "setting" {
-		t.Errorf("guide entities = %s, want setting", got)
+	if got := strings.Join(sortedKeys(gents), ","); got != "key" {
+		t.Errorf("guide entities = %s, want key", got)
 	}
 	main, _ := res.ApiModel["main"].(map[string]any)
 	kit, _ := main[KIT].(map[string]any)
 	entities, _ := kit["entity"].(map[string]any)
-	if got := strings.Join(sortedKeys(entities), ","); got != "setting" {
-		t.Errorf("model entities = %s, want setting", got)
+	if got := strings.Join(sortedKeys(entities), ","); got != "key" {
+		t.Errorf("model entities = %s, want key", got)
 	}
 
 	want, err := os.ReadFile("../ts/test/collection-merge/guide/base-guide.aontu")
@@ -1736,7 +1746,7 @@ func TestGuideSamePathJoin(t *testing.T) {
 	}
 
 	gents, _ := res.Guide["entity"].(map[string]any)
-	want := "secret,vault_repository_access_detail,widget"
+	want := "org,secret,widget"
 	if got := strings.Join(sortedKeys(gents), ","); got != want {
 		t.Errorf("guide entities = %s, want %s", got, want)
 	}
@@ -1770,7 +1780,7 @@ func TestGuideItemRecord(t *testing.T) {
 	}
 
 	gents, _ := res.Guide["entity"].(map[string]any)
-	if got, want := strings.Join(sortedKeys(gents), ","), "activity,ci_runner_detail,ci_runner_registration,ci_worker_detail,ci_worker_registration,instance,mail_domain_detail,repo,report,repository_invitation,simulation_run,team,team_invitation,thing,widget"; got != want {
+	if got, want := strings.Join(sortedKeys(gents), ","), "domain,export,instance,repo,repository_invitation,runner,simulation_run,starred,team,team_invitation,thing,widget,worker"; got != want {
 		t.Errorf("guide entities = %s, want %s", got, want)
 	}
 
@@ -1883,7 +1893,7 @@ func TestGuideRequestPaths(t *testing.T) {
 
 var requestPathsPoints = []string{
 	"board.load GET /boards/{boardId} s=boards/<id> params=id:boardId query= exist=id action=",
-	"board.update PUT /boards/{boardId}/{fileName}.json s=boards/<id>/{file_name}.json params=file_name:fileName,id:boardId query= exist=file_name,id action=",
+	"board.update PUT /boards/{boardId}/{fileName}.json s=boards/<board_id>/{file_name}.json params=board_id:boardId,file_name:fileName query= exist=board_id,file_name action=",
 	"message.create POST /messages/{messageId}/cancel s=messages/<id>/cancel params=id:messageId query= exist=id action=cancel",
 	"message.list GET /messages s=messages params= query= exist= action=",
 	"message.load GET /messages/{messageId} s=messages/<id> params=id:messageId query= exist=id action=",
@@ -1926,7 +1936,7 @@ func TestGuideCollectionOwner(t *testing.T) {
 	}
 
 	gents, _ := res.Guide["entity"].(map[string]any)
-	if got, want := strings.Join(sortedKeys(gents), ","), "activity,admin,catalog_bundle,gadget,job,job_summary,org,plan,purchase,report,shop,team,token,user"; got != want {
+	if got, want := strings.Join(sortedKeys(gents), ","), "catalog_bundle,gadget,job,member,org,plan,purchase,report,shop,star,token,user"; got != want {
 		t.Errorf("guide entities = %s, want %s", got, want)
 	}
 
@@ -1973,7 +1983,7 @@ func TestGuideParamNames(t *testing.T) {
 
 // Mirrors the TS `guide-collection-merge-overlay` case.
 func TestGuideCollectionMergeOverlay(t *testing.T) {
-	for _, owner := range []string{"key", "keyring"} {
+	for _, owner := range []string{"api_key", "keyring"} {
 		folder := t.TempDir()
 		entry := "@\"@voxgig/apidef/model/guide.aontu\"\n" +
 			"@\"./base-guide.aontu\"\n" +
@@ -1981,7 +1991,7 @@ func TestGuideCollectionMergeOverlay(t *testing.T) {
 			"  create: method: \"POST\"\n" +
 			"  list: method: \"GET\"\n" +
 			"}\n" +
-			"guide: entity: setting: path: \"/keys\": active: false\n"
+			"guide: entity: key: path: \"/keys\": active: false\n"
 		if err := writeGuideEntry(folder, "", entry); err != nil {
 			t.Fatal(err)
 		}
@@ -2017,8 +2027,8 @@ func TestGuideCollectionMergeOverlay(t *testing.T) {
 			routes[name] = list
 		}
 		want := map[string][]string{
-			owner:     {"create POST /keys", "list GET /keys"},
-			"setting": {"remove DELETE /keys/{key_id}"},
+			owner: {"create POST /keys", "list GET /keys"},
+			"key": {"remove DELETE /keys/{key_id}"},
 		}
 		if !reflect.DeepEqual(routes, want) {
 			t.Errorf("%s: model routes = %v, want %v", owner, routes, want)

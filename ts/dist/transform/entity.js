@@ -6,6 +6,7 @@ exports.resolvePathList = resolvePathList;
 exports.buildRelations = buildRelations;
 exports.mergeCollectionPaths = mergeCollectionPaths;
 exports.mergeFoldedEntities = mergeFoldedEntities;
+exports.mergeCommandEntities = mergeCommandEntities;
 const jostraca_1 = require("jostraca");
 const types_1 = require("../types");
 const utility_1 = require("../utility");
@@ -110,14 +111,16 @@ function mergeCollectionPaths(guide, log, recordRef, distinct) {
         return null != ref && ename === (0, utility_1.cmpRefName)(ref);
     };
     // An owner that reads nothing, holds only routes beneath the collection,
-    // and extends the name a share's own record gives, takes that name.
+    // and extends the name a share's own record gives, or is extended by it,
+    // takes that name.
     const absorbed = {};
     for (const pathStr of Object.keys(owned).sort(refcount_1.byCodePoint)) {
         const owner = owned[pathStr];
         if (null == owner || null != absorbed[owner.ename] ||
             Object.values(absorbed).includes(owner.ename))
             continue;
-        const ename = shares[pathStr].slice().sort(refcount_1.byCodePoint).find((share) => owner.ename.startsWith(share + '_') && namedByRecord(share, pathStr) &&
+        const ename = shares[pathStr].slice().sort(refcount_1.byCodePoint).find((share) => (owner.ename.startsWith(share + '_') || share.endsWith('_' + owner.ename)) &&
+            namedByRecord(share, pathStr) &&
             !apart(share, pathStr, owner) &&
             onlyBeneath(entities[owner.ename], collectionRoot(pathStr)) &&
             !Object.values(entities[owner.ename].path).some((pd) => methodsOf(pd).some((method) => utility_1.READ_METHODS.includes(method))) &&
@@ -209,6 +212,69 @@ function mergeFoldedEntities(guide, log) {
                     `cannot tell apart.`
             });
         }
+    }
+    return merged;
+}
+const WRITE_OPS = ['create', 'update', 'patch', 'remove'];
+// Entities are minimised: an entity whose one route writes to a literal
+// straight beneath another entity's route is a command on that entity. The
+// route joins it with the literal, spelled as written, as its action, and
+// takes the parameter names that entity's route gives. Guide stage only.
+function mergeCommandEntities(guide, log) {
+    const entities = guide.entity;
+    const live = (ename) => null != entities[ename] && false !== entities[ename].active;
+    const commandPath = (ename) => {
+        const paths = live(ename) ? Object.keys(entities[ename].path ?? {}) : [];
+        const ops = 1 === paths.length ? Object.keys(entities[ename].path[paths[0]]?.op ?? {}) : [];
+        return 0 < ops.length && ops.every((opname) => WRITE_OPS.includes(opname)) ? paths[0] : null;
+    };
+    const routeOf = (ename, key) => Object.keys(entities[ename]?.path ?? {}).sort(refcount_1.byCodePoint)
+        .find((pathStr) => (0, utility_1.guidePath)(pathStr) === key);
+    const holding = (key) => Object.keys(entities).sort(refcount_1.byCodePoint)
+        .filter((ename) => live(ename) && null != routeOf(ename, key));
+    const reads = (ename, key) => Object.keys(entities[ename].path[routeOf(ename, key)]?.op ?? {})
+        .some((opname) => !WRITE_OPS.includes(opname));
+    // Shallowest first, so a command beneath another joins where that one went.
+    const depth = (ename) => (0, utility_1.guidePath)(commandPath(ename)).split('/').length;
+    const order = Object.keys(entities).filter((ename) => null != commandPath(ename))
+        .sort((a, b) => depth(a) - depth(b) || (0, refcount_1.byCodePoint)(a, b));
+    const merged = [];
+    for (const ename of order) {
+        const pathStr = commandPath(ename);
+        if (null == pathStr)
+            continue;
+        const key = (0, utility_1.guidePath)(pathStr);
+        const at = key.lastIndexOf('/');
+        const last = key.slice(at + 1);
+        const action = (0, jostraca_1.snakify)(last).replace(/[^a-zA-Z0-9_]/g, '');
+        if (at <= 0 || /[{}]/.test(last) || '' === action)
+            continue;
+        const parent = key.slice(0, at);
+        const owners = holding(parent).filter((other) => other !== ename);
+        const owner = owners.find((other) => reads(other, parent)) ?? owners[0];
+        if (null == owner || holding(key).some((other) => other !== ename && other !== owner && null == commandPath(other)))
+            continue;
+        const names = entities[owner].path[routeOf(owner, parent)]?.rename?.param ?? {};
+        const shared = new Set((0, utility_1.guideParts)(parent).map(utility_1.paramOf).filter(Boolean));
+        movePath(entities[ename], entities[owner], pathStr);
+        const moved = entities[owner].path[pathStr];
+        moved.rename = {
+            ...(moved.rename ?? {}),
+            param: Object.fromEntries([
+                ...Object.entries(moved.rename?.param ?? {}).filter(([param]) => !shared.has(param)),
+                ...Object.entries(names).map(([param, rename]) => [param, { ...rename }]),
+            ]),
+        };
+        if (0 === Object.keys(moved.action ?? {}).length) {
+            moved.action = { [action]: { why_action: ['ent', owner, 'command', ename] } };
+        }
+        delete entities[ename];
+        merged.push(ename);
+        log?.info?.({
+            point: 'entity-command-merge', from: ename, to: owner, path: pathStr,
+            note: `entity ${ename} merged into ${owner}: its one route writes to ` +
+                `${last} beneath ${parent}, a command on ${owner} rather than an entity.`
+        });
     }
     return merged;
 }

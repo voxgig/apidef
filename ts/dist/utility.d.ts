@@ -26,6 +26,10 @@ type PathMatch = (string[] & {
     path: string;
 });
 declare function pathMatch(path: string | string[], expr: string): null | PathMatch;
+declare function literalName(part: string): string;
+declare function paramOf(part: string): string;
+declare const PARAM_NOUN_SUFFIX_RE: RegExp;
+declare function paramNoun(name: string): string;
 declare function formatJSONIC(val?: any, opts?: {
     hsepd?: number;
     $?: boolean;
@@ -41,7 +45,8 @@ declare function validator(torig: undefined | string | string[]): any;
 declare function nonNullType(type: any): string | undefined;
 declare function transliterate(s: string): string;
 declare function canonize(s: string): string;
-declare function resplitFromCmp(entname: string, cmp: string, why: string[]): string;
+declare function resplitFromCmp(entname: string, cmp: string, why: string[], breaks?: Record<string, string>): string;
+declare function wordBreaks(def: any): Record<string, string>;
 declare function canonizeField(s: string): string;
 declare function fieldName(prop: string): string;
 declare function stripSchemaNamespace(name: string): string;
@@ -62,6 +67,9 @@ declare function normalizeFieldName(s: string): string;
 declare function canonizeParam(name: string): string;
 declare function paramName(wire: string, renames?: Record<string, any> | null): string;
 declare function ensureMinEntityName(name: string, existing: Record<string, any>): string;
+declare function wrapperOf(name: string, known: string[]): string | null;
+declare function cmpNamespace(def: any): string | null;
+declare function stripNamespace(name: string, namespace?: string | null): string;
 declare function stripOperationVerb(opid: string): string;
 declare function guideActive(node: any): boolean;
 declare function authExchangeOp(op: any, specSecured: boolean): {
@@ -69,7 +77,10 @@ declare function authExchangeOp(op: any, specSecured: boolean): {
     response: string;
 } | null;
 declare function specSecuredByDefault(def: any): boolean;
-declare function cleanComponentName(name: string, isKnownCmp?: (canonizedRemainder: string) => boolean): string;
+declare function jsonContent(content: any): any;
+declare function responseSchema(response: any): any;
+declare function rangeResponse(responses: any): any;
+declare function cleanComponentName(name: string, isKnownCmp?: (canonizedRemainder: string) => boolean, namespace?: string | null): string;
 declare function warnOnError(where: string, warn: Warner, fn: Function, result?: any): any;
 declare function debugpathOn(): boolean;
 declare function debugpath(pathStr: string, methodName: string | null | undefined, ...args: any[]): void;
@@ -93,6 +104,7 @@ declare function envelopeProp(resprops: any, opname: string, example?: any): str
 declare function recordLists(resprops: any): string[];
 declare function singleEnvelope(resprops: any, opname: string): string | null;
 declare function envelopeItemRef(schema: any, opname: string): string | null;
+declare function strictEnvelopeProp(props: any, opname: string): string | null;
 declare function composedEnvelopeProp(schema: any, opname: string): string | null;
 declare function pageRecords(schema: any): any;
 declare const PAGE_ROLES: [string, string[]][];
@@ -111,4 +123,4 @@ declare function closedBodyTransform(schema: any): Record<string, string> | null
 declare function requestWrapperOf(req: any): string | null;
 declare function bodyRequestTransform(schema: any, names: string[]): any;
 declare function firstSentence(text: string): string;
-export { bodyRequestTransform, nom, getdlog, loadFile, formatJsonSrc, depluralize, pluralize, setCustomPlurals, clearCustomPlurals, find, capture, pathMatch, makeWarner, formatJSONIC, validator, isFileType, nonNullType, VALID_CANON, CANON_ONE, canonize, canonizeField, fieldName, canonizeCmpName, CMP_REF_RE, cmpRefName, READ_METHODS, stripSchemaNamespace, sanitizeSlug, slugToPascalCase, transliterate, cleanComponentName, guideActive, authExchangeOp, specSecuredByDefault, ensureMinEntityName, inferFieldType, normalizeFieldName, canonizeParam, paramName, humanTitle, foldName, prefixLeadingDigit, guardPrototypeName, guideParts, guidePath, stripOperationVerb, debugpath, debugpathOn, findPathsWithPrefix, writeFileSyncWarn, removeLegacyAon, warnOnError, relativizePath, getModelPath, sortedKeys, sortedEntries, collapseScalarAllOf, isEntityWrapperProp, itemEnvelopeKey, itemEnvelopeTransform, itemEnvelopeOf, envelopeProp, recordLists, singleEnvelope, envelopeItemRef, composedEnvelopeProp, pageRecords, pageTransform, PAGE_ROLES, answersPage, answersRecordMap, propIsList, mergedProperties, closedBodyTransform, requestWrapperOf, untaggedUnionBranches, scanUntaggedUnion, firstSentence, resplitFromCmp, };
+export { bodyRequestTransform, nom, getdlog, loadFile, formatJsonSrc, depluralize, pluralize, setCustomPlurals, clearCustomPlurals, find, capture, pathMatch, makeWarner, formatJSONIC, validator, isFileType, nonNullType, VALID_CANON, CANON_ONE, canonize, canonizeField, fieldName, canonizeCmpName, CMP_REF_RE, cmpRefName, READ_METHODS, stripSchemaNamespace, sanitizeSlug, slugToPascalCase, transliterate, cleanComponentName, wrapperOf, literalName, paramOf, paramNoun, guideActive, authExchangeOp, specSecuredByDefault, ensureMinEntityName, inferFieldType, normalizeFieldName, canonizeParam, paramName, humanTitle, foldName, prefixLeadingDigit, guardPrototypeName, guideParts, guidePath, stripOperationVerb, debugpath, debugpathOn, findPathsWithPrefix, writeFileSyncWarn, removeLegacyAon, warnOnError, relativizePath, getModelPath, sortedKeys, jsonContent, responseSchema, rangeResponse, cmpNamespace, stripNamespace, wordBreaks, PARAM_NOUN_SUFFIX_RE, sortedEntries, collapseScalarAllOf, isEntityWrapperProp, itemEnvelopeKey, itemEnvelopeTransform, itemEnvelopeOf, envelopeProp, strictEnvelopeProp, recordLists, singleEnvelope, envelopeItemRef, composedEnvelopeProp, pageRecords, pageTransform, PAGE_ROLES, answersPage, answersRecordMap, propIsList, mergedProperties, closedBodyTransform, requestWrapperOf, untaggedUnionBranches, scanUntaggedUnion, firstSentence, resplitFromCmp, };

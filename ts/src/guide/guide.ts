@@ -11,6 +11,7 @@ import { items, isempty } from '@voxgig/struct'
 
 import { heuristic01 } from './heuristic01'
 import { graphql01 } from './graphql01'
+import { neural01 } from './neural01'
 
 
 import {
@@ -299,6 +300,9 @@ async function buildBaseGuide(ctx: ApiDefContext) {
   }
   else if ('graphql01' === ctx.opts.strategy) {
     baseguide = await graphql01(ctx)
+  }
+  else if ('neural01' === ctx.opts.strategy) {
+    baseguide = await neural01(ctx)
   }
   else {
     throw new Error('Unknown guide strategy: ' + ctx.opts.strategy)

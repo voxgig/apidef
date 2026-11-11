@@ -14,7 +14,7 @@ guide: {
       op: load: method: *GET
     }
     path: "/boards/{boardId}/{fileName}.json": {
-      rename: param: "boardId": *"id"
+      rename: param: "boardId": *"board_id"
       rename: param: "fileName": *"file_name"
       op: update: method: *PUT
     }

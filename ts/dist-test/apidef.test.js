@@ -265,14 +265,17 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         // The list joins it too, beside the load that answers with its record.
         node_assert_1.default.ok(null != gents.widget?.path['/widgets'], 'the list did not join widget');
         node_assert_1.default.ok(null == gents.ack?.path['/widgets'], 'the list wrongly joined ack');
-        // A create-only nested collection keeps its entity and its create.
-        node_assert_1.default.ok(null != gents.label, 'label entity lost: ' + Object.keys(gents).join(','));
-        node_assert_1.default.deepStrictEqual(Object.keys(gents.label.path['/widgets/{id}/labels'].op), ['create']);
-        node_assert_1.default.ok(null == gents.widget.path['/widgets/{id}/labels'], 'labels wrongly became a verb on widget');
-        const aks = gents.widget_access_key_set;
-        node_assert_1.default.ok(null != aks, 'access_keys entity lost: ' + Object.keys(gents).join(','));
-        node_assert_1.default.deepStrictEqual(Object.keys(aks.path['/widgets/{id}/access_keys'].op), ['create']);
-        node_assert_1.default.ok(null == gents.widget.path['/widgets/{id}/access_keys'], 'a plural collection wrongly became a verb on widget');
+        // A create-only nested collection that nothing reads is a command on the
+        // widget: it joins it as a create, the literal as written its action.
+        node_assert_1.default.ok(null == gents.label, 'labels kept an entity of its own');
+        const labels = gents.widget.path['/widgets/{id}/labels'];
+        node_assert_1.default.deepStrictEqual(Object.keys(labels.op), ['create']);
+        node_assert_1.default.deepStrictEqual(Object.keys(labels.action ?? {}), ['labels']);
+        // So is one whose response component wraps the literal's words.
+        node_assert_1.default.ok(null == gents.access_key, 'access_keys kept an entity of its own');
+        const aks = gents.widget.path['/widgets/{id}/access_keys'];
+        node_assert_1.default.deepStrictEqual(Object.keys(aks.op), ['create']);
+        node_assert_1.default.deepStrictEqual(Object.keys(aks.action ?? {}), ['access_keys']);
         // A verb that suffixes its parent's name is still recorded as an action.
         const archive = gents.email_archive?.path['/email-archives/{email_archive_id}/archive'];
         node_assert_1.default.ok(null != archive, 'archive did not join email_archive: ' + Object.keys(gents).join(','));
@@ -305,10 +308,23 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         const entities = bres.apimodel.main.kit.entity;
         const ops = Object.fromEntries(Object.keys(entities).sort()
             .map((name) => [name, Object.keys(entities[name].op ?? {}).sort()]));
+        // One record answered by several collections is one entity; the literal
+        // of each collection is the action that picks its path.
         node_assert_1.default.deepStrictEqual(ops, {
-            domain: ['list', 'load'],
-            kingdom: ['list', 'load'],
+            taxon: ['list', 'load'],
         });
+        const actions = Object.fromEntries(Object.keys(bres.guide.entity.taxon.path).sort()
+            .map((path) => [path, Object.keys(bres.guide.entity.taxon.path[path].action ?? {}).sort()]));
+        node_assert_1.default.deepStrictEqual(actions, {
+            '/domain': ['domain'],
+            '/domain/{domain_id}/kingdom/{id}': ['kingdom'],
+            '/domain/{id}': ['domain'],
+            '/domain/{id}/kingdom': ['kingdom'],
+        });
+        const points = (op) => entities.taxon.op[op].points
+            .map((p) => (p.q?.$action ?? '-') + ' ' + p.co.id).sort();
+        node_assert_1.default.deepStrictEqual(points('load'), ['domain GET /domain/{id}', 'kingdom GET /domain/{domain_id}/kingdom/{id}']);
+        node_assert_1.default.deepStrictEqual(points('list'), ['domain GET /domain', 'kingdom GET /domain/{id}/kingdom']);
     });
     // An envelope never names its entity; the item it carries is judged instead,
     // so each list of the rare shared page keeps its path's name. No envelope:
@@ -337,16 +353,15 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
             .map((name) => [name, Object.keys(entities[name].op ?? {}).sort()]));
         node_assert_1.default.deepStrictEqual(ops, {
             // One record, but a page and an item on unrelated routes stay apart.
-            auction: ['load'],
+            artwork: ['load'],
             census: ['list'],
-            crew_member: ['create', 'list'],
+            // A sub-path read and written whole is a resource of its own.
+            crew_member: ['create', 'load'],
             deposit: ['create'],
-            domain: ['list', 'load', 'update'],
             fossil: ['load'],
             gallery: ['list'],
             greenhouse: ['create', 'load'],
             kennel: ['create'],
-            kingdom: ['create', 'list', 'load'],
             // Its 200 has no JSON schema, and still decides over the 201 list.
             ledger: ['load'],
             observation: ['list'],
@@ -355,6 +370,8 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
             site: ['load'],
             // A page and a single item beneath its route are one resource.
             tally: ['create', 'list'],
+            // The record several collections answer, each collection an action.
+            taxon: ['create', 'list', 'load', 'update'],
             token: ['load'],
         });
         const listpt = entities.observation.op.list.points[0];
@@ -676,7 +693,7 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
             'well_known_ef', 'well_known_gh', 'well_known_hive', 'well_known_ledger',
             'well_known_nest', 'well_known_nest2', 'well_known_qq', 'well_known_qq2',
             'well_known_repo', 'well_known_rr', 'well_known_rr2', 'well_known_uvn',
-            'well_known_xyn', 'widget', 'xyn']);
+            'well_known_xyn', 'widget', 'xyn', 'zzz']);
         node_assert_1.default.deepStrictEqual(bres.ctx.warn.history.map((w) => w.note)
             .filter((note) => /same selector/.test(note)), []);
         node_assert_1.default.deepStrictEqual(paths('agent', 'list'), ['/well-known/agent.json']);
@@ -692,7 +709,8 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         node_assert_1.default.deepStrictEqual(paths('well_known_ledger', 'load'), ['/well-known/ledger/{id}']);
         node_assert_1.default.deepStrictEqual(paths('dbase', 'create'), ['/zzz/dbase/{id}/history']);
         node_assert_1.default.deepStrictEqual(paths('well_known_dbase', 'load'), ['/well-known/dbase', '/well-known/dbase/{id}']);
-        node_assert_1.default.deepStrictEqual(paths('agent_card', 'list'), ['/well-known/agent-card.json', '/zzz/{id}/dbset']);
+        node_assert_1.default.deepStrictEqual(paths('agent_card', 'list'), ['/well-known/agent-card.json']);
+        node_assert_1.default.deepStrictEqual(paths('zzz', 'load'), ['/zzz/{id}/dbset']);
         node_assert_1.default.deepStrictEqual(paths('dbset', 'load'), ['/well-known/dbset/{id}']);
         node_assert_1.default.deepStrictEqual(paths('dsn', 'load'), ['/aaa/ds/{id}']);
         node_assert_1.default.deepStrictEqual(paths('well_known_ds', 'load'), ['/well-known/ds/{id}']);
@@ -842,13 +860,17 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         ]);
         node_assert_1.default.deepStrictEqual(points('team'), ['load GET /teams/{teamId} `body` teamId>id']);
         node_assert_1.default.deepStrictEqual(points('crew'), ['list GET /crews `body` ', 'load GET /crews/{crewId} `body` crewId>id']);
-        node_assert_1.default.deepStrictEqual(points('restaurant_menu'), ['load GET /restaurants/{id}/menu `body` id>restaurant_id']);
+        // The menu answers no record of its own, so it is a view of the restaurant.
+        node_assert_1.default.deepStrictEqual(points('restaurant'), [
+            'load GET /restaurants/{id} `body` id>id',
+            'load GET /restaurants/{id}/menu `body` id>id',
+        ]);
         node_assert_1.default.deepStrictEqual(points('user_profile'), [
             'load GET /users/{userId}/profile `body` userId>user_id',
             'update PUT /users/{userId}/profile `body` userId>user_id',
         ]);
         node_assert_1.default.deepStrictEqual(points('id_info'), ['load GET /id/{id}/info `body` id>id']);
-        for (const ent of ['press_release', 'data', 'repo', 'restaurant_menu', 'user_profile']) {
+        for (const ent of ['press_release', 'data', 'repo', 'user_profile']) {
             node_assert_1.default.strictEqual(entities[ent].id, undefined, ent);
         }
         node_assert_1.default.deepStrictEqual(entities.box.id, { name: 'id', field: '_id' });
@@ -1081,8 +1103,10 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
             job: ['GET /jobs', 'GET /jobs/{id}', 'POST /jobs/{id}/rerun'],
             metric: ['GET /metrics'],
             memo: ['GET /notes', 'GET /notes/{id}', 'GET /users/{uid}/starred_notes'],
-            package_manifest: ['GET /packages/{pid}/digest', 'GET /packages/{pid}/download_urls'],
-            recipe_manifest: ['GET /recipes/{rid}/digest', 'GET /recipes/{rid}/download_urls'],
+            // A literal opening with a verb word is a verb on the resource up the
+            // path, whatever component it answers with.
+            package: ['GET /packages/{pid}/digest', 'GET /packages/{pid}/download_urls'],
+            recipe: ['GET /recipes/{rid}/digest', 'GET /recipes/{rid}/download_urls'],
             removal: [
                 'DELETE /accounts/{aid}/bank_accounts/{id}',
                 'DELETE /accounts/{aid}/external_accounts/{id}',
@@ -1093,6 +1117,7 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         });
         const rerun = bres.apimodel.main.kit.entity.job.op.create.points[0];
         node_assert_1.default.strictEqual(rerun.q?.$action, 'rerun');
+        node_assert_1.default.deepStrictEqual(Object.keys(bres.guide.entity.package.path['/packages/{pid}/download_urls'].action), ['download_urls']);
     });
     // Asking whether a response schema declares an `id` reads the def and
     // leaves it as parsed: a node that references share stays one node, which
@@ -1180,12 +1205,12 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
                 .flatMap(([path, pd]) => Object.values(pd.op).map((op) => op.method + ' ' + path))
                 .sort()]));
         node_assert_1.default.deepStrictEqual(routes, {
-            setting: ['DELETE /keys/{key_id}', 'GET /keys', 'POST /keys'],
+            key: ['DELETE /keys/{key_id}', 'GET /keys', 'POST /keys'],
         });
-        node_assert_1.default.deepStrictEqual(Object.keys(bres.apimodel.main.kit.entity), ['setting']);
+        node_assert_1.default.deepStrictEqual(Object.keys(bres.apimodel.main.kit.entity), ['key']);
     });
-    // guide.aontu gives /keys back to the emptied entity, or to a new one, and
-    // the model keeps that assignment. go/apidef_test.go mirrors this case.
+    // guide.aontu gives /keys back to the entity its record named, emptied by
+    // the merge, or to a new one. go/apidef_test.go mirrors this case.
     // An API that keeps older versions of a route beside the current one. The
     // highest version with an operation that is not deprecated is the route;
     // each other version is an action named for it, so it stays reachable.
@@ -1265,15 +1290,15 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
                 'GET /orgs/{org}/vault/secrets',
                 'GET /orgs/{org}/vault/secrets/{secret_name}',
             ],
-            vault_repository_access_detail: ['GET ' + access, 'PATCH ' + access],
+            org: ['GET ' + access, 'PATCH ' + access],
             widget: ['DELETE /widgets/{widget_id}', 'GET /widgets/{widget_id}'],
         });
-        node_assert_1.default.deepStrictEqual(bres.guide.entity.vault_repository_access_detail.path[access].action ?? {}, {});
-        const detail = bres.apimodel.main.kit.entity.vault_repository_access_detail;
-        node_assert_1.default.deepStrictEqual(Object.keys(detail.fields).sort(), ['default_level', 'repository_count', 'repository_ids']);
-        for (const op of Object.values(detail.op)) {
+        node_assert_1.default.deepStrictEqual(Object.keys(bres.guide.entity.org.path[access].action ?? {}), ['vault_repository_access']);
+        const org = bres.apimodel.main.kit.entity.org;
+        node_assert_1.default.deepStrictEqual(Object.keys(org.fields).sort(), ['id']);
+        for (const op of Object.values(org.op)) {
             for (const pt of op.points) {
-                node_assert_1.default.equal(pt.q?.$action, undefined, pt.m + ' ' + pt.o);
+                node_assert_1.default.equal(pt.q?.$action, 'vault_repository_access', pt.m + ' ' + pt.o);
             }
         }
         // A join is noted only where it changed the entity: the widget's own tag
@@ -1290,15 +1315,18 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
         Fs.rmSync(dir, { recursive: true, force: true });
         node_assert_1.default.ok(whyRes.ok, 'why build failed: ' + whyRes.err?.message);
         const pathLine = (path) => whyGuide.split('\n').find((line) => line.includes('path: "' + path + '"')) ?? '';
-        node_assert_1.default.match(pathLine(access), /same-path-tag=vault_repository_access_detail\/GET/);
-        node_assert_1.default.match(pathLine('/orgs/{org}/vault/secrets/{secret_name}'), /same-path-tag=secret\/GET/);
+        node_assert_1.default.match(pathLine(access), /same-path-tag=org\/GET/);
+        // The vault tag is foreign to the secrets item, so the path noun names the
+        // DELETE before any join could.
+        node_assert_1.default.match(pathLine('/orgs/{org}/vault/secrets/{secret_name}'), /path-over-tag/);
+        node_assert_1.default.doesNotMatch(pathLine('/orgs/{org}/vault/secrets/{secret_name}'), /same-path-tag/);
         node_assert_1.default.doesNotMatch(pathLine('/widgets/{widget_id}'), /same-path-tag/);
     });
     (0, node_test_1.test)('guide-collection-merge-overlay', async () => {
         const Os = require('node:os');
         const Path = require('node:path');
         const def = 'collection-merge-def.json';
-        for (const owner of ['key', 'keyring']) {
+        for (const owner of ['api_key', 'keyring']) {
             const dir = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'apidef-merge-'));
             const folder = Path.join(dir, 'model');
             Fs.mkdirSync(Path.join(folder, 'guide'), { recursive: true });
@@ -1311,7 +1339,7 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
                 '  create: method: "POST"',
                 '  list: method: "GET"',
                 '}',
-                'guide: entity: setting: path: "/keys": active: false',
+                'guide: entity: key: path: "/keys": active: false',
                 '',
             ].join('\n'));
             const build = await apidef_1.ApiDef.makeBuild({ folder });
@@ -1337,7 +1365,7 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
                     .sort()]));
             node_assert_1.default.deepStrictEqual(routes, {
                 [owner]: ['create POST /keys', 'list GET /keys'],
-                setting: ['remove DELETE /keys/{key_id}'],
+                key: ['remove DELETE /keys/{key_id}'],
             }, owner);
         }
     });
@@ -1367,28 +1395,28 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
                 .sort()]));
         const I = '/clusters/{cluster_name}/instances';
         node_assert_1.default.deepStrictEqual(routes, {
-            activity: [
+            starred: [
                 'DELETE /user/starred/{owner}/{repo}',
                 'GET /user/starred',
                 'PUT /user/starred/{owner}/{repo}',
             ],
-            ci_runner_detail: ['GET /runners', 'GET /runners/{runner_id}'],
-            ci_runner_registration: ['POST /runners'],
-            ci_worker_detail: ['GET /workers', 'GET /workers/{worker_id}'],
-            ci_worker_registration: ['POST /workers'],
+            // A record that wraps the literal's words, CiRunnerDetail around runner,
+            // leaves the literal naming, so the registration joins it.
+            runner: ['GET /runners', 'GET /runners/{runner_id}', 'POST /runners'],
+            worker: ['GET /workers', 'GET /workers/{worker_id}', 'POST /workers'],
             instance: [
                 'GET ' + I,
                 'GET ' + I + '/{instance_id}',
                 'PATCH ' + I + '/{instance_id}',
                 'POST ' + I + '/{instance_id}/restart',
             ],
-            mail_domain_detail: [
+            domain: [
                 'GET /mail/v1/domains',
                 'GET /mail/v1/domains/{id}',
                 'POST /mail/v1/domains',
             ],
             repo: ['GET /repos/{repo_id}', 'POST /repos/{repo_id}/forks'],
-            report: ['GET /exports/{export_id}'],
+            export: ['GET /exports/{export_id}'],
             repository_invitation: [
                 'DELETE /user/repository_invitations/{invitation_id}',
                 'GET /user/repository_invitations',
@@ -1472,18 +1500,19 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
                 .flatMap(([path, pd]) => Object.values(pd.op).map((op) => op.method + ' ' + path))
                 .sort()]));
         node_assert_1.default.deepStrictEqual(routes, {
-            activity: ['DELETE /stars/{owner}/{repo}', 'GET /stars', 'PUT /stars/{owner}/{repo}'],
-            admin: ['DELETE /shop/gadgets/{gadget_id}', 'DELETE /teams/{team_id}'],
+            star: ['DELETE /stars/{owner}/{repo}', 'GET /stars', 'PUT /stars/{owner}/{repo}'],
             catalog_bundle: ['GET /catalog/bundles', 'PUT /catalog/bundles/{bundle_id}'],
-            gadget: ['GET /shop/gadgets', 'GET /shop/gadgets/{gadget_id}', 'POST /shop/gadgets'],
-            job: ['GET /jobs'],
-            job_summary: ['POST /jobs/{job_id}/cancel'],
+            gadget: [
+                'DELETE /shop/gadgets/{gadget_id}', 'GET /shop/gadgets', 'GET /shop/gadgets/{gadget_id}',
+                'POST /shop/gadgets',
+            ],
+            job: ['GET /jobs', 'POST /jobs/{job_id}/cancel'],
             org: ['GET /org'],
             plan: ['GET /plans'],
             purchase: ['GET /plans/{plan_id}/accounts'],
             report: ['GET /org/reports', 'POST /org/reports/{report_id}/rerun'],
             shop: ['GET /shop'],
-            team: ['GET /teams', 'GET /teams/{team_id}'],
+            member: ['DELETE /teams/{team_id}', 'GET /teams', 'GET /teams/{team_id}'],
             token: ['GET /user/tokens', 'PUT /user/tokens/{slug}/refresh'],
             user: ['GET /user'],
         });
@@ -2477,7 +2506,7 @@ const SOLAR_MODEL = {
 };
 const REQUEST_PATHS_POINTS = [
     'board.load GET /boards/{boardId} s=boards/<id> params=id:boardId query= exist=id action=',
-    'board.update PUT /boards/{boardId}/{fileName}.json s=boards/<id>/{file_name}.json params=file_name:fileName,id:boardId query= exist=file_name,id action=',
+    'board.update PUT /boards/{boardId}/{fileName}.json s=boards/<board_id>/{file_name}.json params=board_id:boardId,file_name:fileName query= exist=board_id,file_name action=',
     'message.create POST /messages/{messageId}/cancel s=messages/<id>/cancel params=id:messageId query= exist=id action=cancel',
     'message.list GET /messages s=messages params= query= exist= action=',
     'message.load GET /messages/{messageId} s=messages/<id> params=id:messageId query= exist=id action=',

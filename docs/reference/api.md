@@ -25,7 +25,7 @@ const result = await apidef.generate(spec)
 | `outprefix` | `string` | `''` | filename prefix for generated files |
 | `def` | `string` | — | default spec filename (overridable per build) |
 | `debug` | `boolean \| string` | `'info'`¹ | enable debug output; truthy also writes `<def>.full.json` |
-| `strategy` | `string` | `'heuristic01'` | guide classification strategy |
+| `strategy` | `string` | `'heuristic01'` | guide classification strategy: `heuristic01`, `neural01` (the same classification, decided by a small network with hand-set weights), or `graphql01` (the default for a GraphQL schema) |
 | `fs` | `fs`-like | `node:fs` | filesystem implementation (for testing / virtual FS) |
 | `pino` | pino instance | — | logger to use instead of the built-in pretty logger |
 | `meta` | `object` | `{}` | arbitrary metadata passed through to the build |

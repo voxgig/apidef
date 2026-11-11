@@ -1,0 +1,337 @@
+{
+ "openapi": "3.0.0",
+ "info": {
+  "title": "sub-path",
+  "version": "1.0.0"
+ },
+ "servers": [
+  {
+   "url": "https://example.com"
+  }
+ ],
+ "paths": {
+  "/teams/{teamId}": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Team"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "teamId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ]
+   }
+  },
+  "/teams/{teamId}/sync/config": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Preference"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "teamId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ]
+   },
+   "post": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Preference"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "teamId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Preference"
+       }
+      }
+     }
+    }
+   }
+  },
+  "/clubs/{name}": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Club"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ]
+   }
+  },
+  "/clubs/{name}/settings": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/clubSettings"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ]
+   },
+   "put": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/clubSettings"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "restricted_tags": {
+          "type": "string"
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/parcels/{id}": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Parcel"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ]
+   }
+  },
+  "/parcels/{id}/address": {
+   "put": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Location"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Location"
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "Team": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     }
+    }
+   },
+   "Preference": {
+    "type": "object",
+    "properties": {
+     "fees": {
+      "type": "string"
+     },
+     "payments": {
+      "type": "string"
+     }
+    }
+   },
+   "Club": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     }
+    }
+   },
+   "clubSettings": {
+    "type": "object",
+    "properties": {
+     "restricted_tags": {
+      "$ref": "#/components/schemas/restricted_tags"
+     }
+    }
+   },
+   "restricted_tags": {
+    "type": "object",
+    "properties": {
+     "enabled": {
+      "type": "string"
+     },
+     "allow_official": {
+      "type": "string"
+     }
+    }
+   },
+   "Parcel": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "status": {
+      "type": "string"
+     },
+     "destination": {
+      "$ref": "#/components/schemas/Location"
+     },
+     "origin": {
+      "$ref": "#/components/schemas/Location"
+     }
+    }
+   },
+   "Location": {
+    "type": "object",
+    "properties": {
+     "lat": {
+      "type": "string"
+     },
+     "lng": {
+      "type": "string"
+     },
+     "address": {
+      "type": "string"
+     }
+    }
+   }
+  }
+ }
+}

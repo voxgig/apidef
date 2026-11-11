@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PAGE_ROLES = exports.sortedEntries = exports.sortedKeys = exports.READ_METHODS = exports.CMP_REF_RE = exports.CANON_ONE = exports.VALID_CANON = void 0;
+exports.PAGE_ROLES = exports.sortedEntries = exports.PARAM_NOUN_SUFFIX_RE = exports.sortedKeys = exports.READ_METHODS = exports.CMP_REF_RE = exports.CANON_ONE = exports.VALID_CANON = void 0;
 exports.bodyRequestTransform = bodyRequestTransform;
 exports.nom = nom;
 exports.getdlog = getdlog;
@@ -31,6 +31,10 @@ exports.sanitizeSlug = sanitizeSlug;
 exports.slugToPascalCase = slugToPascalCase;
 exports.transliterate = transliterate;
 exports.cleanComponentName = cleanComponentName;
+exports.wrapperOf = wrapperOf;
+exports.literalName = literalName;
+exports.paramOf = paramOf;
+exports.paramNoun = paramNoun;
 exports.guideActive = guideActive;
 exports.authExchangeOp = authExchangeOp;
 exports.specSecuredByDefault = specSecuredByDefault;
@@ -54,12 +58,19 @@ exports.removeLegacyAon = removeLegacyAon;
 exports.warnOnError = warnOnError;
 exports.relativizePath = relativizePath;
 exports.getModelPath = getModelPath;
+exports.jsonContent = jsonContent;
+exports.responseSchema = responseSchema;
+exports.rangeResponse = rangeResponse;
+exports.cmpNamespace = cmpNamespace;
+exports.stripNamespace = stripNamespace;
+exports.wordBreaks = wordBreaks;
 exports.collapseScalarAllOf = collapseScalarAllOf;
 exports.isEntityWrapperProp = isEntityWrapperProp;
 exports.itemEnvelopeKey = itemEnvelopeKey;
 exports.itemEnvelopeTransform = itemEnvelopeTransform;
 exports.itemEnvelopeOf = itemEnvelopeOf;
 exports.envelopeProp = envelopeProp;
+exports.strictEnvelopeProp = strictEnvelopeProp;
 exports.recordLists = recordLists;
 exports.singleEnvelope = singleEnvelope;
 exports.envelopeItemRef = envelopeItemRef;
@@ -397,9 +408,11 @@ function depluralize(word) {
         lower.endsWith('shes') || lower.endsWith('ches')) {
         return word.slice(0, -2);
     }
+    // A trailing s after a digit is part of a numeronym (k8s), not a plural.
     if (lower.endsWith('s') &&
         !lower.endsWith('ss') &&
         !lower.endsWith('us') &&
+        !/[0-9]s$/.test(lower) &&
         word.length > 3) {
         return word.slice(0, -1);
     }
@@ -606,7 +619,7 @@ function pathMatch(path, expr) {
     if (null == path) {
         return null;
     }
-    const parts = (Array.isArray(path) ? path : path.split('/')).filter(p => '' !== p);
+    const parts = Array.isArray(path) ? path.filter(p => '' !== p) : guideParts(path);
     const res = [];
     res.index = -1;
     res.expr = expr;
@@ -679,8 +692,33 @@ function pathMatch(path, expr) {
     }
     return null;
 }
+// A placeholder with any dot or extension it carries: `.{ext}`, `{api}.json`.
 function isParam(partStr) {
-    return null != partStr && '{' === partStr[0] && '}' === partStr[partStr.length - 1];
+    if (null == partStr) {
+        return false;
+    }
+    const part = partStr.replace(/^\./, '').replace(/\}\.[A-Za-z0-9]+$/, '}');
+    return '{' === part[0] && '}' === part[part.length - 1];
+}
+// A trailing word that names a module rather than a resource.
+const MODULE_WORDS = ['api', 'controller', 'service', 'resource', 'endpoint'];
+// The entity name a path literal gives: canonized, less a trailing module
+// word when another word remains, as `GadgetsApi` names gadget.
+function literalName(part) {
+    const name = canonize(part);
+    const at = name.lastIndexOf('_');
+    return 0 < at && MODULE_WORDS.includes(name.slice(at + 1)) ?
+        depluralize(name.slice(0, at)) : name;
+}
+// The name a placeholder part carries, as `{id}.json` carries id: '' for none.
+function paramOf(part) {
+    const m = part.match(/\{([^}]+)\}/);
+    return null == m ? '' : m[1];
+}
+const PARAM_NOUN_SUFFIX_RE = /_(name|id|key|code|slug|number|uuid)$/;
+exports.PARAM_NOUN_SUFFIX_RE = PARAM_NOUN_SUFFIX_RE;
+function paramNoun(name) {
+    return canonizeParam(name).replace(PARAM_NOUN_SUFFIX_RE, '');
 }
 function formatJSONIC(val, opts) {
     if (undefined === val)
@@ -926,6 +964,8 @@ function nonNullType(type) {
     return 1 === members.length && 'string' === typeof members[0] ? members[0] : undefined;
 }
 const FILE_EXT_RE = /\.(php|json|txt|png|jpg|jpeg|gif|svg|xml|html|csv|yml|yaml|md)$/i;
+// Trailing placeholders, dotted or fused: `pets.{format}`, `notes{ext}`.
+const PLACEHOLDER_EXT_RE = /(\.?\{[^}]*\})+$/;
 function transliterate(s) {
     return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
@@ -941,6 +981,7 @@ function canonize(s) {
         return cached;
     const deacronymed = transliterate(s)
         .replace(FILE_EXT_RE, '')
+        .replace(PLACEHOLDER_EXT_RE, '')
         .replace(ACRONYM_PLURAL_RE, (_m, run) => run[0] + run.slice(1).toLowerCase() + 's');
     const out = depluralize((0, jostraca_1.snakify)(deacronymed))
         .replace(/[^a-zA-Z_0-9]/g, '');
@@ -948,27 +989,68 @@ function canonize(s) {
     return out;
 }
 const CANONIZE_FIELD_CACHE = new Map();
-function resplitFromCmp(entname, cmp, why) {
+function resplitFromCmp(entname, cmp, why, breaks) {
     if (null == entname || '' === entname || entname.includes('_')) {
         return entname;
     }
-    if (null == cmp || '' === cmp || !cmp.includes('_')) {
-        return entname;
+    if (null != cmp && '' !== cmp && cmp.includes('_')) {
+        const seg = cmp.split('_');
+        let acc = '';
+        for (let i = 0; i < seg.length && acc.length < entname.length; i++) {
+            acc += seg[i];
+            if (acc === entname) {
+                const split = seg.slice(0, i + 1).join('_');
+                why.push('resplit-from-cmp=' + split);
+                return split;
+            }
+        }
     }
-    const seg = cmp.split('_');
-    let acc = '';
-    for (let i = 0; i < seg.length; i++) {
-        acc += seg[i];
-        if (acc === entname) {
-            const split = seg.slice(0, i + 1).join('_');
-            why.push('resplit-from-cmp=' + split);
-            return split;
-        }
-        if (acc.length > entname.length) {
-            return entname;
-        }
+    const split = breaks?.[entname];
+    if (null != split) {
+        why.push('word-break=' + split);
+        return split;
     }
     return entname;
+}
+// Multi-word runs from tags, operationIds and component names, keyed by their
+// letters; where runs disagree, the first in sorted order.
+function wordBreaks(def) {
+    const names = [];
+    for (const tag of Array.isArray(def?.tags) ? def.tags : []) {
+        names.push(canonize(String(tag?.name ?? '')));
+    }
+    for (const pathdef of Object.values(def?.paths ?? {})) {
+        for (const opdef of Object.values(pathdef ?? {})) {
+            if (null == opdef || 'object' !== typeof opdef || Array.isArray(opdef)) {
+                continue;
+            }
+            for (const tag of Array.isArray(opdef.tags) ? opdef.tags : []) {
+                names.push(canonize(String(tag)));
+            }
+            if ('string' === typeof opdef.operationId) {
+                names.push(canonize(opdef.operationId));
+            }
+        }
+    }
+    for (const name of Object.keys(def?.components?.schemas ?? def?.definitions ?? {})) {
+        names.push(canonizeCmpName(name));
+    }
+    const found = Object.create(null);
+    for (const name of names) {
+        const words = name.split('_').filter((word) => '' !== word);
+        for (let i = 0; i < words.length; i++) {
+            for (let j = i + 2; j <= words.length; j++) {
+                const run = [...words.slice(i, j - 1), depluralize(words[j - 1])];
+                const key = run.join('');
+                (found[key] = found[key] ?? []).push(run.join('_'));
+            }
+        }
+    }
+    const breaks = Object.create(null);
+    for (const key of sortedKeys(found)) {
+        breaks[key] = [...found[key]].sort()[0];
+    }
+    return breaks;
 }
 function canonizeField(s) {
     if (null == s || '' === s)
@@ -1036,9 +1118,9 @@ function guideSegment(seg) {
     }
     return FORMAT_EXTENSIONS.has(seg.toLowerCase()) ? null : seg;
 }
-// The guide's parts of a route; a route of formats alone keeps them.
+// The guide's parts of a route, query cut; a route of formats alone keeps them.
 function guideParts(path) {
-    const parts = path.split('/').filter((p) => '' !== p);
+    const parts = path.replace(/\?.*$/, '').split('/').filter((p) => '' !== p);
     const kept = parts.map(guideSegment).filter((p) => null != p);
     return 0 === kept.length ? parts : kept;
 }
@@ -1202,6 +1284,59 @@ function ensureMinEntityName(name, existing) {
     }
     return padded;
 }
+const WRAPPER_WORDS = [
+    'response', 'result', 'ok', 'envelope', 'wrapper', 'payload', 'page', 'paginated',
+    'list', 'collection', 'data', 'body', 'output', 'reply',
+];
+// The component a wrapper-shaped name wraps, by wrapper words beside it or a
+// shared wrapper-word prefix naming no component: null for no wrapper, '' for
+// a wrapper of nothing nameable.
+function wrapperOf(name, known) {
+    const words = name.split('_').filter((w) => '' !== w);
+    // A name of the form noun-for-parent-response, or noun-for-parent once the
+    // response suffix is cleaned away, wraps the noun.
+    const forAt = words.indexOf('for');
+    if (0 < forAt && forAt < words.length - 1) {
+        const held = depluralize(words.slice(0, forAt).join('_'));
+        if (known.includes(held)) {
+            return held;
+        }
+    }
+    let inner = null;
+    let at = -1;
+    for (const k of known) {
+        const kw = k.split('_').filter((w) => '' !== w);
+        if (k === name || 0 === kw.length || (null != inner && kw.length <= inner.split('_').length)) {
+            continue;
+        }
+        for (let i = 0; i + kw.length <= words.length; i++) {
+            if (kw.every((w, j) => w === words[i + j])) {
+                inner = k;
+                at = i;
+                break;
+            }
+        }
+    }
+    if (null != inner) {
+        const kw = inner.split('_').length;
+        const rest = [...words.slice(0, at), ...words.slice(at + kw)];
+        if (0 < rest.length && rest.every((w) => WRAPPER_WORDS.includes(w))) {
+            return inner;
+        }
+    }
+    const unversioned = known.map((k) => k.replace(/_v\d+$/, ''));
+    for (let n = words.length - 1; 2 <= n; n--) {
+        const prefix = words.slice(0, n).join('_');
+        if (unversioned.includes(prefix)) {
+            break;
+        }
+        const members = known.filter((k) => k !== name && k.startsWith(prefix + '_')).length;
+        if (2 <= members && words.slice(0, n).some((w) => WRAPPER_WORDS.includes(w))) {
+            return inner ?? '';
+        }
+    }
+    return null;
+}
 // Unconditional suffixes: framework noise, always stripped.
 const CMP_SUFFIXES = ['_rest_controller', '_controller', '_response', '_request'];
 // Longest first: the first suffix a name ends with is the only one tried.
@@ -1215,6 +1350,48 @@ const CMP_RESULT_VERBS = [
     'get', 'edit', 'resolve', 'rotate', 'search', 'add',
 ];
 const CMP_PREFIXES = ['get_', 'post_', 'put_', 'delete_', 'patch_'];
+// The leading word run more than half the components, and at least two,
+// share; none where a path literal, a whole component name or a wrapper word
+// holds it.
+function cmpNamespace(def) {
+    const schemas = def?.components?.schemas ?? def?.definitions;
+    const names = sortedKeys(schemas).map((name) => canonizeCmpName(name).split('_').filter((word) => '' !== word));
+    const run = [];
+    let shared = 0;
+    for (;;) {
+        const at = run.length;
+        const tally = Object.create(null);
+        for (const words of names) {
+            if (at + 1 < words.length && run.every((word, i) => words[i] === word)) {
+                tally[words[at]] = (tally[words[at]] ?? 0) + 1;
+            }
+        }
+        const next = sortedKeys(tally).find((word) => 0 === at ? names.length < 2 * tally[word] : shared === tally[word]);
+        if (null == next) {
+            break;
+        }
+        run.push(next);
+        shared = tally[next];
+    }
+    if (shared < 2 || run.some((word) => WRAPPER_WORDS.includes(word)) ||
+        names.some((words) => words.join('_') === run.join('_'))) {
+        return null;
+    }
+    const held = run.map((word) => depluralize(word));
+    const literals = Object.keys(def?.paths ?? {}).flatMap((p) => guideParts(p))
+        .filter((part) => !isParam(part))
+        .map((part) => literalName(part).split('_').map((word) => depluralize(word)));
+    const holds = (words) => words.some((_, i) => i + held.length <= words.length && held.every((word, j) => words[i + j] === word));
+    return literals.some(holds) ? null : run.join('_');
+}
+// A name less its namespace, when a name remains.
+function stripNamespace(name, namespace) {
+    if (null == namespace || !name.startsWith(namespace + '_')) {
+        return name;
+    }
+    const rest = name.slice(namespace.length + 1);
+    return rest.replace(/_/g, '').length < 3 ? name : rest;
+}
 const OPERATION_VERBS = [
     ...CMP_RESULT_VERBS, 'post', 'put', 'patch', 'fetch', 'find', 'retrieve', 'read', 'add',
 ];
@@ -1275,11 +1452,40 @@ function specSecuredByDefault(def) {
 // The 2xx body schema, OpenAPI 3 (`content`) or Swagger 2 (`schema`).
 function successResponseSchema(responses) {
     const res = responses?.['200'] ?? responses?.[200] ??
-        responses?.['201'] ?? responses?.[201];
+        responses?.['201'] ?? responses?.[201] ?? rangeResponse(responses);
     if (null == res) {
         return null;
     }
-    return res.content?.['application/json']?.schema ?? res.schema ?? null;
+    return responseSchema(res) ?? null;
+}
+const JSON_MEDIA_RE = /^[^/;]+\/([^;]*\+)?json\s*(;.*)?$/i;
+// The content a response is read from: JSON first, then any other JSON type,
+// then the any-type range unless it declares binary content.
+function jsonContent(content) {
+    if (null == content || 'object' !== typeof content) {
+        return undefined;
+    }
+    if (null != content['application/json']) {
+        return content['application/json'];
+    }
+    const json = sortedKeys(content).find((media) => JSON_MEDIA_RE.test(media));
+    if (null != json) {
+        return content[json];
+    }
+    const schema = content['*/*']?.schema;
+    return 'string' === schema?.type && 'binary' === schema?.format ? undefined : content['*/*'];
+}
+// A response's schema, OpenAPI 3 (`content`) or Swagger 2 (`schema`).
+function responseSchema(response) {
+    return jsonContent(response?.content)?.schema ?? response?.schema;
+}
+// A range code answers for the success codes a definition does not name.
+function rangeResponse(responses) {
+    if (null == responses || null != responses['200'] || null != responses['201'] ||
+        null != responses['202']) {
+        return undefined;
+    }
+    return responses['2XX'] ?? responses['2xx'];
 }
 function requestBodySchema(requestBody) {
     if (null == requestBody) {
@@ -1311,8 +1517,8 @@ function firstFieldMatch(props, names) {
     }
     return null;
 }
-function cleanComponentName(name, isKnownCmp) {
-    let cleaned = name;
+function cleanComponentName(name, isKnownCmp, namespace) {
+    let cleaned = stripNamespace(name, namespace);
     let stripped = false;
     // Version-tolerant known-schema probe. APIs that version their schemas name
     // the base type SeverityV1 / IncidentV2, so a guard asking only for

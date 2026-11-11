@@ -1,0 +1,325 @@
+{
+ "openapi": "3.0.0",
+ "info": {
+  "title": "command-action",
+  "version": "1.0.0"
+ },
+ "servers": [
+  {
+   "url": "https://example.com"
+  }
+ ],
+ "paths": {
+  "/api/doc": {
+   "get": {
+    "tags": [
+     "Doc"
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DocStatus"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/doc/docmerge": {
+   "post": {
+    "tags": [
+     "Doc"
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/DocMergeRequestDto"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DocResponseDto"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/doc/mdconvert": {
+   "post": {
+    "tags": [
+     "Doc"
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/MdRequestDto"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DocResponseDto"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/projects/{id}/packages": {
+   "get": {
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/Package"
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/projects/{id}/packages/nuget": {
+   "put": {
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/NugetUpload"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "ok"
+     }
+    }
+   }
+  },
+  "/projects/{id}/packages/nuget/symbolpackage": {
+   "put": {
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/NugetSymbolUpload"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "ok"
+     }
+    }
+   }
+  },
+  "/widgets/{id}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Widget"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/widgets/{id}/labels": {
+   "post": {
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Label"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Label"
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "DocStatus": {
+    "type": "object",
+    "properties": {
+     "version": {
+      "type": "string"
+     }
+    }
+   },
+   "MdRequestDto": {
+    "type": "object",
+    "properties": {
+     "mdDocumentBase64String": {
+      "type": "string"
+     }
+    }
+   },
+   "DocMergeRequestDto": {
+    "type": "object",
+    "properties": {
+     "docsAsBase64String": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     }
+    }
+   },
+   "DocResponseDto": {
+    "type": "object",
+    "properties": {
+     "docFileBase64String": {
+      "type": "string"
+     }
+    }
+   },
+   "Package": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "integer"
+     },
+     "name": {
+      "type": "string"
+     }
+    }
+   },
+   "NugetUpload": {
+    "type": "object",
+    "properties": {
+     "package": {
+      "type": "string",
+      "format": "binary"
+     }
+    }
+   },
+   "NugetSymbolUpload": {
+    "type": "object",
+    "properties": {
+     "package": {
+      "type": "string",
+      "format": "binary"
+     }
+    }
+   },
+   "Widget": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     }
+    }
+   },
+   "Label": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "text": {
+      "type": "string"
+     }
+    }
+   }
+  }
+ }
+}

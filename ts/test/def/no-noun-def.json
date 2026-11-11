@@ -1,0 +1,218 @@
+{
+ "openapi": "3.0.0",
+ "info": {
+  "title": "no-noun",
+  "version": "1.0.0"
+ },
+ "servers": [
+  {
+   "url": "https://example.com"
+  }
+ ],
+ "paths": {
+  "/{vendor}.json": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Plugins"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "vendor",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ]
+   }
+  },
+  "/list.json": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Plugins"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/catalog/{vendor}/{plugin}.json": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Plugin"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "vendor",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "plugin",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ]
+   }
+  },
+  "/history": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/OrderHistoryResponse"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/aq": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/aqIndexResult"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/deactivate": {
+   "post": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DeactivateResult"
+        }
+       }
+      }
+     }
+    },
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/DeactivateRequest"
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "Plugin": {
+    "type": "object",
+    "properties": {
+     "added": {
+      "type": "string"
+     },
+     "preferred": {
+      "type": "string"
+     }
+    }
+   },
+   "Plugins": {
+    "type": "object",
+    "additionalProperties": {
+     "$ref": "#/components/schemas/Plugin"
+    }
+   },
+   "OrderHistoryResponse": {
+    "type": "object",
+    "properties": {
+     "bets": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/PlacedOrder"
+      }
+     }
+    }
+   },
+   "PlacedOrder": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "stake": {
+      "type": "string"
+     }
+    }
+   },
+   "aqIndexResult": {
+    "type": "object",
+    "properties": {
+     "uv": {
+      "type": "string"
+     },
+     "uv_time": {
+      "type": "string"
+     }
+    },
+    "title": "result"
+   },
+   "DeactivateRequest": {
+    "type": "object",
+    "properties": {
+     "shopperReference": {
+      "type": "string"
+     }
+    }
+   },
+   "DeactivateResult": {
+    "type": "object",
+    "properties": {
+     "response": {
+      "type": "string"
+     }
+    }
+   }
+  }
+ }
+}
