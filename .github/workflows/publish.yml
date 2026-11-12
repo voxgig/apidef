@@ -16,14 +16,15 @@
 # TWO JOBS, BECAUSE THEY NEED DIFFERENT PRIVILEGES.
 #
 #   publish  id-token: write, contents: READ. Runs npm ci, the build and the
-#            tests — i.e. dependency lifecycle scripts and project code.
+#            tests — i.e. dependency and project code. ts/.npmrc keeps
+#            install scripts off.
 #   tag      contents: write. Runs git and nothing else.
 #
 # Keeping them in one job would hand a repository-write credential to every
-# dependency postinstall script that runs during `npm ci`, because checkout
-# persists its token into the git config for the whole job. The publishing
-# job therefore keeps the `contents: read` it has always had, and the write
-# credential exists only in a job that installs nothing.
+# dependency the build and tests execute, because checkout persists its token
+# into the git config for the whole job. The publishing job therefore keeps
+# the `contents: read` it has always had, and the write credential exists
+# only in a job that installs nothing.
 #
 # A ref pushed with GITHUB_TOKEN does NOT start another workflow run (GitHub
 # suppresses that so workflows cannot trigger themselves), so the tag job
@@ -96,7 +97,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 24.x
           registry-url: 'https://registry.npmjs.org'
