@@ -574,6 +574,61 @@ branches stay exclusive and the weights need no ordering of their own;
 `qualified-cmp` and `delete-cmp` definitions pin them against the
 heuristic.
 
+### Shared readings corrected
+
+Eleven readings that both strategies share were wrong, and each is now fixed
+in `heuristic01`, in `neural01` and in Go, with a definition under
+`ts/test/def/` pinning it:
+
+- **The strategies disagreed on a POST that reads beneath an item.**
+  `heuristic01` set the post-read flag inside a naming branch that a verb
+  route beneath an item never reached, so
+  `POST /gadgets/{gadgetId}/getLinkedTags` stayed a `create` while
+  `neural01` read it as a `list`. The flag is now read in the operation
+  stage for every route (`postReadVerb`), as ruling 8 asks
+  (`read-verb-item`).
+- **Singular forms.** `cookies` read as `cooky` and `taxes` as `taxis`
+  through the `axes` suffix; a singular noun ending in `s` lost it
+  (`analysis` as `analysi`, `canvas` as `canva`). The irregular table gains
+  the `-ie` nouns and the `tax` family, and `S_SINGULARS` with every `-sis`
+  noun is kept whole (`test/depluralize.tsv`).
+- **A record that holds lists read as a list.** Any array property made a
+  `GET` a list, so `/me` answering an account with its email addresses was
+  `list`. `listingProps` keeps a response that declares an identifier beside
+  three or more values of its own, on a route its singular literal names, a
+  record; the operation network's `res_array_prop` input reads the same
+  helper (`record-array`).
+- **Names that carry no entity.** `success`, `ok`, `default`, `response`,
+  `result`, `object`, `empty`, `void` and identifier components named
+  entities, as did version tags. `genericCmp` drops them from the component
+  candidates and from the `DELETE` lookup in both strategies, the bare
+  member of a family of results with them, and a version tag never holds a
+  path (`generic-name`).
+- **A verb after three keys took no action.** `keyRunBefore` reads a run of
+  three or more keys between the entity's literal and a trailing verb; the
+  action network gains the `keys_run_ent` input and the `act_keys_run` gate
+  (`keyed-verb-3`).
+- **A fused placeholder stayed in an action's name**, as
+  `walk_resetformat`, and a fused placeholder after a verb hid it.
+  `verbActionName` drops the placeholder and `isVerb` reads the literal
+  before it (`route-syntax`).
+- **Route syntax reached names.** A fragment (`#keys`) is cut as a
+  query string is, unless the route is all fragment, and `${id}` is read as
+  `{id}` (`test/guide-parts.tsv`).
+- **One path split across two entities** where one method answered no
+  component. `componentReadOwner` joins such a method to the entity a read
+  of its path takes from its component; the name network gains the
+  `same_path_read` gate, which feeds `SAMEPATH` as the tag join does
+  (`same-path-record`).
+- **A verb word keyed by its own parameter** read as a verb:
+  `/lines/{lineId}/stop/{stopId}` is a `stop` (`keyedBy` in `pathNoun`).
+- **`TRACE` was dropped.** It is kept as `OPTIONS` is; the operation network
+  gains the `m_trace` input, the `trace` unit and the `TRACE` class.
+- **Missing verb words.** `autocomplete`, `bypass`, `contains`, `finish`,
+  `reorder` and `shuffle` join the verb words, a verb word keeps its own
+  spelling as an action (`contains`, `exists`), and a verb word is matched
+  as spelt as well as in its canonical form (`verb-word`).
+
 ## Known divergences from `heuristic01`
 
 None on the test definitions or `apidef-validate`. Elsewhere the two can

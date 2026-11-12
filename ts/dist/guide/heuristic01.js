@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.READ_VERBS = exports.LITERAL_LAST_SHAPES = void 0;
+exports.VERSION_TAG_RE = exports.READ_VERBS = exports.LITERAL_LAST_SHAPES = void 0;
 exports.answeredRefs = answeredRefs;
 exports.collectionOwner = collectionOwner;
 exports.listedRefs = listedRefs;
@@ -49,6 +49,13 @@ exports.variantOfCollection = variantOfCollection;
 exports.keyNounOf = keyNounOf;
 exports.asyncResultOf = asyncResultOf;
 exports.nounless = nounless;
+exports.genericCmp = genericCmp;
+exports.actionWord = actionWord;
+exports.keyRunBefore = keyRunBefore;
+exports.isVerbWord = isVerbWord;
+exports.keyedBy = keyedBy;
+exports.postReadVerb = postReadVerb;
+exports.componentReadOwner = componentReadOwner;
 const ordu_1 = require("ordu");
 const jostraca_1 = require("jostraca");
 const struct_1 = require("@voxgig/struct");
@@ -78,6 +85,7 @@ const METHOD_IDOP = {
     PATCH: 'patch',
     HEAD: 'head',
     OPTIONS: 'OPTIONS',
+    TRACE: 'TRACE',
 };
 // Tried in order: the first shape a path matches decides how its entity is named.
 const ENTITY_PATH_SHAPES = ['t/p/t/', 't/p/', 'p/t/', 't/', 't/p/p'];
@@ -92,10 +100,17 @@ const VERB_WORDS = new Set([
     'copy', 'rename', 'merge', 'split', 'assign', 'unassign', 'attach', 'detach', 'invite',
     'accept', 'decline', 'notify', 'ping', 'count', 'exists', 'preview', 'render', 'generate',
     'calculate', 'compute', 'convert', 'process', 'trigger', 'dispatch', 'apply', 'revoke',
-    'grant', 'save', 'lock', 'test', 'inject', 'analyze',
+    'grant', 'save', 'lock', 'test', 'inject', 'analyze', 'autocomplete', 'bypass', 'contains',
+    'finish', 'reorder', 'shuffle',
 ]);
 // A literal that names an identifier keys a resource rather than naming one.
 const ID_LITERAL_RE = /(^|_)ids?$/;
+// A component named for one of these, alone or as the bare member of a family
+// of results, names no entity.
+const GENERIC_CMP_WORDS = ['default', 'empty', 'object', 'ok', 'response', 'result', 'success', 'void'];
+// A version tag groups routes by release, not by resource.
+const VERSION_TAG_RE = /^v\d+([a-z]+\d*)?$/;
+exports.VERSION_TAG_RE = VERSION_TAG_RE;
 // Literals that name no resource of their own.
 const GENERIC_WORDS = ['history', 'list', 'result'];
 // A key that identifies a resource rather than naming an item.
@@ -126,6 +141,7 @@ const METHOD_CONSIDER_ORDER = {
     'DELETE': 500,
     'HEAD': 600,
     'OPTIONS': 700,
+    'TRACE': 800,
 };
 async function heuristic01(ctx) {
     const analysis = new ordu_1.Ordu({ select: { sort: true } }).add([
@@ -561,7 +577,8 @@ function ResolveEntityComponent(spec) {
         xref.cmp = cleanCmp(spec.data, xref.cmp);
         return xref;
     })
-        .flatMap((xref) => unwrapCmp(metrics, xref, why_cmp));
+        .flatMap((xref) => unwrapCmp(metrics, xref, why_cmp))
+        .filter((xref) => !genericCmp(xref.cmp, metrics.count.origcmprefs));
     let goodxrefs = cleanxrefs
         .filter(xref => {
         if (cleanxrefs.length <= 1
@@ -746,14 +763,29 @@ function ResolveEntityName(spec) {
 function samePathOwner(mdesc, work) {
     const ment = mdesc.MethodEntity;
     const owner = work.pathowner[mdesc.path];
-    if (null == owner || 'tag' !== ment?.ref) {
+    if (null == owner) {
         return null;
+    }
+    if ('tag' !== ment?.ref) {
+        return null == ment?.cmp ? componentReadOwner(mdesc.path, owner, work.methods.map((m) => ({ path: m.path, method: m.method, cmp: m.MethodEntity }))) : null;
     }
     const tags = mdesc.tags ?? [];
     for (const method of ['GET', 'QUERY', 'PUT', 'PATCH']) {
         const entname = owner[method];
         const read = work.methods.find((m) => m.path === mdesc.path && m.method === method);
         if (null != entname && (read?.tags ?? []).some((tag) => tags.includes(tag))) {
+            return { entname, method };
+        }
+    }
+    return null;
+}
+// A method that answers no component of its own joins the entity a read of
+// its path takes from the component that read answers.
+function componentReadOwner(pathStr, owner, routes) {
+    for (const method of ['GET', 'QUERY']) {
+        const entname = owner[method];
+        const read = routes.find((r) => r.path === pathStr && r.method === method)?.cmp;
+        if (null != entname && null != read && 'tag' !== read.ref && entname === read.cmp) {
             return { entname, method };
         }
     }
@@ -1135,7 +1167,7 @@ function FindActions(spec) {
     const secondLastPart = parts[parts.length - 2];
     const secondLastPartCanon = (0, utility_1.literalName)(secondLastPart);
     const lastPart = parts[parts.length - 1];
-    const lastPartCanon = (0, utility_1.literalName)(lastPart);
+    const lastPartCanon = actionWord(lastPart);
     const cmp = ment.cmp;
     if (null != ment.verb_on_parent) {
         if (isVerb(lastPart) || null != ment.view_action) {
@@ -1181,6 +1213,13 @@ function FindActions(spec) {
             updateAction(methodName, lastPart, lastPartCanon, entdesc, pathdesc, 'ent-keys-2nd-last');
         }
     }
+    //  /api/foo/{a}/{b}/{c}/action
+    else if (isVerb(lastPart) && keyRunBefore(parts, (part) => {
+        const canon = (0, utility_1.literalName)(part);
+        return canon === cmp || canon === ment.origcmp || canon === entname;
+    })) {
+        updateAction(methodName, lastPart, lastPartCanon, entdesc, pathdesc, 'ent-keys-before-last');
+    }
     if (null != ment.collection_action) {
         pathdesc.action[ment.collection_action] = pathdesc.action[ment.collection_action] ?? {
             why_action: ['ent', entdesc.name, 'collection', ment.collection_action, methodName],
@@ -1213,7 +1252,8 @@ function ResolveOperation(spec) {
             why_op.push('view');
         }
     }
-    else if ('create' === standard_opname && true === ment.post_read) {
+    else if ('create' === standard_opname &&
+        (true === ment.post_read || null != postReadVerb(mdesc, ment.pm, parts))) {
         opname = 'list';
         why_op.push('post-read');
     }
@@ -1460,6 +1500,45 @@ function BuildEntity(spec) {
     }
     entityMap[entdesc.name] = guideEntity;
 }
+function genericCmp(name, refs) {
+    if (GENERIC_CMP_WORDS.includes(name) || ID_LITERAL_RE.test(name)) {
+        return true;
+    }
+    const at = name.lastIndexOf('_');
+    const word = name.slice(at + 1);
+    if (at < 1 || !GENERIC_CMP_WORDS.includes(word)) {
+        return false;
+    }
+    const prefix = name.slice(0, at + 1);
+    return Object.keys(refs).some((ref) => ref !== name && ref.startsWith(prefix) &&
+        ref.endsWith('_' + word) && prefix.length + word.length < ref.length);
+}
+// An action keeps a verb word's own spelling (`contains`); any other literal
+// gives its canonical name.
+function actionWord(part) {
+    const lit = (0, jostraca_2.snakify)(String(part ?? '').replace(/\.?\{[^}]*\}/g, ''));
+    return VERB_WORDS.has(lit) ? lit : (0, utility_1.literalName)(part);
+}
+// A run of keys between the entity's literal and a trailing verb, as
+// `/shops/{owner}/{shop}/{order}/cancel` acts on shop.
+function keyRunBefore(parts, isEnt) {
+    let at = parts.length - 2;
+    while (0 <= at && isParam(parts[at])) {
+        at--;
+    }
+    return 3 <= parts.length - 2 - at && 0 <= at && isEnt(parts[at]);
+}
+// A verb word as a path literal spells it: singular, or in the third person
+// (`contains`).
+function isVerbWord(part) {
+    const lit = (0, jostraca_2.snakify)(part);
+    return VERB_WORDS.has(lit) || (VERB_WORDS.has((0, utility_1.literalName)(part)) && (0, utility_2.depluralize)(lit) === lit);
+}
+// The parameter after a literal keys it when it is named for the literal, as
+// `{stop_id}` keys `stop`, which is then a noun whatever verb it spells.
+function keyedBy(next, name) {
+    return null != next && isParam(next) && (0, utility_1.paramNoun)((0, utility_1.paramOf)(next)) === name;
+}
 // The noun the shape's literal gives: the literal before a custom method's
 // colon, or the noun before the literal when it is a verb, as `/message/send`
 // names message.
@@ -1472,7 +1551,7 @@ function pathNoun(pm, parts, why) {
     }
     const name = (0, utility_1.literalName)(parts[at]);
     const lit = (0, jostraca_2.snakify)(parts[at]);
-    if (null != custom || (VERB_WORDS.has(name) && (0, utility_2.depluralize)(lit) === lit)) {
+    if (null != custom || (isVerbWord(parts[at]) && !keyedBy(parts[at + 1], name))) {
         for (let i = at - 1; 0 <= i; i--) {
             if (!isParam(parts[i])) {
                 why.push('noun-before-verb=' + parts[i]);
@@ -1825,7 +1904,8 @@ function verbActionName(literals) {
         [...literals.slice(0, at), literals[at + 1]] : literals;
     const last = kept.length - 1;
     return kept
-        .map((lit, i) => i < last ? (0, utility_1.literalName)(lit) : (0, jostraca_2.snakify)(lit).replace(/[^a-zA-Z0-9_]/g, ''))
+        .map((lit, i) => i < last ? (0, utility_1.literalName)(lit) :
+        (0, jostraca_2.snakify)(lit.replace(/\.?\{[^}]*\}/g, '')).replace(/[^a-zA-Z0-9_]/g, ''))
         .join('_');
 }
 // A literal too short for a word names nothing.
@@ -2086,10 +2166,8 @@ function commandTwin(data, mdesc, pm, parts, why) {
     }
     return name;
 }
-// A POST whose literal opens with a read verb and answers with a collection
-// lists the noun the literal names, the body its filter; '' keeps the shape's
-// name where the literal is the verb alone.
-function postRead(mdesc, pm, parts, why) {
+// The read verb a POST's last literal opens with, where it answers a collection.
+function postReadVerb(mdesc, pm, parts) {
     if ('POST' !== mdesc.method) {
         return null;
     }
@@ -2097,9 +2175,17 @@ function postRead(mdesc, pm, parts, why) {
     const last = verbs[verbs.length - 1];
     const lit = (0, jostraca_2.snakify)(last);
     const verb = READ_VERBS.find((v) => lit === v || lit.startsWith(v + '_'));
-    if (null == verb || isParam(last) || !isListResponse(mdesc, pm, mdesc.path, [])) {
+    return null == verb || isParam(last) || !isListResponse(mdesc, pm, mdesc.path, []) ? null : verb;
+}
+// A POST whose literal opens with a read verb and answers with a collection
+// lists the noun the literal names, the body its filter; '' keeps the shape's
+// name where the literal is the verb alone.
+function postRead(mdesc, pm, parts, why) {
+    const verb = postReadVerb(mdesc, pm, parts);
+    if (null == verb) {
         return null;
     }
+    const lit = (0, jostraca_2.snakify)(verbParts(parts)[verbParts(parts).length - 1]);
     mdesc.MethodEntity.post_read = true;
     why.push('post-read=' + verb);
     const noun = lit.slice(verb.length + 1);
@@ -2605,7 +2691,8 @@ function entityCmpMatch(data, entname, mdesc, why) {
         && null == ment.cmp
         && !recordWraps) {
         let cmps = findcmps(data, mdesc.path, ['responses'], { uniq: true })
-            .flatMap((found) => unwrapCmp(data.guide.metrics, found, why));
+            .flatMap((found) => unwrapCmp(data.guide.metrics, found, why))
+            .filter((found) => !genericCmp(found.cmp, data.guide.metrics.count.origcmprefs));
         if (1 === cmps.length) {
             out.name = cmps[0].cmp;
             out.orig = cmps[0].origcmp;
@@ -2628,7 +2715,7 @@ function entityCmpMatch(data, entname, mdesc, why) {
 // whose literal is singular: a selector or a view of the tag's resource.
 function tagHolds(data, parts, pathStr, tag) {
     const pm = matchEntityPath(parts);
-    if (null == pm) {
+    if (null == pm || VERSION_TAG_RE.test(tag)) {
         return false;
     }
     const at = pm.index + PATH_NAME_INDEX[pm.expr];
@@ -2946,12 +3033,10 @@ function isListResponse(mdesc, pm, pathStr, why, listed) {
             }
             if (!islist && !endParamBare) {
                 const properties = resolveSchemaProperties(schema);
-                (0, jostraca_1.each)(properties, (prop) => {
-                    if (prop.type === 'array') {
-                        why.push('array-prop:' + prop.key$);
-                        islist = true;
-                    }
-                });
+                for (const key of (0, utility_1.listingProps)(properties, pathStr)) {
+                    why.push('array-prop:' + key);
+                    islist = true;
+                }
             }
             if (!islist) {
                 why.push(endParamBare ? 'end-param' : 'not-list');
@@ -3057,9 +3142,12 @@ function isSingular(part) {
     const lit = (0, jostraca_2.snakify)(part);
     return '' !== lit && (0, utility_2.depluralize)(lit) === lit;
 }
-// A segment holding a placeholder, whole or beside other text, names no verb.
+// A segment holding a placeholder names no verb, unless the placeholder only
+// trails a literal, as a format does in `retract{format}`.
 function isVerb(partStr) {
-    return !String(partStr ?? '').includes('{');
+    const part = String(partStr ?? '');
+    const lit = part.replace(/(\.?\{[^}]*\})+$/, '');
+    return !part.includes('{') || ('' !== lit && !lit.includes('{'));
 }
 const CUSTOM_METHOD_RE = /^(.+):([A-Za-z][\w-]*)$/;
 // A custom method (`/schedules:count`, `/users/{id}:activate`) reads as a

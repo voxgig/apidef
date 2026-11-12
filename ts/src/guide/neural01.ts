@@ -51,6 +51,7 @@ import {
   recordLists,
   singleEnvelope,
   answersPage,
+  listingProps,
   pageTransform,
   stripOperationVerb,
   pluralize,
@@ -114,6 +115,10 @@ import {
   namedRecord,
   verbAfterNoun,
   warnListBody,
+  genericCmp,
+  actionWord,
+  keyRunBefore,
+  componentReadOwner,
 } from './heuristic01'
 
 import { decide, explain, loadNets } from './nn'
@@ -138,11 +143,12 @@ const PATH_NAME_INDEX: Record<string, number> = {
 
 const METHOD_CONSIDER_ORDER: Record<string, number> = {
   GET: 100, QUERY: 150, POST: 200, PUT: 300, PATCH: 400, DELETE: 500, HEAD: 600, OPTIONS: 700,
+  TRACE: 800,
 }
 
 const METHOD_FEATURES: Record<string, string> = {
   GET: 'm_get', QUERY: 'm_query', POST: 'm_post', PUT: 'm_put', PATCH: 'm_patch',
-  DELETE: 'm_delete', HEAD: 'm_head', OPTIONS: 'm_options',
+  DELETE: 'm_delete', HEAD: 'm_head', OPTIONS: 'm_options', TRACE: 'm_trace',
 }
 
 const SHAPE_FEATURES: Record<string, string> = {
@@ -458,7 +464,7 @@ function opFeatures(route: Route, listed?: Record<string, boolean>): Vec {
   if (null != schema) {
     x.res_array = bit('array' === schema.type)
     const props = resolveSchemaProperties(schema)
-    x.res_array_prop = bit(Object.values(props).some((prop: any) => 'array' === prop?.type))
+    x.res_array_prop = bit(0 < listingProps(props, route.path).length)
   }
   x.view = bit(true === route.view_on_parent || true === route.singleton)
   x.post_read = bit(true === route.post_read)
@@ -591,6 +597,7 @@ function resolveCmp(work: Work, route: Route) {
     xref.cmp = cleanCmp({ guide: work.guide, work }, xref.cmp)
   }
   const unwrapped = cmpxrefs.flatMap((xref) => unwrapCmp(metrics, xref, why))
+    .filter((xref) => !genericCmp(xref.cmp, metrics.count.origcmprefs))
 
   const kept = unwrapped.filter((xref) => {
     const d = decide(guideNets().cmpKeep, {
@@ -752,6 +759,7 @@ function uniqueResponseCmps(work: Work, path: string, why: string[]): { cmp: str
   }
   return Array.from(names).map((n) => ({ cmp: canonizeCmpName(n), origcmp: n }))
     .flatMap((found) => unwrapCmp(work.guide.metrics, found, why))
+    .filter((found) => !genericCmp(found.cmp, work.guide.metrics.count.origcmprefs))
 }
 
 
@@ -893,8 +901,11 @@ function markRecordOwner(
 
 function samePathOwner(work: Work, route: Route): { entname: string, method: string } | null {
   const owner = work.pathowner[route.path]
-  if (null == owner || 'tag' !== route.cmp?.ref) {
+  if (null == owner) {
     return null
+  }
+  if ('tag' !== route.cmp?.ref) {
+    return null == route.cmp ? componentReadOwner(route.path, owner, work.routes) : null
   }
   for (const method of ['GET', 'QUERY', 'PUT', 'PATCH']) {
     const entname = owner[method]
@@ -1520,6 +1531,7 @@ function findActions(route: Route, ent: Ent) {
   }
   const last = at(1)
   const lastCanon = literalName(last)
+  const lastAction = actionWord(last)
   const l2Canon = literalName(at(2))
   const compound = l2Canon + '_' + lastCanon
 
@@ -1535,6 +1547,7 @@ function findActions(route: Route, ent: Ent) {
     l2_param: bit(isParam(at(2))),
     l3_param: bit(isParam(at(3))),
     l2_verb: bit(isVerb(at(2))),
+    keys_run_ent: bit(keyRunBefore(parts, isEnt)),
     ent_endswith_last: bit(ent.name.endsWith(literalName(lastCanon))),
     ent_endswith_compound: bit(ent.name.endsWith(literalName(compound))),
   })
@@ -1542,19 +1555,20 @@ function findActions(route: Route, ent: Ent) {
 
   if ('LAST' === d.cls) {
     if (fired(guideNets().action, d, 'act_vop') || fired(guideNets().action, d, 'act_view')) {
-      const name = route.view_action ?? lastCanon
+      const name = route.view_action ?? lastAction
       pathdesc.action[name] = pathdesc.action[name] ?? {
         why_action: ['ent', ent.name, 'verb-on-parent', last, route.method],
       }
     }
     else {
-      updateAction(route.method, last, lastCanon, ent, pathdesc,
+      updateAction(route.method, last, lastAction, ent, pathdesc,
         fired(guideNets().action, d, 'act_l2') ? 'no-param' :
-          fired(guideNets().action, d, 'act_l4_keys') ? 'ent-keys-2nd-last' : 'ent-param-2nd-last')
+          fired(guideNets().action, d, 'act_l4_keys') ? 'ent-keys-2nd-last' :
+            fired(guideNets().action, d, 'act_keys_run') ? 'ent-keys-before-last' : 'ent-param-2nd-last')
     }
   }
   else if ('COMPOUND' === d.cls) {
-    updateAction(route.method, at(2) + '/' + last, 'action' === l2Canon ? lastCanon : compound,
+    updateAction(route.method, at(2) + '/' + last, 'action' === l2Canon ? lastAction : l2Canon + '_' + lastAction,
       ent, pathdesc, 'ent-param-3rd-last')
   }
 

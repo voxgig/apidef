@@ -1,15 +1,32 @@
 import { ApiDefContext, Guide } from '../types';
 import type { MethodDesc } from '../desc';
 import type { PathMatch } from '../utility';
+declare const VERSION_TAG_RE: RegExp;
 declare const READ_VERBS: string[];
 declare const LITERAL_LAST_SHAPES: string[];
 declare function heuristic01(ctx: ApiDefContext): Promise<Guide>;
+declare function componentReadOwner(pathStr: string, owner: Record<string, string>, routes: {
+    path: string;
+    method: string;
+    cmp?: {
+        ref?: string;
+        cmp?: string;
+    } | null;
+}[]): {
+    entname: string;
+    method: string;
+} | null;
 declare function cleanCmp(data: {
     guide: any;
     work: any;
 }, name: string): string;
 declare function collectionOwner(mdesc: MethodDesc, parts: string[], work: any): string | null;
 declare function warnListBody(ctx: any, where: string, res: any, props: any): void;
+declare function genericCmp(name: string, refs: Record<string, number>): boolean;
+declare function actionWord(part: string | undefined): string;
+declare function keyRunBefore(parts: string[], isEnt: (part: string) => boolean): boolean;
+declare function isVerbWord(part: string): boolean;
+declare function keyedBy(next: string | undefined, name: string): boolean;
 declare function pathNoun(pm: PathMatch, parts: string[], why: string[]): string;
 declare function namedRecord(schema: any, last: string): boolean;
 declare function verbAfterNoun(parts: string[], at: number, entname: string): boolean;
@@ -104,6 +121,7 @@ declare function commandTwin(data: {
     guide: any;
     work: any;
 }, mdesc: any, pm: PathMatch, parts: string[], why: string[]): string | null;
+declare function postReadVerb(mdesc: any, pm: PathMatch | null | undefined, parts: string[]): string | null;
 declare function namingSchemas(method: string, responses: any, answered: Record<string, boolean>, envelope: Record<string, string>): any[];
 declare function answeredRefs(def: any, envelope: Record<string, string>): Record<string, boolean>;
 declare function listedRefs(def: any): Record<string, boolean>;
@@ -137,4 +155,4 @@ declare function verbParts(parts: string[]): string[];
 declare function isNameParam(param: string): boolean;
 declare function entityParamNames(paths: Record<string, Record<string, string>>): Record<string, Record<string, string>>;
 declare function arrayBodyField(schema: any, entname: string, taken?: string[]): string;
-export { answeredRefs, collectionOwner, listedRefs, pathAnswersPage, pathAnswersRecordMap, randomRoute, selectorRoute, namedRecord, verbAfterNoun, warnListBody, arrayBodyField, commandBodyName, commandTwin, itemAbove, pathQualified, readsRecord, recordOf, responsePayload, tagHolds, wrapsLiteral, isListResponse, LITERAL_LAST_SHAPES, READ_VERBS, distinctRecord, distinctShare, heuristic01, keyParamOf, matchEntityPath, pathNoun, namingRef, namingSchemas, pathRecordRef, pathResource, sharedRoutes, entityParamNames, isNameParam, isVerb, verbParts, verbOfItem, shortLiteral, normalizeParams, cleanCmp, commandSource, relationshipOf, singletonOf, subWriteOfItem, variantOfCollection, keyNounOf, asyncResultOf, nounless, };
+export { answeredRefs, collectionOwner, listedRefs, pathAnswersPage, pathAnswersRecordMap, randomRoute, selectorRoute, namedRecord, verbAfterNoun, warnListBody, arrayBodyField, commandBodyName, commandTwin, itemAbove, pathQualified, readsRecord, recordOf, responsePayload, tagHolds, wrapsLiteral, isListResponse, LITERAL_LAST_SHAPES, READ_VERBS, distinctRecord, distinctShare, heuristic01, keyParamOf, matchEntityPath, pathNoun, namingRef, namingSchemas, pathRecordRef, pathResource, sharedRoutes, entityParamNames, isNameParam, isVerb, verbParts, verbOfItem, shortLiteral, normalizeParams, cleanCmp, commandSource, relationshipOf, singletonOf, subWriteOfItem, variantOfCollection, keyNounOf, asyncResultOf, nounless, genericCmp, actionWord, keyRunBefore, VERSION_TAG_RE, isVerbWord, keyedBy, postReadVerb, componentReadOwner, };

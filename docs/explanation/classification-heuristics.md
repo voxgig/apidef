@@ -55,7 +55,10 @@ parameter rather than a literal, and so is a placeholder with an
 extension, `{plugin}.json`. A route with no literal at all, answering no
 component, is named for its first parameter's noun, so
 `/{sheetName}{fileExtension}` is `sheet`. A query string in a path, as in
-`/widgets?desc=html`, is cut away before anything reads the path.
+`/widgets?desc=html`, is cut away before anything reads the path, and so is
+a fragment, as in `/labels/{labelId}#keys`, unless the route is nothing but
+its fragment. A stray `$` before a placeholder is dropped, so
+`/pets/${petId}` keys `pet` with `{petId}`.
 
 ## Naming an entity
 
@@ -68,7 +71,9 @@ that wildly different spellings collapse onto one canonical identifier:
   `planets` → `planet`, `moons` → `moon`. English pluralization is irregular,
   so a curated table handles the exceptions (see
   [Customize entity naming](../how-to/customize-entity-naming.md)); a
-  trailing `s` after a digit is part of a numeronym, so `k8s` stays `k8s`.
+  trailing `s` after a digit is part of a numeronym, so `k8s` stays `k8s`,
+  and a singular noun that ends in `s` keeps it, as `analysis`, `canvas`
+  and `news` do.
 - **guard the first character** — no target language accepts an identifier
   that starts with a digit, so a name that does gets an `n` in front, cased
   to match what follows: `3ds_session` becomes `n3ds_session`, `3DSecure`
@@ -314,8 +319,15 @@ reads what the route answers and not what the parameter is called, so a
 route that answers its one record wrapped in a list, as TheAudioDB's
 lookup routes do, is a list too, which is how an SDK can read that record.
 
+A `GET` answering an object that holds a list is read as a `list`, unless
+the object is a record that holds lists: on a route its singular literal
+names, it declares an identifier beside three or more values of its own,
+as `/me` answering the signed-in account with its list of email addresses
+does.
+
 Only the method keys of a path item are classified: `get`, `put`, `post`,
-`delete`, `options`, `head`, `patch` and `query`. Its `parameters`,
+`delete`, `options`, `head`, `patch`, `query` and `trace`. A `TRACE` is kept
+in the guide as `OPTIONS` is, and gives no SDK operation. Its `parameters`,
 `servers`, `summary`, `description` and extension keys describe the path, so
 none of them becomes an operation or names an entity.
 
@@ -328,7 +340,22 @@ A `POST` whose last literal opens with a read verb, `list`, `search`, `get`,
 operation rather than a `create`: the body is the filter, as a `QUERY` body
 is. `POST /listSavedCards` lists `saved_card`, named for the noun after
 the verb, and `POST /things/search` is a `list` of `thing` with `search`
-as its action.
+as its action. The rule holds however the route is named, so
+`POST /gadgets/{gadgetId}/getLinkedTags`, a verb on a gadget, is a `list`
+too.
+
+## Some names carry no entity
+
+A component named for a word that says nothing about a resource names no
+entity: `success`, `ok`, `default`, `response`, `result`, `object`, `empty`
+or `void`, or an identifier such as `GroupId`. Neither does the bare member
+of a family of results, as `AcmeResult` is beside `AcmeKindsResult` and
+`AcmeZonesResult`. The path names those routes instead.
+
+A method that answers no component of its own joins the entity that a read
+of its path takes from the component it answers. A `DELETE` answering a
+plain acknowledgement lands on the record its `GET` names, instead of on an
+entity of its own named for the path.
 
 ## A tag names a route only where the path cannot
 
@@ -365,6 +392,9 @@ A literal's trailing module word, `api`, `controller`, `service`,
 `resource` or `endpoint`, is not part of the name when another word
 remains: `/v1/GadgetsApi` names `gadget`, and `/v1/PlansApi/Enable` is
 `plan` with the action `enable`. A tag is read the same way.
+
+A version tag, such as `v1` or `v2beta`, groups routes by release and
+never names one.
 
 ## A command is named for its body
 
@@ -569,6 +599,14 @@ the component's own member shape, the item selector
 (`.../pulls/{pull_number}`) is a path of the spec, and nothing extends the
 verb's path. A literal with paths beneath it is a collection and keeps the
 component rule.
+
+A verb word keeps its own spelling as an action, so `GET /books/contains` is
+the action `contains` on `book`. A placeholder fused to a verb is dropped
+from it: `POST /notices/{noticeId}/retract{format}` is `retract` on
+`notice`. A verb after three or more keys acts on the entity named before
+them, as `POST /shops/{owner}/{shop}/{orderNum}/cancel` is `cancel` on
+`shop`. A verb word followed by a key named for it is a noun:
+`/lines/{lineId}/stop/{stopId}` reads a `stop`.
 
 A literal that opens with a verb word and continues is a verb as well, on
 the nearest resource up the path. `POST /s/{shelf}/lockLendingPolicy`

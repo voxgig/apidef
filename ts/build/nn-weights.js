@@ -65,7 +65,7 @@ const CMP_SOURCE_NET = makeNet(
 
 const OP_NET = makeNet(
   ['m_get', 'm_query', 'm_post', 'm_put', 'm_patch', 'm_delete', 'm_head', 'm_options',
-    'end_param_anchored', 'end_param_bare', 'res_array', 'res_array_prop', 'view', 'post_read',
+    'm_trace', 'end_param_anchored', 'end_param_bare', 'res_array', 'res_array_prop', 'view', 'post_read',
     'end_page'],
   {
     read: { b: 0, w: { m_get: 1, m_query: 1 } },
@@ -87,6 +87,7 @@ const OP_NET = makeNet(
     delete: { b: 0, w: { m_delete: 1 } },
     head: { b: 0, w: { m_head: 1 } },
     options: { b: 0, w: { m_options: 1 } },
+    trace: { b: 0, w: { m_trace: 1 } },
   },
   {
     list: { b: 0, w: { list_array: 5, list_prop: 5, post_list: 5, list_page: 5 } },
@@ -97,6 +98,7 @@ const OP_NET = makeNet(
     remove: { b: 0, w: { delete: 5 } },
     head: { b: 0, w: { head: 5 } },
     OPTIONS: { b: 0, w: { options: 5 } },
+    TRACE: { b: 0, w: { trace: 5 } },
   },
 )
 
@@ -141,6 +143,7 @@ const NAME_NET = makeNet(
       b: -2, w: { cmp_from_tag: 1, tag_item_route: 1, tag_cmp_is_record: -1, tag_collides: 1 },
     },
     same_path: { b: -1, w: { cmp_from_tag: 1, same_path_avail: 1 } },
+    same_path_read: { b: 0, w: { same_path_avail: 1, cmp_avail: -1 } },
     coll_owner: { b: 0, w: { coll_owner_avail: 1 } },
     vop: {
       b: -7,
@@ -248,7 +251,7 @@ const NAME_NET = makeNet(
   {
     COLLREC: { b: 0, w: { coll_record: 30 } },
     COLLSEG: { b: 0, w: { coll_segment: 30 } },
-    SAMEPATH: { b: 0, w: { same_path: 20 } },
+    SAMEPATH: { b: 0, w: { same_path: 20, same_path_read: 20 } },
     COLLOWNER: { b: 0, w: { coll_owner: 19.5 } },
     LINK: { b: 0, w: { link: 19 } },
     SINGLE: { b: 0, w: { single: 18.5 } },
@@ -284,7 +287,7 @@ const NAME_NET = makeNet(
 const ACTION_NET = makeNet(
   ['same_path', 'vop_chosen', 'last_verb', 'l2_is_ent', 'l3_is_ent', 'l4_is_ent',
     'l2_param', 'l3_param', 'l2_verb', 'ent_endswith_last', 'ent_endswith_compound',
-    'view_act', 'rec_named'],
+    'view_act', 'rec_named', 'keys_run_ent'],
   {
     act_vop: { b: -1, w: { vop_chosen: 1, last_verb: 1, same_path: -1 } },
     act_view: { b: -1, w: { vop_chosen: 1, view_act: 1, last_verb: -1, same_path: -1 } },
@@ -316,10 +319,17 @@ const ACTION_NET = makeNet(
         l3_is_ent: -1, same_path: -1, ent_endswith_last: -1, rec_named: -1,
       },
     },
+    act_keys_run: {
+      b: -1,
+      w: {
+        keys_run_ent: 1, last_verb: 1, vop_chosen: -1, l2_is_ent: -1, l3_is_ent: -1, l4_is_ent: -1,
+        same_path: -1, ent_endswith_last: -1, rec_named: -1,
+      },
+    },
   },
   {
     NONE: { b: 1, w: {} },
-    LAST: { b: 0, w: { act_vop: 5, act_view: 5, act_l2: 4, act_l3: 4, act_l4_keys: 4 } },
+    LAST: { b: 0, w: { act_vop: 5, act_view: 5, act_l2: 4, act_l3: 4, act_l4_keys: 4, act_keys_run: 4 } },
     COMPOUND: { b: 0, w: { act_l4: 4 } },
   },
 )

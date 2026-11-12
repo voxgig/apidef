@@ -40,6 +40,7 @@ var METHOD_IDOP = map[string]string{
 	"PATCH":   "patch",
 	"HEAD":    "head",
 	"OPTIONS": "OPTIONS",
+	"TRACE":   "TRACE",
 }
 
 // Tried in order: the first shape a path matches decides how its entity is named.
@@ -67,13 +68,53 @@ var verbWords = map[string]bool{
 	"exists": true, "preview": true, "render": true, "generate": true, "calculate": true,
 	"compute": true, "convert": true, "process": true, "trigger": true, "dispatch": true,
 	"apply": true, "revoke": true, "grant": true, "save": true, "test": true, "inject": true,
-	"analyze": true,
+	"analyze": true, "autocomplete": true, "bypass": true, "contains": true, "finish": true,
+	"reorder": true, "shuffle": true,
 }
 
 var versionParamRE = regexp.MustCompile(`(?i)version`)
 
 // A literal that names an identifier keys a resource rather than naming one.
 var idLiteralRE = regexp.MustCompile(`(^|_)ids?$`)
+
+// genericCmpWords mirrors ts/src/guide/heuristic01.ts: a component named for
+// one of these, alone or as the bare member of a family, names no entity.
+var genericCmpWords = map[string]bool{
+	"default": true, "empty": true, "object": true, "ok": true, "response": true,
+	"result": true, "success": true, "void": true,
+}
+
+// A version tag groups routes by release, not by resource.
+var versionTagRE = regexp.MustCompile(`^v\d+([a-z]+\d*)?$`)
+
+// genericCmp mirrors ts/src/guide/heuristic01.ts.
+func genericCmp(name string, refs map[string]int) bool {
+	if genericCmpWords[name] || idLiteralRE.MatchString(name) {
+		return true
+	}
+	at := strings.LastIndex(name, "_")
+	if at < 1 || !genericCmpWords[name[at+1:]] {
+		return false
+	}
+	word := name[at+1:]
+	prefix := name[:at+1]
+	for ref := range refs {
+		if ref != name && strings.HasPrefix(ref, prefix) && strings.HasSuffix(ref, "_"+word) &&
+			len(prefix)+len(word) < len(ref) {
+			return true
+		}
+	}
+	return false
+}
+
+// dataCmpRefs is the definition's component reference counts.
+func dataCmpRefs(data map[string]any) map[string]int {
+	guide, _ := data["guide"].(map[string]any)
+	metrics, _ := guide["metrics"].(map[string]any)
+	count, _ := metrics["count"].(map[string]any)
+	refs, _ := count["origcmprefs"].(map[string]int)
+	return refs
+}
 
 // Literals that name no resource of their own.
 var genericWords = map[string]bool{"history": true, "list": true, "result": true}
@@ -110,6 +151,7 @@ var METHOD_CONSIDER_ORDER = map[string]int{
 	"DELETE":  500,
 	"HEAD":    600,
 	"OPTIONS": 700,
+	"TRACE":   800,
 }
 
 // xrefRE matches component schema references.
@@ -1122,7 +1164,11 @@ func resolveEntityComponent(data map[string]any, mdesc map[string]any) {
 	cmpFoundMap, _ := foundMap["cmp"].(map[string]any)
 	var cleanxrefs []map[string]any
 	for _, xref := range cmpxrefs {
-		cleanxrefs = append(cleanxrefs, unwrapCmp(cmpFoundMap, xref, &whyCmp)...)
+		for _, found := range unwrapCmp(cmpFoundMap, xref, &whyCmp) {
+			if !genericCmp(safeStr(found["cmp"]), origcmprefs) {
+				cleanxrefs = append(cleanxrefs, found)
+			}
+		}
 	}
 
 	// Filter by path occurrence and frequency
@@ -1482,11 +1528,17 @@ func samePathOwner(work map[string]any, mdesc map[string]any) (entity string, me
 	pathStr, _ := mdesc["path"].(string)
 	pathowner, _ := work["pathowner"].(map[string]any)
 	owners, _ := pathowner[pathStr].(map[string]any)
-	if owners == nil || ment == nil || safeStr(ment["ref"]) != "tag" {
+	if owners == nil || ment == nil {
 		return "", "", false
 	}
-	tags := anyStrings(mdesc["tags"])
 	methods, _ := work["methods"].([]map[string]any)
+	if safeStr(ment["ref"]) != "tag" {
+		if safeStr(ment["cmp"]) != "" {
+			return "", "", false
+		}
+		return componentReadOwner(pathStr, owners, methods)
+	}
+	tags := anyStrings(mdesc["tags"])
 	for _, method := range []string{"GET", "QUERY", "PUT", "PATCH"} {
 		entname := safeStr(owners[method])
 		if entname == "" {
@@ -2045,7 +2097,7 @@ func findActions(data map[string]any, mdesc map[string]any) {
 	}
 	if plen >= 1 {
 		lastPart = parts[plen-1]
-		lastPartCanon = LiteralName(lastPart)
+		lastPartCanon = actionWord(lastPart)
 	}
 
 	cmp := safeStr(ment["cmp"])
@@ -2104,6 +2156,9 @@ func findActions(data map[string]any, mdesc map[string]any) {
 			// /api/foo/{parent}/{param}/action
 			updateAction(methodName, lastPart, lastPartCanon, entdesc, pathdesc, "ent-keys-2nd-last")
 		}
+	} else if isVerb(lastPart) && keyRunBefore(parts, func(part string) bool { return matchesAt(LiteralName(part)) }) {
+		// /api/foo/{a}/{b}/{c}/action
+		updateAction(methodName, lastPart, lastPartCanon, entdesc, pathdesc, "ent-keys-before-last")
 	}
 
 	if collection := safeStr(ment["collection_action"]); collection != "" {
@@ -2129,7 +2184,8 @@ func resolveOperation(data map[string]any, mdesc map[string]any) {
 	work := data["work"].(map[string]any)
 
 	pathmapEntry := work["pathmap"].(map[string]any)
-	_ = pathmapEntry
+	pathmapPath, _ := pathmapEntry[pathStr].(map[string]any)
+	parts, _ := pathmapPath["parts"].([]string)
 
 	entname := safeStr(ment["entname"])
 	entmap := work["entmap"].(map[string]any)
@@ -2161,7 +2217,7 @@ func resolveOperation(data map[string]any, mdesc map[string]any) {
 		if view {
 			whyOp = append(whyOp, "view")
 		}
-	} else if standardOpname == "create" && safeBool(ment["post_read"]) {
+	} else if standardOpname == "create" && (safeBool(ment["post_read"]) || postReadVerb(mdesc, getPM(ment), parts) != "") {
 		opname = "list"
 		whyOp = append(whyOp, "post-read")
 	} else {
@@ -2482,8 +2538,11 @@ func pathNoun(pm *PathMatchResult, parts []string, why *[]string) string {
 		return LiteralName(custom[1])
 	}
 	name := LiteralName(parts[at])
-	lit := Snakify(parts[at])
-	if custom != nil || (verbWords[name] && Depluralize(lit) == lit) {
+	next := ""
+	if at+1 < len(parts) {
+		next = parts[at+1]
+	}
+	if custom != nil || (isVerbWord(parts[at]) && !keyedBy(next, name)) {
 		for i := at - 1; 0 <= i; i-- {
 			if !isParam(parts[i]) {
 				*why = append(*why, "noun-before-verb="+parts[i])
@@ -2494,12 +2553,34 @@ func pathNoun(pm *PathMatchResult, parts []string, why *[]string) string {
 	return name
 }
 
+// componentReadOwner mirrors ts/src/guide/heuristic01.ts: a method that
+// answers no component of its own joins the entity a read of its path takes
+// from the component that read answers.
+func componentReadOwner(pathStr string, owners map[string]any, methods []map[string]any) (string, string, bool) {
+	for _, method := range []string{"GET", "QUERY"} {
+		entname := safeStr(owners[method])
+		if entname == "" {
+			continue
+		}
+		for _, read := range methods {
+			if safeStr(read["path"]) != pathStr || safeStr(read["method"]) != method {
+				continue
+			}
+			rment, _ := read["MethodEntity"].(map[string]any)
+			if rment != nil && safeStr(rment["ref"]) != "tag" && entname == safeStr(rment["cmp"]) {
+				return entname, method, true
+			}
+		}
+	}
+	return "", "", false
+}
+
 // A tag keeps naming a route whose noun it is not when it names a literal
 // before the naming literal and the route is a leaf, or ends with a key
 // whose literal is singular: a selector or a view of the tag's resource.
 func tagHolds(data map[string]any, parts []string, pathStr string, tag string) bool {
 	pm := matchEntityPath(parts)
-	if pm == nil {
+	if pm == nil || versionTagRE.MatchString(tag) {
 		return false
 	}
 	at := pm.Index + PATH_NAME_INDEX[pm.Expr]
@@ -2862,7 +2943,7 @@ func verbActionName(literals []string) string {
 		if i < len(literals)-1 {
 			names = append(names, LiteralName(lit))
 		} else {
-			names = append(names, verbSpellingRE.ReplaceAllString(Snakify(lit), ""))
+			names = append(names, verbSpellingRE.ReplaceAllString(Snakify(fusedPlaceholderRE.ReplaceAllString(lit, "")), ""))
 		}
 	}
 	return strings.Join(names, "_")
@@ -3545,8 +3626,27 @@ func commandTwin(data map[string]any, mdesc map[string]any, pm *PathMatchResult,
 // lists the noun the literal names, the body its filter; "" keeps the shape's
 // name where the literal is the verb alone.
 func postRead(mdesc map[string]any, pm *PathMatchResult, parts []string, why *[]string) (string, bool) {
-	if safeStr(mdesc["method"]) != "POST" || len(parts) == 0 {
+	verb := postReadVerb(mdesc, pm, parts)
+	if verb == "" {
 		return "", false
+	}
+	verbs := verbParts(parts)
+	lit := Snakify(verbs[len(verbs)-1])
+	if ment, _ := mdesc["MethodEntity"].(map[string]any); ment != nil {
+		ment["post_read"] = true
+	}
+	*why = append(*why, "post-read="+verb)
+	if len(lit) <= len(verb)+1 {
+		return "", true
+	}
+	return LiteralName(lit[len(verb)+1:]), true
+}
+
+// postReadVerb mirrors ts/src/guide/heuristic01.ts: the read verb a POST's
+// last literal opens with, where it answers a collection.
+func postReadVerb(mdesc map[string]any, pm *PathMatchResult, parts []string) string {
+	if safeStr(mdesc["method"]) != "POST" || len(parts) == 0 {
+		return ""
 	}
 	verbs := verbParts(parts)
 	last := verbs[len(verbs)-1]
@@ -3560,16 +3660,9 @@ func postRead(mdesc map[string]any, pm *PathMatchResult, parts []string, why *[]
 	}
 	scratch := []string{}
 	if verb == "" || isParam(last) || !isListResponse(mdesc, pm, safeStr(mdesc["path"]), &scratch) {
-		return "", false
+		return ""
 	}
-	if ment, _ := mdesc["MethodEntity"].(map[string]any); ment != nil {
-		ment["post_read"] = true
-	}
-	*why = append(*why, "post-read="+verb)
-	if len(lit) <= len(verb)+1 {
-		return "", true
-	}
-	return LiteralName(lit[len(verb)+1:]), true
+	return verb
 }
 
 // entityPathMatch_tpe handles the t/p/ path pattern.
@@ -3785,8 +3878,12 @@ func entityCmpMatch(data map[string]any, entname string, mdesc map[string]any, w
 		cmpFound := foundCmps(data)
 		var cmps []map[string]any
 		for _, found := range findcmps(data, pathStr, []string{"responses"}, true) {
-			cmps = append(cmps, unwrapCmp(cmpFound,
-				map[string]any{"cmp": found["cmp"], "origcmp": found["origcmp"]}, why)...)
+			for _, cmp := range unwrapCmp(cmpFound,
+				map[string]any{"cmp": found["cmp"], "origcmp": found["origcmp"]}, why) {
+				if !genericCmp(safeStr(cmp["cmp"]), dataCmpRefs(data)) {
+					cmps = append(cmps, cmp)
+				}
+			}
 		}
 
 		if len(cmps) == 1 {
@@ -4471,18 +4568,10 @@ func isListResponse(mdesc map[string]any, pm *PathMatchResult, pathStr string, w
 
 		if !islist && !endParamBare {
 			properties := resolveSchemaProperties(schema)
-			for _, propName := range sortedKeys(properties) {
-				propVal := properties[propName]
-				propMap, ok := propVal.(map[string]any)
-				if !ok {
-					continue
-				}
-				propType, _ := propMap["type"].(string)
-				if propType == "array" {
-					*why = append(*why, "array-prop:"+propName)
-					islist = true
-					break
-				}
+			for _, propName := range listingProps(properties, pathStr) {
+				*why = append(*why, "array-prop:"+propName)
+				islist = true
+				break
 			}
 		}
 
@@ -4861,9 +4950,48 @@ func isNameParam(param string) bool {
 
 var nameParamRE = regexp.MustCompile(`(^|_)name$`)
 
-// A segment holding a placeholder, whole or beside other text, names no verb.
+// A segment holding a placeholder names no verb, unless the placeholder only
+// trails a literal, as a format does in `retract{format}`.
 func isVerb(part string) bool {
-	return !strings.Contains(part, "{")
+	lit := trailingPlaceholderRE.ReplaceAllString(part, "")
+	return !strings.Contains(part, "{") || (lit != "" && !strings.Contains(lit, "{"))
+}
+
+var trailingPlaceholderRE = regexp.MustCompile(`(\.?\{[^}]*\})+$`)
+
+var fusedPlaceholderRE = regexp.MustCompile(`\.?\{[^}]*\}`)
+
+// isVerbWord mirrors ts/src/guide/heuristic01.ts: a verb word as a path
+// literal spells it, singular or in the third person.
+func isVerbWord(part string) bool {
+	lit := Snakify(part)
+	return verbWords[lit] || (verbWords[LiteralName(part)] && Depluralize(lit) == lit)
+}
+
+// keyedBy mirrors ts/src/guide/heuristic01.ts: the parameter after a literal
+// keys it when it is named for the literal.
+func keyedBy(next string, name string) bool {
+	return next != "" && isParam(next) && ParamNoun(ParamOf(next)) == name
+}
+
+// actionWord mirrors ts/src/guide/heuristic01.ts: an action keeps a verb
+// word's own spelling; any other literal gives its canonical name.
+func actionWord(part string) string {
+	lit := Snakify(fusedPlaceholderRE.ReplaceAllString(part, ""))
+	if verbWords[lit] {
+		return lit
+	}
+	return LiteralName(part)
+}
+
+// keyRunBefore mirrors ts/src/guide/heuristic01.ts: a run of keys between the
+// entity's literal and a trailing verb.
+func keyRunBefore(parts []string, isEnt func(string) bool) bool {
+	at := len(parts) - 2
+	for 0 <= at && isParam(parts[at]) {
+		at--
+	}
+	return 3 <= len(parts)-2-at && 0 <= at && isEnt(parts[at])
 }
 
 var customMethodRE = regexp.MustCompile(`^(.+):([A-Za-z][\w-]*)$`)

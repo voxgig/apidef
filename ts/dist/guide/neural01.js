@@ -59,10 +59,11 @@ const PATH_NAME_INDEX = {
 };
 const METHOD_CONSIDER_ORDER = {
     GET: 100, QUERY: 150, POST: 200, PUT: 300, PATCH: 400, DELETE: 500, HEAD: 600, OPTIONS: 700,
+    TRACE: 800,
 };
 const METHOD_FEATURES = {
     GET: 'm_get', QUERY: 'm_query', POST: 'm_post', PUT: 'm_put', PATCH: 'm_patch',
-    DELETE: 'm_delete', HEAD: 'm_head', OPTIONS: 'm_options',
+    DELETE: 'm_delete', HEAD: 'm_head', OPTIONS: 'm_options', TRACE: 'm_trace',
 };
 const SHAPE_FEATURES = {
     't/p/t/': 'shape_tpt', 't/p/': 'shape_tp', 'p/t/': 'shape_pt', 't/': 'shape_t', 't/p/p': 'shape_tpp',
@@ -243,7 +244,7 @@ function opFeatures(route, listed) {
     if (null != schema) {
         x.res_array = bit('array' === schema.type);
         const props = resolveSchemaProperties(schema);
-        x.res_array_prop = bit(Object.values(props).some((prop) => 'array' === prop?.type));
+        x.res_array_prop = bit(0 < (0, utility_1.listingProps)(props, route.path).length);
     }
     x.view = bit(true === route.view_on_parent || true === route.singleton);
     x.post_read = bit(true === route.post_read);
@@ -356,7 +357,8 @@ function resolveCmp(work, route) {
     for (const xref of cmpxrefs) {
         xref.cmp = (0, heuristic01_1.cleanCmp)({ guide: work.guide, work }, xref.cmp);
     }
-    const unwrapped = cmpxrefs.flatMap((xref) => unwrapCmp(metrics, xref, why));
+    const unwrapped = cmpxrefs.flatMap((xref) => unwrapCmp(metrics, xref, why))
+        .filter((xref) => !(0, heuristic01_1.genericCmp)(xref.cmp, metrics.count.origcmprefs));
     const kept = unwrapped.filter((xref) => {
         const d = (0, nn_1.decide)(guideNets().cmpKeep, {
             single: bit(unwrapped.length <= 1),
@@ -494,7 +496,8 @@ function uniqueResponseCmps(work, path, why) {
         }
     }
     return Array.from(names).map((n) => ({ cmp: (0, utility_1.canonizeCmpName)(n), origcmp: n }))
-        .flatMap((found) => unwrapCmp(work.guide.metrics, found, why));
+        .flatMap((found) => unwrapCmp(work.guide.metrics, found, why))
+        .filter((found) => !(0, heuristic01_1.genericCmp)(found.cmp, work.guide.metrics.count.origcmprefs));
 }
 // The collection of an item route whose method its tag alone names, when the
 // route answers nothing.
@@ -595,8 +598,11 @@ function markRecordOwner(recordowner, route, entname) {
 }
 function samePathOwner(work, route) {
     const owner = work.pathowner[route.path];
-    if (null == owner || 'tag' !== route.cmp?.ref) {
+    if (null == owner) {
         return null;
+    }
+    if ('tag' !== route.cmp?.ref) {
+        return null == route.cmp ? (0, heuristic01_1.componentReadOwner)(route.path, owner, work.routes) : null;
     }
     for (const method of ['GET', 'QUERY', 'PUT', 'PATCH']) {
         const entname = owner[method];
@@ -1126,6 +1132,7 @@ function findActions(route, ent) {
     };
     const last = at(1);
     const lastCanon = (0, utility_1.literalName)(last);
+    const lastAction = (0, heuristic01_1.actionWord)(last);
     const l2Canon = (0, utility_1.literalName)(at(2));
     const compound = l2Canon + '_' + lastCanon;
     const d = (0, nn_1.decide)(guideNets().action, {
@@ -1140,24 +1147,26 @@ function findActions(route, ent) {
         l2_param: bit(isParam(at(2))),
         l3_param: bit(isParam(at(3))),
         l2_verb: bit((0, heuristic01_1.isVerb)(at(2))),
+        keys_run_ent: bit((0, heuristic01_1.keyRunBefore)(parts, isEnt)),
         ent_endswith_last: bit(ent.name.endsWith((0, utility_1.literalName)(lastCanon))),
         ent_endswith_compound: bit(ent.name.endsWith((0, utility_1.literalName)(compound))),
     });
     pathdesc.why_path.push((0, nn_1.explain)('action', d));
     if ('LAST' === d.cls) {
         if (fired(guideNets().action, d, 'act_vop') || fired(guideNets().action, d, 'act_view')) {
-            const name = route.view_action ?? lastCanon;
+            const name = route.view_action ?? lastAction;
             pathdesc.action[name] = pathdesc.action[name] ?? {
                 why_action: ['ent', ent.name, 'verb-on-parent', last, route.method],
             };
         }
         else {
-            updateAction(route.method, last, lastCanon, ent, pathdesc, fired(guideNets().action, d, 'act_l2') ? 'no-param' :
-                fired(guideNets().action, d, 'act_l4_keys') ? 'ent-keys-2nd-last' : 'ent-param-2nd-last');
+            updateAction(route.method, last, lastAction, ent, pathdesc, fired(guideNets().action, d, 'act_l2') ? 'no-param' :
+                fired(guideNets().action, d, 'act_l4_keys') ? 'ent-keys-2nd-last' :
+                    fired(guideNets().action, d, 'act_keys_run') ? 'ent-keys-before-last' : 'ent-param-2nd-last');
         }
     }
     else if ('COMPOUND' === d.cls) {
-        updateAction(route.method, at(2) + '/' + last, 'action' === l2Canon ? lastCanon : compound, ent, pathdesc, 'ent-param-3rd-last');
+        updateAction(route.method, at(2) + '/' + last, 'action' === l2Canon ? lastAction : l2Canon + '_' + lastAction, ent, pathdesc, 'ent-param-3rd-last');
     }
     if (null != route.collection_action) {
         pathdesc.action[route.collection_action] = pathdesc.action[route.collection_action] ?? {

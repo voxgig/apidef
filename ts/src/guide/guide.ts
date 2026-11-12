@@ -533,7 +533,7 @@ function validateBaseBuide(ctx: ApiDefContext, baseguide: any) {
 
     // Each orig method.
     each(pdef, (mdef: any) => {
-      if (mdef.key$.match(/^(get|post|put|patch|delete|head|options|query)$/i)) {
+      if (mdef.key$.match(/^(get|post|put|patch|delete|head|options|query|trace)$/i)) {
         let key = pathStr + ' ' + mdef.key$.toUpperCase()
         let desc = (srcm[key] = (srcm[key] || { c: 0 }))
         desc.c++

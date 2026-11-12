@@ -68,7 +68,7 @@ var irregularPlurals = map[string]string{
 	"exercises": "exercise", "feet": "foot", "franchises": "franchise",
 	"furnaces": "furnace",
 	"geese":    "goose", "headaches": "headache", "horses": "horse", "hoses": "hose",
-	"houses": "house", "indices": "index", "lens": "lens", "licenses": "license",
+	"houses": "house", "indices": "index", "licenses": "license",
 	"matrices": "matrix", "men": "man", "mice": "mouse", "moustaches": "moustache",
 	"movies": "movie", "mustaches": "mustache", "niches": "niche", "noses": "nose",
 	"notices": "notice", "nurses": "nurse", "oases": "oasis", "oboes": "oboe",
@@ -80,10 +80,19 @@ var irregularPlurals = map[string]string{
 	"series": "series", "shoes": "shoe", "sources": "source", "species": "species",
 	"teeth":  "tooth",
 	"theses": "thesis", "verses": "verse", "vertices": "vertex", "women": "woman",
-	"yes": "yes",
+	"yes":      "yes",
+	"brownies": "brownie", "calories": "calorie", "climaxes": "climax", "cookies": "cookie",
+	"faxes": "fax", "freebies": "freebie", "goalies": "goalie", "hoodies": "hoodie",
+	"lenses": "lens", "newbies": "newbie", "pickaxes": "pickaxe", "rookies": "rookie",
+	"selfies": "selfie", "smoothies": "smoothie", "syntaxes": "syntax", "taxes": "tax",
+	"taxis": "taxi", "zombies": "zombie",
 }
 
 var irregularKeys = sortedByLenDesc(irregularPlurals)
+
+// sSingulars mirrors ts/src/utility.ts: singular nouns that end in s, kept
+// whole, as every -sis noun is.
+var sSingulars = []string{"alias", "atlas", "axis", "bias", "canvas", "lens", "news"}
 
 // The stems whose -ves plural comes from -fe (knives) or -f (wolves). The
 // -fe stems match the whole word, since olives is not the plural of olife.
@@ -157,6 +166,15 @@ func Depluralize(word string) string {
 		if strings.HasSuffix(lower, ending) {
 			cut := len(word) - len(ending)
 			return word[:cut] + matchCase(word[cut:], irregularPlurals[ending])
+		}
+	}
+
+	if strings.HasSuffix(lower, "sis") {
+		return word
+	}
+	for _, ending := range sSingulars {
+		if strings.HasSuffix(lower, ending) {
+			return word
 		}
 	}
 
@@ -748,8 +766,10 @@ var heldSegmentRE = regexp.MustCompile(`^(\{[^}]+\})\.(?:[A-Za-z0-9]+|\{[^}]+\})
 var namedSegmentRE = regexp.MustCompile(`^([^{}.]+)\.([A-Za-z0-9]+|\{[^}]+\})$`)
 
 // guideSegment mirrors ts/src/utility.ts: a route segment as the guide
-// classifies and names it, and false for a format alone, which names nothing.
+// classifies and names it, ${id} read as {id}, and false for a format alone,
+// which names nothing.
 func guideSegment(seg string) (string, bool) {
+	seg = strings.ReplaceAll(seg, "${", "{")
 	if m := heldSegmentRE.FindStringSubmatch(seg); m != nil {
 		return m[1], true
 	}
@@ -763,10 +783,13 @@ func guideSegment(seg string) (string, bool) {
 	return seg, true
 }
 
-// guideParts mirrors ts/src/utility.ts: the query string is cut away, and a
-// route of formats alone keeps them.
+// guideParts mirrors ts/src/utility.ts: the query string and a fragment are
+// cut away, and a route that is all fragment, or of formats alone, keeps them.
 func guideParts(path string) []string {
-	parts := splitAndFilter(queryStringRE.ReplaceAllString(path, ""), "/")
+	parts := splitAndFilter(queryStringRE.ReplaceAllString(fragmentRE.ReplaceAllString(path, ""), ""), "/")
+	if len(parts) == 0 {
+		parts = splitAndFilter(queryStringRE.ReplaceAllString(path, ""), "/")
+	}
 	kept := []string{}
 	for _, part := range parts {
 		if seg, ok := guideSegment(part); ok {
@@ -1712,6 +1735,8 @@ func ParamOf(part string) string {
 
 var queryStringRE = regexp.MustCompile(`\?.*$`)
 
+var fragmentRE = regexp.MustCompile(`#.*$`)
+
 var paramNounSuffixRE = regexp.MustCompile(`_(name|id|key|code|slug|number|uuid)$`)
 
 // ParamNoun mirrors paramNoun in ts/src/utility.ts: the noun a parameter is
@@ -2619,6 +2644,43 @@ func isEnvelopePagingProp(name string) bool {
 func isEnvelopePageProp(name string) bool {
 	return isEnvelopePagingProp(name) || isPageMetaProp(name) ||
 		strings.HasSuffix(envelopePagingSepRE.ReplaceAllString(strings.ToLower(name), ""), "count")
+}
+
+var idFieldRE = regexp.MustCompile(`^(id|ID|Id)$|_(id|ID)$|[a-z0-9](Id|ID)$`)
+
+// listingProps mirrors ts/src/utility.ts: the array properties that list a
+// response's records, none where the response is a record that holds lists.
+func listingProps(resprops map[string]any, pathStr string) []string {
+	arrays := []string{}
+	for _, k := range sortedKeys(resprops) {
+		sch, _ := resprops[k].(map[string]any)
+		if sch != nil && safeStr(sch["type"]) == "array" {
+			arrays = append(arrays, k)
+		}
+	}
+	if len(arrays) == 0 {
+		return arrays
+	}
+	own := 0
+	id := false
+	for _, k := range sortedKeys(resprops) {
+		islist, _ := propIsList(resprops[k])
+		if !isObjectSchema(resprops[k]) && !islist && !isEnvelopeStatusProp(k) && !isEnvelopePageProp(k) {
+			own++
+			id = id || idFieldRE.MatchString(k)
+		}
+	}
+	last := ""
+	for _, part := range guideParts(pathStr) {
+		if !isParam(part) {
+			last = part
+		}
+	}
+	lit := Snakify(last)
+	if lit != "" && Depluralize(lit) == lit && 3 <= own && id {
+		return []string{}
+	}
+	return arrays
 }
 
 // holdsOwnData mirrors ts/src/utility.ts: a property that is neither an

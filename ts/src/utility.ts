@@ -166,11 +166,15 @@ const IRREGULARS: Record<string, string> = Object.assign(Object.create(null), {
   'avalanches': 'avalanche',
   'axes': 'axis',
   'bases': 'base',
+  'brownies': 'brownie',
   'caches': 'cache',
+  'calories': 'calorie',
   'canoes': 'canoe',
   'cases': 'case',
   'children': 'child',
   'cliches': 'cliche',
+  'climaxes': 'climax',
+  'cookies': 'cookie',
   'courses': 'course',
   'creches': 'creche',
   'crises': 'crisis',
@@ -182,17 +186,21 @@ const IRREGULARS: Record<string, string> = Object.assign(Object.create(null), {
   'douches': 'douche',
   'enterprises': 'enterprise',
   'exercises': 'exercise',
+  'faxes': 'fax',
   'feet': 'foot',
   'fish': 'fish',
   'franchises': 'franchise',
+  'freebies': 'freebie',
   'furnaces': 'furnace',
   'geese': 'goose',
+  'goalies': 'goalie',
   'headaches': 'headache',
+  'hoodies': 'hoodie',
   'horses': 'horse',
   'hoses': 'hose',
   'houses': 'house',
   'indices': 'index',
-  'lens': 'lens',
+  'lenses': 'lens',
   'licenses': 'license',
   'matrices': 'matrix',
   'men': 'man',
@@ -201,6 +209,7 @@ const IRREGULARS: Record<string, string> = Object.assign(Object.create(null), {
   'moustaches': 'moustache',
   'movies': 'movie',
   'mustaches': 'mustache',
+  'newbies': 'newbie',
   'niches': 'niche',
   'noses': 'nose',
   'notices': 'notice',
@@ -212,6 +221,7 @@ const IRREGULARS: Record<string, string> = Object.assign(Object.create(null), {
   'pauses': 'pause',
   'phases': 'phase',
   'phrases': 'phrase',
+  'pickaxes': 'pickaxe',
   'practices': 'practice',
   'premises': 'premise',
   'promises': 'promise',
@@ -220,20 +230,27 @@ const IRREGULARS: Record<string, string> = Object.assign(Object.create(null), {
   'purses': 'purse',
   'quizzes': 'quiz',
   'releases': 'release',
+  'rookies': 'rookie',
   'roses': 'rose',
   'people': 'person',
   'phenomena': 'phenomenon',
+  'selfies': 'selfie',
   'series': 'series',
   'sheep': 'sheep',
   'shoes': 'shoe',
+  'smoothies': 'smoothie',
   'sources': 'source',
   'species': 'species',
+  'syntaxes': 'syntax',
+  'taxes': 'tax',
+  'taxis': 'taxi',
   'teeth': 'tooth',
   'theses': 'thesis',
   'verses': 'verse',
   'vertices': 'vertex',
   'women': 'woman',
   'yes': 'yes',
+  'zombies': 'zombie',
 })
 
 
@@ -251,6 +268,9 @@ const F_PLURAL_STEMS = [
 // insertion-order iteration. Both happen to round-trip correctly
 // today, but the sort makes any future entry safe by construction.
 const IRREGULAR_KEYS = Object.keys(IRREGULARS).sort((a, b) => b.length - a.length)
+
+// Singular nouns that end in s, kept whole, as every -sis noun is (analysis).
+const S_SINGULARS = ['alias', 'atlas', 'axis', 'bias', 'canvas', 'lens', 'news']
 
 // Nouns in -o whose plural takes -es; the rest take -s (photos).
 const OES_NOUNS = ['echo', 'embargo', 'hero', 'potato', 'tomato', 'torpedo', 'veto']
@@ -331,6 +351,10 @@ function depluralize(word: string): string {
       const cut = word.length - ending.length
       return word.slice(0, cut) + matchCase(word.slice(cut), IRREGULARS[ending])
     }
+  }
+
+  if (lower.endsWith('sis') || S_SINGULARS.some((ending) => lower.endsWith(ending))) {
+    return word
   }
 
   // Rules for regular plurals (applied in order). The -ies and -ves
@@ -1269,9 +1293,11 @@ const FORMAT_EXTENSIONS = new Set([
   'atom', 'jsonl', 'ndjson', 'geojson',
 ])
 
-// A route segment as the guide reads it: {id}.json is {id}, repos.json and
-// data.{format} are repos and data, and a format alone (json) names nothing.
-function guideSegment(seg: string): string | null {
+// A route segment as the guide reads it: {id}.json and ${id} are {id},
+// repos.json and data.{format} are repos and data, and a format alone (json)
+// names nothing.
+function guideSegment(seg0: string): string | null {
+  const seg = seg0.replace(/\$\{/g, '{')
   const held = seg.match(/^(\{[^}]+\})\.(?:[A-Za-z0-9]+|\{[^}]+\})$/)
   if (null != held) return held[1]
   const named = seg.match(/^([^{}.]+)\.([A-Za-z0-9]+|\{[^}]+\})$/)
@@ -1281,9 +1307,12 @@ function guideSegment(seg: string): string | null {
   return FORMAT_EXTENSIONS.has(seg.toLowerCase()) ? null : seg
 }
 
-// The guide's parts of a route, query cut; a route of formats alone keeps them.
+// The guide's parts of a route, query and fragment cut; a route that is all
+// fragment, or of formats alone, keeps them.
 function guideParts(path: string): string[] {
-  const parts = path.replace(/\?.*$/, '').split('/').filter((p: string) => '' !== p)
+  const split = (route: string) => route.replace(/\?.*$/, '').split('/').filter((p: string) => '' !== p)
+  const cut = split(path.replace(/#.*$/, ''))
+  const parts = 0 === cut.length ? split(path) : cut
   const kept = parts.map(guideSegment).filter((p): p is string => null != p)
   return 0 === kept.length ? parts : kept
 }
@@ -2386,6 +2415,25 @@ function holdsOwnData(resprops: any): boolean {
 }
 
 
+const ID_FIELD_RE = /^(id|ID|Id)$|_(id|ID)$|[a-z0-9](Id|ID)$/
+
+// The array properties that list a response's records; none where the response
+// is a record that holds lists, as a signed-in user is: on a route its singular
+// literal names, it declares an identifier beside values of its own.
+function listingProps(resprops: any, pathStr: string): string[] {
+  const arrays = keysof(resprops).filter((k: string) => 'array' === resprops[k]?.type)
+  if (0 === arrays.length) {
+    return arrays
+  }
+  const own = keysof(resprops).filter((k: string) => !isObjectSchema(resprops[k]) &&
+    true !== propIsList(resprops[k]) && !isEnvelopeStatusProp(k) && !isEnvelopePageProp(k))
+  const literals = guideParts(pathStr).filter((part: string) => !isParam(part))
+  const last = snakify(literals[literals.length - 1] ?? '')
+  const singular = '' !== last && depluralize(last) === last
+  return singular && 3 <= own.length && own.some((k: string) => ID_FIELD_RE.test(k)) ? [] : arrays
+}
+
+
 // The component a response envelope carries: the resolved reference of the
 // record strictEnvelopeProp unwraps to.
 function envelopeItemRef(schema: any, opname: string): string | null {
@@ -2808,6 +2856,7 @@ export {
   pageTransform,
   PAGE_ROLES,
   answersPage,
+  listingProps,
   answersRecordMap,
   propIsList,
   mergedProperties,

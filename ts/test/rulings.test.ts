@@ -402,6 +402,105 @@ const RULINGS: { def: string, expect: Record<string, string> }[] = [
       'POST /v3/notes/{bookId}/{id}/_mute': 'note create mute',
     },
   },
+  // Readings both strategies share: a POST that reads beneath an item, a record
+  // that holds lists, names that carry no entity, route syntax, a method with
+  // no component of its own, verb words, and a verb after a run of keys.
+  {
+    def: 'read-verb-item-def.json',
+    expect: {
+      'GET /gadgets': 'gadget list',
+      'GET /gadgets/{gadgetId}': 'gadget load',
+      'POST /gadgets/{gadgetId}/getLinkedTags': 'gadget list get_linked_tags',
+    },
+  },
+  {
+    def: 'record-array-def.json',
+    expect: {
+      'GET /boards': 'board list',
+      'GET /boards/{boardId}': 'board load',
+      'GET /boards/{boardId}/acl': 'board load acl',
+      'GET /me': 'account load',
+      'GET /reports/latest': 'report load latest',
+    },
+  },
+  {
+    def: 'generic-name-def.json',
+    expect: {
+      'GET /boards/{boardId}': 'board load',
+      'POST /boards/{boardId}/rules/check': 'board create rule_check',
+      'POST /notices/{noticeId}/pin{format}': 'notice create pin',
+      'POST /notices/{noticeId}/retract{format}': 'notice create retract',
+      'GET /notices/{noticeId}{format}': 'notice load',
+      'GET /units/{unitId}/teamgroups': 'team_group list',
+      'POST /units/{unitId}/teamgroups': 'team_group create',
+      'POST /v1/gadgets/validate': 'gadget create validate',
+      'GET /v1/gadgets/{gadget}': 'gadget load',
+      'PATCH /v1/gadgets/{gadget}/owners': 'gadget patch owners',
+      'GET /v2/kinds': 'kind list',
+      'GET /v2/readings': 'reading list',
+      'GET /v2/readings/{readingId}': 'reading load',
+      'GET /v2/sensors': 'sensor list',
+      'GET /v2/zones': 'zone list',
+    },
+  },
+  {
+    def: 'route-syntax-def.json',
+    expect: {
+      'GET /echo': 'echo load',
+      'TRACE /echo': 'echo TRACE',
+      'GET /labels/{labelId}': 'label load',
+      'DELETE /labels/{labelId}#keys': 'label remove',
+      'GET /lines/{lineId}': 'line load',
+      'GET /lines/{lineId}/stop/{stopId}': 'stop load',
+      'DELETE /owners/{ownerId}/pets/${petId}': 'pet remove',
+      'GET /owners/{ownerId}/pets/${petId}': 'pet load',
+      'POST /walkers/{walkerId}/send_to_front{format}': 'walker create send_to_front',
+      'POST /walkers/{walkerId}/walks/reset{format}': 'walker create walk_reset',
+      'GET /walkers/{walkerId}/walks{format}': 'walker load walk',
+      'GET /walkers/{walkerId}{format}': 'walker load',
+    },
+  },
+  {
+    def: 'same-path-record-def.json',
+    expect: {
+      'GET /colors': 'color list',
+      'GET /colors/{colorId}': 'color load',
+      'DELETE /gardens/{gardenId}/plot/{plotId}': 'garden_plot remove',
+      'GET /gardens/{gardenId}/plot/{plotId}': 'garden_plot load',
+      'PUT /gardens/{gardenId}/plot/{plotId}': 'garden_plot update',
+      'GET /shapes': 'shape list',
+      'GET /shapes/{shapeId}': 'shape load',
+      'GET /sizes': 'size list',
+      'GET /sizes/{sizeId}': 'size load',
+      'GET /staff/holidays': 'holiday load',
+      'DELETE /staff/holidays/{id}': 'holiday remove',
+      'GET /staff/holidays/{id}': 'holiday load',
+    },
+  },
+  {
+    def: 'verb-word-def.json',
+    expect: {
+      'GET /books': 'book list',
+      'GET /books/autocomplete': 'book list autocomplete',
+      'GET /books/contains': 'book list contains',
+      'GET /messages/{messageId}': 'message load',
+      'PUT /messages/{messageId}/bypass': 'message update bypass',
+      'GET /queues/{queueId}': 'queue load',
+      'POST /queues/{queueId}/reorder': 'queue create reorder',
+      'POST /queues/{queueId}/shuffle': 'queue create shuffle',
+      'GET /uploads/{uploadId}': 'upload load',
+      'POST /uploads/{uploadId}/finish': 'upload create finish',
+    },
+  },
+  {
+    def: 'keyed-verb-3-def.json',
+    expect: {
+      'GET /shops/{owner}/{shop}': 'shop list',
+      'GET /shops/{owner}/{shop}/{orderNum}': 'order_detail load',
+      'POST /shops/{owner}/{shop}/{orderNum}/cancel': 'shop create cancel',
+      'POST /shops/{owner}/{shop}/{orderNum}/retry': 'shop create retry',
+    },
+  },
 ]
 
 
