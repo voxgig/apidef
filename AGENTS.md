@@ -133,9 +133,11 @@ What the code needs, and what to measure before trusting any of it:
   `GOTOOLCHAIN=auto` can fetch that version, and fails where the fetch cannot
   happen — so `go version` and `go env GOTOOLCHAIN` are the two things to read
   before blaming the code.
-- **The Vale binary**, for the prose gate. It arrives as the `@vvago/vale`
-  devDependency, so `cd ts && npm ci` installs it; `make scan-prose` exits
-  non-zero when it is missing rather than skipping the Vale half.
+- **The Vale binary**, for the prose gate. It arrives through the
+  `@vvago/vale` devDependency's install script, which `ts/.npmrc` turns off
+  so that CI never downloads it: `cd ts && npm ci --ignore-scripts=false`
+  installs it; `make scan-prose` exits non-zero when it is missing rather
+  than skipping the Vale half.
 - **`gh`**, for a release dispatch — see "Releasing" for what to do when it is
   absent, which is not to hand the release back.
 - **An `apidef-validate` checkout**, for the Go golden comparisons in
@@ -233,7 +235,8 @@ run in CI (`.github/workflows/docs.yml`) and under `make test`:
 | `python3 tools/check_prose.py` | the banned list across line wraps, em-dash spacing and ration, first person, no emoji, no citations of a working document, resolving relative links, a complete page set |
 
 `make scan-prose` runs both, and FAILS when the Vale binary is missing rather
-than running half of itself — `cd ts && npm ci` installs it. The banned list is
+than running half of itself — `cd ts && npm ci --ignore-scripts=false`
+installs it. The banned list is
 `.vale/styles/config/vocabularies/Apidef/reject.txt`, read by both gates.
 The page set is the configuration block at the top of
 `tools/check_prose.py`; a new documentation page must be reachable from it

@@ -149,13 +149,14 @@ scoped to one run, no stored secret), just aimed at GitHub; it only has to be
 asked for.
 
 **They live in separate jobs, and that separation is deliberate.** The
-`publish` job runs `npm ci`, the build and the tests — dependency lifecycle
-scripts and project code — and keeps `contents: read`. The `tag` job runs git
+`publish` job runs `npm ci`, the build, and the tests — dependency and
+project code — and keeps `contents: read`; `ts/.npmrc` keeps install scripts
+off, so no dependency `postinstall` runs there at all. The `tag` job runs git
 and nothing else, and is the only place `contents: write` exists. In one job
 they would share a credential: `checkout` persists its token into the git
-config for the whole job, so every dependency `postinstall` executed during
-`npm ci` would be running alongside a repository-write credential it has no
-business having.
+config for the whole job, so every dependency the build and tests execute
+would be running alongside a repository-write credential it has no business
+having.
 
 And a second reason the two cannot be split across workflows: **a ref pushed
 with `GITHUB_TOKEN` does not start another workflow run.** GitHub suppresses
