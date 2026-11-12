@@ -1,0 +1,169 @@
+{
+ "openapi": "3.0.0",
+ "info": {
+  "title": "key-noun",
+  "version": "1.0.0"
+ },
+ "servers": [
+  {
+   "url": "https://example.com"
+  }
+ ],
+ "paths": {
+  "/tsp/answer/{jobId}": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Response"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "jobId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ]
+   }
+  },
+  "/grid/answer/{jobId}": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/GridResponse"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "jobId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ]
+   }
+  },
+  "/wiki/{sheetName}": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "title": {
+           "type": "string"
+          },
+          "body": {
+           "type": "string"
+          }
+         }
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "sheetName",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ]
+   }
+  },
+  "/portal/{storeKey}": {
+   "patch": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ShownAccounts"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "storeKey",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ShownAccounts"
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "Response": {
+    "type": "object",
+    "properties": {
+     "status": {
+      "type": "string"
+     },
+     "processing_time": {
+      "type": "string"
+     }
+    }
+   },
+   "GridResponse": {
+    "type": "object",
+    "properties": {
+     "distances": {
+      "type": "string"
+     },
+     "times": {
+      "type": "string"
+     }
+    }
+   },
+   "ShownAccounts": {
+    "type": "object",
+    "properties": {
+     "visibleAccounts": {
+      "type": "string"
+     }
+    }
+   }
+  }
+ }
+}

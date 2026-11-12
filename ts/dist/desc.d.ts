@@ -42,6 +42,12 @@ type MethodEntityDesc = {
     rescmp?: string | null;
     rescmpoccur?: number;
     verb_on_parent?: string;
+    view_on_parent?: boolean;
+    singleton?: boolean;
+    record_named?: boolean;
+    view_action?: string;
+    collection_action?: string;
+    post_read?: boolean;
     same_path?: string;
 };
 type EntityDesc = {

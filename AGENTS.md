@@ -150,7 +150,8 @@ What the code needs, and what to measure before trusting any of it:
 ts/src/        canonical source
   apidef.ts      pipeline entry (ApiDef, makeBuild, generate)
   parse.ts       parse + $ref resolution
-  guide/         heuristic path→entity/op classification
+  guide/         path→entity/op classification: heuristic01 (default),
+                 neural01 (hand-weighted networks, weights in nn/), graphql01
   transform/     13 ordered passes: top,entity,operation,graphql,contract,args,body,
                  select,field,casecollide,flow,flowstep,clean
   builder/       render model -> aontu files
@@ -165,6 +166,7 @@ ts/model/      mirror of model/ (published as @voxgig/apidef/model/*)
 go/            Go parity port (flat package) + *_test.go
 go/model/      mirror of model/ (go:embed, package model)
 model/         CANONICAL aontu model schemas: apidef.aontu, guide.aontu
+nn/            CANONICAL guide network weights: guide.safetensors (neural01 strategy)
 test/          shared *.tsv fixtures, one table per pure function, run by BOTH suites
 docs/          full documentation (tutorial / how-to / reference / explanation)
                docs/design/ and docs/review/ are working documents, not pages
@@ -177,6 +179,13 @@ top-level `model/` and mirrored into `ts/model/` (for npm) and `go/model/`
 (for the Go module) — each packaging system can only ship files under its own
 root. Edit `model/`, then `make sync-model`; `make check-model` (and the TS
 suite) fail on drift.
+
+The guide networks' weights follow the same pattern: `nn/guide.safetensors`
+is canonical, mirrored into `ts/nn/` (npm) and `go/nn/` (go:embed), and
+read by the `neural01` strategy. The file is written from the authored
+tables in `ts/build/nn-weights.js` by `make nn`, which also syncs the
+mirrors; `make check-nn` (under `make all`) and the TS suite fail when a
+mirror drifts or the file no longer matches the tables.
 
 ## Using apidef as a tool
 

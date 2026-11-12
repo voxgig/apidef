@@ -11,9 +11,9 @@ var resolvedOps = map[string]bool{
 	"load": true, "list": true, "create": true, "update": true, "remove": true, "patch": true,
 }
 
-// Emitted by the heuristic for HEAD and OPTIONS methods; no SDK operation
+// Emitted by the heuristic for HEAD, OPTIONS and TRACE methods; no SDK operation
 // exists for them yet, so they are skipped without a warning.
-var ignoredOps = map[string]bool{"head": true, "options": true, "OPTIONS": true}
+var ignoredOps = map[string]bool{"head": true, "options": true, "OPTIONS": true, "TRACE": true}
 
 // OperationTransform maps HTTP operations to entity operations.
 func OperationTransform(ctx *ApiDefContext) (*TransformResult, error) {

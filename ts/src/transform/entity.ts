@@ -23,7 +23,8 @@ import type {
 } from '../model'
 
 import {
-  cmpRefName, depluralize, foldName, guideActive, guidePath, paramName, READ_METHODS,
+  cmpRefName, depluralize, foldName, guideActive, guideParts, guidePath, paramName, paramOf,
+  READ_METHODS,
 } from '../utility'
 
 import { byCodePoint } from '../refcount'
@@ -168,14 +169,16 @@ function mergeCollectionPaths(
   }
 
   // An owner that reads nothing, holds only routes beneath the collection,
-  // and extends the name a share's own record gives, takes that name.
+  // and extends the name a share's own record gives, or is extended by it,
+  // takes that name.
   const absorbed: Record<string, string> = {}
   for (const pathStr of Object.keys(owned).sort(byCodePoint)) {
     const owner = owned[pathStr]
     if (null == owner || null != absorbed[owner.ename] ||
       Object.values(absorbed).includes(owner.ename)) continue
     const ename = shares[pathStr].slice().sort(byCodePoint).find((share: string) =>
-      owner.ename.startsWith(share + '_') && namedByRecord(share, pathStr) &&
+      (owner.ename.startsWith(share + '_') || share.endsWith('_' + owner.ename)) &&
+      namedByRecord(share, pathStr) &&
       !apart(share, pathStr, owner) &&
       onlyBeneath(entities[owner.ename], collectionRoot(pathStr) as string) &&
       !Object.values(entities[owner.ename].path).some((pd: any) =>
@@ -276,6 +279,81 @@ function mergeFoldedEntities(guide: any, log?: any): string[] {
           `cannot tell apart.`
       })
     }
+  }
+  return merged
+}
+
+
+const WRITE_OPS = ['create', 'update', 'patch', 'remove']
+
+
+// Entities are minimised: an entity whose one route writes to a literal
+// straight beneath another entity's route is a command on that entity. The
+// route joins it with the literal, spelled as written, as its action, and
+// takes the parameter names that entity's route gives. Guide stage only.
+function mergeCommandEntities(guide: any, log?: any): string[] {
+  const entities = guide.entity as Record<string, any>
+  const live = (ename: string) => null != entities[ename] && false !== entities[ename].active
+
+  const commandPath = (ename: string): string | null => {
+    const paths = live(ename) ? Object.keys(entities[ename].path ?? {}) : []
+    const ops = 1 === paths.length ? Object.keys(entities[ename].path[paths[0]]?.op ?? {}) : []
+    return 0 < ops.length && ops.every((opname) => WRITE_OPS.includes(opname)) ? paths[0] : null
+  }
+
+  const routeOf = (ename: string, key: string): string | undefined =>
+    Object.keys(entities[ename]?.path ?? {}).sort(byCodePoint)
+      .find((pathStr: string) => guidePath(pathStr) === key)
+
+  const holding = (key: string) => Object.keys(entities).sort(byCodePoint)
+    .filter((ename: string) => live(ename) && null != routeOf(ename, key))
+
+  const reads = (ename: string, key: string) =>
+    Object.keys(entities[ename].path[routeOf(ename, key) as string]?.op ?? {})
+      .some((opname: string) => !WRITE_OPS.includes(opname))
+
+  // Shallowest first, so a command beneath another joins where that one went.
+  const depth = (ename: string) => guidePath(commandPath(ename) as string).split('/').length
+  const order = Object.keys(entities).filter((ename: string) => null != commandPath(ename))
+    .sort((a: string, b: string) => depth(a) - depth(b) || byCodePoint(a, b))
+
+  const merged: string[] = []
+  for (const ename of order) {
+    const pathStr = commandPath(ename)
+    if (null == pathStr) continue
+    const key = guidePath(pathStr)
+    const at = key.lastIndexOf('/')
+    const last = key.slice(at + 1)
+    const action = snakify(last).replace(/[^a-zA-Z0-9_]/g, '')
+    if (at <= 0 || /[{}]/.test(last) || '' === action) continue
+
+    const parent = key.slice(0, at)
+    const owners = holding(parent).filter((other: string) => other !== ename)
+    const owner = owners.find((other: string) => reads(other, parent)) ?? owners[0]
+    if (null == owner || holding(key).some((other: string) =>
+      other !== ename && other !== owner && null == commandPath(other))) continue
+
+    const names = entities[owner].path[routeOf(owner, parent) as string]?.rename?.param ?? {}
+    const shared = new Set(guideParts(parent).map(paramOf).filter(Boolean))
+    movePath(entities[ename], entities[owner], pathStr)
+    const moved = entities[owner].path[pathStr]
+    moved.rename = {
+      ...(moved.rename ?? {}),
+      param: Object.fromEntries([
+        ...Object.entries(moved.rename?.param ?? {}).filter(([param]) => !shared.has(param)),
+        ...Object.entries(names).map(([param, rename]: [string, any]) => [param, { ...rename }]),
+      ]),
+    }
+    if (0 === Object.keys(moved.action ?? {}).length) {
+      moved.action = { [action]: { why_action: ['ent', owner, 'command', ename] } }
+    }
+    delete entities[ename]
+    merged.push(ename)
+    log?.info?.({
+      point: 'entity-command-merge', from: ename, to: owner, path: pathStr,
+      note: `entity ${ename} merged into ${owner}: its one route writes to ` +
+        `${last} beneath ${parent}, a command on ${owner} rather than an entity.`
+    })
   }
   return merged
 }
@@ -493,4 +571,5 @@ export {
   entityTransform,
   mergeCollectionPaths,
   mergeFoldedEntities,
+  mergeCommandEntities,
 }

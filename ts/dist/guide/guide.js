@@ -19,6 +19,7 @@ const aontu_1 = require("aontu");
 const struct_1 = require("@voxgig/struct");
 const heuristic01_1 = require("./heuristic01");
 const graphql01_1 = require("./graphql01");
+const neural01_1 = require("./neural01");
 const utility_1 = require("../utility");
 const KONSOLE_LOG = console['log'];
 // Log non-fatal wierdness.
@@ -199,6 +200,9 @@ async function buildBaseGuide(ctx) {
     else if ('graphql01' === ctx.opts.strategy) {
         baseguide = await (0, graphql01_1.graphql01)(ctx);
     }
+    else if ('neural01' === ctx.opts.strategy) {
+        baseguide = await (0, neural01_1.neural01)(ctx);
+    }
     else {
         throw new Error('Unknown guide strategy: ' + ctx.opts.strategy);
     }
@@ -372,7 +376,7 @@ function validateBaseBuide(ctx, baseguide) {
         const pathStr = pdef.key$;
         // Each orig method.
         (0, jostraca_1.each)(pdef, (mdef) => {
-            if (mdef.key$.match(/^(get|post|put|patch|delete|head|options|query)$/i)) {
+            if (mdef.key$.match(/^(get|post|put|patch|delete|head|options|query|trace)$/i)) {
                 let key = pathStr + ' ' + mdef.key$.toUpperCase();
                 let desc = (srcm[key] = (srcm[key] || { c: 0 }));
                 desc.c++;

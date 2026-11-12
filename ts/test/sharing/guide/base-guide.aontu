@@ -63,7 +63,7 @@ guide: {
     }
   }
 
-  entity: package_manifest: {
+  entity: package: {
     path: "/packages/{pid}/digest": {
       action: "digest": {}
       rename: param: "pid": *"id"
@@ -78,7 +78,7 @@ guide: {
     }
   }
 
-  entity: recipe_manifest: {
+  entity: recipe: {
     path: "/recipes/{rid}/digest": {
       action: "digest": {}
       rename: param: "rid": *"id"

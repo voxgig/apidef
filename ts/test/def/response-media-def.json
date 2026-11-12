@@ -1,0 +1,296 @@
+{
+ "openapi": "3.0.0",
+ "info": {
+  "title": "response-media",
+  "version": "1.0.0"
+ },
+ "servers": [
+  {
+   "url": "https://example.com"
+  }
+ ],
+ "paths": {
+  "/terms/{term}": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "*/*": {
+        "schema": {
+         "$ref": "#/components/schemas/Term"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "term",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "tags": [
+     "term"
+    ]
+   }
+  },
+  "/terms/{term}/meanings": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "*/*": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/Meaning"
+         }
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "term",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "tags": [
+     "term"
+    ]
+   }
+  },
+  "/terms/{term}/usage": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "*/*": {
+        "schema": {
+         "$ref": "#/components/schemas/UsageSummary"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "term",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "tags": [
+     "term"
+    ]
+   }
+  },
+  "/rooms/{room_id}": {
+   "get": {
+    "responses": {
+     "2XX": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Room"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "room_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ]
+   }
+  },
+  "/rooms/{room_id}/attendance": {
+   "get": {
+    "responses": {
+     "2XX": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/AttendanceMessage"
+         }
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "room_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ]
+   }
+  },
+  "/ids/contentIds/{contentId}": {
+   "get": {
+    "tags": [
+     "Artifacts"
+    ],
+    "parameters": [
+     {
+      "name": "contentId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "*/*": {
+        "schema": {
+         "$ref": "#/components/schemas/FileContent"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/artifacts/{artifactId}": {
+   "get": {
+    "tags": [
+     "Artifacts"
+    ],
+    "parameters": [
+     {
+      "name": "artifactId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Artifact"
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "Term": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "term": {
+      "type": "string"
+     }
+    }
+   },
+   "Meaning": {
+    "type": "object",
+    "properties": {
+     "text": {
+      "type": "string"
+     },
+     "partOfSpeech": {
+      "type": "string"
+     }
+    }
+   },
+   "UsageSummary": {
+    "type": "object",
+    "properties": {
+     "term": {
+      "type": "string"
+     },
+     "totalCount": {
+      "type": "string"
+     }
+    }
+   },
+   "Room": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     }
+    }
+   },
+   "AttendanceMessage": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "action": {
+      "type": "string"
+     }
+    }
+   },
+   "FileContent": {
+    "type": "string",
+    "format": "binary"
+   },
+   "Artifact": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     }
+    }
+   }
+  }
+ },
+ "tags": [
+  {
+   "name": "Artifacts"
+  }
+ ]
+}

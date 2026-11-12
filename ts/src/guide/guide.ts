@@ -11,6 +11,7 @@ import { items, isempty } from '@voxgig/struct'
 
 import { heuristic01 } from './heuristic01'
 import { graphql01 } from './graphql01'
+import { neural01 } from './neural01'
 
 
 import {
@@ -300,6 +301,9 @@ async function buildBaseGuide(ctx: ApiDefContext) {
   else if ('graphql01' === ctx.opts.strategy) {
     baseguide = await graphql01(ctx)
   }
+  else if ('neural01' === ctx.opts.strategy) {
+    baseguide = await neural01(ctx)
+  }
   else {
     throw new Error('Unknown guide strategy: ' + ctx.opts.strategy)
   }
@@ -529,7 +533,7 @@ function validateBaseBuide(ctx: ApiDefContext, baseguide: any) {
 
     // Each orig method.
     each(pdef, (mdef: any) => {
-      if (mdef.key$.match(/^(get|post|put|patch|delete|head|options|query)$/i)) {
+      if (mdef.key$.match(/^(get|post|put|patch|delete|head|options|query|trace)$/i)) {
         let key = pathStr + ' ' + mdef.key$.toUpperCase()
         let desc = (srcm[key] = (srcm[key] || { c: 0 }))
         desc.c++

@@ -8,7 +8,7 @@ import {
   validator, fieldName, inferFieldType, envelopeProp,
   composedEnvelopeProp, mergedProperties, canonizeCmpName,
   scanUntaggedUnion, firstSentence, humanTitle, collapseScalarAllOf,
-  itemEnvelopeOf, isFileType, nonNullType,
+  itemEnvelopeOf, isFileType, nonNullType, jsonContent, responseSchema, rangeResponse,
 } from '../utility'
 
 import { arrayCarrier, guideMedia, requestFieldSchema, sameType, nullableType } from './body'
@@ -873,11 +873,9 @@ function findFieldDefs(
     let fieldSets
 
     if (responses) {
-      fieldSets = getx(responses, '200 content "application/json" schema') ??
-        getx(responses, '200 schema')
+      fieldSets = responseSchema(responses['200'] ?? rangeResponse(responses))
       if (null == fieldSets && answersOnlyAccepted(responses)) {
-        fieldSets = getx(responses, '202 content "application/json" schema') ??
-          getx(responses, '202 schema')
+        fieldSets = responseSchema(responses['202'])
       }
       if ('list' == mop.name) {
         const unwrapped = transformRecords(fieldSets, mpoint.t?.res) ?? unwrapArrayWrapper(fieldSets)
@@ -891,14 +889,12 @@ function findFieldDefs(
           fieldSets = mergedProperties(fieldSets)?.[envelope]?.items
         }
         else {
-          const fromCreated = getx(responses, '201 content "application/json" schema items') ??
-            getx(responses, '201 schema items')
+          const fromCreated = responseSchema(responses['201'])?.items
           if (fromCreated) fieldSets = fromCreated
         }
       }
       else if ('put' === method && null == fieldSets) {
-        fieldSets = getx(responses, '201 content "application/json" schema') ??
-          getx(responses, '201 schema')
+        fieldSets = responseSchema(responses['201'])
       }
 
       if ('list' != mop.name) {
@@ -1077,15 +1073,17 @@ function findExampleObject(opdef: any, envelope?: string | null): any {
   const responses = opdef.responses
   if (null == responses) return null
 
-  const resdef = responses['200'] ?? responses['201'] ?? responses['202']
+  const resdef = responses['200'] ?? responses['201'] ?? responses['202'] ??
+    rangeResponse(responses)
   if (null == resdef) return null
 
   // OpenAPI 3.x: content.application/json.example
-  let example = getx(resdef, 'content "application/json" example')
+  const media = jsonContent(resdef.content)
+  let example = media?.example
   if (null != example && 'object' === typeof example) return unwrapExample(example, envelope)
 
   // OpenAPI 3.x: content.application/json.examples (named examples — take first)
-  const examples = getx(resdef, 'content "application/json" examples')
+  const examples = media?.examples
   if (null != examples && 'object' === typeof examples) {
     for (const val of Object.values(examples)) {
       const ex = (val as any)?.value
@@ -1094,7 +1092,7 @@ function findExampleObject(opdef: any, envelope?: string | null): any {
   }
 
   // OpenAPI 3.x: content.application/json.schema.example
-  example = getx(resdef, 'content "application/json" schema example')
+  example = media?.schema?.example
   if (null != example && 'object' === typeof example) return unwrapExample(example, envelope)
 
   // Swagger 2.0: response.example / response.examples.application/json

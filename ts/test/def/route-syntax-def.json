@@ -1,0 +1,430 @@
+{
+ "openapi": "3.0.0",
+ "info": {
+  "title": "route-syntax",
+  "version": "1.0.0"
+ },
+ "servers": [
+  {
+   "url": "https://example.com"
+  }
+ ],
+ "paths": {
+  "/labels/{labelId}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "labelId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Label"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/labels/{labelId}#keys": {
+   "delete": {
+    "parameters": [
+     {
+      "name": "labelId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "ok"
+     }
+    }
+   }
+  },
+  "/owners/{ownerId}/pets/${petId}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "ownerId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "petId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Pet"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "parameters": [
+     {
+      "name": "ownerId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "petId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "ok"
+     }
+    }
+   }
+  },
+  "/walkers/{walkerId}{format}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "walkerId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "format",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Walker"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/walkers/{walkerId}/walks{format}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "walkerId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "format",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/walks"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/walkers/{walkerId}/walks/reset{format}": {
+   "post": {
+    "parameters": [
+     {
+      "name": "walkerId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "format",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Walker"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/walkers/{walkerId}/send_to_front{format}": {
+   "post": {
+    "parameters": [
+     {
+      "name": "walkerId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "format",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Walker"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/lines/{lineId}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "lineId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Line"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/lines/{lineId}/stop/{stopId}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "lineId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "stopId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Stop"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/echo": {
+   "get": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Echo"
+        }
+       }
+      }
+     }
+    }
+   },
+   "trace": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Echo"
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "Label": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "value": {
+      "type": "string"
+     }
+    }
+   },
+   "Pet": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     }
+    }
+   },
+   "Walker": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     }
+    }
+   },
+   "walks": {
+    "type": "array",
+    "items": {
+     "$ref": "#/components/schemas/Walk"
+    }
+   },
+   "Walk": {
+    "type": "object",
+    "properties": {
+     "day": {
+      "type": "string"
+     },
+     "time": {
+      "type": "string"
+     }
+    }
+   },
+   "Line": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     }
+    }
+   },
+   "Stop": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     }
+    }
+   },
+   "Echo": {
+    "type": "object",
+    "properties": {
+     "method": {
+      "type": "string"
+     },
+     "headers": {
+      "type": "object"
+     }
+    }
+   }
+  }
+ }
+}

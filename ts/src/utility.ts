@@ -166,11 +166,15 @@ const IRREGULARS: Record<string, string> = Object.assign(Object.create(null), {
   'avalanches': 'avalanche',
   'axes': 'axis',
   'bases': 'base',
+  'brownies': 'brownie',
   'caches': 'cache',
+  'calories': 'calorie',
   'canoes': 'canoe',
   'cases': 'case',
   'children': 'child',
   'cliches': 'cliche',
+  'climaxes': 'climax',
+  'cookies': 'cookie',
   'courses': 'course',
   'creches': 'creche',
   'crises': 'crisis',
@@ -182,17 +186,21 @@ const IRREGULARS: Record<string, string> = Object.assign(Object.create(null), {
   'douches': 'douche',
   'enterprises': 'enterprise',
   'exercises': 'exercise',
+  'faxes': 'fax',
   'feet': 'foot',
   'fish': 'fish',
   'franchises': 'franchise',
+  'freebies': 'freebie',
   'furnaces': 'furnace',
   'geese': 'goose',
+  'goalies': 'goalie',
   'headaches': 'headache',
+  'hoodies': 'hoodie',
   'horses': 'horse',
   'hoses': 'hose',
   'houses': 'house',
   'indices': 'index',
-  'lens': 'lens',
+  'lenses': 'lens',
   'licenses': 'license',
   'matrices': 'matrix',
   'men': 'man',
@@ -201,6 +209,7 @@ const IRREGULARS: Record<string, string> = Object.assign(Object.create(null), {
   'moustaches': 'moustache',
   'movies': 'movie',
   'mustaches': 'mustache',
+  'newbies': 'newbie',
   'niches': 'niche',
   'noses': 'nose',
   'notices': 'notice',
@@ -212,6 +221,7 @@ const IRREGULARS: Record<string, string> = Object.assign(Object.create(null), {
   'pauses': 'pause',
   'phases': 'phase',
   'phrases': 'phrase',
+  'pickaxes': 'pickaxe',
   'practices': 'practice',
   'premises': 'premise',
   'promises': 'promise',
@@ -220,20 +230,27 @@ const IRREGULARS: Record<string, string> = Object.assign(Object.create(null), {
   'purses': 'purse',
   'quizzes': 'quiz',
   'releases': 'release',
+  'rookies': 'rookie',
   'roses': 'rose',
   'people': 'person',
   'phenomena': 'phenomenon',
+  'selfies': 'selfie',
   'series': 'series',
   'sheep': 'sheep',
   'shoes': 'shoe',
+  'smoothies': 'smoothie',
   'sources': 'source',
   'species': 'species',
+  'syntaxes': 'syntax',
+  'taxes': 'tax',
+  'taxis': 'taxi',
   'teeth': 'tooth',
   'theses': 'thesis',
   'verses': 'verse',
   'vertices': 'vertex',
   'women': 'woman',
   'yes': 'yes',
+  'zombies': 'zombie',
 })
 
 
@@ -251,6 +268,9 @@ const F_PLURAL_STEMS = [
 // insertion-order iteration. Both happen to round-trip correctly
 // today, but the sort makes any future entry safe by construction.
 const IRREGULAR_KEYS = Object.keys(IRREGULARS).sort((a, b) => b.length - a.length)
+
+// Singular nouns that end in s, kept whole, as every -sis noun is (analysis).
+const S_SINGULARS = ['alias', 'atlas', 'axis', 'bias', 'canvas', 'lens', 'news']
 
 // Nouns in -o whose plural takes -es; the rest take -s (photos).
 const OES_NOUNS = ['echo', 'embargo', 'hero', 'potato', 'tomato', 'torpedo', 'veto']
@@ -333,6 +353,10 @@ function depluralize(word: string): string {
     }
   }
 
+  if (lower.endsWith('sis') || S_SINGULARS.some((ending) => lower.endsWith(ending))) {
+    return word
+  }
+
   // Rules for regular plurals (applied in order). The -ies and -ves
   // rules add a letter, so they need to match the case of the dropped
   // suffix; all other rules just slice and inherit the caller's case.
@@ -387,9 +411,11 @@ function depluralize(word: string): string {
     return word.slice(0, -2)
   }
 
+  // A trailing s after a digit is part of a numeronym (k8s), not a plural.
   if (lower.endsWith('s') &&
     !lower.endsWith('ss') &&
     !lower.endsWith('us') &&
+    !/[0-9]s$/.test(lower) &&
     word.length > 3
   ) {
     return word.slice(0, -1)
@@ -650,7 +676,7 @@ function pathMatch(path: string | string[], expr: string):
     return null
   }
 
-  const parts = (Array.isArray(path) ? path : path.split('/')).filter(p => '' !== p)
+  const parts = Array.isArray(path) ? path.filter(p => '' !== p) : guideParts(path)
   const res: any = []
   res.index = -1
   res.expr = expr
@@ -731,8 +757,40 @@ function pathMatch(path: string | string[], expr: string):
 }
 
 
+// A placeholder with any dot or extension it carries: `.{ext}`, `{api}.json`.
 function isParam(partStr: string) {
-  return null != partStr && '{' === partStr[0] && '}' === partStr[partStr.length - 1]
+  if (null == partStr) {
+    return false
+  }
+  const part = partStr.replace(/^\./, '').replace(/\}\.[A-Za-z0-9]+$/, '}')
+  return '{' === part[0] && '}' === part[part.length - 1]
+}
+
+
+// A trailing word that names a module rather than a resource.
+const MODULE_WORDS = ['api', 'controller', 'service', 'resource', 'endpoint']
+
+// The entity name a path literal gives: canonized, less a trailing module
+// word when another word remains, as `GadgetsApi` names gadget.
+function literalName(part: string): string {
+  const name = canonize(part)
+  const at = name.lastIndexOf('_')
+  return 0 < at && MODULE_WORDS.includes(name.slice(at + 1)) ?
+    depluralize(name.slice(0, at)) : name
+}
+
+
+// The name a placeholder part carries, as `{id}.json` carries id: '' for none.
+function paramOf(part: string): string {
+  const m = part.match(/\{([^}]+)\}/)
+  return null == m ? '' : m[1]
+}
+
+
+const PARAM_NOUN_SUFFIX_RE = /_(name|id|key|code|slug|number|uuid)$/
+
+function paramNoun(name: string): string {
+  return canonizeParam(name).replace(PARAM_NOUN_SUFFIX_RE, '')
 }
 
 
@@ -1063,6 +1121,9 @@ function nonNullType(type: any): string | undefined {
 const FILE_EXT_RE =
   /\.(php|json|txt|png|jpg|jpeg|gif|svg|xml|html|csv|yml|yaml|md)$/i
 
+// Trailing placeholders, dotted or fused: `pets.{format}`, `notes{ext}`.
+const PLACEHOLDER_EXT_RE = /(\.?\{[^}]*\})+$/
+
 function transliterate(s: string): string {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 }
@@ -1079,6 +1140,7 @@ function canonize(s: string) {
   if (undefined !== cached) return cached
   const deacronymed = transliterate(s)
     .replace(FILE_EXT_RE, '')
+    .replace(PLACEHOLDER_EXT_RE, '')
     .replace(ACRONYM_PLURAL_RE, (_m, run) => run[0] + run.slice(1).toLowerCase() + 's')
   const out = depluralize(snakify(deacronymed))
     .replace(/[^a-zA-Z_0-9]/g, '')
@@ -1089,33 +1151,78 @@ function canonize(s: string) {
 
 const CANONIZE_FIELD_CACHE = new Map<string, string>()
 
-function resplitFromCmp(entname: string, cmp: string, why: string[]): string {
+function resplitFromCmp(
+  entname: string,
+  cmp: string,
+  why: string[],
+  breaks?: Record<string, string>,
+): string {
   if (null == entname || '' === entname || entname.includes('_')) {
     return entname
   }
 
-  if (null == cmp || '' === cmp || !cmp.includes('_')) {
-    return entname
+  if (null != cmp && '' !== cmp && cmp.includes('_')) {
+    const seg = cmp.split('_')
+    let acc = ''
+    for (let i = 0; i < seg.length && acc.length < entname.length; i++) {
+      acc += seg[i]
+      if (acc === entname) {
+        const split = seg.slice(0, i + 1).join('_')
+        why.push('resplit-from-cmp=' + split)
+        return split
+      }
+    }
   }
 
-  const seg = cmp.split('_')
-  let acc = ''
-
-  for (let i = 0; i < seg.length; i++) {
-    acc += seg[i]
-
-    if (acc === entname) {
-      const split = seg.slice(0, i + 1).join('_')
-      why.push('resplit-from-cmp=' + split)
-      return split
-    }
-
-    if (acc.length > entname.length) {
-      return entname
-    }
+  const split = breaks?.[entname]
+  if (null != split) {
+    why.push('word-break=' + split)
+    return split
   }
 
   return entname
+}
+
+
+// Multi-word runs from tags, operationIds and component names, keyed by their
+// letters; where runs disagree, the first in sorted order.
+function wordBreaks(def: any): Record<string, string> {
+  const names: string[] = []
+  for (const tag of Array.isArray(def?.tags) ? def.tags : []) {
+    names.push(canonize(String(tag?.name ?? '')))
+  }
+  for (const pathdef of Object.values(def?.paths ?? {}) as any[]) {
+    for (const opdef of Object.values(pathdef ?? {}) as any[]) {
+      if (null == opdef || 'object' !== typeof opdef || Array.isArray(opdef)) {
+        continue
+      }
+      for (const tag of Array.isArray(opdef.tags) ? opdef.tags : []) {
+        names.push(canonize(String(tag)))
+      }
+      if ('string' === typeof opdef.operationId) {
+        names.push(canonize(opdef.operationId))
+      }
+    }
+  }
+  for (const name of Object.keys(def?.components?.schemas ?? def?.definitions ?? {})) {
+    names.push(canonizeCmpName(name))
+  }
+  const found: Record<string, string[]> = Object.create(null)
+  for (const name of names) {
+    const words = name.split('_').filter((word) => '' !== word)
+    for (let i = 0; i < words.length; i++) {
+      for (let j = i + 2; j <= words.length; j++) {
+        const run = [...words.slice(i, j - 1), depluralize(words[j - 1])]
+        const key = run.join('')
+        ;(found[key] = found[key] ?? []).push(run.join('_'))
+      }
+    }
+  }
+  const breaks: Record<string, string> = Object.create(null)
+  for (const key of sortedKeys(found)) {
+    breaks[key] = [...found[key]].sort()[0]
+  }
+  return breaks
 }
 
 
@@ -1186,9 +1293,11 @@ const FORMAT_EXTENSIONS = new Set([
   'atom', 'jsonl', 'ndjson', 'geojson',
 ])
 
-// A route segment as the guide reads it: {id}.json is {id}, repos.json and
-// data.{format} are repos and data, and a format alone (json) names nothing.
-function guideSegment(seg: string): string | null {
+// A route segment as the guide reads it: {id}.json and ${id} are {id},
+// repos.json and data.{format} are repos and data, and a format alone (json)
+// names nothing.
+function guideSegment(seg0: string): string | null {
+  const seg = seg0.replace(/\$\{/g, '{')
   const held = seg.match(/^(\{[^}]+\})\.(?:[A-Za-z0-9]+|\{[^}]+\})$/)
   if (null != held) return held[1]
   const named = seg.match(/^([^{}.]+)\.([A-Za-z0-9]+|\{[^}]+\})$/)
@@ -1198,9 +1307,12 @@ function guideSegment(seg: string): string | null {
   return FORMAT_EXTENSIONS.has(seg.toLowerCase()) ? null : seg
 }
 
-// The guide's parts of a route; a route of formats alone keeps them.
+// The guide's parts of a route, query and fragment cut; a route that is all
+// fragment, or of formats alone, keeps them.
 function guideParts(path: string): string[] {
-  const parts = path.split('/').filter((p: string) => '' !== p)
+  const split = (route: string) => route.replace(/\?.*$/, '').split('/').filter((p: string) => '' !== p)
+  const cut = split(path.replace(/#.*$/, ''))
+  const parts = 0 === cut.length ? split(path) : cut
   const kept = parts.map(guideSegment).filter((p): p is string => null != p)
   return 0 === kept.length ? parts : kept
 }
@@ -1387,6 +1499,67 @@ function ensureMinEntityName(
 }
 
 
+const WRAPPER_WORDS = [
+  'response', 'result', 'ok', 'envelope', 'wrapper', 'payload', 'page', 'paginated',
+  'list', 'collection', 'data', 'body', 'output', 'reply',
+]
+
+// The component a wrapper-shaped name wraps, by wrapper words beside it or a
+// shared wrapper-word prefix naming no component: null for no wrapper, '' for
+// a wrapper of nothing nameable.
+function wrapperOf(name: string, known: string[]): string | null {
+  const words = name.split('_').filter((w) => '' !== w)
+
+  // A name of the form noun-for-parent-response, or noun-for-parent once the
+  // response suffix is cleaned away, wraps the noun.
+  const forAt = words.indexOf('for')
+  if (0 < forAt && forAt < words.length - 1) {
+    const held = depluralize(words.slice(0, forAt).join('_'))
+    if (known.includes(held)) {
+      return held
+    }
+  }
+
+  let inner: string | null = null
+  let at = -1
+  for (const k of known) {
+    const kw = k.split('_').filter((w) => '' !== w)
+    if (k === name || 0 === kw.length || (null != inner && kw.length <= inner.split('_').length)) {
+      continue
+    }
+    for (let i = 0; i + kw.length <= words.length; i++) {
+      if (kw.every((w, j) => w === words[i + j])) {
+        inner = k
+        at = i
+        break
+      }
+    }
+  }
+
+  if (null != inner) {
+    const kw = inner.split('_').length
+    const rest = [...words.slice(0, at), ...words.slice(at + kw)]
+    if (0 < rest.length && rest.every((w) => WRAPPER_WORDS.includes(w))) {
+      return inner
+    }
+  }
+
+  const unversioned = known.map((k) => k.replace(/_v\d+$/, ''))
+  for (let n = words.length - 1; 2 <= n; n--) {
+    const prefix = words.slice(0, n).join('_')
+    if (unversioned.includes(prefix)) {
+      break
+    }
+    const members = known.filter((k) => k !== name && k.startsWith(prefix + '_')).length
+    if (2 <= members && words.slice(0, n).some((w) => WRAPPER_WORDS.includes(w))) {
+      return inner ?? ''
+    }
+  }
+
+  return null
+}
+
+
 // Unconditional suffixes: framework noise, always stripped.
 const CMP_SUFFIXES = ['_rest_controller', '_controller', '_response', '_request']
 
@@ -1403,6 +1576,55 @@ const CMP_RESULT_VERBS = [
 ]
 
 const CMP_PREFIXES = ['get_', 'post_', 'put_', 'delete_', 'patch_']
+
+// The leading word run more than half the components, and at least two,
+// share; none where a path literal, a whole component name or a wrapper word
+// holds it.
+function cmpNamespace(def: any): string | null {
+  const schemas = def?.components?.schemas ?? def?.definitions
+  const names = sortedKeys(schemas).map((name) =>
+    canonizeCmpName(name).split('_').filter((word) => '' !== word))
+  const run: string[] = []
+  let shared = 0
+  for (;;) {
+    const at = run.length
+    const tally: Record<string, number> = Object.create(null)
+    for (const words of names) {
+      if (at + 1 < words.length && run.every((word, i) => words[i] === word)) {
+        tally[words[at]] = (tally[words[at]] ?? 0) + 1
+      }
+    }
+    const next = sortedKeys(tally).find((word) =>
+      0 === at ? names.length < 2 * tally[word] : shared === tally[word])
+    if (null == next) {
+      break
+    }
+    run.push(next)
+    shared = tally[next]
+  }
+  if (shared < 2 || run.some((word) => WRAPPER_WORDS.includes(word)) ||
+    names.some((words) => words.join('_') === run.join('_'))) {
+    return null
+  }
+  const held = run.map((word) => depluralize(word))
+  const literals = Object.keys(def?.paths ?? {}).flatMap((p) => guideParts(p))
+    .filter((part) => !isParam(part))
+    .map((part) => literalName(part).split('_').map((word) => depluralize(word)))
+  const holds = (words: string[]) => words.some((_, i) =>
+    i + held.length <= words.length && held.every((word, j) => words[i + j] === word))
+  return literals.some(holds) ? null : run.join('_')
+}
+
+
+// A name less its namespace, when a name remains.
+function stripNamespace(name: string, namespace?: string | null): string {
+  if (null == namespace || !name.startsWith(namespace + '_')) {
+    return name
+  }
+  const rest = name.slice(namespace.length + 1)
+  return rest.replace(/_/g, '').length < 3 ? name : rest
+}
+
 
 const OPERATION_VERBS = [
   ...CMP_RESULT_VERBS, 'post', 'put', 'patch', 'fetch', 'find', 'retrieve', 'read', 'add',
@@ -1484,11 +1706,47 @@ function specSecuredByDefault(def: any): boolean {
 // The 2xx body schema, OpenAPI 3 (`content`) or Swagger 2 (`schema`).
 function successResponseSchema(responses: any): any {
   const res = responses?.['200'] ?? responses?.[200] ??
-    responses?.['201'] ?? responses?.[201]
+    responses?.['201'] ?? responses?.[201] ?? rangeResponse(responses)
   if (null == res) {
     return null
   }
-  return res.content?.['application/json']?.schema ?? res.schema ?? null
+  return responseSchema(res) ?? null
+}
+
+
+const JSON_MEDIA_RE = /^[^/;]+\/([^;]*\+)?json\s*(;.*)?$/i
+
+// The content a response is read from: JSON first, then any other JSON type,
+// then the any-type range unless it declares binary content.
+function jsonContent(content: any): any {
+  if (null == content || 'object' !== typeof content) {
+    return undefined
+  }
+  if (null != content['application/json']) {
+    return content['application/json']
+  }
+  const json = sortedKeys(content).find((media) => JSON_MEDIA_RE.test(media))
+  if (null != json) {
+    return content[json]
+  }
+  const schema = content['*/*']?.schema
+  return 'string' === schema?.type && 'binary' === schema?.format ? undefined : content['*/*']
+}
+
+
+// A response's schema, OpenAPI 3 (`content`) or Swagger 2 (`schema`).
+function responseSchema(response: any): any {
+  return jsonContent(response?.content)?.schema ?? response?.schema
+}
+
+
+// A range code answers for the success codes a definition does not name.
+function rangeResponse(responses: any): any {
+  if (null == responses || null != responses['200'] || null != responses['201'] ||
+    null != responses['202']) {
+    return undefined
+  }
+  return responses['2XX'] ?? responses['2xx']
 }
 
 
@@ -1530,9 +1788,10 @@ function firstFieldMatch(props: string[], names: string[]): string | null {
 
 function cleanComponentName(
   name: string,
-  isKnownCmp?: (canonizedRemainder: string) => boolean
+  isKnownCmp?: (canonizedRemainder: string) => boolean,
+  namespace?: string | null,
 ): string {
-  let cleaned = name
+  let cleaned = stripNamespace(name, namespace)
   let stripped = false
 
   // Version-tolerant known-schema probe. APIs that version their schemas name
@@ -2156,6 +2415,25 @@ function holdsOwnData(resprops: any): boolean {
 }
 
 
+const ID_FIELD_RE = /^(id|ID|Id)$|_(id|ID)$|[a-z0-9](Id|ID)$/
+
+// The array properties that list a response's records; none where the response
+// is a record that holds lists, as a signed-in user is: on a route its singular
+// literal names, it declares an identifier beside values of its own.
+function listingProps(resprops: any, pathStr: string): string[] {
+  const arrays = keysof(resprops).filter((k: string) => 'array' === resprops[k]?.type)
+  if (0 === arrays.length) {
+    return arrays
+  }
+  const own = keysof(resprops).filter((k: string) => !isObjectSchema(resprops[k]) &&
+    true !== propIsList(resprops[k]) && !isEnvelopeStatusProp(k) && !isEnvelopePageProp(k))
+  const literals = guideParts(pathStr).filter((part: string) => !isParam(part))
+  const last = snakify(literals[literals.length - 1] ?? '')
+  const singular = '' !== last && depluralize(last) === last
+  return singular && 3 <= own.length && own.some((k: string) => ID_FIELD_RE.test(k)) ? [] : arrays
+}
+
+
 // The component a response envelope carries: the resolved reference of the
 // record strictEnvelopeProp unwraps to.
 function envelopeItemRef(schema: any, opname: string): string | null {
@@ -2527,6 +2805,10 @@ export {
   slugToPascalCase,
   transliterate,
   cleanComponentName,
+  wrapperOf,
+  literalName,
+  paramOf,
+  paramNoun,
   guideActive,
   authExchangeOp,
   specSecuredByDefault,
@@ -2551,6 +2833,13 @@ export {
   relativizePath,
   getModelPath,
   sortedKeys,
+  jsonContent,
+  responseSchema,
+  rangeResponse,
+  cmpNamespace,
+  stripNamespace,
+  wordBreaks,
+  PARAM_NOUN_SUFFIX_RE,
   sortedEntries,
   collapseScalarAllOf,
   isEntityWrapperProp,
@@ -2558,6 +2847,7 @@ export {
   itemEnvelopeTransform,
   itemEnvelopeOf,
   envelopeProp,
+  strictEnvelopeProp,
   recordLists,
   singleEnvelope,
   envelopeItemRef,
@@ -2566,6 +2856,7 @@ export {
   pageTransform,
   PAGE_ROLES,
   answersPage,
+  listingProps,
   answersRecordMap,
   propIsList,
   mergedProperties,

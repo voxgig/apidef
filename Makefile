@@ -1,7 +1,8 @@
 .PHONY: all build test clean build-ts build-go test-ts test-go scan-prose clean-ts clean-go \
-        publish publish-go check-go-major tags-go reset sync-model check-model model-ref
+        publish publish-go check-go-major tags-go reset sync-model check-model model-ref \
+        nn sync-nn check-nn
 
-all: check-model build test
+all: check-model build check-nn test
 
 build: build-ts build-go
 
@@ -36,6 +37,32 @@ check-model:
 	  cmp -s model/$$f go/model/$$f || { echo "DRIFT: go/model/$$f != model/$$f (run: make sync-model)"; exit 1; }; \
 	done
 	@echo "model mirrors in sync"
+
+# Shared network weights for the neural01 guide strategy, a safetensors file.
+# Canonical at nn/ and mirrored like the model into ts/nn/ (npm) and go/nn/
+# (go:embed). The tables that author it live in ts/build/nn-weights.js;
+# `make nn` rewrites the file from them and syncs the mirrors, and check-nn
+# fails on a mirror that drifted or a file the tables no longer produce.
+NN_FILES = guide.safetensors
+
+nn: build-ts
+	@node ts/build/nn-weights.js
+	@$(MAKE) --no-print-directory sync-nn
+
+sync-nn:
+	@for f in $(NN_FILES); do \
+	  cp nn/$$f ts/nn/$$f; \
+	  cp nn/$$f go/nn/$$f; \
+	done
+	@echo "synced nn/ -> ts/nn/, go/nn/"
+
+check-nn:
+	@for f in $(NN_FILES); do \
+	  cmp -s nn/$$f ts/nn/$$f || { echo "DRIFT: ts/nn/$$f != nn/$$f (run: make sync-nn)"; exit 1; }; \
+	  cmp -s nn/$$f go/nn/$$f || { echo "DRIFT: go/nn/$$f != nn/$$f (run: make sync-nn)"; exit 1; }; \
+	done
+	@node ts/build/nn-weights.js --check
+	@echo "nn mirrors in sync"
 
 # TypeScript
 build-ts:

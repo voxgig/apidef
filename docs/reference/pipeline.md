@@ -53,7 +53,8 @@ Output: `ctx.def`. With `debug` enabled, also writes `<def>.full.json`.
 ## Stage 2 — `guide`
 
 Source: [`ts/src/guide/guide.ts`](../../ts/src/guide/guide.ts),
-[`ts/src/guide/heuristic01.ts`](../../ts/src/guide/heuristic01.ts).
+[`ts/src/guide/heuristic01.ts`](../../ts/src/guide/heuristic01.ts),
+[`ts/src/guide/neural01.ts`](../../ts/src/guide/neural01.ts).
 
 Classify `def.paths` into entities, operations, actions, and parameter
 renames, recording `why_*` traces. This stage:

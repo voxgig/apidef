@@ -43,6 +43,7 @@ import {
   mergedProperties,
   closedBodyTransform,
   requestWrapperOf,
+  wrapperOf,
   authExchangeOp,
   specSecuredByDefault,
   find,
@@ -507,6 +508,20 @@ describe('tsv-ensure-min-entity-name', () => {
   for (const row of rows) {
     test(`ensureMinEntityName("${row.input}") => "${row.expected}"`, () => {
       assert.deepStrictEqual(ensureMinEntityName(row.input, {}), row.expected)
+    })
+  }
+})
+
+
+// The known names are sorted by code point, as both guides sort them before
+// asking, so the fixture cannot depend on discovery order.
+describe('tsv-wrapper-of', () => {
+  const rows = loadTsv('wrapper-of')
+  for (const row of rows) {
+    test(`wrapperOf("${row.name}", "${row.known}") => "${row.expected}"`, () => {
+      const known = row.known.split(',').sort()
+      const want = 'null' === row.expected ? null : row.expected
+      assert.deepStrictEqual(wrapperOf(row.name, known), want)
     })
   }
 })
