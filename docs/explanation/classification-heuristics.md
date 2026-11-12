@@ -347,8 +347,10 @@ too.
 ## Some names carry no entity
 
 A component named for a word that says nothing about a resource names no
-entity: `success`, `ok`, `default`, `response`, `result`, `object`, `empty`
-or `void`, or an identifier such as `GroupId`. Neither does the bare member
+entity: `success`, `ok`, `default`, `response`, `result`, `empty` or
+`void`, an `Object` that declares no properties, or an identifier such as
+`GroupId`. An `Object` with properties of its own is a record, as the
+objects of a storage service are. Neither does the bare member
 of a family of results, as `AcmeResult` is beside `AcmeKindsResult` and
 `AcmeZonesResult`. The path names those routes instead.
 
@@ -380,7 +382,9 @@ verb tag acts over, as `/search/notes` under `Search`; a plural leaf
 beneath a module is a collection, so `/alerts/topics` is `topic`. Beneath
 a key, it is a view, as `/member/{member_id}/fans` under `Member`, but not
 a singular sub-read that answers an `id` of its own, as a journal's
-`/journal/{journal_id}/digest` does. A route ending in a key whose literal
+`/journal/{journal_id}/digest` does. The key must be that literal's own:
+under `Teams`, `/teams/{teamId}/players/{playerId}/activate` is beneath a
+player's key, so `activate` acts on `player`. A route ending in a key whose literal
 is singular keeps the tag too, as `/v1/BadgesApi/Active/{serial}`. A
 collection with items beneath it names itself whatever tag it carries:
 `/projects/{projectId}/signingKeys/{keyId}`, tagged `projects`, is

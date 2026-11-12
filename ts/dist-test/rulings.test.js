@@ -523,6 +523,15 @@ const RULINGS = [
             'POST /shops/{owner}/{shop}/{orderNum}/retry': 'shop create retry',
         },
     },
+    {
+        def: 'tag-key-def.json',
+        expect: {
+            'GET /teams/{teamId}': 'team load',
+            'DELETE /teams/{teamId}/players/{playerId}': 'player remove',
+            'POST /teams/{teamId}/players/{playerId}/activate': 'player create activate',
+            'GET /vaults/{vaultId}/o/{entry}': 'object load',
+        },
+    },
 ];
 (0, node_test_1.describe)('rulings', () => {
     (0, node_test_1.after)(() => {

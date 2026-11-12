@@ -19,6 +19,7 @@ exports.pathQualified = pathQualified;
 exports.readsRecord = readsRecord;
 exports.recordOf = recordOf;
 exports.responsePayload = responsePayload;
+exports.cmpSchemaOf = cmpSchemaOf;
 exports.tagHolds = tagHolds;
 exports.wrapsLiteral = wrapsLiteral;
 exports.isListResponse = isListResponse;
@@ -107,7 +108,7 @@ const VERB_WORDS = new Set([
 const ID_LITERAL_RE = /(^|_)ids?$/;
 // A component named for one of these, alone or as the bare member of a family
 // of results, names no entity.
-const GENERIC_CMP_WORDS = ['default', 'empty', 'object', 'ok', 'response', 'result', 'success', 'void'];
+const GENERIC_CMP_WORDS = ['default', 'empty', 'ok', 'response', 'result', 'success', 'void'];
 // A version tag groups routes by release, not by resource.
 const VERSION_TAG_RE = /^v\d+([a-z]+\d*)?$/;
 exports.VERSION_TAG_RE = VERSION_TAG_RE;
@@ -578,7 +579,7 @@ function ResolveEntityComponent(spec) {
         return xref;
     })
         .flatMap((xref) => unwrapCmp(metrics, xref, why_cmp))
-        .filter((xref) => !genericCmp(xref.cmp, metrics.count.origcmprefs));
+        .filter((xref) => !genericCmp(xref.cmp, metrics.count.origcmprefs, cmpSchemaOf(spec.data.def, xref.origcmp)));
     let goodxrefs = cleanxrefs
         .filter(xref => {
         if (cleanxrefs.length <= 1
@@ -1500,8 +1501,9 @@ function BuildEntity(spec) {
     }
     entityMap[entdesc.name] = guideEntity;
 }
-function genericCmp(name, refs) {
-    if (GENERIC_CMP_WORDS.includes(name) || ID_LITERAL_RE.test(name)) {
+function genericCmp(name, refs, schema) {
+    if (GENERIC_CMP_WORDS.includes(name) || ID_LITERAL_RE.test(name) ||
+        ('object' === name && 0 === Object.keys((0, utility_2.mergedProperties)(schema) ?? {}).length)) {
         return true;
     }
     const at = name.lastIndexOf('_');
@@ -1512,6 +1514,11 @@ function genericCmp(name, refs) {
     const prefix = name.slice(0, at + 1);
     return Object.keys(refs).some((ref) => ref !== name && ref.startsWith(prefix) &&
         ref.endsWith('_' + word) && prefix.length + word.length < ref.length);
+}
+// The schema a component's original name declares.
+function cmpSchemaOf(def, origcmp) {
+    return null == origcmp ? undefined :
+        (def?.components?.schemas?.[origcmp] ?? def?.definitions?.[origcmp]);
 }
 // An action keeps a verb word's own spelling (`contains`); any other literal
 // gives its canonical name.
@@ -2692,7 +2699,7 @@ function entityCmpMatch(data, entname, mdesc, why) {
         && !recordWraps) {
         let cmps = findcmps(data, mdesc.path, ['responses'], { uniq: true })
             .flatMap((found) => unwrapCmp(data.guide.metrics, found, why))
-            .filter((found) => !genericCmp(found.cmp, data.guide.metrics.count.origcmprefs));
+            .filter((found) => !genericCmp(found.cmp, data.guide.metrics.count.origcmprefs, cmpSchemaOf(data.def, found.origcmp)));
         if (1 === cmps.length) {
             out.name = cmps[0].cmp;
             out.orig = cmps[0].origcmp;
@@ -2733,8 +2740,13 @@ function tagHolds(data, parts, pathStr, tag) {
     }
     // Beneath a key a leaf views the keyed resource, unless it is a singular
     // sub-read answering an id of its own rather than projecting the literal;
-    // without one it is a selector, or what the tag's verb acts over.
-    if (parts.slice(0, at).some((part) => isParam(part))) {
+    // without one it is a selector, or what the tag's verb acts over. A key
+    // after another literal keys that literal's resource, not the tag's.
+    const keyAt = parts.slice(0, at).map((part) => isParam(part)).lastIndexOf(true);
+    if (0 <= keyAt) {
+        if (parts.slice(tagAt + 1, keyAt).some((part) => !isParam(part))) {
+            return false;
+        }
         const schema = getResponseSchema(successResponse(data.def?.paths?.[pathStr]?.get?.responses));
         const name = (0, utility_1.literalName)(parts[at]);
         const projects = Object.keys((0, utility_2.mergedProperties)(schema) ?? {}).some((prop) => (0, utility_2.canonize)(prop) === name || (0, utility_2.canonize)(prop).startsWith(name + '_'));

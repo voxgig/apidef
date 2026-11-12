@@ -142,7 +142,7 @@ const ID_LITERAL_RE = /(^|_)ids?$/
 
 // A component named for one of these, alone or as the bare member of a family
 // of results, names no entity.
-const GENERIC_CMP_WORDS = ['default', 'empty', 'object', 'ok', 'response', 'result', 'success', 'void']
+const GENERIC_CMP_WORDS = ['default', 'empty', 'ok', 'response', 'result', 'success', 'void']
 
 // A version tag groups routes by release, not by resource.
 const VERSION_TAG_RE = /^v\d+([a-z]+\d*)?$/
@@ -719,7 +719,8 @@ function ResolveEntityComponent(spec: TaskSpec) {
       return xref
     })
     .flatMap((xref) => unwrapCmp(metrics, xref, why_cmp))
-    .filter((xref) => !genericCmp(xref.cmp, metrics.count.origcmprefs))
+    .filter((xref) => !genericCmp(xref.cmp, metrics.count.origcmprefs,
+      cmpSchemaOf(spec.data.def, xref.origcmp)))
 
   let goodxrefs = cleanxrefs
     .filter(xref => {
@@ -1915,8 +1916,9 @@ function BuildEntity(spec: TaskSpec) {
 
 
 
-function genericCmp(name: string, refs: Record<string, number>): boolean {
-  if (GENERIC_CMP_WORDS.includes(name) || ID_LITERAL_RE.test(name)) {
+function genericCmp(name: string, refs: Record<string, number>, schema?: any): boolean {
+  if (GENERIC_CMP_WORDS.includes(name) || ID_LITERAL_RE.test(name) ||
+    ('object' === name && 0 === Object.keys(mergedProperties(schema) ?? {}).length)) {
     return true
   }
   const at = name.lastIndexOf('_')
@@ -1927,6 +1929,13 @@ function genericCmp(name: string, refs: Record<string, number>): boolean {
   const prefix = name.slice(0, at + 1)
   return Object.keys(refs).some((ref) => ref !== name && ref.startsWith(prefix) &&
     ref.endsWith('_' + word) && prefix.length + word.length < ref.length)
+}
+
+
+// The schema a component's original name declares.
+function cmpSchemaOf(def: any, origcmp: string | undefined): any {
+  return null == origcmp ? undefined :
+    (def?.components?.schemas?.[origcmp] ?? def?.definitions?.[origcmp])
 }
 
 
@@ -3473,7 +3482,8 @@ function entityCmpMatch(
     let cmps: { cmp: string, origcmp: string }[] =
       findcmps(data, mdesc.path, ['responses'], { uniq: true })
         .flatMap((found) => unwrapCmp(data.guide.metrics, found, why))
-        .filter((found) => !genericCmp(found.cmp, data.guide.metrics.count.origcmprefs))
+        .filter((found) => !genericCmp(found.cmp, data.guide.metrics.count.origcmprefs,
+          cmpSchemaOf(data.def, found.origcmp)))
 
     if (1 === cmps.length) {
       out.name = cmps[0].cmp
@@ -3522,8 +3532,13 @@ function tagHolds(data: { def: any }, parts: string[], pathStr: string, tag: str
   }
   // Beneath a key a leaf views the keyed resource, unless it is a singular
   // sub-read answering an id of its own rather than projecting the literal;
-  // without one it is a selector, or what the tag's verb acts over.
-  if (parts.slice(0, at).some((part) => isParam(part))) {
+  // without one it is a selector, or what the tag's verb acts over. A key
+  // after another literal keys that literal's resource, not the tag's.
+  const keyAt = parts.slice(0, at).map((part) => isParam(part)).lastIndexOf(true)
+  if (0 <= keyAt) {
+    if (parts.slice(tagAt + 1, keyAt).some((part) => !isParam(part))) {
+      return false
+    }
     const schema = getResponseSchema(successResponse(data.def?.paths?.[pathStr]?.get?.responses))
     const name = literalName(parts[at])
     const projects = Object.keys(mergedProperties(schema) ?? {}).some((prop) =>
@@ -4350,6 +4365,7 @@ export {
   readsRecord,
   recordOf,
   responsePayload,
+  cmpSchemaOf,
   tagHolds,
   wrapsLiteral,
   isListResponse,

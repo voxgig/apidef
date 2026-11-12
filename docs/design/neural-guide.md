@@ -576,7 +576,7 @@ heuristic.
 
 ### Shared readings corrected
 
-Eleven readings that both strategies share were wrong, and each is now fixed
+Twelve readings that both strategies share were wrong, and each is now fixed
 in `heuristic01`, in `neural01` and in Go, with a definition under
 `ts/test/def/` pinning it:
 
@@ -599,11 +599,13 @@ in `heuristic01`, in `neural01` and in Go, with a definition under
   record; the operation network's `res_array_prop` input reads the same
   helper (`record-array`).
 - **Names that carry no entity.** `success`, `ok`, `default`, `response`,
-  `result`, `object`, `empty`, `void` and identifier components named
-  entities, as did version tags. `genericCmp` drops them from the component
-  candidates and from the `DELETE` lookup in both strategies, the bare
-  member of a family of results with them, and a version tag never holds a
-  path (`generic-name`).
+  `result`, `empty`, `void` and identifier components named entities, as
+  did version tags. `genericCmp` drops them from the component candidates
+  and from the `DELETE` lookup in both strategies, the bare member of a
+  family of results with them, and a version tag never holds a path
+  (`generic-name`). `object` is among them only when its component
+  declares no properties, as an untyped placeholder does; a storage API's
+  `Object` record names `object` (`tag-key`).
 - **A verb after three keys took no action.** `keyRunBefore` reads a run of
   three or more keys between the entity's literal and a trailing verb; the
   action network gains the `keys_run_ent` input and the `act_keys_run` gate
@@ -628,6 +630,12 @@ in `heuristic01`, in `neural01` and in Go, with a definition under
   `reorder` and `shuffle` join the verb words, a verb word keeps its own
   spelling as an action (`contains`, `exists`), and a verb word is matched
   as spelt as well as in its canonical form (`verb-word`).
+- **A tag held a route beneath another resource's key.** A tag naming an
+  earlier literal held any leaf beneath a key as a view of its resource, so
+  under `Teams` `/teams/{teamId}/players/{playerId}/activate` was a
+  `create` of `team` with no action. `tagHolds` reads a view only beneath
+  the tag literal's own key, so `activate` acts on `player` (`tag-key`).
+  The `${id}` key, read correctly, exposed it.
 
 ## Known divergences from `heuristic01`
 

@@ -474,6 +474,15 @@ func TestRulings(t *testing.T) {
 				"POST /shops/{owner}/{shop}/{orderNum}/retry":  "shop create retry",
 			},
 		},
+		{
+			def: "tag-key-def.json",
+			expect: map[string]string{
+				"GET /teams/{teamId}":                              "team load",
+				"DELETE /teams/{teamId}/players/{playerId}":        "player remove",
+				"POST /teams/{teamId}/players/{playerId}/activate": "player create activate",
+				"GET /vaults/{vaultId}/o/{entry}":                  "object load",
+			},
+		},
 	}
 
 	for _, ruling := range rulings {

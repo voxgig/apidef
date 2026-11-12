@@ -358,7 +358,7 @@ function resolveCmp(work, route) {
         xref.cmp = (0, heuristic01_1.cleanCmp)({ guide: work.guide, work }, xref.cmp);
     }
     const unwrapped = cmpxrefs.flatMap((xref) => unwrapCmp(metrics, xref, why))
-        .filter((xref) => !(0, heuristic01_1.genericCmp)(xref.cmp, metrics.count.origcmprefs));
+        .filter((xref) => !(0, heuristic01_1.genericCmp)(xref.cmp, metrics.count.origcmprefs, (0, heuristic01_1.cmpSchemaOf)(work.def, xref.origcmp)));
     const kept = unwrapped.filter((xref) => {
         const d = (0, nn_1.decide)(guideNets().cmpKeep, {
             single: bit(unwrapped.length <= 1),
@@ -497,7 +497,7 @@ function uniqueResponseCmps(work, path, why) {
     }
     return Array.from(names).map((n) => ({ cmp: (0, utility_1.canonizeCmpName)(n), origcmp: n }))
         .flatMap((found) => unwrapCmp(work.guide.metrics, found, why))
-        .filter((found) => !(0, heuristic01_1.genericCmp)(found.cmp, work.guide.metrics.count.origcmprefs));
+        .filter((found) => !(0, heuristic01_1.genericCmp)(found.cmp, work.guide.metrics.count.origcmprefs, (0, heuristic01_1.cmpSchemaOf)(work.def, found.origcmp)));
 }
 // The collection of an item route whose method its tag alone names, when the
 // route answers nothing.

@@ -576,7 +576,7 @@ the `GET` on that path, rather than staying with the other routes of the
 a tag-only `PATCH` on a path whose `GET` is a view of its parent joins the
 parent under the same action. A tag names a route only when it names the
 path's own noun, or an earlier literal where the route is a leaf selector
-or a view of that literal's resource, or the path has no usable literal; a
+or a view beneath that literal's own key, or the path has no usable literal; a
 tag foreign to the path yields to the path's noun, a literal naming an
 identifier (`ids`, `contentIds`) keys rather than names, a trailing module
 word (`GadgetsApi`) is dropped, and a trailing verb, or the verb after a

@@ -22,7 +22,8 @@ declare function cleanCmp(data: {
 }, name: string): string;
 declare function collectionOwner(mdesc: MethodDesc, parts: string[], work: any): string | null;
 declare function warnListBody(ctx: any, where: string, res: any, props: any): void;
-declare function genericCmp(name: string, refs: Record<string, number>): boolean;
+declare function genericCmp(name: string, refs: Record<string, number>, schema?: any): boolean;
+declare function cmpSchemaOf(def: any, origcmp: string | undefined): any;
 declare function actionWord(part: string | undefined): string;
 declare function keyRunBefore(parts: string[], isEnt: (part: string) => boolean): boolean;
 declare function isVerbWord(part: string): boolean;
@@ -155,4 +156,4 @@ declare function verbParts(parts: string[]): string[];
 declare function isNameParam(param: string): boolean;
 declare function entityParamNames(paths: Record<string, Record<string, string>>): Record<string, Record<string, string>>;
 declare function arrayBodyField(schema: any, entname: string, taken?: string[]): string;
-export { answeredRefs, collectionOwner, listedRefs, pathAnswersPage, pathAnswersRecordMap, randomRoute, selectorRoute, namedRecord, verbAfterNoun, warnListBody, arrayBodyField, commandBodyName, commandTwin, itemAbove, pathQualified, readsRecord, recordOf, responsePayload, tagHolds, wrapsLiteral, isListResponse, LITERAL_LAST_SHAPES, READ_VERBS, distinctRecord, distinctShare, heuristic01, keyParamOf, matchEntityPath, pathNoun, namingRef, namingSchemas, pathRecordRef, pathResource, sharedRoutes, entityParamNames, isNameParam, isVerb, verbParts, verbOfItem, shortLiteral, normalizeParams, cleanCmp, commandSource, relationshipOf, singletonOf, subWriteOfItem, variantOfCollection, keyNounOf, asyncResultOf, nounless, genericCmp, actionWord, keyRunBefore, VERSION_TAG_RE, isVerbWord, keyedBy, postReadVerb, componentReadOwner, };
+export { answeredRefs, collectionOwner, listedRefs, pathAnswersPage, pathAnswersRecordMap, randomRoute, selectorRoute, namedRecord, verbAfterNoun, warnListBody, arrayBodyField, commandBodyName, commandTwin, itemAbove, pathQualified, readsRecord, recordOf, responsePayload, cmpSchemaOf, tagHolds, wrapsLiteral, isListResponse, LITERAL_LAST_SHAPES, READ_VERBS, distinctRecord, distinctShare, heuristic01, keyParamOf, matchEntityPath, pathNoun, namingRef, namingSchemas, pathRecordRef, pathResource, sharedRoutes, entityParamNames, isNameParam, isVerb, verbParts, verbOfItem, shortLiteral, normalizeParams, cleanCmp, commandSource, relationshipOf, singletonOf, subWriteOfItem, variantOfCollection, keyNounOf, asyncResultOf, nounless, genericCmp, actionWord, keyRunBefore, VERSION_TAG_RE, isVerbWord, keyedBy, postReadVerb, componentReadOwner, };

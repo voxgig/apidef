@@ -89,6 +89,7 @@ import {
   readsRecord,
   recordOf,
   tagHolds,
+  cmpSchemaOf,
   wrapsLiteral,
   responsePayload,
   isListResponse,
@@ -597,7 +598,7 @@ function resolveCmp(work: Work, route: Route) {
     xref.cmp = cleanCmp({ guide: work.guide, work }, xref.cmp)
   }
   const unwrapped = cmpxrefs.flatMap((xref) => unwrapCmp(metrics, xref, why))
-    .filter((xref) => !genericCmp(xref.cmp, metrics.count.origcmprefs))
+    .filter((xref) => !genericCmp(xref.cmp, metrics.count.origcmprefs, cmpSchemaOf(work.def, xref.origcmp)))
 
   const kept = unwrapped.filter((xref) => {
     const d = decide(guideNets().cmpKeep, {
@@ -759,7 +760,8 @@ function uniqueResponseCmps(work: Work, path: string, why: string[]): { cmp: str
   }
   return Array.from(names).map((n) => ({ cmp: canonizeCmpName(n), origcmp: n }))
     .flatMap((found) => unwrapCmp(work.guide.metrics, found, why))
-    .filter((found) => !genericCmp(found.cmp, work.guide.metrics.count.origcmprefs))
+    .filter((found) => !genericCmp(found.cmp, work.guide.metrics.count.origcmprefs,
+      cmpSchemaOf(work.def, found.origcmp)))
 }
 
 

@@ -1,0 +1,169 @@
+{
+ "openapi": "3.0.0",
+ "info": {
+  "title": "tag-key",
+  "version": "1.0.0"
+ },
+ "servers": [
+  {
+   "url": "https://example.com"
+  }
+ ],
+ "paths": {
+  "/teams/{teamId}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "teamId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Team"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "Teams"
+    ]
+   }
+  },
+  "/teams/{teamId}/players/{playerId}": {
+   "delete": {
+    "parameters": [
+     {
+      "name": "teamId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "playerId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "ok"
+     }
+    },
+    "tags": [
+     "Teams"
+    ]
+   }
+  },
+  "/teams/{teamId}/players/{playerId}/activate": {
+   "post": {
+    "parameters": [
+     {
+      "name": "teamId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "playerId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "201": {
+      "description": "ok"
+     }
+    },
+    "tags": [
+     "Teams"
+    ]
+   }
+  },
+  "/vaults/{vaultId}/o/{entry}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "vaultId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "entry",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Object"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "objects"
+    ]
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "Team": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     }
+    }
+   },
+   "Object": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     },
+     "size": {
+      "type": "integer"
+     }
+    }
+   }
+  }
+ }
+}

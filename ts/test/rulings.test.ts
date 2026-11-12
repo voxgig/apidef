@@ -501,6 +501,15 @@ const RULINGS: { def: string, expect: Record<string, string> }[] = [
       'POST /shops/{owner}/{shop}/{orderNum}/retry': 'shop create retry',
     },
   },
+  {
+    def: 'tag-key-def.json',
+    expect: {
+      'GET /teams/{teamId}': 'team load',
+      'DELETE /teams/{teamId}/players/{playerId}': 'player remove',
+      'POST /teams/{teamId}/players/{playerId}/activate': 'player create activate',
+      'GET /vaults/{vaultId}/o/{entry}': 'object load',
+    },
+  },
 ]
 
 

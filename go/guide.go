@@ -80,16 +80,33 @@ var idLiteralRE = regexp.MustCompile(`(^|_)ids?$`)
 // genericCmpWords mirrors ts/src/guide/heuristic01.ts: a component named for
 // one of these, alone or as the bare member of a family, names no entity.
 var genericCmpWords = map[string]bool{
-	"default": true, "empty": true, "object": true, "ok": true, "response": true,
+	"default": true, "empty": true, "ok": true, "response": true,
 	"result": true, "success": true, "void": true,
 }
 
 // A version tag groups routes by release, not by resource.
 var versionTagRE = regexp.MustCompile(`^v\d+([a-z]+\d*)?$`)
 
+// cmpSchemaOf mirrors ts/src/guide/heuristic01.ts.
+func cmpSchemaOf(data map[string]any, origcmp string) any {
+	def, _ := data["def"].(map[string]any)
+	if comps, ok := def["components"].(map[string]any); ok {
+		if schemas, ok := comps["schemas"].(map[string]any); ok {
+			if schema, ok := schemas[origcmp]; ok && schema != nil {
+				return schema
+			}
+		}
+	}
+	if defs, ok := def["definitions"].(map[string]any); ok {
+		return defs[origcmp]
+	}
+	return nil
+}
+
 // genericCmp mirrors ts/src/guide/heuristic01.ts.
-func genericCmp(name string, refs map[string]int) bool {
-	if genericCmpWords[name] || idLiteralRE.MatchString(name) {
+func genericCmp(name string, refs map[string]int, schema any) bool {
+	if genericCmpWords[name] || idLiteralRE.MatchString(name) ||
+		(name == "object" && len(mergedProperties(schema)) == 0) {
 		return true
 	}
 	at := strings.LastIndex(name, "_")
@@ -1165,7 +1182,7 @@ func resolveEntityComponent(data map[string]any, mdesc map[string]any) {
 	var cleanxrefs []map[string]any
 	for _, xref := range cmpxrefs {
 		for _, found := range unwrapCmp(cmpFoundMap, xref, &whyCmp) {
-			if !genericCmp(safeStr(found["cmp"]), origcmprefs) {
+			if !genericCmp(safeStr(found["cmp"]), origcmprefs, cmpSchemaOf(data, safeStr(found["origcmp"]))) {
 				cleanxrefs = append(cleanxrefs, found)
 			}
 		}
@@ -2607,27 +2624,37 @@ func tagHolds(data map[string]any, parts []string, pathStr string, tag string) b
 	}
 	// Beneath a key a leaf views the keyed resource, unless it is a singular
 	// sub-read answering an id of its own rather than projecting the literal;
-	// without one it is a selector, or what the tag's verb acts over.
-	for _, part := range parts[:at] {
+	// without one it is a selector, or what the tag's verb acts over. A key
+	// after another literal keys that literal's resource, not the tag's.
+	keyAt := -1
+	for i, part := range parts[:at] {
 		if isParam(part) {
-			def, _ := data["def"].(map[string]any)
-			paths, _ := def["paths"].(map[string]any)
-			pathdef, _ := paths[pathStr].(map[string]any)
-			read, _ := pathdef["get"].(map[string]any)
-			responses, _ := read["responses"].(map[string]any)
-			schema := getResponseSchema(successResponse(responses))
-			name := LiteralName(parts[at])
-			projects := false
-			for prop := range mergedProperties(schema) {
-				canon := Canonize(prop)
-				if canon == name || strings.HasPrefix(canon, name+"_") {
-					projects = true
-					break
-				}
-			}
-			_, record, _ := responsePayload(schema)
-			return !(singular && schema["type"] != "array" && !projects && record)
+			keyAt = i
 		}
+	}
+	if 0 <= keyAt {
+		for i := tagAt + 1; i < keyAt; i++ {
+			if !isParam(parts[i]) {
+				return false
+			}
+		}
+		def, _ := data["def"].(map[string]any)
+		paths, _ := def["paths"].(map[string]any)
+		pathdef, _ := paths[pathStr].(map[string]any)
+		read, _ := pathdef["get"].(map[string]any)
+		responses, _ := read["responses"].(map[string]any)
+		schema := getResponseSchema(successResponse(responses))
+		name := LiteralName(parts[at])
+		projects := false
+		for prop := range mergedProperties(schema) {
+			canon := Canonize(prop)
+			if canon == name || strings.HasPrefix(canon, name+"_") {
+				projects = true
+				break
+			}
+		}
+		_, record, _ := responsePayload(schema)
+		return !(singular && schema["type"] != "array" && !projects && record)
 	}
 	return singular || verbWords[LiteralName(parts[tagAt])]
 }
@@ -3880,7 +3907,7 @@ func entityCmpMatch(data map[string]any, entname string, mdesc map[string]any, w
 		for _, found := range findcmps(data, pathStr, []string{"responses"}, true) {
 			for _, cmp := range unwrapCmp(cmpFound,
 				map[string]any{"cmp": found["cmp"], "origcmp": found["origcmp"]}, why) {
-				if !genericCmp(safeStr(cmp["cmp"]), dataCmpRefs(data)) {
+				if !genericCmp(safeStr(cmp["cmp"]), dataCmpRefs(data), cmpSchemaOf(data, safeStr(cmp["origcmp"]))) {
 					cmps = append(cmps, cmp)
 				}
 			}
