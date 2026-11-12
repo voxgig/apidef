@@ -128,7 +128,7 @@ What the code needs, and what to measure before trusting any of it:
   nothing enforces it locally. The default `node` on a given machine is
   routinely older than a 24 that is also installed — read `node --version`, and
   put the 24 you have on `PATH` rather than assuming the default is it.
-- **A Go toolchain matching `go/go.mod`**, which declares `go 1.25.0` and no
+- **A Go toolchain matching `go/go.mod`**, which declares `go 1.26.0` and no
   `toolchain` directive. An older `go` binary still builds while
   `GOTOOLCHAIN=auto` can fetch that version, and fails where the fetch cannot
   happen — so `go version` and `go env GOTOOLCHAIN` are the two things to read

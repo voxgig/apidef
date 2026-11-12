@@ -116,7 +116,7 @@ the path-key rewrites.
 | export | signature | purpose |
 |--------|-----------|---------|
 | `formatJSONIC(value, opts?)` | `(any) => string` | render a value as `jsonic` source (used for model files and warnings) |
-| `depluralize(word)` | `(string) => string` | singularize, honoring the irregular table and any installed custom plurals |
+| `depluralize(word)` | `(string) => string` | singularize, honoring the irregular table as well as any installed custom plurals |
 | `sanitizeSlug(s)` | `(string) => string` | normalize a string to a safe slug |
 | `slugToPascalCase(s)` | `(string) => string` | slug → PascalCase |
 | `getModelPath(obj, path, opts?)` | `(obj, 'a.b.c') => any` | safe dotted-path lookup |
