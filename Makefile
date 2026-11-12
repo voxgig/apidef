@@ -58,9 +58,9 @@ clean-go:
 	cd go && go clean
 
 # npm installs the pinned Vale binary used by local prose checks.
-VALE = $(CURDIR)/ts/node_modules/@vvago/vale/bin/vale
+VALE = $(CURDIR)/ts/node_modules/.bin/vale
 scan-prose:
-	@test -x "$(VALE)" || { echo "Vale is missing; run cd ts && npm ci --ignore-scripts=false"; exit 1; }
+	@"$(VALE)" --version >/dev/null 2>&1 || { echo "Vale is missing; run cd ts && npm ci --ignore-scripts=false"; exit 1; }
 	@"$(VALE)" sync
 	@"$(VALE)" --minAlertLevel=error $$(python3 tools/check_prose.py --files)
 	@python3 tools/check_prose.py
