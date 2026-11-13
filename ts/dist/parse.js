@@ -27,21 +27,16 @@ async function parse(kind, source, meta) {
             return def;
         }
         catch (pe) {
-            if (pe.originalError) {
-                pe.originalError.message =
-                    `@voxgig/apidef: parse: syntax: ${pe.originalError.message}` +
-                        ` (${(0, utility_1.relativizePath)(meta.file)})`;
-                pe = pe.originalError;
+            const where = ` (${(0, utility_1.relativizePath)(meta.file)})`;
+            if (isOwnError(pe)) {
+                pe.message += where;
             }
-            else if (pe.code && pe.code.startsWith('jsonic')) {
-                pe.message =
-                    `@voxgig/apidef: parse: syntax: ${pe.message}` +
-                        ` (${(0, utility_1.relativizePath)(meta.file)})`;
+            // The reader's refusals carry a code.
+            else if ('string' === typeof pe.code) {
+                pe.message = `@voxgig/apidef: parse: syntax: ${pe.message}` + where;
             }
             else {
-                pe.message =
-                    `@voxgig/apidef: parse: internal: ${pe.message}` +
-                        ` (${(0, utility_1.relativizePath)(meta.file)})`;
+                pe.message = `@voxgig/apidef: parse: internal: ${pe.message}` + where;
             }
             throw pe;
         }
@@ -68,6 +63,9 @@ async function parse(kind, source, meta) {
         throw new Error(`@voxgig/apidef: parse: unknown kind: ${kind}` +
             ` (${(0, utility_1.relativizePath)(meta.file)})`);
     }
+}
+function isOwnError(err) {
+    return 'string' === typeof err?.message && err.message.startsWith('@voxgig/apidef:');
 }
 async function parseOpenAPI(source, _meta) {
     let parsed;

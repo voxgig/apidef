@@ -30,21 +30,16 @@ async function parse(kind: string, source: any, meta: { file: string }) {
       return def
     }
     catch (pe: any) {
-      if (pe.originalError) {
-        pe.originalError.message =
-          `@voxgig/apidef: parse: syntax: ${pe.originalError.message}` +
-          ` (${relativizePath(meta.file)})`
-        pe = pe.originalError
+      const where = ` (${relativizePath(meta.file)})`
+      if (isOwnError(pe)) {
+        pe.message += where
       }
-      else if (pe.code && pe.code.startsWith('jsonic')) {
-        pe.message =
-          `@voxgig/apidef: parse: syntax: ${pe.message}` +
-          ` (${relativizePath(meta.file)})`
+      // The reader's refusals carry a code.
+      else if ('string' === typeof pe.code) {
+        pe.message = `@voxgig/apidef: parse: syntax: ${pe.message}` + where
       }
       else {
-        pe.message =
-          `@voxgig/apidef: parse: internal: ${pe.message}` +
-          ` (${relativizePath(meta.file)})`
+        pe.message = `@voxgig/apidef: parse: internal: ${pe.message}` + where
       }
 
       throw pe
@@ -77,6 +72,11 @@ async function parse(kind: string, source: any, meta: { file: string }) {
       ` (${relativizePath(meta.file)})`
     )
   }
+}
+
+
+function isOwnError(err: any): boolean {
+  return 'string' === typeof err?.message && err.message.startsWith('@voxgig/apidef:')
 }
 
 
