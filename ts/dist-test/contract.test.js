@@ -86,4 +86,23 @@ for (const method of ['POST', 'QUERY'])
     strict_1.default.deepEqual(Object.keys(selected).sort(), ['Choice', 'Input']);
     strict_1.default.equal(selected.Input.fields.nested.type, 'Input');
 });
+(0, node_test_1.test)('an update point takes the live setting of the guide op with its method', async () => {
+    const route = '/item/{id}/revoke';
+    const points = [{ m: 'PUT', o: route }, { m: 'POST', o: route },
+        { m: 'PATCH', o: '/item/{id}' }, { m: 'PUT', o: '/item' }];
+    const input = { input: { n: 2 } };
+    const ctx = {
+        apimodel: { main: { kit: { entity: { item: { name: 'item', op: {
+                                update: { name: 'update', points },
+                            } } } } } },
+        guide: { entity: { item: { path: {
+                        [route]: { op: { update: { method: 'PUT', live: true }, create: { method: 'POST', live: false } } },
+                        '/item/{id}': { op: { patch: { method: 'PATCH', live: input } } },
+                        '/item': { op: { update: { live: true }, create: { method: 'POST', live: false } } },
+                    } } } },
+        def: { paths: { [route]: { put: {}, post: {} }, '/item/{id}': { patch: {} }, '/item': { put: {} } } },
+    };
+    await (0, contract_1.contractTransform)(ctx);
+    strict_1.default.deepEqual(points.map((pt) => pt.li), [true, false, input, true]);
+});
 //# sourceMappingURL=contract.test.js.map

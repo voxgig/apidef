@@ -11,7 +11,7 @@ export const contractTransform: Transform = async (ctx: any) => {
         const graphql = def.query?.[point.o] || def.mutation?.[point.o]
         if (!method && !graphql) continue
         const gpath = ctx.guide?.entity?.[entity.name]?.[graphql ? 'field' : 'path']?.[point.o]
-        const guideOp = gpath?.op?.[op.name] ?? movedFrom(gpath, op.name, point.m)
+        const guideOp = ownGuideOp(gpath, op.name, point.m)
         const hint = guideOp?.live
         if (hint !== undefined) {
           point.li = hint
@@ -29,8 +29,14 @@ export const contractTransform: Transform = async (ctx: any) => {
 
 // update also holds a promoted PATCH and a create made only of actions, whose
 // guide ops keep their own names: the one with the point's method is its own.
-function movedFrom(gpath: any, opname: string, method: string): any {
-  if ('update' !== opname) return undefined
-  return ['patch', 'create'].map((name) => gpath?.op?.[name]).find((gop: any) =>
-    null != gop && String(gop.method ?? '').toUpperCase() === String(method).toUpperCase())
+function ownGuideOp(gpath: any, opname: string, method: string): any {
+  const named = gpath?.op?.[opname]
+  if ('update' !== opname || sameMethod(named, method)) return named
+  return ['patch', 'create'].map((name) => gpath?.op?.[name])
+    .find((gop: any) => sameMethod(gop, method)) ?? named
+}
+
+
+function sameMethod(gop: any, method: string): boolean {
+  return null != gop && String(gop.method ?? '').toUpperCase() === String(method).toUpperCase()
 }

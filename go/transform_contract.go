@@ -38,10 +38,9 @@ func ContractTransform(ctx *ApiDefContext) (*TransformResult, error) {
 				gop, _ := goops[op["name"].(string)].(map[string]any)
 				// update also holds a promoted PATCH and a create made only of
 				// actions, whose guide ops keep their own names.
-				if gop == nil && op["name"] == "update" {
+				if op["name"] == "update" && !sameMethod(gop, verb) {
 					for _, name := range []string{"patch", "create"} {
-						alt, _ := goops[name].(map[string]any)
-						if gm, _ := alt["method"].(string); alt != nil && strings.EqualFold(gm, verb) {
+						if alt, _ := goops[name].(map[string]any); sameMethod(alt, verb) {
 							gop = alt
 							break
 						}
@@ -62,4 +61,9 @@ func ContractTransform(ctx *ApiDefContext) (*TransformResult, error) {
 		}
 	}
 	return &TransformResult{OK: true, Msg: "contract"}, nil
+}
+
+func sameMethod(gop map[string]any, verb string) bool {
+	method, _ := gop["method"].(string)
+	return gop != nil && strings.EqualFold(method, verb)
 }
