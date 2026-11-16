@@ -76,3 +76,54 @@ func TestContractIdentity(t *testing.T) {
 		})
 	}
 }
+
+func TestContractLiveFollowsMethod(t *testing.T) {
+	route := "/item/{id}/revoke"
+	points := []any{
+		map[string]any{"m": "PUT", "o": route},
+		map[string]any{"m": "POST", "o": route},
+		map[string]any{"m": "PATCH", "o": "/item/{id}"},
+		map[string]any{"m": "PUT", "o": "/item"},
+	}
+	input := map[string]any{"input": map[string]any{"n": 2}}
+	op := func(fields ...any) map[string]any {
+		m := map[string]any{}
+		for i := 0; i < len(fields); i += 2 {
+			m[fields[i].(string)] = fields[i+1]
+		}
+		return m
+	}
+	ctx := &ApiDefContext{
+		Def: map[string]any{"paths": map[string]any{
+			route:        map[string]any{"put": map[string]any{}, "post": map[string]any{}},
+			"/item/{id}": map[string]any{"patch": map[string]any{}},
+			"/item":      map[string]any{"put": map[string]any{}},
+		}},
+		ApiModel: map[string]any{"main": map[string]any{"kit": map[string]any{"entity": map[string]any{
+			"item": map[string]any{"name": "item", "op": map[string]any{
+				"update": map[string]any{"name": "update", "points": points},
+			}},
+		}}}},
+		Guide: map[string]any{"entity": map[string]any{"item": map[string]any{"path": map[string]any{
+			route: map[string]any{"op": map[string]any{
+				"update": op("method", "PUT", "live", true),
+				"create": op("method", "POST", "live", false),
+			}},
+			"/item/{id}": map[string]any{"op": map[string]any{"patch": op("method", "PATCH", "live", input)}},
+			"/item": map[string]any{"op": map[string]any{
+				"update": op("live", true),
+				"create": op("method", "POST", "live", false),
+			}},
+		}}}},
+	}
+	if _, err := ContractTransform(ctx); err != nil {
+		t.Fatal(err)
+	}
+	got := []any{}
+	for _, pt := range points {
+		got = append(got, pt.(map[string]any)["li"])
+	}
+	if want := []any{true, false, input, true}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("live: got %v, want %v", got, want)
+	}
+}

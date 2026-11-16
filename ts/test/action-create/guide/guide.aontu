@@ -1,0 +1,7 @@
+# Guide entry file: put customizations below the includes. The base guide
+# it includes is generated and overwritten on every build.
+@"@voxgig/apidef/model/guide.aontu"
+@"./base-guide.aontu"
+
+# The revoke action's own guide op, which its move into update has to keep.
+guide: entity: domain: path: "/domains/{domain_id}/revoke": op: create: live: false

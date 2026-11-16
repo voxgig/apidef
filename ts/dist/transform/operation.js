@@ -40,6 +40,7 @@ const operationTransform = async function (ctx) {
         resolveUpdate(opm, on);
         resolveRemove(opm, on);
         resolvePatch(opm, on);
+        resolveActionCreate(ctx, opm, on);
         // After patch has joined update, so each operation's routes are final.
         for (const mop of Object.values(opm)) {
             for (const mpoint of mop?.points ?? []) {
@@ -123,11 +124,47 @@ function resolvePatch(opm, on) {
     }
     return opdesc;
 }
+// A create made only of actions on the record creates nothing: its points ride
+// along into the entity's own update, as update's do when a PATCH is promoted.
+function resolveActionCreate(ctx, opm, on) {
+    if (null == opm.create || !onlyActionPaths(on.gent, 'create')) {
+        return;
+    }
+    const opm$ = on.gent.opm$;
+    const paths = opm$.create.paths;
+    const updatePaths = [
+        ...(opm$.update?.paths ?? []),
+        ...(null == opm.patch ? (opm$.patch?.paths ?? []) : []),
+    ];
+    if (null != opm.update && updatePaths.some((p) => !hasAction(p)) &&
+        paths.every(addressesRecord)) {
+        opm.update.points.push(...opm.create.points);
+        opm.create = undefined;
+        return;
+    }
+    const verbs = [...new Set(paths.flatMap((p) => Object.keys(p.action ?? {})))].sort();
+    ctx.warn?.({
+        note: `Create on entity=${on.gent.name} has no route of its own, only the action ` +
+            `${verbs.join(', ')}, so a plain create sends it. Set the route's op in the ` +
+            `guide if it should not.`,
+        entity: on.gent.name,
+        op: 'create',
+    });
+}
+// A custom method's `{id}:verb` keeps its placeholder in a literal, so the
+// rename is what names the record there.
+function addressesRecord(p) {
+    return Object.values(p.rename?.param ?? {})
+        .some((to) => 'id' === ('string' === typeof to ? to : to?.target)) ||
+        p.segments.some((seg) => 'id' === seg.var);
+}
+function hasAction(p) {
+    return 0 < Object.keys(p.action ?? {}).length;
+}
 // True when every path collected under the op carries a guide action.
 function onlyActionPaths(gent, opname) {
     const paths = gent.opm$?.[opname]?.paths ?? [];
-    return 0 < paths.length &&
-        paths.every((p) => 0 < Object.keys(p.action ?? {}).length);
+    return 0 < paths.length && paths.every(hasAction);
 }
 function resolveOp(opname, on) {
     let mop = undefined;
