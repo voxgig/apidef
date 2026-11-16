@@ -148,9 +148,9 @@ is `meaning`, as it would be under `2XX`.
 A leading run of words that more than half of a definition's components
 start with, and at least two, is a namespace and names nothing: where
 most components start with `AcmeApi`, `AcmeApiEncodeRequest` names
-`encode`. A run that a path literal holds, that names a component
-exactly, or that holds a wrapper word, as `ResponseOk` does, names a
-resource or a wrapper instead.
+`encode`. A run is no namespace when a path literal holds it, when it
+names a component exactly, or when it holds a wrapper word as
+`ResponseOk` does. Such a run names a resource or a wrapper instead.
 
 A response schema that is an envelope is judged by what it carries, never
 by its own name. An envelope wraps the record in its one structured
@@ -403,7 +403,7 @@ A literal's trailing module word, `api`, `controller`, `service`,
 remains: `/v1/GadgetsApi` names `gadget`, and `/v1/PlansApi/Enable` is
 `plan` with the action `enable`. A tag is read the same way.
 
-A version tag, such as `v1` or `v2beta`, groups routes by release and
+A version tag such as `v1` or `v2beta` groups routes by release and
 never names one.
 
 ## A command is named for its body
