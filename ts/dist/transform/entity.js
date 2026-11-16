@@ -7,6 +7,7 @@ exports.buildRelations = buildRelations;
 exports.mergeCollectionPaths = mergeCollectionPaths;
 exports.mergeFoldedEntities = mergeFoldedEntities;
 exports.mergeCommandEntities = mergeCommandEntities;
+exports.separateSharedPoints = separateSharedPoints;
 const jostraca_1 = require("jostraca");
 const types_1 = require("../types");
 const utility_1 = require("../utility");
@@ -277,6 +278,77 @@ function mergeCommandEntities(guide, log) {
         });
     }
     return merged;
+}
+// Points of one operation that share a selector reach only the first, so
+// each path beyond the plainest takes the literals that set it apart as its
+// action. The plainest is the one whose last literal names the entity, then
+// the one with fewest literals. Variants of one path in its query string or fragment stay as they
+// are. Guide stage only.
+function separateSharedPoints(guide, def, log) {
+    const separated = [];
+    const literals = (key) => (0, utility_1.guideParts)(key).filter((part) => !(0, utility_1.isParam)(part));
+    const actionOf = (lits) => lits
+        .map((lit) => (0, jostraca_1.snakify)(lit.replace(/\.?\{[^}]*\}/g, '')).replace(/[^a-zA-Z0-9_]/g, ''))
+        .filter((word) => '' !== word).join('_');
+    for (const ename of Object.keys(guide.entity ?? {}).sort(refcount_1.byCodePoint)) {
+        const entity = guide.entity[ename];
+        if (false === entity.active)
+            continue;
+        const groups = {};
+        for (const pathStr of Object.keys(entity.path ?? {}).sort(refcount_1.byCodePoint)) {
+            const gpath = entity.path[pathStr];
+            if (0 < Object.keys(gpath.action ?? {}).length)
+                continue;
+            const renames = gpath.rename?.param ?? {};
+            const params = (0, utility_1.guideParts)(pathStr).filter(utility_1.isParam).map(utility_1.paramOf)
+                .map((param) => (0, utility_1.canonize)(renames[param]?.target ?? param));
+            for (const opname of Object.keys(gpath.op ?? {}).sort(refcount_1.byCodePoint)) {
+                const method = String(gpath.op[opname]?.method ?? '').toLowerCase();
+                const exist = [...params, ...requiredArgs(def, pathStr, method)].sort(refcount_1.byCodePoint);
+                const key = opname + '\t' + exist.join(',');
+                (groups[key] = groups[key] ?? []).push(pathStr);
+            }
+        }
+        for (const key of Object.keys(groups).sort(refcount_1.byCodePoint)) {
+            const paths = groups[key].filter((pathStr) => 0 === Object.keys(entity.path[pathStr]?.action ?? {}).length);
+            const names = (key) => (0, utility_1.depluralize)((0, jostraca_1.snakify)(literals(key).pop() ?? '')) === ename ? 0 : 1;
+            const keys = [...new Set(paths.map(utility_1.guidePath))].sort((a, b) => names(a) - names(b) || literals(a).length - literals(b).length ||
+                a.length - b.length || (0, refcount_1.byCodePoint)(a, b));
+            if (keys.length < 2)
+                continue;
+            const plain = keys[0];
+            const plainLits = new Set(literals(plain));
+            const taken = new Set();
+            for (const other of keys.slice(1)) {
+                let action = actionOf(literals(other).filter((lit) => !plainLits.has(lit)));
+                if ('' === action || taken.has(action))
+                    action = actionOf(literals(other));
+                if ('' === action || taken.has(action))
+                    continue;
+                taken.add(action);
+                for (const pathStr of paths.filter((p) => (0, utility_1.guidePath)(p) === other)) {
+                    entity.path[pathStr].action = {
+                        [action]: { why_action: ['ent', ename, 'shared-selector', plain] }
+                    };
+                    separated.push(pathStr);
+                }
+            }
+            log?.info?.({
+                point: 'shared-selector-actions', entity: ename, plain, paths,
+                note: `points of ${ename} shared a selector; each path beyond ${plain} ` +
+                    'takes the literals that set it apart as its action.'
+            });
+        }
+    }
+    return separated;
+}
+// The names of the query, header and cookie arguments an operation requires.
+function requiredArgs(def, pathStr, method) {
+    const pathItem = def?.paths?.[pathStr] ?? {};
+    return [...(pathItem.parameters ?? []), ...(pathItem[method]?.parameters ?? [])]
+        .filter((param) => true === param?.required && 'path' !== param?.in &&
+        'body' !== param?.in && 'formData' !== param?.in && 'string' === typeof param?.name)
+        .map((param) => (0, utility_1.canonize)(param.name));
 }
 function opsMeet(entity, target) {
     return Object.keys(entity?.path ?? {}).some((pathStr) => Object.keys(entity.path[pathStr]?.op ?? {}).some((opname) => null != target?.path?.[pathStr]?.op?.[opname]));

@@ -53,6 +53,27 @@ declare function asyncResultOf(data: {
     parent: string;
     action: string;
 } | null;
+declare function methodOf(pathStr: string): {
+    parent: string;
+    action: string;
+    why: string;
+} | null;
+declare function singletonPartOf(data: {
+    def: any;
+    work: any;
+}, parts: string[], pathowner: Record<string, Record<string, string>>): {
+    parent: string;
+    action: string;
+    why: string;
+} | null;
+declare function readOfItem(data: {
+    def: any;
+    work: any;
+}, mdesc: any, parts: string[], pathowner: Record<string, Record<string, string>>): {
+    parent: string;
+    action: string;
+    why: string;
+} | null;
 declare function singletonOf(data: {
     def: any;
     work: any;
@@ -65,6 +86,10 @@ declare function subWriteOfItem(data: {
     action: string;
 } | null;
 declare function itemAbove(data: {
+    def: any;
+    work: any;
+}, parts: string[], key: number, pathowner: Record<string, Record<string, string>>): string | null;
+declare function keyOwner(data: {
     def: any;
     work: any;
 }, parts: string[], key: number, pathowner: Record<string, Record<string, string>>): string | null;
@@ -156,4 +181,4 @@ declare function verbParts(parts: string[]): string[];
 declare function isNameParam(param: string): boolean;
 declare function entityParamNames(paths: Record<string, Record<string, string>>): Record<string, Record<string, string>>;
 declare function arrayBodyField(schema: any, entname: string, taken?: string[]): string;
-export { answeredRefs, collectionOwner, listedRefs, pathAnswersPage, pathAnswersRecordMap, randomRoute, selectorRoute, namedRecord, verbAfterNoun, warnListBody, arrayBodyField, commandBodyName, commandTwin, itemAbove, pathQualified, readsRecord, recordOf, responsePayload, cmpSchemaOf, tagHolds, wrapsLiteral, isListResponse, LITERAL_LAST_SHAPES, READ_VERBS, distinctRecord, distinctShare, heuristic01, keyParamOf, matchEntityPath, pathNoun, namingRef, namingSchemas, pathRecordRef, pathResource, sharedRoutes, entityParamNames, isNameParam, isVerb, verbParts, verbOfItem, shortLiteral, normalizeParams, cleanCmp, commandSource, relationshipOf, singletonOf, subWriteOfItem, variantOfCollection, keyNounOf, asyncResultOf, nounless, genericCmp, actionWord, keyRunBefore, VERSION_TAG_RE, isVerbWord, keyedBy, postReadVerb, componentReadOwner, };
+export { methodOf, singletonPartOf, readOfItem, keyOwner, answeredRefs, collectionOwner, listedRefs, pathAnswersPage, pathAnswersRecordMap, randomRoute, selectorRoute, namedRecord, verbAfterNoun, warnListBody, arrayBodyField, commandBodyName, commandTwin, itemAbove, pathQualified, readsRecord, recordOf, responsePayload, cmpSchemaOf, tagHolds, wrapsLiteral, isListResponse, LITERAL_LAST_SHAPES, READ_VERBS, distinctRecord, distinctShare, heuristic01, keyParamOf, matchEntityPath, pathNoun, namingRef, namingSchemas, pathRecordRef, pathResource, sharedRoutes, entityParamNames, isNameParam, isVerb, verbParts, verbOfItem, shortLiteral, normalizeParams, cleanCmp, commandSource, relationshipOf, singletonOf, subWriteOfItem, variantOfCollection, keyNounOf, asyncResultOf, nounless, genericCmp, actionWord, keyRunBefore, VERSION_TAG_RE, isVerbWord, keyedBy, postReadVerb, componentReadOwner, };

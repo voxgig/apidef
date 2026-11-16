@@ -1,6 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.VERSION_TAG_RE = exports.READ_VERBS = exports.LITERAL_LAST_SHAPES = void 0;
+exports.methodOf = methodOf;
+exports.singletonPartOf = singletonPartOf;
+exports.readOfItem = readOfItem;
+exports.keyOwner = keyOwner;
 exports.answeredRefs = answeredRefs;
 exports.collectionOwner = collectionOwner;
 exports.listedRefs = listedRefs;
@@ -187,6 +191,7 @@ async function heuristic01(ctx) {
     for (const entity of Object.values(guide.entity)) {
         nameEntityParams(entity);
     }
+    (0, entity_1.separateSharedPoints)(guide, ctx.def, ctx.log);
     const metrics = guide.metrics;
     const entities = Object.values(guide.entity);
     const entityCount = entities.length;
@@ -826,6 +831,16 @@ function collectionOwner(mdesc, parts, work) {
 // does; a read that views an item joins it, and a POST that reads or commands
 // is named for what it reads or sends.
 function pathEntityName(data, mdesc, parts, pm, pathowner, why) {
+    const ment = mdesc.MethodEntity;
+    const joined = methodOf(mdesc.path) ?? singletonPartOf(data, parts, pathowner) ??
+        readOfItem(data, mdesc, parts, pathowner);
+    if (null != joined) {
+        ment.verb_on_parent = parts[parts.length - 1] ?? joined.action;
+        ment.view_on_parent = 'method-name' !== joined.why && utility_2.READ_METHODS.includes(mdesc.method);
+        ment.view_action = joined.action;
+        why.push(joined.why + '=' + joined.parent);
+        return joined.parent;
+    }
     const link = relationshipOf(data, parts, pathowner);
     if (null != link) {
         const ment = mdesc.MethodEntity;
@@ -940,7 +955,7 @@ function shapeEntityName(data, mdesc, parts, pm, pathowner, why) {
         return entityPathMatch_tpe(data, pm, mdesc, why);
     }
     else if ('p/t/' === pm?.expr) {
-        return entityPathMatch_pte(data, pm, mdesc, why);
+        return entityPathMatch_pte(data, pm, mdesc, pathowner, why);
     }
     else if ('t/' === pm?.expr) {
         return entityPathMatch_te(data, pm, mdesc, why);
@@ -1805,6 +1820,73 @@ function asyncResultOf(data, mdesc, parts) {
 // A sub-path under an item key that a read answers with a component and a
 // write sends or answers with the same one is a resource of its own: the
 // component's reference, or null.
+// A remote procedure written into the query string, as `?method=a.photos.getInfo`,
+// names the object before its verb, and the verb is the action.
+function methodOf(pathStr) {
+    const m = pathStr.match(/[?&]method=([A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)+)/);
+    const names = null == m ? [] : m[1].split('.');
+    const parent = 2 <= names.length ? (0, utility_1.literalName)(names[names.length - 2]) : '';
+    const action = 2 <= names.length ? (0, jostraca_2.snakify)(names[names.length - 1]) : '';
+    return '' === parent || '' === action ? null : { parent, action, why: 'method-name' };
+}
+// A sub-path of a keyless singleton, read, written and deleted with no schema
+// and no key beneath it, is an action of that singleton, plural or not.
+function singletonPartOf(data, parts, pathowner) {
+    if (parts.length < 2 || parts.some((part) => isParam(part))) {
+        return null;
+    }
+    const pathStr = pathNamed(data, '/' + parts.join('/'));
+    const parentPath = pathNamed(data, '/' + parts.slice(0, -1).join('/'));
+    const pathdef = null == pathStr ? null : data.def.paths[pathStr];
+    const parentdef = null == parentPath ? null : data.def.paths[parentPath];
+    if (null == pathdef || null == parentdef?.get || null == pathdef.get || null == pathdef.delete ||
+        !['put', 'patch', 'post'].some((m) => null != pathdef[m]) ||
+        ['get', 'put', 'patch', 'post', 'delete'].some((m) => null != getResponseSchema(successResponse(pathdef[m]?.responses))) ||
+        'array' === getResponseSchema(successResponse(parentdef.get.responses))?.type ||
+        0 < (0, utility_2.findPathsWithPrefix)(data, pathStr, { strict: true })) {
+        return null;
+    }
+    const parent = pathowner[parentPath]?.GET;
+    const action = (0, jostraca_2.snakify)(parts[parts.length - 1]).replace(/[^a-zA-Z0-9_]/g, '');
+    return null == parent || '' === action ? null : { parent, action, why: 'singleton-part' };
+}
+const ITEM_READ_WORDS = ['detail', 'info'];
+const BINARY_MEDIA_RE = /^(application\/(octet-stream|pdf|zip|gzip)|image\/|audio\/|video\/)/i;
+// A read beneath an item key that reads the item itself: its `details` or
+// `info`, spelled as written, or a download whose response is binary, named
+// as a view is.
+function readOfItem(data, mdesc, parts, pathowner) {
+    if ('GET' !== mdesc.method || 0 === parts.length || isParam(parts[parts.length - 1]) &&
+        !binaryResponse(data.def?.paths?.[mdesc.path]?.get?.responses)) {
+        return null;
+    }
+    const lastLit = parts.map((part) => !isParam(part)).lastIndexOf(true);
+    const key = parts.slice(0, lastLit).map((part) => isParam(part)).lastIndexOf(true);
+    if (key < 0 || lastLit < 0) {
+        return null;
+    }
+    const literals = parts.slice(key + 1).filter((part) => !isParam(part));
+    const detail = parts.length - 1 === lastLit && key === lastLit - 1 &&
+        ITEM_READ_WORDS.includes((0, utility_1.literalName)(parts[lastLit]));
+    if (!detail && !binaryResponse(data.def?.paths?.[mdesc.path]?.get?.responses)) {
+        return null;
+    }
+    const parent = itemAbove(data, parts, key, pathowner);
+    const action = detail ? (0, jostraca_2.snakify)(parts[lastLit]).replace(/[^a-zA-Z0-9_]/g, '') :
+        literals.map(utility_1.literalName).filter((word) => '' !== word).join('_');
+    return null == parent || ID_LITERAL_RE.test(parent) || '' === action ? null :
+        { parent, action, why: detail ? 'detail-of-item' : 'download-of-item' };
+}
+// Every success response declares content, and all of it binary.
+function binaryResponse(responses) {
+    const ok = [responses?.['200'], responses?.['201'], responses?.['206'], (0, utility_1.rangeResponse)(responses)]
+        .filter((response) => null != response?.content);
+    return 0 < ok.length && ok.every((response) => {
+        const media = Object.keys(response.content);
+        return 0 < media.length && media.every((mt) => BINARY_MEDIA_RE.test(mt) ||
+            ('*/*' === mt && 'binary' === response.content[mt]?.schema?.format));
+    });
+}
 function singletonOf(data, pathStr) {
     const work = data.work;
     work.singletons = work.singletons ?? Object.create(null);
@@ -1851,15 +1933,14 @@ function subWriteOfItem(data, mdesc, parts, pathowner) {
 // The entity of the item route a view hangs off, the entity a read of it
 // returns, else the noun before the key.
 function itemAbove(data, parts, key, pathowner) {
-    const itemPath = pathNamed(data, '/' + parts.slice(0, key + 1).join('/'));
-    if (null != itemPath) {
-        const owners = pathowner[itemPath] ?? {};
-        const parent = owners.GET ?? owners.QUERY ?? Object.values(owners).sort()[0];
-        if (null != parent) {
-            return parent;
-        }
-    }
-    return 0 < key && !isParam(parts[key - 1]) ? (0, utility_1.literalName)(parts[key - 1]) : null;
+    return keyOwner(data, parts, key, pathowner) ??
+        (0 < key && !isParam(parts[key - 1]) ? (0, utility_1.literalName)(parts[key - 1]) : null);
+}
+// The entity holding the item route that ends at a key.
+function keyOwner(data, parts, key, pathowner) {
+    const itemPath = key < 0 ? null : pathNamed(data, '/' + parts.slice(0, key + 1).join('/'));
+    const owners = null == itemPath ? {} : (pathowner[itemPath] ?? {});
+    return owners.GET ?? owners.QUERY ?? Object.values(owners).sort()[0] ?? null;
 }
 // The index of the last parameter of a path, or -1.
 function lastKey(parts) {
@@ -2000,7 +2081,7 @@ function recordOf(data, pathStr) {
     const orig = null == itemPath ? null : itemRecordRef(data, itemPath);
     if (null != orig) {
         const cmp = cleanCmp(data, (0, utility_2.canonizeCmpName)(orig)).replace(/_v\d+$/, '');
-        found = { cmp, orig, shared: 1 < itemRecordRoutes(data)[orig].size };
+        found = { cmp, orig, shared: 1 < (itemRecordRoutes(data)[orig]?.size ?? 0) };
     }
     work.itemRecords[pathStr] = found;
     return found;
@@ -2343,11 +2424,18 @@ function entityPathMatch_tpe(data, pm, mdesc, why) {
     }
     return entname;
 }
-function entityPathMatch_pte(data, pm, mdesc, why) {
+function entityPathMatch_pte(data, pm, mdesc, pathowner, why) {
     const ment = mdesc.MethodEntity;
     why.push('path=p/t/');
-    let entname = pathNoun(pm, data.work.pathmap[mdesc.path].parts, why);
+    const parts = data.work.pathmap[mdesc.path].parts;
+    let entname = pathNoun(pm, parts, why);
     if (entname !== (0, utility_1.literalName)(pm[PATH_NAME_INDEX[pm.expr]]) && 'tag' !== ment.ref) {
+        // A verb after a run of keys acts on the item they address.
+        const owner = keyOwner(data, parts, lastKey(parts), pathowner);
+        if (null != owner) {
+            entname = owner;
+            ment.verb_on_parent = (0, struct_1.getelem)(pm, -1);
+        }
         why.push('verb-noun=' + entname);
     }
     else if (null != ment.cmp || probableEntityMethod(data, mdesc, pm, why)) {

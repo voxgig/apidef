@@ -617,7 +617,14 @@ that carries one record beside its metadata; a read on a literal right
 after a collection, answering that collection's record, is a variant of its
 list. A placeholder fused to a literal, a
 placeholder-only part and a query string are read as a parameter, a
-parameter, and nothing.
+parameter, and nothing, except a dotted `method=` in the query string,
+which names the object before its verb and takes the verb as the action.
+A verb after a run of keys acts on the item the keys address. A `details`,
+`detail` or `info` read beneath an item key, and a binary download beneath
+one, is a `load` of the item with an action; a part of a singleton with no
+key, read, written and deleted with no schema, is an action of the
+singleton. Paths of one operation that would share a selector take the
+literals that set them apart as actions, all but the plainest.
 A `POST` whose literal opens with a read verb and that answers a collection
 is the `list`, with the body as its filter. A `POST` to a singular literal
 that names no component, with no item route it could be a verb on and none

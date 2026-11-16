@@ -606,6 +606,188 @@ func opsMeet(entity map[string]any, target map[string]any) bool {
 
 // movePath mirrors ts/src/transform/entity.ts: one path moves onto the
 // target entity, keeping what the target already has.
+// separateSharedPoints mirrors ts/src/transform/entity.ts: points of one
+// operation that share a selector reach only the first, so each path beyond
+// the plainest takes the literals that set it apart as its action.
+func separateSharedPoints(guide map[string]any, def map[string]any) []string {
+	separated := []string{}
+	literals := func(key string) []string {
+		out := []string{}
+		for _, part := range guideParts(key) {
+			if !isParam(part) {
+				out = append(out, part)
+			}
+		}
+		return out
+	}
+	actionOf := func(lits []string) string {
+		words := []string{}
+		for _, lit := range lits {
+			word := verbSpellingRE.ReplaceAllString(Snakify(fusedPlaceholderRE.ReplaceAllString(lit, "")), "")
+			if word != "" {
+				words = append(words, word)
+			}
+		}
+		return strings.Join(words, "_")
+	}
+	hasAction := func(gpath map[string]any) bool {
+		actions, _ := gpath["action"].(map[string]any)
+		return 0 < len(actions)
+	}
+
+	entities, _ := guide["entity"].(map[string]any)
+	for _, ename := range sortedKeys(entities) {
+		entity, _ := entities[ename].(map[string]any)
+		if entity == nil || entity["active"] == false {
+			continue
+		}
+		paths, _ := entity["path"].(map[string]any)
+		groups := map[string][]string{}
+		for _, pathStr := range sortedKeys(paths) {
+			gpath, _ := paths[pathStr].(map[string]any)
+			if gpath == nil || hasAction(gpath) {
+				continue
+			}
+			rename, _ := gpath["rename"].(map[string]any)
+			renames, _ := rename["param"].(map[string]any)
+			params := []string{}
+			for _, part := range guideParts(pathStr) {
+				if isParam(part) {
+					param := ParamOf(part)
+					target := param
+					switch r := renames[param].(type) {
+					case map[string]any:
+						if r["target"] != nil {
+							target = safeStr(r["target"])
+						}
+					case string:
+						target = r
+					}
+					params = append(params, Canonize(target))
+				}
+			}
+			ops, _ := gpath["op"].(map[string]any)
+			for _, opname := range sortedKeys(ops) {
+				op, _ := ops[opname].(map[string]any)
+				method := strings.ToLower(safeStr(op["method"]))
+				exist := append(append([]string{}, params...), requiredArgs(def, pathStr, method)...)
+				sort.Strings(exist)
+				key := opname + "\t" + strings.Join(exist, ",")
+				groups[key] = append(groups[key], pathStr)
+			}
+		}
+
+		groupKeys := make([]string, 0, len(groups))
+		for key := range groups {
+			groupKeys = append(groupKeys, key)
+		}
+		sort.Strings(groupKeys)
+		for _, key := range groupKeys {
+			members := []string{}
+			for _, pathStr := range groups[key] {
+				if gpath, _ := paths[pathStr].(map[string]any); gpath != nil && !hasAction(gpath) {
+					members = append(members, pathStr)
+				}
+			}
+			keys := []string{}
+			seen := map[string]bool{}
+			for _, pathStr := range members {
+				if k := guidePath(pathStr); !seen[k] {
+					seen[k] = true
+					keys = append(keys, k)
+				}
+			}
+			if len(keys) < 2 {
+				continue
+			}
+			names := func(k string) int {
+				lits := literals(k)
+				last := ""
+				if 0 < len(lits) {
+					last = lits[len(lits)-1]
+				}
+				if Depluralize(Snakify(last)) == ename {
+					return 0
+				}
+				return 1
+			}
+			sort.SliceStable(keys, func(i, j int) bool {
+				a, b := keys[i], keys[j]
+				if names(a) != names(b) {
+					return names(a) < names(b)
+				}
+				if len(literals(a)) != len(literals(b)) {
+					return len(literals(a)) < len(literals(b))
+				}
+				if len(a) != len(b) {
+					return len(a) < len(b)
+				}
+				return a < b
+			})
+			plain := keys[0]
+			plainLits := map[string]bool{}
+			for _, lit := range literals(plain) {
+				plainLits[lit] = true
+			}
+			taken := map[string]bool{}
+			for _, other := range keys[1:] {
+				apart := []string{}
+				for _, lit := range literals(other) {
+					if !plainLits[lit] {
+						apart = append(apart, lit)
+					}
+				}
+				action := actionOf(apart)
+				if action == "" || taken[action] {
+					action = actionOf(literals(other))
+				}
+				if action == "" || taken[action] {
+					continue
+				}
+				taken[action] = true
+				for _, pathStr := range members {
+					if guidePath(pathStr) != other {
+						continue
+					}
+					gpath, _ := paths[pathStr].(map[string]any)
+					gpath["action"] = map[string]any{
+						action: map[string]any{"why_action": []any{"ent", ename, "shared-selector", plain}},
+					}
+					separated = append(separated, pathStr)
+				}
+			}
+		}
+	}
+	return separated
+}
+
+// requiredArgs mirrors ts/src/transform/entity.ts: the names of the query,
+// header and cookie arguments an operation requires.
+func requiredArgs(def map[string]any, pathStr string, method string) []string {
+	paths, _ := def["paths"].(map[string]any)
+	item, _ := paths[pathStr].(map[string]any)
+	params := []any{}
+	if ps, ok := item["parameters"].([]any); ok {
+		params = append(params, ps...)
+	}
+	if op, ok := item[method].(map[string]any); ok {
+		if ps, ok := op["parameters"].([]any); ok {
+			params = append(params, ps...)
+		}
+	}
+	out := []string{}
+	for _, p := range params {
+		param, _ := p.(map[string]any)
+		name, ok := param["name"].(string)
+		in := safeStr(param["in"])
+		if param == nil || param["required"] != true || !ok || in == "path" || in == "body" || in == "formData" {
+			continue
+		}
+		out = append(out, Canonize(name))
+	}
+	return out
+}
+
 func movePath(paths map[string]any, target map[string]any, pathStr string) {
 	tgtPaths, _ := target["path"].(map[string]any)
 	if tgtPaths == nil {

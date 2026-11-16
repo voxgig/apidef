@@ -470,8 +470,8 @@ func TestRulings(t *testing.T) {
 			expect: map[string]string{
 				"GET /shops/{owner}/{shop}":                    "shop list",
 				"GET /shops/{owner}/{shop}/{orderNum}":         "order_detail load",
-				"POST /shops/{owner}/{shop}/{orderNum}/cancel": "shop create cancel",
-				"POST /shops/{owner}/{shop}/{orderNum}/retry":  "shop create retry",
+				"POST /shops/{owner}/{shop}/{orderNum}/cancel": "order_detail create cancel",
+				"POST /shops/{owner}/{shop}/{orderNum}/retry":  "order_detail create retry",
 			},
 		},
 		{
@@ -481,6 +481,42 @@ func TestRulings(t *testing.T) {
 				"DELETE /teams/{teamId}/players/{playerId}":        "player remove",
 				"POST /teams/{teamId}/players/{playerId}/activate": "player create activate",
 				"GET /vaults/{vaultId}/o/{entry}":                  "object load",
+			},
+		},
+		{
+			def: "method-name-def.json",
+			expect: map[string]string{
+				"GET /rpc?method=acme.widgets.getInfo":       "widget load get_info",
+				"GET /rpc?method=acme.widgets.search":        "widget list search",
+				"GET /rpc?method=acme.gadgets.parts.getList": "part list get_list",
+			},
+		},
+		{
+			def: "singleton-part-def.json",
+			expect: map[string]string{
+				"GET /store/settings":               "setting load",
+				"GET /store/settings/sort-rules":    "setting load sort_rules",
+				"PUT /store/settings/sort-rules":    "setting update sort_rules",
+				"DELETE /store/settings/sort-rules": "setting remove sort_rules",
+				"PATCH /store/settings/theme":       "setting patch theme",
+			},
+		},
+		{
+			def: "item-read-def.json",
+			expect: map[string]string{
+				"GET /messages/{messageId}":                 "message load",
+				"GET /messages/{messageId}/details":         "message load details",
+				"GET /employees/{employeeId}/photo/{width}": "employee load photo",
+				"GET /reports/{reportId}/contents":          "report load content",
+			},
+		},
+		{
+			def: "shared-selector-def.json",
+			expect: map[string]string{
+				"GET /widgets":           "widget list",
+				"GET /catalog/widgets":   "widget list catalog",
+				"GET /widgets?view=full": "widget list",
+				"GET /featured/widgets":  "widget list",
 			},
 		},
 	}

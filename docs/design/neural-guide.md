@@ -637,6 +637,73 @@ in `heuristic01`, in `neural01` and in Go, with a definition under
   the tag literal's own key, so `activate` acts on `player` (`tag-key`).
   The `${id}` key, read correctly, exposed it.
 
+### Rulings 32 to 41
+
+The maintainer ruled on a further set of classification questions. Three
+rulings keep apidef as it is: a list of another resource's records keeps
+its relationship word (`members` on a group stays `member`, ruling 32); a
+filter or selector with no schema stays named for its literal, since
+without a schema `{dimension}/{value}` reads exactly like an item key
+(ruling 37); and commands named for their own literal, routes that could be
+gathered into one command, nested collections made actions on their parent,
+records named for their component, spelling, literal instances and names
+that only prose could give all follow earlier rulings (ruling 41). The rest
+change apidef, in both strategies and in Go, each with a definition under
+`ts/test/def/`:
+
+33. **A verb after a run of keys acts on the item they address.** In the
+    `p/t/` shape, a verb right after a key whose item route has an owner is
+    an action on that owner: `POST /shops/{owner}/{shop}/{orderNum}/cancel`
+    is `cancel` on `order_detail`, the entity of
+    `GET /shops/{owner}/{shop}/{orderNum}`. With no item route at the key,
+    the noun before the keys names, as before. `keyOwner` reads the item
+    route's owner; `neural01` gains the `key_owner_avail` input and the
+    `verb_noun_pt` gate of `VNOUN` (`keyed-verb-3`). In `apidef-validate`
+    this joins 8 verb routes of Cloudsmith and GitHub to the entity of their
+    item route.
+34. **Points that only the first can reach take actions.** After the
+    post-passes, `separateSharedPoints` groups an entity's action-less paths
+    by operation and by the parameters a call must carry, path parameters by
+    their renamed names and required query, header and cookie arguments, as
+    `q.exist` will. In each group of two or more paths every path but the
+    plainest takes the literals that set it apart as its action:
+    `GET /catalog/widgets` beside `GET /widgets` is the action `catalog`. The
+    plainest is the path whose last literal names the entity, then the one
+    with fewest literals, then the shortest; a variant in the query string or
+    fragment stays with its path (`shared-selector`). Both strategies share
+    the pass. In `apidef-validate` it gives 306 paths an action.
+35. **A keyless singleton keeps its parts.** A sub-path with no key beneath a
+    singleton route, read, written and deleted with no schema of its own and
+    nothing beneath it, is an action of that singleton, plural or not:
+    `/store/settings/sort-rules` is `sort_rules` on `setting`
+    (`singletonPartOf`, `singleton-part`).
+36. **A remote procedure in the query string names its object.** A dotted
+    `method=` value names the object before its verb, and the verb is the
+    action, while the method and the response keep deciding the operation:
+    `GET /rpc?method=acme.widgets.getInfo` is `widget` with `get_info`
+    (`methodOf`, `method-name`). A procedure whose verb and noun run together
+    in one literal, with nothing that spells the break, stays as written.
+38. **`Per` reads as `For`.** `WidgetsPerMarket` wraps `widget`
+    (`test/wrapper-of.tsv`).
+39. **Details read the item.** A `details`, `detail` or `info` literal right
+    beneath an item key is a `load` of the item with the literal, as written,
+    for its action (`readOfItem`, `item-read`).
+40. **A download acts on the item.** A `GET` beneath an item key whose
+    success responses are all binary is a `load` of the item with the
+    literals after the key, named as a view is:
+    `/employees/{employeeId}/photo/{width}` is `photo` on `employee`
+    (`readOfItem`, `item-read`). A parent read from an identifier literal
+    names nothing.
+
+Rulings 35, 36, 39 and 40 come first in `pathEntityName`, before the
+relationship and singleton readings, and give `neural01` one early class,
+`JOINED`, scored at 19.5 above `LINK` and silent while a collection owner is
+available, so `COLLOWNER` decides first, as the heuristic lets a collection
+record, the same-path join and the collection owner override what
+`pathEntityName` gives. `recordOf` no longer reads past
+a record the shared-record index lacks, which a route with a query string
+could reach under `neural01` alone.
+
 ## Known divergences from `heuristic01`
 
 None on the test definitions or `apidef-validate`. Elsewhere the two can

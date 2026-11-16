@@ -895,6 +895,8 @@ func heuristic01(ctx *ApiDefContext) (map[string]any, error) {
 		}
 	}
 
+	separateSharedPoints(guide, def)
+
 	return guide, nil
 }
 
@@ -1683,11 +1685,23 @@ func pathEntityName(data map[string]any, mdesc map[string]any, parts []string,
 	}
 	method := safeStr(mdesc["method"])
 	joins := func(reason string, parent string, action string, view bool) (string, bool) {
-		ment["verb_on_parent"] = parts[len(parts)-1]
+		ment["verb_on_parent"] = action
+		if 0 < len(parts) {
+			ment["verb_on_parent"] = parts[len(parts)-1]
+		}
 		ment["view_on_parent"] = view
 		ment["view_action"] = action
 		*why = append(*why, reason+"="+parent)
 		return parent, true
+	}
+	if parent, action, ok := methodOf(safeStr(mdesc["path"])); ok {
+		return joins("method-name", parent, action, false)
+	}
+	if parent, action, ok := singletonPartOf(data, parts, pathowner); ok {
+		return joins("singleton-part", parent, action, READ_METHODS[method])
+	}
+	if parent, action, reason, ok := readOfItem(data, mdesc, parts, pathowner); ok {
+		return joins(reason, parent, action, READ_METHODS[method])
 	}
 	if parent, action, ok := relationshipOf(data, parts, pathowner); ok {
 		return joins("relationship", parent, action, READ_METHODS[method])
@@ -1787,7 +1801,7 @@ func shapeEntityName(data map[string]any, mdesc map[string]any, parts []string,
 	case "t/p/":
 		return entityPathMatch_tpe(data, pm, mdesc, why), true
 	case "p/t/":
-		return entityPathMatch_pte(data, pm, mdesc, why), true
+		return entityPathMatch_pte(data, pm, mdesc, pathowner, why), true
 	case "t/":
 		return entityPathMatch_te(data, pm, mdesc, why), true
 	case "t/p/p":
@@ -2906,6 +2920,20 @@ func itemAbove(data map[string]any, parts []string, key int, pathowner map[strin
 	return ""
 }
 
+// keyOwner mirrors ts/src/guide/heuristic01.ts: the entity holding the item
+// route that ends at a key.
+func keyOwner(data map[string]any, parts []string, key int, pathowner map[string]any) string {
+	if key < 0 {
+		return ""
+	}
+	itemPath := pathNamed(data, "/"+strings.Join(parts[:key+1], "/"))
+	if itemPath == "" {
+		return ""
+	}
+	owners, _ := pathowner[itemPath].(map[string]any)
+	return ownerOf(owners)
+}
+
 // The index of the last parameter of a path, or -1.
 func lastKey(parts []string) int {
 	key := -1
@@ -2992,6 +3020,163 @@ func relationshipOf(data map[string]any, parts []string, pathowner map[string]an
 
 // singletonOf mirrors ts/src/guide/heuristic01.ts: the component a sub-path
 // under an item key is read and written with, or "".
+// A remote procedure written into the query string names the object before
+// its verb, and the verb is the action; methodOf mirrors
+// ts/src/guide/heuristic01.ts.
+var methodNameRE = regexp.MustCompile(`[?&]method=([A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)+)`)
+
+func methodOf(pathStr string) (string, string, bool) {
+	m := methodNameRE.FindStringSubmatch(pathStr)
+	if m == nil {
+		return "", "", false
+	}
+	names := strings.Split(m[1], ".")
+	parent := LiteralName(names[len(names)-2])
+	action := Snakify(names[len(names)-1])
+	if parent == "" || action == "" {
+		return "", "", false
+	}
+	return parent, action, true
+}
+
+// singletonPartOf mirrors ts/src/guide/heuristic01.ts: a sub-path of a
+// keyless singleton, read, written and deleted with no schema and no key
+// beneath it, is an action of that singleton.
+func singletonPartOf(data map[string]any, parts []string, pathowner map[string]any) (string, string, bool) {
+	if len(parts) < 2 {
+		return "", "", false
+	}
+	for _, part := range parts {
+		if isParam(part) {
+			return "", "", false
+		}
+	}
+	pathStr := pathNamed(data, "/"+strings.Join(parts, "/"))
+	parentPath := pathNamed(data, "/"+strings.Join(parts[:len(parts)-1], "/"))
+	def, _ := data["def"].(map[string]any)
+	paths, _ := def["paths"].(map[string]any)
+	pathdef, _ := paths[pathStr].(map[string]any)
+	parentdef, _ := paths[parentPath].(map[string]any)
+	if pathStr == "" || parentPath == "" || pathdef == nil || parentdef["get"] == nil ||
+		pathdef["get"] == nil || pathdef["delete"] == nil ||
+		(pathdef["put"] == nil && pathdef["patch"] == nil && pathdef["post"] == nil) {
+		return "", "", false
+	}
+	for _, m := range []string{"get", "put", "patch", "post", "delete"} {
+		op, _ := pathdef[m].(map[string]any)
+		responses, _ := op["responses"].(map[string]any)
+		if getResponseSchema(successResponse(responses)) != nil {
+			return "", "", false
+		}
+	}
+	parentGet, _ := parentdef["get"].(map[string]any)
+	parentResponses, _ := parentGet["responses"].(map[string]any)
+	if read := getResponseSchema(successResponse(parentResponses)); read != nil && read["type"] == "array" {
+		return "", "", false
+	}
+	if 0 < findPathsWithPrefixFromData(data, pathStr, true) {
+		return "", "", false
+	}
+	owners, _ := pathowner[parentPath].(map[string]any)
+	parent := safeStr(owners["GET"])
+	action := verbSpellingRE.ReplaceAllString(Snakify(parts[len(parts)-1]), "")
+	if parent == "" || action == "" {
+		return "", "", false
+	}
+	return parent, action, true
+}
+
+var itemReadWords = map[string]bool{"detail": true, "info": true}
+var binaryMediaRE = regexp.MustCompile(`(?i)^(application/(octet-stream|pdf|zip|gzip)|image/|audio/|video/)`)
+
+// readOfItem mirrors ts/src/guide/heuristic01.ts: a read beneath an item key
+// of the item's details or info, spelled as written, or a binary download,
+// named as a view is.
+func readOfItem(data map[string]any, mdesc map[string]any, parts []string,
+	pathowner map[string]any) (string, string, string, bool) {
+	if safeStr(mdesc["method"]) != "GET" || len(parts) == 0 {
+		return "", "", "", false
+	}
+	def, _ := data["def"].(map[string]any)
+	paths, _ := def["paths"].(map[string]any)
+	pathdef, _ := paths[safeStr(mdesc["path"])].(map[string]any)
+	read, _ := pathdef["get"].(map[string]any)
+	responses, _ := read["responses"].(map[string]any)
+	binary := binaryResponse(responses)
+	if isParam(parts[len(parts)-1]) && !binary {
+		return "", "", "", false
+	}
+	lastLit := -1
+	for i, part := range parts {
+		if !isParam(part) {
+			lastLit = i
+		}
+	}
+	key := -1
+	for i := 0; i < lastLit; i++ {
+		if isParam(parts[i]) {
+			key = i
+		}
+	}
+	if key < 0 || lastLit < 0 {
+		return "", "", "", false
+	}
+	detail := len(parts)-1 == lastLit && key == lastLit-1 && itemReadWords[LiteralName(parts[lastLit])]
+	if !detail && !binary {
+		return "", "", "", false
+	}
+	parent := itemAbove(data, parts, key, pathowner)
+	action := ""
+	if detail {
+		action = verbSpellingRE.ReplaceAllString(Snakify(parts[lastLit]), "")
+	} else {
+		words := []string{}
+		for _, part := range parts[key+1:] {
+			if !isParam(part) {
+				if word := LiteralName(part); word != "" {
+					words = append(words, word)
+				}
+			}
+		}
+		action = strings.Join(words, "_")
+	}
+	if parent == "" || idLiteralRE.MatchString(parent) || action == "" {
+		return "", "", "", false
+	}
+	if detail {
+		return parent, action, "detail-of-item", true
+	}
+	return parent, action, "download-of-item", true
+}
+
+// binaryResponse mirrors ts/src/guide/heuristic01.ts: every success response
+// declares content, and all of it binary.
+func binaryResponse(responses map[string]any) bool {
+	declared := []map[string]any{}
+	for _, r := range []any{responses["200"], responses["201"], responses["206"], RangeResponse(responses)} {
+		if response, ok := r.(map[string]any); ok && response != nil && response["content"] != nil {
+			declared = append(declared, response)
+		}
+	}
+	if len(declared) == 0 {
+		return false
+	}
+	for _, response := range declared {
+		content, _ := response["content"].(map[string]any)
+		if len(content) == 0 {
+			return false
+		}
+		for _, media := range sortedKeys(content) {
+			mt, _ := content[media].(map[string]any)
+			schema, _ := mt["schema"].(map[string]any)
+			if !binaryMediaRE.MatchString(media) && !(media == "*/*" && schema["format"] == "binary") {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 func singletonOf(data map[string]any, pathStr string) string {
 	work, _ := data["work"].(map[string]any)
 	cache, _ := work["singletons"].(map[string]string)
@@ -3715,16 +3900,23 @@ func entityPathMatch_tpe(data map[string]any, pm *PathMatchResult, mdesc map[str
 }
 
 // entityPathMatch_pte handles the p/t/ path pattern.
-func entityPathMatch_pte(data map[string]any, pm *PathMatchResult, mdesc map[string]any, why *[]string) string {
+func entityPathMatch_pte(data map[string]any, pm *PathMatchResult, mdesc map[string]any,
+	pathowner map[string]any, why *[]string) string {
 	ment, _ := mdesc["MethodEntity"].(map[string]any)
 	if ment == nil {
 		ment = makeMethodEntityDesc(map[string]any{})
 	}
 
 	*why = append(*why, "path=p/t/")
-	entname := pathNoun(pm, pathParts(data, safeStr(mdesc["path"])), why)
+	parts := pathParts(data, safeStr(mdesc["path"]))
+	entname := pathNoun(pm, parts, why)
 
 	if entname != LiteralName(pm.Matches[PATH_NAME_INDEX[pm.Expr]]) && safeStr(ment["ref"]) != "tag" {
+		// A verb after a run of keys acts on the item they address.
+		if owner := keyOwner(data, parts, lastKey(parts), pathowner); owner != "" {
+			entname = owner
+			ment["verb_on_parent"] = getMatchElem(pm, -1)
+		}
 		*why = append(*why, "verb-noun="+entname)
 	} else if safeStr(ment["cmp"]) != "" || probableEntityMethod(data, mdesc, ment, pm, why) {
 		ecm := entityCmpMatch(data, entname, mdesc, why)

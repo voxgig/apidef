@@ -63,7 +63,9 @@ import type { PathMatch } from '../utility'
 
 import { countRefs, byCodePoint, satAdd } from '../refcount'
 
-import { mergeCollectionPaths, mergeCommandEntities, mergeFoldedEntities } from '../transform/entity'
+import {
+  mergeCollectionPaths, mergeCommandEntities, mergeFoldedEntities, separateSharedPoints,
+} from '../transform/entity'
 
 import { requestSchema } from '../transform/body'
 
@@ -101,6 +103,10 @@ import {
   cleanCmp,
   commandSource,
   relationshipOf,
+  methodOf,
+  singletonPartOf,
+  readOfItem,
+  keyOwner,
   singletonOf,
   subWriteOfItem,
   variantOfCollection,
@@ -975,7 +981,11 @@ function nameFeatures(
   // action that selects the route.
   const actions: Record<string, string> = {}
   const data = { def, guide: work.guide, work }
+  const joined = methodOf(route.path) ?? singletonPartOf(data, route.parts, owners) ??
+    readOfItem(data, route, route.parts, owners)
+  x.joined_view = bit(null != joined && 'method-name' !== joined.why)
   const early: [string, { parent: string, action: string } | null][] = [
+    ['JOINED', joined],
     ['LINK', relationshipOf(data, route.parts, owners)],
     ['SUBWRITE', subWriteOfItem(data, route, route.parts, owners)],
     ['VARIANT', variantOfCollection(data, route, route.parts, owners)],
@@ -1067,6 +1077,11 @@ function nameFeatures(
     x.verb_noun = bit(verbish && 'tag' !== cmp?.ref)
     if (1 === x.verb_noun && 't/p/t/' === pm.expr) {
       sources.VNOUN = itemAbove({ def, work }, route.parts, key, owners) ?? pathName
+    }
+    else if (1 === x.verb_noun && 'p/t/' === pm.expr) {
+      const owner = keyOwner({ def, work }, route.parts, key, owners)
+      x.key_owner_avail = bit(null != owner)
+      sources.VNOUN = owner
     }
     x.short_lit = bit(shortLiteral(pm))
     if (1 === x.short_lit) {
@@ -1275,7 +1290,8 @@ function resolveName(work: Work, route: Route) {
   }
   else if (null != actions[f.cls]) {
     route.verb_on_parent = route.parts[route.parts.length - 1]
-    route.view_on_parent = ('LINK' === f.cls || 'KEYNOUN' === f.cls) && 0 === x.m_write
+    route.view_on_parent = ('LINK' === f.cls || 'KEYNOUN' === f.cls ||
+      ('JOINED' === f.cls && 1 === x.joined_view)) && 0 === x.m_write
     route.view_action = actions[f.cls]
   }
   else if ('SINGLE' === f.cls) {
@@ -1872,6 +1888,8 @@ async function neural01(ctx: ApiDefContext): Promise<Guide> {
   for (const entity of Object.values(guide.entity)) {
     nameEntityParams(entity)
   }
+
+  separateSharedPoints(guide, ctx.def, ctx.log)
 
   let totalPaths = 0
   let totalOps = 0

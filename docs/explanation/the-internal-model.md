@@ -72,7 +72,9 @@ optional argument never counts, since a caller who omits it could not reach
 the point. `q.$action` marks an action point. Downstream this becomes the
 SDK's routing and pre-condition logic: the first point whose selector a
 call meets is chosen, so when points of one operation share a selector,
-only the first can be reached, and apidef records a warning naming them.
+only the first can be reached. The guide gives every such path but the
+plainest an action made of the literals that set it apart, and apidef
+records a warning naming any points that still share one.
 
 ## A body that is not JSON says how it is sent
 

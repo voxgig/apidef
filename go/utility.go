@@ -1231,10 +1231,11 @@ var wrapperWords = map[string]bool{
 func WrapperOf(name string, known []string) (string, bool) {
 	words := splitAndFilter(name, "_")
 
-	// A name of the form noun-for-parent-response wraps the noun.
+	// A name of the form noun-for-parent-response wraps the noun; "per"
+	// reads as "for".
 	forAt := -1
 	for i, w := range words {
-		if w == "for" {
+		if w == "for" || w == "per" {
 			forAt = i
 			break
 		}

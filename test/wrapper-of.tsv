@@ -15,5 +15,7 @@ result	result,thing	null
 owner_pets_for_owner_response	owner,owner_pet,owner_pets_for_owner_response	owner_pet
 pets_for_owner_response	owner,pet	pet
 owner_pets_for_owner	owner,owner_pet	owner_pet
+widgets_per_market	market,widget	widget
+widgets_per_market_response	market,widget,widgets_per_market_response	widget
 things_for_user_response	things_for_user_response,user	null
 for_response	for_response,thing	null

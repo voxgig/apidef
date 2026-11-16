@@ -60,6 +60,12 @@ a fragment, as in `/labels/{labelId}#keys`, unless the route is nothing but
 its fragment. A stray `$` before a placeholder is dropped, so
 `/pets/${petId}` keys `pet` with `{petId}`.
 
+A remote procedure that writes its method into the query string names the
+object before the verb and takes the verb as the action:
+`GET /rpc?method=acme.widgets.getInfo` is `widget` with the action
+`get_info`. The method and the response still decide the operation, so
+`acme.widgets.search`, answering an array, is a `list`.
+
 ## Naming an entity
 
 The entity name is taken from the last collection literal, then normalized so
@@ -439,7 +445,8 @@ naming literal, as `CallRouteAllowedCaller` is under
 the literal's words, `CreateReportResponse` around `reports`: the
 literal names, and the component shapes the result. A one-member wrapper
 named for its noun and its parent, `OwnerPetsForOwnerResponse`, wraps the
-noun it names: `owner_pet`.
+noun it names: `owner_pet`. `Per` reads as `For`, so `WidgetsPerMarket`
+wraps `widget`.
 
 A record that several collections' item routes share is one semantic
 entity, and names them all: `BookAccessControl`, answered by both
@@ -607,9 +614,11 @@ component rule.
 A verb word keeps its own spelling as an action, so `GET /books/contains` is
 the action `contains` on `book`. A placeholder fused to a verb is dropped
 from it: `POST /notices/{noticeId}/retract{format}` is `retract` on
-`notice`. A verb after three or more keys acts on the entity named before
-them, as `POST /shops/{owner}/{shop}/{orderNum}/cancel` is `cancel` on
-`shop`. A verb word followed by a key named for it is a noun:
+`notice`. A verb after a run of keys acts on the item the keys address:
+`POST /shops/{owner}/{shop}/{orderNum}/cancel` follows
+`GET /shops/{owner}/{shop}/{orderNum}`, which answers an `OrderDetail`, so
+`cancel` is an action on `order_detail`. With no item route at the last key,
+the verb acts on the noun before the keys. A verb word followed by a key named for it is a noun:
 `/lines/{lineId}/stop/{stopId}` reads a `stop`.
 
 A literal that opens with a verb word and continues is a verb as well, on
@@ -662,6 +671,19 @@ version parameter is no item key. A read whose response declares an `id` of its
 own, or whose items do, is a sub-resource and keeps the component rule,
 and a plural read answering an array of id-less objects stays a
 collection.
+
+A read of the item's own details is the item, whatever it answers. A
+`details`, `detail` or `info` literal right beneath an item key, as in
+`/messages/{messageId}/details`, is a `load` of `message` with the action
+`details`, spelled as written. A `GET` beneath an item key whose success
+responses are all binary, an image, a file or an archive, downloads the
+item: `/employees/{employeeId}/photo/{width}` is `photo` on `employee`,
+named as a view is.
+
+A singleton without a key keeps its parts. Beneath `/store/settings`,
+`/store/settings/sort-rules` is read, written and deleted, with no schema of
+its own and nothing beneath it, so it is the action `sort_rules` on
+`setting`, plural or not, rather than a collection of its own.
 
 Plurality decides first, and on its own. A verb reads as one instruction —
 `merge`, `revoke`, `resend_confirmation` — where a plural literal names a
@@ -722,6 +744,16 @@ selector, so only one could ever be reached. The highest version with an
 operation the spec does not deprecate is the route. Each older version
 becomes an action named for it, `v1`, or suffixes the action its path already
 has, `archive_v2`, so `$action` still reaches it.
+
+Any other points of one operation that a call cannot tell apart are told
+apart the same way. When an entity holds several paths for one operation,
+none with an action and each needing the same parameters, every path but
+the plainest takes the literals that set it apart as its action:
+`GET /widgets` stays as it is, and `GET /catalog/widgets` becomes the action
+`catalog`. The plainest path is the one whose last literal names the entity,
+then the one with fewest literals. A path that needs another required query
+parameter is already apart, and a variant of one path in its query string,
+`GET /widgets?view=full`, stays as it is.
 
 ## Parameter renames
 
