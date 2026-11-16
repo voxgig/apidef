@@ -111,6 +111,11 @@ than raw OpenAPI types, so downstream validation is uniform. A field's
 `update`); when it does, the difference is recorded under the field's `op`
 map rather than flattened away.
 
+An operation that sends a body takes what it requires of each property the
+body declares from the request alone. Its response may require a property the
+request leaves optional, as a create answering with the values it applied
+does, and that `required` describes the answer, not what a caller must send.
+
 One field stands for every property of its name, whichever operation's
 request or response declares it, so the fields alone cannot tell a request
 property from one only a response carries, such as a read-only `version`.

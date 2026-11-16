@@ -54,7 +54,8 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 						wires[n] = map[string]bool{}
 					}
 					wires[n][fmt.Sprint(fielddef["key$"])] = true
-					addOpField(fields, opname, opfield, carrier == opfield["n"])
+					answer, _ := fielddef["ans$"].(bool)
+					addOpField(fields, opname, opfield, carrier == opfield["n"], answer)
 				}
 			}
 		}
@@ -70,7 +71,7 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 				}
 				media, _ := guideBodyMedia(ctx.Guide, entname, "remove", safeStr(mtarget["m"]), safeStr(mtarget["o"]))
 				if c := carrierOf(mtarget, def, media); c != nil {
-					addOpField(fields, "remove", modelField(carrierDef(c)), true)
+					addOpField(fields, "remove", modelField(carrierDef(c)), true, false)
 				}
 			}
 		}
@@ -749,7 +750,7 @@ func trailingVars(ptMap map[string]any) []string {
 // addOpField adds an operation's field, or merges it into the field of that
 // name, recording what differs for the operation. Mirrors addField and
 // mergeField in ts/src/transform/field.ts.
-func addOpField(fields map[string]any, opname string, opfield map[string]any, carrier bool) {
+func addOpField(fields map[string]any, opname string, opfield map[string]any, carrier bool, answer bool) {
 	name, _ := opfield["n"].(string)
 	if existing, exists := fields[name].(map[string]any); !exists {
 		fields[name] = opfield
@@ -757,9 +758,10 @@ func addOpField(fields map[string]any, opname string, opfield map[string]any, ca
 		newReq, _ := opfield["r"].(bool)
 		existReq, _ := existing["r"].(bool)
 		// Mirrors ts/src/transform/field.ts: a carrier keeps its
-		// array type for its operation.
+		// array type for its operation, and an answer's declaration of a
+		// field the request also declares says nothing of the operation.
 		retyped := carrier && !sameType(opfield["t"], existing["t"])
-		if newReq != existReq || retyped {
+		if !answer && (newReq != existReq || retyped) {
 			opOverrides, _ := existing["op"].(map[string]any)
 			if opOverrides == nil {
 				opOverrides = map[string]any{}
@@ -992,10 +994,22 @@ func findFieldDefs(mtarget map[string]any, def map[string]any, opname string, en
 	// verb's arguments and never the record.
 	reqSchema := requestFieldSchema(def, mtarget, media)
 	if (requestBody != nil || reqSchema != nil) && methodLower != "query" && !isAction {
-		fieldSets = []any{fieldSets, reqSchema}
-	}
-
-	if fieldSets != nil {
+		// Mirrors ts/src/transform/field.ts: what the call sends is required
+		// where the request says so, so the response's declaration of a
+		// property the request also declares is marked.
+		sent := composedFields(reqSchema)
+		declared := map[string]bool{}
+		for _, fd := range sent {
+			declared[fmt.Sprint(fd["key$"])] = true
+		}
+		for _, fd := range composedFields(fieldSets) {
+			if declared[fmt.Sprint(fd["key$"])] {
+				fd["ans$"] = true
+			}
+			fielddefs = append(fielddefs, fd)
+		}
+		fielddefs = append(fielddefs, sent...)
+	} else if fieldSets != nil {
 		extractFieldsTopLevel(fieldSets, &fielddefs)
 	}
 

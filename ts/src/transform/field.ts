@@ -59,7 +59,7 @@ const fieldTransform: Transform = async function(
           for (const fielddef of findFieldDefs(ment, mop, mpoint, def, media)) {
             const opfield = modelField(fielddef)
             ;(wires[opfield.n] = wires[opfield.n] ?? new Set()).add(String((fielddef as any).key$))
-            addField(fields, mop, opfield, carrier === opfield.n)
+            addField(fields, mop, opfield, carrier === opfield.n, true === (fielddef as any).ans$)
           }
         }
       }
@@ -761,12 +761,18 @@ function modelField(fielddef: SchemaDef): ModelField {
 }
 
 
-function addField(fields: Record<string, ModelField>, mop: ModelOp, field: ModelField, carrier: boolean) {
+function addField(
+  fields: Record<string, ModelField>,
+  mop: ModelOp,
+  field: ModelField,
+  carrier: boolean,
+  answer: boolean = false,
+) {
   if (!Object.prototype.hasOwnProperty.call(fields, field.n)) {
     fields[field.n] = field
   }
   else {
-    mergeField(mop, fields[field.n], field, carrier)
+    mergeField(mop, fields[field.n], field, carrier, answer)
   }
 }
 
@@ -925,17 +931,25 @@ function findFieldDefs(
     // verb's arguments, never the record.
     const reqschema = requestFieldSchema(def, mpoint, media)
     if ((requestBody || null != reqschema) && 'query' !== method && !isAction) {
-      fieldSets = [fieldSets, reqschema]
+      // What the call sends is required where the request says so. The
+      // response's `required` describes the answer, so a property the request
+      // also declares is marked to leave the op's requiredness alone.
+      const sent = composedFields(reqschema)
+      const declared = new Set(sent.map((fd: any) => fd.key$))
+      fielddefs.push(
+        ...composedFields(fieldSets).map((fd: any) => declared.has(fd.key$) ? { ...fd, ans$: true } : fd),
+        ...sent)
     }
 
+    else {
+      if (fieldSets && (Array.isArray(fieldSets.allOf) || fieldSets.properties)) {
+        fieldSets = [fieldSets]
+      }
 
-    if (fieldSets && (Array.isArray(fieldSets.allOf) || fieldSets.properties)) {
-      fieldSets = [fieldSets]
+      each(fieldSets, (fieldSet: any) => {
+        fielddefs.push(...composedFields(fieldSet))
+      })
     }
-
-    each(fieldSets, (fieldSet: any) => {
-      fielddefs.push(...composedFields(fieldSet))
-    })
   }
 
   // Fallback: infer fields from example response data when no schema properties found
@@ -1178,14 +1192,17 @@ function inferTypeFromValue(value: any): string {
 
 
 // A carrier keeps its array type for its operation where it meets a field of
-// another type.
+// another type. An answer's declaration of a field the request also declares
+// says nothing of the operation.
 function mergeField(
   mop: ModelOp,
   existingField: ModelField,
   newField: ModelField,
   carrier: boolean = false,
+  answer: boolean = false,
 ) {
-  if (newField.r !== existingField.r || (carrier && !sameType(newField.t, existingField.t))) {
+  if (!answer &&
+    (newField.r !== existingField.r || (carrier && !sameType(newField.t, existingField.t)))) {
     existingField.op[mop.name] = {
       req: newField.r,
       type: newField.t,

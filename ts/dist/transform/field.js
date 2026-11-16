@@ -28,7 +28,7 @@ const fieldTransform = async function (ctx) {
                     for (const fielddef of findFieldDefs(ment, mop, mpoint, def, media)) {
                         const opfield = modelField(fielddef);
                         (wires[opfield.n] = wires[opfield.n] ?? new Set()).add(String(fielddef.key$));
-                        addField(fields, mop, opfield, carrier === opfield.n);
+                        addField(fields, mop, opfield, carrier === opfield.n, true === fielddef.ans$);
                     }
                 }
             }
@@ -562,12 +562,12 @@ function modelField(fielddef) {
     }
     return mfield;
 }
-function addField(fields, mop, field, carrier) {
+function addField(fields, mop, field, carrier, answer = false) {
     if (!Object.prototype.hasOwnProperty.call(fields, field.n)) {
         fields[field.n] = field;
     }
     else {
-        mergeField(mop, fields[field.n], field, carrier);
+        mergeField(mop, fields[field.n], field, carrier, answer);
     }
 }
 // GraphQL entity fields come straight from the object type: every
@@ -692,14 +692,21 @@ function findFieldDefs(ment, mop, mpoint, def, media) {
         // verb's arguments, never the record.
         const reqschema = (0, body_1.requestFieldSchema)(def, mpoint, media);
         if ((requestBody || null != reqschema) && 'query' !== method && !isAction) {
-            fieldSets = [fieldSets, reqschema];
+            // What the call sends is required where the request says so. The
+            // response's `required` describes the answer, so a property the request
+            // also declares is marked to leave the op's requiredness alone.
+            const sent = composedFields(reqschema);
+            const declared = new Set(sent.map((fd) => fd.key$));
+            fielddefs.push(...composedFields(fieldSets).map((fd) => declared.has(fd.key$) ? { ...fd, ans$: true } : fd), ...sent);
         }
-        if (fieldSets && (Array.isArray(fieldSets.allOf) || fieldSets.properties)) {
-            fieldSets = [fieldSets];
+        else {
+            if (fieldSets && (Array.isArray(fieldSets.allOf) || fieldSets.properties)) {
+                fieldSets = [fieldSets];
+            }
+            (0, jostraca_1.each)(fieldSets, (fieldSet) => {
+                fielddefs.push(...composedFields(fieldSet));
+            });
         }
-        (0, jostraca_1.each)(fieldSets, (fieldSet) => {
-            fielddefs.push(...composedFields(fieldSet));
-        });
     }
     // Fallback: infer fields from example response data when no schema properties found
     if (0 === fielddefs.length && opdef) {
@@ -918,9 +925,11 @@ function inferTypeFromValue(value) {
     return 'string';
 }
 // A carrier keeps its array type for its operation where it meets a field of
-// another type.
-function mergeField(mop, existingField, newField, carrier = false) {
-    if (newField.r !== existingField.r || (carrier && !(0, body_1.sameType)(newField.t, existingField.t))) {
+// another type. An answer's declaration of a field the request also declares
+// says nothing of the operation.
+function mergeField(mop, existingField, newField, carrier = false, answer = false) {
+    if (!answer &&
+        (newField.r !== existingField.r || (carrier && !(0, body_1.sameType)(newField.t, existingField.t)))) {
         existingField.op[mop.name] = {
             req: newField.r,
             type: newField.t,
