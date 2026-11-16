@@ -6,18 +6,14 @@ exports.parse = parse;
 exports.decycledChild = decycledChild;
 exports.normalizePathKeys = normalizePathKeys;
 exports.colonPathKeys = colonPathKeys;
-const jsonic_1 = require("@tabnas/jsonic");
 const openapi_1 = require("@tabnas/openapi");
 const utility_1 = require("./utility");
-const yamlalias_1 = require("./yamlalias");
 const graphql_1 = require("./parse/graphql");
 // Matches any line that is not purely a YAML comment or whitespace.
 const RE_HAS_CONTENT = /^\s*[^#\s]/m;
 // Parse an API definition source into a JSON sructure.
 async function parse(kind, source, meta) {
     if ('OpenAPI' === kind) {
-        validateSource(kind, source, meta);
-        validateAliases(kind, source, meta);
         try {
             const def = await parseOpenAPI(source, meta);
             return def;
@@ -64,12 +60,25 @@ function isOwnError(err) {
     return 'string' === typeof err?.message && err.message.startsWith('@voxgig/apidef:');
 }
 async function parseOpenAPI(source, _meta) {
+    if ('string' !== typeof source) {
+        throw new Error(`@voxgig/apidef: parse: OpenAPI: source must be a string`);
+    }
     let parsed;
     try {
-        parsed = (0, openapi_1.parse)(source, { duplicates: 'merge' });
+        // The reader's size limit is for a process of unknown memory; this one
+        // has always read whatever it was given.
+        parsed = (0, openapi_1.parse)(source, { duplicates: 'merge', maxBytes: Infinity });
     }
     catch (err) {
-        if ('openapi_root' === err?.code || 'openapi_stream' === err?.code) {
+        const code = err?.code;
+        if ('openapi_root' === code && 'empty' === err.details?.kind) {
+            throw new Error(`@voxgig/apidef: parse: OpenAPI: source is empty`);
+        }
+        if ('openapi_alias_budget' === code) {
+            throw new Error(`@voxgig/apidef: parse: OpenAPI: YAML aliases would expand the source to` +
+                ` about ${err.details.size} bytes, past the limit of ${err.details.budget}`);
+        }
+        if ('openapi_root' === code || 'openapi_stream' === code) {
             throw new Error(`@voxgig/apidef: parse: JSON/YAML source must be an object`);
         }
         throw err;
@@ -78,9 +87,10 @@ async function parseOpenAPI(source, _meta) {
     if (!parsed.openapi && !parsed.swagger) {
         throw new Error(`@voxgig/apidef: parse: Unsupported spec: missing 'openapi' or 'swagger' version field`);
     }
-    if (SURROGATE_RE.test(source)) {
-        parsed = wellFormed(parsed, new Map());
-    }
+    // A lone surrogate is read as U+FFFD, which is what an encoder writes in
+    // its place in UTF-8. Keys that this makes equal are merged, as the
+    // reader merges a repeated key.
+    parsed = (0, openapi_1.wellFormed)(parsed, { duplicates: 'merge' });
     if (null == parsed.components) {
         parsed.components = {};
     }
@@ -128,37 +138,6 @@ function dropIgnoredHeaders(parsed) {
     if (0 < dropped.length)
         parsed[IGNORED_HEADERS_KEY] = dropped;
 }
-// A surrogate escape, or a raw lone surrogate unit.
-const SURROGATE_RE = /\\(?:u\{?|U)0*[dD][89a-fA-F][0-9a-fA-F]{2}|[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
-const LONE_SURROGATE_RE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
-function wellFormedString(s) {
-    return s.replace(LONE_SURROGATE_RE, '�');
-}
-// The Go parser reads a lone surrogate as U+FFFD, and so does every UTF-8
-// writer. Keys it makes equal merge as the parser merges a repeated key.
-function wellFormed(node, done) {
-    if ('string' === typeof node)
-        return wellFormedString(node);
-    if (null == node || 'object' !== typeof node)
-        return node;
-    if (done.has(node))
-        return done.get(node);
-    if (Array.isArray(node)) {
-        done.set(node, node);
-        for (let i = 0; i < node.length; i++)
-            node[i] = wellFormed(node[i], done);
-        return node;
-    }
-    const out = Object.create(Object.getPrototypeOf(node));
-    done.set(node, out);
-    for (const key of Object.keys(node)) {
-        const wkey = wellFormedString(key);
-        const val = wellFormed(node[key], done);
-        const prev = Object.prototype.hasOwnProperty.call(out, wkey) ? out[wkey] : undefined;
-        out[wkey] = null == prev ? val : jsonic_1.Jsonic.util.deep(prev, val);
-    }
-    return out;
-}
 function renameKeys(obj, keys) {
     const out = Object.create(Object.getPrototypeOf(obj));
     Object.keys(obj).forEach((key, i) => { out[keys[i]] = obj[key]; });
@@ -179,7 +158,7 @@ function unquotePathKey(key) {
     try {
         const decoded = JSON.parse(key);
         if ('string' === typeof decoded)
-            return wellFormedString(decoded);
+            return (0, openapi_1.wellFormed)(decoded);
     }
     catch (_e) {
         // Not a JSON string: an escape only YAML knows, so strip the quotes alone.
@@ -248,15 +227,6 @@ function decycle(root) {
 }
 function isRecord(node) {
     return null != node && 'object' === typeof node && !Array.isArray(node);
-}
-function validateAliases(kind, source, meta) {
-    const size = (0, yamlalias_1.yamlAliasedSize)(source);
-    const limit = (0, yamlalias_1.yamlAliasLimit)(source);
-    if (limit < size) {
-        throw new Error(`@voxgig/apidef: parse: ${kind}: YAML aliases would expand the source to` +
-            ` about ${size} bytes, past the limit of ${limit}` +
-            ` (${(0, utility_1.relativizePath)(meta.file)})`);
-    }
 }
 function validateSource(kind, source, meta) {
     if (typeof source !== 'string') {

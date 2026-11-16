@@ -104,7 +104,7 @@ import {
   colonPathKeys,
 } from '../dist/parse'
 
-import { yamlAliasedSize } from '../dist/yamlalias'
+import { aliasedSize as yamlAliasedSize } from '@tabnas/openapi'
 
 import {
   countRefs,

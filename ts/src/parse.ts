@@ -1,10 +1,12 @@
 /* Copyright (c) 2024-2025 Voxgig, MIT License */
 
-import { Jsonic } from '@tabnas/jsonic'
-import { parse as readOpenAPI, resolve as resolveOpenAPI } from '@tabnas/openapi'
+import {
+  parse as readOpenAPI,
+  resolve as resolveOpenAPI,
+  wellFormed,
+} from '@tabnas/openapi'
 
 import { relativizePath } from './utility'
-import { yamlAliasedSize, yamlAliasLimit } from './yamlalias'
 
 import { parseGraphQL } from './parse/graphql'
 
@@ -16,9 +18,6 @@ const RE_HAS_CONTENT = /^\s*[^#\s]/m
 // Parse an API definition source into a JSON sructure.
 async function parse(kind: string, source: any, meta: { file: string }) {
   if ('OpenAPI' === kind) {
-
-    validateSource(kind, source, meta)
-    validateAliases(kind, source, meta)
 
     try {
       const def = await parseOpenAPI(source, meta)
@@ -76,13 +75,29 @@ function isOwnError(err: any): boolean {
 
 
 async function parseOpenAPI(source: any, _meta?: any) {
+  if ('string' !== typeof source) {
+    throw new Error(`@voxgig/apidef: parse: OpenAPI: source must be a string`)
+  }
+
   let parsed: any
 
   try {
-    parsed = readOpenAPI(source, { duplicates: 'merge' })
+    // The reader's size limit is for a process of unknown memory; this one
+    // has always read whatever it was given.
+    parsed = readOpenAPI(source, { duplicates: 'merge', maxBytes: Infinity })
   }
   catch (err: any) {
-    if ('openapi_root' === err?.code || 'openapi_stream' === err?.code) {
+    const code = err?.code
+    if ('openapi_root' === code && 'empty' === err.details?.kind) {
+      throw new Error(`@voxgig/apidef: parse: OpenAPI: source is empty`)
+    }
+    if ('openapi_alias_budget' === code) {
+      throw new Error(
+        `@voxgig/apidef: parse: OpenAPI: YAML aliases would expand the source to` +
+        ` about ${err.details.size} bytes, past the limit of ${err.details.budget}`
+      )
+    }
+    if ('openapi_root' === code || 'openapi_stream' === code) {
       throw new Error(
         `@voxgig/apidef: parse: JSON/YAML source must be an object`
       )
@@ -97,9 +112,10 @@ async function parseOpenAPI(source: any, _meta?: any) {
     )
   }
 
-  if (SURROGATE_RE.test(source)) {
-    parsed = wellFormed(parsed, new Map())
-  }
+  // A lone surrogate is read as U+FFFD, which is what an encoder writes in
+  // its place in UTF-8. Keys that this makes equal are merged, as the
+  // reader merges a repeated key.
+  parsed = wellFormed(parsed, { duplicates: 'merge' })
 
   if (null == parsed.components) {
     parsed.components = {}
@@ -154,44 +170,6 @@ function dropIgnoredHeaders(parsed: any) {
 }
 
 
-// A surrogate escape, or a raw lone surrogate unit.
-const SURROGATE_RE =
-  /\\(?:u\{?|U)0*[dD][89a-fA-F][0-9a-fA-F]{2}|[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/
-
-const LONE_SURROGATE_RE =
-  /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g
-
-
-function wellFormedString(s: string): string {
-  return s.replace(LONE_SURROGATE_RE, '�')
-}
-
-
-// The Go parser reads a lone surrogate as U+FFFD, and so does every UTF-8
-// writer. Keys it makes equal merge as the parser merges a repeated key.
-function wellFormed(node: any, done: Map<any, any>): any {
-  if ('string' === typeof node) return wellFormedString(node)
-  if (null == node || 'object' !== typeof node) return node
-  if (done.has(node)) return done.get(node)
-
-  if (Array.isArray(node)) {
-    done.set(node, node)
-    for (let i = 0; i < node.length; i++) node[i] = wellFormed(node[i], done)
-    return node
-  }
-
-  const out = Object.create(Object.getPrototypeOf(node))
-  done.set(node, out)
-  for (const key of Object.keys(node)) {
-    const wkey = wellFormedString(key)
-    const val = wellFormed(node[key], done)
-    const prev = Object.prototype.hasOwnProperty.call(out, wkey) ? out[wkey] : undefined
-    out[wkey] = null == prev ? val : Jsonic.util.deep(prev, val)
-  }
-  return out
-}
-
-
 function renameKeys(obj: any, keys: string[]): any {
   const out = Object.create(Object.getPrototypeOf(obj))
   Object.keys(obj).forEach((key, i) => { out[keys[i]] = obj[key] })
@@ -212,7 +190,7 @@ function unquotePathKey(key: string): string {
   if ('"' !== key[0]) return key
   try {
     const decoded = JSON.parse(key)
-    if ('string' === typeof decoded) return wellFormedString(decoded)
+    if ('string' === typeof decoded) return wellFormed(decoded)
   }
   catch (_e: any) {
     // Not a JSON string: an escape only YAML knows, so strip the quotes alone.
@@ -296,19 +274,6 @@ function decycle(root: any) {
 
 function isRecord(node: any): boolean {
   return null != node && 'object' === typeof node && !Array.isArray(node)
-}
-
-
-function validateAliases(kind: string, source: string, meta: { file: string }) {
-  const size = yamlAliasedSize(source)
-  const limit = yamlAliasLimit(source)
-  if (limit < size) {
-    throw new Error(
-      `@voxgig/apidef: parse: ${kind}: YAML aliases would expand the source to` +
-      ` about ${size} bytes, past the limit of ${limit}` +
-      ` (${relativizePath(meta.file)})`
-    )
-  }
 }
 
 
