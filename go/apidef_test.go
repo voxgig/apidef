@@ -3133,6 +3133,86 @@ func TestFieldSpecFactsFromRequestBody(t *testing.T) {
 	}
 }
 
+// Mirrors ts/test/field-spec-facts.test.ts: the request decides what a create
+// requires of a field it declares.
+func TestFieldRequiredFromRequest(t *testing.T) {
+	json := func(schema map[string]any) map[string]any {
+		return map[string]any{"content": map[string]any{"application/json": map[string]any{"schema": schema}}}
+	}
+	nullableInt := func() map[string]any { return map[string]any{"type": []any{"integer", "null"}} }
+	str := func() map[string]any { return map[string]any{"type": "string"} }
+
+	paths := map[string]any{
+		"/sandboxes/{id}": map[string]any{
+			"get": map[string]any{"responses": map[string]any{
+				"200": json(map[string]any{
+					"type":       "object",
+					"required":   []any{"id", "name"},
+					"properties": map[string]any{"id": str(), "name": str(), "ttl": nullableInt()},
+				}),
+			}},
+		},
+		"/sandboxes": map[string]any{
+			"post": map[string]any{
+				"requestBody": json(map[string]any{
+					"type":     "object",
+					"required": []any{"name", "size"},
+					"properties": map[string]any{
+						"name": str(), "size": str(),
+						"ttl": map[string]any{"type": []any{"integer", "null"}, "default": 3600},
+					},
+				}),
+				"responses": map[string]any{
+					"202": json(map[string]any{"allOf": []any{
+						map[string]any{"type": "object", "properties": map[string]any{"name": str()}},
+						map[string]any{
+							"type":       "object",
+							"required":   []any{"status", "ttl"},
+							"properties": map[string]any{"status": str(), "ttl": nullableInt()},
+						},
+					}}),
+				},
+			},
+		},
+	}
+
+	ment := synFields(t, "sandbox", map[string]any{
+		"load":   synOp("load", map[string]any{"o": "/sandboxes/{id}", "m": "GET", "k": "json"}),
+		"create": synOp("create", map[string]any{"o": "/sandboxes", "m": "POST", "k": "json"}),
+	}, paths, nil)
+	fields := ment["fields"].(map[string]any)
+	field := func(name string) map[string]any {
+		f, ok := fields[name].(map[string]any)
+		if !ok {
+			t.Fatalf("no field %s: %v", name, fields)
+		}
+		return f
+	}
+	createOf := func(name string) any {
+		op, _ := field(name)["op"].(map[string]any)
+		return op["create"]
+	}
+
+	if r := field("ttl")["r"]; r != false {
+		t.Errorf("ttl.r = %v, want false", r)
+	}
+	if got := createOf("ttl"); got != nil {
+		t.Errorf("ttl.op.create = %v, want none: the answer made the create require what the request leaves optional", got)
+	}
+	if r := field("name")["r"]; r != true {
+		t.Errorf("name.r = %v, want true", r)
+	}
+	if got := createOf("name"); got != nil {
+		t.Errorf("name.op.create = %v, want none: the answer made the create leave out what the request requires", got)
+	}
+	if r := field("size")["r"]; r != true {
+		t.Errorf("size.r = %v, want true", r)
+	}
+	if got := createOf("size"); got != nil {
+		t.Errorf("size.op.create = %v, want none", got)
+	}
+}
+
 func TestEntityFieldActivationDefaults(t *testing.T) {
 	field := map[string]any{"n": "a", "t": "`$STRING`", "r": true, "a": true}
 	inactive := map[string]any{"n": "hidden", "t": "`$STRING`", "r": false, "a": false}
