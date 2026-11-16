@@ -92,7 +92,8 @@ function guideMedia(
   mpoint: ModelPoint,
 ): { body?: string, response?: string } {
   const gops = guide?.entity?.[entname]?.path?.[mpoint.o]?.op ?? {}
-  for (const name of 'update' === opname ? ['update', 'patch'] : [opname]) {
+  // update also holds a promoted PATCH and a create made only of actions.
+  for (const name of 'update' === opname ? ['update', 'patch', 'create'] : [opname]) {
     const gop = gops[name]
     if (null != gop && guideActive(gop) &&
       String(gop.method ?? '').toUpperCase() === String(mpoint.m).toUpperCase()) {

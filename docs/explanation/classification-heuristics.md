@@ -386,6 +386,13 @@ An action borrows an op slot rather than owning one: `PUT .../merge` sits in
 path is promoted to `update` and the action points ride along, so a plain
 `update()` reaches the real update and `$action` selects the verb.
 
+A `create` made only of actions on the record creates nothing: taxonomy's
+`POST /{year}/domain/{did}/revoke` acts on a domain that already exists. Its
+points ride along into the entity's own `update`, and no `create` is emitted,
+so the verb is reached through `update()` with `$action`. Where the entity has
+no `update` of its own, the action keeps the `create` slot and a plain
+`create()` sends it, and the build records a warning that names the action.
+
 Only a literal names an action. An element that holds a placeholder, such as
 `{threadId}.json` in `/{board}/thread/{threadId}.json`, carries a parameter,
 never a verb. A custom method writes its verb after a colon in the last

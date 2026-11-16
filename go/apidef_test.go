@@ -1787,6 +1787,76 @@ func TestGuideItemRecord(t *testing.T) {
 	}
 }
 
+// Mirrors the TS `guide-action-create` case: a create made only of actions on
+// the record joins the entity's own update, and with none to join it stays,
+// with a warning.
+func TestGuideActionCreate(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, Strategy: "heuristic01"}).Generate(map[string]any{
+		"model": map[string]any{"name": "action-create", "def": "action-create-def.json"},
+		"build": map[string]any{"spec": map[string]any{"base": "../ts/test/action-create"}},
+		"ctrl": map[string]any{"step": map[string]any{
+			"parse": true, "guide": true, "transformers": true,
+			"builders": false, "generate": false,
+		}},
+	})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v res=%+v", err, res)
+	}
+
+	want, err := os.ReadFile("../ts/test/action-create/guide/base-guide.aontu")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(filepath.Join(folder, "guide", "base-guide.aontu"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != string(want) {
+		t.Errorf("base guide differs from the TypeScript one:\n%s", string(got))
+	}
+
+	main, _ := res.ApiModel["main"].(map[string]any)
+	kit, _ := main[KIT].(map[string]any)
+	entities, _ := kit["entity"].(map[string]any)
+	points := func(ename string, opname string) []string {
+		ent, _ := entities[ename].(map[string]any)
+		ops, _ := ent["op"].(map[string]any)
+		mop, _ := ops[opname].(map[string]any)
+		list, _ := mop["points"].([]any)
+		out := []string{}
+		for _, pt := range list {
+			mpoint, _ := pt.(map[string]any)
+			q, _ := mpoint["q"].(map[string]any)
+			action, _ := q["$action"].(string)
+			out = append(out, fmt.Sprintf("%v %v %s", mpoint["m"], mpoint["o"], action))
+		}
+		return out
+	}
+
+	if got := points("domain", "create"); len(got) != 0 {
+		t.Errorf("the revoke action still stands as a create: %v", got)
+	}
+	if got, want := strings.Join(points("domain", "update"), "\n"),
+		"PATCH /domains/{domain_id} \nPOST /domains/{domain_id}/revoke revoke"; got != want {
+		t.Errorf("domain update\ngot\n%s\nwant\n%s", got, want)
+	}
+	if got, want := strings.Join(points("token", "create"), "\n"),
+		"POST /tokens/{token_id}/revoke revoke"; got != want {
+		t.Errorf("token create\ngot\n%s\nwant\n%s", got, want)
+	}
+
+	notes := []string{}
+	for _, w := range res.Ctx.Warn.History() {
+		note, _ := w["note"].(string)
+		notes = append(notes, note)
+	}
+	if got, want := strings.Join(notes, "\n"),
+		"Create on entity=token has no route of its own, only the action revoke, so a plain create sends it. Set the route's op in the guide if it should not."; got != want {
+		t.Errorf("warnings\ngot\n%s\nwant\n%s", got, want)
+	}
+}
+
 // Mirrors the TS `guide-request-paths` case: the same points and warnings, and
 // the base guide that case writes to ts/test/request-paths/guide/.
 func TestGuideRequestPaths(t *testing.T) {
@@ -1903,6 +1973,8 @@ var requestPathsPoints = []string{
 }
 
 var requestPathsWarnings = []string{
+	"Create on entity=message has no route of its own, only the action cancel, so a plain create sends it. Set the route's op in the guide if it should not.",
+	"Create on entity=schedule has no route of its own, only the action cancel, so a plain create sends it. Set the route's op in the guide if it should not.",
 	"Parameter username on entity=permission op=load path=/contacts/groups/{groupId}/permissions/{username} has no `in`; it names the path placeholder {username}, so it is taken as a path parameter. A parameter needs an `in`.",
 	"Parameter verbose on entity=permission op=load path=/contacts/groups/{groupId}/permissions/{username} has no `in`, so it is taken as a query parameter. A parameter needs an `in`.",
 	"Parameter username on entity=permission op=remove path=/contacts/groups/{groupId}/permissions/{username} has no `in`; it names the path placeholder {username}, so it is taken as a path parameter. A parameter needs an `in`.",

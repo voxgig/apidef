@@ -1814,6 +1814,51 @@ describe('apidef', () => {
   })
 
 
+  // A create made only of actions on the record joins the entity's own
+  // update. With no update to join it stays, and the build says so.
+  test('guide-action-create', async () => {
+    const folder = __dirname + '/../test/action-create'
+
+    const build = await ApiDef.makeBuild({ folder })
+
+    const bres = await build(
+      { name: 'action-create', def: 'action-create-def.json' },
+      {
+        spec: {
+          base: folder,
+          buildargs: {
+            apidef: {
+              ctrl: { step: {
+                parse: true, guide: true, transformers: true,
+                builders: false, generate: false,
+              } }
+            }
+          }
+        }
+      },
+      {}
+    )
+
+    assert.ok(bres.ok, 'build failed: ' + bres.err?.message)
+
+    const entity = bres.apimodel.main.kit.entity
+    const points = (op: any) => (op?.points ?? []).map((pt: any) => [pt.m, pt.o, pt.q.$action])
+
+    assert.strictEqual(entity.domain.op.create, undefined, 'the revoke action still stands as a create')
+    assert.deepStrictEqual(points(entity.domain.op.update), [
+      ['PATCH', '/domains/{domain_id}', undefined],
+      ['POST', '/domains/{domain_id}/revoke', 'revoke'],
+    ])
+
+    assert.deepStrictEqual(points(entity.token.op.create), [
+      ['POST', '/tokens/{token_id}/revoke', 'revoke'],
+    ])
+    assert.deepStrictEqual(bres.ctx.warn.history.map((w: any) => w.note), [
+      "Create on entity=token has no route of its own, only the action revoke, so a plain create sends it. Set the route's op in the guide if it should not.",
+    ])
+  })
+
+
   // The request each point sends: placeholders beside other text in their
   // element, a parameter declared without `in`, and custom methods beside
   // their trailing-verb spelling. go/apidef_test.go reads the base guide this
@@ -3030,6 +3075,8 @@ const REQUEST_PATHS_POINTS = [
 
 
 const REQUEST_PATHS_WARNINGS = [
+  "Create on entity=message has no route of its own, only the action cancel, so a plain create sends it. Set the route's op in the guide if it should not.",
+  "Create on entity=schedule has no route of its own, only the action cancel, so a plain create sends it. Set the route's op in the guide if it should not.",
   'Parameter username on entity=permission op=load path=/contacts/groups/{groupId}/permissions/{username} has no `in`; it names the path placeholder {username}, so it is taken as a path parameter. A parameter needs an `in`.',
   'Parameter verbose on entity=permission op=load path=/contacts/groups/{groupId}/permissions/{username} has no `in`, so it is taken as a query parameter. A parameter needs an `in`.',
   'Parameter username on entity=permission op=remove path=/contacts/groups/{groupId}/permissions/{username} has no `in`; it names the path placeholder {username}, so it is taken as a path parameter. A parameter needs an `in`.',
