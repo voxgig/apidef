@@ -206,8 +206,8 @@ function meta(folder) {
         const res = await inProject(folder, () => generate(folder));
         node_assert_1.default.strictEqual(res.ok, true, String(res.err?.message));
         const text = warnings(folder);
-        node_assert_1.default.ok(text?.includes('on entity=planet path=/api/planet is dropped'), text);
-        node_assert_1.default.ok(!text?.includes('!! BUILD FAILED !!'), text);
+        node_assert_1.default.ok(text?.includes('on entity=planet path=/api/planet is dropped'), String(text));
+        node_assert_1.default.ok(!text?.includes('!! BUILD FAILED !!'), String(text));
     });
     (0, node_test_1.test)('write-failure-fails-build-and-writes-warnings', async () => {
         const folder = stage();
@@ -216,7 +216,7 @@ function meta(folder) {
         node_assert_1.default.strictEqual(res.ok, false);
         node_assert_1.default.ok(res.err);
         node_assert_1.default.deepStrictEqual(res.steps, ['parse', 'guide', 'transformers', 'builders']);
-        node_assert_1.default.ok(warnings(folder)?.includes('!! BUILD FAILED !!'), warnings(folder));
+        node_assert_1.default.ok(warnings(folder)?.includes('!! BUILD FAILED !!'), String(warnings(folder)));
     });
     (0, node_test_1.test)('pre-generate-failure-writes-warnings', async () => {
         const folder = stage();
@@ -224,7 +224,7 @@ function meta(folder) {
         node_assert_1.default.strictEqual(res.ok, false);
         node_assert_1.default.ok(res.err);
         node_assert_1.default.deepStrictEqual(res.steps, []);
-        node_assert_1.default.ok(warnings(folder)?.includes('!! BUILD FAILED !!'), warnings(folder));
+        node_assert_1.default.ok(warnings(folder)?.includes('!! BUILD FAILED !!'), String(warnings(folder)));
     });
     (0, node_test_1.test)('parse-failure-writes-warnings', async () => {
         const folder = stage();
@@ -232,14 +232,14 @@ function meta(folder) {
         const res = await inProject(folder, () => generate(folder, 'bad.yaml'));
         node_assert_1.default.strictEqual(res.ok, false);
         node_assert_1.default.deepStrictEqual(res.steps, []);
-        node_assert_1.default.ok(warnings(folder)?.includes('!! BUILD FAILED !!'), warnings(folder));
+        node_assert_1.default.ok(warnings(folder)?.includes('!! BUILD FAILED !!'), String(warnings(folder)));
     });
     (0, node_test_1.test)('guide-failure-writes-warnings', async () => {
         const folder = stage('@"./nope.aontu"');
         const res = await inProject(folder, () => generate(folder));
         node_assert_1.default.strictEqual(res.ok, false);
         node_assert_1.default.deepStrictEqual(res.steps, ['parse']);
-        node_assert_1.default.ok(warnings(folder)?.includes('!! BUILD FAILED !!'), warnings(folder));
+        node_assert_1.default.ok(warnings(folder)?.includes('!! BUILD FAILED !!'), String(warnings(folder)));
     });
 });
 //# sourceMappingURL=generate.test.js.map

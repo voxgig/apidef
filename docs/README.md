@@ -5,8 +5,8 @@ an **internal API model** — a normalized description of the *entities*,
 *operations*, *fields*, and *flows* implied by the spec. Downstream tooling
 (notably `sdkgen`) turns that model into client SDKs.
 
-In short: **OpenAPI in → structured API model out**, with sensible naming and
-CRUD classification applied automatically.
+In short: **OpenAPI in → structured API model out**, and apidef applies
+sensible naming and CRUD classification automatically.
 
 The documentation is organized into four kinds of material. Start with the
 one that matches what you need right now:

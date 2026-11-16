@@ -707,6 +707,13 @@ A literal after two keys is an action too.
 through their tag, and take `pin` and `mute` as actions, so `$action`
 selects between them where their parameters cannot.
 
+A `create` made only of actions on the record creates nothing:
+`POST /domains/{domain_id}/revoke` acts on a domain that already exists. Its
+points ride along into the entity's own `update`, and no `create` is emitted,
+so the verb is reached through `update()` with `$action`. Where the entity has
+no `update` of its own, the action keeps the `create` slot and a plain
+`create()` sends it, and the build records a warning that names the action.
+
 Only a literal names an action. An element that holds a placeholder, such as
 `{threadId}.json` in `/{board}/thread/{threadId}.json`, carries a parameter,
 never a verb. A custom method writes its verb after a colon in the last

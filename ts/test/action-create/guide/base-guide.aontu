@@ -1,0 +1,42 @@
+# Generated from the API definition and overwritten on every build: do not
+# edit this file. Put customizations in the guide entry file, which includes
+# this one and overrides its defaults:
+#   guide.aontu
+
+guide: {
+  metrics: count: entity: 2
+  metrics: count: path: 6
+  metrics: count: method: 7
+
+  entity: domain: {
+    path: "/domains": {
+      op: list: method: *GET
+    }
+    path: "/domains/{domain_id}": {
+      rename: param: "domain_id": *"id"
+      op: load: method: *GET
+      op: patch: method: *PATCH
+    }
+    path: "/domains/{domain_id}/revoke": {
+      action: "revoke": {}
+      rename: param: "domain_id": *"id"
+      op: create: method: *POST
+    }
+  }
+
+  entity: token: {
+    path: "/tokens": {
+      op: list: method: *GET
+    }
+    path: "/tokens/{token_id}": {
+      rename: param: "token_id": *"id"
+      op: load: method: *GET
+    }
+    path: "/tokens/{token_id}/revoke": {
+      action: "revoke": {}
+      rename: param: "token_id": *"id"
+      op: create: method: *POST
+    }
+  }
+
+}

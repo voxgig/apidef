@@ -1,0 +1,271 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Action Create API",
+    "version": "1.0.0",
+    "description": "Fixture: a create made only of actions on the record joins update when the entity has one, and otherwise stays with a warning."
+  },
+  "servers": [
+    {
+      "url": "https://action-create.example.com"
+    }
+  ],
+  "paths": {
+    "/domains": {
+      "get": {
+        "operationId": "domains/list",
+        "summary": "List domains",
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/domain-record"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "domains"
+        ]
+      }
+    },
+    "/domains/{domain_id}": {
+      "get": {
+        "operationId": "domains/get",
+        "summary": "Get a domain",
+        "parameters": [
+          {
+            "name": "domain_id",
+            "in": "path",
+            "required": true,
+            "description": "The id of the domain.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/domain-record"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "domains"
+        ]
+      },
+      "patch": {
+        "operationId": "domains/update",
+        "summary": "Update a domain",
+        "parameters": [
+          {
+            "name": "domain_id",
+            "in": "path",
+            "required": true,
+            "description": "The id of the domain.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/domain-record"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "domains"
+        ]
+      }
+    },
+    "/domains/{domain_id}/revoke": {
+      "post": {
+        "operationId": "domains/revoke",
+        "summary": "Revoke a domain",
+        "parameters": [
+          {
+            "name": "domain_id",
+            "in": "path",
+            "required": true,
+            "description": "The id of the domain.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "domains"
+        ]
+      }
+    },
+    "/tokens": {
+      "get": {
+        "operationId": "tokens/list",
+        "summary": "List tokens",
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/token-record"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "tokens"
+        ]
+      }
+    },
+    "/tokens/{token_id}": {
+      "get": {
+        "operationId": "tokens/get",
+        "summary": "Get a token",
+        "parameters": [
+          {
+            "name": "token_id",
+            "in": "path",
+            "required": true,
+            "description": "The id of the token.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/token-record"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "tokens"
+        ]
+      }
+    },
+    "/tokens/{token_id}/revoke": {
+      "post": {
+        "operationId": "tokens/revoke",
+        "summary": "Revoke a token",
+        "parameters": [
+          {
+            "name": "token_id",
+            "in": "path",
+            "required": true,
+            "description": "The id of the token.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "tokens"
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "domain-record": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "token-record": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

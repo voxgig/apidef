@@ -221,8 +221,8 @@ describe('generate', () => {
 
     assert.strictEqual(res.ok, true, String(res.err?.message))
     const text = warnings(folder)
-    assert.ok(text?.includes('on entity=planet path=/api/planet is dropped'), text)
-    assert.ok(!text?.includes('!! BUILD FAILED !!'), text)
+    assert.ok(text?.includes('on entity=planet path=/api/planet is dropped'), String(text))
+    assert.ok(!text?.includes('!! BUILD FAILED !!'), String(text))
   })
 
 
@@ -235,7 +235,7 @@ describe('generate', () => {
     assert.strictEqual(res.ok, false)
     assert.ok(res.err)
     assert.deepStrictEqual(res.steps, ['parse', 'guide', 'transformers', 'builders'])
-    assert.ok(warnings(folder)?.includes('!! BUILD FAILED !!'), warnings(folder))
+    assert.ok(warnings(folder)?.includes('!! BUILD FAILED !!'), String(warnings(folder)))
   })
 
 
@@ -246,7 +246,7 @@ describe('generate', () => {
     assert.strictEqual(res.ok, false)
     assert.ok(res.err)
     assert.deepStrictEqual(res.steps, [])
-    assert.ok(warnings(folder)?.includes('!! BUILD FAILED !!'), warnings(folder))
+    assert.ok(warnings(folder)?.includes('!! BUILD FAILED !!'), String(warnings(folder)))
   })
 
 
@@ -257,7 +257,7 @@ describe('generate', () => {
 
     assert.strictEqual(res.ok, false)
     assert.deepStrictEqual(res.steps, [])
-    assert.ok(warnings(folder)?.includes('!! BUILD FAILED !!'), warnings(folder))
+    assert.ok(warnings(folder)?.includes('!! BUILD FAILED !!'), String(warnings(folder)))
   })
 
 
@@ -267,7 +267,7 @@ describe('generate', () => {
 
     assert.strictEqual(res.ok, false)
     assert.deepStrictEqual(res.steps, ['parse'])
-    assert.ok(warnings(folder)?.includes('!! BUILD FAILED !!'), warnings(folder))
+    assert.ok(warnings(folder)?.includes('!! BUILD FAILED !!'), String(warnings(folder)))
   })
 
 })
