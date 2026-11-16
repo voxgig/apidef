@@ -1441,6 +1441,8 @@ const aontu = new aontu_1.Aontu({ fs: Fs });
             ['PATCH', '/domains/{domain_id}', undefined],
             ['POST', '/domains/{domain_id}/revoke', 'revoke'],
         ]);
+        // The moved point keeps what its guide op, still create's, says of it.
+        node_assert_1.default.deepStrictEqual(entity.domain.op.update.points.map((pt) => pt.li), [undefined, false]);
         node_assert_1.default.deepStrictEqual(points(entity.token.op.create), [
             ['POST', '/tokens/{token_id}/revoke', 'revoke'],
         ]);

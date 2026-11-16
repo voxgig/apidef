@@ -1849,6 +1849,8 @@ describe('apidef', () => {
       ['PATCH', '/domains/{domain_id}', undefined],
       ['POST', '/domains/{domain_id}/revoke', 'revoke'],
     ])
+    // The moved point keeps what its guide op, still create's, says of it.
+    assert.deepStrictEqual(entity.domain.op.update.points.map((pt: any) => pt.li), [undefined, false])
 
     assert.deepStrictEqual(points(entity.token.op.create), [
       ['POST', '/tokens/{token_id}/revoke', 'revoke'],

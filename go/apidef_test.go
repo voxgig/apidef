@@ -1791,7 +1791,14 @@ func TestGuideItemRecord(t *testing.T) {
 // the record joins the entity's own update, and with none to join it stays,
 // with a warning.
 func TestGuideActionCreate(t *testing.T) {
-	folder := stageGuideEntry(t, t.TempDir(), "")
+	folder := t.TempDir()
+	entry, err := os.ReadFile("../ts/test/action-create/guide/guide.aontu")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := writeGuideEntry(folder, "", string(entry)); err != nil {
+		t.Fatal(err)
+	}
 	res, err := NewApiDef(ApiDefOptions{Folder: folder, Strategy: "heuristic01"}).Generate(map[string]any{
 		"model": map[string]any{"name": "action-create", "def": "action-create-def.json"},
 		"build": map[string]any{"spec": map[string]any{"base": "../ts/test/action-create"}},
@@ -1840,6 +1847,19 @@ func TestGuideActionCreate(t *testing.T) {
 	if got, want := strings.Join(points("domain", "update"), "\n"),
 		"PATCH /domains/{domain_id} \nPOST /domains/{domain_id}/revoke revoke"; got != want {
 		t.Errorf("domain update\ngot\n%s\nwant\n%s", got, want)
+	}
+	// The moved point keeps what its guide op, still create's, says of it.
+	ent, _ := entities["domain"].(map[string]any)
+	ops, _ := ent["op"].(map[string]any)
+	update, _ := ops["update"].(map[string]any)
+	upts, _ := update["points"].([]any)
+	lives := []string{}
+	for _, pt := range upts {
+		mpoint, _ := pt.(map[string]any)
+		lives = append(lives, fmt.Sprintf("%v", mpoint["li"]))
+	}
+	if got := strings.Join(lives, ","); got != "<nil>,false" {
+		t.Errorf("domain update live hints = %s, want <nil>,false", got)
 	}
 	if got, want := strings.Join(points("token", "create"), "\n"),
 		"POST /tokens/{token_id}/revoke revoke"; got != want {

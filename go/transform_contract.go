@@ -36,6 +36,17 @@ func ContractTransform(ctx *ApiDefContext) (*TransformResult, error) {
 				gpath, _ := gp[orig].(map[string]any)
 				goops, _ := gpath["op"].(map[string]any)
 				gop, _ := goops[op["name"].(string)].(map[string]any)
+				// update also holds a promoted PATCH and a create made only of
+				// actions, whose guide ops keep their own names.
+				if gop == nil && op["name"] == "update" {
+					for _, name := range []string{"patch", "create"} {
+						alt, _ := goops[name].(map[string]any)
+						if gm, _ := alt["method"].(string); alt != nil && strings.EqualFold(gm, verb) {
+							gop = alt
+							break
+						}
+					}
+				}
 				if v, ok := gop["live"]; ok {
 					point["li"] = v
 				}
