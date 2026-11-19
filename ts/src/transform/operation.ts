@@ -211,8 +211,8 @@ function resolveActionCreate(ctx: any, opm: ModelOpMap, on: OpEntity) {
   const verbs = [...new Set(paths.flatMap((p) => Object.keys(p.action ?? {})))].sort()
   ctx.warn?.({
     note: `Create on entity=${on.gent.name} has no route of its own, only the action ` +
-      `${verbs.join(', ')}, so a plain create sends it. Set the route's op in the ` +
-      `guide if it should not.`,
+      `${verbs.join(', ')}, so a create must name it with $action. Set the route's ` +
+      `op in the guide if it is not a create.`,
     entity: on.gent.name,
     op: 'create',
   })

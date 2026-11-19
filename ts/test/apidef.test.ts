@@ -1856,7 +1856,7 @@ describe('apidef', () => {
       ['POST', '/tokens/{token_id}/revoke', 'revoke'],
     ])
     assert.deepStrictEqual(bres.ctx.warn.history.map((w: any) => w.note), [
-      "Create on entity=token has no route of its own, only the action revoke, so a plain create sends it. Set the route's op in the guide if it should not.",
+      "Create on entity=token has no route of its own, only the action revoke, so a create must name it with $action. Set the route's op in the guide if it is not a create.",
     ])
   })
 
@@ -3077,8 +3077,8 @@ const REQUEST_PATHS_POINTS = [
 
 
 const REQUEST_PATHS_WARNINGS = [
-  "Create on entity=message has no route of its own, only the action cancel, so a plain create sends it. Set the route's op in the guide if it should not.",
-  "Create on entity=schedule has no route of its own, only the action cancel, so a plain create sends it. Set the route's op in the guide if it should not.",
+  "Create on entity=message has no route of its own, only the action cancel, so a create must name it with $action. Set the route's op in the guide if it is not a create.",
+  "Create on entity=schedule has no route of its own, only the action cancel, so a create must name it with $action. Set the route's op in the guide if it is not a create.",
   'Parameter username on entity=permission op=load path=/contacts/groups/{groupId}/permissions/{username} has no `in`; it names the path placeholder {username}, so it is taken as a path parameter. A parameter needs an `in`.',
   'Parameter verbose on entity=permission op=load path=/contacts/groups/{groupId}/permissions/{username} has no `in`, so it is taken as a query parameter. A parameter needs an `in`.',
   'Parameter username on entity=permission op=remove path=/contacts/groups/{groupId}/permissions/{username} has no `in`; it names the path placeholder {username}, so it is taken as a path parameter. A parameter needs an `in`.',
