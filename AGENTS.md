@@ -261,9 +261,11 @@ make publish GOV=0.7.0            # Go module only
 make publish V=8.6.0 GOV=0.7.0    # both, one dispatch
 ```
 
-`make publish` guards, bumps, builds, tests, commits, pushes `main`, waits for
-the remote to actually show the pushed SHA, then dispatches `publish.yml`
-pinned to it. The workflow publishes to npm over OIDC and writes BOTH tags —
+`make publish` guards, bumps, commits, pushes `main`, waits for the remote to
+actually show the pushed SHA, then dispatches `publish.yml` pinned to it. It
+runs no suite: the gate is the workflow's own model check and TypeScript and
+Go build and test. The same suite runs on every push in `build.yml`, and on
+demand with `gh workflow run build.yml --ref main`. The workflow publishes to npm over OIDC and writes BOTH tags —
 `vX.Y.Z` for npm, `go/vX.Y.Z` for the module — in a `tag` job that runs git
 and nothing else. This section is the short form; the full description, with
 every guard and the recovery paths, is

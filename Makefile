@@ -77,8 +77,13 @@ scan-prose:
 # module path from v2 on (see check-go-major), which changes every consumer's
 # import path. Two numbers is the cheaper trade.
 #
-# Bumps whichever versions are given, runs the full suite, commits, pushes
-# main, and dispatches the publish workflow with matching inputs.
+# Bumps whichever versions are given, commits, pushes main, and dispatches
+# the publish workflow with matching inputs, which builds and tests on CI.
+#
+# NO SUITE RUNS HERE. The release gate is publish.yml's own model check,
+# TypeScript build and test, and Go build and test. The same suite runs on
+# every push in build.yml, and on demand with
+# `gh workflow run build.yml --ref main`.
 #
 # Every guard runs BEFORE anything is written, because half of this cannot be
 # taken back: npm never allows republishing a version, and proxy.golang.org
@@ -123,7 +128,6 @@ publish:
 	  grep -q '^const VERSION = "$(GOV)"' go/apidef.go || \
 	    { echo "publish: failed to set VERSION in go/apidef.go"; exit 1; }; \
 	fi
-	$(MAKE) all
 	@if [ -n "$(V)" ];   then git add ts/package.json ts/package-lock.json; fi
 	@if [ -n "$(GOV)" ]; then git add go/apidef.go; fi
 	git commit -m "release:$(if $(V), npm $(V))$(if $(GOV), go $(GOV))"

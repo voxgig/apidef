@@ -89,7 +89,7 @@ func resolveActionCreate(ctx *ApiDefContext, entname string, opm map[string]any,
 
 	if ctx != nil && ctx.Warn != nil {
 		ctx.Warn.Warn(map[string]any{
-			"note": fmt.Sprintf("Create on entity=%s has no route of its own, only the action %s, so a plain create sends it. Set the route's op in the guide if it should not.",
+			"note": fmt.Sprintf("Create on entity=%s has no route of its own, only the action %s, so a create must name it with $action. Set the route's op in the guide if it is not a create.",
 				entname, strings.Join(actionVerbs(opmWork["create"]), ", ")),
 			"entity": entname,
 			"op":     "create",

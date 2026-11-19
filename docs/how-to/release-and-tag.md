@@ -22,9 +22,13 @@ make publish GOV=0.2.3           # Go module only
 ```
 
 Bumps whichever versions you give — `V` for `ts/package.json` and its
-lockfile, `GOV` for `go/apidef.go` — runs the full suite, commits, pushes
-`main`, and dispatches the workflow with matching inputs, which publishes to
-npm and writes `v<V>` and `go/v<GOV>`.
+lockfile, `GOV` for `go/apidef.go` — commits, pushes `main`, and dispatches
+the workflow with matching inputs, which builds and tests, publishes to npm
+and writes `v<V>` and `go/v<GOV>`.
+
+No suite runs on your machine. The gate is the workflow's own model check and
+TypeScript and Go build and test. The same suite runs on every push in
+`build.yml`, and on demand with `gh workflow run build.yml --ref main`.
 
 **Two numbers, not one, deliberately** — see [One version series each](#one-version-series-each).
 
@@ -177,9 +181,7 @@ Guards that fail closed, in the order they run:
    `7.2.0` would resolve 7.2.0, find it already published, skip the publish
    and go green — leaving a tag with no release behind it.
 3. **A failing build, test, or `make check-model`.** The Go half additionally
-   builds and tests `go/` — `build.yml` does **not** cover Go on pushes or
-   PRs, so this release gate is the only automated check standing between a
-   Go change and a tagged module.
+   builds and tests `go/`, as `build.yml` does on every push and PR.
 
 And one guard that fails *open*, on purpose:
 
