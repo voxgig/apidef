@@ -295,10 +295,10 @@ function separateSharedPoints(guide, def, log) {
         if (false === entity.active)
             continue;
         const groups = {};
+        const reserved = {};
         for (const pathStr of Object.keys(entity.path ?? {}).sort(refcount_1.byCodePoint)) {
             const gpath = entity.path[pathStr];
-            if (0 < Object.keys(gpath.action ?? {}).length)
-                continue;
+            const actions = Object.keys(gpath.action ?? {});
             const renames = gpath.rename?.param ?? {};
             const params = (0, utility_1.guideParts)(pathStr).filter(utility_1.isParam).map(utility_1.paramOf)
                 .map((param) => (0, utility_1.canonize)(renames[param]?.target ?? param));
@@ -306,7 +306,12 @@ function separateSharedPoints(guide, def, log) {
                 const method = String(gpath.op[opname]?.method ?? '').toLowerCase();
                 const exist = [...params, ...requiredArgs(def, pathStr, method)].sort(refcount_1.byCodePoint);
                 const key = opname + '\t' + exist.join(',');
-                (groups[key] = groups[key] ?? []).push(pathStr);
+                if (0 < actions.length) {
+                    actions.forEach((action) => (reserved[key] = reserved[key] ?? new Set()).add(action));
+                }
+                else {
+                    (groups[key] = groups[key] ?? []).push(pathStr);
+                }
             }
         }
         for (const key of Object.keys(groups).sort(refcount_1.byCodePoint)) {
@@ -318,7 +323,7 @@ function separateSharedPoints(guide, def, log) {
                 continue;
             const plain = keys[0];
             const plainLits = new Set(literals(plain));
-            const taken = new Set();
+            const taken = new Set(reserved[key] ?? []);
             for (const other of keys.slice(1)) {
                 let action = actionOf(literals(other).filter((lit) => !plainLits.has(lit)));
                 if ('' === action || taken.has(action))

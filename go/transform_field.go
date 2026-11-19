@@ -885,7 +885,8 @@ func modelField(fielddef map[string]any) map[string]any {
 	return mfield
 }
 
-func namesEntity(schema any, entname string) bool {
+// namesEntity mirrors namesEntity in ts/src/transform/field.ts.
+func namesEntity(schema any, entname string, def map[string]any) bool {
 	m, _ := schema.(map[string]any)
 	if m == nil {
 		return false
@@ -901,7 +902,8 @@ func namesEntity(schema any, entname string) bool {
 		cmp = xref[i+1:]
 	}
 
-	return CanonizeCmpName(cmp) == entname
+	name := CanonizeCmpName(cmp)
+	return name == entname || StripNamespace(name, CmpNamespace(def)) == entname
 }
 
 func findFieldDefs(mtarget map[string]any, def map[string]any, opname string, entname string, media string) []map[string]any {
@@ -984,7 +986,7 @@ func findFieldDefs(mtarget map[string]any, def map[string]any, opname string, en
 		}
 	}
 
-	if isAction && !namesEntity(fieldSets, entname) {
+	if isAction && !namesEntity(fieldSets, entname, def) {
 		return fielddefs
 	}
 

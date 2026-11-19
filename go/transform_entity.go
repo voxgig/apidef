@@ -643,11 +643,13 @@ func separateSharedPoints(guide map[string]any, def map[string]any) []string {
 		}
 		paths, _ := entity["path"].(map[string]any)
 		groups := map[string][]string{}
+		reserved := map[string]map[string]bool{}
 		for _, pathStr := range sortedKeys(paths) {
 			gpath, _ := paths[pathStr].(map[string]any)
-			if gpath == nil || hasAction(gpath) {
+			if gpath == nil {
 				continue
 			}
+			actions, _ := gpath["action"].(map[string]any)
 			rename, _ := gpath["rename"].(map[string]any)
 			renames, _ := rename["param"].(map[string]any)
 			params := []string{}
@@ -673,7 +675,16 @@ func separateSharedPoints(guide map[string]any, def map[string]any) []string {
 				exist := append(append([]string{}, params...), requiredArgs(def, pathStr, method)...)
 				sort.Strings(exist)
 				key := opname + "\t" + strings.Join(exist, ",")
-				groups[key] = append(groups[key], pathStr)
+				if 0 < len(actions) {
+					if reserved[key] == nil {
+						reserved[key] = map[string]bool{}
+					}
+					for action := range actions {
+						reserved[key][action] = true
+					}
+				} else {
+					groups[key] = append(groups[key], pathStr)
+				}
 			}
 		}
 
@@ -730,6 +741,9 @@ func separateSharedPoints(guide map[string]any, def map[string]any) []string {
 				plainLits[lit] = true
 			}
 			taken := map[string]bool{}
+			for action := range reserved[key] {
+				taken[action] = true
+			}
 			for _, other := range keys[1:] {
 				apart := []string{}
 				for _, lit := range literals(other) {

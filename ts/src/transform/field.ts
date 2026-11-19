@@ -9,6 +9,7 @@ import {
   composedEnvelopeProp, mergedProperties, canonizeCmpName,
   scanUntaggedUnion, firstSentence, humanTitle, collapseScalarAllOf,
   itemEnvelopeOf, isFileType, nonNullType, jsonContent, responseSchema, rangeResponse,
+  cmpNamespace, stripNamespace,
 } from '../utility'
 
 import { arrayCarrier, guideMedia, requestFieldSchema, sameType, nullableType } from './body'
@@ -362,16 +363,29 @@ function answeredProps(
 
 
 
-function namesEntity(schema: any, ment: ModelEntity): boolean {
+function namesEntity(schema: any, ment: ModelEntity, def: any): boolean {
   const xref = schema?.['x-ref']
 
   if ('string' !== typeof xref) {
     return false
   }
 
-  const cmp = xref.slice(xref.lastIndexOf('/') + 1)
+  const cmp = canonizeCmpName(xref.slice(xref.lastIndexOf('/') + 1))
 
-  return canonizeCmpName(cmp) === ment.name
+  return cmp === ment.name || stripNamespace(cmp, namespaceOf(def)) === ment.name
+}
+
+
+const NAMESPACES = new WeakMap<object, string | null>()
+
+function namespaceOf(def: any): string | null {
+  if (null == def || 'object' !== typeof def) {
+    return null
+  }
+  if (!NAMESPACES.has(def)) {
+    NAMESPACES.set(def, cmpNamespace(def))
+  }
+  return NAMESPACES.get(def) ?? null
 }
 
 // A `$ref` followed one hop, or the schema itself. apidef resolves most refs
@@ -918,7 +932,7 @@ function findFieldDefs(
       }
     }
 
-    if (isAction && !namesEntity(fieldSets, ment)) {
+    if (isAction && !namesEntity(fieldSets, ment, def)) {
       return fielddefs
     }
 

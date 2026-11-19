@@ -3,6 +3,7 @@
 package apidef
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -263,10 +264,12 @@ func TestRulings(t *testing.T) {
 		{
 			def: "namespace-prefix-def.json",
 			expect: map[string]string{
-				"POST /encode":    "encode create",
-				"POST /check":     "check create",
-				"POST /hold":      "payment create",
-				"GET /safes/{id}": "safe load",
+				"POST /encode":      "encode create",
+				"POST /check":       "check create",
+				"POST /hold":        "payment create",
+				"GET /safes/{id}":   "safe load",
+				"GET /vaults/{id}":  "store load vault",
+				"GET /lockers/{id}": "store load locker",
 			},
 		},
 		{
@@ -514,7 +517,8 @@ func TestRulings(t *testing.T) {
 			def: "shared-selector-def.json",
 			expect: map[string]string{
 				"GET /widgets":           "widget list",
-				"GET /catalog/widgets":   "widget list catalog",
+				"GET /catalog/widgets":   "widget list catalog_widgets",
+				"GET /widgets/catalog":   "widget list catalog",
 				"GET /widgets?view=full": "widget list",
 				"GET /featured/widgets":  "widget list",
 			},
@@ -542,5 +546,28 @@ func TestRulings(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// Mirrors the TS `namespace-prefix-def.json fields` case.
+func TestRulingNamespaceFields(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "namespace-prefix-")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, OutPrefix: "namespace-prefix-", Strategy: "heuristic01"}).
+		Generate(map[string]any{
+			"model": map[string]any{"name": "namespace-prefix", "def": "namespace-prefix-def.json"},
+			"build": map[string]any{"spec": map[string]any{"base": "../ts/test/def"}},
+			"ctrl": map[string]any{"step": map[string]any{
+				"parse": true, "guide": true, "transformers": true,
+				"builders": false, "generate": false,
+			}},
+		})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v", err)
+	}
+	entities := res.ApiModel["main"].(map[string]any)["kit"].(map[string]any)["entity"].(map[string]any)
+	store, _ := entities["store"].(map[string]any)
+	fields, _ := store["fields"].(map[string]any)
+	if got, want := sortedKeys(fields), []string{"id", "name", "rank"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("store fields = %v, want %v", got, want)
 	}
 }

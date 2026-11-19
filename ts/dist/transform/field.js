@@ -267,13 +267,23 @@ function answeredProps(ment, def, opnames, keep, whole) {
     }
     return out;
 }
-function namesEntity(schema, ment) {
+function namesEntity(schema, ment, def) {
     const xref = schema?.['x-ref'];
     if ('string' !== typeof xref) {
         return false;
     }
-    const cmp = xref.slice(xref.lastIndexOf('/') + 1);
-    return (0, utility_1.canonizeCmpName)(cmp) === ment.name;
+    const cmp = (0, utility_1.canonizeCmpName)(xref.slice(xref.lastIndexOf('/') + 1));
+    return cmp === ment.name || (0, utility_1.stripNamespace)(cmp, namespaceOf(def)) === ment.name;
+}
+const NAMESPACES = new WeakMap();
+function namespaceOf(def) {
+    if (null == def || 'object' !== typeof def) {
+        return null;
+    }
+    if (!NAMESPACES.has(def)) {
+        NAMESPACES.set(def, (0, utility_1.cmpNamespace)(def));
+    }
+    return NAMESPACES.get(def) ?? null;
 }
 // A `$ref` followed one hop, or the schema itself. apidef resolves most refs
 // before this stage; this covers the ones that survive on a nested property.
@@ -680,7 +690,7 @@ function findFieldDefs(ment, mop, mpoint, def, media) {
                 }
             }
         }
-        if (isAction && !namesEntity(fieldSets, ment)) {
+        if (isAction && !namesEntity(fieldSets, ment, def)) {
             return fielddefs;
         }
         // A QUERY (RFC 10008) body is a filter, not the entity shape, so a QUERY

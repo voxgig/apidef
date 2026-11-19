@@ -50,6 +50,9 @@ const DEFDIR = Path.join(__dirname, '..', 'test', 'def');
 const SILENT = (0, util_1.Pino)({ level: 'silent' });
 const staged = [];
 async function guide(def, strategy) {
+    return (await build(def, strategy, false)).guide;
+}
+async function build(def, strategy, transformers) {
     const dir = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'apidef-rulings-'));
     staged.push(dir);
     const folder = Path.join(dir, 'model');
@@ -66,7 +69,7 @@ async function guide(def, strategy) {
                 apidef: {
                     ctrl: {
                         step: {
-                            parse: true, guide: true, transformers: false, builders: false, generate: false,
+                            parse: true, guide: true, transformers, builders: false, generate: false,
                         }
                     }
                 }
@@ -74,7 +77,7 @@ async function guide(def, strategy) {
         }
     }, {});
     node_assert_1.default.strictEqual(bres.ok, true, def + ': ' + String(bres.err?.message));
-    return bres.guide;
+    return bres;
 }
 // The entity and operation of each route, keyed `METHOD path`.
 function owners(g) {
@@ -316,6 +319,8 @@ const RULINGS = [
             'POST /check': 'check create',
             'POST /hold': 'payment create',
             'GET /safes/{id}': 'safe load',
+            'GET /vaults/{id}': 'store load vault',
+            'GET /lockers/{id}': 'store load locker',
         },
     },
     {
@@ -563,7 +568,8 @@ const RULINGS = [
         def: 'shared-selector-def.json',
         expect: {
             'GET /widgets': 'widget list',
-            'GET /catalog/widgets': 'widget list catalog',
+            'GET /catalog/widgets': 'widget list catalog_widgets',
+            'GET /widgets/catalog': 'widget list catalog',
             'GET /widgets?view=full': 'widget list',
             'GET /featured/widgets': 'widget list',
         },
@@ -574,6 +580,12 @@ const RULINGS = [
         for (const dir of staged) {
             Fs.rmSync(dir, { recursive: true, force: true });
         }
+    });
+    // A record named less the definition's namespace keeps its declared fields.
+    (0, node_test_1.test)('namespace-prefix-def.json fields', async () => {
+        const bres = await build('namespace-prefix-def.json', 'heuristic01', true);
+        const store = bres.apimodel.main.kit.entity.store;
+        node_assert_1.default.deepStrictEqual(Object.keys(store.fields).sort(), ['id', 'name', 'rank']);
     });
     for (const ruling of RULINGS) {
         (0, node_test_1.test)(ruling.def, async () => {

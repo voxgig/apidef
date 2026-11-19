@@ -23,6 +23,11 @@ const staged: string[] = []
 
 
 async function guide(def: string, strategy: string): Promise<any> {
+  return (await build(def, strategy, false)).guide
+}
+
+
+async function build(def: string, strategy: string, transformers: boolean): Promise<any> {
   const dir = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'apidef-rulings-'))
   staged.push(dir)
   const folder = Path.join(dir, 'model')
@@ -40,7 +45,7 @@ async function guide(def: string, strategy: string): Promise<any> {
         apidef: {
           ctrl: {
             step: {
-              parse: true, guide: true, transformers: false, builders: false, generate: false,
+              parse: true, guide: true, transformers, builders: false, generate: false,
             }
           }
         }
@@ -48,7 +53,7 @@ async function guide(def: string, strategy: string): Promise<any> {
     }
   }, {})
   assert.strictEqual(bres.ok, true, def + ': ' + String(bres.err?.message))
-  return bres.guide
+  return bres
 }
 
 
@@ -294,6 +299,8 @@ const RULINGS: { def: string, expect: Record<string, string> }[] = [
       'POST /check': 'check create',
       'POST /hold': 'payment create',
       'GET /safes/{id}': 'safe load',
+      'GET /vaults/{id}': 'store load vault',
+      'GET /lockers/{id}': 'store load locker',
     },
   },
   {
@@ -541,7 +548,8 @@ const RULINGS: { def: string, expect: Record<string, string> }[] = [
     def: 'shared-selector-def.json',
     expect: {
       'GET /widgets': 'widget list',
-      'GET /catalog/widgets': 'widget list catalog',
+      'GET /catalog/widgets': 'widget list catalog_widgets',
+      'GET /widgets/catalog': 'widget list catalog',
       'GET /widgets?view=full': 'widget list',
       'GET /featured/widgets': 'widget list',
     },
@@ -555,6 +563,13 @@ describe('rulings', () => {
     for (const dir of staged) {
       Fs.rmSync(dir, { recursive: true, force: true })
     }
+  })
+
+  // A record named less the definition's namespace keeps its declared fields.
+  test('namespace-prefix-def.json fields', async () => {
+    const bres = await build('namespace-prefix-def.json', 'heuristic01', true)
+    const store = bres.apimodel.main.kit.entity.store
+    assert.deepStrictEqual(Object.keys(store.fields).sort(), ['id', 'name', 'rank'])
   })
 
   for (const ruling of RULINGS) {
