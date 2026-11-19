@@ -1,0 +1,605 @@
+{
+ "openapi": "3.0.0",
+ "info": {
+  "title": "generic-name",
+  "version": "1.0.0"
+ },
+ "servers": [
+  {
+   "url": "https://example.com"
+  }
+ ],
+ "paths": {
+  "/notices/{noticeId}{format}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "noticeId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "format",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Notice"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/notices/{noticeId}/retract{format}": {
+   "post": {
+    "parameters": [
+     {
+      "name": "noticeId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "format",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/success"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/notices/{noticeId}/pin{format}": {
+   "post": {
+    "parameters": [
+     {
+      "name": "noticeId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "format",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Ok"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/boards/{boardId}/rules/check": {
+   "post": {
+    "parameters": [
+     {
+      "name": "boardId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Default"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/boards/{boardId}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "boardId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Board"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/gadgets/validate": {
+   "post": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok"
+     }
+    },
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Gadget"
+       }
+      }
+     }
+    },
+    "tags": [
+     "v1"
+    ]
+   }
+  },
+  "/v1/gadgets/{gadget}/owners": {
+   "patch": {
+    "parameters": [
+     {
+      "name": "gadget",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok"
+     }
+    },
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Gadget"
+       }
+      }
+     }
+    },
+    "tags": [
+     "v1"
+    ]
+   }
+  },
+  "/v1/gadgets/{gadget}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "gadget",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Gadget"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "v1"
+    ]
+   }
+  },
+  "/units/{unitId}/teamgroups": {
+   "get": {
+    "parameters": [
+     {
+      "name": "unitId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/TeamGroup"
+         }
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "parameters": [
+     {
+      "name": "unitId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/GroupId"
+         }
+        }
+       }
+      }
+     }
+    },
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/TeamGroup"
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v2/readings": {
+   "get": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AcmeResult"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "v2"
+    ]
+   }
+  },
+  "/v2/readings/{readingId}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "readingId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AcmeResult"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "v2"
+    ]
+   }
+  },
+  "/v2/kinds": {
+   "get": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AcmeKindsResult"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "v2"
+    ]
+   }
+  },
+  "/v2/zones": {
+   "get": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AcmeZonesResult"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "v2"
+    ]
+   }
+  },
+  "/v2/sensors": {
+   "get": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AcmeSensorsResult"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "v2"
+    ]
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "Notice": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "text": {
+      "type": "string"
+     }
+    }
+   },
+   "success": {
+    "type": "object",
+    "properties": {
+     "success": {
+      "type": "boolean"
+     }
+    }
+   },
+   "Ok": {
+    "type": "object",
+    "properties": {
+     "status": {
+      "type": "string"
+     },
+     "time": {
+      "type": "integer"
+     }
+    }
+   },
+   "Default": {
+    "type": "object",
+    "properties": {
+     "done": {
+      "type": "boolean"
+     }
+    }
+   },
+   "Board": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "title": {
+      "type": "string"
+     }
+    }
+   },
+   "Gadget": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     }
+    }
+   },
+   "TeamGroup": {
+    "type": "object",
+    "properties": {
+     "groupId": {
+      "type": "integer"
+     },
+     "name": {
+      "type": "string"
+     }
+    }
+   },
+   "GroupId": {
+    "type": "object",
+    "properties": {
+     "groupId": {
+      "type": "integer"
+     }
+    }
+   },
+   "AcmeResult": {
+    "type": "object",
+    "properties": {
+     "meta": {
+      "$ref": "#/components/schemas/Meta"
+     },
+     "results": {
+      "type": "array",
+      "items": {}
+     }
+    }
+   },
+   "Meta": {
+    "type": "object",
+    "properties": {
+     "found": {
+      "type": "integer"
+     },
+     "page": {
+      "type": "integer"
+     }
+    }
+   },
+   "AcmeKindsResult": {
+    "type": "object",
+    "properties": {
+     "meta": {
+      "$ref": "#/components/schemas/Meta"
+     },
+     "results": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Kind"
+      }
+     }
+    }
+   },
+   "Kind": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     }
+    }
+   },
+   "AcmeZonesResult": {
+    "type": "object",
+    "properties": {
+     "meta": {
+      "$ref": "#/components/schemas/Meta"
+     },
+     "results": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Zone"
+      }
+     }
+    }
+   },
+   "Zone": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     }
+    }
+   },
+   "AcmeSensorsResult": {
+    "type": "object",
+    "properties": {
+     "meta": {
+      "$ref": "#/components/schemas/Meta"
+     },
+     "results": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Sensor"
+      }
+     }
+    }
+   },
+   "Sensor": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     }
+    }
+   }
+  }
+ }
+}

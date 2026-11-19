@@ -8,6 +8,15 @@ guide: {
   metrics: count: path: 4
   metrics: count: method: 7
 
+  entity: org: {
+    path: "/orgs/{org}/vault/repository-access": {
+      action: "vault_repository_access": {}
+      rename: param: "org": *"id"
+      op: load: method: *GET
+      op: patch: method: *PATCH
+    }
+  }
+
   entity: secret: {
     path: "/orgs/{org}/vault/secrets": {
       rename: param: "org": *"org_id"
@@ -18,14 +27,6 @@ guide: {
       rename: param: "secret_name": *"id"
       op: load: method: *GET
       op: remove: method: *DELETE
-    }
-  }
-
-  entity: vault_repository_access_detail: {
-    path: "/orgs/{org}/vault/repository-access": {
-      rename: param: "org": *"org_id"
-      op: load: method: *GET
-      op: patch: method: *PATCH
     }
   }
 

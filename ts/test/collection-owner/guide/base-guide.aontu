@@ -4,47 +4,29 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 14
+  metrics: count: entity: 12
   metrics: count: path: 19
   metrics: count: method: 23
-
-  entity: activity: {
-    path: "/stars": {
-      op: list: method: *GET
-    }
-    path: "/stars/{owner}/{repo}": {
-      op: remove: method: *DELETE
-      op: update: method: *PUT
-    }
-  }
-
-  entity: admin: {
-    path: "/shop/gadgets/{gadget_id}": {
-      op: remove: method: *DELETE
-    }
-    path: "/teams/{team_id}": {
-      op: remove: method: *DELETE
-    }
-  }
 
   entity: catalog_bundle: {
     path: "/catalog/bundles": {
       op: list: method: *GET
     }
     path: "/catalog/bundles/{bundle_id}": {
+      rename: param: "bundle_id": *"id"
       op: update: method: *PUT
     }
   }
 
   entity: gadget: {
     path: "/shop/gadgets": {
-      action: "gadget": {}
       op: create: method: *POST
       op: list: method: *GET
     }
     path: "/shop/gadgets/{gadget_id}": {
       rename: param: "gadget_id": *"id"
       op: load: method: *GET
+      op: remove: method: *DELETE
     }
   }
 
@@ -52,13 +34,20 @@ guide: {
     path: "/jobs": {
       op: list: method: *GET
     }
-  }
-
-  entity: job_summary: {
     path: "/jobs/{job_id}/cancel": {
       action: "cancel": {}
       rename: param: "job_id": *"id"
       op: create: method: *POST
+    }
+  }
+
+  entity: member: {
+    path: "/teams": {
+      op: list: method: *GET
+    }
+    path: "/teams/{team_id}": {
+      op: load: method: *GET
+      op: remove: method: *DELETE
     }
   }
 
@@ -82,7 +71,6 @@ guide: {
 
   entity: report: {
     path: "/org/reports": {
-      action: "report": {}
       op: list: method: *GET
       op: list: transform: res: *("`body.results`")|top
       op: list: transform: page: total: *("`body.count`")|top
@@ -100,19 +88,18 @@ guide: {
     }
   }
 
-  entity: team: {
-    path: "/teams": {
+  entity: star: {
+    path: "/stars": {
       op: list: method: *GET
     }
-    path: "/teams/{team_id}": {
-      rename: param: "team_id": *"id"
-      op: load: method: *GET
+    path: "/stars/{owner}/{repo}": {
+      op: remove: method: *DELETE
+      op: update: method: *PUT
     }
   }
 
   entity: token: {
     path: "/user/tokens": {
-      action: "token": {}
       op: list: method: *GET
       op: list: transform: res: *("`body.results`")|top
       op: list: transform: page: total: *("`body.count`")|top

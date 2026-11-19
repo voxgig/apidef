@@ -1,0 +1,206 @@
+{
+ "openapi": "3.0.0",
+ "info": {
+  "title": "namespace-prefix",
+  "version": "1.0.0"
+ },
+ "servers": [
+  {
+   "url": "https://example.com"
+  }
+ ],
+ "paths": {
+  "/encode": {
+   "post": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AcmeApiEncodeResponse"
+        }
+       }
+      }
+     }
+    },
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AcmeApiEncodeRequest"
+       }
+      }
+     }
+    }
+   }
+  },
+  "/check": {
+   "post": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AcmeApiCheckResponse"
+        }
+       }
+      }
+     }
+    },
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AcmeApiCheckRequest"
+       }
+      }
+     }
+    }
+   }
+  },
+  "/hold": {
+   "post": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AcmeApiPaymentResponse"
+        }
+       }
+      }
+     }
+    },
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AcmeApiPaymentRequest"
+       }
+      }
+     }
+    }
+   }
+  },
+  "/safes": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/Safe"
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/safes/{id}": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Safe"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ]
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "AcmeApiEncodeRequest": {
+    "type": "object",
+    "properties": {
+     "card_number": {
+      "type": "string"
+     }
+    }
+   },
+   "AcmeApiEncodeResponse": {
+    "type": "object",
+    "properties": {
+     "card_id": {
+      "type": "string"
+     },
+     "rcode": {
+      "type": "string"
+     }
+    }
+   },
+   "AcmeApiCheckRequest": {
+    "type": "object",
+    "properties": {
+     "card_number": {
+      "type": "string"
+     }
+    }
+   },
+   "AcmeApiCheckResponse": {
+    "type": "object",
+    "properties": {
+     "pg_id": {
+      "type": "string"
+     },
+     "rcode": {
+      "type": "string"
+     }
+    }
+   },
+   "AcmeApiPaymentRequest": {
+    "type": "object",
+    "properties": {
+     "amt_tran": {
+      "type": "string"
+     }
+    }
+   },
+   "AcmeApiPaymentResponse": {
+    "type": "object",
+    "properties": {
+     "pg_id": {
+      "type": "string"
+     },
+     "rcode": {
+      "type": "string"
+     }
+    }
+   },
+   "Safe": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     }
+    }
+   }
+  }
+ }
+}

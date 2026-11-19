@@ -53,8 +53,9 @@ Casing is reapplied from the input, so `Axes → Axe` and `AXES → AXE`.
   example `shoes`/`canoes`/`oboes` are handled in the built-in table (they
   would otherwise hit the `-oes → -o` rule). If you hit a similar word the
   built-ins miss, add it to `custom.plurals` rather than renaming your API.
-- A path with no collection segment, such as `/` or `/{id}`, is named from
-  its `operationId` first, so renaming that `operationId` renames the entity.
+- A path with no collection segment, such as `/` or `/{id}`, is named for
+  the component it answers with, else for its parameter's noun, else from
+  its `operationId`, so renaming that `operationId` can rename the entity.
   [Naming an entity](../explanation/classification-heuristics.md#naming-an-entity)
   lists where names come from, in order.
 
