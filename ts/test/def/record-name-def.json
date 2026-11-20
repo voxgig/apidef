@@ -1,0 +1,329 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "record-name",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://example.com"
+    }
+  ],
+  "paths": {
+    "/s/{shelf}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Shelf"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "shelf",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/s/{shelf}/acl": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShelfAccessControls"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "shelf",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShelfAccessControl"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShelfAccessControl"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "shelf",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/s/{shelf}/acl/{entity}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShelfAccessControl"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "shelf",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "put": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShelfAccessControl"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShelfAccessControl"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "shelf",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "name": "shelf",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "gone"
+          }
+        }
+      }
+    },
+    "/farms/{farmId}/croptypes": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListCroptypeEntry"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "farmId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/farms/{farmId}/croptypes/{code}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtendedCroptypeEntry"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "farmId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Shelf": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "ShelfAccessControls": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ShelfAccessControl"
+            }
+          },
+          "kind": {
+            "type": "string"
+          }
+        }
+      },
+      "ShelfAccessControl": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "entity": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        }
+      },
+      "ListCroptypeEntry": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExtendedCroptypeEntry"
+            }
+          }
+        }
+      },
+      "ExtendedCroptypeEntry": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,455 @@
+{
+ "openapi": "3.0.0",
+ "info": {
+  "title": "shared-record",
+  "version": "1.0.0"
+ },
+ "servers": [
+  {
+   "url": "https://example.com"
+  }
+ ],
+ "paths": {
+  "/s": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/Shelf"
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/s/{shelf}": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Shelf"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "shelf",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ]
+   }
+  },
+  "/s/{shelf}/defaultBookAcl": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/BookAccessControl"
+         }
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "shelf",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ]
+   },
+   "post": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/BookAccessControl"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "shelf",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/BookAccessControl"
+       }
+      }
+     }
+    }
+   }
+  },
+  "/s/{shelf}/defaultBookAcl/{entity}": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/BookAccessControl"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "shelf",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "entity",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ]
+   },
+   "delete": {
+    "responses": {
+     "204": {
+      "description": "ok"
+     }
+    },
+    "parameters": [
+     {
+      "name": "shelf",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "entity",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ]
+   }
+  },
+  "/s/{shelf}/k": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/Book"
+         }
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "shelf",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ]
+   }
+  },
+  "/s/{shelf}/k/{book}": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Book"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "shelf",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "book",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ]
+   }
+  },
+  "/s/{shelf}/k/{book}/acl": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/BookAccessControl"
+         }
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "shelf",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "book",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ]
+   },
+   "post": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/BookAccessControl"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "shelf",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "book",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/BookAccessControl"
+       }
+      }
+     }
+    }
+   }
+  },
+  "/s/{shelf}/k/{book}/acl/{entity}": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/BookAccessControl"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "shelf",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "book",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "entity",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ]
+   },
+   "put": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/BookAccessControl"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "shelf",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "book",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "entity",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/BookAccessControl"
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "Shelf": {
+    "type": "book",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     }
+    }
+   },
+   "Book": {
+    "type": "book",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     },
+     "shelf": {
+      "type": "string"
+     }
+    }
+   },
+   "BookAccessControl": {
+    "type": "book",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "entity": {
+      "type": "string"
+     },
+     "role": {
+      "type": "string"
+     }
+    }
+   }
+  }
+ }
+}

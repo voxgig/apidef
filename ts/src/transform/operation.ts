@@ -43,9 +43,9 @@ import type {
 // verb is declared as `action: <verb>: {}` beside a CRUD op on the same path.
 const RESOLVED_OPS = ['load', 'list', 'create', 'update', 'remove', 'patch']
 
-// Emitted by the heuristic for HEAD and OPTIONS methods; no SDK operation
+// Emitted by the heuristic for HEAD, OPTIONS and TRACE methods; no SDK operation
 // exists for them yet, so they are skipped without a warning.
-const IGNORED_OPS = ['head', 'options', 'OPTIONS']
+const IGNORED_OPS = ['head', 'options', 'OPTIONS', 'TRACE']
 
 
 const operationTransform: Transform = async function(

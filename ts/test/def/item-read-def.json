@@ -1,0 +1,200 @@
+{
+ "openapi": "3.0.0",
+ "info": {
+  "title": "item-read",
+  "version": "1.0.0"
+ },
+ "servers": [
+  {
+   "url": "https://example.com"
+  }
+ ],
+ "paths": {
+  "/messages/{messageId}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "messageId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Message"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/messages/{messageId}/details": {
+   "get": {
+    "parameters": [
+     {
+      "name": "messageId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MessageDetail"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/employees/{employeeId}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "employeeId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Employee"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/employees/{employeeId}/photo/{width}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "employeeId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "width",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "image/png": {
+        "schema": {
+         "type": "string",
+         "format": "binary"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/reports/{reportId}/contents": {
+   "get": {
+    "parameters": [
+     {
+      "name": "reportId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/octet-stream": {
+        "schema": {
+         "type": "string",
+         "format": "binary"
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "Message": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "subject": {
+      "type": "string"
+     },
+     "body": {
+      "type": "string"
+     }
+    }
+   },
+   "MessageDetail": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "headers": {
+      "type": "string"
+     },
+     "size": {
+      "type": "integer"
+     },
+     "received": {
+      "type": "string"
+     }
+    }
+   },
+   "Employee": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     }
+    }
+   }
+  }
+ }
+}

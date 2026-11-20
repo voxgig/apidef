@@ -1,0 +1,95 @@
+{
+ "openapi": "3.0.0",
+ "info": {
+  "title": "singleton-part",
+  "version": "1.0.0"
+ },
+ "servers": [
+  {
+   "url": "https://example.com"
+  }
+ ],
+ "paths": {
+  "/store/settings": {
+   "get": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok"
+     }
+    }
+   },
+   "patch": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok"
+     }
+    }
+   },
+   "delete": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok"
+     }
+    }
+   }
+  },
+  "/store/settings/sort-rules": {
+   "get": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok"
+     }
+    }
+   },
+   "put": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok"
+     }
+    }
+   },
+   "delete": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok"
+     }
+    }
+   }
+  },
+  "/store/settings/theme": {
+   "get": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok"
+     }
+    }
+   },
+   "patch": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok"
+     }
+    }
+   },
+   "delete": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok"
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {}
+ }
+}

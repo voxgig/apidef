@@ -267,13 +267,23 @@ function answeredProps(ment, def, opnames, keep, whole) {
     }
     return out;
 }
-function namesEntity(schema, ment) {
+function namesEntity(schema, ment, def) {
     const xref = schema?.['x-ref'];
     if ('string' !== typeof xref) {
         return false;
     }
-    const cmp = xref.slice(xref.lastIndexOf('/') + 1);
-    return (0, utility_1.canonizeCmpName)(cmp) === ment.name;
+    const cmp = (0, utility_1.canonizeCmpName)(xref.slice(xref.lastIndexOf('/') + 1));
+    return cmp === ment.name || (0, utility_1.stripNamespace)(cmp, namespaceOf(def)) === ment.name;
+}
+const NAMESPACES = new WeakMap();
+function namespaceOf(def) {
+    if (null == def || 'object' !== typeof def) {
+        return null;
+    }
+    if (!NAMESPACES.has(def)) {
+        NAMESPACES.set(def, (0, utility_1.cmpNamespace)(def));
+    }
+    return NAMESPACES.get(def) ?? null;
 }
 // A `$ref` followed one hop, or the schema itself. apidef resolves most refs
 // before this stage; this covers the ones that survive on a nested property.
@@ -642,11 +652,9 @@ function findFieldDefs(ment, mop, mpoint, def, media) {
         const requestBody = opdef.requestBody;
         let fieldSets;
         if (responses) {
-            fieldSets = (0, jostraca_1.getx)(responses, '200 content "application/json" schema') ??
-                (0, jostraca_1.getx)(responses, '200 schema');
+            fieldSets = (0, utility_1.responseSchema)(responses['200'] ?? (0, utility_1.rangeResponse)(responses));
             if (null == fieldSets && answersOnlyAccepted(responses)) {
-                fieldSets = (0, jostraca_1.getx)(responses, '202 content "application/json" schema') ??
-                    (0, jostraca_1.getx)(responses, '202 schema');
+                fieldSets = (0, utility_1.responseSchema)(responses['202']);
             }
             if ('list' == mop.name) {
                 const unwrapped = transformRecords(fieldSets, mpoint.t?.res) ?? unwrapArrayWrapper(fieldSets);
@@ -660,15 +668,13 @@ function findFieldDefs(ment, mop, mpoint, def, media) {
                     fieldSets = (0, utility_1.mergedProperties)(fieldSets)?.[envelope]?.items;
                 }
                 else {
-                    const fromCreated = (0, jostraca_1.getx)(responses, '201 content "application/json" schema items') ??
-                        (0, jostraca_1.getx)(responses, '201 schema items');
+                    const fromCreated = (0, utility_1.responseSchema)(responses['201'])?.items;
                     if (fromCreated)
                         fieldSets = fromCreated;
                 }
             }
             else if ('put' === method && null == fieldSets) {
-                fieldSets = (0, jostraca_1.getx)(responses, '201 content "application/json" schema') ??
-                    (0, jostraca_1.getx)(responses, '201 schema');
+                fieldSets = (0, utility_1.responseSchema)(responses['201']);
             }
             if ('list' != mop.name) {
                 const props = fieldSets?.properties;
@@ -684,7 +690,7 @@ function findFieldDefs(ment, mop, mpoint, def, media) {
                 }
             }
         }
-        if (isAction && !namesEntity(fieldSets, ment)) {
+        if (isAction && !namesEntity(fieldSets, ment, def)) {
             return fielddefs;
         }
         // A QUERY (RFC 10008) body is a filter, not the entity shape, so a QUERY
@@ -822,15 +828,17 @@ function findExampleObject(opdef, envelope) {
     const responses = opdef.responses;
     if (null == responses)
         return null;
-    const resdef = responses['200'] ?? responses['201'] ?? responses['202'];
+    const resdef = responses['200'] ?? responses['201'] ?? responses['202'] ??
+        (0, utility_1.rangeResponse)(responses);
     if (null == resdef)
         return null;
     // OpenAPI 3.x: content.application/json.example
-    let example = (0, jostraca_1.getx)(resdef, 'content "application/json" example');
+    const media = (0, utility_1.jsonContent)(resdef.content);
+    let example = media?.example;
     if (null != example && 'object' === typeof example)
         return unwrapExample(example, envelope);
     // OpenAPI 3.x: content.application/json.examples (named examples — take first)
-    const examples = (0, jostraca_1.getx)(resdef, 'content "application/json" examples');
+    const examples = media?.examples;
     if (null != examples && 'object' === typeof examples) {
         for (const val of Object.values(examples)) {
             const ex = val?.value;
@@ -839,7 +847,7 @@ function findExampleObject(opdef, envelope) {
         }
     }
     // OpenAPI 3.x: content.application/json.schema.example
-    example = (0, jostraca_1.getx)(resdef, 'content "application/json" schema example');
+    example = media?.schema?.example;
     if (null != example && 'object' === typeof example)
         return unwrapExample(example, envelope);
     // Swagger 2.0: response.example / response.examples.application/json

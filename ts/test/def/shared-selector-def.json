@@ -1,0 +1,167 @@
+{
+ "openapi": "3.0.0",
+ "info": {
+  "title": "shared-selector",
+  "version": "1.0.0"
+ },
+ "servers": [
+  {
+   "url": "https://example.com"
+  }
+ ],
+ "paths": {
+  "/widgets": {
+   "get": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/Widget"
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/widgets/{widgetId}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "widgetId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Widget"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/catalog/widgets": {
+   "get": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/Widget"
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/widgets?view=full": {
+   "get": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/Widget"
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/featured/widgets": {
+   "get": {
+    "parameters": [
+     {
+      "name": "region",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/Widget"
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/widgets/catalog": {
+   "get": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/Widget"
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "Widget": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     },
+     "size": {
+      "type": "integer"
+     }
+    }
+   }
+  }
+ }
+}

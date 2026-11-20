@@ -885,7 +885,8 @@ func modelField(fielddef map[string]any) map[string]any {
 	return mfield
 }
 
-func namesEntity(schema any, entname string) bool {
+// namesEntity mirrors namesEntity in ts/src/transform/field.ts.
+func namesEntity(schema any, entname string, def map[string]any) bool {
 	m, _ := schema.(map[string]any)
 	if m == nil {
 		return false
@@ -901,7 +902,8 @@ func namesEntity(schema any, entname string) bool {
 		cmp = xref[i+1:]
 	}
 
-	return CanonizeCmpName(cmp) == entname
+	name := CanonizeCmpName(cmp)
+	return name == entname || StripNamespace(name, CmpNamespace(def)) == entname
 }
 
 func findFieldDefs(mtarget map[string]any, def map[string]any, opname string, entname string, media string) []map[string]any {
@@ -984,7 +986,7 @@ func findFieldDefs(mtarget map[string]any, def map[string]any, opname string, en
 		}
 	}
 
-	if isAction && !namesEntity(fieldSets, entname) {
+	if isAction && !namesEntity(fieldSets, entname, def) {
 		return fielddefs
 	}
 
@@ -1157,21 +1159,10 @@ func getFieldResponseSchemaItems(responses map[string]any, code string) any {
 
 func getFieldResponseSchema(responses map[string]any, code string) any {
 	resdef, _ := responses[code].(map[string]any)
-	if resdef == nil {
-		return nil
+	if resdef == nil && code == "200" {
+		resdef = RangeResponse(responses)
 	}
-
-	// OpenAPI 3.x
-	if content, ok := resdef["content"].(map[string]any); ok {
-		if appjson, ok := content["application/json"].(map[string]any); ok {
-			if schema, ok := appjson["schema"]; ok {
-				return schema
-			}
-		}
-	}
-
-	// Swagger 2.0
-	if schema, ok := resdef["schema"]; ok {
+	if schema := ResponseSchema(resdef); schema != nil {
 		return schema
 	}
 	return nil
@@ -1359,13 +1350,16 @@ func findExampleObject(opdef map[string]any, envelope string) any {
 		}
 	}
 	if resdef == nil {
+		resdef = RangeResponse(responses)
+	}
+	if resdef == nil {
 		return nil
 	}
 
 	// OpenAPI 3.x, then Swagger 2.0. Only an object or a list is an example
 	// here; anything else is passed over for the next place to look.
 	content, _ := resdef["content"].(map[string]any)
-	appjson, _ := content["application/json"].(map[string]any)
+	appjson := JSONContent(content)
 	if isExampleObject(appjson["example"]) {
 		return unwrapExample(appjson["example"], envelope)
 	}

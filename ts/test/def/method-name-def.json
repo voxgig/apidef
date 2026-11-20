@@ -1,0 +1,100 @@
+{
+ "openapi": "3.0.0",
+ "info": {
+  "title": "method-name",
+  "version": "1.0.0"
+ },
+ "servers": [
+  {
+   "url": "https://example.com"
+  }
+ ],
+ "paths": {
+  "/rpc?method=acme.widgets.getInfo": {
+   "get": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Widget"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/rpc?method=acme.widgets.search": {
+   "get": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/Widget"
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/rpc?method=acme.gadgets.parts.getList": {
+   "get": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/Part"
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "Widget": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     },
+     "size": {
+      "type": "integer"
+     }
+    }
+   },
+   "Part": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "label": {
+      "type": "string"
+     }
+    }
+   }
+  }
+ }
+}

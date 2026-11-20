@@ -4,26 +4,27 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 2
+  metrics: count: entity: 1
   metrics: count: path: 4
   metrics: count: method: 4
 
-  entity: domain: {
+  entity: taxon: {
     path: "/domain": {
+      action: "domain": {}
       op: list: method: *GET
       op: list: transform: res: *("`body.items`")|top
       op: list: transform: page: total: *("`body.total`")|top
     }
-    path: "/domain/{id}": {
+    path: "/domain/{domain_id}/kingdom/{id}": {
+      action: "kingdom": {}
       op: load: method: *GET
     }
-  }
-
-  entity: kingdom: {
-    path: "/domain/{domain_id}/kingdom/{id}": {
+    path: "/domain/{id}": {
+      action: "domain": {}
       op: load: method: *GET
     }
     path: "/domain/{id}/kingdom": {
+      action: "kingdom": {}
       rename: param: "id": *"domain_id"
       op: list: method: *GET
       op: list: transform: res: *("`body.items`")|top

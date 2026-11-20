@@ -75,7 +75,7 @@ func TestSelectSharedSelectorWarns(t *testing.T) {
 		}
 	}
 	if got, want := asJSON(shared),
-		`[["disable","update",["PUT /entity-templates/disable","PUT /iterations/disable"]]]`; got != want {
+		`[["iteration","update",["PUT /iterations/disable","PUT /iterations:disable"]]]`; got != want {
 		t.Errorf("shared selector warnings\ngot  %s\nwant %s", got, want)
 	}
 }

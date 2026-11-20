@@ -4,7 +4,7 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 12
+  metrics: count: entity: 11
   metrics: count: path: 14
   metrics: count: method: 16
 
@@ -76,11 +76,8 @@ guide: {
     path: "/restaurants/{id}": {
       op: load: method: *GET
     }
-  }
-
-  entity: restaurant_menu: {
     path: "/restaurants/{id}/menu": {
-      rename: param: "id": *"restaurant_id"
+      action: "menu": {}
       op: load: method: *GET
     }
   }

@@ -74,7 +74,7 @@ describe('select', () => {
       .filter((warning: any) => /same selector/.test(warning.note))
       .map((warning: any) => [warning.entity, warning.op, warning.points])
     assert.deepStrictEqual(shared, [
-      ['disable', 'update', ['PUT /entity-templates/disable', 'PUT /iterations/disable']],
+      ['iteration', 'update', ['PUT /iterations/disable', 'PUT /iterations:disable']],
     ])
   })
 

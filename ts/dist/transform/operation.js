@@ -14,9 +14,9 @@ const types_1 = require("../types");
 // (ADR-002), so a correction that vanishes silently defeats it. A non-CRUD
 // verb is declared as `action: <verb>: {}` beside a CRUD op on the same path.
 const RESOLVED_OPS = ['load', 'list', 'create', 'update', 'remove', 'patch'];
-// Emitted by the heuristic for HEAD and OPTIONS methods; no SDK operation
+// Emitted by the heuristic for HEAD, OPTIONS and TRACE methods; no SDK operation
 // exists for them yet, so they are skipped without a warning.
-const IGNORED_OPS = ['head', 'options', 'OPTIONS'];
+const IGNORED_OPS = ['head', 'options', 'OPTIONS', 'TRACE'];
 const operationTransform = async function (ctx) {
     const { apimodel, def, guide } = ctx;
     const kit = apimodel.main[types_1.KIT];

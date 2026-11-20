@@ -4,47 +4,25 @@
 #   guide.aontu
 
 guide: {
-  metrics: count: entity: 15
+  metrics: count: entity: 13
   metrics: count: path: 24
   metrics: count: method: 34
 
-  entity: activity: {
-    path: "/user/starred": {
+  entity: domain: {
+    path: "/mail/v1/domains": {
+      op: create: method: *POST
       op: list: method: *GET
+      op: list: transform: res: *("`body.items`")|top
     }
-    path: "/user/starred/{owner}/{repo}": {
-      op: remove: method: *DELETE
-      op: update: method: *PUT
-    }
-  }
-
-  entity: ci_runner_detail: {
-    path: "/runners": {
-      op: list: method: *GET
-    }
-    path: "/runners/{runner_id}": {
+    path: "/mail/v1/domains/{id}": {
       op: load: method: *GET
     }
   }
 
-  entity: ci_runner_registration: {
-    path: "/runners": {
-      op: create: method: *POST
-    }
-  }
-
-  entity: ci_worker_detail: {
-    path: "/workers": {
-      op: list: method: *GET
-    }
-    path: "/workers/{worker_id}": {
+  entity: export: {
+    path: "/exports/{export_id}": {
+      rename: param: "export_id": *"id"
       op: load: method: *GET
-    }
-  }
-
-  entity: ci_worker_registration: {
-    path: "/workers": {
-      op: create: method: *POST
     }
   }
 
@@ -64,17 +42,6 @@ guide: {
     }
   }
 
-  entity: mail_domain_detail: {
-    path: "/mail/v1/domains": {
-      op: create: method: *POST
-      op: list: method: *GET
-      op: list: transform: res: *("`body.items`")|top
-    }
-    path: "/mail/v1/domains/{id}": {
-      op: load: method: *GET
-    }
-  }
-
   entity: repo: {
     path: "/repos/{repo_id}": {
       rename: param: "repo_id": *"id"
@@ -84,12 +51,6 @@ guide: {
       action: "fork": {}
       rename: param: "repo_id": *"id"
       op: create: method: *POST
-    }
-  }
-
-  entity: report: {
-    path: "/exports/{export_id}": {
-      op: load: method: *GET
     }
   }
 
@@ -104,6 +65,17 @@ guide: {
     }
   }
 
+  entity: runner: {
+    path: "/runners": {
+      op: create: method: *POST
+      op: list: method: *GET
+    }
+    path: "/runners/{runner_id}": {
+      rename: param: "runner_id": *"id"
+      op: load: method: *GET
+    }
+  }
+
   entity: simulation_run: {
     path: "/simulation_runs": {
       op: create: method: *POST
@@ -112,6 +84,16 @@ guide: {
     path: "/simulation_runs/{run_id}": {
       rename: param: "run_id": *"id"
       op: load: method: *GET
+    }
+  }
+
+  entity: starred: {
+    path: "/user/starred": {
+      op: list: method: *GET
+    }
+    path: "/user/starred/{owner}/{repo}": {
+      op: remove: method: *DELETE
+      op: update: method: *PUT
     }
   }
 
@@ -149,6 +131,17 @@ guide: {
     }
     path: "/widgets/{widget_id}": {
       rename: param: "widget_id": *"id"
+      op: load: method: *GET
+    }
+  }
+
+  entity: worker: {
+    path: "/workers": {
+      op: create: method: *POST
+      op: list: method: *GET
+    }
+    path: "/workers/{worker_id}": {
+      rename: param: "worker_id": *"id"
       op: load: method: *GET
     }
   }
