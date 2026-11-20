@@ -29,12 +29,7 @@ var validateCases = []validateCase{
 
 // Entities the apidef-validate golden base guides declare and this port does
 // not: a REGISTER, not a waiver, since the missing set must EQUAL the entry.
-// The taxonomy golden predates the shared-record ruling, under which the
-// record both collections answer names them all; it clears once the
-// downstream goldens are refreshed from a release carrying the ruling.
-var knownGuideDivergence = map[string][]string{
-	"taxonomy-1.0.0-openapi-3.1.0": {"domain", "kingdom", "phylum"},
-}
+var knownGuideDivergence = map[string][]string{}
 
 func caseName(c validateCase) string {
 	return fmt.Sprintf("%s-%s-%s", c.Name, c.Version, c.Spec)
