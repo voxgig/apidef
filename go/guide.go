@@ -2576,6 +2576,10 @@ func pathNoun(pm *PathMatchResult, parts []string, why *[]string) string {
 	if custom != nil || (isVerbWord(parts[at]) && !keyedBy(next, name)) {
 		for i := at - 1; 0 <= i; i-- {
 			if !isParam(parts[i]) {
+				// A version segment ends the base path, so no noun precedes the verb.
+				if versionTagRE.MatchString(strings.ToLower(parts[i])) {
+					break
+				}
 				*why = append(*why, "noun-before-verb="+parts[i])
 				return LiteralName(parts[i])
 			}

@@ -523,6 +523,14 @@ func TestRulings(t *testing.T) {
 				"GET /featured/widgets":  "widget list",
 			},
 		},
+		{
+			def: "version-verb-def.json",
+			expect: map[string]string{
+				"GET /api/v3/search":             "search load",
+				"POST /api/v3/stories/search":    "story list search",
+				"GET /api/v3/stories/{story_id}": "story load",
+			},
+		},
 	}
 
 	for _, ruling := range rulings {

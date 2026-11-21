@@ -574,6 +574,14 @@ const RULINGS = [
             'GET /featured/widgets': 'widget list',
         },
     },
+    {
+        def: 'version-verb-def.json',
+        expect: {
+            'GET /api/v3/search': 'search load',
+            'POST /api/v3/stories/search': 'story list search',
+            'GET /api/v3/stories/{story_id}': 'story load',
+        },
+    },
 ];
 (0, node_test_1.describe)('rulings', () => {
     (0, node_test_1.after)(() => {

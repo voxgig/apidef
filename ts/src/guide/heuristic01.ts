@@ -2003,6 +2003,10 @@ function pathNoun(pm: PathMatch, parts: string[], why: string[]): string {
   if (null != custom || (isVerbWord(parts[at]) && !keyedBy(parts[at + 1], name))) {
     for (let i = at - 1; 0 <= i; i--) {
       if (!isParam(parts[i])) {
+        // A version segment ends the base path, so no noun precedes the verb.
+        if (VERSION_TAG_RE.test(parts[i].toLowerCase())) {
+          break
+        }
         why.push('noun-before-verb=' + parts[i])
         return literalName(parts[i])
       }
