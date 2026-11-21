@@ -106,7 +106,7 @@ func cmpSchemaOf(data map[string]any, origcmp string) any {
 // genericCmp mirrors ts/src/guide/heuristic01.ts.
 func genericCmp(name string, refs map[string]int, schema any) bool {
 	if genericCmpWords[name] || idLiteralRE.MatchString(name) ||
-		(name == "object" && len(mergedProperties(schema)) == 0) {
+		(name == "object" && len(mergedProperties(schema)) == 0) || emptySchema(schema) {
 		return true
 	}
 	at := strings.LastIndex(name, "_")
@@ -122,6 +122,13 @@ func genericCmp(name string, refs map[string]int, schema any) bool {
 		}
 	}
 	return false
+}
+
+// emptySchema mirrors ts/src/guide/heuristic01.ts.
+func emptySchema(schema any) bool {
+	m, _ := schema.(map[string]any)
+	open, isBool := m["additionalProperties"].(bool)
+	return m != nil && isBool && !open && len(mergedProperties(schema)) == 0
 }
 
 // dataCmpRefs is the definition's component reference counts.
@@ -2574,7 +2581,7 @@ func pathNoun(pm *PathMatchResult, parts []string, why *[]string) string {
 		next = parts[at+1]
 	}
 	if custom != nil || (isVerbWord(parts[at]) && !keyedBy(next, name)) {
-		for i := at - 1; 0 <= i; i-- {
+		for i := at - 1; 0 <= i && !versionTagRE.MatchString(strings.ToLower(parts[i])); i-- {
 			if !isParam(parts[i]) {
 				*why = append(*why, "noun-before-verb="+parts[i])
 				return LiteralName(parts[i])

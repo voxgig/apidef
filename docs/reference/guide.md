@@ -581,7 +581,8 @@ tag foreign to the path yields to the path's noun, a literal naming an
 identifier (`ids`, `contentIds`) keys rather than names, a trailing module
 word (`GadgetsApi`) is dropped, and a trailing verb, or the verb after a
 custom method's colon, names the noun before it whatever it answers with,
-and becomes an action. A literal opening with a verb word is a verb on the
+and becomes an action; a version segment ends that search, and a route with
+no noun before its verb is named for the verb. A literal opening with a verb word is a verb on the
 nearest resource up the path, a plural collection of its own between the
 key and the verb or else the key's resource, and the action is named for
 the literals after that resource, the verb in its own spelling. A literal
@@ -592,7 +593,8 @@ and a read whose literal is a lone verb word or a generic word (`history`,
 `list`, `results`), is named for the component it answers with first. A
 literal written as one word takes the word breaks a tag, an operation id or
 a component name spells for the same letters. A leading word run that more
-than half of the components share is a namespace and names nothing. A
+than half of the components share is a namespace and names nothing, as does
+a closed object with no properties. A
 response is read under any JSON media type, then `*/*` unless it declares
 binary content, and a `2XX` code answers for the codes a definition does
 not name. A command neither its body nor its response names is named for

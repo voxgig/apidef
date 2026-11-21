@@ -554,6 +554,20 @@ const RULINGS: { def: string, expect: Record<string, string> }[] = [
       'GET /featured/widgets': 'widget list',
     },
   },
+  {
+    def: 'version-verb-def.json',
+    expect: {
+      'GET /api/v2/search': 'search list',
+      'POST /api/v2/widgets/{widgetId}/archive': 'widget create archive',
+    },
+  },
+  {
+    def: 'empty-schema-def.json',
+    expect: {
+      'PUT /vaults/{vaultId}/secrets/{secretName}': 'secret update',
+      'POST /jobs/{jobId}/rerun': 'job create rerun',
+    },
+  },
 ]
 
 
