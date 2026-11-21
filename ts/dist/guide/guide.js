@@ -269,14 +269,14 @@ async function buildBaseGuide(ctx) {
                     guideBlocks.push(`      op: ${opname}: optype: *${op.optype}`);
                 }
                 // aontu generates a list default only when it is not parenthesized.
-                const res = op.transform.res;
+                const res = op.transform?.res;
                 if (null != res) {
                     guideBlocks.push(`      op: ${opname}: transform: res: ` +
                         `*${'string' === typeof res ? qt(res) : qs(res)}|top`);
                 }
                 // A role at a time, so the entry file can correct one and keep the rest.
                 for (const [role] of utility_1.PAGE_ROLES) {
-                    const read = op.transform.page?.[role];
+                    const read = op.transform?.page?.[role];
                     if (null != read) {
                         guideBlocks.push(`      op: ${opname}: transform: page: ${role}: *${qt(read)}|top`);
                     }

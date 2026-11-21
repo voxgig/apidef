@@ -541,6 +541,21 @@ func TestRulings(t *testing.T) {
 				"POST /repos/{owner}/{repo}/actions/runs/{run_id}/rerun":     "run create rerun",
 			},
 		},
+		{
+			def: "path-extension-def.json",
+			expect: map[string]string{
+				"GET /widgets":                  "widget list",
+				"GET /widgets/{widgetId}/parts": "part load",
+				"GET /gadgets/{gadgetId}/parts": "part load",
+			},
+		},
+		{
+			def: "post-list-collision-def.json",
+			expect: map[string]string{
+				"GET /widgets/list":  "widget list list",
+				"POST /widgets/list": "widget post list",
+			},
+		},
 	}
 
 	for _, ruling := range rulings {
@@ -587,5 +602,29 @@ func TestRulingNamespaceFields(t *testing.T) {
 	fields, _ := store["fields"].(map[string]any)
 	if got, want := sortedKeys(fields), []string{"id", "name", "rank"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("store fields = %v, want %v", got, want)
+	}
+}
+
+func TestRulingCollisionTransforms(t *testing.T) {
+	folder := stageGuideEntry(t, t.TempDir(), "")
+	res, err := NewApiDef(ApiDefOptions{Folder: folder, Strategy: "heuristic01"}).Generate(map[string]any{
+		"model": map[string]any{"name": "rulings", "def": "post-list-collision-def.json"},
+		"build": map[string]any{"spec": map[string]any{"base": "../ts/test/rulings"}},
+		"ctrl": map[string]any{"step": map[string]any{
+			"parse": true, "guide": true, "transformers": false,
+			"builders": false, "generate": false,
+		}},
+	})
+	if err != nil || res == nil || !res.OK {
+		t.Fatalf("generate failed: err=%v", err)
+	}
+	ent, _ := res.Guide["entity"].(map[string]any)["widget"].(map[string]any)
+	ops, _ := ent["path"].(map[string]any)["/widgets/list"].(map[string]any)["op"].(map[string]any)
+	for opname, want := range map[string]string{"list": "`body.items`", "post": "`body.data`"} {
+		op, _ := ops[opname].(map[string]any)
+		transform, _ := op["transform"].(map[string]any)
+		if got := safeStr(transform["res"]); got != want {
+			t.Errorf("%s transform res = %q, want %q", opname, got, want)
+		}
 	}
 }
