@@ -58,6 +58,7 @@ import {
 } from '../dist/transform/field'
 
 import { makeResolved } from '../dist/resolved'
+import { sortPoints } from '../dist/transform/select'
 import { stringifyInfoScalars } from '../dist/transform/top'
 
 import { selectTransform } from '../dist/transform/select'
@@ -1817,6 +1818,29 @@ describe('tsv-point-body', () => {
 })
 
 
+function permutations<T>(items: T[]): T[][] {
+  if (items.length < 2) return [items]
+  return items.flatMap((item, i) =>
+    permutations([...items.slice(0, i), ...items.slice(i + 1)]).map((rest) => [item, ...rest]))
+}
+
+
+describe('tsv-sort-points', () => {
+  const rows = loadTsv('sort-points')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, () => {
+      const expected = JSON.parse(row.expected)
+      for (const order of permutations(JSON.parse(row.points))) {
+        const mop: any = { points: order.map((q: any) => ({ q })) }
+        sortPoints(mop)
+        assert.deepStrictEqual(mop.points.map((point: any) => point.q), expected)
+      }
+    })
+  }
+})
+
+
 describe('tsv-response-body', () => {
   const rows = loadTsv('response-body')
   test('has rows', () => assert.ok(0 < rows.length))
@@ -1856,7 +1880,7 @@ describe('tsv-body-guide', () => {
 // A point from its route: the placeholders are its params, in the order the
 // model sorts them, unless the row lists them.
 function flowPoint(spec: any) {
-  const { path, params, rename } = 'string' === typeof spec ? { path: spec } as any : spec
+  const { path, params, rename, action } = 'string' === typeof spec ? { path: spec } as any : spec
   const s = path.split('/').filter((part: string) => '' !== part).map((part: string) =>
     part.startsWith('{') ? { var: part.slice(1, -1) } : { lit: part })
   const names = params ?? s.filter((seg: any) => null != seg.var).map((seg: any) => seg.var).sort()
@@ -1864,6 +1888,7 @@ function flowPoint(spec: any) {
     s,
     g: { params: names.map((n: string) => ({ n, k: 'param', r: true, t: '`$STRING`' })) },
     ...(null == rename ? {} : { r: { param: rename } }),
+    ...(null == action ? {} : { q: { exist: [], $action: action } }),
   }
 }
 

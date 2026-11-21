@@ -203,7 +203,7 @@ as an OpenAPI 3 body's do, and it is never an argument.
 | field | type | meaning |
 |-------|------|---------|
 | `name` | `string` | `load`/`list`/`create`/`update`/`remove`/`patch` |
-| `points` | `ModelPoint[]` | every concrete path/method producing this op |
+| `points` | `ModelPoint[]` | every concrete path/method producing this op, the longest `q.exist` first; among points of one length a plain point comes before an action point, actions sort by `q.$action`, and then `q.exist` decides |
 
 ### `ModelPoint`
 

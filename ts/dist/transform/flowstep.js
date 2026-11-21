@@ -89,6 +89,18 @@ function newFlowStep(opname, args) {
         v: args.valid ?? [],
     };
 }
+// A step calls the op without an action, so it reads the point that call
+// reaches: the last plain point, the most generic as points sort the most
+// specific first.
+function plainPoint(points) {
+    const all = points ?? [];
+    for (let i = all.length - 1; 0 <= i; i--) {
+        if (null == all[i]?.q?.$action) {
+            return all[i];
+        }
+    }
+    return (0, struct_1.getelem)(all, -1);
+}
 // Reverse-lookup: given a point with rename.param like {spaceId: 'id'} or
 // {space_id: 'id'}, return the snake_case ORIGINAL name (e.g. 'space_id') of
 // any param whose URL placeholder is now `{id}`. Returns null when no
@@ -107,8 +119,7 @@ function originalSnakeNameOfRenamedId(point) {
 }
 const createStep = (opmap, flow, ent, args) => {
     if (null != opmap.create) {
-        // Use last point as most generic
-        const point = (0, struct_1.getelem)(opmap.create.points, -1);
+        const point = plainPoint(opmap.create.points);
         const step = newFlowStep('create', args);
         (0, jostraca_1.each)(point.g.params, (param) => {
             if ('id' === param.n) {
@@ -151,8 +162,7 @@ function seedRelatedOpParams(opmap, createPoint, step) {
 }
 const listStep = (opmap, flow, ent, args) => {
     if (null != opmap.list) {
-        // Use last point as most generic
-        const point = (0, struct_1.getelem)(opmap.list.points, -1);
+        const point = plainPoint(opmap.list.points);
         const step = newFlowStep('list', args);
         (0, jostraca_1.each)(point.g.params, (param) => {
             if ('id' === param.n) {
@@ -169,8 +179,7 @@ const listStep = (opmap, flow, ent, args) => {
 };
 const updateStep = (opmap, flow, ent, args) => {
     if (null != opmap.update) {
-        // Use last point as most generic
-        const point = (0, struct_1.getelem)(opmap.update.points, -1);
+        const point = plainPoint(opmap.update.points);
         const step = newFlowStep('update', args);
         (0, jostraca_1.each)(point.g.params, (param) => {
             if (isEntityIdParam(point, param, 'update')) {
@@ -185,8 +194,7 @@ const updateStep = (opmap, flow, ent, args) => {
 };
 const loadStep = (opmap, flow, ent, args) => {
     if (null != opmap.load) {
-        // Use last point as most generic
-        const point = (0, struct_1.getelem)(opmap.load.points, -1);
+        const point = plainPoint(opmap.load.points);
         const step = newFlowStep('load', args);
         (0, jostraca_1.each)(point.g.params, (param) => {
             if (isEntityIdParam(point, param, 'load')) {
@@ -205,8 +213,7 @@ const removeStep = (opmap, flow, ent, args) => {
     // no remove step at all; a create-less remove would delete real records in
     // live mode and makes no sense as a self-contained CRUD test.
     if (null != opmap.remove && null != opmap.create) {
-        // Use last point as most generic
-        const point = (0, struct_1.getelem)(opmap.remove.points, -1);
+        const point = plainPoint(opmap.remove.points);
         const step = newFlowStep('remove', args);
         (0, jostraca_1.each)(point.g.params, (param) => {
             if (isEntityIdParam(point, param, 'remove')) {

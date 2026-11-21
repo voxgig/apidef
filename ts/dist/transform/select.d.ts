@@ -1,3 +1,5 @@
 import type { Transform } from '../transform';
+import type { ModelOp } from '../model';
 declare const selectTransform: Transform;
-export { selectTransform, };
+declare function sortPoints(mop: ModelOp): void;
+export { selectTransform, sortPoints, };

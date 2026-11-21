@@ -103,9 +103,23 @@ func cmpSchemaOf(data map[string]any, origcmp string) any {
 	return nil
 }
 
+// emptyObjectSchema mirrors ts/src/guide/heuristic01.ts.
+func emptyObjectSchema(schema any) bool {
+	s, ok := schema.(map[string]any)
+	if !ok || s["type"] != "object" || len(mergedProperties(s)) != 0 {
+		return false
+	}
+	switch s["additionalProperties"].(type) {
+	case nil, bool:
+	default:
+		return false
+	}
+	return s["oneOf"] == nil && s["anyOf"] == nil
+}
+
 // genericCmp mirrors ts/src/guide/heuristic01.ts.
 func genericCmp(name string, refs map[string]int, schema any) bool {
-	if genericCmpWords[name] || idLiteralRE.MatchString(name) ||
+	if genericCmpWords[name] || idLiteralRE.MatchString(name) || emptyObjectSchema(schema) ||
 		(name == "object" && len(mergedProperties(schema)) == 0) {
 		return true
 	}
@@ -2576,6 +2590,10 @@ func pathNoun(pm *PathMatchResult, parts []string, why *[]string) string {
 	if custom != nil || (isVerbWord(parts[at]) && !keyedBy(next, name)) {
 		for i := at - 1; 0 <= i; i-- {
 			if !isParam(parts[i]) {
+				// A version segment ends the base path, so no noun precedes the verb.
+				if versionTagRE.MatchString(strings.ToLower(parts[i])) {
+					break
+				}
 				*why = append(*why, "noun-before-verb="+parts[i])
 				return LiteralName(parts[i])
 			}
