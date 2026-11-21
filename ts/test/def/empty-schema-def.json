@@ -1,0 +1,373 @@
+{
+ "openapi": "3.0.0",
+ "info": {
+  "title": "empty-schema",
+  "version": "1.0.0"
+ },
+ "servers": [
+  {
+   "url": "https://example.com"
+  }
+ ],
+ "paths": {
+  "/vaults/{vaultId}/secrets": {
+   "get": {
+    "parameters": [
+     {
+      "name": "vaultId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/Secret"
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/vaults/{vaultId}/secrets/{secretName}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "vaultId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "secretName",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Secret"
+        }
+       }
+      }
+     }
+    }
+   },
+   "put": {
+    "parameters": [
+     {
+      "name": "vaultId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "secretName",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "201": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/EmptyObject"
+        }
+       }
+      }
+     },
+     "204": {
+      "description": "updated"
+     }
+    }
+   },
+   "delete": {
+    "parameters": [
+     {
+      "name": "vaultId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "secretName",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "gone"
+     }
+    }
+   }
+  },
+  "/jobs/{jobId}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "jobId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Job"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/jobs/{jobId}/rerun": {
+   "post": {
+    "parameters": [
+     {
+      "name": "jobId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "201": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/EmptyObject"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/projects": {
+   "get": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/Project"
+         }
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Project"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/projects/{projectId}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "projectId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Project"
+        }
+       }
+      }
+     }
+    }
+   },
+   "patch": {
+    "parameters": [
+     {
+      "name": "projectId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Project"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/users": {
+   "get": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/User"
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/users/{userId}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "userId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/User"
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "Secret": {
+    "type": "object",
+    "properties": {
+     "name": {
+      "type": "string"
+     },
+     "created_at": {
+      "type": "string"
+     }
+    }
+   },
+   "Job": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "status": {
+      "type": "string"
+     }
+    }
+   },
+   "EmptyObject": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+   },
+   "Project": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "title": {
+      "type": "string"
+     }
+    }
+   },
+   "User": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "login": {
+      "type": "string"
+     }
+    }
+   }
+  }
+ }
+}

@@ -126,24 +126,16 @@ function sortPoints(
     existCache.set(pt, pt.q.exist.join('\t'))
   }
 
+  // The longest exist first, then exist in code point order. The sort is
+  // stable, so points with one selector keep the order they were gathered in.
   mop.points.sort((a: ModelPoint, b: ModelPoint) => {
-    // longest exist len first
-    let order = b.q.exist.length - a.q.exist.length
-    if (0 === order) {
-      if (null != a.q.$action && null != b.q.$action) {
-        order = a.q.$action < b.q.$action ? -1 :
-          a.q.$action > b.q.$action ? 1 : 0
-      }
-
-      if (0 === order) {
-        const a_exist_str = existCache.get(a)!
-        const b_exist_str = existCache.get(b)!
-        order = a_exist_str < b_exist_str ? -1 :
-          a_exist_str > b_exist_str ? 1 : 0
-      }
+    const order = b.q.exist.length - a.q.exist.length
+    if (0 !== order) {
+      return order
     }
-
-    return order
+    const a_exist_str = existCache.get(a)!
+    const b_exist_str = existCache.get(b)!
+    return a_exist_str < b_exist_str ? -1 : a_exist_str > b_exist_str ? 1 : 0
   })
 }
 

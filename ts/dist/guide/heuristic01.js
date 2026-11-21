@@ -1518,7 +1518,8 @@ function BuildEntity(spec) {
 }
 function genericCmp(name, refs, schema) {
     if (GENERIC_CMP_WORDS.includes(name) || ID_LITERAL_RE.test(name) ||
-        ('object' === name && 0 === Object.keys((0, utility_2.mergedProperties)(schema) ?? {}).length)) {
+        ('object' === name && 0 === Object.keys((0, utility_2.mergedProperties)(schema) ?? {}).length) ||
+        emptySchema(schema)) {
         return true;
     }
     const at = name.lastIndexOf('_');
@@ -1529,6 +1530,11 @@ function genericCmp(name, refs, schema) {
     const prefix = name.slice(0, at + 1);
     return Object.keys(refs).some((ref) => ref !== name && ref.startsWith(prefix) &&
         ref.endsWith('_' + word) && prefix.length + word.length < ref.length);
+}
+// A closed object with no properties can carry no data, so names nothing.
+function emptySchema(schema) {
+    return null != schema && false === schema.additionalProperties &&
+        0 === Object.keys((0, utility_2.mergedProperties)(schema) ?? {}).length;
 }
 // The schema a component's original name declares.
 function cmpSchemaOf(def, origcmp) {
@@ -1563,7 +1569,8 @@ function keyedBy(next, name) {
 }
 // The noun the shape's literal gives: the literal before a custom method's
 // colon, or the noun before the literal when it is a verb, as `/message/send`
-// names message.
+// names message. A version segment ends the search: nothing before it is a
+// resource.
 function pathNoun(pm, parts, why) {
     const at = pm.index + PATH_NAME_INDEX[pm.expr];
     const custom = parts[at].match(CUSTOM_METHOD_RE);
@@ -1574,7 +1581,7 @@ function pathNoun(pm, parts, why) {
     const name = (0, utility_1.literalName)(parts[at]);
     const lit = (0, jostraca_2.snakify)(parts[at]);
     if (null != custom || (isVerbWord(parts[at]) && !keyedBy(parts[at + 1], name))) {
-        for (let i = at - 1; 0 <= i; i--) {
+        for (let i = at - 1; 0 <= i && !VERSION_TAG_RE.test(parts[i].toLowerCase()); i--) {
             if (!isParam(parts[i])) {
                 why.push('noun-before-verb=' + parts[i]);
                 return (0, utility_1.literalName)(parts[i]);

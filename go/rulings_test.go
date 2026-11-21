@@ -523,6 +523,20 @@ func TestRulings(t *testing.T) {
 				"GET /featured/widgets":  "widget list",
 			},
 		},
+		{
+			def: "version-verb-def.json",
+			expect: map[string]string{
+				"GET /api/v2/search":                      "search list",
+				"POST /api/v2/widgets/{widgetId}/archive": "widget create archive",
+			},
+		},
+		{
+			def: "empty-schema-def.json",
+			expect: map[string]string{
+				"PUT /vaults/{vaultId}/secrets/{secretName}": "secret update",
+				"POST /jobs/{jobId}/rerun":                   "job create rerun",
+			},
+		},
 	}
 
 	for _, ruling := range rulings {

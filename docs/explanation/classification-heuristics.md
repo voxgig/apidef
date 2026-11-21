@@ -180,6 +180,13 @@ instance's restart, recreate, and reallocate followed it there. A write that
 only a `202` answers still names nothing from it: GitHub's fork and transfer
 answer with the repository they act on, and stay verbs on `repo`.
 
+A closed object with no properties names nothing, because it can carry no
+field. A write that answers with one is read by its path, so
+`PUT /vaults/{vaultId}/secrets/{secretName}` stays an update of `secret`, and
+`POST /jobs/{jobId}/rerun` stays the action `rerun` on `job`. An open object
+with no declared properties still names, since its records may hold fields
+the definition leaves out.
+
 When more than one envelope carries the same record, none of them names
 through it. Two usage reports, one wrapping a metrics record as `tokens`
 and the other as `packages`, are two resources, and their own names are
@@ -607,7 +614,10 @@ from it: `POST /notices/{noticeId}/retract{format}` is `retract` on
 `GET /shops/{owner}/{shop}/{orderNum}`, which answers an `OrderDetail`, so
 `cancel` is an action on `order_detail`. With no item route at the last key,
 the verb acts on the noun before the keys. A verb word followed by a key named for it is a noun:
-`/lines/{lineId}/stop/{stopId}` reads a `stop`.
+`/lines/{lineId}/stop/{stopId}` reads a `stop`. A version segment ends the
+search for the noun, because nothing before it is a resource:
+`GET /api/v2/search` finds no noun before the verb, so the route is named
+`search`, not after the version.
 
 A literal that opens with a verb word and continues is a verb as well, on
 the nearest resource up the path. `POST /s/{shelf}/lockLendingPolicy`

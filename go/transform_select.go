@@ -136,19 +136,9 @@ func sortPoints(mop map[string]any) {
 		ei, _ := si["exist"].([]any)
 		ej, _ := sj["exist"].([]any)
 
-		order := len(ej) - len(ei)
-		if order != 0 {
-			return order < 0
+		if len(ei) != len(ej) {
+			return len(ej) < len(ei)
 		}
-
-		aai, _ := si["$action"].(string)
-		aaj, _ := sj["$action"].(string)
-		if aai != "" && aaj != "" {
-			if aai != aaj {
-				return lessUTF16(aai, aaj)
-			}
-		}
-
 		return lessUTF16(existStr(ei), existStr(ej))
 	})
 }
