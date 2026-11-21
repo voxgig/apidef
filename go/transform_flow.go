@@ -68,7 +68,7 @@ func FlowstepTransform(ctx *ApiDefContext) (*TransformResult, error) {
 		// createStep — gated on create op
 		createOp, hasCreate := opmap["create"].(map[string]any)
 		if hasCreate {
-			point := getLastPoint(createOp)
+			point := plainPoint(createOp)
 			input := map[string]any{"ref": ref01}
 			step := newFlowStep("create", map[string]any{"input": input})
 			fillCollectionMatch(step, point, input)
@@ -85,13 +85,13 @@ func FlowstepTransform(ctx *ApiDefContext) (*TransformResult, error) {
 					"def":   map[string]any{"ref": ref01},
 				}},
 			})
-			fillCollectionMatch(step, getLastPoint(listOp), nil)
+			fillCollectionMatch(step, plainPoint(listOp), nil)
 			steps = append(steps, step)
 		}
 
 		// updateStep — gated on update op
 		if updateOp, ok := opmap["update"].(map[string]any); ok {
-			point := getLastPoint(updateOp)
+			point := plainPoint(updateOp)
 			input := map[string]any{
 				"ref":        ref01,
 				"suffix":     "_up0",
@@ -113,7 +113,7 @@ func FlowstepTransform(ctx *ApiDefContext) (*TransformResult, error) {
 
 		// loadStep — gated on load op
 		if loadOp, ok := opmap["load"].(map[string]any); ok {
-			point := getLastPoint(loadOp)
+			point := plainPoint(loadOp)
 			input := map[string]any{
 				"ref":        ref01,
 				"suffix":     "_dt0",
@@ -133,7 +133,7 @@ func FlowstepTransform(ctx *ApiDefContext) (*TransformResult, error) {
 		// removeStep and the post-remove listStep — gated on remove and
 		// create, since a flow removes only what it created
 		if removeOp, ok := opmap["remove"].(map[string]any); ok && hasCreate {
-			point := getLastPoint(removeOp)
+			point := plainPoint(removeOp)
 			input := map[string]any{
 				"ref":    ref01,
 				"suffix": "_rm0",
@@ -153,7 +153,7 @@ func FlowstepTransform(ctx *ApiDefContext) (*TransformResult, error) {
 						"def":   map[string]any{"ref": ref01},
 					}},
 				})
-				fillCollectionMatch(listStep, getLastPoint(listOp), listInput)
+				fillCollectionMatch(listStep, plainPoint(listOp), listInput)
 				steps = append(steps, listStep)
 			}
 		}
@@ -182,8 +182,16 @@ func newFlowStep(opname string, args map[string]any) map[string]any {
 	}
 }
 
-func getLastPoint(mop map[string]any) map[string]any {
+// plainPoint mirrors ts/src/transform/flowstep.ts.
+func plainPoint(mop map[string]any) map[string]any {
 	points, _ := mop["points"].([]any)
+	for i := len(points) - 1; 0 <= i; i-- {
+		point, _ := points[i].(map[string]any)
+		q, _ := point["q"].(map[string]any)
+		if _, action := q["$action"]; !action {
+			return point
+		}
+	}
 	if len(points) == 0 {
 		return nil
 	}

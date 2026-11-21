@@ -45,8 +45,9 @@ const node_assert_1 = __importDefault(require("node:assert"));
 const utility_1 = require("../dist/utility");
 const field_1 = require("../dist/transform/field");
 const resolved_1 = require("../dist/resolved");
-const top_1 = require("../dist/transform/top");
 const select_1 = require("../dist/transform/select");
+const top_1 = require("../dist/transform/top");
+const select_2 = require("../dist/transform/select");
 const body_1 = require("../dist/transform/body");
 const aontu_1 = require("aontu");
 const args_1 = require("../dist/transform/args");
@@ -1207,7 +1208,7 @@ function loadTsv(name, dir = SHARED_TSV_DIR) {
         (0, node_test_1.test)(row.name, async () => {
             const ent = JSON.parse(row.entity);
             const warnings = [];
-            await (0, select_1.selectTransform)({
+            await (0, select_2.selectTransform)({
                 apimodel: { main: { kit: { entity: { [ent.name]: ent } } } },
                 def: {},
                 guide: { entity: { [ent.name]: JSON.parse(row.guide) } },
@@ -1495,6 +1496,25 @@ function loadTsv(name, dir = SHARED_TSV_DIR) {
         });
     }
 });
+function permutations(items) {
+    if (items.length < 2)
+        return [items];
+    return items.flatMap((item, i) => permutations([...items.slice(0, i), ...items.slice(i + 1)]).map((rest) => [item, ...rest]));
+}
+(0, node_test_1.describe)('tsv-sort-points', () => {
+    const rows = loadTsv('sort-points');
+    (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
+    for (const row of rows) {
+        (0, node_test_1.test)(row.name, () => {
+            const expected = JSON.parse(row.expected);
+            for (const order of permutations(JSON.parse(row.points))) {
+                const mop = { points: order.map((q) => ({ q })) };
+                (0, select_1.sortPoints)(mop);
+                node_assert_1.default.deepStrictEqual(mop.points.map((point) => point.q), expected);
+            }
+        });
+    }
+});
 (0, node_test_1.describe)('tsv-response-body', () => {
     const rows = loadTsv('response-body');
     (0, node_test_1.test)('has rows', () => node_assert_1.default.ok(0 < rows.length));
@@ -1528,13 +1548,14 @@ function loadTsv(name, dir = SHARED_TSV_DIR) {
 // A point from its route: the placeholders are its params, in the order the
 // model sorts them, unless the row lists them.
 function flowPoint(spec) {
-    const { path, params, rename } = 'string' === typeof spec ? { path: spec } : spec;
+    const { path, params, rename, action } = 'string' === typeof spec ? { path: spec } : spec;
     const s = path.split('/').filter((part) => '' !== part).map((part) => part.startsWith('{') ? { var: part.slice(1, -1) } : { lit: part });
     const names = params ?? s.filter((seg) => null != seg.var).map((seg) => seg.var).sort();
     return {
         s,
         g: { params: names.map((n) => ({ n, k: 'param', r: true, t: '`$STRING`' })) },
         ...(null == rename ? {} : { r: { param: rename } }),
+        ...(null == action ? {} : { q: { exist: [], $action: action } }),
     };
 }
 (0, node_test_1.describe)('tsv-flow-step', () => {

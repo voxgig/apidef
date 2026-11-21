@@ -235,5 +235,8 @@ func flowTestPoint(spec any) map[string]any {
 	if rename, ok := desc["rename"].(map[string]any); ok {
 		point["r"] = map[string]any{"param": rename}
 	}
+	if action, ok := desc["action"].(string); ok {
+		point["q"] = map[string]any{"exist": []any{}, "$action": action}
+	}
 	return point
 }

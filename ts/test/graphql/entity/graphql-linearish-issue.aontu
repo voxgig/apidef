@@ -251,49 +251,6 @@ main: kit: entity: issue: {
       points: [
         {
           co: {
-            id: "POST issueArchive"
-            source: "graphql"
-            version: 2
-          }
-          g: {
-            params: [
-              {
-                k: "param"
-                n: "id"
-                or: "id"
-                r: true
-                t: "`$STRING`"
-              }
-            ]
-          }
-          gq: {
-            doc: "mutation IssueUpdateArchive($id: String!) { issueArchive(id: $id) { issue { ...IssueFields } success } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }"
-            field: "issueArchive"
-            optype: "mutation"
-            vars: [
-              {
-                from: "id"
-                gqltype: "String!"
-                name: "id"
-              }
-            ]
-          }
-          k: "graphql"
-          m: "POST"
-          o: "issueArchive"
-          q: {
-            "$action": "archive"
-            exist: [
-              "id"
-            ]
-          }
-          t: {
-            req: "`reqdata`"
-            res: "`body.data.issueArchive.issue`"
-          }
-        }
-        {
-          co: {
             id: "POST issueUpdate"
             source: "graphql"
             version: 2
@@ -337,6 +294,49 @@ main: kit: entity: issue: {
           t: {
             req: "`reqdata`"
             res: "`body.data.issueUpdate.issue`"
+          }
+        }
+        {
+          co: {
+            id: "POST issueArchive"
+            source: "graphql"
+            version: 2
+          }
+          g: {
+            params: [
+              {
+                k: "param"
+                n: "id"
+                or: "id"
+                r: true
+                t: "`$STRING`"
+              }
+            ]
+          }
+          gq: {
+            doc: "mutation IssueUpdateArchive($id: String!) { issueArchive(id: $id) { issue { ...IssueFields } success } } fragment IssueFields on Issue { archivedAt createdAt id identifier priority team { id } title }"
+            field: "issueArchive"
+            optype: "mutation"
+            vars: [
+              {
+                from: "id"
+                gqltype: "String!"
+                name: "id"
+              }
+            ]
+          }
+          k: "graphql"
+          m: "POST"
+          o: "issueArchive"
+          q: {
+            "$action": "archive"
+            exist: [
+              "id"
+            ]
+          }
+          t: {
+            req: "`reqdata`"
+            res: "`body.data.issueArchive.issue`"
           }
         }
       ]

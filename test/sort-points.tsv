@@ -1,0 +1,7 @@
+name	points	expected
+a longer exist sorts first	[{"exist":["a"]},{"exist":["a","b"]}]	[{"exist":["a","b"]},{"exist":["a"]}]
+a longer exist outranks an action	[{"exist":["id"],"$action":"merge"},{"exist":["id","x"]}]	[{"exist":["id","x"]},{"exist":["id"],"$action":"merge"}]
+the action orders points of one length	[{"exist":["id"],"$action":"pin"},{"exist":["id"],"$action":"mute"}]	[{"exist":["id"],"$action":"mute"},{"exist":["id"],"$action":"pin"}]
+exist orders points without an action	[{"exist":["b"]},{"exist":["a"]}]	[{"exist":["a"]},{"exist":["b"]}]
+a plain point sorts before an action point	[{"exist":["a"],"$action":"merge"},{"exist":["z"]}]	[{"exist":["z"]},{"exist":["a"],"$action":"merge"}]
+mixed points sort the same from every input order	[{"exist":["z"],"$action":"a"},{"exist":["a"],"$action":"b"},{"exist":["m"]}]	[{"exist":["m"]},{"exist":["z"],"$action":"a"},{"exist":["a"],"$action":"b"}]

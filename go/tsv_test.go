@@ -2641,6 +2641,52 @@ func TestPointBody(t *testing.T) {
 	}
 }
 
+func permutations(items []any) [][]any {
+	if len(items) < 2 {
+		return [][]any{items}
+	}
+	var out [][]any
+	for i := range items {
+		rest := append(append([]any{}, items[:i]...), items[i+1:]...)
+		for _, p := range permutations(rest) {
+			out = append(out, append([]any{items[i]}, p...))
+		}
+	}
+	return out
+}
+
+func TestSortPoints(t *testing.T) {
+	rows := loadTsv(t, "sort-points")
+	if len(rows) == 0 {
+		t.Fatal("no sort-points rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			var selectors, want []any
+			if err := json.Unmarshal([]byte(row["points"]), &selectors); err != nil {
+				t.Fatalf("bad points %q: %v", row["points"], err)
+			}
+			if err := json.Unmarshal([]byte(row["expected"]), &want); err != nil {
+				t.Fatalf("bad expected %q: %v", row["expected"], err)
+			}
+			for _, order := range permutations(selectors) {
+				points := make([]any, len(order))
+				for i, q := range order {
+					points[i] = map[string]any{"q": q}
+				}
+				sortPoints(map[string]any{"points": points})
+				got := make([]any, len(points))
+				for i, point := range points {
+					got[i] = point.(map[string]any)["q"]
+				}
+				if !reflect.DeepEqual(got, want) {
+					t.Errorf("from %s\ngot  %s\nwant %s", asJSON(order), asJSON(got), asJSON(want))
+				}
+			}
+		})
+	}
+}
+
 func TestResponseBody(t *testing.T) {
 	rows := loadTsv(t, "response-body")
 	if len(rows) == 0 {
