@@ -4,6 +4,7 @@ package apidef
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -11,9 +12,9 @@ var resolvedOps = map[string]bool{
 	"load": true, "list": true, "create": true, "update": true, "remove": true, "patch": true,
 }
 
-// Emitted by the heuristic for HEAD and OPTIONS methods; no SDK operation
+// Emitted by the heuristic for HEAD, OPTIONS and TRACE methods; no SDK operation
 // exists for them yet, so they are skipped without a warning.
-var ignoredOps = map[string]bool{"head": true, "options": true, "OPTIONS": true}
+var ignoredOps = map[string]bool{"head": true, "options": true, "OPTIONS": true, "TRACE": true}
 
 // OperationTransform maps HTTP operations to entity operations.
 func OperationTransform(ctx *ApiDefContext) (*TransformResult, error) {
@@ -62,6 +63,99 @@ func onlyActionPaths(paths []map[string]any) bool {
 		}
 	}
 	return true
+}
+
+// A create made only of actions on the record creates nothing: its points ride
+// along into the entity's own update, as update's do when a PATCH is promoted.
+func resolveActionCreate(ctx *ApiDefContext, entname string, opm map[string]any, opmWork map[string][]map[string]any) {
+	create, hasCreate := opm["create"].(map[string]any)
+	if !hasCreate || !onlyActionPaths(opmWork["create"]) {
+		return
+	}
+
+	updatePaths := append([]map[string]any{}, opmWork["update"]...)
+	if _, patchLeft := opm["patch"]; !patchLeft {
+		updatePaths = append(updatePaths, opmWork["patch"]...)
+	}
+
+	update, hasUpdate := opm["update"].(map[string]any)
+	if hasUpdate && anyPlainPath(updatePaths) && allAddressRecord(opmWork["create"]) {
+		upts, _ := update["points"].([]any)
+		cpts, _ := create["points"].([]any)
+		update["points"] = append(upts, cpts...)
+		delete(opm, "create")
+		return
+	}
+
+	if ctx != nil && ctx.Warn != nil {
+		ctx.Warn.Warn(map[string]any{
+			"note": fmt.Sprintf("Create on entity=%s has no route of its own, only the action %s, so a create must name it with $action. Set the route's op in the guide if it is not a create.",
+				entname, strings.Join(actionVerbs(opmWork["create"]), ", ")),
+			"entity": entname,
+			"op":     "create",
+		})
+	}
+}
+
+func anyPlainPath(paths []map[string]any) bool {
+	for _, p := range paths {
+		action, _ := p["action"].(map[string]any)
+		if len(action) == 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func allAddressRecord(paths []map[string]any) bool {
+	for _, p := range paths {
+		if !addressesRecord(p) {
+			return false
+		}
+	}
+	return true
+}
+
+// A custom method's `{id}:verb` keeps its placeholder in a literal, so the
+// rename is what names the record there.
+func addressesRecord(p map[string]any) bool {
+	rename, _ := p["rename"].(map[string]any)
+	param, _ := rename["param"].(map[string]any)
+	for _, to := range param {
+		switch v := to.(type) {
+		case string:
+			if v == "id" {
+				return true
+			}
+		case map[string]any:
+			if target, _ := v["target"].(string); target == "id" {
+				return true
+			}
+		}
+	}
+	segments, _ := p["segments"].([]map[string]any)
+	for _, seg := range segments {
+		if name, _ := seg["var"].(string); name == "id" {
+			return true
+		}
+	}
+	return false
+}
+
+func actionVerbs(paths []map[string]any) []string {
+	seen := map[string]bool{}
+	verbs := []string{}
+	for _, p := range paths {
+		action, _ := p["action"].(map[string]any)
+		for _, verb := range sortedKeys(action) {
+			if !seen[verb] {
+				seen[verb] = true
+				verbs = append(verbs, verb)
+			}
+		}
+	}
+	sort.Strings(verbs)
+	return verbs
 }
 
 func collectOps(ctx *ApiDefContext, entname string, gent map[string]any, pathsDesc []map[string]any, methodIDOp map[string]string) (map[string]any, map[string][]map[string]any) {
@@ -158,6 +252,8 @@ func collectOps(ctx *ApiDefContext, entname string, gent map[string]any, pathsDe
 			delete(opm, "patch")
 		}
 	}
+
+	resolveActionCreate(ctx, entname, opm, opmWork)
 
 	// After patch has joined update, so each operation's routes are final.
 	for _, opname := range sortedKeys(opm) {

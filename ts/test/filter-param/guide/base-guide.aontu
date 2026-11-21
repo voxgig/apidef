@@ -8,6 +8,12 @@ guide: {
   metrics: count: path: 15
   metrics: count: method: 16
 
+  entity: api: {
+    path: "/api/find/{name}": {
+      op: load: method: *GET
+    }
+  }
+
   entity: cat: {
     path: "/cat/{tag}": {
       op: load: method: *GET
@@ -34,12 +40,6 @@ guide: {
     }
   }
 
-  entity: find: {
-    path: "/api/find/{name}": {
-      op: load: method: *GET
-    }
-  }
-
   entity: joke: {
     path: "/random/joke/{category}": {
       op: load: method: *GET
@@ -53,9 +53,15 @@ guide: {
     }
   }
 
-  entity: lookup: {
+  entity: member: {
     path: "/members/lookup/{member_id}": {
       rename: param: "member_id": *"id"
+      op: load: method: *GET
+    }
+  }
+
+  entity: movie: {
+    path: "/movies/search/{query}": {
       op: load: method: *GET
     }
   }
@@ -81,12 +87,6 @@ guide: {
 
   entity: riddle: {
     path: "/riddle/{category}": {
-      op: load: method: *GET
-    }
-  }
-
-  entity: search: {
-    path: "/movies/search/{query}": {
       op: load: method: *GET
     }
   }

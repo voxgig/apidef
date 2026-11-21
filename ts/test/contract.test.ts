@@ -75,3 +75,22 @@ test('resolved GraphQL facts include only argument types', () => {
   assert.deepEqual(Object.keys(selected).sort(), ['Choice', 'Input'])
   assert.equal(selected.Input.fields.nested.type, 'Input')
 })
+test('an update point takes the live setting of the guide op with its method', async () => {
+  const route = '/item/{id}/revoke'
+  const points: any[] = [{ m: 'PUT', o: route }, { m: 'POST', o: route },
+    { m: 'PATCH', o: '/item/{id}' }, { m: 'PUT', o: '/item' }]
+  const input = { input: { n: 2 } }
+  const ctx: any = {
+    apimodel: { main: { kit: { entity: { item: { name: 'item', op: {
+      update: { name: 'update', points },
+    } } } } } },
+    guide: { entity: { item: { path: {
+      [route]: { op: { update: { method: 'PUT', live: true }, create: { method: 'POST', live: false } } },
+      '/item/{id}': { op: { patch: { method: 'PATCH', live: input } } },
+      '/item': { op: { update: { live: true }, create: { method: 'POST', live: false } } },
+    } } } },
+    def: { paths: { [route]: { put: {}, post: {} }, '/item/{id}': { patch: {} }, '/item': { put: {} } } },
+  }
+  await contractTransform(ctx)
+  assert.deepEqual(points.map((pt) => pt.li), [true, false, input, true])
+})

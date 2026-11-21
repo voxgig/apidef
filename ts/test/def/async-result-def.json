@@ -1,0 +1,182 @@
+{
+ "openapi": "3.0.0",
+ "info": {
+  "title": "async-result",
+  "version": "1.0.0"
+ },
+ "servers": [
+  {
+   "url": "https://example.com"
+  }
+ ],
+ "paths": {
+  "/report/render": {
+   "post": {
+    "responses": {
+     "202": {
+      "description": "ok"
+     }
+    },
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "source": {
+          "type": "string"
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/report/renderResults/{resultId}": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RenderOperationResult"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "resultId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ]
+   }
+  },
+  "/devices/{deviceId}": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Device"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "deviceId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ]
+   }
+  },
+  "/devices/{deviceId}/render": {
+   "post": {
+    "responses": {
+     "202": {
+      "description": "ok"
+     }
+    },
+    "parameters": [
+     {
+      "name": "deviceId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "source": {
+          "type": "string"
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/devices/{deviceId}/renderResults/{resultId}": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RenderOperationResult"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "deviceId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "resultId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ]
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "RenderOperationResult": {
+    "type": "object",
+    "properties": {
+     "status": {
+      "type": "string"
+     },
+     "createdDateTime": {
+      "type": "string"
+     }
+    }
+   },
+   "Device": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "status": {
+      "type": "string"
+     }
+    }
+   }
+  }
+ }
+}

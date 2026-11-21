@@ -62,7 +62,8 @@ exports.bodyTransform = bodyTransform;
 // A patch the operation pass promotes to update keeps its entry under patch.
 function guideMedia(guide, entname, opname, mpoint) {
     const gops = guide?.entity?.[entname]?.path?.[mpoint.o]?.op ?? {};
-    for (const name of 'update' === opname ? ['update', 'patch'] : [opname]) {
+    // update also holds a promoted PATCH and a create made only of actions.
+    for (const name of 'update' === opname ? ['update', 'patch', 'create'] : [opname]) {
         const gop = gops[name];
         if (null != gop && (0, utility_1.guideActive)(gop) &&
             String(gop.method ?? '').toUpperCase() === String(mpoint.m).toUpperCase()) {

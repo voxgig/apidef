@@ -1,0 +1,151 @@
+{
+ "openapi": "3.0.0",
+ "info": {
+  "title": "word-break",
+  "version": "1.0.0"
+ },
+ "servers": [
+  {
+   "url": "https://example.com"
+  }
+ ],
+ "paths": {
+  "/farms/{farmId}/croptypes": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/Croptype"
+         }
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "farmId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "tags": [
+     "CropTypes"
+    ],
+    "operationId": "CropTypes_GetCroptypes"
+   }
+  },
+  "/farms/{farmId}/croptypes/{code}": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Croptype"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "farmId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "code",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "tags": [
+     "CropTypes"
+    ]
+   }
+  },
+  "/boxsizes": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "ride_types": {
+           "type": "array",
+           "items": {
+            "$ref": "#/components/schemas/BoxSize"
+           }
+          }
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/zipcodes": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok"
+     }
+    },
+    "tags": [
+     "zipcodes"
+    ]
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "Croptype": {
+    "type": "object",
+    "properties": {
+     "code": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     }
+    }
+   },
+   "BoxSize": {
+    "type": "object",
+    "properties": {
+     "ride_type": {
+      "type": "string"
+     },
+     "display_name": {
+      "type": "string"
+     }
+    }
+   }
+  }
+ },
+ "tags": [
+  {
+   "name": "CropTypes"
+  }
+ ]
+}

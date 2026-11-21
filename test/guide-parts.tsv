@@ -10,3 +10,6 @@ input	expected
 /json	["json"]
 /v1.0/items	["v1.0","items"]
 /report.pdf	["report.pdf"]
+/labels/{labelId}#keys	["labels","{labelId}"]
+/owners/{ownerId}/pets/${petId}	["owners","{ownerId}","pets","{petId}"]
+/#Action=GetThing	["#Action=GetThing"]

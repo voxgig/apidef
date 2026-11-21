@@ -4,7 +4,7 @@ import { test, describe } from 'node:test'
 import assert from 'node:assert'
 
 import { ApiDef } from '../dist/apidef'
-import { mergeFoldedEntities } from '../dist/transform/entity'
+import { mergeCommandEntities, mergeFoldedEntities } from '../dist/transform/entity'
 
 
 function routes(entities: any) {
@@ -98,6 +98,81 @@ describe('fold-merge', () => {
     assert.deepStrictEqual(mergeFoldedEntities(guide), [])
     assert.deepStrictEqual(Object.keys(guide.entity).sort(),
       ['case', 'constructor', 'use', 'use_case'])
+  })
+
+})
+
+
+describe('command-merge', () => {
+
+  const actions = (guide: any, ename: string, path: string) =>
+    Object.keys(guide.entity[ename].path[path].action ?? {})
+
+  test('a command joins the entity whose route it writes beneath', () => {
+    const guide: any = { entity: {
+      doc: entity('doc', { '/api/doc': ['load'] }),
+      mdconvert: entity('mdconvert', { '/api/doc/mdconvert': ['create'] }),
+      run: entity('run', { '/runs/{run_id}': ['load'] }),
+      rerun_failed_job: entity('rerun_failed_job', { '/runs/{run_id}/rerun-failed-jobs': ['create'] }),
+    } }
+    guide.entity.run.path['/runs/{run_id}'].rename = { param: { run_id: { target: 'id' } } }
+    guide.entity.rerun_failed_job.path['/runs/{run_id}/rerun-failed-jobs'].rename =
+      { param: { run_id: { target: 'run_id' } } }
+    assert.deepStrictEqual(mergeCommandEntities(guide), ['mdconvert', 'rerun_failed_job'])
+    assert.deepStrictEqual(routes(guide.entity), {
+      doc: ['create /api/doc/mdconvert', 'load /api/doc'],
+      run: ['create /runs/{run_id}/rerun-failed-jobs', 'load /runs/{run_id}'],
+    })
+    assert.deepStrictEqual(actions(guide, 'doc', '/api/doc/mdconvert'), ['mdconvert'])
+    assert.deepStrictEqual(actions(guide, 'run', '/runs/{run_id}/rerun-failed-jobs'),
+      ['rerun_failed_jobs'])
+    assert.strictEqual(guide.entity.run.path['/runs/{run_id}/rerun-failed-jobs']
+      .rename.param.run_id.target, 'id')
+  })
+
+
+  test('a command beneath another joins where that one went', () => {
+    const guide: any = { entity: {
+      package: entity('package', { '/p/{id}/packages': ['list'] }),
+      nuget: entity('nuget', { '/p/{id}/packages/nuget': ['update'] }),
+      symbolpackage: entity('symbolpackage', { '/p/{id}/packages/nuget/symbolpackage': ['update'] }),
+    } }
+    assert.deepStrictEqual(mergeCommandEntities(guide), ['nuget', 'symbolpackage'])
+    assert.deepStrictEqual(Object.keys(guide.entity), ['package'])
+    assert.deepStrictEqual(actions(guide, 'package', '/p/{id}/packages/nuget/symbolpackage'),
+      ['symbolpackage'])
+  })
+
+
+  test('commands on one route join together, a route another entity reads stays', () => {
+    const guide: any = { entity: {
+      story: entity('story', { '/stories': ['create'] }),
+      bulk: entity('bulk', { '/stories/bulk': ['remove'] }),
+      create_story: entity('create_story', { '/stories/bulk': ['create'] }),
+      branch: entity('branch', { '/branches/{id}': ['load'] }),
+      branch_protection: entity('branch_protection', { '/branches/{id}/protection': ['load'] }),
+      protected_branch: entity('protected_branch', { '/branches/{id}/protection': ['update'] }),
+    } }
+    assert.deepStrictEqual(mergeCommandEntities(guide), ['bulk', 'create_story'])
+    assert.deepStrictEqual(routes(guide.entity).story,
+      ['create /stories', 'create /stories/bulk', 'remove /stories/bulk'])
+    assert.deepStrictEqual(actions(guide, 'story', '/stories/bulk'), ['bulk'])
+    assert.deepStrictEqual(Object.keys(guide.entity).sort(),
+      ['branch', 'branch_protection', 'protected_branch', 'story'])
+  })
+
+
+  test('a read, a key, a root route or an inactive entity is no command', () => {
+    const guide: any = { entity: {
+      thing: entity('thing', { '/things/{id}': ['load'] }),
+      view: entity('view', { '/things/{id}/view': ['load'] }),
+      part: entity('part', { '/things/{id}/{part}': ['update'] }),
+      disable: entity('disable', { '/disable': ['create'] }),
+      archive: entity('archive', { '/things/{id}/archive': ['create'] }, { active: false }),
+    } }
+    assert.deepStrictEqual(mergeCommandEntities(guide), [])
+    assert.deepStrictEqual(Object.keys(guide.entity).sort(),
+      ['archive', 'disable', 'part', 'thing', 'view'])
   })
 
 })

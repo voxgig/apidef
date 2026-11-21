@@ -8,7 +8,8 @@ import {
   validator, fieldName, inferFieldType, envelopeProp,
   composedEnvelopeProp, mergedProperties, canonizeCmpName,
   scanUntaggedUnion, firstSentence, humanTitle, collapseScalarAllOf,
-  itemEnvelopeOf, isFileType, nonNullType,
+  itemEnvelopeOf, isFileType, nonNullType, jsonContent, responseSchema, rangeResponse,
+  cmpNamespace, stripNamespace,
 } from '../utility'
 
 import { arrayCarrier, guideMedia, requestFieldSchema, sameType, nullableType } from './body'
@@ -59,7 +60,7 @@ const fieldTransform: Transform = async function(
           for (const fielddef of findFieldDefs(ment, mop, mpoint, def, media)) {
             const opfield = modelField(fielddef)
             ;(wires[opfield.n] = wires[opfield.n] ?? new Set()).add(String((fielddef as any).key$))
-            addField(fields, mop, opfield, carrier === opfield.n)
+            addField(fields, mop, opfield, carrier === opfield.n, true === (fielddef as any).ans$)
           }
         }
       }
@@ -362,16 +363,29 @@ function answeredProps(
 
 
 
-function namesEntity(schema: any, ment: ModelEntity): boolean {
+function namesEntity(schema: any, ment: ModelEntity, def: any): boolean {
   const xref = schema?.['x-ref']
 
   if ('string' !== typeof xref) {
     return false
   }
 
-  const cmp = xref.slice(xref.lastIndexOf('/') + 1)
+  const cmp = canonizeCmpName(xref.slice(xref.lastIndexOf('/') + 1))
 
-  return canonizeCmpName(cmp) === ment.name
+  return cmp === ment.name || stripNamespace(cmp, namespaceOf(def)) === ment.name
+}
+
+
+const NAMESPACES = new WeakMap<object, string | null>()
+
+function namespaceOf(def: any): string | null {
+  if (null == def || 'object' !== typeof def) {
+    return null
+  }
+  if (!NAMESPACES.has(def)) {
+    NAMESPACES.set(def, cmpNamespace(def))
+  }
+  return NAMESPACES.get(def) ?? null
 }
 
 // A `$ref` followed one hop, or the schema itself. apidef resolves most refs
@@ -761,12 +775,18 @@ function modelField(fielddef: SchemaDef): ModelField {
 }
 
 
-function addField(fields: Record<string, ModelField>, mop: ModelOp, field: ModelField, carrier: boolean) {
+function addField(
+  fields: Record<string, ModelField>,
+  mop: ModelOp,
+  field: ModelField,
+  carrier: boolean,
+  answer: boolean = false,
+) {
   if (!Object.prototype.hasOwnProperty.call(fields, field.n)) {
     fields[field.n] = field
   }
   else {
-    mergeField(mop, fields[field.n], field, carrier)
+    mergeField(mop, fields[field.n], field, carrier, answer)
   }
 }
 
@@ -873,11 +893,9 @@ function findFieldDefs(
     let fieldSets
 
     if (responses) {
-      fieldSets = getx(responses, '200 content "application/json" schema') ??
-        getx(responses, '200 schema')
+      fieldSets = responseSchema(responses['200'] ?? rangeResponse(responses))
       if (null == fieldSets && answersOnlyAccepted(responses)) {
-        fieldSets = getx(responses, '202 content "application/json" schema') ??
-          getx(responses, '202 schema')
+        fieldSets = responseSchema(responses['202'])
       }
       if ('list' == mop.name) {
         const unwrapped = transformRecords(fieldSets, mpoint.t?.res) ?? unwrapArrayWrapper(fieldSets)
@@ -891,14 +909,12 @@ function findFieldDefs(
           fieldSets = mergedProperties(fieldSets)?.[envelope]?.items
         }
         else {
-          const fromCreated = getx(responses, '201 content "application/json" schema items') ??
-            getx(responses, '201 schema items')
+          const fromCreated = responseSchema(responses['201'])?.items
           if (fromCreated) fieldSets = fromCreated
         }
       }
       else if ('put' === method && null == fieldSets) {
-        fieldSets = getx(responses, '201 content "application/json" schema') ??
-          getx(responses, '201 schema')
+        fieldSets = responseSchema(responses['201'])
       }
 
       if ('list' != mop.name) {
@@ -916,7 +932,7 @@ function findFieldDefs(
       }
     }
 
-    if (isAction && !namesEntity(fieldSets, ment)) {
+    if (isAction && !namesEntity(fieldSets, ment, def)) {
       return fielddefs
     }
 
@@ -925,17 +941,25 @@ function findFieldDefs(
     // verb's arguments, never the record.
     const reqschema = requestFieldSchema(def, mpoint, media)
     if ((requestBody || null != reqschema) && 'query' !== method && !isAction) {
-      fieldSets = [fieldSets, reqschema]
+      // What the call sends is required where the request says so. The
+      // response's `required` describes the answer, so a property the request
+      // also declares is marked to leave the op's requiredness alone.
+      const sent = composedFields(reqschema)
+      const declared = new Set(sent.map((fd: any) => fd.key$))
+      fielddefs.push(
+        ...composedFields(fieldSets).map((fd: any) => declared.has(fd.key$) ? { ...fd, ans$: true } : fd),
+        ...sent)
     }
 
+    else {
+      if (fieldSets && (Array.isArray(fieldSets.allOf) || fieldSets.properties)) {
+        fieldSets = [fieldSets]
+      }
 
-    if (fieldSets && (Array.isArray(fieldSets.allOf) || fieldSets.properties)) {
-      fieldSets = [fieldSets]
+      each(fieldSets, (fieldSet: any) => {
+        fielddefs.push(...composedFields(fieldSet))
+      })
     }
-
-    each(fieldSets, (fieldSet: any) => {
-      fielddefs.push(...composedFields(fieldSet))
-    })
   }
 
   // Fallback: infer fields from example response data when no schema properties found
@@ -1077,15 +1101,17 @@ function findExampleObject(opdef: any, envelope?: string | null): any {
   const responses = opdef.responses
   if (null == responses) return null
 
-  const resdef = responses['200'] ?? responses['201'] ?? responses['202']
+  const resdef = responses['200'] ?? responses['201'] ?? responses['202'] ??
+    rangeResponse(responses)
   if (null == resdef) return null
 
   // OpenAPI 3.x: content.application/json.example
-  let example = getx(resdef, 'content "application/json" example')
+  const media = jsonContent(resdef.content)
+  let example = media?.example
   if (null != example && 'object' === typeof example) return unwrapExample(example, envelope)
 
   // OpenAPI 3.x: content.application/json.examples (named examples — take first)
-  const examples = getx(resdef, 'content "application/json" examples')
+  const examples = media?.examples
   if (null != examples && 'object' === typeof examples) {
     for (const val of Object.values(examples)) {
       const ex = (val as any)?.value
@@ -1094,7 +1120,7 @@ function findExampleObject(opdef: any, envelope?: string | null): any {
   }
 
   // OpenAPI 3.x: content.application/json.schema.example
-  example = getx(resdef, 'content "application/json" schema example')
+  example = media?.schema?.example
   if (null != example && 'object' === typeof example) return unwrapExample(example, envelope)
 
   // Swagger 2.0: response.example / response.examples.application/json
@@ -1178,14 +1204,17 @@ function inferTypeFromValue(value: any): string {
 
 
 // A carrier keeps its array type for its operation where it meets a field of
-// another type.
+// another type. An answer's declaration of a field the request also declares
+// says nothing of the operation.
 function mergeField(
   mop: ModelOp,
   existingField: ModelField,
   newField: ModelField,
   carrier: boolean = false,
+  answer: boolean = false,
 ) {
-  if (newField.r !== existingField.r || (carrier && !sameType(newField.t, existingField.t))) {
+  if (!answer &&
+    (newField.r !== existingField.r || (carrier && !sameType(newField.t, existingField.t)))) {
     existingField.op[mop.name] = {
       req: newField.r,
       type: newField.t,

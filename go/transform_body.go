@@ -86,8 +86,9 @@ func guideBodyMedia(guide map[string]any, entname string, opname string, method 
 	gpath, _ := gpaths[path].(map[string]any)
 	gops, _ := gpath["op"].(map[string]any)
 	names := []string{opname}
+	// update also holds a promoted PATCH and a create made only of actions.
 	if opname == "update" {
-		names = append(names, "patch")
+		names = append(names, "patch", "create")
 	}
 	for _, name := range names {
 		gop, _ := gops[name].(map[string]any)

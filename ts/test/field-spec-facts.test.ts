@@ -268,6 +268,87 @@ describe('field-spec-facts', () => {
   })
 
 
+  // go/apidef_test.go TestFieldRequiredFromRequest runs the same case.
+  test('the request decides what a create requires of a field it declares', async () => {
+    const json = (schema: any) => ({ content: { 'application/json': { schema } } })
+    const entity = {
+      name: 'sandbox',
+      fields: {} as Record<string, any>,
+      op: {
+        load: {
+          name: 'load',
+          points: [{ o: '/sandboxes/{id}', m: 'GET', k: 'json' }],
+        },
+        create: {
+          name: 'create',
+          points: [{ o: '/sandboxes', m: 'POST', k: 'json' }],
+        },
+      },
+    }
+
+    const def = {
+      paths: {
+        '/sandboxes/{id}': {
+          get: {
+            responses: {
+              200: json({
+                type: 'object',
+                required: ['id', 'name'],
+                properties: {
+                  id: { type: 'string' },
+                  name: { type: 'string' },
+                  ttl: { type: ['integer', 'null'] },
+                },
+              }),
+            },
+          },
+        },
+        '/sandboxes': {
+          post: {
+            requestBody: json({
+              type: 'object',
+              required: ['name', 'size'],
+              properties: {
+                name: { type: 'string' },
+                size: { type: 'string' },
+                ttl: { type: ['integer', 'null'], default: 3600 },
+              },
+            }),
+            // Accepted, and reporting what it applied: the answer requires the
+            // ttl the request may leave out, and leaves out the name it requires.
+            responses: {
+              202: json({
+                allOf: [
+                  { type: 'object', properties: { name: { type: 'string' } } },
+                  {
+                    type: 'object',
+                    required: ['status', 'ttl'],
+                    properties: {
+                      status: { type: 'string' },
+                      ttl: { type: ['integer', 'null'] },
+                    },
+                  },
+                ],
+              }),
+            },
+          },
+        },
+      },
+    }
+
+    const fields = fieldsByName(await runFieldTransform(entity, def))
+
+    assert.strictEqual(fields.ttl.r, false)
+    assert.strictEqual(fields.ttl.op.create, undefined,
+      'the answer made the create require what the request leaves optional')
+    assert.strictEqual(fields.name.r, true)
+    assert.strictEqual(fields.name.op.create, undefined,
+      'the answer made the create leave out what the request requires')
+    assert.deepStrictEqual(fields.size.op, {})
+    assert.strictEqual(fields.size.r, true)
+  })
+
+
   test('the parsed schema keeps its own keys', async () => {
     const schema = {
       type: 'object',

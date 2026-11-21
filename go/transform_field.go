@@ -54,7 +54,8 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 						wires[n] = map[string]bool{}
 					}
 					wires[n][fmt.Sprint(fielddef["key$"])] = true
-					addOpField(fields, opname, opfield, carrier == opfield["n"])
+					answer, _ := fielddef["ans$"].(bool)
+					addOpField(fields, opname, opfield, carrier == opfield["n"], answer)
 				}
 			}
 		}
@@ -70,7 +71,7 @@ func FieldTransform(ctx *ApiDefContext) (*TransformResult, error) {
 				}
 				media, _ := guideBodyMedia(ctx.Guide, entname, "remove", safeStr(mtarget["m"]), safeStr(mtarget["o"]))
 				if c := carrierOf(mtarget, def, media); c != nil {
-					addOpField(fields, "remove", modelField(carrierDef(c)), true)
+					addOpField(fields, "remove", modelField(carrierDef(c)), true, false)
 				}
 			}
 		}
@@ -749,7 +750,7 @@ func trailingVars(ptMap map[string]any) []string {
 // addOpField adds an operation's field, or merges it into the field of that
 // name, recording what differs for the operation. Mirrors addField and
 // mergeField in ts/src/transform/field.ts.
-func addOpField(fields map[string]any, opname string, opfield map[string]any, carrier bool) {
+func addOpField(fields map[string]any, opname string, opfield map[string]any, carrier bool, answer bool) {
 	name, _ := opfield["n"].(string)
 	if existing, exists := fields[name].(map[string]any); !exists {
 		fields[name] = opfield
@@ -757,9 +758,10 @@ func addOpField(fields map[string]any, opname string, opfield map[string]any, ca
 		newReq, _ := opfield["r"].(bool)
 		existReq, _ := existing["r"].(bool)
 		// Mirrors ts/src/transform/field.ts: a carrier keeps its
-		// array type for its operation.
+		// array type for its operation, and an answer's declaration of a
+		// field the request also declares says nothing of the operation.
 		retyped := carrier && !sameType(opfield["t"], existing["t"])
-		if newReq != existReq || retyped {
+		if !answer && (newReq != existReq || retyped) {
 			opOverrides, _ := existing["op"].(map[string]any)
 			if opOverrides == nil {
 				opOverrides = map[string]any{}
@@ -883,7 +885,8 @@ func modelField(fielddef map[string]any) map[string]any {
 	return mfield
 }
 
-func namesEntity(schema any, entname string) bool {
+// namesEntity mirrors namesEntity in ts/src/transform/field.ts.
+func namesEntity(schema any, entname string, def map[string]any) bool {
 	m, _ := schema.(map[string]any)
 	if m == nil {
 		return false
@@ -899,7 +902,8 @@ func namesEntity(schema any, entname string) bool {
 		cmp = xref[i+1:]
 	}
 
-	return CanonizeCmpName(cmp) == entname
+	name := CanonizeCmpName(cmp)
+	return name == entname || StripNamespace(name, CmpNamespace(def)) == entname
 }
 
 func findFieldDefs(mtarget map[string]any, def map[string]any, opname string, entname string, media string) []map[string]any {
@@ -982,7 +986,7 @@ func findFieldDefs(mtarget map[string]any, def map[string]any, opname string, en
 		}
 	}
 
-	if isAction && !namesEntity(fieldSets, entname) {
+	if isAction && !namesEntity(fieldSets, entname, def) {
 		return fielddefs
 	}
 
@@ -992,10 +996,22 @@ func findFieldDefs(mtarget map[string]any, def map[string]any, opname string, en
 	// verb's arguments and never the record.
 	reqSchema := requestFieldSchema(def, mtarget, media)
 	if (requestBody != nil || reqSchema != nil) && methodLower != "query" && !isAction {
-		fieldSets = []any{fieldSets, reqSchema}
-	}
-
-	if fieldSets != nil {
+		// Mirrors ts/src/transform/field.ts: what the call sends is required
+		// where the request says so, so the response's declaration of a
+		// property the request also declares is marked.
+		sent := composedFields(reqSchema)
+		declared := map[string]bool{}
+		for _, fd := range sent {
+			declared[fmt.Sprint(fd["key$"])] = true
+		}
+		for _, fd := range composedFields(fieldSets) {
+			if declared[fmt.Sprint(fd["key$"])] {
+				fd["ans$"] = true
+			}
+			fielddefs = append(fielddefs, fd)
+		}
+		fielddefs = append(fielddefs, sent...)
+	} else if fieldSets != nil {
 		extractFieldsTopLevel(fieldSets, &fielddefs)
 	}
 
@@ -1143,21 +1159,10 @@ func getFieldResponseSchemaItems(responses map[string]any, code string) any {
 
 func getFieldResponseSchema(responses map[string]any, code string) any {
 	resdef, _ := responses[code].(map[string]any)
-	if resdef == nil {
-		return nil
+	if resdef == nil && code == "200" {
+		resdef = RangeResponse(responses)
 	}
-
-	// OpenAPI 3.x
-	if content, ok := resdef["content"].(map[string]any); ok {
-		if appjson, ok := content["application/json"].(map[string]any); ok {
-			if schema, ok := appjson["schema"]; ok {
-				return schema
-			}
-		}
-	}
-
-	// Swagger 2.0
-	if schema, ok := resdef["schema"]; ok {
+	if schema := ResponseSchema(resdef); schema != nil {
 		return schema
 	}
 	return nil
@@ -1345,13 +1350,16 @@ func findExampleObject(opdef map[string]any, envelope string) any {
 		}
 	}
 	if resdef == nil {
+		resdef = RangeResponse(responses)
+	}
+	if resdef == nil {
 		return nil
 	}
 
 	// OpenAPI 3.x, then Swagger 2.0. Only an object or a list is an example
 	// here; anything else is passed over for the next place to look.
 	content, _ := resdef["content"].(map[string]any)
-	appjson, _ := content["application/json"].(map[string]any)
+	appjson := JSONContent(content)
 	if isExampleObject(appjson["example"]) {
 		return unwrapExample(appjson["example"], envelope)
 	}

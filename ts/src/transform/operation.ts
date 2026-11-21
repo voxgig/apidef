@@ -43,9 +43,9 @@ import type {
 // verb is declared as `action: <verb>: {}` beside a CRUD op on the same path.
 const RESOLVED_OPS = ['load', 'list', 'create', 'update', 'remove', 'patch']
 
-// Emitted by the heuristic for HEAD and OPTIONS methods; no SDK operation
+// Emitted by the heuristic for HEAD, OPTIONS and TRACE methods; no SDK operation
 // exists for them yet, so they are skipped without a warning.
-const IGNORED_OPS = ['head', 'options', 'OPTIONS']
+const IGNORED_OPS = ['head', 'options', 'OPTIONS', 'TRACE']
 
 
 const operationTransform: Transform = async function(
@@ -77,6 +77,7 @@ const operationTransform: Transform = async function(
     resolveUpdate(opm, on)
     resolveRemove(opm, on)
     resolvePatch(opm, on)
+    resolveActionCreate(ctx, opm, on)
 
     // After patch has joined update, so each operation's routes are final.
     for (const mop of Object.values(opm)) {
@@ -186,11 +187,56 @@ function resolvePatch(opm: ModelOpMap, on: OpEntity): undefined | ModelOp {
 }
 
 
+// A create made only of actions on the record creates nothing: its points ride
+// along into the entity's own update, as update's do when a PATCH is promoted.
+function resolveActionCreate(ctx: any, opm: ModelOpMap, on: OpEntity) {
+  if (null == opm.create || !onlyActionPaths(on.gent, 'create')) {
+    return
+  }
+
+  const opm$ = (on.gent as any).opm$
+  const paths: PathDesc[] = opm$.create.paths
+  const updatePaths: PathDesc[] = [
+    ...(opm$.update?.paths ?? []),
+    ...(null == opm.patch ? (opm$.patch?.paths ?? []) : []),
+  ]
+
+  if (null != opm.update && updatePaths.some((p) => !hasAction(p)) &&
+    paths.every(addressesRecord)) {
+    opm.update.points.push(...opm.create.points)
+    opm.create = undefined
+    return
+  }
+
+  const verbs = [...new Set(paths.flatMap((p) => Object.keys(p.action ?? {})))].sort()
+  ctx.warn?.({
+    note: `Create on entity=${on.gent.name} has no route of its own, only the action ` +
+      `${verbs.join(', ')}, so a create must name it with $action. Set the route's ` +
+      `op in the guide if it is not a create.`,
+    entity: on.gent.name,
+    op: 'create',
+  })
+}
+
+
+// A custom method's `{id}:verb` keeps its placeholder in a literal, so the
+// rename is what names the record there.
+function addressesRecord(p: PathDesc): boolean {
+  return Object.values(p.rename?.param ?? {})
+    .some((to: any) => 'id' === ('string' === typeof to ? to : to?.target)) ||
+    p.segments.some((seg) => 'id' === seg.var)
+}
+
+
+function hasAction(p: PathDesc): boolean {
+  return 0 < Object.keys(p.action ?? {}).length
+}
+
+
 // True when every path collected under the op carries a guide action.
 function onlyActionPaths(gent: GuideEntity, opname: OpName): boolean {
   const paths: PathDesc[] = (gent as any).opm$?.[opname]?.paths ?? []
-  return 0 < paths.length &&
-    paths.every((p: PathDesc) => 0 < Object.keys(p.action ?? {}).length)
+  return 0 < paths.length && paths.every(hasAction)
 }
 
 

@@ -72,7 +72,9 @@ optional argument never counts, since a caller who omits it could not reach
 the point. `q.$action` marks an action point. Downstream this becomes the
 SDK's routing and pre-condition logic: the first point whose selector a
 call meets is chosen, so when points of one operation share a selector,
-only the first can be reached, and apidef records a warning naming them.
+only the first can be reached. The guide gives every such path but the
+plainest an action made of the literals that set it apart, and apidef
+records a warning naming any points that still share one.
 
 ## A body that is not JSON says how it is sent
 
@@ -110,6 +112,11 @@ than raw OpenAPI types, so downstream validation is uniform. A field's
 `req`-uiredness can differ per operation (required on `create`, optional on
 `update`); when it does, the difference is recorded under the field's `op`
 map rather than flattened away.
+
+An operation that sends a body takes what it requires of each property the
+body declares from the request alone. Its response may require a property the
+request leaves optional, as a create answering with the values it applied
+does, and that `required` describes the answer, not what a caller must send.
 
 One field stands for every property of its name, whichever operation's
 request or response declares it, so the fields alone cannot tell a request

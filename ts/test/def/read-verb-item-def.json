@@ -1,0 +1,129 @@
+{
+ "openapi": "3.0.0",
+ "info": {
+  "title": "read-verb-item",
+  "version": "1.0.0"
+ },
+ "servers": [
+  {
+   "url": "https://example.com"
+  }
+ ],
+ "paths": {
+  "/gadgets": {
+   "get": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/Gadget"
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/gadgets/{gadgetId}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "gadgetId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Gadget"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/gadgets/{gadgetId}/getLinkedTags": {
+   "post": {
+    "parameters": [
+     {
+      "name": "gadgetId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/LinkedTagsResult"
+        }
+       }
+      }
+     }
+    },
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/LinkedTagsQuery"
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "Gadget": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     }
+    }
+   },
+   "LinkedTagsQuery": {
+    "type": "object",
+    "properties": {
+     "securityOnly": {
+      "type": "boolean"
+     }
+    }
+   },
+   "LinkedTagsResult": {
+    "type": "object",
+    "properties": {
+     "value": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  }
+ }
+}

@@ -408,6 +408,28 @@ func TestTsvEnsureMinEntityName(t *testing.T) {
 	}
 }
 
+func TestTsvWrapperOf(t *testing.T) {
+	rows := loadTsv(t, "wrapper-of")
+	if len(rows) == 0 {
+		t.Fatal("no wrapper-of rows loaded")
+	}
+	for _, row := range rows {
+		name, want := row["name"], row["expected"]
+		known := strings.Split(row["known"], ",")
+		sort.Strings(known)
+		t.Run(name, func(t *testing.T) {
+			got, ok := WrapperOf(name, known)
+			if want == "null" {
+				if ok {
+					t.Errorf("WrapperOf(%q) = %q, want no wrapper", name, got)
+				}
+			} else if !ok || got != want {
+				t.Errorf("WrapperOf(%q) = %q, %v, want %q", name, got, ok, want)
+			}
+		})
+	}
+}
+
 func TestTsvResplitFromCmp(t *testing.T) {
 	rows := loadTsv(t, "resplit-from-cmp")
 	if len(rows) == 0 {

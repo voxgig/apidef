@@ -1,0 +1,242 @@
+{
+ "openapi": "3.0.0",
+ "info": {
+  "title": "record-array",
+  "version": "1.0.0"
+ },
+ "servers": [
+  {
+   "url": "https://example.com"
+  }
+ ],
+ "paths": {
+  "/me": {
+   "get": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Account"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/reports/latest": {
+   "get": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Report"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/boards": {
+   "get": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/BoardPage"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/boards/{boardId}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "boardId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Board"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/boards/{boardId}/acl": {
+   "get": {
+    "parameters": [
+     {
+      "name": "boardId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AclList"
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "Account": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "login": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     },
+     "emails": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "roles": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Role"
+      }
+     }
+    }
+   },
+   "Role": {
+    "type": "object",
+    "properties": {
+     "name": {
+      "type": "string"
+     }
+    }
+   },
+   "Report": {
+    "type": "object",
+    "properties": {
+     "reportId": {
+      "type": "string"
+     },
+     "title": {
+      "type": "string"
+     },
+     "status": {
+      "type": "string"
+     },
+     "created": {
+      "type": "string"
+     },
+     "sections": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Section"
+      }
+     }
+    }
+   },
+   "Section": {
+    "type": "object",
+    "properties": {
+     "heading": {
+      "type": "string"
+     }
+    }
+   },
+   "Board": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "title": {
+      "type": "string"
+     }
+    }
+   },
+   "BoardPage": {
+    "type": "object",
+    "properties": {
+     "items": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Board"
+      }
+     },
+     "next": {
+      "type": "string"
+     }
+    }
+   },
+   "AclList": {
+    "type": "object",
+    "properties": {
+     "source": {
+      "type": "string"
+     },
+     "region": {
+      "type": "string"
+     },
+     "generated": {
+      "type": "string"
+     },
+     "items": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Rule"
+      }
+     }
+    }
+   },
+   "Rule": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "role": {
+      "type": "string"
+     }
+    }
+   }
+  }
+ }
+}

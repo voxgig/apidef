@@ -77,3 +77,6 @@ Novu(?:'s)?
 [Dd]enylist
 
 Docgen
+numeronym
+namespace
+Statuspage(?:'s)?

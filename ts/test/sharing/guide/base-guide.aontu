@@ -14,6 +14,7 @@ guide: {
       op: update: method: *PUT
     }
     path: "/orgs/{org}/dependabot/secrets/{name}": {
+      action: "dependabot": {}
       rename: param: "org": *"org_id"
       op: update: method: *PUT
     }
@@ -63,7 +64,7 @@ guide: {
     }
   }
 
-  entity: package_manifest: {
+  entity: package: {
     path: "/packages/{pid}/digest": {
       action: "digest": {}
       rename: param: "pid": *"id"
@@ -78,7 +79,7 @@ guide: {
     }
   }
 
-  entity: recipe_manifest: {
+  entity: recipe: {
     path: "/recipes/{rid}/digest": {
       action: "digest": {}
       rename: param: "rid": *"id"
@@ -99,6 +100,7 @@ guide: {
       op: remove: method: *DELETE
     }
     path: "/accounts/{aid}/external_accounts/{id}": {
+      action: "external_accounts": {}
       rename: param: "aid": *"account_id"
       op: remove: method: *DELETE
     }
