@@ -574,6 +574,24 @@ const RULINGS = [
             'GET /featured/widgets': 'widget list',
         },
     },
+    {
+        def: 'version-verb-def.json',
+        expect: {
+            'GET /api/v3/search': 'search load',
+            'POST /api/v3/stories/search': 'story list search',
+            'GET /api/v3/stories/{story_id}': 'story load',
+        },
+    },
+    {
+        def: 'empty-object-def.json',
+        expect: {
+            'GET /repos/{owner}/{repo}/actions/secrets/{secret_name}': 'secret load',
+            'PUT /repos/{owner}/{repo}/actions/secrets/{secret_name}': 'secret update',
+            'DELETE /repos/{owner}/{repo}/actions/secrets/{secret_name}': 'secret remove',
+            'GET /repos/{owner}/{repo}/actions/runs/{run_id}': 'run load',
+            'POST /repos/{owner}/{repo}/actions/runs/{run_id}/rerun': 'run create rerun',
+        },
+    },
 ];
 (0, node_test_1.describe)('rulings', () => {
     (0, node_test_1.after)(() => {

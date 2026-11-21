@@ -34,7 +34,7 @@ type MethodDef struct {
 type ServerDef struct {
 	URL         string                       `json:"url"`
 	Description string                       `json:"description,omitempty"`
-	Variables   map[string]ServerVariableDef  `json:"variables,omitempty"`
+	Variables   map[string]ServerVariableDef `json:"variables,omitempty"`
 }
 
 // ServerVariableDef represents an OpenAPI server variable.

@@ -582,7 +582,12 @@
         }
       },
       "Ack": {
-        "type": "object"
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          }
+        }
       },
       "Job": {
         "type": "object",

@@ -141,12 +141,14 @@ func sortPoints(mop map[string]any) {
 			return order < 0
 		}
 
-		aai, _ := si["$action"].(string)
-		aaj, _ := sj["$action"].(string)
-		if aai != "" && aaj != "" {
-			if aai != aaj {
-				return lessUTF16(aai, aaj)
-			}
+		// A plain point sorts before an action point, keeping the order total.
+		aai, hasi := si["$action"].(string)
+		aaj, hasj := sj["$action"].(string)
+		if hasi != hasj {
+			return hasj
+		}
+		if aai != aaj {
+			return lessUTF16(aai, aaj)
 		}
 
 		return lessUTF16(existStr(ei), existStr(ej))

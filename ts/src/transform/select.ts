@@ -46,7 +46,7 @@ const selectTransform: Transform = async function(
         resolveSelect(guide, ment, mop, mpoint, pdef, carrier)
       })
       if (null != mop.points && 0 < mop.points.length) {
-        sortPoints(guide, ment, mop)
+        sortPoints(mop)
         warnSharedSelectors(ctx, ment, mop)
       }
     })
@@ -115,11 +115,7 @@ function resolveSelect(
 }
 
 
-function sortPoints(
-  _guide: Guide,
-  _ment: ModelEntity,
-  mop: ModelOp,
-) {
+function sortPoints(mop: ModelOp) {
   // Cache joined exist strings to avoid recomputing on every comparison.
   const existCache = new Map<ModelPoint, string>()
   for (const pt of mop.points) {
@@ -130,10 +126,12 @@ function sortPoints(
     // longest exist len first
     let order = b.q.exist.length - a.q.exist.length
     if (0 === order) {
-      if (null != a.q.$action && null != b.q.$action) {
-        order = a.q.$action < b.q.$action ? -1 :
-          a.q.$action > b.q.$action ? 1 : 0
-      }
+      // A plain point sorts before an action point, keeping the order total.
+      const a_action = a.q.$action
+      const b_action = b.q.$action
+      order = null == a_action ? (null == b_action ? 0 : -1) :
+        null == b_action ? 1 :
+          a_action < b_action ? -1 : a_action > b_action ? 1 : 0
 
       if (0 === order) {
         const a_exist_str = existCache.get(a)!
@@ -177,4 +175,5 @@ function warnSharedSelectors(ctx: any, ment: ModelEntity, mop: ModelOp) {
 
 export {
   selectTransform,
+  sortPoints,
 }

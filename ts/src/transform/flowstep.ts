@@ -137,6 +137,20 @@ function newFlowStep(opname: OpName, args: Record<string, any>): ModelEntityFlow
 }
 
 
+// A step calls the op without an action, so it reads the point that call
+// reaches: the last plain point, the most generic as points sort the most
+// specific first.
+function plainPoint(points: any[] | undefined): any {
+  const all = points ?? []
+  for (let i = all.length - 1; 0 <= i; i--) {
+    if (null == all[i]?.q?.$action) {
+      return all[i]
+    }
+  }
+  return getelem(all, -1)
+}
+
+
 // Reverse-lookup: given a point with rename.param like {spaceId: 'id'} or
 // {space_id: 'id'}, return the snake_case ORIGINAL name (e.g. 'space_id') of
 // any param whose URL placeholder is now `{id}`. Returns null when no
@@ -162,8 +176,7 @@ const createStep: MakeFlowStep = (
   args: Record<string, any>
 ) => {
   if (null != opmap.create) {
-    // Use last point as most generic
-    const point = getelem(opmap.create.points, -1)
+    const point = plainPoint(opmap.create.points)
     const step = newFlowStep('create', args)
 
     each(point.g.params, (param: any) => {
@@ -213,8 +226,7 @@ const listStep: MakeFlowStep = (
   args: Record<string, any>
 ) => {
   if (null != opmap.list) {
-    // Use last point as most generic
-    const point = getelem(opmap.list.points, -1)
+    const point = plainPoint(opmap.list.points)
     const step = newFlowStep('list', args)
 
     each(point.g.params, (param: any) => {
@@ -240,8 +252,7 @@ const updateStep: MakeFlowStep = (
   args: Record<string, any>
 ) => {
   if (null != opmap.update) {
-    // Use last point as most generic
-    const point = getelem(opmap.update.points, -1)
+    const point = plainPoint(opmap.update.points)
     const step = newFlowStep('update', args)
 
     each(point.g.params, (param: any) => {
@@ -265,8 +276,7 @@ const loadStep: MakeFlowStep = (
   args: Record<string, any>
 ) => {
   if (null != opmap.load) {
-    // Use last point as most generic
-    const point = getelem(opmap.load.points, -1)
+    const point = plainPoint(opmap.load.points)
     const step = newFlowStep('load', args)
 
     each(point.g.params, (param: any) => {
@@ -294,8 +304,7 @@ const removeStep: MakeFlowStep = (
   // no remove step at all; a create-less remove would delete real records in
   // live mode and makes no sense as a self-contained CRUD test.
   if (null != opmap.remove && null != opmap.create) {
-    // Use last point as most generic
-    const point = getelem(opmap.remove.points, -1)
+    const point = plainPoint(opmap.remove.points)
     const step = newFlowStep('remove', args)
 
     each(point.g.params, (param: any) => {

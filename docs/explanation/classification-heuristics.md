@@ -346,7 +346,10 @@ entity: `success`, `ok`, `default`, `response`, `result`, `empty` or
 `GroupId`. An `Object` with properties of its own is a record, as the
 objects of a storage service are. Neither does the bare member
 of a family of results, as `AcmeResult` is beside `AcmeKindsResult` and
-`AcmeZonesResult`. The path names those routes instead.
+`AcmeZonesResult`. Nor does an object of any name that declares no
+properties and is neither a map nor a union, as GitHub's `empty-object` is.
+The path names those routes instead: the `PUT` of a secret that answers
+with an `empty-object` joins `secret`.
 
 A method that answers no component of its own joins the entity that a read
 of its path takes from the component it answers. A `DELETE` answering a
@@ -366,7 +369,9 @@ resource rather than naming one, so there the tag still names, and the
 reads stay on `artifact`. A trailing literal that is a verb, `send` in
 `/message/send`, names the noun before it, and the verb becomes an action
 of `message`; so does the verb after a colon in a custom method, as
-`count` in `/schedules:count` acts on `schedule`.
+`count` in `/schedules:count` acts on `schedule`. A version segment names no
+resource, so in Shortcut's `GET /api/v3/search`, where only `api` and `v3`
+come before the verb, `search` names the route itself.
 
 A tag that names a literal earlier in the path than its own noun keeps
 naming only where the route is a selector or a view of that literal's

@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.selectTransform = void 0;
+exports.sortPoints = sortPoints;
 const jostraca_1 = require("jostraca");
 const types_1 = require("../types");
 const body_1 = require("./body");
@@ -18,7 +19,7 @@ const selectTransform = async function (ctx) {
                 resolveSelect(guide, ment, mop, mpoint, pdef, carrier);
             });
             if (null != mop.points && 0 < mop.points.length) {
-                sortPoints(guide, ment, mop);
+                sortPoints(mop);
                 warnSharedSelectors(ctx, ment, mop);
             }
         });
@@ -65,7 +66,7 @@ function resolveSelect(guide, ment, _mop, mpoint, _pdef, carrier) {
         }
     }
 }
-function sortPoints(_guide, _ment, mop) {
+function sortPoints(mop) {
     // Cache joined exist strings to avoid recomputing on every comparison.
     const existCache = new Map();
     for (const pt of mop.points) {
@@ -75,10 +76,12 @@ function sortPoints(_guide, _ment, mop) {
         // longest exist len first
         let order = b.q.exist.length - a.q.exist.length;
         if (0 === order) {
-            if (null != a.q.$action && null != b.q.$action) {
-                order = a.q.$action < b.q.$action ? -1 :
-                    a.q.$action > b.q.$action ? 1 : 0;
-            }
+            // A plain point sorts before an action point, keeping the order total.
+            const a_action = a.q.$action;
+            const b_action = b.q.$action;
+            order = null == a_action ? (null == b_action ? 0 : -1) :
+                null == b_action ? 1 :
+                    a_action < b_action ? -1 : a_action > b_action ? 1 : 0;
             if (0 === order) {
                 const a_exist_str = existCache.get(a);
                 const b_exist_str = existCache.get(b);
