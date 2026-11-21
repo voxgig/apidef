@@ -1517,7 +1517,7 @@ function BuildEntity(spec) {
     entityMap[entdesc.name] = guideEntity;
 }
 function genericCmp(name, refs, schema) {
-    if (GENERIC_CMP_WORDS.includes(name) || ID_LITERAL_RE.test(name) ||
+    if (GENERIC_CMP_WORDS.includes(name) || ID_LITERAL_RE.test(name) || emptyObjectSchema(schema) ||
         ('object' === name && 0 === Object.keys((0, utility_2.mergedProperties)(schema) ?? {}).length)) {
         return true;
     }
@@ -1529,6 +1529,14 @@ function genericCmp(name, refs, schema) {
     const prefix = name.slice(0, at + 1);
     return Object.keys(refs).some((ref) => ref !== name && ref.startsWith(prefix) &&
         ref.endsWith('_' + word) && prefix.length + word.length < ref.length);
+}
+// An object schema with no properties, map or union describes no record,
+// as GitHub's `empty-object` answering a PUT.
+function emptyObjectSchema(schema) {
+    return 'object' === schema?.type &&
+        0 === Object.keys((0, utility_2.mergedProperties)(schema) ?? {}).length &&
+        (null == schema.additionalProperties || 'boolean' === typeof schema.additionalProperties) &&
+        null == schema.oneOf && null == schema.anyOf;
 }
 // The schema a component's original name declares.
 function cmpSchemaOf(def, origcmp) {

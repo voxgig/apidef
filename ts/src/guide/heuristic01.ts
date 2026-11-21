@@ -1932,7 +1932,7 @@ function BuildEntity(spec: TaskSpec) {
 
 
 function genericCmp(name: string, refs: Record<string, number>, schema?: any): boolean {
-  if (GENERIC_CMP_WORDS.includes(name) || ID_LITERAL_RE.test(name) ||
+  if (GENERIC_CMP_WORDS.includes(name) || ID_LITERAL_RE.test(name) || emptyObjectSchema(schema) ||
     ('object' === name && 0 === Object.keys(mergedProperties(schema) ?? {}).length)) {
     return true
   }
@@ -1944,6 +1944,16 @@ function genericCmp(name: string, refs: Record<string, number>, schema?: any): b
   const prefix = name.slice(0, at + 1)
   return Object.keys(refs).some((ref) => ref !== name && ref.startsWith(prefix) &&
     ref.endsWith('_' + word) && prefix.length + word.length < ref.length)
+}
+
+
+// An object schema with no properties, map or union describes no record,
+// as GitHub's `empty-object` answering a PUT.
+function emptyObjectSchema(schema: any): boolean {
+  return 'object' === schema?.type &&
+    0 === Object.keys(mergedProperties(schema) ?? {}).length &&
+    (null == schema.additionalProperties || 'boolean' === typeof schema.additionalProperties) &&
+    null == schema.oneOf && null == schema.anyOf
 }
 
 
