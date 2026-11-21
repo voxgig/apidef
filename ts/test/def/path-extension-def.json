@@ -1,0 +1,144 @@
+{
+ "openapi": "3.0.0",
+ "info": {
+  "title": "path-extension",
+  "version": "1.0.0"
+ },
+ "servers": [
+  {
+   "url": "https://example.com"
+  }
+ ],
+ "paths": {
+  "x-context-root": "/api/v2",
+  "/widgets": {
+   "get": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/Widget"
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/widgets/{widgetId}/parts": {
+   "get": {
+    "parameters": [
+     {
+      "name": "widgetId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Report"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/gadgets": {
+   "get": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/Gadget"
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/gadgets/{gadgetId}/parts": {
+   "get": {
+    "parameters": [
+     {
+      "name": "gadgetId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Report"
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "Widget": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     }
+    }
+   },
+   "Gadget": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "size": {
+      "type": "integer"
+     }
+    }
+   },
+   "Report": {
+    "type": "object",
+    "properties": {
+     "count": {
+      "type": "integer"
+     },
+     "total": {
+      "type": "integer"
+     }
+    }
+   }
+  }
+ }
+}

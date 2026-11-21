@@ -1297,12 +1297,14 @@ function ResolveOperation(spec) {
     };
     if (null == op[opname]) {
         op[opname] = opdef;
+        ment.opkey = opname;
     }
     // Conflicting methods for same operation
     // METHOD_CONSIDER_ORDER wins
     // Add operation using method name
     else {
-        op[methodName.toLowerCase()] = opdef;
+        ment.opkey = methodName.toLowerCase();
+        op[ment.opkey] = opdef;
     }
     (0, utility_2.debugpath)(pathStr, methodName, 'ResolveOperation', standard_opname, opname, why_op, op);
 }
@@ -1427,8 +1429,9 @@ function ResolveTransform(spec) {
             transform.page = page;
         }
     }
-    if (!(0, struct_1.isempty)(transform) && null != op[opname]) {
-        op[opname].transform = transform;
+    const opkey = ment.opkey ?? opname;
+    if (!(0, struct_1.isempty)(transform) && null != op[opkey]) {
+        op[opkey].transform = transform;
     }
 }
 // An API that keeps older versions of a route beside the current one gives
@@ -2920,7 +2923,7 @@ function cmpOccursInPath(data, cmpname) {
     if (null == data.work.potentialCmpsFromPaths) {
         data.work.potentialCmpsFromPaths = Object.create(null);
         (0, jostraca_1.each)(data.def.paths, (_pathdef, pathstr) => {
-            const parts = data.work.pathmap[pathstr].parts;
+            const parts = data.work.pathmap[pathstr]?.parts ?? [];
             parts
                 .filter(p => !p.startsWith('{'))
                 .map(p => data.work.potentialCmpsFromPaths[(0, utility_1.literalName)(p)] = true);

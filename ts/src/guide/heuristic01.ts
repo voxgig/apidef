@@ -1665,13 +1665,15 @@ function ResolveOperation(spec: TaskSpec) {
 
   if (null == op[opname]) {
     op[opname] = opdef
+    ment.opkey = opname
   }
 
   // Conflicting methods for same operation
   // METHOD_CONSIDER_ORDER wins
   // Add operation using method name
   else {
-    op[methodName.toLowerCase()] = opdef
+    ment.opkey = methodName.toLowerCase()
+    op[ment.opkey] = opdef
   }
 
   debugpath(pathStr, methodName, 'ResolveOperation', standard_opname, opname, why_op, op)
@@ -1818,8 +1820,9 @@ function ResolveTransform(spec: TaskSpec) {
     }
   }
 
-  if (!isempty(transform) && null != op[opname]) {
-    op[opname].transform = transform
+  const opkey = ment.opkey ?? opname
+  if (!isempty(transform) && null != op[opkey]) {
+    op[opkey].transform = transform
   }
 }
 
@@ -3759,7 +3762,7 @@ function cmpOccursInPath(data: { def: any, work: any }, cmpname: string): boolea
   if (null == data.work.potentialCmpsFromPaths) {
     data.work.potentialCmpsFromPaths = Object.create(null)
     each(data.def.paths, (_pathdef: PathDef, pathstr: string) => {
-      const parts: string[] = data.work.pathmap[pathstr].parts
+      const parts: string[] = data.work.pathmap[pathstr]?.parts ?? []
 
       parts
         .filter(p => !p.startsWith('{'))
