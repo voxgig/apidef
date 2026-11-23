@@ -572,6 +572,30 @@ const RULINGS: { def: string, expect: Record<string, string> }[] = [
       'POST /repos/{owner}/{repo}/actions/runs/{run_id}/rerun': 'run create rerun',
     },
   },
+  {
+    def: 'open-object-def.json',
+    expect: {
+      'GET /holidays': 'leave_record list',
+      'POST /holidays': 'leave_record create',
+      'GET /holidays/{id}': 'leave_record load',
+      'DELETE /holidays/{id}': 'leave_record remove',
+    },
+  },
+  {
+    def: 'path-extension-def.json',
+    expect: {
+      'GET /widgets': 'widget list',
+      'GET /widgets/{widgetId}/parts': 'part load',
+      'GET /gadgets/{gadgetId}/parts': 'part load',
+    },
+  },
+  {
+    def: 'post-list-collision-def.json',
+    expect: {
+      'GET /widgets/list': 'widget list list',
+      'POST /widgets/list': 'widget post list',
+    },
+  },
 ]
 
 
@@ -588,6 +612,15 @@ describe('rulings', () => {
     const bres = await build('namespace-prefix-def.json', 'heuristic01', true)
     const store = bres.apimodel.main.kit.entity.store
     assert.deepStrictEqual(Object.keys(store.fields).sort(), ['id', 'name', 'rank'])
+  })
+
+  // A method stored under its own name, its operation taken, keeps its own
+  // transform and leaves the first method's alone.
+  test('post-list-collision-def.json transforms', async () => {
+    const ops = (await guide('post-list-collision-def.json', 'heuristic01'))
+      .entity.widget.path['/widgets/list'].op
+    assert.strictEqual(ops.list.transform.res, '`body.items`')
+    assert.strictEqual(ops.post.transform.res, '`body.data`')
   })
 
   for (const ruling of RULINGS) {

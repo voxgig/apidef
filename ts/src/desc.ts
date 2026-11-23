@@ -58,6 +58,7 @@ type MethodEntityDesc = {
   why_rename: Record<string, any>
   rename_orig: string[]
   opname: string
+  opkey?: string
   why_opname: string[]
 
   pm?: any

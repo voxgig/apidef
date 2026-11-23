@@ -1,5 +1,5 @@
 .PHONY: all build test clean build-ts build-go test-ts test-go scan-prose clean-ts clean-go \
-        publish publish-go check-go-major tags-go reset sync-model check-model model-ref
+        publish publish-go check-go-major tags-go reset sync-model check-model model-ref def-routes
 
 all: check-model build test
 
@@ -28,6 +28,13 @@ sync-model:
 # commit the result with the change that caused it.
 model-ref: build-ts
 	@node ts/build/model-ref.js
+
+# Route parity. test/def-routes.tsv records every route of every OpenAPI test
+# definition as the TypeScript guide reads it, and both suites compare their
+# guide against it. Refresh after a deliberate change to how routes are read,
+# commit the table with the change, and make the Go port read it the same.
+def-routes: build-ts
+	cd ts && UPDATE_DEF_ROUTES=1 node --test dist-test/def-routes.test.js
 
 
 check-model:

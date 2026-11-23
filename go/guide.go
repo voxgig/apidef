@@ -109,9 +109,7 @@ func emptyObjectSchema(schema any) bool {
 	if !ok || s["type"] != "object" || len(mergedProperties(s)) != 0 {
 		return false
 	}
-	switch s["additionalProperties"].(type) {
-	case nil, bool:
-	default:
+	if open, isBool := s["additionalProperties"].(bool); !isBool || open {
 		return false
 	}
 	return s["oneOf"] == nil && s["anyOf"] == nil
@@ -2304,8 +2302,10 @@ func resolveOperation(data map[string]any, mdesc map[string]any) {
 
 	if _, exists := op[opname]; !exists {
 		op[opname] = opdef
+		ment["opkey"] = opname
 	} else {
 		// Conflicting methods for same operation - METHOD_CONSIDER_ORDER wins
+		ment["opkey"] = strings.ToLower(methodName)
 		op[strings.ToLower(methodName)] = opdef
 	}
 
@@ -2496,8 +2496,12 @@ func resolveTransform(ctx *ApiDefContext, data map[string]any, mdesc map[string]
 		}
 	}
 
-	if transform["res"] != nil && op != nil && op[opname] != nil {
-		opEntry, _ := op[opname].(map[string]any)
+	opkey := opname
+	if key, ok := ment["opkey"].(string); ok {
+		opkey = key
+	}
+	if transform["res"] != nil && op != nil && op[opkey] != nil {
+		opEntry, _ := op[opkey].(map[string]any)
 		if opEntry != nil {
 			opEntry["transform"] = transform
 		}

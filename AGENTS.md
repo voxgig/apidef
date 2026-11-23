@@ -85,6 +85,10 @@ port that must reproduce it exactly.** When changing behavior:
    and why it lives in the top-level `test/` rather than under either
    language. A table only one suite runs stays with that suite's tests
    (`ts/test/graphql-classify.tsv`, until Go ports `classifyGraphQLField`).
+   When the guide reads a test definition differently, run `make def-routes`
+   and commit the table: `test/def-routes.tsv` holds every route of every
+   OpenAPI definition in `ts/test/def/`, both suites compare their guide
+   against it, and a change made in one port alone fails `make all`.
 3. Mirror the change into `go/...`; corresponding filenames and shared
    tests identify the matching implementation. Follow COMMENT-POLICY.md
    when a surprising difference needs a short explanation.
@@ -116,6 +120,7 @@ cd ts && npm test           # node --test dist-test/**/*.test.js   (canonical su
 cd ts && TEST_PATTERN=foo npm run test-some   # run a subset
 cd go && go test ./...                        # the Go parity suite
 make all           # TS build+test AND Go build+test  (run before declaring done)
+make def-routes    # rewrite test/def-routes.tsv from the TS guide after a deliberate change
 ```
 
 The npm package lives in `ts/` (run `npm` there); `go/` is the parallel Go
