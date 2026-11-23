@@ -109,9 +109,7 @@ func emptyObjectSchema(schema any) bool {
 	if !ok || s["type"] != "object" || len(mergedProperties(s)) != 0 {
 		return false
 	}
-	switch s["additionalProperties"].(type) {
-	case nil, bool:
-	default:
+	if open, isBool := s["additionalProperties"].(bool); !isBool || open {
 		return false
 	}
 	return s["oneOf"] == nil && s["anyOf"] == nil

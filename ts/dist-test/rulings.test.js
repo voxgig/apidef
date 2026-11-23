@@ -593,6 +593,15 @@ const RULINGS = [
         },
     },
     {
+        def: 'open-object-def.json',
+        expect: {
+            'GET /holidays': 'leave_record list',
+            'POST /holidays': 'leave_record create',
+            'GET /holidays/{id}': 'leave_record load',
+            'DELETE /holidays/{id}': 'leave_record remove',
+        },
+    },
+    {
         def: 'path-extension-def.json',
         expect: {
             'GET /widgets': 'widget list',

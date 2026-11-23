@@ -1,0 +1,367 @@
+{
+ "openapi": "3.0.0",
+ "info": {
+  "title": "open-object",
+  "version": "1.0.0"
+ },
+ "servers": [
+  {
+   "url": "https://example.com"
+  }
+ ],
+ "paths": {
+  "/holidays": {
+   "get": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/LeaveRecordsResponse"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "parameters": [],
+    "responses": {
+     "201": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/LeaveRecordResponse"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/holidays/{id}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/LeaveRecordResponse"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Response"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/staff": {
+   "get": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/StaffList"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/staff/{id}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Staff"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/projects": {
+   "get": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/Project"
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/projects/{id}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Project"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/offices": {
+   "get": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/Office"
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/offices/{id}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Office"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/teams": {
+   "get": {
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/Team"
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/teams/{id}": {
+   "get": {
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Team"
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "Response": {
+    "type": "object",
+    "properties": {
+     "success": {
+      "type": "boolean"
+     }
+    }
+   },
+   "LeaveRecordResponse": {
+    "type": "object"
+   },
+   "LeaveRecordsResponse": {
+    "allOf": [
+     {
+      "$ref": "#/components/schemas/Response"
+     },
+     {
+      "properties": {
+       "data": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "id": {
+           "type": "integer"
+          },
+          "days": {
+           "type": "number"
+          }
+         }
+        }
+       }
+      }
+     }
+    ]
+   },
+   "Staff": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "integer"
+     },
+     "name": {
+      "type": "string"
+     }
+    }
+   },
+   "StaffList": {
+    "type": "array",
+    "items": {
+     "$ref": "#/components/schemas/Staff"
+    }
+   },
+   "Project": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "integer"
+     },
+     "title": {
+      "type": "string"
+     }
+    }
+   },
+   "Office": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "integer"
+     },
+     "title": {
+      "type": "string"
+     }
+    }
+   },
+   "Team": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "integer"
+     },
+     "title": {
+      "type": "string"
+     }
+    }
+   }
+  }
+ }
+}
