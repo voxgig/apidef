@@ -346,10 +346,14 @@ entity: `success`, `ok`, `default`, `response`, `result`, `empty` or
 `GroupId`. An `Object` with properties of its own is a record, as the
 objects of a storage service are. Neither does the bare member
 of a family of results, as `AcmeResult` is beside `AcmeKindsResult` and
-`AcmeZonesResult`. Nor does an object of any name that declares no
-properties and is neither a map nor a union, as GitHub's `empty-object` is.
-The path names those routes instead: the `PUT` of a secret that answers
-with an `empty-object` joins `secret`.
+`AcmeZonesResult`. Nor does a closed object of any name, one that declares
+no properties and sets `additionalProperties: false`, as GitHub's
+`empty-object` does: it can carry no field. The path names those routes
+instead, so the `PUT` of a secret that answers with an `empty-object` joins
+`secret`. An open object that declares no properties still names, since its
+records may hold fields the definition leaves out: routes answering a bare
+`LeaveRecordResponse` of `type: object` are `leave_record`, not named after
+their path.
 
 A method that answers no component of its own joins the entity that a read
 of its path takes from the component it answers. A `DELETE` answering a

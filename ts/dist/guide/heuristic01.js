@@ -1533,12 +1533,13 @@ function genericCmp(name, refs, schema) {
     return Object.keys(refs).some((ref) => ref !== name && ref.startsWith(prefix) &&
         ref.endsWith('_' + word) && prefix.length + word.length < ref.length);
 }
-// An object schema with no properties, map or union describes no record,
-// as GitHub's `empty-object` answering a PUT.
+// A closed object with no properties carries no data, so it describes no
+// record, as GitHub's `empty-object` answering a PUT. An open one may hold
+// fields the definition leaves undeclared, so it still names.
 function emptyObjectSchema(schema) {
     return 'object' === schema?.type &&
         0 === Object.keys((0, utility_2.mergedProperties)(schema) ?? {}).length &&
-        (null == schema.additionalProperties || 'boolean' === typeof schema.additionalProperties) &&
+        false === schema.additionalProperties &&
         null == schema.oneOf && null == schema.anyOf;
 }
 // The schema a component's original name declares.

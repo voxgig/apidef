@@ -353,6 +353,18 @@ no-noun-def.json	GET /history	placed_order	true	list			{"res":"`body.bets`"}
 no-noun-def.json	GET /list.json	plugin	true	load			
 no-noun-def.json	GET /{vendor}.json	plugin	true	load			
 no-noun-def.json	POST /deactivate	deactivate	true	create			
+open-object-def.json	DELETE /holidays/{id}	leave_record	true	remove			
+open-object-def.json	GET /holidays	leave_record	true	list			{"res":"`body.data`"}
+open-object-def.json	GET /holidays/{id}	leave_record	true	load			
+open-object-def.json	GET /offices	office	true	list			
+open-object-def.json	GET /offices/{id}	office	true	load			
+open-object-def.json	GET /projects	project	true	list			
+open-object-def.json	GET /projects/{id}	project	true	load			
+open-object-def.json	GET /staff	staff	true	list			
+open-object-def.json	GET /staff/{id}	staff	true	load			
+open-object-def.json	GET /teams	team	true	list			
+open-object-def.json	GET /teams/{id}	team	true	load			
+open-object-def.json	POST /holidays	leave_record	true	create			
 operation-id-def.json	POST /ra/{account}/{service_id}/sign	sign	true	create			
 operation-id-def.json	POST /signin-jwt/{service_id}/{account}/authenticate	session_key	true	create		service_id->signin_jwt_id	
 operation-id-def.json	POST /signin/{account}/{login}/authenticate	session_key	true	create			

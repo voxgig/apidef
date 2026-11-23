@@ -542,6 +542,15 @@ func TestRulings(t *testing.T) {
 			},
 		},
 		{
+			def: "open-object-def.json",
+			expect: map[string]string{
+				"GET /holidays":         "leave_record list",
+				"POST /holidays":        "leave_record create",
+				"GET /holidays/{id}":    "leave_record load",
+				"DELETE /holidays/{id}": "leave_record remove",
+			},
+		},
+		{
 			def: "path-extension-def.json",
 			expect: map[string]string{
 				"GET /widgets":                  "widget list",
