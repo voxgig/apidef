@@ -1,0 +1,5 @@
+name	schema	expected
+an-optional-object-with-required-fields-of-its-own	{"type":"object","required":["text"],"properties":{"text":{"type":"string"},"client_time":{"type":"object","required":["time_zone"],"properties":{"time_zone":{"type":"string"}}}}}	{"text":true,"client_time":false}
+a-required-object-with-required-fields-of-its-own	{"type":"object","required":["meta"],"properties":{"meta":{"type":"object","required":["k"],"properties":{"k":{"type":"string"}}},"label":{"type":"string"}}}	{"meta":true,"label":false}
+an-empty-list-of-its-own	{"type":"object","properties":{"empty":{"type":"object","required":[],"properties":{}},"label":{"type":"string"}}}	{"empty":false,"label":false}
+required-by-an-allof-member	{"allOf":[{"type":"object","properties":{"ctx":{"type":"object","required":["a"],"properties":{"a":{"type":"string"}}},"label":{"type":"string"}}},{"required":["label"]}]}	{"ctx":false,"label":true}

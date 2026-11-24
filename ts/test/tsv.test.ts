@@ -984,6 +984,37 @@ describe('tsv-arg-example', () => {
 })
 
 
+// Whether a create's request requires each field: only the parent's `required`
+// says so, never an object property's own list of its fields.
+describe('tsv-field-required', () => {
+  const rows = loadTsv('field-required')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, async () => {
+      const schema = JSON.parse(row.schema)
+      const before = JSON.stringify(schema)
+      const ment: any = {
+        name: 'thing',
+        fields: {},
+        op: { create: { name: 'create', points: [{ m: 'POST', o: '/things' }] } },
+      }
+      const content = { 'application/json': { schema } }
+      const def = { paths: { '/things': { post: {
+        requestBody: { content }, responses: { '201': { content } },
+      } } } }
+
+      await fieldTransform({ apimodel: { main: { kit: { entity: { thing: ment } } } }, def } as any)
+
+      const got = Object.fromEntries(Object.values<any>(ment.fields).map((f: any) => [f.n, f.r]))
+      assert.deepStrictEqual(got, JSON.parse(row.expected))
+      // A parsed schema is shared between references, so it is left as it was
+      // (the walk names each property with `key$`, as parsing does).
+      assert.equal(JSON.stringify(schema, (k, v) => 'key$' === k ? undefined : v), before)
+    })
+  }
+})
+
+
 // The field the transform builds from one property, beside a plain property
 // so that the record is not read as an envelope around it.
 describe('tsv-allof-field', () => {
