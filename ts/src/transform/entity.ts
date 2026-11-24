@@ -24,6 +24,7 @@ import type {
 
 import {
   canonize, cmpRefName, depluralize, foldName, guideActive, guideParts, guidePath, isParam,
+  selectorParts, selectorPath,
   paramName, paramOf, READ_METHODS,
 } from '../utility'
 
@@ -366,9 +367,10 @@ function mergeCommandEntities(guide: any, log?: any): string[] {
 // are. Guide stage only.
 function separateSharedPoints(guide: any, def: any, log?: any): string[] {
   const separated: string[] = []
-  const literals = (key: string) => guideParts(key).filter((part: string) => !isParam(part))
+  const literals = (key: string) => selectorParts(key).filter((part: string) => !isParam(part))
   const actionOf = (lits: string[]) => lits
-    .map((lit: string) => snakify(lit.replace(/\.?\{[^}]*\}/g, '')).replace(/[^a-zA-Z0-9_]/g, ''))
+    .map((lit: string) => snakify(lit.replace(/\.?\{[^}]*\}/g, '').replace(/\./g, '_'))
+      .replace(/[^a-zA-Z0-9_]/g, ''))
     .filter((word: string) => '' !== word).join('_')
 
   for (const ename of Object.keys(guide.entity ?? {}).sort(byCodePoint)) {
@@ -399,7 +401,7 @@ function separateSharedPoints(guide: any, def: any, log?: any): string[] {
       const paths = groups[key].filter((pathStr: string) =>
         0 === Object.keys(entity.path[pathStr]?.action ?? {}).length)
       const names = (key: string) => depluralize(snakify(literals(key).pop() ?? '')) === ename ? 0 : 1
-      const keys = [...new Set(paths.map(guidePath))].sort((a: string, b: string) =>
+      const keys = [...new Set(paths.map(selectorPath))].sort((a: string, b: string) =>
         names(a) - names(b) || literals(a).length - literals(b).length ||
         a.length - b.length || byCodePoint(a, b))
       if (keys.length < 2) continue
@@ -411,7 +413,7 @@ function separateSharedPoints(guide: any, def: any, log?: any): string[] {
         if ('' === action || taken.has(action)) action = actionOf(literals(other))
         if ('' === action || taken.has(action)) continue
         taken.add(action)
-        for (const pathStr of paths.filter((p: string) => guidePath(p) === other)) {
+        for (const pathStr of paths.filter((p: string) => selectorPath(p) === other)) {
           entity.path[pathStr].action = {
             [action]: { why_action: ['ent', ename, 'shared-selector', plain] }
           }

@@ -711,6 +711,53 @@ record, the same-path join and the collection owner override what
 a record the shared-record index lacks, which a route with a query string
 could reach under `neural01` alone.
 
+### Rulings 42 to 48
+
+These came after `neural01` was retired, so they change `heuristic01` and
+the Go port only, each with a definition under `ts/test/def/` pinned in
+both rulings suites and in `test/def-routes.tsv`.
+
+42. **Only a closed empty object names nothing.** An object schema with no
+    properties names no entity only when it sets `additionalProperties:
+    false`; an open one may hold fields the definition leaves out, so it
+    names (`emptyObjectSchema`, `open-object-def.json`).
+43. **A remote procedure in an `Action=` value, or after a segment's last
+    dot, names its object.** The object after the verb names the entity and
+    the verb, with any word before it, is the action, as ruling 36 reads a
+    dotted `method=`: `/#Action=BatchDeleteWidgets` is `widget` with
+    `batch_delete`, `/records.get_entries` is `entry` with `get`. A dotted
+    name counts only when it opens with a verb, so a class name is no
+    procedure (`procedureOf`, `procedure`, `procedure-def.json`).
+44. **A generated name names nothing.** A generic word and a number, as
+    `Example17`, carries no entity (`genericCmp`,
+    `generated-name-def.json`).
+45. **A generator's affixes are no part of a name.** The module path before
+    a double underscore and a trailing `Output` or `Input` are dropped, and
+    a `Body_<operation>` request body names nothing
+    (`stripToolAffixes`, `generated-name-def.json`).
+46. **A name of generic words names nothing, and an identifier list is an
+    action of its item.** `ResponseListResource` carries no entity, and
+    `/groups/playlists/{id}/ids`, with `.../ids/{itemId}`, is `playlist`
+    with the action `ids` (`idsOfItem`, `ids-of-item`, `id-list-def.json`).
+47. **Routes gathered under an authentication prefix stay as they read
+    (accepted).** As ruling 41 accepted, nothing in such a definition names
+    the account they act on.
+48. **A dotted segment is named before its first dot.** Selectors and
+    extensions after the dot name nothing, a segment that opens with a dot
+    names nothing, and routes that differ only after the dot keep apart
+    through `separateSharedPoints`, which reads the segment whole
+    (`guideSegment`, `selectorSegment`, `dotted-part-def.json`).
+
+The same round fixed four readings no ruling chose. A collection's item key
+is no download modifier, so a binary read of
+`/shelves/{shelfId}/books/{bookId}` beside its collection is `book`
+(`readOfItem`, `item-download-def.json`). `show`, `award`, `authorize` and
+`reload` are verb words, and a plural literal such as `shows` stays a noun
+(`nounless`). A trailing verb whose noun is shorter than three letters reads
+as a short literal does. A bare number is never a noun, and an action
+resolves past one, so `/account/2/verify` is `verify` on `account`
+(`verb-noun-def.json`).
+
 ## Known divergences from `heuristic01`
 
 None on the test definitions or `apidef-validate`. Elsewhere the two can

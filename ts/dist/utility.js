@@ -50,6 +50,8 @@ exports.prefixLeadingDigit = prefixLeadingDigit;
 exports.guardPrototypeName = guardPrototypeName;
 exports.guideParts = guideParts;
 exports.guidePath = guidePath;
+exports.selectorParts = selectorParts;
+exports.selectorPath = selectorPath;
 exports.stripOperationVerb = stripOperationVerb;
 exports.debugpath = debugpath;
 exports.debugpathOn = debugpathOn;
@@ -1108,7 +1110,16 @@ function stripSchemaNamespace(name) {
 // uniformly wherever schema refs are counted or resolved (MeasureRef,
 // ResolveEntityComponent, findcmps) so the metric keys stay consistent.
 function canonizeCmpName(orig) {
-    return canonize(stripSchemaNamespace(orig));
+    return canonize(stripToolAffixes(stripSchemaNamespace(orig)));
+}
+const TOOL_SUFFIX_RE = /^(.*[a-z0-9])(Output|Input)$/;
+// A generator's module path and its Output or Input are no part of a name.
+function stripToolAffixes(name) {
+    if (null == name)
+        return name;
+    const at = name.lastIndexOf('__');
+    const bare = 0 < at && at + 2 < name.length ? name.slice(at + 2) : name;
+    return bare.match(TOOL_SUFFIX_RE)?.[1] ?? bare;
 }
 const READ_METHODS = ['GET', 'QUERY', 'HEAD', 'OPTIONS'];
 exports.READ_METHODS = READ_METHODS;
@@ -1135,6 +1146,16 @@ const FORMAT_EXTENSIONS = new Set([
 // names nothing.
 function guideSegment(seg0) {
     const seg = seg0.replace(/\$\{/g, '{');
+    const dot = dotOutsidePlaceholder(seg);
+    if (0 === dot)
+        return null;
+    if (0 < dot)
+        return seg.slice(0, dot);
+    return FORMAT_EXTENSIONS.has(seg.toLowerCase()) ? null : seg;
+}
+// A segment as a selector: a format dropped, a dotted name kept whole.
+function selectorSegment(seg0) {
+    const seg = seg0.replace(/\$\{/g, '{');
     const held = seg.match(/^(\{[^}]+\})\.(?:[A-Za-z0-9]+|\{[^}]+\})$/);
     if (null != held)
         return held[1];
@@ -1144,17 +1165,34 @@ function guideSegment(seg0) {
     }
     return FORMAT_EXTENSIONS.has(seg.toLowerCase()) ? null : seg;
 }
+// What precedes this dot names a segment; what follows does not.
+function dotOutsidePlaceholder(seg) {
+    let depth = 0;
+    for (let i = 0; i < seg.length; i++) {
+        const c = seg[i];
+        depth += '{' === c ? 1 : '}' === c ? -1 : 0;
+        if ('.' === c && 0 === depth)
+            return i;
+    }
+    return -1;
+}
 // The guide's parts of a route, query and fragment cut; a route that is all
 // fragment, or of formats alone, keeps them.
-function guideParts(path) {
+function guideParts(path, segment = guideSegment) {
     const split = (route) => route.replace(/\?.*$/, '').split('/').filter((p) => '' !== p);
     const cut = split(path.replace(/#.*$/, ''));
     const parts = 0 === cut.length ? split(path) : cut;
-    const kept = parts.map(guideSegment).filter((p) => null != p);
+    const kept = parts.map(segment).filter((p) => null != p);
     return 0 === kept.length ? parts : kept;
 }
 function guidePath(path) {
     return '/' + guideParts(path).join('/');
+}
+function selectorParts(path) {
+    return guideParts(path, selectorSegment);
+}
+function selectorPath(path) {
+    return '/' + selectorParts(path).join('/');
 }
 // aontu cannot unify a spread with a key Object.prototype owns, so no entity
 // is given one of these names. Listed, not read, so both ports agree.

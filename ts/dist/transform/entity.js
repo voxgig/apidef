@@ -286,9 +286,10 @@ function mergeCommandEntities(guide, log) {
 // are. Guide stage only.
 function separateSharedPoints(guide, def, log) {
     const separated = [];
-    const literals = (key) => (0, utility_1.guideParts)(key).filter((part) => !(0, utility_1.isParam)(part));
+    const literals = (key) => (0, utility_1.selectorParts)(key).filter((part) => !(0, utility_1.isParam)(part));
     const actionOf = (lits) => lits
-        .map((lit) => (0, jostraca_1.snakify)(lit.replace(/\.?\{[^}]*\}/g, '')).replace(/[^a-zA-Z0-9_]/g, ''))
+        .map((lit) => (0, jostraca_1.snakify)(lit.replace(/\.?\{[^}]*\}/g, '').replace(/\./g, '_'))
+        .replace(/[^a-zA-Z0-9_]/g, ''))
         .filter((word) => '' !== word).join('_');
     for (const ename of Object.keys(guide.entity ?? {}).sort(refcount_1.byCodePoint)) {
         const entity = guide.entity[ename];
@@ -317,7 +318,7 @@ function separateSharedPoints(guide, def, log) {
         for (const key of Object.keys(groups).sort(refcount_1.byCodePoint)) {
             const paths = groups[key].filter((pathStr) => 0 === Object.keys(entity.path[pathStr]?.action ?? {}).length);
             const names = (key) => (0, utility_1.depluralize)((0, jostraca_1.snakify)(literals(key).pop() ?? '')) === ename ? 0 : 1;
-            const keys = [...new Set(paths.map(utility_1.guidePath))].sort((a, b) => names(a) - names(b) || literals(a).length - literals(b).length ||
+            const keys = [...new Set(paths.map(utility_1.selectorPath))].sort((a, b) => names(a) - names(b) || literals(a).length - literals(b).length ||
                 a.length - b.length || (0, refcount_1.byCodePoint)(a, b));
             if (keys.length < 2)
                 continue;
@@ -331,7 +332,7 @@ function separateSharedPoints(guide, def, log) {
                 if ('' === action || taken.has(action))
                     continue;
                 taken.add(action);
-                for (const pathStr of paths.filter((p) => (0, utility_1.guidePath)(p) === other)) {
+                for (const pathStr of paths.filter((p) => (0, utility_1.selectorPath)(p) === other)) {
                     entity.path[pathStr].action = {
                         [action]: { why_action: ['ent', ename, 'shared-selector', plain] }
                     };

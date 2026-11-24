@@ -135,7 +135,7 @@ const RULINGS: { def: string, expect: Record<string, string> }[] = [
   {
     def: 'command-def.json',
     expect: {
-      'POST /#Action=StartSession': 'start_session create',
+      'POST /#Action=StartSession': 'session create start',
       'GET /keys': 'key list',
       'POST /keys/{keyName}/requestTicket': 'ticket create',
       'GET /account': 'account load',
@@ -178,8 +178,8 @@ const RULINGS: { def: string, expect: Record<string, string> }[] = [
   {
     def: 'body-media-def.json',
     expect: {
-      'POST /#Action=StartSession': 'start_session create',
-      'GET /#Action=StartSession': 'start_session load',
+      'POST /#Action=StartSession': 'session create start',
+      'GET /#Action=StartSession': 'session load start',
       'GET /keys': 'key list',
       'POST /keys/{keyName}/requestTicket': 'ticket create',
       'POST /signin/{service_id}/{account}/authenticate': 'authenticate create',
@@ -594,6 +594,68 @@ const RULINGS: { def: string, expect: Record<string, string> }[] = [
     expect: {
       'GET /widgets/list': 'widget list list',
       'POST /widgets/list': 'widget post list',
+    },
+  },
+  {
+    def: 'item-download-def.json',
+    expect: {
+      'GET /shelves/{shelfId}': 'shelf load',
+      'GET /shelves/{shelfId}/books': 'book list',
+      'GET /shelves/{shelfId}/books/{bookId}': 'book load',
+      'GET /shelves/{shelfId}/cover/{width}': 'shelf load cover',
+      'PUT /shelves/{shelfId}/books/{bookId}': 'book update',
+    },
+  },
+  {
+    def: 'verb-noun-def.json',
+    expect: {
+      'GET /account': 'account load',
+      'GET /c/{id}/show': 'category load',
+      'GET /shows': 'show list',
+      'GET /shows/{id}': 'show load',
+      'GET /tokens': 'token list',
+      'POST /account/2/verify': 'account create verify',
+      'POST /tokens/authorize': 'token create authorize',
+    },
+  },
+  {
+    def: 'dotted-part-def.json',
+    expect: {
+      'GET /agents.{mode}.json': 'agent list',
+      'GET /files/NOTICE.html.gz': 'notice load',
+      'GET /store/keystore.p12': 'keystore load',
+      'POST /config/org.example.alpha.Widget': 'org create org_example_alpha_widget',
+      'POST /config/org.example.beta.Gadget': 'org create',
+    },
+  },
+  {
+    def: 'procedure-def.json',
+    expect: {
+      'GET /#Action=GetWidgets': 'widget load get',
+      'GET /records.get_entries': 'entry load get',
+      'GET /records.metadata': 'record load',
+      'POST /#Action=BatchDeleteWidgets': 'widget create batch_delete',
+      'POST /#Action=ListGadgets': 'gadget create list',
+      'POST /#Action=Select': 'action_select create',
+    },
+  },
+  {
+    def: 'generated-name-def.json',
+    expect: {
+      'GET /night_mode': 'night_mode load',
+      'GET /saved_networks': 'saved_network list',
+      'GET /v1/source/{name}': 'source load',
+      'POST /v1/prefix': 'prefix create',
+    },
+  },
+  {
+    def: 'id-list-def.json',
+    expect: {
+      'DELETE /groups/playlists/{id}/ids/{itemId}': 'playlist remove ids',
+      'GET /groups/playlists': 'playlist list',
+      'GET /groups/playlists/{id}': 'playlist load',
+      'GET /groups/playlists/{id}/ids': 'playlist load ids',
+      'POST /groups/playlists/{id}/ids': 'playlist create ids',
     },
   },
 ]
