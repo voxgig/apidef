@@ -97,44 +97,45 @@ async function parseOpenAPI(source, _meta) {
     if (isRecord(parsed.paths)) {
         parsed.paths = renameKeys(parsed.paths, normalizePathKeys(Object.keys(parsed.paths)));
     }
-    parsed = (0, openapi_1.resolve)(parsed, { compat: 'apidef' }).tree;
+    const resolved = (0, openapi_1.resolve)(parsed, { compat: 'apidef' });
+    parsed = resolved.tree;
     // After resolution, so a pointer into `paths` names the key as written and a
     // parameter declared by `$ref` counts. See docs/design/derived-names.md
-    normalizeColonPathParams(parsed, _meta);
-    dropIgnoredHeaders(parsed);
+    const renamed = normalizeColonPathParams(parsed, _meta);
+    dropIgnoredHeaders(parsed, resolved.ignored, renamed);
     const def = decycle(parsed);
     return def;
 }
 // In an OpenAPI 3 definition, a header parameter named Accept, Content-Type or
-// Authorization is ignored: responses, the request body and the security
-// schemes say those. Each dropped one is recorded for a warning.
-const IGNORED_HEADERS = ['accept', 'content-type', 'authorization'];
+// Authorization is ignored, and the reader says which those are. Each is
+// dropped and recorded for a warning, a path's own before its operations'.
 const IGNORED_HEADERS_KEY = 'x-apidef-ignored-headers';
 exports.IGNORED_HEADERS_KEY = IGNORED_HEADERS_KEY;
-function dropIgnoredHeaders(parsed) {
+function dropIgnoredHeaders(parsed, ignored, renamed) {
     delete parsed[IGNORED_HEADERS_KEY];
     if (!String(parsed.openapi ?? '').startsWith('3') || !isRecord(parsed.paths))
         return;
     const dropped = [];
-    const kept = (list, path, method) => list.filter((param) => {
-        const ignored = isRecord(param) && 'header' === param.in && 'string' === typeof param.name &&
-            IGNORED_HEADERS.includes(param.name.toLowerCase());
-        if (ignored)
-            dropped.push({ path, ...(method ? { method: method.toUpperCase() } : {}), name: param.name });
-        return !ignored;
-    });
-    for (const path of Object.keys(parsed.paths).sort()) {
-        const item = parsed.paths[path];
-        if (!isRecord(item))
+    const rank = new Map();
+    const gone = new Map();
+    for (const row of ignored) {
+        if ('parameter' !== row.what || 'path' !== row.kind || row.additional)
             continue;
-        if (Array.isArray(item.parameters))
-            item.parameters = kept(item.parameters, path);
-        for (const method of METHODS) {
-            const op = item[method];
-            if (isRecord(op) && Array.isArray(op.parameters))
-                op.parameters = kept(op.parameters, path, method);
-        }
+        const method = row.method?.toLowerCase();
+        if (null != method && !METHODS.includes(method))
+            continue;
+        const path = renamed.get(row.path) ?? row.path;
+        const holder = null == method ? parsed.paths[path] : parsed.paths[path][method];
+        gone.set(holder, (gone.get(holder) ?? new Set()).add(row.index));
+        const entry = { path, ...(null == method ? {} : { method: row.method }), name: row.name };
+        rank.set(entry, null == method ? -1 : METHODS.indexOf(method));
+        dropped.push(entry);
     }
+    for (const [holder, indexes] of gone) {
+        holder.parameters = holder.parameters.filter((_, i) => !indexes.has(i));
+    }
+    dropped.sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 :
+        rank.get(a) - rank.get(b));
     if (0 < dropped.length)
         parsed[IGNORED_HEADERS_KEY] = dropped;
 }
@@ -245,13 +246,17 @@ const METHODS = [
 ];
 // Rewrite `/a/:b/c` to `/a/{b}/c`, for a `:b` the path or one of its
 // operations declares `in: path`. See docs/design/derived-names.md
+// Gives each path that was renamed, by the name it had.
 function normalizeColonPathParams(parsed, meta) {
+    const renames = new Map();
     if (!isRecord(parsed.paths))
-        return;
+        return renames;
     const paths = Object.keys(parsed.paths);
     const next = colonPathKeys(parsed.paths);
     parsed.paths = renameKeys(parsed.paths, next);
     const renamed = paths.filter((path, i) => next[i] !== path);
+    paths.forEach((path, i) => { if (next[i] !== path)
+        renames.set(path, next[i]); });
     if (0 < renamed.length && null != meta?.log?.info) {
         meta.log.info({
             point: 'path-colon-params',
@@ -260,6 +265,7 @@ function normalizeColonPathParams(parsed, meta) {
                 ' OpenAPI brace form, e.g. ' + renamed[0]
         });
     }
+    return renames;
 }
 // Every `in: path` name counts: the path item's parameters and each operation's.
 function colonPathKeys(paths) {
