@@ -8,6 +8,7 @@ exports.makeResolved = makeResolved;
 exports.publishResolved = publishResolved;
 exports.resolvedSpec = resolvedSpec;
 // See docs/design/resolved-spec-capability.md
+const utility_1 = require("./utility");
 // An operation needs its argument types, including recursive input objects.
 // Output types are represented by the field and generated invocation selection;
 // copying the entire connected output graph per operation is quadratic in API size.
@@ -48,8 +49,9 @@ function operationFacts(def, point) {
         if (undefined !== method[key])
             facts[key] = method[key];
     }
-    // A path item may declare parameters shared by every operation under it.
-    facts.parameters = [...(path.parameters || []), ...(method.parameters || [])];
+    // A path item may declare parameters shared by every operation under it;
+    // the operation's own declaration of one replaces it.
+    facts.parameters = (0, utility_1.routeParams)(path, method);
     facts.security = method.security ?? def.security;
     facts.securitySource = method.security !== undefined ? 'operation' :
         def.security !== undefined ? 'definition' : 'unspecified';

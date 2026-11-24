@@ -108,10 +108,68 @@ func parseOpenAPI(source string, meta map[string]string) (map[string]any, error)
 	}
 
 	dropIgnoredHeaders(parsed)
+	dropDuplicateParams(parsed)
 
 	// Skip Decircular for now — addXRefsAndResolve uses identity tracking
 	// which prevents true circular references from being created.
 	return parsed, nil
+}
+
+// duplicateParamsKey records the parameters dropDuplicateParams removed, for
+// the top transform to warn about.
+const duplicateParamsKey = "x-apidef-duplicate-params"
+
+// dropDuplicateParams mirrors ts/src/parse.ts: a parameter list must not repeat
+// a location and name, so a definition that does keeps the first.
+func dropDuplicateParams(parsed map[string]any) {
+	delete(parsed, duplicateParamsKey)
+	paths, ok := parsed["paths"].(map[string]any)
+	if !ok {
+		return
+	}
+
+	var dropped []any
+	kept := func(list []any, path string, method string) []any {
+		seen := map[string]bool{}
+		out := make([]any, 0, len(list))
+		for _, entry := range list {
+			key, ok := paramKey(entry)
+			if !ok || !seen[key] {
+				if ok {
+					seen[key] = true
+				}
+				out = append(out, entry)
+				continue
+			}
+			param := entry.(map[string]any)
+			rec := map[string]any{"path": path, "in": param["in"], "name": param["name"]}
+			if method != "" {
+				rec["method"] = strings.ToUpper(method)
+			}
+			dropped = append(dropped, rec)
+		}
+		return out
+	}
+
+	for _, path := range sortedKeys(paths) {
+		item, _ := paths[path].(map[string]any)
+		if item == nil {
+			continue
+		}
+		if list, ok := item["parameters"].([]any); ok {
+			item["parameters"] = kept(list, path, "")
+		}
+		for _, method := range pathItemMethods {
+			op, _ := item[method].(map[string]any)
+			if list, ok := op["parameters"].([]any); ok {
+				op["parameters"] = kept(list, path, method)
+			}
+		}
+	}
+
+	if 0 < len(dropped) {
+		parsed[duplicateParamsKey] = dropped
+	}
 }
 
 // ignoredHeadersKey records the header parameters dropIgnoredHeaders removed,

@@ -256,7 +256,16 @@ A parameter with no name, or whose `$ref` resolves to nothing, is dropped with
 a warning. So is a header parameter named `Accept`, `Content-Type` or
 `Authorization`, in any case, in an OpenAPI 3 definition, which the OpenAPI
 specification says to ignore: the responses, the request body, and the
-security schemes declare those. A Swagger 2 definition keeps them. A path placeholder that no declared parameter fills still needs a
+security schemes declare those. A Swagger 2 definition keeps them.
+
+OpenAPI 3 and Swagger 2 both forbid a parameter list to repeat a location and
+name. A list that does keeps its first declaration, and a warning names each
+repeat it drops. Header names compare in any case. An operation's own
+parameter of the same location and name as one its path item declares
+replaces that one, in its place, with no warning: the specification allows
+the override.
+
+A path placeholder that no declared parameter fills still needs a
 value, so it becomes a required string `param` under its own name, renamed as
 the path's other placeholders are, again with a warning. A placeholder that a
 declared parameter fills under its renamed name is left alone.

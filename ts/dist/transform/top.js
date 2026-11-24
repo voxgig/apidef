@@ -115,6 +115,14 @@ const topTransform = async function (ctx) {
                 ' ignored: OpenAPI ignores Accept, Content-Type and Authorization header parameters',
         });
     }
+    for (const repeat of def[parse_1.DUPLICATE_PARAMS_KEY] ?? []) {
+        ctx.warn?.({
+            note: repeat.in + ' parameter `' + repeat.name + '` of ' +
+                (null == repeat.method ? '' : repeat.method + ' ') + repeat.path +
+                ' is declared more than once: the first declaration is used (OpenAPI forbids' +
+                ' a repeated parameter; fix the definition)',
+        });
+    }
     const summary = resolveSummary(def);
     if (null != summary) {
         kit.info.summary = summary;
