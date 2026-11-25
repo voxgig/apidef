@@ -839,7 +839,7 @@ func modelField(fielddef map[string]any) map[string]any {
 		"n":  name,
 		"h":  HumanTitle(name),
 		"t":  InferFieldType(name, Validator(ftype)),
-		"r":  toBool(fielddef["required"]),
+		"r":  fielddef["required"] == true,
 		"a":  true,
 		"op": map[string]any{},
 	}
