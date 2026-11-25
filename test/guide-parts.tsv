@@ -13,3 +13,8 @@ input	expected
 /labels/{labelId}#keys	["labels","{labelId}"]
 /owners/{ownerId}/pets/${petId}	["owners","{ownerId}","pets","{petId}"]
 /#Action=GetThing	["#Action=GetThing"]
+/store/keystore.p12	["store","keystore"]
+/files/NOTICE.html.gz	["files","NOTICE"]
+/agents.{mode}.json	["agents"]
+/.json/{path}	["{path}"]
+/config/org.example.Widget	["config","org"]

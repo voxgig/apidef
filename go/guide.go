@@ -3258,10 +3258,17 @@ func readOfItem(data map[string]any, mdesc map[string]any, parts []string,
 		return "", "", "", false
 	}
 	// A trailing key that keys its literal's collection reads that
-	// collection's item; only a modifier after the literal makes a download.
-	if tail := parts[len(parts)-1]; isParam(tail) && (keyedBy(tail, LiteralName(parts[lastLit])) ||
-		pathNamed(data, "/"+strings.Join(parts[:len(parts)-1], "/")) != "") {
-		return "", "", "", false
+	// collection's item; only a modifier after the literal makes a download,
+	// and a route at the literal that is itself a download is no collection.
+	if tail := parts[len(parts)-1]; isParam(tail) {
+		prefix := pathNamed(data, "/"+strings.Join(parts[:len(parts)-1], "/"))
+		prefixdef, _ := paths[prefix].(map[string]any)
+		prefixRead, _ := prefixdef["get"].(map[string]any)
+		prefixResponses, _ := prefixRead["responses"].(map[string]any)
+		download := prefixRead != nil && binaryResponse(prefixResponses)
+		if keyedBy(tail, LiteralName(parts[lastLit])) || (prefix != "" && !download) {
+			return "", "", "", false
+		}
 	}
 	detail := len(parts)-1 == lastLit && key == lastLit-1 && itemReadWords[LiteralName(parts[lastLit])]
 	if !detail && !binary {

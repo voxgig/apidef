@@ -2382,10 +2382,8 @@ function idsOfItem(
 // Verbs a remote procedure opens with beside the verb words.
 const PROCEDURE_VERBS = ['put', 'set', 'post']
 
-// A remote procedure the route names, as an `Action=` value
-// (`/#Action=BatchDeleteAttributes`) or after the last dot of a segment
-// (`/service.get_facilities`): the object after its verb names the entity, and
-// the verb, with any word before it, is the action.
+// A remote procedure in an `Action=` value or after a segment's last dot: the
+// object after its verb names the entity, and the verb is the action.
 function procedureOf(pathStr: string): { parent: string, action: string, why: string } | null {
   const segs = pathStr.replace(/[?#].*$/, '').split('/')
   const action = pathStr.match(/[#?&]Action=([A-Za-z][A-Za-z0-9_]*)/)?.[1]
@@ -2450,11 +2448,13 @@ function readOfItem(
   if (key < 0 || lastLit < 0) {
     return null
   }
-  // A trailing key that keys its literal's collection reads that collection's
-  // item; only a modifier after the literal, as a size, makes a download.
+  // A key of its literal's collection reads the item; a modifier, as a size,
+  // after a literal that is no download itself, makes a download.
   const tail = parts[parts.length - 1]
-  if (isParam(tail) && (keyedBy(tail, literalName(parts[lastLit])) ||
-    null != pathNamed(data, '/' + parts.slice(0, -1).join('/')))) {
+  const prefix = pathNamed(data, '/' + parts.slice(0, -1).join('/'))
+  const prefixRead = null == prefix ? null : data.def?.paths?.[prefix]?.get
+  if (isParam(tail) && (keyedBy(tail, literalName(parts[lastLit])) || (null != prefix &&
+    !(null != prefixRead && binaryResponse(prefixRead.responses))))) {
     return null
   }
   const literals = parts.slice(key + 1).filter((part) => !isParam(part))

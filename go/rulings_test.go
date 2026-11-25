@@ -571,6 +571,7 @@ func TestRulings(t *testing.T) {
 				"GET /shelves/{shelfId}":                "shelf load",
 				"GET /shelves/{shelfId}/books":          "book list",
 				"GET /shelves/{shelfId}/books/{bookId}": "book load",
+				"GET /shelves/{shelfId}/cover":          "shelf load cover",
 				"GET /shelves/{shelfId}/cover/{width}":  "shelf load cover",
 				"PUT /shelves/{shelfId}/books/{bookId}": "book update",
 			},

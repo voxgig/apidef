@@ -1,0 +1,7 @@
+input	expected
+/config/org.example.Widget	["config","org.example.Widget"]
+/store/keystore.p12	["store","keystore.p12"]
+/repos.json	["repos"]
+/repos/{slug}.json	["repos","{slug}"]
+/series/{code}/json	["series","{code}"]
+/widgets?kind=small	["widgets"]

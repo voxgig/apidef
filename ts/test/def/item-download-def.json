@@ -141,6 +141,33 @@
     }
    }
   },
+  "/shelves/{shelfId}/cover": {
+   "get": {
+    "parameters": [
+     {
+      "name": "shelfId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "image/png": {
+        "schema": {
+         "type": "string",
+         "format": "binary"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/shelves/{shelfId}/cover/{width}": {
    "get": {
     "parameters": [

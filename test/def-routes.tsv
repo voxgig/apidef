@@ -276,6 +276,7 @@ id-list-def.json	POST /groups/playlists/{id}/ids	playlist	true	create	ids
 item-download-def.json	GET /shelves/{shelfId}	shelf	true	load		shelfId->id	
 item-download-def.json	GET /shelves/{shelfId}/books	book	true	list		shelfId->shelf_id	
 item-download-def.json	GET /shelves/{shelfId}/books/{bookId}	book	true	load		bookId->id,shelfId->shelf_id	
+item-download-def.json	GET /shelves/{shelfId}/cover	shelf	true	load	cover	shelfId->id	
 item-download-def.json	GET /shelves/{shelfId}/cover/{width}	shelf	true	load	cover	shelfId->id	
 item-download-def.json	PUT /shelves/{shelfId}/books/{bookId}	book	true	update		bookId->id,shelfId->shelf_id	
 item-envelope-def.json	GET /customers.json	customer	true	list			{"res":["`$EACH`","body",{"`$MERGE`":"`.customer`"}]}
