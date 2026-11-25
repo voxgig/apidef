@@ -731,7 +731,7 @@ function modelField(fielddef: SchemaDef): ModelField {
     n: name,
     h: humanTitle(name),
     t: inferFieldType(name, validator(nullableType(fielddef))),
-    r: !!fielddef.required,
+    r: true === (fielddef as any).required,
     op: {},
   }
   const fdesc = (fielddef as any).description
@@ -1027,7 +1027,8 @@ function composedFields(schema: any): any[] {
   return Object.keys(decls).map((name) => {
     const property = 1 === decls[name].length ? decls[name][0] : mergeDeclarations(decls[name])
     // A copy: parsed schemas are shared by every operation referencing them.
-    return !property.required && required.has(name) ? { ...property, required: true } : property
+    // An object property's own `required` lists ITS fields: only the parent's says it is required.
+    return true !== property.required && required.has(name) ? { ...property, required: true } : property
   })
 }
 
