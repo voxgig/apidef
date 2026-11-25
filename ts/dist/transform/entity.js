@@ -350,7 +350,7 @@ function separateSharedPoints(guide, def, log) {
 // The names of the query, header and cookie arguments an operation requires.
 function requiredArgs(def, pathStr, method) {
     const pathItem = def?.paths?.[pathStr] ?? {};
-    return [...(pathItem.parameters ?? []), ...(pathItem[method]?.parameters ?? [])]
+    return (0, utility_1.routeParams)(pathItem, pathItem[method])
         .filter((param) => true === param?.required && 'path' !== param?.in &&
         'body' !== param?.in && 'formData' !== param?.in && 'string' === typeof param?.name)
         .map((param) => (0, utility_1.canonize)(param.name));

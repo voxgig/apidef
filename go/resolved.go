@@ -75,14 +75,7 @@ func OperationFacts(def map[string]any, point map[string]any) ResolvedOperation 
 			facts[key] = value
 		}
 	}
-	params := []any{}
-	if values, ok := path["parameters"].([]any); ok {
-		params = append(params, values...)
-	}
-	if values, ok := method["parameters"].([]any); ok {
-		params = append(params, values...)
-	}
-	facts["parameters"] = params
+	facts["parameters"] = routeParams(path, method)
 	if value, ok := method["security"]; ok {
 		facts["security"] = value
 		facts["securitySource"] = "operation"

@@ -2,6 +2,8 @@
 
 // See docs/design/resolved-spec-capability.md
 
+import { routeParams } from './utility'
+
 // An operation needs its argument types, including recursive input objects.
 // Output types are represented by the field and generated invocation selection;
 // copying the entire connected output graph per operation is quadratic in API size.
@@ -65,8 +67,9 @@ function operationFacts(def: any, point: { m: string, o: string }): OperationFac
     if (undefined !== method[key]) facts[key] = method[key]
   }
 
-  // A path item may declare parameters shared by every operation under it.
-  facts.parameters = [...(path.parameters || []), ...(method.parameters || [])]
+  // A path item may declare parameters shared by every operation under it;
+  // the operation's own declaration of one replaces it.
+  facts.parameters = routeParams(path, method)
 
   facts.security = method.security ?? def.security
   facts.securitySource = method.security !== undefined ? 'operation' :

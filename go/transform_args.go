@@ -63,12 +63,9 @@ func routeArgdefs(defPaths map[string]any, mtarget map[string]any) []map[string]
 	pathdef, _ := defPaths[orig].(map[string]any)
 	opdef, _ := pathdef[toLower(method)].(map[string]any)
 	var argdefs []map[string]any
-	for _, holder := range []map[string]any{pathdef, opdef} {
-		params, _ := holder["parameters"].([]any)
-		for _, p := range params {
-			if pm, ok := p.(map[string]any); ok {
-				argdefs = append(argdefs, pm)
-			}
+	for _, p := range routeParams(pathdef, opdef) {
+		if pm, ok := p.(map[string]any); ok {
+			argdefs = append(argdefs, pm)
 		}
 	}
 	return argdefs
