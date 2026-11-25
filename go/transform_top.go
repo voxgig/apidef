@@ -55,6 +55,7 @@ func TopTransform(ctx *ApiDefContext) (*TransformResult, error) {
 	normalizeServers(ctx, kit)
 	ensureServer(ctx, kit)
 	warnIgnoredHeaders(ctx, def)
+	warnDuplicateParams(ctx, def)
 
 	infoMap, _ := kit["info"].(map[string]any)
 	if summary, ok := resolveSummary(def); ok {
@@ -500,6 +501,26 @@ func warnIgnoredHeaders(ctx *ApiDefContext, def map[string]any) {
 		ctx.Warn.Warn(map[string]any{
 			"note": "header parameter `" + name + "` of " + where +
 				" ignored: OpenAPI ignores Accept, Content-Type and Authorization header parameters",
+		})
+	}
+}
+
+// warnDuplicateParams mirrors ts/src/transform/top.ts.
+func warnDuplicateParams(ctx *ApiDefContext, def map[string]any) {
+	repeats, _ := def[duplicateParamsKey].([]any)
+	if ctx.Warn == nil {
+		return
+	}
+	for _, entry := range repeats {
+		rec, _ := entry.(map[string]any)
+		where := safeStr(rec["path"])
+		if method, ok := rec["method"].(string); ok {
+			where = method + " " + where
+		}
+		ctx.Warn.Warn(map[string]any{
+			"note": safeStr(rec["in"]) + " parameter `" + safeStr(rec["name"]) + "` of " + where +
+				" is declared more than once: the first declaration is used (OpenAPI forbids" +
+				" a repeated parameter; fix the definition)",
 		})
 	}
 }

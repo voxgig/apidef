@@ -2812,7 +2812,37 @@ function firstSentence(text: string): string {
 }
 
 
+// The identity OpenAPI gives a parameter: its location and name.
+function paramKey(param: any): string | undefined {
+  if (null == param || 'object' !== typeof param || 'string' !== typeof param.in || 'string' !== typeof param.name) return undefined
+  return param.in + '\u0000' + ('header' === param.in ? param.name.toLowerCase() : param.name)
+}
+
+
+// A route's parameters: the path item's, each replaced by the operation's own
+// declaration of the same location and name, then the operation's others.
+function routeParams(pathItem: any, op: any): any[] {
+  const own: any[] = Array.isArray(op?.parameters) ? op.parameters : []
+  const byKey = new Map<string, any>()
+  for (const param of own) {
+    const key = paramKey(param)
+    if (null != key && !byKey.has(key)) byKey.set(key, param)
+  }
+  const used = new Set<any>()
+  const shared = (Array.isArray(pathItem?.parameters) ? pathItem.parameters : []).map((param: any) => {
+    const key = paramKey(param)
+    const mine = null == key ? undefined : byKey.get(key)
+    if (null == mine) return param
+    used.add(mine)
+    return mine
+  })
+  return [...shared, ...own.filter((param) => !used.has(param))]
+}
+
+
 export {
+  paramKey,
+  routeParams,
   bodyRequestTransform,
   nom,
   getdlog,

@@ -781,15 +781,8 @@ func separateSharedPoints(guide map[string]any, def map[string]any) []string {
 func requiredArgs(def map[string]any, pathStr string, method string) []string {
 	paths, _ := def["paths"].(map[string]any)
 	item, _ := paths[pathStr].(map[string]any)
-	params := []any{}
-	if ps, ok := item["parameters"].([]any); ok {
-		params = append(params, ps...)
-	}
-	if op, ok := item[method].(map[string]any); ok {
-		if ps, ok := op["parameters"].([]any); ok {
-			params = append(params, ps...)
-		}
-	}
+	op, _ := item[method].(map[string]any)
+	params := routeParams(item, op)
 	out := []string{}
 	for _, p := range params {
 		param, _ := p.(map[string]any)

@@ -4,6 +4,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PAGE_ROLES = exports.sortedEntries = exports.PARAM_NOUN_SUFFIX_RE = exports.sortedKeys = exports.READ_METHODS = exports.CMP_REF_RE = exports.CANON_ONE = exports.VALID_CANON = void 0;
+exports.paramKey = paramKey;
+exports.routeParams = routeParams;
 exports.bodyRequestTransform = bodyRequestTransform;
 exports.nom = nom;
 exports.getdlog = getdlog;
@@ -2373,5 +2375,32 @@ function firstSentence(text) {
         out = (0 < space ? cut.slice(0, space) : cut).trimEnd() + '\u2026';
     }
     return out;
+}
+// The identity OpenAPI gives a parameter: its location and name.
+function paramKey(param) {
+    if (null == param || 'object' !== typeof param || 'string' !== typeof param.in || 'string' !== typeof param.name)
+        return undefined;
+    return param.in + '\u0000' + ('header' === param.in ? param.name.toLowerCase() : param.name);
+}
+// A route's parameters: the path item's, each replaced by the operation's own
+// declaration of the same location and name, then the operation's others.
+function routeParams(pathItem, op) {
+    const own = Array.isArray(op?.parameters) ? op.parameters : [];
+    const byKey = new Map();
+    for (const param of own) {
+        const key = paramKey(param);
+        if (null != key && !byKey.has(key))
+            byKey.set(key, param);
+    }
+    const used = new Set();
+    const shared = (Array.isArray(pathItem?.parameters) ? pathItem.parameters : []).map((param) => {
+        const key = paramKey(param);
+        const mine = null == key ? undefined : byKey.get(key);
+        if (null == mine)
+            return param;
+        used.add(mine);
+        return mine;
+    });
+    return [...shared, ...own.filter((param) => !used.has(param))];
 }
 //# sourceMappingURL=utility.js.map
