@@ -8,6 +8,7 @@ import assert from 'node:assert'
 
 import {
   humanTitle,
+  routeParams,
   depluralize,
   pluralize,
   setCustomPlurals,
@@ -1577,6 +1578,40 @@ describe('tsv-ignored-headers', () => {
       })
       assert.deepStrictEqual(
         warnings.map((warning) => warning.note).filter((n: string) => n.startsWith('header parameter')),
+        JSON.parse(row.warnings))
+    })
+  }
+})
+
+
+describe('tsv-duplicate-params', () => {
+  const rows = loadTsv('duplicate-params')
+  test('has rows', () => assert.ok(0 < rows.length))
+  for (const row of rows) {
+    test(row.name, async () => {
+      const def = await parse('OpenAPI', row.spec, { file: row.name })
+      const names = (list: any) => (list ?? []).map((p: any) => p.in + ':' + p.name)
+      const params: any = {}
+      const route: any = {}
+      for (const [path, item] of Object.entries<any>(def.paths)) {
+        params[path] = names(item.parameters)
+        for (const method of ['get', 'put', 'post', 'delete', 'patch']) {
+          if (null == item[method]) continue
+          params[method.toUpperCase() + ' ' + path] = names(item[method].parameters)
+          route[method.toUpperCase() + ' ' + path] = routeParams(item, item[method])
+            .map((p: any) => p.in + ':' + p.name + ':' + (p.description ?? ''))
+        }
+      }
+      assert.deepStrictEqual(params, JSON.parse(row.parameters))
+      assert.deepStrictEqual(def['x-apidef-duplicate-params'] ?? null, JSON.parse(row.duplicates))
+      assert.deepStrictEqual(route, JSON.parse(row.route))
+
+      const warnings: any[] = []
+      await topTransform({
+        apimodel: { main: { kit: {} } }, def, warn: (warning: any) => warnings.push(warning),
+      })
+      assert.deepStrictEqual(
+        warnings.map((warning) => warning.note).filter((n: string) => n.includes('is declared more than once')),
         JSON.parse(row.warnings))
     })
   }

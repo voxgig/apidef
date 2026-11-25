@@ -8,7 +8,7 @@ import {
 } from '../utility'
 
 import { METHODS } from '../resolved'
-import { IGNORED_HEADERS_KEY } from '../parse'
+import { DUPLICATE_PARAMS_KEY, IGNORED_HEADERS_KEY } from '../parse'
 
 import type { TransformResult } from '../transform'
 
@@ -140,6 +140,15 @@ const topTransform = async function(
       note: 'header parameter `' + ignored.name + '` of ' +
         (null == ignored.method ? '' : ignored.method + ' ') + ignored.path +
         ' ignored: OpenAPI ignores Accept, Content-Type and Authorization header parameters',
+    })
+  }
+
+  for (const repeat of def[DUPLICATE_PARAMS_KEY] ?? []) {
+    ctx.warn?.({
+      note: repeat.in + ' parameter `' + repeat.name + '` of ' +
+        (null == repeat.method ? '' : repeat.method + ' ') + repeat.path +
+        ' is declared more than once: the first declaration is used (OpenAPI forbids' +
+        ' a repeated parameter; fix the definition)',
     })
   }
 

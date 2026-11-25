@@ -2371,6 +2371,89 @@ func TestTsvServers(t *testing.T) {
 	}
 }
 
+func TestTsvDuplicateParams(t *testing.T) {
+	rows := loadTsv(t, "duplicate-params")
+	if len(rows) == 0 {
+		t.Fatal("no duplicate-params rows loaded")
+	}
+	for _, row := range rows {
+		t.Run(row["name"], func(t *testing.T) {
+			def, err := Parse("OpenAPI", row["spec"], map[string]string{"file": row["name"]})
+			if err != nil {
+				t.Fatal(err)
+			}
+			names := func(list any) []any {
+				out := []any{}
+				items, _ := list.([]any)
+				for _, p := range items {
+					param, _ := p.(map[string]any)
+					out = append(out, fmt.Sprint(param["in"])+":"+fmt.Sprint(param["name"]))
+				}
+				return out
+			}
+			params := map[string]any{}
+			route := map[string]any{}
+			paths, _ := def["paths"].(map[string]any)
+			for path, entry := range paths {
+				item, _ := entry.(map[string]any)
+				params[path] = names(item["parameters"])
+				for _, method := range []string{"get", "put", "post", "delete", "patch"} {
+					op, ok := item[method].(map[string]any)
+					if !ok {
+						continue
+					}
+					key := strings.ToUpper(method) + " " + path
+					params[key] = names(op["parameters"])
+					described := []any{}
+					for _, p := range routeParams(item, op) {
+						param, _ := p.(map[string]any)
+						desc, _ := param["description"].(string)
+						described = append(described, fmt.Sprint(param["in"])+":"+fmt.Sprint(param["name"])+":"+desc)
+					}
+					route[key] = described
+				}
+			}
+			var wantParams, wantDuplicates, wantNotes, wantRoute any
+			unmarshalCol(t, row, "parameters", &wantParams)
+			unmarshalCol(t, row, "duplicates", &wantDuplicates)
+			unmarshalCol(t, row, "warnings", &wantNotes)
+			unmarshalCol(t, row, "route", &wantRoute)
+			if !jsonEqual(params, wantParams) {
+				got, _ := json.Marshal(params)
+				t.Errorf("parameters\ngot  %s\nwant %s", got, row["parameters"])
+			}
+			if !jsonEqual(def[duplicateParamsKey], wantDuplicates) {
+				got, _ := json.Marshal(def[duplicateParamsKey])
+				t.Errorf("duplicates\ngot  %s\nwant %s", got, row["duplicates"])
+			}
+			if !jsonEqual(route, wantRoute) {
+				got, _ := json.Marshal(route)
+				t.Errorf("route\ngot  %s\nwant %s", got, row["route"])
+			}
+
+			warn := MakeWarner("warning", nil)
+			ctx := &ApiDefContext{
+				Def:      def,
+				Warn:     warn,
+				ApiModel: map[string]any{"main": map[string]any{KIT: map[string]any{}}},
+			}
+			if _, err := TopTransform(ctx); err != nil {
+				t.Fatal(err)
+			}
+			notes := []any{}
+			for _, w := range warn.History() {
+				if note, _ := w["note"].(string); strings.Contains(note, "is declared more than once") {
+					notes = append(notes, note)
+				}
+			}
+			if !jsonEqual(notes, wantNotes) {
+				got, _ := json.Marshal(notes)
+				t.Errorf("warnings\ngot  %s\nwant %s", got, row["warnings"])
+			}
+		})
+	}
+}
+
 func TestTsvIgnoredHeaders(t *testing.T) {
 	rows := loadTsv(t, "ignored-headers")
 	if len(rows) == 0 {

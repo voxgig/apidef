@@ -11,6 +11,7 @@ import {
   isFileType,
   normalizeFieldName,
   paramName,
+  routeParams,
   validator,
 } from '../utility'
 
@@ -91,7 +92,7 @@ const argsTransform: Transform = async function(
 function routeArgdefs(def: any, mpoint: ModelPoint): ParameterDef[] {
   const pathdef: PathDef = def.paths?.[mpoint.o]
   const opdef: MethodDef = (pathdef as any)?.[mpoint.m.toLowerCase()]
-  return [...((pathdef as any)?.parameters ?? []), ...(opdef?.parameters ?? [])]
+  return routeParams(pathdef, opdef)
 }
 
 
