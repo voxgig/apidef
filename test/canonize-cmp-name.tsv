@@ -4,3 +4,9 @@ Microsoft.AspNetCore.Mvc.ProblemDetails	problem_detail
 NoFrixion.Biz.BizModels.Paging.PayoutPageResponse	payout_page_response
 UserResponse	user_response
 users	user
+v1__models__source__SourceOutput	source
+AutonomousSystemPrefixOutput	autonomous_system_prefix
+BatchInput	batch
+Output	output
+Input	input
+OUTPUT	output

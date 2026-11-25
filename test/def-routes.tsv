@@ -104,9 +104,9 @@ auth-exchange-def.json	POST /widget	widget	true	create
 blank-segment-def.json	GET /orders/-/{order_id}/lines/{line_id}	line	true	load		line_id->id,order_id->_id	
 blank-segment-def.json	GET /orders/-/{order}/notes/{note_id}	note	true	load		note_id->id,order->_id	
 blank-segment-def.json	POST /orders/-/{order_id}/refund	nt	true	create		order_id->_id	
-body-media-def.json	GET /#Action=StartSession	start_session	true	load			{"res":"`body.Credentials`"}
+body-media-def.json	GET /#Action=StartSession	session	true	load	start		{"res":"`body.Credentials`"}
 body-media-def.json	GET /keys	key	true	list			
-body-media-def.json	POST /#Action=StartSession	start_session	true	create			{"res":"`body.Credentials`"}
+body-media-def.json	POST /#Action=StartSession	session	true	create	start		{"res":"`body.Credentials`"}
 body-media-def.json	POST /keys/{keyName}/requestTicket	ticket	true	create		keyName->key_name	
 body-media-def.json	POST /signin/{service_id}/{account}/authenticate	authenticate	true	create		service_id->signin_id	
 collection-merge-def.json	DELETE /keys/{key_id}	key	true	remove		key_id->id	
@@ -145,7 +145,7 @@ command-action-def.json	PUT /projects/{id}/packages/nuget	package	true	update	nu
 command-action-def.json	PUT /projects/{id}/packages/nuget/symbolpackage	package	true	update	symbolpackage	id->project_id	
 command-def.json	GET /account	account	true	load			
 command-def.json	GET /keys	key	true	list			
-command-def.json	POST /#Action=StartSession	start_session	true	create			{"res":"`body.Credentials`"}
+command-def.json	POST /#Action=StartSession	session	true	create	start		{"res":"`body.Credentials`"}
 command-def.json	POST /account	account	true	create			
 command-def.json	POST /keys/{keyName}/requestTicket	ticket	true	create		keyName->key_name	
 composed-part-def.json	DELETE /projects/{project_id}	project	true	remove		project_id->id	{"res":"`body.project`"}
@@ -173,6 +173,11 @@ delete-cmp-def.json	GET /archives	archive	true	list
 delete-cmp-def.json	GET /things	thing	true	list			
 delete-cmp-def.json	GET /things/{thing_id}	thing	true	load		thing_id->id	
 delete-cmp-def.json	GET /things/{thing_id}/archive/{entry_id}	thing	true	load		thing_id->id	
+dotted-part-def.json	GET /agents.{mode}.json	agent	true	list			
+dotted-part-def.json	GET /files/NOTICE.html.gz	notice	true	load			
+dotted-part-def.json	GET /store/keystore.p12	keystore	true	load			
+dotted-part-def.json	POST /config/org.example.alpha.Widget	org	true	create	org_example_alpha_widget		
+dotted-part-def.json	POST /config/org.example.beta.Gadget	org	true	create			
 embedded-def.json	GET /clinics	clinic	true	list			
 embedded-def.json	GET /clinics/{id}	clinic	true	load			
 embedded-def.json	GET /owners	owner	true	list			
@@ -244,6 +249,10 @@ filter-param-def.json	PUT /settings/{type}	setting	true	update		type->id
 fold-merge-def.json	GET /repos.json	repo	true	list			{"page":{"total":"`body.count`"},"res":"`body.items`"}
 fold-merge-def.json	GET /usecases.json	use_case	true	list			{"page":{"total":"`body.count`"},"res":"`body.items`"}
 fold-merge-def.json	GET /usecases/{id}.json	use_case	true	load			
+generated-name-def.json	GET /night_mode	night_mode	true	load			
+generated-name-def.json	GET /saved_networks	saved_network	true	list			
+generated-name-def.json	GET /v1/source/{name}	source	true	load		name->id	
+generated-name-def.json	POST /v1/prefix	prefix	true	create			
 generic-name-def.json	GET /boards/{boardId}	board	true	load		boardId->id	
 generic-name-def.json	GET /notices/{noticeId}{format}	notice	true	load		noticeId->id	
 generic-name-def.json	GET /units/{unitId}/teamgroups	team_group	true	list		unitId->unit_id	
@@ -259,6 +268,17 @@ generic-name-def.json	POST /notices/{noticeId}/pin{format}	notice	true	create	pi
 generic-name-def.json	POST /notices/{noticeId}/retract{format}	notice	true	create	retract	noticeId->id	
 generic-name-def.json	POST /units/{unitId}/teamgroups	team_group	true	create		unitId->unit_id	
 generic-name-def.json	POST /v1/gadgets/validate	gadget	true	create	validate		
+id-list-def.json	DELETE /groups/playlists/{id}/ids/{itemId}	playlist	true	remove	ids	itemId->item_id	
+id-list-def.json	GET /groups/playlists	playlist	true	list			
+id-list-def.json	GET /groups/playlists/{id}	playlist	true	load			
+id-list-def.json	GET /groups/playlists/{id}/ids	playlist	true	load	ids		
+id-list-def.json	POST /groups/playlists/{id}/ids	playlist	true	create	ids		
+item-download-def.json	GET /shelves/{shelfId}	shelf	true	load		shelfId->id	
+item-download-def.json	GET /shelves/{shelfId}/books	book	true	list		shelfId->shelf_id	
+item-download-def.json	GET /shelves/{shelfId}/books/{bookId}	book	true	load		bookId->id,shelfId->shelf_id	
+item-download-def.json	GET /shelves/{shelfId}/cover	shelf	true	load	cover	shelfId->id	
+item-download-def.json	GET /shelves/{shelfId}/cover/{width}	shelf	true	load	cover	shelfId->id	
+item-download-def.json	PUT /shelves/{shelfId}/books/{bookId}	book	true	update		bookId->id,shelfId->shelf_id	
 item-envelope-def.json	GET /customers.json	customer	true	list			{"res":["`$EACH`","body",{"`$MERGE`":"`.customer`"}]}
 item-envelope-def.json	GET /customers/{id}.json	customer	true	load			{"res":"`body.customer`"}
 item-envelope-def.json	GET /invoices.json	invoice	true	list			
@@ -456,6 +476,12 @@ prefix-tag-def.json	GET /tiles	tile	true	list
 prefix-tag-def.json	GET /tiles/random	tile	true	load	random		
 prefix-tag-def.json	GET /tiles/{tile_id}	tile	true	load		tile_id->id	
 prefix-tag-def.json	POST /alerts/deviceSubscriptions	device_subscription	true	create			
+procedure-def.json	GET /#Action=GetWidgets	widget	true	load	get		
+procedure-def.json	GET /records.get_entries	entry	true	load	get		
+procedure-def.json	GET /records.metadata	record	true	load			
+procedure-def.json	POST /#Action=BatchDeleteWidgets	widget	true	create	batch_delete		
+procedure-def.json	POST /#Action=ListGadgets	gadget	true	create	list		
+procedure-def.json	POST /#Action=Select	action_select	true	create			
 projection-def.json	GET /owners	owner	true	list			
 projection-def.json	GET /owners/{id}	owner	true	load			
 projection-def.json	GET /owners/{id}/nick_names	owner	true	load	nick_name		
@@ -739,6 +765,13 @@ verb-edge-def.json	POST /widgets/{id}/labels	widget	true	create	labels
 verb-edge-def.json	PUT /email-archives/{email_archive_id}/archive	email_archive	true	update	archive	email_archive_id->id	
 verb-edge-def.json	PUT /widgets/{id}	widget	true	update			
 verb-edge-def.json	PUT /widgets/{widget_number}/merge	widget	true	update	merge	widget_number->id	
+verb-noun-def.json	GET /account	account	true	load			
+verb-noun-def.json	GET /c/{id}/show	category	true	load		id->c_id	
+verb-noun-def.json	GET /shows	show	true	list			
+verb-noun-def.json	GET /shows/{id}	show	true	load			
+verb-noun-def.json	GET /tokens	token	true	list			
+verb-noun-def.json	POST /account/2/verify	account	true	create	verify		
+verb-noun-def.json	POST /tokens/authorize	token	true	create	authorize		
 verb-phrase-def.json	GET /s	shelf	true	list			
 verb-phrase-def.json	GET /s/{shelf}	shelf	true	load			
 verb-phrase-def.json	GET /s/{shelf}/k/{book}	book	true	load			

@@ -106,13 +106,23 @@ const VERB_WORDS = new Set([
     'accept', 'decline', 'notify', 'ping', 'count', 'exists', 'preview', 'render', 'generate',
     'calculate', 'compute', 'convert', 'process', 'trigger', 'dispatch', 'apply', 'revoke',
     'grant', 'save', 'lock', 'test', 'inject', 'analyze', 'autocomplete', 'bypass', 'contains',
-    'finish', 'reorder', 'shuffle',
+    'finish', 'reorder', 'shuffle', 'show', 'award', 'authorize', 'reload',
 ]);
+// A bare number is a release or an index, never a noun.
+const NUMBER_PART_RE = /^\d+$/;
 // A literal that names an identifier keys a resource rather than naming one.
 const ID_LITERAL_RE = /(^|_)ids?$/;
 // A component named for one of these, alone or as the bare member of a family
 // of results, names no entity.
 const GENERIC_CMP_WORDS = ['default', 'empty', 'ok', 'response', 'result', 'success', 'void'];
+// A name made only of these words, as ResponseListResource, names nothing.
+const GENERIC_NAME_WORDS = [...GENERIC_CMP_WORDS, 'list', 'resource'];
+// A generic word and a number, as a generator names what it was not told
+// to name: Example17, Model3, InlineObject2.
+const GENERATED_CMP_RE = /^(example|model|schema|body|inline|inline_object|object)_?\d+$/;
+// The body a generator names for the operation it is sent to,
+// Body_create_item_items_post, names nothing either.
+const OPERATION_BODY_RE = /^body_.+_(get|put|post|patch|delete)$/;
 // A version tag groups routes by release, not by resource.
 const VERSION_TAG_RE = /^v\d+([a-z]+\d*)?$/;
 exports.VERSION_TAG_RE = VERSION_TAG_RE;
@@ -832,7 +842,8 @@ function collectionOwner(mdesc, parts, work) {
 // is named for what it reads or sends.
 function pathEntityName(data, mdesc, parts, pm, pathowner, why) {
     const ment = mdesc.MethodEntity;
-    const joined = methodOf(mdesc.path) ?? singletonPartOf(data, parts, pathowner) ??
+    const joined = methodOf(mdesc.path) ?? procedureOf(mdesc.path) ??
+        idsOfItem(data, parts, pathowner) ?? singletonPartOf(data, parts, pathowner) ??
         readOfItem(data, mdesc, parts, pathowner);
     if (null != joined) {
         ment.verb_on_parent = parts[parts.length - 1] ?? joined.action;
@@ -911,7 +922,7 @@ function pathEntityName(data, mdesc, parts, pm, pathowner, why) {
     // A short literal names nothing: the component the route answers, else
     // the route's key, else what a route with no literal is named by, else the
     // padded literal.
-    if (null != pm && shortLiteral(pm)) {
+    if (null != pm && shortLiteral(pm, parts)) {
         why.push('short-literal');
         const answered = answeredCmp(mdesc);
         if (null != answered) {
@@ -1175,7 +1186,8 @@ function FindActions(spec) {
     if (null != ment.same_path) {
         return;
     }
-    const parts = verbParts(spec.data.work.pathmap[pathStr].parts);
+    const parts = verbParts(spec.data.work.pathmap[pathStr].parts)
+        .filter((part, i, all) => all.length - 1 === i || !NUMBER_PART_RE.test(part));
     const fourthLastPart = parts[parts.length - 4];
     const fourthLastPartCanon = (0, utility_1.literalName)(fourthLastPart);
     const thirdLastPart = parts[parts.length - 3];
@@ -1521,7 +1533,9 @@ function BuildEntity(spec) {
 }
 function genericCmp(name, refs, schema) {
     if (GENERIC_CMP_WORDS.includes(name) || ID_LITERAL_RE.test(name) || emptyObjectSchema(schema) ||
-        ('object' === name && 0 === Object.keys((0, utility_2.mergedProperties)(schema) ?? {}).length)) {
+        ('object' === name && 0 === Object.keys((0, utility_2.mergedProperties)(schema) ?? {}).length) ||
+        GENERATED_CMP_RE.test(name) || OPERATION_BODY_RE.test(name) ||
+        (name.includes('_') && name.split('_').every((word) => GENERIC_NAME_WORDS.includes(word)))) {
         return true;
     }
     const at = name.lastIndexOf('_');
@@ -1587,7 +1601,7 @@ function pathNoun(pm, parts, why) {
     const lit = (0, jostraca_2.snakify)(parts[at]);
     if (null != custom || (isVerbWord(parts[at]) && !keyedBy(parts[at + 1], name))) {
         for (let i = at - 1; 0 <= i; i--) {
-            if (!isParam(parts[i])) {
+            if (!isParam(parts[i]) && !NUMBER_PART_RE.test(parts[i])) {
                 // A version segment ends the base path, so no noun precedes the verb.
                 if (VERSION_TAG_RE.test(parts[i].toLowerCase())) {
                     break;
@@ -1845,6 +1859,35 @@ function methodOf(pathStr) {
     const action = 2 <= names.length ? (0, jostraca_2.snakify)(names[names.length - 1]) : '';
     return '' === parent || '' === action ? null : { parent, action, why: 'method-name' };
 }
+// A list of identifiers beneath an item key, and each identifier in it, is
+// an action of that item: `/lists/{id}/ids` and `/lists/{id}/ids/{itemId}`.
+function idsOfItem(data, parts, pathowner) {
+    const at = isParam(parts[parts.length - 1] ?? '') ? parts.length - 2 : parts.length - 1;
+    if (at < 2 || isParam(parts[at]) || !isParam(parts[at - 1]) ||
+        'ids' !== (0, jostraca_2.snakify)(parts[at]).replace(/^.*_/, '')) {
+        return null;
+    }
+    const route = pathNamed(data, '/' + parts.slice(0, at).join('/'));
+    const owners = null == route ? {} : (pathowner[route] ?? {});
+    const parent = owners.GET ?? owners.QUERY ?? Object.values(owners).sort()[0];
+    return null == parent ? null : { parent, action: (0, jostraca_2.snakify)(parts[at]), why: 'ids-of-item' };
+}
+// Verbs a remote procedure opens with beside the verb words.
+const PROCEDURE_VERBS = ['put', 'set', 'post'];
+// A remote procedure in an `Action=` value or after a segment's last dot: the
+// object after its verb names the entity, and the verb is the action.
+function procedureOf(pathStr) {
+    const segs = pathStr.replace(/[?#].*$/, '').split('/');
+    const action = pathStr.match(/[#?&]Action=([A-Za-z][A-Za-z0-9_]*)/)?.[1];
+    const named = action ?? segs[segs.length - 1].match(/^[^{}]*\.([A-Za-z][A-Za-z0-9_]*)$/)?.[1];
+    const words = null == named ? [] : (0, utility_2.canonize)(named).split('_');
+    // An Action value may open with a word before its verb, as Batch does; a
+    // dotted name only with the verb, so a class name is not read as one.
+    const verb = words.slice(0, null == action ? 1 : 2).findIndex((word) => VERB_WORDS.has(word) || PROCEDURE_VERBS.includes(word));
+    const parent = verb < 0 ? '' : words.slice(verb + 1).join('_');
+    return parent.replace(/_/g, '').length < 3 ? null :
+        { parent, action: words.slice(0, verb + 1).join('_'), why: 'procedure' };
+}
 // A sub-path of a keyless singleton, read, written and deleted with no schema
 // and no key beneath it, is an action of that singleton, plural or not.
 function singletonPartOf(data, parts, pathowner) {
@@ -1879,6 +1922,15 @@ function readOfItem(data, mdesc, parts, pathowner) {
     const lastLit = parts.map((part) => !isParam(part)).lastIndexOf(true);
     const key = parts.slice(0, lastLit).map((part) => isParam(part)).lastIndexOf(true);
     if (key < 0 || lastLit < 0) {
+        return null;
+    }
+    // A key of its literal's collection reads the item; a modifier, as a size,
+    // after a literal that is no download itself, makes a download.
+    const tail = parts[parts.length - 1];
+    const prefix = pathNamed(data, '/' + parts.slice(0, -1).join('/'));
+    const prefixRead = null == prefix ? null : data.def?.paths?.[prefix]?.get;
+    if (isParam(tail) && (keyedBy(tail, (0, utility_1.literalName)(parts[lastLit])) || (null != prefix &&
+        !(null != prefixRead && binaryResponse(prefixRead.responses))))) {
         return null;
     }
     const literals = parts.slice(key + 1).filter((part) => !isParam(part));
@@ -2012,9 +2064,10 @@ function verbActionName(literals) {
         (0, jostraca_2.snakify)(lit.replace(/\.?\{[^}]*\}/g, '')).replace(/[^a-zA-Z0-9_]/g, ''))
         .join('_');
 }
-// A literal too short for a word names nothing.
-function shortLiteral(pm) {
-    return (0, utility_2.canonize)(pm[PATH_NAME_INDEX[pm.expr]]).replace(/_/g, '').length < 3;
+// A literal too short for a word names nothing, nor does a verb whose noun is.
+function shortLiteral(pm, parts) {
+    const short = (lit) => (0, utility_2.canonize)(lit).replace(/_/g, '').length < 3;
+    return short(pm[PATH_NAME_INDEX[pm.expr]]) || short(pathNoun(pm, parts, []));
 }
 // The naming literal is a generic word, or a verb word with no literal
 // before it in the path.
@@ -2022,7 +2075,7 @@ function nounless(pm, parts) {
     const at = pm.index + PATH_NAME_INDEX[pm.expr];
     const name = (0, utility_1.literalName)(parts[at]);
     return GENERIC_WORDS.includes(name) ||
-        (VERB_WORDS.has(name) && parts.slice(0, at).every((part) => isParam(part)));
+        (isVerbWord(parts[at]) && parts.slice(0, at).every((part) => isParam(part)));
 }
 // The component a route answers with, cleaned, when no tag stands for it.
 function answeredCmp(mdesc) {
@@ -2248,6 +2301,9 @@ function commandBodyName(data, mdesc) {
         return null;
     }
     let name = cleanCmp(data, (0, utility_2.canonizeCmpName)((0, utility_2.cmpRefName)(xref)));
+    if (GENERATED_CMP_RE.test(name) || OPERATION_BODY_RE.test(name)) {
+        return null;
+    }
     for (;;) {
         const suffix = COMMAND_SUFFIXES.find((sfx) => name.endsWith(sfx) && sfx.length < name.length);
         if (null == suffix) {

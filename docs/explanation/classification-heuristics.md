@@ -27,6 +27,17 @@ one (`repos.json`, `data.{format}`) as the literal, and a format alone
 model keeps each segment as written, so a request still goes to
 `/repos/acme.json`.
 
+Any other segment with a dot is named by what precedes its first dot, and
+the selectors and extensions after it name nothing: `/store/keystore.p12`
+names `keystore`, `/files/NOTICE.html.gz` names `notice` and
+`/agents.{mode}.json` names `agent`. A segment that opens with a dot, as in
+`/.json/{path}`, names nothing. Routes that differ only after the dot stay
+apart: `/config/org.example.alpha.Widget` beside
+`/config/org.example.beta.Gadget` is `org`, the first with the action
+`org_example_alpha_widget`. A bare number, as the `2` of
+`/account/2/verify`, is never a noun, so the verb after it acts on
+`account`.
+
 These string parts belong to the GUIDE step alone — the classifier's own
 working view of the path. They are not what the MODEL carries: a point's
 path is emitted as a typed `segments` vector with the braces already
@@ -53,6 +64,15 @@ object before the verb and takes the verb as the action:
 `GET /rpc?method=acme.widgets.getInfo` is `widget` with the action
 `get_info`. The method and the response still decide the operation, so
 `acme.widgets.search`, answering an array, is a `list`.
+
+An `Action=` value, as in `/#Action=GetWidgets`, and a name after a
+segment's last dot that opens with a verb, as in `/records.get_entries`, are
+remote procedures too. The object after the verb names the entity, and the
+verb, with any word before it, is the action: `/#Action=BatchDeleteWidgets`
+is `widget` with the action `batch_delete`, and `/records.get_entries` is
+`entry` with `get`. A procedure with no object after its verb, such as
+`/#Action=Select`, keeps its own name, and a dotted name that does not open
+with a verb, such as a class name, is no procedure.
 
 ## Naming an entity
 
@@ -101,7 +121,8 @@ would be: by the noun of the key its shape gives, `sheet` for
 `/fr/{sheetName}{fileExtension}` and `term` for
 `/search/{versionNumber}/q/{term}.{ext}`; else by its parameters,
 operation id, response title or tag; else by the literal padded to three
-letters, `dbn` for a bare `/db`.
+letters, `dbn` for a bare `/db`. A trailing verb whose noun is that short is read
+the same way, so `/c/{id}/show`, answering a `Category`, is `category`.
 
 A read whose naming literal is a verb word with no literal before it,
 `/list.json`, or a generic word, `history`, `list` or `results`, is named
@@ -354,6 +375,14 @@ instead, so the `PUT` of a secret that answers with an `empty-object` joins
 records may hold fields the definition leaves out: routes answering a bare
 `LeaveRecordResponse` of `type: object` are `leave_record`, not named after
 their path.
+
+A name a generator gave to what it was not told to name carries no entity
+either: a generic word and a number, as `Example17` or `Model3`, or the
+request body a generator names for its operation,
+`Body_create_item_items_post`. Neither does a name made only of generic
+words, such as `ResponseListResource`. A generator's affixes are no part of a
+name: the module path before a double underscore and a trailing `Output` or
+`Input` are dropped, so `v1__models__source__SourceOutput` names `source`.
 
 A method that answers no component of its own joins the entity that a read
 of its path takes from the component it answers. A `DELETE` answering a
@@ -675,7 +704,14 @@ A read of the item's own details is the item, whatever it answers. A
 `details`, spelled as written. A `GET` beneath an item key whose success
 responses are all binary, an image, a file or an archive, downloads the
 item: `/employees/{employeeId}/photo/{width}` is `photo` on `employee`,
-named as a view is.
+named as a view is. A key that keys its literal's collection makes no
+download: beside the collection `/shelves/{shelfId}/books`,
+`/shelves/{shelfId}/books/{bookId}` reads `book` whatever it answers with.
+Only a modifier after the literal, as `{width}` is, makes a download.
+
+A list of identifiers beneath an item key is an action of that item:
+`/groups/playlists/{id}/ids` and `/groups/playlists/{id}/ids/{itemId}` are
+`playlist` with the action `ids`.
 
 A singleton without a key keeps its parts. Beneath `/store/settings`,
 `/store/settings/sort-rules` is read, written and deleted, with no schema of

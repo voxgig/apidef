@@ -33,6 +33,7 @@ import {
   formatJSONIC,
   stripOperationVerb,
   guideParts,
+  selectorParts,
   getModelPath,
   isEntityWrapperProp,
   envelopeProp,
@@ -491,6 +492,15 @@ describe('tsv-guide-parts', () => {
   for (const row of loadTsv('guide-parts')) {
     test(`guideParts(${row.input})`, () => {
       assert.deepStrictEqual(guideParts(row.input), JSON.parse(row.expected))
+    })
+  }
+})
+
+
+describe('tsv-selector-parts', () => {
+  for (const row of loadTsv('selector-parts')) {
+    test(`selectorParts(${row.input})`, () => {
+      assert.deepStrictEqual(selectorParts(row.input), JSON.parse(row.expected))
     })
   }
 })

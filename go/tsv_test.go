@@ -385,6 +385,18 @@ func TestTsvGuideParts(t *testing.T) {
 	}
 }
 
+func TestTsvSelectorParts(t *testing.T) {
+	for _, row := range loadTsv(t, "selector-parts") {
+		t.Run(row["input"], func(t *testing.T) {
+			var want []string
+			unmarshalCol(t, row, "expected", &want)
+			if got := selectorParts(row["input"]); !reflect.DeepEqual(got, want) {
+				t.Errorf("selectorParts(%q) = %v, want %v", row["input"], got, want)
+			}
+		})
+	}
+}
+
 func TestTsvOperationVerb(t *testing.T) {
 	for _, row := range loadTsv(t, "operation-verb") {
 		t.Run(row["input"], func(t *testing.T) {
